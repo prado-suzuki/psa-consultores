@@ -206,6 +206,29 @@ function bandOf(y: number): Band | null {
   return null;
 }
 
+// Faixa horizontal FIXA das 4 bandas do organograma (nao derivar do template).
+// LMIN = borda direita dos rotulos "Socios/Controladoras/..." + margem = 1.40"
+// RMAX = 12.90". Largura util = 11.5" ≈ 10515600 EMU.
+const ORG_LMIN = 1280160;   // 1.40" em EMU
+const ORG_RMAX = 11795760;  // 12.90" em EMU
+const ORG_GAP = 91440;      // 0.10" em EMU
+const ORG_CX_MIN = 500000;  // 0.55" — abaixo disso, colapsa em "+K"
+
+/** Insere <a:normAutofit/> em cada <a:bodyPr> do shape (shrink-to-fit). */
+function ensureNormAutofit(sp: Element): void {
+  const bodies = qsa(sp, "a:bodyPr");
+  for (const bp of bodies) {
+    bp.setAttribute("wrap", "square");
+    // Se ja tem qq autofit, remove
+    for (const tag of ["a:normAutofit", "a:spAutoFit", "a:noAutofit"]) {
+      for (const el of qsa(bp, tag)) bp.removeChild(el);
+    }
+    const doc = bp.ownerDocument!;
+    const auto = doc.createElementNS("http://schemas.openxmlformats.org/drawingml/2006/main", "a:normAutofit");
+    bp.appendChild(auto);
+  }
+}
+
 function distribuirShapes(
   spTree: Element,
   templateShape: Element,
@@ -216,23 +239,29 @@ function distribuirShapes(
 ): void {
   const xfrm = getShapeXfrm(templateShape);
   if (!xfrm) return;
-  // Faixa horizontal usavel: 0.6"..12.9" da largura (deixa margem).
-  const xMin = 550000;
-  const xMax = SLIDE_W - 550000;
-  const usable = xMax - xMin;
   const n = itens.length;
   if (n === 0) return;
-  const cxOriginal = xfrm.cx;
-  // Largura por item: caso caiba tudo no cx original, mantem; senao reduz.
-  const gap = 150000;
-  const cx = Math.min(cxOriginal, Math.max(600000, (usable - gap * (n - 1)) / n));
-  const totalWidth = cx * n + gap * (n - 1);
-  const startX = xMin + (usable - totalWidth) / 2;
+  const usable = ORG_RMAX - ORG_LMIN;
+  let cx = (usable - ORG_GAP * (n - 1)) / n;
+  let labels = itens;
+  // N extremo: substitui a ultima caixa por marcador "+K".
+  if (cx < ORG_CX_MIN && n > 1) {
+    let nn = n;
+    while (nn > 1 && cx < ORG_CX_MIN) {
+      nn--;
+      cx = (usable - ORG_GAP * (nn - 1)) / nn;
+    }
+    const k = n - (nn - 1);
+    labels = itens.slice(0, nn - 1).concat([`+${k}`]);
+  }
+  const nFinal = labels.length;
+  cx = (usable - ORG_GAP * (nFinal - 1)) / nFinal;
 
-  for (let i = 0; i < n; i++) {
+  for (let i = 0; i < nFinal; i++) {
     const clone = cloneShapeWithId(templateShape, idCounter.next++);
-    setShapeXfrm(clone, { x: startX + i * (cx + gap), y, cx, cy });
-    applyTokensToNode(clone, { ORG_ITEM: itens[i] });
+    setShapeXfrm(clone, { x: ORG_LMIN + i * (cx + ORG_GAP), y, cx, cy });
+    ensureNormAutofit(clone);
+    applyTokensToNode(clone, { ORG_ITEM: labels[i] });
     spTree.appendChild(clone);
   }
 }
@@ -285,17 +314,42 @@ function renderOrganograma(parts: PptxParts, slidePath: string, bands: Organogra
 // ============================================================================
 
 // Layout: 2 colunas × N linhas por slide. Ao esgotar altura, duplicar slide.
-const QUADRO_X_LEFT = 300000;
-const QUADRO_X_RIGHT = 6300000;
-const QUADRO_COL_W = 5700000;
-const QUADRO_Y_START = 1400000;
-const QUADRO_Y_END = 6500000;
-const QUADRO_GAP_V = 200000;
+// Constantes em EMU (1" = 914400).
+const QUADRO_COL_W = 5212080;   // 5.7"
+const QUADRO_GAP_H = 274320;    // 0.3"
+const QUADRO_LEFT_0 = 548640;   // 0.6"
+const QUADRO_LEFT_1 = QUADRO_LEFT_0 + QUADRO_COL_W + QUADRO_GAP_H;
+const QUADRO_LEFT_CENTER = 2971800; // 3.25" (1 empresa)
+const QUADRO_TOP_0 = 1417320;   // 1.55"
+const QUADRO_TOP_MAX = 6492240; // 7.1"
+const QUADRO_ROW_H = 237744;    // 0.26"
+const QUADRO_PAD_H = 320040;    // 0.35"
 
 function estimarAltura(rowCount: number): number {
-  // template original: 4 rows (empresa+headers+1socio+total) ≈ 1200000 EMU.
-  // extrapolando ~300000 por row: header (2) + n socios + total.
-  return 300000 * (3 + rowCount);
+  // header empresa + header colunas + linhas + TOTAL + padding
+  return (3 + rowCount) * QUADRO_ROW_H + QUADRO_PAD_H;
+}
+
+/**
+ * Localiza a row TOTAL (unica remanescente com celulas de dados apos remover template SOCIO).
+ * Preenche os textos sobrescrevendo textContent do 1o <a:t> de cada <a:tc> a partir da col 1.
+ */
+function preencherTotal(gf: Element, totalQuotas: number, totalValor: number): void {
+  const rows = listRows(gf);
+  // Ultima row = TOTAL no template.
+  const totalRow = rows[rows.length - 1];
+  if (!totalRow) return;
+  const cells: Element[] = [];
+  const ch = totalRow.childNodes;
+  for (let i = 0; i < ch.length; i++) {
+    const n = ch.item(i) as Element;
+    if (n && n.nodeType === 1 && (n.tagName === "a:tc" || n.nodeName === "a:tc")) cells.push(n);
+  }
+  const vals = ["", fmtInt(totalQuotas), fmtBRL(totalValor), "100,00%"];
+  for (let i = 1; i < cells.length && i < vals.length; i++) {
+    const t = qsa(cells[i], "a:t")[0];
+    if (t) t.textContent = vals[i];
+  }
 }
 
 function renderQuadroTable(
@@ -305,7 +359,7 @@ function renderQuadroTable(
   empresa: QuadroEmpresa,
   x: number,
   y: number,
-): number {
+): void {
   const clone = cloneGraphicFrameWithId(templateGf, idCounter.next++);
   // Substituir rows: encontrar row com {{SOCIO}}, clonar por linha.
   const rows = listRows(clone);
@@ -323,20 +377,15 @@ function renderQuadroTable(
     }
     removeRow(template);
   }
-  // Empresa + TOTAL (linha total ja tem palavra 'TOTAL' mas sem valores agregados).
-  applyTokensToNode(clone, {
-    EMPRESA: empresa.empresa,
-  });
-  // Reposicionar.
-  const box = getGraphicFrameBox(clone);
+  applyTokensToNode(clone, { EMPRESA: empresa.empresa });
+  preencherTotal(clone, empresa.totalQuotas, empresa.totalValor);
+
   const cy = estimarAltura(empresa.linhas.length);
-  setGraphicFrameBox(clone, { x, y, cx: QUADRO_COL_W, cy: box?.cy ?? cy });
+  setGraphicFrameBox(clone, { x, y, cx: QUADRO_COL_W, cy });
   spTree.appendChild(clone);
-  return cy;
 }
 
 function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: QuadroEmpresa[]): QuadroEmpresa[] {
-  // Retorna as empresas que sobraram (nao couberam).
   const xml0 = readText(parts, slidePath);
   const doc = parseXml(xml0);
   const spTree = qsa(doc, "p:spTree")[0];
@@ -346,30 +395,33 @@ function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: Quadro
     return empresas;
   }
 
-  // Contador monotonico de cNvPr@id: seed pelo maior id existente ANTES de
-  // remover o graphicFrame-modelo, + buffer folgado.
   const idCounter = { next: nextCNvPrId(xml0) + 100 };
 
-  // Cursor por coluna
-  let yL = QUADRO_Y_START;
-  let yR = QUADRO_Y_START;
+  // Pula empresas sem socios.
+  const validas = empresas.filter((e) => e.linhas.length > 0);
   const restantes: QuadroEmpresa[] = [];
-  for (const emp of empresas) {
-    const h = estimarAltura(emp.linhas.length);
-    if (yL + h <= QUADRO_Y_END) {
-      renderQuadroTable(spTree, gf, idCounter, emp, QUADRO_X_LEFT, yL);
-      yL += h + QUADRO_GAP_V;
-    } else if (yR + h <= QUADRO_Y_END) {
-      renderQuadroTable(spTree, gf, idCounter, emp, QUADRO_X_RIGHT, yR);
-      yR += h + QUADRO_GAP_V;
-    } else {
-      restantes.push(emp);
+
+  if (validas.length === 1) {
+    // Centralizar tabela unica.
+    renderQuadroTable(spTree, gf, idCounter, validas[0], QUADRO_LEFT_CENTER, QUADRO_TOP_0);
+  } else {
+    const tops = [QUADRO_TOP_0, QUADRO_TOP_0];
+    const lefts = [QUADRO_LEFT_0, QUADRO_LEFT_1];
+    for (let i = 0; i < validas.length; i++) {
+      const col = i % 2;
+      const emp = validas[i];
+      const h = estimarAltura(emp.linhas.length);
+      if (tops[col] + h > QUADRO_TOP_MAX) {
+        // Nao coube — adia esta e todas as demais.
+        restantes.push(...validas.slice(i));
+        break;
+      }
+      renderQuadroTable(spTree, gf, idCounter, emp, lefts[col], tops[col]);
+      tops[col] += h;
     }
   }
 
-  // Remove o template original (com placeholders crus).
   gf.parentNode?.removeChild(gf);
-
   stripRemainingTokens(doc);
   writeText(parts, slidePath, serializeXml(doc));
   return restantes;
@@ -451,7 +503,7 @@ async function upsertDocumentoGerado(
     .select("id, documento_raiz_id")
     .eq("cliente_id", args.clienteId)
     .eq("documento_template_id", TEMPLATE_IDS[args.tipo])
-    .order("gerado_em", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
