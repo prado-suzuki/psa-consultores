@@ -23,8 +23,15 @@ const supabaseMocks = vi.hoisted(() => ({
   storageFrom: vi.fn(),
 }));
 
+const auditMocks = vi.hoisted(() => ({
+  logAction: vi.fn(),
+}));
+
 vi.mock('@tanstack/react-query', () => reactQueryMocks);
 vi.mock('@/hooks/useRlsPrecheck', () => rlsMocks);
+vi.mock('@/hooks/useAuditLog', () => ({
+  useAuditLog: () => ({ logAction: auditMocks.logAction }),
+}));
 vi.mock('@/lib/excelImporter', () => ({
   findProfileByName: vi.fn(() => null),
 }));
@@ -54,9 +61,16 @@ interface DbCall {
 
 const dbCalls: DbCall[] = [];
 const dbResults = new Map<string, DbResult>();
+const dbSequences = new Map<string, DbResult[]>();
 
 function setDbResult(table: string, operation: string, result: DbResult) {
   dbResults.set(`${table}:${operation}`, result);
+}
+
+// Para fluxos que fazem vários selects na MESMA tabela esperando formatos diferentes (o move lê a
+// linha, depois a sprint inteira, depois confere o resultado). Consome um resultado por chamada.
+function setDbSequence(table: string, operation: string, results: DbResult[]) {
+  dbSequences.set(`${table}:${operation}`, [...results]);
 }
 
 function makeSupabaseChain(table: string) {
@@ -87,11 +101,15 @@ function makeSupabaseChain(table: string) {
       return chain;
     });
   }
-  chain.then = (onFulfilled: (r: DbResult) => unknown, onRejected?: (e: unknown) => unknown) =>
-    Promise.resolve(dbResults.get(`${table}:${operation}`) ?? { data: [], error: null }).then(
-      onFulfilled,
-      onRejected,
-    );
+  chain.then = (onFulfilled: (r: DbResult) => unknown, onRejected?: (e: unknown) => unknown) => {
+    const key = `${table}:${operation}`;
+    const queued = dbSequences.get(key);
+    const result =
+      queued && queued.length > 0
+        ? (queued.shift() as DbResult)
+        : (dbResults.get(key) ?? { data: [], error: null });
+    return Promise.resolve(result).then(onFulfilled, onRejected);
+  };
   return chain;
 }
 
@@ -112,6 +130,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   dbCalls.length = 0;
   dbResults.clear();
+  dbSequences.clear();
   rlsMocks.assertCanPerform.mockResolvedValue(undefined);
   supabaseMocks.from.mockImplementation((t: string) => makeSupabaseChain(t) as never);
   const channelObject = {
@@ -480,5 +499,190 @@ describe('useDomainEquipeSprintDetalhes — escritas em sprint_metrics', () => {
     await expect(
       api.updateMetric.mutationFn({ metricId: 'metric-1', newValue: 1 }),
     ).rejects.toBe(error);
+  });
+});
+
+describe('useDomainEquipeSprintDetalhes — move de tarefa entre sprints', () => {
+  const targetSprint = {
+    id: 'sprint-2',
+    name: '11_Sprint',
+    start_date: '2026-08-03',
+    end_date: '2026-08-07',
+  };
+
+  const currentRow = {
+    id: 'raiz',
+    sprint_id: 'sprint-1',
+    parent_id: 'mae',
+    title: 'Tarefa que muda de sprint',
+    start_date: '2026-07-27',
+    due_date: '2026-07-29',
+  };
+
+  const originRows = [
+    { id: 'raiz', parent_id: 'mae', start_date: '2026-07-27', due_date: '2026-07-29' },
+    { id: 'filha', parent_id: 'raiz', start_date: '2026-07-28', due_date: '2026-07-28' },
+    { id: 'sem-relacao', parent_id: null, start_date: null, due_date: '2026-07-27' },
+  ];
+
+  const afterRows = [
+    { id: 'raiz', sprint_id: 'sprint-2', parent_id: null },
+    { id: 'filha', sprint_id: 'sprint-2', parent_id: 'raiz' },
+  ];
+
+  function arrangeMove(overrides: { after?: unknown } = {}) {
+    setDbSequence('sprint_deliverables', 'select', [
+      { data: currentRow, error: null },
+      { data: originRows, error: null },
+      { data: overrides.after ?? afterRows, error: null },
+    ]);
+  }
+
+  it('grava a raiz primeiro, zerando o vínculo de mãe na mesma instrução do sprint_id', async () => {
+    arrangeMove();
+    const api = renderDomain();
+    await api.moveDeliverableToSprint.mutationFn({ deliverableId: 'raiz', targetSprint });
+
+    const updates = callsFor('sprint_deliverables', 'update');
+    // Primeira gravação é a raiz: sprint, vínculo e datas juntos, atômico por ser uma instrução só.
+    expect(updates[0].args).toEqual([
+      {
+        sprint_id: 'sprint-2',
+        parent_id: null,
+        start_date: '2026-08-03',
+        due_date: '2026-08-05',
+      },
+    ]);
+    // Só depois os descendentes, em uma instrução única. A ordem inversa criaria filho na sprint
+    // nova apontando para mãe na antiga, que é o estado em que excluir a sprint antiga apaga tarefa.
+    expect(updates[1].args).toEqual([{ sprint_id: 'sprint-2' }]);
+    expect(callsFor('sprint_deliverables', 'in')[0].args).toEqual(['id', ['filha']]);
+  });
+
+  it('ajusta também as datas das subtarefas, depois de elas já estarem na sprint certa', async () => {
+    arrangeMove();
+    const api = renderDomain();
+    await api.moveDeliverableToSprint.mutationFn({ deliverableId: 'raiz', targetSprint });
+
+    const updates = callsFor('sprint_deliverables', 'update');
+    expect(updates[2].args).toEqual([{ start_date: '2026-08-03', due_date: '2026-08-03' }]);
+  });
+
+  it('leva o item de backlog junto, pelos ids da raiz e dos descendentes', async () => {
+    arrangeMove();
+    const api = renderDomain();
+    await api.moveDeliverableToSprint.mutationFn({ deliverableId: 'raiz', targetSprint });
+
+    expect(callsFor('sprint_backlog_items', 'update')[0].args).toEqual([{ sprint_id: 'sprint-2' }]);
+    expect(callsFor('sprint_backlog_items', 'in')[0].args).toEqual([
+      'moved_to_deliverable_id',
+      ['raiz', 'filha'],
+    ]);
+  });
+
+  it('NUNCA apaga linha, em nenhuma tabela', async () => {
+    arrangeMove();
+    const api = renderDomain();
+    await api.moveDeliverableToSprint.mutationFn({ deliverableId: 'raiz', targetSprint });
+
+    // Garantia central da feature: o caminho do move não tem exclusão em ramo nenhum.
+    expect(dbCalls.filter((call) => call.method === 'delete')).toHaveLength(0);
+  });
+
+  it('faz precheck de update antes de gravar', async () => {
+    arrangeMove();
+    const api = renderDomain();
+    await api.moveDeliverableToSprint.mutationFn({ deliverableId: 'raiz', targetSprint });
+
+    expect(rlsMocks.assertCanPerform).toHaveBeenCalledWith('sprint_deliverables', 'update', 'raiz');
+  });
+
+  it('devolve o log de auditoria com sprint e mãe anteriores, que é o caminho de desfazer', async () => {
+    arrangeMove();
+    const api = renderDomain();
+    const result = (await api.moveDeliverableToSprint.mutationFn({
+      deliverableId: 'raiz',
+      targetSprint,
+    })) as { auditEntry: Record<string, unknown>; movedIds: string[] };
+
+    expect(result.movedIds).toEqual(['raiz', 'filha']);
+    expect(result.auditEntry.entity_type).toBe('subtask');
+    expect(result.auditEntry.changed_fields).toMatchObject({
+      sprint_id: { old: 'sprint-1', new: 'sprint-2' },
+      parent_id: { old: 'mae', new: null },
+    });
+    expect(result.auditEntry.details).toBe(
+      'Movida para a sprint "11_Sprint", com 1 subtarefa(s) junto.',
+    );
+  });
+
+  it('recusa mover para a sprint em que a tarefa já está, sem gravar nada', async () => {
+    setDbSequence('sprint_deliverables', 'select', [
+      { data: { ...currentRow, sprint_id: 'sprint-2' }, error: null },
+    ]);
+    const api = renderDomain();
+
+    await expect(
+      api.moveDeliverableToSprint.mutationFn({ deliverableId: 'raiz', targetSprint }),
+    ).rejects.toThrow('A tarefa já está nesta sprint.');
+    expect(callsFor('sprint_deliverables', 'update')).toHaveLength(0);
+  });
+
+  it('acusa movimentação incompleta quando alguma linha ficou na sprint de origem', async () => {
+    arrangeMove({
+      after: [
+        { id: 'raiz', sprint_id: 'sprint-2', parent_id: null },
+        { id: 'filha', sprint_id: 'sprint-1', parent_id: 'raiz' },
+      ],
+    });
+    const api = renderDomain();
+
+    await expect(
+      api.moveDeliverableToSprint.mutationFn({ deliverableId: 'raiz', targetSprint }),
+    ).rejects.toThrow('Nada foi apagado');
+  });
+
+  it('acusa vínculo cruzado sobrando depois da gravação', async () => {
+    arrangeMove({
+      after: [
+        { id: 'raiz', sprint_id: 'sprint-2', parent_id: 'mae' },
+        { id: 'filha', sprint_id: 'sprint-2', parent_id: 'raiz' },
+      ],
+    });
+    const api = renderDomain();
+
+    await expect(
+      api.moveDeliverableToSprint.mutationFn({ deliverableId: 'raiz', targetSprint }),
+    ).rejects.toThrow('A movimentação ficou incompleta');
+  });
+
+  it('invalida as duas sprints e os consumidores de horas no onSuccess', () => {
+    const api = renderDomain() as unknown as Record<
+      string,
+      { onSuccess: (result: unknown) => void }
+    >;
+    const queryClient = reactQueryMocks.useQueryClient.mock.results[0].value as {
+      invalidateQueries: ReturnType<typeof vi.fn>;
+    };
+
+    api.moveDeliverableToSprint.onSuccess({
+      movedIds: ['raiz', 'filha'],
+      originSprintId: 'sprint-1',
+      targetSprintId: 'sprint-2',
+      auditEntry: { area: 'dev' },
+    });
+
+    const invalidated = queryClient.invalidateQueries.mock.calls.map(
+      ([arg]) => (arg as { queryKey: unknown[] }).queryKey,
+    );
+    expect(invalidated).toEqual([
+      ['domain-equipe-sprint-detalhes', 'sprint-1'],
+      ['domain-equipe-sprint-detalhes', 'sprint-2'],
+      ['domain-sprints'],
+      ['domain-horas-acumuladas'],
+      ['domain-equipe-kanban'],
+      ['daily-sprint-tasks'],
+    ]);
+    expect(auditMocks.logAction).toHaveBeenCalledWith({ area: 'dev' });
   });
 });

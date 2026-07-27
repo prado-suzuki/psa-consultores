@@ -31,6 +31,7 @@ const boundary = vi.hoisted(() => ({
   writeFile: vi.fn(),
   calendarProps: vi.fn(),
   hoursProps: vi.fn(),
+  logAction: vi.fn(),
 }));
 
 vi.mock('@/hooks/useDomainEquipeSprintDetalhes', async (importOriginal) => {
@@ -55,6 +56,9 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/hooks/useRlsPrecheck', () => ({ assertCanPerform: boundary.assertCanPerform }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: boundary.toast }) }));
+// O hook de domínio audita o move entre sprints, e useAuditLog exige AuthProvider. Nos testes que
+// rodam o hook de verdade (useActualHook) isso quebraria a renderização.
+vi.mock('@/hooks/useAuditLog', () => ({ useAuditLog: () => ({ logAction: boundary.logAction }) }));
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
   return { ...actual, useNavigate: () => boundary.navigate };
