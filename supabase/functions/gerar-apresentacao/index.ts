@@ -413,6 +413,21 @@ function renderQuadroTable(
   applyTokensToNode(clone, { EMPRESA: empresa.empresa });
   preencherTotal(clone, empresa.totalQuotas, empresa.totalValor);
 
+  // Escalar <a:gridCol> para somar QUADRO_COL_W — senao a tabela renderiza
+  // pela largura do template (~6,83") e invade a coluna vizinha no layout 2-col.
+  const gridCols = qsa(clone, "a:gridCol");
+  if (gridCols.length) {
+    let total = 0;
+    for (const gc of gridCols) total += Number(gc.getAttribute("w") ?? "0");
+    if (total > 0) {
+      const scale = QUADRO_COL_W / total;
+      for (const gc of gridCols) {
+        const w = Number(gc.getAttribute("w") ?? "0");
+        gc.setAttribute("w", String(Math.round(w * scale)));
+      }
+    }
+  }
+
   const cy = estimarAltura(empresa.linhas.length);
   setGraphicFrameBox(clone, { x, y, cx: QUADRO_COL_W, cy });
   spTree.appendChild(clone);
