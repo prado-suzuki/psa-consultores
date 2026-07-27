@@ -48,7 +48,12 @@ export function duplicateSlide(parts: PptxParts, srcPath: string): DuplicatedSli
 
   // 1) parts
   writeText(parts, newPath, readText(parts, srcPath));
-  if (parts[srcRelsPath]) writeText(parts, newRelsPath, readText(parts, srcRelsPath));
+  if (parts[srcRelsPath]) {
+    // Nota é 1:1 com o slide — não pode ser compartilhada, senão o PowerPoint recusa o arquivo.
+    let rels = readText(parts, srcRelsPath);
+    rels = rels.replace(/<Relationship\b[^>]*notesSlide[^>]*>/g, "");
+    writeText(parts, newRelsPath, rels);
+  }
 
   // 2) Content_Types
   const ctPath = "[Content_Types].xml";
@@ -97,14 +102,16 @@ export function removeSlide(parts: PptxParts, path: string): void {
 
   const ctPath = "[Content_Types].xml";
   const ct = readText(parts, ctPath);
-  writeText(parts, ctPath, ct.replace(new RegExp(`<Override[^/]*PartName="/${path}"[^/]*/>`, "g"), ""));
+  const pathEsc = path.replace(/\./g, "\\.");
+  writeText(parts, ctPath, ct.replace(new RegExp(`<Override[^>]*PartName="/${pathEsc}"[^>]*/>`, "g"), ""));
 
   const presRelsPath = "ppt/_rels/presentation.xml.rels";
   const presRels = readText(parts, presRelsPath);
   const sldNum = Number(path.match(/slide(\d+)\.xml$/)?.[1] ?? 0);
-  const relMatch = presRels.match(new RegExp(`<Relationship\\s+Id="(rId\\d+)"[^/]*Target="slides/slide${sldNum}\\.xml"[^/]*/>`));
+  const sldNumEsc = String(sldNum);
+  const relMatch = presRels.match(new RegExp(`<Relationship\\s+Id="(rId\\d+)"[^>]*Target="slides/slide${sldNumEsc}\\.xml"[^>]*/>`));
   const rid = relMatch?.[1];
-  writeText(parts, presRelsPath, presRels.replace(new RegExp(`<Relationship[^/]*Target="slides/slide${sldNum}\\.xml"[^/]*/>`, "g"), ""));
+  writeText(parts, presRelsPath, presRels.replace(new RegExp(`<Relationship[^>]*Target="slides/slide${sldNumEsc}\\.xml"[^>]*/>`, "g"), ""));
 
   if (rid) {
     const presPath = "ppt/presentation.xml";
