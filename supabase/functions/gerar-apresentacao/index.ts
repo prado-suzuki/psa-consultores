@@ -145,16 +145,28 @@ async function gerarPatrimonial(
     stripRemainingTokens(doc);
     writeText(parts, TEMPLATE, serializeXml(doc));
   } else {
-    // Paginacao: cada sociedade quebrada em chunks de LINHAS_POR_SLIDE.
-    // 1o chunk da 1a sociedade usa slide3; demais chunks/sociedades duplicam slide3 original.
-    const LINHAS_POR_SLIDE = 8;
+    // Paginacao conservadora: titular longo (>30 chars) conta como 2 linhas visuais;
+    // teto ~9 linhas visuais por slide pra nunca transbordar.
+    const MAX_LINHAS_VISUAIS = 9;
+    const custoVisual = (l: SociedadePatrimonial["linhas"][number]) =>
+      (l.propriedade && l.propriedade.length > 30) ? 2 : 1;
     type Chunk = { nome: string; linhas: SociedadePatrimonial["linhas"] };
     const chunks: Chunk[] = [];
     for (const s of sociedades) {
       if (s.linhas.length === 0) { chunks.push({ nome: s.nome, linhas: [] }); continue; }
-      for (let i = 0; i < s.linhas.length; i += LINHAS_POR_SLIDE) {
-        chunks.push({ nome: s.nome, linhas: s.linhas.slice(i, i + LINHAS_POR_SLIDE) });
+      let buf: SociedadePatrimonial["linhas"] = [];
+      let peso = 0;
+      for (const linha of s.linhas) {
+        const c = custoVisual(linha);
+        if (buf.length > 0 && peso + c > MAX_LINHAS_VISUAIS) {
+          chunks.push({ nome: s.nome, linhas: buf });
+          buf = [];
+          peso = 0;
+        }
+        buf.push(linha);
+        peso += c;
       }
+      if (buf.length > 0) chunks.push({ nome: s.nome, linhas: buf });
     }
     const paths = [TEMPLATE];
     for (let i = 1; i < chunks.length; i++) {
