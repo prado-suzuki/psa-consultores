@@ -145,15 +145,24 @@ async function gerarPatrimonial(
     stripRemainingTokens(doc);
     writeText(parts, TEMPLATE, serializeXml(doc));
   } else {
-    // Duplicar template para cada sociedade adicional; usar o proprio slide3
-    // pra 1a e clonar do original pras demais (evita perder rels internos).
+    // Paginacao: cada sociedade quebrada em chunks de LINHAS_POR_SLIDE.
+    // 1o chunk da 1a sociedade usa slide3; demais chunks/sociedades duplicam slide3 original.
+    const LINHAS_POR_SLIDE = 8;
+    type Chunk = { nome: string; linhas: SociedadePatrimonial["linhas"] };
+    const chunks: Chunk[] = [];
+    for (const s of sociedades) {
+      if (s.linhas.length === 0) { chunks.push({ nome: s.nome, linhas: [] }); continue; }
+      for (let i = 0; i < s.linhas.length; i += LINHAS_POR_SLIDE) {
+        chunks.push({ nome: s.nome, linhas: s.linhas.slice(i, i + LINHAS_POR_SLIDE) });
+      }
+    }
     const paths = [TEMPLATE];
-    for (let i = 1; i < sociedades.length; i++) {
+    for (let i = 1; i < chunks.length; i++) {
       const dup = duplicateSlide(parts, TEMPLATE);
       paths.push(dup.newPath);
     }
-    for (let i = 0; i < sociedades.length; i++) {
-      renderPatrimonialSlide(parts, paths[i], sociedades[i]);
+    for (let i = 0; i < chunks.length; i++) {
+      renderPatrimonialSlide(parts, paths[i], { nome: chunks[i].nome, linhas: chunks[i].linhas });
     }
   }
 
