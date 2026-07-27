@@ -209,6 +209,8 @@ export async function carregarQuadro(admin: SB, clienteId: string): Promise<Quad
 // ---------- Titular ----------
 
 export async function resolverTitular(admin: SB, clienteId: string): Promise<string> {
+  // Titular = explorador principal da composse cadastrada.
+  // Sem composse cadastrada → placeholder claro (nunca inventar via is_fundador).
   const { data: expl } = await admin
     .from("exploracao_rural")
     .select("explorador_nome,explorador:explorador_pessoa_id(denominacao)")
@@ -220,15 +222,5 @@ export async function resolverTitular(admin: SB, clienteId: string): Promise<str
     const n = e.explorador?.denominacao || e.explorador_nome;
     if (n) return String(n);
   }
-  const { data: fund } = await admin
-    .from("pessoa")
-    .select("denominacao")
-    .eq("cliente_id", clienteId)
-    .eq("is_fundador", true)
-    .limit(1);
-  if (fund && fund.length > 0) {
-    const n = (fund[0] as any).denominacao;
-    if (n) return String(n);
-  }
-  return "";
+  return "[titular da composse — a definir]";
 }
