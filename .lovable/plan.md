@@ -1,37 +1,34 @@
-## Pré-voo confirmado
+## Objetivo
+Liberar leitura pública das novidades ativas em `/novidades`, `/novidades/:slug` e destaque no login — hoje bloqueada pela policy `rls_novidades_select_active`.
 
-- A consulta atual em `pg_proc` mostrou **1 função** `public.anexar_documento_solicitado` no banco, com assinatura:
-  - `uuid, text, text, bigint, text, text, text`
-- A migração anterior `20260723173413_0f54cb90-427d-4aac-bcb5-3a8d237ef9c7.sql` contém a versão correta com `_tamanho bigint`, `REVOKE ALL` e `GRANT EXECUTE TO authenticated`.
+## Estado atual (verificado em produção)
+Policies em `public.novidades`:
+- `rls_novidades_select_active` — SELECT/authenticated — `ativo=true AND has_role_or_higher('team_member')` ← **remover**
+- `Admins podem ver todas novidades` — SELECT/authenticated — `has_role('admin')` ← **manter intacta**
+- `rls_novidades_insert` / `update` / `delete` — restritos a admin ← **manter intactos**
+- GRANT SELECT em `anon` e `authenticated` já concedidos ← não mexer
 
-## Plano de execução
+Tabela tem 5 registros, todos `ativo=true`.
 
-1. **Criar uma nova migration versionada**
-   - Adicionar uma migration nova em `supabase/migrations/`.
-   - Incluir exatamente o bloco `DO $$ ... $$` informado para remover qualquer overload de `public.anexar_documento_solicitado` cuja assinatura não seja `uuid, text, text, bigint, text, text, text`.
+## Migration (apenas 2 comandos, escopo em `public.novidades`)
 
-2. **Garantir fail-safe da função correta**
-   - Após o bloco de limpeza, recriar a função correta com `_tamanho bigint` usando o corpo da migration `20260723173413`.
-   - Reaplicar:
-     - `REVOKE ALL ON FUNCTION public.anexar_documento_solicitado(uuid,text,text,bigint,text,text,text) FROM public;`
-     - `GRANT EXECUTE ON FUNCTION public.anexar_documento_solicitado(uuid,text,text,bigint,text,text,text) TO authenticated;`
-   - Não alterar `get_checklist_solicitado_cliente`.
-   - Não criar nem alterar policies.
+```sql
+-- 1) Remover a SELECT restritiva (causa do bloqueio)
+DROP POLICY IF EXISTS rls_novidades_select_active ON public.novidades;
 
-3. **Aplicar a migration**
-   - Executar a migration pelo fluxo de backend/migration.
+-- 2) Leitura pública das ativas (anon + authenticated)
+CREATE POLICY "novidades_select_publico"
+  ON public.novidades
+  FOR SELECT
+  TO anon, authenticated
+  USING (ativo = true);
+```
 
-4. **GATE**
-   - Confirmar via `pg_proc` que existe exatamente **1** função `public.anexar_documento_solicitado`, com `_tamanho bigint`.
-   - Testar a chamada da RPC com `_tamanho` numérico em um item pendente do próprio cliente, se houver um cenário de cliente autenticado/testável disponível.
-   - Validar que o documento criado nasce com:
-     - `fonte = 'cliente'`
-     - `categoria`, `pessoa_id`, `bem_id`, `matricula_id` copiados de `checklist_cliente_item`
-     - `checklist_item_id` preenchido
-   - Validar que a leitura de `get_checklist_solicitado_cliente` passa a marcar o item como `recebido`.
+Não altera: `Admins podem ver todas novidades`, INSERT/UPDATE/DELETE, GRANTs, outras tabelas ou funções.
 
-## Observação de escopo
-
-Se não houver item pendente do próprio cliente disponível para chamada real da RPC, o GATE será dividido entre:
-- verificação estrutural obrigatória em `pg_proc`; e
-- preparação/execução do teste real assim que houver um item pendente válido para o usuário cliente autenticado.
+## GATE (validar após aplicar)
+1. `curl` anônimo (só apikey anon, sem token) a `novidades?select=id&ativo=eq.true` → 5 linhas (antes: 0).
+2. Login como cliente (sem papel interno) → mesmas 5 ativas.
+3. Login como admin → todas as linhas, incluindo eventuais `ativo=false` (via policy admin mantida).
+4. INSERT/UPDATE/DELETE por não-admin em transação com ROLLBACK → bloqueado.
+5. `pg_policies` de novidades exibe exatamente: `novidades_select_publico`, `Admins podem ver todas novidades`, `rls_novidades_insert`, `rls_novidades_update`, `rls_novidades_delete`.
