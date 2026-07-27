@@ -14,16 +14,11 @@ function replaceTokens(text: string, tokens: Tokens): string {
   let out = text;
   for (const [k, v] of Object.entries(tokens)) {
     const re = new RegExp(`\\{\\{\\s*${k.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\$&")}\\s*\\}\\}`, "g");
-    out = out.replace(re, escapeXmlText(v));
+    // Valor cru — o serializador XML escapa &, <, > uma unica vez ao converter
+    // textContent em texto. NAO escapar aqui, senao vira "&amp;amp;" no arquivo.
+    out = out.replace(re, String(v ?? ""));
   }
   return out;
-}
-
-function escapeXmlText(v: string): string {
-  return String(v ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
 }
 
 /**
