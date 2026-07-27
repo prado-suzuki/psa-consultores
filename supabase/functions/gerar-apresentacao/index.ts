@@ -200,7 +200,7 @@ function bandOf(y: number): Band | null {
 function distribuirShapes(
   spTree: Element,
   templateShape: Element,
-  slideXml: string,
+  idCounter: { next: number },
   itens: string[],
   y: number,
   cy: number,
@@ -221,7 +221,7 @@ function distribuirShapes(
   const startX = xMin + (usable - totalWidth) / 2;
 
   for (let i = 0; i < n; i++) {
-    const clone = cloneShapeWithNewId(templateShape, slideXml);
+    const clone = cloneShapeWithId(templateShape, idCounter.next++);
     setShapeXfrm(clone, { x: startX + i * (cx + gap), y, cx, cy });
     applyTokensToNode(clone, { ORG_ITEM: itens[i] });
     spTree.appendChild(clone);
@@ -233,6 +233,10 @@ function renderOrganograma(parts: PptxParts, slidePath: string, bands: Organogra
   const doc = parseXml(xml0);
   const spTree = qsa(doc, "p:spTree")[0];
   if (!spTree) return;
+
+  // Contador monotonico de cNvPr@id: seed pelo maior id existente ANTES de
+  // remover as caixas-modelo (que tem ids altos), + buffer folgado.
+  const idCounter = { next: nextCNvPrId(xml0) + 100 };
 
   // Coleta shapes template por banda, deduplicando (varios shapes por banda no template).
   const templates: Partial<Record<Band, Element>> = {};
@@ -255,12 +259,11 @@ function renderOrganograma(parts: PptxParts, slidePath: string, bands: Organogra
   }
   for (const el of toRemove) removeShape(el);
 
-  const currentXml = serializeXml(doc); // pra numerar cNvPr sem colidir
   for (const band of Object.keys(templates) as Band[]) {
     const tpl = templates[band]!;
     const itens = bands[band];
     if (itens.length === 0) continue;
-    distribuirShapes(spTree, tpl, currentXml, itens, templateY[band]!, templateCy[band]!);
+    distribuirShapes(spTree, tpl, idCounter, itens, templateY[band]!, templateCy[band]!);
   }
 
   applyTokensToNode(doc, { TITULAR: titular || "—" });
