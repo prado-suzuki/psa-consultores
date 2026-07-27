@@ -745,6 +745,58 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     });
   });
 
+  it('avisa antes de concluir tarefa-mãe com subtarefa aberta e só grava se confirmar', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    // parent (pendente) + child-10 (pendente) + child-2 (concluída).
+    boundary.useDomain.mockReturnValue(pageData({ deliverables: deliverables.slice(0, 3) }));
+    renderPage();
+
+    await user.click(screen.getAllByRole('checkbox')[0]);
+    const warning = await screen.findByRole('alertdialog');
+    // Lista só o que está aberto — a subtarefa já concluída não entra.
+    expect(within(warning).getByText(/Subtarefa Dez/)).toBeInTheDocument();
+    expect(within(warning).queryByText(/Subtarefa Dois/)).not.toBeInTheDocument();
+    expect(mutations.updateDeliverableStatus.mutateAsync).not.toHaveBeenCalled();
+
+    await user.click(within(warning).getByRole('button', { name: 'Concluir mesmo assim' }));
+    expect(mutations.updateDeliverableStatus.mutateAsync).toHaveBeenCalledWith({
+      deliverableId: 'parent',
+      newStatus: 'completed',
+    });
+  });
+
+  it('não avisa ao reabrir a mãe nem ao concluir subtarefa folha', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    boundary.useDomain.mockReturnValue(
+      pageData({
+        deliverables: [
+          { ...deliverables[0], status: 'completed' },
+          deliverables[1],
+          deliverables[2],
+        ],
+      }),
+    );
+    renderPage();
+
+    // Desmarcar a mãe concluída não é uma transição para 'completed'.
+    await user.click(screen.getAllByRole('checkbox')[0]);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(mutations.updateDeliverableStatus.mutateAsync).toHaveBeenCalledWith({
+      deliverableId: 'parent',
+      newStatus: 'pending',
+    });
+
+    // A subtarefa folha conclui direto, sem aviso.
+    const parentCard = screen.getByText('Tarefa Pai').closest('[class*="rounded-lg"]');
+    await user.click(within(parentCard as HTMLElement).getAllByRole('button')[0]);
+    await user.click(screen.getAllByRole('checkbox')[2]);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(mutations.updateDeliverableStatus.mutateAsync).toHaveBeenCalledWith({
+      deliverableId: 'child-10',
+      newStatus: 'completed',
+    });
+  });
+
   it('salva edição com timestamp de conclusão recalculado e delega exclusão após confirmação', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     boundary.useDomain.mockReturnValue(pageData({ deliverables: [deliverables[4]] }));
