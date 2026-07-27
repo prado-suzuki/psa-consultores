@@ -11,6 +11,7 @@ import {
   getEquipeKanbanSubtasks,
   hasOpenSubtasksUnderCompletedParent,
   hidesOpenSubtasksOutsideItsColumn,
+  selectEquipeKanbanVisibleDeliverables,
   validateEquipeKanbanFile,
   type EquipeKanbanDeliverable,
   type EquipeKanbanFilters,
@@ -191,6 +192,44 @@ describe('equipeKanban', () => {
     expect(getEquipeKanbanColumnDeliverables(hierarchy, 'pending', null).map(({ id }) => id)).toEqual(
       ['mae-aberta'],
     );
+  });
+
+  it('traz o grupo inteiro quando a mãe bate no filtro e sobe a cadeia quando é a filha que bate', () => {
+    const items = [
+      deliverable('mae-do-alexandre', { assigned_to: 'alexandre' }),
+      deliverable('sub-sem-responsavel', { parent_id: 'mae-do-alexandre' }),
+      deliverable('sub-de-outro', { parent_id: 'mae-do-alexandre', assigned_to: 'bruna' }),
+      deliverable('neta-sem-responsavel', { parent_id: 'sub-sem-responsavel' }),
+      deliverable('mae-da-bruna', { assigned_to: 'bruna' }),
+      deliverable('sub-do-alexandre', { parent_id: 'mae-da-bruna', assigned_to: 'alexandre' }),
+      deliverable('sub-irma-de-outro', { parent_id: 'mae-da-bruna', assigned_to: 'bruna' }),
+      deliverable('nada-a-ver', { assigned_to: 'carla' }),
+    ];
+    const visible = selectEquipeKanbanVisibleDeliverables(
+      items,
+      new Set(['mae-do-alexandre', 'sub-do-alexandre']),
+    ).map(({ id }) => id);
+
+    // Mãe é agrupador: entrou na visão, então filhas e netas entram com ela (mesmo sem dono).
+    expect(visible).toContain('sub-sem-responsavel');
+    expect(visible).toContain('sub-de-outro');
+    expect(visible).toContain('neta-sem-responsavel');
+    // Filha que bateu no filtro puxa a mãe pra continuar aninhada...
+    expect(visible).toContain('mae-da-bruna');
+    // ...mas não puxa as irmãs dela, que são de outra pessoa.
+    expect(visible).not.toContain('sub-irma-de-outro');
+    expect(visible).not.toContain('nada-a-ver');
+  });
+
+  it('não entra em laço quando o dado tem ciclo de parent_id', () => {
+    const items = [
+      deliverable('a', { parent_id: 'b' }),
+      deliverable('b', { parent_id: 'a' }),
+      deliverable('solta'),
+    ];
+    expect(
+      selectEquipeKanbanVisibleDeliverables(items, new Set(['a'])).map(({ id }) => id).sort(),
+    ).toEqual(['a', 'b']);
   });
 
   it('joga status fora das três colunas (e nulo) em "A Fazer" em vez de sumir do quadro', () => {

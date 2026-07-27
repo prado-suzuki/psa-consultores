@@ -39,6 +39,7 @@ interface Registration {
 interface DbResult {
   data: unknown;
   error: unknown;
+  count?: number | null;
 }
 interface Call {
   scope: string;
@@ -48,22 +49,30 @@ interface Call {
 const calls: Call[] = [];
 const results = new Map<string, DbResult>();
 
+// Páginas de sprint_deliverables por chamada de range, na ordem: cada .range() consome a próxima.
+const pages: DbResult[] = [];
+
 function chainFor(table: string) {
   let operation = 'select';
+  let page: DbResult | undefined;
   const chain: Record<string, unknown> = {};
-  for (const method of ['select', 'update', 'insert', 'delete', 'eq', 'order']) {
+  for (const method of ['select', 'update', 'insert', 'delete', 'eq', 'order', 'range']) {
     chain[method] = vi.fn((...args: unknown[]) => {
       calls.push({ scope: table, method, args });
       if (['select', 'update', 'insert', 'delete'].includes(method)) operation = method;
+      if (method === 'range' && pages.length > 0) page = pages.shift();
       return chain;
     });
   }
   chain.then = (resolve: (result: DbResult) => unknown) =>
-    Promise.resolve(results.get(`${table}:${operation}`) ?? { data: [], error: null }).then(
-      resolve,
-    );
+    Promise.resolve(
+      page ?? results.get(`${table}:${operation}`) ?? { data: [], error: null },
+    ).then(resolve);
   return chain;
 }
+
+const rows = (count: number, prefix: string) =>
+  Array.from({ length: count }, (_, index) => ({ id: `${prefix}-${index}` }));
 
 function mutation(action: string) {
   const registration = queryMocks.useMutation.mock.calls
@@ -76,6 +85,7 @@ function mutation(action: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   calls.length = 0;
+  pages.length = 0;
   results.clear();
   rlsMocks.assertCanPerform.mockResolvedValue(undefined);
   supabaseMocks.from.mockImplementation((table: string) => chainFor(table));
@@ -137,7 +147,7 @@ describe('useEquipeKanbanInitialQuery', () => {
       ['profiles_safe', 'id, first_name, last_name'],
       ['projects', 'id, name'],
       ['processes', 'id, name, project_id'],
-      ['sprint_deliverables', '*'],
+      ['sprint_deliverables', '*', { count: 'exact' }],
     ]);
     expect(
       calls.filter(({ method }) => method === 'order').map(({ scope, args }) => [scope, ...args]),
@@ -145,7 +155,40 @@ describe('useEquipeKanbanInitialQuery', () => {
       ['sprints', 'name', { ascending: true }],
       ['projects', 'name'],
       ['processes', 'name'],
+      ['sprint_deliverables', 'id', { ascending: true }],
     ]);
+  });
+
+  it('pagina os entregáveis até a página incompleta em vez de parar no limite de linhas', async () => {
+    pages.push(
+      { data: rows(500, 'p1'), error: null, count: 1200 },
+      { data: rows(500, 'p2'), error: null, count: 1200 },
+      { data: rows(200, 'p3'), error: null, count: 1200 },
+    );
+    renderHook(() => useEquipeKanbanInitialQuery());
+    const { queryFn } = queryMocks.useQuery.mock.calls[0][0] as {
+      queryFn: () => Promise<{ deliverables: unknown[] }>;
+    };
+
+    await expect(queryFn().then(({ deliverables }) => deliverables.length)).resolves.toBe(1200);
+    expect(calls.filter(({ method }) => method === 'range').map(({ args }) => args)).toEqual([
+      [0, 499],
+      [500, 999],
+      [1000, 1499],
+    ]);
+  });
+
+  it('sem count devolvido, segue paginando em vez de truncar na primeira página', async () => {
+    pages.push(
+      { data: rows(500, 'p1'), error: null, count: null },
+      { data: rows(120, 'p2'), error: null, count: null },
+    );
+    renderHook(() => useEquipeKanbanInitialQuery());
+    const { queryFn } = queryMocks.useQuery.mock.calls[0][0] as {
+      queryFn: () => Promise<{ deliverables: unknown[] }>;
+    };
+
+    await expect(queryFn().then(({ deliverables }) => deliverables.length)).resolves.toBe(620);
   });
 });
 

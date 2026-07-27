@@ -24,6 +24,7 @@ import {
   getEquipeKanbanSubtasks,
   hidesOpenSubtasksOutsideItsColumn,
   normalizeEquipeKanbanStatus,
+  selectEquipeKanbanVisibleDeliverables,
   validateEquipeKanbanFile,
   type EquipeKanbanAttachment as Attachment,
   type EquipeKanbanDeliverable as Deliverable,
@@ -143,43 +144,33 @@ const EquipeKanban = () => {
     ],
   );
 
-  const filteredDeliverables = useMemo(() => {
-    const byId = new Map(deliverables.map((deliverable) => [deliverable.id, deliverable]));
-    const keep = new Set<string>();
-    // Mantém cada item que bate no filtro E toda a cadeia de mães acima dele (mãe, avó, ...),
-    // pra subtarefa/neta continuar aninhada sob a raiz em vez de sumir.
-    directMatchIds.forEach((id) => {
-      keep.add(id);
-      const visited = new Set<string>();
-      let parentId = byId.get(id)?.parent_id ?? null;
-      while (parentId && byId.has(parentId) && !visited.has(parentId)) {
-        keep.add(parentId);
-        visited.add(parentId);
-        parentId = byId.get(parentId)?.parent_id ?? null;
-      }
-    });
-    return deliverables.filter((deliverable) => keep.has(deliverable.id));
-  }, [deliverables, directMatchIds]);
+  const filteredDeliverables = useMemo(
+    () => selectEquipeKanbanVisibleDeliverables(deliverables, directMatchIds),
+    [deliverables, directMatchIds],
+  );
 
   const hierarchicalDeliverables = useMemo(
     () => buildEquipeKanbanHierarchy(filteredDeliverables),
     [filteredDeliverables],
   );
 
+  // Com filtro de pessoa/data ativo, quem olha o quadro quer ver as tarefas em si — e elas podem
+  // estar dentro de um agrupador. Abrimos todas as mães com subtarefa pra nada ficar escondido
+  // atrás de uma setinha fechada.
   useEffect(() => {
     if (filterResponsible === 'all' && !filterStartDate && !filterEndDate) return;
     setExpandedTasks((previous) => {
       const next = new Set(previous);
       let changed = false;
       hierarchicalDeliverables.forEach((parent) => {
-        if (parent.subtaskCount > 0 && !directMatchIds.has(parent.id) && !next.has(parent.id)) {
+        if (parent.subtaskCount > 0 && !next.has(parent.id)) {
           next.add(parent.id);
           changed = true;
         }
       });
       return changed ? next : previous;
     });
-  }, [filterResponsible, filterStartDate, filterEndDate, hierarchicalDeliverables, directMatchIds]);
+  }, [filterResponsible, filterStartDate, filterEndDate, hierarchicalDeliverables]);
 
   // Mãe fora de "A Fazer" (em progresso ou concluída) com subtarefa aberta: o card dela fica na
   // coluna da MÃE e o aninhamento vem fechado, então a tarefa aberta não aparecia em lugar nenhum

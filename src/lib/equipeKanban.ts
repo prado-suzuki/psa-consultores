@@ -143,6 +143,54 @@ export function filterEquipeKanbanDeliverables(
   });
 }
 
+/**
+ * Decide o que fica visível a partir de quem bateu no filtro.
+ *
+ * Além dos próprios itens filtrados, mantém:
+ * - a cadeia de MÃES acima (mãe, avó, ...), pra subtarefa continuar aninhada sob a raiz;
+ * - todas as FILHAS abaixo de quem bateu. A tarefa-mãe é só um agrupador: quando ela entra na
+ *   visão, o grupo inteiro entra com ela. Sem isso, subtarefa com responsável em branco (ou de
+ *   outra pessoa, ou sem sprint) era descartada e a mãe aparecia como um card vazio, sem contador
+ *   de subtarefas — as tarefas existiam na sprint e não apareciam em lugar nenhum do quadro.
+ */
+export function selectEquipeKanbanVisibleDeliverables(
+  deliverables: EquipeKanbanDeliverable[],
+  directMatchIds: Set<string>,
+) {
+  const byId = new Map(deliverables.map((item) => [item.id, item]));
+  const childrenByParent = new Map<string, string[]>();
+  for (const item of deliverables) {
+    if (!item.parent_id) continue;
+    const list = childrenByParent.get(item.parent_id) ?? [];
+    list.push(item.id);
+    childrenByParent.set(item.parent_id, list);
+  }
+
+  const keep = new Set<string>();
+  directMatchIds.forEach((id) => {
+    if (!byId.has(id)) return;
+    keep.add(id);
+    const visited = new Set<string>();
+    let parentId = byId.get(id)?.parent_id ?? null;
+    while (parentId && byId.has(parentId) && !visited.has(parentId)) {
+      keep.add(parentId);
+      visited.add(parentId);
+      parentId = byId.get(parentId)?.parent_id ?? null;
+    }
+    // Desce só a partir de quem bateu no filtro (não puxa irmãs da mãe herdada).
+    const stack = [id];
+    while (stack.length > 0) {
+      const current = stack.pop() as string;
+      for (const childId of childrenByParent.get(current) ?? []) {
+        if (keep.has(childId)) continue;
+        keep.add(childId);
+        stack.push(childId);
+      }
+    }
+  });
+  return deliverables.filter((item) => keep.has(item.id));
+}
+
 const sortByTaskCode = (a: EquipeKanbanDeliverable, b: EquipeKanbanDeliverable) =>
   a.task_code && b.task_code
     ? a.task_code.localeCompare(b.task_code, undefined, { numeric: true })
