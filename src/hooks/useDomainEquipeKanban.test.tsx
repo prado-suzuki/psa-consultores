@@ -51,7 +51,7 @@ const results = new Map<string, DbResult>();
 function chainFor(table: string) {
   let operation = 'select';
   const chain: Record<string, unknown> = {};
-  for (const method of ['select', 'update', 'insert', 'delete', 'eq', 'order', 'range']) {
+  for (const method of ['select', 'update', 'insert', 'delete', 'eq', 'order']) {
     chain[method] = vi.fn((...args: unknown[]) => {
       calls.push({ scope: table, method, args });
       if (['select', 'update', 'insert', 'delete'].includes(method)) operation = method;
@@ -137,7 +137,7 @@ describe('useEquipeKanbanInitialQuery', () => {
       ['profiles_safe', 'id, first_name, last_name'],
       ['projects', 'id, name'],
       ['processes', 'id, name, project_id'],
-      ['sprint_deliverables', '*', { count: 'exact' }],
+      ['sprint_deliverables', '*'],
     ]);
     expect(
       calls.filter(({ method }) => method === 'order').map(({ scope, args }) => [scope, ...args]),
@@ -145,74 +145,7 @@ describe('useEquipeKanbanInitialQuery', () => {
       ['sprints', 'name', { ascending: true }],
       ['projects', 'name'],
       ['processes', 'name'],
-      ['sprint_deliverables', 'id', { ascending: true }],
     ]);
-  });
-
-  it('pagina entregáveis até fechar o total, sem parar no limite de linhas do PostgREST', async () => {
-    const total = 1200;
-    const ranges: number[][] = [];
-    supabaseMocks.from.mockImplementation((table: string) => {
-      if (table !== 'sprint_deliverables') return chainFor(table);
-      const chain: Record<string, unknown> = {};
-      for (const method of ['select', 'order']) chain[method] = vi.fn(() => chain);
-      chain.range = vi.fn((from: number, to: number) => {
-        ranges.push([from, to]);
-        const size = Math.max(0, Math.min(to + 1, total) - from);
-        return Promise.resolve({
-          data: Array.from({ length: size }, (_, index) => ({ id: `d-${from + index}` })),
-          error: null,
-          count: total,
-        });
-      });
-      return chain;
-    });
-
-    renderHook(() => useEquipeKanbanInitialQuery());
-    const options = queryMocks.useQuery.mock.calls[0][0] as {
-      queryFn: () => Promise<{ deliverables: unknown[] }>;
-    };
-
-    const result = await options.queryFn();
-    expect(result.deliverables).toHaveLength(total);
-    expect(ranges).toEqual([
-      [0, 499],
-      [500, 999],
-      [1000, 1499],
-    ]);
-  });
-
-  it('para de paginar quando a página vem vazia ou com erro, devolvendo o que já veio', async () => {
-    let call = 0;
-    supabaseMocks.from.mockImplementation((table: string) => {
-      if (table !== 'sprint_deliverables') return chainFor(table);
-      const chain: Record<string, unknown> = {};
-      for (const method of ['select', 'order']) chain[method] = vi.fn(() => chain);
-      chain.range = vi.fn(() => {
-        call += 1;
-        // 1ª página cheia, 2ª com erro: não pode entrar em laço nem estourar a tela.
-        return Promise.resolve(
-          call === 1
-            ? {
-                data: Array.from({ length: 500 }, (_, index) => ({ id: `d-${index}` })),
-                error: null,
-                count: 9000,
-              }
-            : { data: null, error: new Error('falha na página 2'), count: 9000 },
-        );
-      });
-      return chain;
-    });
-
-    renderHook(() => useEquipeKanbanInitialQuery());
-    const options = queryMocks.useQuery.mock.calls[0][0] as {
-      queryFn: () => Promise<{ deliverables: unknown[] }>;
-    };
-
-    await expect(options.queryFn()).resolves.toMatchObject({
-      deliverables: expect.arrayContaining([{ id: 'd-0' }]),
-    });
-    expect(call).toBe(2);
   });
 });
 

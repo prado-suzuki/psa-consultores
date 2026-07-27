@@ -63,6 +63,14 @@ export function cloneGraphicFrameWithNewId(gf: Element, slideXml: string): Eleme
   return clone;
 }
 
+/** Deep clone com id explicito (para contador monotonico externo). */
+export function cloneGraphicFrameWithId(gf: Element, id: number): Element {
+  const clone = gf.cloneNode(true) as Element;
+  const cn = qsa(clone, "p:cNvPr")[0];
+  if (cn) cn.setAttribute("id", String(id));
+  return clone;
+}
+
 /** Retorna todas as <a:tr> da primeira <a:tbl> do graphicFrame. */
 export function listRows(gf: Element): Element[] {
   const tbl = qsa(gf, "a:tbl")[0];

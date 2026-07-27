@@ -23,12 +23,13 @@ import { validatePptx } from "../_shared/ooxml/validate.ts";
 import { duplicateSlide, removeSlide } from "../_shared/ooxml/slide.ts";
 import {
   listShapes, getShapeXfrm, setShapeXfrm, shapeContainsToken,
-  cloneShapeWithNewId, removeShape,
+  cloneShapeWithId, removeShape,
 } from "../_shared/ooxml/shapes.ts";
 import {
   listGraphicFrames, graphicFrameContainsToken, getGraphicFrameBox, setGraphicFrameBox,
-  cloneGraphicFrameWithNewId, listRows, rowContainsToken, cloneRow, removeRow, insertRowBefore,
+  cloneGraphicFrameWithId, listRows, rowContainsToken, cloneRow, removeRow, insertRowBefore,
 } from "../_shared/ooxml/table.ts";
+import { nextCNvPrId } from "../_shared/ooxml/ids.ts";
 import {
   carregarPatrimonial, carregarOrganograma, carregarQuadro, resolverTitular,
   fmtBRL, fmtInt, fmtPct,
@@ -199,7 +200,7 @@ function bandOf(y: number): Band | null {
 function distribuirShapes(
   spTree: Element,
   templateShape: Element,
-  slideXml: string,
+  idCounter: { next: number },
   itens: string[],
   y: number,
   cy: number,
@@ -220,7 +221,7 @@ function distribuirShapes(
   const startX = xMin + (usable - totalWidth) / 2;
 
   for (let i = 0; i < n; i++) {
-    const clone = cloneShapeWithNewId(templateShape, slideXml);
+    const clone = cloneShapeWithId(templateShape, idCounter.next++);
     setShapeXfrm(clone, { x: startX + i * (cx + gap), y, cx, cy });
     applyTokensToNode(clone, { ORG_ITEM: itens[i] });
     spTree.appendChild(clone);
@@ -232,6 +233,10 @@ function renderOrganograma(parts: PptxParts, slidePath: string, bands: Organogra
   const doc = parseXml(xml0);
   const spTree = qsa(doc, "p:spTree")[0];
   if (!spTree) return;
+
+  // Contador monotonico de cNvPr@id: seed pelo maior id existente ANTES de
+  // remover as caixas-modelo (que tem ids altos), + buffer folgado.
+  const idCounter = { next: nextCNvPrId(xml0) + 100 };
 
   // Coleta shapes template por banda, deduplicando (varios shapes por banda no template).
   const templates: Partial<Record<Band, Element>> = {};
@@ -254,12 +259,11 @@ function renderOrganograma(parts: PptxParts, slidePath: string, bands: Organogra
   }
   for (const el of toRemove) removeShape(el);
 
-  const currentXml = serializeXml(doc); // pra numerar cNvPr sem colidir
   for (const band of Object.keys(templates) as Band[]) {
     const tpl = templates[band]!;
     const itens = bands[band];
     if (itens.length === 0) continue;
-    distribuirShapes(spTree, tpl, currentXml, itens, templateY[band]!, templateCy[band]!);
+    distribuirShapes(spTree, tpl, idCounter, itens, templateY[band]!, templateCy[band]!);
   }
 
   applyTokensToNode(doc, { TITULAR: titular || "—" });
@@ -288,12 +292,12 @@ function estimarAltura(rowCount: number): number {
 function renderQuadroTable(
   spTree: Element,
   templateGf: Element,
-  slideXml: string,
+  idCounter: { next: number },
   empresa: QuadroEmpresa,
   x: number,
   y: number,
 ): number {
-  const clone = cloneGraphicFrameWithNewId(templateGf, slideXml);
+  const clone = cloneGraphicFrameWithId(templateGf, idCounter.next++);
   // Substituir rows: encontrar row com {{SOCIO}}, clonar por linha.
   const rows = listRows(clone);
   const template = rows.find((r) => rowContainsToken(r, "SOCIO"));
@@ -333,18 +337,21 @@ function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: Quadro
     return empresas;
   }
 
+  // Contador monotonico de cNvPr@id: seed pelo maior id existente ANTES de
+  // remover o graphicFrame-modelo, + buffer folgado.
+  const idCounter = { next: nextCNvPrId(xml0) + 100 };
+
   // Cursor por coluna
   let yL = QUADRO_Y_START;
   let yR = QUADRO_Y_START;
   const restantes: QuadroEmpresa[] = [];
-  const currentXml = serializeXml(doc);
   for (const emp of empresas) {
     const h = estimarAltura(emp.linhas.length);
     if (yL + h <= QUADRO_Y_END) {
-      renderQuadroTable(spTree, gf, currentXml, emp, QUADRO_X_LEFT, yL);
+      renderQuadroTable(spTree, gf, idCounter, emp, QUADRO_X_LEFT, yL);
       yL += h + QUADRO_GAP_V;
     } else if (yR + h <= QUADRO_Y_END) {
-      renderQuadroTable(spTree, gf, currentXml, emp, QUADRO_X_RIGHT, yR);
+      renderQuadroTable(spTree, gf, idCounter, emp, QUADRO_X_RIGHT, yR);
       yR += h + QUADRO_GAP_V;
     } else {
       restantes.push(emp);
