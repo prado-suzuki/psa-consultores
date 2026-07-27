@@ -1,4 +1,4 @@
-import { differenceInDays, eachDayOfInterval, format } from 'date-fns';
+import { addDays, differenceInDays, eachDayOfInterval, format } from 'date-fns';
 import type {
   SprintDetalhesDeliverable as Deliverable,
   SprintDetalhesMetric as Metric,
@@ -57,8 +57,13 @@ export function buildTaskHierarchy(deliverables: Deliverable[]) {
         : 0,
     ),
   );
+  // Raiz = sem mãe OU cuja mãe não está na lista. Sem o segundo caso, uma subtarefa cuja mãe ficou
+  // fora da sprint não é raiz e não tem onde ser pendurada: desaparece da tela mesmo existindo no
+  // banco. O Kanban já trata assim (buildEquipeKanbanHierarchy) e o move entre sprints torna o
+  // caso alcançável, então as duas telas passam a concordar.
+  const presentIds = new Set(deliverables.map((item) => item.id));
   return deliverables
-    .filter((item) => !item.parent_id)
+    .filter((item) => !item.parent_id || !presentIds.has(item.parent_id))
     .map((parent) => ({
       ...parent,
       subtasks: children[parent.id] ?? [],
@@ -69,6 +74,163 @@ export function buildTaskHierarchy(deliverables: Deliverable[]) {
         (parent.estimated_hours ?? 0) +
         (children[parent.id]?.reduce((sum, item) => sum + (item.estimated_hours ?? 0), 0) ?? 0),
     }));
+}
+
+// ---------------------------------------------------------------------------
+// Move de tarefa entre sprints
+// ---------------------------------------------------------------------------
+
+export interface DeliverableSubtree {
+  rootId: string;
+  descendantIds: string[];
+}
+
+/**
+ * Ids da raiz e de todos os descendentes dela, em largura.
+ *
+ * O move grava em duas instruções: primeiro a raiz (com `parent_id` já resolvido) e depois os
+ * descendentes de uma vez. Por isso a raiz vem separada dos filhos, e não em uma lista só: trocar
+ * a ordem cria, na janela entre as duas gravações, filho na sprint nova apontando para mãe na
+ * sprint antiga, que é o estado em que excluir a sprint antiga apaga a tarefa da nova.
+ *
+ * `visited` protege contra ciclo de `parent_id`. O banco não impede ciclo, e sem isso a fila
+ * rodaria para sempre.
+ */
+export function collectDeliverableSubtree(
+  deliverables: Pick<Deliverable, 'id' | 'parent_id'>[],
+  rootId: string,
+): DeliverableSubtree {
+  const childrenByParent = new Map<string, string[]>();
+  for (const item of deliverables) {
+    if (!item.parent_id) continue;
+    const list = childrenByParent.get(item.parent_id) ?? [];
+    list.push(item.id);
+    childrenByParent.set(item.parent_id, list);
+  }
+
+  const descendantIds: string[] = [];
+  const visited = new Set<string>([rootId]);
+  const queue: string[] = [rootId];
+  while (queue.length > 0) {
+    const current = queue.shift() as string;
+    for (const childId of childrenByParent.get(current) ?? []) {
+      if (visited.has(childId)) continue;
+      visited.add(childId);
+      descendantIds.push(childId);
+      queue.push(childId);
+    }
+  }
+
+  return { rootId, descendantIds };
+}
+
+export interface SprintDateWindow {
+  start_date: string;
+  end_date: string;
+}
+
+/**
+ * Encaixa as datas da tarefa na janela da sprint de destino, preservando a duração quando ela cabe.
+ *
+ * Sem isso a tarefa movida para uma sprint futura nasce vencida em vermelho, e movida para uma
+ * sprint passada nasce fora do gráfico. Datas ISO (YYYY-MM-DD) comparam corretamente como string,
+ * então aqui não há conversão de fuso: só aritmética de dias, via `parseDate`, que já monta a data
+ * na meia-noite local.
+ */
+export function clampDatesToSprint(
+  task: Pick<Deliverable, 'start_date' | 'due_date'>,
+  sprint: SprintDateWindow,
+): { start_date: string | null; due_date: string } {
+  const windowStart = sprint.start_date;
+  const windowEnd = sprint.end_date;
+  const start = task.start_date;
+  const due = task.due_date;
+
+  // Janela inconsistente (fim antes do início): não inventa data, devolve o que já existia.
+  if (windowEnd < windowStart) return { start_date: start, due_date: due };
+
+  const insideWindow = (iso: string) => iso >= windowStart && iso <= windowEnd;
+  if (insideWindow(due) && (!start || insideWindow(start))) {
+    return { start_date: start, due_date: due };
+  }
+
+  const durationDays =
+    start && start <= due ? differenceInDays(parseDate(due), parseDate(start)) : 0;
+  const shiftDays = (iso: string, days: number) =>
+    format(addDays(parseDate(iso), days), 'yyyy-MM-dd');
+
+  let nextDue = due;
+  if (due < windowStart) {
+    const keepingDuration = shiftDays(windowStart, durationDays);
+    nextDue = keepingDuration > windowEnd ? windowEnd : keepingDuration;
+  } else if (due > windowEnd) {
+    nextDue = windowEnd;
+  }
+
+  let nextStart = start;
+  if (nextStart) {
+    const candidate = durationDays > 0 ? shiftDays(nextDue, -durationDays) : nextDue;
+    nextStart = candidate < windowStart ? windowStart : candidate;
+    if (nextStart > nextDue) nextStart = nextDue;
+  }
+
+  return { start_date: nextStart, due_date: nextDue };
+}
+
+export interface MoveEffectInput {
+  targetSprintName: string;
+  /** Título da mãe atual, apenas quando a tarefa vai se desprender dela. */
+  detachingFromParentTitle: string | null;
+  descendantCount: number;
+  currentDates: { start_date: string | null; due_date: string };
+  nextDates: { start_date: string | null; due_date: string };
+  crossProject: boolean;
+}
+
+/**
+ * Frases do diálogo de confirmação, uma por efeito. O usuário precisa ler o que vai acontecer
+ * antes de gravar, porque o move muda a natureza da tarefa (subtarefa vira tarefa principal) e
+ * pode mexer em datas.
+ */
+export function describeMoveEffect(input: MoveEffectInput): string[] {
+  const human = (iso: string) => format(parseDate(iso), 'dd/MM/yyyy');
+  const lines: string[] = [`A tarefa passa para a sprint "${input.targetSprintName}".`];
+
+  if (input.detachingFromParentTitle) {
+    lines.push(
+      `Esta subtarefa deixa de ser subtarefa de "${input.detachingFromParentTitle}" e passa a ser tarefa principal na sprint de destino.`,
+    );
+  }
+
+  if (input.descendantCount === 1) {
+    lines.push('1 subtarefa será movida junto.');
+  } else if (input.descendantCount > 1) {
+    lines.push(`${input.descendantCount} subtarefas serão movidas junto.`);
+  }
+
+  if (input.nextDates.due_date !== input.currentDates.due_date) {
+    lines.push(
+      `O prazo passa de ${human(input.currentDates.due_date)} para ${human(input.nextDates.due_date)}.`,
+    );
+  }
+
+  if (
+    input.currentDates.start_date &&
+    input.nextDates.start_date &&
+    input.nextDates.start_date !== input.currentDates.start_date
+  ) {
+    lines.push(
+      `O início passa de ${human(input.currentDates.start_date)} para ${human(input.nextDates.start_date)}.`,
+    );
+  }
+
+  if (input.crossProject) {
+    lines.push(
+      'A sprint de destino é de outro projeto. Quem não tem acesso a esse projeto deixa de ver a tarefa.',
+    );
+  }
+
+  return lines;
 }
 
 export function calculateSprintRisks(
