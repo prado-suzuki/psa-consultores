@@ -76,6 +76,8 @@ export interface HierarchicalEquipeKanbanDeliverable extends EquipeKanbanDeliver
   subtaskCount: number;
   /** Descendentes concluídos. */
   completedSubtasks: number;
+  /** Descendentes ainda abertos (qualquer status != completed). */
+  openSubtasks: number;
   /** Soma das horas das folhas do ramo — mostrada no card da tarefa-pai (não duplica: só folhas). */
   subtaskHoursTotal: number;
 }
@@ -198,11 +200,23 @@ export function buildEquipeKanbanHierarchy(
         subtasks,
         subtaskCount: subtasks.length,
         completedSubtasks: subtasks.filter((item) => item.status === 'completed').length,
+        openSubtasks: subtasks.filter((item) => item.status !== 'completed').length,
         // Só exibição — não é gravado. A mãe pode ficar com horas em branco no banco
         // (as métricas já excluem as tarefas-mãe da soma, então não duplica).
         subtaskHoursTotal: leafHours(root.id, root.estimated_hours),
       };
     });
+}
+
+/**
+ * Mãe concluída com subtarefa aberta: o card dela cai na coluna "Concluído" e as subtarefas
+ * vêm fechadas, então a tarefa aberta some do quadro. Sinaliza esses casos para o board
+ * destacar e abrir o aninhamento sozinho.
+ */
+export function hasOpenSubtasksUnderCompletedParent(
+  deliverable: HierarchicalEquipeKanbanDeliverable,
+) {
+  return deliverable.status === 'completed' && deliverable.openSubtasks > 0;
 }
 
 export function getEquipeKanbanColumnDeliverables(

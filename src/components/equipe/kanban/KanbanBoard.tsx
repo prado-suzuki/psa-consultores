@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import {
   formatEquipeKanbanDueDate,
+  hasOpenSubtasksUnderCompletedParent,
   type EquipeKanbanDeliverable,
   type HierarchicalEquipeKanbanDeliverable,
 } from '@/lib/equipeKanban';
@@ -131,11 +132,23 @@ export function KanbanBoard(props: KanbanBoardProps) {
                                 ? `${deliverable.estimated_hours}h estimadas`
                                 : ''}
                           </span>
-                          {deliverable.subtaskCount > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              {deliverable.completedSubtasks}/{deliverable.subtaskCount} subtarefas
-                            </Badge>
-                          )}
+                          <div className="flex items-center gap-1">
+                            {hasOpenSubtasksUnderCompletedParent(deliverable) && (
+                              <Badge
+                                variant="outline"
+                                className="border-amber-300 bg-amber-50 text-xs text-amber-800"
+                                title="Tarefa concluída, mas ainda tem subtarefa aberta aqui dentro"
+                              >
+                                {deliverable.openSubtasks} aberta
+                                {deliverable.openSubtasks > 1 ? 's' : ''}
+                              </Badge>
+                            )}
+                            {deliverable.subtaskCount > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                {deliverable.completedSubtasks}/{deliverable.subtaskCount} subtarefas
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>

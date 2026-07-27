@@ -120,4 +120,52 @@ describe('EquipeKanban', () => {
       'parent',
     );
   });
+
+  it('abre sozinho a mãe concluída que esconde subtarefa aberta e sinaliza no card', async () => {
+    const base = {
+      description: null,
+      assigned_to: null,
+      sprint_id: null,
+      estimated_hours: null,
+      due_date: null,
+      start_date: null,
+    };
+    mocks.initial.mockReturnValue({
+      data: {
+        sprints: [],
+        profiles: [],
+        projects: [],
+        processes: [],
+        deliverables: [
+          {
+            ...base,
+            id: 'mae',
+            title: 'TAX · Portal',
+            status: 'completed',
+            parent_id: null,
+            task_code: 'TAX-01',
+          },
+          {
+            ...base,
+            id: 'sub-aberta',
+            title: 'Criar os manuais de uso das ferramentas da área Tax',
+            status: 'pending',
+            parent_id: 'mae',
+            task_code: 'TAX-03',
+          },
+        ],
+      },
+      isLoading: false,
+      isSuccess: true,
+      error: null,
+    });
+
+    render(<EquipeKanban />);
+
+    // Sem clicar em nada: a subtarefa aberta tem que estar na tela.
+    expect(
+      await screen.findByText('Criar os manuais de uso das ferramentas da área Tax'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('1 aberta')).toBeInTheDocument();
+  });
 });

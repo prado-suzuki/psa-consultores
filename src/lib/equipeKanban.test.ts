@@ -8,6 +8,7 @@ import {
   getEquipeKanbanColumnDeliverables,
   getEquipeKanbanErrorMessage,
   getEquipeKanbanSubtasks,
+  hasOpenSubtasksUnderCompletedParent,
   validateEquipeKanbanFile,
   type EquipeKanbanDeliverable,
   type EquipeKanbanFilters,
@@ -152,6 +153,42 @@ describe('equipeKanban', () => {
     const leaf = root.subtasks.find((subtask) => subtask.id === 'leaf')!;
     expect(leaf.hasChildren).toBe(false);
     expect(leaf.hoursDisplay).toBe(4); // horas próprias (é folha)
+  });
+
+  it('marca mãe concluída que ainda esconde subtarefa aberta e ignora as demais', () => {
+    const hierarchy = buildEquipeKanbanHierarchy([
+      deliverable('mae-concluida', { task_code: 'TAX-0', status: 'completed' }),
+      deliverable('sub-feita', {
+        parent_id: 'mae-concluida',
+        task_code: 'TAX-02',
+        status: 'completed',
+      }),
+      deliverable('sub-aberta', { parent_id: 'mae-concluida', task_code: 'TAX-03' }),
+      deliverable('mae-quitada', { task_code: 'GED-0', status: 'completed' }),
+      deliverable('sub-quitada', {
+        parent_id: 'mae-quitada',
+        task_code: 'GED-01',
+        status: 'completed',
+      }),
+      deliverable('mae-aberta', { task_code: 'PLT-0' }),
+      deliverable('sub-da-aberta', { parent_id: 'mae-aberta', task_code: 'PLT-01' }),
+    ]);
+    const byId = (id: string) => hierarchy.find((root) => root.id === id)!;
+
+    expect(byId('mae-concluida')).toMatchObject({ openSubtasks: 1, completedSubtasks: 1 });
+    expect(hasOpenSubtasksUnderCompletedParent(byId('mae-concluida'))).toBe(true);
+    // Tudo concluído: nada escondido.
+    expect(hasOpenSubtasksUnderCompletedParent(byId('mae-quitada'))).toBe(false);
+    // Mãe aberta fica na coluna certa por si só — não precisa de alerta.
+    expect(hasOpenSubtasksUnderCompletedParent(byId('mae-aberta'))).toBe(false);
+    expect(byId('mae-aberta').openSubtasks).toBe(1);
+    // A mãe concluída continua na coluna "Concluído" (subtarefa segue aninhada, sem card solto).
+    expect(
+      getEquipeKanbanColumnDeliverables(hierarchy, 'completed', null).map(({ id }) => id),
+    ).toEqual(['mae-quitada', 'mae-concluida']);
+    expect(getEquipeKanbanColumnDeliverables(hierarchy, 'pending', null).map(({ id }) => id)).toEqual(
+      ['mae-aberta'],
+    );
   });
 
   it('ordena vencimentos e mantém data nula no fim em asc e no início em desc', () => {

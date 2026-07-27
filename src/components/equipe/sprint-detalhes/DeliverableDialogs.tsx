@@ -10,6 +10,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { OpenSubtasksWarningDialog } from '@/components/equipe/OpenSubtasksWarningDialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -268,6 +269,15 @@ export function DeliverableDialogs({
 }) {
   return (
     <>
+      <OpenSubtasksWarningDialog
+        taskTitle={c.completionWarning?.taskTitle ?? null}
+        openSubtasks={c.completionWarning?.openSubtasks ?? []}
+        confirming={c.confirmingCompletion}
+        getProfileName={c.getProfileName}
+        onCancel={c.cancelCompletionWarning}
+        onConfirm={c.confirmCompletionWarning}
+      />
+
       <Dialog open={c.editModalOpen} onOpenChange={c.setEditModalOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>

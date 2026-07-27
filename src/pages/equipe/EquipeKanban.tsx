@@ -6,12 +6,14 @@ import { KanbanBoard } from '@/components/equipe/kanban/KanbanBoard';
 import { KanbanDeliverableDialog } from '@/components/equipe/kanban/KanbanDeliverableDialog';
 import { KanbanFilters } from '@/components/equipe/kanban/KanbanFilters';
 import { KanbanTable } from '@/components/equipe/kanban/KanbanTable';
+import { OpenSubtasksWarningDialog } from '@/components/equipe/OpenSubtasksWarningDialog';
 import { Button } from '@/components/ui/button';
 import { useEquipeKanbanAttachments } from '@/hooks/useDomainEquipeKanbanAttachments';
 import { useEquipeKanbanDeliverableMutations } from '@/hooks/useDomainEquipeKanbanDeliverableMutations';
 import { useEquipeKanbanInitialQuery } from '@/hooks/useDomainEquipeKanbanQueries';
 import { useDeliverableBlockers } from '@/hooks/useDeliverableBlockers';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { getBlockingOpenSubtasks } from '@/lib/deliverableCompletion';
 import {
   buildDeliverableUpdatePayload,
   buildEquipeKanbanHierarchy,
@@ -19,6 +21,7 @@ import {
   getEquipeKanbanColumnDeliverables,
   getEquipeKanbanErrorMessage,
   getEquipeKanbanSubtasks,
+  hasOpenSubtasksUnderCompletedParent,
   validateEquipeKanbanFile,
   type EquipeKanbanAttachment as Attachment,
   type EquipeKanbanDeliverable as Deliverable,
@@ -46,6 +49,13 @@ const EquipeKanban = () => {
 
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
+  // Aviso pendente de "concluir mãe com subtarefa aberta" — guarda a ação a executar se confirmar.
+  const [completionWarning, setCompletionWarning] = useState<{
+    taskTitle: string;
+    openSubtasks: Deliverable[];
+    confirm: () => Promise<void>;
+  } | null>(null);
+  const [confirmingCompletion, setConfirmingCompletion] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -169,6 +179,20 @@ const EquipeKanban = () => {
     });
   }, [filterResponsible, filterStartDate, filterEndDate, hierarchicalDeliverables, directMatchIds]);
 
+  // Mãe concluída com subtarefa aberta: o card fica na coluna "Concluído" e o aninhamento
+  // vem fechado, então a tarefa aberta não aparecia em lugar nenhum do quadro. Abrimos essas
+  // mães automaticamente — uma vez só, para não reabrir o que a pessoa fechou na mão.
+  const autoExpandedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const toExpand = hierarchicalDeliverables
+      .filter(hasOpenSubtasksUnderCompletedParent)
+      .map((parent) => parent.id)
+      .filter((id) => !autoExpandedRef.current.has(id));
+    if (toExpand.length === 0) return;
+    toExpand.forEach((id) => autoExpandedRef.current.add(id));
+    setExpandedTasks((previous) => new Set([...previous, ...toExpand]));
+  }, [hierarchicalDeliverables]);
+
   const hiddenCount = useMemo(() => {
     const renderedIds = new Set<string>();
     hierarchicalDeliverables.forEach((parent) => {
@@ -192,7 +216,7 @@ const EquipeKanban = () => {
     setFilterEndDate(undefined);
   };
 
-  const updateDeliverableStatus = async (
+  const applyDeliverableStatus = async (
     id: string,
     newStatus: 'pending' | 'in_progress' | 'completed',
   ) => {
@@ -205,6 +229,35 @@ const EquipeKanban = () => {
       );
     } catch (error) {
       console.error('Error updating deliverable:', error);
+    }
+  };
+
+  const updateDeliverableStatus = async (
+    id: string,
+    newStatus: 'pending' | 'in_progress' | 'completed',
+  ) => {
+    const target = deliverables.find((deliverable) => deliverable.id === id);
+    const blocking = getBlockingOpenSubtasks(deliverables, id, newStatus, target?.status);
+    if (blocking.length > 0) {
+      setCompletionWarning({
+        taskTitle: target?.title ?? '',
+        openSubtasks: blocking,
+        confirm: () => applyDeliverableStatus(id, newStatus),
+      });
+      return;
+    }
+    await applyDeliverableStatus(id, newStatus);
+  };
+
+  const confirmCompletionWarning = async () => {
+    if (!completionWarning) return;
+    const { confirm } = completionWarning;
+    try {
+      setConfirmingCompletion(true);
+      await confirm();
+      setCompletionWarning(null);
+    } finally {
+      setConfirmingCompletion(false);
     }
   };
 
@@ -257,6 +310,25 @@ const EquipeKanban = () => {
   };
 
   const saveDeliverable = async () => {
+    if (!selectedDeliverable) return;
+    const blocking = getBlockingOpenSubtasks(
+      deliverables,
+      selectedDeliverable.id,
+      editForm.status,
+      selectedDeliverable.status,
+    );
+    if (blocking.length > 0) {
+      setCompletionWarning({
+        taskTitle: selectedDeliverable.title,
+        openSubtasks: blocking,
+        confirm: persistDeliverable,
+      });
+      return;
+    }
+    await persistDeliverable();
+  };
+
+  const persistDeliverable = async () => {
     if (!selectedDeliverable) return;
     try {
       const updateData = buildDeliverableUpdatePayload(editForm, selectedDeliverable.status);
@@ -483,6 +555,15 @@ const EquipeKanban = () => {
           await updateDeliverableStatus(subtask.id, newStatus);
         }}
         onOpenSubtask={openDeliverableDetail}
+      />
+
+      <OpenSubtasksWarningDialog
+        taskTitle={completionWarning?.taskTitle ?? null}
+        openSubtasks={completionWarning?.openSubtasks ?? []}
+        confirming={confirmingCompletion}
+        getProfileName={getProfileName}
+        onCancel={() => setCompletionWarning(null)}
+        onConfirm={confirmCompletionWarning}
       />
     </EquipeLayout>
   );

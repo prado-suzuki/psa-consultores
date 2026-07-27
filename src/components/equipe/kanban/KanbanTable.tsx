@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
   formatEquipeKanbanDueDate,
+  hasOpenSubtasksUnderCompletedParent,
   type EquipeKanbanDeliverable,
   type HierarchicalEquipeKanbanDeliverable,
 } from '@/lib/equipeKanban';
@@ -82,6 +83,16 @@ export function KanbanTable(props: KanbanTableProps) {
                       {deliverable.subtaskCount > 0 && (
                         <Badge variant="secondary" className="text-xs">
                           {deliverable.completedSubtasks}/{deliverable.subtaskCount}
+                        </Badge>
+                      )}
+                      {hasOpenSubtasksUnderCompletedParent(deliverable) && (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-300 bg-amber-50 text-xs text-amber-800"
+                          title="Tarefa concluída, mas ainda tem subtarefa aberta aqui dentro"
+                        >
+                          {deliverable.openSubtasks} aberta
+                          {deliverable.openSubtasks > 1 ? 's' : ''}
                         </Badge>
                       )}
                       {props.getBlocker(deliverable) && (

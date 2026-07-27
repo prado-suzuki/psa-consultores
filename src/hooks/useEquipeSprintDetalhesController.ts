@@ -7,6 +7,7 @@ import {
   useDomainEquipeSprintDetalhes,
   type SprintDetalhesDeliverable as Deliverable,
 } from '@/hooks/useDomainEquipeSprintDetalhes';
+import { getBlockingOpenSubtasks } from '@/lib/deliverableCompletion';
 import { parseExcelFile, processExcelData, type ImportPreview } from '@/lib/excelImporter';
 import {
   buildExportRows,
@@ -79,6 +80,13 @@ export function useEquipeSprintDetalhesController() {
   const [expandedPersons, setExpandedPersons] = useState<Set<string>>(new Set());
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set());
   const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
+  // Aviso pendente de "concluir mãe com subtarefa aberta" — guarda a ação a executar se confirmar.
+  const [completionWarning, setCompletionWarning] = useState<{
+    taskTitle: string;
+    openSubtasks: Deliverable[];
+    confirm: () => Promise<void>;
+  } | null>(null);
+  const [confirmingCompletion, setConfirmingCompletion] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -314,12 +322,41 @@ export function useEquipeSprintDetalhesController() {
     setCreateForm(selectParent(blankForm(sprint?.start_date, sprint?.end_date), parent.id));
     setCreateModalOpen(true);
   };
-  const updateStatus = async (deliverableId: string, newStatus: string) => {
+  const applyStatus = async (deliverableId: string, newStatus: string) => {
     try {
       await data.updateDeliverableStatus.mutateAsync({ deliverableId, newStatus });
       toast({ title: 'Status atualizado' });
     } catch (error) {
       toast({ title: 'Erro', description: errorMessage(error), variant: 'destructive' });
+    }
+  };
+  const updateStatus = async (deliverableId: string, newStatus: string) => {
+    const target = deliverables.find((item) => item.id === deliverableId);
+    const blocking = getBlockingOpenSubtasks(
+      deliverables,
+      deliverableId,
+      newStatus,
+      target?.status,
+    );
+    if (blocking.length > 0) {
+      setCompletionWarning({
+        taskTitle: target?.title ?? '',
+        openSubtasks: blocking,
+        confirm: () => applyStatus(deliverableId, newStatus),
+      });
+      return;
+    }
+    await applyStatus(deliverableId, newStatus);
+  };
+  const confirmCompletionWarning = async () => {
+    if (!completionWarning) return;
+    const { confirm } = completionWarning;
+    try {
+      setConfirmingCompletion(true);
+      await confirm();
+      setCompletionWarning(null);
+    } finally {
+      setConfirmingCompletion(false);
     }
   };
   const updateMetric = async (metricId: string, newValue: number) => {
@@ -331,6 +368,24 @@ export function useEquipeSprintDetalhesController() {
     }
   };
   const saveDeliverable = async () => {
+    if (!editingDeliverable) return;
+    const blocking = getBlockingOpenSubtasks(
+      deliverables,
+      editingDeliverable.id,
+      editForm.status,
+      editingDeliverable.status,
+    );
+    if (blocking.length > 0) {
+      setCompletionWarning({
+        taskTitle: editingDeliverable.title,
+        openSubtasks: blocking,
+        confirm: persistDeliverable,
+      });
+      return;
+    }
+    await persistDeliverable();
+  };
+  const persistDeliverable = async () => {
     if (!editingDeliverable) return;
     try {
       setSaving(true);
@@ -581,6 +636,10 @@ export function useEquipeSprintDetalhesController() {
     setEditForm,
     saveDeliverable,
     saving,
+    completionWarning,
+    confirmingCompletion,
+    confirmCompletionWarning,
+    cancelCompletionWarning: () => setCompletionWarning(null),
     createModalOpen,
     setCreateModalOpen,
     createForm,
