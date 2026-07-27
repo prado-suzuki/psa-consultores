@@ -355,8 +355,8 @@ const QUADRO_LEFT_1 = QUADRO_LEFT_0 + QUADRO_COL_W + QUADRO_GAP_H;
 const QUADRO_LEFT_CENTER = 2971800; // 3.25" (1 empresa)
 const QUADRO_TOP_0 = 1417320;   // 1.55"
 const QUADRO_TOP_MAX = 6492240; // 7.1"
-const QUADRO_ROW_H = 237744;    // 0.26"
-const QUADRO_PAD_H = 320040;    // 0.35"
+const QUADRO_ROW_H = 292608;    // ~0.32" (super-estimado pra evitar sobreposicao)
+const QUADRO_PAD_H = 365760;    // ~0.40" (respiro entre tabelas empilhadas)
 
 function estimarAltura(rowCount: number): number {
   // header empresa + header colunas + linhas + TOTAL + padding
