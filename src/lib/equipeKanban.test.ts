@@ -221,28 +221,46 @@ describe('equipeKanban', () => {
     expect(visible).not.toContain('nada-a-ver');
   });
 
-  it('mantém a filha de outra pessoa sob a mãe, e ela cai na coluna da MÃE, não na dela', () => {
-    // Mãe do Eduardo (em progresso) com filha do Alexandre (a fazer), filtrando por Alexandre.
-    const items = [
-      deliverable('mae-eduardo', { assigned_to: 'eduardo', status: 'in_progress', task_code: 'X-0' }),
-      deliverable('filha-alexandre', {
-        parent_id: 'mae-eduardo',
-        assigned_to: 'alexandre',
-        task_code: 'X-01',
-      }),
-    ];
-    const visible = selectEquipeKanbanVisibleDeliverables(items, new Set(['filha-alexandre']));
+  // Mãe do Eduardo (em progresso) com filha do Alexandre (a fazer), filtrando por Alexandre.
+  const maeDeOutraPessoa = () => [
+    deliverable('mae-eduardo', { assigned_to: 'eduardo', status: 'in_progress', task_code: 'X-0' }),
+    deliverable('filha-alexandre', {
+      parent_id: 'mae-eduardo',
+      assigned_to: 'alexandre',
+      task_code: 'X-01',
+    }),
+  ];
+
+  it('sem filtro de pessoa, a filha fica aninhada e o card vai pra coluna da MÃE', () => {
+    const visible = selectEquipeKanbanVisibleDeliverables(
+      maeDeOutraPessoa(),
+      new Set(['filha-alexandre']),
+    );
     expect(visible.map(({ id }) => id).sort()).toEqual(['filha-alexandre', 'mae-eduardo']);
 
     const hierarchy = buildEquipeKanbanHierarchy(visible);
-    // A filha não vira card: ela fica aninhada na mãe (modelo escolhido).
     expect(hierarchy.map(({ id }) => id)).toEqual(['mae-eduardo']);
     expect(hierarchy[0].subtasks.map(({ id }) => id)).toEqual(['filha-alexandre']);
-    // E o card está em "Em Progresso" (status da mãe) — nada aparece em "A Fazer".
+    // Card em "Em Progresso" (status da mãe): nada em "A Fazer" — daí o aviso na barra de filtros.
     expect(getEquipeKanbanColumnDeliverables(hierarchy, 'in_progress', null)).toHaveLength(1);
     expect(getEquipeKanbanColumnDeliverables(hierarchy, 'pending', null)).toHaveLength(0);
-    // É por isso que a barra de filtros avisa: 1 tarefa aberta presa em mãe de outra coluna.
     expect(countOpenSubtasksOutsideTodoColumn(hierarchy)).toBe(1);
+  });
+
+  it('com filtro de pessoa, a filha vira card próprio na coluna do PRÓPRIO status', () => {
+    const visible = selectEquipeKanbanVisibleDeliverables(
+      maeDeOutraPessoa(),
+      new Set(['filha-alexandre']),
+      { keepAncestors: false },
+    );
+    // A mãe do Eduardo sai da visão — ela é só agrupador, virou etiqueta no card.
+    expect(visible.map(({ id }) => id)).toEqual(['filha-alexandre']);
+
+    const hierarchy = buildEquipeKanbanHierarchy(visible);
+    expect(getEquipeKanbanColumnDeliverables(hierarchy, 'pending', null).map(({ id }) => id)).toEqual(
+      ['filha-alexandre'],
+    );
+    expect(getEquipeKanbanColumnDeliverables(hierarchy, 'in_progress', null)).toHaveLength(0);
   });
 
   it('não entra em laço quando o dado tem ciclo de parent_id', () => {

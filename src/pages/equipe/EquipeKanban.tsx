@@ -545,6 +545,7 @@ const EquipeKanban = () => {
           expandedTasks={expandedTasks}
           getProfileName={getProfileName}
           getBlocker={getBlocker}
+          getGroupLabel={getGroupLabel}
           getStatusBadgeColor={getStatusBadgeColor}
           getStatusLabel={getStatusLabel}
           onToggleExpanded={toggleTaskExpanded}

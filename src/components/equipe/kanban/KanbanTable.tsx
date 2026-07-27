@@ -25,6 +25,8 @@ interface KanbanTableProps {
   expandedTasks: Set<string>;
   getProfileName: (profileId: string | null) => string;
   getBlocker: (deliverable: EquipeKanbanDeliverable) => DeliverableBlocker | undefined;
+  /** Nome da tarefa-mãe quando ela não está na visão (linha promovida pelo filtro por pessoa). */
+  getGroupLabel: (deliverable: EquipeKanbanDeliverable) => string | null;
   getStatusBadgeColor: (status: string) => string;
   getStatusLabel: (status: string) => string;
   onToggleExpanded: (taskId: string, event?: MouseEvent) => void;
@@ -76,6 +78,14 @@ export function KanbanTable(props: KanbanTableProps) {
                   </TableCell>
                   <TableCell className="text-gray-900 font-medium">
                     <div className="flex items-center gap-2">
+                      {props.getGroupLabel(deliverable) && (
+                        <span
+                          className="max-w-[16rem] truncate text-xs font-normal text-gray-400"
+                          title={props.getGroupLabel(deliverable) ?? undefined}
+                        >
+                          {props.getGroupLabel(deliverable)} ·
+                        </span>
+                      )}
                       {deliverable.task_code && (
                         <span className="text-gray-500 font-normal">{deliverable.task_code}</span>
                       )}
