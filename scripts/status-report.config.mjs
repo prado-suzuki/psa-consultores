@@ -40,9 +40,22 @@ export const DETECT = {
     files: ["src/hooks/useOsProdutosContratados.ts", "src/hooks/useOrgProjects.ts"],
     keywords: ["os_produtos_contratados", "produto_segmento"],
   },
+  // P1-LOG-ANOTACOES foi FUNDIDO aqui na v7 (24/07) — as keywords dele vieram para cá.
   "P1-PAGINA-PROJETO": {
     files: ["src/pages/equipe/osg/PaginaProjeto*.tsx", "src/pages/equipe/osg/ProjetoDetalhe*.tsx"],
-    keywords: ["Página do Projeto"],
+    keywords: ["Página do Projeto", "@menção", "anotações do projeto", "mencionar responsável"],
+  },
+  // Conversa em thread (o "Slack" da área de projetos) — marco próprio a partir de 25/07.
+  "P1-FEED-PROJETO": { keywords: ["thread", "responder anotação", "projeto_comentario", "notificar mencionado"] },
+  "P1-HORAS-DASHBOARD": { keywords: ["horas realizadas na sprint", "estimado × realizado", "horas_realizadas"] },
+  "P1-CHECKLIST-DOCS-CODIGO": {
+    files: ["src/components/equipe/osg/documentos/checklistPadrao.ts"],
+    keywords: ["checklistPadrao", "cluster"],
+  },
+  "P1-CHECKLIST-EXTERNO": { keywords: ["checklist do cliente", "checklist externo", "o que falta entregar"] },
+  "P1-REDESIGN-UX": {
+    files: ["src/pages/equipe/osg/OsgClientes.tsx", "src/pages/equipe/osg/OsgTarefas.tsx"],
+    keywords: ["Kanban aninhado"],
   },
   "P1-GERACAO-TAREFAS": {
     keywords: ["geração automática de tarefas", "gerar tarefas do produto", "tarefas pré-ordenadas"],
@@ -56,7 +69,6 @@ export const DETECT = {
     files: ["src/pages/equipe/osg/Relatorios.tsx", "src/hooks/useOsgChecklist.ts"],
     keywords: ["checklist_cliente_item"],
   },
-  "P1-LOG-ANOTACOES": { keywords: ["@menção", "anotações do projeto", "mencionar responsável"] },
   "P1-NOTIF-REVISAO": { keywords: ["notificação ao gestor", "entrou em revisão", "notificar revisão"] },
   "P1-DASHBOARDS-KPI": { keywords: ["faturamento da área", "7 KPIs", "dashboard do gestor", "DashboardGerencial"] },
   "P1-ALERTA-PARADO": { keywords: ["projeto parado", "estagnação", "sem movimentação há"] },
@@ -156,4 +168,49 @@ export const DETECT = {
   "P5-GERADOR-APRESENTACAO": { keywords: ["organograma", "organograma-societario"], files: ["src/**/*rganograma*.tsx"] },
   "P5-APRESENTACAO-INICIAL": { keywords: ["gerador de apresentação", "apresentação inicial"] },
   "P5-APRESENTACAO-FINAL": { keywords: ["apresentação final", "devolutiva ao cliente"] },
+
+  // =====================================================================
+  // Bloco RURAL do P2 + camada estrutural — entrou no roadmap em 25/07.
+  // Keywords ancoradas no vocabulário real do motor (docs/osg/arquitetura-sintese.md):
+  // tmpl_bloco, tmpl_flag, projeto_flag_valor, documento_gerado, documento_override.
+  // =====================================================================
+  "P2-ONDA2-RURAL": {
+    keywords: ["parceria rural", "parceiro-outorgante", "parceiro-outorgado", "composse", "cota do proprietário"],
+  },
+  "P2-INSTRUMENTOS-RURAIS": {
+    keywords: ["comodato", "direito de superfície", "distrato de arrendamento", "aditivo de arrendamento"],
+  },
+  "P2-TERMO-SAFRA": {
+    keywords: ["encerramento de safra", "termo de safra", "partilha dos frutos", "ajuste do percentual"],
+  },
+  "P2-AC-INTEGRALIZACAO": {
+    keywords: ["concentração de cotas", "AC de integralização", "imóvel adicional", "exigência cartorial"],
+  },
+  "P2-HOLDING-INDIVIDUAL": { keywords: ["holding individual"] },
+  "P2-CAPITAL-SOCIAL": { keywords: ["capital subscrito", "valor de integralização", "excedente", "Tema 796"] },
+  "P2-ITBI-MONITOR": { keywords: ["ITBI", "imunidade", "atividade preponderante", "regra dos 50%"] },
+  "P2-CHECKLIST-RISCOS-RURAL": { keywords: ["matriz de riscos", "checklist rural", "posição adotada"] },
+  "P2-TEMPLATE-TAREFAS-RURAL": { keywords: ["migração rural", "ordem dos atos", "duração-padrão"] },
+  "P2-CATALOGO-RURAL": { keywords: ["Migração Rural", "PF para PJ", "PF-PJ"] },
+  "P2-INTERFACE-FISCAL": {
+    keywords: ["contexto-para-o-fiscal", "cenário do fiscal", "percentual da parceria", "provisão de ITBI"],
+  },
+  // A governança entra e o contrato-base recompõe: é o mecanismo de FLAG do motor
+  // (o motor já renumera por tipo de bloco e reancora as refs sozinho).
+  "P2-REFLEXO-GOVERNANCA": {
+    keywords: ["tmpl_flag", "projeto_flag_valor", "bloco de reflexo", "flag de governança"],
+  },
+  // ⚠️ Escopo a definir (o desenho da estrutura-alvo será discutido em separado).
+  // Reescrever esta regra depois da decisão.
+  "P2-ESTRUTURA-ALVO": { keywords: ["estrutura-alvo", "estrutura proposta", "matriz de destinação"] },
+
+  // ---------------------------------------------------------------------
+  // SEM regra de propósito — não deixam assinatura em src/:
+  //   • tipo `teste`  (QA, UAT, correções) e tipo `estudo` (SPECs, ADR) já entram
+  //     como detectavel:false pelo gen-status-report.mjs (detectavelFromTipo).
+  //   • P1-ACESSOS-GRUPOS  → admin do Google Workspace, não é código.
+  //   • GED-EXCLUSAO-GEF   → exclusão de dados em Lovable/GCS/BigQuery.
+  //   • P2-COLUNAS-DP      → colunas no banco; conferir por migration, não por src/.
+  // Estes três são tipo `ajuste`, então o relatório os mostra como ⬜ — é esperado.
+  // ---------------------------------------------------------------------
 };
