@@ -229,6 +229,26 @@ function ensureNormAutofit(sp: Element): void {
   }
 }
 
+/**
+ * Crava sz (em centesimos de pt) no <a:rPr> de todos os runs do shape.
+ * Necessario porque Google Slides IGNORA <a:normAutofit/>: sem sz explicito,
+ * nomes longos vazam para fora da caixa.
+ */
+function fixRunFontSize(sp: Element, label: string): void {
+  const len = label.length;
+  const sz = len <= 18 ? 1200 : len <= 28 ? 1100 : len <= 40 ? 900 : 800;
+  const runs = qsa(sp, "a:r");
+  for (const r of runs) {
+    let rPr = qsa(r, "a:rPr")[0];
+    if (!rPr) {
+      const doc = r.ownerDocument!;
+      rPr = doc.createElementNS("http://schemas.openxmlformats.org/drawingml/2006/main", "a:rPr");
+      r.insertBefore(rPr, r.firstChild);
+    }
+    rPr.setAttribute("sz", String(sz));
+  }
+}
+
 function distribuirShapes(
   spTree: Element,
   templateShape: Element,
