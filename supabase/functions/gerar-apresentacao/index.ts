@@ -292,12 +292,12 @@ function estimarAltura(rowCount: number): number {
 function renderQuadroTable(
   spTree: Element,
   templateGf: Element,
-  slideXml: string,
+  idCounter: { next: number },
   empresa: QuadroEmpresa,
   x: number,
   y: number,
 ): number {
-  const clone = cloneGraphicFrameWithNewId(templateGf, slideXml);
+  const clone = cloneGraphicFrameWithId(templateGf, idCounter.next++);
   // Substituir rows: encontrar row com {{SOCIO}}, clonar por linha.
   const rows = listRows(clone);
   const template = rows.find((r) => rowContainsToken(r, "SOCIO"));
@@ -337,18 +337,21 @@ function renderQuadroSlide(parts: PptxParts, slidePath: string, empresas: Quadro
     return empresas;
   }
 
+  // Contador monotonico de cNvPr@id: seed pelo maior id existente ANTES de
+  // remover o graphicFrame-modelo, + buffer folgado.
+  const idCounter = { next: nextCNvPrId(xml0) + 100 };
+
   // Cursor por coluna
   let yL = QUADRO_Y_START;
   let yR = QUADRO_Y_START;
   const restantes: QuadroEmpresa[] = [];
-  const currentXml = serializeXml(doc);
   for (const emp of empresas) {
     const h = estimarAltura(emp.linhas.length);
     if (yL + h <= QUADRO_Y_END) {
-      renderQuadroTable(spTree, gf, currentXml, emp, QUADRO_X_LEFT, yL);
+      renderQuadroTable(spTree, gf, idCounter, emp, QUADRO_X_LEFT, yL);
       yL += h + QUADRO_GAP_V;
     } else if (yR + h <= QUADRO_Y_END) {
-      renderQuadroTable(spTree, gf, currentXml, emp, QUADRO_X_RIGHT, yR);
+      renderQuadroTable(spTree, gf, idCounter, emp, QUADRO_X_RIGHT, yR);
       yR += h + QUADRO_GAP_V;
     } else {
       restantes.push(emp);
