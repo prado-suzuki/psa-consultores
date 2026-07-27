@@ -208,6 +208,16 @@ export function buildEquipeKanbanHierarchy(
     });
 }
 
+// Colunas do quadro. A coluna é escolhida por igualdade de status, então qualquer valor fora
+// desta lista — inclusive null, que o banco aceita — não casava com coluna nenhuma e o card
+// simplesmente desaparecia do quadro (sem erro e sem entrar no contador de ocultas). A tela da
+// sprint sempre mostrou esses casos como "Pendente"; aqui aplicamos o mesmo fallback.
+const BOARD_STATUSES = new Set(['pending', 'in_progress', 'completed']);
+
+export function normalizeEquipeKanbanStatus(status: string | null | undefined) {
+  return status && BOARD_STATUSES.has(status) ? status : 'pending';
+}
+
 /**
  * Mãe concluída com subtarefa aberta: o card dela cai na coluna "Concluído" e as subtarefas
  * vêm fechadas, então a tarefa aberta some do quadro. Sinaliza esses casos para o board
@@ -219,12 +229,37 @@ export function hasOpenSubtasksUnderCompletedParent(
   return deliverable.status === 'completed' && deliverable.openSubtasks > 0;
 }
 
+/**
+ * Mãe fora da coluna "A Fazer" (em progresso ou concluída) que guarda subtarefa aberta:
+ * a subtarefa segue aninhada no card da mãe, na coluna DA MÃE, então quem olha a coluna
+ * "A Fazer" não a encontra. Usado para abrir o aninhamento sozinho e para avisar na barra
+ * de filtros quantas tarefas abertas estão nessa situação.
+ */
+export function hidesOpenSubtasksOutsideItsColumn(
+  deliverable: HierarchicalEquipeKanbanDeliverable,
+) {
+  return (
+    normalizeEquipeKanbanStatus(deliverable.status) !== 'pending' && deliverable.openSubtasks > 0
+  );
+}
+
+/** Soma das subtarefas abertas que estão aninhadas em mães fora da coluna "A Fazer". */
+export function countOpenSubtasksOutsideTodoColumn(
+  deliverables: HierarchicalEquipeKanbanDeliverable[],
+) {
+  return deliverables
+    .filter(hidesOpenSubtasksOutsideItsColumn)
+    .reduce((total, parent) => total + parent.openSubtasks, 0);
+}
+
 export function getEquipeKanbanColumnDeliverables(
   deliverables: HierarchicalEquipeKanbanDeliverable[],
   columnId: string,
   sortDirection: 'asc' | 'desc' | null,
 ) {
-  const items = deliverables.filter((item) => item.status === columnId);
+  const items = deliverables.filter(
+    (item) => normalizeEquipeKanbanStatus(item.status) === columnId,
+  );
   if (!sortDirection) return items;
   return [...items].sort((a, b) => {
     const dateA = a.due_date ? new Date(`${a.due_date}T00:00:00`).getTime() : Infinity;

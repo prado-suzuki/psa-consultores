@@ -34,6 +34,7 @@ interface KanbanFiltersProps {
   mainTaskCount: number;
   totalTaskCount: number;
   hiddenCount: number;
+  nestedOpenCount: number;
   onSprintChange: (value: string) => void;
   onResponsibleChange: (value: string) => void;
   onProjectChange: (value: string) => void;
@@ -167,6 +168,12 @@ export function KanbanFilters(props: KanbanFiltersProps) {
         {props.hiddenCount > 0 && (
           <span className="ml-2 font-medium text-amber-600">
             · {props.hiddenCount} subtarefa(s) aninhada(s) em tarefa-mãe fora da visão — não exibida(s) como card
+          </span>
+        )}
+        {props.nestedOpenCount > 0 && (
+          <span className="ml-2 font-medium text-amber-600">
+            · {props.nestedOpenCount} tarefa(s) aberta(s) estão dentro de tarefas-mãe em progresso ou
+            concluídas — aparecem aninhadas na coluna da mãe, não em "A Fazer"
           </span>
         )}
       </div>

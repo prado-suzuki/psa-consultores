@@ -17,11 +17,13 @@ import { getBlockingOpenSubtasks } from '@/lib/deliverableCompletion';
 import {
   buildDeliverableUpdatePayload,
   buildEquipeKanbanHierarchy,
+  countOpenSubtasksOutsideTodoColumn,
   filterEquipeKanbanDeliverables,
   getEquipeKanbanColumnDeliverables,
   getEquipeKanbanErrorMessage,
   getEquipeKanbanSubtasks,
-  hasOpenSubtasksUnderCompletedParent,
+  hidesOpenSubtasksOutsideItsColumn,
+  normalizeEquipeKanbanStatus,
   validateEquipeKanbanFile,
   type EquipeKanbanAttachment as Attachment,
   type EquipeKanbanDeliverable as Deliverable,
@@ -179,13 +181,14 @@ const EquipeKanban = () => {
     });
   }, [filterResponsible, filterStartDate, filterEndDate, hierarchicalDeliverables, directMatchIds]);
 
-  // Mãe concluída com subtarefa aberta: o card fica na coluna "Concluído" e o aninhamento
-  // vem fechado, então a tarefa aberta não aparecia em lugar nenhum do quadro. Abrimos essas
-  // mães automaticamente — uma vez só, para não reabrir o que a pessoa fechou na mão.
+  // Mãe fora de "A Fazer" (em progresso ou concluída) com subtarefa aberta: o card dela fica na
+  // coluna da MÃE e o aninhamento vem fechado, então a tarefa aberta não aparecia em lugar nenhum
+  // do quadro. Abrimos essas mães automaticamente — uma vez só, para não reabrir o que a pessoa
+  // fechou na mão.
   const autoExpandedRef = useRef<Set<string>>(new Set());
   useEffect(() => {
     const toExpand = hierarchicalDeliverables
-      .filter(hasOpenSubtasksUnderCompletedParent)
+      .filter(hidesOpenSubtasksOutsideItsColumn)
       .map((parent) => parent.id)
       .filter((id) => !autoExpandedRef.current.has(id));
     if (toExpand.length === 0) return;
@@ -201,6 +204,13 @@ const EquipeKanban = () => {
     });
     return filteredDeliverables.filter((deliverable) => !renderedIds.has(deliverable.id)).length;
   }, [hierarchicalDeliverables, filteredDeliverables]);
+
+  // Tarefas abertas que a sprint lista como "a fazer" mas que aqui vivem aninhadas em mães de
+  // outras colunas — a diferença de contagem entre a sprint e a coluna "A Fazer" vem daqui.
+  const nestedOpenCount = useMemo(
+    () => countOpenSubtasksOutsideTodoColumn(hierarchicalDeliverables),
+    [hierarchicalDeliverables],
+  );
 
   const getColumnDeliverables = (columnId: string) =>
     getEquipeKanbanColumnDeliverables(hierarchicalDeliverables, columnId, sortByDueDate);
@@ -290,7 +300,7 @@ const EquipeKanban = () => {
       in_progress: 'Em Progresso',
       completed: 'Concluído',
     };
-    return labels[status] || status;
+    return labels[normalizeEquipeKanbanStatus(status)];
   };
 
   const openDeliverableDetail = async (deliverable: Deliverable) => {
@@ -299,7 +309,9 @@ const EquipeKanban = () => {
       title: deliverable.title,
       description: deliverable.description || '',
       assigned_to: deliverable.assigned_to || '',
-      status: deliverable.status,
+      // Normaliza para o Select não abrir em branco quando o status do banco está fora das três
+      // colunas (ou nulo) — salvando, a linha fica consistente.
+      status: normalizeEquipeKanbanStatus(deliverable.status),
       start_date: deliverable.start_date || '',
       due_date: deliverable.due_date || '',
       estimated_hours: deliverable.estimated_hours?.toString() || '',
@@ -472,6 +484,7 @@ const EquipeKanban = () => {
         mainTaskCount={hierarchicalDeliverables.length}
         totalTaskCount={filteredDeliverables.length}
         hiddenCount={hiddenCount}
+        nestedOpenCount={nestedOpenCount}
         onSprintChange={setFilterSprint}
         onResponsibleChange={setFilterResponsible}
         onProjectChange={setFilterProject}
