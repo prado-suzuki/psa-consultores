@@ -221,6 +221,30 @@ describe('equipeKanban', () => {
     expect(visible).not.toContain('nada-a-ver');
   });
 
+  it('mantém a filha de outra pessoa sob a mãe, e ela cai na coluna da MÃE, não na dela', () => {
+    // Mãe do Eduardo (em progresso) com filha do Alexandre (a fazer), filtrando por Alexandre.
+    const items = [
+      deliverable('mae-eduardo', { assigned_to: 'eduardo', status: 'in_progress', task_code: 'X-0' }),
+      deliverable('filha-alexandre', {
+        parent_id: 'mae-eduardo',
+        assigned_to: 'alexandre',
+        task_code: 'X-01',
+      }),
+    ];
+    const visible = selectEquipeKanbanVisibleDeliverables(items, new Set(['filha-alexandre']));
+    expect(visible.map(({ id }) => id).sort()).toEqual(['filha-alexandre', 'mae-eduardo']);
+
+    const hierarchy = buildEquipeKanbanHierarchy(visible);
+    // A filha não vira card: ela fica aninhada na mãe (modelo escolhido).
+    expect(hierarchy.map(({ id }) => id)).toEqual(['mae-eduardo']);
+    expect(hierarchy[0].subtasks.map(({ id }) => id)).toEqual(['filha-alexandre']);
+    // E o card está em "Em Progresso" (status da mãe) — nada aparece em "A Fazer".
+    expect(getEquipeKanbanColumnDeliverables(hierarchy, 'in_progress', null)).toHaveLength(1);
+    expect(getEquipeKanbanColumnDeliverables(hierarchy, 'pending', null)).toHaveLength(0);
+    // É por isso que a barra de filtros avisa: 1 tarefa aberta presa em mãe de outra coluna.
+    expect(countOpenSubtasksOutsideTodoColumn(hierarchy)).toBe(1);
+  });
+
   it('não entra em laço quando o dado tem ciclo de parent_id', () => {
     const items = [
       deliverable('a', { parent_id: 'b' }),

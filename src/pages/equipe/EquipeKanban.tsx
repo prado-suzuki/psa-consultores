@@ -144,10 +144,26 @@ const EquipeKanban = () => {
     ],
   );
 
+  // Filtro por pessoa = lista pessoal: a tarefa aparece na coluna do PRÓPRIO status, mesmo que a
+  // mãe seja de outra pessoa (a mãe é só agrupador, e some da visão — vira etiqueta no card).
+  // Sem filtro de pessoa o quadro segue aninhado, com a subtarefa dentro do card da mãe.
+  const personView = filterResponsible !== 'all';
+
   const filteredDeliverables = useMemo(
-    () => selectEquipeKanbanVisibleDeliverables(deliverables, directMatchIds),
-    [deliverables, directMatchIds],
+    () =>
+      selectEquipeKanbanVisibleDeliverables(deliverables, directMatchIds, {
+        keepAncestors: !personView,
+      }),
+    [deliverables, directMatchIds, personView],
   );
+
+  // Nome da mãe pra dar contexto no card promovido (a mãe não está na visão).
+  const getGroupLabel = (deliverable: Deliverable) => {
+    if (!deliverable.parent_id) return null;
+    const parent = deliverables.find((item) => item.id === deliverable.parent_id);
+    if (!parent) return null;
+    return parent.task_code ? `${parent.task_code} ${parent.title}` : parent.title;
+  };
 
   const hierarchicalDeliverables = useMemo(
     () => buildEquipeKanbanHierarchy(filteredDeliverables),
@@ -512,6 +528,7 @@ const EquipeKanban = () => {
           getColumnDeliverables={getColumnDeliverables}
           getProfileName={getProfileName}
           getBlocker={getBlocker}
+          getGroupLabel={getGroupLabel}
           onSortToggle={() => {
             setSortByDueDate((current) =>
               current === null ? 'asc' : current === 'asc' ? 'desc' : null,

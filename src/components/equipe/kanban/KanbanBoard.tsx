@@ -25,6 +25,8 @@ interface KanbanBoardProps {
   getColumnDeliverables: (columnId: string) => HierarchicalEquipeKanbanDeliverable[];
   getProfileName: (profileId: string | null) => string;
   getBlocker: (deliverable: EquipeKanbanDeliverable) => DeliverableBlocker | undefined;
+  /** Nome da tarefa-mãe quando ela não está no quadro (card promovido pelo filtro por pessoa). */
+  getGroupLabel: (deliverable: EquipeKanbanDeliverable) => string | null;
   onSortToggle: () => void;
   onStatusChange: (id: string, status: 'pending' | 'in_progress' | 'completed') => void;
   onToggleExpanded: (taskId: string, event?: MouseEvent) => void;
@@ -102,6 +104,14 @@ export function KanbanBoard(props: KanbanBoardProps) {
                         </button>
                       )}
                       <div className="flex-1 min-w-0">
+                        {props.getGroupLabel(deliverable) && (
+                          <div
+                            className="mb-1 truncate text-xs text-gray-400"
+                            title={props.getGroupLabel(deliverable) ?? undefined}
+                          >
+                            {props.getGroupLabel(deliverable)}
+                          </div>
+                        )}
                         <h4 className="text-gray-900 text-sm font-medium mb-2 line-clamp-2">
                           {deliverable.task_code && (
                             <span className="text-gray-500 font-normal mr-1">

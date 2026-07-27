@@ -147,15 +147,19 @@ export function filterEquipeKanbanDeliverables(
  * Decide o que fica visível a partir de quem bateu no filtro.
  *
  * Além dos próprios itens filtrados, mantém:
- * - a cadeia de MÃES acima (mãe, avó, ...), pra subtarefa continuar aninhada sob a raiz;
- * - todas as FILHAS abaixo de quem bateu. A tarefa-mãe é só um agrupador: quando ela entra na
- *   visão, o grupo inteiro entra com ela. Sem isso, subtarefa com responsável em branco (ou de
- *   outra pessoa, ou sem sprint) era descartada e a mãe aparecia como um card vazio, sem contador
- *   de subtarefas — as tarefas existiam na sprint e não apareciam em lugar nenhum do quadro.
+ * - as FILHAS abaixo de quem bateu. A tarefa-mãe é só um agrupador: quando ela entra na visão, o
+ *   grupo inteiro entra com ela. Sem isso, subtarefa com responsável em branco (ou de outra pessoa,
+ *   ou sem sprint) era descartada e a mãe aparecia como card vazio, sem contador de subtarefas — as
+ *   tarefas existiam na sprint e não apareciam em lugar nenhum do quadro.
+ * - a cadeia de MÃES acima (mãe, avó, ...) **quando `keepAncestors`**, pra subtarefa continuar
+ *   aninhada sob a raiz. Com filtro por pessoa isso atrapalha: a filha do Alexandre sob mãe do
+ *   Eduardo ficava dentro do card do Eduardo, na coluna DELE, e nunca na coluna do próprio status.
+ *   Sem a mãe na visão, a filha é promovida a card próprio (ver buildEquipeKanbanHierarchy).
  */
 export function selectEquipeKanbanVisibleDeliverables(
   deliverables: EquipeKanbanDeliverable[],
   directMatchIds: Set<string>,
+  { keepAncestors = true }: { keepAncestors?: boolean } = {},
 ) {
   const byId = new Map(deliverables.map((item) => [item.id, item]));
   const childrenByParent = new Map<string, string[]>();
@@ -170,12 +174,14 @@ export function selectEquipeKanbanVisibleDeliverables(
   directMatchIds.forEach((id) => {
     if (!byId.has(id)) return;
     keep.add(id);
-    const visited = new Set<string>();
-    let parentId = byId.get(id)?.parent_id ?? null;
-    while (parentId && byId.has(parentId) && !visited.has(parentId)) {
-      keep.add(parentId);
-      visited.add(parentId);
-      parentId = byId.get(parentId)?.parent_id ?? null;
+    if (keepAncestors) {
+      const visited = new Set<string>();
+      let parentId = byId.get(id)?.parent_id ?? null;
+      while (parentId && byId.has(parentId) && !visited.has(parentId)) {
+        keep.add(parentId);
+        visited.add(parentId);
+        parentId = byId.get(parentId)?.parent_id ?? null;
+      }
     }
     // Desce só a partir de quem bateu no filtro (não puxa irmãs da mãe herdada).
     const stack = [id];

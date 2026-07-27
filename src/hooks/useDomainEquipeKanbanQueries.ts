@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAllRows } from '@/lib/supabasePagination';
 import type {
   EquipeKanbanDeliverable,
   EquipeKanbanProcess,
@@ -16,37 +17,21 @@ export interface EquipeKanbanInitialData {
   deliverables: EquipeKanbanDeliverable[];
 }
 
-// O PostgREST corta a resposta no limite de linhas do projeto (padrão 1000 no Supabase). Como o
-// Kanban lê a tabela inteira — e lia sem ORDER BY —, ao passar desse limite algumas tarefas
-// simplesmente sumiam do quadro, sem erro nenhum e sem critério: a fatia devolvida mudava a cada
-// consulta. Pior, o corte quebra a hierarquia: mãe sem as filhas aparece como card vazio (sem o
-// contador x/y) e filha sem a mãe é promovida a card raiz. Buscamos em páginas ordenadas por id
-// até fechar o total.
-const DELIVERABLES_PAGE_SIZE = 500;
-const DELIVERABLES_MAX_PAGES = 40;
-
+// O Kanban lê a tabela inteira, então precisa paginar: acima do limite de linhas do PostgREST as
+// tarefas sumiam do quadro sem erro e sem critério, e o corte ainda quebrava a hierarquia (mãe sem
+// as filhas virava card vazio, filha sem a mãe era promovida a card raiz). Ver supabasePagination.
 async function fetchAllDeliverables() {
-  const all: EquipeKanbanDeliverable[] = [];
-  for (let page = 0; page < DELIVERABLES_MAX_PAGES; page += 1) {
-    const from = page * DELIVERABLES_PAGE_SIZE;
-    // select('*') traz actual_hours mesmo enquanto o types.ts gerado não a reflete
-    // (a lista explícita de colunas dá erro de tipo por causa do types.ts defasado).
-    const { data, error, count } = await supabase
+  // select('*') traz actual_hours mesmo enquanto o types.ts gerado não a reflete
+  // (a lista explícita de colunas dá erro de tipo por causa do types.ts defasado).
+  const { rows } = await fetchAllRows<EquipeKanbanDeliverable>((from, to) =>
+    supabase
       .from('sprint_deliverables')
       .select('*', { count: 'exact' })
       .order('id', { ascending: true })
-      .range(from, from + DELIVERABLES_PAGE_SIZE - 1);
-    // Erro segue ignorado aqui (contrato atual da tela): devolve o que já veio.
-    if (error) break;
-    const rows = (data || []) as EquipeKanbanDeliverable[];
-    all.push(...rows);
-    // Página incompleta é o sinal confiável de fim. O total é só um atalho: se o PostgREST não
-    // devolver count, `all.length >= (count ?? all.length)` seria verdade já na 1ª página e
-    // truncaria tudo em 500 linhas — o mesmo bug que a paginação veio consertar.
-    if (rows.length < DELIVERABLES_PAGE_SIZE) break;
-    if (typeof count === 'number' && all.length >= count) break;
-  }
-  return all;
+      .range(from, to),
+  );
+  // Erro segue ignorado aqui (contrato atual da tela): devolve o que já veio.
+  return rows;
 }
 
 export function useEquipeKanbanInitialQuery() {

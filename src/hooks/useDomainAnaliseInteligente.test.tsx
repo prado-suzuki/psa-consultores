@@ -51,7 +51,7 @@ const channelObject = {
 
 function chainFor(table: string) {
   const chain: Record<string, unknown> = {};
-  for (const method of ['select', 'order', 'limit', 'eq']) {
+  for (const method of ['select', 'order', 'limit', 'eq', 'range']) {
     chain[method] = vi.fn((...args: unknown[]) => {
       calls.push({ table, method, args });
       return chain;
@@ -177,11 +177,16 @@ describe('useDomainAnaliseInteligenteData', () => {
     expect(callsFor('projects', 'order')).toEqual([['name']]);
     expect(callsFor('processes', 'select')).toEqual([['id, name, area, project_id']]);
     expect(callsFor('processes', 'order')).toEqual([['name']]);
+    // Entregáveis vêm paginados: a tabela inteira passa do limite de linhas do PostgREST e a fatia
+    // truncava as métricas. Uma única página aqui porque o mock devolve menos que o tamanho dela.
     expect(callsFor('sprint_deliverables', 'select')).toEqual([
       [
         'id, sprint_id, project_id, process_id, status, due_date, estimated_hours, parent_id, completed_at, created_at, assigned_to',
+        { count: 'exact' },
       ],
     ]);
+    expect(callsFor('sprint_deliverables', 'order')).toEqual([['id', { ascending: true }]]);
+    expect(callsFor('sprint_deliverables', 'range')).toEqual([[0, 499]]);
     expect(callsFor('daily_standups', 'select')).toEqual([
       ['id, date, sprint_id, project_id, process_id, blockers, user_id'],
     ]);

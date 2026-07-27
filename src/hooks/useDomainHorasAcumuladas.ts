@@ -1,5 +1,19 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAllRows } from '@/lib/supabasePagination';
+
+interface DeliverableHoursRow {
+  id: string;
+  assigned_to: string | null;
+  estimated_hours: number | null;
+}
+
+interface RoutineHoursRow {
+  id: string;
+  assigned_to: string | null;
+  estimated_hours: number | null;
+  frequency: string | null;
+}
 
 export interface HorasAcumuladasData {
   userId: string;
@@ -48,16 +62,17 @@ export const useDomainHorasAcumuladas = ({
           };
         });
 
-        // Fetch sprint hours from deliverables
-        let deliverablesQuery = supabase
-          .from('sprint_deliverables')
-          .select('assigned_to, estimated_hours');
-
-        if (sprintId) {
-          deliverablesQuery = deliverablesQuery.eq('sprint_id', sprintId);
-        }
-
-        const { data: deliverables } = await deliverablesQuery;
+        // Fetch sprint hours from deliverables — paginado porque sem sprintId isso lê a tabela
+        // inteira, e o corte de linhas do PostgREST fazia a soma de horas parar no teto sem avisar.
+        // Ver supabasePagination.
+        const { rows: deliverables } = await fetchAllRows<DeliverableHoursRow>((from, to) => {
+          const query = supabase
+            .from('sprint_deliverables')
+            .select('id, assigned_to, estimated_hours', { count: 'exact' });
+          return (sprintId ? query.eq('sprint_id', sprintId) : query)
+            .order('id', { ascending: true })
+            .range(from, to);
+        });
 
         if (deliverables) {
           deliverables.forEach((deliverable) => {
@@ -73,11 +88,15 @@ export const useDomainHorasAcumuladas = ({
           });
         }
 
-        // Fetch routine hours if enabled
+        // Fetch routine hours if enabled — a outra metade desta mesma soma, também lida inteira.
         if (showRoutines) {
-          const { data: routines } = await supabase
-            .from('routines')
-            .select('assigned_to, estimated_hours, frequency');
+          const { rows: routines } = await fetchAllRows<RoutineHoursRow>((from, to) =>
+            supabase
+              .from('routines')
+              .select('id, assigned_to, estimated_hours, frequency', { count: 'exact' })
+              .order('id', { ascending: true })
+              .range(from, to),
+          );
 
           if (routines) {
             routines.forEach((routine) => {

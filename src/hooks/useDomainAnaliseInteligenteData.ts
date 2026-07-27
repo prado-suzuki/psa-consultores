@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAllRows } from '@/lib/supabasePagination';
 import type {
   AnaliseInteligenteDaily,
   AnaliseInteligenteData,
@@ -14,7 +15,7 @@ import type {
 const queryKey = ['domain-analise-inteligente', 'aggregate-data'] as const;
 
 async function fetchAnaliseInteligenteData(): Promise<AnaliseInteligenteData> {
-  const [sprintsRes, projectsRes, processesRes, deliverablesRes, dailysRes, improvRes] =
+  const [sprintsRes, projectsRes, processesRes, deliverablesPage, dailysRes, improvRes] =
     await Promise.all([
       supabase
         .from('sprints')
@@ -22,11 +23,18 @@ async function fetchAnaliseInteligenteData(): Promise<AnaliseInteligenteData> {
         .order('start_date', { ascending: false }),
       supabase.from('projects').select('id, name, cluster_id').order('name'),
       supabase.from('processes').select('id, name, area, project_id').order('name'),
-      supabase
-        .from('sprint_deliverables')
-        .select(
-          'id, sprint_id, project_id, process_id, status, due_date, estimated_hours, parent_id, completed_at, created_at, assigned_to',
-        ),
+      // Tabela inteira: precisa paginar, senão as métricas eram calculadas sobre uma fatia
+      // arbitrária no limite de linhas do PostgREST. Ver supabasePagination.
+      fetchAllRows<AnaliseInteligenteDeliverable>((from, to) =>
+        supabase
+          .from('sprint_deliverables')
+          .select(
+            'id, sprint_id, project_id, process_id, status, due_date, estimated_hours, parent_id, completed_at, created_at, assigned_to',
+            { count: 'exact' },
+          )
+          .order('id', { ascending: true })
+          .range(from, to),
+      ),
       supabase
         .from('daily_standups')
         .select('id, date, sprint_id, project_id, process_id, blockers, user_id')
@@ -42,7 +50,7 @@ async function fetchAnaliseInteligenteData(): Promise<AnaliseInteligenteData> {
     sprints: (sprintsRes.data ?? []) as AnaliseInteligenteSprint[],
     projects: (projectsRes.data ?? []) as AnaliseInteligenteProject[],
     processes: (processesRes.data ?? []) as AnaliseInteligenteProcess[],
-    deliverables: (deliverablesRes.data ?? []) as AnaliseInteligenteDeliverable[],
+    deliverables: deliverablesPage.rows,
     dailys: (dailysRes.data ?? []) as AnaliseInteligenteDaily[],
     improvements: (improvRes.data ?? []) as AnaliseInteligenteImprovement[],
   };
