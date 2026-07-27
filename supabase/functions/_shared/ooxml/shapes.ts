@@ -67,6 +67,14 @@ export function cloneShapeWithNewId(sp: Element, slideXml: string): Element {
   return clone;
 }
 
+/** Deep clone com id explicito (para contador monotonico externo). */
+export function cloneShapeWithId(sp: Element, id: number): Element {
+  const clone = sp.cloneNode(true) as Element;
+  const cn = qsa(clone, "p:cNvPr")[0];
+  if (cn) cn.setAttribute("id", String(id));
+  return clone;
+}
+
 export function removeShape(sp: Element): void {
   sp.parentNode?.removeChild(sp);
 }
