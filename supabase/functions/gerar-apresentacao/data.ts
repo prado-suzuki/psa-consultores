@@ -9,18 +9,18 @@ type SB = any;
 // ---------- helpers ----------
 
 export function fmtBRL(n: number | null | undefined): string {
-  const v = Number(n ?? 0);
-  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+  if (n == null || !Number.isFinite(Number(n))) return "—";
+  return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(n));
 }
 
 export function fmtInt(n: number | null | undefined): string {
-  const v = Number(n ?? 0);
-  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(v);
+  if (n == null || !Number.isFinite(Number(n))) return "—";
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Number(n));
 }
 
 export function fmtPct(n: number | null | undefined): string {
-  const v = Number(n ?? 0);
-  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v) + "%";
+  if (n == null || !Number.isFinite(Number(n))) return "—";
+  return new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(n)) + "%";
 }
 
 // ---------- Patrimonial ----------
@@ -83,9 +83,8 @@ export async function carregarPatrimonial(admin: SB, clienteId: string): Promise
     } else {
       for (const m of mats) {
         const titulMat = nomesTitulares(m.titularidade) || titulBem;
-        const numero = m.numero ?? "—";
-        const ant = m.matricula_anterior_texto;
-        const matLabel = ant ? `Mat. ${numero} (ant. ${ant})` : `Mat. ${numero}`;
+        const numero = m.numero ?? null;
+        const matLabel = numero ? `Mat. ${numero}` : "Não se aplica";
         const mun = [m.municipio_imovel, m.uf_imovel].filter(Boolean).join("/") || "—";
         linhas.push({
           propriedade: titulMat || "—",
@@ -176,7 +175,8 @@ export async function carregarQuadro(admin: SB, clienteId: string): Promise<Quad
   for (const [, v] of map) {
     const tq = v.rows.reduce((s, x) => s + x.quotas, 0);
     const tv = v.rows.reduce((s, x) => s + x.valor, 0);
-    for (const row of v.rows) row.pct = tq > 0 ? (row.quotas / tq) * 100 : 0;
+    // Sentinel NaN quando total zero — fmtPct renderiza "—".
+    for (const row of v.rows) row.pct = tq > 0 ? (row.quotas / tq) * 100 : NaN;
     v.rows.sort((a, b) => b.quotas - a.quotas || a.socio.localeCompare(b.socio, "pt-BR"));
     out.push({ empresa: v.empresa, linhas: v.rows, totalQuotas: tq, totalValor: tv });
   }
