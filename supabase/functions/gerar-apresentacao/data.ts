@@ -197,7 +197,7 @@ async function quadroPR(admin: SB, empresaId: string): Promise<QuadroResult> {
     .from("bem")
     .select(sel)
     .eq("empresa_destino_pessoa_id", empresaId)
-    .eq("status_integralizacao", "Aprovado");
+    .not("participa_estruturacao", "is", false);
   if (error) throw new Error(`quadroPR(${empresaId}): ${error.message}`);
 
   interface Tit {
