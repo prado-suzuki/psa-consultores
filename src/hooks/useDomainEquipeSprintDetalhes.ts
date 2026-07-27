@@ -550,8 +550,11 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
       }
 
       // 4. Item de backlog que gerou a tarefa acompanha a sprint, senão ele fica apontando para a
-      //    sprint antiga (decisão do usuário em 27/07).
-      await supabase
+      //    sprint antiga (decisão do usuário em 27/07). Uma falha aqui NÃO derruba o move: as
+      //    tarefas já estão na sprint certa e lançar erro agora impediria o log de auditoria e
+      //    deixaria a operação em erro permanente, já que o retry falharia no mesmo ponto. Em vez
+      //    disso o aviso sobe para a UI.
+      const { error: backlogError } = await supabase
         .from('sprint_backlog_items')
         .update({ sprint_id: targetSprint.id })
         .in('moved_to_deliverable_id', movedIds);
@@ -572,11 +575,28 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
         );
       }
 
+      // Filho que sobrou fora da sprint de destino apontando para alguém que acabou de mudar. Os
+      // descendentes são coletados dentro da sprint de origem, então isto só acontece com vínculo
+      // cruzado anterior a esta feature (a base tinha zero). É justamente o vínculo que faz o
+      // CASCADE apagar tarefa, então aqui se avisa em vez de esconder.
+      const { data: strayChildren } = await supabase
+        .from('sprint_deliverables')
+        .select('id')
+        .in('parent_id', movedIds)
+        .neq('sprint_id', targetSprint.id);
+
       return {
         deliverableId,
         movedIds,
         originSprintId,
         targetSprintId: targetSprint.id,
+        backlogWarning: backlogError
+          ? 'A tarefa foi movida, mas o item de backlog vinculado continuou na sprint anterior.'
+          : null,
+        crossSprintWarning:
+          strayChildren && strayChildren.length > 0
+            ? `${strayChildren.length} subtarefa(s) antigas continuam ligadas a esta tarefa em outra sprint. Avise o time: esse vínculo é o que faz a exclusão da sprint antiga apagar tarefa.`
+            : null,
         auditEntry: {
           area: 'dev' as const,
           entity_type: (current.parent_id ? 'subtask' : 'task') as 'subtask' | 'task',

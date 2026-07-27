@@ -530,11 +530,12 @@ describe('useDomainEquipeSprintDetalhes — move de tarefa entre sprints', () =>
     { id: 'filha', sprint_id: 'sprint-2', parent_id: 'raiz' },
   ];
 
-  function arrangeMove(overrides: { after?: unknown } = {}) {
+  function arrangeMove(overrides: { after?: unknown; stray?: unknown } = {}) {
     setDbSequence('sprint_deliverables', 'select', [
       { data: currentRow, error: null },
       { data: originRows, error: null },
       { data: overrides.after ?? afterRows, error: null },
+      { data: overrides.stray ?? [], error: null },
     ]);
   }
 
@@ -614,6 +615,51 @@ describe('useDomainEquipeSprintDetalhes — move de tarefa entre sprints', () =>
     expect(result.auditEntry.details).toBe(
       'Movida para a sprint "11_Sprint", com 1 subtarefa(s) junto.',
     );
+  });
+
+  it('não derruba o move quando o item de backlog falha, e devolve aviso para a UI', async () => {
+    arrangeMove();
+    setDbResult('sprint_backlog_items', 'update', {
+      data: null,
+      error: new Error('permissão negada'),
+    });
+    const api = renderDomain();
+    const result = (await api.moveDeliverableToSprint.mutationFn({
+      deliverableId: 'raiz',
+      targetSprint,
+    })) as { backlogWarning: string | null };
+
+    // As tarefas já estão na sprint certa: lançar erro aqui impediria o log de auditoria e deixaria
+    // a operação em erro permanente, porque o retry falharia no mesmo ponto.
+    expect(result.backlogWarning).toBe(
+      'A tarefa foi movida, mas o item de backlog vinculado continuou na sprint anterior.',
+    );
+  });
+
+  it('não devolve aviso quando tudo correu bem', async () => {
+    arrangeMove();
+    const api = renderDomain();
+    const result = (await api.moveDeliverableToSprint.mutationFn({
+      deliverableId: 'raiz',
+      targetSprint,
+    })) as { backlogWarning: string | null; crossSprintWarning: string | null };
+
+    expect(result.backlogWarning).toBeNull();
+    expect(result.crossSprintWarning).toBeNull();
+  });
+
+  it('avisa quando sobra subtarefa antiga ligada em outra sprint', async () => {
+    // Só acontece com vínculo cruzado anterior à feature. É o vínculo que faz o CASCADE apagar
+    // tarefa, então precisa ser visível em vez de silencioso.
+    arrangeMove({ stray: [{ id: 'filha-legada' }] });
+    const api = renderDomain();
+    const result = (await api.moveDeliverableToSprint.mutationFn({
+      deliverableId: 'raiz',
+      targetSprint,
+    })) as { crossSprintWarning: string | null };
+
+    expect(result.crossSprintWarning).toContain('1 subtarefa(s) antigas continuam ligadas');
+    expect(callsFor('sprint_deliverables', 'neq')[0].args).toEqual(['sprint_id', 'sprint-2']);
   });
 
   it('recusa mover para a sprint em que a tarefa já está, sem gravar nada', async () => {

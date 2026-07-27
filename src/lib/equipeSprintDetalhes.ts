@@ -1,4 +1,10 @@
-import { addDays, differenceInDays, eachDayOfInterval, format } from 'date-fns';
+import {
+  addDays,
+  differenceInCalendarDays,
+  differenceInDays,
+  eachDayOfInterval,
+  format,
+} from 'date-fns';
 import type {
   SprintDetalhesDeliverable as Deliverable,
   SprintDetalhesMetric as Metric,
@@ -154,8 +160,10 @@ export function clampDatesToSprint(
     return { start_date: start, due_date: due };
   }
 
+  // differenceInCalendarDays, não differenceInDays: aqui só existe data, sem hora. Contar períodos
+  // de 24h daria um dia de erro em fuso com horário de verão.
   const durationDays =
-    start && start <= due ? differenceInDays(parseDate(due), parseDate(start)) : 0;
+    start && start <= due ? differenceInCalendarDays(parseDate(due), parseDate(start)) : 0;
   const shiftDays = (iso: string, days: number) =>
     format(addDays(parseDate(iso), days), 'yyyy-MM-dd');
 
