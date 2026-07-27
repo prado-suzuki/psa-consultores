@@ -226,7 +226,11 @@ function renderModal(overrides: Partial<React.ComponentProps<typeof TaskModal>> 
   return { ...render(<TaskModal {...props} />), props };
 }
 
-async function chooseOption(user: ReturnType<typeof userEvent.setup>, label: RegExp, option: RegExp) {
+async function chooseOption(
+  user: ReturnType<typeof userEvent.setup>,
+  label: RegExp,
+  option: RegExp,
+) {
   await user.click(screen.getByLabelText(label));
   await user.click(await screen.findByRole('option', { name: option }));
 }
@@ -676,7 +680,9 @@ describe('TaskModal — revisor delegado', () => {
     renderModal({ task: reviewTask });
 
     expect(screen.getByText('Revisão delegada a você')).toBeInTheDocument();
-    expect(screen.getByText(/Revise a tarefa de Ana e escolha uma ação ao final\./)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Revise a tarefa de Ana e escolha uma ação ao final\./),
+    ).toBeInTheDocument();
     expect(screen.getByLabelText(/^Título/)).toBeDisabled();
     expect(screen.queryByRole('button', { name: 'Salvar' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Aprovar/ })).toBeInTheDocument();
@@ -729,7 +735,10 @@ describe('TaskModal — revisor delegado', () => {
 
     await waitFor(() => expect(mocks.createComment).toHaveBeenCalledTimes(1));
     expect(kinds()).toEqual(['update', 'comment']);
-    expect(payloadOf('update')).toMatchObject({ status: 'em_ajuste', reviewTransitionValidated: true });
+    expect(payloadOf('update')).toMatchObject({
+      status: 'em_ajuste',
+      reviewTransitionValidated: true,
+    });
     expect(payloadOf('comment')).toEqual({
       taskId: 'T1',
       comment: 'Devolvido para ajustes: [[review-rich-text:v1]]Corrigir a base de cálculo',
