@@ -2,6 +2,9 @@
  * Teste do ProjetoDialog depois do redesenho (duas colunas na edição, com a
  * thread de atividade à direita — mesma anatomia do TaskModal).
  *
+ * A criação espelha essa anatomia em coluna única (nome, contexto, pílulas,
+ * equipe e descrição), sem a thread.
+ *
  * Trava o comportamento observável: qual layout cada modo renderiza, o que o
  * painel de atividade recebe (entidade `org_project`), quais campos ficam atrás
  * de "Alterar contexto" e que as ações continuam chamando `handleSubmit` /
@@ -311,23 +314,29 @@ describe('ProjetoDialog — edição', () => {
 });
 
 describe('ProjetoDialog — criação', () => {
-  it('usa coluna única, sem thread de atividade', () => {
+  it('espelha a anatomia da edição em coluna única, sem thread de atividade', () => {
     renderCreate();
 
     expect(screen.getByRole('heading', { name: 'Novo Projeto' })).toBeInTheDocument();
     expect(screen.queryByTestId('activity-panel')).not.toBeInTheDocument();
     expect(screen.queryByTestId('anexos-agregados')).not.toBeInTheDocument();
-    // Sem cabeçalho de contexto nem pílulas: os campos aparecem com rótulo cheio.
+
+    // Nome em corpo grande e contexto aberto: aqui não há o que esconder atrás
+    // de "Alterar contexto", os campos ainda precisam ser escolhidos.
     expect(screen.queryByRole('button', { name: /Alterar contexto/ })).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/^Cliente/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Nome do Projeto/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Equipe/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Status/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Data de Início/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Data de Término/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Descrição do Projeto/)).toBeInTheDocument();
-    // Aqui o responsável executor volta para a seção Equipe.
-    expect(screen.getByText('Responsável Executor')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nome do Projeto')).toHaveValue('');
+    expect(screen.getByLabelText('Cliente')).toBeInTheDocument();
+    expect(screen.getByLabelText('Equipe')).toBeInTheDocument();
+
+    // As mesmas pílulas da edição: status, responsável e período.
+    expect(screen.getByLabelText('Status')).toHaveTextContent('Ativo');
+    expect(screen.getByLabelText('Responsável')).toHaveTextContent('Selecione');
+    expect(screen.getByLabelText('Início')).toHaveValue('');
+    expect(screen.getByLabelText('Término')).toHaveValue('');
+
+    expect(screen.getByLabelText('Descrição do Projeto')).toBeInTheDocument();
+    // O responsável executor não é repetido na seção Equipe, como na edição.
+    expect(screen.queryByText('Responsável Executor')).not.toBeInTheDocument();
   });
 
   it('Criar e Cancelar delegam para o controller', async () => {

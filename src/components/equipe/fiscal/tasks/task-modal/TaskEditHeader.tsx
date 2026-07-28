@@ -1,19 +1,13 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { CheckCircle2, ChevronDown, Settings2, X } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Settings2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { DialogClose, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { ModalTopBar } from '@/components/ui/modal-top-bar';
+import { TaskContextSelect } from '@/components/equipe/fiscal/tasks/task-modal/TaskContextSelect';
 import type { TaskFieldOptions, TaskFormValues } from '@/lib/orgTaskForm';
 import { cn } from '@/lib/utils';
 
@@ -53,24 +47,12 @@ export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHea
 
   return (
     <div className="px-6">
-      <div className="sticky top-0 z-20 -mx-6 flex items-center justify-between gap-3 border-b bg-background/95 px-6 py-3 backdrop-blur">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-          <DialogTitle className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Editar Tarefa
-          </DialogTitle>
-          <DialogDescription className="sr-only">Formulário de tarefa fiscal</DialogDescription>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          {actions}
-          <DialogClose
-            className="ml-1 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label="Fechar"
-          >
-            <X className="h-4 w-4" />
-          </DialogClose>
-        </div>
-      </div>
+      <ModalTopBar
+        icon={<CheckCircle2 className="h-3.5 w-3.5" />}
+        title="Editar Tarefa"
+        description="Formulário de tarefa fiscal"
+        actions={actions}
+      />
 
       <fieldset disabled={disabled} className="contents">
         <FormField
@@ -142,7 +124,7 @@ export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHea
               CollapsibleContent, venceria o `hidden` do estado fechado. */}
           <CollapsibleContent>
             <div className="mt-3 grid gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-2">
-              <ContextSelect
+              <TaskContextSelect
                 form={form}
                 name="client_id"
                 label="Cliente"
@@ -150,7 +132,7 @@ export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHea
                 emptyValue={undefined}
                 options={clients.map((client) => ({ value: client.id, label: client.nome }))}
               />
-              <ContextSelect
+              <TaskContextSelect
                 form={form}
                 name="project_id"
                 label="Projeto"
@@ -158,7 +140,7 @@ export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHea
                 emptyValue=""
                 options={projects.map((project) => ({ value: project.id, label: project.name }))}
               />
-              <ContextSelect
+              <TaskContextSelect
                 form={form}
                 name="contribuinte_id"
                 label="Contribuinte"
@@ -174,7 +156,7 @@ export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHea
                     : item.nome_razao_social,
                 }))}
               />
-              <ContextSelect
+              <TaskContextSelect
                 form={form}
                 name="parent_task_id"
                 label="Tarefa Pai (subtarefa de)"
@@ -201,64 +183,5 @@ function ContextRow({ label, value }: { label: string; value?: string | null }) 
         {value || 'Não informado'}
       </dd>
     </div>
-  );
-}
-
-type ContextSelectName = 'client_id' | 'project_id' | 'contribuinte_id' | 'parent_task_id';
-
-/**
- * Select do painel de contexto. `emptyValue` guarda a diferença que o formulário
- * já fazia: projeto limpa para `''` (obrigatório no schema), os outros para
- * `undefined`.
- */
-function ContextSelect({
-  form,
-  name,
-  label,
-  placeholder,
-  options,
-  emptyValue,
-  emptyLabel = 'Nenhum',
-  disabled,
-}: {
-  form: UseFormReturn<TaskFormValues>;
-  name: ContextSelectName;
-  label: string;
-  placeholder: string;
-  options: { value: string; label: string }[];
-  emptyValue: '' | undefined;
-  emptyLabel?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <FormField
-      control={form.control}
-      name={name}
-      render={({ field }) => (
-        <FormItem className="space-y-1.5">
-          <FormLabel className="text-xs font-medium text-muted-foreground">{label}</FormLabel>
-          <Select
-            onValueChange={(value) => field.onChange(value === '_none' ? emptyValue : value)}
-            value={field.value || '_none'}
-            disabled={disabled}
-          >
-            <FormControl>
-              <SelectTrigger className="h-9 bg-background text-sm">
-                <SelectValue placeholder={placeholder} />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              <SelectItem value="_none">{emptyLabel}</SelectItem>
-              {options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
   );
 }

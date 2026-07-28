@@ -16,8 +16,9 @@ import { cn } from '@/lib/utils';
  *
  * Na edição são duas colunas: à esquerda o projeto (cabeçalho com o nome,
  * propriedades e corpo), à direita a thread de atividade (comentários, menções e
- * anexos). Na criação é uma coluna só, com os campos empilhados. Mesma anatomia
- * do modal de tarefa, de propósito: as duas telas convivem no mesmo painel.
+ * anexos). Na criação é a mesma anatomia em coluna única — nome, contexto,
+ * propriedades, equipe e descrição —, sem a thread, que só existe depois que o
+ * projeto existe. Mesma divisão do modal de tarefa.
  */
 export function ProjetoDialog() {
   const {
@@ -54,21 +55,25 @@ export function ProjetoDialog() {
     <Dialog open={isModalOpen} onOpenChange={handleOpenChange}>
       <DialogContent
         ref={dialogContentRef}
-        // Na edição o primeiro elemento focável é o botão Salvar, e um Enter
-        // logo após abrir salvaria o projeto sem intenção. O foco vai para o
-        // próprio diálogo (tabIndex -1 do Radix): Tab e Esc seguem valendo.
+        // O primeiro elemento focável é um botão da barra do topo, e um Enter
+        // logo após abrir salvaria ou fecharia o modal sem intenção. Na edição o
+        // foco vai para o próprio diálogo (tabIndex -1 do Radix); na criação,
+        // para o nome do projeto, que é por onde o cadastro começa.
         onOpenAutoFocus={(event) => {
-          if (!editingProject) return;
           event.preventDefault();
-          dialogContentRef.current?.focus();
+          if (editingProject) {
+            dialogContentRef.current?.focus();
+            return;
+          }
+          dialogContentRef.current?.querySelector<HTMLInputElement>('#novo-projeto-nome')?.focus();
         }}
         className={cn(
-          'max-h-[94vh] gap-0 overflow-hidden p-0',
+          // `[&>button]:hidden` esconde o X padrão do DialogContent: nos dois
+          // modos ele é renderizado dentro da barra do topo, junto das ações.
+          'max-h-[94vh] gap-0 overflow-hidden p-0 [&>button]:hidden',
           editingProject
-            ? // `[&>button]:hidden` esconde o X padrão do DialogContent: na
-              // edição ele é renderizado dentro do cabeçalho, junto das ações.
-              'h-[min(94vh,54rem)] w-[calc(100vw-1rem)] max-w-[78rem] [&>button]:hidden lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(22rem,0.9fr)]'
-            : 'max-w-2xl',
+            ? 'h-[min(94vh,54rem)] w-[calc(100vw-1rem)] max-w-[78rem] lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(22rem,0.9fr)]'
+            : 'max-w-3xl',
         )}
       >
         <div className="flex min-h-0 flex-col bg-background">

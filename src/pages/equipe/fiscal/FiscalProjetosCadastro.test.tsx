@@ -443,14 +443,16 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
     await chooseSelect(/^Cliente/, 'Beta Cliente');
     expect(await screen.findByText(/OS: 001\/2026 — P01 — Consultoria/)).toBeInTheDocument();
     expect(screen.getByText('OS única selecionada automaticamente — datas de início e término preenchidas.')).toBeInTheDocument();
-    await waitFor(() => expect(inputNear(/Data de Início/)).toHaveValue('2026-01-10'));
-    expect(inputNear(/Data de Término/)).toHaveValue('2026-12-20');
+    // Depois do redesenho o período é pílula na faixa de propriedades
+    // ("Início" / "Término"), como na edição.
+    await waitFor(() => expect(inputNear(/^Início/)).toHaveValue('2026-01-10'));
+    expect(inputNear(/^Término/)).toHaveValue('2026-12-20');
     expect(screen.getByText('P01 — Consultoria')).toBeInTheDocument();
 
     fireEvent.change(inputNear(/^Nome do Projeto/), { target: { value: 'Novo Fiscal' } });
     await chooseSelect(/^Equipe/, /Equipe Fiscal/);
     expect(screen.getByText('Lia Líder')).toBeInTheDocument();
-    await chooseSelect(/^Responsável Executor/, 'Eva Executora');
+    await chooseSelect(/^Responsável/, 'Eva Executora');
     await user.click(screen.getByRole('button', { name: /Incluir todos da equipe/ }));
     fireEvent.change(inputNear(/Descrição do Projeto/), { target: { value: 'Escopo completo' } });
 

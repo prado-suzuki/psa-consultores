@@ -28,13 +28,11 @@ interface TaskPropertyBarProps {
 }
 
 /**
- * Faixa de propriedades do modo edição: status, prioridade, responsável, datas
- * e esforço em controles compactos, lado a lado.
+ * Faixa de propriedades: status, prioridade, responsável, datas e esforço em
+ * controles compactos, lado a lado.
  *
- * É uma segunda apresentação dos mesmos campos de `TaskExecutionFields` (que
- * segue servindo o formulário de criação, empilhado). Os dois convivem de
- * propósito: aqui o controle é uma pílula de leitura rápida, lá é um campo de
- * formulário com rótulo completo.
+ * Serve a criação e a edição — os dois modos mostram as mesmas propriedades no
+ * mesmo lugar, logo abaixo do título.
  */
 export function TaskPropertyBar({
   form,
@@ -51,6 +49,9 @@ export function TaskPropertyBar({
   const needsAttention = isDone && (!actualHoursValue || !!form.formState.errors.actual_hours);
 
   const assignee = teamMembers.find((member) => member.id === assignedTo);
+  // Um rascunho restaurado pode não trazer a prioridade; sem o fallback a
+  // pílula quebraria ao renderizar as cores de uma chave inexistente.
+  const priorityColors = taskPriorityColors[priority] ?? taskPriorityColors.medium;
 
   return (
     <div className="border-y bg-muted/20 px-6 py-4">
@@ -105,16 +106,16 @@ export function TaskPropertyBar({
                 <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger
-                      className={cn(CHIP_TRIGGER, 'border', taskPriorityColors[priority].badge)}
+                      className={cn(CHIP_TRIGGER, 'border', priorityColors.badge)}
                     >
                       <span className="flex min-w-0 items-center gap-2">
                         <span
                           className={cn(
                             'h-2 w-2 shrink-0 rounded-full',
-                            taskPriorityColors[priority].dot,
+                            priorityColors.dot,
                           )}
                         />
-                        <span className="truncate">{taskPriorityColors[priority].label}</span>
+                        <span className="truncate">{priorityColors.label}</span>
                       </span>
                     </SelectTrigger>
                   </FormControl>

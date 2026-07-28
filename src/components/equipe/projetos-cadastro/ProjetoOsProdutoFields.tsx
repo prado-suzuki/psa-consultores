@@ -22,29 +22,31 @@ export function ProjetoOsProdutoFields() {
   } = useProjetosCadastro();
   return <>
     {formData.external_client_id && <div className="space-y-2">
-      <Label className="text-xs text-muted-foreground flex items-center gap-1.5"><FileText className="h-3.5 w-3.5" />Ordens de Serviço Vinculadas</Label>
-      {clienteOS.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma OS encontrada para este cliente.</p> : <div className="space-y-2">
+      <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><FileText className="h-3.5 w-3.5" />Ordens de Serviço Vinculadas</Label>
+      {clienteOS.length === 0 ? <p className="text-sm text-muted-foreground">Nenhuma OS encontrada para este cliente.</p> : <div className="space-y-1.5">
         {clienteOS.map(os => {
           const products = osProdutosByOs[os.id] || [];
           const productLabel = products.length ? products.map(product => [product.produto_codigo, product.produto_nome].filter(Boolean).join(' — ')).join(', ') : null;
-          return <div key={os.id} onClick={() => setSelectedOsId(os.id)} className={`border rounded-xl p-3 cursor-pointer transition-colors ${selectedOsId === os.id ? 'border-info bg-info/10 ring-1 ring-info/20' : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30'}`}>
-            <div className="flex items-center justify-between mb-1.5"><span className="font-medium text-sm">{productLabel ? `OS: ${os.numero_os || 'Sem número'} — ${productLabel}` : `OS: ${os.numero_os || 'Sem número'}`}</span><OsStatusBadge status={os.situacao} /></div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          // Uma linha por OS: identificação e situação acima, datas em corpo
+          // menor abaixo. O cartão alto de antes dominava a tela de cadastro.
+          return <div key={os.id} onClick={() => setSelectedOsId(os.id)} className={`cursor-pointer rounded-lg border bg-background px-3 py-2 transition-colors ${selectedOsId === os.id ? 'border-info/60 bg-info/5 ring-1 ring-info/20' : 'border-border/70 hover:border-muted-foreground/30 hover:bg-muted/30'}`}>
+            <div className="flex items-center justify-between gap-2"><span className="min-w-0 truncate text-sm font-medium">{productLabel ? `OS: ${os.numero_os || 'Sem número'} — ${productLabel}` : `OS: ${os.numero_os || 'Sem número'}`}</span><OsStatusBadge status={os.situacao} /></div>
+            <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
               {os.data_emissao && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />Emissão: {format(parseDate(os.data_emissao), 'dd/MM/yyyy')}</span>}
               {os.data_inicio && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />Início: {format(parseDate(os.data_inicio), 'dd/MM/yyyy')}</span>}
               {os.data_fim && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />Fim: {format(parseDate(os.data_fim), 'dd/MM/yyyy')}</span>}
             </div>
           </div>;
         })}
-        <p className="text-xs text-muted-foreground">{clienteOS.length > 1 ? `Este cliente possui ${clienteOS.length} ordens de serviço. Clique em uma OS para preencher as datas automaticamente.` : 'OS única selecionada automaticamente — datas de início e término preenchidas.'}</p>
+        <p className="text-[11px] text-muted-foreground">{clienteOS.length > 1 ? `Este cliente possui ${clienteOS.length} ordens de serviço. Clique em uma OS para preencher as datas automaticamente.` : 'OS única selecionada automaticamente — datas de início e término preenchidas.'}</p>
       </div>}
     </div>}
     {selectedOsId && selectedOsProdutos.length >= 1 && <div className="space-y-1.5">
-      <Label>Produto Contratado <span className="text-destructive">*</span></Label>
+      <Label className="text-xs font-medium text-muted-foreground">Produto Contratado <span className="text-destructive">*</span></Label>
       <Select value={selectedProdutoId || '_none'} onValueChange={value => {
         setSelectedProdutoId(value === '_none' ? null : value);
       }}>
-        <SelectTrigger><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
+        <SelectTrigger className="h-9 bg-background text-sm"><SelectValue placeholder="Selecione o produto" /></SelectTrigger>
         <SelectContent><SelectItem value="_none">Selecione...</SelectItem>{selectedOsProdutos.map(product => <SelectItem key={product.produto_segmento_id} value={product.produto_segmento_id}>{product.produto_codigo} — {product.produto_nome}</SelectItem>)}</SelectContent>
       </Select>
     </div>}

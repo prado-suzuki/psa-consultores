@@ -479,21 +479,27 @@ export const TaskModal = ({
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
           ref={dialogContentRef}
-          // Na edição o primeiro elemento focável é o botão Salvar, e um Enter
-          // logo após abrir salvaria a tarefa sem intenção. O foco vai para o
-          // próprio diálogo (tabIndex -1 do Radix): Tab e Esc seguem valendo.
+          // O primeiro elemento focável é um botão da barra do topo, e um Enter
+          // logo após abrir salvaria ou fecharia o modal sem intenção. Na edição
+          // o foco vai para o próprio diálogo (tabIndex -1 do Radix); na
+          // criação, para o título, que é por onde o cadastro começa.
           onOpenAutoFocus={(event) => {
-            if (!isEditing) return;
             event.preventDefault();
-            dialogContentRef.current?.focus();
+            if (isEditing) {
+              dialogContentRef.current?.focus();
+              return;
+            }
+            dialogContentRef.current
+              ?.querySelector<HTMLInputElement>('input[name="title"]')
+              ?.focus();
           }}
           className={cn(
-            'max-h-[94vh] gap-0 overflow-hidden p-0',
+            // `[&>button]:hidden` esconde o X padrão do DialogContent: nos dois
+            // modos ele é renderizado dentro da barra do topo, junto das ações.
+            'max-h-[94vh] gap-0 overflow-hidden p-0 [&>button]:hidden',
             isEditing
-              ? // `[&>button]:hidden` esconde o X padrão do DialogContent: na
-                // edição ele é renderizado dentro do cabeçalho, junto das ações.
-                'h-[min(94vh,54rem)] w-[calc(100vw-1rem)] max-w-[78rem] [&>button]:hidden lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(22rem,0.9fr)]'
-              : 'max-w-2xl',
+              ? 'h-[min(94vh,54rem)] w-[calc(100vw-1rem)] max-w-[78rem] lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(22rem,0.9fr)]'
+              : 'max-w-3xl',
           )}
         >
           <Form {...form}>

@@ -343,6 +343,34 @@ describe('TaskModal — wiring dos hooks', () => {
 });
 
 describe('TaskModal — criação', () => {
+  it('espelha a anatomia da edição: título grande, contexto aberto e pílulas', () => {
+    renderModal();
+
+    expect(screen.getByRole('heading', { name: 'Nova Tarefa' })).toBeInTheDocument();
+    // Contexto aberto: na criação não há o que esconder atrás de "Alterar
+    // contexto", os campos ainda precisam ser escolhidos.
+    expect(screen.queryByRole('button', { name: /Alterar contexto/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^Projeto/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Cliente/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Contribuinte/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Tarefa Pai/)).toBeInTheDocument();
+
+    // As mesmas pílulas da edição, no lugar da antiga seção "Execução".
+    expect(screen.getByLabelText('Status')).toHaveTextContent('A Fazer');
+    expect(screen.getByLabelText('Prioridade')).toHaveTextContent('Média');
+    expect(screen.getByLabelText(/^Responsável/)).toHaveTextContent('Selecione');
+    expect(screen.getByLabelText(/^Início/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Vencimento/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Horas realizadas/)).toBeDisabled();
+    expect(screen.queryByText('Execução')).not.toBeInTheDocument();
+    expect(screen.queryByText('Contexto')).not.toBeInTheDocument();
+
+    // Ações na barra do topo, como na edição — sem rodapé fixo.
+    expect(screen.getByRole('button', { name: 'Criar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancelar' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fechar' })).toBeInTheDocument();
+  });
+
   it('cria a tarefa com o payload exato e fecha o modal', async () => {
     const user = userEvent.setup();
     const { props } = renderModal();
@@ -358,8 +386,8 @@ describe('TaskModal — criação', () => {
     await user.type(screen.getByLabelText(/^Descrição/), 'Descrição da tarefa');
     await chooseOption(user, /^Responsável/, /^Ana$/);
     await user.type(screen.getByLabelText(/^Horas estimadas/), '4');
-    await pickDate(user, /^Data de Início/, 10);
-    await pickDate(user, /^Data de Vencimento/, 20);
+    await pickDate(user, /^Início/, 10);
+    await pickDate(user, /^Vencimento/, 20);
 
     await user.click(screen.getByRole('button', { name: 'Criar' }));
 
@@ -416,16 +444,20 @@ describe('TaskModal — criação', () => {
     // QUIRK caracterizado: campos de select/número vazios caem na mensagem
     // padrão do zod ("Required"/"Expected number...") em vez das mensagens
     // customizadas, porque chegam como `undefined` e não como string vazia.
+    //
+    // A ordem é a do DOM depois do redesenho: título, cartão de contexto
+    // (projeto → cliente → contribuinte), faixa de propriedades (responsável,
+    // datas, esforço) e, por último, a descrição.
     expect(formMessages()).toEqual([
-      'Required',
+      'Título é obrigatório',
       'Projeto é obrigatório',
       'Required',
-      'Título é obrigatório',
-      'Descrição é obrigatória',
       'Required',
-      'Expected number, received nan',
+      'Required',
       'Data de Início é obrigatória',
       'Data de Vencimento é obrigatória',
+      'Expected number, received nan',
+      'Descrição é obrigatória',
     ]);
     expect(mocks.createTask).not.toHaveBeenCalled();
   });

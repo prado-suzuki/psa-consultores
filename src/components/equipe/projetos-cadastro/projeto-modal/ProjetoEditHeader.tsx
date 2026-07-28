@@ -7,13 +7,12 @@ import {
   Package,
   Settings2,
   Users,
-  X,
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { DialogClose, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { ModalTopBar } from '@/components/ui/modal-top-bar';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -61,24 +60,12 @@ export function ProjetoEditHeader({ actions }: ProjetoEditHeaderProps) {
 
   return (
     <div className="px-6">
-      <div className="sticky top-0 z-20 -mx-6 flex items-center justify-between gap-3 border-b bg-background/95 px-6 py-2.5 backdrop-blur">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <FolderKanban className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-          <DialogTitle className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-            Editar Projeto
-          </DialogTitle>
-          <DialogDescription className="sr-only">Formulário de projeto</DialogDescription>
-        </div>
-        <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
-          {actions}
-          <DialogClose
-            className="ml-1 rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            aria-label="Fechar"
-          >
-            <X className="h-4 w-4" />
-          </DialogClose>
-        </div>
-      </div>
+      <ModalTopBar
+        icon={<FolderKanban className="h-3.5 w-3.5" />}
+        title="Editar Projeto"
+        description="Formulário de projeto"
+        actions={actions}
+      />
 
       <div className="mt-3">
         <Label htmlFor="projeto-nome" className="sr-only">
