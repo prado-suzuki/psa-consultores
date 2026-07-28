@@ -528,94 +528,9 @@ async function gerarSocietaria(
 }
 
 // ============================================================================
-// Persistencia
-// ============================================================================
-
-async function upsertDocumentoGerado(
-  admin: ReturnType<typeof createClient>,
-  args: {
-    clienteId: string; tipo: DeckTipo; caminho: string;
-    contagens: Record<string, number>; userId: string;
-  },
-) {
-  // Select-then-update-else-insert: preserva id e evita duplicatas por (cliente, template).
-  const { data: existente } = await admin
-    .from("documento_gerado")
-    .select("id, documento_raiz_id")
-    .eq("cliente_id", args.clienteId)
-    .eq("documento_template_id", TEMPLATE_IDS[args.tipo])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const payload = {
-    cliente_id: args.clienteId,
-    documento_template_id: TEMPLATE_IDS[args.tipo],
-    caminho_arquivo: `${BUCKET_OUTPUT}/${args.caminho}`,
-    snapshot_dados: {
-      tipo: args.tipo, contagens: args.contagens,
-      versao_gerador: GENERATOR_VERSION, template: TEMPLATE_PATHS[args.tipo],
-    },
-    snapshot_flags: {},
-    snapshot_versoes_blocos: {},
-    status: "rascunho",
-    gerado_por_id: args.userId,
-    gerado_em: new Date().toISOString(),
-  };
-
-  if (existente?.id) {
-    const { data: upd, error } = await admin
-      .from("documento_gerado").update(payload).eq("id", existente.id).select("id").single();
-    if (error) throw new Error(`documento_gerado.update: ${error.message}`);
-    return upd.id as string;
-  }
-  const { data: ins, error } = await admin
-    .from("documento_gerado").insert(payload).select("id").single();
-  if (error) throw new Error(`documento_gerado.insert: ${error.message}`);
-  return ins.id as string;
-}
-
-async function upsertDocumentoArquivo(
-  admin: ReturnType<typeof createClient>,
-  args: {
-    clienteId: string; tipo: DeckTipo; documentoGeradoId: string;
-    caminho: string; nomeArquivo: string; tamanho: number;
-  },
-) {
-  const categoria = args.tipo === "patrimonial" ? "bens_direitos" : "societarios";
-  const payload = {
-    cliente_id: args.clienteId,
-    fonte: "psa" as const,
-    area: "osg" as const,
-    categoria,
-    documento_gerado_id: args.documentoGeradoId,
-    nome_original: args.nomeArquivo,
-    gcs_uri: `${BUCKET_OUTPUT}/${args.caminho}`,
-    mime: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    tamanho: args.tamanho,
-    status: "ativo" as const,
-  };
-
-  const { data: existente } = await admin
-    .from("documento_arquivo")
-    .select("id")
-    .eq("documento_gerado_id", args.documentoGeradoId)
-    .eq("excluido", false)
-    .limit(1)
-    .maybeSingle();
-
-  if (existente?.id) {
-    const { error } = await admin.from("documento_arquivo").update(payload).eq("id", existente.id);
-    if (error) throw new Error(`documento_arquivo.update: ${error.message}`);
-    return;
-  }
-  const { error } = await admin.from("documento_arquivo").insert(payload);
-  if (error) throw new Error(`documento_arquivo.insert: ${error.message}`);
-}
-
-// ============================================================================
 // serve
 // ============================================================================
+
 
 serve(async (req) => {
   const preflight = handleCorsPreflightRequest(req);
