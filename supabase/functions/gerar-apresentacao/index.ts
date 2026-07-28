@@ -588,38 +588,23 @@ serve(async (req) => {
     if (cliErr || !cli || cli.excluido) return json({ error: "Cliente não encontrado" }, 404);
 
     const decks: DeckTipo[] = tipoIn === "ambas" ? ["patrimonial", "societaria"] : [tipoIn];
-    const arquivos: Array<{ tipo: DeckTipo; nome: string; url: string }> = [];
+    const arquivos: Array<{ tipo: DeckTipo; nome: string; b64: string }> = [];
     const erros: Array<{ tipo: DeckTipo; message: string }> = [];
 
     for (const tipo of decks) {
       try {
-        const { bytes, contagens } = tipo === "patrimonial"
+        const { bytes } = tipo === "patrimonial"
           ? await gerarPatrimonial(admin, clienteId, cli.nome)
           : await gerarSocietaria(admin, clienteId, cli.nome);
 
-        const clienteSlug = slugify(cli.nome);
         const tipoLabel = tipo === "patrimonial" ? "Patrimonial" : "Societaria";
-        const nomeArquivo = `PSA_${tipoLabel}_${clienteSlug}.pptx`;
-        // Path ESTAVEL — upsert=true evita acumular versoes fisicas no storage.
-        const caminho = `${clienteId}/${tipo}.pptx`;
+        const nomeArquivo = `PSA_${tipoLabel}_${slugify(cli.nome)}.pptx`;
 
-        const up = await admin.storage.from(BUCKET_OUTPUT).upload(caminho, bytes, {
-          contentType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-          upsert: true,
-        });
-        if (up.error) throw new Error(`upload: ${up.error.message}`);
-
-        const documentoGeradoId = await upsertDocumentoGerado(admin, {
-          clienteId, tipo, caminho, contagens, userId,
-        });
-        await upsertDocumentoArquivo(admin, {
-          clienteId, tipo, documentoGeradoId, caminho, nomeArquivo, tamanho: bytes.byteLength,
-        });
-
-        const { data: signed, error: sErr } = await admin.storage
-          .from(BUCKET_OUTPUT).createSignedUrl(caminho, SIGNED_URL_TTL);
-        if (sErr || !signed?.signedUrl) throw new Error(`signedUrl: ${sErr?.message ?? "vazio"}`);
-        arquivos.push({ tipo, nome: nomeArquivo, url: signed.signedUrl });
+        // std@0.168.0 base64.encode: (ArrayBuffer | string) => string. Uint8Array
+        // pode ser um sub-view de um buffer maior; slicei pra cobrir exatamente
+        // os bytes gerados e tipar como ArrayBuffer sem cast.
+        const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        arquivos.push({ tipo, nome: nomeArquivo, b64: base64Encode(buf) });
       } catch (e: any) {
         erros.push({ tipo, message: String(e?.message ?? e) });
       }
