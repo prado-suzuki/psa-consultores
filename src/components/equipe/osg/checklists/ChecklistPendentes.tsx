@@ -2,7 +2,7 @@ import { useMemo, useState, type ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowLeft, ArrowRight, Building2, Check, ClipboardCheck, FileText, FolderKanban, Landmark, Link2,
-  RefreshCw, Search, ShieldAlert, Trash2, User,
+  Plus, RefreshCw, Search, ShieldAlert, Trash2, User,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -303,6 +303,10 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-osg-300" />
             <Input value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar pessoa, imóvel ou documento..." className="border-osg-200/80 bg-osg-50/60 pl-9" />
           </div>
+          <Button size="sm" className="shrink-0" onClick={() => setAddOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar ao checklist
+          </Button>
         </div>
       </div>
 
