@@ -5,7 +5,7 @@
 > **Regra:** para consultar o schema, use ESTE arquivo — **nunca** leia `types.ts` inteiro.
 > **Acesso (RLS):** a coluna "Acesso" resume "quem acessa" via arquetipos (ver legenda). Reconstruido do `pg_policies` vivo; para o texto exato de uma policy, ver `supabase/migrations`.
 
-**134 tabelas** de negocio · 1 de backup (ignorar) · 27 enums.
+**135 tabelas** de negocio · 1 de backup (ignorar) · 28 enums.
 Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ## Convencoes (do CLAUDE.md)
@@ -61,7 +61,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`contribuinte`](#contribuinte) | 25 | ambiente, excluido | cluster-cliente | cliente, setor_cliente |
 | [`contribuinte_bal_config`](#contribuintebalconfig) | 5 | — | interno | contribuinte |
 | [`correcoes_icms`](#correcoesicms) | 13 | ambiente, excluido | cluster-fiscal | — |
-| [`daily_standups`](#dailystandups) | 10 | — | sprint | processes, projects, sprints |
+| [`daily_standups`](#dailystandups) | 12 | — | sprint | sprint_deliverables, processes, projects, sprints |
 | [`dashboard_cliente_access`](#dashboardclienteaccess) | 5 | — | interno | cliente, profiles, dashboards |
 | [`dashboard_cluster_access`](#dashboardclusteraccess) | 5 | — | interno | estrutura_clusters, profiles, dashboards |
 | [`dashboards`](#dashboards) | 15 | — | interno | profiles |
@@ -111,6 +111,9 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`metas`](#metas) | 22 | — | desempenho | ciclos_avaliacao, metas |
 | [`novidades`](#novidades) | 17 | — | interno | — |
 | [`ordem_servico`](#ordemservico) | 20 | excluido | cluster-cliente | estrutura_clusters, produto_segmento, servicos_prestados, setor_cliente |
+| [`org_comment_attachments`](#orgcommentattachments) | 10 | — | interno | org_comments, org_comments_feed, profiles |
+| [`org_comment_mentions`](#orgcommentmentions) | 5 | — | interno | org_comments, org_comments_feed, profiles |
+| [`org_comments`](#orgcomments) | 16 | excluido | interno | profiles, org_comments, org_comments_feed, org_projects |
 | [`org_project_members`](#orgprojectmembers) | 5 | — | projeto | org_projects |
 | [`org_projects`](#orgprojects) | 19 | — | projeto | profiles, estrutura_equipes, estrutura_areas, ordem_servico, servicos_prestados |
 | [`org_task_comments`](#orgtaskcomments) | 7 | — | projeto | org_tasks, profiles |
@@ -150,13 +153,11 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`sistema_clusters`](#sistemaclusters) | 5 | — | cluster-mapa | estrutura_clusters, sistemas_processo |
 | [`sistema_responsaveis`](#sistemaresponsaveis) | 5 | — | cluster-mapa | job_roles, sistemas_processo |
 | [`sistemas_processo`](#sistemasprocesso) | 16 | — | cluster-mapa | estrutura_clusters |
-| [`sprint_backlog_items`](#sprintbacklogitems) | 12 | — | sprint | sprint_deliverables, projects, sprints, profiles |
-| [`sprint_deliverables`](#sprintdeliverables) | 16 | — | sprint | profiles, sprint_deliverables, processes, projects, sprints |
+| [`sprint_backlog_items`](#sprintbacklogitems) | 13 | — | sprint | estrutura_clusters, sprint_deliverables, projects, sprints, profiles |
+| [`sprint_deliverables`](#sprintdeliverables) | 17 | — | sprint | profiles, sprint_deliverables, processes, projects, sprints |
 | [`sprint_events`](#sprintevents) | 11 | — | sprint | sprints |
 | [`sprint_metrics`](#sprintmetrics) | 9 | — | sprint | sprints |
 | [`sprints`](#sprints) | 10 | — | sprint | projects |
-| [`task_comments`](#taskcomments) | 5 | — | interno | tasks |
-| [`tasks`](#tasks) | 14 | — | interno | sprints |
 | [`ticket_attachments`](#ticketattachments) | 8 | — | chamados | tickets, profiles |
 | [`ticket_messages`](#ticketmessages) | 6 | — | chamados | tickets |
 | [`tickets`](#tickets) | 17 | — | chamados | profiles, cliente, estrutura_clusters, estrutura_areas |
@@ -274,7 +275,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="dailystandups"></a>`daily_standups`
 **Acesso:** sprint
-`blockers` string? · `created_at` string? · `date` string · `did_yesterday` string? · `id` string · `process_id` string? · `project_id` string? · `sprint_id` string? · `user_id` string · `will_do_today` string?  ·  **FK:** `process_id`→processes.id · `project_id`→projects.id · `sprint_id`→sprints.id
+`blocked_deliverable_id` string? · `blocker_owner` string? · `blockers` string? · `created_at` string? · `date` string · `did_yesterday` string? · `id` string · `process_id` string? · `project_id` string? · `sprint_id` string? · `user_id` string · `will_do_today` string?  ·  **FK:** `blocked_deliverable_id`→sprint_deliverables.id · `process_id`→processes.id · `project_id`→projects.id · `sprint_id`→sprints.id
 
 ### <a id="dashboardclienteaccess"></a>`dashboard_cliente_access`
 **Acesso:** interno
@@ -472,6 +473,18 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 **Acesso:** cluster-cliente · **Flags:** excluido
 `cluster_id` string? · `created_at` string? · `data_emissao` string? · `data_fim` string? · `data_inicio` string? · `excluido` boolean · `id` string · `id_cliente` string · `id_produto_segmento` string? · `id_servico` string? · `numero_os` string? · `observacoes` string? · `regiao` string? · `setor_cliente` string? · `setor_cliente_id` string? · `situacao` string? · `updated_at` string? · `valor_projeto` number? · `valor_reembolso_km` number? · `valor_reembolso_refeicao` number?  ·  **FK:** `cluster_id`→estrutura_clusters.id · `id_produto_segmento`→produto_segmento.id · `id_servico`→servicos_prestados.id · `setor_cliente_id`→setor_cliente.id
 
+### <a id="orgcommentattachments"></a>`org_comment_attachments`
+**Acesso:** interno
+`comment_id` string · `file_name` string · `file_path` string · `file_size` number · `file_type` string? · `height` number? · `id` string · `uploaded_at` string · `uploaded_by` string? · `width` number?  ·  **FK:** `comment_id`→org_comments.id · `comment_id`→org_comments_feed.id · `uploaded_by`→profiles.id
+
+### <a id="orgcommentmentions"></a>`org_comment_mentions`
+**Acesso:** interno
+`comment_id` string · `created_at` string · `id` string · `lido_em` string? · `mentioned_user_id` string  ·  **FK:** `comment_id`→org_comments.id · `comment_id`→org_comments_feed.id · `mentioned_user_id`→profiles.id
+
+### <a id="orgcomments"></a>`org_comments`
+**Acesso:** interno · **Flags:** excluido
+`author_id` string? · `author_name` string? · `body` string · `created_at` string · `editado_em` string? · `entity_id` string · `entity_type` Database["public"]["Enums"]["org_comment_entity"] · `excluido` boolean · `excluido_em` string? · `excluido_por` string? · `id` string · `kind` Database["public"]["Enums"]["org_comment_kind"] · `metadata` Json · `parent_id` string? · `project_id` string · `updated_at` string  ·  **FK:** `author_id`→profiles.id · `excluido_por`→profiles.id · `parent_id`→org_comments.id · `parent_id`→org_comments_feed.id · `project_id`→org_projects.id
+
 ### <a id="orgprojectmembers"></a>`org_project_members`
 **Acesso:** projeto
 `created_at` string · `id` string · `project_id` string · `role` string · `user_id` string  ·  **FK:** `project_id`→org_projects.id
@@ -486,7 +499,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="orgtasks"></a>`org_tasks`
 **Acesso:** projeto
-`actual_hours` number? · `assigned_to` string? · `assigned_to_name` string? · `category` Database["public"]["Enums"]["fiscal_task_category"] · `client_id` string? · `contribuinte_id` string? · `created_at` string? · `created_by` string? · `description` string? · `due_date` string? · `due_time` string? · `estimated_hours` number? · `id` string · `is_recurring` boolean? · `parent_task_id` string? · `priority` Database["public"]["Enums"]["fiscal_task_priority"] · `project_id` string? · `reviewer_id` string? · `servico_id` string? · `start_date` string? · `status` Database["public"]["Enums"]["fiscal_task_status"] · `tags` string[]? · `title` string · `updated_at` string?  ·  **FK:** `assigned_to`→profiles.id · `servico_id`→servicos_prestados.id · `client_id`→cliente.id · `contribuinte_id`→contribuinte.id · `created_by`→profiles.id · `parent_task_id`→org_tasks.id · `project_id`→org_projects.id · `reviewer_id`→profiles.id
+`actual_hours` number? · `assigned_to` string? · `assigned_to_name` string? · `category` Database["public"]["Enums"]["fiscal_task_category"] · `client_id` string? · `contribuinte_id` string? · `created_at` string? · `created_by` string? · `description` string? · `due_date` string? · `due_time` string? · `estimated_hours` number? · `id` string · `is_recurring` boolean? · `parent_task_id` string? · `priority` Database["public"]["Enums"]["fiscal_task_priority"] · `project_id` string · `reviewer_id` string? · `servico_id` string? · `start_date` string? · `status` Database["public"]["Enums"]["fiscal_task_status"] · `tags` string[]? · `title` string · `updated_at` string?  ·  **FK:** `assigned_to`→profiles.id · `servico_id`→servicos_prestados.id · `client_id`→cliente.id · `contribuinte_id`→contribuinte.id · `created_by`→profiles.id · `parent_task_id`→org_tasks.id · `project_id`→org_projects.id · `reviewer_id`→profiles.id
 
 ### <a id="osprodutoscontratados"></a>`os_produtos_contratados`
 **Acesso:** cluster-cliente
@@ -630,11 +643,11 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="sprintbacklogitems"></a>`sprint_backlog_items`
 **Acesso:** sprint
-`created_at` string? · `description` string? · `estimated_hours` number? · `id` string · `moved_to_deliverable_id` string? · `priority` string? · `project_id` string? · `sprint_id` string? · `status` string? · `suggested_by` string? · `title` string · `updated_at` string?  ·  **FK:** `moved_to_deliverable_id`→sprint_deliverables.id · `project_id`→projects.id · `sprint_id`→sprints.id · `suggested_by`→profiles.id
+`cluster_id` string? · `created_at` string? · `description` string? · `estimated_hours` number? · `id` string · `moved_to_deliverable_id` string? · `priority` string? · `project_id` string? · `sprint_id` string? · `status` string? · `suggested_by` string? · `title` string · `updated_at` string?  ·  **FK:** `cluster_id`→estrutura_clusters.id · `moved_to_deliverable_id`→sprint_deliverables.id · `project_id`→projects.id · `sprint_id`→sprints.id · `suggested_by`→profiles.id
 
 ### <a id="sprintdeliverables"></a>`sprint_deliverables`
 **Acesso:** sprint
-`assigned_to` string? · `completed_at` string? · `created_at` string? · `description` string? · `due_date` string · `estimated_hours` number? · `id` string · `parent_id` string? · `process_id` string? · `project_id` string? · `sprint_id` string? · `start_date` string? · `status` string? · `task_code` string? · `title` string · `updated_at` string?  ·  **FK:** `assigned_to`→profiles.id · `parent_id`→sprint_deliverables.id · `process_id`→processes.id · `project_id`→projects.id · `sprint_id`→sprints.id
+`actual_hours` number? · `assigned_to` string? · `completed_at` string? · `created_at` string? · `description` string? · `due_date` string · `estimated_hours` number? · `id` string · `parent_id` string? · `process_id` string? · `project_id` string? · `sprint_id` string? · `start_date` string? · `status` string? · `task_code` string? · `title` string · `updated_at` string?  ·  **FK:** `assigned_to`→profiles.id · `parent_id`→sprint_deliverables.id · `process_id`→processes.id · `project_id`→projects.id · `sprint_id`→sprints.id
 
 ### <a id="sprintevents"></a>`sprint_events`
 **Acesso:** sprint
@@ -647,14 +660,6 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 ### <a id="sprints"></a>`sprints`
 **Acesso:** sprint
 `created_at` string? · `created_by` string? · `end_date` string · `goal` string? · `id` string · `name` string · `project_id` string? · `start_date` string · `status` string? · `updated_at` string?  ·  **FK:** `project_id`→projects.id
-
-### <a id="taskcomments"></a>`task_comments`
-**Acesso:** interno
-`comment` string · `created_at` string? · `id` string · `task_id` string · `user_id` string  ·  **FK:** `task_id`→tasks.id
-
-### <a id="tasks"></a>`tasks`
-**Acesso:** interno
-`actual_hours` number? · `assigned_to` string? · `cluster` Database["public"]["Enums"]["work_cluster"] · `created_at` string? · `created_by` string? · `description` string? · `due_date` string? · `estimated_hours` number? · `id` string · `priority` Database["public"]["Enums"]["task_priority"]? · `sprint_id` string? · `status` Database["public"]["Enums"]["task_status"]? · `title` string · `updated_at` string?  ·  **FK:** `sprint_id`→sprints.id
 
 ### <a id="ticketattachments"></a>`ticket_attachments`
 **Acesso:** chamados
@@ -722,6 +727,8 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 - `fiscal_task_department`: commercial, financial, administrative, operations
 - `fiscal_task_priority`: low, medium, high, urgent
 - `fiscal_task_status`: backlog, waiting_client, todo, in_progress, review, em_ajuste, done
+- `org_comment_entity`: org_task, org_project
+- `org_comment_kind`: comment, assignment_changed, review_submitted, review_approved, review_adjustments, status_changed
 - `osg_checklist_origem`: padrao, manual
 - `osg_checklist_status`: pendente, solicitado, recebido, dispensado, nao_aplicavel, nao_solicitado
 - `osg_doc_area`: osg, fiscal
@@ -734,7 +741,6 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 - `scenario_type`: baseline, variant, target
 - `scenario_unit_basis`: per_unit, per_month, per_year
 - `task_priority`: low, medium, high, urgent
-- `task_status`: backlog, to_do, in_progress, review, done
 - `work_cluster`: database, frontend, management
 - `work_package_activity_type`: status_change, assignment, comment, file_upload, relation_change, field_update, created
 - `work_package_area`: fiscal, osg, fixos, pontuais
