@@ -43,10 +43,6 @@ const TEMPLATE_PATHS: Record<DeckTipo, string> = {
   patrimonial: "TEMPLATE_PATRIMONIAL.pptx",
   societaria: "TEMPLATE_SOCIETARIA.pptx",
 };
-const TEMPLATE_PATHS: Record<DeckTipo, string> = {
-  patrimonial: "TEMPLATE_PATRIMONIAL.pptx",
-  societaria: "TEMPLATE_SOCIETARIA.pptx",
-};
 
 const BUCKET_TEMPLATES = "osg-templates";
 
