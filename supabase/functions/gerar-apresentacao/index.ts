@@ -3,14 +3,13 @@
 // Auth: JWT + role team_member+ + isolamento por cluster (intersecao entre
 //   resolve_user_cluster_ids(auth.uid()) e cliente_clusters).
 // Templates: bucket privado `osg-templates` (TEMPLATE_PATRIMONIAL.pptx / TEMPLATE_SOCIETARIA.pptx).
-// Saida: bucket privado `osg-apresentacoes`, path estavel `<cliente>/<tipo>.pptx`
-//   com upsert=true (nao acumular versoes fisicas). Signed URL 10min.
-// Persistencia: `documento_gerado` (versionado; select+update-else-insert por
-//   cliente+template) e `documento_arquivo` (idem, apontando pro mesmo path).
+// Saida: SEM persistencia. Os bytes de cada .pptx voltam inline em base64
+//   para o front baixar via Blob local (nao mexe em Storage nem em
+//   documento_gerado/documento_arquivo — isso segue reservado ao fluxo de minutas).
 //
 // Contrato:
 //   POST { clienteId: string, tipo: 'ambas' | 'patrimonial' | 'societaria' }
-//   → { arquivos: [{ tipo, nome, url }], erros?: [...] }
+//   → { arquivos: [{ tipo, nome, b64 }], erros?: [...] }
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
