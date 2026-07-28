@@ -12,6 +12,7 @@
 //   → { arquivos: [{ tipo, nome, b64 }], erros?: [...] }
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
 import { unpackPptx, packPptx, readText, writeText, listPaths, type PptxParts } from "../_shared/ooxml/zip.ts";
