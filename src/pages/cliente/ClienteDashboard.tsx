@@ -21,8 +21,8 @@ import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DashboardFilters } from "@/components/cliente/DashboardFilters";
 import { DashboardEmbedView } from "@/components/dashboards/DashboardEmbedView";
-import { MeusDocumentosConteudo } from "@/components/cliente/MeusDocumentosConteudo";
 import { ChecklistDocumentosConteudo } from "@/components/cliente/ChecklistDocumentosConteudo";
+import { ColetaDocumentosCliente } from "@/components/cliente/ColetaDocumentosCliente";
 
 const statusConfig = {
   planning: { label: "Planejamento", className: "bg-slate-100 text-slate-700 hover:bg-slate-100" },
@@ -350,9 +350,10 @@ export default function ClienteDashboard() {
               )}
             </TabsContent>
 
-            {/* Documents Tab — envio livre + lista do que foi enviado fora da solicitação */}
+            {/* Documents Tab — coleta por grupo (4 gavetas com drag and drop) e
+                a lista "Enviados", ambas em ColetaDocumentosCliente */}
             <TabsContent value="documents" className="flex-1 mt-0">
-              <MeusDocumentosConteudo />
+              <ColetaDocumentosCliente />
             </TabsContent>
 
             {/* Dashboards Tab: acompanhamento dos documentos solicitados + dashboards
