@@ -43,15 +43,12 @@ const TEMPLATE_PATHS: Record<DeckTipo, string> = {
   patrimonial: "TEMPLATE_PATRIMONIAL.pptx",
   societaria: "TEMPLATE_SOCIETARIA.pptx",
 };
-const TEMPLATE_IDS: Record<DeckTipo, string> = {
-  patrimonial: "a11a11a1-0000-4000-8000-000000000001",
-  societaria: "a11a11a1-0000-4000-8000-000000000002",
+const TEMPLATE_PATHS: Record<DeckTipo, string> = {
+  patrimonial: "TEMPLATE_PATRIMONIAL.pptx",
+  societaria: "TEMPLATE_SOCIETARIA.pptx",
 };
 
 const BUCKET_TEMPLATES = "osg-templates";
-const BUCKET_OUTPUT = "osg-apresentacoes";
-const SIGNED_URL_TTL = 600;
-const GENERATOR_VERSION = "0.2.0";
 
 // Slide widescreen (16:9) — dimensoes usadas pra distribuicao horizontal e paginacao.
 const SLIDE_W = 12192000;
