@@ -21,6 +21,7 @@ import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DashboardFilters } from "@/components/cliente/DashboardFilters";
 import { DashboardEmbedView } from "@/components/dashboards/DashboardEmbedView";
+import { useAccessibleDashboards } from "@/hooks/useAccessibleDashboards";
 import { ChecklistDocumentosConteudo } from "@/components/cliente/ChecklistDocumentosConteudo";
 import { ColetaDocumentosCliente } from "@/components/cliente/ColetaDocumentosCliente";
 
@@ -75,6 +76,10 @@ export default function ClienteDashboard() {
   const { ticketsQuery, visibleProjectsQuery } = useDomainClienteDashboard(user?.id);
   const { data: tickets = [], isLoading: isLoadingTickets } = ticketsQuery;
   const { data: visibleProjects, isLoading: isLoadingProjects } = visibleProjectsQuery;
+
+  // Bloco do Looker só aparece se houver relatório liberado para este cliente.
+  // Mesma queryKey do DashboardEmbedView, então o React Query não repete a chamada.
+  const { data: dashboardsLiberados = [] } = useAccessibleDashboards("cliente");
 
   const handleSignOut = async () => {
     await signOut();
@@ -360,16 +365,17 @@ export default function ClienteDashboard() {
                 (DB-driven: lista via dashboard_access, RLS server-side) */}
             <TabsContent value="dashboards" className="flex-1 mt-0">
               <ChecklistDocumentosConteudo />
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-foreground">Dashboards</h2>
-                <p className="text-sm text-muted-foreground">
-                  Visualize seus relatórios interativos do Looker Studio
-                </p>
-              </div>
-              <DashboardEmbedView
-                targetPage="cliente"
-                emptyMessage="Nenhum dashboard disponível para o seu usuário."
-              />
+              {dashboardsLiberados.length > 0 && (
+                <>
+                  <div className="mb-4">
+                    <h2 className="text-lg font-semibold text-foreground">Dashboards</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Visualize seus relatórios interativos do Looker Studio
+                    </p>
+                  </div>
+                  <DashboardEmbedView targetPage="cliente" />
+                </>
+              )}
             </TabsContent>
           </Tabs>
         </div>
