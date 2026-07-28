@@ -8222,6 +8222,7 @@ export type Database = {
         Returns: string[]
       }
       org_task_visivel: { Args: { p_task_id: string }; Returns: boolean }
+      own_org_task_ids: { Args: { _uid: string }; Returns: string[] }
       preview_dashboard_embed_url: {
         Args: {
           _cliente_id?: string
@@ -8253,6 +8254,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      visible_org_project_ids: { Args: { _uid: string }; Returns: string[] }
     }
     Enums: {
       app_role:
