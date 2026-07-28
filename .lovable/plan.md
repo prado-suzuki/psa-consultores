@@ -1,26 +1,62 @@
-## Rodar `20260728140000_org_comments_ajustes_pos_edu13.sql`
+# Plan (revisado) — `gerar-apresentacao`: parar de persistir, devolver `.pptx` inline (base64)
 
-Auditei o banco: só o bucket já existe; os outros cinco ajustes estão pendentes. A migration é idempotente (CREATE OR REPLACE, ON CONFLICT, DROP POLICY IF EXISTS, REVOKE), então pode rodar como está.
+## Objetivo
+Desbloquear a geração na `main`: o front já espera `b64`, mas a edge ainda persiste e devolve `url`. Remove também dois efeitos colaterais (download 400 no Explorador e o `.pptx` marcando itens do checklist via `categoria`).
 
-### Estado atual x o que a migration faz
+## Escopo
+- **Único arquivo alterado:** `supabase/functions/gerar-apresentacao/index.ts`.
+- **Sem tocar:** front (`useGerarApresentacao.ts`), hooks/versionamento de minutas, bucket `osg-apresentacoes`, tabelas `documento_gerado` / `documento_arquivo`, migrations.
 
-| # | Ajuste | Estado hoje | Após a migration |
-|---|---|---|---|
-| 1 | Bucket `comment-attachments` | já existe | no-op (ON CONFLICT) |
-| 2 | `org_comments_feed` expõe `excluido` e para de filtrar | não expõe `excluido` | passa a expor; front filtra |
-| 3 | `criar_org_comment` sem o bug de `COALESCE(_id,…)` repetido em menções/anexos | ainda com o bug latente (só não estoura porque o front sempre manda `_id`) | menções e anexos usam o mesmo `v_id` |
-| 4 | SELECT em `org_comment_attachments` delegando à RLS de `org_comments` | reimplementa a regra e esquece o admin | admin não-membro passa a ver os anexos que já vê no comentário |
-| 5 | `org_comments_guard_update` sem `#- '{}'::text[]` | ainda com o operador problemático | lista de imutáveis explícita |
-| 6 | REVOKE DELETE em `org_comments` para `authenticated` | grant ainda existe (RLS já negava, mas o grant contradiz o desenho) | grant removido; cascade continua via SECURITY DEFINER |
+## Mudanças no `index.ts`
 
-### Riscos
+### 1. Laço `for (const tipo of decks)` (~686–718)
+- Desestruturar **apenas `{ bytes }`** de `gerarPatrimonial` / `gerarSocietaria` (hoje é `{ bytes, contagens }`; `contagens` só era consumido pelo `upsertDocumentoGerado` e sobraria como var não usada).
+- Remover: `admin.storage.from(BUCKET_OUTPUT).upload(...)`, `upsertDocumentoGerado(...)`, `upsertDocumentoArquivo(...)` e `createSignedUrl(...)`.
+- Empurrar em `arquivos` um `{ tipo, nome, b64 }`, com `nome = PSA_<Tipo>_<slug>.pptx`.
+- Manter o `try/catch` que empurra falhas em `erros` (contrato `{ arquivos, erros }` preservado).
 
-- **Nenhum breaking para o front:** `org_comments_feed` só ganha coluna no fim (compatível com `SELECT *`); a RPC mantém a mesma assinatura; a policy de SELECT dos anexos só amplia (inclui admin), não restringe.
-- **DELETE direto na tabela** deixa de funcionar para clientes autenticados — mas o desenho já é soft delete (`UPDATE ... SET excluido = true`), então não deve haver consumidor legítimo.
+### 2. Tipagem
+- `arquivos: Array<{ tipo: DeckTipo; nome: string; b64: string }>` (troca `url` por `b64`).
 
-### Passos
+### 3. Base64 (compatível com `deno check`)
+- Confirmado: `packPptx` retorna `Uint8Array`, então `bytes: Uint8Array`.
+- `encode` de `std@0.168.0/encoding/base64.ts` é tipado `(data: ArrayBuffer | string) => string` e **não aceita `Uint8Array` diretamente** no typecheck.
+- **Caminho adotado:** passar um `ArrayBuffer` derivado do view, cobrindo exatamente `byteOffset..byteOffset+byteLength` — chamada equivalente a `encode(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength))`. Isso compila sem `as any` e evita bug caso o `Uint8Array` seja um sub-view de um buffer maior.
+- Import: `import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";` (mesmo pin já usado no arquivo).
 
-1. Executar a migration `20260728140000_org_comments_ajustes_pos_edu13.sql` via `supabase--migration`.
-2. Reconferir com uma query os 5 itens pendentes para confirmar que ficaram como o esperado.
+### 4. Código morto — remover
+- Funções `upsertDocumentoGerado` (~541–583) e `upsertDocumentoArquivo` (~585–621).
+- Constantes órfãs após a remoção: `BUCKET_OUTPUT`, `SIGNED_URL_TTL`, `TEMPLATE_IDS` (~46–53).
+- **`GENERATOR_VERSION`** (linha 54): usado só dentro de `upsertDocumentoGerado` → **remover**.
+- Qualquer import que fique sem uso após a limpeza (ex.: helpers de signed URL).
 
-Sem mudanças de código no front nesta etapa.
+### 5. Código morto — **NÃO** remover
+- **`TEMPLATE_PATHS`** (linha 42): usado ativamente por `gerarPatrimonial` (linhas 128–129) e `gerarSocietaria` (linhas 487–488, 512–513) para baixar os templates do bucket `BUCKET_TEMPLATES`. **Manter intacto.**
+- `BUCKET_TEMPLATES`, `unpackPptx`, `packPptx`, `readText`, `writeText`, `listPaths`, `slugify`, todos os builders OOXML.
+
+### 6. Preservado
+- Validação de auth + JWT, isolamento por cluster, lookup do `cliente`, pipelines `gerarPatrimonial` / `gerarSocietaria`, forma da resposta `{ arquivos, erros }`.
+
+## Contrato final
+```
+{
+  arquivos: [{ tipo: 'patrimonial' | 'societaria', nome: string, b64: string }],
+  erros?:   [{ tipo, message }]
+}
+```
+Idêntico ao que o `useGerarApresentacao` já consome.
+
+## Minutas — intocadas
+`documento_gerado` continua servindo o versionamento de minutas OSG Work. Este plano **não altera** tabela, hooks ou RPCs; apenas para de **escrever** a partir desta edge. Nada existente é apagado.
+
+## Guardrail de dados
+Sem `DELETE`/`UPDATE`, sem remoção de objetos no Storage, sem migration. Só remoção das chamadas de gravação no handler.
+
+## Validação
+- `deno check` / typecheck da função (compila sem `contagens`, `GENERATOR_VERSION` e as funções removidas).
+- Smoke via UI: acionar "Gerar apresentação" (ambas / patrimonial / societaria) e conferir download `PSA_<Tipo>_<slug>.pptx`.
+- Conferir que nenhuma linha nova aparece em `documento_arquivo` / `documento_gerado` e que o checklist do cliente não é mais tocado.
+
+## Assumido
+- `slugify` continua importado no arquivo (usado hoje na composição do caminho do Storage; passa a alimentar só o `nome`).
+- Único consumidor server-side é o hook do front, já atualizado — nenhum outro caller depende de `url`.
