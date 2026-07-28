@@ -31,7 +31,7 @@ vi.mock('@/hooks/useDomainOrgComments', () => ({
     createComment: { mutateAsync: mocks.create },
     isCreating: false,
     updateComment: { mutateAsync: mocks.update, isPending: false },
-    deleteComment: { mutate: mocks.remove, isPending: false },
+    deleteComment: { mutate: mocks.remove, mutateAsync: mocks.remove, isPending: false },
     downloadAttachment: { mutateAsync: mocks.download, isPending: false },
   }),
 }));
@@ -82,6 +82,7 @@ beforeEach(() => {
   mocks.comments = [];
   mocks.create.mockResolvedValue('C-NOVO');
   mocks.update.mockResolvedValue(undefined);
+  mocks.remove.mockResolvedValue(undefined);
   mocks.download.mockResolvedValue({
     url: 'https://signed.example/anexo',
     fileName: 'arquivo.pdf',
@@ -146,5 +147,64 @@ describe('OrgCommentsPanel', () => {
 
     expect(screen.getByText('Comentário excluído')).toBeInTheDocument();
     expect(screen.getByText('Resposta preservada')).toBeInTheDocument();
+  });
+
+  it('anuncia a resposta como resposta, e não como comentário solto', () => {
+    mocks.comments = [
+      comment(),
+      comment({
+        id: 'C2',
+        parent_id: 'C1',
+        author_id: 'U2',
+        author_name: 'Ana Souza',
+        body: 'Respondido',
+      }),
+    ];
+
+    renderPanel();
+
+    expect(screen.getByText('respondeu a Bernardo')).toBeInTheDocument();
+    expect(screen.getByText('1 resposta')).toBeInTheDocument();
+  });
+
+  it('não oferece responder dentro de uma resposta', async () => {
+    const user = userEvent.setup();
+    mocks.comments = [
+      comment(),
+      comment({ id: 'C2', parent_id: 'C1', author_id: 'U2', body: 'Respondido' }),
+    ];
+
+    renderPanel();
+
+    // Um único botão: o da raiz. O trigger do banco rejeita resposta de resposta.
+    const responder = screen.getAllByRole('button', { name: /Responder/ });
+    expect(responder).toHaveLength(1);
+
+    await user.click(responder[0]);
+    expect(screen.getByText('Respondendo a Bernardo')).toBeInTheDocument();
+  });
+
+  it('só exclui depois da confirmação no dialog', async () => {
+    const user = userEvent.setup();
+    mocks.comments = [comment()];
+
+    renderPanel();
+
+    await user.click(screen.getByRole('button', { name: 'Ações do comentário' }));
+    await user.click(screen.getByRole('menuitem', { name: /Excluir/ }));
+
+    expect(mocks.remove).not.toHaveBeenCalled();
+    expect(screen.getByRole('heading', { name: 'Excluir comentário?' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Excluir' }));
+    await waitFor(() => expect(mocks.remove).toHaveBeenCalledWith('C1'));
+  });
+
+  it('não oferece editar nem excluir comentário de outra pessoa', () => {
+    mocks.comments = [comment({ author_id: 'U2', author_name: 'Ana Souza' })];
+
+    renderPanel();
+
+    expect(screen.queryByRole('button', { name: 'Ações do comentário' })).not.toBeInTheDocument();
   });
 });

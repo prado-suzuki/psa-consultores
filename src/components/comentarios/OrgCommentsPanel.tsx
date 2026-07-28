@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState, type ClipboardEvent, type DragEvent } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ClipboardEvent,
+  type DragEvent,
+} from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -16,6 +24,16 @@ import {
 } from 'lucide-react';
 
 import { AttachmentButton } from '@/components/comentarios/OrgCommentAttachments';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -69,6 +87,11 @@ const SYSTEM_LABELS: Record<Exclude<OrgComment['kind'], 'comment'>, string> = {
   status_changed: 'Status alterado',
 };
 
+/** Só o primeiro nome — cabe no rótulo "em resposta a ..." sem estourar a linha. */
+function primeiroNome(name: string | null) {
+  return (name || 'Usuário').trim().split(/\s+/)[0];
+}
+
 function initials(name: string | null) {
   return (name || 'Usuário')
     .split(/\s+/)
@@ -120,6 +143,8 @@ interface ComposerProps {
   mentionCandidates: MentionCandidate[];
   /** Muda de valor quando alguém pede o foco daqui de fora (ver `focusComposerSignal`). */
   focusSignal?: number;
+  /** Autor do comentário raiz — vira o cabeçalho "Respondendo a ..." do compositor. */
+  replyingToName?: string | null;
   onCancel?: () => void;
   onSubmit: (body: string, files: File[], mentions: string[]) => Promise<void>;
 }
@@ -129,6 +154,7 @@ function CommentComposer({
   isPending,
   mentionCandidates,
   focusSignal,
+  replyingToName,
   onCancel,
   onSubmit,
 }: ComposerProps) {
@@ -142,6 +168,12 @@ function CommentComposer({
     if (!focusSignal) return;
     textareaRef.current?.focus();
   }, [focusSignal]);
+
+  // O campo de resposta nasce com o cursor dentro: ele só existe depois do clique
+  // em "Responder", então focar na montagem não rouba o foco de ninguém.
+  useEffect(() => {
+    if (compact) textareaRef.current?.focus();
+  }, [compact]);
 
   const addFiles = (incoming: File[]) => {
     const valid = incoming.filter((file) => file.size <= MAX_FILE_SIZE);
@@ -186,6 +218,12 @@ function CommentComposer({
       onDragOver={(event) => event.preventDefault()}
       onDrop={handleDrop}
     >
+      {replyingToName && (
+        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+          <Reply className="h-3.5 w-3.5" aria-hidden />
+          Respondendo a {primeiroNome(replyingToName)}
+        </p>
+      )}
       <Textarea
         ref={textareaRef}
         value={body}
@@ -325,6 +363,10 @@ export function OrgCommentsPanel({
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState('');
+  const [pendingDelete, setPendingDelete] = useState<OrgComment | null>(null);
+  const scrollRootRef = useRef<HTMLDivElement>(null);
+  /** Enquanto verdadeiro, a próxima renderização da lista desce para o fim. */
+  const ancoraPendente = useRef(true);
 
   const roots = useMemo(() => comments.filter((comment) => !comment.parent_id), [comments]);
   const repliesByRoot = useMemo(() => {
@@ -339,6 +381,33 @@ export function OrgCommentsPanel({
     return map;
   }, [comments]);
 
+  /**
+   * A thread abre no fim: ao abrir o modal, o que interessa é a última mensagem,
+   * e o compositor está logo abaixo dela. A ordem cronológica da lista continua
+   * ascendente — muda só onde o viewport nasce.
+   */
+  const ancorarNoFim = useCallback(() => {
+    const viewport = scrollRootRef.current?.querySelector<HTMLElement>(
+      '[data-radix-scroll-area-viewport]',
+    );
+    if (!viewport) return;
+    // Um frame depois: anexos e respostas ainda estão medindo a altura final.
+    requestAnimationFrame(() => {
+      viewport.scrollTop = viewport.scrollHeight;
+    });
+  }, []);
+
+  // Troca de tarefa/projeto reabre a thread, e ela volta a ancorar no fim.
+  useEffect(() => {
+    ancoraPendente.current = true;
+  }, [entityType, entityId]);
+
+  useEffect(() => {
+    if (isLoading || comments.length === 0 || !ancoraPendente.current) return;
+    ancorarNoFim();
+    ancoraPendente.current = false;
+  }, [ancorarNoFim, comments.length, isLoading]);
+
   const openAttachment = async (attachment: OrgCommentAttachment) => {
     const result = await downloadAttachment.mutateAsync(attachment);
     abrirAnexoEmNovaAba(result.url, result.fileName);
@@ -351,24 +420,47 @@ export function OrgCommentsPanel({
     setEditingId(null);
   };
 
-  const renderComment = (comment: OrgComment, nested = false) => {
+  const renderComment = (
+    comment: OrgComment,
+    nested = false,
+    parentAuthorName: string | null = null,
+  ) => {
     const isSystem = comment.kind !== 'comment';
     const replies = repliesByRoot.get(comment.id) ?? [];
     if (comment.excluido && replies.length === 0) return null;
+    const isReplying = replyingTo === comment.id;
 
     return (
-      <div key={comment.id} className={cn('relative', nested && 'ml-10')}>
-        <div className="flex gap-3 py-3">
-          <Avatar className={cn('h-8 w-8 border', isSystem && 'bg-primary/10')}>
-            <AvatarFallback className={cn('text-[10px] font-semibold', isSystem && 'text-primary')}>
+      <div key={comment.id} className="relative">
+        <div className={cn('flex gap-3 py-3', nested && 'gap-2.5 pt-2')}>
+          <Avatar
+            className={cn(
+              'border',
+              nested ? 'h-7 w-7' : 'h-8 w-8',
+              isSystem && 'bg-primary/10',
+            )}
+          >
+            <AvatarFallback
+              className={cn(
+                'font-semibold',
+                nested ? 'text-[9px]' : 'text-[10px]',
+                isSystem && 'text-primary',
+              )}
+            >
               {isSystem ? 'PSA' : initials(comment.author_name)}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="truncate text-sm font-semibold">
+              {nested && <Reply className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />}
+              <span className={cn('truncate font-semibold', nested ? 'text-[13px]' : 'text-sm')}>
                 {isSystem ? SYSTEM_LABELS[comment.kind] : comment.author_name || 'Usuário removido'}
               </span>
+              {nested && (
+                <span className="shrink-0 text-[11px] text-muted-foreground">
+                  respondeu a {primeiroNome(parentAuthorName)}
+                </span>
+              )}
               <span className="shrink-0 text-[11px] text-muted-foreground">
                 {formatDistanceToNow(new Date(comment.created_at), {
                   addSuffix: true,
@@ -378,7 +470,13 @@ export function OrgCommentsPanel({
               {!isSystem && comment.author_id === user?.id && !comment.excluido && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button type="button" variant="ghost" size="icon" className="ml-auto h-7 w-7">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="ml-auto h-7 w-7"
+                      aria-label="Ações do comentário"
+                    >
                       <MoreHorizontal className="h-4 w-4" />
                     </Button>
                   </DropdownMenuTrigger>
@@ -394,7 +492,7 @@ export function OrgCommentsPanel({
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="text-destructive"
-                      onClick={() => deleteComment.mutate(comment.id)}
+                      onClick={() => setPendingDelete(comment)}
                     >
                       <Trash2 className="mr-2 h-4 w-4" />
                       Excluir
@@ -460,7 +558,7 @@ export function OrgCommentsPanel({
               </div>
             )}
 
-            {!nested && !isSystem && !comment.excluido && (
+            {!nested && !isSystem && !comment.excluido && !isReplying && (
               <Button
                 type="button"
                 variant="ghost"
@@ -474,19 +572,34 @@ export function OrgCommentsPanel({
             )}
           </div>
         </div>
-        {replies.map((reply) => renderComment(reply, true))}
-        {replyingTo === comment.id && (
-          <div className="ml-11">
-            <CommentComposer
-              compact
-              isPending={isCreating}
-              mentionCandidates={mentionCandidates}
-              onCancel={() => setReplyingTo(null)}
-              onSubmit={async (body, files, mentions) => {
-                await createComment.mutateAsync({ body, files, mentions, parentId: comment.id });
-                setReplyingTo(null);
-              }}
-            />
+
+        {/*
+          Trilho da thread: respostas e compositor moram dentro de um sulco à
+          esquerda, alinhado ao avatar da raiz. É o que separa "resposta" de
+          "comentário indentado". Segundo nível não existe — o trigger 2 do banco
+          rejeita resposta de resposta, então o bloco só se abre na raiz.
+        */}
+        {!nested && (replies.length > 0 || isReplying) && (
+          <div className="ml-4 border-l-2 border-border pb-2 pl-5">
+            {replies.length > 0 && (
+              <p className="pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {replies.length === 1 ? '1 resposta' : `${replies.length} respostas`}
+              </p>
+            )}
+            {replies.map((reply) => renderComment(reply, true, comment.author_name))}
+            {isReplying && (
+              <CommentComposer
+                compact
+                isPending={isCreating}
+                mentionCandidates={mentionCandidates}
+                replyingToName={comment.author_name}
+                onCancel={() => setReplyingTo(null)}
+                onSubmit={async (body, files, mentions) => {
+                  await createComment.mutateAsync({ body, files, mentions, parentId: comment.id });
+                  setReplyingTo(null);
+                }}
+              />
+            )}
           </div>
         )}
       </div>
@@ -508,7 +621,7 @@ export function OrgCommentsPanel({
         </p>
       </div>
 
-      <ScrollArea className="min-h-0 flex-1 px-5">
+      <ScrollArea ref={scrollRootRef} className="min-h-0 flex-1 px-5">
         {isLoading ? (
           <div className="flex h-32 items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -535,9 +648,50 @@ export function OrgCommentsPanel({
           focusSignal={focusComposerSignal}
           onSubmit={async (body, files, mentions) => {
             await createComment.mutateAsync({ body, files, mentions });
+            // O que acabei de publicar entra no fim da lista: desce até ele.
+            ancoraPendente.current = true;
+            ancorarNoFim();
           }}
         />
       </div>
+
+      <AlertDialog
+        open={!!pendingDelete}
+        onOpenChange={(open) => {
+          if (!open) setPendingDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir comentário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingDelete && (repliesByRoot.get(pendingDelete.id)?.length ?? 0) > 0
+                ? 'O texto sai da thread e dá lugar ao aviso de comentário excluído, para as respostas não ficarem soltas.'
+                : 'O comentário deixa de aparecer na thread. Não é possível desfazer pela tela.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteComment.isPending}
+              onClick={async (event) => {
+                event.preventDefault();
+                if (!pendingDelete) return;
+                try {
+                  await deleteComment.mutateAsync(pendingDelete.id);
+                  setPendingDelete(null);
+                } catch {
+                  // O toast vem do `onError` da mutation; o dialog fica aberto
+                  // para uma nova tentativa em vez de sumir com o erro.
+                }
+              }}
+            >
+              {deleteComment.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </aside>
   );
 }
