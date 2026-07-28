@@ -3,16 +3,16 @@
 // Auth: JWT + role team_member+ + isolamento por cluster (intersecao entre
 //   resolve_user_cluster_ids(auth.uid()) e cliente_clusters).
 // Templates: bucket privado `osg-templates` (TEMPLATE_PATRIMONIAL.pptx / TEMPLATE_SOCIETARIA.pptx).
-// Saida: bucket privado `osg-apresentacoes`, path estavel `<cliente>/<tipo>.pptx`
-//   com upsert=true (nao acumular versoes fisicas). Signed URL 10min.
-// Persistencia: `documento_gerado` (versionado; select+update-else-insert por
-//   cliente+template) e `documento_arquivo` (idem, apontando pro mesmo path).
+// Saida: SEM persistencia. Os bytes de cada .pptx voltam inline em base64
+//   para o front baixar via Blob local (nao mexe em Storage nem em
+//   documento_gerado/documento_arquivo — isso segue reservado ao fluxo de minutas).
 //
 // Contrato:
 //   POST { clienteId: string, tipo: 'ambas' | 'patrimonial' | 'societaria' }
-//   → { arquivos: [{ tipo, nome, url }], erros?: [...] }
+//   → { arquivos: [{ tipo, nome, b64 }], erros?: [...] }
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
 import { unpackPptx, packPptx, readText, writeText, listPaths, type PptxParts } from "../_shared/ooxml/zip.ts";
@@ -43,15 +43,8 @@ const TEMPLATE_PATHS: Record<DeckTipo, string> = {
   patrimonial: "TEMPLATE_PATRIMONIAL.pptx",
   societaria: "TEMPLATE_SOCIETARIA.pptx",
 };
-const TEMPLATE_IDS: Record<DeckTipo, string> = {
-  patrimonial: "a11a11a1-0000-4000-8000-000000000001",
-  societaria: "a11a11a1-0000-4000-8000-000000000002",
-};
 
 const BUCKET_TEMPLATES = "osg-templates";
-const BUCKET_OUTPUT = "osg-apresentacoes";
-const SIGNED_URL_TTL = 600;
-const GENERATOR_VERSION = "0.2.0";
 
 // Slide widescreen (16:9) — dimensoes usadas pra distribuicao horizontal e paginacao.
 const SLIDE_W = 12192000;
@@ -535,94 +528,9 @@ async function gerarSocietaria(
 }
 
 // ============================================================================
-// Persistencia
-// ============================================================================
-
-async function upsertDocumentoGerado(
-  admin: ReturnType<typeof createClient>,
-  args: {
-    clienteId: string; tipo: DeckTipo; caminho: string;
-    contagens: Record<string, number>; userId: string;
-  },
-) {
-  // Select-then-update-else-insert: preserva id e evita duplicatas por (cliente, template).
-  const { data: existente } = await admin
-    .from("documento_gerado")
-    .select("id, documento_raiz_id")
-    .eq("cliente_id", args.clienteId)
-    .eq("documento_template_id", TEMPLATE_IDS[args.tipo])
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  const payload = {
-    cliente_id: args.clienteId,
-    documento_template_id: TEMPLATE_IDS[args.tipo],
-    caminho_arquivo: `${BUCKET_OUTPUT}/${args.caminho}`,
-    snapshot_dados: {
-      tipo: args.tipo, contagens: args.contagens,
-      versao_gerador: GENERATOR_VERSION, template: TEMPLATE_PATHS[args.tipo],
-    },
-    snapshot_flags: {},
-    snapshot_versoes_blocos: {},
-    status: "rascunho",
-    gerado_por_id: args.userId,
-    gerado_em: new Date().toISOString(),
-  };
-
-  if (existente?.id) {
-    const { data: upd, error } = await admin
-      .from("documento_gerado").update(payload).eq("id", existente.id).select("id").single();
-    if (error) throw new Error(`documento_gerado.update: ${error.message}`);
-    return upd.id as string;
-  }
-  const { data: ins, error } = await admin
-    .from("documento_gerado").insert(payload).select("id").single();
-  if (error) throw new Error(`documento_gerado.insert: ${error.message}`);
-  return ins.id as string;
-}
-
-async function upsertDocumentoArquivo(
-  admin: ReturnType<typeof createClient>,
-  args: {
-    clienteId: string; tipo: DeckTipo; documentoGeradoId: string;
-    caminho: string; nomeArquivo: string; tamanho: number;
-  },
-) {
-  const categoria = args.tipo === "patrimonial" ? "bens_direitos" : "societarios";
-  const payload = {
-    cliente_id: args.clienteId,
-    fonte: "psa" as const,
-    area: "osg" as const,
-    categoria,
-    documento_gerado_id: args.documentoGeradoId,
-    nome_original: args.nomeArquivo,
-    gcs_uri: `${BUCKET_OUTPUT}/${args.caminho}`,
-    mime: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    tamanho: args.tamanho,
-    status: "ativo" as const,
-  };
-
-  const { data: existente } = await admin
-    .from("documento_arquivo")
-    .select("id")
-    .eq("documento_gerado_id", args.documentoGeradoId)
-    .eq("excluido", false)
-    .limit(1)
-    .maybeSingle();
-
-  if (existente?.id) {
-    const { error } = await admin.from("documento_arquivo").update(payload).eq("id", existente.id);
-    if (error) throw new Error(`documento_arquivo.update: ${error.message}`);
-    return;
-  }
-  const { error } = await admin.from("documento_arquivo").insert(payload);
-  if (error) throw new Error(`documento_arquivo.insert: ${error.message}`);
-}
-
-// ============================================================================
 // serve
 // ============================================================================
+
 
 serve(async (req) => {
   const preflight = handleCorsPreflightRequest(req);
@@ -680,38 +588,23 @@ serve(async (req) => {
     if (cliErr || !cli || cli.excluido) return json({ error: "Cliente não encontrado" }, 404);
 
     const decks: DeckTipo[] = tipoIn === "ambas" ? ["patrimonial", "societaria"] : [tipoIn];
-    const arquivos: Array<{ tipo: DeckTipo; nome: string; url: string }> = [];
+    const arquivos: Array<{ tipo: DeckTipo; nome: string; b64: string }> = [];
     const erros: Array<{ tipo: DeckTipo; message: string }> = [];
 
     for (const tipo of decks) {
       try {
-        const { bytes, contagens } = tipo === "patrimonial"
+        const { bytes } = tipo === "patrimonial"
           ? await gerarPatrimonial(admin, clienteId, cli.nome)
           : await gerarSocietaria(admin, clienteId, cli.nome);
 
-        const clienteSlug = slugify(cli.nome);
         const tipoLabel = tipo === "patrimonial" ? "Patrimonial" : "Societaria";
-        const nomeArquivo = `PSA_${tipoLabel}_${clienteSlug}.pptx`;
-        // Path ESTAVEL — upsert=true evita acumular versoes fisicas no storage.
-        const caminho = `${clienteId}/${tipo}.pptx`;
+        const nomeArquivo = `PSA_${tipoLabel}_${slugify(cli.nome)}.pptx`;
 
-        const up = await admin.storage.from(BUCKET_OUTPUT).upload(caminho, bytes, {
-          contentType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-          upsert: true,
-        });
-        if (up.error) throw new Error(`upload: ${up.error.message}`);
-
-        const documentoGeradoId = await upsertDocumentoGerado(admin, {
-          clienteId, tipo, caminho, contagens, userId,
-        });
-        await upsertDocumentoArquivo(admin, {
-          clienteId, tipo, documentoGeradoId, caminho, nomeArquivo, tamanho: bytes.byteLength,
-        });
-
-        const { data: signed, error: sErr } = await admin.storage
-          .from(BUCKET_OUTPUT).createSignedUrl(caminho, SIGNED_URL_TTL);
-        if (sErr || !signed?.signedUrl) throw new Error(`signedUrl: ${sErr?.message ?? "vazio"}`);
-        arquivos.push({ tipo, nome: nomeArquivo, url: signed.signedUrl });
+        // std@0.168.0 base64.encode: (ArrayBuffer | string) => string. Uint8Array
+        // pode ser um sub-view de um buffer maior; slicei pra cobrir exatamente
+        // os bytes gerados e tipar como ArrayBuffer sem cast.
+        const buf = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+        arquivos.push({ tipo, nome: nomeArquivo, b64: base64Encode(buf) });
       } catch (e: any) {
         erros.push({ tipo, message: String(e?.message ?? e) });
       }
