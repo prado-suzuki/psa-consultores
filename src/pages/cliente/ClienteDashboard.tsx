@@ -22,6 +22,7 @@ import { ptBR } from "date-fns/locale";
 import { DashboardFilters } from "@/components/cliente/DashboardFilters";
 import { DashboardEmbedView } from "@/components/dashboards/DashboardEmbedView";
 import { MeusDocumentosConteudo } from "@/components/cliente/MeusDocumentosConteudo";
+import { ChecklistDocumentosConteudo } from "@/components/cliente/ChecklistDocumentosConteudo";
 
 const statusConfig = {
   planning: { label: "Planejamento", className: "bg-slate-100 text-slate-700 hover:bg-slate-100" },
@@ -349,13 +350,15 @@ export default function ClienteDashboard() {
               )}
             </TabsContent>
 
-            {/* Documents Tab — upload + checklist do cliente (documento_arquivo) */}
+            {/* Documents Tab — envio livre + lista do que foi enviado fora da solicitação */}
             <TabsContent value="documents" className="flex-1 mt-0">
               <MeusDocumentosConteudo />
             </TabsContent>
 
-            {/* Dashboards Tab (DB-driven: lista via dashboard_access, RLS server-side) */}
+            {/* Dashboards Tab: acompanhamento dos documentos solicitados + dashboards
+                (DB-driven: lista via dashboard_access, RLS server-side) */}
             <TabsContent value="dashboards" className="flex-1 mt-0">
+              <ChecklistDocumentosConteudo />
               <div className="mb-4">
                 <h2 className="text-lg font-semibold text-foreground">Dashboards</h2>
                 <p className="text-sm text-muted-foreground">
