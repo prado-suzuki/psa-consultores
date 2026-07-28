@@ -8005,6 +8005,7 @@ export type Database = {
           entity_id: string | null
           entity_title: string | null
           entity_type: Database["public"]["Enums"]["org_comment_entity"] | null
+          excluido: boolean | null
           id: string | null
           kind: Database["public"]["Enums"]["org_comment_kind"] | null
           metadata: Json | null
