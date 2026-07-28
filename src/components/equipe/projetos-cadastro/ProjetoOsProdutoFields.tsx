@@ -27,7 +27,7 @@ export function ProjetoOsProdutoFields() {
         {clienteOS.map(os => {
           const products = osProdutosByOs[os.id] || [];
           const productLabel = products.length ? products.map(product => [product.produto_codigo, product.produto_nome].filter(Boolean).join(' — ')).join(', ') : null;
-          return <div key={os.id} onClick={() => setSelectedOsId(os.id)} className={`border rounded-lg p-3 cursor-pointer transition-colors ${selectedOsId === os.id ? 'border-info bg-info/10 ring-1 ring-info/20' : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30'}`}>
+          return <div key={os.id} onClick={() => setSelectedOsId(os.id)} className={`border rounded-xl p-3 cursor-pointer transition-colors ${selectedOsId === os.id ? 'border-info bg-info/10 ring-1 ring-info/20' : 'border-border hover:border-muted-foreground/30 hover:bg-muted/30'}`}>
             <div className="flex items-center justify-between mb-1.5"><span className="font-medium text-sm">{productLabel ? `OS: ${os.numero_os || 'Sem número'} — ${productLabel}` : `OS: ${os.numero_os || 'Sem número'}`}</span><OsStatusBadge status={os.situacao} /></div>
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
               {os.data_emissao && <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />Emissão: {format(parseDate(os.data_emissao), 'dd/MM/yyyy')}</span>}
@@ -39,8 +39,8 @@ export function ProjetoOsProdutoFields() {
         <p className="text-xs text-muted-foreground">{clienteOS.length > 1 ? `Este cliente possui ${clienteOS.length} ordens de serviço. Clique em uma OS para preencher as datas automaticamente.` : 'OS única selecionada automaticamente — datas de início e término preenchidas.'}</p>
       </div>}
     </div>}
-    {selectedOsId && selectedOsProdutos.length >= 1 && <div>
-      <Label>Produto Contratado *</Label>
+    {selectedOsId && selectedOsProdutos.length >= 1 && <div className="space-y-1.5">
+      <Label>Produto Contratado <span className="text-destructive">*</span></Label>
       <Select value={selectedProdutoId || '_none'} onValueChange={value => {
         setSelectedProdutoId(value === '_none' ? null : value);
       }}>

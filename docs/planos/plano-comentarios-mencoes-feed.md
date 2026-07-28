@@ -514,6 +514,7 @@ Realtime **não funciona em view** — o front assina a tabela e refaz a busca n
 | `src/components/equipe/fiscal/tasks/TaskStatusTransitionDialog.tsx` | Idem, ao gravar evento de revisão |
 | **novo** `src/hooks/useDomainOrgComments.ts` | Camada de dados (thread, criar, editar, soft delete, menções, anexos) |
 | **novo** `src/components/comentarios/` | Componente de thread compartilhado entre tarefa, projeto e feed |
+| `src/components/equipe/projetos-cadastro/ProjetoDialog.tsx` | Redesenhado em duas colunas (projeto + thread) e decomposto em `projeto-modal/`; consome `OrgCommentsPanel` com `entityType = 'org_project'`. A identidade visual comum aos dois modais vive em `src/lib/modalChipStyles.ts` e `src/components/ui/section-heading.tsx` |
 
 ⚠️ **`TaskModal.tsx` tem 1423 linhas**, contra o teto de 600 do AGENTS.md. **Não cabe painel de comentários ali sem decompor antes** — a decomposição é pré-requisito, não parte do trabalho de comentários.
 

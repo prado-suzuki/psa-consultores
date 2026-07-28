@@ -33,6 +33,7 @@ import {
   abrirAnexoEmNovaAba,
   type OrgComment,
   type OrgCommentAttachment,
+  type OrgCommentEntityType,
   useDomainOrgComments,
 } from '@/hooks/useDomainOrgComments';
 import { cn } from '@/lib/utils';
@@ -46,6 +47,8 @@ interface MentionCandidate {
 }
 
 interface OrgCommentsPanelProps {
+  /** Tarefa (padrão) ou projeto — a thread é a mesma nos dois casos. */
+  entityType?: OrgCommentEntityType;
   entityId: string;
   projectId?: string | null;
   area: AreaKey;
@@ -302,6 +305,7 @@ function CommentComposer({
 }
 
 export function OrgCommentsPanel({
+  entityType = 'org_task',
   entityId,
   projectId,
   area,
@@ -317,7 +321,7 @@ export function OrgCommentsPanel({
     updateComment,
     deleteComment,
     downloadAttachment,
-  } = useDomainOrgComments('org_task', entityId, area, projectId);
+  } = useDomainOrgComments(entityType, entityId, area, projectId);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState('');
@@ -500,7 +504,7 @@ export function OrgCommentsPanel({
           </span>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Comentários, anexos e atualizações da tarefa
+          Comentários, anexos e atualizações {entityType === 'org_project' ? 'do projeto' : 'da tarefa'}
         </p>
       </div>
 

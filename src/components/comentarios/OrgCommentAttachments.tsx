@@ -94,7 +94,7 @@ export function OrgEntityAttachments({
     return (
       <div
         className={cn(
-          'flex items-center gap-2 rounded-lg border border-dashed px-3 py-4 text-xs text-muted-foreground',
+          'flex items-center gap-2 rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground',
           className,
         )}
       >

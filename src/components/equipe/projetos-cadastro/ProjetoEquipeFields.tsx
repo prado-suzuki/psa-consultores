@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { Check, ChevronDown, ChevronRight, ChevronsUpDown, Users, UsersRound } from 'lucide-react';
+import { Check, ChevronDown, ChevronRight, ChevronsUpDown, UsersRound } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -9,7 +9,47 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useProjetosCadastro } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
 
-export function ProjetoEquipeFields() {
+interface ProjetoEquipeFieldsProps {
+  /**
+   * Na edição o responsável executor vive na faixa de propriedades do topo
+   * (`ProjetoPropertyBar`), então a seção de equipe não o repete.
+   */
+  withResponsavel?: boolean;
+  /**
+   * Na edição o switch de multidisciplinar vai para o título da seção
+   * (`MultidisciplinarToggle`), onde ocupa uma linha já existente.
+   */
+  withMultidisciplinar?: boolean;
+}
+
+/**
+ * Switch de projeto multidisciplinar em formato compacto, para o título da
+ * seção "Equipe" do modo edição. A explicação, que no formulário de criação é um
+ * parágrafo, vira `title` — economiza a linha inteira que faltava para o modal
+ * caber sem rolagem.
+ */
+export function MultidisciplinarToggle() {
+  const { formData, setFormData } = useProjetosCadastro();
+  return <label
+    className="flex cursor-pointer items-center gap-2 text-xs font-normal normal-case tracking-normal text-muted-foreground"
+    title="Permite selecionar membros de qualquer equipe, agrupados por área."
+  >
+    Multidisciplinar
+    <Switch
+      checked={formData.is_multidisciplinar}
+      onCheckedChange={checked => setFormData(previous => ({ ...previous, is_multidisciplinar: checked }))}
+    />
+  </label>;
+}
+
+/**
+ * Campos de equipe do projeto: líderes, responsável executor e membros. O título
+ * da seção fica com quem renderiza (formulário de criação ou corpo da edição).
+ */
+export function ProjetoEquipeFields({
+  withResponsavel = true,
+  withMultidisciplinar = true,
+}: ProjetoEquipeFieldsProps = {}) {
   const {
     formData, setFormData, teamMembers, lideres, executores, equipeId, equipeMemberIds,
     availableMembers, availableMembersByArea, memberSearch, setMemberSearch,
@@ -23,11 +63,9 @@ export function ProjetoEquipeFields() {
     }
     return { ...previous, member_ids: [...new Set([...previous.member_ids, ...ids])] };
   });
-  return <div className="space-y-4">
-    <h3 className="text-sm font-semibold text-foreground border-b pb-2 flex items-center gap-2"><Users className="h-4 w-4" />Equipe</h3>
-    <div>
-      <Label>Líder Geral *</Label>
-      <Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1 hover:bg-background hover:text-foreground">
+  const liderField = <div>
+      <Label>Líder Geral <span className="text-destructive">*</span></Label>
+      <Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-9 mt-1 hover:bg-background hover:text-foreground">
         {formData.leader_ids.length > 0 ? <div className="flex flex-wrap gap-1">{formData.leader_ids.map(id => {
           const member = teamMembers.find(item => item.id === id);
           return member ? <Badge key={id} variant="outline" className="bg-success/5 text-success border-success/20">{member.first_name} {member.last_name}</Badge> : null;
@@ -41,20 +79,23 @@ export function ProjetoEquipeFields() {
           }))}><Check className={`mr-2 h-4 w-4 ${formData.leader_ids.includes(member.id) ? 'opacity-100' : 'opacity-0'}`} />{member.first_name} {member.last_name}</CommandItem>)}
         </CommandGroup></CommandList>
       </Command></PopoverContent></Popover>
-    </div>
-    <div>
-      <Label>Responsável Executor *</Label>
+    </div>;
+
+  const responsavelField = <div>
+      <Label>Responsável Executor <span className="text-destructive">*</span></Label>
       <Select value={formData.responsible_id} onValueChange={value => setFormData(previous => ({ ...previous, responsible_id: value === '_none' ? '' : value }))}>
         <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o executor" /></SelectTrigger>
         <SelectContent><SelectItem value="_none">Selecione...</SelectItem>{executores.map(member => <SelectItem key={member.id} value={member.id}>{member.first_name} {member.last_name}</SelectItem>)}</SelectContent>
       </Select>
-    </div>
-    <div className="flex items-center justify-between rounded-md border p-3">
-      <div className="space-y-0.5"><Label className="text-sm">Multidisciplinar</Label><p className="text-xs text-muted-foreground">Permite selecionar membros de qualquer equipe, agrupados por área.</p></div>
+    </div>;
+
+  const multidisciplinarRow = <div className="flex items-center justify-between gap-4 rounded-xl border px-3 py-1.5">
+      <div><Label className="text-sm">Multidisciplinar</Label><p className="text-xs text-muted-foreground">Permite selecionar membros de qualquer equipe, agrupados por área.</p></div>
       <Switch checked={formData.is_multidisciplinar} onCheckedChange={checked => setFormData(previous => ({ ...previous, is_multidisciplinar: checked }))} />
-    </div>
-    <div>
-      <div className="flex items-center justify-between">
+    </div>;
+
+  const membrosField = <div>
+      <div className="flex flex-wrap items-center justify-between gap-x-2">
         <Label>Membros do Projeto <span className="text-destructive">*</span></Label>
         {!formData.is_multidisciplinar && equipeId && equipeMemberIds.length > 0 && <Button type="button" variant="ghost" size="sm" className="h-7 text-xs gap-1 text-success hover:text-success hover:bg-success/5" onClick={() => {
           const excluded = new Set(formData.leader_ids);
@@ -66,7 +107,7 @@ export function ProjetoEquipeFields() {
         ? <p className="text-xs text-muted-foreground mt-1">Selecione uma equipe para ver os membros disponíveis.</p>
         : !formData.is_multidisciplinar && equipeId && equipeMemberIds.length === 0 && formData.member_ids.length === 0
           ? <p className="text-xs text-muted-foreground mt-1">Nenhum membro encontrado nesta equipe.</p>
-          : <Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-10 mt-1 hover:bg-background hover:text-foreground">
+          : <Popover><PopoverTrigger asChild><Button variant="outline" className="w-full justify-between h-auto min-h-9 mt-1 hover:bg-background hover:text-foreground">
             {formData.member_ids.length > 0 ? <div className="flex flex-wrap gap-1">{formData.member_ids.map(id => {
               const member = teamMembers.find(item => item.id === id);
               return member ? <Badge key={id} variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">{member.first_name} {member.last_name}</Badge> : null;
@@ -100,6 +141,20 @@ export function ProjetoEquipeFields() {
             </CommandList>
           </Command></PopoverContent></Popover>}
       {formData.member_ids.length > 0 && <p className="text-xs text-muted-foreground mt-1">{formData.member_ids.length} membro{formData.member_ids.length !== 1 ? 's' : ''} selecionado{formData.member_ids.length !== 1 ? 's' : ''}</p>}
-    </div>
+    </div>;
+
+  // Na edição, líder e membros dividem a linha: são dois seletores curtos e a
+  // coluna do projeto é larga: empilhados, a seção não caberia na altura do
+  // diálogo. Na criação (modal estreito) segue tudo empilhado.
+  if (!withResponsavel) return <div className="space-y-3">
+    <div className="grid gap-4 sm:grid-cols-2">{liderField}{membrosField}</div>
+    {withMultidisciplinar && multidisciplinarRow}
+  </div>;
+
+  return <div className="space-y-4">
+    {liderField}
+    {responsavelField}
+    {multidisciplinarRow}
+    {membrosField}
   </div>;
 }

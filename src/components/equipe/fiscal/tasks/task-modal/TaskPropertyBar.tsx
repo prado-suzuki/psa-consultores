@@ -14,6 +14,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select';
+import { CHIP_BUTTON, CHIP_LABEL, CHIP_TRIGGER } from '@/lib/modalChipStyles';
 import { taskPriorityColors, taskPriorityList } from '@/lib/taskPriorityColors';
 import type { TaskFieldOptions, TaskFormValues } from '@/lib/orgTaskForm';
 import { cn } from '@/lib/utils';
@@ -203,19 +204,6 @@ export function TaskPropertyBar({
     </div>
   );
 }
-
-const CHIP_LABEL = 'text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground';
-
-/**
- * `[&>span]:line-clamp-none` é necessário: a base do SelectTrigger aplica
- * `line-clamp-1` no span do valor, e o `display:-webkit-box` que ela traz
- * quebraria o avatar/ponto em cima do texto.
- */
-const CHIP_TRIGGER =
-  'h-9 gap-2 rounded-lg border-transparent bg-background px-2.5 text-sm font-medium shadow-sm ring-offset-0 focus:ring-1 disabled:cursor-default disabled:opacity-100 [&>span]:line-clamp-none [&>span]:flex [&>span]:min-w-0 [&>span]:items-center [&>span]:gap-2';
-
-const CHIP_BUTTON =
-  'h-9 w-full justify-start gap-2 rounded-lg bg-background px-2.5 text-sm font-medium shadow-sm hover:bg-background disabled:cursor-default disabled:opacity-100';
 
 function DateChip({
   form,

@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import { AlignLeft, Paperclip, Plus, UserCheck } from 'lucide-react';
 
 import { OrgEntityAttachments } from '@/components/comentarios/OrgCommentAttachments';
 import { Button } from '@/components/ui/button';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { SectionHeading } from '@/components/ui/section-heading';
 import { Textarea } from '@/components/ui/textarea';
 import type { AreaKey } from '@/config/areaCategories';
 import type { TaskFormValues } from '@/lib/orgTaskForm';
@@ -102,26 +102,6 @@ export function TaskEditBody({
           className="mt-3"
         />
       </section>
-    </div>
-  );
-}
-
-function SectionHeading({
-  icon,
-  action,
-  children,
-}: {
-  icon: ReactNode;
-  action?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <h3 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        {icon}
-        {children}
-      </h3>
-      {action}
     </div>
   );
 }
