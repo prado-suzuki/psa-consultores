@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import type { AreaKey } from '@/config/areaCategories';
 import { toast } from 'sonner';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -74,10 +73,6 @@ const projectStatusStyles: Record<string, string> = {
   on_hold: 'bg-amber-100 text-amber-700',
   cancelled: 'bg-rose-100 text-rose-700',
 };
-
-function initials(name: string | null) {
-  return name ? name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase() : '?';
-}
 
 function dateLabel(date: string | null) {
   return date ? format(parseDate(date), 'dd MMM yyyy', { locale: ptBR }) : 'Sem prazo';
@@ -215,8 +210,7 @@ export function ProjetosTarefasList({
             <SelectContent>{statusList.map(status => <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 text-muted-foreground">
-          <Avatar className="h-6 w-6"><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{initials(task.assigned_to_name)}</AvatarFallback></Avatar>
+        <div className="flex items-center px-3 py-1.5 text-muted-foreground">
           <span className="truncate text-xs">{task.assigned_to_name || 'Não atribuído'}</span>
         </div>
         <div className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs', task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done' ? 'font-medium text-destructive' : 'text-muted-foreground')}>
@@ -315,7 +309,7 @@ export function ProjetosTarefasList({
                 <span className="text-xs text-muted-foreground">{projectNode.taskCount}</span>
               </div>
               <div className="flex items-center px-3">{projectNode.project && <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', projectStatusStyles[projectNode.project.status] || 'bg-muted text-muted-foreground')}>{STATUS_LABELS[projectNode.project.status] || projectNode.project.status}</span>}</div>
-              <div className="flex items-center gap-2 px-3 text-xs text-muted-foreground"><Avatar className="h-6 w-6"><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{initials(projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}` : null)}</AvatarFallback></Avatar><span className="truncate">{projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}`.trim() : 'Não atribuído'}</span></div>
+              <div className="flex items-center px-3 text-xs text-muted-foreground"><span className="truncate">{projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}`.trim() : 'Não atribuído'}</span></div>
               <div />
               <div className="flex items-center justify-end gap-2 px-3 text-xs font-medium text-muted-foreground">
                 <Progress value={completionPercentage(projectNode.completedTaskCount, projectNode.taskCount)} className="h-1.5 w-16 bg-primary/15" />

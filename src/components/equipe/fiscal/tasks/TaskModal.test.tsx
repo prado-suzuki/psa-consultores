@@ -13,10 +13,9 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { OrgTask, OrgTaskComment } from '@/hooks/useOrgTasks';
+import type { OrgTask } from '@/hooks/useOrgTasks';
 
 // Radix Select depende de Pointer Events, ausentes no jsdom.
 Object.defineProperties(Element.prototype, {
@@ -40,7 +39,6 @@ const mocks = vi.hoisted(() => ({
   toast: { success: vi.fn(), error: vi.fn() },
   restoreDraft: vi.fn(),
   clearDraft: vi.fn(),
-  comments: [] as OrgTaskComment[],
   reviewerCandidates: [] as { id: string; name: string }[],
   reviewerCandidatesLoading: false,
   projects: [] as { id: string; name: string; external_client_id: string | null }[],
@@ -68,10 +66,6 @@ vi.mock('@/hooks/useOrgTasks', () => ({
   useCreateOrgTaskComment: (...args: unknown[]) => {
     mocks.hookArgs.useCreateOrgTaskComment = args;
     return { mutateAsync: mocks.createComment, isPending: false };
-  },
-  useOrgTaskComments: (taskId: string) => {
-    mocks.hookArgs.useOrgTaskComments = taskId;
-    return { data: mocks.comments };
   },
 }));
 
@@ -140,6 +134,35 @@ vi.mock('@/components/equipe/fiscal/tasks/ReviewRichText', () => ({
   ),
 }));
 
+vi.mock('@/components/comentarios/OrgCommentsPanel', () => ({
+  OrgCommentsPanel: ({
+    entityId,
+    projectId,
+    focusComposerSignal,
+  }: {
+    entityId: string;
+    projectId?: string | null;
+    focusComposerSignal?: number;
+  }) => (
+    <aside
+      data-testid="activity-panel"
+      data-entity-id={entityId}
+      data-project-id={projectId}
+      data-focus-signal={focusComposerSignal}
+    >
+      <h2>Atividade</h2>
+    </aside>
+  ),
+}));
+
+// A listagem de anexos lê a thread de comentários pelo React Query; aqui só
+// interessa que ela receba a tarefa certa.
+vi.mock('@/components/comentarios/OrgCommentAttachments', () => ({
+  OrgEntityAttachments: ({ entityId }: { entityId: string }) => (
+    <div data-testid="anexos-agregados" data-entity-id={entityId} />
+  ),
+}));
+
 import { TaskModal } from './TaskModal';
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
@@ -198,21 +221,6 @@ const baseTask: OrgTask = {
   client: { id: 'CLI1', nome: 'Cliente Um' },
 };
 
-const systemComment = (
-  id: string,
-  comment: string,
-  extra: Partial<OrgTaskComment> = {},
-): OrgTaskComment => ({
-  id,
-  task_id: 'T1',
-  user_id: 'U1',
-  user_name: 'Bernardo K',
-  comment,
-  is_system: true,
-  created_at: '2026-04-02T13:05:00.000Z',
-  ...extra,
-});
-
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function renderModal(overrides: Partial<React.ComponentProps<typeof TaskModal>> = {}) {
@@ -267,7 +275,6 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.calls = [];
   mocks.user = { id: 'U1', email: 'bernardo@psa.com', user_metadata: {} };
-  mocks.comments = [];
   mocks.reviewerCandidates = [
     { id: 'REV1', name: 'Rita Rev' },
     { id: 'U1', name: 'Bernardo K' },
@@ -301,8 +308,7 @@ describe('TaskModal — wiring dos hooks', () => {
 
     expect(mocks.hookArgs.useCreateOrgTask).toEqual(['tax', { showToasts: false }]);
     expect(mocks.hookArgs.useUpdateOrgTask).toEqual(['tax', { showToasts: false }]);
-    expect(mocks.hookArgs.useCreateOrgTaskComment).toEqual([{ showToasts: false }]);
-    expect(mocks.hookArgs.useOrgTaskComments).toBe('T1');
+    expect(mocks.hookArgs.useCreateOrgTaskComment).toEqual([{ showToasts: false, area: 'tax' }]);
     expect(mocks.hookArgs.useOrgProjectsList).toBe(true);
     expect(mocks.hookArgs.useProjectMembers).toBe('PRJ1');
     expect(mocks.hookArgs.useOrgProjectClusterIds).toBe('PRJ1');
@@ -314,7 +320,6 @@ describe('TaskModal — wiring dos hooks', () => {
   it('em tarefa nova consulta comentários com id vazio e habilita o rascunho', () => {
     renderModal();
 
-    expect(mocks.hookArgs.useOrgTaskComments).toBe('');
     expect(mocks.hookArgs.useDraftPersistence).toEqual({
       key: 'fiscal-task-draft',
       enabled: true,
@@ -549,9 +554,45 @@ describe('TaskModal — edição', () => {
     ];
     renderModal({ task: baseTask, parentTasks });
 
+    // Na edição os campos de contexto ficam atrás de "Alterar contexto".
+    await user.click(screen.getByRole('button', { name: /Alterar contexto/ }));
     await user.click(screen.getByLabelText(/Tarefa Pai/));
     const options = (await screen.findAllByRole('option')).map((o) => o.textContent);
     expect(options).toEqual(['Nenhuma', 'Pai do Alfa']);
+  });
+});
+
+describe('TaskModal — cabeçalho da edição', () => {
+  it('mostra o contexto da tarefa como texto e o título como campo', () => {
+    renderModal({ task: baseTask, parentTasks: [{ ...baseTask, id: 'P1', title: 'Pai do Alfa' }] });
+
+    expect(screen.getByLabelText(/^Título/)).toHaveValue('Tarefa existente');
+    // Cliente, projeto e contribuinte viram texto — sem select à mostra.
+    expect(screen.getByText('Cliente Um')).toBeInTheDocument();
+    expect(screen.getByText('Projeto Alfa')).toBeInTheDocument();
+    expect(screen.getByText(/Contribuinte Um · 11\.111\.111\/0001-11/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^Cliente/)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Tarefa Pai/)).not.toBeInTheDocument();
+  });
+
+  it('abre o painel de contexto sozinho quando o contexto reprova na validação', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: { ...baseTask, contribuinte_id: null } });
+
+    expect(screen.queryByLabelText(/^Contribuinte/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    // Sem isso a mensagem de erro ficaria escondida dentro do painel fechado.
+    expect(await screen.findByLabelText(/^Contribuinte/)).toBeInTheDocument();
+    expect(mocks.updateTask).not.toHaveBeenCalled();
+  });
+
+  it('não oferece Salvar nem Cancelar no rodapé — as ações vivem no cabeçalho', () => {
+    renderModal({ task: baseTask });
+
+    expect(screen.getByRole('button', { name: 'Salvar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fechar' })).toBeInTheDocument();
   });
 });
 
@@ -775,50 +816,33 @@ describe('TaskModal — revisor delegado', () => {
   });
 });
 
-describe('TaskModal — histórico da revisão', () => {
-  it('renderiza apenas os eventos de sistema, com título, conteúdo e autor', () => {
-    mocks.comments = [
-      systemComment('C1', 'Enviado para revisão de Rita Rev: [[review-rich-text:v1]]Ver anexos'),
-      systemComment('C2', 'Devolvido para ajustes: [[review-rich-text:v1]]Faltou o CFOP'),
-      systemComment('C3', 'Tarefa aprovada'),
-      systemComment('C4', 'Comentário humano qualquer', { is_system: false }),
-    ];
+describe('TaskModal — atividade', () => {
+  it('renderiza o painel unificado na edição com os ids da tarefa e do projeto', () => {
     renderModal({ task: baseTask });
 
-    expect(screen.getByRole('heading', { name: 'Histórico da revisão' })).toBeInTheDocument();
-    expect(screen.getByText('Envios, aprovações e pedidos de ajuste')).toBeInTheDocument();
-
-    const items = screen.getAllByRole('listitem');
-    expect(items).toHaveLength(3);
-    expect(items[0]).toHaveTextContent('Enviado para revisão');
-    expect(items[1]).toHaveTextContent('Retornado para ajustes');
-    expect(items[2]).toHaveTextContent('Revisão aprovada');
-    expect(screen.queryByText('Comentário humano qualquer')).not.toBeInTheDocument();
-
-    // O prefixo é removido; o restante (marcador incluso) vai para o renderer.
-    const contents = screen.getAllByTestId('rich-text-content').map((n) => n.textContent);
-    expect(contents).toEqual([
-      '[[review-rich-text:v1]]Ver anexos',
-      '[[review-rich-text:v1]]Faltou o CFOP',
-    ]);
-
-    expect(within(items[0]).getByText('Bernardo K')).toBeInTheDocument();
-    expect(within(items[0]).getByRole('time')).toHaveTextContent(
-      format(new Date('2026-04-02T13:05:00.000Z'), 'dd MMM, HH:mm', { locale: ptBR }),
-    );
+    expect(screen.getByRole('heading', { name: 'Atividade' })).toBeInTheDocument();
+    expect(screen.getByTestId('activity-panel')).toHaveAttribute('data-entity-id', 'T1');
+    expect(screen.getByTestId('activity-panel')).toHaveAttribute('data-project-id', 'PRJ1');
   });
 
-  it('não renderiza o painel quando não há eventos de revisão', () => {
-    mocks.comments = [systemComment('C4', 'Só um comentário', { is_system: false })];
-    renderModal({ task: baseTask });
-
-    expect(screen.queryByText('Histórico da revisão')).not.toBeInTheDocument();
-  });
-
-  it('não renderiza o painel em tarefa nova', () => {
-    mocks.comments = [systemComment('C1', 'Tarefa aprovada')];
+  it('não renderiza atividade antes de a tarefa existir', () => {
     renderModal();
+    expect(screen.queryByRole('heading', { name: 'Atividade' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('anexos-agregados')).not.toBeInTheDocument();
+  });
 
-    expect(screen.queryByText('Histórico da revisão')).not.toBeInTheDocument();
+  it('lista os anexos da thread na coluna de detalhes', () => {
+    renderModal({ task: baseTask });
+
+    expect(screen.getByTestId('anexos-agregados')).toHaveAttribute('data-entity-id', 'T1');
+  });
+
+  it('"Adicionar" anexo leva o foco para o compositor do painel', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: baseTask });
+
+    expect(screen.getByTestId('activity-panel')).toHaveAttribute('data-focus-signal', '0');
+    await user.click(screen.getByRole('button', { name: /Adicionar/ }));
+    expect(screen.getByTestId('activity-panel')).toHaveAttribute('data-focus-signal', '1');
   });
 });

@@ -3,24 +3,16 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { UserCheck } from 'lucide-react';
 
 import { parseDate } from '@/lib/dateUtils';
 import { useDraftPersistence } from '@/hooks/useDraftPersistence';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { cn } from '@/lib/utils';
 import {
   OrgTask,
   useCreateOrgTask,
-  useOrgTaskComments,
   useUpdateOrgTask,
   useCreateOrgTaskComment,
 } from '@/hooks/useOrgTasks';
@@ -54,16 +46,17 @@ import {
   taskSchema,
   type ReviewAction,
   type ReviewOutcome,
+  type TaskFieldOptions,
   type TaskFormValues,
 } from '@/lib/orgTaskForm';
-import { buildReviewHistory } from '@/lib/orgTaskReviewHistory';
+import { OrgCommentsPanel } from '@/components/comentarios/OrgCommentsPanel';
 import { ReviewActionDialog } from '@/components/equipe/fiscal/tasks/task-modal/ReviewActionDialog';
 import { ReviewActionFeedback } from '@/components/equipe/fiscal/tasks/task-modal/ReviewActionFeedback';
-import { ReviewHistoryPanel } from '@/components/equipe/fiscal/tasks/task-modal/ReviewHistoryPanel';
-import { TaskContextFields } from '@/components/equipe/fiscal/tasks/task-modal/TaskContextFields';
-import { TaskDetailsFields } from '@/components/equipe/fiscal/tasks/task-modal/TaskDetailsFields';
-import { TaskExecutionFields } from '@/components/equipe/fiscal/tasks/task-modal/TaskExecutionFields';
-import { TaskModalFooter } from '@/components/equipe/fiscal/tasks/task-modal/TaskModalFooter';
+import { TaskCreateFields } from '@/components/equipe/fiscal/tasks/task-modal/TaskCreateFields';
+import { TaskEditActions } from '@/components/equipe/fiscal/tasks/task-modal/TaskEditActions';
+import { TaskEditBody } from '@/components/equipe/fiscal/tasks/task-modal/TaskEditBody';
+import { TaskEditHeader } from '@/components/equipe/fiscal/tasks/task-modal/TaskEditHeader';
+import { TaskPropertyBar } from '@/components/equipe/fiscal/tasks/task-modal/TaskPropertyBar';
 
 interface TaskModalProps {
   open: boolean;
@@ -89,16 +82,19 @@ export const TaskModal = ({
   const { user } = useAuth();
   const createTask = useCreateOrgTask(area, { showToasts: false });
   const updateTask = useUpdateOrgTask(area, { showToasts: false });
-  const createComment = useCreateOrgTaskComment({ showToasts: false });
-  const { data: taskComments = [] } = useOrgTaskComments(task?.id || '');
+  const createComment = useCreateOrgTaskComment({ showToasts: false, area });
   const isEditing = !!task;
   const isResettingRef = useRef(false);
   const prevProjectIdRef = useRef<string | undefined>(undefined);
   const partiallySavedTaskIdRef = useRef<string | null>(null);
+  const dialogContentRef = useRef<HTMLDivElement>(null);
 
   const [showDraftNotice, setShowDraftNotice] = useState(false);
   const [reviewAction, setReviewAction] = useState<ReviewAction | null>(null);
   const [reviewFeedback, setReviewFeedback] = useState<ReviewOutcome | null>(null);
+  // Incrementa a cada "Adicionar anexo": o painel de atividade observa o número
+  // e leva o foco para o compositor, que é por onde o arquivo sobe.
+  const [composerFocusSignal, setComposerFocusSignal] = useState(0);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -139,7 +135,6 @@ export const TaskModal = ({
 
   const currentUserIsReviewer =
     task?.status === 'review' && isDelegatedOrgTaskReviewer(task, user?.id);
-  const reviewHistory = useMemo(() => buildReviewHistory(taskComments), [taskComments]);
   const statusOptions = useMemo(
     () =>
       filterStatusOptions(statusList, {
@@ -326,6 +321,7 @@ export const TaskModal = ({
       setShowDraftNotice(false);
       setReviewAction(null);
       setReviewFeedback(null);
+      setComposerFocusSignal(0);
     }
     onOpenChange(nextOpen);
   };
@@ -458,7 +454,22 @@ export const TaskModal = ({
   };
 
   const isSaving = createTask.isPending || updateTask.isPending || createComment.isPending;
-  const showReviewHistory = isEditing && reviewHistory.length > 0;
+  const fieldOptions: TaskFieldOptions = {
+    clients,
+    projects: filteredProjects,
+    contribuintes: contribuintesTask,
+    parentTasks: filteredParentTasks,
+    teamMembers: filteredTeamMembers,
+    statusOptions,
+  };
+  const mentionCandidates = useMemo(
+    () =>
+      allProfiles.map((profile) => ({
+        id: profile.id,
+        name: [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim(),
+      })),
+    [allProfiles],
+  );
 
   return (
     <>
@@ -467,79 +478,88 @@ export const TaskModal = ({
       </AnimatePresence>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
+          ref={dialogContentRef}
+          // Na edição o primeiro elemento focável é o botão Salvar, e um Enter
+          // logo após abrir salvaria a tarefa sem intenção. O foco vai para o
+          // próprio diálogo (tabIndex -1 do Radix): Tab e Esc seguem valendo.
+          onOpenAutoFocus={(event) => {
+            if (!isEditing) return;
+            event.preventDefault();
+            dialogContentRef.current?.focus();
+          }}
           className={cn(
-            'max-h-[90vh] overflow-y-auto border-0 bg-transparent p-0 shadow-none',
-            showReviewHistory
-              ? 'w-[calc(100vw-2rem)] max-w-2xl xl:max-w-[65rem] xl:grid xl:grid-cols-[minmax(0,42rem)_22rem] xl:items-start xl:gap-4 xl:overflow-visible xl:[&>button]:right-[24rem]'
+            'max-h-[94vh] gap-0 overflow-hidden p-0',
+            isEditing
+              ? // `[&>button]:hidden` esconde o X padrão do DialogContent: na
+                // edição ele é renderizado dentro do cabeçalho, junto das ações.
+                'h-[min(94vh,54rem)] w-[calc(100vw-1rem)] max-w-[78rem] [&>button]:hidden lg:grid lg:grid-cols-[minmax(0,1.5fr)_minmax(22rem,0.9fr)]'
               : 'max-w-2xl',
           )}
         >
-          <div className="rounded-lg border bg-background p-6 shadow-lg xl:max-h-[90vh] xl:overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{isEditing ? 'Editar Tarefa' : 'Nova Tarefa'}</DialogTitle>
-              <DialogDescription className="sr-only">Formulário de tarefa fiscal</DialogDescription>
-              {showDraftNotice && (
-                <p className="text-xs text-warning mt-1 animate-pulse">
-                  Rascunho restaurado — clique em Salvar para confirmar.
-                </p>
-              )}
-            </DialogHeader>
-
-            <Form {...form}>
-              <form
-                onSubmit={form.handleSubmit((values) => onSubmit(values))}
-                className="space-y-6"
-              >
-                {currentUserIsReviewer && (
-                  <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 dark:border-purple-900 dark:bg-purple-950/30">
-                    <div className="flex items-start gap-3">
-                      <div className="rounded-full bg-purple-100 p-2 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
-                        <UserCheck className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-purple-950 dark:text-purple-100">
-                          Revisão delegada a você
-                        </p>
-                        <p className="mt-1 text-sm text-purple-800/80 dark:text-purple-200/80">
-                          Revise a tarefa de {task?.assigned_to_name || 'responsável'} e escolha uma
-                          ação ao final.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <fieldset disabled={currentUserIsReviewer} className="space-y-6">
-                  <TaskContextFields
+          <Form {...form}>
+            <form
+              onSubmit={form.handleSubmit((values) => onSubmit(values))}
+              className="flex min-h-0 flex-col bg-background"
+            >
+              {isEditing && task ? (
+                <div className="min-h-0 flex-1 overflow-y-auto">
+                  <TaskEditHeader
                     form={form}
-                    clients={clients}
-                    projects={filteredProjects}
-                    contribuintes={contribuintesTask}
+                    options={fieldOptions}
+                    disabled={currentUserIsReviewer}
+                    actions={
+                      <TaskEditActions
+                        isSaving={isSaving}
+                        isReviewer={currentUserIsReviewer}
+                        canSendForReview={
+                          watchedStatus !== 'review' && watchedAssignedTo === user?.id
+                        }
+                        onRequestAdjustments={() => openReviewAction('adjustments')}
+                        onSendForReview={() => openReviewAction('send')}
+                        onApprove={form.handleSubmit((values) => onSubmit(values, 'approved'))}
+                      />
+                    }
                   />
-                  <TaskDetailsFields form={form} parentTasks={filteredParentTasks} />
-                  <TaskExecutionFields
+                  <TaskPropertyBar
                     form={form}
-                    teamMembers={filteredTeamMembers}
-                    statusOptions={statusOptions}
+                    options={fieldOptions}
                     onAssigneeChange={handleAssigneeChange}
+                    disabled={currentUserIsReviewer}
                   />
-                </fieldset>
-
-                <TaskModalFooter
-                  isEditing={isEditing}
+                  <TaskEditBody
+                    form={form}
+                    taskId={task.id}
+                    projectId={task.project_id}
+                    area={area}
+                    isReviewer={currentUserIsReviewer}
+                    assignedToName={task.assigned_to_name}
+                    onAddAttachment={() => setComposerFocusSignal((signal) => signal + 1)}
+                  />
+                </div>
+              ) : (
+                <TaskCreateFields
+                  form={form}
+                  options={fieldOptions}
+                  onAssigneeChange={handleAssigneeChange}
+                  showDraftNotice={showDraftNotice}
                   isSaving={isSaving}
-                  isReviewer={currentUserIsReviewer}
-                  canSendForReview={watchedStatus !== 'review' && watchedAssignedTo === user?.id}
                   onCancel={() => handleOpenChange(false)}
-                  onRequestAdjustments={() => openReviewAction('adjustments')}
-                  onSendForReview={() => openReviewAction('send')}
-                  onApprove={form.handleSubmit((values) => onSubmit(values, 'approved'))}
                 />
-              </form>
-            </Form>
-          </div>
+              )}
+            </form>
+          </Form>
 
-          {showReviewHistory && <ReviewHistoryPanel events={reviewHistory} />}
+          {isEditing && task && (
+            <div className="min-h-[32rem] border-t lg:min-h-0 lg:border-l lg:border-t-0">
+              <OrgCommentsPanel
+                entityId={task.id}
+                projectId={task.project_id}
+                area={area}
+                mentionCandidates={mentionCandidates}
+                focusComposerSignal={composerFocusSignal}
+              />
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

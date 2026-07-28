@@ -14,7 +14,8 @@ type AuditEntityType =
   | 'ciclo_avaliacao' | 'meta' | 'kpi_meta' | 'feedback' | 'reuniao_1a1' | 'analise_semestral'
   | 'pessoa' | 'parentesco' | 'administracao' | 'quadro_societario'
   | 'bem' | 'matricula' | 'titularidade' | 'impedimento' | 'cartorio'
-  | 'tmpl_bloco' | 'tmpl_documento' | 'documento_arquivo';
+  | 'tmpl_bloco' | 'tmpl_documento' | 'documento_arquivo'
+  | 'org_comment';
 
 interface AuditLogEntry {
   area: AuditArea;

@@ -347,15 +347,17 @@ SELECT
   (SELECT count(*) FROM public.org_comments r
      WHERE r.parent_id = c.id AND r.excluido = false) AS reply_count,
   (SELECT count(*) FROM public.org_comment_attachments a
-     WHERE a.comment_id = c.id)                 AS attachment_count
+     WHERE a.comment_id = c.id)                 AS attachment_count,
+  c.excluido
 FROM public.org_comments c
 JOIN public.org_projects p ON p.id = c.project_id
 LEFT JOIN public.org_tasks t
-       ON c.entity_type = 'org_task' AND t.id = c.entity_id
-WHERE c.excluido = false;
+       ON c.entity_type = 'org_task' AND t.id = c.entity_id;
 ```
 
 `security_invoker = on` é obrigatório: sem isso a view roda como dona e **fura a RLS** da tabela base (ver o comentário na migration `20260318205052`, que documenta exatamente essa pegadinha).
+
+**A view não filtra `excluido`** — expõe a coluna e deixa o consumidor filtrar, conforme a convenção de soft delete do AGENTS.md. A primeira versão (migration `20260728132114`) filtrava, e isso tornava o critério de aceite do BER-24 impossível: o comentário excluído desaparecia da view e as respostas dele ficavam órfãs, apontando para um `parent_id` fora do resultado. Corrigido na migration `20260728140000`.
 
 ### 3.9 RLS
 

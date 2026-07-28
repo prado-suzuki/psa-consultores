@@ -227,6 +227,29 @@ export interface TaskClientOption {
   nome: string;
 }
 
+export interface TaskContribuinteOption {
+  id: string;
+  nome_razao_social: string;
+  cpf_cnpj?: string | null;
+}
+
+/**
+ * Listas que alimentam os selects do formulário, já filtradas pela fachada
+ * (`TaskModal`) — cliente/projeto/contribuinte pelo contexto escolhido,
+ * responsável pelos membros do projeto, status pelo papel do usuário.
+ *
+ * Andam juntas porque os dois layouts (criação empilhada e edição em faixa)
+ * precisam do conjunto inteiro.
+ */
+export interface TaskFieldOptions {
+  clients: TaskClientOption[];
+  projects: { id: string; name: string }[];
+  contribuintes: TaskContribuinteOption[];
+  parentTasks: { id: string; title: string }[];
+  teamMembers: TaskTeamMember[];
+  statusOptions: StatusColorConfig[];
+}
+
 /**
  * Opções do dropdown "Cliente": a lista consultada mais o cliente já vinculado
  * à tarefa, para cobrir cliente inativo/excluído/de outro ambiente.
