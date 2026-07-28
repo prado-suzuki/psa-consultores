@@ -149,7 +149,7 @@ describe('OrgCommentsPanel', () => {
     expect(screen.getByText('Resposta preservada')).toBeInTheDocument();
   });
 
-  it('anuncia a resposta como resposta, e não como comentário solto', () => {
+  it('liga cada resposta à raiz pelo fio da thread', () => {
     mocks.comments = [
       comment(),
       comment({
@@ -159,12 +159,17 @@ describe('OrgCommentsPanel', () => {
         author_name: 'Ana Souza',
         body: 'Respondido',
       }),
+      comment({ id: 'C3', parent_id: 'C1', author_id: 'U2', body: 'Outra resposta' }),
     ];
 
-    renderPanel();
+    const { container } = renderPanel();
 
-    expect(screen.getByText('respondeu a Bernardo')).toBeInTheDocument();
-    expect(screen.getByText('1 resposta')).toBeInTheDocument();
+    const raiz = container.querySelector<HTMLElement>('[data-comment-root="C1"]');
+    expect(raiz).not.toBeNull();
+    // As respostas vivem dentro do bloco da raiz, cada uma com seu cotovelo.
+    expect(raiz).toContainElement(screen.getByText('Respondido'));
+    expect(raiz).toContainElement(screen.getByText('Outra resposta'));
+    expect(raiz!.querySelectorAll('[data-thread-connector]')).toHaveLength(2);
   });
 
   it('não oferece responder dentro de uma resposta', async () => {

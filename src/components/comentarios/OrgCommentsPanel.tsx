@@ -87,7 +87,7 @@ const SYSTEM_LABELS: Record<Exclude<OrgComment['kind'], 'comment'>, string> = {
   status_changed: 'Status alterado',
 };
 
-/** Só o primeiro nome — cabe no rótulo "em resposta a ..." sem estourar a linha. */
+/** Só o primeiro nome — cabe no "Respondendo a ..." sem estourar a linha. */
 function primeiroNome(name: string | null) {
   return (name || 'Usuário').trim().split(/\s+/)[0];
 }
@@ -420,19 +420,50 @@ export function OrgCommentsPanel({
     setEditingId(null);
   };
 
+  /**
+   * `ultima` só existe por causa do fio: a última resposta encerra o traço no
+   * próprio cotovelo, em vez de deixá-lo escorrer para fora da thread.
+   */
   const renderComment = (
     comment: OrgComment,
-    nested = false,
-    parentAuthorName: string | null = null,
+    { nested = false, ultima = false }: { nested?: boolean; ultima?: boolean } = {},
   ) => {
     const isSystem = comment.kind !== 'comment';
     const replies = repliesByRoot.get(comment.id) ?? [];
     if (comment.excluido && replies.length === 0) return null;
     const isReplying = replyingTo === comment.id;
+    const abreThread = !nested && (replies.length > 0 || isReplying);
 
     return (
-      <div key={comment.id} className="relative">
-        <div className={cn('flex gap-3 py-3', nested && 'gap-2.5 pt-2')}>
+      <div key={comment.id} className="relative" data-comment-root={nested ? undefined : comment.id}>
+        {nested && (
+          <>
+            {/* Cotovelo que entra no avatar da resposta, saindo do fio da raiz. */}
+            {/*
+              `-left-6` devolve o cotovelo ao eixo do fio: a resposta mora dentro
+              do `pl-10` do bloco, e o fio corre 24px à esquerda dela, no centro
+              do avatar da raiz.
+            */}
+            <span
+              aria-hidden
+              data-thread-connector
+              className="absolute -left-6 top-0 h-[22px] w-6 rounded-bl-lg border-b border-l border-border"
+            />
+            {/* Enquanto houver resposta abaixo, o fio segue descendo. */}
+            {!ultima && (
+              <span aria-hidden className="absolute -left-6 top-0 h-full w-px bg-border" />
+            )}
+          </>
+        )}
+        <div className={cn('relative flex gap-3 py-3', nested && 'gap-2.5 pt-2')}>
+          {/*
+            Trecho do fio que desce do avatar da raiz e acompanha o corpo dela
+            até o começo das respostas — é o que faz raiz e respostas lerem como
+            um bloco só, e não como comentários vizinhos.
+          */}
+          {abreThread && (
+            <span aria-hidden className="absolute bottom-0 left-4 top-11 w-px bg-border" />
+          )}
           <Avatar
             className={cn(
               'border',
@@ -452,15 +483,9 @@ export function OrgCommentsPanel({
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              {nested && <Reply className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />}
               <span className={cn('truncate font-semibold', nested ? 'text-[13px]' : 'text-sm')}>
                 {isSystem ? SYSTEM_LABELS[comment.kind] : comment.author_name || 'Usuário removido'}
               </span>
-              {nested && (
-                <span className="shrink-0 text-[11px] text-muted-foreground">
-                  respondeu a {primeiroNome(parentAuthorName)}
-                </span>
-              )}
               <span className="shrink-0 text-[11px] text-muted-foreground">
                 {formatDistanceToNow(new Date(comment.created_at), {
                   addSuffix: true,
@@ -574,19 +599,19 @@ export function OrgCommentsPanel({
         </div>
 
         {/*
-          Trilho da thread: respostas e compositor moram dentro de um sulco à
-          esquerda, alinhado ao avatar da raiz. É o que separa "resposta" de
-          "comentário indentado". Segundo nível não existe — o trigger 2 do banco
-          rejeita resposta de resposta, então o bloco só se abre na raiz.
+          O fio da thread continua aqui dentro: cada resposta desenha seu próprio
+          trecho e o cotovelo que entra no avatar. Segundo nível não existe — o
+          trigger 2 do banco rejeita resposta de resposta, então o bloco só se
+          abre na raiz.
         */}
-        {!nested && (replies.length > 0 || isReplying) && (
-          <div className="ml-4 border-l-2 border-border pb-2 pl-5">
-            {replies.length > 0 && (
-              <p className="pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                {replies.length === 1 ? '1 resposta' : `${replies.length} respostas`}
-              </p>
+        {abreThread && (
+          <div className="relative pb-2 pl-10">
+            {replies.map((reply, index) =>
+              renderComment(reply, {
+                nested: true,
+                ultima: !isReplying && index === replies.length - 1,
+              }),
             )}
-            {replies.map((reply) => renderComment(reply, true, comment.author_name))}
             {isReplying && (
               <CommentComposer
                 compact
