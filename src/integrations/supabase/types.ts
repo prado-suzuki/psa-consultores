@@ -4061,6 +4061,92 @@ export type Database = {
           },
         ]
       }
+      org_comments: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          body: string
+          created_at: string
+          editado_em: string | null
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["org_comment_entity"]
+          excluido: boolean
+          excluido_em: string | null
+          excluido_por: string | null
+          id: string
+          kind: Database["public"]["Enums"]["org_comment_kind"]
+          metadata: Json
+          parent_id: string | null
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: string | null
+          body: string
+          created_at?: string
+          editado_em?: string | null
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["org_comment_entity"]
+          excluido?: boolean
+          excluido_em?: string | null
+          excluido_por?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["org_comment_kind"]
+          metadata?: Json
+          parent_id?: string | null
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string | null
+          body?: string
+          created_at?: string
+          editado_em?: string | null
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["org_comment_entity"]
+          excluido?: boolean
+          excluido_em?: string | null
+          excluido_por?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["org_comment_kind"]
+          metadata?: Json
+          parent_id?: string | null
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comments_excluido_por_fkey"
+            columns: ["excluido_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "org_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "org_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_project_members: {
         Row: {
           created_at: string
@@ -4275,7 +4361,7 @@ export type Database = {
           is_recurring: boolean | null
           parent_task_id: string | null
           priority: Database["public"]["Enums"]["fiscal_task_priority"]
-          project_id: string | null
+          project_id: string
           recurrence_type:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
@@ -4307,7 +4393,7 @@ export type Database = {
           is_recurring?: boolean | null
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["fiscal_task_priority"]
-          project_id?: string | null
+          project_id: string
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
@@ -4339,7 +4425,7 @@ export type Database = {
           is_recurring?: boolean | null
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["fiscal_task_priority"]
-          project_id?: string | null
+          project_id?: string
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
@@ -8192,6 +8278,14 @@ export type Database = {
         | "review"
         | "em_ajuste"
         | "done"
+      org_comment_entity: "org_task" | "org_project"
+      org_comment_kind:
+        | "comment"
+        | "assignment_changed"
+        | "review_submitted"
+        | "review_approved"
+        | "review_adjustments"
+        | "status_changed"
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
         | "pendente"
@@ -8416,6 +8510,15 @@ export const Constants = {
         "review",
         "em_ajuste",
         "done",
+      ],
+      org_comment_entity: ["org_task", "org_project"],
+      org_comment_kind: [
+        "comment",
+        "assignment_changed",
+        "review_submitted",
+        "review_approved",
+        "review_adjustments",
+        "status_changed",
       ],
       osg_checklist_origem: ["padrao", "manual"],
       osg_checklist_status: [
