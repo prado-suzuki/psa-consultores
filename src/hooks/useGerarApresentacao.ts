@@ -5,23 +5,26 @@ import { toast } from '@/hooks/use-toast';
 // Decks da apresentação PSA (segue a separação do pptx original).
 export type DeckTipo = 'ambas' | 'patrimonial' | 'societaria';
 
-type ArquivoGerado = { tipo: 'patrimonial' | 'societaria'; nome: string; url: string };
+type ArquivoGerado = { tipo: 'patrimonial' | 'societaria'; nome: string; b64: string };
 
-// Contrato com a Edge Function `gerar-apresentacao` (Deno + Storage — sem Cloud Run;
-// ver projects/osg/plans/RELATORIO_pendencias_migrations_edge.md §2):
+// Contrato com a Edge Function `gerar-apresentacao` (Deno; SEM Storage — a função
+// gera e devolve os bytes inline em base64, não persiste mais nada):
 //   body → { clienteId: string; tipo: DeckTipo }
-//   resp → { arquivos: ArquivoGerado[] }   (URLs assinadas no Storage)
+//   resp → { arquivos: ArquivoGerado[] }   (cada deck em base64)
 const EDGE_FN = 'gerar-apresentacao';
 
-// A URL é uma signed URL do Storage (cross-origin): o navegador ignora o `a.download`
-// (baixa com o nome do objeto) e não dispara múltiplos downloads de forma confiável.
-// Por isso baixamos via blob (object URL same-origin): respeita o `nome` e garante
-// que todos os arquivos venham.
-async function baixar(url: string, nome: string) {
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error('download-falhou');
-  const blob = await resp.blob();
-  const obj = URL.createObjectURL(blob);
+const PPTX_MIME =
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+
+// Os bytes voltam inline em base64 (a função não salva no Storage). Decodifica para
+// um Blob e baixa via object URL same-origin: respeita o `nome` e garante que todos
+// os arquivos venham (o navegador não dispara múltiplos downloads cross-origin de
+// forma confiável).
+function baixar(b64: string, nome: string) {
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  const obj = URL.createObjectURL(new Blob([arr], { type: PPTX_MIME }));
   const a = document.createElement('a');
   a.href = obj;
   a.download = nome;
@@ -50,7 +53,7 @@ export function useGerarApresentacao(clienteId: string | null) {
       const arquivos = data?.arquivos ?? [];
       if (!arquivos.length) throw new Error('sem-arquivos');
       // baixa um a um (blob a blob) — garante todos os arquivos e o nome correto
-      for (const f of arquivos) await baixar(f.url, f.nome);
+      for (const f of arquivos) baixar(f.b64, f.nome);
       toast({
         title: 'Apresentação gerada',
         description: arquivos.length > 1
