@@ -60,7 +60,13 @@ serve(async (req) => {
       adminClient.from("org_tasks").select("id, status, category, created_at").neq("status", "done").limit(200),
       adminClient.from("ciclos_avaliacao").select("*").eq("status", "em_andamento").limit(1),
       adminClient.from("metas").select("progresso_atual, nivel, status").eq("nivel", "individual"),
-      adminClient.from("process_improvements").select("id, total_savings_monthly, status"),
+      // Economia validada: `cost_saved_monthly` das melhorias JA AVALIADAS.
+      // Antes lia "total_savings_monthly, status" — colunas que nao existem em
+      // process_improvements, entao a IA sempre recebia economia R$ 0.
+      adminClient
+        .from("process_improvements")
+        .select("id, cost_saved_monthly")
+        .eq("evaluation_status", "completed"),
     ]);
 
     const projects = projectsRes.data ?? [];
@@ -73,7 +79,7 @@ serve(async (req) => {
     const atRisk = projects.filter((p: any) => p.status === "em_risco" || p.status === "atrasado").length;
     const openTasks = tasks.length;
     const avgProgress = metas.length > 0 ? Math.round(metas.reduce((a: number, m: any) => a + (m.progresso_atual || 0), 0) / metas.length) : 0;
-    const totalSavings = improvements.reduce((a: number, i: any) => a + (i.total_savings_monthly || 0), 0) * 12;
+    const totalSavings = improvements.reduce((a: number, i: any) => a + (i.cost_saved_monthly || 0), 0) * 12;
 
     const contextPrompt = `Voce e um consultor estrategico da PSA Consultores, uma consultoria tributaria. Analise os seguintes dados e gere uma sintese executiva em portugues BR:
 
@@ -82,7 +88,7 @@ DADOS:
 - Tarefas abertas: ${openTasks}
 - Ciclo ativo: ${ciclo?.nome || "Nenhum"}
 - Media de progresso das metas individuais: ${avgProgress}%
-- Economia anual estimada por automacoes: R$ ${totalSavings.toLocaleString("pt-BR")}
+- Economia anual JA VALIDADA em melhorias avaliadas: R$ ${totalSavings.toLocaleString("pt-BR")} (${improvements.length} melhorias)
 
 Retorne um JSON com:
 - "sintese": texto analitico de 2-3 frases cruzando os dados

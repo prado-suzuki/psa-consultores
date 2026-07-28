@@ -122,6 +122,7 @@ import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
 import BoardDashboardClientesOs from "./pages/equipe/board/BoardDashboardClientesOs";
+import BoardClientes from "./pages/equipe/board/BoardClientes";
 
 // Gestão
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
@@ -276,9 +277,13 @@ const App = () => (
               <Route path="/equipe/osg/auditoria" element={<PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate>} />
 
               {/* Board Routes */}
+              {/* Raiz da área Gerencial: o breadcrumb "Board" e links externos
+                  apontavam para /equipe/board, que caía no NotFound. */}
+              <Route path="/equipe/board" element={<Navigate to="/equipe/board/dashboard" replace />} />
               <Route path="/equipe/board/dashboard" element={<PageAccessGate pagePath="/equipe/board/dashboard"><BoardDashboard /></PageAccessGate>} />
               <Route path="/equipe/board/relatorios" element={<PageAccessGate pagePath="/equipe/board/relatorios"><BoardRelatorios /></PageAccessGate>} />
               <Route path="/equipe/board/dashboard-clientes-os" element={<PageAccessGate pagePath="/equipe/board/dashboard-clientes-os"><BoardDashboardClientesOs /></PageAccessGate>} />
+              <Route path="/equipe/board/clientes" element={<PageAccessGate pagePath="/equipe/board/clientes"><BoardClientes /></PageAccessGate>} />
 
               {/* Performance & Desempenho Routes (inside Board) */}
               <Route path="/equipe/board/performance" element={<DesempenhoAccessGate><PerformanceDashboard /></DesempenhoAccessGate>} />
