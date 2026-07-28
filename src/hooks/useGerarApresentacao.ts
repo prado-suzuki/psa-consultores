@@ -13,14 +13,22 @@ type ArquivoGerado = { tipo: 'patrimonial' | 'societaria'; nome: string; url: st
 //   resp → { arquivos: ArquivoGerado[] }   (URLs assinadas no Storage)
 const EDGE_FN = 'gerar-apresentacao';
 
-function baixar(url: string, nome: string) {
+// A URL é uma signed URL do Storage (cross-origin): o navegador ignora o `a.download`
+// (baixa com o nome do objeto) e não dispara múltiplos downloads de forma confiável.
+// Por isso baixamos via blob (object URL same-origin): respeita o `nome` e garante
+// que todos os arquivos venham.
+async function baixar(url: string, nome: string) {
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error('download-falhou');
+  const blob = await resp.blob();
+  const obj = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  a.href = url;
+  a.href = obj;
   a.download = nome;
-  a.rel = 'noopener';
   document.body.appendChild(a);
   a.click();
   a.remove();
+  URL.revokeObjectURL(obj);
 }
 
 /**
@@ -41,8 +49,8 @@ export function useGerarApresentacao(clienteId: string | null) {
       if (error) throw error;
       const arquivos = data?.arquivos ?? [];
       if (!arquivos.length) throw new Error('sem-arquivos');
-      // baixa em sequência (pequeno atraso p/ o navegador não bloquear múltiplos downloads)
-      arquivos.forEach((f, i) => window.setTimeout(() => baixar(f.url, f.nome), i * 400));
+      // baixa um a um (blob a blob) — garante todos os arquivos e o nome correto
+      for (const f of arquivos) await baixar(f.url, f.nome);
       toast({
         title: 'Apresentação gerada',
         description: arquivos.length > 1

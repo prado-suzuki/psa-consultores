@@ -14,6 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
   formatEquipeKanbanDueDate,
+  hasOpenSubtasksUnderCompletedParent,
   type EquipeKanbanDeliverable,
   type HierarchicalEquipeKanbanDeliverable,
 } from '@/lib/equipeKanban';
@@ -24,6 +25,8 @@ interface KanbanTableProps {
   expandedTasks: Set<string>;
   getProfileName: (profileId: string | null) => string;
   getBlocker: (deliverable: EquipeKanbanDeliverable) => DeliverableBlocker | undefined;
+  /** Nome da tarefa-mãe quando ela não está na visão (linha promovida pelo filtro por pessoa). */
+  getGroupLabel: (deliverable: EquipeKanbanDeliverable) => string | null;
   getStatusBadgeColor: (status: string) => string;
   getStatusLabel: (status: string) => string;
   onToggleExpanded: (taskId: string, event?: MouseEvent) => void;
@@ -75,6 +78,14 @@ export function KanbanTable(props: KanbanTableProps) {
                   </TableCell>
                   <TableCell className="text-gray-900 font-medium">
                     <div className="flex items-center gap-2">
+                      {props.getGroupLabel(deliverable) && (
+                        <span
+                          className="max-w-[16rem] truncate text-xs font-normal text-gray-400"
+                          title={props.getGroupLabel(deliverable) ?? undefined}
+                        >
+                          {props.getGroupLabel(deliverable)} ·
+                        </span>
+                      )}
                       {deliverable.task_code && (
                         <span className="text-gray-500 font-normal">{deliverable.task_code}</span>
                       )}
@@ -82,6 +93,16 @@ export function KanbanTable(props: KanbanTableProps) {
                       {deliverable.subtaskCount > 0 && (
                         <Badge variant="secondary" className="text-xs">
                           {deliverable.completedSubtasks}/{deliverable.subtaskCount}
+                        </Badge>
+                      )}
+                      {hasOpenSubtasksUnderCompletedParent(deliverable) && (
+                        <Badge
+                          variant="outline"
+                          className="border-amber-300 bg-amber-50 text-xs text-amber-800"
+                          title="Tarefa concluída, mas ainda tem subtarefa aberta aqui dentro"
+                        >
+                          {deliverable.openSubtasks} aberta
+                          {deliverable.openSubtasks > 1 ? 's' : ''}
                         </Badge>
                       )}
                       {props.getBlocker(deliverable) && (

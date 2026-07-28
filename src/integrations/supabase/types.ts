@@ -4061,6 +4061,206 @@ export type Database = {
           },
         ]
       }
+      org_comment_attachments: {
+        Row: {
+          comment_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string | null
+          height: number | null
+          id: string
+          uploaded_at: string
+          uploaded_by: string | null
+          width: number | null
+        }
+        Insert: {
+          comment_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type?: string | null
+          height?: number | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          width?: number | null
+        }
+        Update: {
+          comment_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string | null
+          height?: number | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_comment_attachments_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "org_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comment_attachments_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "org_comments_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comment_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_comment_mentions: {
+        Row: {
+          comment_id: string
+          created_at: string
+          id: string
+          lido_em: string | null
+          mentioned_user_id: string
+        }
+        Insert: {
+          comment_id: string
+          created_at?: string
+          id?: string
+          lido_em?: string | null
+          mentioned_user_id: string
+        }
+        Update: {
+          comment_id?: string
+          created_at?: string
+          id?: string
+          lido_em?: string | null
+          mentioned_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_comment_mentions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "org_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comment_mentions_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "org_comments_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comment_mentions_mentioned_user_id_fkey"
+            columns: ["mentioned_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      org_comments: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          body: string
+          created_at: string
+          editado_em: string | null
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["org_comment_entity"]
+          excluido: boolean
+          excluido_em: string | null
+          excluido_por: string | null
+          id: string
+          kind: Database["public"]["Enums"]["org_comment_kind"]
+          metadata: Json
+          parent_id: string | null
+          project_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: string | null
+          body: string
+          created_at?: string
+          editado_em?: string | null
+          entity_id: string
+          entity_type: Database["public"]["Enums"]["org_comment_entity"]
+          excluido?: boolean
+          excluido_em?: string | null
+          excluido_por?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["org_comment_kind"]
+          metadata?: Json
+          parent_id?: string | null
+          project_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string | null
+          body?: string
+          created_at?: string
+          editado_em?: string | null
+          entity_id?: string
+          entity_type?: Database["public"]["Enums"]["org_comment_entity"]
+          excluido?: boolean
+          excluido_em?: string | null
+          excluido_por?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["org_comment_kind"]
+          metadata?: Json
+          parent_id?: string | null
+          project_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comments_excluido_por_fkey"
+            columns: ["excluido_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "org_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "org_comments_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "org_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_project_members: {
         Row: {
           created_at: string
@@ -4275,7 +4475,7 @@ export type Database = {
           is_recurring: boolean | null
           parent_task_id: string | null
           priority: Database["public"]["Enums"]["fiscal_task_priority"]
-          project_id: string | null
+          project_id: string
           recurrence_type:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
@@ -4307,7 +4507,7 @@ export type Database = {
           is_recurring?: boolean | null
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["fiscal_task_priority"]
-          project_id?: string | null
+          project_id: string
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
@@ -4339,7 +4539,7 @@ export type Database = {
           is_recurring?: boolean | null
           parent_task_id?: string | null
           priority?: Database["public"]["Enums"]["fiscal_task_priority"]
-          project_id?: string | null
+          project_id?: string
           recurrence_type?:
             | Database["public"]["Enums"]["fiscal_recurrence_type"]
             | null
@@ -7794,6 +7994,57 @@ export type Database = {
           },
         ]
       }
+      org_comments_feed: {
+        Row: {
+          attachment_count: number | null
+          author_id: string | null
+          author_name: string | null
+          body: string | null
+          created_at: string | null
+          editado_em: string | null
+          entity_id: string | null
+          entity_title: string | null
+          entity_type: Database["public"]["Enums"]["org_comment_entity"] | null
+          id: string | null
+          kind: Database["public"]["Enums"]["org_comment_kind"] | null
+          metadata: Json | null
+          parent_id: string | null
+          project_id: string | null
+          project_name: string | null
+          reply_count: number | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_comments_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "org_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "org_comments_feed"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comments_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "org_projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       per_with_contribuinte: {
         Row: {
           atualizado_em: string | null
@@ -7953,6 +8204,18 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      criar_org_comment: {
+        Args: {
+          _attachments: Json
+          _body: string
+          _entity_id: string
+          _entity_type: Database["public"]["Enums"]["org_comment_entity"]
+          _id: string
+          _mentions: string[]
+          _parent_id: string
+        }
+        Returns: string
       }
       dashboard_project_ids_for_cluster: {
         Args: { _cluster_id: string; _include_orphans?: boolean }
@@ -8136,6 +8399,7 @@ export type Database = {
         Returns: string[]
       }
       org_task_visivel: { Args: { p_task_id: string }; Returns: boolean }
+      own_org_task_ids: { Args: { _uid: string }; Returns: string[] }
       preview_dashboard_embed_url: {
         Args: {
           _cliente_id?: string
@@ -8167,6 +8431,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      visible_org_project_ids: { Args: { _uid: string }; Returns: string[] }
     }
     Enums: {
       app_role:
@@ -8192,6 +8457,14 @@ export type Database = {
         | "review"
         | "em_ajuste"
         | "done"
+      org_comment_entity: "org_task" | "org_project"
+      org_comment_kind:
+        | "comment"
+        | "assignment_changed"
+        | "review_submitted"
+        | "review_approved"
+        | "review_adjustments"
+        | "status_changed"
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
         | "pendente"
@@ -8416,6 +8689,15 @@ export const Constants = {
         "review",
         "em_ajuste",
         "done",
+      ],
+      org_comment_entity: ["org_task", "org_project"],
+      org_comment_kind: [
+        "comment",
+        "assignment_changed",
+        "review_submitted",
+        "review_approved",
+        "review_adjustments",
+        "status_changed",
       ],
       osg_checklist_origem: ["padrao", "manual"],
       osg_checklist_status: [

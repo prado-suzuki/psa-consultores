@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAllRows } from '@/lib/supabasePagination';
 
 export interface DashboardMetricDeliverable {
   id: string;
@@ -52,13 +53,20 @@ export function useDomainDashboardMetrics() {
 
         if (sprints.length > 0) {
           const sprintIds = sprints.map((sprint) => sprint.id);
-          const { data: deliverablesData } = await supabase
-            .from('sprint_deliverables')
-            .select('*')
-            .in('sprint_id', sprintIds)
-            .order('due_date', { ascending: true });
+          // Todas as sprints ativas de uma vez passam do limite de linhas do PostgREST; o id entra
+          // como desempate porque due_date repete e sozinho não dá paginação estável. Ver
+          // supabasePagination.
+          const { rows } = await fetchAllRows<DashboardMetricDeliverable>((from, to) =>
+            supabase
+              .from('sprint_deliverables')
+              .select('*', { count: 'exact' })
+              .in('sprint_id', sprintIds)
+              .order('due_date', { ascending: true })
+              .order('id', { ascending: true })
+              .range(from, to),
+          );
 
-          deliverables = deliverablesData || [];
+          deliverables = rows;
         }
 
         const { data: profilesData } = await supabase

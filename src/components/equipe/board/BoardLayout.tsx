@@ -21,6 +21,7 @@ import {
   CheckCircle,
   FileText,
   FileBarChart,
+  MapPin,
   User,
   LogOut,
 } from 'lucide-react';
@@ -63,6 +64,7 @@ const buildNavItems = (
   { icon: LayoutDashboard, label: 'Dashboard Estrategico', path: '/equipe/board/dashboard' },
   { icon: FileBarChart, label: 'Dashboards', path: '/equipe/board/relatorios' },
   { icon: Users2, label: 'Clientes e OS', path: '/equipe/board/dashboard-clientes-os' },
+  { icon: MapPin, label: 'Clientes', path: '/equipe/board/clientes' },
   ...(canPerformance ? [
     // "Operacional" (antes: "Performance") — nome PT-BR claro, distingue de "Desempenho" (pessoas).
     // Foca em projetos, ROI e atividade. Rota mantida em /performance por compatibilidade.
@@ -91,6 +93,8 @@ const getBreadcrumb = (pathname: string) => {
     segments.push({ label: 'Dashboards', path: '/equipe/board/relatorios' });
   } else if (pathname.includes('/dashboard-clientes-os')) {
     segments.push({ label: 'Clientes e OS', path: '/equipe/board/dashboard-clientes-os' });
+  } else if (pathname.includes('/clientes')) {
+    segments.push({ label: 'Clientes', path: '/equipe/board/clientes' });
   } else if (pathname.includes('/dashboard')) {
     segments.push({ label: 'Dashboard', path: '/equipe/board/dashboard' });
   }
@@ -99,15 +103,24 @@ const getBreadcrumb = (pathname: string) => {
 
 export const BoardLayout = ({ children, title, subtitle, headerActions, noPadding }: BoardLayoutProps) => {
   const { user, isAdmin, isLider, signOut } = useAuth();
+  const { hasAccess: canPerformance } = usePageAccess('/equipe/board/performance');
+  const { hasAccess: canDesempenho } = usePageAccess('/equipe/board/desempenho');
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/');
   };
-  const { hasAccess: canPerformance } = usePageAccess('/equipe/board/performance');
-  const { hasAccess: canDesempenho } = usePageAccess('/equipe/board/desempenho');
-  const navigate = useNavigate();
-  const location = useLocation();
+
+  // `title` nomeia a aba do navegador — as 13 telas do Board já passavam este
+  // texto, que antes era ignorado (prop declarada e nunca usada).
+  useEffect(() => {
+    if (!title) return;
+    const anterior = document.title;
+    document.title = `${title} · PSA Board`;
+    return () => { document.title = anterior; };
+  }, [title]);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem('board-sidebar-collapsed') === 'true'; } catch { return false; }
@@ -380,6 +393,12 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
                     )}
                   </span>
                 ))}
+                {subtitle && (
+                  <>
+                    <span style={{ color: 'var(--board-border)' }}>·</span>
+                    <span className="hidden sm:inline text-[11.5px]">{subtitle}</span>
+                  </>
+                )}
               </div>
             </div>
           </div>

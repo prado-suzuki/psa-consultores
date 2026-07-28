@@ -56,6 +56,7 @@ export const ROUTES: RouteCase[] = [
 
   // Board / Desempenho
   { path: '/equipe/board/dashboard', label: 'Board Dashboard' },
+  { path: '/equipe/board/clientes', label: 'Board Clientes (mapa + lista)' },
   { path: '/equipe/board/performance', label: 'Board Performance' },
   { path: '/equipe/board/desempenho', label: 'Desempenho: Visão Geral' },
   { path: '/equipe/board/desempenho/ciclos', label: 'Desempenho: Ciclos' },

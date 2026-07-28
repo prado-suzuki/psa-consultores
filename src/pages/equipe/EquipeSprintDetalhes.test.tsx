@@ -31,6 +31,9 @@ const boundary = vi.hoisted(() => ({
   writeFile: vi.fn(),
   calendarProps: vi.fn(),
   hoursProps: vi.fn(),
+  logAction: vi.fn(),
+  auth: vi.fn(),
+  sprintOptions: vi.fn(),
 }));
 
 vi.mock('@/hooks/useDomainEquipeSprintDetalhes', async (importOriginal) => {
@@ -55,6 +58,19 @@ vi.mock('@/integrations/supabase/client', () => ({
 
 vi.mock('@/hooks/useRlsPrecheck', () => ({ assertCanPerform: boundary.assertCanPerform }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: boundary.toast }) }));
+// O hook de domínio audita o move entre sprints, e useAuditLog exige AuthProvider. Nos testes que
+// rodam o hook de verdade (useActualHook) isso quebraria a renderização.
+vi.mock('@/hooks/useAuditLog', () => ({ useAuditLog: () => ({ logAction: boundary.logAction }) }));
+// O controller lê o papel do usuário para liberar o move, e a lista de sprints de destino. Sem
+// mockar, o teste exigiria AuthProvider e QueryClientProvider em volta da página.
+vi.mock('@/contexts/AuthContext', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/contexts/AuthContext')>();
+  return { ...actual, useAuth: () => boundary.auth() as never };
+});
+vi.mock('@/hooks/useSprints', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/hooks/useSprints')>();
+  return { ...actual, useSprints: () => ({ data: boundary.sprintOptions() }) as never };
+});
 vi.mock('react-router-dom', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router-dom')>();
   return { ...actual, useNavigate: () => boundary.navigate };
@@ -265,6 +281,7 @@ const mutations = {
   updateMetric: { mutateAsync: vi.fn() },
   createDeliverable: { mutateAsync: vi.fn() },
   importDeliverables: { mutateAsync: vi.fn() },
+  moveDeliverableToSprint: { mutateAsync: vi.fn() },
 };
 const refetch = vi.fn();
 
@@ -358,6 +375,18 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-07-21T12:34:56.000Z'));
   boundary.useActualHook = false;
   boundary.useDomain.mockReturnValue(pageData());
+  boundary.auth.mockReturnValue({ isAdmin: true, isLider: false });
+  boundary.sprintOptions.mockReturnValue([
+    {
+      id: 'sprint-2',
+      name: '11_Sprint',
+      goal: null,
+      start_date: '2026-08-03',
+      end_date: '2026-08-07',
+      status: 'planned',
+      project_id: null,
+    },
+  ]);
   refetch.mockResolvedValue({ data: {}, error: null, dataUpdatedAt: 11 });
   Object.values(mutations).forEach((mutation) => mutation.mutateAsync.mockResolvedValue(undefined));
   boundary.parseExcelFile.mockResolvedValue([{ Sprint: 'Sprint Alfa' }]);
@@ -745,6 +774,58 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     });
   });
 
+  it('avisa antes de concluir tarefa-mãe com subtarefa aberta e só grava se confirmar', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    // parent (pendente) + child-10 (pendente) + child-2 (concluída).
+    boundary.useDomain.mockReturnValue(pageData({ deliverables: deliverables.slice(0, 3) }));
+    renderPage();
+
+    await user.click(screen.getAllByRole('checkbox')[0]);
+    const warning = await screen.findByRole('alertdialog');
+    // Lista só o que está aberto — a subtarefa já concluída não entra.
+    expect(within(warning).getByText(/Subtarefa Dez/)).toBeInTheDocument();
+    expect(within(warning).queryByText(/Subtarefa Dois/)).not.toBeInTheDocument();
+    expect(mutations.updateDeliverableStatus.mutateAsync).not.toHaveBeenCalled();
+
+    await user.click(within(warning).getByRole('button', { name: 'Concluir mesmo assim' }));
+    expect(mutations.updateDeliverableStatus.mutateAsync).toHaveBeenCalledWith({
+      deliverableId: 'parent',
+      newStatus: 'completed',
+    });
+  });
+
+  it('não avisa ao reabrir a mãe nem ao concluir subtarefa folha', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    boundary.useDomain.mockReturnValue(
+      pageData({
+        deliverables: [
+          { ...deliverables[0], status: 'completed' },
+          deliverables[1],
+          deliverables[2],
+        ],
+      }),
+    );
+    renderPage();
+
+    // Desmarcar a mãe concluída não é uma transição para 'completed'.
+    await user.click(screen.getAllByRole('checkbox')[0]);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(mutations.updateDeliverableStatus.mutateAsync).toHaveBeenCalledWith({
+      deliverableId: 'parent',
+      newStatus: 'pending',
+    });
+
+    // A subtarefa folha conclui direto, sem aviso.
+    const parentCard = screen.getByText('Tarefa Pai').closest('[class*="rounded-lg"]');
+    await user.click(within(parentCard as HTMLElement).getAllByRole('button')[0]);
+    await user.click(screen.getAllByRole('checkbox')[2]);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(mutations.updateDeliverableStatus.mutateAsync).toHaveBeenCalledWith({
+      deliverableId: 'child-10',
+      newStatus: 'completed',
+    });
+  });
+
   it('salva edição com timestamp de conclusão recalculado e delega exclusão após confirmação', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     boundary.useDomain.mockReturnValue(pageData({ deliverables: [deliverables[4]] }));
@@ -892,6 +973,114 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     expect(boundary.writeFile).toHaveBeenCalledWith(
       { workbook: true },
       'Sprint_Alfa_2026-07-21.xlsx',
+    );
+  });
+});
+
+describe('EquipeSprintDetalhes: move de tarefa entre sprints', () => {
+  const targetOption = '11_Sprint (03/08/2026 a 07/08/2026)';
+
+  it('esconde a ação de mover de quem não é líder nem admin', () => {
+    boundary.auth.mockReturnValue({ isAdmin: false, isLider: false });
+    renderPage();
+
+    expect(screen.queryByTitle('Mover para outra sprint')).not.toBeInTheDocument();
+  });
+
+  it('mostra a ação de mover para líder', () => {
+    boundary.auth.mockReturnValue({ isAdmin: false, isLider: true });
+    renderPage();
+
+    expect(screen.getAllByTitle('Mover para outra sprint').length).toBeGreaterThan(0);
+  });
+
+  it('descreve as datas que vão mudar antes de gravar, e chama a mutation com a sprint escolhida', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mutations.moveDeliverableToSprint.mutateAsync.mockResolvedValue({
+      backlogWarning: null,
+      crossSprintWarning: null,
+    });
+    renderPage();
+
+    const card = screen.getByText('Entrega Atrasada').closest('[class*="rounded-lg"]');
+    await user.click(within(card as HTMLElement).getByTitle('Mover para outra sprint'));
+    expect(screen.getByRole('heading', { name: 'Mover tarefa de sprint' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('combobox', { name: /Sprint de destino/i }));
+    await user.click(screen.getByRole('option', { name: targetOption }));
+
+    expect(screen.getByText('A tarefa passa para a sprint "11_Sprint".')).toBeInTheDocument();
+    expect(screen.getByText('O prazo passa de 19/07/2026 para 07/08/2026.')).toBeInTheDocument();
+    expect(screen.getByText('O início passa de 01/07/2026 para 03/08/2026.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /Mover tarefa/ }));
+
+    expect(mutations.moveDeliverableToSprint.mutateAsync).toHaveBeenCalledWith({
+      deliverableId: 'late',
+      targetSprint: expect.objectContaining({ id: 'sprint-2', name: '11_Sprint' }),
+    });
+  });
+
+  it('avisa que as subtarefas vão junto e que as datas delas também são ajustadas', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderPage();
+
+    const card = screen.getByText('Tarefa Pai').closest('[class*="rounded-lg"]');
+    await user.click(within(card as HTMLElement).getByTitle('Mover para outra sprint'));
+    await user.click(screen.getByRole('combobox', { name: /Sprint de destino/i }));
+    await user.click(screen.getByRole('option', { name: targetOption }));
+
+    // parent tem child-10, child-2 e a neta deep: a subárvore inteira acompanha.
+    expect(screen.getByText('3 subtarefas serão movidas junto.')).toBeInTheDocument();
+    expect(
+      screen.getByText('As datas das subtarefas também são encaixadas na janela da sprint de destino.'),
+    ).toBeInTheDocument();
+  });
+
+  it('mostra o aviso quando o item de backlog não acompanhou', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mutations.moveDeliverableToSprint.mutateAsync.mockResolvedValue({
+      backlogWarning: 'A tarefa foi movida, mas o item de backlog vinculado continuou na sprint anterior.',
+      crossSprintWarning: null,
+    });
+    renderPage();
+
+    const card = screen.getByText('Entrega Atrasada').closest('[class*="rounded-lg"]');
+    await user.click(within(card as HTMLElement).getByTitle('Mover para outra sprint'));
+    await user.click(screen.getByRole('combobox', { name: /Sprint de destino/i }));
+    await user.click(screen.getByRole('option', { name: targetOption }));
+    await user.click(screen.getByRole('button', { name: /Mover tarefa/ }));
+
+    expect(boundary.toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Atenção',
+        description:
+          'A tarefa foi movida, mas o item de backlog vinculado continuou na sprint anterior.',
+        variant: 'destructive',
+      }),
+    );
+  });
+
+  it('mostra a mensagem de movimentação incompleta em vez de falhar em silêncio', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mutations.moveDeliverableToSprint.mutateAsync.mockRejectedValue(
+      new Error('A movimentação ficou incompleta. Nada foi apagado: repita o move para concluir.'),
+    );
+    renderPage();
+
+    const card = screen.getByText('Entrega Atrasada').closest('[class*="rounded-lg"]');
+    await user.click(within(card as HTMLElement).getByTitle('Mover para outra sprint'));
+    await user.click(screen.getByRole('combobox', { name: /Sprint de destino/i }));
+    await user.click(screen.getByRole('option', { name: targetOption }));
+    await user.click(screen.getByRole('button', { name: /Mover tarefa/ }));
+
+    expect(boundary.toast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: 'Erro',
+        description:
+          'A movimentação ficou incompleta. Nada foi apagado: repita o move para concluir.',
+        variant: 'destructive',
+      }),
     );
   });
 });

@@ -104,9 +104,6 @@ Bloco fortemente acoplado, vale tipar junto.
 - [ ] `pages/gerencial/desempenho/DesempenhoVisaoGeral.tsx` (8)
 - [ ] `pages/gerencial/desempenho/DesempenhoDecisoes.tsx` (7)
 - [ ] `pages/equipe/board/BoardDashboard.tsx` (8)
-- [ ] `components/performance/CycleGoalsBlock.tsx` (11)
-- [ ] `components/performance/TeamContributionBlock.tsx` (11)
-- [ ] `components/performance/PerformanceKPICards.tsx` (7)
 
 ---
 

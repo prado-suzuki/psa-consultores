@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -119,5 +119,102 @@ describe('EquipeKanban', () => {
     expect(mocks.attachments.mock.results[0]?.value.load.mutateAsync).toHaveBeenCalledWith(
       'parent',
     );
+  });
+
+  it('avisa ao arrastar mãe com subtarefa aberta para Concluído e só grava se confirmar', async () => {
+    const user = userEvent.setup();
+    const base = {
+      description: null,
+      assigned_to: null,
+      sprint_id: null,
+      estimated_hours: null,
+      due_date: null,
+      start_date: null,
+    };
+    mocks.initial.mockReturnValue({
+      data: {
+        sprints: [],
+        profiles: [],
+        projects: [],
+        processes: [],
+        deliverables: [
+          { ...base, id: 'mae', title: 'TAX · Portal', status: 'pending', parent_id: null, task_code: 'TAX-01' },
+          {
+            ...base,
+            id: 'sub-aberta',
+            title: 'Criar os manuais',
+            status: 'pending',
+            parent_id: 'mae',
+            task_code: 'TAX-03',
+          },
+        ],
+      },
+      isLoading: false,
+      isSuccess: true,
+      error: null,
+    });
+
+    render(<EquipeKanban />);
+    const coluna = (await screen.findByRole('heading', { name: 'Concluído' })).closest('div')!
+      .parentElement!;
+    // A área que recebe o drop é a lista de cards, irmã do cabeçalho da coluna.
+    const areaDoDrop = coluna.querySelector('[class*="space-y-3"]') as HTMLElement;
+    fireEvent.drop(areaDoDrop, { dataTransfer: { getData: () => 'mae' } });
+
+    const warning = await screen.findByRole('alertdialog');
+    expect(within(warning).getByText(/Criar os manuais/)).toBeInTheDocument();
+    const updateStatus = mocks.deliverables.mock.results[0]?.value.updateStatus.mutateAsync;
+    expect(updateStatus).not.toHaveBeenCalled();
+
+    await user.click(within(warning).getByRole('button', { name: 'Concluir mesmo assim' }));
+    expect(updateStatus).toHaveBeenCalledWith({ deliverableId: 'mae', status: 'completed' });
+  });
+
+  it('abre sozinho a mãe concluída que esconde subtarefa aberta e sinaliza no card', async () => {
+    const base = {
+      description: null,
+      assigned_to: null,
+      sprint_id: null,
+      estimated_hours: null,
+      due_date: null,
+      start_date: null,
+    };
+    mocks.initial.mockReturnValue({
+      data: {
+        sprints: [],
+        profiles: [],
+        projects: [],
+        processes: [],
+        deliverables: [
+          {
+            ...base,
+            id: 'mae',
+            title: 'TAX · Portal',
+            status: 'completed',
+            parent_id: null,
+            task_code: 'TAX-01',
+          },
+          {
+            ...base,
+            id: 'sub-aberta',
+            title: 'Criar os manuais de uso das ferramentas da área Tax',
+            status: 'pending',
+            parent_id: 'mae',
+            task_code: 'TAX-03',
+          },
+        ],
+      },
+      isLoading: false,
+      isSuccess: true,
+      error: null,
+    });
+
+    render(<EquipeKanban />);
+
+    // Sem clicar em nada: a subtarefa aberta tem que estar na tela.
+    expect(
+      await screen.findByText('Criar os manuais de uso das ferramentas da área Tax'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('1 aberta')).toBeInTheDocument();
   });
 });

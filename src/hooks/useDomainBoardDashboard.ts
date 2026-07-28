@@ -1,50 +1,42 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { TarefaConcluida } from '@/lib/boardExecutivo';
 
 const STALE_TIME = 5 * 60 * 1000;
 
-export interface BoardDashboardImprovement {
-  id: string;
-  total_savings_monthly: number | null;
-  status: string | null;
-  created_at: string | null;
+interface UseDomainBoardDashboardOptions {
+  /** Início da janela de análise (ISO). Vem do MESMO range usado nos projetos,
+   *  para que gráfico e KPIs falem do período que o filtro selecionou. */
+  desdeISO: string;
 }
 
-export interface BoardDashboardTask {
-  id: string;
-  status: string;
-  updated_at: string;
-  project_id: string | null;
-}
-
-export function useDomainBoardDashboard() {
-  const improvementsQuery = useQuery<BoardDashboardImprovement[]>({
-    queryKey: ['board-improvements-roi'],
+/**
+ * Tarefas concluídas na janela selecionada — alimenta a série "entregas por
+ * área" e o resumo por área da visão executiva.
+ *
+ * A janela é parâmetro (antes era fixa em 3 meses, ignorando o filtro de
+ * Período da própria tela) e entra na queryKey para não servir o cache de
+ * outro período. A economia/ROI mudou de casa: vive em `useDomainMelhoriasRoi`,
+ * compartilhada com o painel Operacional.
+ */
+export function useDomainBoardDashboard({ desdeISO }: UseDomainBoardDashboardOptions) {
+  const tarefasConcluidasQuery = useQuery<TarefaConcluida[]>({
+    queryKey: ['board-tarefas-concluidas', desdeISO],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('process_improvements' as never)
-        .select('id, total_savings_monthly, status, created_at');
-
-      return (data ?? []) as unknown as BoardDashboardImprovement[];
-    },
-    staleTime: STALE_TIME,
-  });
-
-  const tasksByAreaQuery = useQuery<BoardDashboardTask[]>({
-    queryKey: ['board-tasks-by-area-3m'],
-    queryFn: async () => {
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      const { data: tasks } = await supabase
+      const { data, error } = await supabase
         .from('org_tasks')
-        .select('id, status, updated_at, project_id')
+        // `due_date` entra para a pontualidade de ENTREGA (mesma medida que a
+        // área Digital usa), não a de projeto.
+        .select('updated_at, project_id, due_date')
         .eq('status', 'done')
-        .gte('updated_at', threeMonthsAgo.toISOString());
+        .gte('updated_at', desdeISO);
 
-      return (tasks ?? []) as BoardDashboardTask[];
+      if (error) throw error;
+      return (data ?? []) as TarefaConcluida[];
     },
+    enabled: !!desdeISO,
     staleTime: STALE_TIME,
   });
 
-  return { improvementsQuery, tasksByAreaQuery };
+  return { tarefasConcluidasQuery };
 }

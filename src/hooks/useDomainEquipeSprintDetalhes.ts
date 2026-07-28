@@ -2,6 +2,9 @@ import { useEffect, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { computeFieldDiff } from '@/lib/diffUtils';
+import { clampDatesToSprint, collectDeliverableSubtree } from '@/lib/equipeSprintDetalhes';
 import { findProfileByName, type TaskGroup } from '@/lib/excelImporter';
 
 export interface SprintDetalhesSprint {
@@ -119,6 +122,12 @@ interface UpdateDeliverableInput {
   updates: DeliverableUpdatePayload;
 }
 
+export interface MoveDeliverableToSprintInput {
+  deliverableId: string;
+  /** Sprint de destino. A janela de datas vem daqui, para a tarefa não nascer vencida. */
+  targetSprint: Pick<SprintDetalhesSprint, 'id' | 'name' | 'start_date' | 'end_date'>;
+}
+
 interface UpdateMetricInput {
   metricId: string;
   newValue: number;
@@ -194,6 +203,7 @@ const applyDeliverableRealtimeChanges = (
 
 export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
   const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
   const queryKey = sprintDetalhesKeys.detail(sprintId);
   const fetchInProgressRef = useRef(false);
   const pendingRealtimeChangesRef = useRef<DeliverableRealtimeChange[]>([]);
@@ -456,6 +466,180 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
     onError: () => undefined,
   });
 
+  // Move de tarefa entre sprints.
+  //
+  // O perigo desta operação não é trocar o sprint_id, é deixar uma subtarefa na sprint nova
+  // apontando para uma mãe que ficou na antiga: parent_id é ON DELETE CASCADE, então excluir a
+  // sprint antiga (ou a mãe) apagaria em silêncio a tarefa que já está na sprint nova. Além disso a
+  // aba Detalhes não desenha órfã. Por isso:
+  //
+  // 1. a raiz movida SEMPRE perde o vínculo de mãe, na mesma instrução que troca de sprint;
+  // 2. os descendentes vão junto, em uma instrução única, e mantêm o vínculo entre si;
+  // 3. a ordem é raiz primeiro. Como o Supabase não abre transação daqui, existe uma janela entre
+  //    as duas gravações; na ordem inversa essa janela é exatamente o estado que apaga tarefa.
+  //    Nesta ordem, uma falha no meio deixa os filhos onde já estavam.
+  //
+  // Nada aqui apaga linha. Em falha parcial, repetir o move converge para o estado correto.
+  const moveDeliverableToSprint = useMutation({
+    mutationFn: async ({ deliverableId, targetSprint }: MoveDeliverableToSprintInput) => {
+      // Fonte da verdade é o banco, não o cache: subtarefa criada por outra pessoa segundos antes
+      // não pode ficar atrás.
+      const { data: current, error: currentError } = await supabase
+        .from('sprint_deliverables')
+        .select('id, sprint_id, parent_id, title, start_date, due_date')
+        .eq('id', deliverableId)
+        .maybeSingle();
+
+      if (currentError) throw currentError;
+      if (!current) throw new Error('Tarefa não encontrada.');
+      if (current.sprint_id === targetSprint.id) {
+        throw new Error('A tarefa já está nesta sprint.');
+      }
+
+      const originSprintId = current.sprint_id as string;
+
+      const { data: originRows, error: originError } = await supabase
+        .from('sprint_deliverables')
+        .select('id, parent_id, start_date, due_date')
+        .eq('sprint_id', originSprintId);
+
+      if (originError) throw originError;
+
+      const { descendantIds } = collectDeliverableSubtree(originRows ?? [], deliverableId);
+      const movedIds = [deliverableId, ...descendantIds];
+      const dates = clampDatesToSprint(current, targetSprint);
+
+      await assertCanPerform('sprint_deliverables', 'update', deliverableId);
+
+      // 1. Raiz: sprint, vínculo de mãe e datas na mesma instrução (atômica por ser uma só).
+      const rootPayload = {
+        sprint_id: targetSprint.id,
+        parent_id: null,
+        start_date: dates.start_date,
+        due_date: dates.due_date,
+      };
+      const { error: rootError } = await supabase
+        .from('sprint_deliverables')
+        .update(rootPayload)
+        .eq('id', deliverableId);
+
+      if (rootError) throw rootError;
+
+      // 2. Descendentes: uma instrução para todos, mantendo o parent_id entre eles.
+      if (descendantIds.length > 0) {
+        const { error: descendantsError } = await supabase
+          .from('sprint_deliverables')
+          .update({ sprint_id: targetSprint.id })
+          .in('id', descendantIds);
+
+        if (descendantsError) throw descendantsError;
+      }
+
+      // 3. Datas das subtarefas. Já estão na sprint certa, então isto é cosmético: uma falha aqui
+      //    não deixa dano estrutural, só data fora da janela.
+      for (const row of originRows ?? []) {
+        if (!descendantIds.includes(row.id)) continue;
+        const childDates = clampDatesToSprint(row, targetSprint);
+        if (
+          childDates.due_date === row.due_date &&
+          childDates.start_date === row.start_date
+        ) {
+          continue;
+        }
+        await supabase.from('sprint_deliverables').update(childDates).eq('id', row.id);
+      }
+
+      // 4. Item de backlog que gerou a tarefa acompanha a sprint, senão ele fica apontando para a
+      //    sprint antiga (decisão do usuário em 27/07). Uma falha aqui NÃO derruba o move: as
+      //    tarefas já estão na sprint certa e lançar erro agora impediria o log de auditoria e
+      //    deixaria a operação em erro permanente, já que o retry falharia no mesmo ponto. Em vez
+      //    disso o aviso sobe para a UI.
+      const { error: backlogError } = await supabase
+        .from('sprint_backlog_items')
+        .update({ sprint_id: targetSprint.id })
+        .in('moved_to_deliverable_id', movedIds);
+
+      // 5. Conferência: sem transação, é aqui que a falha parcial aparece.
+      const { data: afterRows } = await supabase
+        .from('sprint_deliverables')
+        .select('id, sprint_id, parent_id')
+        .in('id', movedIds);
+
+      const leftBehind = (afterRows ?? []).filter((row) => row.sprint_id !== targetSprint.id);
+      const crossLinked = (afterRows ?? []).filter(
+        (row) => row.parent_id && !movedIds.includes(row.parent_id),
+      );
+      if (leftBehind.length > 0 || crossLinked.length > 0) {
+        throw new Error(
+          'A movimentação ficou incompleta. Nada foi apagado: repita o move para concluir.',
+        );
+      }
+
+      // Filho que sobrou fora da sprint de destino apontando para alguém que acabou de mudar. Os
+      // descendentes são coletados dentro da sprint de origem, então isto só acontece com vínculo
+      // cruzado anterior a esta feature (a base tinha zero). É justamente o vínculo que faz o
+      // CASCADE apagar tarefa, então aqui se avisa em vez de esconder.
+      const { data: strayChildren } = await supabase
+        .from('sprint_deliverables')
+        .select('id')
+        .in('parent_id', movedIds)
+        .neq('sprint_id', targetSprint.id);
+
+      return {
+        deliverableId,
+        movedIds,
+        originSprintId,
+        targetSprintId: targetSprint.id,
+        backlogWarning: backlogError
+          ? 'A tarefa foi movida, mas o item de backlog vinculado continuou na sprint anterior.'
+          : null,
+        crossSprintWarning:
+          strayChildren && strayChildren.length > 0
+            ? `${strayChildren.length} subtarefa(s) antigas continuam ligadas a esta tarefa em outra sprint. Avise o time: esse vínculo é o que faz a exclusão da sprint antiga apagar tarefa.`
+            : null,
+        auditEntry: {
+          area: 'dev' as const,
+          entity_type: (current.parent_id ? 'subtask' : 'task') as 'subtask' | 'task',
+          entity_id: deliverableId,
+          entity_name: current.title,
+          action: 'updated' as const,
+          changed_fields: computeFieldDiff(current, { ...current, ...rootPayload }, [
+            'sprint_id',
+            'parent_id',
+            'start_date',
+            'due_date',
+          ]),
+          details:
+            `Movida para a sprint "${targetSprint.name}"` +
+            (descendantIds.length > 0
+              ? `, com ${descendantIds.length} subtarefa(s) junto.`
+              : '.'),
+        },
+      };
+    },
+    onSuccess: ({ movedIds, originSprintId, targetSprintId, auditEntry }) => {
+      // O parent_id anterior fica registrado no diff: é por ele que se refaz o vínculo à mão, já
+      // que o move não guarda a mãe antiga em nenhuma coluna.
+      void logAction(auditEntry);
+
+      // Realtime é filtrado por sprint_id, então a origem não recebe o evento de saída e o destino
+      // recebe um UPDATE de linha que não está no cache dele. As duas pontas precisam de invalidação
+      // explícita.
+      updateCachedData((current) => ({
+        ...current,
+        deliverables: current.deliverables.filter((item) => !movedIds.includes(item.id)),
+      }));
+      void queryClient.invalidateQueries({ queryKey: sprintDetalhesKeys.detail(originSprintId) });
+      void queryClient.invalidateQueries({ queryKey: sprintDetalhesKeys.detail(targetSprintId) });
+      // Prefixos crus: as fábricas de chave destes hooks são privadas nos arquivos deles. A soma de
+      // horas por pessoa e o kanban leem os mesmos deliverables e ficariam com número velho.
+      void queryClient.invalidateQueries({ queryKey: ['domain-sprints'] });
+      void queryClient.invalidateQueries({ queryKey: ['domain-horas-acumuladas'] });
+      void queryClient.invalidateQueries({ queryKey: ['domain-equipe-kanban'] });
+      void queryClient.invalidateQueries({ queryKey: ['daily-sprint-tasks'] });
+    },
+  });
+
   const deleteDeliverable = useMutation({
     mutationFn: async (deliverableId: string) => {
       // Se este entregável veio de um item do backlog, o item guarda uma referência
@@ -667,6 +851,7 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
     updateDeliverableStatus,
     reorderDeliverables,
     updateDeliverable,
+    moveDeliverableToSprint,
     deleteDeliverable,
     updateMetric,
     updateSprintGoal,

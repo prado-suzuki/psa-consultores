@@ -76,6 +76,8 @@ export interface HierarchicalEquipeKanbanDeliverable extends EquipeKanbanDeliver
   subtaskCount: number;
   /** Descendentes concluídos. */
   completedSubtasks: number;
+  /** Descendentes ainda abertos (qualquer status != completed). */
+  openSubtasks: number;
   /** Soma das horas das folhas do ramo — mostrada no card da tarefa-pai (não duplica: só folhas). */
   subtaskHoursTotal: number;
 }
@@ -141,6 +143,60 @@ export function filterEquipeKanbanDeliverables(
   });
 }
 
+/**
+ * Decide o que fica visível a partir de quem bateu no filtro.
+ *
+ * Além dos próprios itens filtrados, mantém:
+ * - as FILHAS abaixo de quem bateu. A tarefa-mãe é só um agrupador: quando ela entra na visão, o
+ *   grupo inteiro entra com ela. Sem isso, subtarefa com responsável em branco (ou de outra pessoa,
+ *   ou sem sprint) era descartada e a mãe aparecia como card vazio, sem contador de subtarefas — as
+ *   tarefas existiam na sprint e não apareciam em lugar nenhum do quadro.
+ * - a cadeia de MÃES acima (mãe, avó, ...) **quando `keepAncestors`**, pra subtarefa continuar
+ *   aninhada sob a raiz. Com filtro por pessoa isso atrapalha: a filha do Alexandre sob mãe do
+ *   Eduardo ficava dentro do card do Eduardo, na coluna DELE, e nunca na coluna do próprio status.
+ *   Sem a mãe na visão, a filha é promovida a card próprio (ver buildEquipeKanbanHierarchy).
+ */
+export function selectEquipeKanbanVisibleDeliverables(
+  deliverables: EquipeKanbanDeliverable[],
+  directMatchIds: Set<string>,
+  { keepAncestors = true }: { keepAncestors?: boolean } = {},
+) {
+  const byId = new Map(deliverables.map((item) => [item.id, item]));
+  const childrenByParent = new Map<string, string[]>();
+  for (const item of deliverables) {
+    if (!item.parent_id) continue;
+    const list = childrenByParent.get(item.parent_id) ?? [];
+    list.push(item.id);
+    childrenByParent.set(item.parent_id, list);
+  }
+
+  const keep = new Set<string>();
+  directMatchIds.forEach((id) => {
+    if (!byId.has(id)) return;
+    keep.add(id);
+    if (keepAncestors) {
+      const visited = new Set<string>();
+      let parentId = byId.get(id)?.parent_id ?? null;
+      while (parentId && byId.has(parentId) && !visited.has(parentId)) {
+        keep.add(parentId);
+        visited.add(parentId);
+        parentId = byId.get(parentId)?.parent_id ?? null;
+      }
+    }
+    // Desce só a partir de quem bateu no filtro (não puxa irmãs da mãe herdada).
+    const stack = [id];
+    while (stack.length > 0) {
+      const current = stack.pop() as string;
+      for (const childId of childrenByParent.get(current) ?? []) {
+        if (keep.has(childId)) continue;
+        keep.add(childId);
+        stack.push(childId);
+      }
+    }
+  });
+  return deliverables.filter((item) => keep.has(item.id));
+}
+
 const sortByTaskCode = (a: EquipeKanbanDeliverable, b: EquipeKanbanDeliverable) =>
   a.task_code && b.task_code
     ? a.task_code.localeCompare(b.task_code, undefined, { numeric: true })
@@ -198,6 +254,7 @@ export function buildEquipeKanbanHierarchy(
         subtasks,
         subtaskCount: subtasks.length,
         completedSubtasks: subtasks.filter((item) => item.status === 'completed').length,
+        openSubtasks: subtasks.filter((item) => item.status !== 'completed').length,
         // Só exibição — não é gravado. A mãe pode ficar com horas em branco no banco
         // (as métricas já excluem as tarefas-mãe da soma, então não duplica).
         subtaskHoursTotal: leafHours(root.id, root.estimated_hours),
@@ -205,12 +262,58 @@ export function buildEquipeKanbanHierarchy(
     });
 }
 
+// Colunas do quadro. A coluna é escolhida por igualdade de status, então qualquer valor fora
+// desta lista — inclusive null, que o banco aceita — não casava com coluna nenhuma e o card
+// simplesmente desaparecia do quadro (sem erro e sem entrar no contador de ocultas). A tela da
+// sprint sempre mostrou esses casos como "Pendente"; aqui aplicamos o mesmo fallback.
+const BOARD_STATUSES = new Set(['pending', 'in_progress', 'completed']);
+
+export function normalizeEquipeKanbanStatus(status: string | null | undefined) {
+  return status && BOARD_STATUSES.has(status) ? status : 'pending';
+}
+
+/**
+ * Mãe concluída com subtarefa aberta: o card dela cai na coluna "Concluído" e as subtarefas
+ * vêm fechadas, então a tarefa aberta some do quadro. Sinaliza esses casos para o board
+ * destacar e abrir o aninhamento sozinho.
+ */
+export function hasOpenSubtasksUnderCompletedParent(
+  deliverable: HierarchicalEquipeKanbanDeliverable,
+) {
+  return deliverable.status === 'completed' && deliverable.openSubtasks > 0;
+}
+
+/**
+ * Mãe fora da coluna "A Fazer" (em progresso ou concluída) que guarda subtarefa aberta:
+ * a subtarefa segue aninhada no card da mãe, na coluna DA MÃE, então quem olha a coluna
+ * "A Fazer" não a encontra. Usado para abrir o aninhamento sozinho e para avisar na barra
+ * de filtros quantas tarefas abertas estão nessa situação.
+ */
+export function hidesOpenSubtasksOutsideItsColumn(
+  deliverable: HierarchicalEquipeKanbanDeliverable,
+) {
+  return (
+    normalizeEquipeKanbanStatus(deliverable.status) !== 'pending' && deliverable.openSubtasks > 0
+  );
+}
+
+/** Soma das subtarefas abertas que estão aninhadas em mães fora da coluna "A Fazer". */
+export function countOpenSubtasksOutsideTodoColumn(
+  deliverables: HierarchicalEquipeKanbanDeliverable[],
+) {
+  return deliverables
+    .filter(hidesOpenSubtasksOutsideItsColumn)
+    .reduce((total, parent) => total + parent.openSubtasks, 0);
+}
+
 export function getEquipeKanbanColumnDeliverables(
   deliverables: HierarchicalEquipeKanbanDeliverable[],
   columnId: string,
   sortDirection: 'asc' | 'desc' | null,
 ) {
-  const items = deliverables.filter((item) => item.status === columnId);
+  const items = deliverables.filter(
+    (item) => normalizeEquipeKanbanStatus(item.status) === columnId,
+  );
   if (!sortDirection) return items;
   return [...items].sort((a, b) => {
     const dateA = a.due_date ? new Date(`${a.due_date}T00:00:00`).getTime() : Infinity;

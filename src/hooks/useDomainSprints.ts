@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+import { fetchAllRows } from '@/lib/supabasePagination';
 
 export interface Sprint {
   id: string;
@@ -113,12 +114,19 @@ const fetchSprintHours = async (
       estimated_hours: number | null;
       parent_id: string | null;
     }[] = [];
+    // Cada lote cobre 50 sprints, o que passa fácil do limite de linhas do PostgREST: sem paginar,
+    // parte dos entregáveis do lote não vinha e as horas por pessoa saíam menores. Ver
+    // supabasePagination.
     for (const chunk of sprintChunks) {
-      const { data } = await supabase
-        .from('sprint_deliverables')
-        .select('id, sprint_id, assigned_to, estimated_hours, parent_id')
-        .in('sprint_id', chunk);
-      if (data) deliverables.push(...data);
+      const { rows } = await fetchAllRows<(typeof deliverables)[number]>((from, to) =>
+        supabase
+          .from('sprint_deliverables')
+          .select('id, sprint_id, assigned_to, estimated_hours, parent_id', { count: 'exact' })
+          .in('sprint_id', chunk)
+          .order('id', { ascending: true })
+          .range(from, to),
+      );
+      deliverables.push(...rows);
     }
 
     // Tarefas-pai (têm subtarefas) não entram na soma, pra não duplicar horas.
@@ -173,11 +181,15 @@ const fetchSprintImpacts = async (
     const sprintChunks = chunkArray(sprintIds, 50);
     const deliverables: { id: string; sprint_id: string }[] = [];
     for (const chunk of sprintChunks) {
-      const { data } = await supabase
-        .from('sprint_deliverables')
-        .select('id, sprint_id')
-        .in('sprint_id', chunk);
-      if (data) deliverables.push(...data);
+      const { rows } = await fetchAllRows<{ id: string; sprint_id: string }>((from, to) =>
+        supabase
+          .from('sprint_deliverables')
+          .select('id, sprint_id', { count: 'exact' })
+          .in('sprint_id', chunk)
+          .order('id', { ascending: true })
+          .range(from, to),
+      );
+      deliverables.push(...rows);
     }
 
     if (deliverables.length === 0) {

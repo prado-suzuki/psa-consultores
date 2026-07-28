@@ -4,10 +4,14 @@ import {
   buildDeliverableUpdatePayload,
   buildEquipeKanbanFilePath,
   buildEquipeKanbanHierarchy,
+  countOpenSubtasksOutsideTodoColumn,
   filterEquipeKanbanDeliverables,
   getEquipeKanbanColumnDeliverables,
   getEquipeKanbanErrorMessage,
   getEquipeKanbanSubtasks,
+  hasOpenSubtasksUnderCompletedParent,
+  hidesOpenSubtasksOutsideItsColumn,
+  selectEquipeKanbanVisibleDeliverables,
   validateEquipeKanbanFile,
   type EquipeKanbanDeliverable,
   type EquipeKanbanFilters,
@@ -152,6 +156,165 @@ describe('equipeKanban', () => {
     const leaf = root.subtasks.find((subtask) => subtask.id === 'leaf')!;
     expect(leaf.hasChildren).toBe(false);
     expect(leaf.hoursDisplay).toBe(4); // horas próprias (é folha)
+  });
+
+  it('marca mãe concluída que ainda esconde subtarefa aberta e ignora as demais', () => {
+    const hierarchy = buildEquipeKanbanHierarchy([
+      deliverable('mae-concluida', { task_code: 'TAX-0', status: 'completed' }),
+      deliverable('sub-feita', {
+        parent_id: 'mae-concluida',
+        task_code: 'TAX-02',
+        status: 'completed',
+      }),
+      deliverable('sub-aberta', { parent_id: 'mae-concluida', task_code: 'TAX-03' }),
+      deliverable('mae-quitada', { task_code: 'GED-0', status: 'completed' }),
+      deliverable('sub-quitada', {
+        parent_id: 'mae-quitada',
+        task_code: 'GED-01',
+        status: 'completed',
+      }),
+      deliverable('mae-aberta', { task_code: 'PLT-0' }),
+      deliverable('sub-da-aberta', { parent_id: 'mae-aberta', task_code: 'PLT-01' }),
+    ]);
+    const byId = (id: string) => hierarchy.find((root) => root.id === id)!;
+
+    expect(byId('mae-concluida')).toMatchObject({ openSubtasks: 1, completedSubtasks: 1 });
+    expect(hasOpenSubtasksUnderCompletedParent(byId('mae-concluida'))).toBe(true);
+    // Tudo concluído: nada escondido.
+    expect(hasOpenSubtasksUnderCompletedParent(byId('mae-quitada'))).toBe(false);
+    // Mãe aberta fica na coluna certa por si só — não precisa de alerta.
+    expect(hasOpenSubtasksUnderCompletedParent(byId('mae-aberta'))).toBe(false);
+    expect(byId('mae-aberta').openSubtasks).toBe(1);
+    // A mãe concluída continua na coluna "Concluído" (subtarefa segue aninhada, sem card solto).
+    expect(
+      getEquipeKanbanColumnDeliverables(hierarchy, 'completed', null).map(({ id }) => id),
+    ).toEqual(['mae-quitada', 'mae-concluida']);
+    expect(getEquipeKanbanColumnDeliverables(hierarchy, 'pending', null).map(({ id }) => id)).toEqual(
+      ['mae-aberta'],
+    );
+  });
+
+  it('traz o grupo inteiro quando a mãe bate no filtro e sobe a cadeia quando é a filha que bate', () => {
+    const items = [
+      deliverable('mae-do-alexandre', { assigned_to: 'alexandre' }),
+      deliverable('sub-sem-responsavel', { parent_id: 'mae-do-alexandre' }),
+      deliverable('sub-de-outro', { parent_id: 'mae-do-alexandre', assigned_to: 'bruna' }),
+      deliverable('neta-sem-responsavel', { parent_id: 'sub-sem-responsavel' }),
+      deliverable('mae-da-bruna', { assigned_to: 'bruna' }),
+      deliverable('sub-do-alexandre', { parent_id: 'mae-da-bruna', assigned_to: 'alexandre' }),
+      deliverable('sub-irma-de-outro', { parent_id: 'mae-da-bruna', assigned_to: 'bruna' }),
+      deliverable('nada-a-ver', { assigned_to: 'carla' }),
+    ];
+    const visible = selectEquipeKanbanVisibleDeliverables(
+      items,
+      new Set(['mae-do-alexandre', 'sub-do-alexandre']),
+    ).map(({ id }) => id);
+
+    // Mãe é agrupador: entrou na visão, então filhas e netas entram com ela (mesmo sem dono).
+    expect(visible).toContain('sub-sem-responsavel');
+    expect(visible).toContain('sub-de-outro');
+    expect(visible).toContain('neta-sem-responsavel');
+    // Filha que bateu no filtro puxa a mãe pra continuar aninhada...
+    expect(visible).toContain('mae-da-bruna');
+    // ...mas não puxa as irmãs dela, que são de outra pessoa.
+    expect(visible).not.toContain('sub-irma-de-outro');
+    expect(visible).not.toContain('nada-a-ver');
+  });
+
+  // Mãe do Eduardo (em progresso) com filha do Alexandre (a fazer), filtrando por Alexandre.
+  const maeDeOutraPessoa = () => [
+    deliverable('mae-eduardo', { assigned_to: 'eduardo', status: 'in_progress', task_code: 'X-0' }),
+    deliverable('filha-alexandre', {
+      parent_id: 'mae-eduardo',
+      assigned_to: 'alexandre',
+      task_code: 'X-01',
+    }),
+  ];
+
+  it('sem filtro de pessoa, a filha fica aninhada e o card vai pra coluna da MÃE', () => {
+    const visible = selectEquipeKanbanVisibleDeliverables(
+      maeDeOutraPessoa(),
+      new Set(['filha-alexandre']),
+    );
+    expect(visible.map(({ id }) => id).sort()).toEqual(['filha-alexandre', 'mae-eduardo']);
+
+    const hierarchy = buildEquipeKanbanHierarchy(visible);
+    expect(hierarchy.map(({ id }) => id)).toEqual(['mae-eduardo']);
+    expect(hierarchy[0].subtasks.map(({ id }) => id)).toEqual(['filha-alexandre']);
+    // Card em "Em Progresso" (status da mãe): nada em "A Fazer" — daí o aviso na barra de filtros.
+    expect(getEquipeKanbanColumnDeliverables(hierarchy, 'in_progress', null)).toHaveLength(1);
+    expect(getEquipeKanbanColumnDeliverables(hierarchy, 'pending', null)).toHaveLength(0);
+    expect(countOpenSubtasksOutsideTodoColumn(hierarchy)).toBe(1);
+  });
+
+  it('com filtro de pessoa, a filha vira card próprio na coluna do PRÓPRIO status', () => {
+    const visible = selectEquipeKanbanVisibleDeliverables(
+      maeDeOutraPessoa(),
+      new Set(['filha-alexandre']),
+      { keepAncestors: false },
+    );
+    // A mãe do Eduardo sai da visão — ela é só agrupador, virou etiqueta no card.
+    expect(visible.map(({ id }) => id)).toEqual(['filha-alexandre']);
+
+    const hierarchy = buildEquipeKanbanHierarchy(visible);
+    expect(getEquipeKanbanColumnDeliverables(hierarchy, 'pending', null).map(({ id }) => id)).toEqual(
+      ['filha-alexandre'],
+    );
+    expect(getEquipeKanbanColumnDeliverables(hierarchy, 'in_progress', null)).toHaveLength(0);
+  });
+
+  it('não entra em laço quando o dado tem ciclo de parent_id', () => {
+    const items = [
+      deliverable('a', { parent_id: 'b' }),
+      deliverable('b', { parent_id: 'a' }),
+      deliverable('solta'),
+    ];
+    expect(
+      selectEquipeKanbanVisibleDeliverables(items, new Set(['a'])).map(({ id }) => id).sort(),
+    ).toEqual(['a', 'b']);
+  });
+
+  it('joga status fora das três colunas (e nulo) em "A Fazer" em vez de sumir do quadro', () => {
+    const hierarchy = buildEquipeKanbanHierarchy([
+      deliverable('sem-status', { status: null as unknown as string }),
+      deliverable('status-estranho', { status: 'a_fazer' }),
+      deliverable('pendente'),
+      deliverable('andando', { status: 'in_progress' }),
+      deliverable('feita', { status: 'completed' }),
+    ]);
+    const columnIds = (columnId: string) =>
+      getEquipeKanbanColumnDeliverables(hierarchy, columnId, null).map(({ id }) => id);
+
+    expect(columnIds('pending').sort()).toEqual(['pendente', 'sem-status', 'status-estranho']);
+    expect(columnIds('in_progress')).toEqual(['andando']);
+    expect(columnIds('completed')).toEqual(['feita']);
+    // Nada fica de fora das três colunas.
+    expect(
+      columnIds('pending').length + columnIds('in_progress').length + columnIds('completed').length,
+    ).toBe(hierarchy.length);
+  });
+
+  it('conta subtarefa aberta presa em mãe fora de "A Fazer" (em progresso ou concluída)', () => {
+    const hierarchy = buildEquipeKanbanHierarchy([
+      deliverable('mae-andando', { task_code: 'TAX-0', status: 'in_progress' }),
+      deliverable('sub-a-fazer', { parent_id: 'mae-andando', task_code: 'TAX-01' }),
+      deliverable('sub-feita', {
+        parent_id: 'mae-andando',
+        task_code: 'TAX-02',
+        status: 'completed',
+      }),
+      deliverable('mae-concluida', { task_code: 'GED-0', status: 'completed' }),
+      deliverable('sub-esquecida', { parent_id: 'mae-concluida', task_code: 'GED-01' }),
+      deliverable('mae-a-fazer', { task_code: 'PLT-0' }),
+      deliverable('sub-da-a-fazer', { parent_id: 'mae-a-fazer', task_code: 'PLT-01' }),
+    ]);
+    const byId = (id: string) => hierarchy.find((root) => root.id === id)!;
+
+    expect(hidesOpenSubtasksOutsideItsColumn(byId('mae-andando'))).toBe(true);
+    expect(hidesOpenSubtasksOutsideItsColumn(byId('mae-concluida'))).toBe(true);
+    // Mãe em "A Fazer": a subtarefa aberta já está na mesma coluna, não há o que avisar.
+    expect(hidesOpenSubtasksOutsideItsColumn(byId('mae-a-fazer'))).toBe(false);
+    expect(countOpenSubtasksOutsideTodoColumn(hierarchy)).toBe(2);
   });
 
   it('ordena vencimentos e mantém data nula no fim em asc e no início em desc', () => {

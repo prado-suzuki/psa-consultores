@@ -607,6 +607,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/board/clientes',
+    page_name: 'Board - Clientes',
+    page_description: 'Carteira de clientes e mapa de calor por estado',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/board/performance',
     page_name: 'Performance',
     page_description: 'Painel executivo consolidado de performance',

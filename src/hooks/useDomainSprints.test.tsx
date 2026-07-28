@@ -60,6 +60,7 @@ function makeSupabaseChain(table: string) {
     'filter',
     'order',
     'limit',
+    'range',
     'single',
     'maybeSingle',
   ]) {
@@ -168,6 +169,12 @@ describe('useDomainSprints — query agregada', () => {
     expect(
       callsFor('sprint_deliverables', 'in').every((c) => c.args[0] === 'sprint_id'),
     ).toBe(true);
+    // Lote de 50 sprints passa do limite de linhas do PostgREST: as duas leituras paginam (aqui uma
+    // página cada, porque o mock devolve menos que o tamanho da página).
+    expect(callsFor('sprint_deliverables', 'range').map((c) => c.args)).toEqual([
+      [0, 499],
+      [0, 499],
+    ]);
 
     // Impactos: melhorias concluídas filtradas por deliverable (IN).
     expect(callsFor('process_improvements', 'eq')[0].args).toEqual([

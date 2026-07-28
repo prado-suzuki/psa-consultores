@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchAllRows } from '@/lib/supabasePagination';
 import type {
   EquipeKanbanDeliverable,
   EquipeKanbanProcess,
@@ -16,29 +17,40 @@ export interface EquipeKanbanInitialData {
   deliverables: EquipeKanbanDeliverable[];
 }
 
+// O Kanban lê a tabela inteira, então precisa paginar: acima do limite de linhas do PostgREST as
+// tarefas sumiam do quadro sem erro e sem critério, e o corte ainda quebrava a hierarquia (mãe sem
+// as filhas virava card vazio, filha sem a mãe era promovida a card raiz). Ver supabasePagination.
+async function fetchAllDeliverables() {
+  // select('*') traz actual_hours mesmo enquanto o types.ts gerado não a reflete
+  // (a lista explícita de colunas dá erro de tipo por causa do types.ts defasado).
+  const { rows } = await fetchAllRows<EquipeKanbanDeliverable>((from, to) =>
+    supabase
+      .from('sprint_deliverables')
+      .select('*', { count: 'exact' })
+      .order('id', { ascending: true })
+      .range(from, to),
+  );
+  // Erro segue ignorado aqui (contrato atual da tela): devolve o que já veio.
+  return rows;
+}
+
 export function useEquipeKanbanInitialQuery() {
   return useQuery<EquipeKanbanInitialData>({
     queryKey: ['domain-equipe-kanban', 'initial'],
     queryFn: async () => {
-      const [sprintsRes, profilesRes, projectsRes, processesRes, deliverablesRes] =
-        await Promise.all([
-          supabase
-            .from('sprints')
-            .select('id, name, project_id')
-            .order('name', { ascending: true }),
-          supabase.from('profiles_safe').select('id, first_name, last_name'),
-          supabase.from('projects').select('id, name').order('name'),
-          supabase.from('processes').select('id, name, project_id').order('name'),
-          // select('*') traz actual_hours mesmo enquanto o types.ts gerado não a reflete
-          // (a lista explícita de colunas dá erro de tipo por causa do types.ts defasado).
-          supabase.from('sprint_deliverables').select('*'),
-        ]);
+      const [sprintsRes, profilesRes, projectsRes, processesRes, deliverables] = await Promise.all([
+        supabase.from('sprints').select('id, name, project_id').order('name', { ascending: true }),
+        supabase.from('profiles_safe').select('id, first_name, last_name'),
+        supabase.from('projects').select('id, name').order('name'),
+        supabase.from('processes').select('id, name, project_id').order('name'),
+        fetchAllDeliverables(),
+      ]);
       return {
         sprints: (sprintsRes.data || []) as EquipeKanbanSprint[],
         profiles: (profilesRes.data || []) as EquipeKanbanProfile[],
         projects: (projectsRes.data || []) as EquipeKanbanProject[],
         processes: (processesRes.data || []) as EquipeKanbanProcess[],
-        deliverables: (deliverablesRes.data || []) as EquipeKanbanDeliverable[],
+        deliverables,
       };
     },
     staleTime: 0,

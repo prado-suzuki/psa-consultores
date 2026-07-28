@@ -6,19 +6,25 @@ import { KanbanBoard } from '@/components/equipe/kanban/KanbanBoard';
 import { KanbanDeliverableDialog } from '@/components/equipe/kanban/KanbanDeliverableDialog';
 import { KanbanFilters } from '@/components/equipe/kanban/KanbanFilters';
 import { KanbanTable } from '@/components/equipe/kanban/KanbanTable';
+import { OpenSubtasksWarningDialog } from '@/components/equipe/OpenSubtasksWarningDialog';
 import { Button } from '@/components/ui/button';
 import { useEquipeKanbanAttachments } from '@/hooks/useDomainEquipeKanbanAttachments';
 import { useEquipeKanbanDeliverableMutations } from '@/hooks/useDomainEquipeKanbanDeliverableMutations';
 import { useEquipeKanbanInitialQuery } from '@/hooks/useDomainEquipeKanbanQueries';
 import { useDeliverableBlockers } from '@/hooks/useDeliverableBlockers';
 import { usePersistedState } from '@/hooks/usePersistedState';
+import { getBlockingOpenSubtasks } from '@/lib/deliverableCompletion';
 import {
   buildDeliverableUpdatePayload,
   buildEquipeKanbanHierarchy,
+  countOpenSubtasksOutsideTodoColumn,
   filterEquipeKanbanDeliverables,
   getEquipeKanbanColumnDeliverables,
   getEquipeKanbanErrorMessage,
   getEquipeKanbanSubtasks,
+  hidesOpenSubtasksOutsideItsColumn,
+  normalizeEquipeKanbanStatus,
+  selectEquipeKanbanVisibleDeliverables,
   validateEquipeKanbanFile,
   type EquipeKanbanAttachment as Attachment,
   type EquipeKanbanDeliverable as Deliverable,
@@ -46,6 +52,13 @@ const EquipeKanban = () => {
 
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [selectedDeliverable, setSelectedDeliverable] = useState<Deliverable | null>(null);
+  // Aviso pendente de "concluir mãe com subtarefa aberta" — guarda a ação a executar se confirmar.
+  const [completionWarning, setCompletionWarning] = useState<{
+    taskTitle: string;
+    openSubtasks: Deliverable[];
+    confirm: () => Promise<void>;
+  } | null>(null);
+  const [confirmingCompletion, setConfirmingCompletion] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -131,43 +144,64 @@ const EquipeKanban = () => {
     ],
   );
 
-  const filteredDeliverables = useMemo(() => {
-    const byId = new Map(deliverables.map((deliverable) => [deliverable.id, deliverable]));
-    const keep = new Set<string>();
-    // Mantém cada item que bate no filtro E toda a cadeia de mães acima dele (mãe, avó, ...),
-    // pra subtarefa/neta continuar aninhada sob a raiz em vez de sumir.
-    directMatchIds.forEach((id) => {
-      keep.add(id);
-      const visited = new Set<string>();
-      let parentId = byId.get(id)?.parent_id ?? null;
-      while (parentId && byId.has(parentId) && !visited.has(parentId)) {
-        keep.add(parentId);
-        visited.add(parentId);
-        parentId = byId.get(parentId)?.parent_id ?? null;
-      }
-    });
-    return deliverables.filter((deliverable) => keep.has(deliverable.id));
-  }, [deliverables, directMatchIds]);
+  // Filtro por pessoa = lista pessoal: a tarefa aparece na coluna do PRÓPRIO status, mesmo que a
+  // mãe seja de outra pessoa (a mãe é só agrupador, e some da visão — vira etiqueta no card).
+  // Sem filtro de pessoa o quadro segue aninhado, com a subtarefa dentro do card da mãe.
+  const personView = filterResponsible !== 'all';
+
+  const filteredDeliverables = useMemo(
+    () =>
+      selectEquipeKanbanVisibleDeliverables(deliverables, directMatchIds, {
+        keepAncestors: !personView,
+      }),
+    [deliverables, directMatchIds, personView],
+  );
+
+  // Nome da mãe pra dar contexto no card promovido (a mãe não está na visão).
+  const getGroupLabel = (deliverable: Deliverable) => {
+    if (!deliverable.parent_id) return null;
+    const parent = deliverables.find((item) => item.id === deliverable.parent_id);
+    if (!parent) return null;
+    return parent.task_code ? `${parent.task_code} ${parent.title}` : parent.title;
+  };
 
   const hierarchicalDeliverables = useMemo(
     () => buildEquipeKanbanHierarchy(filteredDeliverables),
     [filteredDeliverables],
   );
 
+  // Com filtro de pessoa/data ativo, quem olha o quadro quer ver as tarefas em si — e elas podem
+  // estar dentro de um agrupador. Abrimos todas as mães com subtarefa pra nada ficar escondido
+  // atrás de uma setinha fechada.
   useEffect(() => {
     if (filterResponsible === 'all' && !filterStartDate && !filterEndDate) return;
     setExpandedTasks((previous) => {
       const next = new Set(previous);
       let changed = false;
       hierarchicalDeliverables.forEach((parent) => {
-        if (parent.subtaskCount > 0 && !directMatchIds.has(parent.id) && !next.has(parent.id)) {
+        if (parent.subtaskCount > 0 && !next.has(parent.id)) {
           next.add(parent.id);
           changed = true;
         }
       });
       return changed ? next : previous;
     });
-  }, [filterResponsible, filterStartDate, filterEndDate, hierarchicalDeliverables, directMatchIds]);
+  }, [filterResponsible, filterStartDate, filterEndDate, hierarchicalDeliverables]);
+
+  // Mãe fora de "A Fazer" (em progresso ou concluída) com subtarefa aberta: o card dela fica na
+  // coluna da MÃE e o aninhamento vem fechado, então a tarefa aberta não aparecia em lugar nenhum
+  // do quadro. Abrimos essas mães automaticamente — uma vez só, para não reabrir o que a pessoa
+  // fechou na mão.
+  const autoExpandedRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    const toExpand = hierarchicalDeliverables
+      .filter(hidesOpenSubtasksOutsideItsColumn)
+      .map((parent) => parent.id)
+      .filter((id) => !autoExpandedRef.current.has(id));
+    if (toExpand.length === 0) return;
+    toExpand.forEach((id) => autoExpandedRef.current.add(id));
+    setExpandedTasks((previous) => new Set([...previous, ...toExpand]));
+  }, [hierarchicalDeliverables]);
 
   const hiddenCount = useMemo(() => {
     const renderedIds = new Set<string>();
@@ -177,6 +211,13 @@ const EquipeKanban = () => {
     });
     return filteredDeliverables.filter((deliverable) => !renderedIds.has(deliverable.id)).length;
   }, [hierarchicalDeliverables, filteredDeliverables]);
+
+  // Tarefas abertas que a sprint lista como "a fazer" mas que aqui vivem aninhadas em mães de
+  // outras colunas — a diferença de contagem entre a sprint e a coluna "A Fazer" vem daqui.
+  const nestedOpenCount = useMemo(
+    () => countOpenSubtasksOutsideTodoColumn(hierarchicalDeliverables),
+    [hierarchicalDeliverables],
+  );
 
   const getColumnDeliverables = (columnId: string) =>
     getEquipeKanbanColumnDeliverables(hierarchicalDeliverables, columnId, sortByDueDate);
@@ -192,7 +233,7 @@ const EquipeKanban = () => {
     setFilterEndDate(undefined);
   };
 
-  const updateDeliverableStatus = async (
+  const applyDeliverableStatus = async (
     id: string,
     newStatus: 'pending' | 'in_progress' | 'completed',
   ) => {
@@ -205,6 +246,35 @@ const EquipeKanban = () => {
       );
     } catch (error) {
       console.error('Error updating deliverable:', error);
+    }
+  };
+
+  const updateDeliverableStatus = async (
+    id: string,
+    newStatus: 'pending' | 'in_progress' | 'completed',
+  ) => {
+    const target = deliverables.find((deliverable) => deliverable.id === id);
+    const blocking = getBlockingOpenSubtasks(deliverables, id, newStatus, target?.status);
+    if (blocking.length > 0) {
+      setCompletionWarning({
+        taskTitle: target?.title ?? '',
+        openSubtasks: blocking,
+        confirm: () => applyDeliverableStatus(id, newStatus),
+      });
+      return;
+    }
+    await applyDeliverableStatus(id, newStatus);
+  };
+
+  const confirmCompletionWarning = async () => {
+    if (!completionWarning) return;
+    const { confirm } = completionWarning;
+    try {
+      setConfirmingCompletion(true);
+      await confirm();
+      setCompletionWarning(null);
+    } finally {
+      setConfirmingCompletion(false);
     }
   };
 
@@ -237,7 +307,7 @@ const EquipeKanban = () => {
       in_progress: 'Em Progresso',
       completed: 'Concluído',
     };
-    return labels[status] || status;
+    return labels[normalizeEquipeKanbanStatus(status)];
   };
 
   const openDeliverableDetail = async (deliverable: Deliverable) => {
@@ -246,7 +316,9 @@ const EquipeKanban = () => {
       title: deliverable.title,
       description: deliverable.description || '',
       assigned_to: deliverable.assigned_to || '',
-      status: deliverable.status,
+      // Normaliza para o Select não abrir em branco quando o status do banco está fora das três
+      // colunas (ou nulo) — salvando, a linha fica consistente.
+      status: normalizeEquipeKanbanStatus(deliverable.status),
       start_date: deliverable.start_date || '',
       due_date: deliverable.due_date || '',
       estimated_hours: deliverable.estimated_hours?.toString() || '',
@@ -257,6 +329,25 @@ const EquipeKanban = () => {
   };
 
   const saveDeliverable = async () => {
+    if (!selectedDeliverable) return;
+    const blocking = getBlockingOpenSubtasks(
+      deliverables,
+      selectedDeliverable.id,
+      editForm.status,
+      selectedDeliverable.status,
+    );
+    if (blocking.length > 0) {
+      setCompletionWarning({
+        taskTitle: selectedDeliverable.title,
+        openSubtasks: blocking,
+        confirm: persistDeliverable,
+      });
+      return;
+    }
+    await persistDeliverable();
+  };
+
+  const persistDeliverable = async () => {
     if (!selectedDeliverable) return;
     try {
       const updateData = buildDeliverableUpdatePayload(editForm, selectedDeliverable.status);
@@ -400,6 +491,7 @@ const EquipeKanban = () => {
         mainTaskCount={hierarchicalDeliverables.length}
         totalTaskCount={filteredDeliverables.length}
         hiddenCount={hiddenCount}
+        nestedOpenCount={nestedOpenCount}
         onSprintChange={setFilterSprint}
         onResponsibleChange={setFilterResponsible}
         onProjectChange={setFilterProject}
@@ -436,6 +528,7 @@ const EquipeKanban = () => {
           getColumnDeliverables={getColumnDeliverables}
           getProfileName={getProfileName}
           getBlocker={getBlocker}
+          getGroupLabel={getGroupLabel}
           onSortToggle={() => {
             setSortByDueDate((current) =>
               current === null ? 'asc' : current === 'asc' ? 'desc' : null,
@@ -452,6 +545,7 @@ const EquipeKanban = () => {
           expandedTasks={expandedTasks}
           getProfileName={getProfileName}
           getBlocker={getBlocker}
+          getGroupLabel={getGroupLabel}
           getStatusBadgeColor={getStatusBadgeColor}
           getStatusLabel={getStatusLabel}
           onToggleExpanded={toggleTaskExpanded}
@@ -483,6 +577,15 @@ const EquipeKanban = () => {
           await updateDeliverableStatus(subtask.id, newStatus);
         }}
         onOpenSubtask={openDeliverableDetail}
+      />
+
+      <OpenSubtasksWarningDialog
+        taskTitle={completionWarning?.taskTitle ?? null}
+        openSubtasks={completionWarning?.openSubtasks ?? []}
+        confirming={confirmingCompletion}
+        getProfileName={getProfileName}
+        onCancel={() => setCompletionWarning(null)}
+        onConfirm={confirmCompletionWarning}
       />
     </EquipeLayout>
   );
