@@ -4061,6 +4061,60 @@ export type Database = {
           },
         ]
       }
+      org_comment_attachments: {
+        Row: {
+          comment_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string | null
+          height: number | null
+          id: string
+          uploaded_at: string
+          uploaded_by: string | null
+          width: number | null
+        }
+        Insert: {
+          comment_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type?: string | null
+          height?: number | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          width?: number | null
+        }
+        Update: {
+          comment_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string | null
+          height?: number | null
+          id?: string
+          uploaded_at?: string
+          uploaded_by?: string | null
+          width?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "org_comment_attachments_comment_id_fkey"
+            columns: ["comment_id"]
+            isOneToOne: false
+            referencedRelation: "org_comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_comment_attachments_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_comment_mentions: {
         Row: {
           comment_id: string
