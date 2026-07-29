@@ -110,17 +110,22 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     }),
     [activeView, filters],
   );
-  const { data: allTasks = [] } = useOrgTasks(deepLinkTaskId ? {} : queryFilters);
+  const { data: allTasks = [], isLoading: isTasksLoading } = useOrgTasks(deepLinkTaskId ? {} : queryFilters);
   const deleteTask = useDeleteOrgTask(area);
 
-  const { data: clusterId } = useClusterIdByPageCategory(area);
+  const { data: clusterId, isLoading: isClusterLoading } = useClusterIdByPageCategory(area);
   const { data: teamMembers = [] } = useTeamMembersForTasks(clusterId ?? undefined);
   const { data: projects = [] } = useTaxProjectsForFilter();
 
   // Escopo de VISUALIZAÇÃO por cluster: só tarefas de projetos do cluster atual.
   // Tarefas sem projeto (sem cluster) permanecem. Deep-link ignora o escopo para
   // garantir que a tarefa-alvo apareça. Escrita/atribuição não é afetada.
-  const { ids: visibleProjectIds } = useDashboardProjectIds(clusterId, area === 'tax');
+  const { ids: visibleProjectIds, isError: isScopeError } = useDashboardProjectIds(clusterId, area === 'tax');
+  // Enquanto o escopo não resolve, `projectController.projects` é [] por decisão de
+  // segurança (não mostrar projeto fora do cluster). Isso é INDISTINGUÍVEL de "não
+  // há projetos", então precisa contar como carregando. Erro na resolução encerra a
+  // espera — caso contrário o loader giraria para sempre.
+  const isScopeUnresolved = isClusterLoading || (!!clusterId && !visibleProjectIds && !isScopeError);
   const tasks = useMemo(() => {
     if (deepLinkTaskId) return allTasks;
     // Sem cluster resolvido (clusterId nulo/carregando) → NÃO escopar: degrada para o
@@ -295,6 +300,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 tasks={tasks}
                 osRows={osRows}
                 search={filters.search || ''}
+                isLoading={isTasksLoading || projectController.isLoading || isScopeUnresolved}
                 hideEmpty={hasActiveFilters}
                 onClearFilters={() => setFilters({})}
                 onEditProject={projectController.handleOpenModal}

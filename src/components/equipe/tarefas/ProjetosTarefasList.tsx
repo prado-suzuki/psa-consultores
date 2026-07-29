@@ -15,6 +15,7 @@ import {
   Edit3,
   FilterX,
   FolderKanban,
+  Loader2,
   MoreHorizontal,
   Plus,
   Trash2,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import type { AreaKey } from '@/config/areaCategories';
 import { toast } from 'sonner';
+import TaxLoader from '@/components/equipe/fiscal/TaxLoader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -52,6 +54,8 @@ interface ProjetosTarefasListProps {
   tasks: OrgTask[];
   osRows: ProjetosTarefasOs[];
   search: string;
+  /** Dados da lista (projetos/tarefas/escopo) ainda em resolução. */
+  isLoading?: boolean;
   hideEmpty?: boolean;
   onClearFilters?: () => void;
   onEditProject: (project: OrgProject) => void;
@@ -118,6 +122,7 @@ export function ProjetosTarefasList({
   tasks,
   osRows,
   search,
+  isLoading = false,
   hideEmpty = false,
   onClearFilters,
   onEditProject,
@@ -235,6 +240,19 @@ export function ProjetosTarefasList({
   };
 
   if (hierarchy.length === 0) {
+    // Carregando vem ANTES dos vazios: a lista depende de várias consultas em
+    // cadeia (escopo de cluster → projetos → tarefas → OS) e, sem este ramo,
+    // o usuário lia "Nenhum projeto ou tarefa encontrado" durante toda a espera.
+    // Só entra aqui quando não há NADA para mostrar — com dados parciais a lista
+    // é renderizada normalmente e vai se completando.
+    if (isLoading) {
+      return <div className="rounded-xl border border-dashed py-16 text-center">
+        {area === 'tax'
+          ? <div className="flex justify-center"><TaxLoader size={72} /></div>
+          : <Loader2 role="status" aria-label="Carregando" className="mx-auto h-9 w-9 animate-spin text-muted-foreground/60" />}
+        <p className="mt-3 font-medium text-muted-foreground">Carregando projetos e tarefas…</p>
+      </div>;
+    }
     // Com filtros ativos, o vazio é resultado da filtragem — ensina o comportamento
     // (grupos sem tarefas ficam ocultos) e oferece limpar os filtros de uma vez.
     if (hideEmpty) {

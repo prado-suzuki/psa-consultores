@@ -188,6 +188,45 @@ export default {
         "osg-card-in": {
           from: { opacity: "0", transform: "translateY(10px)" },
         },
+        // Loader da área Tax (ver TaxLoader): a moeda cai de fora do quadro,
+        // girando, entra no cofrinho e o porquinho dá um pulinho. Os valores de
+        // translate estão em unidades do viewBox do glyph (0 0 1024 1024), não
+        // em px de tela — transform em SVG opera no sistema local, então o
+        // loader escala junto com `size`.
+        // Queda com aceleração de gravidade (ease-in) e desaceleração curta ao
+        // afundar no lombo; a moeda só apaga DEPOIS de estar escondida atrás do
+        // corpo (translateY 320), senão pareceria sumir no ar.
+        "tax-coin-fall": {
+          "0%": { transform: "translateY(-620px)", opacity: "0", animationTimingFunction: "cubic-bezier(.45,0,.85,.35)" },
+          "7%": { opacity: "1" },
+          "46%": { transform: "translateY(0)", opacity: "1", animationTimingFunction: "cubic-bezier(.35,0,.5,1)" },
+          "64%": { transform: "translateY(320px)", opacity: "1" },
+          "65%, 100%": { transform: "translateY(320px)", opacity: "0" },
+        },
+        // Giro da moeda fingido por scaleX (achatar/voltar) — 2 voltas durante a
+        // queda e nada depois de assentar. Precisa de transform-origin no centro
+        // da moeda (definido inline no TaxLoader).
+        "tax-coin-spin": {
+          "0%": { transform: "scaleX(1)" },
+          "11%": { transform: "scaleX(.26)" },
+          "22%": { transform: "scaleX(1)" },
+          "33%": { transform: "scaleX(.26)" },
+          "44%, 100%": { transform: "scaleX(1)" },
+        },
+        // Pulinho/absorção do impacto: squash and stretch com origem na base das
+        // patas, sincronizado com o instante em que a moeda toca o lombo (46%).
+        "tax-pig-bounce": {
+          "0%, 42%": { transform: "scale(1, 1)" },
+          "50%": { transform: "scale(1.05, .94)" },
+          "59%": { transform: "scale(.985, 1.022)" },
+          "70%, 100%": { transform: "scale(1, 1)" },
+        },
+        // Brilhos do "ka-ching" na hora que a moeda entra.
+        "tax-glint": {
+          "0%, 41%": { opacity: "0", transform: "scale(.4)" },
+          "51%": { opacity: ".9", transform: "scale(1)" },
+          "68%, 100%": { opacity: "0", transform: "scale(1.3)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -200,6 +239,13 @@ export default {
         "osg-rise": "osg-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both",
         "osg-bar-grow": "osg-bar-grow 1.4s cubic-bezier(0.16, 1, 0.3, 1) both",
         "osg-card-in": "osg-card-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) backwards",
+        // Ciclo do loader Tax: 1s. Todas as quatro animações compartilham a
+        // mesma duração para os tempos (impacto, pulinho, brilho) casarem —
+        // mexer na duração de uma só desalinha o pulinho da queda.
+        "tax-coin-fall": "tax-coin-fall 1s linear infinite",
+        "tax-coin-spin": "tax-coin-spin 1s linear infinite",
+        "tax-pig-bounce": "tax-pig-bounce 1s ease-out infinite",
+        "tax-glint": "tax-glint 1s ease-out infinite",
       },
     },
   },
