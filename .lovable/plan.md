@@ -1,113 +1,75 @@
+# Fix: Admin barrado ao salvar OS — varredura RLS (só escape de admin) + hardening no save
 
-# Diagnóstico + correção do "Sem permissão" no save de OS (Patricia) — v2
+## Objetivo
+Eliminar o toast "Sem permissão…" que a Patricia (admin) recebe ao salvar alteração de OS. Causa dupla: (1) policies de escrita que exigem `excluido = false` no `WITH CHECK` (bloqueia soft-delete) e/ou têm cláusula de cluster sem escape de admin; (2) o save no front ignora `error` em alguns writes, mascarando falhas e gerando resíduo (rateios duplicados, audit "deleted" órfão).
 
-## Fatos já fechados
+Decisão do responsável: **admin não deve ter restrição em alteração de dados** — a correção é varredura, mas só afrouxa para admin. Nenhuma outra role muda.
 
-- Toast sai de **um único ponto**: `src/hooks/useSaveClientTransaction.ts:856`, e **só** quando `error.code === '42501'` ou mensagem contém `row-level security` / `violates row` / `permission denied`. Guards de front caem em outro branch com texto diferente. **Logo é 42501 real do Postgres.**
-- Pré-voos descartaram: policies de escrita de `ordem_servico`, `distribuicao_receita`, `os_produtos_contratados` (formato alvo, sem trigger); RESTRICTIVE em qualquer das 9 tabelas; GRANTs de `authenticated`; `cliente_clusters` (admin tem ramo permissivo).
-- Patricia é `admin=true`, mas `resolve_user_cluster_ids` = `[Digital]`. Cliente Agro Amazônia só em `PSA Consultores`. Qualquer policy com cluster **sem escape de admin** a barra.
+---
 
-## Passo 1 — Captura (não destrutivo, ROLLBACK + trava de identidade + saída em temp table)
+## Passo 1 — Pré-voo 1 (reprodução na identidade da Patricia, não destrutivo)
 
-Bloco a executar. Aborta se `current_user <> authenticated` ou `auth.uid() <> Patricia` (evita falso positivo se runner rodar como postgres/service_role e bypassar RLS). Resultado vai para temp table `_res` retornada por `SELECT` antes do `ROLLBACK`. Soft-delete da OS foi para o final para não alterar estado dos testes anteriores. `audit_logs` usa `performed_by` (não `user_id`, que não existe).
+Rodar o bloco exato do briefing (BEGIN … ROLLBACK) como **query ad hoc**. Se for necessário usar migration temporária, **apagar o arquivo** depois — não deixar em `supabase/migrations/`, senão o DML volta a rodar em outros ambientes.
+
+Regras:
+- Aborta se `current_user <> 'authenticated'` ou `auth.uid() <> Patricia`.
+- Saída em `_res` temp table, listada com `SELECT` antes do `ROLLBACK`.
+- Se abortar por identidade: **não** contornar; ir para Postgres Logs (SQLSTATE 42501 desde 2026-07-29 17:30).
+
+Objetivo: confirmar quais steps caem em 42501 (esperado ao menos `rateio/soft-delete` e `os/soft-delete`).
+
+## Passo 2 — Pré-voo 2 (varredura somente-leitura)
+
+Três queries do briefing, sem modificação:
+- **(A)** policies de ESCRITA com cláusula de cluster/`cliente_visivel_para` — marcar quais **não** têm ramo de admin.
+- **(B)** policies UPDATE/ALL com `WITH CHECK` referenciando `excluido`.
+- **(C)** relatório de resíduo em `distribuicao_receita`. Somente relatar.
+
+Também rodar (A) com `cmd = 'SELECT'` **apenas para relatório**, sem alterar.
+
+## Passo 3 — Correção no banco (migration única) — REGRA ÚNICA
+
+Para cada linha de **(A)** e **(B)**, aplicar exatamente a mesma transformação: **nunca remover cláusula, nunca alterar nível de papel, nunca mexer em roles** — apenas prefixar o escape de admin, preservando a expressão original palavra por palavra:
 
 ```sql
-BEGIN;
-SET LOCAL ROLE authenticated;
-SET LOCAL request.jwt.claims = '{"sub":"fb81a718-124e-45e2-bab5-b0241738c7b7","role":"authenticated","aud":"authenticated"}';
-
-CREATE TEMP TABLE _res(ord serial, step text, status text) ON COMMIT DROP;
-
-DO $$
-DECLARE n int;
-BEGIN
-  IF current_user <> 'authenticated' OR auth.uid() IS DISTINCT FROM 'fb81a718-124e-45e2-bab5-b0241738c7b7'::uuid THEN
-    RAISE EXCEPTION 'Identidade nao aplicada: current_user=% auth.uid()=%. Abortado.', current_user, auth.uid();
-  END IF;
-  INSERT INTO _res(step,status) VALUES ('identidade', format('user=%s is_admin=%s', current_user, public.has_role(auth.uid(),'admin'::app_role)));
-
-  BEGIN UPDATE public.cliente SET nome = nome WHERE id='35419187-0d64-437b-b61e-a59a20855d26';
-    GET DIAGNOSTICS n = ROW_COUNT; INSERT INTO _res(step,status) VALUES ('cliente/update','OK rows='||n);
-  EXCEPTION WHEN OTHERS THEN INSERT INTO _res(step,status) VALUES ('cliente/update','FALHOU '||SQLSTATE||' '||SQLERRM); END;
-
-  BEGIN UPDATE public.ordem_servico SET situacao = situacao WHERE id='d30e4183-dc17-4ab0-a4fe-1d35ce2daac2';
-    GET DIAGNOSTICS n = ROW_COUNT; INSERT INTO _res(step,status) VALUES ('os/update','OK rows='||n);
-  EXCEPTION WHEN OTHERS THEN INSERT INTO _res(step,status) VALUES ('os/update','FALHOU '||SQLSTATE||' '||SQLERRM); END;
-
-  BEGIN DELETE FROM public.os_produtos_contratados WHERE ordem_servico_id='d30e4183-dc17-4ab0-a4fe-1d35ce2daac2';
-    GET DIAGNOSTICS n = ROW_COUNT; INSERT INTO _res(step,status) VALUES ('produtos/delete','OK rows='||n);
-  EXCEPTION WHEN OTHERS THEN INSERT INTO _res(step,status) VALUES ('produtos/delete','FALHOU '||SQLSTATE||' '||SQLERRM); END;
-
-  BEGIN INSERT INTO public.os_produtos_contratados (ordem_servico_id, produto_segmento_id)
-        SELECT ordem_servico_id, produto_segmento_id FROM public.os_produtos_contratados
-        WHERE ordem_servico_id='d30e4183-dc17-4ab0-a4fe-1d35ce2daac2' LIMIT 1;
-    INSERT INTO _res(step,status) VALUES ('produtos/insert','OK');
-  EXCEPTION WHEN OTHERS THEN INSERT INTO _res(step,status) VALUES ('produtos/insert','FALHOU '||SQLSTATE||' '||SQLERRM); END;
-
-  BEGIN UPDATE public.distribuicao_receita SET percentual_rateio = percentual_rateio
-        WHERE id='62796cf3-e97a-491f-9998-30ae024c31eb';
-    GET DIAGNOSTICS n = ROW_COUNT; INSERT INTO _res(step,status) VALUES ('rateio/update','OK rows='||n);
-  EXCEPTION WHEN OTHERS THEN INSERT INTO _res(step,status) VALUES ('rateio/update','FALHOU '||SQLSTATE||' '||SQLERRM); END;
-
-  BEGIN INSERT INTO public.distribuicao_receita (id_ordem_servico, id_centro_custo, percentual_rateio)
-        SELECT id_ordem_servico, id_centro_custo, percentual_rateio FROM public.distribuicao_receita
-        WHERE id='62796cf3-e97a-491f-9998-30ae024c31eb';
-    INSERT INTO _res(step,status) VALUES ('rateio/insert','OK');
-  EXCEPTION WHEN OTHERS THEN INSERT INTO _res(step,status) VALUES ('rateio/insert','FALHOU '||SQLSTATE||' '||SQLERRM); END;
-
-  BEGIN INSERT INTO public.cliente_clusters (cliente_id, cluster_id)
-        VALUES ('35419187-0d64-437b-b61e-a59a20855d26','b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3');
-    INSERT INTO _res(step,status) VALUES ('cliente_clusters/insert','OK');
-  EXCEPTION WHEN OTHERS THEN INSERT INTO _res(step,status) VALUES ('cliente_clusters/insert','FALHOU '||SQLSTATE||' '||SQLERRM); END;
-
-  BEGIN INSERT INTO public.audit_logs (area, entity_type, entity_id, entity_name, action, performed_by)
-        VALUES ('dev','ordem_servico','d30e4183-dc17-4ab0-a4fe-1d35ce2daac2','026/2026','updated', auth.uid());
-    INSERT INTO _res(step,status) VALUES ('audit/insert','OK');
-  EXCEPTION WHEN OTHERS THEN INSERT INTO _res(step,status) VALUES ('audit/insert','FALHOU '||SQLSTATE||' '||SQLERRM); END;
-
-  BEGIN UPDATE public.ordem_servico SET excluido = true WHERE id='d30e4183-dc17-4ab0-a4fe-1d35ce2daac2';
-    GET DIAGNOSTICS n = ROW_COUNT; INSERT INTO _res(step,status) VALUES ('os/soft-delete','OK rows='||n);
-  EXCEPTION WHEN OTHERS THEN INSERT INTO _res(step,status) VALUES ('os/soft-delete','FALHOU '||SQLSTATE||' '||SQLERRM); END;
-END $$;
-
-SELECT ord, step, status FROM _res ORDER BY ord;
-ROLLBACK;
+USING (public.has_role(auth.uid(),'admin'::app_role) OR (<qual original>))
+WITH CHECK (public.has_role(auth.uid(),'admin'::app_role) OR (<with_check original>))
 ```
 
-**Se abortar** (identidade não aplicada): **não** contornar. Fallback = Postgres Logs filtrando SQLSTATE `42501` a partir de 2026-07-29 17:30 e trazer a mensagem (nomeia a tabela).
+Nas policies de **(B)** o `excluido` **permanece** dentro da expressão original — o objetivo é liberar admin, **não** liberar sublider+. Se a policy for `FOR ALL`, aplicar nas duas cláusulas. Não recriar policy que já tenha ramo de admin.
 
-## Passo 2 — Correção cirúrgica (só na tabela/op apontada pelo passo 1)
+**Escopo restrito — apenas estas 8 tabelas:** `cliente`, `cliente_clusters`, `ordem_servico`, `distribuicao_receita`, `os_produtos_contratados`, `contribuinte`, `inscricao_contribuinte`, `representante`.
 
-- `has_role_or_higher(auth.uid(),'sublider'::app_role)` como papel base.
-- **Sem** cláusula de cluster e **sem** `excluido=false` no `WITH CHECK`. `excluido=false` só no `USING` de UPDATE/DELETE.
-- Se a policy que falhou já traz cluster ou `cliente_visivel_para`, **não remover** — acrescentar `has_role(auth.uid(),'admin'::app_role) OR` no início como escape.
-- Não recriar policies que o pré-voo já validou.
-- **Ressalva B**: escape de admin libera Patricia porque ela é admin; sublíder de outro cluster continua barrado na mesma policy — comportamento esperado do isolamento. Não registrar como "resolvido para todos os perfis".
+Qualquer policy fora dessa lista que apareça em (A) ou (B) entra **só como relatório**, sem alteração — o filtro `ILIKE '%excluido%'` casa com tabelas de módulos sem relação com este bug.
 
-## Passo 3 — Front (independe do passo 1)
+**Efeito esperado por role (requisito de aceite):**
+- admin: passa a alterar e excluir sem restrição nessas 8 tabelas.
+- sublider, lider, team_member, client: comportamento **idêntico** ao atual, inclusive seguir barrados no soft-delete onde hoje são barrados.
 
-Em `src/hooks/useSaveClientTransaction.ts`:
+Não tocar policies de SELECT. Não mexer em `can_perform`, `rls_precheck_allowed_tables`, triggers.
 
-a) **Soft-delete das OS removidas**: trocar `.update({excluido:true}).in("id", ids)` por versão com `.select("id")`, `if (error) throw error`, e erro explícito quando `data.length < removedOsIds.length` listando ids ausentes. `logAction("deleted")` só para os retornados.
-Prova: OS 026/2026 continua `excluido=false` com `updated_at` de 2026-03-24 apesar de dois `audit_logs "deleted"` hoje (17:37 e 17:38).
-**Ressalva A**: `UPDATE ... RETURNING` no soft-delete pode voltar zero linhas porque a policy de SELECT de `ordem_servico` exige `excluido=false`. Se isso acontecer, o guard lança erro falso numa exclusão bem-sucedida. Validar no GATE; se o retorno vier vazio mesmo com sucesso, trocar a checagem por `count` no banco (`SELECT count(*) WHERE id IN (...) AND excluido=true`) em vez do retorno do PostgREST.
+## Passo 4 — Hardening no front (`src/hooks/useSaveClientTransaction.ts`)
 
-b) Mesma conferência nos demais writes de `ordem_servico` e `distribuicao_receita` que hoje ignoram `error`. **Preservar** a reconciliação linha a linha atual (protege o fix do rateio de hoje).
+**a) Soft-delete das OS removidas.** Trocar `.update({excluido:true}).in("id", ids)` por versão com `.select("id")`; se `error` → `throw`; se `data.length < removedOsIds.length` → erro explícito listando ids ausentes; `logAction("deleted")` só para os retornados. Se o `RETURNING` voltar vazio mesmo com sucesso (a policy de SELECT de `ordem_servico` exige `excluido = false`), trocar a checagem por `count` no banco em vez do retorno do PostgREST.
 
-c) No `catch`, manter variável com passo corrente (`tabela/op`) atualizada antes de cada write e incluí-la no toast de RLS: *"Sem permissão para atualizar cliente (tabela/op). Fale com a liderança."* Manter `console.error` do objeto cru. Só a variável de passo, sem refactor de `Error{cause}`.
+**b) Mesma conferência de `error`** nos demais writes de `ordem_servico` e `distribuicao_receita` que hoje a ignoram. **Preservar** a reconciliação linha a linha atual — **não** voltar ao padrão delete+reinsert (foi ele que gerou as 4 linhas duplicadas de CC-0007).
+
+**c) No `catch`,** manter variável com o passo corrente (`tabela/op`) atualizada antes de cada write e incluí-la no toast de RLS: *"Sem permissão para atualizar cliente (tabela/op). Fale com a liderança."* Manter `console.error` do objeto cru. Sem refactor de `Error{cause}`.
 
 ## Fora de escopo
-
-- Policies de SELECT.
-- Qualquer tabela que não seja a apontada no passo 1.
+- Policies de SELECT (só relatório).
+- Policies fora das 8 tabelas listadas.
 - `can_perform`, `rls_precheck_allowed_tables`, triggers existentes.
-- **Não excluir** a OS 026/2026 por SQL — ação da usuária na tela (3 `org_projects` ativos vinculados; soft-delete sem volta pela UI).
+- Limpeza das linhas duplicadas de rateio de (C) — frente separada.
+- Não excluir a OS 026/2026 por SQL (3 `org_projects` ativos; ação da usuária pela tela).
 
 ## GATE
+1. Pré-voo 1 imprime `identidade user=authenticated`; após correção, **todas** as linhas OK, em especial `rateio/soft-delete` e `os/soft-delete`.
+2. (A) e (B) re-executados: nenhuma linha das 8 tabelas com `tem_ramo_admin = false`; toda policy corrigida preserva a expressão original íntegra dentro do `OR`.
+3. Patricia: abrir OS do cliente `35419187…`, remover as 3 duplicatas de CC-0007 deixando 1 a 100%, salvar — sem toast; banco fica com exatamente 1 linha ativa.
+4. Patricia: em dev, criar cliente novo com 1 contribuinte, 1 representante, 1 OS com rateio + produto; editar a OS; excluir o cliente de teste pela tela. Quatro passos sem toast.
+5. **Prova de não afrouxamento:** rodar o bloco do pré-voo 1 duas vezes — uma com o `sub` de um sublider, uma com o `sub` de um team_member — **antes e depois** da correção. O status de cada linha tem que ser **idêntico** nas duas rodadas. Qualquer linha que saia de `FALHOU` para `OK` para essas roles reprova a entrega e tem que ser revertida.
+6. `SELECT id, name FROM org_projects WHERE ordem_servico_id='d30e4183-…'` mantém 3 linhas. Listagem de OS de outros clientes inalterada.
 
-0. **Item extra**: confirmar que o passo 1 imprimiu a linha `identidade` com `user=authenticated`. Sem ela, resultado inválido — não serve de base para o passo 2.
-1. Repetir o bloco do passo 1 pós-correção: todas as linhas OK, em especial a que falhou.
-2. Como Patricia, editar OS 026/2026 e salvar: sem toast; count de OS = 3 e `distribuicao_receita` não duplica.
-3. Como Patricia, remover OS 026/2026 e salvar (após confirmação com ela): `SELECT excluido, updated_at FROM ordem_servico WHERE id='d30e4183-...'` → `excluido=true`, `updated_at` recente. Validar ressalva A: se `.select("id")` voltou zero mas o update funcionou, trocar pela checagem por `count`.
-4. `team_member` continua bloqueado, toast nomeando tabela/op e sem `audit "deleted"` órfão.
-5. `SELECT id, name FROM org_projects WHERE ordem_servico_id='d30e4183-...'` mantém as 3 linhas. Listagem de OS de outros clientes inalterada.
+## Observação (registro, não pedido de mudança)
+Com a regra única, sublider que editar rateio ou remover OS passa a receber **erro claro** onde hoje duplica em silêncio. Continua sem conseguir a operação — só deixa de corromper dado. Se sublider precisar dessas operações no futuro, decisão tabela por tabela, em frente separada.
