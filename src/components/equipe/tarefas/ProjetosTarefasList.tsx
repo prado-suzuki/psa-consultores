@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -65,6 +66,10 @@ interface ProjetosTarefasListProps {
   onReassignTask: (task: OrgTask) => void;
   onMoveTask: (task: OrgTask) => void;
   onAddSubtask: (task: OrgTask) => void;
+  /** Tarefas marcadas para ação em lote (hoje: mover de projeto). */
+  selectedTaskIds: Set<string>;
+  onToggleSelection: (taskIds: string[], selected: boolean) => void;
+  onMoveSelected: () => void;
   currentUserId?: string | null;
 }
 
@@ -77,6 +82,11 @@ const projectStatusStyles: Record<string, string> = {
   on_hold: 'bg-amber-100 text-amber-700',
   cancelled: 'bg-rose-100 text-rose-700',
 };
+
+/** Ids de uma subárvore de tarefas — a marcação de um projeto pega tudo dentro dele. */
+function collectNodeTaskIds(nodes: ProjetosTarefasTaskNode[]): string[] {
+  return nodes.flatMap(node => [node.task.id, ...collectNodeTaskIds(node.children)]);
+}
 
 function initials(name: string | null) {
   return name ? name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase() : '?';
@@ -136,6 +146,9 @@ export function ProjetosTarefasList({
   onReassignTask,
   onMoveTask,
   onAddSubtask,
+  selectedTaskIds,
+  onToggleSelection,
+  onMoveSelected,
   currentUserId,
 }: ProjetosTarefasListProps) {
   const hierarchy = useMemo(
@@ -199,14 +212,20 @@ export function ProjetosTarefasList({
     const { task, children } = node;
     const rowId = `task:${task.id}`;
     const isExpanded = expanded.has(rowId);
+    const isSelected = selectedTaskIds.has(task.id);
     return <Fragment key={task.id}>
-      <div className={cn(GRID, 'group border-t border-border/60 bg-background text-sm hover:bg-muted/30')}>
+      <div className={cn(GRID, 'group border-t border-border/60 text-sm hover:bg-muted/30', isSelected ? 'bg-primary/5' : 'bg-background')}>
         <div className="flex min-w-0 items-center gap-2 px-4 py-2" style={{ paddingLeft: `${44 + depth * 24}px` }}>
           {children.length > 0 ? (
             <button type="button" onClick={() => toggle(rowId)} className="-ml-7 rounded p-1 text-muted-foreground hover:bg-muted" aria-label={isExpanded ? 'Recolher tarefa' : 'Expandir tarefa'}>
               {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
             </button>
           ) : <span className="-ml-6 w-6" />}
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={checked => onToggleSelection([task.id], checked === true)}
+            aria-label={`Selecionar tarefa ${task.title}`}
+          />
           <TaskStatusDot status={task.status} />
           <button type="button" className="truncate text-left font-medium text-foreground hover:underline" onClick={() => onEditTask(task)}>
             {task.title}
@@ -237,6 +256,13 @@ export function ProjetosTarefasList({
               {!task.parent_task_id && <DropdownMenuItem onClick={() => onAddSubtask(task)}><Plus className="mr-2 h-4 w-4" />Adicionar subtarefa</DropdownMenuItem>}
               <DropdownMenuItem onClick={() => onReassignTask(task)}><UserPlus className="mr-2 h-4 w-4" />Reatribuir</DropdownMenuItem>
               <DropdownMenuItem onClick={() => onMoveTask(task)}><FolderInput className="mr-2 h-4 w-4" />Mover para outro projeto</DropdownMenuItem>
+              {/* Atalho do lote no menu da própria linha: quem marcou várias
+                  tarefas e abre os 3 pontinhos espera mover todas de uma vez. */}
+              {isSelected && selectedTaskIds.size > 1 && (
+                <DropdownMenuItem onClick={onMoveSelected}>
+                  <FolderInput className="mr-2 h-4 w-4" />Mover {selectedTaskIds.size} tarefas selecionadas
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive" onClick={() => onDeleteTask(task.id)}><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
             </DropdownMenuContent>
@@ -276,8 +302,19 @@ export function ProjetosTarefasList({
   };
 
   return <div className="space-y-2">
-    <div className="flex justify-end">
-      <Button variant="outline" size="sm" onClick={toggleAll} className="gap-2">
+    <div className="flex flex-wrap items-center gap-2">
+      {selectedTaskIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-primary/5 px-3 py-1.5">
+          <span className="text-sm font-medium">{selectedTaskIds.size} tarefa(s) selecionada(s)</span>
+          <Button size="sm" variant="secondary" className="h-7 gap-2" onClick={onMoveSelected}>
+            <FolderInput className="h-3.5 w-3.5" />Mover para outro projeto
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7" onClick={() => onToggleSelection([...selectedTaskIds], false)}>
+            Limpar seleção
+          </Button>
+        </div>
+      )}
+      <Button variant="outline" size="sm" onClick={toggleAll} className="ml-auto gap-2">
         {allOsExpanded ? <ChevronsUp className="h-4 w-4" /> : <ChevronsDown className="h-4 w-4" />}
         {allOsExpanded ? 'Recolher tudo' : 'Expandir tudo'}
       </Button>
@@ -318,10 +355,17 @@ export function ProjetosTarefasList({
         {isExpanded && group.projects.map(projectNode => {
           const projectId = `project:${projectNode.project?.id || '__without_project__'}`;
           const projectExpanded = expanded.has(projectId);
+          const projectTaskIds = collectNodeTaskIds(projectNode.tasks);
+          const selectedInProject = projectTaskIds.filter(id => selectedTaskIds.has(id)).length;
           return <div key={projectId}>
             <div className={cn(GRID, 'group relative z-10 bg-muted/30 text-sm shadow-md hover:bg-muted/45')}>
               <div className="flex min-w-0 items-center gap-2 px-4 py-2.5 pl-9">
                 <button type="button" onClick={() => toggle(projectId)} className="rounded p-1 text-muted-foreground hover:bg-muted" aria-label={projectExpanded ? 'Recolher projeto' : 'Expandir projeto'}>{projectExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
+                {projectTaskIds.length > 0 && <Checkbox
+                  checked={selectedInProject === 0 ? false : selectedInProject === projectTaskIds.length ? true : 'indeterminate'}
+                  onCheckedChange={checked => onToggleSelection(projectTaskIds, checked === true)}
+                  aria-label={`Selecionar as ${projectTaskIds.length} tarefa(s) do projeto`}
+                />}
                 <FolderKanban className="h-4 w-4 shrink-0 text-primary" />
                 <button type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} title={projectNode.project?.name} className="truncate text-left font-semibold hover:underline disabled:no-underline">{projectNode.project ? shortProjectName(projectNode.project.name, group.clientName, group.os?.numero_os) : 'Sem projeto'}</button>
                 <span className="text-xs text-muted-foreground">{projectNode.taskCount}</span>

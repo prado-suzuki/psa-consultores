@@ -34,6 +34,7 @@ import { TaskFutureView } from '@/components/equipe/fiscal/tasks/TaskFutureView'
 import { TaskModal } from '@/components/equipe/fiscal/tasks/TaskModal';
 import { ReassignModal } from '@/components/equipe/fiscal/tasks/ReassignModal';
 import { MoveTaskModal } from '@/components/equipe/fiscal/tasks/MoveTaskModal';
+import { MoveTasksModal } from '@/components/equipe/fiscal/tasks/MoveTasksModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -66,6 +67,8 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const [taskToReassign, setTaskToReassign] = useState<OrgTask | null>(null);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [taskToMove, setTaskToMove] = useState<OrgTask | null>(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [isBulkMoveOpen, setIsBulkMoveOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [openedDeepLinkId, setOpenedDeepLinkId] = useState<string | null>(null);
   const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
@@ -246,9 +249,11 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   // Espelha o trigger org_tasks_team_member_status_only: trocar o projeto é
   // mudança fora do trio status/horas/revisor, então só líder (ou superior) e o
   // criador da tarefa conseguem. Avisa antes em vez de deixar o banco recusar.
+  const canMoveTask = (task: OrgTask) => isAdmin || isLider || isSublider
+    || (!!user && task.created_by === user.id);
+
   const handleMoveTask = (task: OrgTask) => {
-    const canMove = isAdmin || isLider || isSublider || (!!user && task.created_by === user.id);
-    if (!canMove) {
+    if (!canMoveTask(task)) {
       toast.error('Você não tem permissão para mover esta tarefa.', {
         description: 'Apenas o criador da tarefa ou um líder pode trocá-la de projeto. Contate um líder da equipe.',
       });
@@ -256,6 +261,40 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     }
     setTaskToMove(task);
     setIsMoveModalOpen(true);
+  };
+
+  const toggleTaskSelection = (taskIds: string[], selected: boolean) => setSelectedTaskIds(previous => {
+    const next = new Set(previous);
+    taskIds.forEach(id => (selected ? next.add(id) : next.delete(id)));
+    return next;
+  });
+
+  // A seleção só existe para as tarefas visíveis: ao trocar de filtro, ids que
+  // saíram da lista não podem continuar contando no lote.
+  useEffect(() => {
+    setSelectedTaskIds(previous => {
+      if (previous.size === 0) return previous;
+      const visible = new Set(tasks.map(task => task.id));
+      const next = new Set([...previous].filter(id => visible.has(id)));
+      return next.size === previous.size ? previous : next;
+    });
+  }, [tasks]);
+
+  const selectedTasks = useMemo(
+    () => tasks.filter(task => selectedTaskIds.has(task.id)),
+    [tasks, selectedTaskIds],
+  );
+
+  const handleMoveSelected = () => {
+    const blocked = selectedTasks.filter(task => !canMoveTask(task));
+    if (blocked.length > 0) {
+      toast.error(`Você não tem permissão para mover ${blocked.length} das tarefas selecionadas.`, {
+        description: 'Apenas o criador da tarefa ou um líder pode trocá-la de projeto. Desmarque essas tarefas ou contate um líder.',
+      });
+      return;
+    }
+    if (selectedTasks.length === 0) return;
+    setIsBulkMoveOpen(true);
   };
 
   const handleNewTask = (projectId?: string) => {
@@ -323,6 +362,9 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 onReassignTask={handleReassignTask}
                 onMoveTask={handleMoveTask}
                 onAddSubtask={handleAddSubtask}
+                selectedTaskIds={selectedTaskIds}
+                onToggleSelection={toggleTaskSelection}
+                onMoveSelected={handleMoveSelected}
                 currentUserId={user?.id}
               />
             </TabsContent>
@@ -412,6 +454,18 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
         projects={listProjects}
         tasks={tasks}
         osRows={osRows}
+      />
+
+      {/* Bulk Move Modal */}
+      <MoveTasksModal
+        open={isBulkMoveOpen}
+        onOpenChange={setIsBulkMoveOpen}
+        selectedTasks={selectedTasks}
+        area={area}
+        projects={listProjects}
+        tasks={tasks}
+        osRows={osRows}
+        onMoved={() => setSelectedTaskIds(new Set())}
       />
 
       {/* Reassign Modal */}

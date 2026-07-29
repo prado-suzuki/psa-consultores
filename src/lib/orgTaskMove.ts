@@ -111,6 +111,93 @@ export function buildMoveTaskPlan({
   };
 }
 
+/**
+ * Reduz uma seleção às tarefas "raiz": descarta as marcadas que já viajam como
+ * descendentes de outra marcada. Sem isso, uma filha selecionada junto com a mãe
+ * seria movida em separado e `buildMoveTaskPlan` zeraria seu `parent_task_id` —
+ * ela chegaria ao destino solta, fora da mãe.
+ *
+ * `tasks` precisa conter também os ancestrais (mesmo não selecionados), senão a
+ * cadeia mãe→avó se quebra e uma neta selecionada passaria como raiz.
+ */
+export function pruneNestedSelection(
+  selectedIds: string[],
+  tasks: { id: string; parent_task_id: string | null }[],
+): string[] {
+  const parentById = new Map(tasks.map(task => [task.id, task.parent_task_id]));
+  const selected = new Set(selectedIds);
+
+  return [...selected].filter(id => {
+    // Guarda contra ciclos em parent_task_id (mesmo cuidado de collectDescendantIds).
+    const visited = new Set<string>([id]);
+    let parentId = parentById.get(id) ?? null;
+    while (parentId && !visited.has(parentId)) {
+      if (selected.has(parentId)) return false;
+      visited.add(parentId);
+      parentId = parentById.get(parentId) ?? null;
+    }
+    return true;
+  });
+}
+
+export interface BulkMovePreview {
+  /** Tarefas que serão efetivamente movidas (raízes fora do projeto de destino). */
+  movingIds: string[];
+  /** Descendentes que vão junto sem estarem marcados. */
+  extraDescendantIds: string[];
+  /** Selecionadas que já estão no destino e serão ignoradas. */
+  alreadyThereIds: string[];
+  /** Quantas das que serão movidas perdem o vínculo com a tarefa mãe. */
+  detachCount: number;
+  changesClientCount: number;
+  changesContribuinteCount: number;
+}
+
+/**
+ * Prévia agregada de mover várias tarefas de uma vez — mesma regra por tarefa
+ * (`buildMoveTaskPlan`), somada para caber num aviso só no modal.
+ */
+export function previewBulkMove({
+  selectedIds,
+  target,
+  tasks,
+}: {
+  selectedIds: string[];
+  target: MoveTargetProject;
+  tasks: MovableTask[];
+}): BulkMovePreview {
+  const byId = new Map(tasks.map(task => [task.id, task]));
+  const roots = pruneNestedSelection(selectedIds, tasks).filter(id => byId.has(id));
+  const alreadyThereIds = roots.filter(id => byId.get(id)!.project_id === target.id);
+  const movingIds = roots.filter(id => byId.get(id)!.project_id !== target.id);
+
+  const selected = new Set(selectedIds);
+  const extraDescendants = new Set<string>();
+  let detachCount = 0;
+  let changesClientCount = 0;
+  let changesContribuinteCount = 0;
+
+  for (const id of movingIds) {
+    const descendantIds = collectDescendantIds(id, tasks);
+    for (const descendantId of descendantIds) {
+      if (!selected.has(descendantId)) extraDescendants.add(descendantId);
+    }
+    const plan = buildMoveTaskPlan({ task: byId.get(id)!, target, descendantIds });
+    if (plan.detachesFromParent) detachCount += 1;
+    if (plan.changesClient) changesClientCount += 1;
+    if (plan.changesContribuinte) changesContribuinteCount += 1;
+  }
+
+  return {
+    movingIds,
+    extraDescendantIds: [...extraDescendants],
+    alreadyThereIds,
+    detachCount,
+    changesClientCount,
+    changesContribuinteCount,
+  };
+}
+
 /** Diff campo-a-campo para o log de auditoria, a partir do payload aplicado. */
 export function moveChangedFields(
   before: Record<string, unknown>,
