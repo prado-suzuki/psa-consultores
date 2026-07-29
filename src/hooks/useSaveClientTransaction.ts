@@ -320,6 +320,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         contribuinte_faturamento: e.contribuinte_faturamento ?? false,
       });
 
+      currentStep = "contribuinte/upsert";
       for (const e of entities) {
         let contribId = e._dbId;
         if (e._dbId) {
