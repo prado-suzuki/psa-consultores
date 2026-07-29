@@ -7,6 +7,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { isProductionEnvironment, currentAmbiente } from '@/config/api';
 import { toast } from 'sonner';
 import { computeFieldDiff, computeEntityListDiff } from '@/lib/diffUtils';
+import {
+  isSameRecord,
+  validateNomeCliente,
+  validateObservacoesCliente,
+  validateContribuinteDocumento,
+  validateContribuinteDados,
+  findDocumentosDuplicados,
+  validateRepresentante,
+  validateOrdemServico,
+} from '@/lib/clientFormValidation';
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } from '@/types/clientForm';
 import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
 import { splitName } from '@/lib/nameUtils';
@@ -83,6 +93,8 @@ interface OriginalSnapshot {
   entities: DraftEntity[];
   participants: DraftRepresentante[];
   contracts: DraftOrdemServico[];
+  /** Estado das IEs no load — sem ele, mexer só numa IE não seria detectado. */
+  inscricoesMap?: Record<string, InscricaoIE[]>;
 }
 
 interface SaveTransactionParams {
@@ -115,119 +127,66 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   const [saving, setSaving] = useState(false);
 
   const executeSave = useCallback(async () => {
-    if (!clientData.nome.trim()) {
-      toast.error("Nome do cliente é obrigatório");
-      return;
-    }
-
-    // Observações do cliente: obrigatória ao INATIVAR; se preenchida, mín. 20 caracteres.
     const clienteObs = (clientData.observacoes || "").trim();
-    if (!clientData.ativo && clienteObs.length < 20) {
-      toast.error("Para inativar o cliente, preencha as Observações (mín. 20 caracteres).");
-      return;
-    }
-    if (clienteObs && clienteObs.length < 20) {
-      toast.error("Observações do cliente deve ter no mínimo 20 caracteres.");
-      return;
+
+    // ─── Validação: barra só o que o usuário mexeu ──────────────────────────
+    // Registro que já estava incompleto no banco e não foi tocado nesta edição
+    // vira aviso pós-salvamento, não trava. Sem isso, ajustar uma OS ficava
+    // refém de um contribuinte legado sem CEP em outra aba.
+    const snapVal = isEditing ? originalSnapshot : null;
+    const origEntities = new Map((snapVal?.entities || []).filter(e => e._dbId).map(e => [e._dbId!, e]));
+    const origParts = new Map((snapVal?.participants || []).filter(p => p._dbId).map(p => [p._dbId!, p]));
+    const origOs = new Map((snapVal?.contracts || []).filter(c => c._dbId).map(c => [c._dbId!, c]));
+    const origInscricoes = snapVal?.inscricoesMap || {};
+
+    // Pendências de itens não tocados — avisadas depois que o save conclui.
+    const pendencias: string[] = [];
+    /** @returns true se deve interromper o save (erro em item tocado). */
+    const registrarErro = (erro: string | null, tocado: boolean): boolean => {
+      if (!erro) return false;
+      if (tocado) { toast.error(erro); return true; }
+      pendencias.push(erro);
+      return false;
+    };
+
+    // Nome é a identidade do cadastro: exigido sempre, tocado ou não.
+    const nomeErro = validateNomeCliente(clientData.nome);
+    if (nomeErro) { toast.error(nomeErro); return; }
+
+    const clienteTocado = !snapVal || !isSameRecord(clientData, snapVal.clientData);
+    if (registrarErro(validateObservacoesCliente(clientData), clienteTocado)) return;
+
+    // --- Contribuintes ---
+    const contribTocado = (e: DraftEntity): boolean => {
+      const chave = e._dbId || String(e._id);
+      const orig = e._dbId ? origEntities.get(e._dbId) : undefined;
+      if (!snapVal || !orig) return true;
+      return !isSameRecord(e, orig) || !isSameRecord(inscricoesMap[chave] || [], origInscricoes[chave] || []);
+    };
+    const tocadoPorIndice = entities.map(contribTocado);
+    const duplicados = findDocumentosDuplicados(entities);
+    for (const [idx, e] of entities.entries()) {
+      const tocado = tocadoPorIndice[idx];
+      if (registrarErro(validateContribuinteDocumento(e), tocado)) return;
+      const dup = duplicados.get(idx);
+      // Conflito de documento é do usuário se qualquer um do par foi mexido.
+      if (dup && registrarErro(dup.message, dup.indices.some(i => tocadoPorIndice[i]))) return;
+      const ies = inscricoesMap[e._dbId || String(e._id)] || [];
+      if (registrarErro(validateContribuinteDados(e, ies), tocado)) return;
     }
 
-    // --- Contribuintes: validação que antes ficava no botão "Adicionar à Lista" ---
-    const documentosVistos = new Map<string, string>();
-    for (const e of entities) {
-      const quem = e.nome_razao_social?.trim() || e.cpf_cnpj || "(contribuinte sem nome)";
-      if (!e.nome_razao_social?.trim()) {
-        toast.error(`Contribuinte ${e.cpf_cnpj || "novo"}: informe a Razão Social / Nome completo`);
-        return;
-      }
-      const digits = (e.cpf_cnpj || "").replace(/\D/g, "");
-      if (!digits) {
-        toast.error(`Contribuinte "${quem}": CPF/CNPJ é obrigatório`);
-        return;
-      }
-      if (digits.length !== 11 && digits.length !== 14) {
-        toast.error(`Contribuinte "${quem}": CPF deve ter 11 dígitos ou CNPJ 14 dígitos`);
-        return;
-      }
-      if (documentosVistos.has(digits)) {
-        toast.error(`Contribuinte "${quem}": documento repetido em "${documentosVistos.get(digits)}"`);
-        return;
-      }
-      documentosVistos.set(digits, quem);
-      if (!e.cep?.trim()) { toast.error(`Contribuinte "${quem}": CEP é obrigatório`); return; }
-      if (!e.logradouro?.trim()) { toast.error(`Contribuinte "${quem}": Logradouro é obrigatório`); return; }
-      if (!e.bairro?.trim()) { toast.error(`Contribuinte "${quem}": Bairro é obrigatório`); return; }
-      if (!e.municipio?.trim()) { toast.error(`Contribuinte "${quem}": Município é obrigatório`); return; }
-      if (!e.uf?.trim() || e.uf.trim().length !== 2) { toast.error(`Contribuinte "${quem}": UF deve ter 2 caracteres`); return; }
-      if (e.tipo_pessoa === "PJ") {
-        if (!e.cod_cnae?.trim()) { toast.error(`Contribuinte "${quem}": CNAE é obrigatório para PJ`); return; }
-        if (!e.simples_nacional) { toast.error(`Contribuinte "${quem}": informe a situação do Simples Nacional`); return; }
-      }
-      for (const ie of inscricoesMap[e._dbId || String(e._id)] || []) {
-        if (ie.situacao === "sim" && !ie.uf) { toast.error(`Contribuinte "${quem}": selecione a UF de todas as inscrições estaduais`); return; }
-        if (ie.situacao === "sim" && !ie.numero_ie?.trim()) { toast.error(`Contribuinte "${quem}": informe o número da IE do estado ${ie.uf}`); return; }
-      }
-    }
-
-    // --- Representantes: validação que antes ficava no botão "Adicionar à Lista" ---
-    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // --- Representantes ---
     for (const p of participants) {
-      const quem = p.nome?.trim() || "(representante sem nome)";
-      if (!p.nome?.trim()) { toast.error("Representante: o Nome é obrigatório"); return; }
-      if (!p.tipo_representante) { toast.error(`Representante "${quem}": Cargo/função é obrigatório`); return; }
-      if (!p.email?.trim()) { toast.error(`Representante "${quem}": Email é obrigatório`); return; }
-      if (!EMAIL_REGEX.test(p.email.trim())) { toast.error(`Representante "${quem}": formato de e-mail inválido`); return; }
-      if (p.telefone?.trim() && p.telefone.replace(/\D/g, "").length < 10) {
-        toast.error(`Representante "${quem}": telefone deve ter no mínimo 10 dígitos`);
-        return;
-      }
-      if (p.observacoes?.trim() && p.observacoes.trim().length < 20) {
-        toast.error(`Representante "${quem}": observações deve ter no mínimo 20 caracteres`);
-        return;
-      }
+      const orig = p._dbId ? origParts.get(p._dbId) : undefined;
+      const tocado = !snapVal || !orig || !isSameRecord(p, orig);
+      if (registrarErro(validateRepresentante(p), tocado)) return;
     }
 
-    // --- Pre-validation: empresa (cluster_id), distribuicao_receita UUIDs and percentage sums ---
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    // --- Ordens de Serviço (empresa, área, região, produtos e rateio 100%) ---
     for (const c of contracts) {
-      if (!c.cluster_id) {
-        toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione a Empresa/Faturamento`);
-        return;
-      }
-      if (!c.setor_cliente_id) {
-        toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione a Área do Negócio`);
-        return;
-      }
-      if (!c.regiao) {
-        toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione a Região`);
-        return;
-      }
-      if (!c.produtos_contratados || c.produtos_contratados.length === 0) {
-        toast.error(`OS "${c.ordem_servico || "(sem número)"}": adicione ao menos um Produto Contratado`);
-        return;
-      }
-      if (!c.distribuicao_receita || c.distribuicao_receita.length === 0) {
-        toast.error(`OS "${c.ordem_servico || "(sem número)"}": adicione ao menos um Centro de Custo na Distribuição de Receita`);
-        return;
-      }
-      const centrosVistos = new Set<string>();
-      for (const d of c.distribuicao_receita) {
-        if (!d.id_centro_custo || !UUID_REGEX.test(d.id_centro_custo)) {
-          toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione um centro de custo válido para cada linha de distribuição`);
-          return;
-        }
-        // Mesmo centro de custo em duas linhas é sempre erro de digitação (o
-        // rateio é por centro de custo) e era o rastro do bug de duplicação.
-        if (centrosVistos.has(d.id_centro_custo)) {
-          toast.error(`OS "${c.ordem_servico || "(sem número)"}": centro de custo repetido na Distribuição de Receita — remova a linha duplicada`);
-          return;
-        }
-        centrosVistos.add(d.id_centro_custo);
-      }
-      const totalPercent = c.distribuicao_receita.reduce((sum, d) => sum + (d.percentual_rateio || 0), 0);
-      if (Math.abs(totalPercent - 100) > 0.01) {
-        toast.error(`OS "${c.ordem_servico || "(sem número)"}": a soma dos percentuais de distribuição deve ser 100% (atual: ${totalPercent.toFixed(2)}%)`);
-        return;
-      }
+      const orig = c._dbId ? origOs.get(c._dbId) : undefined;
+      const tocado = !snapVal || !orig || !isSameRecord(c, orig);
+      if (registrarErro(validateOrdemServico(c), tocado)) return;
     }
 
     // --- Duplicate name check (only on creation) ---
@@ -861,6 +820,17 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         toast.info("Nenhuma alteração detectada. Se você editou algum item, confirme o botão Salvar da linha antes de salvar o cliente.");
       } else {
         toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
+      }
+
+      // Aviso (não bloqueante) do que já estava incompleto e não foi tocado:
+      // salvar segue funcionando, mas a pendência não passa despercebida.
+      if (pendencias.length > 0) {
+        const amostra = pendencias.slice(0, 2).join(" · ");
+        const extras = pendencias.length - 2;
+        toast.warning(
+          `Pendências em itens que você não alterou: ${amostra}${extras > 0 ? ` · +${extras}` : ""}`,
+          { duration: 10000 },
+        );
       }
       onSuccess();
     } catch (error: any) {
