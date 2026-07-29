@@ -1,0 +1,46 @@
+{
+  "_comment": "Exemplo REAL: capturar um estado TRANSITORIO de loading (que em localhost some rapido demais). O truque e' delay_routes: atrasa /rest/v1/ por alguns segundos para o loader ficar no ar tempo de capturar a animacao, e depois a tela popula (payoff). 100% read-only — nenhum passo grava no banco. Foi assim que gravamos o loader 'porquinho' da area Tax (/equipe/tax/projetos/tarefas).",
+
+  "base_url": "http://localhost:8080",
+  "supabase_ref": null,
+  "viewport": { "width": 1280, "height": 800 },
+  "device_scale_factor": 2,
+  "fps": 10,
+  "width": 900,
+  "hold_frames": 6,
+  "gif_name": "loader.gif",
+
+  "delay_routes": [
+    { "url_contains": "/rest/v1/", "ms": 7000 }
+  ],
+
+  "steps": [
+    {
+      "action": "goto",
+      "url": "http://localhost:8080/equipe/tax/projetos/tarefas",
+      "wait_until": "load",
+      "settle_ms": 2500,
+      "hold_frames": 1,
+      "label": "warmup: compila a rota (Vite dev) e monta o app"
+    },
+    {
+      "action": "goto",
+      "url": "http://localhost:8080/equipe/tax/projetos/tarefas",
+      "wait_until": "domcontentloaded",
+      "settle_ms": 400,
+      "hold_frames": 2,
+      "label": "recarrega com cache frio -> cai no estado de loading"
+    },
+    {
+      "action": "hold",
+      "hold_frames": 40,
+      "label": "loader animando enquanto /rest/v1/ esta atrasado (~4 ciclos)"
+    },
+    {
+      "action": "wait",
+      "ms": 5000,
+      "hold_frames": 12,
+      "label": "dados chegam: a tela popula (payoff)"
+    }
+  ]
+}

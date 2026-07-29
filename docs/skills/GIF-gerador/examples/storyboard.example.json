@@ -1,0 +1,34 @@
+{
+  "_comment": "Storyboard GENERICO — serve p/ QUALQUER area do portal (Tax, Chamados, Clientes, Projetos, PERDCOMP, RH, board, portal do cliente). Troque base_url/url e os alvos (text | role+name | selector) pelo fluxo real. REGRA: todo passo que SALVA/CONFIRMA/EXCLUI/ENVIA leva \"mutates\": true.",
+
+  "base_url": "http://localhost:8080",
+  "supabase_ref": null,
+  "viewport": { "width": 1280, "height": 800 },
+  "device_scale_factor": 2,
+  "fps": 8,
+  "width": 960,
+  "hold_frames": 6,
+  "gif_name": "feature.gif",
+
+  "_delay_routes_doc": "OPCIONAL: atrasa as RESPOSTAS de requests que casam com url_contains, para segurar um estado transitorio (ex.: loading) no ar. Nao muda dado — so' adia. Use com wait_until 'domcontentloaded' no goto. Remova este bloco se nao precisar.",
+  "delay_routes": [],
+
+  "steps": [
+    { "action": "goto", "url": "http://localhost:8080/equipe/chamados", "label": "abrir a lista", "settle_ms": 1500, "hold_frames": 8 },
+
+    { "action": "click", "text": "Exemplo de item", "which": "last", "label": "abrir o item", "hold_frames": 10 },
+
+    { "action": "scroll", "selector": "[role=dialog]", "to": 9999, "label": "rolar ate' o rodape", "hold_frames": 4 },
+
+    { "action": "hover", "role": "button", "name": "Acao principal", "label": "destacar o botao", "hold_frames": 4 },
+
+    { "action": "click", "role": "button", "name": "Acao principal", "label": "abrir o dialogo de confirmacao", "hold_frames": 10 },
+
+    { "action": "hold", "label": "segurar no dialogo (fim read-only — NAO confirma)", "hold_frames": 12 },
+
+    {
+      "_ATENCAO": "O passo abaixo GRAVA NO BANCO. So' inclua apos consentimento do usuario; exige --confirm-writes. Se so' quer mostrar o fluxo, PARE no passo anterior (com o dialogo aberto).",
+      "action": "click", "role": "button", "name": "Confirmar", "mutates": true, "label": "CONFIRMAR (grava no banco)", "hold_frames": 12
+    }
+  ]
+}
