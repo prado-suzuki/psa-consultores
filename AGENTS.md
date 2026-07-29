@@ -68,6 +68,7 @@ Fonte: `docs/planos/plano-refatoracao-god-components-fase-3.md` e ledgers em `do
   - `docs/planos/` — planos de implementação (handoff)
   - `docs/mapa/`, `docs/osg/`, `docs/rls/` — docs por módulo
   - `docs/geral/` — transversais · `docs/sprints/` — sprints · `docs/AI_CONTEXT.md` — contexto-mestre
+- **Tarefa delegável para uma sprint:** salve em `docs/sprints/sprint-<N>/TAREFA_<slug>.md` e registre a linha no `README.md` da pasta da sprint (índice). Uma tarefa = um arquivo, com subtarefas numeradas (`T1`, `T2`, …), bugs achados (`B1`, …) e marcação explícita de **⚠️ MIGRAÇÃO** / **⚠️ MUDANÇA DE RPC** quando depender do Lovable. O plano de design/arquitetura longo continua em `docs/planos/` — a tarefa **linka**, não duplica.
 - Ao criar um novo plano/análise, salve direto na subpasta do módulo correspondente (crie `docs/<modulo>/` se ainda não existir). Não deixe soltos na raiz.
 
 ## 📂 REVELAÇÃO PROGRESSIVA (Leia estes arquivos se precisar de contexto específico)

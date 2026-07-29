@@ -33,6 +33,7 @@ import { TaskTodayView } from '@/components/equipe/fiscal/tasks/TaskTodayView';
 import { TaskFutureView } from '@/components/equipe/fiscal/tasks/TaskFutureView';
 import { TaskModal } from '@/components/equipe/fiscal/tasks/TaskModal';
 import { ReassignModal } from '@/components/equipe/fiscal/tasks/ReassignModal';
+import { MoveTaskModal } from '@/components/equipe/fiscal/tasks/MoveTaskModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,13 +57,15 @@ import {
 const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const deepLinkTaskId = searchParams.get('taskId');
-  const { user, isAdmin, isLider } = useAuth();
+  const { user, isAdmin, isLider, isSublider } = useAuth();
   const [filters, setFilters] = useState<TaskFiltersType>({});
   const [activeView, setActiveView] = useState('list');
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<OrgTask | null>(null);
   const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
   const [taskToReassign, setTaskToReassign] = useState<OrgTask | null>(null);
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
+  const [taskToMove, setTaskToMove] = useState<OrgTask | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [openedDeepLinkId, setOpenedDeepLinkId] = useState<string | null>(null);
   const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
@@ -240,6 +243,21 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     setIsReassignModalOpen(true);
   };
 
+  // Espelha o trigger org_tasks_team_member_status_only: trocar o projeto é
+  // mudança fora do trio status/horas/revisor, então só líder (ou superior) e o
+  // criador da tarefa conseguem. Avisa antes em vez de deixar o banco recusar.
+  const handleMoveTask = (task: OrgTask) => {
+    const canMove = isAdmin || isLider || isSublider || (!!user && task.created_by === user.id);
+    if (!canMove) {
+      toast.error('Você não tem permissão para mover esta tarefa.', {
+        description: 'Apenas o criador da tarefa ou um líder pode trocá-la de projeto. Contate um líder da equipe.',
+      });
+      return;
+    }
+    setTaskToMove(task);
+    setIsMoveModalOpen(true);
+  };
+
   const handleNewTask = (projectId?: string) => {
     setSelectedTask(null);
     setDefaultParentId(null);
@@ -303,6 +321,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 onEditTask={handleEditTask}
                 onDeleteTask={handleDeleteTask}
                 onReassignTask={handleReassignTask}
+                onMoveTask={handleMoveTask}
                 onAddSubtask={handleAddSubtask}
                 currentUserId={user?.id}
               />
@@ -324,6 +343,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
                  onReassign={handleReassignTask}
+                 onMove={handleMoveTask}
                  onAddSubtask={handleAddSubtask}
                  currentUserId={user?.id}
               />
@@ -382,6 +402,17 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
 
       <ProjetoDialog />
       <ProjetoDeleteDialog />
+
+      {/* Move Modal */}
+      <MoveTaskModal
+        open={isMoveModalOpen}
+        onOpenChange={setIsMoveModalOpen}
+        task={taskToMove}
+        area={area}
+        projects={listProjects}
+        tasks={tasks}
+        osRows={osRows}
+      />
 
       {/* Reassign Modal */}
       <ReassignModal

@@ -14,6 +14,7 @@ import {
   ChevronsUp,
   Edit3,
   FilterX,
+  FolderInput,
   FolderKanban,
   MoreHorizontal,
   Plus,
@@ -61,6 +62,7 @@ interface ProjetosTarefasListProps {
   onEditTask: (task: OrgTask) => void;
   onDeleteTask: (taskId: string) => void;
   onReassignTask: (task: OrgTask) => void;
+  onMoveTask: (task: OrgTask) => void;
   onAddSubtask: (task: OrgTask) => void;
   currentUserId?: string | null;
 }
@@ -131,6 +133,7 @@ export function ProjetosTarefasList({
   onEditTask,
   onDeleteTask,
   onReassignTask,
+  onMoveTask,
   onAddSubtask,
   currentUserId,
 }: ProjetosTarefasListProps) {
@@ -230,6 +233,7 @@ export function ProjetosTarefasList({
               <DropdownMenuItem onClick={() => onEditTask(task)}><Edit3 className="mr-2 h-4 w-4" />Editar</DropdownMenuItem>
               {!task.parent_task_id && <DropdownMenuItem onClick={() => onAddSubtask(task)}><Plus className="mr-2 h-4 w-4" />Adicionar subtarefa</DropdownMenuItem>}
               <DropdownMenuItem onClick={() => onReassignTask(task)}><UserPlus className="mr-2 h-4 w-4" />Reatribuir</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onMoveTask(task)}><FolderInput className="mr-2 h-4 w-4" />Mover para outro projeto</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-destructive" onClick={() => onDeleteTask(task.id)}><Trash2 className="mr-2 h-4 w-4" />Excluir</DropdownMenuItem>
             </DropdownMenuContent>
