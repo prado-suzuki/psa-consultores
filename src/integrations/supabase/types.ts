@@ -8270,6 +8270,39 @@ export type Database = {
         Args: { _cluster_id: string; _include_orphans?: boolean }
         Returns: string[]
       }
+      feed_org_comments: {
+        Args: {
+          _cursor_created_at?: string
+          _cursor_id?: string
+          _limit?: number
+        }
+        Returns: {
+          attachment_count: number | null
+          author_id: string | null
+          author_name: string | null
+          body: string | null
+          created_at: string | null
+          editado_em: string | null
+          entity_id: string | null
+          entity_title: string | null
+          entity_type: Database["public"]["Enums"]["org_comment_entity"] | null
+          excluido: boolean | null
+          id: string | null
+          kind: Database["public"]["Enums"]["org_comment_kind"] | null
+          metadata: Json | null
+          parent_id: string | null
+          project_id: string | null
+          project_name: string | null
+          reply_count: number | null
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "org_comments_feed"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       gargalo_cluster_visivel: {
         Args: { _gargalo_id: string }
         Returns: boolean
