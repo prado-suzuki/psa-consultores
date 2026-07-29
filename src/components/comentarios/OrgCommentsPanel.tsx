@@ -36,6 +36,7 @@ import {
   type OrgCommentEntityType,
   useDomainOrgComments,
 } from '@/hooks/useDomainOrgComments';
+import { useMarcarMencoesLidasDaThread } from '@/hooks/useNotificacoesMencao';
 import { iniciaisDoNome } from '@/lib/orgCommentMentions';
 import { docEstaVazio, lerCorpo } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
@@ -108,6 +109,13 @@ export function OrgCommentsPanel({
   const scrollRootRef = useRef<HTMLDivElement>(null);
   /** Enquanto verdadeiro, a próxima renderização da lista desce para o fim. */
   const ancoraPendente = useRef(true);
+
+  /**
+   * Thread aberta é menção lida: baixa do sino as menções que estão nestes
+   * comentários. Sem isso o contador ficaria pendurado mesmo depois de a pessoa
+   * ler o comentário aqui, e só o clique no sino o limparia.
+   */
+  useMarcarMencoesLidasDaThread(useMemo(() => comments.map((comment) => comment.id), [comments]));
 
   const roots = useMemo(() => comments.filter((comment) => !comment.parent_id), [comments]);
   const repliesByRoot = useMemo(() => {

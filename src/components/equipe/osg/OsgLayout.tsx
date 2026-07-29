@@ -611,6 +611,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             <NotificationPopover
               navigateTo="/equipe/chamados"
               tasksNavigateTo="/equipe/osg/projetos/tarefas"
+              mencoesArea="osg"
             />
           </div>
         </header>

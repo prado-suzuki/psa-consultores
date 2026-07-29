@@ -1,6 +1,6 @@
 # Comentários, menções, anexos e feed — desenho das tabelas
 
-**Status:** proposta de modelagem (nada implementado)
+**Status:** fase 1 e fase 2 implementadas (ver §10); reações e follow/unfollow seguem propostas
 **Escopo:** comentários com menção e anexo em tarefas (`org_tasks`) e projetos (`org_projects`), mais o feed centralizado que vem em sequência.
 **Referência de UX:** painel *Activity* do ClickUp (thread, responder, reagir, anexar) + canal do Slack (feed).
 
@@ -545,8 +545,63 @@ Se der zero nos dois, seguir. Se não, decidir o destino dessas tarefas **antes*
 **Fase 1 — comentários**
 `org_comments` + 4 triggers + índices + RLS · `org_comment_mentions` · `org_comment_attachments` + bucket · helpers `visible_org_project_ids` / `own_org_task_ids` · view `org_comments_feed` · RPC de criação · migração dos 39 registros · realtime · decomposição do `TaskModal`
 
-**Fase 2 — feed**
-`org_feed_visto` · tela do feed lendo a view · filtro derivado de relevância
+**Fase 2 — feed** — ENTREGUE em 2026-07-29, menos a marca d'água
+Tela "Feed" (`/equipe/{tax,osg}/projetos/feed`), espelhada nas duas áreas no padrão
+do `PainelTarefas`: `src/components/comentarios/feed/`, `src/hooks/useDomainFeedComentarios.ts`,
+`src/lib/feedComentarios.ts`, migration `20260729144600_feed_org_comments.sql`.
+
+- **`org_feed_visto` NÃO entrou.** A marca d'água de "não lidos" ficou fora do escopo da sprint
+  por decisão do ticket — sem badge, sem linha de "novas mensagens".
+- **Relevância:** por decisão de Bernardo (2026-07-29), o recorte é o que a RLS já permite ver —
+  `visible_org_project_ids` cru, com o bypass de admin. Ou seja, admin vê a conversa da empresa
+  toda e líder/sublíder vê os projetos da área dele. As duas outras fontes do §4 (mencionado,
+  respondeu) entram por herança desses conjuntos, sem ramo próprio de consulta. Se o volume
+  incomodar, o aperto é um helper `feed_relevant_project_ids(_uid)` (membro/responsável/líder,
+  sem admin e sem os caminhos de área) — troca de uma linha na função SQL, sem tocar no front.
+- **Paginação:** cursor em `(created_at, id)` dentro da função `feed_org_comments`, com sentinelas
+  máximas na primeira página para o predicado continuar sendo limite de índice. Índice novo
+  `org_comments_feed_cronologico_idx (created_at DESC, id DESC)`, irmão sem `project_id` do
+  `org_comments_project_feed_idx`.
+
+Dois consertos embarcados junto, porque o feed dependia deles:
+
+- **A view usava `JOIN` interno em `org_projects`** e apagava comentário que a RLS de
+  `org_comments` deixa passar: `rls_org_projects_select` não tem o ramo "tenho tarefa neste
+  projeto", que é justamente o que `own_org_task_ids` cobre. Quem executava tarefa em projeto de
+  que não é membro não via os comentários da própria tarefa — na thread também, não só no feed.
+  Agora é `LEFT JOIN`; no pior caso `project_name` vem nulo.
+- **`org_comments_select` reavaliava `visible_org_project_ids` por linha** (função STABLE em
+  qual de policy não é dobrada em constante). Reescrita com subconsulta escalar, no mesmo padrão
+  que `rls_org_projects_select` já usava — mesma regra, uma avaliação por consulta. Junto, o
+  índice que faltava em `org_project_members (user_id)`.
+
+**Caixa de menções (§3.4) — ENTREGUE em 2026-07-29**
+A menção passou a notificar quem foi citado, no sino que já existe. Sem tabela nova: a
+notificação **é** a linha de `org_comment_mentions` com `lido_em IS NULL`, que a RPC
+`criar_org_comment` já gravava desde a fase 1 e ninguém lia.
+
+- **Front:** `src/hooks/useNotificacoesMencao.ts` (caixa + carimbo de leitura),
+  `src/lib/mencaoNotificacoes.ts` (junção e regras puras), item de menção no
+  `NotificationPopover`, e `useMarcarMencoesLidasDaThread` no `OrgCommentsPanel`.
+- **Nenhuma migration.** Tabela, índice de caixa de entrada (`mentioned_user_id` +
+  `lido_em IS NULL`), RLS e trigger que só deixa mexer em `lido_em` já estavam de pé.
+- **Duas consultas, não uma:** a caixa lê as menções pendentes e depois hidrata os
+  comentários pela view em lote. Não dá para embutir — `org_comments_feed` é view, o
+  PostgREST não embute view sem FK declarada, e é ela que traz título da entidade e nome
+  do projeto.
+- **Lido em dois caminhos:** clicar no item do sino, e abrir a thread onde o comentário
+  está (senão o contador ficaria pendurado depois de a pessoa já ter lido).
+- **Auto-menção não notifica.** A RPC grava qualquer id que venha no `_mentions`, inclusive
+  o do próprio autor; o filtro está na camada pura.
+
+⚠️ **Gap conhecido — menção sem alcance não aparece.** `org_comment_mentions_select` libera o
+mencionado a ver a linha da menção, mas `org_comments_select` **não tem o ramo "fui
+mencionado"**: é projeto visível ou tarefa de vínculo individual. Então a menção a quem não
+alcança o comentário (ex.: revisor que não é membro do projeto e cuja tarefa saiu de
+`status = 'review'`; ou ex-membro do projeto) é descartada em silêncio — notificação sem
+conteúdo seria pior. O conserto é um ramo novo na policy, no padrão de conjunto do §4
+(`id = ANY(public.mentioned_org_comment_ids(auth.uid()))`, não `EXISTS` por linha, que
+pesaria na varredura global do feed). Fica como decisão de escopo/segurança, não embarcada.
 
 **Fase 3 — se fizer falta**
 `org_comment_reactions` · `follow/unfollow` explícito · busca textual no corpo

@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   comments: [] as OrgComment[],
   candidates: [] as { id: string; name: string }[],
   candidatesArgs: [] as unknown[][],
+  mencoesLidasArgs: [] as string[][],
   create: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
@@ -83,6 +84,17 @@ vi.mock('@/hooks/useDomainOrgComments', () => ({
   }),
 }));
 
+/**
+ * A caixa de menções tem teste próprio (`useNotificacoesMencao.test.tsx`); aqui
+ * só interessa que o painel entregue os comentários da thread para ela baixar o
+ * sino.
+ */
+vi.mock('@/hooks/useNotificacoesMencao', () => ({
+  useMarcarMencoesLidasDaThread: (commentIds: string[]) => {
+    mocks.mencoesLidasArgs.push(commentIds);
+  },
+}));
+
 import { OrgCommentsPanel } from '@/components/comentarios/OrgCommentsPanel';
 import {
   docDeTextoLegado,
@@ -125,6 +137,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.comments = [];
   mocks.candidatesArgs = [];
+  mocks.mencoesLidasArgs = [];
   mocks.candidates = [
     { id: 'U1', name: 'Bernardo Silva' },
     { id: 'U2', name: 'Ana Souza' },
@@ -139,6 +152,13 @@ beforeEach(() => {
 });
 
 describe('OrgCommentsPanel', () => {
+  it('entrega os comentários da thread para a caixa de menções marcar como lidos', () => {
+    mocks.comments = [comment(), comment({ id: 'C2', parent_id: 'C1' })];
+    renderPanel();
+
+    expect(mocks.mencoesLidasArgs.at(-1)).toEqual(['C1', 'C2']);
+  });
+
   it('entrega a lista de menção ao editor', () => {
     renderPanel();
 

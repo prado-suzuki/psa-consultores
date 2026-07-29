@@ -65,6 +65,9 @@ export interface OrgComment {
   excluido: boolean;
 }
 
+/** A linha da view sem os anexos — o que basta para citar um comentário. */
+export type OrgCommentSemAnexos = Omit<OrgComment, 'attachments'>;
+
 export interface OrgCommentAttachment {
   id: string;
   comment_id: string;
@@ -122,6 +125,16 @@ interface FeedViewQuery {
     column: string,
     options?: { ascending?: boolean },
   ) => PromiseLike<SupabaseResult<OrgComment[]>>;
+}
+
+/** Shim mínimo da view para buscar linhas por id (ver dívida no topo). */
+interface FeedByIdQuery {
+  select: (columns: string) => FeedByIdQuery;
+  eq: (column: string, value: unknown) => FeedByIdQuery;
+  in: (
+    column: string,
+    values: string[],
+  ) => PromiseLike<SupabaseResult<OrgCommentSemAnexos[]>>;
 }
 
 interface AttachmentQuery {
@@ -183,6 +196,80 @@ async function dimensoesDaImagem(
   }
 }
 
+/**
+ * Anexos dos comentários informados, indexados por `comment_id`.
+ *
+ * Uma ida ao banco para o lote inteiro — é o que evita N+1 tanto na thread
+ * quanto no feed de comentários, que reusa esta função para hidratar a página.
+ */
+export async function buscarAnexosPorComentario(
+  commentIds: string[],
+): Promise<Map<string, OrgCommentAttachment[]>> {
+  const porComentario = new Map<string, OrgCommentAttachment[]>();
+  if (commentIds.length === 0) return porComentario;
+
+  const { data, error } = await (
+    supabase.from('org_comment_attachments' as never) as unknown as AttachmentQuery
+  )
+    .select('*')
+    .in('comment_id', commentIds)
+    .order('uploaded_at', { ascending: true });
+
+  if (error) throw error;
+  for (const attachment of data ?? []) {
+    const atuais = porComentario.get(attachment.comment_id) ?? [];
+    atuais.push(attachment);
+    porComentario.set(attachment.comment_id, atuais);
+  }
+  return porComentario;
+}
+
+/**
+ * Comentários da view pelos ids, indexados por id — sem anexos.
+ *
+ * Existe para a caixa de menções, que parte da linha de `org_comment_mentions`
+ * e precisa do comentário citado com título da entidade e nome do projeto (só a
+ * view junta isso). Fica aqui, junto do shim da view, para o nome da view
+ * continuar aparecendo num lugar só quando a dívida de tipos for paga.
+ *
+ * Filtra `excluido` na leitura, como manda a convenção de soft delete: menção a
+ * comentário apagado não deve virar notificação.
+ */
+export async function buscarComentariosPorId(
+  commentIds: string[],
+): Promise<Map<string, OrgCommentSemAnexos>> {
+  const porId = new Map<string, OrgCommentSemAnexos>();
+  if (commentIds.length === 0) return porId;
+
+  const { data, error } = await (supabase.from(VIEW as never) as unknown as FeedByIdQuery)
+    .select('*')
+    .eq('excluido', false)
+    .in('id', commentIds);
+
+  if (error) throw error;
+  for (const comentario of data ?? []) porId.set(comentario.id, comentario);
+  return porId;
+}
+
+/**
+ * URL assinada de um anexo, para abrir sem tornar o bucket público.
+ *
+ * Fica separado da thread porque o feed de comentários também abre anexo, e ele
+ * não monta o painel da entidade.
+ */
+export function useDownloadOrgCommentAttachment() {
+  return useMutation({
+    mutationFn: async (attachment: OrgCommentAttachment) => {
+      const { data, error } = await supabase.storage
+        .from(BUCKET)
+        .createSignedUrl(attachment.file_path, 60);
+      if (error) throw error;
+      return { url: data.signedUrl, fileName: attachment.file_name };
+    },
+    onError: (error: Error) => toast.error('Erro ao abrir anexo: ' + error.message),
+  });
+}
+
 /** Abre a URL assinada do anexo em nova aba, preservando o nome original. */
 export function abrirAnexoEmNovaAba(url: string, fileName: string) {
   const link = document.createElement('a');
@@ -217,23 +304,9 @@ export function useDomainOrgComments(
       const comments = data ?? [];
       if (comments.length === 0) return [];
 
-      const { data: attachments, error: attachmentsError } = await (
-        supabase.from('org_comment_attachments' as never) as unknown as AttachmentQuery
-      )
-        .select('*')
-        .in(
-          'comment_id',
-          comments.map((comment) => comment.id),
-        )
-        .order('uploaded_at', { ascending: true });
-
-      if (attachmentsError) throw attachmentsError;
-      const attachmentsByComment = new Map<string, OrgCommentAttachment[]>();
-      for (const attachment of attachments ?? []) {
-        const current = attachmentsByComment.get(attachment.comment_id) ?? [];
-        current.push(attachment);
-        attachmentsByComment.set(attachment.comment_id, current);
-      }
+      const attachmentsByComment = await buscarAnexosPorComentario(
+        comments.map((comment) => comment.id),
+      );
 
       return comments.map((comment) => ({
         ...comment,
@@ -376,16 +449,7 @@ export function useDomainOrgComments(
     onError: (error: Error) => toast.error('Erro ao excluir comentário: ' + error.message),
   });
 
-  const downloadAttachment = useMutation({
-    mutationFn: async (attachment: OrgCommentAttachment) => {
-      const { data, error } = await supabase.storage
-        .from(BUCKET)
-        .createSignedUrl(attachment.file_path, 60);
-      if (error) throw error;
-      return { url: data.signedUrl, fileName: attachment.file_name };
-    },
-    onError: (error: Error) => toast.error('Erro ao abrir anexo: ' + error.message),
-  });
+  const downloadAttachment = useDownloadOrgCommentAttachment();
 
   useEffect(() => {
     if (!entityId) return;
