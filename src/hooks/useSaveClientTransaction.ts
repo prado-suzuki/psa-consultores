@@ -515,6 +515,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
 
       for (const c of contracts) {
+        currentStep = c._dbId ? "ordem_servico/update" : "ordem_servico/insert";
         let osId = c._dbId;
         if (c._dbId) {
           // .select() para que uma falha silenciosa de RLS (0 rows) apareça como
