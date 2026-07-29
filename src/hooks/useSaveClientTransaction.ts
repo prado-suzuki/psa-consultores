@@ -205,6 +205,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
     setSaving(true);
     let createdClienteId: string | null = null;
+    // Passo corrente atualizado antes de cada write; usado no toast de RLS
+    // pra dizer QUAL tabela/op recusou, em vez de um genérico "sem permissão".
+    let currentStep = "cliente/update";
     try {
       const clientPayload = {
         nome: clientData.nome.trim(),
@@ -222,6 +225,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       let clienteResult: any;
 
       if (isEditing) {
+        currentStep = "cliente/update";
         const { data: updated, error } = await supabase
           .from(clienteTable)
           // cast: coluna `observacoes` é aplicada via migração no Lovable e ainda não está nos tipos gerados
@@ -238,6 +242,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const { data: dbContribs } = await supabase.from(contribuinteTable).select("id").eq("cliente_id", clienteId).eq("excluido", false);
         const removedContribIds = (dbContribs || []).map(c => c.id).filter(id => !currentContribDbIds.includes(id));
         if (removedContribIds.length > 0) {
+          currentStep = "contribuinte/soft-delete";
           await softDeleteVerificado(contribuinteTable, "id", removedContribIds, "contribuinte(s)");
         }
 
@@ -247,6 +252,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const { data: dbParts } = await (supabase.from(representanteTable) as any).select(partIdField).eq("id_cliente", clienteId).eq("excluido", false);
         const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
         if (removedPartIds.length > 0) {
+          currentStep = "representante/soft-delete";
           await softDeleteVerificado(representanteTable, partIdField, removedPartIds, "representante(s)");
         }
 
@@ -258,6 +264,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         if (removedOsIds.length > 0) {
           // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
           await assertCanPerform('ordem_servico', 'update', removedOsIds[0]);
+          currentStep = "ordem_servico/soft-delete";
           await softDeleteVerificado("ordem_servico", "id", removedOsIds, "OS");
 
           // O rateio acompanha a OS: sem isso sobra linha de distribuicao_receita
@@ -270,10 +277,12 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           const distOrfaIds = ((distDeOsRemovida || []) as Array<{ id: string }>).map(r => r.id);
           if (distOrfaIds.length > 0) {
             await assertCanPerform('distribuicao_receita', 'update', distOrfaIds[0]);
+            currentStep = "distribuicao_receita/soft-delete-orfas";
             await softDeleteVerificado("distribuicao_receita", "id", distOrfaIds, "linha(s) de Distribuição de Receita da OS excluída");
           }
         }
       } else {
+        currentStep = "cliente/insert (RPC criar_cliente_com_clusters)";
         // RPC atômica: insere cliente + cliente_clusters na mesma transação
         // (contorna trigger DEFERRED trg_cliente_tem_cluster). Retorna a linha completa
         // (created_at/updated_at do banco + nome já normalizado pelo trigger).
@@ -311,6 +320,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         contribuinte_faturamento: e.contribuinte_faturamento ?? false,
       });
 
+      currentStep = "contribuinte/upsert";
       for (const e of entities) {
         let contribId = e._dbId;
         if (e._dbId) {
@@ -452,6 +462,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         user_id: userId,
       });
 
+      currentStep = "representante/upsert";
       for (const p of participants) {
         const pIdField = "id_representante";
         if (p._dbId) {
@@ -504,6 +515,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
 
       for (const c of contracts) {
+        currentStep = c._dbId ? "ordem_servico/update" : "ordem_servico/insert";
         let osId = c._dbId;
         if (c._dbId) {
           // .select() para que uma falha silenciosa de RLS (0 rows) apareça como
@@ -549,6 +561,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           }
 
           for (const d of draftDist.filter(d => d._dbId)) {
+            currentStep = "distribuicao_receita/update";
             const { data: updDist, error: updDistError } = await (supabase.from("distribuicao_receita" as any) as any)
               .update({ id_centro_custo: d.id_centro_custo, percentual_rateio: d.percentual_rateio || 0 })
               .eq("id", d._dbId)
@@ -565,6 +578,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
           const distNovos = draftDist.filter(d => !d._dbId);
           if (distNovos.length > 0) {
+            currentStep = "distribuicao_receita/insert";
             const { error: distError } = await (supabase.from("distribuicao_receita" as any) as any).insert(
               distNovos.map(d => ({
                 id_ordem_servico: osId,
@@ -589,6 +603,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
           // Delete removed
           if (toDelete.length > 0) {
+            currentStep = "os_produtos_contratados/delete";
             const { error: delProdError } = await (supabase.from("os_produtos_contratados" as any) as any).delete().in("id", toDelete);
             if (delProdError) throw delProdError;
             for (const delId of toDelete) {
@@ -607,6 +622,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           // Insert new (no _dbId)
           const toInsert = draftProdutos.filter(p => !p._dbId);
           if (toInsert.length > 0) {
+            currentStep = "os_produtos_contratados/insert";
             const insertPayload = toInsert.map(p => ({
               ordem_servico_id: osId,
               produto_segmento_id: p.produto_segmento_id,
@@ -633,6 +649,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             const prodChanged = old.produto_segmento_id !== dp.produto_segmento_id;
             const horasChanged = (old.horas_contratadas ?? null) !== (dp.horas_contratadas ?? null);
             if (prodChanged || horasChanged) {
+              currentStep = "os_produtos_contratados/update";
               const { error: updProdError } = await (supabase.from("os_produtos_contratados" as any) as any)
                 .update({
                   produto_segmento_id: dp.produto_segmento_id,
@@ -659,6 +676,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         // INSERT new
         const toInsertClusters = clusterIds.filter(id => !existingClusterIds.has(id));
         if (toInsertClusters.length > 0) {
+          currentStep = "cliente_clusters/insert";
           const payload = toInsertClusters.map(cid => ({ cliente_id: clienteId, cluster_id: cid }));
           const { error: insErr } = await (supabase.from('cliente_clusters' as any) as any).insert(payload);
           if (insErr) throw insErr;
@@ -666,8 +684,10 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         // DELETE removed
         const toDeleteClusterRows = (existingClusters || []).filter((r: any) => !desiredClusterIds.has(r.cluster_id));
         if (toDeleteClusterRows.length > 0) {
+          currentStep = "cliente_clusters/delete";
           const deleteIds = toDeleteClusterRows.map((r: any) => r.id);
-          await (supabase.from('cliente_clusters' as any) as any).delete().in('id', deleteIds);
+          const { error: delErr } = await (supabase.from('cliente_clusters' as any) as any).delete().in('id', deleteIds);
+          if (delErr) throw delErr;
         }
       }
 
@@ -843,7 +863,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           console.error("[rollback] Falha ao remover cliente:", rollbackErr);
         }
       }
-      console.error("[cadastro cliente] erro:", error);
+      console.error("[cadastro cliente] erro:", error, "passo:", currentStep);
       const rlsMsg = (error?.message || "").toLowerCase();
       const isRls =
         error?.code === "42501" ||
@@ -853,7 +873,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       const acao = isEditing ? "atualizar" : "cadastrar";
       toast.error(
         isRls
-          ? `Sem permissão para ${acao} cliente com o seu perfil/cluster. Fale com a liderança.`
+          ? `Sem permissão para ${acao} cliente (${currentStep}). Fale com a liderança.`
           : `Erro ao ${acao} cliente: ` + error.message
       );
     } finally {
