@@ -676,6 +676,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         // INSERT new
         const toInsertClusters = clusterIds.filter(id => !existingClusterIds.has(id));
         if (toInsertClusters.length > 0) {
+          currentStep = "cliente_clusters/insert";
           const payload = toInsertClusters.map(cid => ({ cliente_id: clienteId, cluster_id: cid }));
           const { error: insErr } = await (supabase.from('cliente_clusters' as any) as any).insert(payload);
           if (insErr) throw insErr;
@@ -683,8 +684,10 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         // DELETE removed
         const toDeleteClusterRows = (existingClusters || []).filter((r: any) => !desiredClusterIds.has(r.cluster_id));
         if (toDeleteClusterRows.length > 0) {
+          currentStep = "cliente_clusters/delete";
           const deleteIds = toDeleteClusterRows.map((r: any) => r.id);
-          await (supabase.from('cliente_clusters' as any) as any).delete().in('id', deleteIds);
+          const { error: delErr } = await (supabase.from('cliente_clusters' as any) as any).delete().in('id', deleteIds);
+          if (delErr) throw delErr;
         }
       }
 
