@@ -887,6 +887,38 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         }
       }
 
+      // Audit consolidado por OS afetada em rateio/produtos (formato { old, new }
+      // que o formatChangedFields entende; só inclui a chave do lado que mudou).
+      let anyRateioOrProdChange = false;
+      for (const [osId, stats] of osChangeStats) {
+        const rateioChanged = stats.rateio.inserted + stats.rateio.updated + stats.rateio.softDeleted > 0;
+        const produtosChanged = stats.produtos.inserted + stats.produtos.updated + stats.produtos.deleted > 0;
+        if (!rateioChanged && !produtosChanged) continue;
+        anyRateioOrProdChange = true;
+        const changed_fields: Record<string, { old: unknown; new: unknown }> = {};
+        if (rateioChanged) {
+          changed_fields.distribuicao_receita = {
+            old: resumoRateio(stats.rateio.antes),
+            new: resumoRateio(stats.rateio.depois),
+          };
+        }
+        if (produtosChanged) {
+          changed_fields.produtos_contratados = {
+            old: resumoProdutos(stats.produtos.antes),
+            new: resumoProdutos(stats.produtos.depois),
+          };
+        }
+        logAction({
+          area: 'dev',
+          entity_type: 'ordem_servico',
+          entity_id: osId,
+          entity_name: stats.osLabel,
+          action: 'updated',
+          details: `Cliente: ${clientData.nome.trim()}`,
+          changed_fields,
+        });
+      }
+
       // Feedback preciso: se estava editando e nenhuma entidade teve diff real,
       // informar explicitamente para o usuário perceber que o que ele editou
       // não chegou ao estado salvo (ex.: edição inline não commitada na aba).
@@ -895,7 +927,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         !clientHasChange &&
         contribDiffs.length === 0 &&
         partDiffs.length === 0 &&
-        osDiffs.length === 0;
+        osDiffs.length === 0 &&
+        !anyRateioOrProdChange;
+
       if (nothingChanged) {
         toast.info("Nenhuma alteração detectada. Se você editou algum item, confirme o botão Salvar da linha antes de salvar o cliente.");
       } else {
