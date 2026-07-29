@@ -63,6 +63,9 @@ const FIELD_LABELS: Record<string, string> = {
   data_fim_projeto: 'Data Fim',
   tipo_pessoa: 'Tipo Pessoa',
   tipo_representante: 'Tipo',
+  distribuicao_receita: 'Distribuição de receita',
+  produtos_contratados: 'Produtos contratados',
+
   // ── Cadastros OSG (qualificação das partes / diagnóstico patrimonial) ──
   denominacao: 'Nome / Razão Social',
   nacionalidade: 'Nacionalidade',
