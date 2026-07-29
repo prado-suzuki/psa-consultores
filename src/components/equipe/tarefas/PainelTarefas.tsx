@@ -281,16 +281,26 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     [tasks, selectedTaskIds],
   );
 
-  const handleMoveSelected = () => {
-    const blocked = selectedTasks.filter(task => !canMoveTask(task));
+  const openBulkMove = (tasksToMove: OrgTask[]) => {
+    const blocked = tasksToMove.filter(task => !canMoveTask(task));
     if (blocked.length > 0) {
       toast.error(`Você não tem permissão para mover ${blocked.length} das tarefas selecionadas.`, {
         description: 'Apenas o criador da tarefa ou um líder pode trocá-la de projeto. Desmarque essas tarefas ou contate um líder.',
       });
       return;
     }
-    if (selectedTasks.length === 0) return;
+    if (tasksToMove.length === 0) return;
+    setSelectedTaskIds(new Set(tasksToMove.map(task => task.id)));
     setIsBulkMoveOpen(true);
+  };
+
+  const handleMoveSelected = () => openBulkMove(selectedTasks);
+
+  // Projeto legado inteiro → projeto certo: marca a carteira do projeto e cai no
+  // mesmo modal do lote (com os avisos de cliente/contribuinte e subtarefas).
+  const handleMoveProjectTasks = (taskIds: string[]) => {
+    const ids = new Set(taskIds);
+    openBulkMove(tasks.filter(task => ids.has(task.id)));
   };
 
   const handleNewTask = (projectId?: string) => {
@@ -361,6 +371,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 selectedTaskIds={selectedTaskIds}
                 onToggleSelection={toggleTaskSelection}
                 onMoveSelected={handleMoveSelected}
+                onMoveProjectTasks={handleMoveProjectTasks}
                 currentUserId={user?.id}
               />
             </TabsContent>

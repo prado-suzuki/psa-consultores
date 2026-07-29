@@ -70,6 +70,8 @@ interface ProjetosTarefasListProps {
   selectedTaskIds: Set<string>;
   onToggleSelection: (taskIds: string[], selected: boolean) => void;
   onMoveSelected: () => void;
+  /** Marca todas as tarefas do projeto e abre o movimento em lote. */
+  onMoveProjectTasks: (taskIds: string[]) => void;
   currentUserId?: string | null;
 }
 
@@ -149,6 +151,7 @@ export function ProjetosTarefasList({
   selectedTaskIds,
   onToggleSelection,
   onMoveSelected,
+  onMoveProjectTasks,
   currentUserId,
 }: ProjetosTarefasListProps) {
   const hierarchy = useMemo(
@@ -377,7 +380,20 @@ export function ProjetosTarefasList({
                 <Progress value={completionPercentage(projectNode.completedTaskCount, projectNode.taskCount)} className="h-1.5 w-16 bg-primary/15" />
                 <span className="shrink-0">{completedTasksLabel(projectNode.completedTaskCount, projectNode.taskCount)}</span>
               </div>
-              <div className="flex items-center justify-center">{projectNode.project && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onNewTask(projectNode.project!.id)}><Plus className="mr-2 h-4 w-4" />Nova tarefa</DropdownMenuItem><DropdownMenuItem onClick={() => onEditProject(projectNode.project!)}><Edit3 className="mr-2 h-4 w-4" />Editar projeto</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem className="text-destructive" onClick={() => onDeleteProject(projectNode.project!.id)}><Trash2 className="mr-2 h-4 w-4" />Excluir projeto</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}</div>
+              <div className="flex items-center justify-center">{projectNode.project && <DropdownMenu>
+                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onNewTask(projectNode.project!.id)}><Plus className="mr-2 h-4 w-4" />Nova tarefa</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onEditProject(projectNode.project!)}><Edit3 className="mr-2 h-4 w-4" />Editar projeto</DropdownMenuItem>
+                  {/* Consolidar projeto legado no projeto certo: leva a carteira
+                      inteira de uma vez, sem marcar tarefa por tarefa. */}
+                  {projectTaskIds.length > 0 && <DropdownMenuItem onClick={() => onMoveProjectTasks(projectTaskIds)}>
+                    <FolderInput className="mr-2 h-4 w-4" />Mover as {projectTaskIds.length} tarefas para outro projeto
+                  </DropdownMenuItem>}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive" onClick={() => onDeleteProject(projectNode.project!.id)}><Trash2 className="mr-2 h-4 w-4" />Excluir projeto</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>}</div>
             </div>
             {projectExpanded && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className="flex min-w-[1010px] items-center gap-2 border-t px-14 py-2 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground"><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}
           </div>;
