@@ -588,39 +588,62 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         // o que saiu do rateio é excluído (com verificação). Reinserir é
         // impossível, então salvar duas vezes não duplica nada.
         if (osId) {
+          const stats: OsStats = {
+            osLabel: c.ordem_servico || '(sem número)',
+            rateio: { inserted: 0, updated: 0, softDeleted: 0, antes: [], depois: [] },
+            produtos: { inserted: 0, updated: 0, deleted: 0, antes: [], depois: [] },
+          };
+          osChangeStats.set(osId, stats);
+
           const draftDist = (c.distribuicao_receita || []).filter(d => d.id_centro_custo);
           const { data: dbDist, error: dbDistError } = await (supabase.from("distribuicao_receita" as any) as any)
-            .select("id")
+            .select("id, id_centro_custo, percentual_rateio")
             .eq("id_ordem_servico", osId)
             .eq("excluido", false);
           if (dbDistError) throw dbDistError;
 
           const rotuloOs = c.ordem_servico || "(sem número)";
+          type DbDistRow = { id: string; id_centro_custo: string; percentual_rateio: number | string };
+          const dbDistRows = (dbDist || []) as DbDistRow[];
+          const dbDistById = new Map(dbDistRows.map(r => [r.id, r]));
+
+          // Snapshot ANTES do rateio (a partir do banco)
+          stats.rateio.antes = dbDistRows.map(r => ({
+            centroCodigo: centroCodigoMap.get(r.id_centro_custo) || r.id_centro_custo.slice(0, 8),
+            percentual: Number(r.percentual_rateio) || 0,
+          }));
+          // Snapshot DEPOIS (a partir do rascunho)
+          stats.rateio.depois = draftDist.map(d => ({
+            centroCodigo: centroCodigoMap.get(d.id_centro_custo) || d.id_centro_custo.slice(0, 8),
+            percentual: Number(d.percentual_rateio) || 0,
+          }));
+
           const mantidos = new Set(draftDist.map(d => d._dbId).filter(Boolean) as string[]);
-          const distRemovidos = ((dbDist || []) as Array<{ id: string }>)
-            .map(r => r.id)
-            .filter(id => !mantidos.has(id));
+          const distRemovidos = dbDistRows.map(r => r.id).filter(id => !mantidos.has(id));
 
           if (distRemovidos.length > 0) {
-            // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
             await assertCanPerform('distribuicao_receita', 'update', distRemovidos[0]);
             await softDeleteVerificado("distribuicao_receita", "id", distRemovidos, `linha(s) de Distribuição de Receita da OS ${rotuloOs}`);
+            stats.rateio.softDeleted = distRemovidos.length;
           }
 
           for (const d of draftDist.filter(d => d._dbId)) {
+            const dbRow = dbDistById.get(d._dbId!);
+            const centroChanged = !dbRow || dbRow.id_centro_custo !== d.id_centro_custo;
+            const percentChanged = !dbRow || Number(dbRow.percentual_rateio) !== (d.percentual_rateio || 0);
+            if (!centroChanged && !percentChanged) continue;
             currentStep = "distribuicao_receita/update";
             const { data: updDist, error: updDistError } = await (supabase.from("distribuicao_receita" as any) as any)
               .update({ id_centro_custo: d.id_centro_custo, percentual_rateio: d.percentual_rateio || 0 })
               .eq("id", d._dbId)
               .select("id");
             if (updDistError) throw updDistError;
-            // 0 rows aqui significa linha inexistente ou RLS barrando. Reinserir
-            // seria justamente o que duplicava o rateio — então falha alto.
             if (!updDist || updDist.length === 0) {
               throw new Error(
                 `Não foi possível atualizar a Distribuição de Receita da OS ${rotuloOs}. Feche e abra o cadastro para recarregar os dados e tente de novo.`
               );
             }
+            stats.rateio.updated += 1;
           }
 
           const distNovos = draftDist.filter(d => !d._dbId);
@@ -634,39 +657,36 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
               }))
             );
             if (distError) throw distError;
+            stats.rateio.inserted = distNovos.length;
           }
 
           // Persist os_produtos_contratados: selective upsert preserving _dbId
           const draftProdutos = c.produtos_contratados || [];
-          // os_produtos_contratados não está no schema tipado — cast justificado
           const { data: existingProdutos } = await (supabase.from("os_produtos_contratados" as any) as any)
             .select("id, produto_segmento_id, horas_contratadas")
             .eq("ordem_servico_id", osId);
           const existingMap = new Map<string, { produto_segmento_id: string; horas_contratadas: number | null }>((existingProdutos || []).map((p: any) => [p.id, { produto_segmento_id: p.produto_segmento_id, horas_contratadas: p.horas_contratadas }]));
 
-          // Determine which to keep, insert, and delete
+          // Snapshots ANTES/DEPOIS de produtos
+          stats.produtos.antes = (existingProdutos || []).map((p: any) => ({
+            codigo: produtoCodigoMap.get(p.produto_segmento_id) || String(p.produto_segmento_id).slice(0, 8),
+            horas: p.horas_contratadas != null ? Number(p.horas_contratadas) : null,
+          }));
+          stats.produtos.depois = draftProdutos.map(p => ({
+            codigo: produtoCodigoMap.get(p.produto_segmento_id) || String(p.produto_segmento_id).slice(0, 8),
+            horas: p.horas_contratadas != null ? Number(p.horas_contratadas) : null,
+          }));
+
           const draftDbIds = new Set(draftProdutos.filter(p => p._dbId).map(p => p._dbId!));
           const toDelete = (existingProdutos || []).filter((p: any) => !draftDbIds.has(p.id)).map((p: any) => p.id);
 
-          // Delete removed
           if (toDelete.length > 0) {
             currentStep = "os_produtos_contratados/delete";
             const { error: delProdError } = await (supabase.from("os_produtos_contratados" as any) as any).delete().in("id", toDelete);
             if (delProdError) throw delProdError;
-            for (const delId of toDelete) {
-              const delProdId = existingMap.get(delId);
-              logAction({
-                area: 'dev',
-                entity_type: 'ordem_servico',
-                entity_id: osId!,
-                entity_name: c.ordem_servico || '(sem número)',
-                action: 'updated',
-                details: `Produto removido da OS: ${delProdId}`,
-              });
-            }
+            stats.produtos.deleted = toDelete.length;
           }
 
-          // Insert new (no _dbId)
           const toInsert = draftProdutos.filter(p => !p._dbId);
           if (toInsert.length > 0) {
             currentStep = "os_produtos_contratados/insert";
@@ -677,19 +697,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             }));
             const { error: insErr } = await (supabase.from("os_produtos_contratados" as any) as any).insert(insertPayload);
             if (insErr) throw insErr;
-            for (const ins of toInsert) {
-              logAction({
-                area: 'dev',
-                entity_type: 'ordem_servico',
-                entity_id: osId!,
-                entity_name: c.ordem_servico || '(sem número)',
-                action: 'updated',
-                details: `Produto adicionado à OS: ${ins.produto_segmento_id}`,
-              });
-            }
+            stats.produtos.inserted = toInsert.length;
           }
 
-          // Update existing (with _dbId) — only if produto_segmento_id or horas_contratadas changed
           for (const dp of draftProdutos.filter(p => p._dbId)) {
             const old = existingMap.get(dp._dbId!);
             if (!old) continue;
@@ -704,9 +714,12 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
                 })
                 .eq("id", dp._dbId);
               if (updProdError) throw updProdError;
+              stats.produtos.updated += 1;
             }
           }
         }
+      }
+
       }
 
       // --- Persist cliente_clusters (incremental upsert) ---
