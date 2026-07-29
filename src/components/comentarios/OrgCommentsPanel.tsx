@@ -4,7 +4,8 @@ import { ptBR } from 'date-fns/locale';
 import { Loader2, MessageSquare, MoreHorizontal, Pencil, Reply, Trash2 } from 'lucide-react';
 
 import { CommentComposer } from '@/components/comentarios/CommentComposer';
-import { MentionTextField } from '@/components/comentarios/MentionTextField';
+import { OrgCommentBody } from '@/components/comentarios/OrgCommentBody';
+import { OrgCommentEditor } from '@/components/comentarios/OrgCommentEditor';
 import { AttachmentButton } from '@/components/comentarios/OrgCommentAttachments';
 import {
   AlertDialog,
@@ -35,12 +36,8 @@ import {
   type OrgCommentEntityType,
   useDomainOrgComments,
 } from '@/hooks/useDomainOrgComments';
-import {
-  desserializarMencoes,
-  iniciaisDoNome,
-  serializarMencoes,
-  type MentionCandidate,
-} from '@/lib/orgCommentMentions';
+import { iniciaisDoNome } from '@/lib/orgCommentMentions';
+import { docEstaVazio, lerCorpo } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
 
 interface OrgCommentsPanelProps {
@@ -65,10 +62,6 @@ const SYSTEM_LABELS: Record<Exclude<OrgComment['kind'], 'comment'>, string> = {
   status_changed: 'Status alterado',
 };
 
-function displayBody(body: string) {
-  return body.replace(/\[\[review-rich-text:v1\]\]/g, '');
-}
-
 function systemEventBody(comment: OrgComment) {
   if (comment.kind === 'review_submitted') {
     return comment.body.replace(/^Enviado para revisão(?: de [^:]+)?:\s*/, '');
@@ -78,27 +71,6 @@ function systemEventBody(comment: OrgComment) {
   }
   if (comment.kind === 'review_approved' && comment.body === 'Tarefa aprovada') return '';
   return comment.body;
-}
-
-function CommentBody({ body }: { body: string }) {
-  const parts = displayBody(body).split(/(@\[[^\]]+\]\([^)]+\))/g);
-  return (
-    <p className="whitespace-pre-wrap break-words text-sm leading-6 text-foreground/90">
-      {parts.map((part, index) => {
-        const mention = part.match(/^@\[([^\]]+)\]\([^)]+\)$/);
-        return mention ? (
-          <span
-            key={`${part}-${index}`}
-            className="rounded bg-primary/10 px-1 font-medium text-primary"
-          >
-            @{mention[1]}
-          </span>
-        ) : (
-          part
-        );
-      })}
-    </p>
-  );
 }
 
 export function OrgCommentsPanel({
@@ -130,9 +102,8 @@ export function OrgCommentsPanel({
   );
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  /** Corpo do comentário em edição, no mesmo formato de gravação. */
   const [editingBody, setEditingBody] = useState('');
-  /** Menções do comentário em edição, para o `@Nome` reencontrar seu uuid ao salvar. */
-  const [editingMencoes, setEditingMencoes] = useState<MentionCandidate[]>([]);
   const [pendingDelete, setPendingDelete] = useState<OrgComment | null>(null);
   const scrollRootRef = useRef<HTMLDivElement>(null);
   /** Enquanto verdadeiro, a próxima renderização da lista desce para o fim. */
@@ -184,12 +155,10 @@ export function OrgCommentsPanel({
   };
 
   const saveEdit = async (comment: OrgComment) => {
-    const escrito = editingBody.trim();
-    if (!escrito) return;
-    await updateComment.mutateAsync({
-      id: comment.id,
-      body: serializarMencoes(escrito, editingMencoes),
-    });
+    const corpo = lerCorpo(editingBody);
+    const vazio = corpo.formato === 'rich' ? docEstaVazio(corpo.doc) : !corpo.texto.trim();
+    if (vazio) return;
+    await updateComment.mutateAsync({ id: comment.id, body: editingBody });
     setEditingId(null);
   };
 
@@ -281,11 +250,10 @@ export function OrgCommentsPanel({
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
                       onClick={() => {
-                        // O campo de edição mostra `@Nome`; o uuid volta no salvar.
-                        const escrito = desserializarMencoes(comment.body);
+                        // O editor abre qualquer das formas de corpo, inclusive o
+                        // texto plano legado, com as menções já como chip.
                         setEditingId(comment.id);
-                        setEditingBody(escrito.text);
-                        setEditingMencoes(escrito.mencoes);
+                        setEditingBody(comment.body);
                       }}
                     >
                       <Pencil className="mr-2 h-4 w-4" />
@@ -307,17 +275,14 @@ export function OrgCommentsPanel({
               <p className="mt-1 text-sm italic text-muted-foreground">Comentário excluído</p>
             ) : editingId === comment.id ? (
               <div className="mt-2 space-y-2 rounded-lg border bg-background p-2">
-                <MentionTextField
+                <OrgCommentEditor
                   value={editingBody}
-                  mencoes={editingMencoes}
+                  onChange={setEditingBody}
                   candidates={mentionCandidates}
-                  onChange={(text, proximasMencoes) => {
-                    setEditingBody(text);
-                    setEditingMencoes(proximasMencoes);
-                  }}
-                  rows={3}
+                  minHeight="min-h-12"
                   focarNaMontagem
-                  idPrefixo={`mencoes-edicao-${comment.id}`}
+                  onPublicar={() => saveEdit(comment)}
+                  ariaLabel="Editar comentário"
                 />
                 <div className="flex justify-end gap-2">
                   <Button
@@ -346,7 +311,7 @@ export function OrgCommentsPanel({
                 )}
               >
                 {(!isSystem || systemEventBody(comment)) && (
-                  <CommentBody body={isSystem ? systemEventBody(comment) : comment.body} />
+                  <OrgCommentBody body={isSystem ? systemEventBody(comment) : comment.body} />
                 )}
                 {comment.editado_em && (
                   <span className="text-[10px] text-muted-foreground">editado</span>

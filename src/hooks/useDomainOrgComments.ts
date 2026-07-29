@@ -7,6 +7,7 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { supabase } from '@/integrations/supabase/client';
 import { computeFieldDiff } from '@/lib/diffUtils';
+import { textoPlanoDoCorpo } from '@/lib/orgCommentRichText';
 
 /**
  * Camada de dados dos comentários de tarefa/projeto (`org_comments`).
@@ -147,9 +148,14 @@ const AUDIT_FIELDS = ['entity_type', 'entity_id', 'parent_id', 'body', 'mentions
 const RESUMO_MAX = 80;
 const BUCKET = 'comment-attachments';
 
-/** `entity_name` do audit: recorte legível do corpo, sem quebras de linha. */
+/**
+ * `entity_name` do audit: recorte legível do corpo, sem quebras de linha.
+ *
+ * Passa pelo texto plano porque o corpo é documento rico — logar o JSON não
+ * diria nada a quem lê a trilha de auditoria.
+ */
 function resumoDoCorpo(body: string): string {
-  const limpo = body.trim().replace(/\s+/g, ' ');
+  const limpo = textoPlanoDoCorpo(body).trim().replace(/\s+/g, ' ');
   return limpo.length <= RESUMO_MAX ? limpo : `${limpo.slice(0, RESUMO_MAX)}…`;
 }
 

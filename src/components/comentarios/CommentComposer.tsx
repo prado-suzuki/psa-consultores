@@ -1,13 +1,11 @@
-import { useRef, useState, type ClipboardEvent, type DragEvent } from 'react';
-import { AtSign, Loader2, Paperclip, Reply, Send, X } from 'lucide-react';
+import { useRef, useState, type DragEvent } from 'react';
+import { Loader2, Paperclip, Reply, Send, X } from 'lucide-react';
 import { toast } from 'sonner';
 
-import {
-  MentionTextField,
-  type MentionTextFieldHandle,
-} from '@/components/comentarios/MentionTextField';
+import { OrgCommentEditor } from '@/components/comentarios/OrgCommentEditor';
 import { Button } from '@/components/ui/button';
-import { extrairMencoes, serializarMencoes, type MentionCandidate } from '@/lib/orgCommentMentions';
+import type { MentionCandidate } from '@/lib/orgCommentMentions';
+import { docEstaVazio, lerCorpo, mencoesDoDoc, serializarDoc } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
 
 const MAX_FILES = 5;
@@ -39,12 +37,15 @@ export function CommentComposer({
   onCancel,
   onSubmit,
 }: CommentComposerProps) {
-  /** Texto como a pessoa lê — `@Nome`, sem uuid. O token nasce só no `submit`. */
+  /** Corpo já no formato de gravação (marcador + JSON) — é o que o editor emite. */
   const [body, setBody] = useState('');
-  const [mencoes, setMencoes] = useState<MentionCandidate[]>([]);
   const [files, setFiles] = useState<File[]>([]);
+  /** Zera o editor depois de publicar sem precisar sincronizar `value` de volta. */
+  const [geracao, setGeracao] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const fieldRef = useRef<MentionTextFieldHandle>(null);
+
+  const corpo = lerCorpo(body);
+  const vazio = corpo.formato === 'rich' ? docEstaVazio(corpo.doc) : !corpo.texto.trim();
 
   const addFiles = (incoming: File[]) => {
     const valid = incoming.filter((file) => file.size <= MAX_FILE_SIZE);
@@ -53,25 +54,29 @@ export function CommentComposer({
     setFiles((current) => [...current, ...valid].slice(0, MAX_FILES));
   };
 
-  const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
-    const pastedFiles = Array.from(event.clipboardData.files);
-    if (pastedFiles.length > 0) addFiles(pastedFiles);
-  };
-
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     addFiles(Array.from(event.dataTransfer.files));
   };
 
   const submit = async () => {
-    const escrito = body.trim() || (files.length > 0 ? 'Adicionou anexos' : '');
-    if (!escrito || isPending) return;
-    // Fronteira com o banco: aqui o `@Nome` do campo vira `@[Nome](uuid)`.
-    const corpo = serializarMencoes(escrito, mencoes);
-    await onSubmit(corpo, files, extrairMencoes(corpo));
+    if (isPending) return;
+    if (vazio && files.length === 0) return;
+
+    // Anexo sem texto continua tendo corpo: a thread mostra a linha do anexo.
+    const documento = vazio
+      ? serializarDoc({
+          type: 'doc',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Adicionou anexos' }] }],
+        })
+      : body;
+    const doc = lerCorpo(documento);
+    const mencoes = doc.formato === 'rich' ? mencoesDoDoc(doc.doc) : [];
+
+    await onSubmit(documento, files, mencoes);
     setBody('');
-    setMencoes([]);
     setFiles([]);
+    setGeracao((atual) => atual + 1);
   };
 
   return (
@@ -87,25 +92,22 @@ export function CommentComposer({
         </p>
       )}
 
-      <MentionTextField
-        ref={fieldRef}
+      <OrgCommentEditor
+        key={geracao}
         value={body}
-        mencoes={mencoes}
+        onChange={setBody}
         candidates={mentionCandidates}
-        onChange={(text, proximasMencoes) => {
-          setBody(text);
-          setMencoes(proximasMencoes);
-        }}
         placeholder={
           compact ? 'Escreva uma resposta...' : 'Escreva um comentário... Use @ para mencionar'
         }
-        rows={compact ? 2 : 3}
+        minHeight={compact ? 'min-h-12' : 'min-h-16'}
         focusSignal={focusSignal}
         // O campo de resposta nasce com o cursor dentro: ele só existe depois do
         // clique em "Responder", então focar na montagem não rouba o foco.
         focarNaMontagem={compact}
-        idPrefixo={compact ? 'mencoes-resposta' : 'mencoes-raiz'}
-        onPaste={handlePaste}
+        onArquivos={addFiles}
+        onPublicar={submit}
+        ariaLabel={compact ? 'Escrever resposta' : 'Escrever comentário'}
       />
 
       {files.length > 0 && (
@@ -150,16 +152,6 @@ export function CommentComposer({
           >
             <Paperclip className="h-4 w-4" />
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            aria-label="Mencionar pessoa"
-            onClick={() => fieldRef.current?.abrirMencao()}
-          >
-            <AtSign className="h-4 w-4" />
-          </Button>
           <span className="hidden text-[11px] text-muted-foreground sm:inline">
             Até 5 arquivos de 10 MB
           </span>
@@ -173,7 +165,7 @@ export function CommentComposer({
           <Button
             type="button"
             size="sm"
-            disabled={isPending || (!body.trim() && files.length === 0)}
+            disabled={isPending || (vazio && files.length === 0)}
             onClick={submit}
           >
             {isPending ? (
