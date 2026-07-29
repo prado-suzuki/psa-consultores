@@ -5843,6 +5843,54 @@ export type Database = {
           },
         ]
       }
+      produto_checklist_item: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_padrao_id: string
+          obrigatorio: boolean
+          produto_segmento_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_padrao_id: string
+          obrigatorio?: boolean
+          produto_segmento_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_padrao_id?: string
+          obrigatorio?: boolean
+          produto_segmento_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_checklist_item_item_padrao_id_fkey"
+            columns: ["item_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "checklist_item_padrao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "produto_checklist_item_produto_segmento_id_fkey"
+            columns: ["produto_segmento_id"]
+            isOneToOne: false
+            referencedRelation: "produto_segmento"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       produto_segmento: {
         Row: {
           cluster_id: string | null
