@@ -16,10 +16,9 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Plus, X, Loader2, CheckCircle2, Pencil, Building2, History } from "lucide-react";
-import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
-import { defaultClientData, createDefaultDraftEntity, createDefaultDraftRepresentante, createDefaultDraftContract } from "./client-form/constants";
+import { defaultClientData } from "./client-form/constants";
 import { OS_SITUACAO_TO_PROJECT_STATUS } from "@/lib/projetosCadastro";
 import type { LoteFromOs } from "@/lib/projetosLote";
 
@@ -52,10 +51,6 @@ export default function NewClientModal({
   const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "representantes" | "contratos" | "faturamento" | "historico">("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  const [showDraftWarning, setShowDraftWarning] = useState(false);
-  const [draftWarningContext, setDraftWarningContext] = useState<{
-    action: "navigate"; targetTab?: typeof activeTab; pendingTabs: string[];
-  } | null>(null);
 
   useEffect(() => { if (open) setIsReadOnly(readOnly); }, [open, readOnly]);
 
@@ -76,13 +71,9 @@ export default function NewClientModal({
   // --- State ---
   const [clientData, setClientData] = useState(defaultClientData);
   const [entities, setEntities] = useState<DraftEntity[]>([]);
-  const [draftEntity, setDraftEntity] = useState<Partial<DraftEntity>>(createDefaultDraftEntity());
   const [participants, setParticipants] = useState<DraftRepresentante[]>([]);
-  const [draftRepresentante, setDraftRepresentante] = useState(createDefaultDraftRepresentante());
   const [contracts, setContracts] = useState<DraftContract[]>([]);
-  const [draftContract, setDraftContract] = useState(createDefaultDraftContract());
   const [inscricoesMap, setInscricoesMap] = useState<Record<string, InscricaoIE[]>>({});
-  const [draftInscricoes, setDraftInscricoes] = useState<InscricaoIE[]>([]);
 
   // Load existing data when editing
   const editSetters = useMemo(() => ({ setClientData, setEntities, setParticipants, setContracts, setInscricoesMap }), []);
@@ -91,69 +82,12 @@ export default function NewClientModal({
   // External consults
   const { handleCnpjBlur: cnpjLookup, handleCepBlur: cepLookup, cnpjLoading, cepLoading } = useExternalConsults();
 
-  // --- Draft detection ---
-  const hasDraftEntityData = () => !!(draftEntity.nome_razao_social?.trim() || draftEntity.cpf_cnpj?.trim());
-  const hasDraftRepresentanteData = () => !!(draftRepresentante.nome?.trim());
-  const hasDraftContractData = () => !!((draftContract.valor_projeto && draftContract.valor_projeto > 0) || draftContract.id_produto_segmento?.trim());
-
   // Edição inline em andamento (linha "Editar" de um contribuinte existente).
-  // Sem esse guard, o Save do modal ignora as mudanças em edição.
   const [inlineEditingContrib, setInlineEditingContrib] = useState(false);
-
-  const getDraftPendingTabs = (): string[] => {
-    const tabs: string[] = [];
-    if (hasDraftEntityData()) tabs.push("Contribuintes");
-    if (inlineEditingContrib) tabs.push("Contribuintes (edição em andamento)");
-    if (hasDraftRepresentanteData()) tabs.push("Representantes");
-    if (hasDraftContractData()) tabs.push("OS");
-    return tabs;
-  };
-
-  const tabLabelToKey: Record<string, typeof activeTab> = { "Contribuintes": "contribuintes", "Representantes": "representantes", "OS": "contratos" };
-
-  const checkDraftAndNavigate = (targetTab: typeof activeTab) => {
-    const currentTabDraft =
-      (activeTab === "contribuintes" && hasDraftEntityData()) ||
-      (activeTab === "representantes" && hasDraftRepresentanteData()) ||
-      (activeTab === "contratos" && hasDraftContractData());
-    if (currentTabDraft) {
-      const currentPending = activeTab === "contribuintes" ? "Contribuintes" : activeTab === "representantes" ? "Representantes" : "OS";
-      setDraftWarningContext({ action: "navigate", targetTab, pendingTabs: [currentPending] });
-      setShowDraftWarning(true);
-      return;
-    }
-    setActiveTab(targetTab);
-  };
 
   const handleTabClick = (tab: typeof activeTab) => {
     if (tab === activeTab) return;
-    if (isReadOnly) { setActiveTab(tab); return; }
-    checkDraftAndNavigate(tab);
-  };
-
-  const clearCurrentDraft = () => {
-    if (activeTab === "contribuintes") setDraftEntity(createDefaultDraftEntity());
-    else if (activeTab === "representantes") setDraftRepresentante(createDefaultDraftRepresentante());
-    else if (activeTab === "contratos") setDraftContract(createDefaultDraftContract());
-  };
-
-  const handleDraftWarningContinue = () => {
-    if (!draftWarningContext) return;
-    clearCurrentDraft();
-    if (draftWarningContext.targetTab) {
-      setActiveTab(draftWarningContext.targetTab);
-    }
-    setShowDraftWarning(false);
-    setDraftWarningContext(null);
-  };
-
-  const handleDraftWarningGoBack = () => {
-    if (draftWarningContext?.pendingTabs[0]) {
-      const key = tabLabelToKey[draftWarningContext.pendingTabs[0]];
-      if (key) setActiveTab(key);
-    }
-    setShowDraftWarning(false);
-    setDraftWarningContext(null);
+    setActiveTab(tab);
   };
 
   // --- Unsaved changes detection ---
@@ -197,17 +131,14 @@ export default function NewClientModal({
   }, [open, isEditing]);
 
   // --- SAVE ---
-  const { handleSave: hookHandleSave, executeSave, saving } = useSaveClientTransaction({
+  const { executeSave, saving } = useSaveClientTransaction({
     clientData, entities, participants, contracts, inscricoesMap,
     clusterIds: clientData.cluster_ids,
     isEditing, editingClienteId, setoresCliente,
-    getDraftPendingTabs, onDuplicateFound,
+    onDuplicateFound,
     onSuccess: () => resetAndClose(),
     originalSnapshot,
   });
-
-  const pendingDraftTabs = getDraftPendingTabs();
-  const hasPendingDrafts = pendingDraftTabs.length > 0;
 
   const handleSave = () => {
     executeSave();
@@ -219,9 +150,6 @@ export default function NewClientModal({
     setParticipants([]);
     setContracts([]);
     setInscricoesMap({});
-    setDraftInscricoes([]);
-    setDraftContract(createDefaultDraftContract());
-    setDraftRepresentante(createDefaultDraftRepresentante());
     setActiveTab("cliente");
     setIsReadOnly(readOnly);
     setShowExitConfirm(false);
@@ -305,7 +233,15 @@ export default function NewClientModal({
                   <TabsList className={cn("w-full grid bg-gray-100/80 p-1 rounded-lg h-auto", tabsGridClass)}>
                     {visibleTabs.map((tab) => (
                       <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all">
-                        {tab === "cliente" ? "Dados do Cliente/Grupo" : tab === "contribuintes" ? "Contribuintes" : tab === "representantes" ? "Representantes" : tab === "contratos" ? "OS - Ordem de Serviço" : "Faturamento"}
+                        {tab === "cliente"
+                          ? "Dados do Cliente/Grupo"
+                          : tab === "contribuintes"
+                            ? `Contribuintes (${entities.length})`
+                            : tab === "representantes"
+                              ? `Representantes (${participants.length})`
+                              : tab === "contratos"
+                                ? `OS - Ordem de Serviço (${contracts.length})`
+                                : "Faturamento"}
                       </TabsTrigger>
                     ))}
                     {editingClienteId && (
@@ -324,9 +260,7 @@ export default function NewClientModal({
                   <TabsContent value="contribuintes" className="mt-0 p-3 md:p-4">
                     <ContribuintesTab
                       entities={entities} setEntities={setEntities}
-                      draftEntity={draftEntity} setDraftEntity={setDraftEntity}
                       inscricoesMap={inscricoesMap} setInscricoesMap={setInscricoesMap}
-                      draftInscricoes={draftInscricoes} setDraftInscricoes={setDraftInscricoes}
                       cnpjLoading={cnpjLoading} cepLoading={cepLoading}
                       cnpjLookup={cnpjLookup} cepLookup={cepLookup}
                       isReadOnly={isReadOnly}
@@ -337,7 +271,6 @@ export default function NewClientModal({
                   <TabsContent value="representantes" className="mt-0 p-3 md:p-4">
                     <RepresentantesTab
                       participants={participants} setParticipants={setParticipants}
-                      draftRepresentante={draftRepresentante} setDraftRepresentante={setDraftRepresentante}
                       isReadOnly={isReadOnly}
                     />
                   </TabsContent>
@@ -347,7 +280,6 @@ export default function NewClientModal({
                       <TabsContent value="contratos" className="mt-0 p-3 md:p-4">
                         <ContratosTab
                           contracts={contracts} setContracts={setContracts}
-                          draftContract={draftContract} setDraftContract={setDraftContract}
                           isReadOnly={isReadOnly}
                           produtoSegmentoFullOptions={produtoSegmentoFullOptions}
                           allClusters={allClusters}
@@ -386,24 +318,21 @@ export default function NewClientModal({
                 ) : (
                   <>
                     <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Cancelar</Button>
-                    <TooltipProvider>
-                      <Tooltip open={hasPendingDrafts ? undefined : false}>
-                        <TooltipTrigger asChild>
-                          <span className="inline-block">
-                            <Button
-                              onClick={handleSave} disabled={saving || hasPendingDrafts}
-                              className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
-                            >
-                              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
-                              {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
-                            </Button>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-xs text-center">
-                          Dados não adicionados em: <strong>{pendingDraftTabs.join(", ")}</strong>. Adicione-os à lista antes de salvar.
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <div className="flex items-center gap-3">
+                      {hasUnsavedChanges && (
+                        <span className="flex items-center gap-1.5 text-sm text-amber-700">
+                          <span className="h-2 w-2 rounded-full bg-amber-500" />
+                          Alterações não salvas
+                        </span>
+                      )}
+                      <Button
+                        onClick={handleSave} disabled={saving}
+                        className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
+                      >
+                        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
+                        {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
+                      </Button>
+                    </div>
                   </>
                 )}
               </div>
@@ -419,22 +348,6 @@ export default function NewClientModal({
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowExitConfirm(false)}>Continuar Editando</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={resetAndClose}>Sair</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Draft warning */}
-      <AlertDialog open={showDraftWarning} onOpenChange={setShowDraftWarning}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Dados não adicionados à lista</AlertDialogTitle>
-            <AlertDialogDescription>
-              Você preencheu dados em <strong>{draftWarningContext?.pendingTabs.join(", ")}</strong> que não foram adicionados à lista. Deseja descartar e trocar de aba?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={handleDraftWarningGoBack}>Continuar editando</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDraftWarningContinue}>Descartar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

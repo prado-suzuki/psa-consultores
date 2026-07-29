@@ -23,8 +23,61 @@ export interface ClienteTabProps {
   allClusters?: ClusterOption[];
 }
 
+/** Linha rótulo/valor do modo Visualizar. Mesmo tamanho de fonte em tudo. */
+function ReadRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col md:flex-row md:items-baseline gap-0.5 md:gap-3 py-2">
+      <dt className="w-full md:w-48 shrink-0 text-sm text-muted-foreground">{label}</dt>
+      <dd className="flex-1 text-sm text-foreground">{children}</dd>
+    </div>
+  );
+}
+
+const TIPO_RELACIONAMENTO_LABEL: Record<string, string> = {
+  "Sim": "Fixo",
+  "Não": "Pontual",
+  "Em Análise": "Em Análise",
+};
+
 export default function ClienteTab({ clientData, setClientData, isReadOnly, allClusters = [] }: ClienteTabProps) {
   const selectedClusters = allClusters.filter(c => clientData.cluster_ids.includes(c.id));
+
+  // Visualizar: valores como texto. Campo desabilitado com placeholder cinza
+  // parece vazio e sugere que dá para digitar — não serve para leitura.
+  if (isReadOnly) {
+    return (
+      <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+        <div className="px-4 py-2 bg-muted/50 border-b">
+          <h3 className="text-sm font-bold text-foreground">Dados do Cliente/Grupo</h3>
+        </div>
+        <dl className="px-4 py-2 divide-y divide-border/50">
+          <ReadRow label="Nome do Cliente / Grupo">
+            <span className="font-medium">{clientData.nome || "—"}</span>
+          </ReadRow>
+          <ReadRow label="Categoria">{clientData.categoria || "—"}</ReadRow>
+          <ReadRow label="Status">
+            <span className="inline-flex items-center gap-2">
+              <span className={cn("h-2 w-2 rounded-full", clientData.ativo ? "bg-teal-600" : "bg-muted-foreground/50")} />
+              {clientData.ativo ? "Ativo" : "Inativo"}
+            </span>
+          </ReadRow>
+          <ReadRow label="Tipo de relacionamento">
+            {TIPO_RELACIONAMENTO_LABEL[clientData.fixo] || "—"}
+          </ReadRow>
+          <ReadRow label="Clusters">
+            {selectedClusters.length === 0 ? "—" : (
+              <span className="flex flex-wrap gap-1">
+                {selectedClusters.map(c => <Badge key={c.id} variant="secondary" className="text-sm font-normal">{c.name}</Badge>)}
+              </span>
+            )}
+          </ReadRow>
+          <ReadRow label="Observações">
+            <span className="whitespace-pre-line">{clientData.observacoes?.trim() || "—"}</span>
+          </ReadRow>
+        </dl>
+      </section>
+    );
+  }
 
   const toggleCluster = (clusterId: string) => {
     setClientData(prev => ({

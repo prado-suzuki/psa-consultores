@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,8 +20,6 @@ import CurrencyField from "./CurrencyField";
 import FieldPair from "./FieldPair";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { useGenerateNextOsNumber } from "@/hooks/useDomainOrdemServicoNumero";
-
-type DraftContractState = ReturnType<typeof createDefaultDraftContract>;
 
 interface SetorCliente {
   id: string;
@@ -47,8 +45,6 @@ function getRegiaoLabel(value: string | undefined): string {
 export interface ContratosTabProps {
   contracts: DraftOrdemServico[];
   setContracts: React.Dispatch<React.SetStateAction<DraftOrdemServico[]>>;
-  draftContract: DraftContractState;
-  setDraftContract: React.Dispatch<React.SetStateAction<DraftContractState>>;
   isReadOnly: boolean;
   produtoSegmentoFullOptions: Array<{ id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: { name: string } | null }>;
   allClusters: Array<{ id: string; name: string }>;
@@ -57,8 +53,8 @@ export interface ContratosTabProps {
   /** Cria um projeto pré-preenchido a partir de uma OS já persistida (só disponível para cliente salvo). */
   onCreateProjectFromOs?: (cont: DraftOrdemServico) => void;
   /**
-   * Sai do modo somente-leitura do modal. Permite editar uma OS direto da lista,
-   * sem precisar clicar em "Editar" no rodapé antes. Só é passado se o usuário tem permissão.
+   * Sai do modo somente-leitura do modal. Permite criar/editar OS direto da lista,
+   * sem passar pelo "Editar" do rodapé. Só é passado se o usuário tem permissão.
    */
   onRequestEditMode?: () => void;
 }
@@ -109,13 +105,13 @@ function ProdutoContratadoBlock({
 
   const [addingProductId, setAddingProductId] = useState<string>("__none__");
 
-  const handleAdd = () => {
-    if (addingProductId === "__none__") return;
-    if (produtos.some(p => p.produto_segmento_id === addingProductId)) {
+  const handleAdd = (produtoId: string) => {
+    if (produtoId === "__none__") return;
+    if (produtos.some(p => p.produto_segmento_id === produtoId)) {
       toast.error("Este produto já foi adicionado a esta OS");
       return;
     }
-    onChange([...produtos, { _id: Date.now() + Math.random(), produto_segmento_id: addingProductId, horas_contratadas: undefined }]);
+    onChange([...produtos, { _id: Date.now() + Math.random(), produto_segmento_id: produtoId, horas_contratadas: undefined }]);
     setAddingProductId("__none__");
   };
 
@@ -188,7 +184,7 @@ function ProdutoContratadoBlock({
         </Select>
       </div>
 
-      {/* Existing products badges */}
+      {/* Existing products */}
       {produtos.length > 0 && (
         <div>
           <Label className="text-xs font-semibold uppercase text-muted-foreground">Produtos Adicionados</Label>
@@ -217,21 +213,16 @@ function ProdutoContratadoBlock({
         </div>
       )}
 
-      {/* Add product */}
+      {/* Add product — entra na OS ao escolher, sem botão de confirmar */}
       <div>
         <Label className="text-xs font-semibold uppercase text-muted-foreground">Adicionar Produto<RequiredMark /></Label>
-        <div className="flex gap-2 mt-1">
-          <Select value={addingProductId} onValueChange={setAddingProductId}>
-            <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Selecione um produto..." /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__none__">Selecione...</SelectItem>
-              {renderGroupedSelect()}
-            </SelectContent>
-          </Select>
-          <Button type="button" size="sm" variant="outline" className="gap-1 h-8 shrink-0" onClick={handleAdd} disabled={addingProductId === "__none__"}>
-            <Plus size={14} /> Adicionar
-          </Button>
-        </div>
+        <Select value={addingProductId} onValueChange={handleAdd}>
+          <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Selecione um produto..." /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__none__">Selecione...</SelectItem>
+            {renderGroupedSelect()}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );
@@ -241,7 +232,6 @@ function ProdutoContratadoBlock({
 
 export default function ContratosTab({
   contracts, setContracts,
-  draftContract, setDraftContract,
   isReadOnly,
   produtoSegmentoFullOptions, allClusters, CENTRO_CUSTO_OPTIONS,
   setoresCliente,
@@ -257,64 +247,60 @@ export default function ContratosTab({
   };
   const [expandedContractId, setExpandedContractId] = useState<number | null>(null);
   const [editingContractId, setEditingContractId] = useState<number | null>(null);
-  const [editingContractData, setEditingContractData] = useState<Partial<DraftOrdemServico> | null>(null);
   const [osClusterFilter, setOsClusterFilter] = useState<string>("__all__");
-  const [osEditClusterFilter, setOsEditClusterFilter] = useState<string>("__all__");
-  // A ficha de nova OS só aparece sob demanda — nunca junto com a edição de uma OS existente.
-  const [showNewOsForm, setShowNewOsForm] = useState(false);
-  const newOsFormRef = useRef<HTMLDivElement | null>(null);
-  const { mutateAsync: generateNextOsNumber, isPending: isAddingContract } = useGenerateNextOsNumber();
+  const { mutateAsync: generateNextOsNumber, isPending: isCreatingOs } = useGenerateNextOsNumber();
 
-  useEffect(() => {
-    if (showNewOsForm) newOsFormRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }, [showNewOsForm]);
-
-  const handleOsClusterFilterChange = (v: string) => {
-    setOsClusterFilter(v);
-    setDraftContract(prev => ({ ...prev, cluster_id: v === "__all__" ? "" : v }));
-  };
-
-  const handleOsEditClusterFilterChange = (v: string) => {
-    setOsEditClusterFilter(v);
-    if (editingContractData) {
-      setEditingContractData({ ...editingContractData, cluster_id: v === "__all__" ? "" : v });
-    }
-  };
-
-  const startEditContract = (c: DraftOrdemServico) => {
-    setEditingContractId(c._id);
-    setEditingContractData({ ...c });
-    setOsEditClusterFilter(c.cluster_id || "__all__");
-  };
-  const cancelEditContract = () => { setEditingContractId(null); setEditingContractData(null); };
-
-  const closeNewOsForm = () => {
-    setShowNewOsForm(false);
-    setDraftContract(createDefaultDraftContract());
-    setOsClusterFilter("__all__");
-  };
-
-  // Editar direto do cabeçalho da OS: expande o card e entra em edição num clique.
-  // No modo Visualizar, tira o modal do somente-leitura antes.
   const canEditOs = !isReadOnly || !!onRequestEditMode;
-  const handleEditOsClick = (cont: DraftOrdemServico) => {
-    if (isReadOnly) {
-      if (!onRequestEditMode) return;
-      onRequestEditMode();
-    }
-    // Editar uma OS existente fecha a ficha de nova OS: uma coisa por vez.
-    closeNewOsForm();
-    setExpandedContractId(cont._id);
-    startEditContract(cont);
+
+  /**
+   * Toda alteração cai direto na lista de OS do formulário — não existe
+   * "adicionar/aplicar" intermediário. A gravação no banco continua sendo
+   * só o "Salvar Alterações" do rodapé, que valida todas as OS.
+   */
+  const updateContract = (id: number, patch: Partial<DraftOrdemServico>) => {
+    setContracts(prev => prev.map(c => (c._id === id ? ({ ...c, ...patch } as DraftOrdemServico) : c)));
   };
 
-  const openNewOsForm = () => {
+  // `_dbId` no tipo de propósito: é o id da linha no banco. As transformações
+  // precisam preservá-lo (`{ ...row }`) — se ele se perde, o save trata a linha
+  // como nova e insere uma segunda cópia do mesmo centro de custo.
+  const updateDistribuicao = (
+    id: number,
+    fn: (dist: Array<{ id_centro_custo: string; percentual_rateio: number; _dbId?: string }>) => Array<{ id_centro_custo: string; percentual_rateio: number; _dbId?: string }>,
+  ) => {
+    setContracts(prev => prev.map(c => (c._id === id ? ({ ...c, distribuicao_receita: fn(c.distribuicao_receita || []) } as DraftOrdemServico) : c)));
+  };
+
+  const handleClusterFilterChange = (id: number, v: string) => {
+    setOsClusterFilter(v);
+    updateContract(id, { cluster_id: v === "__all__" ? "" : v });
+  };
+
+  const startEditContract = (cont: DraftOrdemServico) => {
     if (isReadOnly) {
       if (!onRequestEditMode) return;
       onRequestEditMode();
     }
-    cancelEditContract();
-    setShowNewOsForm(true);
+    setExpandedContractId(cont._id);
+    setEditingContractId(cont._id);
+    setOsClusterFilter(cont.cluster_id || "__all__");
+  };
+
+  const createOs = async () => {
+    if (isReadOnly) {
+      if (!onRequestEditMode) return;
+      onRequestEditMode();
+    }
+    const osNumber = await generateNextOsNumber(contracts);
+    const novaOs = {
+      ...createDefaultDraftContract(),
+      ordem_servico: osNumber,
+      _id: Date.now() + Math.random(),
+    } as unknown as DraftOrdemServico;
+    setContracts(prev => [...prev, novaOs]);
+    setExpandedContractId(novaOs._id);
+    setEditingContractId(novaOs._id);
+    setOsClusterFilter("__all__");
   };
 
   const removeContract = (id: number) => {
@@ -322,427 +308,249 @@ export default function ContratosTab({
       if (!onRequestEditMode) return;
       onRequestEditMode();
     }
-    setContracts(contracts.filter((c) => c._id !== id));
-    setExpandedContractId(null);
-    if (editingContractId === id) { setEditingContractId(null); setEditingContractData(null); }
-  };
-
-  const validateDistribuicao = (dist: Array<{ id_centro_custo: string; percentual_rateio: number }> | undefined, label: string): boolean => {
-    if (!dist || dist.length === 0) {
-      toast.error(`${label}: adicione ao menos um Centro de Custo na Distribuição de Receita`);
-      return false;
-    }
-    const hasEmpty = dist.some(d => !d.id_centro_custo);
-    if (hasEmpty) {
-      toast.error(`${label}: selecione um centro de custo válido para cada linha`);
-      return false;
-    }
-    const total = dist.reduce((s, d) => s + (d.percentual_rateio || 0), 0);
-    if (Math.abs(total - 100) > 0.01) {
-      toast.error(`${label}: a distribuição deve somar 100% (atual: ${total.toFixed(0)}%)`);
-      return false;
-    }
-    return true;
-  };
-
-  const saveEditContract = () => {
-    if (!editingContractData || editingContractId == null) return;
-    if (!editingContractData.cluster_id) {
-      toast.error("Selecione a Empresa/Faturamento");
-      return;
-    }
-    if (!editingContractData.setor_cliente_id) {
-      toast.error("Selecione a Área do Negócio");
-      return;
-    }
-    if (!editingContractData.regiao) {
-      toast.error("Selecione a Região");
-      return;
-    }
-    if (!editingContractData.produtos_contratados || editingContractData.produtos_contratados.length === 0) {
-      toast.error("Adicione ao menos um Produto Contratado");
-      return;
-    }
-    if (!validateDistribuicao(editingContractData.distribuicao_receita as any, `OS ${editingContractData.ordem_servico || ""}`)) return;
-    setContracts(contracts.map((c) => (c._id === editingContractId ? ({ ...c, ...editingContractData } as DraftOrdemServico) : c)));
-    setEditingContractId(null); setEditingContractData(null);
-    toast.success("OS atualizada");
-  };
-
-  const addContract = async () => {
-    if (!draftContract.cluster_id) {
-      toast.error("Selecione a Empresa/Faturamento");
-      return;
-    }
-    if (!draftContract.setor_cliente_id) {
-      toast.error("Selecione a Área do Negócio");
-      return;
-    }
-    if (!draftContract.regiao) {
-      toast.error("Selecione a Região");
-      return;
-    }
-    if (!draftContract.produtos_contratados || draftContract.produtos_contratados.length === 0) {
-      toast.error("Adicione ao menos um Produto Contratado");
-      return;
-    }
-    if (!validateDistribuicao(draftContract.distribuicao_receita, "Nova OS")) return;
-    const osNumber = await generateNextOsNumber(contracts);
-    const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as unknown as DraftOrdemServico;
-    setContracts([...contracts, newContract]);
-    closeNewOsForm();
+    setContracts(prev => prev.filter(c => c._id !== id));
+    if (expandedContractId === id) setExpandedContractId(null);
+    if (editingContractId === id) setEditingContractId(null);
   };
 
   return (
     <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
       <div className="px-4 py-2 bg-muted/50 border-b flex items-center justify-between gap-3">
         <h3 className="text-sm font-bold text-foreground">OS - Ordem de Serviço ({contracts.length})</h3>
-        {canEditOs && !showNewOsForm && editingContractId == null && (
-          <Button size="sm" onClick={openNewOsForm} className="gap-1.5 h-7 text-xs bg-teal-600 hover:bg-teal-700 text-white">
-            <Plus size={14} /> Criar nova OS
+        {canEditOs && editingContractId == null && (
+          <Button size="sm" onClick={createOs} disabled={isCreatingOs} className="gap-1.5 h-7 text-xs bg-teal-600 hover:bg-teal-700 text-white">
+            <Plus size={14} /> {isCreatingOs ? "Criando..." : "Criar nova OS"}
           </Button>
         )}
       </div>
       <div className="px-4 py-3">
-        {contracts.length > 0 && (
-          <div className="space-y-3 mb-6">
-            {contracts.map((cont) => {
-              const isExpanded = expandedContractId === cont._id;
-              const isEditingThis = editingContractId === cont._id;
-              const ec = isEditingThis ? editingContractData : null;
-              return (
-                <div key={cont._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
-                  <div className="w-full flex items-center gap-2 p-4">
-                    <button type="button" className="flex-1 min-w-0 text-left"
-                      onClick={() => { if (!isEditingThis) setExpandedContractId(isExpanded ? null : cont._id); }}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">
-                          {getOsHeaderLabel(cont, produtoSegmentoFullOptions)}
-                        </span>
-                      </div>
-                      <div className="font-bold text-foreground mt-0.5">{formatCurrencyDisplay(cont.valor_projeto)}</div>
-                    </button>
-
-                    {/* Ações da OS no próprio cabeçalho — sem precisar expandir o card */}
-                    {!isEditingThis && (
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        {canEditOs && (
-                          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleEditOsClick(cont)}><Pencil size={12} /> Editar</Button>
-                        )}
-                        {canEditOs && (
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive"><Trash2 size={12} /> Remover</Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader><AlertDialogTitle>Remover OS</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja remover a OS "{cont.ordem_servico}"? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => removeContract(cont._id)}>Remover</AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
-                    )}
-
-                    <button type="button" aria-label={isExpanded ? "Recolher OS" : "Expandir OS"} className="shrink-0 p-1 rounded hover:bg-muted"
-                      onClick={() => { if (!isEditingThis) setExpandedContractId(isExpanded ? null : cont._id); }}>
-                      <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
-                    </button>
-                  </div>
-
-                  {/* Read-only expanded */}
-                  {isExpanded && !isEditingThis && (
-                    <div className="px-4 pb-4 border-t pt-3">
-                      {onCreateProjectFromOs && cont._dbId && (cont.produtos_contratados?.length ?? 0) > 0 && (
-                        <div className="flex justify-end gap-2 mb-3">
-                          <Button size="sm" variant="outline" className="gap-1.5 text-xs border-teal-600 text-teal-700 hover:bg-teal-50" onClick={() => onCreateProjectFromOs(cont)}><FolderPlus size={12} /> Criar projetos ({cont.produtos_contratados.length})</Button>
-                        </div>
-                      )}
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
-                        <FieldPair label="Data Início" value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : "—"} />
-                        <FieldPair label="Data Fim" value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : "—"} />
-                        <FieldPair label="Data Emissão" value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"} />
-                        <FieldPair label="Valor do Projeto" value={formatCurrencyDisplay(cont.valor_projeto)} />
-                        <FieldPair label="Situação do Projeto" value={SITUACAO_PROJETO_OPTIONS.find((o) => o.value === cont.situacao_projeto)?.label || "—"} />
-                        <FieldPair label="Área do Negócio" value={setorLabel(cont.setor_cliente_id, cont.setor_cliente)} />
-                        <FieldPair label="Região" value={getRegiaoLabel(cont.regiao)} />
-                        <div className="col-span-2 grid grid-cols-2 gap-4">
-                          <FieldPair label="Reembolso por KM" value={formatCurrencyDisplay(cont.valor_reembolso_km)} />
-                          <FieldPair label="Reembolso Refeição" value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)} />
-                        </div>
-                        {/* Produtos contratados */}
-                        <div className="col-span-2 md:col-span-3">
-                          <ProdutoContratadoBlock
-                            produtos={cont.produtos_contratados || []}
-                            onChange={() => {}}
-                            produtoOptions={produtoSegmentoFullOptions}
-                            allClusters={allClusters}
-                            readOnly
-                            clusterFilter="__all__"
-                            onClusterFilterChange={() => {}}
-                          />
-                        </div>
-                        {cont.distribuicao_receita?.length > 0 && (
-                          <div className="col-span-2 md:col-span-3">
-                            <p className="text-[10px] uppercase font-semibold text-muted-foreground">Distribuição de Receita</p>
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {cont.distribuicao_receita.map((cc, idx) => {
-                                const ccOpt = CENTRO_CUSTO_OPTIONS.find((o) => o.id === cc.id_centro_custo);
-                                return <Badge key={idx} variant="outline" className="text-xs">{ccOpt?.label || cc.id_centro_custo}: {cc.percentual_rateio}%</Badge>;
-                              })}
-                            </div>
-                          </div>
-                        )}
-                        {cont.observacoes_projeto && (
-                          <div className="col-span-2 md:col-span-3"><FieldPair label="Observações" value={cont.observacoes_projeto} /></div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Inline edit */}
-                  {isExpanded && isEditingThis && ec && (
-                    <div className="px-4 pb-4 border-t pt-3">
-                      <h5 className="text-xs font-bold uppercase text-muted-foreground border-b pb-2 mb-4">Dados da OS — {ec.ordem_servico}</h5>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Início</Label><div className="mt-1"><DateFieldWithInput value={ec.data_inicio_projeto || ""} onChange={(v) => setEditingContractData({ ...ec, data_inicio_projeto: v })} /></div></div>
-                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label><div className="mt-1"><DateFieldWithInput value={ec.data_fim_projeto || ""} onChange={(v) => setEditingContractData({ ...ec, data_fim_projeto: v })} /></div></div>
-                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data de Emissão</Label><div className="mt-1"><DateFieldWithInput value={ec.data_emissao || ""} onChange={(v) => setEditingContractData({ ...ec, data_emissao: v })} /></div></div>
-                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Valor do Projeto (R$)</Label><div className="mt-1"><CurrencyField value={ec.valor_projeto || 0} onChange={(v) => setEditingContractData({ ...ec, valor_projeto: v })} /></div></div>
-                        <div>
-                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Situação do Projeto</Label>
-                          <div className="mt-1">
-                            <Select value={ec.situacao_projeto || "em_andamento"} onValueChange={(v) => setEditingContractData({ ...ec, situacao_projeto: v })}>
-                              <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                              <SelectContent>{SITUACAO_PROJETO_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div>
-                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Área do Negócio<RequiredMark /></Label>
-                          <div className="mt-1">
-                            <Select
-                              value={ec.setor_cliente_id || "__none__"}
-                              onValueChange={(v) => {
-                                if (v === "__none__") {
-                                  setEditingContractData({ ...ec, setor_cliente_id: "", setor_cliente: "" });
-                                } else {
-                                  const setor = setoresCliente.find(s => s.id === v);
-                                  setEditingContractData({ ...ec, setor_cliente_id: v, setor_cliente: setor?.sigla || "" });
-                                }
-                              }}
-                            >
-                              <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                {setoresCliente.map((setor) => (
-                                  <SelectItem key={setor.id} value={setor.id}>{setor.sigla} - {setor.nome}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div>
-                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Região<RequiredMark /></Label>
-                          <div className="mt-1">
-                            <Select
-                              value={ec.regiao || "__none__"}
-                              onValueChange={(v) => setEditingContractData({ ...ec, regiao: v === "__none__" ? "" : v })}
-                            >
-                              <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                {REGIAO_OPTIONS.map(opt => (
-                                  <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso por KM (R$)</Label><div className="mt-1"><CurrencyField value={ec.valor_reembolso_km || 0} onChange={(v) => setEditingContractData({ ...ec, valor_reembolso_km: v })} /></div></div>
-                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso Refeição (R$)</Label><div className="mt-1"><CurrencyField value={ec.valor_reembolso_refeicao || 0} onChange={(v) => setEditingContractData({ ...ec, valor_reembolso_refeicao: v })} /></div></div>
-                      </div>
-
-                      {/* Produtos contratados (editable) */}
-                      <div className="mt-4">
-                        <ProdutoContratadoBlock
-                          produtos={(ec.produtos_contratados || []) as DraftProdutoContratado[]}
-                          onChange={(prods) => setEditingContractData({ ...ec, produtos_contratados: prods })}
-                          produtoOptions={produtoSegmentoFullOptions}
-                          allClusters={allClusters}
-                          clusterFilter={osEditClusterFilter}
-                          onClusterFilterChange={handleOsEditClusterFilterChange}
-                        />
-                      </div>
-
-                      {/* Distribuição de Receita */}
-                      <div className="border border-dashed rounded-lg p-3 mt-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)<RequiredMark /></h5>
-                          <Button type="button" size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setEditingContractData(prev => prev ? ({ ...prev, distribuicao_receita: [...((prev as any).distribuicao_receita || []), { id_centro_custo: "", percentual_rateio: 0 }] } as any) : prev)}><Plus size={12} /> Adicionar</Button>
-                        </div>
-                        {((ec as any).distribuicao_receita || []).map((cc: { id_centro_custo: string; percentual_rateio: number }, idx: number) => (
-                          <div key={idx} className="flex items-center gap-2 mt-1">
-                            <Select value={cc.id_centro_custo || "__none__"} onValueChange={(v) => { setEditingContractData(prev => { if (!prev) return prev; const updated = [...((prev as any).distribuicao_receita || [])]; updated[idx] = { ...updated[idx], id_centro_custo: v === "__none__" ? "" : v }; return { ...prev, distribuicao_receita: updated } as any; }); }}>
-                              <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Centro de Custo" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="__none__">Selecione...</SelectItem>
-                                {CENTRO_CUSTO_OPTIONS.map((cc_opt) => <SelectItem key={cc_opt.id} value={cc_opt.id}>{cc_opt.label}</SelectItem>)}
-                              </SelectContent>
-                            </Select>
-                            <div className="flex items-center gap-1 shrink-0">
-                              <Input type="number" min={0} max={100} value={cc.percentual_rateio || ""} onChange={(e) => { const val = parseFloat(e.target.value) || 0; setEditingContractData(prev => { if (!prev) return prev; const updated = [...((prev as any).distribuicao_receita || [])]; updated[idx] = { ...updated[idx], percentual_rateio: val }; return { ...prev, distribuicao_receita: updated } as any; }); }} className="h-8 w-20 text-right" placeholder="%" />
-                              <span className="text-xs text-muted-foreground">%</span>
-                            </div>
-                            <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={() => { setEditingContractData(prev => { if (!prev) return prev; const updated = ((prev as any).distribuicao_receita || []).filter((_: any, i: number) => i !== idx); return { ...prev, distribuicao_receita: updated } as any; }); }}><X size={14} /></Button>
-                          </div>
-                        ))}
-                        {((ec as any).distribuicao_receita || []).length > 0 && (() => {
-                          const total = ((ec as any).distribuicao_receita || []).reduce((acc: number, cc: any) => acc + (cc.percentual_rateio || 0), 0);
-                          return <p className={cn("text-xs mt-2 font-medium", total === 100 ? "text-green-600" : total > 100 ? "text-destructive" : "text-amber-600")}>Total: {total.toFixed(0)}%{total < 100 && ` — Faltam ${(100 - total).toFixed(0)}%`}{total > 100 && ` — Excedeu ${(total - 100).toFixed(0)}%`}{total === 100 && " ✓"}</p>;
-                        })()}
-                      </div>
-                      <div className="mt-4">
-                        <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">Observações</h5>
-                        <Textarea value={ec.observacoes_projeto || ""} onChange={(e) => setEditingContractData({ ...ec, observacoes_projeto: e.target.value })} placeholder="Insira observações relevantes sobre o projeto..." className="min-h-[60px]" />
-                      </div>
-                      <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
-                        <Button size="sm" variant="outline" onClick={cancelEditContract}>Cancelar</Button>
-                        <Button size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50" onClick={saveEditContract}><Check size={14} /> Aplicar</Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {contracts.length === 0 && !showNewOsForm && (
+        {contracts.length === 0 && (
           <p className="text-sm text-muted-foreground italic py-2">Nenhuma OS cadastrada.</p>
         )}
 
-        {/* New OS form — sob demanda, nunca junto com a edição de uma OS existente */}
-        {!isReadOnly && showNewOsForm && editingContractId == null && (
-          <div ref={newOsFormRef} className="bg-muted/50 rounded-lg border p-4">
-            <div className="flex items-center justify-between border-b pb-2 mb-4">
-              <h4 className="text-xs font-bold uppercase text-muted-foreground">Nova OS</h4>
-              <Button type="button" size="sm" variant="ghost" className="h-7 gap-1 text-xs text-muted-foreground" onClick={closeNewOsForm}><X size={12} /> Fechar</Button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div><Label className="text-xs font-semibold uppercase text-muted-foreground"> Data Início</Label><div className="mt-1"><DateFieldWithInput value={draftContract.data_inicio_projeto} onChange={(v) => setDraftContract(prev => ({ ...prev, data_inicio_projeto: v }))} /></div></div>
-              <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label><div className="mt-1"><DateFieldWithInput value={draftContract.data_fim_projeto} onChange={(v) => setDraftContract(prev => ({ ...prev, data_fim_projeto: v }))} /></div></div>
-              <div><Label className="text-xs font-semibold uppercase text-muted-foreground"> Data de Emissão</Label><div className="mt-1"><DateFieldWithInput value={draftContract.data_emissao} onChange={(v) => setDraftContract(prev => ({ ...prev, data_emissao: v }))} /></div></div>
-              <div><Label className="text-xs font-semibold uppercase text-muted-foreground"> Valor do Projeto (R$)</Label><div className="mt-1"><CurrencyField value={draftContract.valor_projeto} onChange={(v) => setDraftContract(prev => ({ ...prev, valor_projeto: v }))} /></div></div>
-              <div>
-                <Label className="text-xs font-semibold uppercase text-muted-foreground"> Situação do Projeto</Label>
-                <div className="mt-1">
-                  <Select value={draftContract.situacao_projeto} onValueChange={(v) => setDraftContract(prev => ({ ...prev, situacao_projeto: v }))}>
-                    <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>{SITUACAO_PROJETO_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs font-semibold uppercase text-muted-foreground">Área do Negócio<RequiredMark /></Label>
-                <div className="mt-1">
-                  <Select
-                    value={draftContract.setor_cliente_id || "__none__"}
-                    onValueChange={(v) => {
-                      if (v === "__none__") {
-                        setDraftContract(prev => ({ ...prev, setor_cliente_id: "", setor_cliente: "" }));
-                      } else {
-                        const setor = setoresCliente.find(s => s.id === v);
-                        setDraftContract(prev => ({ ...prev, setor_cliente_id: v, setor_cliente: setor?.sigla || "" }));
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Selecione...</SelectItem>
-                      {setoresCliente.map((setor) => (
-                        <SelectItem key={setor.id} value={setor.id}>{setor.sigla} - {setor.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div>
-                <Label className="text-xs font-semibold uppercase text-muted-foreground">Região<RequiredMark /></Label>
-                <div className="mt-1">
-                  <Select
-                    value={draftContract.regiao || "__none__"}
-                    onValueChange={(v) => setDraftContract(prev => ({ ...prev, regiao: v === "__none__" ? "" : v }))}
-                  >
-                    <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Selecione...</SelectItem>
-                      {REGIAO_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div><Label className="text-xs font-semibold uppercase text-muted-foreground"> Reembolso por KM (R$)</Label><div className="mt-1"><CurrencyField value={draftContract.valor_reembolso_km} onChange={(v) => setDraftContract(prev => ({ ...prev, valor_reembolso_km: v }))} /></div></div>
-              <div><Label className="text-xs font-semibold uppercase text-muted-foreground"> Reembolso Refeição (R$)</Label><div className="mt-1"><CurrencyField value={draftContract.valor_reembolso_refeicao} onChange={(v) => setDraftContract(prev => ({ ...prev, valor_reembolso_refeicao: v }))} /></div></div>
-            </div>
+        <div className="space-y-3">
+          {contracts.map((cont) => {
+            const isExpanded = expandedContractId === cont._id;
+            const isEditingThis = editingContractId === cont._id;
+            const dist = cont.distribuicao_receita || [];
+            return (
+              <div key={cont._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
+                <div className="w-full flex items-center gap-2 p-4">
+                  <button type="button" className="flex-1 min-w-0 text-left"
+                    onClick={() => { if (!isEditingThis) setExpandedContractId(isExpanded ? null : cont._id); }}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">
+                        {getOsHeaderLabel(cont, produtoSegmentoFullOptions)}
+                      </span>
+                    </div>
+                    <div className="font-bold text-foreground mt-0.5">{formatCurrencyDisplay(cont.valor_projeto)}</div>
+                  </button>
 
-            {/* Produtos contratados (editable) */}
-            <div className="mt-4">
-              <ProdutoContratadoBlock
-                produtos={draftContract.produtos_contratados}
-                onChange={(prods) => setDraftContract(prev => ({ ...prev, produtos_contratados: prods }))}
-                produtoOptions={produtoSegmentoFullOptions}
-                allClusters={allClusters}
-                clusterFilter={osClusterFilter}
-                onClusterFilterChange={handleOsClusterFilterChange}
-              />
-            </div>
-
-            {/* Distribuição de Receita */}
-            <div className="mt-4 border border-dashed rounded-lg p-4">
-              <div className="flex items-center justify-between mb-2">
-                <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)<RequiredMark /></h5>
-                <Button type="button" size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50" onClick={() => setDraftContract(prev => ({ ...prev, distribuicao_receita: [...prev.distribuicao_receita, { id_centro_custo: "", percentual_rateio: 0 }] }))}><Plus size={14} /> Adicionar Centro de Custo</Button>
-              </div>
-              {draftContract.distribuicao_receita.length === 0 && <p className="text-xs text-muted-foreground italic">Nenhum centro de custo adicionado.</p>}
-              {draftContract.distribuicao_receita.map((cc, idx) => (
-                <div key={idx} className="flex items-center gap-2 mt-2">
-                  <Select value={cc.id_centro_custo || "__none__"} onValueChange={(v) => { setDraftContract(prev => { const updated = [...prev.distribuicao_receita]; updated[idx] = { ...updated[idx], id_centro_custo: v === "__none__" ? "" : v }; return { ...prev, distribuicao_receita: updated }; }); }}>
-                    <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Centro de Custo" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Selecione...</SelectItem>
-                      {CENTRO_CUSTO_OPTIONS.map((cc_opt) => <SelectItem key={cc_opt.id} value={cc_opt.id}>{cc_opt.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center gap-1 shrink-0">
-                    <Input type="number" min={0} max={100} value={cc.percentual_rateio || ""} onChange={(e) => { const val = parseFloat(e.target.value) || 0; setDraftContract(prev => { const updated = [...prev.distribuicao_receita]; updated[idx] = { ...updated[idx], percentual_rateio: val }; return { ...prev, distribuicao_receita: updated }; }); }} className="h-8 w-20 text-right" placeholder="%" />
-                    <span className="text-xs text-muted-foreground">%</span>
+                  {/* Ações da OS no próprio cabeçalho — sem precisar expandir o card */}
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    {isEditingThis ? (
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setEditingContractId(null)}>
+                        <Check size={12} /> Concluir
+                      </Button>
+                    ) : (
+                      canEditOs && (
+                        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditContract(cont)}>
+                          <Pencil size={12} /> Editar
+                        </Button>
+                      )
+                    )}
+                    {canEditOs && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive"><Trash2 size={12} /> Remover</Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader><AlertDialogTitle>Remover OS</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja remover a OS "{cont.ordem_servico}"? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => removeContract(cont._id)}>Remover</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
-                  <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={() => { setDraftContract(prev => ({ ...prev, distribuicao_receita: prev.distribuicao_receita.filter((_, i) => i !== idx) })); }}><X size={14} /></Button>
+
+                  <button type="button" aria-label={isExpanded ? "Recolher OS" : "Expandir OS"} className="shrink-0 p-1 rounded hover:bg-muted"
+                    onClick={() => { if (!isEditingThis) setExpandedContractId(isExpanded ? null : cont._id); }}>
+                    <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
+                  </button>
                 </div>
-              ))}
-              {draftContract.distribuicao_receita.length > 0 && (() => {
-                const total = draftContract.distribuicao_receita.reduce((acc, cc) => acc + cc.percentual_rateio, 0);
-                const faltam = 100 - total;
-                return <p className={cn("text-xs mt-2 font-medium", total === 100 ? "text-green-600" : total > 100 ? "text-destructive" : "text-amber-600")}>Total Distribuído: {total.toFixed(0)}%{total < 100 && ` — Faltam ${faltam.toFixed(0)}% para completar 100%`}{total > 100 && ` — Excedeu em ${(total - 100).toFixed(0)}%`}{total === 100 && " ✓"}</p>;
-              })()}
-            </div>
 
-            {/* Observações */}
-            <div className="mt-4">
-              <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">Observações</h5>
-              <Textarea value={draftContract.observacoes_projeto} onChange={(e) => setDraftContract(prev => ({ ...prev, observacoes_projeto: e.target.value }))} placeholder="Insira observações relevantes sobre o projeto..." className="min-h-[80px]" />
-            </div>
+                {/* Leitura */}
+                {isExpanded && !isEditingThis && (
+                  <div className="px-4 pb-4 border-t pt-3">
+                    {onCreateProjectFromOs && cont._dbId && (cont.produtos_contratados?.length ?? 0) > 0 && (
+                      <div className="flex justify-end gap-2 mb-3">
+                        <Button size="sm" variant="outline" className="gap-1.5 text-xs border-teal-600 text-teal-700 hover:bg-teal-50" onClick={() => onCreateProjectFromOs(cont)}><FolderPlus size={12} /> Criar projetos ({cont.produtos_contratados.length})</Button>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
+                      <FieldPair label="Data Início" value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : "—"} />
+                      <FieldPair label="Data Fim" value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : "—"} />
+                      <FieldPair label="Data Emissão" value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"} />
+                      <FieldPair label="Valor do Projeto" value={formatCurrencyDisplay(cont.valor_projeto)} />
+                      <FieldPair label="Situação do Projeto" value={SITUACAO_PROJETO_OPTIONS.find((o) => o.value === cont.situacao_projeto)?.label || "—"} />
+                      <FieldPair label="Área do Negócio" value={setorLabel(cont.setor_cliente_id, cont.setor_cliente)} />
+                      <FieldPair label="Região" value={getRegiaoLabel(cont.regiao)} />
+                      <div className="col-span-2 grid grid-cols-2 gap-4">
+                        <FieldPair label="Reembolso por KM" value={formatCurrencyDisplay(cont.valor_reembolso_km)} />
+                        <FieldPair label="Reembolso Refeição" value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)} />
+                      </div>
+                      <div className="col-span-2 md:col-span-3">
+                        <ProdutoContratadoBlock
+                          produtos={cont.produtos_contratados || []}
+                          onChange={() => {}}
+                          produtoOptions={produtoSegmentoFullOptions}
+                          allClusters={allClusters}
+                          readOnly
+                          clusterFilter="__all__"
+                          onClusterFilterChange={() => {}}
+                        />
+                      </div>
+                      {dist.length > 0 && (
+                        <div className="col-span-2 md:col-span-3">
+                          <p className="text-[10px] uppercase font-semibold text-muted-foreground">Distribuição de Receita</p>
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {dist.map((cc, idx) => {
+                              const ccOpt = CENTRO_CUSTO_OPTIONS.find((o) => o.id === cc.id_centro_custo);
+                              return <Badge key={idx} variant="outline" className="text-xs">{ccOpt?.label || cc.id_centro_custo}: {cc.percentual_rateio}%</Badge>;
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {cont.observacoes_projeto && (
+                        <div className="col-span-2 md:col-span-3"><FieldPair label="Observações" value={cont.observacoes_projeto} /></div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-            <div className="flex justify-end mt-4 pt-2 border-t">
-              <Button size="sm" onClick={addContract} disabled={isAddingContract} className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white shadow-md"><Plus size={14} /> {isAddingContract ? "Adicionando..." : "Adicionar OS à Lista"}</Button>
-            </div>
-          </div>
-        )}
+                {/* Edição — cada campo grava direto na OS */}
+                {isExpanded && isEditingThis && (
+                  <div className="px-4 pb-4 border-t pt-3">
+                    <h5 className="text-xs font-bold uppercase text-muted-foreground border-b pb-2 mb-4">Dados da OS — {cont.ordem_servico}</h5>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Início</Label><div className="mt-1"><DateFieldWithInput value={cont.data_inicio_projeto || ""} onChange={(v) => updateContract(cont._id, { data_inicio_projeto: v })} /></div></div>
+                      <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label><div className="mt-1"><DateFieldWithInput value={cont.data_fim_projeto || ""} onChange={(v) => updateContract(cont._id, { data_fim_projeto: v })} /></div></div>
+                      <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data de Emissão</Label><div className="mt-1"><DateFieldWithInput value={cont.data_emissao || ""} onChange={(v) => updateContract(cont._id, { data_emissao: v })} /></div></div>
+                      <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Valor do Projeto (R$)</Label><div className="mt-1"><CurrencyField value={cont.valor_projeto || 0} onChange={(v) => updateContract(cont._id, { valor_projeto: v })} /></div></div>
+                      <div>
+                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Situação do Projeto</Label>
+                        <div className="mt-1">
+                          <Select value={cont.situacao_projeto || "em_andamento"} onValueChange={(v) => updateContract(cont._id, { situacao_projeto: v })}>
+                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                            <SelectContent>{SITUACAO_PROJETO_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Área do Negócio<RequiredMark /></Label>
+                        <div className="mt-1">
+                          <Select
+                            value={cont.setor_cliente_id || "__none__"}
+                            onValueChange={(v) => {
+                              if (v === "__none__") {
+                                updateContract(cont._id, { setor_cliente_id: "", setor_cliente: "" });
+                              } else {
+                                const setor = setoresCliente.find(s => s.id === v);
+                                updateContract(cont._id, { setor_cliente_id: v, setor_cliente: setor?.sigla || "" });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">Selecione...</SelectItem>
+                              {setoresCliente.map((setor) => (
+                                <SelectItem key={setor.id} value={setor.id}>{setor.sigla} - {setor.nome}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div>
+                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Região<RequiredMark /></Label>
+                        <div className="mt-1">
+                          <Select
+                            value={cont.regiao || "__none__"}
+                            onValueChange={(v) => updateContract(cont._id, { regiao: v === "__none__" ? "" : v })}
+                          >
+                            <SelectTrigger className="h-8"><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">Selecione...</SelectItem>
+                              {REGIAO_OPTIONS.map(opt => (
+                                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso por KM (R$)</Label><div className="mt-1"><CurrencyField value={cont.valor_reembolso_km || 0} onChange={(v) => updateContract(cont._id, { valor_reembolso_km: v })} /></div></div>
+                      <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso Refeição (R$)</Label><div className="mt-1"><CurrencyField value={cont.valor_reembolso_refeicao || 0} onChange={(v) => updateContract(cont._id, { valor_reembolso_refeicao: v })} /></div></div>
+                    </div>
+
+                    {/* Produtos contratados */}
+                    <div className="mt-4">
+                      <ProdutoContratadoBlock
+                        produtos={(cont.produtos_contratados || []) as DraftProdutoContratado[]}
+                        onChange={(prods) => updateContract(cont._id, { produtos_contratados: prods })}
+                        produtoOptions={produtoSegmentoFullOptions}
+                        allClusters={allClusters}
+                        clusterFilter={osClusterFilter}
+                        onClusterFilterChange={(v) => handleClusterFilterChange(cont._id, v)}
+                      />
+                    </div>
+
+                    {/* Distribuição de Receita */}
+                    <div className="border border-dashed rounded-lg p-3 mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h5 className="text-xs font-bold text-muted-foreground uppercase">Distribuição de Receita (Centros de Custo)<RequiredMark /></h5>
+                        <Button type="button" size="sm" variant="outline" className="gap-1 text-xs" onClick={() => updateDistribuicao(cont._id, (d) => [...d, { id_centro_custo: "", percentual_rateio: 0 }])}><Plus size={12} /> Adicionar linha</Button>
+                      </div>
+                      {dist.length === 0 && <p className="text-xs text-muted-foreground italic">Nenhum centro de custo. A soma precisa fechar 100% para salvar.</p>}
+                      {dist.map((cc, idx) => (
+                        <div key={idx} className="flex items-center gap-2 mt-1">
+                          <Select value={cc.id_centro_custo || "__none__"} onValueChange={(v) => updateDistribuicao(cont._id, (d) => d.map((row, i) => (i === idx ? { ...row, id_centro_custo: v === "__none__" ? "" : v } : row)))}>
+                            <SelectTrigger className="h-8 flex-1"><SelectValue placeholder="Centro de Custo" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">Selecione...</SelectItem>
+                              {CENTRO_CUSTO_OPTIONS.map((cc_opt) => <SelectItem key={cc_opt.id} value={cc_opt.id}>{cc_opt.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Input type="number" min={0} max={100} value={cc.percentual_rateio || ""} onChange={(e) => { const val = parseFloat(e.target.value) || 0; updateDistribuicao(cont._id, (d) => d.map((row, i) => (i === idx ? { ...row, percentual_rateio: val } : row))); }} className="h-8 w-20 text-right" placeholder="%" />
+                            <span className="text-xs text-muted-foreground">%</span>
+                          </div>
+                          <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={() => updateDistribuicao(cont._id, (d) => d.filter((_, i) => i !== idx))}><X size={14} /></Button>
+                        </div>
+                      ))}
+                      {dist.length > 0 && (() => {
+                        const total = dist.reduce((acc, cc) => acc + (cc.percentual_rateio || 0), 0);
+                        const preenchidos = dist.map(cc => cc.id_centro_custo).filter(Boolean);
+                        const repetido = new Set(preenchidos).size !== preenchidos.length;
+                        return (
+                          <>
+                            <p className={cn("text-xs mt-2 font-medium", total === 100 ? "text-green-600" : total > 100 ? "text-destructive" : "text-amber-600")}>Total: {total.toFixed(0)}%{total < 100 && ` — Faltam ${(100 - total).toFixed(0)}%`}{total > 100 && ` — Excedeu ${(total - 100).toFixed(0)}%`}{total === 100 && " ✓"}</p>
+                            {repetido && <p className="text-xs mt-1 font-medium text-destructive">Centro de custo repetido — remova a linha duplicada para poder salvar.</p>}
+                          </>
+                        );
+                      })()}
+                    </div>
+
+                    <div className="mt-4">
+                      <h5 className="text-xs font-bold text-muted-foreground uppercase mb-2">Observações</h5>
+                      <Textarea value={cont.observacoes_projeto || ""} onChange={(e) => updateContract(cont._id, { observacoes_projeto: e.target.value })} placeholder="Insira observações relevantes sobre o projeto..." className="min-h-[60px]" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </section>
   );
