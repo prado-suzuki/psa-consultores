@@ -1,26 +1,53 @@
-## Rodar `20260728140000_org_comments_ajustes_pos_edu13.sql`
+# Plan — `produto_checklist_item`: elo produto × documento padrão
 
-Auditei o banco: só o bucket já existe; os outros cinco ajustes estão pendentes. A migration é idempotente (CREATE OR REPLACE, ON CONFLICT, DROP POLICY IF EXISTS, REVOKE), então pode rodar como está.
+## Pré-voo (concluído — tudo verde)
 
-### Estado atual x o que a migration faz
+| Check | Resultado |
+|---|---|
+| `to_regclass('public.produto_checklist_item')` | `null` — tabela ainda não existe |
+| `produto_segmento.id` / `checklist_item_padrao.id` | ambos `uuid` |
+| Função `checklist_touch_updated_at` | existe |
+| Função `has_role_or_higher` | existe |
 
-| # | Ajuste | Estado hoje | Após a migration |
-|---|---|---|---|
-| 1 | Bucket `comment-attachments` | já existe | no-op (ON CONFLICT) |
-| 2 | `org_comments_feed` expõe `excluido` e para de filtrar | não expõe `excluido` | passa a expor; front filtra |
-| 3 | `criar_org_comment` sem o bug de `COALESCE(_id,…)` repetido em menções/anexos | ainda com o bug latente (só não estoura porque o front sempre manda `_id`) | menções e anexos usam o mesmo `v_id` |
-| 4 | SELECT em `org_comment_attachments` delegando à RLS de `org_comments` | reimplementa a regra e esquece o admin | admin não-membro passa a ver os anexos que já vê no comentário |
-| 5 | `org_comments_guard_update` sem `#- '{}'::text[]` | ainda com o operador problemático | lista de imutáveis explícita |
-| 6 | REVOKE DELETE em `org_comments` para `authenticated` | grant ainda existe (RLS já negava, mas o grant contradiz o desenho) | grant removido; cascade continua via SECURITY DEFINER |
+Seguro prosseguir.
 
-### Riscos
+## Escopo
 
-- **Nenhum breaking para o front:** `org_comments_feed` só ganha coluna no fim (compatível com `SELECT *`); a RPC mantém a mesma assinatura; a policy de SELECT dos anexos só amplia (inclui admin), não restringe.
-- **DELETE direto na tabela** deixa de funcionar para clientes autenticados — mas o desenho já é soft delete (`UPDATE ... SET excluido = true`), então não deve haver consumidor legítimo.
+- **Único objeto novo:** tabela `public.produto_checklist_item` (M:N entre `produto_segmento` e `checklist_item_padrao`).
+- **Único arquivo de código alterado após migration:** `src/integrations/supabase/types.ts` (regeneração automática).
+- **Fora de escopo:** dados, RPCs, hooks, telas, alterações em outras tabelas/policies, coluna `quantidade_esperada`.
 
-### Passos
+## Migration nova
 
-1. Executar a migration `20260728140000_org_comments_ajustes_pos_edu13.sql` via `supabase--migration`.
-2. Reconferir com uma query os 5 itens pendentes para confirmar que ficaram como o esperado.
+Arquivo: `supabase/migrations/<timestamp>_produto_checklist_item.sql`
 
-Sem mudanças de código no front nesta etapa.
+Conteúdo idêntico ao bloco SQL do briefing:
+
+- `CREATE TABLE public.produto_checklist_item` com:
+  - `id uuid pk default gen_random_uuid()`
+  - `produto_segmento_id uuid not null references produto_segmento(id) on delete cascade`
+  - `item_padrao_id uuid not null references checklist_item_padrao(id) on delete cascade`
+  - `obrigatorio boolean not null default true`
+  - `created_at/created_by/updated_at/updated_by` (defaults `now()` / `auth.uid()`)
+  - `unique (produto_segmento_id, item_padrao_id)`
+- `COMMENT ON TABLE` e `COMMENT ON COLUMN obrigatorio`
+- Índice inverso `idx_produto_checklist_item_padrao (item_padrao_id)`
+- Trigger `trg_produto_checklist_item_updated_at BEFORE UPDATE` reusando `public.checklist_touch_updated_at()`
+- `ENABLE ROW LEVEL SECURITY`
+- 4 policies (drop-if-exists + create), todas `to authenticated`:
+  - SELECT — `has_role_or_higher(auth.uid(), 'team_member')`
+  - INSERT — `has_role_or_higher(auth.uid(), 'sublider')` (with check)
+  - UPDATE — `has_role_or_higher(auth.uid(), 'sublider')` (using + with check)
+  - DELETE — `has_role_or_higher(auth.uid(), 'sublider')`
+- Grants: `select, insert, update, delete` para `authenticated`; `all` para `service_role`.
+- Envelope `BEGIN; ... COMMIT;`
+
+## Pós-migration
+
+1. Regenerar `src/integrations/supabase/types.ts` (fluxo automático do Supabase) e confirmar que `produto_checklist_item` aparece.
+2. Rodar o bloco GATE (6 queries) e devolver os resultados no chat:
+   - colunas/defaults, FKs+unique, RLS on + 4 policies, trigger, `count(*)=0`, e checagem de que `checklist_item_padrao` / `checklist_cliente_item` / `produto_segmento` mantêm o mesmo número de policies de antes.
+
+## Riscos
+
+Nenhum: DDL puro, aditivo, sem dados, sem alteração em objeto existente. Rollback = `DROP TABLE public.produto_checklist_item`.

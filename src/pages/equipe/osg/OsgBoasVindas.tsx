@@ -52,9 +52,10 @@ const FERRAMENTAS: FerramentaOsg[] = [
   {
     id: 'auditoria',
     titulo: 'Auditoria',
-    descricao: 'Histórico de alterações em projetos e tarefas da área OSG.',
+    descricao: 'Histórico, produtividade e acesso do time na área OSG (acesso de líder).',
     path: '/equipe/osg/auditoria',
     icon: <Shield className="h-5 w-5 text-osg-600" />,
+    requiresLider: true,
   },
   {
     id: 'chamados',
