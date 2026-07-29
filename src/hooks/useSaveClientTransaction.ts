@@ -517,50 +517,6 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         await assertCanPerform('ordem_servico', 'update', firstUpdateOs._dbId);
       }
 
-      // Estatísticas de rateio/produtos por OS — usado depois para (a) emitir
-      // audit consolidado e (b) impedir o toast "nenhuma alteração" quando
-      // só o rateio/produtos mudou. Só conta o que MUDOU DE VERDADE (compara
-      // conteúdo com o banco); do contrário todo save com OS acionaria falso
-      // positivo e geraria audit fantasma.
-      type RateioLinha = { centroCodigo: string; percentual: number };
-      type ProdutoLinha = { codigo: string; horas: number | null };
-      interface OsStats {
-        osLabel: string;
-        rateio: { inserted: number; updated: number; softDeleted: number; antes: RateioLinha[]; depois: RateioLinha[] };
-        produtos: { inserted: number; updated: number; deleted: number; antes: ProdutoLinha[]; depois: ProdutoLinha[] };
-      }
-      const osChangeStats = new Map<string, OsStats>();
-
-      // Prefetch de códigos para os ids do rascunho (o lado do banco já vem
-      // via join no select). Uma query por catálogo, ids únicos.
-      const draftCentroIds = Array.from(new Set(
-        contracts.flatMap(c => (c.distribuicao_receita || []).map(d => d.id_centro_custo).filter(Boolean))
-      )) as string[];
-      const draftProdutoIds = Array.from(new Set(
-        contracts.flatMap(c => (c.produtos_contratados || []).map(p => p.produto_segmento_id).filter(Boolean))
-      )) as string[];
-      const centroCodigoMap = new Map<string, string>();
-      const produtoCodigoMap = new Map<string, string>();
-      if (draftCentroIds.length > 0) {
-        const { data } = await (supabase.from('centros_custo' as any) as any)
-          .select('id, codigo').in('id', draftCentroIds);
-        for (const r of (data || []) as Array<{ id: string; codigo: string }>) centroCodigoMap.set(r.id, r.codigo);
-      }
-      if (draftProdutoIds.length > 0) {
-        const { data } = await (supabase.from('produto_segmento' as any) as any)
-          .select('id, codigo').in('id', draftProdutoIds);
-        for (const r of (data || []) as Array<{ id: string; codigo: string }>) produtoCodigoMap.set(r.id, r.codigo);
-      }
-
-      const resumoRateio = (linhas: RateioLinha[]) =>
-        linhas.slice().sort((a, b) => a.centroCodigo.localeCompare(b.centroCodigo))
-          .map(l => `${l.centroCodigo} ${l.percentual}%`).join(', ') || '(vazio)';
-      const resumoProdutos = (linhas: ProdutoLinha[]) =>
-        linhas.slice().sort((a, b) => a.codigo.localeCompare(b.codigo))
-          .map(l => `${l.codigo}${l.horas != null ? ` ${l.horas}h` : ''}`).join(', ') || '(vazio)';
-
-
-
       for (const c of contracts) {
         currentStep = c._dbId ? "ordem_servico/update" : "ordem_servico/insert";
         let osId = c._dbId;
@@ -588,62 +544,39 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         // o que saiu do rateio é excluído (com verificação). Reinserir é
         // impossível, então salvar duas vezes não duplica nada.
         if (osId) {
-          const stats: OsStats = {
-            osLabel: c.ordem_servico || '(sem número)',
-            rateio: { inserted: 0, updated: 0, softDeleted: 0, antes: [], depois: [] },
-            produtos: { inserted: 0, updated: 0, deleted: 0, antes: [], depois: [] },
-          };
-          osChangeStats.set(osId, stats);
-
           const draftDist = (c.distribuicao_receita || []).filter(d => d.id_centro_custo);
           const { data: dbDist, error: dbDistError } = await (supabase.from("distribuicao_receita" as any) as any)
-            .select("id, id_centro_custo, percentual_rateio")
+            .select("id")
             .eq("id_ordem_servico", osId)
             .eq("excluido", false);
           if (dbDistError) throw dbDistError;
 
           const rotuloOs = c.ordem_servico || "(sem número)";
-          type DbDistRow = { id: string; id_centro_custo: string; percentual_rateio: number | string };
-          const dbDistRows = (dbDist || []) as DbDistRow[];
-          const dbDistById = new Map(dbDistRows.map(r => [r.id, r]));
-
-          // Snapshot ANTES do rateio (a partir do banco)
-          stats.rateio.antes = dbDistRows.map(r => ({
-            centroCodigo: centroCodigoMap.get(r.id_centro_custo) || r.id_centro_custo.slice(0, 8),
-            percentual: Number(r.percentual_rateio) || 0,
-          }));
-          // Snapshot DEPOIS (a partir do rascunho)
-          stats.rateio.depois = draftDist.map(d => ({
-            centroCodigo: centroCodigoMap.get(d.id_centro_custo) || d.id_centro_custo.slice(0, 8),
-            percentual: Number(d.percentual_rateio) || 0,
-          }));
-
           const mantidos = new Set(draftDist.map(d => d._dbId).filter(Boolean) as string[]);
-          const distRemovidos = dbDistRows.map(r => r.id).filter(id => !mantidos.has(id));
+          const distRemovidos = ((dbDist || []) as Array<{ id: string }>)
+            .map(r => r.id)
+            .filter(id => !mantidos.has(id));
 
           if (distRemovidos.length > 0) {
+            // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
             await assertCanPerform('distribuicao_receita', 'update', distRemovidos[0]);
             await softDeleteVerificado("distribuicao_receita", "id", distRemovidos, `linha(s) de Distribuição de Receita da OS ${rotuloOs}`);
-            stats.rateio.softDeleted = distRemovidos.length;
           }
 
           for (const d of draftDist.filter(d => d._dbId)) {
-            const dbRow = dbDistById.get(d._dbId!);
-            const centroChanged = !dbRow || dbRow.id_centro_custo !== d.id_centro_custo;
-            const percentChanged = !dbRow || Number(dbRow.percentual_rateio) !== (d.percentual_rateio || 0);
-            if (!centroChanged && !percentChanged) continue;
             currentStep = "distribuicao_receita/update";
             const { data: updDist, error: updDistError } = await (supabase.from("distribuicao_receita" as any) as any)
               .update({ id_centro_custo: d.id_centro_custo, percentual_rateio: d.percentual_rateio || 0 })
               .eq("id", d._dbId)
               .select("id");
             if (updDistError) throw updDistError;
+            // 0 rows aqui significa linha inexistente ou RLS barrando. Reinserir
+            // seria justamente o que duplicava o rateio — então falha alto.
             if (!updDist || updDist.length === 0) {
               throw new Error(
                 `Não foi possível atualizar a Distribuição de Receita da OS ${rotuloOs}. Feche e abra o cadastro para recarregar os dados e tente de novo.`
               );
             }
-            stats.rateio.updated += 1;
           }
 
           const distNovos = draftDist.filter(d => !d._dbId);
@@ -657,36 +590,39 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
               }))
             );
             if (distError) throw distError;
-            stats.rateio.inserted = distNovos.length;
           }
 
           // Persist os_produtos_contratados: selective upsert preserving _dbId
           const draftProdutos = c.produtos_contratados || [];
+          // os_produtos_contratados não está no schema tipado — cast justificado
           const { data: existingProdutos } = await (supabase.from("os_produtos_contratados" as any) as any)
             .select("id, produto_segmento_id, horas_contratadas")
             .eq("ordem_servico_id", osId);
           const existingMap = new Map<string, { produto_segmento_id: string; horas_contratadas: number | null }>((existingProdutos || []).map((p: any) => [p.id, { produto_segmento_id: p.produto_segmento_id, horas_contratadas: p.horas_contratadas }]));
 
-          // Snapshots ANTES/DEPOIS de produtos
-          stats.produtos.antes = (existingProdutos || []).map((p: any) => ({
-            codigo: produtoCodigoMap.get(p.produto_segmento_id) || String(p.produto_segmento_id).slice(0, 8),
-            horas: p.horas_contratadas != null ? Number(p.horas_contratadas) : null,
-          }));
-          stats.produtos.depois = draftProdutos.map(p => ({
-            codigo: produtoCodigoMap.get(p.produto_segmento_id) || String(p.produto_segmento_id).slice(0, 8),
-            horas: p.horas_contratadas != null ? Number(p.horas_contratadas) : null,
-          }));
-
+          // Determine which to keep, insert, and delete
           const draftDbIds = new Set(draftProdutos.filter(p => p._dbId).map(p => p._dbId!));
           const toDelete = (existingProdutos || []).filter((p: any) => !draftDbIds.has(p.id)).map((p: any) => p.id);
 
+          // Delete removed
           if (toDelete.length > 0) {
             currentStep = "os_produtos_contratados/delete";
             const { error: delProdError } = await (supabase.from("os_produtos_contratados" as any) as any).delete().in("id", toDelete);
             if (delProdError) throw delProdError;
-            stats.produtos.deleted = toDelete.length;
+            for (const delId of toDelete) {
+              const delProdId = existingMap.get(delId);
+              logAction({
+                area: 'dev',
+                entity_type: 'ordem_servico',
+                entity_id: osId!,
+                entity_name: c.ordem_servico || '(sem número)',
+                action: 'updated',
+                details: `Produto removido da OS: ${delProdId}`,
+              });
+            }
           }
 
+          // Insert new (no _dbId)
           const toInsert = draftProdutos.filter(p => !p._dbId);
           if (toInsert.length > 0) {
             currentStep = "os_produtos_contratados/insert";
@@ -697,9 +633,19 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             }));
             const { error: insErr } = await (supabase.from("os_produtos_contratados" as any) as any).insert(insertPayload);
             if (insErr) throw insErr;
-            stats.produtos.inserted = toInsert.length;
+            for (const ins of toInsert) {
+              logAction({
+                area: 'dev',
+                entity_type: 'ordem_servico',
+                entity_id: osId!,
+                entity_name: c.ordem_servico || '(sem número)',
+                action: 'updated',
+                details: `Produto adicionado à OS: ${ins.produto_segmento_id}`,
+              });
+            }
           }
 
+          // Update existing (with _dbId) — only if produto_segmento_id or horas_contratadas changed
           for (const dp of draftProdutos.filter(p => p._dbId)) {
             const old = existingMap.get(dp._dbId!);
             if (!old) continue;
@@ -714,13 +660,10 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
                 })
                 .eq("id", dp._dbId);
               if (updProdError) throw updProdError;
-              stats.produtos.updated += 1;
             }
           }
         }
       }
-
-
 
       // --- Persist cliente_clusters (incremental upsert) ---
       // Só no ramo de edição: na criação, a RPC criar_cliente_com_clusters já
@@ -887,38 +830,6 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         }
       }
 
-      // Audit consolidado por OS afetada em rateio/produtos (formato { old, new }
-      // que o formatChangedFields entende; só inclui a chave do lado que mudou).
-      let anyRateioOrProdChange = false;
-      for (const [osId, stats] of osChangeStats) {
-        const rateioChanged = stats.rateio.inserted + stats.rateio.updated + stats.rateio.softDeleted > 0;
-        const produtosChanged = stats.produtos.inserted + stats.produtos.updated + stats.produtos.deleted > 0;
-        if (!rateioChanged && !produtosChanged) continue;
-        anyRateioOrProdChange = true;
-        const changed_fields: Record<string, { old: unknown; new: unknown }> = {};
-        if (rateioChanged) {
-          changed_fields.distribuicao_receita = {
-            old: resumoRateio(stats.rateio.antes),
-            new: resumoRateio(stats.rateio.depois),
-          };
-        }
-        if (produtosChanged) {
-          changed_fields.produtos_contratados = {
-            old: resumoProdutos(stats.produtos.antes),
-            new: resumoProdutos(stats.produtos.depois),
-          };
-        }
-        logAction({
-          area: 'dev',
-          entity_type: 'ordem_servico',
-          entity_id: osId,
-          entity_name: stats.osLabel,
-          action: 'updated',
-          details: `Cliente: ${clientData.nome.trim()}`,
-          changed_fields,
-        });
-      }
-
       // Feedback preciso: se estava editando e nenhuma entidade teve diff real,
       // informar explicitamente para o usuário perceber que o que ele editou
       // não chegou ao estado salvo (ex.: edição inline não commitada na aba).
@@ -927,9 +838,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         !clientHasChange &&
         contribDiffs.length === 0 &&
         partDiffs.length === 0 &&
-        osDiffs.length === 0 &&
-        !anyRateioOrProdChange;
-
+        osDiffs.length === 0;
       if (nothingChanged) {
         toast.info("Nenhuma alteração detectada. Se você editou algum item, confirme o botão Salvar da linha antes de salvar o cliente.");
       } else {
