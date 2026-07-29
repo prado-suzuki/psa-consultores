@@ -8315,6 +8315,10 @@ export type Database = {
         Args: { _gargalo_id: string }
         Returns: boolean
       }
+      gerar_solicitacao_os: {
+        Args: { _cliente_id: string; _ordem_servico_id: string }
+        Returns: number
+      }
       get_accessible_dashboards: {
         Args: { _target_page?: string }
         Returns: {
