@@ -4,12 +4,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useEstruturaEquipe } from '@/hooks/useEstruturaEquipe';
 import type { EstruturaEquipeOption } from '@/hooks/useEstruturaEquipes';
 import { computeAvailableMembers, computeExecutores, computeLideres, type RoleAssignment } from '@/lib/projetoEquipe';
 import type { LoteRow } from '@/lib/projetosLote';
-import { PeopleMultiSelect, type PersonOption } from './PeopleMultiSelect';
+import { PeopleMultiSelect, type PersonAreaGroup, type PersonOption } from './PeopleMultiSelect';
 
 interface ProjetoLoteRowProps {
   index: number;
@@ -18,9 +19,13 @@ interface ProjetoLoteRowProps {
   equipesOptions: EstruturaEquipeOption[];
   teamMembers: PersonOption[];
   userRoles: RoleAssignment[];
+  areaGroups: PersonAreaGroup[];
+  currentUserAreaIds: string[];
 }
 
-export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMembers, userRoles }: ProjetoLoteRowProps) {
+export function ProjetoLoteRow({
+  index, row, updateRow, equipesOptions, teamMembers, userRoles, areaGroups, currentUserAreaIds,
+}: ProjetoLoteRowProps) {
   const equipeId = row.equipeId || null;
   const { liderIds: equipeLiderIds, memberIds: equipeMemberIds } = useEstruturaEquipe(equipeId);
 
@@ -29,8 +34,22 @@ export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMemb
   const executores = useMemo(() => computeExecutores(teamMembers, userRoles, equipeId, equipeMemberIds, row.responsibleId),
     [teamMembers, userRoles, equipeId, equipeMemberIds, row.responsibleId]);
   const availableMembers = useMemo(() => computeAvailableMembers(teamMembers, equipeId, equipeMemberIds,
-    row.leaderIds, row.memberIds, false, []),
-    [teamMembers, equipeId, equipeMemberIds, row.leaderIds, row.memberIds]);
+    row.leaderIds, row.memberIds, row.isMultidisciplinar, areaGroups),
+    [teamMembers, equipeId, equipeMemberIds, row.leaderIds, row.memberIds, row.isMultidisciplinar, areaGroups]);
+
+  // Modo multidisciplinar: mesmas áreas do cadastro único, sem os líderes já escolhidos.
+  const availableMembersByArea = useMemo<PersonAreaGroup[] | undefined>(() => {
+    if (!row.isMultidisciplinar) return undefined;
+    const excluded = new Set(row.leaderIds);
+    return areaGroups.map(group => ({
+      ...group,
+      members: group.members.filter(member => !excluded.has(member.id)),
+      equipes: group.equipes.map(team => ({
+        ...team,
+        members: team.members.filter(member => !excluded.has(member.id)),
+      })).filter(team => team.members.length > 0),
+    })).filter(group => group.members.length > 0);
+  }, [row.isMultidisciplinar, row.leaderIds, areaGroups]);
 
   // Líder default = gestor da equipe (quando há exatamente 1 e nenhum líder escolhido).
   useEffect(() => {
@@ -64,8 +83,7 @@ export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMemb
     memberIds: row.memberIds.includes(id) ? row.memberIds.filter(item => item !== id) : [...row.memberIds, id],
   });
 
-  const selectAllMembers = () => {
-    const ids = availableMembers.map(member => member.id);
+  const toggleMembers = (ids: string[]) => {
     const allSelected = ids.length > 0 && ids.every(id => row.memberIds.includes(id));
     updateRow(index, {
       memberIds: allSelected
@@ -73,6 +91,8 @@ export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMemb
         : [...new Set([...row.memberIds, ...ids])],
     });
   };
+
+  const selectAllMembers = () => toggleMembers(availableMembers.map(member => member.id));
 
   return (
     <div className={cn('bg-card border rounded-lg overflow-hidden transition-opacity', disabled && 'opacity-60')}>
@@ -108,6 +128,16 @@ export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMemb
             />
           </div>
         </div>
+        <div className="flex items-center justify-between rounded-md border p-3">
+          <div className="space-y-0.5">
+            <Label className="text-sm">Multidisciplinar</Label>
+            <p className="text-xs text-muted-foreground">Permite selecionar membros de qualquer equipe, agrupados por área.</p>
+          </div>
+          <Switch
+            checked={row.isMultidisciplinar}
+            onCheckedChange={checked => updateRow(index, { isMultidisciplinar: checked === true })}
+          />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label className="text-xs font-semibold uppercase text-muted-foreground">Responsável Executor *</Label>
@@ -127,7 +157,10 @@ export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMemb
                 selectedIds={row.memberIds}
                 onToggle={toggleMember}
                 onSelectAll={selectAllMembers}
-                placeholder={row.equipeId ? 'Selecionar membros...' : 'Selecione uma equipe primeiro'}
+                groups={availableMembersByArea}
+                expandedGroupIds={currentUserAreaIds}
+                onToggleMany={toggleMembers}
+                placeholder={row.isMultidisciplinar || row.equipeId ? 'Selecionar membros...' : 'Selecione uma equipe primeiro'}
                 emptyText="Nenhum membro encontrado."
                 badgeClassName="bg-purple-50 text-purple-700 border-purple-200"
               />

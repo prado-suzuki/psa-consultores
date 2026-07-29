@@ -44,6 +44,8 @@ export interface LoteRow {
   leaderIds: string[];
   responsibleId: string;
   memberIds: string[];
+  /** Permite escolher membros de qualquer área, não só da equipe selecionada. */
+  isMultidisciplinar: boolean;
 }
 
 /** Nome sugerido do projeto de um produto: "Cliente — OS nº — Produto". */
@@ -64,6 +66,7 @@ export function buildInitialRows(state: LoteFromOs): LoteRow[] {
     leaderIds: [],
     responsibleId: '',
     memberIds: [],
+    isMultidisciplinar: false,
   }));
 }
 
@@ -85,7 +88,7 @@ export function buildLoteFormData(
     external_client_id: clientId,
     estrutura_area_id: row.estruturaAreaId,
     equipe_id: row.equipeId,
-    is_multidisciplinar: false,
+    is_multidisciplinar: row.isMultidisciplinar,
     member_ids: row.memberIds,
     ordem_servico_id: ordemServicoId,
     servico_id: '',

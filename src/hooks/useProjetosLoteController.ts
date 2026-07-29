@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useCreateOrgProjectsBatch } from '@/hooks/useOrgProjects';
 import { useEstruturaEquipesByCategory } from '@/hooks/useEstruturaEquipes';
 import { useTeamProfilesSafe, useTeamRolesForProjects } from '@/hooks/useTaxReferenceData';
+import { useTeamMembersByArea } from '@/hooks/useTeamMembersByArea';
 import {
   buildInitialRows,
   buildLoteFormData,
@@ -27,6 +28,9 @@ export function useProjetosLoteController() {
   const { data: equipesOptions = [] } = useEstruturaEquipesByCategory('tax');
   const { data: teamMembers = [] } = useTeamProfilesSafe();
   const { data: userRoles = [] } = useTeamRolesForProjects();
+  const { data: areaGroupsData } = useTeamMembersByArea();
+  const areaGroups = useMemo(() => areaGroupsData?.groups || [], [areaGroupsData]);
+  const currentUserAreaIds = useMemo(() => areaGroupsData?.currentUserAreaIds || [], [areaGroupsData]);
   const createBatch = useCreateOrgProjectsBatch();
 
   const updateRow = useCallback((index: number, patch: Partial<LoteRow>) =>
@@ -58,7 +62,7 @@ export function useProjetosLoteController() {
 
   return {
     state, common, rows, updateRow, includedCount,
-    equipesOptions, teamMembers, userRoles, createBatch, handleCreate,
+    equipesOptions, teamMembers, userRoles, areaGroups, currentUserAreaIds, createBatch, handleCreate,
   };
 }
 

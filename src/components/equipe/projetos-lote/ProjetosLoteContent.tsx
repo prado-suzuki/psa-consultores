@@ -8,7 +8,7 @@ export function ProjetosLoteContent() {
   const navigate = useNavigate();
   const {
     state, rows, updateRow, includedCount,
-    equipesOptions, teamMembers, userRoles, createBatch, handleCreate,
+    equipesOptions, teamMembers, userRoles, areaGroups, currentUserAreaIds, createBatch, handleCreate,
   } = useProjetosLoteController();
 
   if (!state) {
@@ -35,6 +35,8 @@ export function ProjetosLoteContent() {
               equipesOptions={equipesOptions}
               teamMembers={teamMembers}
               userRoles={userRoles}
+              areaGroups={areaGroups}
+              currentUserAreaIds={currentUserAreaIds}
             />
           ))}
       </div>
