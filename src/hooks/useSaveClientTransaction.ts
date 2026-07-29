@@ -561,6 +561,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           }
 
           for (const d of draftDist.filter(d => d._dbId)) {
+            currentStep = "distribuicao_receita/update";
             const { data: updDist, error: updDistError } = await (supabase.from("distribuicao_receita" as any) as any)
               .update({ id_centro_custo: d.id_centro_custo, percentual_rateio: d.percentual_rateio || 0 })
               .eq("id", d._dbId)
