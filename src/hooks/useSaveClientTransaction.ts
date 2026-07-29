@@ -299,6 +299,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       // --- Persistir contribuintes (update ou insert) ---
       const buildContribFields = (e: DraftEntity) => ({
         cliente_id: clienteId,
+        // Sem isto o insert cai no DEFAULT 'prod' da coluna e o contribuinte
+        // nasce em prod mesmo com o cliente em dev (localhost/preview).
+        ambiente: currentAmbiente,
         tipo_pessoa: e.tipo_pessoa,
         cpf_cnpj: (e.cpf_cnpj || "").replace(/\D/g, "") || null,
         nome_razao_social: e.nome_razao_social,
