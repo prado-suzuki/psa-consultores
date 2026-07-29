@@ -205,6 +205,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
     setSaving(true);
     let createdClienteId: string | null = null;
+    // Passo corrente atualizado antes de cada write; usado no toast de RLS
+    // pra dizer QUAL tabela/op recusou, em vez de um genérico "sem permissão".
+    let currentStep = "cliente/update";
     try {
       const clientPayload = {
         nome: clientData.nome.trim(),
