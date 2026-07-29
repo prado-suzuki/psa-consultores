@@ -649,6 +649,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             const prodChanged = old.produto_segmento_id !== dp.produto_segmento_id;
             const horasChanged = (old.horas_contratadas ?? null) !== (dp.horas_contratadas ?? null);
             if (prodChanged || horasChanged) {
+              currentStep = "os_produtos_contratados/update";
               const { error: updProdError } = await (supabase.from("os_produtos_contratados" as any) as any)
                 .update({
                   produto_segmento_id: dp.produto_segmento_id,
