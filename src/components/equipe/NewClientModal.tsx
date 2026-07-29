@@ -354,6 +354,7 @@ export default function NewClientModal({
                           CENTRO_CUSTO_OPTIONS={CENTRO_CUSTO_OPTIONS}
                           setoresCliente={setoresCliente}
                           onCreateProjectFromOs={editingClienteId ? handleCreateProjectFromOs : undefined}
+                          onRequestEditMode={canEdit ? () => setIsReadOnly(false) : undefined}
                         />
                       </TabsContent>
 

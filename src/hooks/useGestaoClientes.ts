@@ -23,6 +23,23 @@ export interface ContribuinteExpandItem {
   simples_nacional: boolean | null;
 }
 
+export interface OsExpandProduto {
+  id: string;
+  label: string;
+  horas_contratadas: number | null;
+}
+
+export interface OsExpandItem {
+  id: string;
+  numero_os: string | null;
+  situacao: string | null;
+  data_inicio: string | null;
+  data_fim: string | null;
+  valor_projeto: number | null;
+  setor_cliente: string | null;
+  produtos: OsExpandProduto[];
+}
+
 export interface ClienteFiltrado {
   id: string;
   nome: string;
@@ -32,6 +49,8 @@ export interface ClienteFiltrado {
   setor_cliente: string | null;
   categoria: string | null;
   _clusters: string[];
+  /** Quantidade de OS cadastradas (não excluídas) do cliente. */
+  _osCount: number;
   [key: string]: unknown;
 }
 
@@ -147,6 +166,7 @@ export function useClientesFiltrados(
       const clusterMap: Record<string, string[]> = {};
       const clusterIdMap: Record<string, string[]> = {};
       const setorMap: Record<string, string | null> = {};
+      const osCountMap: Record<string, number> = {};
       if (clienteIds.length > 0) {
         const { data: ccRows } = await supabase
           .from('cliente_clusters')
@@ -170,12 +190,24 @@ export function useClientesFiltrados(
         for (const row of (viewRows || []) as Array<{ id_cliente: string; setor_cliente: string | null }>) {
           setorMap[row.id_cliente] = row.setor_cliente;
         }
+
+        // Contagem de OS por cliente (ordem_servico não tem coluna ambiente)
+        const { data: osRows } = await supabase
+          .from('ordem_servico')
+          .select('id_cliente')
+          .in('id_cliente', clienteIds)
+          .eq('excluido', false);
+        for (const row of osRows ?? []) {
+          const cid = row.id_cliente as string;
+          osCountMap[cid] = (osCountMap[cid] ?? 0) + 1;
+        }
       }
 
       const result = (data || []).map((c) => ({
         ...c,
         setor_cliente: setorMap[c.id] ?? null,
         _clusters: clusterMap[c.id] || [],
+        _osCount: osCountMap[c.id] ?? 0,
       })) as ClienteFiltrado[];
 
       // Escopo por cluster (visualização). Sem scopeClusterId → sem filtro (compat).
@@ -187,6 +219,53 @@ export function useClientesFiltrados(
       });
     },
     enabled,
+  });
+}
+
+/** OS do cliente + produtos contratados de cada uma (linha expandida da tabela) */
+export function useOsExpand(clienteId: string) {
+  return useQuery<OsExpandItem[]>({
+    queryKey: ['os-expand', clienteId],
+    queryFn: async () => {
+      const { data: osRows, error } = await supabase
+        .from('ordem_servico')
+        .select('id, numero_os, situacao, data_inicio, data_fim, valor_projeto, setor_cliente')
+        .eq('id_cliente', clienteId)
+        .eq('excluido', false)
+        .order('numero_os');
+      if (error) throw error;
+
+      const osIds = (osRows ?? []).map((o) => o.id);
+      const produtosPorOs: Record<string, OsExpandProduto[]> = {};
+      if (osIds.length > 0) {
+        const { data: prodRows } = await supabase
+          .from('os_produtos_contratados')
+          .select('id, ordem_servico_id, horas_contratadas, produto_segmento(codigo, nome)')
+          .in('ordem_servico_id', osIds);
+        for (const row of prodRows ?? []) {
+          const ps = row.produto_segmento as unknown as { codigo: string; nome: string } | null;
+          const osId = row.ordem_servico_id as string;
+          if (!produtosPorOs[osId]) produtosPorOs[osId] = [];
+          produtosPorOs[osId].push({
+            id: row.id as string,
+            label: ps ? `${ps.codigo} — ${ps.nome}` : '—',
+            horas_contratadas: row.horas_contratadas != null ? Number(row.horas_contratadas) : null,
+          });
+        }
+      }
+
+      return (osRows ?? []).map((os) => ({
+        id: os.id,
+        numero_os: os.numero_os,
+        situacao: os.situacao,
+        data_inicio: os.data_inicio,
+        data_fim: os.data_fim,
+        valor_projeto: os.valor_projeto != null ? Number(os.valor_projeto) : null,
+        setor_cliente: os.setor_cliente,
+        produtos: produtosPorOs[os.id] ?? [],
+      }));
+    },
+    enabled: !!clienteId,
   });
 }
 
