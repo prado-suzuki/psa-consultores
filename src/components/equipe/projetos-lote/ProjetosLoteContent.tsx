@@ -7,7 +7,7 @@ import { ProjetoLoteRow } from './ProjetoLoteRow';
 export function ProjetosLoteContent() {
   const navigate = useNavigate();
   const {
-    state, rows, updateRow, includedCount,
+    state, rows, updateRow, includedCount, jaCriados, todosJaCriados,
     equipesOptions, teamMembers, userRoles, areaGroups, currentUserAreaIds, createBatch, handleCreate,
   } = useProjetosLoteController();
 
@@ -22,6 +22,12 @@ export function ProjetosLoteContent() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-8">
+      {todosJaCriados && (
+        <p className="text-sm text-muted-foreground text-center border rounded-lg py-3">
+          Todos os produtos desta OS já têm projeto criado.
+        </p>
+      )}
+
       {/* Uma linha por produto */}
       <div className="space-y-4">
         {rows.length === 0
@@ -31,6 +37,7 @@ export function ProjetosLoteContent() {
               key={row.produtoSegmentoId}
               index={index}
               row={row}
+              jaCriado={jaCriados.has(row.produtoSegmentoId)}
               updateRow={updateRow}
               equipesOptions={equipesOptions}
               teamMembers={teamMembers}

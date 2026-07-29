@@ -42,12 +42,21 @@ function getRegiaoLabel(value: string | undefined): string {
   return REGIAO_OPTIONS.find(o => o.value === value)?.label || value;
 }
 
+/**
+ * "Empresa / Faturamento" aponta para o cluster, mas quem fatura é a empresa
+ * cadastrada nele (Estrutura > Clusters > Nome da empresa). Exibimos o nome da
+ * empresa e caímos no nome do cluster só quando ela não foi preenchida.
+ */
+function getEmpresaLabel(cluster: { name: string; nome_empresa?: string | null }): string {
+  return cluster.nome_empresa?.trim() || cluster.name;
+}
+
 export interface ContratosTabProps {
   contracts: DraftOrdemServico[];
   setContracts: React.Dispatch<React.SetStateAction<DraftOrdemServico[]>>;
   isReadOnly: boolean;
-  produtoSegmentoFullOptions: Array<{ id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: { name: string } | null }>;
-  allClusters: Array<{ id: string; name: string }>;
+  produtoSegmentoFullOptions: Array<{ id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: { name: string; nome_empresa?: string | null } | null }>;
+  allClusters: Array<{ id: string; name: string; nome_empresa?: string | null }>;
   CENTRO_CUSTO_OPTIONS: Array<{ id: string; codigo: string; nome: string; label: string }>;
   setoresCliente: SetorCliente[];
   /** Cria um projeto pré-preenchido a partir de uma OS já persistida (só disponível para cliente salvo). */
@@ -87,21 +96,25 @@ function ProdutoContratadoBlock({
   produtoOptions,
   allClusters,
   readOnly,
-  clusterFilter,
-  onClusterFilterChange,
+  empresaId,
+  onEmpresaChange,
 }: {
   produtos: DraftProdutoContratado[];
   onChange: (produtos: DraftProdutoContratado[]) => void;
   produtoOptions: ContratosTabProps['produtoSegmentoFullOptions'];
   allClusters: ContratosTabProps['allClusters'];
   readOnly?: boolean;
-  clusterFilter: string;
-  onClusterFilterChange: (v: string) => void;
+  /** Empresa de faturamento da OS (`cluster_id`). Não filtra os produtos. */
+  empresaId: string;
+  onEmpresaChange: (v: string) => void;
 }) {
-  const filteredProducts = useMemo(() => {
-    if (clusterFilter === "__all__") return produtoOptions;
-    return produtoOptions.filter(p => p.cluster_id === clusterFilter);
-  }, [produtoOptions, clusterFilter]);
+  // Ordena pelo nome exibido (empresa), não pelo nome do cluster que vem do banco.
+  const empresaOptions = useMemo(
+    () => allClusters
+      .map(c => ({ id: c.id, label: getEmpresaLabel(c) }))
+      .sort((a, b) => a.label.localeCompare(b.label)),
+    [allClusters],
+  );
 
   const [addingProductId, setAddingProductId] = useState<string>("__none__");
 
@@ -126,11 +139,13 @@ function ProdutoContratadoBlock({
     onChange(produtos.filter((_, i) => i !== idx));
   };
 
+  // A empresa de faturamento da OS NÃO restringe os produtos: a lista mostra
+  // sempre o catálogo inteiro, apenas agrupado pela empresa de cada produto.
   const renderGroupedSelect = () => {
-    const withCluster = filteredProducts.filter(p => p.estrutura_clusters?.name);
-    const withoutCluster = filteredProducts.filter(p => !p.estrutura_clusters?.name);
-    const groups = withCluster.reduce((acc: Record<string, typeof filteredProducts>, p) => {
-      const cName = p.estrutura_clusters!.name;
+    const withCluster = produtoOptions.filter(p => p.estrutura_clusters?.name);
+    const withoutCluster = produtoOptions.filter(p => !p.estrutura_clusters?.name);
+    const groups = withCluster.reduce((acc: Record<string, typeof produtoOptions>, p) => {
+      const cName = getEmpresaLabel(p.estrutura_clusters!);
       if (!acc[cName]) acc[cName] = [];
       acc[cName].push(p);
       return acc;
@@ -145,7 +160,7 @@ function ProdutoContratadoBlock({
         ))}
         {withoutCluster.length > 0 && (
           <SelectGroup>
-            <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem cluster</SelectLabel>
+            <SelectLabel className="text-xs font-semibold text-muted-foreground">Sem empresa</SelectLabel>
             {withoutCluster.map(p => <SelectItem key={p.id} value={p.id}>{p.codigo} — {p.nome}</SelectItem>)}
           </SelectGroup>
         )}
@@ -175,11 +190,11 @@ function ProdutoContratadoBlock({
       {/* Empresa filter */}
       <div>
         <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa / Faturamento<RequiredMark /></Label>
-        <Select value={clusterFilter} onValueChange={onClusterFilterChange}>
+        <Select value={empresaId} onValueChange={onEmpresaChange}>
           <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Selecione a empresa..." /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">Todas as empresas</SelectItem>
-            {allClusters.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+            {empresaOptions.map(c => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -247,7 +262,7 @@ export default function ContratosTab({
   };
   const [expandedContractId, setExpandedContractId] = useState<number | null>(null);
   const [editingContractId, setEditingContractId] = useState<number | null>(null);
-  const [osClusterFilter, setOsClusterFilter] = useState<string>("__all__");
+  const [osEmpresaId, setOsEmpresaId] = useState<string>("__all__");
   const { mutateAsync: generateNextOsNumber, isPending: isCreatingOs } = useGenerateNextOsNumber();
 
   const canEditOs = !isReadOnly || !!onRequestEditMode;
@@ -271,8 +286,8 @@ export default function ContratosTab({
     setContracts(prev => prev.map(c => (c._id === id ? ({ ...c, distribuicao_receita: fn(c.distribuicao_receita || []) } as DraftOrdemServico) : c)));
   };
 
-  const handleClusterFilterChange = (id: number, v: string) => {
-    setOsClusterFilter(v);
+  const handleEmpresaChange = (id: number, v: string) => {
+    setOsEmpresaId(v);
     updateContract(id, { cluster_id: v === "__all__" ? "" : v });
   };
 
@@ -283,7 +298,7 @@ export default function ContratosTab({
     }
     setExpandedContractId(cont._id);
     setEditingContractId(cont._id);
-    setOsClusterFilter(cont.cluster_id || "__all__");
+    setOsEmpresaId(cont.cluster_id || "__all__");
   };
 
   const createOs = async () => {
@@ -300,7 +315,7 @@ export default function ContratosTab({
     setContracts(prev => [...prev, novaOs]);
     setExpandedContractId(novaOs._id);
     setEditingContractId(novaOs._id);
-    setOsClusterFilter("__all__");
+    setOsEmpresaId("__all__");
   };
 
   const removeContract = (id: number) => {
@@ -408,8 +423,8 @@ export default function ContratosTab({
                           produtoOptions={produtoSegmentoFullOptions}
                           allClusters={allClusters}
                           readOnly
-                          clusterFilter="__all__"
-                          onClusterFilterChange={() => {}}
+                          empresaId="__all__"
+                          onEmpresaChange={() => {}}
                         />
                       </div>
                       {dist.length > 0 && (
@@ -500,8 +515,8 @@ export default function ContratosTab({
                         onChange={(prods) => updateContract(cont._id, { produtos_contratados: prods })}
                         produtoOptions={produtoSegmentoFullOptions}
                         allClusters={allClusters}
-                        clusterFilter={osClusterFilter}
-                        onClusterFilterChange={(v) => handleClusterFilterChange(cont._id, v)}
+                        empresaId={osEmpresaId}
+                        onEmpresaChange={(v) => handleEmpresaChange(cont._id, v)}
                       />
                     </div>
 

@@ -5,15 +5,17 @@ import { Button } from '@/components/ui/button';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useProjetosCadastro } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
+import { SEM_EXECUTOR_FIXO_OPTION } from '@/lib/projetoEquipe';
 
 export function ProjetoEquipeFields() {
   const {
     formData, setFormData, teamMembers, lideres, executores, equipeId, equipeMemberIds,
     availableMembers, availableMembersByArea, memberSearch, setMemberSearch,
     collapsedAreaGroups, toggleAreaGroup, handleMemberToggle,
+    semExecutorFixo, toggleSemExecutorFixo,
   } = useProjetosCadastro();
   const selectMembers = (ids: string[]) => setFormData(previous => {
     const allSelected = ids.every(id => previous.member_ids.includes(id));
@@ -23,6 +25,14 @@ export function ProjetoEquipeFields() {
     }
     return { ...previous, member_ids: [...new Set([...previous.member_ids, ...ids])] };
   });
+  // "Sem executor fixo" mora na própria lista de executores: escolher a opção
+  // liga a exceção e zera o responsável; escolher uma pessoa desliga.
+  const handleExecutorChange = (value: string) => {
+    toggleSemExecutorFixo(value === SEM_EXECUTOR_FIXO_OPTION);
+    if (value !== SEM_EXECUTOR_FIXO_OPTION) {
+      setFormData(previous => ({ ...previous, responsible_id: value === '_none' ? '' : value }));
+    }
+  };
   return <div className="space-y-4">
     <h3 className="text-sm font-semibold text-foreground border-b pb-2 flex items-center gap-2"><Users className="h-4 w-4" />Equipe</h3>
     <div>
@@ -43,11 +53,17 @@ export function ProjetoEquipeFields() {
       </Command></PopoverContent></Popover>
     </div>
     <div>
-      <Label>Responsável Executor *</Label>
-      <Select value={formData.responsible_id} onValueChange={value => setFormData(previous => ({ ...previous, responsible_id: value === '_none' ? '' : value }))}>
+      <Label>Responsável Executor{semExecutorFixo ? '' : ' *'}</Label>
+      <Select value={semExecutorFixo ? SEM_EXECUTOR_FIXO_OPTION : formData.responsible_id} onValueChange={handleExecutorChange}>
         <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o executor" /></SelectTrigger>
-        <SelectContent><SelectItem value="_none">Selecione...</SelectItem>{executores.map(member => <SelectItem key={member.id} value={member.id}>{member.first_name} {member.last_name}</SelectItem>)}</SelectContent>
+        <SelectContent>
+          <SelectItem value="_none">Selecione...</SelectItem>
+          <SelectItem value={SEM_EXECUTOR_FIXO_OPTION}>Sem executor fixo</SelectItem>
+          <SelectSeparator />
+          {executores.map(member => <SelectItem key={member.id} value={member.id}>{member.first_name} {member.last_name}</SelectItem>)}
+        </SelectContent>
       </Select>
+      {semExecutorFixo && <p className="text-xs text-muted-foreground mt-1">As tarefas são delegadas a qualquer membro do projeto.</p>}
     </div>
     <div className="flex items-center justify-between rounded-md border p-3">
       <div className="space-y-0.5"><Label className="text-sm">Multidisciplinar</Label><p className="text-xs text-muted-foreground">Permite selecionar membros de qualquer equipe, agrupados por área.</p></div>

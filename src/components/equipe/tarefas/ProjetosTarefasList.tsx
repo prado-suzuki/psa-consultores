@@ -142,7 +142,9 @@ export function ProjetosTarefasList({
     [projects, tasks, osRows, search, hideEmpty],
   );
   const updateTask = useUpdateOrgTask(area);
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  // Expansao opt-in: abrir uma linha revela apenas os filhos diretos, ja fechados.
+  // Assim expandir uma OS mostra os projetos sem despejar tarefas e subtarefas.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<{ column: 'prazo' | 'progresso' | null; dir: 'asc' | 'desc' }>({ column: null, dir: 'asc' });
 
   const cycleSort = (column: 'prazo' | 'progresso') => setSort(previous => {
@@ -178,7 +180,7 @@ export function ProjetosTarefasList({
       : group);
   }, [hierarchy, sort]);
 
-  const toggle = (id: string) => setCollapsed(previous => {
+  const toggle = (id: string) => setExpanded(previous => {
     const next = new Set(previous);
     if (next.has(id)) next.delete(id); else next.add(id);
     return next;
@@ -195,13 +197,13 @@ export function ProjetosTarefasList({
   const renderTask = (node: ProjetosTarefasTaskNode, depth: number): React.ReactNode => {
     const { task, children } = node;
     const rowId = `task:${task.id}`;
-    const isCollapsed = collapsed.has(rowId);
+    const isExpanded = expanded.has(rowId);
     return <Fragment key={task.id}>
       <div className={cn(GRID, 'group border-t border-border/60 bg-background text-sm hover:bg-muted/30')}>
         <div className="flex min-w-0 items-center gap-2 px-4 py-2" style={{ paddingLeft: `${44 + depth * 24}px` }}>
           {children.length > 0 ? (
-            <button type="button" onClick={() => toggle(rowId)} className="-ml-7 rounded p-1 text-muted-foreground hover:bg-muted" aria-label={isCollapsed ? 'Expandir tarefa' : 'Recolher tarefa'}>
-              {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            <button type="button" onClick={() => toggle(rowId)} className="-ml-7 rounded p-1 text-muted-foreground hover:bg-muted" aria-label={isExpanded ? 'Recolher tarefa' : 'Expandir tarefa'}>
+              {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
             </button>
           ) : <span className="-ml-6 w-6" />}
           <TaskStatusDot status={task.status} />
@@ -240,7 +242,7 @@ export function ProjetosTarefasList({
           </DropdownMenu>
         </div>
       </div>
-      {!isCollapsed && children.map(child => renderTask(child, depth + 1))}
+      {isExpanded && children.map(child => renderTask(child, depth + 1))}
     </Fragment>;
   };
 
@@ -258,20 +260,25 @@ export function ProjetosTarefasList({
     return <div className="rounded-xl border border-dashed py-16 text-center"><FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" /><p className="font-medium">Nenhum projeto ou tarefa encontrado</p><p className="mt-1 text-sm text-muted-foreground">Crie um novo projeto para começar.</p></div>;
   }
 
-  const allCollapsed = sortedHierarchy.every(group => collapsed.has(`os:${group.id}`));
+  const allOsExpanded = sortedHierarchy.every(group => expanded.has(`os:${group.id}`));
   const toggleAll = () => {
-    if (allCollapsed) {
-      setCollapsed(new Set());
+    if (allOsExpanded) {
+      setExpanded(new Set());
       return;
     }
-    setCollapsed(new Set(sortedHierarchy.map(group => `os:${group.id}`)));
+    // Abre somente o nivel das OS; projetos, tarefas e subtarefas seguem fechados.
+    setExpanded(previous => {
+      const next = new Set(previous);
+      sortedHierarchy.forEach(group => next.add(`os:${group.id}`));
+      return next;
+    });
   };
 
   return <div className="space-y-2">
     <div className="flex justify-end">
       <Button variant="outline" size="sm" onClick={toggleAll} className="gap-2">
-        {allCollapsed ? <ChevronsDown className="h-4 w-4" /> : <ChevronsUp className="h-4 w-4" />}
-        {allCollapsed ? 'Expandir tudo' : 'Recolher tudo'}
+        {allOsExpanded ? <ChevronsUp className="h-4 w-4" /> : <ChevronsDown className="h-4 w-4" />}
+        {allOsExpanded ? 'Recolher tudo' : 'Expandir tudo'}
       </Button>
     </div>
     <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
@@ -283,7 +290,7 @@ export function ProjetosTarefasList({
     </div>
     {sortedHierarchy.map((group, index) => {
       const groupId = `os:${group.id}`;
-      const isCollapsed = collapsed.has(groupId);
+      const isExpanded = expanded.has(groupId);
       const showClientDivider = index === 0 || sortedHierarchy[index - 1].clientKey !== group.clientKey;
       return <Fragment key={group.id}>
         {showClientDivider && <div className="flex min-w-[1010px] items-center gap-2 border-b border-t bg-muted/60 px-4 py-2.5 first:border-t-0">
@@ -294,7 +301,7 @@ export function ProjetosTarefasList({
         <section>
         <div className={cn(GRID, 'border-b bg-primary/[0.045]')}>
           <div className="flex min-w-0 items-center gap-3 px-3 py-3">
-            <button type="button" onClick={() => toggle(groupId)} className="rounded p-1 text-muted-foreground hover:bg-primary/10">{isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button>
+            <button type="button" onClick={() => toggle(groupId)} className="rounded p-1 text-muted-foreground hover:bg-primary/10" aria-label={isExpanded ? 'Recolher OS' : 'Expandir OS'}>{isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
             <div className="h-5 w-1 rounded-full bg-primary" />
             <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="truncate font-semibold">{group.os?.numero_os ? `${group.os.numero_os}${group.os.produtos ? ` - ${group.os.produtos}` : ''}` : (group.hasLinkedOs ? 'OS vinculada' : 'Sem OS')}</span><Badge variant="outline" className="shrink-0 font-normal">{group.projects.length} {group.projects.length === 1 ? 'projeto' : 'projetos'}</Badge></div><p className="truncate text-xs text-muted-foreground">{group.os ? group.os.cliente_nome : group.hasLinkedOs ? 'Carregando dados da ordem de serviço vinculada' : 'Projetos e tarefas agrupados sem ordem de serviço'}</p></div>
           </div>
@@ -307,13 +314,13 @@ export function ProjetosTarefasList({
           </div>
           <div />
         </div>
-        {!isCollapsed && group.projects.map(projectNode => {
+        {isExpanded && group.projects.map(projectNode => {
           const projectId = `project:${projectNode.project?.id || '__without_project__'}`;
-          const projectCollapsed = collapsed.has(projectId);
+          const projectExpanded = expanded.has(projectId);
           return <div key={projectId}>
             <div className={cn(GRID, 'group relative z-10 bg-muted/30 text-sm shadow-md hover:bg-muted/45')}>
               <div className="flex min-w-0 items-center gap-2 px-4 py-2.5 pl-9">
-                <button type="button" onClick={() => toggle(projectId)} className="rounded p-1 text-muted-foreground hover:bg-muted">{projectCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}</button>
+                <button type="button" onClick={() => toggle(projectId)} className="rounded p-1 text-muted-foreground hover:bg-muted" aria-label={projectExpanded ? 'Recolher projeto' : 'Expandir projeto'}>{projectExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
                 <FolderKanban className="h-4 w-4 shrink-0 text-primary" />
                 <button type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} className="truncate text-left font-semibold hover:underline disabled:no-underline">{projectNode.project?.name || 'Sem projeto'}</button>
                 <span className="text-xs text-muted-foreground">{projectNode.taskCount}</span>
@@ -327,7 +334,7 @@ export function ProjetosTarefasList({
               </div>
               <div className="flex items-center justify-center">{projectNode.project && <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onClick={() => onNewTask(projectNode.project!.id)}><Plus className="mr-2 h-4 w-4" />Nova tarefa</DropdownMenuItem><DropdownMenuItem onClick={() => onEditProject(projectNode.project!)}><Edit3 className="mr-2 h-4 w-4" />Editar projeto</DropdownMenuItem><DropdownMenuSeparator /><DropdownMenuItem className="text-destructive" onClick={() => onDeleteProject(projectNode.project!.id)}><Trash2 className="mr-2 h-4 w-4" />Excluir projeto</DropdownMenuItem></DropdownMenuContent></DropdownMenu>}</div>
             </div>
-            {!projectCollapsed && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className="flex min-w-[1010px] items-center gap-2 border-t px-14 py-2 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground"><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}
+            {projectExpanded && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className="flex min-w-[1010px] items-center gap-2 border-t px-14 py-2 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground"><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}
           </div>;
         })}
         </section>
