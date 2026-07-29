@@ -863,7 +863,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           console.error("[rollback] Falha ao remover cliente:", rollbackErr);
         }
       }
-      console.error("[cadastro cliente] erro:", error);
+      console.error("[cadastro cliente] erro:", error, "passo:", currentStep);
       const rlsMsg = (error?.message || "").toLowerCase();
       const isRls =
         error?.code === "42501" ||
@@ -873,7 +873,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       const acao = isEditing ? "atualizar" : "cadastrar";
       toast.error(
         isRls
-          ? `Sem permissão para ${acao} cliente com o seu perfil/cluster. Fale com a liderança.`
+          ? `Sem permissão para ${acao} cliente (${currentStep}). Fale com a liderança.`
           : `Erro ao ${acao} cliente: ` + error.message
       );
     } finally {
