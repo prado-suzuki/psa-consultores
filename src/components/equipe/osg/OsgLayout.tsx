@@ -504,8 +504,10 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           )}
 
           {/* Auditoria — exclusiva da área Projetos (a rota /equipe/osg/auditoria é
-              classificada como Projetos, então não deve aparecer no OSG Work). */}
-          {isProjects && (
+              classificada como Projetos, então não deve aparecer no OSG Work) e só
+              para líder+, como o Gerencial: a tela mostra produtividade e acesso do
+              time inteiro. */}
+          {isProjects && canGerencial && (
             <button
               onClick={() => navigate('/equipe/osg/auditoria')}
               className={cn(
