@@ -1749,7 +1749,15 @@ export type Database = {
           uf?: string
           usuario_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "difal_sessao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       distribuicao_dcomp: {
         Row: {
