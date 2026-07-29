@@ -92,6 +92,7 @@ beforeEach(() => {
     upload: { mutateAsync: vi.fn() },
     download: { mutateAsync: vi.fn() },
     remove: { mutateAsync: vi.fn() },
+    previews: { mutateAsync: vi.fn().mockResolvedValue({}) },
   });
 });
 
