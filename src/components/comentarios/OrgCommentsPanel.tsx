@@ -1,28 +1,10 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ClipboardEvent,
-  type DragEvent,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { toast } from 'sonner';
-import {
-  AtSign,
-  Loader2,
-  MessageSquare,
-  MoreHorizontal,
-  Paperclip,
-  Pencil,
-  Reply,
-  Send,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Loader2, MessageSquare, MoreHorizontal, Pencil, Reply, Trash2 } from 'lucide-react';
 
+import { CommentComposer } from '@/components/comentarios/CommentComposer';
+import { MentionTextField } from '@/components/comentarios/MentionTextField';
 import { AttachmentButton } from '@/components/comentarios/OrgCommentAttachments';
 import {
   AlertDialog,
@@ -42,11 +24,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Textarea } from '@/components/ui/textarea';
 import type { AreaKey } from '@/config/areaCategories';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDomainMentionCandidates } from '@/hooks/useDomainMentionCandidates';
 import {
   abrirAnexoEmNovaAba,
   type OrgComment,
@@ -54,15 +35,13 @@ import {
   type OrgCommentEntityType,
   useDomainOrgComments,
 } from '@/hooks/useDomainOrgComments';
+import {
+  desserializarMencoes,
+  iniciaisDoNome,
+  serializarMencoes,
+  type MentionCandidate,
+} from '@/lib/orgCommentMentions';
 import { cn } from '@/lib/utils';
-
-const MAX_FILES = 5;
-const MAX_FILE_SIZE = 10 * 1024 * 1024;
-
-interface MentionCandidate {
-  id: string;
-  name: string;
-}
 
 interface OrgCommentsPanelProps {
   /** Tarefa (padrão) ou projeto — a thread é a mesma nos dois casos. */
@@ -70,7 +49,6 @@ interface OrgCommentsPanelProps {
   entityId: string;
   projectId?: string | null;
   area: AreaKey;
-  mentionCandidates: MentionCandidate[];
   /**
    * A cada incremento, o compositor recebe o foco. É como a coluna de detalhes
    * manda o "Adicionar anexo" para cá, já que todo arquivo entra por um
@@ -86,20 +64,6 @@ const SYSTEM_LABELS: Record<Exclude<OrgComment['kind'], 'comment'>, string> = {
   review_adjustments: 'Ajustes solicitados',
   status_changed: 'Status alterado',
 };
-
-/** Só o primeiro nome — cabe no "Respondendo a ..." sem estourar a linha. */
-function primeiroNome(name: string | null) {
-  return (name || 'Usuário').trim().split(/\s+/)[0];
-}
-
-function initials(name: string | null) {
-  return (name || 'Usuário')
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase();
-}
 
 function displayBody(body: string) {
   return body.replace(/\[\[review-rich-text:v1\]\]/g, '');
@@ -137,217 +101,11 @@ function CommentBody({ body }: { body: string }) {
   );
 }
 
-interface ComposerProps {
-  compact?: boolean;
-  isPending: boolean;
-  mentionCandidates: MentionCandidate[];
-  /** Muda de valor quando alguém pede o foco daqui de fora (ver `focusComposerSignal`). */
-  focusSignal?: number;
-  /** Autor do comentário raiz — vira o cabeçalho "Respondendo a ..." do compositor. */
-  replyingToName?: string | null;
-  onCancel?: () => void;
-  onSubmit: (body: string, files: File[], mentions: string[]) => Promise<void>;
-}
-
-function CommentComposer({
-  compact,
-  isPending,
-  mentionCandidates,
-  focusSignal,
-  replyingToName,
-  onCancel,
-  onSubmit,
-}: ComposerProps) {
-  const [body, setBody] = useState('');
-  const [files, setFiles] = useState<File[]>([]);
-  const [mentionOpen, setMentionOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (!focusSignal) return;
-    textareaRef.current?.focus();
-  }, [focusSignal]);
-
-  // O campo de resposta nasce com o cursor dentro: ele só existe depois do clique
-  // em "Responder", então focar na montagem não rouba o foco de ninguém.
-  useEffect(() => {
-    if (compact) textareaRef.current?.focus();
-  }, [compact]);
-
-  const addFiles = (incoming: File[]) => {
-    const valid = incoming.filter((file) => file.size <= MAX_FILE_SIZE);
-    if (valid.length !== incoming.length) toast.error('Cada anexo deve ter no máximo 10 MB');
-    if (files.length + valid.length > MAX_FILES) toast.error('Você pode anexar até 5 arquivos');
-    setFiles((current) => [...current, ...valid].slice(0, MAX_FILES));
-  };
-
-  const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
-    const pastedFiles = Array.from(event.clipboardData.files);
-    if (pastedFiles.length > 0) addFiles(pastedFiles);
-  };
-
-  const handleDrop = (event: DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    addFiles(Array.from(event.dataTransfer.files));
-  };
-
-  const insertMention = (candidate: MentionCandidate) => {
-    setBody(
-      (current) =>
-        `${current}${current && !current.endsWith(' ') ? ' ' : ''}@[${candidate.name}](${candidate.id}) `,
-    );
-    setMentionOpen(false);
-  };
-
-  const submit = async () => {
-    const trimmedBody = body.trim() || (files.length > 0 ? 'Adicionou anexos' : '');
-    if (!trimmedBody || isPending) return;
-    const mentions = Array.from(
-      trimmedBody.matchAll(/@\[[^\]]+\]\(([^)]+)\)/g),
-      (match) => match[1],
-    );
-    await onSubmit(trimmedBody, files, mentions);
-    setBody('');
-    setFiles([]);
-  };
-
-  return (
-    <div
-      className={cn('rounded-xl border bg-background p-3 shadow-sm', compact && 'mt-3')}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={handleDrop}
-    >
-      {replyingToName && (
-        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
-          <Reply className="h-3.5 w-3.5" aria-hidden />
-          Respondendo a {primeiroNome(replyingToName)}
-        </p>
-      )}
-      <Textarea
-        ref={textareaRef}
-        value={body}
-        onChange={(event) => setBody(event.target.value)}
-        onPaste={handlePaste}
-        placeholder={
-          compact ? 'Escreva uma resposta...' : 'Escreva um comentário... Use @ para mencionar'
-        }
-        rows={compact ? 2 : 3}
-        className="resize-none border-0 p-0 shadow-none focus-visible:ring-0"
-      />
-
-      {files.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {files.map((file, index) => (
-            <span
-              key={`${file.name}-${index}`}
-              className="flex max-w-full items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs"
-            >
-              <Paperclip className="h-3 w-3" />
-              <span className="max-w-44 truncate">{file.name}</span>
-              <button
-                type="button"
-                aria-label={`Remover ${file.name}`}
-                onClick={() =>
-                  setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))
-                }
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </span>
-          ))}
-        </div>
-      )}
-
-      <div className="mt-3 flex items-center justify-between border-t pt-2">
-        <div className="flex items-center gap-1">
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={(event) => addFiles(Array.from(event.target.files ?? []))}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            aria-label="Adicionar anexos"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-          <Popover open={mentionOpen} onOpenChange={setMentionOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                aria-label="Mencionar pessoa"
-              >
-                <AtSign className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64 p-2" align="start">
-              <p className="px-2 pb-2 text-xs font-medium text-muted-foreground">
-                Mencionar pessoa
-              </p>
-              <ScrollArea className="max-h-48">
-                {mentionCandidates.map((candidate) => (
-                  <button
-                    key={candidate.id}
-                    type="button"
-                    className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-sm hover:bg-muted"
-                    onClick={() => insertMention(candidate)}
-                  >
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="text-[10px]">
-                        {initials(candidate.name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="truncate">{candidate.name}</span>
-                  </button>
-                ))}
-              </ScrollArea>
-            </PopoverContent>
-          </Popover>
-          <span className="hidden text-[11px] text-muted-foreground sm:inline">
-            Até 5 arquivos de 10 MB
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          {onCancel && (
-            <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-              Cancelar
-            </Button>
-          )}
-          <Button
-            type="button"
-            size="sm"
-            disabled={isPending || (!body.trim() && files.length === 0)}
-            onClick={submit}
-          >
-            {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-            <span className="ml-2">Publicar</span>
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export function OrgCommentsPanel({
   entityType = 'org_task',
   entityId,
   projectId,
   area,
-  mentionCandidates,
   focusComposerSignal,
 }: OrgCommentsPanelProps) {
   const { user } = useAuth();
@@ -360,9 +118,21 @@ export function OrgCommentsPanel({
     deleteComment,
     downloadAttachment,
   } = useDomainOrgComments(entityType, entityId, area, projectId);
+  /**
+   * Quem pode ser mencionado sai daqui, e só daqui: a roda de gente do projeto
+   * desta thread. A tela nunca recebe uma lista pronta de fora, para não voltar
+   * a oferecer o quadro inteiro da empresa no autocomplete.
+   */
+  const { candidates: mentionCandidates } = useDomainMentionCandidates(
+    entityType,
+    entityId,
+    projectId,
+  );
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingBody, setEditingBody] = useState('');
+  /** Menções do comentário em edição, para o `@Nome` reencontrar seu uuid ao salvar. */
+  const [editingMencoes, setEditingMencoes] = useState<MentionCandidate[]>([]);
   const [pendingDelete, setPendingDelete] = useState<OrgComment | null>(null);
   const scrollRootRef = useRef<HTMLDivElement>(null);
   /** Enquanto verdadeiro, a próxima renderização da lista desce para o fim. */
@@ -414,9 +184,12 @@ export function OrgCommentsPanel({
   };
 
   const saveEdit = async (comment: OrgComment) => {
-    const body = editingBody.trim();
-    if (!body) return;
-    await updateComment.mutateAsync({ id: comment.id, body });
+    const escrito = editingBody.trim();
+    if (!escrito) return;
+    await updateComment.mutateAsync({
+      id: comment.id,
+      body: serializarMencoes(escrito, editingMencoes),
+    });
     setEditingId(null);
   };
 
@@ -435,7 +208,11 @@ export function OrgCommentsPanel({
     const abreThread = !nested && (replies.length > 0 || isReplying);
 
     return (
-      <div key={comment.id} className="relative" data-comment-root={nested ? undefined : comment.id}>
+      <div
+        key={comment.id}
+        className="relative"
+        data-comment-root={nested ? undefined : comment.id}
+      >
         {nested && (
           <>
             {/* Cotovelo que entra no avatar da resposta, saindo do fio da raiz. */}
@@ -465,11 +242,7 @@ export function OrgCommentsPanel({
             <span aria-hidden className="absolute bottom-0 left-4 top-11 w-px bg-border" />
           )}
           <Avatar
-            className={cn(
-              'border',
-              nested ? 'h-7 w-7' : 'h-8 w-8',
-              isSystem && 'bg-primary/10',
-            )}
+            className={cn('border', nested ? 'h-7 w-7' : 'h-8 w-8', isSystem && 'bg-primary/10')}
           >
             <AvatarFallback
               className={cn(
@@ -478,7 +251,7 @@ export function OrgCommentsPanel({
                 isSystem && 'text-primary',
               )}
             >
-              {isSystem ? 'PSA' : initials(comment.author_name)}
+              {isSystem ? 'PSA' : iniciaisDoNome(comment.author_name)}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
@@ -508,8 +281,11 @@ export function OrgCommentsPanel({
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
                       onClick={() => {
+                        // O campo de edição mostra `@Nome`; o uuid volta no salvar.
+                        const escrito = desserializarMencoes(comment.body);
                         setEditingId(comment.id);
-                        setEditingBody(comment.body);
+                        setEditingBody(escrito.text);
+                        setEditingMencoes(escrito.mencoes);
                       }}
                     >
                       <Pencil className="mr-2 h-4 w-4" />
@@ -530,11 +306,18 @@ export function OrgCommentsPanel({
             {comment.excluido ? (
               <p className="mt-1 text-sm italic text-muted-foreground">Comentário excluído</p>
             ) : editingId === comment.id ? (
-              <div className="mt-2 space-y-2">
-                <Textarea
+              <div className="mt-2 space-y-2 rounded-lg border bg-background p-2">
+                <MentionTextField
                   value={editingBody}
-                  onChange={(event) => setEditingBody(event.target.value)}
+                  mencoes={editingMencoes}
+                  candidates={mentionCandidates}
+                  onChange={(text, proximasMencoes) => {
+                    setEditingBody(text);
+                    setEditingMencoes(proximasMencoes);
+                  }}
                   rows={3}
+                  focarNaMontagem
+                  idPrefixo={`mencoes-edicao-${comment.id}`}
                 />
                 <div className="flex justify-end gap-2">
                   <Button
@@ -642,7 +425,8 @@ export function OrgCommentsPanel({
           </span>
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Comentários, anexos e atualizações {entityType === 'org_project' ? 'do projeto' : 'da tarefa'}
+          Comentários, anexos e atualizações{' '}
+          {entityType === 'org_project' ? 'do projeto' : 'da tarefa'}
         </p>
       </div>
 

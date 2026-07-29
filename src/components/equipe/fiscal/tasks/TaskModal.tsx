@@ -462,15 +462,6 @@ export const TaskModal = ({
     teamMembers: filteredTeamMembers,
     statusOptions,
   };
-  const mentionCandidates = useMemo(
-    () =>
-      allProfiles.map((profile) => ({
-        id: profile.id,
-        name: [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim(),
-      })),
-    [allProfiles],
-  );
-
   return (
     <>
       <AnimatePresence>
@@ -561,7 +552,6 @@ export const TaskModal = ({
                 entityId={task.id}
                 projectId={task.project_id}
                 area={area}
-                mentionCandidates={mentionCandidates}
                 focusComposerSignal={composerFocusSignal}
               />
             </div>

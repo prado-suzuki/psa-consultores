@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Save } from 'lucide-react';
 
 import { OrgCommentsPanel } from '@/components/comentarios/OrgCommentsPanel';
@@ -26,7 +26,6 @@ export function ProjetoDialog() {
     isModalOpen,
     setIsModalOpen,
     editingProject,
-    teamMembers,
     handleSubmit,
     createProject,
     updateProject,
@@ -37,14 +36,6 @@ export function ProjetoDialog() {
   const [composerFocusSignal, setComposerFocusSignal] = useState(0);
 
   const isSaving = createProject.isPending || updateProject.isPending;
-  const mentionCandidates = useMemo(
-    () =>
-      teamMembers.map((profile) => ({
-        id: profile.id,
-        name: [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim(),
-      })),
-    [teamMembers],
-  );
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) setComposerFocusSignal(0);
@@ -110,7 +101,6 @@ export function ProjetoDialog() {
               entityId={editingProject.id}
               projectId={editingProject.id}
               area={area}
-              mentionCandidates={mentionCandidates}
               focusComposerSignal={composerFocusSignal}
             />
           </div>

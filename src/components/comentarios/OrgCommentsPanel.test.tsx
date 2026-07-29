@@ -14,6 +14,8 @@ vi.stubGlobal('ResizeObserver', ResizeObserverMock);
 
 const mocks = vi.hoisted(() => ({
   comments: [] as OrgComment[],
+  candidates: [] as { id: string; name: string }[],
+  candidatesArgs: [] as unknown[][],
   create: vi.fn(),
   update: vi.fn(),
   remove: vi.fn(),
@@ -22,6 +24,13 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/contexts/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'U1' } }),
+}));
+
+vi.mock('@/hooks/useDomainMentionCandidates', () => ({
+  useDomainMentionCandidates: (...args: unknown[]) => {
+    mocks.candidatesArgs.push(args);
+    return { candidates: mocks.candidates, isLoading: false };
+  },
 }));
 
 vi.mock('@/hooks/useDomainOrgComments', () => ({
@@ -64,22 +73,17 @@ function comment(overrides: Partial<OrgComment> = {}): OrgComment {
 }
 
 function renderPanel() {
-  return render(
-    <OrgCommentsPanel
-      entityId="T1"
-      projectId="P1"
-      area="tax"
-      mentionCandidates={[
-        { id: 'U1', name: 'Bernardo Silva' },
-        { id: 'U2', name: 'Ana Souza' },
-      ]}
-    />,
-  );
+  return render(<OrgCommentsPanel entityId="T1" projectId="P1" area="tax" />);
 }
 
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.comments = [];
+  mocks.candidatesArgs = [];
+  mocks.candidates = [
+    { id: 'U1', name: 'Bernardo Silva' },
+    { id: 'U2', name: 'Ana Souza' },
+  ];
   mocks.create.mockResolvedValue('C-NOVO');
   mocks.update.mockResolvedValue(undefined);
   mocks.remove.mockResolvedValue(undefined);
@@ -90,13 +94,98 @@ beforeEach(() => {
 });
 
 describe('OrgCommentsPanel', () => {
+  it('pede a lista de menção ao hook, pela entidade da thread', () => {
+    renderPanel();
+
+    // Nada de lista pronta por prop: a fatia de segurança mora no hook.
+    expect(mocks.candidatesArgs[0]).toEqual(['org_task', 'T1', 'P1']);
+  });
+
+  it('digitar @ abre a lista, filtra por nome e grava a menção escolhida', async () => {
+    const user = userEvent.setup();
+    const { container } = renderPanel();
+
+    const composer = screen.getByPlaceholderText(/Escreva um comentário/);
+    await user.type(composer, 'Confira com @');
+    expect(screen.getByRole('option', { name: /Ana Souza/ })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /Bernardo Silva/ })).toBeInTheDocument();
+
+    await user.type(composer, 'ana');
+    expect(screen.queryByRole('option', { name: /Bernardo Silva/ })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('option', { name: /Ana Souza/ }));
+    // No campo aparece só o nome; o uuid fica fora do texto até publicar.
+    expect(composer).toHaveValue('Confira com @Ana Souza ');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    // A pílula é desenhada no espelho atrás do campo.
+    expect(container.querySelector('[data-mention-chip="U2"]')).toHaveTextContent('@Ana Souza');
+
+    await user.click(screen.getByRole('button', { name: 'Publicar' }));
+
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+    expect(mocks.create).toHaveBeenCalledWith({
+      body: 'Confira com @[Ana Souza](U2)',
+      files: [],
+      mentions: ['U2'],
+    });
+  });
+
+  it('escolhe a pessoa destacada pelo teclado', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    const composer = screen.getByPlaceholderText(/Escreva um comentário/);
+    await user.type(composer, '@');
+    await user.keyboard('{ArrowDown}{Enter}');
+
+    expect(composer).toHaveValue('@Ana Souza ');
+  });
+
+  it('Esc fecha a lista e deixa o texto como está', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    const composer = screen.getByPlaceholderText(/Escreva um comentário/);
+    await user.type(composer, 'reunião de 9@10');
+    // Um `@` colado em palavra nem abre a lista.
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+
+    await user.type(composer, ' @ana');
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(composer).toHaveValue('reunião de 9@10 @ana');
+  });
+
+  it('duas pessoas escolhidas viram duas menções no mesmo comentário', async () => {
+    const user = userEvent.setup();
+    renderPanel();
+
+    const composer = screen.getByPlaceholderText(/Escreva um comentário/);
+    await user.type(composer, '@bern');
+    await user.click(screen.getByRole('option', { name: /Bernardo Silva/ }));
+    await user.type(composer, 'e @ana');
+    await user.click(screen.getByRole('option', { name: /Ana Souza/ }));
+    expect(composer).toHaveValue('@Bernardo Silva e @Ana Souza ');
+
+    await user.click(screen.getByRole('button', { name: 'Publicar' }));
+
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+    expect(mocks.create).toHaveBeenCalledWith({
+      body: '@[Bernardo Silva](U1) e @[Ana Souza](U2)',
+      files: [],
+      mentions: ['U1', 'U2'],
+    });
+  });
+
   it('publica texto, menção normalizada e anexo no mesmo comando', async () => {
     const user = userEvent.setup();
     const { container } = renderPanel();
 
     await user.type(screen.getByPlaceholderText(/Escreva um comentário/), 'Confira com ');
     await user.click(screen.getByRole('button', { name: 'Mencionar pessoa' }));
-    await user.click(screen.getByRole('button', { name: /Ana Souza/ }));
+    await user.click(screen.getByRole('option', { name: /Ana Souza/ }));
 
     const file = new File(['pdf'], 'memoria.pdf', { type: 'application/pdf' });
     const input = container.querySelector<HTMLInputElement>('input[type="file"]');
@@ -203,6 +292,27 @@ describe('OrgCommentsPanel', () => {
 
     await user.click(screen.getByRole('button', { name: 'Excluir' }));
     await waitFor(() => expect(mocks.remove).toHaveBeenCalledWith('C1'));
+  });
+
+  it('editar abre o comentário sem uuid e devolve o token ao salvar', async () => {
+    const user = userEvent.setup();
+    mocks.comments = [comment({ body: 'Confira com @[Ana Souza](U2) hoje' })];
+
+    renderPanel();
+
+    await user.click(screen.getByRole('button', { name: 'Ações do comentário' }));
+    await user.click(screen.getByRole('menuitem', { name: /Editar/ }));
+
+    const campo = screen.getByDisplayValue('Confira com @Ana Souza hoje');
+    await user.type(campo, ' cedo');
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() =>
+      expect(mocks.update).toHaveBeenCalledWith({
+        id: 'C1',
+        body: 'Confira com @[Ana Souza](U2) hoje cedo',
+      }),
+    );
   });
 
   it('não oferece editar nem excluir comentário de outra pessoa', () => {
