@@ -517,6 +517,50 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         await assertCanPerform('ordem_servico', 'update', firstUpdateOs._dbId);
       }
 
+      // Estatísticas de rateio/produtos por OS — usado depois para (a) emitir
+      // audit consolidado e (b) impedir o toast "nenhuma alteração" quando
+      // só o rateio/produtos mudou. Só conta o que MUDOU DE VERDADE (compara
+      // conteúdo com o banco); do contrário todo save com OS acionaria falso
+      // positivo e geraria audit fantasma.
+      type RateioLinha = { centroCodigo: string; percentual: number };
+      type ProdutoLinha = { codigo: string; horas: number | null };
+      interface OsStats {
+        osLabel: string;
+        rateio: { inserted: number; updated: number; softDeleted: number; antes: RateioLinha[]; depois: RateioLinha[] };
+        produtos: { inserted: number; updated: number; deleted: number; antes: ProdutoLinha[]; depois: ProdutoLinha[] };
+      }
+      const osChangeStats = new Map<string, OsStats>();
+
+      // Prefetch de códigos para os ids do rascunho (o lado do banco já vem
+      // via join no select). Uma query por catálogo, ids únicos.
+      const draftCentroIds = Array.from(new Set(
+        contracts.flatMap(c => (c.distribuicao_receita || []).map(d => d.id_centro_custo).filter(Boolean))
+      )) as string[];
+      const draftProdutoIds = Array.from(new Set(
+        contracts.flatMap(c => (c.produtos_contratados || []).map(p => p.produto_segmento_id).filter(Boolean))
+      )) as string[];
+      const centroCodigoMap = new Map<string, string>();
+      const produtoCodigoMap = new Map<string, string>();
+      if (draftCentroIds.length > 0) {
+        const { data } = await (supabase.from('centros_custo' as any) as any)
+          .select('id, codigo').in('id', draftCentroIds);
+        for (const r of (data || []) as Array<{ id: string; codigo: string }>) centroCodigoMap.set(r.id, r.codigo);
+      }
+      if (draftProdutoIds.length > 0) {
+        const { data } = await (supabase.from('produto_segmento' as any) as any)
+          .select('id, codigo').in('id', draftProdutoIds);
+        for (const r of (data || []) as Array<{ id: string; codigo: string }>) produtoCodigoMap.set(r.id, r.codigo);
+      }
+
+      const resumoRateio = (linhas: RateioLinha[]) =>
+        linhas.slice().sort((a, b) => a.centroCodigo.localeCompare(b.centroCodigo))
+          .map(l => `${l.centroCodigo} ${l.percentual}%`).join(', ') || '(vazio)';
+      const resumoProdutos = (linhas: ProdutoLinha[]) =>
+        linhas.slice().sort((a, b) => a.codigo.localeCompare(b.codigo))
+          .map(l => `${l.codigo}${l.horas != null ? ` ${l.horas}h` : ''}`).join(', ') || '(vazio)';
+
+
+
       for (const c of contracts) {
         currentStep = c._dbId ? "ordem_servico/update" : "ordem_servico/insert";
         let osId = c._dbId;
