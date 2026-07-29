@@ -603,6 +603,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
           // Delete removed
           if (toDelete.length > 0) {
+            currentStep = "os_produtos_contratados/delete";
             const { error: delProdError } = await (supabase.from("os_produtos_contratados" as any) as any).delete().in("id", toDelete);
             if (delProdError) throw delProdError;
             for (const delId of toDelete) {
