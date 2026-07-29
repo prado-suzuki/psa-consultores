@@ -578,6 +578,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
           const distNovos = draftDist.filter(d => !d._dbId);
           if (distNovos.length > 0) {
+            currentStep = "distribuicao_receita/insert";
             const { error: distError } = await (supabase.from("distribuicao_receita" as any) as any).insert(
               distNovos.map(d => ({
                 id_ordem_servico: osId,
