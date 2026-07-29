@@ -25,6 +25,14 @@ export const categoriaLabel = (c: DocCategoria): string =>
 export const MAX_BYTES = 50 * 1024 * 1024;
 export const ACCEPT = '.pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx';
 
+const ACCEPT_EXTS = ACCEPT.split(',').map((s) => s.trim().toLowerCase());
+
+/** Extensão do arquivo está na allowlist do ACCEPT (mesma do sign-upload). */
+export function extensaoValida(nome: string): boolean {
+  const ext = '.' + (nome.split('.').pop() ?? '').toLowerCase();
+  return ACCEPT_EXTS.includes(ext);
+}
+
 export function formatBytes(n: number | null): string {
   if (!n) return '—';
   const u = ['B', 'KB', 'MB', 'GB'];

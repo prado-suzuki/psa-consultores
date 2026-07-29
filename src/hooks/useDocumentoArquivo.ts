@@ -248,11 +248,14 @@ export function useUploadDocumentoCliente() {
   const { fetchWithAuth } = useApiAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (args: { clienteId: string; file: File }) =>
+    // `categoria` é opcional e existe para a coleta por grupo (Pessoas Físicas,
+    // Jurídicas, Imóveis): é só uma gaveta de entrada, a classificação fina
+    // continua sendo da PSA. Sem ela, cai em 'outros' como antes.
+    mutationFn: (args: { clienteId: string; file: File; categoria?: DocCategoria }) =>
       enviarUmDocumento(fetchWithAuth, {
         clienteId: args.clienteId,
         vinculo: {},
-        categoria: 'outros',
+        categoria: args.categoria ?? 'outros',
         file: args.file,
         fonte: 'cliente',
       }),
