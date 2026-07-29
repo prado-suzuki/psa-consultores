@@ -1,0 +1,9 @@
+# Dependencias Python da skill GIF-gerador.
+#
+#   pip install -r requirements.txt
+#   python -m playwright install chromium   # baixa o Chromium (uma vez por maquina)
+#
+# Pillow monta o GIF em Python puro (nao precisa de gifski/ffmpeg no PATH).
+# Se voce tiver gifski ou ffmpeg instalados, o script os prefere automaticamente.
+playwright>=1.40
+pillow>=10.0
