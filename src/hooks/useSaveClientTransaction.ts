@@ -462,6 +462,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         user_id: userId,
       });
 
+      currentStep = "representante/upsert";
       for (const p of participants) {
         const pIdField = "id_representante";
         if (p._dbId) {
