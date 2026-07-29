@@ -14,10 +14,8 @@ import {
 } from '@/hooks/useOrgTasks';
 import { AreaKey } from '@/config/areaCategories';
 import { useDashboardProjectIds } from '@/hooks/useDashboardProjectIds';
-import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
 import { useProjetosCadastroController } from '@/hooks/useProjetosCadastroController';
 import { useOrgProjectOrders } from '@/hooks/useOrgProjectOrders';
-import { currentAmbiente } from '@/config/api';
 import { ProjetosCadastroContext } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
 import { ProjetoDialog } from '@/components/equipe/projetos-cadastro/ProjetoDialog';
 import { ProjetoDeleteDialog } from '@/components/equipe/projetos-cadastro/ProjetoDeleteDialog';
@@ -82,31 +80,29 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       return responsible ? { ...project, responsible } : project;
     });
   }, [projectController.projects, projectController.teamMembers]);
-  const { data: dashboardData } = useDashboardClientesOs(currentAmbiente);
   const projectOsIds = useMemo(() => listProjects
     .map(project => project.ordem_servico_id)
     .filter((id): id is string => Boolean(id)), [listProjects]);
   const { data: projectOrders = [] } = useOrgProjectOrders(projectOsIds);
-  const osRows = useMemo(() => {
-    const rows = new Map<string, ProjetosTarefasOs>((dashboardData?.osRows || []).map(row => [row.os_id, row]));
-    for (const order of projectOrders) {
-      const osProjects = listProjects.filter(item => item.ordem_servico_id === order.id);
-      const project = osProjects[0];
-      const produtos = [...new Set(osProjects.flatMap(item => extractProductAcronyms(item.servico_contratado)))]
-        .join(', ') || null;
-      const existing = rows.get(order.id);
-      rows.set(order.id, existing ? { ...existing, produtos } : {
-        os_id: order.id,
-        numero_os: order.numero_os,
-        cliente_id: order.id_cliente,
-          cliente_nome: project?.external_client?.nome || 'Cliente não informado',
-          servico_nome: project?.servico_nome || null,
-          data_fim: order.data_fim,
-          produtos,
-        });
-    }
-    return [...rows.values()];
-  }, [dashboardData?.osRows, projectOrders, listProjects]);
+  // As OS saem só das ordens dos projetos listados. Antes vinham do
+  // useDashboardClientesOs, que baixa 11 tabelas inteiras (clientes, OS,
+  // projetos, tarefas, clusters, perfis…) para preencher este mesmo cabeçalho —
+  // a hierarquia só consulta as OS que têm projeto na tela (osById.get).
+  const osRows = useMemo<ProjetosTarefasOs[]>(() => projectOrders.map(order => {
+    const osProjects = listProjects.filter(item => item.ordem_servico_id === order.id);
+    const project = osProjects[0];
+    const produtos = [...new Set(osProjects.flatMap(item => extractProductAcronyms(item.servico_contratado)))]
+      .join(', ') || null;
+    return {
+      os_id: order.id,
+      numero_os: order.numero_os,
+      cliente_id: order.id_cliente,
+      cliente_nome: project?.external_client?.nome || 'Cliente não informado',
+      servico_nome: project?.servico_nome || null,
+      data_fim: order.data_fim,
+      produtos,
+    };
+  }), [projectOrders, listProjects]);
   // Deep-link via ?taskId=...: ignora filtros para garantir que a tarefa apareça em `tasks`.
   const queryFilters = useMemo(
     () => ({
