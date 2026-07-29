@@ -30,6 +30,7 @@ import {
   ClipboardList,
   FileBarChart2,
   MessageSquare,
+  MessagesSquare,
   Home,
   LineChart,
 } from 'lucide-react';
@@ -143,6 +144,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   const projetosItems = [
     { path: '/equipe/osg/projetos/clientes', label: 'Clientes', icon: ClipboardList },
     { path: '/equipe/osg/projetos/cadastro', label: 'Projetos e tarefas', icon: FolderKanban },
+    { path: '/equipe/osg/projetos/feed', label: 'Feed', icon: MessagesSquare },
   ];
   const isProjetosActive = location.pathname.startsWith('/equipe/osg/projetos');
 

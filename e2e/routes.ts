@@ -49,6 +49,10 @@ export const ROUTES: RouteCase[] = [
 
   // Tax
   { path: '/equipe/tax/projetos/cadastro', label: 'Tax: Projetos Cadastro' },
+  { path: '/equipe/tax/projetos/feed', label: 'Tax: Feed de comentários' },
+
+  // OSG
+  { path: '/equipe/osg/projetos/feed', label: 'OSG: Feed de comentários' },
 
   // Gestão
   { path: '/gestao', label: 'Gestão Novidades' },
