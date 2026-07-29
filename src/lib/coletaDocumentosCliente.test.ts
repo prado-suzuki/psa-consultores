@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import {
-  GRUPOS_COLETA,
-  grupoDaEntidade,
-  montarGruposColeta,
-} from '@/lib/coletaDocumentosCliente';
+import { grupoDaEntidade, montarGruposColeta } from '@/lib/coletaDocumentosCliente';
+import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
 import type { ChecklistSolicitadoItem, DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
 
 const item = (documento: string, entidade: string): ChecklistSolicitadoItem => ({
@@ -56,7 +53,7 @@ describe('montarGruposColeta', () => {
   it('devolve sempre os 4 grupos, na ordem fixa', () => {
     const grupos = montarGruposColeta([], []);
     expect(grupos.map((g) => g.key)).toEqual(['pf', 'pj', 'imoveis', 'outros']);
-    expect(grupos).toHaveLength(GRUPOS_COLETA.length);
+    expect(grupos).toHaveLength(GRUPOS_DOCUMENTO.length);
   });
 
   it('lista os documentos pedidos sem repetir, em ordem alfabética', () => {
@@ -99,10 +96,17 @@ describe('montarGruposColeta', () => {
     expect(grupos[0].arquivos.map((a) => a.id)).toEqual(['valido']);
   });
 
-  it('documento de categoria fora dos 4 grupos não aparece em nenhum', () => {
-    const grupos = montarGruposColeta([], [doc('ir', 'declaracao_ir')]);
+  // Antes do agrupador canônico, documento de categoria fora das 4 do cliente
+  // não caía em grupo nenhum e sumia da tela. Agora cai no grupo do mapa.
+  it('documento de categoria que o cliente não grava cai no grupo do mapa', () => {
+    const grupos = montarGruposColeta([], [
+      doc('ir', 'declaracao_ir'),
+      doc('ccir', 'cadastros_fiscais'),
+    ]);
 
-    expect(grupos.every((g) => g.arquivos.length === 0)).toBe(true);
+    expect(grupos[0].arquivos.map((a) => a.id)).toEqual(['ir']);
+    expect(grupos[2].arquivos.map((a) => a.id)).toEqual(['ccir']);
+    expect(grupos.flatMap((g) => g.arquivos)).toHaveLength(2);
   });
 
   it('itens de Bem entram na lista do grupo Outros', () => {

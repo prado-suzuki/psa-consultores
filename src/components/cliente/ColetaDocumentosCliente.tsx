@@ -32,11 +32,10 @@ import {
   type DocumentoArquivoRow,
 } from '@/hooks/useDocumentoArquivo';
 import { ACCEPT, MAX_BYTES, extensaoValida, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
-import {
-  montarGruposColeta, type GrupoColeta, type GrupoColetaKey,
-} from '@/lib/coletaDocumentosCliente';
+import { montarGruposColeta, type GrupoColeta } from '@/lib/coletaDocumentosCliente';
+import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 
-const GRUPO_ICON: Record<GrupoColetaKey, LucideIcon> = {
+const GRUPO_ICON: Record<GrupoDocumentoKey, LucideIcon> = {
   pf: Users,
   pj: Building2,
   imoveis: Landmark,
@@ -215,7 +214,7 @@ export function ColetaDocumentosCliente() {
   const upload = useUploadDocumentoCliente();
   const baixar = useBaixarDocumento();
   const excluir = useSoftDeleteDocumentoCliente(clienteId ?? '');
-  const [grupoEnviando, setGrupoEnviando] = useState<GrupoColetaKey | null>(null);
+  const [grupoEnviando, setGrupoEnviando] = useState<GrupoDocumentoKey | null>(null);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
 
   const grupos = useMemo(() => montarGruposColeta(checklist, docs), [checklist, docs]);
