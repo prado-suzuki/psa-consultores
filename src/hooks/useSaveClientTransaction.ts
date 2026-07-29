@@ -225,6 +225,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       let clienteResult: any;
 
       if (isEditing) {
+        currentStep = "cliente/update";
         const { data: updated, error } = await supabase
           .from(clienteTable)
           // cast: coluna `observacoes` é aplicada via migração no Lovable e ainda não está nos tipos gerados
@@ -241,6 +242,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const { data: dbContribs } = await supabase.from(contribuinteTable).select("id").eq("cliente_id", clienteId).eq("excluido", false);
         const removedContribIds = (dbContribs || []).map(c => c.id).filter(id => !currentContribDbIds.includes(id));
         if (removedContribIds.length > 0) {
+          currentStep = "contribuinte/soft-delete";
           await softDeleteVerificado(contribuinteTable, "id", removedContribIds, "contribuinte(s)");
         }
 
@@ -250,6 +252,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const { data: dbParts } = await (supabase.from(representanteTable) as any).select(partIdField).eq("id_cliente", clienteId).eq("excluido", false);
         const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
         if (removedPartIds.length > 0) {
+          currentStep = "representante/soft-delete";
           await softDeleteVerificado(representanteTable, partIdField, removedPartIds, "representante(s)");
         }
 
@@ -261,6 +264,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         if (removedOsIds.length > 0) {
           // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
           await assertCanPerform('ordem_servico', 'update', removedOsIds[0]);
+          currentStep = "ordem_servico/soft-delete";
           await softDeleteVerificado("ordem_servico", "id", removedOsIds, "OS");
 
           // O rateio acompanha a OS: sem isso sobra linha de distribuicao_receita
@@ -273,10 +277,12 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           const distOrfaIds = ((distDeOsRemovida || []) as Array<{ id: string }>).map(r => r.id);
           if (distOrfaIds.length > 0) {
             await assertCanPerform('distribuicao_receita', 'update', distOrfaIds[0]);
+            currentStep = "distribuicao_receita/soft-delete-orfas";
             await softDeleteVerificado("distribuicao_receita", "id", distOrfaIds, "linha(s) de Distribuição de Receita da OS excluída");
           }
         }
       } else {
+        currentStep = "cliente/insert (RPC criar_cliente_com_clusters)";
         // RPC atômica: insere cliente + cliente_clusters na mesma transação
         // (contorna trigger DEFERRED trg_cliente_tem_cluster). Retorna a linha completa
         // (created_at/updated_at do banco + nome já normalizado pelo trigger).
