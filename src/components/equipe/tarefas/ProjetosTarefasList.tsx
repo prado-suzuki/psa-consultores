@@ -44,6 +44,7 @@ import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import {
   buildProjetosTarefasHierarchy,
+  shortProjectName,
   type ProjetosTarefasTaskNode,
 } from '@/lib/projetosTarefasHierarchy';
 import type { ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
@@ -322,7 +323,7 @@ export function ProjetosTarefasList({
               <div className="flex min-w-0 items-center gap-2 px-4 py-2.5 pl-9">
                 <button type="button" onClick={() => toggle(projectId)} className="rounded p-1 text-muted-foreground hover:bg-muted" aria-label={projectExpanded ? 'Recolher projeto' : 'Expandir projeto'}>{projectExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
                 <FolderKanban className="h-4 w-4 shrink-0 text-primary" />
-                <button type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} className="truncate text-left font-semibold hover:underline disabled:no-underline">{projectNode.project?.name || 'Sem projeto'}</button>
+                <button type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} title={projectNode.project?.name} className="truncate text-left font-semibold hover:underline disabled:no-underline">{projectNode.project ? shortProjectName(projectNode.project.name, group.clientName, group.os?.numero_os) : 'Sem projeto'}</button>
                 <span className="text-xs text-muted-foreground">{projectNode.taskCount}</span>
               </div>
               <div className="flex items-center px-3">{projectNode.project && <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', projectStatusStyles[projectNode.project.status] || 'bg-muted text-muted-foreground')}>{STATUS_LABELS[projectNode.project.status] || projectNode.project.status}</span>}</div>
