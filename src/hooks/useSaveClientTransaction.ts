@@ -720,7 +720,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         }
       }
 
-      }
+
 
       // --- Persist cliente_clusters (incremental upsert) ---
       // Só no ramo de edição: na criação, a RPC criar_cliente_com_clusters já
