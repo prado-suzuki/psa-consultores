@@ -29,6 +29,37 @@ const syncCadastrosToDW = (payload: any) => {
     .catch((err) => console.error("[sync-cadastros] Erro:", err));
 };
 
+/**
+ * Soft-delete que confirma o resultado antes de seguir.
+ *
+ * `update({ excluido: true })` sem checagem falha em silêncio de dois jeitos: o
+ * PostgREST devolve erro e ninguém lê, ou a policy de UPDATE não casa nenhuma
+ * linha (0 rows, sem erro). Nos dois casos o save continua como se tivesse
+ * excluído — e aí o registro "volta" no próximo reload e o insert seguinte
+ * duplica a linha. A verificação relê os ids filtrando `excluido = false`:
+ * se a linha ainda aparece assim, a exclusão não gravou.
+ */
+const softDeleteVerificado = async (
+  table: string,
+  idField: string,
+  ids: string[],
+  rotulo: string,
+): Promise<void> => {
+  // Tabelas de OS/rateio não estão no schema tipado — cast justificado
+  const { error } = await (supabase.from(table as any) as any).update({ excluido: true }).in(idField, ids);
+  if (error) throw error;
+  const { data: restantes, error: reReadError } = await (supabase.from(table as any) as any)
+    .select(idField)
+    .in(idField, ids)
+    .eq("excluido", false);
+  if (reReadError) throw reReadError;
+  if (restantes && restantes.length > 0) {
+    throw new Error(
+      `Não foi possível excluir ${restantes.length} ${rotulo}. O banco recusou a exclusão (permissão/RLS) — nada foi removido. Fale com a liderança.`
+    );
+  }
+};
+
 interface SetorCliente {
   id: string;
   sigla: string;
@@ -64,7 +95,8 @@ interface SaveTransactionParams {
   isEditing: boolean;
   editingClienteId?: string | null;
   setoresCliente: SetorCliente[];
-  getDraftPendingTabs: () => string[];
+  /** Opcional: abas com rascunho pendente. Quem não usa rascunho intermediário não precisa passar. */
+  getDraftPendingTabs?: () => string[];
   onDuplicateFound: (name: string) => Promise<boolean>;
   onSuccess: () => void;
   originalSnapshot?: OriginalSnapshot | null;
@@ -73,8 +105,8 @@ interface SaveTransactionParams {
 export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   const {
     clientData, entities, participants, contracts, inscricoesMap, clusterIds = [],
-    isEditing, editingClienteId, setoresCliente,
-    getDraftPendingTabs, onDuplicateFound, onSuccess, originalSnapshot,
+    isEditing, editingClienteId, setoresCliente, getDraftPendingTabs,
+    onDuplicateFound, onSuccess, originalSnapshot,
   } = params;
 
   const { logAction } = useAuditLog();
@@ -99,6 +131,61 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       return;
     }
 
+    // --- Contribuintes: validação que antes ficava no botão "Adicionar à Lista" ---
+    const documentosVistos = new Map<string, string>();
+    for (const e of entities) {
+      const quem = e.nome_razao_social?.trim() || e.cpf_cnpj || "(contribuinte sem nome)";
+      if (!e.nome_razao_social?.trim()) {
+        toast.error(`Contribuinte ${e.cpf_cnpj || "novo"}: informe a Razão Social / Nome completo`);
+        return;
+      }
+      const digits = (e.cpf_cnpj || "").replace(/\D/g, "");
+      if (!digits) {
+        toast.error(`Contribuinte "${quem}": CPF/CNPJ é obrigatório`);
+        return;
+      }
+      if (digits.length !== 11 && digits.length !== 14) {
+        toast.error(`Contribuinte "${quem}": CPF deve ter 11 dígitos ou CNPJ 14 dígitos`);
+        return;
+      }
+      if (documentosVistos.has(digits)) {
+        toast.error(`Contribuinte "${quem}": documento repetido em "${documentosVistos.get(digits)}"`);
+        return;
+      }
+      documentosVistos.set(digits, quem);
+      if (!e.cep?.trim()) { toast.error(`Contribuinte "${quem}": CEP é obrigatório`); return; }
+      if (!e.logradouro?.trim()) { toast.error(`Contribuinte "${quem}": Logradouro é obrigatório`); return; }
+      if (!e.bairro?.trim()) { toast.error(`Contribuinte "${quem}": Bairro é obrigatório`); return; }
+      if (!e.municipio?.trim()) { toast.error(`Contribuinte "${quem}": Município é obrigatório`); return; }
+      if (!e.uf?.trim() || e.uf.trim().length !== 2) { toast.error(`Contribuinte "${quem}": UF deve ter 2 caracteres`); return; }
+      if (e.tipo_pessoa === "PJ") {
+        if (!e.cod_cnae?.trim()) { toast.error(`Contribuinte "${quem}": CNAE é obrigatório para PJ`); return; }
+        if (!e.simples_nacional) { toast.error(`Contribuinte "${quem}": informe a situação do Simples Nacional`); return; }
+      }
+      for (const ie of inscricoesMap[e._dbId || String(e._id)] || []) {
+        if (ie.situacao === "sim" && !ie.uf) { toast.error(`Contribuinte "${quem}": selecione a UF de todas as inscrições estaduais`); return; }
+        if (ie.situacao === "sim" && !ie.numero_ie?.trim()) { toast.error(`Contribuinte "${quem}": informe o número da IE do estado ${ie.uf}`); return; }
+      }
+    }
+
+    // --- Representantes: validação que antes ficava no botão "Adicionar à Lista" ---
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    for (const p of participants) {
+      const quem = p.nome?.trim() || "(representante sem nome)";
+      if (!p.nome?.trim()) { toast.error("Representante: o Nome é obrigatório"); return; }
+      if (!p.tipo_representante) { toast.error(`Representante "${quem}": Cargo/função é obrigatório`); return; }
+      if (!p.email?.trim()) { toast.error(`Representante "${quem}": Email é obrigatório`); return; }
+      if (!EMAIL_REGEX.test(p.email.trim())) { toast.error(`Representante "${quem}": formato de e-mail inválido`); return; }
+      if (p.telefone?.trim() && p.telefone.replace(/\D/g, "").length < 10) {
+        toast.error(`Representante "${quem}": telefone deve ter no mínimo 10 dígitos`);
+        return;
+      }
+      if (p.observacoes?.trim() && p.observacoes.trim().length < 20) {
+        toast.error(`Representante "${quem}": observações deve ter no mínimo 20 caracteres`);
+        return;
+      }
+    }
+
     // --- Pre-validation: empresa (cluster_id), distribuicao_receita UUIDs and percentage sums ---
     const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     for (const c of contracts) {
@@ -114,15 +201,27 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione a Região`);
         return;
       }
+      if (!c.produtos_contratados || c.produtos_contratados.length === 0) {
+        toast.error(`OS "${c.ordem_servico || "(sem número)"}": adicione ao menos um Produto Contratado`);
+        return;
+      }
       if (!c.distribuicao_receita || c.distribuicao_receita.length === 0) {
         toast.error(`OS "${c.ordem_servico || "(sem número)"}": adicione ao menos um Centro de Custo na Distribuição de Receita`);
         return;
       }
+      const centrosVistos = new Set<string>();
       for (const d of c.distribuicao_receita) {
         if (!d.id_centro_custo || !UUID_REGEX.test(d.id_centro_custo)) {
           toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione um centro de custo válido para cada linha de distribuição`);
           return;
         }
+        // Mesmo centro de custo em duas linhas é sempre erro de digitação (o
+        // rateio é por centro de custo) e era o rastro do bug de duplicação.
+        if (centrosVistos.has(d.id_centro_custo)) {
+          toast.error(`OS "${c.ordem_servico || "(sem número)"}": centro de custo repetido na Distribuição de Receita — remova a linha duplicada`);
+          return;
+        }
+        centrosVistos.add(d.id_centro_custo);
       }
       const totalPercent = c.distribuicao_receita.reduce((sum, d) => sum + (d.percentual_rateio || 0), 0);
       if (Math.abs(totalPercent - 100) > 0.01) {
@@ -180,7 +279,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const { data: dbContribs } = await supabase.from(contribuinteTable).select("id").eq("cliente_id", clienteId).eq("excluido", false);
         const removedContribIds = (dbContribs || []).map(c => c.id).filter(id => !currentContribDbIds.includes(id));
         if (removedContribIds.length > 0) {
-          await supabase.from(contribuinteTable).update({ excluido: true } as any).in("id", removedContribIds);
+          await softDeleteVerificado(contribuinteTable, "id", removedContribIds, "contribuinte(s)");
         }
 
         // --- Representantes: update existentes, insert novos, soft-delete removidos ---
@@ -189,7 +288,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const { data: dbParts } = await (supabase.from(representanteTable) as any).select(partIdField).eq("id_cliente", clienteId).eq("excluido", false);
         const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
         if (removedPartIds.length > 0) {
-          await (supabase.from(representanteTable) as any).update({ excluido: true }).in(partIdField, removedPartIds);
+          await softDeleteVerificado(representanteTable, partIdField, removedPartIds, "representante(s)");
         }
 
         // --- Ordens de Serviço: update existentes, insert novos, soft-delete removidos ---
@@ -200,7 +299,20 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         if (removedOsIds.length > 0) {
           // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
           await assertCanPerform('ordem_servico', 'update', removedOsIds[0]);
-          await (supabase.from("ordem_servico" as any) as any).update({ excluido: true }).in("id", removedOsIds);
+          await softDeleteVerificado("ordem_servico", "id", removedOsIds, "OS");
+
+          // O rateio acompanha a OS: sem isso sobra linha de distribuicao_receita
+          // ativa apontando pra OS excluída (receita fantasma nos relatórios).
+          const { data: distDeOsRemovida, error: distOrfaError } = await (supabase.from("distribuicao_receita" as any) as any)
+            .select("id")
+            .in("id_ordem_servico", removedOsIds)
+            .eq("excluido", false);
+          if (distOrfaError) throw distOrfaError;
+          const distOrfaIds = ((distDeOsRemovida || []) as Array<{ id: string }>).map(r => r.id);
+          if (distOrfaIds.length > 0) {
+            await assertCanPerform('distribuicao_receita', 'update', distOrfaIds[0]);
+            await softDeleteVerificado("distribuicao_receita", "id", distOrfaIds, "linha(s) de Distribuição de Receita da OS excluída");
+          }
         }
       } else {
         // RPC atômica: insere cliente + cliente_clusters na mesma transação
@@ -435,40 +547,73 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       for (const c of contracts) {
         let osId = c._dbId;
         if (c._dbId) {
-          const { error } = await (supabase.from("ordem_servico" as any) as any).update(buildOsFields(c)).eq("id", c._dbId);
+          // .select() para que uma falha silenciosa de RLS (0 rows) apareça como
+          // erro, em vez de o save "concluir" sem gravar a OS.
+          const { data: updOs, error } = await (supabase.from("ordem_servico" as any) as any).update(buildOsFields(c)).eq("id", c._dbId).select("id");
           if (error) throw error;
+          if (!updOs || updOs.length === 0) {
+            throw new Error(`UPDATE da OS ${c.ordem_servico || "(sem número)"} não atingiu nenhuma linha (RLS ou id inválido).`);
+          }
         } else {
           const { data: newOs, error } = await (supabase.from("ordem_servico" as any) as any).insert(buildOsFields(c)).select("id").single();
           if (error) throw error;
           osId = newOs.id;
         }
 
-        // Persist distribuicao_receita: soft-delete old then insert new
+        // Persist distribuicao_receita: reconciliação por _dbId (linha a linha).
+        // O padrão anterior era "marca tudo como excluído e reinsere a lista".
+        // Quando o soft-delete não pegava (erro engolido ou 0 rows por RLS) o
+        // insert entrava de novo e as linhas antigas continuavam ativas — cada
+        // salvamento somava um centro de custo repetido no rateio (100% → 200% →
+        // 300%…), até o total estourar 100% e travar o save do cliente inteiro.
+        // Aqui quem ficou é atualizado no lugar, só o que é novo é inserido e só
+        // o que saiu do rateio é excluído (com verificação). Reinserir é
+        // impossível, então salvar duas vezes não duplica nada.
         if (osId) {
-          // Precheck do soft-delete em lote — amostra um id antes pra rodar can_perform.
-          // RLS exige sublider+ pra update; sem isso o update silenciosamente afeta 0 rows.
-          const { data: sampleDist } = await (supabase.from("distribuicao_receita" as any) as any)
+          const draftDist = (c.distribuicao_receita || []).filter(d => d.id_centro_custo);
+          const { data: dbDist, error: dbDistError } = await (supabase.from("distribuicao_receita" as any) as any)
             .select("id")
             .eq("id_ordem_servico", osId)
-            .eq("excluido", false)
-            .limit(1)
-            .maybeSingle();
-          if (sampleDist?.id) {
-            await assertCanPerform('distribuicao_receita', 'update', sampleDist.id);
+            .eq("excluido", false);
+          if (dbDistError) throw dbDistError;
+
+          const rotuloOs = c.ordem_servico || "(sem número)";
+          const mantidos = new Set(draftDist.map(d => d._dbId).filter(Boolean) as string[]);
+          const distRemovidos = ((dbDist || []) as Array<{ id: string }>)
+            .map(r => r.id)
+            .filter(id => !mantidos.has(id));
+
+          if (distRemovidos.length > 0) {
+            // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
+            await assertCanPerform('distribuicao_receita', 'update', distRemovidos[0]);
+            await softDeleteVerificado("distribuicao_receita", "id", distRemovidos, `linha(s) de Distribuição de Receita da OS ${rotuloOs}`);
           }
-          await (supabase.from("distribuicao_receita" as any) as any).update({ excluido: true }).eq("id_ordem_servico", osId).eq("excluido", false);
-          if (c.distribuicao_receita && c.distribuicao_receita.length > 0) {
-            const distPayload = c.distribuicao_receita
-              .filter(d => d.id_centro_custo)
-              .map(d => ({
+
+          for (const d of draftDist.filter(d => d._dbId)) {
+            const { data: updDist, error: updDistError } = await (supabase.from("distribuicao_receita" as any) as any)
+              .update({ id_centro_custo: d.id_centro_custo, percentual_rateio: d.percentual_rateio || 0 })
+              .eq("id", d._dbId)
+              .select("id");
+            if (updDistError) throw updDistError;
+            // 0 rows aqui significa linha inexistente ou RLS barrando. Reinserir
+            // seria justamente o que duplicava o rateio — então falha alto.
+            if (!updDist || updDist.length === 0) {
+              throw new Error(
+                `Não foi possível atualizar a Distribuição de Receita da OS ${rotuloOs}. Feche e abra o cadastro para recarregar os dados e tente de novo.`
+              );
+            }
+          }
+
+          const distNovos = draftDist.filter(d => !d._dbId);
+          if (distNovos.length > 0) {
+            const { error: distError } = await (supabase.from("distribuicao_receita" as any) as any).insert(
+              distNovos.map(d => ({
                 id_ordem_servico: osId,
                 id_centro_custo: d.id_centro_custo,
                 percentual_rateio: d.percentual_rateio || 0,
-              }));
-            if (distPayload.length > 0) {
-              const { error: distError } = await (supabase.from("distribuicao_receita" as any) as any).insert(distPayload);
-              if (distError) throw distError;
-            }
+              }))
+            );
+            if (distError) throw distError;
           }
 
           // Persist os_produtos_contratados: selective upsert preserving _dbId
@@ -485,7 +630,8 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
           // Delete removed
           if (toDelete.length > 0) {
-            await (supabase.from("os_produtos_contratados" as any) as any).delete().in("id", toDelete);
+            const { error: delProdError } = await (supabase.from("os_produtos_contratados" as any) as any).delete().in("id", toDelete);
+            if (delProdError) throw delProdError;
             for (const delId of toDelete) {
               const delProdId = existingMap.get(delId);
               logAction({
@@ -528,12 +674,13 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             const prodChanged = old.produto_segmento_id !== dp.produto_segmento_id;
             const horasChanged = (old.horas_contratadas ?? null) !== (dp.horas_contratadas ?? null);
             if (prodChanged || horasChanged) {
-              await (supabase.from("os_produtos_contratados" as any) as any)
+              const { error: updProdError } = await (supabase.from("os_produtos_contratados" as any) as any)
                 .update({
                   produto_segmento_id: dp.produto_segmento_id,
                   horas_contratadas: dp.horas_contratadas ?? null,
                 })
                 .eq("id", dp._dbId);
+              if (updProdError) throw updProdError;
             }
           }
         }
@@ -744,11 +891,11 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     }
   }, [clientData, entities, participants, contracts, inscricoesMap, clusterIds, isEditing, editingClienteId, setoresCliente, onDuplicateFound, onSuccess, logAction, queryClient, originalSnapshot, authUser]);
 
+  // Mantido para as telas que ainda barram o save quando há rascunho de aba
+  // aberto; devolve as abas pendentes em vez de salvar.
   const handleSave = useCallback(() => {
-    const pendingTabs = getDraftPendingTabs();
-    if (pendingTabs.length > 0) {
-      return pendingTabs;
-    }
+    const pendingTabs = getDraftPendingTabs?.() ?? [];
+    if (pendingTabs.length > 0) return pendingTabs;
     executeSave();
     return null;
   }, [getDraftPendingTabs, executeSave]);
