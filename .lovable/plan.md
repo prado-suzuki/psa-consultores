@@ -1,75 +1,67 @@
-# Fix: Admin barrado ao salvar OS — varredura RLS (só escape de admin) + hardening no save
+# Correção estrutural: policies admin dedicadas em 8 tabelas
 
 ## Objetivo
-Eliminar o toast "Sem permissão…" que a Patricia (admin) recebe ao salvar alteração de OS. Causa dupla: (1) policies de escrita que exigem `excluido = false` no `WITH CHECK` (bloqueia soft-delete) e/ou têm cláusula de cluster sem escape de admin; (2) o save no front ignora `error` em alguns writes, mascarando falhas e gerando resíduo (rateios duplicados, audit "deleted" órfão).
+Encerrar o 42501 do admin (Patricia) no save de OS de forma estrutural: em vez de continuar afrouxando expressões existentes uma a uma (e descobrir o próximo bloqueio no próximo save — o último foi o SELECT reaplicado como implicit WITH CHECK do RETURNING), o admin ganha 4 policies PERMISSIVE dedicadas por tabela, incondicionais. As policies atuais permanecem intocadas e continuam regendo sublider/lider/team_member/client.
 
-Decisão do responsável: **admin não deve ter restrição em alteração de dados** — a correção é varredura, mas só afrouxa para admin. Nenhuma outra role muda.
+## Escopo — 8 tabelas
+`cliente`, `cliente_clusters`, `ordem_servico`, `distribuicao_receita`, `os_produtos_contratados`, `contribuinte`, `inscricao_contribuinte`, `representante`.
 
----
+## Migration única (reexecutável)
 
-## Passo 1 — Pré-voo 1 (reprodução na identidade da Patricia, não destrutivo)
-
-Rodar o bloco exato do briefing (BEGIN … ROLLBACK) como **query ad hoc**. Se for necessário usar migration temporária, **apagar o arquivo** depois — não deixar em `supabase/migrations/`, senão o DML volta a rodar em outros ambientes.
-
-Regras:
-- Aborta se `current_user <> 'authenticated'` ou `auth.uid() <> Patricia`.
-- Saída em `_res` temp table, listada com `SELECT` antes do `ROLLBACK`.
-- Se abortar por identidade: **não** contornar; ir para Postgres Logs (SQLSTATE 42501 desde 2026-07-29 17:30).
-
-Objetivo: confirmar quais steps caem em 42501 (esperado ao menos `rateio/soft-delete` e `os/soft-delete`).
-
-## Passo 2 — Pré-voo 2 (varredura somente-leitura)
-
-Três queries do briefing, sem modificação:
-- **(A)** policies de ESCRITA com cláusula de cluster/`cliente_visivel_para` — marcar quais **não** têm ramo de admin.
-- **(B)** policies UPDATE/ALL com `WITH CHECK` referenciando `excluido`.
-- **(C)** relatório de resíduo em `distribuicao_receita`. Somente relatar.
-
-Também rodar (A) com `cmd = 'SELECT'` **apenas para relatório**, sem alterar.
-
-## Passo 3 — Correção no banco (migration única) — REGRA ÚNICA
-
-Para cada linha de **(A)** e **(B)**, aplicar exatamente a mesma transformação: **nunca remover cláusula, nunca alterar nível de papel, nunca mexer em roles** — apenas prefixar o escape de admin, preservando a expressão original palavra por palavra:
+Para cada tabela acima, dropar-se-existir e criar 4 policies nomeadas `admin_full_<tabela>_<cmd>`:
 
 ```sql
-USING (public.has_role(auth.uid(),'admin'::app_role) OR (<qual original>))
-WITH CHECK (public.has_role(auth.uid(),'admin'::app_role) OR (<with_check original>))
+DROP POLICY IF EXISTS admin_full_<t>_select ON public.<t>;
+CREATE POLICY admin_full_<t>_select ON public.<t>
+  AS PERMISSIVE FOR SELECT TO authenticated
+  USING (public.has_role(auth.uid(),'admin'::app_role));
+
+DROP POLICY IF EXISTS admin_full_<t>_insert ON public.<t>;
+CREATE POLICY admin_full_<t>_insert ON public.<t>
+  AS PERMISSIVE FOR INSERT TO authenticated
+  WITH CHECK (public.has_role(auth.uid(),'admin'::app_role));
+
+DROP POLICY IF EXISTS admin_full_<t>_update ON public.<t>;
+CREATE POLICY admin_full_<t>_update ON public.<t>
+  AS PERMISSIVE FOR UPDATE TO authenticated
+  USING (public.has_role(auth.uid(),'admin'::app_role))
+  WITH CHECK (public.has_role(auth.uid(),'admin'::app_role));
+
+DROP POLICY IF EXISTS admin_full_<t>_delete ON public.<t>;
+CREATE POLICY admin_full_<t>_delete ON public.<t>
+  AS PERMISSIVE FOR DELETE TO authenticated
+  USING (public.has_role(auth.uid(),'admin'::app_role));
 ```
 
-Nas policies de **(B)** o `excluido` **permanece** dentro da expressão original — o objetivo é liberar admin, **não** liberar sublider+. Se a policy for `FOR ALL`, aplicar nas duas cláusulas. Não recriar policy que já tenha ramo de admin.
+Total: **32 policies novas** (8 tabelas × 4 comandos). Todas PERMISSIVE, `TO authenticated`, nunca `public`.
 
-**Escopo restrito — apenas estas 8 tabelas:** `cliente`, `cliente_clusters`, `ordem_servico`, `distribuicao_receita`, `os_produtos_contratados`, `contribuinte`, `inscricao_contribuinte`, `representante`.
+## Limpeza pontual em `ordem_servico`
 
-Qualquer policy fora dessa lista que apareça em (A) ou (B) entra **só como relatório**, sem alteração — o filtro `ILIKE '%excluido%'` casa com tabelas de módulos sem relação com este bug.
+No mesmo arquivo de migration, remover resquícios de investigação, se existirem:
+```sql
+DROP POLICY IF EXISTS debug_admin_uncond ON public.ordem_servico;
+DROP POLICY IF EXISTS rls_ordem_servico_update_admin ON public.ordem_servico;
+```
+Motivo: `debug_admin_uncond` era `USING(true) WITH CHECK(true)` para qualquer authenticated (inclusive `client`) — não pode ficar.
 
-**Efeito esperado por role (requisito de aceite):**
-- admin: passa a alterar e excluir sem restrição nessas 8 tabelas.
-- sublider, lider, team_member, client: comportamento **idêntico** ao atual, inclusive seguir barrados no soft-delete onde hoje são barrados.
+## Regras absolutas
+- **Não alterar/recriar/remover** nenhuma policy existente das 8 tabelas nem de outra (exceto os 2 DROPs de debug acima).
+- Nada RESTRICTIVE.
+- Nunca `TO public`; sempre `TO authenticated`.
+- Não mexer em `can_perform`, `rls_precheck_allowed_tables`, triggers, nem no front.
 
-Não tocar policies de SELECT. Não mexer em `can_perform`, `rls_precheck_allowed_tables`, triggers.
+## GATE (verificações pós-migration)
 
-## Passo 4 — Hardening no front (`src/hooks/useSaveClientTransaction.ts`)
+1. `SELECT policyname, cmd, permissive, roles FROM pg_policies WHERE schemaname='public' AND tablename IN (...) ORDER BY tablename, cmd;` — 32 policies novas visíveis como PERMISSIVE/authenticated; policies antigas com nome/cmd/qual/with_check inalterados.
+2. Patricia salva OS 035/2026 do cliente `35419187…` removendo 3 duplicatas de rateio → sem toast, 1 linha ativa.
+3. Patricia: fluxo full CRUD em cliente de teste (criar, editar OS, excluir) — 4 passos sem toast.
+4. Team_member e sublider de outro cluster: comportamento idêntico ao anterior à migration.
+5. `pg_policies` de `ordem_servico` sem `debug_admin_uncond` nem `rls_ordem_servico_update_admin`.
 
-**a) Soft-delete das OS removidas.** Trocar `.update({excluido:true}).in("id", ids)` por versão com `.select("id")`; se `error` → `throw`; se `data.length < removedOsIds.length` → erro explícito listando ids ausentes; `logAction("deleted")` só para os retornados. Se o `RETURNING` voltar vazio mesmo com sucesso (a policy de SELECT de `ordem_servico` exige `excluido = false`), trocar a checagem por `count` no banco em vez do retorno do PostgREST.
-
-**b) Mesma conferência de `error`** nos demais writes de `ordem_servico` e `distribuicao_receita` que hoje a ignoram. **Preservar** a reconciliação linha a linha atual — **não** voltar ao padrão delete+reinsert (foi ele que gerou as 4 linhas duplicadas de CC-0007).
-
-**c) No `catch`,** manter variável com o passo corrente (`tabela/op`) atualizada antes de cada write e incluí-la no toast de RLS: *"Sem permissão para atualizar cliente (tabela/op). Fale com a liderança."* Manter `console.error` do objeto cru. Sem refactor de `Error{cause}`.
+## Efeito colateral conhecido e aceito
+Admin com SELECT incondicional passa a enxergar linhas `excluido = true` em queries que não filtrem. Front já filtra `excluido = false` em todas as telas relevantes; a única exceção é o gerador de número de OS, onde contar apagadas é benéfico (evita reaproveitar número).
 
 ## Fora de escopo
-- Policies de SELECT (só relatório).
-- Policies fora das 8 tabelas listadas.
-- `can_perform`, `rls_precheck_allowed_tables`, triggers existentes.
-- Limpeza das linhas duplicadas de rateio de (C) — frente separada.
-- Não excluir a OS 026/2026 por SQL (3 `org_projects` ativos; ação da usuária pela tela).
-
-## GATE
-1. Pré-voo 1 imprime `identidade user=authenticated`; após correção, **todas** as linhas OK, em especial `rateio/soft-delete` e `os/soft-delete`.
-2. (A) e (B) re-executados: nenhuma linha das 8 tabelas com `tem_ramo_admin = false`; toda policy corrigida preserva a expressão original íntegra dentro do `OR`.
-3. Patricia: abrir OS do cliente `35419187…`, remover as 3 duplicatas de CC-0007 deixando 1 a 100%, salvar — sem toast; banco fica com exatamente 1 linha ativa.
-4. Patricia: em dev, criar cliente novo com 1 contribuinte, 1 representante, 1 OS com rateio + produto; editar a OS; excluir o cliente de teste pela tela. Quatro passos sem toast.
-5. **Prova de não afrouxamento:** rodar o bloco do pré-voo 1 duas vezes — uma com o `sub` de um sublider, uma com o `sub` de um team_member — **antes e depois** da correção. O status de cada linha tem que ser **idêntico** nas duas rodadas. Qualquer linha que saia de `FALHOU` para `OK` para essas roles reprova a entrega e tem que ser revertida.
-6. `SELECT id, name FROM org_projects WHERE ordem_servico_id='d30e4183-…'` mantém 3 linhas. Listagem de OS de outros clientes inalterada.
-
-## Observação (registro, não pedido de mudança)
-Com a regra única, sublider que editar rateio ou remover OS passa a receber **erro claro** onde hoje duplica em silêncio. Continua sem conseguir a operação — só deixa de corromper dado. Se sublider precisar dessas operações no futuro, decisão tabela por tabela, em frente separada.
+- Qualquer mudança no front (`useSaveClientTransaction.ts` fica como está).
+- Limpeza dos dados residuais de `distribuicao_receita` (frente separada).
+- Policies fora dessas 8 tabelas.
