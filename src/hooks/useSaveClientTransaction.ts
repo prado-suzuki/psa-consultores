@@ -622,6 +622,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           // Insert new (no _dbId)
           const toInsert = draftProdutos.filter(p => !p._dbId);
           if (toInsert.length > 0) {
+            currentStep = "os_produtos_contratados/insert";
             const insertPayload = toInsert.map(p => ({
               ordem_servico_id: osId,
               produto_segmento_id: p.produto_segmento_id,
