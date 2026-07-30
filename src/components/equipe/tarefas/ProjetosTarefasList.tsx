@@ -7,7 +7,6 @@ import {
   ArrowUpDown,
   CalendarDays,
   Building2,
-  Check,
   ChevronDown,
   ChevronRight,
   ChevronsDown,
@@ -23,7 +22,7 @@ import {
 } from 'lucide-react';
 import type { AreaKey } from '@/config/areaCategories';
 import { toast } from 'sonner';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -48,6 +47,7 @@ import {
   shortProjectName,
   type ProjetosTarefasTaskNode,
 } from '@/lib/projetosTarefasHierarchy';
+import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
 import type { ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
 
 interface ProjetosTarefasListProps {
@@ -56,6 +56,8 @@ interface ProjetosTarefasListProps {
   tasks: OrgTask[];
   osRows: ProjetosTarefasOs[];
   search: string;
+  /** Dados da lista (projetos/tarefas/escopo) ainda em resolução. */
+  isLoading?: boolean;
   hideEmpty?: boolean;
   onClearFilters?: () => void;
   onEditProject: (project: OrgProject) => void;
@@ -94,6 +96,7 @@ function initials(name: string | null) {
   return name ? name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase() : '?';
 }
 
+
 function dateLabel(date: string | null) {
   return date ? format(parseDate(date), 'dd MMM yyyy', { locale: ptBR }) : 'Sem prazo';
 }
@@ -106,38 +109,13 @@ function completionPercentage(completed: number, total: number) {
   return total > 0 ? Math.round(completed / total * 100) : 0;
 }
 
-const taskStatusProgress: Record<OrgTaskStatus, number> = {
-  backlog: 0,
-  todo: 0,
-  waiting_client: 25,
-  in_progress: 25,
-  review: 75,
-  em_ajuste: 75,
-  done: 100,
-};
-
-function TaskStatusDot({ status }: { status: OrgTaskStatus }) {
-  const progress = taskStatusProgress[status];
-  return <span
-    role="img"
-    aria-label={`${statusColors[status].label}: ${progress}%`}
-    className={cn('flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-current p-px', statusColors[status].text)}
-  >
-    <span
-      className="flex h-full w-full items-center justify-center rounded-full"
-      style={{ background: progress === 100 ? 'currentColor' : `conic-gradient(currentColor ${progress * 3.6}deg, transparent 0deg)` }}
-    >
-      {progress === 100 && <Check className="h-2 w-2 stroke-[3] text-white" />}
-    </span>
-  </span>;
-}
-
 export function ProjetosTarefasList({
   area,
   projects,
   tasks,
   osRows,
   search,
+  isLoading = false,
   hideEmpty = false,
   onClearFilters,
   onEditProject,
@@ -243,8 +221,7 @@ export function ProjetosTarefasList({
             <SelectContent>{statusList.map(status => <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2 px-3 py-1.5 text-muted-foreground">
-          <Avatar className="h-6 w-6"><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{initials(task.assigned_to_name)}</AvatarFallback></Avatar>
+        <div className="flex items-center px-3 py-1.5 text-muted-foreground">
           <span className="truncate text-xs">{task.assigned_to_name || 'Não atribuído'}</span>
         </div>
         <div className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs', task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done' ? 'font-medium text-destructive' : 'text-muted-foreground')}>
@@ -277,6 +254,17 @@ export function ProjetosTarefasList({
   };
 
   if (hierarchy.length === 0) {
+    // Carregando vem ANTES dos vazios: a lista depende de várias consultas em
+    // cadeia (escopo de cluster → projetos → tarefas → OS) e, sem este ramo,
+    // o usuário lia "Nenhum projeto ou tarefa encontrado" durante toda a espera.
+    // Só entra aqui quando não há NADA para mostrar — com dados parciais a lista
+    // é renderizada normalmente e vai se completando.
+    if (isLoading) {
+      return <div className="rounded-xl border border-dashed py-16 text-center text-muted-foreground">
+        <AreaLoader area={area} size={72} className="mx-auto block" />
+        <p className="mt-3 font-medium">Carregando projetos e tarefas…</p>
+      </div>;
+    }
     // Com filtros ativos, o vazio é resultado da filtragem — ensina o comportamento
     // (grupos sem tarefas ficam ocultos) e oferece limpar os filtros de uma vez.
     if (hideEmpty) {
@@ -374,7 +362,7 @@ export function ProjetosTarefasList({
                 <span className="text-xs text-muted-foreground">{projectNode.taskCount}</span>
               </div>
               <div className="flex items-center px-3">{projectNode.project && <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', projectStatusStyles[projectNode.project.status] || 'bg-muted text-muted-foreground')}>{STATUS_LABELS[projectNode.project.status] || projectNode.project.status}</span>}</div>
-              <div className="flex items-center gap-2 px-3 text-xs text-muted-foreground"><Avatar className="h-6 w-6"><AvatarFallback className="bg-primary/10 text-[10px] text-primary">{initials(projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}` : null)}</AvatarFallback></Avatar><span className="truncate">{projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}`.trim() : 'Não atribuído'}</span></div>
+              <div className="flex items-center px-3 text-xs text-muted-foreground"><span className="truncate">{projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}`.trim() : 'Não atribuído'}</span></div>
               <div />
               <div className="flex items-center justify-end gap-2 px-3 text-xs font-medium text-muted-foreground">
                 <Progress value={completionPercentage(projectNode.completedTaskCount, projectNode.taskCount)} className="h-1.5 w-16 bg-primary/15" />

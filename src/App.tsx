@@ -92,6 +92,7 @@ import IcmsSaidas from "./pages/equipe/dev/IcmsSaidas";
 import FiscalBoasVindas from "./pages/equipe/fiscal/FiscalBoasVindas";
 import FiscalDashboard from "./pages/equipe/fiscal/FiscalDashboard";
 import FiscalDemandasTarefas from "./pages/equipe/fiscal/FiscalDemandasTarefas";
+import FiscalFeed from "./pages/equipe/fiscal/FiscalFeed";
 import FiscalProjetosCadastro from "./pages/equipe/fiscal/FiscalProjetosCadastro";
 import FiscalProjetosLote from "./pages/equipe/fiscal/FiscalProjetosLote";
 import FiscalAuditoria from "./pages/equipe/fiscal/FiscalAuditoria";
@@ -105,6 +106,7 @@ import OsgBoasVindas from "./pages/equipe/osg/OsgBoasVindas";
 import OsgGerencial from "./pages/equipe/osg/OsgGerencial";
 import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import OsgTarefas from "./pages/equipe/osg/OsgTarefas";
+import OsgFeed from "./pages/equipe/osg/OsgFeed";
 import OsgClientes from "./pages/equipe/osg/OsgClientes";
 import OsgProjetos from "./pages/equipe/osg/OsgProjetos";
 import OsgProjetosLote from "./pages/equipe/osg/OsgProjetosLote";
@@ -246,6 +248,7 @@ const App = () => (
               <Route path="/equipe/tax/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro"><FiscalProjetosCadastro /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/cadastro-lote" element={<PageAccessGate pagePath="/equipe/tax/projetos/cadastro-lote"><FiscalProjetosLote /></PageAccessGate>} />
               <Route path="/equipe/tax/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/tax/projetos/tarefas"><FiscalDemandasTarefas /></PageAccessGate>} />
+              <Route path="/equipe/tax/projetos/feed" element={<PageAccessGate pagePath="/equipe/tax/projetos/feed"><FiscalFeed /></PageAccessGate>} />
 
               {/* Tax Gerencial — restrita a líder+ (dashboard nativo de Clientes e OS) */}
               <Route path="/equipe/tax/gerencial" element={<LiderRoute><FiscalGerencial /></LiderRoute>} />
@@ -262,6 +265,7 @@ const App = () => (
               <Route path="/equipe/osg/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/osg/projetos/cadastro"><OsgProjetos /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/cadastro-lote" element={<PageAccessGate pagePath="/equipe/osg/projetos/cadastro-lote"><OsgProjetosLote /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/osg/projetos/tarefas"><OsgTarefas /></PageAccessGate>} />
+              <Route path="/equipe/osg/projetos/feed" element={<PageAccessGate pagePath="/equipe/osg/projetos/feed"><OsgFeed /></PageAccessGate>} />
               {/* OSG Gerencial — restrita a líder+ (dashboard nativo de Clientes e OS) */}
               <Route path="/equipe/osg/gerencial" element={<LiderRoute><OsgGerencial /></LiderRoute>} />
               <Route element={<OsgWorkProvider><Outlet /></OsgWorkProvider>}>

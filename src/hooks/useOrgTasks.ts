@@ -6,6 +6,7 @@
  import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { computeFieldDiff } from '@/lib/diffUtils';
 import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
 import { isTarefaDoAmbiente } from '@/lib/ambienteScope';
 import { buildMoveTaskPlan, moveChangedFields, pruneNestedSelection } from '@/lib/orgTaskMove';
@@ -187,8 +188,48 @@ export interface TaskFilters {
    });
  };
  
+/**
+ * Subtarefas diretas de uma tarefa (usada na seção "Subtarefas" do modal).
+ *
+ * A query key começa com 'org-tasks' de propósito: as mutations de tarefa
+ * invalidam esse prefixo, então criar/editar uma subtarefa já reflete aqui.
+ */
+export const useOrgSubtasks = (parentTaskId?: string | null) => {
+  return useQuery({
+    queryKey: ['org-tasks', 'children', parentTaskId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('org_tasks')
+        .select('*')
+        .eq('parent_task_id', parentTaskId as string)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as OrgTask[];
+    },
+    enabled: !!parentTaskId,
+  });
+};
+
 interface OrgTaskMutationOptions {
   showToasts?: boolean;
+}
+
+interface OrgTaskCommentMutationOptions extends OrgTaskMutationOptions {
+  area?: AreaKey;
+}
+
+function resolveOrgCommentKind(comment: string):
+  | 'comment'
+  | 'assignment_changed'
+  | 'review_submitted'
+  | 'review_approved'
+  | 'review_adjustments' {
+  if (comment.startsWith('Tarefa reatribuída')) return 'assignment_changed';
+  if (comment.startsWith('Enviado para revisão')) return 'review_submitted';
+  if (comment === 'Tarefa aprovada') return 'review_approved';
+  if (comment.startsWith('Devolvido para ajustes')) return 'review_adjustments';
+  return 'comment';
 }
 
 export const useCreateOrgTask = (
@@ -687,14 +728,15 @@ export const useMoveOrgTasksToProject = (area: AreaKey = 'tax') => {
         if (updateError) throw updateError;
 
         const { error: commentError } = await supabase
-          .from('org_task_comments')
+          .from('org_comments' as never)
           .insert({
-            task_id: taskId,
-            user_id: user?.id,
-            user_name: currentUserName,
-            comment: `Tarefa reatribuída para ${newAssigneeName}. Motivo: ${comment}`,
-            is_system: true,
-          });
+            entity_type: 'org_task',
+            entity_id: taskId,
+            author_id: user?.id,
+            author_name: currentUserName,
+            body: `Tarefa reatribuída para ${newAssigneeName}. Motivo: ${comment}`,
+            kind: 'assignment_changed',
+          } as never);
 
         if (commentError) throw commentError;
 
@@ -730,23 +772,42 @@ export const useMoveOrgTasksToProject = (area: AreaKey = 'tax') => {
      queryKey: ['org-task-comments', taskId],
      queryFn: async () => {
        const { data, error } = await supabase
-         .from('org_task_comments')
-         .select('*')
-         .eq('task_id', taskId)
-         .order('created_at', { ascending: false });
+          .from('org_comments_feed' as never)
+          .select('*')
+          .eq('entity_type', 'org_task')
+          .eq('entity_id', taskId)
+          .eq('excluido', false)
+          .order('created_at', { ascending: false });
  
        if (error) throw error;
-       return data as OrgTaskComment[];
+        return ((data ?? []) as unknown as Array<{
+          id: string;
+          entity_id: string;
+          author_id: string | null;
+          author_name: string | null;
+          body: string;
+          kind: string;
+          created_at: string;
+        }>).map((comment) => ({
+          id: comment.id,
+          task_id: comment.entity_id,
+          user_id: comment.author_id,
+          user_name: comment.author_name,
+          comment: comment.body,
+          is_system: comment.kind !== 'comment',
+          created_at: comment.created_at,
+        }));
      },
      enabled: !!taskId,
    });
  };
  
 export const useCreateOrgTaskComment = (
-  { showToasts = true }: OrgTaskMutationOptions = {},
+  { showToasts = true, area = 'tax' }: OrgTaskCommentMutationOptions = {},
 ) => {
    const queryClient = useQueryClient();
    const { user } = useAuth();
+   const { logAction } = useAuditLog();
  
    return useMutation({
       mutationFn: async ({ taskId, comment, userName, isSystem = false }: {
@@ -755,22 +816,41 @@ export const useCreateOrgTaskComment = (
         userName: string;
         isSystem?: boolean;
       }) => {
-        const newComment = {
-          task_id: taskId,
-          user_id: user?.id,
-          user_name: userName,
-          comment,
-          is_system: isSystem,
-        };
-        const { error } = await supabase
-          .from('org_task_comments')
-          .insert(newComment);
+         const kind = isSystem ? resolveOrgCommentKind(comment) : 'comment';
+         const newComment = {
+           entity_type: 'org_task' as const,
+           entity_id: taskId,
+           author_id: user?.id,
+           author_name: userName,
+           body: comment,
+           kind,
+         };
+         const { data, error } = await supabase
+           .from('org_comments' as never)
+           .insert(newComment as never)
+           .select('id')
+           .single();
 
-        if (error) throw error;
-        return newComment;
+         if (error) throw error;
+         const commentId = (data as { id: string }).id;
+         await logAction({
+           area: area as 'tax' | 'osg',
+           entity_type: 'org_comment',
+           entity_id: commentId,
+           entity_name: comment.trim().replace(/\s+/g, ' ').slice(0, 80),
+           action: 'created',
+           changed_fields: computeFieldDiff(null, newComment, [
+             'entity_type',
+             'entity_id',
+             'body',
+             'kind',
+           ]),
+         });
+         return { id: commentId, ...newComment };
       },
       onSuccess: (_, variables) => {
-        queryClient.invalidateQueries({ queryKey: ['org-task-comments', variables.taskId] });
+         queryClient.invalidateQueries({ queryKey: ['org-task-comments', variables.taskId] });
+         queryClient.invalidateQueries({ queryKey: ['org-comments', 'org_task', variables.taskId] });
         if (showToasts) toast.success('Comentário adicionado');
       },
       onError: (error) => {

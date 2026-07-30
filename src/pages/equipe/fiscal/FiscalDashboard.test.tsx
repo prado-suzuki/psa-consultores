@@ -380,7 +380,10 @@ describe('DashboardContent Tax', () => {
     screen.getAllByTestId(/^kpi-/).forEach(element => {
       expect(element).toHaveAttribute('data-loading', 'true');
     });
-    expect(container.querySelectorAll('.animate-spin')).toHaveLength(6);
+    // Os 6 indicadores do dashboard Tax são o porquinho (glifo da área, ver
+    // `AreaLoader`) — nenhum spinner genérico deve sobrar aqui.
+    expect(container.querySelectorAll('.animate-tax-coin-fall')).toHaveLength(6);
+    expect(container.querySelectorAll('.animate-spin')).toHaveLength(0);
     expect(screen.queryByText('Nenhuma tarefa no recorte atual')).not.toBeInTheDocument();
     expect(screen.queryByText('Nenhuma tarefa atrasada no recorte atual')).not.toBeInTheDocument();
   });

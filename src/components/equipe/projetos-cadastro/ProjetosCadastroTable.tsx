@@ -9,6 +9,7 @@ import type { OrgProject } from '@/hooks/useOrgProjects';
 import { parseDate } from '@/lib/dateUtils';
 import type { ProjectSortColumn } from '@/lib/projetosCadastro';
 import { useProjetosCadastro } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
+import { AreaLoader } from '@/components/equipe/AreaLoader';
 
 function StatusBadge({ status }: { status: string }) {
   if (status === 'active') return <Badge className="bg-success/10 text-success">Ativo</Badge>;
@@ -81,9 +82,11 @@ function ProjectRow({ project }: { project: OrgProject }) {
 }
 
 function EmptyRow() {
-  const { isLoading, hasActiveFilters } = useProjetosCadastro();
+  const { area, isLoading, hasActiveFilters } = useProjetosCadastro();
   return <TableRow><TableCell colSpan={11} className="text-center py-8 text-muted-foreground">
-    {isLoading ? 'Carregando projetos...' : hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
+    {isLoading
+      ? <span className="inline-flex items-center gap-2"><AreaLoader area={area} size={20} />Carregando projetos...</span>
+      : hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
   </TableCell></TableRow>;
 }
 
@@ -95,10 +98,12 @@ function ProjectTable({ projects, className }: { projects: OrgProject[]; classNa
 }
 
 export function ProjetosCadastroTable() {
-  const { groupedProjects, filteredProjects, isLoading, hasActiveFilters, collapsedGroups, toggleGroup } = useProjetosCadastro();
+  const { area, groupedProjects, filteredProjects, isLoading, hasActiveFilters, collapsedGroups, toggleGroup } = useProjetosCadastro();
   if (!groupedProjects) return <ProjectTable projects={filteredProjects} />;
   if (isLoading || groupedProjects.length === 0) return <Card><CardContent className="p-8 text-center text-muted-foreground">
-    {isLoading ? 'Carregando projetos...' : hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
+    {isLoading
+      ? <><AreaLoader area={area} size={56} className="mx-auto block" /><p className="mt-3">Carregando projetos...</p></>
+      : hasActiveFilters ? 'Nenhum projeto encontrado com os filtros aplicados.' : 'Nenhum projeto cadastrado.'}
   </CardContent></Card>;
   return <div className="space-y-4">{groupedProjects.map(group => {
     const collapsed = collapsedGroups.has(group.label);

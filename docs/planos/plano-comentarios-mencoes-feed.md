@@ -1,6 +1,6 @@
 # Comentários, menções, anexos e feed — desenho das tabelas
 
-**Status:** proposta de modelagem (nada implementado)
+**Status:** fase 1 e fase 2 implementadas (ver §10); reações e follow/unfollow seguem propostas
 **Escopo:** comentários com menção e anexo em tarefas (`org_tasks`) e projetos (`org_projects`), mais o feed centralizado que vem em sequência.
 **Referência de UX:** painel *Activity* do ClickUp (thread, responder, reagir, anexar) + canal do Slack (feed).
 
@@ -347,15 +347,17 @@ SELECT
   (SELECT count(*) FROM public.org_comments r
      WHERE r.parent_id = c.id AND r.excluido = false) AS reply_count,
   (SELECT count(*) FROM public.org_comment_attachments a
-     WHERE a.comment_id = c.id)                 AS attachment_count
+     WHERE a.comment_id = c.id)                 AS attachment_count,
+  c.excluido
 FROM public.org_comments c
 JOIN public.org_projects p ON p.id = c.project_id
 LEFT JOIN public.org_tasks t
-       ON c.entity_type = 'org_task' AND t.id = c.entity_id
-WHERE c.excluido = false;
+       ON c.entity_type = 'org_task' AND t.id = c.entity_id;
 ```
 
 `security_invoker = on` é obrigatório: sem isso a view roda como dona e **fura a RLS** da tabela base (ver o comentário na migration `20260318205052`, que documenta exatamente essa pegadinha).
+
+**A view não filtra `excluido`** — expõe a coluna e deixa o consumidor filtrar, conforme a convenção de soft delete do AGENTS.md. A primeira versão (migration `20260728132114`) filtrava, e isso tornava o critério de aceite do BER-24 impossível: o comentário excluído desaparecia da view e as respostas dele ficavam órfãs, apontando para um `parent_id` fora do resultado. Corrigido na migration `20260728140000`.
 
 ### 3.9 RLS
 
@@ -512,6 +514,7 @@ Realtime **não funciona em view** — o front assina a tabela e refaz a busca n
 | `src/components/equipe/fiscal/tasks/TaskStatusTransitionDialog.tsx` | Idem, ao gravar evento de revisão |
 | **novo** `src/hooks/useDomainOrgComments.ts` | Camada de dados (thread, criar, editar, soft delete, menções, anexos) |
 | **novo** `src/components/comentarios/` | Componente de thread compartilhado entre tarefa, projeto e feed |
+| `src/components/equipe/projetos-cadastro/ProjetoDialog.tsx` | Redesenhado em duas colunas (projeto + thread) e decomposto em `projeto-modal/`; consome `OrgCommentsPanel` com `entityType = 'org_project'`. A identidade visual comum aos dois modais vive em `src/lib/modalChipStyles.ts` e `src/components/ui/section-heading.tsx` |
 
 ⚠️ **`TaskModal.tsx` tem 1423 linhas**, contra o teto de 600 do AGENTS.md. **Não cabe painel de comentários ali sem decompor antes** — a decomposição é pré-requisito, não parte do trabalho de comentários.
 
@@ -542,10 +545,101 @@ Se der zero nos dois, seguir. Se não, decidir o destino dessas tarefas **antes*
 **Fase 1 — comentários**
 `org_comments` + 4 triggers + índices + RLS · `org_comment_mentions` · `org_comment_attachments` + bucket · helpers `visible_org_project_ids` / `own_org_task_ids` · view `org_comments_feed` · RPC de criação · migração dos 39 registros · realtime · decomposição do `TaskModal`
 
-**Fase 2 — feed**
-`org_feed_visto` · tela do feed lendo a view · filtro derivado de relevância
+**Fase 2 — feed** — ENTREGUE em 2026-07-29, menos a marca d'água
+Tela "Feed" (`/equipe/{tax,osg}/projetos/feed`), espelhada nas duas áreas no padrão
+do `PainelTarefas`: `src/components/comentarios/feed/`, `src/hooks/useDomainFeedComentarios.ts`,
+`src/lib/feedComentarios.ts`, migration `20260729144600_feed_org_comments.sql`.
+
+- **`org_feed_visto` NÃO entrou.** A marca d'água de "não lidos" ficou fora do escopo da sprint
+  por decisão do ticket — sem badge, sem linha de "novas mensagens".
+- **Relevância:** por decisão de Bernardo (2026-07-29), o recorte é o que a RLS já permite ver —
+  `visible_org_project_ids` cru, com o bypass de admin. Ou seja, admin vê a conversa da empresa
+  toda e líder/sublíder vê os projetos da área dele. As duas outras fontes do §4 (mencionado,
+  respondeu) entram por herança desses conjuntos, sem ramo próprio de consulta. Se o volume
+  incomodar, o aperto é um helper `feed_relevant_project_ids(_uid)` (membro/responsável/líder,
+  sem admin e sem os caminhos de área) — troca de uma linha na função SQL, sem tocar no front.
+- **Paginação:** cursor em `(created_at, id)` dentro da função `feed_org_comments`, com sentinelas
+  máximas na primeira página para o predicado continuar sendo limite de índice. Índice novo
+  `org_comments_feed_cronologico_idx (created_at DESC, id DESC)`, irmão sem `project_id` do
+  `org_comments_project_feed_idx`.
+
+Dois consertos embarcados junto, porque o feed dependia deles:
+
+- **A view usava `JOIN` interno em `org_projects`** e apagava comentário que a RLS de
+  `org_comments` deixa passar: `rls_org_projects_select` não tem o ramo "tenho tarefa neste
+  projeto", que é justamente o que `own_org_task_ids` cobre. Quem executava tarefa em projeto de
+  que não é membro não via os comentários da própria tarefa — na thread também, não só no feed.
+  Agora é `LEFT JOIN`; no pior caso `project_name` vem nulo.
+- **`org_comments_select` reavaliava `visible_org_project_ids` por linha** (função STABLE em
+  qual de policy não é dobrada em constante). Reescrita com subconsulta escalar, no mesmo padrão
+  que `rls_org_projects_select` já usava — mesma regra, uma avaliação por consulta. Junto, o
+  índice que faltava em `org_project_members (user_id)`.
+
+**Caixa de menções (§3.4) — ENTREGUE em 2026-07-29**
+A menção passou a notificar quem foi citado, no sino que já existe. Sem tabela nova: a
+notificação **é** a linha de `org_comment_mentions` com `lido_em IS NULL`, que a RPC
+`criar_org_comment` já gravava desde a fase 1 e ninguém lia.
+
+- **Front:** `src/hooks/useNotificacoesMencao.ts` (caixa + carimbo de leitura),
+  `src/lib/mencaoNotificacoes.ts` (junção e regras puras), item de menção no
+  `NotificationPopover`, e `useMarcarMencoesLidasDaThread` no `OrgCommentsPanel`.
+- **Nenhuma migration.** Tabela, índice de caixa de entrada (`mentioned_user_id` +
+  `lido_em IS NULL`), RLS e trigger que só deixa mexer em `lido_em` já estavam de pé.
+- **Duas consultas, não uma:** a caixa lê as menções pendentes e depois hidrata os
+  comentários pela view em lote. Não dá para embutir — `org_comments_feed` é view, o
+  PostgREST não embute view sem FK declarada, e é ela que traz título da entidade e nome
+  do projeto.
+- **Lido em dois caminhos:** clicar no item do sino, e abrir a thread onde o comentário
+  está (senão o contador ficaria pendurado depois de a pessoa já ter lido).
+- **Auto-menção não notifica.** A RPC grava qualquer id que venha no `_mentions`, inclusive
+  o do próprio autor; o filtro está na camada pura.
+
+⚠️ **Gap conhecido — menção sem alcance não aparece.** `org_comment_mentions_select` libera o
+mencionado a ver a linha da menção, mas `org_comments_select` **não tem o ramo "fui
+mencionado"**: é projeto visível ou tarefa de vínculo individual. Então a menção a quem não
+alcança o comentário (ex.: revisor que não é membro do projeto e cuja tarefa saiu de
+`status = 'review'`; ou ex-membro do projeto) é descartada em silêncio — notificação sem
+conteúdo seria pior. O conserto é um ramo novo na policy, no padrão de conjunto do §4
+(`id = ANY(public.mentioned_org_comment_ids(auth.uid()))`, não `EXISTS` por linha, que
+pesaria na varredura global do feed). Fica como decisão de escopo/segurança, não embarcada.
+
+**Filtros do feed — ENTREGUE em 2026-07-30**
+Cinco recortes na tela de Feed: cliente, projeto, autor, "só o que me menciona" e período.
+
+- **Filtro é do BANCO, não do front.** O feed pagina por cursor: filtrar a lista já
+  carregada filtraria a janela de 20 comentários, não o feed. Os cinco entram como
+  parâmetros opcionais de `feed_org_comments`, resolvidos no `WHERE` antes do `LIMIT`
+  (migration `20260730151500_feed_org_comments_filtros.sql`).
+- **`org_comments_feed` ganhou `client_id`** = `COALESCE(org_projects.external_client_id,
+  ordem_servico.id_cliente)`, a mesma precedência de `useOrgProjects`/`useDomainFeedClientes`,
+  por LEFT JOIN nos dois lados (INNER apagaria comentário cuja OS o leitor não alcança —
+  o mesmo bug que a migration anterior consertou no join de `org_projects`). Só o ID: o NOME
+  do cliente continua vindo por fora, por projeto, porque é cadastro compartilhado por todos
+  os comentários do mesmo projeto.
+- **Nulo ≠ vazio** nos parâmetros de array: nulo passa tudo, `'{}'` passa zero. É o que faz
+  "filtrei um cliente sem conversa" devolver feed vazio em vez do feed inteiro.
+- **Menção é semi-join por conjunto** (`id IN (subconsulta)`), não `EXISTS` correlacionado,
+  para o planner partir do lado pequeno em vez de varrer a ordem cronológica global. O gap
+  conhecido continua valendo: o filtro mostra menções DENTRO do que a RLS já deixa ver.
+- **Período ancora na meia-noite LOCAL** (`desdeDoPeriodo`), não em "agora menos N × 24h":
+  o feed é lido em blocos de dia, e um piso ancorado no dia é estável durante o dia inteiro —
+  o que faz todas as páginas da mesma rolagem compartilharem o mesmo corte.
+- **O recorte vive na URL** (`?cliente=&projeto=&autor=&mencoes=1&periodo=7d`), não em estado
+  local: sobrevive ao F5, ao voltar do deep-link de tarefa e ao link colado no chat. Cada
+  recorte é uma lista paginada própria (a query key carrega os filtros); a invalidação passou
+  a ser por PREFIXO, senão a resposta escrita no feed só reapareceria no recorte sem filtro.
+- **Front:** `src/lib/feedFiltros.ts` (+ teste), `src/components/comentarios/feed/FeedFiltros.tsx`,
+  `useDomainFeedComentarios(filtros)`, estado vazio próprio de "nenhuma conversa nesse recorte".
+- **Índices novos:** `org_comments_feed_autor_idx` (irmão cronológico do `idx_org_comments_author`,
+  que não tinha a data) e `org_comment_mentions_usuario_idx` (os dois que existiam não respondem
+  "todas as menções a mim, lidas ou não").
+- **Fora do escopo, na fila:** dois filtros independentes podem se contradizer (cliente X +
+  projeto de Y = zero resultados) — estreitar a lista de projetos pelo cliente escolhido exige
+  o mapa projeto→cliente do universo visível, que hoje ninguém carrega. Multi-seleção já está
+  pronta no banco (os parâmetros são arrays), falta só a tela.
 
 **Fase 3 — se fizer falta**
-`org_comment_reactions` · `follow/unfollow` explícito · busca textual no corpo
+`org_comment_reactions` · `follow/unfollow` explícito · busca textual no corpo · marca d'água de
+não lidos (`org_feed_visto`, §3.7 — nunca entrou)
 
 A view de feed, os helpers de conjunto e a etiqueta `project_id` entram **na fase 1 mesmo sendo para o feed** — são os três itens que causariam retrabalho se deixados para depois.

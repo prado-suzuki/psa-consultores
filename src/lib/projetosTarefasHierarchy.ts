@@ -1,5 +1,5 @@
 import type { OrgProject } from '@/hooks/useOrgProjects';
-import type { OrgTask } from '@/hooks/useOrgTasks';
+import type { OrgTask, TaskFilters } from '@/hooks/useOrgTasks';
 
 export interface ProjetosTarefasOs {
   os_id: string;
@@ -39,6 +39,19 @@ export interface ProjetosTarefasOsGroup {
 
 function normalize(value: string | null | undefined) {
   return (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+export function hasTaskFilters(filters: TaskFilters) {
+  return Boolean(
+    (filters.assignedTo && filters.assignedTo !== 'all') ||
+    filters.status?.length ||
+    filters.priority?.length ||
+    filters.projectId ||
+    filters.clientId ||
+    filters.contribuinteId ||
+    filters.startDate ||
+    filters.endDate
+  );
 }
 
 /**

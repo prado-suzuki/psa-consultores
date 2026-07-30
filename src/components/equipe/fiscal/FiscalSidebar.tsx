@@ -9,6 +9,7 @@ import {
   ChevronLeft,
   FolderKanban,
   MessageSquare,
+  MessagesSquare,
   ArrowLeft,
   LogOut,
   Shield,
@@ -62,6 +63,12 @@ const menuItems: MenuItem[] = [
         label: 'Projetos e tarefas',
         icon: FolderKanban,
         path: '/equipe/tax/projetos/cadastro'
+      },
+      {
+        id: 'feed',
+        label: 'Feed',
+        icon: MessagesSquare,
+        path: '/equipe/tax/projetos/feed'
       }
     ]
   },
