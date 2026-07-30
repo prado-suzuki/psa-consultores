@@ -525,6 +525,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/projetos/cadastro-lote',
+    page_name: 'OSG Criar Projetos em Lote',
+    page_description: 'Criação de projetos em lote a partir de uma ordem de serviço',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/projetos/tarefas',
     page_name: 'Tarefas OSG',
     page_description: 'Gestão de tarefas e eventos da área OSG (ferramenta compartilhada com o Tax)',

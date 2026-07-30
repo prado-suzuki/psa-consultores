@@ -32,6 +32,10 @@ function renderList(props: Partial<Parameters<typeof ProjetosTarefasList>[0]> = 
       onReassignTask={noop}
       onMoveTask={noop}
       onAddSubtask={noop}
+      selectedTaskIds={new Set()}
+      onToggleSelection={noop}
+      onMoveSelected={noop}
+      onMoveProjectTasks={noop}
       {...props}
     />,
   );
@@ -92,7 +96,9 @@ describe('ProjetosTarefasList — estado de carregamento', () => {
   it('com dados parciais renderiza a lista, mesmo ainda carregando o resto', () => {
     renderList({ isLoading: true, projects: [projeto] });
 
-    expect(screen.getByText('Projeto Alfa')).toBeInTheDocument();
+    // A árvore abre recolhida, então o que prova que a lista renderizou é o
+    // divisor do cliente — o nome do projeto só aparece depois de expandir.
+    expect(screen.getByText('Cliente Um')).toBeInTheDocument();
     expect(screen.queryByText('Carregando projetos e tarefas…')).not.toBeInTheDocument();
   });
 });

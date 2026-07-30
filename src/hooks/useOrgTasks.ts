@@ -7,7 +7,10 @@
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { computeFieldDiff } from '@/lib/diffUtils';
-import { buildMoveTaskPlan, moveChangedFields } from '@/lib/orgTaskMove';
+import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
+import { isTarefaDoAmbiente } from '@/lib/ambienteScope';
+import { buildMoveTaskPlan, moveChangedFields, pruneNestedSelection } from '@/lib/orgTaskMove';
+import { taskSaveErrorMessage } from '@/lib/rlsMessages';
  
 export type OrgTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'em_ajuste' | 'done';
 export type OrgTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -41,7 +44,9 @@ export interface OrgTask {
     created_at: string;
     updated_at: string;
    // Joined data
-   project?: { id: string; name: string } | null;
+   // external_client_id vem no embed porque org_tasks não tem coluna `ambiente`:
+   // o ambiente da tarefa é o do cliente dela ou o do cliente do projeto.
+   project?: { id: string; name: string; external_client_id?: string | null } | null;
     client?: { id: string; nome: string } | null;
    contribuinte?: { id: string; nome_razao_social: string } | null;
  }
@@ -93,6 +98,7 @@ export interface TaskFilters {
  
  export const useOrgTasks = (filters?: TaskFilters) => {
    const { user } = useAuth();
+   const queryClient = useQueryClient();
  
    return useQuery({
      queryKey: ['org-tasks', filters],
@@ -101,7 +107,7 @@ export interface TaskFilters {
          .from('org_tasks')
           .select(`
              *,
-             project:org_projects(id, name),
+             project:org_projects(id, name, external_client_id),
              client:cliente(id, nome),
              contribuinte:contribuinte(id, nome_razao_social)
            `)
@@ -150,6 +156,12 @@ export interface TaskFilters {
           reviewer_id: t.reviewer_id ?? null,
           parent_task_id: t.parent_task_id === t.id ? null : t.parent_task_id,
         })) as OrgTask[];
+
+        // Escopo de ambiente: a tarefa herda o ambiente do cliente dela e do
+        // cliente do projeto onde mora. Vale para TODAS as visões, porque todas
+        // consomem esta lista.
+        const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
+        allTasks = allTasks.filter(task => isTarefaDoAmbiente(task, ambientePorCliente));
 
         // Client-side assignedTo filter: shows parent tasks that have matching subtasks
         if (filters?.assignedTo && filters.assignedTo !== 'all') {
@@ -365,7 +377,8 @@ export const useUpdateOrgTask = (
         if (showToasts) toast.success('Tarefa atualizada');
       },
       onError: (error) => {
-        if (showToasts) toast.error('Erro ao atualizar tarefa: ' + error.message);
+        if (showToasts)
+          toast.error(taskSaveErrorMessage(error, { prefix: 'Erro ao atualizar tarefa: ' }));
       },
    });
  };
@@ -396,103 +409,146 @@ const fetchOrgTaskDescendants = async (rootId: string) => {
   return descendants;
 };
 
+type AuditLogger = ReturnType<typeof useAuditLog>['logAction'];
+
+/**
+ * Sobe a cadeia de mães no banco até resolver todos os ancestrais dos ids dados.
+ * Necessário para `pruneNestedSelection`: numa seleção parcial (avó + neta), a
+ * mãe do meio pode não estar entre os ids marcados e quebraria a cadeia.
+ */
+const fetchOrgTaskLineage = async (ids: string[]) => {
+  const rows = new Map<string, { id: string; title: string; project_id: string | null; parent_task_id: string | null }>();
+  let frontier = [...new Set(ids)];
+
+  for (let depth = 0; depth < 10 && frontier.length > 0; depth++) {
+    const { data, error } = await supabase
+      .from('org_tasks')
+      .select('id, title, project_id, parent_task_id')
+      .in('id', frontier);
+    if (error) throw error;
+
+    (data || []).forEach(row => rows.set(row.id, row));
+    frontier = (data || [])
+      .map(row => row.parent_task_id)
+      .filter((parentId): parentId is string => !!parentId && !rows.has(parentId));
+  }
+
+  return [...rows.values()];
+};
+
 /**
  * Move uma tarefa (com suas subtarefas) para outro projeto. Ver as regras em
  * `@/lib/orgTaskMove`. Sem transação no cliente, a permissão é pré-checada em
  * toda a árvore antes de qualquer escrita para não deixar mãe e filhas em
  * projetos diferentes.
+ *
+ * Núcleo compartilhado pelo movimento avulso e pelo movimento em lote — o lote
+ * repete esta rotina tarefa a tarefa para preservar auditoria e pré-check.
  */
+const moveOrgTaskToProject = async ({
+  taskId,
+  targetProjectId,
+  area,
+  logAction,
+}: {
+  taskId: string;
+  targetProjectId: string;
+  area: AreaKey;
+  logAction: AuditLogger;
+}) => {
+  const { data: current, error: currentError } = await supabase
+    .from('org_tasks')
+    .select('id, title, project_id, client_id, contribuinte_id, parent_task_id')
+    .eq('id', taskId)
+    .single();
+  if (currentError) throw currentError;
+  if (current.project_id === targetProjectId) {
+    throw new Error('A tarefa já está neste projeto.');
+  }
+
+  const { data: target, error: targetError } = await supabase
+    .from('org_projects')
+    .select('id, name, external_client_id, contribuinte_id')
+    .eq('id', targetProjectId)
+    .single();
+  if (targetError) throw targetError;
+
+  const { data: origin } = current.project_id
+    ? await supabase.from('org_projects').select('name').eq('id', current.project_id).maybeSingle()
+    : { data: null };
+  const originName = origin?.name || 'Sem projeto';
+
+  const descendants = await fetchOrgTaskDescendants(taskId);
+  const descendantIds = descendants.map(row => row.id);
+  const plan = buildMoveTaskPlan({
+    task: current,
+    target: { ...target, contribuinte_id: target.contribuinte_id ?? null },
+    descendantIds,
+  });
+
+  for (const id of [taskId, ...descendantIds]) {
+    await assertCanPerform('org_tasks', 'update', id);
+  }
+
+  const { data: movedRoot, error: rootError } = await supabase
+    .from('org_tasks')
+    .update(plan.rootChanges)
+    .eq('id', taskId)
+    .select('id')
+    .maybeSingle();
+  if (rootError) throw rootError;
+  if (!movedRoot) {
+    throw new Error('Sem permissão para mover esta tarefa. Verifique se você é membro do projeto de destino.');
+  }
+
+  if (descendantIds.length > 0) {
+    const { error: descendantsError } = await supabase
+      .from('org_tasks')
+      .update(plan.descendantChanges)
+      .in('id', descendantIds);
+    if (descendantsError) {
+      throw new Error(
+        `A tarefa foi movida, mas as subtarefas continuaram em "${originName}": ${descendantsError.message}`,
+      );
+    }
+  }
+
+  const subtaskSuffix = descendantIds.length > 0
+    ? ` com ${descendantIds.length} subtarefa(s)`
+    : '';
+  await logAction({
+    // Tarefas só existem nas áreas tax/osg (subconjunto de AuditArea).
+    area: area as 'tax' | 'osg',
+    entity_type: current.parent_task_id ? 'subtask' : 'task',
+    entity_id: taskId,
+    entity_name: current.title || 'Tarefa',
+    action: 'updated',
+    changed_fields: moveChangedFields(current, plan.rootChanges),
+    details: `Movida do projeto "${originName}" para "${target.name}"${subtaskSuffix}`,
+  });
+
+  for (const descendant of descendants) {
+    await logAction({
+      area: area as 'tax' | 'osg',
+      entity_type: 'subtask',
+      entity_id: descendant.id,
+      entity_name: descendant.title || 'Subtarefa',
+      action: 'updated',
+      changed_fields: moveChangedFields(descendant, plan.descendantChanges),
+      details: `Movida junto com a tarefa "${current.title}" para o projeto "${target.name}"`,
+    });
+  }
+
+  return { targetName: target.name, movedSubtasks: descendantIds.length };
+};
+
 export const useMoveOrgTaskToProject = (area: AreaKey = 'tax') => {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
 
   return useMutation({
-    mutationFn: async ({ taskId, targetProjectId }: { taskId: string; targetProjectId: string }) => {
-      const { data: current, error: currentError } = await supabase
-        .from('org_tasks')
-        .select('id, title, project_id, client_id, contribuinte_id, parent_task_id')
-        .eq('id', taskId)
-        .single();
-      if (currentError) throw currentError;
-      if (current.project_id === targetProjectId) {
-        throw new Error('A tarefa já está neste projeto.');
-      }
-
-      const { data: target, error: targetError } = await supabase
-        .from('org_projects')
-        .select('id, name, external_client_id, contribuinte_id')
-        .eq('id', targetProjectId)
-        .single();
-      if (targetError) throw targetError;
-
-      const { data: origin } = current.project_id
-        ? await supabase.from('org_projects').select('name').eq('id', current.project_id).maybeSingle()
-        : { data: null };
-      const originName = origin?.name || 'Sem projeto';
-
-      const descendants = await fetchOrgTaskDescendants(taskId);
-      const descendantIds = descendants.map(row => row.id);
-      const plan = buildMoveTaskPlan({
-        task: current,
-        target: { ...target, contribuinte_id: target.contribuinte_id ?? null },
-        descendantIds,
-      });
-
-      for (const id of [taskId, ...descendantIds]) {
-        await assertCanPerform('org_tasks', 'update', id);
-      }
-
-      const { data: movedRoot, error: rootError } = await supabase
-        .from('org_tasks')
-        .update(plan.rootChanges)
-        .eq('id', taskId)
-        .select('id')
-        .maybeSingle();
-      if (rootError) throw rootError;
-      if (!movedRoot) {
-        throw new Error('Sem permissão para mover esta tarefa. Verifique se você é membro do projeto de destino.');
-      }
-
-      if (descendantIds.length > 0) {
-        const { error: descendantsError } = await supabase
-          .from('org_tasks')
-          .update(plan.descendantChanges)
-          .in('id', descendantIds);
-        if (descendantsError) {
-          throw new Error(
-            `A tarefa foi movida, mas as subtarefas continuaram em "${originName}": ${descendantsError.message}`,
-          );
-        }
-      }
-
-      const subtaskSuffix = descendantIds.length > 0
-        ? ` com ${descendantIds.length} subtarefa(s)`
-        : '';
-      await logAction({
-        // Tarefas só existem nas áreas tax/osg (subconjunto de AuditArea).
-        area: area as 'tax' | 'osg',
-        entity_type: current.parent_task_id ? 'subtask' : 'task',
-        entity_id: taskId,
-        entity_name: current.title || 'Tarefa',
-        action: 'updated',
-        changed_fields: moveChangedFields(current, plan.rootChanges),
-        details: `Movida do projeto "${originName}" para "${target.name}"${subtaskSuffix}`,
-      });
-
-      for (const descendant of descendants) {
-        await logAction({
-          area: area as 'tax' | 'osg',
-          entity_type: 'subtask',
-          entity_id: descendant.id,
-          entity_name: descendant.title || 'Subtarefa',
-          action: 'updated',
-          changed_fields: moveChangedFields(descendant, plan.descendantChanges),
-          details: `Movida junto com a tarefa "${current.title}" para o projeto "${target.name}"`,
-        });
-      }
-
-      return { targetName: target.name, movedSubtasks: descendantIds.length };
-    },
+    mutationFn: ({ taskId, targetProjectId }: { taskId: string; targetProjectId: string }) =>
+      moveOrgTaskToProject({ taskId, targetProjectId, area, logAction }),
     onSuccess: ({ targetName, movedSubtasks }) => {
       queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
       toast.success(`Tarefa movida para "${targetName}"`, {
@@ -503,6 +559,99 @@ export const useMoveOrgTaskToProject = (area: AreaKey = 'tax') => {
     },
     onError: (error) => {
       toast.error('Erro ao mover tarefa: ' + error.message);
+    },
+  });
+};
+
+/**
+ * Move VÁRIAS tarefas selecionadas para o mesmo projeto de destino.
+ *
+ * Sem transação no cliente, cada tarefa é movida com a rotina avulsa (com
+ * pré-check e auditoria próprios) e o resultado é agregado: o que falhou não
+ * derruba o que já foi movido, e o toast diz exatamente o que ficou de fora.
+ * As tarefas aninhadas na seleção são descartadas antes — elas já viajam junto
+ * com a mãe, e movê-las em separado as desvincularia dela.
+ */
+export const useMoveOrgTasksToProject = (area: AreaKey = 'tax') => {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async ({ taskIds, targetProjectId }: { taskIds: string[]; targetProjectId: string }) => {
+      const { data: target, error: targetError } = await supabase
+        .from('org_projects')
+        .select('id, name')
+        .eq('id', targetProjectId)
+        .single();
+      if (targetError) throw targetError;
+
+      const lineage = await fetchOrgTaskLineage(taskIds);
+      const lineageById = new Map(lineage.map(row => [row.id, row]));
+      const roots = pruneNestedSelection(taskIds, lineage)
+        .map(id => lineageById.get(id))
+        .filter((row): row is NonNullable<typeof row> => !!row);
+
+      const skipped = roots.filter(row => row.project_id === targetProjectId);
+      const toMove = roots.filter(row => row.project_id !== targetProjectId);
+
+      let movedSubtasks = 0;
+      const moved: string[] = [];
+      const failed: { title: string; message: string }[] = [];
+
+      for (const row of toMove) {
+        try {
+          const result = await moveOrgTaskToProject({
+            taskId: row.id,
+            targetProjectId,
+            area,
+            logAction,
+          });
+          moved.push(row.id);
+          movedSubtasks += result.movedSubtasks;
+        } catch (error) {
+          failed.push({
+            title: row.title || 'Tarefa',
+            message: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+
+      return {
+        targetName: target.name,
+        movedCount: moved.length,
+        movedSubtasks,
+        skippedCount: skipped.length,
+        failed,
+      };
+    },
+    onSuccess: ({ targetName, movedCount, movedSubtasks, skippedCount, failed }) => {
+      queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
+
+      if (failed.length > 0) {
+        toast.error(`${failed.length} tarefa(s) não foram movidas`, {
+          description: failed.map(item => `${item.title}: ${item.message}`).join(' · '),
+        });
+      }
+
+      if (movedCount === 0) {
+        if (failed.length === 0) {
+          toast.info('Nada a mover', {
+            description: `As tarefas selecionadas já estão em "${targetName}".`,
+          });
+        }
+        return;
+      }
+
+      const details = [
+        movedSubtasks > 0 ? `${movedSubtasks} subtarefa(s) foram junto.` : null,
+        skippedCount > 0 ? `${skippedCount} já estava(m) neste projeto.` : null,
+      ].filter(Boolean).join(' ');
+      toast.success(`${movedCount} tarefa(s) movida(s) para "${targetName}"`, {
+        description: details || undefined,
+      });
+    },
+    onError: (error) => {
+      toast.error('Erro ao mover tarefas: ' + error.message);
     },
   });
 };

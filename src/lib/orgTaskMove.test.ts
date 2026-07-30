@@ -3,6 +3,8 @@ import {
   buildMoveTaskPlan,
   collectDescendantIds,
   moveChangedFields,
+  previewBulkMove,
+  pruneNestedSelection,
   type MovableTask,
   type MoveTargetProject,
 } from '@/lib/orgTaskMove';
@@ -130,6 +132,87 @@ describe('buildMoveTaskPlan', () => {
     });
 
     expect(plan.descendantChanges).toEqual({ project_id: 'project-2' });
+  });
+});
+
+describe('pruneNestedSelection', () => {
+  const tree = [
+    { id: 'mae', parent_task_id: null },
+    { id: 'filha', parent_task_id: 'mae' },
+    { id: 'neta', parent_task_id: 'filha' },
+    { id: 'outra', parent_task_id: null },
+  ];
+
+  it('mantém as tarefas independentes', () => {
+    expect(pruneNestedSelection(['mae', 'outra'], tree).sort()).toEqual(['mae', 'outra']);
+  });
+
+  it('descarta a filha quando a mãe também está selecionada', () => {
+    expect(pruneNestedSelection(['mae', 'filha'], tree)).toEqual(['mae']);
+  });
+
+  it('descarta a neta mesmo quando a mãe intermediária não está selecionada', () => {
+    expect(pruneNestedSelection(['mae', 'neta'], tree)).toEqual(['mae']);
+  });
+
+  it('mantém a filha quando só ela está selecionada', () => {
+    expect(pruneNestedSelection(['filha'], tree)).toEqual(['filha']);
+  });
+
+  it('remove ids repetidos e não entra em loop com ciclo', () => {
+    const cycle = [
+      { id: 'a', parent_task_id: 'b' },
+      { id: 'b', parent_task_id: 'a' },
+    ];
+    // 'b' não está selecionada, então 'a' segue como raiz — e o ciclo a→b→a
+    // não pode travar a varredura.
+    expect(pruneNestedSelection(['a', 'a'], cycle)).toEqual(['a']);
+  });
+});
+
+describe('previewBulkMove', () => {
+  const tasks: MovableTask[] = [
+    { id: 'mae', project_id: 'project-1', client_id: 'client-1', contribuinte_id: 'contrib-1', parent_task_id: null },
+    { id: 'filha', project_id: 'project-1', client_id: 'client-1', contribuinte_id: 'contrib-1', parent_task_id: 'mae' },
+    { id: 'solta', project_id: 'project-1', client_id: 'client-1', contribuinte_id: 'contrib-1', parent_task_id: null },
+    { id: 'ja-no-destino', project_id: 'project-2', client_id: 'client-1', contribuinte_id: 'contrib-1', parent_task_id: null },
+    { id: 'sub-de-outra', project_id: 'project-1', client_id: 'client-1', contribuinte_id: 'contrib-1', parent_task_id: 'solta' },
+  ];
+
+  it('move só as raízes e conta as subtarefas que vão de carona', () => {
+    const preview = previewBulkMove({ selectedIds: ['mae', 'filha', 'solta'], target: target(), tasks });
+
+    expect(preview.movingIds.sort()).toEqual(['mae', 'solta']);
+    // 'filha' já estava marcada; 'sub-de-outra' vai junto sem ter sido marcada.
+    expect(preview.extraDescendantIds).toEqual(['sub-de-outra']);
+    expect(preview.detachCount).toBe(0);
+    expect(preview.alreadyThereIds).toEqual([]);
+  });
+
+  it('separa as que já estão no projeto de destino', () => {
+    const preview = previewBulkMove({ selectedIds: ['solta', 'ja-no-destino'], target: target(), tasks });
+
+    expect(preview.movingIds).toEqual(['solta']);
+    expect(preview.alreadyThereIds).toEqual(['ja-no-destino']);
+  });
+
+  it('conta desvínculo, cliente e contribuinte quando o destino é de outro cliente', () => {
+    const preview = previewBulkMove({
+      selectedIds: ['filha', 'solta'],
+      target: target({ external_client_id: 'client-2', contribuinte_id: null }),
+      tasks,
+    });
+
+    expect(preview.movingIds.sort()).toEqual(['filha', 'solta']);
+    expect(preview.detachCount).toBe(1);
+    expect(preview.changesClientCount).toBe(2);
+    expect(preview.changesContribuinteCount).toBe(2);
+  });
+
+  it('ignora ids que não estão na lista carregada', () => {
+    const preview = previewBulkMove({ selectedIds: ['fantasma'], target: target(), tasks });
+
+    expect(preview.movingIds).toEqual([]);
   });
 });
 

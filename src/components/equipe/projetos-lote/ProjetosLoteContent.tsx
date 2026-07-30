@@ -6,24 +6,30 @@ import { Button } from '@/components/ui/button';
 import { useProjetosLoteController } from '@/hooks/useProjetosLoteController';
 import { ProjetoLoteRow } from './ProjetoLoteRow';
 
-export function ProjetosLoteContent({ area }: { area?: AreaKey } = {}) {
+export function ProjetosLoteContent({ area }: { area: AreaKey }) {
   const navigate = useNavigate();
   const {
-    state, rows, updateRow, includedCount,
-    equipesOptions, teamMembers, userRoles, createBatch, handleCreate,
-  } = useProjetosLoteController();
+    state, routes, rows, updateRow, includedCount, jaCriados, todosJaCriados,
+    equipesOptions, teamMembers, userRoles, areaGroups, currentUserAreaIds, createBatch, handleCreate,
+  } = useProjetosLoteController(area);
 
   if (!state) {
     return (
       <div className="max-w-2xl mx-auto text-center py-16 space-y-4">
-        <p className="text-muted-foreground">Nenhuma OS selecionada. Abra o cadastro do cliente, expanda uma OS salva e use “Criar projetos”.</p>
-        <Button variant="outline" onClick={() => navigate('/equipe/tax/projetos/cadastro')}>Voltar para Projetos</Button>
+        <p className="text-muted-foreground">Nenhuma OS selecionada. Abra Projetos e tarefas e use “Criar Projeto”.</p>
+        <Button variant="outline" onClick={() => navigate(routes.tarefas)}>Ir para Projetos e tarefas</Button>
       </div>
     );
   }
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-8">
+      {todosJaCriados && (
+        <p className="text-sm text-muted-foreground text-center border rounded-lg py-3">
+          Todos os produtos desta OS já têm projeto criado.
+        </p>
+      )}
+
       {/* Uma linha por produto */}
       <div className="space-y-4">
         {rows.length === 0
@@ -33,17 +39,20 @@ export function ProjetosLoteContent({ area }: { area?: AreaKey } = {}) {
               key={row.produtoSegmentoId}
               index={index}
               row={row}
+              jaCriado={jaCriados.has(row.produtoSegmentoId)}
               updateRow={updateRow}
               equipesOptions={equipesOptions}
               teamMembers={teamMembers}
               userRoles={userRoles}
+              areaGroups={areaGroups}
+              currentUserAreaIds={currentUserAreaIds}
             />
           ))}
       </div>
 
       {/* Rodapé */}
       <div className="flex items-center justify-between border-t pt-4">
-        <Button variant="outline" onClick={() => navigate('/equipe/tax/projetos/cadastro')}>Cancelar</Button>
+        <Button variant="outline" onClick={() => navigate(routes.projetos)}>Cancelar</Button>
         <Button onClick={handleCreate} disabled={createBatch.isPending || includedCount === 0} className="gap-2">
           {createBatch.isPending ? <AreaLoader area={area} size={18} /> : <FolderPlus className="h-4 w-4" />}
           Criar {includedCount} projeto{includedCount !== 1 ? 's' : ''}

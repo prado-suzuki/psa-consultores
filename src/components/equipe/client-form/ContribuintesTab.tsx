@@ -23,12 +23,8 @@ import { useContribuinteAutofill, type ContribuinteAutofill } from "@/hooks/useC
 export interface ContribuintesTabProps {
   entities: DraftEntity[];
   setEntities: React.Dispatch<React.SetStateAction<DraftEntity[]>>;
-  draftEntity: Partial<DraftEntity>;
-  setDraftEntity: React.Dispatch<React.SetStateAction<Partial<DraftEntity>>>;
   inscricoesMap: Record<string, InscricaoIE[]>;
   setInscricoesMap: React.Dispatch<React.SetStateAction<Record<string, InscricaoIE[]>>>;
-  draftInscricoes: InscricaoIE[];
-  setDraftInscricoes: React.Dispatch<React.SetStateAction<InscricaoIE[]>>;
   cnpjLoading: boolean;
   cepLoading: boolean;
   cnpjLookup: (value: string, setter: any) => Promise<void>;
@@ -39,9 +35,7 @@ export interface ContribuintesTabProps {
 
 export default function ContribuintesTab({
   entities, setEntities,
-  draftEntity, setDraftEntity,
   inscricoesMap, setInscricoesMap,
-  draftInscricoes, setDraftInscricoes,
   cnpjLoading, cepLoading,
   cnpjLookup, cepLookup,
   isReadOnly,
@@ -50,14 +44,12 @@ export default function ContribuintesTab({
   const { isAdmin } = useAuth();
   const [expandedEntityId, setExpandedEntityId] = useState<number | null>(null);
   const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
-  const [editingEntityData, setEditingEntityData] = useState<Partial<DraftEntity> | null>(null);
 
   useEffect(() => {
     onInlineEditingChange?.(editingEntityId != null);
   }, [editingEntityId, onInlineEditingChange]);
 
   type DupState = { found: true; isLocal: boolean; clienteName?: string | null } | null;
-  const [draftDuplicate, setDraftDuplicate] = useState<DupState>(null);
   const [editDuplicate, setEditDuplicate] = useState<DupState>(null);
   const [checkingDuplicate, setCheckingDuplicate] = useState(false);
   const checkDuplicate = useContribuinteDuplicateCheck();
@@ -132,162 +124,105 @@ export default function ContribuintesTab({
     }
   };
 
-  const handleCnpjBlur = async (value: string) => {
-    await cnpjLookup(value, setDraftEntity);
-    const dup = await runDuplicateCheck(value);
-    setDraftDuplicate(dup);
-    if (draftEntity.tipo_pessoa === "PF") {
-      await applyCpfAutofill(value, draftEntity, setDraftEntity as React.Dispatch<React.SetStateAction<any>>);
-    }
+  /**
+   * Cada campo grava direto no contribuinte da lista — não existe
+   * "adicionar/aplicar" intermediário. Validação e gravação no banco
+   * acontecem no "Salvar Alterações" do rodapé.
+   */
+  const updateEntity = (id: number, patch: Partial<DraftEntity>) => {
+    setEntities(prev => prev.map(e => (e._id === id ? ({ ...e, ...patch } as DraftEntity) : e)));
   };
-  const handleCepBlur = (value: string) => cepLookup(value, setDraftEntity);
-  const handleInlineCnpjBlur = async (value: string) => {
-    await cnpjLookup(value, setEditingEntityData as any);
-    const dup = await runDuplicateCheck(
-      value,
-      editingEntityId ?? undefined,
-      editingEntityData?._dbId,
-    );
+
+  /** Setter compatível com os hooks de consulta externa (CNPJ/CEP), aplicado a um contribuinte. */
+  const entitySetter = (id: number) => (updater: any) => {
+    setEntities(prev => prev.map(e => {
+      if (e._id !== id) return e;
+      return (typeof updater === "function" ? updater(e) : { ...e, ...updater }) as DraftEntity;
+    }));
+  };
+
+  const handleEntityCnpjBlur = async (ent: DraftEntity, value: string) => {
+    await cnpjLookup(value, entitySetter(ent._id) as any);
+    const dup = await runDuplicateCheck(value, ent._id, ent._dbId);
     setEditDuplicate(dup);
-    if (editingEntityData?.tipo_pessoa === "PF") {
-      await applyCpfAutofill(value, editingEntityData || {}, setEditingEntityData as React.Dispatch<React.SetStateAction<any>>);
+    if (dup?.found) {
+      toast.error(
+        dup.isLocal
+          ? "Contribuinte já cadastrado neste cliente"
+          : `Contribuinte já cadastrado no cliente "${dup.clienteName ?? "—"}"`,
+      );
+    }
+    if (ent.tipo_pessoa === "PF") {
+      await applyCpfAutofill(value, ent, entitySetter(ent._id) as any);
     }
   };
-  const handleInlineCepBlur = (value: string) => cepLookup(value, setEditingEntityData as any);
+  const handleEntityCepBlur = (ent: DraftEntity, value: string) => cepLookup(value, entitySetter(ent._id) as any);
 
   const startEditEntity = (ent: DraftEntity) => {
     setEditingEntityId(ent._id);
-    setEditingEntityData({ ...ent });
     setEditDuplicate(null);
   };
-  const cancelEditEntity = () => {
-    setEditingEntityId(null);
-    setEditingEntityData(null);
-    setEditDuplicate(null);
-  };
-  const saveEditEntity = async () => {
-    if (!editingEntityData || editingEntityId == null) return;
-    if (!editingEntityData.nome_razao_social?.trim()) { toast.error("Razão Social é obrigatória"); return; }
-    const cpfDigits = (editingEntityData.cpf_cnpj || "").replace(/\D/g, "");
-    if (!cpfDigits) { toast.error("CPF/CNPJ é obrigatório"); return; }
-    if (cpfDigits.length !== 11 && cpfDigits.length !== 14) { toast.error("CPF deve ter 11 dígitos ou CNPJ 14 dígitos"); return; }
-    if (!editingEntityData.cep?.trim()) { toast.error("CEP é obrigatório"); return; }
-    if (!editingEntityData.logradouro?.trim()) { toast.error("Logradouro é obrigatório"); return; }
-    if (!editingEntityData.bairro?.trim()) { toast.error("Bairro é obrigatório"); return; }
-    if (!editingEntityData.municipio?.trim()) { toast.error("Município é obrigatório"); return; }
-    if (!editingEntityData.uf?.trim() || editingEntityData.uf?.trim().length !== 2) { toast.error("UF deve ter 2 caracteres"); return; }
-    if (editingEntityData.tipo_pessoa === "PJ") {
-      if (!editingEntityData.cod_cnae?.trim()) { toast.error("CNAE é obrigatório para PJ"); return; }
-      if (!editingEntityData.simples_nacional) { toast.error("Informe a situação do Simples Nacional"); return; }
-    }
-    // Bloqueio: contribuinte duplicado
-    const dup = await runDuplicateCheck(
-      editingEntityData.cpf_cnpj || "",
-      editingEntityId,
-      editingEntityData._dbId,
-    );
-    setEditDuplicate(dup);
-    if (dup?.found) {
-      toast.error(
-        dup.isLocal
-          ? "Contribuinte já cadastrado neste cliente"
-          : `Contribuinte já cadastrado no cliente "${dup.clienteName ?? "—"}"`,
-      );
-      return;
-    }
-    // Validar IEs do contribuinte em edição
-    const ieKey = editingEntityData._dbId || String(editingEntityId);
-    const editingIEs = inscricoesMap[ieKey] || [];
-    for (const ie of editingIEs) {
-      if (ie.situacao === "sim" && !ie.uf) { toast.error("Selecione a UF para todas as inscrições estaduais"); return; }
-      if (ie.situacao === "sim" && !ie.numero_ie?.trim()) { toast.error(`Informe o número da IE para o estado ${ie.uf}`); return; }
-    }
-    setEntities(entities.map((e) => (e._id === editingEntityId ? ({ ...e, ...editingEntityData } as DraftEntity) : e)));
-    setEditingEntityId(null);
-    setEditingEntityData(null);
-    setEditDuplicate(null);
-    toast.success("Contribuinte atualizado");
-  };
 
-  const handleCopyFirstAddress = () => {
-    if (entities.length === 0) return;
-    const first = entities[0];
-    if (!first.cep?.trim()) {
-      toast.warning("O primeiro contribuinte não possui endereço cadastrado");
-      return;
-    }
-    setDraftEntity((prev) => ({
-      ...prev,
-      cep: first.cep, logradouro: first.logradouro, numero: first.numero,
-      complemento: first.complemento, bairro: first.bairro, municipio: first.municipio, uf: first.uf,
-    }));
-    toast.success("Endereço copiado do primeiro contribuinte");
-  };
-
-  const addEntity = async () => {
-    if (!draftEntity.nome_razao_social?.trim()) { toast.error("Razão Social é obrigatória"); return; }
-    const cpfCnpjDigits = (draftEntity.cpf_cnpj || "").replace(/\D/g, "");
-    if (!cpfCnpjDigits) { toast.error("CPF/CNPJ é obrigatório"); return; }
-    if (cpfCnpjDigits.length !== 11 && cpfCnpjDigits.length !== 14) { toast.error("CPF deve ter 11 dígitos ou CNPJ 14 dígitos"); return; }
-    if (!draftEntity.cep?.trim()) { toast.error("CEP é obrigatório"); return; }
-    if (!draftEntity.logradouro?.trim()) { toast.error("Logradouro é obrigatório"); return; }
-    if (!draftEntity.bairro?.trim()) { toast.error("Bairro é obrigatório"); return; }
-    if (!draftEntity.municipio?.trim()) { toast.error("Município é obrigatório"); return; }
-    if (!draftEntity.uf?.trim() || draftEntity.uf?.trim().length !== 2) { toast.error("UF deve ter 2 caracteres"); return; }
-    for (const ie of draftInscricoes) {
-      if (ie.situacao === "sim" && !ie.uf) { toast.error("Selecione a UF para todas as inscrições estaduais"); return; }
-      if (ie.situacao === "sim" && !ie.numero_ie?.trim()) { toast.error(`Informe o número da IE para o estado ${ie.uf}`); return; }
-    }
-    if (draftEntity.tipo_pessoa === "PJ") {
-      if (!draftEntity.cod_cnae?.trim()) { toast.error("CNAE é obrigatório para PJ"); return; }
-      if (!draftEntity.simples_nacional) { toast.error("Informe a situação do Simples Nacional"); return; }
-    }
-
-    // Bloqueio: contribuinte duplicado
-    const dup = await runDuplicateCheck(draftEntity.cpf_cnpj || "");
-    setDraftDuplicate(dup);
-    if (dup?.found) {
-      toast.error(
-        dup.isLocal
-          ? "Contribuinte já cadastrado neste cliente"
-          : `Contribuinte já cadastrado no cliente "${dup.clienteName ?? "—"}"`,
-      );
-      return;
-    }
-
-    const newEntityId = Date.now() + Math.random();
-    setEntities([...entities, { ...draftEntity, _id: newEntityId } as DraftEntity]);
-    if (draftInscricoes.length > 0) {
-      setInscricoesMap(prev => ({ ...prev, [String(newEntityId)]: [...draftInscricoes] }));
-      setDraftInscricoes([]);
-    }
-    setDraftEntity({
+  const createEntity = () => {
+    const nova = {
       tipo_pessoa: "PJ", cpf_cnpj: "", nome_razao_social: "", nome_fantasia: "",
       situacao_inscricao_estadual: "", inscricao_estadual: "", cod_cnae: "", setor: "",
       simples_nacional: "", telefone: "", cep: "", logradouro: "", numero: "", complemento: "",
       bairro: "", municipio: "", uf: "", contribuinte_faturamento: false, atividade_principal: "",
+      _id: Date.now() + Math.random(),
+    } as unknown as DraftEntity;
+    setEntities(prev => [...prev, nova]);
+    setExpandedEntityId(nova._id);
+    setEditingEntityId(nova._id);
+    setEditDuplicate(null);
+  };
+
+  const removeEntity = (id: number) => {
+    setEntities(prev => prev.filter(e => e._id !== id));
+    if (expandedEntityId === id) setExpandedEntityId(null);
+    if (editingEntityId === id) setEditingEntityId(null);
+  };
+
+  const handleCopyFirstAddress = (targetId: number) => {
+    const first = entities.find((e) => e._id !== targetId && e.cep?.trim());
+    if (!first) {
+      toast.warning("Nenhum outro contribuinte com endereço cadastrado");
+      return;
+    }
+    updateEntity(targetId, {
+      cep: first.cep, logradouro: first.logradouro, numero: first.numero,
+      complemento: first.complemento, bairro: first.bairro, municipio: first.municipio, uf: first.uf,
     });
-    setDraftDuplicate(null);
+    toast.success(`Endereço copiado de "${first.nome_razao_social || "outro contribuinte"}"`);
   };
 
   return (
     <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-      <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
+      <div className="px-4 py-2 bg-muted/50 border-b flex items-center justify-between gap-3">
         <h3 className="text-sm font-bold text-foreground">Contribuintes ({entities.length})</h3>
+        {!isReadOnly && editingEntityId == null && (
+          <Button size="sm" onClick={createEntity} className="gap-1.5 h-7 text-xs bg-teal-600 hover:bg-teal-700 text-white">
+            <Plus size={14} /> Adicionar contribuinte
+          </Button>
+        )}
       </div>
       <div className="px-4 py-3">
+        {entities.length === 0 && (
+          <p className="text-sm text-muted-foreground italic py-2">Nenhum contribuinte cadastrado.</p>
+        )}
         {entities.length > 0 && (
           <div className="space-y-3 mb-4">
             {entities.map((ent) => {
               const isExpanded = expandedEntityId === ent._id;
               const isEditingThis = editingEntityId === ent._id;
-              const ed = isEditingThis ? editingEntityData : null;
               return (
                 <div key={ent._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
                   <button type="button" className="w-full flex items-center justify-between p-4 text-left"
                     onClick={() => { if (!isEditingThis) setExpandedEntityId(isExpanded ? null : ent._id); }}>
                     <div className="flex-1 min-w-0">
-                      <div className="font-bold text-foreground truncate">{ent.nome_razao_social}</div>
+                      <div className="font-bold text-foreground truncate">
+                        {ent.nome_razao_social?.trim() || <span className="text-muted-foreground italic font-normal">Novo contribuinte — preencha os dados</span>}
+                      </div>
                       <div className="text-xs text-muted-foreground font-mono mt-0.5">{ent.cpf_cnpj || "-"}</div>
                     </div>
                     <div className="flex items-center gap-2 ml-2">
@@ -321,7 +256,7 @@ export default function ContribuintesTab({
                                   </AlertDialogHeader>
                                   <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setEntities(entities.filter((x) => x._id !== ent._id)); setExpandedEntityId(null); }}>Remover</AlertDialogAction>
+                                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => removeEntity(ent._id)}>Remover</AlertDialogAction>
                                   </AlertDialogFooter>
                                 </AlertDialogContent>
                               </AlertDialog>
@@ -382,14 +317,14 @@ export default function ContribuintesTab({
                   )}
 
                   {/* Inline edit mode */}
-                  {isExpanded && isEditingThis && ed && (
+                  {isExpanded && isEditingThis && (
                     <div className="px-4 pb-4 border-t pt-3">
                       <div className="flex flex-col gap-2.5">
                         {/* Tipo */}
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo</Label>
                           <div className="flex-1">
-                            <Select value={ed.tipo_pessoa || "PJ"} onValueChange={(v) => setEditingEntityData({ ...ed, tipo_pessoa: v, cpf_cnpj: "" })}>
+                            <Select value={ent.tipo_pessoa || "PJ"} onValueChange={(v) => updateEntity(ent._id, { tipo_pessoa: v, cpf_cnpj: "" })}>
                               <SelectTrigger className="h-8 max-w-[160px]"><SelectValue /></SelectTrigger>
                               <SelectContent><SelectItem value="PJ">PJ</SelectItem><SelectItem value="PF">PF</SelectItem></SelectContent>
                             </Select>
@@ -401,9 +336,9 @@ export default function ContribuintesTab({
                           <div className="flex-1">
                             <div className="relative">
                               <Input
-                                value={ed.cpf_cnpj || ""}
-                                onChange={(e) => { setEditingEntityData({ ...ed, cpf_cnpj: formatCpfCnpj(e.target.value, ed.tipo_pessoa || "PJ") }); setEditDuplicate(null); }}
-                                onBlur={(e) => handleInlineCnpjBlur(e.target.value)}
+                                value={ent.cpf_cnpj || ""}
+                                onChange={(e) => { updateEntity(ent._id, { cpf_cnpj: formatCpfCnpj(e.target.value, ent.tipo_pessoa || "PJ") }); setEditDuplicate(null); }}
+                                onBlur={(e) => handleEntityCnpjBlur(ent, e.target.value)}
                                 aria-invalid={editDuplicate?.found || undefined}
                                 className={cn("font-mono pr-8 h-8", editDuplicate?.found && "border-destructive focus-visible:ring-destructive")}
                               />
@@ -421,26 +356,26 @@ export default function ContribuintesTab({
                         </div>
                         {/* Razão Social */}
                         <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{ed.tipo_pessoa === "PF" ? <>Nome completo<RequiredMark /></> : <>Razão Social<RequiredMark /></>}</Label>
-                          <div className="flex-1"><Input value={ed.nome_razao_social || ""} onChange={(e) => setEditingEntityData({ ...ed, nome_razao_social: e.target.value })} placeholder={ed.tipo_pessoa === "PF" ? "Nome completo do contribuinte" : "Nome Empresarial"} className="font-medium h-8" /></div>
+                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{ent.tipo_pessoa === "PF" ? <>Nome completo<RequiredMark /></> : <>Razão Social<RequiredMark /></>}</Label>
+                          <div className="flex-1"><Input value={ent.nome_razao_social || ""} onChange={(e) => updateEntity(ent._id, { nome_razao_social: e.target.value })} placeholder={ent.tipo_pessoa === "PF" ? "Nome completo do contribuinte" : "Nome Empresarial"} className="font-medium h-8" /></div>
                         </div>
-                        {ed.tipo_pessoa !== "PF" && (
+                        {ent.tipo_pessoa !== "PF" && (
                           <div className="flex flex-row items-center gap-4">
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome Fantasia</Label>
-                            <div className="flex-1"><Input value={ed.nome_fantasia || ""} onChange={(e) => setEditingEntityData({ ...ed, nome_fantasia: e.target.value })} className="h-8" /></div>
+                            <div className="flex-1"><Input value={ent.nome_fantasia || ""} onChange={(e) => updateEntity(ent._id, { nome_fantasia: e.target.value })} className="h-8" /></div>
                           </div>
                         )}
                         {/* Telefone */}
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
-                          <div className="flex-1"><Input value={ed.telefone || ""} onChange={(e) => setEditingEntityData({ ...ed, telefone: formatPhone(e.target.value) })} placeholder="(00) 00000-0000" className="h-8" /></div>
+                          <div className="flex-1"><Input value={ent.telefone || ""} onChange={(e) => updateEntity(ent._id, { telefone: formatPhone(e.target.value) })} placeholder="(00) 00000-0000" className="h-8" /></div>
                         </div>
                         {/* Possui IE? */}
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Possui Inscrição Estadual?</Label>
                           <div className="flex-1">
-                            <Select value={ed.situacao_inscricao_estadual || undefined} onValueChange={(v) => {
-                              setEditingEntityData({ ...ed, situacao_inscricao_estadual: v });
+                            <Select value={ent.situacao_inscricao_estadual || undefined} onValueChange={(v) => {
+                              updateEntity(ent._id, { situacao_inscricao_estadual: v });
                               if (v !== "sim") {
                                 const key = ent._dbId || String(ent._id);
                                 setInscricoesMap(prev => ({ ...prev, [key]: [] }));
@@ -454,7 +389,7 @@ export default function ContribuintesTab({
                           </div>
                         </div>
                         {/* IE list */}
-                        {ed.situacao_inscricao_estadual === "sim" && (
+                        {ent.situacao_inscricao_estadual === "sim" && (
                           <div className="border border-dashed rounded-lg p-3">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-xs font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
@@ -497,23 +432,23 @@ export default function ContribuintesTab({
                           </div>
                         )}
                         {/* CNAE */}
-                        {ed.tipo_pessoa === "PJ" && (
+                        {ent.tipo_pessoa === "PJ" && (
                           <div className="flex flex-row items-center gap-4">
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CNAE<RequiredMark /></Label>
-                            <div className="flex-1"><Input value={ed.cod_cnae || ""} onChange={(e) => setEditingEntityData({ ...ed, cod_cnae: e.target.value })} className="h-8 max-w-[200px]" /></div>
+                            <div className="flex-1"><Input value={ent.cod_cnae || ""} onChange={(e) => updateEntity(ent._id, { cod_cnae: e.target.value })} className="h-8 max-w-[200px]" /></div>
                           </div>
                         )}
-                        {ed.tipo_pessoa === "PJ" && (ed as any).atividade_principal && (
+                        {ent.tipo_pessoa === "PJ" && (ent as any).atividade_principal && (
                           <div className="flex flex-row items-center gap-4">
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Atividade Principal</Label>
-                            <div className="flex-1"><Input value={(ed as any).atividade_principal || ""} disabled className="h-8 bg-muted/50" /></div>
+                            <div className="flex-1"><Input value={(ent as any).atividade_principal || ""} disabled className="h-8 bg-muted/50" /></div>
                           </div>
                         )}
-                        {ed.tipo_pessoa === "PJ" && (
+                        {ent.tipo_pessoa === "PJ" && (
                           <div className="flex flex-row items-center gap-4">
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional<RequiredMark /></Label>
                             <div className="flex-1">
-                              <Select value={ed.simples_nacional || undefined} onValueChange={(v) => setEditingEntityData({ ...ed, simples_nacional: v })}>
+                              <Select value={ent.simples_nacional || undefined} onValueChange={(v) => updateEntity(ent._id, { simples_nacional: v })}>
                                 <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
                                 <SelectContent><SelectItem value="optante">Optante</SelectItem><SelectItem value="nao_optante">Não Optante</SelectItem></SelectContent>
                               </Select>
@@ -525,45 +460,49 @@ export default function ContribuintesTab({
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP<RequiredMark /></Label>
                           <div className="flex-1">
                             <div className="relative max-w-[160px]">
-                              <Input value={ed.cep || ""} onChange={(e) => setEditingEntityData({ ...ed, cep: formatCep(e.target.value) })} onBlur={(e) => handleInlineCepBlur(e.target.value)} className="font-mono pr-8 h-8" />
+                              <Input value={ent.cep || ""} onChange={(e) => updateEntity(ent._id, { cep: formatCep(e.target.value) })} onBlur={(e) => handleEntityCepBlur(ent, e.target.value)} className="font-mono pr-8 h-8" />
                               {cepLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
                             </div>
                           </div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro<RequiredMark /></Label>
-                          <div className="flex-1"><Input value={ed.logradouro || ""} onChange={(e) => setEditingEntityData({ ...ed, logradouro: e.target.value })} className="h-8" /></div>
+                          <div className="flex-1"><Input value={ent.logradouro || ""} onChange={(e) => updateEntity(ent._id, { logradouro: e.target.value })} className="h-8" /></div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Número</Label>
-                          <div className="flex-1"><Input value={ed.numero || ""} onChange={(e) => setEditingEntityData({ ...ed, numero: e.target.value })} className="h-8 max-w-[120px]" /></div>
+                          <div className="flex-1"><Input value={ent.numero || ""} onChange={(e) => updateEntity(ent._id, { numero: e.target.value })} className="h-8 max-w-[120px]" /></div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Complemento</Label>
-                          <div className="flex-1"><Input value={ed.complemento || ""} onChange={(e) => setEditingEntityData({ ...ed, complemento: e.target.value })} className="h-8" /></div>
+                          <div className="flex-1"><Input value={ent.complemento || ""} onChange={(e) => updateEntity(ent._id, { complemento: e.target.value })} className="h-8" /></div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro<RequiredMark /></Label>
-                          <div className="flex-1"><Input value={ed.bairro || ""} onChange={(e) => setEditingEntityData({ ...ed, bairro: e.target.value })} className="h-8" /></div>
+                          <div className="flex-1"><Input value={ent.bairro || ""} onChange={(e) => updateEntity(ent._id, { bairro: e.target.value })} className="h-8" /></div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município<RequiredMark /></Label>
-                          <div className="flex-1"><Input value={ed.municipio || ""} onChange={(e) => setEditingEntityData({ ...ed, municipio: e.target.value })} className="h-8" /></div>
+                          <div className="flex-1"><Input value={ent.municipio || ""} onChange={(e) => updateEntity(ent._id, { municipio: e.target.value })} className="h-8" /></div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF<RequiredMark /></Label>
-                          <div className="flex-1"><Input value={ed.uf || ""} onChange={(e) => setEditingEntityData({ ...ed, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" /></div>
+                          <div className="flex-1"><Input value={ent.uf || ""} onChange={(e) => updateEntity(ent._id, { uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" /></div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Contribuinte de Faturamento</Label>
                           <div className="flex items-center gap-2">
-                            <Switch checked={!!(ed as any).contribuinte_faturamento} onCheckedChange={(v) => setEditingEntityData({ ...ed, contribuinte_faturamento: v })} />
-                            <span className="text-xs text-muted-foreground">{(ed as any).contribuinte_faturamento ? "Sim" : "Não"}</span>
+                            <Switch checked={!!(ent as any).contribuinte_faturamento} onCheckedChange={(v) => updateEntity(ent._id, { contribuinte_faturamento: v })} />
+                            <span className="text-xs text-muted-foreground">{(ent as any).contribuinte_faturamento ? "Sim" : "Não"}</span>
                           </div>
                         </div>
-                        <div className="flex justify-end gap-2 mt-2 pt-2 border-t">
-                          <Button size="sm" variant="outline" onClick={cancelEditEntity}>Cancelar</Button>
-                          <Button size="sm" variant="outline" className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50" onClick={saveEditEntity}><Check size={14} /> Aplicar</Button>
+                        <div className="flex justify-between gap-2 mt-2 pt-2 border-t">
+                          {entities.length > 1 ? (
+                            <Button size="sm" variant="ghost" className="gap-1.5 text-xs" onClick={() => handleCopyFirstAddress(ent._id)}>
+                              <Copy size={12} /> Copiar endereço de outro contribuinte
+                            </Button>
+                          ) : <span />}
+                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditingEntityId(null)}><Check size={14} /> Concluir</Button>
                         </div>
                       </div>
                     </div>
@@ -574,177 +513,6 @@ export default function ContribuintesTab({
           </div>
         )}
 
-        {/* New entity form */}
-        {!isReadOnly && (
-          <div className="bg-muted/50 rounded-lg border p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-bold text-muted-foreground uppercase">Novo Contribuinte</h4>
-              {entities.length > 0 && (
-                <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={handleCopyFirstAddress}>
-                  <Copy size={12} /> Copiar endereço do primeiro contribuinte
-                </Button>
-              )}
-            </div>
-            <div className="flex flex-col gap-2.5">
-              {/* Tipo */}
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Tipo</Label>
-                <div className="flex-1">
-                  <Select value={draftEntity.tipo_pessoa || "PJ"} onValueChange={(v) => setDraftEntity({ ...draftEntity, tipo_pessoa: v, cpf_cnpj: "" })}>
-                    <SelectTrigger className="h-8 max-w-[160px]"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="PJ">PJ</SelectItem><SelectItem value="PF">PF</SelectItem></SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {/* CPF/CNPJ */}
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CPF/CNPJ<RequiredMark /></Label>
-                <div className="flex-1">
-                  <div className="relative">
-                    <Input
-                      value={draftEntity.cpf_cnpj || ""}
-                      onChange={(e) => { setDraftEntity({ ...draftEntity, cpf_cnpj: formatCpfCnpj(e.target.value, draftEntity.tipo_pessoa || "PJ") }); setDraftDuplicate(null); }}
-                      onBlur={(e) => handleCnpjBlur(e.target.value)}
-                      placeholder={draftEntity.tipo_pessoa === "PJ" ? "00.000.000/0000-00" : "000.000.000-00"}
-                      aria-invalid={draftDuplicate?.found || undefined}
-                      className={cn("font-mono pr-8 h-8", draftDuplicate?.found && "border-destructive focus-visible:ring-destructive")}
-                    />
-                    {(cnpjLoading || checkingDuplicate) && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
-                  </div>
-                  {draftDuplicate?.found && (
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-destructive">
-                      <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
-                      <span>
-                        Contribuinte já cadastrado{draftDuplicate.isLocal ? " neste cliente" : ` no cliente "${draftDuplicate.clienteName ?? "—"}"`}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              {/* Razão Social */}
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{draftEntity.tipo_pessoa === "PF" ? <>Nome completo<RequiredMark /></> : <>Razão Social<RequiredMark /></>}</Label>
-                <div className="flex-1"><Input value={draftEntity.nome_razao_social || ""} onChange={(e) => setDraftEntity({ ...draftEntity, nome_razao_social: e.target.value })} placeholder={draftEntity.tipo_pessoa === "PF" ? "Nome completo do contribuinte" : "Nome Empresarial"} className="font-medium h-8" /></div>
-              </div>
-              {draftEntity.tipo_pessoa !== "PF" && (
-                <div className="flex flex-row items-center gap-4">
-                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome Fantasia</Label>
-                  <div className="flex-1"><Input value={draftEntity.nome_fantasia || ""} onChange={(e) => setDraftEntity({ ...draftEntity, nome_fantasia: e.target.value })} placeholder="Nome Fantasia" className="h-8" /></div>
-                </div>
-              )}
-              {/* Telefone */}
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
-                <div className="flex-1"><Input value={draftEntity.telefone || ""} onChange={(e) => setDraftEntity({ ...draftEntity, telefone: formatPhone(e.target.value) })} placeholder="(00) 00000-0000" className="h-8" /></div>
-              </div>
-              {/* IE */}
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Possui Inscrição Estadual?</Label>
-                <div className="flex-1">
-                  <Select value={draftEntity.situacao_inscricao_estadual || undefined} onValueChange={(v) => { setDraftEntity(prev => ({ ...prev, situacao_inscricao_estadual: v })); if (v !== "sim") setDraftInscricoes([]); }}>
-                    <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                    <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="nao">Não</SelectItem><SelectItem value="isento">Isento</SelectItem></SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {draftEntity.situacao_inscricao_estadual === "sim" && (
-                <div className="border border-dashed rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
-                    <Button type="button" size="sm" variant="outline" className="gap-1 text-xs" onClick={() => setDraftInscricoes(prev => [...prev, { _tempId: Date.now() + Math.random(), situacao: "sim", numero_ie: "", uf: "" }])}>
-                      <Plus size={12} /> Adicionar IE
-                    </Button>
-                  </div>
-                  {draftInscricoes.map((ie, ieIdx) => (
-                    <div key={ie._tempId} className="flex items-center gap-2 mt-1">
-                      <Select value={ie.uf || undefined} onValueChange={(v) => { setDraftInscricoes(prev => { const list = [...prev]; list[ieIdx] = { ...list[ieIdx], uf: v }; return list; }); }}>
-                        <SelectTrigger className="h-8 w-24 shrink-0"><SelectValue placeholder="UF" /></SelectTrigger>
-                        <SelectContent>{UF_STATES.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                      </Select>
-                      <Select value={ie.situacao || undefined} onValueChange={(v) => { setDraftInscricoes(prev => { const list = [...prev]; list[ieIdx] = { ...list[ieIdx], situacao: v, numero_ie: v !== "sim" ? "" : list[ieIdx].numero_ie }; return list; }); }}>
-                        <SelectTrigger className="h-8 w-28 shrink-0"><SelectValue placeholder="Situação" /></SelectTrigger>
-                        <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="nao">Não</SelectItem><SelectItem value="isento">Isento</SelectItem></SelectContent>
-                      </Select>
-                      {ie.situacao === "sim" && (
-                        <Input value={ie.numero_ie} onChange={(e) => { setDraftInscricoes(prev => { const list = [...prev]; list[ieIdx] = { ...list[ieIdx], numero_ie: e.target.value }; return list; }); }} placeholder="Nº IE" maxLength={15} className="h-8 flex-1" />
-                      )}
-                      <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={() => { setDraftInscricoes(prev => prev.filter((_, i) => i !== ieIdx)); }}><X size={14} /></Button>
-                    </div>
-                  ))}
-                  {draftInscricoes.length === 0 && <p className="text-xs text-muted-foreground italic mt-1">Nenhuma IE cadastrada. Clique em "Adicionar IE" para incluir.</p>}
-                </div>
-              )}
-              {/* CNAE */}
-              {draftEntity.tipo_pessoa === "PJ" && (
-                <div className="flex flex-row items-center gap-4">
-                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CNAE<RequiredMark /></Label>
-                  <div className="flex-1"><Input value={draftEntity.cod_cnae || ""} onChange={(e) => setDraftEntity({ ...draftEntity, cod_cnae: e.target.value })} placeholder="0000-0/00" className="h-8 max-w-[200px]" /></div>
-                </div>
-              )}
-              {draftEntity.tipo_pessoa === "PJ" && (draftEntity as any).atividade_principal && (
-                <div className="flex flex-row items-center gap-4">
-                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Atividade Principal</Label>
-                  <div className="flex-1"><Input value={(draftEntity as any).atividade_principal || ""} disabled className="h-8 bg-muted/50" /></div>
-                </div>
-              )}
-              {draftEntity.tipo_pessoa === "PJ" && (
-                <div className="flex flex-row items-center gap-4">
-                  <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional<RequiredMark /></Label>
-                  <div className="flex-1">
-                    <Select value={draftEntity.simples_nacional || undefined} onValueChange={(v) => setDraftEntity({ ...draftEntity, simples_nacional: v })}>
-                      <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                      <SelectContent><SelectItem value="optante">Optante</SelectItem><SelectItem value="nao_optante">Não Optante</SelectItem></SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              )}
-              {/* CEP */}
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP<RequiredMark /></Label>
-                <div className="flex-1">
-                  <div className="relative max-w-[160px]">
-                    <Input value={draftEntity.cep || ""} onChange={(e) => setDraftEntity({ ...draftEntity, cep: formatCep(e.target.value) })} onBlur={(e) => handleCepBlur(e.target.value)} placeholder="00000-000" className="font-mono pr-8 h-8" />
-                    {cepLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
-                  </div>
-                </div>
-              </div>
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro<RequiredMark /></Label>
-                <div className="flex-1"><Input value={draftEntity.logradouro || ""} onChange={(e) => setDraftEntity({ ...draftEntity, logradouro: e.target.value })} placeholder="Rua, Av., Rod..." className="h-8" /></div>
-              </div>
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Número</Label>
-                <div className="flex-1"><Input value={draftEntity.numero || ""} onChange={(e) => setDraftEntity({ ...draftEntity, numero: e.target.value })} placeholder="Nº" className="h-8 max-w-[120px]" /></div>
-              </div>
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Complemento</Label>
-                <div className="flex-1"><Input value={draftEntity.complemento || ""} onChange={(e) => setDraftEntity({ ...draftEntity, complemento: e.target.value })} placeholder="Sala, Andar..." className="h-8" /></div>
-              </div>
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro<RequiredMark /></Label>
-                <div className="flex-1"><Input value={draftEntity.bairro || ""} onChange={(e) => setDraftEntity({ ...draftEntity, bairro: e.target.value })} className="h-8" /></div>
-              </div>
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município<RequiredMark /></Label>
-                <div className="flex-1"><Input value={draftEntity.municipio || ""} onChange={(e) => setDraftEntity({ ...draftEntity, municipio: e.target.value })} className="h-8" /></div>
-              </div>
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF<RequiredMark /></Label>
-                <div className="flex-1"><Input value={draftEntity.uf || ""} onChange={(e) => setDraftEntity({ ...draftEntity, uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" /></div>
-              </div>
-              <div className="flex flex-row items-center gap-4">
-                <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Contribuinte de Faturamento</Label>
-                <div className="flex items-center gap-2">
-                  <Switch checked={!!draftEntity.contribuinte_faturamento} onCheckedChange={(v) => setDraftEntity({ ...draftEntity, contribuinte_faturamento: v })} />
-                  <span className="text-xs text-muted-foreground">{draftEntity.contribuinte_faturamento ? "Sim" : "Não"}</span>
-                </div>
-              </div>
-              <div className="flex justify-end mt-2">
-                <Button size="sm" onClick={addEntity} className="gap-1.5 bg-teal-600 hover:bg-teal-700 text-white shadow-md"><Plus size={14} /> Adicionar à Lista</Button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

@@ -1749,7 +1749,15 @@ export type Database = {
           uf?: string
           usuario_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "difal_sessao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       distribuicao_dcomp: {
         Row: {
@@ -1953,6 +1961,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "checklist_cliente_item"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_arquivo_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "cobertura_documentos_cliente"
+            referencedColumns: ["checklist_item_id"]
           },
           {
             foreignKeyName: "documento_arquivo_cliente_id_fkey"
@@ -8042,12 +8057,38 @@ export type Database = {
           },
         ]
       }
+      cobertura_documentos_cliente: {
+        Row: {
+          arquivos_vinculados: number | null
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"] | null
+          checklist_item_id: string | null
+          cliente_id: string | null
+          documento: string | null
+          entidade_catalogo: string | null
+          entidade_id: string | null
+          entidade_rotulo: string | null
+          entidade_tipo: string | null
+          modulo: string | null
+          obrigatorio: boolean | null
+          status: Database["public"]["Enums"]["osg_checklist_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_cliente_item_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       org_comments_feed: {
         Row: {
           attachment_count: number | null
           author_id: string | null
           author_name: string | null
           body: string | null
+          client_id: string | null
           created_at: string | null
           editado_em: string | null
           entity_id: string | null
@@ -8272,15 +8313,21 @@ export type Database = {
       }
       feed_org_comments: {
         Args: {
+          _author_ids?: string[]
+          _client_ids?: string[]
           _cursor_created_at?: string
           _cursor_id?: string
           _limit?: number
+          _only_mentions?: boolean
+          _project_ids?: string[]
+          _since?: string
         }
         Returns: {
           attachment_count: number | null
           author_id: string | null
           author_name: string | null
           body: string | null
+          client_id: string | null
           created_at: string | null
           editado_em: string | null
           entity_id: string | null
@@ -8306,6 +8353,10 @@ export type Database = {
       gargalo_cluster_visivel: {
         Args: { _gargalo_id: string }
         Returns: boolean
+      }
+      gerar_solicitacao_os: {
+        Args: { _cliente_id: string; _ordem_servico_id: string }
+        Returns: number
       }
       get_accessible_dashboards: {
         Args: { _target_page?: string }

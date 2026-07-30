@@ -1,5 +1,6 @@
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { AuditLogTable } from '@/components/equipe/audit/AuditLogTable';
+import { AuditPendenciasTable } from '@/components/equipe/audit/AuditPendenciasTable';
 import { AuditPessoasTable } from '@/components/equipe/audit/AuditPessoasTable';
 import { AuditProdutividadeTable } from '@/components/equipe/audit/AuditProdutividadeTable';
 import { AuditProdutosTable } from '@/components/equipe/audit/AuditProdutosTable';
@@ -25,6 +26,7 @@ const FiscalAuditoria = () => {
             <TabsTrigger value="atividade">Atividade</TabsTrigger>
             <TabsTrigger value="produtividade">Produtividade</TabsTrigger>
             <TabsTrigger value="produtos">Produtos</TabsTrigger>
+            <TabsTrigger value="pendencias">Não resolvidos</TabsTrigger>
             <TabsTrigger value="historico">Histórico</TabsTrigger>
           </TabsList>
           <TabsContent value="pessoas" className="mt-4">
@@ -38,6 +40,9 @@ const FiscalAuditoria = () => {
           </TabsContent>
           <TabsContent value="produtos" className="mt-4">
             <AuditProdutosTable area="tax" />
+          </TabsContent>
+          <TabsContent value="pendencias" className="mt-4">
+            <AuditPendenciasTable area="tax" />
           </TabsContent>
           <TabsContent value="historico" className="mt-4">
             <AuditLogTable area="tax" />

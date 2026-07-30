@@ -1,6 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
+import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
+import { isProjetoDoAmbiente } from '@/lib/ambienteScope';
 
 // ── Interfaces locais ──────────────────────────────────────────────────
 
@@ -303,14 +305,20 @@ export function useTeamMembersForTasks(clusterId?: string) {
 
 /** Projetos org para filtros */
 export function useOrgProjectsForFilter() {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ['org-projects-for-filter'],
     queryFn: async () => {
       const { data } = await supabase
         .from('org_projects')
-        .select('id, name')
+        .select('id, name, external_client_id')
         .order('name');
-      return data || [];
+
+      // Mesmo escopo das listas: o filtro não oferece projeto do outro ambiente
+      // (org_projects não tem coluna `ambiente` — ver lib/ambienteScope).
+      const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
+      return (data || []).filter(project => isProjetoDoAmbiente(project, ambientePorCliente));
     },
   });
 }

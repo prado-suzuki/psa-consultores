@@ -3,7 +3,10 @@ import { currentAmbiente } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
 import { resolverProdutoContratado, resolverVinculos } from '@/lib/auditProdutividade';
-import type { HorasPorId, VinculoProjeto, VinculoTarefa } from '@/lib/auditProdutividade';
+import type { JanelaAuditoria } from '@/lib/auditPeriodos';
+import type {
+  HorasPorId, StatusPorId, VinculoPorId, VinculoProjeto, VinculoTarefa,
+} from '@/lib/auditProdutividade';
 
 export interface AuditLog {
   id: string;
@@ -95,27 +98,41 @@ export function useDomainAuditLookupMaps() {
 }
 
 /**
- * Janela usada na aba Produtividade. A agregação precisa da série inteira do
- * período (não dos 200 últimos como a tabela de histórico), por isso a query é
- * separada: filtra por `performed_at` e sobe o limite.
+ * Teto de linhas por consulta. Períodos longos (um semestre, todo o histórico)
+ * podem passar disso, e aí a série volta cortada nos mais recentes — quem exibe
+ * precisa avisar em vez de apresentar o corte como se fosse o total. Ver
+ * `AuditLimiteAviso`.
  */
-export function useDomainAuditProdutividade(area: 'tax' | 'osg', dias: number) {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - dias);
-  // Chave por dia: mantém o cache estável dentro do mesmo dia em vez de
-  // invalidar a cada render por causa dos milissegundos do `new Date()`.
-  const cutoffDia = cutoff.toISOString().slice(0, 10);
+export const LIMITE_LOGS_AUDITORIA = 5000;
+
+/**
+ * Série de logs de um período, usada pelas abas agregadas (Pessoas,
+ * Produtividade, Atividade, Produtos e Não resolvidos). Diferente da tabela de
+ * histórico, que mostra os 200 últimos: aqui a agregação precisa do período
+ * inteiro, por isso a query é separada, filtra por `performed_at` e sobe o limite.
+ *
+ * A janela vem pronta de `janelaDoPeriodo` — em datas, não em "quantos dias" —
+ * porque o seletor tem tanto "últimos N dias" quanto recortes de calendário.
+ * Datas em vez de timestamp mantêm o cache estável dentro do mesmo dia.
+ */
+export function useDomainAuditProdutividade(area: 'tax' | 'osg', janela: JanelaAuditoria) {
+  const { desde, ate } = janela;
 
   return useQuery({
-    queryKey: ['audit-produtividade', area, cutoffDia],
+    queryKey: ['audit-produtividade', area, desde ?? 'inicio', ate ?? 'agora'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('audit_logs')
         .select('*')
-        .eq('area', area)
-        .gte('performed_at', `${cutoffDia}T00:00:00.000Z`)
+        .eq('area', area);
+
+      if (desde) query = query.gte('performed_at', `${desde}T00:00:00.000Z`);
+      // Fim inclusivo: o dia escolhido entra inteiro.
+      if (ate) query = query.lte('performed_at', `${ate}T23:59:59.999Z`);
+
+      const { data, error } = await query
         .order('performed_at', { ascending: false })
-        .limit(5000);
+        .limit(LIMITE_LOGS_AUDITORIA);
 
       if (error) throw error;
       return data as unknown as AuditLog[];
@@ -131,10 +148,10 @@ function emLotes(ids: string[]): string[][] {
 }
 
 /**
- * Horas, cliente, contribuinte e produto contratado dos itens tocados no
- * período. Lê só colunas que já existem — `org_tasks` (horas, `client_id`,
- * `contribuinte_id`, `servico_id`), `org_projects` (`contribuinte_id`,
- * `servico_id`, `ordem_servico_id`), `contribuinte.cliente_id`,
+ * Horas, status atual, cliente, contribuinte e produto contratado dos itens
+ * tocados no período. Lê só colunas que já existem — `org_tasks` (horas,
+ * `status`, `client_id`, `contribuinte_id`, `servico_id`), `org_projects`
+ * (`status`, `contribuinte_id`, `servico_id`, `ordem_servico_id`), `contribuinte.cliente_id`,
  * `os_produtos_contratados`, `produto_servico` e `produto_segmento`.
  * Nenhuma migração.
  *
@@ -152,16 +169,29 @@ export function useDomainOrgTasksProdutividade(ids: { tarefas: string[]; projeto
       const respostasTarefas = await Promise.all(emLotes(tarefasIds).map(lote =>
         supabase
           .from('org_tasks')
-          .select('id, estimated_hours, actual_hours, client_id, contribuinte_id, servico_id, project_id')
+          .select('id, estimated_hours, actual_hours, status, client_id, contribuinte_id, servico_id, project_id')
           .in('id', lote),
       ));
 
       const horas: HorasPorId = {};
+      // Status de hoje, não o do momento do log: é o que diz se o item tocado no
+      // período segue aberto. Tarefa e projeto compartilham o mapa porque o id é
+      // uuid — não há colisão entre as duas tabelas.
+      const statusPorId: StatusPorId = {};
+      // Quem ainda existe hoje. O log sobrevive à exclusão do item, então sem
+      // isso a fila de pendências acusaria vínculo faltando em item apagado —
+      // pendência que ninguém consegue resolver.
+      const existePorId: Record<string, true> = {};
+      /** Tarefa/subtarefa → projeto dela, para achar o item órfão. */
+      const projetoPorItem: VinculoPorId = {};
       const tarefas: VinculoTarefa[] = [];
       for (const { data, error } of respostasTarefas) {
         if (error) throw error;
         for (const tarefa of data ?? []) {
           horas[tarefa.id] = { planejadas: tarefa.estimated_hours, executadas: tarefa.actual_hours };
+          existePorId[tarefa.id] = true;
+          if (tarefa.status) statusPorId[tarefa.id] = tarefa.status;
+          if (tarefa.project_id) projetoPorItem[tarefa.id] = tarefa.project_id;
           tarefas.push({
             id: tarefa.id,
             client_id: tarefa.client_id,
@@ -181,14 +211,20 @@ export function useDomainOrgTasksProdutividade(ids: { tarefas: string[]; projeto
       const respostasProjetos = await Promise.all(emLotes([...projetosNecessarios]).map(lote =>
         supabase
           .from('org_projects')
-          .select('id, contribuinte_id, servico_id, ordem_servico_id')
+          .select('id, name, status, contribuinte_id, external_client_id, servico_id, ordem_servico_id')
           .in('id', lote),
       ));
 
       const projetos: VinculoProjeto[] = [];
+      const nomePorProjeto: Record<string, string> = {};
       for (const { data, error } of respostasProjetos) {
         if (error) throw error;
-        projetos.push(...(data ?? []));
+        for (const projeto of data ?? []) {
+          existePorId[projeto.id] = true;
+          if (projeto.status) statusPorId[projeto.id] = projeto.status;
+          nomePorProjeto[projeto.id] = projeto.name;
+          projetos.push(projeto);
+        }
       }
 
       // contribuinte → cliente: normaliza para não contar o mesmo cliente duas
@@ -214,6 +250,25 @@ export function useDomainOrgTasksProdutividade(ids: { tarefas: string[]; projeto
       }
 
       const vinculos = resolverVinculos(tarefas, projetos, clienteDoContribuinte);
+
+      // Nome só dos clientes que apareceram — a fila de pendências mostra "de
+      // quem é o item", e id de cliente na tela não diz nada a ninguém.
+      const clientesIds = [...new Set(Object.values(vinculos.clientePorId))];
+      const nomePorCliente: Record<string, string> = {};
+      if (clientesIds.length > 0) {
+        const respostas = await Promise.all(emLotes(clientesIds).map(lote =>
+          supabase
+            .from('cliente')
+            .select('id, nome')
+            .in('id', lote)
+            .eq('excluido', false)
+            .eq('ambiente', currentAmbiente),
+        ));
+        for (const { data, error } of respostas) {
+          if (error) throw error;
+          for (const c of data ?? []) nomePorCliente[c.id] = c.nome;
+        }
+      }
 
       // Produto contratado: OS → os_produtos_contratados, cruzado com o serviço
       // do item via produto_servico. Ver `resolverProdutoContratado`.
@@ -276,7 +331,15 @@ export function useDomainOrgTasksProdutividade(ids: { tarefas: string[]; projeto
         }
       }
 
-      return { horas, ...vinculos, produtoPorId, nomePorProduto };
+      // `produtosPorOs` e `produtosPorServico` saem daqui crus de propósito: é
+      // com eles que a aba Não resolvidos explica POR QUE o produto não fechou
+      // (OS sem produto contratado × serviço que não casa), sem refazer query.
+      return {
+        horas, statusPorId, existePorId, projetoPorItem,
+        ...vinculos, produtoPorId,
+        nomePorProduto, nomePorProjeto, nomePorCliente,
+        produtosPorOs, produtosPorServico,
+      };
     },
   });
 }

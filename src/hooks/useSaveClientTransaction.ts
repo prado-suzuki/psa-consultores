@@ -7,6 +7,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { isProductionEnvironment, currentAmbiente } from '@/config/api';
 import { toast } from 'sonner';
 import { computeFieldDiff, computeEntityListDiff } from '@/lib/diffUtils';
+import {
+  isSameRecord,
+  validateNomeCliente,
+  validateObservacoesCliente,
+  validateContribuinteDocumento,
+  validateContribuinteDados,
+  findDocumentosDuplicados,
+  validateRepresentante,
+  validateOrdemServico,
+} from '@/lib/clientFormValidation';
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } from '@/types/clientForm';
 import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
 import { splitName } from '@/lib/nameUtils';
@@ -27,6 +37,37 @@ const syncCadastrosToDW = (payload: any) => {
       else console.log("[sync-cadastros] Sync iniciado");
     })
     .catch((err) => console.error("[sync-cadastros] Erro:", err));
+};
+
+/**
+ * Soft-delete que confirma o resultado antes de seguir.
+ *
+ * `update({ excluido: true })` sem checagem falha em silêncio de dois jeitos: o
+ * PostgREST devolve erro e ninguém lê, ou a policy de UPDATE não casa nenhuma
+ * linha (0 rows, sem erro). Nos dois casos o save continua como se tivesse
+ * excluído — e aí o registro "volta" no próximo reload e o insert seguinte
+ * duplica a linha. A verificação relê os ids filtrando `excluido = false`:
+ * se a linha ainda aparece assim, a exclusão não gravou.
+ */
+const softDeleteVerificado = async (
+  table: string,
+  idField: string,
+  ids: string[],
+  rotulo: string,
+): Promise<void> => {
+  // Tabelas de OS/rateio não estão no schema tipado — cast justificado
+  const { error } = await (supabase.from(table as any) as any).update({ excluido: true }).in(idField, ids);
+  if (error) throw error;
+  const { data: restantes, error: reReadError } = await (supabase.from(table as any) as any)
+    .select(idField)
+    .in(idField, ids)
+    .eq("excluido", false);
+  if (reReadError) throw reReadError;
+  if (restantes && restantes.length > 0) {
+    throw new Error(
+      `Não foi possível excluir ${restantes.length} ${rotulo}. O banco recusou a exclusão (permissão/RLS) — nada foi removido. Fale com a liderança.`
+    );
+  }
 };
 
 interface SetorCliente {
@@ -52,6 +93,8 @@ interface OriginalSnapshot {
   entities: DraftEntity[];
   participants: DraftRepresentante[];
   contracts: DraftOrdemServico[];
+  /** Estado das IEs no load — sem ele, mexer só numa IE não seria detectado. */
+  inscricoesMap?: Record<string, InscricaoIE[]>;
 }
 
 interface SaveTransactionParams {
@@ -64,7 +107,8 @@ interface SaveTransactionParams {
   isEditing: boolean;
   editingClienteId?: string | null;
   setoresCliente: SetorCliente[];
-  getDraftPendingTabs: () => string[];
+  /** Opcional: abas com rascunho pendente. Quem não usa rascunho intermediário não precisa passar. */
+  getDraftPendingTabs?: () => string[];
   onDuplicateFound: (name: string) => Promise<boolean>;
   onSuccess: () => void;
   originalSnapshot?: OriginalSnapshot | null;
@@ -73,8 +117,8 @@ interface SaveTransactionParams {
 export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   const {
     clientData, entities, participants, contracts, inscricoesMap, clusterIds = [],
-    isEditing, editingClienteId, setoresCliente,
-    getDraftPendingTabs, onDuplicateFound, onSuccess, originalSnapshot,
+    isEditing, editingClienteId, setoresCliente, getDraftPendingTabs,
+    onDuplicateFound, onSuccess, originalSnapshot,
   } = params;
 
   const { logAction } = useAuditLog();
@@ -83,52 +127,66 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   const [saving, setSaving] = useState(false);
 
   const executeSave = useCallback(async () => {
-    if (!clientData.nome.trim()) {
-      toast.error("Nome do cliente é obrigatório");
-      return;
-    }
-
-    // Observações do cliente: obrigatória ao INATIVAR; se preenchida, mín. 20 caracteres.
     const clienteObs = (clientData.observacoes || "").trim();
-    if (!clientData.ativo && clienteObs.length < 20) {
-      toast.error("Para inativar o cliente, preencha as Observações (mín. 20 caracteres).");
-      return;
-    }
-    if (clienteObs && clienteObs.length < 20) {
-      toast.error("Observações do cliente deve ter no mínimo 20 caracteres.");
-      return;
+
+    // ─── Validação: barra só o que o usuário mexeu ──────────────────────────
+    // Registro que já estava incompleto no banco e não foi tocado nesta edição
+    // vira aviso pós-salvamento, não trava. Sem isso, ajustar uma OS ficava
+    // refém de um contribuinte legado sem CEP em outra aba.
+    const snapVal = isEditing ? originalSnapshot : null;
+    const origEntities = new Map((snapVal?.entities || []).filter(e => e._dbId).map(e => [e._dbId!, e]));
+    const origParts = new Map((snapVal?.participants || []).filter(p => p._dbId).map(p => [p._dbId!, p]));
+    const origOs = new Map((snapVal?.contracts || []).filter(c => c._dbId).map(c => [c._dbId!, c]));
+    const origInscricoes = snapVal?.inscricoesMap || {};
+
+    // Pendências de itens não tocados — avisadas depois que o save conclui.
+    const pendencias: string[] = [];
+    /** @returns true se deve interromper o save (erro em item tocado). */
+    const registrarErro = (erro: string | null, tocado: boolean): boolean => {
+      if (!erro) return false;
+      if (tocado) { toast.error(erro); return true; }
+      pendencias.push(erro);
+      return false;
+    };
+
+    // Nome é a identidade do cadastro: exigido sempre, tocado ou não.
+    const nomeErro = validateNomeCliente(clientData.nome);
+    if (nomeErro) { toast.error(nomeErro); return; }
+
+    const clienteTocado = !snapVal || !isSameRecord(clientData, snapVal.clientData);
+    if (registrarErro(validateObservacoesCliente(clientData), clienteTocado)) return;
+
+    // --- Contribuintes ---
+    const contribTocado = (e: DraftEntity): boolean => {
+      const chave = e._dbId || String(e._id);
+      const orig = e._dbId ? origEntities.get(e._dbId) : undefined;
+      if (!snapVal || !orig) return true;
+      return !isSameRecord(e, orig) || !isSameRecord(inscricoesMap[chave] || [], origInscricoes[chave] || []);
+    };
+    const tocadoPorIndice = entities.map(contribTocado);
+    const duplicados = findDocumentosDuplicados(entities);
+    for (const [idx, e] of entities.entries()) {
+      const tocado = tocadoPorIndice[idx];
+      if (registrarErro(validateContribuinteDocumento(e), tocado)) return;
+      const dup = duplicados.get(idx);
+      // Conflito de documento é do usuário se qualquer um do par foi mexido.
+      if (dup && registrarErro(dup.message, dup.indices.some(i => tocadoPorIndice[i]))) return;
+      const ies = inscricoesMap[e._dbId || String(e._id)] || [];
+      if (registrarErro(validateContribuinteDados(e, ies), tocado)) return;
     }
 
-    // --- Pre-validation: empresa (cluster_id), distribuicao_receita UUIDs and percentage sums ---
-    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    // --- Representantes ---
+    for (const p of participants) {
+      const orig = p._dbId ? origParts.get(p._dbId) : undefined;
+      const tocado = !snapVal || !orig || !isSameRecord(p, orig);
+      if (registrarErro(validateRepresentante(p), tocado)) return;
+    }
+
+    // --- Ordens de Serviço (empresa, área, região, produtos e rateio 100%) ---
     for (const c of contracts) {
-      if (!c.cluster_id) {
-        toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione a Empresa/Faturamento`);
-        return;
-      }
-      if (!c.setor_cliente_id) {
-        toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione a Área do Negócio`);
-        return;
-      }
-      if (!c.regiao) {
-        toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione a Região`);
-        return;
-      }
-      if (!c.distribuicao_receita || c.distribuicao_receita.length === 0) {
-        toast.error(`OS "${c.ordem_servico || "(sem número)"}": adicione ao menos um Centro de Custo na Distribuição de Receita`);
-        return;
-      }
-      for (const d of c.distribuicao_receita) {
-        if (!d.id_centro_custo || !UUID_REGEX.test(d.id_centro_custo)) {
-          toast.error(`OS "${c.ordem_servico || "(sem número)"}": selecione um centro de custo válido para cada linha de distribuição`);
-          return;
-        }
-      }
-      const totalPercent = c.distribuicao_receita.reduce((sum, d) => sum + (d.percentual_rateio || 0), 0);
-      if (Math.abs(totalPercent - 100) > 0.01) {
-        toast.error(`OS "${c.ordem_servico || "(sem número)"}": a soma dos percentuais de distribuição deve ser 100% (atual: ${totalPercent.toFixed(2)}%)`);
-        return;
-      }
+      const orig = c._dbId ? origOs.get(c._dbId) : undefined;
+      const tocado = !snapVal || !orig || !isSameRecord(c, orig);
+      if (registrarErro(validateOrdemServico(c), tocado)) return;
     }
 
     // --- Duplicate name check (only on creation) ---
@@ -147,6 +205,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
     setSaving(true);
     let createdClienteId: string | null = null;
+    // Passo corrente atualizado antes de cada write; usado no toast de RLS
+    // pra dizer QUAL tabela/op recusou, em vez de um genérico "sem permissão".
+    let currentStep = "cliente/update";
     try {
       const clientPayload = {
         nome: clientData.nome.trim(),
@@ -164,6 +225,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       let clienteResult: any;
 
       if (isEditing) {
+        currentStep = "cliente/update";
         const { data: updated, error } = await supabase
           .from(clienteTable)
           // cast: coluna `observacoes` é aplicada via migração no Lovable e ainda não está nos tipos gerados
@@ -180,7 +242,8 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const { data: dbContribs } = await supabase.from(contribuinteTable).select("id").eq("cliente_id", clienteId).eq("excluido", false);
         const removedContribIds = (dbContribs || []).map(c => c.id).filter(id => !currentContribDbIds.includes(id));
         if (removedContribIds.length > 0) {
-          await supabase.from(contribuinteTable).update({ excluido: true } as any).in("id", removedContribIds);
+          currentStep = "contribuinte/soft-delete";
+          await softDeleteVerificado(contribuinteTable, "id", removedContribIds, "contribuinte(s)");
         }
 
         // --- Representantes: update existentes, insert novos, soft-delete removidos ---
@@ -189,7 +252,8 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const { data: dbParts } = await (supabase.from(representanteTable) as any).select(partIdField).eq("id_cliente", clienteId).eq("excluido", false);
         const removedPartIds = (dbParts || []).map((p: any) => p[partIdField]).filter((id: string) => !currentPartDbIds.includes(id));
         if (removedPartIds.length > 0) {
-          await (supabase.from(representanteTable) as any).update({ excluido: true }).in(partIdField, removedPartIds);
+          currentStep = "representante/soft-delete";
+          await softDeleteVerificado(representanteTable, partIdField, removedPartIds, "representante(s)");
         }
 
         // --- Ordens de Serviço: update existentes, insert novos, soft-delete removidos ---
@@ -200,9 +264,25 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         if (removedOsIds.length > 0) {
           // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
           await assertCanPerform('ordem_servico', 'update', removedOsIds[0]);
-          await (supabase.from("ordem_servico" as any) as any).update({ excluido: true }).in("id", removedOsIds);
+          currentStep = "ordem_servico/soft-delete";
+          await softDeleteVerificado("ordem_servico", "id", removedOsIds, "OS");
+
+          // O rateio acompanha a OS: sem isso sobra linha de distribuicao_receita
+          // ativa apontando pra OS excluída (receita fantasma nos relatórios).
+          const { data: distDeOsRemovida, error: distOrfaError } = await (supabase.from("distribuicao_receita" as any) as any)
+            .select("id")
+            .in("id_ordem_servico", removedOsIds)
+            .eq("excluido", false);
+          if (distOrfaError) throw distOrfaError;
+          const distOrfaIds = ((distDeOsRemovida || []) as Array<{ id: string }>).map(r => r.id);
+          if (distOrfaIds.length > 0) {
+            await assertCanPerform('distribuicao_receita', 'update', distOrfaIds[0]);
+            currentStep = "distribuicao_receita/soft-delete-orfas";
+            await softDeleteVerificado("distribuicao_receita", "id", distOrfaIds, "linha(s) de Distribuição de Receita da OS excluída");
+          }
         }
       } else {
+        currentStep = "cliente/insert (RPC criar_cliente_com_clusters)";
         // RPC atômica: insere cliente + cliente_clusters na mesma transação
         // (contorna trigger DEFERRED trg_cliente_tem_cluster). Retorna a linha completa
         // (created_at/updated_at do banco + nome já normalizado pelo trigger).
@@ -219,6 +299,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       // --- Persistir contribuintes (update ou insert) ---
       const buildContribFields = (e: DraftEntity) => ({
         cliente_id: clienteId,
+        // Sem isto o insert cai no DEFAULT 'prod' da coluna e o contribuinte
+        // nasce em prod mesmo com o cliente em dev (localhost/preview).
+        ambiente: currentAmbiente,
         tipo_pessoa: e.tipo_pessoa,
         cpf_cnpj: (e.cpf_cnpj || "").replace(/\D/g, "") || null,
         nome_razao_social: e.nome_razao_social,
@@ -240,6 +323,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         contribuinte_faturamento: e.contribuinte_faturamento ?? false,
       });
 
+      currentStep = "contribuinte/upsert";
       for (const e of entities) {
         let contribId = e._dbId;
         if (e._dbId) {
@@ -381,6 +465,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         user_id: userId,
       });
 
+      currentStep = "representante/upsert";
       for (const p of participants) {
         const pIdField = "id_representante";
         if (p._dbId) {
@@ -433,42 +518,78 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
 
       for (const c of contracts) {
+        currentStep = c._dbId ? "ordem_servico/update" : "ordem_servico/insert";
         let osId = c._dbId;
         if (c._dbId) {
-          const { error } = await (supabase.from("ordem_servico" as any) as any).update(buildOsFields(c)).eq("id", c._dbId);
+          // .select() para que uma falha silenciosa de RLS (0 rows) apareça como
+          // erro, em vez de o save "concluir" sem gravar a OS.
+          const { data: updOs, error } = await (supabase.from("ordem_servico" as any) as any).update(buildOsFields(c)).eq("id", c._dbId).select("id");
           if (error) throw error;
+          if (!updOs || updOs.length === 0) {
+            throw new Error(`UPDATE da OS ${c.ordem_servico || "(sem número)"} não atingiu nenhuma linha (RLS ou id inválido).`);
+          }
         } else {
           const { data: newOs, error } = await (supabase.from("ordem_servico" as any) as any).insert(buildOsFields(c)).select("id").single();
           if (error) throw error;
           osId = newOs.id;
         }
 
-        // Persist distribuicao_receita: soft-delete old then insert new
+        // Persist distribuicao_receita: reconciliação por _dbId (linha a linha).
+        // O padrão anterior era "marca tudo como excluído e reinsere a lista".
+        // Quando o soft-delete não pegava (erro engolido ou 0 rows por RLS) o
+        // insert entrava de novo e as linhas antigas continuavam ativas — cada
+        // salvamento somava um centro de custo repetido no rateio (100% → 200% →
+        // 300%…), até o total estourar 100% e travar o save do cliente inteiro.
+        // Aqui quem ficou é atualizado no lugar, só o que é novo é inserido e só
+        // o que saiu do rateio é excluído (com verificação). Reinserir é
+        // impossível, então salvar duas vezes não duplica nada.
         if (osId) {
-          // Precheck do soft-delete em lote — amostra um id antes pra rodar can_perform.
-          // RLS exige sublider+ pra update; sem isso o update silenciosamente afeta 0 rows.
-          const { data: sampleDist } = await (supabase.from("distribuicao_receita" as any) as any)
+          const draftDist = (c.distribuicao_receita || []).filter(d => d.id_centro_custo);
+          const { data: dbDist, error: dbDistError } = await (supabase.from("distribuicao_receita" as any) as any)
             .select("id")
             .eq("id_ordem_servico", osId)
-            .eq("excluido", false)
-            .limit(1)
-            .maybeSingle();
-          if (sampleDist?.id) {
-            await assertCanPerform('distribuicao_receita', 'update', sampleDist.id);
+            .eq("excluido", false);
+          if (dbDistError) throw dbDistError;
+
+          const rotuloOs = c.ordem_servico || "(sem número)";
+          const mantidos = new Set(draftDist.map(d => d._dbId).filter(Boolean) as string[]);
+          const distRemovidos = ((dbDist || []) as Array<{ id: string }>)
+            .map(r => r.id)
+            .filter(id => !mantidos.has(id));
+
+          if (distRemovidos.length > 0) {
+            // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
+            await assertCanPerform('distribuicao_receita', 'update', distRemovidos[0]);
+            await softDeleteVerificado("distribuicao_receita", "id", distRemovidos, `linha(s) de Distribuição de Receita da OS ${rotuloOs}`);
           }
-          await (supabase.from("distribuicao_receita" as any) as any).update({ excluido: true }).eq("id_ordem_servico", osId).eq("excluido", false);
-          if (c.distribuicao_receita && c.distribuicao_receita.length > 0) {
-            const distPayload = c.distribuicao_receita
-              .filter(d => d.id_centro_custo)
-              .map(d => ({
+
+          for (const d of draftDist.filter(d => d._dbId)) {
+            currentStep = "distribuicao_receita/update";
+            const { data: updDist, error: updDistError } = await (supabase.from("distribuicao_receita" as any) as any)
+              .update({ id_centro_custo: d.id_centro_custo, percentual_rateio: d.percentual_rateio || 0 })
+              .eq("id", d._dbId)
+              .select("id");
+            if (updDistError) throw updDistError;
+            // 0 rows aqui significa linha inexistente ou RLS barrando. Reinserir
+            // seria justamente o que duplicava o rateio — então falha alto.
+            if (!updDist || updDist.length === 0) {
+              throw new Error(
+                `Não foi possível atualizar a Distribuição de Receita da OS ${rotuloOs}. Feche e abra o cadastro para recarregar os dados e tente de novo.`
+              );
+            }
+          }
+
+          const distNovos = draftDist.filter(d => !d._dbId);
+          if (distNovos.length > 0) {
+            currentStep = "distribuicao_receita/insert";
+            const { error: distError } = await (supabase.from("distribuicao_receita" as any) as any).insert(
+              distNovos.map(d => ({
                 id_ordem_servico: osId,
                 id_centro_custo: d.id_centro_custo,
                 percentual_rateio: d.percentual_rateio || 0,
-              }));
-            if (distPayload.length > 0) {
-              const { error: distError } = await (supabase.from("distribuicao_receita" as any) as any).insert(distPayload);
-              if (distError) throw distError;
-            }
+              }))
+            );
+            if (distError) throw distError;
           }
 
           // Persist os_produtos_contratados: selective upsert preserving _dbId
@@ -485,7 +606,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
           // Delete removed
           if (toDelete.length > 0) {
-            await (supabase.from("os_produtos_contratados" as any) as any).delete().in("id", toDelete);
+            currentStep = "os_produtos_contratados/delete";
+            const { error: delProdError } = await (supabase.from("os_produtos_contratados" as any) as any).delete().in("id", toDelete);
+            if (delProdError) throw delProdError;
             for (const delId of toDelete) {
               const delProdId = existingMap.get(delId);
               logAction({
@@ -502,6 +625,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           // Insert new (no _dbId)
           const toInsert = draftProdutos.filter(p => !p._dbId);
           if (toInsert.length > 0) {
+            currentStep = "os_produtos_contratados/insert";
             const insertPayload = toInsert.map(p => ({
               ordem_servico_id: osId,
               produto_segmento_id: p.produto_segmento_id,
@@ -528,12 +652,14 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             const prodChanged = old.produto_segmento_id !== dp.produto_segmento_id;
             const horasChanged = (old.horas_contratadas ?? null) !== (dp.horas_contratadas ?? null);
             if (prodChanged || horasChanged) {
-              await (supabase.from("os_produtos_contratados" as any) as any)
+              currentStep = "os_produtos_contratados/update";
+              const { error: updProdError } = await (supabase.from("os_produtos_contratados" as any) as any)
                 .update({
                   produto_segmento_id: dp.produto_segmento_id,
                   horas_contratadas: dp.horas_contratadas ?? null,
                 })
                 .eq("id", dp._dbId);
+              if (updProdError) throw updProdError;
             }
           }
         }
@@ -553,6 +679,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         // INSERT new
         const toInsertClusters = clusterIds.filter(id => !existingClusterIds.has(id));
         if (toInsertClusters.length > 0) {
+          currentStep = "cliente_clusters/insert";
           const payload = toInsertClusters.map(cid => ({ cliente_id: clienteId, cluster_id: cid }));
           const { error: insErr } = await (supabase.from('cliente_clusters' as any) as any).insert(payload);
           if (insErr) throw insErr;
@@ -560,8 +687,10 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         // DELETE removed
         const toDeleteClusterRows = (existingClusters || []).filter((r: any) => !desiredClusterIds.has(r.cluster_id));
         if (toDeleteClusterRows.length > 0) {
+          currentStep = "cliente_clusters/delete";
           const deleteIds = toDeleteClusterRows.map((r: any) => r.id);
-          await (supabase.from('cliente_clusters' as any) as any).delete().in('id', deleteIds);
+          const { error: delErr } = await (supabase.from('cliente_clusters' as any) as any).delete().in('id', deleteIds);
+          if (delErr) throw delErr;
         }
       }
 
@@ -715,6 +844,17 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       } else {
         toast.success(isEditing ? "Cliente atualizado com sucesso!" : "Cliente cadastrado com sucesso!");
       }
+
+      // Aviso (não bloqueante) do que já estava incompleto e não foi tocado:
+      // salvar segue funcionando, mas a pendência não passa despercebida.
+      if (pendencias.length > 0) {
+        const amostra = pendencias.slice(0, 2).join(" · ");
+        const extras = pendencias.length - 2;
+        toast.warning(
+          `Pendências em itens que você não alterou: ${amostra}${extras > 0 ? ` · +${extras}` : ""}`,
+          { duration: 10000 },
+        );
+      }
       onSuccess();
     } catch (error: any) {
       // Rollback: delete newly created client (CASCADE removes children)
@@ -726,7 +866,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           console.error("[rollback] Falha ao remover cliente:", rollbackErr);
         }
       }
-      console.error("[cadastro cliente] erro:", error);
+      console.error("[cadastro cliente] erro:", error, "passo:", currentStep);
       const rlsMsg = (error?.message || "").toLowerCase();
       const isRls =
         error?.code === "42501" ||
@@ -736,7 +876,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       const acao = isEditing ? "atualizar" : "cadastrar";
       toast.error(
         isRls
-          ? `Sem permissão para ${acao} cliente com o seu perfil/cluster. Fale com a liderança.`
+          ? `Sem permissão para ${acao} cliente (${currentStep}). Fale com a liderança.`
           : `Erro ao ${acao} cliente: ` + error.message
       );
     } finally {
@@ -744,11 +884,11 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     }
   }, [clientData, entities, participants, contracts, inscricoesMap, clusterIds, isEditing, editingClienteId, setoresCliente, onDuplicateFound, onSuccess, logAction, queryClient, originalSnapshot, authUser]);
 
+  // Mantido para as telas que ainda barram o save quando há rascunho de aba
+  // aberto; devolve as abas pendentes em vez de salvar.
   const handleSave = useCallback(() => {
-    const pendingTabs = getDraftPendingTabs();
-    if (pendingTabs.length > 0) {
-      return pendingTabs;
-    }
+    const pendingTabs = getDraftPendingTabs?.() ?? [];
+    if (pendingTabs.length > 0) return pendingTabs;
     executeSave();
     return null;
   }, [getDraftPendingTabs, executeSave]);
