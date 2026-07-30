@@ -1,4 +1,5 @@
-import { Download, FileText, ImageIcon, Loader2, Paperclip } from 'lucide-react';
+import { Download, FileText, ImageIcon, Paperclip } from 'lucide-react';
+import { AreaLoader } from '@/components/equipe/AreaLoader';
 
 import type { AreaKey } from '@/config/areaCategories';
 import {
@@ -85,7 +86,7 @@ export function OrgEntityAttachments({
   if (isLoading) {
     return (
       <div className={cn('flex h-16 items-center justify-center', className)}>
-        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+        <AreaLoader area={area} size={18} className="text-muted-foreground" />
       </div>
     );
   }

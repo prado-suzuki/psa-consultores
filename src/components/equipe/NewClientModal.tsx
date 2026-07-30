@@ -15,7 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, X, Loader2, CheckCircle2, Pencil, Building2, History } from "lucide-react";
+import { Plus, X, CheckCircle2, Pencil, Building2, History } from "lucide-react";
+import { AreaLoader } from "@/components/equipe/AreaLoader";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
@@ -31,7 +32,7 @@ import FaturamentoTab from "./client-form/FaturamentoTab";
 import HistoricoTab from "./client-form/HistoricoTab";
 
 export default function NewClientModal({
-  open, onOpenChange, editingClienteId, readOnly = false, canEdit = true,
+  open, onOpenChange, editingClienteId, readOnly = false, canEdit = true, area,
 }: NewClientModalProps) {
   const { user, isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
@@ -297,7 +298,7 @@ export default function NewClientModal({
           </div>
 
           {loadingEdit ? (
-            <div className="flex-1 flex items-center justify-center"><Loader2 className="h-8 w-8 animate-spin text-teal-600" /></div>
+            <div className="flex-1 flex items-center justify-center text-teal-600"><AreaLoader area={area} size={64} /></div>
           ) : (
             <>
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
@@ -393,7 +394,7 @@ export default function NewClientModal({
                               onClick={handleSave} disabled={saving || hasPendingDrafts}
                               className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
                             >
-                              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 size={20} />}
+                              {saving ? <AreaLoader area={area} size={20} /> : <CheckCircle2 size={20} />}
                               {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
                             </Button>
                           </span>

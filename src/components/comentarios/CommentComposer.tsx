@@ -1,5 +1,7 @@
 import { useRef, useState, type DragEvent } from 'react';
-import { Loader2, Paperclip, Reply, Send, X } from 'lucide-react';
+import { Paperclip, Reply, Send, X } from 'lucide-react';
+import { AreaLoader } from '@/components/equipe/AreaLoader';
+import type { AreaKey } from '@/config/areaCategories';
 import { toast } from 'sonner';
 
 import { OrgCommentEditor } from '@/components/comentarios/OrgCommentEditor';
@@ -18,6 +20,8 @@ function primeiroNome(name: string | null) {
 
 interface CommentComposerProps {
   compact?: boolean;
+  /** Área da tela — define o glifo de carregamento (ver `AreaLoader`). */
+  area?: AreaKey;
   isPending: boolean;
   mentionCandidates: MentionCandidate[];
   /** Muda de valor quando alguém pede o foco daqui de fora. */
@@ -30,6 +34,7 @@ interface CommentComposerProps {
 
 export function CommentComposer({
   compact,
+  area,
   isPending,
   mentionCandidates,
   focusSignal,
@@ -169,7 +174,7 @@ export function CommentComposer({
             onClick={submit}
           >
             {isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <AreaLoader area={area} size={18} />
             ) : (
               <Send className="h-4 w-4" />
             )}

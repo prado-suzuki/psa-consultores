@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Loader2, MessageSquare, MoreHorizontal, Pencil, Reply, Trash2 } from 'lucide-react';
+import { MessageSquare, MoreHorizontal, Pencil, Reply, Trash2 } from 'lucide-react';
+import { AreaLoader } from '@/components/equipe/AreaLoader';
 
 import { CommentComposer } from '@/components/comentarios/CommentComposer';
 import { OrgCommentBody } from '@/components/comentarios/OrgCommentBody';
@@ -379,6 +380,7 @@ export function OrgCommentsPanel({
             {isReplying && (
               <CommentComposer
                 compact
+                area={area}
                 isPending={isCreating}
                 mentionCandidates={mentionCandidates}
                 replyingToName={comment.author_name}
@@ -429,8 +431,8 @@ export function OrgCommentsPanel({
 
       <ScrollArea ref={scrollRootRef} className="min-h-0 flex-1 px-5">
         {isLoading ? (
-          <div className="flex h-32 items-center justify-center">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          <div className="flex h-32 items-center justify-center text-muted-foreground">
+            <AreaLoader area={area} size={40} />
           </div>
         ) : (
           <div className="divide-y">
@@ -454,6 +456,7 @@ export function OrgCommentsPanel({
 
       <div className="border-t bg-background p-4">
         <CommentComposer
+          area={area}
           isPending={isCreating}
           mentionCandidates={mentionCandidates}
           focusSignal={focusComposerSignal}
@@ -498,7 +501,7 @@ export function OrgCommentsPanel({
                 }
               }}
             >
-              {deleteComment.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Excluir'}
+              {deleteComment.isPending ? <AreaLoader area={area} size={18} /> : 'Excluir'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -1,9 +1,11 @@
-import { AlertCircle, Clock, FolderKanban, ListChecks, Loader2, Users } from 'lucide-react';
+import { AlertCircle, Clock, FolderKanban, ListChecks, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { HatchedBar, WorkloadHeatmap } from '@/components/dashboard/momentum';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AreaLoader } from '@/components/equipe/AreaLoader';
+import type { AreaKey } from '@/config/areaCategories';
 import type { AreaDashboardController } from '@/hooks/useAreaDashboardController';
 
 export function AreaDashboardInsights({ dashboard }: { dashboard: AreaDashboardController }) {
@@ -16,11 +18,11 @@ export function AreaDashboardInsights({ dashboard }: { dashboard: AreaDashboardC
 
 function Distributions({ dashboard }: { dashboard: AreaDashboardController }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <DataCard title="Distribuição por Status" icon={<ListChecks className="h-4 w-4 text-primary" />} loading={dashboard.isLoading}
+    <DataCard title="Distribuição por Status" icon={<ListChecks className="h-4 w-4 text-primary" />} area={dashboard.area} loading={dashboard.isLoading}
       empty={dashboard.statusSegments.length === 0} emptyMessage="Nenhuma tarefa no recorte atual">
       <HatchedBar segments={dashboard.statusSegments} />
     </DataCard>
-    <DataCard title="Distribuição por Área Fiscal" icon={<FolderKanban className="h-4 w-4 text-primary" />} loading={dashboard.isLoading}
+    <DataCard title="Distribuição por Área Fiscal" icon={<FolderKanban className="h-4 w-4 text-primary" />} area={dashboard.area} loading={dashboard.isLoading}
       empty={dashboard.areaSegments.length === 0} emptyMessage="Sem dados de área">
       <HatchedBar segments={dashboard.areaSegments} />
     </DataCard>
@@ -30,11 +32,11 @@ function Distributions({ dashboard }: { dashboard: AreaDashboardController }) {
 function WorkloadAndClients({ dashboard }: { dashboard: AreaDashboardController }) {
   return <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <DataCard title="Workload por Membro · próximos 14 dias" icon={<Users className="h-4 w-4 text-primary" />}
-      className="lg:col-span-2" loading={dashboard.isLoading} empty={dashboard.heatmap.rows.length === 0}
+      className="lg:col-span-2" area={dashboard.area} loading={dashboard.isLoading} empty={dashboard.heatmap.rows.length === 0}
       emptyMessage="Sem atribuições no recorte atual">
       <WorkloadHeatmap rows={dashboard.heatmap.rows} columnLabels={dashboard.heatmap.columnLabels} />
     </DataCard>
-    <DataCard title="Top Clientes · Horas" icon={<Clock className="h-4 w-4 text-primary" />} loading={dashboard.isLoading}
+    <DataCard title="Top Clientes · Horas" icon={<Clock className="h-4 w-4 text-primary" />} area={dashboard.area} loading={dashboard.isLoading}
       empty={dashboard.topClients.length === 0} emptyMessage="Sem horas estimadas" contentClassName="pt-3">
       <ul className="space-y-3">{dashboard.topClients.map((client, index) => {
         const percentage = (client.hours / (dashboard.topClients[0].hours || 1)) * 100;
@@ -56,7 +58,7 @@ function DashboardTables({ dashboard }: { dashboard: AreaDashboardController }) 
         <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2"><AlertCircle className="h-4 w-4 text-destructive" />Tarefas Atrasadas</CardTitle>
         {dashboard.overdueRows.length > 0 && <Badge className="bg-destructive/5 text-destructive border-0 text-[10px]">{dashboard.overdueRows.length}</Badge>}
       </CardHeader>
-      <CardContent>{dashboard.isLoading ? <LoadingSpinner /> : dashboard.overdueRows.length === 0
+      <CardContent>{dashboard.isLoading ? <LoadingSpinner area={dashboard.area} /> : dashboard.overdueRows.length === 0
         ? <EmptyMessage message="Nenhuma tarefa atrasada no recorte atual" />
         : <div className="max-h-72 overflow-auto"><Table><TableHeader><TableRow>
           <SmallHead>Tarefa</SmallHead><SmallHead>Cliente</SmallHead><SmallHead>Resp.</SmallHead><SmallHead className="text-right">Atraso</SmallHead>
@@ -68,7 +70,7 @@ function DashboardTables({ dashboard }: { dashboard: AreaDashboardController }) 
     </Card>
     <Card className="border-border/60 shadow-sm rounded-2xl">
       <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2"><Users className="h-4 w-4 text-primary" />Carga por Membro</CardTitle></CardHeader>
-      <CardContent>{dashboard.isLoading ? <LoadingSpinner /> : dashboard.memberRows.length === 0
+      <CardContent>{dashboard.isLoading ? <LoadingSpinner area={dashboard.area} /> : dashboard.memberRows.length === 0
         ? <EmptyMessage message="Sem dados de atribuição" />
         : <div className="max-h-72 overflow-auto"><Table><TableHeader><TableRow>
           <SmallHead>Membro</SmallHead><SmallHead className="text-right">Ativas</SmallHead><SmallHead className="text-right">Horas</SmallHead><SmallHead className="text-right">Atrasadas</SmallHead>
@@ -81,21 +83,21 @@ function DashboardTables({ dashboard }: { dashboard: AreaDashboardController }) 
   </div>;
 }
 
-function DataCard({ title, icon, loading, empty, emptyMessage, children, className = '', contentClassName = 'pt-4' }: {
-  title: string; icon: React.ReactNode; loading: boolean; empty: boolean; emptyMessage: string;
+function DataCard({ title, icon, area, loading, empty, emptyMessage, children, className = '', contentClassName = 'pt-4' }: {
+  title: string; icon: React.ReactNode; area?: AreaKey; loading: boolean; empty: boolean; emptyMessage: string;
   children: React.ReactNode; className?: string; contentClassName?: string;
 }) {
   return <Card className={`border-border/60 shadow-sm rounded-2xl ${className}`}><CardHeader className="pb-2">
     <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">{icon}{title}</CardTitle>
-  </CardHeader><CardContent className={contentClassName}>{loading ? <LoadingSpinner /> : empty ? <EmptyMessage message={emptyMessage} /> : children}</CardContent></Card>;
+  </CardHeader><CardContent className={contentClassName}>{loading ? <LoadingSpinner area={area} /> : empty ? <EmptyMessage message={emptyMessage} /> : children}</CardContent></Card>;
 }
 
 function SmallHead({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <TableHead className={`text-[11px] uppercase tracking-wide text-muted-foreground ${className}`}>{children}</TableHead>;
 }
 
-function LoadingSpinner() {
-  return <div className="h-32 flex items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
+function LoadingSpinner({ area }: { area?: AreaKey }) {
+  return <div className="h-32 flex items-center justify-center text-muted-foreground"><AreaLoader area={area} size={44} /></div>;
 }
 
 function EmptyMessage({ message }: { message: string }) {

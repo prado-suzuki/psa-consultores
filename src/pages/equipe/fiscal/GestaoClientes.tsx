@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Users, ChevronLeft, ChevronRight, Loader2, Trash2 } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -30,18 +30,19 @@ import { useDeleteCliente } from '@/hooks/useDeleteCliente';
 import { useClusterIdByPageCategory } from '@/hooks/useTaxReferenceData';
 import type { AreaKey } from '@/config/areaCategories';
 import NewClientModal from '@/components/equipe/NewClientModal';
+import { AreaLoader } from '@/components/equipe/AreaLoader';
 import ClientesFilterBar, {
   type ClientesFilterField,
 } from '@/components/equipe/clientes/ClientesFilterBar';
 
 /* ── Sub-componente: contribuintes expandidos ── */
-const ContribuinteSubTable = ({ clienteId }: { clienteId: string }) => {
+const ContribuinteSubTable = ({ clienteId, area }: { clienteId: string; area?: AreaKey }) => {
   const { data, isLoading } = useContribuintesExpand(clienteId);
 
   if (isLoading)
     return (
       <div className="flex items-center gap-2 py-3 text-muted-foreground text-sm">
-        <Loader2 className="h-4 w-4 animate-spin" />
+        <AreaLoader area={area} size={20} />
         Carregando contribuintes…
       </div>
     );
@@ -231,8 +232,8 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
       />
 
       {isLoading ? (
-        <div className="flex h-48 items-center justify-center rounded-xl border border-border/70 bg-card">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <div className="flex h-48 items-center justify-center rounded-xl border border-border/70 bg-card text-primary">
+          <AreaLoader area={area} size={56} />
         </div>
       ) : filteredResults.length === 0 ? (
         <div className="flex h-48 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card text-muted-foreground">
@@ -369,7 +370,7 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
                     {isExpanded && (
                       <TableRow className="border-border/50 bg-muted/10 hover:bg-muted/10">
                         <TableCell colSpan={totalCols} className="p-0 px-2 py-3">
-                          <ContribuinteSubTable clienteId={row.id} />
+                          <ContribuinteSubTable clienteId={row.id} area={area} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -417,6 +418,7 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
 
       {/* Modal de Cadastro Completo (Novo, Editar e Visualizar Cliente) */}
       <NewClientModal
+        area={area}
         open={novoClienteModalOpen}
         onOpenChange={(v) => {
           setNovoClienteModalOpen(v);
@@ -452,7 +454,7 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
               disabled={deleteMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {deleteMutation.isPending ? <AreaLoader area={area} size={18} className="mr-2" /> : null}
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

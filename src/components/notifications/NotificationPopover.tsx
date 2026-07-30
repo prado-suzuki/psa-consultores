@@ -7,6 +7,7 @@ import { useTicketNotifications, TicketNotification } from '@/hooks/useTicketNot
 import { useReviewTaskNotifications, ReviewTaskNotification } from '@/hooks/useReviewTaskNotifications';
 import { useNotificacoesMencao, type MencaoNotificacao } from '@/hooks/useNotificacoesMencao';
 import { hrefDeOrigem, origemDoComentario, type AreaDeProjetos } from '@/lib/feedComentarios';
+import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -303,7 +304,7 @@ export function NotificationPopover({
         {/* Content */}
         {isLoading ? (
           <div className="p-6 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto" />
+            <AreaLoader area={mencoesArea} size={40} className="mx-auto text-primary" />
             <p className="text-sm text-muted-foreground mt-2">Carregando...</p>
           </div>
         ) : items.length === 0 ? (
