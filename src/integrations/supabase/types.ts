@@ -8088,6 +8088,7 @@ export type Database = {
           author_id: string | null
           author_name: string | null
           body: string | null
+          client_id: string | null
           created_at: string | null
           editado_em: string | null
           entity_id: string | null
@@ -8312,15 +8313,21 @@ export type Database = {
       }
       feed_org_comments: {
         Args: {
+          _author_ids?: string[]
+          _client_ids?: string[]
           _cursor_created_at?: string
           _cursor_id?: string
           _limit?: number
+          _only_mentions?: boolean
+          _project_ids?: string[]
+          _since?: string
         }
         Returns: {
           attachment_count: number | null
           author_id: string | null
           author_name: string | null
           body: string | null
+          client_id: string | null
           created_at: string | null
           editado_em: string | null
           entity_id: string | null
