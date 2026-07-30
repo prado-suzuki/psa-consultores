@@ -22,7 +22,7 @@ import { ProjetosCadastroContext } from '@/components/equipe/projetos-cadastro/P
 import { ProjetoDialog } from '@/components/equipe/projetos-cadastro/ProjetoDialog';
 import { ProjetoDeleteDialog } from '@/components/equipe/projetos-cadastro/ProjetoDeleteDialog';
 import { ProjetosTarefasList } from '@/components/equipe/tarefas/ProjetosTarefasList';
-import { extractProductAcronyms, type ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
+import { extractProductAcronyms, hasTaskFilters, type ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
 import { TaskFilters } from '@/components/equipe/fiscal/tasks/TaskFilters';
 import { TaskKPICards } from '@/components/equipe/fiscal/tasks/TaskKPICards';
 import { TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
@@ -148,26 +148,16 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       : listProjects,
     [filters.clientId, listProjects],
   );
-  // Com qualquer filtro ativo, a lista esconde clientes/OS/projetos que ficaram sem
-  // tarefas depois da filtragem. Sem filtros, projetos vazios continuam visíveis.
-  const hasActiveFilters = useMemo(() => Boolean(
-    filters.search?.trim() ||
-    (filters.assignedTo && filters.assignedTo !== 'all') ||
-    filters.status?.length ||
-    filters.priority?.length ||
-    filters.projectId ||
-    filters.clientId ||
-    filters.contribuinteId ||
-    filters.startDate ||
-    filters.endDate,
-  ), [filters]);
+  // Filtros de tarefas escondem clientes/OS/projetos sem correspondências. A busca
+  // textual não: ela também encontra clientes e projetos que ainda não têm tarefas.
+  const hasActiveTaskFilters = useMemo(() => hasTaskFilters(filters), [filters]);
 
-  // Ensina o comportamento novo no momento exato: quando um filtro deixa algum
+  // Ensina o comportamento novo no momento exato: quando um filtro de tarefa deixa algum
   // cliente/OS/projeto sem tarefas (portanto oculto), avisa uma vez por sessão de
   // filtragem. Reseta ao limpar os filtros, para reaparecer numa próxima filtragem.
   const hintShownRef = useRef(false);
   useEffect(() => {
-    if (activeView !== 'list' || !hasActiveFilters) {
+    if (activeView !== 'list' || !hasActiveTaskFilters) {
       hintShownRef.current = false;
       return;
     }
@@ -180,7 +170,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
         description: 'Clientes, OS e projetos sem tarefas correspondentes ficam ocultos.',
       });
     }
-  }, [activeView, hasActiveFilters, tasks, visibleListProjects]);
+  }, [activeView, hasActiveTaskFilters, tasks, visibleListProjects]);
 
   const handleEditTask = (task: OrgTask) => {
     setSelectedTask(task);
@@ -301,7 +291,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 osRows={osRows}
                 search={filters.search || ''}
                 isLoading={isTasksLoading || projectController.isLoading || isScopeUnresolved}
-                hideEmpty={hasActiveFilters}
+                hideEmpty={hasActiveTaskFilters}
                 onClearFilters={() => setFilters({})}
                 onEditProject={projectController.handleOpenModal}
                 onDeleteProject={projectController.setDeleteProjectId}
