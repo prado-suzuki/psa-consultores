@@ -2,6 +2,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import { AlignLeft, Paperclip, Plus, UserCheck } from 'lucide-react';
 
 import { OrgEntityAttachments } from '@/components/comentarios/OrgCommentAttachments';
+import { TaskSubtasksSection } from '@/components/equipe/fiscal/tasks/task-modal/TaskSubtasksSection';
 import { Button } from '@/components/ui/button';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { SectionHeading } from '@/components/ui/section-heading';
@@ -13,22 +14,27 @@ interface TaskEditBodyProps {
   form: UseFormReturn<TaskFormValues>;
   taskId: string;
   projectId?: string | null;
+  clientId?: string | null;
   area: AreaKey;
   /** O usuário atual é o revisor delegado desta tarefa. */
   isReviewer: boolean;
   assignedToName?: string | null;
+  /** Responsáveis possíveis nas subtarefas — membros do projeto da tarefa. */
+  teamMembers: { id: string; name: string }[];
   /** Leva o foco para o compositor de comentários, onde o anexo é enviado. */
   onAddAttachment: () => void;
 }
 
-/** Corpo do modo edição: descrição e os anexos já enviados na conversa. */
+/** Corpo do modo edição: descrição, subtarefas e os anexos já enviados na conversa. */
 export function TaskEditBody({
   form,
   taskId,
   projectId,
+  clientId,
   area,
   isReviewer,
   assignedToName,
+  teamMembers,
   onAddAttachment,
 }: TaskEditBodyProps) {
   return (
@@ -76,6 +82,13 @@ export function TaskEditBody({
           />
         </fieldset>
       </section>
+
+      <TaskSubtasksSection
+        parentTask={{ id: taskId, project_id: projectId ?? null, client_id: clientId ?? null }}
+        area={area}
+        teamMembers={teamMembers}
+        disabled={isReviewer}
+      />
 
       <section>
         <SectionHeading

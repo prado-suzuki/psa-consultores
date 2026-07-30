@@ -541,9 +541,11 @@ export const TaskModal = ({
                     form={form}
                     taskId={task.id}
                     projectId={task.project_id}
+                    clientId={task.client_id}
                     area={area}
                     isReviewer={currentUserIsReviewer}
                     assignedToName={task.assigned_to_name}
+                    teamMembers={filteredTeamMembers}
                     onAddAttachment={() => setComposerFocusSignal((signal) => signal + 1)}
                   />
                 </div>

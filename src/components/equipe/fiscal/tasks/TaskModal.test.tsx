@@ -47,6 +47,7 @@ const mocks = vi.hoisted(() => ({
   allProfiles: [] as { id: string; first_name: string; last_name: string }[],
   externalClients: [] as { id: string; nome: string }[],
   contribuintes: [] as { id: string; nome_razao_social: string; cpf_cnpj: string | null }[],
+  subtasks: [] as OrgTask[],
   hookArgs: {} as Record<string, unknown>,
 }));
 
@@ -55,6 +56,10 @@ vi.mock('sonner', () => ({ toast: mocks.toast }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: mocks.user }) }));
 
 vi.mock('@/hooks/useOrgTasks', () => ({
+  useOrgSubtasks: (parentTaskId?: string | null) => {
+    mocks.hookArgs.useOrgSubtasks = parentTaskId;
+    return { data: mocks.subtasks, isLoading: false };
+  },
   useCreateOrgTask: (...args: unknown[]) => {
     mocks.hookArgs.useCreateOrgTask = args;
     return { mutateAsync: mocks.createTask, isPending: false };
@@ -257,6 +262,16 @@ function formMessages() {
   );
 }
 
+/** Seção "Anexos" do corpo da edição (há mais de um botão "Adicionar" na tela). */
+function anexosSection() {
+  return screen.getByRole('heading', { name: 'Anexos' }).closest('section') as HTMLElement;
+}
+
+/** Seção "Subtarefas" do corpo da edição. */
+function subtarefasSection() {
+  return screen.getByRole('heading', { name: /Subtarefas/ }).closest('section') as HTMLElement;
+}
+
 /** O diálogo de ação de revisão (segundo Dialog do componente). */
 function reviewDialog() {
   const dialogs = screen.getAllByRole('dialog');
@@ -286,6 +301,7 @@ beforeEach(() => {
   mocks.allProfiles = ALL_PROFILES;
   mocks.externalClients = CLIENTS;
   mocks.contribuintes = CONTRIBUINTES;
+  mocks.subtasks = [];
   mocks.hookArgs = {};
   mocks.restoreDraft.mockReturnValue(null);
   mocks.createTask.mockImplementation(async (input: Record<string, unknown>) => {
@@ -874,7 +890,86 @@ describe('TaskModal — atividade', () => {
     renderModal({ task: baseTask });
 
     expect(screen.getByTestId('activity-panel')).toHaveAttribute('data-focus-signal', '0');
-    await user.click(screen.getByRole('button', { name: /Adicionar/ }));
+    await user.click(within(anexosSection()).getByRole('button', { name: 'Adicionar' }));
     expect(screen.getByTestId('activity-panel')).toHaveAttribute('data-focus-signal', '1');
+  });
+});
+
+describe('TaskModal — subtarefas', () => {
+  const subtask = (overrides: Partial<OrgTask>): OrgTask => ({
+    ...baseTask,
+    id: 'S1',
+    title: 'Mapeamento - Revisão de IRPF',
+    status: 'todo',
+    priority: 'medium',
+    assigned_to: null,
+    assigned_to_name: null,
+    parent_task_id: 'T1',
+    ...overrides,
+  });
+
+  it('consulta as subtarefas da tarefa aberta e mostra o progresso', () => {
+    mocks.subtasks = [
+      subtask({ id: 'S1', assigned_to: 'U2', assigned_to_name: 'Ana' }),
+      subtask({ id: 'S2', title: 'Mapeamento - Livro Caixa', status: 'done', priority: 'high' }),
+    ];
+    renderModal({ task: baseTask });
+
+    expect(mocks.hookArgs.useOrgSubtasks).toBe('T1');
+    const secao = subtarefasSection();
+    expect(within(secao).getByText('Mapeamento - Revisão de IRPF')).toBeInTheDocument();
+    expect(within(secao).getByText('Mapeamento - Livro Caixa')).toBeInTheDocument();
+    expect(within(secao).getByText('1/2 concluídas')).toBeInTheDocument();
+    expect(within(secao).getByLabelText('Responsável de Mapeamento - Livro Caixa')).toHaveTextContent(
+      'Atribuir',
+    );
+    expect(within(secao).getByLabelText('Prioridade de Mapeamento - Livro Caixa')).toHaveTextContent(
+      'Alta',
+    );
+  });
+
+  it('vem antes dos anexos no corpo da edição', () => {
+    renderModal({ task: baseTask });
+
+    const ordem = screen
+      .getAllByRole('heading', { level: 3 })
+      .map((heading) => heading.textContent ?? '');
+    const posicao = (titulo: string) => ordem.findIndex((texto) => texto.startsWith(titulo));
+    expect(posicao('Subtarefas')).toBeGreaterThan(posicao('Descrição'));
+    expect(posicao('Subtarefas')).toBeLessThan(posicao('Anexos'));
+  });
+
+  it('cria a subtarefa com o nome digitado, herdando projeto e cliente da tarefa-mãe', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: baseTask });
+
+    await user.click(
+      within(subtarefasSection()).getByRole('button', { name: /Adicionar subtarefa/ }),
+    );
+    await user.type(screen.getByLabelText('Nome da nova subtarefa'), 'Revisão PIS/COFINS{Enter}');
+
+    await waitFor(() => expect(kinds()).toEqual(['create']));
+    expect(payloadOf('create')).toEqual({
+      title: 'Revisão PIS/COFINS',
+      status: 'todo',
+      priority: 'medium',
+      parent_task_id: 'T1',
+      project_id: 'PRJ1',
+      client_id: 'CLI1',
+    });
+    // A tarefa-mãe não é salva junto: o Enter não vaza para o form do modal.
+    expect(screen.getByLabelText('Nome da nova subtarefa')).toHaveValue('');
+  });
+
+  it('não oferece criação ao revisor delegado', () => {
+    renderModal({
+      task: { ...baseTask, status: 'review', assigned_to: 'U2', reviewer_id: 'U1' },
+    });
+
+    const secao = subtarefasSection();
+    expect(
+      within(secao).queryByRole('button', { name: /Adicionar subtarefa/ }),
+    ).not.toBeInTheDocument();
+    expect(within(secao).queryByRole('button', { name: 'Adicionar' })).not.toBeInTheDocument();
   });
 });

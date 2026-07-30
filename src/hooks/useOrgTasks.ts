@@ -175,6 +175,29 @@ export interface TaskFilters {
    });
  };
  
+/**
+ * Subtarefas diretas de uma tarefa (usada na seção "Subtarefas" do modal).
+ *
+ * A query key começa com 'org-tasks' de propósito: as mutations de tarefa
+ * invalidam esse prefixo, então criar/editar uma subtarefa já reflete aqui.
+ */
+export const useOrgSubtasks = (parentTaskId?: string | null) => {
+  return useQuery({
+    queryKey: ['org-tasks', 'children', parentTaskId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('org_tasks')
+        .select('*')
+        .eq('parent_task_id', parentTaskId as string)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      return (data || []) as OrgTask[];
+    },
+    enabled: !!parentTaskId,
+  });
+};
+
 interface OrgTaskMutationOptions {
   showToasts?: boolean;
 }
