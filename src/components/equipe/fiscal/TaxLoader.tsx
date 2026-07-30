@@ -4,11 +4,16 @@ import {
   TAX_PIG_BODY_PATH,
   TAX_PIG_TAIL_PATH,
 } from '@/components/equipe/fiscal/taxPiggyGlyph';
+import { cn } from '@/lib/utils';
 
 interface TaxLoaderProps {
   /** Lado do quadrado do loader, em px. Default 64. */
   size?: number;
-  /** Cor do porquinho vem de `currentColor` — troque via classe de texto. */
+  /**
+   * Classes extras — normalmente só layout (margem, alinhamento). A cor do
+   * porquinho vem de `currentColor` sobre a classe base abaixo; passar uma
+   * `text-*` aqui sobrescreve a cor base (twMerge resolve o conflito).
+   */
   className?: string;
   /** Texto lido por leitores de tela. */
   label?: string;
@@ -40,9 +45,12 @@ const GLINT_PATH = 'M0 -30 L11 -11 30 0 11 11 0 30 -11 11 -30 0 -11 -11Z';
  * Com `prefers-reduced-motion` as animações são desligadas e a moeda para em
  * repouso sobre o lombo — o resultado é o ícone Tax estático.
  */
+/** Cor base do porquinho — mesclada com a `className` do call site, não trocada por ela. */
+const TAX_LOADER_COLOR = 'text-[#0e4b5a] dark:text-slate-200';
+
 const TaxLoader: React.FC<TaxLoaderProps> = ({
   size = 64,
-  className = 'text-[#0e4b5a] dark:text-slate-200',
+  className,
   label = 'Carregando',
 }) => (
   <svg
@@ -52,7 +60,7 @@ const TaxLoader: React.FC<TaxLoaderProps> = ({
     height={size}
     role="status"
     aria-label={label}
-    className={`inline-block ${className}`}
+    className={cn('inline-block shrink-0', TAX_LOADER_COLOR, className)}
   >
     <g transform={PIG_TRANSFORM}>
       <g

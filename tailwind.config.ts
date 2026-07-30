@@ -227,6 +227,30 @@ export default {
           "51%": { opacity: ".9", transform: "scale(1)" },
           "68%, 100%": { opacity: "0", transform: "scale(1.3)" },
         },
+        // Loader da área OSG Work (ver OsgWorkLoader): o Sísifo NÃO anda na ladeira
+        // — fica na posição do ícone e só as pernas e a pedra se mexem. É o que faz
+        // o ciclo fechar sem costura, sem volta ao ponto de partida para disfarçar.
+        //
+        // Giro da pedra: contínuo e linear, uma volta inteira por ciclo. Tem de ser
+        // volta inteira: parar em qualquer ângulo intermediário faria a pedra saltar
+        // de volta ao zero na virada do loop. As crateras é que mostram o giro (o
+        // contorno do disco é o mesmo em qualquer ângulo).
+        "osg-sisyphus-roll": {
+          from: { transform: "rotate(0deg)" },
+          to: { transform: "rotate(360deg)" },
+        },
+        // Passada: as duas pernas vão e voltam em contrafase, duas passadas por
+        // ciclo, girando no quadril. Ângulo positivo = perna para TRÁS. A dianteira
+        // usa amplitude menor porque o corte dela atravessa a dobra do joelho: acima
+        // de ~5° a junta começa a aparecer.
+        "osg-sisyphus-leg-rear": {
+          "0%, 100%": { transform: "rotate(-7deg)" },
+          "50%": { transform: "rotate(7deg)" },
+        },
+        "osg-sisyphus-leg-front": {
+          "0%, 100%": { transform: "rotate(5deg)" },
+          "50%": { transform: "rotate(-5deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -246,6 +270,14 @@ export default {
         "tax-coin-spin": "tax-coin-spin 1s linear infinite",
         "tax-pig-bounce": "tax-pig-bounce 1s ease-out infinite",
         "tax-glint": "tax-glint 1s ease-out infinite",
+        // Loader OSG Work: passada de 2s (mais lenta que o ciclo da Tax de
+        // propósito — é esforço, não impacto) e a pedra dando uma volta a cada 6s,
+        // que são 3 passadas. Períodos diferentes de propósito: nenhum dos dois
+        // precisa voltar ao início junto, e a pedra pesada pede giro lento.
+        // Ambas com ease-in-out e sem parada, para o loop não ter emenda.
+        "osg-sisyphus-roll": "osg-sisyphus-roll 6s linear infinite",
+        "osg-sisyphus-leg-rear": "osg-sisyphus-leg-rear 2s ease-in-out infinite",
+        "osg-sisyphus-leg-front": "osg-sisyphus-leg-front 2s ease-in-out infinite",
       },
     },
   },
