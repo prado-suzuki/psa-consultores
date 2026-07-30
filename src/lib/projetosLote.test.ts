@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   buildLoteFormData,
+  buildLoteFromOs,
   buildLoteProjectName,
+  buildProdutoLabel,
   findProdutosJaCriados,
+  resolveLoteRoutes,
   validateLoteRow,
   type LoteCommon,
+  type LoteOsCandidata,
+  type LoteOsProdutoContratado,
   type LoteProduto,
   type LoteRow,
 } from './projetosLote';
@@ -97,5 +102,98 @@ describe('buildLoteFormData', () => {
   it('fluxo normal: envia o responsável escolhido', () => {
     const row = { ...baseRow, responsibleId: 'e1' };
     expect(buildLoteFormData('cli1', 'os1', common, row).responsible_id).toBe('e1');
+  });
+});
+
+describe('resolveLoteRoutes', () => {
+  it('mantém o fluxo dentro da área que abriu a tela', () => {
+    expect(resolveLoteRoutes('tax')).toEqual({
+      lote: '/equipe/tax/projetos/cadastro-lote',
+      projetos: '/equipe/tax/projetos/cadastro',
+      tarefas: '/equipe/tax/projetos/tarefas',
+    });
+    expect(resolveLoteRoutes('osg')).toEqual({
+      lote: '/equipe/osg/projetos/cadastro-lote',
+      projetos: '/equipe/osg/projetos/cadastro',
+      tarefas: '/equipe/osg/projetos/tarefas',
+    });
+  });
+
+  it('área sem tela de lote cai no Tax em vez de rota inexistente', () => {
+    expect(resolveLoteRoutes('board').lote).toBe('/equipe/tax/projetos/cadastro-lote');
+  });
+});
+
+describe('buildProdutoLabel', () => {
+  const produto = (patch: Partial<LoteOsProdutoContratado>): LoteOsProdutoContratado =>
+    ({ produto_segmento_id: 'ps1', produto_codigo: 'CHA', produto_nome: 'Canal de Chamados', ...patch });
+
+  it('usa "CÓDIGO — Nome" (o formato que findProdutosJaCriados espera)', () => {
+    expect(buildProdutoLabel(produto({}))).toBe('CHA — Canal de Chamados');
+  });
+
+  it('sem nome, cai no código', () => {
+    expect(buildProdutoLabel(produto({ produto_nome: null }))).toBe('CHA');
+  });
+
+  it('sem código nem nome, cai no id do produto', () => {
+    expect(buildProdutoLabel(produto({ produto_codigo: null, produto_nome: null }))).toBe('ps1');
+  });
+});
+
+describe('buildLoteFromOs', () => {
+  const cliente = { id: 'cli1', nome: '  Cliente Teste  ' };
+  const osBase: LoteOsCandidata = {
+    id: 'os1',
+    numero_os: '035/2026',
+    situacao: 'em_andamento',
+    data_inicio: '2026-01-01',
+    data_fim: '2026-12-31',
+    observacoes: 'Escopo da OS',
+  };
+  const produtosOs: LoteOsProdutoContratado[] = [
+    { produto_segmento_id: 'ps-cha', produto_codigo: 'CHA', produto_nome: 'Canal de Chamados' },
+    { produto_segmento_id: 'ps-dc', produto_codigo: 'DC', produto_nome: 'Diagnóstico Contábil' },
+  ];
+
+  it('monta o snapshot da tela de lote a partir da OS e dos produtos', () => {
+    expect(buildLoteFromOs(cliente, osBase, produtosOs)).toEqual({
+      clientId: 'cli1',
+      clientName: 'Cliente Teste',
+      ordemServicoId: 'os1',
+      osNumero: '035/2026',
+      startDate: '2026-01-01',
+      endDate: '2026-12-31',
+      status: 'active',
+      description: 'Escopo da OS',
+      produtos: [
+        { produtoSegmentoId: 'ps-cha', produtoLabel: 'CHA — Canal de Chamados' },
+        { produtoSegmentoId: 'ps-dc', produtoLabel: 'DC — Diagnóstico Contábil' },
+      ],
+    });
+  });
+
+  it('converte a situação da OS no status do projeto', () => {
+    expect(buildLoteFromOs(cliente, { ...osBase, situacao: 'suspenso' }, produtosOs).status).toBe('on_hold');
+  });
+
+  it('situação desconhecida ou vazia cai em "active"', () => {
+    expect(buildLoteFromOs(cliente, { ...osBase, situacao: null }, produtosOs).status).toBe('active');
+    expect(buildLoteFromOs(cliente, { ...osBase, situacao: 'inventada' }, produtosOs).status).toBe('active');
+  });
+
+  it('campos ausentes da OS viram string vazia (a tela de lote valida depois)', () => {
+    const vazia = buildLoteFromOs(
+      cliente,
+      { id: 'os2', numero_os: null, situacao: null, data_inicio: null, data_fim: null },
+      [],
+    );
+    expect(vazia).toMatchObject({ osNumero: '', startDate: '', endDate: '', description: '', produtos: [] });
+  });
+
+  it('o nome gerado casa com o que findProdutosJaCriados procura', () => {
+    const state = buildLoteFromOs(cliente, osBase, produtosOs);
+    const existentes = [{ name: buildLoteProjectName(state.clientName, state.osNumero, state.produtos[0].produtoLabel) }];
+    expect(findProdutosJaCriados(existentes, state.clientName, state.osNumero, state.produtos)).toEqual(['ps-cha']);
   });
 });

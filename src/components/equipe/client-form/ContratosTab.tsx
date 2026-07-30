@@ -9,7 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Plus, X, Pencil, Trash2, ChevronDown, Check, FolderPlus } from "lucide-react";
+import { Plus, X, Pencil, Trash2, ChevronDown, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { SITUACAO_PROJETO_OPTIONS, formatCurrencyDisplay, isoToMasked } from "./constants";
@@ -59,8 +59,6 @@ export interface ContratosTabProps {
   allClusters: Array<{ id: string; name: string; nome_empresa?: string | null }>;
   CENTRO_CUSTO_OPTIONS: Array<{ id: string; codigo: string; nome: string; label: string }>;
   setoresCliente: SetorCliente[];
-  /** Cria um projeto pré-preenchido a partir de uma OS já persistida (só disponível para cliente salvo). */
-  onCreateProjectFromOs?: (cont: DraftOrdemServico) => void;
   /**
    * Sai do modo somente-leitura do modal. Permite criar/editar OS direto da lista,
    * sem passar pelo "Editar" do rodapé. Só é passado se o usuário tem permissão.
@@ -250,7 +248,6 @@ export default function ContratosTab({
   isReadOnly,
   produtoSegmentoFullOptions, allClusters, CENTRO_CUSTO_OPTIONS,
   setoresCliente,
-  onCreateProjectFromOs,
   onRequestEditMode,
 }: ContratosTabProps) {
   const setorById = (id: string) => setoresCliente.find(s => s.id === id);
@@ -399,11 +396,6 @@ export default function ContratosTab({
                 {/* Leitura */}
                 {isExpanded && !isEditingThis && (
                   <div className="px-4 pb-4 border-t pt-3">
-                    {onCreateProjectFromOs && cont._dbId && (cont.produtos_contratados?.length ?? 0) > 0 && (
-                      <div className="flex justify-end gap-2 mb-3">
-                        <Button size="sm" variant="outline" className="gap-1.5 text-xs border-teal-600 text-teal-700 hover:bg-teal-50" onClick={() => onCreateProjectFromOs(cont)}><FolderPlus size={12} /> Criar projetos ({cont.produtos_contratados.length})</Button>
-                      </div>
-                    )}
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
                       <FieldPair label="Data Início" value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : "—"} />
                       <FieldPair label="Data Fim" value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : "—"} />

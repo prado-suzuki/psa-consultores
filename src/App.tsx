@@ -107,6 +107,7 @@ import OsgDashboard from "./pages/equipe/osg/OsgDashboard";
 import OsgTarefas from "./pages/equipe/osg/OsgTarefas";
 import OsgClientes from "./pages/equipe/osg/OsgClientes";
 import OsgProjetos from "./pages/equipe/osg/OsgProjetos";
+import OsgProjetosLote from "./pages/equipe/osg/OsgProjetosLote";
 import OsgWorkDashboard from "./pages/equipe/osg/OsgWorkDashboard";
 import QualificacaoDasPartes from "./pages/equipe/osg/QualificacaoDasPartes";
 import DiagnosticoPatrimonial from "./pages/equipe/osg/DiagnosticoPatrimonial";
@@ -259,6 +260,7 @@ const App = () => (
               <Route path="/equipe/osg/dashboard" element={<PageAccessGate pagePath="/equipe/osg/dashboard"><OsgDashboard /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/clientes" element={<PageAccessGate pagePath="/equipe/osg/projetos/clientes"><OsgClientes /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/cadastro" element={<PageAccessGate pagePath="/equipe/osg/projetos/cadastro"><OsgProjetos /></PageAccessGate>} />
+              <Route path="/equipe/osg/projetos/cadastro-lote" element={<PageAccessGate pagePath="/equipe/osg/projetos/cadastro-lote"><OsgProjetosLote /></PageAccessGate>} />
               <Route path="/equipe/osg/projetos/tarefas" element={<PageAccessGate pagePath="/equipe/osg/projetos/tarefas"><OsgTarefas /></PageAccessGate>} />
               {/* OSG Gerencial — restrita a líder+ (dashboard nativo de Clientes e OS) */}
               <Route path="/equipe/osg/gerencial" element={<LiderRoute><OsgGerencial /></LiderRoute>} />

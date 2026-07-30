@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
 import { useSetoresCliente } from "@/hooks/useSetorCliente";
@@ -19,8 +18,6 @@ import { Plus, X, Loader2, CheckCircle2, Pencil, Building2, History } from "luci
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData } from "./client-form/constants";
-import { OS_SITUACAO_TO_PROJECT_STATUS } from "@/lib/projetosCadastro";
-import type { LoteFromOs } from "@/lib/projetosLote";
 
 import ClienteTab from "./client-form/ClienteTab";
 import ContribuintesTab from "./client-form/ContribuintesTab";
@@ -33,7 +30,6 @@ export default function NewClientModal({
   open, onOpenChange, editingClienteId, readOnly = false, canEdit = true,
 }: NewClientModalProps) {
   const { user, isAdmin, isLider } = useAuth();
-  const navigate = useNavigate();
 
   // Duplicate confirm state (replaces window.confirm)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
@@ -162,50 +158,6 @@ export default function NewClientModal({
     else resetAndClose();
   };
 
-  // --- Criar projetos (1 por produto) a partir de uma OS já persistida ---
-  const [pendingLoteState, setPendingLoteState] = useState<LoteFromOs | null>(null);
-  const [showCreateProjectConfirm, setShowCreateProjectConfirm] = useState(false);
-
-  const buildLoteState = (cont: DraftContract): LoteFromOs | null => {
-    // Só é possível a partir de uma OS já salva (com id no banco) de um cliente existente.
-    if (!cont._dbId || !editingClienteId) return null;
-    const produtos = (cont.produtos_contratados || []).map((pc) => {
-      const option = produtoSegmentoFullOptions.find((o) => o.id === pc.produto_segmento_id);
-      return {
-        produtoSegmentoId: pc.produto_segmento_id,
-        produtoLabel: option ? `${option.codigo} — ${option.nome}` : pc.produto_segmento_id,
-      };
-    });
-    if (produtos.length === 0) return null;
-    return {
-      clientId: editingClienteId,
-      clientName: clientData.nome?.trim() || "",
-      ordemServicoId: cont._dbId,
-      osNumero: cont.ordem_servico,
-      startDate: cont.data_inicio_projeto || "",
-      endDate: cont.data_fim_projeto || "",
-      status: OS_SITUACAO_TO_PROJECT_STATUS[cont.situacao_projeto] || "active",
-      description: cont.observacoes_projeto || "",
-      produtos,
-    };
-  };
-
-  const navigateToLote = (loteState: LoteFromOs) => {
-    onOpenChange(false);
-    navigate("/equipe/tax/projetos/cadastro-lote", { state: { loteFromOs: loteState } });
-  };
-
-  const handleCreateProjectFromOs = (cont: DraftContract) => {
-    const loteState = buildLoteState(cont);
-    if (!loteState) return;
-    if (hasUnsavedChanges) {
-      setPendingLoteState(loteState);
-      setShowCreateProjectConfirm(true);
-      return;
-    }
-    navigateToLote(loteState);
-  };
-
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!v) handleAttemptClose(); }}>
@@ -285,7 +237,6 @@ export default function NewClientModal({
                           allClusters={allClusters}
                           CENTRO_CUSTO_OPTIONS={CENTRO_CUSTO_OPTIONS}
                           setoresCliente={setoresCliente}
-                          onCreateProjectFromOs={editingClienteId ? handleCreateProjectFromOs : undefined}
                           onRequestEditMode={canEdit ? () => setIsReadOnly(false) : undefined}
                         />
                       </TabsContent>
@@ -348,22 +299,6 @@ export default function NewClientModal({
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowExitConfirm(false)}>Continuar Editando</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={resetAndClose}>Sair</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Criar projetos a partir da OS — confirmação quando há alterações não salvas */}
-      <AlertDialog open={showCreateProjectConfirm} onOpenChange={(v) => { if (!v) { setShowCreateProjectConfirm(false); setPendingLoteState(null); } }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Sair sem salvar?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Você tem alterações não salvas neste cadastro. Ao criar os projetos você será levado para a tela de criação em lote e essas alterações serão descartadas. Deseja continuar?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setShowCreateProjectConfirm(false); setPendingLoteState(null); }}>Continuar editando</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (pendingLoteState) navigateToLote(pendingLoteState); }}>Descartar e criar projetos</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

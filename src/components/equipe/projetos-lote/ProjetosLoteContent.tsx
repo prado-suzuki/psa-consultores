@@ -1,21 +1,22 @@
 import { useNavigate } from 'react-router-dom';
 import { FolderPlus, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { AreaKey } from '@/config/areaCategories';
 import { useProjetosLoteController } from '@/hooks/useProjetosLoteController';
 import { ProjetoLoteRow } from './ProjetoLoteRow';
 
-export function ProjetosLoteContent() {
+export function ProjetosLoteContent({ area }: { area: AreaKey }) {
   const navigate = useNavigate();
   const {
-    state, rows, updateRow, includedCount, jaCriados, todosJaCriados,
+    state, routes, rows, updateRow, includedCount, jaCriados, todosJaCriados,
     equipesOptions, teamMembers, userRoles, areaGroups, currentUserAreaIds, createBatch, handleCreate,
-  } = useProjetosLoteController();
+  } = useProjetosLoteController(area);
 
   if (!state) {
     return (
       <div className="max-w-2xl mx-auto text-center py-16 space-y-4">
-        <p className="text-muted-foreground">Nenhuma OS selecionada. Abra o cadastro do cliente, expanda uma OS salva e use “Criar projetos”.</p>
-        <Button variant="outline" onClick={() => navigate('/equipe/tax/projetos/cadastro')}>Voltar para Projetos</Button>
+        <p className="text-muted-foreground">Nenhuma OS selecionada. Abra Projetos e tarefas e use “Criar Projeto”.</p>
+        <Button variant="outline" onClick={() => navigate(routes.tarefas)}>Ir para Projetos e tarefas</Button>
       </div>
     );
   }
@@ -50,7 +51,7 @@ export function ProjetosLoteContent() {
 
       {/* Rodapé */}
       <div className="flex items-center justify-between border-t pt-4">
-        <Button variant="outline" onClick={() => navigate('/equipe/tax/projetos/cadastro')}>Cancelar</Button>
+        <Button variant="outline" onClick={() => navigate(routes.projetos)}>Cancelar</Button>
         <Button onClick={handleCreate} disabled={createBatch.isPending || includedCount === 0} className="gap-2">
           {createBatch.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderPlus className="h-4 w-4" />}
           Criar {includedCount} projeto{includedCount !== 1 ? 's' : ''}

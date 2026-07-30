@@ -1,13 +1,47 @@
+import type { AreaKey } from '@/config/areaCategories';
 import type { OrgProjectFormData } from '@/hooks/useOrgProjects';
+import { OS_SITUACAO_TO_PROJECT_STATUS } from '@/lib/projetosCadastro';
 
 // Criação de projetos em lote a partir de uma OS: 1 projeto por produto contratado.
+
+/** Rotas do fluxo de lote de uma área. */
+export interface LoteRoutes {
+  /** Tela de criação em lote (o destino do seletor de OS). */
+  lote: string;
+  /** Onde "Cancelar" e o pós-criação caem. */
+  projetos: string;
+  /** Painel de Projetos e tarefas, dono do botão que abre o fluxo. */
+  tarefas: string;
+}
+
+const LOTE_ROUTES_BY_AREA: Record<'tax' | 'osg', LoteRoutes> = {
+  tax: {
+    lote: '/equipe/tax/projetos/cadastro-lote',
+    projetos: '/equipe/tax/projetos/cadastro',
+    tarefas: '/equipe/tax/projetos/tarefas',
+  },
+  osg: {
+    lote: '/equipe/osg/projetos/cadastro-lote',
+    projetos: '/equipe/osg/projetos/cadastro',
+    tarefas: '/equipe/osg/projetos/tarefas',
+  },
+};
+
+/**
+ * Rotas do lote da área. O fluxo existe em Tax e OSG (mesmo conteúdo, layouts
+ * diferentes); as outras áreas não montam o painel de tarefas, então caem no Tax
+ * em vez de navegar para uma rota inexistente.
+ */
+export function resolveLoteRoutes(area: AreaKey): LoteRoutes {
+  return area === 'osg' ? LOTE_ROUTES_BY_AREA.osg : LOTE_ROUTES_BY_AREA.tax;
+}
 
 export interface LoteProduto {
   produtoSegmentoId: string;
   produtoLabel: string;
 }
 
-/** Snapshot enviado da aba de OS (via location.state) para a tela de lote. */
+/** Snapshot enviado pelo seletor de OS (via location.state) para a tela de lote. */
 export interface LoteFromOs {
   clientId: string;
   clientName: string;
@@ -51,6 +85,63 @@ export interface LoteRow {
    * tarefa delegada a qualquer membro, então não há Responsável Executor.
    */
   semExecutorFixo: boolean;
+}
+
+/**
+ * OS candidata a virar projetos, no formato que o seletor recebe da RPC
+ * `get_ordens_by_client_name` (ver useClienteOrdens).
+ */
+export interface LoteOsCandidata {
+  id: string;
+  numero_os: string | null;
+  situacao: string | null;
+  data_inicio: string | null;
+  data_fim: string | null;
+  observacoes?: string | null;
+}
+
+/** Produto contratado da OS, no formato de useOsProdutosContratados. */
+export interface LoteOsProdutoContratado {
+  produto_segmento_id: string;
+  produto_codigo: string | null;
+  produto_nome: string | null;
+}
+
+/**
+ * Rótulo do produto no formato "CÓDIGO — Nome", igual ao que a aba de OS gerava.
+ * `findProdutosJaCriados` casa projeto e produto por este texto, então mudar o
+ * formato faz produtos já criados voltarem a parecer disponíveis.
+ */
+export function buildProdutoLabel(produto: LoteOsProdutoContratado): string {
+  const { produto_codigo: codigo, produto_nome: nome } = produto;
+  if (codigo && nome) return `${codigo} — ${nome}`;
+  return codigo || nome || produto.produto_segmento_id;
+}
+
+/**
+ * Monta o snapshot que a tela de lote consome, a partir do cliente escolhido,
+ * da OS e dos seus produtos contratados. Substitui o `buildLoteState` que vivia
+ * no NewClientModal, onde os dados vinham do rascunho do formulário.
+ */
+export function buildLoteFromOs(
+  cliente: { id: string; nome: string },
+  os: LoteOsCandidata,
+  produtos: LoteOsProdutoContratado[],
+): LoteFromOs {
+  return {
+    clientId: cliente.id,
+    clientName: cliente.nome?.trim() || '',
+    ordemServicoId: os.id,
+    osNumero: os.numero_os || '',
+    startDate: os.data_inicio || '',
+    endDate: os.data_fim || '',
+    status: OS_SITUACAO_TO_PROJECT_STATUS[os.situacao || ''] || 'active',
+    description: os.observacoes || '',
+    produtos: produtos.map(produto => ({
+      produtoSegmentoId: produto.produto_segmento_id,
+      produtoLabel: buildProdutoLabel(produto),
+    })),
+  };
 }
 
 /** Nome sugerido do projeto de um produto: "Cliente — OS nº — Produto". */
