@@ -463,6 +463,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/tax/projetos/feed',
+    page_name: 'Tax Feed',
+    page_description: 'Feed dos comentários dos projetos e tarefas que o usuário acompanha',
+    category: 'tax',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/tax/projetos/cadastro-lote',
     page_name: 'Tax Criar Projetos em Lote',
     page_description: 'Criação de projetos em lote a partir de uma ordem de serviço',
@@ -520,6 +528,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_path: '/equipe/osg/projetos/tarefas',
     page_name: 'Tarefas OSG',
     page_description: 'Gestão de tarefas e eventos da área OSG (ferramenta compartilhada com o Tax)',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/projetos/feed',
+    page_name: 'Feed OSG',
+    page_description:
+      'Feed dos comentários dos projetos e tarefas que o usuário acompanha (ferramenta compartilhada com o Tax)',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,

@@ -1,10 +1,12 @@
 import { useNavigate } from 'react-router-dom';
-import { FolderPlus, Loader2 } from 'lucide-react';
+import { FolderPlus } from 'lucide-react';
+import { AreaLoader } from '@/components/equipe/AreaLoader';
+import type { AreaKey } from '@/config/areaCategories';
 import { Button } from '@/components/ui/button';
 import { useProjetosLoteController } from '@/hooks/useProjetosLoteController';
 import { ProjetoLoteRow } from './ProjetoLoteRow';
 
-export function ProjetosLoteContent() {
+export function ProjetosLoteContent({ area }: { area?: AreaKey } = {}) {
   const navigate = useNavigate();
   const {
     state, rows, updateRow, includedCount,
@@ -43,7 +45,7 @@ export function ProjetosLoteContent() {
       <div className="flex items-center justify-between border-t pt-4">
         <Button variant="outline" onClick={() => navigate('/equipe/tax/projetos/cadastro')}>Cancelar</Button>
         <Button onClick={handleCreate} disabled={createBatch.isPending || includedCount === 0} className="gap-2">
-          {createBatch.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderPlus className="h-4 w-4" />}
+          {createBatch.isPending ? <AreaLoader area={area} size={18} /> : <FolderPlus className="h-4 w-4" />}
           Criar {includedCount} projeto{includedCount !== 1 ? 's' : ''}
         </Button>
       </div>

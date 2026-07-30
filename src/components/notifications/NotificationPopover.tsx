@@ -1,10 +1,13 @@
 import { useNavigate } from 'react-router-dom';
-import { Bell, Clock, AlertTriangle, ArrowRight, ClipboardCheck } from 'lucide-react';
+import { Bell, Clock, AlertTriangle, ArrowRight, AtSign, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTicketNotifications, TicketNotification } from '@/hooks/useTicketNotifications';
 import { useReviewTaskNotifications, ReviewTaskNotification } from '@/hooks/useReviewTaskNotifications';
+import { useNotificacoesMencao, type MencaoNotificacao } from '@/hooks/useNotificacoesMencao';
+import { hrefDeOrigem, origemDoComentario, type AreaDeProjetos } from '@/lib/feedComentarios';
+import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -18,6 +21,12 @@ interface NotificationPopoverProps {
    * (com ?taskId=<id>). O deep-link abre o modal ignorando filtros/escopo.
    */
   tasksNavigateTo?: string;
+  /**
+   * Moldura em que a menção abre a tarefa/projeto de origem. Só define a base do
+   * link — o deep-link ignora filtros e escopo, e a RLS é o único limite, então
+   * uma menção da outra área abre normalmente pela moldura atual.
+   */
+  mencoesArea?: AreaDeProjetos;
 }
 
 const departmentLabels: Record<string, string> = {
@@ -30,7 +39,8 @@ const departmentLabels: Record<string, string> = {
 
 type UnifiedNotification =
   | ({ kind: 'ticket' } & TicketNotification)
-  | ({ kind: 'review' } & ReviewTaskNotification);
+  | ({ kind: 'review' } & ReviewTaskNotification)
+  | ({ kind: 'mencao' } & MencaoNotificacao);
 
 function TicketNotificationItem({
   notification,
@@ -146,10 +156,63 @@ function ReviewNotificationItem({
   );
 }
 
+/**
+ * Menção num comentário de tarefa/projeto.
+ *
+ * O que a pessoa precisa para decidir se abre agora: quem a citou, onde, e o
+ * começo do que foi dito — o corpo entra como recorte em texto plano, porque o
+ * comentário é documento rico e o balão do sino não renderiza thread.
+ */
+function MencaoNotificationItem({
+  notification,
+  onClick,
+}: {
+  notification: MencaoNotificacao;
+  onClick: () => void;
+}) {
+  const origem = origemDoComentario(notification);
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full p-3 text-left hover:bg-muted/50 transition-colors border-b border-border last:border-b-0 group"
+    >
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-primary/10 text-primary">
+          <AtSign className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
+            {notification.authorName} mencionou você
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+            {notification.trecho}
+          </p>
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-xs font-medium text-primary">Menção</span>
+            <span className="text-xs text-muted-foreground">•</span>
+            <span className="text-xs text-muted-foreground truncate">
+              {origem.rotulo} {origem.titulo}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {formatDistanceToNow(new Date(notification.created_at), {
+              addSuffix: true,
+              locale: ptBR,
+            })}
+          </p>
+        </div>
+        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
+      </div>
+    </button>
+  );
+}
+
 export function NotificationPopover({
   navigateTo,
   backTo,
   tasksNavigateTo = '/equipe/tax/projetos/tarefas',
+  mencoesArea = 'tax',
 }: NotificationPopoverProps) {
   const navigate = useNavigate();
   const {
@@ -161,15 +224,22 @@ export function NotificationPopover({
     notifications: reviewNotifications,
     isLoading: reviewsLoading,
   } = useReviewTaskNotifications();
+  const {
+    notifications: mencaoNotifications,
+    isLoading: mencoesLoading,
+    marcarComoLidas,
+  } = useNotificacoesMencao();
 
-  const isLoading = ticketsLoading || reviewsLoading;
-  const unreadCount = ticketNotifications.length + reviewNotifications.length;
+  const isLoading = ticketsLoading || reviewsLoading || mencoesLoading;
+  const unreadCount =
+    mencaoNotifications.length + ticketNotifications.length + reviewNotifications.length;
 
   const navState = backTo ? { state: { from: backTo } } : undefined;
 
-  // Feed unificado: revisões pendentes (novas ações do usuário) no topo,
-  // seguidas pelos chamados na ordem de urgência já calculada.
+  // Feed unificado: menções (alguém chamou a pessoa pelo nome) no topo, depois
+  // revisões pendentes e por fim os chamados, na ordem de urgência já calculada.
   const items: UnifiedNotification[] = [
+    ...mencaoNotifications.map((n) => ({ kind: 'mencao' as const, ...n })),
     ...reviewNotifications.map((n) => ({ kind: 'review' as const, ...n })),
     ...ticketNotifications.map((n) => ({ kind: 'ticket' as const, ...n })),
   ];
@@ -181,6 +251,16 @@ export function NotificationPopover({
 
   const handleReviewClick = (taskId: string) => {
     navigate(`${tasksNavigateTo}?taskId=${taskId}`, navState);
+  };
+
+  /**
+   * Abrir a menção é o que a marca como lida — carimba e navega sem esperar a
+   * gravação, para o clique não parecer travado. Se a gravação falhar, o toast
+   * do hook avisa e a menção continua na caixa.
+   */
+  const handleMencaoClick = (notification: MencaoNotificacao) => {
+    marcarComoLidas.mutate([notification.id]);
+    navigate(hrefDeOrigem(notification, mencoesArea), navState);
   };
 
   const handleViewAll = () => {
@@ -224,7 +304,7 @@ export function NotificationPopover({
         {/* Content */}
         {isLoading ? (
           <div className="p-6 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto" />
+            <AreaLoader area={mencoesArea} size={40} className="mx-auto text-primary" />
             <p className="text-sm text-muted-foreground mt-2">Carregando...</p>
           </div>
         ) : items.length === 0 ? (
@@ -237,21 +317,33 @@ export function NotificationPopover({
         ) : (
           <>
             <ScrollArea className="max-h-80">
-              {items.slice(0, 5).map((item) =>
-                item.kind === 'review' ? (
-                  <ReviewNotificationItem
-                    key={`review-${item.id}`}
-                    notification={item}
-                    onClick={() => handleReviewClick(item.id)}
-                  />
-                ) : (
+              {items.slice(0, 5).map((item) => {
+                if (item.kind === 'mencao') {
+                  return (
+                    <MencaoNotificationItem
+                      key={`mencao-${item.id}`}
+                      notification={item}
+                      onClick={() => handleMencaoClick(item)}
+                    />
+                  );
+                }
+                if (item.kind === 'review') {
+                  return (
+                    <ReviewNotificationItem
+                      key={`review-${item.id}`}
+                      notification={item}
+                      onClick={() => handleReviewClick(item.id)}
+                    />
+                  );
+                }
+                return (
                   <TicketNotificationItem
                     key={`ticket-${item.id}`}
                     notification={item}
                     onClick={() => handleTicketClick(item.id)}
                   />
-                )
-              )}
+                );
+              })}
             </ScrollArea>
 
             {/* Footer */}

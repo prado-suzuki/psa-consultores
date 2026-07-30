@@ -49,7 +49,7 @@ export function TaskStatusTransitionDialog({
 }: TaskStatusTransitionDialogProps) {
   const { user } = useAuth();
   const updateTask = useUpdateOrgTask(area, { showToasts: false });
-  const createComment = useCreateOrgTaskComment({ showToasts: false });
+  const createComment = useCreateOrgTaskComment({ showToasts: false, area });
   const [reviewerId, setReviewerId] = useState('');
   const [details, setDetails] = useState('');
   const [validationError, setValidationError] = useState('');

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { OrgProject } from '@/hooks/useOrgProjects';
 import type { OrgTask } from '@/hooks/useOrgTasks';
 import type { OsRow } from '@/lib/dashboardClientesOs/types';
-import { buildProjetosTarefasHierarchy, extractProductAcronyms } from '@/lib/projetosTarefasHierarchy';
+import { buildProjetosTarefasHierarchy, extractProductAcronyms, hasTaskFilters } from '@/lib/projetosTarefasHierarchy';
 
 const project = (id: string, osId: string | null = 'os-1'): OrgProject => ({
   id,
@@ -60,6 +60,11 @@ const os = {
 } as OsRow;
 
 describe('buildProjetosTarefasHierarchy', () => {
+  it('não trata a busca textual como filtro que esconde projetos sem tarefas', () => {
+    expect(hasTaskFilters({ search: 'Cliente Alfa' })).toBe(false);
+    expect(hasTaskFilters({ search: 'Cliente Alfa', status: ['todo'] })).toBe(true);
+  });
+
   it('extrai apenas as siglas dos produtos contratados', () => {
     expect(extractProductAcronyms('PTR — Planejamento Tributário, CT - Consultoria Tributária')).toEqual(['PTR', 'CT']);
     expect(extractProductAcronyms(null)).toEqual([]);
