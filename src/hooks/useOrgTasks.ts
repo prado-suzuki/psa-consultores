@@ -7,6 +7,7 @@
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { buildMoveTaskPlan, moveChangedFields, pruneNestedSelection } from '@/lib/orgTaskMove';
+import { taskSaveErrorMessage } from '@/lib/rlsMessages';
  
 export type OrgTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'em_ajuste' | 'done';
 export type OrgTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -324,7 +325,8 @@ export const useUpdateOrgTask = (
         if (showToasts) toast.success('Tarefa atualizada');
       },
       onError: (error) => {
-        if (showToasts) toast.error('Erro ao atualizar tarefa: ' + error.message);
+        if (showToasts)
+          toast.error(taskSaveErrorMessage(error, { prefix: 'Erro ao atualizar tarefa: ' }));
       },
    });
  };

@@ -625,7 +625,7 @@ export const TaskModal = ({
       handleOpenChange(false);
       toast.success(isEditing ? 'Tarefa atualizada' : 'Tarefa criada com sucesso');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao salvar tarefa');
+      toast.error(taskSaveErrorMessage(error));
       console.error('Error saving task:', error);
     }
   };
