@@ -1,26 +1,59 @@
-# Migration — RPC `gerar_solicitacao_os`
+## Objetivo
 
-Plano já aprovado. Registro final para aplicar em build mode.
+Parar de engolir a mensagem do banco no save de tarefa e traduzir o bloqueio do trigger RLS-06 em texto compreensível. Só frontend.
 
-## Migration única
+## 1. `src/lib/rlsMessages.ts` — duas funções puras novas
 
-`BEGIN` … `COMMIT` com:
+Adicionar (sem mexer no que já existe):
 
-1. `CREATE OR REPLACE FUNCTION public.gerar_solicitacao_os(_cliente_id uuid, _ordem_servico_id uuid) RETURNS integer` — PLPGSQL, VOLATILE, SECURITY DEFINER, `SET search_path = public`. Corpo exatamente como especificado:
-   - Guard 1: `cliente_visivel_para(_cliente_id)` → `42501`.
-   - Guard 2: OS pertence ao cliente e `excluido = false` → `42501`.
-   - CTE `itens`: agrupa por `item_padrao_id`, obrigatoriedade via `bool_or`.
-   - CTE `alvos`: expande por granularidade (`pessoa_pf`, `pessoa_pj`, `bem`, `matricula_rural`, `matricula_urbana`, e fallback nível cliente). Regra rural = `COALESCE(m.tipo_bem, b.tipo_bem) = 'IR' OR IS NULL`.
-   - Idempotência: `NOT EXISTS` com `IS NOT DISTINCT FROM` em `(cliente_id, item_padrao_id, pessoa_id, bem_id, matricula_id)`.
-   - Insere com `origem='padrao'`, `status='solicitado'`; retorna a contagem de linhas criadas.
-2. `COMMENT ON FUNCTION ...`.
-3. `REVOKE ALL ... FROM public` + `GRANT EXECUTE ... TO authenticated`.
+```ts
+export function extractErrorMessage(error: unknown): string | null
+export function taskSaveErrorMessage(error: unknown, options?: { prefix?: string }): string
+```
+
+`extractErrorMessage`:
+- `Error` → `error.message`; objeto simples com `message: string` (formato do supabase-js: `{message, code, details, hint}`) → esse `message`; string não vazia → ela mesma; qualquer outra coisa ou mensagem vazia/só espaços → `null`.
+- Exportado para reuso futuro nos ~46 arquivos que hoje usam `error instanceof Error ? ... : 'genérica'`. **Nenhum desses arquivos é alterado agora** — frente separada.
+
+`taskSaveErrorMessage`:
+- Usa `extractErrorMessage`. Sem mensagem → `"Não foi possível salvar a tarefa. Tente novamente."` (sem prefixo).
+- Normaliza para comparar: `toLowerCase()` + remoção de acentos (`normalize('NFD').replace(/\p{Diacritic}/gu, '')`), cobrindo com e sem acento.
+- Contém `so pode alterar status` (cobre as duas variantes do trigger) → retorna, **sem prefixo**:
+  `"Esta tarefa foi criada por outra pessoa. Você pode alterar status, horas e revisor. Título, descrição e os demais campos só quem criou a tarefa pode mudar."`
+- Qualquer outra mensagem → retorna a mensagem original, prefixada com `options.prefix` quando informado.
+
+## 2. Teste
+
+Novo `src/lib/rlsMessages.test.ts` (vitest):
+- `extractErrorMessage`: `Error`, objeto supabase-js, string, `null`/`{}`/`{message: ''}` → `null`.
+- `taskSaveErrorMessage`: duas variantes do trigger (com e sem acento) → mensagem mapeada e sem prefixo mesmo passando `prefix`; mensagem qualquer → original, e com `prefix` → prefixada; sem mensagem → fallback sem prefixo.
+
+## 3. `TaskModal.tsx` (~linha 628)
+
+```ts
+} catch (error) {
+  toast.error(taskSaveErrorMessage(error));
+  console.error('Error saving task:', error);
+}
+```
+Sem prefixo. `console.error` com o objeto cru permanece.
+
+## 4. `src/hooks/useOrgTasks.ts` — `useUpdateOrgTask`
+
+`onError` (linha ~326):
+
+```ts
+if (showToasts) toast.error(taskSaveErrorMessage(error, { prefix: 'Erro ao atualizar tarefa: ' }));
+```
+
+Os demais `onError` do arquivo (criar, mover, excluir, reatribuir) ficam como estão.
 
 ## Fora de escopo
-Nenhuma alteração em tabela, coluna, policy, trigger, view, frontend, ou dados. `types.ts` é regerado automaticamente após a aplicação.
 
-## Depois da aplicação
-Executo o GATE (Partes 1, 2 e 3) com o bloco corrigido do `esperado` (usando `count(DISTINCT pci.item_padrao_id)` sobre todos os produtos da OS) e a consulta extra por produto, devolvendo:
-- metadados da função;
-- `esperado`, `criados_primeira_vez`, `criados_segunda_vez`, `pares_duplicados`, contagens por entidade/origem/status;
-- confirmação de que `produto_checklist_item`, `checklist_cliente_item(cliente_teste)` e `os_produtos_contratados(OS_teste)` voltaram para `260 / 0 / 1`.
+Policies, triggers, banco, campos do formulário, demais toasts e os ~46 arquivos com o padrão antigo.
+
+## GATE
+
+1. team_member alterando título de tarefa de outra pessoa → mensagem clara, sem "RLS-06" e sem prefixo.
+2. Mesma tarefa, só status → salva normal.
+3. Outro erro do banco → mensagem original preservada (com prefixo no hook, sem prefixo no modal).
