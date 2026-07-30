@@ -30,6 +30,7 @@ function renderList(props: Partial<Parameters<typeof ProjetosTarefasList>[0]> = 
       onEditTask={noop}
       onDeleteTask={noop}
       onReassignTask={noop}
+      onMoveTask={noop}
       onAddSubtask={noop}
       {...props}
     />,

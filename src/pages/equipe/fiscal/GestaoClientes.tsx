@@ -45,7 +45,7 @@ import ClientesFilterBar, {
 } from '@/components/equipe/clientes/ClientesFilterBar';
 
 /* ── Sub-componente: OS + produtos contratados ── */
-const OsSubTable = ({ clienteId }: { clienteId: string }) => {
+const OsSubTable = ({ clienteId, area }: { clienteId: string; area?: AreaKey }) => {
   const { data, isLoading } = useOsExpand(clienteId);
 
   return (
@@ -55,7 +55,7 @@ const OsSubTable = ({ clienteId }: { clienteId: string }) => {
       </p>
       {isLoading ? (
         <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <AreaLoader area={area} size={20} />
           Carregando OS…
         </div>
       ) : !data?.length ? (
@@ -123,17 +123,6 @@ const OsSubTable = ({ clienteId }: { clienteId: string }) => {
 const ContribuinteSubTable = ({ clienteId, area }: { clienteId: string; area?: AreaKey }) => {
   const { data, isLoading } = useContribuintesExpand(clienteId);
 
-  if (isLoading)
-    return (
-      <div className="flex items-center gap-2 py-3 text-muted-foreground text-sm">
-        <AreaLoader area={area} size={20} />
-        Carregando contribuintes…
-      </div>
-    );
-
-  if (!data?.length)
-    return <p className="text-sm text-muted-foreground py-2">Nenhum contribuinte cadastrado</p>;
-
   return (
     <div className="ml-10 border-l-2 border-primary/25 bg-muted/25 px-4 py-2.5">
       <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -141,38 +130,40 @@ const ContribuinteSubTable = ({ clienteId, area }: { clienteId: string; area?: A
       </p>
       {isLoading ? (
         <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <AreaLoader area={area} size={20} />
           Carregando contribuintes…
         </div>
       ) : !data?.length ? (
         <p className="py-2 text-sm text-muted-foreground">Nenhum contribuinte cadastrado</p>
       ) : (
         <Table>
-        <TableHeader>
-          <TableRow className="border-border/60 hover:bg-transparent">
-            <TableHead className="h-9 text-xs uppercase tracking-wider">CPF/CNPJ</TableHead>
-            <TableHead className="h-9 text-xs uppercase tracking-wider">Razão Social</TableHead>
-            <TableHead className="h-9 text-xs uppercase tracking-wider">
-              Inscrição Estadual
-            </TableHead>
-            <TableHead className="h-9 text-xs uppercase tracking-wider">Simples Nacional</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((c) => (
-            <TableRow key={c.id} className="border-border/40 hover:bg-transparent">
-              <TableCell className="py-2.5 text-sm text-muted-foreground">
-                {c.cpf_cnpj || '-'}
-              </TableCell>
-              <TableCell className="py-2.5 text-sm font-medium">{c.nome_razao_social}</TableCell>
-              <TableCell className="py-2.5 text-sm text-muted-foreground">
-                {c.inscricao_estadual || '-'}
-              </TableCell>
-              <TableCell className="py-2.5 text-sm text-muted-foreground">
-                {c.simples_nacional ? 'Sim' : 'Não'}
-              </TableCell>
+          <TableHeader>
+            <TableRow className="border-border/60 hover:bg-transparent">
+              <TableHead className="h-9 text-xs uppercase tracking-wider">CPF/CNPJ</TableHead>
+              <TableHead className="h-9 text-xs uppercase tracking-wider">Razão Social</TableHead>
+              <TableHead className="h-9 text-xs uppercase tracking-wider">
+                Inscrição Estadual
+              </TableHead>
+              <TableHead className="h-9 text-xs uppercase tracking-wider">
+                Simples Nacional
+              </TableHead>
             </TableRow>
-          ))}
+          </TableHeader>
+          <TableBody>
+            {data.map((c) => (
+              <TableRow key={c.id} className="border-border/40 hover:bg-transparent">
+                <TableCell className="py-2.5 text-sm text-muted-foreground">
+                  {c.cpf_cnpj || '-'}
+                </TableCell>
+                <TableCell className="py-2.5 text-sm font-medium">{c.nome_razao_social}</TableCell>
+                <TableCell className="py-2.5 text-sm text-muted-foreground">
+                  {c.inscricao_estadual || '-'}
+                </TableCell>
+                <TableCell className="py-2.5 text-sm text-muted-foreground">
+                  {c.simples_nacional ? 'Sim' : 'Não'}
+                </TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       )}
@@ -459,11 +450,9 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
                     </TableRow>
                     {isExpanded && (
                       <TableRow className="border-border/50 bg-muted/10 hover:bg-muted/10">
-                        <TableCell colSpan={totalCols} className="p-0 px-2 py-3">
-                          <ContribuinteSubTable clienteId={row.id} area={area} />
                         <TableCell colSpan={totalCols} className="space-y-3 p-0 px-2 py-3">
-                          <OsSubTable clienteId={row.id} />
-                          <ContribuinteSubTable clienteId={row.id} />
+                          <OsSubTable clienteId={row.id} area={area} />
+                          <ContribuinteSubTable clienteId={row.id} area={area} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -547,7 +536,9 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
               disabled={deleteMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteMutation.isPending ? <AreaLoader area={area} size={18} className="mr-2" /> : null}
+              {deleteMutation.isPending ? (
+                <AreaLoader area={area} size={18} className="mr-2" />
+              ) : null}
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>
