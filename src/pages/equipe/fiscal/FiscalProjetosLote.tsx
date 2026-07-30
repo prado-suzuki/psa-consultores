@@ -3,7 +3,7 @@ import { ProjetosLoteContent } from '@/components/equipe/projetos-lote/ProjetosL
 
 const FiscalProjetosLote = () => (
   <FiscalLayout title="Criar projetos em lote" subtitle="Um projeto por produto da Ordem de Serviço">
-    <ProjetosLoteContent />
+    <ProjetosLoteContent area="tax" />
   </FiscalLayout>
 );
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange, GanttChart, ListTree } from 'lucide-react';
+import { Plus, CalendarDays, FolderPlus, Table2, Trello, Sun, CalendarRange, GanttChart, ListTree } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -19,6 +19,7 @@ import { useOrgProjectOrders } from '@/hooks/useOrgProjectOrders';
 import { ProjetosCadastroContext } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
 import { ProjetoDialog } from '@/components/equipe/projetos-cadastro/ProjetoDialog';
 import { ProjetoDeleteDialog } from '@/components/equipe/projetos-cadastro/ProjetoDeleteDialog';
+import { CriarProjetosOsDialog } from '@/components/equipe/projetos-lote/CriarProjetosOsDialog';
 import { ProjetosTarefasList } from '@/components/equipe/tarefas/ProjetosTarefasList';
 import { extractProductAcronyms, type ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
 import { TaskFilters } from '@/components/equipe/fiscal/tasks/TaskFilters';
@@ -67,6 +68,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const [taskToMove, setTaskToMove] = useState<OrgTask | null>(null);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
   const [isBulkMoveOpen, setIsBulkMoveOpen] = useState(false);
+  const [isCriarProjetosOsOpen, setIsCriarProjetosOsOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [openedDeepLinkId, setOpenedDeepLinkId] = useState<string | null>(null);
   const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
@@ -242,6 +244,10 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     setIsReassignModalOpen(true);
   };
 
+  // Criar projetos a partir da OS define equipe, líderes e executores do projeto
+  // — decisão de quem coordena. Membro comum não vê o botão.
+  const canCreateProjects = isAdmin || isLider || isSublider;
+
   // Espelha o trigger org_tasks_team_member_status_only: trocar o projeto é
   // mudança fora do trio status/horas/revisor, então só líder (ou superior) e o
   // criador da tarefa conseguem. Avisa antes em vez de deixar o banco recusar.
@@ -344,9 +350,26 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 teamMembers={teamMembers}
                 projects={projects}
               />
-              <Button size="sm" className="ml-auto h-9 shrink-0" onClick={() => handleNewTask()}>
-                <Plus className="mr-2 h-4 w-4" />Nova tarefa
-              </Button>
+              {/* ml-auto no grupo, não no primeiro botão: "Criar Projeto" é
+                  condicional e sem isso "Nova tarefa" perderia o alinhamento à
+                  direita para quem não tem permissão. */}
+              <div className="ml-auto flex items-center gap-2">
+                {/* Criação de projetos a partir da OS: antes só existia na aba de OS
+                    do cadastro do cliente, agora mora onde a execução é acompanhada. */}
+                {canCreateProjects && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 shrink-0"
+                    onClick={() => setIsCriarProjetosOsOpen(true)}
+                  >
+                    <FolderPlus className="mr-2 h-4 w-4" />Criar Projeto
+                  </Button>
+                )}
+                <Button size="sm" className="h-9 shrink-0" onClick={() => handleNewTask()}>
+                  <Plus className="mr-2 h-4 w-4" />Nova tarefa
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -451,6 +474,10 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
 
       <ProjetoDialog />
       <ProjetoDeleteDialog />
+
+      {canCreateProjects && (
+        <CriarProjetosOsDialog open={isCriarProjetosOsOpen} onOpenChange={setIsCriarProjetosOsOpen} area={area} />
+      )}
 
       {/* Move Modal */}
       <MoveTaskModal

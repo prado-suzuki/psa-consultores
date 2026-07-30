@@ -5,19 +5,22 @@ import { useCreateOrgProjectsBatch, useOrgProjects } from '@/hooks/useOrgProject
 import { useEstruturaEquipesByCategory } from '@/hooks/useEstruturaEquipes';
 import { useTeamProfilesSafe, useTeamRolesForProjects } from '@/hooks/useTaxReferenceData';
 import { useTeamMembersByArea } from '@/hooks/useTeamMembersByArea';
+import type { AreaKey } from '@/config/areaCategories';
 import {
   buildInitialRows,
   buildLoteFormData,
   findProdutosJaCriados,
+  resolveLoteRoutes,
   validateLoteRow,
   type LoteCommon,
   type LoteFromOsLocationState,
   type LoteRow,
 } from '@/lib/projetosLote';
 
-export function useProjetosLoteController() {
+export function useProjetosLoteController(area: AreaKey) {
   const location = useLocation();
   const navigate = useNavigate();
+  const routes = resolveLoteRoutes(area);
   const state = (location.state as LoteFromOsLocationState | null)?.loteFromOs ?? null;
 
   // Campos comuns (datas/status/descrição) vêm da OS e não são editados nesta tela.
@@ -26,7 +29,9 @@ export function useProjetosLoteController() {
     : { startDate: '', endDate: '', status: 'active', description: '' });
   const [rows, setRows] = useState<LoteRow[]>(() => (state ? buildInitialRows(state) : []));
 
-  const { data: equipesOptions = [] } = useEstruturaEquipesByCategory('tax');
+  // Equipes da área em que a tela foi aberta: em OSG, oferecer as equipes do Tax
+  // criaria o projeto na estrutura errada.
+  const { data: equipesOptions = [] } = useEstruturaEquipesByCategory(area);
   const { data: teamMembers = [] } = useTeamProfilesSafe();
   const { data: userRoles = [] } = useTeamRolesForProjects();
   const { data: areaGroupsData } = useTeamMembersByArea();
@@ -82,13 +87,13 @@ export function useProjetosLoteController() {
     const payload = included.map(row => buildLoteFormData(state.clientId, state.ordemServicoId, common, row));
     createBatch.mutate(payload, {
       onSuccess: (result) => {
-        if (result.created > 0) navigate('/equipe/tax/projetos/cadastro');
+        if (result.created > 0) navigate(routes.projetos);
       },
     });
   };
 
   return {
-    state, common, rows, updateRow, includedCount, jaCriados, todosJaCriados,
+    state, routes, common, rows, updateRow, includedCount, jaCriados, todosJaCriados,
     equipesOptions, teamMembers, userRoles, areaGroups, currentUserAreaIds, createBatch, handleCreate,
   };
 }
