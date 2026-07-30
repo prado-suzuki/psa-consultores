@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 import { Loader2 } from 'lucide-react';
 import TaxLoader from '@/components/equipe/fiscal/TaxLoader';
+import OsgWorkLoader from '@/components/equipe/osg/OsgWorkLoader';
 import type { AreaKey } from '@/config/areaCategories';
 import { cn } from '@/lib/utils';
 
@@ -52,7 +53,9 @@ export const DefaultAreaLoader: AreaLoaderGlyph = ({
  */
 const AREA_LOADER_GLYPHS: Partial<Record<AreaKey, AreaLoaderGlyph>> = {
   tax: TaxLoader,
-  // osg: <OsgLoader> quando o ícone da OSG existir. Até lá, spinner padrão.
+  // `osg` é uma área só no registro, então o Sísifo atende Projects E Work — não
+  // há chave separada por sub-área, e o glifo é o mesmo da marca da OSG.
+  osg: OsgWorkLoader,
 };
 
 export interface AreaLoaderProps extends AreaLoaderGlyphProps {

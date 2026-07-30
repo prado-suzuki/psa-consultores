@@ -55,13 +55,23 @@ describe('ProjetosTarefasList — estado de carregamento', () => {
     expect(screen.queryByText('Nenhum projeto ou tarefa encontrado')).not.toBeInTheDocument();
   });
 
-  it('usa o TaxLoader na área Tax e o spinner padrão nas demais', () => {
+  it('usa o glifo de cada área — porquinho na Tax, Sísifo na OSG', () => {
     const { container: tax } = renderList({ area: 'tax', isLoading: true });
     expect(tax.querySelectorAll('.animate-tax-coin-fall').length).toBeGreaterThan(0);
+    expect(tax.querySelectorAll('.animate-spin')).toHaveLength(0);
 
     const { container: osg } = renderList({ area: 'osg', isLoading: true });
+    expect(osg.querySelectorAll('.animate-osg-sisyphus-hip-front').length).toBeGreaterThan(0);
     expect(osg.querySelectorAll('.animate-tax-coin-fall')).toHaveLength(0);
-    expect(osg.querySelectorAll('.animate-spin').length).toBeGreaterThan(0);
+    // Sem spinner genérico sobrando, senão a troca ficou pela metade.
+    expect(osg.querySelectorAll('.animate-spin')).toHaveLength(0);
+  });
+
+  it('cai no spinner padrão nas áreas sem glifo próprio', () => {
+    const { container } = renderList({ area: 'digital', isLoading: true });
+
+    expect(container.querySelectorAll('.animate-spin').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.animate-osg-sisyphus-hip-front')).toHaveLength(0);
   });
 
   it('o loader tem precedência sobre o vazio de filtros — carregando não é "nada corresponde"', () => {
