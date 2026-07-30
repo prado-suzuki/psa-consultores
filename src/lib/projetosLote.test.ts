@@ -1,10 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import {
+  buildInitialRows,
+  buildLegacyLoteProjectName,
   buildLoteFormData,
   buildLoteFromOs,
   buildLoteOsOptionsByClient,
-  buildLoteProjectName,
   buildProdutoLabel,
+  buildProdutoNome,
   findProdutosJaCriados,
   resolveLoteRoutes,
   validateLoteRow,
@@ -60,23 +62,29 @@ describe('findProdutosJaCriados', () => {
   const cliente = 'Agro Amazônia Produtos Agropecuários S.a.';
   const os = '035/2026';
   const produtos: LoteProduto[] = [
-    { produtoSegmentoId: 'dc', produtoLabel: 'DC — Diagnóstico contábil' },
-    { produtoSegmentoId: 'cha', produtoLabel: 'CHA — Canal de Chamados' },
-    { produtoSegmentoId: 'af', produtoLabel: 'AF — Atendimento a fiscalizações' },
+    { produtoSegmentoId: 'dc', produtoLabel: 'DC — Diagnóstico contábil', produtoNome: 'Diagnóstico contábil' },
+    { produtoSegmentoId: 'cha', produtoLabel: 'CHA — Canal de Chamados', produtoNome: 'Canal de Chamados' },
+    { produtoSegmentoId: 'af', produtoLabel: 'AF — Atendimento a fiscalizações', produtoNome: 'Atendimento a fiscalizações' },
   ];
 
   it('OS sem projeto: nada marcado como já criado', () => {
     expect(findProdutosJaCriados([], cliente, os, produtos)).toEqual([]);
   });
 
-  it('reconhece pelo nome padrão gerado', () => {
-    const existentes = [{ name: buildLoteProjectName(cliente, os, 'CHA — Canal de Chamados') }];
+  it('reconhece pelo nome padrão atual (só o nome do produto)', () => {
+    const existentes = [{ name: 'Canal de Chamados' }];
     expect(findProdutosJaCriados(existentes, cliente, os, produtos)).toEqual(['cha']);
   });
 
-  it('ignora diferença de caixa e espaço extra', () => {
-    const existentes = [{ name: `  ${buildLoteProjectName(cliente, os, 'DC — Diagnóstico contábil').toUpperCase()}  ` }];
-    expect(findProdutosJaCriados(existentes, cliente, os, produtos)).toEqual(['dc']);
+  it('reconhece o padrão antigo, criado antes do nome curto', () => {
+    const existentes = [{ name: buildLegacyLoteProjectName(cliente, os, 'CHA — Canal de Chamados') }];
+    expect(findProdutosJaCriados(existentes, cliente, os, produtos)).toEqual(['cha']);
+  });
+
+  it('ignora diferença de caixa e espaço extra nos dois formatos', () => {
+    expect(findProdutosJaCriados([{ name: '  DIAGNÓSTICO CONTÁBIL  ' }], cliente, os, produtos)).toEqual(['dc']);
+    const legado = buildLegacyLoteProjectName(cliente, os, 'DC — Diagnóstico contábil').toUpperCase();
+    expect(findProdutosJaCriados([{ name: `  ${legado}  ` }], cliente, os, produtos)).toEqual(['dc']);
   });
 
   it('reconhece projeto renomeado que ainda carrega o rótulo do produto', () => {
@@ -84,14 +92,27 @@ describe('findProdutosJaCriados', () => {
     expect(findProdutosJaCriados(existentes, cliente, os, produtos)).toEqual(['af']);
   });
 
-  it('renomeado sem o rótulo escapa da detecção (limite conhecido)', () => {
+  it('renomeado sem o nome nem o rótulo escapa da detecção (limite conhecido)', () => {
     const existentes = [{ name: 'Projeto de chamados do Agro' }];
     expect(findProdutosJaCriados(existentes, cliente, os, produtos)).toEqual([]);
   });
 
-  it('marca todos quando a OS inteira já foi criada', () => {
-    const existentes = produtos.map(produto => ({ name: buildLoteProjectName(cliente, os, produto.produtoLabel) }));
+  it('marca todos quando a OS inteira já foi criada com o nome curto', () => {
+    const existentes = produtos.map(produto => ({ name: produto.produtoNome }));
     expect(findProdutosJaCriados(existentes, cliente, os, produtos)).toEqual(['dc', 'cha', 'af']);
+  });
+
+  it('OS com os dois formatos misturados detecta ambos', () => {
+    const existentes = [
+      { name: 'Canal de Chamados' },
+      { name: buildLegacyLoteProjectName(cliente, os, 'DC — Diagnóstico contábil') },
+    ];
+    expect(findProdutosJaCriados(existentes, cliente, os, produtos)).toEqual(['dc', 'cha']);
+  });
+
+  it('produto sem nome não casa com projeto de nome vazio', () => {
+    const semNome: LoteProduto[] = [{ produtoSegmentoId: 'x', produtoLabel: '', produtoNome: '' }];
+    expect(findProdutosJaCriados([{ name: '   ' }], cliente, os, semNome)).toEqual([]);
   });
 });
 
@@ -169,8 +190,8 @@ describe('buildLoteFromOs', () => {
       status: 'active',
       description: 'Escopo da OS',
       produtos: [
-        { produtoSegmentoId: 'ps-cha', produtoLabel: 'CHA — Canal de Chamados' },
-        { produtoSegmentoId: 'ps-dc', produtoLabel: 'DC — Diagnóstico Contábil' },
+        { produtoSegmentoId: 'ps-cha', produtoLabel: 'CHA — Canal de Chamados', produtoNome: 'Canal de Chamados' },
+        { produtoSegmentoId: 'ps-dc', produtoLabel: 'DC — Diagnóstico Contábil', produtoNome: 'Diagnóstico Contábil' },
       ],
     });
   });
@@ -193,10 +214,53 @@ describe('buildLoteFromOs', () => {
     expect(vazia).toMatchObject({ osNumero: '', startDate: '', endDate: '', description: '', produtos: [] });
   });
 
-  it('o nome gerado casa com o que findProdutosJaCriados procura', () => {
+  it('o nome padrão gerado casa com o que findProdutosJaCriados procura', () => {
     const state = buildLoteFromOs(cliente, osBase, produtosOs);
-    const existentes = [{ name: buildLoteProjectName(state.clientName, state.osNumero, state.produtos[0].produtoLabel) }];
+    const existentes = [{ name: buildInitialRows(state)[0].name }];
     expect(findProdutosJaCriados(existentes, state.clientName, state.osNumero, state.produtos)).toEqual(['ps-cha']);
+  });
+
+  it('separa rótulo e nome do produto', () => {
+    const state = buildLoteFromOs(cliente, osBase, produtosOs);
+    expect(state.produtos[0]).toEqual({
+      produtoSegmentoId: 'ps-cha',
+      produtoLabel: 'CHA — Canal de Chamados',
+      produtoNome: 'Canal de Chamados',
+    });
+  });
+});
+
+describe('buildInitialRows', () => {
+  const state = buildLoteFromOs(
+    { id: 'cli1', nome: 'Fazenda Horizonte' },
+    { id: 'os1', numero_os: '035/2026', situacao: 'em_andamento', data_inicio: '2026-01-01', data_fim: '2026-12-31' },
+    [
+      { produto_segmento_id: 'ps-cha', produto_codigo: 'CHA', produto_nome: 'Canal de Chamados' },
+      { produto_segmento_id: 'ps-dc', produto_codigo: 'DC', produto_nome: 'Diagnóstico Contábil' },
+    ],
+  );
+
+  it('o nome padrão é só o nome do produto, sem cliente, OS nem sigla', () => {
+    expect(buildInitialRows(state).map(row => row.name)).toEqual(['Canal de Chamados', 'Diagnóstico Contábil']);
+  });
+
+  it('a linha guarda o rótulo completo para identificar o produto na tela', () => {
+    expect(buildInitialRows(state)[0].produtoLabel).toBe('CHA — Canal de Chamados');
+  });
+});
+
+describe('buildProdutoNome', () => {
+  it('usa só o nome, deixando a sigla de fora', () => {
+    expect(buildProdutoNome({ produto_segmento_id: 'ps1', produto_codigo: 'CHA', produto_nome: 'Canal de Chamados' }))
+      .toBe('Canal de Chamados');
+  });
+
+  it('sem nome, cai no código para não gerar projeto sem nome', () => {
+    expect(buildProdutoNome({ produto_segmento_id: 'ps1', produto_codigo: 'CHA', produto_nome: null })).toBe('CHA');
+  });
+
+  it('sem nome nem código, cai no id', () => {
+    expect(buildProdutoNome({ produto_segmento_id: 'ps1', produto_codigo: null, produto_nome: null })).toBe('ps1');
   });
 });
 

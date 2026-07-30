@@ -134,8 +134,8 @@ describe('CriarProjetosOsDialog', () => {
           status: 'active',
           description: 'Escopo combinado',
           produtos: [
-            { produtoSegmentoId: 'ps-cha', produtoLabel: 'CHA — Canal de Chamados' },
-            { produtoSegmentoId: 'ps-dc', produtoLabel: 'DC — Diagnóstico Contábil' },
+            { produtoSegmentoId: 'ps-cha', produtoLabel: 'CHA — Canal de Chamados', produtoNome: 'Canal de Chamados' },
+            { produtoSegmentoId: 'ps-dc', produtoLabel: 'DC — Diagnóstico Contábil', produtoNome: 'Diagnóstico Contábil' },
           ],
         },
       },
