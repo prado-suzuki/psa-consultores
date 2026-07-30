@@ -74,6 +74,7 @@ import {
 import { useReviewerCandidates } from '@/hooks/useReviewerCandidates';
 import { statusList } from '@/lib/taskStatusColors';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { taskSaveErrorMessage } from '@/lib/rlsMessages';
 import {
   ReviewRichTextContent,
   ReviewRichTextEditor,
@@ -625,7 +626,7 @@ export const TaskModal = ({
       handleOpenChange(false);
       toast.success(isEditing ? 'Tarefa atualizada' : 'Tarefa criada com sucesso');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Erro ao salvar tarefa');
+      toast.error(taskSaveErrorMessage(error));
       console.error('Error saving task:', error);
     }
   };
