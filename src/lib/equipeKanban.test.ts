@@ -399,4 +399,5 @@ describe('equipeKanban', () => {
     expect(getEquipeKanbanErrorMessage({ message: 42 }, 'fallback')).toBe('fallback');
     expect(getEquipeKanbanErrorMessage('erro', 'fallback')).toBe('fallback');
   });
+
 });

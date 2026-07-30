@@ -62,6 +62,25 @@ export function useEquipeKanbanAttachments() {
     ...mutationOptions,
   });
 
+  // URLs temporárias só para exibir miniatura de print no modal. O bucket é
+  // privado, então sem isto a <img> não carrega.
+  const previews = useMutation({
+    mutationKey: ['domain-equipe-kanban', 'preview-attachments'],
+    mutationFn: async (filePaths: string[]) => {
+      if (filePaths.length === 0) return {} as Record<string, string>;
+      const { data, error } = await supabase.storage
+        .from('deliverable-attachments')
+        .createSignedUrls(filePaths, 3600);
+      if (error) throw error;
+      const porCaminho: Record<string, string> = {};
+      for (const item of data ?? []) {
+        if (item.path && item.signedUrl) porCaminho[item.path] = item.signedUrl;
+      }
+      return porCaminho;
+    },
+    ...mutationOptions,
+  });
+
   const remove = useMutation({
     mutationKey: ['domain-equipe-kanban', 'delete-attachment'],
     mutationFn: async (attachment: EquipeKanbanAttachment) => {
@@ -72,5 +91,5 @@ export function useEquipeKanbanAttachments() {
     ...mutationOptions,
   });
 
-  return { load, upload, download, remove };
+  return { load, upload, download, remove, previews };
 }

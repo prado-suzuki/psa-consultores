@@ -8,7 +8,6 @@ import { KanbanFilters } from '@/components/equipe/kanban/KanbanFilters';
 import { KanbanTable } from '@/components/equipe/kanban/KanbanTable';
 import { OpenSubtasksWarningDialog } from '@/components/equipe/OpenSubtasksWarningDialog';
 import { Button } from '@/components/ui/button';
-import { useEquipeKanbanAttachments } from '@/hooks/useDomainEquipeKanbanAttachments';
 import { useEquipeKanbanDeliverableMutations } from '@/hooks/useDomainEquipeKanbanDeliverableMutations';
 import { useEquipeKanbanInitialQuery } from '@/hooks/useDomainEquipeKanbanQueries';
 import { useDeliverableBlockers } from '@/hooks/useDeliverableBlockers';
@@ -25,8 +24,6 @@ import {
   hidesOpenSubtasksOutsideItsColumn,
   normalizeEquipeKanbanStatus,
   selectEquipeKanbanVisibleDeliverables,
-  validateEquipeKanbanFile,
-  type EquipeKanbanAttachment as Attachment,
   type EquipeKanbanDeliverable as Deliverable,
   type EquipeKanbanProcess as Process,
   type EquipeKanbanProfile as Profile,
@@ -44,7 +41,6 @@ const EquipeKanban = () => {
   const [initialDataApplied, setInitialDataApplied] = useState(false);
   const initialQuery = useEquipeKanbanInitialQuery();
   const deliverableMutations = useEquipeKanbanDeliverableMutations();
-  const attachmentMutations = useEquipeKanbanAttachments();
   const { data: blockers = {} } = useDeliverableBlockers();
   // Selo de bloqueio só faz sentido em tarefa aberta (concluída = destravado na prática).
   const getBlocker = (deliverable: Deliverable) =>
@@ -71,10 +67,6 @@ const EquipeKanban = () => {
     estimated_hours: '',
     actual_hours: '',
   });
-  const [attachments, setAttachments] = useState<Attachment[]>([]);
-  const [uploadingFile, setUploadingFile] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [filterSprint, setFilterSprint] = usePersistedState<string>('rotina.kanban.sprint', 'all');
   const [filterResponsible, setFilterResponsible] = usePersistedState<string>(
     'rotina.kanban.responsavel',
@@ -324,8 +316,6 @@ const EquipeKanban = () => {
       estimated_hours: deliverable.estimated_hours?.toString() || '',
       actual_hours: deliverable.actual_hours?.toString() || '',
     });
-    const attachmentsData = await attachmentMutations.load.mutateAsync(deliverable.id);
-    setAttachments(attachmentsData);
   };
 
   const saveDeliverable = async () => {
@@ -367,60 +357,6 @@ const EquipeKanban = () => {
     } catch (error) {
       console.error('Error saving deliverable:', error);
       toast.error('Erro ao salvar');
-    }
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0 || !selectedDeliverable) return;
-    const file = files[0];
-    const validationError = validateEquipeKanbanFile(file);
-    if (validationError) {
-      toast.error(validationError);
-      return;
-    }
-    setUploadingFile(true);
-    try {
-      const attachmentsData = await attachmentMutations.upload.mutateAsync({
-        deliverableId: selectedDeliverable.id,
-        file,
-      });
-      setAttachments(attachmentsData);
-      toast.success('Arquivo anexado');
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      toast.error('Erro ao enviar arquivo');
-    } finally {
-      setUploadingFile(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-    }
-  };
-
-  const downloadFile = async (attachment: Attachment) => {
-    try {
-      const blob = await attachmentMutations.download.mutateAsync(attachment.file_path);
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement('a');
-      anchor.href = url;
-      anchor.download = attachment.file_name;
-      document.body.appendChild(anchor);
-      anchor.click();
-      document.body.removeChild(anchor);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading file:', error);
-      toast.error('Erro ao baixar arquivo');
-    }
-  };
-
-  const deleteFile = async (attachment: Attachment) => {
-    try {
-      await attachmentMutations.remove.mutateAsync(attachment);
-      setAttachments(attachments.filter((item) => item.id !== attachment.id));
-      toast.success('Arquivo removido');
-    } catch (error) {
-      console.error('Error deleting file:', error);
-      toast.error(getEquipeKanbanErrorMessage(error, 'Erro ao remover arquivo'));
     }
   };
 
@@ -559,9 +495,6 @@ const EquipeKanban = () => {
         editForm={editForm}
         profiles={profiles}
         subtasks={selectedSubtasks}
-        attachments={attachments}
-        fileInputRef={fileInputRef}
-        uploadingFile={uploadingFile}
         deleting={deleting}
         deleteDialogOpen={deleteDialogOpen}
         setEditForm={setEditForm}
@@ -569,9 +502,6 @@ const EquipeKanban = () => {
         onDeleteDialogOpenChange={setDeleteDialogOpen}
         onSave={saveDeliverable}
         onDeleteDeliverable={deleteDeliverable}
-        onFileUpload={handleFileUpload}
-        onDownloadFile={downloadFile}
-        onDeleteFile={deleteFile}
         onSubtaskStatusChange={async (subtask) => {
           const newStatus = subtask.status === 'completed' ? 'pending' : 'completed';
           await updateDeliverableStatus(subtask.id, newStatus);

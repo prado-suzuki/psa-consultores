@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { AnexosEntregavel } from '@/components/equipe/AnexosEntregavel';
 import type {
   DeliverableForm,
   EquipeSprintDetalhesController,
@@ -293,6 +294,7 @@ export function DeliverableDialogs({
             controller={c}
             editingId={c.editingDeliverable?.id}
           />
+          <AnexosEntregavel deliverableId={c.editingDeliverable?.id} ativo={c.editModalOpen} />
           <DialogFooter className="flex justify-between sm:justify-between">
             <AlertDialog open={c.deleteDialogOpen} onOpenChange={c.setDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
