@@ -1,7 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
 
 import { CommentComposer } from '@/components/comentarios/CommentComposer';
-import { feedComentariosQueryKey, type FeedComentario } from '@/hooks/useDomainFeedComentarios';
+import {
+  feedComentariosQueryKeyPrefix,
+  type FeedComentario,
+} from '@/hooks/useDomainFeedComentarios';
 import { useDomainMentionCandidates } from '@/hooks/useDomainMentionCandidates';
 import { useDomainOrgComments } from '@/hooks/useDomainOrgComments';
 import { parentIdParaResposta, type AreaDeProjetos } from '@/lib/feedComentarios';
@@ -47,6 +50,7 @@ export function FeedRespostaInline({
   return (
     <CommentComposer
       compact
+      area={area}
       isPending={isCreating}
       mentionCandidates={mentionCandidates}
       replyingToName={comentario.author_name}
@@ -60,8 +64,9 @@ export function FeedRespostaInline({
         });
         // A resposta é o comentário mais novo do sistema, então entra no topo do
         // feed. Invalidar refaz as páginas carregadas pelos cursores já
-        // conhecidos, sem repetir nem perder item.
-        await queryClient.invalidateQueries({ queryKey: feedComentariosQueryKey() });
+        // conhecidos, sem repetir nem perder item. Pelo PREFIXO, para valer
+        // também no recorte filtrado que está na tela.
+        await queryClient.invalidateQueries({ queryKey: feedComentariosQueryKeyPrefix() });
         onRespondeu();
       }}
     />

@@ -603,7 +603,43 @@ conteúdo seria pior. O conserto é um ramo novo na policy, no padrão de conjun
 (`id = ANY(public.mentioned_org_comment_ids(auth.uid()))`, não `EXISTS` por linha, que
 pesaria na varredura global do feed). Fica como decisão de escopo/segurança, não embarcada.
 
+**Filtros do feed — ENTREGUE em 2026-07-30**
+Cinco recortes na tela de Feed: cliente, projeto, autor, "só o que me menciona" e período.
+
+- **Filtro é do BANCO, não do front.** O feed pagina por cursor: filtrar a lista já
+  carregada filtraria a janela de 20 comentários, não o feed. Os cinco entram como
+  parâmetros opcionais de `feed_org_comments`, resolvidos no `WHERE` antes do `LIMIT`
+  (migration `20260730151500_feed_org_comments_filtros.sql`).
+- **`org_comments_feed` ganhou `client_id`** = `COALESCE(org_projects.external_client_id,
+  ordem_servico.id_cliente)`, a mesma precedência de `useOrgProjects`/`useDomainFeedClientes`,
+  por LEFT JOIN nos dois lados (INNER apagaria comentário cuja OS o leitor não alcança —
+  o mesmo bug que a migration anterior consertou no join de `org_projects`). Só o ID: o NOME
+  do cliente continua vindo por fora, por projeto, porque é cadastro compartilhado por todos
+  os comentários do mesmo projeto.
+- **Nulo ≠ vazio** nos parâmetros de array: nulo passa tudo, `'{}'` passa zero. É o que faz
+  "filtrei um cliente sem conversa" devolver feed vazio em vez do feed inteiro.
+- **Menção é semi-join por conjunto** (`id IN (subconsulta)`), não `EXISTS` correlacionado,
+  para o planner partir do lado pequeno em vez de varrer a ordem cronológica global. O gap
+  conhecido continua valendo: o filtro mostra menções DENTRO do que a RLS já deixa ver.
+- **Período ancora na meia-noite LOCAL** (`desdeDoPeriodo`), não em "agora menos N × 24h":
+  o feed é lido em blocos de dia, e um piso ancorado no dia é estável durante o dia inteiro —
+  o que faz todas as páginas da mesma rolagem compartilharem o mesmo corte.
+- **O recorte vive na URL** (`?cliente=&projeto=&autor=&mencoes=1&periodo=7d`), não em estado
+  local: sobrevive ao F5, ao voltar do deep-link de tarefa e ao link colado no chat. Cada
+  recorte é uma lista paginada própria (a query key carrega os filtros); a invalidação passou
+  a ser por PREFIXO, senão a resposta escrita no feed só reapareceria no recorte sem filtro.
+- **Front:** `src/lib/feedFiltros.ts` (+ teste), `src/components/comentarios/feed/FeedFiltros.tsx`,
+  `useDomainFeedComentarios(filtros)`, estado vazio próprio de "nenhuma conversa nesse recorte".
+- **Índices novos:** `org_comments_feed_autor_idx` (irmão cronológico do `idx_org_comments_author`,
+  que não tinha a data) e `org_comment_mentions_usuario_idx` (os dois que existiam não respondem
+  "todas as menções a mim, lidas ou não").
+- **Fora do escopo, na fila:** dois filtros independentes podem se contradizer (cliente X +
+  projeto de Y = zero resultados) — estreitar a lista de projetos pelo cliente escolhido exige
+  o mapa projeto→cliente do universo visível, que hoje ninguém carrega. Multi-seleção já está
+  pronta no banco (os parâmetros são arrays), falta só a tela.
+
 **Fase 3 — se fizer falta**
-`org_comment_reactions` · `follow/unfollow` explícito · busca textual no corpo
+`org_comment_reactions` · `follow/unfollow` explícito · busca textual no corpo · marca d'água de
+não lidos (`org_feed_visto`, §3.7 — nunca entrou)
 
 A view de feed, os helpers de conjunto e a etiqueta `project_id` entram **na fase 1 mesmo sendo para o feed** — são os três itens que causariam retrabalho se deixados para depois.

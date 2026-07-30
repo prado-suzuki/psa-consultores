@@ -19,9 +19,20 @@ vi.mock('@/integrations/supabase/client', () => ({
 import {
   FEED_PAGE_SIZE,
   feedComentariosQueryKey,
+  feedComentariosQueryKeyPrefix,
   useDomainFeedComentarios,
 } from '@/hooks/useDomainFeedComentarios';
 import { supabase } from '@/integrations/supabase/client';
+import { desdeDoPeriodo, FILTROS_VAZIOS, type FeedFiltros } from '@/lib/feedFiltros';
+
+/** Os parâmetros de filtro desligados — o feed inteiro, como era antes deles. */
+const SEM_FILTRO = {
+  _client_ids: null,
+  _project_ids: null,
+  _author_ids: null,
+  _only_mentions: false,
+  _since: null,
+};
 
 interface DbResult {
   data: unknown;
@@ -108,14 +119,40 @@ beforeEach(() => {
 describe('useDomainFeedComentarios — registro da query', () => {
   it('usa uma query key única do feed (stream único, não por projeto)', () => {
     renderHook(() => useDomainFeedComentarios());
-    expect(registro().queryKey).toEqual(['org-comments-feed']);
-    expect(feedComentariosQueryKey()).toEqual(['org-comments-feed']);
+    expect(registro().queryKey).toEqual(['org-comments-feed', FILTROS_VAZIOS]);
+    expect(feedComentariosQueryKey()).toEqual(['org-comments-feed', FILTROS_VAZIOS]);
   });
 
   it('abre sem cursor e com staleTime curto', () => {
     renderHook(() => useDomainFeedComentarios());
     expect(registro().initialPageParam).toBeNull();
     expect(registro().staleTime).toBe(60 * 1000);
+  });
+
+  it('dá uma lista paginada própria a cada recorte', () => {
+    const filtros: FeedFiltros = { ...FILTROS_VAZIOS, clienteId: 'cli-1' };
+    renderHook(() => useDomainFeedComentarios(filtros));
+    expect(registro().queryKey).toEqual(['org-comments-feed', filtros]);
+    expect(registro().queryKey).not.toEqual(feedComentariosQueryKey());
+  });
+
+  /**
+   * O timestamp do período é calculado na hora de buscar, nunca guardado na
+   * chave: vindo de `new Date()`, ele mudaria a chave a cada render e a consulta
+   * se refaria para sempre.
+   */
+  it('leva o período como preset na chave, não como instante', () => {
+    renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, periodo: '7d' }));
+    expect(registro().queryKey[1]).toMatchObject({ periodo: '7d' });
+    expect(JSON.stringify(registro().queryKey)).not.toContain('T00:00:00');
+  });
+
+  it('o prefixo de invalidação alcança qualquer recorte', () => {
+    const prefixo = feedComentariosQueryKeyPrefix();
+    expect(prefixo).toEqual(['org-comments-feed']);
+    expect(feedComentariosQueryKey({ ...FILTROS_VAZIOS, autorId: 'user-1' }).slice(0, 1)).toEqual(
+      prefixo,
+    );
   });
 });
 
@@ -128,7 +165,9 @@ describe('useDomainFeedComentarios — página', () => {
       {
         table: 'rpc',
         method: 'feed_org_comments',
-        args: [{ _cursor_created_at: null, _cursor_id: null, _limit: FEED_PAGE_SIZE }],
+        args: [
+          { _cursor_created_at: null, _cursor_id: null, _limit: FEED_PAGE_SIZE, ...SEM_FILTRO },
+        ],
       },
     ]);
   });
@@ -144,6 +183,7 @@ describe('useDomainFeedComentarios — página', () => {
         _cursor_created_at: '2026-07-29T12:00:00.000Z',
         _cursor_id: 'c9',
         _limit: FEED_PAGE_SIZE,
+        ...SEM_FILTRO,
       },
     ]);
   });
@@ -185,6 +225,83 @@ describe('useDomainFeedComentarios — página', () => {
     renderHook(() => useDomainFeedComentarios());
 
     await expect(registro().queryFn({ pageParam: null })).rejects.toThrow('boom');
+  });
+});
+
+/**
+ * O recorte é feito no banco, não aqui: o feed pagina por cursor, então filtrar
+ * a lista já carregada filtraria a página de 20, não o feed. O que se trava
+ * nestes testes é a tradução do recorte para os parâmetros da função.
+ */
+describe('useDomainFeedComentarios — filtros na chamada do banco', () => {
+  const parametros = () =>
+    (callsFor('rpc', 'feed_org_comments')[0].args as [Record<string, unknown>])[0];
+
+  it('manda cliente, projeto e autor como lista de um item', async () => {
+    renderHook(() =>
+      useDomainFeedComentarios({
+        ...FILTROS_VAZIOS,
+        clienteId: 'cli-1',
+        projetoId: 'proj-1',
+        autorId: 'user-1',
+      }),
+    );
+    await registro().queryFn({ pageParam: null });
+
+    expect(parametros()).toMatchObject({
+      _client_ids: ['cli-1'],
+      _project_ids: ['proj-1'],
+      _author_ids: ['user-1'],
+    });
+  });
+
+  it('manda NULO — e não lista vazia — no filtro desligado', async () => {
+    renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, clienteId: 'cli-1' }));
+    await registro().queryFn({ pageParam: null });
+
+    // A função distingue as duas coisas: nulo passa tudo, `{}` não passa nada.
+    // Mandar `[]` aqui esvaziaria o feed em vez de não filtrar por projeto.
+    expect(parametros()._project_ids).toBeNull();
+    expect(parametros()._author_ids).toBeNull();
+  });
+
+  it('liga o recorte de menções', async () => {
+    renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, apenasMencoes: true }));
+    await registro().queryFn({ pageParam: null });
+
+    expect(parametros()._only_mentions).toBe(true);
+  });
+
+  it('traduz o preset de período no piso de data', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 6, 30, 15, 42));
+    try {
+      renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, periodo: '7d' }));
+      await registro().queryFn({ pageParam: null });
+
+      expect(parametros()._since).toBe(new Date(2026, 6, 24).toISOString());
+      expect(parametros()._since).toBe(desdeDoPeriodo('7d'));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('não põe piso de data quando o período é qualquer data', async () => {
+    renderHook(() => useDomainFeedComentarios());
+    await registro().queryFn({ pageParam: null });
+
+    expect(parametros()._since).toBeNull();
+  });
+
+  it('repete o recorte nas páginas seguintes, junto do cursor', async () => {
+    renderHook(() => useDomainFeedComentarios({ ...FILTROS_VAZIOS, clienteId: 'cli-1' }));
+    await registro().queryFn({ pageParam: { createdAt: '2026-07-29T12:00:00.000Z', id: 'c9' } });
+
+    expect(parametros()).toMatchObject({
+      _cursor_created_at: '2026-07-29T12:00:00.000Z',
+      _cursor_id: 'c9',
+      _client_ids: ['cli-1'],
+    });
   });
 });
 
