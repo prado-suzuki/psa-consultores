@@ -129,8 +129,8 @@ function comment(overrides: Partial<OrgComment> = {}): OrgComment {
   };
 }
 
-function renderPanel() {
-  return render(<OrgCommentsPanel entityId="T1" projectId="P1" area="tax" />);
+function renderPanel(props: { criadoPor?: { nome: string | null; em: string } } = {}) {
+  return render(<OrgCommentsPanel entityId="T1" projectId="P1" area="tax" {...props} />);
 }
 
 beforeEach(() => {
@@ -157,6 +157,34 @@ describe('OrgCommentsPanel', () => {
     renderPanel();
 
     expect(mocks.mencoesLidasArgs.at(-1)).toEqual(['C1', 'C2']);
+  });
+
+  it('abre o feed com quem criou a tarefa, mesmo sem comentário nenhum', () => {
+    renderPanel({ criadoPor: { nome: 'Geizi Andrade', em: '2026-03-23T12:00:00.000Z' } });
+
+    expect(screen.getByText('Tarefa criada por Geizi Andrade')).toBeInTheDocument();
+    expect(screen.getByText('Nenhum comentário ainda')).toBeInTheDocument();
+  });
+
+  it('mantém o marco de criação acima do primeiro comentário', () => {
+    mocks.comments = [comment()];
+    renderPanel({ criadoPor: { nome: 'Geizi Andrade', em: '2026-03-23T12:00:00.000Z' } });
+
+    const marco = screen.getByText('Tarefa criada por Geizi Andrade');
+    const autor = screen.getByText('Bernardo Silva');
+    expect(marco.compareDocumentPosition(autor) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('usa "outro usuário" quando o nome do criador não foi resolvido', () => {
+    renderPanel({ criadoPor: { nome: null, em: '2026-03-23T12:00:00.000Z' } });
+
+    expect(screen.getByText('Tarefa criada por outro usuário')).toBeInTheDocument();
+  });
+
+  it('não mostra marco de criação quando a origem não é informada', () => {
+    renderPanel();
+
+    expect(screen.queryByText(/^Tarefa criada por/)).not.toBeInTheDocument();
   });
 
   it('entrega a lista de menção ao editor', () => {

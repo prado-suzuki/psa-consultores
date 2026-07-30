@@ -185,6 +185,20 @@ export const TaskModal = ({
     task?.contribuinte_id ?? null,
   );
 
+  // Quem criou a tarefa, para o feed de Atividade abrir com esse marco. O nome
+  // sai dos perfis que a tela já carrega — sem consulta nova — e cai para nulo
+  // quando o criador não está entre eles (o painel exibe "outro usuário").
+  const criadoPor = useMemo(() => {
+    if (!task?.created_by || !task?.created_at) return undefined;
+    const perfil = allProfiles.find((p) => p.id === task.created_by);
+    const nomeDoPerfil = perfil
+      ? [perfil.first_name, perfil.last_name].filter(Boolean).join(' ').trim()
+      : '';
+    const nome =
+      nomeDoPerfil || teamMembers.find((m) => m.id === task.created_by)?.name || null;
+    return { nome, em: task.created_at };
+  }, [task?.created_by, task?.created_at, allProfiles, teamMembers]);
+
   // Clear contribuinte and project when client changes (only on user action, not during reset)
   useEffect(() => {
     if (isResettingRef.current) return;
@@ -553,6 +567,7 @@ export const TaskModal = ({
                 projectId={task.project_id}
                 area={area}
                 focusComposerSignal={composerFocusSignal}
+                criadoPor={criadoPor}
               />
             </div>
           )}

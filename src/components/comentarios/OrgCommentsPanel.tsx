@@ -53,6 +53,13 @@ interface OrgCommentsPanelProps {
    * comentário.
    */
   focusComposerSignal?: number;
+  /**
+   * Origem da entidade, exibida como primeiro item do feed. Vem de quem já tem
+   * a tarefa em mão, não de `org_comments`: assim a linha vale também para o
+   * que foi criado antes de o feed existir, sem gravar comentário de sistema.
+   * `nome` nulo quando o perfil não foi encontrado.
+   */
+  criadoPor?: { nome: string | null; em: string };
 }
 
 const SYSTEM_LABELS: Record<Exclude<OrgComment['kind'], 'comment'>, string> = {
@@ -80,6 +87,7 @@ export function OrgCommentsPanel({
   projectId,
   area,
   focusComposerSignal,
+  criadoPor,
 }: OrgCommentsPanelProps) {
   const { user } = useAuth();
   const {
@@ -387,6 +395,22 @@ export function OrgCommentsPanel({
     );
   };
 
+  /**
+   * Marco de origem, sempre no topo e fora da paginação: não é comentário, é a
+   * criação da tarefa. Usa o mesmo desenho dos eventos de sistema para ler como
+   * parte da thread, mas sem ações de editar, excluir ou responder.
+   */
+  const itemCriacao = criadoPor ? (
+    <div className="flex items-center gap-2 py-3">
+      <span className="truncate text-sm font-semibold">
+        Tarefa criada por {criadoPor.nome ?? 'outro usuário'}
+      </span>
+      <span className="shrink-0 text-[11px] text-muted-foreground">
+        {formatDistanceToNow(new Date(criadoPor.em), { addSuffix: true, locale: ptBR })}
+      </span>
+    </div>
+  ) : null;
+
   return (
     <aside className="flex h-full min-h-0 flex-col bg-muted/20">
       <div className="border-b px-5 py-4">
@@ -408,18 +432,23 @@ export function OrgCommentsPanel({
           <div className="flex h-32 items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-        ) : roots.length === 0 ? (
-          <div className="flex h-48 flex-col items-center justify-center text-center">
-            <div className="rounded-full bg-primary/10 p-3">
-              <MessageSquare className="h-5 w-5 text-primary" />
-            </div>
-            <p className="mt-3 text-sm font-medium">Nenhuma atividade ainda</p>
-            <p className="mt-1 max-w-56 text-xs text-muted-foreground">
-              Compartilhe uma atualização, mencione alguém ou anexe um arquivo.
-            </p>
-          </div>
         ) : (
-          <div className="divide-y">{roots.map((comment) => renderComment(comment))}</div>
+          <div className="divide-y">
+            {itemCriacao}
+            {roots.length === 0 ? (
+              <div className="flex h-48 flex-col items-center justify-center text-center">
+                <div className="rounded-full bg-primary/10 p-3">
+                  <MessageSquare className="h-5 w-5 text-primary" />
+                </div>
+                <p className="mt-3 text-sm font-medium">Nenhum comentário ainda</p>
+                <p className="mt-1 max-w-56 text-xs text-muted-foreground">
+                  Compartilhe uma atualização, mencione alguém ou anexe um arquivo.
+                </p>
+              </div>
+            ) : (
+              roots.map((comment) => renderComment(comment))
+            )}
+          </div>
         )}
       </ScrollArea>
 
