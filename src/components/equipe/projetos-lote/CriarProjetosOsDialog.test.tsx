@@ -1,13 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { LoteOsAberta } from '@/lib/projetosLote';
 import { CriarProjetosOsDialog } from './CriarProjetosOsDialog';
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
   clients: [] as Array<{ id: string; nome: string; setor_cliente: string | null }>,
-  ordens: [] as Array<Record<string, unknown>>,
-  produtos: [] as Array<Record<string, unknown>>,
+  osAbertas: [] as unknown[],
   projects: [] as Array<{ name: string; ordem_servico_id: string | null }>,
 }));
 
@@ -15,30 +15,34 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.navigate }));
 
 vi.mock('@/hooks/useTaxReferenceData', () => ({
   useExternalClients: () => ({ data: mocks.clients, isLoading: false }),
-  useClienteOrdens: (clientId: string | null) => ({
-    data: clientId ? mocks.ordens : [],
-    isLoading: false,
-  }),
 }));
 
-vi.mock('@/hooks/useOsProdutosContratados', async () => {
-  const real = await vi.importActual<typeof import('@/hooks/useOsProdutosContratados')>(
-    '@/hooks/useOsProdutosContratados',
-  );
-  return {
-    groupByOs: real.groupByOs,
-    useOsProdutosContratados: () => ({ data: mocks.produtos, isLoading: false }),
-  };
-});
+vi.mock('@/hooks/useDomainOsAbertas', () => ({
+  useOsAbertasComProdutos: () => ({ data: mocks.osAbertas, isLoading: false }),
+}));
 
 vi.mock('@/hooks/useOrgProjects', () => ({ useOrgProjects: () => ({ data: mocks.projects }) }));
 
-const produto = (osId: string, id: string, codigo: string, nome: string) => ({
-  id: `${osId}-${id}`,
-  ordem_servico_id: osId,
+const produto = (id: string, codigo: string, nome: string) => ({
   produto_segmento_id: id,
   produto_codigo: codigo,
   produto_nome: nome,
+});
+
+const os = (patch: Partial<LoteOsAberta>): LoteOsAberta => ({
+  id: 'os-1',
+  numero_os: '035/2026',
+  cliente_id: 'cli-1',
+  cliente_nome: 'Fazenda Horizonte',
+  situacao: 'em_andamento',
+  data_inicio: '2026-01-01',
+  data_fim: '2026-12-31',
+  observacoes: 'Escopo combinado',
+  produtos: [
+    produto('ps-cha', 'CHA', 'Canal de Chamados'),
+    produto('ps-dc', 'DC', 'Diagnóstico Contábil'),
+  ],
+  ...patch,
 });
 
 describe('CriarProjetosOsDialog', () => {
@@ -48,22 +52,55 @@ describe('CriarProjetosOsDialog', () => {
       { id: 'cli-1', nome: 'Fazenda Horizonte', setor_cliente: null },
       { id: 'cli-2', nome: 'Agro Cerrado', setor_cliente: null },
     ];
-    mocks.ordens = [{
-      id: 'os-1',
-      numero_os: '035/2026',
-      situacao: 'em_andamento',
-      data_inicio: '2026-01-01',
-      data_fim: '2026-12-31',
-      observacoes: 'Escopo combinado',
-    }];
-    mocks.produtos = [
-      produto('os-1', 'ps-cha', 'CHA', 'Canal de Chamados'),
-      produto('os-1', 'ps-dc', 'DC', 'Diagnóstico Contábil'),
-    ];
+    mocks.osAbertas = [os({})];
     mocks.projects = [];
   });
 
+  it('lista só os clientes com OS aberta sem projeto vinculado', () => {
+    render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
+
+    expect(screen.getByRole('button', { name: 'Fazenda Horizonte' })).toBeInTheDocument();
+    // Agro Cerrado não tem OS aberta nenhuma.
+    expect(screen.queryByRole('button', { name: 'Agro Cerrado' })).not.toBeInTheDocument();
+  });
+
+  it('OS parcialmente criada mantém o cliente na lista', () => {
+    mocks.projects = [
+      { name: 'Fazenda Horizonte — OS 035/2026 — CHA — Canal de Chamados', ordem_servico_id: 'os-1' },
+    ];
+    render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
+
+    expect(screen.getByRole('button', { name: 'Fazenda Horizonte' })).toBeInTheDocument();
+  });
+
+  it('cliente cujas OS já viraram projeto sai da lista', () => {
+    mocks.projects = [
+      { name: 'Fazenda Horizonte — OS 035/2026 — CHA — Canal de Chamados', ordem_servico_id: 'os-1' },
+      { name: 'Fazenda Horizonte — OS 035/2026 — DC — Diagnóstico Contábil', ordem_servico_id: 'os-1' },
+    ];
+    render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
+
+    expect(screen.queryByRole('button', { name: 'Fazenda Horizonte' })).not.toBeInTheDocument();
+    expect(screen.getByText('Nenhum cliente com OS aberta sem projeto vinculado.')).toBeInTheDocument();
+  });
+
+  it('OS sem produtos contratados não coloca o cliente na lista', () => {
+    mocks.osAbertas = [os({ produtos: [] })];
+    render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
+
+    expect(screen.queryByRole('button', { name: 'Fazenda Horizonte' })).not.toBeInTheDocument();
+  });
+
+  it('casa cliente e OS por nome, cobrindo UUID diferente entre dev e prod', () => {
+    // Mesmo nome, UUID de outro ambiente — é o que a RPC get_ordens_by_client_name faz.
+    mocks.osAbertas = [os({ cliente_id: 'cli-1-prod' })];
+    render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
+
+    expect(screen.getByRole('button', { name: 'Fazenda Horizonte' })).toBeInTheDocument();
+  });
+
   it('filtra os clientes pela busca', async () => {
+    mocks.osAbertas = [os({}), os({ id: 'os-2', cliente_id: 'cli-2', cliente_nome: 'Agro Cerrado' })];
     const user = userEvent.setup();
     render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
 
@@ -105,6 +142,19 @@ describe('CriarProjetosOsDialog', () => {
     });
   });
 
+  it('vincula o projeto ao cliente do ambiente atual, não ao da OS', async () => {
+    mocks.osAbertas = [os({ cliente_id: 'cli-1-prod' })];
+    const user = userEvent.setup();
+    render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
+
+    await user.click(screen.getByRole('button', { name: 'Fazenda Horizonte' }));
+    await user.click(screen.getByRole('radio'));
+    await user.click(screen.getByRole('button', { name: 'Criar 2 projetos' }));
+
+    const [, options] = mocks.navigate.mock.calls[0];
+    expect((options as { state: { loteFromOs: { clientId: string } } }).state.loteFromOs.clientId).toBe('cli-1');
+  });
+
   it('na OSG leva para a tela de lote da própria área', async () => {
     const user = userEvent.setup();
     render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="osg" />);
@@ -133,7 +183,11 @@ describe('CriarProjetosOsDialog', () => {
     expect(screen.getByRole('button', { name: 'Criar 1 projeto' })).toBeEnabled();
   });
 
-  it('bloqueia a OS cujos produtos já têm projeto', async () => {
+  it('OS esgotada aparece desabilitada quando o cliente tem outra com pendência', async () => {
+    mocks.osAbertas = [
+      os({}),
+      os({ id: 'os-2', numero_os: '036/2026', produtos: [produto('ps-af', 'AF', 'Auditoria Fiscal')] }),
+    ];
     mocks.projects = [
       { name: 'Fazenda Horizonte — OS 035/2026 — CHA — Canal de Chamados', ordem_servico_id: 'os-1' },
       { name: 'Fazenda Horizonte — OS 035/2026 — DC — Diagnóstico Contábil', ordem_servico_id: 'os-1' },
@@ -143,21 +197,13 @@ describe('CriarProjetosOsDialog', () => {
 
     await user.click(screen.getByRole('button', { name: 'Fazenda Horizonte' }));
     expect(screen.getByText('Todos os 2 produtos já têm projeto')).toBeInTheDocument();
-    expect(screen.getByRole('radio')).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Criar projetos' })).toBeDisabled();
-  });
-
-  it('OS sem produtos contratados não pode virar projeto', async () => {
-    mocks.produtos = [];
-    const user = userEvent.setup();
-    render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
-
-    await user.click(screen.getByRole('button', { name: 'Fazenda Horizonte' }));
-    expect(screen.getByText('Sem produtos contratados')).toBeInTheDocument();
-    expect(screen.getByRole('radio')).toBeDisabled();
+    const [esgotada, disponivel] = screen.getAllByRole('radio');
+    expect(esgotada).toBeDisabled();
+    expect(disponivel).toBeEnabled();
   });
 
   it('"Trocar cliente" volta para a lista de clientes', async () => {
+    mocks.osAbertas = [os({}), os({ id: 'os-2', cliente_id: 'cli-2', cliente_nome: 'Agro Cerrado' })];
     const user = userEvent.setup();
     render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
 

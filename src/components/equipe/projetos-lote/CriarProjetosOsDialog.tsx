@@ -13,16 +13,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useOrgProjects } from '@/hooks/useOrgProjects';
-import { groupByOs, useOsProdutosContratados } from '@/hooks/useOsProdutosContratados';
-import { useClienteOrdens, useExternalClients } from '@/hooks/useTaxReferenceData';
+import { useOsAbertasComProdutos } from '@/hooks/useDomainOsAbertas';
+import { useExternalClients } from '@/hooks/useTaxReferenceData';
 import { isoToMasked, SITUACAO_PROJETO_OPTIONS } from '@/components/equipe/client-form/constants';
 import type { AreaKey } from '@/config/areaCategories';
 import {
-  buildLoteFromOs,
-  findProdutosJaCriados,
+  buildLoteOsOptionsByClient,
   resolveLoteRoutes,
   type LoteOsCandidata,
-  type LoteOsProdutoContratado,
 } from '@/lib/projetosLote';
 
 interface CriarProjetosOsDialogProps {
@@ -51,8 +49,11 @@ function periodoLabel(os: LoteOsCandidata) {
  *
  * Antes isso morava na aba "OS - Ordem de Serviço" do cadastro do cliente, onde
  * a OS já estava em mãos. Aqui o cliente é escolhido do zero, então as OS vêm do
- * banco (useClienteOrdens) em vez do rascunho do formulário — o que permite
- * criar projetos para OS que ainda não têm nenhum projeto.
+ * banco em vez do rascunho do formulário — o que permite criar projetos para OS
+ * que ainda não têm nenhum projeto.
+ *
+ * A lista de clientes mostra apenas quem tem OS aberta com produto sem projeto.
+ * Uma OS de 3 produtos com 2 já criados continua contando: sobrou 1.
  */
 export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjetosOsDialogProps) => {
   const navigate = useNavigate();
@@ -62,10 +63,8 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
   const [selectedOsId, setSelectedOsId] = useState('');
 
   const { data: clients = [], isLoading: loadingClients } = useExternalClients();
-  const { data: ordens = [], isLoading: loadingOrdens } = useClienteOrdens(selectedClientId || null);
-  const osIds = useMemo(() => ordens.map(os => os.id), [ordens]);
-  const { data: produtos = [], isLoading: loadingProdutos } = useOsProdutosContratados(osIds);
-  const produtosByOs = useMemo(() => groupByOs(produtos), [produtos]);
+  // Só consulta quando o seletor abre: são as OS de todos os clientes.
+  const { data: osAbertas = [], isLoading: loadingOs } = useOsAbertasComProdutos(open);
   const { data: allProjects = [] } = useOrgProjects();
 
   // Cada abertura começa do zero: reaproveitar a escolha anterior levaria para a
@@ -77,46 +76,34 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
     setSelectedOsId('');
   }, [open]);
 
-  const selectedClient = clients.find(client => client.id === selectedClientId) || null;
+  const optionsByClient = useMemo(
+    () => buildLoteOsOptionsByClient(clients, osAbertas, allProjects),
+    [clients, osAbertas, allProjects],
+  );
+
+  // Só entra na lista quem tem o que criar: ao menos uma OS aberta com produto
+  // sem projeto. Uma OS de 3 produtos com 2 já criados ainda conta.
+  const clientsComPendencia = useMemo(
+    () => clients.filter(client => optionsByClient.get(client.id)?.some(option => option.disponiveis > 0)),
+    [clients, optionsByClient],
+  );
+
+  const selectedClient = clientsComPendencia.find(client => client.id === selectedClientId) || null;
 
   const clientOptions = useMemo(() => {
     const search = normalize(clientSearch.trim());
-    if (!search) return clients;
-    return clients.filter(client => normalize(client.nome).includes(search));
-  }, [clients, clientSearch]);
+    if (!search) return clientsComPendencia;
+    return clientsComPendencia.filter(client => normalize(client.nome).includes(search));
+  }, [clientsComPendencia, clientSearch]);
 
-  /**
-   * Cada OS com o que decide se ela pode virar projetos: os produtos contratados
-   * e quantos deles já viraram projeto (mesma regra da tela de lote, para não
-   * oferecer uma OS que não tem nada a criar).
-   */
-  const osOptions = useMemo(() => ordens.map(os => {
-    const candidata: LoteOsCandidata = {
-      id: os.id,
-      numero_os: os.numero_os,
-      situacao: os.situacao,
-      data_inicio: os.data_inicio,
-      data_fim: os.data_fim,
-      observacoes: typeof os.observacoes === 'string' ? os.observacoes : null,
-    };
-    const osProdutos = (produtosByOs[os.id] || []) as LoteOsProdutoContratado[];
-    const state = buildLoteFromOs(
-      { id: selectedClientId, nome: selectedClient?.nome || '' },
-      candidata,
-      osProdutos,
-    );
-    const projetosDaOs = allProjects.filter(project => project.ordem_servico_id === os.id);
-    const jaCriados = findProdutosJaCriados(projetosDaOs, state.clientName, state.osNumero, state.produtos);
-    return {
-      os: candidata,
-      state,
-      total: state.produtos.length,
-      disponiveis: state.produtos.length - jaCriados.length,
-    };
-  }), [ordens, produtosByOs, selectedClientId, selectedClient?.nome, allProjects]);
+  // Todas as OS abertas do cliente, inclusive as já esgotadas: aparecem
+  // desabilitadas, para não parecer que a OS sumiu do cadastro.
+  const osOptions = useMemo(
+    () => (selectedClientId ? optionsByClient.get(selectedClientId) || [] : []),
+    [optionsByClient, selectedClientId],
+  );
 
   const selectedOs = osOptions.find(option => option.os.id === selectedOsId) || null;
-  const loadingOs = loadingOrdens || loadingProdutos;
 
   const handleConfirm = () => {
     if (!selectedOs) return;
@@ -132,7 +119,7 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
           <DialogDescription>
             {selectedClient
               ? 'Escolha a ordem de serviço. A próxima tela cria um projeto por produto contratado.'
-              : 'Escolha o cliente e a ordem de serviço que vai virar projetos.'}
+              : 'Clientes com OS aberta que ainda tem produto sem projeto vinculado.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -149,13 +136,15 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
               />
             </div>
             <div className="h-64 overflow-y-auto rounded-lg border p-1">
-              {loadingClients ? (
+              {loadingClients || loadingOs ? (
                 <p className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />Carregando clientes…
                 </p>
               ) : clientOptions.length === 0 ? (
                 <p className="px-2 py-10 text-center text-sm text-muted-foreground">
-                  Nenhum cliente encontrado.
+                  {clientSearch.trim()
+                    ? 'Nenhum cliente encontrado.'
+                    : 'Nenhum cliente com OS aberta sem projeto vinculado.'}
                 </p>
               ) : clientOptions.map(client => (
                 <button
@@ -188,13 +177,11 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
             <div className="space-y-2">
               <Label className="text-sm font-medium">Ordem de serviço</Label>
               <div className="h-56 overflow-y-auto rounded-lg border p-2">
-                {loadingOs ? (
-                  <p className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
-                    <Loader2 className="h-4 w-4 animate-spin" />Carregando ordens de serviço…
-                  </p>
-                ) : osOptions.length === 0 ? (
+                {/* Sem estado de carregamento: as OS já vieram junto com a lista
+                    de clientes — é ela que depende delas para filtrar. */}
+                {osOptions.length === 0 ? (
                   <p className="px-2 py-10 text-center text-sm text-muted-foreground">
-                    Este cliente não tem OS cadastrada.
+                    Este cliente não tem OS aberta.
                   </p>
                 ) : (
                   <RadioGroup value={selectedOsId} onValueChange={setSelectedOsId}>

@@ -144,6 +144,82 @@ export function buildLoteFromOs(
   };
 }
 
+/**
+ * Situações de OS que ainda podem virar projeto. Concluída e cancelada ficam de
+ * fora; suspensa continua sendo contrato vigente, só pausado.
+ */
+export const OS_SITUACOES_ABERTAS = ['em_andamento', 'suspenso'];
+
+/** OS aberta com produtos e o nome do cliente (ver useOsAbertasComProdutos). */
+export interface LoteOsAberta extends LoteOsCandidata {
+  cliente_id: string;
+  cliente_nome: string;
+  produtos: LoteOsProdutoContratado[];
+}
+
+/** Uma OS oferecida no seletor, já com o que decide se ela tem o que criar. */
+export interface LoteOsOption {
+  os: LoteOsCandidata;
+  /** Snapshot pronto para a tela de lote. */
+  state: LoteFromOs;
+  total: number;
+  /** Produtos que ainda não viraram projeto. Zero = nada a criar nesta OS. */
+  disponiveis: number;
+}
+
+/**
+ * OS abertas de cada cliente, com quantos produtos ainda não viraram projeto.
+ *
+ * O casamento cliente↔OS é por NOME, não por id, espelhando a RPC
+ * `get_ordens_by_client_name`: o mesmo cliente tem UUIDs distintos em dev e prod
+ * e as OS podem apontar para o UUID do outro ambiente. O `clientId` do snapshot,
+ * porém, é o do cliente escolhido na tela — é nele que o projeto será vinculado.
+ */
+export function buildLoteOsOptionsByClient(
+  clientes: Array<{ id: string; nome: string }>,
+  osRows: LoteOsAberta[],
+  projetos: Array<{ name: string; ordem_servico_id: string | null }>,
+): Map<string, LoteOsOption[]> {
+  const osByClientName = new Map<string, LoteOsAberta[]>();
+  for (const os of osRows) {
+    const rows = osByClientName.get(os.cliente_nome) || [];
+    rows.push(os);
+    osByClientName.set(os.cliente_nome, rows);
+  }
+
+  const projetosByOs = new Map<string, Array<{ name: string }>>();
+  for (const projeto of projetos) {
+    if (!projeto.ordem_servico_id) continue;
+    const rows = projetosByOs.get(projeto.ordem_servico_id) || [];
+    rows.push(projeto);
+    projetosByOs.set(projeto.ordem_servico_id, rows);
+  }
+
+  const result = new Map<string, LoteOsOption[]>();
+  for (const cliente of clientes) {
+    const rows = osByClientName.get(cliente.nome);
+    if (!rows?.length) continue;
+    const options = rows.map(os => {
+      const state = buildLoteFromOs(cliente, os, os.produtos);
+      const jaCriados = findProdutosJaCriados(
+        projetosByOs.get(os.id) || [],
+        state.clientName,
+        state.osNumero,
+        state.produtos,
+      );
+      return {
+        os,
+        state,
+        total: state.produtos.length,
+        disponiveis: state.produtos.length - jaCriados.length,
+      };
+    });
+    options.sort((a, b) => (a.os.numero_os || '').localeCompare(b.os.numero_os || '', 'pt-BR', { numeric: true }));
+    result.set(cliente.id, options);
+  }
+  return result;
+}
+
 /** Nome sugerido do projeto de um produto: "Cliente — OS nº — Produto". */
 export function buildLoteProjectName(clientName: string, osNumero: string, produtoLabel: string): string {
   const base = clientName?.trim() ? `${clientName.trim()} — OS ${osNumero}` : `OS ${osNumero}`;

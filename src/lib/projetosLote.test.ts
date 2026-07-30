@@ -2,12 +2,14 @@ import { describe, it, expect } from 'vitest';
 import {
   buildLoteFormData,
   buildLoteFromOs,
+  buildLoteOsOptionsByClient,
   buildLoteProjectName,
   buildProdutoLabel,
   findProdutosJaCriados,
   resolveLoteRoutes,
   validateLoteRow,
   type LoteCommon,
+  type LoteOsAberta,
   type LoteOsCandidata,
   type LoteOsProdutoContratado,
   type LoteProduto,
@@ -195,5 +197,97 @@ describe('buildLoteFromOs', () => {
     const state = buildLoteFromOs(cliente, osBase, produtosOs);
     const existentes = [{ name: buildLoteProjectName(state.clientName, state.osNumero, state.produtos[0].produtoLabel) }];
     expect(findProdutosJaCriados(existentes, state.clientName, state.osNumero, state.produtos)).toEqual(['ps-cha']);
+  });
+});
+
+describe('buildLoteOsOptionsByClient', () => {
+  const clientes = [
+    { id: 'cli-1', nome: 'Fazenda Horizonte' },
+    { id: 'cli-2', nome: 'Agro Cerrado' },
+  ];
+
+  const produto = (id: string, codigo: string, nome: string): LoteOsProdutoContratado =>
+    ({ produto_segmento_id: id, produto_codigo: codigo, produto_nome: nome });
+
+  const osAberta = (patch: Partial<LoteOsAberta>): LoteOsAberta => ({
+    id: 'os-1',
+    numero_os: '035/2026',
+    cliente_id: 'cli-1',
+    cliente_nome: 'Fazenda Horizonte',
+    situacao: 'em_andamento',
+    data_inicio: '2026-01-01',
+    data_fim: '2026-12-31',
+    observacoes: null,
+    produtos: [produto('ps-cha', 'CHA', 'Canal de Chamados'), produto('ps-dc', 'DC', 'Diagnóstico Contábil')],
+    ...patch,
+  });
+
+  it('conta os produtos que ainda não viraram projeto', () => {
+    const map = buildLoteOsOptionsByClient(clientes, [osAberta({})], []);
+    expect(map.get('cli-1')).toHaveLength(1);
+    expect(map.get('cli-1')?.[0]).toMatchObject({ total: 2, disponiveis: 2 });
+  });
+
+  it('OS de 3 produtos com 2 já criados sobra 1 (o caso que mantém o cliente na lista)', () => {
+    const produtos = [
+      produto('ps-cha', 'CHA', 'Canal de Chamados'),
+      produto('ps-dc', 'DC', 'Diagnóstico Contábil'),
+      produto('ps-af', 'AF', 'Auditoria Fiscal'),
+    ];
+    const projetos = [
+      { name: 'Fazenda Horizonte — OS 035/2026 — CHA — Canal de Chamados', ordem_servico_id: 'os-1' },
+      { name: 'Fazenda Horizonte — OS 035/2026 — DC — Diagnóstico Contábil', ordem_servico_id: 'os-1' },
+    ];
+    const map = buildLoteOsOptionsByClient(clientes, [osAberta({ produtos })], projetos);
+    expect(map.get('cli-1')?.[0]).toMatchObject({ total: 3, disponiveis: 1 });
+  });
+
+  it('OS esgotada fica com disponiveis 0 (some da lista de clientes, não da de OS)', () => {
+    const projetos = [
+      { name: 'Fazenda Horizonte — OS 035/2026 — CHA — Canal de Chamados', ordem_servico_id: 'os-1' },
+      { name: 'Fazenda Horizonte — OS 035/2026 — DC — Diagnóstico Contábil', ordem_servico_id: 'os-1' },
+    ];
+    const map = buildLoteOsOptionsByClient(clientes, [osAberta({})], projetos);
+    expect(map.get('cli-1')?.[0].disponiveis).toBe(0);
+  });
+
+  it('projeto de outra OS não conta como já criado', () => {
+    const projetos = [
+      { name: 'Fazenda Horizonte — OS 035/2026 — CHA — Canal de Chamados', ordem_servico_id: 'os-outra' },
+    ];
+    const map = buildLoteOsOptionsByClient(clientes, [osAberta({})], projetos);
+    expect(map.get('cli-1')?.[0].disponiveis).toBe(2);
+  });
+
+  it('projeto sem OS vinculada é ignorado', () => {
+    const projetos = [
+      { name: 'Fazenda Horizonte — OS 035/2026 — CHA — Canal de Chamados', ordem_servico_id: null },
+    ];
+    const map = buildLoteOsOptionsByClient(clientes, [osAberta({})], projetos);
+    expect(map.get('cli-1')?.[0].disponiveis).toBe(2);
+  });
+
+  it('cliente sem OS aberta fica fora do mapa', () => {
+    const map = buildLoteOsOptionsByClient(clientes, [osAberta({})], []);
+    expect(map.has('cli-2')).toBe(false);
+  });
+
+  it('casa por nome: OS sob o UUID do outro ambiente ainda encontra o cliente', () => {
+    const map = buildLoteOsOptionsByClient(clientes, [osAberta({ cliente_id: 'cli-1-prod' })], []);
+    expect(map.has('cli-1')).toBe(true);
+  });
+
+  it('vincula o snapshot ao cliente da tela, não ao id_cliente da OS', () => {
+    const map = buildLoteOsOptionsByClient(clientes, [osAberta({ cliente_id: 'cli-1-prod' })], []);
+    expect(map.get('cli-1')?.[0].state.clientId).toBe('cli-1');
+  });
+
+  it('ordena as OS por número, tratando o número como número', () => {
+    const rows = [
+      osAberta({ id: 'os-10', numero_os: '010/2026' }),
+      osAberta({ id: 'os-2', numero_os: '002/2026' }),
+    ];
+    const map = buildLoteOsOptionsByClient(clientes, rows, []);
+    expect(map.get('cli-1')?.map(option => option.os.numero_os)).toEqual(['002/2026', '010/2026']);
   });
 });
