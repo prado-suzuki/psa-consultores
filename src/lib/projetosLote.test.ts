@@ -277,7 +277,6 @@ describe('buildLoteOsOptionsByClient', () => {
     id: 'os-1',
     numero_os: '035/2026',
     cliente_id: 'cli-1',
-    cliente_nome: 'Fazenda Horizonte',
     situacao: 'em_andamento',
     data_inicio: '2026-01-01',
     data_fim: '2026-12-31',
@@ -336,13 +335,15 @@ describe('buildLoteOsOptionsByClient', () => {
     expect(map.has('cli-2')).toBe(false);
   });
 
-  it('casa por nome: OS sob o UUID do outro ambiente ainda encontra o cliente', () => {
+  it('casa por id: OS do cliente de mesmo nome em outro ambiente fica fora', () => {
+    // 'cli-1-prod' é o mesmo cliente com outro UUID (dev/prod). Casar por nome
+    // colocava esse cliente na lista por causa de OS que não são deste ambiente.
     const map = buildLoteOsOptionsByClient(clientes, [osAberta({ cliente_id: 'cli-1-prod' })], []);
-    expect(map.has('cli-1')).toBe(true);
+    expect(map.has('cli-1')).toBe(false);
   });
 
-  it('vincula o snapshot ao cliente da tela, não ao id_cliente da OS', () => {
-    const map = buildLoteOsOptionsByClient(clientes, [osAberta({ cliente_id: 'cli-1-prod' })], []);
+  it('vincula o snapshot ao cliente da tela', () => {
+    const map = buildLoteOsOptionsByClient(clientes, [osAberta({})], []);
     expect(map.get('cli-1')?.[0].state.clientId).toBe('cli-1');
   });
 

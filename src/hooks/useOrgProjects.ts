@@ -3,6 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
+import { isProjetoDoAmbiente } from '@/lib/ambienteScope';
 import { toast } from 'sonner';
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -96,6 +98,8 @@ export type TaxProjectFormData = OrgProjectFormData;
 // ── Queries ────────────────────────────────────────────────────────────
 
 export const useOrgProjects = () => {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ['org-projects'],
     queryFn: async () => {
@@ -111,9 +115,16 @@ export const useOrgProjects = () => {
         .order('name');
       if (error) throw error;
 
+      // org_projects não tem coluna `ambiente`: o ambiente do projeto é o do
+      // cliente PSA vinculado. Sem este corte a lista de projetos (e todas as
+      // visões que saem dela) misturava dev e prod, porque o mesmo cliente existe
+      // nos dois ambientes com UUIDs diferentes.
+      const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
+      const projetos = (data || []).filter(p => isProjetoDoAmbiente(p, ambientePorCliente));
+
       // Resolve external_client and contribuinte names via environment-aware tables
-      const clientIds = [...new Set((data || []).filter(p => p.external_client_id).map(p => p.external_client_id as string))];
-      const contribIds = [...new Set((data || []).filter(p => p.contribuinte_id).map(p => p.contribuinte_id as string))];
+      const clientIds = [...new Set(projetos.filter(p => p.external_client_id).map(p => p.external_client_id as string))];
+      const contribIds = [...new Set(projetos.filter(p => p.contribuinte_id).map(p => p.contribuinte_id as string))];
 
       const clientMap: Record<string, string> = {};
       const contribMap: Record<string, string> = {};
@@ -129,7 +140,7 @@ export const useOrgProjects = () => {
       }
 
       // Resolve servico_contratado via os_produtos_contratados → produto_segmento
-      const osIds = [...new Set((data || []).filter(p => p.ordem_servico_id).map(p => p.ordem_servico_id as string))];
+      const osIds = [...new Set(projetos.filter(p => p.ordem_servico_id).map(p => p.ordem_servico_id as string))];
       const servicoMap: Record<string, string> = {};
 
       if (osIds.length > 0) {
@@ -157,7 +168,7 @@ export const useOrgProjects = () => {
       }
 
       // Resolve servico_id → nome via servicos_prestados
-      const servicoIds = [...new Set((data || []).filter(p => p.servico_id).map(p => p.servico_id as string))];
+      const servicoIds = [...new Set(projetos.filter(p => p.servico_id).map(p => p.servico_id as string))];
       const servicoNomeMap: Record<string, string> = {};
 
       if (servicoIds.length > 0) {
@@ -167,7 +178,7 @@ export const useOrgProjects = () => {
         (servicos || []).forEach((s: any) => { servicoNomeMap[s.id] = s.nome; });
       }
 
-      return (data || []).map(p => ({
+      return projetos.map(p => ({
         ...p,
         // is_multidisciplinar ainda ausente do schema tipado gerado — coerce a boolean
         is_multidisciplinar: !!(p as { is_multidisciplinar?: boolean }).is_multidisciplinar,
@@ -182,6 +193,8 @@ export const useOrgProjects = () => {
 
 /** Lightweight list of active org projects (for dropdowns) */
 export const useOrgProjectsList = (onlyActive = true) => {
+  const queryClient = useQueryClient();
+
   return useQuery({
     queryKey: ['org-projects-list', onlyActive],
     queryFn: async () => {
@@ -189,7 +202,11 @@ export const useOrgProjectsList = (onlyActive = true) => {
       if (onlyActive) query = query.in('status', ['active', 'planned']);
       const { data, error } = await query;
       if (error) throw error;
-      return data || [];
+
+      // Mesmo escopo de ambiente da lista completa: um seletor não pode oferecer
+      // projeto do outro ambiente para mover/criar tarefa.
+      const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
+      return (data || []).filter(project => isProjetoDoAmbiente(project, ambientePorCliente));
     },
   });
 };

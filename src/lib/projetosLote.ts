@@ -162,10 +162,9 @@ export function buildLoteFromOs(
  */
 export const OS_SITUACOES_ABERTAS = ['em_andamento', 'suspenso'];
 
-/** OS aberta com produtos e o nome do cliente (ver useOsAbertasComProdutos). */
+/** OS aberta com produtos, já restrita ao ambiente atual (ver useOsAbertasComProdutos). */
 export interface LoteOsAberta extends LoteOsCandidata {
   cliente_id: string;
-  cliente_nome: string;
   produtos: LoteOsProdutoContratado[];
 }
 
@@ -182,21 +181,24 @@ export interface LoteOsOption {
 /**
  * OS abertas de cada cliente, com quantos produtos ainda não viraram projeto.
  *
- * O casamento cliente↔OS é por NOME, não por id, espelhando a RPC
- * `get_ordens_by_client_name`: o mesmo cliente tem UUIDs distintos em dev e prod
- * e as OS podem apontar para o UUID do outro ambiente. O `clientId` do snapshot,
- * porém, é o do cliente escolhido na tela — é nele que o projeto será vinculado.
+ * O casamento cliente↔OS é por id. Já foi por NOME, espelhando a RPC
+ * `get_ordens_by_client_name` (que expande o id para todos os clientes de mesmo
+ * nome, em qualquer ambiente), mas isso furava o isolamento de ambiente: o
+ * seletor listava o cliente do ambiente atual por causa de uma OS do outro, e na
+ * prática quase todo cliente aparecia. Cada OS agora só conta para o cliente que
+ * ela referencia — e `useOsAbertasComProdutos` já entrega apenas OS de clientes
+ * do ambiente atual.
  */
 export function buildLoteOsOptionsByClient(
   clientes: Array<{ id: string; nome: string }>,
   osRows: LoteOsAberta[],
   projetos: Array<{ name: string; ordem_servico_id: string | null }>,
 ): Map<string, LoteOsOption[]> {
-  const osByClientName = new Map<string, LoteOsAberta[]>();
+  const osByClientId = new Map<string, LoteOsAberta[]>();
   for (const os of osRows) {
-    const rows = osByClientName.get(os.cliente_nome) || [];
+    const rows = osByClientId.get(os.cliente_id) || [];
     rows.push(os);
-    osByClientName.set(os.cliente_nome, rows);
+    osByClientId.set(os.cliente_id, rows);
   }
 
   const projetosByOs = new Map<string, Array<{ name: string }>>();
@@ -209,7 +211,7 @@ export function buildLoteOsOptionsByClient(
 
   const result = new Map<string, LoteOsOption[]>();
   for (const cliente of clientes) {
-    const rows = osByClientName.get(cliente.nome);
+    const rows = osByClientId.get(cliente.id);
     if (!rows?.length) continue;
     const options = rows.map(os => {
       const state = buildLoteFromOs(cliente, os, os.produtos);

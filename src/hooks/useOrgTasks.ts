@@ -6,6 +6,8 @@
  import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
+import { isTarefaDoAmbiente } from '@/lib/ambienteScope';
 import { buildMoveTaskPlan, moveChangedFields, pruneNestedSelection } from '@/lib/orgTaskMove';
 import { taskSaveErrorMessage } from '@/lib/rlsMessages';
  
@@ -41,7 +43,9 @@ export interface OrgTask {
     created_at: string;
     updated_at: string;
    // Joined data
-   project?: { id: string; name: string } | null;
+   // external_client_id vem no embed porque org_tasks não tem coluna `ambiente`:
+   // o ambiente da tarefa é o do cliente dela ou o do cliente do projeto.
+   project?: { id: string; name: string; external_client_id?: string | null } | null;
     client?: { id: string; nome: string } | null;
    contribuinte?: { id: string; nome_razao_social: string } | null;
  }
@@ -93,6 +97,7 @@ export interface TaskFilters {
  
  export const useOrgTasks = (filters?: TaskFilters) => {
    const { user } = useAuth();
+   const queryClient = useQueryClient();
  
    return useQuery({
      queryKey: ['org-tasks', filters],
@@ -101,7 +106,7 @@ export interface TaskFilters {
          .from('org_tasks')
           .select(`
              *,
-             project:org_projects(id, name),
+             project:org_projects(id, name, external_client_id),
              client:cliente(id, nome),
              contribuinte:contribuinte(id, nome_razao_social)
            `)
@@ -150,6 +155,12 @@ export interface TaskFilters {
           reviewer_id: t.reviewer_id ?? null,
           parent_task_id: t.parent_task_id === t.id ? null : t.parent_task_id,
         })) as OrgTask[];
+
+        // Escopo de ambiente: a tarefa herda o ambiente do cliente dela e do
+        // cliente do projeto onde mora. Vale para TODAS as visões, porque todas
+        // consomem esta lista.
+        const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
+        allTasks = allTasks.filter(task => isTarefaDoAmbiente(task, ambientePorCliente));
 
         // Client-side assignedTo filter: shows parent tasks that have matching subtasks
         if (filters?.assignedTo && filters.assignedTo !== 'all') {

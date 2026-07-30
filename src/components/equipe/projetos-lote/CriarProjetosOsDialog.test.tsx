@@ -33,7 +33,6 @@ const os = (patch: Partial<LoteOsAberta>): LoteOsAberta => ({
   id: 'os-1',
   numero_os: '035/2026',
   cliente_id: 'cli-1',
-  cliente_nome: 'Fazenda Horizonte',
   situacao: 'em_andamento',
   data_inicio: '2026-01-01',
   data_fim: '2026-12-31',
@@ -91,16 +90,18 @@ describe('CriarProjetosOsDialog', () => {
     expect(screen.queryByRole('button', { name: 'Fazenda Horizonte' })).not.toBeInTheDocument();
   });
 
-  it('casa cliente e OS por nome, cobrindo UUID diferente entre dev e prod', () => {
-    // Mesmo nome, UUID de outro ambiente — é o que a RPC get_ordens_by_client_name faz.
+  it('OS do mesmo cliente em outro ambiente não coloca o cliente na lista', () => {
+    // Mesmo nome, UUID do outro ambiente: casar por nome (como a RPC
+    // get_ordens_by_client_name faz) listava o cliente por causa de OS de fora.
     mocks.osAbertas = [os({ cliente_id: 'cli-1-prod' })];
     render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
 
-    expect(screen.getByRole('button', { name: 'Fazenda Horizonte' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Fazenda Horizonte' })).not.toBeInTheDocument();
+    expect(screen.getByText('Nenhum cliente com OS aberta sem projeto vinculado.')).toBeInTheDocument();
   });
 
   it('filtra os clientes pela busca', async () => {
-    mocks.osAbertas = [os({}), os({ id: 'os-2', cliente_id: 'cli-2', cliente_nome: 'Agro Cerrado' })];
+    mocks.osAbertas = [os({}), os({ id: 'os-2', cliente_id: 'cli-2' })];
     const user = userEvent.setup();
     render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
 
@@ -140,19 +141,6 @@ describe('CriarProjetosOsDialog', () => {
         },
       },
     });
-  });
-
-  it('vincula o projeto ao cliente do ambiente atual, não ao da OS', async () => {
-    mocks.osAbertas = [os({ cliente_id: 'cli-1-prod' })];
-    const user = userEvent.setup();
-    render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
-
-    await user.click(screen.getByRole('button', { name: 'Fazenda Horizonte' }));
-    await user.click(screen.getByRole('radio'));
-    await user.click(screen.getByRole('button', { name: 'Criar 2 projetos' }));
-
-    const [, options] = mocks.navigate.mock.calls[0];
-    expect((options as { state: { loteFromOs: { clientId: string } } }).state.loteFromOs.clientId).toBe('cli-1');
   });
 
   it('na OSG leva para a tela de lote da própria área', async () => {
@@ -203,7 +191,7 @@ describe('CriarProjetosOsDialog', () => {
   });
 
   it('"Trocar cliente" volta para a lista de clientes', async () => {
-    mocks.osAbertas = [os({}), os({ id: 'os-2', cliente_id: 'cli-2', cliente_nome: 'Agro Cerrado' })];
+    mocks.osAbertas = [os({}), os({ id: 'os-2', cliente_id: 'cli-2' })];
     const user = userEvent.setup();
     render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
 

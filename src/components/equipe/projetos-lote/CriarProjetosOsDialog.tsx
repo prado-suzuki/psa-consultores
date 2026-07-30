@@ -54,6 +54,10 @@ function periodoLabel(os: LoteOsCandidata) {
  *
  * A lista de clientes mostra apenas quem tem OS aberta com produto sem projeto.
  * Uma OS de 3 produtos com 2 já criados continua contando: sobrou 1.
+ *
+ * Tudo dentro do ambiente atual: os clientes vêm filtrados por `ambiente` e as OS
+ * consideradas são só as do cliente daquele ambiente (ver
+ * buildLoteOsOptionsByClient).
  */
 export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjetosOsDialogProps) => {
   const navigate = useNavigate();
