@@ -1963,6 +1963,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "documento_arquivo_checklist_item_id_fkey"
+            columns: ["checklist_item_id"]
+            isOneToOne: false
+            referencedRelation: "cobertura_documentos_cliente"
+            referencedColumns: ["checklist_item_id"]
+          },
+          {
             foreignKeyName: "documento_arquivo_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
@@ -8046,6 +8053,31 @@ export type Database = {
             columns: ["setor_cliente_id"]
             isOneToOne: false
             referencedRelation: "setor_cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cobertura_documentos_cliente: {
+        Row: {
+          arquivos_vinculados: number | null
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"] | null
+          checklist_item_id: string | null
+          cliente_id: string | null
+          documento: string | null
+          entidade_catalogo: string | null
+          entidade_id: string | null
+          entidade_rotulo: string | null
+          entidade_tipo: string | null
+          modulo: string | null
+          obrigatorio: boolean | null
+          status: Database["public"]["Enums"]["osg_checklist_status"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "checklist_cliente_item_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
             referencedColumns: ["id"]
           },
         ]
