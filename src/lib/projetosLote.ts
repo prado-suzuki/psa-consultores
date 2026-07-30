@@ -38,7 +38,10 @@ export function resolveLoteRoutes(area: AreaKey): LoteRoutes {
 
 export interface LoteProduto {
   produtoSegmentoId: string;
+  /** "CÓDIGO — Nome": identifica o produto na UI e no casamento com projetos. */
   produtoLabel: string;
+  /** Só o nome do produto — é o nome padrão do projeto. */
+  produtoNome: string;
 }
 
 /** Snapshot enviado pelo seletor de OS (via location.state) para a tela de lote. */
@@ -119,6 +122,14 @@ export function buildProdutoLabel(produto: LoteOsProdutoContratado): string {
 }
 
 /**
+ * Nome do produto sem a sigla — é ele que vira o nome padrão do projeto.
+ * Cai no código e depois no id só para nunca gerar projeto sem nome.
+ */
+export function buildProdutoNome(produto: LoteOsProdutoContratado): string {
+  return produto.produto_nome || produto.produto_codigo || produto.produto_segmento_id;
+}
+
+/**
  * Monta o snapshot que a tela de lote consome, a partir do cliente escolhido,
  * da OS e dos seus produtos contratados. Substitui o `buildLoteState` que vivia
  * no NewClientModal, onde os dados vinham do rascunho do formulário.
@@ -140,6 +151,7 @@ export function buildLoteFromOs(
     produtos: produtos.map(produto => ({
       produtoSegmentoId: produto.produto_segmento_id,
       produtoLabel: buildProdutoLabel(produto),
+      produtoNome: buildProdutoNome(produto),
     })),
   };
 }
@@ -220,8 +232,14 @@ export function buildLoteOsOptionsByClient(
   return result;
 }
 
-/** Nome sugerido do projeto de um produto: "Cliente — OS nº — Produto". */
-export function buildLoteProjectName(clientName: string, osNumero: string, produtoLabel: string): string {
+/**
+ * Nome que o lote gerava até 2026-07: "Cliente — OS nº — CÓDIGO — Nome".
+ *
+ * Não é mais o padrão (ver buildInitialRows). Sobrevive só para
+ * `findProdutosJaCriados` continuar reconhecendo os projetos criados nesse
+ * formato — que são todos os anteriores à mudança.
+ */
+export function buildLegacyLoteProjectName(clientName: string, osNumero: string, produtoLabel: string): string {
   const base = clientName?.trim() ? `${clientName.trim()} — OS ${osNumero}` : `OS ${osNumero}`;
   return produtoLabel ? `${base} — ${produtoLabel}` : base;
 }
@@ -235,9 +253,17 @@ function normalizeProjectName(value: string): string {
  * Produtos da OS que já têm projeto criado — evita criar o mesmo projeto duas vezes.
  *
  * O projeto não guarda qual produto ele é (grava só `ordem_servico_id`; ver
- * `buildLoteFormData`), então a comparação é pelo nome: o nome padrão gerado ou,
- * se alguém renomeou o projeto, qualquer nome que ainda contenha o rótulo do
- * produto. Renomear apagando o rótulo escapa da detecção.
+ * `buildLoteFormData`), então a comparação é pelo nome, em três formas:
+ *
+ * 1. o nome padrão atual — só o nome do produto;
+ * 2. o padrão antigo "Cliente — OS nº — CÓDIGO — Nome", para reconhecer os
+ *    projetos criados antes da mudança;
+ * 3. qualquer nome que ainda contenha o rótulo "CÓDIGO — Nome", para o projeto
+ *    que alguém renomeou mantendo a sigla.
+ *
+ * Renomear apagando essas marcas escapa da detecção — limite conhecido.
+ * A comparação é sempre dentro de UMA OS, então nomes curtos iguais entre
+ * clientes diferentes não se confundem.
  *
  * @param projetosDaOs projetos já existentes DESTA OS (filtrar antes de chamar).
  */
@@ -250,20 +276,32 @@ export function findProdutosJaCriados(
   const nomesExistentes = projetosDaOs.map(projeto => normalizeProjectName(projeto.name));
   return produtos
     .filter(produto => {
-      const esperado = normalizeProjectName(buildLoteProjectName(clientName, osNumero, produto.produtoLabel));
+      const esperado = normalizeProjectName(produto.produtoNome);
+      const legado = normalizeProjectName(
+        buildLegacyLoteProjectName(clientName, osNumero, produto.produtoLabel),
+      );
       const rotulo = normalizeProjectName(produto.produtoLabel);
-      return nomesExistentes.some(nome => nome === esperado || (rotulo !== '' && nome.includes(rotulo)));
+      return nomesExistentes.some(nome => (esperado !== '' && nome === esperado)
+        || nome === legado
+        || (rotulo !== '' && nome.includes(rotulo)));
     })
     .map(produto => produto.produtoSegmentoId);
 }
 
-/** Constrói o estado inicial das linhas a partir do snapshot da OS. */
+/**
+ * Constrói o estado inicial das linhas a partir do snapshot da OS.
+ *
+ * O nome padrão é só o nome do produto. Cliente, número da OS e sigla saíram da
+ * concatenação porque a árvore de Projetos e tarefas já mostra os três acima do
+ * projeto — tanto que ela tinha de desfazer o nome na exibição
+ * (`shortProjectName`). O campo continua editável linha por linha.
+ */
 export function buildInitialRows(state: LoteFromOs): LoteRow[] {
   return state.produtos.map(produto => ({
     produtoSegmentoId: produto.produtoSegmentoId,
     produtoLabel: produto.produtoLabel,
     include: true,
-    name: buildLoteProjectName(state.clientName, state.osNumero, produto.produtoLabel),
+    name: produto.produtoNome,
     equipeId: '',
     estruturaAreaId: '',
     leaderIds: [],
