@@ -2,7 +2,7 @@ import { useState, Fragment } from 'react';
 import { format } from 'date-fns';
 import { parseDate } from '@/lib/dateUtils';
  import { ptBR } from 'date-fns/locale';
- import { ChevronDown, ChevronRight, MoreHorizontal, Edit, Trash2, UserPlus, Plus } from 'lucide-react';
+ import { ChevronDown, ChevronRight, FolderInput, MoreHorizontal, Edit, Trash2, UserPlus, Plus } from 'lucide-react';
  import {
    Table,
    TableBody,
@@ -40,6 +40,7 @@ interface TaskTableProps {
   onEdit: (task: OrgTask) => void;
   onDelete: (taskId: string) => void;
   onReassign: (task: OrgTask) => void;
+  onMove?: (task: OrgTask) => void;
   onAddSubtask?: (parentTask: OrgTask) => void;
   currentUserId?: string | null;
 }
@@ -63,7 +64,7 @@ const statusLabels = Object.fromEntries(
 ) as Record<OrgTaskStatus, string>;
  
  
- export const TaskTable = ({ tasks, area, onEdit, onDelete, onReassign, onAddSubtask, currentUserId }: TaskTableProps) => {
+ export const TaskTable = ({ tasks, area, onEdit, onDelete, onReassign, onMove, onAddSubtask, currentUserId }: TaskTableProps) => {
    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
    const updateTask = useUpdateOrgTask(area);
  
@@ -235,7 +236,13 @@ const statusLabels = Object.fromEntries(
                     <UserPlus className="h-4 w-4 mr-2" />
                     Reatribuir
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                  {onMove && (
+                    <DropdownMenuItem onClick={() => onMove(task)}>
+                      <FolderInput className="h-4 w-4 mr-2" />
+                      Mover para outro projeto
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
                     onClick={() => onDelete(task.id)}
                     className="text-destructive"
                   >

@@ -326,12 +326,19 @@ function pageData(overrides: Record<string, unknown> = {}) {
 }
 
 function renderPage() {
+  // O bloco de anexos do modal de edição usa React Query, então a página real
+  // precisa do provider em volta (na aplicação ele vem do App).
+  const client = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
   return render(
-    <MemoryRouter initialEntries={['/equipe/sprints/sprint-1']}>
-      <Routes>
-        <Route path="/equipe/sprints/:id" element={<EquipeSprintDetalhes />} />
-      </Routes>
-    </MemoryRouter>,
+    <QueryClientProvider client={client}>
+      <MemoryRouter initialEntries={['/equipe/sprints/sprint-1']}>
+        <Routes>
+          <Route path="/equipe/sprints/:id" element={<EquipeSprintDetalhes />} />
+        </Routes>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 

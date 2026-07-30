@@ -7,6 +7,7 @@
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { computeFieldDiff } from '@/lib/diffUtils';
+import { buildMoveTaskPlan, moveChangedFields } from '@/lib/orgTaskMove';
  
 export type OrgTaskStatus = 'backlog' | 'waiting_client' | 'todo' | 'in_progress' | 'review' | 'em_ajuste' | 'done';
 export type OrgTaskPriority = 'low' | 'medium' | 'high' | 'urgent';
@@ -369,6 +370,143 @@ export const useUpdateOrgTask = (
    });
  };
  
+/**
+ * Descendentes (subtarefas, netas, …) buscados no banco — e não na lista já
+ * carregada na tela, que pode estar filtrada e deixar subtarefas para trás no
+ * projeto de origem. Profundidade limitada por segurança contra ciclos.
+ */
+const fetchOrgTaskDescendants = async (rootId: string) => {
+  const descendants: { id: string; title: string; project_id: string | null }[] = [];
+  const visited = new Set<string>([rootId]);
+  let frontier = [rootId];
+
+  for (let depth = 0; depth < 10 && frontier.length > 0; depth++) {
+    const { data, error } = await supabase
+      .from('org_tasks')
+      .select('id, title, project_id')
+      .in('parent_task_id', frontier);
+    if (error) throw error;
+
+    const next = (data || []).filter(row => !visited.has(row.id));
+    next.forEach(row => visited.add(row.id));
+    descendants.push(...next);
+    frontier = next.map(row => row.id);
+  }
+
+  return descendants;
+};
+
+/**
+ * Move uma tarefa (com suas subtarefas) para outro projeto. Ver as regras em
+ * `@/lib/orgTaskMove`. Sem transação no cliente, a permissão é pré-checada em
+ * toda a árvore antes de qualquer escrita para não deixar mãe e filhas em
+ * projetos diferentes.
+ */
+export const useMoveOrgTaskToProject = (area: AreaKey = 'tax') => {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async ({ taskId, targetProjectId }: { taskId: string; targetProjectId: string }) => {
+      const { data: current, error: currentError } = await supabase
+        .from('org_tasks')
+        .select('id, title, project_id, client_id, contribuinte_id, parent_task_id')
+        .eq('id', taskId)
+        .single();
+      if (currentError) throw currentError;
+      if (current.project_id === targetProjectId) {
+        throw new Error('A tarefa já está neste projeto.');
+      }
+
+      const { data: target, error: targetError } = await supabase
+        .from('org_projects')
+        .select('id, name, external_client_id, contribuinte_id')
+        .eq('id', targetProjectId)
+        .single();
+      if (targetError) throw targetError;
+
+      const { data: origin } = current.project_id
+        ? await supabase.from('org_projects').select('name').eq('id', current.project_id).maybeSingle()
+        : { data: null };
+      const originName = origin?.name || 'Sem projeto';
+
+      const descendants = await fetchOrgTaskDescendants(taskId);
+      const descendantIds = descendants.map(row => row.id);
+      const plan = buildMoveTaskPlan({
+        task: current,
+        target: { ...target, contribuinte_id: target.contribuinte_id ?? null },
+        descendantIds,
+      });
+
+      for (const id of [taskId, ...descendantIds]) {
+        await assertCanPerform('org_tasks', 'update', id);
+      }
+
+      const { data: movedRoot, error: rootError } = await supabase
+        .from('org_tasks')
+        .update(plan.rootChanges)
+        .eq('id', taskId)
+        .select('id')
+        .maybeSingle();
+      if (rootError) throw rootError;
+      if (!movedRoot) {
+        throw new Error('Sem permissão para mover esta tarefa. Verifique se você é membro do projeto de destino.');
+      }
+
+      if (descendantIds.length > 0) {
+        const { error: descendantsError } = await supabase
+          .from('org_tasks')
+          .update(plan.descendantChanges)
+          .in('id', descendantIds);
+        if (descendantsError) {
+          throw new Error(
+            `A tarefa foi movida, mas as subtarefas continuaram em "${originName}": ${descendantsError.message}`,
+          );
+        }
+      }
+
+      const subtaskSuffix = descendantIds.length > 0
+        ? ` com ${descendantIds.length} subtarefa(s)`
+        : '';
+      await logAction({
+        // Tarefas só existem nas áreas tax/osg (subconjunto de AuditArea).
+        area: area as 'tax' | 'osg',
+        entity_type: current.parent_task_id ? 'subtask' : 'task',
+        entity_id: taskId,
+        entity_name: current.title || 'Tarefa',
+        action: 'updated',
+        changed_fields: moveChangedFields(current, plan.rootChanges),
+        details: `Movida do projeto "${originName}" para "${target.name}"${subtaskSuffix}`,
+      });
+
+      for (const descendant of descendants) {
+        await logAction({
+          area: area as 'tax' | 'osg',
+          entity_type: 'subtask',
+          entity_id: descendant.id,
+          entity_name: descendant.title || 'Subtarefa',
+          action: 'updated',
+          changed_fields: moveChangedFields(descendant, plan.descendantChanges),
+          details: `Movida junto com a tarefa "${current.title}" para o projeto "${target.name}"`,
+        });
+      }
+
+      return { targetName: target.name, movedSubtasks: descendantIds.length };
+    },
+    onSuccess: ({ targetName, movedSubtasks }) => {
+      queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
+      toast.success(`Tarefa movida para "${targetName}"`, {
+        description: movedSubtasks > 0
+          ? `${movedSubtasks} subtarefa(s) foram movidas junto.`
+          : undefined,
+      });
+    },
+    onError: (error) => {
+      toast.error('Erro ao mover tarefa: ' + error.message);
+    },
+  });
+};
+
  export const useDeleteOrgTask = (area: AreaKey = 'tax') => {
    const queryClient = useQueryClient();
    const { logAction } = useAuditLog();

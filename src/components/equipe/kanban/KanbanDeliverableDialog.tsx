@@ -1,5 +1,5 @@
-import type { ChangeEvent, Dispatch, RefObject, SetStateAction } from 'react';
-import { Download, FileText, Paperclip, Trash2, Upload } from 'lucide-react';
+import type { Dispatch, SetStateAction } from 'react';
+import { Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,12 +31,11 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import {
-  formatEquipeKanbanFileSize,
-  type EquipeKanbanAttachment,
-  type EquipeKanbanDeliverable,
-  type EquipeKanbanEditForm,
-  type EquipeKanbanProfile,
+import { AnexosEntregavel } from '@/components/equipe/AnexosEntregavel';
+import type {
+  EquipeKanbanDeliverable,
+  EquipeKanbanEditForm,
+  EquipeKanbanProfile,
 } from '@/lib/equipeKanban';
 
 interface KanbanDeliverableDialogProps {
@@ -44,9 +43,6 @@ interface KanbanDeliverableDialogProps {
   editForm: EquipeKanbanEditForm;
   profiles: EquipeKanbanProfile[];
   subtasks: EquipeKanbanDeliverable[];
-  attachments: EquipeKanbanAttachment[];
-  fileInputRef: RefObject<HTMLInputElement>;
-  uploadingFile: boolean;
   deleting: boolean;
   deleteDialogOpen: boolean;
   setEditForm: Dispatch<SetStateAction<EquipeKanbanEditForm>>;
@@ -54,9 +50,6 @@ interface KanbanDeliverableDialogProps {
   onDeleteDialogOpenChange: (open: boolean) => void;
   onSave: () => void;
   onDeleteDeliverable: () => void;
-  onFileUpload: (event: ChangeEvent<HTMLInputElement>) => void;
-  onDownloadFile: (attachment: EquipeKanbanAttachment) => void;
-  onDeleteFile: (attachment: EquipeKanbanAttachment) => void;
   onSubtaskStatusChange: (subtask: EquipeKanbanDeliverable) => Promise<void>;
   onOpenSubtask: (subtask: EquipeKanbanDeliverable) => void;
 }
@@ -238,72 +231,10 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
             </div>
           )}
 
-          <div className="space-y-3 border-t border-gray-200 pt-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-gray-700 flex items-center gap-2">
-                <Paperclip className="h-4 w-4" />
-                Anexos
-              </Label>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => props.fileInputRef.current?.click()}
-                disabled={props.uploadingFile}
-                className="border-gray-300"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {props.uploadingFile ? 'Enviando...' : 'Anexar arquivo'}
-              </Button>
-              <input
-                ref={props.fileInputRef}
-                type="file"
-                className="hidden"
-                onChange={props.onFileUpload}
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip"
-              />
-            </div>
-
-            {props.attachments.length === 0 ? (
-              <p className="text-sm text-gray-500 italic">Nenhum anexo</p>
-            ) : (
-              <div className="space-y-2">
-                {props.attachments.map((attachment) => (
-                  <div
-                    key={attachment.id}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200"
-                  >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm text-gray-900 truncate">{attachment.file_name}</p>
-                        <p className="text-xs text-gray-500">
-                          {formatEquipeKanbanFileSize(attachment.file_size)}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => props.onDownloadFile(attachment)}
-                        className="h-8 w-8 p-0 text-gray-500 hover:text-gray-700"
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => props.onDeleteFile(attachment)}
-                        className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <AnexosEntregavel
+            deliverableId={selectedDeliverable?.id}
+            ativo={!!selectedDeliverable}
+          />
         </div>
 
         <DialogFooter className="flex justify-between">

@@ -252,8 +252,9 @@ const App = () => (
               {/* Tax Gerencial — restrita a líder+ (dashboard nativo de Clientes e OS) */}
               <Route path="/equipe/tax/gerencial" element={<LiderRoute><FiscalGerencial /></LiderRoute>} />
 
-              {/* Tax Auditoria */}
-              <Route path="/equipe/tax/auditoria" element={<PageAccessGate pagePath="/equipe/tax/auditoria"><FiscalAuditoria /></PageAccessGate>} />
+              {/* Tax Auditoria — líder+ (mostra produtividade e acesso do time),
+                  além da permissão granular da página. */}
+              <Route path="/equipe/tax/auditoria" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/auditoria"><FiscalAuditoria /></PageAccessGate></LiderRoute>} />
 
               {/* OSG Routes */}
               <Route path="/equipe/osg" element={<ProtectedRoute><OsgAreaSelector /></ProtectedRoute>} />
@@ -278,7 +279,8 @@ const App = () => (
                 <Route path="/equipe/osg/work/checklists" element={<ProtectedRoute><ChecklistsDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />
               </Route>
-              <Route path="/equipe/osg/auditoria" element={<PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate>} />
+              {/* OSG Auditoria — líder+, igual à Tax; quem não é volta para a home do OSG. */}
+              <Route path="/equipe/osg/auditoria" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/auditoria"><OsgAuditoria /></PageAccessGate></LiderRoute>} />
 
               {/* Board Routes */}
               {/* Raiz da área Gerencial: o breadcrumb "Board" e links externos

@@ -25,7 +25,16 @@ import { Users, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
-import { useClientesFiltrados, useContribuintesExpand } from '@/hooks/useGestaoClientes';
+import {
+  useClientesFiltrados,
+  useContribuintesExpand,
+  useOsExpand,
+} from '@/hooks/useGestaoClientes';
+import {
+  SITUACAO_PROJETO_OPTIONS,
+  formatCurrencyDisplay,
+  isoToMasked,
+} from '@/components/equipe/client-form/constants';
 import { useDeleteCliente } from '@/hooks/useDeleteCliente';
 import { useClusterIdByPageCategory } from '@/hooks/useTaxReferenceData';
 import type { AreaKey } from '@/config/areaCategories';
@@ -34,6 +43,81 @@ import { AreaLoader } from '@/components/equipe/AreaLoader';
 import ClientesFilterBar, {
   type ClientesFilterField,
 } from '@/components/equipe/clientes/ClientesFilterBar';
+
+/* ── Sub-componente: OS + produtos contratados ── */
+const OsSubTable = ({ clienteId }: { clienteId: string }) => {
+  const { data, isLoading } = useOsExpand(clienteId);
+
+  return (
+    <div className="ml-10 border-l-2 border-primary/40 bg-muted/25 px-4 py-2.5">
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        OS - Ordem de Serviço {data?.length ? `(${data.length})` : ''}
+      </p>
+      {isLoading ? (
+        <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando OS…
+        </div>
+      ) : !data?.length ? (
+        <p className="py-2 text-sm text-muted-foreground">Nenhuma OS cadastrada</p>
+      ) : (
+        <Table>
+          <TableHeader>
+            <TableRow className="border-border/60 hover:bg-transparent">
+              <TableHead className="h-9 text-xs uppercase tracking-wider">OS</TableHead>
+              <TableHead className="h-9 text-xs uppercase tracking-wider">Vigência</TableHead>
+              <TableHead className="h-9 text-xs uppercase tracking-wider">Valor</TableHead>
+              <TableHead className="h-9 text-xs uppercase tracking-wider">Situação</TableHead>
+              <TableHead className="h-9 text-xs uppercase tracking-wider">
+                Produtos contratados
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.map((os) => (
+              <TableRow key={os.id} className="border-border/40 hover:bg-transparent">
+                <TableCell className="py-2.5 text-sm font-medium whitespace-nowrap">
+                  {os.numero_os || '-'}
+                </TableCell>
+                <TableCell className="py-2.5 text-sm whitespace-nowrap text-muted-foreground">
+                  {os.data_inicio || os.data_fim
+                    ? `${isoToMasked(os.data_inicio || '') || '—'} a ${isoToMasked(os.data_fim || '') || '—'}`
+                    : '-'}
+                </TableCell>
+                <TableCell className="py-2.5 text-sm whitespace-nowrap text-muted-foreground">
+                  {formatCurrencyDisplay(os.valor_projeto ?? 0)}
+                </TableCell>
+                <TableCell className="py-2.5 text-sm text-muted-foreground">
+                  {SITUACAO_PROJETO_OPTIONS.find((o) => o.value === os.situacao)?.label ||
+                    os.situacao ||
+                    '-'}
+                </TableCell>
+                <TableCell className="py-2.5">
+                  {os.produtos.length === 0 ? (
+                    <span className="text-sm text-muted-foreground">—</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {os.produtos.map((p) => (
+                        <Badge
+                          key={p.id}
+                          variant="secondary"
+                          className="h-6 rounded-md px-2 text-xs font-medium"
+                        >
+                          {p.label}
+                          {p.horas_contratadas != null && ` (${p.horas_contratadas}h)`}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      )}
+    </div>
+  );
+};
 
 /* ── Sub-componente: contribuintes expandidos ── */
 const ContribuinteSubTable = ({ clienteId, area }: { clienteId: string; area?: AreaKey }) => {
@@ -52,7 +136,18 @@ const ContribuinteSubTable = ({ clienteId, area }: { clienteId: string; area?: A
 
   return (
     <div className="ml-10 border-l-2 border-primary/25 bg-muted/25 px-4 py-2.5">
-      <Table>
+      <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        Contribuintes {data?.length ? `(${data.length})` : ''}
+      </p>
+      {isLoading ? (
+        <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Carregando contribuintes…
+        </div>
+      ) : !data?.length ? (
+        <p className="py-2 text-sm text-muted-foreground">Nenhum contribuinte cadastrado</p>
+      ) : (
+        <Table>
         <TableHeader>
           <TableRow className="border-border/60 hover:bg-transparent">
             <TableHead className="h-9 text-xs uppercase tracking-wider">CPF/CNPJ</TableHead>
@@ -78,8 +173,9 @@ const ContribuinteSubTable = ({ clienteId, area }: { clienteId: string; area?: A
               </TableCell>
             </TableRow>
           ))}
-        </TableBody>
-      </Table>
+          </TableBody>
+        </Table>
+      )}
     </div>
   );
 };
@@ -197,24 +293,6 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
           : '-';
   };
 
-  const formatCategoria = (cat: string | null) => {
-    if (!cat) return '-';
-    const colors: Record<string, string> = {
-      Bronze: 'border-[#CD7F32]/25 bg-[#CD7F32]/10 text-[#9A5A20]',
-      Prata: 'border-border bg-muted/60 text-muted-foreground',
-      Ouro: 'border-amber-400/30 bg-amber-400/10 text-amber-700',
-      Diamante: 'border-sky-400/30 bg-sky-400/10 text-sky-700',
-    };
-    return (
-      <Badge
-        variant="outline"
-        className={cn('h-6 rounded-md px-2 text-xs font-semibold shadow-none', colors[cat])}
-      >
-        {cat}
-      </Badge>
-    );
-  };
-
   const content = (
     <div className="space-y-3">
       {/* Barra de Filtros (com ação "Novo cliente") */}
@@ -246,15 +324,15 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
       ) : (
         <div className="flex flex-col overflow-hidden rounded-xl border border-border/80 bg-card shadow-sm">
           <div className="h-0.5 bg-primary" />
-          <Table className="min-w-[1150px]" containerClassName="scrollbar-thin">
+          <Table className="min-w-[1100px]" containerClassName="scrollbar-thin">
             <TableHeader className="bg-muted/35">
               <TableRow className="border-border/70 hover:bg-transparent">
                 <TableHead className="h-11 w-10 px-2" />
                 <TableHead className="h-11 min-w-[240px] px-4 text-xs uppercase tracking-[0.12em]">
                   Cliente
                 </TableHead>
-                <TableHead className="h-11 px-4 text-xs uppercase tracking-[0.12em]">
-                  Categoria
+                <TableHead className="h-11 w-20 px-4 text-center text-xs uppercase tracking-[0.12em]">
+                  OS
                 </TableHead>
                 <TableHead className="h-11 px-4 text-xs uppercase tracking-[0.12em]">
                   Status
@@ -318,7 +396,19 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="px-4 py-3">{formatCategoria(row.categoria)}</TableCell>
+                      <TableCell className="px-4 py-3 text-center">
+                        <span
+                          className={cn(
+                            'inline-flex h-6 min-w-6 items-center justify-center rounded-md px-2 text-xs font-semibold',
+                            row._osCount > 0
+                              ? 'bg-primary/10 text-primary'
+                              : 'bg-muted/60 text-muted-foreground',
+                          )}
+                          title={`${row._osCount} OS cadastrada${row._osCount === 1 ? '' : 's'}`}
+                        >
+                          {row._osCount}
+                        </span>
+                      </TableCell>
                       <TableCell className="px-4 py-3">{formatStatus(row.ativo)}</TableCell>
                       <TableCell className="px-4 py-3 text-sm text-muted-foreground">
                         {formatTipo(row.fixo)}
@@ -371,6 +461,9 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
                       <TableRow className="border-border/50 bg-muted/10 hover:bg-muted/10">
                         <TableCell colSpan={totalCols} className="p-0 px-2 py-3">
                           <ContribuinteSubTable clienteId={row.id} area={area} />
+                        <TableCell colSpan={totalCols} className="space-y-3 p-0 px-2 py-3">
+                          <OsSubTable clienteId={row.id} />
+                          <ContribuinteSubTable clienteId={row.id} />
                         </TableCell>
                       </TableRow>
                     )}

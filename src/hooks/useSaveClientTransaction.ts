@@ -587,6 +587,9 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       queryClient.invalidateQueries({ queryKey: ["contribuintes-modal"] });
       queryClient.invalidateQueries({ queryKey: ["contribuintes-por-cliente"] });
       queryClient.invalidateQueries({ queryKey: ["os-produtos-contratados"] });
+      // Linhas expandidas da lista de clientes (OS + produtos, contribuintes)
+      queryClient.invalidateQueries({ queryKey: ["os-expand"] });
+      queryClient.invalidateQueries({ queryKey: ["contribuintes-expand"] });
 
       // ─── Audit logs with granular changed_fields ─────────────
       const auditClienteId = isEditing ? editingClienteId! : createdClienteId!;

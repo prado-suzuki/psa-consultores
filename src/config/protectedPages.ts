@@ -489,7 +489,9 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/tax/auditoria',
     page_name: 'Auditoria Tax',
-    page_description: 'Histórico de alterações em projetos e tarefas Tax',
+    // Restrita a líder+ na rota (LiderRoute em App.tsx): liberar a permissão
+    // aqui para um team_member não faz a página abrir.
+    page_description: 'Histórico, produtividade e acesso do time Tax (somente líder+)',
     category: 'tax',
     requires_admin: false,
     requires_team_member: true,
@@ -590,7 +592,9 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     page_path: '/equipe/osg/auditoria',
     page_name: 'Auditoria OSG',
-    page_description: 'Histórico de alterações em projetos e tarefas OSG',
+    // Restrita a líder+ na rota (LiderRoute em App.tsx): liberar a permissão
+    // aqui para um team_member não faz a página abrir.
+    page_description: 'Histórico, produtividade e acesso do time OSG (somente líder+)',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,

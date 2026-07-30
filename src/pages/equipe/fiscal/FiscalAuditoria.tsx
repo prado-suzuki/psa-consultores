@@ -1,5 +1,9 @@
 import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { AuditLogTable } from '@/components/equipe/audit/AuditLogTable';
+import { AuditPessoasTable } from '@/components/equipe/audit/AuditPessoasTable';
+import { AuditProdutividadeTable } from '@/components/equipe/audit/AuditProdutividadeTable';
+import { AuditProdutosTable } from '@/components/equipe/audit/AuditProdutosTable';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield } from 'lucide-react';
 
 const FiscalAuditoria = () => {
@@ -15,7 +19,30 @@ const FiscalAuditoria = () => {
             <p className="text-sm text-muted-foreground">Registro de criações, edições e exclusões</p>
           </div>
         </div>
-        <AuditLogTable area="tax" />
+        <Tabs defaultValue="pessoas">
+          <TabsList>
+            <TabsTrigger value="pessoas">Pessoas</TabsTrigger>
+            <TabsTrigger value="atividade">Atividade</TabsTrigger>
+            <TabsTrigger value="produtividade">Produtividade</TabsTrigger>
+            <TabsTrigger value="produtos">Produtos</TabsTrigger>
+            <TabsTrigger value="historico">Histórico</TabsTrigger>
+          </TabsList>
+          <TabsContent value="pessoas" className="mt-4">
+            <AuditPessoasTable area="tax" />
+          </TabsContent>
+          <TabsContent value="atividade" className="mt-4">
+            <AuditProdutividadeTable area="tax" visao="atividade" />
+          </TabsContent>
+          <TabsContent value="produtividade" className="mt-4">
+            <AuditProdutividadeTable area="tax" visao="produtividade" />
+          </TabsContent>
+          <TabsContent value="produtos" className="mt-4">
+            <AuditProdutosTable area="tax" />
+          </TabsContent>
+          <TabsContent value="historico" className="mt-4">
+            <AuditLogTable area="tax" />
+          </TabsContent>
+        </Tabs>
       </div>
     </FiscalLayout>
   );

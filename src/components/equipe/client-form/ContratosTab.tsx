@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -56,6 +56,11 @@ export interface ContratosTabProps {
   setoresCliente: SetorCliente[];
   /** Cria um projeto pré-preenchido a partir de uma OS já persistida (só disponível para cliente salvo). */
   onCreateProjectFromOs?: (cont: DraftOrdemServico) => void;
+  /**
+   * Sai do modo somente-leitura do modal. Permite editar uma OS direto da lista,
+   * sem precisar clicar em "Editar" no rodapé antes. Só é passado se o usuário tem permissão.
+   */
+  onRequestEditMode?: () => void;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -241,6 +246,7 @@ export default function ContratosTab({
   produtoSegmentoFullOptions, allClusters, CENTRO_CUSTO_OPTIONS,
   setoresCliente,
   onCreateProjectFromOs,
+  onRequestEditMode,
 }: ContratosTabProps) {
   const setorById = (id: string) => setoresCliente.find(s => s.id === id);
   const setorLabel = (id: string | undefined, sigla: string | undefined) => {
@@ -254,7 +260,14 @@ export default function ContratosTab({
   const [editingContractData, setEditingContractData] = useState<Partial<DraftOrdemServico> | null>(null);
   const [osClusterFilter, setOsClusterFilter] = useState<string>("__all__");
   const [osEditClusterFilter, setOsEditClusterFilter] = useState<string>("__all__");
+  // A ficha de nova OS só aparece sob demanda — nunca junto com a edição de uma OS existente.
+  const [showNewOsForm, setShowNewOsForm] = useState(false);
+  const newOsFormRef = useRef<HTMLDivElement | null>(null);
   const { mutateAsync: generateNextOsNumber, isPending: isAddingContract } = useGenerateNextOsNumber();
+
+  useEffect(() => {
+    if (showNewOsForm) newOsFormRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [showNewOsForm]);
 
   const handleOsClusterFilterChange = (v: string) => {
     setOsClusterFilter(v);
@@ -274,6 +287,45 @@ export default function ContratosTab({
     setOsEditClusterFilter(c.cluster_id || "__all__");
   };
   const cancelEditContract = () => { setEditingContractId(null); setEditingContractData(null); };
+
+  const closeNewOsForm = () => {
+    setShowNewOsForm(false);
+    setDraftContract(createDefaultDraftContract());
+    setOsClusterFilter("__all__");
+  };
+
+  // Editar direto do cabeçalho da OS: expande o card e entra em edição num clique.
+  // No modo Visualizar, tira o modal do somente-leitura antes.
+  const canEditOs = !isReadOnly || !!onRequestEditMode;
+  const handleEditOsClick = (cont: DraftOrdemServico) => {
+    if (isReadOnly) {
+      if (!onRequestEditMode) return;
+      onRequestEditMode();
+    }
+    // Editar uma OS existente fecha a ficha de nova OS: uma coisa por vez.
+    closeNewOsForm();
+    setExpandedContractId(cont._id);
+    startEditContract(cont);
+  };
+
+  const openNewOsForm = () => {
+    if (isReadOnly) {
+      if (!onRequestEditMode) return;
+      onRequestEditMode();
+    }
+    cancelEditContract();
+    setShowNewOsForm(true);
+  };
+
+  const removeContract = (id: number) => {
+    if (isReadOnly) {
+      if (!onRequestEditMode) return;
+      onRequestEditMode();
+    }
+    setContracts(contracts.filter((c) => c._id !== id));
+    setExpandedContractId(null);
+    if (editingContractId === id) { setEditingContractId(null); setEditingContractData(null); }
+  };
 
   const validateDistribuicao = (dist: Array<{ id_centro_custo: string; percentual_rateio: number }> | undefined, label: string): boolean => {
     if (!dist || dist.length === 0) {
@@ -338,14 +390,18 @@ export default function ContratosTab({
     const osNumber = await generateNextOsNumber(contracts);
     const newContract = { ...draftContract, ordem_servico: osNumber, _id: Date.now() + Math.random() } as unknown as DraftOrdemServico;
     setContracts([...contracts, newContract]);
-    setDraftContract(createDefaultDraftContract());
-    setOsClusterFilter("__all__");
+    closeNewOsForm();
   };
 
   return (
     <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-      <div className="px-4 py-2 bg-muted/50 border-b flex items-center gap-3">
+      <div className="px-4 py-2 bg-muted/50 border-b flex items-center justify-between gap-3">
         <h3 className="text-sm font-bold text-foreground">OS - Ordem de Serviço ({contracts.length})</h3>
+        {canEditOs && !showNewOsForm && editingContractId == null && (
+          <Button size="sm" onClick={openNewOsForm} className="gap-1.5 h-7 text-xs bg-teal-600 hover:bg-teal-700 text-white">
+            <Plus size={14} /> Criar nova OS
+          </Button>
+        )}
       </div>
       <div className="px-4 py-3">
         {contracts.length > 0 && (
@@ -356,44 +412,54 @@ export default function ContratosTab({
               const ec = isEditingThis ? editingContractData : null;
               return (
                 <div key={cont._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
-                  <button type="button" className="w-full flex items-center justify-between p-4 text-left"
-                    onClick={() => { if (!isEditingThis) setExpandedContractId(isExpanded ? null : cont._id); }}>
-                    <div className="flex-1 min-w-0">
+                  <div className="w-full flex items-center gap-2 p-4">
+                    <button type="button" className="flex-1 min-w-0 text-left"
+                      onClick={() => { if (!isEditingThis) setExpandedContractId(isExpanded ? null : cont._id); }}>
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase bg-muted text-foreground">
                           {getOsHeaderLabel(cont, produtoSegmentoFullOptions)}
                         </span>
                       </div>
                       <div className="font-bold text-foreground mt-0.5">{formatCurrencyDisplay(cont.valor_projeto)}</div>
-                    </div>
-                    <ChevronDown size={16} className={cn("text-muted-foreground transition-transform ml-2", isExpanded && "rotate-180")} />
-                  </button>
+                    </button>
+
+                    {/* Ações da OS no próprio cabeçalho — sem precisar expandir o card */}
+                    {!isEditingThis && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {canEditOs && (
+                          <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleEditOsClick(cont)}><Pencil size={12} /> Editar</Button>
+                        )}
+                        {canEditOs && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive"><Trash2 size={12} /> Remover</Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader><AlertDialogTitle>Remover OS</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja remover a OS "{cont.ordem_servico}"? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => removeContract(cont._id)}>Remover</AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </div>
+                    )}
+
+                    <button type="button" aria-label={isExpanded ? "Recolher OS" : "Expandir OS"} className="shrink-0 p-1 rounded hover:bg-muted"
+                      onClick={() => { if (!isEditingThis) setExpandedContractId(isExpanded ? null : cont._id); }}>
+                      <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
+                    </button>
+                  </div>
 
                   {/* Read-only expanded */}
                   {isExpanded && !isEditingThis && (
                     <div className="px-4 pb-4 border-t pt-3">
-                      <div className="flex justify-end gap-2 mb-3">
-                        {onCreateProjectFromOs && cont._dbId && (cont.produtos_contratados?.length ?? 0) > 0 && (
+                      {onCreateProjectFromOs && cont._dbId && (cont.produtos_contratados?.length ?? 0) > 0 && (
+                        <div className="flex justify-end gap-2 mb-3">
                           <Button size="sm" variant="outline" className="gap-1.5 text-xs border-teal-600 text-teal-700 hover:bg-teal-50" onClick={() => onCreateProjectFromOs(cont)}><FolderPlus size={12} /> Criar projetos ({cont.produtos_contratados.length})</Button>
-                        )}
-                        {!isReadOnly && (
-                          <>
-                            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditContract(cont)}><Pencil size={12} /> Editar</Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive"><Trash2 size={12} /> Remover</Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader><AlertDialogTitle>Remover OS</AlertDialogTitle><AlertDialogDescription>Tem certeza que deseja remover a OS "{cont.ordem_servico}"? Esta ação não pode ser desfeita.</AlertDialogDescription></AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { setContracts(contracts.filter((c) => c._id !== cont._id)); setExpandedContractId(null); }}>Remover</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </>
-                        )}
-                      </div>
+                        </div>
+                      )}
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
                         <FieldPair label="Data Início" value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : "—"} />
                         <FieldPair label="Data Fim" value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : "—"} />
@@ -554,10 +620,17 @@ export default function ContratosTab({
           </div>
         )}
 
-        {/* New OS form */}
-        {!isReadOnly && (
-          <div className="bg-muted/50 rounded-lg border p-4">
-            <h4 className="text-xs font-bold uppercase text-muted-foreground border-b pb-2 mb-4">Nova OS</h4>
+        {contracts.length === 0 && !showNewOsForm && (
+          <p className="text-sm text-muted-foreground italic py-2">Nenhuma OS cadastrada.</p>
+        )}
+
+        {/* New OS form — sob demanda, nunca junto com a edição de uma OS existente */}
+        {!isReadOnly && showNewOsForm && editingContractId == null && (
+          <div ref={newOsFormRef} className="bg-muted/50 rounded-lg border p-4">
+            <div className="flex items-center justify-between border-b pb-2 mb-4">
+              <h4 className="text-xs font-bold uppercase text-muted-foreground">Nova OS</h4>
+              <Button type="button" size="sm" variant="ghost" className="h-7 gap-1 text-xs text-muted-foreground" onClick={closeNewOsForm}><X size={12} /> Fechar</Button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div><Label className="text-xs font-semibold uppercase text-muted-foreground"> Data Início</Label><div className="mt-1"><DateFieldWithInput value={draftContract.data_inicio_projeto} onChange={(v) => setDraftContract(prev => ({ ...prev, data_inicio_projeto: v }))} /></div></div>
               <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label><div className="mt-1"><DateFieldWithInput value={draftContract.data_fim_projeto} onChange={(v) => setDraftContract(prev => ({ ...prev, data_fim_projeto: v }))} /></div></div>

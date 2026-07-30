@@ -53,9 +53,10 @@ const FERRAMENTAS: FerramentaTax[] = [
   {
     id: 'auditoria',
     titulo: 'Auditoria',
-    descricao: 'Histórico de alterações em projetos e tarefas da área Tax.',
+    descricao: 'Histórico, produtividade e acesso do time na área Tax (acesso de líder).',
     path: '/equipe/tax/auditoria',
     icon: <History className="h-5 w-5 text-primary" />,
+    requiresLider: true,
   },
   {
     id: 'chamados',

@@ -16,23 +16,12 @@ import {
 } from '@/components/ui/collapsible';
 import { useDomainAuditLogs, useDomainAuditLookupMaps } from '@/hooks/useDomainAuditLogs';
 import { formatChangedFields, LookupMaps } from './auditFieldFormatter';
+import { ACTION_LABELS, ENTITY_LABELS } from './auditLabels';
 
 
 interface AuditLogTableProps {
   area: 'tax' | 'osg';
 }
-
-const ACTION_LABELS: Record<string, { label: string; color: string }> = {
-  created: { label: 'Criação', color: 'bg-emerald-100 text-emerald-700' },
-  updated: { label: 'Edição', color: 'bg-blue-100 text-blue-700' },
-  deleted: { label: 'Exclusão', color: 'bg-red-100 text-red-700' },
-};
-
-const ENTITY_LABELS: Record<string, string> = {
-  project: 'Projeto',
-  task: 'Tarefa',
-  subtask: 'Subtarefa',
-};
 
 export const AuditLogTable = ({ area }: AuditLogTableProps) => {
   const [entityFilter, setEntityFilter] = useState<string>('all');

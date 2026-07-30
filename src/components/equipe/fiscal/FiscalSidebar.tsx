@@ -83,7 +83,8 @@ const menuItems: MenuItem[] = [
     id: 'auditoria',
     label: 'Auditoria',
     icon: Shield,
-    path: '/equipe/tax/auditoria'
+    path: '/equipe/tax/auditoria',
+    requiresLider: true
   },
   {
     id: 'chamados',
