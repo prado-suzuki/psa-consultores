@@ -3,6 +3,7 @@ import { currentAmbiente } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
 import { resolverProdutoContratado, resolverVinculos } from '@/lib/auditProdutividade';
+import type { JanelaAuditoria } from '@/lib/auditPeriodos';
 import type {
   HorasPorId, StatusPorId, VinculoPorId, VinculoProjeto, VinculoTarefa,
 } from '@/lib/auditProdutividade';
@@ -97,27 +98,41 @@ export function useDomainAuditLookupMaps() {
 }
 
 /**
- * Janela usada na aba Produtividade. A agregação precisa da série inteira do
- * período (não dos 200 últimos como a tabela de histórico), por isso a query é
- * separada: filtra por `performed_at` e sobe o limite.
+ * Teto de linhas por consulta. Períodos longos (um semestre, todo o histórico)
+ * podem passar disso, e aí a série volta cortada nos mais recentes — quem exibe
+ * precisa avisar em vez de apresentar o corte como se fosse o total. Ver
+ * `AuditLimiteAviso`.
  */
-export function useDomainAuditProdutividade(area: 'tax' | 'osg', dias: number) {
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - dias);
-  // Chave por dia: mantém o cache estável dentro do mesmo dia em vez de
-  // invalidar a cada render por causa dos milissegundos do `new Date()`.
-  const cutoffDia = cutoff.toISOString().slice(0, 10);
+export const LIMITE_LOGS_AUDITORIA = 5000;
+
+/**
+ * Série de logs de um período, usada pelas abas agregadas (Pessoas,
+ * Produtividade, Atividade, Produtos e Não resolvidos). Diferente da tabela de
+ * histórico, que mostra os 200 últimos: aqui a agregação precisa do período
+ * inteiro, por isso a query é separada, filtra por `performed_at` e sobe o limite.
+ *
+ * A janela vem pronta de `janelaDoPeriodo` — em datas, não em "quantos dias" —
+ * porque o seletor tem tanto "últimos N dias" quanto recortes de calendário.
+ * Datas em vez de timestamp mantêm o cache estável dentro do mesmo dia.
+ */
+export function useDomainAuditProdutividade(area: 'tax' | 'osg', janela: JanelaAuditoria) {
+  const { desde, ate } = janela;
 
   return useQuery({
-    queryKey: ['audit-produtividade', area, cutoffDia],
+    queryKey: ['audit-produtividade', area, desde ?? 'inicio', ate ?? 'agora'],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('audit_logs')
         .select('*')
-        .eq('area', area)
-        .gte('performed_at', `${cutoffDia}T00:00:00.000Z`)
+        .eq('area', area);
+
+      if (desde) query = query.gte('performed_at', `${desde}T00:00:00.000Z`);
+      // Fim inclusivo: o dia escolhido entra inteiro.
+      if (ate) query = query.lte('performed_at', `${ate}T23:59:59.999Z`);
+
+      const { data, error } = await query
         .order('performed_at', { ascending: false })
-        .limit(5000);
+        .limit(LIMITE_LOGS_AUDITORIA);
 
       if (error) throw error;
       return data as unknown as AuditLog[];

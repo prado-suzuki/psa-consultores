@@ -400,18 +400,7 @@ export function agregarProdutividade(
         }
       }
 
-      // Horas somadas por item concluído (não por log), então reabrir e concluir
-      // de novo o mesmo item nunca soma as horas dele duas vezes.
-      let planejadas = 0;
-      let executadas = 0;
-      let comPlanejadas = 0;
-      let comExecutadas = 0;
-      for (const id of acc.concluidos) {
-        const horas = horasPorId[id];
-        if (!horas) continue;
-        if (horas.planejadas != null) { planejadas += horas.planejadas; comPlanejadas += 1; }
-        if (horas.executadas != null) { executadas += horas.executadas; comExecutadas += 1; }
-      }
+      const horas = somarHoras(acc.concluidos, horasPorId);
 
       // Abertos = tocados no período que hoje não estão concluídos nem
       // cancelados. Quem a pessoa finalizou já saiu daqui pelo status atual, e o
@@ -442,10 +431,10 @@ export function agregarProdutividade(
         projetosAbertos,
         clientesDistintos: clientes.size,
         contribuintesDistintos: contribuintes.size,
-        horasPlanejadas: comPlanejadas > 0 ? planejadas : null,
-        horasExecutadas: comExecutadas > 0 ? executadas : null,
-        itensComHorasExecutadas: comExecutadas,
-        tempoMedioProcesso: comExecutadas > 0 ? executadas / comExecutadas : null,
+        horasPlanejadas: horas.horasPlanejadas,
+        horasExecutadas: horas.horasExecutadas,
+        itensComHorasExecutadas: horas.itensComHorasExecutadas,
+        tempoMedioProcesso: horas.tempoMedio,
         registros: acc.registros,
         criacoes: acc.criacoes,
         edicoes: acc.edicoes,
@@ -630,39 +619,20 @@ export function agregarPorProduto(
     if (ehConclusao(log) && !ehProjeto(log)) concluidos.add(log.entity_id);
   }
 
-  interface Acc {
-    concluidos: number;
-    planejadas: number;
-    executadas: number;
-    comPlanejadas: number;
-    comExecutadas: number;
-  }
-  const porProduto = new Map<string, Acc>();
-
+  const porProduto = new Map<string, Set<string>>();
   for (const id of concluidos) {
     const produtoId = produtoPorId[id] ?? PRODUTO_SEM_VINCULO;
-    let acc = porProduto.get(produtoId);
-    if (!acc) {
-      acc = { concluidos: 0, planejadas: 0, executadas: 0, comPlanejadas: 0, comExecutadas: 0 };
-      porProduto.set(produtoId, acc);
-    }
-    acc.concluidos += 1;
-
-    const horas = horasPorId[id];
-    if (!horas) continue;
-    if (horas.planejadas != null) { acc.planejadas += horas.planejadas; acc.comPlanejadas += 1; }
-    if (horas.executadas != null) { acc.executadas += horas.executadas; acc.comExecutadas += 1; }
+    const itens = porProduto.get(produtoId) ?? new Set<string>();
+    itens.add(id);
+    porProduto.set(produtoId, itens);
   }
 
   return [...porProduto.entries()]
-    .map(([produtoId, acc]): LinhaProduto => ({
+    .map(([produtoId, itens]): LinhaProduto => ({
       produtoId,
       nome: nomeDoProduto(produtoId, nomePorProduto),
-      concluidos: acc.concluidos,
-      horasPlanejadas: acc.comPlanejadas > 0 ? acc.planejadas : null,
-      horasExecutadas: acc.comExecutadas > 0 ? acc.executadas : null,
-      itensComHorasExecutadas: acc.comExecutadas,
-      tempoMedio: acc.comExecutadas > 0 ? acc.executadas / acc.comExecutadas : null,
+      concluidos: itens.size,
+      ...somarHoras(itens, horasPorId),
     }))
     .sort((a, b) => {
       if (a.tempoMedio === null || b.tempoMedio === null) {
@@ -671,6 +641,48 @@ export function agregarPorProduto(
       }
       return b.tempoMedio - a.tempoMedio || b.concluidos - a.concluidos;
     });
+}
+
+interface ParPessoaProduto {
+  /** Itens tocados por qualquer ação. */
+  tocados: Set<string>;
+  /** Itens que essa pessoa levou a concluído. */
+  concluidos: Set<string>;
+}
+
+/**
+ * Itens de cada par pessoa × produto contratado, base das duas expansões da
+ * Auditoria (produtos de uma pessoa e pessoas de um produto).
+ *
+ * Projeto concluído fica fora de `concluidos` — igual ao resto da aba, finalizar
+ * projeto não é item entregue. Item sem produto identificado vai para o bucket
+ * `PRODUTO_SEM_VINCULO` em vez de desaparecer.
+ */
+function acumularPessoaProduto(
+  logs: AuditLog[],
+  produtoPorId: VinculoPorId,
+): Map<string, Map<string, ParPessoaProduto>> {
+  const porPessoa = new Map<string, Map<string, ParPessoaProduto>>();
+
+  for (const log of logs) {
+    let produtos = porPessoa.get(log.performed_by);
+    if (!produtos) {
+      produtos = new Map();
+      porPessoa.set(log.performed_by, produtos);
+    }
+
+    const produtoId = produtoPorId[log.entity_id] ?? PRODUTO_SEM_VINCULO;
+    let acc = produtos.get(produtoId);
+    if (!acc) {
+      acc = { tocados: new Set(), concluidos: new Set() };
+      produtos.set(produtoId, acc);
+    }
+
+    acc.tocados.add(log.entity_id);
+    if (ehConclusao(log) && !ehProjeto(log)) acc.concluidos.add(log.entity_id);
+  }
+
+  return porPessoa;
 }
 
 export interface LinhaProdutoPessoa extends LinhaProduto {
@@ -698,58 +710,263 @@ export function agregarProdutoPorPessoa(
   produtoPorId: VinculoPorId,
   nomePorProduto: Record<string, string>,
 ): Record<string, LinhaProdutoPessoa[]> {
-  interface Acc { tocados: Set<string>; concluidos: Set<string> }
-  const porPessoa = new Map<string, Map<string, Acc>>();
-
-  for (const log of logs) {
-    let produtos = porPessoa.get(log.performed_by);
-    if (!produtos) {
-      produtos = new Map();
-      porPessoa.set(log.performed_by, produtos);
-    }
-
-    const produtoId = produtoPorId[log.entity_id] ?? PRODUTO_SEM_VINCULO;
-    let acc = produtos.get(produtoId);
-    if (!acc) {
-      acc = { tocados: new Set(), concluidos: new Set() };
-      produtos.set(produtoId, acc);
-    }
-
-    acc.tocados.add(log.entity_id);
-    if (ehConclusao(log) && !ehProjeto(log)) acc.concluidos.add(log.entity_id);
-  }
-
   const resultado: Record<string, LinhaProdutoPessoa[]> = {};
 
-  for (const [userId, produtos] of porPessoa) {
+  for (const [userId, produtos] of acumularPessoaProduto(logs, produtoPorId)) {
     resultado[userId] = [...produtos.entries()]
-      .map(([produtoId, acc]): LinhaProdutoPessoa => {
-        let planejadas = 0;
-        let executadas = 0;
-        let comPlanejadas = 0;
-        let comExecutadas = 0;
-        for (const id of acc.concluidos) {
-          const horas = horasPorId[id];
-          if (!horas) continue;
-          if (horas.planejadas != null) { planejadas += horas.planejadas; comPlanejadas += 1; }
-          if (horas.executadas != null) { executadas += horas.executadas; comExecutadas += 1; }
-        }
-
-        return {
-          produtoId,
-          nome: nomeDoProduto(produtoId, nomePorProduto),
-          itensTocados: acc.tocados.size,
-          concluidos: acc.concluidos.size,
-          horasPlanejadas: comPlanejadas > 0 ? planejadas : null,
-          horasExecutadas: comExecutadas > 0 ? executadas : null,
-          itensComHorasExecutadas: comExecutadas,
-          tempoMedio: comExecutadas > 0 ? executadas / comExecutadas : null,
-        };
-      })
+      .map(([produtoId, acc]): LinhaProdutoPessoa => ({
+        produtoId,
+        nome: nomeDoProduto(produtoId, nomePorProduto),
+        itensTocados: acc.tocados.size,
+        concluidos: acc.concluidos.size,
+        ...somarHoras(acc.concluidos, horasPorId),
+      }))
       .sort((a, b) => b.itensTocados - a.itensTocados || a.nome.localeCompare(b.nome, 'pt-BR'));
   }
 
   return resultado;
+}
+
+export interface LinhaPessoaProduto {
+  /** `performed_by` — id do profile. */
+  userId: string;
+  nome: string;
+  /** Itens desse produto em que a pessoa mexeu, concluídos ou não. */
+  itensTocados: number;
+  /** Itens desse produto que ela levou a concluído no período. */
+  concluidos: number;
+  horasPlanejadas: number | null;
+  horasExecutadas: number | null;
+  itensComHorasExecutadas: number;
+  tempoMedio: number | null;
+}
+
+/**
+ * Quem está trabalhando em cada produto no período — a transposta de
+ * `agregarProdutoPorPessoa`, para expandir a linha do produto na aba Produtos.
+ *
+ * As duas leituras saem do MESMO acumulador de pares (pessoa × produto), então o
+ * par "Maria × Consultoria tributária" mostra exatamente os mesmos números
+ * expandindo a pessoa na aba Produtividade ou o produto aqui. A soma das pessoas
+ * de um produto pode passar o total da linha dele: duas pessoas que mexeram na
+ * mesma tarefa contam uma vez cada, e a linha do produto conta o item uma vez.
+ *
+ * Ordena por itens tocados desc, com desempate por nome.
+ */
+export function agregarPessoaPorProduto(
+  logs: AuditLog[],
+  horasPorId: HorasPorId,
+  produtoPorId: VinculoPorId,
+  nomePorPessoa: Record<string, string>,
+): Record<string, LinhaPessoaProduto[]> {
+  const porProduto = new Map<string, LinhaPessoaProduto[]>();
+
+  for (const [userId, produtos] of acumularPessoaProduto(logs, produtoPorId)) {
+    for (const [produtoId, acc] of produtos) {
+      const lista = porProduto.get(produtoId) ?? [];
+      lista.push({
+        userId,
+        nome: nomePorPessoa[userId]?.trim() || 'Desconhecido',
+        itensTocados: acc.tocados.size,
+        concluidos: acc.concluidos.size,
+        ...somarHoras(acc.concluidos, horasPorId),
+      });
+      porProduto.set(produtoId, lista);
+    }
+  }
+
+  const resultado: Record<string, LinhaPessoaProduto[]> = {};
+  for (const [produtoId, lista] of porProduto) {
+    resultado[produtoId] = lista
+      .sort((a, b) => b.itensTocados - a.itensTocados || a.nome.localeCompare(b.nome, 'pt-BR'));
+  }
+
+  return resultado;
+}
+
+/** Bucket dos itens cujo cliente não foi identificado. */
+export const CLIENTE_SEM_VINCULO = 'sem-cliente';
+
+function nomeDoCliente(clienteId: string, nomePorCliente: Record<string, string>): string {
+  if (clienteId === CLIENTE_SEM_VINCULO) return 'Sem cliente identificado';
+  return nomePorCliente[clienteId]?.trim() || 'Cliente fora do cadastro';
+}
+
+export interface LinhaClienteProduto {
+  /** `cliente.id` ou `CLIENTE_SEM_VINCULO`. */
+  clienteId: string;
+  nome: string;
+  /** Itens desse cliente, nesse produto, tocados por qualquer ação. */
+  itensTocados: number;
+  /** Itens desse cliente, nesse produto, concluídos no período. */
+  concluidos: number;
+  horasPlanejadas: number | null;
+  horasExecutadas: number | null;
+  itensComHorasExecutadas: number;
+  tempoMedio: number | null;
+}
+
+/** Os dois níveis do drill de um produto: os clientes e, dentro de cada um, quem executou. */
+export interface ClientesDoProduto {
+  clientes: LinhaClienteProduto[];
+  /** `clienteId` → quem trabalhou naquele cliente DENTRO deste produto. */
+  pessoasPorCliente: Record<string, LinhaPessoaProduto[]>;
+}
+
+interface ClienteAcc {
+  tocados: Set<string>;
+  concluidos: Set<string>;
+  pessoas: Map<string, ParPessoaProduto>;
+}
+
+/**
+ * Ordem das listas do drill: quem consumiu mais hora executada primeiro — é a
+ * pergunta que o painel responde ("para onde foram as horas desse produto").
+ * Quem não tem apontamento vai para o fim, com desempate por itens tocados e
+ * nome para a lista não dançar entre carregamentos.
+ */
+function ordemPorHorasExecutadas(
+  a: { horasExecutadas: number | null; itensTocados: number; nome: string },
+  b: { horasExecutadas: number | null; itensTocados: number; nome: string },
+): number {
+  if (a.horasExecutadas !== b.horasExecutadas) {
+    if (a.horasExecutadas === null) return 1;
+    if (b.horasExecutadas === null) return -1;
+    return b.horasExecutadas - a.horasExecutadas;
+  }
+  return b.itensTocados - a.itensTocados || a.nome.localeCompare(b.nome, 'pt-BR');
+}
+
+/**
+ * Para onde vão as horas DENTRO de um produto: primeiro por cliente, e dentro do
+ * cliente por quem executou. É o degrau que faltava entre a linha do produto e a
+ * lista de colaboradores — responde "quais clientes têm esse produto, qual está
+ * pesando e quem está gastando hora lá".
+ *
+ * Os dois níveis saem do MESMO acumulador, então a conta fecha para cima: cada
+ * item cai em exatamente um cliente (o dele ou o bucket `CLIENTE_SEM_VINCULO`),
+ * logo a soma dos concluídos e das horas dos clientes é igual à linha do produto
+ * em `agregarPorProduto`. A soma das PESSOAS de um cliente pode passar o total
+ * dele pelo mesmo motivo de sempre: duas pessoas na mesma tarefa contam uma vez
+ * cada, e a linha do cliente conta a tarefa uma vez.
+ *
+ * Cliente aqui é o grupo (`cliente.id`), com contribuinte já normalizado por
+ * `resolverVinculos` — os vários CNPJs de um grupo entram numa linha só.
+ *
+ * As horas seguem a regra do resto da aba: somam apenas itens concluídos. Item
+ * tocado e ainda aberto aparece em "Tocados", não nas horas.
+ */
+export function agregarClientePorProduto(
+  logs: AuditLog[],
+  horasPorId: HorasPorId,
+  produtoPorId: VinculoPorId,
+  clientePorId: ClientePorId,
+  nomePorCliente: Record<string, string>,
+  nomePorPessoa: Record<string, string>,
+): Record<string, ClientesDoProduto> {
+  const porProduto = new Map<string, Map<string, ClienteAcc>>();
+
+  for (const log of logs) {
+    const produtoId = produtoPorId[log.entity_id] ?? PRODUTO_SEM_VINCULO;
+    const clienteId = clientePorId[log.entity_id] ?? CLIENTE_SEM_VINCULO;
+
+    let clientes = porProduto.get(produtoId);
+    if (!clientes) {
+      clientes = new Map();
+      porProduto.set(produtoId, clientes);
+    }
+
+    let acc = clientes.get(clienteId);
+    if (!acc) {
+      acc = { tocados: new Set(), concluidos: new Set(), pessoas: new Map() };
+      clientes.set(clienteId, acc);
+    }
+
+    let pessoa = acc.pessoas.get(log.performed_by);
+    if (!pessoa) {
+      pessoa = { tocados: new Set(), concluidos: new Set() };
+      acc.pessoas.set(log.performed_by, pessoa);
+    }
+
+    acc.tocados.add(log.entity_id);
+    pessoa.tocados.add(log.entity_id);
+
+    if (ehConclusao(log) && !ehProjeto(log)) {
+      acc.concluidos.add(log.entity_id);
+      pessoa.concluidos.add(log.entity_id);
+    }
+  }
+
+  const resultado: Record<string, ClientesDoProduto> = {};
+
+  for (const [produtoId, clientes] of porProduto) {
+    const linhas: LinhaClienteProduto[] = [];
+    const pessoasPorCliente: Record<string, LinhaPessoaProduto[]> = {};
+
+    for (const [clienteId, acc] of clientes) {
+      linhas.push({
+        clienteId,
+        nome: nomeDoCliente(clienteId, nomePorCliente),
+        itensTocados: acc.tocados.size,
+        concluidos: acc.concluidos.size,
+        ...somarHoras(acc.concluidos, horasPorId),
+      });
+
+      pessoasPorCliente[clienteId] = [...acc.pessoas.entries()]
+        .map(([userId, par]): LinhaPessoaProduto => ({
+          userId,
+          nome: nomePorPessoa[userId]?.trim() || 'Desconhecido',
+          itensTocados: par.tocados.size,
+          concluidos: par.concluidos.size,
+          ...somarHoras(par.concluidos, horasPorId),
+        }))
+        .sort(ordemPorHorasExecutadas);
+    }
+
+    resultado[produtoId] = {
+      clientes: linhas.sort(ordemPorHorasExecutadas),
+      pessoasPorCliente,
+    };
+  }
+
+  return resultado;
+}
+
+interface HorasAgregadas {
+  horasPlanejadas: number | null;
+  horasExecutadas: number | null;
+  itensComHorasExecutadas: number;
+  tempoMedio: number | null;
+}
+
+/**
+ * Horas de um conjunto de itens concluídos — a mesma conta em todos os cortes
+ * (pessoa, produto, pessoa×produto), então os números batem entre as abas.
+ *
+ * Soma por item, não por log: reabrir e concluir de novo o mesmo item nunca soma
+ * as horas dele duas vezes. `null` quando nenhum item do conjunto tinha o campo
+ * preenchido — é diferente de zero hora, e o divisor da média conta só quem tem
+ * apontamento.
+ */
+function somarHoras(concluidos: Iterable<string>, horasPorId: HorasPorId): HorasAgregadas {
+  let planejadas = 0;
+  let executadas = 0;
+  let comPlanejadas = 0;
+  let comExecutadas = 0;
+
+  for (const id of concluidos) {
+    const horas = horasPorId[id];
+    if (!horas) continue;
+    if (horas.planejadas != null) { planejadas += horas.planejadas; comPlanejadas += 1; }
+    if (horas.executadas != null) { executadas += horas.executadas; comExecutadas += 1; }
+  }
+
+  return {
+    horasPlanejadas: comPlanejadas > 0 ? planejadas : null,
+    horasExecutadas: comExecutadas > 0 ? executadas : null,
+    itensComHorasExecutadas: comExecutadas,
+    tempoMedio: comExecutadas > 0 ? executadas / comExecutadas : null,
+  };
 }
 
 /** `12h`, `9,5h`, `—` quando não há valor. Uma casa decimal, vírgula. */

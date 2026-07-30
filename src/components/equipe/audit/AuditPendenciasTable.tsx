@@ -22,9 +22,11 @@ import {
   MOTIVOS_POR_SEVERIDADE,
   type MotivoPendencia,
 } from '@/lib/auditPendencias';
+import { useAuditPeriodo } from '@/hooks/useAuditPeriodo';
 import { idsTocados, type ClientePorId, type VinculoPorId } from '@/lib/auditProdutividade';
 import { triggerCsvDownload } from '@/lib/roiCsv';
-import { ENTITY_LABELS, PERIODOS_AUDITORIA } from './auditLabels';
+import { AuditLimiteAviso } from './AuditLimiteAviso';
+import { ENTITY_LABELS } from './auditLabels';
 
 interface AuditPendenciasTableProps {
   area: 'tax' | 'osg';
@@ -70,11 +72,11 @@ const KpiCard = ({ label, valor, hint }: { label: string; valor: string; hint: s
  */
 export const AuditPendenciasTable = ({ area }: AuditPendenciasTableProps) => {
   const navigate = useNavigate();
-  const [periodo, setPeriodo] = useState('30');
+  // O período é compartilhado com as outras abas — ver `useAuditPeriodo`.
+  const { periodo, setPeriodo, opcoes, janela } = useAuditPeriodo();
   const [motivoFiltro, setMotivoFiltro] = useState<string>(TODOS);
-  const dias = Number(periodo);
 
-  const { data: logs = [], isLoading } = useDomainAuditProdutividade(area, dias);
+  const { data: logs = [], isLoading } = useDomainAuditProdutividade(area, janela);
   const { data: nomesPessoas = {} } = useProfilesNomeMap('profiles_safe');
 
   const ids = useMemo(() => idsTocados(logs), [logs]);
@@ -125,7 +127,7 @@ export const AuditPendenciasTable = ({ area }: AuditPendenciasTableProps) => {
     + resumo.porMotivo.sem_servico + resumo.porMotivo.servico_fora_da_os;
 
   const handleExportCsv = () => {
-    triggerCsvDownload(buildPendenciasCsv(visiveis), `nao-resolvidos-${area}-${dias}d.csv`);
+    triggerCsvDownload(buildPendenciasCsv(visiveis), `nao-resolvidos-${area}-${janela.slug}.csv`);
   };
 
   return (
@@ -138,7 +140,7 @@ export const AuditPendenciasTable = ({ area }: AuditPendenciasTableProps) => {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {PERIODOS_AUDITORIA.map(p => (
+              {opcoes.map(p => (
                 <SelectItem key={p.valor} value={p.valor}>{p.label}</SelectItem>
               ))}
             </SelectContent>
@@ -293,6 +295,8 @@ export const AuditPendenciasTable = ({ area }: AuditPendenciasTableProps) => {
           </Table>
         </CardContent>
       </Card>
+
+      <AuditLimiteAviso total={logs.length} />
 
       <p className="flex items-start gap-2 text-xs text-slate-500">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />

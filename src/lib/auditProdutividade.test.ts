@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import {
+  agregarClientePorProduto,
+  agregarPessoaPorProduto,
   agregarPorProduto,
   agregarProdutividade,
   agregarProdutoPorPessoa,
   buildProdutividadeCsv,
   buildProdutosCsv,
+  CLIENTE_SEM_VINCULO,
   COLUNAS_POR_VISAO,
   direcaoInicial,
   formatarHoras,
@@ -822,6 +825,101 @@ describe('agregarProdutoPorPessoa', () => {
   });
 });
 
+describe('agregarPessoaPorProduto', () => {
+  const concluiu = (entityId: string, over: Partial<AuditLog> = {}) => log({
+    entity_id: entityId,
+    action: 'updated',
+    changed_fields: { status: { old: 'in_progress', new: 'done' } },
+    ...over,
+  });
+
+  it('lista quem trabalhou em cada produto', () => {
+    const porProduto = agregarPessoaPorProduto(
+      [
+        concluiu('t1', { performed_by: 'u1' }),
+        concluiu('t2', { performed_by: 'u2' }),
+        concluiu('t3', { performed_by: 'u2' }),
+      ],
+      { t1: { planejadas: 2, executadas: 3 } },
+      { t1: 'prod-A', t2: 'prod-A', t3: 'prod-B' },
+      NOMES,
+    );
+
+    expect(porProduto['prod-A'].map(l => l.nome)).toEqual(['Bruno Souza', 'Maria Silva']);
+    expect(porProduto['prod-B'].map(l => l.nome)).toEqual(['Bruno Souza']);
+    const maria = porProduto['prod-A'].find(l => l.userId === 'u1');
+    expect(maria?.concluidos).toBe(1);
+    expect(maria?.tempoMedio).toBe(3);
+  });
+
+  it('mostra os mesmos números que a expansão por pessoa, para o mesmo par', () => {
+    const logs = [
+      log({ entity_id: 't1', performed_by: 'u1' }),
+      concluiu('t2', { performed_by: 'u1' }),
+    ];
+    const horas = { t2: { planejadas: 4, executadas: 6 } };
+    const produtos = { t1: 'prod-A', t2: 'prod-A' };
+
+    const porPessoa = agregarProdutoPorPessoa(logs, horas, produtos, { 'prod-A': 'CT' });
+    const porProduto = agregarPessoaPorProduto(logs, horas, produtos, NOMES);
+
+    const daPessoa = porPessoa.u1[0];
+    const doProduto = porProduto['prod-A'][0];
+    expect(doProduto.itensTocados).toBe(daPessoa.itensTocados);
+    expect(doProduto.concluidos).toBe(daPessoa.concluidos);
+    expect(doProduto.horasExecutadas).toBe(daPessoa.horasExecutadas);
+    expect(doProduto.tempoMedio).toBe(daPessoa.tempoMedio);
+  });
+
+  it('ordena por itens tocados desc com desempate por nome', () => {
+    const porProduto = agregarPessoaPorProduto(
+      [
+        log({ entity_id: 't1', performed_by: 'u1' }),
+        log({ entity_id: 't2', performed_by: 'u1' }),
+        log({ entity_id: 't3', performed_by: 'u2' }),
+      ],
+      {},
+      { t1: 'prod-A', t2: 'prod-A', t3: 'prod-A' },
+      NOMES,
+    );
+
+    expect(porProduto['prod-A'].map(l => [l.nome, l.itensTocados])).toEqual([
+      ['Maria Silva', 2],
+      ['Bruno Souza', 1],
+    ]);
+  });
+
+  it('conta as duas pessoas que mexeram no mesmo item', () => {
+    const porProduto = agregarPessoaPorProduto(
+      [
+        log({ entity_id: 't1', performed_by: 'u1' }),
+        log({ entity_id: 't1', performed_by: 'u2' }),
+      ],
+      {},
+      { t1: 'prod-A' },
+      NOMES,
+    );
+
+    // Cada uma tocou 1 item; a linha do produto conta o item uma vez só.
+    expect(porProduto['prod-A'].map(l => l.itensTocados)).toEqual([1, 1]);
+  });
+
+  it('joga item sem produto no bucket e cai para Desconhecido sem nome', () => {
+    const porProduto = agregarPessoaPorProduto(
+      [log({ entity_id: 'sem', performed_by: 'fantasma' })],
+      {},
+      {},
+      NOMES,
+    );
+
+    expect(porProduto[PRODUTO_SEM_VINCULO][0].nome).toBe('Desconhecido');
+  });
+
+  it('devolve objeto vazio sem logs', () => {
+    expect(agregarPessoaPorProduto([], {}, {}, {})).toEqual({});
+  });
+});
+
 describe('formatarHoras', () => {
   it('formata inteiro, decimal e ausência de valor', () => {
     expect(formatarHoras(12)).toBe('12h');
@@ -1032,5 +1130,102 @@ describe('COLUNAS_POR_VISAO', () => {
   it('abre cada aba ordenada por uma coluna que ela mostra', () => {
     expect(COLUNAS_POR_VISAO.produtividade).toContain(ORDENACAO_INICIAL.produtividade);
     expect(COLUNAS_POR_VISAO.atividade).toContain(ORDENACAO_INICIAL.atividade);
+  });
+});
+
+describe('agregarClientePorProduto', () => {
+  const concluiu = (entityId: string, over: Partial<AuditLog> = {}) => log({
+    entity_id: entityId,
+    action: 'updated',
+    changed_fields: { status: { old: 'in_progress', new: 'done' } },
+    ...over,
+  });
+
+  // t3 é tocado sem concluir; t4 é concluído sem cliente resolvido.
+  const LOGS = [
+    concluiu('t1', { performed_by: 'u1' }),
+    concluiu('t2', { performed_by: 'u2' }),
+    log({ entity_id: 't3', performed_by: 'u1' }),
+    concluiu('t4', { performed_by: 'u1' }),
+    concluiu('t5', { performed_by: 'u1' }),
+  ];
+  const HORAS = {
+    t1: { planejadas: 2, executadas: 6 },
+    t2: { planejadas: 3, executadas: 4 },
+    t4: { planejadas: 1, executadas: 2 },
+    t5: { planejadas: 5, executadas: 5 },
+  };
+  const PRODUTOS = { t1: 'prod-A', t2: 'prod-A', t3: 'prod-A', t4: 'prod-A', t5: 'prod-B' };
+  // t4 fica de fora: é o item sem cliente resolvido.
+  const CLIENTES = { t1: 'cli-1', t2: 'cli-1', t3: 'cli-2', t5: 'cli-1' };
+  const NOMES_CLIENTE = { 'cli-1': 'Grupo Agro Norte', 'cli-2': 'Usina Leste' };
+
+  const agregar = () => agregarClientePorProduto(
+    LOGS, HORAS, PRODUTOS, CLIENTES, NOMES_CLIENTE, NOMES,
+  );
+
+  it('quebra o produto por cliente, do que mais consumiu hora para o que menos', () => {
+    const { clientes } = agregar()['prod-A'];
+
+    expect(clientes.map(c => c.nome)).toEqual([
+      'Grupo Agro Norte',      // 10h executadas
+      'Sem cliente identificado', // 2h
+      'Usina Leste',           // sem apontamento vai para o fim
+    ]);
+
+    const [agro, semCliente, usina] = clientes;
+    expect(agro.itensTocados).toBe(2);
+    expect(agro.concluidos).toBe(2);
+    expect(agro.horasPlanejadas).toBe(5);
+    expect(agro.horasExecutadas).toBe(10);
+    expect(agro.tempoMedio).toBe(5);
+
+    expect(semCliente.clienteId).toBe(CLIENTE_SEM_VINCULO);
+    expect(semCliente.concluidos).toBe(1);
+
+    // Tocado e ainda aberto: aparece em Tocados, mas não vira hora nem média.
+    expect(usina.itensTocados).toBe(1);
+    expect(usina.concluidos).toBe(0);
+    expect(usina.horasExecutadas).toBeNull();
+    expect(usina.tempoMedio).toBeNull();
+  });
+
+  it('soma dos clientes fecha com a linha do produto', () => {
+    const { clientes } = agregar()['prod-A'];
+    // Buscar pelo id: `agregarPorProduto` vem ordenado por tempo médio, não pela
+    // ordem em que os produtos aparecem nos logs.
+    const produto = agregarPorProduto(LOGS, HORAS, PRODUTOS, {})
+      .find(p => p.produtoId === 'prod-A')!;
+
+    expect(clientes.reduce((t, c) => t + c.concluidos, 0)).toBe(produto.concluidos);
+    expect(clientes.reduce((t, c) => t + (c.horasPlanejadas ?? 0), 0)).toBe(produto.horasPlanejadas);
+    expect(clientes.reduce((t, c) => t + (c.horasExecutadas ?? 0), 0)).toBe(produto.horasExecutadas);
+    expect(clientes.reduce((t, c) => t + c.itensComHorasExecutadas, 0))
+      .toBe(produto.itensComHorasExecutadas);
+  });
+
+  it('lista quem executou dentro de cada cliente, e só naquele produto', () => {
+    const porProduto = agregar();
+    const noAgro = porProduto['prod-A'].pessoasPorCliente['cli-1'];
+
+    expect(noAgro.map(p => p.nome)).toEqual(['Maria Silva', 'Bruno Souza']);
+    expect(noAgro[0].horasExecutadas).toBe(6);
+    expect(noAgro[1].horasExecutadas).toBe(4);
+
+    // t5 é do mesmo cliente, mas de outro produto: não entra no painel do prod-A.
+    expect(noAgro.reduce((t, p) => t + p.concluidos, 0)).toBe(2);
+    expect(porProduto['prod-B'].pessoasPorCliente['cli-1']).toHaveLength(1);
+  });
+
+  it('conta o item uma vez no cliente e uma vez para cada pessoa que mexeu nele', () => {
+    const logs = [...LOGS, log({ entity_id: 't1', performed_by: 'u2' })];
+    const { clientes, pessoasPorCliente } = agregarClientePorProduto(
+      logs, HORAS, PRODUTOS, CLIENTES, NOMES_CLIENTE, NOMES,
+    )['prod-A'];
+
+    const agro = clientes.find(c => c.clienteId === 'cli-1');
+    expect(agro?.itensTocados).toBe(2);
+    // Duas pessoas em t1: a soma das pessoas passa o total do cliente, de propósito.
+    expect(pessoasPorCliente['cli-1'].reduce((t, p) => t + p.itensTocados, 0)).toBe(3);
   });
 });

@@ -25,9 +25,11 @@ import {
   type HorasPorId, type LinhaProdutividade, type ResumoProdutividade,
   type StatusPorId, type VinculoPorId, type VisaoProdutividade,
 } from '@/lib/auditProdutividade';
+import { useAuditPeriodo } from '@/hooks/useAuditPeriodo';
 import { triggerCsvDownload } from '@/lib/roiCsv';
+import { AuditLimiteAviso } from './AuditLimiteAviso';
 import { AuditProdutosDaPessoa } from './AuditProdutosDaPessoa';
-import { ENTITY_LABELS, PERIODOS_AUDITORIA } from './auditLabels';
+import { ENTITY_LABELS } from './auditLabels';
 
 interface AuditProdutividadeTableProps {
   area: 'tax' | 'osg';
@@ -227,7 +229,12 @@ interface Kpi {
  * Produtividade não mostra nenhuma métrica de uso do sistema (registros,
  * colaboradores ativos, dias com atividade): esse tema é da aba Atividade.
  */
-function kpisDaVisao(visao: VisaoProdutividade, resumo: ResumoProdutividade, dias: number): Kpi[] {
+function kpisDaVisao(
+  visao: VisaoProdutividade,
+  resumo: ResumoProdutividade,
+  /** Dias do período que já passaram; `null` em "todo o período". */
+  dias: number | null,
+): Kpi[] {
   if (visao === 'produtividade') {
     return [
       {
@@ -267,8 +274,10 @@ function kpisDaVisao(visao: VisaoProdutividade, resumo: ResumoProdutividade, dia
     },
     {
       label: 'Dias com atividade',
-      valor: `${resumo.diasComAtividade} de ${dias}`,
-      hint: 'dias do período com registro',
+      // Sem denominador conhecido (todo o histórico) mostra só a contagem: razão
+      // com total inventado é pior que razão nenhuma.
+      valor: dias === null ? String(resumo.diasComAtividade) : `${resumo.diasComAtividade} de ${dias}`,
+      hint: dias === null ? 'dias distintos com registro' : 'dias do período com registro',
     },
   ];
 }
@@ -334,18 +343,18 @@ const HeaderOrdenavel = ({
 };
 
 export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTableProps) => {
-  const [periodo, setPeriodo] = useState('30');
+  // O período é compartilhado com as outras abas — ver `useAuditPeriodo`.
+  const { periodo, setPeriodo, opcoes, janela } = useAuditPeriodo();
   const [ordenacao, setOrdenacao] = useState<Ordenacao>(() => ({
     coluna: ORDENACAO_INICIAL[visao],
     direcao: direcaoInicial(ORDENACAO_INICIAL[visao]),
   }));
   const [expandidas, setExpandidas] = useState<Set<string>>(new Set());
-  const dias = Number(periodo);
   const colunas = COLUNAS_POR_VISAO[visao];
   /** Só a aba de resultado abre o detalhe por produto. */
   const expansivel = visao === 'produtividade';
 
-  const { data: logs = [], isLoading } = useDomainAuditProdutividade(area, dias);
+  const { data: logs = [], isLoading } = useDomainAuditProdutividade(area, janela);
   // `profiles_safe`, não `profiles`: a tabela só tem SELECT para admin, então
   // ler dela deixava a coluna Colaborador como "Desconhecido" para o time.
   const { data: nomes = {} } = useProfilesNomeMap('profiles_safe');
@@ -374,7 +383,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
     () => resumirProdutividade(logs, clientePorId, contribuintePorId),
     [logs, clientePorId, contribuintePorId],
   );
-  const kpis = kpisDaVisao(visao, resumo, dias);
+  const kpis = kpisDaVisao(visao, resumo, janela.dias);
 
   // Produtos de cada pessoa, para a linha expandida. O corte por produto da
   // equipe inteira mora na aba Produtos (`AuditProdutosTable`) — aqui a tabela
@@ -405,7 +414,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
   const handleExportCsv = () => {
     triggerCsvDownload(
       buildProdutividadeCsv(linhas, colunas),
-      `${visao}-${area}-${dias}d.csv`,
+      `${visao}-${area}-${janela.slug}.csv`,
     );
   };
 
@@ -418,7 +427,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {PERIODOS_AUDITORIA.map(p => (
+            {opcoes.map(p => (
               <SelectItem key={p.valor} value={p.valor}>{p.label}</SelectItem>
             ))}
           </SelectContent>
@@ -529,6 +538,8 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
           </Table>
         </CardContent>
       </Card>
+
+      <AuditLimiteAviso total={logs.length} />
 
       <p className="flex items-start gap-2 text-xs text-slate-500">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
