@@ -284,6 +284,35 @@ describe('resolverVinculos', () => {
     expect(servicoPorId.p1).toBe('srv-2');
   });
 
+  it('usa external_client_id do projeto quando não há contribuinte', () => {
+    const { clientePorId } = resolverVinculos(
+      [{ id: 't1', client_id: null, contribuinte_id: null, servico_id: null, project_id: 'p1' }],
+      [{
+        id: 'p1', contribuinte_id: null, external_client_id: 'cli-D',
+        servico_id: null, ordem_servico_id: null,
+      }],
+      {},
+    );
+
+    // Mesmo espaço de ids de org_tasks.client_id — o projeto e a tarefa dele
+    // ficam no cliente D em vez de contarem como "sem cliente".
+    expect(clientePorId.p1).toBe('cli-D');
+    expect(clientePorId.t1).toBe('cli-D');
+  });
+
+  it('prefere o cliente do contribuinte ao external_client_id', () => {
+    const { clientePorId } = resolverVinculos(
+      [],
+      [{
+        id: 'p1', contribuinte_id: 'contrib-1', external_client_id: 'cli-D',
+        servico_id: null, ordem_servico_id: null,
+      }],
+      { 'contrib-1': 'cli-C' },
+    );
+
+    expect(clientePorId.p1).toBe('cli-C');
+  });
+
   it('mantém o contribuinte mesmo quando o cliente dele não é visível', () => {
     const { clientePorId, contribuintePorId } = resolverVinculos(
       [{ id: 't1', client_id: null, contribuinte_id: 'contrib-9', servico_id: null, project_id: null }],
@@ -419,6 +448,74 @@ describe('projetosFinalizados', () => {
 
     expect(resumirProdutividade(logs).projetosFinalizados).toBe(2);
     expect(resumirProdutividade(logs).processosExecutados).toBe(0);
+  });
+});
+
+describe('projetosAbertos / tarefasAbertas', () => {
+  const STATUS = {
+    p1: 'active', p2: 'planned', p3: 'completed', p4: 'cancelled',
+    t1: 'in_progress', t2: 'review', t3: 'done',
+  };
+
+  it('conta o que foi tocado no período e hoje não está concluído nem cancelado', () => {
+    const [linha] = agregarProdutividade([
+      log({ entity_type: 'project', entity_id: 'p1' }),
+      log({ entity_type: 'project', entity_id: 'p2' }),
+      log({ entity_type: 'project', entity_id: 'p3' }),
+      log({ entity_type: 'project', entity_id: 'p4' }),
+      log({ entity_type: 'task', entity_id: 't1' }),
+      log({ entity_type: 'subtask', entity_id: 't2' }),
+      log({ entity_type: 'task', entity_id: 't3' }),
+    ], NOMES, {}, {}, {}, STATUS);
+
+    // p3 concluído e p4 cancelado ficam fora; t3 concluída fica fora.
+    expect(linha.projetosAbertos).toBe(2);
+    expect(linha.tarefasAbertas).toBe(2);
+  });
+
+  it('não conta item sem status conhecido como aberto', () => {
+    const [linha] = agregarProdutividade([
+      log({ entity_type: 'project', entity_id: 'apagado' }),
+      log({ entity_type: 'task', entity_id: 'apagada' }),
+    ], NOMES, {}, {}, {}, STATUS);
+
+    expect(linha.projetosAbertos).toBe(0);
+    expect(linha.tarefasAbertas).toBe(0);
+  });
+
+  it('tira dos abertos o projeto que a própria pessoa finalizou no período', () => {
+    const [linha] = agregarProdutividade([
+      log({ entity_type: 'project', entity_id: 'p1' }),
+      log({
+        entity_type: 'project', entity_id: 'p3',
+        changed_fields: { status: { old: 'active', new: 'completed' } },
+      }),
+    ], NOMES, {}, {}, {}, STATUS);
+
+    expect(linha.projetosAbertos).toBe(1);
+    expect(linha.projetosFinalizados).toBe(1);
+  });
+
+  it('conta uma vez só o item tocado várias vezes', () => {
+    const [linha] = agregarProdutividade([
+      log({ entity_type: 'project', entity_id: 'p1', action: 'created' }),
+      log({ entity_type: 'project', entity_id: 'p1', action: 'updated' }),
+      log({ entity_type: 'task', entity_id: 't1', action: 'updated' }),
+      log({ entity_type: 'task', entity_id: 't1', action: 'updated' }),
+    ], NOMES, {}, {}, {}, STATUS);
+
+    expect(linha.projetosAbertos).toBe(1);
+    expect(linha.tarefasAbertas).toBe(1);
+  });
+
+  it('fica em zero quando o status não é informado', () => {
+    const [linha] = agregarProdutividade([
+      log({ entity_type: 'project', entity_id: 'p1' }),
+      log({ entity_type: 'task', entity_id: 't1' }),
+    ], NOMES);
+
+    expect(linha.projetosAbertos).toBe(0);
+    expect(linha.tarefasAbertas).toBe(0);
   });
 });
 
@@ -740,7 +837,9 @@ describe('ordenarProdutividade', () => {
       userId: 'u',
       nome: 'Nome',
       processosExecutados: 0,
+      tarefasAbertas: 0,
       projetosFinalizados: 0,
+      projetosAbertos: 0,
       clientesDistintos: 0,
       contribuintesDistintos: 0,
       horasPlanejadas: 0,
@@ -881,15 +980,15 @@ describe('buildProdutividadeCsv', () => {
 
     const csv = buildProdutividadeCsv(linhas).split('\n');
     expect(csv[0]).toBe(
-      'colaborador;processos_executados;projetos_finalizados;clientes_distintos;contribuintes_distintos;horas_planejadas;horas_executadas;itens_com_horas_apontadas;tempo_medio_processo_h;registros;criacoes;edicoes;exclusoes;itens_distintos;dias_ativos;media_por_dia_ativo;tipo_mais_frequente;ultimo_registro',
+      'colaborador;projetos_abertos;projetos_finalizados;tarefas_abertas;processos_executados;clientes_distintos;contribuintes_distintos;horas_planejadas;horas_executadas;itens_com_horas_apontadas;tempo_medio_processo_h;registros;criacoes;edicoes;exclusoes;itens_distintos;dias_ativos;media_por_dia_ativo;tipo_mais_frequente;ultimo_registro',
     );
-    expect(csv[1]).toBe('Maria Silva;1;0;1;1;3;4,5;1;4,5;2;1;1;0;1;1;2,0;task;2026-07-20T18:00:00.000Z');
+    expect(csv[1]).toBe('Maria Silva;0;0;0;1;1;1;3;4,5;1;4,5;2;1;1;0;1;1;2,0;task;2026-07-20T18:00:00.000Z');
   });
 
   it('deixa a célula vazia quando não há horas, em vez de escrever zero', () => {
     const linhas = agregarProdutividade(logsCsv, NOMES);
     expect(buildProdutividadeCsv(linhas).split('\n')[1])
-      .toBe('Maria Silva;1;0;0;0;;;0;;2;1;1;0;1;1;2,0;task;2026-07-20T18:00:00.000Z');
+      .toBe('Maria Silva;0;0;0;1;0;0;;;0;;2;1;1;0;1;1;2,0;task;2026-07-20T18:00:00.000Z');
   });
 
   it('escapa nome com ponto-e-vírgula', () => {
@@ -908,9 +1007,9 @@ describe('buildProdutividadeCsv', () => {
 
     const produtividade = buildProdutividadeCsv(linhas, COLUNAS_POR_VISAO.produtividade).split('\n');
     expect(produtividade[0]).toBe(
-      'colaborador;processos_executados;projetos_finalizados;clientes_distintos;contribuintes_distintos;horas_planejadas;horas_executadas;itens_com_horas_apontadas;tempo_medio_processo_h',
+      'colaborador;projetos_abertos;projetos_finalizados;tarefas_abertas;processos_executados;clientes_distintos;contribuintes_distintos;horas_planejadas;horas_executadas;itens_com_horas_apontadas;tempo_medio_processo_h',
     );
-    expect(produtividade[1]).toBe('Maria Silva;1;0;1;1;3;4,5;1;4,5');
+    expect(produtividade[1]).toBe('Maria Silva;0;0;0;1;1;1;3;4,5;1;4,5');
 
     const atividade = buildProdutividadeCsv(linhas, COLUNAS_POR_VISAO.atividade).split('\n');
     expect(atividade[0]).toBe(

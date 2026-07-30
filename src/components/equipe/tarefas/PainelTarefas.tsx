@@ -57,6 +57,7 @@ import {
 const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const deepLinkTaskId = searchParams.get('taskId');
+  const deepLinkProjectId = searchParams.get('projectId');
   const { user, isAdmin, isLider, isSublider } = useAuth();
   const [filters, setFilters] = useState<TaskFiltersType>({});
   const [activeView, setActiveView] = useState('list');
@@ -71,6 +72,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const [isCriarProjetosOsOpen, setIsCriarProjetosOsOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [openedDeepLinkId, setOpenedDeepLinkId] = useState<string | null>(null);
+  const [openedDeepLinkProjectId, setOpenedDeepLinkProjectId] = useState<string | null>(null);
   const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
   const [defaultProjectId, setDefaultProjectId] = useState<string | null>(null);
   const projectController = useProjetosCadastroController(area);
@@ -200,6 +202,30 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       setOpenedDeepLinkId(deepLinkTaskId);
     }
   }, [deepLinkTaskId, tasks, openedDeepLinkId]);
+
+  // Abre o cadastro do projeto quando a página é aberta com ?projectId=<id>.
+  // Why: a aba "Não resolvidos" da Auditoria manda o gestor direto para o campo
+  // que está faltando (OS, serviço, cliente). Usa a lista crua de projetos, não a
+  // filtrada, senão o filtro atual da tela engoliria o deep-link.
+  useEffect(() => {
+    if (!deepLinkProjectId || openedDeepLinkProjectId === deepLinkProjectId) return;
+    const project = projectController.projects.find(item => item.id === deepLinkProjectId);
+    if (!project) return;
+    projectController.handleOpenModal(project);
+    setOpenedDeepLinkProjectId(deepLinkProjectId);
+  }, [deepLinkProjectId, openedDeepLinkProjectId, projectController]);
+
+  // Ao fechar o cadastro, remove o ?projectId= para não reabrir em navegação posterior.
+  useEffect(() => {
+    if (!deepLinkProjectId || !openedDeepLinkProjectId || projectController.isModalOpen) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('projectId');
+    setSearchParams(next, { replace: true });
+    setOpenedDeepLinkProjectId(null);
+  }, [
+    deepLinkProjectId, openedDeepLinkProjectId, projectController.isModalOpen,
+    searchParams, setSearchParams,
+  ]);
 
   // Ao fechar o modal, remove o ?taskId= da URL para não reabrir em navegação posterior.
   const handleTaskModalOpenChange = (open: boolean) => {

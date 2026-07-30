@@ -23,7 +23,7 @@ import {
   resumirProdutividade,
   type ClientePorId, type ColunaProdutividade, type DirecaoOrdenacao,
   type HorasPorId, type LinhaProdutividade, type ResumoProdutividade,
-  type VinculoPorId, type VisaoProdutividade,
+  type StatusPorId, type VinculoPorId, type VisaoProdutividade,
 } from '@/lib/auditProdutividade';
 import { triggerCsvDownload } from '@/lib/roiCsv';
 import { AuditProdutosDaPessoa } from './AuditProdutosDaPessoa';
@@ -42,6 +42,7 @@ interface AuditProdutividadeTableProps {
 const SEM_HORAS: HorasPorId = {};
 const SEM_CLIENTES: ClientePorId = {};
 const SEM_VINCULO: VinculoPorId = {};
+const SEM_STATUS: StatusPorId = {};
 const SEM_NOMES: Record<string, string> = {};
 
 interface DefinicaoColuna {
@@ -81,6 +82,19 @@ const ConteudoHoras = ({ linha }: { linha: LinhaProdutividade }) => {
 };
 
 /**
+ * "Em aberto / entregue" na mesma célula, com o entregue em destaque porque é
+ * por ele que a coluna ordena. Mesma gramática visual das horas: o primeiro
+ * número é contexto, o segundo é o resultado.
+ */
+const ConteudoPar = ({ abertos, entregues }: { abertos: number; entregues: number }) => (
+  <>
+    <span className="text-slate-500">{abertos}</span>
+    <span className="text-slate-300"> / </span>
+    <span className="font-semibold text-slate-900">{entregues}</span>
+  </>
+);
+
+/**
  * Rótulo, explicação e célula de cada coluna. A ordem de exibição NÃO está
  * aqui: cada aba pega a sua lista em `COLUNAS_POR_VISAO` e cabeçalho e corpo
  * percorrem a mesma lista, então não há como as colunas saírem trocadas.
@@ -94,18 +108,22 @@ const COLUNAS: Record<ColunaProdutividade, DefinicaoColuna> = {
     render: linha => linha.nome,
   },
   processosExecutados: {
-    label: 'Processos executados',
+    label: 'Tarefas abertas/concl.',
     numerica: true,
-    ajuda: 'Quantas tarefas e subtarefas diferentes esta pessoa marcou como Concluído no período. Projeto finalizado NÃO entra aqui — tem coluna própria. Se ela reabriu e concluiu o mesmo item de novo, conta uma vez só. O crédito vai para quem mudou o status, não para o responsável da tarefa.',
-    classeCelula: 'font-semibold',
-    render: linha => linha.processosExecutados,
+    ajuda: 'Das tarefas e subtarefas em que ela mexeu no período: quantas seguem em aberto hoje (esquerda) e quantas ela marcou como Concluído no período (direita — é o número do KPI "Processos executados"). Projeto não entra aqui, tem coluna própria. Se ela reabriu e concluiu o mesmo item de novo, conta uma vez só. O crédito vai para quem mudou o status, não para o responsável da tarefa. Ordena pelas concluídas.',
+    classeCelula: 'whitespace-nowrap',
+    render: linha => (
+      <ConteudoPar abertos={linha.tarefasAbertas} entregues={linha.processosExecutados} />
+    ),
   },
   projetosFinalizados: {
-    label: 'Projetos finalizados',
+    label: 'Projetos abertos/finaliz.',
     numerica: true,
-    ajuda: 'Quantos projetos ela levou para o status Concluído no período. É o projeto inteiro, não as tarefas dele — por isso o número é pequeno perto de Processos executados.',
-    classeCelula: 'font-semibold',
-    render: linha => linha.projetosFinalizados,
+    ajuda: 'Dos projetos em que ela mexeu no período: quantos seguem abertos hoje (esquerda) e quantos ela levou para Concluído no período (direita). Ver os dois juntos é o que mostra quem acumulou projetos e não fechou nenhum. É o projeto inteiro, não as tarefas dele. Projeto cancelado não conta em nenhum dos lados, e projeto que outra pessoa finalizou sai dos abertos sem entrar nos finalizados dela. Ordena pelos finalizados.',
+    classeCelula: 'whitespace-nowrap',
+    render: linha => (
+      <ConteudoPar abertos={linha.projetosAbertos} entregues={linha.projetosFinalizados} />
+    ),
   },
   clientesDistintos: {
     label: 'Clientes distintos',
@@ -340,16 +358,17 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
   const horas = vinculos?.horas ?? SEM_HORAS;
   const clientePorId = vinculos?.clientePorId ?? SEM_CLIENTES;
   const contribuintePorId = vinculos?.contribuintePorId ?? SEM_VINCULO;
+  const statusPorId = vinculos?.statusPorId ?? SEM_STATUS;
   const produtoPorId = vinculos?.produtoPorId ?? SEM_VINCULO;
   const nomePorProduto = vinculos?.nomePorProduto ?? SEM_NOMES;
 
   const linhas = useMemo(
     () => ordenarProdutividade(
-      agregarProdutividade(logs, nomes, horas, clientePorId, contribuintePorId),
+      agregarProdutividade(logs, nomes, horas, clientePorId, contribuintePorId, statusPorId),
       ordenacao.coluna,
       ordenacao.direcao,
     ),
-    [logs, nomes, horas, clientePorId, contribuintePorId, ordenacao],
+    [logs, nomes, horas, clientePorId, contribuintePorId, statusPorId, ordenacao],
   );
   const resumo = useMemo(
     () => resumirProdutividade(logs, clientePorId, contribuintePorId),

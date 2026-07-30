@@ -24,6 +24,13 @@ export type ClientePorId = Record<string, string>;
 /** `entity_id` → id da outra ponta (contribuinte ou serviço prestado). */
 export type VinculoPorId = Record<string, string>;
 
+/**
+ * `entity_id` → status ATUAL do item (`org_tasks.status` / `org_projects.status`),
+ * lido hoje e não no momento do log. É o que separa "ainda aberto" de "já
+ * entregue" nas colunas de projetos e tarefas.
+ */
+export type StatusPorId = Record<string, string>;
+
 /** Colunas de vínculo de `org_tasks` usadas para achar cliente, CNPJ e produto. */
 export interface VinculoTarefa {
   id: string;
@@ -39,6 +46,12 @@ export interface VinculoProjeto {
   contribuinte_id: string | null;
   servico_id: string | null;
   ordem_servico_id: string | null;
+  /**
+   * Opcional porque a coluna não tem FK no schema: quem monta `VinculoProjeto`
+   * sem ela continua compilando. Quando vem, é `cliente.id` — ver
+   * `resolverVinculos`.
+   */
+  external_client_id?: string | null;
 }
 
 export interface VinculosItens {
@@ -66,8 +79,13 @@ export interface VinculosItens {
  * Já a contagem de contribuintes fica em `contribuintePorId` justamente porque é
  * uma pergunta diferente — quantos CNPJs, não quantos clientes.
  *
- * `org_projects.external_client_id` fica de fora de propósito: aponta para
- * outra tabela de clientes e misturar as duas inflaria a contagem.
+ * `org_projects.external_client_id` entra como último elo do cliente. Ele não tem
+ * FK no schema, mas é o MESMO espaço de ids de `org_tasks.client_id`
+ * (`cliente.id`): a tela de projeto o preenche a partir de `cliente`
+ * (`useExternalClients`) e mover tarefa copia um no outro
+ * (`orgTaskMove.planTaskMove`). Por isso não há risco de inflar a contagem —
+ * cliente repetido cai no mesmo id — e ignorá-lo subcontava "Clientes
+ * atendidos" em todo projeto cadastrado sem contribuinte.
  */
 export function resolverVinculos(
   tarefas: VinculoTarefa[],
@@ -84,6 +102,10 @@ export function resolverVinculos(
       contribuintePorId[projeto.id] = projeto.contribuinte_id;
       const cliente = clienteDoContribuinte[projeto.contribuinte_id];
       if (cliente) clientePorId[projeto.id] = cliente;
+    }
+    // Só quando o contribuinte não resolveu: o CNPJ é o vínculo mais específico.
+    if (!clientePorId[projeto.id] && projeto.external_client_id) {
+      clientePorId[projeto.id] = projeto.external_client_id;
     }
     if (projeto.servico_id) servicoPorId[projeto.id] = projeto.servico_id;
     if (projeto.ordem_servico_id) osPorId[projeto.id] = projeto.ordem_servico_id;
@@ -165,8 +187,16 @@ export interface LinhaProdutividade {
    * `changed_fields.status` que já vem nos logs. Ver `ehConclusao`.
    */
   processosExecutados: number;
+  /**
+   * Das tarefas/subtarefas em que a pessoa mexeu no período, quantas seguem sem
+   * conclusão HOJE. É o par de `processosExecutados`: mostra quem acumula
+   * trabalho em aberto sem entregar. Ver `ehAberto`.
+   */
+  tarefasAbertas: number;
   /** Projetos distintos que a pessoa levou a Concluído (`status` = completed). */
   projetosFinalizados: number;
+  /** Dos projetos em que a pessoa mexeu no período, quantos seguem abertos hoje. */
+  projetosAbertos: number;
   /**
    * Clientes diferentes em que a pessoa tocou no período (qualquer ação, não só
    * conclusão). Item sem cliente vinculado não entra na contagem.
@@ -227,6 +257,24 @@ function diaDoRegistro(performedAt: string): string {
  */
 const STATUS_CONCLUIDO = new Set(['done', 'completed']);
 
+/**
+ * Status que encerram o item sem entrega (`org_projects.status`). Projeto
+ * cancelado não está aberto nem finalizado: sai das duas contagens em vez de
+ * inflar a de abertos.
+ */
+const STATUS_CANCELADO = new Set(['cancelled', 'canceled']);
+
+/**
+ * Item em aberto = tem status conhecido e ele não é de conclusão nem de
+ * cancelamento. Status ausente NÃO conta como aberto — acontece quando o item
+ * foi excluído depois ou não é legível para quem está olhando, e chutar aqui
+ * inflaria a carteira da pessoa.
+ */
+export function ehAberto(status: string | undefined): boolean {
+  if (!status) return false;
+  return !STATUS_CONCLUIDO.has(status) && !STATUS_CANCELADO.has(status);
+}
+
 /** Distingue conclusão de projeto de conclusão de tarefa/subtarefa. */
 function ehProjeto(log: AuditLog): boolean {
   return log.entity_type === 'project';
@@ -251,6 +299,10 @@ interface Acumulador {
   concluidos: Set<string>;
   /** Projetos finalizados. */
   projetos: Set<string>;
+  /** Tarefas/subtarefas tocadas por qualquer ação — base das abertas. */
+  tarefasTocadas: Set<string>;
+  /** Projetos tocados por qualquer ação — base dos abertos. */
+  projetosTocados: Set<string>;
   registros: number;
   criacoes: number;
   edicoes: number;
@@ -292,6 +344,7 @@ export function agregarProdutividade(
   horasPorId: HorasPorId = {},
   clientePorId: ClientePorId = {},
   contribuintePorId: VinculoPorId = {},
+  statusPorId: StatusPorId = {},
 ): LinhaProdutividade[] {
   const porUsuario = new Map<string, Acumulador>();
 
@@ -302,6 +355,8 @@ export function agregarProdutividade(
         userId: log.performed_by,
         concluidos: new Set(),
         projetos: new Set(),
+        tarefasTocadas: new Set(),
+        projetosTocados: new Set(),
         registros: 0,
         criacoes: 0,
         edicoes: 0,
@@ -323,6 +378,9 @@ export function agregarProdutividade(
       if (ehProjeto(log)) acc.projetos.add(log.entity_id);
       else acc.concluidos.add(log.entity_id);
     }
+
+    if (ehProjeto(log)) acc.projetosTocados.add(log.entity_id);
+    else acc.tarefasTocadas.add(log.entity_id);
 
     acc.itens.add(log.entity_id);
     acc.dias.add(diaDoRegistro(log.performed_at));
@@ -355,6 +413,15 @@ export function agregarProdutividade(
         if (horas.executadas != null) { executadas += horas.executadas; comExecutadas += 1; }
       }
 
+      // Abertos = tocados no período que hoje não estão concluídos nem
+      // cancelados. Quem a pessoa finalizou já saiu daqui pelo status atual, e o
+      // item que outra pessoa concluiu depois também — nenhum dos dois é carga
+      // em aberto dela.
+      let tarefasAbertas = 0;
+      for (const id of acc.tarefasTocadas) if (ehAberto(statusPorId[id])) tarefasAbertas += 1;
+      let projetosAbertos = 0;
+      for (const id of acc.projetosTocados) if (ehAberto(statusPorId[id])) projetosAbertos += 1;
+
       // Cliente e contribuinte contam sobre TODOS os itens tocados, não só os
       // concluídos: a pergunta é em quantos clientes a pessoa trabalhou.
       const clientes = new Set<string>();
@@ -370,7 +437,9 @@ export function agregarProdutividade(
         userId: acc.userId,
         nome: nomePorId[acc.userId]?.trim() || 'Desconhecido',
         processosExecutados: acc.concluidos.size,
+        tarefasAbertas,
         projetosFinalizados: acc.projetos.size,
+        projetosAbertos,
         clientesDistintos: clientes.size,
         contribuintesDistintos: contribuintes.size,
         horasPlanejadas: comPlanejadas > 0 ? planejadas : null,
@@ -413,7 +482,7 @@ export type VisaoProdutividade = 'produtividade' | 'atividade';
 
 /** Ordem de todas as colunas — base do CSV completo e do type union. */
 export const TODAS_AS_COLUNAS: ColunaProdutividade[] = [
-  'nome', 'processosExecutados', 'projetosFinalizados',
+  'nome', 'projetosFinalizados', 'processosExecutados',
   'clientesDistintos', 'contribuintesDistintos', 'horasExecutadas', 'tempoMedioProcesso',
   'registros', 'criacoes', 'edicoes', 'exclusoes',
   'itensDistintos', 'diasAtivos', 'mediaPorDiaAtivo', 'tipoMaisFrequente', 'ultimoRegistro',
@@ -425,8 +494,10 @@ export const TODAS_AS_COLUNAS: ColunaProdutividade[] = [
  * pessoa está vendo.
  */
 export const COLUNAS_POR_VISAO: Record<VisaoProdutividade, ColunaProdutividade[]> = {
+  // Projetos antes de tarefas, e cada um mostrando aberto/entregue no mesmo
+  // par: é a leitura que responde "acumulou 20 e não fechou nenhum".
   produtividade: [
-    'nome', 'processosExecutados', 'projetosFinalizados',
+    'nome', 'projetosFinalizados', 'processosExecutados',
     'clientesDistintos', 'contribuintesDistintos', 'horasExecutadas', 'tempoMedioProcesso',
   ],
   atividade: [
@@ -727,7 +798,8 @@ export function resumirProdutividade(
   };
 }
 
-function escapeCsv(valor: string): string {
+/** Célula de CSV pt-BR: só ganha aspas quando tem `;`, quebra de linha ou `"`. */
+export function escapeCsv(valor: string): string {
   if (valor == null) return '';
   const precisa = /[;\n"]/.test(valor);
   return precisa ? `"${valor.replace(/"/g, '""')}"` : valor;
@@ -751,8 +823,14 @@ interface CampoCsv {
  */
 const CAMPOS_CSV: Record<ColunaProdutividade, CampoCsv[]> = {
   nome: [{ header: 'colaborador', valor: l => escapeCsv(l.nome) }],
-  processosExecutados: [{ header: 'processos_executados', valor: l => l.processosExecutados }],
-  projetosFinalizados: [{ header: 'projetos_finalizados', valor: l => l.projetosFinalizados }],
+  processosExecutados: [
+    { header: 'tarefas_abertas', valor: l => l.tarefasAbertas },
+    { header: 'processos_executados', valor: l => l.processosExecutados },
+  ],
+  projetosFinalizados: [
+    { header: 'projetos_abertos', valor: l => l.projetosAbertos },
+    { header: 'projetos_finalizados', valor: l => l.projetosFinalizados },
+  ],
   clientesDistintos: [{ header: 'clientes_distintos', valor: l => l.clientesDistintos }],
   contribuintesDistintos: [{ header: 'contribuintes_distintos', valor: l => l.contribuintesDistintos }],
   horasExecutadas: [
