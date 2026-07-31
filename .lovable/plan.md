@@ -1,29 +1,38 @@
 ## Objetivo
 
-Executar exatamente `supabase/migrations/20260731170000_carga_clientes_contratos_a_faturar.sql` (commit e8442858), sem alterar uma linha do arquivo e sem tocar em mais nada.
+Executar exatamente `supabase/migrations/20260731200000_carga_contribuintes_contratos_a_faturar.sql` (commit cfb148c1), sem alterar uma linha e sem tocar em mais nada.
 
-## Pré-voo já executado (leitura)
+## Pré-voo já executado (somente leitura)
 
-- Baseline: **126** clientes `prod`/`excluido=false`, **275** vínculos em `cliente_clusters`.
-- Nenhum dos 40 ids da carga existe hoje em `public.cliente` (0 colisões).
-- Os **7** cluster ids da carga existem em `estrutura_clusters`: PSA AUDITORES `ce7f2633`, Prado Advogados `39e30aff`, TAX `b21b0b89`, OSG `0523512c`, PROFITTO `00f188e3`, PSA NORTE `2dbd46f8` e **Familly Business `4e53c13d`**. Distribuição conferida no arquivo: 17 / 14 / 3 / 3 / 3 / 2 / 1 = 43 vínculos.
-- Observação (não bloqueia): 5 desses clusters estão com `is_active = false` — as travas só exigem existência, não atividade.
+- `contribuinte` prod / não excluído: **189** — bate com o esperado.
+- `cliente` prod / não excluído: **166** — bate com o esperado.
+
+Simulei também as travas do arquivo contra a base ao vivo, sem gravar nada:
+
+- 39 linhas na carga, **39 documentos distintos** (nenhum repetido internamente).
+- **0 colisões de documento** com `contribuinte` prod vivo, já usando a mesma normalização do arquivo (`lpad` com o zero à esquerda reposto, 11 ou 14 dígitos).
+- **0 colisões de id** — nenhum dos 39 uuid v5 existe hoje na tabela.
+- **0 clientes de destino faltando**: os 39 `cliente_id` existem, estão em `prod` e não estão excluídos (35 da etapa 1 + os 4 pré-existentes: São Francisco Agronegócios, Grupo Piccini, Alessio Sansão e Sch Agrícola).
+
+Nenhuma das seis travas deve disparar.
 
 ## O que a migration faz (lida, não alterada)
 
-- Temp tables `carga_cliente` (40 linhas, **id fixo** por cliente) e `carga_cliente_cluster` (43 pares).
-- **11 travas**, todas com mensagem iniciada em `Abortado:` — **8 antes** da carga (contagem 40; contagem 43; nome repetido na própria carga, agora com `string_agg` dentro do grupo, corrigindo o 42803 da 1ª tentativa; colisão de nome com cliente `prod` vivo; cliente sem cluster na carga; cluster inexistente no banco; vínculo apontando para cliente fora da carga; id já existente em `cliente`) e **3 depois** do insert (40 clientes gravados; 43 vínculos gravados; zero cliente sem cluster).
-- INSERT dos 40 clientes com id explícito (`ambiente='prod'`, `ativo=true`, `excluido=false`) e, na mesma transação, os 43 vínculos direto da temp table — sem JOIN por nome e sem `RETURNING`, que era a causa do aborto da 2ª tentativa (`Araguaia S.A.` → `Araguaia S.a.` pelo `normalize_name_title_case`). Cabe numa transação só porque `trg_cliente_tem_cluster` é DEFERRABLE INITIALLY DEFERRED.
-- `DROP` das temp tables, `COMMIT`, e depois o SELECT final por lista de ids.
+`BEGIN` → temp table `carga_contribuinte` (39 linhas, id fixo) → bloco `DO` com **6 travas** pré-carga (contagem 39; documento não numérico ou fora de 11/14 dígitos; `tipo_pessoa` incoerente com o tamanho do documento; documento repetido na carga; documento já existente em `contribuinte` prod; cliente de destino inexistente/excluído/não-prod; id já existente) → `INSERT` dos 39 com `NULL` explícito em inscrição estadual, situação, CNAE, setor, `simples_nacional` e `setor_cliente_id`, `contribuinte_faturamento=false`, `excluido=false`, `ambiente='prod'` → bloco `DO` de conferência com **3 checagens** pós-insert (39 gravados; nenhum sem documento; nenhum sem cliente) → `DROP TABLE` → `COMMIT` → `SELECT` final por lista de ids.
 
-Nenhum schema, policy, trigger ou código de front é tocado. Nada em `dev`.
+Nenhum schema, policy, trigger, índice ou coluna é tocado. Nenhum UPDATE ou DELETE. Nada em `dev`.
 
 ## Execução
 
 1. Rodar a migration pela ferramenta de migration, com o SQL do arquivo exatamente como está.
-2. Rodar o SELECT final (`id, nome, municipio, uf, clusters`) e devolver as **40 linhas inteiras**, sem resumir, com ids completos.
-3. Pós-voo: confirmar delta de **+40** clientes (126 → 166) e **+43** vínculos (275 → 318), e declarar explicitamente que **nenhuma das 11 travas** disparou.
+2. Rodar o GATE: `SELECT count(*) FROM public.contribuinte WHERE ambiente='prod' AND excluido=false` — esperado **228** (189 + 39).
+3. Rodar o `SELECT` final da própria migration e devolver as **39 linhas inteiras** (id, documento, razão social, município, UF, cliente), sem resumir.
+4. Declarar explicitamente que nenhuma das 6 travas pré-carga nem das 3 conferências pós-insert disparou.
 
 ## Se algo abortar
 
-Qualquer `RAISE EXCEPTION 'Abortado: ...'` desfaz a transação inteira e nada é gravado. Nesse caso devolvo a mensagem completa e o diagnóstico da causa, sem contornar, sem ajustar a migration e sem tentar de novo.
+Qualquer `RAISE EXCEPTION 'Abortado: ...'` desfaz a transação inteira e nada é gravado. Nesse caso devolvo a mensagem completa e o diagnóstico da causa, sem corrigir o arquivo, sem contornar e sem tentar de novo.
+
+## Nota de leitura (não é erro)
+
+O trigger `normalize_name_title_case` roda `initcap()` na gravação, então `ARAGUAIA S.A.` e `Morro Da Mesa Concessionaria S/A.` aparecerão com caixa ajustada no SELECT final. Como os ids são fixos, isso não afeta nada.
