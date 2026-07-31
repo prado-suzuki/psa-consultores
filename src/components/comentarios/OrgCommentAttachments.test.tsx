@@ -89,10 +89,37 @@ describe('OrgEntityAttachments', () => {
 
     render(<OrgEntityAttachments entityId="T1" projectId="P1" area="tax" />);
 
-    expect(mocks.hookArgs).toEqual(['org_task', 'T1', 'tax', 'P1']);
+    expect(mocks.hookArgs).toEqual([
+      'org_task',
+      'T1',
+      'tax',
+      'P1',
+      { consolidarTarefas: false },
+    ]);
     expect(screen.getByText('guia_pagamento.pdf')).toBeInTheDocument();
     expect(screen.getByText('comprovante.png')).toBeInTheDocument();
     expect(screen.getAllByText('2.0 KB')).toHaveLength(2);
+  });
+
+  it('no projeto, junta os anexos das tarefas — mesmo recorte do painel ao lado', () => {
+    render(
+      <OrgEntityAttachments
+        entityType="org_project"
+        entityId="P1"
+        projectId="P1"
+        area="tax"
+        consolidarTarefas
+      />,
+    );
+
+    // Recortes diferentes entre painel e biblioteca fariam a tela buscar duas vezes.
+    expect(mocks.hookArgs).toEqual([
+      'org_project',
+      'P1',
+      'tax',
+      'P1',
+      { consolidarTarefas: true },
+    ]);
   });
 
   it('ignora anexos de comentário excluído', () => {

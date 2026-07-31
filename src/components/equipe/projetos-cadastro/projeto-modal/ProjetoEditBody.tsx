@@ -85,6 +85,9 @@ export function ProjetoEditBody({ onAddAttachment }: ProjetoEditBodyProps) {
             projectId={editingProject.id}
             area={area}
             className="mt-2"
+            // Mesmo recorte do painel de atividade: os anexos do projeto são os
+            // dele e os das tarefas vinculadas.
+            consolidarTarefas
           />
         )}
       </section>

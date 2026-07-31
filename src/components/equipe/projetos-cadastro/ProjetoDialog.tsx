@@ -102,6 +102,9 @@ export function ProjetoDialog() {
               projectId={editingProject.id}
               area={area}
               focusComposerSignal={composerFocusSignal}
+              // A conversa do projeto é a soma das conversas dele: o que foi dito
+              // aqui e o que foi dito nas tarefas vinculadas.
+              consolidarTarefas
             />
           </div>
         )}

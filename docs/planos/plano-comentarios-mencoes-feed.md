@@ -268,6 +268,29 @@ CREATE INDEX idx_org_comment_mentions_inbox
 
 O `UNIQUE` impede menção duplicada da mesma pessoa no mesmo comentário (o texto pode citar `@Bernardo` duas vezes; a notificação é uma).
 
+#### 3.4.1 A resposta usa a mesma caixa (implementado em 2026-07-31)
+
+Responder alguém puxa essa pessoa para a conversa do mesmo jeito que citá-la, então a notificação de resposta entra **nesta** tabela, com uma coluna dizendo de onde veio:
+
+```sql
+ALTER TABLE public.org_comment_mentions
+  ADD COLUMN motivo text NOT NULL DEFAULT 'mencao'
+  CHECK (motivo IN ('mencao', 'resposta'));
+```
+
+Migration: `20260731120000_org_comment_resposta_notifica.sql`. Por que compartilhar a caixa em vez de criar uma segunda:
+
+- `lido_em`, o índice parcial de não lidas, a RLS, o contador do sino e o "abriu a thread → baixou o sino" (`useMarcarMencoesLidasDaThread`) passam a valer para a resposta **sem código novo**;
+- o destino do clique é o mesmo — a thread de origem. O `motivo` muda só o ícone, a chamada ("respondeu você") e a etiqueta do item no sino.
+
+Três decisões que não são óbvias:
+
+1. **`_respondido_id` é parâmetro novo da RPC, e não o `_parent_id`.** A thread tem um nível só (§3.3, trigger 2), então responder a uma resposta pendura na raiz dela — o que acontece no feed, onde se responde a qualquer item. Notificar pelo `_parent_id` avisaria o autor da raiz em vez de quem foi respondido. O parâmetro entrou com `DEFAULT NULL` (e a assinatura antiga foi derrubada, para o PostgREST não ficar entre duas) e, nulo, cai no autor do `_parent_id`.
+2. **Menção ganha da resposta.** O `UNIQUE (comment_id, mentioned_user_id)` mantém uma linha por pessoa e comentário; a RPC grava as menções **antes** da resposta, com `ON CONFLICT DO NOTHING`, então quem foi respondido *e* citado no corpo recebe "mencionou você" — o motivo mais forte, porque foi chamado pelo nome.
+3. **O filtro "Menções" do feed continua sendo só menção** (`feed_org_comments`, `AND m.motivo = 'mencao'`). O rótulo na tela é "conversas em que me mencionam"; a caixa é compartilhada, o significado do filtro não.
+
+Auto-resposta não gera linha (a RPC compara com `auth.uid()`), e `respondido_id` fora da thread é ignorado em silêncio — o comentário já está gravado, e derrubar a publicação por causa do aviso seria trocar um problema pequeno por um grande.
+
 ### 3.5 `org_comment_attachments` + bucket
 
 ```sql
@@ -483,7 +506,8 @@ CREATE OR REPLACE FUNCTION public.criar_org_comment(
   _parent_id uuid,
   _body text,
   _mentions uuid[],
-  _attachments jsonb             -- [{file_path, file_name, file_size, file_type, width, height}]
+  _attachments jsonb,            -- [{file_path, file_name, file_size, file_type, width, height}]
+  _respondido_id uuid DEFAULT NULL  -- comentário respondido; notifica o autor dele (§3.4.1)
 ) RETURNS uuid
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = public AS $$ ... $$;
 ```
@@ -637,6 +661,41 @@ Cinco recortes na tela de Feed: cliente, projeto, autor, "só o que me menciona"
   projeto de Y = zero resultados) — estreitar a lista de projetos pelo cliente escolhido exige
   o mapa projeto→cliente do universo visível, que hoje ninguém carrega. Multi-seleção já está
   pronta no banco (os parâmetros são arrays), falta só a tela.
+
+**Thread consolidada do projeto — ENTREGUE em 2026-07-31**
+O painel de atividade do projeto passou a mostrar também os comentários das tarefas
+vinculadas a ele: a conversa do projeto é a soma das conversas que acontecem dentro dele.
+
+- **Nenhuma migration.** O recorte já existia: a etiqueta `project_id`, que o trigger grava
+  em todo comentário (de tarefa ou de projeto), e a RLS `org_comments_select`, cujo primeiro
+  ramo é exatamente `project_id = ANY(visible_org_project_ids(...))`. Consolidar é trocar
+  `entity_type + entity_id` por `project_id` no `WHERE` — nada de novo no banco.
+- **Das tarefas vêm só falas de gente** (`or(entity_type.eq.org_project,kind.eq.comment)`).
+  Evento de sistema de tarefa (reatribuição, revisão) continua na thread da tarefa: no painel
+  do projeto ele viraria log, não conversa.
+- **Cache próprio:** a query key ganha o sufixo `'consolidado'`. É outro conjunto de linhas,
+  e a thread do projeto sozinho continua existindo para quem a pedir.
+- **Responder grava na entidade da raiz, não na do painel** (`alvo` em
+  `CreateOrgCommentInput`). O trigger `org_comments_validate_parent` exige resposta na mesma
+  entidade do pai — responder a um comentário de tarefa pelo painel do projeto precisa nascer
+  na tarefa. O `onSuccess` invalida as duas threads, a consolidada e a da tarefa respondida.
+- **Realtime muda de filtro junto:** `project_id=eq.<id>`, senão comentário novo numa tarefa
+  não acordaria o painel do projeto.
+- **A origem é anunciada quando muda** (`OrgCommentOrigem`), no mesmo desenho do cabeçalho do
+  feed (tipo › título): falas seguidas da mesma tarefa seguem como um bloco só. O bloco de
+  abertura, quando é do próprio projeto, dispensa a etiqueta.
+- **Anexos acompanham:** `OrgEntityAttachments` do projeto recebe o mesmo recorte — se os dois
+  divergissem, deixariam de compartilhar a query key e o modal faria duas buscas. A biblioteca
+  de anexos do projeto passa a reunir também os arquivos enviados nas tarefas.
+- **Efeito colateral aceito:** `useMarcarMencoesLidasDaThread` recebe a lista consolidada, então
+  abrir o modal do projeto baixa do sino as menções feitas nas tarefas dele. É a mesma regra de
+  sempre ("thread aberta é menção lida") aplicada a uma thread maior — os comentários estão na
+  tela. Se incomodar, o corte é restringir a marcação às raízes da própria entidade.
+- **Sem paginação, como o resto do painel.** A thread carrega tudo do projeto de uma vez. Em
+  projeto muito conversado isso cresce; o caminho pronto para quando doer é o cursor
+  `(created_at, id)` que o feed já usa.
+- **Front:** `useDomainOrgComments(…, { consolidarTarefas })`, `OrgCommentsPanel`,
+  `OrgCommentOrigem.tsx` (novo), `OrgEntityAttachments`, `ProjetoDialog`, `ProjetoEditBody`.
 
 **Fase 3 — se fizer falta**
 `org_comment_reactions` · `follow/unfollow` explícito · busca textual no corpo · marca d'água de

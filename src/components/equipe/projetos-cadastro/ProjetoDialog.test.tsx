@@ -47,12 +47,14 @@ vi.mock('@/components/comentarios/OrgCommentsPanel', () => ({
     projectId,
     area,
     focusComposerSignal,
+    consolidarTarefas,
   }: {
     entityType?: string;
     entityId: string;
     projectId?: string | null;
     area: string;
     focusComposerSignal?: number;
+    consolidarTarefas?: boolean;
   }) => (
     <aside
       data-testid="activity-panel"
@@ -61,6 +63,7 @@ vi.mock('@/components/comentarios/OrgCommentsPanel', () => ({
       data-project-id={projectId}
       data-area={area}
       data-focus-signal={focusComposerSignal}
+      data-consolidado={String(!!consolidarTarefas)}
     >
       <h2>Atividade</h2>
     </aside>
@@ -68,8 +71,21 @@ vi.mock('@/components/comentarios/OrgCommentsPanel', () => ({
 }));
 
 vi.mock('@/components/comentarios/OrgCommentAttachments', () => ({
-  OrgEntityAttachments: ({ entityType, entityId }: { entityType?: string; entityId: string }) => (
-    <div data-testid="anexos-agregados" data-entity-type={entityType} data-entity-id={entityId} />
+  OrgEntityAttachments: ({
+    entityType,
+    entityId,
+    consolidarTarefas,
+  }: {
+    entityType?: string;
+    entityId: string;
+    consolidarTarefas?: boolean;
+  }) => (
+    <div
+      data-testid="anexos-agregados"
+      data-entity-type={entityType}
+      data-entity-id={entityId}
+      data-consolidado={String(!!consolidarTarefas)}
+    />
   ),
 }));
 
@@ -274,12 +290,16 @@ describe('ProjetoDialog — edição', () => {
     expect(panel).toHaveAttribute('data-entity-id', 'PRJ1');
     expect(panel).toHaveAttribute('data-project-id', 'PRJ1');
     expect(panel).toHaveAttribute('data-area', 'tax');
+    // A thread do projeto é a soma das conversas dele — inclusive as das tarefas.
+    expect(panel).toHaveAttribute('data-consolidado', 'true');
 
     expect(screen.getByTestId('anexos-agregados')).toHaveAttribute(
       'data-entity-type',
       'org_project',
     );
     expect(screen.getByTestId('anexos-agregados')).toHaveAttribute('data-entity-id', 'PRJ1');
+    // Mesmo recorte do painel: os dois compartilham a query key.
+    expect(screen.getByTestId('anexos-agregados')).toHaveAttribute('data-consolidado', 'true');
 
     expect(screen.getByRole('button', { name: /Salvar/ })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();

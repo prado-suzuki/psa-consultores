@@ -53,6 +53,12 @@ interface OrgEntityAttachmentsProps {
   projectId?: string | null;
   area: AreaKey;
   className?: string;
+  /**
+   * No projeto, junta também os anexos enviados nas tarefas dele. Acompanha o
+   * mesmo recorte do painel de atividade ao lado — se os dois divergissem, a
+   * query key deixaria de ser a mesma e a tela faria duas buscas.
+   */
+  consolidarTarefas?: boolean;
 }
 
 /**
@@ -66,12 +72,14 @@ export function OrgEntityAttachments({
   projectId,
   area,
   className,
+  consolidarTarefas = false,
 }: OrgEntityAttachmentsProps) {
   const { comments, isLoading, downloadAttachment } = useDomainOrgComments(
     entityType,
     entityId,
     area,
     projectId,
+    { consolidarTarefas },
   );
 
   const attachments = comments

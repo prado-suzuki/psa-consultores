@@ -80,6 +80,7 @@ function makeSupabaseChain(table: string) {
     'update',
     'delete',
     'eq',
+    'or',
     'is',
     'in',
     'order',
@@ -110,7 +111,7 @@ function mutationRegistrations() {
     ([o]) =>
       o as {
         mutationFn: (input: unknown) => Promise<unknown>;
-        onSuccess: () => void;
+        onSuccess: (data?: unknown, variables?: unknown) => void;
         onError: (error: Error) => void;
       },
   );
@@ -212,8 +213,107 @@ describe('useDomainOrgComments — listagem', () => {
   });
 });
 
+describe('useDomainOrgComments — thread consolidada do projeto', () => {
+  function renderConsolidada(entityType: OrgCommentEntityType = 'org_project', entityId = 'proj-9') {
+    return renderHook(() =>
+      useDomainOrgComments(entityType, entityId, 'tax', entityId, { consolidarTarefas: true }),
+    );
+  }
+
+  it('tem cache próprio, separado da thread do projeto sozinho', () => {
+    renderConsolidada();
+    expect(queryRegistrations()[0].queryKey).toEqual([
+      'org-comments',
+      'org_project',
+      'proj-9',
+      'consolidado',
+    ]);
+    expect(orgCommentsQueryKey('org_project', 'proj-9', true)).toEqual([
+      'org-comments',
+      'org_project',
+      'proj-9',
+      'consolidado',
+    ]);
+  });
+
+  it('recorta pela etiqueta project_id e deixa de fora os eventos de sistema das tarefas', async () => {
+    renderConsolidada();
+    await (queryRegistrations()[0].queryFn as () => Promise<unknown>)();
+
+    // Nada de `entity_id`: é a etiqueta que junta projeto e tarefas.
+    expect(callsFor('org_comments_feed', 'eq').map((c) => c.args)).toEqual([
+      ['project_id', 'proj-9'],
+    ]);
+    expect(callsFor('org_comments_feed', 'or')[0].args).toEqual([
+      'entity_type.eq.org_project,kind.eq.comment',
+    ]);
+    expect(callsFor('org_comments_feed', 'order')[0].args).toEqual([
+      'created_at',
+      { ascending: true },
+    ]);
+  });
+
+  it('ignora o pedido na tarefa — consolidar só vale de projeto para baixo', async () => {
+    renderHook(() =>
+      useDomainOrgComments('org_task', 'task-1', 'tax', 'proj-9', { consolidarTarefas: true }),
+    );
+    expect(queryRegistrations()[0].queryKey).toEqual(['org-comments', 'org_task', 'task-1']);
+
+    await (queryRegistrations()[0].queryFn as () => Promise<unknown>)();
+    expect(callsFor('org_comments_feed', 'eq').map((c) => c.args)).toEqual([
+      ['entity_type', 'org_task'],
+      ['entity_id', 'task-1'],
+    ]);
+  });
+
+  it('responder a um comentário de tarefa grava na tarefa, não no projeto', async () => {
+    renderConsolidada();
+    await mutationRegistrations()[0].mutationFn({
+      body: 'Respondendo pela thread do projeto',
+      parentId: 'C1',
+      respondidoId: 'C1',
+      alvo: { entityType: 'org_task', entityId: 'task-7' },
+    });
+
+    const params = dbCalls.find((c) => c.table === 'rpc')?.args[0] as Record<string, unknown>;
+    // O trigger do banco exige que a resposta fique na mesma entidade da raiz.
+    expect(params._entity_type).toBe('org_task');
+    expect(params._entity_id).toBe('task-7');
+    expect(auditMocks.logAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changed_fields: expect.objectContaining({
+          entity_type: { old: null, new: 'org_task' },
+          entity_id: { old: null, new: 'task-7' },
+        }),
+      }),
+    );
+  });
+
+  it('invalida a thread consolidada e também a da tarefa respondida', () => {
+    renderConsolidada();
+    mutationRegistrations()[0].onSuccess('C-NOVO', {
+      body: 'Respondendo',
+      alvo: { entityType: 'org_task', entityId: 'task-7' },
+    });
+
+    expect(invalidateQueries).toHaveBeenNthCalledWith(1, {
+      queryKey: ['org-comments', 'org_project', 'proj-9', 'consolidado'],
+    });
+    expect(invalidateQueries).toHaveBeenNthCalledWith(2, {
+      queryKey: ['org-comments', 'org_task', 'task-7'],
+    });
+  });
+
+  it('publicar no próprio projeto invalida só a thread aberta', () => {
+    renderConsolidada();
+    mutationRegistrations()[0].onSuccess('C-NOVO', { body: 'No projeto' });
+
+    expect(invalidateQueries).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('useDomainOrgComments — criação', () => {
-  it('chama criar_org_comment com os 7 parâmetros nomeados do contrato', async () => {
+  it('chama criar_org_comment com os 8 parâmetros nomeados do contrato', async () => {
     renderComments('org_task', 'task-1');
     await mutationRegistrations()[0].mutationFn({ body: 'Primeiro comentário' });
 
@@ -221,7 +321,8 @@ describe('useDomainOrgComments — criação', () => {
     expect(rpcCall?.method).toBe('criar_org_comment');
 
     const params = rpcCall?.args[0] as Record<string, unknown>;
-    // Contrato com o banco (EDU-08..EDU-13): nomes e valores exatos.
+    // Contrato com o banco (EDU-08..EDU-13 + migration 20260731120000, que
+    // acrescentou `_respondido_id`): nomes e valores exatos.
     expect(Object.keys(params)).toEqual([
       '_id',
       '_entity_type',
@@ -230,6 +331,7 @@ describe('useDomainOrgComments — criação', () => {
       '_body',
       '_mentions',
       '_attachments',
+      '_respondido_id',
     ]);
     expect(params).toEqual({
       _id: '11111111-1111-4111-8111-111111111111',
@@ -239,7 +341,23 @@ describe('useDomainOrgComments — criação', () => {
       _body: 'Primeiro comentário',
       _mentions: [],
       _attachments: [],
+      _respondido_id: null,
     });
+  });
+
+  it('resposta manda o comentário respondido separado da raiz onde ela se pendura', async () => {
+    renderComments('org_task', 'task-1');
+    await mutationRegistrations()[0].mutationFn({
+      body: 'Respondendo',
+      parentId: 'C1',
+      respondidoId: 'C2',
+    });
+
+    const params = dbCalls.find((c) => c.table === 'rpc')?.args[0] as Record<string, unknown>;
+    // Os dois divergem quando se responde a uma resposta: a thread tem um nível
+    // só, então o parent volta a ser a raiz — e quem é notificado é o autor de C2.
+    expect(params._parent_id).toBe('C1');
+    expect(params._respondido_id).toBe('C2');
   });
 
   it('serve entityType org_project sem duplicar código', async () => {

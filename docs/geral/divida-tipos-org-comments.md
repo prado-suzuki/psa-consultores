@@ -1,8 +1,9 @@
 # Dívida técnica — casts de tipo nos comentários (`org_comments`)
 
-**Arquivos:** `src/hooks/useDomainOrgComments.ts`, `src/hooks/useDomainFeedComentarios.ts`
+**Arquivos:** `src/hooks/useDomainOrgComments.ts`, `src/hooks/useDomainFeedComentarios.ts`, `src/hooks/useNotificacoesMencao.ts`
 **Criado em:** 2026-07-27 (feature de comentários e anexos)
 **Ampliado em:** 2026-07-29 (feed de comentários — RPC `feed_org_comments`)
+**Ampliado em:** 2026-07-31 (notificação de resposta — coluna `org_comment_mentions.motivo`)
 **Plano:** `docs/planos/plano-comentarios-mencoes-feed.md` (§3.2, §3.8, §6, §10)
 
 ## O fato
@@ -22,6 +23,14 @@ const RPC = 'criar_org_comment';
 await (supabase.from(VIEW as never) as unknown as FeedViewQuery)...
 await (supabase.rpc as unknown as CriarOrgCommentRpc)(RPC, params)
 ```
+
+**Ampliação de 2026-07-31 (notificação de resposta):** a migration
+`20260731120000_org_comment_resposta_notifica.sql` acrescentou a coluna `motivo` a
+`org_comment_mentions` e um oitavo parâmetro (`_respondido_id`) a `criar_org_comment`.
+O `Row` gerado da tabela não tem `motivo`, então a leitura da caixa de entrada em
+`useNotificacoesMencao.ts` passou a usar o mesmo contorno (`CaixaQuery` + `LinhaDaCaixa`)
+— antes ela era o único ponto da feature tipado de verdade. A gravação (`lido_em`)
+continua pelos tipos gerados.
 
 **Achado de 2026-07-29 (caixa de menções):** `types.ts` já tem `org_comments_feed`
 (Views) e `criar_org_comment` (Functions) — foi regenerado em algum momento. Mas está
@@ -48,7 +57,10 @@ Mitigação atual: `src/hooks/useDomainOrgComments.test.tsx` trava o contrato
   updated_at, entity_title, project_name, reply_count, attachment_count, excluido`;
   não filtra `excluido`, para permitir o marcador de raiz excluída em threads.
 - **RPC:** `criar_org_comment(_id uuid, _entity_type org_comment_entity, _entity_id uuid,
-  _parent_id uuid, _body text, _mentions uuid[], _attachments jsonb) RETURNS uuid`.
+  _parent_id uuid, _body text, _mentions uuid[], _attachments jsonb,
+  _respondido_id uuid DEFAULT NULL) RETURNS uuid`.
+- **Caixa de entrada:** `org_comment_mentions` — colunas `id, comment_id,
+  mentioned_user_id, lido_em, created_at, motivo`, com `motivo IN ('mencao', 'resposta')`.
 - **RPC do feed:** `feed_org_comments(_cursor_created_at timestamptz, _cursor_id uuid,
   _limit integer) RETURNS SETOF org_comments_feed` — migration
   `20260729144600_feed_org_comments.sql`. Devolve as colunas da view, então o mesmo
@@ -67,5 +79,8 @@ Mitigação atual: `src/hooks/useDomainOrgComments.test.tsx` trava o contrato
    `supabase.rpc(RPC, params)`; apagar o bloco de aviso no topo do arquivo.
    Em `useDomainFeedComentarios.ts`: remover `SupabaseResult`, `FeedRpc` e o cast em
    `supabase.rpc`; o tipo `LinhaDoFeed` passa a sair dos tipos gerados.
+   Em `useNotificacoesMencao.ts`: remover `CaixaQuery`/`LinhaDaCaixa` e o cast do
+   `supabase.from(TABELA)`; `linhaDaCaixa` continua, porque a normalização do `motivo`
+   é regra (linha antiga sem motivo lê como menção), não contorno de tipo.
 4. Rodar `bun run typecheck` — é aqui que uma divergência de nome/coluna aparece.
 5. Apagar este arquivo.
