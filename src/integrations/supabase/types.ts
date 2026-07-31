@@ -4144,6 +4144,7 @@ export type Database = {
           id: string
           lido_em: string | null
           mentioned_user_id: string
+          motivo: string
         }
         Insert: {
           comment_id: string
@@ -4151,6 +4152,7 @@ export type Database = {
           id?: string
           lido_em?: string | null
           mentioned_user_id: string
+          motivo?: string
         }
         Update: {
           comment_id?: string
@@ -4158,6 +4160,7 @@ export type Database = {
           id?: string
           lido_em?: string | null
           mentioned_user_id?: string
+          motivo?: string
         }
         Relationships: [
           {
@@ -8304,6 +8307,7 @@ export type Database = {
           _id: string
           _mentions: string[]
           _parent_id: string
+          _respondido_id?: string
         }
         Returns: string
       }
