@@ -56,12 +56,17 @@ export function useProjetosCadastroController(area: AreaKey) {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const [collapsedAreaGroups, setCollapsedAreaGroups] = useState<Set<string>>(new Set());
   const [memberSearch, setMemberSearch] = useState('');
+  // Projeto sem Responsável Executor (Canal de Chamados). Não tem coluna
+  // própria: ao reabrir, deduz de responsible_id vazio.
+  const [semExecutorFixo, setSemExecutorFixo] = useState(false);
   const [selectedOsId, setSelectedOsId] = useState<string | null>(null);
   const [selectedProdutoId, setSelectedProdutoId] = useState<string | null>(null);
   const [prevEquipeId, setPrevEquipeId] = useState('');
   const isOpeningEditRef = useRef(false);
   const collapsedInitializedRef = useRef(false);
   const prefillHandledRef = useRef(false);
+  /** Último `?projetoId=` já aberto, para o deep-link não reabrir o modal. */
+  const deepLinkHandledRef = useRef<string | null>(null);
 
   const { data: equipesOptions = [] } = useEstruturaEquipesByCategory(area);
   const { data: allProjects = [], isLoading } = useOrgProjects();
@@ -254,10 +259,16 @@ export function useProjetosCadastroController(area: AreaKey) {
       : [...previous.member_ids, memberId],
   }));
 
+  const toggleSemExecutorFixo = (checked: boolean) => {
+    setSemExecutorFixo(checked);
+    if (checked) setFormData(previous => ({ ...previous, responsible_id: '' }));
+  };
+
   const handleOpenModal = (project?: OrgProject) => {
     if (project) {
       setEditingProject(project);
       isOpeningEditRef.current = true;
+      setSemExecutorFixo(!project.responsible_id);
       setSelectedOsId(project.ordem_servico_id || null);
       setFormData({
         name: project.name,
@@ -281,6 +292,7 @@ export function useProjetosCadastroController(area: AreaKey) {
       });
     } else {
       setEditingProject(null);
+      setSemExecutorFixo(false);
       setFormData({ ...EMPTY_PROJECT_FORM });
     }
     setIsModalOpen(true);
@@ -291,6 +303,7 @@ export function useProjetosCadastroController(area: AreaKey) {
     prefillHandledRef.current = true;
     const prefill = state.projectPrefill;
     setEditingProject(null);
+    setSemExecutorFixo(false);
     setFormData({
       ...EMPTY_PROJECT_FORM,
       external_client_id: prefill.clientId,
@@ -301,14 +314,42 @@ export function useProjetosCadastroController(area: AreaKey) {
     setIsModalOpen(true);
     navigate(location.pathname, { replace: true, state: null });
   }, [location.pathname, location.state, navigate]);
+  /**
+   * Deep-link `?projetoId=<id>`: abre o modal do projeto direto, espelhando o
+   * `?taskId=` que o PainelTarefas já faz com a tarefa. É por aqui que o feed de
+   * feed leva o usuário até o projeto de onde o comentário saiu.
+   *
+   * A busca é em `allProjects`, não em `projects`: a lista filtrada é escopada
+   * pelo cluster da área e devolveria vazio para projeto de outra área. Vale a
+   * mesma regra do deep-link de tarefa — o escopo de tela não limita o link, só
+   * a RLS limita.
+   */
+  const abrirModalRef = useRef(handleOpenModal);
+  abrirModalRef.current = handleOpenModal;
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const projetoId = params.get('projetoId');
+    if (!projetoId || deepLinkHandledRef.current === projetoId) return;
+    // Ainda carregando (ou fora da RLS): o efeito roda de novo quando a lista chega.
+    const project = allProjects.find(item => item.id === projetoId);
+    if (!project) return;
+    deepLinkHandledRef.current = projetoId;
+    abrirModalRef.current(project);
+    // Tira só o `projetoId` da URL, para não reabrir o modal em navegação
+    // posterior nem derrubar outro parâmetro que esteja na query.
+    params.delete('projetoId');
+    const search = params.toString();
+    navigate({ pathname: location.pathname, search: search ? `?${search}` : '' }, { replace: true });
+  }, [allProjects, location.pathname, location.search, navigate]);
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProject(null);
+    setSemExecutorFixo(false);
     setFormData({ ...EMPTY_PROJECT_FORM });
   };
   const handleSubmit = () => {
     const validationError = validateProjectForm(formData,
-      Boolean(selectedOsId && selectedOsProdutos.length >= 1), selectedProdutoId);
+      Boolean(selectedOsId && selectedOsProdutos.length >= 1), selectedProdutoId, semExecutorFixo);
     if (validationError) {
       toast.error(validationError);
       return;
@@ -336,6 +377,7 @@ export function useProjetosCadastroController(area: AreaKey) {
     externalClients, clienteOS, osProdutosByOs, selectedOsId, setSelectedOsId,
     selectedOsProdutos, selectedProdutoId, setSelectedProdutoId,
     equipesOptions, teamMembers, lideres, executores, equipeId, equipeMemberIds,
+    semExecutorFixo, toggleSemExecutorFixo,
     availableMembers, availableMembersByArea, memberSearch, setMemberSearch,
     collapsedAreaGroups, toggleAreaGroup, handleMemberToggle,
   };

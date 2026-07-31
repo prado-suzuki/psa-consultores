@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { OrgProject } from '@/hooks/useOrgProjects';
 import type { OrgTask } from '@/hooks/useOrgTasks';
 import type { OsRow } from '@/lib/dashboardClientesOs/types';
-import { buildProjetosTarefasHierarchy, extractProductAcronyms } from '@/lib/projetosTarefasHierarchy';
+import { buildProjetosTarefasHierarchy, extractProductAcronyms, hasTaskFilters, shortProjectName } from '@/lib/projetosTarefasHierarchy';
 
 const project = (id: string, osId: string | null = 'os-1'): OrgProject => ({
   id,
@@ -60,9 +60,26 @@ const os = {
 } as OsRow;
 
 describe('buildProjetosTarefasHierarchy', () => {
+  it('não trata a busca textual como filtro que esconde projetos sem tarefas', () => {
+    expect(hasTaskFilters({ search: 'Cliente Alfa' })).toBe(false);
+    expect(hasTaskFilters({ search: 'Cliente Alfa', status: ['todo'] })).toBe(true);
+  });
+
   it('extrai apenas as siglas dos produtos contratados', () => {
     expect(extractProductAcronyms('PTR — Planejamento Tributário, CT - Consultoria Tributária')).toEqual(['PTR', 'CT']);
     expect(extractProductAcronyms(null)).toEqual([]);
+  });
+
+  it('encurta o nome do projeto para o produto, sem cliente, OS nem sigla', () => {
+    const cliente = 'Agro Amazônia Produtos Agropecuários S.A.';
+    expect(shortProjectName(`${cliente} — OS 035/2026 — CC — Consultoria contábil`, cliente, '035/2026')).toBe('Consultoria contábil');
+    // Cliente grafado diferente do cadastro: a OS ainda separa o que é redundante.
+    expect(shortProjectName(`${cliente} — OS 035/2026 — CHA — Canal de Chamados`, 'Agro Amazônia', '035/2026')).toBe('Canal de Chamados');
+    expect(shortProjectName('Canal de chamados', cliente, '035/2026')).toBe('Canal de chamados');
+    // Sem OS no nome, só o cliente sai; produto sem sigla permanece inteiro.
+    expect(shortProjectName(`${cliente} — Consultoria contábil`, cliente, null)).toBe('Consultoria contábil');
+    // Nunca esvazia: sigla sozinha continua sendo o nome exibido.
+    expect(shortProjectName(`${cliente} — OS 035/2026 — CC`, cliente, '035/2026')).toBe('CC');
   });
 
   it('monta OS, projeto, tarefa e subtarefas recursivas sem perder órfãs', () => {

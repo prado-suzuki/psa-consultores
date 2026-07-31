@@ -144,10 +144,15 @@ export function groupProjects(
   });
 }
 
+/**
+ * @param semExecutorFixo projeto sem Responsável Executor (ex.: Canal de
+ * Chamados, onde cada chamado vira tarefa delegada a qualquer membro).
+ */
 export function validateProjectForm(
   form: OrgProjectFormData,
   hasSelectedOsProducts: boolean,
   selectedProdutoId: string | null,
+  semExecutorFixo = false,
 ): string | null {
   if (!form.external_client_id) return 'Selecione o Cliente';
   if (hasSelectedOsProducts && !selectedProdutoId) return 'Selecione o Produto Contratado';
@@ -155,7 +160,7 @@ export function validateProjectForm(
   if (!form.equipe_id) return 'Selecione a Equipe';
   if (!form.status) return 'Selecione o Status';
   if (form.leader_ids.length === 0) return 'Selecione ao menos um Líder Geral';
-  if (!form.responsible_id) return 'Selecione o Responsável Executor';
+  if (!semExecutorFixo && !form.responsible_id) return 'Selecione o Responsável Executor';
   if (form.member_ids.length === 0) return 'Selecione ao menos um Membro do Projeto';
   if (!form.start_date) return 'Data de Início é obrigatória';
   if (!form.end_date) return 'Data de Término é obrigatória';

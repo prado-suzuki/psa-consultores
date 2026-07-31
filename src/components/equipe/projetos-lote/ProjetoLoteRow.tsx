@@ -1,26 +1,37 @@
 import { useEffect, useMemo } from 'react';
 import { Package } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 import { useEstruturaEquipe } from '@/hooks/useEstruturaEquipe';
 import type { EstruturaEquipeOption } from '@/hooks/useEstruturaEquipes';
-import { computeAvailableMembers, computeExecutores, computeLideres, type RoleAssignment } from '@/lib/projetoEquipe';
+import {
+  computeAvailableMembers, computeExecutores, computeLideres,
+  SEM_EXECUTOR_FIXO_OPTION, type RoleAssignment,
+} from '@/lib/projetoEquipe';
 import type { LoteRow } from '@/lib/projetosLote';
-import { PeopleMultiSelect, type PersonOption } from './PeopleMultiSelect';
+import { PeopleMultiSelect, type PersonAreaGroup, type PersonOption } from './PeopleMultiSelect';
 
 interface ProjetoLoteRowProps {
   index: number;
   row: LoteRow;
+  /** Produto que já tem projeto nesta OS: linha travada, sem criar de novo. */
+  jaCriado: boolean;
   updateRow: (index: number, patch: Partial<LoteRow>) => void;
   equipesOptions: EstruturaEquipeOption[];
   teamMembers: PersonOption[];
   userRoles: RoleAssignment[];
+  areaGroups: PersonAreaGroup[];
+  currentUserAreaIds: string[];
 }
 
-export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMembers, userRoles }: ProjetoLoteRowProps) {
+export function ProjetoLoteRow({
+  index, row, jaCriado, updateRow, equipesOptions, teamMembers, userRoles, areaGroups, currentUserAreaIds,
+}: ProjetoLoteRowProps) {
   const equipeId = row.equipeId || null;
   const { liderIds: equipeLiderIds, memberIds: equipeMemberIds } = useEstruturaEquipe(equipeId);
 
@@ -29,8 +40,22 @@ export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMemb
   const executores = useMemo(() => computeExecutores(teamMembers, userRoles, equipeId, equipeMemberIds, row.responsibleId),
     [teamMembers, userRoles, equipeId, equipeMemberIds, row.responsibleId]);
   const availableMembers = useMemo(() => computeAvailableMembers(teamMembers, equipeId, equipeMemberIds,
-    row.leaderIds, row.memberIds, false, []),
-    [teamMembers, equipeId, equipeMemberIds, row.leaderIds, row.memberIds]);
+    row.leaderIds, row.memberIds, row.isMultidisciplinar, areaGroups),
+    [teamMembers, equipeId, equipeMemberIds, row.leaderIds, row.memberIds, row.isMultidisciplinar, areaGroups]);
+
+  // Modo multidisciplinar: mesmas áreas do cadastro único, sem os líderes já escolhidos.
+  const availableMembersByArea = useMemo<PersonAreaGroup[] | undefined>(() => {
+    if (!row.isMultidisciplinar) return undefined;
+    const excluded = new Set(row.leaderIds);
+    return areaGroups.map(group => ({
+      ...group,
+      members: group.members.filter(member => !excluded.has(member.id)),
+      equipes: group.equipes.map(team => ({
+        ...team,
+        members: team.members.filter(member => !excluded.has(member.id)),
+      })).filter(team => team.members.length > 0),
+    })).filter(group => group.members.length > 0);
+  }, [row.isMultidisciplinar, row.leaderIds, areaGroups]);
 
   // Líder default = gestor da equipe (quando há exatamente 1 e nenhum líder escolhido).
   useEffect(() => {
@@ -52,6 +77,13 @@ export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMemb
     });
   };
 
+  // "Sem executor fixo" mora na própria lista de executores: escolher a opção
+  // liga a exceção e zera o responsável; escolher uma pessoa desliga.
+  const handleExecutorChange = (value: string) => updateRow(index, {
+    semExecutorFixo: value === SEM_EXECUTOR_FIXO_OPTION,
+    responsibleId: value === SEM_EXECUTOR_FIXO_OPTION || value === '_none' ? '' : value,
+  });
+
   const toggleLeader = (id: string) => {
     const has = row.leaderIds.includes(id);
     updateRow(index, {
@@ -64,8 +96,7 @@ export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMemb
     memberIds: row.memberIds.includes(id) ? row.memberIds.filter(item => item !== id) : [...row.memberIds, id],
   });
 
-  const selectAllMembers = () => {
-    const ids = availableMembers.map(member => member.id);
+  const toggleMembers = (ids: string[]) => {
     const allSelected = ids.length > 0 && ids.every(id => row.memberIds.includes(id));
     updateRow(index, {
       memberIds: allSelected
@@ -74,12 +105,19 @@ export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMemb
     });
   };
 
+  const selectAllMembers = () => toggleMembers(availableMembers.map(member => member.id));
+
   return (
     <div className={cn('bg-card border rounded-lg overflow-hidden transition-opacity', disabled && 'opacity-60')}>
       <div className="flex items-center gap-3 px-4 py-3 bg-muted/40 border-b">
-        <Checkbox checked={row.include} onCheckedChange={value => updateRow(index, { include: value === true })} />
+        <Checkbox
+          checked={row.include}
+          disabled={jaCriado}
+          onCheckedChange={value => updateRow(index, { include: value === true })}
+        />
         <Package className="h-4 w-4 text-muted-foreground shrink-0" />
         <span className="text-sm font-semibold text-foreground">{row.produtoLabel}</span>
+        {jaCriado && <Badge variant="secondary" className="ml-auto shrink-0">Já criado</Badge>}
       </div>
       <div className={cn('p-4 space-y-4', disabled && 'pointer-events-none')}>
         <div>
@@ -108,16 +146,31 @@ export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMemb
             />
           </div>
         </div>
+        <div className="flex items-center justify-between rounded-md border p-3">
+          <div className="space-y-0.5">
+            <Label className="text-sm">Multidisciplinar</Label>
+            <p className="text-xs text-muted-foreground">Permite selecionar membros de qualquer equipe, agrupados por área.</p>
+          </div>
+          <Switch
+            checked={row.isMultidisciplinar}
+            onCheckedChange={checked => updateRow(index, { isMultidisciplinar: checked === true })}
+          />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <Label className="text-xs font-semibold uppercase text-muted-foreground">Responsável Executor *</Label>
-            <Select value={row.responsibleId || '_none'} onValueChange={value => updateRow(index, { responsibleId: value === '_none' ? '' : value })}>
+            <Label className="text-xs font-semibold uppercase text-muted-foreground">
+              Responsável Executor{row.semExecutorFixo ? '' : ' *'}
+            </Label>
+            <Select value={row.semExecutorFixo ? SEM_EXECUTOR_FIXO_OPTION : (row.responsibleId || '_none')} onValueChange={handleExecutorChange}>
               <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o executor" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="_none">Selecione...</SelectItem>
+                <SelectItem value={SEM_EXECUTOR_FIXO_OPTION}>Sem executor fixo</SelectItem>
+                <SelectSeparator />
                 {executores.map(member => <SelectItem key={member.id} value={member.id}>{member.first_name} {member.last_name}</SelectItem>)}
               </SelectContent>
             </Select>
+            {row.semExecutorFixo && <p className="text-xs text-muted-foreground mt-1">As tarefas são delegadas a qualquer membro do projeto.</p>}
           </div>
           <div>
             <Label className="text-xs font-semibold uppercase text-muted-foreground">Membros do Projeto *</Label>
@@ -127,7 +180,10 @@ export function ProjetoLoteRow({ index, row, updateRow, equipesOptions, teamMemb
                 selectedIds={row.memberIds}
                 onToggle={toggleMember}
                 onSelectAll={selectAllMembers}
-                placeholder={row.equipeId ? 'Selecionar membros...' : 'Selecione uma equipe primeiro'}
+                groups={availableMembersByArea}
+                expandedGroupIds={currentUserAreaIds}
+                onToggleMany={toggleMembers}
+                placeholder={row.isMultidisciplinar || row.equipeId ? 'Selecionar membros...' : 'Selecione uma equipe primeiro'}
                 emptyText="Nenhum membro encontrado."
                 badgeClassName="bg-purple-50 text-purple-700 border-purple-200"
               />

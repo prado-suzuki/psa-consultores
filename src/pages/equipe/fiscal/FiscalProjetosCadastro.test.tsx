@@ -113,6 +113,20 @@ vi.mock('@/hooks/useProjectMemberAreas', () => ({
 }));
 vi.mock('sonner', () => ({ toast: { error: mocks.toastError } }));
 
+// A thread de atividade e a listagem de anexos do modal têm testes próprios
+// (OrgCommentsPanel.test.tsx / OrgCommentAttachments.test.tsx) e falam com o
+// React Query; aqui só interessa que recebam o projeto certo.
+vi.mock('@/components/comentarios/OrgCommentsPanel', () => ({
+  OrgCommentsPanel: ({ entityType, entityId }: { entityType?: string; entityId: string }) => (
+    <aside data-testid="activity-panel" data-entity-type={entityType} data-entity-id={entityId} />
+  ),
+}));
+vi.mock('@/components/comentarios/OrgCommentAttachments', () => ({
+  OrgEntityAttachments: ({ entityType, entityId }: { entityType?: string; entityId: string }) => (
+    <div data-testid="anexos-agregados" data-entity-type={entityType} data-entity-id={entityId} />
+  ),
+}));
+
 import FiscalProjetosCadastro, {
   ProjetosCadastroContent,
 } from '@/pages/equipe/fiscal/FiscalProjetosCadastro';
@@ -214,6 +228,9 @@ const produtos = [
   },
 ];
 
+// Os rótulos obrigatórios do modal usam <RequiredMark /> — o "*" fica num
+// <span>, então o texto direto do <label> é só o nome do campo. Daí os
+// matchers ancorados (/^Cliente/) em vez de 'Cliente *'.
 async function chooseSelect(containerText: string | RegExp, option: string | RegExp) {
   const user = userEvent.setup();
   const label = screen.getByText(containerText, { selector: 'label' });
@@ -423,17 +440,19 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
     expect(mocks.toastError).toHaveBeenLastCalledWith('Selecione o Cliente');
     expect(mocks.createMutate).not.toHaveBeenCalled();
 
-    await chooseSelect('Cliente *', 'Beta Cliente');
+    await chooseSelect(/^Cliente/, 'Beta Cliente');
     expect(await screen.findByText(/OS: 001\/2026 — P01 — Consultoria/)).toBeInTheDocument();
     expect(screen.getByText('OS única selecionada automaticamente — datas de início e término preenchidas.')).toBeInTheDocument();
-    await waitFor(() => expect(inputNear(/Data de Início/)).toHaveValue('2026-01-10'));
-    expect(inputNear(/Data de Término/)).toHaveValue('2026-12-20');
+    // Depois do redesenho o período é pílula na faixa de propriedades
+    // ("Início" / "Término"), como na edição.
+    await waitFor(() => expect(inputNear(/^Início/)).toHaveValue('2026-01-10'));
+    expect(inputNear(/^Término/)).toHaveValue('2026-12-20');
     expect(screen.getByText('P01 — Consultoria')).toBeInTheDocument();
 
-    fireEvent.change(inputNear('Nome do Projeto *'), { target: { value: 'Novo Fiscal' } });
-    await chooseSelect('Equipe *', /Equipe Fiscal/);
+    fireEvent.change(inputNear(/^Nome do Projeto/), { target: { value: 'Novo Fiscal' } });
+    await chooseSelect(/^Equipe/, /Equipe Fiscal/);
     expect(screen.getByText('Lia Líder')).toBeInTheDocument();
-    await chooseSelect('Responsável Executor *', 'Eva Executora');
+    await chooseSelect(/^Responsável/, 'Eva Executora');
     await user.click(screen.getByRole('button', { name: /Incluir todos da equipe/ }));
     fireEvent.change(inputNear(/Descrição do Projeto/), { target: { value: 'Escopo completo' } });
 
@@ -464,10 +483,15 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
     render(<ProjetosCadastroContent />);
     await user.click(screen.getByText('Zeta Tax'));
 
+    // Na edição o nome é o próprio título e o período vira pílula ("Início" /
+    // "Término"), com a thread de atividade do projeto na coluna da direita.
     expect(screen.getByRole('heading', { name: 'Editar Projeto' })).toBeInTheDocument();
-    expect(inputNear('Nome do Projeto *')).toHaveValue('Zeta Tax');
-    expect(inputNear(/Data de Início/)).toHaveValue('2026-02-10');
-    expect(inputNear(/Data de Término/)).toHaveValue('2026-11-20');
+    expect(screen.getByLabelText('Nome do Projeto')).toHaveValue('Zeta Tax');
+    expect(screen.getByLabelText('Início')).toHaveValue('2026-02-10');
+    expect(screen.getByLabelText('Término')).toHaveValue('2026-11-20');
+    expect(screen.getByTestId('activity-panel')).toHaveAttribute('data-entity-type', 'org_project');
+    expect(screen.getByTestId('activity-panel')).toHaveAttribute('data-entity-id', 'project-tax');
+    expect(screen.getByTestId('anexos-agregados')).toHaveAttribute('data-entity-id', 'project-tax');
     await waitFor(() => expect(mocks.resolveProdutoIdByServico).toHaveBeenCalledWith('service-1', ['product-1']));
     await waitFor(() => expect(screen.getAllByText('Revisão fiscal').length).toBeGreaterThan(1));
     expect(screen.getByText('Lia Líder')).toBeInTheDocument();

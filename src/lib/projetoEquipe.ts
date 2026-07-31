@@ -7,6 +7,12 @@ export interface RoleAssignment {
   role: string;
 }
 
+/**
+ * Valor sentinela do item "Sem executor fixo" no select de Responsável Executor
+ * (projeto cujas tarefas são delegadas a qualquer membro, ex.: Canal de Chamados).
+ */
+export const SEM_EXECUTOR_FIXO_OPTION = '_sem_executor';
+
 export interface MemberAreaGroup<T> {
   members: T[];
 }

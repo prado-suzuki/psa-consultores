@@ -1,12 +1,8 @@
 // Rótulos compartilhados entre as abas de Auditoria (Histórico, Produtividade,
 // Atividade e Pessoas).
-
-/** Janelas do seletor de período — as abas agregadas usam todas as mesmas. */
-export const PERIODOS_AUDITORIA = [
-  { valor: '7', label: 'Últimos 7 dias' },
-  { valor: '30', label: 'Últimos 30 dias' },
-  { valor: '90', label: 'Últimos 90 dias' },
-];
+//
+// As janelas do seletor de período moraram aqui até virarem cálculo de datas:
+// agora são `periodosAuditoria` / `janelaDoPeriodo`, em `@/lib/auditPeriodos`.
 
 export const ACTION_LABELS: Record<string, { label: string; color: string }> = {
   created: { label: 'Criação', color: 'bg-emerald-100 text-emerald-700' },

@@ -1,5 +1,7 @@
 // Types for client form draft items — extracted from NewClientModal
 
+import type { AreaKey } from '@/config/areaCategories';
+
 export interface DraftEntity {
   _id: number;
   _dbId?: string;
@@ -86,4 +88,6 @@ export interface NewClientModalProps {
   editingClienteId?: string | null;
   readOnly?: boolean;
   canEdit?: boolean;
+  /** Área que abriu o modal — define o glifo de carregamento (ver `AreaLoader`). */
+  area?: AreaKey;
 }

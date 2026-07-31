@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Users, ChevronLeft, ChevronRight, Loader2, Trash2 } from 'lucide-react';
+import { Users, ChevronLeft, ChevronRight, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -39,132 +39,153 @@ import { useDeleteCliente } from '@/hooks/useDeleteCliente';
 import { useClusterIdByPageCategory } from '@/hooks/useTaxReferenceData';
 import type { AreaKey } from '@/config/areaCategories';
 import NewClientModal from '@/components/equipe/NewClientModal';
+import { AreaLoader } from '@/components/equipe/AreaLoader';
 import ClientesFilterBar, {
   type ClientesFilterField,
 } from '@/components/equipe/clientes/ClientesFilterBar';
 
-/* ── Sub-componente: OS + produtos contratados ── */
-const OsSubTable = ({ clienteId }: { clienteId: string }) => {
+/* ── Painel expandido: título de seção + estados ── */
+const SubSectionTitle = ({ label, count }: { label: string; count?: number }) => (
+  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+    {label}
+    {count != null && ` (${count})`}
+  </p>
+);
+
+const SubSectionPlaceholder = ({
+  loading,
+  text,
+  area,
+}: {
+  loading?: boolean;
+  text: string;
+  area?: AreaKey;
+}) => (
+  <p className="flex items-center gap-2 text-sm text-muted-foreground">
+    {loading && <AreaLoader area={area} size={20} />}
+    {text}
+  </p>
+);
+
+const SITUACAO_PILL: Record<string, string> = {
+  em_andamento: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+  concluido: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+  suspenso: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  cancelado: 'bg-destructive/10 text-destructive',
+};
+
+/* ── Seção expandida: OS + produtos contratados ── */
+const OsExpandSection = ({ clienteId, area }: { clienteId: string; area?: AreaKey }) => {
   const { data, isLoading } = useOsExpand(clienteId);
 
   return (
-    <div className="ml-10 border-l-2 border-primary/40 bg-muted/25 px-4 py-2.5">
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        OS - Ordem de Serviço {data?.length ? `(${data.length})` : ''}
-      </p>
+    <section>
+      <SubSectionTitle label="OS - Ordem de Serviço" count={data?.length} />
       {isLoading ? (
-        <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Carregando OS…
-        </div>
+        <SubSectionPlaceholder loading text="Carregando OS…" area={area} />
       ) : !data?.length ? (
-        <p className="py-2 text-sm text-muted-foreground">Nenhuma OS cadastrada</p>
+        <SubSectionPlaceholder text="Nenhuma OS cadastrada" />
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow className="border-border/60 hover:bg-transparent">
-              <TableHead className="h-9 text-xs uppercase tracking-wider">OS</TableHead>
-              <TableHead className="h-9 text-xs uppercase tracking-wider">Vigência</TableHead>
-              <TableHead className="h-9 text-xs uppercase tracking-wider">Valor</TableHead>
-              <TableHead className="h-9 text-xs uppercase tracking-wider">Situação</TableHead>
-              <TableHead className="h-9 text-xs uppercase tracking-wider">
-                Produtos contratados
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((os) => (
-              <TableRow key={os.id} className="border-border/40 hover:bg-transparent">
-                <TableCell className="py-2.5 text-sm font-medium whitespace-nowrap">
-                  {os.numero_os || '-'}
-                </TableCell>
-                <TableCell className="py-2.5 text-sm whitespace-nowrap text-muted-foreground">
-                  {os.data_inicio || os.data_fim
-                    ? `${isoToMasked(os.data_inicio || '') || '—'} a ${isoToMasked(os.data_fim || '') || '—'}`
-                    : '-'}
-                </TableCell>
-                <TableCell className="py-2.5 text-sm whitespace-nowrap text-muted-foreground">
-                  {formatCurrencyDisplay(os.valor_projeto ?? 0)}
-                </TableCell>
-                <TableCell className="py-2.5 text-sm text-muted-foreground">
-                  {SITUACAO_PROJETO_OPTIONS.find((o) => o.value === os.situacao)?.label ||
-                    os.situacao ||
-                    '-'}
-                </TableCell>
-                <TableCell className="py-2.5">
+        <ul className="space-y-2">
+          {data.map((os) => {
+            const situacao =
+              SITUACAO_PROJETO_OPTIONS.find((o) => o.value === os.situacao)?.label || os.situacao;
+            const inicio = isoToMasked(os.data_inicio || '');
+            const fim = isoToMasked(os.data_fim || '');
+            const meta = [
+              inicio || fim ? `${inicio || '—'} a ${fim || '—'}` : null,
+              os.setor_cliente,
+            ]
+              .filter(Boolean)
+              .join('  ·  ');
+            return (
+              <li key={os.id} className="rounded-lg border border-border/70 bg-card px-3.5 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="text-sm font-semibold text-foreground">
+                      OS {os.numero_os || '—'}
+                    </span>
+                    {situacao && (
+                      <span
+                        className={cn(
+                          'rounded-md px-2 py-0.5 text-sm font-medium',
+                          SITUACAO_PILL[os.situacao ?? ''] || 'bg-muted text-muted-foreground',
+                        )}
+                      >
+                        {situacao}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-sm font-semibold tabular-nums text-foreground">
+                    {formatCurrencyDisplay(os.valor_projeto ?? 0)}
+                  </span>
+                </div>
+                {meta && <p className="mt-1 text-sm text-muted-foreground">{meta}</p>}
+                <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-2.5">
                   {os.produtos.length === 0 ? (
-                    <span className="text-sm text-muted-foreground">—</span>
+                    <span className="text-sm text-muted-foreground">Sem produtos contratados</span>
                   ) : (
-                    <div className="flex flex-wrap gap-1">
-                      {os.produtos.map((p) => (
-                        <Badge
-                          key={p.id}
-                          variant="secondary"
-                          className="h-6 rounded-md px-2 text-xs font-medium"
-                        >
-                          {p.label}
-                          {p.horas_contratadas != null && ` (${p.horas_contratadas}h)`}
-                        </Badge>
-                      ))}
-                    </div>
+                    os.produtos.map((p) => (
+                      <span
+                        key={p.id}
+                        className="rounded-md bg-muted px-2 py-0.5 text-sm text-foreground"
+                      >
+                        {p.label}
+                        {p.horas_contratadas != null && ` (${p.horas_contratadas}h)`}
+                      </span>
+                    ))
                   )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                </div>
+              </li>
+            );
+          })}
+        </ul>
       )}
-    </div>
+    </section>
   );
 };
 
-/* ── Sub-componente: contribuintes expandidos ── */
-const ContribuinteSubTable = ({ clienteId }: { clienteId: string }) => {
+/* ── Seção expandida: contribuintes ── */
+const ContribuintesExpandSection = ({
+  clienteId,
+  area,
+}: {
+  clienteId: string;
+  area?: AreaKey;
+}) => {
   const { data, isLoading } = useContribuintesExpand(clienteId);
 
   return (
-    <div className="ml-10 border-l-2 border-primary/25 bg-muted/25 px-4 py-2.5">
-      <p className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Contribuintes {data?.length ? `(${data.length})` : ''}
-      </p>
+    <section>
+      <SubSectionTitle label="Contribuintes" count={data?.length} />
       {isLoading ? (
-        <div className="flex items-center gap-2 py-2 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Carregando contribuintes…
-        </div>
+        <SubSectionPlaceholder loading text="Carregando contribuintes…" area={area} />
       ) : !data?.length ? (
-        <p className="py-2 text-sm text-muted-foreground">Nenhum contribuinte cadastrado</p>
+        <SubSectionPlaceholder text="Nenhum contribuinte cadastrado" />
       ) : (
-        <Table>
-        <TableHeader>
-          <TableRow className="border-border/60 hover:bg-transparent">
-            <TableHead className="h-9 text-xs uppercase tracking-wider">CPF/CNPJ</TableHead>
-            <TableHead className="h-9 text-xs uppercase tracking-wider">Razão Social</TableHead>
-            <TableHead className="h-9 text-xs uppercase tracking-wider">
-              Inscrição Estadual
-            </TableHead>
-            <TableHead className="h-9 text-xs uppercase tracking-wider">Simples Nacional</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.map((c) => (
-            <TableRow key={c.id} className="border-border/40 hover:bg-transparent">
-              <TableCell className="py-2.5 text-sm text-muted-foreground">
-                {c.cpf_cnpj || '-'}
-              </TableCell>
-              <TableCell className="py-2.5 text-sm font-medium">{c.nome_razao_social}</TableCell>
-              <TableCell className="py-2.5 text-sm text-muted-foreground">
-                {c.inscricao_estadual || '-'}
-              </TableCell>
-              <TableCell className="py-2.5 text-sm text-muted-foreground">
-                {c.simples_nacional ? 'Sim' : 'Não'}
-              </TableCell>
-            </TableRow>
-          ))}
-          </TableBody>
-        </Table>
+        <ul className="space-y-2">
+          {data.map((c) => {
+            const meta = [
+              c.inscricao_estadual ? `IE ${c.inscricao_estadual}` : null,
+              c.simples_nacional == null ? null : `Simples: ${c.simples_nacional ? 'Sim' : 'Não'}`,
+            ]
+              .filter(Boolean)
+              .join('  ·  ');
+            return (
+              <li key={c.id} className="rounded-lg border border-border/70 bg-card px-3.5 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
+                  <span className="text-sm font-medium text-foreground">{c.nome_razao_social}</span>
+                  <span className="text-sm tabular-nums text-muted-foreground">
+                    {c.cpf_cnpj || '—'}
+                  </span>
+                </div>
+                {meta && <p className="mt-1 text-sm text-muted-foreground">{meta}</p>}
+              </li>
+            );
+          })}
+        </ul>
       )}
-    </div>
+    </section>
   );
 };
 
@@ -298,8 +319,8 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
       />
 
       {isLoading ? (
-        <div className="flex h-48 items-center justify-center rounded-xl border border-border/70 bg-card">
-          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+        <div className="flex h-48 items-center justify-center rounded-xl border border-border/70 bg-card text-primary">
+          <AreaLoader area={area} size={56} />
         </div>
       ) : filteredResults.length === 0 ? (
         <div className="flex h-48 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-card text-muted-foreground">
@@ -447,9 +468,11 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
                     </TableRow>
                     {isExpanded && (
                       <TableRow className="border-border/50 bg-muted/10 hover:bg-muted/10">
-                        <TableCell colSpan={totalCols} className="space-y-3 p-0 px-2 py-3">
-                          <OsSubTable clienteId={row.id} />
-                          <ContribuinteSubTable clienteId={row.id} />
+                        <TableCell colSpan={totalCols} className="p-0">
+                          <div className="space-y-4 bg-muted/25 px-4 py-3.5 md:pl-16 md:pr-6">
+                            <OsExpandSection clienteId={row.id} area={area} />
+                            <ContribuintesExpandSection clienteId={row.id} area={area} />
+                          </div>
                         </TableCell>
                       </TableRow>
                     )}
@@ -497,6 +520,7 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
 
       {/* Modal de Cadastro Completo (Novo, Editar e Visualizar Cliente) */}
       <NewClientModal
+        area={area}
         open={novoClienteModalOpen}
         onOpenChange={(v) => {
           setNovoClienteModalOpen(v);
@@ -532,7 +556,9 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
               disabled={deleteMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              {deleteMutation.isPending ? (
+                <AreaLoader area={area} size={18} className="mr-2" />
+              ) : null}
               Excluir
             </AlertDialogAction>
           </AlertDialogFooter>

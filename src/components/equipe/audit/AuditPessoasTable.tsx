@@ -27,9 +27,10 @@ import {
   SITUACAO_LABELS,
   type CargaPorPessoa, type ColunaPessoa, type LinhaPessoa, type SituacaoPessoa,
 } from '@/lib/auditPessoas';
+import { useAuditPeriodo } from '@/hooks/useAuditPeriodo';
 import type { DirecaoOrdenacao } from '@/lib/auditProdutividade';
 import { triggerCsvDownload } from '@/lib/roiCsv';
-import { PERIODOS_AUDITORIA } from './auditLabels';
+import { AuditLimiteAviso } from './AuditLimiteAviso';
 
 interface AuditPessoasTableProps {
   area: 'tax' | 'osg';
@@ -213,16 +214,14 @@ const HeaderOrdenavel = ({
  */
 export const AuditPessoasTable = ({ area }: AuditPessoasTableProps) => {
   const { isAdmin } = useAuth();
-  const [periodo, setPeriodo] = useState('30');
   const [ordenacao, setOrdenacao] = useState<Ordenacao>(ORDENACAO_INICIAL_PESSOAS);
-  const dias = Number(periodo);
   const colunas = useMemo(() => colunasPessoas(isAdmin), [isAdmin]);
 
-  // Data de referência do "atrasada" e do "há quantos dias". Fica fora das
-  // funções puras de propósito — elas não leem o relógio.
-  const hoje = new Date().toISOString().slice(0, 10);
+  // O período é compartilhado com as outras abas; `hoje` também é a referência do
+  // "atrasada" e do "há quantos dias" — ver `useAuditPeriodo`.
+  const { periodo, setPeriodo, opcoes, janela, hoje } = useAuditPeriodo();
 
-  const { data: logs = [], isLoading } = useDomainAuditProdutividade(area, dias);
+  const { data: logs = [], isLoading } = useDomainAuditProdutividade(area, janela);
   const { data: nomes = {} } = useProfilesNomeMap('profiles_safe');
   const { data: estruturaPessoas = SEM_ESTRUTURA } = useDomainPessoasEstrutura(area);
   const { data: ultimoAcessoPorId } = useDomainPessoasUltimoAcesso(isAdmin);
@@ -273,7 +272,7 @@ export const AuditPessoasTable = ({ area }: AuditPessoasTableProps) => {
   };
 
   const handleExportCsv = () => {
-    triggerCsvDownload(buildPessoasCsv(linhas, colunas), `pessoas-${area}-${dias}d.csv`);
+    triggerCsvDownload(buildPessoasCsv(linhas, colunas), `pessoas-${area}-${janela.slug}.csv`);
   };
 
   return (
@@ -285,7 +284,7 @@ export const AuditPessoasTable = ({ area }: AuditPessoasTableProps) => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {PERIODOS_AUDITORIA.map(p => (
+            {opcoes.map(p => (
               <SelectItem key={p.valor} value={p.valor}>{p.label}</SelectItem>
             ))}
           </SelectContent>
@@ -359,6 +358,8 @@ export const AuditPessoasTable = ({ area }: AuditPessoasTableProps) => {
           </Table>
         </CardContent>
       </Card>
+
+      <AuditLimiteAviso total={logs.length} />
 
       <p className="flex items-start gap-2 text-xs text-slate-500">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />

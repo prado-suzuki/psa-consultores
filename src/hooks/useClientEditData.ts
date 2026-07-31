@@ -48,6 +48,7 @@ export const useClientEditData = (
     entities: DraftEntity[];
     participants: DraftRepresentante[];
     contracts: DraftOrdemServico[];
+    inscricoesMap: Record<string, InscricaoIE[]>;
   } | null>(null);
 
   // Guard idempotente: garante que o load só popule os setters uma vez por
@@ -127,6 +128,7 @@ export const useClientEditData = (
         }
 
         // Load inscricoes estaduais
+        let snapInscricoes: Record<string, InscricaoIE[]> = {};
         if (contribs && contribs.length > 0) {
           const contribIds = contribs.map(c => c.id);
           const { data: inscricoes } = await (supabase as any)
@@ -147,6 +149,7 @@ export const useClientEditData = (
               });
             }
             setters.setInscricoesMap(map);
+            snapInscricoes = structuredClone(map);
           } else {
             setters.setInscricoesMap({});
           }
@@ -238,6 +241,7 @@ export const useClientEditData = (
             entities: snapEntities,
             participants: snapParticipants,
             contracts: structuredClone(mappedContracts),
+            inscricoesMap: snapInscricoes,
           });
         } else {
           setters.setContracts([]);
@@ -247,6 +251,7 @@ export const useClientEditData = (
               entities: snapEntities,
               participants: snapParticipants,
               contracts: [],
+              inscricoesMap: snapInscricoes,
             });
           }
         }

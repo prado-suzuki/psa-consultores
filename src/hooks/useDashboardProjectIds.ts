@@ -40,5 +40,8 @@ export function useDashboardProjectIds(
     ids: query.data ?? null,
     isLoading: query.isLoading,
     isFetching: query.isFetching,
+    // Consumidores que exibem loader enquanto `ids === null` precisam saber que a
+    // resolução falhou — sem isso, o loader giraria para sempre.
+    isError: query.isError,
   };
 }

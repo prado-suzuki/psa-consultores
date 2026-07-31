@@ -1,5 +1,5 @@
 import type { OrgProject } from '@/hooks/useOrgProjects';
-import type { OrgTask } from '@/hooks/useOrgTasks';
+import type { OrgTask, TaskFilters } from '@/hooks/useOrgTasks';
 
 export interface ProjetosTarefasOs {
   os_id: string;
@@ -39,6 +39,48 @@ export interface ProjetosTarefasOsGroup {
 
 function normalize(value: string | null | undefined) {
   return (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+export function hasTaskFilters(filters: TaskFilters) {
+  return Boolean(
+    (filters.assignedTo && filters.assignedTo !== 'all') ||
+    filters.status?.length ||
+    filters.priority?.length ||
+    filters.projectId ||
+    filters.clientId ||
+    filters.contribuinteId ||
+    filters.startDate ||
+    filters.endDate
+  );
+}
+
+/**
+ * Nome do projeto sem o que a árvore já mostra acima dele: o cliente vem no divisor,
+ * o número da OS na linha da OS e as siglas dos produtos junto dela. De
+ * "Cliente — OS 035/2026 — CC — Consultoria contábil" sobra "Consultoria contábil".
+ * Nome fora do padrão (ex.: "Canal de chamados") volta inteiro.
+ */
+export function shortProjectName(name: string, clientName?: string | null, numeroOs?: string | null) {
+  const segments = name.split(/\s+[—–]\s+/).map(segment => segment.trim()).filter(Boolean);
+  if (segments.length < 2) return name;
+  const normalizedClient = normalize(clientName);
+  const normalizedOs = normalize(numeroOs);
+  // A OS é o divisor mais confiável: tudo antes dela (cliente, prefixos) é redundante,
+  // mesmo quando o nome gravado grafa o cliente diferente do cadastro.
+  let start = 0;
+  segments.forEach((segment, index) => {
+    const value = normalize(segment);
+    if (/^os\s/.test(value) || (normalizedOs !== '' && value === normalizedOs)) start = index + 1;
+  });
+  while (start < segments.length - 1) {
+    const value = normalize(segments[start]);
+    const isClient = normalizedClient !== '' && value === normalizedClient;
+    // Sigla do produto (CC, CHA, RCT): já listada na linha da OS.
+    const isAcronym = /^[A-Z0-9]{1,6}$/.test(segments[start]);
+    if (!isClient && !isAcronym) break;
+    start += 1;
+  }
+  return start >= segments.length ? name : segments.slice(start).join(' — ');
 }
 
 export function extractProductAcronyms(value: string | null | undefined) {

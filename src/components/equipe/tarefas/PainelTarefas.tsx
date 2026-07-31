@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, CalendarDays, Table2, Trello, Sun, CalendarRange, GanttChart, ListTree } from 'lucide-react';
+import { Plus, CalendarDays, FolderPlus, Table2, Trello, Sun, CalendarRange, GanttChart, ListTree } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,15 +14,14 @@ import {
 } from '@/hooks/useOrgTasks';
 import { AreaKey } from '@/config/areaCategories';
 import { useDashboardProjectIds } from '@/hooks/useDashboardProjectIds';
-import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
 import { useProjetosCadastroController } from '@/hooks/useProjetosCadastroController';
 import { useOrgProjectOrders } from '@/hooks/useOrgProjectOrders';
-import { currentAmbiente } from '@/config/api';
 import { ProjetosCadastroContext } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
 import { ProjetoDialog } from '@/components/equipe/projetos-cadastro/ProjetoDialog';
 import { ProjetoDeleteDialog } from '@/components/equipe/projetos-cadastro/ProjetoDeleteDialog';
+import { CriarProjetosOsDialog } from '@/components/equipe/projetos-lote/CriarProjetosOsDialog';
 import { ProjetosTarefasList } from '@/components/equipe/tarefas/ProjetosTarefasList';
-import { extractProductAcronyms, type ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
+import { extractProductAcronyms, hasTaskFilters, type ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
 import { TaskFilters } from '@/components/equipe/fiscal/tasks/TaskFilters';
 import { TaskKPICards } from '@/components/equipe/fiscal/tasks/TaskKPICards';
 import { TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
@@ -34,6 +33,7 @@ import { TaskFutureView } from '@/components/equipe/fiscal/tasks/TaskFutureView'
 import { TaskModal } from '@/components/equipe/fiscal/tasks/TaskModal';
 import { ReassignModal } from '@/components/equipe/fiscal/tasks/ReassignModal';
 import { MoveTaskModal } from '@/components/equipe/fiscal/tasks/MoveTaskModal';
+import { MoveTasksModal } from '@/components/equipe/fiscal/tasks/MoveTasksModal';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -57,6 +57,7 @@ import {
 const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const deepLinkTaskId = searchParams.get('taskId');
+  const deepLinkProjectId = searchParams.get('projectId');
   const { user, isAdmin, isLider, isSublider } = useAuth();
   const [filters, setFilters] = useState<TaskFiltersType>({});
   const [activeView, setActiveView] = useState('list');
@@ -66,8 +67,12 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const [taskToReassign, setTaskToReassign] = useState<OrgTask | null>(null);
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
   const [taskToMove, setTaskToMove] = useState<OrgTask | null>(null);
+  const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [isBulkMoveOpen, setIsBulkMoveOpen] = useState(false);
+  const [isCriarProjetosOsOpen, setIsCriarProjetosOsOpen] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState<string | null>(null);
   const [openedDeepLinkId, setOpenedDeepLinkId] = useState<string | null>(null);
+  const [openedDeepLinkProjectId, setOpenedDeepLinkProjectId] = useState<string | null>(null);
   const [defaultParentId, setDefaultParentId] = useState<string | null>(null);
   const [defaultProjectId, setDefaultProjectId] = useState<string | null>(null);
   const projectController = useProjetosCadastroController(area);
@@ -79,31 +84,29 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       return responsible ? { ...project, responsible } : project;
     });
   }, [projectController.projects, projectController.teamMembers]);
-  const { data: dashboardData } = useDashboardClientesOs(currentAmbiente);
   const projectOsIds = useMemo(() => listProjects
     .map(project => project.ordem_servico_id)
     .filter((id): id is string => Boolean(id)), [listProjects]);
   const { data: projectOrders = [] } = useOrgProjectOrders(projectOsIds);
-  const osRows = useMemo(() => {
-    const rows = new Map<string, ProjetosTarefasOs>((dashboardData?.osRows || []).map(row => [row.os_id, row]));
-    for (const order of projectOrders) {
-      const osProjects = listProjects.filter(item => item.ordem_servico_id === order.id);
-      const project = osProjects[0];
-      const produtos = [...new Set(osProjects.flatMap(item => extractProductAcronyms(item.servico_contratado)))]
-        .join(', ') || null;
-      const existing = rows.get(order.id);
-      rows.set(order.id, existing ? { ...existing, produtos } : {
-        os_id: order.id,
-        numero_os: order.numero_os,
-        cliente_id: order.id_cliente,
-          cliente_nome: project?.external_client?.nome || 'Cliente não informado',
-          servico_nome: project?.servico_nome || null,
-          data_fim: order.data_fim,
-          produtos,
-        });
-    }
-    return [...rows.values()];
-  }, [dashboardData?.osRows, projectOrders, listProjects]);
+  // As OS saem só das ordens dos projetos listados. Antes vinham do
+  // useDashboardClientesOs, que baixa 11 tabelas inteiras (clientes, OS,
+  // projetos, tarefas, clusters, perfis…) para preencher este mesmo cabeçalho —
+  // a hierarquia só consulta as OS que têm projeto na tela (osById.get).
+  const osRows = useMemo<ProjetosTarefasOs[]>(() => projectOrders.map(order => {
+    const osProjects = listProjects.filter(item => item.ordem_servico_id === order.id);
+    const project = osProjects[0];
+    const produtos = [...new Set(osProjects.flatMap(item => extractProductAcronyms(item.servico_contratado)))]
+      .join(', ') || null;
+    return {
+      os_id: order.id,
+      numero_os: order.numero_os,
+      cliente_id: order.id_cliente,
+      cliente_nome: project?.external_client?.nome || 'Cliente não informado',
+      servico_nome: project?.servico_nome || null,
+      data_fim: order.data_fim,
+      produtos,
+    };
+  }), [projectOrders, listProjects]);
   // Deep-link via ?taskId=...: ignora filtros para garantir que a tarefa apareça em `tasks`.
   const queryFilters = useMemo(
     () => ({
@@ -113,17 +116,22 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     }),
     [activeView, filters],
   );
-  const { data: allTasks = [] } = useOrgTasks(deepLinkTaskId ? {} : queryFilters);
+  const { data: allTasks = [], isLoading: isTasksLoading } = useOrgTasks(deepLinkTaskId ? {} : queryFilters);
   const deleteTask = useDeleteOrgTask(area);
 
-  const { data: clusterId } = useClusterIdByPageCategory(area);
+  const { data: clusterId, isLoading: isClusterLoading } = useClusterIdByPageCategory(area);
   const { data: teamMembers = [] } = useTeamMembersForTasks(clusterId ?? undefined);
   const { data: projects = [] } = useTaxProjectsForFilter();
 
   // Escopo de VISUALIZAÇÃO por cluster: só tarefas de projetos do cluster atual.
   // Tarefas sem projeto (sem cluster) permanecem. Deep-link ignora o escopo para
   // garantir que a tarefa-alvo apareça. Escrita/atribuição não é afetada.
-  const { ids: visibleProjectIds } = useDashboardProjectIds(clusterId, area === 'tax');
+  const { ids: visibleProjectIds, isError: isScopeError } = useDashboardProjectIds(clusterId, area === 'tax');
+  // Enquanto o escopo não resolve, `projectController.projects` é [] por decisão de
+  // segurança (não mostrar projeto fora do cluster). Isso é INDISTINGUÍVEL de "não
+  // há projetos", então precisa contar como carregando. Erro na resolução encerra a
+  // espera — caso contrário o loader giraria para sempre.
+  const isScopeUnresolved = isClusterLoading || (!!clusterId && !visibleProjectIds && !isScopeError);
   const tasks = useMemo(() => {
     if (deepLinkTaskId) return allTasks;
     // Sem cluster resolvido (clusterId nulo/carregando) → NÃO escopar: degrada para o
@@ -146,26 +154,16 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       : listProjects,
     [filters.clientId, listProjects],
   );
-  // Com qualquer filtro ativo, a lista esconde clientes/OS/projetos que ficaram sem
-  // tarefas depois da filtragem. Sem filtros, projetos vazios continuam visíveis.
-  const hasActiveFilters = useMemo(() => Boolean(
-    filters.search?.trim() ||
-    (filters.assignedTo && filters.assignedTo !== 'all') ||
-    filters.status?.length ||
-    filters.priority?.length ||
-    filters.projectId ||
-    filters.clientId ||
-    filters.contribuinteId ||
-    filters.startDate ||
-    filters.endDate,
-  ), [filters]);
+  // Filtros de tarefas escondem clientes/OS/projetos sem correspondências. A busca
+  // textual não: ela também encontra clientes e projetos que ainda não têm tarefas.
+  const hasActiveTaskFilters = useMemo(() => hasTaskFilters(filters), [filters]);
 
-  // Ensina o comportamento novo no momento exato: quando um filtro deixa algum
+  // Ensina o comportamento novo no momento exato: quando um filtro de tarefa deixa algum
   // cliente/OS/projeto sem tarefas (portanto oculto), avisa uma vez por sessão de
   // filtragem. Reseta ao limpar os filtros, para reaparecer numa próxima filtragem.
   const hintShownRef = useRef(false);
   useEffect(() => {
-    if (activeView !== 'list' || !hasActiveFilters) {
+    if (activeView !== 'list' || !hasActiveTaskFilters) {
       hintShownRef.current = false;
       return;
     }
@@ -178,7 +176,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
         description: 'Clientes, OS e projetos sem tarefas correspondentes ficam ocultos.',
       });
     }
-  }, [activeView, hasActiveFilters, tasks, visibleListProjects]);
+  }, [activeView, hasActiveTaskFilters, tasks, visibleListProjects]);
 
   const handleEditTask = (task: OrgTask) => {
     setSelectedTask(task);
@@ -199,6 +197,30 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       setOpenedDeepLinkId(deepLinkTaskId);
     }
   }, [deepLinkTaskId, tasks, openedDeepLinkId]);
+
+  // Abre o cadastro do projeto quando a página é aberta com ?projectId=<id>.
+  // Why: a aba "Não resolvidos" da Auditoria manda o gestor direto para o campo
+  // que está faltando (OS, serviço, cliente). Usa a lista crua de projetos, não a
+  // filtrada, senão o filtro atual da tela engoliria o deep-link.
+  useEffect(() => {
+    if (!deepLinkProjectId || openedDeepLinkProjectId === deepLinkProjectId) return;
+    const project = projectController.projects.find(item => item.id === deepLinkProjectId);
+    if (!project) return;
+    projectController.handleOpenModal(project);
+    setOpenedDeepLinkProjectId(deepLinkProjectId);
+  }, [deepLinkProjectId, openedDeepLinkProjectId, projectController]);
+
+  // Ao fechar o cadastro, remove o ?projectId= para não reabrir em navegação posterior.
+  useEffect(() => {
+    if (!deepLinkProjectId || !openedDeepLinkProjectId || projectController.isModalOpen) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('projectId');
+    setSearchParams(next, { replace: true });
+    setOpenedDeepLinkProjectId(null);
+  }, [
+    deepLinkProjectId, openedDeepLinkProjectId, projectController.isModalOpen,
+    searchParams, setSearchParams,
+  ]);
 
   // Ao fechar o modal, remove o ?taskId= da URL para não reabrir em navegação posterior.
   const handleTaskModalOpenChange = (open: boolean) => {
@@ -243,12 +265,18 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     setIsReassignModalOpen(true);
   };
 
+  // Criar projetos a partir da OS define equipe, líderes e executores do projeto
+  // — decisão de quem coordena. Membro comum não vê o botão.
+  const canCreateProjects = isAdmin || isLider || isSublider;
+
   // Espelha o trigger org_tasks_team_member_status_only: trocar o projeto é
   // mudança fora do trio status/horas/revisor, então só líder (ou superior) e o
   // criador da tarefa conseguem. Avisa antes em vez de deixar o banco recusar.
+  const canMoveTask = (task: OrgTask) => isAdmin || isLider || isSublider
+    || (!!user && task.created_by === user.id);
+
   const handleMoveTask = (task: OrgTask) => {
-    const canMove = isAdmin || isLider || isSublider || (!!user && task.created_by === user.id);
-    if (!canMove) {
+    if (!canMoveTask(task)) {
       toast.error('Você não tem permissão para mover esta tarefa.', {
         description: 'Apenas o criador da tarefa ou um líder pode trocá-la de projeto. Contate um líder da equipe.',
       });
@@ -256,6 +284,50 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     }
     setTaskToMove(task);
     setIsMoveModalOpen(true);
+  };
+
+  const toggleTaskSelection = (taskIds: string[], selected: boolean) => setSelectedTaskIds(previous => {
+    const next = new Set(previous);
+    taskIds.forEach(id => (selected ? next.add(id) : next.delete(id)));
+    return next;
+  });
+
+  // A seleção só existe para as tarefas visíveis: ao trocar de filtro, ids que
+  // saíram da lista não podem continuar contando no lote.
+  useEffect(() => {
+    setSelectedTaskIds(previous => {
+      if (previous.size === 0) return previous;
+      const visible = new Set(tasks.map(task => task.id));
+      const next = new Set([...previous].filter(id => visible.has(id)));
+      return next.size === previous.size ? previous : next;
+    });
+  }, [tasks]);
+
+  const selectedTasks = useMemo(
+    () => tasks.filter(task => selectedTaskIds.has(task.id)),
+    [tasks, selectedTaskIds],
+  );
+
+  const openBulkMove = (tasksToMove: OrgTask[]) => {
+    const blocked = tasksToMove.filter(task => !canMoveTask(task));
+    if (blocked.length > 0) {
+      toast.error(`Você não tem permissão para mover ${blocked.length} das tarefas selecionadas.`, {
+        description: 'Apenas o criador da tarefa ou um líder pode trocá-la de projeto. Desmarque essas tarefas ou contate um líder.',
+      });
+      return;
+    }
+    if (tasksToMove.length === 0) return;
+    setSelectedTaskIds(new Set(tasksToMove.map(task => task.id)));
+    setIsBulkMoveOpen(true);
+  };
+
+  const handleMoveSelected = () => openBulkMove(selectedTasks);
+
+  // Projeto legado inteiro → projeto certo: marca a carteira do projeto e cai no
+  // mesmo modal do lote (com os avisos de cliente/contribuinte e subtarefas).
+  const handleMoveProjectTasks = (taskIds: string[]) => {
+    const ids = new Set(taskIds);
+    openBulkMove(tasks.filter(task => ids.has(task.id)));
   };
 
   const handleNewTask = (projectId?: string) => {
@@ -299,9 +371,26 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 teamMembers={teamMembers}
                 projects={projects}
               />
-              <Button size="sm" className="ml-auto h-9 shrink-0" onClick={() => handleNewTask()}>
-                <Plus className="mr-2 h-4 w-4" />Nova tarefa
-              </Button>
+              {/* ml-auto no grupo, não no primeiro botão: "Criar Projeto" é
+                  condicional e sem isso "Nova tarefa" perderia o alinhamento à
+                  direita para quem não tem permissão. */}
+              <div className="ml-auto flex items-center gap-2">
+                {/* Criação de projetos a partir da OS: antes só existia na aba de OS
+                    do cadastro do cliente, agora mora onde a execução é acompanhada. */}
+                {canCreateProjects && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-9 shrink-0"
+                    onClick={() => setIsCriarProjetosOsOpen(true)}
+                  >
+                    <FolderPlus className="mr-2 h-4 w-4" />Criar Projeto
+                  </Button>
+                )}
+                <Button size="sm" className="h-9 shrink-0" onClick={() => handleNewTask()}>
+                  <Plus className="mr-2 h-4 w-4" />Nova tarefa
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -313,7 +402,8 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 tasks={tasks}
                 osRows={osRows}
                 search={filters.search || ''}
-                hideEmpty={hasActiveFilters}
+                isLoading={isTasksLoading || projectController.isLoading || isScopeUnresolved}
+                hideEmpty={hasActiveTaskFilters}
                 onClearFilters={() => setFilters({})}
                 onEditProject={projectController.handleOpenModal}
                 onDeleteProject={projectController.setDeleteProjectId}
@@ -323,6 +413,10 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 onReassignTask={handleReassignTask}
                 onMoveTask={handleMoveTask}
                 onAddSubtask={handleAddSubtask}
+                selectedTaskIds={selectedTaskIds}
+                onToggleSelection={toggleTaskSelection}
+                onMoveSelected={handleMoveSelected}
+                onMoveProjectTasks={handleMoveProjectTasks}
                 currentUserId={user?.id}
               />
             </TabsContent>
@@ -403,6 +497,10 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       <ProjetoDialog />
       <ProjetoDeleteDialog />
 
+      {canCreateProjects && (
+        <CriarProjetosOsDialog open={isCriarProjetosOsOpen} onOpenChange={setIsCriarProjetosOsOpen} area={area} />
+      )}
+
       {/* Move Modal */}
       <MoveTaskModal
         open={isMoveModalOpen}
@@ -412,6 +510,18 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
         projects={listProjects}
         tasks={tasks}
         osRows={osRows}
+      />
+
+      {/* Bulk Move Modal */}
+      <MoveTasksModal
+        open={isBulkMoveOpen}
+        onOpenChange={setIsBulkMoveOpen}
+        selectedTasks={selectedTasks}
+        area={area}
+        projects={listProjects}
+        tasks={tasks}
+        osRows={osRows}
+        onMoved={() => setSelectedTaskIds(new Set())}
       />
 
       {/* Reassign Modal */}
