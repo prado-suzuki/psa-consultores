@@ -20,6 +20,7 @@ import {
   useBaixarDocumento, useDocumentosByCliente, useExcluirDocumento, usePreviewUrl, useUploaderNames,
   type DocumentoArquivoRow, type VinculoDoc,
 } from '@/hooks/useDocumentoArquivo';
+import { separarSemVinculo } from '@/lib/exploradorDocumentos';
 import { CATEGORIAS, fileIconOf, formatBytes, isPreviavel } from '@/components/equipe/osg/documentos/docMeta';
 import { DocUploadDialog } from '@/components/equipe/osg/documentos/DocUploadDialog';
 import { DocVinculoDialog } from '@/components/equipe/osg/documentos/DocVinculoDialog';
@@ -109,8 +110,12 @@ const DocumentosCliente = () => {
       if (d.pessoa_id) add(pessoaDocs, d.pessoa_id, d);
       else if (d.matricula_id) add(matriculaDocs, d.matricula_id, d);
       else if (d.bem_id) add(bemDocs, d.bem_id, d);
-      else sem.push(d);
     }
+    // Quem não tem vínculo não vai mais todo para "Sem vínculo": a categoria diz
+    // a que tipo de entidade o documento pertence, e ele fica na raiz daquela
+    // pasta até alguém vincular. Só `outros` continua na caixa de triagem.
+    const soltos = separarSemVinculo(docs);
+    sem.push(...soltos.sem);
 
     const byPt = (a: Leaf, b: Leaf) => a.label.localeCompare(b.label, 'pt-BR');
     const flat = (mp: Map<string, DocumentoArquivoRow[]>) =>
@@ -136,8 +141,10 @@ const DocumentosCliente = () => {
       [...arr].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
     const pfLeaves = pessoaEntries.filter((e) => !e.isPJ).map((e) => e.leaf).sort(byPt);
     const pjLeaves = pessoaEntries.filter((e) => e.isPJ).map((e) => e.leaf).sort(byPt);
-    const pfDocs = sortDocs(pessoaEntries.filter((e) => !e.isPJ).flatMap((e) => e.docs));
-    const pjDocs = sortDocs(pessoaEntries.filter((e) => e.isPJ).flatMap((e) => e.docs));
+    // A pasta mostra o que está na raiz dela (ainda sem vínculo) junto com o que
+    // já pertence a cada pessoa.
+    const pfDocs = sortDocs([...soltos.pessoas_pf, ...pessoaEntries.filter((e) => !e.isPJ).flatMap((e) => e.docs)]);
+    const pjDocs = sortDocs([...soltos.pessoas_pj, ...pessoaEntries.filter((e) => e.isPJ).flatMap((e) => e.docs)]);
 
     const bemLeaves: Leaf[] = [...bemDocs.entries()].map(([id, ds]) => ({
       key: `bem:${id}`,
@@ -159,14 +166,21 @@ const DocumentosCliente = () => {
     }).sort(byPt);
 
     // "Pessoas" é o nó pai; PF/PJ são subgrupos expansíveis dentro dele.
+    // A pasta existe quando há pessoa cadastrada OU documento esperando vínculo.
+    // Esse "ou" é o que faz o cliente novo, sem ninguém cadastrado ainda, ter
+    // onde receber o que mandou.
     const pessoaSubgroups: SubGroup[] = [];
-    if (pfLeaves.length) pessoaSubgroups.push({ key: 'pessoas_pf', label: 'Pessoas Físicas', Icon: User, docs: pfDocs, leaves: pfLeaves });
-    if (pjLeaves.length) pessoaSubgroups.push({ key: 'pessoas_pj', label: 'Pessoas Jurídicas', Icon: Building2, docs: pjDocs, leaves: pjLeaves });
+    if (pfLeaves.length || soltos.pessoas_pf.length) pessoaSubgroups.push({ key: 'pessoas_pf', label: 'Pessoas Físicas', Icon: User, docs: pfDocs, leaves: pfLeaves });
+    if (pjLeaves.length || soltos.pessoas_pj.length) pessoaSubgroups.push({ key: 'pessoas_pj', label: 'Pessoas Jurídicas', Icon: Building2, docs: pjDocs, leaves: pjLeaves });
+
+    const matriculaTodos = sortDocs([...soltos.matriculas, ...flat(matriculaDocs)]);
 
     const grps: Group[] = [];
-    if (pessoaSubgroups.length) grps.push({ key: 'pessoas', label: 'Pessoas', Icon: Users, docs: flat(pessoaDocs), leaves: [], subgroups: pessoaSubgroups });
+    if (pessoaSubgroups.length) grps.push({ key: 'pessoas', label: 'Pessoas', Icon: Users, docs: sortDocs([...pfDocs, ...pjDocs]), leaves: [], subgroups: pessoaSubgroups });
+    // Bens não recebe documento solto: o que chega do cliente sobre imóvel é
+    // matrícula, escritura, contrato de exploração. Bem é cadastro da OSG.
     if (bemLeaves.length) grps.push({ key: 'bens', label: 'Bens', Icon: Landmark, docs: flat(bemDocs), leaves: bemLeaves });
-    if (matriculaLeaves.length) grps.push({ key: 'matriculas', label: 'Matrículas', Icon: ScrollText, docs: flat(matriculaDocs), leaves: matriculaLeaves });
+    if (matriculaLeaves.length || soltos.matriculas.length) grps.push({ key: 'matriculas', label: 'Matrículas', Icon: ScrollText, docs: matriculaTodos, leaves: matriculaLeaves });
 
     const dByKey = new Map<string, DocumentoArquivoRow[]>();
     const lByKey = new Map<string, string>();
