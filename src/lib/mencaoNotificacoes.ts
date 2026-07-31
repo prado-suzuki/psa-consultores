@@ -9,13 +9,25 @@ import { textoPlanoDoCorpo } from '@/lib/orgCommentRichText';
  * `docs/planos/plano-comentarios-mencoes-feed.md`). A junção com o comentário
  * citado mora aqui, sem React nem Supabase, porque é onde estão as decisões:
  * auto-menção não notifica e menção sem comentário ao alcance não aparece.
+ *
+ * A mesma caixa carrega as duas coisas que puxam alguém para uma conversa: ter
+ * sido citado e ter sido respondido. Quem diz qual é `motivo` — a linha da
+ * resposta é gravada pela RPC `criar_org_comment`, junto do comentário, como a
+ * da menção.
  */
+
+/**
+ * Por que a linha existe. Vale para o texto do item no sino: "mencionou você"
+ * ou "respondeu você".
+ */
+export type MotivoDaNotificacao = 'mencao' | 'resposta';
 
 /** Linha de `org_comment_mentions` na fatia que a caixa de entrada usa. */
 export interface MencaoNaoLida {
   id: string;
   comment_id: string;
   created_at: string;
+  motivo: MotivoDaNotificacao;
 }
 
 /** O comentário citado, na fatia que o item da notificação precisa. */
@@ -43,8 +55,10 @@ export interface MencaoNotificacao {
   entity_id: string;
   entity_title: string | null;
   project_name: string | null;
-  /** Quem escreveu o comentário que menciona o usuário. */
+  /** Quem escreveu o comentário que menciona ou responde o usuário. */
   authorName: string;
+  /** Citado ou respondido — muda só o texto do item, não o caminho de leitura. */
+  motivo: MotivoDaNotificacao;
   /** Recorte legível do corpo — o corpo é documento rico, não texto. */
   trecho: string;
   /** Data do comentário (é o que a pessoa reconhece, não a da linha de menção). */
@@ -65,14 +79,15 @@ export function trechoDoComentario(body: string, max = TRECHO_MAX): string {
 }
 
 /**
- * Junta menções não lidas com os comentários que as originaram, preservando a
+ * Junta as linhas não lidas com os comentários que as originaram, preservando a
  * ordem recebida (mais recente primeiro).
  *
- * Duas menções somem no caminho, e nos dois casos em silêncio:
+ * Duas linhas somem no caminho, e nos dois casos em silêncio:
  *
  * - **auto-menção** — a RPC `criar_org_comment` grava qualquer id que venha no
  *   `_mentions`, inclusive o do próprio autor. Notificar alguém do que ele
- *   acabou de escrever só emperraria o sino;
+ *   acabou de escrever só emperraria o sino. (A auto-resposta a RPC já não
+ *   grava; este filtro cobre as duas de qualquer forma.);
  * - **comentário fora de alcance** — a RLS de `org_comment_mentions` libera o
  *   mencionado a ver a linha da menção, mas a de `org_comments` não tem o
  *   caminho "fui mencionado". Se a pessoa perdeu o acesso ao projeto (ou o
@@ -99,6 +114,7 @@ export function montarNotificacoesDeMencao(
       entity_title: comentario.entity_title,
       project_name: comentario.project_name,
       authorName: comentario.author_name || 'Usuário removido',
+      motivo: mencao.motivo,
       trecho: trechoDoComentario(comentario.body),
       created_at: comentario.created_at,
     });

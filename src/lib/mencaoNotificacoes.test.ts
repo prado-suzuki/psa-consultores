@@ -9,10 +9,15 @@ import {
 } from '@/lib/mencaoNotificacoes';
 import { docDeTextoLegado, serializarDoc } from '@/lib/orgCommentRichText';
 
-const mencao = (id: string, commentId: string): MencaoNaoLida => ({
+const mencao = (
+  id: string,
+  commentId: string,
+  motivo: MencaoNaoLida['motivo'] = 'mencao',
+): MencaoNaoLida => ({
   id,
   comment_id: commentId,
   created_at: '2026-07-29T12:00:00.000Z',
+  motivo,
 });
 
 function comentario(overrides: Partial<ComentarioCitado> = {}): ComentarioCitado {
@@ -67,9 +72,32 @@ describe('montarNotificacoesDeMencao', () => {
       entity_title: 'Apurar ICMS',
       project_name: 'Recuperação 2026',
       authorName: 'Ana Souza',
+      motivo: 'mencao',
       trecho: 'Bernardo, olha isso',
       created_at: '2026-07-29T11:30:00.000Z',
     });
+  });
+
+  it('carrega o motivo da linha: a resposta chega marcada como resposta', () => {
+    const notificacoes = montarNotificacoesDeMencao(
+      [mencao('M1', 'C1', 'resposta'), mencao('M2', 'C2')],
+      mapa(comentario(), comentario({ id: 'C2' })),
+      'U1',
+    );
+
+    // Mesma caixa, mesmo caminho de leitura — só o motivo distingue, e é ele
+    // que o sino usa para dizer "respondeu você" em vez de "mencionou você".
+    expect(notificacoes.map((item) => item.motivo)).toEqual(['resposta', 'mencao']);
+  });
+
+  it('descarta auto-resposta pelo mesmo caminho da auto-menção', () => {
+    const notificacoes = montarNotificacoesDeMencao(
+      [mencao('M1', 'C1', 'resposta')],
+      mapa(comentario({ author_id: 'U1' })),
+      'U1',
+    );
+
+    expect(notificacoes).toEqual([]);
   });
 
   it('descarta auto-menção: o autor não é notificado do que escreveu', () => {

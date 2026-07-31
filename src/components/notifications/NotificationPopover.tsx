@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Bell, Clock, AlertTriangle, ArrowRight, AtSign, ClipboardCheck } from 'lucide-react';
+import { Bell, Clock, AlertTriangle, ArrowRight, AtSign, ClipboardCheck, Reply } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -157,11 +157,16 @@ function ReviewNotificationItem({
 }
 
 /**
- * Menção num comentário de tarefa/projeto.
+ * Menção ou resposta num comentário de tarefa/projeto.
  *
- * O que a pessoa precisa para decidir se abre agora: quem a citou, onde, e o
- * começo do que foi dito — o corpo entra como recorte em texto plano, porque o
- * comentário é documento rico e o balão do sino não renderiza thread.
+ * O que a pessoa precisa para decidir se abre agora: quem a citou (ou respondeu),
+ * onde, e o começo do que foi dito — o corpo entra como recorte em texto plano,
+ * porque o comentário é documento rico e o balão do sino não renderiza thread.
+ *
+ * Um item só para os dois motivos porque a caixa é a mesma
+ * (`org_comment_mentions`) e o destino do clique também: a thread de origem. O
+ * `motivo` muda apenas como a linha se apresenta — ícone, chamada e etiqueta —,
+ * para "respondeu você" não chegar disfarçado de menção.
  */
 function MencaoNotificationItem({
   notification,
@@ -171,6 +176,8 @@ function MencaoNotificationItem({
   onClick: () => void;
 }) {
   const origem = origemDoComentario(notification);
+  const ehResposta = notification.motivo === 'resposta';
+  const MotivoIcon = ehResposta ? Reply : AtSign;
 
   return (
     <button
@@ -179,17 +186,19 @@ function MencaoNotificationItem({
     >
       <div className="flex items-start gap-3">
         <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-primary/10 text-primary">
-          <AtSign className="h-4 w-4" />
+          <MotivoIcon className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
-            {notification.authorName} mencionou você
+            {notification.authorName} {ehResposta ? 'respondeu você' : 'mencionou você'}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
             {notification.trecho}
           </p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-xs font-medium text-primary">Menção</span>
+            <span className="text-xs font-medium text-primary">
+              {ehResposta ? 'Resposta' : 'Menção'}
+            </span>
             <span className="text-xs text-muted-foreground">•</span>
             <span className="text-xs text-muted-foreground truncate">
               {origem.rotulo} {origem.titulo}
@@ -254,9 +263,9 @@ export function NotificationPopover({
   };
 
   /**
-   * Abrir a menção é o que a marca como lida — carimba e navega sem esperar a
-   * gravação, para o clique não parecer travado. Se a gravação falhar, o toast
-   * do hook avisa e a menção continua na caixa.
+   * Abrir a menção (ou a resposta) é o que a marca como lida — carimba e navega
+   * sem esperar a gravação, para o clique não parecer travado. Se a gravação
+   * falhar, o toast do hook avisa e a linha continua na caixa.
    */
   const handleMencaoClick = (notification: MencaoNotificacao) => {
     marcarComoLidas.mutate([notification.id]);

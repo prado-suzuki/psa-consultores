@@ -112,7 +112,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`novidades`](#novidades) | 17 | — | interno | — |
 | [`ordem_servico`](#ordemservico) | 20 | excluido | cluster-cliente | estrutura_clusters, produto_segmento, servicos_prestados, setor_cliente |
 | [`org_comment_attachments`](#orgcommentattachments) | 10 | — | interno | org_comments, org_comments_feed, profiles |
-| [`org_comment_mentions`](#orgcommentmentions) | 5 | — | interno | org_comments, org_comments_feed, profiles |
+| [`org_comment_mentions`](#orgcommentmentions) | 6 | — | interno | org_comments, org_comments_feed, profiles |
 | [`org_comments`](#orgcomments) | 16 | excluido | interno | profiles, org_comments, org_comments_feed, org_projects |
 | [`org_project_members`](#orgprojectmembers) | 5 | — | projeto | org_projects |
 | [`org_projects`](#orgprojects) | 19 | — | projeto | profiles, estrutura_equipes, estrutura_areas, ordem_servico, servicos_prestados |
@@ -479,7 +479,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="orgcommentmentions"></a>`org_comment_mentions`
 **Acesso:** interno
-`comment_id` string · `created_at` string · `id` string · `lido_em` string? · `mentioned_user_id` string  ·  **FK:** `comment_id`→org_comments.id · `comment_id`→org_comments_feed.id · `mentioned_user_id`→profiles.id
+`comment_id` string · `created_at` string · `id` string · `lido_em` string? · `mentioned_user_id` string · `motivo` string ('mencao' | 'resposta')  ·  **FK:** `comment_id`→org_comments.id · `comment_id`→org_comments_feed.id · `mentioned_user_id`→profiles.id
 
 ### <a id="orgcomments"></a>`org_comments`
 **Acesso:** interno · **Flags:** excluido

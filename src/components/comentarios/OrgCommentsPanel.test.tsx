@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   comments: [] as OrgComment[],
   candidates: [] as { id: string; name: string }[],
   candidatesArgs: [] as unknown[][],
+  commentsArgs: [] as unknown[][],
   mencoesLidasArgs: [] as string[][],
   create: vi.fn(),
   update: vi.fn(),
@@ -73,15 +74,18 @@ vi.mock('@/hooks/useDomainMentionCandidates', () => ({
 }));
 
 vi.mock('@/hooks/useDomainOrgComments', () => ({
-  useDomainOrgComments: () => ({
-    comments: mocks.comments,
-    isLoading: false,
-    createComment: { mutateAsync: mocks.create },
-    isCreating: false,
-    updateComment: { mutateAsync: mocks.update, isPending: false },
-    deleteComment: { mutate: mocks.remove, mutateAsync: mocks.remove, isPending: false },
-    downloadAttachment: { mutateAsync: mocks.download, isPending: false },
-  }),
+  useDomainOrgComments: (...args: unknown[]) => {
+    mocks.commentsArgs.push(args);
+    return {
+      comments: mocks.comments,
+      isLoading: false,
+      createComment: { mutateAsync: mocks.create },
+      isCreating: false,
+      updateComment: { mutateAsync: mocks.update, isPending: false },
+      deleteComment: { mutate: mocks.remove, mutateAsync: mocks.remove, isPending: false },
+      downloadAttachment: { mutateAsync: mocks.download, isPending: false },
+    };
+  },
 }));
 
 /**
@@ -137,6 +141,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.comments = [];
   mocks.candidatesArgs = [];
+  mocks.commentsArgs = [];
   mocks.mencoesLidasArgs = [];
   mocks.candidates = [
     { id: 'U1', name: 'Bernardo Silva' },
@@ -222,6 +227,29 @@ describe('OrgCommentsPanel', () => {
     const corpo = lerCorpo(chamada.body) as Extract<CorpoDeComentario, { formato: 'rich' }>;
     expect(corpo.formato).toBe('rich');
     expect(textoPlanoDoCorpo(chamada.body)).toBe('Confira com @Ana Souza');
+  });
+
+  it('responder manda o comentário respondido, que é quem recebe a notificação', async () => {
+    const user = userEvent.setup();
+    mocks.comments = [comment({ author_id: 'U2', author_name: 'Ana Souza' })];
+
+    const { container } = renderPanel();
+
+    await user.click(screen.getByRole('button', { name: /Responder/ }));
+    fireEvent.change(screen.getByPlaceholderText(/Escreva uma resposta/), {
+      target: { value: 'Fechado' },
+    });
+    // O compositor da resposta é o que está dentro do bloco da raiz — o de baixo
+    // é o da thread inteira.
+    const raiz = container.querySelector<HTMLElement>('[data-comment-root="C1"]');
+    await user.click(within(raiz!).getByRole('button', { name: 'Publicar' }));
+
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+    const chamada = mocks.create.mock.calls[0][0] as { parentId: string; respondidoId: string };
+    expect(chamada.parentId).toBe('C1');
+    // Sem isto a notificação de resposta não sai: é o `respondidoId` que diz ao
+    // banco quem foi respondido.
+    expect(chamada.respondidoId).toBe('C1');
   });
 
   it('pede a lista de menção ao hook, pela entidade da thread', () => {
@@ -350,5 +378,123 @@ describe('OrgCommentsPanel', () => {
     renderPanel();
 
     expect(screen.queryByRole('button', { name: 'Ações do comentário' })).not.toBeInTheDocument();
+  });
+
+  it('não anuncia origem na thread de uma entidade só', () => {
+    mocks.comments = [comment({ entity_title: 'Apurar ICMS' })];
+
+    renderPanel();
+
+    expect(screen.queryByText('Apurar ICMS')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * A thread do projeto mostra também o que foi dito nas tarefas dele. É o mesmo
+ * painel: muda o recorte pedido ao hook e o cabeçalho que separa as origens.
+ */
+describe('OrgCommentsPanel — thread consolidada do projeto', () => {
+  function renderProjeto() {
+    return render(
+      <OrgCommentsPanel
+        entityType="org_project"
+        entityId="P1"
+        projectId="P1"
+        area="tax"
+        consolidarTarefas
+      />,
+    );
+  }
+
+  /** Comentário de uma tarefa vinculada ao projeto da thread. */
+  function daTarefa(id: string, titulo: string, overrides: Partial<OrgComment> = {}) {
+    return comment({
+      id,
+      entity_type: 'org_task',
+      entity_id: `T-${titulo}`,
+      entity_title: titulo,
+      body: `Comentário de ${titulo}`,
+      ...overrides,
+    });
+  }
+
+  it('pede a thread consolidada ao hook', () => {
+    renderProjeto();
+
+    expect(mocks.commentsArgs[0]).toEqual([
+      'org_project',
+      'P1',
+      'tax',
+      'P1',
+      { consolidarTarefas: true },
+    ]);
+  });
+
+  it('anuncia a origem a cada troca de tarefa, sem repetir dentro do bloco', () => {
+    mocks.comments = [
+      daTarefa('C1', 'Apurar ICMS'),
+      daTarefa('C2', 'Apurar ICMS', { id: 'C2', body: 'Mesma tarefa, outra fala' }),
+      daTarefa('C3', 'Conferir NFe'),
+    ];
+
+    renderProjeto();
+
+    // Duas etiquetas, não três: a segunda fala continua a conversa da primeira.
+    expect(screen.getAllByText('Apurar ICMS')).toHaveLength(1);
+    expect(screen.getByText('Conferir NFe')).toBeInTheDocument();
+  });
+
+  it('volta a etiquetar o projeto quando a conversa retorna dele', () => {
+    mocks.comments = [
+      comment({ id: 'C1', entity_type: 'org_project', entity_id: 'P1', entity_title: 'Projeto X' }),
+      daTarefa('C2', 'Apurar ICMS'),
+      comment({
+        id: 'C3',
+        entity_type: 'org_project',
+        entity_id: 'P1',
+        entity_title: 'Projeto X',
+        body: 'De volta ao projeto',
+      }),
+    ];
+
+    renderProjeto();
+
+    // O bloco de abertura dispensa etiqueta — é o painel do próprio projeto —,
+    // mas o que volta depois da tarefa precisa dela para não ler como tarefa.
+    expect(screen.getAllByText('Projeto X')).toHaveLength(1);
+  });
+
+  it('responder ao comentário de uma tarefa grava na tarefa', async () => {
+    const user = userEvent.setup();
+    mocks.comments = [daTarefa('C1', 'Apurar ICMS', { author_id: 'U2', author_name: 'Ana Souza' })];
+
+    const { container } = renderProjeto();
+
+    await user.click(screen.getByRole('button', { name: /Responder/ }));
+    fireEvent.change(screen.getByPlaceholderText(/Escreva uma resposta/), {
+      target: { value: 'Fechado' },
+    });
+    const raiz = container.querySelector<HTMLElement>('[data-comment-root="C1"]');
+    await user.click(within(raiz!).getByRole('button', { name: 'Publicar' }));
+
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+    const chamada = mocks.create.mock.calls[0][0] as {
+      alvo: { entityType: string; entityId: string };
+    };
+    // Sem isto a resposta nasceria no projeto e o trigger do banco a rejeitaria.
+    expect(chamada.alvo).toEqual({ entityType: 'org_task', entityId: 'T-Apurar ICMS' });
+  });
+
+  it('publicar no compositor da thread não muda a entidade — vai para o projeto', async () => {
+    const user = userEvent.setup();
+    renderProjeto();
+
+    fireEvent.change(screen.getByPlaceholderText(/Escreva um comentário/), {
+      target: { value: 'Aviso geral do projeto' },
+    });
+    await user.click(screen.getByRole('button', { name: 'Publicar' }));
+
+    await waitFor(() => expect(mocks.create).toHaveBeenCalledTimes(1));
+    expect(mocks.create.mock.calls[0][0]).not.toHaveProperty('alvo');
   });
 });

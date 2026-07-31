@@ -7,6 +7,7 @@ import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { CommentComposer } from '@/components/comentarios/CommentComposer';
 import { OrgCommentBody } from '@/components/comentarios/OrgCommentBody';
 import { OrgCommentEditor } from '@/components/comentarios/OrgCommentEditor';
+import { OrgCommentOrigem } from '@/components/comentarios/OrgCommentOrigem';
 import { AttachmentButton } from '@/components/comentarios/OrgCommentAttachments';
 import {
   AlertDialog,
@@ -61,6 +62,13 @@ interface OrgCommentsPanelProps {
    * `nome` nulo quando o perfil não foi encontrado.
    */
   criadoPor?: { nome: string | null; em: string };
+  /**
+   * No projeto, mostra também os comentários das tarefas vinculadas a ele — a
+   * conversa do projeto deixa de ser só o que foi dito no cadastro e passa a ser
+   * tudo que se falou dentro dele. Cada bloco anuncia sua origem, e responder a
+   * uma tarefa grava na tarefa, não no projeto.
+   */
+  consolidarTarefas?: boolean;
 }
 
 const SYSTEM_LABELS: Record<Exclude<OrgComment['kind'], 'comment'>, string> = {
@@ -89,6 +97,7 @@ export function OrgCommentsPanel({
   area,
   focusComposerSignal,
   criadoPor,
+  consolidarTarefas = false,
 }: OrgCommentsPanelProps) {
   const { user } = useAuth();
   const {
@@ -99,7 +108,8 @@ export function OrgCommentsPanel({
     updateComment,
     deleteComment,
     downloadAttachment,
-  } = useDomainOrgComments(entityType, entityId, area, projectId);
+  } = useDomainOrgComments(entityType, entityId, area, projectId, { consolidarTarefas });
+  const consolidado = consolidarTarefas && entityType === 'org_project';
   /**
    * Quem pode ser mencionado sai daqui, e só daqui: a roda de gente do projeto
    * desta thread. A tela nunca recebe uma lista pronta de fora, para não voltar
@@ -138,6 +148,16 @@ export function OrgCommentsPanel({
       });
     return map;
   }, [comments]);
+
+  /**
+   * Raízes que de fato chegam à tela — a excluída sem resposta some, como manda
+   * o corte de `renderComment`. A lista precisa existir aqui para o cabeçalho de
+   * origem não anunciar uma tarefa cujo único comentário não vai aparecer.
+   */
+  const raizesVisiveis = useMemo(
+    () => roots.filter((root) => !root.excluido || (repliesByRoot.get(root.id)?.length ?? 0) > 0),
+    [roots, repliesByRoot],
+  );
 
   /**
    * A thread abre no fim: ao abrir o modal, o que interessa é a última mensagem,
@@ -386,7 +406,21 @@ export function OrgCommentsPanel({
                 replyingToName={comment.author_name}
                 onCancel={() => setReplyingTo(null)}
                 onSubmit={async (body, files, mentions) => {
-                  await createComment.mutateAsync({ body, files, mentions, parentId: comment.id });
+                  // `respondidoId` junto do `parentId`: aqui os dois coincidem
+                  // (só a raiz oferece "Responder"), mas é ele que faz o autor
+                  // respondido receber a notificação, então vai explícito.
+                  //
+                  // O `alvo` é a entidade da raiz, não a do painel: na thread
+                  // consolidada do projeto, responder ao comentário de uma
+                  // tarefa grava na tarefa. Fora dela os dois coincidem.
+                  await createComment.mutateAsync({
+                    body,
+                    files,
+                    mentions,
+                    parentId: comment.id,
+                    respondidoId: comment.id,
+                    alvo: { entityType: comment.entity_type, entityId: comment.entity_id },
+                  });
                   setReplyingTo(null);
                 }}
               />
@@ -425,7 +459,11 @@ export function OrgCommentsPanel({
         </div>
         <p className="mt-1 text-xs text-muted-foreground">
           Comentários, anexos e atualizações{' '}
-          {entityType === 'org_project' ? 'do projeto' : 'da tarefa'}
+          {consolidado
+            ? 'do projeto e das tarefas dele'
+            : entityType === 'org_project'
+              ? 'do projeto'
+              : 'da tarefa'}
         </p>
       </div>
 
@@ -437,7 +475,7 @@ export function OrgCommentsPanel({
         ) : (
           <div className="divide-y">
             {itemCriacao}
-            {roots.length === 0 ? (
+            {raizesVisiveis.length === 0 ? (
               <div className="flex h-48 flex-col items-center justify-center text-center">
                 <div className="rounded-full bg-primary/10 p-3">
                   <MessageSquare className="h-5 w-5 text-primary" />
@@ -448,7 +486,26 @@ export function OrgCommentsPanel({
                 </p>
               </div>
             ) : (
-              roots.map((comment) => renderComment(comment))
+              raizesVisiveis.map((comment, index) => {
+                /*
+                  A origem é anunciada só quando muda — falas seguidas da mesma
+                  tarefa seguem como um bloco de conversa. O primeiro bloco,
+                  quando é do próprio projeto, dispensa a etiqueta: é o painel
+                  dele, e ninguém precisa que digam isso de novo.
+                */
+                const anterior = raizesVisiveis[index - 1];
+                const mostraOrigem =
+                  consolidado &&
+                  anterior?.entity_id !== comment.entity_id &&
+                  !(index === 0 && comment.entity_type === 'org_project');
+
+                return (
+                  <div key={comment.id}>
+                    {mostraOrigem && <OrgCommentOrigem comentario={comment} />}
+                    {renderComment(comment)}
+                  </div>
+                );
+              })
             )}
           </div>
         )}

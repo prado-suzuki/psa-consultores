@@ -100,6 +100,11 @@ export interface CriarOrgCommentParams {
   _body: string;
   _mentions: string[];
   _attachments: OrgCommentAttachmentInput[];
+  /**
+   * Comentário respondido — quem a RPC notifica com `motivo = 'resposta'`.
+   * Não é o mesmo que `_parent_id`: ver `respondidoId` em `CreateOrgCommentInput`.
+   */
+  _respondido_id: string | null;
 }
 
 export interface CreateOrgCommentInput {
@@ -107,10 +112,50 @@ export interface CreateOrgCommentInput {
   parentId?: string | null;
   mentions?: string[];
   files?: File[];
+  /**
+   * Entidade em que o comentário nasce, quando não é a do painel.
+   *
+   * Só a thread consolidada do projeto precisa disto: ela mostra também os
+   * comentários das tarefas, e responder a um deles tem de gravar **na tarefa**
+   * — o trigger do banco exige que a resposta fique na mesma entidade da raiz.
+   * Nulo mantém a entidade do painel, que é o caso de todo o resto.
+   */
+  alvo?: { entityType: OrgCommentEntityType; entityId: string } | null;
+  /**
+   * Comentário em que a pessoa clicou "Responder", que é quem recebe a
+   * notificação de resposta.
+   *
+   * Vem separado do `parentId` porque os dois divergem: a thread tem um nível só
+   * (o trigger do banco rejeita resposta de resposta), então responder a uma
+   * resposta pendura na raiz dela — `parentId` é a raiz, `respondidoId` é a
+   * resposta. Notificar pelo `parentId` avisaria o autor da raiz em vez de quem
+   * foi respondido. Nulo faz o banco cair no autor do `parentId`.
+   */
+  respondidoId?: string | null;
 }
 
-export const orgCommentsQueryKey = (entityType: OrgCommentEntityType, entityId: string) =>
-  ['org-comments', entityType, entityId] as const;
+/**
+ * A thread consolidada tem cache próprio: é outro conjunto de linhas (o projeto
+ * mais as tarefas dele), e o painel do projeto sozinho continua existindo.
+ */
+export const orgCommentsQueryKey = (
+  entityType: OrgCommentEntityType,
+  entityId: string,
+  consolidado = false,
+) => ['org-comments', entityType, entityId, ...(consolidado ? ['consolidado'] : [])] as const;
+
+export interface OpcoesOrgComments {
+  /**
+   * Traz para a thread do projeto os comentários das tarefas vinculadas a ele.
+   *
+   * Só vale para `entity_type = 'org_project'`: o recorte deixa de ser a
+   * entidade e passa a ser a etiqueta `project_id`, que o trigger do banco grava
+   * em todo comentário — de tarefa ou de projeto. Das tarefas vêm apenas
+   * comentários de gente (`kind = 'comment'`); os eventos de sistema continuam
+   * na thread da própria tarefa, para o painel do projeto não virar log.
+   */
+  consolidarTarefas?: boolean;
+}
 
 interface SupabaseResult<T> {
   data: T | null;
@@ -121,6 +166,7 @@ interface SupabaseResult<T> {
 interface FeedViewQuery {
   select: (columns: string) => FeedViewQuery;
   eq: (column: string, value: unknown) => FeedViewQuery;
+  or: (filters: string) => FeedViewQuery;
   order: (
     column: string,
     options?: { ascending?: boolean },
@@ -287,18 +333,29 @@ export function useDomainOrgComments(
   entityId: string,
   area: AreaKey = 'tax',
   projectId?: string | null,
+  opcoes?: OpcoesOrgComments,
 ) {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
+  /**
+   * Consolidar só faz sentido de cima para baixo: a tarefa não puxa o projeto.
+   * O `entityType` no guarda evita que uma chamada distraída troque o recorte da
+   * thread da tarefa por `project_id` e mostre o projeto inteiro dentro dela.
+   */
+  const consolidado = entityType === 'org_project' && !!opcoes?.consolidarTarefas;
+  const queryKey = orgCommentsQueryKey(entityType, entityId, consolidado);
 
   const commentsQuery = useQuery<OrgComment[]>({
-    queryKey: orgCommentsQueryKey(entityType, entityId),
+    queryKey,
     queryFn: async () => {
-      const { data, error } = await (supabase.from(VIEW as never) as unknown as FeedViewQuery)
-        .select('*')
-        .eq('entity_type', entityType)
-        .eq('entity_id', entityId)
-        .order('created_at', { ascending: true });
+      const base = (supabase.from(VIEW as never) as unknown as FeedViewQuery).select('*');
+      const recorte = consolidado
+        ? // Tudo que carrega a etiqueta deste projeto, menos os eventos de
+          // sistema das tarefas — eles pertencem à thread da tarefa.
+          base.eq('project_id', entityId).or('entity_type.eq.org_project,kind.eq.comment')
+        : base.eq('entity_type', entityType).eq('entity_id', entityId);
+
+      const { data, error } = await recorte.order('created_at', { ascending: true });
 
       if (error) throw error;
       const comments = data ?? [];
@@ -322,7 +379,11 @@ export function useDomainOrgComments(
       parentId = null,
       mentions = [],
       files = [],
+      respondidoId = null,
+      alvo = null,
     }: CreateOrgCommentInput) => {
+      const alvoEntityType = alvo?.entityType ?? entityType;
+      const alvoEntityId = alvo?.entityId ?? entityId;
       // O id nasce no cliente de propósito: as fatias de anexo sobem o arquivo
       // num caminho derivado do id do comentário, antes do comentário existir.
       const id = crypto.randomUUID();
@@ -348,12 +409,13 @@ export function useDomainOrgComments(
 
         const params: CriarOrgCommentParams = {
           _id: id,
-          _entity_type: entityType,
-          _entity_id: entityId,
+          _entity_type: alvoEntityType,
+          _entity_id: alvoEntityId,
           _parent_id: parentId,
           _body: body,
           _mentions: [...new Set(mentions)],
           _attachments: attachmentInputs,
+          _respondido_id: respondidoId,
         };
 
         const { data, error } = await (supabase.rpc as unknown as CriarOrgCommentRpc)(RPC, params);
@@ -370,8 +432,8 @@ export function useDomainOrgComments(
           changed_fields: computeFieldDiff(
             null,
             {
-              entity_type: entityType,
-              entity_id: entityId,
+              entity_type: alvoEntityType,
+              entity_id: alvoEntityId,
               parent_id: parentId,
               body,
               mentions: [...new Set(mentions)],
@@ -387,8 +449,17 @@ export function useDomainOrgComments(
         throw error;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: orgCommentsQueryKey(entityType, entityId) });
+    onSuccess: (_id, variables?: CreateOrgCommentInput) => {
+      queryClient.invalidateQueries({ queryKey });
+      // Responder a uma tarefa pela thread consolidada também mexe na thread da
+      // própria tarefa, que tem cache separado: se ela estiver montada em outra
+      // aba do app, ficaria sem a resposta até um refetch.
+      const alvo = variables?.alvo;
+      if (alvo && alvo.entityId !== entityId) {
+        queryClient.invalidateQueries({
+          queryKey: orgCommentsQueryKey(alvo.entityType, alvo.entityId),
+        });
+      }
     },
     onError: (error: Error) => {
       toast.error('Erro ao publicar comentário: ' + error.message);
@@ -416,7 +487,7 @@ export function useDomainOrgComments(
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: orgCommentsQueryKey(entityType, entityId) });
+      queryClient.invalidateQueries({ queryKey });
     },
     onError: (error: Error) => toast.error('Erro ao editar comentário: ' + error.message),
   });
@@ -444,7 +515,7 @@ export function useDomainOrgComments(
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: orgCommentsQueryKey(entityType, entityId) });
+      queryClient.invalidateQueries({ queryKey });
     },
     onError: (error: Error) => toast.error('Erro ao excluir comentário: ' + error.message),
   });
@@ -453,20 +524,25 @@ export function useDomainOrgComments(
 
   useEffect(() => {
     if (!entityId) return;
+    // Na thread consolidada o gatilho é a etiqueta do projeto: comentário novo
+    // numa tarefa dele não passaria por um filtro de `entity_id`.
+    const filter = consolidado ? `project_id=eq.${entityId}` : `entity_id=eq.${entityId}`;
     const channel = supabase
-      .channel(`org-comments:${entityType}:${entityId}`)
+      .channel(`org-comments:${entityType}:${entityId}${consolidado ? ':consolidado' : ''}`)
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'org_comments', filter: `entity_id=eq.${entityId}` },
-        () =>
-          queryClient.invalidateQueries({ queryKey: orgCommentsQueryKey(entityType, entityId) }),
+        { event: '*', schema: 'public', table: 'org_comments', filter },
+        () => queryClient.invalidateQueries({ queryKey }),
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [entityId, entityType, queryClient]);
+    // `queryKey` é recriado a cada render; as três partes que o formam são as
+    // dependências reais desta assinatura.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entityId, entityType, consolidado, queryClient]);
 
   return {
     comments: commentsQuery.data ?? [],
