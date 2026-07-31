@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Users, Landmark, FileText, PieChart } from 'lucide-react';
+import { ChevronRight, Users, Landmark, FileText, PieChart, Rocket } from 'lucide-react';
 
 interface Ferramenta {
   id: string;
@@ -12,6 +12,13 @@ interface Ferramenta {
 }
 
 const FERRAMENTAS: Ferramenta[] = [
+  {
+    id: 'onboarding',
+    titulo: 'Onboarding',
+    descricao: 'Preparação da solicitação inicial de documentos conforme os produtos contratados.',
+    path: '/equipe/osg/work/onboarding',
+    icon: <Rocket className="h-5 w-5 text-osg-600" />,
+  },
   {
     id: 'qualificacao-das-partes',
     titulo: 'Qualificação das Partes',

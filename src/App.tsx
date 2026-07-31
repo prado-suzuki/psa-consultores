@@ -108,6 +108,7 @@ import OsgTarefas from "./pages/equipe/osg/OsgTarefas";
 import OsgClientes from "./pages/equipe/osg/OsgClientes";
 import OsgProjetos from "./pages/equipe/osg/OsgProjetos";
 import OsgWorkDashboard from "./pages/equipe/osg/OsgWorkDashboard";
+import Onboarding from "./pages/equipe/osg/Onboarding";
 import QualificacaoDasPartes from "./pages/equipe/osg/QualificacaoDasPartes";
 import DiagnosticoPatrimonial from "./pages/equipe/osg/DiagnosticoPatrimonial";
 import ControleMatriculas from "./pages/equipe/osg/ControleMatriculas";
@@ -264,6 +265,7 @@ const App = () => (
               <Route path="/equipe/osg/gerencial" element={<LiderRoute><OsgGerencial /></LiderRoute>} />
               <Route element={<OsgWorkProvider><Outlet /></OsgWorkProvider>}>
                 <Route path="/equipe/osg/work" element={<PageAccessGate pagePath="/equipe/osg/work"><OsgWorkDashboard /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/onboarding" element={<PageAccessGate pagePath="/equipe/osg/work/onboarding"><Onboarding /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/qualificacao-das-partes" element={<PageAccessGate pagePath="/equipe/osg/work/qualificacao-das-partes"><QualificacaoDasPartes /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/diagnostico-patrimonial" element={<PageAccessGate pagePath="/equipe/osg/work/diagnostico-patrimonial"><DiagnosticoPatrimonial /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/controle-matriculas" element={<PageAccessGate pagePath="/equipe/osg/work/controle-matriculas"><ControleMatriculas /></PageAccessGate>} />
