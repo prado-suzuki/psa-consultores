@@ -107,11 +107,14 @@ describe('useNotificacoesMencao — registro da query', () => {
 });
 
 describe('useNotificacoesMencao — leitura da caixa', () => {
-  it('lê só as menções minhas ainda não lidas, mais recentes primeiro', async () => {
+  it('lê só as linhas minhas ainda não lidas, mais recentes primeiro', async () => {
     renderHook(() => useNotificacoesMencao());
     await queryRegistro().queryFn();
 
     expect(supabase.from).toHaveBeenCalledWith('org_comment_mentions');
+    // `motivo` faz parte do contrato da leitura: é o que separa "mencionou você"
+    // de "respondeu você" no sino.
+    expect(callsFor('select')[0].args).toEqual(['id, comment_id, created_at, motivo']);
     expect(callsFor('eq')[0].args).toEqual(['mentioned_user_id', 'U1']);
     expect(callsFor('is')[0].args).toEqual(['lido_em', null]);
     expect(callsFor('order')[0].args).toEqual(['created_at', { ascending: false }]);
@@ -120,7 +123,9 @@ describe('useNotificacoesMencao — leitura da caixa', () => {
 
   it('hidrata os comentários citados num lote só e devolve a notificação montada', async () => {
     resultado = {
-      data: [{ id: 'M1', comment_id: 'C1', created_at: '2026-07-29T12:00:00.000Z' }],
+      data: [
+        { id: 'M1', comment_id: 'C1', created_at: '2026-07-29T12:00:00.000Z', motivo: 'mencao' },
+      ],
       error: null,
     };
     mocks.buscarComentariosPorId.mockResolvedValue(new Map([['C1', comentario()]]));
@@ -134,8 +139,41 @@ describe('useNotificacoesMencao — leitura da caixa', () => {
       id: 'M1',
       commentId: 'C1',
       authorName: 'Ana Souza',
+      motivo: 'mencao',
       trecho: 'Bernardo, confere',
     });
+  });
+
+  it('a linha de resposta chega ao sino com o motivo resposta', async () => {
+    resultado = {
+      data: [
+        { id: 'M2', comment_id: 'C1', created_at: '2026-07-29T12:00:00.000Z', motivo: 'resposta' },
+      ],
+      error: null,
+    };
+    mocks.buscarComentariosPorId.mockResolvedValue(new Map([['C1', comentario()]]));
+
+    renderHook(() => useNotificacoesMencao());
+    const notificacoes = (await queryRegistro().queryFn()) as Array<Record<string, unknown>>;
+
+    expect(notificacoes[0]).toMatchObject({ id: 'M2', motivo: 'resposta' });
+  });
+
+  it('motivo desconhecido ou ausente lê como menção', async () => {
+    resultado = {
+      data: [
+        { id: 'M3', comment_id: 'C1', created_at: '2026-07-29T12:00:00.000Z', motivo: null },
+        { id: 'M4', comment_id: 'C1', created_at: '2026-07-29T12:00:00.000Z', motivo: 'outro' },
+      ],
+      error: null,
+    };
+    mocks.buscarComentariosPorId.mockResolvedValue(new Map([['C1', comentario()]]));
+
+    renderHook(() => useNotificacoesMencao());
+    const notificacoes = (await queryRegistro().queryFn()) as Array<Record<string, unknown>>;
+
+    // Toda linha era menção antes da coluna existir — é o padrão seguro.
+    expect(notificacoes.map((item) => item.motivo)).toEqual(['mencao', 'mencao']);
   });
 
   it('não busca comentário quando a caixa está vazia', async () => {

@@ -8,20 +8,23 @@ import { supabase } from '@/integrations/supabase/client';
 import {
   mencoesDosComentarios,
   montarNotificacoesDeMencao,
+  type MencaoNaoLida,
   type MencaoNotificacao,
 } from '@/lib/mencaoNotificacoes';
 
 /**
- * Caixa de entrada das menções em comentários de tarefa e projeto.
+ * Caixa de entrada das menções e respostas em comentários de tarefa e projeto.
  *
  * Segue o padrão DERIVADO das outras notificações do sino (`useTicketNotifications`,
  * `useReviewTaskNotifications`): não há tabela genérica de notificação — a
  * notificação é a própria linha de `org_comment_mentions` com `lido_em IS NULL`,
  * que a RPC `criar_org_comment` grava junto do comentário. Ou seja, mencionar
- * alguém já gera a notificação; o que este hook faz é ler a caixa e carimbar a
- * leitura.
+ * alguém — ou responder alguém, que grava na mesma caixa com `motivo =
+ * 'resposta'` — já gera a notificação; o que este hook faz é ler a caixa e
+ * carimbar a leitura. Os dois motivos compartilham tudo daqui para frente:
+ * contador, leitura ao abrir a thread e navegação para a origem.
  *
- * São duas idas ao banco de propósito. A primeira lê as menções pendentes (a
+ * São duas idas ao banco de propósito. A primeira lê as linhas pendentes (a
  * tabela é indexada exatamente para isso: `mentioned_user_id` + `lido_em IS NULL`);
  * a segunda hidrata os comentários pela view, num lote só. Não dá para juntar em
  * um `select` embutido: `org_comments_feed` é view, e o PostgREST não embute view
@@ -30,8 +33,45 @@ import {
 
 const LIMITE = 20;
 const TABELA = 'org_comment_mentions';
+const COLUNAS = 'id, comment_id, created_at, motivo';
 
 export type { MencaoNotificacao };
+
+/**
+ * Shim da leitura enquanto `types.ts` (autogerado) não conhece a coluna
+ * `motivo`, acrescentada pela migration `20260731120000`. Mesma dívida do resto
+ * da feature, registrada em `docs/geral/divida-tipos-org-comments.md`.
+ */
+interface LinhaDaCaixa {
+  id: string;
+  comment_id: string;
+  created_at: string;
+  motivo: string | null;
+}
+
+interface CaixaQuery {
+  select: (columns: string) => CaixaQuery;
+  eq: (column: string, value: unknown) => CaixaQuery;
+  is: (column: string, value: unknown) => CaixaQuery;
+  order: (column: string, options?: { ascending?: boolean }) => CaixaQuery;
+  limit: (
+    value: number,
+  ) => PromiseLike<{ data: LinhaDaCaixa[] | null; error: { message: string } | null }>;
+}
+
+/**
+ * Normaliza o motivo na fronteira com o banco: valor desconhecido (ou linha
+ * antiga, gravada antes da coluna existir) lê como menção, que é o que toda
+ * linha era até a notificação de resposta.
+ */
+function linhaDaCaixa(linha: LinhaDaCaixa): MencaoNaoLida {
+  return {
+    id: linha.id,
+    comment_id: linha.comment_id,
+    created_at: linha.created_at,
+    motivo: linha.motivo === 'resposta' ? 'resposta' : 'mencao',
+  };
+}
 
 export const notificacoesMencaoQueryKey = (userId?: string) =>
   ['mencao-notifications', userId] as const;
@@ -46,17 +86,17 @@ export function useNotificacoesMencao() {
     queryFn: async () => {
       if (!userId) return [];
 
-      const { data: mencoes, error } = await supabase
-        .from(TABELA)
-        .select('id, comment_id, created_at')
+      const { data, error } = await (supabase.from(TABELA) as unknown as CaixaQuery)
+        .select(COLUNAS)
         .eq('mentioned_user_id', userId)
         .is('lido_em', null)
         .order('created_at', { ascending: false })
         .limit(LIMITE);
 
       if (error) throw error;
-      if (!mencoes || mencoes.length === 0) return [];
+      if (!data || data.length === 0) return [];
 
+      const mencoes = data.map(linhaDaCaixa);
       const comentarios = await buscarComentariosPorId(
         mencoes.map((mencao) => mencao.comment_id),
       );
@@ -99,11 +139,11 @@ export function useNotificacoesMencao() {
 }
 
 /**
- * Baixa o sino das menções que estão na thread aberta.
+ * Baixa o sino das menções e respostas que estão na thread aberta.
  *
  * Sem isto, ler o comentário na tarefa não limpa a notificação, e o contador
  * fica pendurado até alguém clicar no item do sino. Só grava quando há
- * interseção — thread sem menção minha não faz nenhuma escrita.
+ * interseção — thread que não me cita nem me responde não faz nenhuma escrita.
  */
 export function useMarcarMencoesLidasDaThread(commentIds: string[]) {
   const { notifications, marcarComoLidas } = useNotificacoesMencao();

@@ -61,6 +61,11 @@ export function FeedRespostaInline({
           files,
           mentions,
           parentId: parentIdParaResposta(comentario),
+          // Aqui os dois divergem: no feed responde-se a qualquer item, e
+          // responder a uma resposta pendura na raiz dela. Quem recebe a
+          // notificação é o autor do item respondido — este `id` —, não o da
+          // raiz onde a resposta foi pendurada.
+          respondidoId: comentario.id,
         });
         // A resposta é o comentário mais novo do sistema, então entra no topo do
         // feed. Invalidar refaz as páginas carregadas pelos cursores já
