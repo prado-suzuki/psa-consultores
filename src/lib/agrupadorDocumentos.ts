@@ -5,7 +5,7 @@
 // enum, os rótulos DocBox e os 4 grupos da área do cliente). O agrupador
 // oficial são os 4 grupos. O cliente só grava 4 das 9 categorias
 // (pessoais, societarios, agrarios, outros); as outras 5 aparecem no catálogo
-// checklist_item_padrao mas nunca chegam pelo upload. Sem este mapa, o
+// documento_tipo mas nunca chegam pelo upload. Sem este mapa, o
 // documento solicitado e o documento recebido caem em grupos diferentes.
 //
 // Esta lib é a única fonte da definição dos grupos. Telas de cliente e de

@@ -1,4 +1,4 @@
-import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 export interface SelectOption {
@@ -26,6 +26,12 @@ interface SelectProps {
   searchable?: boolean;
   /** Ação fixa no topo do painel (ex.: "+ Cadastrar novo"). Fecha o painel ao clicar. */
   footerAction?: { label: string; onClick: () => void };
+  /** Mantém o painel aberto após escolher, para selecionar vários em sequência. */
+  keepOpenOnSelect?: boolean;
+  /** Já monta com o painel aberto — para quando o gatilho vive fora deste componente. */
+  openOnMount?: boolean;
+  /** Avisa quem montou que o painel fechou. */
+  onClose?: () => void;
 }
 
 export default function Select({
@@ -42,11 +48,14 @@ export default function Select({
   style,
   searchable: searchableProp,
   footerAction,
+  keepOpenOnSelect,
+  openOnMount,
+  onClose,
 }: SelectProps) {
   const generatedId = useId();
   const buttonId = id || generatedId;
   const listboxId = `${buttonId}-listbox`;
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(Boolean(openOnMount));
   const [activeIndex, setActiveIndex] = useState<number>(-1);
   const [searchTerm, setSearchTerm] = useState('');
   const [pos, setPos] = useState<{ top: number; left: number; width: number; openUp: boolean } | null>(null);
@@ -58,6 +67,16 @@ export default function Select({
   const selectedIndex = useMemo(() => options.findIndex(o => o.value === value), [options, value]);
   const selectedLabel = selectedIndex >= 0 ? options[selectedIndex].label : '';
   const searchable = Boolean(searchableProp) || Boolean(footerAction);
+
+  // Fechar sempre por aqui, para quem montou o painel saber que ele fechou.
+  // `onClose` vai em ref para `fechar` ficar estável e não re-assinar os
+  // listeners de scroll/pointerdown a cada render.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+  const fechar = useCallback(() => {
+    setOpen(false);
+    onCloseRef.current?.();
+  }, []);
 
   const filteredOptions = useMemo(() => {
     const normalizedSearch = normalizeSearch(searchTerm);
@@ -95,7 +114,7 @@ export default function Select({
       const target = e.target as Node;
       if (triggerRef.current?.contains(target)) return;
       if (panelRef.current?.contains(target)) return;
-      setOpen(false);
+      fechar();
     };
     window.addEventListener('scroll', onScrollOrResize, true);
     window.addEventListener('resize', onScrollOrResize);
@@ -105,7 +124,7 @@ export default function Select({
       window.removeEventListener('resize', onScrollOrResize);
       document.removeEventListener('mousedown', onPointerDown);
     };
-  }, [open]);
+  }, [open, fechar]);
 
   useEffect(() => {
     if (open) {
@@ -145,6 +164,12 @@ export default function Select({
     const opt = options[i];
     if (!opt || opt.disabled) return;
     onChange(opt.value);
+    if (keepOpenOnSelect) {
+      // Seleção em sequência: limpa a busca e devolve o foco para o próximo item.
+      setSearchTerm('');
+      window.requestAnimationFrame(() => searchRef.current?.focus());
+      return;
+    }
     setOpen(false);
     triggerRef.current?.focus();
   };
@@ -153,7 +178,7 @@ export default function Select({
     if (disabled) return;
     const isSearchInput = e.target === searchRef.current;
     if (open && isSearchInput) {
-      if (e.key === 'Escape') { e.preventDefault(); setOpen(false); triggerRef.current?.focus(); return; }
+      if (e.key === 'Escape') { e.preventDefault(); fechar(); triggerRef.current?.focus(); return; }
       if (e.key === 'ArrowDown') { e.preventDefault(); moveActive(1); return; }
       if (e.key === 'ArrowUp') { e.preventDefault(); moveActive(-1); return; }
       if (e.key === 'Enter') { e.preventDefault(); commit(activeIndex); return; }
@@ -166,7 +191,7 @@ export default function Select({
       }
       return;
     }
-    if (e.key === 'Escape') { e.preventDefault(); setOpen(false); return; }
+    if (e.key === 'Escape') { e.preventDefault(); fechar(); return; }
     if (e.key === 'ArrowDown') { e.preventDefault(); moveActive(1); return; }
     if (e.key === 'ArrowUp') { e.preventDefault(); moveActive(-1); return; }
     if (e.key === 'Home') {
@@ -181,7 +206,7 @@ export default function Select({
       return;
     }
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); commit(activeIndex); return; }
-    if (e.key === 'Tab') { setOpen(false); return; }
+    if (e.key === 'Tab') { fechar(); return; }
   };
 
   const triggerCls = [
@@ -211,7 +236,7 @@ export default function Select({
         id={buttonId}
         type="button"
         className={triggerCls}
-        onClick={() => !disabled && setOpen(o => !o)}
+        onClick={() => { if (!disabled) { if (open) fechar(); else setOpen(true); } }}
         onKeyDown={handleKeyDown}
         disabled={disabled}
         aria-haspopup="listbox"
@@ -260,7 +285,7 @@ export default function Select({
                   aria-label={footerAction.label}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => {
-                    setOpen(false);
+                    fechar();
                     footerAction.onClick();
                   }}
                 >

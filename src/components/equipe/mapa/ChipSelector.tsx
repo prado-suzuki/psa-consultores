@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import Select from './Select';
 import DecimalInput from './DecimalInput';
 import type { DocRef, PessoaRef, ResponsavelEtapa } from '@/types';
@@ -41,14 +42,19 @@ export default function ChipSelector({
   addNewLabel = 'Cadastrar novo',
 }: ChipSelectorProps) {
   const getNome = (item: ChipItem) => (isString(item) ? item : item.nome);
+  // "Adicionar" abre a lista e anexa um item por escolha, sem criar linha vazia
+  // antes (era o 1º dos 3 cliques por item) e sem deixar órfã se desistir.
+  const [modoAdicionar, setModoAdicionar] = useState(false);
+  const nomesEscolhidos = value.map(getNome).filter(Boolean);
 
-  const handleAdd = () => {
+  const appendItem = (nome: string) => {
+    if (!nome || nomesEscolhidos.includes(nome)) return;
     if (withVolume) {
-      onChange([...value, { nome: '', volume: 0 } as DocRef]);
+      onChange([...value, { nome, volume: 0 } as DocRef]);
     } else if (withHours) {
-      onChange([...value, { nome: '', horas: 0 } as ResponsavelEtapa]);
+      onChange([...value, { nome, horas: 0 } as ResponsavelEtapa]);
     } else {
-      onChange([...value, '']);
+      onChange([...value, nome]);
     }
   };
 
@@ -144,16 +150,31 @@ export default function ChipSelector({
         })}
       </div>
       <div className="chip-selector-add" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-        <IconTooltip label={addLabel} side="bottom">
-          <button
-            type="button"
-            className="btn-chip-add"
-            onClick={handleAdd}
-            disabled={options.length === 0 && !onAddNew}
-          >
-            {addLabel}
-          </button>
-        </IconTooltip>
+        {modoAdicionar ? (
+          <Select
+            value=""
+            onChange={appendItem}
+            options={options.map((o) => ({ value: o, label: o, disabled: nomesEscolhidos.includes(o) }))}
+            placeholder={addLabel}
+            compact={compact}
+            searchable
+            keepOpenOnSelect
+            openOnMount
+            onClose={() => setModoAdicionar(false)}
+            ariaLabel={addLabel}
+          />
+        ) : (
+          <IconTooltip label={addLabel} side="bottom">
+            <button
+              type="button"
+              className="btn-chip-add"
+              onClick={() => setModoAdicionar(true)}
+              disabled={options.length === 0 && !onAddNew}
+            >
+              {addLabel}
+            </button>
+          </IconTooltip>
+        )}
         {/* Atalho visível de cadastro (sem precisar criar a linha e abrir a lista antes). */}
         {onAddNew && (
           <button

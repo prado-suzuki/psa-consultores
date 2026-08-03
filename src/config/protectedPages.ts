@@ -558,6 +558,14 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/onboarding',
+    page_name: 'Onboarding OSG',
+    page_description: 'Preparação da solicitação inicial de documentos por produto contratado',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/work/qualificacao-das-partes',
     page_name: 'Qualificação das Partes',
     page_description: 'CRUD de pessoas (PF/PJ) e vínculos de parentesco por cliente',

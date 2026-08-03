@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { User, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { FiscalSidebar } from './FiscalSidebar';
 import { Button } from '@/components/ui/button';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
@@ -13,30 +12,34 @@ interface FiscalLayoutProps {
 }
 
 export const FiscalLayout = ({ children, title, subtitle, headerActions }: FiscalLayoutProps) => {
-  const { user } = useAuth();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="h-screen bg-muted flex w-full overflow-hidden">
+    <div className="min-h-screen bg-muted flex w-full">
       {/* Sidebar */}
       <FiscalSidebar isCollapsed={isCollapsed} onToggle={() => setIsCollapsed(!isCollapsed)} />
-      
+
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Header */}
-        <header className="h-14 bg-card border-b border-border/60 px-6 flex items-center justify-between flex-shrink-0">
-          <div className="flex items-center gap-4">
-            {isCollapsed && (
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setIsCollapsed(false)}>
-                <Menu className="h-4 w-4" />
-              </Button>
-            )}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Header — altura, tipografia e conteúdo espelhados do OSG Projects. O
+            usuário mora no rodapé da barra da esquerda; aqui ficam só o título
+            da página e as ações. */}
+        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-6 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden text-muted-foreground"
+              onClick={() => setIsCollapsed(!isCollapsed)}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
             <div>
-              <h1 className="font-semibold text-foreground">{title}</h1>
-              {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+              <h1 className="text-xl font-bold text-foreground">{title}</h1>
+              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
-          
+
           <div className="flex items-center gap-3">
             {headerActions}
 
@@ -44,24 +47,16 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
               navigateTo="/equipe/chamados"
               tasksNavigateTo="/equipe/tax/projetos/tarefas"
             />
-
-            {/* User Info */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted border border-border/60">
-              <div className="h-6 w-6 rounded-full bg-success/10 flex items-center justify-center">
-                <User className="h-3.5 w-3.5 text-success" />
-              </div>
-              <span className="text-sm font-medium text-foreground">
-                {user?.email?.split('@')[0] || 'Usuario'}
-              </span>
-            </div>
           </div>
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-auto p-6">
-          {children}
-        </main>
-      </div>
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {children}
+          </div>
+        </div>
+      </main>
     </div>
   );
 };
