@@ -8,6 +8,13 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => {};
 }
 
+// jsdom não implementa elementFromPoint — o rastreio de viewport do Placeholder
+// (TipTap) chama posAtCoords do ProseMirror, que depende dele. Devolver null faz
+// o ProseMirror cair no caminho de fallback, que já trata "posição desconhecida".
+if (!document.elementFromPoint) {
+  document.elementFromPoint = () => null;
+}
+
 // Polyfill de Web Storage em memória.
 //
 // No Node 24+ a Web Storage API nativa vem ligada por padrão e define um global

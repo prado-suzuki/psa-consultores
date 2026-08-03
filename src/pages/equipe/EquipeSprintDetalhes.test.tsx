@@ -761,7 +761,8 @@ describe('EquipeSprintDetalhes: UI pública', () => {
 
     await user.click(screen.getByRole('button', { name: 'Nova Tarefa' }));
     expect(screen.getByRole('heading', { name: 'Nova Tarefa' })).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Título *'), 'Nova entrega');
+    // O asterisco de obrigatório vem do <RequiredMark />, colado no texto do label.
+    await user.type(screen.getByLabelText('Título*'), 'Nova entrega');
     await user.clear(screen.getByLabelText('Horas Estimadas'));
     await user.type(screen.getByLabelText('Horas Estimadas'), '4.5');
     await user.click(screen.getByRole('button', { name: 'Criar Tarefa' }));

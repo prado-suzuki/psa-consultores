@@ -980,3 +980,122 @@ All colors MUST be HSL.
 .editor-modelo .ProseMirror .osg-var-chip.ProseMirror-selectednode {
   box-shadow: 0 0 0 2px hsl(var(--ring) / 0.5);
 }
+
+/* Descrição rica de tarefa/entregável (TipTap) — ver TarefaRichTextEditor.tsx */
+.tarefa-richtext .ProseMirror {
+  word-break: break-word;
+}
+
+.tarefa-richtext .ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: hsl(var(--muted-foreground));
+}
+
+.tarefa-richtext .ProseMirror p + p {
+  margin-top: 0.5rem;
+}
+
+.tarefa-richtext .ProseMirror ul {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  list-style: disc;
+}
+
+.tarefa-richtext .ProseMirror ol {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  list-style: decimal;
+}
+
+/* Código na linha */
+.tarefa-richtext .ProseMirror code {
+  border-radius: 0.25rem;
+  background: hsl(var(--muted));
+  padding: 0.1rem 0.3rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.85em;
+}
+
+/* Bloco de código: fundo escuro para o realce de sintaxe ter contraste */
+.tarefa-richtext .ProseMirror pre {
+  margin: 0.75rem 0;
+  overflow-x: auto;
+  border-radius: 0.375rem;
+  background: #1e222a;
+  padding: 0.75rem 0.9rem;
+  color: #e6e6e6;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+}
+
+.tarefa-richtext .ProseMirror pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* Tokens do highlight.js (lowlight) — paleta própria, sem tema externo */
+.tarefa-richtext .hljs-comment,
+.tarefa-richtext .hljs-quote {
+  color: #8a93a3;
+  font-style: italic;
+}
+
+.tarefa-richtext .hljs-keyword,
+.tarefa-richtext .hljs-selector-tag,
+.tarefa-richtext .hljs-literal,
+.tarefa-richtext .hljs-section,
+.tarefa-richtext .hljs-doctag,
+.tarefa-richtext .hljs-type {
+  color: #c792ea;
+}
+
+.tarefa-richtext .hljs-string,
+.tarefa-richtext .hljs-regexp,
+.tarefa-richtext .hljs-addition {
+  color: #9ece6a;
+}
+
+.tarefa-richtext .hljs-number,
+.tarefa-richtext .hljs-symbol,
+.tarefa-richtext .hljs-bullet,
+.tarefa-richtext .hljs-meta {
+  color: #f78c6c;
+}
+
+.tarefa-richtext .hljs-title,
+.tarefa-richtext .hljs-name,
+.tarefa-richtext .hljs-selector-id,
+.tarefa-richtext .hljs-selector-class {
+  color: #82aaff;
+}
+
+.tarefa-richtext .hljs-attr,
+.tarefa-richtext .hljs-attribute,
+.tarefa-richtext .hljs-variable,
+.tarefa-richtext .hljs-template-variable,
+.tarefa-richtext .hljs-property {
+  color: #ffcb6b;
+}
+
+.tarefa-richtext .hljs-built_in,
+.tarefa-richtext .hljs-class .hljs-title {
+  color: #4fd6be;
+}
+
+.tarefa-richtext .hljs-deletion {
+  color: #ff757f;
+}
+
+.tarefa-richtext .hljs-emphasis {
+  font-style: italic;
+}
+
+.tarefa-richtext .hljs-strong {
+  font-weight: 600;
+}

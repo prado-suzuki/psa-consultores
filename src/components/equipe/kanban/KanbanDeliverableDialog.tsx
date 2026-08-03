@@ -29,9 +29,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { AnexosEntregavel } from '@/components/equipe/AnexosEntregavel';
+import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
 import type {
   EquipeKanbanDeliverable,
   EquipeKanbanEditForm,
@@ -83,12 +83,15 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
           </div>
 
           <div className="space-y-2">
+            {/* Mesma coluna editada no modal da sprint: precisa do mesmo editor rico,
+                senão abrir aqui um texto formatado mostraria o JSON cru. */}
             <Label className="text-gray-700">Descrição</Label>
-            <Textarea
+            <TarefaRichTextEditor
               value={editForm.description}
-              onChange={(event) => setEditForm({ ...editForm, description: event.target.value })}
-              className="bg-white border-gray-300 text-gray-900 min-h-[100px]"
-              placeholder="Descreva os detalhes do entregável..."
+              onChange={(next) => setEditForm({ ...editForm, description: next })}
+              ariaLabel="Descrição"
+              minHeight="min-h-[120px]"
+              maxHeight="max-h-[280px]"
             />
           </div>
 
