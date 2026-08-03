@@ -724,6 +724,7 @@ export type Database = {
           documento: string
           entidade: string
           granularidade: string
+          grupo: Database["public"]["Enums"]["osg_doc_grupo"] | null
           id: string
           modulo: string
           nota: string | null
@@ -743,6 +744,7 @@ export type Database = {
           documento: string
           entidade: string
           granularidade?: string
+          grupo?: Database["public"]["Enums"]["osg_doc_grupo"] | null
           id?: string
           modulo: string
           nota?: string | null
@@ -762,6 +764,7 @@ export type Database = {
           documento?: string
           entidade?: string
           granularidade?: string
+          grupo?: Database["public"]["Enums"]["osg_doc_grupo"] | null
           id?: string
           modulo?: string
           nota?: string | null
@@ -8622,6 +8625,7 @@ export type Database = {
         | "outros"
         | "georreferenciamento"
       osg_doc_fonte: "cliente" | "psa" | "arquivar"
+      osg_doc_grupo: "pf" | "pj" | "bens_imoveis" | "outros"
       osg_doc_status: "pendente" | "ativo"
       osg_tipo_exploracao:
         | "arrendamento"
@@ -8858,6 +8862,7 @@ export const Constants = {
         "georreferenciamento",
       ],
       osg_doc_fonte: ["cliente", "psa", "arquivar"],
+      osg_doc_grupo: ["pf", "pj", "bens_imoveis", "outros"],
       osg_doc_status: ["pendente", "ativo"],
       osg_tipo_exploracao: [
         "arrendamento",
