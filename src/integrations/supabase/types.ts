@@ -278,6 +278,30 @@ export type Database = {
         }
         Relationships: []
       }
+      backup_desc_fluxo_solicitacao_20260803: {
+        Row: {
+          copiado_em: string | null
+          description: string | null
+          id: string | null
+          task_code: string | null
+          title: string | null
+        }
+        Insert: {
+          copiado_em?: string | null
+          description?: string | null
+          id?: string | null
+          task_code?: string | null
+          title?: string | null
+        }
+        Update: {
+          copiado_em?: string | null
+          description?: string | null
+          id?: string | null
+          task_code?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
       bem: {
         Row: {
           ccir_codigo: string | null
