@@ -124,6 +124,11 @@ conteúdo dos arquivos para começar a valer.
 | Partir da ficha, com a gaveta de arquivos ao lado | Mais perto do que existe hoje e menos truncado, mas o vínculo volta a ser ato de vontade — dá para terminar a ficha sem tocar em arquivo nenhum, e o problema original volta |
 | O documento propõe a ficha preenchida, o consultor confere | O mais forte — muda o trabalho de *digitar* para *revisar* — e o mais caro. Não é decisão de agora, mas o formato escolhido deve nascer sabendo que **um campo tem origem**, para que depois seja só trocar quem propõe: hoje o consultor, amanhã a máquina |
 
+Esse terceiro formato, e mais dois lugares onde a máquina economiza trabalho sem virar fonte de erro,
+estão detalhados em `docs/planos/ia-extracao-documentos.md` — onde cabe IA, o que ela aguenta com
+scan ruim, onde processar e onde guardar. **Nada de lá é pré-requisito desta frente**, que funciona
+inteira sem IA.
+
 ## 8. Documento faltante — fora desta frente
 
 Decisão: **não haverá cálculo de "faltante"**. Em vez de derivar a falta por subtração, o consultor
@@ -166,7 +171,7 @@ duas caírem custa zero; começar antes custa um retrabalho pequeno e mecânico.
 |---|---|
 | 1 | ~~Como o consultor sinaliza que terminou com um arquivo~~ — **resolvida** pelo 1:1 da regra 3 do §5: vincular já é terminar, e o arquivo sai do balde |
 | 2 | O que a varredura ordenada usa como sinal na primeira versão (nome do arquivo, lote de upload, gaveta) e se isso é suficiente para o consultor confiar na ordem |
-| 3 | Se a procedência é registrada por campo ou por ficha. Por campo é o que habilita o formato 3 do §7; por ficha é mais barato e já resolve o vínculo |
+| 3 | Se a procedência é registrada por campo ou por ficha. Por campo é o que habilita o formato 3 do §7; por ficha é mais barato e já resolve o vínculo. **Inclina para "por campo"** se a frente de IA andar — ver `ia-extracao-documentos.md` §8 |
 | 4 | Se o fluxo é o mesmo para bem e matrícula ou se a varredura por imóvel tem sinais próprios |
 
 ---
