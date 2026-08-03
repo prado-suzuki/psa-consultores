@@ -27,3 +27,7 @@ Mais a confirmação, lendo o arquivo, de que `types.ts` traz `documento_tipo` e
 ## Se algo falhar
 
 Devolvo a mensagem completa e o diagnóstico da causa, sem alterar a migration e sem contornar.
+
+## Condição adicional de pré-voo
+
+Não executar `public.gerar_solicitacao_os` em nenhuma hipótese, nem para validar: ela contém um `INSERT` em `checklist_cliente_item` e criaria dado real. A prova de que o corpo resolve os nomes novos fica para uma verificação separada, dentro de transação desfeita.
