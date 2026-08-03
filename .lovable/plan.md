@@ -18,7 +18,7 @@ Nada de front. Nada fora de EDU-21 (itens EDU-22, `solicitacao_id` EDU-23 e bot�
 ## GATE (devolvo os cinco resultados, sem resumir)
 
 1. `enum_range` do `osg_solicitacao_status` — esperado `rascunho, enviada, encerrada` nessa ordem.
-2. `information_schema.columns` de `solicitacao` — esperado 10 colunas, sem `ambiente`, com os NOT NULL e defaults acima.
+2. `information_schema.columns` de `solicitacao` — esperado 11 colunas, sem `ambiente`, com os NOT NULL e defaults acima.
 3. `pg_indexes` — esperado 3, incluindo o único parcial com o `WHERE`.
 4. `pg_policies` — esperado 5, com a do cliente citando `resolve_user_cliente_id` e `status = 'enviada'`.
 5. `pg_constraint` contype='f' — esperado 2 FKs, `cliente_id` com `c` e `ordem_servico_id` com `n`.
