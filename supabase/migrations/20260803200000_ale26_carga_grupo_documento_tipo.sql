@@ -58,7 +58,7 @@ delete from public.documento_tipo
 -- Não é derivado de `entidade` nem de `categoria` — é a decisão de onde o documento
 -- aparece para o cliente. Por isso vem escrito, e não calculado.
 update public.documento_tipo d
-   set grupo = v.grupo
+   set grupo = v.grupo::public.osg_doc_grupo
   from (values
     ('bem--planilha-de-diagnostico-tributario-receitas-desp', 'outros'),
     ('bem--planilha-de-resultado-projetado-pf-e-pj', 'outros'),
