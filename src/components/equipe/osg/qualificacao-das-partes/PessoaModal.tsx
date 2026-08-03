@@ -6,6 +6,7 @@ import { HistoricoFlutuante } from '@/components/equipe/osg/HistoricoFlutuante';
 import { UnsavedChangesAlert } from '@/components/equipe/osg/UnsavedChangesAlert';
 import { DocumentosTab } from '@/components/equipe/osg/documentos/DocumentosTab';
 import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
+import { formScopeCls } from '@/lib/osgFormGrid';
 import { AdministracaoPanel } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/AdministracaoPanel';
 import {
   PessoaDadosTab,
@@ -151,7 +152,9 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
                 </TabsList>
               )}
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+            {/* `formScopeCls`: as grades do formulário medem ESTE contêiner (848px aqui),
+                não a janela — ver formKit. Mantém o modal largo como era. */}
+            <div className={`min-h-0 flex-1 overflow-y-auto px-6 py-5 ${formScopeCls}`}>
               <TabsContent value="dados" className="mt-0 focus-visible:ring-0">
                 <PessoaDadosTab
                   draft={draft}

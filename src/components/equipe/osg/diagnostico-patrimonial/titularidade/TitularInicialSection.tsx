@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FieldSection, fieldCls, labelCls } from '@/components/equipe/osg/formKit';
+import { formGridCls } from '@/lib/osgFormGrid';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { TitularInicialDraft } from '@/lib/diagnosticoPatrimonialModalModels';
 
@@ -23,7 +24,7 @@ export function TitularInicialSection({ entity, pessoas, value, onChange }: Titu
             um cliente) antes de criar {entity === 'bem' ? 'o bem' : 'a matrícula'}.
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div className={`${formGridCls(2)} gap-3`}>
             <div className="space-y-1.5">
               <Label className={labelCls}>Titular<RequiredMark /></Label>
               <Select value={value.titular_pessoa_id || undefined} onValueChange={(id) => onChange({ ...value, titular_pessoa_id: id })}>
