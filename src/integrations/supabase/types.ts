@@ -8603,6 +8603,7 @@ export type Database = {
           last_name: string
         }[]
       }
+      get_solicitacao_ativa_cliente: { Args: never; Returns: Json }
       get_ticket_atendentes: {
         Args: { _ticket_ids: string[] }
         Returns: {
