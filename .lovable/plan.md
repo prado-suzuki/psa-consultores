@@ -1,38 +1,25 @@
 ## Objetivo
 
-Executar exatamente `supabase/migrations/20260731200000_carga_contribuintes_contratos_a_faturar.sql` (commit cfb148c1), sem alterar uma linha e sem tocar em mais nada.
+Executar exatamente `supabase/migrations/20260803120000_osg_doc_grupo.sql` (commit b787db06), sem alterar uma linha, e regenerar `src/integrations/supabase/types.ts`.
 
-## Pré-voo já executado (somente leitura)
+## O que o arquivo faz (lido, não alterado)
 
-- `contribuinte` prod / não excluído: **189** — bate com o esperado.
-- `cliente` prod / não excluído: **166** — bate com o esperado.
+`BEGIN` → bloco `DO` que cria `public.osg_doc_grupo` como enum com os 4 valores na ordem `pf, pj, bens_imoveis, outros` (guard por `pg_type`, porque `CREATE TYPE` não aceita `IF NOT EXISTS`) → `ALTER TABLE public.checklist_item_padrao ADD COLUMN IF NOT EXISTS grupo public.osg_doc_grupo` (nulável, sem default) → `COMMENT ON COLUMN` → `COMMIT`.
 
-Simulei também as travas do arquivo contra a base ao vivo, sem gravar nada:
-
-- 39 linhas na carga, **39 documentos distintos** (nenhum repetido internamente).
-- **0 colisões de documento** com `contribuinte` prod vivo, já usando a mesma normalização do arquivo (`lpad` com o zero à esquerda reposto, 11 ou 14 dígitos).
-- **0 colisões de id** — nenhum dos 39 uuid v5 existe hoje na tabela.
-- **0 clientes de destino faltando**: os 39 `cliente_id` existem, estão em `prod` e não estão excluídos (35 da etapa 1 + os 4 pré-existentes: São Francisco Agronegócios, Grupo Piccini, Alessio Sansão e Sch Agrícola).
-
-Nenhuma das seis travas deve disparar.
-
-## O que a migration faz (lida, não alterada)
-
-`BEGIN` → temp table `carga_contribuinte` (39 linhas, id fixo) → bloco `DO` com **6 travas** pré-carga (contagem 39; documento não numérico ou fora de 11/14 dígitos; `tipo_pessoa` incoerente com o tamanho do documento; documento repetido na carga; documento já existente em `contribuinte` prod; cliente de destino inexistente/excluído/não-prod; id já existente) → `INSERT` dos 39 com `NULL` explícito em inscrição estadual, situação, CNAE, setor, `simples_nacional` e `setor_cliente_id`, `contribuinte_faturamento=false`, `excluido=false`, `ambiente='prod'` → bloco `DO` de conferência com **3 checagens** pós-insert (39 gravados; nenhum sem documento; nenhum sem cliente) → `DROP TABLE` → `COMMIT` → `SELECT` final por lista de ids.
-
-Nenhum schema, policy, trigger, índice ou coluna é tocado. Nenhum UPDATE ou DELETE. Nada em `dev`.
+Nenhum `UPDATE`, nenhum índice, nenhum `NOT NULL`, nenhum rename, nenhuma policy, função ou trigger. Front intocado.
 
 ## Execução
 
 1. Rodar a migration pela ferramenta de migration, com o SQL do arquivo exatamente como está.
-2. Rodar o GATE: `SELECT count(*) FROM public.contribuinte WHERE ambiente='prod' AND excluido=false` — esperado **228** (189 + 39).
-3. Rodar o `SELECT` final da própria migration e devolver as **39 linhas inteiras** (id, documento, razão social, município, UF, cliente), sem resumir.
-4. Declarar explicitamente que nenhuma das 6 travas pré-carga nem das 3 conferências pós-insert disparou.
+2. Deixar o types.ts ser regenerado após a migration aprovada (é automático no fluxo pós-migration).
 
-## Se algo abortar
+## GATE (devolvo os quatro resultados, sem resumir)
 
-Qualquer `RAISE EXCEPTION 'Abortado: ...'` desfaz a transação inteira e nada é gravado. Nesse caso devolvo a mensagem completa e o diagnóstico da causa, sem corrigir o arquivo, sem contornar e sem tentar de novo.
+1. `select unnest(enum_range(null::public.osg_doc_grupo));` — esperado `pf, pj, bens_imoveis, outros` nessa ordem.
+2. `information_schema.columns` para `checklist_item_padrao.grupo` — esperado `udt_name = osg_doc_grupo`, `is_nullable = YES`.
+3. `select count(*) as total, count(grupo) as com_grupo from public.checklist_item_padrao;` — esperado `com_grupo = 0`.
+4. Confirmação, lendo o arquivo, de que `grupo` aparece no `Row` de `checklist_item_padrao` em `src/integrations/supabase/types.ts`.
 
-## Nota de leitura (não é erro)
+## Se algo falhar
 
-O trigger `normalize_name_title_case` roda `initcap()` na gravação, então `ARAGUAIA S.A.` e `Morro Da Mesa Concessionaria S/A.` aparecerão com caixa ajustada no SELECT final. Como os ids são fixos, isso não afeta nada.
+Devolvo a mensagem completa e o diagnóstico da causa, sem alterar a migration e sem contornar.
