@@ -92,3 +92,7 @@ playwright-report/
 
 # Artefatos do MCP do Playwright (snapshots/console/screenshots das rodadas de QA)
 .playwright-mcp/
+
+# Entries de preview descartáveis (conferir UI sem login) — nunca commitar
+/*-preview.html
+/src/__preview/
