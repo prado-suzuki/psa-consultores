@@ -2220,7 +2220,7 @@ export type Database = {
           documento: string
           entidade: string
           granularidade: string
-          grupo: Database["public"]["Enums"]["osg_doc_grupo"] | null
+          grupo: Database["public"]["Enums"]["osg_doc_grupo"]
           id: string
           modulo: string
           nota: string | null
@@ -2240,7 +2240,7 @@ export type Database = {
           documento: string
           entidade: string
           granularidade?: string
-          grupo?: Database["public"]["Enums"]["osg_doc_grupo"] | null
+          grupo: Database["public"]["Enums"]["osg_doc_grupo"]
           id?: string
           modulo: string
           nota?: string | null
@@ -2260,7 +2260,7 @@ export type Database = {
           documento?: string
           entidade?: string
           granularidade?: string
-          grupo?: Database["public"]["Enums"]["osg_doc_grupo"] | null
+          grupo?: Database["public"]["Enums"]["osg_doc_grupo"]
           id?: string
           modulo?: string
           nota?: string | null
