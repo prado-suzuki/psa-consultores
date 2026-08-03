@@ -1830,6 +1830,7 @@ export type Database = {
           nome_original: string
           org_projects_id: string | null
           pessoa_id: string | null
+          solicitacao_id: string | null
           status: Database["public"]["Enums"]["osg_doc_status"]
           tamanho: number | null
           updated_at: string
@@ -1856,6 +1857,7 @@ export type Database = {
           nome_original: string
           org_projects_id?: string | null
           pessoa_id?: string | null
+          solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["osg_doc_status"]
           tamanho?: number | null
           updated_at?: string
@@ -1882,6 +1884,7 @@ export type Database = {
           nome_original?: string
           org_projects_id?: string | null
           pessoa_id?: string | null
+          solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["osg_doc_status"]
           tamanho?: number | null
           updated_at?: string
@@ -1935,6 +1938,13 @@ export type Database = {
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_arquivo_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacao"
             referencedColumns: ["id"]
           },
         ]
