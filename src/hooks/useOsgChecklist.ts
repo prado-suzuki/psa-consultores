@@ -2,10 +2,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-// Tabelas novas (checklist_item_padrao / checklist_cliente_item) e a coluna
-// documento_arquivo.checklist_item_id ainda não estão no types.ts gerado — usamos
-// `as any` no client (mesmo padrão já usado no repo p/ tabelas fora do schema tipado).
-// Assim que a migração for aplicada e o types.ts regenerado, dá pra tipar de verdade.
+// Catálogo (documento_tipo, ex-checklist_item_padrao — renomeada na EDU-20) e
+// checklist_cliente_item. O `as any` no client é herança de quando essas tabelas
+// ainda não estavam no types.ts; hoje já estão, e tipar de verdade é dívida
+// separada — aqui só o nome da tabela acompanhou o rename.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const sb = supabase as any;
 
@@ -80,7 +80,7 @@ export function useChecklistPadrao() {
     queryKey: [PADRAO_KEY],
     queryFn: async (): Promise<ChecklistPadraoRow[]> => {
       const { data, error } = await sb
-        .from('checklist_item_padrao')
+        .from('documento_tipo')
         .select('*')
         .eq('ativo', true)
         .order('ordem', { ascending: true });
@@ -156,7 +156,7 @@ export function useGerarChecklistCliente(clienteId: string) {
     mutationFn: async (): Promise<number> => {
       // 1) padrão obrigatório
       const { data: padrao, error: e1 } = await sb
-        .from('checklist_item_padrao')
+        .from('documento_tipo')
         .select('*')
         .eq('ativo', true)
         .eq('obrigatorio_default', true);

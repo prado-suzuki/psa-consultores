@@ -69,7 +69,7 @@ export function useOnboarding(clienteId: string | null) {
 
       const { data: linkRows, error: linkError } = productIds.length
         ? await supabase
-          .from('produto_checklist_item')
+          .from('produto_documento_tipo')
           .select('produto_segmento_id, item_padrao_id, obrigatorio')
           .in('produto_segmento_id', productIds)
         : { data: [], error: null };
@@ -78,7 +78,7 @@ export function useOnboarding(clienteId: string | null) {
       // Catálogo inteiro: os vinculados viram a lista do produto e o restante
       // alimenta a lista de opcionais de cada grupo.
       const { data: itemRows, error: itemError } = await supabase
-        .from('checklist_item_padrao')
+        .from('documento_tipo')
         .select(
           'id, codigo, documento, entidade, modulo, nota, categoria, categoria_docbox, confidencial, ordem',
         )
