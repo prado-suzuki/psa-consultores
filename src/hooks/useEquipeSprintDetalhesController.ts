@@ -10,6 +10,7 @@ import {
   type SprintDetalhesDeliverable as Deliverable,
 } from '@/hooks/useDomainEquipeSprintDetalhes';
 import { getBlockingOpenSubtasks } from '@/lib/deliverableCompletion';
+import { tarefaRichTextToPlain } from '@/lib/tarefaRichText';
 import { parseExcelFile, processExcelData, type ImportPreview } from '@/lib/excelImporter';
 import {
   buildExportRows,
@@ -662,7 +663,7 @@ export function useEquipeSprintDetalhesController() {
       keywords.some(
         (word) =>
           item.title.toLowerCase().includes(word) ||
-          (item.description ?? '').toLowerCase().includes(word),
+          tarefaRichTextToPlain(item.description).toLowerCase().includes(word),
       ),
     );
   };

@@ -14,6 +14,7 @@ import type {
   SprintDetalhesSprint as Sprint,
 } from '@/hooks/useDomainEquipeSprintDetalhes';
 import { isPastBrazil, isTodayBrazil, isTomorrowBrazil, parseDate } from '@/lib/dateUtils';
+import { tarefaRichTextToPlain } from '@/lib/tarefaRichText';
 
 export interface SprintFilters {
   responsible: string;
@@ -392,7 +393,7 @@ export function buildExportRows(
       Título: isSubtask ? parent?.title || '' : item.title,
       Subtarefa: isSubtask ? item.title : '',
       Responsável: profiles.find((profile) => profile.id === item.assigned_to)?.first_name ?? '',
-      Descrição: item.description ?? '',
+      Descrição: tarefaRichTextToPlain(item.description),
       'Estimativa (h)': item.estimated_hours || '',
       'Data de Entrega': format(parseDate(item.due_date), 'dd/MM/yyyy'),
       Projeto: projects.find((project) => project.id === item.project_id)?.name ?? '',
