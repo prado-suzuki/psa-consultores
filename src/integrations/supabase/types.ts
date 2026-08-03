@@ -717,7 +717,7 @@ export type Database = {
             foreignKeyName: "checklist_cliente_item_item_padrao_id_fkey"
             columns: ["item_padrao_id"]
             isOneToOne: false
-            referencedRelation: "checklist_item_padrao"
+            referencedRelation: "documento_tipo"
             referencedColumns: ["id"]
           },
           {
@@ -735,69 +735,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      checklist_item_padrao: {
-        Row: {
-          ativo: boolean
-          categoria: Database["public"]["Enums"]["osg_doc_categoria"] | null
-          categoria_docbox: string | null
-          codigo: string
-          confidencial: boolean
-          created_at: string
-          created_by: string | null
-          documento: string
-          entidade: string
-          granularidade: string
-          grupo: Database["public"]["Enums"]["osg_doc_grupo"] | null
-          id: string
-          modulo: string
-          nota: string | null
-          obrigatorio_default: boolean
-          ordem: number
-          updated_at: string
-          updated_by: string | null
-        }
-        Insert: {
-          ativo?: boolean
-          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
-          categoria_docbox?: string | null
-          codigo: string
-          confidencial?: boolean
-          created_at?: string
-          created_by?: string | null
-          documento: string
-          entidade: string
-          granularidade?: string
-          grupo?: Database["public"]["Enums"]["osg_doc_grupo"] | null
-          id?: string
-          modulo: string
-          nota?: string | null
-          obrigatorio_default?: boolean
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Update: {
-          ativo?: boolean
-          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
-          categoria_docbox?: string | null
-          codigo?: string
-          confidencial?: boolean
-          created_at?: string
-          created_by?: string | null
-          documento?: string
-          entidade?: string
-          granularidade?: string
-          grupo?: Database["public"]["Enums"]["osg_doc_grupo"] | null
-          id?: string
-          modulo?: string
-          nota?: string | null
-          obrigatorio_default?: boolean
-          ordem?: number
-          updated_at?: string
-          updated_by?: string | null
-        }
-        Relationships: []
       }
       ciclos_avaliacao: {
         Row: {
@@ -2294,6 +2231,69 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      documento_tipo: {
+        Row: {
+          ativo: boolean
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"] | null
+          categoria_docbox: string | null
+          codigo: string
+          confidencial: boolean
+          created_at: string
+          created_by: string | null
+          documento: string
+          entidade: string
+          granularidade: string
+          grupo: Database["public"]["Enums"]["osg_doc_grupo"] | null
+          id: string
+          modulo: string
+          nota: string | null
+          obrigatorio_default: boolean
+          ordem: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
+          categoria_docbox?: string | null
+          codigo: string
+          confidencial?: boolean
+          created_at?: string
+          created_by?: string | null
+          documento: string
+          entidade: string
+          granularidade?: string
+          grupo?: Database["public"]["Enums"]["osg_doc_grupo"] | null
+          id?: string
+          modulo: string
+          nota?: string | null
+          obrigatorio_default?: boolean
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
+          categoria_docbox?: string | null
+          codigo?: string
+          confidencial?: boolean
+          created_at?: string
+          created_by?: string | null
+          documento?: string
+          entidade?: string
+          granularidade?: string
+          grupo?: Database["public"]["Enums"]["osg_doc_grupo"] | null
+          id?: string
+          modulo?: string
+          nota?: string | null
+          obrigatorio_default?: boolean
+          ordem?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       documentos_processo: {
         Row: {
@@ -5888,7 +5888,7 @@ export type Database = {
           },
         ]
       }
-      produto_checklist_item: {
+      produto_documento_tipo: {
         Row: {
           created_at: string
           created_by: string | null
@@ -5921,14 +5921,14 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "produto_checklist_item_item_padrao_id_fkey"
+            foreignKeyName: "produto_documento_tipo_item_padrao_id_fkey"
             columns: ["item_padrao_id"]
             isOneToOne: false
-            referencedRelation: "checklist_item_padrao"
+            referencedRelation: "documento_tipo"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "produto_checklist_item_produto_segmento_id_fkey"
+            foreignKeyName: "produto_documento_tipo_produto_segmento_id_fkey"
             columns: ["produto_segmento_id"]
             isOneToOne: false
             referencedRelation: "produto_segmento"
