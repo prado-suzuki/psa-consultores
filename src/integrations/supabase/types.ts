@@ -7007,6 +7007,75 @@ export type Database = {
           },
         ]
       }
+      solicitacao_item: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          documento: string | null
+          entidade: string | null
+          granularidade: string
+          grupo: Database["public"]["Enums"]["osg_doc_grupo"]
+          id: string
+          item_padrao_id: string | null
+          nota: string | null
+          observacao: string | null
+          ordem: number
+          solicitacao_id: string
+          status: Database["public"]["Enums"]["osg_solicitacao_item_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          documento?: string | null
+          entidade?: string | null
+          granularidade: string
+          grupo: Database["public"]["Enums"]["osg_doc_grupo"]
+          id?: string
+          item_padrao_id?: string | null
+          nota?: string | null
+          observacao?: string | null
+          ordem?: number
+          solicitacao_id: string
+          status?: Database["public"]["Enums"]["osg_solicitacao_item_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          documento?: string | null
+          entidade?: string | null
+          granularidade?: string
+          grupo?: Database["public"]["Enums"]["osg_doc_grupo"]
+          id?: string
+          item_padrao_id?: string | null
+          nota?: string | null
+          observacao?: string | null
+          ordem?: number
+          solicitacao_id?: string
+          status?: Database["public"]["Enums"]["osg_solicitacao_item_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacao_item_item_padrao_id_fkey"
+            columns: ["item_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "documento_tipo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_item_solicitacao_id_fkey"
+            columns: ["solicitacao_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sprint_backlog_items: {
         Row: {
           cluster_id: string | null
@@ -8684,6 +8753,7 @@ export type Database = {
       osg_doc_fonte: "cliente" | "psa" | "arquivar"
       osg_doc_grupo: "pf" | "pj" | "bens_imoveis" | "outros"
       osg_doc_status: "pendente" | "ativo"
+      osg_solicitacao_item_status: "ativo" | "dispensado"
       osg_solicitacao_status: "rascunho" | "enviada" | "encerrada"
       osg_tipo_exploracao:
         | "arrendamento"
@@ -8922,6 +8992,7 @@ export const Constants = {
       osg_doc_fonte: ["cliente", "psa", "arquivar"],
       osg_doc_grupo: ["pf", "pj", "bens_imoveis", "outros"],
       osg_doc_status: ["pendente", "ativo"],
+      osg_solicitacao_item_status: ["ativo", "dispensado"],
       osg_solicitacao_status: ["rascunho", "enviada", "encerrada"],
       osg_tipo_exploracao: [
         "arrendamento",
