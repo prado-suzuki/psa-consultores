@@ -6974,6 +6974,63 @@ export type Database = {
           },
         ]
       }
+      solicitacao: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          encerrada_em: string | null
+          enviada_em: string | null
+          id: string
+          observacao: string | null
+          ordem_servico_id: string | null
+          status: Database["public"]["Enums"]["osg_solicitacao_status"]
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          encerrada_em?: string | null
+          enviada_em?: string | null
+          id?: string
+          observacao?: string | null
+          ordem_servico_id?: string | null
+          status?: Database["public"]["Enums"]["osg_solicitacao_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          encerrada_em?: string | null
+          enviada_em?: string | null
+          id?: string
+          observacao?: string | null
+          ordem_servico_id?: string | null
+          status?: Database["public"]["Enums"]["osg_solicitacao_status"]
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_ordem_servico_id_fkey"
+            columns: ["ordem_servico_id"]
+            isOneToOne: false
+            referencedRelation: "ordem_servico"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sprint_backlog_items: {
         Row: {
           cluster_id: string | null
@@ -8651,6 +8708,7 @@ export type Database = {
       osg_doc_fonte: "cliente" | "psa" | "arquivar"
       osg_doc_grupo: "pf" | "pj" | "bens_imoveis" | "outros"
       osg_doc_status: "pendente" | "ativo"
+      osg_solicitacao_status: "rascunho" | "enviada" | "encerrada"
       osg_tipo_exploracao:
         | "arrendamento"
         | "parceria"
@@ -8888,6 +8946,7 @@ export const Constants = {
       osg_doc_fonte: ["cliente", "psa", "arquivar"],
       osg_doc_grupo: ["pf", "pj", "bens_imoveis", "outros"],
       osg_doc_status: ["pendente", "ativo"],
+      osg_solicitacao_status: ["rascunho", "enviada", "encerrada"],
       osg_tipo_exploracao: [
         "arrendamento",
         "parceria",
