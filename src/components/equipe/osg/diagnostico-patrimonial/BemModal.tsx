@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
+import { formScopeCls } from '@/lib/osgFormGrid';
 import { useDeleteMatricula, useMatriculasByBem, useSetMatriculaBem, useUpsertBem, type BemRow, type MatriculaRow } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { HistoricoFlutuante } from '@/components/equipe/osg/HistoricoFlutuante';
@@ -72,7 +73,9 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose }: BemM
         <div className="shrink-0 rounded-t-lg bg-background px-6 pt-5"><DialogHeader className="mb-4 space-y-0 text-left"><DialogTitle className="flex items-center gap-2.5 text-base font-semibold">{isEdit ? 'Editar bem' : 'Novo bem'}{isEdit && bem?.referencia_dp && <span className="rounded-md bg-osg-50 px-2 py-0.5 font-mono text-sm font-semibold text-osg-700">{bem.referencia_dp}</span>}</DialogTitle></DialogHeader>
           {mostrarTabsList && <TabsList className={`${osgTabsListCls}${temTitularidade ? ' animate-in fade-in slide-in-from-top-2 duration-300' : ''}`}><TabsTrigger value="dados" className={osgTabTriggerCls}>Dados</TabsTrigger>{temTitularidade && <TabsTrigger value="titulares" className={osgTabTriggerCls}>Titularidade{!isEdit && !titularInicial.titular_pessoa_id && <span className="absolute -right-0.5 -top-0.5 flex h-2.5 w-2.5" aria-hidden><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-osg-moss opacity-75" /><span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-osg-moss" /></span>}</TabsTrigger>}<TabsTrigger value="documentos" disabled={!isEdit} className={osgTabTriggerCls}>Documentos</TabsTrigger></TabsList>}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        {/* `formScopeCls`: as grades do formulário medem ESTE contêiner (848px aqui),
+                não a janela — ver formKit. Mantém o modal largo como era. */}
+            <div className={`min-h-0 flex-1 overflow-y-auto px-6 py-5 ${formScopeCls}`}>
           <TabsContent value="dados" className="mt-0 focus-visible:ring-0"><BemDadosTab draft={draft} onChange={setDraft} pessoas={pessoasCliente} isEdit={isEdit} loadingMatriculas={loadingMatriculas} matriculas={matriculas} onLink={() => setVincularOpen(true)} onAdd={() => setMatriculaModal({ open: true, matricula: null })} onEdit={(matricula) => setMatriculaModal({ open: true, matricula })} onUnlink={(matricula) => setMatriculaBem.mutate({ matricula, bemId: null })} onDelete={(matricula) => deleteMatricula.mutate(matricula)} /></TabsContent>
           <TabsContent value="titulares" className="mt-0 focus-visible:ring-0">{isEdit && bem ? <TitularidadesPanel anchor={{ kind: 'bem', id: bem.id }} pessoasCliente={pessoasCliente} requireAtLeastOne /> : <TitularInicialSection entity="bem" pessoas={pessoasCliente} value={titularInicial} onChange={setTitularInicial} />}</TabsContent>
           <TabsContent value="documentos" className="mt-0 focus-visible:ring-0">{isEdit && bem?.id && <DocumentosTab clienteId={clienteId} vinculo={{ bemId: bem.id }} categoriaPadrao="bens_direitos" />}</TabsContent>

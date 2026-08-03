@@ -1,6 +1,7 @@
 import { X } from 'lucide-react';
 import { formatCep, formatCpfCnpj, UF_STATES } from '@/components/equipe/client-form/constants';
 import { FieldSection, fieldCls, labelCls, switchBoxCls, textareaCls } from '@/components/equipe/osg/formKit';
+import { formGridCls, formSpanCls } from '@/lib/osgFormGrid';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,17 +42,17 @@ export function PessoaDadosTab(props: PessoaDadosTabProps) {
   return (
     <div>
       <FieldSection number={next()} title="Identificação">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className={`${formGridCls(2)} gap-3`}>
           <TextField label={isPF ? 'CPF' : 'CNPJ'} value={draft.cpf_cnpj} onChange={(value) => setField('cpf_cnpj', formatCpfCnpj(value, draft.tipo_pessoa))} placeholder={isPF ? '000.000.000-00' : '00.000.000/0000-00'} mono />
-          <div className="space-y-1.5 md:col-span-2"><Label className={labelCls}>{isPF ? 'Nome completo' : 'Razão social'}<RequiredMark /></Label><Input value={draft.denominacao} onChange={(event) => setField('denominacao', event.target.value)} className={fieldCls} /></div>
+          <div className={`space-y-1.5 ${formSpanCls(2)}`}><Label className={labelCls}>{isPF ? 'Nome completo' : 'Razão social'}<RequiredMark /></Label><Input value={draft.denominacao} onChange={(event) => setField('denominacao', event.target.value)} className={fieldCls} /></div>
         </div>
       </FieldSection>
       <FieldSection number={next()} title="Endereço">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <div className={`${formGridCls(3)} gap-3`}>
           <TextField label="CEP" value={draft.endereco_cep} onChange={(value) => setField('endereco_cep', formatCep(value))} placeholder="00000-000" mono />
-          <div className="md:col-span-2"><TextField label="Logradouro" value={draft.endereco_logradouro} onChange={(value) => setField('endereco_logradouro', value)} /></div>
+          <div className={formSpanCls(2)}><TextField label="Logradouro" value={draft.endereco_logradouro} onChange={(value) => setField('endereco_logradouro', value)} /></div>
           <TextField label="Número" value={draft.endereco_numero} onChange={(value) => setField('endereco_numero', value)} />
-          <div className="md:col-span-2"><TextField label="Complemento" value={draft.endereco_complemento} onChange={(value) => setField('endereco_complemento', value)} /></div>
+          <div className={formSpanCls(2)}><TextField label="Complemento" value={draft.endereco_complemento} onChange={(value) => setField('endereco_complemento', value)} /></div>
           <TextField label="Bairro" value={draft.endereco_bairro} onChange={(value) => setField('endereco_bairro', value)} />
           <TextField label="Município" value={draft.endereco_municipio} onChange={(value) => setField('endereco_municipio', value)} />
           <SelectField label="UF" value={draft.endereco_uf} onChange={(value) => setField('endereco_uf', value)} options={UF_STATES} />
@@ -72,7 +73,7 @@ function PfFields({ draft, setDraft, candidates, number }: { draft: PessoaDraft;
   const married = draft.estado_civil === 'Casado(a)' || draft.estado_civil === 'União Estável';
   return (
     <FieldSection number={number} title="Dados pessoais">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className={`${formGridCls(3)} gap-3`}>
         <SelectField label="Gênero" value={draft.genero} onChange={(value) => setField('genero', value)} options={GENEROS} />
         <TextField label="Nacionalidade" value={draft.nacionalidade} onChange={(value) => setField('nacionalidade', value)} />
         <TextField label="Naturalidade (município)" value={draft.naturalidade_municipio} onChange={(value) => setField('naturalidade_municipio', value)} />
@@ -88,7 +89,7 @@ function PfFields({ draft, setDraft, candidates, number }: { draft: PessoaDraft;
             <Select value={draft.conjuge_id || undefined} onValueChange={(value) => setField('conjuge_id', value)}><SelectTrigger className={fieldCls}><SelectValue placeholder={candidates.length ? 'Selecione...' : 'Nenhuma PF cadastrada'} /></SelectTrigger><SelectContent>{candidates.map((candidate) => <SelectItem key={candidate.id} value={candidate.id}>{candidate.denominacao}</SelectItem>)}</SelectContent></Select>
           </div>
         )}
-        <div className="grid grid-cols-1 gap-3 md:col-span-3 md:grid-cols-2">
+        <div className={`${formGridCls(2)} gap-3 ${formSpanCls(3)}`}>
           <div className="space-y-1.5"><Label className={labelCls}>Filiação (pai)</Label><FiliacaoCombobox nome={draft.filiacao_pai} pessoaId={draft.filiacao_pai_pessoa_id} candidates={candidates} placeholder="Nome do pai" onChange={(nome, id) => setDraft((old) => ({ ...old, filiacao_pai: nome, filiacao_pai_pessoa_id: id }))} /></div>
           <div className="space-y-1.5"><Label className={labelCls}>Filiação (mãe)</Label><FiliacaoCombobox nome={draft.filiacao_mae} pessoaId={draft.filiacao_mae_pessoa_id} candidates={candidates} placeholder="Nome da mãe" onChange={(nome, id) => setDraft((old) => ({ ...old, filiacao_mae: nome, filiacao_mae_pessoa_id: id }))} /></div>
         </div>
@@ -96,7 +97,7 @@ function PfFields({ draft, setDraft, candidates, number }: { draft: PessoaDraft;
         <TextField label="Nº do documento" value={draft.documento_identidade_numero} onChange={(value) => setField('documento_identidade_numero', value)} />
         <TextField label="Órgão emissor" value={draft.documento_identidade_orgao} onChange={(value) => setField('documento_identidade_orgao', value)} />
         <SelectField label="UF do documento" value={draft.documento_identidade_uf} onChange={(value) => setField('documento_identidade_uf', value)} options={UF_STATES} />
-        <div className="md:col-span-3"><label className={`${switchBoxCls} w-full cursor-pointer text-sm`}><Checkbox checked={draft.is_fundador} onCheckedChange={(checked) => setField('is_fundador', checked === true)} />Fundador (patriarca/matriarca do grupo)</label></div>
+        <div className={formSpanCls(3)}><label className={`${switchBoxCls} w-full cursor-pointer text-sm`}><Checkbox checked={draft.is_fundador} onCheckedChange={(checked) => setField('is_fundador', checked === true)} />Fundador (patriarca/matriarca do grupo)</label></div>
       </div>
     </FieldSection>
   );
@@ -106,13 +107,13 @@ function PjFields({ draft, setDraft, number }: { draft: PessoaDraft; setDraft: R
   const setField = <K extends keyof PessoaDraft>(field: K, value: PessoaDraft[K]) => setDraft((old) => ({ ...old, [field]: value }));
   return (
     <FieldSection number={number} title="Dados da PJ">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className={`${formGridCls(3)} gap-3`}>
         <TextField label="NIRE" value={draft.nire} onChange={(value) => setField('nire', value)} />
         <SelectField label="UF da Junta Comercial" value={draft.junta_comercial_uf} onChange={(value) => setField('junta_comercial_uf', value)} options={UF_STATES} />
         <TextField type="date" label="Data de constituição" value={draft.data_constituicao} onChange={(value) => setField('data_constituicao', value)} />
         <SelectField label="Status" value={draft.status_constituicao} onChange={(value) => setField('status_constituicao', value)} options={STATUS_CONSTITUICAO} />
         <SelectField label="Tipo Empresa" value={draft.tipo_empresa} onChange={(value) => setField('tipo_empresa', value)} options={TIPOS_EMPRESA} />
-        <div className="space-y-1.5 md:col-span-3"><Label className={labelCls}>Objeto social</Label><Textarea value={draft.objeto_social} onChange={(event) => setField('objeto_social', event.target.value)} className={`min-h-[80px] ${textareaCls}`} /></div>
+        <div className={`space-y-1.5 ${formSpanCls(3)}`}><Label className={labelCls}>Objeto social</Label><Textarea value={draft.objeto_social} onChange={(event) => setField('objeto_social', event.target.value)} className={`min-h-[80px] ${textareaCls}`} /></div>
       </div>
     </FieldSection>
   );
@@ -120,8 +121,8 @@ function PjFields({ draft, setDraft, number }: { draft: PessoaDraft; setDraft: R
 
 function ParentescoFields({ value, onChange, candidates, number }: { value: ParentescoDraft; onChange: React.Dispatch<React.SetStateAction<ParentescoDraft>>; candidates: PessoaRow[]; number: string }) {
   return (
-    <FieldSection number={number} title="Filiação"><div className="grid grid-cols-1 items-end gap-2 md:grid-cols-4">
-      <div className="space-y-1.5 md:col-span-2"><Label className={labelCls}>Parente</Label><Select value={value.parenteId || undefined} onValueChange={(id) => onChange((old) => ({ ...old, parenteId: id }))}><SelectTrigger className={fieldCls}><SelectValue placeholder={candidates.length ? 'Selecione...' : 'Cadastre um fundador primeiro'} /></SelectTrigger><SelectContent>{candidates.map((candidate) => <SelectItem key={candidate.id} value={candidate.id}>{candidate.denominacao}</SelectItem>)}</SelectContent></Select></div>
+    <FieldSection number={number} title="Filiação"><div className={`${formGridCls(4)} items-end gap-2`}>
+      <div className={`space-y-1.5 ${formSpanCls(2)}`}><Label className={labelCls}>Parente</Label><Select value={value.parenteId || undefined} onValueChange={(id) => onChange((old) => ({ ...old, parenteId: id }))}><SelectTrigger className={fieldCls}><SelectValue placeholder={candidates.length ? 'Selecione...' : 'Cadastre um fundador primeiro'} /></SelectTrigger><SelectContent>{candidates.map((candidate) => <SelectItem key={candidate.id} value={candidate.id}>{candidate.denominacao}</SelectItem>)}</SelectContent></Select></div>
       <SelectField label="Tipo" value={value.tipo} onChange={(tipo) => onChange((old) => ({ ...old, tipo }))} options={TIPOS_PARENTESCO} />
       <SelectField label="Natureza" value={value.natureza} onChange={(natureza) => onChange((old) => ({ ...old, natureza }))} options={NATUREZAS} />
     </div></FieldSection>

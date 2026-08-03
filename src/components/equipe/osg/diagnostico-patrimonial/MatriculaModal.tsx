@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
+import { formScopeCls } from '@/lib/osgFormGrid';
 import { DocumentosTab } from '@/components/equipe/osg/documentos/DocumentosTab';
 import { useTitularidadesByMatricula, useUpsertMatricula, type MatriculaRow } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
@@ -87,7 +88,9 @@ export function MatriculaModal({ open, bemId, bemTipo, matricula, pessoasCliente
               <TabsTrigger value="documentos" disabled={!isEdit} className={osgTabTriggerCls}>Documentos</TabsTrigger>
             </TabsList>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          {/* `formScopeCls`: as grades do formulário medem ESTE contêiner (848px aqui),
+                não a janela — ver formKit. Mantém o modal largo como era. */}
+            <div className={`min-h-0 flex-1 overflow-y-auto px-6 py-5 ${formScopeCls}`}>
             <TabsContent value="dados" className="mt-0 focus-visible:ring-0"><MatriculaDadosTab draft={draft} onChange={setDraft} bemTipo={bemTipo} matricula={matricula} matriculasDoBem={matriculasDoBem} /></TabsContent>
             <TabsContent value="titulares" className="mt-0 focus-visible:ring-0">{isEdit && matricula ? <TitularidadesPanel anchor={{ kind: 'matricula', id: matricula.id }} pessoasCliente={pessoasCliente} requireAtLeastOne /> : <TitularInicialSection entity="matrícula" pessoas={pessoasCliente} value={titularInicial} onChange={setTitularInicial} />}</TabsContent>
             <TabsContent value="impedimentos" className="mt-0 focus-visible:ring-0">{isEdit && matricula && <ImpedimentosPanel matriculaId={matricula.id} areaUnidade={matricula.area_unidade} pessoasCliente={pessoasCliente} />}</TabsContent>
