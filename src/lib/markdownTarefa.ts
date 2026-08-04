@@ -37,12 +37,15 @@ interface PadraoInline {
 
 // Ordem importa: código na linha primeiro (o que está entre crases é literal) e
 // negrito antes de itálico, senão `**x**` casaria como itálico duas vezes.
+// O `_` só marca quando não está dentro de uma palavra (regra do CommonMark).
+// Sem isso, `checklist_item_padrao` fora de crases viraria itálico e perderia os
+// underscores — que é justamente o tipo de texto que estas descrições têm.
 const PADROES_INLINE: PadraoInline[] = [
   { regex: /`([^`\n]+)`/, marca: 'code', literal: true },
   { regex: /\*\*([^*\n]+)\*\*/, marca: 'bold' },
-  { regex: /__([^_\n]+)__/, marca: 'bold' },
+  { regex: /(?<![\w])__([^_\n]+)__(?![\w])/, marca: 'bold' },
   { regex: /\*([^*\n]+)\*/, marca: 'italic' },
-  { regex: /_([^_\n]+)_/, marca: 'italic' },
+  { regex: /(?<![\w])_([^_\n]+)_(?![\w])/, marca: 'italic' },
 ];
 
 function comMarca(nos: JSONContent[], marca: MarcaInline): JSONContent[] {
