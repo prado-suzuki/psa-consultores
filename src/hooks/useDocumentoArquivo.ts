@@ -7,6 +7,9 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { checklistClienteKey } from '@/hooks/useOsgChecklist';
 import { getApiUrl, currentAmbiente } from '@/config/api';
 import type { Database } from '@/integrations/supabase/types';
+// Só o tipo: as chaves dos 4 grupos são definidas em agrupadorDocumentos, que é
+// a fonte única. O import é `type` dos dois lados, então o ciclo some no build.
+import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 
 export type DocumentoArquivoRow = Database['public']['Tables']['documento_arquivo']['Row'];
 export type DocCategoria = Database['public']['Enums']['osg_doc_categoria'];
@@ -418,6 +421,66 @@ export function useChecklistSolicitadoCliente(clienteId: string | null) {
       const { data, error } = await (supabase.rpc as any)('get_checklist_solicitado_cliente');
       if (error) throw error;
       return (data ?? []) as ChecklistSolicitadoItem[];
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
+/**
+ * EDU-24: item da solicitação enviada, do ponto de vista do cliente.
+ *
+ * `documento`, `nota` e `entidade` já chegam resolvidos: a linha de
+ * solicitacao_item não copia texto do catálogo, e o coalesce com documento_tipo
+ * acontece dentro da RPC.
+ *
+ * `grupo` é a gaveta, gravada na própria linha. É por ela que a área do cliente
+ * agrupa, e não mais pelo texto de `entidade`.
+ */
+export interface SolicitacaoItemCliente {
+  id: string;
+  grupo: GrupoDocumentoKey;
+  documento: string;
+  nota: string | null;
+  entidade: string | null;
+  ordem: number | null;
+}
+
+/** EDU-24: cabeçalho da solicitação enviada. Nulo quando não há pedido enviado. */
+export interface SolicitacaoAtivaHeader {
+  id: string;
+  status: string;
+  enviada_em: string | null;
+}
+
+/** EDU-24: retorno de `get_solicitacao_ativa_cliente`. */
+export interface SolicitacaoAtivaCliente {
+  solicitacao: SolicitacaoAtivaHeader | null;
+  itens: SolicitacaoItemCliente[];
+}
+
+const SOLICITACAO_VAZIA: SolicitacaoAtivaCliente = { solicitacao: null, itens: [] };
+
+/**
+ * EDU-24: a solicitação ENVIADA do cliente logado e os itens ativos dela.
+ *
+ * A RPC não recebe argumento: ela resolve o cliente por `auth.uid()` e é
+ * SECURITY DEFINER, então o filtro por cliente mora dentro dela. O `clienteId`
+ * entra só na chave de cache e no `enabled`, para a consulta não disparar antes
+ * de o cliente do usuário estar resolvido.
+ *
+ * Sem pedido enviado (rascunho, encerrada ou nenhuma), a RPC devolve
+ * `solicitacao: null` e `itens: []`. Nunca null puro, então o front trata um
+ * formato só.
+ */
+export function useSolicitacaoAtivaCliente(clienteId: string | null) {
+  return useQuery({
+    queryKey: ['solicitacao-ativa-cliente', clienteId ?? '∅'],
+    enabled: !!clienteId,
+    queryFn: async (): Promise<SolicitacaoAtivaCliente> => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase.rpc as any)('get_solicitacao_ativa_cliente');
+      if (error) throw error;
+      return (data ?? SOLICITACAO_VAZIA) as SolicitacaoAtivaCliente;
     },
     staleTime: 60 * 1000,
   });

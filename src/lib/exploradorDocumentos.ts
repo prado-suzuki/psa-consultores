@@ -37,7 +37,7 @@ export function temVinculo(doc: DocumentoRoteavel): boolean {
 /**
  * Pasta de destino de um documento SEM vínculo, pela categoria.
  *
- * O grupo "imoveis" vai para Matrículas, não para Bens: o que chega do cliente
+ * O grupo "bens_imoveis" vai para Matrículas, não para Bens: o que chega do cliente
  * é matrícula, escritura, contrato de exploração. Bem é o que a OSG cadastra
  * depois, lendo esses documentos.
  *
@@ -48,7 +48,7 @@ export function destinoSemVinculo(categoria: DocCategoria): DestinoPasta {
   switch (grupoDaCategoria(categoria)) {
     case 'pf': return 'pessoas_pf';
     case 'pj': return 'pessoas_pj';
-    case 'imoveis': return 'matriculas';
+    case 'bens_imoveis': return 'matriculas';
     default: return 'sem';
   }
 }

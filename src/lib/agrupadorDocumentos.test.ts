@@ -21,8 +21,10 @@ const CATEGORIAS_DO_ENUM: DocCategoria[] = [
 ];
 
 describe('GRUPOS_DOCUMENTO', () => {
-  it('são 4, na ordem fixa da área do cliente', () => {
-    expect(GRUPOS_DOCUMENTO.map((g) => g.key)).toEqual(['pf', 'pj', 'imoveis', 'outros']);
+  // As 4 chaves têm de ser iguais às do enum osg_doc_grupo do banco. Grafia
+  // diferente faz o valor que vem do banco não casar com gaveta nenhuma.
+  it('são 4, na ordem fixa da área do cliente e com as chaves do enum do banco', () => {
+    expect(GRUPOS_DOCUMENTO.map((g) => g.key)).toEqual(['pf', 'pj', 'bens_imoveis', 'outros']);
   });
 
   it('cada grupo grava uma categoria diferente', () => {
@@ -47,7 +49,7 @@ describe('grupoDaCategoria', () => {
   it('manda as 4 categorias que o cliente grava para os grupos de sempre', () => {
     expect(grupoDaCategoria('pessoais')).toBe('pf');
     expect(grupoDaCategoria('societarios')).toBe('pj');
-    expect(grupoDaCategoria('agrarios')).toBe('imoveis');
+    expect(grupoDaCategoria('agrarios')).toBe('bens_imoveis');
     expect(grupoDaCategoria('outros')).toBe('outros');
   });
 
@@ -56,10 +58,10 @@ describe('grupoDaCategoria', () => {
     expect(grupoDaCategoria('sucessorios')).toBe('pf');
   });
 
-  it('manda as categorias de imóvel para Matrículas e Imóveis', () => {
-    expect(grupoDaCategoria('cadastros_fiscais')).toBe('imoveis');
-    expect(grupoDaCategoria('bens_direitos')).toBe('imoveis');
-    expect(grupoDaCategoria('georreferenciamento')).toBe('imoveis');
+  it('manda as categorias de imóvel para Bens e Imóveis', () => {
+    expect(grupoDaCategoria('cadastros_fiscais')).toBe('bens_imoveis');
+    expect(grupoDaCategoria('bens_direitos')).toBe('bens_imoveis');
+    expect(grupoDaCategoria('georreferenciamento')).toBe('bens_imoveis');
   });
 
   it('não deixa nenhuma categoria sem grupo', () => {

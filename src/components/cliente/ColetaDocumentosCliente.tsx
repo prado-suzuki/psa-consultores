@@ -24,8 +24,8 @@ import { cn } from '@/lib/utils';
 import { useClienteAtual } from '@/hooks/useClienteAtual';
 import {
   useBaixarDocumento,
-  useChecklistSolicitadoCliente,
   useDocumentosByCliente,
+  useSolicitacaoAtivaCliente,
   useSoftDeleteDocumentoCliente,
   useUploadDocumentoCliente,
   useUploaderNames,
@@ -38,7 +38,7 @@ import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 const GRUPO_ICON: Record<GrupoDocumentoKey, LucideIcon> = {
   pf: Users,
   pj: Building2,
-  imoveis: Landmark,
+  bens_imoveis: Landmark,
   outros: FilePlus2,
 };
 
@@ -201,23 +201,24 @@ function CardGrupo({ grupo, enviando, onArquivos, onRemover }: CardGrupoProps) {
 
 /**
  * Coleta de documentos do cliente em 4 grupos grandes (Pessoas Físicas,
- * Jurídicas, Matrículas e Imóveis, Outros), cada um com drag and drop próprio.
+ * Jurídicas, Bens e Imóveis, Outros), cada um com drag and drop próprio.
  *
  * A ideia é o cliente não precisar separar por pessoa nem renomear arquivo: joga
  * no grupo e a PSA classifica depois. A relação de documentos de cada grupo vem
- * do checklist solicitado.
+ * da solicitação ENVIADA, pela coluna `grupo` de cada item. Sem pedido enviado
+ * as gavetas ficam sem lista, e o envio de arquivo continua funcionando.
  */
 export function ColetaDocumentosCliente() {
   const { data: clienteId, isLoading: carregandoCliente } = useClienteAtual();
   const { data: docs = [], isLoading: carregandoDocs } = useDocumentosByCliente(clienteId ?? null);
-  const { data: checklist = [] } = useChecklistSolicitadoCliente(clienteId ?? null);
+  const { data: pedido } = useSolicitacaoAtivaCliente(clienteId ?? null);
   const upload = useUploadDocumentoCliente();
   const baixar = useBaixarDocumento();
   const excluir = useSoftDeleteDocumentoCliente(clienteId ?? '');
   const [grupoEnviando, setGrupoEnviando] = useState<GrupoDocumentoKey | null>(null);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
 
-  const grupos = useMemo(() => montarGruposColeta(checklist, docs), [checklist, docs]);
+  const grupos = useMemo(() => montarGruposColeta(pedido?.itens ?? [], docs), [pedido, docs]);
   // "Enviados": tudo que o cliente mandou e a PSA ainda não classificou, na ordem
   // de chegada (docs já vem por created_at desc).
   const enviados = useMemo(

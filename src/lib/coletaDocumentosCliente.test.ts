@@ -1,19 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { grupoDaEntidade, montarGruposColeta } from '@/lib/coletaDocumentosCliente';
-import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
-import type { ChecklistSolicitadoItem, DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
+import { montarGruposColeta } from '@/lib/coletaDocumentosCliente';
+import { GRUPOS_DOCUMENTO, type GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
+import type { DocumentoArquivoRow, SolicitacaoItemCliente } from '@/hooks/useDocumentoArquivo';
 
-const item = (documento: string, entidade: string): ChecklistSolicitadoItem => ({
-  item_id: `${entidade}:${documento}`,
+const item = (
+  documento: string,
+  grupo: GrupoDocumentoKey,
+  extra: Partial<SolicitacaoItemCliente> = {},
+): SolicitacaoItemCliente => ({
+  id: `${grupo}:${documento}`,
+  grupo,
   documento,
-  entidade,
-  categoria: null,
-  categoria_docbox: null,
   nota: null,
-  confidencial: false,
-  rotulo_instancia: null,
-  recebido: false,
-  arquivo_nome: null,
+  entidade: null,
+  ordem: null,
+  ...extra,
 });
 
 const doc = (
@@ -33,36 +34,20 @@ const doc = (
     ...extra,
   }) as unknown as DocumentoArquivoRow;
 
-describe('grupoDaEntidade', () => {
-  it('mapeia as entidades conhecidas', () => {
-    expect(grupoDaEntidade('Pessoa Física')).toBe('pf');
-    expect(grupoDaEntidade('Pessoa Jurídica')).toBe('pj');
-    expect(grupoDaEntidade('Pessoa Jurídica (Cooperativa)')).toBe('pj');
-    expect(grupoDaEntidade('Matrícula (Imóvel Rural)')).toBe('imoveis');
-    expect(grupoDaEntidade('Matrícula (Imóvel Urbano)')).toBe('imoveis');
-  });
-
-  it('joga bem e entidade desconhecida em outros', () => {
-    expect(grupoDaEntidade('Bem')).toBe('outros');
-    expect(grupoDaEntidade('Qualquer coisa nova')).toBe('outros');
-    expect(grupoDaEntidade('')).toBe('outros');
-  });
-});
-
 describe('montarGruposColeta', () => {
   it('devolve sempre os 4 grupos, na ordem fixa', () => {
     const grupos = montarGruposColeta([], []);
-    expect(grupos.map((g) => g.key)).toEqual(['pf', 'pj', 'imoveis', 'outros']);
+    expect(grupos.map((g) => g.key)).toEqual(['pf', 'pj', 'bens_imoveis', 'outros']);
     expect(grupos).toHaveLength(GRUPOS_DOCUMENTO.length);
   });
 
   it('lista os documentos pedidos sem repetir, em ordem alfabética', () => {
     const grupos = montarGruposColeta(
       [
-        item('RG / CNH', 'Pessoa Física'),
-        item('CPF', 'Pessoa Física'),
-        item('CPF', 'Pessoa Física'),
-        item('Contrato social', 'Pessoa Jurídica'),
+        item('RG / CNH', 'pf'),
+        item('CPF', 'pf'),
+        item('CPF', 'pf'),
+        item('Contrato social', 'pj'),
       ],
       [],
     );
@@ -70,6 +55,24 @@ describe('montarGruposColeta', () => {
     expect(grupos[0].documentos).toEqual(['CPF', 'RG / CNH']);
     expect(grupos[1].documentos).toEqual(['Contrato social']);
     expect(grupos[2].documentos).toEqual([]);
+  });
+
+  // O motivo da EDU-26: a gaveta é a coluna `grupo`, não mais um palpite sobre o
+  // texto de `entidade`. Aqui os dois discordam de propósito, e vale o grupo.
+  it('usa a gaveta que o item manda, ignorando o texto de entidade', () => {
+    const grupos = montarGruposColeta(
+      [item('Matrícula do imóvel', 'bens_imoveis', { entidade: 'Pessoa Física' })],
+      [],
+    );
+
+    expect(grupos[0].documentos).toEqual([]);
+    expect(grupos[2].documentos).toEqual(['Matrícula do imóvel']);
+  });
+
+  it('item do grupo outros entra na quarta gaveta', () => {
+    const grupos = montarGruposColeta([item('Nota fiscal do trator', 'outros')], []);
+
+    expect(grupos[3].documentos).toEqual(['Nota fiscal do trator']);
   });
 
   it('agrupa os arquivos enviados pela categoria de cada grupo', () => {
@@ -107,11 +110,5 @@ describe('montarGruposColeta', () => {
     expect(grupos[0].arquivos.map((a) => a.id)).toEqual(['ir']);
     expect(grupos[2].arquivos.map((a) => a.id)).toEqual(['ccir']);
     expect(grupos.flatMap((g) => g.arquivos)).toHaveLength(2);
-  });
-
-  it('itens de Bem entram na lista do grupo Outros', () => {
-    const grupos = montarGruposColeta([item('Nota fiscal do trator', 'Bem')], []);
-
-    expect(grupos[3].documentos).toEqual(['Nota fiscal do trator']);
   });
 });
