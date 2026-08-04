@@ -1,16 +1,22 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, EyeOff, Package, Plus } from 'lucide-react';
+import { CheckCircle2, EyeOff, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { OnboardingDocument } from '@/lib/onboarding';
 import type { OnboardingProdutoContratado } from '@/hooks/useOnboarding';
-import type {
-  CatalogoDocumento,
-  EdicaoItem,
-  EstruturaDoItem,
-  ItemSolicitacao,
-  NovoItemManual,
+import {
+  contarPorProduto,
+  filtrarPorProduto,
+  FILTRO_MANUAIS,
+  FILTRO_TODOS,
+  type CatalogoDocumento,
+  type EdicaoItem,
+  type EstruturaDoItem,
+  type ItemSolicitacao,
+  type NovoItemManual,
+  type ProdutosPorDocumento,
 } from '@/lib/solicitacao';
+import { ProdutoRail } from './ProdutoRail';
 import {
   DocumentEditorDialog,
   type DocumentEditorValue,
@@ -33,6 +39,8 @@ interface OnboardingWorkspaceProps {
   /** Catálogo em forma de gravação, indexado por id. */
   catalogoPorId: Map<string, CatalogoDocumento>;
   produtosContratados: OnboardingProdutoContratado[];
+  /** Documento do catálogo → produtos da OS que o pedem, para o recorte do rail. */
+  produtosPorDocumento: ProdutosPorDocumento;
   /**
    * Solicitação encerrada: a lista fica só para consulta.
    *
@@ -81,6 +89,7 @@ export function OnboardingWorkspace({
   catalogDocuments,
   catalogoPorId,
   produtosContratados,
+  produtosPorDocumento,
   somenteLeitura = false,
   onAdicionarDoCatalogo,
   onAdicionarManual,
@@ -88,14 +97,45 @@ export function OnboardingWorkspace({
   onDispensar,
 }: OnboardingWorkspaceProps) {
   const [editor, setEditor] = useState<EditorState>({ open: false, mode: 'add' });
+  const [filtro, setFiltro] = useState<string>(FILTRO_TODOS);
 
   const porId = useMemo(() => new Map(itens.map((item) => [item.id, item])), [itens]);
-  const exibidos = useMemo(() => itens.map(paraExibicao), [itens]);
   const idsJaPedidos = useMemo(
     () => new Set(itens.flatMap((item) => (item.itemPadraoId ? [item.itemPadraoId] : []))),
     [itens],
   );
   const catalogo = useMemo(() => [...catalogoPorId.values()], [catalogoPorId]);
+
+  const itensFiltrados = useMemo(
+    () => filtrarPorProduto(itens, filtro, produtosPorDocumento),
+    [itens, filtro, produtosPorDocumento],
+  );
+  const exibidos = useMemo(() => itensFiltrados.map(paraExibicao), [itensFiltrados]);
+  const contagemPorProduto = useMemo(
+    () => contarPorProduto(itens, produtosPorDocumento),
+    [itens, produtosPorDocumento],
+  );
+  const manuais = useMemo(
+    () => itens.filter((item) => !item.doCatalogo).length,
+    [itens],
+  );
+
+  /**
+   * Com um produto selecionado, o modal oferece só o catálogo daquele produto.
+   *
+   * A seleção influencia o que é OFERECIDO, nunca o que é gravado — é essa
+   * distinção que dispensa coluna de produto na tabela.
+   */
+  const documentosDoProduto = useMemo(() => {
+    if (filtro === FILTRO_TODOS || filtro === FILTRO_MANUAIS) return undefined;
+    const ids = new Set<string>();
+    produtosPorDocumento.forEach((produtos, documentoId) => {
+      if (produtos.includes(filtro)) ids.add(documentoId);
+    });
+    return ids;
+  }, [filtro, produtosPorDocumento]);
+
+  const comRail = produtosContratados.length > 0 || manuais > 0;
 
   const salvarEditor = (value: DocumentEditorValue) => {
     const estrutura = { grupo: value.grupo, granularidade: value.granularidade };
@@ -115,6 +155,10 @@ export function OnboardingWorkspace({
     }
 
     onAdicionarManual({ documento: value.documento, nota: value.nota, ...estrutura });
+    // Documento criado à mão não pertence a produto: com um filtro de produto
+    // ligado, ele cairia fora da vista e pareceria perdido. A seleção volta para
+    // "Todos" para o analista ver onde ele entrou.
+    setFiltro(FILTRO_TODOS);
   };
 
   const incluirOpcional = (documento: OnboardingDocument) => {
@@ -131,17 +175,34 @@ export function OnboardingWorkspace({
 
   return (
     <>
-      <section
-        className={`${panelContainerCls} ${riseCls} min-h-[570px] min-w-0 p-3 sm:p-4`}
-        style={riseDelay(0)}
-      >
+      <div className={comRail ? 'grid items-start gap-4 xl:grid-cols-[290px_minmax(0,1fr)]' : ''}>
+        {comRail && (
+          <ProdutoRail
+            produtos={produtosContratados}
+            selecionado={filtro}
+            total={itens.length}
+            manuais={manuais}
+            contagemPorProduto={contagemPorProduto}
+            onSelecionar={setFiltro}
+          />
+        )}
+
+        <section
+          className={`${panelContainerCls} ${riseCls} min-h-[570px] min-w-0 p-3 sm:p-4`}
+          style={riseDelay(1)}
+        >
         <div className="mb-3 flex flex-col justify-between gap-3 px-1 sm:flex-row sm:items-center">
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold text-osg-700">
               Documentos solicitados
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
-              <span>{itens.length} {itens.length === 1 ? 'documento' : 'documentos'}</span>
+              <span>
+                {itensFiltrados.length}
+                {' '}
+                {itensFiltrados.length === 1 ? 'documento' : 'documentos'}
+                {itensFiltrados.length !== itens.length && ` de ${itens.length}`}
+              </span>
 
               {dispensados.length > 0 && (
                 <Tooltip>
@@ -166,15 +227,8 @@ export function OnboardingWorkspace({
                 </Tooltip>
               )}
 
-              {produtosContratados.map((produto) => (
-                <Tooltip key={produto.id}>
-                  <TooltipTrigger className={chipCls}>
-                    <Package className="h-3 w-3" />
-                    {produto.code}
-                  </TooltipTrigger>
-                  <TooltipContent>{produto.name}</TooltipContent>
-                </Tooltip>
-              ))}
+              {/* Os chips de produto saíram: viraram o rail, que além de nomear
+                  também filtra e conta. */}
             </div>
           </div>
           {!somenteLeitura && (
@@ -206,15 +260,16 @@ export function OnboardingWorkspace({
           </p>
         )}
 
-        <DocumentGroups
-          documents={exibidos}
-          catalogDocuments={catalogDocuments}
-          somenteLeitura={somenteLeitura}
-          onEdit={abrirEdicao}
-          onRemove={(documento) => onDispensar(documento.id)}
-          onAddOptional={incluirOpcional}
-        />
-      </section>
+          <DocumentGroups
+            documents={exibidos}
+            catalogDocuments={catalogDocuments}
+            somenteLeitura={somenteLeitura}
+            onEdit={abrirEdicao}
+            onRemove={(documento) => onDispensar(documento.id)}
+            onAddOptional={incluirOpcional}
+          />
+        </section>
+      </div>
 
       <DocumentEditorDialog
         open={editor.open}
@@ -223,6 +278,7 @@ export function OnboardingWorkspace({
         item={editor.item}
         catalogo={catalogo}
         idsJaPedidos={idsJaPedidos}
+        documentosDoProduto={documentosDoProduto}
         onSave={salvarEditor}
       />
     </>

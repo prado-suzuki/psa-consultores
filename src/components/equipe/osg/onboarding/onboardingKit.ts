@@ -16,10 +16,16 @@ export const riseCls = 'animate-osg-rise motion-reduce:animate-none';
 /** Cascata dos cards de grupo: 0, 60, 120, 180ms. */
 export const riseDelay = (index: number) => ({ animationDelay: `${index * 60}ms` });
 
-// O rail esquerdo por produto saiu na ALE-28, junto com `railContainerCls` e
-// `railItemCls`: a lista passou a viver em `solicitacao_item`, que não tem coluna
-// de produto, e a tela passou a se organizar pelas 4 gavetas — a mesma
-// organização que o cliente vê do outro lado.
+/**
+ * Moldura do rail esquerdo.
+ *
+ * O rail voltou depois da ALE-28, mas com outro papel: antes ele PARTICIONAVA o
+ * rascunho em baldes por produto, que viviam em memória e morriam no envio.
+ * Agora ele FILTRA uma lista única — a organização continua sendo pelas 4
+ * gavetas, que é o que o cliente vê do outro lado.
+ */
+export const railContainerCls =
+  'rounded-2xl border border-osg-200/70 bg-white/70 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]';
 
 /** Container do painel de trabalho. */
 export const panelContainerCls =
@@ -48,7 +54,21 @@ export const documentRowCls =
 export const rowActionsCls =
   'flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100';
 
-/** Contador em pílula usado nas seções. */
+/**
+ * Item do rail. `destacado` liga a elevação de card da área OSG; os itens
+ * compactos da lista de produtos ficam sem o translate para a lista não pular
+ * quando o cliente tem muitos produtos.
+ */
+export const railItemCls = (ativo: boolean, destacado = false) => cn(
+  'w-full rounded-xl border p-2.5 text-left transition-all duration-200',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
+  destacado && 'hover:-translate-y-1',
+  ativo
+    ? 'border-osg-moss/40 bg-osg-moss/[0.07]'
+    : 'border-transparent hover:border-osg-moss/40 hover:bg-osg-50/70',
+);
+
+/** Contador em pílula usado no rail e nas seções. */
 export const counterPillCls =
   'shrink-0 rounded-full bg-white px-1.5 text-[11px] font-medium text-osg-500 ring-1 ring-osg-200/70';
 

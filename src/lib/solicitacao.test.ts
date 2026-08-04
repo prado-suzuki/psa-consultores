@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   agruparPorGrupo,
+  contarPorProduto,
   encontrarItemDoCatalogo,
+  filtrarPorProduto,
+  FILTRO_MANUAIS,
+  FILTRO_TODOS,
   graoSugeridoParaGrupo,
   GRAOS_DE_BENS_IMOVEIS,
   montarAtualizacaoItem,
@@ -135,6 +139,56 @@ describe('ordenarItens e agruparPorGrupo', () => {
 
     expect([...grupos.keys()]).toEqual(['bens_imoveis', 'pf']);
     expect(grupos.get('pf')?.map((item) => item.id)).toEqual(['a', 'b']);
+  });
+});
+
+describe('recorte por produto', () => {
+  // O RG é pedido por dois produtos da OS; a matrícula, por um; e há um item
+  // criado à mão, que não pertence a produto nenhum.
+  const rg = resolverItem(linha({ id: 'rg', item_padrao_id: 'cat-rg', catalogo: catalogo({ id: 'cat-rg' }) }));
+  const matricula = resolverItem(linha({
+    id: 'mat',
+    item_padrao_id: 'cat-mat',
+    grupo: 'bens_imoveis',
+    granularidade: 'matricula_rural',
+    catalogo: catalogo({ id: 'cat-mat', grupo: 'bens_imoveis' }),
+  }));
+  const manual = resolverItem(linha({
+    id: 'man', item_padrao_id: null, catalogo: null, documento: 'Contrato', grupo: 'outros', granularidade: 'cliente',
+  }));
+
+  const itens = [rg, matricula, manual];
+  const produtosPorDocumento = new Map([
+    ['cat-rg', ['ES', 'DSSG']],
+    ['cat-mat', ['ES']],
+  ]);
+
+  it('sem filtro, devolve a lista inteira', () => {
+    expect(filtrarPorProduto(itens, FILTRO_TODOS, produtosPorDocumento)).toHaveLength(3);
+  });
+
+  it('filtra pelos documentos que o produto pede', () => {
+    expect(filtrarPorProduto(itens, 'ES', produtosPorDocumento).map((i) => i.id))
+      .toEqual(['rg', 'mat']);
+    expect(filtrarPorProduto(itens, 'DSSG', produtosPorDocumento).map((i) => i.id))
+      .toEqual(['rg']);
+  });
+
+  it('o item criado à mão só aparece em Todos e no filtro dos manuais', () => {
+    expect(filtrarPorProduto(itens, 'ES', produtosPorDocumento).map((i) => i.id))
+      .not.toContain('man');
+    expect(filtrarPorProduto(itens, FILTRO_MANUAIS, produtosPorDocumento).map((i) => i.id))
+      .toEqual(['man']);
+  });
+
+  it('conta o mesmo documento em cada produto que o pede — a soma passa do total', () => {
+    const contagem = contarPorProduto(itens, produtosPorDocumento);
+
+    expect(contagem.get('ES')).toBe(2);
+    expect(contagem.get('DSSG')).toBe(1);
+    // 2 + 1 = 3 contra 2 documentos de catálogo na lista: é o mesmo RG contado
+    // duas vezes, e é isso que a tela precisa explicar ao analista.
+    expect(itens.filter((item) => item.doCatalogo)).toHaveLength(2);
   });
 });
 

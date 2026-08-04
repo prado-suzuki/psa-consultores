@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, Loader2, Lock, PackageOpen, PenLine, Rocket } from 'lucide-react';
+import { AlertCircle, Loader2, Lock, PackageOpen, PenLine, Rocket, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { OnboardingWorkspace } from '@/components/equipe/osg/onboarding/OnboardingWorkspace';
@@ -208,6 +208,18 @@ const Onboarding = () => {
         </OnboardingEmptyState>
       ) : (
         <div className="space-y-3">
+          {solicitacao?.status === 'enviada' && (
+            <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
+              <Send className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss/70" />
+              <p className="leading-relaxed">
+                Solicitação <strong className="font-semibold">aberta desde{' '}
+                {emData(solicitacao.enviadaEm)}</strong> — o cliente vê a lista e pode
+                enviar os arquivos. Incluir documentos agora também chega até ele; o
+                pedido só fecha quando você encerrar.
+              </p>
+            </div>
+          )}
+
           {encerrada && (
             <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
               <Lock className="mt-0.5 h-4 w-4 shrink-0 text-osg-500/70" />
@@ -227,6 +239,7 @@ const Onboarding = () => {
             catalogDocuments={catalogo.data.catalogDocuments}
             catalogoPorId={catalogo.data.catalogoPorId}
             produtosContratados={catalogo.data.produtosContratados}
+            produtosPorDocumento={catalogo.data.produtosPorDocumento}
             somenteLeitura={encerrada}
             onAdicionarDoCatalogo={incluirDoCatalogo}
             onAdicionarManual={incluirManual}

@@ -445,6 +445,56 @@ export function montarReativacaoItem(estrutura?: EstruturaDoItem): SolicitacaoIt
   };
 }
 
+/**
+ * O recorte por produto — uma LENTE sobre a lista, nunca uma partição.
+ *
+ * `solicitacao_item` não tem coluna de produto, e não deve ter: no catálogo, um
+ * documento é pedido por 4,6 produtos em média (até 8), e num cliente real como o
+ * Mms Agro 47 dos 60 documentos da OS são pedidos por mais de um produto. Gravar
+ * "o produto deste documento" obrigaria a escolher um em 78% dos casos, o que é
+ * inventar dado.
+ *
+ * Então o produto é calculado pelo mesmo vínculo (`produto_documento_tipo`) que a
+ * RPC usa para gerar a lista. Um documento aparece sob TODOS os produtos que o
+ * pedem — os contadores somam mais que o total, e isso é a verdade, não erro.
+ */
+export const FILTRO_TODOS = '__todos__';
+export const FILTRO_MANUAIS = '__manuais__';
+
+/** Documento do catálogo → produtos da OS que o pedem. */
+export type ProdutosPorDocumento = Map<string, string[]>;
+
+export function filtrarPorProduto(
+  itens: ItemSolicitacao[],
+  filtro: string,
+  produtosPorDocumento: ProdutosPorDocumento,
+): ItemSolicitacao[] {
+  if (filtro === FILTRO_TODOS) return itens;
+  // Criado à mão não pertence a produto nenhum: é a gaveta própria dele no rail.
+  if (filtro === FILTRO_MANUAIS) return itens.filter((item) => !item.doCatalogo);
+
+  return itens.filter((item) =>
+    Boolean(item.itemPadraoId)
+    && (produtosPorDocumento.get(item.itemPadraoId as string) ?? []).includes(filtro));
+}
+
+/** Quantos itens da lista cada produto pede. */
+export function contarPorProduto(
+  itens: ItemSolicitacao[],
+  produtosPorDocumento: ProdutosPorDocumento,
+): Map<string, number> {
+  const contagem = new Map<string, number>();
+
+  for (const item of itens) {
+    if (!item.itemPadraoId) continue;
+    for (const produtoId of produtosPorDocumento.get(item.itemPadraoId) ?? []) {
+      contagem.set(produtoId, (contagem.get(produtoId) ?? 0) + 1);
+    }
+  }
+
+  return contagem;
+}
+
 /** Campos que a auditoria compara em `solicitacao_item`. */
 export const CAMPOS_AUDITADOS_ITEM = [
   'documento',

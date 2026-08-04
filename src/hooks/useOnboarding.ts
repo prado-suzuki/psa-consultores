@@ -1,7 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { OnboardingDocument } from '@/lib/onboarding';
-import { paraGranularidade, type CatalogoDocumento } from '@/lib/solicitacao';
+import {
+  paraGranularidade,
+  type CatalogoDocumento,
+  type ProdutosPorDocumento,
+} from '@/lib/solicitacao';
 import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategoria';
 
 /**
@@ -44,6 +48,14 @@ export interface OnboardingProdutoContratado {
 export interface OnboardingCatalogData {
   produtosContratados: OnboardingProdutoContratado[];
   /**
+   * Documento do catálogo → produtos da OS que o pedem.
+   *
+   * É o que permite olhar a lista pela lente de um produto sem gravar produto
+   * nenhum na solicitação. Vem de `produto_documento_tipo`, a mesma tabela que a
+   * RPC usa para gerar a lista — então a tela e a geração contam a mesma coisa.
+   */
+  produtosPorDocumento: ProdutosPorDocumento;
+  /**
    * Ids das OS do cliente cuja Empresa/Faturamento é a da OSG.
    *
    * Só os ids: o número da OS não aparece em nenhum lugar da tela, e carregar um
@@ -62,6 +74,7 @@ export interface OnboardingCatalogData {
 
 const VAZIO: OnboardingCatalogData = {
   produtosContratados: [],
+  produtosPorDocumento: new Map(),
   ordensServicoIds: [],
   catalogDocuments: [],
   catalogoPorId: new Map(),
@@ -115,6 +128,21 @@ export function useOnboarding(clienteId: string | null) {
         (product) => ({ id: product.id, code: product.codigo, name: product.nome }),
       );
 
+      const { data: vinculoRows, error: vinculoError } = produtoIds.length
+        ? await supabase
+          .from('produto_documento_tipo')
+          .select('produto_segmento_id, item_padrao_id')
+          .in('produto_segmento_id', produtoIds)
+        : { data: [], error: null };
+      if (vinculoError) throw vinculoError;
+
+      const produtosPorDocumento: ProdutosPorDocumento = new Map();
+      for (const vinculo of vinculoRows ?? []) {
+        const atuais = produtosPorDocumento.get(vinculo.item_padrao_id) ?? [];
+        atuais.push(vinculo.produto_segmento_id);
+        produtosPorDocumento.set(vinculo.item_padrao_id, atuais);
+      }
+
       // String literal única: o tipo gerado do Supabase só infere as colunas a
       // partir de um literal — concatenar derruba a inferência.
       const { data: itemRows, error: itemError } = await supabase
@@ -154,6 +182,7 @@ export function useOnboarding(clienteId: string | null) {
 
       return {
         produtosContratados,
+        produtosPorDocumento,
         ordensServicoIds,
         catalogDocuments: catalogDocuments.sort((left, right) =>
           left.title.localeCompare(right.title, 'pt-BR')),

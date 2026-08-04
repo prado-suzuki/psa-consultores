@@ -55,6 +55,13 @@ interface DocumentEditorDialogProps {
   catalogo: CatalogoDocumento[];
   /** Ids de catálogo já pedidos — não aparecem na lista de escolha. */
   idsJaPedidos: Set<string>;
+  /**
+   * Com um produto selecionado no rail, só o catálogo dele é oferecido.
+   *
+   * Isso muda o que aparece, nunca o que é gravado: o documento entra na
+   * solicitação e volta a aparecer sob todos os produtos que o pedem.
+   */
+  documentosDoProduto?: Set<string>;
   onSave: (value: DocumentEditorValue) => void;
 }
 
@@ -105,6 +112,7 @@ export function DocumentEditorDialog({
   item,
   catalogo,
   idsJaPedidos,
+  documentosDoProduto,
   onSave,
 }: DocumentEditorDialogProps) {
   const [value, setValue] = useState<EstadoEditor>(valorVazio);
@@ -128,10 +136,12 @@ export function DocumentEditorDialog({
   const doCatalogoNaGaveta = useMemo(
     () => catalogo
       .filter((documento) =>
-        documento.grupo === value.grupo && !idsJaPedidos.has(documento.id))
+        documento.grupo === value.grupo
+        && !idsJaPedidos.has(documento.id)
+        && (!documentosDoProduto || documentosDoProduto.has(documento.id)))
       .sort((esquerda, direita) =>
         esquerda.documento.localeCompare(direita.documento, 'pt-BR')),
-    [catalogo, idsJaPedidos, value.grupo],
+    [catalogo, documentosDoProduto, idsJaPedidos, value.grupo],
   );
 
   /**
