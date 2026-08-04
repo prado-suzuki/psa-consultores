@@ -164,7 +164,7 @@ describe('modo Classificar — cadastrar a partir do arquivo', () => {
     await concluirCadastro(mocks.pessoaMutate, { id: 'P-NOVA', tipo_pessoa: 'PF', denominacao: 'Maria' });
 
     expect(mocks.atualizarMutate).toHaveBeenCalledWith(
-      { id: 'cpf-maria', patch: { pessoa_id: 'P-NOVA', bem_id: null, matricula_id: null, triado_em: null } },
+      { id: 'cpf-maria', patch: { pessoa_id: 'P-NOVA', bem_id: null, matricula_id: null, triado_em: null }, origem: 'Cadastro por Documento' },
       expect.any(Object),
     );
   });
@@ -184,8 +184,9 @@ describe('modo Classificar — cadastrar a partir do arquivo', () => {
     // Um cadastro só, dois vínculos.
     expect(mocks.pessoaMutate).toHaveBeenCalledTimes(1);
     const patch = { pessoa_id: 'P-NOVA', bem_id: null, matricula_id: null, triado_em: null };
-    expect(mocks.atualizarMutate).toHaveBeenCalledWith({ id: 'cpf-maria', patch }, expect.any(Object));
-    expect(mocks.atualizarMutate).toHaveBeenCalledWith({ id: 'rg-maria', patch }, expect.any(Object));
+    const origem = 'Cadastro por Documento';
+    expect(mocks.atualizarMutate).toHaveBeenCalledWith({ id: 'cpf-maria', patch, origem }, expect.any(Object));
+    expect(mocks.atualizarMutate).toHaveBeenCalledWith({ id: 'rg-maria', patch, origem }, expect.any(Object));
     expect(mocks.atualizarMutate).toHaveBeenCalledTimes(2);
   });
 
@@ -237,7 +238,7 @@ describe('modo Classificar — apontar para quem já existe', () => {
 
     expect(mocks.pessoaMutate).not.toHaveBeenCalled();
     expect(mocks.atualizarMutate).toHaveBeenCalledWith(
-      { id: 'cpf-maria', patch: { pessoa_id: 'P9', bem_id: null, matricula_id: null, triado_em: null } },
+      { id: 'cpf-maria', patch: { pessoa_id: 'P9', bem_id: null, matricula_id: null, triado_em: null }, origem: 'Cadastro por Documento' },
       expect.any(Object),
     );
   });
@@ -281,7 +282,7 @@ describe('modo Classificar — apontar para quem já existe', () => {
     // e vincular o novo arquivo é um clique só, sem reescolher a pessoa
     await user.click(screen.getByRole('button', { name: /Vincular \d+ arquivo/ }));
     expect(mocks.atualizarMutate).toHaveBeenCalledWith(
-      { id: 'rg-maria', patch: { pessoa_id: 'P9', bem_id: null, matricula_id: null, triado_em: null } },
+      { id: 'rg-maria', patch: { pessoa_id: 'P9', bem_id: null, matricula_id: null, triado_em: null }, origem: 'Cadastro por Documento' },
       expect.any(Object),
     );
   });

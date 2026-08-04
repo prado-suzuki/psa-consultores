@@ -10,6 +10,7 @@ import type { Database } from '@/integrations/supabase/types';
 // Só o tipo: as chaves dos 4 grupos são definidas em agrupadorDocumentos, que é
 // a fonte única. O import é `type` dos dois lados, então o ciclo some no build.
 import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
+import { computeFieldDiff } from '@/lib/diffUtils';
 
 export type DocumentoArquivoRow = Database['public']['Tables']['documento_arquivo']['Row'];
 export type DocCategoria = Database['public']['Enums']['osg_doc_categoria'];
@@ -486,11 +487,31 @@ export interface AtualizarDocumentoPatch {
   triado_em?: string | null;
 }
 
+/**
+ * Colunas que definem de quem é o arquivo. São as únicas que o log acompanha:
+ * renomear e trocar categoria passam por aqui e não viram histórico, de
+ * propósito — o que interessa registrar é a mudança de dono.
+ */
+const CAMPOS_DE_VINCULO = ['pessoa_id', 'bem_id', 'matricula_id', 'triado_em'];
+
 /** Atualiza um documento (categoria, vínculo ou nome exibido) direto no Supabase. */
 export function useAtualizarDocumento(clienteId: string) {
   const qc = useQueryClient();
+  const { logAction } = useAuditLog();
   return useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: AtualizarDocumentoPatch }): Promise<DocumentoArquivoRow> => {
+    mutationFn: async (
+      { id, patch, origem }: { id: string; patch: AtualizarDocumentoPatch; origem?: string },
+    ): Promise<DocumentoArquivoRow> => {
+      // O "antes" do log não sai do update: o PostgREST devolve só a linha nova.
+      // Busco a anterior aqui dentro, e não peço ao chamador, por dois motivos:
+      // os quatro consumidores auditam sem precisar ser alterados, e ninguém
+      // registra um "antes" errado por esquecer de passar.
+      const { data: anterior } = await supabase
+        .from('documento_arquivo')
+        .select('pessoa_id, bem_id, matricula_id, triado_em')
+        .eq('id', id)
+        .maybeSingle();
+
       // `triado_por` acompanha `triado_em`: quem decidiu sai da sessão, e não do
       // patch, para a lib de regras seguir pura. Marca posta preenche o autor;
       // marca desfeita (triado_em null) limpa junto.
@@ -506,7 +527,36 @@ export function useAtualizarDocumento(clienteId: string) {
         .select('*')
         .single();
       if (error) throw error;
-      return data as DocumentoArquivoRow;
+      const linha = data as DocumentoArquivoRow;
+
+      const mudou = computeFieldDiff(
+        anterior as Record<string, unknown> | null,
+        linha as unknown as Record<string, unknown>,
+        CAMPOS_DE_VINCULO,
+      );
+      if (Object.keys(mudou).length > 0) {
+        // Sem await e dentro de try/catch: o vínculo já está gravado, e uma
+        // falha de auditoria não pode derrubá-lo nem segurar o consultor que
+        // está varrendo o balde. O próprio logAction já engole erro; a guarda
+        // aqui vale mesmo que ele mude, e cobre tanto rejeição quanto erro
+        // síncrono.
+        void (async () => {
+          try {
+            await logAction({
+              area: 'osg',
+              entity_type: 'documento_arquivo',
+              entity_id: linha.id,
+              entity_name: linha.nome_original,
+              action: 'updated',
+              changed_fields: mudou,
+              details: origem,
+            });
+          } catch {
+            // silêncio proposital: auditoria é registro, não caminho crítico
+          }
+        })();
+      }
+      return linha;
     },
     onSuccess: () => {
       // Prefixo [LIST_KEY, clienteId] cobre a lista central e as por vínculo.

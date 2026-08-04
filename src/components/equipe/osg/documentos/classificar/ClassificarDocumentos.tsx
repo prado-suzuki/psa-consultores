@@ -23,6 +23,13 @@ interface Props {
   carregando: boolean;
 }
 
+/**
+ * De onde veio o vínculo, para o histórico da ficha (BER-41). Sem isto o log
+ * diz o que mudou mas não por qual caminho, e "cadastrei a partir do documento"
+ * é diferente de "vinculei à mão no explorador".
+ */
+const ORIGEM_LOG = 'Cadastro por Documento';
+
 const bemLabel = (bem: { referencia_dp: string | null; denominacao: string | null }) =>
   [bem.referencia_dp, bem.denominacao].filter(Boolean).join(' — ') || 'Bem';
 
@@ -184,7 +191,7 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
     let restantes = ids.length;
     ids.forEach((id) =>
       atualizar.mutate(
-        { id, patch },
+        { id, patch, origem: ORIGEM_LOG },
         {
           onSuccess: () => {
             restantes -= 1;
@@ -283,7 +290,7 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
   const desfazerTriagem = () => {
     if (!ultimoTriado) return;
     atualizar.mutate(
-      { id: ultimoTriado, patch: patchDesfazerTriagem() },
+      { id: ultimoTriado, patch: patchDesfazerTriagem(), origem: `${ORIGEM_LOG} (desfazer)` },
       { onSuccess: () => setUltimoTriado(null) },
     );
   };

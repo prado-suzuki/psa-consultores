@@ -11,7 +11,7 @@ const qcMocks = vi.hoisted(() => ({ invalidateQueries: vi.fn() }));
 const apiMocks = vi.hoisted(() => ({ fetchWithAuth: vi.fn() }));
 const toastMocks = vi.hoisted(() => ({ toast: vi.fn() }));
 const auditMocks = vi.hoisted(() => ({ logAction: vi.fn() }));
-const dbMocks = vi.hoisted(() => ({ from: vi.fn(), update: vi.fn(), eq: vi.fn() }));
+const dbMocks = vi.hoisted(() => ({ from: vi.fn(), update: vi.fn(), eq: vi.fn(), getUser: vi.fn() }));
 
 vi.mock('@tanstack/react-query', () => reactQueryMocks);
 vi.mock('@/hooks/useApiAuth', () => ({
@@ -25,13 +25,18 @@ vi.mock('@/config/api', () => ({
   getApiUrl: (path: string) => `https://api.test${path}`,
   currentAmbiente: 'dev',
 }));
-vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: dbMocks.from } }));
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: { from: dbMocks.from, auth: { getUser: dbMocks.getUser } },
+}));
 
 // useOsgChecklist NÃO é mockado de propósito: o teste ancora na fábrica de chave
 // real (checklistClienteKey), senão um rename lá passaria batido aqui — que é
 // exatamente o drift que a invalidação do checklist precisa evitar.
 import { checklistClienteKey } from '@/hooks/useOsgChecklist';
-import { useExcluirDocumento, type DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
+import {
+  useAtualizarDocumento, useExcluirDocumento, type AtualizarDocumentoPatch,
+  type DocumentoArquivoRow,
+} from '@/hooks/useDocumentoArquivo';
 
 const OBJECT_KEY = 'outros/cliente-1/objeto-1.pdf';
 
@@ -202,5 +207,98 @@ describe('useExcluirDocumento', () => {
       description: 'storage-fora-do-ar',
       variant: 'destructive',
     });
+  });
+});
+
+/**
+ * Encadeamento do PostgREST: a mesma cadeia serve para a leitura da linha
+ * anterior (select → eq → maybeSingle) e para o update (update → eq → select →
+ * single), que é como o hook fala com o banco.
+ */
+function mockCadeia(anterior: Record<string, unknown> | null, depois: Record<string, unknown>) {
+  const cadeia: Record<string, unknown> = {};
+  cadeia.select = vi.fn(() => cadeia);
+  cadeia.update = vi.fn(() => cadeia);
+  cadeia.eq = vi.fn(() => cadeia);
+  cadeia.maybeSingle = vi.fn(async () => ({ data: anterior, error: null }));
+  cadeia.single = vi.fn(async () => ({ data: depois, error: null }));
+  dbMocks.from.mockReturnValue(cadeia);
+  return cadeia;
+}
+
+function atualizarMutation() {
+  renderHook(() => useAtualizarDocumento('cliente-1'));
+  return reactQueryMocks.useMutation.mock.calls.map(
+    ([o]) =>
+      o as {
+        mutationFn: (input: {
+          id: string;
+          patch: AtualizarDocumentoPatch;
+          origem?: string;
+        }) => Promise<DocumentoArquivoRow>;
+      },
+  )[0];
+}
+
+const SEM_DONO = { pessoa_id: null, bem_id: null, matricula_id: null, triado_em: null };
+
+describe('useAtualizarDocumento — auditoria do vínculo (BER-41)', () => {
+  it('registra o vínculo com o antes e o depois do dono', async () => {
+    mockCadeia(SEM_DONO, { ...docRow(), ...SEM_DONO, pessoa_id: 'P1' });
+
+    await atualizarMutation().mutationFn({
+      id: 'doc-1',
+      patch: { pessoa_id: 'P1', bem_id: null, matricula_id: null },
+      origem: 'Cadastro por Documento',
+    });
+
+    expect(auditMocks.logAction).toHaveBeenCalledWith({
+      area: 'osg',
+      entity_type: 'documento_arquivo',
+      entity_id: 'doc-1',
+      entity_name: 'contrato.pdf',
+      action: 'updated',
+      changed_fields: { pessoa_id: { old: null, new: 'P1' } },
+      details: 'Cadastro por Documento',
+    });
+  });
+
+  it('registra também a marca "é do cliente" e a saída dela', async () => {
+    dbMocks.getUser.mockResolvedValue({ data: { user: { id: 'U1' } } });
+    mockCadeia(SEM_DONO, { ...docRow(), ...SEM_DONO, triado_em: '2026-08-05T10:00:00Z' });
+
+    await atualizarMutation().mutationFn({
+      id: 'doc-1',
+      patch: { ...SEM_DONO, triado_em: '2026-08-05T10:00:00Z' },
+    });
+
+    expect(auditMocks.logAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        changed_fields: { triado_em: { old: null, new: '2026-08-05T10:00:00Z' } },
+      }),
+    );
+  });
+
+  // Renomear e trocar categoria passam pela mesma mutation. Nenhum dos dois é
+  // mudança de dono, e o histórico da ficha não deve encher com isso.
+  it('não audita quando o dono não mudou', async () => {
+    mockCadeia({ ...SEM_DONO, pessoa_id: 'P1' }, { ...docRow(), ...SEM_DONO, pessoa_id: 'P1' });
+
+    await atualizarMutation().mutationFn({ id: 'doc-1', patch: { nome_original: 'novo.pdf' } });
+
+    expect(auditMocks.logAction).not.toHaveBeenCalled();
+  });
+
+  it('falha da auditoria não derruba o vínculo já gravado', async () => {
+    auditMocks.logAction.mockRejectedValueOnce(new Error('audit_logs fora do ar'));
+    mockCadeia(SEM_DONO, { ...docRow(), ...SEM_DONO, pessoa_id: 'P1' });
+
+    const linha = await atualizarMutation().mutationFn({
+      id: 'doc-1',
+      patch: { pessoa_id: 'P1', bem_id: null, matricula_id: null },
+    });
+
+    expect(linha.id).toBe('doc-1');
+    expect(linha.pessoa_id).toBe('P1');
   });
 });
