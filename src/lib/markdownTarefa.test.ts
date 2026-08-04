@@ -29,6 +29,18 @@ describe('parseInline', () => {
     ]);
   });
 
+  it('não marca itálico dentro de palavra: snake_case_de_banco sobrevive', () => {
+    expect(parseInline('a policy checklist_item_padrao e produto_checklist_item')).toEqual([
+      { type: 'text', text: 'a policy checklist_item_padrao e produto_checklist_item' },
+    ]);
+    // Com fronteira de palavra, o itálico continua valendo.
+    expect(parseInline('texto _mesmo_ assim')).toEqual([
+      { type: 'text', text: 'texto ' },
+      { type: 'text', text: 'mesmo', marks: [{ type: 'italic' }] },
+      { type: 'text', text: ' assim' },
+    ]);
+  });
+
   it('aninha marca dentro de negrito e mantém o conteúdo do código literal', () => {
     // `code` no TipTap exclui as demais marcas: o trecho em crases fica só com ela.
     expect(parseInline('**a `b`**')).toEqual([
