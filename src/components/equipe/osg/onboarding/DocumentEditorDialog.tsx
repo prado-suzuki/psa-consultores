@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
+import { RequiredMark } from '@/components/ui/required-mark';
 import { GRUPOS_DOCUMENTO, type GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 import {
   GRAOS_DE_BENS_IMOVEIS,
@@ -80,10 +81,18 @@ const valorVazio = (): EstadoEditor => ({
 });
 
 /** Campo no padrão dos modais OSG: rótulo miúdo + controle com foco verde-musgo. */
-function Field({ label, children }: { label: string; children: ReactNode }) {
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
-      <Label className={labelCls}>{label}</Label>
+      <Label className={labelCls}>{label}{required && <RequiredMark />}</Label>
       {children}
     </div>
   );
@@ -134,16 +143,23 @@ export function DocumentEditorDialog({
    */
   const trocarGrupo = (grupo: GrupoDocumentoKey) => {
     setEscolha(NOVO_DOCUMENTO);
-    setValue((atual) => ({
-      ...atual,
-      grupo,
-      // Nas três gavetas em que o grão é consequência, ele é preenchido e nem
-      // aparece. Em "Bens e Imóveis" volta a vazio para o analista escolher.
-      granularidade: graoSugeridoParaGrupo(grupo) ?? undefined,
-      catalogId: undefined,
-      documento: mode === 'edit' ? atual.documento : '',
-      nota: mode === 'edit' ? atual.nota : '',
-    }));
+    setValue((atual) => {
+      // O texto do catálogo pertence ao documento escolhido, então cai junto com
+      // a escolha. O que o analista digitou é dele: trocar de gaveta não pode
+      // apagar o nome e a orientação que ele já escreveu.
+      const veioDoCatalogo = Boolean(atual.catalogId);
+
+      return {
+        ...atual,
+        grupo,
+        // Nas três gavetas em que o grão é consequência, ele é preenchido e nem
+        // aparece. Em "Bens e Imóveis" volta a vazio para o analista escolher.
+        granularidade: graoSugeridoParaGrupo(grupo) ?? undefined,
+        catalogId: undefined,
+        documento: veioDoCatalogo ? '' : atual.documento,
+        nota: veioDoCatalogo ? '' : atual.nota,
+      };
+    });
   };
 
   const escolherDocumento = (proxima: string) => {
@@ -166,6 +182,12 @@ export function DocumentEditorDialog({
   };
 
   const ehNovo = escolha === NOVO_DOCUMENTO;
+  /**
+   * O nome é obrigatório quando é o único texto que existe: documento novo, ou
+   * item manual sendo editado. No item de catálogo em edição, deixar em branco é
+   * legítimo — significa voltar a herdar o nome do catálogo.
+   */
+  const nomeObrigatorio = mode === 'add' ? ehNovo : !item?.doCatalogo;
   // No modo editar de um item de catálogo, nome vazio é legítimo: significa
   // voltar a herdar o texto do catálogo. No item manual, o nome é o único texto
   // que existe — ali ele é obrigatório.
@@ -188,7 +210,7 @@ export function DocumentEditorDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-1">
-          <Field label="Grupo">
+          <Field label="Grupo" required>
             <Select
               value={value.grupo}
               onValueChange={(grupo) => trocarGrupo(grupo as GrupoDocumentoKey)}
@@ -208,7 +230,7 @@ export function DocumentEditorDialog({
             direta e é gravado sem ocupar espaço na tela.
           */}
           {value.grupo === 'bens_imoveis' && (
-            <Field label="Grão">
+            <Field label="Grão" required>
               <Select
                 value={value.granularidade ?? ''}
                 onValueChange={(grao) => setValue((atual) => ({
@@ -247,7 +269,7 @@ export function DocumentEditorDialog({
           )}
 
           {(ehNovo || mode === 'edit') && (
-            <Field label="Nome do documento">
+            <Field label="Nome do documento" required={nomeObrigatorio}>
               <Input
                 value={value.documento}
                 onChange={(event) => setValue((atual) => ({

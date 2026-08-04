@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { AlertCircle, FileStack, Loader2, PackageOpen, PenLine, Rocket } from 'lucide-react';
+import { AlertCircle, Loader2, Lock, PackageOpen, PenLine, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { OnboardingWorkspace } from '@/components/equipe/osg/onboarding/OnboardingWorkspace';
+import { SolicitacaoAcoes } from '@/components/equipe/osg/onboarding/SolicitacaoAcoes';
 import { OnboardingEmptyState } from '@/components/equipe/osg/onboarding/OnboardingEmptyState';
 import { panelContainerCls } from '@/components/equipe/osg/onboarding/onboardingKit';
 import { Button } from '@/components/ui/button';
@@ -36,6 +37,9 @@ const Onboarding = () => {
     adicionarManual,
     editarItem,
     dispensarItem,
+    enviarSolicitacao,
+    encerrarSolicitacao,
+    abrirNovaSolicitacao,
   } = useDomainSolicitacao(clienteId || null);
 
   /**
@@ -113,32 +117,40 @@ const Onboarding = () => {
   };
 
 
-  /**
-   * O mesmo botão, com o verbo certo para cada momento.
-   *
-   * A RPC é aditiva: só insere o documento que ainda não está na solicitação,
-   * nunca atualiza e nunca apaga (`WHERE NOT EXISTS` por
-   * `solicitacao_id + item_padrao_id`). Então, depois que a lista existe, clicar
-   * de novo é **atualizar** — é o caminho para quando alguém corrige o produto
-   * contratado na OS. Nada do que o analista fez se perde: documento criado à
-   * mão, instrução editada e item dispensado sobrevivem.
-   */
-  const listaVazia = itens.length === 0;
-  const rotuloGerar = listaVazia ? 'Gerar lista a partir da OS' : 'Atualizar a partir da OS';
+  const enviar = async () => {
+    await enviarSolicitacao.mutateAsync();
+    toast.success('Solicitação enviada — o cliente já vê a lista');
+  };
 
-  const acoesDoTopo = clienteId && ordensServicoIds.length > 0
+  const encerrar = async () => {
+    await encerrarSolicitacao.mutateAsync();
+    toast.success('Solicitação encerrada');
+  };
+
+  const abrirNova = async () => {
+    await abrirNovaSolicitacao.mutateAsync();
+    toast.success('Nova solicitação aberta em rascunho');
+  };
+
+  const encerrada = solicitacao?.status === 'encerrada';
+  const ocupado = gerarDaOs.isPending
+    || enviarSolicitacao.isPending
+    || encerrarSolicitacao.isPending
+    || abrirNovaSolicitacao.isPending;
+
+  const acoesDoTopo = clienteId && (solicitacao || ordensServicoIds.length > 0)
     ? (
-      <Button
-        size="sm"
-        variant={listaVazia ? 'default' : 'outline'}
-        onClick={gerar}
-        disabled={gerarDaOs.isPending}
-      >
-        {gerarDaOs.isPending
-          ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          : <FileStack className="mr-2 h-4 w-4" />}
-        {rotuloGerar}
-      </Button>
+      <SolicitacaoAcoes
+        status={solicitacao?.status ?? null}
+        temOrigemNaOs={ordensServicoIds.length > 0}
+        listaVazia={itens.length === 0}
+        itensAtivos={ativos.length}
+        ocupado={ocupado}
+        onGerar={gerar}
+        onEnviar={enviar}
+        onEncerrar={encerrar}
+        onAbrirNova={abrirNova}
+      />
     )
     : undefined;
 
@@ -146,9 +158,15 @@ const Onboarding = () => {
     && (catalogo.data?.produtosContratados.length ?? 0) === 0
     && montarAMaoPara !== clienteId;
 
+  /** Data curta, para dizer desde quando o cliente vê a lista. */
+  const emData = (iso: string | null) =>
+    (iso ? new Date(iso).toLocaleDateString('pt-BR') : '');
+
   const subtitulo = solicitacao?.status === 'enviada'
-    ? 'Solicitação enviada ao cliente'
-    : 'Solicitação inicial de documentos ao cliente';
+    ? `Enviada ao cliente em ${emData(solicitacao.enviadaEm)}`
+    : encerrada
+      ? `Encerrada em ${emData(solicitacao?.encerradaEm ?? null)}`
+      : 'Solicitação inicial de documentos ao cliente';
 
   return (
     <OsgLayout title="Solicitação Inicial" subtitle={subtitulo} headerActions={acoesDoTopo}>
@@ -189,17 +207,33 @@ const Onboarding = () => {
           pedido à mão, que vale para o cliente e não depende da OS.
         </OnboardingEmptyState>
       ) : (
-        <OnboardingWorkspace
-          itens={ativos}
-          dispensados={dispensados}
-          catalogDocuments={catalogo.data.catalogDocuments}
-          catalogoPorId={catalogo.data.catalogoPorId}
-          produtosContratados={catalogo.data.produtosContratados}
-          onAdicionarDoCatalogo={incluirDoCatalogo}
-          onAdicionarManual={incluirManual}
-          onEditar={editar}
-          onDispensar={dispensar}
-        />
+        <div className="space-y-3">
+          {encerrada && (
+            <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
+              <Lock className="mt-0.5 h-4 w-4 shrink-0 text-osg-500/70" />
+              <p className="leading-relaxed">
+                Esta solicitação foi <strong className="font-semibold">encerrada</strong>
+                {solicitacao?.encerradaEm ? ` em ${emData(solicitacao.encerradaEm)}` : ''} e
+                está só para consulta. O cliente continua vendo os arquivos que enviou, mas
+                não envia mais nada. Para pedir outros documentos, abra uma nova solicitação
+                pelo botão no topo.
+              </p>
+            </div>
+          )}
+
+          <OnboardingWorkspace
+            itens={ativos}
+            dispensados={dispensados}
+            catalogDocuments={catalogo.data.catalogDocuments}
+            catalogoPorId={catalogo.data.catalogoPorId}
+            produtosContratados={catalogo.data.produtosContratados}
+            somenteLeitura={encerrada}
+            onAdicionarDoCatalogo={incluirDoCatalogo}
+            onAdicionarManual={incluirManual}
+            onEditar={editar}
+            onDispensar={dispensar}
+          />
+        </div>
       )}
     </OsgLayout>
   );

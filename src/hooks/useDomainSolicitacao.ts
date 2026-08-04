@@ -46,7 +46,12 @@ import {
 export const solicitacaoAtivaKey = (clienteId: string | null) =>
   ['osg-solicitacao', clienteId] as const;
 
-/** O pedido não encerrado do cliente, com os itens já resolvidos para a tela. */
+/**
+ * O pedido do cliente que a tela mostra, com os itens já resolvidos.
+ *
+ * É o não encerrado quando existe; senão, o último encerrado, que a tela exibe
+ * em modo consulta.
+ */
 export interface SolicitacaoAtiva {
   id: string;
   clienteId: string;
@@ -88,13 +93,25 @@ interface ErroPostgrest {
 const codigoDoErro = (erro: unknown): string | undefined =>
   (erro as ErroPostgrest | null)?.code;
 
-async function buscarSolicitacaoAtiva(clienteId: string): Promise<SolicitacaoAtiva | null> {
+/**
+ * A solicitação que a tela do consultor mostra para este cliente.
+ *
+ * É a não encerrada, quando existe — o índice único parcial garante no máximo
+ * uma. Não havendo, é a **última encerrada**, porque a tela precisa continuar
+ * mostrando o pedido fechado em modo consulta (ALE-30). Filtrar `encerrada` aqui
+ * fazia a tela zerar no instante do encerramento, como se o pedido tivesse
+ * sumido.
+ *
+ * A ordenação faz esse desempate sozinha: `encerrada_em` é nulo na ativa, e
+ * `nullsFirst` a coloca à frente; entre as encerradas, vem a mais recente.
+ */
+async function buscarSolicitacaoDoCliente(clienteId: string): Promise<SolicitacaoAtiva | null> {
   const { data, error } = await supabase
     .from('solicitacao')
     .select(SELECT_SOLICITACAO)
     .eq('cliente_id', clienteId)
-    // O índice único parcial garante no máximo uma não encerrada por cliente.
-    .neq('status', 'encerrada')
+    .order('encerrada_em', { ascending: false, nullsFirst: true })
+    .limit(1)
     .maybeSingle();
 
   if (error) throw error;
@@ -124,11 +141,16 @@ export function useDomainSolicitacao(clienteId: string | null) {
 
   const solicitacaoQuery = useQuery<SolicitacaoAtiva | null>({
     queryKey,
-    queryFn: () => buscarSolicitacaoAtiva(clienteId as string),
+    queryFn: () => buscarSolicitacaoDoCliente(clienteId as string),
     enabled: Boolean(clienteId),
   });
 
-  const invalidar = () => queryClient.invalidateQueries({ queryKey });
+  const invalidar = () => {
+    queryClient.invalidateQueries({ queryKey });
+    // A leitura do portal do cliente (EDU-24/EDU-27) tem cache proprio: sem
+    // isto, enviar ou encerrar so apareceria para o cliente no proximo refetch.
+    queryClient.invalidateQueries({ queryKey: ['solicitacao-ativa-cliente'] });
+  };
 
   /**
    * O cabeçalho onde a linha nova vai entrar — criando um rascunho se ainda não
@@ -139,8 +161,10 @@ export function useDomainSolicitacao(clienteId: string | null) {
    * pedido à OS é a RPC (`gerarDaOs`).
    */
   const garantirSolicitacao = async (): Promise<string> => {
-    const atual = solicitacaoQuery.data ?? await buscarSolicitacaoAtiva(clienteId as string);
-    if (atual) return atual.id;
+    const atual = solicitacaoQuery.data ?? await buscarSolicitacaoDoCliente(clienteId as string);
+    // Encerrada não recebe item novo: o ciclo dela acabou. Nesse caso cai no
+    // insert abaixo e nasce um rascunho, que o índice único parcial já permite.
+    if (atual && atual.status !== 'encerrada') return atual.id;
 
     const { data, error } = await supabase
       .from('solicitacao')
@@ -152,7 +176,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
       // Duas abas do mesmo cliente criando o rascunho ao mesmo tempo: o índice
       // único parcial recusa a segunda. A que perdeu adota a que ganhou.
       if (codigoDoErro(error) === UNIQUE_VIOLATION) {
-        const criadaPorOutro = await buscarSolicitacaoAtiva(clienteId as string);
+        const criadaPorOutro = await buscarSolicitacaoDoCliente(clienteId as string);
         if (criadaPorOutro) return criadaPorOutro.id;
       }
       throw error;
@@ -216,7 +240,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
       if (error) throw error;
 
       const criados = data ?? 0;
-      const depois = await buscarSolicitacaoAtiva(clienteId);
+      const depois = await buscarSolicitacaoDoCliente(clienteId);
       if (!depois) {
         throw new Error('A geração terminou sem deixar solicitação ativa para o cliente.');
       }
@@ -427,6 +451,117 @@ export function useDomainSolicitacao(clienteId: string | null) {
       toast.error('Não foi possível dispensar o documento: ' + error.message),
   });
 
+  /**
+   * Move o cabeçalho de um status para outro.
+   *
+   * O status esperado vai no WHERE, e não numa leitura anterior: assim dois
+   * consultores clicando ao mesmo tempo não produzem duas transições nem
+   * sobrescrevem `enviada_em`. Se o update não devolver linha, alguém chegou
+   * antes — e isso vira erro na tela, não silêncio.
+   *
+   * A data vem do relógio do cliente porque o PostgREST não aceita expressão
+   * (`now()`) no payload de update. A diferença é de segundos e não há regra que
+   * dependa da precisão dela.
+   */
+  const moverStatus = async (
+    de: SolicitacaoStatus[],
+    para: SolicitacaoStatus,
+    carimbo: 'enviada_em' | 'encerrada_em',
+    erroSeNaoMoveu: string,
+  ) => {
+    const atual = solicitacaoQuery.data;
+    if (!atual) throw new Error('Nenhuma solicitação carregada para este cliente.');
+
+    const alteracoes = { status: para, [carimbo]: new Date().toISOString() };
+    const { data, error } = await supabase
+      .from('solicitacao')
+      .update(alteracoes)
+      .eq('id', atual.id)
+      .in('status', de)
+      .select('id, status');
+    if (error) throw error;
+    if (!data || data.length === 0) throw new Error(erroSeNaoMoveu);
+
+    await logAction({
+      area: 'osg',
+      entity_type: 'solicitacao',
+      entity_id: atual.id,
+      entity_name: 'Solicitação de documentos',
+      action: 'updated',
+      changed_fields: computeFieldDiff(
+        { status: atual.status },
+        alteracoes,
+        ['status', carimbo],
+      ),
+    });
+  };
+
+  const enviarSolicitacao = useMutation({
+    mutationFn: () => moverStatus(
+      ['rascunho'],
+      'enviada',
+      'enviada_em',
+      'Esta solicitação não está mais em rascunho — alguém já a enviou ou encerrou. Recarregue a página.',
+    ),
+    onSuccess: invalidar,
+    onError: (error: Error) => toast.error('Não foi possível enviar: ' + error.message),
+  });
+
+  const encerrarSolicitacao = useMutation({
+    mutationFn: () => moverStatus(
+      ['rascunho', 'enviada'],
+      'encerrada',
+      'encerrada_em',
+      'Esta solicitação já estava encerrada. Recarregue a página.',
+    ),
+    onSuccess: invalidar,
+    onError: (error: Error) => toast.error('Não foi possível encerrar: ' + error.message),
+  });
+
+  /**
+   * Abre um rascunho novo depois que o anterior foi encerrado.
+   *
+   * Diferente do `garantirSolicitacao`: aqui a violação de unicidade NÃO é
+   * absorvida. Se o índice recusar, é o banco funcionando — existe solicitação
+   * aberta para este cliente —, e a resposta certa é dizer isso, não tentar de
+   * novo.
+   */
+  const abrirNovaSolicitacao = useMutation({
+    mutationFn: async () => {
+      if (!clienteId) throw new Error('Selecione um cliente.');
+
+      const { data, error } = await supabase
+        .from('solicitacao')
+        .insert({ cliente_id: clienteId, status: 'rascunho' })
+        .select('id')
+        .single();
+
+      if (error) {
+        if (codigoDoErro(error) === UNIQUE_VIOLATION) {
+          throw new Error('Este cliente já tem uma solicitação aberta.');
+        }
+        throw error;
+      }
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'solicitacao',
+        entity_id: data.id,
+        entity_name: 'Solicitação de documentos',
+        action: 'created',
+        changed_fields: computeFieldDiff(
+          null,
+          { cliente_id: clienteId, status: 'rascunho' },
+          ['cliente_id', 'status'],
+        ),
+      });
+      return data.id;
+    },
+    onSuccess: invalidar,
+    onError: (error: Error) =>
+      toast.error('Não foi possível abrir a solicitação: ' + error.message),
+  });
+
   return {
     solicitacao: solicitacaoQuery.data ?? null,
     itens: solicitacaoQuery.data?.itens ?? [],
@@ -437,5 +572,8 @@ export function useDomainSolicitacao(clienteId: string | null) {
     adicionarManual,
     editarItem,
     dispensarItem,
+    enviarSolicitacao,
+    encerrarSolicitacao,
+    abrirNovaSolicitacao,
   };
 }

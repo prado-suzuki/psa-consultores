@@ -32,6 +32,8 @@ export type DisplayDocument = OnboardingDocument;
 interface DocumentGroupsProps {
   documents: DisplayDocument[];
   catalogDocuments: OnboardingDocument[];
+  /** Solicitação encerrada: some com as ações de linha e com os opcionais. */
+  somenteLeitura?: boolean;
   onEdit: (document: DisplayDocument) => void;
   onRemove: (document: DisplayDocument) => void;
   onAddOptional: (document: OnboardingDocument) => void;
@@ -40,13 +42,14 @@ interface DocumentGroupsProps {
 export function DocumentGroups({
   documents,
   catalogDocuments,
+  somenteLeitura = false,
   onEdit,
   onRemove,
   onAddOptional,
 }: DocumentGroupsProps) {
   const groupedDocuments = groupOnboardingDocuments(documents);
   const groupedOptional = groupOnboardingDocuments(
-    findAvailableCatalogDocuments(catalogDocuments, documents),
+    somenteLeitura ? [] : findAvailableCatalogDocuments(catalogDocuments, documents),
   );
 
   return (
@@ -102,26 +105,28 @@ export function DocumentGroups({
                                 {document.note || 'Sem orientação adicional.'}
                               </p>
                             </div>
-                            <div className={rowActionsCls}>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-osg-500/70 hover:bg-white hover:text-osg-moss"
-                                onClick={() => onEdit(document)}
-                                title="Editar nesta solicitação"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-osg-500/70 hover:bg-osg-red/10 hover:text-osg-red"
-                                onClick={() => onRemove(document)}
-                                title="Remover desta solicitação"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
+                            {!somenteLeitura && (
+                              <div className={rowActionsCls}>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-osg-500/70 hover:bg-white hover:text-osg-moss"
+                                  onClick={() => onEdit(document)}
+                                  title="Editar nesta solicitação"
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-osg-500/70 hover:bg-osg-red/10 hover:text-osg-red"
+                                  onClick={() => onRemove(document)}
+                                  title="Remover desta solicitação"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

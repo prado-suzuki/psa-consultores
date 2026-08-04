@@ -33,6 +33,14 @@ interface OnboardingWorkspaceProps {
   /** Catálogo em forma de gravação, indexado por id. */
   catalogoPorId: Map<string, CatalogoDocumento>;
   produtosContratados: OnboardingProdutoContratado[];
+  /**
+   * Solicitação encerrada: a lista fica só para consulta.
+   *
+   * Esconde as ações em vez de desabilitá-las — com dezenas de documentos, dois
+   * controles cinzas por linha viram ruído. Quem explica o porquê é a faixa no
+   * topo da página.
+   */
+  somenteLeitura?: boolean;
   onAdicionarDoCatalogo: (catalogo: CatalogoDocumento, estrutura?: EstruturaDoItem) => void;
   onAdicionarManual: (entrada: NovoItemManual) => void;
   onEditar: (id: string, edicao: EdicaoItem) => void;
@@ -73,6 +81,7 @@ export function OnboardingWorkspace({
   catalogDocuments,
   catalogoPorId,
   produtosContratados,
+  somenteLeitura = false,
   onAdicionarDoCatalogo,
   onAdicionarManual,
   onEditar,
@@ -168,15 +177,17 @@ export function OnboardingWorkspace({
               ))}
             </div>
           </div>
-          <Button
-            size="sm"
-            variant="outline"
-            className="shrink-0"
-            onClick={() => setEditor({ open: true, mode: 'add' })}
-          >
-            <Plus className="h-4 w-4" />
-            Adicionar documento
-          </Button>
+          {!somenteLeitura && (
+            <Button
+              size="sm"
+              variant="outline"
+              className="shrink-0"
+              onClick={() => setEditor({ open: true, mode: 'add' })}
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar documento
+            </Button>
+          )}
         </div>
 
         <p className="mb-3 flex items-start gap-2 px-1 text-xs leading-relaxed text-slate-500">
@@ -198,6 +209,7 @@ export function OnboardingWorkspace({
         <DocumentGroups
           documents={exibidos}
           catalogDocuments={catalogDocuments}
+          somenteLeitura={somenteLeitura}
           onEdit={abrirEdicao}
           onRemove={(documento) => onDispensar(documento.id)}
           onAddOptional={incluirOpcional}
