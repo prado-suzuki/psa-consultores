@@ -37,8 +37,6 @@ export const ONBOARDING_GROUP_DEFAULTS: Record<
 
 export type OnboardingDocumentCategory =
   Database['public']['Enums']['osg_doc_categoria'];
-export type OnboardingChecklistInsert =
-  Database['public']['Tables']['checklist_cliente_item']['Insert'];
 
 export interface OnboardingDocument {
   id: string;
@@ -55,27 +53,16 @@ export interface OnboardingDocument {
   productId: string;
 }
 
-export interface ConsolidatedOnboardingDocument extends OnboardingDocument {
-  productIds: string[];
-  sourceDocumentIds: string[];
-}
+// `OnboardingProduct` saiu junto: a tela não monta mais lista por produto. Os
+// produtos contratados vêm da OS (`OnboardingProdutoContratado`, em
+// `useOnboarding`) e servem só para exibir quais são — o catálogo de documentos
+// não se organiza mais por produto.
 
-export interface OnboardingProduct {
-  id: string;
-  code: string;
-  name: string;
-  contracted: boolean;
-  documents: OnboardingDocument[];
-}
-
-export type DocumentsByProduct = Record<string, OnboardingDocument[]>;
-
-/**
- * Balde dos documentos incluídos direto na solicitação consolidada, quando o
- * analista não está com um produto aberto. Entra na consolidação como se fosse
- * um produto, mas nunca aparece na lista de produtos contratados.
- */
-export const SOLICITACAO_BUCKET = '__solicitacao__';
+// O balde por produto (`SOLICITACAO_BUCKET`, `DocumentsByProduct`,
+// `buildDocumentsByProduct`, `consolidateDocuments` e o tipo consolidado) saiu na
+// ALE-28: a lista passou a viver em `solicitacao_item`, que não tem coluna de
+// produto — o rascunho não é mais uma pilha de baldes em memória para consolidar
+// no fim.
 
 const normalize = (value: string) =>
   value
@@ -125,46 +112,6 @@ export function documentIdentity(document: OnboardingDocument) {
   );
 }
 
-export function buildDocumentsByProduct(products: OnboardingProduct[]): DocumentsByProduct {
-  return Object.fromEntries(
-    products.map((product) => [
-      product.id,
-      product.documents.map((document) => ({ ...document })),
-    ]),
-  );
-}
-
-export function consolidateDocuments(
-  documentsByProduct: DocumentsByProduct,
-  selectedProductIds: string[],
-): ConsolidatedOnboardingDocument[] {
-  const consolidated = new Map<string, ConsolidatedOnboardingDocument>();
-
-  selectedProductIds.forEach((productId) => {
-    (documentsByProduct[productId] ?? []).forEach((document) => {
-      const identity = documentIdentity(document);
-      const existing = consolidated.get(identity);
-
-      if (existing) {
-        existing.required ||= document.required;
-        existing.productIds.push(productId);
-        existing.sourceDocumentIds.push(document.id);
-        return;
-      }
-
-      consolidated.set(identity, {
-        ...document,
-        id: `consolidated:${identity}`,
-        productIds: [productId],
-        sourceDocumentIds: [document.id],
-      });
-    });
-  });
-
-  return [...consolidated.values()].sort((left, right) =>
-    left.title.localeCompare(right.title, 'pt-BR'),
-  );
-}
 
 /**
  * Documentos que existem no catálogo mas ainda não estão na lista em tela — são
@@ -190,27 +137,4 @@ export function groupOnboardingDocuments<T extends OnboardingDocument>(
   });
 
   return groups;
-}
-
-export function buildOnboardingChecklistRows(
-  clienteId: string,
-  documents: ConsolidatedOnboardingDocument[],
-): OnboardingChecklistInsert[] {
-  return documents.map((document) => ({
-    cliente_id: clienteId,
-    item_padrao_id: document.catalogId ?? null,
-    modulo: document.module,
-    entidade: document.entity,
-    documento: document.title,
-    nota: document.note.trim() || null,
-    categoria: document.category,
-    categoria_docbox: document.docboxCategory,
-    confidencial: document.confidential,
-    obrigatorio: document.required,
-    origem: document.catalogId ? 'padrao' : 'manual',
-    status: 'solicitado',
-    pessoa_id: null,
-    bem_id: null,
-    matricula_id: null,
-  }));
 }

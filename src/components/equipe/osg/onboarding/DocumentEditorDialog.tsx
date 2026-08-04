@@ -14,59 +14,63 @@ import {
 } from '@/components/equipe/osg/OsgDialog';
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
 import {
-  getOnboardingGroup,
-  getOnboardingGroupDefaults,
-  ONBOARDING_GROUPS,
-  type OnboardingGroup,
-  type OnboardingDocument,
-  type OnboardingDocumentCategory,
-  type OnboardingProduct,
-} from '@/lib/onboarding';
+  GRANULARIDADES,
+  ROTULO_GRANULARIDADE,
+  type CatalogoDocumento,
+  type Granularidade,
+  type ItemSolicitacao,
+} from '@/lib/solicitacao';
 
+/**
+ * O que o modal devolve.
+ *
+ * Não existe mais `entity` nem `module`: a entidade era DERIVADA do grupo por um
+ * mapa de chute (`ONBOARDING_GROUP_DEFAULTS`), e foi dele que saiu o
+ * `entidade = 'Bem'` que apareceu em 7 linhas de cliente enquanto o catálogo,
+ * corrigido depois, dizia 'Cliente'. O que se pede agora é o GRÃO, que é dado de
+ * banco e coluna NOT NULL de `solicitacao_item`.
+ *
+ * O campo "Produto de destino" também saiu: ele era obrigatório para salvar e o
+ * valor nunca era gravado em lugar nenhum — não existe coluna de produto no
+ * pedido. Com a lista vindo do banco, não há mais balde por produto onde ele
+ * pudesse cair.
+ */
 export interface DocumentEditorValue {
+  /** Documento do catálogo escolhido; ausente = documento novo, criado à mão. */
   catalogId?: string;
-  code?: string;
-  title: string;
-  entity: string;
-  module: string;
-  note: string;
-  required: boolean;
-  category: OnboardingDocumentCategory | null;
-  docboxCategory: string | null;
-  confidential: boolean;
-  targetProductId?: string;
+  documento: string;
+  nota: string;
+  granularidade: Granularidade;
 }
 
 interface DocumentEditorDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   mode: 'add' | 'edit';
-  document?: OnboardingDocument;
-  catalogDocuments: OnboardingDocument[];
-  selectedProducts: OnboardingProduct[];
-  defaultProductId?: string;
+  /** No modo editar, o item que já está na solicitação. */
+  item?: ItemSolicitacao;
+  /** Catálogo na forma de gravação, para a lista de escolha. */
+  catalogo: CatalogoDocumento[];
+  /** Ids de catálogo já pedidos — não aparecem na lista de escolha. */
+  idsJaPedidos: Set<string>;
   onSave: (value: DocumentEditorValue) => void;
 }
 
-const NEW_DOCUMENT = '__new__';
+const NOVO_DOCUMENTO = '__novo__';
 
-const emptyValue = (
-  group: OnboardingGroup,
-  targetProductId?: string,
-): DocumentEditorValue => {
-  const defaults = getOnboardingGroupDefaults(group);
-  return {
-    title: '',
-    entity: defaults.entity,
-    module: defaults.module,
-    note: '',
-    required: false,
-    category: null,
-    docboxCategory: null,
-    confidential: false,
-    targetProductId,
-  };
-};
+/**
+ * Os grãos oferecidos.
+ *
+ * `bem` fica fora: existe no CHECK da tabela, mas nenhum item do catálogo o usa
+ * hoje — oferecer abriria pedido num grão que o resto do fluxo não trata.
+ */
+const GRAOS_OFERECIDOS = GRANULARIDADES.filter((grao) => grao !== 'bem');
+
+const valorVazio = (): DocumentEditorValue => ({
+  documento: '',
+  nota: '',
+  granularidade: 'cliente',
+});
 
 /** Campo no padrão dos modais OSG: rótulo miúdo + controle com foco verde-musgo. */
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -82,77 +86,66 @@ export function DocumentEditorDialog({
   open,
   onOpenChange,
   mode,
-  document,
-  catalogDocuments,
-  selectedProducts,
-  defaultProductId,
+  item,
+  catalogo,
+  idsJaPedidos,
   onSave,
 }: DocumentEditorDialogProps) {
-  const [value, setValue] = useState<DocumentEditorValue>(
-    () => emptyValue('Outros documentos', defaultProductId),
-  );
-  const [documentChoice, setDocumentChoice] = useState(NEW_DOCUMENT);
+  const [value, setValue] = useState<DocumentEditorValue>(valorVazio);
+  const [escolha, setEscolha] = useState(NOVO_DOCUMENTO);
 
   useEffect(() => {
     if (!open) return;
-    setDocumentChoice(NEW_DOCUMENT);
-    setValue(document
+    setEscolha(NOVO_DOCUMENTO);
+    setValue(item
       ? {
-        catalogId: document.catalogId,
-        code: document.code,
-        title: document.title,
-        entity: document.entity,
-        module: document.module,
-        note: document.note,
-        required: document.required,
-        category: document.category,
-        docboxCategory: document.docboxCategory,
-        confidential: document.confidential,
+        catalogId: item.itemPadraoId ?? undefined,
+        documento: item.documento,
+        nota: item.nota ?? '',
+        granularidade: item.granularidade,
       }
-      : emptyValue('Outros documentos', defaultProductId));
-  }, [defaultProductId, document, open]);
+      : valorVazio());
+  }, [item, open]);
 
-  const group = getOnboardingGroup(value.entity);
-  const groupCatalogDocuments = useMemo(
-    () => catalogDocuments.filter((item) => getOnboardingGroup(item.entity) === group),
-    [catalogDocuments, group],
+  /** A lista de escolha respeita o grão e esconde o que já foi pedido. */
+  const doCatalogoNoGrao = useMemo(
+    () => catalogo
+      .filter((documento) =>
+        documento.granularidade === value.granularidade && !idsJaPedidos.has(documento.id))
+      .sort((esquerda, direita) =>
+        esquerda.documento.localeCompare(direita.documento, 'pt-BR')),
+    [catalogo, idsJaPedidos, value.granularidade],
   );
 
-  const changeGroup = (nextGroup: OnboardingGroup) => {
-    setDocumentChoice(NEW_DOCUMENT);
-    setValue((current) => emptyValue(nextGroup, current.targetProductId));
+  const trocarGrao = (granularidade: Granularidade) => {
+    setEscolha(NOVO_DOCUMENTO);
+    setValue((atual) => ({ ...atual, granularidade, catalogId: undefined, documento: '', nota: '' }));
   };
 
-  const chooseDocument = (choice: string) => {
-    setDocumentChoice(choice);
-    if (choice === NEW_DOCUMENT) {
-      setValue((current) => ({
-        ...emptyValue(getOnboardingGroup(current.entity), current.targetProductId),
-      }));
+  const escolherDocumento = (proxima: string) => {
+    setEscolha(proxima);
+    if (proxima === NOVO_DOCUMENTO) {
+      setValue((atual) => ({ ...atual, catalogId: undefined, documento: '', nota: '' }));
       return;
     }
 
-    const catalogDocument = catalogDocuments.find((item) => item.catalogId === choice);
-    if (!catalogDocument) return;
-    setValue((current) => ({
-      catalogId: catalogDocument.catalogId,
-      code: catalogDocument.code,
-      title: catalogDocument.title,
-      entity: catalogDocument.entity,
-      module: catalogDocument.module,
-      note: catalogDocument.note,
-      required: catalogDocument.required,
-      category: catalogDocument.category,
-      docboxCategory: catalogDocument.docboxCategory,
-      confidential: catalogDocument.confidential,
-      targetProductId: current.targetProductId,
+    const doCatalogo = catalogo.find((documento) => documento.id === proxima);
+    if (!doCatalogo) return;
+    setValue((atual) => ({
+      catalogId: doCatalogo.id,
+      documento: doCatalogo.documento,
+      nota: doCatalogo.nota ?? '',
+      granularidade: atual.granularidade,
     }));
   };
 
-  const isNewDocument = documentChoice === NEW_DOCUMENT;
-  const canSave = value.title.trim().length > 0
-    && value.module.trim().length > 0
-    && (mode === 'edit' || Boolean(value.targetProductId));
+  const ehNovo = escolha === NOVO_DOCUMENTO;
+  // No modo editar de um item de catálogo, nome vazio é legítimo: significa
+  // voltar a herdar o texto do catálogo. No item manual, o nome é o único texto
+  // que existe — ali ele é obrigatório.
+  const podeSalvar = mode === 'add'
+    ? Boolean(value.catalogId) || value.documento.trim().length > 0
+    : Boolean(item?.doCatalogo) || value.documento.trim().length > 0;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -169,49 +162,30 @@ export function DocumentEditorDialog({
         <div className="space-y-4 py-1">
           {mode === 'add' && (
             <>
-              <Field label="Produto de destino">
+              <Field label="Grão">
                 <Select
-                  value={value.targetProductId ?? ''}
-                  onValueChange={(targetProductId) => setValue((current) => ({
-                    ...current,
-                    targetProductId,
-                  }))}
+                  value={value.granularidade}
+                  onValueChange={(grao) => trocarGrao(grao as Granularidade)}
                 >
-                  <SelectTrigger className={fieldCls}>
-                    <SelectValue placeholder="Selecione o produto..." />
-                  </SelectTrigger>
+                  <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {selectedProducts.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name}
+                    {GRAOS_OFERECIDOS.map((grao) => (
+                      <SelectItem key={grao} value={grao}>
+                        {ROTULO_GRANULARIDADE[grao]}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </Field>
 
-              <Field label="Grupo">
-                <Select
-                  value={group}
-                  onValueChange={(nextGroup) => changeGroup(nextGroup as OnboardingGroup)}
-                >
-                  <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {ONBOARDING_GROUPS.map((item) => (
-                      <SelectItem key={item} value={item}>{item}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-
               <Field label="Documento">
-                <Select value={documentChoice} onValueChange={chooseDocument}>
+                <Select value={escolha} onValueChange={escolherDocumento}>
                   <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value={NEW_DOCUMENT}>Novo documento</SelectItem>
-                    {groupCatalogDocuments.map((item) => (
-                      <SelectItem key={item.catalogId ?? item.id} value={item.catalogId ?? item.id}>
-                        {item.title}
+                    <SelectItem value={NOVO_DOCUMENTO}>Novo documento</SelectItem>
+                    {doCatalogoNoGrao.map((documento) => (
+                      <SelectItem key={documento.id} value={documento.id}>
+                        {documento.documento}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -220,13 +194,13 @@ export function DocumentEditorDialog({
             </>
           )}
 
-          {(isNewDocument || mode === 'edit') && (
+          {(ehNovo || mode === 'edit') && (
             <Field label="Nome do documento">
               <Input
-                value={value.title}
-                onChange={(event) => setValue((current) => ({
-                  ...current,
-                  title: event.target.value,
+                value={value.documento}
+                onChange={(event) => setValue((atual) => ({
+                  ...atual,
+                  documento: event.target.value,
                 }))}
                 placeholder="Ex.: Certidão de casamento atualizada"
                 className={fieldCls}
@@ -236,23 +210,29 @@ export function DocumentEditorDialog({
 
           <Field label="Orientação ao cliente">
             <Textarea
-              value={value.note}
-              onChange={(event) => setValue((current) => ({
-                ...current,
-                note: event.target.value,
+              value={value.nota}
+              onChange={(event) => setValue((atual) => ({
+                ...atual,
+                nota: event.target.value,
               }))}
               placeholder="Explique o que o cliente deve enviar"
               className={`min-h-[60px] ${textareaCls}`}
             />
           </Field>
+
+          {mode === 'edit' && item?.doCatalogo && (
+            <p className="px-1 text-xs leading-relaxed text-slate-500">
+              Deixar um campo em branco faz o texto voltar a vir do catálogo.
+            </p>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
-            disabled={!canSave}
+            disabled={!podeSalvar}
             onClick={() => {
-              onSave({ ...value, title: value.title.trim(), module: value.module.trim() });
+              onSave({ ...value, documento: value.documento.trim() });
               onOpenChange(false);
             }}
           >

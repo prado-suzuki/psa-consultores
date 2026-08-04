@@ -1,292 +1,203 @@
-import { useEffect, useMemo, useState } from 'react';
-import { AlertCircle, Layers3, PackageOpen, Plus } from 'lucide-react';
-import { toast } from 'sonner';
+import { useMemo, useState } from 'react';
+import { CheckCircle2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { OnboardingDocument } from '@/lib/onboarding';
+import type { OnboardingProdutoContratado } from '@/hooks/useOnboarding';
 import {
-  buildDocumentsByProduct,
-  consolidateDocuments,
-  SOLICITACAO_BUCKET,
-  type ConsolidatedOnboardingDocument,
-  type DocumentsByProduct,
-  type OnboardingDocument,
-} from '@/lib/onboarding';
-import type { OnboardingCatalogData } from '@/hooks/useOnboarding';
+  grupoSugeridoParaGranularidade,
+  type CatalogoDocumento,
+  type EdicaoItem,
+  type ItemSolicitacao,
+  type NovoItemManual,
+} from '@/lib/solicitacao';
 import {
   DocumentEditorDialog,
   type DocumentEditorValue,
 } from './DocumentEditorDialog';
 import { DocumentGroups, type DisplayDocument } from './DocumentGroups';
-import { OnboardingEmptyState } from './OnboardingEmptyState';
 import {
-  counterPillCls,
-  microLabelMutedCls,
   panelContainerCls,
-  railContainerCls,
-  railItemCls,
   riseCls,
   riseDelay,
 } from './onboardingKit';
 
 interface OnboardingWorkspaceProps {
-  data: OnboardingCatalogData;
-  onDraftChange: (draft: OnboardingDraft) => void;
-}
-
-export interface OnboardingDraft {
-  documents: ConsolidatedOnboardingDocument[];
-  selectedProductIds: string[];
+  /** Itens ATIVOS da solicitação, já resolvidos e ordenados pelo hook. */
+  itens: ItemSolicitacao[];
+  /** Quantos foram dispensados — o rastro que não aparece na lista. */
+  dispensados: number;
+  /** Catálogo em forma de exibição, para a lista de opcionais de cada grupo. */
+  catalogDocuments: OnboardingDocument[];
+  /** Catálogo em forma de gravação, indexado por id. */
+  catalogoPorId: Map<string, CatalogoDocumento>;
+  produtosContratados: OnboardingProdutoContratado[];
+  onAdicionarDoCatalogo: (catalogo: CatalogoDocumento) => void;
+  onAdicionarManual: (entrada: NovoItemManual) => void;
+  onEditar: (id: string, edicao: EdicaoItem) => void;
+  onDispensar: (id: string) => void;
 }
 
 interface EditorState {
   open: boolean;
   mode: 'add' | 'edit';
-  document?: DisplayDocument;
+  item?: ItemSolicitacao;
 }
 
-function isConsolidated(
-  document: DisplayDocument,
-): document is ConsolidatedOnboardingDocument {
-  return 'productIds' in document;
+/**
+ * Adapta o item da solicitação para o formato que o accordion ainda consome.
+ *
+ * Cola temporária e de vida curta: a ALE-29 reescreve `DocumentGroups` para
+ * agrupar pela coluna `grupo`, com os nomes de `GRUPOS_DOCUMENTO` (depois que a
+ * EDU-26 fechar a grafia da terceira chave). Até lá o accordion segue agrupando
+ * pelo texto de `entidade`, que é o comportamento que já estava no ar — nenhum
+ * vocabulário novo de grupo nasce aqui.
+ */
+function paraExibicao(item: ItemSolicitacao): DisplayDocument {
+  return {
+    id: item.id,
+    catalogId: item.itemPadraoId ?? undefined,
+    code: item.codigo ?? undefined,
+    title: item.documento,
+    entity: item.entidade,
+    module: '',
+    note: item.nota ?? '',
+    required: false,
+    category: null,
+    docboxCategory: null,
+    confidential: item.confidencial,
+    productId: '',
+  };
 }
 
-export function OnboardingWorkspace({ data, onDraftChange }: OnboardingWorkspaceProps) {
-  const contractedProducts = useMemo(
-    () => data.products.filter((product) => product.contracted),
-    [data.products],
-  );
-  const contractedProductIds = useMemo(
-    () => contractedProducts.map((product) => product.id),
-    [contractedProducts],
-  );
-  const [documentsByProduct, setDocumentsByProduct] = useState<DocumentsByProduct>(() => ({
-    ...buildDocumentsByProduct(data.products.filter((product) => product.contracted)),
-    [SOLICITACAO_BUCKET]: [],
-  }));
-  const [activeProductId, setActiveProductId] = useState<string | null>(null);
+export function OnboardingWorkspace({
+  itens,
+  dispensados,
+  catalogDocuments,
+  catalogoPorId,
+  produtosContratados,
+  onAdicionarDoCatalogo,
+  onAdicionarManual,
+  onEditar,
+  onDispensar,
+}: OnboardingWorkspaceProps) {
   const [editor, setEditor] = useState<EditorState>({ open: false, mode: 'add' });
 
-  const consolidatedDocuments = useMemo(
-    () => consolidateDocuments(documentsByProduct, [
-      ...contractedProductIds,
-      SOLICITACAO_BUCKET,
-    ]),
-    [documentsByProduct, contractedProductIds],
+  const porId = useMemo(() => new Map(itens.map((item) => [item.id, item])), [itens]);
+  const exibidos = useMemo(() => itens.map(paraExibicao), [itens]);
+  const idsJaPedidos = useMemo(
+    () => new Set(itens.flatMap((item) => (item.itemPadraoId ? [item.itemPadraoId] : []))),
+    [itens],
   );
-  const activeProduct = contractedProducts.find((product) => product.id === activeProductId);
-  const activeDocuments: DisplayDocument[] = activeProductId
-    ? documentsByProduct[activeProductId] ?? []
-    : consolidatedDocuments;
+  const catalogo = useMemo(() => [...catalogoPorId.values()], [catalogoPorId]);
 
-  useEffect(() => {
-    onDraftChange({
-      documents: consolidatedDocuments,
-      selectedProductIds: contractedProductIds,
-    });
-  }, [consolidatedDocuments, onDraftChange, contractedProductIds]);
-
-  const pushDocument = (targetKey: string, document: OnboardingDocument) => {
-    setDocumentsByProduct((current) => ({
-      ...current,
-      [targetKey]: [...(current[targetKey] ?? []), document],
-    }));
-  };
-
-  const addDocument = (value: DocumentEditorValue) => {
-    if (!value.targetProductId) return;
-    const targetDocuments = documentsByProduct[value.targetProductId] ?? [];
-    if (
-      value.catalogId
-      && targetDocuments.some((document) => document.catalogId === value.catalogId)
-    ) {
-      toast.info('Este documento já está incluído no produto selecionado');
+  const salvarEditor = (value: DocumentEditorValue) => {
+    if (editor.mode === 'edit') {
+      if (!editor.item) return;
+      onEditar(editor.item.id, { documento: value.documento, nota: value.nota });
       return;
     }
 
-    pushDocument(value.targetProductId, {
-      id: crypto.randomUUID(),
-      catalogId: value.catalogId,
-      code: value.code,
-      title: value.title,
-      entity: value.entity,
-      module: value.module,
-      note: value.note,
-      required: value.required,
-      category: value.category,
-      docboxCategory: value.docboxCategory,
-      confidential: value.confidential,
-      productId: value.targetProductId,
+    if (value.catalogId) {
+      const doCatalogo = catalogoPorId.get(value.catalogId);
+      if (doCatalogo) onAdicionarDoCatalogo(doCatalogo);
+      return;
+    }
+
+    onAdicionarManual({
+      documento: value.documento,
+      granularidade: value.granularidade,
+      // A gaveta vem da sugestão do grão. Torná-la editável é a ALE-29, que é
+      // onde os 4 grupos ganham nome (EDU-26).
+      grupo: grupoSugeridoParaGranularidade(value.granularidade),
+      nota: value.nota,
     });
-    toast.success('Documento adicionado à solicitação');
   };
 
-  /** Inclusão em um clique a partir da lista de opcionais do grupo. */
-  const addOptionalDocument = (catalogDocument: OnboardingDocument) => {
-    const targetKey = activeProductId ?? SOLICITACAO_BUCKET;
-    pushDocument(targetKey, {
-      ...catalogDocument,
-      id: crypto.randomUUID(),
-      required: false,
-      productId: targetKey,
-    });
-    toast.success(`"${catalogDocument.title}" incluído na solicitação`);
+  const incluirOpcional = (documento: OnboardingDocument) => {
+    const doCatalogo = documento.catalogId
+      ? catalogoPorId.get(documento.catalogId)
+      : undefined;
+    if (doCatalogo) onAdicionarDoCatalogo(doCatalogo);
   };
 
-  const editDocument = (source: DisplayDocument, value: DocumentEditorValue) => {
-    setDocumentsByProduct((current) => {
-      const next = { ...current };
-      const productIds = isConsolidated(source) ? source.productIds : [source.productId];
-      const sourceIds = isConsolidated(source) ? source.sourceDocumentIds : [source.id];
-
-      productIds.forEach((productId, index) => {
-        next[productId] = (current[productId] ?? []).map((document) =>
-          document.id === sourceIds[index]
-            ? {
-              ...document,
-              catalogId: value.catalogId,
-              code: value.code,
-              title: value.title,
-              entity: value.entity,
-              module: value.module,
-              note: value.note,
-              required: value.required,
-              category: value.category,
-              docboxCategory: value.docboxCategory,
-              confidential: value.confidential,
-            }
-            : document);
-      });
-      return next;
-    });
-    toast.success('Documento atualizado na solicitação');
+  const abrirEdicao = (documento: DisplayDocument) => {
+    const item = porId.get(documento.id);
+    if (item) setEditor({ open: true, mode: 'edit', item });
   };
-
-  const removeDocument = (source: DisplayDocument) => {
-    setDocumentsByProduct((current) => {
-      const next = { ...current };
-      const productIds = isConsolidated(source) ? source.productIds : [source.productId];
-      const sourceIds = isConsolidated(source) ? source.sourceDocumentIds : [source.id];
-
-      productIds.forEach((productId, index) => {
-        next[productId] = (current[productId] ?? []).filter(
-          (document) => document.id !== sourceIds[index],
-        );
-      });
-      return next;
-    });
-    toast.success('Documento removido da solicitação');
-  };
-
-  const saveEditor = (value: DocumentEditorValue) => {
-    if (editor.mode === 'add') addDocument(value);
-    else if (editor.document) editDocument(editor.document, value);
-  };
-
-  if (contractedProducts.length === 0) {
-    return (
-      <OnboardingEmptyState icon={PackageOpen} title="Nenhum produto OSG contratado">
-        Este cliente não possui produtos da OSG contratados. Contrate os produtos para que a
-        solicitação inicial seja montada automaticamente.
-      </OnboardingEmptyState>
-    );
-  }
 
   return (
     <>
-      <div className="grid items-start gap-4 xl:grid-cols-[290px_minmax(0,1fr)]">
-        <aside
-          className={`${railContainerCls} ${riseCls} p-2.5 xl:sticky xl:top-4 xl:max-h-[calc(100vh-6rem)] xl:overflow-y-auto`}
-          style={riseDelay(0)}
-        >
-          <button
-            type="button"
-            onClick={() => setActiveProductId(null)}
-            className={railItemCls(activeProductId === null, true)}
+      <section
+        className={`${panelContainerCls} ${riseCls} min-h-[570px] min-w-0 p-3 sm:p-4`}
+        style={riseDelay(0)}
+      >
+        <div className="mb-3 flex flex-col justify-between gap-3 px-1 sm:flex-row sm:items-center">
+          <div className="min-w-0">
+            <h2 className="truncate text-base font-semibold text-osg-700">
+              Documentos solicitados
+            </h2>
+            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+              <span>{itens.length} {itens.length === 1 ? 'documento' : 'documentos'}</span>
+              {dispensados > 0 && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span>{dispensados} dispensado{dispensados === 1 ? '' : 's'}</span>
+                </>
+              )}
+              {produtosContratados.length > 0 && (
+                <>
+                  <span aria-hidden>·</span>
+                  <span className="truncate">
+                    {produtosContratados.map((produto) => produto.code).join(', ')}
+                  </span>
+                </>
+              )}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="shrink-0"
+            onClick={() => setEditor({ open: true, mode: 'add' })}
           >
-            <span className="flex items-center justify-between gap-2">
-              <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-osg-700">
-                <Layers3 className="h-4 w-4 shrink-0 text-osg-moss" />
-                <span className="truncate">Solicitação consolidada</span>
-              </span>
-              <span className={counterPillCls}>{consolidatedDocuments.length}</span>
-            </span>
-            <span className="mt-1 block pl-6 text-xs leading-relaxed text-slate-500">
-              Lista geral de documentos
-            </span>
-          </button>
+            <Plus className="h-4 w-4" />
+            Adicionar documento
+          </Button>
+        </div>
 
-          <p className={`px-2.5 pb-1 pt-4 ${microLabelMutedCls}`}>Produtos contratados</p>
+        <p className="mb-3 flex items-start gap-2 px-1 text-xs leading-relaxed text-slate-500">
+          <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-osg-moss/70" />
+          <span>
+            Cada alteração é <strong className="font-semibold text-osg-700">salva na
+            hora</strong> e vale apenas para esta solicitação — o catálogo de documentos
+            não muda. O cliente só vê a lista depois que ela for enviada.
+          </span>
+        </p>
 
-          <div className="space-y-0.5">
-            {contractedProducts.map((product) => (
-              <button
-                key={product.id}
-                type="button"
-                onClick={() => setActiveProductId(product.id)}
-                className={`${railItemCls(activeProductId === product.id)} flex items-center justify-between gap-2`}
-              >
-                <span className="min-w-0 text-sm font-medium leading-snug text-slate-700">
-                  {product.name}
-                </span>
-                <span className={counterPillCls}>
-                  {(documentsByProduct[product.id] ?? []).length}
-                </span>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <section
-          className={`${panelContainerCls} ${riseCls} min-h-[570px] min-w-0 p-3 sm:p-4`}
-          style={riseDelay(1)}
-        >
-          <div className="mb-3 flex flex-col justify-between gap-3 px-1 sm:flex-row sm:items-center">
-            <div className="min-w-0">
-              <h2 className="truncate text-base font-semibold text-osg-700">
-                {activeProduct ? activeProduct.name : 'Solicitação consolidada'}
-              </h2>
-              <p className="mt-0.5 text-xs text-slate-500">
-                {activeDocuments.length} {activeDocuments.length === 1 ? 'documento' : 'documentos'}
-              </p>
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              className="shrink-0"
-              onClick={() => setEditor({ open: true, mode: 'add' })}
-            >
-              <Plus className="h-4 w-4" />
-              Adicionar documento
-            </Button>
-          </div>
-
-          <p className="mb-3 flex items-start gap-2 px-1 text-xs leading-relaxed text-slate-500">
-            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-osg-500/60" />
-            <span>
-              Alterações aqui valem <strong className="font-semibold text-osg-700">apenas
-              para esta solicitação</strong> — o catálogo de documentos não muda. Nada é salvo
-              até você enviar.
-            </span>
+        {itens.length === 0 && (
+          <p className="mb-2 rounded-lg bg-osg-50/60 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+            A solicitação está vazia. Gere a lista a partir da OS pelo botão no topo, ou
+            inclua documentos um a um.
           </p>
+        )}
 
-          <DocumentGroups
-            documents={activeDocuments}
-            catalogDocuments={data.catalogDocuments}
-            onEdit={(document) => setEditor({ open: true, mode: 'edit', document })}
-            onRemove={removeDocument}
-            onAddOptional={addOptionalDocument}
-          />
-        </section>
-      </div>
+        <DocumentGroups
+          documents={exibidos}
+          catalogDocuments={catalogDocuments}
+          onEdit={abrirEdicao}
+          onRemove={(documento) => onDispensar(documento.id)}
+          onAddOptional={incluirOpcional}
+        />
+      </section>
 
       <DocumentEditorDialog
         open={editor.open}
-        onOpenChange={(open) => setEditor((current) => ({ ...current, open }))}
+        onOpenChange={(open) => setEditor((atual) => ({ ...atual, open }))}
         mode={editor.mode}
-        document={editor.document}
-        catalogDocuments={data.catalogDocuments}
-        selectedProducts={contractedProducts}
-        defaultProductId={activeProductId ?? undefined}
-        onSave={saveEditor}
+        item={editor.item}
+        catalogo={catalogo}
+        idsJaPedidos={idsJaPedidos}
+        onSave={salvarEditor}
       />
     </>
   );

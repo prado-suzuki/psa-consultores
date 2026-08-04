@@ -6,7 +6,6 @@ import {
   findAvailableCatalogDocuments,
   groupOnboardingDocuments,
   ONBOARDING_GROUPS,
-  type ConsolidatedOnboardingDocument,
   type OnboardingDocument,
 } from '@/lib/onboarding';
 import {
@@ -21,7 +20,14 @@ import {
   rowActionsCls,
 } from './onboardingKit';
 
-export type DisplayDocument = OnboardingDocument | ConsolidatedOnboardingDocument;
+/**
+ * A linha que o accordion mostra.
+ *
+ * Deixou de ser união com o tipo consolidado na ALE-28: não existe mais
+ * consolidação por produto — a lista vem de `solicitacao_item`, uma linha por
+ * documento pedido.
+ */
+export type DisplayDocument = OnboardingDocument;
 
 interface DocumentGroupsProps {
   documents: DisplayDocument[];
