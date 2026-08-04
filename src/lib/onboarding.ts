@@ -1,117 +1,63 @@
-import type { Database } from '@/integrations/supabase/types';
+// A linha de documento como a TELA do consultor a mostra.
+//
+// Três coisas saíram desta lib na ALE-29, e o motivo de cada uma:
+//
+// - A lista de 4 rótulos de grupo que vivia aqui era o quarto vocabulário do
+//   sistema para a mesma coisa, e chamava a terceira gaveta por outro nome. O
+//   vocabulário oficial é o de `GRUPOS_DOCUMENTO`
+//   (src/lib/agrupadorDocumentos.ts), fechado na EDU-26: chave `bens_imoveis`,
+//   rótulo "Bens e Imóveis".
+// - A função que descobria a gaveta a partir do texto livre de `entidade`:
+//   qualquer variação de grafia caía em "Outros" sem erro. Hoje a gaveta é COLUNA
+//   gravada em `solicitacao_item` e em `documento_tipo` — não há o que adivinhar.
+// - O mapa que fazia o inverso, e era pior: a partir da gaveta escolhida, CHUTAVA
+//   uma entidade. Foi dele que saiu o `entidade = 'Bem'` que apareceu em 7 de 475
+//   linhas de cliente, enquanto o catálogo, corrigido depois, dizia 'Cliente'.
+//
+// Por isso o campo de entidade também saiu daqui: entidade é só rótulo derivado
+// do grão, e quem agrupa é a gaveta.
 
-export const ONBOARDING_GROUPS = [
-  'Pessoas Físicas',
-  'Pessoas Jurídicas',
-  'Bens e Direitos',
-  'Outros documentos',
-] as const;
-
-export type OnboardingGroup = (typeof ONBOARDING_GROUPS)[number];
-export interface OnboardingGroupDefaults {
-  entity: string;
-  module: string;
-}
-
-export const ONBOARDING_GROUP_DEFAULTS: Record<
-  OnboardingGroup,
-  OnboardingGroupDefaults
-> = {
-  'Pessoas Físicas': {
-    entity: 'Pessoa Física',
-    module: 'Qualificação das Partes',
-  },
-  'Pessoas Jurídicas': {
-    entity: 'Pessoa Jurídica',
-    module: 'Qualificação das Partes',
-  },
-  'Bens e Direitos': {
-    entity: 'Bem',
-    module: 'Diagnóstico Patrimonial',
-  },
-  'Outros documentos': {
-    entity: 'Cliente',
-    module: 'Diagnóstico Patrimonial',
-  },
-};
-
-export type OnboardingDocumentCategory =
-  Database['public']['Enums']['osg_doc_categoria'];
+import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
+import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
+import { normalizarNomeDocumento, type Granularidade } from '@/lib/solicitacao';
 
 export interface OnboardingDocument {
   id: string;
+  /** Ausente = documento criado à mão, que não existe no catálogo. */
   catalogId?: string;
   code?: string;
   title: string;
-  entity: string;
-  module: string;
   note: string;
-  required: boolean;
-  category: OnboardingDocumentCategory | null;
-  docboxCategory: string | null;
-  confidential: boolean;
-  productId: string;
+  /** A gaveta da área do cliente. Dado gravado, nunca inferido de texto. */
+  grupo: GrupoDocumentoKey;
+  /** O grão: por qual coisa o documento se repete. */
+  granularidade: Granularidade;
 }
 
-// `OnboardingProduct` saiu junto: a tela não monta mais lista por produto. Os
-// produtos contratados vêm da OS (`OnboardingProdutoContratado`, em
-// `useOnboarding`) e servem só para exibir quais são — o catálogo de documentos
-// não se organiza mais por produto.
-
-// O balde por produto (`SOLICITACAO_BUCKET`, `DocumentsByProduct`,
-// `buildDocumentsByProduct`, `consolidateDocuments` e o tipo consolidado) saiu na
-// ALE-28: a lista passou a viver em `solicitacao_item`, que não tem coluna de
-// produto — o rascunho não é mais uma pilha de baldes em memória para consolidar
-// no fim.
-
-const normalize = (value: string) =>
-  value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
-
-export function getOnboardingGroup(entity: string): OnboardingGroup {
-  const normalizedEntity = normalize(entity);
-
-  if (normalizedEntity.startsWith('pessoa fisica')) return 'Pessoas Físicas';
-  if (normalizedEntity.startsWith('pessoa juridica')) return 'Pessoas Jurídicas';
-  if (
-    normalizedEntity === 'bem'
-    || normalizedEntity.startsWith('matricula')
-    || normalizedEntity.includes('imovel rural')
-    || normalizedEntity.includes('imovel urbano')
-  ) {
-    return 'Bens e Direitos';
-  }
-
-  return 'Outros documentos';
-}
-
-export function getOnboardingGroupDefaults(
-  group: OnboardingGroup,
-): OnboardingGroupDefaults {
-  return ONBOARDING_GROUP_DEFAULTS[group];
-}
-
+/**
+ * Identidade de um documento na solicitação.
+ *
+ * O item de catálogo se identifica pelo tipo. O manual passa a se identificar só
+ * pelo nome, porque `entidade` saiu do formulário.
+ *
+ * ⚠️ Isso importa mais do que parece: o índice `uq_solicitacao_item_manual` é
+ * `(solicitacao_id, documento, entidade)` e, com `entidade` nula, nulo não colide
+ * com nulo — ele NÃO dedupe item manual. Até existir um índice parcial em
+ * `(solicitacao_id, documento) where item_padrao_id is null`, esta comparação no
+ * front é a única proteção contra o mesmo documento entrar duas vezes.
+ */
 export function checklistDocumentIdentity(
   catalogId: string | null | undefined,
   title: string,
-  entity: string,
 ) {
-  return catalogId
-    ? `catalog:${catalogId}`
-    : `manual:${normalize(title)}:${normalize(entity)}`;
+  return catalogId ? `catalog:${catalogId}` : `manual:${normalizarNomeDocumento(title)}`;
 }
 
-export function documentIdentity(document: OnboardingDocument) {
-  return checklistDocumentIdentity(
-    document.catalogId,
-    document.title,
-    document.entity,
-  );
+export function documentIdentity(
+  document: Pick<OnboardingDocument, 'catalogId' | 'title'>,
+) {
+  return checklistDocumentIdentity(document.catalogId, document.title);
 }
-
 
 /**
  * Documentos que existem no catálogo mas ainda não estão na lista em tela — são
@@ -125,15 +71,22 @@ export function findAvailableCatalogDocuments(
   return catalogDocuments.filter((document) => !used.has(documentIdentity(document)));
 }
 
-export function groupOnboardingDocuments<T extends OnboardingDocument>(
+/**
+ * Agrupa pelas 4 gavetas, na ordem de `GRUPOS_DOCUMENTO`.
+ *
+ * Genérica em `{ grupo }` de propósito: serve tanto ao item da solicitação
+ * quanto ao documento do catálogo, sem os dois precisarem ser o mesmo tipo.
+ * Devolve todas as gavetas, inclusive as vazias — o accordion mostra as quatro.
+ */
+export function groupOnboardingDocuments<T extends { grupo: GrupoDocumentoKey }>(
   documents: T[],
-): Record<OnboardingGroup, T[]> {
+): Record<GrupoDocumentoKey, T[]> {
   const groups = Object.fromEntries(
-    ONBOARDING_GROUPS.map((group) => [group, []]),
-  ) as Record<OnboardingGroup, T[]>;
+    GRUPOS_DOCUMENTO.map((grupo) => [grupo.key, [] as T[]]),
+  ) as Record<GrupoDocumentoKey, T[]>;
 
   documents.forEach((document) => {
-    groups[getOnboardingGroup(document.entity)].push(document);
+    groups[document.grupo].push(document);
   });
 
   return groups;

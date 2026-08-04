@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   agruparPorGrupo,
+  encontrarItemDoCatalogo,
   GRANULARIDADES,
   grupoSugeridoParaGranularidade,
   montarAtualizacaoItem,
+  montarReativacaoItem,
   montarItemDeCatalogo,
   montarItemManual,
   ordenarItens,
@@ -156,6 +158,18 @@ describe('montarItemDeCatalogo', () => {
     expect(payload).not.toHaveProperty('nota');
     expect(payload).not.toHaveProperty('id');
   });
+
+  it('respeita a gaveta e o grão trocados no modal, sem passar a copiar texto', () => {
+    const payload = montarItemDeCatalogo('sol-1', catalogo(), {
+      grupo: 'outros',
+      granularidade: 'cliente',
+    });
+
+    expect(payload.grupo).toBe('outros');
+    expect(payload.granularidade).toBe('cliente');
+    expect(payload).not.toHaveProperty('documento');
+    expect(payload).not.toHaveProperty('nota');
+  });
 });
 
 describe('montarItemManual', () => {
@@ -187,6 +201,26 @@ describe('montarItemManual', () => {
       granularidade: 'cliente',
       grupo: 'outros',
     })).toThrow(/nome do documento/);
+  });
+});
+
+describe('reativação de item dispensado', () => {
+  const dispensado = resolverItem(linha({ status: 'dispensado', observacao: 'não se aplica' }));
+
+  it('encontra o item de catálogo que já está na solicitação, mesmo dispensado', () => {
+    expect(encontrarItemDoCatalogo([dispensado], 'cat-1')?.status).toBe('dispensado');
+    expect(encontrarItemDoCatalogo([dispensado], 'cat-9')).toBeUndefined();
+  });
+
+  it('volta o item para ativo e apaga o motivo da dispensa', () => {
+    // Apagar o motivo é o ponto: ele descrevia um estado que terminou. Manter
+    // afirmaria que um item ativo tem motivo de dispensa.
+    expect(montarReativacaoItem()).toEqual({ status: 'ativo', observacao: null });
+  });
+
+  it('aplica a gaveta e o grão escolhidos ao reativar, quando vierem', () => {
+    expect(montarReativacaoItem({ grupo: 'outros', granularidade: 'cliente' }))
+      .toEqual({ status: 'ativo', observacao: null, grupo: 'outros', granularidade: 'cliente' });
   });
 });
 

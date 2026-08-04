@@ -6,13 +6,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import {
   CAMPOS_AUDITADOS_ITEM,
+  encontrarItemDoCatalogo,
+  encontrarManualComMesmoNome,
   montarAtualizacaoItem,
   montarItemDeCatalogo,
   montarItemManual,
+  montarReativacaoItem,
   ordenarItens,
   resolverItem,
   type CatalogoDocumento,
   type EdicaoItem,
+  type EstruturaDoItem,
   type ItemSolicitacao,
   type NovoItemManual,
   type SolicitacaoItemRow,
@@ -238,12 +242,52 @@ export function useDomainSolicitacao(clienteId: string | null) {
       toast.error('Não foi possível gerar a solicitação: ' + error.message),
   });
 
+  /**
+   * Pedir de novo um documento que estava dispensado.
+   *
+   * Reativa a linha existente em vez de inserir outra: os índices únicos recusam
+   * a segunda linha, e apagar para reinserir perderia o rastro. É este caminho
+   * que evita o beco sem saída — a lista de opcionais mostra o item dispensado,
+   * então "Incluir" tem de significar "voltar a pedir".
+   */
+  const reativarExistente = async (
+    item: ItemSolicitacao,
+    estrutura: EstruturaDoItem | undefined,
+    linha: SolicitacaoItemRow,
+  ) => {
+    const alteracoes = montarReativacaoItem(estrutura);
+
+    const { error } = await supabase
+      .from('solicitacao_item')
+      .update(alteracoes)
+      .eq('id', item.id);
+    if (error) throw error;
+
+    await auditarItem(linha, { ...linha, ...alteracoes }, item.id, item.documento, 'updated');
+    return item.id;
+  };
+
   const adicionarDoCatalogo = useMutation({
-    mutationFn: async (catalogo: CatalogoDocumento) => {
+    mutationFn: async (
+      { catalogo, estrutura }: { catalogo: CatalogoDocumento; estrutura?: EstruturaDoItem },
+    ) => {
       if (!clienteId) throw new Error('Selecione um cliente antes de incluir documentos.');
 
+      const jaNaSolicitacao = encontrarItemDoCatalogo(
+        solicitacaoQuery.data?.itens ?? [],
+        catalogo.id,
+      );
+      if (jaNaSolicitacao) {
+        if (jaNaSolicitacao.status === 'ativo') {
+          throw new Error(`"${catalogo.documento}" já está nesta solicitação.`);
+        }
+        return reativarExistente(jaNaSolicitacao, estrutura, linhaDoItem(jaNaSolicitacao.id));
+      }
+
       const solicitacaoId = await garantirSolicitacao();
-      const payload = montarItemDeCatalogo(solicitacaoId, catalogo);
+      // `estrutura` leva a gaveta e o grão que o analista trocou no modal; o
+      // texto continua vindo do catálogo por herança.
+      const payload = montarItemDeCatalogo(solicitacaoId, catalogo, estrutura);
 
       const { data, error } = await supabase
         .from('solicitacao_item')
@@ -269,6 +313,25 @@ export function useDomainSolicitacao(clienteId: string | null) {
   const adicionarManual = useMutation({
     mutationFn: async (entrada: NovoItemManual) => {
       if (!clienteId) throw new Error('Selecione um cliente antes de incluir documentos.');
+
+      // O banco não recusa item manual duplicado: o índice único inclui
+      // `entidade`, que é nula em todo item manual, e nulo não colide com nulo.
+      // Enquanto não houver índice parcial, a barreira é esta.
+      const jaPedido = encontrarManualComMesmoNome(
+        solicitacaoQuery.data?.itens ?? [],
+        entrada.documento,
+      );
+      if (jaPedido) {
+        if (jaPedido.status === 'ativo') {
+          throw new Error(`"${jaPedido.documento}" já está nesta solicitação.`);
+        }
+        // Mesmo nome, mas dispensado: é o analista pedindo de volta.
+        return reativarExistente(
+          jaPedido,
+          { grupo: entrada.grupo, granularidade: entrada.granularidade },
+          linhaDoItem(jaPedido.id),
+        );
+      }
 
       const solicitacaoId = await garantirSolicitacao();
       const payload = montarItemManual(solicitacaoId, entrada);

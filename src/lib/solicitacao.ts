@@ -248,15 +248,30 @@ export function agruparPorGrupo(
  * O `id` também fica de fora: quem gera é o `gen_random_uuid()` da tabela. Chave
  * primária sorteada no navegador foi o que mascarou duplicata no fluxo antigo.
  */
+/** Os dois campos estruturais que o analista pode sobrescrever item a item. */
+export interface EstruturaDoItem {
+  grupo?: OsgDocGrupo;
+  granularidade?: Granularidade;
+}
+
 export function montarItemDeCatalogo(
   solicitacaoId: string,
   catalogo: CatalogoDocumento,
+  /**
+   * O que o analista trocou no modal antes de incluir.
+   *
+   * Grão e gaveta são os dois campos que ele tem o direito de sobrescrever item
+   * a item — e no grão `cliente` a gaveta não é dedutível, então a troca precisa
+   * chegar ao banco. Texto continua fora: não há como sobrescrever documento,
+   * entidade ou nota por aqui.
+   */
+  estrutura?: EstruturaDoItem,
 ): SolicitacaoItemInsert {
   return {
     solicitacao_id: solicitacaoId,
     item_padrao_id: catalogo.id,
-    granularidade: catalogo.granularidade,
-    grupo: catalogo.grupo,
+    granularidade: estrutura?.granularidade ?? catalogo.granularidade,
+    grupo: estrutura?.grupo ?? catalogo.grupo,
     ordem: catalogo.ordem,
     status: 'ativo',
   };
@@ -273,6 +288,39 @@ export interface NovoItemManual {
 }
 
 const texto = (valor: string | null | undefined) => valor?.trim() || null;
+
+/**
+ * Forma canônica do nome de um documento, para comparação.
+ *
+ * Ignora acento, caixa e espaço nas pontas. Fica aqui, no domínio, e não na lib
+ * de exibição, porque é regra de igualdade de pedido — quem exibe importa daqui.
+ */
+export function normalizarNomeDocumento(valor: string): string {
+  return valor
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .trim()
+    .toLowerCase();
+}
+
+/**
+ * Item manual da solicitação com o mesmo nome — a proteção contra duplicata.
+ *
+ * Existe porque o banco NÃO protege este caso: `uq_solicitacao_item_manual` é
+ * `(solicitacao_id, documento, entidade)` e, com `entidade` nula em todo item
+ * manual (a ALE-29 tirou o campo do formulário), nulo não colide com nulo. Até
+ * existir um índice parcial em `(solicitacao_id, documento) where item_padrao_id
+ * is null`, esta comparação é a única barreira.
+ */
+export function encontrarManualComMesmoNome(
+  itens: ItemSolicitacao[],
+  documento: string,
+): ItemSolicitacao | undefined {
+  const alvo = normalizarNomeDocumento(documento);
+  if (!alvo) return undefined;
+  return itens.find((item) =>
+    !item.doCatalogo && normalizarNomeDocumento(item.documento) === alvo);
+}
 
 /**
  * Linha nova criada à mão: `item_padrao_id` nulo e todo o texto na própria
@@ -358,6 +406,35 @@ export function montarAtualizacaoItem(
   }
 
   return alteracoes;
+}
+
+/** O item do catálogo que já está nesta solicitação — ativo ou dispensado. */
+export function encontrarItemDoCatalogo(
+  itens: ItemSolicitacao[],
+  itemPadraoId: string,
+): ItemSolicitacao | undefined {
+  return itens.find((item) => item.itemPadraoId === itemPadraoId);
+}
+
+/**
+ * Traz de volta um item dispensado.
+ *
+ * Existe porque dispensar não apaga a linha: pedir o mesmo documento de novo não
+ * pode virar `insert` (os índices únicos recusam, e recusar é o certo) nem
+ * `delete` seguido de `insert` (perderia o rastro). Reativar é o único caminho
+ * que respeita as duas coisas.
+ *
+ * `observacao` volta a nulo de propósito: ela guardava o motivo da dispensa, que
+ * descreve um estado que terminou — mantê-la afirmaria que um item ativo tem
+ * motivo de dispensa. A transição fica registrada na auditoria.
+ */
+export function montarReativacaoItem(estrutura?: EstruturaDoItem): SolicitacaoItemUpdate {
+  return {
+    status: 'ativo',
+    observacao: null,
+    ...(estrutura?.grupo ? { grupo: estrutura.grupo } : {}),
+    ...(estrutura?.granularidade ? { granularidade: estrutura.granularidade } : {}),
+  };
 }
 
 /** Campos que a auditoria compara em `solicitacao_item`. */

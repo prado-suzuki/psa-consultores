@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { OnboardingDocument } from '@/lib/onboarding';
-import type { CatalogoDocumento } from '@/lib/solicitacao';
+import { paraGranularidade, type CatalogoDocumento } from '@/lib/solicitacao';
 import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategoria';
 
 /**
@@ -34,12 +34,6 @@ import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategor
  *   outra fonte faria a lista divergir do que o botão gera.
  */
 
-/** OS do cliente cuja Empresa/Faturamento é a da OSG — a origem do "gerar da OS". */
-export interface OnboardingOrdemServico {
-  id: string;
-  numeroOs: string | null;
-}
-
 /** Produto contratado na OS da OSG. */
 export interface OnboardingProdutoContratado {
   id: string;
@@ -49,7 +43,13 @@ export interface OnboardingProdutoContratado {
 
 export interface OnboardingCatalogData {
   produtosContratados: OnboardingProdutoContratado[];
-  ordensServico: OnboardingOrdemServico[];
+  /**
+   * Ids das OS do cliente cuja Empresa/Faturamento é a da OSG.
+   *
+   * Só os ids: o número da OS não aparece em nenhum lugar da tela, e carregar um
+   * campo que ninguém lê é dívida esperando para envelhecer.
+   */
+  ordensServicoIds: string[];
   /** Catálogo inteiro em forma de EXIBIÇÃO, para a lista de opcionais. */
   catalogDocuments: OnboardingDocument[];
   /**
@@ -62,7 +62,7 @@ export interface OnboardingCatalogData {
 
 const VAZIO: OnboardingCatalogData = {
   produtosContratados: [],
-  ordensServico: [],
+  ordensServicoIds: [],
   catalogDocuments: [],
   catalogoPorId: new Map(),
 };
@@ -82,22 +82,19 @@ export function useOnboarding(clienteId: string | null) {
       // A OS da OSG: Empresa/Faturamento aponta para o cluster da OSG.
       const { data: orderRows, error: orderError } = await supabase
         .from('ordem_servico')
-        .select('id, numero_os')
+        .select('id')
         .eq('id_cliente', clienteId)
         .eq('cluster_id', clusterOsg)
         .eq('excluido', false);
       if (orderError) throw orderError;
 
-      const ordensServico: OnboardingOrdemServico[] = (orderRows ?? []).map((order) => ({
-        id: order.id,
-        numeroOs: order.numero_os,
-      }));
+      const ordensServicoIds = (orderRows ?? []).map((order) => order.id);
 
-      const { data: contractedRows, error: contractedError } = ordensServico.length
+      const { data: contractedRows, error: contractedError } = ordensServicoIds.length
         ? await supabase
           .from('os_produtos_contratados')
           .select('produto_segmento_id')
-          .in('ordem_servico_id', ordensServico.map((ordem) => ordem.id))
+          .in('ordem_servico_id', ordensServicoIds)
         : { data: [], error: null };
       if (contractedError) throw contractedError;
 
@@ -148,19 +145,16 @@ export function useOnboarding(clienteId: string | null) {
         catalogId: item.id,
         code: item.codigo,
         title: item.documento,
-        entity: item.entidade,
-        module: item.modulo,
         note: item.nota ?? '',
-        required: false,
-        category: item.categoria,
-        docboxCategory: item.categoria_docbox,
-        confidential: item.confidencial,
-        productId: '',
+        grupo: item.grupo,
+        // Estreita o texto do banco para o domínio fechado, levantando se algum
+        // valor fugir do CHECK — a gaveta errada em silêncio é o pior desfecho.
+        granularidade: paraGranularidade(item.granularidade),
       }));
 
       return {
         produtosContratados,
-        ordensServico,
+        ordensServicoIds,
         catalogDocuments: catalogDocuments.sort((left, right) =>
           left.title.localeCompare(right.title, 'pt-BR')),
         catalogoPorId,

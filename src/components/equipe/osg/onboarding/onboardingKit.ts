@@ -1,7 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import { Building2, Files, Landmark, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { OnboardingGroup } from '@/lib/onboarding';
+import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 
 // Kit visual da Solicitação Inicial (Onboarding). Mesmo papel do formKit /
 // quadroKit / gerarKit: concentra a superfície de card aprovada da área OSG
@@ -64,9 +64,15 @@ export const railItemCls = (ativo: boolean, destacado = false) => cn(
 export const counterPillCls =
   'shrink-0 rounded-full bg-white px-1.5 text-[11px] font-medium text-osg-500 ring-1 ring-osg-200/70';
 
-export const GROUP_ICONS: Record<OnboardingGroup, LucideIcon> = {
-  'Pessoas Físicas': User,
-  'Pessoas Jurídicas': Building2,
-  'Bens e Direitos': Landmark,
-  'Outros documentos': Files,
+/**
+ * Ícone de cada gaveta, chaveado pelo enum do banco (`osg_doc_grupo`).
+ *
+ * `Record<GrupoDocumentoKey, …>` é proposital: se um grupo entrar ou sair do
+ * vocabulário, o typecheck quebra aqui até alguém escolher o ícone.
+ */
+export const GROUP_ICONS: Record<GrupoDocumentoKey, LucideIcon> = {
+  pf: User,
+  pj: Building2,
+  bens_imoveis: Landmark,
+  outros: Files,
 };

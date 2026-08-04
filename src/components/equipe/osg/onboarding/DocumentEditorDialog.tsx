@@ -13,8 +13,10 @@ import {
   DialogTitle,
 } from '@/components/equipe/osg/OsgDialog';
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
+import { GRUPOS_DOCUMENTO, type GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 import {
   GRANULARIDADES,
+  grupoSugeridoParaGranularidade,
   ROTULO_GRANULARIDADE,
   type CatalogoDocumento,
   type Granularidade,
@@ -24,16 +26,14 @@ import {
 /**
  * O que o modal devolve.
  *
- * Não existe mais `entity` nem `module`: a entidade era DERIVADA do grupo por um
- * mapa de chute (`ONBOARDING_GROUP_DEFAULTS`), e foi dele que saiu o
- * `entidade = 'Bem'` que apareceu em 7 linhas de cliente enquanto o catálogo,
- * corrigido depois, dizia 'Cliente'. O que se pede agora é o GRÃO, que é dado de
- * banco e coluna NOT NULL de `solicitacao_item`.
+ * Não existe mais entidade nem módulo aqui: a entidade era DERIVADA da gaveta por
+ * um mapa de chute, e foi dele que saiu o `entidade = 'Bem'` que apareceu em 7
+ * linhas de cliente enquanto o catálogo, corrigido depois, dizia 'Cliente'. O que
+ * se pede agora são os dois dados estruturais que `solicitacao_item` exige: o
+ * GRÃO e a GAVETA.
  *
- * O campo "Produto de destino" também saiu: ele era obrigatório para salvar e o
- * valor nunca era gravado em lugar nenhum — não existe coluna de produto no
- * pedido. Com a lista vindo do banco, não há mais balde por produto onde ele
- * pudesse cair.
+ * O campo "Produto de destino" saiu na ALE-28: era obrigatório para salvar e o
+ * valor nunca era gravado — não existe coluna de produto no pedido.
  */
 export interface DocumentEditorValue {
   /** Documento do catálogo escolhido; ausente = documento novo, criado à mão. */
@@ -41,6 +41,7 @@ export interface DocumentEditorValue {
   documento: string;
   nota: string;
   granularidade: Granularidade;
+  grupo: GrupoDocumentoKey;
 }
 
 interface DocumentEditorDialogProps {
@@ -66,10 +67,13 @@ const NOVO_DOCUMENTO = '__novo__';
  */
 const GRAOS_OFERECIDOS = GRANULARIDADES.filter((grao) => grao !== 'bem');
 
+const GRAO_PADRAO: Granularidade = 'cliente';
+
 const valorVazio = (): DocumentEditorValue => ({
   documento: '',
   nota: '',
-  granularidade: 'cliente',
+  granularidade: GRAO_PADRAO,
+  grupo: grupoSugeridoParaGranularidade(GRAO_PADRAO),
 });
 
 /** Campo no padrão dos modais OSG: rótulo miúdo + controle com foco verde-musgo. */
@@ -103,6 +107,7 @@ export function DocumentEditorDialog({
         documento: item.documento,
         nota: item.nota ?? '',
         granularidade: item.granularidade,
+        grupo: item.grupo,
       }
       : valorVazio());
   }, [item, open]);
@@ -117,9 +122,23 @@ export function DocumentEditorDialog({
     [catalogo, idsJaPedidos, value.granularidade],
   );
 
+  /**
+   * Trocar o grão re-sugere a gaveta — e só sugere.
+   *
+   * Sugerir e deixar trocar é o ponto da decisão de 31/07/2026: no grão
+   * `cliente` a gaveta não é dedutível. Dos itens do catálogo que precisaram de
+   * decisão manual, três eram grão `cliente` e foram para "Bens e Imóveis".
+   */
   const trocarGrao = (granularidade: Granularidade) => {
     setEscolha(NOVO_DOCUMENTO);
-    setValue((atual) => ({ ...atual, granularidade, catalogId: undefined, documento: '', nota: '' }));
+    setValue((atual) => ({
+      ...atual,
+      granularidade,
+      grupo: grupoSugeridoParaGranularidade(granularidade),
+      catalogId: undefined,
+      documento: mode === 'edit' ? atual.documento : '',
+      nota: mode === 'edit' ? atual.nota : '',
+    }));
   };
 
   const escolherDocumento = (proxima: string) => {
@@ -131,12 +150,14 @@ export function DocumentEditorDialog({
 
     const doCatalogo = catalogo.find((documento) => documento.id === proxima);
     if (!doCatalogo) return;
-    setValue((atual) => ({
+    setValue({
       catalogId: doCatalogo.id,
       documento: doCatalogo.documento,
       nota: doCatalogo.nota ?? '',
-      granularidade: atual.granularidade,
-    }));
+      granularidade: value.granularidade,
+      // A gaveta do catálogo vem gravada no próprio tipo (ALE-26).
+      grupo: doCatalogo.grupo,
+    });
   };
 
   const ehNovo = escolha === NOVO_DOCUMENTO;
@@ -155,43 +176,58 @@ export function DocumentEditorDialog({
           <DialogDescription>
             {mode === 'add'
               ? 'Escolha um documento do catálogo ou crie um novo. Vale apenas para esta solicitação.'
-              : 'Ajuste o nome e a orientação ao cliente. Vale apenas para esta solicitação.'}
+              : 'Ajuste o pedido deste documento. Vale apenas para esta solicitação.'}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-1">
-          {mode === 'add' && (
-            <>
-              <Field label="Grão">
-                <Select
-                  value={value.granularidade}
-                  onValueChange={(grao) => trocarGrao(grao as Granularidade)}
-                >
-                  <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {GRAOS_OFERECIDOS.map((grao) => (
-                      <SelectItem key={grao} value={grao}>
-                        {ROTULO_GRANULARIDADE[grao]}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
+          <Field label="Grão">
+            <Select
+              value={value.granularidade}
+              onValueChange={(grao) => trocarGrao(grao as Granularidade)}
+            >
+              <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {GRAOS_OFERECIDOS.map((grao) => (
+                  <SelectItem key={grao} value={grao}>
+                    {ROTULO_GRANULARIDADE[grao]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
 
-              <Field label="Documento">
-                <Select value={escolha} onValueChange={escolherDocumento}>
-                  <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NOVO_DOCUMENTO}>Novo documento</SelectItem>
-                    {doCatalogoNoGrao.map((documento) => (
-                      <SelectItem key={documento.id} value={documento.id}>
-                        {documento.documento}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Field>
-            </>
+          <Field label="Grupo">
+            <Select
+              value={value.grupo}
+              onValueChange={(grupo) => setValue((atual) => ({
+                ...atual,
+                grupo: grupo as GrupoDocumentoKey,
+              }))}
+            >
+              <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {GRUPOS_DOCUMENTO.map((grupo) => (
+                  <SelectItem key={grupo.key} value={grupo.key}>{grupo.titulo}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+
+          {mode === 'add' && (
+            <Field label="Documento">
+              <Select value={escolha} onValueChange={escolherDocumento}>
+                <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={NOVO_DOCUMENTO}>Novo documento</SelectItem>
+                  {doCatalogoNoGrao.map((documento) => (
+                    <SelectItem key={documento.id} value={documento.id}>
+                      {documento.documento}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
           )}
 
           {(ehNovo || mode === 'edit') && (
@@ -222,7 +258,7 @@ export function DocumentEditorDialog({
 
           {mode === 'edit' && item?.doCatalogo && (
             <p className="px-1 text-xs leading-relaxed text-slate-500">
-              Deixar um campo em branco faz o texto voltar a vir do catálogo.
+              Deixar o nome ou a orientação em branco faz o texto voltar a vir do catálogo.
             </p>
           )}
         </div>

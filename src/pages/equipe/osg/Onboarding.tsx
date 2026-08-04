@@ -8,7 +8,12 @@ import { Button } from '@/components/ui/button';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useDomainSolicitacao } from '@/hooks/useDomainSolicitacao';
-import type { CatalogoDocumento, EdicaoItem, NovoItemManual } from '@/lib/solicitacao';
+import type {
+  CatalogoDocumento,
+  EdicaoItem,
+  EstruturaDoItem,
+  NovoItemManual,
+} from '@/lib/solicitacao';
 
 /**
  * Tela de montagem do pedido de documentos.
@@ -36,17 +41,35 @@ const Onboarding = () => {
   const dispensados = itens.length - ativos.length;
   const carregando = catalogo.isLoading || carregandoSolicitacao;
   const erro = catalogo.error ?? erroSolicitacao;
-  const ordensServico = catalogo.data?.ordensServico ?? [];
+  const ordensServicoIds = catalogo.data?.ordensServicoIds ?? [];
 
-  const gerar = async (ordemServicoId: string) => {
-    const criados = await gerarDaOs.mutateAsync(ordemServicoId);
+  /**
+   * Gera a partir de todas as OS da OSG do cliente, em sequência.
+   *
+   * O pedido de documentos é um por CLIENTE, não por OS — o índice único do
+   * banco só admite uma solicitação não encerrada por cliente. Então, quando o
+   * cliente tem mais de uma OS da OSG, o certo é somar os documentos das duas na
+   * mesma lista, e não obrigar o analista a escolher de qual OS gerar.
+   *
+   * Em sequência e não em paralelo de propósito: a primeira chamada pode criar o
+   * cabeçalho, e duas criações simultâneas esbarrariam no índice único.
+   */
+  const gerar = async () => {
+    let criados = 0;
+    for (const ordemServicoId of ordensServicoIds) {
+      criados += await gerarDaOs.mutateAsync(ordemServicoId);
+    }
+
     toast.success(criados > 0
       ? `${criados} documento(s) incluído(s) a partir da OS`
       : 'A OS não trouxe documento novo — a lista já estava completa');
   };
 
-  const incluirDoCatalogo = async (doCatalogo: CatalogoDocumento) => {
-    await adicionarDoCatalogo.mutateAsync(doCatalogo);
+  const incluirDoCatalogo = async (
+    doCatalogo: CatalogoDocumento,
+    estrutura?: EstruturaDoItem,
+  ) => {
+    await adicionarDoCatalogo.mutateAsync({ catalogo: doCatalogo, estrutura });
     toast.success(`"${doCatalogo.documento}" incluído na solicitação`);
   };
 
@@ -65,23 +88,33 @@ const Onboarding = () => {
     toast.success('Documento dispensado desta solicitação');
   };
 
-  const acoesDoTopo = clienteId && ordensServico.length > 0
-    ? ordensServico.map((ordem) => (
+  /**
+   * O mesmo botão, com o verbo certo para cada momento.
+   *
+   * A RPC é aditiva: só insere o documento que ainda não está na solicitação,
+   * nunca atualiza e nunca apaga (`WHERE NOT EXISTS` por
+   * `solicitacao_id + item_padrao_id`). Então, depois que a lista existe, clicar
+   * de novo é **atualizar** — é o caminho para quando alguém corrige o produto
+   * contratado na OS. Nada do que o analista fez se perde: documento criado à
+   * mão, instrução editada e item dispensado sobrevivem.
+   */
+  const listaVazia = itens.length === 0;
+  const rotuloGerar = listaVazia ? 'Gerar lista a partir da OS' : 'Atualizar a partir da OS';
+
+  const acoesDoTopo = clienteId && ordensServicoIds.length > 0
+    ? (
       <Button
-        key={ordem.id}
         size="sm"
-        variant={itens.length === 0 ? 'default' : 'outline'}
-        onClick={() => gerar(ordem.id)}
+        variant={listaVazia ? 'default' : 'outline'}
+        onClick={gerar}
         disabled={gerarDaOs.isPending}
       >
         {gerarDaOs.isPending
           ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
           : <FileStack className="mr-2 h-4 w-4" />}
-        {ordensServico.length > 1 && ordem.numeroOs
-          ? `Gerar da OS ${ordem.numeroOs}`
-          : 'Gerar da OS'}
+        {rotuloGerar}
       </Button>
-    ))
+    )
     : undefined;
 
   const subtitulo = solicitacao?.status === 'enviada'

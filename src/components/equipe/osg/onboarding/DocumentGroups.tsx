@@ -2,10 +2,10 @@ import { ChevronDown, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
 import {
   findAvailableCatalogDocuments,
   groupOnboardingDocuments,
-  ONBOARDING_GROUPS,
   type OnboardingDocument,
 } from '@/lib/onboarding';
 import {
@@ -51,15 +51,15 @@ export function DocumentGroups({
 
   return (
     <Accordion type="multiple" className="space-y-2.5">
-      {ONBOARDING_GROUPS.map((group, index) => {
-        const Icon = GROUP_ICONS[group];
-        const groupDocuments = groupedDocuments[group];
-        const optionalDocuments = groupedOptional[group];
+      {GRUPOS_DOCUMENTO.map((grupo, index) => {
+        const Icon = GROUP_ICONS[grupo.key];
+        const groupDocuments = groupedDocuments[grupo.key];
+        const optionalDocuments = groupedOptional[grupo.key];
 
         return (
           <AccordionItem
-            key={group}
-            value={group}
+            key={grupo.key}
+            value={grupo.key}
             className={`${groupCardCls} ${riseCls}`}
             style={riseDelay(index)}
           >
@@ -70,7 +70,7 @@ export function DocumentGroups({
                 </span>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold text-osg-700">
-                    {group}
+                    {grupo.titulo}
                   </span>
                   <span className="block text-xs font-normal text-slate-500">
                     {groupDocuments.length === 0
@@ -90,7 +90,7 @@ export function DocumentGroups({
                 <>
                   {groupDocuments.length > 0 && (
                     <>
-                      <p className={`px-1 pb-1.5 ${microLabelMutedCls}`}>Obrigatórios</p>
+                      <p className={`px-1 pb-1.5 ${microLabelMutedCls}`}>Solicitados</p>
                       <div className="space-y-0.5">
                         {groupDocuments.map((document) => (
                           <div key={document.id} className={documentRowCls}>
@@ -99,7 +99,7 @@ export function DocumentGroups({
                                 {document.title}
                               </p>
                               <p className="mt-0.5 max-w-3xl text-xs leading-relaxed text-slate-500">
-                                {document.note || document.module || 'Sem orientação adicional.'}
+                                {document.note || 'Sem orientação adicional.'}
                               </p>
                             </div>
                             <div className={rowActionsCls}>

@@ -3,12 +3,12 @@ import { CheckCircle2, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { OnboardingDocument } from '@/lib/onboarding';
 import type { OnboardingProdutoContratado } from '@/hooks/useOnboarding';
-import {
-  grupoSugeridoParaGranularidade,
-  type CatalogoDocumento,
-  type EdicaoItem,
-  type ItemSolicitacao,
-  type NovoItemManual,
+import type {
+  CatalogoDocumento,
+  EdicaoItem,
+  EstruturaDoItem,
+  ItemSolicitacao,
+  NovoItemManual,
 } from '@/lib/solicitacao';
 import {
   DocumentEditorDialog,
@@ -31,7 +31,7 @@ interface OnboardingWorkspaceProps {
   /** Catálogo em forma de gravação, indexado por id. */
   catalogoPorId: Map<string, CatalogoDocumento>;
   produtosContratados: OnboardingProdutoContratado[];
-  onAdicionarDoCatalogo: (catalogo: CatalogoDocumento) => void;
+  onAdicionarDoCatalogo: (catalogo: CatalogoDocumento, estrutura?: EstruturaDoItem) => void;
   onAdicionarManual: (entrada: NovoItemManual) => void;
   onEditar: (id: string, edicao: EdicaoItem) => void;
   onDispensar: (id: string) => void;
@@ -44,13 +44,11 @@ interface EditorState {
 }
 
 /**
- * Adapta o item da solicitação para o formato que o accordion ainda consome.
+ * O item da solicitação na forma que o accordion mostra.
  *
- * Cola temporária e de vida curta: a ALE-29 reescreve `DocumentGroups` para
- * agrupar pela coluna `grupo`, com os nomes de `GRUPOS_DOCUMENTO` (depois que a
- * EDU-26 fechar a grafia da terceira chave). Até lá o accordion segue agrupando
- * pelo texto de `entidade`, que é o comportamento que já estava no ar — nenhum
- * vocabulário novo de grupo nasce aqui.
+ * É conversão de vista, não remendo: o accordion agrupa pela coluna `grupo`, a
+ * mesma que a área do cliente usa, e nenhum campo é inventado para preencher
+ * formato — o adaptador com `entity` e campos de enfeite morreu com a ALE-29.
  */
 function paraExibicao(item: ItemSolicitacao): DisplayDocument {
   return {
@@ -58,14 +56,9 @@ function paraExibicao(item: ItemSolicitacao): DisplayDocument {
     catalogId: item.itemPadraoId ?? undefined,
     code: item.codigo ?? undefined,
     title: item.documento,
-    entity: item.entidade,
-    module: '',
     note: item.nota ?? '',
-    required: false,
-    category: null,
-    docboxCategory: null,
-    confidential: item.confidencial,
-    productId: '',
+    grupo: item.grupo,
+    granularidade: item.granularidade,
   };
 }
 
@@ -91,26 +84,23 @@ export function OnboardingWorkspace({
   const catalogo = useMemo(() => [...catalogoPorId.values()], [catalogoPorId]);
 
   const salvarEditor = (value: DocumentEditorValue) => {
+    const estrutura = { grupo: value.grupo, granularidade: value.granularidade };
+
     if (editor.mode === 'edit') {
       if (!editor.item) return;
-      onEditar(editor.item.id, { documento: value.documento, nota: value.nota });
+      onEditar(editor.item.id, { documento: value.documento, nota: value.nota, ...estrutura });
       return;
     }
 
     if (value.catalogId) {
       const doCatalogo = catalogoPorId.get(value.catalogId);
-      if (doCatalogo) onAdicionarDoCatalogo(doCatalogo);
+      // A estrutura vai junto: se o analista trocou a gaveta sugerida, é a dele
+      // que valeu, não a do catálogo.
+      if (doCatalogo) onAdicionarDoCatalogo(doCatalogo, estrutura);
       return;
     }
 
-    onAdicionarManual({
-      documento: value.documento,
-      granularidade: value.granularidade,
-      // A gaveta vem da sugestão do grão. Torná-la editável é a ALE-29, que é
-      // onde os 4 grupos ganham nome (EDU-26).
-      grupo: grupoSugeridoParaGranularidade(value.granularidade),
-      nota: value.nota,
-    });
+    onAdicionarManual({ documento: value.documento, nota: value.nota, ...estrutura });
   };
 
   const incluirOpcional = (documento: OnboardingDocument) => {
