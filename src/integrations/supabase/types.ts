@@ -1817,7 +1817,6 @@ export type Database = {
           checklist_item_id: string | null
           checksum: string | null
           cliente_id: string
-          contribuinte_id: string | null
           created_at: string
           created_by: string | null
           documento_gerado_id: string | null
@@ -1828,11 +1827,12 @@ export type Database = {
           matricula_id: string | null
           mime: string | null
           nome_original: string
-          org_projects_id: string | null
           pessoa_id: string | null
           solicitacao_id: string | null
           status: Database["public"]["Enums"]["osg_doc_status"]
           tamanho: number | null
+          triado_em: string | null
+          triado_por: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -1844,7 +1844,6 @@ export type Database = {
           checklist_item_id?: string | null
           checksum?: string | null
           cliente_id: string
-          contribuinte_id?: string | null
           created_at?: string
           created_by?: string | null
           documento_gerado_id?: string | null
@@ -1855,11 +1854,12 @@ export type Database = {
           matricula_id?: string | null
           mime?: string | null
           nome_original: string
-          org_projects_id?: string | null
           pessoa_id?: string | null
           solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["osg_doc_status"]
           tamanho?: number | null
+          triado_em?: string | null
+          triado_por?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -1871,7 +1871,6 @@ export type Database = {
           checklist_item_id?: string | null
           checksum?: string | null
           cliente_id?: string
-          contribuinte_id?: string | null
           created_at?: string
           created_by?: string | null
           documento_gerado_id?: string | null
@@ -1882,11 +1881,12 @@ export type Database = {
           matricula_id?: string | null
           mime?: string | null
           nome_original?: string
-          org_projects_id?: string | null
           pessoa_id?: string | null
           solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["osg_doc_status"]
           tamanho?: number | null
+          triado_em?: string | null
+          triado_por?: string | null
           updated_at?: string
           updated_by?: string | null
         }
