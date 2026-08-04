@@ -39,6 +39,13 @@ jobs:
 
       - name: Build
         run: bun run build
+        env:
+          # O bundle e um chunk unico grande (~8 MB) porque `manualChunks` foi
+          # removido de proposito no vite.config.ts. Minificar isso estoura o
+          # heap padrao do V8 (~2 GB) e o passo aborta com SIGABRT/exit 134.
+          # O runner tem 16 GB; damos folga ate a divisao do bundle (lazy
+          # routes) ser feita como refatoracao propria.
+          NODE_OPTIONS: --max-old-space-size=6144
 
       - name: Upload build artifact
         if: github.event_name == 'pull_request'
