@@ -15,8 +15,8 @@ import {
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
 import { GRUPOS_DOCUMENTO, type GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 import {
-  GRANULARIDADES,
-  grupoSugeridoParaGranularidade,
+  GRAOS_DE_BENS_IMOVEIS,
+  graoSugeridoParaGrupo,
   ROTULO_GRANULARIDADE,
   type CatalogoDocumento,
   type Granularidade,
@@ -59,21 +59,24 @@ interface DocumentEditorDialogProps {
 
 const NOVO_DOCUMENTO = '__novo__';
 
+const GRUPO_PADRAO: GrupoDocumentoKey = 'outros';
+
 /**
- * Os grãos oferecidos.
+ * O que o formulário segura enquanto está aberto.
  *
- * `bem` fica fora: existe no CHECK da tabela, mas nenhum item do catálogo o usa
- * hoje — oferecer abriria pedido num grão que o resto do fluxo não trata.
+ * `granularidade` é opcional só aqui: em "Bens e Imóveis" ela nasce vazia e o
+ * analista precisa escolher. No banco a coluna é NOT NULL, e é o `podeSalvar`
+ * que garante que nada sai daqui sem grão.
  */
-const GRAOS_OFERECIDOS = GRANULARIDADES.filter((grao) => grao !== 'bem');
+interface EstadoEditor extends Omit<DocumentEditorValue, 'granularidade'> {
+  granularidade?: Granularidade;
+}
 
-const GRAO_PADRAO: Granularidade = 'cliente';
-
-const valorVazio = (): DocumentEditorValue => ({
+const valorVazio = (): EstadoEditor => ({
   documento: '',
   nota: '',
-  granularidade: GRAO_PADRAO,
-  grupo: grupoSugeridoParaGranularidade(GRAO_PADRAO),
+  grupo: GRUPO_PADRAO,
+  granularidade: graoSugeridoParaGrupo(GRUPO_PADRAO) ?? undefined,
 });
 
 /** Campo no padrão dos modais OSG: rótulo miúdo + controle com foco verde-musgo. */
@@ -95,7 +98,7 @@ export function DocumentEditorDialog({
   idsJaPedidos,
   onSave,
 }: DocumentEditorDialogProps) {
-  const [value, setValue] = useState<DocumentEditorValue>(valorVazio);
+  const [value, setValue] = useState<EstadoEditor>(valorVazio);
   const [escolha, setEscolha] = useState(NOVO_DOCUMENTO);
 
   useEffect(() => {
@@ -112,29 +115,31 @@ export function DocumentEditorDialog({
       : valorVazio());
   }, [item, open]);
 
-  /** A lista de escolha respeita o grão e esconde o que já foi pedido. */
-  const doCatalogoNoGrao = useMemo(
+  /** A lista de escolha respeita a gaveta e esconde o que já foi pedido. */
+  const doCatalogoNaGaveta = useMemo(
     () => catalogo
       .filter((documento) =>
-        documento.granularidade === value.granularidade && !idsJaPedidos.has(documento.id))
+        documento.grupo === value.grupo && !idsJaPedidos.has(documento.id))
       .sort((esquerda, direita) =>
         esquerda.documento.localeCompare(direita.documento, 'pt-BR')),
-    [catalogo, idsJaPedidos, value.granularidade],
+    [catalogo, idsJaPedidos, value.grupo],
   );
 
   /**
-   * Trocar o grão re-sugere a gaveta — e só sugere.
+   * Trocar a gaveta re-sugere o grão — e só sugere.
    *
-   * Sugerir e deixar trocar é o ponto da decisão de 31/07/2026: no grão
-   * `cliente` a gaveta não é dedutível. Dos itens do catálogo que precisaram de
-   * decisão manual, três eram grão `cliente` e foram para "Bens e Imóveis".
+   * A gaveta vem primeiro porque é a organização que o cliente vê do outro lado.
+   * O grão continua editável porque `bens_imoveis` não tem grão único: abriga
+   * matrícula rural, urbana e bem.
    */
-  const trocarGrao = (granularidade: Granularidade) => {
+  const trocarGrupo = (grupo: GrupoDocumentoKey) => {
     setEscolha(NOVO_DOCUMENTO);
     setValue((atual) => ({
       ...atual,
-      granularidade,
-      grupo: grupoSugeridoParaGranularidade(granularidade),
+      grupo,
+      // Nas três gavetas em que o grão é consequência, ele é preenchido e nem
+      // aparece. Em "Bens e Imóveis" volta a vazio para o analista escolher.
+      granularidade: graoSugeridoParaGrupo(grupo) ?? undefined,
       catalogId: undefined,
       documento: mode === 'edit' ? atual.documento : '',
       nota: mode === 'edit' ? atual.nota : '',
@@ -164,9 +169,11 @@ export function DocumentEditorDialog({
   // No modo editar de um item de catálogo, nome vazio é legítimo: significa
   // voltar a herdar o texto do catálogo. No item manual, o nome é o único texto
   // que existe — ali ele é obrigatório.
-  const podeSalvar = mode === 'add'
+  const temNome = mode === 'add'
     ? Boolean(value.catalogId) || value.documento.trim().length > 0
     : Boolean(item?.doCatalogo) || value.documento.trim().length > 0;
+  // `granularidade` é NOT NULL no banco: sem grão escolhido não se salva.
+  const podeSalvar = temNome && Boolean(value.granularidade);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -181,29 +188,10 @@ export function DocumentEditorDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-1">
-          <Field label="Grão">
-            <Select
-              value={value.granularidade}
-              onValueChange={(grao) => trocarGrao(grao as Granularidade)}
-            >
-              <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {GRAOS_OFERECIDOS.map((grao) => (
-                  <SelectItem key={grao} value={grao}>
-                    {ROTULO_GRANULARIDADE[grao]}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Field>
-
           <Field label="Grupo">
             <Select
               value={value.grupo}
-              onValueChange={(grupo) => setValue((atual) => ({
-                ...atual,
-                grupo: grupo as GrupoDocumentoKey,
-              }))}
+              onValueChange={(grupo) => trocarGrupo(grupo as GrupoDocumentoKey)}
             >
               <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
               <SelectContent>
@@ -214,13 +202,41 @@ export function DocumentEditorDialog({
             </Select>
           </Field>
 
+          {/*
+            O grão só é perguntado onde a gaveta não o determina. Em Pessoas
+            Físicas, Pessoas Jurídicas e Outros documentos ele é consequência
+            direta e é gravado sem ocupar espaço na tela.
+          */}
+          {value.grupo === 'bens_imoveis' && (
+            <Field label="Grão">
+              <Select
+                value={value.granularidade ?? ''}
+                onValueChange={(grao) => setValue((atual) => ({
+                  ...atual,
+                  granularidade: grao as Granularidade,
+                }))}
+              >
+                <SelectTrigger className={fieldCls}>
+                  <SelectValue placeholder="Selecione..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {GRAOS_DE_BENS_IMOVEIS.map((grao) => (
+                    <SelectItem key={grao} value={grao}>
+                      {ROTULO_GRANULARIDADE[grao]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+
           {mode === 'add' && (
             <Field label="Documento">
               <Select value={escolha} onValueChange={escolherDocumento}>
                 <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value={NOVO_DOCUMENTO}>Novo documento</SelectItem>
-                  {doCatalogoNoGrao.map((documento) => (
+                  {doCatalogoNaGaveta.map((documento) => (
                     <SelectItem key={documento.id} value={documento.id}>
                       {documento.documento}
                     </SelectItem>
@@ -268,7 +284,12 @@ export function DocumentEditorDialog({
           <Button
             disabled={!podeSalvar}
             onClick={() => {
-              onSave({ ...value, documento: value.documento.trim() });
+              if (!value.granularidade) return;
+              onSave({
+                ...value,
+                granularidade: value.granularidade,
+                documento: value.documento.trim(),
+              });
               onOpenChange(false);
             }}
           >

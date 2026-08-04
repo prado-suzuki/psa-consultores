@@ -75,27 +75,34 @@ export const ROTULO_GRANULARIDADE: Record<Granularidade, string> = {
 };
 
 /**
- * Gaveta sugerida a partir do grão — sugestão, não regra.
+ * Os dois grãos possíveis dentro de "Bens e Imóveis".
  *
- * O analista pode trocar, e é esse o ponto: no grão `cliente` o grupo não é
- * dedutível. Dos 4 itens do catálogo que precisaram de decisão manual, dois
- * eram grão `cliente` e foram para "Bens e Imóveis", não para "Outros".
- *
- * Devolve a CHAVE DO ENUM do banco (`osg_doc_grupo`). Quem dá nome a ela é
- * `GRUPOS_DOCUMENTO`, depois que a EDU-26 fechar a grafia da terceira chave.
+ * `bem` fica fora: existe no CHECK da tabela, mas nenhum item do catálogo o usa
+ * — oferecer abriria pedido num grão que o resto do fluxo não trata.
  */
-export function grupoSugeridoParaGranularidade(granularidade: Granularidade): OsgDocGrupo {
-  switch (granularidade) {
-    case 'pessoa_pf':
-      return 'pf';
-    case 'pessoa_pj':
-      return 'pj';
-    case 'matricula_rural':
-    case 'matricula_urbana':
-    case 'bem':
-      return 'bens_imoveis';
-    case 'cliente':
-      return 'outros';
+export const GRAOS_DE_BENS_IMOVEIS = ['matricula_rural', 'matricula_urbana'] as const;
+
+/**
+ * O grão que a gaveta determina — ou `null` quando ela não determina nenhum.
+ *
+ * Em três das quatro gavetas o grão é consequência direta e não faz sentido
+ * perguntar: Pessoas Físicas é sempre `pessoa_pf`, Pessoas Jurídicas sempre
+ * `pessoa_pj`, Outros documentos sempre `cliente`.
+ *
+ * "Bens e Imóveis" é a exceção e devolve `null` de propósito: a gaveta abriga
+ * matrícula rural e urbana, e escolher uma por padrão gravaria um grão que o
+ * analista não escolheu. Aí a tela pergunta.
+ */
+export function graoSugeridoParaGrupo(grupo: OsgDocGrupo): Granularidade | null {
+  switch (grupo) {
+    case 'pf':
+      return 'pessoa_pf';
+    case 'pj':
+      return 'pessoa_pj';
+    case 'outros':
+      return 'cliente';
+    case 'bens_imoveis':
+      return null;
   }
 }
 

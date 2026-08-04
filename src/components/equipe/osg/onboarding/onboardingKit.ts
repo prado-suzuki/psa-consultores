@@ -16,10 +16,12 @@ export const riseCls = 'animate-osg-rise motion-reduce:animate-none';
 /** Cascata dos cards de grupo: 0, 60, 120, 180ms. */
 export const riseDelay = (index: number) => ({ animationDelay: `${index * 60}ms` });
 
-/** Container de moldura (rail, painel de trabalho). */
-export const railContainerCls =
-  'rounded-2xl border border-osg-200/70 bg-white/70 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]';
+// O rail esquerdo por produto saiu na ALE-28, junto com `railContainerCls` e
+// `railItemCls`: a lista passou a viver em `solicitacao_item`, que não tem coluna
+// de produto, e a tela passou a se organizar pelas 4 gavetas — a mesma
+// organização que o cliente vê do outro lado.
 
+/** Container do painel de trabalho. */
 export const panelContainerCls =
   'rounded-2xl border border-osg-200/70 bg-osg-50/40 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]';
 
@@ -46,23 +48,23 @@ export const documentRowCls =
 export const rowActionsCls =
   'flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100';
 
-/**
- * Item do rail. `destacado` liga a elevação de card da área OSG; os itens
- * compactos da lista de produtos ficam sem o translate para a lista não pular
- * quando o cliente tem muitos produtos.
- */
-export const railItemCls = (ativo: boolean, destacado = false) => cn(
-  'w-full rounded-xl border p-2.5 text-left transition-all duration-200',
-  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
-  destacado && 'hover:-translate-y-1',
-  ativo
-    ? 'border-osg-moss/40 bg-osg-moss/[0.07]'
-    : 'border-transparent hover:border-osg-moss/40 hover:bg-osg-50/70',
-);
-
-/** Contador em pílula usado no rail e nas seções. */
+/** Contador em pílula usado nas seções. */
 export const counterPillCls =
   'shrink-0 rounded-full bg-white px-1.5 text-[11px] font-medium text-osg-500 ring-1 ring-osg-200/70';
+
+/**
+ * Chip da linha de resumo (produto contratado, contador de dispensados).
+ *
+ * Mesma pílula do contador, com respiro maior e anel de foco: os dois chips
+ * revelam informação ao passar o mouse, e quem navega por teclado precisa
+ * alcançar a mesma coisa.
+ */
+export const chipCls = cn(
+  'inline-flex shrink-0 items-center gap-1 rounded-full bg-white px-2 py-0.5',
+  'text-[11px] font-medium text-osg-600 ring-1 ring-osg-200/70 transition-colors',
+  'hover:ring-osg-moss/40 focus-visible:outline-none focus-visible:ring-2',
+  'focus-visible:ring-osg-moss/40',
+);
 
 /**
  * Ícone de cada gaveta, chaveado pelo enum do banco (`osg_doc_grupo`).

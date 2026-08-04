@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   agruparPorGrupo,
   encontrarItemDoCatalogo,
-  GRANULARIDADES,
-  grupoSugeridoParaGranularidade,
+  graoSugeridoParaGrupo,
+  GRAOS_DE_BENS_IMOVEIS,
   montarAtualizacaoItem,
   montarReativacaoItem,
   montarItemDeCatalogo,
@@ -98,19 +98,18 @@ describe('resolverItem', () => {
   });
 });
 
-describe('grupoSugeridoParaGranularidade', () => {
-  it('sugere a gaveta pelo grão, com os dois tipos de matrícula no mesmo lugar', () => {
-    expect(grupoSugeridoParaGranularidade('pessoa_pf')).toBe('pf');
-    expect(grupoSugeridoParaGranularidade('pessoa_pj')).toBe('pj');
-    expect(grupoSugeridoParaGranularidade('matricula_rural')).toBe('bens_imoveis');
-    expect(grupoSugeridoParaGranularidade('matricula_urbana')).toBe('bens_imoveis');
-    expect(grupoSugeridoParaGranularidade('cliente')).toBe('outros');
+describe('graoSugeridoParaGrupo', () => {
+  it('determina o grão nas três gavetas em que ele é consequência da gaveta', () => {
+    expect(graoSugeridoParaGrupo('pf')).toBe('pessoa_pf');
+    expect(graoSugeridoParaGrupo('pj')).toBe('pessoa_pj');
+    expect(graoSugeridoParaGrupo('outros')).toBe('cliente');
   });
 
-  it('sugere para todos os grãos do domínio — a sugestão nunca fica indefinida', () => {
-    for (const granularidade of GRANULARIDADES) {
-      expect(grupoSugeridoParaGranularidade(granularidade)).toBeTruthy();
-    }
+  it('devolve null em Bens e Imóveis, onde o grão não é dedutível', () => {
+    // Rural e urbana convivem na mesma gaveta. Escolher uma por padrão gravaria
+    // um grão que o analista não escolheu — por isso a tela pergunta.
+    expect(graoSugeridoParaGrupo('bens_imoveis')).toBeNull();
+    expect(GRAOS_DE_BENS_IMOVEIS).toEqual(['matricula_rural', 'matricula_urbana']);
   });
 });
 

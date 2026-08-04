@@ -1,4 +1,5 @@
-import { AlertCircle, FileStack, Loader2, PackageOpen, Rocket } from 'lucide-react';
+import { useState } from 'react';
+import { AlertCircle, FileStack, Loader2, PackageOpen, PenLine, Rocket } from 'lucide-react';
 import { toast } from 'sonner';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { OnboardingWorkspace } from '@/components/equipe/osg/onboarding/OnboardingWorkspace';
@@ -37,8 +38,21 @@ const Onboarding = () => {
     dispensarItem,
   } = useDomainSolicitacao(clienteId || null);
 
+  /**
+   * O cliente para quem o analista pediu para montar o pedido à mão.
+   *
+   * Guarda o id, e não um booleano, para a escolha não vazar de um cliente para
+   * o outro quando ele troca de cliente na barra do topo.
+   *
+   * Montar à mão é caminho previsto desde a EDU-21: `solicitacao.ordem_servico_id`
+   * é nulável justamente para o pedido que nasce sem OS. Mas ele fica atrás de um
+   * clique para o aviso continuar aparecendo primeiro — abrir um cliente de outra
+   * área tem de deixar claro que ele não é da OSG.
+   */
+  const [montarAMaoPara, setMontarAMaoPara] = useState<string | null>(null);
+
   const ativos = itens.filter((item) => item.status === 'ativo');
-  const dispensados = itens.length - ativos.length;
+  const dispensados = itens.filter((item) => item.status === 'dispensado');
   const carregando = catalogo.isLoading || carregandoSolicitacao;
   const erro = catalogo.error ?? erroSolicitacao;
   const ordensServicoIds = catalogo.data?.ordensServicoIds ?? [];
@@ -60,9 +74,19 @@ const Onboarding = () => {
       criados += await gerarDaOs.mutateAsync(ordemServicoId);
     }
 
-    toast.success(criados > 0
-      ? `${criados} documento(s) incluído(s) a partir da OS`
-      : 'A OS não trouxe documento novo — a lista já estava completa');
+    if (criados > 0) {
+      toast.success(`${criados} documento(s) incluído(s) a partir da OS`);
+      return;
+    }
+
+    // Dizer "a lista está completa" quando há item dispensado seria falso: o
+    // documento está fora da lista, e a atualização não o traz de volta —
+    // dispensar é decisão do analista e a RPC não a desfaz.
+    const dispensadosDoCatalogo = dispensados.filter((item) => item.doCatalogo).length;
+    toast.success(dispensadosDoCatalogo > 0
+      ? `A OS não trouxe documento novo. ${dispensadosDoCatalogo} documento(s) da OS `
+        + 'seguem dispensados e não voltam pela atualização.'
+      : 'A OS não trouxe documento novo — a lista já está completa');
   };
 
   const incluirDoCatalogo = async (
@@ -87,6 +111,7 @@ const Onboarding = () => {
     await dispensarItem.mutateAsync({ id });
     toast.success('Documento dispensado desta solicitação');
   };
+
 
   /**
    * O mesmo botão, com o verbo certo para cada momento.
@@ -117,6 +142,10 @@ const Onboarding = () => {
     )
     : undefined;
 
+  const semOrigemNaOs = !solicitacao
+    && (catalogo.data?.produtosContratados.length ?? 0) === 0
+    && montarAMaoPara !== clienteId;
+
   const subtitulo = solicitacao?.status === 'enviada'
     ? 'Solicitação enviada ao cliente'
     : 'Solicitação inicial de documentos ao cliente';
@@ -144,11 +173,20 @@ const Onboarding = () => {
             </p>
           </div>
         </div>
-      ) : !solicitacao && catalogo.data.produtosContratados.length === 0 ? (
-        <OnboardingEmptyState icon={PackageOpen} title="Nenhum produto OSG contratado">
+      ) : semOrigemNaOs ? (
+        <OnboardingEmptyState
+          icon={PackageOpen}
+          title="Nenhum produto OSG contratado"
+          action={(
+            <Button variant="outline" size="sm" onClick={() => setMontarAMaoPara(clienteId)}>
+              <PenLine className="mr-2 h-4 w-4" />
+              Montar solicitação à mão
+            </Button>
+          )}
+        >
           Este cliente não tem OS com Empresa/Faturamento da OSG e produto contratado.
-          Ajuste a OS para gerar a solicitação a partir dela, ou inclua documentos um a
-          um.
+          Ajuste a OS no cadastro do cliente para gerar a lista a partir dela — ou monte o
+          pedido à mão, que vale para o cliente e não depende da OS.
         </OnboardingEmptyState>
       ) : (
         <OnboardingWorkspace

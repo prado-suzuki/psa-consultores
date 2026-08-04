@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Plus } from 'lucide-react';
+import { CheckCircle2, EyeOff, Package, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { OnboardingDocument } from '@/lib/onboarding';
 import type { OnboardingProdutoContratado } from '@/hooks/useOnboarding';
 import type {
@@ -16,6 +17,7 @@ import {
 } from './DocumentEditorDialog';
 import { DocumentGroups, type DisplayDocument } from './DocumentGroups';
 import {
+  chipCls,
   panelContainerCls,
   riseCls,
   riseDelay,
@@ -24,8 +26,8 @@ import {
 interface OnboardingWorkspaceProps {
   /** Itens ATIVOS da solicitação, já resolvidos e ordenados pelo hook. */
   itens: ItemSolicitacao[];
-  /** Quantos foram dispensados — o rastro que não aparece na lista. */
-  dispensados: number;
+  /** Os dispensados: fora da lista, mas alcançáveis pelo chip do resumo. */
+  dispensados: ItemSolicitacao[];
   /** Catálogo em forma de exibição, para a lista de opcionais de cada grupo. */
   catalogDocuments: OnboardingDocument[];
   /** Catálogo em forma de gravação, indexado por id. */
@@ -42,6 +44,9 @@ interface EditorState {
   mode: 'add' | 'edit';
   item?: ItemSolicitacao;
 }
+
+/** Quantos dispensados a dica lista antes de resumir o resto. */
+const LIMITE_DISPENSADOS_NA_DICA = 10;
 
 /**
  * O item da solicitação na forma que o accordion mostra.
@@ -126,23 +131,42 @@ export function OnboardingWorkspace({
             <h2 className="truncate text-base font-semibold text-osg-700">
               Documentos solicitados
             </h2>
-            <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
               <span>{itens.length} {itens.length === 1 ? 'documento' : 'documentos'}</span>
-              {dispensados > 0 && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span>{dispensados} dispensado{dispensados === 1 ? '' : 's'}</span>
-                </>
+
+              {dispensados.length > 0 && (
+                <Tooltip>
+                  <TooltipTrigger className={chipCls}>
+                    <EyeOff className="h-3 w-3" />
+                    {dispensados.length} dispensado{dispensados.length === 1 ? '' : 's'}
+                  </TooltipTrigger>
+                  {/* Só leitura: serve para o analista saber o que ficou de fora. */}
+                  <TooltipContent align="start" className="max-w-xs">
+                    <p className="mb-1 font-semibold">Fora desta solicitação</p>
+                    <ul className="space-y-0.5">
+                      {dispensados.slice(0, LIMITE_DISPENSADOS_NA_DICA).map((item) => (
+                        <li key={item.id}>{item.documento}</li>
+                      ))}
+                    </ul>
+                    {dispensados.length > LIMITE_DISPENSADOS_NA_DICA && (
+                      <p className="mt-1 opacity-80">
+                        e mais {dispensados.length - LIMITE_DISPENSADOS_NA_DICA}
+                      </p>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
               )}
-              {produtosContratados.length > 0 && (
-                <>
-                  <span aria-hidden>·</span>
-                  <span className="truncate">
-                    {produtosContratados.map((produto) => produto.code).join(', ')}
-                  </span>
-                </>
-              )}
-            </p>
+
+              {produtosContratados.map((produto) => (
+                <Tooltip key={produto.id}>
+                  <TooltipTrigger className={chipCls}>
+                    <Package className="h-3 w-3" />
+                    {produto.code}
+                  </TooltipTrigger>
+                  <TooltipContent>{produto.name}</TooltipContent>
+                </Tooltip>
+              ))}
+            </div>
           </div>
           <Button
             size="sm"

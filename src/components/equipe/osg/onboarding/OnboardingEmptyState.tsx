@@ -9,10 +9,13 @@ export function OnboardingEmptyState({
   icon: Icon,
   title,
   children,
+  action,
 }: {
   icon: LucideIcon;
   title: string;
   children?: ReactNode;
+  /** Saída opcional do estado vazio, quando existe uma além de sair da tela. */
+  action?: ReactNode;
 }) {
   return (
     <div className="flex min-h-[420px] flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-osg-300/70 bg-white/60 px-6 py-16 text-center shadow-sm">
@@ -27,6 +30,7 @@ export function OnboardingEmptyState({
           </p>
         )}
       </div>
+      {action}
     </div>
   );
 }
