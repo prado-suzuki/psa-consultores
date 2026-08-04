@@ -13,17 +13,14 @@ import {
 import { usePessoasByCliente, useUpsertParentesco, useUpsertPessoa } from '@/hooks/useQualificacaoDasPartes';
 import { contarPorGaveta, filtrarBalde, proximoDoBalde, type Gaveta } from '@/lib/classificarBalde';
 import {
-  alvoDeValor, impedimentoDeVinculo, patchVinculo, type Alvo, type NovoCadastro,
+  alvoDeValor, impedimentoDeVinculo, patchDesfazerTriagem, patchVinculo,
+  type Alvo, type NovoCadastro,
 } from '@/lib/classificarFicha';
 
 interface Props {
   clienteId: string;
   docs: DocumentoArquivoRow[];
   carregando: boolean;
-  /** Ids marcados como "não é de ninguém" nesta sessão (a válvula do §5.4). */
-  resolvidos: string[];
-  onResolver: (id: string) => void;
-  onDesfazerResolvidos: () => void;
 }
 
 const bemLabel = (bem: { referencia_dp: string | null; denominacao: string | null }) =>
@@ -35,9 +32,7 @@ const bemLabel = (bem: { referencia_dp: string | null; denominacao: string | nul
  * partir dele — salvar cria o cadastro e vincula o arquivo aberto (1:1), o que
  * tira o arquivo do balde. Ver docs/planos/cadastro-vinculo-documentos.md.
  */
-export function ClassificarDocumentos({
-  clienteId, docs, carregando, resolvidos, onResolver, onDesfazerResolvidos,
-}: Props) {
+export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
   const [gaveta, setGaveta] = useState<Gaveta>('todas');
   const [busca, setBusca] = useState('');
   const [abertoId, setAbertoId] = useState<string | null>(null);
@@ -60,6 +55,10 @@ export function ClassificarDocumentos({
   // tudo que é daquela entidade; o botão grava o cadastro e todos os vínculos
   // numa tacada só. Abrir é ler, marcar é dizer "é dela".
   const [recrutados, setRecrutados] = useState<string[]>([]);
+  // Qual foi a última marcação de "é do cliente", só para o desfazer. A marca em
+  // si é gravada; o que é de sessão é apenas "qual foi a última", e por isso o
+  // desfazer some ao recarregar a página, o que está certo.
+  const [ultimoTriado, setUltimoTriado] = useState<string | null>(null);
   // Enquanto o consultor não marcar nada à mão, a leva é só o arquivo aberto e
   // acompanha a navegação (é o caso um-arquivo-um-cadastro, que não pode custar
   // um clique a mais). Ao primeiro clique numa caixa, a leva passa a ser dele:
@@ -91,8 +90,8 @@ export function ClassificarDocumentos({
   const baixar = useBaixarDocumento();
   const { mutate: pedirUrl, isPending: carregandoUrl } = usePreviewUrl();
 
-  const gavetas = useMemo(() => contarPorGaveta(docs, resolvidos), [docs, resolvidos]);
-  const lista = useMemo(() => filtrarBalde(docs, { gaveta, busca, resolvidos }), [docs, gaveta, busca, resolvidos]);
+  const gavetas = useMemo(() => contarPorGaveta(docs), [docs]);
+  const lista = useMemo(() => filtrarBalde(docs, { gaveta, busca }), [docs, gaveta, busca]);
   const totalSemDono = gavetas[0]?.total ?? 0;
   const aberto = lista.find((doc) => doc.id === abertoId) ?? null;
 
@@ -169,7 +168,7 @@ export function ClassificarDocumentos({
    * balde, já no próximo arquivo que sobrou. Um arquivo impedido (georreferência
    * fora de matrícula) barra a leva inteira: gravar metade seria pior.
    */
-  const vincularLeva = (docsDaLeva: DocumentoArquivoRow[], alvo: Alvo) => {
+  const vincularLeva = (docsDaLeva: DocumentoArquivoRow[], alvo: Alvo, aoConcluir?: () => void) => {
     if (docsDaLeva.length === 0) {
       toast.error('Marque no balde ao menos um arquivo desta entidade.');
       return;
@@ -193,6 +192,7 @@ export function ClassificarDocumentos({
             setLevaExplicita(false);
             setAbertoId(proximo?.id ?? null);
             setFichaToken((token) => token + 1);
+            aoConcluir?.();
           },
         },
       ),
@@ -261,16 +261,31 @@ export function ClassificarDocumentos({
     );
   };
 
-  /** Válvula §5.4: o arquivo passa a ser documento do cliente como um todo. */
+  /**
+   * Válvula §5.4: o arquivo passa a ser documento do cliente como um todo.
+   *
+   * Reusa o mesmo caminho do vínculo, que já recusa o que não pode (documento de
+   * georreferenciamento, por exemplo), já pula para o próximo do balde e já
+   * invalida a lista. A diferença é só o alvo.
+   */
   const naoEDeNinguem = () => {
     if (!aberto) return;
-    const proximo = proximoDoBalde(lista, aberto.id);
-    onResolver(aberto.id);
-    setAbertoId(proximo?.id ?? null);
-    setFichaToken((token) => token + 1);
-    toast.success('Marcado como documento do cliente', {
-      description: 'Sai do balde nesta sessão. Ainda não há onde gravar essa marca — ver relatório.',
+    const id = aberto.id;
+    vincularLeva([aberto], { kind: 'cliente' }, () => {
+      setUltimoTriado(id);
+      toast.success('Marcado como documento do cliente', {
+        description: 'Saiu do balde. Continua visível no modo Organizar.',
+      });
     });
+  };
+
+  /** Desfaz a ÚLTIMA marcação: o arquivo volta ao balde. */
+  const desfazerTriagem = () => {
+    if (!ultimoTriado) return;
+    atualizar.mutate(
+      { id: ultimoTriado, patch: patchDesfazerTriagem() },
+      { onSuccess: () => setUltimoTriado(null) },
+    );
   };
 
   return (
@@ -290,8 +305,8 @@ export function ClassificarDocumentos({
         semDonoTotal={totalSemDono}
         carregando={carregando}
         onNaoEDeNinguem={naoEDeNinguem}
-        marcadosNaSessao={resolvidos.length}
-        onDesfazerMarcacoes={onDesfazerResolvidos}
+        podeDesfazer={!!ultimoTriado}
+        onDesfazer={desfazerTriagem}
       />
 
       <DocumentoVisualizador

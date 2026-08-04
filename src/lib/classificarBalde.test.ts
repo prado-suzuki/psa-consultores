@@ -14,6 +14,7 @@ const doc = (id: string, extra: Partial<DocumentoArquivoRow> = {}): DocumentoArq
     pessoa_id: null,
     bem_id: null,
     matricula_id: null,
+    triado_em: null,
     ...extra,
   }) as DocumentoArquivoRow;
 
@@ -21,6 +22,7 @@ const SEM_DONO = doc('sem-dono');
 const DE_PESSOA = doc('de-pessoa', { pessoa_id: 'P1' });
 const DE_BEM = doc('de-bem', { bem_id: 'B1' });
 const DE_MATRICULA = doc('de-matricula', { matricula_id: 'M1' });
+const TRIADO = doc('triado', { triado_em: '2026-08-05T10:00:00Z' });
 
 describe('semDono', () => {
   it('é sem dono só quando nenhuma coluna de entidade está preenchida', () => {
@@ -28,6 +30,12 @@ describe('semDono', () => {
     expect(semDono(DE_PESSOA)).toBe(false);
     expect(semDono(DE_BEM)).toBe(false);
     expect(semDono(DE_MATRICULA)).toBe(false);
+  });
+
+  // A marca de triagem é o que separa "ainda não olharam" de "olharam e
+  // concluíram que não é de ninguém". Sem ela os dois seriam o mesmo estado.
+  it('arquivo triado como do cliente também sai do balde', () => {
+    expect(semDono(TRIADO)).toBe(false);
   });
 });
 
@@ -53,8 +61,9 @@ describe('filtrarBalde', () => {
   });
 
   it('a válvula "não é de ninguém" tira o arquivo do balde', () => {
-    expect(filtrarBalde(docs, { gaveta: 'todas', busca: '', resolvidos: ['sem-dono'] })).toEqual([]);
-    expect(contarSemDono(docs, ['sem-dono'])).toBe(0);
+    const triado = [doc('sem-dono', { triado_em: '2026-08-05T10:00:00Z' }), DE_PESSOA];
+    expect(filtrarBalde(triado, { gaveta: 'todas', busca: '' })).toEqual([]);
+    expect(contarSemDono(triado)).toBe(0);
   });
 
   it('ordena por recebimento mais recente primeiro', () => {

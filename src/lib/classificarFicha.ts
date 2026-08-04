@@ -28,13 +28,33 @@ export function alvoDeValor(valor: string): Alvo {
 /**
  * Patch do vínculo. 1:1 (decisão de 03/08/2026): grava o dono escolhido e zera
  * os outros dois, de modo que a linha nunca tenha mais de um dono preenchido.
+ *
+ * O alvo `cliente` é a válvula "não é de ninguém": em vez de dono, grava a marca
+ * de triagem (BER-39), e zera os três mesmo assim. Não é detalhe de estilo: a
+ * constraint `documento_arquivo_um_dono_apenas` recusa a marca convivendo com um
+ * dono, então enviar só a marca, sem zerar, derruba o update.
+ *
+ * Quem preenche `triado_por` é o hook de atualização, que tem a sessão. Aqui
+ * fica só a regra.
  */
 export function patchVinculo(alvo: Alvo): AtualizarDocumentoPatch {
   return {
     pessoa_id: alvo.kind === 'pessoa' ? alvo.id : null,
     bem_id: alvo.kind === 'bem' ? alvo.id : null,
     matricula_id: alvo.kind === 'matricula' ? alvo.id : null,
+    triado_em: alvo.kind === 'cliente' ? new Date().toISOString() : null,
   };
+}
+
+/**
+ * Devolve o arquivo ao balde: sem dono e sem marca de triagem.
+ *
+ * É o inverso do `patchVinculo({ kind: 'cliente' })` e existe como função
+ * própria porque não há alvo que signifique "nenhum": voltar ao balde não é
+ * escolher um destino, é apagar o que foi decidido.
+ */
+export function patchDesfazerTriagem(): AtualizarDocumentoPatch {
+  return { pessoa_id: null, bem_id: null, matricula_id: null, triado_em: null };
 }
 
 /**

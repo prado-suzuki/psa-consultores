@@ -62,6 +62,7 @@ const doc = (id: string, extra: Partial<DocumentoArquivoRow> = {}): DocumentoArq
     pessoa_id: null,
     bem_id: null,
     matricula_id: null,
+    triado_em: null,
     ...extra,
   }) as DocumentoArquivoRow;
 
@@ -73,9 +74,6 @@ function renderClassificar(overrides: Partial<React.ComponentProps<typeof Classi
     clienteId: 'C1',
     docs: [SEM_DONO, JA_VINCULADO],
     carregando: false,
-    resolvidos: [] as string[],
-    onResolver: vi.fn(),
-    onDesfazerResolvidos: vi.fn(),
     ...overrides,
   };
   return { ...render(<ClassificarDocumentos {...props} />), props };
@@ -119,15 +117,26 @@ describe('modo Classificar — o balde', () => {
     expect(screen.getByText('1 arquivo sem dono')).toBeInTheDocument();
   });
 
-  it('a válvula "não é de ninguém" tira o arquivo do balde', async () => {
+  // A marca é gravada no banco (BER-39/BER-40), então o teste checa o update, e
+  // não mais uma lista em memória da tela. O patch tem de zerar os três donos
+  // junto com a marca: a constraint documento_arquivo_um_dono_apenas recusa a
+  // marca convivendo com um dono.
+  it('a válvula "não é de ninguém" grava a marca e zera os donos', async () => {
     const user = userEvent.setup();
-    const { props } = renderClassificar();
+    renderClassificar();
     await user.click(screen.getByRole('button', { name: /Não é de ninguém/ }));
-    expect(props.onResolver).toHaveBeenCalledWith('cpf-maria');
+
+    expect(mocks.atualizarMutate).toHaveBeenCalledTimes(1);
+    const [args] = mocks.atualizarMutate.mock.calls[0];
+    expect(args.id).toBe('cpf-maria');
+    expect(args.patch.pessoa_id).toBeNull();
+    expect(args.patch.bem_id).toBeNull();
+    expect(args.patch.matricula_id).toBeNull();
+    expect(typeof args.patch.triado_em).toBe('string');
   });
 
   it('arquivo já marcado como do cliente não volta a aparecer no balde', () => {
-    renderClassificar({ resolvidos: ['cpf-maria'] });
+    renderClassificar({ docs: [doc('cpf-maria', { triado_em: '2026-08-05T10:00:00Z' }), JA_VINCULADO] });
     expect(screen.queryByRole('button', { name: /cpf-maria\.pdf/ })).not.toBeInTheDocument();
     expect(screen.getByText('0 arquivos sem dono')).toBeInTheDocument();
     expect(screen.getByText(/O balde está vazio/)).toBeInTheDocument();
@@ -155,7 +164,7 @@ describe('modo Classificar — cadastrar a partir do arquivo', () => {
     await concluirCadastro(mocks.pessoaMutate, { id: 'P-NOVA', tipo_pessoa: 'PF', denominacao: 'Maria' });
 
     expect(mocks.atualizarMutate).toHaveBeenCalledWith(
-      { id: 'cpf-maria', patch: { pessoa_id: 'P-NOVA', bem_id: null, matricula_id: null } },
+      { id: 'cpf-maria', patch: { pessoa_id: 'P-NOVA', bem_id: null, matricula_id: null, triado_em: null } },
       expect.any(Object),
     );
   });
@@ -174,7 +183,7 @@ describe('modo Classificar — cadastrar a partir do arquivo', () => {
 
     // Um cadastro só, dois vínculos.
     expect(mocks.pessoaMutate).toHaveBeenCalledTimes(1);
-    const patch = { pessoa_id: 'P-NOVA', bem_id: null, matricula_id: null };
+    const patch = { pessoa_id: 'P-NOVA', bem_id: null, matricula_id: null, triado_em: null };
     expect(mocks.atualizarMutate).toHaveBeenCalledWith({ id: 'cpf-maria', patch }, expect.any(Object));
     expect(mocks.atualizarMutate).toHaveBeenCalledWith({ id: 'rg-maria', patch }, expect.any(Object));
     expect(mocks.atualizarMutate).toHaveBeenCalledTimes(2);
@@ -228,7 +237,7 @@ describe('modo Classificar — apontar para quem já existe', () => {
 
     expect(mocks.pessoaMutate).not.toHaveBeenCalled();
     expect(mocks.atualizarMutate).toHaveBeenCalledWith(
-      { id: 'cpf-maria', patch: { pessoa_id: 'P9', bem_id: null, matricula_id: null } },
+      { id: 'cpf-maria', patch: { pessoa_id: 'P9', bem_id: null, matricula_id: null, triado_em: null } },
       expect.any(Object),
     );
   });
@@ -272,7 +281,7 @@ describe('modo Classificar — apontar para quem já existe', () => {
     // e vincular o novo arquivo é um clique só, sem reescolher a pessoa
     await user.click(screen.getByRole('button', { name: /Vincular \d+ arquivo/ }));
     expect(mocks.atualizarMutate).toHaveBeenCalledWith(
-      { id: 'rg-maria', patch: { pessoa_id: 'P9', bem_id: null, matricula_id: null } },
+      { id: 'rg-maria', patch: { pessoa_id: 'P9', bem_id: null, matricula_id: null, triado_em: null } },
       expect.any(Object),
     );
   });
