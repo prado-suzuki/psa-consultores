@@ -40,7 +40,7 @@ const Onboarding = () => {
 
   return (
     <OsgLayout
-      title="Onboarding"
+      title="Solicitação Inicial"
       subtitle="Solicitação inicial de documentos ao cliente"
       headerActions={clienteId ? (
         <Button

@@ -45,6 +45,39 @@ export function ClassificarDocumentos({
   const [erroPreview, setErroPreview] = useState<string | null>(null);
   const [fichaToken, setFichaToken] = useState(0);
   const [sugestao, setSugestao] = useState<{ valor: string; label: string } | null>(null);
+  // Cadastrar x Vincular vive AQUI, e não dentro da ficha: a coluna é remontada
+  // a cada arquivo aberto (ver a `key` abaixo), e quem está varrendo o balde
+  // vinculando não pode ser jogado de volta ao cadastro a cada troca de arquivo.
+  const [modo, setModo] = useState<'novo' | 'existente'>('novo');
+  // O alvo escolhido em Vincular também mora aqui, pelo mesmo motivo: varrer o
+  // balde é abrir um arquivo atrás do outro apontando para a MESMA entidade.
+  // Se a seleção morresse a cada arquivo, o trabalho seria reescolher a pessoa
+  // toda vez. Só os rascunhos do formulário se perdem na troca (a `key`).
+  const [alvo, setAlvo] = useState('');
+  // A LEVA: um documento não corresponde a uma ficha — um contrato social
+  // qualifica a empresa e três sócios, uma pessoa precisa de vários documentos.
+  // Então o consultor abre um arquivo, preenche a ficha e vai marcando no balde
+  // tudo que é daquela entidade; o botão grava o cadastro e todos os vínculos
+  // numa tacada só. Abrir é ler, marcar é dizer "é dela".
+  const [recrutados, setRecrutados] = useState<string[]>([]);
+  // Enquanto o consultor não marcar nada à mão, a leva é só o arquivo aberto e
+  // acompanha a navegação (é o caso um-arquivo-um-cadastro, que não pode custar
+  // um clique a mais). Ao primeiro clique numa caixa, a leva passa a ser dele:
+  // aí abrir outro arquivo é ler, não muda o que vai ser gravado.
+  const [levaExplicita, setLevaExplicita] = useState(false);
+
+  // Cadastrou: o próximo arquivo abre já em Vincular, com o cadastro recém-criado
+  // sugerido — é assim que se varre o balde recrutando o resto dos arquivos dele.
+  const registrarSugestao = (nova: { valor: string; label: string }) => {
+    setSugestao(nova);
+    setModo('existente');
+    setAlvo(nova.valor);
+  };
+
+  const alternarRecrutado = (id: string) => {
+    setLevaExplicita(true);
+    setRecrutados((atual) => (atual.includes(id) ? atual.filter((item) => item !== id) : [...atual, id]));
+  };
 
   const { data: pessoas = [] } = usePessoasByCliente(clienteId || null);
   const { data: bens = [] } = useBensByCliente(clienteId || null);
@@ -92,6 +125,23 @@ export function ClassificarDocumentos({
     if (abertoId && lista.length === 0) setAbertoId(null);
   }, [abertoId, lista]);
 
+  // Leva implícita: espelha o arquivo aberto. Some assim que o consultor marca
+  // algo à mão (levaExplicita), e volta a valer depois de gravar ou limpar.
+  useEffect(() => {
+    if (levaExplicita) return;
+    setRecrutados(abertoId ? [abertoId] : []);
+  }, [abertoId, levaExplicita]);
+
+  // Arquivo que saiu do balde (vinculado por outra via, ou marcado como do
+  // cliente) não pode continuar na leva.
+  useEffect(() => {
+    if (!levaExplicita) return;
+    setRecrutados((atual) => {
+      const vivos = atual.filter((id) => lista.some((doc) => doc.id === id));
+      return vivos.length === atual.length ? atual : vivos;
+    });
+  }, [lista, levaExplicita]);
+
   // Mesmo mecanismo de URL assinada do preview do hub (sign-download no backend).
   useEffect(() => {
     setUrl(null);
@@ -108,32 +158,57 @@ export function ClassificarDocumentos({
   const salvando = atualizar.isPending || upsertPessoa.isPending || upsertBem.isPending
     || upsertMatricula.isPending || upsertParentesco.isPending;
 
-  /** Grava o vínculo 1:1 e devolve o consultor ao balde, já no próximo arquivo. */
-  const vincular = (doc: DocumentoArquivoRow, alvo: Alvo) => {
-    const impedimento = impedimentoDeVinculo(doc, alvo);
-    if (impedimento) {
-      toast.error(impedimento);
+  /** Os arquivos da leva, na ordem do balde. Vazia, é o arquivo aberto. */
+  const daLeva = () => {
+    const marcados = lista.filter((doc) => recrutados.includes(doc.id));
+    return marcados.length > 0 ? marcados : aberto ? [aberto] : [];
+  };
+
+  /**
+   * Grava o vínculo 1:1 de TODA a leva no mesmo alvo e devolve o consultor ao
+   * balde, já no próximo arquivo que sobrou. Um arquivo impedido (georreferência
+   * fora de matrícula) barra a leva inteira: gravar metade seria pior.
+   */
+  const vincularLeva = (docsDaLeva: DocumentoArquivoRow[], alvo: Alvo) => {
+    if (docsDaLeva.length === 0) {
+      toast.error('Marque no balde ao menos um arquivo desta entidade.');
       return;
     }
-    const proximo = proximoDoBalde(lista, doc.id);
-    atualizar.mutate(
-      { id: doc.id, patch: patchVinculo(alvo) },
-      {
-        onSuccess: () => {
-          setAbertoId(proximo?.id ?? null);
-          setFichaToken((token) => token + 1);
+    const impedido = docsDaLeva.find((doc) => impedimentoDeVinculo(doc, alvo));
+    if (impedido) {
+      toast.error(`${impedido.nome_original}: ${impedimentoDeVinculo(impedido, alvo)}`);
+      return;
+    }
+    const ids = docsDaLeva.map((doc) => doc.id);
+    const proximo = proximoDoBalde(lista, ids);
+    const patch = patchVinculo(alvo);
+    let restantes = ids.length;
+    ids.forEach((id) =>
+      atualizar.mutate(
+        { id, patch },
+        {
+          onSuccess: () => {
+            restantes -= 1;
+            if (restantes > 0) return;
+            setLevaExplicita(false);
+            setAbertoId(proximo?.id ?? null);
+            setFichaToken((token) => token + 1);
+          },
         },
-      },
+      ),
     );
   };
 
   const cadastrar = (novo: NovoCadastro) => {
-    const doc = aberto;
-    if (!doc) return;
+    const leva = daLeva();
+    if (leva.length === 0) {
+      toast.error('Marque no balde ao menos um arquivo desta entidade.');
+      return;
+    }
     const kind = novo.tipo === 'pessoa' ? 'pessoa' : novo.tipo === 'bem' ? 'bem' : 'matricula';
-    const impedimento = impedimentoDeVinculo(doc, { kind, id: 'novo' } as Alvo);
-    if (impedimento) {
-      toast.error(impedimento);
+    const impedido = leva.find((item) => impedimentoDeVinculo(item, { kind, id: 'novo' } as Alvo));
+    if (impedido) {
+      toast.error(`${impedido.nome_original}: ${impedimentoDeVinculo(impedido, { kind, id: 'novo' } as Alvo)}`);
       return;
     }
 
@@ -154,8 +229,8 @@ export function ClassificarDocumentos({
                 clienteId,
               });
             }
-            setSugestao({ valor: `pessoa:${row.id}`, label: row.denominacao ?? 'Pessoa' });
-            vincular(doc, { kind: 'pessoa', id: row.id });
+            registrarSugestao({ valor: `pessoa:${row.id}`, label: row.denominacao ?? 'Pessoa' });
+            vincularLeva(leva, { kind: 'pessoa', id: row.id });
           },
         },
       );
@@ -167,8 +242,8 @@ export function ClassificarDocumentos({
         { values: novo.values, titular: novo.titular },
         {
           onSuccess: ({ row }) => {
-            setSugestao({ valor: `bem:${row.id}`, label: bemLabel(row) });
-            vincular(doc, { kind: 'bem', id: row.id });
+            registrarSugestao({ valor: `bem:${row.id}`, label: bemLabel(row) });
+            vincularLeva(leva, { kind: 'bem', id: row.id });
           },
         },
       );
@@ -179,8 +254,8 @@ export function ClassificarDocumentos({
       { values: novo.values, titular: novo.titular },
       {
         onSuccess: ({ row }) => {
-          setSugestao({ valor: `matricula:${row.id}`, label: `Matrícula ${row.numero}` });
-          vincular(doc, { kind: 'matricula', id: row.id });
+          registrarSugestao({ valor: `matricula:${row.id}`, label: `Matrícula ${row.numero}` });
+          vincularLeva(leva, { kind: 'matricula', id: row.id });
         },
       },
     );
@@ -209,6 +284,9 @@ export function ClassificarDocumentos({
         onBusca={setBusca}
         abertoId={aberto?.id ?? null}
         onAbrir={(doc) => setAbertoId(doc.id)}
+        recrutados={recrutados}
+        onRecrutar={alternarRecrutado}
+        onLimparRecrutados={() => setLevaExplicita(false)}
         semDonoTotal={totalSemDono}
         carregando={carregando}
         onNaoEDeNinguem={naoEDeNinguem}
@@ -232,17 +310,25 @@ export function ClassificarDocumentos({
         onBaixar={() => aberto && baixar.mutate(aberto)}
       />
 
+      {/* A `key` NÃO inclui o arquivo aberto: preencher a ficha e sair andando
+          pelo balde para achar o resto dos arquivos da entidade é o fluxo — o
+          rascunho só zera quando a leva é gravada ou o consultor manda limpar. */}
       <FichaColuna
-        key={`${aberto?.id ?? 'vazio'}-${fichaToken}`}
+        key={fichaToken}
         doc={aberto}
+        naLeva={daLeva().length}
         clienteId={clienteId}
         pessoasCliente={pessoas}
         imoveis={imoveis}
         opcoes={opcoes}
         salvando={salvando}
         sugestao={sugestao}
+        modo={modo}
+        onModo={setModo}
+        alvo={alvo}
+        onAlvo={setAlvo}
         onCadastrar={cadastrar}
-        onVincular={(valor) => aberto && vincular(aberto, alvoDeValor(valor))}
+        onVincular={(valor) => vincularLeva(daLeva(), alvoDeValor(valor))}
         onLimpar={() => setFichaToken((token) => token + 1)}
       />
     </div>

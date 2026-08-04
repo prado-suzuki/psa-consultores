@@ -86,16 +86,19 @@ export function contarPorGaveta(
 }
 
 /**
- * Próximo arquivo a abrir depois de resolver um. Mantém o consultor no balde:
- * segue para o vizinho de baixo e, se era o último, para o de cima.
+ * Próximo arquivo a abrir depois de resolver um — ou uma leva deles, quando o
+ * consultor recruta vários arquivos para o mesmo cadastro. Mantém o consultor no
+ * balde: segue para o vizinho de baixo do primeiro resolvido e, se era o último,
+ * para o de cima.
  */
 export function proximoDoBalde(
   lista: readonly DocumentoArquivoRow[],
-  resolvidoId: string,
+  resolvidos: string | readonly string[],
 ): DocumentoArquivoRow | null {
-  const indice = lista.findIndex((doc) => doc.id === resolvidoId);
-  const restantes = lista.filter((doc) => doc.id !== resolvidoId);
+  const ids = typeof resolvidos === 'string' ? [resolvidos] : resolvidos;
+  const indices = ids.map((id) => lista.findIndex((doc) => doc.id === id)).filter((i) => i >= 0);
+  const restantes = lista.filter((doc) => !ids.includes(doc.id));
   if (restantes.length === 0) return null;
-  if (indice < 0) return restantes[0];
-  return restantes[Math.min(indice, restantes.length - 1)];
+  if (indices.length === 0) return restantes[0];
+  return restantes[Math.min(Math.min(...indices), restantes.length - 1)];
 }

@@ -21,6 +21,7 @@ import {
   useParentescosByCliente,
   useUpsertParentesco,
   useUpsertPessoa,
+  type PessoaInsert,
   type PessoaRow,
   type TipoPessoa,
 } from '@/hooks/useQualificacaoDasPartes';
@@ -31,6 +32,25 @@ import {
   type PessoaDraft,
 } from '@/lib/pessoaModalModel';
 
+/**
+ * Rascunho emprestado. Quem abre o modal já tem o formulário preenchido fora
+ * dele (a ficha estreita do modo Classificar) e grava por conta própria, porque
+ * cadastrar ali é só metade do trabalho: os arquivos marcados no balde precisam
+ * ser vinculados na mesma tacada, e isso o modal não sabe fazer. Vem tudo junto
+ * num objeto só para não existir meio-modo. Sem esta prop o modal continua
+ * autossuficiente, exatamente como nas telas que já o usam.
+ */
+export interface PessoaRascunhoExterno {
+  draft: PessoaDraft;
+  parentesco: ParentescoDraft;
+  /** Substitui o upsert interno: recebe o payload já validado por estas mesmas regras. */
+  onSalvar: (values: PessoaInsert, parentesco: ParentescoDraft) => void;
+  /** Devolve o que foi digitado aqui dentro — fechar não pode perder uma letra. */
+  onDevolver: (draft: PessoaDraft, parentesco: ParentescoDraft) => void;
+  /** Rótulo do botão de gravar: quem abriu diz o que o clique vai fazer de verdade. */
+  rotuloSalvar: string;
+}
+
 interface PessoaModalProps {
   open: boolean;
   clienteId: string;
@@ -38,11 +58,14 @@ interface PessoaModalProps {
   pessoasCliente: PessoaRow[];
   defaultTipo?: TipoPessoa;
   onClose: () => void;
+  rascunhoExterno?: PessoaRascunhoExterno;
 }
 
 const emptyParentesco = (): ParentescoDraft => ({ parenteId: '', tipo: '', natureza: '' });
 
-export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTipo, onClose }: PessoaModalProps) {
+export function PessoaModal({
+  open, clienteId, pessoa, pessoasCliente, defaultTipo, onClose, rascunhoExterno,
+}: PessoaModalProps) {
   const [draft, setDraft] = useState<PessoaDraft>(emptyPessoaDraft);
   const [parentescoDraft, setParentescoDraft] = useState<ParentescoDraft>(emptyParentesco);
   const [activeTab, setActiveTab] = useState('dados');
@@ -58,12 +81,18 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
     ? parentescosCliente.find((vinculo) => vinculo.pessoa_id === pessoa.id) ?? null
     : null;
   const { data: temDocumento = false } = useClienteTemDocumentoGerado(isEdit ? clienteId : null);
+  // O rascunho emprestado é lido SÓ na abertura: enquanto está aberto, o modal é
+  // o dono do formulário. A ref evita que uma identidade nova do objeto (a cada
+  // render de quem abriu) reinicie o que já foi digitado aqui dentro. Emprestar
+  // rascunho só faz sentido em cadastro novo — editar carrega da linha.
+  const externoRef = useRef(rascunhoExterno);
+  externoRef.current = rascunhoExterno;
 
   useEffect(() => {
     if (!open) return;
     const initial = pessoa
       ? pessoaToDraft(pessoa)
-      : { ...emptyPessoaDraft(), tipo_pessoa: defaultTipo ?? 'PF' };
+      : externoRef.current?.draft ?? { ...emptyPessoaDraft(), tipo_pessoa: defaultTipo ?? 'PF' };
     setDraft(initial);
     initialDraftRef.current = JSON.stringify(initial);
     setActiveTab('dados');
@@ -71,11 +100,12 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
 
   useEffect(() => {
     if (!open) return;
+    const emprestado = pessoa ? undefined : externoRef.current?.parentesco;
     const initial = parentescoAtual ? {
       parenteId: parentescoAtual.parente_pessoa_id,
       tipo: parentescoAtual.tipo ?? '',
       natureza: parentescoAtual.natureza ?? '',
-    } : emptyParentesco();
+    } : emprestado ?? emptyParentesco();
     setParentescoDraft(initial);
     initialParentescoRef.current = JSON.stringify(initial);
     // O id identifica a versão carregada do vínculo sem reagir a novas identidades do array da query.
@@ -84,7 +114,16 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
 
   const isDirty = JSON.stringify(draft) !== initialDraftRef.current
     || JSON.stringify(parentescoDraft) !== initialParentescoRef.current;
-  const { requestClose, alertProps } = useDirtyClose({ isDirty, onClose });
+  const fechar = () => {
+    rascunhoExterno?.onDevolver(draft, parentescoDraft);
+    onClose();
+  };
+  // Com rascunho emprestado nada se perde ao fechar (volta para quem abriu), então
+  // o aviso de "descartar alterações?" não tem o que avisar.
+  const { requestClose, alertProps } = useDirtyClose({
+    isDirty: rascunhoExterno ? false : isDirty,
+    onClose: fechar,
+  });
 
   const reconcileParentesco = async (pessoaId: string) => {
     if (parentescoDraft.parenteId) {
@@ -115,6 +154,12 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
     }
     if (documentDigits && !isPF && documentDigits.length !== 14) {
       toast.error('CNPJ deve ter 14 dígitos');
+      return;
+    }
+    if (rascunhoExterno) {
+      // Quem abriu grava: criar a pessoa é só metade do que o clique promete.
+      rascunhoExterno.onSalvar(buildPessoaPayload(draft, clienteId), parentescoDraft);
+      fechar();
       return;
     }
     upsert.mutate(
@@ -176,7 +221,7 @@ export function PessoaModal({ open, clienteId, pessoa, pessoasCliente, defaultTi
               <Button variant="outline" onClick={requestClose} disabled={upsert.isPending}>Cancelar</Button>
               <Button onClick={handleSave} disabled={pending} className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90">
                 {pending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                {isEdit ? 'Salvar alterações' : 'Cadastrar pessoa'}
+                {rascunhoExterno?.rotuloSalvar ?? (isEdit ? 'Salvar alterações' : 'Cadastrar pessoa')}
               </Button>
             </DialogFooter>
           </Tabs>
