@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { FolderArchive, Inbox } from 'lucide-react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -16,12 +16,11 @@ import { cn } from '@/lib/utils';
  */
 const CadastroPorDocumento = () => {
   const { clienteId } = useOsgWork();
-  // Marcações "não é de ninguém" desta sessão. Vivem aqui para o contador do
-  // cabeçalho e o balde contarem a mesma coisa.
-  const [resolvidos, setResolvidos] = useState<string[]>([]);
-
   const { data: docs = [], isLoading } = useDocumentosByCliente(clienteId || null);
-  const semDono = useMemo(() => contarSemDono(docs, resolvidos), [docs, resolvidos]);
+  // Contador e balde leem a mesma regra da mesma lista: desde a BER-40 a marca
+  // "é do cliente" é coluna gravada, então não há mais estado de sessão a
+  // sincronizar entre o cabeçalho e a coluna da esquerda.
+  const semDono = useMemo(() => contarSemDono(docs), [docs]);
 
   return (
     <OsgLayout
@@ -57,14 +56,7 @@ const CadastroPorDocumento = () => {
             </p>
           </div>
 
-          <ClassificarDocumentos
-            clienteId={clienteId}
-            docs={docs}
-            carregando={isLoading}
-            resolvidos={resolvidos}
-            onResolver={(id) => setResolvidos((atual) => [...atual, id])}
-            onDesfazerResolvidos={() => setResolvidos([])}
-          />
+          <ClassificarDocumentos clienteId={clienteId} docs={docs} carregando={isLoading} />
         </div>
       )}
     </OsgLayout>

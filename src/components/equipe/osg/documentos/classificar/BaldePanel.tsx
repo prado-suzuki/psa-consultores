@@ -27,8 +27,13 @@ interface Props {
   carregando: boolean;
   /** Válvula §5.4: o arquivo aberto passa a ser documento do cliente e sai do balde. */
   onNaoEDeNinguem: () => void;
-  marcadosNaSessao: number;
-  onDesfazerMarcacoes: () => void;
+  /**
+   * Há uma marcação desta sessão para desfazer. A marca em si é gravada
+   * (BER-39/BER-40); o que é de sessão é apenas saber QUAL foi a última, e por
+   * isso o desfazer some ao recarregar a página.
+   */
+  podeDesfazer: boolean;
+  onDesfazer: () => void;
 }
 
 /**
@@ -38,7 +43,7 @@ interface Props {
 export function BaldePanel({
   arquivos, gavetas, gaveta, onGaveta, busca, onBusca, abertoId, onAbrir,
   recrutados, onRecrutar, onLimparRecrutados,
-  semDonoTotal, carregando, onNaoEDeNinguem, marcadosNaSessao, onDesfazerMarcacoes,
+  semDonoTotal, carregando, onNaoEDeNinguem, podeDesfazer, onDesfazer,
 }: Props) {
   return (
     <section
@@ -190,15 +195,12 @@ export function BaldePanel({
             Não é de ninguém <span className="text-muted-foreground">— é do cliente</span>
           </span>
         </Button>
-        {marcadosNaSessao > 0 && (
+        {podeDesfazer && (
           <p className="flex items-center gap-1.5 px-1.5 text-[10.5px] leading-tight text-muted-foreground">
-            <span>
-              {marcadosNaSessao} {marcadosNaSessao === 1 ? 'arquivo marcado' : 'arquivos marcados'} nesta sessão
-              (não fica gravado)
-            </span>
+            <span>Último arquivo marcado como do cliente</span>
             <button
               type="button"
-              onClick={onDesfazerMarcacoes}
+              onClick={onDesfazer}
               className="shrink-0 rounded font-semibold text-osg-moss underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss"
             >
               desfazer

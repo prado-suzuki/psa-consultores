@@ -477,6 +477,13 @@ export interface AtualizarDocumentoPatch {
   bem_id?: string | null;
   matricula_id?: string | null;
   pessoa_id?: string | null;
+  /**
+   * Marca de triagem (BER-39): preenchida quando alguém decidiu que o arquivo
+   * não é de nenhuma entidade e sim do cliente como um todo. A constraint
+   * `documento_arquivo_um_dono_apenas` recusa esta marca junto com um dono, por
+   * isso quem a envia tem de zerar as três colunas de vínculo na mesma jogada.
+   */
+  triado_em?: string | null;
 }
 
 /** Atualiza um documento (categoria, vínculo ou nome exibido) direto no Supabase. */
@@ -484,9 +491,17 @@ export function useAtualizarDocumento(clienteId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: AtualizarDocumentoPatch }): Promise<DocumentoArquivoRow> => {
+      // `triado_por` acompanha `triado_em`: quem decidiu sai da sessão, e não do
+      // patch, para a lib de regras seguir pura. Marca posta preenche o autor;
+      // marca desfeita (triado_em null) limpa junto.
+      let corpo: AtualizarDocumentoPatch & { triado_por?: string | null } = patch;
+      if ('triado_em' in patch) {
+        const { data: sessao } = await supabase.auth.getUser();
+        corpo = { ...patch, triado_por: patch.triado_em ? (sessao.user?.id ?? null) : null };
+      }
       const { data, error } = await supabase
         .from('documento_arquivo')
-        .update(patch)
+        .update(corpo)
         .eq('id', id)
         .select('*')
         .single();

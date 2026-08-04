@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  alvoDeValor, camposComProcedencia, impedimentoDeVinculo, patchVinculo,
-  validarBem, validarMatricula, validarPessoa,
+  alvoDeValor, camposComProcedencia, impedimentoDeVinculo, patchDesfazerTriagem,
+  patchVinculo, validarBem, validarMatricula, validarPessoa,
 } from './classificarFicha';
 import { emptyBemDraft, emptyMatriculaDraft, emptyTitularInicial } from './diagnosticoPatrimonialModalModels';
 import { emptyPessoaDraft } from './pessoaModalModel';
@@ -11,21 +11,46 @@ const doc = (categoria: DocumentoArquivoRow['categoria'] = 'pessoais') =>
   ({ id: 'D1', categoria }) as DocumentoArquivoRow;
 
 describe('patchVinculo — 1:1', () => {
-  it('grava o dono escolhido e zera os outros dois', () => {
+  // Vincular a uma entidade nunca pode deixar a marca de triagem para trás: a
+  // constraint documento_arquivo_um_dono_apenas (BER-39) recusa os dois juntos.
+  it('grava o dono escolhido e zera os outros dois, mais a marca de triagem', () => {
     expect(patchVinculo({ kind: 'pessoa', id: 'P1' })).toEqual({
-      pessoa_id: 'P1', bem_id: null, matricula_id: null,
+      pessoa_id: 'P1', bem_id: null, matricula_id: null, triado_em: null,
     });
     expect(patchVinculo({ kind: 'bem', id: 'B1' })).toEqual({
-      pessoa_id: null, bem_id: 'B1', matricula_id: null,
+      pessoa_id: null, bem_id: 'B1', matricula_id: null, triado_em: null,
     });
     expect(patchVinculo({ kind: 'matricula', id: 'M1' })).toEqual({
-      pessoa_id: null, bem_id: null, matricula_id: 'M1',
+      pessoa_id: null, bem_id: null, matricula_id: 'M1', triado_em: null,
     });
   });
 
-  it('a válvula "é do cliente" zera as três colunas', () => {
-    expect(patchVinculo({ kind: 'cliente' })).toEqual({
-      pessoa_id: null, bem_id: null, matricula_id: null,
+  it('a válvula "é do cliente" grava a marca e zera as três colunas', () => {
+    const patch = patchVinculo({ kind: 'cliente' });
+    expect(patch.pessoa_id).toBeNull();
+    expect(patch.bem_id).toBeNull();
+    expect(patch.matricula_id).toBeNull();
+    expect(typeof patch.triado_em).toBe('string');
+  });
+
+  // Nenhum patch pode sair com marca E dono preenchidos, para nenhum alvo.
+  it('nunca produz marca junto com dono', () => {
+    const alvos = [
+      { kind: 'pessoa', id: 'P1' }, { kind: 'bem', id: 'B1' },
+      { kind: 'matricula', id: 'M1' }, { kind: 'cliente' },
+    ] as const;
+    for (const alvo of alvos) {
+      const p = patchVinculo(alvo);
+      const preenchidos = [p.pessoa_id, p.bem_id, p.matricula_id, p.triado_em].filter(Boolean);
+      expect(preenchidos).toHaveLength(1);
+    }
+  });
+});
+
+describe('patchDesfazerTriagem', () => {
+  it('devolve o arquivo ao balde: sem dono e sem marca', () => {
+    expect(patchDesfazerTriagem()).toEqual({
+      pessoa_id: null, bem_id: null, matricula_id: null, triado_em: null,
     });
   });
 });
