@@ -314,9 +314,10 @@ export function useDomainSolicitacao(clienteId: string | null) {
     mutationFn: async (entrada: NovoItemManual) => {
       if (!clienteId) throw new Error('Selecione um cliente antes de incluir documentos.');
 
-      // O banco não recusa item manual duplicado: o índice único inclui
-      // `entidade`, que é nula em todo item manual, e nulo não colide com nulo.
-      // Enquanto não houver índice parcial, a barreira é esta.
+      // A constraint `uq_solicitacao_item_documento` recusa a duplicata exata no
+      // banco. Esta checagem vem antes por dois motivos: dá mensagem legível em
+      // vez de erro de índice, e pega variação de caixa, espaço e acento, que a
+      // constraint não alcança porque compara a coluna crua.
       const jaPedido = encontrarManualComMesmoNome(
         solicitacaoQuery.data?.itens ?? [],
         entrada.documento,

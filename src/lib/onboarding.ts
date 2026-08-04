@@ -40,11 +40,10 @@ export interface OnboardingDocument {
  * O item de catálogo se identifica pelo tipo. O manual passa a se identificar só
  * pelo nome, porque `entidade` saiu do formulário.
  *
- * ⚠️ Isso importa mais do que parece: o índice `uq_solicitacao_item_manual` é
- * `(solicitacao_id, documento, entidade)` e, com `entidade` nula, nulo não colide
- * com nulo — ele NÃO dedupe item manual. Até existir um índice parcial em
- * `(solicitacao_id, documento) where item_padrao_id is null`, esta comparação no
- * front é a única proteção contra o mesmo documento entrar duas vezes.
+ * O banco recusa a duplicata exata pela constraint
+ * `uq_solicitacao_item_documento`. Esta identidade normaliza caixa, espaço e
+ * acento, então cobre também as variações de grafia que a constraint deixa
+ * passar — e é o que evita oferecer nos opcionais um documento já pedido.
  */
 export function checklistDocumentIdentity(
   catalogId: string | null | undefined,

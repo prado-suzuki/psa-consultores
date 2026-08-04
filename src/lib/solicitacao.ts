@@ -313,11 +313,12 @@ export function normalizarNomeDocumento(valor: string): string {
 /**
  * Item manual da solicitação com o mesmo nome — a proteção contra duplicata.
  *
- * Existe porque o banco NÃO protege este caso: `uq_solicitacao_item_manual` é
- * `(solicitacao_id, documento, entidade)` e, com `entidade` nula em todo item
- * manual (a ALE-29 tirou o campo do formulário), nulo não colide com nulo. Até
- * existir um índice parcial em `(solicitacao_id, documento) where item_padrao_id
- * is null`, esta comparação é a única barreira.
+ * O banco protege o caso exato, pela constraint `uq_solicitacao_item_documento`
+ * em `(solicitacao_id, documento)`. Esta comparação é a camada de cima e cobre o
+ * que a constraint não alcança: ela normaliza caixa, espaço e acento, então
+ * "Contrato" e "contrato " param aqui em vez de virarem duas linhas.
+ *
+ * Também é o que devolve mensagem legível antes de o banco recusar.
  */
 export function encontrarManualComMesmoNome(
   itens: ItemSolicitacao[],
