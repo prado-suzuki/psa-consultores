@@ -52,9 +52,35 @@ describe('montarGruposColeta', () => {
       [],
     );
 
-    expect(grupos[0].documentos).toEqual(['CPF', 'RG / CNH']);
-    expect(grupos[1].documentos).toEqual(['Contrato social']);
+    expect(grupos[0].documentos.map((d) => d.nome)).toEqual(['CPF', 'RG / CNH']);
+    expect(grupos[1].documentos.map((d) => d.nome)).toEqual(['Contrato social']);
     expect(grupos[2].documentos).toEqual([]);
+  });
+
+  it('leva a instrução de cada documento junto com o nome', () => {
+    const grupos = montarGruposColeta(
+      [item('IRPF', 'pf', { nota: 'Últimos 3 exercícios, com recibo de entrega' })],
+      [],
+    );
+
+    expect(grupos[0].documentos).toEqual([
+      { nome: 'IRPF', instrucao: 'Últimos 3 exercícios, com recibo de entrega' },
+    ]);
+  });
+
+  // O mesmo documento é pedido uma vez por pessoa ou por matrícula. Na gaveta
+  // ele aparece uma vez só, e vale a primeira instrução que veio preenchida.
+  it('ao juntar repetidos, fica com a primeira instrução preenchida', () => {
+    const grupos = montarGruposColeta(
+      [
+        item('CPF', 'pf'),
+        item('CPF', 'pf', { nota: 'De todos os sócios' }),
+        item('CPF', 'pf', { nota: 'Ignorada, já tem instrução' }),
+      ],
+      [],
+    );
+
+    expect(grupos[0].documentos).toEqual([{ nome: 'CPF', instrucao: 'De todos os sócios' }]);
   });
 
   // O motivo da EDU-26: a gaveta é a coluna `grupo`, não mais um palpite sobre o
@@ -66,13 +92,13 @@ describe('montarGruposColeta', () => {
     );
 
     expect(grupos[0].documentos).toEqual([]);
-    expect(grupos[2].documentos).toEqual(['Matrícula do imóvel']);
+    expect(grupos[2].documentos.map((d) => d.nome)).toEqual(['Matrícula do imóvel']);
   });
 
   it('item do grupo outros entra na quarta gaveta', () => {
     const grupos = montarGruposColeta([item('Nota fiscal do trator', 'outros')], []);
 
-    expect(grupos[3].documentos).toEqual(['Nota fiscal do trator']);
+    expect(grupos[3].documentos.map((d) => d.nome)).toEqual(['Nota fiscal do trator']);
   });
 
   it('agrupa os arquivos enviados pela categoria de cada grupo', () => {

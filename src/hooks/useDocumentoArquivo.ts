@@ -120,8 +120,7 @@ interface ArquivoGcsResultado {
 
 /**
  * Helper: sign-upload → PUT no GCS → finalize. Reusado por `enviarUmDocumento`
- * (fluxo interno da equipe) e por `useUploadDocumentoSolicitado` (EDU-03), onde
- * o insert em `documento_arquivo` é feito server-side por RPC.
+ * (fluxo interno da equipe) e pelo upload da área do cliente.
  */
 async function subirArquivoGcs(
   fetchWithAuth: FetchWithAuth,
@@ -394,37 +393,11 @@ export function useUploaderNames(userIds: string[]) {
   });
 }
 
-/**
- * EDU-03: item do checklist solicitado pela PSA, do ponto de vista do cliente.
- * Retornado por `get_checklist_solicitado_cliente`.
- */
-export interface ChecklistSolicitadoItem {
-  item_id: string;
-  documento: string;
-  entidade: string;
-  categoria: string | null;
-  categoria_docbox: string | null;
-  nota: string | null;
-  confidencial: boolean;
-  rotulo_instancia: string | null;
-  recebido: boolean;
-  arquivo_nome: string | null;
-}
-
-/** EDU-03: lista o checklist que a PSA pediu para o cliente logado. */
-export function useChecklistSolicitadoCliente(clienteId: string | null) {
-  return useQuery({
-    queryKey: ['checklist-solicitado', clienteId ?? '∅'],
-    enabled: !!clienteId,
-    queryFn: async (): Promise<ChecklistSolicitadoItem[]> => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.rpc as any)('get_checklist_solicitado_cliente');
-      if (error) throw error;
-      return (data ?? []) as ChecklistSolicitadoItem[];
-    },
-    staleTime: 60 * 1000,
-  });
-}
+// A leitura do checklist pelo cliente (EDU-03: ChecklistSolicitadoItem e
+// useChecklistSolicitadoCliente) saiu na EDU-27, junto com a tela que a usava.
+// Quem entrega o pedido ao cliente agora é useSolicitacaoAtivaCliente, abaixo.
+// A RPC get_checklist_solicitado_cliente continua no banco, órfã: apagá-la é
+// tarefa própria, fora do escopo da EDU-27.
 
 /**
  * EDU-24: item da solicitação enviada, do ponto de vista do cliente.
@@ -486,54 +459,10 @@ export function useSolicitacaoAtivaCliente(clienteId: string | null) {
   });
 }
 
-/**
- * EDU-03: envia um arquivo classificado contra um item do checklist. Faz o
- * upload no GCS via helper e depois chama a RPC `anexar_documento_solicitado`
- * — a categoria/vínculo/checklist_item_id são copiados server-side do item.
- * Recusa localmente `georreferenciamento` (a RPC também recusa).
- */
-export function useUploadDocumentoSolicitado() {
-  const { fetchWithAuth } = useApiAuth();
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (args: {
-      clienteId: string;
-      itemId: string;
-      categoria: DocCategoria | null;
-      file: File;
-    }): Promise<string> => {
-      const { clienteId, itemId, categoria, file } = args;
-      if (categoria === 'georreferenciamento') {
-        throw new Error('Documentos de georreferenciamento não são enviados por aqui.');
-      }
-      const categoriaEfetiva: DocCategoria = (categoria ?? 'outros') as DocCategoria;
-      const gcs = await subirArquivoGcs(fetchWithAuth, {
-        clienteId,
-        file,
-        categoria: categoriaEfetiva,
-      });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.rpc as any)('anexar_documento_solicitado', {
-        _item_id: itemId,
-        _gcs_uri: gcs.gcs_uri,
-        _checksum: gcs.checksum,
-        _tamanho: gcs.tamanho,
-        _mime: gcs.mime,
-        _nome_original: file.name,
-        _ambiente: gcs.ambiente,
-      });
-      if (error) throw error;
-      return data as string;
-    },
-    onSuccess: (_id, vars) => {
-      qc.invalidateQueries({ queryKey: ['checklist-solicitado', vars.clienteId] });
-      qc.invalidateQueries({ queryKey: [LIST_KEY, vars.clienteId] });
-      toast({ title: 'Documento enviado' });
-    },
-    onError: (e: unknown) =>
-      toast({ title: 'Erro ao enviar documento', description: (e as Error).message, variant: 'destructive' }),
-  });
-}
+// O upload por item (EDU-03: useUploadDocumentoSolicitado) saiu na EDU-27 com a
+// tela que o chamava. O cliente agora envia pela gaveta, com
+// useUploadDocumentoCliente, e a classificação item x arquivo é trabalho
+// posterior do analista. A RPC anexar_documento_solicitado fica no banco.
 
 /**
  * Campos editáveis de um documento já existente (Fase 0 — base para

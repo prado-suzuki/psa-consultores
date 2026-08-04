@@ -62,7 +62,7 @@ const OsgWorkClienteBar = () => {
               semCliente ? 'bg-osg-500 text-white animate-pulse' : 'bg-osg-100 text-osg-700',
             )}
           >
-            <Building2 className="h-4 w-4" />
+            <Building2 className="h-4 w-4 flex-shrink-0" />
           </div>
           <Label className="text-sm font-bold text-osg-700 uppercase tracking-wide">
             Cliente
@@ -93,7 +93,7 @@ const OsgWorkClienteBar = () => {
         </div>
         {semCliente ? (
           <div className="flex items-center gap-1.5 text-xs font-medium text-osg-700">
-            <AlertCircle className="h-4 w-4" />
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>Selecione um cliente para usar as ferramentas</span>
           </div>
         ) : (
@@ -118,8 +118,31 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+
+  // Telas de trabalho largas (três colunas) recolhem a sidebar sozinhas para
+  // sobrar espaço. A barra ENTRA ABERTA e recolhe logo depois, na frente do
+  // usuário: o movimento é o que explica que o menu foi recolhido — nascer
+  // estreita parecia um menu quebrado. Cada página monta seu próprio OsgLayout,
+  // então isto roda uma vez por entrada na rota, e sair já devolve a barra
+  // aberta. O botão de expandir continua valendo a qualquer momento.
+  const recolheAoEntrar = location.pathname === '/equipe/osg/work/onboarding/cadastro';
+  useEffect(() => {
+    if (!recolheAoEntrar) return;
+    const id = setTimeout(() => setCollapsed(true), 450);
+    return () => clearTimeout(id);
+  }, [recolheAoEntrar]);
   // "Gerencial" só aparece para líder+ (isLider é estrito, não engloba admin).
   const canGerencial = isAdmin || isLider;
+
+  // Os rótulos ficam SEMPRE montados e são clipados pela largura da <aside>.
+  // Desmontá-los (o `{!collapsed && ...}` de antes) fazia o texto sumir de
+  // estalo enquanto a barra ainda encolhia — é isso que dava a sensação de
+  // corte seco. Agora eles desbotam e deslizam junto com a largura: ao recolher
+  // saem primeiro (sem delay), ao expandir entram depois que a barra já abriu.
+  const rotuloCls = cn(
+    'transition-[opacity,transform] duration-300 ease-out motion-reduce:transition-none',
+    collapsed ? 'pointer-events-none -translate-x-1 opacity-0' : 'opacity-100 delay-150',
+  );
 
   // Enquanto a área OSG está montada, marca o <html> para o tema OSG sobrescrever
   // o accent teal padrão pelo verde osg-moss — alcança também menus em portal (body).
@@ -157,6 +180,14 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   ];
   const isDocsActive = docItems.some((item) => item.path === location.pathname);
 
+  // Itens do agrupador "Onboarding" — a solicitação inicial e a tela onde os
+  // arquivos que chegaram viram cadastro. Mesmo padrão de dropdown por hover.
+  const onbItems = [
+    { path: '/equipe/osg/work/onboarding', label: 'Solicitação Inicial' },
+    { path: '/equipe/osg/work/onboarding/cadastro', label: 'Cadastro por Documento' },
+  ];
+  const isOnbActive = onbItems.some((item) => item.path === location.pathname);
+
   // Itens do agrupador "Documentos do Cliente" — mesmo padrão de dropdown por hover
   const docClienteItems = [
     { path: '/equipe/osg/work/documentos', label: 'Explorador de arquivos' },
@@ -180,7 +211,14 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
     <div className="min-h-screen bg-osg-canvas flex w-full">
       {/* Sidebar wrapper — keeps toggle button outside the scroll container */}
       <div
-        className={`${collapsed ? 'w-16' : 'w-64'} transition-all duration-300 flex-shrink-0 sticky top-0 h-screen relative`}
+        className={cn(
+          'flex-shrink-0 sticky top-0 h-screen relative',
+          // Só a largura anima (o `transition-all` de antes também pegava cor e
+          // sombra). A curva é ease-out-quint: sai rápido e "pousa" devagar.
+          'transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          'motion-reduce:transition-none',
+          collapsed ? 'w-16' : 'w-64',
+        )}
       >
         {/* Toggle Button — sibling of <aside> so it isn't clipped by overflow */}
         <Button
@@ -192,26 +230,20 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </Button>
 
-        <aside className="h-full w-full bg-background border-r border-slate-200/60 flex flex-col overflow-y-auto">
+        {/* overflow-x-hidden: é este clipe que "engole" os rótulos conforme a
+            largura diminui, em vez de eles sumirem de uma vez. */}
+        <aside className="h-full w-full bg-background border-r border-slate-200/60 flex flex-col overflow-y-auto overflow-x-hidden">
         {/* Header */}
-        <div className="p-6 border-b border-slate-200/60">
-          {collapsed ? (
-            <div className="flex justify-center">
-              <div className="h-10 w-10 flex items-center justify-center">
-                {AreaIcon}
-              </div>
+        <div className="px-4 py-6 border-b border-slate-200/60">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
+              {AreaIcon}
             </div>
-          ) : (
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
-                {AreaIcon}
-              </div>
-              <div>
-                <h2 className="font-semibold text-slate-900 text-lg">{areaLabel}</h2>
-                <p className="text-xs text-slate-500">{areaSubtitle}</p>
-              </div>
+            <div className={cn(rotuloCls, "min-w-0 whitespace-nowrap")}>
+              <h2 className="font-semibold text-slate-900 text-lg">{areaLabel}</h2>
+              <p className="text-xs text-slate-500">{areaSubtitle}</p>
             </div>
-          )}
+          </div>
         </div>
 
         {/* Navigation */}
@@ -229,8 +261,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
             )}
           >
-            <Home className="h-4 w-4" />
-            {!collapsed && <span>Início</span>}
+            <Home className="h-4 w-4 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Início</span>
           </button>
           <button
             onClick={() => navigate('/equipe/osg/dashboard')}
@@ -241,8 +273,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
             )}
           >
-            <LayoutDashboard className="h-4 w-4" />
-            {!collapsed && <span>Dashboard</span>}
+            <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Dashboard</span>
           </button>
 
           {/* Agrupador "Projetos" — expande no hover (e fica aberto na rota ativa) */}
@@ -257,25 +289,24 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               )}
             >
               <FolderKanban className="h-4 w-4 flex-shrink-0" />
-              {!collapsed && (
-                <>
-                  <span>Projetos</span>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 ml-auto transition-transform duration-300 ease-out",
-                      isProjetosActive ? "rotate-180" : "group-hover/proj:rotate-180"
-                    )}
-                  />
-                </>
-              )}
+              <span className={cn(rotuloCls, "whitespace-nowrap")}>Projetos</span>
+              <ChevronDown
+                className={cn(
+                  rotuloCls,
+                  "h-4 w-4 ml-auto flex-shrink-0 duration-300",
+                  isProjetosActive ? "rotate-180" : "group-hover/proj:rotate-180"
+                )}
+              />
             </button>
 
             <div
               className={cn(
                 "grid transition-[grid-template-rows] duration-300 ease-out",
-                isProjetosActive
-                  ? "grid-rows-[1fr]"
-                  : "grid-rows-[0fr] group-hover/proj:grid-rows-[1fr]"
+                collapsed
+                  ? "grid-rows-[0fr]"
+                  : isProjetosActive
+                    ? "grid-rows-[1fr]"
+                    : "grid-rows-[0fr] group-hover/proj:grid-rows-[1fr]"
               )}
             >
               <div className="min-h-0 overflow-hidden">
@@ -297,7 +328,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       )}
                     >
                       <Icon className="h-4 w-4 flex-shrink-0" />
-                      {!collapsed && <span>{label}</span>}
+                      <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
                     </button>
                   ))}
                 </div>
@@ -311,18 +342,63 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           {/* ───── OSG Work: ferramentas próprias (inalteradas) ───── */}
           {isWork && (
           <>
-          <button
-            onClick={() => navigate('/equipe/osg/work/onboarding')}
-            className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
-              location.pathname === '/equipe/osg/work/onboarding'
-                ? "bg-osg-100 text-osg-700"
-                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
-            )}
-          >
-            <Rocket className="h-4 w-4" />
-            {!collapsed && <span>Onboarding</span>}
-          </button>
+          {/* Agrupador "Onboarding" — expande no hover (e fica aberto na rota ativa) */}
+          <div className="group/onb">
+            <button
+              type="button"
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                isOnbActive
+                  ? "bg-osg-50 text-osg-700"
+                  : "text-slate-600 group-hover/onb:bg-osg-50 group-hover/onb:text-osg-700"
+              )}
+            >
+              <Rocket className="h-4 w-4 flex-shrink-0" />
+              <span className={cn(rotuloCls, "flex-1 min-w-0 truncate text-left")}>Onboarding</span>
+              <ChevronDown
+                className={cn(
+                  rotuloCls,
+                  "h-4 w-4 flex-shrink-0 duration-300",
+                  isOnbActive ? "rotate-180" : "group-hover/onb:rotate-180"
+                )}
+              />
+            </button>
+
+            <div
+              className={cn(
+                "grid transition-[grid-template-rows] duration-300 ease-out",
+                collapsed
+                  ? "grid-rows-[0fr]"
+                  : isOnbActive
+                    ? "grid-rows-[1fr]"
+                    : "grid-rows-[0fr] group-hover/onb:grid-rows-[1fr]"
+              )}
+            >
+              <div className="min-h-0 overflow-hidden">
+                <div
+                  className={cn(
+                    "space-y-1 pt-1",
+                    collapsed ? "" : "ml-2 pl-2 border-l border-osg-100"
+                  )}
+                >
+                  {onbItems.map(({ path, label }) => (
+                    <button
+                      key={path}
+                      onClick={() => navigate(path)}
+                      className={cn(
+                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+                        location.pathname === path
+                          ? "bg-osg-100 text-osg-700"
+                          : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                      )}
+                    >
+                      <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
           <button
             onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
             className={cn(
@@ -332,8 +408,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
             )}
           >
-            <Users className="h-4 w-4" />
-            {!collapsed && <span>Qualificação das Partes</span>}
+            <Users className="h-4 w-4 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Qualificação das Partes</span>
           </button>
           <button
             onClick={() => navigate('/equipe/osg/work/diagnostico-patrimonial')}
@@ -344,8 +420,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
             )}
           >
-            <Landmark className="h-4 w-4" />
-            {!collapsed && <span>Diagnóstico Patrimonial</span>}
+            <Landmark className="h-4 w-4 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Diagnóstico Patrimonial</span>
           </button>
           <button
             onClick={() => navigate('/equipe/osg/work/controle-matriculas')}
@@ -356,8 +432,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
             )}
           >
-            <FileText className="h-4 w-4" />
-            {!collapsed && <span>Controle de Matrículas</span>}
+            <FileText className="h-4 w-4 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Controle de Matrículas</span>
           </button>
           {/* Agrupador "Oficina de Contratos" — expande no hover com animação suave */}
           <div className="group/docs">
@@ -371,25 +447,24 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               )}
             >
               <FileSignature className="h-4 w-4 flex-shrink-0" />
-              {!collapsed && (
-                <>
-                  <span>Oficina de Contratos</span>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 ml-auto transition-transform duration-300 ease-out",
-                      isDocsActive ? "rotate-180" : "group-hover/docs:rotate-180"
-                    )}
-                  />
-                </>
-              )}
+              <span className={cn(rotuloCls, "whitespace-nowrap")}>Oficina de Contratos</span>
+              <ChevronDown
+                className={cn(
+                  rotuloCls,
+                  "h-4 w-4 ml-auto flex-shrink-0 duration-300",
+                  isDocsActive ? "rotate-180" : "group-hover/docs:rotate-180"
+                )}
+              />
             </button>
 
             <div
               className={cn(
                 "grid transition-[grid-template-rows] duration-300 ease-out",
-                isDocsActive
-                  ? "grid-rows-[1fr]"
-                  : "grid-rows-[0fr] group-hover/docs:grid-rows-[1fr]"
+                collapsed
+                  ? "grid-rows-[0fr]"
+                  : isDocsActive
+                    ? "grid-rows-[1fr]"
+                    : "grid-rows-[0fr] group-hover/docs:grid-rows-[1fr]"
               )}
             >
               <div className="min-h-0 overflow-hidden">
@@ -410,7 +485,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                           : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
                       )}
                     >
-                      {!collapsed && <span>{label}</span>}
+                      <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
                     </button>
                   ))}
                 </div>
@@ -426,8 +501,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
             )}
           >
-            <PieChart className="h-4 w-4" />
-            {!collapsed && <span>Quadro Societário</span>}
+            <PieChart className="h-4 w-4 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Quadro Societário</span>
           </button>
           {/* Agrupador "Documentos do Cliente" — expande no hover com animação suave */}
           <div className="group/docsCli">
@@ -441,25 +516,24 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               )}
             >
               <FolderArchive className="h-4 w-4 flex-shrink-0" />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 min-w-0 truncate text-left">Documentos</span>
-                  <ChevronDown
-                    className={cn(
-                      "h-4 w-4 flex-shrink-0 transition-transform duration-300 ease-out",
-                      isDocClienteActive ? "rotate-180" : "group-hover/docsCli:rotate-180"
-                    )}
-                  />
-                </>
-              )}
+              <span className={cn(rotuloCls, "flex-1 min-w-0 truncate text-left")}>Documentos</span>
+              <ChevronDown
+                className={cn(
+                  rotuloCls,
+                  "h-4 w-4 flex-shrink-0 duration-300",
+                  isDocClienteActive ? "rotate-180" : "group-hover/docsCli:rotate-180"
+                )}
+              />
             </button>
 
             <div
               className={cn(
                 "grid transition-[grid-template-rows] duration-300 ease-out",
-                isDocClienteActive
-                  ? "grid-rows-[1fr]"
-                  : "grid-rows-[0fr] group-hover/docsCli:grid-rows-[1fr]"
+                collapsed
+                  ? "grid-rows-[0fr]"
+                  : isDocClienteActive
+                    ? "grid-rows-[1fr]"
+                    : "grid-rows-[0fr] group-hover/docsCli:grid-rows-[1fr]"
               )}
             >
               <div className="min-h-0 overflow-hidden">
@@ -480,7 +554,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                           : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
                       )}
                     >
-                      {!collapsed && <span>{label}</span>}
+                      <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
                     </button>
                   ))}
                 </div>
@@ -496,8 +570,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
             )}
           >
-            <FileBarChart2 className="h-4 w-4" />
-            {!collapsed && <span>Relatórios</span>}
+            <FileBarChart2 className="h-4 w-4 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Relatórios</span>
           </button>
           </>
           )}
@@ -513,8 +587,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
               )}
             >
-              <LineChart className="h-4 w-4" />
-              {!collapsed && <span>Gerencial</span>}
+              <LineChart className="h-4 w-4 flex-shrink-0" />
+              <span className={cn(rotuloCls, "whitespace-nowrap")}>Gerencial</span>
             </button>
           )}
 
@@ -532,8 +606,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
               )}
             >
-              <Shield className="h-4 w-4" />
-              {!collapsed && <span>Auditoria</span>}
+              <Shield className="h-4 w-4 flex-shrink-0" />
+              <span className={cn(rotuloCls, "whitespace-nowrap")}>Auditoria</span>
             </button>
           )}
 
@@ -549,55 +623,53 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                   : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
               )}
             >
-              <MessageSquare className="h-4 w-4" />
-              {!collapsed && <span>Chamados</span>}
+              <MessageSquare className="h-4 w-4 flex-shrink-0" />
+              <span className={cn(rotuloCls, "whitespace-nowrap")}>Chamados</span>
             </button>
           )}
         </nav>
 
         {/* Footer Actions */}
         <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
-          {/* User Card */}
-          {!collapsed && (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
-              <div className="h-8 w-8 rounded-full bg-osg-500/10 flex items-center justify-center">
-                <User className="h-4 w-4 text-osg-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">
-                  {user?.email?.split('@')[0] || 'Usuário'}
-                </p>
-                <p className="text-xs text-slate-500">OSG</p>
-              </div>
+          {/* User Card — o avatar fica; só o texto desbota ao recolher. */}
+          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
+            <div className="h-8 w-8 rounded-full bg-osg-500/10 flex items-center justify-center flex-shrink-0">
+              <User className="h-4 w-4 text-osg-600" />
             </div>
-          )}
-          
+            <div className={cn(rotuloCls, "flex-1 min-w-0")}>
+              <p className="text-sm font-medium text-slate-900 truncate">
+                {user?.email?.split('@')[0] || 'Usuário'}
+              </p>
+              <p className="text-xs text-slate-500">OSG</p>
+            </div>
+          </div>
+
           <Button
             variant="ghost"
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-osg-600 transition-colors`}
+            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-osg-600 transition-colors"
             onClick={() => navigate('/equipe/osg')}
             title={collapsed ? 'Trocar área' : undefined}
           >
-            <ArrowLeft className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-            {!collapsed && 'Trocar área'}
+            <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Trocar área</span>
           </Button>
           <Button 
             variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-osg-600 transition-colors`}
+            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-osg-600 transition-colors"
             onClick={() => navigate('/')}
             title={collapsed ? 'Voltar ao site' : undefined}
           >
-            <ArrowLeft className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-            {!collapsed && 'Voltar ao site'}
+            <ArrowLeft className="h-4 w-4 mr-3 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Voltar ao site</span>
           </Button>
           <Button 
             variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-destructive/10 hover:text-destructive transition-colors`}
+            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-destructive/10 hover:text-destructive transition-colors"
             onClick={handleSignOut}
             title={collapsed ? 'Sair' : undefined}
           >
-            <LogOut className={`h-4 w-4 ${collapsed ? '' : 'mr-3'}`} />
-            {!collapsed && 'Sair'}
+            <LogOut className="h-4 w-4 mr-3 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Sair</span>
           </Button>
         </div>
       </aside>

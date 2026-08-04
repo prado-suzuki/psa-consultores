@@ -1,5 +1,6 @@
 import { Inbox, Search, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -17,6 +18,11 @@ interface Props {
   onBusca: (busca: string) => void;
   abertoId: string | null;
   onAbrir: (doc: DocumentoArquivoRow) => void;
+  /** Arquivos recrutados para o cadastro/vínculo em curso — a leva que o botão
+   *  da ficha vai gravar de uma vez. Abrir é ler; marcar é dizer "é dela". */
+  recrutados: string[];
+  onRecrutar: (id: string) => void;
+  onLimparRecrutados: () => void;
   semDonoTotal: number;
   carregando: boolean;
   /** Válvula §5.4: o arquivo aberto passa a ser documento do cliente e sai do balde. */
@@ -31,6 +37,7 @@ interface Props {
  */
 export function BaldePanel({
   arquivos, gavetas, gaveta, onGaveta, busca, onBusca, abertoId, onAbrir,
+  recrutados, onRecrutar, onLimparRecrutados,
   semDonoTotal, carregando, onNaoEDeNinguem, marcadosNaSessao, onDesfazerMarcacoes,
 }: Props) {
   return (
@@ -86,11 +93,22 @@ export function BaldePanel({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2.5 py-2">
-        <p aria-live="polite" className="mb-1.5 px-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-osg-700">
-          {carregando
-            ? 'Carregando o balde…'
-            : `${arquivos.length} ${arquivos.length === 1 ? 'arquivo sem dono' : 'arquivos sem dono'}`}
-        </p>
+        <div className="mb-1.5 flex items-center gap-2 px-0.5">
+          <p aria-live="polite" className="text-[10px] font-bold uppercase tracking-[0.12em] text-osg-700">
+            {carregando
+              ? 'Carregando o balde…'
+              : `${arquivos.length} ${arquivos.length === 1 ? 'arquivo sem dono' : 'arquivos sem dono'}`}
+          </p>
+          {recrutados.length > 0 && (
+            <button
+              type="button"
+              onClick={onLimparRecrutados}
+              className="ml-auto shrink-0 rounded text-[10px] font-semibold text-osg-moss underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss"
+            >
+              limpar marcados ({recrutados.length})
+            </button>
+          )}
+        </div>
 
         {!carregando && arquivos.length === 0 ? (
           <p className="rounded-lg border border-dashed border-osg-300/70 bg-osg-50/50 px-2.5 py-3 text-[11.5px] text-muted-foreground">
@@ -102,42 +120,56 @@ export function BaldePanel({
           <ul className="space-y-1.5">
             {arquivos.map((doc) => {
               const aberto = doc.id === abertoId;
+              const recrutado = recrutados.includes(doc.id);
               const { Icon, className } = fileIconOf(doc.nome_original, doc.mime);
               return (
                 <li key={doc.id}>
-                  <button
-                    type="button"
-                    onClick={() => onAbrir(doc)}
-                    aria-current={aberto ? 'true' : undefined}
+                  {/* A caixa e o corpo são irmãos, não aninhados: marcar ("é dela")
+                      e abrir (ler) são ações diferentes sobre o mesmo arquivo. */}
+                  <div
                     className={cn(
-                      'flex w-full items-start gap-2 rounded-xl border px-2 py-2 text-left transition-colors',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss focus-visible:ring-offset-1',
-                      aberto
+                      'flex items-start gap-2 rounded-xl border px-2 py-2 transition-colors',
+                      recrutado
                         ? 'border-osg-moss bg-osg-moss/[0.06]'
-                        : 'border-osg-300/60 bg-card hover:border-osg-moss/50 hover:bg-osg-50/60',
+                        : aberto
+                          ? 'border-osg-moss/60 bg-osg-50/60'
+                          : 'border-osg-300/60 bg-card hover:border-osg-moss/50 hover:bg-osg-50/60',
                     )}
                   >
-                    <span
-                      className={cn(
-                        'mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md',
-                        aberto ? 'bg-osg-moss text-white' : 'bg-osg-100',
-                      )}
+                    <Checkbox
+                      checked={recrutado}
+                      onCheckedChange={() => onRecrutar(doc.id)}
+                      aria-label={`Marcar ${doc.nome_original} para este cadastro`}
+                      className="mt-1 shrink-0"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => onAbrir(doc)}
+                      aria-current={aberto ? 'true' : undefined}
+                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss focus-visible:ring-offset-1"
                     >
-                      <Icon className={cn('h-3.5 w-3.5', aberto ? 'text-white' : className)} aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[12.5px] font-medium leading-tight text-osg-700">
-                        {doc.nome_original}
+                      <span
+                        className={cn(
+                          'mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md',
+                          aberto ? 'bg-osg-moss text-white' : 'bg-osg-100',
+                        )}
+                      >
+                        <Icon className={cn('h-3.5 w-3.5', aberto ? 'text-white' : className)} aria-hidden />
                       </span>
-                      <span className="mt-0.5 block text-[10.5px] text-muted-foreground">
-                        {formatBytes(doc.tamanho)} · recebido em{' '}
-                        {new Date(doc.created_at).toLocaleDateString('pt-BR')}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-[12.5px] font-medium leading-tight text-osg-700">
+                          {doc.nome_original}
+                        </span>
+                        <span className="mt-0.5 block text-[10.5px] text-muted-foreground">
+                          {formatBytes(doc.tamanho)} · recebido em{' '}
+                          {new Date(doc.created_at).toLocaleDateString('pt-BR')}
+                        </span>
                       </span>
-                    </span>
-                    {aberto && (
-                      <span className="mt-0.5 shrink-0 text-[10px] font-semibold uppercase text-osg-moss">aberto</span>
-                    )}
-                  </button>
+                      {aberto && (
+                        <span className="mt-0.5 shrink-0 text-[10px] font-semibold uppercase text-osg-moss">aberto</span>
+                      )}
+                    </button>
+                  </div>
                 </li>
               );
             })}

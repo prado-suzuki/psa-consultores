@@ -122,7 +122,7 @@ const Onboarding = () => {
     : 'Solicitação inicial de documentos ao cliente';
 
   return (
-    <OsgLayout title="Onboarding" subtitle={subtitulo} headerActions={acoesDoTopo}>
+    <OsgLayout title="Solicitação Inicial" subtitle={subtitulo} headerActions={acoesDoTopo}>
       {!clienteId ? (
         <OnboardingEmptyState icon={Rocket} title="Selecione um cliente">
           Use a barra acima para carregar a solicitação de documentos deste cliente.

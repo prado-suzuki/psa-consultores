@@ -14,15 +14,11 @@ import {
   LogOut,
   FolderKanban,
   ArrowLeft,
-  LayoutDashboard,
   FileUp,
 } from "lucide-react";
 import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DashboardFilters } from "@/components/cliente/DashboardFilters";
-import { DashboardEmbedView } from "@/components/dashboards/DashboardEmbedView";
-import { useAccessibleDashboards } from "@/hooks/useAccessibleDashboards";
-import { ChecklistDocumentosConteudo } from "@/components/cliente/ChecklistDocumentosConteudo";
 import { ColetaDocumentosCliente } from "@/components/cliente/ColetaDocumentosCliente";
 
 const statusConfig = {
@@ -76,10 +72,6 @@ export default function ClienteDashboard() {
   const { ticketsQuery, visibleProjectsQuery } = useDomainClienteDashboard(user?.id);
   const { data: tickets = [], isLoading: isLoadingTickets } = ticketsQuery;
   const { data: visibleProjects, isLoading: isLoadingProjects } = visibleProjectsQuery;
-
-  // Bloco do Looker só aparece se houver relatório liberado para este cliente.
-  // Mesma queryKey do DashboardEmbedView, então o React Query não repete a chamada.
-  const { data: dashboardsLiberados = [] } = useAccessibleDashboards("cliente");
 
   const handleSignOut = async () => {
     await signOut();
@@ -158,7 +150,7 @@ export default function ClienteDashboard() {
         <div className="flex-1 flex flex-col">
           {/* Tabs at the top */}
           <Tabs defaultValue="chamados" className="flex-1 flex flex-col">
-            <TabsList className="grid w-full max-w-3xl grid-cols-4 bg-muted mb-6">
+            <TabsList className="grid w-full max-w-3xl grid-cols-3 bg-muted mb-6">
               <TabsTrigger
                 value="chamados"
                 className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
@@ -179,13 +171,6 @@ export default function ClienteDashboard() {
               >
                 <FileUp className="mr-2 h-4 w-4" />
                 Documentos
-              </TabsTrigger>
-              <TabsTrigger
-                value="dashboards"
-                className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
-              >
-                <LayoutDashboard className="mr-2 h-4 w-4" />
-                Dashboards
               </TabsTrigger>
             </TabsList>
 
@@ -359,23 +344,6 @@ export default function ClienteDashboard() {
                 a lista "Enviados", ambas em ColetaDocumentosCliente */}
             <TabsContent value="documents" className="flex-1 mt-0">
               <ColetaDocumentosCliente />
-            </TabsContent>
-
-            {/* Dashboards Tab: acompanhamento dos documentos solicitados + dashboards
-                (DB-driven: lista via dashboard_access, RLS server-side) */}
-            <TabsContent value="dashboards" className="flex-1 mt-0">
-              <ChecklistDocumentosConteudo />
-              {dashboardsLiberados.length > 0 && (
-                <>
-                  <div className="mb-4">
-                    <h2 className="text-lg font-semibold text-foreground">Dashboards</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Visualize seus relatórios interativos do Looker Studio
-                    </p>
-                  </div>
-                  <DashboardEmbedView targetPage="cliente" />
-                </>
-              )}
             </TabsContent>
           </Tabs>
         </div>
