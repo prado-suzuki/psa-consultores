@@ -42,13 +42,16 @@ const OSG_BASE =
 // Fonte única dos marcos.
 const ROADMAP_JSON = process.env.PSA_ROADMAP_JSON || path.join(OSG_BASE, "03_Roadmap_e_Backlog", "roadmap.json");
 
+// Pasta única do status (rolling + histórico datado), visível em Insumos Projetos.
+const STATUS_DEST = path.join(OSG_BASE, "09_Gerencial", "02_Insumos Projetos", "Status_Desenvolvimento");
+
 // Rolling (status vivo p/ montar sprint).
-const FERRAMENTAS_DEST = path.join(OSG_BASE, "04_Ferramentas", "PSA WORK", "03_Build");
+const FERRAMENTAS_DEST = STATUS_DEST;
 const ROLLING_FILE = "STATUS_DESENVOLVIMENTO.md";
 const JSON_FILE = "status.json";
 
-// Relatório datado por sprint.
-const ENTREGAS_DEST = path.join(OSG_BASE, "09_Gerencial", "01_Sprints", "03_Entregas");
+// Relatório datado por sprint (mesma pasta do rolling).
+const ENTREGAS_DEST = STATUS_DEST;
 const EXECUCAO_DIR = path.join(OSG_BASE, "09_Gerencial", "01_Sprints", "02_Execucao");
 // ==========================================================================
 
