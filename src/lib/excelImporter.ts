@@ -1,4 +1,6 @@
 import * as XLSX from 'xlsx';
+import { markdownParaConteudo } from '@/lib/markdownTarefa';
+import { serializeTarefaRichText } from '@/lib/tarefaRichText';
 
 export interface Project {
   id: string;
@@ -203,6 +205,18 @@ export function parseExcelFile(file: File): Promise<ExcelRow[]> {
   });
 }
 
+/**
+ * A célula Descrição é escrita em markdown (seções com `##`, listas, `**negrito**`,
+ * blocos de código) e vira o documento do editor de tarefa. Sem isto a descrição
+ * entraria sem marcador e `parseTarefaRichText` a mostraria como um parágrafo por
+ * linha, com os marcadores crus na tela. Descrição vazia continua string vazia, que
+ * `convertToDeliverables` grava como null.
+ */
+function descricaoParaRichText(valor: string | undefined): string {
+  if (!valor?.trim()) return '';
+  return serializeTarefaRichText({ type: 'doc', content: markdownParaConteudo(valor) });
+}
+
 export function processExcelData(rows: ExcelRow[], profiles: Profile[], projects: Project[], processes: Process[]): ImportPreview {
   const taskGroups: Map<string, TaskGroup> = new Map();
   const allResponsibles: Set<string> = new Set();
@@ -223,7 +237,7 @@ export function processExcelData(rows: ExcelRow[], profiles: Profile[], projects
       title: row.Título || '',
       subtaskTitle: row.Subtarefa || '',
       responsible,
-      description: row.Descrição || '',
+      description: descricaoParaRichText(row.Descrição),
       estimatedHours: parseFloat(String(row['Estimativa (h)'] || 0)) || 0,
       dueDate: parseExcelDate(row['Data de Entrega']),
       projectName: row.Projeto || '',
