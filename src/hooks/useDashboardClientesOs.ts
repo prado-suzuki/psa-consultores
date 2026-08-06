@@ -6,6 +6,8 @@ import {
   buildClienteRows,
   buildOsRows,
   buildProjetoRows,
+  buildRateioPorOs,
+  buildRateioProdutoPorOs,
 } from '@/lib/dashboardClientesOs/aggregations';
 import type {
   RawCliente,
@@ -19,9 +21,14 @@ import type {
   RawServico,
   RawProfile,
   RawSetorRegiao,
+  RawDistribuicaoReceita,
+  RawCentroCusto,
+  RawOsProduto,
+  RawProdutoSegmento,
   ClienteRow,
   OsRow,
   ProjetoRow,
+  FatiaRateio,
 } from '@/lib/dashboardClientesOs/types';
 
 /**
@@ -49,12 +56,20 @@ interface RawBundle {
   equipes: RawEstruturaEquipe[];
   profiles: RawProfile[];
   setorRegiao: RawSetorRegiao[];
+  distribuicaoReceita: RawDistribuicaoReceita[];
+  centrosCusto: RawCentroCusto[];
+  osProdutos: RawOsProduto[];
+  produtos: RawProdutoSegmento[];
 }
 
 export interface DashboardClientesOsData {
   clienteRows: ClienteRow[];
   osRows: OsRow[];
   projetoRows: ProjetoRow[];
+  /** Rateio da receita por OS (chave = os_id) para a visão por centro de custo. */
+  rateioPorOs: Map<string, FatiaRateio[]>;
+  /** Idem para a visão por produto (dividido pelas horas contratadas). */
+  rateioProdutoPorOs: Map<string, FatiaRateio[]>;
 }
 
 function unwrap<T>(res: { data: unknown; error: { message?: string } | null }, label: string): T[] {
@@ -77,6 +92,7 @@ export function useDashboardClientesOs(ambiente: Ambiente) {
     queryFn: async () => {
       const [
         cliRes, osRes, projRes, taskRes, ccRes, ecRes, servRes, areaRes, eqRes, profRes, srRes,
+        drRes, cCustoRes, osProdRes, prodRes,
       ] = await Promise.all([
         supabase
           .from('cliente')
@@ -103,6 +119,15 @@ export function useDashboardClientesOs(ambiente: Ambiente) {
         (supabase.from('cliente_setor_regiao_atual' as never) as never as {
           select: (c: string) => Promise<{ data: unknown; error: { message?: string } | null }>;
         }).select('id_cliente, setor_cliente, regiao'),
+        supabase
+          .from('distribuicao_receita')
+          .select('id_ordem_servico, id_centro_custo, percentual_rateio')
+          .eq('excluido', false),
+        supabase.from('centros_custo').select('id, codigo, nome'),
+        supabase
+          .from('os_produtos_contratados')
+          .select('ordem_servico_id, produto_segmento_id, horas_contratadas'),
+        supabase.from('produto_segmento').select('id, codigo, nome'),
       ]);
 
       return {
@@ -117,6 +142,10 @@ export function useDashboardClientesOs(ambiente: Ambiente) {
         equipes: unwrap<RawEstruturaEquipe>(eqRes, 'equipes'),
         profiles: unwrap<RawProfile>(profRes, 'perfis'),
         setorRegiao: unwrap<RawSetorRegiao>(srRes, 'setor/região'),
+        distribuicaoReceita: unwrap<RawDistribuicaoReceita>(drRes, 'rateio de receita'),
+        centrosCusto: unwrap<RawCentroCusto>(cCustoRes, 'centros de custo'),
+        osProdutos: unwrap<RawOsProduto>(osProdRes, 'produtos das OS'),
+        produtos: unwrap<RawProdutoSegmento>(prodRes, 'produtos/segmentos'),
       };
     },
   });
@@ -152,6 +181,8 @@ export function useDashboardClientesOs(ambiente: Ambiente) {
         equipes: b.equipes,
         profiles: b.profiles,
       }),
+      rateioPorOs: buildRateioPorOs(b.distribuicaoReceita, b.centrosCusto),
+      rateioProdutoPorOs: buildRateioProdutoPorOs(b.osProdutos, b.produtos),
     };
   }, [query.data, hoje]);
 

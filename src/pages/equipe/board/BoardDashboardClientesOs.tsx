@@ -1,18 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BarChart, Bar, PieChart, Pie, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList,
+  BarChart, Bar, PieChart, Pie, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
 } from 'recharts';
-import { BarChart2, AlertTriangle, ArrowUp, ArrowDown, ChevronsUpDown, X, CalendarIcon } from 'lucide-react';
+import { AlertTriangle, ArrowUp, ArrowDown, ChevronsUpDown, X } from 'lucide-react';
 import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { BoardChip } from '@/components/board/BoardChip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
 import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
@@ -20,10 +15,21 @@ import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
 import { GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
 import {
   kpisClientes, kpisOperacional, kpisProjetos,
-  faturamentoPorCategoria, faturamentoPorCluster, faturamentoMensal,
-  top10Clientes, osPorStatus, estimadoVsRealizado,
+  faturamentoPorTipo, faturamentoPorCliente, faturamentoMensal,
+  matrizCentroCustoPorMes, matrizClientePorMes, matrizServicoPorMes, matrizProdutoPorMes,
+  comparativoAnoAnterior,
+  osPorStatus, estimadoVsRealizado,
+  shareCentroCusto, centrosCustoEmUso,
 } from '@/lib/dashboardClientesOs/aggregations';
-import type { ClienteRow, OsRow, ProjetoRow } from '@/lib/dashboardClientesOs/types';
+import type { ClienteRow, OsRow, ProjetoRow, FatiaRateio } from '@/lib/dashboardClientesOs/types';
+import { FaturamentoDetalhe, type Detalhe } from '@/components/equipe/board/clientes-os/FaturamentoDetalhe';
+import { ChartEmpty } from '@/components/equipe/board/clientes-os/ChartEmpty';
+import { KpiStrip } from '@/components/equipe/board/clientes-os/KpiStrip';
+import { Field, DateField, SelectFilter } from '@/components/equipe/board/clientes-os/FiltroControles';
+import {
+  PSA, SERIES, AXIS, brl, brlMil, milAxis, num, pct, mesLabel, dataBR, th, td,
+  rotuloMeses, variacaoLabel, corVariacao,
+} from '@/components/equipe/board/clientes-os/shared';
 
 type Aba = 'clientes' | 'operacional' | 'projetos';
 type SortDir = 'asc' | 'desc';
@@ -32,31 +38,12 @@ type SortDir = 'asc' | 'desc';
 const EMPTY_CLIENTES: ClienteRow[] = [];
 const EMPTY_OS: OsRow[] = [];
 const EMPTY_PROJETOS: ProjetoRow[] = [];
+const EMPTY_RATEIO: Map<string, FatiaRateio[]> = new Map();
 
 const TODOS = '__todos__';
 const PERIODO_VAZIO = '|';
 const PERIODO_DEFAULT = '2026-01-01|'; // default: OS iniciadas a partir de 01/01/2026
-const DEFAULTS = { periodo: PERIODO_DEFAULT, cliente: TODOS, tipo: TODOS, categoria: TODOS, cluster: TODOS };
-
-// Paleta da marca PSA (tokens de src/index.css: --lime-*, --teal-*, --osg-moss).
-const PSA = {
-  lime: '#8CC63F',
-  teal: '#0D877C',
-  moss: '#125837',
-  tealLight: '#4FB0A5',
-  amber: '#D4820A',
-  risk: '#D03040',
-  grey: '#9AA7B4',
-};
-const SERIES = [PSA.teal, PSA.lime, PSA.moss, PSA.tealLight, PSA.amber, PSA.grey];
-
-const brl = (v: number) => `R$ ${Math.round(v).toLocaleString('pt-BR')}`;
-const brlMil = (v: number) => `R$ ${Math.round(v / 1000).toLocaleString('pt-BR')} mil`;
-const milAxis = (v: number) => (v === 0 ? '0' : `${(v / 1000).toLocaleString('pt-BR')} mil`);
-const num = (v: number, dec = 1) => v.toLocaleString('pt-BR', { maximumFractionDigits: dec });
-const pct = (v: number | null) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`);
-const mesLabel = (mes: string) => `${mes.slice(5, 7)}/${mes.slice(2, 4)}`;
-const dataBR = (d: string | null) => (d ? d.split('-').reverse().join('/') : '—');
+const DEFAULTS = { periodo: PERIODO_DEFAULT, cliente: TODOS, tipo: TODOS, categoria: TODOS, centroCusto: TODOS };
 
 // Recharts entrega o ponto clicado com tipagem frouxa; extraímos o campo com segurança.
 const pickField = (d: unknown, field: string): string | undefined => {
@@ -98,87 +85,9 @@ function useSort<T>(rows: T[], initialKey: keyof T, initialDir: SortDir = 'desc'
   return { sorted, key, dir, toggle };
 }
 
-const th: React.CSSProperties = {
-  textAlign: 'left', padding: '7px 10px', fontSize: 11, fontWeight: 700,
-  color: 'var(--board-v4-ink3)', borderBottom: '1px solid var(--board-v4-line)', whiteSpace: 'nowrap',
-  cursor: 'pointer', userSelect: 'none',
-};
-const td: React.CSSProperties = {
-  padding: '7px 10px', fontSize: 12, color: 'var(--board-v4-ink)',
-  borderBottom: '1px solid var(--board-v4-line)',
-};
-
 // Grids assimétricos: a série temporal e a tabela de nomes longos ganham mais largura
 // que o donut / gráfico de poucas barras. minmax(0,..) evita estouro de conteúdo.
 const gridMensalDonut: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: 12, marginBottom: 16 };
-const gridClusterTop: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.5fr)', gap: 12, marginBottom: 16 };
-
-// Controles de filtro usando os componentes de UI do projeto (shadcn), não os nativos.
-const fieldLabelCss: React.CSSProperties = {
-  fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase',
-  color: 'var(--board-v4-ink3)', marginBottom: 5, display: 'block',
-};
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div style={{ display: 'flex', flexDirection: 'column' }}>
-    <span style={fieldLabelCss}>{label}</span>
-    {children}
-  </div>
-);
-
-const DateField = ({ value, onChange, placeholder }: {
-  value?: Date; onChange: (d?: Date) => void; placeholder: string;
-}) => (
-  <Popover>
-    <PopoverTrigger asChild>
-      <Button variant="outline" size="sm" className={cn('h-9 justify-start text-sm font-normal', !value && 'text-muted-foreground')}>
-        <CalendarIcon className="mr-2 h-4 w-4" />
-        {value ? format(value, 'dd/MM/yyyy', { locale: ptBR }) : placeholder}
-      </Button>
-    </PopoverTrigger>
-    <PopoverContent className="w-auto p-0" align="start">
-      <Calendar selected={value} onSelect={onChange} />
-    </PopoverContent>
-  </Popover>
-);
-
-const SelectFilter = ({ value, onChange, options, width }: {
-  value: string; onChange: (v: string) => void; options: { value: string; label: string }[]; width: number;
-}) => (
-  <Select value={value} onValueChange={onChange}>
-    <SelectTrigger className="h-9 text-sm" style={{ width }}>
-      <SelectValue />
-    </SelectTrigger>
-    <SelectContent>
-      {options.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
-    </SelectContent>
-  </Select>
-);
-
-// Eixos dos gráficos: texto mais escuro/legível (o default do board é cinza-claro demais).
-const AXIS = {
-  tick: { fontSize: 11, fill: '#566173', fontFamily: "'Instrument Sans', sans-serif" },
-  axisLine: { stroke: '#E4E9F0' },
-  tickLine: false as const,
-};
-
-// KPI card: TÍTULO acima do número, em cor legível (não o cinza apagado do stat-label padrão).
-interface KpiItem { value: React.ReactNode; label: string; color: string; subText?: string; }
-const KpiStrip = ({ items }: { items: KpiItem[] }) => (
-  <div style={{
-    display: 'grid', gridTemplateColumns: `repeat(${items.length}, 1fr)`,
-    background: 'var(--board-v4-surface)', border: '1px solid var(--board-v4-line)',
-    borderRadius: 12, overflow: 'hidden', marginBottom: 16,
-  }}>
-    {items.map((it, i) => (
-      <div key={i} style={{ padding: '18px 22px 16px', position: 'relative', borderLeft: i > 0 ? '1px solid var(--board-v4-line)' : undefined }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: it.color }} />
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--board-v4-ink2)', marginBottom: 8 }}>{it.label}</div>
-        <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 30, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1, color: 'var(--board-v4-ink)', fontVariantNumeric: 'tabular-nums' }}>{it.value}</div>
-        {it.subText && <div style={{ fontSize: 11.5, color: 'var(--board-v4-ink3)', marginTop: 8 }}>{it.subText}</div>}
-      </div>
-    ))}
-  </div>
-);
 
 function SortTh<T>({ label, colKey, sort, align = 'left' }: {
   label: string; colKey: keyof T; sort: SortState<T>; align?: 'left' | 'right';
@@ -194,13 +103,6 @@ function SortTh<T>({ label, colKey, sort, align = 'left' }: {
   );
 }
 
-const ChartEmpty = ({ msg }: { msg: string }) => (
-  <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}>
-    <BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: '#CBD5E1' }} />
-    {msg}
-  </div>
-);
-
 export const DashboardClientesOsContent = ({
   scopeProjetosAClientesVisiveis = false,
 }: {
@@ -210,9 +112,11 @@ export const DashboardClientesOsContent = ({
   const { ambiente } = useDashboardAmbiente();
   const { data, isLoading, error, hoje } = useDashboardClientesOs(ambiente);
   const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({
-    pageKey: 'dashboard-clientes-os-v2', defaults: DEFAULTS,
+    // v3: o filtro de cluster virou centro de custo (chaves salvas na sessão mudaram).
+    pageKey: 'dashboard-clientes-os-v3', defaults: DEFAULTS,
   });
   const [aba, setAba] = useState<Aba>('clientes');
+  const [detalhe, setDetalhe] = useState<Detalhe>('centro_custo');
   const revealRef = useBoardReveal();
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -222,6 +126,8 @@ export const DashboardClientesOsContent = ({
   const clienteRows = data?.clienteRows ?? EMPTY_CLIENTES;
   const osRows = data?.osRows ?? EMPTY_OS;
   const projetoRows = data?.projetoRows ?? EMPTY_PROJETOS;
+  const rateioPorOs = data?.rateioPorOs ?? EMPTY_RATEIO;
+  const rateioProdutoPorOs = data?.rateioProdutoPorOs ?? EMPTY_RATEIO;
 
   // Opções de filtro derivadas dos dados.
   const clienteOptions = useMemo(() => [
@@ -233,16 +139,16 @@ export const DashboardClientesOsContent = ({
     { value: TODOS, label: 'Todas as categorias' },
     ...[...new Set(clienteRows.map((c) => c.categoria))].sort().map((c) => ({ value: c, label: c })),
   ], [clienteRows]);
-  const clusterOptions = useMemo(() => [
-    { value: TODOS, label: 'Todos os clusters' },
-    ...[...new Set(clienteRows.map((c) => c.cluster_nome))].sort().map((c) => ({ value: c, label: c })),
-  ], [clienteRows]);
+  const centroCustoOptions = useMemo(() => [
+    { value: TODOS, label: 'Todos os centros de custo' },
+    ...centrosCustoEmUso(rateioPorOs).map((c) => ({ value: c.id, label: c.label })),
+  ], [rateioPorOs]);
 
   // Filtros ativos.
   const cliente = filters.cliente as string;
   const tipo = filters.tipo as string;
   const categoria = filters.categoria as string;
-  const cluster = filters.cluster as string;
+  const centroCusto = filters.centroCusto as string;
   const periodo = filters.periodo as string;
   const [de, ate] = periodo.split('|');
   const deDate = de ? new Date(`${de}T00:00:00`) : undefined;
@@ -263,28 +169,55 @@ export const DashboardClientesOsContent = ({
   }, [periodo, setFilter]);
 
   const matchDim = useCallback(
-    (r: { cliente_id: string | null; tipo_cliente: string; categoria: string; cluster_nome: string }) =>
+    (r: { cliente_id: string | null; tipo_cliente: string; categoria: string }) =>
       (cliente === TODOS || r.cliente_id === cliente) &&
       (tipo === TODOS || r.tipo_cliente === tipo) &&
-      (categoria === TODOS || r.categoria === categoria) &&
-      (cluster === TODOS || r.cluster_nome === cluster),
-    [cliente, tipo, categoria, cluster],
+      (categoria === TODOS || r.categoria === categoria),
+    [cliente, tipo, categoria],
   );
 
-  const clientesFiltrados: ClienteRow[] = useMemo(() => clienteRows.filter(matchDim), [clienteRows, matchDim]);
+  const ccSelecionado = centroCusto === TODOS ? null : centroCusto;
+
+  /**
+   * OS com os filtros de dimensão e o faturamento JÁ RATEADO, mas SEM período:
+   * sem centro de custo selecionado a OS entra inteira; com um centro entra só a
+   * fatia dele (e as OS de fora do centro somem). É a base do comparativo com o
+   * ano anterior — o período é aplicado depois, em `osFiltrado`.
+   */
+  const osDimensao: OsRow[] = useMemo(
+    () => osRows.reduce<OsRow[]>((acc, o) => {
+      if (!matchDim(o)) return acc;
+      const share = shareCentroCusto(o.os_id, rateioPorOs, ccSelecionado);
+      if (share <= 0) return acc;
+      acc.push(share === 1 ? o : { ...o, faturamento: o.faturamento * share });
+      return acc;
+    }, []),
+    [osRows, matchDim, rateioPorOs, ccSelecionado],
+  );
+
+  /**
+   * Recorte de período por DATA DE INÍCIO, mantendo OS sem data (null nunca é
+   * excluída): 60% das OS não têm data_inicio; excluí-las esvaziaria o painel.
+   * Todo "faturamento" da tela sai daqui, então os cards, o gráfico mensal e a
+   * carteira mostram sempre o mesmo total.
+   */
   const osFiltrado: OsRow[] = useMemo(
-    () => osRows.filter((o) => {
-      if (!matchDim(o)) return false;
-      // Filtro por DATA DE INÍCIO da OS, mantendo OS sem data (null nunca é excluída):
-      // 60% das OS não têm data_inicio; excluí-las esvaziaria o painel.
-      if (o.data_inicio) {
-        if (de && o.data_inicio < de) return false;
-        if (ate && o.data_inicio > ate) return false;
-      }
+    () => osDimensao.filter((o) => {
+      if (!o.data_inicio) return true;
+      if (de && o.data_inicio < de) return false;
+      if (ate && o.data_inicio > ate) return false;
       return true;
     }),
-    [osRows, matchDim, de, ate],
+    [osDimensao, de, ate],
   );
+
+  // Com centro de custo selecionado, a carteira de clientes é a dos que têm OS nele.
+  const clientesFiltrados: ClienteRow[] = useMemo(() => {
+    const base = clienteRows.filter(matchDim);
+    if (!ccSelecionado) return base;
+    const comOs = new Set(osFiltrado.map((o) => o.cliente_id));
+    return base.filter((c) => comOs.has(c.cliente_id));
+  }, [clienteRows, matchDim, ccSelecionado, osFiltrado]);
   // Escopo opcional (Gerencial): org_projects segue a regra de projetos
   // (participação/área), não o cluster; aqui restringimos a aba de projetos aos
   // clientes visíveis (que já vêm por cluster via RLS de cliente). Não mexe na
@@ -294,18 +227,43 @@ export const DashboardClientesOsContent = ({
     const visiveis = new Set(clienteRows.map((c) => c.cliente_id));
     return projetoRows.filter((p) => p.cliente_id != null && visiveis.has(p.cliente_id));
   }, [scopeProjetosAClientesVisiveis, projetoRows, clienteRows]);
-  const projetosFiltrado: ProjetoRow[] = useMemo(() => projetoRowsEscopado.filter(matchDim), [projetoRowsEscopado, matchDim]);
+  const projetosFiltrado: ProjetoRow[] = useMemo(() => {
+    const base = projetoRowsEscopado.filter(matchDim);
+    if (!ccSelecionado) return base;
+    const osDoCentro = new Set(osFiltrado.map((o) => o.os_id));
+    return base.filter((p) => p.os_id != null && osDoCentro.has(p.os_id));
+  }, [projetoRowsEscopado, matchDim, ccSelecionado, osFiltrado]);
 
-  // KPIs / séries.
-  const kClientes = useMemo(() => kpisClientes(clientesFiltrados), [clientesFiltrados]);
+  // KPIs / séries. `fatPorCliente` é a fonte única de faturamento da tela.
+  const fatPorCliente = useMemo(() => faturamentoPorCliente(osFiltrado), [osFiltrado]);
+  const kClientes = useMemo(() => kpisClientes(clientesFiltrados, fatPorCliente), [clientesFiltrados, fatPorCliente]);
   const kOper = useMemo(() => kpisOperacional(clientesFiltrados, hoje), [clientesFiltrados, hoje]);
   const kProj = useMemo(() => kpisProjetos(projetosFiltrado, osFiltrado), [projetosFiltrado, osFiltrado]);
   const serieMensal = useMemo(() => faturamentoMensal(osFiltrado).map((m) => ({ ...m, label: mesLabel(m.mes) })), [osFiltrado]);
-  const serieCategoria = useMemo(() => faturamentoPorCategoria(clientesFiltrados).filter((c) => c.faturamento > 0), [clientesFiltrados]);
-  const totalCategoria = useMemo(() => serieCategoria.reduce((a, c) => a + c.faturamento, 0), [serieCategoria]);
-  const serieCluster = useMemo(() => faturamentoPorCluster(clientesFiltrados), [clientesFiltrados]);
-  const top10 = useMemo(() => top10Clientes(clientesFiltrados), [clientesFiltrados]);
-  const maxTop = Math.max(1, ...top10.map((c) => c.faturamento_total));
+  const serieTipo = useMemo(
+    () => faturamentoPorTipo(clientesFiltrados, fatPorCliente).filter((t) => t.faturamento > 0),
+    [clientesFiltrados, fatPorCliente],
+  );
+  const totalTipo = useMemo(() => serieTipo.reduce((a, t) => a + t.faturamento, 0), [serieTipo]);
+  // Detalhamento (centro de custo × cliente): alimenta o gráfico de barras E a
+  // matriz por mês logo abaixo, para os dois nunca divergirem.
+  const centroSelecionado = useMemo(
+    () => (ccSelecionado
+      ? { id: ccSelecionado, label: centroCustoOptions.find((o) => o.value === ccSelecionado)?.label ?? ccSelecionado }
+      : null),
+    [ccSelecionado, centroCustoOptions],
+  );
+  const matriz = useMemo(() => {
+    if (detalhe === 'centro_custo') return matrizCentroCustoPorMes(osFiltrado, rateioPorOs, centroSelecionado);
+    if (detalhe === 'servico') return matrizServicoPorMes(osFiltrado);
+    if (detalhe === 'produto') return matrizProdutoPorMes(osFiltrado, rateioProdutoPorOs);
+    return matrizClientePorMes(osFiltrado);
+  }, [detalhe, osFiltrado, rateioPorOs, rateioProdutoPorOs, centroSelecionado]);
+  // Comparativo: os mesmos meses que a tela está mostrando, um ano antes.
+  const comparativo = useMemo(
+    () => comparativoAnoAnterior(osDimensao, matriz.meses),
+    [osDimensao, matriz.meses],
+  );
   const serieStatus = useMemo(() => osPorStatus(osFiltrado), [osFiltrado]);
   const serieHoras = useMemo(
     () => estimadoVsRealizado(projetosFiltrado).map((p) => ({
@@ -316,7 +274,6 @@ export const DashboardClientesOsContent = ({
   const maxStatus = Math.max(1, ...serieStatus.map((s) => s.qtd));
 
   // Ordenação das tabelas.
-  const topSort = useSort(top10, 'faturamento_total', 'desc');
   const carteiraSort = useSort(osFiltrado, 'cliente_nome', 'asc');
   const detalheSort = useSort(projetosFiltrado, 'horas_estimadas', 'desc');
 
@@ -360,8 +317,8 @@ export const DashboardClientesOsContent = ({
             <Field label="Categoria">
               <SelectFilter value={categoria} onChange={(v) => setFilter('categoria', v)} options={categoriaOptions} width={160} />
             </Field>
-            <Field label="Cluster">
-              <SelectFilter value={cluster} onChange={(v) => setFilter('cluster', v)} options={clusterOptions} width={160} />
+            <Field label="Centro de custo">
+              <SelectFilter value={centroCusto} onChange={(v) => setFilter('centroCusto', v)} options={centroCustoOptions} width={220} />
             </Field>
             {activeCount > 0 && (
               <Button variant="ghost" size="sm" onClick={resetFilters} className="h-9 text-sm" style={{ color: 'var(--board-v4-risk)' }}>
@@ -389,6 +346,14 @@ export const DashboardClientesOsContent = ({
                 <KpiStrip
                   items={[
                     { value: brl(kClientes.faturamento_total), label: 'Faturamento total', color: PSA.lime },
+                    {
+                      value: variacaoLabel(comparativo.variacao),
+                      label: 'vs. mesmo período do ano anterior',
+                      color: corVariacao(comparativo.variacao),
+                      subText: comparativo.meses.length === 0
+                        ? 'sem OS com data de início no período'
+                        : `${rotuloMeses(comparativo.meses)}: ${brlMil(comparativo.anterior)} · só OS com data de início`,
+                    },
                     { value: kClientes.clientes_ativos, label: 'Clientes ativos', color: PSA.teal, subText: `${kClientes.clientes_ativos_fixos} fixos · ${kClientes.clientes_ativos_pontuais} pontuais` },
                     { value: kClientes.ticket_medio == null ? '—' : brl(kClientes.ticket_medio), label: 'Ticket médio', color: PSA.moss },
                     { value: kClientes.os_ativas, label: 'OS ativas', color: PSA.tealLight },
@@ -419,19 +384,19 @@ export const DashboardClientesOsContent = ({
                   </div>
 
                   <div className="v4-card">
-                    <div className="v4-card-title">Faturamento por categoria</div>
-                    {serieCategoria.length > 0 ? (
+                    <div className="v4-card-title">Faturamento por tipo de cliente</div>
+                    {serieTipo.length > 0 ? (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, paddingTop: 4 }}>
                         <div style={{ position: 'relative', width: 208, height: 208, cursor: 'pointer' }}>
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                               <Pie
-                                data={serieCategoria} dataKey="faturamento" nameKey="categoria"
-                                innerRadius={66} outerRadius={98} paddingAngle={serieCategoria.length > 1 ? 2 : 0} stroke="none"
-                                onClick={(e) => toggleFilter('categoria', pickField(e, 'categoria'))}
+                                data={serieTipo} dataKey="faturamento" nameKey="tipo"
+                                innerRadius={66} outerRadius={98} paddingAngle={serieTipo.length > 1 ? 2 : 0} stroke="none"
+                                onClick={(e) => toggleFilter('tipo', pickField(e, 'tipo'))}
                               >
-                                {serieCategoria.map((c, i) => (
-                                  <Cell key={c.categoria} fill={SERIES[i % SERIES.length]} fillOpacity={categoria !== TODOS && c.categoria !== categoria ? 0.28 : 1} />
+                                {serieTipo.map((t, i) => (
+                                  <Cell key={t.tipo} fill={SERIES[i % SERIES.length]} fillOpacity={tipo !== TODOS && t.tipo !== tipo ? 0.28 : 1} />
                                 ))}
                               </Pie>
                               <Tooltip formatter={(v: number) => brl(v)} {...TOOLTIP_STYLE} />
@@ -439,17 +404,17 @@ export const DashboardClientesOsContent = ({
                           </ResponsiveContainer>
                           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                             <div style={{ fontSize: 10.5, color: 'var(--board-v4-ink3)' }}>Total</div>
-                            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--board-v4-ink)' }}>{brlMil(totalCategoria)}</div>
+                            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--board-v4-ink)' }}>{brlMil(totalTipo)}</div>
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: '100%' }}>
-                          {serieCategoria.map((c, i) => {
-                            const on = categoria === c.categoria;
+                          {serieTipo.map((t, i) => {
+                            const on = tipo === t.tipo;
                             return (
                               <button
-                                key={c.categoria}
-                                onClick={() => toggleFilter('categoria', c.categoria)}
-                                title={`Filtrar por ${c.categoria}`}
+                                key={t.tipo}
+                                onClick={() => toggleFilter('tipo', t.tipo)}
+                                title={`Filtrar por ${t.tipo}`}
                                 style={{
                                   display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', borderRadius: 7, width: '100%',
                                   border: `1px solid ${on ? 'var(--board-v4-line)' : 'transparent'}`,
@@ -457,9 +422,9 @@ export const DashboardClientesOsContent = ({
                                 }}
                               >
                                 <span style={{ width: 10, height: 10, borderRadius: 3, background: SERIES[i % SERIES.length], flexShrink: 0 }} />
-                                <span style={{ flex: 1, fontSize: 12.5, color: 'var(--board-v4-ink)', fontWeight: on ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.categoria}</span>
-                                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--board-v4-ink)', minWidth: 48, textAlign: 'right' }}>{((c.faturamento / totalCategoria) * 100).toFixed(1)}%</span>
-                                <span style={{ fontSize: 11.5, color: 'var(--board-v4-ink3)', minWidth: 66, textAlign: 'right' }}>{brlMil(c.faturamento)}</span>
+                                <span style={{ flex: 1, fontSize: 12.5, color: 'var(--board-v4-ink)', fontWeight: on ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.tipo}</span>
+                                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--board-v4-ink)', minWidth: 48, textAlign: 'right' }}>{((t.faturamento / totalTipo) * 100).toFixed(1)}%</span>
+                                <span style={{ fontSize: 11.5, color: 'var(--board-v4-ink3)', minWidth: 66, textAlign: 'right' }}>{brlMil(t.faturamento)}</span>
                               </button>
                             );
                           })}
@@ -469,68 +434,7 @@ export const DashboardClientesOsContent = ({
                   </div>
                 </div>
 
-                <div style={gridClusterTop}>
-                  <div className="v4-card">
-                    <div className="v4-card-title">Faturamento por cluster</div>
-                    {serieCluster.length > 0 ? (
-                      <div style={{ cursor: 'pointer' }}>
-                        <ResponsiveContainer width="100%" height={Math.max(130, serieCluster.length * 50)}>
-                          <BarChart data={serieCluster} layout="vertical" margin={{ top: 4, right: 74, bottom: 4, left: 4 }}>
-                            <CartesianGrid {...GRID_STYLE} horizontal={false} />
-                            <XAxis type="number" {...AXIS} tickFormatter={milAxis} />
-                            <YAxis type="category" dataKey="cluster" {...AXIS} width={116} />
-                            <Tooltip formatter={(v: number) => brl(v)} {...TOOLTIP_STYLE} cursor={{ fill: 'rgba(13,135,124,.06)' }} />
-                            <Bar dataKey="faturamento" radius={[0, 4, 4, 0]} maxBarSize={30} onClick={(e) => toggleFilter('cluster', pickField(e, 'cluster'))}>
-                              {serieCluster.map((c) => (
-                                <Cell key={c.cluster} fill={PSA.teal} fillOpacity={cluster !== TODOS && c.cluster !== cluster ? 0.28 : 1} />
-                              ))}
-                              <LabelList dataKey="faturamento" position="right" formatter={(v: number | string) => brlMil(Number(v))} style={{ fontSize: 11, fontWeight: 600, fill: 'var(--board-v4-ink2)' }} />
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    ) : <ChartEmpty msg="Sem dados" />}
-                  </div>
-
-                  <div className="v4-card">
-                    <div className="v4-card-title">Top 10 clientes por faturamento (R$)</div>
-                    {top10.length > 0 ? (
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead>
-                          <tr>
-                            <SortTh label="Cliente" colKey="cliente_nome" sort={topSort} />
-                            <SortTh label="Tipo" colKey="tipo_cliente" sort={topSort} />
-                            <SortTh label="Categoria" colKey="categoria" sort={topSort} />
-                            <SortTh label="Faturamento" colKey="faturamento_total" sort={topSort} align="right" />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {topSort.sorted.map((c) => (
-                            <tr key={c.cliente_id}>
-                              <td style={{ ...td, fontWeight: 500 }}>{c.cliente_nome}</td>
-                              <td style={td}>{c.tipo_cliente}</td>
-                              <td style={td}>{c.categoria}</td>
-                              <td style={td}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
-                                  <span style={{ fontWeight: 600, minWidth: 60, textAlign: 'right' }}>{brlMil(c.faturamento_total)}</span>
-                                  <div style={{ width: 80, height: 9, background: '#EEF2F6', borderRadius: 3, overflow: 'hidden', flexShrink: 0 }}>
-                                    <div style={{ width: `${(c.faturamento_total / maxTop) * 100}%`, height: '100%', background: PSA.teal }} />
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                          <tr>
-                            <td style={{ ...td, fontWeight: 700, borderTop: '2px solid var(--board-v4-line)' }}>Total geral</td>
-                            <td style={{ ...td, borderTop: '2px solid var(--board-v4-line)' }} />
-                            <td style={{ ...td, borderTop: '2px solid var(--board-v4-line)' }} />
-                            <td style={{ ...td, textAlign: 'right', fontWeight: 700, borderTop: '2px solid var(--board-v4-line)' }}>{brlMil(kClientes.faturamento_total)}</td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    ) : <ChartEmpty msg="Sem clientes" />}
-                  </div>
-                </div>
+                <FaturamentoDetalhe detalhe={detalhe} onDetalheChange={setDetalhe} matriz={matriz} />
               </>
             )}
 

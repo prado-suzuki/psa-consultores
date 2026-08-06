@@ -18,15 +18,21 @@ import type {
   RawServico,
   RawProfile,
   RawSetorRegiao,
+  RawDistribuicaoReceita,
+  RawCentroCusto,
   ClienteRow,
   OsRow,
   ProjetoRow,
   TipoCliente,
   StatusContrato,
-  CategoriaFaturamento,
-  ClusterFaturamento,
+  TipoFaturamento,
+  FatiaRateio,
+  RawOsProduto,
+  RawProdutoSegmento,
+  MatrizLinha,
+  MatrizMensal,
+  ComparativoAnual,
   MesFaturamento,
-  TopCliente,
   StatusContagem,
   ProjetoHoras,
   KpisClientes,
@@ -173,6 +179,110 @@ export function buildHorasPorProjeto(tasks: RawOrgTask[]): Map<string, HorasProj
   return map;
 }
 
+// ── Rateio da receita por centro de custo (distribuicao_receita) ───────
+
+/** Buckets do que não está classificado — mantêm o total batendo com o KPI. */
+export const SEM_CENTRO_CUSTO = { id: 'SEM_CENTRO_CUSTO', label: 'Sem centro de custo' };
+export const SEM_CENTRO_CUSTO_ID = SEM_CENTRO_CUSTO.id;
+export const SEM_PRODUTO = { id: 'SEM_PRODUTO', label: 'Sem produto na OS' };
+export const SEM_SERVICO = { id: 'SEM_SERVICO', label: 'Sem serviço na OS' };
+/** Coluna das OS sem data de início (maioria da base) na matriz por mês. */
+export const SEM_DATA = 'sem-data';
+
+/** Rótulo de catálogo: nome quando existe (código sozinho é opaco no gráfico). */
+function catalogoLabel(item: { codigo: string; nome: string }): string {
+  return item.nome?.trim() || item.codigo;
+}
+
+/**
+ * Rateio de cada OS por CENTRO DE CUSTO: `distribuicao_receita` agrupada por OS,
+ * já com o rótulo resolvido. Linhas cujo centro saiu do catálogo são ignoradas
+ * (o percentual delas volta para "Sem centro de custo").
+ */
+export function buildRateioPorOs(
+  distribuicao: RawDistribuicaoReceita[],
+  centrosCusto: RawCentroCusto[],
+): Map<string, FatiaRateio[]> {
+  const labelPorId = new Map(centrosCusto.map((c) => [c.id, catalogoLabel(c)] as const));
+  const map = new Map<string, FatiaRateio[]>();
+  for (const d of distribuicao) {
+    const label = labelPorId.get(d.id_centro_custo);
+    if (!label) continue;
+    const item: FatiaRateio = { id: d.id_centro_custo, label, percentual: d.percentual_rateio ?? 0 };
+    const arr = map.get(d.id_ordem_servico);
+    if (arr) arr.push(item);
+    else map.set(d.id_ordem_servico, [item]);
+  }
+  return map;
+}
+
+/**
+ * Rateio de cada OS por PRODUTO (`os_produtos_contratados`). Diferente do centro
+ * de custo, o banco não guarda percentual: a receita é dividida pelas HORAS
+ * CONTRATADAS de cada produto e, quando a OS não tem horas em todos eles, em
+ * PARTES IGUAIS. Os percentuais sempre somam 100 — não existe sobra aqui.
+ */
+export function buildRateioProdutoPorOs(
+  produtosOs: RawOsProduto[],
+  produtos: RawProdutoSegmento[],
+): Map<string, FatiaRateio[]> {
+  const labelPorId = new Map(produtos.map((p) => [p.id, catalogoLabel(p)] as const));
+  const porOs = new Map<string, RawOsProduto[]>();
+  for (const p of produtosOs) {
+    if (!labelPorId.has(p.produto_segmento_id)) continue;
+    const arr = porOs.get(p.ordem_servico_id);
+    if (arr) arr.push(p);
+    else porOs.set(p.ordem_servico_id, [p]);
+  }
+
+  const map = new Map<string, FatiaRateio[]>();
+  for (const [osId, itens] of porOs) {
+    const horas = itens.reduce((acc, i) => acc + (i.horas_contratadas ?? 0), 0);
+    const porHoras = horas > 0 && itens.every((i) => (i.horas_contratadas ?? 0) > 0);
+    map.set(osId, itens.map((i) => ({
+      id: i.produto_segmento_id,
+      label: labelPorId.get(i.produto_segmento_id) as string,
+      percentual: porHoras ? ((i.horas_contratadas as number) / horas) * 100 : 100 / itens.length,
+    })));
+  }
+  return map;
+}
+
+/**
+ * Fatia (0–1) da receita de uma OS que pertence ao centro de custo selecionado.
+ * Sem centro selecionado → 1 (a OS inteira). Em "Sem centro de custo" → a sobra
+ * não rateada. Zero significa que a OS não pertence àquele centro.
+ */
+export function shareCentroCusto(
+  osId: string,
+  rateioPorOs: Map<string, FatiaRateio[]>,
+  centroCustoId: string | null,
+): number {
+  if (!centroCustoId) return 1;
+  const rateio = rateioPorOs.get(osId) ?? [];
+  if (centroCustoId === SEM_CENTRO_CUSTO.id) {
+    const alocado = rateio.reduce((acc, r) => acc + r.percentual, 0);
+    return Math.max(0, 100 - alocado) / 100;
+  }
+  return rateio.filter((r) => r.id === centroCustoId).reduce((acc, r) => acc + r.percentual, 0) / 100;
+}
+
+/** Centros de custo que aparecem em algum rateio (+ o bucket "Sem centro de custo"). */
+export function centrosCustoEmUso(
+  rateioPorOs: Map<string, FatiaRateio[]>,
+): Array<{ id: string; label: string }> {
+  const porId = new Map<string, string>();
+  for (const rateio of rateioPorOs.values()) {
+    for (const r of rateio) porId.set(r.id, r.label);
+  }
+  return [
+    ...[...porId]
+      .map(([id, label]) => ({ id, label }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'pt-BR')),
+    SEM_CENTRO_CUSTO,
+  ];
+}
+
 // ── Builders das views ─────────────────────────────────────────────────
 
 interface FaturamentoCliente {
@@ -289,6 +399,7 @@ export function buildOsRows(input: {
         (o.cluster_id ? clusterNomePorId.get(o.cluster_id) : undefined) ??
         cl?.cluster_nome ??
         'Sem cluster',
+      servico_id: o.id_servico,
       servico_nome: o.id_servico ? servicoPorId.get(o.id_servico) ?? null : null,
       data_emissao: o.data_emissao,
       data_inicio: o.data_inicio,
@@ -380,9 +491,12 @@ function sum<T>(rows: T[], get: (r: T) => number): number {
   return rows.reduce((acc, r) => acc + get(r), 0);
 }
 
-export function kpisClientes(rows: ClienteRow[]): KpisClientes {
+export function kpisClientes(
+  rows: ClienteRow[],
+  fatPorCliente: Map<string, number>,
+): KpisClientes {
   const ativos = rows.filter((r) => r.ativo);
-  const faturamento_total = sum(rows, (r) => r.faturamento_total);
+  const faturamento_total = sum(rows, (r) => fatPorCliente.get(r.cliente_id) ?? 0);
   const os_ativas = sum(rows, (r) => r.qtd_os_ativas);
   return {
     faturamento_total,
@@ -426,16 +540,170 @@ function groupSum<T>(rows: T[], key: (r: T) => string, val: (r: T) => number): M
   return map;
 }
 
-export function faturamentoPorCategoria(rows: ClienteRow[]): CategoriaFaturamento[] {
-  return [...groupSum(rows, (r) => r.categoria, (r) => r.faturamento_total)]
-    .map(([categoria, faturamento]) => ({ categoria, faturamento }))
+/**
+ * Faturamento por cliente a partir das OS **já filtradas e rateadas** (período,
+ * dimensões e centro de custo). É a fonte única de "faturamento" da tela: os
+ * cards de cliente e o KPI total saem daqui, não de `ClienteRow.faturamento_total`
+ * (que soma todas as OS do cliente, ignorando os filtros).
+ */
+export function faturamentoPorCliente(os: OsRow[]): Map<string, number> {
+  return groupSum(os, (o) => o.cliente_id, (o) => o.faturamento);
+}
+
+export function faturamentoPorTipo(
+  rows: ClienteRow[],
+  fatPorCliente: Map<string, number>,
+): TipoFaturamento[] {
+  const map = new Map<TipoCliente, number>();
+  for (const r of rows) {
+    map.set(r.tipo_cliente, (map.get(r.tipo_cliente) ?? 0) + (fatPorCliente.get(r.cliente_id) ?? 0));
+  }
+  return [...map]
+    .map(([tipo, faturamento]) => ({ tipo, faturamento }))
     .sort((a, b) => b.faturamento - a.faturamento);
 }
 
-export function faturamentoPorCluster(rows: ClienteRow[]): ClusterFaturamento[] {
-  return [...groupSum(rows, (r) => r.cluster_nome, (r) => r.faturamento_total)]
-    .map(([cluster, faturamento]) => ({ cluster, faturamento }))
-    .sort((a, b) => b.faturamento - a.faturamento);
+/**
+ * Divide o valor de UMA OS entre as fatias do rateio (centro de custo ou
+ * produto): cada uma leva `valor * percentual / 100`.
+ *
+ * O que não está rateado — OS sem rateio nenhum, ou a sobra quando os
+ * percentuais somam menos de 100% — vai para o bucket `semRateio`, para o total
+ * continuar batendo com o KPI de faturamento.
+ */
+function rateiaOs(
+  o: OsRow,
+  rateioPorOs: Map<string, FatiaRateio[]>,
+  semRateio: { id: string; label: string },
+): Array<{ id: string; label: string; valor: number }> {
+  const rateio = rateioPorOs.get(o.os_id) ?? [];
+  const fatias = rateio.map((r) => ({
+    id: r.id,
+    label: r.label,
+    valor: (o.faturamento * r.percentual) / 100,
+  }));
+  // Tolerância de 0.01pp para não criar bucket por arredondamento de rateio.
+  const resto = 100 - rateio.reduce((acc, r) => acc + r.percentual, 0);
+  if (resto > 0.01) {
+    fatias.push({ ...semRateio, valor: (o.faturamento * resto) / 100 });
+  }
+  return fatias;
+}
+
+/** Mês ('YYYY-MM') de início da OS; OS sem data vão para uma coluna própria. */
+function mesDaOs(o: OsRow): string {
+  return o.data_inicio ? o.data_inicio.slice(0, 7) : SEM_DATA;
+}
+
+function montaMatriz(
+  entradas: Array<{ id: string; label: string; mes: string; valor: number }>,
+): MatrizMensal {
+  const porId = new Map<string, MatrizLinha>();
+  const meses = new Set<string>();
+  let temSemData = false;
+
+  for (const e of entradas) {
+    if (e.mes === SEM_DATA) temSemData = true;
+    else meses.add(e.mes);
+    const linha = porId.get(e.id) ?? { id: e.id, label: e.label, porMes: {}, total: 0 };
+    linha.porMes[e.mes] = (linha.porMes[e.mes] ?? 0) + e.valor;
+    linha.total += e.valor;
+    porId.set(e.id, linha);
+  }
+
+  return {
+    meses: [...meses].sort(),
+    temSemData,
+    linhas: [...porId.values()].sort(
+      (a, b) => b.total - a.total || a.label.localeCompare(b.label, 'pt-BR'),
+    ),
+  };
+}
+
+/**
+ * Comparativo com os MESMOS MESES do ano anterior: cada mês da visão atual
+ * recua 12 meses (jan–jul/2026 → jan–jul/2025).
+ *
+ * `rows` são as OS com os filtros de dimensão e centro de custo já aplicados,
+ * mas SEM o filtro de período — senão não haveria ano anterior para comparar.
+ * OS sem data de início ficam fora dos dois lados (não dá para atribuir ano),
+ * então `atual` aqui é menor que o KPI de faturamento total.
+ */
+export function comparativoAnoAnterior(rows: OsRow[], mesesAtuais: string[]): ComparativoAnual {
+  const mesesAnteriores = mesesAtuais.map((m) => `${Number(m.slice(0, 4)) - 1}-${m.slice(5, 7)}`);
+  const soma = (meses: string[]) => {
+    const set = new Set(meses);
+    return rows.reduce(
+      (acc, o) => (o.data_inicio && set.has(o.data_inicio.slice(0, 7)) ? acc + o.faturamento : acc),
+      0,
+    );
+  };
+  const atual = soma(mesesAtuais);
+  const anterior = soma(mesesAnteriores);
+  return {
+    atual,
+    anterior,
+    // Sem base no ano anterior não existe variação — travessão, nunca % inventado.
+    variacao: anterior > 0 ? (atual - anterior) / anterior : null,
+    meses: mesesAnteriores,
+  };
+}
+
+/** Matriz × mês para dimensões 1:1 com a OS (cliente, serviço). */
+function matrizPorChave(
+  rows: OsRow[],
+  chave: (o: OsRow) => { id: string; label: string },
+): MatrizMensal {
+  return montaMatriz(rows.map((o) => ({ ...chave(o), mes: mesDaOs(o), valor: o.faturamento })));
+}
+
+/** Matriz cliente × mês (uma linha por cliente, ordenada pelo total). */
+export function matrizClientePorMes(rows: OsRow[]): MatrizMensal {
+  return matrizPorChave(rows, (o) => ({ id: o.cliente_id, label: o.cliente_nome }));
+}
+
+/**
+ * Matriz serviço × mês. O serviço é o `id_servico` da própria OS (1 por OS),
+ * então aqui não há rateio nenhum: o valor da OS entra inteiro numa linha só.
+ */
+export function matrizServicoPorMes(rows: OsRow[]): MatrizMensal {
+  return matrizPorChave(rows, (o) => (o.servico_id && o.servico_nome
+    ? { id: o.servico_id, label: o.servico_nome }
+    : SEM_SERVICO));
+}
+
+/**
+ * Matriz produto × mês (`os_produtos_contratados`): a receita da OS é dividida
+ * entre os produtos pelas horas contratadas (ou em partes iguais, quando a OS
+ * não tem horas em todos). OS sem produto cadastrado caem em "Sem produto".
+ */
+export function matrizProdutoPorMes(
+  rows: OsRow[],
+  rateioProdutoPorOs: Map<string, FatiaRateio[]>,
+): MatrizMensal {
+  return montaMatriz(
+    rows.flatMap((o) => rateiaOs(o, rateioProdutoPorOs, SEM_PRODUTO)
+      .map((fatia) => ({ ...fatia, mes: mesDaOs(o) }))),
+  );
+}
+
+/**
+ * Matriz centro de custo × mês, com a receita de cada OS já dividida pelo rateio.
+ * Com um centro selecionado no filtro, `rows` já chega com a fatia dele aplicada
+ * (ver `shareCentroCusto`) — aí a matriz tem uma linha só, a do centro escolhido.
+ */
+export function matrizCentroCustoPorMes(
+  rows: OsRow[],
+  rateioPorOs: Map<string, FatiaRateio[]>,
+  centroSelecionado: { id: string; label: string } | null,
+): MatrizMensal {
+  if (centroSelecionado) {
+    return matrizPorChave(rows, () => centroSelecionado);
+  }
+  return montaMatriz(
+    rows.flatMap((o) => rateiaOs(o, rateioPorOs, SEM_CENTRO_CUSTO)
+      .map((fatia) => ({ ...fatia, mes: mesDaOs(o) }))),
+  );
 }
 
 /** Faturamento por mês de INÍCIO da OS (ignora OS sem data_inicio — não dá para
@@ -447,19 +715,6 @@ export function faturamentoMensal(rows: OsRow[]): MesFaturamento[] {
     .sort((a, b) => a.mes.localeCompare(b.mes));
 }
 
-export function top10Clientes(rows: ClienteRow[]): TopCliente[] {
-  return rows
-    .slice()
-    .sort((a, b) => b.faturamento_total - a.faturamento_total)
-    .slice(0, 10)
-    .map((r) => ({
-      cliente_id: r.cliente_id,
-      cliente_nome: r.cliente_nome,
-      tipo_cliente: r.tipo_cliente,
-      categoria: r.categoria,
-      faturamento_total: r.faturamento_total,
-    }));
-}
 
 export function osPorStatus(rows: OsRow[]): StatusContagem[] {
   const map = new Map<string, number>();

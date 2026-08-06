@@ -91,6 +91,34 @@ export interface RawServico {
   nome: string;
 }
 
+/** `distribuicao_receita` (rateio da receita da OS; filtrada por excluido=false na query). */
+export interface RawDistribuicaoReceita {
+  id_ordem_servico: string;
+  id_centro_custo: string;
+  percentual_rateio: number;
+}
+
+/** `centros_custo` (catálogo global). */
+export interface RawCentroCusto {
+  id: string;
+  codigo: string;
+  nome: string;
+}
+
+/** `os_produtos_contratados` (N produtos por OS, com horas contratadas). */
+export interface RawOsProduto {
+  ordem_servico_id: string;
+  produto_segmento_id: string;
+  horas_contratadas: number | null;
+}
+
+/** `produto_segmento` (catálogo global). */
+export interface RawProdutoSegmento {
+  id: string;
+  codigo: string;
+  nome: string;
+}
+
 /** `profiles` (responsável do projeto). */
 export interface RawProfile {
   id: string;
@@ -144,6 +172,7 @@ export interface OsRow {
   categoria: string;
   cluster_id: string;
   cluster_nome: string;
+  servico_id: string | null;
   servico_nome: string | null;
   data_emissao: string | null;
   data_inicio: string | null;
@@ -182,27 +211,53 @@ export interface ProjetoRow {
 
 // ── Saídas de KPI/série para os cards e gráficos ───────────────────────
 
-export interface CategoriaFaturamento {
-  categoria: string;
+export interface TipoFaturamento {
+  tipo: TipoCliente;
   faturamento: number;
 }
 
-export interface ClusterFaturamento {
-  cluster: string;
-  faturamento: number;
+/**
+ * Um pedaço do rateio de uma OS (percentual em 0-100). Serve tanto para centro
+ * de custo (`distribuicao_receita`) quanto para produto (`os_produtos_contratados`).
+ */
+export interface FatiaRateio {
+  id: string;
+  label: string;
+  percentual: number;
+}
+
+/** Uma linha da matriz "dimensão × mês" (centro de custo ou cliente). */
+export interface MatrizLinha {
+  id: string;
+  label: string;
+  /** Faturamento por mês 'YYYY-MM' (+ a chave SEM_DATA para OS sem data de início). */
+  porMes: Record<string, number>;
+  total: number;
+}
+
+/** Faturamento da visão atual × mesmos meses do ano anterior. */
+export interface ComparativoAnual {
+  /** Só OS com data de início nos meses da visão (as sem data ficam de fora). */
+  atual: number;
+  anterior: number;
+  /** `null` quando o ano anterior não tem faturamento — não existe variação. */
+  variacao: number | null;
+  /** Meses comparados ('YYYY-MM' do ano anterior). */
+  meses: string[];
+}
+
+export interface MatrizMensal {
+  /** Meses presentes ('YYYY-MM'), em ordem crescente. */
+  meses: string[];
+  /** Há OS sem data de início (ganham coluna própria). */
+  temSemData: boolean;
+  /** Linhas ordenadas por total (maior → menor). */
+  linhas: MatrizLinha[];
 }
 
 export interface MesFaturamento {
   mes: string; // 'YYYY-MM'
   faturamento: number;
-}
-
-export interface TopCliente {
-  cliente_id: string;
-  cliente_nome: string;
-  tipo_cliente: TipoCliente;
-  categoria: string;
-  faturamento_total: number;
 }
 
 export interface StatusContagem {
