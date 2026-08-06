@@ -42,12 +42,12 @@ export const UsersTab = () => {
   const selectedUser = users?.find((u) => u.id === selectedUserId) ?? null;
 
   // Agrupa usuários por role principal (hierarquia) e ordena alfabeticamente dentro do grupo.
-  const ROLE_ORDER: AppRole[] = ['admin', 'lider', 'sublider', 'team_member', 'timecliente', 'client'];
+  const ROLE_ORDER: AppRole[] = ['admin', 'lider', 'sublider', 'team_member', 'marketing', 'timecliente', 'client'];
 
   // Contagem por role (independente da pesquisa) para mostrar nas abas.
   const roleCounts = useMemo(() => {
     const counts: Record<AppRole | 'all', number> = {
-      all: 0, admin: 0, lider: 0, sublider: 0, team_member: 0, client: 0, timecliente: 0,
+      all: 0, admin: 0, lider: 0, sublider: 0, team_member: 0, client: 0, timecliente: 0, marketing: 0,
     };
     if (!users) return counts;
     counts.all = users.length;
