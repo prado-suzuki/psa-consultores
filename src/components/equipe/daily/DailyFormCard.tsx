@@ -61,9 +61,6 @@ export function DailyFormCard({
   // logado + sprint ativa, e só abre quando a pessoa realmente quer trocar algo.
   const [contextOpen, setContextOpen] = useState(false);
 
-  const insertTask = (field: 'did_yesterday' | 'will_do_today') => (task: DailySprintTask) =>
-    onFormChange({ ...form, [field]: appendTaskReference(form[field], task) });
-
   // Tarefas agrupadas por mãe para o dropdown de bloqueio.
   const blockerGroups = groupDailyTasksByParent(sprintTasks);
 
