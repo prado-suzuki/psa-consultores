@@ -58,7 +58,9 @@ function collectText(node: JSONContent): string {
   // código na linha) quebram o texto em vários nós que precisam colar de volta.
   const children = node.content?.map(collectText).join('') || '';
   // Blocos de nível parágrafo terminam com quebra, para o texto plano ficar legível.
-  if (node.type === 'paragraph' || node.type === 'listItem' || node.type === 'codeBlock') {
+  // listItem não entra: o parágrafo dentro dele já emite a quebra, e contar as duas
+  // deixaria uma linha em branco entre cada item da lista.
+  if (node.type === 'paragraph' || node.type === 'codeBlock') {
     return `${children}\n`;
   }
   return children;

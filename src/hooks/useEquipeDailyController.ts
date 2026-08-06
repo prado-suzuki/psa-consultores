@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -22,6 +22,9 @@ import {
   createDailyFormDraft,
   createDailyLookups,
   filterProcesses,
+  findCurrentActiveSprintId,
+  isDailyTextEmpty,
+  toDailyRichText,
   hydrateDailyForm,
   mergeTeamMembers,
   type DailyEditDraft,
@@ -107,6 +110,21 @@ export function useEquipeDailyController() {
     setLoading(false);
   }, [domain.standupsResult]);
 
+  // Sprint sugerida: a ativa mais atual, uma única vez e só quando ainda não existe
+  // daily de hoje (um daily já gravado manda no valor, inclusive quando é "sem sprint").
+  const sprintAutofillDoneRef = useRef(false);
+  useEffect(() => {
+    if (sprintAutofillDoneRef.current || !domain.standupsResult) return;
+    if (domain.standupsResult.myStandup) {
+      sprintAutofillDoneRef.current = true;
+      return;
+    }
+    const activeSprintId = findCurrentActiveSprintId(sprints);
+    if (!activeSprintId) return;
+    sprintAutofillDoneRef.current = true;
+    setForm((current) => (current.sprint_id ? current : { ...current, sprint_id: activeSprintId }));
+  }, [domain.standupsResult, sprints]);
+
   const lookups = useMemo(() => createDailyLookups({
     members: teamMembers,
     sprints,
@@ -142,6 +160,15 @@ export function useEquipeDailyController() {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     if (!user || !selectedUserId) return;
+    // O editor rico não tem validação nativa de campo obrigatório (o textarea tinha).
+    if (isDailyTextEmpty(form.did_yesterday) || isDailyTextEmpty(form.will_do_today)) {
+      toast({
+        title: 'Preencha ontem e hoje',
+        description: 'Descreva o que você fez ontem e o que vai fazer hoje.',
+        variant: 'destructive',
+      });
+      return;
+    }
     setSubmitting(true);
     try {
       if (myStandup && selectedUserId === user.id) {
@@ -184,11 +211,11 @@ export function useEquipeDailyController() {
     setCopyingYesterday(true);
     try {
       const data = await domain.copyFromYesterday.mutateAsync({ copyUserId: user.id, copyDate: today });
-      if (!data || !data.will_do_today?.trim()) {
+      if (!data || isDailyTextEmpty(data.will_do_today)) {
         toast({ title: 'Nada para copiar', description: 'Não encontramos um daily anterior com plano preenchido.', variant: 'destructive' });
         return;
       }
-      setForm((current) => ({ ...current, did_yesterday: data.will_do_today || '' }));
+      setForm((current) => ({ ...current, did_yesterday: toDailyRichText(data.will_do_today) }));
       const dateLabel = new Date(`${data.date}T12:00:00`).toLocaleDateString('pt-BR');
       toast({ title: 'Plano trazido', description: `Copiado do daily de ${dateLabel} (sobrescreve o que estava em "ontem").` });
     } catch (error) {

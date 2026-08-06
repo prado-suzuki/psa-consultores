@@ -148,7 +148,8 @@ describe('useDomainEquipeDaily — queries', () => {
     await (queryRegistrations()[2].queryFn as () => Promise<unknown>)();
     await (queryRegistrations()[3].queryFn as () => Promise<unknown>)();
 
-    expect(callsFor('sprints', 'select')[0].args).toEqual(['id, name, project_id']);
+    // status/start_date alimentam a sugestão da sprint ativa mais atual.
+    expect(callsFor('sprints', 'select')[0].args).toEqual(['id, name, project_id, status, start_date']);
     expect(callsFor('sprints', 'order')[0].args).toEqual(['start_date', { ascending: false }]);
     expect(callsFor('projects', 'select')[0].args).toEqual(['id, name, cluster_id']);
     expect(callsFor('projects', 'order')[0].args).toEqual(['name', { ascending: true }]);

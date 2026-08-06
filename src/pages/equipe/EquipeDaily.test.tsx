@@ -43,6 +43,28 @@ vi.mock('xlsx', () => ({
   },
   writeFile: mocks.writeFile,
 }));
+// O editor rico (TipTap) é trocado por um textarea: aqui interessa a fiação da tela,
+// e o formato de gravação do rich text é coberto nos testes de src/lib/equipeDaily.
+vi.mock('@/components/equipe/TarefaRichTextEditor', () => ({
+  TarefaRichTextEditor: ({
+    value,
+    onChange,
+    placeholder,
+    ariaLabel,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    ariaLabel?: string;
+  }) => (
+    <textarea
+      aria-label={ariaLabel}
+      placeholder={placeholder}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  ),
+}));
 vi.mock('@/components/equipe/EquipeLayout', () => ({
   EquipeLayout: ({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) => (
     <main>
@@ -54,6 +76,7 @@ vi.mock('@/components/equipe/EquipeLayout', () => ({
 }));
 
 import EquipeDaily from '@/pages/equipe/EquipeDaily';
+import { toDailyRichText } from '@/lib/equipeDaily';
 
 const members = [
   { id: 'auth-user', first_name: 'Ana', last_name: 'Silva' },
@@ -127,6 +150,11 @@ async function chooseSelect(user: ReturnType<typeof userEvent.setup>, index: num
   await user.click(await screen.findByRole('option', { name: option }));
 }
 
+/** Quem/sprint/projeto/processo ficam recolhidos: abre o painel antes de trocar. */
+async function openContext(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: /Ajustar contexto/ }));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.useAuth.mockReturnValue({ user: { id: 'auth-user' } });
@@ -155,13 +183,55 @@ describe('EquipeDaily — caracterização', () => {
 
     expect(latestDomainArgs()).toMatchObject({ userId: undefined, membersLoaded: true });
     expect(screen.getByRole('button', { name: 'Registrar Daily' })).toBeDisabled();
+    expect(screen.getByText('Sem membro selecionado')).toBeInTheDocument();
 
     mocks.useAuth.mockReturnValue({ user: { id: 'auth-user' } });
     rerender(<EquipeDaily />);
 
-    await waitFor(() => expect(screen.getAllByRole('combobox')[0]).toHaveTextContent('Ana Silva (você)'));
+    // O membro sai do dropdown e vira o resumo do contexto, já com o usuário logado.
+    await waitFor(() => expect(screen.getByText('Ana Silva (você)')).toBeInTheDocument());
     expect(latestDomainArgs().userId).toBe('auth-user');
     expect(screen.getByRole('button', { name: 'Registrar Daily' })).toBeEnabled();
+  });
+
+  it('sugere a sprint ativa mais atual sem abrir o painel de contexto', async () => {
+    const user = userEvent.setup();
+    setResults({
+      sprintsResult: {
+        data: [
+          { id: 'sprint-1', name: 'Sprint Julho', status: 'completed', start_date: '2026-07-01' },
+          { id: 'sprint-2', name: 'Sprint Agosto', status: 'active', start_date: '2026-08-01' },
+        ] as unknown as typeof sprints,
+      },
+    });
+    renderAfterAuthHydration();
+
+    await waitFor(() => expect(screen.getByText('Sprint Agosto')).toBeInTheDocument());
+    await user.type(screen.getByPlaceholderText('Descreva suas entregas de ontem...'), 'Ontem');
+    await user.type(screen.getByPlaceholderText('Suas tarefas para hoje...'), 'Hoje');
+    await user.click(screen.getByRole('button', { name: 'Registrar Daily' }));
+
+    expect(mocks.insert).toHaveBeenCalledWith(expect.objectContaining({
+      user_id: 'auth-user',
+      sprint_id: 'sprint-2',
+    }));
+  });
+
+  it('não sobrescreve a sprint de um daily já registrado com a sprint ativa', async () => {
+    setResults({
+      sprintsResult: {
+        data: [
+          { id: 'sprint-1', name: 'Sprint Julho', status: 'completed', start_date: '2026-07-01' },
+          { id: 'sprint-2', name: 'Sprint Agosto', status: 'active', start_date: '2026-08-01' },
+        ] as unknown as typeof sprints,
+      },
+      standupsResult: { myStandup: ownStandup, standups: [ownStandup] },
+    });
+    renderAfterAuthHydration();
+
+    expect(await screen.findByRole('button', { name: 'Atualizar Daily' })).toBeInTheDocument();
+    expect(screen.getAllByText('Sprint Julho').length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText('Sprint Agosto')).not.toBeInTheDocument();
   });
 
   it('deduplica perfis adicionais e preserva os textos do formulário e do estado vazio', async () => {
@@ -174,15 +244,18 @@ describe('EquipeDaily — caracterização', () => {
     });
     render(<EquipeDaily />);
 
+    await openContext(user);
     await user.click(screen.getAllByRole('combobox')[0]);
     expect(screen.getAllByRole('option', { name: 'Ana Silva (você)' })).toHaveLength(1);
     expect(screen.getAllByRole('option', { name: 'Bruno Souza' })).toHaveLength(1);
     await user.keyboard('{Escape}');
     expect(screen.getByRole('heading', { name: 'Daily Standup' })).toBeInTheDocument();
+    // A dica de [ROTINA] saiu da tela.
+    expect(screen.queryByText(/\[ROTINA\]/)).not.toBeInTheDocument();
     expect(screen.getByText('Daily (15 min)')).toBeInTheDocument();
     expect(screen.getByText('Histórico de Dailys')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Descreva suas entregas de ontem...')).toBeRequired();
-    expect(screen.getByPlaceholderText('Suas tarefas para hoje...')).toBeRequired();
+    expect(screen.getByPlaceholderText('Descreva suas entregas de ontem...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Suas tarefas para hoje...')).toBeInTheDocument();
     expect(screen.getByText('Nenhum daily encontrado para os filtros selecionados')).toBeInTheDocument();
     expect(screen.getByText('Tente alterar a data ou os filtros')).toBeInTheDocument();
   });
@@ -193,6 +266,7 @@ describe('EquipeDaily — caracterização', () => {
     renderAfterAuthHydration();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Registrar Daily' })).toBeEnabled());
 
+    await openContext(user);
     await chooseSelect(user, 0, 'Bruno Souza');
     await user.click(screen.getByRole('button', { name: 'Trazer plano de ontem' }));
 
@@ -212,7 +286,9 @@ describe('EquipeDaily — caracterização', () => {
     renderAfterAuthHydration();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Registrar Daily' })).toBeEnabled());
 
+    await openContext(user);
     await chooseSelect(user, 0, 'Bruno Souza');
+    expect(screen.getByText('Você está registrando a daily de outra pessoa.')).toBeInTheDocument();
     await user.type(screen.getByPlaceholderText('Descreva suas entregas de ontem...'), 'Fechei a análise');
     await user.type(screen.getByPlaceholderText('Suas tarefas para hoje...'), 'Enviar parecer');
     await user.click(screen.getByRole('button', { name: 'Registrar Daily' }));
@@ -234,6 +310,29 @@ describe('EquipeDaily — caracterização', () => {
     });
   });
 
+  it('barra o envio quando ontem ou hoje estão vazios (o editor rico não tem required nativo)', async () => {
+    const user = userEvent.setup();
+    renderAfterAuthHydration();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Registrar Daily' })).toBeEnabled());
+
+    await user.click(screen.getByRole('button', { name: 'Registrar Daily' }));
+    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith({
+      title: 'Preencha ontem e hoje',
+      description: 'Descreva o que você fez ontem e o que vai fazer hoje.',
+      variant: 'destructive',
+    });
+
+    // Só um dos dois preenchido também não passa.
+    await user.type(screen.getByPlaceholderText('Descreva suas entregas de ontem...'), 'Fechei a análise');
+    await user.click(screen.getByRole('button', { name: 'Registrar Daily' }));
+    expect(mocks.insert).not.toHaveBeenCalled();
+
+    await user.type(screen.getByPlaceholderText('Suas tarefas para hoje...'), 'Enviar parecer');
+    await user.click(screen.getByRole('button', { name: 'Registrar Daily' }));
+    expect(mocks.insert).toHaveBeenCalledTimes(1);
+  });
+
   it('hidrata meu daily, atualiza com o payload completo e faz refetch manual', async () => {
     const user = userEvent.setup();
     setResults({ standupsResult: { myStandup: ownStandup, standups: [ownStandup] } });
@@ -246,6 +345,8 @@ describe('EquipeDaily — caracterização', () => {
     await user.type(yesterday, 'Entrega atualizada');
     await user.click(screen.getByRole('button', { name: 'Atualizar Daily' }));
 
+    // Com o contexto recolhido o processo hidratado sobrevive ao update: no layout
+    // antigo os Selects montavam junto da hidratação e zeravam process_id.
     expect(mocks.update).toHaveBeenCalledWith({
       standupId: 'daily-own',
       payload: {
@@ -254,7 +355,7 @@ describe('EquipeDaily — caracterização', () => {
         blockers: 'Acesso pendente',
         sprint_id: 'sprint-1',
         project_id: 'project-1',
-        process_id: null,
+        process_id: 'process-1',
       },
     });
     await waitFor(() => expect(mocks.refetchStandups).toHaveBeenCalledTimes(1));
@@ -263,15 +364,16 @@ describe('EquipeDaily — caracterização', () => {
   it('aplica filtros no hook, persiste somente pessoa e sprint e limpa todos os filtros', async () => {
     const user = userEvent.setup();
     render(<EquipeDaily />);
-    // 6 combobox originais + 1 novo (filtro de Cluster no histórico).
-    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(7));
+    // Com o contexto do formulário recolhido, sobram os 3 filtros do histórico
+    // (Pessoa, Sprint, Cluster).
+    await waitFor(() => expect(screen.getAllByRole('combobox')).toHaveLength(3));
 
     const dates = screen.getAllByDisplayValue('')
       .filter((element) => element.getAttribute('type') === 'date');
     await user.type(dates[0], '2026-07-01');
     await user.type(dates[1], '2026-07-31');
-    await chooseSelect(user, 4, 'Bruno Souza');
-    await chooseSelect(user, 5, 'Sprint Julho');
+    await chooseSelect(user, 0, 'Bruno Souza');
+    await chooseSelect(user, 1, 'Sprint Julho');
 
     expect(latestDomainArgs().filters).toEqual({
       startDate: '2026-07-01',
@@ -326,10 +428,12 @@ describe('EquipeDaily — caracterização', () => {
     await user.clear(blockers);
     await user.click(within(dialog).getByRole('button', { name: 'Salvar Alterações' }));
 
+    // Abrir um daily antigo no editor rico converte o markdown em nós de verdade
+    // (o negrito vira marca), então salvar regrava o campo já no formato novo.
     expect(mocks.update).toHaveBeenCalledWith({
       standupId: 'daily-own',
       payload: {
-        did_yesterday: '**Entrega concluída**',
+        did_yesterday: toDailyRichText('**Entrega concluída**'),
         will_do_today: 'Revisar relatório',
         blockers: null,
       },
