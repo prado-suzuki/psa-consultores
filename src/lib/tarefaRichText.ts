@@ -54,6 +54,7 @@ export function serializeTarefaRichText(doc: JSONContent): string {
 
 function collectText(node: JSONContent): string {
   if (node.type === 'text') return node.text || '';
+  if (node.type === 'dailyTaskReference') return `[${String(node.attrs?.code ?? '')}]`;
   // Sem separador: os blocos já terminam com quebra, e marcas inline (negrito,
   // código na linha) quebram o texto em vários nós que precisam colar de volta.
   const children = node.content?.map(collectText).join('') || '';

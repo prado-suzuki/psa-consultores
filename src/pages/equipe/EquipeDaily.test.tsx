@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   insert: vi.fn(),
   remove: vi.fn(),
   copy: vi.fn(),
+  updateTaskStatus: vi.fn(),
   toast: vi.fn(),
   jsonToSheet: vi.fn(),
   bookNew: vi.fn(),
@@ -33,7 +34,8 @@ vi.mock('@/hooks/useClusters', () => ({
   useClusters: () => ({ data: [{ id: 'cluster-1', nome: 'OSG', ativo: true }] }),
 }));
 vi.mock('@/hooks/useDailySprintTasks', () => ({
-  useDailySprintTasks: () => ({ data: [] }),
+  useDailySprintTasks: () => ({ data: [], isLoading: false }),
+  useUpdateDailyTaskStatus: () => ({ mutateAsync: mocks.updateTaskStatus, isPending: false }),
 }));
 vi.mock('xlsx', () => ({
   utils: {

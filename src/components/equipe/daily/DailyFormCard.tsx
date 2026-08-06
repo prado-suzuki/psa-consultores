@@ -1,5 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react';
-import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Clock, Copy, FolderOpen, Send, SlidersHorizontal, Target, Users, Zap } from 'lucide-react';
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Clock, Copy, FolderOpen, ListChecks, Send, SlidersHorizontal, Target, Users, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,10 +16,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { DailyTaskPicker } from '@/components/equipe/daily/DailyTaskPicker';
 import type { DailySprintTask } from '@/hooks/useDailySprintTasks';
 import type { Process, Project, Sprint, TeamMember } from '@/hooks/useDomainEquipeDaily';
-import { appendTaskReference, describeDailyMember, groupDailyTasksByParent, type DailyFormDraft } from '@/lib/equipeDaily';
+import { describeDailyMember, groupDailyTasksByParent, type DailyFormDraft } from '@/lib/equipeDaily';
 
 interface DailyFormCardProps {
   authenticatedUserId?: string;
@@ -37,6 +36,7 @@ interface DailyFormCardProps {
   copyingYesterday: boolean;
   onSubmit: (event: FormEvent) => void;
   onCopyFromYesterday: () => void;
+  onOpenQuickUpdate: () => void;
 }
 
 export function DailyFormCard({
@@ -55,13 +55,11 @@ export function DailyFormCard({
   copyingYesterday,
   onSubmit,
   onCopyFromYesterday,
+  onOpenQuickUpdate,
 }: DailyFormCardProps) {
   // Contexto (quem/sprint/projeto/processo) fica recolhido: vem preenchido pelo usuário
   // logado + sprint ativa, e só abre quando a pessoa realmente quer trocar algo.
   const [contextOpen, setContextOpen] = useState(false);
-
-  const insertTask = (field: 'did_yesterday' | 'will_do_today') => (task: DailySprintTask) =>
-    onFormChange({ ...form, [field]: appendTaskReference(form[field], task) });
 
   // Tarefas agrupadas por mãe para o dropdown de bloqueio.
   const blockerGroups = groupDailyTasksByParent(sprintTasks);
@@ -76,10 +74,10 @@ export function DailyFormCard({
   return (
     <Card className="bg-white border-gray-200">
       <CardHeader>
-        <CardTitle className="text-gray-900 flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-gray-900">
           <Clock className="h-5 w-5 text-gray-500" />
           Daily (15 min)
-          {registered && <Badge className="bg-green-100 text-green-700 ml-2">Registrado</Badge>}
+          {registered && <Badge className="ml-2 bg-green-100 text-green-700">Registrado</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -184,26 +182,47 @@ export function DailyFormCard({
                 <Copy className="h-3.5 w-3.5 mr-1.5" />{copyingYesterday ? 'Buscando...' : 'Trazer plano de ontem'}
               </Button>
             </div>
-            {sprintTasks.length > 0 && <DailyTaskPicker tasks={sprintTasks} onPick={insertTask('did_yesterday')} />}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onOpenQuickUpdate}
+                className="group h-8 border-teal-300 bg-teal-50 text-teal-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-400 hover:bg-teal-100 hover:text-teal-800 hover:shadow-md"
+              >
+                <span className="relative mr-1.5 flex h-3.5 w-3.5 items-center justify-center">
+                  <span className="absolute h-2 w-2 rounded-full bg-teal-400 opacity-60 motion-safe:animate-ping" aria-hidden />
+                  <ListChecks className="relative h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110" />
+                </span>
+                Atualizar Tarefas
+              </Button>
+            </div>
             <TarefaRichTextEditor
               value={form.did_yesterday}
               onChange={(did_yesterday) => onFormChange({ ...form, did_yesterday })}
               placeholder="Descreva suas entregas de ontem..."
               ariaLabel="O que fiz ontem?"
               minHeight="min-h-[100px]"
-              className="bg-white"
+              className="border-slate-300 bg-white shadow-md shadow-slate-200/70 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-slate-200/70 focus-within:border-teal-500 focus-within:ring-teal-500"
+              taskReferences={sprintTasks.map((task) => ({
+                ...task,
+                href: `/equipe/sprints/${form.sprint_id}?taskId=${task.id}`,
+              }))}
             />
           </div>
           <div className="space-y-2">
             <Label className="text-gray-700 flex items-center gap-2"><Clock className="h-4 w-4 text-gray-500" />O que vou fazer hoje?</Label>
-            {sprintTasks.length > 0 && <DailyTaskPicker tasks={sprintTasks} onPick={insertTask('will_do_today')} />}
             <TarefaRichTextEditor
               value={form.will_do_today}
               onChange={(will_do_today) => onFormChange({ ...form, will_do_today })}
               placeholder="Suas tarefas para hoje..."
               ariaLabel="O que vou fazer hoje?"
               minHeight="min-h-[100px]"
-              className="bg-white"
+              className="border-slate-300 bg-white shadow-md shadow-slate-200/70 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-slate-200/70 focus-within:border-teal-500 focus-within:ring-teal-500"
+              taskReferences={sprintTasks.map((task) => ({
+                ...task,
+                href: `/equipe/sprints/${form.sprint_id}?taskId=${task.id}`,
+              }))}
             />
           </div>
           <div className="space-y-2">

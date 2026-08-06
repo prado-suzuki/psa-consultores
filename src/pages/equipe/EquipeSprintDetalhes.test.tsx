@@ -325,7 +325,7 @@ function pageData(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function renderPage() {
+function renderPage(initialEntry = '/equipe/sprints/sprint-1') {
   // O bloco de anexos do modal de edição usa React Query, então a página real
   // precisa do provider em volta (na aplicação ele vem do App).
   const client = new QueryClient({
@@ -333,7 +333,7 @@ function renderPage() {
   });
   return render(
     <QueryClientProvider client={client}>
-      <MemoryRouter initialEntries={['/equipe/sprints/sprint-1']}>
+      <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/equipe/sprints/:id" element={<EquipeSprintDetalhes />} />
         </Routes>
@@ -669,6 +669,14 @@ describe('useDomainEquipeSprintDetalhes: contratos na fronteira', () => {
 });
 
 describe('EquipeSprintDetalhes: UI pública', () => {
+  it('abre diretamente a tarefa indicada pelo deep-link da Daily', async () => {
+    boundary.useDomain.mockReturnValue(pageData());
+    renderPage('/equipe/sprints/sprint-1?taskId=late');
+
+    expect(await screen.findByRole('heading', { name: 'Editar Entregável' })).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Entrega Atrasada')).toBeInTheDocument();
+  });
+
   it('expõe estados de loading, erro/not-found e navegação de retorno', async () => {
     boundary.useDomain.mockReturnValue(pageData({ sprint: null, isLoading: true }));
     const view = renderPage();

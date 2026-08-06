@@ -34,6 +34,29 @@ export interface DailyTaskChip {
   task_code: string | null;
 }
 
+interface SearchableDailyTask {
+  title: string;
+  task_code: string | null;
+}
+
+export function filterDailyTasksBySearch<T extends SearchableDailyTask>(tasks: T[], search: string): T[] {
+  const term = normalizeDailyTaskSearch(search);
+  if (!term) return tasks;
+  return tasks.filter((task) =>
+    normalizeDailyTaskSearch(`${task.task_code ?? ''} ${task.title}`).includes(term),
+  );
+}
+
+export function parseDailyActualHours(value: string): number | null {
+  if (!value.trim()) return null;
+  const hours = Number(value.replace(',', '.'));
+  return Number.isFinite(hours) && hours >= 0 ? hours : null;
+}
+
+function normalizeDailyTaskSearch(value: string): string {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('pt-BR');
+}
+
 export interface DailyEditDraft {
   did_yesterday: string;
   will_do_today: string;
