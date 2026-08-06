@@ -153,49 +153,25 @@ export function useDomainSolicitacao(clienteId: string | null) {
   };
 
   /**
-   * O cabeçalho onde a linha nova vai entrar — criando um rascunho se ainda não
-   * houver.
+   * O cabeçalho aberto em que a linha nova vai entrar.
    *
-   * O `ordem_servico_id` fica nulo aqui de propósito: cabeçalho criado por este
-   * caminho nasceu de documento montado à mão, não de uma OS. Quem amarra o
-   * pedido à OS é a RPC (`gerarDaOs`).
+   * NÃO cria. Antes criava: incluir um documento num cliente sem solicitação
+   * abria um rascunho com `solicitacao.ordem_servico_id` nulo, porque o pedido
+   * montado à mão não vinha de OS nenhuma. Era esse caminho que produzia
+   * solicitação sem origem — e depois ninguém sabia de onde a lista tinha vindo,
+   * nem o rail sabia quais produtos recortar.
+   *
+   * Montar à mão saiu: a solicitação nasce dos produtos da OS, pela RPC, e só por
+   * ela. Incluir e dispensar item continuam livres, mas sobre um cabeçalho que já
+   * existe. Sem ele, isto recusa em vez de improvisar um.
    */
-  const garantirSolicitacao = async (): Promise<string> => {
+  const solicitacaoAberta = async (): Promise<string> => {
     const atual = solicitacaoQuery.data ?? await buscarSolicitacaoDoCliente(clienteId as string);
-    // Encerrada não recebe item novo: o ciclo dela acabou. Nesse caso cai no
-    // insert abaixo e nasce um rascunho, que o índice único parcial já permite.
     if (atual && atual.status !== 'encerrada') return atual.id;
 
-    const { data, error } = await supabase
-      .from('solicitacao')
-      .insert({ cliente_id: clienteId as string, status: 'rascunho' })
-      .select('id')
-      .single();
-
-    if (error) {
-      // Duas abas do mesmo cliente criando o rascunho ao mesmo tempo: o índice
-      // único parcial recusa a segunda. A que perdeu adota a que ganhou.
-      if (codigoDoErro(error) === UNIQUE_VIOLATION) {
-        const criadaPorOutro = await buscarSolicitacaoDoCliente(clienteId as string);
-        if (criadaPorOutro) return criadaPorOutro.id;
-      }
-      throw error;
-    }
-
-    await logAction({
-      area: 'osg',
-      entity_type: 'solicitacao',
-      entity_id: data.id,
-      entity_name: 'Solicitação de documentos',
-      action: 'created',
-      changed_fields: computeFieldDiff(
-        null,
-        { cliente_id: clienteId, status: 'rascunho' },
-        ['cliente_id', 'status'],
-      ),
-    });
-
-    return data.id;
+    throw new Error(atual
+      ? 'Esta solicitação está encerrada e não recebe documento novo. Abra uma nova pelo botão no topo.'
+      : 'Gere a lista a partir da OS antes de incluir documentos — a solicitação nasce dos produtos da OS.');
   };
 
   /** A linha gravada de um item — a base do diff da auditoria. */
@@ -227,6 +203,9 @@ export function useDomainSolicitacao(clienteId: string | null) {
    *
    * A RPC é idempotente e nunca apaga: rodar de novo só acrescenta o que falta,
    * então item manual e item dispensado sobrevivem.
+   *
+   * Depois dela, grava a OS no cabeçalho se ele ainda não tiver uma — ver o
+   * comentário no corpo.
    */
   const gerarDaOs = useMutation({
     mutationFn: async (ordemServicoId: string) => {
@@ -240,9 +219,32 @@ export function useDomainSolicitacao(clienteId: string | null) {
       if (error) throw error;
 
       const criados = data ?? 0;
-      const depois = await buscarSolicitacaoDoCliente(clienteId);
+      let depois = await buscarSolicitacaoDoCliente(clienteId);
       if (!depois) {
         throw new Error('A geração terminou sem deixar solicitação ativa para o cliente.');
+      }
+
+      // Amarra o pedido à OS quando o cabeçalho nasceu sem uma.
+      //
+      // A RPC grava `solicitacao.ordem_servico_id` só quando ELA cria o
+      // cabeçalho. Quem o cria antes é "Abrir nova solicitação", depois de um
+      // encerramento: o rascunho nasce vazio e sem OS, e a coluna ficaria nula
+      // para sempre mesmo com 60 itens vindos da OS. As solicitações antigas,
+      // montadas à mão quando isso era permitido, também passam por aqui na
+      // primeira geração.
+      //
+      // `.is('ordem_servico_id', null)` no lugar de sobrescrever: com duas OS no
+      // mesmo cliente, a primeira gerada fica registrada. Sobrescrever faria a
+      // coluna significar "a OS da última geração", que é outro dado com o mesmo
+      // nome.
+      if (!depois.ordemServicoId) {
+        const { error: erroVinculo } = await supabase
+          .from('solicitacao')
+          .update({ ordem_servico_id: ordemServicoId })
+          .eq('id', depois.id)
+          .is('ordem_servico_id', null);
+        if (erroVinculo) throw erroVinculo;
+        depois = { ...depois, ordemServicoId };
       }
 
       await logAction({
@@ -308,7 +310,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
         return reativarExistente(jaNaSolicitacao, estrutura, linhaDoItem(jaNaSolicitacao.id));
       }
 
-      const solicitacaoId = await garantirSolicitacao();
+      const solicitacaoId = await solicitacaoAberta();
       // `estrutura` leva a gaveta e o grão que o analista trocou no modal; o
       // texto continua vindo do catálogo por herança.
       const payload = montarItemDeCatalogo(solicitacaoId, catalogo, estrutura);
@@ -358,7 +360,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
         );
       }
 
-      const solicitacaoId = await garantirSolicitacao();
+      const solicitacaoId = await solicitacaoAberta();
       const payload = montarItemManual(solicitacaoId, entrada);
 
       const { data, error } = await supabase

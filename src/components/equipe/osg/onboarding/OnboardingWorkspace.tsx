@@ -2,12 +2,12 @@ import { useMemo, useState } from 'react';
 import { CheckCircle2, EyeOff, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { GRUPOS_DOCUMENTO } from '@/lib/agrupadorDocumentos';
 import type { OnboardingDocument } from '@/lib/onboarding';
 import type { OnboardingProdutoContratado } from '@/hooks/useOnboarding';
 import {
   contarPorProduto,
   filtrarPorProduto,
-  FILTRO_MANUAIS,
   FILTRO_TODOS,
   type CatalogoDocumento,
   type EdicaoItem,
@@ -98,6 +98,13 @@ export function OnboardingWorkspace({
 }: OnboardingWorkspaceProps) {
   const [editor, setEditor] = useState<EditorState>({ open: false, mode: 'add' });
   const [filtro, setFiltro] = useState<string>(FILTRO_TODOS);
+  /**
+   * A gaveta expandida no accordion — vazia quando nenhuma está.
+   *
+   * Vive aqui, e não dentro do accordion, porque o "Adicionar documento" do
+   * cabeçalho depende dela: com uma gaveta aberta, o modal nasce nela.
+   */
+  const [grupoAberto, setGrupoAberto] = useState('');
 
   const porId = useMemo(() => new Map(itens.map((item) => [item.id, item])), [itens]);
   const idsJaPedidos = useMemo(
@@ -115,8 +122,11 @@ export function OnboardingWorkspace({
     () => contarPorProduto(itens, produtosPorDocumento),
     [itens, produtosPorDocumento],
   );
-  const manuais = useMemo(
-    () => itens.filter((item) => !item.doCatalogo).length,
+  // Quantos vêm do catálogo. É contra este número que o rodapé do rail compara a
+  // soma dos contadores por produto — item criado à mão não pertence a produto e
+  // por isso não entra na conta.
+  const doCatalogo = useMemo(
+    () => itens.filter((item) => item.doCatalogo).length,
     [itens],
   );
 
@@ -127,7 +137,7 @@ export function OnboardingWorkspace({
    * distinção que dispensa coluna de produto na tabela.
    */
   const documentosDoProduto = useMemo(() => {
-    if (filtro === FILTRO_TODOS || filtro === FILTRO_MANUAIS) return undefined;
+    if (filtro === FILTRO_TODOS) return undefined;
     const ids = new Set<string>();
     produtosPorDocumento.forEach((produtos, documentoId) => {
       if (produtos.includes(filtro)) ids.add(documentoId);
@@ -135,7 +145,15 @@ export function OnboardingWorkspace({
     return ids;
   }, [filtro, produtosPorDocumento]);
 
-  const comRail = produtosContratados.length > 0 || manuais > 0;
+  const comRail = produtosContratados.length > 0;
+
+  /**
+   * A gaveta que o modal de adicionar recebe.
+   *
+   * O `find` é o que estreita `string` para `GrupoDocumentoKey` sem cast: nenhuma
+   * gaveta aberta devolve `undefined`, e o modal cai no padrão dele.
+   */
+  const grupoDoModal = GRUPOS_DOCUMENTO.find((grupo) => grupo.key === grupoAberto)?.key;
 
   const salvarEditor = (value: DocumentEditorValue) => {
     const estrutura = { grupo: value.grupo, granularidade: value.granularidade };
@@ -181,7 +199,7 @@ export function OnboardingWorkspace({
             produtos={produtosContratados}
             selecionado={filtro}
             total={itens.length}
-            manuais={manuais}
+            doCatalogo={doCatalogo}
             contagemPorProduto={contagemPorProduto}
             onSelecionar={setFiltro}
           />
@@ -253,10 +271,14 @@ export function OnboardingWorkspace({
           </span>
         </p>
 
+        {/* Encerrada e vazia manda abrir outra, não gerar: o botão do topo ali é
+            "Abrir nova solicitação", e mandar gerar apontaria para um botão que
+            não existe naquele estado. */}
         {itens.length === 0 && (
           <p className="mb-2 rounded-lg bg-osg-50/60 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
-            A solicitação está vazia. Gere a lista a partir da OS pelo botão no topo, ou
-            inclua documentos um a um.
+            {somenteLeitura
+              ? 'Esta solicitação foi encerrada sem nenhum documento. Para pedir documentos, abra uma nova solicitação pelo botão no topo.'
+              : 'A solicitação está vazia. Gere a lista a partir da OS pelo botão no topo, ou inclua documentos um a um.'}
           </p>
         )}
 
@@ -264,6 +286,8 @@ export function OnboardingWorkspace({
             documents={exibidos}
             catalogDocuments={catalogDocuments}
             somenteLeitura={somenteLeitura}
+            grupoAberto={grupoAberto}
+            onGrupoAberto={setGrupoAberto}
             onEdit={abrirEdicao}
             onRemove={(documento) => onDispensar(documento.id)}
             onAddOptional={incluirOpcional}
@@ -279,6 +303,7 @@ export function OnboardingWorkspace({
         catalogo={catalogo}
         idsJaPedidos={idsJaPedidos}
         documentosDoProduto={documentosDoProduto}
+        grupoInicial={grupoDoModal}
         onSave={salvarEditor}
       />
     </>

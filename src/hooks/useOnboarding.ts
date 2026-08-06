@@ -23,6 +23,14 @@ import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategor
  * em `estrutura_areas.page_categories`. Assim não há uuid no código nem
  * comparação com nome editável.
  *
+ * UMA OS POR SOLICITAÇÃO
+ *
+ * As OS vêm em lista, cada uma com os seus produtos e a sua contagem de
+ * documentos, porque a geração passou a ser de UMA OS por vez: havendo mais de
+ * uma, a tela pergunta qual. Antes ela somava todas em silêncio, e o consultor
+ * não tinha como saber de onde cada documento veio — nem a solicitação, que
+ * guarda um `solicitacao.ordem_servico_id` só.
+ *
  * O QUE NÃO É USADO, E POR QUÊ
  *
  * - Lista de códigos de produto escrita à mão: existia aqui e quebrou em
@@ -45,23 +53,34 @@ export interface OnboardingProdutoContratado {
   name: string;
 }
 
+/** Uma OS da OSG do cliente, com o que ela pede. */
+export interface OnboardingOrdemServico {
+  id: string;
+  numeroOs: string;
+  produtos: OnboardingProdutoContratado[];
+  /** Documentos distintos e ativos que os produtos desta OS pedem. */
+  documentos: number;
+}
+
 export interface OnboardingCatalogData {
+  /**
+   * As OS da OSG do cliente. Zero significa "nenhum produto OSG contratado";
+   * mais de uma faz a tela perguntar de qual gerar.
+   */
+  ordensServico: OnboardingOrdemServico[];
+  /**
+   * Todos os produtos das OS da OSG, sem repetir. É o que o rail mostra quando a
+   * solicitação não aponta para uma OS — pedido montado à mão, por exemplo.
+   */
   produtosContratados: OnboardingProdutoContratado[];
   /**
-   * Documento do catálogo → produtos da OS que o pedem.
+   * Documento do catálogo → produtos que o pedem.
    *
    * É o que permite olhar a lista pela lente de um produto sem gravar produto
    * nenhum na solicitação. Vem de `produto_documento_tipo`, a mesma tabela que a
    * RPC usa para gerar a lista — então a tela e a geração contam a mesma coisa.
    */
   produtosPorDocumento: ProdutosPorDocumento;
-  /**
-   * Ids das OS do cliente cuja Empresa/Faturamento é a da OSG.
-   *
-   * Só os ids: o número da OS não aparece em nenhum lugar da tela, e carregar um
-   * campo que ninguém lê é dívida esperando para envelhecer.
-   */
-  ordensServicoIds: string[];
   /** Catálogo inteiro em forma de EXIBIÇÃO, para a lista de opcionais. */
   catalogDocuments: OnboardingDocument[];
   /**
@@ -73,9 +92,9 @@ export interface OnboardingCatalogData {
 }
 
 const VAZIO: OnboardingCatalogData = {
+  ordensServico: [],
   produtosContratados: [],
   produtosPorDocumento: new Map(),
-  ordensServicoIds: [],
   catalogDocuments: [],
   catalogoPorId: new Map(),
 };
@@ -95,10 +114,11 @@ export function useOnboarding(clienteId: string | null) {
       // A OS da OSG: Empresa/Faturamento aponta para o cluster da OSG.
       const { data: orderRows, error: orderError } = await supabase
         .from('ordem_servico')
-        .select('id')
+        .select('id, numero_os')
         .eq('id_cliente', clienteId)
         .eq('cluster_id', clusterOsg)
-        .eq('excluido', false);
+        .eq('excluido', false)
+        .order('numero_os');
       if (orderError) throw orderError;
 
       const ordensServicoIds = (orderRows ?? []).map((order) => order.id);
@@ -106,7 +126,7 @@ export function useOnboarding(clienteId: string | null) {
       const { data: contractedRows, error: contractedError } = ordensServicoIds.length
         ? await supabase
           .from('os_produtos_contratados')
-          .select('produto_segmento_id')
+          .select('ordem_servico_id, produto_segmento_id')
           .in('ordem_servico_id', ordensServicoIds)
         : { data: [], error: null };
       if (contractedError) throw contractedError;
@@ -127,6 +147,7 @@ export function useOnboarding(clienteId: string | null) {
       const produtosContratados: OnboardingProdutoContratado[] = (productRows ?? []).map(
         (product) => ({ id: product.id, code: product.codigo, name: product.nome }),
       );
+      const produtoPorId = new Map(produtosContratados.map((produto) => [produto.id, produto]));
 
       const { data: vinculoRows, error: vinculoError } = produtoIds.length
         ? await supabase
@@ -137,10 +158,15 @@ export function useOnboarding(clienteId: string | null) {
       if (vinculoError) throw vinculoError;
 
       const produtosPorDocumento: ProdutosPorDocumento = new Map();
+      const documentosPorProduto = new Map<string, Set<string>>();
       for (const vinculo of vinculoRows ?? []) {
         const atuais = produtosPorDocumento.get(vinculo.item_padrao_id) ?? [];
         atuais.push(vinculo.produto_segmento_id);
         produtosPorDocumento.set(vinculo.item_padrao_id, atuais);
+
+        const doProduto = documentosPorProduto.get(vinculo.produto_segmento_id) ?? new Set<string>();
+        doProduto.add(vinculo.item_padrao_id);
+        documentosPorProduto.set(vinculo.produto_segmento_id, doProduto);
       }
 
       // String literal única: o tipo gerado do Supabase só infere as colunas a
@@ -168,6 +194,36 @@ export function useOnboarding(clienteId: string | null) {
         }]),
       );
 
+      // Produtos de cada OS, e quantos documentos ela pede.
+      //
+      // A contagem espelha a `gerar_solicitacao_os`: agrupa por `item_padrao_id`
+      // — documento pedido por dois produtos da mesma OS conta uma vez — e só
+      // vale o que está no catálogo ATIVO, porque é isso que a RPC insere.
+      const produtosPorOs = new Map<string, string[]>();
+      for (const contratado of contractedRows ?? []) {
+        const atuais = produtosPorOs.get(contratado.ordem_servico_id) ?? [];
+        atuais.push(contratado.produto_segmento_id);
+        produtosPorOs.set(contratado.ordem_servico_id, atuais);
+      }
+
+      const ordensServico: OnboardingOrdemServico[] = (orderRows ?? []).map((order) => {
+        const ids = produtosPorOs.get(order.id) ?? [];
+        const documentos = new Set<string>();
+        for (const produtoId of ids) {
+          for (const itemId of documentosPorProduto.get(produtoId) ?? []) {
+            if (catalogoPorId.has(itemId)) documentos.add(itemId);
+          }
+        }
+        return {
+          id: order.id,
+          numeroOs: order.numero_os ?? '',
+          produtos: ids
+            .map((produtoId) => produtoPorId.get(produtoId))
+            .filter((produto): produto is OnboardingProdutoContratado => Boolean(produto)),
+          documentos: documentos.size,
+        };
+      });
+
       const catalogDocuments: OnboardingDocument[] = (itemRows ?? []).map((item) => ({
         id: item.id,
         catalogId: item.id,
@@ -181,9 +237,9 @@ export function useOnboarding(clienteId: string | null) {
       }));
 
       return {
+        ordensServico,
         produtosContratados,
         produtosPorDocumento,
-        ordensServicoIds,
         catalogDocuments: catalogDocuments.sort((left, right) =>
           left.title.localeCompare(right.title, 'pt-BR')),
         catalogoPorId,

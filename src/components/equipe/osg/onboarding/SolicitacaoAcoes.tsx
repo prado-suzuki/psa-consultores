@@ -110,7 +110,7 @@ export function SolicitacaoAcoes({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onGerar}>Atualizar</AlertDialogAction>
+            <AlertDialogAction onClick={() => onGerar()}>Atualizar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

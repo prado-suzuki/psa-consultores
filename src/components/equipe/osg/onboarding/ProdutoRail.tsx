@@ -1,6 +1,6 @@
-import { Layers3, PenLine } from 'lucide-react';
+import { Layers3 } from 'lucide-react';
 import type { OnboardingProdutoContratado } from '@/hooks/useOnboarding';
-import { FILTRO_MANUAIS, FILTRO_TODOS } from '@/lib/solicitacao';
+import { FILTRO_TODOS } from '@/lib/solicitacao';
 import {
   counterPillCls,
   microLabelMutedCls,
@@ -19,14 +19,15 @@ import {
  * soma dos contadores passa do total — o rodapé avisa, porque a conta parece
  * errada sem explicação.
  *
- * "Incluídos à mão" existe porque documento criado pelo analista não pertence a
- * produto nenhum: sem essa entrada, ele sumiria ao filtrar e pareceria perdido.
+ * Documento criado à mão não pertence a produto nenhum, e por isso aparece apenas
+ * na lista consolidada — não há entrada própria para ele no rail.
  */
 interface ProdutoRailProps {
   produtos: OnboardingProdutoContratado[];
   selecionado: string;
   total: number;
-  manuais: number;
+  /** Quantos itens vêm do catálogo — a base de comparação do rodapé. */
+  doCatalogo: number;
   contagemPorProduto: Map<string, number>;
   onSelecionar: (filtro: string) => void;
 }
@@ -35,12 +36,12 @@ export function ProdutoRail({
   produtos,
   selecionado,
   total,
-  manuais,
+  doCatalogo,
   contagemPorProduto,
   onSelecionar,
 }: ProdutoRailProps) {
   const umDocumentoEmMaisDeUmProduto = [...contagemPorProduto.values()]
-    .reduce((soma, quantidade) => soma + quantidade, 0) > total - manuais;
+    .reduce((soma, quantidade) => soma + quantidade, 0) > doCatalogo;
 
   return (
     <aside
@@ -55,12 +56,12 @@ export function ProdutoRail({
         <span className="flex items-center justify-between gap-2">
           <span className="flex min-w-0 items-center gap-2 text-sm font-semibold text-osg-700">
             <Layers3 className="h-4 w-4 shrink-0 text-osg-moss" />
-            <span className="truncate">Todos os documentos</span>
+            <span className="truncate">Lista de solicitação consolidada</span>
           </span>
           <span className={counterPillCls}>{total}</span>
         </span>
         <span className="mt-1 block pl-6 text-xs leading-relaxed text-slate-500">
-          A solicitação inteira
+          Tudo que foi pedido, incluindo o que foi criado à mão
         </span>
       </button>
 
@@ -83,23 +84,6 @@ export function ProdutoRail({
               </button>
             ))}
           </div>
-        </>
-      )}
-
-      {manuais > 0 && (
-        <>
-          <p className={`px-2.5 pb-1 pt-4 ${microLabelMutedCls}`}>Fora dos produtos</p>
-          <button
-            type="button"
-            onClick={() => onSelecionar(FILTRO_MANUAIS)}
-            className={`${railItemCls(selecionado === FILTRO_MANUAIS)} flex items-center justify-between gap-2`}
-          >
-            <span className="flex min-w-0 items-center gap-2 text-sm font-medium leading-snug text-slate-700">
-              <PenLine className="h-3.5 w-3.5 shrink-0 text-osg-500/70" />
-              Incluídos à mão
-            </span>
-            <span className={counterPillCls}>{manuais}</span>
-          </button>
         </>
       )}
 

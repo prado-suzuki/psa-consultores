@@ -42,8 +42,6 @@ _roi_dump/
 # Plano de feature (local, não commitar) — especificação para o dev
 docs/plano-revisao-delegada-tarefas.md
 
-# Relatórios de auditoria de sprint (local, não commitar)
-docs/sprints/
 
 # OSG — planilhas locais (não commitar)
 _osg_planilha/

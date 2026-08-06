@@ -34,6 +34,9 @@ interface DocumentGroupsProps {
   catalogDocuments: OnboardingDocument[];
   /** Solicitação encerrada: some com as ações de linha e com os opcionais. */
   somenteLeitura?: boolean;
+  /** A gaveta aberta — string vazia quando todas estão fechadas. */
+  grupoAberto: string;
+  onGrupoAberto: (grupo: string) => void;
   onEdit: (document: DisplayDocument) => void;
   onRemove: (document: DisplayDocument) => void;
   onAddOptional: (document: OnboardingDocument) => void;
@@ -43,6 +46,8 @@ export function DocumentGroups({
   documents,
   catalogDocuments,
   somenteLeitura = false,
+  grupoAberto,
+  onGrupoAberto,
   onEdit,
   onRemove,
   onAddOptional,
@@ -53,7 +58,23 @@ export function DocumentGroups({
   );
 
   return (
-    <Accordion type="multiple" className="space-y-2.5">
+    /**
+     * Uma gaveta por vez, e a aberta é estado de quem chama.
+     *
+     * `single` porque com as quatro abertas a lista passava de 60 linhas e o
+     * analista perdia de vista em que gaveta estava — e é essa gaveta que o
+     * "Adicionar documento" usa para abrir o modal já no lugar certo.
+     *
+     * `collapsible` mantém o clique na gaveta aberta fechando ela, em vez de
+     * travar sempre uma aberta.
+     */
+    <Accordion
+      type="single"
+      collapsible
+      value={grupoAberto}
+      onValueChange={onGrupoAberto}
+      className="space-y-2.5"
+    >
       {GRUPOS_DOCUMENTO.map((grupo, index) => {
         const Icon = GROUP_ICONS[grupo.key];
         const groupDocuments = groupedDocuments[grupo.key];

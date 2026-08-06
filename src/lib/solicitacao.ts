@@ -459,7 +459,6 @@ export function montarReativacaoItem(estrutura?: EstruturaDoItem): SolicitacaoIt
  * pedem — os contadores somam mais que o total, e isso é a verdade, não erro.
  */
 export const FILTRO_TODOS = '__todos__';
-export const FILTRO_MANUAIS = '__manuais__';
 
 /** Documento do catálogo → produtos da OS que o pedem. */
 export type ProdutosPorDocumento = Map<string, string[]>;
@@ -470,9 +469,9 @@ export function filtrarPorProduto(
   produtosPorDocumento: ProdutosPorDocumento,
 ): ItemSolicitacao[] {
   if (filtro === FILTRO_TODOS) return itens;
-  // Criado à mão não pertence a produto nenhum: é a gaveta própria dele no rail.
-  if (filtro === FILTRO_MANUAIS) return itens.filter((item) => !item.doCatalogo);
 
+  // Criado à mão não pertence a produto nenhum, então nenhum filtro de produto o
+  // alcança: ele aparece só na lista consolidada.
   return itens.filter((item) =>
     Boolean(item.itemPadraoId)
     && (produtosPorDocumento.get(item.itemPadraoId as string) ?? []).includes(filtro));

@@ -1,20 +1,21 @@
 import { useState } from 'react';
-import { AlertCircle, Loader2, Lock, PackageOpen, PenLine, Rocket, Send } from 'lucide-react';
+import { AlertCircle, Loader2, Lock, PackageOpen, Rocket, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { OnboardingWorkspace } from '@/components/equipe/osg/onboarding/OnboardingWorkspace';
 import { SolicitacaoAcoes } from '@/components/equipe/osg/onboarding/SolicitacaoAcoes';
+import { SolicitacaoVazia } from '@/components/equipe/osg/onboarding/SolicitacaoVazia';
+import { SelecionarOsDialog } from '@/components/equipe/osg/onboarding/SelecionarOsDialog';
 import { OnboardingEmptyState } from '@/components/equipe/osg/onboarding/OnboardingEmptyState';
 import { panelContainerCls } from '@/components/equipe/osg/onboarding/onboardingKit';
-import { Button } from '@/components/ui/button';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useDomainSolicitacao } from '@/hooks/useDomainSolicitacao';
-import type {
-  CatalogoDocumento,
-  EdicaoItem,
-  EstruturaDoItem,
-  NovoItemManual,
+import {
+  type CatalogoDocumento,
+  type EdicaoItem,
+  type EstruturaDoItem,
+  type NovoItemManual,
 } from '@/lib/solicitacao';
 
 /**
@@ -42,41 +43,57 @@ const Onboarding = () => {
     abrirNovaSolicitacao,
   } = useDomainSolicitacao(clienteId || null);
 
-  /**
-   * O cliente para quem o analista pediu para montar o pedido à mão.
-   *
-   * Guarda o id, e não um booleano, para a escolha não vazar de um cliente para
-   * o outro quando ele troca de cliente na barra do topo.
-   *
-   * Montar à mão é caminho previsto desde a EDU-21: `solicitacao.ordem_servico_id`
-   * é nulável justamente para o pedido que nasce sem OS. Mas ele fica atrás de um
-   * clique para o aviso continuar aparecendo primeiro — abrir um cliente de outra
-   * área tem de deixar claro que ele não é da OSG.
-   */
-  const [montarAMaoPara, setMontarAMaoPara] = useState<string | null>(null);
+  const [escolhendoOs, setEscolhendoOs] = useState(false);
 
   const ativos = itens.filter((item) => item.status === 'ativo');
   const dispensados = itens.filter((item) => item.status === 'dispensado');
   const carregando = catalogo.isLoading || carregandoSolicitacao;
   const erro = catalogo.error ?? erroSolicitacao;
-  const ordensServicoIds = catalogo.data?.ordensServicoIds ?? [];
+  const ordensServico = catalogo.data?.ordensServico ?? [];
 
   /**
-   * Gera a partir de todas as OS da OSG do cliente, em sequência.
+   * Quantos documentos a geração traria — da OS que já gerou esta solicitação, ou
+   * da única OS do cliente quando a lista está vazia.
    *
-   * O pedido de documentos é um por CLIENTE, não por OS — o índice único do
-   * banco só admite uma solicitação não encerrada por cliente. Então, quando o
-   * cliente tem mais de uma OS da OSG, o certo é somar os documentos das duas na
-   * mesma lista, e não obrigar o analista a escolher de qual OS gerar.
-   *
-   * Em sequência e não em paralelo de propósito: a primeira chamada pode criar o
-   * cabeçalho, e duas criações simultâneas esbarrariam no índice único.
+   * Com mais de uma OS e nada gerado ainda, não há número honesto a prometer: o
+   * total depende de qual OS o consultor escolher no modal.
    */
-  const gerar = async () => {
-    let criados = 0;
-    for (const ordemServicoId of ordensServicoIds) {
-      criados += await gerarDaOs.mutateAsync(ordemServicoId);
+  const osDaSolicitacao = solicitacao?.ordemServicoId
+    ? ordensServico.find((os) => os.id === solicitacao.ordemServicoId)
+    : undefined;
+  const documentosDaOs = osDaSolicitacao?.documentos
+    ?? (ordensServico.length === 1 ? ordensServico[0].documentos : 0);
+
+  /**
+   * O rail mostra os produtos da OS que gerou a solicitação.
+   *
+   * Sem OS registrada cai em todos os produtos da OSG do cliente, que é o melhor
+   * recorte disponível sem inventar vínculo. Isso alcança só as solicitações
+   * antigas: as novas nascem da OS e já chegam com a coluna preenchida.
+   */
+  const produtosDoRail = osDaSolicitacao?.produtos
+    ?? catalogo.data?.produtosContratados
+    ?? [];
+
+  /**
+   * Gera a partir de UMA OS.
+   *
+   * Antes somava todas em silêncio, e nem o consultor nem a solicitação — que
+   * guarda um `solicitacao.ordem_servico_id` só — sabiam de onde os documentos
+   * vinham. Com mais de uma OS, o modal pergunta; com uma, gera direto.
+   */
+  const gerar = async (ordemServicoId?: string) => {
+    const alvo = ordemServicoId
+      ?? solicitacao?.ordemServicoId
+      ?? (ordensServico.length === 1 ? ordensServico[0].id : null);
+
+    if (!alvo) {
+      setEscolhendoOs(true);
+      return;
     }
+
+    const criados = await gerarDaOs.mutateAsync(alvo);
+    setEscolhendoOs(false);
 
     if (criados > 0) {
       toast.success(`${criados} documento(s) incluído(s) a partir da OS`);
@@ -138,15 +155,15 @@ const Onboarding = () => {
     || encerrarSolicitacao.isPending
     || abrirNovaSolicitacao.isPending;
 
-  const acoesDoTopo = clienteId && (solicitacao || ordensServicoIds.length > 0)
+  const acoesDoTopo = clienteId && (solicitacao || ordensServico.length > 0)
     ? (
       <SolicitacaoAcoes
         status={solicitacao?.status ?? null}
-        temOrigemNaOs={ordensServicoIds.length > 0}
+        temOrigemNaOs={ordensServico.length > 0}
         listaVazia={itens.length === 0}
         itensAtivos={ativos.length}
         ocupado={ocupado}
-        onGerar={gerar}
+        onGerar={() => void gerar()}
         onEnviar={enviar}
         onEncerrar={encerrar}
         onAbrirNova={abrirNova}
@@ -154,9 +171,31 @@ const Onboarding = () => {
     )
     : undefined;
 
+  /**
+   * Cliente sem produto OSG contratado: a tela informa e para aí.
+   *
+   * Não há mais botão de montar à mão. Sem produto não há o que pedir, e criar um
+   * cabeçalho aqui produziria uma solicitação sem OS — exatamente o que fazia
+   * `solicitacao.ordem_servico_id` ficar nulo e ninguém saber de onde a lista
+   * vinha. O caminho é corrigir a OS no cadastro do cliente.
+   */
   const semOrigemNaOs = !solicitacao
-    && (catalogo.data?.produtosContratados.length ?? 0) === 0
-    && montarAMaoPara !== clienteId;
+    && (catalogo.data?.produtosContratados.length ?? 0) === 0;
+
+  /**
+   * Lista em zero num cliente que TEM OS da OSG: o corpo convida a gerar.
+   *
+   * Cobre os três caminhos que chegam a zero — nunca gerou, encerrou e abriu
+   * outra, ou dispensou tudo e a lista voltou a ficar vazia — e sai do ar assim
+   * que existir o primeiro item, porque aí o número prometido pela geração
+   * deixaria de bater.
+   *
+   * Encerrada fica de fora: ela não recebe item novo, e o topo já oferece "Abrir
+   * nova solicitação".
+   */
+  const convidarAGerar = !encerrada
+    && itens.length === 0
+    && ordensServico.length > 0;
 
   /** Data curta, para dizer desde quando o cliente vê a lista. */
   const emData = (iso: string | null) =>
@@ -192,20 +231,18 @@ const Onboarding = () => {
           </div>
         </div>
       ) : semOrigemNaOs ? (
-        <OnboardingEmptyState
-          icon={PackageOpen}
-          title="Nenhum produto OSG contratado"
-          action={(
-            <Button variant="outline" size="sm" onClick={() => setMontarAMaoPara(clienteId)}>
-              <PenLine className="mr-2 h-4 w-4" />
-              Montar solicitação à mão
-            </Button>
-          )}
-        >
-          Este cliente não tem OS com Empresa/Faturamento da OSG e produto contratado.
-          Ajuste a OS no cadastro do cliente para gerar a lista a partir dela — ou monte o
-          pedido à mão, que vale para o cliente e não depende da OS.
+        <OnboardingEmptyState icon={PackageOpen} title="Nenhum produto OSG contratado">
+          Este cliente não tem OS com Empresa/Faturamento da OSG e produto contratado. A
+          solicitação sai dos produtos da OS, então não há o que pedir enquanto isso não
+          existir. Cadastre ou ajuste a OS no cadastro do cliente e volte aqui.
         </OnboardingEmptyState>
+      ) : convidarAGerar ? (
+        <SolicitacaoVazia
+          documentosDaOs={documentosDaOs}
+          ordensServico={ordensServico.length}
+          ocupado={ocupado}
+          onGerar={() => void gerar()}
+        />
       ) : (
         <div className="space-y-3">
           {solicitacao?.status === 'enviada' && (
@@ -238,7 +275,7 @@ const Onboarding = () => {
             dispensados={dispensados}
             catalogDocuments={catalogo.data.catalogDocuments}
             catalogoPorId={catalogo.data.catalogoPorId}
-            produtosContratados={catalogo.data.produtosContratados}
+            produtosContratados={produtosDoRail}
             produtosPorDocumento={catalogo.data.produtosPorDocumento}
             somenteLeitura={encerrada}
             onAdicionarDoCatalogo={incluirDoCatalogo}
@@ -248,6 +285,14 @@ const Onboarding = () => {
           />
         </div>
       )}
+
+      <SelecionarOsDialog
+        open={escolhendoOs}
+        ordensServico={ordensServico}
+        ocupado={ocupado}
+        onOpenChange={setEscolhendoOs}
+        onEscolher={(id) => void gerar(id)}
+      />
     </OsgLayout>
   );
 };

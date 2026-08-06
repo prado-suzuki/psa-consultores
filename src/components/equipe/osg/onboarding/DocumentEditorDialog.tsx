@@ -62,6 +62,15 @@ interface DocumentEditorDialogProps {
    * solicitação e volta a aparecer sob todos os produtos que o pedem.
    */
   documentosDoProduto?: Set<string>;
+  /**
+   * A gaveta em que o modal abre, quando há uma expandida na tela.
+   *
+   * Adicionar documento é ação de gaveta, não da página: o analista clica dentro
+   * de "Pessoas Físicas" e o modal já vem nela — inclusive a lista de escolha,
+   * que é filtrada pela gaveta. Sem isso ele caía sempre em "Outros documentos"
+   * e tinha de reencontrar a gaveta de onde acabou de sair.
+   */
+  grupoInicial?: GrupoDocumentoKey;
   onSave: (value: DocumentEditorValue) => void;
 }
 
@@ -80,11 +89,11 @@ interface EstadoEditor extends Omit<DocumentEditorValue, 'granularidade'> {
   granularidade?: Granularidade;
 }
 
-const valorVazio = (): EstadoEditor => ({
+const valorVazio = (grupo: GrupoDocumentoKey = GRUPO_PADRAO): EstadoEditor => ({
   documento: '',
   nota: '',
-  grupo: GRUPO_PADRAO,
-  granularidade: graoSugeridoParaGrupo(GRUPO_PADRAO) ?? undefined,
+  grupo,
+  granularidade: graoSugeridoParaGrupo(grupo) ?? undefined,
 });
 
 /** Campo no padrão dos modais OSG: rótulo miúdo + controle com foco verde-musgo. */
@@ -113,6 +122,7 @@ export function DocumentEditorDialog({
   catalogo,
   idsJaPedidos,
   documentosDoProduto,
+  grupoInicial,
   onSave,
 }: DocumentEditorDialogProps) {
   const [value, setValue] = useState<EstadoEditor>(valorVazio);
@@ -129,8 +139,8 @@ export function DocumentEditorDialog({
         granularidade: item.granularidade,
         grupo: item.grupo,
       }
-      : valorVazio());
-  }, [item, open]);
+      : valorVazio(grupoInicial));
+  }, [grupoInicial, item, open]);
 
   /** A lista de escolha respeita a gaveta e esconde o que já foi pedido. */
   const doCatalogoNaGaveta = useMemo(

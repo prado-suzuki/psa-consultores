@@ -4,7 +4,6 @@ import {
   contarPorProduto,
   encontrarItemDoCatalogo,
   filtrarPorProduto,
-  FILTRO_MANUAIS,
   FILTRO_TODOS,
   graoSugeridoParaGrupo,
   GRAOS_DE_BENS_IMOVEIS,
@@ -174,11 +173,13 @@ describe('recorte por produto', () => {
       .toEqual(['rg']);
   });
 
-  it('o item criado à mão só aparece em Todos e no filtro dos manuais', () => {
+  it('o item criado à mão não é alcançado por filtro de produto nenhum', () => {
+    // Ele aparece só na lista consolidada: não pertence a produto, então nenhum
+    // recorte por produto o traz.
     expect(filtrarPorProduto(itens, 'ES', produtosPorDocumento).map((i) => i.id))
       .not.toContain('man');
-    expect(filtrarPorProduto(itens, FILTRO_MANUAIS, produtosPorDocumento).map((i) => i.id))
-      .toEqual(['man']);
+    expect(filtrarPorProduto(itens, 'DSSG', produtosPorDocumento).map((i) => i.id))
+      .not.toContain('man');
   });
 
   it('conta o mesmo documento em cada produto que o pede — a soma passa do total', () => {
