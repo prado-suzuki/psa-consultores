@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAcentoArea } from "./acentoArea";
+import MarcaPendencia, { CLASSE_CAMPO_PENDENTE } from "./MarcaPendencia";
+import SecaoFormulario from "./SecaoFormulario";
 import type { defaultClientData } from "./constants";
 
 interface ClusterOption {
@@ -22,6 +24,13 @@ export interface ClienteTabProps {
   setClientData: React.Dispatch<React.SetStateAction<typeof defaultClientData>>;
   isReadOnly: boolean;
   allClusters?: ClusterOption[];
+  /**
+   * Faltas de preenchimento desta aba, campo → frase, já filtradas pela
+   * primeira tentativa de salvar. Esta aba não tem lista, então vem direto.
+   */
+  camposPendentes?: Map<string, string>;
+  /** Seções que têm falta, para o número ficar vermelho. */
+  secoesPendentes?: Set<number>;
 }
 
 /** Linha rótulo/valor do modo Visualizar. Mesmo tamanho de fonte em tudo. */
@@ -40,9 +49,13 @@ const TIPO_RELACIONAMENTO_LABEL: Record<string, string> = {
   "Em Análise": "Em Análise",
 };
 
-export default function ClienteTab({ clientData, setClientData, isReadOnly, allClusters = [] }: ClienteTabProps) {
+export default function ClienteTab({
+  clientData, setClientData, isReadOnly, allClusters = [], camposPendentes, secoesPendentes,
+}: ClienteTabProps) {
   const acento = useAcentoArea();
   const selectedClusters = allClusters.filter(c => clientData.cluster_ids.includes(c.id));
+  const falta = (campo: string) => camposPendentes?.get(campo);
+  const secaoPendente = (numero: number) => secoesPendentes?.has(numero) ?? false;
 
   // Visualizar: valores como texto. Campo desabilitado com placeholder cinza
   // parece vazio e sugere que dá para digitar — não serve para leitura.
@@ -95,20 +108,26 @@ export default function ClienteTab({ clientData, setClientData, isReadOnly, allC
       <div className="px-4 py-2 bg-muted/50 border-b">
         <h3 className="text-sm font-bold text-foreground">Dados do Cliente/Grupo</h3>
       </div>
-      <div className="px-4 py-3 flex flex-col gap-2.5">
+      <div className="space-y-6 px-4 py-4">
+        <SecaoFormulario numero={1} titulo="Identificação" pendente={secaoPendente(1)}>
+        <div className="flex flex-col gap-2.5">
         {/* 1. Nome */}
-        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground md:pt-2">
             Nome do Cliente / Grupo <RequiredMark />
           </Label>
-          <Input
-            autoFocus={!isReadOnly}
-            disabled={isReadOnly}
-            value={clientData.nome}
-            onChange={(e) => setClientData({ ...clientData, nome: e.target.value })}
-            placeholder="Ex: Grupo Empresarial Silva"
-            className="flex-1 h-8"
-          />
+          <div className="min-w-0 flex-1">
+            <Input
+              autoFocus={!isReadOnly}
+              disabled={isReadOnly}
+              value={clientData.nome}
+              onChange={(e) => setClientData({ ...clientData, nome: e.target.value })}
+              placeholder="Ex: Grupo Empresarial Silva"
+              aria-invalid={!!falta('nome') || undefined}
+              className={cn("h-8 w-full", falta('nome') && CLASSE_CAMPO_PENDENTE)}
+            />
+            <MarcaPendencia>{falta('nome')}</MarcaPendencia>
+          </div>
         </div>
 
         {/* 2. Categoria */}
@@ -132,7 +151,11 @@ export default function ClienteTab({ clientData, setClientData, isReadOnly, allC
             </SelectContent>
           </Select>
         </div>
+        </div>
+        </SecaoFormulario>
 
+        <SecaoFormulario numero={2} titulo="Relacionamento" pendente={secaoPendente(2)}>
+        <div className="flex flex-col gap-2.5">
         {/* 3. Status */}
         <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
           <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
@@ -225,7 +248,10 @@ export default function ClienteTab({ clientData, setClientData, isReadOnly, allC
           </Popover>
         </div>
 
-        {/* 5. Observações */}
+        </div>
+        </SecaoFormulario>
+
+        <SecaoFormulario numero={3} titulo="Observações" pendente={secaoPendente(3)}>
         <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
           <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground md:pt-2">
             Observações {!clientData.ativo && <RequiredMark />}
@@ -236,16 +262,17 @@ export default function ClienteTab({ clientData, setClientData, isReadOnly, allC
               value={clientData.observacoes ?? ""}
               onChange={(e) => setClientData({ ...clientData, observacoes: e.target.value })}
               placeholder="Observações sobre o cliente (mín. 20 caracteres se preenchido)..."
-              className="min-h-[60px]"
+              className={cn("min-h-[60px]", falta('observacoes') && CLASSE_CAMPO_PENDENTE)}
             />
-            {!clientData.ativo && (
+            <MarcaPendencia>{falta('observacoes')}</MarcaPendencia>
+            {!clientData.ativo && !falta('observacoes') && (
               <p className="text-xs text-muted-foreground mt-1">
                 Obrigatória para inativar o cliente (mín. 20 caracteres).
               </p>
             )}
           </div>
         </div>
-
+        </SecaoFormulario>
       </div>
     </section>
   );

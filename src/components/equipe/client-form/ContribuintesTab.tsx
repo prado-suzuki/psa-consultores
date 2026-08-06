@@ -3,26 +3,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Plus, X, Pencil, Trash2, ChevronDown, Check, Copy, Loader2, AlertTriangle } from "lucide-react";
+import { Plus, Pencil, Trash2, Check, Copy, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { UF_STATES, formatCpfCnpj, formatCep, formatPhone } from "./constants";
+import { formatCpfCnpj, formatCep, formatPhone } from "./constants";
 import type { DraftEntity, InscricaoIE } from "@/types/clientForm";
-import FieldPair from "./FieldPair";
 import { useAcentoArea } from "./acentoArea";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/contexts/AuthContext";
 import { useContribuinteDuplicateCheck, type DuplicateContribuinte } from "@/hooks/useContribuinteDuplicateCheck";
 import { useContribuinteAutofill, type ContribuinteAutofill } from "@/hooks/useContribuinteAutofill";
 import ListaMestreDetalhe from "./ListaMestreDetalhe";
+import ContribuinteLeitura from "./ContribuinteLeitura";
+import ContribuinteDadosFiscais from "./ContribuinteDadosFiscais";
+import SecaoFormulario from "./SecaoFormulario";
+import MarcaPendencia, { CLASSE_CAMPO_PENDENTE } from "./MarcaPendencia";
 import { idsAlterados, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
+import type { FocoPendencia, MapaPendencias } from "@/lib/camposObrigatorios";
 
 export interface ContribuintesTabProps {
   entities: DraftEntity[];
@@ -46,6 +49,12 @@ export interface ContribuintesTabProps {
   onRequestItemEdit?: () => void;
   /** Os contribuintes como vieram do banco, para marcar na lista o que mudou. */
   entidadesOriginais?: DraftEntity[];
+  /** Faltas de preenchimento, já filtradas pela primeira tentativa de salvar. */
+  pendencias?: MapaPendencias | null;
+  /** Item a abrir quando o consultor clica no aviso de pendências do rodapé. */
+  foco?: FocoPendencia | null;
+  /** Cadastro de cliente novo, que não tem modo de visualização. */
+  cadastroNovo?: boolean;
   onInlineEditingChange?: (isEditing: boolean) => void;
 }
 
@@ -58,6 +67,9 @@ export default function ContribuintesTab({
   escopoEdicao,
   onRequestItemEdit,
   entidadesOriginais,
+  pendencias,
+  foco,
+  cadastroNovo,
   onInlineEditingChange,
 }: ContribuintesTabProps) {
   const { isAdmin } = useAuth();
@@ -65,19 +77,34 @@ export default function ContribuintesTab({
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
 
-  /** Adicionar e remover contribuinte pertencem ao escopo de cliente. */
   const escopoCliente = !isReadOnly && escopoEdicao !== 'item';
   /**
    * O "Editar" por linha existe só na visualização, como porta de entrada do
    * escopo de item. Em edição do cliente os campos já estão abertos.
    */
   const mostrarEditarPorLinha = isReadOnly ? !!onRequestItemEdit : escopoEdicao === 'item';
+  /**
+   * Adicionar: na visualização, que é a porta de entrada, e no cadastro novo,
+   * que não tem visualização para onde voltar. Mesma regra do "Criar nova OS":
+   * com uma edição em curso o botão some, para ninguém sair com um contribuinte
+   * a mais sem perceber.
+   */
+  const mostrarCriar = (isReadOnly && !!onRequestItemEdit) || (cadastroNovo && escopoCliente);
+  /** A lixeira vale nas duas frentes: vendo o contribuinte ou com ele aberto. */
+  const mostrarRemover = !isReadOnly || !!onRequestItemEdit;
 
   // Mantem sempre algo selecionado, inclusive quando a lista chega depois.
   const selecaoEfetiva = resolverSelecao(entities, selecionadoId);
   useEffect(() => {
     if (selecaoEfetiva !== selecionadoId) setSelecionadoId(selecaoEfetiva);
   }, [selecaoEfetiva, selecionadoId]);
+
+  // O aviso do rodapé manda abrir um item específico. Só reage à mudança do
+  // pedido: se dependesse da seleção, escolher outro item na lista seria
+  // desfeito no mesmo instante.
+  useEffect(() => {
+    if (foco) setSelecionadoId(foco.itemId);
+  }, [foco]);
 
   const alterados = useMemo(
     () => idsAlterados(entities, entidadesOriginais ?? []),
@@ -207,6 +234,12 @@ export default function ContribuintesTab({
   };
 
   const createEntity = () => {
+    // Vindo da visualização, entrar em edição faz parte do gesto: sem isto o
+    // contribuinte nasceria numa tela travada.
+    if (isReadOnly) {
+      if (!onRequestItemEdit) return;
+      onRequestItemEdit();
+    }
     const nova = {
       tipo_pessoa: "PJ", cpf_cnpj: "", nome_razao_social: "", nome_fantasia: "",
       situacao_inscricao_estadual: "", inscricao_estadual: "", cod_cnae: "", setor: "",
@@ -221,8 +254,14 @@ export default function ContribuintesTab({
   };
 
   const removeEntity = (id: number) => {
-    setEntities(prev => prev.filter(e => e._id !== id));
+    if (isReadOnly) {
+      if (!onRequestItemEdit) return;
+      onRequestItemEdit();
+    }
+    // A seleção vai para o vizinho antes da lista encolher, para o consultor
+    // continuar no mesmo ponto em vez de ser jogado para o começo.
     setSelecionadoId(selecaoAposRemover(entities, id));
+    setEntities(prev => prev.filter(e => e._id !== id));
     if (editingEntityId === id) setEditingEntityId(null);
   };
 
@@ -243,10 +282,21 @@ export default function ContribuintesTab({
   const isEditingThis = ent != null && editingEntityId === ent._id;
   const linhaEditavel = isEditingThis || escopoCliente;
 
+  /** A frase da falta de um campo do item aberto, e as seções que acusam. */
+  const camposDoItem = ent ? pendencias?.camposPorItem.get(ent._id) : undefined;
+  const falta = (campo: string) => camposDoItem?.get(campo);
+  const secoesPendentes = ent ? pendencias?.secoesPorItem.get(ent._id) : undefined;
+  const secaoPendente = (numero: number) => secoesPendentes?.has(numero) ?? false;
+
+  // As IEs vivem num mapa à parte, com chave do banco quando a linha já existe
+  // e chave local enquanto ela é novidade.
+  const chaveInscricoes = ent ? (ent._dbId || String(ent._id)) : "";
+  const inscricoesDoItem = inscricoesMap[chaveInscricoes] || [];
+
   return (
     <ListaMestreDetalhe
       titulo={"Contribuintes (" + entities.length + ")"}
-      acaoCriar={escopoCliente && editingEntityId == null ? (
+      acaoCriar={mostrarCriar && editingEntityId == null ? (
         <Button size="sm" onClick={createEntity} className={cn("gap-1.5 h-7 text-xs", acento.botao)}>
           <Plus size={14} /> Adicionar contribuinte
         </Button>
@@ -267,6 +317,7 @@ export default function ContribuintesTab({
           </span>
         ),
         alterado: alterados.has(e._id),
+        pendente: pendencias?.itens.has(e._id) ?? false,
       }))}
       selecionadoId={selecaoEfetiva}
       onSelecionar={setSelecionadoId}
@@ -275,6 +326,59 @@ export default function ContribuintesTab({
       cabecalhoDetalhe={ent ? (ent.nome_razao_social?.trim() || "Novo contribuinte") : null}
       acoesDetalhe={ent ? (
         <>
+          {/*
+            Excluir contribuinte sempre foi privilégio de admin, e assim segue.
+            Quem não é admin vê o botão e recebe o motivo: escondê-lo faria a
+            pessoa procurar por uma ação que existe e não é dela.
+          */}
+          {mostrarRemover && (
+            isAdmin ? (
+              <AlertDialog>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        size="icon" variant="outline"
+                        className="h-9 w-9 border-destructive/40 text-destructive hover:border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                        aria-label={"Remover " + (ent.nome_razao_social || "contribuinte")}
+                      >
+                        <Trash2 size={18} />
+                      </Button>
+                    </AlertDialogTrigger>
+                  </TooltipTrigger>
+                  <TooltipContent>Remover contribuinte</TooltipContent>
+                </Tooltip>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Remover contribuinte</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      "{ent.nome_razao_social?.trim() || "Este contribuinte"}" sai da lista. Ele só deixa de existir quando você salvar, e "Cancelar" desfaz.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => removeEntity(ent._id)}>
+                      Remover
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon" variant="outline"
+                    className="h-9 w-9 border-destructive/40 text-destructive opacity-60"
+                    aria-label="Remover contribuinte (sem permissão)"
+                    onClick={() => toast.warning("Você não tem permissão para excluir clientes/contribuintes, fale com a equipe Digital para realizar essa operação")}
+                  >
+                    <Trash2 size={18} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Só a equipe Digital pode excluir contribuintes</TooltipContent>
+              </Tooltip>
+            )
+          )}
           {isEditingThis ? (
             <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setEditingEntityId(null)}>
               <Check size={12} /> Pronto
@@ -300,55 +404,18 @@ export default function ContribuintesTab({
     >
       {ent && (
         <>
-                  {/* Read-only expanded view */}
                   {!linhaEditavel && (
-                    <div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
-                        <FieldPair label="Tipo Pessoa" value={ent.tipo_pessoa} />
-                        <FieldPair label="CPF/CNPJ" value={ent.cpf_cnpj} />
-                        <FieldPair label="Razão Social / Nome Completo" value={ent.nome_razao_social} />
-                        {ent.tipo_pessoa !== "PF" && <FieldPair label="Nome Fantasia" value={ent.nome_fantasia} />}
-                        <FieldPair label="Telefone" value={ent.telefone} />
-                        <FieldPair label="Possui Inscrição Estadual?" value={
-                          ent.situacao_inscricao_estadual === "sim" ? "Sim"
-                            : ent.situacao_inscricao_estadual === "nao" ? "Não"
-                            : ent.situacao_inscricao_estadual === "isento" ? "Isento" : "—"
-                        } />
-                        {ent.situacao_inscricao_estadual === "sim" && (
-                          <div className="col-span-2 md:col-span-3">
-                            <span className="text-[10px] font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
-                            <div className="flex flex-wrap gap-1 mt-1">
-                              {(inscricoesMap[ent._dbId || String(ent._id)] || []).length > 0
-                                ? (inscricoesMap[ent._dbId || String(ent._id)] || []).map((ie) => (
-                                    <Badge key={ie._tempId} variant="secondary" className="text-xs">
-                                      {ie.uf} — {ie.situacao === "isento" ? "Isento" : ie.situacao === "nao" ? "Não inscrito" : ie.numero_ie || "—"}
-                                    </Badge>
-                                  ))
-                                : <span className="text-sm text-muted-foreground">Nenhuma IE cadastrada</span>
-                              }
-                            </div>
-                          </div>
-                        )}
-                        {ent.tipo_pessoa === "PJ" && <FieldPair label="CNAE" value={ent.cod_cnae} />}
-                        {ent.tipo_pessoa === "PJ" && ent.atividade_principal && <FieldPair label="Atividade Principal" value={ent.atividade_principal} />}
-                        {ent.tipo_pessoa === "PJ" && (
-                          <FieldPair label="Simples Nacional" value={ent.simples_nacional === "optante" ? "Optante" : ent.simples_nacional === "nao_optante" ? "Não Optante" : "—"} />
-                        )}
-                        <FieldPair label="CEP" value={ent.cep} />
-                        <FieldPair label="Logradouro" value={ent.logradouro} />
-                        <FieldPair label="Número" value={ent.numero} />
-                        <FieldPair label="Complemento" value={ent.complemento} />
-                        <FieldPair label="Bairro" value={ent.bairro} />
-                        <FieldPair label="Município" value={ent.municipio} />
-                        <FieldPair label="UF" value={ent.uf} />
-                        <FieldPair label="Contribuinte de Faturamento" value={ent.contribuinte_faturamento ? "Sim" : "Não"} />
-                      </div>
-                    </div>
+                    <ContribuinteLeitura contribuinte={ent} inscricoes={inscricoesDoItem} />
                   )}
 
                   {/* Inline edit mode */}
                   {linhaEditavel && (
-                    <div>
+                    <div className="space-y-6">
+                    <SecaoFormulario
+                      numero={1}
+                      titulo="Identificação"
+                      pendente={secaoPendente(1)}
+                    >
                       <div className="flex flex-col gap-2.5">
                         {/* Tipo */}
                         <div className="flex flex-row items-center gap-4">
@@ -369,11 +436,12 @@ export default function ContribuintesTab({
                                 value={ent.cpf_cnpj || ""}
                                 onChange={(e) => { updateEntity(ent._id, { cpf_cnpj: formatCpfCnpj(e.target.value, ent.tipo_pessoa || "PJ") }); setEditDuplicate(null); }}
                                 onBlur={(e) => handleEntityCnpjBlur(ent, e.target.value)}
-                                aria-invalid={editDuplicate?.found || undefined}
-                                className={cn("font-mono pr-8 h-8", editDuplicate?.found && "border-destructive focus-visible:ring-destructive")}
+                                aria-invalid={editDuplicate?.found || !!falta('cpf_cnpj') || undefined}
+                                className={cn("font-mono pr-8 h-8", (editDuplicate?.found || falta('cpf_cnpj')) && CLASSE_CAMPO_PENDENTE)}
                               />
                               {(cnpjLoading || checkingDuplicate) && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
                             </div>
+                            <MarcaPendencia>{falta('cpf_cnpj')}</MarcaPendencia>
                             {editDuplicate?.found && (
                               <div className="mt-1 flex items-center gap-1.5 text-xs text-destructive">
                                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -387,7 +455,16 @@ export default function ContribuintesTab({
                         {/* Razão Social */}
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{ent.tipo_pessoa === "PF" ? <>Nome completo<RequiredMark /></> : <>Razão Social<RequiredMark /></>}</Label>
-                          <div className="flex-1"><Input value={ent.nome_razao_social || ""} onChange={(e) => updateEntity(ent._id, { nome_razao_social: e.target.value })} placeholder={ent.tipo_pessoa === "PF" ? "Nome completo do contribuinte" : "Nome Empresarial"} className="font-medium h-8" /></div>
+                          <div className="flex-1">
+                            <Input
+                              value={ent.nome_razao_social || ""}
+                              onChange={(e) => updateEntity(ent._id, { nome_razao_social: e.target.value })}
+                              placeholder={ent.tipo_pessoa === "PF" ? "Nome completo do contribuinte" : "Nome Empresarial"}
+                              aria-invalid={!!falta('nome_razao_social') || undefined}
+                              className={cn("font-medium h-8", falta('nome_razao_social') && CLASSE_CAMPO_PENDENTE)}
+                            />
+                            <MarcaPendencia>{falta('nome_razao_social')}</MarcaPendencia>
+                          </div>
                         </div>
                         {ent.tipo_pessoa !== "PF" && (
                           <div className="flex flex-row items-center gap-4">
@@ -400,104 +477,48 @@ export default function ContribuintesTab({
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Telefone</Label>
                           <div className="flex-1"><Input value={ent.telefone || ""} onChange={(e) => updateEntity(ent._id, { telefone: formatPhone(e.target.value) })} placeholder="(00) 00000-0000" className="h-8" /></div>
                         </div>
-                        {/* Possui IE? */}
-                        <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Possui Inscrição Estadual?</Label>
-                          <div className="flex-1">
-                            <Select value={ent.situacao_inscricao_estadual || undefined} onValueChange={(v) => {
-                              updateEntity(ent._id, { situacao_inscricao_estadual: v });
-                              if (v !== "sim") {
-                                const key = ent._dbId || String(ent._id);
-                                setInscricoesMap(prev => ({ ...prev, [key]: [] }));
-                              }
-                            }}>
-                              <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="sim">Sim</SelectItem><SelectItem value="nao">Não</SelectItem><SelectItem value="isento">Isento</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </div>
-                        {/* IE list */}
-                        {ent.situacao_inscricao_estadual === "sim" && (
-                          <div className="border border-dashed rounded-lg p-3">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-bold uppercase text-muted-foreground">Inscrições Estaduais</span>
-                              <Button type="button" size="sm" variant="outline" className="gap-1 text-xs" onClick={() => {
-                                const key = ent._dbId || String(ent._id);
-                                setInscricoesMap(prev => ({ ...prev, [key]: [...(prev[key] || []), { _tempId: Date.now() + Math.random(), situacao: "sim", numero_ie: "", uf: "" }] }));
-                              }}><Plus size={12} /> Adicionar IE</Button>
-                            </div>
-                            {(inscricoesMap[ent._dbId || String(ent._id)] || []).map((ie, ieIdx) => (
-                              <div key={ie._tempId} className="flex items-center gap-2 mt-1">
-                                <Select value={ie.uf || undefined} onValueChange={(v) => {
-                                  const key = ent._dbId || String(ent._id);
-                                  setInscricoesMap(prev => { const list = [...(prev[key] || [])]; list[ieIdx] = { ...list[ieIdx], uf: v }; return { ...prev, [key]: list }; });
-                                }}>
-                                  <SelectTrigger className="h-8 w-24 shrink-0"><SelectValue placeholder="UF" /></SelectTrigger>
-                                  <SelectContent>{UF_STATES.map(uf => <SelectItem key={uf} value={uf}>{uf}</SelectItem>)}</SelectContent>
-                                </Select>
-                                <Select value={ie.situacao || undefined} onValueChange={(v) => {
-                                  const key = ent._dbId || String(ent._id);
-                                  setInscricoesMap(prev => { const list = [...(prev[key] || [])]; list[ieIdx] = { ...list[ieIdx], situacao: v, numero_ie: v !== "sim" ? "" : list[ieIdx].numero_ie }; return { ...prev, [key]: list }; });
-                                }}>
-                                  <SelectTrigger className="h-8 w-28 shrink-0"><SelectValue placeholder="Situação" /></SelectTrigger>
-                                  <SelectContent><SelectItem value="sim">Sim</SelectItem><SelectItem value="nao">Não</SelectItem><SelectItem value="isento">Isento</SelectItem></SelectContent>
-                                </Select>
-                                {ie.situacao === "sim" && (
-                                  <Input value={ie.numero_ie} onChange={(e) => {
-                                    const key = ent._dbId || String(ent._id);
-                                    setInscricoesMap(prev => { const list = [...(prev[key] || [])]; list[ieIdx] = { ...list[ieIdx], numero_ie: e.target.value }; return { ...prev, [key]: list }; });
-                                  }} placeholder="Nº IE" maxLength={15} className="h-8 flex-1" />
-                                )}
-                                <Button type="button" size="icon" variant="ghost" className="h-8 w-8 shrink-0 text-destructive" onClick={() => {
-                                  const key = ent._dbId || String(ent._id);
-                                  setInscricoesMap(prev => ({ ...prev, [key]: (prev[key] || []).filter((_, i) => i !== ieIdx) }));
-                                }}><X size={14} /></Button>
-                              </div>
-                            ))}
-                            {(inscricoesMap[ent._dbId || String(ent._id)] || []).length === 0 && (
-                              <p className="text-xs text-muted-foreground italic mt-1">Nenhuma IE cadastrada.</p>
-                            )}
-                          </div>
-                        )}
-                        {/* CNAE */}
-                        {ent.tipo_pessoa === "PJ" && (
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CNAE<RequiredMark /></Label>
-                            <div className="flex-1"><Input value={ent.cod_cnae || ""} onChange={(e) => updateEntity(ent._id, { cod_cnae: e.target.value })} className="h-8 max-w-[200px]" /></div>
-                          </div>
-                        )}
-                        {ent.tipo_pessoa === "PJ" && (ent as any).atividade_principal && (
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Atividade Principal</Label>
-                            <div className="flex-1"><Input value={(ent as any).atividade_principal || ""} disabled className="h-8 bg-muted/50" /></div>
-                          </div>
-                        )}
-                        {ent.tipo_pessoa === "PJ" && (
-                          <div className="flex flex-row items-center gap-4">
-                            <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Simples Nacional<RequiredMark /></Label>
-                            <div className="flex-1">
-                              <Select value={ent.simples_nacional || undefined} onValueChange={(v) => updateEntity(ent._id, { simples_nacional: v })}>
-                                <SelectTrigger className="h-8 max-w-[200px]"><SelectValue placeholder="Selecione..." /></SelectTrigger>
-                                <SelectContent><SelectItem value="optante">Optante</SelectItem><SelectItem value="nao_optante">Não Optante</SelectItem></SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        )}
+                      </div>
+                    </SecaoFormulario>
+
+                    <SecaoFormulario
+                      numero={2}
+                      titulo="Endereço"
+                      pendente={secaoPendente(2)}
+                      acao={entities.length > 1 ? (
+                        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => handleCopyFirstAddress(ent._id)}>
+                          <Copy size={14} /> Copiar de outro
+                        </Button>
+                      ) : undefined}
+                    >
+                      <div className="flex flex-col gap-2.5">
                         {/* CEP */}
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">CEP<RequiredMark /></Label>
                           <div className="flex-1">
                             <div className="relative max-w-[160px]">
-                              <Input value={ent.cep || ""} onChange={(e) => updateEntity(ent._id, { cep: formatCep(e.target.value) })} onBlur={(e) => handleEntityCepBlur(ent, e.target.value)} className="font-mono pr-8 h-8" />
+                              <Input
+                                value={ent.cep || ""}
+                                onChange={(e) => updateEntity(ent._id, { cep: formatCep(e.target.value) })}
+                                onBlur={(e) => handleEntityCepBlur(ent, e.target.value)}
+                                aria-invalid={!!falta('cep') || undefined}
+                                className={cn("font-mono pr-8 h-8", falta('cep') && CLASSE_CAMPO_PENDENTE)}
+                              />
                               {cepLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
                             </div>
+                            <MarcaPendencia>{falta('cep')}</MarcaPendencia>
                           </div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Logradouro<RequiredMark /></Label>
-                          <div className="flex-1"><Input value={ent.logradouro || ""} onChange={(e) => updateEntity(ent._id, { logradouro: e.target.value })} className="h-8" /></div>
+                          <div className="flex-1">
+                            <Input
+                              value={ent.logradouro || ""}
+                              onChange={(e) => updateEntity(ent._id, { logradouro: e.target.value })}
+                              aria-invalid={!!falta('logradouro') || undefined}
+                              className={cn("h-8", falta('logradouro') && CLASSE_CAMPO_PENDENTE)}
+                            />
+                            <MarcaPendencia>{falta('logradouro')}</MarcaPendencia>
+                          </div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Número</Label>
@@ -509,32 +530,65 @@ export default function ContribuintesTab({
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Bairro<RequiredMark /></Label>
-                          <div className="flex-1"><Input value={ent.bairro || ""} onChange={(e) => updateEntity(ent._id, { bairro: e.target.value })} className="h-8" /></div>
+                          <div className="flex-1">
+                            <Input
+                              value={ent.bairro || ""}
+                              onChange={(e) => updateEntity(ent._id, { bairro: e.target.value })}
+                              aria-invalid={!!falta('bairro') || undefined}
+                              className={cn("h-8", falta('bairro') && CLASSE_CAMPO_PENDENTE)}
+                            />
+                            <MarcaPendencia>{falta('bairro')}</MarcaPendencia>
+                          </div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Município<RequiredMark /></Label>
-                          <div className="flex-1"><Input value={ent.municipio || ""} onChange={(e) => updateEntity(ent._id, { municipio: e.target.value })} className="h-8" /></div>
+                          <div className="flex-1">
+                            <Input
+                              value={ent.municipio || ""}
+                              onChange={(e) => updateEntity(ent._id, { municipio: e.target.value })}
+                              aria-invalid={!!falta('municipio') || undefined}
+                              className={cn("h-8", falta('municipio') && CLASSE_CAMPO_PENDENTE)}
+                            />
+                            <MarcaPendencia>{falta('municipio')}</MarcaPendencia>
+                          </div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">UF<RequiredMark /></Label>
-                          <div className="flex-1"><Input value={ent.uf || ""} onChange={(e) => updateEntity(ent._id, { uf: e.target.value })} maxLength={2} className="h-8 max-w-[120px]" /></div>
-                        </div>
-                        <div className="flex flex-row items-center gap-4">
-                          <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Contribuinte de Faturamento</Label>
-                          <div className="flex items-center gap-2">
-                            <Switch checked={!!(ent as any).contribuinte_faturamento} onCheckedChange={(v) => updateEntity(ent._id, { contribuinte_faturamento: v })} />
-                            <span className="text-xs text-muted-foreground">{(ent as any).contribuinte_faturamento ? "Sim" : "Não"}</span>
+                          <div className="flex-1">
+                            <Input
+                              value={ent.uf || ""}
+                              onChange={(e) => updateEntity(ent._id, { uf: e.target.value })}
+                              maxLength={2}
+                              aria-invalid={!!falta('uf') || undefined}
+                              className={cn("h-8 max-w-[120px]", falta('uf') && CLASSE_CAMPO_PENDENTE)}
+                            />
+                            <MarcaPendencia>{falta('uf')}</MarcaPendencia>
                           </div>
                         </div>
-                        <div className="flex justify-between gap-2 mt-2 pt-2 border-t">
-                          {entities.length > 1 ? (
-                            <Button size="sm" variant="ghost" className="gap-1.5 text-xs" onClick={() => handleCopyFirstAddress(ent._id)}>
-                              <Copy size={12} /> Copiar endereço de outro contribuinte
-                            </Button>
-                          ) : <span />}
-                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditingEntityId(null)}><Check size={14} /> Pronto</Button>
-                        </div>
                       </div>
+                    </SecaoFormulario>
+
+                    <SecaoFormulario
+                      numero={3}
+                      titulo="Dados fiscais"
+                      pendente={secaoPendente(3)}
+                    >
+                      <ContribuinteDadosFiscais
+                        contribuinte={ent}
+                        onChange={(patch) => updateEntity(ent._id, patch)}
+                        inscricoes={inscricoesDoItem}
+                        onInscricoesChange={(lista) => setInscricoesMap(prev => ({ ...prev, [chaveInscricoes]: lista }))}
+                        falta={falta}
+                      />
+                    </SecaoFormulario>
+
+                    {/* Só com a edição de um item em curso: em edição do cliente
+                        inteiro não há o que concluir. */}
+                    {isEditingThis && (
+                      <div className="flex justify-end border-t pt-2">
+                        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditingEntityId(null)}><Check size={14} /> Pronto</Button>
+                      </div>
+                    )}
                     </div>
                   )}
         </>

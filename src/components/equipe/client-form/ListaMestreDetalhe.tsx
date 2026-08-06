@@ -26,6 +26,12 @@ export interface LinhaLista {
   etiqueta?: ReactNode;
   /** Marca de alteração não salva, calculada por `idsAlterados`. */
   alterado?: boolean;
+  /**
+   * Há campo obrigatório em falta neste item. Vence o âmbar de "alterado": os
+   * dois pontos lado a lado numa lista de 228px viram ruído, e entre "mexido" e
+   * "falta preencher" quem precisa de atenção primeiro é a falta.
+   */
+  pendente?: boolean;
 }
 
 export interface ListaMestreDetalheProps {
@@ -106,13 +112,19 @@ export default function ListaMestreDetalhe({
                         <span className={cn('min-w-0 flex-1 truncate text-sm', selecionada ? 'font-bold text-foreground' : 'font-medium text-foreground')}>
                           {linha.titulo}
                         </span>
-                        {linha.alterado && (
+                        {linha.pendente ? (
+                          <span
+                            title="Campos obrigatórios em falta neste item"
+                            aria-label="Campos obrigatórios em falta neste item"
+                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-destructive"
+                          />
+                        ) : linha.alterado ? (
                           <span
                             title="Alterações não salvas neste item"
                             aria-label="Alterações não salvas neste item"
                             className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500"
                           />
-                        )}
+                        ) : null}
                       </div>
                       {linha.subtitulo && (
                         <div className="truncate text-xs text-muted-foreground">{linha.subtitulo}</div>

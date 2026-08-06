@@ -14,12 +14,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, X, CheckCircle2, Pencil, Building2, History } from "lucide-react";
+import { Plus, X, CheckCircle2, Pencil, Building2, History, AlertCircle } from "lucide-react";
 import { AreaLoader } from "@/components/equipe/AreaLoader";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData } from "./client-form/constants";
 import { AcentoAreaProvider, acentoDaArea } from "./client-form/acentoArea";
+import {
+  mapearPendencias,
+  pendenciasCliente,
+  pendenciasContribuinte,
+  pendenciasDocumentosRepetidos,
+  pendenciasOrdemServico,
+  pendenciasRepresentante,
+  type AbaCadastro,
+  type FocoPendencia,
+  type Pendencia,
+} from "@/lib/camposObrigatorios";
 
 import ClienteTab from "./client-form/ClienteTab";
 import ContribuintesTab from "./client-form/ContribuintesTab";
@@ -64,6 +75,16 @@ export default function NewClientModal({
   const [escopoEdicao, setEscopoEdicao] = useState<'cliente' | 'item' | null>(null);
   /** Bump força o recarregamento do cliente sem fechar o modal (após salvar). */
   const [reloadKey, setReloadKey] = useState(0);
+  /**
+   * O consultor já tentou salvar nesta sessão de edição.
+   *
+   * As marcas de campo obrigatório só aparecem depois disso. Antes, a tela fica
+   * limpa: pintar de vermelho um cadastro que a pessoa acabou de começar é
+   * castigá-la por ainda não ter chegado no campo.
+   */
+  const [tentouSalvar, setTentouSalvar] = useState(false);
+  /** Item que o aviso do rodapé mandou abrir. */
+  const [foco, setFoco] = useState<{ aba: AbaCadastro; pedido: FocoPendencia } | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -159,8 +180,43 @@ export default function NewClientModal({
   });
 
   const handleSave = () => {
+    setTentouSalvar(true);
     executeSave();
   };
+
+  /**
+   * Onde faltam campos obrigatórios, para a tela poder apontar.
+   *
+   * Roda sempre, mas só é exibido depois da primeira tentativa de salvar. Quem
+   * decide se o salvamento acontece continua sendo `clientFormValidation`; isto
+   * aqui só localiza a falta, e há teste garantindo que os dois não divirjam.
+   */
+  const pendencias = useMemo<Pendencia[]>(() => {
+    const todas = [
+      ...pendenciasCliente(clientData),
+      ...entities.flatMap((e) => pendenciasContribuinte(e, inscricoesMap[e._dbId || String(e._id)] || [])),
+      ...pendenciasDocumentosRepetidos(entities),
+      ...participants.flatMap(pendenciasRepresentante),
+      ...contracts.flatMap(pendenciasOrdemServico),
+    ];
+    // Contar uma falta de OS para quem não enxerga a aba de OS seria mandar a
+    // pessoa procurar um campo que a tela não mostra.
+    return canViewFinancialTabs ? todas : todas.filter((p) => p.aba !== 'contratos');
+  }, [clientData, entities, inscricoesMap, participants, contracts, canViewFinancialTabs]);
+
+  const mapaPendencias = useMemo(
+    () => (tentouSalvar ? mapearPendencias(pendencias) : null),
+    [tentouSalvar, pendencias],
+  );
+
+  /** Abre a aba e o item da falta, a partir do aviso do rodapé. */
+  const irParaPendencia = (p: Pendencia) => {
+    setActiveTab(p.aba);
+    setFoco(p.itemId != null ? { aba: p.aba, pedido: { itemId: p.itemId } } : null);
+  };
+
+  /** O pedido de foco só vale para a aba de onde ele veio. */
+  const focoDa = (aba: AbaCadastro) => (foco?.aba === aba ? foco.pedido : null);
 
   /**
    * Depois de salvar (ou de cancelar) a edição de um cliente que já existe, o
@@ -179,6 +235,8 @@ export default function NewClientModal({
     setInlineEditingContrib(false);
     setEscopoEdicao(null);
     setIsReadOnly(true);
+    setTentouSalvar(false);
+    setFoco(null);
     // Relê do banco: sem isto a visualização mostraria o rascunho local, e o
     // aviso de "alterações não salvas" ficaria aceso contra um snapshot velho.
     setReloadKey((k) => k + 1);
@@ -194,6 +252,8 @@ export default function NewClientModal({
     setIsReadOnly(readOnly);
     setEscopoEdicao(readOnly ? null : 'cliente');
     setShowExitConfirm(false);
+    setTentouSalvar(false);
+    setFoco(null);
     clearDraft();
     onOpenChange(false);
   };
@@ -222,15 +282,17 @@ export default function NewClientModal({
           Antes o clique era simplesmente ignorado, e a única saída era o botão.
         */}
         <DialogContent
-          className={cn("max-w-7xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden")}
+          className={cn("max-w-7xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", acento.fundoModal)}
           onInteractOutside={(e) => { e.preventDefault(); handleAttemptClose(); }}
         >
           <AcentoAreaProvider area={area}>
           <DialogTitle className="sr-only">{isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</DialogTitle>
           <DialogDescription className="sr-only">Formulário de cadastro de cliente com contribuintes, representantes e contratos</DialogDescription>
 
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white shrink-0">
+          {/* Header. Sem fundo próprio: quem pinta é o modal, e assim a folha
+              quente da OSG atravessa a barra inteira em vez de virar uma faixa
+              branca no topo. */}
+          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0">
             <div className="flex items-center gap-3">
               <div className={cn("p-2 rounded-lg", acento.positivoFundo)}>
                 {isReadOnly ? <Building2 className={acento.texto} size={22} /> : isEditing ? <Pencil className={acento.texto} size={22} /> : <Plus className={acento.texto} size={22} />}
@@ -245,10 +307,12 @@ export default function NewClientModal({
           ) : (
             <>
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
-                <div className="px-6 py-3 bg-gray-50/80 border-b border-gray-200 shrink-0">
-                  <TabsList className={cn("w-full grid bg-gray-100/80 p-1 rounded-lg h-auto", tabsGridClass)}>
+                {/* Escurecimento neutro em vez de cinza fixo: funciona igual
+                    sobre o branco da Tax e sobre a folha quente da OSG. */}
+                <div className="px-6 py-3 bg-black/[0.02] border-b border-gray-200 shrink-0">
+                  <TabsList className={cn("w-full grid bg-black/[0.04] p-1 rounded-lg h-auto", tabsGridClass)}>
                     {visibleTabs.map((tab) => (
-                      <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all">
+                      <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1.5">
                         {tab === "cliente"
                           ? "Dados do Cliente/Grupo"
                           : tab === "contribuintes"
@@ -258,6 +322,15 @@ export default function NewClientModal({
                               : tab === "contratos"
                                 ? `OS - Ordem de Serviço (${contracts.length})`
                                 : "Faturamento"}
+                        {/* O ponto diz em qual aba está a falta sem obrigar a
+                            abrir uma por uma até achar. */}
+                        {mapaPendencias?.abas.has(tab as AbaCadastro) && (
+                          <span
+                            title="Campos obrigatórios em falta nesta aba"
+                            aria-label="Campos obrigatórios em falta nesta aba"
+                            className="h-1.5 w-1.5 shrink-0 rounded-full bg-destructive"
+                          />
+                        )}
                       </TabsTrigger>
                     ))}
                     {editingClienteId && (
@@ -270,7 +343,12 @@ export default function NewClientModal({
 
                 <ScrollArea className="flex-1">
                   <TabsContent value="cliente" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
-                    <ClienteTab clientData={clientData} setClientData={setClientData} isReadOnly={isReadOnly} allClusters={allClusters} />
+                    <ClienteTab
+                      clientData={clientData} setClientData={setClientData}
+                      isReadOnly={isReadOnly} allClusters={allClusters}
+                      camposPendentes={mapaPendencias?.camposPorItem.get(0)}
+                      secoesPendentes={mapaPendencias?.secoesPorItem.get(0)}
+                    />
                   </TabsContent>
 
                   <TabsContent value="contribuintes" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
@@ -282,6 +360,9 @@ export default function NewClientModal({
                       isReadOnly={isReadOnly}
                       escopoEdicao={escopoEdicao}
                       entidadesOriginais={originalSnapshot?.entities}
+                      pendencias={mapaPendencias}
+                      foco={focoDa('contribuintes')}
+                      cadastroNovo={!isEditing}
                       onInlineEditingChange={setInlineEditingContrib}
                       onRequestItemEdit={canEdit ? () => { setIsReadOnly(false); setEscopoEdicao('item'); } : undefined}
                     />
@@ -292,6 +373,10 @@ export default function NewClientModal({
                       participants={participants} setParticipants={setParticipants}
                       isReadOnly={isReadOnly}
                       escopoEdicao={escopoEdicao}
+                      representantesOriginais={originalSnapshot?.participants}
+                      pendencias={mapaPendencias}
+                      foco={focoDa('representantes')}
+                      cadastroNovo={!isEditing}
                       onRequestItemEdit={canEdit ? () => { setIsReadOnly(false); setEscopoEdicao('item'); } : undefined}
                     />
                   </TabsContent>
@@ -309,6 +394,9 @@ export default function NewClientModal({
                           escopoEdicao={escopoEdicao}
                           onRequestItemEdit={canEdit ? () => { setIsReadOnly(false); setEscopoEdicao('item'); } : undefined}
                           contratosOriginais={originalSnapshot?.contracts}
+                          pendencias={mapaPendencias}
+                          foco={focoDa('contratos')}
+                          cadastroNovo={!isEditing}
                         />
                       </TabsContent>
 
@@ -327,7 +415,7 @@ export default function NewClientModal({
               </Tabs>
 
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 bg-white flex justify-between items-center shrink-0">
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center shrink-0">
               {isReadOnly ? (
                   <>
                     <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Fechar</Button>
@@ -344,7 +432,23 @@ export default function NewClientModal({
                   <>
                     <Button variant="outline" onClick={handleCancelarEdicao} className="border-gray-300 text-gray-600">Cancelar</Button>
                     <div className="flex items-center gap-3">
-                      {hasUnsavedChanges && (
+                      {/*
+                        O aviso é clicável de propósito: dizer "faltam 3 campos"
+                        sem dizer onde foi exatamente o defeito que originou esta
+                        tarefa. Clicar abre a aba e o item da primeira falta.
+                      */}
+                      {mapaPendencias && mapaPendencias.todas.length > 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => irParaPendencia(mapaPendencias.todas[0])}
+                          className="flex items-center gap-1.5 rounded text-sm font-medium text-destructive hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
+                        >
+                          <AlertCircle size={16} className="shrink-0" />
+                          {mapaPendencias.todas.length === 1
+                            ? "1 campo obrigatório pendente"
+                            : `${mapaPendencias.todas.length} campos obrigatórios pendentes`}
+                        </button>
+                      ) : hasUnsavedChanges && (
                         <span className="flex items-center gap-1.5 text-sm text-amber-700">
                           <span className="h-2 w-2 rounded-full bg-amber-500" />
                           Alterações não salvas

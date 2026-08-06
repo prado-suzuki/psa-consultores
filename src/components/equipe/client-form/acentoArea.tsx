@@ -23,6 +23,14 @@ export interface AcentoArea {
   positivoFundo: string;
   positivoTexto: string;
   positivoBarra: string;
+  /**
+   * Fundo do modal: a folha sobre a qual tudo é desenhado.
+   *
+   * A OSG Work não usa branco-puro, e sim um branco quente (`--osg-canvas`).
+   * Vem por classe explícita, e não pelo token do tema, porque o modal é
+   * renderizado em portal e nem sempre nasce dentro do elemento com `osg-theme`.
+   */
+  fundoModal: string;
 }
 
 const TEAL: AcentoArea = {
@@ -33,6 +41,7 @@ const TEAL: AcentoArea = {
   positivoFundo: 'bg-teal-50',
   positivoTexto: 'text-teal-700',
   positivoBarra: 'bg-teal-600',
+  fundoModal: 'bg-white',
 };
 
 /**
@@ -48,6 +57,7 @@ const OSG: AcentoArea = {
   positivoFundo: 'bg-osg-50',
   positivoTexto: 'text-osg-moss',
   positivoBarra: 'bg-osg-moss',
+  fundoModal: 'bg-osg-canvas',
 };
 
 /** Acento de uma área, para quem não está sob o provedor (o próprio modal). */
