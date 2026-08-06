@@ -183,7 +183,6 @@ export function DailyFormCard({
               </Button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {sprintTasks.length > 0 && <DailyTaskPicker tasks={sprintTasks} onPick={insertTask('did_yesterday')} />}
               <Button
                 type="button"
                 variant="outline"
