@@ -19,6 +19,7 @@ import { AreaLoader } from "@/components/equipe/AreaLoader";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData } from "./client-form/constants";
+import { AcentoAreaProvider, acentoDaArea } from "./client-form/acentoArea";
 
 import ClienteTab from "./client-form/ClienteTab";
 import ContribuintesTab from "./client-form/ContribuintesTab";
@@ -31,6 +32,8 @@ export default function NewClientModal({
   open, onOpenChange, editingClienteId, readOnly = false, canEdit = true, area,
 }: NewClientModalProps) {
   const { user, isAdmin, isLider } = useAuth();
+  // O modal e quem monta o provedor, entao nao pode consumir o contexto dele.
+  const acento = acentoDaArea(area);
 
   // Duplicate confirm state (replaces window.confirm)
   const [showDuplicateConfirm, setShowDuplicateConfirm] = useState(false);
@@ -48,8 +51,26 @@ export default function NewClientModal({
   const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "representantes" | "contratos" | "faturamento" | "historico">("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
+  /** O que confirmar o descarte deve fazer: fechar o modal ou só sair da edição. */
+  const [descarteFecha, setDescarteFecha] = useState(true);
+  /**
+   * O que a sessão de edição em curso libera.
+   *
+   * `'cliente'` é o "Editar" do rodapé: destrava tudo. `'item'` é o "Editar" de
+   * uma linha de OS ou de contribuinte: destrava só aquela linha, e as outras
+   * abas seguem em leitura. Sem essa distinção, abrir uma OS para conferir um
+   * valor deixava o cadastro inteiro editável sem avisar.
+   */
+  const [escopoEdicao, setEscopoEdicao] = useState<'cliente' | 'item' | null>(null);
+  /** Bump força o recarregamento do cliente sem fechar o modal (após salvar). */
+  const [reloadKey, setReloadKey] = useState(0);
 
-  useEffect(() => { if (open) setIsReadOnly(readOnly); }, [open, readOnly]);
+  useEffect(() => {
+    if (open) {
+      setIsReadOnly(readOnly);
+      setEscopoEdicao(readOnly ? null : 'cliente');
+    }
+  }, [open, readOnly]);
 
 
   const isEditing = !!editingClienteId;
@@ -74,7 +95,7 @@ export default function NewClientModal({
 
   // Load existing data when editing
   const editSetters = useMemo(() => ({ setClientData, setEntities, setParticipants, setContracts, setInscricoesMap }), []);
-  const { loadingEdit, originalSnapshot } = useClientEditData(open, editingClienteId, editSetters);
+  const { loadingEdit, originalSnapshot } = useClientEditData(open, editingClienteId, editSetters, reloadKey);
 
   // External consults
   const { handleCnpjBlur: cnpjLookup, handleCepBlur: cepLookup, cnpjLoading, cepLoading } = useExternalConsults();
@@ -133,12 +154,34 @@ export default function NewClientModal({
     clusterIds: clientData.cluster_ids,
     isEditing, editingClienteId, setoresCliente,
     onDuplicateFound,
-    onSuccess: () => resetAndClose(),
+    onSuccess: () => voltarParaLeitura(),
     originalSnapshot,
   });
 
   const handleSave = () => {
     executeSave();
+  };
+
+  /**
+   * Depois de salvar (ou de cancelar) a edição de um cliente que já existe, o
+   * modal fica aberto e volta para a visualização, na mesma aba. Antes ele
+   * fechava, e conferir o que acabou de ser gravado exigia reabrir o cliente.
+   *
+   * Cadastro novo não tem visualização para onde voltar: nesse caso fecha, que é
+   * o comportamento de sempre.
+   */
+  const voltarParaLeitura = () => {
+    if (!isEditing) {
+      resetAndClose();
+      return;
+    }
+    clearDraft();
+    setInlineEditingContrib(false);
+    setEscopoEdicao(null);
+    setIsReadOnly(true);
+    // Relê do banco: sem isto a visualização mostraria o rascunho local, e o
+    // aviso de "alterações não salvas" ficaria aceso contra um snapshot velho.
+    setReloadKey((k) => k + 1);
   };
 
   const resetAndClose = () => {
@@ -149,28 +192,48 @@ export default function NewClientModal({
     setInscricoesMap({});
     setActiveTab("cliente");
     setIsReadOnly(readOnly);
+    setEscopoEdicao(readOnly ? null : 'cliente');
     setShowExitConfirm(false);
     clearDraft();
     onOpenChange(false);
   };
 
+  /** "Cancelar" da edição: descarta e volta para a visualização, sem fechar. */
+  const handleCancelarEdicao = () => {
+    if (hasUnsavedChanges) {
+      setDescarteFecha(false);
+      setShowExitConfirm(true);
+    } else voltarParaLeitura();
+  };
+
   const handleAttemptClose = () => {
-    if (hasUnsavedChanges) setShowExitConfirm(true);
-    else resetAndClose();
+    if (hasUnsavedChanges) {
+      setDescarteFecha(true);
+      setShowExitConfirm(true);
+    } else resetAndClose();
   };
 
   return (
     <>
       <Dialog open={open} onOpenChange={(v) => { if (!v) handleAttemptClose(); }}>
-        <DialogContent className={cn("max-w-5xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden")} onInteractOutside={(e) => e.preventDefault()}>
+        {/*
+          Clicar fora fecha, passando pela mesma guarda do "Cancelar": com
+          alterações pendentes aparece a confirmação, sem elas fecha direto.
+          Antes o clique era simplesmente ignorado, e a única saída era o botão.
+        */}
+        <DialogContent
+          className={cn("max-w-7xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden")}
+          onInteractOutside={(e) => { e.preventDefault(); handleAttemptClose(); }}
+        >
+          <AcentoAreaProvider area={area}>
           <DialogTitle className="sr-only">{isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</DialogTitle>
           <DialogDescription className="sr-only">Formulário de cadastro de cliente com contribuintes, representantes e contratos</DialogDescription>
 
           {/* Header */}
           <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-white shrink-0">
             <div className="flex items-center gap-3">
-              <div className="bg-teal-600/10 p-2 rounded-lg">
-                {isReadOnly ? <Building2 className="text-teal-600" size={22} /> : isEditing ? <Pencil className="text-teal-600" size={22} /> : <Plus className="text-teal-600" size={22} />}
+              <div className={cn("p-2 rounded-lg", acento.positivoFundo)}>
+                {isReadOnly ? <Building2 className={acento.texto} size={22} /> : isEditing ? <Pencil className={acento.texto} size={22} /> : <Plus className={acento.texto} size={22} />}
               </div>
               <h2 className="text-xl font-bold text-gray-900">{isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</h2>
             </div>
@@ -178,7 +241,7 @@ export default function NewClientModal({
           </div>
 
           {loadingEdit ? (
-            <div className="flex-1 flex items-center justify-center text-teal-600"><AreaLoader area={area} size={64} /></div>
+            <div className={cn("flex-1 flex items-center justify-center", acento.texto)}><AreaLoader area={area} size={64} /></div>
           ) : (
             <>
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
@@ -206,31 +269,36 @@ export default function NewClientModal({
                 </div>
 
                 <ScrollArea className="flex-1">
-                  <TabsContent value="cliente" className="mt-0 p-3 md:p-4">
+                  <TabsContent value="cliente" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
                     <ClienteTab clientData={clientData} setClientData={setClientData} isReadOnly={isReadOnly} allClusters={allClusters} />
                   </TabsContent>
 
-                  <TabsContent value="contribuintes" className="mt-0 p-3 md:p-4">
+                  <TabsContent value="contribuintes" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
                     <ContribuintesTab
                       entities={entities} setEntities={setEntities}
                       inscricoesMap={inscricoesMap} setInscricoesMap={setInscricoesMap}
                       cnpjLoading={cnpjLoading} cepLoading={cepLoading}
                       cnpjLookup={cnpjLookup} cepLookup={cepLookup}
                       isReadOnly={isReadOnly}
+                      escopoEdicao={escopoEdicao}
+                      entidadesOriginais={originalSnapshot?.entities}
                       onInlineEditingChange={setInlineEditingContrib}
+                      onRequestItemEdit={canEdit ? () => { setIsReadOnly(false); setEscopoEdicao('item'); } : undefined}
                     />
                   </TabsContent>
 
-                  <TabsContent value="representantes" className="mt-0 p-3 md:p-4">
+                  <TabsContent value="representantes" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
                     <RepresentantesTab
                       participants={participants} setParticipants={setParticipants}
                       isReadOnly={isReadOnly}
+                      escopoEdicao={escopoEdicao}
+                      onRequestItemEdit={canEdit ? () => { setIsReadOnly(false); setEscopoEdicao('item'); } : undefined}
                     />
                   </TabsContent>
 
                   {canViewFinancialTabs && (
                     <>
-                      <TabsContent value="contratos" className="mt-0 p-3 md:p-4">
+                      <TabsContent value="contratos" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
                         <ContratosTab
                           contracts={contracts} setContracts={setContracts}
                           isReadOnly={isReadOnly}
@@ -238,18 +306,20 @@ export default function NewClientModal({
                           allClusters={allClusters}
                           CENTRO_CUSTO_OPTIONS={CENTRO_CUSTO_OPTIONS}
                           setoresCliente={setoresCliente}
-                          onRequestEditMode={canEdit ? () => setIsReadOnly(false) : undefined}
+                          escopoEdicao={escopoEdicao}
+                          onRequestItemEdit={canEdit ? () => { setIsReadOnly(false); setEscopoEdicao('item'); } : undefined}
+                          contratosOriginais={originalSnapshot?.contracts}
                         />
                       </TabsContent>
 
-                      <TabsContent value="faturamento" className="mt-0 p-3 md:p-4">
+                      <TabsContent value="faturamento" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
                         <FaturamentoTab entities={entities} />
                       </TabsContent>
                     </>
                   )}
 
                   {editingClienteId && (
-                    <TabsContent value="historico" className="mt-0 p-3 md:p-4">
+                    <TabsContent value="historico" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
                       <HistoricoTab clienteId={editingClienteId} entities={entities} participants={participants} contracts={contracts} />
                     </TabsContent>
                   )}
@@ -262,14 +332,17 @@ export default function NewClientModal({
                   <>
                     <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Fechar</Button>
                     {canEdit && (
-                      <Button onClick={() => setIsReadOnly(false)} className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20">
+                      <Button
+                        onClick={() => { setIsReadOnly(false); setEscopoEdicao('cliente'); }}
+                        className={cn("gap-2 shadow-lg", acento.botao)}
+                      >
                         <Pencil size={16} /> Editar
                       </Button>
                     )}
                   </>
                 ) : (
                   <>
-                    <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Cancelar</Button>
+                    <Button variant="outline" onClick={handleCancelarEdicao} className="border-gray-300 text-gray-600">Cancelar</Button>
                     <div className="flex items-center gap-3">
                       {hasUnsavedChanges && (
                         <span className="flex items-center gap-1.5 text-sm text-amber-700">
@@ -279,7 +352,7 @@ export default function NewClientModal({
                       )}
                       <Button
                         onClick={handleSave} disabled={saving}
-                        className="bg-teal-600 hover:bg-teal-700 text-white gap-2 shadow-lg shadow-teal-600/20"
+                        className={cn("gap-2 shadow-lg", acento.botao)}
                       >
                         {saving ? <AreaLoader area={area} size={20} /> : <CheckCircle2 size={20} />}
                         {isEditing ? "Salvar Alterações" : "Salvar Cliente"}
@@ -290,16 +363,33 @@ export default function NewClientModal({
               </div>
             </>
           )}
+          </AcentoAreaProvider>
         </DialogContent>
       </Dialog>
 
       {/* Exit confirmation */}
       <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
         <AlertDialogContent>
-          <AlertDialogHeader><AlertDialogTitle>Dados não salvos</AlertDialogTitle><AlertDialogDescription>Você tem dados não salvos. Deseja sair sem salvar?</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Dados não salvos</AlertDialogTitle>
+            <AlertDialogDescription>
+              {descarteFecha
+                ? 'Você tem dados não salvos. Deseja sair sem salvar?'
+                : 'Você tem dados não salvos. Descartar as alterações e voltar para a visualização?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setShowExitConfirm(false)}>Continuar Editando</AlertDialogCancel>
-            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={resetAndClose}>Sair</AlertDialogAction>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                setShowExitConfirm(false);
+                if (descarteFecha) resetAndClose();
+                else voltarParaLeitura();
+              }}
+            >
+              {descarteFecha ? 'Sair' : 'Descartar'}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

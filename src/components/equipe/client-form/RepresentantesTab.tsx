@@ -18,6 +18,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TIPO_REPRESENTANTE_OPTIONS, formatPhone } from "./constants";
 import type { DraftRepresentante } from "@/types/clientForm";
 import FieldPair from "./FieldPair";
+import { useAcentoArea } from "./acentoArea";
 
 const DISABLE_TOOLTIP =
   "Você não tem permissão para desabilitar acesso ao chamados, fale com a equipe Digital para realizar essa operação";
@@ -26,15 +27,26 @@ export interface RepresentantesTabProps {
   participants: DraftRepresentante[];
   setParticipants: React.Dispatch<React.SetStateAction<DraftRepresentante[]>>;
   isReadOnly: boolean;
+  /** Ver ContratosTab: escopo de cliente destrava tudo, de item so a linha. */
+  escopoEdicao?: 'cliente' | 'item' | null;
+  onRequestItemEdit?: () => void;
 }
 
 export default function RepresentantesTab({
   participants, setParticipants,
   isReadOnly,
+  escopoEdicao,
+  onRequestItemEdit,
 }: RepresentantesTabProps) {
   const { isAdmin } = useAuth();
+  const acento = useAcentoArea();
   const [expandedParticipantId, setExpandedParticipantId] = useState<number | null>(null);
   const [editingParticipantId, setEditingParticipantId] = useState<number | null>(null);
+
+  /** Adicionar e remover representante pertencem ao escopo de cliente. */
+  const escopoCliente = !isReadOnly && escopoEdicao !== 'item';
+  /** O "Editar" por linha e a porta de entrada do escopo de item, so na leitura. */
+  const mostrarEditarPorLinha = isReadOnly ? !!onRequestItemEdit : escopoEdicao === 'item';
 
   // Captura o estado original (do banco) de `acesso_chamados` por _dbId.
   // Usado para travar o toggle quando o registro JÁ TINHA acesso habilitado e o usuário não é admin.
@@ -81,8 +93,8 @@ export default function RepresentantesTab({
     <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
       <div className="px-4 py-2 bg-muted/50 border-b flex items-center justify-between gap-3">
         <h3 className="text-sm font-bold text-foreground">Representantes ({participants.length})</h3>
-        {!isReadOnly && editingParticipantId == null && (
-          <Button size="sm" onClick={createParticipant} className="gap-1.5 h-7 text-xs bg-teal-600 hover:bg-teal-700 text-white">
+        {escopoCliente && editingParticipantId == null && (
+          <Button size="sm" onClick={createParticipant} className={cn("gap-1.5 h-7 text-xs", acento.botao)}>
             <Plus size={14} /> Adicionar representante
           </Button>
         )}
@@ -96,6 +108,7 @@ export default function RepresentantesTab({
           {participants.map((part) => {
             const isExpanded = expandedParticipantId === part._id;
             const isEditingThis = editingParticipantId === part._id;
+            const linhaEditavel = isEditingThis || escopoCliente;
             return (
               <div key={part._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
                 <div className="w-full flex items-center gap-2 p-4">
@@ -112,24 +125,49 @@ export default function RepresentantesTab({
 
                   <div className="flex items-center gap-1.5 shrink-0">
                     {part.acesso_chamados && <Badge variant="outline" className="text-[10px]">Chamados</Badge>}
-                    {!isReadOnly && (
-                      isEditingThis ? (
-                        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setEditingParticipantId(null)}>
-                          <Check size={12} /> Concluir
-                        </Button>
-                      ) : (
-                        <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => { setExpandedParticipantId(part._id); setEditingParticipantId(part._id); }}>
-                          <Pencil size={12} /> Editar
-                        </Button>
+                    {isEditingThis ? (
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setEditingParticipantId(null)}>
+                        <Check size={12} /> Pronto
+                      </Button>
+                    ) : (
+                      mostrarEditarPorLinha && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon" variant="outline" className="h-9 w-9"
+                              aria-label={`Editar ${part.nome?.trim() || 'representante'}`}
+                              onClick={() => {
+                                if (isReadOnly) {
+                                  if (!onRequestItemEdit) return;
+                                  onRequestItemEdit();
+                                }
+                                setExpandedParticipantId(part._id);
+                                setEditingParticipantId(part._id);
+                              }}
+                            >
+                              <Pencil size={18} />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar representante</TooltipContent>
+                        </Tooltip>
                       )
                     )}
-                    {!isReadOnly && (
+                    {escopoCliente && (
                       <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive">
-                            <Trash2 size={12} /> Remover
-                          </Button>
-                        </AlertDialogTrigger>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                size="icon" variant="outline"
+                                className="h-9 w-9 border-destructive/40 text-destructive hover:border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                                aria-label={`Remover ${part.nome?.trim() || 'representante'}`}
+                              >
+                                <Trash2 size={18} />
+                              </Button>
+                            </AlertDialogTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>Remover representante</TooltipContent>
+                        </Tooltip>
                         <AlertDialogContent>
                           <AlertDialogHeader>
                             <AlertDialogTitle>Remover representante</AlertDialogTitle>
@@ -152,7 +190,7 @@ export default function RepresentantesTab({
                   </button>
                 </div>
 
-                {isExpanded && !isEditingThis && (
+                {isExpanded && !linhaEditavel && (
                   <div className="px-4 pb-4 border-t pt-3">
                     <div className="grid grid-cols-2 gap-x-6 gap-y-2">
                       <FieldPair label="Nome" value={part.nome} />
@@ -169,7 +207,7 @@ export default function RepresentantesTab({
                   </div>
                 )}
 
-                {isExpanded && isEditingThis && (
+                {isExpanded && linhaEditavel && (
                   <div className="px-4 pb-4 border-t pt-3">
                     <div className="flex flex-col gap-2.5">
                       <div className="flex flex-row items-center gap-4">

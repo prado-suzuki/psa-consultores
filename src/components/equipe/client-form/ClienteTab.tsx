@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAcentoArea } from "./acentoArea";
 import type { defaultClientData } from "./constants";
 
 interface ClusterOption {
@@ -40,6 +41,7 @@ const TIPO_RELACIONAMENTO_LABEL: Record<string, string> = {
 };
 
 export default function ClienteTab({ clientData, setClientData, isReadOnly, allClusters = [] }: ClienteTabProps) {
+  const acento = useAcentoArea();
   const selectedClusters = allClusters.filter(c => clientData.cluster_ids.includes(c.id));
 
   // Visualizar: valores como texto. Campo desabilitado com placeholder cinza
@@ -57,7 +59,7 @@ export default function ClienteTab({ clientData, setClientData, isReadOnly, allC
           <ReadRow label="Categoria">{clientData.categoria || "—"}</ReadRow>
           <ReadRow label="Status">
             <span className="inline-flex items-center gap-2">
-              <span className={cn("h-2 w-2 rounded-full", clientData.ativo ? "bg-teal-600" : "bg-muted-foreground/50")} />
+              <span className={cn("h-2 w-2 rounded-full", clientData.ativo ? acento.positivoBarra : "bg-muted-foreground/50")} />
               {clientData.ativo ? "Ativo" : "Inativo"}
             </span>
           </ReadRow>

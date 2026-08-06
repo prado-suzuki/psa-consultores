@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,16 +9,20 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, X, Pencil, Trash2, ChevronDown, Check, Copy, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { UF_STATES, formatCpfCnpj, formatCep, formatPhone } from "./constants";
 import type { DraftEntity, InscricaoIE } from "@/types/clientForm";
 import FieldPair from "./FieldPair";
+import { useAcentoArea } from "./acentoArea";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { useAuth } from "@/contexts/AuthContext";
 import { useContribuinteDuplicateCheck, type DuplicateContribuinte } from "@/hooks/useContribuinteDuplicateCheck";
 import { useContribuinteAutofill, type ContribuinteAutofill } from "@/hooks/useContribuinteAutofill";
+import ListaMestreDetalhe from "./ListaMestreDetalhe";
+import { idsAlterados, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
 
 export interface ContribuintesTabProps {
   entities: DraftEntity[];
@@ -30,6 +34,18 @@ export interface ContribuintesTabProps {
   cnpjLookup: (value: string, setter: any) => Promise<void>;
   cepLookup: (value: string, setter: any) => Promise<void>;
   isReadOnly: boolean;
+  /**
+   * O que a edição em curso libera. `'cliente'` veio do "Editar" do rodapé e
+   * destrava tudo; `'item'` veio do "Editar" de uma linha e destrava só ela.
+   */
+  escopoEdicao?: 'cliente' | 'item' | null;
+  /**
+   * Abre a edição com escopo de item, a partir da visualização. Antes desta
+   * prop não havia como corrigir um contribuinte sem destravar o cadastro todo.
+   */
+  onRequestItemEdit?: () => void;
+  /** Os contribuintes como vieram do banco, para marcar na lista o que mudou. */
+  entidadesOriginais?: DraftEntity[];
   onInlineEditingChange?: (isEditing: boolean) => void;
 }
 
@@ -39,11 +55,34 @@ export default function ContribuintesTab({
   cnpjLoading, cepLoading,
   cnpjLookup, cepLookup,
   isReadOnly,
+  escopoEdicao,
+  onRequestItemEdit,
+  entidadesOriginais,
   onInlineEditingChange,
 }: ContribuintesTabProps) {
   const { isAdmin } = useAuth();
-  const [expandedEntityId, setExpandedEntityId] = useState<number | null>(null);
+  const acento = useAcentoArea();
+  const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
+
+  /** Adicionar e remover contribuinte pertencem ao escopo de cliente. */
+  const escopoCliente = !isReadOnly && escopoEdicao !== 'item';
+  /**
+   * O "Editar" por linha existe só na visualização, como porta de entrada do
+   * escopo de item. Em edição do cliente os campos já estão abertos.
+   */
+  const mostrarEditarPorLinha = isReadOnly ? !!onRequestItemEdit : escopoEdicao === 'item';
+
+  // Mantem sempre algo selecionado, inclusive quando a lista chega depois.
+  const selecaoEfetiva = resolverSelecao(entities, selecionadoId);
+  useEffect(() => {
+    if (selecaoEfetiva !== selecionadoId) setSelecionadoId(selecaoEfetiva);
+  }, [selecaoEfetiva, selecionadoId]);
+
+  const alterados = useMemo(
+    () => idsAlterados(entities, entidadesOriginais ?? []),
+    [entities, entidadesOriginais],
+  );
 
   useEffect(() => {
     onInlineEditingChange?.(editingEntityId != null);
@@ -159,6 +198,10 @@ export default function ContribuintesTab({
   const handleEntityCepBlur = (ent: DraftEntity, value: string) => cepLookup(value, entitySetter(ent._id) as any);
 
   const startEditEntity = (ent: DraftEntity) => {
+    if (isReadOnly) {
+      if (!onRequestItemEdit) return;
+      onRequestItemEdit();
+    }
     setEditingEntityId(ent._id);
     setEditDuplicate(null);
   };
@@ -172,14 +215,14 @@ export default function ContribuintesTab({
       _id: Date.now() + Math.random(),
     } as unknown as DraftEntity;
     setEntities(prev => [...prev, nova]);
-    setExpandedEntityId(nova._id);
+    setSelecionadoId(nova._id);
     setEditingEntityId(nova._id);
     setEditDuplicate(null);
   };
 
   const removeEntity = (id: number) => {
     setEntities(prev => prev.filter(e => e._id !== id));
-    if (expandedEntityId === id) setExpandedEntityId(null);
+    setSelecionadoId(selecaoAposRemover(entities, id));
     if (editingEntityId === id) setEditingEntityId(null);
   };
 
@@ -196,83 +239,70 @@ export default function ContribuintesTab({
     toast.success(`Endereço copiado de "${first.nome_razao_social || "outro contribuinte"}"`);
   };
 
-  return (
-    <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
-      <div className="px-4 py-2 bg-muted/50 border-b flex items-center justify-between gap-3">
-        <h3 className="text-sm font-bold text-foreground">Contribuintes ({entities.length})</h3>
-        {!isReadOnly && editingEntityId == null && (
-          <Button size="sm" onClick={createEntity} className="gap-1.5 h-7 text-xs bg-teal-600 hover:bg-teal-700 text-white">
-            <Plus size={14} /> Adicionar contribuinte
-          </Button>
-        )}
-      </div>
-      <div className="px-4 py-3">
-        {entities.length === 0 && (
-          <p className="text-sm text-muted-foreground italic py-2">Nenhum contribuinte cadastrado.</p>
-        )}
-        {entities.length > 0 && (
-          <div className="space-y-3 mb-4">
-            {entities.map((ent) => {
-              const isExpanded = expandedEntityId === ent._id;
-              const isEditingThis = editingEntityId === ent._id;
-              return (
-                <div key={ent._id} className="bg-muted/30 border rounded-lg overflow-hidden transition-all hover:shadow-md">
-                  <button type="button" className="w-full flex items-center justify-between p-4 text-left"
-                    onClick={() => { if (!isEditingThis) setExpandedEntityId(isExpanded ? null : ent._id); }}>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-foreground truncate">
-                        {ent.nome_razao_social?.trim() || <span className="text-muted-foreground italic font-normal">Novo contribuinte — preencha os dados</span>}
-                      </div>
-                      <div className="text-xs text-muted-foreground font-mono mt-0.5">{ent.cpf_cnpj || "-"}</div>
-                    </div>
-                    <div className="flex items-center gap-2 ml-2">
-                      {ent.contribuinte_faturamento && <span className="text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold">Faturamento</span>}
-                      {ent.simples_nacional === "optante" && <span className="text-[10px] bg-muted px-2 py-0.5 rounded font-bold text-foreground">Simples</span>}
-                      <Badge variant="outline" className="text-[10px]">{ent.tipo_pessoa}</Badge>
-                      <ChevronDown size={16} className={cn("text-muted-foreground transition-transform", isExpanded && "rotate-180")} />
-                    </div>
-                  </button>
+  const ent = entities.find((e) => e._id === selecaoEfetiva) ?? null;
+  const isEditingThis = ent != null && editingEntityId === ent._id;
+  const linhaEditavel = isEditingThis || escopoCliente;
 
+  return (
+    <ListaMestreDetalhe
+      titulo={"Contribuintes (" + entities.length + ")"}
+      acaoCriar={escopoCliente && editingEntityId == null ? (
+        <Button size="sm" onClick={createEntity} className={cn("gap-1.5 h-7 text-xs", acento.botao)}>
+          <Plus size={14} /> Adicionar contribuinte
+        </Button>
+      ) : null}
+      linhas={entities.map((e) => ({
+        id: e._id,
+        titulo: e.nome_razao_social?.trim() || "Novo contribuinte",
+        subtitulo: e.cpf_cnpj || "sem documento",
+        etiqueta: (
+          <span className="flex flex-wrap items-center gap-1">
+            <Badge variant="outline" className="text-[10px]">{e.tipo_pessoa}</Badge>
+            {e.contribuinte_faturamento && (
+              <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold text-amber-800">Faturamento</span>
+            )}
+            {e.simples_nacional === "optante" && (
+              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-bold text-foreground">Simples</span>
+            )}
+          </span>
+        ),
+        alterado: alterados.has(e._id),
+      }))}
+      selecionadoId={selecaoEfetiva}
+      onSelecionar={setSelecionadoId}
+      chaveDetalhe={selecaoEfetiva + ":" + (linhaEditavel ? "edicao" : "leitura")}
+      vazio="Nenhum contribuinte cadastrado."
+      cabecalhoDetalhe={ent ? (ent.nome_razao_social?.trim() || "Novo contribuinte") : null}
+      acoesDetalhe={ent ? (
+        <>
+          {isEditingThis ? (
+            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setEditingEntityId(null)}>
+              <Check size={12} /> Pronto
+            </Button>
+          ) : (
+            mostrarEditarPorLinha && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon" variant="outline" className="h-9 w-9"
+                    aria-label={"Editar " + (ent.nome_razao_social || "contribuinte")}
+                    onClick={() => startEditEntity(ent)}
+                  >
+                    <Pencil size={18} />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Editar contribuinte</TooltipContent>
+              </Tooltip>
+            )
+          )}
+        </>
+      ) : null}
+    >
+      {ent && (
+        <>
                   {/* Read-only expanded view */}
-                  {isExpanded && !isEditingThis && (
-                    <div className="px-4 pb-4 border-t pt-3">
-                      <div className="flex justify-end gap-2 mb-3">
-                        {!isReadOnly && (
-                          <>
-                            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => startEditEntity(ent)}>
-                              <Pencil size={12} /> Editar
-                            </Button>
-                            {isAdmin ? (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button size="sm" variant="outline" className="gap-1.5 text-xs text-destructive hover:text-destructive">
-                                    <Trash2 size={12} /> Remover
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Remover contribuinte</AlertDialogTitle>
-                                    <AlertDialogDescription>Tem certeza que deseja remover "{ent.nome_razao_social}"? Esta ação não pode ser desfeita.</AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => removeEntity(ent._id)}>Remover</AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="gap-1.5 text-xs text-destructive hover:text-destructive"
-                                onClick={() => toast.warning("Você não tem permissão para excluir clientes/contribuintes, fale com a equipe Digital para realizar essa operação")}
-                              >
-                                <Trash2 size={12} /> Remover
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </div>
+                  {!linhaEditavel && (
+                    <div>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2">
                         <FieldPair label="Tipo Pessoa" value={ent.tipo_pessoa} />
                         <FieldPair label="CPF/CNPJ" value={ent.cpf_cnpj} />
@@ -317,8 +347,8 @@ export default function ContribuintesTab({
                   )}
 
                   {/* Inline edit mode */}
-                  {isExpanded && isEditingThis && (
-                    <div className="px-4 pb-4 border-t pt-3">
+                  {linhaEditavel && (
+                    <div>
                       <div className="flex flex-col gap-2.5">
                         {/* Tipo */}
                         <div className="flex flex-row items-center gap-4">
@@ -502,18 +532,13 @@ export default function ContribuintesTab({
                               <Copy size={12} /> Copiar endereço de outro contribuinte
                             </Button>
                           ) : <span />}
-                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditingEntityId(null)}><Check size={14} /> Concluir</Button>
+                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditingEntityId(null)}><Check size={14} /> Pronto</Button>
                         </div>
                       </div>
                     </div>
                   )}
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-      </div>
-    </section>
+        </>
+      )}
+    </ListaMestreDetalhe>
   );
 }
