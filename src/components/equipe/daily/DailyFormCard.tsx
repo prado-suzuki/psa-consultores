@@ -212,7 +212,6 @@ export function DailyFormCard({
           </div>
           <div className="space-y-2">
             <Label className="text-gray-700 flex items-center gap-2"><Clock className="h-4 w-4 text-gray-500" />O que vou fazer hoje?</Label>
-            {sprintTasks.length > 0 && <DailyTaskPicker tasks={sprintTasks} onPick={insertTask('will_do_today')} />}
             <TarefaRichTextEditor
               value={form.will_do_today}
               onChange={(will_do_today) => onFormChange({ ...form, will_do_today })}
