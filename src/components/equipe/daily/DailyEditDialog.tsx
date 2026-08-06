@@ -4,6 +4,7 @@ import { Label } from '@/components/ui/label';
 import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
 import { Textarea } from '@/components/ui/textarea';
 import type { DailyEditDraft } from '@/lib/equipeDaily';
+import type { DailySprintTask } from '@/hooks/useDailySprintTasks';
 
 interface DailyEditDialogProps {
   open: boolean;
@@ -12,6 +13,8 @@ interface DailyEditDialogProps {
   onFormChange: (form: DailyEditDraft) => void;
   onClose: () => void;
   onSubmit: () => void;
+  tasks: DailySprintTask[];
+  sprintId?: string | null;
 }
 
 export function DailyEditDialog({
@@ -21,6 +24,8 @@ export function DailyEditDialog({
   onFormChange,
   onClose,
   onSubmit,
+  tasks,
+  sprintId,
 }: DailyEditDialogProps) {
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
@@ -35,6 +40,10 @@ export function DailyEditDialog({
               placeholder="Descreva suas entregas de ontem..."
               ariaLabel="O que fiz ontem?"
               minHeight="min-h-[100px]"
+              taskReferences={tasks.map((task) => ({
+                ...task,
+                href: `/equipe/sprints/${sprintId}?taskId=${task.id}`,
+              }))}
             />
           </div>
           <div className="space-y-2">
@@ -45,6 +54,10 @@ export function DailyEditDialog({
               placeholder="Suas tarefas para hoje..."
               ariaLabel="O que vou fazer hoje?"
               minHeight="min-h-[100px]"
+              taskReferences={tasks.map((task) => ({
+                ...task,
+                href: `/equipe/sprints/${sprintId}?taskId=${task.id}`,
+              }))}
             />
           </div>
           <div className="space-y-2">

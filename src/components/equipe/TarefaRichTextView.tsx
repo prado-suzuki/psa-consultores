@@ -41,6 +41,18 @@ function renderNode(node: JSONContent, key: string): ReactNode {
     );
   }
   if (node.type === 'hardBreak') return <br key={key} />;
+  if (node.type === 'dailyTaskReference') {
+    return (
+      <a
+        key={key}
+        href={String(node.attrs?.href ?? '')}
+        title={`Abrir tarefa: ${String(node.attrs?.title ?? '')}`}
+        className="daily-task-reference"
+      >
+        [{String(node.attrs?.code ?? '')}]
+      </a>
+    );
+  }
   if (node.type === 'doc') return <Fragment key={key}>{children}</Fragment>;
   return null;
 }

@@ -11,7 +11,12 @@ import {
 } from '@/hooks/useDomainEquipeDaily';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useClusters } from '@/hooks/useClusters';
-import { useDailySprintTasks } from '@/hooks/useDailySprintTasks';
+import {
+  useDailySprintTasks,
+  useUpdateDailyTaskStatus,
+  type DailySprintTask,
+  type DailyTaskStatus,
+} from '@/hooks/useDailySprintTasks';
 import { matchCluster } from '@/lib/clusterFilter';
 import { toast } from '@/hooks/use-toast';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
@@ -45,6 +50,7 @@ export function useEquipeDailyController() {
   const [membersLoaded, setMembersLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [copyingYesterday, setCopyingYesterday] = useState(false);
+  const [quickUpdateOpen, setQuickUpdateOpen] = useState(false);
   const [form, setForm] = useState<DailyFormDraft>(createDailyFormDraft);
   const [editingStandup, setEditingStandup] = useState<DailyStandup | null>(null);
   const [editForm, setEditForm] = useState<DailyEditDraft>(createDailyEditDraft);
@@ -59,6 +65,11 @@ export function useEquipeDailyController() {
   const { data: clusters = [] } = useClusters();
   // Tarefas da pessoa na sprint escolhida — alimentam os chips e o dropdown de bloqueio.
   const { data: sprintTasks = [] } = useDailySprintTasks(form.sprint_id, selectedUserId);
+  const {
+    data: quickUpdateTasks = [],
+    isLoading: quickUpdateLoading,
+  } = useDailySprintTasks(form.sprint_id, user?.id ?? '', quickUpdateOpen);
+  const updateDailyTaskStatus = useUpdateDailyTaskStatus(user?.id);
   const today = new Date().toISOString().split('T')[0];
   const filters: DailyFilters = {
     startDate: filterStartDate,
@@ -226,6 +237,31 @@ export function useEquipeDailyController() {
     }
   };
 
+  const handleQuickTaskUpdate = async (
+    task: DailySprintTask,
+    status: DailyTaskStatus,
+    actualHours?: number,
+  ) => {
+    try {
+      await updateDailyTaskStatus.mutateAsync({ task, status, actualHours });
+      toast({
+        title: status === 'completed' ? 'Tarefa concluída' : 'Status atualizado',
+        description: status === 'completed'
+          ? 'Horas realizadas registradas. A sprint já está atualizada.'
+          : `“${task.title}” foi atualizada.`,
+      });
+      return true;
+    } catch (error) {
+      console.error('Error updating task from daily:', error);
+      toast({
+        title: 'Não foi possível atualizar',
+        description: error instanceof Error ? error.message : 'Tente novamente em alguns instantes.',
+        variant: 'destructive',
+      });
+      return false;
+    }
+  };
+
   const handleEdit = (standup: DailyStandup) => {
     setEditingStandup(standup);
     setEditForm(createDailyEditDraft(standup));
@@ -298,6 +334,11 @@ export function useEquipeDailyController() {
     sprints,
     projects,
     sprintTasks,
+    quickUpdateTasks,
+    quickUpdateLoading,
+    quickUpdateOpen,
+    setQuickUpdateOpen,
+    quickUpdateSubmitting: updateDailyTaskStatus.isPending,
     clusters,
     filterCluster,
     setFilterCluster,
@@ -318,6 +359,7 @@ export function useEquipeDailyController() {
     registered: Boolean(myStandup && selectedUserId === user?.id),
     handleSubmit,
     handleCopyFromYesterday,
+    handleQuickTaskUpdate,
     handleEdit,
     closeEdit: () => setEditingStandup(null),
     handleEditSubmit,

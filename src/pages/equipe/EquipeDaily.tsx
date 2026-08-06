@@ -1,6 +1,7 @@
 import { DailyEditDialog } from '@/components/equipe/daily/DailyEditDialog';
 import { DailyFormCard } from '@/components/equipe/daily/DailyFormCard';
 import { DailyHistoryCard } from '@/components/equipe/daily/DailyHistoryCard';
+import { DailyQuickStatusDialog } from '@/components/equipe/daily/DailyQuickStatusDialog';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { useEquipeDailyController } from '@/hooks/useEquipeDailyController';
 
@@ -32,6 +33,7 @@ const EquipeDaily = () => {
           copyingYesterday={daily.copyingYesterday}
           onSubmit={daily.handleSubmit}
           onCopyFromYesterday={daily.handleCopyFromYesterday}
+          onOpenQuickUpdate={() => daily.setQuickUpdateOpen(true)}
         />
         <DailyHistoryCard
           authenticatedUserId={daily.userId}
@@ -59,6 +61,17 @@ const EquipeDaily = () => {
         onFormChange={daily.setEditForm}
         onClose={daily.closeEdit}
         onSubmit={daily.handleEditSubmit}
+        tasks={daily.editingStandup?.sprint_id === daily.form.sprint_id ? daily.sprintTasks : []}
+        sprintId={daily.editingStandup?.sprint_id}
+      />
+      <DailyQuickStatusDialog
+        open={daily.quickUpdateOpen}
+        sprintName={daily.sprints.find((sprint) => sprint.id === daily.form.sprint_id)?.name}
+        tasks={daily.quickUpdateTasks}
+        loading={daily.quickUpdateLoading}
+        updating={daily.quickUpdateSubmitting}
+        onOpenChange={daily.setQuickUpdateOpen}
+        onUpdate={daily.handleQuickTaskUpdate}
       />
     </EquipeLayout>
   );
