@@ -3,12 +3,20 @@ import {
   appendTaskReference,
   buildDailyBlockerFields,
   createDailyFormDraft,
+  dailyTextToPlain,
   describeDailyMember,
   findCurrentActiveSprintId,
   groupDailyTasksByParent,
   hydrateDailyForm,
+  isDailyTextEmpty,
+  toDailyRichText,
   type DailyFormDraft,
 } from '@/lib/equipeDaily';
+import {
+  hasTarefaRichTextMarker,
+  parseTarefaRichText,
+  serializeTarefaRichText,
+} from '@/lib/tarefaRichText';
 import type { DailyStandup, Sprint } from '@/hooks/useDomainEquipeDaily';
 
 interface TestTask {
@@ -106,23 +114,78 @@ describe('buildDailyBlockerFields', () => {
   });
 });
 
-describe('appendTaskReference', () => {
-  it('em texto vazio, vira a primeira linha (com código quando houver)', () => {
-    expect(appendTaskReference('', { id: 'd1', title: 'Conciliação', task_code: 'T-3' })).toBe(
-      '- [T-3] Conciliação',
-    );
-    expect(appendTaskReference('', { id: 'd2', title: 'Sem código', task_code: null })).toBe(
-      '- Sem código',
-    );
+describe('toDailyRichText', () => {
+  it('mantém valor já marcado e texto plano intactos', () => {
+    const marcado = serializeTarefaRichText({
+      type: 'doc',
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'oi' }] }],
+    });
+    expect(toDailyRichText(marcado)).toBe(marcado);
+    expect(toDailyRichText('linha 1\nlinha 2')).toBe('linha 1\nlinha 2');
+    expect(toDailyRichText(null)).toBe('');
   });
 
-  it('em texto existente, acrescenta em nova linha sem duplicar quebra', () => {
-    expect(appendTaskReference('linha 1', { id: 'd1', title: 'Tarefa', task_code: 'T-1' })).toBe(
-      'linha 1\n- [T-1] Tarefa',
-    );
-    expect(appendTaskReference('linha 1\n', { id: 'd1', title: 'Tarefa', task_code: 'T-1' })).toBe(
-      'linha 1\n- [T-1] Tarefa',
-    );
+  it('daily antigo em markdown vira rich text de verdade (sem asteriscos literais)', () => {
+    const convertido = toDailyRichText('**Entrega** concluída\n- item um\n- item dois');
+    expect(hasTarefaRichTextMarker(convertido)).toBe(true);
+    const doc = parseTarefaRichText(convertido);
+    expect(doc.content?.[0]).toEqual({
+      type: 'paragraph',
+      content: [
+        { type: 'text', marks: [{ type: 'bold' }], text: 'Entrega' },
+        { type: 'text', text: ' concluída' },
+      ],
+    });
+    expect(doc.content?.[1]?.type).toBe('bulletList');
+    expect(doc.content?.[1]?.content).toHaveLength(2);
+    expect(dailyTextToPlain(convertido)).toBe('Entrega concluída\nitem um\nitem dois');
+  });
+});
+
+describe('isDailyTextEmpty', () => {
+  it('reconhece vazio no texto plano e no documento sem texto', () => {
+    expect(isDailyTextEmpty('')).toBe(true);
+    expect(isDailyTextEmpty('   ')).toBe(true);
+    expect(isDailyTextEmpty(serializeTarefaRichText({ type: 'doc', content: [{ type: 'paragraph' }] }))).toBe(true);
+    expect(isDailyTextEmpty('Fechei a análise')).toBe(false);
+  });
+});
+
+describe('appendTaskReference', () => {
+  const bulletTexts = (value: string) =>
+    parseTarefaRichText(value)
+      .content?.filter((node) => node.type === 'bulletList')
+      .flatMap((list) => list.content ?? [])
+      .map((item) => item.content?.[0]?.content?.[0]?.text);
+
+  it('em texto vazio, abre a lista com o item (com código quando houver)', () => {
+    const primeiro = appendTaskReference('', { id: 'd1', title: 'Conciliação', task_code: 'T-3' });
+    expect(parseTarefaRichText(primeiro).content).toEqual([
+      {
+        type: 'bulletList',
+        content: [
+          { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: '[T-3] Conciliação' }] }] },
+        ],
+      },
+    ]);
+    expect(bulletTexts(appendTaskReference('', { id: 'd2', title: 'Sem código', task_code: null }))).toEqual([
+      'Sem código',
+    ]);
+  });
+
+  it('acrescenta na lista que já existe no fim, sem criar outra', () => {
+    const um = appendTaskReference('', { id: 'd1', title: 'Tarefa 1', task_code: 'T-1' });
+    const dois = appendTaskReference(um, { id: 'd2', title: 'Tarefa 2', task_code: 'T-2' });
+    expect(parseTarefaRichText(dois).content).toHaveLength(1);
+    expect(bulletTexts(dois)).toEqual(['[T-1] Tarefa 1', '[T-2] Tarefa 2']);
+  });
+
+  it('preserva o texto que a pessoa já escreveu antes da lista', () => {
+    const resultado = appendTaskReference('Contexto do dia', { id: 'd1', title: 'Tarefa', task_code: 'T-1' });
+    const doc = parseTarefaRichText(resultado);
+    expect(doc.content?.[0]).toEqual({ type: 'paragraph', content: [{ type: 'text', text: 'Contexto do dia' }] });
+    expect(doc.content?.[1]?.type).toBe('bulletList');
+    expect(dailyTextToPlain(resultado)).toBe('Contexto do dia\n[T-1] Tarefa');
   });
 });
 

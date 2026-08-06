@@ -1,3 +1,4 @@
+import type { JSONContent } from '@tiptap/core';
 import type {
   DailyStandup,
   Process,
@@ -5,6 +6,13 @@ import type {
   Sprint,
   TeamMember,
 } from '@/hooks/useDomainEquipeDaily';
+import { markdownParaConteudo, pareceMarkdown } from '@/lib/markdownTarefa';
+import {
+  hasTarefaRichTextMarker,
+  parseTarefaRichText,
+  serializeTarefaRichText,
+  tarefaRichTextToPlain,
+} from '@/lib/tarefaRichText';
 
 export interface DailyFormDraft {
   did_yesterday: string;
@@ -60,18 +68,42 @@ export function createDailyFormDraft(): DailyFormDraft {
   };
 }
 
+/**
+ * Valor para o editor rico. O daily usa o mesmo formato da descrição de tarefa
+ * (`[[tarefa-rich-text:v1]]` + JSON). Dailys antigos foram escritos em markdown
+ * pelo editor anterior: a formatação é convertida em nós de verdade em vez de
+ * chegar como asteriscos literais. Texto plano segue sem marcador (o editor já
+ * transforma cada linha num parágrafo).
+ */
+export function toDailyRichText(value: string | null | undefined): string {
+  if (!value) return '';
+  if (hasTarefaRichTextMarker(value) || !pareceMarkdown(value)) return value;
+  const content = markdownParaConteudo(value);
+  if (content.length === 0) return value;
+  return serializeTarefaRichText({ type: 'doc', content });
+}
+
+/** Texto plano do campo do daily — serve para exportação e validação. */
+export function dailyTextToPlain(value: string | null | undefined): string {
+  return tarefaRichTextToPlain(value).trim();
+}
+
+export function isDailyTextEmpty(value: string | null | undefined): boolean {
+  return dailyTextToPlain(value).length === 0;
+}
+
 export function createDailyEditDraft(standup?: DailyStandup): DailyEditDraft {
   return {
-    did_yesterday: standup?.did_yesterday || '',
-    will_do_today: standup?.will_do_today || '',
+    did_yesterday: toDailyRichText(standup?.did_yesterday),
+    will_do_today: toDailyRichText(standup?.will_do_today),
     blockers: standup?.blockers || '',
   };
 }
 
 export function hydrateDailyForm(standup: DailyStandup): DailyFormDraft {
   return {
-    did_yesterday: standup.did_yesterday || '',
-    will_do_today: standup.will_do_today || '',
+    did_yesterday: toDailyRichText(standup.did_yesterday),
+    will_do_today: toDailyRichText(standup.will_do_today),
     blockers: standup.blockers || '',
     sprint_id: standup.sprint_id || '',
     project_id: standup.project_id || '',
@@ -126,11 +158,30 @@ export function describeDailyMember(
   return userId === authenticatedUserId ? `${name} (você)` : name;
 }
 
-/** Acrescenta a referência da tarefa (código + título) numa nova linha do texto. */
+const isEmptyParagraph = (node: JSONContent | undefined): boolean =>
+  node?.type === 'paragraph' && !node.content?.length;
+
+/**
+ * Acrescenta a referência da tarefa (código + título) como item de lista no
+ * documento do editor: entra na lista que já está no fim do texto ou abre uma nova.
+ */
 export function appendTaskReference(text: string, task: DailyTaskChip): string {
-  const reference = `- ${task.task_code ? `[${task.task_code}] ` : ''}${task.title}`;
-  if (!text.trim()) return reference;
-  return text.endsWith('\n') ? `${text}${reference}` : `${text}\n${reference}`;
+  const label = `${task.task_code ? `[${task.task_code}] ` : ''}${task.title}`;
+  const item: JSONContent = {
+    type: 'listItem',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: label }] }],
+  };
+  const content = [...(parseTarefaRichText(toDailyRichText(text)).content ?? [])];
+  // Parágrafo vazio no fim (documento em branco, ou linha aberta) não vira "buraco".
+  if (isEmptyParagraph(content[content.length - 1])) content.pop();
+
+  const last = content[content.length - 1];
+  if (last?.type === 'bulletList') {
+    content[content.length - 1] = { ...last, content: [...(last.content ?? []), item] };
+  } else {
+    content.push({ type: 'bulletList', content: [item] });
+  }
+  return serializeTarefaRichText({ type: 'doc', content });
 }
 
 interface GroupableTask {
@@ -254,8 +305,8 @@ export function buildDailyExportRows(standups: DailyStandup[], lookups: DailyLoo
       hour: '2-digit',
       minute: '2-digit',
     }),
-    Ontem: standup.did_yesterday || '-',
-    Hoje: standup.will_do_today || '-',
+    Ontem: dailyTextToPlain(standup.did_yesterday) || '-',
+    Hoje: dailyTextToPlain(standup.will_do_today) || '-',
     Bloqueios: standup.blockers || '-',
     'Bloqueio (quem destrava)': standup.blocker_owner || '-',
   }));

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { MarkdownEditor } from '@/components/ui/markdown-editor';
+import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
 import {
   Select,
   SelectContent,
@@ -185,12 +185,26 @@ export function DailyFormCard({
               </Button>
             </div>
             {sprintTasks.length > 0 && <DailyTaskPicker tasks={sprintTasks} onPick={insertTask('did_yesterday')} />}
-            <MarkdownEditor value={form.did_yesterday} onChange={(did_yesterday) => onFormChange({ ...form, did_yesterday })} className="bg-white" placeholder="Descreva suas entregas de ontem..." required />
+            <TarefaRichTextEditor
+              value={form.did_yesterday}
+              onChange={(did_yesterday) => onFormChange({ ...form, did_yesterday })}
+              placeholder="Descreva suas entregas de ontem..."
+              ariaLabel="O que fiz ontem?"
+              minHeight="min-h-[100px]"
+              className="bg-white"
+            />
           </div>
           <div className="space-y-2">
             <Label className="text-gray-700 flex items-center gap-2"><Clock className="h-4 w-4 text-gray-500" />O que vou fazer hoje?</Label>
             {sprintTasks.length > 0 && <DailyTaskPicker tasks={sprintTasks} onPick={insertTask('will_do_today')} />}
-            <MarkdownEditor value={form.will_do_today} onChange={(will_do_today) => onFormChange({ ...form, will_do_today })} className="bg-white" placeholder="Suas tarefas para hoje..." required />
+            <TarefaRichTextEditor
+              value={form.will_do_today}
+              onChange={(will_do_today) => onFormChange({ ...form, will_do_today })}
+              placeholder="Suas tarefas para hoje..."
+              ariaLabel="O que vou fazer hoje?"
+              minHeight="min-h-[100px]"
+              className="bg-white"
+            />
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-3">

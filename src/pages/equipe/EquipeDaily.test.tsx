@@ -43,6 +43,28 @@ vi.mock('xlsx', () => ({
   },
   writeFile: mocks.writeFile,
 }));
+// O editor rico (TipTap) é trocado por um textarea: aqui interessa a fiação da tela,
+// e o formato de gravação do rich text é coberto nos testes de src/lib/equipeDaily.
+vi.mock('@/components/equipe/TarefaRichTextEditor', () => ({
+  TarefaRichTextEditor: ({
+    value,
+    onChange,
+    placeholder,
+    ariaLabel,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    ariaLabel?: string;
+  }) => (
+    <textarea
+      aria-label={ariaLabel}
+      placeholder={placeholder}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  ),
+}));
 vi.mock('@/components/equipe/EquipeLayout', () => ({
   EquipeLayout: ({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) => (
     <main>
@@ -54,6 +76,7 @@ vi.mock('@/components/equipe/EquipeLayout', () => ({
 }));
 
 import EquipeDaily from '@/pages/equipe/EquipeDaily';
+import { toDailyRichText } from '@/lib/equipeDaily';
 
 const members = [
   { id: 'auth-user', first_name: 'Ana', last_name: 'Silva' },
@@ -231,8 +254,8 @@ describe('EquipeDaily — caracterização', () => {
     expect(screen.queryByText(/\[ROTINA\]/)).not.toBeInTheDocument();
     expect(screen.getByText('Daily (15 min)')).toBeInTheDocument();
     expect(screen.getByText('Histórico de Dailys')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Descreva suas entregas de ontem...')).toBeRequired();
-    expect(screen.getByPlaceholderText('Suas tarefas para hoje...')).toBeRequired();
+    expect(screen.getByPlaceholderText('Descreva suas entregas de ontem...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Suas tarefas para hoje...')).toBeInTheDocument();
     expect(screen.getByText('Nenhum daily encontrado para os filtros selecionados')).toBeInTheDocument();
     expect(screen.getByText('Tente alterar a data ou os filtros')).toBeInTheDocument();
   });
@@ -285,6 +308,29 @@ describe('EquipeDaily — caracterização', () => {
       title: 'Daily registrado',
       description: 'O registro foi salvo com sucesso.',
     });
+  });
+
+  it('barra o envio quando ontem ou hoje estão vazios (o editor rico não tem required nativo)', async () => {
+    const user = userEvent.setup();
+    renderAfterAuthHydration();
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Registrar Daily' })).toBeEnabled());
+
+    await user.click(screen.getByRole('button', { name: 'Registrar Daily' }));
+    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(mocks.toast).toHaveBeenCalledWith({
+      title: 'Preencha ontem e hoje',
+      description: 'Descreva o que você fez ontem e o que vai fazer hoje.',
+      variant: 'destructive',
+    });
+
+    // Só um dos dois preenchido também não passa.
+    await user.type(screen.getByPlaceholderText('Descreva suas entregas de ontem...'), 'Fechei a análise');
+    await user.click(screen.getByRole('button', { name: 'Registrar Daily' }));
+    expect(mocks.insert).not.toHaveBeenCalled();
+
+    await user.type(screen.getByPlaceholderText('Suas tarefas para hoje...'), 'Enviar parecer');
+    await user.click(screen.getByRole('button', { name: 'Registrar Daily' }));
+    expect(mocks.insert).toHaveBeenCalledTimes(1);
   });
 
   it('hidrata meu daily, atualiza com o payload completo e faz refetch manual', async () => {
@@ -382,10 +428,12 @@ describe('EquipeDaily — caracterização', () => {
     await user.clear(blockers);
     await user.click(within(dialog).getByRole('button', { name: 'Salvar Alterações' }));
 
+    // Abrir um daily antigo no editor rico converte o markdown em nós de verdade
+    // (o negrito vira marca), então salvar regrava o campo já no formato novo.
     expect(mocks.update).toHaveBeenCalledWith({
       standupId: 'daily-own',
       payload: {
-        did_yesterday: '**Entrega concluída**',
+        did_yesterday: toDailyRichText('**Entrega concluída**'),
         will_do_today: 'Revisar relatório',
         blockers: null,
       },

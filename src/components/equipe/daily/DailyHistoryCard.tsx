@@ -4,11 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TarefaRichTextView } from '@/components/equipe/TarefaRichTextView';
 import type { DailyStandup, Sprint, TeamMember } from '@/hooks/useDomainEquipeDaily';
 import type { Cluster } from '@/hooks/useClusters';
 import type { DailyFilters, DailyLookups } from '@/lib/equipeDaily';
 import { SEM_CLUSTER } from '@/lib/clusterFilter';
 import { renderMarkdown } from '@/lib/markdownRenderer';
+import { hasTarefaRichTextMarker } from '@/lib/tarefaRichText';
 
 interface DailyHistoryCardProps {
   authenticatedUserId?: string;
@@ -166,9 +168,20 @@ function DailyStandupCard({
           </div>
         </div>
       </div>
-      {standup.did_yesterday && <div className="mb-2"><p className="text-xs text-gray-500 mb-1">Ontem:</p><div className="text-sm text-gray-700">{renderMarkdown(standup.did_yesterday)}</div></div>}
-      {standup.will_do_today && <div className="mb-2"><p className="text-xs text-gray-500 mb-1">Hoje:</p><div className="text-sm text-gray-700">{renderMarkdown(standup.will_do_today)}</div></div>}
+      {standup.did_yesterday && <div className="mb-2"><p className="text-xs text-gray-500 mb-1">Ontem:</p><DailyText value={standup.did_yesterday} /></div>}
+      {standup.will_do_today && <div className="mb-2"><p className="text-xs text-gray-500 mb-1">Hoje:</p><DailyText value={standup.will_do_today} /></div>}
       {standup.blockers && <div className="p-2 bg-yellow-50 rounded border border-yellow-200"><p className="text-xs text-yellow-700 mb-1">Bloqueio:</p><div className="text-sm text-yellow-800">{renderMarkdown(standup.blockers)}</div></div>}
     </div>
   );
+}
+
+/**
+ * Ontem/hoje do daily: conteúdo novo vem do editor rico; dailys anteriores foram
+ * escritos em markdown pelo editor antigo e continuam renderizados como markdown.
+ */
+function DailyText({ value }: { value: string }) {
+  if (hasTarefaRichTextMarker(value)) {
+    return <TarefaRichTextView value={value} className="text-sm text-gray-700" />;
+  }
+  return <div className="text-sm text-gray-700">{renderMarkdown(value)}</div>;
 }

@@ -51,6 +51,23 @@ describe('tarefaRichText', () => {
     );
   });
 
+  it('projeta lista com uma linha por item, sem linha em branco entre eles', () => {
+    const comLista = serializeTarefaRichText({
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Feito:' }] },
+        {
+          type: 'bulletList',
+          content: [
+            { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'item um' }] }] },
+            { type: 'listItem', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'item dois' }] }] },
+          ],
+        },
+      ],
+    });
+    expect(tarefaRichTextToPlain(comLista)).toBe('Feito:\nitem um\nitem dois');
+  });
+
   it('texto antigo sem marcador atravessa intacto na projeção', () => {
     expect(tarefaRichTextToPlain('descrição legada')).toBe('descrição legada');
     expect(tarefaRichTextToPlain(null)).toBe('');
