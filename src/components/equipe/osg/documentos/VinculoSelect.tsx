@@ -23,9 +23,17 @@ interface Props {
   pessoasPJ: EntidadeOpcao[];
   bens: EntidadeOpcao[];
   matriculas: EntidadeOpcao[];
+  /** Some com a opção "Sem vínculo" onde ela não faz sentido (modo Classificar: lá
+   *  quem cumpre esse papel é a válvula "não é de ninguém", no balde). */
+  mostrarSemVinculo?: boolean;
+  /** Texto exibido enquanto nada foi escolhido (quando não há opção "Sem vínculo"). */
+  placeholder?: string;
 }
 
-export function VinculoSelect({ value, onChange, pessoasPF, pessoasPJ, bens, matriculas }: Props) {
+export function VinculoSelect({
+  value, onChange, pessoasPF, pessoasPJ, bens, matriculas,
+  mostrarSemVinculo = true, placeholder = 'Selecione...',
+}: Props) {
   const [open, setOpen] = useState(false);
   const [blocoAberto, setBlocoAberto] = useState<string | null>(null);
 
@@ -42,12 +50,12 @@ export function VinculoSelect({ value, onChange, pessoasPF, pessoasPJ, bens, mat
 
   const semVinculo = value === 'sem' || !value;
   const labelAtual = useMemo(() => {
-    if (semVinculo) return 'Sem vínculo — apenas o cliente';
+    if (semVinculo) return mostrarSemVinculo ? 'Sem vínculo — apenas o cliente' : placeholder;
     const [, id] = value.split(':');
     return (
       [...pessoasPF, ...pessoasPJ, ...bens, ...matriculas].find((e) => e.id === id)?.label ?? 'Selecionado'
     );
-  }, [value, semVinculo, pessoasPF, pessoasPJ, bens, matriculas]);
+  }, [value, semVinculo, mostrarSemVinculo, placeholder, pessoasPF, pessoasPJ, bens, matriculas]);
 
   const escolher = (v: string) => {
     onChange(v);
@@ -76,7 +84,14 @@ export function VinculoSelect({ value, onChange, pessoasPF, pessoasPJ, bens, mat
             fieldCls,
           )}
         >
-          <span className="min-w-0 flex-1 truncate text-left">{labelAtual}</span>
+          <span
+            className={cn(
+              'min-w-0 flex-1 truncate text-left',
+              semVinculo && !mostrarSemVinculo && 'text-muted-foreground',
+            )}
+          >
+            {labelAtual}
+          </span>
           <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
         </button>
       </PopoverTrigger>
@@ -85,16 +100,20 @@ export function VinculoSelect({ value, onChange, pessoasPF, pessoasPJ, bens, mat
         collisionPadding={12}
         className="w-[var(--radix-popover-trigger-width)] max-h-[var(--radix-popover-content-available-height)] overflow-y-auto p-1"
       >
-        <button
-          type="button"
-          onClick={() => escolher('sem')}
-          className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-osg-50"
-        >
-          <span>Sem vínculo — apenas o cliente</span>
-          {semVinculo && <Check className="h-4 w-4 shrink-0 text-osg-700" />}
-        </button>
+        {mostrarSemVinculo && (
+          <>
+            <button
+              type="button"
+              onClick={() => escolher('sem')}
+              className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-osg-50"
+            >
+              <span>Sem vínculo — apenas o cliente</span>
+              {semVinculo && <Check className="h-4 w-4 shrink-0 text-osg-700" />}
+            </button>
 
-        <div className="my-1 h-px bg-osg-100" />
+            <div className="my-1 h-px bg-osg-100" />
+          </>
+        )}
 
         <div>
           {blocos.map((b) => {

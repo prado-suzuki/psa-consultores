@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { BookOpen } from 'lucide-react';
 import { useAccessibleDashboards } from '@/hooks/useAccessibleDashboards';
 import { useDashboardEmbedUrl } from '@/hooks/useDashboardEmbedUrl';
 import { DashboardIframe } from '@/components/dashboards/DashboardIframe';
+import { ID_NATIVO, idParaEmbed, montarOpcoes, selecaoEfetiva } from '@/lib/dashboardsSeletor';
 
 /**
  * Bloco reutilizável de "biblioteca de dashboards" dirigido pelo banco (DB-driven).
@@ -24,6 +25,13 @@ interface DashboardEmbedViewProps {
   /** Mostra o overlay animado de "Carregando relatório…" sobre o iframe. */
   loadingOverlay?: boolean;
   className?: string;
+  /**
+   * Painel nativo da tela, que entra como primeira opção do seletor em vez de
+   * viver fora dele. Não é um embed: renderiza o próprio conteúdo. Usado pelas
+   * Gerenciais da Tax e da OSG, onde o dashboard de Clientes e OS é um
+   * componente React. Sem esta prop, a tela se comporta como sempre.
+   */
+  nativo?: { nome: string; conteudo: ReactNode };
 }
 
 export function DashboardEmbedView({
@@ -31,27 +39,23 @@ export function DashboardEmbedView({
   emptyMessage = 'Nenhum dashboard disponível para o seu usuário.',
   loadingOverlay = false,
   className,
+  nativo,
 }: DashboardEmbedViewProps) {
   const { data: dashboards = [], isLoading, error } = useAccessibleDashboards(targetPage);
-  const [selectedId, setSelectedId] = useState<string>('');
+  const [escolhido, setEscolhido] = useState<string>('');
 
-  // Auto-seleciona o primeiro; corrige se o selecionado sair da lista.
-  useEffect(() => {
-    if (dashboards.length === 0) {
-      if (selectedId !== '') setSelectedId('');
-      return;
-    }
-    if (!dashboards.some((d) => d.id === selectedId)) {
-      setSelectedId(dashboards[0].id);
-    }
-  }, [dashboards, selectedId]);
+  const opcoes = useMemo(() => montarOpcoes(dashboards, nativo?.nome), [dashboards, nativo?.nome]);
+  // Derivado, não estado: a seleção efetiva cai na primeira opção enquanto o
+  // usuário não escolher, e se corrige sozinha quando a lista muda.
+  const selecionado = selecaoEfetiva(opcoes, escolhido);
+  const ehNativo = selecionado === ID_NATIVO;
 
   const selected = useMemo(
-    () => dashboards.find((d) => d.id === selectedId) ?? null,
-    [dashboards, selectedId],
+    () => dashboards.find((d) => d.id === selecionado) ?? null,
+    [dashboards, selecionado],
   );
 
-  const { data: embed, isLoading: isLoadingUrl } = useDashboardEmbedUrl(selected?.id ?? null);
+  const { data: embed, isLoading: isLoadingUrl } = useDashboardEmbedUrl(idParaEmbed(opcoes, escolhido));
 
   if (isLoading) {
     return <Skeleton className="h-[480px] w-full max-w-[1280px]" />;
@@ -70,7 +74,9 @@ export function DashboardEmbedView({
     );
   }
 
-  if (dashboards.length === 0) {
+  // Vazio é não ter opção nenhuma. Com painel nativo, a tela nunca fica vazia,
+  // mesmo que o usuário não tenha relatório do Looker liberado.
+  if (opcoes.length === 0) {
     return (
       <div className="rounded-xl border border-slate-200 p-8 text-center">
         <p className="text-sm text-slate-500">{emptyMessage}</p>
@@ -83,14 +89,14 @@ export function DashboardEmbedView({
       <div className="mb-3 flex flex-wrap items-end gap-3">
         <div className="min-w-0">
           <label className="text-[11px] font-medium uppercase tracking-wide mb-1 block text-slate-500">Relatório</label>
-          <Select value={selectedId} onValueChange={setSelectedId}>
+          <Select value={selecionado} onValueChange={setEscolhido}>
             <SelectTrigger className="w-[320px] h-10 rounded-lg border-slate-200 bg-white px-3 text-left text-sm font-medium text-slate-800 shadow-sm">
               <SelectValue placeholder="Selecione um relatório" />
             </SelectTrigger>
             <SelectContent>
-              {dashboards.map((d) => (
-                <SelectItem key={d.id} value={d.id}>
-                  {d.name}
+              {opcoes.map((o) => (
+                <SelectItem key={o.id} value={o.id}>
+                  {o.nome}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -108,14 +114,18 @@ export function DashboardEmbedView({
         )}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <DashboardIframe
-          embed={embed}
-          isLoading={isLoadingUrl}
-          title={selected?.name ?? 'Dashboard'}
-          showLoading={loadingOverlay}
-        />
-      </div>
+      {ehNativo ? (
+        nativo!.conteudo
+      ) : (
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <DashboardIframe
+            embed={embed}
+            isLoading={isLoadingUrl}
+            title={selected?.name ?? 'Dashboard'}
+            showLoading={loadingOverlay}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -64,7 +64,7 @@ export function DocVinculoDialog({ open, onOpenChange, doc, clienteId, pessoas, 
       return;
     }
     atualizar.mutate(
-      { id: doc.id, patch: valueToPatch(alvo) },
+      { id: doc.id, patch: valueToPatch(alvo), origem: 'Vínculo manual pelo Explorador de Arquivos' },
       { onSuccess: () => onOpenChange(false) },
     );
   };

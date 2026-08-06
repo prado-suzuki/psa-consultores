@@ -4,9 +4,9 @@ interface FieldPairProps {
 }
 
 const FieldPair = ({ label, value }: FieldPairProps) => (
-  <div>
+  <div className="min-w-0">
     <span className="text-[10px] font-bold uppercase text-muted-foreground">{label}</span>
-    <div className="text-sm text-foreground">{value || "—"}</div>
+    <div className="break-words text-sm text-foreground">{value || "—"}</div>
   </div>
 );
 

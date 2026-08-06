@@ -12,6 +12,11 @@ export const DASHBOARD_PAGES = [
   { key: 'cliente', label: 'Área do Cliente → Dashboards', path: '/cliente' },
   { key: 'dev_gerenciar_dados', label: 'Digital DEV → Gerenciar Dados', path: '/equipe/dev/gerenciar-dados/dashboards' },
   { key: 'dev_perdcomp', label: 'Digital DEV → PERDCOMP', path: '/equipe/dev/perdcomp/dashboard' },
+  // Gerenciais: o seletor dessas duas telas já traz o painel nativo de Clientes
+  // e OS como primeira opção; o que for cadastrado aqui entra em seguida.
+  // Cadastre com filter_type = "cluster": as telas prometem "do seu cluster".
+  { key: 'tax_gerencial', label: 'Tax → Gerencial', path: '/equipe/tax/gerencial' },
+  { key: 'osg_gerencial', label: 'OSG → Gerencial', path: '/equipe/osg/gerencial' },
 ] as const;
 
 export type DashboardPageKey = (typeof DASHBOARD_PAGES)[number]['key'];

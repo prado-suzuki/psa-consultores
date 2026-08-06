@@ -74,6 +74,8 @@ export default function ProjetoDetalheModal({
   // `proc` preenchido = só aquele processo.
   const [diagramaCol, setDiagramaCol] = useState<{ modo: 'as' | 'to'; proc: Processo | null } | null>(null);
   const [addProcOpen, setAddProcOpen] = useState(false);
+  // Processo em edição pelo próprio painel (sem navegar para outra tela).
+  const [editProc, setEditProc] = useState<Processo | null>(null);
   const exports = useMapaExports();
   const toggle = (id: string) => setExpandidos(prev => {
     const next = new Set(prev);
@@ -191,6 +193,11 @@ export default function ProjetoDetalheModal({
                       <AlertTriangle size={13} /> {emMapeamento} em mapeamento (fora do consolidado)
                     </span>
                   )}
+                  {/* Adicionar também com a lista cheia — antes só o estado vazio
+                      tinha CTA, então projeto com processo não tinha como incluir. */}
+                  <button type="button" className="cadastro-cta" style={{ marginLeft: 'auto' }} onClick={() => setAddProcOpen(true)}>
+                    <Plus size={15} strokeWidth={2.2} /><span>Adicionar processo</span>
+                  </button>
                 </div>
                 <div className="projeto-detail-row-list">
                   {processos.map((processo, index) => {
@@ -222,7 +229,22 @@ export default function ProjetoDetalheModal({
                                 ? ets.map(et => <span key={et.id}>{et.stage_order ?? '•'}. {et.name}</span>)
                                 : <em>Nenhuma etapa mapeada.</em>}
                             </div>
-                            <Link to={`/equipe/digital/mapa/processos/${encodeURIComponent(processo.id)}/mapear`}>Abrir mapeamento</Link>
+                            {/* Editar aqui mesmo; o link segue levando ao mapeamento das etapas. */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                              <button
+                                type="button"
+                                onClick={() => setEditProc(processo)}
+                                style={{
+                                  display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none',
+                                  border: 'none', padding: 0, color: '#0d9488', cursor: 'pointer',
+                                  fontSize: '0.82rem', fontWeight: 600,
+                                }}
+                              >
+                                <Pencil size={13} strokeWidth={2.2} aria-hidden="true" />
+                                Editar processo
+                              </button>
+                              <Link to={`/equipe/digital/mapa/processos/${encodeURIComponent(processo.id)}/mapear`}>Abrir mapeamento</Link>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -520,12 +542,14 @@ export default function ProjetoDetalheModal({
           }
         />
       )}
-      {/* Adicionar processo sem sair do painel — já vinculado a este projeto. */}
+      {/* Criar e editar processo sem sair do painel. Uma instância serve aos dois:
+          com `processo` preenchido o form abre em edição; nulo, cria já vinculado
+          a este projeto (o ProcessoFormModal ignora `projetoIdInicial` na edição). */}
       <ProcessoFormModal
-        aberto={addProcOpen}
-        processo={null}
+        aberto={addProcOpen || Boolean(editProc)}
+        processo={editProc}
         projetoIdInicial={projeto.id}
-        onClose={() => setAddProcOpen(false)}
+        onClose={() => { setAddProcOpen(false); setEditProc(null); }}
       />
     </Modal>
   );

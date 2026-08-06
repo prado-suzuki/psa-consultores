@@ -10,6 +10,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { Trash2 } from 'lucide-react';
 import Modal from '@/components/equipe/mapa/Modal';
 import FormField from '@/components/equipe/mapa/FormField';
 import Select from '@/components/equipe/mapa/Select';
@@ -17,7 +18,7 @@ import { dica } from '@/utils/tooltips';
 import type { Processo, StatusAvaliacao } from '@/types';
 import { useProjetosLista } from '@/hooks/useDominioListas';
 import { useClusterGlobal } from '@/hooks/useClusterGlobal';
-import { useCreateProcesso, useUpdateProcesso } from '@/hooks/useProcessos';
+import { useCreateProcesso, useUpdateProcesso, useDeleteProcesso } from '@/hooks/useProcessos';
 import {
   STATUS_AVALIACAO_OPCOES, COMPLEXIDADE_OPCOES, normalizarComplexidade,
 } from '@/components/equipe/mapa/cadastros/processoOpcoes';
@@ -47,6 +48,7 @@ const EMPTY: FormValues = { nome: '', projetoId: '', descricao: '', volumeAnual:
 export default function ProcessoFormModal({ aberto, processo, codigo, projetoIdInicial, onClose }: Props) {
   const createProcesso = useCreateProcesso();
   const updateProcesso = useUpdateProcesso();
+  const deleteProcesso = useDeleteProcesso();
   const { data: projetos = [] } = useProjetosLista();
   const { cluster } = useClusterGlobal();
 
@@ -55,6 +57,8 @@ export default function ProcessoFormModal({ aberto, processo, codigo, projetoIdI
     formState: { errors, dirtyFields, isDirty, isSubmitting },
   } = useForm<FormValues>({ resolver: zodResolver(schema), defaultValues: EMPTY });
   const [confirmSair, setConfirmSair] = useState(false);
+  const [confirmExcluir, setConfirmExcluir] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
 
   const hidratado = useRef(false);
   useEffect(() => {
@@ -86,6 +90,21 @@ export default function ProcessoFormModal({ aberto, processo, codigo, projetoIdI
   );
 
   const requestClose = () => { if (isDirty) setConfirmSair(true); else onClose(); };
+
+  const excluir = async () => {
+    if (!processo) return;
+    setExcluindo(true);
+    try {
+      await deleteProcesso.mutateAsync({ id: processo.id, old: processo });
+      toast.success('Processo excluído');
+      setConfirmExcluir(false);
+      onClose();  // o processo não existe mais: fecha o form junto
+    } catch (err) {
+      toast.error('Erro ao excluir processo', { description: err instanceof Error ? err.message : String(err) });
+    } finally {
+      setExcluindo(false);
+    }
+  };
 
   const onSubmit = async (v: FormValues) => {
     // O processo herda o cluster do projeto (senão nasce sem cluster e some da lista).
@@ -146,7 +165,24 @@ export default function ProcessoFormModal({ aberto, processo, codigo, projetoIdI
             )}
           </div>
           <div className="processo-det-acoes">
-            <button type="button" className="btn-cancel" onClick={requestClose}>Cancelar</button>
+            {/* Na edição, o lugar do "Cancelar" é do excluir: o "Sair" do modal
+                já fecha. Na criação não há o que excluir, então segue Cancelar. */}
+            {processo ? (
+              <button
+                type="button"
+                className="btn-cancel"
+                style={{
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  whiteSpace: 'nowrap', color: '#b91c1c', borderColor: '#fecaca',
+                }}
+                onClick={() => setConfirmExcluir(true)}
+              >
+                <Trash2 size={14} strokeWidth={2.2} aria-hidden="true" style={{ flexShrink: 0 }} />
+                Excluir
+              </button>
+            ) : (
+              <button type="button" className="btn-cancel" onClick={requestClose}>Cancelar</button>
+            )}
             <button type="submit" className="cadastro-cta" disabled={isSubmitting} data-tour="modal-salvar">
               {isSubmitting ? 'Salvando...' : 'Salvar'}
             </button>
@@ -188,6 +224,28 @@ export default function ProcessoFormModal({ aberto, processo, codigo, projetoIdI
           </div>
         </div>
         <ConfirmarDescarte open={confirmSair} onContinuar={() => setConfirmSair(false)} onDescartar={() => { setConfirmSair(false); onClose(); }} />
+        {/* Overlay inline (não Modal aninhado) e botões type="button": o Modal
+            deste repo não usa portal, então um submit aqui dentro enviaria o form. */}
+        {confirmExcluir && processo && (
+          <div className="mapear-confirm-sair" role="alertdialog" aria-modal="true">
+            <div className="mapear-confirm-card">
+              <h3>Excluir processo</h3>
+              <p>
+                Tem certeza que deseja excluir <strong>{processo.name}</strong>? As etapas e o
+                mapeamento (Como Era e Como Ficou) deste processo serão removidos.
+                Esta ação não pode ser desfeita.
+              </p>
+              <div className="modal-actions">
+                <button type="button" className="btn-cancel" onClick={() => setConfirmExcluir(false)} disabled={excluindo}>
+                  Manter processo
+                </button>
+                <button type="button" className="btn-save" style={{ background: '#b91c1c' }} onClick={excluir} disabled={excluindo}>
+                  {excluindo ? 'Excluindo...' : 'Excluir'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </form>
     </Modal>
   );

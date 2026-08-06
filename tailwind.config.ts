@@ -1,5 +1,31 @@
 import type { Config } from 'tailwindcss';
 import animate from 'tailwindcss-animate';
+import plugin from 'tailwindcss/plugin';
+
+// Container queries. O Tailwind 3 (versão deste repo) não as tem nativas — só o
+// v4 tem — e o plugin oficial (@tailwindcss/container-queries) não está
+// instalado. Este plugin local cobre exatamente o que os formulários OSG usam:
+//   `@container`        → declara o elemento como contêiner de consulta
+//   `@2xl:grid-cols-3`  → aplica quando o CONTÊINER (não a janela) tem ≥ 42rem
+// A escala de nomes é a mesma do plugin oficial e do Tailwind v4, então trocar
+// este plugin por um deles depois é remover estas linhas, sem tocar no JSX.
+const CONTAINER_SIZES = {
+  xs: '20rem', sm: '24rem', md: '28rem', lg: '32rem', xl: '36rem',
+  '2xl': '42rem', '3xl': '48rem', '4xl': '56rem', '5xl': '64rem',
+};
+
+const containerQueries = plugin(
+  ({ matchUtilities, matchVariant, theme }) => {
+    matchUtilities(
+      { '@container': (value: string) => ({ 'container-type': value }) },
+      { values: { DEFAULT: 'inline-size', normal: 'normal' } },
+    );
+    matchVariant('@', (value = '') => `@container (min-width: ${value})`, {
+      values: theme('containers') ?? {},
+    });
+  },
+  { theme: { containers: CONTAINER_SIZES } },
+);
 
 export default {
   darkMode: ['class'],
@@ -375,5 +401,5 @@ export default {
       },
     },
   },
-  plugins: [animate],
+  plugins: [animate, containerQueries],
 } satisfies Config;

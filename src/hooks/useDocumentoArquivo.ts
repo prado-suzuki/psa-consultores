@@ -7,6 +7,10 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { checklistClienteKey } from '@/hooks/useOsgChecklist';
 import { getApiUrl, currentAmbiente } from '@/config/api';
 import type { Database } from '@/integrations/supabase/types';
+// Só o tipo: as chaves dos 4 grupos são definidas em agrupadorDocumentos, que é
+// a fonte única. O import é `type` dos dois lados, então o ciclo some no build.
+import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
+import { computeFieldDiff } from '@/lib/diffUtils';
 
 export type DocumentoArquivoRow = Database['public']['Tables']['documento_arquivo']['Row'];
 export type DocCategoria = Database['public']['Enums']['osg_doc_categoria'];
@@ -75,6 +79,18 @@ interface UploadArgs {
   nrMatricula?: string | null;
   /** Origem do arquivo; default 'cliente' (recebido). 'psa' = produzido internamente. */
   fonte?: DocFonte;
+  /**
+   * A solicitação em resposta à qual o arquivo chegou.
+   *
+   * Grava `documento_arquivo.solicitacao_id`, coluna que existia desde a EDU-23 e
+   * que ninguém preenchia — todo arquivo nascia sem saber de qual pedido veio, e o
+   * cliente que abria pedido novo continuava vendo os arquivos do ciclo anterior.
+   *
+   * Só RASTREIA: nenhuma leitura filtra por ela. A lista do cliente segue por
+   * `documento_arquivo.cliente_id`, porque um arquivo entregue continua valendo
+   * depois que o pedido fecha.
+   */
+  solicitacaoId?: string | null;
   /** Suprime os toasts por-arquivo (usado no upload em massa, que mostra um resumo). */
   silencioso?: boolean;
 }
@@ -117,8 +133,7 @@ interface ArquivoGcsResultado {
 
 /**
  * Helper: sign-upload → PUT no GCS → finalize. Reusado por `enviarUmDocumento`
- * (fluxo interno da equipe) e por `useUploadDocumentoSolicitado` (EDU-03), onde
- * o insert em `documento_arquivo` é feito server-side por RPC.
+ * (fluxo interno da equipe) e pelo upload da área do cliente.
  */
 async function subirArquivoGcs(
   fetchWithAuth: FetchWithAuth,
@@ -185,7 +200,7 @@ async function subirArquivoGcs(
  * sem afetar a UI — só o orquestrador muda.
  */
 async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs): Promise<DocumentoArquivoRow> {
-  const { clienteId, vinculo, categoria, file, nrMatricula, fonte = 'cliente' } = args;
+  const { clienteId, vinculo, categoria, file, nrMatricula, fonte = 'cliente', solicitacaoId } = args;
 
   const gcs = await subirArquivoGcs(fetchWithAuth, {
     clienteId,
@@ -205,6 +220,7 @@ async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs)
       bem_id: vinculo.bemId ?? null,
       matricula_id: vinculo.matriculaId ?? null,
       pessoa_id: vinculo.pessoaId ?? null,
+      solicitacao_id: solicitacaoId ?? null,
       nome_original: file.name,
       gcs_uri: gcs.gcs_uri,
       checksum: gcs.checksum,
@@ -251,13 +267,20 @@ export function useUploadDocumentoCliente() {
     // `categoria` é opcional e existe para a coleta por grupo (Pessoas Físicas,
     // Jurídicas, Imóveis): é só uma gaveta de entrada, a classificação fina
     // continua sendo da PSA. Sem ela, cai em 'outros' como antes.
-    mutationFn: (args: { clienteId: string; file: File; categoria?: DocCategoria }) =>
+    mutationFn: (args: {
+      clienteId: string;
+      file: File;
+      categoria?: DocCategoria;
+      /** A solicitação enviada que motivou o envio; grava para rastrear a origem. */
+      solicitacaoId?: string | null;
+    }) =>
       enviarUmDocumento(fetchWithAuth, {
         clienteId: args.clienteId,
         vinculo: {},
         categoria: args.categoria ?? 'outros',
         file: args.file,
         fonte: 'cliente',
+        solicitacaoId: args.solicitacaoId ?? null,
       }),
     onSuccess: (_row, vars) => {
       qc.invalidateQueries({ queryKey: [LIST_KEY, vars.clienteId] });
@@ -391,86 +414,76 @@ export function useUploaderNames(userIds: string[]) {
   });
 }
 
+// A leitura do checklist pelo cliente (EDU-03: ChecklistSolicitadoItem e
+// useChecklistSolicitadoCliente) saiu na EDU-27, junto com a tela que a usava.
+// Quem entrega o pedido ao cliente agora é useSolicitacaoAtivaCliente, abaixo.
+// A RPC get_checklist_solicitado_cliente continua no banco, órfã: apagá-la é
+// tarefa própria, fora do escopo da EDU-27.
+
 /**
- * EDU-03: item do checklist solicitado pela PSA, do ponto de vista do cliente.
- * Retornado por `get_checklist_solicitado_cliente`.
+ * EDU-24: item da solicitação enviada, do ponto de vista do cliente.
+ *
+ * `documento`, `nota` e `entidade` já chegam resolvidos: a linha de
+ * solicitacao_item não copia texto do catálogo, e o coalesce com documento_tipo
+ * acontece dentro da RPC.
+ *
+ * `grupo` é a gaveta, gravada na própria linha. É por ela que a área do cliente
+ * agrupa, e não mais pelo texto de `entidade`.
  */
-export interface ChecklistSolicitadoItem {
-  item_id: string;
+export interface SolicitacaoItemCliente {
+  id: string;
+  grupo: GrupoDocumentoKey;
   documento: string;
-  entidade: string;
-  categoria: string | null;
-  categoria_docbox: string | null;
   nota: string | null;
-  confidencial: boolean;
-  rotulo_instancia: string | null;
-  recebido: boolean;
-  arquivo_nome: string | null;
+  entidade: string | null;
+  ordem: number | null;
 }
 
-/** EDU-03: lista o checklist que a PSA pediu para o cliente logado. */
-export function useChecklistSolicitadoCliente(clienteId: string | null) {
+/** EDU-24: cabeçalho da solicitação enviada. Nulo quando não há pedido enviado. */
+export interface SolicitacaoAtivaHeader {
+  id: string;
+  status: string;
+  enviada_em: string | null;
+}
+
+/** EDU-24: retorno de `get_solicitacao_ativa_cliente`. */
+export interface SolicitacaoAtivaCliente {
+  solicitacao: SolicitacaoAtivaHeader | null;
+  itens: SolicitacaoItemCliente[];
+}
+
+const SOLICITACAO_VAZIA: SolicitacaoAtivaCliente = { solicitacao: null, itens: [] };
+
+/**
+ * EDU-24: a solicitação ENVIADA do cliente logado e os itens ativos dela.
+ *
+ * A RPC não recebe argumento: ela resolve o cliente por `auth.uid()` e é
+ * SECURITY DEFINER, então o filtro por cliente mora dentro dela. O `clienteId`
+ * entra só na chave de cache e no `enabled`, para a consulta não disparar antes
+ * de o cliente do usuário estar resolvido.
+ *
+ * Sem pedido enviado (rascunho, encerrada ou nenhuma), a RPC devolve
+ * `solicitacao: null` e `itens: []`. Nunca null puro, então o front trata um
+ * formato só.
+ */
+export function useSolicitacaoAtivaCliente(clienteId: string | null) {
   return useQuery({
-    queryKey: ['checklist-solicitado', clienteId ?? '∅'],
+    queryKey: ['solicitacao-ativa-cliente', clienteId ?? '∅'],
     enabled: !!clienteId,
-    queryFn: async (): Promise<ChecklistSolicitadoItem[]> => {
+    queryFn: async (): Promise<SolicitacaoAtivaCliente> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.rpc as any)('get_checklist_solicitado_cliente');
+      const { data, error } = await (supabase.rpc as any)('get_solicitacao_ativa_cliente');
       if (error) throw error;
-      return (data ?? []) as ChecklistSolicitadoItem[];
+      return (data ?? SOLICITACAO_VAZIA) as SolicitacaoAtivaCliente;
     },
     staleTime: 60 * 1000,
   });
 }
 
-/**
- * EDU-03: envia um arquivo classificado contra um item do checklist. Faz o
- * upload no GCS via helper e depois chama a RPC `anexar_documento_solicitado`
- * — a categoria/vínculo/checklist_item_id são copiados server-side do item.
- * Recusa localmente `georreferenciamento` (a RPC também recusa).
- */
-export function useUploadDocumentoSolicitado() {
-  const { fetchWithAuth } = useApiAuth();
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async (args: {
-      clienteId: string;
-      itemId: string;
-      categoria: DocCategoria | null;
-      file: File;
-    }): Promise<string> => {
-      const { clienteId, itemId, categoria, file } = args;
-      if (categoria === 'georreferenciamento') {
-        throw new Error('Documentos de georreferenciamento não são enviados por aqui.');
-      }
-      const categoriaEfetiva: DocCategoria = (categoria ?? 'outros') as DocCategoria;
-      const gcs = await subirArquivoGcs(fetchWithAuth, {
-        clienteId,
-        file,
-        categoria: categoriaEfetiva,
-      });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.rpc as any)('anexar_documento_solicitado', {
-        _item_id: itemId,
-        _gcs_uri: gcs.gcs_uri,
-        _checksum: gcs.checksum,
-        _tamanho: gcs.tamanho,
-        _mime: gcs.mime,
-        _nome_original: file.name,
-        _ambiente: gcs.ambiente,
-      });
-      if (error) throw error;
-      return data as string;
-    },
-    onSuccess: (_id, vars) => {
-      qc.invalidateQueries({ queryKey: ['checklist-solicitado', vars.clienteId] });
-      qc.invalidateQueries({ queryKey: [LIST_KEY, vars.clienteId] });
-      toast({ title: 'Documento enviado' });
-    },
-    onError: (e: unknown) =>
-      toast({ title: 'Erro ao enviar documento', description: (e as Error).message, variant: 'destructive' }),
-  });
-}
+// O upload por item (EDU-03: useUploadDocumentoSolicitado) saiu na EDU-27 com a
+// tela que o chamava. O cliente agora envia pela gaveta, com
+// useUploadDocumentoCliente, e a classificação item x arquivo é trabalho
+// posterior do analista. A RPC anexar_documento_solicitado fica no banco.
 
 /**
  * Campos editáveis de um documento já existente (Fase 0 — base para
@@ -485,21 +498,85 @@ export interface AtualizarDocumentoPatch {
   bem_id?: string | null;
   matricula_id?: string | null;
   pessoa_id?: string | null;
+  /**
+   * Marca de triagem (BER-39): preenchida quando alguém decidiu que o arquivo
+   * não é de nenhuma entidade e sim do cliente como um todo. A constraint
+   * `documento_arquivo_um_dono_apenas` recusa esta marca junto com um dono, por
+   * isso quem a envia tem de zerar as três colunas de vínculo na mesma jogada.
+   */
+  triado_em?: string | null;
 }
+
+/**
+ * Colunas que definem de quem é o arquivo. São as únicas que o log acompanha:
+ * renomear e trocar categoria passam por aqui e não viram histórico, de
+ * propósito — o que interessa registrar é a mudança de dono.
+ */
+const CAMPOS_DE_VINCULO = ['pessoa_id', 'bem_id', 'matricula_id', 'triado_em'];
 
 /** Atualiza um documento (categoria, vínculo ou nome exibido) direto no Supabase. */
 export function useAtualizarDocumento(clienteId: string) {
   const qc = useQueryClient();
+  const { logAction } = useAuditLog();
   return useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: AtualizarDocumentoPatch }): Promise<DocumentoArquivoRow> => {
+    mutationFn: async (
+      { id, patch, origem }: { id: string; patch: AtualizarDocumentoPatch; origem?: string },
+    ): Promise<DocumentoArquivoRow> => {
+      // O "antes" do log não sai do update: o PostgREST devolve só a linha nova.
+      // Busco a anterior aqui dentro, e não peço ao chamador, por dois motivos:
+      // os quatro consumidores auditam sem precisar ser alterados, e ninguém
+      // registra um "antes" errado por esquecer de passar.
+      const { data: anterior } = await supabase
+        .from('documento_arquivo')
+        .select('pessoa_id, bem_id, matricula_id, triado_em')
+        .eq('id', id)
+        .maybeSingle();
+
+      // `triado_por` acompanha `triado_em`: quem decidiu sai da sessão, e não do
+      // patch, para a lib de regras seguir pura. Marca posta preenche o autor;
+      // marca desfeita (triado_em null) limpa junto.
+      let corpo: AtualizarDocumentoPatch & { triado_por?: string | null } = patch;
+      if ('triado_em' in patch) {
+        const { data: sessao } = await supabase.auth.getUser();
+        corpo = { ...patch, triado_por: patch.triado_em ? (sessao.user?.id ?? null) : null };
+      }
       const { data, error } = await supabase
         .from('documento_arquivo')
-        .update(patch)
+        .update(corpo)
         .eq('id', id)
         .select('*')
         .single();
       if (error) throw error;
-      return data as DocumentoArquivoRow;
+      const linha = data as DocumentoArquivoRow;
+
+      const mudou = computeFieldDiff(
+        anterior as Record<string, unknown> | null,
+        linha as unknown as Record<string, unknown>,
+        CAMPOS_DE_VINCULO,
+      );
+      if (Object.keys(mudou).length > 0) {
+        // Sem await e dentro de try/catch: o vínculo já está gravado, e uma
+        // falha de auditoria não pode derrubá-lo nem segurar o consultor que
+        // está varrendo o balde. O próprio logAction já engole erro; a guarda
+        // aqui vale mesmo que ele mude, e cobre tanto rejeição quanto erro
+        // síncrono.
+        void (async () => {
+          try {
+            await logAction({
+              area: 'osg',
+              entity_type: 'documento_arquivo',
+              entity_id: linha.id,
+              entity_name: linha.nome_original,
+              action: 'updated',
+              changed_fields: mudou,
+              details: origem,
+            });
+          } catch {
+            // silêncio proposital: auditoria é registro, não caminho crítico
+          }
+        })();
+      }
+      return linha;
     },
     onSuccess: () => {
       // Prefixo [LIST_KEY, clienteId] cobre a lista central e as por vínculo.

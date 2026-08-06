@@ -14,6 +14,7 @@ import {
   type DocCategoria, type DocumentoArquivoRow,
 } from '@/hooks/useDocumentoArquivo';
 import { ACCEPT, MAX_BYTES } from '@/components/equipe/osg/documentos/docMeta';
+import { temVinculo } from '@/lib/exploradorDocumentos';
 import { toast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import type { ProjectPrefillLocationState } from '@/lib/projetosCadastro';
@@ -58,7 +59,14 @@ const normalize = (value: string) => value.toLocaleLowerCase('pt-BR');
 const matchDocs = (req: ReqDoc, docs: DocumentoArquivoRow[]): DocumentoArquivoRow[] =>
   docs.filter((doc) => {
     const nome = normalize(doc.nome_original ?? '');
+    // Pelo nome do arquivo continua valendo para qualquer documento: quem se
+    // chama "contrato social" provavelmente é.
     if (req.kw.some((keyword) => nome.includes(keyword))) return true;
+    // Pela categoria, só depois de alguém vincular. A Área do Cliente grava a
+    // categoria pela gaveta que o cliente escolheu, então um arquivo qualquer
+    // largado em "Pessoas Jurídicas" marcaria "Contrato social" como entregue
+    // sem ninguém ter aberto o documento.
+    if (!temVinculo(doc)) return false;
     return !!req.cat && doc.categoria === req.cat;
   });
 

@@ -14,16 +14,14 @@ import {
   LogOut,
   FolderKanban,
   ArrowLeft,
-  LayoutDashboard,
   FileUp,
 } from "lucide-react";
 import { format, isAfter, isBefore, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { DashboardFilters } from "@/components/cliente/DashboardFilters";
-import { DashboardEmbedView } from "@/components/dashboards/DashboardEmbedView";
-import { useAccessibleDashboards } from "@/hooks/useAccessibleDashboards";
-import { ChecklistDocumentosConteudo } from "@/components/cliente/ChecklistDocumentosConteudo";
 import { ColetaDocumentosCliente } from "@/components/cliente/ColetaDocumentosCliente";
+import { useClienteAtual } from "@/hooks/useClienteAtual";
+import { useSolicitacaoAtivaCliente } from "@/hooks/useDocumentoArquivo";
 
 const statusConfig = {
   planning: { label: "Planejamento", className: "bg-slate-100 text-slate-700 hover:bg-slate-100" },
@@ -63,6 +61,18 @@ const projectStatusOptions = [
 export default function ClienteDashboard() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+
+  /**
+   * A aba Documentos só existe com pedido ENVIADO.
+   *
+   * Antes ela aparecia sempre, e sem pedido aberto anunciava "A PSA solicitou
+   * estes documentos" sobre quatro gavetas vazias e trancadas — a tela prometia
+   * uma lista que não existia. Encerrada também esconde: o ciclo acabou, e os
+   * arquivos entregues seguem no Drive da PSA, não aqui.
+   */
+  const { data: clienteId } = useClienteAtual();
+  const { data: pedido } = useSolicitacaoAtivaCliente(clienteId ?? null);
+  const comDocumentos = pedido?.solicitacao?.status === 'enviada';
   // Filter states for Chamados
   const [ticketStatus, setTicketStatus] = useState<string>("__all__");
   const [ticketDateFrom, setTicketDateFrom] = useState<Date | undefined>();
@@ -76,10 +86,6 @@ export default function ClienteDashboard() {
   const { ticketsQuery, visibleProjectsQuery } = useDomainClienteDashboard(user?.id);
   const { data: tickets = [], isLoading: isLoadingTickets } = ticketsQuery;
   const { data: visibleProjects, isLoading: isLoadingProjects } = visibleProjectsQuery;
-
-  // Bloco do Looker só aparece se houver relatório liberado para este cliente.
-  // Mesma queryKey do DashboardEmbedView, então o React Query não repete a chamada.
-  const { data: dashboardsLiberados = [] } = useAccessibleDashboards("cliente");
 
   const handleSignOut = async () => {
     await signOut();
@@ -158,7 +164,9 @@ export default function ClienteDashboard() {
         <div className="flex-1 flex flex-col">
           {/* Tabs at the top */}
           <Tabs defaultValue="chamados" className="flex-1 flex flex-col">
-            <TabsList className="grid w-full max-w-3xl grid-cols-4 bg-muted mb-6">
+            <TabsList
+              className={`grid w-full max-w-3xl bg-muted mb-6 ${comDocumentos ? 'grid-cols-3' : 'grid-cols-2'}`}
+            >
               <TabsTrigger
                 value="chamados"
                 className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
@@ -173,20 +181,15 @@ export default function ClienteDashboard() {
                 <FolderKanban className="mr-2 h-4 w-4" />
                 Projetos
               </TabsTrigger>
-              <TabsTrigger
-                value="documents"
-                className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
-              >
-                <FileUp className="mr-2 h-4 w-4" />
-                Documentos
-              </TabsTrigger>
-              <TabsTrigger
-                value="dashboards"
-                className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
-              >
-                <LayoutDashboard className="mr-2 h-4 w-4" />
-                Dashboards
-              </TabsTrigger>
+              {comDocumentos && (
+                <TabsTrigger
+                  value="documents"
+                  className="data-[state=active]:bg-background data-[state=active]:text-teal-700"
+                >
+                  <FileUp className="mr-2 h-4 w-4" />
+                  Documentos
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Chamados Tab */}
@@ -356,27 +359,13 @@ export default function ClienteDashboard() {
             </TabsContent>
 
             {/* Documents Tab — coleta por grupo (4 gavetas com drag and drop) e
-                a lista "Enviados", ambas em ColetaDocumentosCliente */}
-            <TabsContent value="documents" className="flex-1 mt-0">
-              <ColetaDocumentosCliente />
-            </TabsContent>
-
-            {/* Dashboards Tab: acompanhamento dos documentos solicitados + dashboards
-                (DB-driven: lista via dashboard_access, RLS server-side) */}
-            <TabsContent value="dashboards" className="flex-1 mt-0">
-              <ChecklistDocumentosConteudo />
-              {dashboardsLiberados.length > 0 && (
-                <>
-                  <div className="mb-4">
-                    <h2 className="text-lg font-semibold text-foreground">Dashboards</h2>
-                    <p className="text-sm text-muted-foreground">
-                      Visualize seus relatórios interativos do Looker Studio
-                    </p>
-                  </div>
-                  <DashboardEmbedView targetPage="cliente" />
-                </>
-              )}
-            </TabsContent>
+                a lista "Enviados", ambas em ColetaDocumentosCliente. Só existe
+                com pedido enviado; ver `comDocumentos`. */}
+            {comDocumentos && (
+              <TabsContent value="documents" className="flex-1 mt-0">
+                <ColetaDocumentosCliente />
+              </TabsContent>
+            )}
           </Tabs>
         </div>
       </main>

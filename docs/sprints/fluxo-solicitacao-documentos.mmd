@@ -1,0 +1,24 @@
+%% Fluxo da Solicitação de Documentos — OSG
+%% Do cadastro do cliente ao encerramento do pedido. Versão inicial · 06/08/2026
+%% Onde cada passo acontece:
+%%   A, B  formulário do cliente, aba Contratos (ContratosTab.tsx)
+%%   C-E   /equipe/osg/work/onboarding (Onboarding.tsx, RPC gerar_solicitacao_os)
+%%   F, I  portal do cliente (ClienteDashboard.tsx, ColetaDocumentosCliente.tsx)
+%%   G     /equipe/osg/work/onboarding/cadastro (ClassificarDocumentos.tsx)
+
+flowchart TD
+  A["Consultor cadastra o cliente e abre a OS"]
+  B["Consultor lança os produtos contratados na OS, faturando pela OSG"]
+  C["Consultor escolhe a OS"]
+  D[["O sistema gera a lista a partir dos produtos contratados na OS escolhida"]]
+  E["Consultor ajusta a lista pronta: inclui, dispensa, edita a orientação"]
+  F["Consultor envia a solicitação"]
+  G["Cliente vê a aba Documentos e envia os arquivos nas quatro gavetas"]
+  H["Consultor vincula cada arquivo a uma pessoa, bem ou matrícula"]
+  I["Consultor encerra a solicitação"]
+  J["A aba Documentos some do portal do cliente"]
+  K["Consultor abre nova solicitação"]
+
+  A --> B --> C --> D --> E --> F --> G --> H --> I --> J --> K
+  H -. "falta documento" .-> E
+  K -. "novo ciclo" .-> C

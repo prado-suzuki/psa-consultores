@@ -1,9 +1,5 @@
-import { useMemo, useRef, useState, type ChangeEvent, type DragEvent } from 'react';
-import type { LucideIcon } from 'lucide-react';
-import {
-  Building2, ChevronDown, Download, FileText, FilePlus2, Hand, Landmark, Loader2, Trash2,
-  UploadCloud, Users,
-} from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Download, FileText, Hand, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -20,204 +16,75 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
 import { useClienteAtual } from '@/hooks/useClienteAtual';
 import {
   useBaixarDocumento,
-  useChecklistSolicitadoCliente,
   useDocumentosByCliente,
+  useSolicitacaoAtivaCliente,
   useSoftDeleteDocumentoCliente,
   useUploadDocumentoCliente,
   useUploaderNames,
   type DocumentoArquivoRow,
 } from '@/hooks/useDocumentoArquivo';
-import { ACCEPT, MAX_BYTES, extensaoValida, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
+import { MAX_BYTES, extensaoValida, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
+import { CardGrupoColeta } from '@/components/cliente/CardGrupoColeta';
 import { montarGruposColeta, type GrupoColeta } from '@/lib/coletaDocumentosCliente';
 import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 
-const GRUPO_ICON: Record<GrupoDocumentoKey, LucideIcon> = {
-  pf: Users,
-  pj: Building2,
-  imoveis: Landmark,
-  outros: FilePlus2,
-};
-
-interface CardGrupoProps {
-  grupo: GrupoColeta;
-  enviando: boolean;
-  onArquivos: (files: File[]) => void;
-  onRemover: (doc: DocumentoArquivoRow) => void;
-}
-
-/**
- * Card de um grupo: gaveta de entrada com drag and drop, lista do que já foi
- * enviado ali e a relação recolhível dos documentos pedidos naquele grupo.
- */
-function CardGrupo({ grupo, enviando, onArquivos, onRemover }: CardGrupoProps) {
-  const Icon = GRUPO_ICON[grupo.key];
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [arrastando, setArrastando] = useState(false);
-  const [listaAberta, setListaAberta] = useState(false);
-  const discreto = grupo.key === 'outros';
-
-  const onInput = (e: ChangeEvent<HTMLInputElement>) => {
-    onArquivos(Array.from(e.target.files ?? []));
-    e.target.value = '';
-  };
-
-  const onDrop = (e: DragEvent) => {
-    e.preventDefault();
-    setArrastando(false);
-    onArquivos(Array.from(e.dataTransfer.files ?? []));
-  };
-
-  return (
-    <Card
-      className={cn(
-        'flex flex-col p-6',
-        discreto && 'border-2 border-dashed bg-transparent shadow-none',
-      )}
-    >
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span
-            className={cn(
-              'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-              discreto ? 'bg-slate-100 text-slate-500' : 'bg-teal-50 text-teal-700',
-            )}
-          >
-            <Icon className="h-5 w-5" />
-          </span>
-          <div className="min-w-0">
-            <h3 className={cn('font-semibold', discreto ? 'text-slate-600' : 'text-foreground')}>
-              {grupo.titulo}
-            </h3>
-            <p className="text-[11px] text-muted-foreground">{grupo.subtitulo}</p>
-          </div>
-        </div>
-        <span
-          className={cn(
-            'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
-            grupo.arquivos.length > 0
-              ? 'bg-teal-600 text-white'
-              : 'bg-slate-100 text-muted-foreground',
-          )}
-        >
-          {grupo.arquivos.length} {grupo.arquivos.length === 1 ? 'arquivo' : 'arquivos'}
-        </span>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setArrastando(true);
-        }}
-        onDragLeave={() => setArrastando(false)}
-        onDrop={onDrop}
-        disabled={enviando}
-        className={cn(
-          'mb-4 flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-7 text-center transition-colors',
-          arrastando
-            ? 'border-teal-500 bg-teal-50'
-            : 'border-slate-300 bg-slate-50/60 hover:border-teal-400 hover:bg-teal-50/40',
-          enviando && 'cursor-wait opacity-70',
-        )}
-      >
-        {enviando ? (
-          <Loader2 className="h-7 w-7 animate-spin text-teal-700" />
-        ) : (
-          <UploadCloud className="h-7 w-7 text-teal-700/70" />
-        )}
-        <span className="text-sm font-medium text-teal-800">
-          {enviando ? 'Enviando...' : 'Arraste os arquivos aqui ou clique para escolher'}
-        </span>
-        <span className="text-[11px] text-muted-foreground">
-          PDF, imagens e Office, até {formatBytes(MAX_BYTES)}
-        </span>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={ACCEPT}
-          multiple
-          className="hidden"
-          onChange={onInput}
-        />
-      </button>
-
-      {grupo.arquivos.length > 0 && (
-        <ul className="mb-4 space-y-2">
-          {grupo.arquivos.map((doc) => (
-            <li
-              key={doc.id}
-              className="flex items-center gap-2 rounded-md border bg-slate-50/60 px-2 py-1.5"
-            >
-              <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
-                {doc.nome_original}
-              </span>
-              <span className="shrink-0 text-[10px] text-muted-foreground">
-                {formatBytes(doc.tamanho)}
-              </span>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 shrink-0 text-muted-foreground hover:text-destructive"
-                onClick={() => onRemover(doc)}
-                title="Remover"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {grupo.documentos.length > 0 && (
-        <div className="mt-auto">
-          <button
-            type="button"
-            onClick={() => setListaAberta((v) => !v)}
-            className="inline-flex items-center gap-1 text-xs font-bold text-teal-700 hover:underline"
-          >
-            Ver quais documentos ({grupo.documentos.length})
-            <ChevronDown
-              className={cn('h-3.5 w-3.5 transition-transform', listaAberta && 'rotate-180')}
-            />
-          </button>
-          {listaAberta && (
-            <ul className="mt-3 max-h-[240px] list-disc overflow-y-auto border-t pl-5 pt-3 text-xs text-muted-foreground duration-200 animate-in fade-in-0">
-              {grupo.documentos.map((nome) => (
-                <li key={nome} className="py-0.5">{nome}</li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-    </Card>
-  );
-}
-
 /**
  * Coleta de documentos do cliente em 4 grupos grandes (Pessoas Físicas,
- * Jurídicas, Matrículas e Imóveis, Outros), cada um com drag and drop próprio.
+ * Jurídicas, Bens e Imóveis, Outros), cada um com drag and drop próprio.
  *
  * A ideia é o cliente não precisar separar por pessoa nem renomear arquivo: joga
  * no grupo e a PSA classifica depois. A relação de documentos de cada grupo vem
- * do checklist solicitado.
+ * da solicitação ENVIADA, pela coluna `grupo` de cada item, e cada documento
+ * aparece com a instrução que a PSA escreveu.
+ *
+ * Fora do pedido ENVIADO a tela fica em leitura: os arquivos continuam todos
+ * listados, e envio e exclusão desligam.
  */
 export function ColetaDocumentosCliente() {
   const { data: clienteId, isLoading: carregandoCliente } = useClienteAtual();
   const { data: docs = [], isLoading: carregandoDocs } = useDocumentosByCliente(clienteId ?? null);
-  const { data: checklist = [] } = useChecklistSolicitadoCliente(clienteId ?? null);
+  const { data: pedido } = useSolicitacaoAtivaCliente(clienteId ?? null);
   const upload = useUploadDocumentoCliente();
   const baixar = useBaixarDocumento();
   const excluir = useSoftDeleteDocumentoCliente(clienteId ?? '');
   const [grupoEnviando, setGrupoEnviando] = useState<GrupoDocumentoKey | null>(null);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
 
-  const grupos = useMemo(() => montarGruposColeta(checklist, docs), [checklist, docs]);
+  /**
+   * Só o pedido ENVIADO libera o envio; todo o resto tranca.
+   *
+   * O padrão é FECHADO, e isso é a correção do B3 da ALE-31. Antes a tela
+   * trancava comparando com 'encerrada', e a RPC só devolvia a solicitação
+   * quando o status era 'enviada' — então 'encerrada' nunca chegava e a condição
+   * era impossível de satisfazer. Resultado: rascunho e encerrada deixavam o
+   * cliente enviar e excluir.
+   *
+   * Invertido, uma falha futura na leitura erra para o lado seguro: sem status
+   * reconhecido, não envia.
+   */
+  const status = pedido?.solicitacao?.status ?? null;
+  const somenteLeitura = status !== 'enviada';
+
+  /** O aviso do topo explica POR QUE está trancado — são três motivos distintos. */
+  const aviso = status === 'enviada'
+    ? `Envie os documentos que você tiver, na ordem que preferir. Não precisa separar por
+       pessoa nem renomear arquivos, a PSA organiza depois. Pode enviar vários de uma vez e
+       voltar quando quiser.`
+    : status === 'encerrada'
+      ? `Este pedido foi encerrado. Os documentos que você enviou continuam aqui, disponíveis
+         para consulta e download. Se precisar enviar algo novo, fale com a PSA.`
+      : `A PSA ainda não enviou um pedido de documentos. Quando enviar, a relação aparece aqui
+         e o envio é liberado.`;
+
+  /** A mesma razão, curta, para caber na gaveta trancada. */
+  const motivoBloqueio = status === 'encerrada'
+    ? 'Este pedido foi encerrado'
+    : 'Nenhum pedido de documentos aberto';
+
+  const grupos = useMemo(() => montarGruposColeta(pedido?.itens ?? [], docs), [pedido, docs]);
   // "Enviados": tudo que o cliente mandou e a PSA ainda não classificou, na ordem
   // de chegada (docs já vem por created_at desc).
   const enviados = useMemo(
@@ -253,7 +120,13 @@ export function ColetaDocumentosCliente() {
     try {
       for (const file of validos) {
         try {
-          await upload.mutateAsync({ clienteId, file, categoria: grupo.categoria });
+          await upload.mutateAsync({
+            clienteId,
+            file,
+            categoria: grupo.categoria,
+            // Só chega aqui com o pedido enviado, então a solicitação existe.
+            solicitacaoId: pedido?.solicitacao?.id ?? null,
+          });
         } catch {
           // toast já emitido pelo onError do hook
         }
@@ -287,18 +160,18 @@ export function ColetaDocumentosCliente() {
       <Card className="flex gap-4 border-l-4 border-l-teal-600 p-6">
         <Hand className="h-7 w-7 shrink-0 text-teal-700" />
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Envie os documentos que você tiver, na ordem que preferir. Não precisa separar por pessoa
-          nem renomear arquivos, a PSA organiza depois. Pode enviar vários de uma vez e voltar
-          quando quiser.
+          {aviso}
         </p>
       </Card>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {grupos.map((grupo) => (
-          <CardGrupo
+          <CardGrupoColeta
             key={grupo.key}
             grupo={grupo}
             enviando={grupoEnviando === grupo.key}
+            somenteLeitura={somenteLeitura}
+            motivoBloqueio={motivoBloqueio}
             onArquivos={(files) => void enviar(grupo, files)}
             onRemover={setAExcluir}
           />

@@ -68,30 +68,62 @@ export function montarHtml(secoes: SecaoImagem[], titulo: string): string {
 </html>`;
 }
 
-/** PDF A4 retrato: cada seção começa em página nova; seções altas paginam. */
+/** Margem da folha, em pt (~11 mm). Antes era 0 e o conteúdo colava na borda. */
+const MARGEM = 32;
+/** Seção até este fator acima da área útil encolhe p/ caber numa folha só,
+ *  em vez de virar 2 páginas com uma tira de sobra na segunda. */
+const LIMITE_ENCOLHER = 1.18;
+
+/**
+ * PDF A4 retrato: cada seção começa em página nova; seções altas paginam.
+ * O conteúdo é desenhado dentro da área útil (folha menos margem) e recortado
+ * nela, para que a fatia seguinte não invada a margem da página.
+ */
 export async function montarPdf(secoes: SecaoImagem[], filename: string): Promise<void> {
   const { default: jsPDF } = await import('jspdf');
   const pdf = new jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
   const pw = pdf.internal.pageSize.getWidth();
   const ph = pdf.internal.pageSize.getHeight();
+  const cw = pw - MARGEM * 2;  // largura útil
+  const ch = ph - MARGEM * 2;  // altura útil
 
   let primeira = true;
   for (const s of secoes) {
     if (!s.dataUrl || s.width <= 0) continue;
-    const imgH = (s.height / s.width) * pw;  // largura cheia (full-bleed)
+
+    let imgW = cw;
+    let imgH = (s.height / s.width) * cw;
+    if (imgH > ch && imgH <= ch * LIMITE_ENCOLHER) {
+      imgH = ch;
+      imgW = (s.width / s.height) * ch;
+    }
+    const x = MARGEM + (cw - imgW) / 2;  // centraliza quando encolheu
+
     if (!primeira) pdf.addPage();
     primeira = false;
 
-    let position = 0;
-    let restante = imgH;
-    pdf.addImage(s.dataUrl, 'PNG', 0, position, pw, imgH, undefined, 'FAST');
-    restante -= ph;
-    while (restante > 0) {
-      pdf.addPage();
-      position -= ph;  // desloca a imagem p/ cima → fatia seguinte aparece
-      pdf.addImage(s.dataUrl, 'PNG', 0, position, pw, imgH, undefined, 'FAST');
-      restante -= ph;
-    }
+    let deslocamento = 0;
+    do {
+      // Recorta na área útil: o que passa da folha não pinta sobre a margem.
+      pdf.saveGraphicsState();
+      pdf.rect(MARGEM, MARGEM, cw, ch);
+      pdf.clip();
+      pdf.discardPath();
+      pdf.addImage(s.dataUrl, 'PNG', x, MARGEM - deslocamento, imgW, imgH, undefined, 'FAST');
+      pdf.restoreGraphicsState();
+      deslocamento += ch;
+      if (deslocamento < imgH) pdf.addPage();
+    } while (deslocamento < imgH);
   }
+
+  // Rodapé com a paginação — só dá para numerar depois de saber o total.
+  const total = pdf.getNumberOfPages();
+  for (let i = 1; i <= total; i++) {
+    pdf.setPage(i);
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(130, 138, 150);
+    pdf.text(`${i} / ${total}`, pw - MARGEM, ph - MARGEM / 2.4, { align: 'right' });
+  }
+
   pdf.save(filename);
 }

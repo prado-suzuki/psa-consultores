@@ -41,6 +41,12 @@ export const useClientEditData = (
   open: boolean,
   editingClienteId: string | null | undefined,
   setters: Setters,
+  /**
+   * Muda para forçar releitura do banco sem fechar o modal. É o que permite
+   * salvar e voltar para a visualização já com o dado gravado: sem isto o guard
+   * abaixo consideraria o cliente "já carregado" e a tela mostraria o rascunho.
+   */
+  reloadKey = 0,
 ) => {
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [originalSnapshot, setOriginalSnapshot] = useState<{
@@ -61,8 +67,9 @@ export const useClientEditData = (
       if (!open) loadedForRef.current = null;
       return;
     }
-    if (loadedForRef.current === editingClienteId) return;
-    loadedForRef.current = editingClienteId;
+    const chaveDoLoad = `${editingClienteId}:${reloadKey}`;
+    if (loadedForRef.current === chaveDoLoad) return;
+    loadedForRef.current = chaveDoLoad;
 
     const loadData = async () => {
       setLoadingEdit(true);
@@ -263,7 +270,7 @@ export const useClientEditData = (
       }
     };
     loadData();
-  }, [open, editingClienteId]);
+  }, [open, editingClienteId, reloadKey]);
 
   return { loadingEdit, originalSnapshot };
 };
