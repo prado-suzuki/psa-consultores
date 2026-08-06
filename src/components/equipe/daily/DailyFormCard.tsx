@@ -16,10 +16,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { DailyTaskPicker } from '@/components/equipe/daily/DailyTaskPicker';
 import type { DailySprintTask } from '@/hooks/useDailySprintTasks';
 import type { Process, Project, Sprint, TeamMember } from '@/hooks/useDomainEquipeDaily';
-import { appendTaskReference, describeDailyMember, groupDailyTasksByParent, type DailyFormDraft } from '@/lib/equipeDaily';
+import { describeDailyMember, groupDailyTasksByParent, type DailyFormDraft } from '@/lib/equipeDaily';
 
 interface DailyFormCardProps {
   authenticatedUserId?: string;
