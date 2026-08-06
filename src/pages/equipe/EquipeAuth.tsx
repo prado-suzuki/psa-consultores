@@ -32,9 +32,20 @@ const EquipeAuth = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
-  const { signIn, signOut, user, isTeamMember, isAdmin, isLider, isSublider, mustChangePassword, loading } = useAuth();
+  const { signIn, signOut, user, isTeamMember, isAdmin, isLider, isSublider, isMarketing, mustChangePassword, loading } = useAuth();
   const navigate = useNavigate();
-  const isInternalUser = isTeamMember || isAdmin || isLider || isSublider;
+  /**
+   * Quem passa da portaria de `/equipe`.
+   *
+   * `marketing` entra aqui para poder existir sozinho. Antes, dar acesso à área
+   * de Marketing exigia empilhar um papel da hierarquia (era o `sublider` do
+   * usuário mkt@), e isso abre 250 políticas em 114 tabelas no banco só para a
+   * pessoa atravessar uma porta.
+   *
+   * Passar da portaria não concede área nenhuma: o seletor logo adiante só
+   * mostra o que a permissão de página liberar, e cada rota mantém o seu guarda.
+   */
+  const isInternalUser = isTeamMember || isAdmin || isLider || isSublider || isMarketing;
 
   const {
     categories,
