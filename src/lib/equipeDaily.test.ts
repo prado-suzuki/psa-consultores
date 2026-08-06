@@ -3,11 +3,13 @@ import {
   appendTaskReference,
   buildDailyBlockerFields,
   createDailyFormDraft,
+  describeDailyMember,
+  findCurrentActiveSprintId,
   groupDailyTasksByParent,
   hydrateDailyForm,
   type DailyFormDraft,
 } from '@/lib/equipeDaily';
-import type { DailyStandup } from '@/hooks/useDomainEquipeDaily';
+import type { DailyStandup, Sprint } from '@/hooks/useDomainEquipeDaily';
 
 interface TestTask {
   id: string;
@@ -28,6 +30,49 @@ const tk = (id: string, over: Partial<TestTask> = {}): TestTask => ({
 const draft = (overrides: Partial<DailyFormDraft> = {}): DailyFormDraft => ({
   ...createDailyFormDraft(),
   ...overrides,
+});
+
+const sp = (id: string, status: string | null, start_date: string | null): Sprint => ({
+  id,
+  name: id,
+  project_id: null,
+  status,
+  start_date,
+});
+
+describe('findCurrentActiveSprintId', () => {
+  it('escolhe a sprint ativa com início mais recente, independente da ordem da lista', () => {
+    const sprints = [
+      sp('antiga-ativa', 'active', '2026-06-01'),
+      sp('futura-planejada', 'planned', '2026-09-01'),
+      sp('atual-ativa', 'active', '2026-08-01'),
+      sp('encerrada', 'completed', '2026-07-01'),
+    ];
+    expect(findCurrentActiveSprintId(sprints)).toBe('atual-ativa');
+  });
+
+  it('sem sprint ativa devolve string vazia (daily pode ficar sem sprint)', () => {
+    expect(findCurrentActiveSprintId([sp('s1', 'planned', '2026-08-01'), sp('s2', null, null)])).toBe('');
+    expect(findCurrentActiveSprintId([])).toBe('');
+  });
+});
+
+describe('describeDailyMember', () => {
+  const members = [
+    { id: 'u1', first_name: 'Ana', last_name: 'Silva' },
+    { id: 'u2', first_name: 'Bruno', last_name: null },
+  ];
+
+  it('marca "(você)" no usuário autenticado e mostra só o nome nos demais', () => {
+    expect(describeDailyMember(members, 'u1', 'u1')).toBe('Ana Silva (você)');
+    expect(describeDailyMember(members, 'u2', 'u1')).toBe('Bruno');
+  });
+
+  it('sem perfil na lista: devolve "Você" para o autenticado e vazio para os outros', () => {
+    expect(describeDailyMember(members, 'u9', 'u9')).toBe('Você');
+    expect(describeDailyMember(members, 'u9', 'u1')).toBe('');
+    expect(describeDailyMember(members, '', 'u1')).toBe('');
+  });
 });
 
 describe('buildDailyBlockerFields', () => {

@@ -100,6 +100,32 @@ export function buildDailyBlockerFields(form: DailyFormDraft): Record<string, un
   return fields;
 }
 
+/**
+ * Sprint sugerida para a daily: a ativa com início mais recente. Sem sprint ativa
+ * devolve '' (a daily continua podendo ser gravada sem sprint).
+ */
+export function findCurrentActiveSprintId(sprints: Sprint[]): string {
+  const active = sprints.filter((sprint) => sprint.status === 'active');
+  if (active.length === 0) return '';
+  return active.reduce((latest, sprint) =>
+    (sprint.start_date ?? '') > (latest.start_date ?? '') ? sprint : latest,
+  ).id;
+}
+
+/** Nome de exibição do membro (com marcação "(você)" quando é o próprio usuário). */
+export function describeDailyMember(
+  members: TeamMember[],
+  userId: string,
+  authenticatedUserId?: string,
+): string {
+  const member = members.find((item) => item.id === userId);
+  const name = member
+    ? `${member.first_name || ''} ${member.last_name || ''}`.trim()
+    : '';
+  if (!name) return userId && userId === authenticatedUserId ? 'Você' : '';
+  return userId === authenticatedUserId ? `${name} (você)` : name;
+}
+
 /** Acrescenta a referência da tarefa (código + título) numa nova linha do texto. */
 export function appendTaskReference(text: string, task: DailyTaskChip): string {
   const reference = `- ${task.task_code ? `[${task.task_code}] ` : ''}${task.title}`;

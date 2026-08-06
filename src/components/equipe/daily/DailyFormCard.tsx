@@ -1,5 +1,5 @@
-import type { FormEvent } from 'react';
-import { AlertTriangle, CheckCircle, Clock, Copy, FolderOpen, Send, Target, Users, Zap } from 'lucide-react';
+import { useState, type FormEvent, type ReactNode } from 'react';
+import { AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Clock, Copy, FolderOpen, Send, SlidersHorizontal, Target, Users, Zap } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { DailyTaskPicker } from '@/components/equipe/daily/DailyTaskPicker';
 import type { DailySprintTask } from '@/hooks/useDailySprintTasks';
 import type { Process, Project, Sprint, TeamMember } from '@/hooks/useDomainEquipeDaily';
-import { appendTaskReference, groupDailyTasksByParent, type DailyFormDraft } from '@/lib/equipeDaily';
+import { appendTaskReference, describeDailyMember, groupDailyTasksByParent, type DailyFormDraft } from '@/lib/equipeDaily';
 
 interface DailyFormCardProps {
   authenticatedUserId?: string;
@@ -56,11 +56,22 @@ export function DailyFormCard({
   onSubmit,
   onCopyFromYesterday,
 }: DailyFormCardProps) {
+  // Contexto (quem/sprint/projeto/processo) fica recolhido: vem preenchido pelo usuário
+  // logado + sprint ativa, e só abre quando a pessoa realmente quer trocar algo.
+  const [contextOpen, setContextOpen] = useState(false);
+
   const insertTask = (field: 'did_yesterday' | 'will_do_today') => (task: DailySprintTask) =>
     onFormChange({ ...form, [field]: appendTaskReference(form[field], task) });
 
   // Tarefas agrupadas por mãe para o dropdown de bloqueio.
   const blockerGroups = groupDailyTasksByParent(sprintTasks);
+
+  const isSelf = Boolean(selectedUserId) && selectedUserId === authenticatedUserId;
+  const memberLabel = describeDailyMember(teamMembers, selectedUserId, authenticatedUserId);
+  const selectedSprint = sprints.find((sprint) => sprint.id === form.sprint_id);
+  const sprintLabel = selectedSprint?.name;
+  const projectLabel = projects.find((project) => project.id === form.project_id)?.name;
+  const processLabel = processes.find((process) => process.id === form.process_id)?.name;
 
   return (
     <Card className="bg-white border-gray-200">
@@ -73,68 +84,97 @@ export function DailyFormCard({
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-900">
-            💡 <strong>Trabalhou numa rotina recorrente?</strong> Comece o texto de{' '}
-            <em>O que fiz ontem</em> com{' '}
-            <code className="bg-white px-1 py-0.5 rounded border border-blue-200 text-blue-700">[ROTINA]</code>{' '}
-            seguido do nome. Ex:{' '}
-            <code className="bg-white px-1 py-0.5 rounded border border-blue-200 text-blue-700">[ROTINA] Atualizar PSA Faturamento</code>
-          </div>
+          <div className="space-y-3 border-b border-gray-100 pb-4">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-sm text-gray-500">
+              <span className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" />
+                <span className={isSelf ? 'text-gray-700' : 'font-medium text-amber-700'}>
+                  {memberLabel || 'Sem membro selecionado'}
+                </span>
+              </span>
+              <span className="text-gray-300">·</span>
+              <span className="flex items-center gap-1.5">
+                <Target className="h-3.5 w-3.5" />
+                <span className={sprintLabel ? 'text-gray-700' : 'text-gray-400'}>{sprintLabel || 'Sem sprint'}</span>
+              </span>
+              {projectLabel && (
+                <>
+                  <span className="text-gray-300">·</span>
+                  <span className="flex items-center gap-1.5"><FolderOpen className="h-3.5 w-3.5" />{projectLabel}</span>
+                </>
+              )}
+              {processLabel && (
+                <>
+                  <span className="text-gray-300">·</span>
+                  <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" />{processLabel}</span>
+                </>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setContextOpen((open) => !open)}
+                className="ml-auto h-7 px-2 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                aria-expanded={contextOpen}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
+                Ajustar contexto
+                {contextOpen ? <ChevronUp className="h-3.5 w-3.5 ml-1" /> : <ChevronDown className="h-3.5 w-3.5 ml-1" />}
+              </Button>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <fieldset className="space-y-3 border border-gray-200 rounded-lg p-3">
-              <legend className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">Quem e quando</legend>
-              <div className="space-y-2">
-                <Label className="text-gray-700 flex items-center gap-2"><Users className="h-4 w-4 text-gray-500" />Membro da equipe</Label>
-                <Select value={selectedUserId} onValueChange={onSelectedUserIdChange}>
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione o membro" /></SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    {teamMembers.map((member) => (
-                      <SelectItem key={member.id} value={member.id}>
-                        {member.first_name} {member.last_name}{member.id === authenticatedUserId && ' (você)'}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-gray-700 flex items-center gap-2"><Target className="h-4 w-4 text-gray-500" />Sprint</Label>
-                <Select value={form.sprint_id} onValueChange={(sprint_id) => onFormChange({ ...form, sprint_id })}>
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione a sprint" /></SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    {sprints.map((sprint) => <SelectItem key={sprint.id} value={sprint.id}>{sprint.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </fieldset>
+            {!isSelf && selectedUserId && (
+              <p className="text-xs text-amber-700">Você está registrando a daily de outra pessoa.</p>
+            )}
 
-            <fieldset className="space-y-3 border border-gray-200 rounded-lg p-3">
-              <legend className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">Contexto do trabalho</legend>
-              <div className="space-y-2">
-                <Label className="text-gray-700 flex items-center gap-2"><FolderOpen className="h-4 w-4 text-gray-500" />Projeto <span className="text-gray-400 text-xs">(opcional)</span></Label>
-                <Select
-                  value={form.project_id}
-                  onValueChange={(value) => onFormChange({ ...form, project_id: value === '__none__' ? '' : value, process_id: '' })}
+            {contextOpen && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 rounded-lg border border-gray-200 bg-gray-50/70 p-3">
+                <ContextField label="Membro da equipe">
+                  <Select value={selectedUserId} onValueChange={onSelectedUserIdChange}>
+                    <SelectTrigger className="h-9 bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione o membro" /></SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      {teamMembers.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.first_name} {member.last_name}{member.id === authenticatedUserId && ' (você)'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </ContextField>
+                <ContextField label="Sprint" hint={selectedSprint?.status === 'active' ? '(ativa)' : undefined}>
+                  <Select value={form.sprint_id} onValueChange={(sprint_id) => onFormChange({ ...form, sprint_id })}>
+                    <SelectTrigger className="h-9 bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione a sprint" /></SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      {sprints.map((sprint) => <SelectItem key={sprint.id} value={sprint.id}>{sprint.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </ContextField>
+                <ContextField label="Projeto" hint="(opcional)">
+                  <Select
+                    value={form.project_id}
+                    onValueChange={(value) => onFormChange({ ...form, project_id: value === '__none__' ? '' : value, process_id: '' })}
+                  >
+                    <SelectTrigger className="h-9 bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="__none__">Nenhum</SelectItem>
+                      {projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </ContextField>
+                <ContextField
+                  label="Processo"
+                  hint={form.project_id ? '(do projeto)' : '(opcional)'}
                 >
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    <SelectItem value="__none__">Nenhum</SelectItem>
-                    {projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                  <Select value={form.process_id} onValueChange={(value) => onFormChange({ ...form, process_id: value === '__none__' ? '' : value })}>
+                    <SelectTrigger className="h-9 bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione um processo" /></SelectTrigger>
+                    <SelectContent className="bg-white border-gray-200">
+                      <SelectItem value="__none__">Nenhum</SelectItem>
+                      {processes.map((process) => <SelectItem key={process.id} value={process.id}>{process.name}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </ContextField>
               </div>
-              <div className="space-y-2">
-                <Label className="text-gray-700 flex items-center gap-2"><Zap className="h-4 w-4 text-gray-500" />Processo <span className="text-gray-400 text-xs">(opcional)</span></Label>
-                <Select value={form.process_id} onValueChange={(value) => onFormChange({ ...form, process_id: value === '__none__' ? '' : value })}>
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione um processo" /></SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
-                    <SelectItem value="__none__">Nenhum</SelectItem>
-                    {processes.map((process) => <SelectItem key={process.id} value={process.id}>{process.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-                {form.project_id && <p className="text-xs text-gray-500">Mostrando processos do projeto selecionado</p>}
-              </div>
-            </fieldset>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -207,5 +247,18 @@ export function DailyFormCard({
         </form>
       </CardContent>
     </Card>
+  );
+}
+
+/** Campo do painel de contexto: rótulo curto em cima, controle compacto embaixo. */
+function ContextField({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
+  return (
+    <div className="space-y-1.5">
+      <Label className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+        {hint && <span className="ml-1 font-normal normal-case tracking-normal text-gray-400">{hint}</span>}
+      </Label>
+      {children}
+    </div>
   );
 }

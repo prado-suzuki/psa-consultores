@@ -29,6 +29,9 @@ export interface Sprint {
   id: string;
   name: string;
   project_id: string | null;
+  // status/start_date alimentam a sugestão automática da sprint ativa mais atual.
+  status?: string | null;
+  start_date?: string | null;
 }
 
 export interface Project {
@@ -168,7 +171,7 @@ export function useDomainEquipeDaily({
       try {
         const { data } = await supabase
           .from('sprints')
-          .select('id, name, project_id')
+          .select('id, name, project_id, status, start_date')
           .order('start_date', { ascending: false });
 
         return { data: data || [] };

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/contexts/AuthContext';
 import {
@@ -22,6 +22,7 @@ import {
   createDailyFormDraft,
   createDailyLookups,
   filterProcesses,
+  findCurrentActiveSprintId,
   hydrateDailyForm,
   mergeTeamMembers,
   type DailyEditDraft,
@@ -106,6 +107,21 @@ export function useEquipeDailyController() {
     if (domain.standupsResult.standups) setStandups(domain.standupsResult.standups);
     setLoading(false);
   }, [domain.standupsResult]);
+
+  // Sprint sugerida: a ativa mais atual, uma única vez e só quando ainda não existe
+  // daily de hoje (um daily já gravado manda no valor, inclusive quando é "sem sprint").
+  const sprintAutofillDoneRef = useRef(false);
+  useEffect(() => {
+    if (sprintAutofillDoneRef.current || !domain.standupsResult) return;
+    if (domain.standupsResult.myStandup) {
+      sprintAutofillDoneRef.current = true;
+      return;
+    }
+    const activeSprintId = findCurrentActiveSprintId(sprints);
+    if (!activeSprintId) return;
+    sprintAutofillDoneRef.current = true;
+    setForm((current) => (current.sprint_id ? current : { ...current, sprint_id: activeSprintId }));
+  }, [domain.standupsResult, sprints]);
 
   const lookups = useMemo(() => createDailyLookups({
     members: teamMembers,
