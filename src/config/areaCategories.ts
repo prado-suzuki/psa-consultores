@@ -22,7 +22,7 @@ export const AREA_CATEGORIES_MAP: Record<AreaKey, AreaDefinition> = {
   digital: { label: 'Digital', categories: ['rotina', 'dev'] },
   tax: { label: 'Tax', categories: ['tax'] },
   osg: { label: 'OSG', categories: ['osg'] },
-  board: { label: 'Gerencial', categories: ['board'] },
+  board: { label: 'Board', categories: ['board'] },
   controle_site: { label: 'Chamados', categories: ['gestao'] },
 };
 
@@ -42,7 +42,7 @@ export const AREA_ROUTES: Record<AreaKey, string> = {
 
 /** Lista ordenada para o select de área no login. */
 export const AREAS_LIST: Array<{ id: AreaKey; label: string }> = [
-  { id: 'board', label: 'Gerencial' },
+  { id: 'board', label: 'Board' },
   { id: 'controle_site', label: 'Chamados' },
   { id: 'digital', label: 'Digital' },
   { id: 'osg', label: 'OSG' },

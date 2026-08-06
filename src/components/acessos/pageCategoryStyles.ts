@@ -12,7 +12,7 @@ export const PAGE_CATEGORY_LABELS: Record<string, string> = {
   projetos: 'Projetos',
   fiscal: 'Fiscal',
   osg: 'OSG',
-  board: 'Gerencial',
+  board: 'Board',
   fixos: 'Fixos',
 };
 

@@ -80,7 +80,17 @@ export function EquipeChamadosTable({ tickets, canAssignTickets, areaMap, cluste
                 <TableCell><span className="text-sm text-muted-foreground">{ticket.cliente_nome || '—'}</span></TableCell>
                 <TableCell><span className="text-sm text-muted-foreground">{formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true, locale: ptBR })}</span></TableCell>
                 <TableCell><PrazoBadge ticket={ticket} /></TableCell>
-                {canAssignTickets && <TableCell><AssignAgentCell ticketId={ticket.id} clusterId={ticket.cluster_id} value={ticket.assigned_to || null} onAssign={onAssign} /></TableCell>}
+                {canAssignTickets && (
+                  <TableCell>
+                    <AssignAgentCell
+                      ticketId={ticket.id}
+                      clusterId={ticket.cluster_id}
+                      value={ticket.assigned_to || null}
+                      valueName={ticket.agent ? `${ticket.agent.first_name ?? ''} ${ticket.agent.last_name ?? ''}` : null}
+                      onAssign={onAssign}
+                    />
+                  </TableCell>
+                )}
                 <TableCell>
                   {ticket.activity_status && (
                     <Badge variant="outline" className={activityColors[ticket.activity_status] || 'bg-gray-100 text-gray-800'}>

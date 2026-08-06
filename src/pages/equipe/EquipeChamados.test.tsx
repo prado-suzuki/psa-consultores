@@ -142,7 +142,7 @@ describe('EquipeChamados', () => {
       assignedTo: 'user-1',
       filterAssigned: true,
     });
-    expect(screen.getByRole('heading', { name: 'Equipe Chamados' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Chamados da Equipe' })).toBeInTheDocument();
     expect(screen.getByText('Visualize e responda os chamados atribuídos a você')).toBeInTheDocument();
     expect(screen.queryByRole('columnheader', { name: 'Responsável' })).not.toBeInTheDocument();
     await user.click(screen.getAllByRole('combobox')[5]);
@@ -159,7 +159,8 @@ describe('EquipeChamados', () => {
       assignedTo: 'user-1',
       filterAssigned: false,
     });
-    expect(screen.getByRole('heading', { name: 'Gestão de Chamados' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Chamados da Equipe' })).toBeInTheDocument();
+    expect(screen.getByText('Visualize todos os chamados e atribua responsáveis')).toBeInTheDocument();
     expect(screen.getByRole('columnheader', { name: 'Responsável' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /Atribuir ticket-00000001/ }));
