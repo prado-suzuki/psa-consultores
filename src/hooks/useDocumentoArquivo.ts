@@ -79,6 +79,18 @@ interface UploadArgs {
   nrMatricula?: string | null;
   /** Origem do arquivo; default 'cliente' (recebido). 'psa' = produzido internamente. */
   fonte?: DocFonte;
+  /**
+   * A solicitação em resposta à qual o arquivo chegou.
+   *
+   * Grava `documento_arquivo.solicitacao_id`, coluna que existia desde a EDU-23 e
+   * que ninguém preenchia — todo arquivo nascia sem saber de qual pedido veio, e o
+   * cliente que abria pedido novo continuava vendo os arquivos do ciclo anterior.
+   *
+   * Só RASTREIA: nenhuma leitura filtra por ela. A lista do cliente segue por
+   * `documento_arquivo.cliente_id`, porque um arquivo entregue continua valendo
+   * depois que o pedido fecha.
+   */
+  solicitacaoId?: string | null;
   /** Suprime os toasts por-arquivo (usado no upload em massa, que mostra um resumo). */
   silencioso?: boolean;
 }
@@ -188,7 +200,7 @@ async function subirArquivoGcs(
  * sem afetar a UI — só o orquestrador muda.
  */
 async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs): Promise<DocumentoArquivoRow> {
-  const { clienteId, vinculo, categoria, file, nrMatricula, fonte = 'cliente' } = args;
+  const { clienteId, vinculo, categoria, file, nrMatricula, fonte = 'cliente', solicitacaoId } = args;
 
   const gcs = await subirArquivoGcs(fetchWithAuth, {
     clienteId,
@@ -208,6 +220,7 @@ async function enviarUmDocumento(fetchWithAuth: FetchWithAuth, args: UploadArgs)
       bem_id: vinculo.bemId ?? null,
       matricula_id: vinculo.matriculaId ?? null,
       pessoa_id: vinculo.pessoaId ?? null,
+      solicitacao_id: solicitacaoId ?? null,
       nome_original: file.name,
       gcs_uri: gcs.gcs_uri,
       checksum: gcs.checksum,
@@ -254,13 +267,20 @@ export function useUploadDocumentoCliente() {
     // `categoria` é opcional e existe para a coleta por grupo (Pessoas Físicas,
     // Jurídicas, Imóveis): é só uma gaveta de entrada, a classificação fina
     // continua sendo da PSA. Sem ela, cai em 'outros' como antes.
-    mutationFn: (args: { clienteId: string; file: File; categoria?: DocCategoria }) =>
+    mutationFn: (args: {
+      clienteId: string;
+      file: File;
+      categoria?: DocCategoria;
+      /** A solicitação enviada que motivou o envio; grava para rastrear a origem. */
+      solicitacaoId?: string | null;
+    }) =>
       enviarUmDocumento(fetchWithAuth, {
         clienteId: args.clienteId,
         vinculo: {},
         categoria: args.categoria ?? 'outros',
         file: args.file,
         fonte: 'cliente',
+        solicitacaoId: args.solicitacaoId ?? null,
       }),
     onSuccess: (_row, vars) => {
       qc.invalidateQueries({ queryKey: [LIST_KEY, vars.clienteId] });

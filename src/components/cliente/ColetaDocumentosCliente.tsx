@@ -40,8 +40,8 @@ import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
  * da solicitação ENVIADA, pela coluna `grupo` de cada item, e cada documento
  * aparece com a instrução que a PSA escreveu.
  *
- * Pedido encerrado deixa a tela em modo leitura: os arquivos continuam todos
- * listados e o envio desliga.
+ * Fora do pedido ENVIADO a tela fica em leitura: os arquivos continuam todos
+ * listados, e envio e exclusão desligam.
  */
 export function ColetaDocumentosCliente() {
   const { data: clienteId, isLoading: carregandoCliente } = useClienteAtual();
@@ -53,11 +53,36 @@ export function ColetaDocumentosCliente() {
   const [grupoEnviando, setGrupoEnviando] = useState<GrupoDocumentoKey | null>(null);
   const [aExcluir, setAExcluir] = useState<DocumentoArquivoRow | null>(null);
 
-  // Só o pedido ENCERRADO tranca o envio. Sem pedido enviado a RPC devolve
-  // solicitacao nula, e aí a tela segue aberta: o botão que cria e envia o
-  // pedido é a ALE-30, ainda pendente, e trancar antes dela deixaria o cliente
-  // sem conseguir mandar nada.
-  const somenteLeitura = pedido?.solicitacao?.status === 'encerrada';
+  /**
+   * Só o pedido ENVIADO libera o envio; todo o resto tranca.
+   *
+   * O padrão é FECHADO, e isso é a correção do B3 da ALE-31. Antes a tela
+   * trancava comparando com 'encerrada', e a RPC só devolvia a solicitação
+   * quando o status era 'enviada' — então 'encerrada' nunca chegava e a condição
+   * era impossível de satisfazer. Resultado: rascunho e encerrada deixavam o
+   * cliente enviar e excluir.
+   *
+   * Invertido, uma falha futura na leitura erra para o lado seguro: sem status
+   * reconhecido, não envia.
+   */
+  const status = pedido?.solicitacao?.status ?? null;
+  const somenteLeitura = status !== 'enviada';
+
+  /** O aviso do topo explica POR QUE está trancado — são três motivos distintos. */
+  const aviso = status === 'enviada'
+    ? `Envie os documentos que você tiver, na ordem que preferir. Não precisa separar por
+       pessoa nem renomear arquivos, a PSA organiza depois. Pode enviar vários de uma vez e
+       voltar quando quiser.`
+    : status === 'encerrada'
+      ? `Este pedido foi encerrado. Os documentos que você enviou continuam aqui, disponíveis
+         para consulta e download. Se precisar enviar algo novo, fale com a PSA.`
+      : `A PSA ainda não enviou um pedido de documentos. Quando enviar, a relação aparece aqui
+         e o envio é liberado.`;
+
+  /** A mesma razão, curta, para caber na gaveta trancada. */
+  const motivoBloqueio = status === 'encerrada'
+    ? 'Este pedido foi encerrado'
+    : 'Nenhum pedido de documentos aberto';
 
   const grupos = useMemo(() => montarGruposColeta(pedido?.itens ?? [], docs), [pedido, docs]);
   // "Enviados": tudo que o cliente mandou e a PSA ainda não classificou, na ordem
@@ -95,7 +120,13 @@ export function ColetaDocumentosCliente() {
     try {
       for (const file of validos) {
         try {
-          await upload.mutateAsync({ clienteId, file, categoria: grupo.categoria });
+          await upload.mutateAsync({
+            clienteId,
+            file,
+            categoria: grupo.categoria,
+            // Só chega aqui com o pedido enviado, então a solicitação existe.
+            solicitacaoId: pedido?.solicitacao?.id ?? null,
+          });
         } catch {
           // toast já emitido pelo onError do hook
         }
@@ -129,12 +160,7 @@ export function ColetaDocumentosCliente() {
       <Card className="flex gap-4 border-l-4 border-l-teal-600 p-6">
         <Hand className="h-7 w-7 shrink-0 text-teal-700" />
         <p className="text-sm leading-relaxed text-muted-foreground">
-          {somenteLeitura
-            ? `Este pedido foi encerrado. Os documentos que você enviou continuam aqui, disponíveis
-               para consulta e download. Se precisar enviar algo novo, fale com a PSA.`
-            : `Envie os documentos que você tiver, na ordem que preferir. Não precisa separar por
-               pessoa nem renomear arquivos, a PSA organiza depois. Pode enviar vários de uma vez e
-               voltar quando quiser.`}
+          {aviso}
         </p>
       </Card>
 
@@ -145,6 +171,7 @@ export function ColetaDocumentosCliente() {
             grupo={grupo}
             enviando={grupoEnviando === grupo.key}
             somenteLeitura={somenteLeitura}
+            motivoBloqueio={motivoBloqueio}
             onArquivos={(files) => void enviar(grupo, files)}
             onRemover={setAExcluir}
           />
