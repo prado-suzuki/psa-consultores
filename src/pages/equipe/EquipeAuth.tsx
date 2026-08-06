@@ -1,4 +1,14 @@
-import { useState, useEffect } from 'react';
+// Porta de entrada da equipe (`/equipe`).
+//
+// A ordem das duas etapas foi invertida. Antes a tela abria pedindo a área, com
+// as cinco listadas para qualquer visitante, e só depois pedia as credenciais:
+// quem clicasse no ícone da equipe no site via a divisão interna da empresa sem
+// ter conta nenhuma. Agora o login vem primeiro, e a lista de áreas só existe
+// depois da sessão — trazendo apenas as áreas daquela pessoa.
+//
+// A tela também é o "Trocar área" de quem já está dentro (ver AdminLayout e
+// GestaoLayout), então para sessão ativa ela abre direto no seletor.
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -6,47 +16,41 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Users, ArrowLeft, Mail, Lock, Building2, ChevronRight } from 'lucide-react';
+import { Users, ArrowLeft, Mail, Lock, ChevronRight, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import logo from '@/assets/logo-psa.png';
-import { AREAS_LIST, AREA_ROUTES, type AreaKey } from '@/config/areaCategories';
-import { useDomainEquipeAuth } from '@/hooks/useDomainEquipeAuth';
+import { AREA_ROUTES, type AreaKey } from '@/config/areaCategories';
+import { useUserAccessibleCategories } from '@/hooks/useUserAccessibleCategories';
+import { areasDoUsuario } from '@/lib/areasDoUsuario';
 import { checkAreaAccess } from '@/lib/accessControl';
-
-const areas = AREAS_LIST;
-
-const navigateToArea = (navigate: ReturnType<typeof useNavigate>, area: string) => {
-  navigate(AREA_ROUTES[area as AreaKey] || '/equipe/dashboard');
-};
 
 const EquipeAuth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [selectedArea, setSelectedArea] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isCheckingAccess, setIsCheckingAccess] = useState(false);
+  const [areaEmVerificacao, setAreaEmVerificacao] = useState<string | null>(null);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [pendingArea, setPendingArea] = useState<string | null>(null);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
-  const { signIn, user, isTeamMember, isAdmin, isLider, isSublider, loading } = useAuth();
-  const { fetchUserRoles } = useDomainEquipeAuth();
+  const { signIn, signOut, user, isTeamMember, isAdmin, isLider, isSublider, mustChangePassword, loading } = useAuth();
   const navigate = useNavigate();
   const isInternalUser = isTeamMember || isAdmin || isLider || isSublider;
 
-  // Navegação reativa: só navega quando AuthContext confirma user + roles
+  const {
+    categories,
+    isLoading: carregandoAreas,
+    isError: erroAoCarregarAreas,
+    refetch: recarregarAreas,
+  } = useUserAccessibleCategories();
+  const areasVisiveis = useMemo(() => areasDoUsuario(categories), [categories]);
+
+  // Senha provisória tem prioridade sobre qualquer área: trocar a senha é o
+  // único caminho para frente.
   useEffect(() => {
-    if (pendingArea && !loading && user && isInternalUser) {
-      if (user.user_metadata?.must_change_password === true) {
-        navigate('/primeiro-acesso', { replace: true });
-        setPendingArea(null);
-        return;
-      }
-      navigateToArea(navigate, pendingArea);
-      setPendingArea(null);
+    if (!loading && user && mustChangePassword) {
+      navigate('/primeiro-acesso', { replace: true });
     }
-  }, [pendingArea, loading, user, isInternalUser, navigate]);
+  }, [loading, user, mustChangePassword, navigate]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,86 +68,54 @@ const EquipeAuth = () => {
     setForgotEmail('');
   };
 
-  const handleAreaSelect = async (area: string) => {
-    setSelectedArea(area);
-
-    // Se usuário já autenticado, verificar acesso antes de navegar
-    if (user && isInternalUser) {
-      setIsCheckingAccess(true);
-
-      const hasAccess = await checkAreaAccess(user.id, area, isAdmin);
-      
-      if (!hasAccess) {
-        // Resetar seleção e mostrar toast discreto
-        setSelectedArea('');
-        toast.error('Você não possui acesso a esta área', {
-          position: 'bottom-right',
-          duration: 3000,
-        });
-        setIsCheckingAccess(false);
-        return;
-      }
-      
-      // Tem acesso, pode navegar
-      setIsCheckingAccess(false);
-      navigateToArea(navigate, area);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
     try {
-      const { error } = await signIn(email, password);
-      
-      if (!error) {
-        // Buscar a sessão recém criada para obter o user ID
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          // Verifica papel admin apenas para liberar bypass de checkAreaAccess.
-          // A barreira real de visibilidade é feita por checkAreaAccess (abaixo)
-          // e pelos guards de rota (PageAccessGate).
-          const roles = await fetchUserRoles(session.user.id);
-
-          const userIsAdmin = roles?.some(r => r.role === 'admin') || false;
-
-          // Verificar acesso à área selecionada
-          const hasAccess = await checkAreaAccess(session.user.id, selectedArea, userIsAdmin);
-          
-          if (!hasAccess) {
-            setSelectedArea('');
-            toast.error('Você não possui acesso a esta área', {
-              position: 'bottom-right',
-              duration: 3000,
-            });
-            setIsLoading(false);
-            return;
-          }
-          
-          // Navegação reativa via useEffect — aguarda AuthContext atualizar
-          setPendingArea(selectedArea);
-        }
-      }
-    } catch (err: any) {
+      // Sem navegação aqui: assim que o AuthContext confirmar a sessão, a
+      // própria tela troca para o seletor de áreas.
+      await signIn(email, password);
+    } catch (err) {
       console.error('Login error:', err);
       toast.error('Falha na conexão. Verifique sua internet e tente novamente.', {
         position: 'bottom-right',
         duration: 4000,
       });
     }
-    
     setIsLoading(false);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-950">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
+  /**
+   * A lista já vem filtrada, mas a checagem de acesso continua no clique.
+   * Filtro é o que se vê; `checkAreaAccess` é o que se pode. Se os dois um dia
+   * divergirem, a pessoa recebe um aviso claro em vez de cair na tela de
+   * "Acesso Negado" do guard de rota.
+   */
+  const handleAreaSelect = async (area: AreaKey) => {
+    if (!user) return;
+    setAreaEmVerificacao(area);
+    const hasAccess = await checkAreaAccess(user.id, area, isAdmin);
+    setAreaEmVerificacao(null);
+
+    if (!hasAccess) {
+      toast.error('Você não possui acesso a esta área', { position: 'bottom-right', duration: 3000 });
+      return;
+    }
+    navigate(AREA_ROUTES[area] || '/equipe/dashboard');
+  };
+
+  const handleSair = async () => {
+    await signOut();
+    setEmail('');
+    setPassword('');
+  };
+
+  const voltarAoSite = (
+    <Button variant="ghost" className="w-full text-gray-400 hover:text-white" onClick={() => navigate('/')}>
+      <ArrowLeft className="h-4 w-4 mr-2" />
+      Voltar ao site
+    </Button>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
@@ -157,59 +129,25 @@ const EquipeAuth = () => {
           <p className="text-gray-400">Sistema de Gestão de Demandas</p>
         </div>
 
-        {!selectedArea ? (
+        {/*
+          Enquanto a sessão é resolvida, só o cartão espera: a marca e o título
+          já estão pintados. Antes a tela inteira ficava preta com um giro no
+          meio, e a espera parecia bem maior do que era.
+        */}
+        {loading ? (
           <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-gray-400" />
-                Selecione sua área
-              </CardTitle>
-              <CardDescription className="text-gray-400">
-                Escolha a área de atuação antes de continuar
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Select value={selectedArea} onValueChange={handleAreaSelect} disabled={isCheckingAccess}>
-                <SelectTrigger className="bg-gray-800/50 border-gray-700 text-white">
-                  <SelectValue placeholder={isCheckingAccess ? "Verificando acesso..." : "Escolha sua área"} />
-                </SelectTrigger>
-                <SelectContent className="bg-gray-900 border-gray-700">
-                  {areas.map((area) => (
-                    <SelectItem 
-                      key={area.id} 
-                      value={area.id}
-                      className="text-gray-100 hover:bg-primary/20 focus:bg-primary/20 focus:text-white"
-                    >
-                      {area.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-
-              <div className="pt-4 border-t border-gray-800">
-                <Button 
-                  variant="ghost" 
-                  className="w-full text-gray-400 hover:text-white"
-                  onClick={() => navigate('/')}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Voltar ao site
-                </Button>
-              </div>
+            <CardContent className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </CardContent>
           </Card>
-        ) : (
+        ) : !user ? (
+          // ─── Etapa 1: credenciais ──────────────────────────────────────────
           <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg">
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-white">Acesso Restrito</CardTitle>
-                  <CardDescription className="text-gray-400">
-                    Entre com suas credenciais de membro da equipe
-                  </CardDescription>
-                </div>
-                <Badge area={selectedArea} />
-              </div>
+              <CardTitle className="text-white">Acesso Restrito</CardTitle>
+              <CardDescription className="text-gray-400">
+                Entre com suas credenciais de membro da equipe
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {showForgotPassword ? (
@@ -261,7 +199,7 @@ const EquipeAuth = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <Label htmlFor="password" className="text-gray-300">Senha</Label>
                       <div className="relative">
@@ -278,8 +216,8 @@ const EquipeAuth = () => {
                       </div>
                     </div>
 
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
                       disabled={isLoading}
                     >
@@ -297,38 +235,92 @@ const EquipeAuth = () => {
                 </>
               )}
 
-              <div className="mt-6 pt-4 border-t border-gray-800 space-y-2">
-                <Button 
-                  variant="ghost" 
-                  className="w-full text-gray-400 hover:text-white"
-                  onClick={() => setSelectedArea('')}
-                >
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Trocar área
+              <div className="mt-6 pt-4 border-t border-gray-800">{voltarAoSite}</div>
+            </CardContent>
+          </Card>
+        ) : !isInternalUser ? (
+          // ─── Sessão de cliente tentando a porta da equipe ──────────────────
+          <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg">
+            <CardHeader>
+              <CardTitle className="text-white">Acesso restrito à equipe</CardTitle>
+              <CardDescription className="text-gray-400">
+                Esta conta não é de um membro da equipe. Entre com uma conta da equipe ou volte para a área do cliente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button variant="ghost" className="w-full text-gray-400 hover:text-white" onClick={handleSair}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Entrar com outra conta
+              </Button>
+              {voltarAoSite}
+            </CardContent>
+          </Card>
+        ) : (
+          // ─── Etapa 2: as áreas dessa pessoa ────────────────────────────────
+          <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg">
+            <CardHeader>
+              <CardTitle className="text-white">Selecione sua área</CardTitle>
+              <CardDescription className="text-gray-400">
+                {user.email}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {carregandoAreas ? (
+                <p className="text-sm text-gray-400 py-2">Carregando suas áreas...</p>
+              ) : erroAoCarregarAreas ? (
+                // Falha de consulta não pode ser confundida com falta de
+                // permissão: as duas chegam aqui como lista vazia, e dizer
+                // "fale com um administrador" para quem só caiu a internet
+                // manda a pessoa para o caminho errado.
+                <div className="space-y-3 py-2">
+                  <p className="text-sm text-gray-400">
+                    Não foi possível carregar suas áreas. Verifique sua conexão.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="w-full border-gray-700 text-gray-200 hover:bg-gray-800"
+                    onClick={() => recarregarAreas()}
+                  >
+                    Tentar novamente
+                  </Button>
+                </div>
+              ) : areasVisiveis.length === 0 ? (
+                <p className="text-sm text-gray-400 py-2">
+                  Nenhuma área liberada para este acesso. Fale com um administrador.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {areasVisiveis.map((area) => (
+                    <button
+                      key={area.id}
+                      type="button"
+                      disabled={areaEmVerificacao !== null}
+                      onClick={() => handleAreaSelect(area.id)}
+                      className="w-full flex items-center justify-between rounded-lg border border-gray-700 bg-gray-800/50 px-4 py-3 text-left text-white transition-colors hover:border-primary hover:bg-primary/10 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    >
+                      <span className="font-medium">{area.label}</span>
+                      {areaEmVerificacao === area.id ? (
+                        <span className="text-xs text-gray-400">Verificando...</span>
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-gray-800 space-y-2">
+                <Button variant="ghost" className="w-full text-gray-400 hover:text-white" onClick={handleSair}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sair
                 </Button>
-                <Button 
-                  variant="ghost" 
-                  className="w-full text-gray-400 hover:text-white"
-                  onClick={() => navigate('/')}
-                >
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Voltar ao site
-                </Button>
+                {voltarAoSite}
               </div>
             </CardContent>
           </Card>
         )}
       </div>
     </div>
-  );
-};
-
-const Badge = ({ area }: { area: string }) => {
-  const areaLabel = areas.find(a => a.id === area)?.label || area;
-  return (
-    <span className="px-3 py-1 bg-primary/20 text-primary text-sm rounded-full">
-      {areaLabel}
-    </span>
   );
 };
 
