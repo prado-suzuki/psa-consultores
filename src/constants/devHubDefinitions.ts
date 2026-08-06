@@ -1,4 +1,5 @@
 import {
+  Activity,
   BarChart3,
   BookOpen,
   BookText,
@@ -298,6 +299,19 @@ export const DEV_HUBS: Record<
         icon: BarChart3,
         path: "/equipe/dev/gerenciar-dados/dashboards",
         title: DEV_NAV_LABELS.dashboardsGerenciarDados,
+      },
+      {
+        badge: "Analitico",
+        description:
+          "Versao nativa do relatorio de mesmo nome do Looker Studio, com foco tecnico: latencia e taxa de erro da API, consumo por ferramenta e causa raiz das falhas de ingestao.",
+        highlights: [
+          "Saude da API: latencia media, p95 e ranking de endpoints",
+          "Consumo por ferramenta, operacao e usuario",
+          "Falhas de ingestao classificadas por causa raiz",
+        ],
+        icon: Activity,
+        path: "/equipe/dev/gerenciar-dados/uso-envio",
+        title: DEV_NAV_LABELS.usoEnvio,
       },
     ],
   },

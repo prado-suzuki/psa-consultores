@@ -1,0 +1,364 @@
+{
+  "periodo": {
+    "apiMin": "2026-01-12",
+    "apiMax": "2026-08-06",
+    "arquivosMin": "2026-01-14",
+    "arquivosMax": "2026-08-06"
+  },
+  "ferramentas": [
+    "Analise Cruzada",
+    "Apuracao Tributaria",
+    "Calculadora IBS/CBS",
+    "Consulta ECD",
+    "Consulta ECF",
+    "Consulta EFD Contribuicoes",
+    "Consulta EFD ICMS",
+    "Consulta de XMLs",
+    "Controle Balancetes",
+    "DIFAL Inteligente",
+    "ICMS das Saidas",
+    "Outros",
+    "PERDCOMP",
+    "Revisao de Registros da EFD Contribuicoes"
+  ],
+  "endpoints": [
+    "/auth",
+    "/docs",
+    "calculadora_ibs_cbs/filtros",
+    "calculadora_ibs_cbs/por_anexo",
+    "calculadora_ibs_cbs/por_produto",
+    "calculadora_ibs_cbs/por_uf",
+    "calculadora_ibs_cbs/resumo",
+    "classificacoes/buscar",
+    "classificacoes/sync",
+    "contabil/balancetes",
+    "contabil/balancetes/",
+    "contabil/balancetes/batch-download",
+    "contabil/balancetes/batch-export-excel",
+    "contabil/balancetes/{id_contribuinte}",
+    "contabil/balancetes/{id_contribuinte}/download",
+    "contabil/balancetes/{id_contribuinte}/export-excel",
+    "efd/contribuicoes/{cnpj}",
+    "efd/contribuicoes/{cnpj}/{hash}/exportar",
+    "efd/contribuicoes/{cnpj}/{hash}/registro/{registro}",
+    "efd/contribuicoes/{id_contribuinte}",
+    "efd/contribuicoes/{id_contribuinte}/exportar_correcoes",
+    "efd/contribuicoes/{id_contribuinte}/{hash}/exportar",
+    "efd/contribuicoes/{id_contribuinte}/{hash}/registro/{registro}",
+    "efd/ecd/{cnpj}",
+    "efd/ecd/{cnpj}/{hash}/exportar",
+    "efd/ecd/{cnpj}/{hash}/registro/{registro}",
+    "efd/ecd/{hash}",
+    "efd/ecd/{id_contribuinte}",
+    "efd/ecf/{cnpj}",
+    "efd/ecf/{cnpj}/{hash}/exportar",
+    "efd/ecf/{cnpj}/{hash}/registro/{registro}",
+    "efd/ecf/{id_contribuinte}",
+    "efd/icms/{cnpj}",
+    "efd/icms/{cnpj}/{hash}/exportar",
+    "efd/icms/{cnpj}/{hash}/registro/{registro}",
+    "efd/icms/{id_contribuinte}",
+    "efd/icms/{id_contribuinte}/{hash}/exportar",
+    "efd/icms/{id_contribuinte}/{hash}/registro/{registro}",
+    "ibs-cbs/calculo-ibs-cbs/exportar/{id_contribuinte}",
+    "ibs-cbs/classificacoes/buscar",
+    "ibs-cbs/classificacoes/sync",
+    "ibs-cbs/regras",
+    "ibs-cbs/{id_contribuinte}/nfes/agrupado-item",
+    "ncm/calculo-difal/exportar/{id_contribuinte}",
+    "ncm/regras",
+    "osg/documentos/delete",
+    "osg/documentos/finalize",
+    "osg/documentos/sign-download",
+    "osg/documentos/sign-upload",
+    "pis_cofins/apuracao",
+    "pis_cofins/comparacoes/cte_lote",
+    "pis_cofins/comparacoes/efdc_balancete",
+    "pis_cofins/comparacoes/efdc_icms",
+    "pis_cofins/correcoes",
+    "pis_cofins/revisao/ativo_imob_bens",
+    "pis_cofins/revisao/ativo_imob_credito",
+    "pis_cofins/revisao/notas-itens",
+    "pis_cofins/revisao/servicos_itens",
+    "pis_cofins/revisao/transp",
+    "pis_cofins/revisao/transp_outros",
+    "query/contribuintes/{id_contribuinte}/ctes",
+    "query/contribuintes/{id_contribuinte}/nfes",
+    "query/contribuintes/{id_contribuinte}/nfes/agrupado-item",
+    "query/download/contribuintes/{id_contribuinte}/cte/xml",
+    "query/download/cte/xml/{chave}",
+    "query/download/efd/contribuicoes/arquivo/{hash}",
+    "query/download/efd/contribuicoes/{cnpj}",
+    "query/download/efd/contribuicoes/{id_contribuinte}",
+    "query/download/efd/ecd/arquivo/{hash}",
+    "query/download/efd/ecf/arquivo/{hash}",
+    "query/download/efd/icms/arquivo/{hash}",
+    "query/download/nfe/xml/{chave}",
+    "query/export/{id_contribuinte}/cte/csv",
+    "query/export/{id_contribuinte}/nfe/csv",
+    "saida_icms/acucar",
+    "saida_icms/apu_rec",
+    "saida_icms/etanol_interestado",
+    "saida_icms/resumo_cfop",
+    "selic",
+    "sync/cadastros",
+    "sync/perdcomp"
+  ],
+  "metodos": [
+    "DELETE",
+    "GET",
+    "POST"
+  ],
+  "tiposOperacao": [
+    "Atualizacao de dados no DW",
+    "Consulta de dados",
+    "Download de arquivo original",
+    "Exportacao para Excel"
+  ],
+  "statusCodes": [
+    200,
+    201,
+    202,
+    307,
+    400,
+    401,
+    404,
+    409,
+    422,
+    500,
+    502,
+    503
+  ],
+  "usuariosApi": [
+    {
+      "usuario": "Alexandre Silva",
+      "email": "alexandre.silva@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Anderson Matos",
+      "email": "anderson.matos@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Automacao",
+      "email": null,
+      "automacao": true
+    },
+    {
+      "usuario": "Automação Psa",
+      "email": "automacao@psaconsultores.com.br",
+      "automacao": true
+    },
+    {
+      "usuario": "Bernardo Kropiwiec",
+      "email": "bernardo.kropiwiec@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Carlos Prado",
+      "email": "cprado@prado-advogados.com",
+      "automacao": false
+    },
+    {
+      "usuario": "Diego Melo",
+      "email": "diego.melo@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Eduardo Nogueira",
+      "email": "eduardo.nogueira@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Felipe Matias",
+      "email": "felipe.matias@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Gabriel Gama",
+      "email": "gabriel.gama@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Geizi Andrade",
+      "email": "geizi.andrade@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Hercio Junior",
+      "email": "hercio.junior@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "João Cruz",
+      "email": "joao.cruz@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Leonardo Alves",
+      "email": "leonardo.alves@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Marcely Arruda",
+      "email": "marcely.arruda@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Maria Lizot",
+      "email": "maria.lizot@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Mariana",
+      "email": "mariana@iaplicada.com",
+      "automacao": false
+    },
+    {
+      "usuario": "Maritsa Padilha",
+      "email": "maritsa.padilha@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Mayara Gomes",
+      "email": "mayara.gomes@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Monica Matunaga",
+      "email": "monica.matunaga@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Patricia Melo",
+      "email": "patricia.melo@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Ricardo Migueis",
+      "email": "ricardo.migueis@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "Washington Lima",
+      "email": "washington.lima@psaconsultores.com.br",
+      "automacao": false
+    },
+    {
+      "usuario": "matheus.lopes@psaconsultores.com.br",
+      "email": "matheus.lopes@psaconsultores.com.br",
+      "automacao": false
+    }
+  ],
+  "usuariosArquivos": [
+    {
+      "usuario": "Alexandre Silva",
+      "automacao": false
+    },
+    {
+      "usuario": "Anderson Matos",
+      "automacao": false
+    },
+    {
+      "usuario": "Automacao",
+      "automacao": true
+    },
+    {
+      "usuario": "Bernardo Kropiwiec",
+      "automacao": false
+    },
+    {
+      "usuario": "Diego Melo",
+      "automacao": false
+    },
+    {
+      "usuario": "Gabriel Gama",
+      "automacao": false
+    },
+    {
+      "usuario": "Geizi Andrade",
+      "automacao": false
+    },
+    {
+      "usuario": "Hercio Junior",
+      "automacao": false
+    },
+    {
+      "usuario": "João Cruz",
+      "automacao": false
+    },
+    {
+      "usuario": "Marcely Arruda",
+      "automacao": false
+    },
+    {
+      "usuario": "Maria Lizot",
+      "automacao": false
+    },
+    {
+      "usuario": "Mayara Gomes",
+      "automacao": false
+    },
+    {
+      "usuario": "Monica Matunaga",
+      "automacao": false
+    },
+    {
+      "usuario": "matheus.lopes@psaconsultores.com.br",
+      "automacao": false
+    }
+  ],
+  "tiposArquivo": [
+    "Balancete",
+    "CTe",
+    "ECD",
+    "ECF",
+    "EFD Contribuicoes",
+    "EFD ICMS IPI",
+    "ICMS Saida",
+    "NFe"
+  ],
+  "causasErro": [
+    "Contribuinte invalido",
+    "Duplicidade (documento ja existe)",
+    "Namespace XML invalido",
+    "Outro"
+  ],
+  "clientes": [
+    "Agro Amazônia Produtos Agropecuários S.a.",
+    "Agroindustria Novo Milenio",
+    "Agropecuária Bom Pastor",
+    "Agropecuária Cataratas",
+    "Alessio Sansão",
+    "Antonio Sansão",
+    "Araguaia",
+    "Barralcool",
+    "Brandt Transportes",
+    "Bussolaro",
+    "Coprodia",
+    "Dk Transportes",
+    "Etamil Bioenergia S/A",
+    "Everest Exs Gestão Logística",
+    "Família Richart",
+    "Fribon Transportes",
+    "Granlider Transportes",
+    "Grupo Frizon",
+    "Grupo Piccini",
+    "Grupo Zugair",
+    "Jg Transportes",
+    "Ogliari Agro",
+    "Paiol Comercial Agricola",
+    "Planta Brasil",
+    "Rene Barbour",
+    "Rodonutri",
+    "Tecnomyl",
+    "Transoeste Logística",
+    "Álvaro De Oliveira Castro"
+  ],
+  "clusters": [
+    "0523512c-f980-4236-8a7c-53e06c9c7a80",
+    "952435d2-ef26-4829-80a2-e186dc61158c",
+    "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3"
+  ]
+}

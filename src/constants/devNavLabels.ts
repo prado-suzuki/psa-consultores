@@ -35,4 +35,5 @@ export const DEV_NAV_LABELS = {
   gerenciarDados: "Gerenciar dados",
   carregarDados: "Carregar dados",
   dashboardsGerenciarDados: "Dashboards",
+  usoEnvio: "Controle de uso e envio",
 } as const;

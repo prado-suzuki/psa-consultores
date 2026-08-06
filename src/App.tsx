@@ -73,6 +73,7 @@ import ConsultaECF from "./pages/equipe/dev/ConsultaECF";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
 import GerenciarDadosHub from "./pages/equipe/dev/GerenciarDadosHub";
 import GerenciarDadosDashboards from "./pages/equipe/dev/GerenciarDadosDashboards";
+import DashboardUsoEnvio from "./pages/equipe/dev/DashboardUsoEnvio";
 import AnaliseIcmsHub from "./pages/equipe/dev/AnaliseIcmsHub";
 import PerdcompHub from "./pages/equipe/dev/PerdcompHub";
 import PerdcompDashboard from "./pages/equipe/dev/PerdcompDashboard";
@@ -128,6 +129,7 @@ import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
 import BoardDashboardClientesOs from "./pages/equipe/board/BoardDashboardClientesOs";
 import BoardClientes from "./pages/equipe/board/BoardClientes";
+import DashboardUsoEnvioGerencial from "./pages/equipe/board/DashboardUsoEnvioGerencial";
 
 // Gestão
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
@@ -217,6 +219,7 @@ const App = () => (
               <Route path="/equipe/dev/gerenciar-dados" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados"><GerenciarDadosHub /></PageAccessGate>} />
               <Route path="/equipe/dev/carregar-dados" element={<PageAccessGate pagePath="/equipe/dev/carregar-dados"><GerenciarDados /></PageAccessGate>} />
               <Route path="/equipe/dev/gerenciar-dados/dashboards" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados/dashboards"><GerenciarDadosDashboards /></PageAccessGate>} />
+              <Route path="/equipe/dev/gerenciar-dados/uso-envio" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados/uso-envio"><DashboardUsoEnvio /></PageAccessGate>} />
               <Route path="/equipe/dev/levantamento-pis-cofins" element={<PageAccessGate pagePath="/equipe/dev/levantamento-pis-cofins"><LevantamentoPisCofinsHub /></PageAccessGate>} />
               <Route path="/equipe/dev/perdcomp" element={<PageAccessGate pagePath="/equipe/dev/perdcomp"><PerdcompHub /></PageAccessGate>} />
               <Route path="/equipe/dev/perdcomp/dashboard" element={<PageAccessGate pagePath="/equipe/dev/perdcomp/dashboard"><PerdcompDashboard /></PageAccessGate>} />
@@ -294,6 +297,7 @@ const App = () => (
               <Route path="/equipe/board" element={<Navigate to="/equipe/board/dashboard" replace />} />
               <Route path="/equipe/board/dashboard" element={<PageAccessGate pagePath="/equipe/board/dashboard"><BoardDashboard /></PageAccessGate>} />
               <Route path="/equipe/board/relatorios" element={<PageAccessGate pagePath="/equipe/board/relatorios"><BoardRelatorios /></PageAccessGate>} />
+              <Route path="/equipe/board/uso-envio" element={<PageAccessGate pagePath="/equipe/board/uso-envio"><DashboardUsoEnvioGerencial /></PageAccessGate>} />
               <Route path="/equipe/board/dashboard-clientes-os" element={<PageAccessGate pagePath="/equipe/board/dashboard-clientes-os"><BoardDashboardClientesOs /></PageAccessGate>} />
               <Route path="/equipe/board/clientes" element={<PageAccessGate pagePath="/equipe/board/clientes"><BoardClientes /></PageAccessGate>} />
 

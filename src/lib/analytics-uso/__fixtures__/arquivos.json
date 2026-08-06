@@ -1,0 +1,944 @@
+{
+  "periodo": {
+    "inicio": "2026-01-01",
+    "fim": "2026-08-06"
+  },
+  "totais": {
+    "enviados": 288,
+    "erros": 3534,
+    "naoEntraram": 1392,
+    "reenvios": 2142,
+    "taxaErro": 0.9246,
+    "arquivosAusentesDistintos": 1392,
+    "arquivosDistintosComErro": 2240,
+    "pastasComErro": 21,
+    "usuariosAtivos": 13,
+    "registrosSemDataIngestao": 197055,
+    "registrosTotaisNaView": 222655,
+    "automacaoEnviados": 21778,
+    "automacaoErros": 0
+  },
+  "porMes": [
+    {
+      "mes": "2026-02",
+      "enviados": 5,
+      "naoEntraram": 0,
+      "reenvios": 0,
+      "erros": 0,
+      "taxaErro": 0
+    },
+    {
+      "mes": "2026-03",
+      "enviados": 32,
+      "naoEntraram": 5,
+      "reenvios": 1,
+      "erros": 6,
+      "taxaErro": 0.1579
+    },
+    {
+      "mes": "2026-04",
+      "enviados": 22,
+      "naoEntraram": 1343,
+      "reenvios": 0,
+      "erros": 1343,
+      "taxaErro": 0.9839
+    },
+    {
+      "mes": "2026-05",
+      "enviados": 166,
+      "naoEntraram": 16,
+      "reenvios": 1991,
+      "erros": 2007,
+      "taxaErro": 0.9236
+    },
+    {
+      "mes": "2026-06",
+      "enviados": 32,
+      "naoEntraram": 28,
+      "reenvios": 128,
+      "erros": 156,
+      "taxaErro": 0.8298
+    },
+    {
+      "mes": "2026-07",
+      "enviados": 21,
+      "naoEntraram": 0,
+      "reenvios": 10,
+      "erros": 10,
+      "taxaErro": 0.3226
+    },
+    {
+      "mes": "2026-08",
+      "enviados": 10,
+      "naoEntraram": 0,
+      "reenvios": 12,
+      "erros": 12,
+      "taxaErro": 0.5455
+    }
+  ],
+  "porTipo": [
+    {
+      "tipoArquivo": "NFe",
+      "enviados": 0,
+      "erros": 2758,
+      "taxaErro": 1
+    },
+    {
+      "tipoArquivo": "CTe",
+      "enviados": 0,
+      "erros": 721,
+      "taxaErro": 1
+    },
+    {
+      "tipoArquivo": "ECF",
+      "enviados": 9,
+      "erros": 19,
+      "taxaErro": 0.6786
+    },
+    {
+      "tipoArquivo": "EFD ICMS IPI",
+      "enviados": 68,
+      "erros": 16,
+      "taxaErro": 0.1905
+    },
+    {
+      "tipoArquivo": "EFD Contribuicoes",
+      "enviados": 98,
+      "erros": 12,
+      "taxaErro": 0.1091
+    },
+    {
+      "tipoArquivo": "ICMS Saida",
+      "enviados": 0,
+      "erros": 7,
+      "taxaErro": 1
+    },
+    {
+      "tipoArquivo": "ECD",
+      "enviados": 6,
+      "erros": 1,
+      "taxaErro": 0.1429
+    },
+    {
+      "tipoArquivo": "Balancete",
+      "enviados": 107,
+      "erros": 0,
+      "taxaErro": 0
+    }
+  ],
+  "porCausa": [
+    {
+      "causa": "Duplicidade (documento ja existe)",
+      "impacto": "reenvio",
+      "erros": 2142,
+      "arquivosDistintos": 848,
+      "pct": 0.6061
+    },
+    {
+      "causa": "Namespace XML invalido",
+      "impacto": "ausente",
+      "erros": 1333,
+      "arquivosDistintos": 1333,
+      "pct": 0.3772
+    },
+    {
+      "causa": "Outro",
+      "impacto": "ausente",
+      "erros": 44,
+      "arquivosDistintos": 44,
+      "pct": 0.0125
+    },
+    {
+      "causa": "Contribuinte invalido",
+      "impacto": "ausente",
+      "erros": 15,
+      "arquivosDistintos": 15,
+      "pct": 0.0042
+    }
+  ],
+  "porUsuario": [
+    {
+      "usuario": "Mayara Gomes",
+      "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+      "automacao": false,
+      "enviados": 111,
+      "erros": 1,
+      "naoEntraram": 1,
+      "erroDuplicidade": 0,
+      "erroNamespace": 0,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 1,
+      "arquivosDistintosComErro": 1,
+      "ultimoErro": "2026-06-10"
+    },
+    {
+      "usuario": "Diego Melo",
+      "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+      "automacao": false,
+      "enviados": 68,
+      "erros": 2390,
+      "naoEntraram": 1348,
+      "erroDuplicidade": 1042,
+      "erroNamespace": 1333,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 15,
+      "arquivosDistintosComErro": 1764,
+      "ultimoErro": "2026-05-12"
+    },
+    {
+      "usuario": "Gabriel Gama",
+      "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+      "automacao": false,
+      "enviados": 30,
+      "erros": 1113,
+      "naoEntraram": 23,
+      "erroDuplicidade": 1090,
+      "erroNamespace": 0,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 23,
+      "arquivosDistintosComErro": 453,
+      "ultimoErro": "2026-08-03"
+    },
+    {
+      "usuario": "João Cruz",
+      "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+      "automacao": false,
+      "enviados": 20,
+      "erros": 0,
+      "naoEntraram": 0,
+      "erroDuplicidade": 0,
+      "erroNamespace": 0,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 0,
+      "arquivosDistintosComErro": 0,
+      "ultimoErro": null
+    },
+    {
+      "usuario": "Maria Lizot",
+      "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+      "automacao": false,
+      "enviados": 20,
+      "erros": 0,
+      "naoEntraram": 0,
+      "erroDuplicidade": 0,
+      "erroNamespace": 0,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 0,
+      "arquivosDistintosComErro": 0,
+      "ultimoErro": null
+    },
+    {
+      "usuario": "Geizi Andrade",
+      "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+      "automacao": false,
+      "enviados": 18,
+      "erros": 0,
+      "naoEntraram": 0,
+      "erroDuplicidade": 0,
+      "erroNamespace": 0,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 0,
+      "arquivosDistintosComErro": 0,
+      "ultimoErro": null
+    },
+    {
+      "usuario": "Bernardo Kropiwiec",
+      "clusterId": "0523512c-f980-4236-8a7c-53e06c9c7a80",
+      "automacao": false,
+      "enviados": 8,
+      "erros": 2,
+      "naoEntraram": 2,
+      "erroDuplicidade": 0,
+      "erroNamespace": 0,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 2,
+      "arquivosDistintosComErro": 2,
+      "ultimoErro": "2026-04-22"
+    },
+    {
+      "usuario": "Hercio Junior",
+      "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+      "automacao": false,
+      "enviados": 5,
+      "erros": 10,
+      "naoEntraram": 0,
+      "erroDuplicidade": 10,
+      "erroNamespace": 0,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 0,
+      "arquivosDistintosComErro": 2,
+      "ultimoErro": "2026-08-06"
+    },
+    {
+      "usuario": "Anderson Matos",
+      "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+      "automacao": false,
+      "enviados": 3,
+      "erros": 0,
+      "naoEntraram": 0,
+      "erroDuplicidade": 0,
+      "erroNamespace": 0,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 0,
+      "arquivosDistintosComErro": 0,
+      "ultimoErro": null
+    },
+    {
+      "usuario": "matheus.lopes@psaconsultores.com.br",
+      "clusterId": null,
+      "automacao": false,
+      "enviados": 2,
+      "erros": 0,
+      "naoEntraram": 0,
+      "erroDuplicidade": 0,
+      "erroNamespace": 0,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 0,
+      "arquivosDistintosComErro": 0,
+      "ultimoErro": null
+    },
+    {
+      "usuario": "Monica Matunaga",
+      "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+      "automacao": false,
+      "enviados": 2,
+      "erros": 0,
+      "naoEntraram": 0,
+      "erroDuplicidade": 0,
+      "erroNamespace": 0,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 0,
+      "arquivosDistintosComErro": 0,
+      "ultimoErro": null
+    },
+    {
+      "usuario": "Alexandre Silva",
+      "clusterId": "952435d2-ef26-4829-80a2-e186dc61158c",
+      "automacao": false,
+      "enviados": 1,
+      "erros": 0,
+      "naoEntraram": 0,
+      "erroDuplicidade": 0,
+      "erroNamespace": 0,
+      "erroContribuinte": 0,
+      "erroNaoClassificado": 0,
+      "arquivosDistintosComErro": 0,
+      "ultimoErro": null
+    },
+    {
+      "usuario": "Marcely Arruda",
+      "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+      "automacao": false,
+      "enviados": 0,
+      "erros": 18,
+      "naoEntraram": 18,
+      "erroDuplicidade": 0,
+      "erroNamespace": 0,
+      "erroContribuinte": 15,
+      "erroNaoClassificado": 3,
+      "arquivosDistintosComErro": 18,
+      "ultimoErro": "2026-06-16"
+    }
+  ],
+  "porPasta": [
+    {
+      "pasta": "Araguaia / 2026 / Execução / Docs. Cliente / Araguaia Atacarejo Comercial De Alimentos E Bebidas Ltda / NFes / Entradas",
+      "cliente": "Araguaia",
+      "erros": 1610,
+      "arquivosDistintos": 405
+    },
+    {
+      "pasta": "Barralcool / 2026 / Execução / Docs. Cliente / Usina Barralcool S/A / NFes / Entradas",
+      "cliente": "Barralcool",
+      "erros": 1339,
+      "arquivosDistintos": 1339
+    },
+    {
+      "pasta": "Planta Brasil / 2026 / Execução / Docs. Cliente / Planta Brasil Agronegocios Ltda / NFes / Entradas",
+      "cliente": "Planta Brasil",
+      "erros": 600,
+      "arquivosDistintos": 200
+    },
+    {
+      "pasta": "Planta Brasil / 2026 / Execução / Docs. Cliente / Planta Brasil Agronegocios Ltda / CTes / Entradas",
+      "cliente": "Planta Brasil",
+      "erros": 441,
+      "arquivosDistintos": 215
+    },
+    {
+      "pasta": "Granlider Transportes / 2026 / Execução / Docs. Cliente / Granlider Transportes E Agenciamento De Cargas Ltda / CTes / Saídas",
+      "cliente": "Granlider Transportes",
+      "erros": 275,
+      "arquivosDistintos": 25
+    },
+    {
+      "pasta": "Família Richart / 2026 / Execução / Docs. Cliente / M.E.F Agropecuária Ltda / EFD ICMS IPI",
+      "cliente": "Família Richart",
+      "erros": 15,
+      "arquivosDistintos": 15
+    },
+    {
+      "pasta": "Araguaia / 2026 / Execução / Docs. Cliente / Araguaia Atacarejo Comercial De Alimentos E Bebidas Ltda / NFes / Saídas",
+      "cliente": "Araguaia",
+      "erros": 10,
+      "arquivosDistintos": 5
+    },
+    {
+      "pasta": "Grupo Frizon / 2026 / Execução / Docs. Cliente / Frizon Transportes Ltda / ECF",
+      "cliente": "Grupo Frizon",
+      "erros": 10,
+      "arquivosDistintos": 2
+    },
+    {
+      "pasta": "Fribon Transportes / 2026 / Execução / Docs. Cliente / Agropecuaria Bomfim / NFes / Entradas",
+      "cliente": "Fribon Transportes",
+      "erros": 9,
+      "arquivosDistintos": 9
+    },
+    {
+      "pasta": "Coprodia / 2026 / Execução / Docs. Cliente / Cooperativa Agr Prod Cana De Campo Novo Do Parecis Ltda / ECF",
+      "cliente": "Coprodia",
+      "erros": 9,
+      "arquivosDistintos": 1
+    },
+    {
+      "pasta": "Barralcool / 2026 / Execução / Docs. Cliente / Usina Barralcool S/A / CTes / Entradas",
+      "cliente": "Barralcool",
+      "erros": 5,
+      "arquivosDistintos": 5
+    },
+    {
+      "pasta": "Paiol Comercial Agricola / 2026 / Execução / Docs. Cliente / Plantun Comércio e Representação Ltda / EFD Contribuições",
+      "cliente": "Paiol Comercial Agricola",
+      "erros": 3,
+      "arquivosDistintos": 3
+    },
+    {
+      "pasta": "Família Richart / 2026 / Execução / Docs. Cliente / M.E.F Agropecuária Ltda / EFD Contribuições",
+      "cliente": "Família Richart",
+      "erros": 3,
+      "arquivosDistintos": 3
+    },
+    {
+      "pasta": "Agropecuária Cataratas / 2026 / Execução / Docs. Cliente / Agropecuaria Cataratas Ltda. / EFD Contribuições",
+      "cliente": "Agropecuária Cataratas",
+      "erros": 3,
+      "arquivosDistintos": 3
+    },
+    {
+      "pasta": "Granlider Transportes / 2026 / Execução / Docs. Cliente / Granlider Transportes E Agenciamento De Cargas Ltda / EFD Contribuições",
+      "cliente": "Granlider Transportes",
+      "erros": 3,
+      "arquivosDistintos": 1
+    },
+    {
+      "pasta": "Barralcool / 2026 / Execução / Docs. Cliente / Usina Barralcool S/A / Demonstrativo das operações de saída",
+      "cliente": "Barralcool",
+      "erros": 2,
+      "arquivosDistintos": 2
+    },
+    {
+      "pasta": "Planta Brasil / 2026 / Execução / Docs. Cliente / Planta Brasil Agronegocios Ltda / Demonstrativo das operações de saída",
+      "cliente": "Planta Brasil",
+      "erros": 2,
+      "arquivosDistintos": 2
+    },
+    {
+      "pasta": "Paiol Comercial Agricola / 2026 / Execução / Docs. Cliente / Plantun Comércio e Representação Ltda / Demonstrativo das operações de saída",
+      "cliente": "Paiol Comercial Agricola",
+      "erros": 2,
+      "arquivosDistintos": 2
+    },
+    {
+      "pasta": "(sem caminho)",
+      "cliente": "Rene Barbour",
+      "erros": 1,
+      "arquivosDistintos": 1
+    },
+    {
+      "pasta": "Barralcool / 2026 / Execução / Docs. Cliente / Usina Barralcool S/A / EFD ICMS IPI",
+      "cliente": "Barralcool",
+      "erros": 1,
+      "arquivosDistintos": 1
+    },
+    {
+      "pasta": "Coprodia / 2026 / Execução / Docs. Cliente / Cooperativa Agr Prod Cana De Campo Novo Do Parecis Ltda / Demonstrativo das operações de saída",
+      "cliente": "Coprodia",
+      "erros": 1,
+      "arquivosDistintos": 1
+    }
+  ],
+  "porCliente": [
+    {
+      "cliente": "Barralcool",
+      "enviados": 21,
+      "naoEntraram": 1346,
+      "reenvios": 1,
+      "erros": 1347,
+      "taxaErro": 0.9846,
+      "tiposArquivo": 5
+    },
+    {
+      "cliente": "Araguaia",
+      "enviados": 4,
+      "naoEntraram": 20,
+      "reenvios": 1600,
+      "erros": 1620,
+      "taxaErro": 0.9975,
+      "tiposArquivo": 2
+    },
+    {
+      "cliente": "Família Richart",
+      "enviados": 7,
+      "naoEntraram": 18,
+      "reenvios": 0,
+      "erros": 18,
+      "taxaErro": 0.72,
+      "tiposArquivo": 3
+    },
+    {
+      "cliente": "Fribon Transportes",
+      "enviados": 10,
+      "naoEntraram": 9,
+      "reenvios": 0,
+      "erros": 9,
+      "taxaErro": 0.4737,
+      "tiposArquivo": 2
+    },
+    {
+      "cliente": "Paiol Comercial Agricola",
+      "enviados": 3,
+      "naoEntraram": 5,
+      "reenvios": 0,
+      "erros": 5,
+      "taxaErro": 0.625,
+      "tiposArquivo": 2
+    },
+    {
+      "cliente": "Planta Brasil",
+      "enviados": 53,
+      "naoEntraram": 2,
+      "reenvios": 1041,
+      "erros": 1043,
+      "taxaErro": 0.9516,
+      "tiposArquivo": 4
+    },
+    {
+      "cliente": "Coprodia",
+      "enviados": 7,
+      "naoEntraram": 1,
+      "reenvios": 9,
+      "erros": 10,
+      "taxaErro": 0.5882,
+      "tiposArquivo": 3
+    },
+    {
+      "cliente": "Rene Barbour",
+      "enviados": 1,
+      "naoEntraram": 1,
+      "reenvios": 0,
+      "erros": 1,
+      "taxaErro": 0.5,
+      "tiposArquivo": 1
+    },
+    {
+      "cliente": "Grupo Piccini",
+      "enviados": 86,
+      "naoEntraram": 0,
+      "reenvios": 0,
+      "erros": 0,
+      "taxaErro": 0,
+      "tiposArquivo": 2
+    },
+    {
+      "cliente": "Ogliari Agro",
+      "enviados": 26,
+      "naoEntraram": 0,
+      "reenvios": 0,
+      "erros": 0,
+      "taxaErro": 0,
+      "tiposArquivo": 2
+    },
+    {
+      "cliente": "Grupo Zugair",
+      "enviados": 20,
+      "naoEntraram": 0,
+      "reenvios": 0,
+      "erros": 0,
+      "taxaErro": 0,
+      "tiposArquivo": 1
+    },
+    {
+      "cliente": "Jg Transportes",
+      "enviados": 12,
+      "naoEntraram": 0,
+      "reenvios": 0,
+      "erros": 0,
+      "taxaErro": 0,
+      "tiposArquivo": 2
+    },
+    {
+      "cliente": "Transoeste Logística",
+      "enviados": 12,
+      "naoEntraram": 0,
+      "reenvios": 0,
+      "erros": 0,
+      "taxaErro": 0,
+      "tiposArquivo": 2
+    },
+    {
+      "cliente": "Dk Transportes",
+      "enviados": 10,
+      "naoEntraram": 0,
+      "reenvios": 0,
+      "erros": 0,
+      "taxaErro": 0,
+      "tiposArquivo": 2
+    },
+    {
+      "cliente": "Tecnomyl",
+      "enviados": 4,
+      "naoEntraram": 0,
+      "reenvios": 0,
+      "erros": 0,
+      "taxaErro": 0,
+      "tiposArquivo": 2
+    },
+    {
+      "cliente": "Grupo Frizon",
+      "enviados": 4,
+      "naoEntraram": 0,
+      "reenvios": 10,
+      "erros": 10,
+      "taxaErro": 0.7143,
+      "tiposArquivo": 1
+    },
+    {
+      "cliente": "Agropecuária Cataratas",
+      "enviados": 3,
+      "naoEntraram": 0,
+      "reenvios": 3,
+      "erros": 3,
+      "taxaErro": 0.5,
+      "tiposArquivo": 1
+    },
+    {
+      "cliente": "Brandt Transportes",
+      "enviados": 3,
+      "naoEntraram": 0,
+      "reenvios": 0,
+      "erros": 0,
+      "taxaErro": 0,
+      "tiposArquivo": 1
+    },
+    {
+      "cliente": "Granlider Transportes",
+      "enviados": 2,
+      "naoEntraram": 0,
+      "reenvios": 278,
+      "erros": 278,
+      "taxaErro": 0.9929,
+      "tiposArquivo": 3
+    },
+    {
+      "cliente": "Agro Amazônia Produtos Agropecuários S.a.",
+      "enviados": 1,
+      "naoEntraram": 0,
+      "reenvios": 0,
+      "erros": 0,
+      "taxaErro": 0,
+      "tiposArquivo": 1
+    },
+    {
+      "cliente": "Etamil Bioenergia S/A",
+      "enviados": 1,
+      "naoEntraram": 0,
+      "reenvios": 0,
+      "erros": 0,
+      "taxaErro": 0,
+      "tiposArquivo": 1
+    }
+  ],
+  "gerencial": {
+    "porMes": [
+      {
+        "mes": "2026-01",
+        "enviados": 15487,
+        "erros": 0,
+        "taxaErro": 0,
+        "usuariosAtivosHumanos": 0,
+        "enviadosAutomacao": 15487,
+        "participacaoAutomacao": 1,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "mes": "2026-02",
+        "enviados": 6296,
+        "erros": 0,
+        "taxaErro": 0,
+        "usuariosAtivosHumanos": 3,
+        "enviadosAutomacao": 6291,
+        "participacaoAutomacao": 0.9992,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "mes": "2026-03",
+        "enviados": 32,
+        "erros": 6,
+        "taxaErro": 0.1579,
+        "usuariosAtivosHumanos": 8,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 4
+      },
+      {
+        "mes": "2026-04",
+        "enviados": 22,
+        "erros": 1343,
+        "taxaErro": 0.9839,
+        "usuariosAtivosHumanos": 5,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 11
+      },
+      {
+        "mes": "2026-05",
+        "enviados": 166,
+        "erros": 2007,
+        "taxaErro": 0.9236,
+        "usuariosAtivosHumanos": 5,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 16
+      },
+      {
+        "mes": "2026-06",
+        "enviados": 32,
+        "erros": 156,
+        "taxaErro": 0.8298,
+        "usuariosAtivosHumanos": 6,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 13
+      },
+      {
+        "mes": "2026-07",
+        "enviados": 21,
+        "erros": 10,
+        "taxaErro": 0.3226,
+        "usuariosAtivosHumanos": 5,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "mes": "2026-08",
+        "enviados": 10,
+        "erros": 12,
+        "taxaErro": 0.5455,
+        "usuariosAtivosHumanos": 4,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 0
+      }
+    ],
+    "porClusterMes": [
+      {
+        "mes": "2026-01",
+        "clusterId": null,
+        "enviados": 15487,
+        "erros": 0,
+        "taxaErro": 0,
+        "usuariosAtivosHumanos": 0,
+        "enviadosAutomacao": 15487,
+        "participacaoAutomacao": 1,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "mes": "2026-02",
+        "clusterId": null,
+        "enviados": 6291,
+        "erros": 0,
+        "taxaErro": 0,
+        "usuariosAtivosHumanos": 0,
+        "enviadosAutomacao": 6291,
+        "participacaoAutomacao": 1,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "mes": "2026-02",
+        "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+        "enviados": 5,
+        "erros": 0,
+        "taxaErro": 0,
+        "usuariosAtivosHumanos": 3,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "mes": "2026-03",
+        "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+        "enviados": 26,
+        "erros": 6,
+        "taxaErro": 0.1875,
+        "usuariosAtivosHumanos": 5,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 4
+      },
+      {
+        "mes": "2026-03",
+        "clusterId": "0523512c-f980-4236-8a7c-53e06c9c7a80",
+        "enviados": 3,
+        "erros": 0,
+        "taxaErro": 0,
+        "usuariosAtivosHumanos": 1,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "mes": "2026-03",
+        "clusterId": null,
+        "enviados": 2,
+        "erros": 0,
+        "taxaErro": 0,
+        "usuariosAtivosHumanos": 1,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "mes": "2026-03",
+        "clusterId": "952435d2-ef26-4829-80a2-e186dc61158c",
+        "enviados": 1,
+        "erros": 0,
+        "taxaErro": 0,
+        "usuariosAtivosHumanos": 1,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "mes": "2026-04",
+        "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+        "enviados": 18,
+        "erros": 1341,
+        "taxaErro": 0.9868,
+        "usuariosAtivosHumanos": 4,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 9
+      },
+      {
+        "mes": "2026-04",
+        "clusterId": "0523512c-f980-4236-8a7c-53e06c9c7a80",
+        "enviados": 4,
+        "erros": 2,
+        "taxaErro": 0.3333,
+        "usuariosAtivosHumanos": 1,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 2
+      },
+      {
+        "mes": "2026-05",
+        "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+        "enviados": 166,
+        "erros": 2007,
+        "taxaErro": 0.9236,
+        "usuariosAtivosHumanos": 5,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 16
+      },
+      {
+        "mes": "2026-06",
+        "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+        "enviados": 31,
+        "erros": 156,
+        "taxaErro": 0.8342,
+        "usuariosAtivosHumanos": 5,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 13
+      },
+      {
+        "mes": "2026-06",
+        "clusterId": "0523512c-f980-4236-8a7c-53e06c9c7a80",
+        "enviados": 1,
+        "erros": 0,
+        "taxaErro": 0,
+        "usuariosAtivosHumanos": 1,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "mes": "2026-07",
+        "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+        "enviados": 21,
+        "erros": 10,
+        "taxaErro": 0.3226,
+        "usuariosAtivosHumanos": 5,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "mes": "2026-08",
+        "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+        "enviados": 10,
+        "erros": 12,
+        "taxaErro": 0.5455,
+        "usuariosAtivosHumanos": 4,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 0
+      }
+    ],
+    "porCluster": [
+      {
+        "clusterId": null,
+        "enviados": 21780,
+        "erros": 0,
+        "taxaErro": 0,
+        "usuariosAtivosHumanos": 1,
+        "enviadosAutomacao": 21778,
+        "participacaoAutomacao": 0.9999,
+        "falhasNaoClassificadas": 0
+      },
+      {
+        "clusterId": "b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3",
+        "enviados": 277,
+        "erros": 3532,
+        "taxaErro": 0.9273,
+        "usuariosAtivosHumanos": 10,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 42
+      },
+      {
+        "clusterId": "0523512c-f980-4236-8a7c-53e06c9c7a80",
+        "enviados": 8,
+        "erros": 2,
+        "taxaErro": 0.2,
+        "usuariosAtivosHumanos": 1,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 2
+      },
+      {
+        "clusterId": "952435d2-ef26-4829-80a2-e186dc61158c",
+        "enviados": 1,
+        "erros": 0,
+        "taxaErro": 0,
+        "usuariosAtivosHumanos": 1,
+        "enviadosAutomacao": 0,
+        "participacaoAutomacao": 0,
+        "falhasNaoClassificadas": 0
+      }
+    ]
+  }
+}
