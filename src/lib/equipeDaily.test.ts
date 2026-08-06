@@ -6,9 +6,11 @@ import {
   dailyTextToPlain,
   describeDailyMember,
   findCurrentActiveSprintId,
+  filterDailyTasksBySearch,
   groupDailyTasksByParent,
   hydrateDailyForm,
   isDailyTextEmpty,
+  parseDailyActualHours,
   toDailyRichText,
   type DailyFormDraft,
 } from '@/lib/equipeDaily';
@@ -62,6 +64,26 @@ describe('findCurrentActiveSprintId', () => {
   it('sem sprint ativa devolve string vazia (daily pode ficar sem sprint)', () => {
     expect(findCurrentActiveSprintId([sp('s1', 'planned', '2026-08-01'), sp('s2', null, null)])).toBe('');
     expect(findCurrentActiveSprintId([])).toBe('');
+  });
+});
+
+describe('atualização rápida de tarefas', () => {
+  const tasks = [
+    tk('1', { title: 'Apuração de créditos', task_code: 'TR-12' }),
+    tk('2', { title: 'Revisar relatório', task_code: 'TR-20' }),
+  ];
+
+  it('pesquisa por nome ou código sem diferenciar acentos e caixa', () => {
+    expect(filterDailyTasksBySearch(tasks, 'apuracao').map((task) => task.id)).toEqual(['1']);
+    expect(filterDailyTasksBySearch(tasks, 'tr-20').map((task) => task.id)).toEqual(['2']);
+    expect(filterDailyTasksBySearch(tasks, '   ')).toEqual(tasks);
+  });
+
+  it('aceita horas válidas, inclusive zero e vírgula, e rejeita vazio ou negativo', () => {
+    expect(parseDailyActualHours('0')).toBe(0);
+    expect(parseDailyActualHours('2,5')).toBe(2.5);
+    expect(parseDailyActualHours('')).toBeNull();
+    expect(parseDailyActualHours('-1')).toBeNull();
   });
 });
 
@@ -148,6 +170,21 @@ describe('isDailyTextEmpty', () => {
     expect(isDailyTextEmpty('   ')).toBe(true);
     expect(isDailyTextEmpty(serializeTarefaRichText({ type: 'doc', content: [{ type: 'paragraph' }] }))).toBe(true);
     expect(isDailyTextEmpty('Fechei a análise')).toBe(false);
+  });
+
+  it('considera a referência atômica como texto e preserva o código na leitura plana', () => {
+    const value = serializeTarefaRichText({
+      type: 'doc',
+      content: [{
+        type: 'paragraph',
+        content: [{
+          type: 'dailyTaskReference',
+          attrs: { taskId: 'task-1', code: 'TR-12', title: 'Apuração', href: '/tarefa' },
+        }],
+      }],
+    });
+    expect(isDailyTextEmpty(value)).toBe(false);
+    expect(dailyTextToPlain(value)).toBe('[TR-12]');
   });
 });
 

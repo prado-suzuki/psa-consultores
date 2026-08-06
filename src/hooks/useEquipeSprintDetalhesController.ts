@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { format } from 'date-fns';
 import * as XLSX from 'xlsx';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSprints } from '@/hooks/useSprints';
@@ -69,6 +69,8 @@ const errorMessage = (error: unknown) =>
 export function useEquipeSprintDetalhesController() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkedTaskId = searchParams.get('taskId');
   const { toast } = useToast();
   // isLider no AuthContext é estrito e não engloba admin.
   const { isAdmin, isLider } = useAuth();
@@ -308,7 +310,7 @@ export function useEquipeSprintDetalhesController() {
     if (shifts.length) await data.reorderDeliverables.mutateAsync({ shifts });
   };
 
-  const openEditModal = (item: Deliverable) => {
+  const openEditModal = useCallback((item: Deliverable) => {
     setEditingDeliverable(item);
     setEditForm({
       title: item.title,
@@ -325,6 +327,21 @@ export function useEquipeSprintDetalhesController() {
       task_code: item.task_code ?? '',
     });
     setEditModalOpen(true);
+  }, [sprint?.start_date]);
+
+  useEffect(() => {
+    if (!deepLinkedTaskId || editModalOpen) return;
+    const task = deliverables.find((item) => item.id === deepLinkedTaskId);
+    if (task) openEditModal(task);
+  }, [deepLinkedTaskId, deliverables, editModalOpen, openEditModal]);
+
+  const changeEditModalOpen = (open: boolean) => {
+    setEditModalOpen(open);
+    if (!open && deepLinkedTaskId) {
+      const next = new URLSearchParams(searchParams);
+      next.delete('taskId');
+      setSearchParams(next, { replace: true });
+    }
   };
   const openCreateModal = () => {
     setCreateForm(blankForm(sprint?.start_date, sprint?.end_date));
@@ -748,7 +765,7 @@ export function useEquipeSprintDetalhesController() {
     openCreateModal,
     openCreateSubtaskModal,
     editModalOpen,
-    setEditModalOpen,
+    setEditModalOpen: changeEditModalOpen,
     editingDeliverable,
     editForm,
     setEditForm,
