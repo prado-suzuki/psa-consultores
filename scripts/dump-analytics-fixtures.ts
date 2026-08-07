@@ -34,11 +34,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SQL_DIR = join(ROOT, 'scripts', 'analytics-uso');
 const OUT_DIR = join(ROOT, 'src', 'lib', 'analytics-uso', '__fixtures__');
 
-/** Cada entrada vira um endpoint. `datado: false` = nao recebe periodo. */
+/** Cada entrada vira um dos dois endpoints de produção. */
 const ROTAS = [
-  { nome: 'filtros', datado: false, endpoint: 'GET /api/v1/analytics/uso/filtros' },
-  { nome: 'uso-api', datado: true, endpoint: 'GET /api/v1/analytics/uso/api-consumo' },
-  { nome: 'arquivos', datado: true, endpoint: 'GET /api/v1/analytics/uso/arquivos' },
+  { nome: 'uso-api', endpoint: 'GET /api/v1/analytics/uso/api-consumo' },
+  { nome: 'arquivos', endpoint: 'GET /api/v1/analytics/uso/arquivos' },
 ] as const;
 
 function arg(nome: string, padrao: string): string {
@@ -57,24 +56,21 @@ const gerarFerramentas = gerarSegmentos && modoSegmentos !== 'usuarios';
 
 function rodarBq(
   sql: string,
-  datado: boolean,
   usuario = '',
   clusterId = '',
   ferramenta = '',
 ): unknown {
   const args = ['query', '--use_legacy_sql=false', '--format=json', '--max_rows=1'];
-  if (datado) {
-    args.push(
-      `--parameter=inicio:DATE:${inicio}`,
-      `--parameter=fim:DATE:${fim}`,
-      `--parameter=usuario:STRING:${usuario}`,
-      `--parameter=cluster_id:STRING:${clusterId}`,
-    );
-    // A view de arquivos nao tem conceito de ferramenta; mandar o parametro
-    // para uma query que nao o referencia e erro no BigQuery.
-    if (sql.includes('@ferramenta')) {
-      args.push(`--parameter=ferramenta:STRING:${ferramenta}`);
-    }
+  args.push(
+    `--parameter=inicio:DATE:${inicio}`,
+    `--parameter=fim:DATE:${fim}`,
+    `--parameter=usuario:STRING:${usuario}`,
+    `--parameter=cluster_id:STRING:${clusterId}`,
+  );
+  // A view de arquivos nao tem conceito de ferramenta; mandar o parametro
+  // para uma query que nao o referencia e erro no BigQuery.
+  if (sql.includes('@ferramenta')) {
+    args.push(`--parameter=ferramenta:STRING:${ferramenta}`);
   }
   // `bq` e um script Python. Sem PYTHONIOENCODING, ao ter o stdout redirecionado
   // no Windows ele encoda na codepage do console (cp1252) e troca acento por
@@ -103,7 +99,7 @@ for (const rota of ROTAS) {
   if (only && only !== rota.nome) continue;
 
   const sql = readFileSync(join(SQL_DIR, `${rota.nome}.sql`), 'utf8');
-  const payload = rodarBq(sql, rota.datado);
+  const payload = rodarBq(sql);
   const destino = join(OUT_DIR, `${rota.nome}.json`);
   const texto = `${JSON.stringify(payload, null, 2)}\n`;
   writeFileSync(destino, texto, 'utf8');
@@ -117,13 +113,16 @@ for (const rota of ROTAS) {
 }
 
 if (gerarSegmentos) {
-  const filtros = JSON.parse(readFileSync(join(OUT_DIR, 'filtros.json'), 'utf8')) as {
-    usuariosApi: Array<{ usuario: string; automacao: boolean }>;
-    usuariosArquivos: Array<{ usuario: string; automacao: boolean }>;
+  const usoApiBase = JSON.parse(readFileSync(join(OUT_DIR, 'uso-api.json'), 'utf8')) as {
+    porUsuario: Array<{ usuario: string; automacao: boolean }>;
+    porFerramenta: Array<{ ferramenta: string }>;
+  };
+  const arquivosBase = JSON.parse(readFileSync(join(OUT_DIR, 'arquivos.json'), 'utf8')) as {
+    porUsuario: Array<{ usuario: string; automacao: boolean }>;
   };
   const pessoas = [
-    ...filtros.usuariosApi.filter((item) => !item.automacao).map((item) => item.usuario),
-    ...filtros.usuariosArquivos.filter((item) => !item.automacao).map((item) => item.usuario),
+    ...usoApiBase.porUsuario.filter((item) => !item.automacao).map((item) => item.usuario),
+    ...arquivosBase.porUsuario.filter((item) => !item.automacao).map((item) => item.usuario),
   ]
     .filter(Boolean)
     .filter((usuario, indice, todos) => todos.indexOf(usuario) === indice)
@@ -136,8 +135,8 @@ if (gerarSegmentos) {
   console.log(`segmentos por pessoa: ${gerarPessoas ? pessoas.length : 0}`);
   for (const [indice, usuario] of (gerarPessoas ? pessoas : []).entries()) {
     segmentos[usuario] = {
-      usoApi: rodarBq(sqlUsoApi, true, usuario),
-      arquivos: rodarBq(sqlArquivos, true, usuario),
+      usoApi: rodarBq(sqlUsoApi, usuario),
+      arquivos: rodarBq(sqlArquivos, usuario),
     };
     console.log(`${String(indice + 1).padStart(2)}/${pessoas.length}  ${usuario}`);
   }
@@ -152,16 +151,14 @@ if (gerarSegmentos) {
 
   // Ferramenta so recorta a API — a view de arquivos nao tem esse eixo.
   if (gerarFerramentas) {
-    const catalogo = JSON.parse(readFileSync(join(OUT_DIR, 'filtros.json'), 'utf8')) as {
-      ferramentas: string[];
-    };
+    const ferramentas = usoApiBase.porFerramenta.map((item) => item.ferramenta);
     const porFerramenta: Record<string, unknown> = {};
 
-    console.log(`\nsegmentos por ferramenta: ${catalogo.ferramentas.length}`);
-    for (const [indice, ferramenta] of catalogo.ferramentas.entries()) {
-      porFerramenta[ferramenta] = rodarBq(sqlUsoApi, true, '', '', ferramenta);
+    console.log(`\nsegmentos por ferramenta: ${ferramentas.length}`);
+    for (const [indice, ferramenta] of ferramentas.entries()) {
+      porFerramenta[ferramenta] = rodarBq(sqlUsoApi, '', '', ferramenta);
       console.log(
-        `${String(indice + 1).padStart(2)}/${catalogo.ferramentas.length}  ${ferramenta}`,
+        `${String(indice + 1).padStart(2)}/${ferramentas.length}  ${ferramenta}`,
       );
     }
 

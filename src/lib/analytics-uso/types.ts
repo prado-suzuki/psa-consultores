@@ -1,16 +1,14 @@
 /**
  * Contrato do dashboard nativo "Controle de uso e envio" (migracao do Looker
- * Studio). Estes tipos descrevem a resposta de tres endpoints do Cloud Run que
+ * Studio). Estes tipos descrevem a resposta de dois endpoints do Cloud Run que
  * ainda NAO existem — por enquanto os payloads sao servidos dos fixtures em
  * `__fixtures__/`, gerados de producao por `scripts/dump-analytics-fixtures.ts`.
  *
- * O corte em tres saiu por FONTE, nao por dashboard nem por grafico:
- *   /filtros      -> as duas views, sem periodo (opcoes nao podem encolher com o filtro)
+ * Os endpoints continuam separados por fonte. Catálogo de filtros e visão
+ * gerencial são composições locais leves sobre agregados prontos — o browser não
+ * recebe linhas brutas nem reproduz cálculos do BigQuery:
  *   /api-consumo  -> psa_analytics.VW_ANL_USO_API
  *   /arquivos     -> psa_analytics.VW_ANL_GERAL_ARQUIVOS
- *
- * Assim nenhuma agregacao e escrita duas vezes, e o dashboard gerencial (a
- * fazer) reaproveita os mesmos payloads em vez de exigir endpoints proprios.
  *
  * Convencoes:
  *   - taxas e `pct` sao razao 0..1; a formatacao para "%" e do componente
@@ -28,25 +26,12 @@ export interface UsuarioOpcao {
   automacao: boolean;
 }
 
-export interface AnalyticsUsoFiltrosResponse {
-  periodo: {
-    apiMin: string | null;
-    apiMax: string | null;
-    arquivosMin: string | null;
-    arquivosMax: string | null;
-  };
+/** Catálogo derivado das consultas-base, sem endpoint próprio. */
+export interface AnalyticsUsoCatalogo {
   ferramentas: string[];
-  endpoints: string[];
-  metodos: string[];
-  tiposOperacao: string[];
-  statusCodes: number[];
   usuariosApi: UsuarioOpcao[];
   usuariosArquivos: Array<{ usuario: string; automacao: boolean }>;
-  tiposArquivo: string[];
-  causasErro: string[];
-  clientes: string[];
-  /** IDs observados nas views. Os nomes ficam no front enquanto o BigQuery
-   * não expõe a dimensão de estrutura organizacional. */
+  /** IDs observados nos dois payloads. */
   clusters: string[];
 }
 
@@ -338,6 +323,49 @@ export interface AnalyticsArquivosResponse {
   porPasta: ArquivosPorPasta[];
   porCliente: ArquivosPorCliente[];
   gerencial: ArquivosGerencial;
+}
+
+// ── Visão gerencial consolidada ───────────────────────────────────────
+
+/**
+ * KPIs semânticos calculados pela API sobre as duas fontes. O front não deve
+ * reconstruí-los a partir de rankings, pois essas listas podem ser limitadas
+ * ou paginadas sem alterar o total verdadeiro.
+ */
+export interface AnalyticsGerencialTotais {
+  pessoasAtivas: number;
+  usuariosNovos: number;
+  totalAcoes: number;
+  acoesPorPessoa: number;
+  ferramentasUtilizadas: number;
+}
+
+export interface AnalyticsGerencialPorMes extends GerencialApiPorMes {
+  /** Envios feitos por pessoas, já excluídas as contas de automação. */
+  arquivosEnviadosHumanos: number;
+}
+
+export interface AnalyticsGerencialPorPessoa {
+  usuario: string;
+  acoesConsulta: number;
+  acoesDownload: number;
+  chamadas: number;
+  diasAtivos: number;
+  ferramentasUsadas: number;
+  documentosEnviados: number;
+}
+
+/** Modelo derivado dos blocos gerenciais dos dois endpoints de fonte. */
+export interface AnalyticsGerencialResponse {
+  periodo: PeriodoAplicado;
+  escopo: {
+    clusterId: string | null;
+    usuario: string | null;
+  };
+  totais: AnalyticsGerencialTotais;
+  porMes: AnalyticsGerencialPorMes[];
+  porFerramenta: GerencialApiPorFerramenta[];
+  porPessoa: AnalyticsGerencialPorPessoa[];
 }
 
 // ── Filtros aplicados pelo usuario ─────────────────────────────────────

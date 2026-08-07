@@ -39,24 +39,21 @@ import {
   Tr,
 } from './primitivos';
 import {
-  ALERTA,
   AXIS_STYLE,
   COR_ERRO,
   COR_NEUTRA,
-  RISCO,
   GRAY,
   GRID_STYLE,
   TEAL,
   TOOLTIP_STYLE,
-  dataBR,
   mesLabel,
   num,
   numCurto,
   pct,
   useSort,
+  useTopN,
 } from './formatadores';
 import { TOOLTIP_COLUNA, TOOLTIP_TECNICO } from './tooltips';
-import { compararPeriodo, recortarSerie, somar } from '@/lib/analytics-uso/periodo';
 import {
   ALTURA_GRAFICO,
   ALTURA_LISTA,
@@ -66,13 +63,8 @@ import {
   GRADE_TOPO,
 } from './layout';
 
-import {
-  insightConcentracao,
-  insightLider,
-  insightPiorMes,
-} from '@/lib/analytics-uso/insights';
-
-const TOP_CLIENTES = 8;
+import { insightConcentracao, insightLider, insightPiorMes } from '@/lib/analytics-uso/insights';
+import { prepararArquivosViewModel } from '@/lib/analytics-uso/viewModels';
 
 interface Props {
   dados?: AnalyticsArquivosResponse;
@@ -90,73 +82,70 @@ export const AbaArquivos = ({
   usuarioSelecionado,
   onSelecionarUsuario,
 }: Props) => {
-  const totaisBrutos = dados?.totais;
-  const serieCompleta = dados?.porMes ?? [];
-  const recorteAtivo = mesesRecorte > 0;
-  const porMes = recortarSerie(dados?.porMes ?? [], mesesRecorte).serie;
-  const porCausa = dados?.porCausa ?? [];
-  const porCliente = dados?.porCliente ?? [];
-  const usuarios = useMemo(() => dados?.porUsuario ?? [], [dados]);
+  const viewModel = useMemo(
+    () => prepararArquivosViewModel(dados, mesesRecorte),
+    [dados, mesesRecorte],
+  );
+  const {
+    totais: t,
+    porMes,
+    porCausa,
+    porCliente,
+    usuarios,
+    maxEnviados,
+    maxRejeitado,
+    comparacaoEnviados: mesIngeridos,
+    comparacaoRejeitados: mesRejeitados,
+  } = viewModel;
 
   const fimPeriodo = dados?.periodo.fim ?? '';
-  const t = recorteAtivo
-    ? {
-        ...totaisBrutos!,
-        enviados: somar(porMes, (m) => m.enviados),
-        naoEntraram: somar(porMes, (m) => m.naoEntraram),
-        reenvios: somar(porMes, (m) => m.reenvios),
-      }
-    : totaisBrutos;
   const tabela = useSort(usuarios, 'naoEntraram');
-  const maxEnviados = usuarios.reduce((m, u) => Math.max(m, u.enviados), 0);
   const tabelaClientes = useSort(porCliente, 'naoEntraram');
-  const maxRejeitado = porCliente.reduce((m, c) => Math.max(m, c.naoEntraram), 0);
-  const topPessoa = [...usuarios].sort((a, b) => b.enviados - a.enviados)[0];
+  const pessoas = useTopN(tabela.sorted, 20);
+  const clientes = useTopN(tabelaClientes.sorted, 20);
 
-  const serieMes = porMes.map((m) => ({
-    ...m,
-    label: `${mesLabel(m.mes)}${mesEstaParcial(m.mes, fimPeriodo) ? '*' : ''}`,
-  }));
-
-  // Ordena pela perda real, nao pelo total de falhas — senao Araguaia (1.600
-  // reenvios) aparece como pior cliente sendo que quase nada se perdeu la.
-  const clientes = [...porCliente]
-    .filter((c) => c.naoEntraram > 0 || c.enviados > 0)
-    .sort((a, b) => b.naoEntraram - a.naoEntraram)
-    .slice(0, TOP_CLIENTES);
-
-  const causasAusente = porCausa.filter((c) => c.impacto === 'ausente');
-  const clientesAfetados = porCliente.filter((c) => c.naoEntraram > 0).length;
-  const mesIngeridos = compararPeriodo(serieCompleta, (m) => m.enviados, mesesRecorte);
-  const mesRejeitados = compararPeriodo(serieCompleta, (m) => m.naoEntraram, mesesRecorte);
-
-  const insightCausa = insightConcentracao(
-    causasAusente,
-    (c) => c.erros,
-    (c) => c.causa.toLowerCase(),
-    'rejeições',
-    { rotuloEntidade: 'Causa dominante:', tom: 'risco', piso: 0.3 },
+  const serieMes = useMemo(
+    () =>
+      porMes.map((item) => ({
+        ...item,
+        label: `${mesLabel(item.mes)}${mesEstaParcial(item.mes, fimPeriodo) ? '*' : ''}`,
+      })),
+    [fimPeriodo, porMes],
   );
 
-  const insightRejeicao = insightConcentracao(
-    porCliente,
-    (c) => c.naoEntraram,
-    (c) => c.cliente,
-    'rejeições',
-    { rotuloEntidade: 'A pasta da', tom: 'risco' },
-  );
-  const insightIngestor = insightLider(
-    usuarios,
-    (u) => u.enviados,
-    (u) => u.usuario,
-    (v) => `ingeriu ${v} documentos, o maior volume da equipe.`,
-  );
-  const insightPiorMesRejeicao = insightPiorMes(
-    porMes,
-    (m) => m.naoEntraram,
-    (v) => `${v.toLocaleString('pt-BR')} documentos`,
-    'rejeição',
-  );
+  const { causasAusente, insightCausa, insightRejeicao, insightIngestor, insightPiorMesRejeicao } =
+    useMemo(() => {
+      const causas = porCausa.filter((item) => item.impacto === 'ausente');
+      return {
+        causasAusente: causas,
+        insightCausa: insightConcentracao(
+          causas,
+          (item) => item.erros,
+          (item) => item.causa.toLowerCase(),
+          'rejeições',
+          { rotuloEntidade: 'Causa dominante:', tom: 'risco', piso: 0.3 },
+        ),
+        insightRejeicao: insightConcentracao(
+          porCliente,
+          (item) => item.naoEntraram,
+          (item) => item.cliente,
+          'rejeições',
+          { rotuloEntidade: 'A pasta da', tom: 'risco' },
+        ),
+        insightIngestor: insightLider(
+          usuarios,
+          (item) => item.enviados,
+          (item) => item.usuario,
+          (valor) => `ingeriu ${valor} documentos, o maior volume da equipe.`,
+        ),
+        insightPiorMesRejeicao: insightPiorMes(
+          porMes,
+          (item) => item.naoEntraram,
+          (valor) => `${valor.toLocaleString('pt-BR')} documentos`,
+          'rejeição',
+        ),
+      };
+    }, [porCausa, porCliente, porMes, usuarios]);
 
   return (
     <div className="space-y-3">
@@ -168,14 +157,14 @@ export const AbaArquivos = ({
             label: 'Arquivos enviados',
             valor: num(t?.enviados),
             variacao:
-                mesIngeridos.anterior != null
-                  ? {
-                      pct: mesIngeridos.pct ?? undefined,
-                      valor: num(mesIngeridos.anterior),
-                      rotulo: `período anterior · ${mesIngeridos.rotulo}`,
-                      melhorQuando: 'sobe',
-                    }
-                  : undefined,
+              mesIngeridos.anterior != null
+                ? {
+                    pct: mesIngeridos.pct ?? undefined,
+                    valor: num(mesIngeridos.anterior),
+                    rotulo: `período anterior · ${mesIngeridos.rotulo}`,
+                    melhorQuando: 'sobe',
+                  }
+                : undefined,
             tooltip: TOOLTIP_TECNICO.documentosNaBase,
             tom: 'positivo',
           },
@@ -183,14 +172,14 @@ export const AbaArquivos = ({
             label: 'Rejeitados',
             valor: num(t?.naoEntraram),
             variacao:
-                mesRejeitados.anterior != null
-                  ? {
-                      pct: mesRejeitados.pct ?? undefined,
-                      valor: num(mesRejeitados.anterior),
-                      rotulo: `período anterior · ${mesRejeitados.rotulo}`,
-                      melhorQuando: 'desce',
-                    }
-                  : undefined,
+              mesRejeitados.anterior != null
+                ? {
+                    pct: mesRejeitados.pct ?? undefined,
+                    valor: num(mesRejeitados.anterior),
+                    rotulo: `período anterior · ${mesRejeitados.rotulo}`,
+                    melhorQuando: 'desce',
+                  }
+                : undefined,
             tooltip: TOOLTIP_TECNICO.naoEntraram,
             tom: (t?.naoEntraram ?? 0) > 0 ? 'risco' : 'positivo',
           },
@@ -207,7 +196,6 @@ export const AbaArquivos = ({
         ]}
       />
 
-
       <div className={GRADE_TOPO}>
         <Painel
           titulo="Arquivos enviados e rejeitados por mês"
@@ -222,15 +210,21 @@ export const AbaArquivos = ({
           tooltip={TOOLTIP_TECNICO.evolucaoIngestao}
           altura={ALTURA_GRAFICO}
           carregando={carregando}
+          vazio={serieMes.length === 0}
           className={COL_PRINCIPAL}
         >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={serieMes} margin={{ top: 4, right: 8, left: 0, bottom: 6 }}>
+          <ResponsiveContainer width="100%" height="100%" debounce={100}>
+            <BarChart
+              accessibilityLayer
+              data={serieMes}
+              margin={{ top: 4, right: 8, left: 0, bottom: 6 }}
+            >
               <CartesianGrid {...GRID_STYLE} />
               <XAxis dataKey="label" {...AXIS_STYLE} tickMargin={8} />
               <YAxis {...AXIS_STYLE} padding={{ top: 10 }} tickFormatter={numCurto} width={58} />
               <Tooltip {...TOOLTIP_STYLE} formatter={(v: number, n: string) => [num(v), n]} />
               <Bar
+                isAnimationActive={false}
                 dataKey="enviados"
                 name="arquivos enviados"
                 fill={TEAL[600]}
@@ -238,6 +232,7 @@ export const AbaArquivos = ({
                 maxBarSize={20}
               />
               <Bar
+                isAnimationActive={false}
                 dataKey="naoEntraram"
                 name="rejeitados"
                 fill={COR_ERRO}
@@ -245,6 +240,7 @@ export const AbaArquivos = ({
                 maxBarSize={20}
               />
               <Bar
+                isAnimationActive={false}
                 dataKey="reenvios"
                 name="duplicatas"
                 fill={COR_NEUTRA}
@@ -262,10 +258,12 @@ export const AbaArquivos = ({
           tooltip={TOOLTIP_TECNICO.causasFalha}
           altura={ALTURA_GRAFICO}
           carregando={carregando}
+          vazio={causasAusente.length === 0}
           className={COL_APOIO}
         >
-          <ResponsiveContainer width="100%" height="100%">
+          <ResponsiveContainer width="100%" height="100%" debounce={100}>
             <BarChart
+              accessibilityLayer
               data={causasAusente}
               layout="vertical"
               margin={{ top: 4, right: 44, left: 4, bottom: 6 }}
@@ -280,7 +278,13 @@ export const AbaArquivos = ({
                 tick={{ ...AXIS_STYLE.tick, fontSize: 10 }}
               />
               <Tooltip {...TOOLTIP_STYLE} formatter={(v: number) => [num(v), 'documentos']} />
-              <Bar dataKey="erros" fill={COR_ERRO} radius={[0, 3, 3, 0]} maxBarSize={16}>
+              <Bar
+                isAnimationActive={false}
+                dataKey="erros"
+                fill={COR_ERRO}
+                radius={[0, 3, 3, 0]}
+                maxBarSize={16}
+              >
                 <LabelList
                   dataKey="erros"
                   position="right"
@@ -301,52 +305,84 @@ export const AbaArquivos = ({
           tooltip={TOOLTIP_TECNICO.clientes}
           carregando={carregando}
         >
-          <Tabela altura={ALTURA_LISTA}>
-            <thead>
-              <tr>
-                <Th campo="cliente" estado={tabelaClientes} tooltip={TOOLTIP_COLUNA.pastaCliente}>
-                  Pasta do cliente
-                </Th>
-                <Th campo="naoEntraram" estado={tabelaClientes} alinhar="right" tooltip={TOOLTIP_COLUNA.rejeitados}>
-                  Rejeitados
-                </Th>
-                <Th campo="enviados" estado={tabelaClientes} alinhar="right" tooltip={TOOLTIP_COLUNA.ingeridos}>
-                  Arquivos enviados
-                </Th>
-                <Th campo="reenvios" estado={tabelaClientes} alinhar="right" tooltip={TOOLTIP_COLUNA.duplicatas}>
-                  Duplicatas
-                </Th>
-              </tr>
-            </thead>
-            <tbody>
-              {tabelaClientes.sorted.map((c) => (
-                <Tr key={c.cliente}>
-                  <Td className="max-w-[190px] truncate text-slate-800">{c.cliente}</Td>
-                  <Td alinhar="right">
-                    {c.naoEntraram > 0 ? (
-                      <CelulaBarra
-                        valor={c.naoEntraram}
-                        max={maxRejeitado}
-                        cor={COR_ERRO}
-                        rotulo={num(c.naoEntraram)}
-                      />
-                    ) : (
-                      <span className="text-slate-300">0</span>
-                    )}
-                  </Td>
-                  <Td alinhar="right" className="text-slate-600">
-                    {num(c.enviados)}
-                  </Td>
-                  <Td
+          <>
+            <Tabela altura={ALTURA_LISTA} caption="Documentos rejeitados por pasta de cliente">
+              <thead>
+                <tr>
+                  <Th campo="cliente" estado={tabelaClientes} tooltip={TOOLTIP_COLUNA.pastaCliente}>
+                    Pasta do cliente
+                  </Th>
+                  <Th
+                    campo="naoEntraram"
+                    estado={tabelaClientes}
                     alinhar="right"
-                    className={c.reenvios ? 'text-slate-500' : 'text-slate-300'}
+                    tooltip={TOOLTIP_COLUNA.rejeitados}
                   >
-                    {num(c.reenvios)}
-                  </Td>
-                </Tr>
-              ))}
-            </tbody>
-          </Tabela>
+                    Rejeitados
+                  </Th>
+                  <Th
+                    campo="enviados"
+                    estado={tabelaClientes}
+                    alinhar="right"
+                    tooltip={TOOLTIP_COLUNA.ingeridos}
+                  >
+                    Arquivos enviados
+                  </Th>
+                  <Th
+                    campo="reenvios"
+                    estado={tabelaClientes}
+                    alinhar="right"
+                    tooltip={TOOLTIP_COLUNA.duplicatas}
+                  >
+                    Duplicatas
+                  </Th>
+                </tr>
+              </thead>
+              <tbody>
+                {clientes.visiveis.map((c) => (
+                  <Tr key={c.cliente}>
+                    <Td className="max-w-[190px] truncate text-slate-800">{c.cliente}</Td>
+                    <Td alinhar="right">
+                      {c.naoEntraram > 0 ? (
+                        <CelulaBarra
+                          valor={c.naoEntraram}
+                          max={maxRejeitado}
+                          cor={COR_ERRO}
+                          rotulo={num(c.naoEntraram)}
+                        />
+                      ) : (
+                        <span className="text-slate-300">0</span>
+                      )}
+                    </Td>
+                    <Td alinhar="right" className="text-slate-600">
+                      {num(c.enviados)}
+                    </Td>
+                    <Td
+                      alinhar="right"
+                      className={c.reenvios ? 'text-slate-500' : 'text-slate-300'}
+                    >
+                      {num(c.reenvios)}
+                    </Td>
+                  </Tr>
+                ))}
+                {!carregando && clientes.visiveis.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-xs text-slate-500">
+                      Nenhuma pasta encontrada para os filtros selecionados.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Tabela>
+            {clientes.temMais && (
+              <BotaoExpandir
+                expandido={clientes.expandido}
+                total={clientes.total}
+                limite={20}
+                onClick={() => clientes.setExpandido((valor) => !valor)}
+              />
+            )}
+          </>
         </Painel>
 
         <Painel
@@ -355,73 +391,96 @@ export const AbaArquivos = ({
           descricao="Clique em uma pessoa para filtrar a página."
           carregando={carregando}
         >
-          <Tabela altura={ALTURA_LISTA}>
-            <thead>
-              <tr>
-                <Th campo="usuario" estado={tabela} tooltip={TOOLTIP_COLUNA.pessoa}>
-                  Pessoa
-                </Th>
-                <Th campo="enviados" estado={tabela} alinhar="right" tooltip={TOOLTIP_COLUNA.ingeridos}>
-                  Arquivos enviados
-                </Th>
-                <Th
-                  campo="naoEntraram"
-                  estado={tabela}
-                  alinhar="right"
-                tooltip={TOOLTIP_COLUNA.rejeitados}
-                >
-                  Rejeitados
-                </Th>
-                <Th
-                  campo="erroDuplicidade"
-                  estado={tabela}
-                  alinhar="right"
-                tooltip={TOOLTIP_COLUNA.duplicatas}
-                >
-                  Duplicatas
-                </Th>
-              </tr>
-            </thead>
-            <tbody>
-              {tabela.sorted.map((u) => (
-                <Tr key={u.usuario}>
-                  <Td>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        onSelecionarUsuario(usuarioSelecionado === u.usuario ? undefined : u.usuario)
-                      }
-                      className={
-                        usuarioSelecionado === u.usuario
-                          ? 'font-semibold text-teal-700 underline underline-offset-2'
-                          : 'font-medium text-slate-800 hover:text-teal-700 hover:underline'
-                      }
+          <>
+            <Tabela altura={ALTURA_LISTA} caption="Arquivos enviados por pessoa">
+              <thead>
+                <tr>
+                  <Th campo="usuario" estado={tabela} tooltip={TOOLTIP_COLUNA.pessoa}>
+                    Pessoa
+                  </Th>
+                  <Th
+                    campo="enviados"
+                    estado={tabela}
+                    alinhar="right"
+                    tooltip={TOOLTIP_COLUNA.ingeridos}
+                  >
+                    Arquivos enviados
+                  </Th>
+                  <Th
+                    campo="naoEntraram"
+                    estado={tabela}
+                    alinhar="right"
+                    tooltip={TOOLTIP_COLUNA.rejeitados}
+                  >
+                    Rejeitados
+                  </Th>
+                  <Th
+                    campo="erroDuplicidade"
+                    estado={tabela}
+                    alinhar="right"
+                    tooltip={TOOLTIP_COLUNA.duplicatas}
+                  >
+                    Duplicatas
+                  </Th>
+                </tr>
+              </thead>
+              <tbody>
+                {pessoas.visiveis.map((u) => (
+                  <Tr key={u.usuario}>
+                    <Td>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onSelecionarUsuario(
+                            usuarioSelecionado === u.usuario ? undefined : u.usuario,
+                          )
+                        }
+                        className={
+                          usuarioSelecionado === u.usuario
+                            ? 'font-semibold text-teal-700 underline underline-offset-2'
+                            : 'font-medium text-slate-800 hover:text-teal-700 hover:underline'
+                        }
+                      >
+                        {u.usuario}
+                      </button>
+                    </Td>
+                    <Td alinhar="right">
+                      <CelulaBarra valor={u.enviados} max={maxEnviados} rotulo={num(u.enviados)} />
+                    </Td>
+                    <Td
+                      alinhar="right"
+                      className={u.naoEntraram ? 'font-medium text-slate-800' : 'text-slate-300'}
                     >
-                      {u.usuario}
-                    </button>
-                  </Td>
-                  <Td alinhar="right">
-                    <CelulaBarra valor={u.enviados} max={maxEnviados} rotulo={num(u.enviados)} />
-                  </Td>
-                  <Td
-                    alinhar="right"
-                    className={u.naoEntraram ? 'font-medium text-slate-800' : 'text-slate-300'}
-                  >
-                    {num(u.naoEntraram)}
-                  </Td>
-                  <Td
-                    alinhar="right"
-                    className={u.erroDuplicidade ? 'text-slate-500' : 'text-slate-300'}
-                  >
-                    {num(u.erroDuplicidade)}
-                  </Td>
-                </Tr>
-              ))}
-            </tbody>
-          </Tabela>
+                      {num(u.naoEntraram)}
+                    </Td>
+                    <Td
+                      alinhar="right"
+                      className={u.erroDuplicidade ? 'text-slate-500' : 'text-slate-300'}
+                    >
+                      {num(u.erroDuplicidade)}
+                    </Td>
+                  </Tr>
+                ))}
+                {!carregando && pessoas.visiveis.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-xs text-slate-500">
+                      Nenhuma pessoa encontrada para os filtros selecionados.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </Tabela>
+            {pessoas.temMais && (
+              <BotaoExpandir
+                expandido={pessoas.expandido}
+                total={pessoas.total}
+                limite={20}
+                onClick={() => pessoas.setExpandido((valor) => !valor)}
+              />
+            )}
+          </>
         </Painel>
       </div>
-
     </div>
   );
 };

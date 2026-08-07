@@ -1,68 +1,5 @@
-import type {
-  AnalyticsArquivosResponse,
-  AnalyticsUsoApiResponse,
-  ArquivosGerencialPorClusterMes,
-  ArquivosGerencialPorMes,
-  GerencialApiPorClusterFerramenta,
-  GerencialApiPorFerramenta,
-  GerencialApiPorMes,
-} from './types';
-
 export const META_TAXA_ERRO_API = 0.02;
 export const META_P95_MS = 5_000;
-
-export interface AtividadePessoa {
-  acoesConsulta: number;
-  acoesDownload: number;
-  usuario: string;
-  chamadas: number;
-  diasAtivos: number;
-  ferramentasUsadas: number;
-  documentosEnviados: number;
-}
-
-/** Junta uso de ferramentas e ingestao para o detalhamento do lider. */
-export function montarAtividadePessoas(
-  usoApi: AnalyticsUsoApiResponse | undefined,
-  arquivos: AnalyticsArquivosResponse | undefined,
-  clusterId?: string,
-): AtividadePessoa[] {
-  const pessoas = new Map<string, AtividadePessoa>();
-  const obter = (usuario: string): AtividadePessoa => {
-    const atual = pessoas.get(usuario);
-    if (atual) return atual;
-    const novo = {
-      usuario,
-      chamadas: 0,
-      diasAtivos: 0,
-      ferramentasUsadas: 0,
-      documentosEnviados: 0,
-      acoesConsulta: 0,
-      acoesDownload: 0,
-    };
-    pessoas.set(usuario, novo);
-    return novo;
-  };
-
-  for (const item of usoApi?.porUsuario ?? []) {
-    if (item.automacao || (clusterId && item.clusterId !== clusterId)) continue;
-    Object.assign(obter(item.usuario), {
-      chamadas: item.chamadas,
-      diasAtivos: item.diasAtivos,
-      ferramentasUsadas: item.ferramentasUsadas,
-      acoesConsulta: item.acoesConsulta,
-      // Exportacao para Excel entra em download: as duas terminam num arquivo
-      // na maquina da pessoa.
-      acoesDownload: item.acoesDownload,
-    });
-  }
-  for (const item of arquivos?.porUsuario ?? []) {
-    if (item.automacao || (clusterId && item.clusterId !== clusterId)) continue;
-    obter(item.usuario).documentosEnviados = item.enviados;
-  }
-
-  return [...pessoas.values()].sort((a, b) => a.usuario.localeCompare(b.usuario, 'pt-BR'));
-}
 
 const CLUSTER_LABELS: Record<string, string> = {
   'b21b0b89-f6fb-4f61-bfbe-cd93372f7ee3': 'PSA Consultores',
@@ -90,58 +27,6 @@ export function filtrarMesesFechados<T extends { mes: string }>(
   fimPeriodo: string,
 ): T[] {
   return linhas.filter((linha) => !mesEstaParcial(linha.mes, fimPeriodo));
-}
-
-export interface ResumoGerencial {
-  mesReferenciaParcial: boolean;
-  mesReferencia: string | null;
-  apiMes: GerencialApiPorMes | null;
-  arquivosMes: ArquivosGerencialPorMes | ArquivosGerencialPorClusterMes | null;
-  serie: GerencialApiPorMes[];
-  ferramentas: Array<GerencialApiPorFerramenta | GerencialApiPorClusterFerramenta>;
-}
-
-export function resumirGerencial(
-  usoApi: AnalyticsUsoApiResponse | undefined,
-  arquivos: AnalyticsArquivosResponse | undefined,
-  clusterId?: string,
-): ResumoGerencial {
-  if (!usoApi) {
-    return {
-      mesReferencia: null,
-      mesReferenciaParcial: false,
-      apiMes: null,
-      arquivosMes: null,
-      serie: [],
-      ferramentas: [],
-    };
-  }
-
-  const serieBruta: GerencialApiPorMes[] = clusterId
-    ? usoApi.gerencial.porClusterMes.filter((item) => item.clusterId === clusterId)
-    : usoApi.gerencial.porMes;
-  // Mes corrente entra na serie e vira o mes de referencia. Antes ficava de
-  // fora e o painel exibia dado com ate 30 dias de atraso; agora ele aparece e
-  // `mesReferenciaParcial` avisa quando esta em curso.
-  const serie = serieBruta;
-  const apiMes = serie.at(-1) ?? null;
-  const mesReferencia = apiMes?.mes ?? null;
-  const mesReferenciaParcial = mesReferencia
-    ? mesEstaParcial(mesReferencia, usoApi.periodo.fim)
-    : false;
-
-  const arquivosBrutos = clusterId
-    ? (arquivos?.gerencial.porClusterMes.filter((item) => item.clusterId === clusterId) ?? [])
-    : (arquivos?.gerencial.porMes ?? []);
-  const arquivosMes = mesReferencia
-    ? (arquivosBrutos.find((item) => item.mes === mesReferencia) ?? null)
-    : null;
-
-  const ferramentas = clusterId
-    ? usoApi.gerencial.porClusterFerramenta.filter((item) => item.clusterId === clusterId)
-    : usoApi.gerencial.porFerramenta;
-
-  return { mesReferencia, mesReferenciaParcial, apiMes, arquivosMes, serie, ferramentas };
 }
 
 /**

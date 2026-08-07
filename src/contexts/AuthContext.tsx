@@ -2,6 +2,8 @@ import { createContext, useContext, useEffect, useState, useRef, ReactNode } fro
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
+import { ANALYTICS_USO_ROOT_KEY } from '@/lib/analytics-uso/queryKeys';
 
 let refreshSessionPromise: Promise<Session | null> | null = null;
 
@@ -23,6 +25,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -77,6 +80,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (event === 'SIGNED_IN') {
         // Only do a full state update if the user actually changed
         const userChanged = newUserId !== userIdRef.current;
+        if (userChanged) {
+          queryClient.removeQueries({ queryKey: ANALYTICS_USO_ROOT_KEY });
+        }
         userIdRef.current = newUserId;
 
         setSession(newSession);
@@ -93,6 +99,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (event === 'SIGNED_OUT') {
+        queryClient.removeQueries({ queryKey: ANALYTICS_USO_ROOT_KEY });
         userIdRef.current = null;
         rolesCheckedRef.current = false;
         setSession(null);
@@ -120,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     void initializeAuth();
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [queryClient]);
 
   const checkRoles = async (userId: string) => {
     try {
@@ -221,6 +228,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('[Auth] Iniciando logout...');
+
+      queryClient.removeQueries({ queryKey: ANALYTICS_USO_ROOT_KEY });
       
       // Limpa estado local ANTES do signOut para garantir que a UI atualize
       setUser(null);

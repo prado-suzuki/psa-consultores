@@ -40,13 +40,13 @@ export interface KpiItem {
 export const AjudaTooltip = ({ texto }: { texto: string }) => (
   <Tooltip>
     <TooltipTrigger asChild>
-      <span
-        role="img"
+      <button
+        type="button"
         aria-label="Mais informações"
-        className="inline-flex shrink-0 cursor-help items-center text-slate-400 hover:text-teal-600"
+        className="inline-flex shrink-0 cursor-help items-center rounded-sm text-slate-400 hover:text-teal-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
       >
         <Info className="h-3.5 w-3.5" />
-      </span>
+      </button>
     </TooltipTrigger>
     <TooltipPrimitive.Portal>
       <TooltipContent
@@ -169,7 +169,10 @@ export const FaixaResumo = ({
                     }}
                   >
                     {k.variacao.pct > 0 ? '▲' : k.variacao.pct < 0 ? '▼' : '='}{' '}
-                    {Math.abs(k.variacao.pct * 100).toFixed(1).replace('.', ',')}%
+                    {Math.abs(k.variacao.pct * 100)
+                      .toFixed(1)
+                      .replace('.', ',')}
+                    %
                   </span>
                 )}
                 {k.variacao.valor && (
@@ -252,6 +255,8 @@ interface CardProps {
   /** Altura da area de grafico. Omita em cards de tabela. */
   altura?: number;
   carregando?: boolean;
+  vazio?: boolean;
+  mensagemVazio?: string;
   children: React.ReactNode;
   className?: string;
 }
@@ -264,6 +269,8 @@ export const Painel = ({
   acao,
   altura,
   carregando,
+  vazio,
+  mensagemVazio = 'Nenhum dado encontrado para os filtros selecionados.',
   children,
   className,
 }: CardProps) => (
@@ -294,6 +301,14 @@ export const Painel = ({
     <div className={cn(altura ? 'px-2 pb-1 pt-2' : 'px-0 py-0')}>
       {carregando ? (
         <Skeleton style={{ height: altura ?? 220 }} className="m-2 w-[calc(100%-1rem)]" />
+      ) : vazio ? (
+        <div
+          className="flex items-center justify-center px-4 text-center text-xs text-slate-500"
+          style={{ height: altura ?? 160 }}
+          role="status"
+        >
+          {mensagemVazio}
+        </div>
       ) : altura ? (
         <div style={{ height: altura }}>{children}</div>
       ) : (
@@ -308,13 +323,18 @@ export const Painel = ({
 export const Tabela = ({
   children,
   altura = 260,
+  caption = 'Dados do dashboard',
 }: {
   children: React.ReactNode;
   /** Altura da area rolavel. A lista rola dentro do painel. */
   altura?: number;
+  caption?: string;
 }) => (
   <div className="overflow-auto" style={{ maxHeight: altura }}>
-    <table className="w-full border-collapse text-xs">{children}</table>
+    <table className="w-full border-collapse text-xs">
+      <caption className="sr-only">{caption}</caption>
+      {children}
+    </table>
   </div>
 );
 
@@ -348,19 +368,25 @@ export function Th<T>({
   );
   return (
     <th
-      onClick={() => estado.toggle(campo)}
+      scope="col"
+      aria-sort={ativo ? (estado.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
       className={cn(
-        'sticky top-0 z-10 cursor-pointer select-none whitespace-nowrap bg-slate-50 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500 transition-colors hover:text-slate-900',
+        'sticky top-0 z-10 select-none whitespace-nowrap bg-slate-50 p-0 text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500',
         alinhar === 'right' ? 'text-right' : 'text-left',
         className,
       )}
     >
-      <span
-        className={cn('inline-flex items-center gap-1', alinhar === 'right' && 'flex-row-reverse')}
+      <button
+        type="button"
+        onClick={() => estado.toggle(campo)}
+        className={cn(
+          'inline-flex w-full items-center gap-1 px-3 py-1.5 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500',
+          alinhar === 'right' ? 'flex-row-reverse justify-start' : 'justify-start',
+        )}
       >
         {rotulo}
         <Icone className={cn('h-3 w-3', ativo ? 'text-teal-600' : 'text-slate-300')} />
-      </span>
+      </button>
     </th>
   );
 }
@@ -377,6 +403,7 @@ export const ThEstatico = ({
   tooltip?: string;
 }) => (
   <th
+    scope="col"
     className={cn(
       'whitespace-nowrap bg-slate-50/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500',
       alinhar === 'right' ? 'text-right' : 'text-left',

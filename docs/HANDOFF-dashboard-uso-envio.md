@@ -12,7 +12,7 @@ dashboards a partir do original — um **técnico** (equipe Digital) e um
 **gerencial** (gestores de área).
 
 **Estado:** técnico e gerencial estão construídos e funcionando com fixtures,
-inclusive cross-filter global por pessoa. Falta o endpoint no Cloud Run.
+inclusive cross-filter global por pessoa. Faltam os dois endpoints no Cloud Run.
 
 ---
 
@@ -38,34 +38,35 @@ O dado só existe no BigQuery (não no Supabase), então segue o padrão da
 | Agregação  | TypeScript puro        | **SQL no service Python**            |
 | Transporte | `supabase.from()`      | `GET /api/v1/...` no Cloud Run       |
 
-Regra confirmada lendo `calculadora_ibs_cbs_service.py` (924 linhas, exatamente
-**5 `_execute_query`**): **1 endpoint = 1 query BigQuery**, montando o payload
-inteiro com CTEs + `TO_JSON_STRING(STRUCT(...))`. O número de endpoints espelha as
-fronteiras de lazy-load da UI (lá são 4 abas + `/filtros`).
+Regra confirmada lendo `calculadora_ibs_cbs_service.py`: cada endpoint executa
+uma query BigQuery e devolve um payload agregado com CTEs +
+`TO_JSON_STRING(STRUCT(...))`.
 
-**Corte escolhido: 3 endpoints, por FONTE** (não por dashboard) — assim nenhuma
-agregação é escrita duas vezes e o gerencial reaproveita os mesmos payloads:
+**Corte final aprovado: 2 endpoints, por FONTE** — menor implementação possível
+no backend. O catálogo de filtros nasce das consultas-base sem recorte, e a visão
+gerencial combina no front apenas os blocos já agregados pelos dois SQLs:
 
 | Endpoint                                | View                    | Params                                          |
 | --------------------------------------- | ----------------------- | ----------------------------------------------- |
-| `GET /api/v1/analytics/uso/filtros`     | as duas                 | nenhum (opções não podem encolher com o filtro) |
 | `GET /api/v1/analytics/uso/api-consumo` | `VW_ANL_USO_API`        | `inicio`, `fim`, `usuario?`, `cluster_id?`      |
 | `GET /api/v1/analytics/uso/arquivos`    | `VW_ANL_GERAL_ARQUIVOS` | `inicio`, `fim`, `usuario?`, `cluster_id?`      |
 
-Payload total agregado: ~50 KB / ~372 linhas. Scan: 3,5 MB + 28,8 MB. **Não
-precisa materializar nem pré-agregar nada.**
+`api-consumo` também aceita `ferramenta?`; esse eixo não existe em arquivos.
+Os fixtures formatados somam menos de 100 KB. **Não precisa materializar nem
+pré-agregar nada.**
 
 ---
 
 ## 4. Arquivos criados (todos novos, nada commitado)
 
 ```
-scripts/analytics-uso/{filtros,uso-api,arquivos}.sql   ← ENTREGAR AO BACKEND
+scripts/analytics-uso/{uso-api,arquivos}.sql           ← ENTREGAR AO BACKEND
 scripts/dump-analytics-fixtures.ts                     ← gera os fixtures
 src/lib/analytics-uso/types.ts                         ← contrato TS
 src/lib/analytics-uso/client.ts                        ← ÚNICO ponto que muda depois
+src/lib/analytics-uso/composicao.ts                    ← catálogo + união gerencial leve
 src/lib/analytics-uso/__fixtures__/*.json              ← respostas reais congeladas
-src/hooks/useAnalyticsUso.ts                           ← 1 useQuery por endpoint
+src/hooks/useAnalyticsUso.ts                           ← 2 useQuery remotos + derivados
 src/pages/equipe/dev/DashboardUsoEnvio.tsx             ← página, 3 abas
 src/components/equipe/dev/dashboard-uso-envio/
     AbaSaudeApi.tsx  AbaUsoApi.tsx  AbaArquivos.tsx
@@ -109,8 +110,8 @@ Ambos limpos hoje. Não rode `bun run build` a cada mudança (ver CLAUDE.md).
 
 ## 6. A troca fixture → endpoint (o passo final)
 
-`src/lib/analytics-uso/client.ts` é o único arquivo a mexer. Cada função já tem os
-dois caminhos:
+`src/lib/analytics-uso/client.ts` é o único arquivo a mexer na troca de transporte.
+As duas funções já têm os dois caminhos:
 
 ```ts
 export async function fetchUsoApi(fetchWithAuth, filtros) {
@@ -125,12 +126,13 @@ Some a env var → o `fetchWithAuth` assume. **Nenhum gráfico é tocado.** Os
 fixtures viram fixtures de vitest (teste de contrato: saída do endpoint == shape
 do JSON).
 
-Para o backend: entregar os 3 `.sql` de `scripts/analytics-uso/` + os JSONs
+Para o backend: entregar os 2 `.sql` de `scripts/analytics-uso/` + os JSONs
 como contrato. Cada SQL datada já usa `@inicio`/`@fim`/`@usuario`/`@cluster_id`
 como named params e devolve 1 linha × 1 coluna `payload`. Falta o backend criar
 `src/api/v1/endpoints/analytics_uso.py` + `analytics_uso_service.py`
 (herdando `BaseQueryService`). O endpoint deve converter `usuario` e
 `cluster_id` ausentes em strings vazias para conservar a semântica das SQLs.
+`api-consumo` também converte `ferramenta` ausente em string vazia.
 
 ---
 
@@ -193,8 +195,8 @@ Os que mais importam:
 
 ## 9. Dashboard GERENCIAL (implementado)
 
-Rota: `/equipe/board/uso-envio`. Reutiliza os mesmos payloads e aplica
-`cluster_id`, derivado da estrutura de equipes. Líder com uma unidade recebe
+Rota: `/equipe/board/uso-envio`. Reutiliza os dois payloads, combina somente seus
+agregados gerenciais e aplica `cluster_id`, derivado da estrutura de equipes. Líder com uma unidade recebe
 escopo fixo; líderes com mais de uma alternam apenas entre as suas; somente o
 administrador tem a opção de visão total.
 
@@ -233,11 +235,11 @@ Outras skills do repo: `bigquery`, `sql-style`, `looker-studio-bq-rls`,
 
 ## 12. Pendências
 
-- [ ] Backend criar os 3 endpoints a partir dos `.sql`
+- [ ] Backend criar os 2 endpoints a partir dos `.sql`
 - [ ] Trocar fixture por `fetchWithAuth` em `client.ts` + teste de contrato
 - [ ] Seletor de data (só faz sentido com endpoint)
 - [ ] Decidir a divergência paleta manual × `index.css`
-- [ ] Construir o dashboard gerencial
+- [x] Construir o dashboard gerencial
 - [ ] Chamado técnico: `sync/perdcomp` com 224 erros em 344 chamadas (65,1%);
       latência de maio (média 8.080 ms, p95 28.353 ms) e junho (4.316/16.176)
 - [ ] Nada foi commitado — revisar `git status` antes de fechar

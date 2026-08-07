@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster";
+import { lazy, Suspense } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -15,10 +16,11 @@ import { DesempenhoAccessGate } from "./components/desempenho/DesempenhoAccessGa
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { queryClient } from "./lib/queryClient";
 
-// Rotas com import estático — todas as 86 rotas carregam no bundle inicial.
+// Rotas com import estático — quase todas carregam no bundle inicial.
 // Decisão: o lazy-loading (PR anterior) adicionava latência ruim por primeira
 // navegação no ambiente dev do Lovable (Vite compila chunk on-demand).
-// O ErrorBoundary + queryClient centralizado continuam ativos.
+// Os dashboards analíticos são a exceção: carregam gráficos e transformações
+// próprias que não devem ocupar memória de quem nunca os abre.
 
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
@@ -73,7 +75,6 @@ import ConsultaECF from "./pages/equipe/dev/ConsultaECF";
 import GerenciarDados from "./pages/equipe/dev/GerenciarDados";
 import GerenciarDadosHub from "./pages/equipe/dev/GerenciarDadosHub";
 import GerenciarDadosDashboards from "./pages/equipe/dev/GerenciarDadosDashboards";
-import DashboardUsoEnvio from "./pages/equipe/dev/DashboardUsoEnvio";
 import AnaliseIcmsHub from "./pages/equipe/dev/AnaliseIcmsHub";
 import PerdcompHub from "./pages/equipe/dev/PerdcompHub";
 import PerdcompDashboard from "./pages/equipe/dev/PerdcompDashboard";
@@ -129,7 +130,6 @@ import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
 import BoardDashboardClientesOs from "./pages/equipe/board/BoardDashboardClientesOs";
 import BoardClientes from "./pages/equipe/board/BoardClientes";
-import DashboardUsoEnvioGerencial from "./pages/equipe/board/DashboardUsoEnvioGerencial";
 
 // Gestão
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
@@ -152,6 +152,15 @@ import MinhaEvolucao from "./pages/gerencial/desempenho/MinhaEvolucao";
 
 // Gerencial > Performance
 import PerformanceDashboard from "./pages/gerencial/performance/PerformanceDashboard";
+
+const DashboardUsoEnvio = lazy(() => import("./pages/equipe/dev/DashboardUsoEnvio"));
+const DashboardUsoEnvioGerencial = lazy(() => import("./pages/equipe/board/DashboardUsoEnvioGerencial"));
+
+const DashboardRouteFallback = () => (
+  <div className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
+    Carregando dashboard…
+  </div>
+);
 
 const App = () => (
   <ErrorBoundary scope="Root">
@@ -219,7 +228,7 @@ const App = () => (
               <Route path="/equipe/dev/gerenciar-dados" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados"><GerenciarDadosHub /></PageAccessGate>} />
               <Route path="/equipe/dev/carregar-dados" element={<PageAccessGate pagePath="/equipe/dev/carregar-dados"><GerenciarDados /></PageAccessGate>} />
               <Route path="/equipe/dev/gerenciar-dados/dashboards" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados/dashboards"><GerenciarDadosDashboards /></PageAccessGate>} />
-              <Route path="/equipe/dev/gerenciar-dados/uso-envio" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados/uso-envio"><DashboardUsoEnvio /></PageAccessGate>} />
+              <Route path="/equipe/dev/gerenciar-dados/uso-envio" element={<PageAccessGate pagePath="/equipe/dev/gerenciar-dados/uso-envio"><Suspense fallback={<DashboardRouteFallback />}><DashboardUsoEnvio /></Suspense></PageAccessGate>} />
               <Route path="/equipe/dev/levantamento-pis-cofins" element={<PageAccessGate pagePath="/equipe/dev/levantamento-pis-cofins"><LevantamentoPisCofinsHub /></PageAccessGate>} />
               <Route path="/equipe/dev/perdcomp" element={<PageAccessGate pagePath="/equipe/dev/perdcomp"><PerdcompHub /></PageAccessGate>} />
               <Route path="/equipe/dev/perdcomp/dashboard" element={<PageAccessGate pagePath="/equipe/dev/perdcomp/dashboard"><PerdcompDashboard /></PageAccessGate>} />
@@ -297,7 +306,7 @@ const App = () => (
               <Route path="/equipe/board" element={<Navigate to="/equipe/board/dashboard" replace />} />
               <Route path="/equipe/board/dashboard" element={<PageAccessGate pagePath="/equipe/board/dashboard"><BoardDashboard /></PageAccessGate>} />
               <Route path="/equipe/board/relatorios" element={<PageAccessGate pagePath="/equipe/board/relatorios"><BoardRelatorios /></PageAccessGate>} />
-              <Route path="/equipe/board/uso-envio" element={<PageAccessGate pagePath="/equipe/board/uso-envio"><DashboardUsoEnvioGerencial /></PageAccessGate>} />
+              <Route path="/equipe/board/uso-envio" element={<PageAccessGate pagePath="/equipe/board/uso-envio"><Suspense fallback={<DashboardRouteFallback />}><DashboardUsoEnvioGerencial /></Suspense></PageAccessGate>} />
               <Route path="/equipe/board/dashboard-clientes-os" element={<PageAccessGate pagePath="/equipe/board/dashboard-clientes-os"><BoardDashboardClientesOs /></PageAccessGate>} />
               <Route path="/equipe/board/clientes" element={<PageAccessGate pagePath="/equipe/board/clientes"><BoardClientes /></PageAccessGate>} />
 
