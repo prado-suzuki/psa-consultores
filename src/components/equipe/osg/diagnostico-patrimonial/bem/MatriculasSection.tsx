@@ -8,15 +8,18 @@ import type { MatriculaRow } from '@/hooks/useDiagnosticoPatrimonial';
 import { formatArea } from '@/components/equipe/osg/diagnostico-patrimonial/areaUtils';
 
 interface MatriculasSectionProps {
+  // Vem de quem monta o formulário: a última seção do bem, cuja ordem depende de
+  // quantas seções o tipo de bem mostrou antes (urbano tem a de endereço).
+  number: string;
   isEdit: boolean; loading: boolean; matriculas: MatriculaRow[];
   onAdd: () => void; onLink: () => void; onEdit: (matricula: MatriculaRow) => void;
   onUnlink: (matricula: MatriculaRow) => void; onDelete: (matricula: MatriculaRow) => void;
 }
 
 export function MatriculasSection(props: MatriculasSectionProps) {
-  const { isEdit, loading, matriculas } = props;
+  const { number, isEdit, loading, matriculas } = props;
   return (
-    <FieldSection number="05" title="Matrículas" hint={isEdit && matriculas.length ? `${matriculas.length} registro(s)` : undefined}
+    <FieldSection number={number} title="Matrículas" hint={isEdit && matriculas.length ? `${matriculas.length} registro(s)` : undefined}
       actions={<div className="flex gap-1.5">
         <Button type="button" size="sm" variant="outline" className="h-7 gap-1.5" disabled={!isEdit} onClick={props.onLink}><Link2 className="h-3.5 w-3.5" /> Vincular existente</Button>
         <Button type="button" size="sm" className="h-7 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90" disabled={!isEdit} onClick={props.onAdd}><Plus className="h-3.5 w-3.5" /> Nova matrícula</Button>

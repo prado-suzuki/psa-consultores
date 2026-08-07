@@ -36,14 +36,22 @@ export function alvoDeValor(valor: string): Alvo {
  *
  * Quem preenche `triado_por` é o hook de atualização, que tem a sessão. Aqui
  * fica só a regra.
+ *
+ * `documentoTipoId` é a classificação escolhida no modal que abre antes de
+ * gravar (decisão de 07/08/2026). É OPCIONAL: sem escolha, a coluna nem entra
+ * no patch, o vínculo acontece igual e um tipo que já estivesse gravado
+ * sobrevive. Tipo e dono são eixos ortogonais — a constraint
+ * `documento_arquivo_um_dono_apenas` não olha para o tipo.
  */
-export function patchVinculo(alvo: Alvo): AtualizarDocumentoPatch {
-  return {
+export function patchVinculo(alvo: Alvo, documentoTipoId?: string | null): AtualizarDocumentoPatch {
+  const patch: AtualizarDocumentoPatch = {
     pessoa_id: alvo.kind === 'pessoa' ? alvo.id : null,
     bem_id: alvo.kind === 'bem' ? alvo.id : null,
     matricula_id: alvo.kind === 'matricula' ? alvo.id : null,
     triado_em: alvo.kind === 'cliente' ? new Date().toISOString() : null,
   };
+  if (documentoTipoId) patch.documento_tipo_id = documentoTipoId;
+  return patch;
 }
 
 /**

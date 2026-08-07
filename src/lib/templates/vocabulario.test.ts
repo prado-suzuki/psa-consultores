@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { extrairCampos } from './render';
 import { gerarDocumento } from './index';
-import { derivarCampos } from './vocabulario';
+import { campoDaEntidade, camposDaEntidade, derivarCampos, type TipoEntidade } from './vocabulario';
 import { condicionalDeBinding, conteudoParaDeteccao, detectarBindings, detectarBindingsDeConteudo, resolverTipoDoBinding } from './binding';
 import { concordarTexto } from './concordancia';
 import {
@@ -237,6 +237,251 @@ describe('vocabulário namespaced — paridade Mat. 9.617', () => {
     expect(editado.valorExtenso).toBe('quinhentos e cinquenta e oito mil, quatrocentos e treze reais e cinquenta e cinco centavos');
     expect(editado.livroExtenso).toBe('dois');
     expect(editado.folhaExtenso).toBe('um');
+  });
+});
+
+// Redação urbana da família "Descrição de imóvel" (variante 4 do seed
+// 20260806140000, já com a troca de "nº {{ enderecoNumero }}" por
+// {{ enderecoNumeroProsa }} aplicada no banco), verbatim — é o texto que o
+// cartório vai ler.
+const CONTEUDO_IMOVEL_URBANO =
+  'Um imóvel urbano com área total de {{ imovel.area }} ({{ imovel.areaExtenso }})' +
+  '{{#imovel.temAreaConstruida}}, sendo {{ imovel.areaConstruida }} de área construída{{/imovel.temAreaConstruida}}' +
+  ', localizado na {{ imovel.enderecoLogradouro }}, {{ imovel.enderecoNumeroProsa }}, ' +
+  '{{#imovel.enderecoComplemento}}{{ imovel.enderecoComplemento }}, {{/imovel.enderecoComplemento}}' +
+  '{{ imovel.enderecoBairro }}, no município de {{ imovel.municipio }}, Estado de {{ imovel.uf }}, ' +
+  'CEP {{ imovel.enderecoCep }}, de propriedade de {{ imovel.proprietario }}, ' +
+  'com registro na matrícula de nº {{ imovel.numero }}, no Livro {{ imovel.livroExtenso }}, ' +
+  'Folhas/Ficha {{ imovel.folhaExtenso }} do Cartório de Registro de Imóveis de {{ imovel.comarca }}, ' +
+  'Estado de {{ imovel.ufCartorio }}, inscrito no cadastro municipal sob o nº {{ imovel.inscricaoMunicipal }}, ' +
+  'no valor de R$ {{ imovel.valor }} ({{ imovel.valorExtenso }}), ' +
+  'e com os seguintes limites e confrontações: {{ imovel.confrontacoes }}.';
+
+const MAT_URBANA: MatriculaParaMapear = {
+  numero: '30.482', livro: '2', folha: '15',
+  municipio_imovel: 'Cuiabá', uf_imovel: 'MT',
+  area_documento: 360, area_unidade: 'm2', vlr_contabil: 450000,
+  confrontacoes_texto: 'frente para a Rua das Acácias, fundos com o lote 12',
+  descricao_psa_completa: null,
+  tipo_bem: 'IB',
+  bem: {
+    denominacao: null, vlr_contabil: null, ccir_codigo: null,
+    inscricao_municipal: '1.234.567-8', area_construida_m2: 180,
+    endereco_logradouro: 'Rua das Acácias', endereco_numero: '119',
+    endereco_complemento: 'apartamento 302', endereco_bairro: 'Centro',
+    endereco_cep: '78000-000',
+  },
+  cartorio: { nome_completo: 'Cartório do 2º Ofício', comarca: 'Cuiabá', uf: 'MT' },
+  titulares: [{ denominacao: 'Jose Eduardo de Macedo Soares Junior' }],
+};
+
+describe('descrição de imóvel urbano — campos e condicionais do seed', () => {
+  function gerarUrbano(m: MatriculaParaMapear): string {
+    const { bindings } = detectarBindingsDeConteudo(CONTEUDO_IMOVEL_URBANO);
+    const ctx = montarContexto(bindings, { imovel: mapearMatricula(m) });
+    const template: Template = {
+      id: 'fixture-urbano', nome: 'Fixture — imóvel urbano',
+      blocos: [{ id: 'b', obrigatorio: true, conteudo: CONTEUDO_IMOVEL_URBANO }],
+    };
+    return gerarDocumento(template, ctx);
+  }
+
+  it('as novas condicionais são reconhecidas como condicionais de binding', () => {
+    expect(condicionalDeBinding('imovel.urbano')).toBe(true);
+    expect(condicionalDeBinding('imovel.rural')).toBe(true);
+    expect(condicionalDeBinding('imovel.posse')).toBe(true);
+    expect(condicionalDeBinding('imovel.temAreaConstruida')).toBe(true);
+  });
+
+  it('renderiza a redação urbana com área em m², endereço e cadastro municipal', () => {
+    const texto = gerarUrbano(MAT_URBANA);
+    expect(texto).toContain('área total de 360,00 m² (trezentos e sessenta metros quadrados)');
+    expect(texto).toContain('sendo 180,00 m² de área construída');
+    expect(texto).toContain('localizado na Rua das Acácias, nº 119, apartamento 302, Centro');
+    expect(texto).toContain('no município de Cuiabá, Estado de Mato Grosso, CEP 78000-000');
+    expect(texto).toContain('inscrito no cadastro municipal sob o nº 1.234.567-8');
+    expect(texto).toContain('no Livro dois, Folhas/Ficha quinze');
+    expect(texto).toContain('R$ 450.000,00 (quatrocentos e cinquenta mil reais)');
+  });
+
+  it('sem complemento e sem área construída, os dois trechos somem (sem quebrar)', () => {
+    const texto = gerarUrbano({
+      ...MAT_URBANA,
+      bem: { ...MAT_URBANA.bem!, endereco_complemento: null, area_construida_m2: null },
+    });
+    expect(texto).toContain('nº 119, Centro,');
+    expect(texto).not.toContain('área construída');
+  });
+
+  it('imóvel sem número sai "s/nº", e não "nº s/n"', () => {
+    const texto = gerarUrbano({
+      ...MAT_URBANA,
+      bem: { ...MAT_URBANA.bem!, endereco_numero: 's/n' },
+    });
+    expect(texto).toContain('localizado na Rua das Acácias, s/nº, apartamento 302');
+    expect(texto).not.toContain('nº s/n');
+  });
+
+  it('área construída igual à total não entra no texto', () => {
+    const texto = gerarUrbano({
+      ...MAT_URBANA,
+      bem: { ...MAT_URBANA.bem!, area_construida_m2: 360 },
+    });
+    expect(texto).not.toContain('área construída');
+  });
+});
+
+describe('unidade da área na edição manual (tela Gerar)', () => {
+  it('a unidade vem do campo base areaUnidade, e o extenso a segue', () => {
+    expect(derivarCampos('matricula', { area: '360,00 m²', areaUnidade: 'm2' }).areaExtenso).toBe(
+      'trezentos e sessenta metros quadrados',
+    );
+    expect(derivarCampos('matricula', { area: '396,4000 ha', areaUnidade: 'ha' }).areaExtenso).toBe(
+      'trezentos e noventa e seis hectares e quarenta ares',
+    );
+    // 'm²' digitado à mão no lugar de 'm2' também vale.
+    expect(derivarCampos('matricula', { area: '360,00', areaUnidade: 'm²' }).areaExtenso).toBe(
+      'trezentos e sessenta metros quadrados',
+    );
+  });
+
+  it('o sufixo do texto NÃO decide a unidade nem entra no número', () => {
+    // Regressão: com a unidade adivinhada do texto, "360 m2" virava 3.602 (o "2"
+    // entrava no número) e "360" sem sufixo virava trezentos e sessenta HECTARES.
+    expect(derivarCampos('matricula', { area: '360 m2', areaUnidade: 'm2' }).areaExtenso).toBe(
+      'trezentos e sessenta metros quadrados',
+    );
+    expect(derivarCampos('matricula', { area: '360', areaUnidade: 'm2' }).areaExtenso).toBe(
+      'trezentos e sessenta metros quadrados',
+    );
+    expect(derivarCampos('matricula', { area: '360,00 metros quadrados', areaUnidade: 'm2' }).areaExtenso).toBe(
+      'trezentos e sessenta metros quadrados',
+    );
+  });
+
+  it('sem areaUnidade assume hectare (comportamento anterior ao imóvel urbano)', () => {
+    expect(derivarCampos('matricula', { area: '396,4000' }).areaExtenso).toBe(
+      'trezentos e noventa e seis hectares e quarenta ares',
+    );
+  });
+
+  it('texto que não é um número devolve extenso vazio (melhor vazio que unidade errada)', () => {
+    expect(derivarCampos('matricula', { area: '12,5 ha (125.000 m²)', areaUnidade: 'ha' }).areaExtenso).toBe('');
+    expect(derivarCampos('matricula', { area: 'a combinar' }).areaExtenso).toBe('');
+    expect(derivarCampos('matricula', { area: '' }).areaExtenso).toBe('');
+  });
+
+  it('a unidade digitada por extenso também vale (mesmo vocabulário dos dois lados)', () => {
+    // Regressão: `areaUnidade` aceitava só 'm2'/'m²' enquanto o sufixo de `area`
+    // aceitava "metros quadrados" — quem trocasse o pré-preenchido pela palavra
+    // caía no default hectare e o apartamento saía "trezentos e sessenta hectares".
+    for (const unidade of ['m2', 'm²', 'M2', 'metros quadrados', 'metro quadrado']) {
+      expect(derivarCampos('matricula', { area: '360,00', areaUnidade: unidade }).areaExtenso).toBe(
+        'trezentos e sessenta metros quadrados',
+      );
+    }
+    for (const unidade of ['ha', 'ha_m2', 'hectares', 'hectare', '']) {
+      expect(derivarCampos('matricula', { area: '1,0000', areaUnidade: unidade }).areaExtenso).toBe('um hectare');
+    }
+  });
+
+  it('ponto sem vírgula é milhar em pt-BR, não decimal (erro de 1000x no extenso)', () => {
+    // "1.234 ha" digitado à mão: Number() leria 1,234 e o contrato sairia com
+    // "um hectare, vinte e três ares e quarenta centiares" em lugar de 1.234 ha.
+    expect(derivarCampos('matricula', { area: '1.234 ha', areaUnidade: 'ha' }).areaExtenso).toBe(
+      'mil, duzentos e trinta e quatro hectares',
+    );
+    expect(derivarCampos('matricula', { area: '1.234', areaUnidade: 'ha' }).areaExtenso).toBe(
+      'mil, duzentos e trinta e quatro hectares',
+    );
+    expect(derivarCampos('matricula', { area: '1.234.567', areaUnidade: 'm2' }).areaExtenso).toBe(
+      'um milhão, duzentos e trinta e quatro mil, quinhentos e sessenta e sete metros quadrados',
+    );
+    // Sem grupos de 3 dígitos segue valendo como decimal cru (leitura tolerante).
+    expect(derivarCampos('matricula', { area: '396.4', areaUnidade: 'ha' }).areaExtenso).toBe(
+      'trezentos e noventa e seis hectares e quarenta ares',
+    );
+  });
+
+  it('área negativa não vira "zero": não é parseável', () => {
+    expect(derivarCampos('matricula', { area: '-360,00', areaUnidade: 'm2' }).areaExtenso).toBe('');
+  });
+
+  it('temAreaConstruida acompanha a área editada, comparando unidades diferentes', () => {
+    const tem = (area: string, areaUnidade: string, areaConstruida: string) =>
+      derivarCampos('matricula', { area, areaUnidade, areaConstruida }).temAreaConstruida;
+    expect(tem('360,00 m²', 'm2', '180,00 m²')).toBe('sim');
+    expect(tem('1,0000 ha', 'ha', '180,00 m²')).toBe('sim');
+    expect(tem('180,00 m²', 'm2', '180,00 m²')).toBe('');
+    expect(tem('0,1005 ha', 'ha', '1.005,00 m²')).toBe('');
+    // Construída zerada ou negativa digitada à mão é cadastro inválido, não
+    // construção: o trecho fica fora (o caminho do mapeador já guarda o dado bruto).
+    expect(tem('360,00 m²', 'm2', '0,00 m²')).toBe('');
+    expect(tem('360,00 m²', 'm2', '0')).toBe('');
+    expect(tem('360,00 m²', 'm2', '-10,00 m²')).toBe('');
+    expect(derivarCampos('matricula', { areaConstruida: '180,00 m²' }).temAreaConstruida).toBe('');
+  });
+
+  it('classificação re-deriva do tipo do bem editado', () => {
+    expect(derivarCampos('matricula', { tipoBem: 'IB' }).urbano).toBe('sim');
+    expect(derivarCampos('matricula', { tipoBem: 'IB' }).rural).toBe('');
+    expect(derivarCampos('matricula', { tipoExploracaoPosse: 'Posse' }).posse).toBe('sim');
+    expect(derivarCampos('matricula', { tipoExploracaoPosse: 'Arrendamento' }).posse).toBe('');
+  });
+});
+
+describe('painel "Ajustar dados manualmente" — campos base que o catálogo expõe', () => {
+  /**
+   * Espelha a expansão de `camposPorBinding` (useGerarDocumentoController.ts): um
+   * campo DERIVADO referenciado no modelo não vira input; o que vira input são os
+   * campos-base dele. É por isso que a unidade da área precisa ser base e constar
+   * em `derivadoDe` do extenso: sem ela na lista, o consultor não tem onde
+   * corrigir a unidade, e o derivado é reescrito a cada edição.
+   */
+  function camposDoPainel(tipo: TipoEntidade, referenciados: string[]): string[] {
+    const out: string[] = [];
+    for (const id of referenciados) {
+      const campo = campoDaEntidade(tipo, id);
+      const bases = campo?.derivadoDe
+        ? (Array.isArray(campo.derivadoDe) ? campo.derivadoDe : [campo.derivadoDe])
+        : [id];
+      for (const base of bases) if (!out.includes(base)) out.push(base);
+    }
+    return out;
+  }
+
+  it('{{ imovel.areaExtenso }} expõe a área E a unidade', () => {
+    expect(camposDoPainel('matricula', ['areaExtenso'])).toEqual(['area', 'areaUnidade']);
+  });
+
+  it('{{ imovel.temAreaConstruida }} expõe as duas áreas e a unidade', () => {
+    expect(camposDoPainel('matricula', ['temAreaConstruida'])).toEqual([
+      'area', 'areaUnidade', 'areaConstruida',
+    ]);
+  });
+
+  it('{{ imovel.enderecoNumeroProsa }} expõe o número cru, não a prosa', () => {
+    expect(camposDoPainel('matricula', ['enderecoNumeroProsa'])).toEqual(['enderecoNumero']);
+  });
+
+  it('as condicionais de classificação expõem o tipo do bem e a exploração', () => {
+    expect(camposDoPainel('matricula', ['rural', 'urbano'])).toEqual(['tipoBem']);
+    expect(camposDoPainel('matricula', ['posse'])).toEqual(['tipoExploracaoPosse']);
+    expect(camposDoPainel('matricula', ['fracionado'])).toEqual(['percentual', 'remanescente']);
+  });
+
+  it('todo campo listado em derivadoDe existe no catálogo da entidade', () => {
+    // Base inexistente é silenciosa: o painel simplesmente não mostra o input.
+    for (const tipo of ['pessoa', 'sociedade', 'bem', 'matricula', 'cartorio', 'vertice'] as TipoEntidade[]) {
+      for (const campo of camposDaEntidade(tipo)) {
+        const bases = campo.derivadoDe
+          ? (Array.isArray(campo.derivadoDe) ? campo.derivadoDe : [campo.derivadoDe])
+          : [];
+        for (const base of bases) {
+          expect(campoDaEntidade(tipo, base), `${tipo}.${campo.id} → ${base}`).toBeDefined();
+        }
+      }
+    }
   });
 });
 

@@ -68,6 +68,19 @@ const bemEdit = {
   motivo_nao_integralizacao: null, observacao: null,
 } as React.ComponentProps<typeof BemModal>['bem'];
 
+// Imóvel urbano com endereço e área construída preenchidos (migration 20260806120500).
+const bemUrbanoEdit = {
+  id: 'B2', cliente_id: 'C1', referencia_dp: 'IB-01', tipo_bem: 'IB', denominacao: 'Apartamento',
+  descricao_outros: null, vlr_contabil: 90, vlr_contabil_ajustado: null, vlr_benfeitorias: null,
+  vlr_mercado: null, vlr_imposto_anual: null, imposto_anual_exercicio: null,
+  ccir_codigo: null, inscricao_municipal: '12345', status_integralizacao: null,
+  empresa_destino_pessoa_id: null, participa_estruturacao: true,
+  motivo_nao_integralizacao: null, observacao: null,
+  endereco_logradouro: 'Avenida Central', endereco_numero: '119-A',
+  endereco_complemento: 'Apartamento 302', endereco_bairro: 'Setor Oeste',
+  endereco_cep: '74000-123', area_construida_m2: 87.5,
+} as React.ComponentProps<typeof BemModal>['bem'];
+
 function renderModal(overrides: Partial<React.ComponentProps<typeof BemModal>> = {}) {
   const props = {
     open: true, clienteId: 'C1', bem: null, pessoasCliente: [pessoa], onClose: vi.fn(), ...overrides,
@@ -77,6 +90,17 @@ function renderModal(overrides: Partial<React.ComponentProps<typeof BemModal>> =
 
 function inputAfter(label: string) {
   return screen.getByText(label, { exact: true }).parentElement!.querySelector('input') as HTMLInputElement;
+}
+
+// Número + título de cada seção do formulário, na ordem em que estão no DOM.
+// O número vem do contador da aba "Dados": uma seção escondida por tipo de bem
+// não pode deixar buraco nem repetir número na sequência.
+function sectionSequence() {
+  return Array.from(document.querySelectorAll('section')).map((section) => {
+    const numero = section.querySelector('span.tabular-nums')?.textContent ?? '';
+    const titulo = section.querySelector('h4')?.textContent ?? '';
+    return `${numero} ${titulo}`;
+  });
 }
 
 async function chooseCombobox(index: number, option: string) {
@@ -157,6 +181,70 @@ describe('BemModal', () => {
       }),
       expect.any(Object),
     );
+  });
+
+  it('grava endereço e área construída apenas quando o bem é imóvel urbano', async () => {
+    const user = userEvent.setup();
+    renderModal();
+    // O tipo inicial é imóvel rural: o endereço urbano não aparece.
+    expect(screen.queryByText('Logradouro')).not.toBeInTheDocument();
+    await chooseCombobox(0, 'Imóvel Urbano');
+    await user.type(inputAfter('Referência DP'), 'IB-01');
+    await user.type(inputAfter('Denominação'), 'Apartamento');
+    await user.type(inputAfter('CEP'), '74000123');
+    await user.type(inputAfter('Logradouro'), 'Avenida Central');
+    await user.type(inputAfter('Número'), '119-A');
+    await user.type(inputAfter('Complemento'), 'Apartamento 302');
+    await user.type(inputAfter('Bairro'), 'Setor Oeste');
+    fireEvent.change(inputAfter('Área construída (m²)'), { target: { value: '87.5' } });
+    await user.click(screen.getByRole('button', { name: 'Cadastrar bem' }));
+
+    expect(mocks.upsert).toHaveBeenCalledOnce();
+    expect(mocks.upsert.mock.calls[0][0].values).toMatchObject({
+      tipo_bem: 'IB', endereco_cep: '74000-123', endereco_logradouro: 'Avenida Central',
+      endereco_numero: '119-A', endereco_complemento: 'Apartamento 302',
+      endereco_bairro: 'Setor Oeste', area_construida_m2: 87.5,
+    });
+  });
+
+  it('numera as seções em sequência contínua para cada tipo de bem', async () => {
+    renderModal();
+    // Imóvel rural: sem a seção de endereço, que é só do urbano.
+    expect(sectionSequence()).toEqual([
+      '01 Identificação', '02 Cadastros oficiais', '03 Integralização',
+      '04 Observação', '05 Matrículas',
+    ]);
+
+    await chooseCombobox(0, 'Imóvel Urbano');
+    expect(sectionSequence()).toEqual([
+      '01 Identificação', '02 Endereço e área construída', '03 Cadastros oficiais',
+      '04 Integralização', '05 Observação', '06 Matrículas',
+    ]);
+
+    await chooseCombobox(0, 'Participação Societária');
+    expect(sectionSequence()).toEqual([
+      '01 Identificação', '02 Valores', '03 Integralização', '04 Observação',
+    ]);
+  });
+
+  it('carrega o endereço urbano na edição e o limpa ao salvar como outro tipo', async () => {
+    const user = userEvent.setup();
+    renderModal({ bem: bemUrbanoEdit });
+    expect(inputAfter('CEP')).toHaveValue('74000-123');
+    expect(inputAfter('Logradouro')).toHaveValue('Avenida Central');
+    expect(inputAfter('Número')).toHaveValue('119-A');
+    expect(inputAfter('Complemento')).toHaveValue('Apartamento 302');
+    expect(inputAfter('Bairro')).toHaveValue('Setor Oeste');
+    expect(inputAfter('Área construída (m²)')).toHaveValue(87.5);
+
+    await chooseCombobox(0, 'Participação Societária');
+    expect(screen.queryByText('Logradouro')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+
+    expect(mocks.upsert.mock.calls[0][0].values).toMatchObject({
+      tipo_bem: 'PS', endereco_cep: null, endereco_logradouro: null, endereco_numero: null,
+      endereco_complemento: null, endereco_bairro: null, area_construida_m2: null,
+    });
   });
 
   it('mantém matrícula e titularidades como CRUDs imediatos na edição', async () => {

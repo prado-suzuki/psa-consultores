@@ -95,11 +95,18 @@ export function valorExtenso(valor: number): string {
 }
 
 /**
+ * Unidade em que a área sai no contrato: hectare no imóvel rural, metro quadrado
+ * no urbano. Espelha os valores de `matricula.area_unidade` que interessam ao
+ * texto ('ha_m2' já é hectare — as 4 decimais são os m², ver areaUtils.ts).
+ */
+export type UnidadeArea = 'ha' | 'm2';
+
+/**
  * Área rural por extenso, na decomposição cartorial hectare/are/centiare.
  * As 4 casas decimais do hectare representam ares (2 primeiras) e centiares (2 últimas).
  * Ex.: 396,4000 ha → "trezentos e noventa e seis hectares e quarenta ares".
  */
-export function areaExtenso(hectares: number): string {
+function areaExtensoHa(hectares: number): string {
   const totalCentiares = Math.round(hectares * 10000);
   const ha = Math.floor(totalCentiares / 10000);
   const ares = Math.floor((totalCentiares % 10000) / 100);
@@ -111,6 +118,38 @@ export function areaExtenso(hectares: number): string {
   if (centiares > 0) componentes.push(`${cardinalExtenso(centiares)} ${centiares === 1 ? 'centiare' : 'centiares'}`);
   if (componentes.length === 0) return 'zero hectares';
   return listaComE(componentes);
+}
+
+/**
+ * Área urbana por extenso, em metros quadrados. O imóvel urbano não se decompõe
+ * em are/centiare (isso é medida agrária): a parte decimal, que a formatação
+ * limita a 2 casas, sai em centésimos de metro quadrado.
+ * Ex.: 360 → "trezentos e sessenta metros quadrados".
+ */
+function areaExtensoM2(metrosQuadrados: number): string {
+  const totalCentesimos = Math.round(metrosQuadrados * 100);
+  const inteiros = Math.floor(totalCentesimos / 100);
+  const centesimos = totalCentesimos % 100;
+
+  const componentes: string[] = [];
+  if (inteiros > 0) {
+    componentes.push(`${cardinalExtenso(inteiros)} ${inteiros === 1 ? 'metro quadrado' : 'metros quadrados'}`);
+  }
+  if (centesimos > 0) {
+    componentes.push(
+      `${cardinalExtenso(centesimos)} ${centesimos === 1 ? 'centésimo' : 'centésimos'} de metro quadrado`,
+    );
+  }
+  if (componentes.length === 0) return 'zero metros quadrados';
+  return listaComE(componentes);
+}
+
+/**
+ * Área por extenso na unidade do imóvel. Hectare é o default porque é o caso
+ * rural, único que existia antes da descrição de imóvel urbano.
+ */
+export function areaExtenso(valor: number, unidade: UnidadeArea = 'ha'): string {
+  return unidade === 'm2' ? areaExtensoM2(valor) : areaExtensoHa(valor);
 }
 
 // --- Ordinais e romanos (numeração de cláusulas, parágrafos e capítulos) ----
@@ -177,10 +216,19 @@ function agruparMilhar(inteiro: string): string {
   return inteiro.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
-/** Área no formato numérico pt-BR com 4 casas. Ex.: 396.4 → "396,4000 ha". */
-export function formatarArea(hectares: number): string {
-  const [inteiro, decimais] = Math.abs(hectares).toFixed(4).split('.');
-  return `${agruparMilhar(inteiro)},${decimais} ha`;
+/**
+ * Área no formato numérico pt-BR, com o sufixo da unidade: hectare com 4 casas
+ * (as 2 primeiras são ares, as 2 últimas centiares) e metro quadrado com 2.
+ * Ex.: 396.4 → "396,4000 ha"; (360, 'm2') → "360,00 m²".
+ *
+ * O sufixo é EXIBIÇÃO, não fonte da unidade: quem carrega a unidade adiante é o
+ * campo `matricula.areaUnidade` (ver unidadeDaArea em vocabulario.ts). Derivar o
+ * extenso do sufixo já produziu extenso na unidade errada.
+ */
+export function formatarArea(valor: number, unidade: UnidadeArea = 'ha'): string {
+  const casas = unidade === 'm2' ? 2 : 4;
+  const [inteiro, decimais] = Math.abs(valor).toFixed(casas).split('.');
+  return `${agruparMilhar(inteiro)},${decimais} ${unidade === 'm2' ? 'm²' : 'ha'}`;
 }
 
 /** Valor no formato numérico pt-BR com 2 casas (sem "R$"). Ex.: 558413.55 → "558.413,55". */

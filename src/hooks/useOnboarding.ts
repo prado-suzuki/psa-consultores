@@ -171,11 +171,17 @@ export function useOnboarding(clienteId: string | null) {
 
       // String literal única: o tipo gerado do Supabase só infere as colunas a
       // partir de um literal — concatenar derruba a inferência.
+      //
+      // `cliente_id is null` recorta o catálogo PADRÃO. A mesma tabela também
+      // guarda documentos avulsos de pedido manual (migration 20260807150000), e
+      // eles não podem aparecer na montagem: a lista de escolha do consultor é a
+      // dos 67 padrões, não a dos avulsos de outros clientes.
       const { data: itemRows, error: itemError } = await supabase
         .from('documento_tipo')
         .select(
           'id, codigo, documento, entidade, modulo, nota, categoria, categoria_docbox, confidencial, ordem, granularidade, grupo',
         )
+        .is('cliente_id', null)
         .eq('ativo', true)
         .order('ordem');
       if (itemError) throw itemError;
