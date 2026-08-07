@@ -296,6 +296,74 @@ export interface NovoItemManual {
 
 const texto = (valor: string | null | undefined) => valor?.trim() || null;
 
+/* ------------------------------------------------------- documento avulso */
+
+/**
+ * `modulo` das linhas avulsas. A coluna é NOT NULL e diz "que módulo do OSG
+ * Work consome este documento"; no avulso não há módulo, então o valor declara
+ * a origem em vez de fingir uma.
+ */
+export const MODULO_AVULSO = 'Avulso da solicitação';
+
+/** Linha de catálogo que acompanha um item pedido à mão (migration 20260807150000). */
+export interface TipoAvulsoInsert {
+  codigo: string;
+  cliente_id: string;
+  solicitacao_item_id: string;
+  modulo: string;
+  entidade: string;
+  documento: string;
+  nota: string | null;
+  granularidade: Granularidade;
+  grupo: OsgDocGrupo;
+  ordem: number;
+  obrigatorio_default: boolean;
+  confidencial: boolean;
+  ativo: boolean;
+}
+
+/**
+ * O tipo avulso de um item manual.
+ *
+ * Existe para o arquivo que responde a um pedido manual ter em que se apoiar:
+ * `documento_arquivo.documento_tipo_id` é FK para `documento_tipo`, e item
+ * manual não tinha linha lá. Ver o cabeçalho da migration 20260807150000.
+ *
+ * `codigo` deriva do id do item porque a coluna é única global e o seed do
+ * catálogo depende de `ON CONFLICT (codigo)`: um código derivado é único por
+ * construção e não pede mudança de índice.
+ *
+ * `entidade` cai em string vazia, e não em nulo, porque a coluna é NOT NULL no
+ * catálogo enquanto é opcional no item manual.
+ */
+export function montarTipoAvulso(
+  solicitacaoItemId: string,
+  clienteId: string,
+  entrada: NovoItemManual,
+): TipoAvulsoInsert {
+  const documento = texto(entrada.documento);
+  if (!documento) {
+    throw new Error('Informe o nome do documento para incluí-lo na solicitação.');
+  }
+  return {
+    codigo: `avulso-${solicitacaoItemId}`,
+    cliente_id: clienteId,
+    solicitacao_item_id: solicitacaoItemId,
+    modulo: MODULO_AVULSO,
+    entidade: texto(entrada.entidade) ?? '',
+    documento,
+    nota: texto(entrada.nota),
+    granularidade: entrada.granularidade,
+    grupo: entrada.grupo,
+    ordem: entrada.ordem ?? 0,
+    // Avulso nunca é obrigatório-por-padrão: obrigatório-por-padrão é o que se
+    // multiplica por instância em TODO cliente, e este documento é de um só.
+    obrigatorio_default: false,
+    confidencial: false,
+    ativo: true,
+  };
+}
+
 /**
  * Forma canônica do nome de um documento, para comparação.
  *

@@ -10,8 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor';
 import { TicketRichTextView } from '@/components/chamados/TicketRichTextView';
 import { isTicketRichTextEmpty } from '@/components/chamados/ticketRichTextFormat';
+import { ticketMessageErrorFeedback, ticketMessageFeedback } from '@/lib/ticketMessageOutcome';
+import { AVISO_CHAMADO_ENCERRADO_CLIENTE, clientePodeResponder } from '@/lib/chamadosStatus';
 import { toast } from '@/hooks/use-toast';
-import { ArrowLeft, Send, FileText, Download, Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, FileText, Download, Image as ImageIcon, Upload, X, Loader2, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -132,24 +134,21 @@ export default function DetalhesChamado() {
     if (isTicketRichTextEmpty(newMessage) || !user || !id) return;
 
     try {
-      await sendMessage.mutateAsync({
+      const outcome = await sendMessage.mutateAsync({
         ticketId: id,
         userId: user.id,
         message: newMessage,
         isAdmin: false,
         actorName: 'Cliente',
       });
-      toast({
-        title: 'Mensagem enviada',
-        description: 'Sua mensagem foi enviada com sucesso.',
-      });
+      // A mensagem está gravada. Limpar o editor aqui é o que impede o reenvio
+      // que gerou as duplicatas — vale inclusive quando há pendência de status
+      // ou notificação.
       setNewMessage('');
-    } catch {
-      toast({
-        title: 'Erro ao enviar mensagem',
-        description: 'Tente novamente mais tarde.',
-        variant: 'destructive',
-      });
+      toast(ticketMessageFeedback(outcome, 'cliente'));
+    } catch (error) {
+      // Só cai aqui se NADA foi gravado; por isso o texto é preservado.
+      toast(ticketMessageErrorFeedback(error, 'cliente'));
     }
   };
 
@@ -165,6 +164,10 @@ export default function DetalhesChamado() {
 
   const uploading = uploadAttachments.isPending;
   const sending = sendMessage.isPending;
+  // Chamado encerrado não recebe mensagem nem anexo — o cliente abre um novo.
+  // O banco também barra (trg_ticket_messages_bloqueia_fechado); aqui é a
+  // camada que explica o motivo em vez de deixar dar erro.
+  const podeResponder = clientePodeResponder(ticket.status);
 
   return (
     <div className="min-h-screen bg-[hsl(210_20%_98%)]">
@@ -223,7 +226,8 @@ export default function DetalhesChamado() {
                 </div>
               )}
 
-              {/* Seção de upload de novos anexos */}
+              {/* Seção de upload de novos anexos — indisponível em chamado encerrado */}
+              {podeResponder && (
               <div className="mt-4 pt-4 border-t">
                 <h3 className="text-sm font-semibold mb-2">Adicionar Anexos</h3>
                 <input
@@ -298,6 +302,7 @@ export default function DetalhesChamado() {
                   )}
                 </div>
               </div>
+              )}
             </div>
           </Card>
 
@@ -336,28 +341,47 @@ export default function DetalhesChamado() {
               )}
             </div>
 
-            <div className="space-y-4">
-              <TicketRichTextEditor
-                value={newMessage}
-                onChange={setNewMessage}
-                placeholder="Digite sua mensagem..."
-                minHeight="min-h-28"
-                ariaLabel="Nova mensagem"
-              />
-              <Button onClick={handleSendMessage} disabled={sending || isTicketRichTextEmpty(newMessage)}>
-                {sending ? (
-                  <span className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-background"></div>
-                    Enviando...
-                  </span>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Enviar Mensagem
-                  </>
-                )}
-              </Button>
-            </div>
+            {podeResponder ? (
+              <div className="space-y-4">
+                <TicketRichTextEditor
+                  value={newMessage}
+                  onChange={setNewMessage}
+                  placeholder="Digite sua mensagem..."
+                  minHeight="min-h-28"
+                  ariaLabel="Nova mensagem"
+                />
+                <Button onClick={handleSendMessage} disabled={sending || isTicketRichTextEmpty(newMessage)}>
+                  {sending ? (
+                    <span className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-background"></div>
+                      Enviando...
+                    </span>
+                  ) : (
+                    <>
+                      <Send className="mr-2 h-4 w-4" />
+                      Enviar Mensagem
+                    </>
+                  )}
+                </Button>
+              </div>
+            ) : (
+              <div className="rounded-md border border-border bg-muted/40 p-4">
+                <div className="flex items-start gap-3">
+                  <Lock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <div className="space-y-3">
+                    <p className="text-sm font-semibold text-foreground">
+                      {AVISO_CHAMADO_ENCERRADO_CLIENTE.titulo}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {AVISO_CHAMADO_ENCERRADO_CLIENTE.descricao}
+                    </p>
+                    <Button onClick={() => navigate('/cliente/novo-chamado')}>
+                      {AVISO_CHAMADO_ENCERRADO_CLIENTE.acao}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       </main>

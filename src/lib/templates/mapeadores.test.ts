@@ -239,6 +239,268 @@ describe('mapearMatricula — titularidade (forma inteira × fracionada)', () =>
   });
 });
 
+/** Matrícula com os campos da DESCRIÇÃO do imóvel (área, classificação, bem enriquecido). */
+function matriculaImovel(over: Partial<MatriculaParaMapear>): MatriculaParaMapear {
+  return {
+    ...matriculaCom([{ denominacao: 'José Eduardo', pessoaId: 'a' }]),
+    municipio_imovel: 'Cuiabá',
+    uf_imovel: 'MT',
+    ...over,
+  };
+}
+
+describe('mapearMatricula — classificação do imóvel (condicionais rural/urbano/posse)', () => {
+  it('IR liga rural e desliga urbano', () => {
+    const c = mapearMatricula(matriculaImovel({ tipo_bem: 'IR' }));
+    expect(c.tipoBem).toBe('IR');
+    expect(c.rural).toBe('sim');
+    expect(c.urbano).toBe('');
+  });
+
+  it('IB liga urbano e desliga rural', () => {
+    const c = mapearMatricula(matriculaImovel({ tipo_bem: 'IB' }));
+    expect(c.urbano).toBe('sim');
+    expect(c.rural).toBe('');
+  });
+
+  it('matrícula legada sem tipo_bem cai no tipo do BEM (que é NOT NULL)', () => {
+    const c = mapearMatricula(matriculaImovel({
+      tipo_bem: null,
+      bem: { denominacao: null, vlr_contabil: null, ccir_codigo: null, tipo_bem: 'IR' },
+    }));
+    expect(c.tipoBem).toBe('IR');
+    expect(c.rural).toBe('sim');
+  });
+
+  it('o tipo da MATRÍCULA prevalece sobre o do bem (desmembramento urbano de bem rural)', () => {
+    const c = mapearMatricula(matriculaImovel({
+      tipo_bem: 'IB',
+      bem: { denominacao: null, vlr_contabil: null, ccir_codigo: null, tipo_bem: 'IR' },
+    }));
+    expect(c.urbano).toBe('sim');
+    expect(c.rural).toBe('');
+  });
+
+  it('sem tipo em nenhum dos dois: nenhuma das duas liga (não se escolhe variante por palpite)', () => {
+    const c = mapearMatricula(matriculaImovel({ tipo_bem: null }));
+    expect(c.rural).toBe('');
+    expect(c.urbano).toBe('');
+  });
+
+  it.each(['Posse', 'posse', 'Composse', 'Posse de fato'])(
+    'exploração %s liga a condicional de direitos não averbados (casa por substring)',
+    (exploracao) => {
+      const c = mapearMatricula(matriculaImovel({ tipo_bem: 'IR', tipo_exploracao_posse: exploracao }));
+      expect(c.tipoExploracaoPosse).toBe(exploracao);
+      expect(c.posse).toBe('sim');
+    },
+  );
+
+  it.each(['Exploração Direta', 'Arrendamento', 'Parceria', 'Comodato', 'Outro', null])(
+    'exploração %s NÃO liga posse (é contrato/exploração, não título pendente)',
+    (exploracao) => {
+      const c = mapearMatricula(matriculaImovel({ tipo_bem: 'IR', tipo_exploracao_posse: exploracao }));
+      expect(c.posse).toBe('');
+    },
+  );
+});
+
+describe('mapearMatricula — endereço do imóvel (identificação do urbano)', () => {
+  const URBANO = matriculaImovel({
+    tipo_bem: 'IB',
+    bem: {
+      denominacao: 'Sala 12', vlr_contabil: null, ccir_codigo: null,
+      inscricao_municipal: '1.234.567-8',
+      endereco_logradouro: 'Rua das Acácias', endereco_numero: '119',
+      endereco_complemento: 'apartamento 302', endereco_bairro: 'Centro',
+      endereco_cep: '78000-000',
+    },
+  });
+
+  it('publica as cinco partes atômicas e a inscrição municipal', () => {
+    const c = mapearMatricula(URBANO);
+    expect(c.enderecoLogradouro).toBe('Rua das Acácias');
+    expect(c.enderecoNumero).toBe('119');
+    expect(c.enderecoComplemento).toBe('apartamento 302');
+    expect(c.enderecoBairro).toBe('Centro');
+    expect(c.enderecoCep).toBe('78000-000');
+    expect(c.inscricaoMunicipal).toBe('1.234.567-8');
+  });
+
+  it('a prosa junta as partes com município e UF da MATRÍCULA (fonte única)', () => {
+    expect(mapearMatricula(URBANO).endereco).toBe(
+      'Rua das Acácias, nº 119, apartamento 302, bairro Centro, ' +
+        'no município de Cuiabá, Estado de Mato Grosso, CEP: 78000-000',
+    );
+  });
+
+  it('o número em prosa evita o "nº s/n" do modelo', () => {
+    expect(mapearMatricula(URBANO).enderecoNumeroProsa).toBe('nº 119');
+    const semNumero = mapearMatricula({
+      ...URBANO,
+      bem: { ...URBANO.bem!, endereco_numero: 's/n' },
+    });
+    // O cru continua cru (quem já usa {{ enderecoNumero }} não muda de comportamento).
+    expect(semNumero.enderecoNumero).toBe('s/n');
+    expect(semNumero.enderecoNumeroProsa).toBe('s/nº');
+  });
+
+  it('reaproveita as regras de prosa da pessoa (s/nº e bairro já prefixado)', () => {
+    const c = mapearMatricula({
+      ...URBANO,
+      bem: { ...URBANO.bem!, endereco_numero: 's/n', endereco_complemento: null, endereco_bairro: 'zona rural' },
+    });
+    expect(c.endereco).toBe(
+      'Rua das Acácias, s/nº, zona rural, no município de Cuiabá, Estado de Mato Grosso, CEP: 78000-000',
+    );
+  });
+
+  it('sem logradouro não há endereço: o campo fica ausente (falha cedo, não "no município de…")', () => {
+    const c = mapearMatricula(matriculaImovel({ tipo_bem: 'IR' }));
+    expect(c.endereco).toBeUndefined();
+    expect(c.enderecoLogradouro).toBeUndefined();
+  });
+
+  it('com bem cadastrado mas sem logradouro (o caso do rural) também não há endereço', () => {
+    const c = mapearMatricula(matriculaImovel({
+      tipo_bem: 'IR',
+      bem: {
+        denominacao: 'Fazenda Tarumã', vlr_contabil: null, ccir_codigo: '901.032.174.190-6',
+        endereco_logradouro: null, endereco_numero: '119', endereco_bairro: 'Centro',
+        endereco_cep: '78000-000',
+      },
+    }));
+    expect(c.endereco).toBeUndefined();
+    // As partes atômicas que existem seguem publicadas: quem falta é só a prosa.
+    expect(c.enderecoNumero).toBe('119');
+    expect(c.enderecoBairro).toBe('Centro');
+  });
+});
+
+describe('mapearMatricula — área construída e a condicional temAreaConstruida', () => {
+  function comAreas(over: {
+    tipo_bem?: string | null;
+    area_documento: number | null;
+    area_unidade: string | null;
+    construida: number | null;
+  }): MatriculaParaMapear {
+    return matriculaImovel({
+      tipo_bem: over.tipo_bem ?? 'IB',
+      area_documento: over.area_documento,
+      area_unidade: over.area_unidade,
+      bem: {
+        denominacao: null, vlr_contabil: null, ccir_codigo: null,
+        area_construida_m2: over.construida,
+      },
+    });
+  }
+
+  it('construída menor que a total liga o trecho', () => {
+    const c = mapearMatricula(comAreas({ area_documento: 360, area_unidade: 'm2', construida: 87.5 }));
+    expect(c.areaConstruida).toBe('87,50 m²');
+    expect(c.temAreaConstruida).toBe('sim');
+  });
+
+  it('construída igual à total NÃO liga (o modelo só cita quando é inferior)', () => {
+    const c = mapearMatricula(comAreas({ area_documento: 360, area_unidade: 'm2', construida: 360 }));
+    expect(c.temAreaConstruida).toBe('');
+  });
+
+  it('construída maior que a total NÃO liga', () => {
+    const c = mapearMatricula(comAreas({ area_documento: 360, area_unidade: 'm2', construida: 400 }));
+    expect(c.temAreaConstruida).toBe('');
+  });
+
+  it('sem área construída: campo ausente e condicional desligada', () => {
+    const c = mapearMatricula(comAreas({ area_documento: 360, area_unidade: 'm2', construida: null }));
+    expect(c.areaConstruida).toBeUndefined();
+    expect(c.temAreaConstruida).toBe('');
+  });
+
+  it.each([0, -10])(
+    'construída %s é cadastro inválido, não construção: campo ausente e condicional desligada',
+    (construida) => {
+      const c = mapearMatricula(comAreas({ area_documento: 360, area_unidade: 'm2', construida }));
+      // Sem o guard, o Math.abs de formatarArea faria -10 sair como "10,00 m²".
+      expect(c.areaConstruida).toBeUndefined();
+      expect(c.temAreaConstruida).toBe('');
+    },
+  );
+
+  it('compara entre unidades: 200 m² construídos em 1 ha de área total', () => {
+    const c = mapearMatricula(comAreas({ tipo_bem: 'IR', area_documento: 1, area_unidade: 'ha', construida: 200 }));
+    expect(c.temAreaConstruida).toBe('sim');
+  });
+
+  it('construída igual à total em hectare NÃO liga, apesar do ruído de ponto flutuante', () => {
+    // 0,1005 ha × 10.000 = 1005.0000000000001 em float: sem a tolerância de
+    // 0,01 m², um lote todo construído sairia como "sendo … de área construída".
+    const c = mapearMatricula(comAreas({ tipo_bem: 'IR', area_documento: 0.1005, area_unidade: 'ha', construida: 1005 }));
+    expect(c.temAreaConstruida).toBe('');
+  });
+
+  it('sem área total comparável fica desligada (não se afirma "inferior" sem os dois lados)', () => {
+    const c = mapearMatricula(comAreas({ area_documento: null, area_unidade: null, construida: 87.5 }));
+    expect(c.areaConstruida).toBe('87,50 m²');
+    expect(c.temAreaConstruida).toBe('');
+  });
+});
+
+describe('mapearMatricula — área na unidade do imóvel', () => {
+  function comArea(tipo_bem: string | null, area_documento: number, area_unidade: string) {
+    return mapearMatricula(matriculaImovel({ tipo_bem, area_documento, area_unidade }));
+  }
+
+  it('urbano em m² sai em m², com o extenso em metros quadrados', () => {
+    const c = comArea('IB', 360, 'm2');
+    expect(c.area).toBe('360,00 m²');
+    expect(c.areaUnidade).toBe('m2');
+    expect(c.areaExtenso).toBe('trezentos e sessenta metros quadrados');
+  });
+
+  it('RURAL em m² segue convertido para hectare (regressão: contrato rural mede em ha)', () => {
+    const c = comArea('IR', 3964000, 'm2');
+    expect(c.area).toBe('396,4000 ha');
+    expect(c.areaUnidade).toBe('ha');
+    expect(c.areaExtenso).toBe('trezentos e noventa e seis hectares e quarenta ares');
+  });
+
+  it('rural em hectare não muda', () => {
+    const c = comArea('IR', 396.4, 'ha');
+    expect(c.area).toBe('396,4000 ha');
+    expect(c.areaExtenso).toBe('trezentos e noventa e seis hectares e quarenta ares');
+  });
+
+  it("'ha_m2' já é hectare, e as 4 decimais são os m² (1,0360 = 1 ha e 360 m²)", () => {
+    const c = comArea('IR', 1.036, 'ha_m2');
+    expect(c.area).toBe('1,0360 ha');
+    // 360 m² = 3 ares e 60 centiares: a decomposição do extenso casa um para um.
+    expect(c.areaExtenso).toBe('um hectare, três ares e sessenta centiares');
+  });
+
+  it.each(['ha', 'ha_m2'])(
+    'urbano cadastrado em %s é convertido para m² (simétrico ao rural, que converte m² em ha)',
+    (unidade) => {
+      const c = comArea('IB', 1.036, unidade);
+      expect(c.area).toBe('10.360,00 m²');
+      expect(c.areaUnidade).toBe('m2');
+      expect(c.areaExtenso).toBe('dez mil, trezentos e sessenta metros quadrados');
+    },
+  );
+
+  it('apartamento cadastrado em hectare não sai em ares (bug original do imóvel urbano)', () => {
+    const c = comArea('IB', 0.036, 'ha');
+    expect(c.area).toBe('360,00 m²');
+    expect(c.areaExtenso).toBe('trezentos e sessenta metros quadrados');
+  });
+
+  it('sem tipo_bem, m² vira hectare (comportamento antigo, para dado legado)', () => {
+    const c = comArea(null, 3964000, 'm2');
+    expect(c.area).toBe('396,4000 ha');
+    expect(c.areaUnidade).toBe('ha');
+  });
+});
+
 describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada (padrão MMS)', () => {
   function socioIntegralizante(id: string, denominacao: string): SocioParaMapear {
     return {

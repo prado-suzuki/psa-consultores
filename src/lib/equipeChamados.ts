@@ -1,5 +1,6 @@
 import { isWithinInterval, startOfMonth, subDays } from 'date-fns';
 import { isTodayBrazil } from '@/lib/dateUtils';
+import { isChamadoEncerrado } from '@/lib/chamadosStatus';
 import type { TicketListItem } from '@/hooks/useTickets';
 
 export type SortDirection = 'asc' | 'desc' | null;
@@ -87,7 +88,10 @@ export function calcularPrazoResposta(
   deadline: string | null = null,
   hoje = new Date(),
 ): PrazoInfo {
-  if (status === 'resolvido' || status === 'fechado') return { tipo: 'concluido' };
+  // Só `fechado` é conclusão. `resolvido` é a janela de aceite de 3 dias, então
+  // cai na regra de baixo e aparece como "aguardando cliente" — que é o estado
+  // real do chamado nesse período. Ver src/lib/chamadosStatus.ts.
+  if (isChamadoEncerrado(status)) return { tipo: 'concluido' };
   if (activityStatus === 'respondido') return { tipo: 'aguardando_cliente' };
 
   let prazoFinal: Date;

@@ -11,6 +11,8 @@ import {
   montarReativacaoItem,
   montarItemDeCatalogo,
   montarItemManual,
+  montarTipoAvulso,
+  MODULO_AVULSO,
   ordenarItens,
   paraGranularidade,
   resolverItem,
@@ -255,6 +257,66 @@ describe('montarItemManual', () => {
       granularidade: 'cliente',
       grupo: 'outros',
     })).toThrow(/nome do documento/);
+  });
+});
+
+const BASE_AVULSO = {
+  documento: 'Escritura da Fazenda São João',
+  granularidade: 'matricula_rural',
+  grupo: 'bens_imoveis',
+} as const;
+
+describe('montarTipoAvulso', () => {
+  // O item pedido à mão não tem linha no catálogo, e sem ela nenhum arquivo
+  // consegue apontar para ele (documento_arquivo.documento_tipo_id é FK).
+  it('monta a linha de catálogo avulsa do item manual', () => {
+    expect(montarTipoAvulso('item-9', 'cli-1', {
+      documento: '  Escritura da Fazenda São João  ',
+      granularidade: 'matricula_rural',
+      grupo: 'bens_imoveis',
+      entidade: ' Matrícula ',
+      nota: ' conferir com o cartório ',
+      ordem: 7,
+    })).toEqual({
+      codigo: 'avulso-item-9',
+      cliente_id: 'cli-1',
+      solicitacao_item_id: 'item-9',
+      modulo: MODULO_AVULSO,
+      entidade: 'Matrícula',
+      documento: 'Escritura da Fazenda São João',
+      nota: 'conferir com o cartório',
+      granularidade: 'matricula_rural',
+      grupo: 'bens_imoveis',
+      ordem: 7,
+      obrigatorio_default: false,
+      confidencial: false,
+      ativo: true,
+    });
+  });
+
+  // O código é único global (o seed do catálogo depende de ON CONFLICT (codigo)),
+  // e derivar do id do item garante isso sem mexer no índice.
+  it('deriva o código do id do item', () => {
+    const a = montarTipoAvulso('item-a', 'cli-1', BASE_AVULSO);
+    const b = montarTipoAvulso('item-b', 'cli-1', BASE_AVULSO);
+    expect(a.codigo).not.toBe(b.codigo);
+    expect(a.codigo).toBe('avulso-item-a');
+  });
+
+  // `entidade` é NOT NULL no catálogo e opcional no item manual.
+  it('entidade ausente vira string vazia, não nulo', () => {
+    expect(montarTipoAvulso('item-9', 'cli-1', BASE_AVULSO).entidade).toBe('');
+  });
+
+  // Obrigatório-por-padrão é o que se multiplica por instância em TODO cliente;
+  // avulso é de um cliente só e nunca pode entrar nessa conta.
+  it('nunca nasce obrigatório por padrão', () => {
+    expect(montarTipoAvulso('item-9', 'cli-1', BASE_AVULSO).obrigatorio_default).toBe(false);
+  });
+
+  it('recusa documento vazio, como o item manual', () => {
+    expect(() => montarTipoAvulso('item-9', 'cli-1', { ...BASE_AVULSO, documento: '  ' }))
+      .toThrow(/nome do documento/);
   });
 });
 

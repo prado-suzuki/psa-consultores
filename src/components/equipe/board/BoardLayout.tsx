@@ -59,10 +59,14 @@ const buildDesempenhoSubItems = (pendingDecisions: number) => [
 const buildNavItems = (
   canPerformance: boolean,
   canDesempenho: boolean,
+  canUsoEnvio: boolean,
   pendingDecisions: number,
 ): NavItem[] => [
   { icon: LayoutDashboard, label: 'Dashboard Estrategico', path: '/equipe/board/dashboard' },
   { icon: FileBarChart, label: 'Dashboards', path: '/equipe/board/relatorios' },
+  ...(canUsoEnvio ? [
+    { icon: BarChart3, label: 'Uso e envio', path: '/equipe/board/uso-envio' } as NavItem,
+  ] : []),
   { icon: Users2, label: 'Clientes e OS', path: '/equipe/board/dashboard-clientes-os' },
   { icon: MapPin, label: 'Clientes', path: '/equipe/board/clientes' },
   ...(canPerformance ? [
@@ -89,6 +93,8 @@ const getBreadcrumb = (pathname: string) => {
     else if (pathname.includes('/1a1')) segments.push({ label: '1:1s', path: '/equipe/board/desempenho/1a1' });
     else if (pathname.includes('/minha-evolucao')) segments.push({ label: 'Minha Evolucao', path: '/equipe/board/desempenho/minha-evolucao' });
     else if (pathname.includes('/evolucao')) segments.push({ label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' });
+  } else if (pathname.includes('/uso-envio')) {
+    segments.push({ label: 'Uso e envio', path: '/equipe/board/uso-envio' });
   } else if (pathname.includes('/relatorios')) {
     segments.push({ label: 'Dashboards', path: '/equipe/board/relatorios' });
   } else if (pathname.includes('/dashboard-clientes-os')) {
@@ -105,6 +111,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
   const { user, isAdmin, isLider, signOut } = useAuth();
   const { hasAccess: canPerformance } = usePageAccess('/equipe/board/performance');
   const { hasAccess: canDesempenho } = usePageAccess('/equipe/board/desempenho');
+  const { hasAccess: canUsoEnvio } = usePageAccess('/equipe/board/uso-envio');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -135,7 +142,12 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
     userId: user?.id,
   });
 
-  const navItems = buildNavItems(canPerformance === true, canDesempenho === true, pendingDecisions);
+  const navItems = buildNavItems(
+    canPerformance === true,
+    canDesempenho === true,
+    canUsoEnvio === true,
+    pendingDecisions,
+  );
   const showGestaoTime = canPerformance === true || canDesempenho === true;
   const isDesempenhoRoute = location.pathname.startsWith('/equipe/board/desempenho');
   const isMiEvolucaoRoute = location.pathname.includes('/minha-evolucao');

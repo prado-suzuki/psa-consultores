@@ -1,7 +1,7 @@
-import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso } from './extenso';
+import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso, type UnidadeArea } from './extenso';
 import { ufPorExtenso } from './concordancia';
 import { comOrigem } from './origem';
-import { camposDaEntidade, derivarCampos } from './vocabulario';
+import { camposDaEntidade, derivarCampos, numeroProsa } from './vocabulario';
 import type { Binding, BindingLista } from './binding';
 import type { Contexto } from './types';
 import type { TipoEntidade } from './vocabulario';
@@ -34,12 +34,6 @@ function formatarDataBR(iso: string | null): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso ?? '');
 }
 
-/** "s/n", "s/nº", "S.N."… → forma canônica dos contratos; número normal ganha "nº". */
-function numeroProsa(numero: string | null): string {
-  if (!numero) return '';
-  return /^s[/.]?\s*n[ºo°.]*$/i.test(numero.trim()) ? 's/nº' : `nº ${numero}`;
-}
-
 /** Prefixa "bairro" salvo quando o valor já é zona/distrito ("zona rural" fica como está). */
 function bairroProsa(bairro: string | null): string {
   if (!bairro) return '';
@@ -47,10 +41,25 @@ function bairroProsa(bairro: string | null): string {
 }
 
 /**
+ * Partes que a prosa de endereço consome. Pessoa e sociedade têm todas na própria
+ * linha (PessoaRow); o imóvel monta as suas do bem (logradouro…CEP) com o
+ * município e a UF da matrícula, que são a fonte única deles.
+ */
+interface PartesEndereco {
+  endereco_logradouro: string | null;
+  endereco_numero: string | null;
+  endereco_complemento: string | null;
+  endereco_bairro: string | null;
+  endereco_municipio: string | null;
+  endereco_uf: string | null;
+  endereco_cep: string | null;
+}
+
+/**
  * Endereço no formato de prosa dos contratos: "Rua X, nº 119, bairro Centro,
  * no município de Cuiabá, Estado de Mato Grosso, CEP: 78000-000".
  */
-function enderecoProsa(row: PessoaRow): string {
+function enderecoProsa(row: PartesEndereco): string {
   return [
     row.endereco_logradouro,
     numeroProsa(row.endereco_numero),
@@ -181,7 +190,27 @@ export interface MatriculaParaMapear {
   vlr_contabil: number | null;
   confrontacoes_texto: string | null;
   descricao_psa_completa: string | null;
-  bem: { denominacao: string | null; vlr_contabil: number | null; ccir_codigo: string | null } | null;
+  /** 'IR' (rural) / 'IB' (urbano) — classifica o imóvel p/ as condicionais rural/urbano. */
+  tipo_bem?: string | null;
+  /** Forma de exploração/posse (EXPLORACAO no MatriculaDadosTab) — dirige a condicional `posse`. */
+  tipo_exploracao_posse?: string | null;
+  bem: {
+    denominacao: string | null;
+    vlr_contabil: number | null;
+    ccir_codigo: string | null;
+    /** Fallback da classificação: `bem.tipo_bem` é NOT NULL, o da matrícula é nullable. */
+    tipo_bem?: string | null;
+    // Endereço, área construída e cadastro municipal do imóvel URBANO (colunas de
+    // `bem`, ver 20260806120500). Opcionais: nenhum bem rural as preenche, e o
+    // JOIN legado (sem elas) segue válido.
+    endereco_logradouro?: string | null;
+    endereco_numero?: string | null;
+    endereco_complemento?: string | null;
+    endereco_bairro?: string | null;
+    endereco_cep?: string | null;
+    area_construida_m2?: number | null;
+    inscricao_municipal?: string | null;
+  } | null;
   cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
   titulares: Array<TitularParaMapear>;
   /**
@@ -236,10 +265,64 @@ function dedupTitulares(titulares: TitularParaMapear[]): TitularParaMapear[] {
 export function mapearMatricula(m: MatriculaParaMapear): Campos {
   const { out, set } = coletor();
 
-  // Área: o gerador trabalha em hectares; converte se a matrícula estiver em m².
-  let areaHa = m.area_documento ?? null;
-  if (areaHa != null && m.area_unidade === 'm2') areaHa = areaHa / 10000;
-  if (areaHa != null) set('area', formatarArea(areaHa));
+  // Classificação do imóvel: o mapeador publica o dado bruto e as condicionais
+  // rural/urbano/posse derivam dele no vocabulário. `matricula.tipo_bem` é
+  // nullable (há matrícula legada com ele nulo de propósito) e `bem.tipo_bem` é
+  // NOT NULL: o fallback é o mesmo de useOsgChecklist.ts e MatriculaDadosTab.tsx.
+  const tipoBem = m.tipo_bem ?? m.bem?.tipo_bem ?? null;
+  set('tipoBem', tipoBem);
+  set('tipoExploracaoPosse', m.tipo_exploracao_posse);
+
+  // Área: o imóvel RURAL sai em hectare e o URBANO em m², convertendo dos dois
+  // lados quando o cadastro está na outra unidade. O cadastro não restringe a
+  // unidade por tipo de bem, então "apartamento de 0,0360 ha" existe: fidelidade à
+  // unidade cadastrada geraria "três ares e sessenta centiares" num contrato
+  // urbano, e o ramo rural já não é fiel (converte m² do georref para hectare).
+  // 'ha_m2' não é caso próprio: ele já guarda hectare, com as 4 decimais valendo
+  // exatamente os m² (ver areaUtils.ts), e a decomposição are/centiare casa com
+  // isso. A unidade sai como campo base (`areaUnidade`) porque é dela, não do
+  // sufixo do texto, que o extenso derivado tira a unidade.
+  if (m.area_documento != null) {
+    const emM2 = m.area_unidade === 'm2';
+    const unidade: UnidadeArea = tipoBem === 'IB' ? 'm2' : 'ha';
+    const valorNaUnidade = unidade === 'm2'
+      ? (emM2 ? m.area_documento : m.area_documento * 10000)
+      : (emM2 ? m.area_documento / 10000 : m.area_documento);
+    set('area', formatarArea(valorNaUnidade, unidade));
+    set('areaUnidade', unidade);
+  }
+  // Área construída é sempre m² (coluna area_construida_m2). Zero ou negativo é
+  // cadastro inválido, não construção: fica ausente, porque formatarArea aplica
+  // Math.abs e "-10" viraria "10,00 m²" ligando temAreaConstruida.
+  if (m.bem?.area_construida_m2 != null && m.bem.area_construida_m2 > 0) {
+    set('areaConstruida', formatarArea(m.bem.area_construida_m2, 'm2'));
+  }
+
+  // Endereço do imóvel (identificação do urbano): partes atômicas do bem, mais a
+  // prosa. Sem logradouro não há endereço, só localização (que o rural já dá por
+  // município/UF): o campo fica ausente para o placeholder falhar cedo em vez de
+  // o contrato dizer "localizado no município de…" como se fosse um endereço.
+  set('enderecoLogradouro', m.bem?.endereco_logradouro);
+  // `enderecoNumeroProsa` não entra aqui: é derivado de `enderecoNumero` (ver
+  // vocabulario.ts), e derivarCampos o calcula no fim desta função.
+  set('enderecoNumero', m.bem?.endereco_numero);
+  // Complemento é opcional de verdade (casa não tem apartamento) e a redação
+  // urbana o usa dentro de {{#imovel.enderecoComplemento}}: resolve em branco em
+  // vez de derrubar a prévia com "Seção não resolvida", como profissao em pessoa.
+  out.enderecoComplemento = m.bem?.endereco_complemento ?? '';
+  set('enderecoBairro', m.bem?.endereco_bairro);
+  set('enderecoCep', m.bem?.endereco_cep);
+  if (m.bem?.endereco_logradouro) {
+    set('endereco', enderecoProsa({
+      endereco_logradouro: m.bem.endereco_logradouro,
+      endereco_numero: m.bem.endereco_numero ?? null,
+      endereco_complemento: m.bem.endereco_complemento ?? null,
+      endereco_bairro: m.bem.endereco_bairro ?? null,
+      endereco_municipio: m.municipio_imovel,
+      endereco_uf: m.uf_imovel,
+      endereco_cep: m.bem.endereco_cep ?? null,
+    }));
+  }
 
   const valor = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
 
@@ -273,6 +356,7 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
   set('comarca', m.cartorio?.comarca);
   set('ufCartorio', ufPorExtenso(m.cartorio?.uf));
   set('ccir', m.bem?.ccir_codigo);
+  set('inscricaoMunicipal', m.bem?.inscricao_municipal);
   set('confrontacoes', m.confrontacoes_texto ?? m.descricao_psa_completa);
 
   const campos = derivarCampos('matricula', out);

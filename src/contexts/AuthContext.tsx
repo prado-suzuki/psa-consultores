@@ -12,6 +12,15 @@ interface AuthContextType {
   isTeamMember: boolean;
   isLider: boolean;
   isSublider: boolean;
+  /**
+   * Papel `marketing`: gerencia as novidades do site.
+   *
+   * Fica separado de `isTeamMember` de propósito. É um papel LATERAL, que no
+   * banco não entra na hierarquia de `has_role_or_higher` — juntá-lo aos outros
+   * aqui faria a tela dizer "é da equipe" para quem o banco trata como de fora,
+   * e as duas verdades precisam bater.
+   */
+  isMarketing: boolean;
   mustChangePassword: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
@@ -29,6 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isTeamMember, setIsTeamMember] = useState(false);
   const [isLider, setIsLider] = useState(false);
   const [isSublider, setIsSublider] = useState(false);
+  const [isMarketing, setIsMarketing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Refs to compare identity before triggering state updates
@@ -54,6 +64,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setIsTeamMember(false);
           setIsLider(false);
           setIsSublider(false);
+          setIsMarketing(false);
         }
       } finally {
         setLoading(false);
@@ -101,6 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setIsTeamMember(false);
         setIsLider(false);
         setIsSublider(false);
+        setIsMarketing(false);
         setLoading(false);
         return;
       }
@@ -130,7 +142,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         .eq('user_id', userId);
 
       if (!error && data) {
-        const roles = data.map(r => r.role);
+        // `string[]` e não o enum gerado: `src/integrations/supabase/types.ts` é
+        // autogerado e ainda não conhece `marketing`. O banco já aceita o valor
+        // (migração 20260806190000) e o arquivo é regerado fora daqui.
+        const roles: string[] = data.map(r => r.role);
         setIsAdmin(roles.includes('admin'));
         // isTeamMember é transitivo: admin/lider/sublider também são membros internos.
         setIsTeamMember(
@@ -141,6 +156,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         );
         setIsLider(roles.includes('lider'));
         setIsSublider(roles.includes('sublider'));
+        setIsMarketing(roles.includes('marketing'));
         return;
       }
 
@@ -148,12 +164,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsTeamMember(false);
       setIsLider(false);
       setIsSublider(false);
+      setIsMarketing(false);
     } catch (error) {
       console.error('Error checking roles:', error);
       setIsAdmin(false);
       setIsTeamMember(false);
       setIsLider(false);
       setIsSublider(false);
+      setIsMarketing(false);
     }
   };
 
@@ -229,6 +247,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsTeamMember(false);
       setIsLider(false);
       setIsSublider(false);
+      setIsMarketing(false);
       
       // Faz o signOut no Supabase com scope global para invalidar no servidor também
       const { error } = await supabase.auth.signOut({ scope: 'global' });
@@ -256,6 +275,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsTeamMember(false);
       setIsLider(false);
       setIsSublider(false);
+      setIsMarketing(false);
       toast({
         title: "Logout realizado",
         description: "Você saiu da sua conta.",
@@ -290,7 +310,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, isTeamMember, isLider, isSublider, mustChangePassword: user?.user_metadata?.must_change_password === true, loading, signIn, signUp, signOut, refreshSession }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, isTeamMember, isLider, isSublider, isMarketing, mustChangePassword: user?.user_metadata?.must_change_password === true, loading, signIn, signUp, signOut, refreshSession }}>
       {children}
     </AuthContext.Provider>
   );

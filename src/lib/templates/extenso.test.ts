@@ -40,6 +40,21 @@ describe('areaExtenso (decomposição hectare/are/centiare)', () => {
   });
 });
 
+describe('areaExtenso em metro quadrado (imóvel urbano)', () => {
+  it('área urbana inteira', () => {
+    expect(areaExtenso(360, 'm2')).toBe('trezentos e sessenta metros quadrados');
+  });
+  it('um metro quadrado exato', () => expect(areaExtenso(1, 'm2')).toBe('um metro quadrado'));
+  it('parte decimal sai em centésimos, não em are/centiare', () => {
+    expect(areaExtenso(87.5, 'm2')).toBe('oitenta e sete metros quadrados e cinquenta centésimos de metro quadrado');
+    expect(areaExtenso(0.01, 'm2')).toBe('um centésimo de metro quadrado');
+  });
+  it('hectare segue sendo o default (não muda quem já chamava com um argumento)', () => {
+    expect(areaExtenso(360)).toBe(areaExtenso(360, 'ha'));
+    expect(areaExtenso(360)).toBe('trezentos e sessenta hectares');
+  });
+});
+
 describe('ordinalExtenso', () => {
   it.each([
     [1, 'f', 'primeira'],
@@ -86,6 +101,10 @@ describe('romano', () => {
 
 describe('formatação numérica pt-BR', () => {
   it('área com 4 casas', () => expect(formatarArea(396.4)).toBe('396,4000 ha'));
+  it('área urbana com 2 casas e sufixo m²', () => {
+    expect(formatarArea(360, 'm2')).toBe('360,00 m²');
+    expect(formatarArea(1234.5, 'm2')).toBe('1.234,50 m²');
+  });
   it('valor com milhar e 2 casas', () => expect(formatarValor(558413.55)).toBe('558.413,55'));
   it('percentual com 3 casas e sufixo %', () => {
     expect(formatarPercentual(100)).toBe('100,000%');

@@ -82,13 +82,20 @@ export const Header = () => {
             <TooltipProvider delayDuration={0}>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <a
-                    href="/equipe"
+                  {/*
+                    `Link` e não `<a href>`: a âncora recarrega a página inteira
+                    e obriga o navegador a baixar e interpretar o pacote do app
+                    de novo só para mostrar um formulário de login. O botão da
+                    Área do Cliente, ao lado, sempre usou `Link` — era só a
+                    Equipe que pagava o recarregamento.
+                  */}
+                  <Link
+                    to="/equipe"
                     aria-label="Acessar área da equipe"
                     className="p-2 rounded-full hover:bg-gray-800 transition-colors duration-200"
                   >
                     <Users className="h-5 w-5 text-primary" aria-hidden="true" />
-                  </a>
+                  </Link>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p>Equipe</p>
@@ -146,20 +153,20 @@ export const Header = () => {
               )
             )}
             <div className="h-px bg-gray-50/10 my-3" />
-            <a
-              href="/equipe"
+            <Link
+              to="/equipe"
               className="block px-4 py-3 text-sm font-medium text-gray-50/80 hover:text-gray-50 transition-colors duration-200"
               onClick={() => setMobileMenuOpen(false)}
             >
               Equipe
-            </a>
-            <a
-              href="/auth"
+            </Link>
+            <Link
+              to="/auth"
               className="block px-4 py-3 text-sm font-medium text-primary transition-colors duration-200"
               onClick={() => setMobileMenuOpen(false)}
             >
               Área do Cliente
-            </a>
+            </Link>
           </nav>
         </div>
       </div>

@@ -5,9 +5,23 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import type { Database, Json } from '@/integrations/supabase/types';
 
-export type BemRow = Database['public']['Tables']['bem']['Row'];
-export type BemInsert = Database['public']['Tables']['bem']['Insert'];
-export type BemUpdate = Database['public']['Tables']['bem']['Update'];
+// Endereço e área construída do imóvel urbano (migration 20260806120500). Vivem
+// aqui por interseção porque `src/integrations/supabase/types.ts` é autogerado e
+// ainda não foi regenerado; quando for, esta interseção fica redundante e sai.
+// Município e UF de propósito não estão aqui: moram em matricula.municipio_imovel
+// / matricula.uf_imovel.
+type BemColunasImovelUrbano = {
+  endereco_logradouro: string | null;
+  endereco_numero: string | null;
+  endereco_complemento: string | null;
+  endereco_bairro: string | null;
+  endereco_cep: string | null;
+  area_construida_m2: number | null;
+};
+
+export type BemRow = Database['public']['Tables']['bem']['Row'] & BemColunasImovelUrbano;
+export type BemInsert = Database['public']['Tables']['bem']['Insert'] & Partial<BemColunasImovelUrbano>;
+export type BemUpdate = Database['public']['Tables']['bem']['Update'] & Partial<BemColunasImovelUrbano>;
 
 export type MatriculaRow = Database['public']['Tables']['matricula']['Row'];
 export type MatriculaInsert = Database['public']['Tables']['matricula']['Insert'];
@@ -50,6 +64,9 @@ const BEM_DIFF_FIELDS: (keyof BemRow)[] = [
   'ccir_codigo', 'inscricao_municipal', 'status_integralizacao',
   'empresa_destino_pessoa_id', 'participa_estruturacao',
   'motivo_nao_integralizacao', 'observacao',
+  // Endereço e área construída do imóvel urbano.
+  'endereco_logradouro', 'endereco_numero', 'endereco_complemento',
+  'endereco_bairro', 'endereco_cep', 'area_construida_m2',
 ];
 
 const MATRICULA_DIFF_FIELDS: (keyof MatriculaRow)[] = [
