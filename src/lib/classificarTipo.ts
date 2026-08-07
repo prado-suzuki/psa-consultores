@@ -47,6 +47,10 @@ export interface TipoOpcao {
   rotulo: string;
 }
 
+export interface TipoPedidoOpcao extends TipoOpcao {
+  solicitacaoItemId: string;
+}
+
 export interface ListaDeTipos {
   tipos: TipoOpcao[];
   /**
@@ -118,16 +122,53 @@ export function tiposPedidos(
   avulsoPorItem: Readonly<Record<string, string>>,
   destino: DestinoFicha,
 ): TipoOpcao[] {
+  return tiposPedidosDetalhados(itens, avulsoPorItem, destino);
+}
+
+/** Mantém o item da solicitação, necessário para marcar "não se aplica" por entidade. */
+export function tiposPedidosDetalhados(
+  itens: readonly ItemPedido[],
+  avulsoPorItem: Readonly<Record<string, string>>,
+  destino: DestinoFicha,
+): TipoPedidoOpcao[] {
   const graos = GRANULARIDADES[destino];
-  const opcoes: { id: string; documento: string; entidade: string; ordem: number }[] = [];
+  const linhas: (LinhaDeTipo & { solicitacaoItemId: string })[] = [];
   for (const item of itens) {
     if (item.status !== 'ativo') continue;
     if (!graos.includes(item.granularidade)) continue;
     const id = item.itemPadraoId ?? avulsoPorItem[item.id];
     if (!id) continue;
-    opcoes.push({ id, documento: item.documento, entidade: item.entidade, ordem: item.ordem });
+    linhas.push({ id, solicitacaoItemId: item.id, documento: item.documento, entidade: item.entidade, ordem: item.ordem });
   }
-  return paraOpcoes(opcoes);
+  const rotulos = new Map(paraOpcoes(linhas).map((opcao) => [opcao.id, opcao.rotulo]));
+  return linhas
+    .sort((a, b) => a.ordem - b.ordem)
+    .map((linha) => ({
+      id: linha.id,
+      solicitacaoItemId: linha.solicitacaoItemId,
+      rotulo: rotulos.get(linha.id) ?? linha.documento,
+    }));
+}
+
+/** Tipos solicitados que ainda não têm arquivo classificado para o alvo. */
+export function tiposPendentesParaAlvo(
+  pedidos: readonly TipoPedidoOpcao[],
+  documentos: readonly { documento_tipo_id: string | null; pessoa_id: string | null; bem_id: string | null; matricula_id: string | null }[],
+  alvo: Alvo | null,
+  naoAplicaveis: ReadonlySet<string> = new Set(),
+): TipoPedidoOpcao[] {
+  if (!alvo) return [...pedidos];
+  const recebidos = new Set(
+    documentos
+      .filter((doc) => (
+        (alvo.kind === 'pessoa' && doc.pessoa_id === alvo.id)
+        || (alvo.kind === 'bem' && doc.bem_id === alvo.id)
+        || (alvo.kind === 'matricula' && doc.matricula_id === alvo.id)
+      ))
+      .map((doc) => doc.documento_tipo_id)
+      .filter((id): id is string => Boolean(id)),
+  );
+  return pedidos.filter((pedido) => naoAplicaveis.has(pedido.solicitacaoItemId) || !recebidos.has(pedido.id));
 }
 
 /** O que `tiposPedidos` precisa de um item da solicitação. */

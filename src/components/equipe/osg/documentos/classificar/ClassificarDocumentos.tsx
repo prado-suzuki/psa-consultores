@@ -12,6 +12,10 @@ import {
   useAtualizarDocumento, useBaixarDocumento, usePreviewUrl, type DocumentoArquivoRow,
 } from '@/hooks/useDocumentoArquivo';
 import { usePessoasByCliente, useUpsertParentesco, useUpsertPessoa } from '@/hooks/useQualificacaoDasPartes';
+import {
+  useSincronizarSolicitacaoNaoAplicavel, useSolicitacaoNaoAplicavel,
+} from '@/hooks/useDomainSolicitacaoNaoAplicavel';
+import { useDomainSolicitacao } from '@/hooks/useDomainSolicitacao';
 import { contarPorGaveta, filtrarBalde, proximoDoBalde, type Gaveta } from '@/lib/classificarBalde';
 import {
   alvoDeValor, impedimentoDeVinculo, patchDesfazerTriagem, patchVinculo,
@@ -94,6 +98,7 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
   // A leva esperando classificação: enquanto não for null, o modal está aberto
   // e nada foi gravado.
   const [pendente, setPendente] = useState<Pendente | null>(null);
+  const alvoPendente = pendente?.acao === 'vincular' ? pendente.alvo : null;
 
   // Cadastrou: o próximo arquivo abre já em Vincular, com o cadastro recém-criado
   // sugerido — é assim que se varre o balde recrutando o resto dos arquivos dele.
@@ -111,12 +116,17 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
   const { data: pessoas = [] } = usePessoasByCliente(clienteId || null);
   const { data: bens = [] } = useBensByCliente(clienteId || null);
   const { data: todasMatriculas = [] } = useAllMatriculas();
+  const { solicitacao } = useDomainSolicitacao(clienteId);
+  const {
+    data: marcacoesNaoAplicaveis = [], isLoading: carregandoNaoAplicaveis,
+  } = useSolicitacaoNaoAplicavel(clienteId, alvoPendente);
 
   const upsertPessoa = useUpsertPessoa();
   const upsertParentesco = useUpsertParentesco();
   const upsertBem = useUpsertBem();
   const upsertMatricula = useUpsertMatricula();
   const atualizar = useAtualizarDocumento(clienteId);
+  const sincronizarNaoAplicaveis = useSincronizarSolicitacaoNaoAplicavel(clienteId);
   const baixar = useBaixarDocumento();
   const { mutate: pedirUrl, isPending: carregandoUrl } = usePreviewUrl();
 
@@ -185,7 +195,8 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
   }, [aberto?.id, pedirUrl]);
 
   const salvando = atualizar.isPending || upsertPessoa.isPending || upsertBem.isPending
-    || upsertMatricula.isPending || upsertParentesco.isPending;
+    || upsertMatricula.isPending || upsertParentesco.isPending || sincronizarNaoAplicaveis.isPending
+    || carregandoNaoAplicaveis;
 
   /** Os arquivos da leva, na ordem do balde. Vazia, é o arquivo aberto. */
   const daLeva = () => {
@@ -284,17 +295,35 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
     } as Pendente);
   };
 
-  const confirmarClassificacao = (tipos: Record<string, string>) => {
+  const nomesDosItens = Object.fromEntries(
+    (solicitacao?.itens ?? []).map((item) => [item.id, item.documento]),
+  );
+
+  const persistirNaoAplicaveis = (alvo: Alvo, itemIds: string[]) =>
+    sincronizarNaoAplicaveis.mutateAsync({ alvo, itemIds, nomes: nomesDosItens });
+
+  const confirmarClassificacao = async (tipos: Record<string, string>, naoAplicaveis: string[]) => {
     if (!pendente) return;
     if (pendente.acao === 'vincular') {
+      try {
+        await persistirNaoAplicaveis(pendente.alvo, naoAplicaveis);
+      } catch (error) {
+        toast.error(`Não foi possível salvar “Não se aplica”: ${(error as Error).message}`);
+        return;
+      }
       vincularLeva(pendente.leva, pendente.alvo, tipos);
       return;
     }
-    cadastrar(pendente.novo, pendente.leva, tipos);
+    cadastrar(pendente.novo, pendente.leva, tipos, naoAplicaveis);
   };
 
   /** Cria a entidade e, no sucesso, vincula a leva inteira a ela. */
-  const cadastrar = (novo: NovoCadastro, leva: DocumentoArquivoRow[], tipos: Record<string, string>) => {
+  const cadastrar = (
+    novo: NovoCadastro,
+    leva: DocumentoArquivoRow[],
+    tipos: Record<string, string>,
+    naoAplicaveis: string[],
+  ) => {
     if (novo.tipo === 'pessoa') {
       upsertPessoa.mutate(
         { values: novo.values },
@@ -312,6 +341,12 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
                 clienteId,
               });
             }
+            try {
+              await persistirNaoAplicaveis({ kind: 'pessoa', id: row.id }, naoAplicaveis);
+            } catch (error) {
+              toast.error(`Cadastro criado, mas não foi possível salvar “Não se aplica”: ${(error as Error).message}`);
+              return;
+            }
             registrarSugestao({ valor: `pessoa:${row.id}`, label: row.denominacao ?? 'Pessoa' });
             vincularLeva(leva, { kind: 'pessoa', id: row.id }, tipos);
           },
@@ -324,7 +359,13 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
       upsertBem.mutate(
         { values: novo.values, titular: novo.titular },
         {
-          onSuccess: ({ row }) => {
+          onSuccess: async ({ row }) => {
+            try {
+              await persistirNaoAplicaveis({ kind: 'bem', id: row.id }, naoAplicaveis);
+            } catch (error) {
+              toast.error(`Cadastro criado, mas não foi possível salvar “Não se aplica”: ${(error as Error).message}`);
+              return;
+            }
             registrarSugestao({ valor: `bem:${row.id}`, label: bemLabel(row) });
             vincularLeva(leva, { kind: 'bem', id: row.id }, tipos);
           },
@@ -336,7 +377,13 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
     upsertMatricula.mutate(
       { values: novo.values, titular: novo.titular },
       {
-        onSuccess: ({ row }) => {
+        onSuccess: async ({ row }) => {
+          try {
+            await persistirNaoAplicaveis({ kind: 'matricula', id: row.id }, naoAplicaveis);
+          } catch (error) {
+            toast.error(`Cadastro criado, mas não foi possível salvar “Não se aplica”: ${(error as Error).message}`);
+            return;
+          }
           registrarSugestao({ valor: `matricula:${row.id}`, label: `Matrícula ${row.numero}` });
           vincularLeva(leva, { kind: 'matricula', id: row.id }, tipos);
         },
@@ -445,6 +492,9 @@ export function ClassificarDocumentos({ clienteId, docs, carregando }: Props) {
           aberto
           clienteId={clienteId}
           arquivos={pendente.leva}
+          documentosCliente={docs}
+          alvo={alvoPendente}
+          naoAplicaveisIniciais={marcacoesNaoAplicaveis.map((item) => item.solicitacao_item_id)}
           destino={pendente.destino}
           destinoLabel={pendente.destinoLabel}
           rotuloConfirmar={pendente.rotulo}

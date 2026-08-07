@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  destinoDoAlvo, destinoDoNovo, tiposParaDestino, tiposPedidos, type ItemPedido,
+  destinoDoAlvo, destinoDoNovo, tiposParaDestino, tiposPedidos, tiposPedidosDetalhados,
+  tiposPendentesParaAlvo, type ItemPedido,
 } from './classificarTipo';
 import type { ChecklistPadraoRow } from '@/hooks/useOsgChecklist';
 import type { NovoCadastro } from './classificarFicha';
@@ -124,6 +125,23 @@ describe('tiposPedidos — o recorte pela solicitação', () => {
 
   it('grão sem nada pedido devolve lista vazia, para o chamador cair no catálogo', () => {
     expect(tiposPedidos(ITENS, AVULSOS, 'matricula')).toEqual([]);
+  });
+
+  it('remove o tipo já recebido pela entidade, mas não o recebido por outra pessoa', () => {
+    const pedidos = tiposPedidosDetalhados(ITENS, AVULSOS, 'PF');
+    const documentos = [
+      { documento_tipo_id: 'T-CPF', pessoa_id: 'P1', bem_id: null, matricula_id: null },
+      { documento_tipo_id: 'T-RG', pessoa_id: 'P2', bem_id: null, matricula_id: null },
+    ];
+    expect(tiposPendentesParaAlvo(pedidos, documentos, { kind: 'pessoa', id: 'P1' }).map((item) => item.id))
+      .toEqual(['T-RG', 'T-AVULSO']);
+  });
+
+  it('mantém visível uma marcação não aplicável existente para poder desfazê-la', () => {
+    const pedidos = tiposPedidosDetalhados(ITENS, AVULSOS, 'PF');
+    const documentos = [{ documento_tipo_id: 'T-CPF', pessoa_id: 'P1', bem_id: null, matricula_id: null }];
+    expect(tiposPendentesParaAlvo(pedidos, documentos, { kind: 'pessoa', id: 'P1' }, new Set(['i1']))
+      .map((item) => item.id)).toContain('T-CPF');
   });
 });
 

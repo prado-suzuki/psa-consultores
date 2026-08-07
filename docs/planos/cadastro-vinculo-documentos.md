@@ -287,7 +287,8 @@ recorrência não ler nome velho.
 1. O select de tipo do modal ainda recorta o **catálogo** por granularidade. Deve passar a recortar a
    **solicitação ativa**: lista menor, e o que aparece é o que foi de fato pedido àquele cliente. É
    também o que faz o avulso aparecer, já que ele está fora do catálogo por construção.
-2. O bloco de "não se aplica" no modal, e a tabela por (item pedido + entidade) que o sustenta.
+2. ~~O bloco de "não se aplica" no modal, e a tabela por (item pedido + entidade) que o sustenta.~~
+   Implementado em `20260807180000_solicitacao_item_nao_aplicavel.sql`.
 3. O checklist como tela, leitura pura da subtração.
 4. O tipo como rótulo na linha do explorador, no lugar do `vinculoLabel`, que dentro da pasta de uma
    entidade repete o nome dela em toda linha.
