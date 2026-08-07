@@ -5,6 +5,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { RefreshCw, Pencil, Trash2, Users, Search } from 'lucide-react';
 import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
@@ -77,9 +84,9 @@ export const UsersTab = () => {
     [users, areasPorUsuario],
   );
 
-  // Só entram chips de área com gente dentro; se ninguém estiver na estrutura,
-  // a linha inteira some em vez de virar uma fileira de zeros.
-  const areaChips = useMemo(() => {
+  // Só entram no seletor as áreas com gente dentro — área recém-criada e ainda
+  // vazia não vira opção que não filtra nada.
+  const areaOptions = useMemo(() => {
     const comGente = areas.filter((a) => (areaCounts[a.id] ?? 0) > 0);
     if (!comGente.length && !areaCounts[SEM_AREA]) return [];
     return [
@@ -145,64 +152,54 @@ export const UsersTab = () => {
             <CardDescription className="text-slate-500">
               Selecione um usuário para gerenciar acessos
             </CardDescription>
-            <div className="mt-3 flex items-center gap-1 overflow-x-auto pb-1 -mx-1 px-1">
-              <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-slate-400 pr-0.5">
-                Papel
-              </span>
-              {(['all', ...ROLE_ORDER] as Array<AppRole | 'all'>).map((r) => {
-                const label = r === 'all' ? 'Todos' : (ROLE_SHORT_LABELS[r] ?? r);
-                const active = roleFilter === r;
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRoleFilter(r)}
-                    className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
-                      active
-                        ? 'bg-teal-500/10 text-teal-700 border-teal-200'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    {label}
-                    <span className={`ml-1 ${active ? 'text-teal-600' : 'text-slate-400'}`}>
-                      ({roleCounts[r] ?? 0})
-                    </span>
-                  </button>
-                );
-              })}
+            {/* Papel e Área lado a lado: dois seletores de largura fixa, que não
+                crescem com o número de papéis nem de áreas ativas — a fileira de
+                chips rolava para o lado e escondia opção. */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as AppRole | 'all')}>
+                <SelectTrigger className="h-9 text-xs bg-white border-slate-200">
+                  <SelectValue placeholder="Papel" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(['all', ...ROLE_ORDER] as Array<AppRole | 'all'>).map((r) => (
+                    <SelectItem key={r} value={r} className="text-xs">
+                      {r === 'all' ? 'Todos os papéis' : (ROLE_SHORT_LABELS[r] ?? r)}
+                      <span className="ml-1 text-slate-400">({roleCounts[r] ?? 0})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={areaFilter}
+                onValueChange={setAreaFilter}
+                disabled={areaOptions.length === 0}
+              >
+                <SelectTrigger className="h-9 text-xs bg-white border-slate-200">
+                  <SelectValue placeholder="Área" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">
+                    Todas as áreas
+                    <span className="ml-1 text-slate-400">({users?.length ?? 0})</span>
+                  </SelectItem>
+                  {areaOptions.map((opt) => (
+                    <SelectItem key={opt.id} value={opt.id} className="text-xs">
+                      <span className="flex items-center gap-1.5">
+                        {opt.color && (
+                          <span
+                            className="h-2 w-2 rounded-full shrink-0"
+                            style={{ backgroundColor: opt.color }}
+                          />
+                        )}
+                        {opt.label}
+                        <span className="text-slate-400">({areaCounts[opt.id] ?? 0})</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            {areaChips.length > 0 && (
-              <div className="mt-1.5 flex items-center gap-1 overflow-x-auto pb-1 -mx-1 px-1">
-                <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-slate-400 pr-0.5">
-                  Área
-                </span>
-                {[{ id: 'all', label: 'Todas', color: null }, ...areaChips].map((chip) => {
-                  const active = areaFilter === chip.id;
-                  const count = chip.id === 'all' ? (users?.length ?? 0) : (areaCounts[chip.id] ?? 0);
-                  return (
-                    <button
-                      key={chip.id}
-                      type="button"
-                      onClick={() => setAreaFilter(chip.id)}
-                      className={`shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
-                        active
-                          ? 'bg-teal-500/10 text-teal-700 border-teal-200'
-                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      {chip.color && (
-                        <span
-                          className="h-2 w-2 rounded-full shrink-0"
-                          style={{ backgroundColor: chip.color }}
-                        />
-                      )}
-                      {chip.label}
-                      <span className={active ? 'text-teal-600' : 'text-slate-400'}>({count})</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
             <div className="relative mt-2">
               <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <Input
