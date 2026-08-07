@@ -27,10 +27,19 @@ export interface Registro<T = unknown> {
 
 // JOIN da matrícula com bem + cartório + titulares, no formato que `mapearMatricula`
 // achata sob o binding do imóvel (e o cliente_id usado para filtrar por cliente).
+// `tipo_bem`/`tipo_exploracao_posse` (da matrícula) classificam o imóvel para as
+// condicionais rural/urbano/posse; o endereço, a área construída e a inscrição
+// municipal (do bem) são o que a descrição de imóvel URBANO usa no lugar da
+// denominação e do CCIR.
 const MATRICULA_GERACAO_SELECT = `
   id, numero, livro, folha, municipio_imovel, uf_imovel,
   area_documento, area_unidade, vlr_contabil, confrontacoes_texto, descricao_psa_completa,
-  bem:bem_id ( denominacao, vlr_contabil, ccir_codigo, cliente_id ),
+  tipo_bem, tipo_exploracao_posse,
+  bem:bem_id (
+    denominacao, vlr_contabil, ccir_codigo, cliente_id, tipo_bem, inscricao_municipal,
+    endereco_logradouro, endereco_numero, endereco_complemento, endereco_bairro, endereco_cep,
+    area_construida_m2
+  ),
   cartorio:cartorio_id ( nome_completo, comarca, uf ),
   titularidade ( integralizador, fracao, titular:titular_pessoa_id ( id, denominacao, cliente_id ) )
 `;
@@ -41,7 +50,14 @@ interface RawMatriculaGeracao {
   municipio_imovel: string | null; uf_imovel: string | null;
   area_documento: number | null; area_unidade: string | null; vlr_contabil: number | null;
   confrontacoes_texto: string | null; descricao_psa_completa: string | null;
-  bem: { denominacao: string | null; vlr_contabil: number | null; ccir_codigo: string | null; cliente_id: string | null } | null;
+  tipo_bem: string | null; tipo_exploracao_posse: string | null;
+  bem: {
+    denominacao: string | null; vlr_contabil: number | null; ccir_codigo: string | null;
+    cliente_id: string | null; tipo_bem: string | null; inscricao_municipal: string | null;
+    endereco_logradouro: string | null; endereco_numero: string | null;
+    endereco_complemento: string | null; endereco_bairro: string | null;
+    endereco_cep: string | null; area_construida_m2: number | null;
+  } | null;
   cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
   titularidade: Array<{
     integralizador: boolean | null;
@@ -111,8 +127,22 @@ export function useRegistrosPorTipo(clienteId: string | null) {
           vlr_contabil: m.vlr_contabil,
           confrontacoes_texto: m.confrontacoes_texto,
           descricao_psa_completa: m.descricao_psa_completa,
+          tipo_bem: m.tipo_bem,
+          tipo_exploracao_posse: m.tipo_exploracao_posse,
           bem: m.bem
-            ? { denominacao: m.bem.denominacao, vlr_contabil: m.bem.vlr_contabil, ccir_codigo: m.bem.ccir_codigo }
+            ? {
+                denominacao: m.bem.denominacao,
+                vlr_contabil: m.bem.vlr_contabil,
+                ccir_codigo: m.bem.ccir_codigo,
+                tipo_bem: m.bem.tipo_bem,
+                inscricao_municipal: m.bem.inscricao_municipal,
+                endereco_logradouro: m.bem.endereco_logradouro,
+                endereco_numero: m.bem.endereco_numero,
+                endereco_complemento: m.bem.endereco_complemento,
+                endereco_bairro: m.bem.endereco_bairro,
+                endereco_cep: m.bem.endereco_cep,
+                area_construida_m2: m.bem.area_construida_m2,
+              }
             : null,
           cartorio: m.cartorio,
           titulares: (m.titularidade ?? []).map((t) => ({
@@ -176,10 +206,13 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
       const { data, error } = await supabase
         .from('bem')
         .select(`
-          id, denominacao, vlr_contabil, ccir_codigo,
+          id, denominacao, vlr_contabil, ccir_codigo, tipo_bem, inscricao_municipal,
+          endereco_logradouro, endereco_numero, endereco_complemento, endereco_bairro, endereco_cep,
+          area_construida_m2,
           matricula (
             id, numero, livro, folha, municipio_imovel, uf_imovel,
             area_documento, area_unidade, vlr_contabil, confrontacoes_texto, descricao_psa_completa,
+            tipo_bem, tipo_exploracao_posse,
             cartorio:cartorio_id ( nome_completo, comarca, uf ),
             titularidade ( id, integralizador, fracao, titular:titular_pessoa_id ( id, denominacao, tipo_pessoa, cpf_cnpj ) ),
             impedimento ( id, cancelado )
@@ -191,11 +224,16 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
 
       const bens = (data ?? []) as unknown as Array<{
         id: string; denominacao: string | null; vlr_contabil: number | null; ccir_codigo: string | null;
+        tipo_bem: string | null; inscricao_municipal: string | null;
+        endereco_logradouro: string | null; endereco_numero: string | null;
+        endereco_complemento: string | null; endereco_bairro: string | null;
+        endereco_cep: string | null; area_construida_m2: number | null;
         matricula: Array<{
           id: string; numero: string | null; livro: string | null; folha: string | null;
           municipio_imovel: string | null; uf_imovel: string | null;
           area_documento: number | null; area_unidade: string | null; vlr_contabil: number | null;
           confrontacoes_texto: string | null; descricao_psa_completa: string | null;
+          tipo_bem: string | null; tipo_exploracao_posse: string | null;
           cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
           titularidade: Array<{
             id: string;
@@ -223,7 +261,21 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
             vlr_contabil: m.vlr_contabil,
             confrontacoes_texto: m.confrontacoes_texto,
             descricao_psa_completa: m.descricao_psa_completa,
-            bem: { denominacao: b.denominacao, vlr_contabil: b.vlr_contabil, ccir_codigo: b.ccir_codigo },
+            tipo_bem: m.tipo_bem,
+            tipo_exploracao_posse: m.tipo_exploracao_posse,
+            bem: {
+              denominacao: b.denominacao,
+              vlr_contabil: b.vlr_contabil,
+              ccir_codigo: b.ccir_codigo,
+              tipo_bem: b.tipo_bem,
+              inscricao_municipal: b.inscricao_municipal,
+              endereco_logradouro: b.endereco_logradouro,
+              endereco_numero: b.endereco_numero,
+              endereco_complemento: b.endereco_complemento,
+              endereco_bairro: b.endereco_bairro,
+              endereco_cep: b.endereco_cep,
+              area_construida_m2: b.area_construida_m2,
+            },
             cartorio: m.cartorio,
             // Ids das titularidades desta matrícula — metadado p/ notificações.
             titularidadeIds: (m.titularidade ?? []).map((t) => t.id),

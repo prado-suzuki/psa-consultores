@@ -1,4 +1,4 @@
-import { areaExtenso, cardinalExtenso, percentualExtenso, valorExtenso } from './extenso';
+import { areaExtenso, cardinalExtenso, percentualExtenso, valorExtenso, type UnidadeArea } from './extenso';
 import { PARES, concordarTexto, ufPorExtenso, type Genero } from './concordancia';
 
 // Vocabulário de campos organizado POR ENTIDADE (pessoa/bem/matricula/cartorio).
@@ -51,14 +51,75 @@ function paraInteiroBR(bruto: string | undefined): number {
 
 // --- Campos derivados reutilizáveis -----------------------------------------
 
+// Vocabulário ÚNICO de unidade de área. Dois leitores dependem dele (decidir a
+// unidade a partir do campo base `areaUnidade` e retirar o sufixo de exibição de
+// `area` antes de converter), e listas separadas foi exatamente o defeito que uma
+// delas reconhecer o que a outra ignora: o consultor que trocasse o `m2`
+// pré-preenchido por "metros quadrados" caía no default hectare, e o apartamento
+// de 360 m² saía "trezentos e sessenta hectares". Um token novo entra aqui e os
+// dois leitores passam a conhecê-lo junto.
+const TOKEN_AREA_M2 = /m\s*[²2]|metros?\s+quadrados?/;
+const TOKEN_AREA_HA = /ha(?:_m2)?|hectares?/;
+/** O campo `areaUnidade` INTEIRO nomeia metro quadrado (o resto, inclusive vazio, é hectare). */
+const UNIDADE_AREA_M2 = new RegExp(`^\\s*(?:${TOKEN_AREA_M2.source})\\s*$`, 'i');
+/** Sufixo de unidade no fim de `area`: é só exibição, sai antes de converter. */
+const SUFIXO_UNIDADE_AREA = new RegExp(
+  `\\s*(?:${TOKEN_AREA_M2.source}|${TOKEN_AREA_HA.source})\\s*$`,
+  'i',
+);
+
+/**
+ * Unidade da área, lida do campo BASE `areaUnidade` — nunca do sufixo do texto.
+ * A unidade é dado, não formatação: adivinhá-la do texto de `area` já produziu
+ * extenso na unidade errada (um "360 m2" cujo "2" entrava no número, e um "360"
+ * sem sufixo que virava trezentos e sessenta HECTARES num apartamento), e o
+ * consultor não teria como corrigir, porque a tela Gerar só expõe campos base e
+ * `derivarCampos` reescreve os derivados a cada edição.
+ *
+ * `area` e `areaUnidade` podem se contradizer (texto "360,00 m²" com unidade
+ * "ha", se alguém editar só um dos dois): quem manda é `areaUnidade`, e os dois
+ * aparecem lado a lado no painel justamente para o consultor ver a divergência.
+ */
+function unidadeDaArea(bruto: string | undefined): UnidadeArea {
+  return UNIDADE_AREA_M2.test(bruto ?? '') ? 'm2' : 'ha';
+}
+
+/**
+ * Número de uma área formatada, ignorando o sufixo de unidade ("360,00 m²" → 360;
+ * "396,4000 ha" → 396.4; "360" → 360). O que sobra precisa ser UM número pt-BR:
+ * texto como "12,5 ha (125.000 m²)" volta NaN em vez de virar 12,5125 ou 125000.
+ * Extenso em branco é aceitável, extenso de número errado não é.
+ */
+function paraAreaNumero(bruto: string | undefined): number {
+  const semUnidade = (bruto ?? '').replace(SUFIXO_UNIDADE_AREA, '').trim();
+  if (!/^-?[\d.]*\d(?:,\d+)?$/.test(semUnidade)) return NaN;
+  // Ponto sem vírgula, em grupos de 3 dígitos, é separador de MILHAR em pt-BR:
+  // "1.234 ha" é mil duzentos e trinta e quatro hectares, e lê-lo como 1,234
+  // (o que Number() faz) erra por mil vezes calado, no campo que o cartório
+  // confere. O mapeador nunca emite essa forma (sempre 4 ou 2 decimais), mas a
+  // edição manual no painel emite. Sem grupos de 3 ("396.4"), segue valendo como
+  // decimal cru, que é a leitura tolerante documentada em paraNumeroBR.
+  const milhar = !semUnidade.includes(',') && /^-?\d{1,3}(?:\.\d{3})+$/.test(semUnidade);
+  const n = paraNumeroBR(milhar ? semUnidade.replace(/\./g, '') : semUnidade);
+  // Área negativa não existe: formatarArea aplica Math.abs e o extenso de -360
+  // sairia como "zero metros quadrados" (Math.floor de um negativo). Recusa.
+  return n < 0 ? NaN : n;
+}
+
+/** Área (texto + unidade dos campos base) em m², para comparar unidades diferentes. */
+function areaEmM2(area: string | undefined, unidade: string | undefined): number {
+  const n = paraAreaNumero(area);
+  return unidadeDaArea(unidade) === 'm2' ? n : n * 10000;
+}
+
 const areaExtensoCampo: CampoEntidade = {
   id: 'areaExtenso',
   label: 'Área (por extenso)',
   tipo: 'texto',
-  derivadoDe: 'area',
+  derivadoDe: ['area', 'areaUnidade'],
   derivar: (v) => {
-    const n = paraNumeroBR(v.area);
-    return Number.isFinite(n) ? areaExtenso(n) : '';
+    const n = paraAreaNumero(v.area);
+    return Number.isFinite(n) ? areaExtenso(n, unidadeDaArea(v.areaUnidade)) : '';
   },
 };
 
@@ -148,6 +209,17 @@ function estadoCivilProsa(v: Record<string, string>): string {
     return `${concordado}, ${PARES.nascido(g)} em ${v.dataNascimento}`;
   }
   return concordado;
+}
+
+/**
+ * "s/n", "s/nº", "S.N."… → forma canônica dos contratos; número normal ganha "nº".
+ * Mora aqui (e não em mapeadores.ts) porque serve tanto ao endereço em prosa dos
+ * mapeadores quanto ao campo DERIVADO `matricula.enderecoNumeroProsa`, e
+ * vocabulario.ts não pode importar de mapeadores (a dependência é a inversa).
+ */
+export function numeroProsa(numero: string | null | undefined): string {
+  if (!numero) return '';
+  return /^s[/.]?\s*n[ºo°.]*$/i.test(numero.trim()) ? 's/nº' : `nº ${numero}`;
 }
 
 // Tipos de logradouro masculinos — o resto (rua, avenida, rodovia, praça…) é "na".
@@ -339,8 +411,101 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       cardinalCampo('folhaExtenso', 'Folha (por extenso)', 'folha'),
       { id: 'municipio', label: 'Município do imóvel', tipo: 'texto' },
       { id: 'uf', label: 'Estado (UF) do imóvel', tipo: 'texto' },
-      { id: 'area', label: 'Área (hectares)', tipo: 'area' },
+      // Classificação do imóvel: é o que separa as redações da família "Descrição
+      // de imóvel" (seletores em supabase/migrations/20260806140000). Condicionais
+      // com 'sim'/'' como fracionado/inteiro — o engine não tem "else".
+      { id: 'tipoBem', label: 'Tipo do bem (IR = rural, IB = urbano)', tipo: 'texto' },
+      {
+        id: 'rural',
+        label: 'É imóvel rural? (condicional)',
+        tipo: 'texto',
+        derivadoDe: 'tipoBem',
+        derivar: (v) => (v.tipoBem === 'IR' ? 'sim' : ''),
+      },
+      {
+        id: 'urbano',
+        label: 'É imóvel urbano? (condicional)',
+        tipo: 'texto',
+        derivadoDe: 'tipoBem',
+        derivar: (v) => (v.tipoBem === 'IB' ? 'sim' : ''),
+      },
+      { id: 'tipoExploracaoPosse', label: 'Tipo de exploração / posse', tipo: 'texto' },
+      {
+        // Direitos ainda não averbados na matrícula (promessa de compra e venda
+        // quitada): o titular detém o imóvel sem título registrado, e a redação
+        // muda de "de propriedade de" para "de posse/propriedade de".
+        //
+        // Casa por SUBSTRING, não por igualdade — a assimetria de risco manda: um
+        // valor legado ('Composse', 'posse' minúsculo, 'Posse de fato') que não
+        // ligasse a condicional levaria o resolvedor à variante de propriedade
+        // exclusiva, e o contrato afirmaria propriedade de quem só tem posse, que
+        // é afirmação falsa em documento levado a registro. Capturar demais é
+        // barrado cedo e alto: a variante de posse usa {{ imovel.promessaData }} e
+        // {{ imovel.promissariaVendedora }}, que não existem no vocabulário e
+        // derrubam a prévia. Mesmo casamento de EstruturaAtual.tsx (origemDe).
+        //
+        // Este é um PROXY: o caso do modelo Word é "escritura pública não
+        // averbada", que não tem campo próprio no cadastro (tipo_exploracao_posse
+        // fala de exploração, não de título). Um campo próprio provavelmente
+        // resolve isso melhor no futuro.
+        id: 'posse',
+        label: 'Direitos não averbados na matrícula? (condicional)',
+        tipo: 'texto',
+        derivadoDe: 'tipoExploracaoPosse',
+        derivar: (v) => (/posse/i.test(v.tipoExploracaoPosse ?? '') ? 'sim' : ''),
+      },
+      // Endereço do imóvel: identifica o URBANO (o rural usa a denominação).
+      // Logradouro/número/complemento/bairro/CEP vêm de `bem` (colunas criadas em
+      // 20260806120500); município e UF continuam sendo os da matrícula (fonte
+      // única), e a prosa os junta como no endereço de pessoa.
+      { id: 'endereco', label: 'Endereço do imóvel (em prosa)', tipo: 'texto' },
+      { id: 'enderecoLogradouro', label: 'Endereço — logradouro', tipo: 'texto' },
+      { id: 'enderecoNumero', label: 'Endereço — número', tipo: 'texto' },
+      {
+        // Número já na forma dos contratos ("nº 119" / "s/nº"): o modelo que
+        // escrevia "nº {{ imovel.enderecoNumero }}" saía como "nº s/n" no imóvel
+        // sem número. É DERIVADO do número cru, não campo base: se fosse base, um
+        // modelo que usasse os dois deixaria o consultor editar um e esquecer o
+        // outro, e sairiam dois números diferentes no mesmo contrato.
+        id: 'enderecoNumeroProsa',
+        label: 'Endereço — número em prosa ("nº 119" / "s/nº")',
+        tipo: 'texto',
+        derivadoDe: 'enderecoNumero',
+        derivar: (v) => numeroProsa(v.enderecoNumero),
+      },
+      { id: 'enderecoComplemento', label: 'Endereço — complemento', tipo: 'texto' },
+      { id: 'enderecoBairro', label: 'Endereço — bairro', tipo: 'texto' },
+      { id: 'enderecoCep', label: 'Endereço — CEP', tipo: 'texto' },
+      { id: 'area', label: 'Área (hectares no rural, m² no urbano)', tipo: 'area' },
+      // A unidade é DADO (vem de matricula.area_unidade combinada com o tipo do
+      // imóvel), não formatação: é campo base, editável, e é dele que o extenso
+      // tira a unidade. O sufixo em `area` é só exibição.
+      { id: 'areaUnidade', label: 'Unidade da área (ha / m²)', tipo: 'texto' },
       areaExtensoCampo,
+      { id: 'areaConstruida', label: 'Área construída (m²)', tipo: 'area' },
+      {
+        // O modelo urbano só manda escrever a construída "em havendo área
+        // construída inferior à área total", então a condicional exige a
+        // comparação, não só a presença. A total pode estar em hectare e a
+        // construída é sempre m², daí a normalização por `areaUnidade`. A
+        // tolerância de 0,01 m² é load-bearing, e o exemplo é conferível: 0,1005
+        // ha × 10.000 dá 1005.0000000000001 em ponto flutuante, então um lote de
+        // 1.005 m² todo construído ligaria o trecho ("sendo 1.005,00 m² de área
+        // construída" num imóvel de 1.005,00 m²). Sem área total comparável
+        // fica DESLIGADA: não se pode afirmar "inferior" sem os dois lados, e
+        // omitir a construída é o caso seguro (o modelo rural nunca a cita).
+        id: 'temAreaConstruida',
+        label: 'Tem área construída menor que a total? (condicional)',
+        tipo: 'texto',
+        derivadoDe: ['area', 'areaUnidade', 'areaConstruida'],
+        derivar: (v) => {
+          const construida = paraAreaNumero(v.areaConstruida);
+          if (!Number.isFinite(construida) || construida <= 0) return '';
+          const total = areaEmM2(v.area, v.areaUnidade);
+          if (!Number.isFinite(total)) return '';
+          return construida < total - 0.01 ? 'sim' : '';
+        },
+      },
       { id: 'valor', label: 'Valor contábil (R$)', tipo: 'valor' },
       valorExtensoCampo,
       { id: 'denominacao', label: 'Denominação', tipo: 'texto' },
@@ -384,6 +549,9 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'comarca', label: 'Comarca', tipo: 'texto' },
       { id: 'ufCartorio', label: 'Estado (UF) do cartório', tipo: 'texto' },
       { id: 'ccir', label: 'Cadastro do imóvel rural (CCIR/SNCR)', tipo: 'texto' },
+      // Equivalente urbano do CCIR ("inscrito no cadastro municipal sob o nº").
+      // Mora em `bem`, como o CCIR, mas o binding do imóvel precisa do seu.
+      { id: 'inscricaoMunicipal', label: 'Inscrição municipal (cadastro municipal)', tipo: 'texto' },
       { id: 'confrontacoes', label: 'Limites e confrontações', tipo: 'textarea' },
       // Cabeçalho do georreferenciamento (memorial SIGEF), preenchido do BigQuery
       // quando a matrícula tem georref — ver useGeorefByMatricula / mapearGeorefCabecalho.
