@@ -8564,6 +8564,7 @@ export type Database = {
         Args: { _cluster_id: string; _include_orphans?: boolean }
         Returns: string[]
       }
+      fechar_chamados_resolvidos_sem_resposta: { Args: never; Returns: number }
       feed_org_comments: {
         Args: {
           _author_ids?: string[]
