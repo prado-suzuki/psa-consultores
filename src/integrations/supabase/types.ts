@@ -7171,6 +7171,82 @@ export type Database = {
           },
         ]
       }
+      solicitacao_item_nao_aplicavel: {
+        Row: {
+          bem_id: string | null
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          matricula_id: string | null
+          pessoa_id: string | null
+          solicitacao_item_id: string
+        }
+        Insert: {
+          bem_id?: string | null
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          matricula_id?: string | null
+          pessoa_id?: string | null
+          solicitacao_item_id: string
+        }
+        Update: {
+          bem_id?: string | null
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          matricula_id?: string | null
+          pessoa_id?: string | null
+          solicitacao_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "matricula"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_solicitacao_item_id_fkey"
+            columns: ["solicitacao_item_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacao_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sprint_backlog_items: {
         Row: {
           cluster_id: string | null
