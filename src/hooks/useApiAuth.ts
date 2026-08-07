@@ -3,6 +3,66 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+let validarUsuarioPromise: ReturnType<typeof supabase.auth.getUser> | null = null;
+
+function validarUsuarioSingleFlight() {
+  if (validarUsuarioPromise) return validarUsuarioPromise;
+  validarUsuarioPromise = supabase.auth.getUser().finally(() => {
+    validarUsuarioPromise = null;
+  });
+  return validarUsuarioPromise;
+}
+
+function caminhoSeguro(url: string): string {
+  try {
+    return new URL(url, window.location.origin).pathname;
+  } catch {
+    return 'endpoint externo';
+  }
+}
+
+function criarSinalComTimeout(signalExterno: AbortSignal | null, timeoutMs: number) {
+  const controller = new AbortController();
+  let expirou = false;
+  const abortarExternamente = () => controller.abort(signalExterno?.reason);
+
+  if (signalExterno?.aborted) abortarExternamente();
+  else signalExterno?.addEventListener('abort', abortarExternamente, { once: true });
+
+  const timeoutId = window.setTimeout(() => {
+    expirou = true;
+    controller.abort();
+  }, timeoutMs);
+
+  return {
+    signal: controller.signal,
+    expirou: () => expirou,
+    limpar: () => {
+      window.clearTimeout(timeoutId);
+      signalExterno?.removeEventListener('abort', abortarExternamente);
+    },
+  };
+}
+
+function aguardarBackoff(delayMs: number, signal?: AbortSignal | null): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new DOMException('Requisição cancelada', 'AbortError'));
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      signal?.removeEventListener('abort', cancelar);
+      resolve();
+    }, delayMs);
+    const cancelar = () => {
+      window.clearTimeout(timeoutId);
+      reject(new DOMException('Requisição cancelada', 'AbortError'));
+    };
+    signal?.addEventListener('abort', cancelar, { once: true });
+  });
+}
+
 export function useApiAuth() {
   const { session, refreshSession } = useAuth();
   const navigate = useNavigate();
@@ -11,9 +71,9 @@ export function useApiAuth() {
     try {
       const token = await getValidToken();
       if (!token) return null;
-      
+
       return {
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       };
     } catch {
@@ -30,7 +90,10 @@ export function useApiAuth() {
     }
 
     // Verificar se sessão é válida fazendo chamada ao Supabase
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await validarUsuarioSingleFlight();
     if (error || !user) {
       console.error('[Auth] Sessão inválida:', error?.message);
       const newSession = await refreshSession();
@@ -44,7 +107,7 @@ export function useApiAuth() {
     if (expiresAt) {
       const now = Math.floor(Date.now() / 1000);
       const bufferSeconds = 5 * 60; // 5 minutes
-      
+
       if (expiresAt - now < bufferSeconds) {
         console.log('[Auth] Token expirando em breve, tentando refresh...');
         const newSession = await refreshSession();
@@ -61,29 +124,29 @@ export function useApiAuth() {
 
   const handleSessionExpired = () => {
     toast({
-      title: "Sessão expirada",
-      description: "Faça login novamente para continuar.",
-      variant: "destructive",
+      title: 'Sessão expirada',
+      description: 'Faça login novamente para continuar.',
+      variant: 'destructive',
     });
     navigate('/equipe');
   };
 
   const fetchWithAuth = async (
-    url: string, 
+    url: string,
     options: RequestInit = {},
     timeoutMs: number = 30000,
-    maxRetries: number = 3
+    maxRetries: number = 3,
   ): Promise<Response> => {
     const startTime = Date.now();
     let lastError: Error | null = null;
+    const signalExterno = options.signal;
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      const sinal = criarSinalComTimeout(signalExterno ?? null, timeoutMs);
 
       try {
-        console.log(`[API] Tentativa ${attempt}/${maxRetries}: ${url}`);
-        
+        console.log(`[API] Tentativa ${attempt}/${maxRetries}: ${caminhoSeguro(url)}`);
+
         const token = await getValidToken();
         if (!token) {
           const newSession = await refreshSession();
@@ -93,25 +156,25 @@ export function useApiAuth() {
           const isFormData = options.body instanceof FormData;
           const headers: Record<string, string> = {
             ...(options.headers as Record<string, string>),
-            'Authorization': `Bearer ${newSession.access_token}`,
+            Authorization: `Bearer ${newSession.access_token}`,
             ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
           };
-          const response = await fetch(url, { ...options, headers, signal: controller.signal });
-          clearTimeout(timeoutId);
+          const response = await fetch(url, { ...options, headers, signal: sinal.signal });
+          sinal.limpar();
           return response;
         }
 
         const isFormData = options.body instanceof FormData;
         const headers: Record<string, string> = {
           ...(options.headers as Record<string, string>),
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
         };
 
-        let response = await fetch(url, { 
-          ...options, 
+        let response = await fetch(url, {
+          ...options,
           headers,
-          signal: controller.signal 
+          signal: sinal.signal,
         });
 
         console.log(`[API] Resposta: ${response.status} em ${Date.now() - startTime}ms`);
@@ -120,7 +183,7 @@ export function useApiAuth() {
         if (response.status === 401) {
           console.log('[API] Recebido 401, tentando refresh do token...');
           const newSession = await refreshSession();
-          
+
           if (!newSession) {
             handleSessionExpired();
             throw new Error('Sessão expirada');
@@ -130,52 +193,58 @@ export function useApiAuth() {
           const isFormDataRetry = options.body instanceof FormData;
           const retryHeaders: Record<string, string> = {
             ...(options.headers as Record<string, string>),
-            'Authorization': `Bearer ${newSession.access_token}`,
+            Authorization: `Bearer ${newSession.access_token}`,
             ...(isFormDataRetry ? {} : { 'Content-Type': 'application/json' }),
           };
 
-          response = await fetch(url, { 
-            ...options, 
+          response = await fetch(url, {
+            ...options,
             headers: retryHeaders,
-            signal: controller.signal 
+            signal: sinal.signal,
           });
-          
+
           if (response.status === 401) {
             handleSessionExpired();
             throw new Error('Sessão expirada');
           }
         }
 
-        clearTimeout(timeoutId);
+        sinal.limpar();
         return response;
       } catch (error) {
-        clearTimeout(timeoutId);
+        sinal.limpar();
         const err = error as Error;
         lastError = err;
-        
+
         console.error(`[API] Erro na tentativa ${attempt}: ${err.name} - ${err.message}`);
-        
+
         // Não fazer retry para erros de sessão
         if (err.message === 'Sessão expirada') {
           throw err;
         }
-        
-        // Não fazer retry para timeout (já demorou muito)
+
+        // Cancelamento do consumidor não é timeout nem falha: o TanStack Query
+        // usa este AbortError para descartar a consulta obsoleta silenciosamente.
         if (err.name === 'AbortError') {
-          throw new Error(`Tempo limite excedido. A requisição demorou mais de ${Math.round(timeoutMs / 1000)} segundos.`);
+          if (signalExterno?.aborted && !sinal.expirou()) throw err;
+          const timeoutError = new Error(
+            `Tempo limite excedido. A requisição demorou mais de ${Math.round(timeoutMs / 1000)} segundos.`,
+          );
+          timeoutError.name = 'TimeoutError';
+          throw timeoutError;
         }
-        
+
         // Para erros de rede, tentar novamente com backoff exponencial
         if (err.name === 'TypeError' && err.message === 'Failed to fetch') {
           if (attempt < maxRetries) {
             const delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000); // 1s, 2s, 4s (max 5s)
             console.log(`[API] Aguardando ${delayMs}ms antes da próxima tentativa...`);
-            await new Promise(resolve => setTimeout(resolve, delayMs));
+            await aguardarBackoff(delayMs, signalExterno);
             continue;
           }
           throw new Error('Erro de conexão. Verifique sua internet ou tente novamente.');
         }
-        
+
         // Para outros erros, não fazer retry
         throw err;
       }

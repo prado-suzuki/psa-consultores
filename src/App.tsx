@@ -45,6 +45,7 @@ import EquipeChamados from "./pages/equipe/EquipeChamados";
 import EquipeDetalhesChamado from "./pages/equipe/EquipeDetalhesChamado";
 import EquipeDashboard from "./pages/equipe/EquipeDashboard";
 import AnaliseInteligente from "./pages/equipe/dashboards/AnaliseInteligente";
+import Dashboards from "./pages/equipe/dashboards/Dashboards";
 import EquipeProjetos from "./pages/equipe/EquipeProjetos";
 import EquipeKanban from "./pages/equipe/EquipeKanban";
 import EquipeSprints from "./pages/equipe/EquipeSprints";
@@ -128,6 +129,7 @@ import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
 import BoardDashboardClientesOs from "./pages/equipe/board/BoardDashboardClientesOs";
 import BoardClientes from "./pages/equipe/board/BoardClientes";
+import DashboardUsoEnvioGerencial from "./pages/equipe/board/DashboardUsoEnvioGerencial";
 
 // Gestão
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
@@ -184,6 +186,7 @@ const App = () => (
               <Route path="/equipe/chamados" element={<PageAccessGate pagePath="/equipe/chamados"><EquipeChamados /></PageAccessGate>} />
               <Route path="/equipe/chamados/:id" element={<PageAccessGate pagePath="/equipe/chamados"><EquipeDetalhesChamado /></PageAccessGate>} />
               <Route path="/equipe/dashboard" element={<PageAccessGate pagePath="/equipe/dashboard"><EquipeDashboard /></PageAccessGate>} />
+              <Route path="/equipe/dashboards" element={<PageAccessGate pagePath="/equipe/dashboard"><Dashboards /></PageAccessGate>} />
               <Route path="/equipe/dashboards/analise-inteligente" element={<PageAccessGate pagePath="/equipe/dashboard"><AnaliseInteligente /></PageAccessGate>} />
               <Route path="/equipe/relatorios" element={<PageAccessGate pagePath="/equipe/relatorios"><EquipeRelatorios /></PageAccessGate>} />
               <Route path="/equipe/kanban" element={<PageAccessGate pagePath="/equipe/kanban"><EquipeKanban /></PageAccessGate>} />
@@ -294,6 +297,7 @@ const App = () => (
               <Route path="/equipe/board" element={<Navigate to="/equipe/board/dashboard" replace />} />
               <Route path="/equipe/board/dashboard" element={<PageAccessGate pagePath="/equipe/board/dashboard"><BoardDashboard /></PageAccessGate>} />
               <Route path="/equipe/board/relatorios" element={<PageAccessGate pagePath="/equipe/board/relatorios"><BoardRelatorios /></PageAccessGate>} />
+              <Route path="/equipe/board/uso-envio" element={<PageAccessGate pagePath="/equipe/board/uso-envio"><DashboardUsoEnvioGerencial /></PageAccessGate>} />
               <Route path="/equipe/board/dashboard-clientes-os" element={<PageAccessGate pagePath="/equipe/board/dashboard-clientes-os"><BoardDashboardClientesOs /></PageAccessGate>} />
               <Route path="/equipe/board/clientes" element={<PageAccessGate pagePath="/equipe/board/clientes"><BoardClientes /></PageAccessGate>} />
 

@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   Layers,
   Settings,
+   BarChart3,
    User,
    FileBarChart,
    RefreshCw,
@@ -51,6 +52,7 @@ const navItems: NavItem[] = [
     path: '/equipe/dashboard',
     children: [
       { icon: LayoutDashboard, label: 'Visão Geral', path: '/equipe/dashboard' },
+      { icon: BarChart3, label: 'Dashboards', path: '/equipe/dashboards' },
       { icon: Sparkles, label: 'Análise Inteligente', path: '/equipe/dashboards/analise-inteligente' },
       { icon: FileBarChart, label: 'Relatórios', path: '/equipe/relatorios' },
       { icon: FolderKanban, label: 'Projetos', path: '/equipe/projetos' },
