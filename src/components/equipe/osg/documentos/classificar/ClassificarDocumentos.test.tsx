@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   atualizarMutate: vi.fn(),
   baixarMutate: vi.fn(),
   pedirUrl: vi.fn(),
+  sincronizarNaoAplicaveis: vi.fn(),
+  marcacoesNaoAplicaveis: [] as Record<string, unknown>[],
   pessoas: [] as Record<string, unknown>[],
   catalogo: [] as Record<string, unknown>[],
   itensPedidos: [] as Record<string, unknown>[],
@@ -40,6 +42,13 @@ vi.mock('@/hooks/useDocumentoArquivo', () => ({
   useAtualizarDocumento: () => ({ mutate: mocks.atualizarMutate, isPending: false }),
   useBaixarDocumento: () => ({ mutate: mocks.baixarMutate }),
   usePreviewUrl: () => ({ mutate: mocks.pedirUrl, isPending: false }),
+}));
+vi.mock('@/hooks/useDomainSolicitacaoNaoAplicavel', () => ({
+  useSolicitacaoNaoAplicavel: () => ({ data: mocks.marcacoesNaoAplicaveis, isLoading: false }),
+  useSincronizarSolicitacaoNaoAplicavel: () => ({
+    mutateAsync: mocks.sincronizarNaoAplicaveis,
+    isPending: false,
+  }),
 }));
 // O catálogo de tipos alimenta o modal de classificação que abre antes de gravar.
 vi.mock('@/hooks/useOsgChecklist', () => ({
@@ -75,6 +84,7 @@ const doc = (id: string, extra: Partial<DocumentoArquivoRow> = {}): DocumentoArq
     pessoa_id: null,
     bem_id: null,
     matricula_id: null,
+    documento_tipo_id: null,
     triado_em: null,
     ...extra,
   }) as DocumentoArquivoRow;
@@ -156,6 +166,8 @@ beforeEach(() => {
   mocks.catalogo = CATALOGO;
   mocks.itensPedidos = PEDIDOS;
   mocks.avulsoPorItem = { 'item-avulso': 'T-AVULSO' };
+  mocks.marcacoesNaoAplicaveis = [];
+  mocks.sincronizarNaoAplicaveis.mockResolvedValue(undefined);
   mocks.parentescoUpsert.mockResolvedValue(undefined);
   // A assinatura da URL resolve na hora, para dar para testar o cache do preview.
   mocks.pedirUrl.mockImplementation((doc: { id: string }, opcoes?: { onSuccess?: (u: string) => void }) =>
@@ -445,6 +457,45 @@ describe('modo Classificar — que documento é cada arquivo', () => {
     expect(screen.getByRole('option', { name: 'CPF' })).toBeInTheDocument();
     // Pedido, mas dispensado pelo analista: deixou de ser esperado.
     expect(screen.queryByRole('option', { name: /DIRPF/ })).not.toBeInTheDocument();
+  });
+
+  it('lista documentos pedidos ainda não recebidos para marcar como não aplicáveis', async () => {
+    const user = userEvent.setup();
+    renderClassificar({
+      docs: [SEM_DONO, doc('rg-antonio', { pessoa_id: 'P9', documento_tipo_id: 'T-RG' })],
+    });
+    await abrirModalDeVinculo(user);
+
+    expect(within(modal()).getByText('Documentos ainda sem resposta')).toBeInTheDocument();
+    expect(within(modal()).getByText('CPF', { selector: 'span' })).toBeInTheDocument();
+    expect(within(modal()).queryByText('RG / CNH', { selector: 'span' })).not.toBeInTheDocument();
+    expect(within(modal()).getByText('Escritura da Fazenda São João', { selector: 'span' })).toBeInTheDocument();
+  });
+
+  it('persiste a marcação não aplicável para a entidade escolhida', async () => {
+    const user = userEvent.setup();
+    renderClassificar();
+    await abrirModalDeVinculo(user);
+    await user.click(within(modal()).getByLabelText(/CPF.*Não se aplica/));
+    await confirmar(user);
+
+    expect(mocks.sincronizarNaoAplicaveis).toHaveBeenCalledWith(expect.objectContaining({
+      alvo: { kind: 'pessoa', id: 'P9' },
+      itemIds: ['i1'],
+    }));
+  });
+
+  it('classificar o arquivo desfaz uma marcação não aplicável conflitante', async () => {
+    const user = userEvent.setup();
+    mocks.marcacoesNaoAplicaveis = [{ solicitacao_item_id: 'i1' }];
+    renderClassificar();
+    await abrirModalDeVinculo(user);
+
+    expect(within(modal()).getByLabelText(/CPF.*Não se aplica/)).toBeChecked();
+    await classificar(user, 'cpf-maria.pdf', 'CPF');
+    await confirmar(user);
+
+    expect(mocks.sincronizarNaoAplicaveis).toHaveBeenCalledWith(expect.objectContaining({ itemIds: [] }));
   });
 
   // Documento avulso está FORA do catálogo por construção (migration

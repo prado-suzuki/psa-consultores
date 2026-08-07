@@ -15,7 +15,7 @@ type AuditEntityType =
   | 'pessoa' | 'parentesco' | 'administracao' | 'quadro_societario'
   | 'bem' | 'matricula' | 'titularidade' | 'impedimento' | 'cartorio'
   | 'tmpl_bloco' | 'tmpl_documento' | 'documento_arquivo'
-  | 'solicitacao' | 'solicitacao_item'
+  | 'solicitacao' | 'solicitacao_item' | 'solicitacao_item_nao_aplicavel'
   | 'org_comment';
 
 interface AuditLogEntry {

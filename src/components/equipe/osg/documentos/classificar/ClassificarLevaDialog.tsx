@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Eye, EyeOff, Loader2, RefreshCw, Tags } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 // Modais OSG importam daqui, e não de ui/dialog: o DialogContent desta fachada
@@ -12,7 +13,10 @@ import { fileIconOf, formatBytes, isImagem, isPreviavel } from '@/components/equ
 import { useChecklistPadrao, useTiposAvulsosDoCliente } from '@/hooks/useOsgChecklist';
 import { useDomainSolicitacao } from '@/hooks/useDomainSolicitacao';
 import { usePreviewUrl } from '@/hooks/useDocumentoArquivo';
-import { tiposParaDestino, tiposPedidos, type DestinoFicha } from '@/lib/classificarTipo';
+import {
+  tiposParaDestino, tiposPedidos, tiposPedidosDetalhados, tiposPendentesParaAlvo, type DestinoFicha,
+} from '@/lib/classificarTipo';
+import type { Alvo } from '@/lib/classificarFicha';
 import { cn } from '@/lib/utils';
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
 
@@ -24,6 +28,9 @@ interface Props {
   clienteId: string;
   /** A leva inteira, na ordem do balde. Um arquivo, uma linha, um tipo. */
   arquivos: DocumentoArquivoRow[];
+  documentosCliente: DocumentoArquivoRow[];
+  alvo: Alvo | null;
+  naoAplicaveisIniciais: string[];
   /** Para onde a leva vai — recorta o catálogo de tipos. */
   destino: DestinoFicha;
   /** Nome de quem vai receber os arquivos, só para o cabeçalho. */
@@ -33,7 +40,7 @@ interface Props {
   salvando: boolean;
   onCancelar: () => void;
   /** Mapa arquivo → tipo escolhido. Arquivo não classificado não entra no mapa. */
-  onConfirmar: (tipos: Record<string, string>) => void;
+  onConfirmar: (tipos: Record<string, string>, naoAplicaveis: string[]) => void;
 }
 
 /**
@@ -49,10 +56,12 @@ interface Props {
  * acontece igual (decisão de 07/08/2026).
  */
 export function ClassificarLevaDialog({
-  aberto, clienteId, arquivos, destino, destinoLabel, rotuloConfirmar, salvando,
+  aberto, clienteId, arquivos, documentosCliente, alvo, naoAplicaveisIniciais,
+  destino, destinoLabel, rotuloConfirmar, salvando,
   onCancelar, onConfirmar,
 }: Props) {
   const [escolhas, setEscolhas] = useState<Record<string, string>>({});
+  const [naoAplicaveis, setNaoAplicaveis] = useState<Set<string>>(new Set(naoAplicaveisIniciais));
   // Saída para quando o documento na mão não está no recorte do destino (um
   // CCIR indo para o bem, por exemplo). O recorte é conveniência, não regra.
   const [verTodos, setVerTodos] = useState(false);
@@ -63,11 +72,16 @@ export function ClassificarLevaDialog({
   // assinatura nova, e fechar não descarta o que já foi buscado.
   const [urls, setUrls] = useState<Record<string, string>>({});
   const [errosUrl, setErrosUrl] = useState<Record<string, string>>({});
+  const naoAplicaveisIniciaisKey = [...naoAplicaveisIniciais].sort().join('|');
 
   const { data: catalogo = [], isLoading } = useChecklistPadrao();
   const { solicitacao } = useDomainSolicitacao(clienteId);
   const { data: avulsoPorItem = {} } = useTiposAvulsosDoCliente(clienteId);
   const { mutate: pedirUrl } = usePreviewUrl();
+
+  useEffect(() => {
+    setNaoAplicaveis(new Set(naoAplicaveisIniciaisKey ? naoAplicaveisIniciaisKey.split('|') : []));
+  }, [naoAplicaveisIniciaisKey]);
 
   /**
    * A lista de tipos, em três fontes possíveis.
@@ -88,6 +102,19 @@ export function ClassificarLevaDialog({
     const { tipos: doCatalogo } = tiposParaDestino(catalogo, destino, verTodos);
     return { tipos: doCatalogo, fonte: verTodos ? ('todos' as const) : ('catalogo' as const) };
   }, [verTodos, solicitacao, avulsoPorItem, destino, catalogo]);
+
+  const pedidosDetalhados = useMemo(
+    () => tiposPedidosDetalhados(solicitacao?.itens ?? [], avulsoPorItem, destino),
+    [solicitacao, avulsoPorItem, destino],
+  );
+  const pendentes = useMemo(
+    () => tiposPendentesParaAlvo(pedidosDetalhados, documentosCliente, alvo, naoAplicaveis),
+    [pedidosDetalhados, documentosCliente, alvo, naoAplicaveis],
+  );
+  const escolhidos = new Set(Object.values(escolhas));
+  const paraDecidir = pendentes.filter(
+    (item) => naoAplicaveis.has(item.solicitacaoItemId) || !escolhidos.has(item.id),
+  );
 
   const classificados = arquivos.filter((doc) => escolhas[doc.id]).length;
 
@@ -160,7 +187,37 @@ export function ClassificarLevaDialog({
         .map((doc) => [doc.id, escolhas[doc.id]] as const)
         .filter(([, tipo]) => Boolean(tipo)),
     );
-    onConfirmar(tipos);
+    onConfirmar(tipos, [...naoAplicaveis]);
+  };
+
+  const marcarNaoAplicavel = (itemId: string, tipoId: string, marcado: boolean) => {
+    setNaoAplicaveis((atual) => {
+      const proximo = new Set(atual);
+      if (marcado) proximo.add(itemId);
+      else proximo.delete(itemId);
+      return proximo;
+    });
+    if (marcado) {
+      setEscolhas((atual) => Object.fromEntries(
+        Object.entries(atual).filter(([, escolha]) => escolha !== tipoId),
+      ));
+    }
+  };
+
+  const escolherTipo = (arquivoId: string, valor: string) => {
+    setEscolhas((atual) => {
+      const proximo = { ...atual };
+      if (valor === SEM_TIPO) delete proximo[arquivoId];
+      else proximo[arquivoId] = valor;
+      return proximo;
+    });
+    const item = pedidosDetalhados.find((pedido) => pedido.id === valor);
+    if (!item) return;
+    setNaoAplicaveis((atual) => {
+      const proximo = new Set(atual);
+      proximo.delete(item.solicitacaoItemId);
+      return proximo;
+    });
   };
 
   return (
@@ -235,14 +292,7 @@ export function ClassificarLevaDialog({
                       <Select
                         value={escolhido || SEM_TIPO}
                         disabled={isLoading || salvando}
-                        onValueChange={(valor) =>
-                          setEscolhas((atual) => {
-                            const proximo = { ...atual };
-                            if (valor === SEM_TIPO) delete proximo[doc.id];
-                            else proximo[doc.id] = valor;
-                            return proximo;
-                          })
-                        }
+                        onValueChange={(valor) => escolherTipo(doc.id, valor)}
                       >
                         <SelectTrigger id={`tipo-${doc.id}`} className="h-8 text-[12px]">
                           <SelectValue placeholder={isLoading ? 'Carregando…' : 'Não classificar'} />
@@ -271,6 +321,34 @@ export function ClassificarLevaDialog({
               );
             })}
           </ul>
+
+          {paraDecidir.length > 0 && (
+            <section className="mt-4 rounded-xl border border-osg-200 bg-osg-50/50 p-3" aria-labelledby="nao-aplicavel-titulo">
+              <div className="mb-2">
+                <h3 id="nao-aplicavel-titulo" className="text-[12.5px] font-semibold text-osg-700">
+                  Documentos ainda sem resposta
+                </h3>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                  Marque “Não se aplica” somente no que esta entidade não precisa apresentar.
+                </p>
+              </div>
+              <ul className="grid gap-1.5 sm:grid-cols-2">
+                {paraDecidir.map((item) => (
+                  <li key={item.solicitacaoItemId}>
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-osg-100 bg-white px-2.5 py-2 text-[11.5px] text-osg-700">
+                      <Checkbox
+                        checked={naoAplicaveis.has(item.solicitacaoItemId)}
+                        disabled={salvando}
+                        onCheckedChange={(estado) => marcarNaoAplicavel(item.solicitacaoItemId, item.id, estado === true)}
+                      />
+                      <span className="min-w-0 flex-1 truncate" title={item.rotulo}>{item.rotulo}</span>
+                      <span className="shrink-0 text-[10.5px] text-muted-foreground">Não se aplica</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {fonte !== 'catalogo' && !isLoading && (
             <button
