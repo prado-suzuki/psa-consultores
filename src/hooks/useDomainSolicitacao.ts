@@ -72,12 +72,22 @@ export interface SolicitacaoAtiva {
   linhas: Map<string, SolicitacaoItemRow>;
 }
 
+/**
+ * O `!solicitacao_item_item_padrao_id_fkey` não é enfeite: desde a migration
+ * 20260807150000 existem DUAS chaves entre `solicitacao_item` e
+ * `documento_tipo` — a de sempre (`item_padrao_id`, o item aponta para o
+ * catálogo) e a nova (`documento_tipo.solicitacao_item_id`, a linha avulsa
+ * aponta para o pedido manual que a gerou). Com duas, o PostgREST recusa o
+ * embed sem nome (PGRST201) e a tela inteira cai em "não foi possível carregar
+ * o onboarding". O nome fixa o caminho certo: o catálogo do qual este item
+ * herda texto, nunca o avulso que nasceu dele.
+ */
 const SELECT_SOLICITACAO = `
   id, cliente_id, ordem_servico_id, status, enviada_em, encerrada_em, observacao,
   itens:solicitacao_item (
     id, item_padrao_id, granularidade, grupo, documento, entidade, nota,
     status, ordem, observacao,
-    catalogo:documento_tipo (
+    catalogo:documento_tipo!solicitacao_item_item_padrao_id_fkey (
       id, codigo, documento, entidade, nota, granularidade, grupo, ordem, confidencial
     )
   )
