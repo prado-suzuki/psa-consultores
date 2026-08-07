@@ -62,7 +62,18 @@ const deadlineOptions: Record<string, string> = {
   '15': '15 dias',
 };
 
-export default function GestaoDetalhesChamado() {
+/**
+ * Detalhe do chamado.
+ *
+ * Recortado da moldura pelo mesmo motivo das outras duas telas de chamados:
+ * clicar em "Ver" dentro da Tax nao pode jogar a pessoa para a area de Gestao.
+ */
+export interface ChamadoDetalheContentProps {
+  /** Endereco da lista correspondente, para o "Voltar" e o caso sem chamado. */
+  listaPath: string;
+}
+
+export function ChamadoDetalheContent({ listaPath }: ChamadoDetalheContentProps) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -191,36 +202,31 @@ export default function GestaoDetalhesChamado() {
 
   if (loading) {
     return (
-      <GestaoLayout title="Carregando..." subtitle="Aguarde">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </GestaoLayout>
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
     );
   }
 
   if (!ticket) {
-    navigate('/gestao/chamados');
+    navigate(listaPath);
     return null;
   }
 
   const sending = sendMessage.isPending;
 
   return (
-    <GestaoLayout 
-      title="Detalhes do Chamado" 
-      subtitle={`ID: ${ticket.id.slice(0, 8)}...`}
-      headerActions={
+    <>
+      <div className="mx-auto mb-4 flex max-w-4xl justify-end">
         <Button
           variant="outline"
-          onClick={() => navigate('/gestao/chamados')}
+          onClick={() => navigate(listaPath)}
           className="border-border text-muted-foreground hover:bg-muted"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
-      }
-    >
+      </div>
       <div className="max-w-4xl mx-auto space-y-6">
         <Card className="p-6 bg-card border-border/60 shadow-sm">
           <div className="space-y-4">
@@ -491,6 +497,16 @@ export default function GestaoDetalhesChamado() {
           </div>
         </Card>
       </div>
+    </>
+  );
+}
+
+
+/** Rota da area de Gestao: o mesmo miolo dentro da moldura de sempre. */
+export default function GestaoDetalhesChamado() {
+  return (
+    <GestaoLayout title="Detalhes do Chamado" subtitle="Chamado do cliente">
+      <ChamadoDetalheContent listaPath="/gestao/chamados" />
     </GestaoLayout>
   );
 }

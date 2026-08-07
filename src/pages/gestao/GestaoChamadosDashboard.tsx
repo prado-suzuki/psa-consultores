@@ -23,7 +23,23 @@ const initialFilters: Filters = {
   cluster: 'todos',
 };
 
-export default function GestaoChamadosDashboard() {
+/**
+ * Dashboard de Chamados.
+ *
+ * O miolo vive separado da moldura pelo mesmo motivo do `ChamadosGestaoContent`:
+ * a tela é montada na área de Gestão, na Gerencial da Tax e na da OSG, e presa
+ * ao `GestaoLayout` ela arrastava o menu da Gestão para dentro das outras áreas.
+ *
+ * O botão "Lista de chamados" passou do cabeçalho do layout para dentro do
+ * conteúdo. Como cabeçalho é da moldura, e a moldura agora muda conforme o
+ * lugar, mantê-lo lá exigiria que as três áreas soubessem desse botão.
+ */
+export interface ChamadosDashboardContentProps {
+  /** Endereço da LISTA de chamados correspondente a esta montagem. */
+  listaPath: string;
+}
+
+export function ChamadosDashboardContent({ listaPath }: ChamadosDashboardContentProps) {
   const navigate = useNavigate();
   const [filters, setFilters] = useState(initialFilters);
   const { data: tickets = [], isLoading: loadingTickets } = useTicketsList();
@@ -51,13 +67,11 @@ export default function GestaoChamadosDashboard() {
     () => calculateDashboardAnalytics(filteredTickets, firstResponseMap, agentNames, areaNames),
     [filteredTickets, firstResponseMap, agentNames, areaNames],
   );
-  const openTickets = () => navigate('/gestao/chamados');
+  const openTickets = () => navigate(listaPath);
 
   return (
-    <GestaoLayout
-      title="Dashboard de Chamados"
-      subtitle="Panorama operacional, prazos e responsáveis"
-      headerActions={
+    <div className="space-y-6">
+      <div className="flex justify-end">
         <Button
           variant="outline"
           size="sm"
@@ -67,35 +81,44 @@ export default function GestaoChamadosDashboard() {
           <ListChecks className="mr-2 h-4 w-4" />
           Lista de chamados
         </Button>
-      }
-    >
-      <div className="space-y-6">
-        <DashboardFilters
-          filters={filters}
-          areas={areas}
-          clusters={clusters}
-          onChange={setFilters}
-        />
-        <DashboardKpis
-          stats={analytics.stats}
-          periodo={filters.periodo}
-          loading={loadingTickets || firstResponseMap === undefined}
-        />
-        <DashboardDistributions
-          total={analytics.stats.total}
-          statusSegments={analytics.statusSegments}
-          departmentSegments={analytics.departmentSegments}
-          onOpenTickets={openTickets}
-        />
-        <DashboardRankings
-          responsaveis={analytics.rankingResponsaveis}
-          clientes={analytics.rankingClientes}
-          representantes={analytics.rankingRepresentantes}
-          departamentos={analytics.rankingDepartamentos}
-          areas={analytics.rankingAreas}
-        />
-        <TaxTopicsCloud topics={analytics.taxTopics} totalTickets={filteredTickets.length} />
       </div>
+      <DashboardFilters
+        filters={filters}
+        areas={areas}
+        clusters={clusters}
+        onChange={setFilters}
+      />
+      <DashboardKpis
+        stats={analytics.stats}
+        periodo={filters.periodo}
+        loading={loadingTickets || firstResponseMap === undefined}
+      />
+      <DashboardDistributions
+        total={analytics.stats.total}
+        statusSegments={analytics.statusSegments}
+        departmentSegments={analytics.departmentSegments}
+        onOpenTickets={openTickets}
+      />
+      <DashboardRankings
+        responsaveis={analytics.rankingResponsaveis}
+        clientes={analytics.rankingClientes}
+        representantes={analytics.rankingRepresentantes}
+        departamentos={analytics.rankingDepartamentos}
+        areas={analytics.rankingAreas}
+      />
+      <TaxTopicsCloud topics={analytics.taxTopics} totalTickets={filteredTickets.length} />
+    </div>
+  );
+}
+
+/** Rota da área de Gestão: o mesmo miolo dentro da moldura de sempre. */
+export default function GestaoChamadosDashboard() {
+  return (
+    <GestaoLayout
+      title="Dashboard de Chamados"
+      subtitle="Panorama operacional, prazos e responsáveis"
+    >
+      <ChamadosDashboardContent listaPath="/gestao/chamados" />
     </GestaoLayout>
   );
 }

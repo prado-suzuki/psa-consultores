@@ -74,7 +74,26 @@ const departmentLabels: Record<string, string> = {
   outros: 'Outros',
 };
 
-export default function GestaoChamados() {
+/**
+ * Tela de Gestao de Chamados.
+ *
+ * O miolo (`ChamadosGestaoContent`) vive separado da moldura porque a mesma
+ * tela e montada em tres lugares: aqui, na Gerencial da Tax e na da OSG. Preso
+ * ao `GestaoLayout`, ele arrastava junto o menu inteiro da area de Gestao — o
+ * lider abria a tela dentro da Tax e via a barra lateral do Marketing.
+ *
+ * Mesmo padrao do `DashboardClientesOsContent`, ja reaproveitado em tres areas.
+ */
+export interface ChamadosGestaoContentProps {
+  /**
+   * Endereco onde a tela esta montada, para os links internos (detalhe do
+   * chamado e dashboard). Sem isto, clicar em "Ver" dentro da Tax jogaria a
+   * pessoa de volta para a area de Gestao.
+   */
+  basePath: string;
+}
+
+export function ChamadosGestaoContent({ basePath }: ChamadosGestaoContentProps) {
   const navigate = useNavigate();
 
   const { data: tickets = [], isLoading: loading } = useTicketsList();
@@ -334,10 +353,7 @@ export default function GestaoChamados() {
   const deleting = deleteTickets.isPending;
 
   return (
-    <GestaoLayout 
-      title="Gestão de Chamados" 
-      subtitle="Visualize e gerencie os chamados dos clientes"
-    >
+    <>
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
@@ -488,7 +504,7 @@ export default function GestaoChamados() {
         </Button>
         <Button
           variant="outline"
-          onClick={() => navigate('/gestao/chamados/dashboard')}
+          onClick={() => navigate(`${basePath}/dashboard`)}
           className="border-border text-muted-foreground hover:bg-muted"
         >
           <BarChart3 className="h-4 w-4 mr-2" />
@@ -676,7 +692,7 @@ export default function GestaoChamados() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/gestao/chamados/${ticket.id}`)}
+                        onClick={() => navigate(`${basePath}/${ticket.id}`)}
                         className="border-border text-muted-foreground hover:bg-muted hover:text-primary"
                       >
                         Ver
@@ -731,6 +747,19 @@ export default function GestaoChamados() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </>
+  );
+}
+
+
+/** Rota da area de Gestao: o mesmo miolo dentro da moldura de sempre. */
+export default function GestaoChamados() {
+  return (
+    <GestaoLayout
+      title="Gestão de Chamados"
+      subtitle="Visualize e gerencie os chamados dos clientes"
+    >
+      <ChamadosGestaoContent basePath="/gestao/chamados" />
     </GestaoLayout>
   );
 }

@@ -160,6 +160,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
   const isProjects = location.pathname.startsWith('/equipe/osg/inicio')
     || location.pathname.startsWith('/equipe/osg/dashboard')
     || location.pathname.startsWith('/equipe/osg/projetos')
+    // `/equipe/osg/gerencial` cobre tudo do agrupador novo, inclusive
+    // logs-equipe e chamados, que agora vivem debaixo dele.
     || location.pathname.startsWith('/equipe/osg/gerencial')
     || location.pathname.startsWith('/equipe/osg/auditoria');
 
@@ -171,6 +173,17 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
     { path: '/equipe/osg/projetos/feed', label: 'Feed', icon: MessagesSquare },
   ];
   const isProjetosActive = location.pathname.startsWith('/equipe/osg/projetos');
+
+  // Itens do agrupador "Gerencial" — espelha o da Tax. "Dashboards" é a tela que
+  // antes se chamava Gerencial (mesmo endereço, rótulo novo); chamados e logs
+  // vieram para debaixo dela.
+  const gerencialItems = [
+    { path: '/equipe/osg/gerencial', label: 'Dashboards', icon: LayoutDashboard },
+    { path: '/equipe/osg/gerencial/chamados', label: 'Gestão de Chamados', icon: MessageSquare },
+    { path: '/equipe/osg/gerencial/chamados/dashboard', label: 'Dashboard de Chamados', icon: LineChart },
+    { path: '/equipe/osg/gerencial/logs-equipe', label: 'Logs de Equipe', icon: Shield },
+  ];
+  const isGerencialActive = location.pathname.startsWith('/equipe/osg/gerencial');
 
   // Itens do agrupador "Documentos" — expande no hover (e fica aberto na rota ativa)
   const docItems = [
@@ -576,44 +589,81 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           </>
           )}
 
-          {/* Gerencial — dashboard de Clientes e OS por cluster, só para líder+ */}
+          {/* Agrupador "Gerencial" — exclusivo da área Projetos e só para líder+.
+              Reúne o que antes eram dois itens soltos (Gerencial e Auditoria) mais
+              as duas telas de chamados que vieram da área de Gestão. Espelha o
+              agrupador "Projetos" logo acima; clicar no próprio grupo abre
+              "Dashboards", que é a tela que antes se chamava Gerencial. */}
           {isProjects && canGerencial && (
-            <button
-              onClick={() => navigate('/equipe/osg/gerencial')}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
-                location.pathname === '/equipe/osg/gerencial'
-                  ? "bg-osg-100 text-osg-700"
-                  : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
-              )}
-            >
-              <LineChart className="h-4 w-4 flex-shrink-0" />
-              <span className={cn(rotuloCls, "whitespace-nowrap")}>Gerencial</span>
-            </button>
-          )}
+            <div className="group/ger">
+              <button
+                type="button"
+                onClick={() => navigate('/equipe/osg/gerencial')}
+                className={cn(
+                  "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                  isGerencialActive
+                    ? "bg-osg-50 text-osg-700"
+                    : "text-slate-600 group-hover/ger:bg-osg-50 group-hover/ger:text-osg-700"
+                )}
+              >
+                <LineChart className="h-4 w-4 flex-shrink-0" />
+                <span className={cn(rotuloCls, "whitespace-nowrap")}>Gerencial</span>
+                <ChevronDown
+                  className={cn(
+                    rotuloCls,
+                    "h-4 w-4 ml-auto flex-shrink-0 duration-300",
+                    isGerencialActive ? "rotate-180" : "group-hover/ger:rotate-180"
+                  )}
+                />
+              </button>
 
-          {/* Auditoria — exclusiva da área Projetos (a rota /equipe/osg/auditoria é
-              classificada como Projetos, então não deve aparecer no OSG Work) e só
-              para líder+, como o Gerencial: a tela mostra produtividade e acesso do
-              time inteiro. */}
-          {isProjects && canGerencial && (
-            <button
-              onClick={() => navigate('/equipe/osg/auditoria')}
-              className={cn(
-                "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
-                location.pathname === '/equipe/osg/auditoria'
-                  ? "bg-osg-100 text-osg-700"
-                  : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
-              )}
-            >
-              <Shield className="h-4 w-4 flex-shrink-0" />
-              <span className={cn(rotuloCls, "whitespace-nowrap")}>Auditoria</span>
-            </button>
+              <div
+                className={cn(
+                  "grid transition-[grid-template-rows] duration-300 ease-out",
+                  collapsed
+                    ? "grid-rows-[0fr]"
+                    : isGerencialActive
+                      ? "grid-rows-[1fr]"
+                      : "grid-rows-[0fr] group-hover/ger:grid-rows-[1fr]"
+                )}
+              >
+                <div className="min-h-0 overflow-hidden">
+                  <div
+                    className={cn(
+                      "space-y-1 pt-1",
+                      collapsed ? "" : "ml-2 pl-2 border-l border-osg-100"
+                    )}
+                  >
+                    {gerencialItems.map(({ path, label, icon: Icon }) => (
+                      <button
+                        key={path}
+                        onClick={() => navigate(path)}
+                        // Rótulo comprido ("Dashboard de Chamados") corta com
+                        // reticências em vez de vazar, e o título traz o inteiro.
+                        title={label}
+                        className={cn(
+                          "w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+                          location.pathname === path
+                            ? "bg-osg-100 text-osg-700"
+                            : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                        )}
+                      >
+                        <Icon className="h-4 w-4 flex-shrink-0" />
+                        <span className={cn(rotuloCls, "min-w-0 truncate")}>{label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Chamados — atalho espelhado da área Tax (mesma página /equipe/chamados,
-              que já escopa o filtro de cluster pelo cluster do usuário OSG). */}
-          {isProjects && (
+              que já escopa o filtro de cluster pelo cluster do usuário OSG).
+              Some para líder+, que tem "Gestão de Chamados" no dropdown Gerencial:
+              dois caminhos para chamado no mesmo menu confundem. É só o menu; a
+              página segue liberada para quem tiver o link. */}
+          {isProjects && !canGerencial && (
             <button
               onClick={() => navigate('/equipe/chamados')}
               className={cn(

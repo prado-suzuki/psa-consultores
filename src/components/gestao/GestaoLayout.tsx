@@ -3,7 +3,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
-import { PendingTicketsAlert } from '@/components/notifications/PendingTicketsAlert';
 import {
   LogOut,
   ChevronLeft,
@@ -12,11 +11,8 @@ import {
   ArrowLeft,
   LayoutDashboard,
   Newspaper,
-  MessageSquare,
   Users,
   User,
-  MessageCircle,
-  BarChart3,
 } from 'lucide-react';
 
 interface GestaoLayoutProps {
@@ -38,10 +34,11 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
 
+  // Chamados e o dashboard dele saíram daqui: passaram para o dropdown Gerencial
+  // da Tax e da OSG, restritos a líder+. A área de Marketing fica com Novidades
+  // e Contatos, que é o desenho acordado com a Patricia.
   const navItems: NavItem[] = [
     { icon: Newspaper, label: 'Novidades', path: '/gestao' },
-    { icon: MessageSquare, label: 'Chamados', path: '/gestao/chamados' },
-    { icon: BarChart3, label: 'Dashboard Chamados', path: '/gestao/chamados/dashboard' },
     { icon: Users, label: 'Contatos', path: '/gestao/contatos' },
   ];
 
@@ -168,23 +165,14 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
               {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
+          {/* O atalho de chamados e a faixa de pendentes saíram junto com a tela:
+              esta área não trata mais chamado, e apontar para a Gerencial da Tax
+              levaria quem é do Marketing a uma porta que não abre para ele. */}
           <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="relative text-muted-foreground hover:text-primary hover:bg-muted"
-              onClick={() => navigate('/gestao/chamados')}
-              title="Ver Chamados"
-            >
-              <MessageCircle className="h-5 w-5" />
-            </Button>
-            <NotificationPopover navigateTo="/gestao/chamados" />
+            <NotificationPopover navigateTo="/gestao" />
             {headerActions}
           </div>
         </header>
-
-        {/* Pending Tickets Alert */}
-        <PendingTicketsAlert navigateTo="/gestao/chamados" />
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto">

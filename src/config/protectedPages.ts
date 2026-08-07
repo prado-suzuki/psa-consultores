@@ -487,11 +487,35 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
-    page_path: '/equipe/tax/auditoria',
-    page_name: 'Auditoria Tax',
+    // Endereço novo: a tela virou "Logs de Equipe" dentro do dropdown Gerencial.
+    // A migração 20260807... faz UPDATE do caminho no registro que já existe, em
+    // vez de deixar o sincronizador criar um vazio e órfãs as 25 permissões.
+    page_path: '/equipe/tax/gerencial/logs-equipe',
+    page_name: 'Logs de Equipe (Tax)',
     // Restrita a líder+ na rota (LiderRoute em App.tsx): liberar a permissão
     // aqui para um team_member não faz a página abrir.
     page_description: 'Histórico, produtividade e acesso do time Tax (somente líder+)',
+    category: 'tax',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  // Chamados dentro do dropdown Gerencial da Tax. Vieram de `/gestao/chamados`.
+  // Duas travas: papel (LiderRoute) e permissão nominal, como a de Logs de
+  // Equipe ao lado — foi a escolha do Bernardo para as telas aparecerem na
+  // árvore de acessos. A migração cria estes registros JÁ com as permissões
+  // de hoje copiadas, para ninguém perder a tela na virada.
+  {
+    page_path: '/equipe/tax/gerencial/chamados',
+    page_name: 'Gestão de Chamados (Tax)',
+    page_description: 'Lista e gestão dos chamados dos clientes (somente líder+)',
+    category: 'tax',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/tax/gerencial/chamados/dashboard',
+    page_name: 'Dashboard de Chamados (Tax)',
+    page_description: 'Panorama de chamados: KPIs, prazos e rankings (somente líder+)',
     category: 'tax',
     requires_admin: false,
     requires_team_member: true,
@@ -606,11 +630,29 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
-    page_path: '/equipe/osg/auditoria',
-    page_name: 'Auditoria OSG',
+    // Ver a observação da versão Tax: caminho novo, registro preservado.
+    page_path: '/equipe/osg/gerencial/logs-equipe',
+    page_name: 'Logs de Equipe (OSG)',
     // Restrita a líder+ na rota (LiderRoute em App.tsx): liberar a permissão
     // aqui para um team_member não faz a página abrir.
     page_description: 'Histórico, produtividade e acesso do time OSG (somente líder+)',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  // Chamados dentro do dropdown Gerencial da OSG. Ver a observação da Tax.
+  {
+    page_path: '/equipe/osg/gerencial/chamados',
+    page_name: 'Gestão de Chamados (OSG)',
+    page_description: 'Lista e gestão dos chamados dos clientes (somente líder+)',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/osg/gerencial/chamados/dashboard',
+    page_name: 'Dashboard de Chamados (OSG)',
+    page_description: 'Panorama de chamados: KPIs, prazos e rankings (somente líder+)',
     category: 'osg',
     requires_admin: false,
     requires_team_member: true,
@@ -751,22 +793,11 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
-  {
-    page_path: '/gestao/chamados',
-    page_name: 'Chamados',
-    page_description: 'Gerenciar chamados',
-    category: 'gestao',
-    requires_admin: false,
-    requires_team_member: true,
-  },
-  {
-    page_path: '/gestao/chamados/dashboard',
-    page_name: 'Dashboard de Chamados',
-    page_description: 'Panorama gerencial de chamados (KPIs, prazos e rankings)',
-    category: 'gestao',
-    requires_admin: false,
-    requires_team_member: true,
-  },
+  // `/gestao/chamados` e `/gestao/chamados/dashboard` saíram daqui: as telas
+  // passaram para o dropdown Gerencial da Tax e da OSG (entradas mais abaixo).
+  // Os cadastros antigos são apagados pela migração 20260807190000 — tirá-los
+  // só daqui não bastaria, porque o sincronizador insere e atualiza, mas nunca
+  // apaga o que sumiu deste arquivo.
   {
     page_path: '/gestao/contatos',
     page_name: 'Contatos',

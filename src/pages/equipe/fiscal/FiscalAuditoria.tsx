@@ -9,7 +9,7 @@ import { Shield } from 'lucide-react';
 
 const FiscalAuditoria = () => {
   return (
-    <FiscalLayout title="Auditoria" subtitle="Histórico de alterações em projetos e tarefas">
+    <FiscalLayout title="Logs de Equipe" subtitle="Histórico de alterações em projetos e tarefas">
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
