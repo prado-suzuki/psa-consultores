@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { AREA_CATEGORIES_MAP, ALL_AREA_CATEGORIES } from '@/config/areaCategories';
 import { useSyncUserAreaAccess } from './useUserPageAccess';
-import type { AppRole } from './useUsersWithRoles';
+import { paraRoleDoBanco, type AppRole } from './useUsersWithRoles';
 import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
 import { assertCanPerform } from './useRlsPrecheck';
 
@@ -162,7 +162,7 @@ export function useUpdateTeamMember() {
           .from('user_roles')
           .select('id')
           .eq('user_id', userId)
-          .eq('role', rolesToRemove[0] as AppRole)
+          .eq('role', paraRoleDoBanco(rolesToRemove[0]))
           .maybeSingle();
         if (sampleRole?.id) {
           await assertCanPerform('user_roles', 'delete', sampleRole.id);
@@ -173,13 +173,13 @@ export function useUpdateTeamMember() {
           .from('user_roles')
           .delete()
           .eq('user_id', userId)
-          .eq('role', role as AppRole);
+          .eq('role', paraRoleDoBanco(role));
         if (error) throw error;
       }
       for (const role of rolesToAdd) {
         const { error } = await supabase
           .from('user_roles')
-          .insert({ user_id: userId, role: role as AppRole });
+          .insert({ user_id: userId, role: paraRoleDoBanco(role) });
         if (error) throw error;
       }
 

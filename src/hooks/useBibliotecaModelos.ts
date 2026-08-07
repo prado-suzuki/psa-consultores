@@ -7,8 +7,9 @@ import type { TipoBloco } from '@/lib/templates';
 
 /**
  * Colunas de família de variantes (migration 20260806120000_tmpl_bloco_familia_variantes).
- * O types.ts é autogerado e ainda não as conhece, então elas entram por interseção
- * aqui, num lugar só. Esta interseção sai quando o codegen do Supabase rodar.
+ * O codegen do Supabase já as conhece, mas tipa `variante_seletor` como `Json`; a
+ * interseção continua para estreitar esse campo no objeto "caminho => valor esperado"
+ * que o resolvedor espera, e para documentar o papel de cada coluna num lugar só.
  */
 export interface BlocoVarianteCols {
   /** Cabeça da família. Nulo = bloco normal; preenchido = este bloco é UMA variante. */
@@ -20,7 +21,8 @@ export interface BlocoVarianteCols {
   variante_ordem: number | null;
 }
 
-export type BlocoRow = Database['public']['Tables']['tmpl_bloco']['Row'] & BlocoVarianteCols;
+export type BlocoRow =
+  Omit<Database['public']['Tables']['tmpl_bloco']['Row'], keyof BlocoVarianteCols> & BlocoVarianteCols;
 export type BlocoVersaoRow = Database['public']['Tables']['tmpl_bloco_versao']['Row'];
 
 /** Linha de tmpl_flag com a definição declarativa (colunas novas, fora dos types gerados). */

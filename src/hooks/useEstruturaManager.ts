@@ -23,6 +23,9 @@ export interface Area {
   is_active: boolean;
   page_categories: string[];
   cost_center_id: string | null;
+  /** Gestora de chamados da área — vem no `select('*')`; usada para classificar
+   *  por área quem responde pela área sem estar em nenhuma equipe. */
+  gestor_chamados_id?: string | null;
 }
 
 export interface Equipe {

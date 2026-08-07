@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
@@ -28,6 +28,9 @@ export default function ServicosTab() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; nome: string } | null>(null);
 
   const { data: clusters = [] } = useEstruturaClusters();
+  // Clusters inativos são legado da fusão com empresas_faturamento: ficam no fim, marcados.
+  const clustersAtivos = useMemo(() => clusters.filter(c => c.is_active), [clusters]);
+  const clustersInativos = useMemo(() => clusters.filter(c => !c.is_active), [clusters]);
   const { data: items = [], isLoading } = useServicosPrestadosList();
   const { save } = useServicosPrestadosSave();
   const { remove } = useServicosPrestadosDelete();
@@ -107,9 +110,18 @@ export default function ServicosTab() {
                 <SelectTrigger><SelectValue placeholder="Selecione um cluster..." /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Nenhum</SelectItem>
-                  {clusters.map(c => (
+                  {clustersAtivos.map(c => (
                     <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                   ))}
+                  {clustersInativos.length > 0 && (
+                    <SelectGroup>
+                      <SelectSeparator />
+                      <SelectLabel className="text-slate-400">Inativos</SelectLabel>
+                      {clustersInativos.map(c => (
+                        <SelectItem key={c.id} value={c.id} className="text-slate-500">{c.name}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
                 </SelectContent>
               </Select>
             </div>

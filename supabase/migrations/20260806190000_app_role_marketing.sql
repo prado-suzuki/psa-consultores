@@ -1,0 +1,21 @@
+-- Papel `marketing`: gerencia a área de Novidades do site, e nada além disso.
+--
+-- Vai sozinho neste arquivo de propósito. O Postgres não permite USAR um valor
+-- de enum na mesma transação em que ele foi adicionado, e cada migração roda
+-- dentro de uma transação. Juntar este ALTER TYPE com as políticas do arquivo
+-- seguinte faria a migração falhar com "unsafe use of new value of enum type".
+-- Se alguém um dia juntar os dois, é este o erro que vai aparecer.
+--
+-- `marketing` é um papel LATERAL, e não um degrau da hierarquia usada por
+-- `has_role_or_higher` (team_member < sublider < lider < admin). Assim como
+-- `client` e `timecliente`, que também são laterais, ele cai no ELSE daquela
+-- função e devolve false.
+--
+-- Essa é a propriedade que torna a mudança segura: como todas as outras
+-- políticas do sistema perguntam `has_role_or_higher`, adicionar este papel não
+-- alarga nenhuma delas. O único poder do marketing é o que a migração seguinte
+-- concede, explicitamente, na tabela `novidades`.
+--
+-- Porta de mão única: o Postgres não remove valor de enum. Se o papel deixar de
+-- existir um dia, o valor continua no tipo.
+ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'marketing';

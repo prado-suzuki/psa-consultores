@@ -16,10 +16,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { DailyTaskPicker } from '@/components/equipe/daily/DailyTaskPicker';
 import type { DailySprintTask } from '@/hooks/useDailySprintTasks';
 import type { Process, Project, Sprint, TeamMember } from '@/hooks/useDomainEquipeDaily';
-import { appendTaskReference, describeDailyMember, groupDailyTasksByParent, type DailyFormDraft } from '@/lib/equipeDaily';
+import { describeDailyMember, groupDailyTasksByParent, type DailyFormDraft } from '@/lib/equipeDaily';
 
 interface DailyFormCardProps {
   authenticatedUserId?: string;
@@ -61,9 +60,6 @@ export function DailyFormCard({
   // Contexto (quem/sprint/projeto/processo) fica recolhido: vem preenchido pelo usuário
   // logado + sprint ativa, e só abre quando a pessoa realmente quer trocar algo.
   const [contextOpen, setContextOpen] = useState(false);
-
-  const insertTask = (field: 'did_yesterday' | 'will_do_today') => (task: DailySprintTask) =>
-    onFormChange({ ...form, [field]: appendTaskReference(form[field], task) });
 
   // Tarefas agrupadas por mãe para o dropdown de bloqueio.
   const blockerGroups = groupDailyTasksByParent(sprintTasks);
@@ -187,7 +183,6 @@ export function DailyFormCard({
               </Button>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              {sprintTasks.length > 0 && <DailyTaskPicker tasks={sprintTasks} onPick={insertTask('did_yesterday')} />}
               <Button
                 type="button"
                 variant="outline"
@@ -217,7 +212,6 @@ export function DailyFormCard({
           </div>
           <div className="space-y-2">
             <Label className="text-gray-700 flex items-center gap-2"><Clock className="h-4 w-4 text-gray-500" />O que vou fazer hoje?</Label>
-            {sprintTasks.length > 0 && <DailyTaskPicker tasks={sprintTasks} onPick={insertTask('will_do_today')} />}
             <TarefaRichTextEditor
               value={form.will_do_today}
               onChange={(will_do_today) => onFormChange({ ...form, will_do_today })}

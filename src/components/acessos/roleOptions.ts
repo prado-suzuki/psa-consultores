@@ -17,6 +17,11 @@ export const ROLE_OPTIONS: RoleOption[] = [
   { value: 'sublider',    label: 'Sublíder',      desc: 'Apoio à liderança com visibilidade ampliada' },
   { value: 'client',      label: 'Cliente',       desc: 'Acesso ao portal do cliente' },
   { value: 'timecliente', label: 'Time Cliente',  desc: 'Membro da equipe do cliente' },
+  // Papel lateral: não entra na hierarquia de `has_role_or_higher` e por isso
+  // não abre nada sozinho. Quem tem só ele precisa da liberação da página
+  // /gestao (Novidades) na árvore de permissões, item a item — marcar a área
+  // inteira concederia chamados, contatos e acessos junto.
+  { value: 'marketing',   label: 'Marketing',     desc: 'Gerencia as novidades do site' },
 ];
 
 /** Rótulos curtos usados em badges nos cards de usuário. */
@@ -27,6 +32,7 @@ export const ROLE_SHORT_LABELS: Record<string, string> = {
   sublider: 'Sublíder',
   client: 'Cliente',
   timecliente: 'Time Cliente',
+  marketing: 'Marketing',
 };
 
 /** Classes de Tailwind por role para os badges na lista de usuários. */
@@ -37,4 +43,5 @@ export const ROLE_BADGE_CLASSES: Record<string, string> = {
   team_member: 'border-teal-200 text-teal-600 bg-teal-50',
   timecliente: 'border-cyan-200 text-cyan-600 bg-cyan-50',
   client:      'border-slate-200 text-slate-600 bg-slate-50',
+  marketing:   'border-violet-200 text-violet-600 bg-violet-50',
 };

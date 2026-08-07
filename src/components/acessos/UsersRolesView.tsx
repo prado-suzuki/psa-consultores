@@ -14,6 +14,7 @@ const ROLE_VISUALS: Record<AppRole, RoleVisual> = {
   sublider:    { key: 'sublider',    label: 'Sublíder',     className: 'bg-orange-100 text-orange-700 border-0' },
   client:      { key: 'client',      label: 'Cliente',      className: 'bg-slate-100 text-slate-600 border-0' },
   timecliente: { key: 'timecliente', label: 'Time Cliente', className: 'bg-cyan-100 text-cyan-700 border-0' },
+  marketing:   { key: 'marketing',   label: 'Marketing',    className: 'bg-violet-100 text-violet-700 border-0' },
 };
 
 const LEGEND_DESCRIPTIONS: Record<AppRole, string> = {
@@ -23,6 +24,7 @@ const LEGEND_DESCRIPTIONS: Record<AppRole, string> = {
   sublider:    'Apoio à liderança com visibilidade ampliada na sua área.',
   client:      'Acesso ao portal do cliente: abertura e acompanhamento de chamados.',
   timecliente: 'Membro da equipe do cliente com acesso restrito ao portal.',
+  marketing:   'Gerencia as novidades do site. Não abre nenhuma outra área sozinho.',
 };
 
 export interface UsersRolesViewProps {
@@ -40,7 +42,7 @@ export interface UsersRolesViewProps {
 
 const VARIANT_COLUMNS: Record<NonNullable<UsersRolesViewProps['variant']>, AppRole[]> = {
   compact: ['admin', 'team_member', 'client'],
-  full: ['admin', 'team_member', 'lider', 'sublider', 'client', 'timecliente'],
+  full: ['admin', 'team_member', 'lider', 'sublider', 'client', 'timecliente', 'marketing'],
 };
 
 /**

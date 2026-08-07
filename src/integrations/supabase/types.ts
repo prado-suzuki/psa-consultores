@@ -278,32 +278,9 @@ export type Database = {
         }
         Relationships: []
       }
-      backup_desc_fluxo_solicitacao_20260803: {
-        Row: {
-          copiado_em: string | null
-          description: string | null
-          id: string | null
-          task_code: string | null
-          title: string | null
-        }
-        Insert: {
-          copiado_em?: string | null
-          description?: string | null
-          id?: string | null
-          task_code?: string | null
-          title?: string | null
-        }
-        Update: {
-          copiado_em?: string | null
-          description?: string | null
-          id?: string | null
-          task_code?: string | null
-          title?: string | null
-        }
-        Relationships: []
-      }
       bem: {
         Row: {
+          area_construida_m2: number | null
           ccir_codigo: string | null
           cliente_id: string
           created_at: string
@@ -311,6 +288,11 @@ export type Database = {
           denominacao: string
           descricao_outros: string | null
           empresa_destino_pessoa_id: string | null
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_complemento: string | null
+          endereco_logradouro: string | null
+          endereco_numero: string | null
           id: string
           imposto_anual_exercicio: number | null
           inscricao_municipal: string | null
@@ -330,6 +312,7 @@ export type Database = {
           vlr_mercado: number | null
         }
         Insert: {
+          area_construida_m2?: number | null
           ccir_codigo?: string | null
           cliente_id: string
           created_at?: string
@@ -337,6 +320,11 @@ export type Database = {
           denominacao: string
           descricao_outros?: string | null
           empresa_destino_pessoa_id?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_complemento?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
           id?: string
           imposto_anual_exercicio?: number | null
           inscricao_municipal?: string | null
@@ -356,6 +344,7 @@ export type Database = {
           vlr_mercado?: number | null
         }
         Update: {
+          area_construida_m2?: number | null
           ccir_codigo?: string | null
           cliente_id?: string
           created_at?: string
@@ -363,6 +352,11 @@ export type Database = {
           denominacao?: string
           descricao_outros?: string | null
           empresa_destino_pessoa_id?: string | null
+          endereco_bairro?: string | null
+          endereco_cep?: string | null
+          endereco_complemento?: string | null
+          endereco_logradouro?: string | null
+          endereco_numero?: string | null
           id?: string
           imposto_anual_exercicio?: number | null
           inscricao_municipal?: string | null
@@ -411,6 +405,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      bkp_20260807_ticket_messages_dup: {
+        Row: {
+          backup_em: string
+          copia_numero: number
+          created_at: string | null
+          id: string
+          is_admin: boolean | null
+          message: string
+          segundos_apos: number
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          backup_em?: string
+          copia_numero: number
+          created_at?: string | null
+          id: string
+          is_admin?: boolean | null
+          message: string
+          segundos_apos: number
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          backup_em?: string
+          copia_numero?: number
+          created_at?: string | null
+          id?: string
+          is_admin?: boolean | null
+          message?: string
+          segundos_apos?: number
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       capital_integralizacao: {
         Row: {
@@ -7692,6 +7722,7 @@ export type Database = {
           created_by: string | null
           descricao: string | null
           escopo_documento_raiz_id: string | null
+          familia_id: string | null
           id: string
           nome: string
           repete_colecao: string | null
@@ -7699,6 +7730,9 @@ export type Database = {
           tipo_derivacao: string | null
           updated_at: string
           updated_by: string | null
+          variante_ordem: number | null
+          variante_rotulo: string | null
+          variante_seletor: Json | null
         }
         Insert: {
           ancora?: string | null
@@ -7710,6 +7744,7 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           escopo_documento_raiz_id?: string | null
+          familia_id?: string | null
           id?: string
           nome: string
           repete_colecao?: string | null
@@ -7717,6 +7752,9 @@ export type Database = {
           tipo_derivacao?: string | null
           updated_at?: string
           updated_by?: string | null
+          variante_ordem?: number | null
+          variante_rotulo?: string | null
+          variante_seletor?: Json | null
         }
         Update: {
           ancora?: string | null
@@ -7728,6 +7766,7 @@ export type Database = {
           created_by?: string | null
           descricao?: string | null
           escopo_documento_raiz_id?: string | null
+          familia_id?: string | null
           id?: string
           nome?: string
           repete_colecao?: string | null
@@ -7735,6 +7774,9 @@ export type Database = {
           tipo_derivacao?: string | null
           updated_at?: string
           updated_by?: string | null
+          variante_ordem?: number | null
+          variante_rotulo?: string | null
+          variante_seletor?: Json | null
         }
         Relationships: [
           {
@@ -7763,6 +7805,13 @@ export type Database = {
             columns: ["escopo_documento_raiz_id"]
             isOneToOne: false
             referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tmpl_bloco_familia_id_fkey"
+            columns: ["familia_id"]
+            isOneToOne: false
+            referencedRelation: "tmpl_bloco"
             referencedColumns: ["id"]
           },
           {
@@ -8382,6 +8431,7 @@ export type Database = {
       criar_bem_com_titular: {
         Args: { bem_data: Json; titular_data: Json }
         Returns: {
+          area_construida_m2: number | null
           ccir_codigo: string | null
           cliente_id: string
           created_at: string
@@ -8389,6 +8439,11 @@ export type Database = {
           denominacao: string
           descricao_outros: string | null
           empresa_destino_pessoa_id: string | null
+          endereco_bairro: string | null
+          endereco_cep: string | null
+          endereco_complemento: string | null
+          endereco_logradouro: string | null
+          endereco_numero: string | null
           id: string
           imposto_anual_exercicio: number | null
           inscricao_municipal: string | null
@@ -8701,6 +8756,8 @@ export type Database = {
       }
       org_task_visivel: { Args: { p_task_id: string }; Returns: boolean }
       own_org_task_ids: { Args: { _uid: string }; Returns: string[] }
+      pode_gerenciar_novidades: { Args: { _user_id: string }; Returns: boolean }
+      precheck_allowed_ops: { Args: { p_table: string }; Returns: string[] }
       preview_dashboard_embed_url: {
         Args: {
           _cliente_id?: string
@@ -8742,6 +8799,7 @@ export type Database = {
         | "lider"
         | "sublider"
         | "timecliente"
+        | "marketing"
       fiscal_recurrence_type: "daily" | "weekly" | "monthly" | "yearly"
       fiscal_task_category: "task" | "fixed_event"
       fiscal_task_department:
@@ -8975,6 +9033,7 @@ export const Constants = {
         "lider",
         "sublider",
         "timecliente",
+        "marketing",
       ],
       fiscal_recurrence_type: ["daily", "weekly", "monthly", "yearly"],
       fiscal_task_category: ["task", "fixed_event"],

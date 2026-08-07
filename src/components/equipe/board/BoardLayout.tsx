@@ -148,7 +148,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
     canUsoEnvio === true,
     pendingDecisions,
   );
-  const showGerencial = canPerformance === true || canDesempenho === true;
+  const showGestaoTime = canPerformance === true || canDesempenho === true;
   const isDesempenhoRoute = location.pathname.startsWith('/equipe/board/desempenho');
   const isMiEvolucaoRoute = location.pathname.includes('/minha-evolucao');
   const breadcrumb = getBreadcrumb(location.pathname);
@@ -232,12 +232,13 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
           ))}
         </div>
 
-        {/* GERENCIAL group */}
-        {showGerencial && (
+        {/* GESTÃO DE TIME group — nome escolhido para não repetir o "Gerencial"
+            que existe nas áreas Tax e OSG (/equipe/tax/gerencial, /equipe/osg/gerencial). */}
+        {showGestaoTime && (
           <div className="mb-5">
             {!collapsed && (
               <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-grp)' }}>
-                Gerencial
+                Gestão de Time
               </p>
             )}
             {navItems.filter(i => i.adminOnly).map((item) => (

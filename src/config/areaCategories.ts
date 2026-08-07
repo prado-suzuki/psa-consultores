@@ -22,8 +22,8 @@ export const AREA_CATEGORIES_MAP: Record<AreaKey, AreaDefinition> = {
   digital: { label: 'Digital', categories: ['rotina', 'dev'] },
   tax: { label: 'Tax', categories: ['tax'] },
   osg: { label: 'OSG', categories: ['osg'] },
-  board: { label: 'Gerencial', categories: ['board'] },
-  controle_site: { label: 'Chamados', categories: ['gestao'] },
+  board: { label: 'Board', categories: ['board'] },
+  controle_site: { label: 'Marketing', categories: ['gestao'] },
 };
 
 /** Todas as categorias "de área" (usado para saber o que pode ser revogado). */
@@ -42,9 +42,9 @@ export const AREA_ROUTES: Record<AreaKey, string> = {
 
 /** Lista ordenada para o select de área no login. */
 export const AREAS_LIST: Array<{ id: AreaKey; label: string }> = [
-  { id: 'board', label: 'Gerencial' },
-  { id: 'controle_site', label: 'Chamados' },
+  { id: 'board', label: 'Board' },
   { id: 'digital', label: 'Digital' },
+  { id: 'controle_site', label: 'Marketing' },
   { id: 'osg', label: 'OSG' },
   { id: 'tax', label: 'Tax' },
 ];

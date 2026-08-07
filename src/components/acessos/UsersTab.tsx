@@ -5,22 +5,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { RefreshCw, Pencil, Trash2, Users, Search } from 'lucide-react';
 import { useUsersWithRoles } from '@/hooks/useUsersWithRoles';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useUserPageAccess } from '@/hooks/useUserPageAccess';
+import { useDomainAreasPorUsuario } from '@/hooks/useDomainAreasPorUsuario';
+import {
+  SEM_AREA,
+  agruparUsuariosPorArea,
+  contarUsuariosPorArea,
+  usuarioEstaNaArea,
+} from '@/lib/acessosPorArea';
 import { CreateUserDialog } from './CreateUserDialog';
 import { EditUserDialog } from './EditUserDialog';
 import { DeleteUserDialog } from './DeleteUserDialog';
 import { PermissionsTree } from './PermissionsTree';
 import { ROLE_BADGE_CLASSES, ROLE_SHORT_LABELS } from './roleOptions';
 
+/** Hierarquia de papéis: ordena a lista e define o papel principal de cada um. */
+const ROLE_ORDER: AppRole[] = [
+  'admin', 'lider', 'sublider', 'team_member', 'marketing', 'timecliente', 'client',
+];
+
 /**
  * Aba "Usuários" do Controle de Acessos.
  *
  * Composta de:
  * - Header com botão "Criar Novo Usuário" (CreateUserDialog).
- * - Lista lateral de usuários (selecionável).
+ * - Lista lateral de usuários, agrupada pela área da estrutura e filtrável por
+ *   papel e por área (selecionável).
  * - Painel central com botões Editar / Excluir + acessos granulares
  *   agrupados por categoria de página (Grant/Revoke).
  * - EditUserDialog e DeleteUserDialog controlados.
@@ -32,8 +52,10 @@ export const UsersTab = () => {
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<AppRole | 'all'>('all');
+  const [areaFilter, setAreaFilter] = useState<string>('all');
 
   const { data: users, isLoading: loadingUsers } = useUsersWithRoles();
+  const { areasPorUsuario, areas } = useDomainAreasPorUsuario();
   const { data: pages } = usePagePermissions();
   // Fetch per usuário selecionado: filtra server-side e contorna o cap padrão de
   // linhas do PostgREST que truncava o select global quando user_page_access cresceu.
@@ -41,13 +63,10 @@ export const UsersTab = () => {
 
   const selectedUser = users?.find((u) => u.id === selectedUserId) ?? null;
 
-  // Agrupa usuários por role principal (hierarquia) e ordena alfabeticamente dentro do grupo.
-  const ROLE_ORDER: AppRole[] = ['admin', 'lider', 'sublider', 'team_member', 'timecliente', 'client'];
-
   // Contagem por role (independente da pesquisa) para mostrar nas abas.
   const roleCounts = useMemo(() => {
     const counts: Record<AppRole | 'all', number> = {
-      all: 0, admin: 0, lider: 0, sublider: 0, team_member: 0, client: 0, timecliente: 0,
+      all: 0, admin: 0, lider: 0, sublider: 0, team_member: 0, client: 0, timecliente: 0, marketing: 0,
     };
     if (!users) return counts;
     counts.all = users.length;
@@ -59,8 +78,32 @@ export const UsersTab = () => {
     return counts;
   }, [users]);
 
+  // Contagem por área (independente da pesquisa) para os chips do filtro.
+  const areaCounts = useMemo(
+    () => contarUsuariosPorArea((users ?? []).map((u) => u.id), areasPorUsuario),
+    [users, areasPorUsuario],
+  );
+
+  // Só entram no seletor as áreas com gente dentro — área recém-criada e ainda
+  // vazia não vira opção que não filtra nada.
+  const areaOptions = useMemo(() => {
+    const comGente = areas.filter((a) => (areaCounts[a.id] ?? 0) > 0);
+    if (!comGente.length && !areaCounts[SEM_AREA]) return [];
+    return [
+      ...comGente.map((a) => ({ id: a.id, label: a.name, color: a.color })),
+      ...(areaCounts[SEM_AREA] ? [{ id: SEM_AREA, label: 'Sem área', color: null }] : []),
+    ];
+  }, [areas, areaCounts]);
+
+  /**
+   * Lista final: filtra por nome, papel e área e agrupa pela área da estrutura.
+   *
+   * Dentro do grupo a ordem é hierarquia de papel e depois nome — quem lidera
+   * aparece primeiro, que é por onde a liberação de caminhos costuma começar.
+   * Quem está em duas áreas aparece nos dois grupos, de propósito.
+   */
   const groupedUsers = useMemo(() => {
-    if (!users) return [] as Array<{ role: AppRole | 'none'; users: UserWithRoles[] }>;
+    if (!users) return [];
     const normalize = (s: string) =>
       s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
     const term = normalize(searchTerm.trim());
@@ -73,24 +116,22 @@ export const UsersTab = () => {
     if (roleFilter !== 'all') {
       filtered = filtered.filter((u) => u.roles.includes(roleFilter));
     }
-    const primaryRole = (u: UserWithRoles): AppRole | 'none' =>
-      ROLE_ORDER.find((r) => u.roles.includes(r)) ?? 'none';
-    const buckets = new Map<AppRole | 'none', UserWithRoles[]>();
-    for (const u of filtered) {
-      const r = roleFilter !== 'all' ? roleFilter : primaryRole(u);
-      if (!buckets.has(r)) buckets.set(r, []);
-      buckets.get(r)!.push(u);
+    if (areaFilter !== 'all') {
+      filtered = filtered.filter((u) => usuarioEstaNaArea(u.id, areaFilter, areasPorUsuario));
     }
+
     const collator = new Intl.Collator('pt-BR', { sensitivity: 'base' });
     const sortKey = (u: UserWithRoles) => `${u.first_name ?? ''} ${u.last_name ?? ''}`.trim();
-    const order: Array<AppRole | 'none'> = [...ROLE_ORDER, 'none'];
-    return order
-      .filter((r) => buckets.has(r))
-      .map((role) => ({
-        role,
-        users: buckets.get(role)!.sort((a, b) => collator.compare(sortKey(a), sortKey(b))),
-      }));
-  }, [users, searchTerm, roleFilter]);
+    const rolePeso = (u: UserWithRoles) => {
+      const i = ROLE_ORDER.findIndex((r) => u.roles.includes(r));
+      return i === -1 ? ROLE_ORDER.length : i;
+    };
+    const ordenados = [...filtered].sort(
+      (a, b) => rolePeso(a) - rolePeso(b) || collator.compare(sortKey(a), sortKey(b)),
+    );
+
+    return agruparUsuariosPorArea(ordenados, areasPorUsuario);
+  }, [users, searchTerm, roleFilter, areaFilter, areasPorUsuario]);
 
   return (
     <div className="space-y-4">
@@ -111,28 +152,53 @@ export const UsersTab = () => {
             <CardDescription className="text-slate-500">
               Selecione um usuário para gerenciar acessos
             </CardDescription>
-            <div className="mt-3 flex gap-1 overflow-x-auto pb-1 -mx-1 px-1">
-              {(['all', ...ROLE_ORDER] as Array<AppRole | 'all'>).map((r) => {
-                const label = r === 'all' ? 'Todos' : (ROLE_SHORT_LABELS[r] ?? r);
-                const active = roleFilter === r;
-                return (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRoleFilter(r)}
-                    className={`shrink-0 px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
-                      active
-                        ? 'bg-teal-500/10 text-teal-700 border-teal-200'
-                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    {label}
-                    <span className={`ml-1 ${active ? 'text-teal-600' : 'text-slate-400'}`}>
-                      ({roleCounts[r] ?? 0})
-                    </span>
-                  </button>
-                );
-              })}
+            {/* Papel e Área lado a lado: dois seletores de largura fixa, que não
+                crescem com o número de papéis nem de áreas ativas — a fileira de
+                chips rolava para o lado e escondia opção. */}
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as AppRole | 'all')}>
+                <SelectTrigger className="h-9 text-xs bg-white border-slate-200">
+                  <SelectValue placeholder="Papel" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(['all', ...ROLE_ORDER] as Array<AppRole | 'all'>).map((r) => (
+                    <SelectItem key={r} value={r} className="text-xs">
+                      {r === 'all' ? 'Todos os papéis' : (ROLE_SHORT_LABELS[r] ?? r)}
+                      <span className="ml-1 text-slate-400">({roleCounts[r] ?? 0})</span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={areaFilter}
+                onValueChange={setAreaFilter}
+                disabled={areaOptions.length === 0}
+              >
+                <SelectTrigger className="h-9 text-xs bg-white border-slate-200">
+                  <SelectValue placeholder="Área" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all" className="text-xs">
+                    Todas as áreas
+                    <span className="ml-1 text-slate-400">({users?.length ?? 0})</span>
+                  </SelectItem>
+                  {areaOptions.map((opt) => (
+                    <SelectItem key={opt.id} value={opt.id} className="text-xs">
+                      <span className="flex items-center gap-1.5">
+                        {opt.color && (
+                          <span
+                            className="h-2 w-2 rounded-full shrink-0"
+                            style={{ backgroundColor: opt.color }}
+                          />
+                        )}
+                        {opt.label}
+                        <span className="text-slate-400">({areaCounts[opt.id] ?? 0})</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="relative mt-2">
               <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
@@ -155,14 +221,20 @@ export const UsersTab = () => {
               </div>
             ) : (
               groupedUsers.map((group) => (
-                <div key={group.role} className="space-y-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-1 pt-2">
-                    {group.role === 'none' ? 'Sem role' : (ROLE_SHORT_LABELS[group.role] ?? group.role)}
-                    <span className="ml-1 text-slate-400 font-normal normal-case tracking-normal">({group.users.length})</span>
+                <div key={group.area?.id ?? SEM_AREA} className="space-y-2">
+                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-1 pt-2">
+                    {group.area?.color && (
+                      <span
+                        className="h-2 w-2 rounded-full shrink-0"
+                        style={{ backgroundColor: group.area.color }}
+                      />
+                    )}
+                    {group.area?.name ?? 'Sem área'}
+                    <span className="text-slate-400 font-normal normal-case tracking-normal">({group.usuarios.length})</span>
                   </p>
-                  {group.users.map((u) => (
+                  {group.usuarios.map((u) => (
                     <button
-                      key={u.id}
+                      key={`${group.area?.id ?? SEM_AREA}-${u.id}`}
                       className={`w-full p-3 rounded-lg text-left transition-colors ${
                         selectedUserId === u.id
                           ? 'bg-teal-500/10 border border-teal-200'

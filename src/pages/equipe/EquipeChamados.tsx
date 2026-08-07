@@ -80,7 +80,10 @@ export default function EquipeChamados() {
             <ArrowLeft className="mr-2 h-4 w-4" />Voltar
           </Button>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">{canAssignTickets ? 'Gestão de Chamados' : 'Equipe Chamados'}</h1>
+            {/* Título fixo, casando com a rota /equipe/chamados. "Gestão de Chamados"
+                é o nome da tela de /gestao/chamados (chamados dos clientes) — repetir
+                aqui confundia as duas. O papel aparece no subtítulo. */}
+            <h1 className="text-xl font-bold text-slate-900">Chamados da Equipe</h1>
             <p className="text-sm text-slate-500">
               {canAssignTickets ? 'Visualize todos os chamados e atribua responsáveis' : 'Visualize e responda os chamados atribuídos a você'}
             </p>

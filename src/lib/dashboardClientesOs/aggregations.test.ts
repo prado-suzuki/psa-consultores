@@ -13,12 +13,22 @@ import {
   kpisClientes,
   kpisOperacional,
   kpisProjetos,
-  faturamentoPorCategoria,
-  faturamentoPorCluster,
+  faturamentoPorTipo,
+  faturamentoPorCliente,
+  buildRateioPorOs,
+  matrizCentroCustoPorMes,
+  matrizClientePorMes,
+  matrizServicoPorMes,
+  matrizProdutoPorMes,
+  buildRateioProdutoPorOs,
+  comparativoAnoAnterior,
+  shareCentroCusto,
+  centrosCustoEmUso,
   faturamentoMensal,
-  top10Clientes,
   osPorStatus,
   estimadoVsRealizado,
+  SEM_CENTRO_CUSTO_ID,
+  SEM_DATA,
 } from './aggregations';
 import type {
   RawCliente,
@@ -27,6 +37,10 @@ import type {
   RawOrgTask,
   RawClienteCluster,
   RawEstruturaCluster,
+  RawCentroCusto,
+  RawDistribuicaoReceita,
+  RawOsProduto,
+  RawProdutoSegmento,
 } from './types';
 
 const HOJE = '2026-07-14';
@@ -195,8 +209,10 @@ describe('seletores de KPI/série', () => {
   const clienteRows = buildClienteRows({ clientes, os, clienteClusters, estruturaClusters, setorRegiao: [], hoje: HOJE });
   const osRows = buildOsRows({ os, clientes, clienteClusters, estruturaClusters, servicos: [], hoje: HOJE });
 
+  const fatPorCliente = faturamentoPorCliente(osRows);
+
   it('kpisClientes: ativos, fixos/pontuais, ticket médio global', () => {
-    const k = kpisClientes(clienteRows);
+    const k = kpisClientes(clienteRows, fatPorCliente);
     expect(k.faturamento_total).toBe(160000);
     expect(k.clientes_ativos).toBe(2); // c1, c2 (c3 inativo)
     expect(k.clientes_ativos_fixos).toBe(1);
@@ -210,21 +226,167 @@ describe('seletores de KPI/série', () => {
     expect(k.novos_clientes_trimestre).toBe(1); // só c2 (created_at 2026-06-20, dentro de 90d de 2026-07-14)
   });
 
-  it('faturamento por categoria/cluster e mensal', () => {
-    expect(faturamentoPorCategoria(clienteRows)).toEqual([
-      { categoria: 'Bronze', faturamento: 120000 },
-      { categoria: 'Prata', faturamento: 40000 },
-      { categoria: 'Não classificado', faturamento: 0 }, // c3 (Gama), sem faturamento
+  it('faturamento por tipo de cliente e mensal', () => {
+    expect(faturamentoPorTipo(clienteRows, fatPorCliente)).toEqual([
+      { tipo: 'Fixo', faturamento: 120000 }, // c1 (Alpha)
+      { tipo: 'Pontual', faturamento: 40000 }, // c2 (Beta)
+      { tipo: 'Não informado', faturamento: 0 }, // c3 (Gama), sem faturamento
     ]);
-    const clusters = faturamentoPorCluster(clienteRows);
-    expect(clusters.find((c) => c.cluster === 'PSA OSG')?.faturamento).toBe(120000);
     expect(faturamentoMensal(osRows)).toEqual([{ mes: '2026-05', faturamento: 120000 }]); // o3 sem data_inicio → fora
   });
 
-  it('top10, osPorStatus e kpisProjetos', () => {
-    const top = top10Clientes(clienteRows);
-    expect(top[0].cliente_nome).toBe('Alpha');
-    expect(top[0].faturamento_total).toBe(120000);
+  describe('matriz por centro de custo / cliente', () => {
+    const centros: RawCentroCusto[] = [
+      { id: 'cc1', codigo: '1001', nome: 'Consultoria' },
+      { id: 'cc2', codigo: '1002', nome: 'Fiscal' },
+      { id: 'cc3', codigo: '1003', nome: '' }, // sem nome → cai no código
+    ];
+
+    it('rateia o valor da OS pelos percentuais e distribui nos meses', () => {
+      // o1 (100k, mai): 70/30 · o2 (20k, mai): 100% no cc1 · o3 (40k, sem data): sem rateio
+      const dist: RawDistribuicaoReceita[] = [
+        { id_ordem_servico: 'o1', id_centro_custo: 'cc1', percentual_rateio: 70 },
+        { id_ordem_servico: 'o1', id_centro_custo: 'cc2', percentual_rateio: 30 },
+        { id_ordem_servico: 'o2', id_centro_custo: 'cc1', percentual_rateio: 100 },
+      ];
+      const m = matrizCentroCustoPorMes(osRows, buildRateioPorOs(dist, centros), null);
+      expect(m.meses).toEqual(['2026-05']);
+      expect(m.temSemData).toBe(true); // o3
+      expect(m.linhas).toEqual([
+        { id: 'cc1', label: 'Consultoria', porMes: { '2026-05': 90000 }, total: 90000 }, // 70k + 20k
+        { id: SEM_CENTRO_CUSTO_ID, label: 'Sem centro de custo', porMes: { [SEM_DATA]: 40000 }, total: 40000 },
+        { id: 'cc2', label: 'Fiscal', porMes: { '2026-05': 30000 }, total: 30000 },
+      ]);
+      // O total da matriz bate com o KPI de faturamento total (160k).
+      expect(m.linhas.reduce((a, l) => a + l.total, 0)).toBe(160000);
+    });
+
+    it('rateio parcial: a sobra vira "Sem centro de custo"', () => {
+      const dist: RawDistribuicaoReceita[] = [
+        { id_ordem_servico: 'o1', id_centro_custo: 'cc1', percentual_rateio: 60 },
+      ];
+      const m = matrizCentroCustoPorMes(osRows, buildRateioPorOs(dist, centros), null);
+      expect(m.linhas.find((l) => l.id === 'cc1')?.total).toBe(60000);
+      // 40% de o1 (40k) + o2 (20k) + o3 (40k), nenhum rateado
+      expect(m.linhas.find((l) => l.id === SEM_CENTRO_CUSTO_ID)?.total).toBe(100000);
+    });
+
+    it('ignora rateio de centro de custo fora do catálogo e usa o código quando não há nome', () => {
+      const dist: RawDistribuicaoReceita[] = [
+        { id_ordem_servico: 'o1', id_centro_custo: 'cc3', percentual_rateio: 50 },
+        { id_ordem_servico: 'o1', id_centro_custo: 'apagado', percentual_rateio: 50 },
+      ];
+      const m = matrizCentroCustoPorMes(osRows, buildRateioPorOs(dist, centros), null);
+      expect(m.linhas.find((l) => l.id === 'cc3')?.label).toBe('1003');
+      expect(m.linhas.find((l) => l.id === 'cc3')?.total).toBe(50000);
+      // os 50% do centro apagado voltam para o bucket sem centro de custo
+      expect(m.linhas.find((l) => l.id === SEM_CENTRO_CUSTO_ID)?.total).toBe(110000);
+    });
+
+    it('com centro selecionado, a matriz tem uma linha só (as OS já vêm com a fatia)', () => {
+      const m = matrizCentroCustoPorMes(osRows, new Map(), { id: 'cc1', label: 'Consultoria' });
+      expect(m.linhas).toHaveLength(1);
+      expect(m.linhas[0]).toMatchObject({ id: 'cc1', label: 'Consultoria', total: 160000 });
+    });
+
+    it('matriz por cliente: uma linha por cliente, ordenada pelo total', () => {
+      const m = matrizClientePorMes(osRows);
+      expect(m.linhas.map((l) => [l.label, l.total])).toEqual([['Alpha', 120000], ['Beta', 40000]]);
+      expect(m.linhas[0].porMes['2026-05']).toBe(120000);
+      expect(m.linhas[1].porMes[SEM_DATA]).toBe(40000); // o3 não tem data_inicio
+    });
+
+    it('shareCentroCusto: fatia da OS por centro, sobra e centro sem rateio', () => {
+      const rateio = buildRateioPorOs(
+        [{ id_ordem_servico: 'o1', id_centro_custo: 'cc1', percentual_rateio: 70 }],
+        centros,
+      );
+      expect(shareCentroCusto('o1', rateio, null)).toBe(1); // sem filtro → OS inteira
+      expect(shareCentroCusto('o1', rateio, 'cc1')).toBeCloseTo(0.7);
+      expect(shareCentroCusto('o1', rateio, 'cc2')).toBe(0); // não pertence ao centro
+      expect(shareCentroCusto('o1', rateio, SEM_CENTRO_CUSTO_ID)).toBeCloseTo(0.3);
+      expect(shareCentroCusto('o3', rateio, SEM_CENTRO_CUSTO_ID)).toBe(1); // sem rateio nenhum
+    });
+
+    it('matriz por serviço: valor inteiro da OS, sem rateio', () => {
+      // o1/o2 usam o serviço s1; o3 não tem serviço → bucket próprio.
+      const comServico: RawOrdemServico[] = os.map((o) => (o.id === 'o3' ? o : { ...o, id_servico: 's1' }));
+      const rows = buildOsRows({
+        os: comServico, clientes, clienteClusters, estruturaClusters,
+        servicos: [{ id: 's1', nome: 'REC PIS/COFINS' }], hoje: HOJE,
+      });
+      const m = matrizServicoPorMes(rows);
+      expect(m.linhas).toEqual([
+        { id: 's1', label: 'REC PIS/COFINS', porMes: { '2026-05': 120000 }, total: 120000 },
+        { id: 'SEM_SERVICO', label: 'Sem serviço na OS', porMes: { [SEM_DATA]: 40000 }, total: 40000 },
+      ]);
+    });
+
+    describe('matriz por produto', () => {
+      const produtos: RawProdutoSegmento[] = [
+        { id: 'p1', codigo: 'PIS', nome: 'PIS/COFINS' },
+        { id: 'p2', codigo: 'IRPJ', nome: 'IRPJ/CSLL' },
+      ];
+
+      it('divide a receita pelas horas contratadas de cada produto', () => {
+        const osProdutos: RawOsProduto[] = [
+          { ordem_servico_id: 'o1', produto_segmento_id: 'p1', horas_contratadas: 30 },
+          { ordem_servico_id: 'o1', produto_segmento_id: 'p2', horas_contratadas: 10 },
+        ];
+        const m = matrizProdutoPorMes(osRows, buildRateioProdutoPorOs(osProdutos, produtos));
+        // o1 = 100k → 75% p1 (30h de 40h) e 25% p2
+        expect(m.linhas.find((l) => l.id === 'p1')?.total).toBe(75000);
+        expect(m.linhas.find((l) => l.id === 'p2')?.total).toBe(25000);
+        // o2 (20k) e o3 (40k) não têm produto cadastrado
+        expect(m.linhas.find((l) => l.id === 'SEM_PRODUTO')?.total).toBe(60000);
+        expect(m.linhas.reduce((a, l) => a + l.total, 0)).toBe(160000);
+      });
+
+      it('sem horas em todos os produtos, divide em partes iguais', () => {
+        const osProdutos: RawOsProduto[] = [
+          { ordem_servico_id: 'o1', produto_segmento_id: 'p1', horas_contratadas: 30 },
+          { ordem_servico_id: 'o1', produto_segmento_id: 'p2', horas_contratadas: null },
+        ];
+        const m = matrizProdutoPorMes(osRows, buildRateioProdutoPorOs(osProdutos, produtos));
+        expect(m.linhas.find((l) => l.id === 'p1')?.total).toBe(50000);
+        expect(m.linhas.find((l) => l.id === 'p2')?.total).toBe(50000);
+      });
+    });
+
+    it('comparativoAnoAnterior: mesmos meses, um ano antes', () => {
+      // mai/2026: 120k (o1+o2) · mai/2025: 60k · o3 sem data fica fora dos dois lados
+      const comOsDoAnoPassado: RawOrdemServico[] = [
+        ...os,
+        { id: 'o4', numero_os: '4', id_cliente: 'c1', id_servico: null, cluster_id: null, situacao: 'concluido', data_emissao: '2025-05-10', data_inicio: '2025-05-10', data_fim: null, valor_projeto: 60000 },
+        { id: 'o5', numero_os: '5', id_cliente: 'c1', id_servico: null, cluster_id: null, situacao: 'concluido', data_emissao: '2025-09-10', data_inicio: '2025-09-10', data_fim: null, valor_projeto: 999 }, // set/25 não é mês comparado
+      ];
+      const rows = buildOsRows({ os: comOsDoAnoPassado, clientes, clienteClusters, estruturaClusters, servicos: [], hoje: HOJE });
+      const cmp = comparativoAnoAnterior(rows, ['2026-05']);
+      expect(cmp.meses).toEqual(['2025-05']);
+      expect(cmp.atual).toBe(120000);
+      expect(cmp.anterior).toBe(60000);
+      expect(cmp.variacao).toBe(1); // +100%
+    });
+
+    it('comparativoAnoAnterior: sem base no ano anterior não inventa percentual', () => {
+      const cmp = comparativoAnoAnterior(osRows, ['2026-05']);
+      expect(cmp.anterior).toBe(0);
+      expect(cmp.variacao).toBeNull();
+    });
+
+    it('centrosCustoEmUso: só os que aparecem em rateio, + o bucket sem centro', () => {
+      const rateio = buildRateioPorOs(
+        [{ id_ordem_servico: 'o1', id_centro_custo: 'cc2', percentual_rateio: 100 }],
+        centros,
+      );
+      expect(centrosCustoEmUso(rateio)).toEqual([
+        { id: 'cc2', label: 'Fiscal' },
+        { id: SEM_CENTRO_CUSTO_ID, label: 'Sem centro de custo' },
+      ]);
+    });
+  });
+
+  it('osPorStatus e kpisProjetos', () => {
     expect(osPorStatus(osRows)).toEqual([
       { status: 'Em andamento', qtd: 2 },
       { status: 'Concluído', qtd: 1 }, // o3 (c2) entra no INNER JOIN

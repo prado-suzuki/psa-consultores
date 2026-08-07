@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
-import type { AppRole } from './useUsersWithRoles';
+import { paraRoleDoBanco, type AppRole } from './useUsersWithRoles';
 
 /**
  * Adiciona uma role para um usuário em `user_roles`.
@@ -18,7 +18,7 @@ export function useAddUserRole() {
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole | string }) => {
       const { error } = await supabase
         .from('user_roles')
-        .insert({ user_id: userId, role: role as AppRole });
+        .insert({ user_id: userId, role: paraRoleDoBanco(role) });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -43,7 +43,7 @@ export function useRemoveUserRole() {
         .from('user_roles')
         .select('id')
         .eq('user_id', userId)
-        .eq('role', role as AppRole)
+        .eq('role', paraRoleDoBanco(role))
         .maybeSingle();
       if (sample?.id) {
         await assertCanPerform('user_roles', 'delete', sample.id);
@@ -52,7 +52,7 @@ export function useRemoveUserRole() {
         .from('user_roles')
         .delete()
         .eq('user_id', userId)
-        .eq('role', role as AppRole);
+        .eq('role', paraRoleDoBanco(role));
       if (error) throw error;
     },
     onSuccess: () => {
