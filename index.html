@@ -13,7 +13,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 
-    <link rel="icon" type="image/png" href="/favicon.png">
+    <!--
+      Ícone do site. O que existia era 1484x1920, retangular, e o Google descarta
+      ícone que não seja quadrado com lado múltiplo de 48 — daí ele cair no ícone
+      antigo em cache (o do domínio de preview do Lovable). Todos abaixo são
+      quadrados e múltiplos de 48.
+
+      O `.ico` na raiz não é redundante: é o caminho que o buscador procura por
+      padrão quando não consegue usar o declarado.
+    -->
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96.png">
+    <!-- O iOS pinta transparência de preto, então esta versão tem fundo branco. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="PSA Consultores" />
@@ -21,10 +34,16 @@
     <meta property="og:description" content="Consultoria tributária, recuperação de créditos fiscais e gestão de processos para empresas brasileiras." />
     <meta property="og:url" content="https://psaconsultores.com.br/" />
     <meta property="og:locale" content="pt_BR" />
+    <!-- Sem isto o link compartilhado no WhatsApp e no LinkedIn sai sem imagem. -->
+    <meta property="og:image" content="https://psaconsultores.com.br/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="PSA Consultores" />
 
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="PSA Consultores — Consultoria Tributária e Gestão Empresarial" />
     <meta name="twitter:description" content="Consultoria tributária, recuperação de créditos fiscais e gestão de processos para empresas brasileiras." />
+    <meta name="twitter:image" content="https://psaconsultores.com.br/og-image.png" />
 
     <script type="application/ld+json">
       {
@@ -32,7 +51,7 @@
         "@type": "Organization",
         "name": "PSA Consultores",
         "url": "https://psaconsultores.com.br/",
-        "logo": "https://storage.googleapis.com/gpt-engineer-file-uploads/oLFFkQ4HGDYh4fvVTnPe0UjtkVV2/uploads/1768831362546-Ícone - PSA 1.png",
+        "logo": "https://psaconsultores.com.br/favicon-192.png",
         "description": "Consultoria tributária, recuperação de créditos fiscais e gestão de processos para empresas brasileiras.",
         "areaServed": "BR"
       }
