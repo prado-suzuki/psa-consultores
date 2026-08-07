@@ -52,9 +52,9 @@ const FERRAMENTAS: FerramentaTax[] = [
   },
   {
     id: 'auditoria',
-    titulo: 'Auditoria',
+    titulo: 'Logs de Equipe',
     descricao: 'Histórico, produtividade e acesso do time na área Tax (acesso de líder).',
-    path: '/equipe/tax/auditoria',
+    path: '/equipe/tax/gerencial/logs-equipe',
     icon: <History className="h-5 w-5 text-primary" />,
     requiresLider: true,
   },

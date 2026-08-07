@@ -487,8 +487,11 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
-    page_path: '/equipe/tax/auditoria',
-    page_name: 'Auditoria Tax',
+    // Endereço novo: a tela virou "Logs de Equipe" dentro do dropdown Gerencial.
+    // A migração 20260807... faz UPDATE do caminho no registro que já existe, em
+    // vez de deixar o sincronizador criar um vazio e órfãs as 25 permissões.
+    page_path: '/equipe/tax/gerencial/logs-equipe',
+    page_name: 'Logs de Equipe (Tax)',
     // Restrita a líder+ na rota (LiderRoute em App.tsx): liberar a permissão
     // aqui para um team_member não faz a página abrir.
     page_description: 'Histórico, produtividade e acesso do time Tax (somente líder+)',
@@ -606,8 +609,9 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
-    page_path: '/equipe/osg/auditoria',
-    page_name: 'Auditoria OSG',
+    // Ver a observação da versão Tax: caminho novo, registro preservado.
+    page_path: '/equipe/osg/gerencial/logs-equipe',
+    page_name: 'Logs de Equipe (OSG)',
     // Restrita a líder+ na rota (LiderRoute em App.tsx): liberar a permissão
     // aqui para um team_member não faz a página abrir.
     page_description: 'Histórico, produtividade e acesso do time OSG (somente líder+)',
