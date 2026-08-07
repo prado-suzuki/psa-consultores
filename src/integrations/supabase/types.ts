@@ -406,6 +406,42 @@ export type Database = {
           },
         ]
       }
+      bkp_20260807_ticket_messages_dup: {
+        Row: {
+          backup_em: string
+          copia_numero: number
+          created_at: string | null
+          id: string
+          is_admin: boolean | null
+          message: string
+          segundos_apos: number
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          backup_em?: string
+          copia_numero: number
+          created_at?: string | null
+          id: string
+          is_admin?: boolean | null
+          message: string
+          segundos_apos: number
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          backup_em?: string
+          copia_numero?: number
+          created_at?: string | null
+          id?: string
+          is_admin?: boolean | null
+          message?: string
+          segundos_apos?: number
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       capital_integralizacao: {
         Row: {
           bem_id: string
@@ -8721,6 +8757,7 @@ export type Database = {
       org_task_visivel: { Args: { p_task_id: string }; Returns: boolean }
       own_org_task_ids: { Args: { _uid: string }; Returns: string[] }
       pode_gerenciar_novidades: { Args: { _user_id: string }; Returns: boolean }
+      precheck_allowed_ops: { Args: { p_table: string }; Returns: string[] }
       preview_dashboard_embed_url: {
         Args: {
           _cliente_id?: string
