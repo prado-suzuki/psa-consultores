@@ -4,6 +4,11 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import { ticketRichTextToPlain } from '@/components/chamados/ticketRichTextFormat';
+import {
+  isDuplicateMessageError,
+  type TicketMessageOutcome,
+  type TicketMessageWarning,
+} from '@/lib/ticketMessageOutcome';
 
 // ── useUpdateTicketRouting ────────────────────────────────────
 // Updates cliente_id / cluster_id / estrutura_area_id with cascade validation.
@@ -244,51 +249,103 @@ export function useUpdateTicketDeadline() {
 }
 
 // ── useSendTicketMessage ──────────────────────────────────────
+// Contrato: gravar a mensagem é a operação essencial. Atualizar o
+// `activity_status` e notificar são efeitos colaterais — se falharem, viram
+// `warnings` no resultado; NUNCA derrubam o envio.
+//
+// Por que isso importa: entre 08/07 e 06/08/2026 esta mutation chamava
+// `assertCanPerform('tickets','update')` DEPOIS de gravar a mensagem. Para a
+// role `client` o precheck lançava exceção (não conseguia ler a whitelist), a
+// tela exibia "erro", o cliente reenviava e a mensagem duplicava — além de
+// status e e-mail nunca rodarem. O precheck saiu daqui: verificar permissão
+// depois de um write consumado só pode inventar erro. Em seu lugar, o próprio
+// UPDATE presta contas via `.select('id')`.
+
+interface SendTicketMessageParams {
+  ticketId: string;
+  userId: string;
+  message: string;
+  isAdmin: boolean;
+  actorName?: string;
+}
 
 export function useSendTicketMessage() {
   const invalidate = useTicketInvalidation();
 
-  return useMutation({
-    mutationFn: async ({ ticketId, userId, message, isAdmin, actorName }: {
-      ticketId: string;
-      userId: string;
-      message: string;
-      isAdmin: boolean;
-      actorName?: string;
-    }) => {
-      const { error } = await supabase.from('ticket_messages').insert({
+  return useMutation<TicketMessageOutcome, Error, SendTicketMessageParams>({
+    mutationFn: async ({ ticketId, userId, message, isAdmin, actorName }) => {
+      const warnings: TicketMessageWarning[] = [];
+
+      // 1. Operação essencial. INSERT barrado por RLS devolve erro de verdade
+      //    (42501), então aqui `throw` é legítimo: nada foi gravado.
+      const { error: insertError } = await supabase.from('ticket_messages').insert({
         ticket_id: ticketId,
         user_id: userId,
         message: message.trim(),
         is_admin: isAdmin,
       });
 
-      if (error) throw error;
+      // Reenvio idêntico barrado pelo trigger do banco não é falha: a mensagem
+      // já está no chamado. Segue o fluxo para não deixar o chamado inconsistente.
+      const duplicate = insertError ? isDuplicateMessageError(insertError) : false;
+      if (insertError && !duplicate) throw insertError;
 
-      // Update activity status: admin replies = respondido, client replies = aguardando_resposta
+      // 2. Efeito colateral — status do chamado.
+      //    `.select('id')` é obrigatório: UPDATE barrado por RLS devolve sucesso
+      //    com 0 linhas, sem erro. Sem isso a falha é silenciosa.
       const newActivityStatus = isAdmin ? 'respondido' : 'aguardando_resposta';
-      const updatePayload: any = { activity_status: newActivityStatus };
+      const updatePayload: { activity_status: string; updated_at?: string } = {
+        activity_status: newActivityStatus,
+      };
       if (!isAdmin) {
         updatePayload.updated_at = new Date().toISOString();
       }
 
-      await assertCanPerform('tickets', 'update', ticketId);
-      await supabase
+      const { data: atualizados, error: updateError } = await supabase
         .from('tickets')
         .update(updatePayload)
-        .eq('id', ticketId);
+        .eq('id', ticketId)
+        .select('id');
 
-      // Notify (fire-and-forget)
-      supabase.functions.invoke('notify-ticket', {
-        body: {
-          event_type: 'ticket_replied',
-          ticket_id: ticketId,
-          actor_name: actorName || (isAdmin ? 'Equipe PSA' : 'Cliente'),
-          message_preview: ticketRichTextToPlain(message).substring(0, 200),
+      const activityStatusUpdated = !updateError && (atualizados?.length ?? 0) > 0;
+      if (!activityStatusUpdated) {
+        warnings.push('status_nao_atualizado');
+        console.error('[useSendTicketMessage] activity_status não atualizado', {
+          ticketId,
+          motivo: updateError?.message ?? 'RLS barrou o UPDATE (0 linhas afetadas)',
+        });
+      }
+
+      // 3. Efeito colateral — notificação. Aguardamos de propósito: afirmar
+      //    "cliente notificado" sem conferir é exatamente a mentira que fez o
+      //    incidente durar um mês. Duplicata não renotifica.
+      let notified = false;
+      if (!duplicate) {
+        try {
+          const { error: notifyError } = await supabase.functions.invoke('notify-ticket', {
+            body: {
+              event_type: 'ticket_replied',
+              ticket_id: ticketId,
+              actor_name: actorName || (isAdmin ? 'Equipe PSA' : 'Cliente'),
+              message_preview: ticketRichTextToPlain(message).substring(0, 200),
+            },
+          });
+          if (notifyError) throw notifyError;
+          notified = true;
+        } catch (notifyError) {
+          warnings.push('notificacao_nao_enviada');
+          console.error('[useSendTicketMessage] notify-ticket falhou', notifyError);
         }
-      }).catch(console.error);
+      }
 
-      return { ticketId };
+      return {
+        ticketId,
+        persisted: true,
+        duplicate,
+        activityStatusUpdated,
+        notified,
+        warnings,
+      };
     },
     onSuccess: () => {
       invalidate();
