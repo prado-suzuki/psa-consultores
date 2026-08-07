@@ -1874,6 +1874,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           documento_gerado_id: string | null
+          documento_tipo_id: string | null
           excluido: boolean
           fonte: Database["public"]["Enums"]["osg_doc_fonte"]
           gcs_uri: string | null
@@ -1901,6 +1902,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           documento_gerado_id?: string | null
+          documento_tipo_id?: string | null
           excluido?: boolean
           fonte?: Database["public"]["Enums"]["osg_doc_fonte"]
           gcs_uri?: string | null
@@ -1928,6 +1930,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           documento_gerado_id?: string | null
+          documento_tipo_id?: string | null
           excluido?: boolean
           fonte?: Database["public"]["Enums"]["osg_doc_fonte"]
           gcs_uri?: string | null
@@ -1978,6 +1981,13 @@ export type Database = {
             columns: ["documento_gerado_id"]
             isOneToOne: false
             referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_arquivo_documento_tipo_id_fkey"
+            columns: ["documento_tipo_id"]
+            isOneToOne: false
+            referencedRelation: "documento_tipo"
             referencedColumns: ["id"]
           },
           {
@@ -2277,6 +2287,7 @@ export type Database = {
           ativo: boolean
           categoria: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox: string | null
+          cliente_id: string | null
           codigo: string
           confidencial: boolean
           created_at: string
@@ -2290,6 +2301,7 @@ export type Database = {
           nota: string | null
           obrigatorio_default: boolean
           ordem: number
+          solicitacao_item_id: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -2297,6 +2309,7 @@ export type Database = {
           ativo?: boolean
           categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox?: string | null
+          cliente_id?: string | null
           codigo: string
           confidencial?: boolean
           created_at?: string
@@ -2310,6 +2323,7 @@ export type Database = {
           nota?: string | null
           obrigatorio_default?: boolean
           ordem?: number
+          solicitacao_item_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -2317,6 +2331,7 @@ export type Database = {
           ativo?: boolean
           categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox?: string | null
+          cliente_id?: string | null
           codigo?: string
           confidencial?: boolean
           created_at?: string
@@ -2330,10 +2345,26 @@ export type Database = {
           nota?: string | null
           obrigatorio_default?: boolean
           ordem?: number
+          solicitacao_item_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "documento_tipo_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_tipo_solicitacao_item_id_fkey"
+            columns: ["solicitacao_item_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacao_item"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documentos_processo: {
         Row: {
