@@ -12,7 +12,16 @@ import type { Database } from '@/integrations/supabase/types';
 import type { GrupoDocumentoKey } from '@/lib/agrupadorDocumentos';
 import { computeFieldDiff } from '@/lib/diffUtils';
 
-export type DocumentoArquivoRow = Database['public']['Tables']['documento_arquivo']['Row'];
+/**
+ * A linha do arquivo.
+ *
+ * `documento_tipo_id` entra à mão porque o `types.ts` é autogerado e só ganha a
+ * coluna quando o Lovable aplicar a migration 20260807120000. Assim que os
+ * tipos forem regerados, esta interseção some e volta a ser só o `Row`.
+ */
+export type DocumentoArquivoRow = Database['public']['Tables']['documento_arquivo']['Row'] & {
+  documento_tipo_id: string | null;
+};
 export type DocCategoria = Database['public']['Enums']['osg_doc_categoria'];
 export type DocFonte = Database['public']['Enums']['osg_doc_fonte'];
 
@@ -505,14 +514,20 @@ export interface AtualizarDocumentoPatch {
    * isso quem a envia tem de zerar as três colunas de vínculo na mesma jogada.
    */
   triado_em?: string | null;
+  /**
+   * Que documento este arquivo é, referenciando o catálogo `documento_tipo`.
+   * Opcional em toda parte: classificar não bloqueia vincular. Quem não quer
+   * mexer no tipo simplesmente não manda a chave, e o valor gravado sobrevive.
+   */
+  documento_tipo_id?: string | null;
 }
 
 /**
- * Colunas que definem de quem é o arquivo. São as únicas que o log acompanha:
- * renomear e trocar categoria passam por aqui e não viram histórico, de
- * propósito — o que interessa registrar é a mudança de dono.
+ * Colunas que o histórico acompanha: de quem é o arquivo e que documento ele é.
+ * Renomear e trocar categoria passam por aqui e não viram histórico, de
+ * propósito — o que interessa registrar são as duas decisões de triagem.
  */
-const CAMPOS_DE_VINCULO = ['pessoa_id', 'bem_id', 'matricula_id', 'triado_em'];
+const CAMPOS_AUDITADOS = ['pessoa_id', 'bem_id', 'matricula_id', 'triado_em', 'documento_tipo_id'];
 
 /** Atualiza um documento (categoria, vínculo ou nome exibido) direto no Supabase. */
 export function useAtualizarDocumento(clienteId: string) {
@@ -526,9 +541,16 @@ export function useAtualizarDocumento(clienteId: string) {
       // Busco a anterior aqui dentro, e não peço ao chamador, por dois motivos:
       // os quatro consumidores auditam sem precisar ser alterados, e ninguém
       // registra um "antes" errado por esquecer de passar.
-      const { data: anterior } = await supabase
+      // `documento_tipo_id` ainda não está no types.ts autogerado (migration
+      // 20260807120000, aplicada pelo Lovable). Sem o alias, tanto o select
+      // abaixo quanto o update recusam a coluna em tempo de compilação. Some
+      // sozinho na próxima regeneração de tipos.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sb = supabase as any;
+
+      const { data: anterior } = await sb
         .from('documento_arquivo')
-        .select('pessoa_id, bem_id, matricula_id, triado_em')
+        .select('pessoa_id, bem_id, matricula_id, triado_em, documento_tipo_id')
         .eq('id', id)
         .maybeSingle();
 
@@ -540,7 +562,7 @@ export function useAtualizarDocumento(clienteId: string) {
         const { data: sessao } = await supabase.auth.getUser();
         corpo = { ...patch, triado_por: patch.triado_em ? (sessao.user?.id ?? null) : null };
       }
-      const { data, error } = await supabase
+      const { data, error } = await sb
         .from('documento_arquivo')
         .update(corpo)
         .eq('id', id)
@@ -552,7 +574,7 @@ export function useAtualizarDocumento(clienteId: string) {
       const mudou = computeFieldDiff(
         anterior as Record<string, unknown> | null,
         linha as unknown as Record<string, unknown>,
-        CAMPOS_DE_VINCULO,
+        CAMPOS_AUDITADOS,
       );
       if (Object.keys(mudou).length > 0) {
         // Sem await e dentro de try/catch: o vínculo já está gravado, e uma

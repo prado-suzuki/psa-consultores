@@ -165,6 +165,7 @@ const FIELD_LABELS: Record<string, string> = {
   matricula_id: 'Matrícula',
   matricula_anterior_id: 'Matrícula Anterior',
   cartorio_id: 'Cartório',
+  documento_tipo_id: 'Tipo do documento',
 };
 
 // ── Status translations ──────────────────────────────────────
