@@ -273,10 +273,12 @@ const App = () => (
                   de Gestão, montada no FiscalLayout. Só líder+: é o critério da
                   Gerencial inteira, e substitui a permissão nominal que a antiga
                   /gestao/chamados exigia. */}
-              <Route path="/equipe/tax/gerencial/chamados" element={<LiderRoute><FiscalGerencialChamados /></LiderRoute>} />
+              <Route path="/equipe/tax/gerencial/chamados" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/gerencial/chamados"><FiscalGerencialChamados /></PageAccessGate></LiderRoute>} />
               {/* A estática vem antes da dinâmica: `dashboard` não pode cair no `:id`. */}
-              <Route path="/equipe/tax/gerencial/chamados/dashboard" element={<LiderRoute><FiscalGerencialChamadosDashboard /></LiderRoute>} />
-              <Route path="/equipe/tax/gerencial/chamados/:id" element={<LiderRoute><FiscalGerencialChamadoDetalhe /></LiderRoute>} />
+              <Route path="/equipe/tax/gerencial/chamados/dashboard" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/gerencial/chamados/dashboard"><FiscalGerencialChamadosDashboard /></PageAccessGate></LiderRoute>} />
+              {/* O detalhe usa a permissão da LISTA: rota com parâmetro não se
+                  cadastra, e quem pode ver a lista pode abrir um item dela. */}
+              <Route path="/equipe/tax/gerencial/chamados/:id" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/gerencial/chamados"><FiscalGerencialChamadoDetalhe /></PageAccessGate></LiderRoute>} />
 
               {/* Logs de Equipe (ex-Auditoria) — líder+ e permissão nominal, como antes.
                   O endereço antigo redireciona para não quebrar link salvo. */}
@@ -311,9 +313,9 @@ const App = () => (
               </Route>
               {/* Gestão de Chamados dentro da Gerencial da OSG. Espelha a Tax. Hoje
                   nasce vazia: não há chamado com cluster OSG. */}
-              <Route path="/equipe/osg/gerencial/chamados" element={<LiderRoute fallbackPath="/equipe/osg"><OsgGerencialChamados /></LiderRoute>} />
-              <Route path="/equipe/osg/gerencial/chamados/dashboard" element={<LiderRoute fallbackPath="/equipe/osg"><OsgGerencialChamadosDashboard /></LiderRoute>} />
-              <Route path="/equipe/osg/gerencial/chamados/:id" element={<LiderRoute fallbackPath="/equipe/osg"><OsgGerencialChamadoDetalhe /></LiderRoute>} />
+              <Route path="/equipe/osg/gerencial/chamados" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/chamados"><OsgGerencialChamados /></PageAccessGate></LiderRoute>} />
+              <Route path="/equipe/osg/gerencial/chamados/dashboard" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/chamados/dashboard"><OsgGerencialChamadosDashboard /></PageAccessGate></LiderRoute>} />
+              <Route path="/equipe/osg/gerencial/chamados/:id" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/chamados"><OsgGerencialChamadoDetalhe /></PageAccessGate></LiderRoute>} />
 
               {/* Logs de Equipe (ex-Auditoria) — líder+, igual à Tax; quem não é volta para a home do OSG. */}
               <Route path="/equipe/osg/gerencial/logs-equipe" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/logs-equipe"><OsgAuditoria /></PageAccessGate></LiderRoute>} />
