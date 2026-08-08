@@ -14,6 +14,7 @@ import {
 import { OpenSubtasksWarningDialog } from '@/components/equipe/OpenSubtasksWarningDialog';
 import { MoveDeliverableDialog } from '@/components/equipe/sprint-detalhes/MoveDeliverableDialog';
 import { DeliverableFormFields } from '@/components/equipe/sprint-detalhes/DeliverableFormFields';
+import { RetrospectiveReportDialog } from '@/components/equipe/sprint-detalhes/RetrospectiveReportDialog';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -72,7 +73,16 @@ export function DeliverableDialogs({
           }}
         >
           <DialogHeader className="border-b px-6 py-4 pr-12">
-            <DialogTitle>Editar Entregável</DialogTitle>
+            <div className="flex items-center justify-between gap-3">
+              <DialogTitle>Editar Entregável</DialogTitle>
+              {c.editingDeliverable && !editDescriptionExpanded && (
+                <RetrospectiveReportDialog
+                  deliverable={c.editingDeliverable}
+                  controller={c}
+                  showLabel
+                />
+              )}
+            </div>
           </DialogHeader>
           <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
             <DeliverableFormFields

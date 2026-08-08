@@ -601,6 +601,30 @@ export function useEquipeSprintDetalhesController() {
       setDeleting(false);
     }
   };
+  const saveRetrospectiveReport = async (deliverable: Deliverable, report: string | null) => {
+    try {
+      await data.updateRetrospectiveReport.mutateAsync({
+        deliverableId: deliverable.id,
+        deliverableTitle: deliverable.title,
+        entityType: deliverable.parent_id ? 'subtask' : 'task',
+        previousReport: deliverable.retrospective_report ?? null,
+        report,
+      });
+      toast({
+        title: report ? 'Retrospectiva anexada' : 'Retrospectiva removida',
+        description: report
+          ? 'O texto markdown foi salvo na tarefa.'
+          : 'O texto da retrospectiva foi removido da tarefa.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao salvar retrospectiva',
+        description: errorMessage(error),
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  };
   const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -786,6 +810,7 @@ export function useEquipeSprintDetalhesController() {
     setDeleteDialogOpen,
     deleteDeliverable,
     deleting,
+    saveRetrospectiveReport,
     importModalOpen,
     closeImport,
     importFile,

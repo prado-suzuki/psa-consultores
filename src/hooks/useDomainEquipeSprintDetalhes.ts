@@ -29,6 +29,8 @@ export interface SprintDetalhesDeliverable {
   // opcional: coluna nova; enquanto o types.ts gerado não a reflete, o dado
   // ainda vem do select('*') em runtime.
   actual_hours?: number | null;
+  // opcional enquanto o types.ts gerado não contém a migração local.
+  retrospective_report?: string | null;
   parent_id: string | null;
   task_code: string | null;
   project_id: string | null;
@@ -121,6 +123,22 @@ interface UpdateDeliverableInput {
   deliverableId: string;
   updates: DeliverableUpdatePayload;
 }
+
+interface UpdateRetrospectiveReportInput {
+  deliverableId: string;
+  deliverableTitle: string;
+  entityType: 'task' | 'subtask';
+  previousReport: string | null;
+  report: string | null;
+}
+
+type SprintDeliverablesRetrospectiveClient = {
+  from: (table: 'sprint_deliverables') => {
+    update: (values: { retrospective_report: string | null }) => {
+      eq: (column: 'id', value: string) => Promise<{ error: Error | null }>;
+    };
+  };
+};
 
 export interface MoveDeliverableToSprintInput {
   deliverableId: string;
@@ -460,6 +478,57 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
         ...current,
         deliverables: current.deliverables.map((deliverable) =>
           deliverable.id === deliverableId ? { ...deliverable, ...updates } : deliverable,
+        ),
+      }));
+    },
+    onError: () => undefined,
+  });
+
+  const updateRetrospectiveReport = useMutation({
+    mutationFn: async ({
+      deliverableId,
+      deliverableTitle,
+      entityType,
+      previousReport,
+      report,
+    }: UpdateRetrospectiveReportInput) => {
+      await assertCanPerform('sprint_deliverables', 'update', deliverableId);
+
+      const { error } = await (supabase as unknown as SprintDeliverablesRetrospectiveClient)
+        .from('sprint_deliverables')
+        .update({ retrospective_report: report })
+        .eq('id', deliverableId);
+
+      if (error) throw error;
+
+      return {
+        deliverableId,
+        report,
+        auditEntry: {
+          area: 'dev' as const,
+          entity_type: entityType,
+          entity_id: deliverableId,
+          entity_name: deliverableTitle,
+          action: 'updated' as const,
+          changed_fields: computeFieldDiff(
+            { retrospective_report: previousReport },
+            { retrospective_report: report },
+            ['retrospective_report'],
+          ),
+          details: report
+            ? 'Retrospectiva markdown anexada à tarefa.'
+            : 'Retrospectiva markdown removida da tarefa.',
+        },
+      };
+    },
+    onSuccess: ({ deliverableId, report, auditEntry }) => {
+      void logAction(auditEntry);
+      updateCachedData((current) => ({
+        ...current,
+        deliverables: current.deliverables.map((deliverable) =>
+          deliverable.id === deliverableId
+            ? { ...deliverable, retrospective_report: report }
+            : deliverable,
         ),
       }));
     },
@@ -851,6 +920,7 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
     updateDeliverableStatus,
     reorderDeliverables,
     updateDeliverable,
+    updateRetrospectiveReport,
     moveDeliverableToSprint,
     deleteDeliverable,
     updateMetric,
