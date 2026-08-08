@@ -7344,6 +7344,7 @@ export type Database = {
           parent_id: string | null
           process_id: string | null
           project_id: string | null
+          retrospective_report: string | null
           sprint_id: string | null
           start_date: string | null
           status: string | null
@@ -7363,6 +7364,7 @@ export type Database = {
           parent_id?: string | null
           process_id?: string | null
           project_id?: string | null
+          retrospective_report?: string | null
           sprint_id?: string | null
           start_date?: string | null
           status?: string | null
@@ -7382,6 +7384,7 @@ export type Database = {
           parent_id?: string | null
           process_id?: string | null
           project_id?: string | null
+          retrospective_report?: string | null
           sprint_id?: string | null
           start_date?: string | null
           status?: string | null
