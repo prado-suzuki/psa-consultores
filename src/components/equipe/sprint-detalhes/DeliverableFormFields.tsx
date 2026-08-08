@@ -128,24 +128,29 @@ export function DeliverableFormFields({
   }
 
   return (
-    <div className="grid shrink-0 gap-5 lg:grid-cols-[minmax(0,1fr)_29rem]">
+    <div className="grid shrink-0 gap-5 lg:grid-cols-[minmax(0,13fr)_minmax(0,7fr)]">
       <section className="rounded-3xl border bg-card p-4 shadow-sm sm:p-5">
         <div className="mb-5 space-y-2">
           <div className="flex items-center justify-between gap-3">
             <SectionLabel>
               {prefix === 'create' ? 'Nova tarefa' : 'Conteúdo da tarefa'}
             </SectionLabel>
-            <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
-              {prefix === 'create' ? 'Título obrigatório' : 'Descrição em foco'}
-            </span>
+            {prefix === 'create' && (
+              <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                Título obrigatório
+              </span>
+            )}
           </div>
-          <Input
-            id={`${prefix}-title`}
-            value={form.title}
-            onChange={(event) => update('title', event.target.value)}
-            placeholder="Dê um título claro para a entrega"
-            className="h-auto border-0 bg-transparent px-0 py-1 text-2xl font-semibold tracking-tight shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-0"
-          />
+          <div className="flex min-w-0 items-baseline gap-2 text-[1.15rem] font-semibold tracking-tight">
+            {form.task_code && <span className="shrink-0">[{form.task_code}]</span>}
+            <Input
+              id={`${prefix}-title`}
+              value={form.title}
+              onChange={(event) => update('title', event.target.value)}
+              placeholder="Dê um título claro para a entrega"
+              className="h-auto min-w-0 border-0 bg-transparent px-0 py-1 text-[1.15rem] font-semibold leading-tight tracking-tight shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-0 md:text-[1.15rem]"
+            />
+          </div>
           <Label htmlFor={`${prefix}-title`} className="sr-only">
             Título
             {prefix === 'create' && <RequiredMark />}
