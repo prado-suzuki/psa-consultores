@@ -85,13 +85,17 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
             return (
               <div key={task.id}>
                 <Card
-                  className={`${task.status === 'completed' ? 'bg-gray-50' : 'bg-white'} border-gray-200`}
+                  className={`${task.status === 'completed' ? 'bg-gray-50' : 'bg-white'} cursor-pointer border-gray-200`}
+                  onClick={() => c.toggleTask(task.id)}
                 >
                   <CardContent className="py-3">
                     <div className="flex items-center gap-2">
                       {hasChildren ? (
                         <button
-                          onClick={() => c.toggleTask(task.id)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            c.toggleTask(task.id);
+                          }}
                           className="p-1 hover:bg-gray-100 rounded"
                         >
                           {expanded ? (
@@ -105,6 +109,7 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                       )}
                       <Checkbox
                         checked={task.status === 'completed'}
+                        onClick={(event) => event.stopPropagation()}
                         onCheckedChange={(checked) =>
                           c.updateStatus(task.id, checked ? 'completed' : 'pending')
                         }
@@ -137,19 +142,32 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => c.openCreateSubtaskModal(task)}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          c.openCreateSubtaskModal(task);
+                        }}
                         title="Criar subtarefa vinculada"
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => c.openEditModal(task)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          c.openEditModal(task);
+                        }}
+                      >
                         <Edit2 className="h-4 w-4" />
                       </Button>
                       {c.canMoveDeliverable && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => c.openMoveModal(task)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            c.openMoveModal(task);
+                          }}
                           title="Mover para outra sprint"
                         >
                           <ArrowRightLeft className="h-4 w-4" />
@@ -168,11 +186,16 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                 {hasChildren && expanded && (
                   <div className="ml-8 mt-1 space-y-1 border-l-2 border-gray-200 pl-4">
                     {task.subtasks.map((subtask) => (
-                      <Card key={subtask.id} className="border-gray-100">
+                      <Card
+                        key={subtask.id}
+                        className="cursor-pointer border-gray-100"
+                        onClick={() => c.openEditModal(subtask)}
+                      >
                         <CardContent className="py-2">
                           <div className="flex items-center gap-3">
                             <Checkbox
                               checked={subtask.status === 'completed'}
+                              onClick={(event) => event.stopPropagation()}
                               onCheckedChange={(checked) =>
                                 c.updateStatus(subtask.id, checked ? 'completed' : 'pending')
                               }
@@ -203,7 +226,10 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => c.openEditModal(subtask)}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                c.openEditModal(subtask);
+                              }}
                             >
                               <Edit2 className="h-3 w-3" />
                             </Button>
@@ -211,7 +237,10 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => c.openMoveModal(subtask)}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  c.openMoveModal(subtask);
+                                }}
                                 title="Mover para outra sprint (deixa de ser subtarefa)"
                               >
                                 <ArrowRightLeft className="h-3 w-3" />
