@@ -143,7 +143,7 @@ export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregav
   if (!deliverableId) return null;
 
   return (
-    <div className="space-y-3 border-t pt-4">
+    <div className="shrink-0 space-y-3 border-t pt-4">
       <div className="flex items-center justify-between">
         <Label className="flex items-center gap-2">
           <Paperclip className="h-4 w-4" />

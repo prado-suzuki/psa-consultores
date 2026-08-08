@@ -128,7 +128,7 @@ export function DeliverableFormFields({
   }
 
   return (
-    <div className="grid min-h-0 gap-5 lg:grid-cols-[minmax(0,1fr)_29rem]">
+    <div className="grid shrink-0 gap-5 lg:grid-cols-[minmax(0,1fr)_29rem]">
       <section className="rounded-3xl border bg-card p-4 shadow-sm sm:p-5">
         <div className="mb-5 space-y-2">
           <div className="flex items-center justify-between gap-3">
