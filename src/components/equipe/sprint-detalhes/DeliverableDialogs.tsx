@@ -32,7 +32,7 @@ import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDeta
 const contentClass = (expanded: boolean) =>
   cn(
     'flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 transition-[max-width] duration-200',
-    expanded ? 'h-[88vh] sm:max-w-4xl' : 'sm:max-w-6xl',
+    expanded ? 'h-[88vh] sm:max-w-4xl' : 'sm:max-w-[calc(100vw-2rem)] xl:max-w-7xl',
   );
 
 export function DeliverableDialogs({
@@ -74,7 +74,7 @@ export function DeliverableDialogs({
         >
           <DialogHeader className="border-b bg-muted/30 px-6 py-4 pr-12">
             <div className="flex items-center justify-between gap-3">
-              <DialogTitle className="text-xl tracking-tight">Editar tarefa da sprint</DialogTitle>
+              <DialogTitle className="text-xl tracking-tight">Editar Entregável</DialogTitle>
               {c.editingDeliverable && !editDescriptionExpanded && (
                 <RetrospectiveReportDialog
                   deliverable={c.editingDeliverable}
@@ -158,7 +158,7 @@ export function DeliverableDialogs({
           }}
         >
           <DialogHeader className="border-b bg-muted/30 px-6 py-4 pr-12">
-            <DialogTitle className="text-xl tracking-tight">Nova tarefa da sprint</DialogTitle>
+            <DialogTitle className="text-xl tracking-tight">Nova Tarefa</DialogTitle>
           </DialogHeader>
           <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto bg-muted/20 px-4 py-4 sm:px-6 sm:py-5">
             <DeliverableFormFields
