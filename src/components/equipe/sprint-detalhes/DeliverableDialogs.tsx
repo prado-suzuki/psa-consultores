@@ -31,8 +31,8 @@ import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDeta
 // altura máxima para o campo esticar sem empurrar o rodapé para fora da tela.
 const contentClass = (expanded: boolean) =>
   cn(
-    'flex max-h-[88vh] flex-col gap-0 overflow-hidden p-0 transition-[max-width] duration-200',
-    expanded ? 'h-[88vh] sm:max-w-4xl' : 'sm:max-w-3xl',
+    'flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 transition-[max-width] duration-200',
+    expanded ? 'h-[88vh] sm:max-w-4xl' : 'sm:max-w-6xl',
   );
 
 export function DeliverableDialogs({
@@ -72,9 +72,9 @@ export function DeliverableDialogs({
             }
           }}
         >
-          <DialogHeader className="border-b px-6 py-4 pr-12">
+          <DialogHeader className="border-b bg-muted/30 px-6 py-4 pr-12">
             <div className="flex items-center justify-between gap-3">
-              <DialogTitle>Editar Entregável</DialogTitle>
+              <DialogTitle className="text-xl tracking-tight">Editar tarefa da sprint</DialogTitle>
               {c.editingDeliverable && !editDescriptionExpanded && (
                 <RetrospectiveReportDialog
                   deliverable={c.editingDeliverable}
@@ -84,7 +84,7 @@ export function DeliverableDialogs({
               )}
             </div>
           </DialogHeader>
-          <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
+          <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto bg-muted/20 px-4 py-4 sm:px-6 sm:py-5">
             <DeliverableFormFields
               prefix="edit"
               form={c.editForm}
@@ -98,7 +98,7 @@ export function DeliverableDialogs({
               <AnexosEntregavel deliverableId={c.editingDeliverable?.id} ativo={c.editModalOpen} />
             )}
           </div>
-          <DialogFooter className="border-t px-6 py-4 sm:justify-between">
+          <DialogFooter className="border-t bg-background px-6 py-4 sm:justify-between">
             <AlertDialog open={c.deleteDialogOpen} onOpenChange={c.setDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" className="text-destructive hover:bg-destructive/10">
@@ -157,10 +157,10 @@ export function DeliverableDialogs({
             }
           }}
         >
-          <DialogHeader className="border-b px-6 py-4 pr-12">
-            <DialogTitle>Nova Tarefa</DialogTitle>
+          <DialogHeader className="border-b bg-muted/30 px-6 py-4 pr-12">
+            <DialogTitle className="text-xl tracking-tight">Nova tarefa da sprint</DialogTitle>
           </DialogHeader>
-          <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-6 py-5">
+          <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto bg-muted/20 px-4 py-4 sm:px-6 sm:py-5">
             <DeliverableFormFields
               prefix="create"
               form={c.createForm}
@@ -170,7 +170,7 @@ export function DeliverableDialogs({
               onToggleDescription={() => setCreateDescriptionExpanded((current) => !current)}
             />
           </div>
-          <DialogFooter className="border-t px-6 py-4">
+          <DialogFooter className="border-t bg-background px-6 py-4">
             <Button variant="outline" onClick={() => c.setCreateModalOpen(false)}>
               Cancelar
             </Button>
