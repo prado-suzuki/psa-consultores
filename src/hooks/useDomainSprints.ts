@@ -129,7 +129,7 @@ export function useDomainSprints(projectFilter: string | null) {
             .order('name'),
           projectFilter ? sprintsQuery.eq('project_id', projectFilter) : sprintsQuery,
           supabase
-            .from('sprint_resumo' as never)
+            .from('sprint_resumo')
             .select('sprint_id, horas_alocadas, custo_economizado_mensal, horas_liberadas, melhorias'),
         ]);
 

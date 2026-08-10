@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
@@ -20,7 +20,12 @@ export interface SprintDetalhesSprint {
 export interface SprintDetalhesDeliverable {
   id: string;
   title: string;
-  description: string | null;
+  /**
+   * Não vem na leitura da lista (é rich text e ninguém a exibe ali). Chega
+   * preenchida quando alguém pede: ao abrir a tarefa, ao entrar em Métricas ou
+   * ao exportar.
+   */
+  description?: string | null;
   assigned_to: string | null;
   start_date: string | null;
   due_date: string;
@@ -29,8 +34,8 @@ export interface SprintDetalhesDeliverable {
   // opcional: coluna nova; enquanto o types.ts gerado não a reflete, o dado
   // ainda vem do select('*') em runtime.
   actual_hours?: number | null;
-  // opcional enquanto o types.ts gerado não contém a migração local.
-  retrospective_report?: string | null;
+  /** Coluna gerada: existe retrospectiva anexada? O markdown em si não vem. */
+  tem_retrospectiva?: boolean;
   parent_id: string | null;
   task_code: string | null;
   project_id: string | null;
@@ -85,11 +90,28 @@ interface SprintDetalhesData {
   deliverables: SprintDetalhesDeliverable[];
   events: SprintDetalhesEvent[];
   metrics: SprintDetalhesMetric[];
+}
+
+/** Catálogos globais: não dependem da sprint aberta e quase nunca mudam. */
+interface SprintDetalhesCatalogos {
   profiles: SprintDetalhesProfile[];
   projects: SprintDetalhesProject[];
   processes: SprintDetalhesProcess[];
   projectProcesses: SprintDetalhesProjectProcess[];
 }
+
+/**
+ * Colunas que a lista da sprint realmente usa.
+ *
+ * `select('*')` arrastava `description` (rich text) e `retrospective_report`
+ * (markdown da retrospectiva) de toda tarefa. Nenhuma das duas aparece na
+ * lista: a descrição só é lida no modal de edição, na exportação e no
+ * cruzamento da aba Métricas, e o texto da retrospectiva nunca é exibido — dele
+ * a tela só precisa saber se existe, que agora é a coluna gerada
+ * `tem_retrospectiva`.
+ */
+const DELIVERABLE_COLUNAS_DA_LISTA =
+  'id, title, assigned_to, start_date, due_date, status, estimated_hours, actual_hours, parent_id, task_code, project_id, process_id, tem_retrospectiva';
 
 interface DeliverableStatusInput {
   deliverableId: string;
@@ -128,7 +150,6 @@ interface UpdateRetrospectiveReportInput {
   deliverableId: string;
   deliverableTitle: string;
   entityType: 'task' | 'subtask';
-  previousReport: string | null;
   report: string | null;
 }
 
@@ -224,6 +245,12 @@ const fetchPerfisDigital = async (): Promise<SprintDetalhesProfile[]> => {
 const sprintDetalhesKeys = {
   detail: (sprintId: string | undefined) =>
     ['domain-equipe-sprint-detalhes', sprintId] as const,
+  /** Sem sprintId de propósito: é o mesmo catálogo para todas as sprints. */
+  catalogos: () => ['domain-equipe-sprint-detalhes', 'catalogos'] as const,
+  descricoes: (sprintId: string | undefined) =>
+    ['domain-equipe-sprint-detalhes', sprintId, 'descricoes'] as const,
+  descricaoDaTarefa: (deliverableId: string | undefined) =>
+    ['domain-equipe-sprint-detalhes', 'descricao-tarefa', deliverableId] as const,
 };
 
 const applyDeliverableRealtimeChanges = (
@@ -259,7 +286,19 @@ const applyDeliverableRealtimeChanges = (
     return current;
   }, deliverables);
 
-export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
+/**
+ * @param sprintId sprint aberta.
+ * @param options.tarefaEmEdicao tarefa cuja descrição precisa estar carregada
+ *   (o modal de edição grava o formulário inteiro, então não pode salvar com a
+ *   descrição em branco só porque ela ainda não chegou).
+ * @param options.comDescricoes carrega a descrição de todas as tarefas da
+ *   sprint. Serve à aba Métricas, que cruza palavras da métrica com o texto.
+ */
+export function useDomainEquipeSprintDetalhes(
+  sprintId: string | undefined,
+  options: { tarefaEmEdicao?: string; comDescricoes?: boolean } = {},
+) {
+  const { tarefaEmEdicao, comDescricoes = false } = options;
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
   const queryKey = sprintDetalhesKeys.detail(sprintId);
@@ -298,18 +337,13 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
         // vai junto: eram nove idas ao banco enfileiradas sem necessidade, cada
         // uma pagando a latência da anterior.
         const [
-          profiles,
           { data: deliverablesData },
           { data: eventsData },
           { data: metricsData },
-          { data: projectsData },
-          { data: processesData },
-          { data: projectProcessesData },
         ] = await Promise.all([
-          fetchPerfisDigital(),
           supabase
             .from('sprint_deliverables')
-            .select('*')
+            .select(DELIVERABLE_COLUNAS_DA_LISTA)
             .eq('sprint_id', sprintId)
             .order('due_date', { ascending: true }),
           supabase
@@ -319,23 +353,16 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
             .order('event_date', { ascending: true })
             .order('start_time', { ascending: true }),
           supabase.from('sprint_metrics').select('*').eq('sprint_id', sprintId),
-          supabase.from('projects').select('id, name').order('name'),
-          supabase.from('processes').select('id, name, project_id').order('name'),
-          supabase.from('project_processes').select('process_id, project_id'),
         ]);
 
         return {
           sprint: sprintData as SprintDetalhesSprint,
-          profiles,
           deliverables: applyDeliverableRealtimeChanges(
-            (deliverablesData ?? []) as SprintDetalhesDeliverable[],
+            (deliverablesData ?? []) as unknown as SprintDetalhesDeliverable[],
             pendingRealtimeChangesRef.current,
           ),
           events: (eventsData ?? []) as SprintDetalhesEvent[],
           metrics: (metricsData ?? []) as SprintDetalhesMetric[],
-          projects: (projectsData ?? []) as SprintDetalhesProject[],
-          processes: (processesData ?? []) as SprintDetalhesProcess[],
-          projectProcesses: (projectProcessesData ?? []) as SprintDetalhesProjectProcess[],
         };
       } finally {
         fetchInProgressRef.current = false;
@@ -343,6 +370,96 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
       }
     },
   });
+
+  // Catálogos: pessoas do Digital, projetos, processos e o vínculo entre eles.
+  // Não dependem da sprint e alimentam só os selects do modal de tarefa, mas
+  // eram relidos por inteiro a cada sprint aberta. Query própria, sem sprintId
+  // na chave: a primeira sprint da sessão paga, as seguintes reaproveitam.
+  const catalogosQuery = useQuery<SprintDetalhesCatalogos>({
+    queryKey: sprintDetalhesKeys.catalogos(),
+    // Sem sprint na rota a tela não abre; não há o que catalogar.
+    enabled: Boolean(sprintId),
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const [profiles, { data: projectsData }, { data: processesData }, { data: projectProcessesData }] =
+        await Promise.all([
+          fetchPerfisDigital(),
+          supabase.from('projects').select('id, name').order('name'),
+          supabase.from('processes').select('id, name, project_id').order('name'),
+          supabase.from('project_processes').select('process_id, project_id'),
+        ]);
+
+      return {
+        profiles,
+        projects: (projectsData ?? []) as SprintDetalhesProject[],
+        processes: (processesData ?? []) as SprintDetalhesProcess[],
+        projectProcesses: (projectProcessesData ?? []) as SprintDetalhesProjectProcess[],
+      };
+    },
+  });
+
+  const buscarDescricoesDaSprint = useCallback(async () => {
+    if (!sprintId) return [];
+    const { data, error } = await supabase
+      .from('sprint_deliverables')
+      .select('id, description')
+      .eq('sprint_id', sprintId);
+    if (error) throw error;
+    return (data ?? []) as Array<{ id: string; description: string | null }>;
+  }, [sprintId]);
+
+  const descricoesQuery = useQuery({
+    queryKey: sprintDetalhesKeys.descricoes(sprintId),
+    enabled: Boolean(sprintId) && comDescricoes,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: buscarDescricoesDaSprint,
+  });
+
+  /** Puxa as descrições agora e devolve o mapa — usado pela exportação. */
+  const garantirDescricoes = useCallback(async () => {
+    const linhas = await queryClient.fetchQuery({
+      queryKey: sprintDetalhesKeys.descricoes(sprintId),
+      queryFn: buscarDescricoesDaSprint,
+      staleTime: 60_000,
+    });
+    return new Map(linhas.map((linha) => [linha.id, linha.description]));
+  }, [buscarDescricoesDaSprint, queryClient, sprintId]);
+
+  // A descrição da tarefa aberta vem sozinha, em uma linha: o modal grava o
+  // formulário inteiro, então salvar antes de ela chegar apagaria o texto.
+  const descricaoDaTarefaQuery = useQuery({
+    queryKey: sprintDetalhesKeys.descricaoDaTarefa(tarefaEmEdicao),
+    enabled: Boolean(tarefaEmEdicao),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sprint_deliverables')
+        .select('description')
+        .eq('id', tarefaEmEdicao as string)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.description ?? null) as string | null;
+    },
+  });
+
+  const descricoesPorTarefa = useMemo(
+    () => new Map((descricoesQuery.data ?? []).map((linha) => [linha.id, linha.description])),
+    [descricoesQuery.data],
+  );
+
+  const deliverables = useMemo(() => {
+    const base = dataQuery.data?.deliverables ?? [];
+    if (descricoesPorTarefa.size === 0) return base;
+    return base.map((deliverable) =>
+      descricoesPorTarefa.has(deliverable.id)
+        ? { ...deliverable, description: descricoesPorTarefa.get(deliverable.id) ?? null }
+        : deliverable,
+    );
+  }, [dataQuery.data?.deliverables, descricoesPorTarefa]);
 
   const updateCachedData = (
     updater: (current: SprintDetalhesData) => SprintDetalhesData,
@@ -486,10 +603,19 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
       deliverableId,
       deliverableTitle,
       entityType,
-      previousReport,
       report,
     }: UpdateRetrospectiveReportInput) => {
       await assertCanPerform('sprint_deliverables', 'update', deliverableId);
+
+      // O texto anterior não trafega mais na listagem, e o diff de auditoria
+      // precisa dele: lido aqui, uma linha, só na hora de gravar.
+      const { data: anterior } = await supabase
+        .from('sprint_deliverables')
+        .select('retrospective_report')
+        .eq('id', deliverableId)
+        .maybeSingle();
+      const previousReport =
+        ((anterior ?? {}) as { retrospective_report?: string | null }).retrospective_report ?? null;
 
       const { error } = await (supabase as unknown as SprintDeliverablesRetrospectiveClient)
         .from('sprint_deliverables')
@@ -524,7 +650,7 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
         ...current,
         deliverables: current.deliverables.map((deliverable) =>
           deliverable.id === deliverableId
-            ? { ...deliverable, retrospective_report: report }
+            ? { ...deliverable, tem_retrospectiva: Boolean(report?.trim()) }
             : deliverable,
         ),
       }));
@@ -902,13 +1028,17 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
 
   return {
     sprint: dataQuery.data?.sprint ?? null,
-    deliverables: dataQuery.data?.deliverables ?? [],
+    deliverables,
     events: dataQuery.data?.events ?? [],
     metrics: dataQuery.data?.metrics ?? [],
-    profiles: dataQuery.data?.profiles ?? [],
-    projects: dataQuery.data?.projects ?? [],
-    processes: dataQuery.data?.processes ?? [],
-    projectProcesses: dataQuery.data?.projectProcesses ?? [],
+    profiles: catalogosQuery.data?.profiles ?? [],
+    projects: catalogosQuery.data?.projects ?? [],
+    processes: catalogosQuery.data?.processes ?? [],
+    projectProcesses: catalogosQuery.data?.projectProcesses ?? [],
+    /** Descrição da tarefa aberta: enquanto não chega, o modal não deixa salvar. */
+    descricaoDaTarefa: descricaoDaTarefaQuery.data ?? null,
+    descricaoDaTarefaCarregando: Boolean(tarefaEmEdicao) && descricaoDaTarefaQuery.isPending,
+    garantirDescricoes,
     isLoading: !sprintId || dataQuery.isFetching,
     isNotFound: dataQuery.isSuccess && dataQuery.data === null,
     error: dataQuery.error,

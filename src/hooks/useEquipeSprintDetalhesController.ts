@@ -74,11 +74,20 @@ export function useEquipeSprintDetalhesController() {
   const { toast } = useToast();
   // isLider no AuthContext é estrito e não engloba admin.
   const { isAdmin, isLider } = useAuth();
-  const data = useDomainEquipeSprintDetalhes(id);
+  // A descrição das tarefas não vem na listagem (rich text que a lista não
+  // mostra). Ela é pedida em dois casos: a tarefa aberta no modal e a aba
+  // Métricas, que cruza o texto com o nome da métrica.
+  const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
+  const [descricoesPedidas, setDescricoesPedidas] = useState(false);
+  const data = useDomainEquipeSprintDetalhes(id, {
+    tarefaEmEdicao: editingDeliverable?.id,
+    comDescricoes: descricoesPedidas,
+  });
   const { sprint, deliverables, events, metrics, profiles, projects, processes, projectProcesses } =
     data;
   const handledError = useRef<unknown>(null);
   const handledNotFoundAt = useRef(0);
+  const descricaoAplicadaRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterResponsible, setFilterResponsible] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -89,7 +98,6 @@ export function useEquipeSprintDetalhesController() {
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   const [expandedPersons, setExpandedPersons] = useState<Set<string>>(new Set());
   const [expandedMetrics, setExpandedMetrics] = useState<Set<string>>(new Set());
-  const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
   // Aviso pendente de "concluir mãe com subtarefa aberta" — guarda a ação a executar se confirmar.
   const [completionWarning, setCompletionWarning] = useState<{
     taskTitle: string;
@@ -117,6 +125,9 @@ export function useEquipeSprintDetalhesController() {
   const [moving, setMoving] = useState(false);
   const [importPreview, setImportPreview] = useState<ImportPreview | null>(null);
   const [responsibleMapping, setResponsibleMapping] = useState<Record<string, string>>({});
+
+  // Identidade estável: a aba Métricas chama isto de dentro de um efeito.
+  const pedirDescricoes = useCallback(() => setDescricoesPedidas(true), []);
 
   const showError = useCallback(
     (error: unknown) => {
@@ -312,9 +323,11 @@ export function useEquipeSprintDetalhesController() {
 
   const openEditModal = useCallback((item: Deliverable) => {
     setEditingDeliverable(item);
+    descricaoAplicadaRef.current = null;
     setEditForm({
       title: item.title,
-      description: item.description ?? '',
+      // Preenchida pelo efeito abaixo, quando a descrição da tarefa chegar.
+      description: '',
       assigned_to: item.assigned_to ?? '',
       start_date: item.start_date ?? sprint?.start_date ?? '',
       due_date: item.due_date,
@@ -334,6 +347,16 @@ export function useEquipeSprintDetalhesController() {
     const task = deliverables.find((item) => item.id === deepLinkedTaskId);
     if (task) openEditModal(task);
   }, [deepLinkedTaskId, deliverables, editModalOpen, openEditModal]);
+
+  // A descrição chega depois do resto (leitura própria, de uma linha). Só
+  // entra no formulário uma vez por tarefa aberta, para não passar por cima do
+  // que a pessoa já digitou.
+  useEffect(() => {
+    if (!editingDeliverable || data.descricaoDaTarefaCarregando) return;
+    if (descricaoAplicadaRef.current === editingDeliverable.id) return;
+    descricaoAplicadaRef.current = editingDeliverable.id;
+    setEditForm((form) => ({ ...form, description: data.descricaoDaTarefa ?? '' }));
+  }, [data.descricaoDaTarefa, data.descricaoDaTarefaCarregando, editingDeliverable]);
 
   const changeEditModalOpen = (open: boolean) => {
     setEditModalOpen(open);
@@ -607,7 +630,6 @@ export function useEquipeSprintDetalhesController() {
         deliverableId: deliverable.id,
         deliverableTitle: deliverable.title,
         entityType: deliverable.parent_id ? 'subtask' : 'task',
-        previousReport: deliverable.retrospective_report ?? null,
         report,
       });
       toast({
@@ -681,13 +703,30 @@ export function useEquipeSprintDetalhesController() {
       setImporting(false);
     }
   };
-  const handleExportExcel = () => {
+  const handleExportExcel = async () => {
     if (!sprint || !deliverables.length) {
       toast({ title: 'Nenhum entregável para exportar', variant: 'destructive' });
       return;
     }
+    // A planilha tem coluna de descrição, que não trafega na listagem: busca
+    // agora, na hora da exportação.
+    let comDescricao = deliverables;
+    try {
+      const descricoes = await data.garantirDescricoes();
+      comDescricao = deliverables.map((item) => ({
+        ...item,
+        description: descricoes.get(item.id) ?? null,
+      }));
+    } catch (error) {
+      toast({
+        title: 'Erro ao ler as descrições',
+        description: errorMessage(error),
+        variant: 'destructive',
+      });
+      return;
+    }
     const sheet = XLSX.utils.json_to_sheet(
-      buildExportRows(sprint, deliverables, profiles, projects, processes),
+      buildExportRows(sprint, comDescricao, profiles, projects, processes),
     );
     const book = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(book, sheet, 'Entregáveis');
@@ -771,6 +810,10 @@ export function useEquipeSprintDetalhesController() {
     toggleMetric: (id: string) => toggleSet(setExpandedMetrics, id),
     getProfileName,
     relatedDeliverables,
+    // A aba Métricas cruza o nome da métrica com o texto das tarefas; ela avisa
+    // ao montar que precisa das descrições.
+    pedirDescricoes,
+    descricaoDaTarefaCarregando: data.descricaoDaTarefaCarregando,
     canMoveDeliverable,
     moveModalOpen,
     movingDeliverable,

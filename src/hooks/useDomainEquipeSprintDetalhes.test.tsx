@@ -184,6 +184,36 @@ describe('useDomainEquipeSprintDetalhes — query de detalhe', () => {
 
     expect(callsFor('sprints', 'select')[0].args).toEqual(['*']);
     expect(callsFor('sprints', 'eq')[0].args).toEqual(['id', 'sprint-1']);
+    // A listagem não traz `description` nem `retrospective_report`: o rich text
+    // e o markdown da retrospectiva não aparecem nela. De retrospectiva a tela
+    // só precisa saber se existe, que é a coluna gerada.
+    const colunas = callsFor('sprint_deliverables', 'select')[0].args[0] as string;
+    expect(colunas).toContain('tem_retrospectiva');
+    expect(colunas).not.toContain('description');
+    expect(colunas).not.toContain('retrospective_report');
+    expect(callsFor('sprint_deliverables', 'eq')[0].args).toEqual(['sprint_id', 'sprint-1']);
+    expect(callsFor('sprint_deliverables', 'order')[0].args).toEqual([
+      'due_date',
+      { ascending: true },
+    ]);
+    expect(callsFor('sprint_events', 'eq')[0].args).toEqual(['sprint_id', 'sprint-1']);
+    expect(callsFor('sprint_metrics', 'eq')[0].args).toEqual(['sprint_id', 'sprint-1']);
+
+    // Catálogos não entram na leitura da sprint.
+    expect(callsFor('projects', 'select')).toHaveLength(0);
+    expect(callsFor('processes', 'select')).toHaveLength(0);
+    expect(callsFor('project_processes', 'select')).toHaveLength(0);
+    expect(callsFor('estrutura_equipes', 'select')).toHaveLength(0);
+  });
+
+  it('lê os catálogos numa query própria, sem sprintId na chave e com cache longo', async () => {
+    renderDomain('sprint-1');
+    const catalogos = queryRegistrations()[1];
+    expect(catalogos.queryKey).toEqual(['domain-equipe-sprint-detalhes', 'catalogos']);
+    expect(catalogos.staleTime).toBe(10 * 60_000);
+
+    await (catalogos.queryFn as () => Promise<unknown>)();
+
     // Os perfis do Digital saem de uma consulta só, com embed: a área entra
     // como !inner apenas para filtrar o cluster.
     expect(callsFor('estrutura_equipes', 'select')[0].args).toEqual([
@@ -193,16 +223,44 @@ describe('useDomainEquipeSprintDetalhes — query de detalhe', () => {
       'estrutura_areas.cluster_id',
       DIGITAL_CLUSTER_ID,
     ]);
-    expect(callsFor('sprint_deliverables', 'eq')[0].args).toEqual(['sprint_id', 'sprint-1']);
-    expect(callsFor('sprint_deliverables', 'order')[0].args).toEqual([
-      'due_date',
-      { ascending: true },
-    ]);
-    expect(callsFor('sprint_events', 'eq')[0].args).toEqual(['sprint_id', 'sprint-1']);
-    expect(callsFor('sprint_metrics', 'eq')[0].args).toEqual(['sprint_id', 'sprint-1']);
     expect(callsFor('projects', 'order')[0].args).toEqual(['name']);
     expect(callsFor('processes', 'order')[0].args).toEqual(['name']);
     expect(callsFor('project_processes', 'select')[0].args).toEqual(['process_id, project_id']);
+  });
+
+  it('só busca descrições quando alguém pede, e a da tarefa aberta vem sozinha', async () => {
+    renderDomain('sprint-1');
+    const [, , descricoes, daTarefa] = queryRegistrations();
+
+    expect(descricoes.queryKey).toEqual([
+      'domain-equipe-sprint-detalhes',
+      'sprint-1',
+      'descricoes',
+    ]);
+    expect(descricoes.enabled).toBe(false);
+    expect(daTarefa.enabled).toBe(false);
+
+    await (descricoes.queryFn as () => Promise<unknown>)();
+    expect(callsFor('sprint_deliverables', 'select')[0].args).toEqual(['id, description']);
+    expect(callsFor('sprint_deliverables', 'eq')[0].args).toEqual(['sprint_id', 'sprint-1']);
+  });
+
+  it('habilita a descrição da tarefa em edição e a lê por id', async () => {
+    renderHook(() =>
+      useDomainEquipeSprintDetalhes('sprint-1', { tarefaEmEdicao: 'deliv-1', comDescricoes: true }),
+    );
+    const [, , descricoes, daTarefa] = queryRegistrations();
+    expect(descricoes.enabled).toBe(true);
+    expect(daTarefa.enabled).toBe(true);
+    expect(daTarefa.queryKey).toEqual([
+      'domain-equipe-sprint-detalhes',
+      'descricao-tarefa',
+      'deliv-1',
+    ]);
+
+    await (daTarefa.queryFn as () => Promise<unknown>)();
+    expect(callsFor('sprint_deliverables', 'select')[0].args).toEqual(['description']);
+    expect(callsFor('sprint_deliverables', 'eq')[0].args).toEqual(['id', 'deliv-1']);
   });
 
   it('propaga o erro retornado ao consultar o sprint', async () => {

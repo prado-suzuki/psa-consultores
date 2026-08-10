@@ -33,7 +33,9 @@ export function RetrospectiveReportDialog({
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
-  const hasReport = Boolean(deliverable.retrospective_report?.trim());
+  // Coluna gerada no banco: o markdown em si não é lido pela tela (e o diálogo
+  // nem o exibe), então aqui só interessa se existe.
+  const hasReport = Boolean(deliverable.tem_retrospectiva);
 
   const close = (nextOpen: boolean) => {
     setOpen(nextOpen);

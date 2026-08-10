@@ -8,18 +8,12 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { parseDate, getTodayBrazil } from '@/lib/dateUtils';
+import type { SprintDetalhesDeliverable } from '@/hooks/useDomainEquipeSprintDetalhes';
 
-interface Deliverable {
-  id: string;
-  title: string;
-  description: string | null;
-  assigned_to: string | null;
-  due_date: string;
-  status: string;
-  estimated_hours: number | null;
-  task_code: string | null;
-  profile?: { first_name: string; last_name: string };
-}
+// Usa o tipo do domínio em vez de uma cópia local: a cópia declarava
+// `description` obrigatória (sem nunca usá-la) e travava a leitura enxuta da
+// lista, que não traz esse campo.
+type Deliverable = SprintDetalhesDeliverable;
 
 interface SprintCalendarProps {
   deliverables: Deliverable[];

@@ -284,6 +284,8 @@ const mutations = {
   moveDeliverableToSprint: { mutateAsync: vi.fn() },
 };
 const refetch = vi.fn();
+// Devolve o mapa id -> descrição que a exportação usa para preencher a coluna.
+const garantirDescricoes = vi.fn(async () => new Map<string, string | null>());
 
 function pageData(overrides: Record<string, unknown> = {}) {
   return {
@@ -320,6 +322,11 @@ function pageData(overrides: Record<string, unknown> = {}) {
     error: null,
     dataUpdatedAt: 10,
     refetch,
+    // A descrição não vem na listagem: a exportação a busca na hora, e o modal
+    // de edição espera a da tarefa aberta.
+    descricaoDaTarefa: null,
+    descricaoDaTarefaCarregando: false,
+    garantirDescricoes,
     ...mutations,
     ...overrides,
   };
@@ -441,18 +448,20 @@ describe('useDomainEquipeSprintDetalhes: contratos na fronteira', () => {
 
     await waitFor(() => expect(result.current.sprint?.id).toBe('sprint-1'));
     expect(client.getQueryData(['domain-equipe-sprint-detalhes', 'sprint-1'])).toBeTruthy();
-    // A sprint é confirmada primeiro (é o que decide entre carregar e devolver
-    // "não encontrada"); daí em diante tudo dispara junto. `profiles_safe` fecha
-    // a lista porque depende dos ids das equipes.
+    // Duas frentes ao mesmo tempo. Os catálogos (equipes, projetos, processos)
+    // não dependem da sprint e partem de imediato; as tabelas da sprint só
+    // depois de confirmada a existência dela, que é o que decide entre carregar
+    // e devolver "não encontrada". `profiles_safe` fecha a lista porque depende
+    // dos ids das equipes.
     expect(boundary.from.mock.calls.map(([table]) => table)).toEqual([
       'sprints',
       'estrutura_equipes',
-      'sprint_deliverables',
-      'sprint_events',
-      'sprint_metrics',
       'projects',
       'processes',
       'project_processes',
+      'sprint_deliverables',
+      'sprint_events',
+      'sprint_metrics',
       'profiles_safe',
     ]);
     expect(chains.get('sprints')?.select).toHaveBeenCalledWith('*');
@@ -963,9 +972,16 @@ describe('EquipeSprintDetalhes: UI pública', () => {
 
   it('exporta planilha compatível com importação e nomes relacionados', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    boundary.useDomain.mockReturnValue(pageData({ deliverables: deliverables.slice(0, 2) }));
+    // A listagem não traz descrição: a planilha a busca na hora de exportar.
+    garantirDescricoes.mockResolvedValueOnce(
+      new Map<string, string | null>([['child-10', 'texto da subtarefa']]),
+    );
+    boundary.useDomain.mockReturnValue(
+      pageData({ deliverables: deliverables.slice(0, 2).map(({ description: _, ...rest }) => rest) }),
+    );
     renderPage();
     await user.click(screen.getByRole('button', { name: 'Exportar' }));
+    expect(garantirDescricoes).toHaveBeenCalled();
     expect(boundary.jsonToSheet).toHaveBeenCalledWith([
       expect.objectContaining({
         Sprint: 'Sprint Alfa',
@@ -975,6 +991,7 @@ describe('EquipeSprintDetalhes: UI pública', () => {
         Responsável: 'Ana',
         Projeto: 'Projeto Fiscal',
         Processo: 'Apuração',
+        Descrição: '',
       }),
       expect.objectContaining({
         ID: '7.10',
@@ -982,6 +999,7 @@ describe('EquipeSprintDetalhes: UI pública', () => {
         Subtarefa: 'Subtarefa Dez',
         Responsável: 'Bruno',
         'Data de Entrega': '24/07/2026',
+        Descrição: 'texto da subtarefa',
       }),
     ]);
     expect(boundary.bookAppendSheet).toHaveBeenCalledWith(
