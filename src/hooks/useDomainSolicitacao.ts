@@ -12,6 +12,7 @@ import {
   montarItemDeCatalogo,
   montarItemManual,
   montarReativacaoItem,
+  montarTipoAvulso,
   ordenarItens,
   resolverItem,
   type CatalogoDocumento,
@@ -71,16 +72,36 @@ export interface SolicitacaoAtiva {
   linhas: Map<string, SolicitacaoItemRow>;
 }
 
+/**
+ * O `!solicitacao_item_item_padrao_id_fkey` não é enfeite: desde a migration
+ * 20260807150000 existem DUAS chaves entre `solicitacao_item` e
+ * `documento_tipo` — a de sempre (`item_padrao_id`, o item aponta para o
+ * catálogo) e a nova (`documento_tipo.solicitacao_item_id`, a linha avulsa
+ * aponta para o pedido manual que a gerou). Com duas, o PostgREST recusa o
+ * embed sem nome (PGRST201) e a tela inteira cai em "não foi possível carregar
+ * o onboarding". O nome fixa o caminho certo: o catálogo do qual este item
+ * herda texto, nunca o avulso que nasceu dele.
+ */
 const SELECT_SOLICITACAO = `
   id, cliente_id, ordem_servico_id, status, enviada_em, encerrada_em, observacao,
   itens:solicitacao_item (
     id, item_padrao_id, granularidade, grupo, documento, entidade, nota,
     status, ordem, observacao,
-    catalogo:documento_tipo (
+    catalogo:documento_tipo!solicitacao_item_item_padrao_id_fkey (
       id, codigo, documento, entidade, nota, granularidade, grupo, ordem, confidencial
     )
   )
 `;
+
+/**
+ * Cliente sem tipo para as escritas em `documento_tipo`.
+ *
+ * `cliente_id` e `solicitacao_item_id` (migration 20260807150000) ainda não
+ * estão no types.ts autogerado, e o Update tipado do PostgREST estoura a
+ * inferência com o cast pontual. Some na próxima regeneração de tipos.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sbTipo = supabase as any;
 
 /** Violação de índice único no Postgres. */
 const UNIQUE_VIOLATION = '23505';
@@ -378,6 +399,19 @@ export function useDomainSolicitacao(clienteId: string | null) {
         throw error;
       }
 
+      // O documento pedido à mão também precisa de tipo, senão nenhum arquivo
+      // consegue ser classificado como ele e o item fica pendente para sempre
+      // (migration 20260807150000). Não dá para inserir os dois numa transação
+      // daqui, então a falha do segundo desfaz o primeiro: item pedido sem tipo
+      // é justamente o buraco que isto veio fechar, e é pior que não ter pedido.
+      const { error: erroTipo } = await sbTipo
+        .from('documento_tipo')
+        .insert(montarTipoAvulso(data.id, clienteId, entrada));
+      if (erroTipo) {
+        await supabase.from('solicitacao_item').delete().eq('id', data.id);
+        throw erroTipo;
+      }
+
       await auditarItem(null, payload, data.id, payload.documento as string, 'created');
       return data.id;
     },
@@ -403,6 +437,23 @@ export function useDomainSolicitacao(clienteId: string | null) {
         .update(alteracoes)
         .eq('id', id);
       if (error) throw error;
+
+      // Item manual carrega o texto em dois lugares desde a 20260807150000: na
+      // própria linha e no tipo avulso que a acompanha. Deixar divergir não
+      // quebra tela nenhuma (a exibição lê a linha), mas envenena a análise de
+      // quais avulsos se repetem entre clientes, que lê o tipo.
+      const camposDoTipo = ['documento', 'entidade', 'nota'] as const;
+      const mudouTexto = camposDoTipo.some((campo) => campo in alteracoes);
+      if (!linha.item_padrao_id && mudouTexto) {
+        await sbTipo
+          .from('documento_tipo')
+          .update({
+            documento: alteracoes.documento ?? linha.documento,
+            entidade: alteracoes.entidade ?? linha.entidade ?? '',
+            nota: 'nota' in alteracoes ? alteracoes.nota : linha.nota,
+          })
+          .eq('solicitacao_item_id', id);
+      }
 
       await auditarItem(
         linha,

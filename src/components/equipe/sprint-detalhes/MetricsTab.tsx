@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { ChevronDown, Package, Users } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,13 @@ import { SprintHoursDashboard } from '@/components/sprint/SprintHoursDashboard';
 import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDetalhesController';
 
 export function MetricsTab({ controller: c }: { controller: EquipeSprintDetalhesController }) {
+  // O cruzamento métrica x entregável olha o texto da tarefa, que não vem na
+  // listagem. Esta aba só monta quando é aberta, então é aqui que se pede.
+  const { pedirDescricoes } = c;
+  useEffect(() => {
+    pedirDescricoes();
+  }, [pedirDescricoes]);
+
   return (
     <TabsContent value="metrics" className="space-y-6">
       <SprintHoursDashboard deliverables={c.metricsFilteredDeliverables} profiles={c.profiles} />

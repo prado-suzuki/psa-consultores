@@ -406,6 +406,42 @@ export type Database = {
           },
         ]
       }
+      bkp_20260807_ticket_messages_dup: {
+        Row: {
+          backup_em: string
+          copia_numero: number
+          created_at: string | null
+          id: string
+          is_admin: boolean | null
+          message: string
+          segundos_apos: number
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          backup_em?: string
+          copia_numero: number
+          created_at?: string | null
+          id: string
+          is_admin?: boolean | null
+          message: string
+          segundos_apos: number
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          backup_em?: string
+          copia_numero?: number
+          created_at?: string | null
+          id?: string
+          is_admin?: boolean | null
+          message?: string
+          segundos_apos?: number
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       capital_integralizacao: {
         Row: {
           bem_id: string
@@ -1320,6 +1356,13 @@ export type Database = {
             foreignKeyName: "daily_standups_sprint_id_fkey"
             columns: ["sprint_id"]
             isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
+          {
+            foreignKeyName: "daily_standups_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
@@ -1838,6 +1881,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           documento_gerado_id: string | null
+          documento_tipo_id: string | null
           excluido: boolean
           fonte: Database["public"]["Enums"]["osg_doc_fonte"]
           gcs_uri: string | null
@@ -1865,6 +1909,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           documento_gerado_id?: string | null
+          documento_tipo_id?: string | null
           excluido?: boolean
           fonte?: Database["public"]["Enums"]["osg_doc_fonte"]
           gcs_uri?: string | null
@@ -1892,6 +1937,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           documento_gerado_id?: string | null
+          documento_tipo_id?: string | null
           excluido?: boolean
           fonte?: Database["public"]["Enums"]["osg_doc_fonte"]
           gcs_uri?: string | null
@@ -1942,6 +1988,13 @@ export type Database = {
             columns: ["documento_gerado_id"]
             isOneToOne: false
             referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_arquivo_documento_tipo_id_fkey"
+            columns: ["documento_tipo_id"]
+            isOneToOne: false
+            referencedRelation: "documento_tipo"
             referencedColumns: ["id"]
           },
           {
@@ -2241,6 +2294,7 @@ export type Database = {
           ativo: boolean
           categoria: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox: string | null
+          cliente_id: string | null
           codigo: string
           confidencial: boolean
           created_at: string
@@ -2254,6 +2308,7 @@ export type Database = {
           nota: string | null
           obrigatorio_default: boolean
           ordem: number
+          solicitacao_item_id: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -2261,6 +2316,7 @@ export type Database = {
           ativo?: boolean
           categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox?: string | null
+          cliente_id?: string | null
           codigo: string
           confidencial?: boolean
           created_at?: string
@@ -2274,6 +2330,7 @@ export type Database = {
           nota?: string | null
           obrigatorio_default?: boolean
           ordem?: number
+          solicitacao_item_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -2281,6 +2338,7 @@ export type Database = {
           ativo?: boolean
           categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox?: string | null
+          cliente_id?: string | null
           codigo?: string
           confidencial?: boolean
           created_at?: string
@@ -2294,10 +2352,26 @@ export type Database = {
           nota?: string | null
           obrigatorio_default?: boolean
           ordem?: number
+          solicitacao_item_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "documento_tipo_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_tipo_solicitacao_item_id_fkey"
+            columns: ["solicitacao_item_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacao_item"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       documentos_processo: {
         Row: {
@@ -3945,6 +4019,140 @@ export type Database = {
             columns: ["meta_pai_id"]
             isOneToOne: false
             referencedRelation: "metas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificacao: {
+        Row: {
+          agrupamento_chave: string
+          corpo: string | null
+          created_at: string
+          created_by: string | null
+          destinatario_id: string
+          entidade_id: string
+          entidade_tipo: string
+          href: string | null
+          id: string
+          lido_em: string | null
+          metadata: Json
+          quantidade: number
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agrupamento_chave: string
+          corpo?: string | null
+          created_at?: string
+          created_by?: string | null
+          destinatario_id: string
+          entidade_id: string
+          entidade_tipo: string
+          href?: string | null
+          id?: string
+          lido_em?: string | null
+          metadata?: Json
+          quantidade?: number
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agrupamento_chave?: string
+          corpo?: string | null
+          created_at?: string
+          created_by?: string | null
+          destinatario_id?: string
+          entidade_id?: string
+          entidade_tipo?: string
+          href?: string | null
+          id?: string
+          lido_em?: string | null
+          metadata?: Json
+          quantidade?: number
+          tipo?: Database["public"]["Enums"]["notificacao_tipo"]
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacao_destinatario_id_fkey"
+            columns: ["destinatario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificacao_envio: {
+        Row: {
+          agrupamento_chave: string | null
+          canal: Database["public"]["Enums"]["notificacao_canal"]
+          destinatario_email: string | null
+          destinatario_id: string | null
+          destinatario_papel: string | null
+          destinatario_telefone: string | null
+          entidade_id: string
+          entidade_tipo: string
+          enviado_em: string
+          erro: string | null
+          id: string
+          metadata: Json
+          notificacao_id: string | null
+          sucesso: boolean
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+        }
+        Insert: {
+          agrupamento_chave?: string | null
+          canal: Database["public"]["Enums"]["notificacao_canal"]
+          destinatario_email?: string | null
+          destinatario_id?: string | null
+          destinatario_papel?: string | null
+          destinatario_telefone?: string | null
+          entidade_id: string
+          entidade_tipo: string
+          enviado_em?: string
+          erro?: string | null
+          id?: string
+          metadata?: Json
+          notificacao_id?: string | null
+          sucesso?: boolean
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+        }
+        Update: {
+          agrupamento_chave?: string | null
+          canal?: Database["public"]["Enums"]["notificacao_canal"]
+          destinatario_email?: string | null
+          destinatario_id?: string | null
+          destinatario_papel?: string | null
+          destinatario_telefone?: string | null
+          entidade_id?: string
+          entidade_tipo?: string
+          enviado_em?: string
+          erro?: string | null
+          id?: string
+          metadata?: Json
+          notificacao_id?: string | null
+          sucesso?: boolean
+          tipo?: Database["public"]["Enums"]["notificacao_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacao_envio_destinatario_id_fkey"
+            columns: ["destinatario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacao_envio_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "notificacao"
             referencedColumns: ["id"]
           },
         ]
@@ -6108,6 +6316,13 @@ export type Database = {
             foreignKeyName: "project_documents_sprint_id_fkey"
             columns: ["sprint_id"]
             isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
+          {
+            foreignKeyName: "project_documents_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
@@ -7104,6 +7319,82 @@ export type Database = {
           },
         ]
       }
+      solicitacao_item_nao_aplicavel: {
+        Row: {
+          bem_id: string | null
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          matricula_id: string | null
+          pessoa_id: string | null
+          solicitacao_item_id: string
+        }
+        Insert: {
+          bem_id?: string | null
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          matricula_id?: string | null
+          pessoa_id?: string | null
+          solicitacao_item_id: string
+        }
+        Update: {
+          bem_id?: string | null
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          matricula_id?: string | null
+          pessoa_id?: string | null
+          solicitacao_item_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_matricula_id_fkey"
+            columns: ["matricula_id"]
+            isOneToOne: false
+            referencedRelation: "matricula"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_pessoa_id_fkey"
+            columns: ["pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "solicitacao_item_nao_aplicavel_solicitacao_item_id_fkey"
+            columns: ["solicitacao_item_id"]
+            isOneToOne: false
+            referencedRelation: "solicitacao_item"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sprint_backlog_items: {
         Row: {
           cluster_id: string | null
@@ -7176,6 +7467,13 @@ export type Database = {
             foreignKeyName: "sprint_backlog_items_sprint_id_fkey"
             columns: ["sprint_id"]
             isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
+          {
+            foreignKeyName: "sprint_backlog_items_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
@@ -7201,6 +7499,7 @@ export type Database = {
           parent_id: string | null
           process_id: string | null
           project_id: string | null
+          retrospective_report: string | null
           sprint_id: string | null
           start_date: string | null
           status: string | null
@@ -7220,6 +7519,7 @@ export type Database = {
           parent_id?: string | null
           process_id?: string | null
           project_id?: string | null
+          retrospective_report?: string | null
           sprint_id?: string | null
           start_date?: string | null
           status?: string | null
@@ -7239,6 +7539,7 @@ export type Database = {
           parent_id?: string | null
           process_id?: string | null
           project_id?: string | null
+          retrospective_report?: string | null
           sprint_id?: string | null
           start_date?: string | null
           status?: string | null
@@ -7279,10 +7580,44 @@ export type Database = {
             foreignKeyName: "sprint_deliverables_sprint_id_fkey"
             columns: ["sprint_id"]
             isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
+          {
+            foreignKeyName: "sprint_deliverables_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
         ]
+      }
+      sprint_deliverables_backup_20260809: {
+        Row: {
+          description: string | null
+          id: string | null
+          salvo_em: string | null
+          sprint_id: string | null
+          task_code: string | null
+          title: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string | null
+          salvo_em?: string | null
+          sprint_id?: string | null
+          task_code?: string | null
+          title?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string | null
+          salvo_em?: string | null
+          sprint_id?: string | null
+          task_code?: string | null
+          title?: string | null
+        }
+        Relationships: []
       }
       sprint_events: {
         Row: {
@@ -7329,6 +7664,13 @@ export type Database = {
             foreignKeyName: "sprint_events_sprint_id_fkey"
             columns: ["sprint_id"]
             isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
+          {
+            foreignKeyName: "sprint_events_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
@@ -7369,6 +7711,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sprint_metrics_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
           {
             foreignKeyName: "sprint_metrics_sprint_id_fkey"
             columns: ["sprint_id"]
@@ -8358,6 +8707,16 @@ export type Database = {
         }
         Relationships: []
       }
+      sprint_resumo: {
+        Row: {
+          custo_economizado_mensal: number | null
+          horas_alocadas: number | null
+          horas_liberadas: number | null
+          melhorias: number | null
+          sprint_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       anexar_documento_solicitado: {
@@ -8480,6 +8839,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      criar_notificacao: {
+        Args: {
+          _agrupamento?: string
+          _corpo?: string
+          _destinatario_id: string
+          _entidade_id: string
+          _entidade_tipo: string
+          _href?: string
+          _metadata?: Json
+          _tipo: Database["public"]["Enums"]["notificacao_tipo"]
+          _titulo: string
+        }
+        Returns: string
+      }
       criar_org_comment: {
         Args: {
           _attachments: Json
@@ -8497,6 +8870,16 @@ export type Database = {
         Args: { _cluster_id: string; _include_orphans?: boolean }
         Returns: string[]
       }
+      destinatarios_cliente: {
+        Args: { _cliente_id: string }
+        Returns: {
+          email: string
+          nome: string
+          telefone: string
+          user_id: string
+        }[]
+      }
+      fechar_chamados_resolvidos_sem_resposta: { Args: never; Returns: number }
       feed_org_comments: {
         Args: {
           _author_ids?: string[]
@@ -8721,6 +9104,7 @@ export type Database = {
       org_task_visivel: { Args: { p_task_id: string }; Returns: boolean }
       own_org_task_ids: { Args: { _uid: string }; Returns: string[] }
       pode_gerenciar_novidades: { Args: { _user_id: string }; Returns: boolean }
+      precheck_allowed_ops: { Args: { p_table: string }; Returns: string[] }
       preview_dashboard_embed_url: {
         Args: {
           _cliente_id?: string
@@ -8736,6 +9120,24 @@ export type Database = {
         Returns: boolean
       }
       psa_mapa_uuid: { Args: { slug: string }; Returns: string }
+      registrar_envio: {
+        Args: {
+          _agrupamento?: string
+          _canal: Database["public"]["Enums"]["notificacao_canal"]
+          _destinatario_id?: string
+          _email?: string
+          _entidade_id: string
+          _entidade_tipo: string
+          _erro?: string
+          _metadata?: Json
+          _notificacao_id?: string
+          _papel?: string
+          _sucesso?: boolean
+          _telefone?: string
+          _tipo: Database["public"]["Enums"]["notificacao_tipo"]
+        }
+        Returns: string
+      }
       resolve_user_cliente_id: { Args: { _uid: string }; Returns: string }
       resolve_user_cluster_ids: { Args: { _uid: string }; Returns: string[] }
       sistema_cluster_visivel: {
@@ -8752,6 +9154,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      ve_todas_as_sprints: { Args: never; Returns: boolean }
       visible_org_project_ids: { Args: { _uid: string }; Returns: string[] }
     }
     Enums: {
@@ -8779,6 +9182,15 @@ export type Database = {
         | "review"
         | "em_ajuste"
         | "done"
+      notificacao_canal: "sino" | "email" | "whatsapp"
+      notificacao_tipo:
+        | "tarefa_atribuida"
+        | "tarefa_em_revisao"
+        | "documento_recebido"
+        | "solicitacao_enviada"
+        | "documento_aprovado"
+        | "documento_recusado"
+        | "cobranca_pendencia"
       org_comment_entity: "org_task" | "org_project"
       org_comment_kind:
         | "comment"
@@ -8787,6 +9199,7 @@ export type Database = {
         | "review_approved"
         | "review_adjustments"
         | "status_changed"
+        | "documentos_solicitados"
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
         | "pendente"
@@ -9016,6 +9429,16 @@ export const Constants = {
         "em_ajuste",
         "done",
       ],
+      notificacao_canal: ["sino", "email", "whatsapp"],
+      notificacao_tipo: [
+        "tarefa_atribuida",
+        "tarefa_em_revisao",
+        "documento_recebido",
+        "solicitacao_enviada",
+        "documento_aprovado",
+        "documento_recusado",
+        "cobranca_pendencia",
+      ],
       org_comment_entity: ["org_task", "org_project"],
       org_comment_kind: [
         "comment",
@@ -9024,6 +9447,7 @@ export const Constants = {
         "review_approved",
         "review_adjustments",
         "status_changed",
+        "documentos_solicitados",
       ],
       osg_checklist_origem: ["padrao", "manual"],
       osg_checklist_status: [

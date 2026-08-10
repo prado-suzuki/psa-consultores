@@ -74,7 +74,15 @@ const CLIENTE_KEY = 'checklist-cliente';
  */
 export const checklistClienteKey = (clienteId: string) => [CLIENTE_KEY, clienteId];
 
-/** Catálogo padrão editável (os 63 tipos). Fonte da tela e do seletor de condicionais. */
+/**
+ * Catálogo PADRÃO editável (os 63 tipos). Fonte da tela e do seletor de condicionais.
+ *
+ * `cliente_id is null` recorta o padrão: desde a migration 20260807150000 a
+ * mesma tabela também guarda os documentos AVULSOS, criados quando alguém pede
+ * um documento à mão numa solicitação. Sem este filtro, a lista de escolha
+ * passaria a misturar os 67 padrões com a cauda de pedidos avulsos de todos os
+ * clientes. Avulso não se acha no catálogo: chega pelo item pedido.
+ */
 export function useChecklistPadrao() {
   return useQuery({
     queryKey: [PADRAO_KEY],
@@ -82,10 +90,44 @@ export function useChecklistPadrao() {
       const { data, error } = await sb
         .from('documento_tipo')
         .select('*')
+        .is('cliente_id', null)
         .eq('ativo', true)
         .order('ordem', { ascending: true });
       if (error) throw error;
       return (data ?? []) as ChecklistPadraoRow[];
+    },
+  });
+}
+
+const AVULSOS_KEY = 'documento-tipo-avulsos';
+
+/**
+ * Os tipos AVULSOS de um cliente, indexados pelo item manual que os originou.
+ *
+ * Existem desde a migration 20260807150000: documento pedido à mão ganha linha
+ * própria em `documento_tipo`, fora do catálogo, para o arquivo que responde a
+ * ele ter em que se apoiar. Como estão fora do catálogo, nenhum leitor de lista
+ * os enxerga — este hook é o caminho.
+ *
+ * Devolve um mapa id do item → id do tipo, que é o formato que
+ * `tiposPedidos` consome: o resto do item (nome, grão) já vem da solicitação.
+ */
+export function useTiposAvulsosDoCliente(clienteId: string | null) {
+  return useQuery({
+    queryKey: [AVULSOS_KEY, clienteId],
+    enabled: !!clienteId,
+    queryFn: async (): Promise<Record<string, string>> => {
+      const { data, error } = await sb
+        .from('documento_tipo')
+        .select('id, solicitacao_item_id')
+        .eq('cliente_id', clienteId)
+        .eq('ativo', true);
+      if (error) throw error;
+      const porItem: Record<string, string> = {};
+      for (const linha of (data ?? []) as { id: string; solicitacao_item_id: string | null }[]) {
+        if (linha.solicitacao_item_id) porItem[linha.solicitacao_item_id] = linha.id;
+      }
+      return porItem;
     },
   });
 }
@@ -154,10 +196,14 @@ export function useGerarChecklistCliente(clienteId: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (): Promise<number> => {
-      // 1) padrão obrigatório
+      // 1) padrão obrigatório. `cliente_id is null` mantém fora os documentos
+      // avulsos (migration 20260807150000): eles nascem de um pedido manual, que
+      // por definição não é obrigatório-por-padrão, e multiplicá-los por
+      // instância inventaria pendência que ninguém pediu.
       const { data: padrao, error: e1 } = await sb
         .from('documento_tipo')
         .select('*')
+        .is('cliente_id', null)
         .eq('ativo', true)
         .eq('obrigatorio_default', true);
       if (e1) throw e1;

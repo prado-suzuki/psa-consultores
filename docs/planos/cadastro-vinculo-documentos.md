@@ -176,6 +176,125 @@ duas caírem custa zero; começar antes custa um retrabalho pequeno e mecânico.
 
 ---
 
+## 11. Classificação por tipo no momento do vínculo (07/08/2026)
+
+O §4 diz que "a tela de classificação deixa de existir como tela", e isso continua valendo — mas
+naquele texto *classificação* significava **atribuir dono**. **Que documento o arquivo é** (CPF, RG,
+comprovante de endereço) nunca teve onde ser gravado: o seletor de tipo do upload é hardcoded no
+front (`docTipos.ts`) e o valor escolhido é descartado, como o próprio comentário de lá admite.
+
+**Decisão:** o tipo passa a ser escolhido no ato do vínculo, num modal que abre entre o botão da
+ficha e a gravação, listando a leva com um select por arquivo.
+
+**Por que um modal e não um select na linha do balde.** Dono e tipo têm cardinalidades diferentes. O
+dono é **um** para a leva inteira, é isso que a leva significa; o tipo é **de cada arquivo**, já que a
+leva de uma pessoa é justamente o CPF, o RG e o comprovante de endereço dela. Pôr o select no balde
+misturaria as duas coisas na mesma lista e cobraria a escolha antes de o consultor ter decidido o
+dono. No modal, ele já decidiu tudo o mais e só responde "o que é cada um".
+
+**Classificar é opcional.** Confirmar com tudo em branco vincula igual. Travar o vínculo num tipo
+faltando quebraria o "vinculei oito de uma vez", que é o ganho da leva. Por isso o balde continua
+sendo definido só por ausência de dono (`semDono` não mudou), e "sem tipo" não é um segundo balde.
+
+**A válvula "não é de ninguém" fica fora do modal**, de propósito: é a saída rápida para o arquivo que
+não interessa a ninguém, e um passo a mais nela encareceria exatamente isso.
+
+**Onde o tipo é gravado:** `documento_arquivo.documento_tipo_id`, FK para o catálogo `documento_tipo`
+(migration `20260807120000`). Texto livre criaria um segundo vocabulário para a mesma coisa, que é o
+problema que a EDU-19/EDU-20 acabou de resolver. Não reusar `checklist_item_id`: ele aponta para a
+instância por cliente, que está marcada para reescrita.
+
+**O recorte que torna isso viável:** o catálogo tem 67 itens, e oferecer os 67 transformaria a
+classificação num passo. `documento_tipo.granularidade` cruzada com o destino da leva derruba para
+uma dezena. O modal tem "mostrar o catálogo inteiro" como saída, porque o recorte é conveniência e
+não regra.
+
+**Um arquivo com vários documentos dentro** (o cliente escaneia CPF + RG + comprovante num PDF só,
+caso levantado em `ia-extracao-documentos.md` §4) fica **fora**: um arquivo, um tipo. Tabela de junção
+por causa desse caso não se paga.
+
+**O que isso destrava, e é o maior ganho:** o par (`documento_tipo_id`, `pessoa_id`) do arquivo casa
+com o par (`item_padrao_id`, `pessoa_id`) do `checklist_cliente_item`. "Pedi o CPF do João" passa a
+poder ser dado como recebido sem ninguém amarrar item a arquivo à mão em `ChecklistPendentes`. Não
+está feito, mas é a razão de a coluna ser FK e não texto.
+
+**Buraco encontrado no catálogo, deixado visível de propósito:** granularidade `bem` tem **zero**
+linhas. Os 13 documentos de bem do seed (codigo `bem--*`) foram cadastrados como `cliente`, porque são
+relações do cliente inteiro ("Relação de áreas exploradas por imóvel"). O código não mapeia
+`bem → cliente` para disfarçar: recorte vazio cai no catálogo inteiro com aviso na tela, e o buraco
+fica à vista para quem for arrumar o catálogo.
+
+---
+
+## 12. Documento pedido à mão também tem tipo (07/08/2026)
+
+Reabre o §8, que decidiu não calcular faltante. A decisão de lá continua de pé no que importa, mas a
+conta mudou: com `documento_tipo_id` gravado junto com o dono, **"recebido" virou fato no banco pela
+primeira vez**. Até então a subtração era desconfiável porque o lado "chegou" não existia.
+
+**O que é derivado e o que é digitado.** O conjunto esperado é a solicitação (`solicitacao_item`
+ativo, filtrado pela granularidade da entidade); o recebido é `documento_arquivo` por dono + tipo; a
+chave do join é `solicitacao_item.item_padrao_id` → `documento_tipo.id` ← `documento_arquivo.documento_tipo_id`.
+A falta é o resto, e não se digita. O que o consultor informa é **"não se aplica"**, que é o único
+julgamento que a subtração nunca produz, e é exatamente a distinção que o §8 disse que importa.
+Marcação de falta digitada seria a segunda das três opções do §8, a que o próprio texto diz que
+apodrece: derivada, ela some sozinha quando o documento entra.
+
+**"Não se aplica" ainda não tem onde morar.** `solicitacao_item.status = 'dispensado'` é intenção do
+analista sobre o pedido inteiro; "não se aplica ao João" é por instância. É a única coisa nova que
+precisa ser persistida nesta história, e ainda não foi feita.
+
+### O documento avulso
+
+`documento_arquivo.documento_tipo_id` é FK para `documento_tipo`, e item pedido à mão não tinha linha
+lá (decisão 6 de `fluxo-solicitacao-documentos.md`). Arquivo que responde a pedido manual não tinha
+como ser classificado, e o item ficaria pendente para sempre. Como pedido manual é o caso fora do
+padrão, é onde a cobrança mais importa.
+
+**Escolhido:** o item manual ganha uma linha em `documento_tipo`, escopada ao cliente (migration
+`20260807150000`). Descartadas: uma segunda coluna `solicitacao_item_id` em `documento_arquivo` (a
+decisão 5 do plano de solicitação recusou exatamente essa coluna, e seriam duas colunas para a mesma
+pergunta) e aceitar que item manual nunca é dado como recebido (deixaria metade do checklist fora, e
+o arquivo sem rótulo no explorador).
+
+**Motivo declarado além da classificação:** com todos os avulsos numa tabela só, dá para perguntar
+quais nomes se repetem entre clientes e promover ao catálogo padrão o que virou praxe.
+
+**Duas colunas, não uma.** `cliente_id` nulo = catálogo padrão; preenchido = avulso. É por ele que
+todo leitor de LISTA filtra, e é o que preserva o comportamento atual em todas as telas.
+`solicitacao_item_id` é o escopo fino pedido: o avulso é alcançável só pelo item que o originou, e
+não vaza para a montagem de outra solicitação.
+
+**`solicitacao_item` fica intocado, de propósito.** Seria natural apontar o item manual para a linha
+nova por `item_padrao_id`, mas esse campo **é** a definição de "veio do catálogo" no código
+(`src/lib/solicitacao.ts:195` `doCatalogo`, `:384` a herança da edição, `:476` e `:488` o filtro por
+produto). Preenchê-lo faria a edição do nome entrar no caminho de herança e o texto que hoje é do
+item virar sobrescrita. Por isso a referência mora na linha nova, e o vínculo é lido de lá.
+
+**Os três leitores de lista** que passaram a filtrar `cliente_id is null`, e são o que garante que
+nada mudou nas telas de hoje: `useChecklistPadrao`, `useGerarChecklistCliente`
+(`src/hooks/useOsgChecklist.ts`) e o catálogo do onboarding (`src/hooks/useOnboarding.ts`). Os dois
+leitores que **não** precisam de filtro, porque chegam por id e não por busca: o embed
+`catalogo:documento_tipo` de `useDomainSolicitacao` (é justamente o caminho que precisa enxergar o
+avulso) e a RPC `gerar_solicitacao_os`, que só alcança tipo ligado a produto.
+
+**Custo aceito:** o texto do item manual passa a viver em dois lugares, a linha e o tipo. A exibição
+lê a linha, então divergir não quebra tela; `editarItem` sincroniza os dois para a análise de
+recorrência não ler nome velho.
+
+### O que falta desta frente
+
+1. O select de tipo do modal ainda recorta o **catálogo** por granularidade. Deve passar a recortar a
+   **solicitação ativa**: lista menor, e o que aparece é o que foi de fato pedido àquele cliente. É
+   também o que faz o avulso aparecer, já que ele está fora do catálogo por construção.
+2. ~~O bloco de "não se aplica" no modal, e a tabela por (item pedido + entidade) que o sustenta.~~
+   Implementado em `20260807180000_solicitacao_item_nao_aplicavel.sql`.
+3. O checklist como tela, leitura pura da subtração.
+4. O tipo como rótulo na linha do explorador, no lugar do `vinculoLabel`, que dentro da pasta de uma
+   entidade repete o nome dela em toda linha.
+
+---
+
 ## Apêndice — refinamento de uma questão da frente anterior
 
 Levantado nesta mesma conversa, sobre a questão aberta nº 1 de

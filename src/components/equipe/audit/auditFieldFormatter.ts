@@ -103,6 +103,7 @@ const FIELD_LABELS: Record<string, string> = {
   vlr_mercado: 'Valor de Mercado',
   ccir_codigo: 'CCIR',
   inscricao_municipal: 'Inscrição Municipal',
+  area_construida_m2: 'Área Construída (m²)',
   status_integralizacao: 'Status de Integralização',
   numero: 'Número da Matrícula',
   livro: 'Livro',
@@ -164,6 +165,9 @@ const FIELD_LABELS: Record<string, string> = {
   matricula_id: 'Matrícula',
   matricula_anterior_id: 'Matrícula Anterior',
   cartorio_id: 'Cartório',
+  documento_tipo_id: 'Tipo do documento',
+  solicitacao_item_id: 'Item da solicitação',
+  cliente_id: 'Cliente',
 };
 
 // ── Status translations ──────────────────────────────────────

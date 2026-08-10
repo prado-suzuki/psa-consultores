@@ -25,6 +25,22 @@ describe('patchVinculo — 1:1', () => {
     });
   });
 
+  // Tipo e dono são eixos ortogonais: a classificação escolhida no modal entra
+  // no mesmo patch, sem interferir na conta da constraint de um dono só.
+  it('anexa o tipo escolhido ao patch do dono', () => {
+    expect(patchVinculo({ kind: 'pessoa', id: 'P1' }, 'T-CPF')).toEqual({
+      pessoa_id: 'P1', bem_id: null, matricula_id: null, triado_em: null, documento_tipo_id: 'T-CPF',
+    });
+  });
+
+  // Classificar é opcional: sem escolha a coluna nem entra no update, e um tipo
+  // que já estivesse gravado no arquivo sobrevive ao vínculo.
+  it('sem tipo escolhido, a coluna não entra no patch', () => {
+    for (const semEscolha of [undefined, null, '']) {
+      expect(patchVinculo({ kind: 'pessoa', id: 'P1' }, semEscolha)).not.toHaveProperty('documento_tipo_id');
+    }
+  });
+
   it('a válvula "é do cliente" grava a marca e zera as três colunas', () => {
     const patch = patchVinculo({ kind: 'cliente' });
     expect(patch.pessoa_id).toBeNull();

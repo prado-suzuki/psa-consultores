@@ -33,6 +33,13 @@ export function useUserAccessibleCategories() {
   return {
     categories: isAdmin ? null : (query.data ?? []),
     isLoading: isAdmin ? false : query.isLoading,
+    /**
+     * A consulta falhou. Sem isto, uma falha de rede é indistinguível de "esta
+     * pessoa não tem acesso a nada": nos dois casos a lista chega vazia, e a
+     * tela acusaria falta de permissão para quem só perdeu a conexão.
+     */
+    isError: isAdmin ? false : query.isError,
+    refetch: query.refetch,
     isAdmin,
   };
 }

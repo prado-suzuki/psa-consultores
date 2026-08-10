@@ -5,7 +5,24 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import type { Database } from '@/integrations/supabase/types';
 import type { TipoBloco } from '@/lib/templates';
 
-export type BlocoRow = Database['public']['Tables']['tmpl_bloco']['Row'];
+/**
+ * Colunas de família de variantes (migration 20260806120000_tmpl_bloco_familia_variantes).
+ * O codegen do Supabase já as conhece, mas tipa `variante_seletor` como `Json`; a
+ * interseção continua para estreitar esse campo no objeto "caminho => valor esperado"
+ * que o resolvedor espera, e para documentar o papel de cada coluna num lugar só.
+ */
+export interface BlocoVarianteCols {
+  /** Cabeça da família. Nulo = bloco normal; preenchido = este bloco é UMA variante. */
+  familia_id: string | null;
+  /** Condições (caminho => valor esperado) que elegem a variante. Objeto vazio = padrão. */
+  variante_seletor: Record<string, unknown> | null;
+  variante_rotulo: string | null;
+  /** Ordem de avaliação dentro da família (menor primeiro). */
+  variante_ordem: number | null;
+}
+
+export type BlocoRow =
+  Omit<Database['public']['Tables']['tmpl_bloco']['Row'], keyof BlocoVarianteCols> & BlocoVarianteCols;
 export type BlocoVersaoRow = Database['public']['Tables']['tmpl_bloco_versao']['Row'];
 
 /** Linha de tmpl_flag com a definição declarativa (colunas novas, fora dos types gerados). */
@@ -25,6 +42,11 @@ export interface FlagRow {
 export interface BlocoComVersao extends BlocoRow {
   versao_atual: BlocoVersaoRow | null;
   flag_ids: string[];
+  /**
+   * Variantes desta família, em ordem de avaliação. Vazio no bloco normal, que é
+   * a maioria absoluta: quem tem variantes é a cabeça da família.
+   */
+  variantes: BlocoComVersao[];
 }
 
 const QUERY_KEY = ['biblioteca-modelos', 'blocos'];
@@ -46,7 +68,11 @@ export function useFlags() {
   });
 }
 
-/** Lista os blocos com a versão marcada como atual e as flags vinculadas. */
+/**
+ * Lista os blocos com a versão marcada como atual e as flags vinculadas.
+ * Variantes de família não vêm soltas: cada uma é aninhada em `variantes` da sua
+ * cabeça, que é o bloco que o modelo referencia.
+ */
 export function useBlocos() {
   return useQuery({
     queryKey: QUERY_KEY,
@@ -61,14 +87,31 @@ export function useBlocos() {
         .order('created_at', { ascending: false });
       if (error) throw error;
 
-      return (data ?? []).map((bloco) => {
+      const linhas: BlocoComVersao[] = (data ?? []).map((bloco) => {
         const versoes = (bloco.tmpl_bloco_versao ?? []) as BlocoVersaoRow[];
         return {
           ...(bloco as unknown as BlocoRow),
           versao_atual: versoes.find((v) => v.atual) ?? null,
           flag_ids: ((bloco.tmpl_bloco_flag ?? []) as Array<{ flag_id: string }>).map((f) => f.flag_id),
+          variantes: [],
         };
       });
+
+      // Variante é conteúdo alternativo de uma cláusula, não uma peça de catálogo:
+      // aparece aninhada na cabeça, nunca solta (mesmo cuidado dos derivados de
+      // override, acima). Variante cuja cabeça não veio na consulta fica de fora,
+      // senão viraria uma carta solta com redação parcial.
+      const porId = new Map(linhas.map((b) => [b.id, b]));
+      for (const b of linhas) {
+        if (b.familia_id) porId.get(b.familia_id)?.variantes.push(b);
+      }
+      for (const b of linhas) {
+        if (b.variantes.length > 1) {
+          b.variantes.sort((x, y) => (x.variante_ordem ?? 0) - (y.variante_ordem ?? 0));
+        }
+      }
+
+      return linhas.filter((b) => !b.familia_id);
     },
   });
 }

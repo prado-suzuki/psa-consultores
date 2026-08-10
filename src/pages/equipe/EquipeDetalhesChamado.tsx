@@ -10,7 +10,10 @@ import { Badge } from '@/components/ui/badge';
 import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor';
 import { TicketRichTextView } from '@/components/chamados/TicketRichTextView';
 import { isTicketRichTextEmpty } from '@/components/chamados/ticketRichTextFormat';
+import { ticketMessageErrorFeedback, ticketMessageFeedback } from '@/lib/ticketMessageOutcome';
+import { TOOLTIP_FECHADO_INDISPONIVEL } from '@/lib/chamadosStatus';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, Download, Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -159,24 +162,20 @@ export default function EquipeDetalhesChamado() {
     if (isTicketRichTextEmpty(newMessage) || !user || !id) return;
 
     try {
-      await sendMessage.mutateAsync({
+      const outcome = await sendMessage.mutateAsync({
         ticketId: id,
         userId: user.id,
         message: newMessage,
         isAdmin: true,
         actorName: 'Responsável',
       });
-      toast({
-        title: 'Mensagem enviada',
-        description: 'Sua resposta foi enviada com sucesso.',
-      });
+      // Gravou: limpa o editor mesmo com pendência de status/notificação, para
+      // que ninguém reenvie a mesma resposta.
       setNewMessage('');
-    } catch {
-      toast({
-        title: 'Erro ao enviar mensagem',
-        description: 'Tente novamente mais tarde.',
-        variant: 'destructive',
-      });
+      toast(ticketMessageFeedback(outcome, 'equipe'));
+    } catch (error) {
+      // Só cai aqui se NADA foi gravado; por isso o texto é preservado.
+      toast(ticketMessageErrorFeedback(error, 'equipe'));
     }
   };
 
@@ -248,7 +247,26 @@ export default function EquipeDetalhesChamado() {
                       <SelectItem value="aberto">Aberto</SelectItem>
                       <SelectItem value="em_andamento">Em Andamento</SelectItem>
                       <SelectItem value="resolvido">Resolvido</SelectItem>
-                      <SelectItem value="fechado">Fechado</SelectItem>
+                      {/* "Fechado" é decisão do sistema, não do analista: fica
+                          visível e somente leitura. O item permanece no Select
+                          para que o rótulo apareça quando esse já for o status
+                          atual. O override de pointer-events é necessário porque
+                          o estilo padrão do shadcn aplica pointer-events-none em
+                          item desabilitado, o que mataria hover, cursor e tooltip. */}
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <SelectItem
+                            value="fechado"
+                            disabled
+                            className="data-[disabled]:pointer-events-auto data-[disabled]:cursor-not-allowed"
+                          >
+                            Fechado
+                          </SelectItem>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-xs">
+                          {TOOLTIP_FECHADO_INDISPONIVEL}
+                        </TooltipContent>
+                      </Tooltip>
                     </SelectContent>
                   </Select>
                 </div>

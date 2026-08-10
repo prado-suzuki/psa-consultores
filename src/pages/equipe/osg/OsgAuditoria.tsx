@@ -9,7 +9,7 @@ import { Shield } from 'lucide-react';
 
 const OsgAuditoria = () => {
   return (
-    <OsgLayout title="Auditoria" subtitle="Histórico de alterações">
+    <OsgLayout title="Logs de Equipe" subtitle="Histórico de alterações">
       <div className="space-y-6">
         <div className="flex items-center gap-3">
           <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">

@@ -1,7 +1,7 @@
 // Campos do modal de tarefa da sprint (criar/editar), organizados em seções.
 // A descrição tem modo "tela cheia": quem controla o estado é o modal, porque
 // ele precisa crescer junto para o campo ocupar a altura toda.
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { CalendarClock, Link2, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,6 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AvisoHorasDigitadas } from '@/components/equipe/AvisoHorasDigitadas';
 import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
 import { avaliarHorasApontadas } from '@/lib/horasApontamento';
@@ -34,9 +35,20 @@ interface DeliverableFormFieldsProps {
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+    <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
       {children}
     </h3>
+  );
+}
+
+function PropertySection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="border-t pt-4 first:border-t-0 first:pt-0">
+      <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+        {title}
+      </h3>
+      {children}
+    </section>
   );
 }
 
@@ -61,10 +73,17 @@ export function DeliverableFormFields({
   );
 
   const description = (
-    <div className={cn('space-y-2', descriptionExpanded && 'flex min-h-0 flex-1 flex-col')}>
+    <div className={cn('space-y-3', descriptionExpanded && 'flex min-h-0 flex-1 flex-col')}>
       <div className="flex items-center justify-between gap-2">
         {/* Sem htmlFor: o editor rico não é um <textarea>, o rótulo vai por aria-label. */}
-        <Label>Descrição</Label>
+        <div>
+          <Label className="text-sm font-semibold">Descrição</Label>
+          {!descriptionExpanded && (
+            <p className="text-xs text-muted-foreground">
+              Detalhe o objetivo, critérios de aceite e contexto da entrega.
+            </p>
+          )}
+        </div>
         <Button
           type="button"
           variant="ghost"
@@ -90,8 +109,8 @@ export function DeliverableFormFields({
         onChange={(next) => update('description', next)}
         ariaLabel="Descrição"
         fillHeight={descriptionExpanded}
-        minHeight="min-h-[120px]"
-        maxHeight="max-h-[240px]"
+        minHeight={descriptionExpanded ? 'min-h-[360px]' : 'min-h-[280px]'}
+        maxHeight={descriptionExpanded ? undefined : 'max-h-[420px]'}
       />
     </div>
   );
@@ -111,226 +130,289 @@ export function DeliverableFormFields({
   }
 
   return (
-    <div className="space-y-6">
-      <section className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor={`${prefix}-title`}>
+    <div className="grid shrink-0 gap-5 lg:grid-cols-[minmax(0,13fr)_minmax(0,7fr)]">
+      <section className="rounded-3xl border bg-card p-4 shadow-sm sm:p-5">
+        <div className="mb-5 space-y-2">
+          <div className="flex items-center justify-between gap-3">
+            <SectionLabel>
+              {prefix === 'create' ? 'Nova tarefa' : 'Conteúdo da tarefa'}
+            </SectionLabel>
+            {prefix === 'create' && (
+              <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+                Título obrigatório
+              </span>
+            )}
+          </div>
+          <div className="flex min-w-0 items-baseline gap-2 text-[1.15rem] font-semibold tracking-tight">
+            {form.task_code && <span className="shrink-0">[{form.task_code}]</span>}
+            <Input
+              id={`${prefix}-title`}
+              value={form.title}
+              onChange={(event) => update('title', event.target.value)}
+              placeholder="Dê um título claro para a entrega"
+              className="h-auto min-w-0 border-0 bg-transparent px-0 py-1 text-[1.15rem] font-semibold leading-tight tracking-tight shadow-none placeholder:text-muted-foreground/60 focus-visible:ring-0 md:text-[1.15rem]"
+            />
+          </div>
+          <Label htmlFor={`${prefix}-title`} className="sr-only">
             Título
             {prefix === 'create' && <RequiredMark />}
           </Label>
-          <Input
-            id={`${prefix}-title`}
-            value={form.title}
-            onChange={(event) => update('title', event.target.value)}
-            placeholder="O que precisa ser entregue"
-            className="h-10"
-          />
         </div>
         {description}
       </section>
 
-      <section className="space-y-3">
-        <SectionLabel>Atribuição e prazos</SectionLabel>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label htmlFor={`${prefix}-assigned`}>Responsável</Label>
-            <Select
-              value={form.assigned_to || 'unassigned'}
-              onValueChange={(value) => update('assigned_to', value === 'unassigned' ? '' : value)}
-            >
-              <SelectTrigger id={`${prefix}-assigned`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="unassigned">Não atribuído</SelectItem>
-                {c.profiles.map((profile) => (
-                  <SelectItem key={profile.id} value={profile.id}>
-                    {profile.first_name} {profile.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+      <aside className="rounded-3xl border bg-gradient-to-b from-card via-card to-muted/30 p-4 shadow-sm sm:p-5">
+        <Tabs defaultValue="planning">
+          <TabsList className="mb-5 grid h-11 w-full grid-cols-2 rounded-xl bg-muted/70 p-1">
+            <TabsTrigger value="planning" className="h-9 gap-2 rounded-lg text-xs">
+              <CalendarClock className="h-3.5 w-3.5" />
+              Planejamento
+            </TabsTrigger>
+            <TabsTrigger value="context" className="h-9 gap-2 rounded-lg text-xs">
+              <Link2 className="h-3.5 w-3.5" />
+              Vínculos
+            </TabsTrigger>
+          </TabsList>
 
-          {prefix === 'edit' && (
-            <div className="space-y-2">
-              <Label htmlFor="edit-status">Status</Label>
-              <Select value={form.status} onValueChange={(value) => update('status', value)}>
-                <SelectTrigger id="edit-status">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pendente</SelectItem>
-                  <SelectItem value="in_progress">Em Progresso</SelectItem>
-                  <SelectItem value="completed">Concluído</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor={`${prefix}-hours`}>Horas Estimadas</Label>
-            <Input
-              id={`${prefix}-hours`}
-              type="number"
-              step="0.5"
-              min="0"
-              placeholder="0"
-              value={form.estimated_hours}
-              onChange={(event) => update('estimated_hours', event.target.value)}
-            />
-          </div>
-
-          {/* Célula vazia só na criação, para as duas datas caírem juntas na linha de baixo. */}
-          {prefix === 'create' && <div className="hidden sm:block" aria-hidden />}
-
-          <div className="space-y-2">
-            <Label htmlFor={`${prefix}-start`}>Data Início</Label>
-            <Input
-              id={`${prefix}-start`}
-              type="date"
-              value={form.start_date}
-              onChange={(event) => update('start_date', event.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor={`${prefix}-due`}>
-              Data Entrega
-              {prefix === 'create' && <RequiredMark />}
-            </Label>
-            <Input
-              id={`${prefix}-due`}
-              type="date"
-              value={form.due_date}
-              onChange={(event) => update('due_date', event.target.value)}
-            />
-          </div>
-
-          {prefix === 'edit' && form.status === 'completed' && (
-            <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 sm:col-span-3">
-              <Label htmlFor="edit-actual-hours" className="font-medium text-amber-800">
-                Horas Realizadas
-              </Label>
-              <Input
-                id="edit-actual-hours"
-                type="number"
-                step="0.5"
-                min="0"
-                placeholder="0"
-                value={form.actual_hours}
-                onChange={(event) => update('actual_hours', event.target.value)}
-                className="border-amber-300 bg-white sm:max-w-[12rem]"
-              />
-              <AvisoHorasDigitadas
-                aviso={avaliarHorasApontadas({
-                  realizadas: form.actual_hours,
-                  estimadas: form.estimated_hours,
-                })}
-                className="bg-white"
-                onUsarSugestao={(horas) => update('actual_hours', String(horas))}
-              />
-              <p className="text-xs text-amber-700">
-                Usado nas análises da sprint (estimadas × realizadas).
+          <TabsContent value="planning" className="mt-0 space-y-5">
+            <div>
+              <SectionLabel>Como a tarefa será executada</SectionLabel>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Defina responsável, esforço e prazo da entrega.
               </p>
             </div>
-          )}
-        </div>
-      </section>
 
-      <section className="space-y-3">
-        <SectionLabel>Vínculos</SectionLabel>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor={`${prefix}-project`}>Projeto</Label>
-            <Select
-              value={form.project_id || 'none'}
-              onValueChange={(value) =>
-                setForm((current) => ({
-                  ...current,
-                  project_id: value === 'none' ? '' : value,
-                  process_id: value === 'none' ? current.process_id : '',
-                }))
-              }
-            >
-              <SelectTrigger id={`${prefix}-project`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum</SelectItem>
-                {c.projects.map((project) => (
-                  <SelectItem key={project.id} value={project.id}>
-                    {project.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            <PropertySection title="Execução">
+              <div className={cn('grid gap-3', prefix === 'edit' && 'grid-cols-2')}>
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${prefix}-assigned`} className="text-xs">
+                    Responsável
+                  </Label>
+                  <Select
+                    value={form.assigned_to || 'unassigned'}
+                    onValueChange={(value) =>
+                      update('assigned_to', value === 'unassigned' ? '' : value)
+                    }
+                  >
+                    <SelectTrigger id={`${prefix}-assigned`} className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="unassigned">Não atribuído</SelectItem>
+                      {c.profiles.map((profile) => (
+                        <SelectItem key={profile.id} value={profile.id}>
+                          {profile.first_name} {profile.last_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <div className="space-y-2">
-            <Label htmlFor={`${prefix}-process`}>Processo</Label>
-            <Select
-              value={form.process_id || 'none'}
-              onValueChange={(value) => update('process_id', value === 'none' ? '' : value)}
-            >
-              <SelectTrigger id={`${prefix}-process`}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhum</SelectItem>
-                {linkedProcesses.map((process) => (
-                  <SelectItem key={process.id} value={process.id}>
-                    {process.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                {prefix === 'edit' && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-status" className="text-xs">
+                      Status
+                    </Label>
+                    <Select value={form.status} onValueChange={(value) => update('status', value)}>
+                      <SelectTrigger id="edit-status" className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="pending">Pendente</SelectItem>
+                        <SelectItem value="in_progress">Em Progresso</SelectItem>
+                        <SelectItem value="completed">Concluído</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+            </PropertySection>
 
-          <div className="space-y-2">
-            <Label htmlFor={`${prefix}-parent`}>Tarefa Pai</Label>
-            <Select
-              value={form.parent_id || 'none'}
-              onValueChange={(value) =>
-                setForm((current) =>
-                  c.selectParent(current, value === 'none' ? '' : value, prefix === 'edit'),
-                )
-              }
-            >
-              <SelectTrigger id={`${prefix}-parent`}>
-                <SelectValue placeholder="Nenhuma (tarefa principal)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">Nenhuma (tarefa principal)</SelectItem>
-                {c.parentTaskOptions
-                  .filter((item) => item.id !== editingId)
-                  .map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.task_code && `${item.task_code} - `}
-                      {item.title}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
+            <PropertySection title="Estimativa e prazo">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${prefix}-start`} className="text-xs">
+                    Início
+                  </Label>
+                  <Input
+                    id={`${prefix}-start`}
+                    type="date"
+                    value={form.start_date}
+                    onChange={(event) => update('start_date', event.target.value)}
+                    className="h-9"
+                  />
+                </div>
 
-          {(prefix === 'create' || form.parent_id) && (
-            <div className="space-y-2">
-              <Label htmlFor={`${prefix}-task-code`}>ID / Ordem</Label>
-              <Input
-                id={`${prefix}-task-code`}
-                value={form.task_code}
-                onChange={(event) => update('task_code', event.target.value)}
-              />
-              {form.parent_id && (
-                <p className="text-xs text-muted-foreground">
-                  Alterar reordena automaticamente as demais subtarefas
-                </p>
-              )}
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${prefix}-due`} className="text-xs">
+                    Entrega
+                    {prefix === 'create' && <RequiredMark />}
+                  </Label>
+                  <Input
+                    id={`${prefix}-due`}
+                    type="date"
+                    value={form.due_date}
+                    onChange={(event) => update('due_date', event.target.value)}
+                    className="h-9"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${prefix}-hours`} className="text-xs">
+                    Horas Estimadas
+                  </Label>
+                  <Input
+                    id={`${prefix}-hours`}
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    placeholder="0"
+                    value={form.estimated_hours}
+                    onChange={(event) => update('estimated_hours', event.target.value)}
+                    className="h-9"
+                  />
+                </div>
+
+                {prefix === 'edit' && form.status === 'completed' && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="edit-actual-hours" className="text-xs">
+                      Horas realizadas
+                    </Label>
+                    <Input
+                      id="edit-actual-hours"
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      placeholder="0"
+                      value={form.actual_hours}
+                      onChange={(event) => update('actual_hours', event.target.value)}
+                      className="h-9 border-amber-300 bg-amber-50/50"
+                    />
+                    <AvisoHorasDigitadas
+                      aviso={avaliarHorasApontadas({
+                        realizadas: form.actual_hours,
+                        estimadas: form.estimated_hours,
+                      })}
+                      onUsarSugestao={(horas) => update('actual_hours', String(horas))}
+                    />
+                  </div>
+                )}
+              </div>
+            </PropertySection>
+          </TabsContent>
+
+          <TabsContent value="context" className="mt-0 space-y-5">
+            <div>
+              <SectionLabel>Onde a tarefa se encaixa</SectionLabel>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Relacione a entrega sem sobrecarregar seu planejamento.
+              </p>
             </div>
-          )}
-        </div>
-      </section>
+
+            <PropertySection title="Contexto">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${prefix}-project`} className="text-xs">
+                    Projeto
+                  </Label>
+                  <Select
+                    value={form.project_id || 'none'}
+                    onValueChange={(value) =>
+                      setForm((current) => ({
+                        ...current,
+                        project_id: value === 'none' ? '' : value,
+                        process_id: value === 'none' ? current.process_id : '',
+                      }))
+                    }
+                  >
+                    <SelectTrigger id={`${prefix}-project`} className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {c.projects.map((project) => (
+                        <SelectItem key={project.id} value={project.id}>
+                          {project.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${prefix}-process`} className="text-xs">
+                    Processo
+                  </Label>
+                  <Select
+                    value={form.process_id || 'none'}
+                    onValueChange={(value) => update('process_id', value === 'none' ? '' : value)}
+                  >
+                    <SelectTrigger id={`${prefix}-process`} className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      {linkedProcesses.map((process) => (
+                        <SelectItem key={process.id} value={process.id}>
+                          {process.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </PropertySection>
+
+            <PropertySection title="Organização na sprint">
+              <div className="grid grid-cols-[minmax(0,1fr)_6rem] gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${prefix}-parent`} className="text-xs">
+                    Tarefa principal
+                  </Label>
+                  <Select
+                    value={form.parent_id || 'none'}
+                    onValueChange={(value) =>
+                      setForm((current) =>
+                        c.selectParent(current, value === 'none' ? '' : value, prefix === 'edit'),
+                      )
+                    }
+                  >
+                    <SelectTrigger id={`${prefix}-parent`} className="h-9">
+                      <SelectValue placeholder="Tarefa principal" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Nenhuma, é uma tarefa principal</SelectItem>
+                      {c.parentTaskOptions
+                        .filter((item) => item.id !== editingId)
+                        .map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.task_code && `${item.task_code} - `}
+                            {item.title}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {(prefix === 'create' || form.parent_id) && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor={`${prefix}-task-code`} className="text-xs">
+                      Ordem
+                    </Label>
+                    <Input
+                      id={`${prefix}-task-code`}
+                      value={form.task_code}
+                      onChange={(event) => update('task_code', event.target.value)}
+                      placeholder="1.2"
+                      className="h-9"
+                    />
+                  </div>
+                )}
+              </div>
+            </PropertySection>
+          </TabsContent>
+        </Tabs>
+      </aside>
     </div>
   );
 }

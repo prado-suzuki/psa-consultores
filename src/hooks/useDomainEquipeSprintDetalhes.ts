@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
@@ -20,7 +20,12 @@ export interface SprintDetalhesSprint {
 export interface SprintDetalhesDeliverable {
   id: string;
   title: string;
-  description: string | null;
+  /**
+   * Não vem na leitura da lista (é rich text e ninguém a exibe ali). Chega
+   * preenchida quando alguém pede: ao abrir a tarefa, ao entrar em Métricas ou
+   * ao exportar.
+   */
+  description?: string | null;
   assigned_to: string | null;
   start_date: string | null;
   due_date: string;
@@ -29,6 +34,8 @@ export interface SprintDetalhesDeliverable {
   // opcional: coluna nova; enquanto o types.ts gerado não a reflete, o dado
   // ainda vem do select('*') em runtime.
   actual_hours?: number | null;
+  /** Coluna gerada: existe retrospectiva anexada? O markdown em si não vem. */
+  tem_retrospectiva?: boolean;
   parent_id: string | null;
   task_code: string | null;
   project_id: string | null;
@@ -83,11 +90,31 @@ interface SprintDetalhesData {
   deliverables: SprintDetalhesDeliverable[];
   events: SprintDetalhesEvent[];
   metrics: SprintDetalhesMetric[];
+}
+
+/** Catálogos globais: não dependem da sprint aberta e quase nunca mudam. */
+interface SprintDetalhesCatalogos {
   profiles: SprintDetalhesProfile[];
   projects: SprintDetalhesProject[];
   processes: SprintDetalhesProcess[];
   projectProcesses: SprintDetalhesProjectProcess[];
 }
+
+/**
+ * Colunas que a lista da sprint realmente usa.
+ *
+ * `select('*')` arrastava `description` (rich text) e `retrospective_report`
+ * (markdown da retrospectiva) de toda tarefa. Nenhuma das duas aparece na
+ * lista: a descrição só é lida no modal de edição, na exportação e no
+ * cruzamento da aba Métricas, e o texto da retrospectiva nunca é exibido — dele
+ * a tela só precisa saber se existe.
+ */
+const DELIVERABLE_COLUNAS_DA_LISTA =
+  'id, title, assigned_to, start_date, due_date, status, estimated_hours, actual_hours, parent_id, task_code, project_id, process_id';
+
+/** Se o payload de realtime trouxe o markdown, o booleano é recalculado dele. */
+const temRetrospectiva = (valor: unknown) =>
+  typeof valor === 'string' ? valor.trim() !== '' : false;
 
 interface DeliverableStatusInput {
   deliverableId: string;
@@ -121,6 +148,21 @@ interface UpdateDeliverableInput {
   deliverableId: string;
   updates: DeliverableUpdatePayload;
 }
+
+interface UpdateRetrospectiveReportInput {
+  deliverableId: string;
+  deliverableTitle: string;
+  entityType: 'task' | 'subtask';
+  report: string | null;
+}
+
+type SprintDeliverablesRetrospectiveClient = {
+  from: (table: 'sprint_deliverables') => {
+    update: (values: { retrospective_report: string | null }) => {
+      eq: (column: 'id', value: string) => Promise<{ error: Error | null }>;
+    };
+  };
+};
 
 export interface MoveDeliverableToSprintInput {
   deliverableId: string;
@@ -163,9 +205,55 @@ interface DeliverableRealtimeChange {
 
 const DIGITAL_CLUSTER_ID = '952435d2-ef26-4829-80a2-e186dc61158c';
 
+interface EquipeDigitalRow {
+  gestor_id: string | null;
+  estrutura_equipe_membros: Array<{ user_id: string | null }> | null;
+}
+
+/**
+ * Pessoas do cluster Digital: os gestores das equipes e os membros delas.
+ *
+ * Resolvido em duas consultas (equipes+membros, depois perfis) usando embed do
+ * PostgREST: a área entra como `!inner` só para filtrar o cluster. Antes eram
+ * quatro consultas em fila — áreas, equipes, membros e perfis — cada uma
+ * esperando os ids da anterior.
+ */
+const fetchPerfisDigital = async (): Promise<SprintDetalhesProfile[]> => {
+  const { data: equipes } = await supabase
+    .from('estrutura_equipes')
+    .select('gestor_id, estrutura_areas!inner(cluster_id), estrutura_equipe_membros(user_id)')
+    .eq('estrutura_areas.cluster_id', DIGITAL_CLUSTER_ID);
+
+  const userIds = Array.from(
+    new Set(
+      ((equipes ?? []) as unknown as EquipeDigitalRow[])
+        .flatMap((equipe) => [
+          equipe.gestor_id,
+          ...(equipe.estrutura_equipe_membros ?? []).map((membro) => membro.user_id),
+        ])
+        .filter((userId): userId is string => Boolean(userId)),
+    ),
+  );
+
+  if (userIds.length === 0) return [];
+
+  const { data } = await supabase
+    .from('profiles_safe')
+    .select('id, first_name, last_name')
+    .in('id', userIds);
+
+  return (data ?? []) as SprintDetalhesProfile[];
+};
+
 const sprintDetalhesKeys = {
   detail: (sprintId: string | undefined) =>
     ['domain-equipe-sprint-detalhes', sprintId] as const,
+  /** Sem sprintId de propósito: é o mesmo catálogo para todas as sprints. */
+  catalogos: () => ['domain-equipe-sprint-detalhes', 'catalogos'] as const,
+  descricoes: (sprintId: string | undefined) =>
+    ['domain-equipe-sprint-detalhes', sprintId, 'descricoes'] as const,
+  descricaoDaTarefa: (deliverableId: string | undefined) =>
+    ['domain-equipe-sprint-detalhes', 'descricao-tarefa', deliverableId] as const,
 };
 
 const applyDeliverableRealtimeChanges = (
@@ -182,18 +270,31 @@ const applyDeliverableRealtimeChanges = (
       return current.filter((deliverable) => deliverable.id !== oldId);
     }
 
+    // O payload de realtime traz a linha inteira, inclusive o markdown da
+    // retrospectiva. Aproveita para manter o booleano em dia, já que ele não é
+    // coluna: sem isto, o ícone da tarefa ficaria preso no estado da carga.
     if (change.eventType === 'INSERT' && newId) {
       if (current.some((deliverable) => deliverable.id === newId)) return current;
       return [
         ...current,
-        change.newRecord as unknown as SprintDetalhesDeliverable,
+        {
+          ...(change.newRecord as unknown as SprintDetalhesDeliverable),
+          tem_retrospectiva: temRetrospectiva(change.newRecord.retrospective_report),
+        },
       ];
     }
 
     if (change.eventType === 'UPDATE' && newId) {
       return current.map((deliverable) =>
         deliverable.id === newId
-          ? ({ ...deliverable, ...change.newRecord } as SprintDetalhesDeliverable)
+          ? ({
+              ...deliverable,
+              ...change.newRecord,
+              tem_retrospectiva:
+                'retrospective_report' in change.newRecord
+                  ? temRetrospectiva(change.newRecord.retrospective_report)
+                  : deliverable.tem_retrospectiva,
+            } as SprintDetalhesDeliverable)
           : deliverable,
       );
     }
@@ -201,7 +302,19 @@ const applyDeliverableRealtimeChanges = (
     return current;
   }, deliverables);
 
-export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
+/**
+ * @param sprintId sprint aberta.
+ * @param options.tarefaEmEdicao tarefa cuja descrição precisa estar carregada
+ *   (o modal de edição grava o formulário inteiro, então não pode salvar com a
+ *   descrição em branco só porque ela ainda não chegou).
+ * @param options.comDescricoes carrega a descrição de todas as tarefas da
+ *   sprint. Serve à aba Métricas, que cruza palavras da métrica com o texto.
+ */
+export function useDomainEquipeSprintDetalhes(
+  sprintId: string | undefined,
+  options: { tarefaEmEdicao?: string; comDescricoes?: boolean } = {},
+) {
+  const { tarefaEmEdicao, comDescricoes = false } = options;
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
   const queryKey = sprintDetalhesKeys.detail(sprintId);
@@ -213,7 +326,10 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
     enabled: Boolean(sprintId),
     retry: false,
     staleTime: 0,
-    gcTime: 0,
+    // Com gcTime 0 o cache era descartado ao sair da tela, então voltar para a
+    // mesma sprint caía no spinner de tela cheia de novo. Guardando por alguns
+    // minutos, a volta pinta na hora e o `refetchOnMount` revalida por trás.
+    gcTime: 5 * 60_000,
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -233,94 +349,62 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
         if (sprintError) throw sprintError;
         if (!sprintData) return null;
 
-        // Preserve the original sequential structure/profile lookup workflow.
-        const { data: digitalAreas } = await supabase
-          .from('estrutura_areas')
-          .select('id')
-          .eq('cluster_id', DIGITAL_CLUSTER_ID);
-        const areaIds = (digitalAreas ?? []).map((area) => area.id);
-        let digitalUserIds: string[] = [];
+        // Confirmada a existência da sprint, o resto não depende de mais nada e
+        // vai junto: eram nove idas ao banco enfileiradas sem necessidade, cada
+        // uma pagando a latência da anterior.
+        const [
+          { data: deliverablesData, error: deliverablesError },
+          { data: eventsData, error: eventsError },
+          { data: metricsData, error: metricsError },
+          { data: comRetrospectiva, error: retrospectivaError },
+        ] = await Promise.all([
+          supabase
+            .from('sprint_deliverables')
+            .select(DELIVERABLE_COLUNAS_DA_LISTA)
+            .eq('sprint_id', sprintId)
+            .order('due_date', { ascending: true }),
+          supabase
+            .from('sprint_events')
+            .select('*')
+            .eq('sprint_id', sprintId)
+            .order('event_date', { ascending: true })
+            .order('start_time', { ascending: true }),
+          supabase.from('sprint_metrics').select('*').eq('sprint_id', sprintId),
+          // Quem tem retrospectiva anexada, só os ids. O PostgREST não projeta
+          // expressão, então "tem ou não tem" ou vinha junto com o markdown
+          // inteiro, ou sai daqui: um filtro que devolve um punhado de uuids, na
+          // mesma leva das outras leituras. (Um texto só de espaços passaria
+          // neste filtro; a tela não deixa gravar um, o botão exige `trim()`.)
+          supabase
+            .from('sprint_deliverables')
+            .select('id')
+            .eq('sprint_id', sprintId)
+            .not('retrospective_report', 'is', null)
+            .neq('retrospective_report', ''),
+        ]);
 
-        if (areaIds.length > 0) {
-          const { data: digitalEquipes } = await supabase
-            .from('estrutura_equipes')
-            .select('id, gestor_id')
-            .in('area_id', areaIds);
-          const equipeIds = (digitalEquipes ?? []).map((equipe) => equipe.id);
-          const gestorIds = (digitalEquipes ?? [])
-            .map((equipe) => equipe.gestor_id)
-            .filter((gestorId): gestorId is string => Boolean(gestorId));
-          let digitalMembros: Array<{ user_id: string }> = [];
+        // Sem isto, uma leitura que falha vira "nenhum entregável cadastrado" na
+        // tela: lista vazia é indistinguível de erro engolido.
+        const falha = deliverablesError ?? eventsError ?? metricsError ?? retrospectivaError;
+        if (falha) throw falha;
 
-          if (equipeIds.length > 0) {
-            const { data } = await supabase
-              .from('estrutura_equipe_membros')
-              .select('user_id')
-              .in('equipe_id', equipeIds);
-            digitalMembros = data ?? [];
-          }
-
-          digitalUserIds = Array.from(
-            new Set([
-              ...gestorIds,
-              ...digitalMembros.map((membro) => membro.user_id).filter(Boolean),
-            ]),
-          );
-        }
-
-        let profiles: SprintDetalhesProfile[] = [];
-        if (digitalUserIds.length > 0) {
-          const { data: profilesData } = await supabase
-            .from('profiles_safe')
-            .select('id, first_name, last_name')
-            .in('id', digitalUserIds);
-          profiles = (profilesData ?? []) as SprintDetalhesProfile[];
-        }
-
-        const { data: deliverablesData } = await supabase
-          .from('sprint_deliverables')
-          .select('*')
-          .eq('sprint_id', sprintId)
-          .order('due_date', { ascending: true });
-
-        const { data: eventsData } = await supabase
-          .from('sprint_events')
-          .select('*')
-          .eq('sprint_id', sprintId)
-          .order('event_date', { ascending: true })
-          .order('start_time', { ascending: true });
-
-        const { data: metricsData } = await supabase
-          .from('sprint_metrics')
-          .select('*')
-          .eq('sprint_id', sprintId);
-
-        const { data: projectsData } = await supabase
-          .from('projects')
-          .select('id, name')
-          .order('name');
-
-        const { data: processesData } = await supabase
-          .from('processes')
-          .select('id, name, project_id')
-          .order('name');
-
-        const { data: projectProcessesData } = await supabase
-          .from('project_processes')
-          .select('process_id, project_id');
+        const idsComRetrospectiva = new Set(
+          ((comRetrospectiva ?? []) as Array<{ id: string }>).map((linha) => linha.id),
+        );
 
         return {
           sprint: sprintData as SprintDetalhesSprint,
-          profiles,
           deliverables: applyDeliverableRealtimeChanges(
-            (deliverablesData ?? []) as SprintDetalhesDeliverable[],
+            ((deliverablesData ?? []) as unknown as SprintDetalhesDeliverable[]).map(
+              (deliverable) => ({
+                ...deliverable,
+                tem_retrospectiva: idsComRetrospectiva.has(deliverable.id),
+              }),
+            ),
             pendingRealtimeChangesRef.current,
           ),
           events: (eventsData ?? []) as SprintDetalhesEvent[],
           metrics: (metricsData ?? []) as SprintDetalhesMetric[],
-          projects: (projectsData ?? []) as SprintDetalhesProject[],
-          processes: (processesData ?? []) as SprintDetalhesProcess[],
-          projectProcesses: (projectProcessesData ?? []) as SprintDetalhesProjectProcess[],
         };
       } finally {
         fetchInProgressRef.current = false;
@@ -328,6 +412,96 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
       }
     },
   });
+
+  // Catálogos: pessoas do Digital, projetos, processos e o vínculo entre eles.
+  // Não dependem da sprint e alimentam só os selects do modal de tarefa, mas
+  // eram relidos por inteiro a cada sprint aberta. Query própria, sem sprintId
+  // na chave: a primeira sprint da sessão paga, as seguintes reaproveitam.
+  const catalogosQuery = useQuery<SprintDetalhesCatalogos>({
+    queryKey: sprintDetalhesKeys.catalogos(),
+    // Sem sprint na rota a tela não abre; não há o que catalogar.
+    enabled: Boolean(sprintId),
+    staleTime: 10 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const [profiles, { data: projectsData }, { data: processesData }, { data: projectProcessesData }] =
+        await Promise.all([
+          fetchPerfisDigital(),
+          supabase.from('projects').select('id, name').order('name'),
+          supabase.from('processes').select('id, name, project_id').order('name'),
+          supabase.from('project_processes').select('process_id, project_id'),
+        ]);
+
+      return {
+        profiles,
+        projects: (projectsData ?? []) as SprintDetalhesProject[],
+        processes: (processesData ?? []) as SprintDetalhesProcess[],
+        projectProcesses: (projectProcessesData ?? []) as SprintDetalhesProjectProcess[],
+      };
+    },
+  });
+
+  const buscarDescricoesDaSprint = useCallback(async () => {
+    if (!sprintId) return [];
+    const { data, error } = await supabase
+      .from('sprint_deliverables')
+      .select('id, description')
+      .eq('sprint_id', sprintId);
+    if (error) throw error;
+    return (data ?? []) as Array<{ id: string; description: string | null }>;
+  }, [sprintId]);
+
+  const descricoesQuery = useQuery({
+    queryKey: sprintDetalhesKeys.descricoes(sprintId),
+    enabled: Boolean(sprintId) && comDescricoes,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: buscarDescricoesDaSprint,
+  });
+
+  /** Puxa as descrições agora e devolve o mapa — usado pela exportação. */
+  const garantirDescricoes = useCallback(async () => {
+    const linhas = await queryClient.fetchQuery({
+      queryKey: sprintDetalhesKeys.descricoes(sprintId),
+      queryFn: buscarDescricoesDaSprint,
+      staleTime: 60_000,
+    });
+    return new Map(linhas.map((linha) => [linha.id, linha.description]));
+  }, [buscarDescricoesDaSprint, queryClient, sprintId]);
+
+  // A descrição da tarefa aberta vem sozinha, em uma linha: o modal grava o
+  // formulário inteiro, então salvar antes de ela chegar apagaria o texto.
+  const descricaoDaTarefaQuery = useQuery({
+    queryKey: sprintDetalhesKeys.descricaoDaTarefa(tarefaEmEdicao),
+    enabled: Boolean(tarefaEmEdicao),
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sprint_deliverables')
+        .select('description')
+        .eq('id', tarefaEmEdicao as string)
+        .maybeSingle();
+      if (error) throw error;
+      return (data?.description ?? null) as string | null;
+    },
+  });
+
+  const descricoesPorTarefa = useMemo(
+    () => new Map((descricoesQuery.data ?? []).map((linha) => [linha.id, linha.description])),
+    [descricoesQuery.data],
+  );
+
+  const deliverables = useMemo(() => {
+    const base = dataQuery.data?.deliverables ?? [];
+    if (descricoesPorTarefa.size === 0) return base;
+    return base.map((deliverable) =>
+      descricoesPorTarefa.has(deliverable.id)
+        ? { ...deliverable, description: descricoesPorTarefa.get(deliverable.id) ?? null }
+        : deliverable,
+    );
+  }, [dataQuery.data?.deliverables, descricoesPorTarefa]);
 
   const updateCachedData = (
     updater: (current: SprintDetalhesData) => SprintDetalhesData,
@@ -460,6 +634,66 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
         ...current,
         deliverables: current.deliverables.map((deliverable) =>
           deliverable.id === deliverableId ? { ...deliverable, ...updates } : deliverable,
+        ),
+      }));
+    },
+    onError: () => undefined,
+  });
+
+  const updateRetrospectiveReport = useMutation({
+    mutationFn: async ({
+      deliverableId,
+      deliverableTitle,
+      entityType,
+      report,
+    }: UpdateRetrospectiveReportInput) => {
+      await assertCanPerform('sprint_deliverables', 'update', deliverableId);
+
+      // O texto anterior não trafega mais na listagem, e o diff de auditoria
+      // precisa dele: lido aqui, uma linha, só na hora de gravar.
+      const { data: anterior } = await supabase
+        .from('sprint_deliverables')
+        .select('retrospective_report')
+        .eq('id', deliverableId)
+        .maybeSingle();
+      const previousReport =
+        ((anterior ?? {}) as { retrospective_report?: string | null }).retrospective_report ?? null;
+
+      const { error } = await (supabase as unknown as SprintDeliverablesRetrospectiveClient)
+        .from('sprint_deliverables')
+        .update({ retrospective_report: report })
+        .eq('id', deliverableId);
+
+      if (error) throw error;
+
+      return {
+        deliverableId,
+        report,
+        auditEntry: {
+          area: 'dev' as const,
+          entity_type: entityType,
+          entity_id: deliverableId,
+          entity_name: deliverableTitle,
+          action: 'updated' as const,
+          changed_fields: computeFieldDiff(
+            { retrospective_report: previousReport },
+            { retrospective_report: report },
+            ['retrospective_report'],
+          ),
+          details: report
+            ? 'Retrospectiva markdown anexada à tarefa.'
+            : 'Retrospectiva markdown removida da tarefa.',
+        },
+      };
+    },
+    onSuccess: ({ deliverableId, report, auditEntry }) => {
+      void logAction(auditEntry);
+      updateCachedData((current) => ({
+        ...current,
+        deliverables: current.deliverables.map((deliverable) =>
+          deliverable.id === deliverableId
+            ? { ...deliverable, tem_retrospectiva: Boolean(report?.trim()) }
+            : deliverable,
         ),
       }));
     },
@@ -836,13 +1070,17 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
 
   return {
     sprint: dataQuery.data?.sprint ?? null,
-    deliverables: dataQuery.data?.deliverables ?? [],
+    deliverables,
     events: dataQuery.data?.events ?? [],
     metrics: dataQuery.data?.metrics ?? [],
-    profiles: dataQuery.data?.profiles ?? [],
-    projects: dataQuery.data?.projects ?? [],
-    processes: dataQuery.data?.processes ?? [],
-    projectProcesses: dataQuery.data?.projectProcesses ?? [],
+    profiles: catalogosQuery.data?.profiles ?? [],
+    projects: catalogosQuery.data?.projects ?? [],
+    processes: catalogosQuery.data?.processes ?? [],
+    projectProcesses: catalogosQuery.data?.projectProcesses ?? [],
+    /** Descrição da tarefa aberta: enquanto não chega, o modal não deixa salvar. */
+    descricaoDaTarefa: descricaoDaTarefaQuery.data ?? null,
+    descricaoDaTarefaCarregando: Boolean(tarefaEmEdicao) && descricaoDaTarefaQuery.isPending,
+    garantirDescricoes,
     isLoading: !sprintId || dataQuery.isFetching,
     isNotFound: dataQuery.isSuccess && dataQuery.data === null,
     error: dataQuery.error,
@@ -851,6 +1089,7 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
     updateDeliverableStatus,
     reorderDeliverables,
     updateDeliverable,
+    updateRetrospectiveReport,
     moveDeliverableToSprint,
     deleteDeliverable,
     updateMetric,

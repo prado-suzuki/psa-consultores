@@ -1,23 +1,17 @@
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { EditorBlocoDialog } from '@/components/equipe/osg/EditorBlocoDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { FichaBloco } from '@/components/equipe/osg/biblioteca/FichaBloco';
 import {
   Plus,
-  Pencil,
-  FileText,
   Search,
-  Power,
   Loader2,
-  Braces,
-  Flag,
   BookOpen,
   ScrollText,
   Pilcrow,
@@ -26,18 +20,9 @@ import {
   Tag,
   SlidersHorizontal,
   LibraryBig,
-  Repeat2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-  extrairCampos,
-  extrairRunsLinha,
-  removerMarcas,
-  TIPOS_BLOCO,
-  type TipoBloco,
-} from '@/lib/templates';
-import { compilar, type No } from '@/lib/templates/render';
-import { PAPEIS_LISTA } from '@/lib/templates/binding';
+import { TIPOS_BLOCO, type TipoBloco } from '@/lib/templates';
 import {
   useBlocos,
   useFlags,
@@ -65,232 +50,32 @@ const PRATELEIRAS: Array<{ valor: Prateleira; label: string; Icone: typeof BookO
   { valor: 'livre', label: 'Livres', Icone: StickyNote },
 ];
 
-// Prefixo do tipo no nome ("Capítulo — …") é redundante dentro do grupo — só na exibição.
-const PREFIXO_TIPO: Partial<Record<TipoBloco, RegExp>> = {
-  capitulo: /^cap[ií]tulo\s*[—–:-]\s*/i,
-  clausula: /^cl[aá]usula\s*[—–:-]\s*/i,
-  paragrafo: /^par[aá]grafo\s*[—–:-]\s*/i,
-};
-
-const nomeExibido = (nome: string, tipo: TipoBloco) => {
-  const semPrefixo = PREFIXO_TIPO[tipo] ? nome.replace(PREFIXO_TIPO[tipo]!, '') : nome;
-  return semPrefixo.trim() || nome;
-};
-
 // Categorias são slugs (descricao_imovel) — na tela viram texto de gente.
 const nomeCategoria = (categoria: string) => categoria.replace(/_/g, ' ');
 
-// Resumo de uma linha para a ficha: o texto do bloco lido como prosa — campos
-// viram lacunas de formulário e seções somem. Usado só quando o autor não
-// escreveu uma descrição.
-const resumoConteudo = (conteudo: string) =>
-  removerMarcas(conteudo)
-    .replace(/\{\{\s*[#/][^}]*\}\}/g, ' ')
-    .replace(/\{\{[^}]*\}\}/g, '____')
-    .replace(/\s+/g, ' ')
-    .trim();
+// Uma família tem UMA carta, então tudo que as variantes carregam conta como
+// sendo da cabeça: busca, categoria, flag e status olham o mesmo conjunto. Se só
+// a busca olhasse as variantes, um filtro por flag de variante esconderia a
+// família que a busca acabou de encontrar.
+const textosDoBloco = (b: BlocoComVersao) => [
+  b.nome,
+  b.categoria ?? '',
+  b.descricao ?? '',
+  b.versao_atual?.conteudo ?? '',
+];
 
-// --- Folha de prévia (hover) -------------------------------------------------
+const textosDaVariante = (v: BlocoComVersao) => [
+  v.nome,
+  v.variante_rotulo ?? '',
+  v.descricao ?? '',
+  v.versao_atual?.conteudo ?? '',
+];
 
-/** Texto de um nó com as marcas *_~ aplicadas de verdade (como sairá no .docx). */
-const TextoComMarcas = ({ texto }: { texto: string }) => (
-  <>
-    {texto.split('\n').map((linha, i) => (
-      <Fragment key={i}>
-        {i > 0 && '\n'}
-        {extrairRunsLinha(linha).map((r, j) =>
-          r.negrito || r.italico || r.sublinhado ? (
-            <span
-              key={j}
-              className={cn(r.negrito && 'font-semibold', r.italico && 'italic', r.sublinhado && 'underline')}
-            >
-              {r.texto}
-            </span>
-          ) : (
-            <Fragment key={j}>{r.texto}</Fragment>
-          ),
-        )}
-      </Fragment>
-    ))}
-  </>
-);
+const casaTexto = (textos: string[], q: string) => textos.some((t) => t.toLowerCase().includes(q));
 
-const ChipCampo = ({ caminho }: { caminho: string }) => (
-  <span className="mx-[1px] inline-flex items-center rounded bg-osg-100 px-1.5 py-px align-baseline font-sans text-[0.8em] font-medium leading-snug text-osg-700 ring-1 ring-osg-200/70 whitespace-nowrap">
-    {caminho}
-  </span>
-);
+const categoriasDaFamilia = (b: BlocoComVersao) => [b.categoria, ...b.variantes.map((v) => v.categoria)];
 
-const ChipSecao = ({ nome }: { nome: string }) => (
-  <span className="mx-[1px] inline-flex items-center gap-1 rounded border border-dashed border-osg-300 bg-osg-50 px-1.5 py-px align-baseline font-sans text-[0.8em] font-medium leading-snug text-osg-600 whitespace-nowrap">
-    <Repeat2 className="h-3 w-3" />
-    {nome}
-  </span>
-);
-
-const renderNos = (nos: No[]): ReactNode =>
-  nos.map((no, i) => {
-    if (no.tipo === 'texto') return <TextoComMarcas key={i} texto={no.texto} />;
-    if (no.tipo === 'placeholder') return <ChipCampo key={i} caminho={no.caminho} />;
-    return (
-      <Fragment key={i}>
-        <ChipSecao nome={no.nome} />
-        {renderNos(no.filhos)}
-      </Fragment>
-    );
-  });
-
-/**
- * A prévia é uma "folha de contrato": papel branco, serifa, formatação real e
- * campos como chips. Toda a informação técnica da ficha (campos, flags, versão)
- * mora no rodapé desta folha — fora da visão inicial da biblioteca.
- */
-const FolhaPreview = ({ bloco, nomeDaFlag }: { bloco: BlocoComVersao; nomeDaFlag: Map<string, string> }) => {
-  const conteudo = bloco.versao_atual?.conteudo ?? '';
-  const nos = useMemo(() => compilar(conteudo, { tolerante: true }), [conteudo]);
-  const campos = useMemo(() => extrairCampos(conteudo), [conteudo]);
-
-  return (
-    <div className="bg-white">
-      <div className="flex items-center justify-between border-b border-osg-100 px-4 py-2">
-        <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-osg-600">
-          <FileText className="h-3 w-3" />
-          Prévia do texto
-        </span>
-        <span className="text-[10px] tabular-nums text-muted-foreground">
-          v{bloco.versao_atual?.numero_versao ?? '—'}
-        </span>
-      </div>
-      <div className="max-h-[50vh] overflow-y-auto px-4 py-3">
-        {conteudo ? (
-          <div className="whitespace-pre-wrap font-serif text-[13px] leading-relaxed text-osg-700">
-            {renderNos(nos)}
-          </div>
-        ) : (
-          <p className="text-sm italic text-muted-foreground">sem conteúdo</p>
-        )}
-      </div>
-      {(campos.length > 0 || bloco.flag_ids.length > 0) && (
-        <div className="flex flex-wrap items-center gap-1 border-t border-osg-100 bg-osg-50/60 px-4 py-2">
-          {campos.length > 0 && (
-            <>
-              <Braces className="h-3 w-3 text-osg-600" />
-              {campos.map((c) => (
-                <code key={c} className="rounded bg-osg-100/80 px-1 py-0.5 text-[10px] text-osg-700">
-                  {c}
-                </code>
-              ))}
-            </>
-          )}
-          {bloco.flag_ids.map((id) => (
-            <Badge key={id} className="ml-auto gap-1 bg-amber-100 text-[10px] text-amber-800 hover:bg-amber-100 first:ml-0">
-              <Flag className="h-2.5 w-2.5" />
-              {nomeDaFlag.get(id) ?? '…'}
-            </Badge>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
-// --- Ficha (card compacto) -----------------------------------------------------
-
-interface FichaBlocoProps {
-  bloco: BlocoComVersao;
-  tipo: TipoBloco;
-  nomeDaFlag: Map<string, string>;
-  delay: number;
-  onEditar: () => void;
-  onToggleAtivo: () => void;
-}
-
-const FichaBloco = ({ bloco: b, tipo, nomeDaFlag, delay, onEditar, onToggleAtivo }: FichaBlocoProps) => {
-  const resumo = b.descricao?.trim() || resumoConteudo(b.versao_atual?.conteudo ?? '');
-
-  return (
-    <HoverCard openDelay={400} closeDelay={80}>
-      <HoverCardTrigger asChild>
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={onEditar}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              onEditar();
-            }
-          }}
-          className={cn(
-            // Padrão de card OSG: borda marrom-areia atenuada + sombra tonal.
-            'group relative flex cursor-pointer flex-col gap-1.5 rounded-md border border-osg-300/60 bg-card p-3.5 pl-4 shadow-sm shadow-osg-300/30 animate-osg-card-in',
-            'transition-all duration-200 hover:z-10 hover:-translate-y-0.5 hover:border-osg-300 hover:shadow-md hover:shadow-osg-300/40',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/50',
-            !b.ativo && 'opacity-55',
-          )}
-          style={{ animationDelay: `${delay}ms` }}
-        >
-          <span aria-hidden className="absolute bottom-2.5 left-0 top-2.5 w-[3px] rounded-r-full bg-osg-moss" />
-          <div className="flex items-start gap-2">
-            <p className="min-w-0 flex-1 text-sm font-semibold leading-snug">{nomeExibido(b.nome, tipo)}</p>
-            <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-              <Pencil aria-hidden className="h-3.5 w-3.5 self-center text-osg-600/70" />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                title={b.ativo ? 'Desativar' : 'Ativar'}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onToggleAtivo();
-                }}
-              >
-                <Power className={cn('h-3.5 w-3.5', b.ativo ? 'text-osg-600' : 'text-muted-foreground')} />
-              </Button>
-            </div>
-          </div>
-          {resumo && <p className="line-clamp-1 text-xs leading-relaxed text-muted-foreground">{resumo}</p>}
-          {(b.flag_ids.length > 0 || !b.ativo || b.repete_colecao) && (
-            <div className="flex flex-wrap items-center gap-1.5">
-              {b.repete_colecao && (
-                <span
-                  className="inline-flex items-center gap-1 rounded bg-osg-moss/10 px-1.5 py-px text-[10px] font-medium text-osg-moss"
-                  title={`Na geração, vira um parágrafo por item de: ${PAPEIS_LISTA[b.repete_colecao]?.label ?? b.repete_colecao}`}
-                >
-                  <Repeat2 className="h-2.5 w-2.5" />
-                  {b.repete_colecao}
-                </span>
-              )}
-              {b.flag_ids.length > 0 && (
-                <span
-                  className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-px text-[10px] font-medium text-amber-800"
-                  title={b.flag_ids.map((id) => nomeDaFlag.get(id) ?? '…').join(', ')}
-                >
-                  <Flag className="h-2.5 w-2.5" />
-                  {b.flag_ids.length}
-                </span>
-              )}
-              {!b.ativo && (
-                <Badge variant="outline" className="text-[10px]">
-                  inativo
-                </Badge>
-              )}
-            </div>
-          )}
-        </div>
-      </HoverCardTrigger>
-      <HoverCardContent
-        side="bottom"
-        align="start"
-        sideOffset={8}
-        collisionPadding={16}
-        className="w-[26rem] max-w-[90vw] overflow-hidden border-osg-300/70 p-0 shadow-xl shadow-osg-300/30"
-      >
-        <FolhaPreview bloco={b} nomeDaFlag={nomeDaFlag} />
-      </HoverCardContent>
-    </HoverCard>
-  );
-};
+const flagsDaFamilia = (b: BlocoComVersao) => [...b.flag_ids, ...b.variantes.flatMap((v) => v.flag_ids)];
 
 // --- Página ---------------------------------------------------------------------
 
@@ -308,15 +93,25 @@ const BibliotecaModelos = () => {
   const [filtroStatus, setFiltroStatus] = useState<FiltroStatus>('todos');
   const [dialog, setDialog] = useState<{ open: boolean; bloco: BlocoComVersao | null }>({ open: false, bloco: null });
 
+  // Variante que o deep-link apontou, para o deck abrir nela. Vale enquanto o
+  // editor que o deep-link abriu estiver na tela: fechado, a fixação já cumpriu o
+  // papel e é solta, senão ela mandaria no deck para sempre.
+  const [varianteFixada, setVarianteFixada] = useState<{ blocoId: string; varianteId: string } | null>(null);
+
   // Deep-link da tela Gerar (?bloco=<id>): abre o editor do bloco assim que a
   // lista chega e limpa o parâmetro para não reabrir o modal ao fechá-lo.
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
     const blocoIdParam = searchParams.get('bloco');
     if (!blocoIdParam || blocos.length === 0) return;
-    const alvo = blocos.find((b) => b.id === blocoIdParam);
+    // O id pode ser de uma variante, que não tem carta própria: resolve para a
+    // cabeça da família e o deck já abre na variante apontada.
+    const cabeca = blocos.find((b) => b.id === blocoIdParam);
+    const daVariante = cabeca ? null : blocos.find((b) => b.variantes.some((v) => v.id === blocoIdParam));
+    const alvo = cabeca ?? daVariante;
     if (alvo) {
       setDialog({ open: true, bloco: alvo });
+      setVarianteFixada(daVariante ? { blocoId: alvo.id, varianteId: blocoIdParam } : null);
       const next = new URLSearchParams(searchParams);
       next.delete('bloco');
       setSearchParams(next, { replace: true });
@@ -324,7 +119,7 @@ const BibliotecaModelos = () => {
   }, [searchParams, blocos, setSearchParams]);
 
   const categorias = useMemo(
-    () => [...new Set(blocos.map((b) => b.categoria).filter(Boolean) as string[])].sort(),
+    () => [...new Set(blocos.flatMap(categoriasDaFamilia).filter(Boolean) as string[])].sort(),
     [blocos],
   );
 
@@ -343,17 +138,29 @@ const BibliotecaModelos = () => {
     const q = busca.trim().toLowerCase();
     return blocos.filter((b) => {
       if (filtroStatus === 'ativos' && !b.ativo) return false;
-      if (filtroStatus === 'inativos' && b.ativo) return false;
-      if (filtroCategoria !== 'todas' && b.categoria !== filtroCategoria) return false;
-      if (filtroFlag !== 'todas' && !b.flag_ids.includes(filtroFlag)) return false;
+      // Variante desativada é pendência da família: ela aparece em "inativos"
+      // mesmo com a cabeça ligada, senão o problema fica invisível na tela.
+      if (filtroStatus === 'inativos' && b.ativo && b.variantes.every((v) => v.ativo)) return false;
+      if (filtroCategoria !== 'todas' && !categoriasDaFamilia(b).includes(filtroCategoria)) return false;
+      if (filtroFlag !== 'todas' && !flagsDaFamilia(b).includes(filtroFlag)) return false;
       if (!q) return true;
-      return (
-        b.nome.toLowerCase().includes(q) ||
-        (b.categoria ?? '').toLowerCase().includes(q) ||
-        (b.versao_atual?.conteudo ?? '').toLowerCase().includes(q)
-      );
+      return casaTexto(textosDoBloco(b), q) || b.variantes.some((v) => casaTexto(textosDaVariante(v), q));
     });
   }, [blocos, busca, filtroCategoria, filtroFlag, filtroStatus]);
+
+  // Busca que casou só numa variante: o deck precisa abrir NELA, senão o
+  // resultado aparece sem o termo procurado em lugar nenhum da carta.
+  const varianteDaBusca = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    const porBloco = new Map<string, string>();
+    if (!q) return porBloco;
+    for (const b of blocos) {
+      if (b.variantes.length === 0 || casaTexto(textosDoBloco(b), q)) continue;
+      const achada = b.variantes.find((v) => casaTexto(textosDaVariante(v), q));
+      if (achada) porBloco.set(b.id, achada.id);
+    }
+    return porBloco;
+  }, [blocos, busca]);
 
   const contagemPorTipo = useMemo(() => {
     const contagem = new Map<TipoBloco, number>(TIPOS_BLOCO.map((t) => [t, 0]));
@@ -378,6 +185,9 @@ const BibliotecaModelos = () => {
       const doTipo = porTipo.get(tipo)!;
       const porCategoria = new Map<string | null, BlocoComVersao[]>();
       for (const b of doTipo) {
+        // Sempre a categoria da CABEÇA, mesmo quando o filtro casou pela categoria
+        // de uma variante: a carta é da família e agrupar pela variante duplicaria
+        // carta. Não é bug.
         const categoria = b.categoria || null;
         if (!porCategoria.has(categoria)) porCategoria.set(categoria, []);
         porCategoria.get(categoria)!.push(b);
@@ -596,6 +406,12 @@ const BibliotecaModelos = () => {
                               tipo={tipo}
                               nomeDaFlag={nomeDaFlag}
                               delay={delayPorBloco.get(b.id) ?? 0}
+                              // Busca ganha da fixação do deep-link: o termo é o
+                              // que a pessoa está procurando agora.
+                              varianteDestaqueId={
+                                varianteDaBusca.get(b.id) ??
+                                (varianteFixada?.blocoId === b.id ? varianteFixada.varianteId : undefined)
+                              }
                               onEditar={() => abrirEdicao(b)}
                               onToggleAtivo={() => toggleAtivo.mutate({ id: b.id, ativo: !b.ativo })}
                             />
@@ -614,7 +430,12 @@ const BibliotecaModelos = () => {
       <EditorBlocoDialog
         open={dialog.open}
         bloco={dialog.bloco}
-        onOpenChange={(open) => setDialog((d) => ({ ...d, open }))}
+        onOpenChange={(open) => {
+          setDialog((d) => ({ ...d, open }));
+          // Editor fechado: a variante que o deep-link apontou já foi mostrada e
+          // solta o deck, que volta a obedecer só a busca e a navegação manual.
+          if (!open) setVarianteFixada(null);
+        }}
       />
     </OsgLayout>
   );

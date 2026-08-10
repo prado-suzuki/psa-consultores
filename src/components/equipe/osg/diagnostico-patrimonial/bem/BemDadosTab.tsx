@@ -5,7 +5,9 @@ import { Switch } from '@/components/ui/switch';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CurrencyInput } from '@/components/equipe/osg/CurrencyInput';
+import { formatCep } from '@/components/equipe/client-form/constants';
 import { FieldSection, fieldCls, labelCls, switchBoxCls, textareaCls } from '@/components/equipe/osg/formKit';
+import { areaStep, clampAreaInput } from '@/components/equipe/osg/diagnostico-patrimonial/areaUtils';
 import { formGridCls, formSpanCls } from '@/lib/osgFormGrid';
 import { TIPO_BEM_OPTIONS, type MatriculaRow, type TipoBem } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
@@ -19,6 +21,7 @@ export function BemDadosTab({ draft, onChange, pessoas, ...matriculaProps }: Pro
   const set = <K extends keyof DraftBem>(key: K, value: DraftBem[K]) => onChange({ ...draft, [key]: value });
   const imovel = draft.tipo_bem === 'IR' || draft.tipo_bem === 'IB';
   const rural = draft.tipo_bem === 'IR';
+  const urbano = draft.tipo_bem === 'IB';
   const outros = draft.tipo_bem === 'OU';
   const pjs = pessoas.filter((pessoa) => pessoa.tipo_pessoa === 'PJ');
   let number = 0;
@@ -31,11 +34,21 @@ export function BemDadosTab({ draft, onChange, pessoas, ...matriculaProps }: Pro
       {outros && <div className={`space-y-1.5 ${formSpanCls(3)}`}><Label className={labelCls}>Especifique o tipo de bem<RequiredMark /></Label><Input value={draft.descricao_outros} onChange={(e) => set('descricao_outros', e.target.value)} placeholder="Descreva o tipo de bem" className={fieldCls} /></div>}
       <div className={`space-y-1.5 ${formSpanCls(3)}`}><Label className={labelCls}>Denominação<RequiredMark /></Label><Input value={draft.denominacao} onChange={(e) => set('denominacao', e.target.value)} placeholder="Nome do bem / fazenda / propriedade" className={fieldCls} /></div>
     </div></FieldSection>
+    {/* O modelo de descrição urbana identifica o imóvel pelo endereço (o rural usa a
+        denominação), e só cita a área construída quando ela é menor que a total. */}
+    {urbano && <FieldSection number={next()} title="Endereço e área construída" hint="município e UF vêm da matrícula"><div className={`${formGridCls(3)} gap-3`}>
+      <Field label="CEP"><Input value={draft.endereco_cep} onChange={(e) => set('endereco_cep', formatCep(e.target.value))} placeholder="00000-000" className={`${fieldCls} font-mono`} /></Field>
+      <div className={formSpanCls(2)}><Field label="Logradouro"><Input value={draft.endereco_logradouro} onChange={(e) => set('endereco_logradouro', e.target.value)} placeholder="Rua, avenida, rodovia" className={fieldCls} /></Field></div>
+      <Field label="Número"><Input value={draft.endereco_numero} onChange={(e) => set('endereco_numero', e.target.value)} placeholder="ex: 119-A ou s/n" className={fieldCls} /></Field>
+      <div className={formSpanCls(2)}><Field label="Complemento"><Input value={draft.endereco_complemento} onChange={(e) => set('endereco_complemento', e.target.value)} placeholder="Apartamento, bloco, sala" className={fieldCls} /></Field></div>
+      <Field label="Bairro"><Input value={draft.endereco_bairro} onChange={(e) => set('endereco_bairro', e.target.value)} className={fieldCls} /></Field>
+      <Field label="Área construída (m²)"><Input type="number" step={areaStep('m2')} value={draft.area_construida_m2} onChange={(e) => set('area_construida_m2', clampAreaInput(e.target.value, 'm2'))} className={`${fieldCls} font-mono`} /></Field>
+    </div></FieldSection>}
     {!imovel && <FieldSection number={next()} title="Valores"><div className={`${formGridCls(3)} gap-3`}><Money label="Vlr. contábil" required value={draft.vlr_contabil} onChange={(v) => set('vlr_contabil', v)} /><Money label="Vlr. contábil ajustado" value={draft.vlr_contabil_ajustado} onChange={(v) => set('vlr_contabil_ajustado', v)} /><Money label="Vlr. benfeitorias" value={draft.vlr_benfeitorias} onChange={(v) => set('vlr_benfeitorias', v)} /><Money label="Vlr. mercado" value={draft.vlr_mercado} onChange={(v) => set('vlr_mercado', v)} /><Money label={rural ? 'ITR anual' : draft.tipo_bem === 'IB' ? 'IPTU anual' : 'Imposto anual'} value={draft.vlr_imposto_anual} onChange={(v) => set('vlr_imposto_anual', v)} /><Field label="Exercício"><Input type="number" value={draft.imposto_anual_exercicio} onChange={(e) => set('imposto_anual_exercicio', e.target.value)} placeholder="ex: 2025" className={`${fieldCls} font-mono`} /></Field></div></FieldSection>}
     {imovel && <FieldSection number={next()} title="Cadastros oficiais"><div className={`${formGridCls(2)} gap-3`}>{rural && <Field label="CCIR"><Input value={draft.ccir_codigo} onChange={(e) => set('ccir_codigo', e.target.value)} className={`${fieldCls} font-mono`} /></Field>}{draft.tipo_bem === 'IB' && <Field label="Inscrição municipal"><Input value={draft.inscricao_municipal} onChange={(e) => set('inscricao_municipal', e.target.value)} className={`${fieldCls} font-mono`} /></Field>}</div></FieldSection>}
     <FieldSection number={next()} title="Integralização"><div className={`${formGridCls(2)} gap-3`}><Field label="Status integralização"><Select value={draft.status_integralizacao || undefined} onValueChange={(v) => set('status_integralizacao', v)}><SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger><SelectContent>{STATUS.map((value) => <SelectItem key={value} value={value}>{value}</SelectItem>)}</SelectContent></Select></Field><Field label="PJ de destino"><Select value={draft.empresa_destino_pessoa_id || undefined} onValueChange={(v) => set('empresa_destino_pessoa_id', v)}><SelectTrigger className={fieldCls}><SelectValue placeholder={pjs.length ? 'Selecione...' : 'Cadastre uma PJ na Qualificação das Partes'} /></SelectTrigger><SelectContent>{pjs.map((pessoa) => <SelectItem key={pessoa.id} value={pessoa.id}>{pessoa.denominacao}</SelectItem>)}</SelectContent></Select></Field>{!draft.participa_estruturacao && <div className={`space-y-1.5 ${formSpanCls(2)}`}><Label className={labelCls}>Motivo de não integralização</Label><Textarea value={draft.motivo_nao_integralizacao} onChange={(e) => set('motivo_nao_integralizacao', e.target.value)} className={`min-h-[60px] ${textareaCls}`} /></div>}</div></FieldSection>
     <FieldSection number={next()} title="Observação"><Textarea value={draft.observacao} onChange={(e) => set('observacao', e.target.value)} className={`min-h-[60px] ${textareaCls}`} /></FieldSection>
-    {imovel && <MatriculasSection isEdit={matriculaProps.isEdit} loading={matriculaProps.loadingMatriculas} matriculas={matriculaProps.matriculas} onLink={matriculaProps.onLink} onAdd={matriculaProps.onAdd} onEdit={matriculaProps.onEdit} onUnlink={matriculaProps.onUnlink} onDelete={matriculaProps.onDelete} />}
+    {imovel && <MatriculasSection number={next()} isEdit={matriculaProps.isEdit} loading={matriculaProps.loadingMatriculas} matriculas={matriculaProps.matriculas} onLink={matriculaProps.onLink} onAdd={matriculaProps.onAdd} onEdit={matriculaProps.onEdit} onUnlink={matriculaProps.onUnlink} onDelete={matriculaProps.onDelete} />}
   </>;
 }
 function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) { return <div className="space-y-1.5"><Label className={labelCls}>{label}{required && <RequiredMark />}</Label>{children}</div>; }

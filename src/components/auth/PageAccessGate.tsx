@@ -2,12 +2,18 @@ import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { resolveLoginPath } from '@/lib/loginRedirect';
+import { homeDaArea } from '@/lib/homeDaArea';
 import { Button } from '@/components/ui/button';
 import { ShieldX, ArrowLeft } from 'lucide-react';
 
 interface PageAccessGateProps {
   pagePath: string;
   children: React.ReactNode;
+  /**
+   * Para onde o "Voltar" leva. Sem valor, vai para a home da área do endereço
+   * atual — antes era fixo em `/equipe/digital`, então quem tomava negativa na
+   * Tax era jogado para a Digital e caía num seletor vazio.
+   */
   fallbackPath?: string;
 }
 
@@ -15,10 +21,10 @@ interface PageAccessGateProps {
  * Component that verifies page-specific access and shows access denied screen if needed.
  * Wraps protected pages to enforce granular permissions from user_page_access table.
  */
-export const PageAccessGate = ({ 
-  pagePath, 
+export const PageAccessGate = ({
+  pagePath,
   children,
-  fallbackPath = '/equipe/digital'
+  fallbackPath,
 }: PageAccessGateProps) => {
   const { user, loading: authLoading } = useAuth();
   const { hasAccess, isLoading } = usePageAccess(pagePath);
@@ -58,8 +64,8 @@ export const PageAccessGate = ({
               Entre em contato com um administrador para solicitar acesso.
             </p>
           </div>
-          <Button 
-            onClick={() => navigate(fallbackPath)}
+          <Button
+            onClick={() => navigate(fallbackPath ?? homeDaArea(location.pathname))}
             variant="outline"
             className="mt-4"
           >

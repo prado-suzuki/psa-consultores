@@ -14,4 +14,5 @@ export const ENTITY_LABELS: Record<string, string> = {
   project: 'Projeto',
   task: 'Tarefa',
   subtask: 'Subtarefa',
+  solicitacao_item_nao_aplicavel: 'Documento não aplicável',
 };

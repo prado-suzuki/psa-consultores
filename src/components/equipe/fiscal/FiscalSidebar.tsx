@@ -25,9 +25,21 @@ export interface MenuItem {
   id: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  /**
+   * Destino do item. Um agrupador TAMBÉM pode ter destino: clicar no próprio
+   * "Projetos" ou "Gerencial" abre a página principal daquele grupo, no modelo
+   * da Digital. Foi o que permitiu tirar "Dashboard" da raiz do menu.
+   */
   path?: string;
   /** Item visível apenas para líder ou admin (área Gerencial). */
   requiresLider?: boolean;
+  /** O inverso: item que some para líder+, porque ele tem um caminho melhor. */
+  ocultaParaLider?: boolean;
+  /**
+   * Prefixo que marca o grupo como ativo. Antes isso era fixo em
+   * `/equipe/tax/projetos`, o que deixaria a Gerencial nova sempre apagada.
+   */
+  basePath?: string;
   children?: {
     id: string;
     label: string;
@@ -44,15 +56,12 @@ const menuItems: MenuItem[] = [
     path: '/equipe/tax'
   },
   {
-    id: 'dashboard',
-    label: 'Dashboard',
-    icon: LayoutDashboard,
-    path: '/equipe/tax/dashboard'
-  },
-  {
     id: 'projetos',
     label: 'Projetos',
     icon: FolderKanban,
+    // Clicar no grupo abre o antigo item "Dashboard", que saiu da raiz do menu.
+    path: '/equipe/tax/dashboard',
+    basePath: '/equipe/tax/projetos',
     children: [
       {
         id: 'clientes',
@@ -78,21 +87,49 @@ const menuItems: MenuItem[] = [
     id: 'gerencial',
     label: 'Gerencial',
     icon: LineChart,
+    // Clicar no grupo abre "Dashboards", que é a tela que antes se chamava
+    // Gerencial. O endereço não mudou, só o rótulo.
     path: '/equipe/tax/gerencial',
-    requiresLider: true
-  },
-  {
-    id: 'auditoria',
-    label: 'Auditoria',
-    icon: Shield,
-    path: '/equipe/tax/auditoria',
-    requiresLider: true
+    basePath: '/equipe/tax/gerencial',
+    requiresLider: true,
+    children: [
+      {
+        id: 'gerencial-dashboards',
+        label: 'Dashboards',
+        icon: LayoutDashboard,
+        path: '/equipe/tax/gerencial'
+      },
+      {
+        id: 'gerencial-chamados',
+        label: 'Gestão de Chamados',
+        icon: MessageSquare,
+        path: '/equipe/tax/gerencial/chamados'
+      },
+      {
+        id: 'gerencial-chamados-dashboard',
+        label: 'Dashboard de Chamados',
+        icon: LineChart,
+        path: '/equipe/tax/gerencial/chamados/dashboard'
+      },
+      {
+        id: 'gerencial-logs',
+        label: 'Logs de Equipe',
+        icon: Shield,
+        path: '/equipe/tax/gerencial/logs-equipe'
+      }
+    ]
   },
   {
     id: 'chamados',
     label: 'Chamados',
     icon: MessageSquare,
-    path: '/equipe/chamados'
+    path: '/equipe/chamados',
+    // Some para o Líder Geral: ele trabalha chamado pela "Gestão de Chamados"
+    // do dropdown Gerencial, que mostra tudo ao alcance dele em vez de só o que
+    // lhe foi atribuído. Dois caminhos para chamado no mesmo menu confundem.
+    // Admin NÃO perde o item: admin vê tudo.
+    // É só o menu: a página continua liberada para quem tiver o link.
+    ocultaParaLider: true
   }
 ];
 
@@ -114,9 +151,10 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
 
   const isActive = (path?: string) => !!path && location.pathname === path;
 
-  const isParentActive = (children?: MenuItem['children']) =>
-    location.pathname.startsWith('/equipe/tax/projetos') ||
-    (!!children && children.some(child => location.pathname === child.path));
+  const isParentActive = (item: MenuItem) =>
+    (!!item.basePath && location.pathname.startsWith(item.basePath)) ||
+    location.pathname === item.path ||
+    (!!item.children && item.children.some(child => location.pathname === child.path));
 
   const handleSignOut = async () => {
     await signOut();
@@ -139,11 +177,14 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
 
     // Agrupador com expansão no hover + animação fluida (grid-rows), igual à OSG.
     if (hasChildren) {
-      const parentActive = isParentActive(item.children);
+      const parentActive = isParentActive(item);
       return (
         <div key={item.id} className="group/sub">
           <button
             type="button"
+            // O grupo com destino é clicável; sem destino, segue só abrindo a
+            // lista no hover, como era antes.
+            onClick={() => item.path && goTo(item.path)}
             className={cn(
               'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
               parentActive
@@ -188,17 +229,23 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
                     <button
                       key={child.id}
                       onClick={() => navigate(child.path)}
-                      title={isCollapsed ? child.label : undefined}
+                      // O título vale sempre, não só recolhido: rótulo comprido
+                      // agora corta com reticências em vez de vazar, e a versão
+                      // inteira fica ao alcance do mouse.
+                      title={child.label}
                       className={cn(
                         ITEM_BASE,
-                        'whitespace-nowrap',
+                        // Item de submenu ganha um respiro: o recuo da barra à
+                        // esquerda já come largura, e "Dashboard de Chamados"
+                        // estourava por poucos pixels.
+                        'min-w-0 gap-2 px-2',
                         childActive
                           ? 'bg-primary/10 text-primary'
                           : 'text-muted-foreground hover:bg-primary/5 hover:text-primary'
                       )}
                     >
                       <ChildIcon className="h-4 w-4 flex-shrink-0" />
-                      {!isCollapsed && <span>{child.label}</span>}
+                      {!isCollapsed && <span className="min-w-0 truncate">{child.label}</span>}
                     </button>
                   );
                 })}
@@ -272,7 +319,13 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
 
         {/* Menu */}
         <nav className="p-4 space-y-1">
-          {menuItems.filter((item) => !item.requiresLider || canGerencial).map(renderMenuItem)}
+          {menuItems
+            .filter((item) => !item.requiresLider || canGerencial)
+            // `isLider` estrito, e não `canGerencial`: admin vê tudo, inclusive o
+            // atalho. Quem perde o item é só o Líder Geral, que trabalha chamado
+            // pela Gestão de Chamados do dropdown.
+            .filter((item) => !item.ocultaParaLider || !isLider)
+            .map(renderMenuItem)}
         </nav>
 
         {/* Footer com o cartão do usuário e as ações da área */}

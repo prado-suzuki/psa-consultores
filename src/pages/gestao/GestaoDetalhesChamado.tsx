@@ -12,7 +12,10 @@ import { Badge } from '@/components/ui/badge';
 import { TicketRichTextEditor } from '@/components/chamados/TicketRichTextEditor';
 import { TicketRichTextView } from '@/components/chamados/TicketRichTextView';
 import { isTicketRichTextEmpty } from '@/components/chamados/ticketRichTextFormat';
+import { ticketMessageErrorFeedback, ticketMessageFeedback } from '@/lib/ticketMessageOutcome';
+import { TOOLTIP_FECHADO_INDISPONIVEL } from '@/lib/chamadosStatus';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, Download, Image as ImageIcon } from 'lucide-react';
 import { format, addDays, differenceInCalendarDays } from 'date-fns';
@@ -59,7 +62,18 @@ const deadlineOptions: Record<string, string> = {
   '15': '15 dias',
 };
 
-export default function GestaoDetalhesChamado() {
+/**
+ * Detalhe do chamado.
+ *
+ * Recortado da moldura pelo mesmo motivo das outras duas telas de chamados:
+ * clicar em "Ver" dentro da Tax nao pode jogar a pessoa para a area de Gestao.
+ */
+export interface ChamadoDetalheContentProps {
+  /** Endereco da lista correspondente, para o "Voltar" e o caso sem chamado. */
+  listaPath: string;
+}
+
+export function ChamadoDetalheContent({ listaPath }: ChamadoDetalheContentProps) {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -152,24 +166,20 @@ export default function GestaoDetalhesChamado() {
     if (isTicketRichTextEmpty(newMessage) || !user || !id) return;
 
     try {
-      await sendMessage.mutateAsync({
+      const outcome = await sendMessage.mutateAsync({
         ticketId: id,
         userId: user.id,
         message: newMessage,
         isAdmin: true,
         actorName: 'Equipe PSA',
       });
-      toast({
-        title: 'Mensagem enviada',
-        description: 'Sua resposta foi enviada com sucesso.',
-      });
+      // Gravou: limpa o editor mesmo com pendência de status/notificação, para
+      // que ninguém reenvie a mesma resposta.
       setNewMessage('');
-    } catch {
-      toast({
-        title: 'Erro ao enviar mensagem',
-        description: 'Tente novamente mais tarde.',
-        variant: 'destructive',
-      });
+      toast(ticketMessageFeedback(outcome, 'equipe'));
+    } catch (error) {
+      // Só cai aqui se NADA foi gravado; por isso o texto é preservado.
+      toast(ticketMessageErrorFeedback(error, 'equipe'));
     }
   };
 
@@ -192,36 +202,31 @@ export default function GestaoDetalhesChamado() {
 
   if (loading) {
     return (
-      <GestaoLayout title="Carregando..." subtitle="Aguarde">
-        <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
-      </GestaoLayout>
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
     );
   }
 
   if (!ticket) {
-    navigate('/gestao/chamados');
+    navigate(listaPath);
     return null;
   }
 
   const sending = sendMessage.isPending;
 
   return (
-    <GestaoLayout 
-      title="Detalhes do Chamado" 
-      subtitle={`ID: ${ticket.id.slice(0, 8)}...`}
-      headerActions={
+    <>
+      <div className="mx-auto mb-4 flex max-w-4xl justify-end">
         <Button
           variant="outline"
-          onClick={() => navigate('/gestao/chamados')}
+          onClick={() => navigate(listaPath)}
           className="border-border text-muted-foreground hover:bg-muted"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Voltar
         </Button>
-      }
-    >
+      </div>
       <div className="max-w-4xl mx-auto space-y-6">
         <Card className="p-6 bg-card border-border/60 shadow-sm">
           <div className="space-y-4">
@@ -241,7 +246,23 @@ export default function GestaoDetalhesChamado() {
                     <SelectItem value="aberto">Aberto</SelectItem>
                     <SelectItem value="em_andamento">Em Andamento</SelectItem>
                     <SelectItem value="resolvido">Resolvido</SelectItem>
-                    <SelectItem value="fechado">Fechado</SelectItem>
+                    {/* "Fechado" é decisão do sistema, não do analista: fica
+                        visível e somente leitura. Ver comentário equivalente em
+                        EquipeDetalhesChamado sobre o override de pointer-events. */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <SelectItem
+                          value="fechado"
+                          disabled
+                          className="data-[disabled]:pointer-events-auto data-[disabled]:cursor-not-allowed"
+                        >
+                          Fechado
+                        </SelectItem>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" className="max-w-xs">
+                        {TOOLTIP_FECHADO_INDISPONIVEL}
+                      </TooltipContent>
+                    </Tooltip>
                   </SelectContent>
                 </Select>
                 <Select value={ticket.assigned_to || 'none'} onValueChange={handleAssign}>
@@ -476,6 +497,16 @@ export default function GestaoDetalhesChamado() {
           </div>
         </Card>
       </div>
+    </>
+  );
+}
+
+
+/** Rota da area de Gestao: o mesmo miolo dentro da moldura de sempre. */
+export default function GestaoDetalhesChamado() {
+  return (
+    <GestaoLayout title="Detalhes do Chamado" subtitle="Chamado do cliente">
+      <ChamadoDetalheContent listaPath="/gestao/chamados" />
     </GestaoLayout>
   );
 }

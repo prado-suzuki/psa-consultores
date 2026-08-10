@@ -41,6 +41,14 @@ export type DraftBem = {
   imposto_anual_exercicio: string;
   ccir_codigo: string;
   inscricao_municipal: string;
+  // Endereço e área construída só valem para imóvel urbano (IB); município e UF
+  // do imóvel ficam na matrícula.
+  endereco_logradouro: string;
+  endereco_numero: string;
+  endereco_complemento: string;
+  endereco_bairro: string;
+  endereco_cep: string;
+  area_construida_m2: string;
   status_integralizacao: string;
   empresa_destino_pessoa_id: string;
   participa_estruturacao: boolean;
@@ -52,6 +60,8 @@ export const emptyBemDraft = (): DraftBem => ({
   referencia_dp: '', tipo_bem: 'IR', descricao_outros: '', denominacao: '', vlr_contabil: '',
   vlr_contabil_ajustado: '', vlr_benfeitorias: '', vlr_mercado: '', vlr_imposto_anual: '',
   imposto_anual_exercicio: '', ccir_codigo: '', inscricao_municipal: '',
+  endereco_logradouro: '', endereco_numero: '', endereco_complemento: '',
+  endereco_bairro: '', endereco_cep: '', area_construida_m2: '',
   status_integralizacao: '', empresa_destino_pessoa_id: '', participa_estruturacao: true,
   motivo_nao_integralizacao: '', observacao: '',
 });
@@ -66,6 +76,10 @@ export const bemToDraft = (b: BemRow): DraftBem => ({
   vlr_imposto_anual: b.vlr_imposto_anual != null ? String(b.vlr_imposto_anual) : '',
   imposto_anual_exercicio: b.imposto_anual_exercicio != null ? String(b.imposto_anual_exercicio) : '',
   ccir_codigo: b.ccir_codigo ?? '', inscricao_municipal: b.inscricao_municipal ?? '',
+  endereco_logradouro: b.endereco_logradouro ?? '', endereco_numero: b.endereco_numero ?? '',
+  endereco_complemento: b.endereco_complemento ?? '', endereco_bairro: b.endereco_bairro ?? '',
+  endereco_cep: b.endereco_cep ?? '',
+  area_construida_m2: b.area_construida_m2 != null ? String(b.area_construida_m2) : '',
   status_integralizacao: b.status_integralizacao ?? '',
   empresa_destino_pessoa_id: b.empresa_destino_pessoa_id ?? '',
   participa_estruturacao: b.participa_estruturacao ?? true,
@@ -79,6 +93,7 @@ const toInt = (value: string) =>
 
 export function bemDraftToValues(draft: DraftBem, clienteId: string) {
   const isImovel = draft.tipo_bem === 'IR' || draft.tipo_bem === 'IB';
+  const isUrbano = draft.tipo_bem === 'IB';
   return {
     cliente_id: clienteId, referencia_dp: draft.referencia_dp.trim(), tipo_bem: draft.tipo_bem,
     descricao_outros: draft.tipo_bem === 'OU' ? nullify(draft.descricao_outros) : null,
@@ -90,7 +105,13 @@ export function bemDraftToValues(draft: DraftBem, clienteId: string) {
     vlr_imposto_anual: isImovel ? null : toNum(draft.vlr_imposto_anual),
     imposto_anual_exercicio: isImovel ? null : toInt(draft.imposto_anual_exercicio),
     ccir_codigo: draft.tipo_bem === 'IR' ? nullify(draft.ccir_codigo) : null,
-    inscricao_municipal: draft.tipo_bem === 'IB' ? nullify(draft.inscricao_municipal) : null,
+    inscricao_municipal: isUrbano ? nullify(draft.inscricao_municipal) : null,
+    endereco_logradouro: isUrbano ? nullify(draft.endereco_logradouro) : null,
+    endereco_numero: isUrbano ? nullify(draft.endereco_numero) : null,
+    endereco_complemento: isUrbano ? nullify(draft.endereco_complemento) : null,
+    endereco_bairro: isUrbano ? nullify(draft.endereco_bairro) : null,
+    endereco_cep: isUrbano ? nullify(draft.endereco_cep) : null,
+    area_construida_m2: isUrbano ? toNum(draft.area_construida_m2) : null,
     status_integralizacao: nullify(draft.status_integralizacao),
     empresa_destino_pessoa_id: draft.empresa_destino_pessoa_id || null,
     participa_estruturacao: draft.participa_estruturacao,

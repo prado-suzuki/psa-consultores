@@ -5,7 +5,7 @@
 > **Regra:** para consultar o schema, use ESTE arquivo — **nunca** leia `types.ts` inteiro.
 > **Acesso (RLS):** a coluna "Acesso" resume "quem acessa" via arquetipos (ver legenda). Reconstruido do `pg_policies` vivo; para o texto exato de uma policy, ver `supabase/migrations`.
 
-**138 tabelas** de negocio · 1 de backup (ignorar) · 31 enums.
+**142 tabelas** de negocio · 2 de backup (ignorar) · 33 enums.
 Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ## Convencoes (do CLAUDE.md)
@@ -43,7 +43,8 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`area_servicos`](#areaservicos) | 3 | — | catalogo | estrutura_areas, servicos_prestados |
 | [`atualizacoes_meta`](#atualizacoesmeta) | 7 | — | desempenho | metas |
 | [`audit_logs`](#auditlogs) | 10 | — | interno | — |
-| [`bem`](#bem) | 24 | — | cluster-cliente | cliente, profiles, pessoa |
+| [`bem`](#bem) | 30 | — | cluster-cliente | cliente, profiles, pessoa |
+| [`bkp_20260807_ticket_messages_dup`](#bkp20260807ticketmessagesdup) | 9 | — | interno | — |
 | [`capital_integralizacao`](#capitalintegralizacao) | 16 | — | cluster-cliente | bem, cliente, profiles, pessoa |
 | [`cartorio`](#cartorio) | 8 | — | interno | profiles |
 | [`catalog_clients`](#catalogclients) | 9 | — | interno | estrutura_areas |
@@ -71,12 +72,12 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`difal_sessao`](#difalsessao) | 10 | — | cluster-cliente | cliente |
 | [`distribuicao_dcomp`](#distribuicaodcomp) | 12 | — | cluster-fiscal | codigo_receita, grupo_tributo, dcomp |
 | [`distribuicao_receita`](#distribuicaoreceita) | 6 | excluido | cluster-cliente | centros_custo, ordem_servico |
-| [`documento_arquivo`](#documentoarquivo) | 25 | ambiente, excluido | interno | bem, checklist_cliente_item, cobertura_documentos_cliente, cliente, documento_gerado, matricula, pessoa, solicitacao |
+| [`documento_arquivo`](#documentoarquivo) | 26 | ambiente, excluido | interno | bem, checklist_cliente_item, cobertura_documentos_cliente, cliente, documento_gerado, documento_tipo, matricula, pessoa, solicitacao |
 | [`documento_gerado`](#documentogerado) | 19 | — | interno | cliente, profiles, documento_gerado, tmpl_documento, pessoa |
 | [`documento_horas_historico`](#documentohorashistorico) | 6 | — | interno | documentos_processo |
 | [`documento_notificacao_visto`](#documentonotificacaovisto) | 3 | — | proprio-usuario | documento_gerado, profiles |
 | [`documento_override`](#documentooverride) | 11 | — | interno | tmpl_bloco, profiles, documento_gerado |
-| [`documento_tipo`](#documentotipo) | 18 | — | interno | — |
+| [`documento_tipo`](#documentotipo) | 20 | — | interno | cliente, solicitacao_item |
 | [`documentos_processo`](#documentosprocesso) | 13 | — | cluster-mapa | documentos_processo, estrutura_clusters |
 | [`documents`](#documents) | 8 | — | interno | tickets |
 | [`efd_correcoes`](#efdcorrecoes) | 19 | — | cluster-cliente | — |
@@ -109,6 +110,8 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`melhoria_responsaveis`](#melhoriaresponsaveis) | 6 | — | cluster-mapa | process_improvements, job_roles |
 | [`melhoria_sistemas`](#melhoriasistemas) | 5 | — | cluster-mapa | process_improvements, sistemas_processo |
 | [`metas`](#metas) | 22 | — | desempenho | ciclos_avaliacao, metas |
+| [`notificacao`](#notificacao) | 16 | — | interno | profiles |
+| [`notificacao_envio`](#notificacaoenvio) | 15 | — | interno | profiles, notificacao |
 | [`novidades`](#novidades) | 17 | — | interno | — |
 | [`ordem_servico`](#ordemservico) | 20 | excluido | cluster-cliente | estrutura_clusters, produto_segmento, servicos_prestados, setor_cliente |
 | [`org_comment_attachments`](#orgcommentattachments) | 10 | — | interno | org_comments, org_comments_feed, profiles |
@@ -156,8 +159,9 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`sistemas_processo`](#sistemasprocesso) | 16 | — | cluster-mapa | estrutura_clusters |
 | [`solicitacao`](#solicitacao) | 11 | — | interno | cliente, ordem_servico |
 | [`solicitacao_item`](#solicitacaoitem) | 15 | — | interno | documento_tipo, solicitacao |
+| [`solicitacao_item_nao_aplicavel`](#solicitacaoitemnaoaplicavel) | 8 | — | interno | bem, cliente, profiles, matricula, pessoa, solicitacao_item |
 | [`sprint_backlog_items`](#sprintbacklogitems) | 13 | — | sprint | estrutura_clusters, sprint_deliverables, projects, sprints, profiles |
-| [`sprint_deliverables`](#sprintdeliverables) | 17 | — | sprint | profiles, sprint_deliverables, processes, projects, sprints |
+| [`sprint_deliverables`](#sprintdeliverables) | 18 | — | sprint | profiles, sprint_deliverables, processes, projects, sprints |
 | [`sprint_events`](#sprintevents) | 11 | — | sprint | sprints |
 | [`sprint_metrics`](#sprintmetrics) | 9 | — | sprint | sprints |
 | [`sprints`](#sprints) | 10 | — | sprint | projects |
@@ -165,7 +169,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`ticket_messages`](#ticketmessages) | 6 | — | chamados | tickets |
 | [`tickets`](#tickets) | 17 | — | chamados | profiles, cliente, estrutura_clusters, estrutura_areas |
 | [`titularidade`](#titularidade) | 11 | — | cluster-cliente | bem, profiles, matricula, pessoa |
-| [`tmpl_bloco`](#tmplbloco) | 16 | — | interno | profiles, tmpl_bloco, documento_gerado |
+| [`tmpl_bloco`](#tmplbloco) | 20 | — | interno | profiles, tmpl_bloco, documento_gerado |
 | [`tmpl_bloco_flag`](#tmplblocoflag) | 6 | — | interno | tmpl_bloco, profiles, tmpl_flag |
 | [`tmpl_bloco_versao`](#tmplblocoversao) | 13 | — | interno | profiles, tmpl_bloco |
 | [`tmpl_documento`](#tmpldocumento) | 9 | — | interno | profiles |
@@ -206,7 +210,11 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="bem"></a>`bem`
 **Acesso:** cluster-cliente
-`ccir_codigo` string? · `cliente_id` string · `created_at` string · `created_by` string? · `denominacao` string · `descricao_outros` string? · `empresa_destino_pessoa_id` string? · `id` string · `imposto_anual_exercicio` number? · `inscricao_municipal` string? · `motivo_nao_integralizacao` string? · `observacao` string? · `participa_estruturacao` boolean · `referencia_dp` string · `status_integralizacao` string? · `tipo_bem` string · `updated_at` string · `updated_by` string? · `vlr_benfeitorias` number? · `vlr_contabil` number? · `vlr_contabil_ajustado` number? · `vlr_imposto_anual` number? · `vlr_itr_iptu` number? · `vlr_mercado` number?  ·  **FK:** `cliente_id`→cliente.id · `created_by`→profiles.id · `empresa_destino_pessoa_id`→pessoa.id · `updated_by`→profiles.id
+`area_construida_m2` number? · `ccir_codigo` string? · `cliente_id` string · `created_at` string · `created_by` string? · `denominacao` string · `descricao_outros` string? · `empresa_destino_pessoa_id` string? · `endereco_bairro` string? · `endereco_cep` string? · `endereco_complemento` string? · `endereco_logradouro` string? · `endereco_numero` string? · `id` string · `imposto_anual_exercicio` number? · `inscricao_municipal` string? · `motivo_nao_integralizacao` string? · `observacao` string? · `participa_estruturacao` boolean · `referencia_dp` string · `status_integralizacao` string? · `tipo_bem` string · `updated_at` string · `updated_by` string? · `vlr_benfeitorias` number? · `vlr_contabil` number? · `vlr_contabil_ajustado` number? · `vlr_imposto_anual` number? · `vlr_itr_iptu` number? · `vlr_mercado` number?  ·  **FK:** `cliente_id`→cliente.id · `created_by`→profiles.id · `empresa_destino_pessoa_id`→pessoa.id · `updated_by`→profiles.id
+
+### <a id="bkp20260807ticketmessagesdup"></a>`bkp_20260807_ticket_messages_dup`
+**Acesso:** interno
+`backup_em` string · `copia_numero` number · `created_at` string? · `id` string · `is_admin` boolean? · `message` string · `segundos_apos` number · `ticket_id` string · `user_id` string
 
 ### <a id="capitalintegralizacao"></a>`capital_integralizacao`
 **Acesso:** cluster-cliente
@@ -318,7 +326,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="documentoarquivo"></a>`documento_arquivo`
 **Acesso:** interno · **Flags:** ambiente, excluido
-`ambiente` string · `area` Database["public"]["Enums"]["osg_doc_area"]? · `bem_id` string? · `categoria` Database["public"]["Enums"]["osg_doc_categoria"] · `checklist_item_id` string? · `checksum` string? · `cliente_id` string · `created_at` string · `created_by` string? · `documento_gerado_id` string? · `excluido` boolean · `fonte` Database["public"]["Enums"]["osg_doc_fonte"] · `gcs_uri` string? · `id` string · `matricula_id` string? · `mime` string? · `nome_original` string · `pessoa_id` string? · `solicitacao_id` string? · `status` Database["public"]["Enums"]["osg_doc_status"] · `tamanho` number? · `triado_em` string? · `triado_por` string? · `updated_at` string · `updated_by` string?  ·  **FK:** `bem_id`→bem.id · `checklist_item_id`→checklist_cliente_item.id · `checklist_item_id`→cobertura_documentos_cliente.checklist_item_id · `cliente_id`→cliente.id · `documento_gerado_id`→documento_gerado.id · `matricula_id`→matricula.id · `pessoa_id`→pessoa.id · `solicitacao_id`→solicitacao.id
+`ambiente` string · `area` Database["public"]["Enums"]["osg_doc_area"]? · `bem_id` string? · `categoria` Database["public"]["Enums"]["osg_doc_categoria"] · `checklist_item_id` string? · `checksum` string? · `cliente_id` string · `created_at` string · `created_by` string? · `documento_gerado_id` string? · `documento_tipo_id` string? · `excluido` boolean · `fonte` Database["public"]["Enums"]["osg_doc_fonte"] · `gcs_uri` string? · `id` string · `matricula_id` string? · `mime` string? · `nome_original` string · `pessoa_id` string? · `solicitacao_id` string? · `status` Database["public"]["Enums"]["osg_doc_status"] · `tamanho` number? · `triado_em` string? · `triado_por` string? · `updated_at` string · `updated_by` string?  ·  **FK:** `bem_id`→bem.id · `checklist_item_id`→checklist_cliente_item.id · `checklist_item_id`→cobertura_documentos_cliente.checklist_item_id · `cliente_id`→cliente.id · `documento_gerado_id`→documento_gerado.id · `documento_tipo_id`→documento_tipo.id · `matricula_id`→matricula.id · `pessoa_id`→pessoa.id · `solicitacao_id`→solicitacao.id
 
 ### <a id="documentogerado"></a>`documento_gerado`
 **Acesso:** interno
@@ -338,7 +346,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="documentotipo"></a>`documento_tipo`
 **Acesso:** interno
-`ativo` boolean · `categoria` Database["public"]["Enums"]["osg_doc_categoria"]? · `categoria_docbox` string? · `codigo` string · `confidencial` boolean · `created_at` string · `created_by` string? · `documento` string · `entidade` string · `granularidade` string · `grupo` Database["public"]["Enums"]["osg_doc_grupo"] · `id` string · `modulo` string · `nota` string? · `obrigatorio_default` boolean · `ordem` number · `updated_at` string · `updated_by` string?
+`ativo` boolean · `categoria` Database["public"]["Enums"]["osg_doc_categoria"]? · `categoria_docbox` string? · `cliente_id` string? · `codigo` string · `confidencial` boolean · `created_at` string · `created_by` string? · `documento` string · `entidade` string · `granularidade` string · `grupo` Database["public"]["Enums"]["osg_doc_grupo"] · `id` string · `modulo` string · `nota` string? · `obrigatorio_default` boolean · `ordem` number · `solicitacao_item_id` string? · `updated_at` string · `updated_by` string?  ·  **FK:** `cliente_id`→cliente.id · `solicitacao_item_id`→solicitacao_item.id
 
 ### <a id="documentosprocesso"></a>`documentos_processo`
 **Acesso:** cluster-mapa
@@ -467,6 +475,14 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 ### <a id="metas"></a>`metas`
 **Acesso:** desempenho
 `ajuste_qualitativo` string? · `ajuste_qualitativo_publico` string? · `ciclo_id` string? · `classificacao_final` string? · `comentario_membro` string? · `created_at` string? · `created_by` string? · `criterio_evidencia` string? · `descricao` string? · `dimensao` string · `id` string · `meta_pai_id` string? · `nivel` string · `peso` number? · `prazo` string? · `progresso_atual` number? · `recomendacao_decisao` string? · `responsavel_id` string? · `status` string? · `titulo` string · `ultima_atualizacao_membro` string? · `updated_at` string?  ·  **FK:** `ciclo_id`→ciclos_avaliacao.id · `meta_pai_id`→metas.id
+
+### <a id="notificacao"></a>`notificacao`
+**Acesso:** interno
+`agrupamento_chave` string · `corpo` string? · `created_at` string · `created_by` string? · `destinatario_id` string · `entidade_id` string · `entidade_tipo` string · `href` string? · `id` string · `lido_em` string? · `metadata` Json · `quantidade` number · `tipo` Database["public"]["Enums"]["notificacao_tipo"] · `titulo` string · `updated_at` string · `updated_by` string?  ·  **FK:** `destinatario_id`→profiles.id
+
+### <a id="notificacaoenvio"></a>`notificacao_envio`
+**Acesso:** interno
+`agrupamento_chave` string? · `canal` Database["public"]["Enums"]["notificacao_canal"] · `destinatario_email` string? · `destinatario_id` string? · `destinatario_papel` string? · `destinatario_telefone` string? · `entidade_id` string · `entidade_tipo` string · `enviado_em` string · `erro` string? · `id` string · `metadata` Json · `notificacao_id` string? · `sucesso` boolean · `tipo` Database["public"]["Enums"]["notificacao_tipo"]  ·  **FK:** `destinatario_id`→profiles.id · `notificacao_id`→notificacao.id
 
 ### <a id="novidades"></a>`novidades`
 **Acesso:** interno
@@ -656,13 +672,17 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 **Acesso:** interno
 `created_at` string · `created_by` string? · `documento` string? · `entidade` string? · `granularidade` string · `grupo` Database["public"]["Enums"]["osg_doc_grupo"] · `id` string · `item_padrao_id` string? · `nota` string? · `observacao` string? · `ordem` number · `solicitacao_id` string · `status` Database["public"]["Enums"]["osg_solicitacao_item_status"] · `updated_at` string · `updated_by` string?  ·  **FK:** `item_padrao_id`→documento_tipo.id · `solicitacao_id`→solicitacao.id
 
+### <a id="solicitacaoitemnaoaplicavel"></a>`solicitacao_item_nao_aplicavel`
+**Acesso:** interno
+`bem_id` string? · `cliente_id` string · `created_at` string · `created_by` string? · `id` string · `matricula_id` string? · `pessoa_id` string? · `solicitacao_item_id` string  ·  **FK:** `bem_id`→bem.id · `cliente_id`→cliente.id · `created_by`→profiles.id · `matricula_id`→matricula.id · `pessoa_id`→pessoa.id · `solicitacao_item_id`→solicitacao_item.id
+
 ### <a id="sprintbacklogitems"></a>`sprint_backlog_items`
 **Acesso:** sprint
 `cluster_id` string? · `created_at` string? · `description` string? · `estimated_hours` number? · `id` string · `moved_to_deliverable_id` string? · `priority` string? · `project_id` string? · `sprint_id` string? · `status` string? · `suggested_by` string? · `title` string · `updated_at` string?  ·  **FK:** `cluster_id`→estrutura_clusters.id · `moved_to_deliverable_id`→sprint_deliverables.id · `project_id`→projects.id · `sprint_id`→sprints.id · `suggested_by`→profiles.id
 
 ### <a id="sprintdeliverables"></a>`sprint_deliverables`
 **Acesso:** sprint
-`actual_hours` number? · `assigned_to` string? · `completed_at` string? · `created_at` string? · `description` string? · `due_date` string · `estimated_hours` number? · `id` string · `parent_id` string? · `process_id` string? · `project_id` string? · `sprint_id` string? · `start_date` string? · `status` string? · `task_code` string? · `title` string · `updated_at` string?  ·  **FK:** `assigned_to`→profiles.id · `parent_id`→sprint_deliverables.id · `process_id`→processes.id · `project_id`→projects.id · `sprint_id`→sprints.id
+`actual_hours` number? · `assigned_to` string? · `completed_at` string? · `created_at` string? · `description` string? · `due_date` string · `estimated_hours` number? · `id` string · `parent_id` string? · `process_id` string? · `project_id` string? · `retrospective_report` string? · `sprint_id` string? · `start_date` string? · `status` string? · `task_code` string? · `title` string · `updated_at` string?  ·  **FK:** `assigned_to`→profiles.id · `parent_id`→sprint_deliverables.id · `process_id`→processes.id · `project_id`→projects.id · `sprint_id`→sprints.id
 
 ### <a id="sprintevents"></a>`sprint_events`
 **Acesso:** sprint
@@ -694,7 +714,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="tmplbloco"></a>`tmpl_bloco`
 **Acesso:** interno
-`ancora` string? · `ativo` boolean · `autor_id` string? · `bloco_origem_id` string? · `categoria` string? · `created_at` string · `created_by` string? · `descricao` string? · `escopo_documento_raiz_id` string? · `id` string · `nome` string · `repete_colecao` string? · `tipo` string · `tipo_derivacao` string? · `updated_at` string · `updated_by` string?  ·  **FK:** `autor_id`→profiles.id · `bloco_origem_id`→tmpl_bloco.id · `created_by`→profiles.id · `escopo_documento_raiz_id`→documento_gerado.id · `updated_by`→profiles.id
+`ancora` string? · `ativo` boolean · `autor_id` string? · `bloco_origem_id` string? · `categoria` string? · `created_at` string · `created_by` string? · `descricao` string? · `escopo_documento_raiz_id` string? · `familia_id` string? · `id` string · `nome` string · `repete_colecao` string? · `tipo` string · `tipo_derivacao` string? · `updated_at` string · `updated_by` string? · `variante_ordem` number? · `variante_rotulo` string? · `variante_seletor` Json?  ·  **FK:** `autor_id`→profiles.id · `bloco_origem_id`→tmpl_bloco.id · `created_by`→profiles.id · `escopo_documento_raiz_id`→documento_gerado.id · `familia_id`→tmpl_bloco.id · `updated_by`→profiles.id
 
 ### <a id="tmplblocoflag"></a>`tmpl_bloco_flag`
 **Acesso:** interno
@@ -736,14 +756,16 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ## Enums
 
-- `app_role`: admin, client, team_member, lider, sublider, timecliente
+- `app_role`: admin, client, team_member, lider, sublider, timecliente, marketing
 - `fiscal_recurrence_type`: daily, weekly, monthly, yearly
 - `fiscal_task_category`: task, fixed_event
 - `fiscal_task_department`: commercial, financial, administrative, operations
 - `fiscal_task_priority`: low, medium, high, urgent
 - `fiscal_task_status`: backlog, waiting_client, todo, in_progress, review, em_ajuste, done
+- `notificacao_canal`: sino, email, whatsapp
+- `notificacao_tipo`: tarefa_atribuida, tarefa_em_revisao, documento_recebido, solicitacao_enviada, documento_aprovado, documento_recusado, cobranca_pendencia
 - `org_comment_entity`: org_task, org_project
-- `org_comment_kind`: comment, assignment_changed, review_submitted, review_approved, review_adjustments, status_changed
+- `org_comment_kind`: comment, assignment_changed, review_submitted, review_approved, review_adjustments, status_changed, documentos_solicitados
 - `osg_checklist_origem`: padrao, manual
 - `osg_checklist_status`: pendente, solicitado, recebido, dispensado, nao_aplicavel, nao_solicitado
 - `osg_doc_area`: osg, fiscal
@@ -772,7 +794,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ## Tabelas de backup (ignorar em codigo novo)
 
-`roi_snapshots`
+`roi_snapshots` · `sprint_deliverables_backup_20260809`
 
 ---
 _Doc gerado por `scripts/gen-mapa-banco.mjs`. Regenerar apos mudancas de schema._

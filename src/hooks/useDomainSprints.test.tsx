@@ -143,45 +143,60 @@ describe('useDomainSprints — query agregada', () => {
     expect(callsFor('sprints', 'eq')[0].args).toEqual(['project_id', 'project-1']);
   });
 
-  it('busca horas e impactos por sprint com os filtros esperados quando há sprints', async () => {
+  it('lê os agregados da view sprint_resumo, sem tocar em entregáveis nem melhorias', async () => {
     setDbResult('sprints', 'select', {
       data: [{ id: 'sprint-1' }],
       error: null,
     });
-    setDbResult('sprint_deliverables', 'select', {
-      data: [{ id: 'deliv-1', sprint_id: 'sprint-1', assigned_to: 'user-1', estimated_hours: 5 }],
-      error: null,
-    });
-    setDbResult('process_improvements', 'select', {
+    setDbResult('sprint_resumo', 'select', {
       data: [
-        { sprint_deliverable_id: 'deliv-1', cost_saved_monthly: 100, time_saved_hours: 10 },
+        {
+          sprint_id: 'sprint-1',
+          // `numeric` do Postgres chega como string no PostgREST.
+          horas_alocadas: '12.5',
+          custo_economizado_mensal: '100',
+          horas_liberadas: '10',
+          melhorias: 2,
+        },
       ],
       error: null,
     });
     renderHook(() => useDomainSprints(null));
-    await (queryRegistration().queryFn as () => Promise<unknown>)();
+    const data = (await (queryRegistration().queryFn as () => Promise<unknown>)()) as {
+      resumoPorSprint: Record<string, unknown>;
+    };
 
-    // Horas: perfis + entregáveis filtrados por sprint_id (IN).
-    expect(callsFor('profiles_safe', 'select')[0].args).toEqual(['id, first_name, last_name']);
-    const deliverableSelects = callsFor('sprint_deliverables', 'select').map((c) => c.args[0]);
-    expect(deliverableSelects).toContain('id, sprint_id, assigned_to, estimated_hours, parent_id');
-    expect(deliverableSelects).toContain('id, sprint_id');
-    expect(
-      callsFor('sprint_deliverables', 'in').every((c) => c.args[0] === 'sprint_id'),
-    ).toBe(true);
-    // Lote de 50 sprints passa do limite de linhas do PostgREST: as duas leituras paginam (aqui uma
-    // página cada, porque o mock devolve menos que o tamanho da página).
-    expect(callsFor('sprint_deliverables', 'range').map((c) => c.args)).toEqual([
-      [0, 499],
-      [0, 499],
+    expect(callsFor('sprint_resumo', 'select')[0].args).toEqual([
+      'sprint_id, horas_alocadas, custo_economizado_mensal, horas_liberadas, melhorias',
     ]);
+    expect(data.resumoPorSprint['sprint-1']).toEqual({
+      horasAlocadas: 12.5,
+      custoEconomizadoMensal: 100,
+      horasLiberadas: 10,
+      melhorias: 2,
+    });
 
-    // Impactos: melhorias concluídas filtradas por deliverable (IN).
-    expect(callsFor('process_improvements', 'eq')[0].args).toEqual([
-      'evaluation_status',
-      'completed',
-    ]);
-    expect(callsFor('process_improvements', 'in')[0].args[0]).toBe('sprint_deliverable_id');
+    // A tela lista sprints, não tarefas: baixar o backlog inteiro aqui era o
+    // gargalo que a view removeu.
+    expect(callsFor('sprint_deliverables', 'select')).toHaveLength(0);
+    expect(callsFor('process_improvements', 'select')).toHaveLength(0);
+    expect(callsFor('profiles_safe', 'select')).toHaveLength(0);
+  });
+
+  it('mantém a lista de pé quando a view de resumo falha', async () => {
+    setDbResult('sprints', 'select', { data: [{ id: 'sprint-1' }], error: null });
+    setDbResult('sprint_resumo', 'select', {
+      data: null,
+      error: new Error('relation "sprint_resumo" does not exist'),
+    });
+    renderHook(() => useDomainSprints(null));
+    const data = (await (queryRegistration().queryFn as () => Promise<unknown>)()) as {
+      sprints: unknown[];
+      resumoPorSprint: Record<string, unknown>;
+    };
+
+    expect(data.sprints).toEqual([{ id: 'sprint-1' }]);
+    expect(data.resumoPorSprint).toEqual({});
   });
 });
 
