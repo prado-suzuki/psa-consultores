@@ -660,10 +660,11 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
 
           {/* Chamados — atalho espelhado da área Tax (mesma página /equipe/chamados,
               que já escopa o filtro de cluster pelo cluster do usuário OSG).
-              Some para líder+, que tem "Gestão de Chamados" no dropdown Gerencial:
-              dois caminhos para chamado no mesmo menu confundem. É só o menu; a
-              página segue liberada para quem tiver o link. */}
-          {isProjects && !canGerencial && (
+              Some para o Líder Geral, que tem "Gestão de Chamados" no dropdown
+              Gerencial: dois caminhos para chamado no mesmo menu confundem.
+              Admin NÃO perde o item — admin vê tudo. É só o menu; a página
+              segue liberada para quem tiver o link. */}
+          {isProjects && !isLider && (
             <button
               onClick={() => navigate('/equipe/chamados')}
               className={cn(
