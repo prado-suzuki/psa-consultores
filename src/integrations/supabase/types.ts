@@ -4016,6 +4016,140 @@ export type Database = {
           },
         ]
       }
+      notificacao: {
+        Row: {
+          agrupamento_chave: string
+          corpo: string | null
+          created_at: string
+          created_by: string | null
+          destinatario_id: string
+          entidade_id: string
+          entidade_tipo: string
+          href: string | null
+          id: string
+          lido_em: string | null
+          metadata: Json
+          quantidade: number
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          agrupamento_chave: string
+          corpo?: string | null
+          created_at?: string
+          created_by?: string | null
+          destinatario_id: string
+          entidade_id: string
+          entidade_tipo: string
+          href?: string | null
+          id?: string
+          lido_em?: string | null
+          metadata?: Json
+          quantidade?: number
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          agrupamento_chave?: string
+          corpo?: string | null
+          created_at?: string
+          created_by?: string | null
+          destinatario_id?: string
+          entidade_id?: string
+          entidade_tipo?: string
+          href?: string | null
+          id?: string
+          lido_em?: string | null
+          metadata?: Json
+          quantidade?: number
+          tipo?: Database["public"]["Enums"]["notificacao_tipo"]
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacao_destinatario_id_fkey"
+            columns: ["destinatario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notificacao_envio: {
+        Row: {
+          agrupamento_chave: string | null
+          canal: Database["public"]["Enums"]["notificacao_canal"]
+          destinatario_email: string | null
+          destinatario_id: string | null
+          destinatario_papel: string | null
+          destinatario_telefone: string | null
+          entidade_id: string
+          entidade_tipo: string
+          enviado_em: string
+          erro: string | null
+          id: string
+          metadata: Json
+          notificacao_id: string | null
+          sucesso: boolean
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+        }
+        Insert: {
+          agrupamento_chave?: string | null
+          canal: Database["public"]["Enums"]["notificacao_canal"]
+          destinatario_email?: string | null
+          destinatario_id?: string | null
+          destinatario_papel?: string | null
+          destinatario_telefone?: string | null
+          entidade_id: string
+          entidade_tipo: string
+          enviado_em?: string
+          erro?: string | null
+          id?: string
+          metadata?: Json
+          notificacao_id?: string | null
+          sucesso?: boolean
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
+        }
+        Update: {
+          agrupamento_chave?: string | null
+          canal?: Database["public"]["Enums"]["notificacao_canal"]
+          destinatario_email?: string | null
+          destinatario_id?: string | null
+          destinatario_papel?: string | null
+          destinatario_telefone?: string | null
+          entidade_id?: string
+          entidade_tipo?: string
+          enviado_em?: string
+          erro?: string | null
+          id?: string
+          metadata?: Json
+          notificacao_id?: string | null
+          sucesso?: boolean
+          tipo?: Database["public"]["Enums"]["notificacao_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notificacao_envio_destinatario_id_fkey"
+            columns: ["destinatario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notificacao_envio_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "notificacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       novidades: {
         Row: {
           ativo: boolean | null
@@ -7430,6 +7564,33 @@ export type Database = {
           },
         ]
       }
+      sprint_deliverables_backup_20260809: {
+        Row: {
+          description: string | null
+          id: string | null
+          salvo_em: string | null
+          sprint_id: string | null
+          task_code: string | null
+          title: string | null
+        }
+        Insert: {
+          description?: string | null
+          id?: string | null
+          salvo_em?: string | null
+          sprint_id?: string | null
+          task_code?: string | null
+          title?: string | null
+        }
+        Update: {
+          description?: string | null
+          id?: string | null
+          salvo_em?: string | null
+          sprint_id?: string | null
+          task_code?: string | null
+          title?: string | null
+        }
+        Relationships: []
+      }
       sprint_events: {
         Row: {
           created_at: string | null
@@ -8626,6 +8787,20 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      criar_notificacao: {
+        Args: {
+          _agrupamento?: string
+          _corpo?: string
+          _destinatario_id: string
+          _entidade_id: string
+          _entidade_tipo: string
+          _href?: string
+          _metadata?: Json
+          _tipo: Database["public"]["Enums"]["notificacao_tipo"]
+          _titulo: string
+        }
+        Returns: string
+      }
       criar_org_comment: {
         Args: {
           _attachments: Json
@@ -8642,6 +8817,15 @@ export type Database = {
       dashboard_project_ids_for_cluster: {
         Args: { _cluster_id: string; _include_orphans?: boolean }
         Returns: string[]
+      }
+      destinatarios_cliente: {
+        Args: { _cliente_id: string }
+        Returns: {
+          email: string
+          nome: string
+          telefone: string
+          user_id: string
+        }[]
       }
       fechar_chamados_resolvidos_sem_resposta: { Args: never; Returns: number }
       feed_org_comments: {
@@ -8884,6 +9068,24 @@ export type Database = {
         Returns: boolean
       }
       psa_mapa_uuid: { Args: { slug: string }; Returns: string }
+      registrar_envio: {
+        Args: {
+          _agrupamento?: string
+          _canal: Database["public"]["Enums"]["notificacao_canal"]
+          _destinatario_id?: string
+          _email?: string
+          _entidade_id: string
+          _entidade_tipo: string
+          _erro?: string
+          _metadata?: Json
+          _notificacao_id?: string
+          _papel?: string
+          _sucesso?: boolean
+          _telefone?: string
+          _tipo: Database["public"]["Enums"]["notificacao_tipo"]
+        }
+        Returns: string
+      }
       resolve_user_cliente_id: { Args: { _uid: string }; Returns: string }
       resolve_user_cluster_ids: { Args: { _uid: string }; Returns: string[] }
       sistema_cluster_visivel: {
@@ -8927,6 +9129,15 @@ export type Database = {
         | "review"
         | "em_ajuste"
         | "done"
+      notificacao_canal: "sino" | "email" | "whatsapp"
+      notificacao_tipo:
+        | "tarefa_atribuida"
+        | "tarefa_em_revisao"
+        | "documento_recebido"
+        | "solicitacao_enviada"
+        | "documento_aprovado"
+        | "documento_recusado"
+        | "cobranca_pendencia"
       org_comment_entity: "org_task" | "org_project"
       org_comment_kind:
         | "comment"
@@ -8935,6 +9146,7 @@ export type Database = {
         | "review_approved"
         | "review_adjustments"
         | "status_changed"
+        | "documentos_solicitados"
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
         | "pendente"
@@ -9164,6 +9376,16 @@ export const Constants = {
         "em_ajuste",
         "done",
       ],
+      notificacao_canal: ["sino", "email", "whatsapp"],
+      notificacao_tipo: [
+        "tarefa_atribuida",
+        "tarefa_em_revisao",
+        "documento_recebido",
+        "solicitacao_enviada",
+        "documento_aprovado",
+        "documento_recusado",
+        "cobranca_pendencia",
+      ],
       org_comment_entity: ["org_task", "org_project"],
       org_comment_kind: [
         "comment",
@@ -9172,6 +9394,7 @@ export const Constants = {
         "review_approved",
         "review_adjustments",
         "status_changed",
+        "documentos_solicitados",
       ],
       osg_checklist_origem: ["padrao", "manual"],
       osg_checklist_status: [
