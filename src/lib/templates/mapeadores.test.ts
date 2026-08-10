@@ -249,6 +249,32 @@ function matriculaImovel(over: Partial<MatriculaParaMapear>): MatriculaParaMapea
   };
 }
 
+describe('mapearMatricula — confrontações sem o ponto final (quem pontua é o modelo)', () => {
+  it('poda o ponto final do texto do cartório', () => {
+    const c = mapearMatricula(
+      matriculaImovel({ confrontacoes_texto: 'Norte: com o Lote 04, na extensão de 12,00 metros.' }),
+    );
+    expect(c.confrontacoes).toBe('Norte: com o Lote 04, na extensão de 12,00 metros');
+  });
+
+  it('texto sem ponto final fica intacto', () => {
+    const c = mapearMatricula(matriculaImovel({ confrontacoes_texto: 'Norte: com o Lote 04' }));
+    expect(c.confrontacoes).toBe('Norte: com o Lote 04');
+  });
+
+  it('vale para o fallback da descrição PSA', () => {
+    const c = mapearMatricula(
+      matriculaImovel({ confrontacoes_texto: null, descricao_psa_completa: 'Inicia-se no vértice A9D.' }),
+    );
+    expect(c.confrontacoes).toBe('Inicia-se no vértice A9D');
+  });
+
+  it('não engole abreviação interna nem espaço no meio', () => {
+    const c = mapearMatricula(matriculaImovel({ confrontacoes_texto: 'Conforme matrícula n.º 12, ao norte.' }));
+    expect(c.confrontacoes).toBe('Conforme matrícula n.º 12, ao norte');
+  });
+});
+
 describe('mapearMatricula — classificação do imóvel (condicionais rural/urbano/posse)', () => {
   it('IR liga rural e desliga urbano', () => {
     const c = mapearMatricula(matriculaImovel({ tipo_bem: 'IR' }));

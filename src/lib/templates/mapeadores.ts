@@ -34,6 +34,18 @@ function formatarDataBR(iso: string | null): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso ?? '');
 }
 
+/**
+ * Tira o ponto final (e o espaço em branco à direita) de um texto longo de
+ * cadastro. A pontuação da frase é do MODELO, não do dado: assim o mesmo valor
+ * serve tanto no fim do período quanto emendado no meio dele. Só o ponto final
+ * sai — reticências e abreviações internas ("n.º") não são tocadas.
+ */
+function semPontoFinal(texto: string | null): string | null {
+  if (!texto) return texto;
+  const podado = texto.replace(/\s*\.\s*$/, '');
+  return podado === '' ? texto : podado;
+}
+
 /** Prefixa "bairro" salvo quando o valor já é zona/distrito ("zona rural" fica como está). */
 function bairroProsa(bairro: string | null): string {
   if (!bairro) return '';
@@ -357,7 +369,13 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
   set('ufCartorio', ufPorExtenso(m.cartorio?.uf));
   set('ccir', m.bem?.ccir_codigo);
   set('inscricaoMunicipal', m.bem?.inscricao_municipal);
-  set('confrontacoes', m.confrontacoes_texto ?? m.descricao_psa_completa);
+  // Confrontações SEM o ponto final: quem pontua é o modelo, que escreve
+  // "…confrontações: {{ imovel.confrontacoes }}." e emenda o período seguinte
+  // ("… A área remanescente…"). O texto do cartório vem com ponto no cadastro
+  // (todas as matrículas da casa terminam em "."), e sem esta poda o contrato
+  // sai com "na extensão de 30,00 metros..". Vale igual para o fallback da
+  // descrição PSA, que é do mesmo naipe.
+  set('confrontacoes', semPontoFinal(m.confrontacoes_texto ?? m.descricao_psa_completa));
 
   const campos = derivarCampos('matricula', out);
   // Georref (caminho de volta) é OPCIONAL e vem de fonte assíncrona (BigQuery):
