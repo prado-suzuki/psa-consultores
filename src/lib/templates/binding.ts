@@ -362,9 +362,26 @@ export function detectarBindingsDeConteudo(conteudo: string): DeteccaoConteudo {
     const papel = PAPEIS_LISTA[secao.nome];
     if (!papel) {
       if (condicionalDeBinding(secao.nome)) {
+        // Papel de lista DENTRO de uma condicional: o bloco que só escreve o
+        // memorial quando a matrícula tem georref envolve {{#vertices}} num
+        // {{#imovel.georefArea}}. A condicional não é papel, mas a lista aninhada
+        // precisa entrar como lista a carregar, senão o contexto não a tem e o
+        // render acusa "Seção não resolvida" no que era só um trecho opcional.
+        const aninhadas = secao.secoesInternas
+          .map((nome) => ({ nome, papel: PAPEIS_LISTA[nome] }))
+          .filter((l): l is BindingLista => !!l.papel);
+        for (const l of aninhadas) {
+          if (!listas.some((x) => x.nome === l.nome)) listas.push(l);
+        }
+        // Campos do item da lista aninhada ficam no ESCOPO DO ITEM, como ficariam
+        // se a lista estivesse no topo: não viram binding nem texto livre.
+        const chavesDeItem = aninhadas.flatMap((l) => [l.papel.itemKey, ...(l.papel.itemKeysExtras ?? [])]);
         // O nome da seção entra como campo para registrar o binding mesmo
         // quando o campo só aparece na condicional.
-        campos.push(secao.nome, ...secao.campos);
+        campos.push(
+          secao.nome,
+          ...secao.campos.filter((c) => !chavesDeItem.some((k) => c.startsWith(`${k}.`))),
+        );
         continue;
       }
       secoesDesconhecidas.push(secao.nome);
