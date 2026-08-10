@@ -148,9 +148,20 @@ export function DeliverableDialogs({
               </Button>
               <Button
                 onClick={c.saveDeliverable}
-                disabled={c.saving || !c.editForm.title || !c.editForm.due_date}
+                // A descrição é lida à parte, ao abrir a tarefa. Salvar antes de
+                // ela chegar gravaria o campo em branco por cima do texto atual.
+                disabled={
+                  c.saving ||
+                  c.descricaoDaTarefaCarregando ||
+                  !c.editForm.title ||
+                  !c.editForm.due_date
+                }
               >
-                {c.saving ? 'Salvando...' : 'Salvar Alterações'}
+                {c.saving
+                  ? 'Salvando...'
+                  : c.descricaoDaTarefaCarregando
+                    ? 'Carregando...'
+                    : 'Salvar Alterações'}
               </Button>
             </div>
           </DialogFooter>
