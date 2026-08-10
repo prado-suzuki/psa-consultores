@@ -1,14 +1,33 @@
-import type { Document, Paragraph, Table, TextRun } from 'docx';
-import type { Bloco } from './types';
+import type { Document, ISpacingProperties, Paragraph, Table, TextRun } from 'docx';
+import type { Bloco, TipoBloco } from './types';
 import { extrairRunsLinha, removerMarcas } from './marcas';
 import { segmentar, type Alinhamento, type Segmento } from './tabela';
 
 // Adapter de saída .docx: converte os blocos gerados pelo engine (numerados e
-// renderizados) num documento Word formatado por tipo estrutural. A formatação
-// replica o modelo de referência da casa ("VF_Sugestão de Contrato Social —
-// Barralcool", A4): Arial Narrow 12pt justificado, capítulos centralizados em
-// negrito sublinhado, rótulos de cláusula/parágrafo em negrito e rodapé
-// "Página X de Y" em Arial 9pt à direita.
+// renderizados) num documento Word formatado por tipo estrutural.
+//
+// A formatação replica os modelos da casa ("VF_Modelo de Contrato Social" Agro e
+// Controladora) e os contratos registrados na Jucemat que saíram deles (MMS Agro
+// e MMS Participações, 21/09/2022):
+//
+//   - A4, margens 3,0 / 2,5 / 2,0 / 2,5 cm (esq / dir / sup / inf);
+//   - Arial Narrow 12pt, entrelinha simples, corpo justificado;
+//   - espaçamento entre parágrafos ZERO: a respiração vem de linhas em branco
+//     em pontos definidos (antes de capítulo e de cláusula), nunca de um
+//     `spacing.after` global — é isso que faz o parágrafo colar na sua cláusula
+//     e o subtítulo colar no capítulo, como nos dois contratos registrados;
+//   - capítulo e subtítulo centralizados em negrito SUBLINHADO;
+//   - título do instrumento 18pt e razão social 20pt, ambos centralizados;
+//   - alíneas com recuo pendente (letra a 0,5 cm, corpo a 1,0 cm) e marcador
+//     em negrito;
+//   - bloco de assinatura centralizado por inteiro (régua, nome e o papel do
+//     signatário abaixo dele);
+//   - rodapé "Página X de Y" à direita, Arial Narrow 12pt, números em negrito.
+//
+// Todo run sai com fonte e corpo EXPLÍCITOS e o pacote declara um estilo
+// `Normal` de verdade: sem isso o arquivo depende só de `docDefaults`, e todo
+// leitor que não é o Word (LibreOffice, Google Docs, conversores) cai na fonte
+// serifada padrão dele e o contrato inteiro sai fora do padrão.
 //
 // O pacote `docx` (~350 KB) é carregado sob demanda (import dinâmico): só entra no
 // bundle quando o usuário realmente baixa um documento.
@@ -17,19 +36,35 @@ type DocxModule = typeof import('docx');
 
 // --- Constantes do modelo de referência (twips; half-points para fontes) ----
 const FONTE = 'Arial Narrow';
-const FONTE_RODAPE = 'Arial';
 const PT12 = 24;
 const PT18 = 36;
-const PT9 = 18;
-const ESPACO_DEPOIS = 120; // 6pt entre parágrafos
-const RECUO_ALINEA = 720; // 1,27 cm
+const PT20 = 40;
+/** 1 cm = 567 twips. */
+const CM = 567;
 const A4 = { width: 11906, height: 16838 };
-const MARGENS = { top: 1418, bottom: 1276, left: 1701, right: 1133, header: 708, footer: 468 };
+/** 3,0 cm esquerda, 2,5 cm direita, 2,0 cm superior, 2,5 cm inferior. */
+const MARGENS = { top: 1134, bottom: 1418, left: 1701, right: 1418, header: 708, footer: 708 };
+/**
+ * Entrelinha do corpo: 1,15 (`w:line="276"` com `lineRule="auto"`), medida no
+ * .docx nativo do modelo, onde 133 parágrafos declaram exatamente isso e os
+ * demais herdam do estilo Normal. Entrelinha simples deixa o documento inteiro
+ * mais apertado que o padrão da casa.
+ */
+const ENTRELINHA = 276;
+/** Alínea: marcador a 0,5 cm da margem, corpo a 1,0 cm (recuo pendente). */
+const RECUO_ALINEA = { left: CM, hanging: Math.round(CM / 2) };
+/** Largura útil da linha (página menos margens laterais), para dimensionar tabela. */
+const LARGURA_UTIL = A4.width - MARGENS.left - MARGENS.right;
 
 /** Rótulo de cláusula/parágrafo gerado pela numeração automática. */
 const ROTULO = /^(CLÁUSULA[^:]*?:|Parágrafo[^:]*?:)\s?/;
-/** Alínea: "a) …" possivelmente indentada ("    a) …"). */
-const ALINEA = /^\s+[a-z]\)\s/i;
+/**
+ * Marcador de alínea no início da linha: "a)", "iv)" ou bullet. O recuo NÃO
+ * depende de o autor ter indentado a linha no bloco — os contratos registrados
+ * recuam toda alínea, e exigir o espaço à esquerda deixava metade das listas
+ * (objeto social, por exemplo) rente à margem.
+ */
+const ALINEA = /^\s*([a-zA-ZivxlIVXL]+\)|[•·-])\s+/;
 /** Linha de assinatura: "____________". */
 const REGUA_ASSINATURA = /^_{5,}$/;
 
@@ -47,7 +82,7 @@ interface EstiloBase {
 /**
  * Converte as marcas inline (*…*, _…_, ~…~) de um trecho em TextRuns,
  * compondo com o estilo estrutural do parágrafo (negrito de rótulo/título soma
- * com as marcas; nunca as desliga).
+ * com as marcas; nunca as desliga). Fonte e corpo saem explícitos em todo run.
  */
 function runsInline(docx: DocxModule, texto: string, base: EstiloBase = {}): TextRun[] {
   const { TextRun, UnderlineType } = docx;
@@ -55,25 +90,67 @@ function runsInline(docx: DocxModule, texto: string, base: EstiloBase = {}): Tex
     (r) =>
       new TextRun({
         text: r.texto,
+        font: FONTE,
+        size: base.size ?? PT12,
         bold: base.bold || r.negrito || undefined,
         italics: r.italico || undefined,
         underline: base.underline || r.sublinhado ? { type: UnderlineType.SINGLE } : undefined,
-        size: base.size,
       }),
   );
 }
 
-/** Linha justificada com o rótulo ("CLÁUSULA X:" / "Parágrafo X:") em negrito. */
+/** Espaçamento do modelo: entrelinha 1,15 e nada antes nem depois do parágrafo. */
+function espacamento(docx: DocxModule): ISpacingProperties {
+  return { before: 0, after: 0, line: ENTRELINHA, lineRule: docx.LineRuleType.AUTO };
+}
+
+/** Parágrafo vazio — é assim que o modelo separa cláusulas e capítulos. */
+function linhaEmBranco(docx: DocxModule): Paragraph {
+  return new docx.Paragraph({ spacing: espacamento(docx) });
+}
+
+/** Linha centralizada (título, capítulo, assinatura). */
+function linhaCentralizada(docx: DocxModule, texto: string, base: EstiloBase): Paragraph {
+  const { AlignmentType, Paragraph } = docx;
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: espacamento(docx),
+    children: runsInline(docx, texto, base),
+  });
+}
+
+/**
+ * Linha justificada com o rótulo ("CLÁUSULA X:" / "Parágrafo X:") em negrito.
+ * Alínea recebe recuo pendente e marcador em negrito.
+ */
 function linhaComRotulo(docx: DocxModule, linha: string): Paragraph {
   const { AlignmentType, Paragraph, TextRun } = docx;
-  const m = linha.match(ROTULO);
-  const children = m
-    ? [new TextRun({ text: m[0], bold: true }), ...runsInline(docx, linha.slice(m[0].length))]
-    : runsInline(docx, linha.replace(/^\s+/, ''));
+  const limpo = removerMarcas(linha);
+  const marcador = limpo.match(ALINEA);
+
+  let children: TextRun[];
+  if (marcador) {
+    // "a) " em negrito, o resto da alínea com a formatação normal do corpo.
+    const semEspacos = linha.replace(/^\s+/, '');
+    const rotulo = semEspacos.slice(0, marcador[0].replace(/^\s+/, '').length);
+    children = [
+      new TextRun({ text: rotulo, font: FONTE, size: PT12, bold: true }),
+      ...runsInline(docx, semEspacos.slice(rotulo.length)),
+    ];
+  } else {
+    const m = linha.match(ROTULO);
+    children = m
+      ? [
+          new TextRun({ text: m[0], font: FONTE, size: PT12, bold: true }),
+          ...runsInline(docx, linha.slice(m[0].length)),
+        ]
+      : runsInline(docx, linha.replace(/^\s+/, ''));
+  }
+
   return new Paragraph({
     alignment: AlignmentType.JUSTIFIED,
-    spacing: { after: ESPACO_DEPOIS },
-    indent: ALINEA.test(removerMarcas(linha)) ? { left: RECUO_ALINEA } : undefined,
+    spacing: espacamento(docx),
+    indent: marcador ? RECUO_ALINEA : undefined,
     children,
   });
 }
@@ -84,18 +161,54 @@ const ALINHAMENTO_CELULA = {
   right: 'RIGHT',
 } as const satisfies Record<Alinhamento, keyof typeof import('docx').AlignmentType>;
 
+/**
+ * Larguras de coluna proporcionais ao conteúdo mais largo de cada uma. Com
+ * colunas iguais o quadro de sócios quebrava o nome em três linhas e o memorial
+ * de vértices partia palavra no meio; o peso é limitado (6..40 caracteres) para
+ * que uma coluna de texto longo não engula as vizinhas.
+ */
+function larguraDasColunas(
+  seg: Extract<Segmento, { tipo: 'tabela' }>,
+  colunas: number,
+): number[] {
+  const pesos = Array.from({ length: colunas }, (_, c) => {
+    const corpo = Math.max(0, ...seg.corpo.map((l) => removerMarcas(l[c] ?? '').length));
+    // O cabeçalho é negrito e não deve quebrar: pesa mais que o mesmo nº de
+    // caracteres no corpo. O +2 cobre a margem interna da célula.
+    const cabecalho = removerMarcas(seg.cabecalho[c] ?? '').length * 1.5;
+    return Math.min(Math.max(corpo, cabecalho) + 2, 40);
+  });
+  const total = pesos.reduce((a, b) => a + b, 0);
+  return pesos.map((p) => Math.round((p / total) * LARGURA_UTIL));
+}
+
 /** Converte um segmento de tabela (corrida de linhas-pipe) num Table do Word. */
 function tabelaParaDocx(docx: DocxModule, seg: Extract<Segmento, { tipo: 'tabela' }>): Table {
-  const { AlignmentType, BorderStyle, Paragraph, Table, TableCell, TableRow, WidthType } = docx;
+  const {
+    AlignmentType,
+    BorderStyle,
+    Paragraph,
+    Table,
+    TableCell,
+    TableLayoutType,
+    TableRow,
+    WidthType,
+  } = docx;
   const borda = { style: BorderStyle.SINGLE, size: 4, color: '000000' };
   const colunas = Math.max(seg.cabecalho.length, ...seg.corpo.map((l) => l.length));
+  const margens = { top: 40, bottom: 40, left: 80, right: 80 };
 
   const celula = (texto: string, coluna: number, cabecalho: boolean) =>
     new TableCell({
-      margins: { top: 40, bottom: 40, left: 80, right: 80 },
+      margins: margens,
       children: [
         new Paragraph({
-          alignment: AlignmentType[ALINHAMENTO_CELULA[seg.alinhamentos[coluna] ?? 'left']],
+          // Cabeçalho sempre centralizado (como no quadro de sócios dos dois
+          // contratos registrados); o corpo segue o alinhamento da coluna.
+          alignment: cabecalho
+            ? AlignmentType.CENTER
+            : AlignmentType[ALINHAMENTO_CELULA[seg.alinhamentos[coluna] ?? 'left']],
+          spacing: espacamento(docx),
           children: runsInline(docx, texto, cabecalho ? { bold: true } : {}),
         }),
       ],
@@ -113,10 +226,11 @@ function tabelaParaDocx(docx: DocxModule, seg: Extract<Segmento, { tipo: 'tabela
             (g) =>
               new TableCell({
                 columnSpan: g.span,
-                margins: { top: 40, bottom: 40, left: 80, right: 80 },
+                margins: margens,
                 children: [
                   new Paragraph({
                     alignment: AlignmentType.CENTER,
+                    spacing: espacamento(docx),
                     children: runsInline(docx, g.texto, { bold: true }),
                   }),
                 ],
@@ -135,105 +249,202 @@ function tabelaParaDocx(docx: DocxModule, seg: Extract<Segmento, { tipo: 'tabela
 
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    borders: { top: borda, bottom: borda, left: borda, right: borda, insideHorizontal: borda, insideVertical: borda },
+    // Larguras fixas calculadas pelo conteúdo: colunas iguais quebravam o nome
+    // do sócio em três linhas e partiam palavra no memorial de vértices.
+    layout: TableLayoutType.FIXED,
+    columnWidths: larguraDasColunas(seg, colunas),
+    borders: {
+      top: borda,
+      bottom: borda,
+      left: borda,
+      right: borda,
+      insideHorizontal: borda,
+      insideVertical: borda,
+    },
     rows: [...(linhaGrupos ? [linhaGrupos] : []), linhaCabecalho, ...linhasCorpo],
   });
 }
 
-/** Converte um bloco em parágrafos (e tabelas) Word conforme o tipo estrutural. */
-function paragrafosDoBloco(docx: DocxModule, bloco: Bloco, primeiroBloco: boolean): (Paragraph | Table)[] {
-  const { AlignmentType, Paragraph, TextRun } = docx;
-  const saida: (Paragraph | Table)[] = [];
-  let linhaAnteriorEraRegua = false;
+/**
+ * Estado que atravessa os blocos: o cabeçalho do instrumento (título e razão
+ * social) e a linha em branco antes de cada capítulo/cláusula dependem do que
+ * veio antes, não só do bloco atual.
+ */
+interface EstadoDocumento {
+  /**
+   * Onde a abertura do instrumento está: 'titulo' espera o título (1ª linha em
+   * caixa alta do documento), 'razao' espera a razão social logo abaixo dele,
+   * 'corpo' significa abertura encerrada.
+   */
+  abertura: 'titulo' | 'razao' | 'corpo';
+  /** Tipo do bloco anterior — cláusula logo depois de capítulo não leva linha em branco. */
+  tipoAnterior?: TipoBloco;
+  /** O documento já termina em parágrafo vazio? Evita abrir bloco com linha dupla. */
+  terminaEmBranco: boolean;
+}
 
-  for (const seg of segmentar(bloco.conteudo.split('\n'))) {
+/** Converte um bloco em parágrafos (e tabelas) Word conforme o tipo estrutural. */
+function paragrafosDoBloco(
+  docx: DocxModule,
+  bloco: Bloco,
+  estado: EstadoDocumento,
+): (Paragraph | Table)[] {
+  const { Paragraph } = docx;
+  const tipo = bloco.tipo ?? 'livre';
+  const saida: (Paragraph | Table)[] = [];
+  // Bloco de assinatura: régua, nome e papel do signatário, tudo centralizado
+  // até a próxima linha em branco.
+  let assinatura = 0;
+  let primeiraLinha = true;
+
+  /**
+   * Linha em branco antes do 1º parágrafo do bloco, como no modelo: antes de
+   * todo capítulo e de toda cláusula, EXCETO a cláusula que vem imediatamente
+   * abaixo do subtítulo do capítulo. Não duplica se o documento já vem
+   * terminando em parágrafo vazio.
+   */
+  const abrirComLinhaEmBranco = (): boolean => {
+    if (!primeiraLinha || estado.tipoAnterior === undefined || estado.terminaEmBranco) return false;
+    if (tipo === 'capitulo') return true;
+    if (tipo === 'clausula') return estado.tipoAnterior !== 'capitulo';
+    // Fecho e anexos (livre) depois do corpo numerado também abrem com linha
+    // em branco; livre depois de livre (sócios do preâmbulo) não.
+    if (tipo === 'livre') return estado.tipoAnterior !== 'livre';
+    return false;
+  };
+
+  /** Empurra o parágrafo, precedido da linha em branco de abertura se couber. */
+  const emitir = (p: Paragraph) => {
+    if (abrirComLinhaEmBranco()) saida.push(linhaEmBranco(docx));
+    saida.push(p);
+    primeiraLinha = false;
+    estado.terminaEmBranco = false;
+  };
+
+  const segs = segmentar(bloco.conteudo.split('\n'));
+  /** A próxima linha de conteúdo (pulando vazias) abre uma alínea? */
+  const proximaEhAlinea = (i: number): boolean => {
+    for (let k = i + 1; k < segs.length; k++) {
+      const s = segs[k];
+      if (s.tipo === 'tabela') return false;
+      const t = removerMarcas(s.texto).trim();
+      if (t === '') continue;
+      return ALINEA.test(t);
+    }
+    return false;
+  };
+  // Lista de alíneas é COMPACTA: uma vez aberta, linha em branco entre itens
+  // não sai (a lista de imóveis integralizados vem com os itens separados por
+  // linha em branco no conteúdo do bloco).
+  let listaAberta = false;
+
+  for (const [indice, seg] of segs.entries()) {
     if (seg.tipo === 'tabela') {
       saida.push(tabelaParaDocx(docx, seg));
-      linhaAnteriorEraRegua = false;
+      assinatura = 0;
+      primeiraLinha = false;
+      estado.terminaEmBranco = false;
       continue;
     }
     const linha = seg.texto.replace(/\s+$/, '');
     if (linha.trim() === '') {
-      saida.push(new Paragraph({}));
-      linhaAnteriorEraRegua = false;
+      // Dentro de uma lista de alíneas a linha em branco é descartada.
+      if (listaAberta && proximaEhAlinea(indice)) continue;
+      // Duas linhas em branco seguidas no conteúdo não viram duas no documento.
+      if (!estado.terminaEmBranco) saida.push(linhaEmBranco(docx));
+      assinatura = 0;
+      primeiraLinha = false;
+      estado.terminaEmBranco = true;
+      listaAberta = false;
       continue;
     }
 
-    // capitulo: linhas centralizadas; o negrito do "*CAPÍTULO {romano}*" vem da
-    // marca inserida pela numeração — o título só fica em negrito se o autor marcar.
-    if (bloco.tipo === 'capitulo') {
-      saida.push(
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 200, after: ESPACO_DEPOIS },
-          children: runsInline(docx, linha.trim()),
-        }),
-      );
+    if (ALINEA.test(removerMarcas(linha).trim())) listaAberta = true;
+
+    if (tipo !== 'livre') estado.abertura = 'corpo';
+
+    // capitulo: título e subtítulo centralizados em negrito sublinhado.
+    if (tipo === 'capitulo') {
+      emitir(linhaCentralizada(docx, linha.trim(), { bold: true, underline: true }));
       continue;
     }
 
     // clausula/paragrafo: rótulo em negrito, corpo justificado, alíneas recuadas.
-    if (bloco.tipo === 'clausula' || bloco.tipo === 'paragrafo') {
-      saida.push(linhaComRotulo(docx, linha));
+    if (tipo === 'clausula' || tipo === 'paragrafo') {
+      emitir(linhaComRotulo(docx, linha));
       continue;
     }
 
-    // livre: heurísticas do modelo de referência (sobre o texto SEM marcas).
+    // livre: abertura do instrumento, fecho e anexos.
     const texto = linha.trim();
     const limpo = removerMarcas(texto);
+
+    // Abertura: o título do instrumento (caixa alta, 18pt sublinhado) e, logo
+    // abaixo, a razão social (20pt, sem sublinhado) — as duas centralizadas em
+    // negrito, como nos dois contratos registrados.
+    if (estado.abertura === 'titulo') {
+      // Só há abertura se a 1ª linha do documento for o título em caixa alta.
+      estado.abertura = ehCaixaAlta(limpo) ? 'razao' : 'corpo';
+      if (estado.abertura === 'razao') {
+        emitir(linhaCentralizada(docx, texto, { bold: true, underline: true, size: PT18 }));
+        continue;
+      }
+    } else if (estado.abertura === 'razao') {
+      estado.abertura = 'corpo';
+      emitir(linhaCentralizada(docx, texto, { bold: true, size: PT20 }));
+      continue;
+    }
+
     if (REGUA_ASSINATURA.test(limpo)) {
-      saida.push(
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 200 },
-          children: [new TextRun({ text: limpo })],
-        }),
-      );
-      linhaAnteriorEraRegua = true;
+      emitir(linhaCentralizada(docx, limpo, {}));
+      assinatura = 1;
       continue;
     }
-    if (linhaAnteriorEraRegua) {
-      // Nome do signatário logo abaixo da régua.
-      saida.push(
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { after: ESPACO_DEPOIS },
-          children: runsInline(docx, texto, { bold: true }),
-        }),
-      );
-      linhaAnteriorEraRegua = false;
+    if (assinatura > 0) {
+      // Nome do signatário (negrito) e, abaixo dele, o papel — centralizados.
+      emitir(linhaCentralizada(docx, texto, { bold: assinatura === 1 }));
+      assinatura += 1;
       continue;
     }
-    if (ehCaixaAlta(limpo)) {
-      // Título do instrumento (e razão social) — 18pt sublinhado na abertura do documento.
-      saida.push(
-        new Paragraph({
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 200, after: ESPACO_DEPOIS },
-          children: runsInline(docx, texto, {
-            bold: true,
-            size: primeiroBloco ? PT18 : PT12,
-            underline: primeiroBloco,
-          }),
-        }),
-      );
+    if (ehCaixaAlta(limpo) && !ALINEA.test(limpo)) {
+      // Título de seção solto no meio do documento (anexo, por exemplo).
+      if (!estado.terminaEmBranco) saida.push(linhaEmBranco(docx));
+      emitir(linhaCentralizada(docx, texto, { bold: true }));
       continue;
     }
-    saida.push(linhaComRotulo(docx, linha));
+    emitir(linhaComRotulo(docx, linha));
   }
+
+  estado.tipoAnterior = tipo;
   return saida;
 }
 
 /** Monta o Document a partir dos blocos gerados pelo engine. */
 function blocosParaDocx(docx: DocxModule, blocos: Bloco[]): Document {
   const { AlignmentType, Footer, PageNumber, Paragraph, TextRun } = docx;
-  const paragrafos = blocos.flatMap((bloco, i) => paragrafosDoBloco(docx, bloco, i === 0));
+  const estado: EstadoDocumento = { abertura: 'titulo', terminaEmBranco: false };
+  const paragrafos = blocos.flatMap((bloco) => paragrafosDoBloco(docx, bloco, estado));
+
+  const rodape = (texto: string | (typeof PageNumber)[keyof typeof PageNumber], bold = false) =>
+    new TextRun({ children: [texto], font: FONTE, size: PT12, bold: bold || undefined });
 
   return new docx.Document({
     styles: {
       default: {
         document: { run: { font: FONTE, size: PT12 } },
       },
+      // Estilo `Normal` explícito: os estilos que o pacote `docx` embute
+      // (Title, Heading1…) declaram `basedOn="Normal"`, e sem ele o arquivo fica
+      // com referência pendurada e a fonte só sobrevive no Word.
+      paragraphStyles: [
+        {
+          id: 'Normal',
+          name: 'Normal',
+          quickFormat: true,
+          run: { font: FONTE, size: PT12 },
+          paragraph: { spacing: { before: 0, after: 0, line: 240, lineRule: docx.LineRuleType.AUTO } },
+        },
+      ],
     },
     sections: [
       {
@@ -243,12 +454,12 @@ function blocosParaDocx(docx: DocxModule, blocos: Bloco[]): Document {
             children: [
               new Paragraph({
                 alignment: AlignmentType.RIGHT,
+                spacing: espacamento(docx),
                 children: [
-                  new TextRun({
-                    children: ['Página ', PageNumber.CURRENT, ' de ', PageNumber.TOTAL_PAGES],
-                    font: FONTE_RODAPE,
-                    size: PT9,
-                  }),
+                  rodape('Página '),
+                  rodape(PageNumber.CURRENT, true),
+                  rodape(' de '),
+                  rodape(PageNumber.TOTAL_PAGES, true),
                 ],
               }),
             ],
