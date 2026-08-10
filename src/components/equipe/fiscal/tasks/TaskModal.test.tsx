@@ -557,6 +557,43 @@ describe('TaskModal — edição', () => {
     expect(payloadOf('update')).toMatchObject({ status: 'done', actual_hours: 7 });
   });
 
+  it('segura o salvamento quando as horas parecem erro de digitação', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: baseTask });
+
+    await chooseOption(user, /^Status/, /^Concluído$/);
+    await user.type(screen.getByLabelText(/^Horas realizadas/), '70');
+
+    expect(
+      await screen.findByText('70h é 14× as 5h estimadas — confira a digitação.'),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+    expect(await screen.findByText('Confirme o aviso')).toBeInTheDocument();
+    expect(mocks.updateTask).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Está certo' }));
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(mocks.updateTask).toHaveBeenCalledTimes(1));
+    expect(payloadOf('update')).toMatchObject({ status: 'done', actual_hours: 70 });
+  });
+
+  it('corrige as horas pelo valor sugerido no aviso', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: baseTask });
+
+    await chooseOption(user, /^Status/, /^Concluído$/);
+    await user.type(screen.getByLabelText(/^Horas realizadas/), '70');
+    await user.click(await screen.findByRole('button', { name: 'Usar 7h' }));
+
+    expect(screen.getByLabelText(/^Horas realizadas/)).toHaveValue(7);
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(mocks.updateTask).toHaveBeenCalledTimes(1));
+    expect(payloadOf('update')).toMatchObject({ status: 'done', actual_hours: 7 });
+  });
+
   it('mostra erro do servidor sem fechar o modal', async () => {
     const user = userEvent.setup();
     mocks.updateTask.mockRejectedValueOnce(new Error('RLS negou a operação'));

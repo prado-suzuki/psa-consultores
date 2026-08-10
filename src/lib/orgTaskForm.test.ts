@@ -56,6 +56,19 @@ describe('taskSchema', () => {
     );
   });
 
+  it('exige confirmação quando as horas realizadas passam do triplo da estimativa', () => {
+    const suspeito = { ...validInput, status: 'done' as const, actual_hours: 60 };
+    const result = taskSchema.safeParse(suspeito);
+    expect(result.success).toBe(false);
+    expect(result.error?.issues[0]).toMatchObject({
+      path: ['actual_hours'],
+      message: 'Confirme o aviso',
+    });
+
+    expect(taskSchema.safeParse({ ...suspeito, hours_ack: true }).success).toBe(true);
+    expect(taskSchema.safeParse({ ...suspeito, actual_hours: 8 }).success).toBe(true);
+  });
+
   it('coage actual_hours vazio para 0 (achado nº 2)', () => {
     // QUIRK: z.coerce.number() vence o z.literal('') dentro do union, então ''
     // não sobrevive à validação — é o que faz o payload gravar 0 em vez de null.

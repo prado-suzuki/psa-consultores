@@ -13,7 +13,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { AvisoHorasDigitadas } from '@/components/equipe/AvisoHorasDigitadas';
 import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
+import { avaliarHorasApontadas } from '@/lib/horasApontamento';
 import { cn } from '@/lib/utils';
 import type {
   DeliverableForm,
@@ -219,6 +221,14 @@ export function DeliverableFormFields({
                 value={form.actual_hours}
                 onChange={(event) => update('actual_hours', event.target.value)}
                 className="border-amber-300 bg-white sm:max-w-[12rem]"
+              />
+              <AvisoHorasDigitadas
+                aviso={avaliarHorasApontadas({
+                  realizadas: form.actual_hours,
+                  estimadas: form.estimated_hours,
+                })}
+                className="bg-white"
+                onUsarSugestao={(horas) => update('actual_hours', String(horas))}
               />
               <p className="text-xs text-amber-700">
                 Usado nas análises da sprint (estimadas × realizadas).
