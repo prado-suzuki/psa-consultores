@@ -351,9 +351,11 @@ function hookWrapper(client: QueryClient) {
 function installQueryBoundary() {
   const rows: Record<string, ChainResult> = {
     sprints: { data: sprint, error: null },
-    estrutura_areas: { data: [{ id: 'area-1' }], error: null },
-    estrutura_equipes: { data: [{ id: 'team-1', gestor_id: 'user-1' }], error: null },
-    estrutura_equipe_membros: { data: [{ user_id: 'user-2' }], error: null },
+    // Equipes do Digital com os membros embutidos (embed do PostgREST).
+    estrutura_equipes: {
+      data: [{ gestor_id: 'user-1', estrutura_equipe_membros: [{ user_id: 'user-2' }] }],
+      error: null,
+    },
     profiles_safe: { data: profiles, error: null },
     sprint_deliverables: { data: deliverables.slice(0, 2), error: null },
     sprint_events: { data: [], error: null },
@@ -439,18 +441,19 @@ describe('useDomainEquipeSprintDetalhes: contratos na fronteira', () => {
 
     await waitFor(() => expect(result.current.sprint?.id).toBe('sprint-1'));
     expect(client.getQueryData(['domain-equipe-sprint-detalhes', 'sprint-1'])).toBeTruthy();
+    // A sprint é confirmada primeiro (é o que decide entre carregar e devolver
+    // "não encontrada"); daí em diante tudo dispara junto. `profiles_safe` fecha
+    // a lista porque depende dos ids das equipes.
     expect(boundary.from.mock.calls.map(([table]) => table)).toEqual([
       'sprints',
-      'estrutura_areas',
       'estrutura_equipes',
-      'estrutura_equipe_membros',
-      'profiles_safe',
       'sprint_deliverables',
       'sprint_events',
       'sprint_metrics',
       'projects',
       'processes',
       'project_processes',
+      'profiles_safe',
     ]);
     expect(chains.get('sprints')?.select).toHaveBeenCalledWith('*');
     expect(chains.get('sprints')?.eq).toHaveBeenCalledWith('id', 'sprint-1');

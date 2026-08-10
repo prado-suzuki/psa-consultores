@@ -32,8 +32,7 @@ const EquipeSprints = () => {
   const sprints = data?.sprints ?? [];
   const projects = data?.projects ?? [];
   const clusters = data?.clusters ?? [];
-  const sprintHoursMap = data?.sprintHoursMap ?? {};
-  const sprintImpactMap = data?.sprintImpactMap ?? {};
+  const resumoPorSprint = data?.resumoPorSprint ?? {};
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedSprint, setSelectedSprint] = useState<Sprint | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -201,11 +200,7 @@ const EquipeSprints = () => {
     return project?.name;
   };
 
-  const getSprintTotalHours = (sprintId: string) => {
-    const hours = sprintHoursMap[sprintId];
-    if (!hours) return 0;
-    return hours.reduce((sum, h) => sum + h.hours, 0);
-  };
+  const getSprintTotalHours = (sprintId: string) => resumoPorSprint[sprintId]?.horasAlocadas ?? 0;
 
   const getSprintClusterName = (sprint: { project_id: string | null }) => {
     const project = sprint.project_id ? projects.find((p) => p.id === sprint.project_id) : undefined;
@@ -383,7 +378,7 @@ const EquipeSprints = () => {
             </div>
           {clusterSprints.map((sprint) => {
             const totalHours = getSprintTotalHours(sprint.id);
-             const sprintImpact = sprintImpactMap[sprint.id];
+             const sprintImpact = resumoPorSprint[sprint.id];
             
             return (
                <Card key={sprint.id} className="bg-white border-gray-100 shadow-sm hover:shadow-md transition-shadow">
@@ -408,10 +403,10 @@ const EquipeSprints = () => {
                      <span>{parseDate(sprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(sprint.end_date).toLocaleDateString('pt-BR')}</span>
                      {totalHours > 0 && <><span className="text-gray-300">•</span><span>{totalHours.toFixed(0)}h alocadas</span></>}
                   </div>
-                  {sprintImpact && sprintImpact.totalCostSaved > 0 && (
+                  {sprintImpact && sprintImpact.custoEconomizadoMensal > 0 && (
                      <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4 text-sm">
-                       <span className="text-green-600 font-medium">Impacto: R$ {sprintImpact.totalCostSaved.toLocaleString('pt-BR')}/mês</span>
-                       <span className="text-blue-600">{sprintImpact.totalTimeSaved.toFixed(0)}h liberadas</span>
+                       <span className="text-green-600 font-medium">Impacto: R$ {sprintImpact.custoEconomizadoMensal.toLocaleString('pt-BR')}/mês</span>
+                       <span className="text-blue-600">{sprintImpact.horasLiberadas.toFixed(0)}h liberadas</span>
                     </div>
                   )}
                 </CardContent>

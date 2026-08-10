@@ -6,7 +6,6 @@ import {
 } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
-import { fetchAllRows } from '@/lib/supabasePagination';
 
 export interface Sprint {
   id: string;
@@ -30,25 +29,27 @@ export interface Cluster {
   name: string;
 }
 
-export interface SprintHours {
-  userId: string;
-  name: string;
-  hours: number;
+/** Agregados por sprint que a lista mostra no card — vêm somados do banco. */
+export interface SprintResumo {
+  horasAlocadas: number;
+  custoEconomizadoMensal: number;
+  horasLiberadas: number;
+  melhorias: number;
 }
 
-export interface SprintImpact {
-  sprintId: string;
-  totalCostSaved: number;
-  totalTimeSaved: number;
-  improvementsCount: number;
+interface SprintResumoRow {
+  sprint_id: string;
+  horas_alocadas: number | string | null;
+  custo_economizado_mensal: number | string | null;
+  horas_liberadas: number | string | null;
+  melhorias: number | string | null;
 }
 
 interface DomainSprintsData {
   sprints: Sprint[];
   projects: Project[];
   clusters: Cluster[];
-  sprintHoursMap: Record<string, SprintHours[]>;
-  sprintImpactMap: Record<string, SprintImpact>;
+  resumoPorSprint: Record<string, SprintResumo>;
 }
 
 export interface CreateSprintInput {
@@ -81,173 +82,32 @@ const domainSprintsQueryKeys = {
   list: (projectFilter: string | null) => ['domain-sprints', projectFilter] as const,
 };
 
-const chunkArray = <T,>(arr: T[], size: number): T[][] => {
-  const chunks: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) {
-    chunks.push(arr.slice(i, i + size));
-  }
-  return chunks;
-};
+/** `numeric` do Postgres chega como string no PostgREST. */
+const toNumber = (value: number | string | null) => Number(value ?? 0) || 0;
 
-const fetchSprintHours = async (
-  sprintsList: Sprint[],
-): Promise<Record<string, SprintHours[]> | undefined> => {
-  try {
-    // Fetch all profiles
-    const { data: profiles } = await supabase
-      .from('profiles_safe')
-      .select('id, first_name, last_name');
+const indexResumo = (rows: SprintResumoRow[]) =>
+  rows.reduce<Record<string, SprintResumo>>((map, row) => {
+    map[row.sprint_id] = {
+      horasAlocadas: toNumber(row.horas_alocadas),
+      custoEconomizadoMensal: toNumber(row.custo_economizado_mensal),
+      horasLiberadas: toNumber(row.horas_liberadas),
+      melhorias: toNumber(row.melhorias),
+    };
+    return map;
+  }, {});
 
-    const profileMap: Record<string, string> = {};
-    profiles?.forEach((profile) => {
-      profileMap[profile.id] =
-        `${profile.first_name} ${profile.last_name}`.trim() || 'Sem nome';
-    });
-
-    // Fetch deliverables for all sprints (chunked to avoid URL limit)
-    const sprintIds = sprintsList.map((sprint) => sprint.id);
-    const sprintChunks = chunkArray(sprintIds, 50);
-    const deliverables: {
-      id: string;
-      sprint_id: string;
-      assigned_to: string | null;
-      estimated_hours: number | null;
-      parent_id: string | null;
-    }[] = [];
-    // Cada lote cobre 50 sprints, o que passa fácil do limite de linhas do PostgREST: sem paginar,
-    // parte dos entregáveis do lote não vinha e as horas por pessoa saíam menores. Ver
-    // supabasePagination.
-    for (const chunk of sprintChunks) {
-      const { rows } = await fetchAllRows<(typeof deliverables)[number]>((from, to) =>
-        supabase
-          .from('sprint_deliverables')
-          .select('id, sprint_id, assigned_to, estimated_hours, parent_id', { count: 'exact' })
-          .in('sprint_id', chunk)
-          .order('id', { ascending: true })
-          .range(from, to),
-      );
-      deliverables.push(...rows);
-    }
-
-    // Tarefas-pai (têm subtarefas) não entram na soma, pra não duplicar horas.
-    const parentIds = new Set(deliverables.map((d) => d.parent_id).filter(Boolean) as string[]);
-
-    const hoursMap: Record<string, Record<string, number>> = {};
-
-    deliverables.forEach((deliverable) => {
-      if (
-        deliverable.sprint_id &&
-        deliverable.assigned_to &&
-        deliverable.estimated_hours &&
-        !parentIds.has(deliverable.id)
-      ) {
-        if (!hoursMap[deliverable.sprint_id]) {
-          hoursMap[deliverable.sprint_id] = {};
-        }
-        if (!hoursMap[deliverable.sprint_id][deliverable.assigned_to]) {
-          hoursMap[deliverable.sprint_id][deliverable.assigned_to] = 0;
-        }
-        hoursMap[deliverable.sprint_id][deliverable.assigned_to] += Number(
-          deliverable.estimated_hours,
-        );
-      }
-    });
-
-    const result: Record<string, SprintHours[]> = {};
-
-    Object.entries(hoursMap).forEach(([sprintId, userHours]) => {
-      result[sprintId] = Object.entries(userHours)
-        .map(([userId, hours]) => ({
-          userId,
-          name: profileMap[userId] || 'Desconhecido',
-          hours,
-        }))
-        .sort((a, b) => b.hours - a.hours);
-    });
-
-    return result;
-  } catch (error) {
-    console.error('Error fetching sprint hours:', error);
-    return undefined;
-  }
-};
-
-const fetchSprintImpacts = async (
-  sprintsList: Sprint[],
-): Promise<Record<string, SprintImpact> | undefined> => {
-  try {
-    // Buscar deliverables de todas as sprints (chunked)
-    const sprintIds = sprintsList.map((sprint) => sprint.id);
-    const sprintChunks = chunkArray(sprintIds, 50);
-    const deliverables: { id: string; sprint_id: string }[] = [];
-    for (const chunk of sprintChunks) {
-      const { rows } = await fetchAllRows<{ id: string; sprint_id: string }>((from, to) =>
-        supabase
-          .from('sprint_deliverables')
-          .select('id, sprint_id', { count: 'exact' })
-          .in('sprint_id', chunk)
-          .order('id', { ascending: true })
-          .range(from, to),
-      );
-      deliverables.push(...rows);
-    }
-
-    if (deliverables.length === 0) {
-      return undefined;
-    }
-
-    const deliverableIds = deliverables.map((deliverable) => deliverable.id);
-    const deliverableToSprintMap: Record<string, string> = {};
-    deliverables.forEach((deliverable) => {
-      deliverableToSprintMap[deliverable.id] = deliverable.sprint_id;
-    });
-
-    // Buscar melhorias completadas vinculadas a esses deliverables (chunked)
-    const idChunks = chunkArray(deliverableIds, 50);
-    const improvements: {
-      sprint_deliverable_id: string | null;
-      cost_saved_monthly: number | null;
-      time_saved_hours: number | null;
-    }[] = [];
-    for (const chunk of idChunks) {
-      const { data } = await supabase
-        .from('process_improvements')
-        .select('sprint_deliverable_id, cost_saved_monthly, time_saved_hours')
-        .eq('evaluation_status', 'completed')
-        .in('sprint_deliverable_id', chunk);
-      if (data) improvements.push(...data);
-    }
-
-    if (improvements.length === 0) {
-      return undefined;
-    }
-
-    // Agregar por sprint
-    const impactMap: Record<string, SprintImpact> = {};
-    improvements.forEach((improvement) => {
-      const sprintId = deliverableToSprintMap[improvement.sprint_deliverable_id || ''];
-      if (sprintId) {
-        if (!impactMap[sprintId]) {
-          impactMap[sprintId] = {
-            sprintId,
-            totalCostSaved: 0,
-            totalTimeSaved: 0,
-            improvementsCount: 0,
-          };
-        }
-        impactMap[sprintId].totalCostSaved += improvement.cost_saved_monthly || 0;
-        impactMap[sprintId].totalTimeSaved += improvement.time_saved_hours || 0;
-        impactMap[sprintId].improvementsCount++;
-      }
-    });
-
-    return impactMap;
-  } catch (error) {
-    console.error('Error fetching sprint impacts:', error);
-    return undefined;
-  }
-};
-
+/**
+ * Dados da lista `/equipe/sprints`.
+ *
+ * A tela lista sprints, não tarefas: aqui não se lê `sprint_deliverables`. As
+ * horas alocadas e o impacto vêm somados da view `sprint_resumo` (uma linha por
+ * sprint). Antes eram calculados no cliente, baixando todos os entregáveis de
+ * todas as sprints duas vezes e consultando `process_improvements` em lotes de
+ * 50 ids em série — dezenas de idas ao banco para exibir dois números por card.
+ *
+ * As quatro leituras são independentes e vão juntas: a tela abre em um
+ * round-trip, não em uma fila.
+ */
 export function useDomainSprints(projectFilter: string | null) {
   const queryClient = useQueryClient();
   const queryKey = domainSprintsQueryKeys.list(projectFilter);
@@ -258,48 +118,35 @@ export function useDomainSprints(projectFilter: string | null) {
       const previousData = queryClient.getQueryData<DomainSprintsData>(queryKey);
 
       try {
-        const [projectsRes, clustersRes] = await Promise.all([
+        const sprintsQuery = supabase.from('sprints').select('*').order('name', { ascending: true });
+
+        const [projectsRes, clustersRes, sprintsRes, resumoRes] = await Promise.all([
           supabase.from('projects').select('id, name, cluster_id').order('name'),
           supabase
             .from('estrutura_clusters')
             .select('id, name')
             .eq('is_active', true)
             .order('name'),
+          projectFilter ? sprintsQuery.eq('project_id', projectFilter) : sprintsQuery,
+          supabase
+            .from('sprint_resumo' as never)
+            .select('sprint_id, horas_alocadas, custo_economizado_mensal, horas_liberadas, melhorias'),
         ]);
 
-        let query = supabase.from('sprints').select('*').order('name', { ascending: true });
-
-        if (projectFilter) {
-          query = query.eq('project_id', projectFilter);
-        }
-
-        const { data: sprintsData } = await query;
-        const sprints = (sprintsData || []) as Sprint[];
-        let sprintHoursMap = previousData?.sprintHoursMap ?? {};
-        let sprintImpactMap = previousData?.sprintImpactMap ?? {};
-
-        if (sprintsData && sprintsData.length > 0) {
-          const [hoursResult, impactsResult] = await Promise.all([
-            fetchSprintHours(sprints).catch((error) => {
-              console.error('Hours error:', error);
-              return undefined;
-            }),
-            fetchSprintImpacts(sprints).catch((error) => {
-              console.error('Impacts error:', error);
-              return undefined;
-            }),
-          ]);
-
-          if (hoursResult) sprintHoursMap = hoursResult;
-          if (impactsResult) sprintImpactMap = impactsResult;
+        // A view é opcional para a tela abrir: sem ela os cards perdem os números
+        // agregados, mas a lista de sprints continua de pé (útil enquanto a
+        // migration não estiver aplicada no ambiente).
+        if (resumoRes.error) {
+          console.error('Error fetching sprint resumo:', resumoRes.error);
         }
 
         return {
           projects: (projectsRes.data || []) as Project[],
           clusters: (clustersRes.data || []) as Cluster[],
-          sprints,
-          sprintHoursMap,
-          sprintImpactMap,
+          sprints: (sprintsRes.data || []) as Sprint[],
+          resumoPorSprint: indexResumo(
+            (resumoRes.data || []) as unknown as SprintResumoRow[],
+          ),
         };
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -308,13 +155,15 @@ export function useDomainSprints(projectFilter: string | null) {
             projects: [],
             clusters: [],
             sprints: [],
-            sprintHoursMap: {},
-            sprintImpactMap: {},
+            resumoPorSprint: {},
           }
         );
       }
     },
     placeholderData: keepPreviousData,
+    // Voltar do detalhe para a lista não precisa refazer as leituras: as
+    // mutações do domínio já invalidam a chave.
+    staleTime: 60_000,
   });
 }
 

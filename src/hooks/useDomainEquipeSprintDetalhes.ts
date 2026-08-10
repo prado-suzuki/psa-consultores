@@ -181,6 +181,46 @@ interface DeliverableRealtimeChange {
 
 const DIGITAL_CLUSTER_ID = '952435d2-ef26-4829-80a2-e186dc61158c';
 
+interface EquipeDigitalRow {
+  gestor_id: string | null;
+  estrutura_equipe_membros: Array<{ user_id: string | null }> | null;
+}
+
+/**
+ * Pessoas do cluster Digital: os gestores das equipes e os membros delas.
+ *
+ * Resolvido em duas consultas (equipes+membros, depois perfis) usando embed do
+ * PostgREST: a área entra como `!inner` só para filtrar o cluster. Antes eram
+ * quatro consultas em fila — áreas, equipes, membros e perfis — cada uma
+ * esperando os ids da anterior.
+ */
+const fetchPerfisDigital = async (): Promise<SprintDetalhesProfile[]> => {
+  const { data: equipes } = await supabase
+    .from('estrutura_equipes')
+    .select('gestor_id, estrutura_areas!inner(cluster_id), estrutura_equipe_membros(user_id)')
+    .eq('estrutura_areas.cluster_id', DIGITAL_CLUSTER_ID);
+
+  const userIds = Array.from(
+    new Set(
+      ((equipes ?? []) as unknown as EquipeDigitalRow[])
+        .flatMap((equipe) => [
+          equipe.gestor_id,
+          ...(equipe.estrutura_equipe_membros ?? []).map((membro) => membro.user_id),
+        ])
+        .filter((userId): userId is string => Boolean(userId)),
+    ),
+  );
+
+  if (userIds.length === 0) return [];
+
+  const { data } = await supabase
+    .from('profiles_safe')
+    .select('id, first_name, last_name')
+    .in('id', userIds);
+
+  return (data ?? []) as SprintDetalhesProfile[];
+};
+
 const sprintDetalhesKeys = {
   detail: (sprintId: string | undefined) =>
     ['domain-equipe-sprint-detalhes', sprintId] as const,
@@ -231,7 +271,10 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
     enabled: Boolean(sprintId),
     retry: false,
     staleTime: 0,
-    gcTime: 0,
+    // Com gcTime 0 o cache era descartado ao sair da tela, então voltar para a
+    // mesma sprint caía no spinner de tela cheia de novo. Guardando por alguns
+    // minutos, a volta pinta na hora e o `refetchOnMount` revalida por trás.
+    gcTime: 5 * 60_000,
     refetchOnMount: 'always',
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -251,81 +294,35 @@ export function useDomainEquipeSprintDetalhes(sprintId: string | undefined) {
         if (sprintError) throw sprintError;
         if (!sprintData) return null;
 
-        // Preserve the original sequential structure/profile lookup workflow.
-        const { data: digitalAreas } = await supabase
-          .from('estrutura_areas')
-          .select('id')
-          .eq('cluster_id', DIGITAL_CLUSTER_ID);
-        const areaIds = (digitalAreas ?? []).map((area) => area.id);
-        let digitalUserIds: string[] = [];
-
-        if (areaIds.length > 0) {
-          const { data: digitalEquipes } = await supabase
-            .from('estrutura_equipes')
-            .select('id, gestor_id')
-            .in('area_id', areaIds);
-          const equipeIds = (digitalEquipes ?? []).map((equipe) => equipe.id);
-          const gestorIds = (digitalEquipes ?? [])
-            .map((equipe) => equipe.gestor_id)
-            .filter((gestorId): gestorId is string => Boolean(gestorId));
-          let digitalMembros: Array<{ user_id: string }> = [];
-
-          if (equipeIds.length > 0) {
-            const { data } = await supabase
-              .from('estrutura_equipe_membros')
-              .select('user_id')
-              .in('equipe_id', equipeIds);
-            digitalMembros = data ?? [];
-          }
-
-          digitalUserIds = Array.from(
-            new Set([
-              ...gestorIds,
-              ...digitalMembros.map((membro) => membro.user_id).filter(Boolean),
-            ]),
-          );
-        }
-
-        let profiles: SprintDetalhesProfile[] = [];
-        if (digitalUserIds.length > 0) {
-          const { data: profilesData } = await supabase
-            .from('profiles_safe')
-            .select('id, first_name, last_name')
-            .in('id', digitalUserIds);
-          profiles = (profilesData ?? []) as SprintDetalhesProfile[];
-        }
-
-        const { data: deliverablesData } = await supabase
-          .from('sprint_deliverables')
-          .select('*')
-          .eq('sprint_id', sprintId)
-          .order('due_date', { ascending: true });
-
-        const { data: eventsData } = await supabase
-          .from('sprint_events')
-          .select('*')
-          .eq('sprint_id', sprintId)
-          .order('event_date', { ascending: true })
-          .order('start_time', { ascending: true });
-
-        const { data: metricsData } = await supabase
-          .from('sprint_metrics')
-          .select('*')
-          .eq('sprint_id', sprintId);
-
-        const { data: projectsData } = await supabase
-          .from('projects')
-          .select('id, name')
-          .order('name');
-
-        const { data: processesData } = await supabase
-          .from('processes')
-          .select('id, name, project_id')
-          .order('name');
-
-        const { data: projectProcessesData } = await supabase
-          .from('project_processes')
-          .select('process_id, project_id');
+        // Confirmada a existência da sprint, o resto não depende de mais nada e
+        // vai junto: eram nove idas ao banco enfileiradas sem necessidade, cada
+        // uma pagando a latência da anterior.
+        const [
+          profiles,
+          { data: deliverablesData },
+          { data: eventsData },
+          { data: metricsData },
+          { data: projectsData },
+          { data: processesData },
+          { data: projectProcessesData },
+        ] = await Promise.all([
+          fetchPerfisDigital(),
+          supabase
+            .from('sprint_deliverables')
+            .select('*')
+            .eq('sprint_id', sprintId)
+            .order('due_date', { ascending: true }),
+          supabase
+            .from('sprint_events')
+            .select('*')
+            .eq('sprint_id', sprintId)
+            .order('event_date', { ascending: true })
+            .order('start_time', { ascending: true }),
+          supabase.from('sprint_metrics').select('*').eq('sprint_id', sprintId),
+          supabase.from('projects').select('id, name').order('name'),
+          supabase.from('processes').select('id, name, project_id').order('name'),
+          supabase.from('project_processes').select('process_id, project_id'),
+        ]);
 
         return {
           sprint: sprintData as SprintDetalhesSprint,

@@ -150,7 +150,10 @@ describe('useDomainEquipeSprintDetalhes — query de detalhe', () => {
     expect(registration.enabled).toBe(true);
     expect(registration.retry).toBe(false);
     expect(registration.staleTime).toBe(0);
-    expect(registration.gcTime).toBe(0);
+    // Cache curto de propósito: sem ele, voltar para a mesma sprint refazia
+    // tudo com o spinner de tela cheia.
+    expect(registration.gcTime).toBe(5 * 60_000);
+    expect(registration.refetchOnMount).toBe('always');
   });
 
   it('desabilita a query quando não há sprintId', () => {
@@ -181,7 +184,15 @@ describe('useDomainEquipeSprintDetalhes — query de detalhe', () => {
 
     expect(callsFor('sprints', 'select')[0].args).toEqual(['*']);
     expect(callsFor('sprints', 'eq')[0].args).toEqual(['id', 'sprint-1']);
-    expect(callsFor('estrutura_areas', 'eq')[0].args).toEqual(['cluster_id', DIGITAL_CLUSTER_ID]);
+    // Os perfis do Digital saem de uma consulta só, com embed: a área entra
+    // como !inner apenas para filtrar o cluster.
+    expect(callsFor('estrutura_equipes', 'select')[0].args).toEqual([
+      'gestor_id, estrutura_areas!inner(cluster_id), estrutura_equipe_membros(user_id)',
+    ]);
+    expect(callsFor('estrutura_equipes', 'eq')[0].args).toEqual([
+      'estrutura_areas.cluster_id',
+      DIGITAL_CLUSTER_ID,
+    ]);
     expect(callsFor('sprint_deliverables', 'eq')[0].args).toEqual(['sprint_id', 'sprint-1']);
     expect(callsFor('sprint_deliverables', 'order')[0].args).toEqual([
       'due_date',
