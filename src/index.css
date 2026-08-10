@@ -178,6 +178,14 @@ All colors MUST be HSL.
     --popover-foreground: 220 26% 12%;
   }
 
+  /* Tema da área Digital Rotina: o anel de foco dos campos deixa de ser o lime
+     do gradiente da marca e passa a ser o teal escuro do accent da área (o mesmo
+     dos campos "o que fiz / o que vou fazer" da daily). Aplicado no <html> pelo
+     EquipeLayout, então vale também para modais e selects renderizados em portal. */
+  .rotina-theme {
+    --ring: var(--teal-500);
+  }
+
   /* Hover das linhas de tabela na área OSG: marrom/areia claro (osg-50)
      no lugar do cinza padrão (muted). */
   .osg-theme tbody tr:hover {
