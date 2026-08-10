@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Search, Plus, Check, ChevronRight, GripVertical, Library } from 'lucide-react';
+import { Search, Plus, Check, ChevronRight, GripVertical, Layers, Library } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { EditorBlocoDialog } from '@/components/equipe/osg/EditorBlocoDialog';
 import { useBlocos } from '@/hooks/useBibliotecaModelos';
@@ -88,35 +88,54 @@ export function BibliotecaPalette({ documentoId, idsNoModelo }: Props) {
                   <div className="space-y-1.5 pb-1.5">
                     {itens.map((b) => {
                       const adicionado = idsNoModelo.has(b.id);
+                      // Cabeça de família não é peça de montagem: ela não tem texto
+                      // próprio (quem escreve é a variante eleita na geração) e é
+                      // citada POR DENTRO de outro bloco. Arrastá-la para o modelo
+                      // adicionaria uma posição muda, então o cartão vira instrução
+                      // de uso em vez de item arrastável.
+                      const familia = b.variantes.length > 0;
+                      const inerte = adicionado || familia;
                       return (
                         <div
                           key={b.id}
-                          draggable={!adicionado}
+                          draggable={!inerte}
                           onDragStart={(e) => {
                             e.dataTransfer.setData('blocoId', b.id);
                             e.dataTransfer.effectAllowed = 'copy';
                           }}
-                          onClick={() => { if (!adicionado && !adicionar.isPending) adicionar.mutate({ documentoId, blocoId: b.id }); }}
+                          onClick={() => { if (!inerte && !adicionar.isPending) adicionar.mutate({ documentoId, blocoId: b.id }); }}
                           className={cn(
                             'group flex items-center gap-1.5 rounded-lg border p-2 transition-all',
-                            adicionado
-                              ? 'cursor-default border-osg-100 bg-osg-50/50 opacity-60'
-                              : 'cursor-grab border-osg-200 bg-card hover:border-osg-moss/50 hover:shadow-sm active:cursor-grabbing',
+                            familia
+                              ? 'cursor-default border-dashed border-osg-moss/40 bg-osg-moss/[0.04]'
+                              : adicionado
+                                ? 'cursor-default border-osg-100 bg-osg-50/50 opacity-60'
+                                : 'cursor-grab border-osg-200 bg-card hover:border-osg-moss/50 hover:shadow-sm active:cursor-grabbing',
                           )}
                         >
-                          {!adicionado && <GripVertical className="h-3.5 w-3.5 shrink-0 text-osg-300 group-hover:text-osg-500" />}
+                          {!inerte && <GripVertical className="h-3.5 w-3.5 shrink-0 text-osg-300 group-hover:text-osg-500" />}
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
                               <span className="truncate text-sm font-medium">{b.nome}</span>
-                              {b.tipo && b.tipo !== 'livre' && (
-                                <Badge className="bg-osg-100 px-1 text-[9px] text-osg-700 hover:bg-osg-100">
-                                  {LABEL_TIPO_BLOCO[(b.tipo as TipoBloco) ?? 'livre']}
+                              {familia ? (
+                                <Badge className="bg-osg-moss/10 px-1 text-[9px] text-osg-moss hover:bg-osg-moss/10">
+                                  {b.variantes.length} redações
                                 </Badge>
+                              ) : (
+                                b.tipo && b.tipo !== 'livre' && (
+                                  <Badge className="bg-osg-100 px-1 text-[9px] text-osg-700 hover:bg-osg-100">
+                                    {LABEL_TIPO_BLOCO[(b.tipo as TipoBloco) ?? 'livre']}
+                                  </Badge>
+                                )
                               )}
                             </div>
-                            <p className="line-clamp-1 text-[11px] text-muted-foreground">{b.versao_atual?.conteudo}</p>
+                            <p className="line-clamp-1 font-mono text-[11px] text-muted-foreground">
+                              {familia ? `{{familia nome="${b.nome}"}}` : b.versao_atual?.conteudo}
+                            </p>
                           </div>
-                          {adicionado ? (
+                          {familia ? (
+                            <Layers className="h-4 w-4 shrink-0 text-osg-moss" aria-label="Família de variantes: use dentro de um bloco" />
+                          ) : adicionado ? (
                             <Check className="h-4 w-4 shrink-0 text-osg-moss" aria-label="Já no documento" />
                           ) : (
                             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-osg-600 transition-colors group-hover:bg-osg-moss group-hover:text-white" aria-label="Adicionar">

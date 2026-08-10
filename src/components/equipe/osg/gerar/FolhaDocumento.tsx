@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertTriangle, Blocks, FileSignature, Loader2, Pencil } from 'lucide-react';
+import { AlertTriangle, Blocks, FileSignature, Layers, Loader2, Pencil } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { TextoFormatado } from '@/components/equipe/osg/TextoFormatado';
@@ -25,6 +25,12 @@ export interface BlocoFolha {
   segmentos?: SegmentoRender[];
   /** Bloco com ajuste (override) só deste documento — ganha selo e realce persistentes. */
   sobrescrito?: boolean;
+  /**
+   * Variantes de família que escreveram trecho DESTE bloco (uma alínea pode vir da
+   * redação urbana e a de baixo da rural): entram no popover como alvos próprios
+   * de edição, porque é nelas que o texto está.
+   */
+  variantes?: Array<{ id: string; nome: string }>;
 }
 
 interface FolhaDocumentoProps {
@@ -34,8 +40,12 @@ interface FolhaDocumentoProps {
   mensagemPendente?: string;
   erro?: string | null;
   blocos?: BlocoFolha[] | null;
-  /** Quando informado, clicar num trecho abre o popover com o atalho de edição do bloco. */
-  onEditarBloco?: (bloco: BlocoFolha) => void;
+  /**
+   * Quando informado, clicar num trecho abre o popover com o atalho de edição.
+   * `alvoId` vem preenchido quando o alvo é uma variante de família em vez do
+   * bloco hospedeiro.
+   */
+  onEditarBloco?: (bloco: BlocoFolha, alvoId?: string) => void;
   /** Quando informado, valores com proveniência viram clicáveis — abre o cadastro de origem. */
   onClickOrigem?: (origem: OrigemValor) => void;
   /** Filtra quais origens ganham o clique (ex.: só pessoas com cadastro). */
@@ -121,7 +131,8 @@ export const FolhaDocumento = ({
               O espaçamento reproduz o unirBlocos: parágrafo cola na cláusula
               (a própria quebra de bloco), os demais separam com linha em branco. */}
           {(blocos ?? []).map((bloco, i) => {
-            const editavel = !!onEditarBloco && !!bloco.blocoId;
+            const variantes = bloco.variantes ?? [];
+            const editavel = !!onEditarBloco && (!!bloco.blocoId || variantes.length > 0);
             const trecho = (
               <div
                 key={bloco.id}
@@ -166,18 +177,36 @@ export const FolhaDocumento = ({
                 onOpenChange={(aberto) => setPopoverAberto(aberto ? bloco.id : null)}
               >
                 <PopoverTrigger asChild>{trecho}</PopoverTrigger>
+                {/* Um alvo por texto que compõe o trecho: o bloco do modelo e, quando
+                    a redação veio de uma família, cada variante que escreveu aqui. */}
                 <PopoverContent side="top" align="center" className="w-auto p-1.5">
-                  <button
-                    type="button"
-                    className="flex items-center gap-1.5 rounded-sm px-2 py-1.5 font-sans text-xs font-medium text-slate-700 transition-colors hover:bg-osg-50 hover:text-osg-700"
-                    onClick={() => {
-                      setPopoverAberto(null);
-                      onEditarBloco?.(bloco);
-                    }}
-                  >
-                    <Pencil className="h-3.5 w-3.5 text-osg-600" />
-                    Editar bloco "{bloco.nome}"
-                  </button>
+                  {bloco.blocoId && (
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 font-sans text-xs font-medium text-slate-700 transition-colors hover:bg-osg-50 hover:text-osg-700"
+                      onClick={() => {
+                        setPopoverAberto(null);
+                        onEditarBloco?.(bloco);
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5 text-osg-600" />
+                      Editar bloco "{bloco.nome}"
+                    </button>
+                  )}
+                  {variantes.map((v) => (
+                    <button
+                      key={v.id}
+                      type="button"
+                      className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 font-sans text-xs font-medium text-slate-700 transition-colors hover:bg-osg-50 hover:text-osg-700"
+                      onClick={() => {
+                        setPopoverAberto(null);
+                        onEditarBloco?.(bloco, v.id);
+                      }}
+                    >
+                      <Layers className="h-3.5 w-3.5 text-osg-moss" />
+                      Editar a redação "{v.nome}"
+                    </button>
+                  ))}
                 </PopoverContent>
               </Popover>
             );
