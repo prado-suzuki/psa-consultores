@@ -124,9 +124,10 @@ const menuItems: MenuItem[] = [
     label: 'Chamados',
     icon: MessageSquare,
     path: '/equipe/chamados',
-    // Some para quem é líder+: essa gente já tem "Gestão de Chamados" no
-    // dropdown Gerencial, que mostra tudo ao alcance dela em vez de só o que
+    // Some para o Líder Geral: ele trabalha chamado pela "Gestão de Chamados"
+    // do dropdown Gerencial, que mostra tudo ao alcance dele em vez de só o que
     // lhe foi atribuído. Dois caminhos para chamado no mesmo menu confundem.
+    // Admin NÃO perde o item: admin vê tudo.
     // É só o menu: a página continua liberada para quem tiver o link.
     ocultaParaLider: true
   }
@@ -320,7 +321,10 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
         <nav className="p-4 space-y-1">
           {menuItems
             .filter((item) => !item.requiresLider || canGerencial)
-            .filter((item) => !item.ocultaParaLider || !canGerencial)
+            // `isLider` estrito, e não `canGerencial`: admin vê tudo, inclusive o
+            // atalho. Quem perde o item é só o Líder Geral, que trabalha chamado
+            // pela Gestão de Chamados do dropdown.
+            .filter((item) => !item.ocultaParaLider || !isLider)
             .map(renderMenuItem)}
         </nav>
 
