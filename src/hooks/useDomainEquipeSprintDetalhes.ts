@@ -107,11 +107,14 @@ interface SprintDetalhesCatalogos {
  * (markdown da retrospectiva) de toda tarefa. Nenhuma das duas aparece na
  * lista: a descrição só é lida no modal de edição, na exportação e no
  * cruzamento da aba Métricas, e o texto da retrospectiva nunca é exibido — dele
- * a tela só precisa saber se existe, que agora é a coluna gerada
- * `tem_retrospectiva`.
+ * a tela só precisa saber se existe.
  */
 const DELIVERABLE_COLUNAS_DA_LISTA =
-  'id, title, assigned_to, start_date, due_date, status, estimated_hours, actual_hours, parent_id, task_code, project_id, process_id, tem_retrospectiva';
+  'id, title, assigned_to, start_date, due_date, status, estimated_hours, actual_hours, parent_id, task_code, project_id, process_id';
+
+/** Se o payload de realtime trouxe o markdown, o booleano é recalculado dele. */
+const temRetrospectiva = (valor: unknown) =>
+  typeof valor === 'string' ? valor.trim() !== '' : false;
 
 interface DeliverableStatusInput {
   deliverableId: string;
@@ -267,18 +270,31 @@ const applyDeliverableRealtimeChanges = (
       return current.filter((deliverable) => deliverable.id !== oldId);
     }
 
+    // O payload de realtime traz a linha inteira, inclusive o markdown da
+    // retrospectiva. Aproveita para manter o booleano em dia, já que ele não é
+    // coluna: sem isto, o ícone da tarefa ficaria preso no estado da carga.
     if (change.eventType === 'INSERT' && newId) {
       if (current.some((deliverable) => deliverable.id === newId)) return current;
       return [
         ...current,
-        change.newRecord as unknown as SprintDetalhesDeliverable,
+        {
+          ...(change.newRecord as unknown as SprintDetalhesDeliverable),
+          tem_retrospectiva: temRetrospectiva(change.newRecord.retrospective_report),
+        },
       ];
     }
 
     if (change.eventType === 'UPDATE' && newId) {
       return current.map((deliverable) =>
         deliverable.id === newId
-          ? ({ ...deliverable, ...change.newRecord } as SprintDetalhesDeliverable)
+          ? ({
+              ...deliverable,
+              ...change.newRecord,
+              tem_retrospectiva:
+                'retrospective_report' in change.newRecord
+                  ? temRetrospectiva(change.newRecord.retrospective_report)
+                  : deliverable.tem_retrospectiva,
+            } as SprintDetalhesDeliverable)
           : deliverable,
       );
     }
@@ -337,9 +353,10 @@ export function useDomainEquipeSprintDetalhes(
         // vai junto: eram nove idas ao banco enfileiradas sem necessidade, cada
         // uma pagando a latência da anterior.
         const [
-          { data: deliverablesData },
-          { data: eventsData },
-          { data: metricsData },
+          { data: deliverablesData, error: deliverablesError },
+          { data: eventsData, error: eventsError },
+          { data: metricsData, error: metricsError },
+          { data: comRetrospectiva, error: retrospectivaError },
         ] = await Promise.all([
           supabase
             .from('sprint_deliverables')
@@ -353,12 +370,37 @@ export function useDomainEquipeSprintDetalhes(
             .order('event_date', { ascending: true })
             .order('start_time', { ascending: true }),
           supabase.from('sprint_metrics').select('*').eq('sprint_id', sprintId),
+          // Quem tem retrospectiva anexada, só os ids. O PostgREST não projeta
+          // expressão, então "tem ou não tem" ou vinha junto com o markdown
+          // inteiro, ou sai daqui: um filtro que devolve um punhado de uuids, na
+          // mesma leva das outras leituras. (Um texto só de espaços passaria
+          // neste filtro; a tela não deixa gravar um, o botão exige `trim()`.)
+          supabase
+            .from('sprint_deliverables')
+            .select('id')
+            .eq('sprint_id', sprintId)
+            .not('retrospective_report', 'is', null)
+            .neq('retrospective_report', ''),
         ]);
+
+        // Sem isto, uma leitura que falha vira "nenhum entregável cadastrado" na
+        // tela: lista vazia é indistinguível de erro engolido.
+        const falha = deliverablesError ?? eventsError ?? metricsError ?? retrospectivaError;
+        if (falha) throw falha;
+
+        const idsComRetrospectiva = new Set(
+          ((comRetrospectiva ?? []) as Array<{ id: string }>).map((linha) => linha.id),
+        );
 
         return {
           sprint: sprintData as SprintDetalhesSprint,
           deliverables: applyDeliverableRealtimeChanges(
-            (deliverablesData ?? []) as unknown as SprintDetalhesDeliverable[],
+            ((deliverablesData ?? []) as unknown as SprintDetalhesDeliverable[]).map(
+              (deliverable) => ({
+                ...deliverable,
+                tem_retrospectiva: idsComRetrospectiva.has(deliverable.id),
+              }),
+            ),
             pendingRealtimeChangesRef.current,
           ),
           events: (eventsData ?? []) as SprintDetalhesEvent[],

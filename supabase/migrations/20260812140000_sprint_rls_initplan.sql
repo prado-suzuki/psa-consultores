@@ -1,5 +1,5 @@
 -- -----------------------------------------------------------------------------
--- 1) RLS das telas de sprint: tirar a checagem de usuário de dentro do laço
+-- RLS das telas de sprint: tirar a checagem de usuário de dentro do laço
 --
 -- A policy de leitura é `USING (public.sprint_visivel(sprint_id))`. A função é
 -- STABLE e recebe uma COLUNA, então o Postgres a executa uma vez por linha:
@@ -54,22 +54,3 @@ DROP POLICY IF EXISTS sprint_metrics_select ON public.sprint_metrics;
 CREATE POLICY sprint_metrics_select ON public.sprint_metrics FOR SELECT TO authenticated
   USING ((SELECT public.ve_todas_as_sprints()) OR public.sprint_visivel(sprint_id));
 
--- -----------------------------------------------------------------------------
--- 2) `tem_retrospectiva`: o booleano que a tela usa, sem trazer o texto
---
--- `retrospective_report` guarda a retrospectiva em markdown e vinha inteiro,
--- para toda tarefa da sprint, em `select('*')`. O texto NUNCA é exibido -- o
--- próprio diálogo avisa que "o conteúdo fica salvo como texto e não é exibido
--- na tarefa depois de anexado". O único uso na lista é saber se existe, para
--- pintar o ícone. Agora esse "se existe" é uma coluna gerada, e o texto só é
--- lido quando alguém abre a tarefa.
--- -----------------------------------------------------------------------------
-
-ALTER TABLE public.sprint_deliverables
-  ADD COLUMN IF NOT EXISTS tem_retrospectiva boolean
-  GENERATED ALWAYS AS (
-    retrospective_report IS NOT NULL AND btrim(retrospective_report) <> ''
-  ) STORED;
-
-COMMENT ON COLUMN public.sprint_deliverables.tem_retrospectiva IS
-  'Derivada de retrospective_report: existe retrospectiva anexada? A lista da sprint lê esta coluna em vez do markdown inteiro.';

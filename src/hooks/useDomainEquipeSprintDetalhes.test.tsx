@@ -84,6 +84,7 @@ function makeSupabaseChain(table: string) {
     'upsert',
     'eq',
     'neq',
+    'not',
     'is',
     'in',
     'filter',
@@ -185,13 +186,21 @@ describe('useDomainEquipeSprintDetalhes — query de detalhe', () => {
     expect(callsFor('sprints', 'select')[0].args).toEqual(['*']);
     expect(callsFor('sprints', 'eq')[0].args).toEqual(['id', 'sprint-1']);
     // A listagem não traz `description` nem `retrospective_report`: o rich text
-    // e o markdown da retrospectiva não aparecem nela. De retrospectiva a tela
-    // só precisa saber se existe, que é a coluna gerada.
+    // e o markdown da retrospectiva não aparecem nela.
     const colunas = callsFor('sprint_deliverables', 'select')[0].args[0] as string;
-    expect(colunas).toContain('tem_retrospectiva');
     expect(colunas).not.toContain('description');
     expect(colunas).not.toContain('retrospective_report');
     expect(callsFor('sprint_deliverables', 'eq')[0].args).toEqual(['sprint_id', 'sprint-1']);
+
+    // "Tem retrospectiva?" sai de um filtro que devolve só ids, em vez de
+    // arrastar o markdown de toda tarefa.
+    expect(callsFor('sprint_deliverables', 'select')[1].args).toEqual(['id']);
+    expect(callsFor('sprint_deliverables', 'not')[0].args).toEqual([
+      'retrospective_report',
+      'is',
+      null,
+    ]);
+    expect(callsFor('sprint_deliverables', 'neq')[0].args).toEqual(['retrospective_report', '']);
     expect(callsFor('sprint_deliverables', 'order')[0].args).toEqual([
       'due_date',
       { ascending: true },

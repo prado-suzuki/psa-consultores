@@ -135,6 +135,8 @@ interface BoundaryChain {
   update: ReturnType<typeof vi.fn>;
   delete: ReturnType<typeof vi.fn>;
   eq: ReturnType<typeof vi.fn>;
+  neq: ReturnType<typeof vi.fn>;
+  not: ReturnType<typeof vi.fn>;
   in: ReturnType<typeof vi.fn>;
   order: ReturnType<typeof vi.fn>;
   single: ReturnType<typeof vi.fn>;
@@ -149,6 +151,8 @@ function chainFor(result: ChainResult): BoundaryChain {
   chain.update = vi.fn(() => chain);
   chain.delete = vi.fn(() => chain);
   chain.eq = vi.fn(() => chain);
+  chain.neq = vi.fn(() => chain);
+  chain.not = vi.fn(() => chain);
   chain.in = vi.fn(() => chain);
   chain.order = vi.fn(() => chain);
   chain.single = vi.fn().mockResolvedValue(result);
@@ -374,7 +378,10 @@ function installQueryBoundary() {
   const chains = new Map<string, BoundaryChain>();
   boundary.from.mockImplementation((table: string) => {
     const chain = chainFor(rows[table] ?? { data: [], error: null });
-    chains.set(table, chain);
+    // Guarda a PRIMEIRA cadeia de cada tabela: `sprint_deliverables` é lida
+    // duas vezes na carga (a lista e os ids de quem tem retrospectiva), e as
+    // asserções abaixo são sobre a lista.
+    if (!chains.has(table)) chains.set(table, chain);
     return chain;
   });
 
@@ -462,6 +469,8 @@ describe('useDomainEquipeSprintDetalhes: contratos na fronteira', () => {
       'sprint_deliverables',
       'sprint_events',
       'sprint_metrics',
+      // Quem tem retrospectiva: só os ids, no mesmo disparo.
+      'sprint_deliverables',
       'profiles_safe',
     ]);
     expect(chains.get('sprints')?.select).toHaveBeenCalledWith('*');
