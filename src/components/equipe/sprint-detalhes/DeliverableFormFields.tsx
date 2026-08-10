@@ -31,18 +31,41 @@ interface DeliverableFormFieldsProps {
   onToggleDescription: () => void;
 }
 
+// Rótulo de seção com o traço do accent da área (teal): é o que dá cor ao
+// formulário sem mexer no fundo dos cartões.
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+    <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-teal-700">
+      <span className="h-[3px] w-5 shrink-0 rounded-full bg-teal-600" aria-hidden />
       {children}
     </h3>
   );
 }
 
+// Aba ativa marcada no accent: texto, ícone e um contorno fino em teal.
+const tabTriggerClass =
+  'data-[state=active]:text-teal-700 data-[state=active]:ring-1 data-[state=active]:ring-teal-600/25';
+
+/** Status com cor semântica: leitura rápida de andamento dentro do formulário. */
+const statusOptions = [
+  { value: 'pending', label: 'Pendente', dot: 'bg-amber-400' },
+  { value: 'in_progress', label: 'Em Progresso', dot: 'bg-sky-500' },
+  { value: 'completed', label: 'Concluído', dot: 'bg-emerald-500' },
+];
+
+function StatusOption({ label, dot }: { label: string; dot: string }) {
+  return (
+    <span className="flex items-center gap-2">
+      <span className={cn('h-2 w-2 shrink-0 rounded-full', dot)} aria-hidden />
+      {label}
+    </span>
+  );
+}
+
 function PropertySection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="border-t pt-4 first:border-t-0 first:pt-0">
-      <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+    <section className="border-t border-teal-600/35 pt-4 first:border-t-0 first:pt-0">
+      <h3 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-700/70">
         {title}
       </h3>
       {children}
@@ -86,7 +109,7 @@ export function DeliverableFormFields({
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 gap-1.5 px-2 text-xs font-normal text-muted-foreground hover:text-foreground"
+          className="h-7 gap-1.5 px-2 text-xs font-normal text-muted-foreground hover:text-teal-700"
           onClick={onToggleDescription}
         >
           {descriptionExpanded ? (
@@ -106,6 +129,8 @@ export function DeliverableFormFields({
         value={form.description}
         onChange={(next) => update('description', next)}
         ariaLabel="Descrição"
+        // Sombra suave e tonal: destaca o campo de descrição dentro do cartão.
+        className="shadow-md shadow-teal-700/15"
         fillHeight={descriptionExpanded}
         minHeight={descriptionExpanded ? 'min-h-[360px]' : 'min-h-[280px]'}
         maxHeight={descriptionExpanded ? undefined : 'max-h-[420px]'}
@@ -129,20 +154,20 @@ export function DeliverableFormFields({
 
   return (
     <div className="grid shrink-0 gap-5 lg:grid-cols-[minmax(0,13fr)_minmax(0,7fr)]">
-      <section className="rounded-3xl border bg-card p-4 shadow-sm sm:p-5">
+      <section className="rounded-3xl border border-teal-600/20 bg-card p-4 shadow-sm sm:p-5">
         <div className="mb-5 space-y-2">
           <div className="flex items-center justify-between gap-3">
             <SectionLabel>
               {prefix === 'create' ? 'Nova tarefa' : 'Conteúdo da tarefa'}
             </SectionLabel>
             {prefix === 'create' && (
-              <span className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground">
+              <span className="rounded-full bg-teal-500/10 px-3 py-1 text-xs font-medium text-teal-700">
                 Título obrigatório
               </span>
             )}
           </div>
           <div className="flex min-w-0 items-baseline gap-2 text-[1.15rem] font-semibold tracking-tight">
-            {form.task_code && <span className="shrink-0">[{form.task_code}]</span>}
+            {form.task_code && <span className="shrink-0 text-teal-700">[{form.task_code}]</span>}
             <Input
               id={`${prefix}-title`}
               value={form.title}
@@ -159,14 +184,20 @@ export function DeliverableFormFields({
         {description}
       </section>
 
-      <aside className="rounded-3xl border bg-gradient-to-b from-card via-card to-muted/30 p-4 shadow-sm sm:p-5">
+      <aside className="rounded-3xl border border-teal-600/20 bg-gradient-to-b from-card via-card to-muted/30 p-4 shadow-sm sm:p-5">
         <Tabs defaultValue="planning">
           <TabsList className="mb-5 grid h-11 w-full grid-cols-2 rounded-xl bg-muted/70 p-1">
-            <TabsTrigger value="planning" className="h-9 gap-2 rounded-lg text-xs">
+            <TabsTrigger
+              value="planning"
+              className={cn(tabTriggerClass, 'h-9 gap-2 rounded-lg text-xs')}
+            >
               <CalendarClock className="h-3.5 w-3.5" />
               Planejamento
             </TabsTrigger>
-            <TabsTrigger value="context" className="h-9 gap-2 rounded-lg text-xs">
+            <TabsTrigger
+              value="context"
+              className={cn(tabTriggerClass, 'h-9 gap-2 rounded-lg text-xs')}
+            >
               <Link2 className="h-3.5 w-3.5" />
               Vínculos
             </TabsTrigger>
@@ -216,9 +247,11 @@ export function DeliverableFormFields({
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="pending">Pendente</SelectItem>
-                        <SelectItem value="in_progress">Em Progresso</SelectItem>
-                        <SelectItem value="completed">Concluído</SelectItem>
+                        {statusOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <StatusOption label={option.label} dot={option.dot} />
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -273,7 +306,7 @@ export function DeliverableFormFields({
 
                 {prefix === 'edit' && form.status === 'completed' && (
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-actual-hours" className="text-xs">
+                    <Label htmlFor="edit-actual-hours" className="text-xs text-amber-700">
                       Horas realizadas
                     </Label>
                     <Input

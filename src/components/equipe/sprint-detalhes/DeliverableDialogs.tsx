@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { ClipboardList, ListPlus, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,9 +31,22 @@ import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDeta
 // altura máxima para o campo esticar sem empurrar o rodapé para fora da tela.
 const contentClass = (expanded: boolean) =>
   cn(
-    'flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 transition-[max-width] duration-200',
+    'flex max-h-[90vh] flex-col gap-0 overflow-hidden border-teal-600/20 p-0 transition-[max-width] duration-200',
     expanded ? 'h-[88vh] sm:max-w-4xl' : 'sm:max-w-[calc(100vw-2rem)] xl:max-w-7xl',
   );
+
+// Molduras e divisórias puxam o teal da área: cor nas linhas, não nos fundos.
+const headerClass = 'border-b border-teal-600/20 bg-muted/30 px-6 py-4 pr-12';
+const footerClass = 'border-t border-teal-600/20 bg-background px-6 py-4';
+
+/** Selo do accent da área antes do título: dá um ponto de cor ao cabeçalho. */
+function TitleSeal({ icon: Icon }: { icon: typeof ClipboardList }) {
+  return (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-500/10 text-teal-700">
+      <Icon className="h-4 w-4" />
+    </span>
+  );
+}
 
 export function DeliverableDialogs({
   controller: c,
@@ -72,9 +85,12 @@ export function DeliverableDialogs({
             }
           }}
         >
-          <DialogHeader className="border-b bg-muted/30 px-6 py-4 pr-12">
+          <DialogHeader className={headerClass}>
             <div className="flex items-center justify-between gap-3">
-              <DialogTitle className="text-xl tracking-tight">Editar Entregável</DialogTitle>
+              <div className="flex min-w-0 items-center gap-2.5">
+                <TitleSeal icon={ClipboardList} />
+                <DialogTitle className="text-xl tracking-tight">Editar Entregável</DialogTitle>
+              </div>
               {c.editingDeliverable && !editDescriptionExpanded && (
                 <RetrospectiveReportDialog
                   deliverable={c.editingDeliverable}
@@ -98,7 +114,7 @@ export function DeliverableDialogs({
               <AnexosEntregavel deliverableId={c.editingDeliverable?.id} ativo={c.editModalOpen} />
             )}
           </div>
-          <DialogFooter className="border-t bg-background px-6 py-4 sm:justify-between">
+          <DialogFooter className={cn(footerClass, 'sm:justify-between')}>
             <AlertDialog open={c.deleteDialogOpen} onOpenChange={c.setDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" className="text-destructive hover:bg-destructive/10">
@@ -157,8 +173,11 @@ export function DeliverableDialogs({
             }
           }}
         >
-          <DialogHeader className="border-b bg-muted/30 px-6 py-4 pr-12">
-            <DialogTitle className="text-xl tracking-tight">Nova Tarefa</DialogTitle>
+          <DialogHeader className={headerClass}>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <TitleSeal icon={ListPlus} />
+              <DialogTitle className="text-xl tracking-tight">Nova Tarefa</DialogTitle>
+            </div>
           </DialogHeader>
           <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto bg-muted/20 px-4 py-4 sm:px-6 sm:py-5">
             <DeliverableFormFields
@@ -170,7 +189,7 @@ export function DeliverableDialogs({
               onToggleDescription={() => setCreateDescriptionExpanded((current) => !current)}
             />
           </div>
-          <DialogFooter className="border-t bg-background px-6 py-4">
+          <DialogFooter className={footerClass}>
             <Button variant="outline" onClick={() => c.setCreateModalOpen(false)}>
               Cancelar
             </Button>
