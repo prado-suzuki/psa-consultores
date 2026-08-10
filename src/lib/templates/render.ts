@@ -1,4 +1,5 @@
 import { origemDe, type OrigemValor } from './origem';
+import { PALAVRA_INCLUSAO, resolverVariante, type RegistroFamilias } from './familia';
 import type { Contexto } from './types';
 
 export type { OrigemValor } from './origem';
@@ -16,9 +17,12 @@ export type { OrigemValor } from './origem';
 //   - booleano/string → condicional: corpo entra se truthy ("", "false" e false
 //               ficam de fora). Permite {{#sePF}}…{{/sePF}} dentro de um loop.
 
-// Um único token cobre os três casos: abertura ({{#nome attr="v"}}), fechamento
-// ({{/nome}}) e placeholder ({{ caminho }}).
-const TOKEN = /\{\{\s*(?:#([\w.]+)((?:\s+\w+="(?:[^"\\]|\\.)*")*)|\/([\w.]+)|([\w.]+))\s*\}\}/g;
+// Um único token cobre os quatro casos: abertura ({{#nome attr="v"}}),
+// fechamento ({{/nome}}), placeholder ({{ caminho }}) e INCLUSÃO DE FAMÍLIA
+// ({{familia nome="…"}}) — um identificador com atributos, sem "#", que é o que
+// distingue a inclusão do placeholder.
+const TOKEN =
+  /\{\{\s*(?:#([\w.]+)((?:\s+\w+="(?:[^"\\]|\\.)*")*)|\/([\w.]+)|([\w.]+)((?:\s+\w+="(?:[^"\\]|\\.)*")*))\s*\}\}/g;
 
 const ATRIBUTO = /(\w+)="((?:[^"\\]|\\.)*)"/g;
 
@@ -38,7 +42,9 @@ function parseAtributos(bruto: string): Record<string, string> {
 export type No =
   | { tipo: 'texto'; texto: string }
   | { tipo: 'placeholder'; caminho: string }
-  | { tipo: 'secao'; nome: string; atributos: Record<string, string>; filhos: No[] };
+  | { tipo: 'secao'; nome: string; atributos: Record<string, string>; filhos: No[] }
+  /** Inclusão de família: o texto vem da variante eleita no escopo corrente (ver familia.ts). */
+  | { tipo: 'inclusao'; familia: string };
 
 /**
  * Compila o conteúdo num AST. No modo estrito (render) lança erro em seções
@@ -56,8 +62,26 @@ export function compilar(conteudo: string, opcoes: { tolerante?: boolean } = {})
     if (m.index! > ultimo) filhosAtuais().push({ tipo: 'texto', texto: conteudo.slice(ultimo, m.index) });
     ultimo = m.index! + m[0].length;
 
-    const [, abre, atributos, fecha, caminho] = m;
-    if (abre) {
+    const [, abre, atributos, fecha, caminho, atributosCaminho] = m;
+    if (caminho && atributosCaminho) {
+      // Identificador COM atributos: só a inclusão de família tem essa forma.
+      // Fora dela é erro de escrita — no modo tolerante (editor digitando) cai
+      // para placeholder, que é o que o autor tinha antes de abrir o atributo.
+      if (caminho === PALAVRA_INCLUSAO) {
+        const nome = parseAtributos(atributosCaminho).nome;
+        if (nome) {
+          filhosAtuais().push({ tipo: 'inclusao', familia: nome });
+        } else if (!tolerante) {
+          throw new Error(`Inclusão de família sem nome: use {{${PALAVRA_INCLUSAO} nome="…"}}`);
+        }
+      } else if (tolerante) {
+        filhosAtuais().push({ tipo: 'placeholder', caminho });
+      } else {
+        throw new Error(
+          `Atributos só são válidos em seção ({{#${caminho} …}}) ou inclusão de família ({{${PALAVRA_INCLUSAO} nome="…"}}): {{${caminho} …}}`,
+        );
+      }
+    } else if (abre) {
       const secao: No = { tipo: 'secao', nome: abre, atributos: parseAtributos(atributos ?? ''), filhos: [] };
       filhosAtuais().push(secao);
       pilha.push({ nome: abre, filhos: secao.filhos });
@@ -90,8 +114,13 @@ export function compilar(conteudo: string, opcoes: { tolerante?: boolean } = {})
  * só isso, mantendo um núcleo único.
  */
 export type SegmentoRender =
-  | { tipo: 'texto'; texto: string; realce?: boolean }
-  | { tipo: 'valor'; texto: string; caminho: string; origem?: OrigemValor; realce?: boolean };
+  | { tipo: 'texto'; texto: string; realce?: boolean; blocoId?: string }
+  | { tipo: 'valor'; texto: string; caminho: string; origem?: OrigemValor; realce?: boolean; blocoId?: string };
+
+/** Opções do render. `familias` é o que torna {{familia nome="…"}} resolvível. */
+export interface OpcoesRender {
+  familias?: RegistroFamilias;
+}
 
 /**
  * Resolve um caminho pontilhado do escopo mais interno para fora, rastreando a
@@ -122,7 +151,13 @@ function truthy(valor: unknown): boolean {
   return Boolean(valor);
 }
 
-function renderNos(nos: No[], escopos: Contexto[], out: SegmentoRender[]): void {
+function renderNos(
+  nos: No[],
+  escopos: Contexto[],
+  out: SegmentoRender[],
+  opcoes: OpcoesRender,
+  dentroDeFamilia = false,
+): void {
   for (const no of nos) {
     if (no.tipo === 'texto') {
       out.push({ tipo: 'texto', texto: no.texto });
@@ -132,6 +167,8 @@ function renderNos(nos: No[], escopos: Contexto[], out: SegmentoRender[]): void 
         throw new Error(`Placeholder não resolvido: {{${no.caminho}}}`);
       }
       out.push({ tipo: 'valor', texto: String(valor), caminho: no.caminho, origem });
+    } else if (no.tipo === 'inclusao') {
+      renderInclusao(no.familia, escopos, out, opcoes, dentroDeFamilia);
     } else {
       const { valor } = resolver(no.nome, escopos);
       if (valor === undefined || valor === null) {
@@ -144,13 +181,50 @@ function renderNos(nos: No[], escopos: Contexto[], out: SegmentoRender[]): void 
           // Juntura ANTES de cada item após o primeiro: sep entre os do meio,
           // fim antes do último — mesma prosa "A; B; e C" da versão em string.
           if (i > 0) out.push({ tipo: 'texto', texto: i === valor.length - 1 ? fim : sep });
-          renderNos(no.filhos, [...escopos, (item ?? {}) as Contexto], out);
+          renderNos(no.filhos, [...escopos, (item ?? {}) as Contexto], out, opcoes, dentroDeFamilia);
         });
       } else if (truthy(valor)) {
-        renderNos(no.filhos, escopos, out);
+        renderNos(no.filhos, escopos, out, opcoes, dentroDeFamilia);
       }
     }
   }
+}
+
+/**
+ * Escreve, no lugar da inclusão, o texto da variante eleita para o escopo
+ * corrente. Dentro de um laço isto roda uma vez por item, que é o ponto todo:
+ * a família resolve por imóvel, não por bloco.
+ *
+ * Os segmentos produzidos ganham `blocoId` da variante — quem os consome (a
+ * prévia interativa) precisa saber que aquele trecho não é do bloco hospedeiro,
+ * senão o clique para editar abriria o bloco errado.
+ *
+ * Um nível só, como o trigger do banco: família dentro de família viraria
+ * recursão sem dono e não tem caso de uso na casa.
+ */
+function renderInclusao(
+  nome: string,
+  escopos: Contexto[],
+  out: SegmentoRender[],
+  opcoes: OpcoesRender,
+  dentroDeFamilia: boolean,
+): void {
+  if (dentroDeFamilia) {
+    throw new Error(`Inclusão de família dentro de outra família não é suportada: {{${PALAVRA_INCLUSAO} nome="${nome}"}}`);
+  }
+  const registro = opcoes.familias ?? {};
+  const variantes = registro[nome];
+  if (!variantes || variantes.length === 0) {
+    const conhecidas = Object.keys(registro);
+    throw new Error(
+      `Família não encontrada: "${nome}"${conhecidas.length ? ` (disponíveis: ${conhecidas.join(', ')})` : ''}.`,
+    );
+  }
+  const variante = resolverVariante(variantes, (caminho) => resolver(caminho, escopos).valor, nome);
+
+  const internos: SegmentoRender[] = [];
+  renderNos(compilar(variante.conteudo), escopos, internos, opcoes, true);
+  for (const seg of internos) out.push({ ...seg, blocoId: variante.id });
 }
 
 /**
@@ -158,15 +232,59 @@ function renderNos(nos: No[], escopos: Contexto[], out: SegmentoRender[]): void 
  * Mesmos erros do renderConteudo. `escoposExtras` empilha escopos por cima do
  * contexto (instância de bloco repetidor: o item resolve antes do global).
  */
-export function renderSegmentos(conteudo: string, contexto: Contexto, escoposExtras: Contexto[] = []): SegmentoRender[] {
+export function renderSegmentos(
+  conteudo: string,
+  contexto: Contexto,
+  escoposExtras: Contexto[] = [],
+  opcoes: OpcoesRender = {},
+): SegmentoRender[] {
   const out: SegmentoRender[] = [];
-  renderNos(compilar(conteudo), [contexto, ...escoposExtras], out);
+  renderNos(compilar(conteudo), [contexto, ...escoposExtras], out, opcoes);
   return out;
 }
 
 /** Preenche placeholders e seções de um bloco. Lança erro se algo não resolver (falha cedo, evita texto incompleto no cartório). */
-export function renderConteudo(conteudo: string, contexto: Contexto): string {
-  return renderSegmentos(conteudo, contexto).map((s) => s.texto).join('');
+export function renderConteudo(conteudo: string, contexto: Contexto, opcoes: OpcoesRender = {}): string {
+  return renderSegmentos(conteudo, contexto, [], opcoes).map((s) => s.texto).join('');
+}
+
+// --- Inclusões de família (varredura textual) ----------------------------------
+
+// Mesma forma que o TOKEN reconhece, isolada para varrer sem compilar. O nome da
+// palavra está literal aqui (e em PALAVRA_INCLUSAO) porque regex literal é mais
+// legível que uma montada por concatenação — os dois têm teste que os amarra.
+const TOKEN_INCLUSAO = /\{\{\s*familia((?:\s+\w+="(?:[^"\\]|\\.)*")*)\s*\}\}/g;
+
+/** Famílias citadas por um conteúdo, na ordem de aparição, sem repetir. */
+export function inclusoesDe(conteudo: string): string[] {
+  const nomes: string[] = [];
+  for (const m of conteudo.matchAll(TOKEN_INCLUSAO)) {
+    const nome = parseAtributos(m[1] ?? '').nome;
+    if (nome && !nomes.includes(nome)) nomes.push(nome);
+  }
+  return nomes;
+}
+
+/**
+ * Troca cada inclusão pelo texto que a função devolver, PRESERVANDO a posição.
+ * É como a detecção de bindings enxerga a família: no lugar do token entram
+ * TODAS as variantes (o render escolhe uma; a detecção precisa da união dos
+ * campos, senão a tela Gerar não pede o que só a variante urbana usa). Manter a
+ * posição importa porque o token pode estar dentro de {{#imoveis}}, e é isso que
+ * põe os campos no escopo do item em vez de virarem binding unitário.
+ *
+ * `null` (família desconhecida) deixa o token INTACTO, de propósito: apagá-lo
+ * faria a detecção seguir como se o trecho não existisse, e o erro só apareceria
+ * como um parágrafo mudo. Intacto, a extração o ignora (nó de inclusão não é
+ * placeholder, não vira campo fantasma) e o render acusa com a lista das famílias
+ * disponíveis.
+ */
+export function expandirInclusoes(conteudo: string, textoDaFamilia: (nome: string) => string | null): string {
+  return conteudo.replace(TOKEN_INCLUSAO, (inteiro, attrs: string) => {
+    const nome = parseAtributos(attrs ?? '').nome;
+    if (!nome) return inteiro;
+    return textoDaFamilia(nome) ?? inteiro;
+  });
 }
 
 // --- Extração (detecção de bindings / form dinâmico) ---------------------------

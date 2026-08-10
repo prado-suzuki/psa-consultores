@@ -1,4 +1,5 @@
 import { comporBlocos } from './composition';
+import type { RegistroFamilias } from './familia';
 import { numerarBlocos, refsNumeracao, unirBlocos } from './numeracao';
 import { expandirRepetidores } from './repetidor';
 import { renderSegmentos, type SegmentoRender } from './render';
@@ -27,7 +28,12 @@ export interface BlocoGerado extends Bloco {
  * - bloco com `ancora`: publica em {{ refs.<ancora> }} para referência avulsa
  *   ("observado o disposto na {{ refs.haveres }}").
  */
-export function gerarBlocos(template: Template, contexto: Contexto, flagsAtivas: Iterable<string> = []): BlocoGerado[] {
+export function gerarBlocos(
+  template: Template,
+  contexto: Contexto,
+  flagsAtivas: Iterable<string> = [],
+  familias: RegistroFamilias = {},
+): BlocoGerado[] {
   const expandidos = expandirRepetidores(comporBlocos(template, flagsAtivas), contexto);
 
   const refs = refsNumeracao(expandidos);
@@ -41,14 +47,19 @@ export function gerarBlocos(template: Template, contexto: Contexto, flagsAtivas:
   const ctx: Contexto = { ...contexto, refs: globais };
 
   return numerarBlocos(expandidos).map((bloco) => {
-    const segmentos = renderSegmentos(bloco.conteudo, ctx, bloco.escopo ? [bloco.escopo] : []);
+    const segmentos = renderSegmentos(bloco.conteudo, ctx, bloco.escopo ? [bloco.escopo] : [], { familias });
     return { ...bloco, conteudo: segmentos.map((s) => s.texto).join(''), segmentos };
   });
 }
 
 /** Gera o documento como texto plano (prévia, copiar/colar). */
-export function gerarDocumento(template: Template, contexto: Contexto, flagsAtivas: Iterable<string> = []): string {
-  return unirBlocos(gerarBlocos(template, contexto, flagsAtivas));
+export function gerarDocumento(
+  template: Template,
+  contexto: Contexto,
+  flagsAtivas: Iterable<string> = [],
+  familias: RegistroFamilias = {},
+): string {
+  return unirBlocos(gerarBlocos(template, contexto, flagsAtivas, familias));
 }
 
 export type { Bloco, Template, Contexto, TipoBloco } from './types';
@@ -56,8 +67,10 @@ export { TIPOS_BLOCO, LABEL_TIPO_BLOCO } from './types';
 export { comporBlocos } from './composition';
 export { expandirRepetidores } from './repetidor';
 export { numerarBlocos, unirBlocos, rotulosNumeracao, refsNumeracao } from './numeracao';
-export { renderConteudo, renderSegmentos, extrairCampos } from './render';
-export type { SegmentoRender } from './render';
+export { renderConteudo, renderSegmentos, extrairCampos, expandirInclusoes, inclusoesDe } from './render';
+export type { SegmentoRender, OpcoesRender } from './render';
+export { PALAVRA_INCLUSAO, resolverVariante } from './familia';
+export type { RegistroFamilias, VarianteFamilia } from './familia';
 export { ORIGEM, comOrigem, origemDe, copiarOrigemProfunda } from './origem';
 export type { OrigemValor } from './origem';
 export { extrairRunsLinha, removerMarcas, runsPosicionados, MARCA } from './marcas';

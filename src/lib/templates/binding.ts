@@ -1,4 +1,5 @@
-import { extrairEstrutura } from './render';
+import type { RegistroFamilias } from './familia';
+import { expandirInclusoes, extrairEstrutura } from './render';
 import { campoDaEntidade, ENTIDADES, type TipoCampo, type TipoEntidade } from './vocabulario';
 
 // Modelo de binding: cada placeholder é `<binding>.<campo>`. O binding é um papel
@@ -237,10 +238,22 @@ function ehReferenciaDeNumeracao(ph: string): boolean {
  * escopo da lista em vez de virarem bindings unitários, e a coleção entra como
  * lista a carregar.
  */
-export function conteudoParaDeteccao(bloco: { conteudo: string; repeteColecao?: string }): string {
+export function conteudoParaDeteccao(
+  bloco: { conteudo: string; repeteColecao?: string },
+  familias: RegistroFamilias = {},
+): string {
+  // Inclusão de família entra como a UNIÃO das variantes, no lugar do token: o
+  // render escolhe uma, mas a tela Gerar precisa pedir os campos de todas (senão
+  // o endereço urbano nunca é solicitado quando o modelo só cita a família).
+  // Família ausente do registro não é tratada aqui: o token fica como está e o
+  // render é quem acusa, com a mensagem que nomeia as disponíveis.
+  const conteudo = expandirInclusoes(bloco.conteudo, (nome) => {
+    const variantes = familias[nome];
+    return variantes?.length ? variantes.map((v) => v.conteudo).join(' ') : null;
+  });
   return bloco.repeteColecao
-    ? `{{#${bloco.repeteColecao}}}${bloco.conteudo}{{/${bloco.repeteColecao}}}`
-    : bloco.conteudo;
+    ? `{{#${bloco.repeteColecao}}}${conteudo}{{/${bloco.repeteColecao}}}`
+    : conteudo;
 }
 
 export interface BindingLista {
