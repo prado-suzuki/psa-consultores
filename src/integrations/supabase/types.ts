@@ -1356,6 +1356,13 @@ export type Database = {
             foreignKeyName: "daily_standups_sprint_id_fkey"
             columns: ["sprint_id"]
             isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
+          {
+            foreignKeyName: "daily_standups_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
@@ -6309,6 +6316,13 @@ export type Database = {
             foreignKeyName: "project_documents_sprint_id_fkey"
             columns: ["sprint_id"]
             isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
+          {
+            foreignKeyName: "project_documents_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
@@ -7453,6 +7467,13 @@ export type Database = {
             foreignKeyName: "sprint_backlog_items_sprint_id_fkey"
             columns: ["sprint_id"]
             isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
+          {
+            foreignKeyName: "sprint_backlog_items_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
@@ -7559,6 +7580,13 @@ export type Database = {
             foreignKeyName: "sprint_deliverables_sprint_id_fkey"
             columns: ["sprint_id"]
             isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
+          {
+            foreignKeyName: "sprint_deliverables_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
@@ -7636,6 +7664,13 @@ export type Database = {
             foreignKeyName: "sprint_events_sprint_id_fkey"
             columns: ["sprint_id"]
             isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
+          {
+            foreignKeyName: "sprint_events_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
           },
@@ -7676,6 +7711,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "sprint_metrics_sprint_id_fkey"
+            columns: ["sprint_id"]
+            isOneToOne: false
+            referencedRelation: "sprint_resumo"
+            referencedColumns: ["sprint_id"]
+          },
           {
             foreignKeyName: "sprint_metrics_sprint_id_fkey"
             columns: ["sprint_id"]
@@ -8662,6 +8704,16 @@ export type Database = {
           first_name: string | null
           id: string | null
           last_name: string | null
+        }
+        Relationships: []
+      }
+      sprint_resumo: {
+        Row: {
+          custo_economizado_mensal: number | null
+          horas_alocadas: number | null
+          horas_liberadas: number | null
+          melhorias: number | null
+          sprint_id: string | null
         }
         Relationships: []
       }
