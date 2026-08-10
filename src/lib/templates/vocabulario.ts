@@ -308,6 +308,21 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       concordanciaCampo('residente', 'Residente e domiciliado(a)', PARES.residente),
       concordanciaCampo('inscrito', 'Inscrito(a)', PARES.inscrito),
       concordanciaCampo('peloSocio', 'Pelo sócio / Pela sócia', PARES.peloSocio),
+      // Rótulos da linha de assinatura (fecho do contrato).
+      concordanciaCampo('socioTitulo', 'Sócio / Sócia', PARES.socioTitulo),
+      concordanciaCampo('socioAdministrador', 'Sócio administrador / Sócia administradora', PARES.socioAdministrador),
+      {
+        // A outorga do cônjuge é dispensada só no regime da separação absoluta
+        // (art. 1.647 do Código Civil), então comunhão (parcial ou universal) e
+        // participação final nos aquestos a exigem. Os valores gravados no cadastro
+        // hoje são "Comunhão Universal", "Comunhão Parcial" e "Separação Total".
+        // Solteiro/viúvo chegam sem regime e não ligam a condicional.
+        id: 'exigeOutorgaConjugal',
+        label: 'Exige outorga conjugal? (condicional, pelo regime de bens)',
+        tipo: 'texto',
+        derivadoDe: 'regimeBens',
+        derivar: (v) => (/comunh|aquest/i.test(v.regimeBens ?? '') ? 'sim' : ''),
+      },
       {
         id: 'nomeMaiusculo',
         label: 'Nome em caixa alta',
@@ -372,7 +387,8 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivadoDe: 'totalQuotas',
         derivar: (v) => {
           const n = paraInteiroBR(v.totalQuotas);
-          return Number.isFinite(n) ? cardinalExtenso(n) : '';
+          // Feminino: conta quotas ("mil quotas", "oitocentas e setenta e duas mil…").
+          return Number.isFinite(n) ? cardinalExtenso(n, true) : '';
         },
       },
       // Sede completa em prosa ("Rua X, nº 119, bairro Centro, no município de…")

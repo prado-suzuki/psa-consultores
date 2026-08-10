@@ -183,6 +183,10 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'vlrTotalExtenso', label: 'Valor total (por extenso)' },
       { id: 'percentual', label: 'Participação societária (%)' },
       { id: 'representante', label: 'Representante (sócia PJ)' },
+      { id: 'ordem', label: 'Ordem do sócio no quadro (1, 2…)' },
+      { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
+      { id: 'administrador', label: 'É administrador? (condicional)' },
+      { id: 'naoAdministrador', label: 'NÃO é administrador? (condicional, o engine não tem else)' },
     ],
   },
   administradores: {

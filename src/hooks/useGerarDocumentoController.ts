@@ -479,7 +479,14 @@ export function useGerarDocumentoController() {
 
   // `socio.percentual` e a linha `total` são derivados (calculados aqui, não vêm
   // do banco): dependem da soma das quotas, que só existe no nível da lista.
-  const quadro = useMemo(() => mapearQuadroSocietario(socios), [socios]);
+  // Os ids de quem administra entram no mapeador do quadro: é o que a linha de
+  // assinatura precisa para escrever "Sócia administradora" em vez de só "Sócia".
+  // A informação cruza duas fontes (quadro_societario x administracao), e o
+  // mapeador é quem tem a linha da pessoa para casar.
+  const quadro = useMemo(
+    () => mapearQuadroSocietario(socios, new Set(administradores.map((a) => a.pessoa.id).filter(Boolean))),
+    [socios, administradores],
+  );
   const itensPorLista = useMemo<Record<string, ItemLista[]>>(
     () => ({
       socios: quadro.itens,

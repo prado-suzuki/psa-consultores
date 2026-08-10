@@ -127,3 +127,28 @@ describe('percentualExtenso (forma cartorial "inteiros … por cento")', () => {
     expect(percentualExtenso(n)).toBe(esperado);
   });
 });
+
+describe('cardinalExtenso — feminino (conta quotas)', () => {
+  it.each([
+    [1, 'uma'],
+    [2, 'duas'],
+    [500, 'quinhentas'],
+    [200, 'duzentas'],
+    [100, 'cem'],
+    [1000, 'mil'],
+    [1500, 'mil e quinhentas'],
+    // A forma do contrato registrado da MMS Agro.
+    [872674, 'oitocentas e setenta e duas mil, seiscentas e setenta e quatro'],
+    // Dezenas e especiais não flexionam; milhão é substantivo masculino.
+    [15, 'quinze'],
+    [30, 'trinta'],
+    [2000000, 'dois milhões'],
+  ])('%s → %s', (n, esperado) => {
+    expect(cardinalExtenso(n, true)).toBe(esperado);
+  });
+
+  it('sem o sinalizador, segue masculino', () => {
+    expect(cardinalExtenso(500)).toBe('quinhentos');
+    expect(cardinalExtenso(2)).toBe('dois');
+  });
+});

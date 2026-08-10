@@ -439,7 +439,8 @@ export function mapearSocio(s: SocioParaMapear): ItemLista {
   const campos = mapearPessoa(s.pessoa);
   if (s.quotas != null) {
     campos.quotas = formatarInteiro(s.quotas);
-    campos.quotasExtenso = cardinalExtenso(s.quotas);
+    // Feminino: o extenso conta QUOTAS ("quinhentas quotas"), como no registro.
+    campos.quotasExtenso = cardinalExtenso(s.quotas, true);
   }
   if (s.vlr_total != null) {
     campos.vlrTotal = formatarValor(s.vlr_total);
@@ -467,16 +468,34 @@ export interface QuadroSocietarioMapeado {
  * `socio.percentual` (quotas ÷ total de quotas — não vem do banco) e os agregados
  * `total` (quotas, vlrTotal e 100,000%). O percentual precisa da soma, que só
  * existe no nível da lista — por isso não cabe em mapearSocio (um sócio por vez).
+ *
+ * `idsAdministradores` (de `administracao`) marca quem, no quadro, também
+ * administra: a linha de assinatura do fecho escreve "Sócia administradora" em vez
+ * de só "Sócia". Vem por argumento porque é outra fonte, e o padrão do quadro é
+ * não consultar nada por conta própria.
  */
-export function mapearQuadroSocietario(socios: SocioParaMapear[]): QuadroSocietarioMapeado {
+export function mapearQuadroSocietario(
+  socios: SocioParaMapear[],
+  idsAdministradores: ReadonlySet<string> = new Set(),
+): QuadroSocietarioMapeado {
   const totalQuotas = socios.reduce((s, x) => s + (x.quotas ?? 0), 0);
   const totalVlr = socios.reduce((s, x) => s + (x.vlr_total ?? 0), 0);
 
-  const itens = socios.map((s) => {
+  const itens = socios.map((s, i) => {
     const item = mapearSocio(s);
     if (s.quotas != null && totalQuotas > 0) {
       (item.socio as Campos).percentual = formatarPercentual((s.quotas / totalQuotas) * 100);
     }
+    // Enumeração do caput de capital ("sendo: i) … e ii) …"), como já existe na
+    // integralização: a cláusula de capital em moeda corrente lista os sócios do
+    // QUADRO, não das integralizações, e precisa do mesmo romano minúsculo.
+    (item.socio as Campos).ordem = String(i + 1);
+    (item.socio as Campos).ordemRomana = romano(i + 1).toLowerCase();
+    // Duas condicionais, gravadas juntas: o engine não tem "else", então cada ramo
+    // da linha de assinatura tem a sua (mesmo padrão de inteiro/fracionado).
+    const administra = !!s.pessoa.id && idsAdministradores.has(s.pessoa.id);
+    (item.socio as Campos).administrador = administra ? 'sim' : '';
+    (item.socio as Campos).naoAdministrador = administra ? '' : 'sim';
     return item;
   });
 
