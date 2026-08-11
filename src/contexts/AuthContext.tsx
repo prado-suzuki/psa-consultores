@@ -2,8 +2,13 @@ import { createContext, useContext, useEffect, useState, useRef, ReactNode } fro
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import ReautenticacaoDialog from '@/components/auth/ReautenticacaoDialog';
+import { estadoDaSessao, refreshFalhouDefinitivamente } from '@/lib/sessaoExpiracao';
 
 let refreshSessionPromise: Promise<Session | null> | null = null;
+
+/** De quanto em quanto tempo o relógio da sessão é conferido. */
+const INTERVALO_VIGIA_MS = 30_000;
 
 interface AuthContextType {
   user: User | null;
@@ -23,6 +28,13 @@ interface AuthContextType {
   isMarketing: boolean;
   mustChangePassword: boolean;
   loading: boolean;
+  /**
+   * A sessão morreu e o app está pedindo reautenticação SEM desmontar nada.
+   *
+   * Exposto para quem quiser suspender polling/salvamento automático enquanto o
+   * diálogo está aberto. Ninguém precisa reagir: o padrão já é não destrutivo.
+   */
+  sessaoExpirada: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signUp: (email: string, password: string, firstName: string, lastName: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -40,10 +52,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isSublider, setIsSublider] = useState(false);
   const [isMarketing, setIsMarketing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [sessaoExpirada, setSessaoExpirada] = useState(false);
 
   // Refs to compare identity before triggering state updates
   const userIdRef = useRef<string | null>(null);
   const rolesCheckedRef = useRef(false);
+  /**
+   * O logout foi pedido pela pessoa (botão Sair) ou aconteceu com ela?
+   *
+   * `SIGNED_OUT` chega igual nos dois casos, e tratar os dois igual era metade
+   * do B21: um token que expirou zerava o usuário, o `ProtectedRoute` mandava
+   * para o login e o formulário aberto ia junto. Saída pedida limpa tudo; sessão
+   * que caiu abre o diálogo de reautenticação e não desmonta nada.
+   */
+  const saidaVoluntariaRef = useRef(false);
+  /** `expires_at` para o qual o aviso de "vai expirar" já foi dado. */
+  const avisoDadoParaRef = useRef<number | null>(null);
 
   useEffect(() => {
     const initializeAuth = async () => {
@@ -82,6 +106,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Do NOT re-check roles, do NOT touch loading, do NOT update user state.
         // This prevents the entire component tree from remounting.
         setSession(newSession);
+        setSessaoExpirada(false);
+        avisoDadoParaRef.current = null;
         return;
       }
 
@@ -89,6 +115,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Only do a full state update if the user actually changed
         const userChanged = newUserId !== userIdRef.current;
         userIdRef.current = newUserId;
+        setSessaoExpirada(false);
+        saidaVoluntariaRef.current = false;
+        avisoDadoParaRef.current = null;
 
         setSession(newSession);
         setUser(newSession?.user ?? null);
@@ -104,8 +133,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (event === 'SIGNED_OUT') {
+        // Sessão que caiu sozinha (refresh token recusado, revogação remota):
+        // NÃO zera o usuário. Zerar faz o ProtectedRoute redirecionar e leva
+        // junto o formulário aberto — o prejuízo do B21. Sem token o RLS já
+        // recusa qualquer leitura ou escrita, então o que fica na tela é a tela,
+        // não permissão: o diálogo de reautenticação cobre tudo até voltar.
+        if (!saidaVoluntariaRef.current) {
+          setSessaoExpirada(true);
+          setLoading(false);
+          return;
+        }
         userIdRef.current = null;
         rolesCheckedRef.current = false;
+        setSessaoExpirada(false);
         setSession(null);
         setUser(null);
         setIsAdmin(false);
@@ -239,7 +279,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOut = async () => {
     try {
       console.log('[Auth] Iniciando logout...');
-      
+      // Marca a saída como pedida, para o listener saber que este `SIGNED_OUT`
+      // pode limpar tudo (o involuntário não pode — ver o listener).
+      saidaVoluntariaRef.current = true;
+      setSessaoExpirada(false);
+
       // Limpa estado local ANTES do signOut para garantir que a UI atualize
       setUser(null);
       setSession(null);
@@ -290,16 +334,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .then(({ data, error }) => {
       if (error) {
         console.error('Erro ao renovar sessão:', error);
+        // Só um veredito do servidor sobre o refresh token encerra a sessão. Wi-Fi
+        // caído e 5xx devolvem null (quem chamou tenta de novo) sem interromper
+        // ninguém — ver `refreshFalhouDefinitivamente`.
+        if (refreshFalhouDefinitivamente(error)) setSessaoExpirada(true);
         return null;
       }
       if (data.session) {
         setSession(data.session);
         setUser(data.session.user);
+        setSessaoExpirada(false);
+        avisoDadoParaRef.current = null;
       }
       return data.session ?? null;
     })
       .catch((error) => {
         console.error('Erro ao renovar sessão:', error);
+        if (refreshFalhouDefinitivamente(error)) setSessaoExpirada(true);
         return null;
       })
       .finally(() => {
@@ -309,9 +360,81 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return refreshSessionPromise;
   };
 
+  /**
+   * Login de volta, sem o toast de erro do `signIn`.
+   *
+   * O diálogo de reautenticação mostra a falha dentro dele, ao lado do campo de
+   * senha. Um toast por cima diria a mesma coisa duas vezes, em dois lugares.
+   */
+  const reautenticar = async (senha: string): Promise<{ error: unknown }> => {
+    const email = user?.email;
+    if (!email) return { error: new Error('Sessão sem e-mail para reautenticar') };
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
+      return { error };
+    } catch (error) {
+      console.error('[Auth] Falha ao reautenticar:', error);
+      return { error };
+    }
+  };
+
+  /**
+   * Vigia do prazo da sessão.
+   *
+   * Antes, expirar era descoberto pela falha: a pessoa clicava em "Salvar" e o
+   * app a mandava para o login. Aqui a expiração vira um aviso com cinco minutos
+   * de antecedência (`JANELA_AVISO_SEGUNDOS`) e uma tentativa silenciosa de
+   * renovação; se a renovação der certo, ninguém fica sabendo de nada. Só quando
+   * o prazo passa de verdade é que o diálogo de reautenticação aparece — e ele
+   * não desmonta a tela.
+   */
+  useEffect(() => {
+    if (!session) return;
+    const conferir = () => {
+      const estado = estadoDaSessao(session.expires_at, Date.now());
+      if (estado === 'valida') return;
+
+      if (estado === 'expirando') {
+        if (avisoDadoParaRef.current === session.expires_at) return;
+        avisoDadoParaRef.current = session.expires_at ?? null;
+        // A renovação silenciosa resolve o caso comum; o aviso existe para o
+        // caso em que ela não resolve, e serve de deixa para salvar o que está
+        // aberto antes de precisar reautenticar.
+        void refreshSession().then((renovada) => {
+          if (renovada) return;
+          toast({
+            title: 'Sua sessão está perto de expirar',
+            description: 'Salve o que estiver aberto. Se ela cair, você poderá entrar de novo sem perder a tela.',
+          });
+        });
+        return;
+      }
+
+      setSessaoExpirada(true);
+    };
+
+    conferir();
+    const id = window.setInterval(conferir, INTERVALO_VIGIA_MS);
+    return () => window.clearInterval(id);
+    // A dependência é a sessão vigiada; `refreshSession` é recriado a cada
+    // render mas fecha só sobre setters e sobre o promise de módulo, então
+    // reinstalar o intervalo por causa dele seria trabalho à toa.
+  }, [session]);
+
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, isTeamMember, isLider, isSublider, isMarketing, mustChangePassword: user?.user_metadata?.must_change_password === true, loading, signIn, signUp, signOut, refreshSession }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, isTeamMember, isLider, isSublider, isMarketing, mustChangePassword: user?.user_metadata?.must_change_password === true, loading, sessaoExpirada, signIn, signUp, signOut, refreshSession }}>
       {children}
+      {/*
+        Irmão de `children`, nunca substituto: é isso que faz a expiração deixar
+        de ser destrutiva. O formulário que estava aberto continua montado atrás
+        do diálogo e reencontra a sessão nova quando a pessoa volta.
+      */}
+      <ReautenticacaoDialog
+        open={sessaoExpirada}
+        email={user?.email}
+        onEntrar={reautenticar}
+        onSair={() => { void signOut(); }}
+      />
     </AuthContext.Provider>
   );
 };
