@@ -71,28 +71,47 @@ describe('precisão de área', () => {
 });
 
 describe('troca de unidade', () => {
-  it('converte de fato entre m² e ha, preservando a quantidade', () => {
-    expect(converterArea('699.8677', 'm2', 'ha')).toBe('0.06998677');
-    expect(converterArea('0.06998677', 'ha', 'm2')).toBe('699.8677');
-    expect(converterArea('1', 'ha', 'm2')).toBe('10000');
+  it('converte de fato entre as unidades, sem reinterpretar o número', () => {
+    expect(converterArea('1', 'ha', 'm2')).toMatchObject({ valor: '10000', arredondou: false });
+    expect(converterArea('10000', 'm2', 'ha')).toMatchObject({ valor: '1', arredondou: false });
+    expect(converterArea('1234.5678', 'ha', 'm2')).toMatchObject({
+      valor: '12345678', arredondou: false,
+    });
+  });
+
+  it('arredonda ao teto de casas que gravamos e declara a perda', () => {
+    // 699,8677 m² = 0,06998677 ha: oito casas não cabem no que o cadastro
+    // comprovadamente guarda, e deixar o campo com elas faria o próximo toque
+    // no input truncar a diferença em silêncio.
+    const convertido = converterArea('699.8677', 'm2', 'ha');
+    expect(convertido).toEqual({ valor: '0.07', arredondou: true, exato: '0.06998677' });
+    // O aviso da tela usa `exato` e `valor` para mostrar o antes e o depois.
+    expect(formatArea(Number(convertido.exato), 'ha')).toBe('0,06998677 ha');
+    expect(formatArea(Number(convertido.valor), 'ha')).toBe('0,07 ha');
   });
 
   it('não mexe no número entre ha e "ha e m²", que são a mesma grandeza', () => {
     expect(unidadesEquivalentes('ha', 'ha_m2')).toBe(true);
-    expect(converterArea('1234.5678', 'ha', 'ha_m2')).toBe('1234.5678');
-    expect(converterArea('1234.5678', 'ha_m2', 'ha')).toBe('1234.5678');
+    expect(converterArea('1234.5678', 'ha', 'ha_m2')).toEqual({
+      valor: '1234.5678', arredondou: false, exato: '1234.5678',
+    });
+    expect(converterArea('1234.5678', 'ha_m2', 'ha')).toMatchObject({ valor: '1234.5678' });
   });
 
   it('deixa campo vazio ou não numérico como está', () => {
-    expect(converterArea('', 'ha', 'm2')).toBe('');
-    expect(converterArea('  ', 'ha', 'm2')).toBe('  ');
-    expect(converterArea('abc', 'ha', 'm2')).toBe('abc');
+    expect(converterArea('', 'ha', 'm2')).toMatchObject({ valor: '', arredondou: false });
+    expect(converterArea('  ', 'ha', 'm2')).toMatchObject({ valor: '  ', arredondou: false });
+    expect(converterArea('abc', 'ha', 'm2')).toMatchObject({ valor: 'abc', arredondou: false });
   });
 
-  it('ida e volta pela troca de unidade devolve a mesma quantidade', () => {
+  it('ida e volta preserva a quantidade quando ela cabe nas casas gravadas', () => {
+    // Os três casos do aceite saem da sua unidade e voltam idênticos: nenhum
+    // deles perde nada no caminho de ida (ha → m² é sempre exato).
     for (const { digitado, unidade } of CASOS) {
-      const emM2 = converterArea(digitado, unidade, 'm2');
-      expect(Number(converterArea(emM2, 'm2', unidade))).toBeCloseTo(Number(digitado), 8);
+      const ida = converterArea(digitado, unidade, 'm2');
+      const volta = converterArea(ida.valor, 'm2', unidade);
+      expect(volta.arredondou).toBe(false);
+      expect(Number(volta.valor)).toBeCloseTo(Number(digitado), 4);
     }
   });
 });

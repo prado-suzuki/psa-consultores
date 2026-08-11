@@ -11,7 +11,7 @@ Object.defineProperties(Element.prototype, {
 const mocks = vi.hoisted(() => ({
   upsert: vi.fn(), upsertImpedimento: vi.fn(), deleteImpedimento: vi.fn(),
   impedimentos: [] as Record<string, unknown>[],
-  toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+  toast: { error: vi.fn(), info: vi.fn(), warning: vi.fn(), success: vi.fn() },
   titularPanelProps: undefined as Record<string, unknown> | undefined,
 }));
 
@@ -121,6 +121,26 @@ describe('MatriculaModal', () => {
     });
     options.onSuccess();
     expect(props.onClose).toHaveBeenCalledOnce();
+  });
+
+  it('avisa, com o antes e o depois, quando a troca de unidade arredonda', async () => {
+    const user = userEvent.setup();
+    renderModal();
+    await choose(3, '^m²$');
+    // Área da matrícula urbana do aceite de B8: 699,8677 m² não cabe em quatro
+    // casas depois de virar hectare (0,06998677 ha).
+    fireEvent.change(inputAfter('Área documento'), { target: { value: '699.8677' } });
+    await choose(3, '^ha$');
+
+    expect(inputAfter('Área documento')).toHaveValue(0.07);
+    expect(mocks.toast.warning).toHaveBeenCalledWith(
+      'Áreas convertidas de m² para ha, com arredondamento em 4 casas.',
+      { description: 'Área documento: 0,06998677 ha → 0,07 ha' },
+    );
+    expect(mocks.toast.info).not.toHaveBeenCalled();
+    // Sem o aviso, o próximo toque no campo truncaria a diferença em silêncio.
+    fireEvent.change(inputAfter('Área documento'), { target: { value: '0.06998677' } });
+    expect(inputAfter('Área documento')).toHaveValue(0.0699);
   });
 
   it('valida titular e fração antes de chamar a RPC atômica', async () => {

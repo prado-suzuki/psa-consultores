@@ -12,7 +12,7 @@ import { formGridCls, formSpanCls } from '@/lib/osgFormGrid';
 import type { MatriculaRow } from '@/hooks/useDiagnosticoPatrimonial';
 import type { DraftMatricula } from '@/lib/diagnosticoPatrimonialModalModels';
 import { toast } from 'sonner';
-import { AREA_STEP, clampAreaInput, converterArea, formatAreaUnidade, unidadesEquivalentes } from '@/components/equipe/osg/diagnostico-patrimonial/areaUtils';
+import { AREA_DECIMAIS, AREA_STEP, clampAreaInput, converterArea, formatArea, formatAreaUnidade, unidadesEquivalentes } from '@/components/equipe/osg/diagnostico-patrimonial/areaUtils';
 import { CartorioSelect } from '@/components/equipe/osg/diagnostico-patrimonial/CartorioSelect';
 
 const EXPLORACAO = ['Exploração Direta', 'Arrendamento', 'Parceria', 'Comodato', 'Posse', 'Outro'];
@@ -24,22 +24,40 @@ interface Props { draft: DraftMatricula; onChange: (draft: DraftMatricula) => vo
 export function MatriculaDadosTab({ draft, onChange, bemTipo, matricula, matriculasDoBem }: Props) {
   const set = <K extends keyof DraftMatricula>(key: K, value: DraftMatricula[K]) => onChange({ ...draft, [key]: value });
   // Trocar a unidade CONVERTE o que já foi digitado (10.000 m² = 1 ha) em vez de
-  // reinterpretar o número: a quantidade representada não muda, e o consultor é
-  // avisado do que aconteceu com os campos.
+  // reinterpretar o número. Quando a conversão não cabe nas casas que gravamos
+  // (699,8677 m² = 0,06998677 ha), ela arredonda e o aviso mostra o antes e o
+  // depois de cada campo: perder precisão pode ser aceitável, perder em silêncio
+  // não.
   const trocarUnidade = (unidade: string) => {
-    const convertidas = {
-      area_documento: converterArea(draft.area_documento, draft.area_unidade, unidade),
-      area_real: converterArea(draft.area_real, draft.area_unidade, unidade),
-      area_explorada: converterArea(draft.area_explorada, draft.area_unidade, unidade),
-    };
-    onChange({ ...draft, area_unidade: unidade, ...convertidas });
-    const converteu = !unidadesEquivalentes(draft.area_unidade, unidade)
-      && Object.values(convertidas).some((valor) => valor.trim());
-    if (converteu) {
-      toast.info(
-        `Áreas convertidas de ${formatAreaUnidade(draft.area_unidade)} para ${formatAreaUnidade(unidade)} — a quantidade não mudou.`,
-      );
+    const de = draft.area_unidade;
+    const conversoes = [
+      { rotulo: 'Área documento', chave: 'area_documento' as const, r: converterArea(draft.area_documento, de, unidade) },
+      { rotulo: 'Área real', chave: 'area_real' as const, r: converterArea(draft.area_real, de, unidade) },
+      { rotulo: 'Área explorada', chave: 'area_explorada' as const, r: converterArea(draft.area_explorada, de, unidade) },
+    ];
+    onChange({
+      ...draft,
+      area_unidade: unidade,
+      area_documento: conversoes[0].r.valor,
+      area_real: conversoes[1].r.valor,
+      area_explorada: conversoes[2].r.valor,
+    });
+    if (unidadesEquivalentes(de, unidade) || !conversoes.some((c) => c.r.valor.trim())) return;
+    const rotuloDe = formatAreaUnidade(de);
+    const rotuloPara = formatAreaUnidade(unidade);
+    const arredondados = conversoes.filter((c) => c.r.arredondou);
+    if (arredondados.length === 0) {
+      toast.info(`Áreas convertidas de ${rotuloDe} para ${rotuloPara} — a quantidade não mudou.`);
+      return;
     }
+    toast.warning(
+      `Áreas convertidas de ${rotuloDe} para ${rotuloPara}, com arredondamento em ${AREA_DECIMAIS} casas.`,
+      {
+        description: arredondados
+          .map((c) => `${c.rotulo}: ${formatArea(Number(c.r.exato), unidade)} → ${formatArea(Number(c.r.valor), unidade)}`)
+          .join(' · '),
+      },
+    );
   };
   const tipo = draft.tipo_bem || bemTipo || null;
   const rural = tipo === 'IR' || tipo == null;

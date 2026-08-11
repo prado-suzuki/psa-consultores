@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { derivarValoresDoBem, totalizarValoresDosBens } from '@/lib/osg/valoresDoBem';
+import {
+  derivarValoresDoBem,
+  origemDoValor,
+  totalizarValoresDosBens,
+} from '@/lib/osg/valoresDoBem';
 
 // Cenário do aceite (B9), fora do caso MMS: uma fazenda desmembrada em DUAS
 // matrículas (cada uma com o seu valor) convivendo com uma participação
@@ -15,20 +19,23 @@ describe('valores do bem', () => {
   it('soma as duas matrículas do bem, em vez de ler a coluna que ninguém preenche', () => {
     const valores = derivarValoresDoBem(fazendaDesmembrada, matriculasDaFazenda);
     expect(valores).toEqual({
-      vlr_contabil: 800_000,
-      vlr_mercado: 1_300_000,
+      contabil: { valor: 800_000, comValor: 2 },
+      mercado: { valor: 1_300_000, comValor: 2 },
       origem: 'matriculas',
       matriculas: 2,
     });
+    expect(origemDoValor(valores, 'contabil')).toBe('Soma das 2 matrícula(s) do bem');
   });
 
   it('mostra o valor digitado quando o bem não tem matrícula', () => {
-    expect(derivarValoresDoBem(quotasAlfa, [])).toEqual({
-      vlr_contabil: 12.5,
-      vlr_mercado: 30,
+    const valores = derivarValoresDoBem(quotasAlfa, []);
+    expect(valores).toEqual({
+      contabil: { valor: 12.5, comValor: 0 },
+      mercado: { valor: 30, comValor: 0 },
       origem: 'bem',
       matriculas: 0,
     });
+    expect(origemDoValor(valores, 'contabil')).toBe('Valor do próprio bem (sem matrícula)');
   });
 
   it('ignora a coluna do bem assim que existe matrícula (uma fonte só)', () => {
@@ -36,8 +43,23 @@ describe('valores do bem', () => {
     // matrícula: a matrícula manda, e o legado não volta a aparecer.
     const bemComLegado = { vlr_contabil: 1, vlr_mercado: 2 };
     const valores = derivarValoresDoBem(bemComLegado, [{ vlr_contabil: 7, vlr_mercado: null }]);
-    expect(valores.vlr_contabil).toBe(7);
-    expect(valores.vlr_mercado).toBeNull();
+    expect(valores.contabil.valor).toBe(7);
+    expect(valores.mercado.valor).toBeNull();
+  });
+
+  it('não apresenta soma parcial como total: diz quantas matrículas contribuíram', () => {
+    // Duas matrículas, só uma com valor contábil: o número é MENOR que o real, e
+    // a legenda não pode afirmar "soma de 2".
+    const valores = derivarValoresDoBem(fazendaDesmembrada, [
+      { vlr_contabil: 558_413.55, vlr_mercado: 900_000 },
+      { vlr_contabil: null, vlr_mercado: 400_000 },
+    ]);
+    expect(valores.contabil).toEqual({ valor: 558_413.55, comValor: 1 });
+    expect(origemDoValor(valores, 'contabil')).toBe(
+      'Soma parcial: 1 de 2 matrículas com este valor',
+    );
+    // A outra métrica está completa e continua se apresentando como total.
+    expect(origemDoValor(valores, 'mercado')).toBe('Soma das 2 matrícula(s) do bem');
   });
 
   it('distingue "não preenchido" de zero na soma das matrículas', () => {
@@ -45,8 +67,11 @@ describe('valores do bem', () => {
       { vlr_contabil: null, vlr_mercado: null },
       { vlr_contabil: null, vlr_mercado: 0 },
     ]);
-    expect(valores.vlr_contabil).toBeNull();
-    expect(valores.vlr_mercado).toBe(0);
+    expect(valores.contabil).toEqual({ valor: null, comValor: 0 });
+    expect(valores.mercado).toEqual({ valor: 0, comValor: 1 });
+    expect(origemDoValor(valores, 'contabil')).toBe(
+      'Nenhuma das 2 matrículas do bem tem este valor',
+    );
   });
 
   it('totaliza a lista sempre pelo valor derivado', () => {

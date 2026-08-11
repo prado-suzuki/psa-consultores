@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   deleteMatricula: vi.fn(),
   setMatriculaBem: vi.fn(),
   matriculas: [] as Record<string, unknown>[],
-  toast: { error: vi.fn(), info: vi.fn(), success: vi.fn() },
+  toast: { error: vi.fn(), info: vi.fn(), warning: vi.fn(), success: vi.fn() },
   matriculaModalProps: undefined as Record<string, unknown> | undefined,
   titularPanelProps: undefined as Record<string, unknown> | undefined,
 }));

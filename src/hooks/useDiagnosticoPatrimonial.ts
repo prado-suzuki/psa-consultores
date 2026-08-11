@@ -113,6 +113,22 @@ type RawBemComMatriculas = BemRow & {
   matricula: Array<{ vlr_contabil: number | null; vlr_mercado: number | null }> | null;
 };
 
+/**
+ * A lista de bens deixou de ser só a tabela `bem`: os valores vêm das matrículas
+ * dele. Então TODA mutação de matrícula que mexe em valor ou em vínculo
+ * (`bem_id`) precisa derrubar esta lista, senão a linha e o rodapé "Total
+ * contábil" ficam com o número velho até alguém recarregar a página (o
+ * queryClient usa staleTime de 60s e não refaz no foco).
+ *
+ * Invalidação por PREFIXO, sem o cliente: `MatriculaRow` não carrega
+ * `cliente_id` (a matrícula chega ao cliente pelo bem ou pelos titulares), e
+ * pescar o cliente a cada mutação custaria uma consulta a mais para acertar uma
+ * chave que o React Query já sabe casar por prefixo.
+ */
+function invalidateBensDerivados(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ['bens-by-cliente'] });
+}
+
 export function useBensByCliente(clienteId: string | null) {
   return useQuery<BemComValores[]>({
     queryKey: ['bens-by-cliente', clienteId],
@@ -421,6 +437,8 @@ export function useUpsertMatricula() {
       queryClient.invalidateQueries({ queryKey: ['matriculas-all'] });
       queryClient.invalidateQueries({ queryKey: ['matriculas-orphan'] });
       queryClient.invalidateQueries({ queryKey: ['titularidades-by-matricula', row.id] });
+      // Os valores da matrícula são o valor do bem na lista do DP.
+      invalidateBensDerivados(queryClient);
 
       const changed = computeFieldDiff(
         original as unknown as Record<string, unknown> | null,
@@ -477,6 +495,8 @@ export function useDeleteMatricula() {
       queryClient.invalidateQueries({ queryKey: ['matriculas-orphan'] });
       queryClient.invalidateQueries({ queryKey: ['titularidades-by-matricula', matricula.id] });
       queryClient.invalidateQueries({ queryKey: ['impedimentos-by-matricula', matricula.id] });
+      // Excluir a última matrícula devolve o bem ao valor do próprio bem.
+      invalidateBensDerivados(queryClient);
 
       await logAction({
         area: 'osg',
@@ -515,6 +535,8 @@ export function useSetMatriculaBem() {
       queryClient.invalidateQueries({ queryKey: ['matriculas-orphan'] });
       if (bemId) queryClient.invalidateQueries({ queryKey: ['matriculas-by-bem', bemId] });
       if (previousBemId) queryClient.invalidateQueries({ queryKey: ['matriculas-by-bem', previousBemId] });
+      // Vincular/desvincular move o valor da matrícula de um bem para o outro.
+      invalidateBensDerivados(queryClient);
 
       await logAction({
         area: 'osg',

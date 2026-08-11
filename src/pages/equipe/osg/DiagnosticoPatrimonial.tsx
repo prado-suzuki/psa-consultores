@@ -24,17 +24,13 @@ import {
   type BemRow,
 } from '@/hooks/useDiagnosticoPatrimonial';
 import { BemModal } from '@/components/equipe/osg/diagnostico-patrimonial/BemModal';
-import { totalizarValoresDosBens, type ValoresDoBem } from '@/lib/osg/valoresDoBem';
+// A lista mostra um número derivado; `origemDoValor` é o que o consultor lê no
+// tooltip para saber de onde ele veio (e por que não há campo editável no bem
+// com matrícula), inclusive quando a soma é parcial.
+import { origemDoValor, totalizarValoresDosBens } from '@/lib/osg/valoresDoBem';
 
 const formatBrl = (v: number | null | undefined) =>
   v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-
-// A lista mostra um número derivado; o consultor precisa saber de onde ele veio
-// para não procurar um campo editável que não existe no bem com matrícula.
-const origemDoValor = (valores: ValoresDoBem) =>
-  valores.origem === 'matriculas'
-    ? `Soma de ${valores.matriculas} matrícula(s) do bem`
-    : 'Valor do próprio bem (sem matrícula)';
 
 const DiagnosticoPatrimonial = () => {
   const { clienteId } = useOsgWork();
@@ -185,15 +181,15 @@ const DiagnosticoPatrimonial = () => {
                               </TableCell>
                               <TableCell
                                 className="text-right font-mono text-xs"
-                                title={origemDoValor(b.valores)}
+                                title={origemDoValor(b.valores, 'contabil')}
                               >
-                                {formatBrl(b.valores.vlr_contabil)}
+                                {formatBrl(b.valores.contabil.valor)}
                               </TableCell>
                               <TableCell
                                 className="text-right font-mono text-xs"
-                                title={origemDoValor(b.valores)}
+                                title={origemDoValor(b.valores, 'mercado')}
                               >
-                                {formatBrl(b.valores.vlr_mercado)}
+                                {formatBrl(b.valores.mercado.valor)}
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground">
                                 {b.status_integralizacao ?? '—'}

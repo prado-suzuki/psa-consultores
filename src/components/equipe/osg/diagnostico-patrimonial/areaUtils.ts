@@ -10,8 +10,17 @@ import { clampDecimais, stepDeDecimais } from '@/lib/osg/decimais';
 // Precisão de entrada não pode ser menor que a precisão do documento de origem:
 // quatro casas atendem ha, m² e a decomposição ha + m², em qualquer unidade que
 // venha depois. O que varia por unidade é só a EXIBIÇÃO.
+//
+// ESCALA DA COLUNA: desconhecida. Não existe no repositório o `CREATE TABLE
+// matricula` nem nenhum `ALTER` de `area_documento` / `area_real` /
+// `area_explorada` (a tabela nasceu fora das migrations versionadas), e o banco
+// é produção, então ninguém pode conferir a escala real do `numeric`. Por isso
+// AREA_DECIMAIS é o teto de tudo que escrevemos: quatro casas são as que o
+// cadastro comprovadamente já guarda hoje (matrícula rural em hectare). Nada
+// aqui manda mais casas do que isso confiando numa coluna não verificada;
+// quando a conversão de unidade precisaria de mais, ela arredonda e AVISA.
 
-/** Casas decimais aceitas na digitação, iguais para toda unidade. */
+/** Casas decimais aceitas na digitação e no que gravamos, para toda unidade. */
 export const AREA_DECIMAIS = 4;
 
 /** Passo das setinhas do input numérico — derivado da precisão, não da unidade. */
@@ -34,25 +43,46 @@ const fatorM2 = (u: string | null | undefined) => M2_POR_UNIDADE[u ?? ''] ?? 1;
 export const unidadesEquivalentes = (a: string | null | undefined, b: string | null | undefined) =>
   fatorM2(a) === fatorM2(b);
 
+/** Resultado de uma troca de unidade, com a perda de precisão declarada. */
+export interface ConversaoArea {
+  /** Valor na unidade de destino, dentro do teto de AREA_DECIMAIS. */
+  valor: string;
+  /** true quando o teto de casas mudou a quantidade representada. */
+  arredondou: boolean;
+  /** A quantidade exata, para o aviso poder mostrar o antes e o depois. */
+  exato: string;
+}
+
 /**
  * Converte de fato o valor digitado ao trocar a unidade (10.000 m² = 1 ha), em
  * vez de reinterpretar o número e mudar a quantidade em silêncio. Campo vazio ou
  * não numérico volta como está.
+ *
+ * A conversão pode pedir mais casas do que gravamos (699,8677 m² =
+ * 0,06998677 ha). Nesse caso o valor é arredondado para AREA_DECIMAIS e
+ * `arredondou` fica true: escrever oito casas dependeria de uma escala de
+ * coluna que ninguém pôde verificar (ver o cabeçalho), e deixar o campo com
+ * mais casas do que a digitação aceita fazia o próximo toque no input truncar a
+ * diferença em silêncio, que é justamente o defeito que esta correção ataca.
  */
 export function converterArea(
   valor: string,
   de: string | null | undefined,
   para: string | null | undefined,
-): string {
-  if (!valor.trim()) return valor;
+): ConversaoArea {
+  const intacto = { valor, arredondou: false, exato: valor };
+  if (!valor.trim()) return intacto;
   const numero = Number(valor);
-  if (Number.isNaN(numero)) return valor;
-  if (unidadesEquivalentes(de, para)) return valor;
-  const convertido = (numero * fatorM2(de)) / fatorM2(para);
-  // toPrecision limpa o ruído binário (0.06998677000000001) sem tocar na
-  // quantidade — a conversão pode legitimamente pedir mais casas do que a
-  // digitação aceita (699,8677 m² = 0,06998677 ha).
-  return String(Number(convertido.toPrecision(15)));
+  if (Number.isNaN(numero)) return intacto;
+  if (unidadesEquivalentes(de, para)) return intacto;
+  // toPrecision limpa o ruído binário (0.06998677000000001) sem tocar na quantidade.
+  const exato = Number(((numero * fatorM2(de)) / fatorM2(para)).toPrecision(15));
+  const dentroDoTeto = Number(exato.toFixed(AREA_DECIMAIS));
+  return {
+    valor: String(dentroDoTeto),
+    arredondou: dentroDoTeto !== exato,
+    exato: String(exato),
+  };
 }
 
 // Decompõe um valor em ha nas partes "ha" e "m²" (123.1234 ha -> 123 ha e 1234 m²).
@@ -64,7 +94,9 @@ export const splitHaM2 = (v: number): { ha: number; m2: number } => {
 };
 
 // Casas decimais realmente presentes no valor gravado, para a exibição nunca
-// esconder precisão (um valor convertido de m² para ha tem mais de quatro).
+// esconder precisão. Hoje nada que o formulário grava passa de AREA_DECIMAIS,
+// mas linha antiga (ou importada) pode ter mais, e arredondar na exibição
+// esconderia justamente o que o consultor precisaria ver para corrigir.
 const casasDe = (v: number): number => {
   const texto = String(v);
   const ponto = texto.indexOf('.');
