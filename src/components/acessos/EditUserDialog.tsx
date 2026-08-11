@@ -13,12 +13,15 @@ import {
 } from '@/components/ui/dialog';
 import { RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
-import { AREA_CATEGORIES_MAP } from '@/config/areaCategories';
+import { AREA_CATEGORIES_MAP, type AreaKey } from '@/config/areaCategories';
 import { useUpdateTeamMember } from '@/hooks/useTeamMemberMutations';
 import { usePagePermissions } from '@/hooks/usePagePermissions';
 import { useUserPageAccess } from '@/hooks/useUserPageAccess';
+import { useEstruturaMembros } from '@/hooks/useEstruturaManager';
+import { equipesDoUsuario } from '@/lib/equipesDaEstrutura';
 import type { UserWithRoles } from '@/hooks/useUsersWithRoles';
 import { ROLE_OPTIONS } from './roleOptions';
+import { EquipesEstruturaField } from './EquipesEstruturaField';
 
 export interface EditUserDialogProps {
   open: boolean;
@@ -33,6 +36,7 @@ interface EditForm {
   email: string;
   roles: string[];
   areas: string[];
+  equipe_ids: string[];
 }
 
 /**
@@ -42,6 +46,7 @@ interface EditForm {
 export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps) => {
   const { data: pages } = usePagePermissions();
   const { data: userAccess } = useUserPageAccess(user?.id ?? null);
+  const { data: membros = [] } = useEstruturaMembros();
   const updateUser = useUpdateTeamMember();
 
   const [form, setForm] = useState<EditForm>({
@@ -50,6 +55,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
     email: '',
     roles: [],
     areas: [],
+    equipe_ids: [],
   });
 
   // Ao abrir, inicializa o form com dados do usuário + inferência de áreas.
@@ -77,13 +83,27 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
       email: user.email || '',
       roles: [...user.roles],
       areas: inferredAreas,
+      equipe_ids: equipesDoUsuario(user.id, membros),
     });
-  }, [open, user, pages, userAccess]);
+  }, [open, user, pages, userAccess, membros]);
 
   const hasInternalRole =
     form.roles.includes('team_member') ||
     form.roles.includes('lider') ||
     form.roles.includes('sublider');
+
+  /** Equipe escolhida já marca a área de acesso dela — sem pedir duas vezes. */
+  const marcarAreasDaEquipe = (areasImplicadas: AreaKey[]) => {
+    if (!areasImplicadas.length) return;
+    setForm((prev) => ({ ...prev, areas: [...new Set([...prev.areas, ...areasImplicadas])] }));
+  };
+
+  /**
+   * O campo de equipe aparece para quem é interno e também para quem já está
+   * numa equipe — é por ele que se desvincula, então esconder de quem perdeu o
+   * papel deixaria o vínculo preso sem tela para removê-lo.
+   */
+  const mostrarEquipes = hasInternalRole || form.equipe_ids.length > 0;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -174,6 +194,14 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                 </div>
               ))}
             </div>
+
+            {mostrarEquipes && (
+              <EquipesEstruturaField
+                value={form.equipe_ids}
+                onChange={(equipe_ids) => setForm((prev) => ({ ...prev, equipe_ids }))}
+                onAreasImplicadas={marcarAreasDaEquipe}
+              />
+            )}
 
             {hasInternalRole && (
               <div className="space-y-3">

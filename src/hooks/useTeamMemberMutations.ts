@@ -7,6 +7,8 @@ import { useSyncUserAreaAccess } from './useUserPageAccess';
 import { paraRoleDoBanco, type AppRole } from './useUsersWithRoles';
 import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
 import { assertCanPerform } from './useRlsPrecheck';
+import { useAuditLog } from './useAuditLog';
+import { diferencaDeEquipes } from '@/lib/equipesDaEstrutura';
 
 export interface CreateTeamMemberInput {
   first_name: string;
@@ -15,6 +17,8 @@ export interface CreateTeamMemberInput {
   password?: string;
   roles: string[];
   areas: string[];
+  /** Equipes da estrutura em que a pessoa entra já no cadastro. */
+  equipe_ids?: string[];
 }
 
 export interface UpdateTeamMemberInput {
@@ -24,6 +28,76 @@ export interface UpdateTeamMemberInput {
   email: string;
   roles: string[];
   areas: string[];
+  /** Equipes da estrutura. `undefined` deixa os vínculos como estão. */
+  equipe_ids?: string[];
+}
+
+type LogAction = ReturnType<typeof useAuditLog>['logAction'];
+
+/**
+ * Põe a pessoa nas equipes escolhidas, por diferença contra o que já existe.
+ *
+ * Vive aqui, junto da criação/edição do usuário, porque o vínculo com a
+ * estrutura faz parte do mesmo cadastro: sem isso o usuário nasce em "Sem área"
+ * e só entra na equipe numa segunda ida à aba Cadastros Estrutura.
+ */
+async function sincronizarEquipesDaEstrutura(
+  userId: string,
+  equipeIds: string[],
+  pessoa: string,
+  logAction: LogAction,
+): Promise<void> {
+  const { data: atuais, error: leituraError } = await supabase
+    .from('estrutura_equipe_membros')
+    .select('id, equipe_id')
+    .eq('user_id', userId);
+  if (leituraError) throw leituraError;
+
+  const vinculoPorEquipe = new Map((atuais ?? []).map((m) => [m.equipe_id, m.id]));
+  const { adicionar, remover } = diferencaDeEquipes([...vinculoPorEquipe.keys()], equipeIds);
+  if (!adicionar.length && !remover.length) return;
+
+  // Nome da equipe só para a trilha de auditoria ficar legível.
+  const { data: equipes } = await supabase
+    .from('estrutura_equipes')
+    .select('id, name')
+    .in('id', [...adicionar, ...remover]);
+  const nomeDaEquipe = (id: string) =>
+    (equipes ?? []).find((e) => e.id === id)?.name ?? id;
+
+  for (const equipeId of adicionar) {
+    const { data, error } = await supabase
+      .from('estrutura_equipe_membros')
+      .insert({ equipe_id: equipeId, user_id: userId })
+      .select('id')
+      .single();
+    if (error) throw error;
+    await logAction({
+      area: 'estrutura',
+      entity_type: 'membro',
+      entity_id: data.id,
+      entity_name: pessoa,
+      action: 'created',
+      details: `Adicionado à equipe ${nomeDaEquipe(equipeId)} pelo cadastro de usuário`,
+    });
+  }
+
+  for (const equipeId of remover) {
+    const vinculoId = vinculoPorEquipe.get(equipeId)!;
+    const { error } = await supabase
+      .from('estrutura_equipe_membros')
+      .delete()
+      .eq('id', vinculoId);
+    if (error) throw error;
+    await logAction({
+      area: 'estrutura',
+      entity_type: 'membro',
+      entity_id: vinculoId,
+      entity_name: pessoa,
+      action: 'deleted',
+      details: `Removido da equipe ${nomeDaEquipe(equipeId)} pelo cadastro de usuário`,
+    });
+  }
 }
 
 /**
@@ -37,6 +111,7 @@ export function useCreateTeamMember() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const syncAreaAccess = useSyncUserAreaAccess();
+  const { logAction } = useAuditLog();
 
   return useMutation({
     mutationFn: async (input: CreateTeamMemberInput) => {
@@ -78,6 +153,27 @@ export function useCreateTeamMember() {
         }
       }
 
+      // Vínculo com a estrutura (cluster → área → equipe). O usuário já existe
+      // neste ponto: se o vínculo falhar, o erro é dito por extenso em vez de
+      // deixar a pessoa achando que ficou tudo cadastrado.
+      const equipeIds = input.equipe_ids ?? [];
+      if (hasInternalRole && equipeIds.length > 0 && newUserId) {
+        try {
+          await sincronizarEquipesDaEstrutura(
+            newUserId,
+            equipeIds,
+            `${input.first_name} ${input.last_name}`.trim(),
+            logAction,
+          );
+        } catch (err) {
+          console.error('[useCreateTeamMember] Falha ao vincular equipe:', err);
+          toast.error(
+            'Usuário criado, mas não entrou na equipe. Vincule em Cadastros Estrutura.',
+            { duration: 10000 },
+          );
+        }
+      }
+
       // Webhook de boas-vindas (fire-and-forget — não bloqueia a mutation)
       const adminName =
         user?.user_metadata?.first_name && user?.user_metadata?.last_name
@@ -116,6 +212,8 @@ export function useCreateTeamMember() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
+      queryClient.invalidateQueries({ queryKey: ['estrutura-membros'] });
+      queryClient.invalidateQueries({ queryKey: ['profiles-min-role'] });
       toast.success('Usuário criado com sucesso!');
     },
     onError: (error: Error) => {
@@ -131,10 +229,11 @@ export function useCreateTeamMember() {
 export function useUpdateTeamMember() {
   const queryClient = useQueryClient();
   const syncAreaAccess = useSyncUserAreaAccess();
+  const { logAction } = useAuditLog();
 
   return useMutation({
     mutationFn: async (input: UpdateTeamMemberInput) => {
-      const { userId, first_name, last_name, email, roles, areas } = input;
+      const { userId, first_name, last_name, email, roles, areas, equipe_ids } = input;
 
       // 1. Update profile
       await assertCanPerform('profiles', 'update', userId);
@@ -199,10 +298,25 @@ export function useUpdateTeamMember() {
           allAreaCategories: ALL_AREA_CATEGORIES,
         });
       }
+
+      // 4. Sync vínculo com a estrutura (só quando a tela mandou a lista).
+      // Sem amarrar ao papel de propósito: tirar o papel de membro não deve
+      // desvincular ninguém da equipe por baixo dos panos — sair da equipe é
+      // gesto explícito, feito no próprio campo.
+      if (equipe_ids) {
+        await sincronizarEquipesDaEstrutura(
+          userId,
+          equipe_ids,
+          `${first_name} ${last_name}`.trim(),
+          logAction,
+        );
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users-with-roles'] });
       queryClient.invalidateQueries({ queryKey: ['user-page-access'] });
+      queryClient.invalidateQueries({ queryKey: ['estrutura-membros'] });
+      queryClient.invalidateQueries({ queryKey: ['profiles-min-role'] });
       toast.success('Usuário atualizado com sucesso');
     },
     onError: (error: Error) => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Switch } from '@/components/ui/switch';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -62,6 +62,67 @@ export default function EstruturaManager() {
   const { data: memberCandidates = [] } = useProfilesMinRole('team_member');
   // allProfiles = qualquer interno (memberCandidates já cobre todos os papéis internos pela hierarquia)
   const allProfiles = memberCandidates;
+
+  // ─── Quem já tem cluster x quem está solto ────────────────────────
+  // Em que clusters cada pessoa já aparece: membro de equipe, gestora de equipe
+  // ou gestora de chamados de uma área. Quem não aparece em nenhum está "solto"
+  // e é justamente quem falta cadastrar — por isso vem primeiro nos selects.
+  const clustersByUser = useMemo(() => {
+    const clusterNameById = new Map(clusters.map(c => [c.id, c.name]));
+    const clusterByArea = new Map(areas.map(a => [a.id, a.cluster_id]));
+    const clusterByEquipe = new Map(equipes.map(e => [e.id, clusterByArea.get(e.area_id)]));
+
+    const map = new Map<string, Set<string>>();
+    const add = (userId: string | null | undefined, clusterId: string | undefined) => {
+      const name = clusterId ? clusterNameById.get(clusterId) : undefined;
+      if (!userId || !name) return;
+      const set = map.get(userId) ?? new Set<string>();
+      set.add(name);
+      map.set(userId, set);
+    };
+
+    membros.forEach(m => add(m.user_id, clusterByEquipe.get(m.equipe_id)));
+    equipes.forEach(e => add(e.gestor_id, clusterByEquipe.get(e.id)));
+    areas.forEach(a => add(a.gestor_chamados_id, a.cluster_id));
+    return map;
+  }, [clusters, areas, equipes, membros]);
+
+  const clusterHint = (userId: string) => [...(clustersByUser.get(userId) ?? [])].join(', ');
+
+  /** Opções do select separadas em "sem cluster" (primeiro) e "já em cluster". */
+  const renderProfileOptions = (list: Profile[], showCluster: boolean) => {
+    const byName = (a: Profile, b: Profile) => profileLabel(a).localeCompare(profileLabel(b), 'pt-BR');
+    const soltos = list.filter(p => !clustersByUser.has(p.id)).sort(byName);
+    const alocados = list.filter(p => clustersByUser.has(p.id)).sort(byName);
+
+    return (
+      <>
+        {soltos.length > 0 && (
+          <SelectGroup>
+            <SelectLabel className="text-[11px] font-semibold uppercase tracking-wide text-teal-700">
+              Sem cluster ({soltos.length})
+            </SelectLabel>
+            {soltos.map(p => (
+              <SelectItem key={p.id} value={p.id} className="text-xs">{profileLabel(p)}</SelectItem>
+            ))}
+          </SelectGroup>
+        )}
+        {alocados.length > 0 && (
+          <SelectGroup>
+            <SelectLabel className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+              Já em cluster ({alocados.length})
+            </SelectLabel>
+            {alocados.map(p => (
+              <SelectItem key={p.id} value={p.id} className="text-xs">
+                {profileLabel(p)}
+                {showCluster && <span className="text-slate-400"> · {clusterHint(p.id)}</span>}
+              </SelectItem>
+            ))}
+          </SelectGroup>
+        )}
+      </>
+    );
+  };
 
   // Helper para label do CC a partir do id
   const getCcLabel = (ccId: string | null | undefined) => {
@@ -328,11 +389,7 @@ export default function EstruturaManager() {
                                         </SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="_none" className="text-xs">Nenhum</SelectItem>
-                                          {gestorCandidates.map(p => (
-                                            <SelectItem key={p.id} value={p.id} className="text-xs">
-                                              {profileLabel(p)}
-                                            </SelectItem>
-                                          ))}
+                                          {renderProfileOptions(gestorCandidates, false)}
                                         </SelectContent>
                                       </Select>
                                     </div>
@@ -361,11 +418,7 @@ export default function EstruturaManager() {
                                         <SelectValue placeholder={availableMembers.length === 0 ? 'Todos os elegíveis já são membros' : '+ Adicionar membro...'} />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        {availableMembers.map(p => (
-                                          <SelectItem key={p.id} value={p.id} className="text-xs">
-                                            {profileLabel(p)}
-                                          </SelectItem>
-                                        ))}
+                                        {renderProfileOptions(availableMembers, true)}
                                       </SelectContent>
                                     </Select>
                                   </div>

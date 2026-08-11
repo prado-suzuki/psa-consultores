@@ -14,9 +14,10 @@ import {
 } from '@/components/ui/dialog';
 import { UserPlus, RefreshCw, CheckCircle2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
-import { AREA_CATEGORIES_MAP } from '@/config/areaCategories';
+import { AREA_CATEGORIES_MAP, type AreaKey } from '@/config/areaCategories';
 import { useCreateTeamMember, type CreateTeamMemberInput } from '@/hooks/useTeamMemberMutations';
 import { ROLE_OPTIONS } from './roleOptions';
+import { EquipesEstruturaField } from './EquipesEstruturaField';
 
 // Senha temporária é gerada aleatoriamente pelo edge function `create-team-member`
 // e retornada uma única vez para o admin compartilhar com o novo usuário.
@@ -27,6 +28,7 @@ const EMPTY_FORM: Omit<CreateTeamMemberInput, 'password'> = {
   email: '',
   roles: [],
   areas: [],
+  equipe_ids: [],
 };
 
 const copyToClipboard = (text: string) => {
@@ -72,6 +74,15 @@ export const CreateUserDialog = () => {
     form.roles.includes('team_member') ||
     form.roles.includes('lider') ||
     form.roles.includes('sublider');
+
+  /** Equipe escolhida já marca a área de acesso dela — sem pedir duas vezes. */
+  const marcarAreasDaEquipe = (areasImplicadas: AreaKey[]) => {
+    if (!areasImplicadas.length) return;
+    setForm((prev) => ({
+      ...prev,
+      areas: [...new Set([...prev.areas, ...areasImplicadas])],
+    }));
+  };
 
   return (
     <Dialog
@@ -218,6 +229,14 @@ export const CreateUserDialog = () => {
                   </div>
                 ))}
               </div>
+
+              {hasInternalRole && (
+                <EquipesEstruturaField
+                  value={form.equipe_ids ?? []}
+                  onChange={(equipe_ids) => setForm((prev) => ({ ...prev, equipe_ids }))}
+                  onAreasImplicadas={marcarAreasDaEquipe}
+                />
+              )}
 
               {hasInternalRole && (
                 <div className="space-y-3">
