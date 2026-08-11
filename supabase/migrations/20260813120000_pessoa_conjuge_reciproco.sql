@@ -185,7 +185,9 @@ BEGIN
      WHERE id = NEW.conjuge_id;
 
     IF v_cliente_do_novo IS DISTINCT FROM NEW.cliente_id THEN
-      IF TG_OP = 'INSERT' OR NEW.conjuge_id IS DISTINCT FROM OLD.conjuge_id THEN
+      IF TG_OP = 'INSERT'
+         OR NEW.conjuge_id IS DISTINCT FROM OLD.conjuge_id
+         OR NEW.cliente_id IS DISTINCT FROM OLD.cliente_id THEN
         RAISE EXCEPTION
           'Cônjuge (%) pertence a outro cliente; o vínculo conjugal vive dentro de um cliente só',
           NEW.conjuge_id
@@ -264,7 +266,7 @@ COMMENT ON FUNCTION public.tg_pessoa_conjuge_reciproco() IS
 
 DROP TRIGGER IF EXISTS trg_pessoa_conjuge_reciproco ON public.pessoa;
 CREATE TRIGGER trg_pessoa_conjuge_reciproco
-  AFTER INSERT OR UPDATE OF conjuge_id ON public.pessoa
+  AFTER INSERT OR UPDATE OF conjuge_id, cliente_id ON public.pessoa
   FOR EACH ROW
   EXECUTE FUNCTION public.tg_pessoa_conjuge_reciproco();
 

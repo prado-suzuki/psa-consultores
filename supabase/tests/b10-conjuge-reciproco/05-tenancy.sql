@@ -73,3 +73,31 @@ BEGIN
     (SELECT conjuge_id IS NULL FROM public.pessoa WHERE id = 'b0000000-0000-4000-8000-000000000001'),
     'tenancy: editar a linha legada não espelhou nada no outro cliente');
 END $$;
+
+-- ----------------------------------------------------------------------------
+-- 4. Mover uma pessoa casada para outro cliente não pode criar cruzamento
+--    sem tocar explicitamente em conjuge_id.
+-- ----------------------------------------------------------------------------
+INSERT INTO public.pessoa (id, cliente_id, denominacao, conjuge_id) VALUES
+  ('a0000000-0000-4000-8000-0000000000a1', 'c1000000-0000-4000-8000-000000000001',
+   'Casada para mover', NULL),
+  ('a0000000-0000-4000-8000-0000000000a2', 'c1000000-0000-4000-8000-000000000001',
+   'Cônjuge que fica', 'a0000000-0000-4000-8000-0000000000a1');
+
+DO $$
+DECLARE v_estado text := 'nao falhou';
+BEGIN
+  BEGIN
+    UPDATE public.pessoa
+       SET cliente_id = 'c2000000-0000-4000-8000-000000000002'
+     WHERE id = 'a0000000-0000-4000-8000-0000000000a1';
+  EXCEPTION WHEN check_violation THEN
+    v_estado := 'recusado';
+  END;
+  PERFORM public.afirma(v_estado = 'recusado',
+    'tenancy: mover pessoa casada para outro cliente é recusado mesmo sem SET conjuge_id');
+  PERFORM public.afirma(
+    (SELECT cliente_id = 'c1000000-0000-4000-8000-000000000001'::uuid
+       FROM public.pessoa WHERE id = 'a0000000-0000-4000-8000-0000000000a1'),
+    'tenancy: a mudança recusada não propagou vínculo cruzado');
+END $$;
