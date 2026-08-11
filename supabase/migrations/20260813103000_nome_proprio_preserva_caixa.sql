@@ -22,14 +22,88 @@
 -- gravado (ver `normalizarNomeDigitado` em src/lib/nomeProprio.ts, aplicada no
 -- blur do campo: ela apara espaços e não mexe em caixa).
 --
+-- O QUE O GATILHO SUSTENTAVA SEM DIZER, E QUE PRECISA DE OUTRO DONO.
+--
+-- Achatar todo mundo para a mesma grafia fazia, de lambuja, com que comparar
+-- `nome` por igualdade exata funcionasse. Duas coisas vivas dependem disso:
+--
+--   1. `get_ordens_by_client_name` (definida treze linhas acima da função que
+--      esta migração derruba, no mesmo arquivo de 20260319152802), consumida por
+--      `useClienteOrdens` em src/hooks/useTaxReferenceData.ts. Ela é o
+--      pareamento dev/prod do mesmo cliente: expande o id para TODOS os clientes
+--      de mesmo nome, em qualquer ambiente. Sem o initcap(), bastaria alguém
+--      reeditar o nome num ambiente para o par quebrar e a lista de OS do
+--      cliente esvaziar em silêncio.
+--   2. A checagem de cliente duplicado no cadastro, que comparava por igualdade
+--      exata: "AGRO MMS" e "Agro Mms" passariam a ser clientes distintos e o
+--      aviso não dispararia. Essa metade é resolvida no front (a comparação
+--      passou a usar `chaveDeNomeCliente`, gêmea em TypeScript da função
+--      `nome_cliente_normalizado` criada aqui), porque o front precisa continuar
+--      funcionando no intervalo entre subir o código e o Lovable aplicar isto.
+--
+-- A invariante, então, muda de lugar em vez de sumir: quem passa a dizer que
+-- dois nomes são o mesmo é `nome_cliente_normalizado(text)` (minúsculas, espaço
+-- de borda aparado, espaço interno colapsado), e não mais o dado achatado na
+-- gravação. O índice funcional sobre ela evita que a comparação normalizada
+-- custe uma varredura: sem o índice, `lower(...)` no WHERE mataria o uso do
+-- índice de igualdade que existisse sobre `nome`.
+--
 -- ⚠️ MIGRAÇÃO — aplicada pelo Lovable. Não altera dado existente: nomes já
 -- achatados por `initcap()` continuam achatados até alguém reeditá-los. Corrigir
 -- o passado exigiria a grafia original, que o gatilho apagou; um `UPPER`/`UPDATE`
 -- em massa inventaria uma caixa que ninguém digitou.
 --
 -- REVERSÃO: recriar a função de 20260319152802 e os gatilhos
--- BEFORE INSERT OR UPDATE em public.cliente e public.contribuinte.
+-- BEFORE INSERT OR UPDATE em public.cliente e public.contribuinte; restaurar
+-- `get_ordens_by_client_name` na forma antiga; e derrubar o índice e a função
+-- `nome_cliente_normalizado` criados abaixo.
 
+-- ── 1. Quem passa a dizer que dois nomes são o mesmo ────────────────────────
+-- IMMUTABLE porque é condição para o índice funcional: lower/btrim/regexp_replace
+-- são todas imutáveis, então a composição também é.
+--
+-- O `SET search_path` fica de propósito, embora a função não seja SECURITY
+-- DEFINER: ele impede o inlining, e assim a expressão indexada e a do WHERE
+-- continuam sendo literalmente a mesma chamada, que é o que garante o uso do
+-- índice. O corpo só usa built-ins de pg_catalog, então não há o que quebrar.
+CREATE OR REPLACE FUNCTION public.nome_cliente_normalizado(p_nome text)
+RETURNS text
+LANGUAGE sql
+IMMUTABLE
+PARALLEL SAFE
+SET search_path = public
+AS $$
+  SELECT lower(btrim(regexp_replace(coalesce(p_nome, ''), '\s+', ' ', 'g')));
+$$;
+
+COMMENT ON FUNCTION public.nome_cliente_normalizado(text) IS
+  'Forma canônica de um nome de cliente para comparação (minúsculas, espaço aparado e colapsado). Gêmea de chaveDeNomeCliente em src/lib/nomeProprio.ts: mudou uma, muda a outra.';
+
+-- Sem CONCURRENTLY: `cliente` tem poucas centenas de linhas (166 em prod na
+-- carga de 31/07), então o lock é de milissegundos, e CONCURRENTLY não roda
+-- dentro do bloco transacional em que a migração é aplicada.
+CREATE INDEX IF NOT EXISTS idx_cliente_nome_normalizado
+  ON public.cliente (public.nome_cliente_normalizado(nome));
+
+-- ── 2. O pareamento dev/prod passa a comparar pela forma canônica ───────────
+-- O corpo é o mesmo de 20260319152802, com a igualdade trocada. Escrito com a
+-- chamada de função dos dois lados (e não com lower() solto no WHERE) justamente
+-- para casar com a expressão do índice acima.
+CREATE OR REPLACE FUNCTION public.get_ordens_by_client_name(p_client_id uuid)
+ RETURNS SETOF ordem_servico LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO 'public'
+AS $function$
+  SELECT os.* FROM ordem_servico os
+  WHERE os.id_cliente IN (
+    SELECT c2.id FROM cliente c2
+    WHERE public.nome_cliente_normalizado(c2.nome)
+        = public.nome_cliente_normalizado((SELECT nome FROM cliente WHERE id = p_client_id LIMIT 1))
+      AND c2.excluido = false
+  )
+    AND os.excluido = false
+  ORDER BY os.created_at DESC;
+$function$;
+
+-- ── 3. Só então o gatilho pode cair ─────────────────────────────────────────
 -- Os gatilhos foram criados fora do repositório (console/Lovable), então os nomes
 -- não são conhecidos aqui. Derruba pelo que é certo: a função que eles executam.
 DO $$

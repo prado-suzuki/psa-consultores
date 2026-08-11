@@ -19,3 +19,23 @@
 export function normalizarNomeDigitado(valor: string | null | undefined): string {
   return (valor ?? '').replace(/\s+/g, ' ').trim();
 }
+
+/**
+ * Forma canônica de um nome de cliente, só para COMPARAR. Nunca para gravar.
+ *
+ * Gêmea da função SQL `nome_cliente_normalizado(text)` (migração
+ * 20260813103000). Mudou uma, muda a outra.
+ *
+ * Ela existe porque o gatilho `initcap()` sustentava, sem dizer, uma invariante
+ * da qual duas coisas dependiam: comparar `cliente.nome` por igualdade exata
+ * funcionava porque todo mundo tinha sido achatado para a mesma grafia. Com o
+ * gatilho fora, "AGRO MMS" e "Agro Mms" passam a ser strings diferentes, e quem
+ * compara nome precisa dizer explicitamente que caixa e espaço não contam: o
+ * pareamento dev/prod do mesmo cliente (do lado do banco) e o aviso de cliente
+ * duplicado no cadastro (deste lado).
+ *
+ * @example chaveDeNomeCliente('  AGRO MMS   S/A ') === 'agro mms s/a'
+ */
+export function chaveDeNomeCliente(valor: string | null | undefined): string {
+  return normalizarNomeDigitado(valor).toLowerCase();
+}

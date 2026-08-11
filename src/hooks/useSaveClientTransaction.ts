@@ -21,6 +21,7 @@ import {
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftOrdemServico } from '@/types/clientForm';
 import { N8N_WELCOME_WEBHOOK } from '@/lib/webhooks';
 import { splitName } from '@/lib/nameUtils';
+import { chaveDeNomeCliente } from '@/lib/nomeProprio';
 
 const clienteTable = 'cliente';
 const contribuinteTable = 'contribuinte';
@@ -198,15 +199,31 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     }
 
     // --- Duplicate name check (only on creation) ---
+    //
+    // A comparação era `.eq("nome", ...)`, igualdade exata, e funcionava por
+    // acidente: o gatilho `normalize_name_title_case` achatava todo mundo com
+    // initcap() antes de gravar, então "AGRO MMS" e "Agro Mms" viravam a mesma
+    // string no banco. Derrubado o gatilho (migração 20260813103000), a
+    // igualdade exata deixaria os dois passarem como clientes distintos e o
+    // aviso não dispararia. Quem diz que dois nomes são o mesmo agora é
+    // `chaveDeNomeCliente`, gêmea da função SQL `nome_cliente_normalizado`.
+    //
+    // A comparação é feita aqui, e não no banco, por duas razões: o filtro
+    // equivalente em PostgREST seria `ilike`, que trata `%`, `_` e `*` como
+    // curinga e exigiria escapar o nome digitado; e o código precisa continuar
+    // acertando no intervalo entre subir e o Lovable aplicar a migração. A
+    // varredura é barata: roda uma única vez, só na criação, sobre uma tabela
+    // de poucas centenas de linhas já recortada pela RLS.
     if (!isEditing) {
-      const { data: existing } = await supabase
+      const nomeDigitado = clientData.nome.trim();
+      const chaveDigitada = chaveDeNomeCliente(nomeDigitado);
+      const { data: candidatos } = await supabase
         .from(clienteTable)
         .select("id, nome")
-        .eq("nome", clientData.nome.trim())
-        .eq("excluido", false)
-        .limit(1);
-      if (existing && existing.length > 0) {
-        const confirmed = await onDuplicateFound(clientData.nome.trim());
+        .eq("excluido", false);
+      const existe = (candidatos || []).some(c => chaveDeNomeCliente(c.nome) === chaveDigitada);
+      if (existe) {
+        const confirmed = await onDuplicateFound(nomeDigitado);
         if (!confirmed) return;
       }
     }
