@@ -12,9 +12,17 @@
 --       numeral em vez de acompanhá-lo. O padrão da casa (e o resto do próprio
 --       documento, com área, valor e quotas) é "02 (dois)".
 --
--- A REDAÇÃO CANÔNICA (docs/osg/contrato-l2-l3-motor-e-blocos.md, itens 1 e 5)
+-- A REDAÇÃO CANÔNICA (docs/osg/contrato-l2-l3-motor-e-blocos.md, itens 1 e 5,
+-- este último na forma emendada pelo 9.7)
 --   do {{ imovel.cartorio }}{{#imovel.cartorioComarca}} da comarca de {{ imovel.cartorioComarca }}{{/imovel.cartorioComarca}}
---   no Livro {{ imovel.livroNumeral }} ({{ imovel.livroExtenso }}), folhas/ficha {{ imovel.folhaNumeral }} ({{ imovel.folhaExtenso }})
+--   no Livro {{ imovel.livroNumeral }}{{#imovel.livroExtenso}} ({{ imovel.livroExtenso }}){{/imovel.livroExtenso}}, folhas/ficha {{ imovel.folhaNumeral }}{{#imovel.folhaExtenso}} ({{ imovel.folhaExtenso }}){{/imovel.folhaExtenso}}
+--
+-- O PARÊNTESE DO EXTENSO É CONDICIONAL (emenda 9.7)
+-- Livro alfanumérico ("2-AUX", "3-Auxiliar") não tem cardinal, então
+-- `livroExtenso` resolve '' e a redação sem guarda sairia "Livro 2-AUX ()". A
+-- saída não é tornar o extenso tolerante (ele passaria a mentir sobre o que é),
+-- e sim condicionar o parêntese: "Livro 02 (dois)" no numérico, "Livro 2-AUX" no
+-- alfanumérico.
 --
 -- Os campos `imovel.cartorioComarca`, `imovel.livroNumeral` e `imovel.folhaNumeral`
 -- são entrega do motor (raia L2, src/lib/templates/mapeadores.ts) e chegam junto:
@@ -40,11 +48,27 @@
 --     {{ imovel.cartorio }}, mas completava com {{ imovel.comarca }}, que é a
 --     comarca crua: mesmo defeito latente do B4 (redundância quando o nome já
 --     traz a comarca). Passa a usar {{ imovel.cartorioComarca }}.
+--   - No mesmo bloco, a guarda {{#imovel.cartorio}} em volta da linha do cartório
+--     MORREU com o item 1 do contrato (emenda 9.8): como o mapeador passou a
+--     devolver o rótulo genérico quando não há nome, essa guarda sempre passa, e
+--     uma matrícula SEM cartório vinculado, que antes não imprimia a linha,
+--     passaria a imprimir um "Cartório de Registro de Imóveis" solitário. A linha
+--     passa a ser condicionada por {{#imovel.temCartorio}}, sinal explícito que a
+--     L2 publica a partir do vínculo real. Não se usa a comarca como aproximação:
+--     um cartório vinculado pode legitimamente estar cadastrado sem comarca e
+--     ainda precisa aparecer pelo fallback gramatical do item 1.
 --   - ", Estado de {{ imovel.ufCartorio }}" era o único pedaço da frase do
---     cartório sem guarda: cadastro sem UF escrevia ", Estado de ,". Ganha a
---     mesma guarda de trecho que livro, folha e CCIR já têm — é guarda DE TRECHO
---     dentro de um bloco que tem outro conteúdo, não guarda de bloco inteiro
---     (essa é do motor, item 2 do contrato).
+--     cartório sem guarda. NÃO era pontuação solta: sem cartório vinculado a
+--     chave `ufCartorio` sequer existia no contexto e o render LANÇAVA
+--     ("Placeholder não resolvido"), porque `set()` omite null. A guarda nova
+--     depende da emenda 9.6 do contrato, que obriga a L2 a publicar '' para todo
+--     campo opcional declarado (`ufCartorio`, `comarca`, `ccir`, `livro`,
+--     `folha`, `inscricaoMunicipal`), como os `georef*` já faziam. Antes da 9.6 a
+--     guarda também lançaria ("Seção não resolvida"), ou seja, o defeito é o
+--     mesmo, e é o que as guardas de livro, folha e CCIR já escritas no texto
+--     vivo sofrem HOJE em produção: matrícula sem CCIR derruba o render das cinco
+--     variantes. Esta é guarda DE TRECHO dentro de bloco que tem outro conteúdo,
+--     não guarda de bloco inteiro (essa é do motor, item 2 do contrato).
 --
 -- OVERRIDE DE CLIENTE É PRESERVADO (item 7 do contrato)
 -- Override na Biblioteca é um tmpl_bloco DERIVADO (bloco_origem_id preenchido,
@@ -98,7 +122,15 @@ begin
       'g'
     );
 
-    -- B4.3 — a UF do cartório vira trecho opcional, como o resto da frase.
+    -- B4.3 — a guarda que o item 1 do contrato matou (emenda 9.8): com
+    -- {{ imovel.cartorio }} nunca vazio, {{#imovel.cartorio}} sempre passa e a
+    -- matrícula sem cartório vinculado passaria a imprimir o rótulo genérico
+    -- sozinho. Quem condiciona a linha é o sinal explícito do vínculo, que
+    -- continua verdadeiro até para cartório cadastrado sem nome/comarca.
+    novo := regexp_replace(novo, $re$\{\{#[[:space:]]*imovel\.cartorio[[:space:]]*\}\}$re$, $re${{#imovel.temCartorio}}$re$, 'g');
+    novo := regexp_replace(novo, $re$\{\{/[[:space:]]*imovel\.cartorio[[:space:]]*\}\}$re$, $re${{/imovel.temCartorio}}$re$, 'g');
+
+    -- B4.4 — a UF do cartório vira trecho opcional, como o resto da frase.
     -- Só entra onde ainda não há guarda, senão a segunda passada aninharia uma
     -- guarda dentro da outra.
     if novo not like '%{{#imovel.ufCartorio}}%' then
@@ -110,17 +142,19 @@ begin
       );
     end if;
 
-    -- B14 — o extenso deixa de substituir o numeral e passa a acompanhá-lo.
+    -- B14 — o extenso deixa de substituir o numeral e passa a acompanhá-lo, com
+    -- o parêntese condicionado ao próprio extenso (emenda 9.7): livro
+    -- alfanumérico não tem cardinal e não pode sair "2-AUX ()".
     novo := regexp_replace(
       novo,
       $re$Livro[[:space:]]*\{\{[[:space:]]*imovel\.livroExtenso[[:space:]]*\}\}$re$,
-      $re$Livro {{ imovel.livroNumeral }} ({{ imovel.livroExtenso }})$re$,
+      $re$Livro {{ imovel.livroNumeral }}{{#imovel.livroExtenso}} ({{ imovel.livroExtenso }}){{/imovel.livroExtenso}}$re$,
       'gi'
     );
     novo := regexp_replace(
       novo,
       $re$Folhas/Ficha[[:space:]]*\{\{[[:space:]]*imovel\.folhaExtenso[[:space:]]*\}\}$re$,
-      $re$folhas/ficha {{ imovel.folhaNumeral }} ({{ imovel.folhaExtenso }})$re$,
+      $re$folhas/ficha {{ imovel.folhaNumeral }}{{#imovel.folhaExtenso}} ({{ imovel.folhaExtenso }}){{/imovel.folhaExtenso}}$re$,
       'gi'
     );
 

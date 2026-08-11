@@ -40,6 +40,16 @@
 -- quebrada de "Lucas do Rio Verde/MT, ." (B19) é campo manual vazio, resolvido no
 -- motor com lacuna assinalável — não é problema de texto do bloco.
 --
+-- ⚠️ AVISO A QUEM FOR FIAR A LISTA (tela Gerar)
+-- Advogado e testemunhas continuam como LINHAS FIXAS deste bloco, com os seus
+-- placeholders de texto livre ({{ advogadoNome }}, {{ testemunha1Nome }}…). A
+-- entrada de `signatarios` do motor aceita `advogado` e `testemunhas`, e quem
+-- montar a lista NÃO pode preenchê-los para este bloco: o laço passaria a
+-- imprimir uma linha de advogado que já existe logo abaixo, e o contrato sairia
+-- com o mesmo advogado assinando duas vezes. O laço aqui é de sócios,
+-- administradores e cônjuges outorgantes. Se um dia advogado e testemunhas
+-- entrarem pela lista, é o texto FIXO que sai daqui, na mesma migration.
+--
 -- POR QUE EMENDA TEXTUAL, E NÃO REESCRITA DO BLOCO INTEIRO
 -- O bloco é editável pela Biblioteca: o conteúdo atual em produção pode ter
 -- ajustes que nenhuma migration conhece (nome do advogado fixo, uma terceira

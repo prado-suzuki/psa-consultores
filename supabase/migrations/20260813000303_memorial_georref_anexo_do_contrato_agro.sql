@@ -28,8 +28,16 @@
 -- anterior a esta frente e não é o mecanismo em que a correção se apoia.
 --
 -- ORDENAÇÃO: O MEMORIAL É ANEXO
+-- A composição do Agro é versionada: o seed original está em
+-- 20260602200000_seed_contrato_social_agro.sql:256, o re-seed tipado apaga e
+-- reinsere tudo com `ordem` e `obrigatorio` explícitos
+-- (20260603143244_16b921c7…:41 e :287) e 20260810180000:170-193 ainda reordena
+-- Instalação/Competências. O que NÃO está em migration nenhuma é a cópia sem
+-- guarda do memorial, o que confirma que ela nasceu na Biblioteca e entrou na
+-- composição por lá — por isso ela é localizada pela forma do conteúdo, e não
+-- pelo nome.
 -- O memorial saiu depois do fecho porque a posição vem da ordem da composição, e
--- quem montou o modelo deixou a cópia no fim. Depois das assinaturas é o lugar
+-- quem largou a cópia lá a deixou no fim. Depois das assinaturas é o lugar
 -- CERTO de um anexo — o que faltava era ele se anunciar como tal em vez de
 -- aparecer como um parágrafo órfão logo abaixo das testemunhas. Então:
 --   1. o bloco ganha um título dentro da própria guarda (sem georref, some o
@@ -113,20 +121,23 @@ O imóvel possui área de$para$
   end if;
 
   -- ------------------------------------------------------------------ 2 -------
-  -- A cópia sem guarda que está na composição do Agro: identificada pela forma
-  -- (fala de georefArea e tem a tabela de vértices), nunca pelo nome, porque ela
-  -- nasceu na Biblioteca e nenhuma migration sabe como o autor a chamou.
-  select db.bloco_id into b_copia
-    from public.tmpl_documento_bloco db
-    join public.tmpl_bloco bl on bl.id = db.bloco_id
-    join public.tmpl_bloco_versao v on v.bloco_id = bl.id and v.atual
-   where db.documento_id = doc_agro
-     and bl.id <> b_memorial
-     and v.conteudo like '%imovel.georefArea%'
-     and v.conteudo like '%{{#vertices}}%'
-   limit 1;
-
-  if b_copia is not null then
+  -- As cópias sem guarda que estão na composição do Agro: identificadas pela
+  -- forma (falam de georefArea e têm a tabela de vértices), nunca pelo nome,
+  -- porque nasceram na Biblioteca e nenhuma migration sabe como o autor as
+  -- chamou. TODAS saem, não só uma: uma segunda cópia (a Biblioteca não impede
+  -- duplicar) reproduziria o mesmo defeito, e escolher "a primeira" sem ordem
+  -- definida deixaria o resultado à sorte do plano de execução.
+  for b_copia in
+    select db.bloco_id
+      from public.tmpl_documento_bloco db
+      join public.tmpl_bloco bl on bl.id = db.bloco_id
+      join public.tmpl_bloco_versao v on v.bloco_id = bl.id and v.atual
+     where db.documento_id = doc_agro
+       and bl.id <> b_memorial
+       and v.conteudo like '%imovel.georefArea%'
+       and v.conteudo like '%{{#vertices}}%'
+     order by db.ordem, db.bloco_id
+  loop
     delete from public.tmpl_documento_bloco
      where documento_id = doc_agro and bloco_id = b_copia;
 
@@ -137,8 +148,8 @@ O imóvel possui área de$para$
                ' [Desativado em 13/08/2026 (B5): era uma cópia do memorial sem a guarda {{#imovel.georefArea}}, e imprimia a frase e a tabela vazias em matrícula sem georreferenciamento. O bloco vivo é "Memorial descritivo do georreferenciamento (SIGEF)".]')
        where id = b_copia and ativo;
     end if;
-    raise notice 'B5: cópia sem guarda removida da composição do Agro.';
-  end if;
+    raise notice 'B5: cópia sem guarda (%) removida da composição do Agro.', b_copia;
+  end loop;
 
   -- ------------------------------------------------------------------ 3 -------
   -- O bloco canônico entra (ou desce) para a última posição: anexo vem depois do

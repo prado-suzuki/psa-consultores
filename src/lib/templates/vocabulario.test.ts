@@ -242,9 +242,9 @@ describe('vocabulário namespaced — paridade Mat. 9.617', () => {
 
 // Redação urbana da família "Descrição de imóvel" (variante 4 do seed
 // 20260806140000, com a troca de "nº {{ enderecoNumero }}" por
-// {{ enderecoNumeroProsa }} e com a emenda de 20260813000300 — cartório pelo nome
-// cadastrado, livro e folha em numeral + extenso), verbatim: é o texto que o
-// cartório vai ler.
+// {{ enderecoNumeroProsa }} e com a emenda de 20260813000300: cartório pelo nome
+// cadastrado, livro e folha em numeral + extenso na forma do item 5 emendado
+// pelo 9.7), verbatim: é o texto que o cartório vai ler.
 const CONTEUDO_IMOVEL_URBANO =
   'Um imóvel urbano com área total de {{ imovel.area }} ({{ imovel.areaExtenso }})' +
   '{{#imovel.temAreaConstruida}}, sendo {{ imovel.areaConstruida }} de área construída{{/imovel.temAreaConstruida}}' +
@@ -253,8 +253,9 @@ const CONTEUDO_IMOVEL_URBANO =
   '{{ imovel.enderecoBairro }}, no município de {{ imovel.municipio }}, Estado de {{ imovel.uf }}, ' +
   'CEP {{ imovel.enderecoCep }}, de propriedade de {{ imovel.proprietario }}, ' +
   'com registro na matrícula de nº {{ imovel.numero }}, ' +
-  'no Livro {{ imovel.livroNumeral }} ({{ imovel.livroExtenso }}), ' +
-  'folhas/ficha {{ imovel.folhaNumeral }} ({{ imovel.folhaExtenso }}) do {{ imovel.cartorio }}' +
+  'no Livro {{ imovel.livroNumeral }}{{#imovel.livroExtenso}} ({{ imovel.livroExtenso }}){{/imovel.livroExtenso}}, ' +
+  'folhas/ficha {{ imovel.folhaNumeral }}{{#imovel.folhaExtenso}} ({{ imovel.folhaExtenso }}){{/imovel.folhaExtenso}}' +
+  ' do {{ imovel.cartorio }}' +
   '{{#imovel.cartorioComarca}} da comarca de {{ imovel.cartorioComarca }}{{/imovel.cartorioComarca}}' +
   '{{#imovel.ufCartorio}}, Estado de {{ imovel.ufCartorio }}{{/imovel.ufCartorio}}' +
   ', inscrito no cadastro municipal sob o nº {{ imovel.inscricaoMunicipal }}, ' +
@@ -345,8 +346,10 @@ describe('descrição de imóvel urbano — campos e condicionais do seed', () =
 // cadastros de outros clientes.
 const CONTEUDO_REGISTRO =
   'com registro na matrícula de nº {{ imovel.numero }}' +
-  '{{#imovel.livro}}, no Livro {{ imovel.livroNumeral }} ({{ imovel.livroExtenso }}){{/imovel.livro}}' +
-  '{{#imovel.folha}}, folhas/ficha {{ imovel.folhaNumeral }} ({{ imovel.folhaExtenso }}){{/imovel.folha}}' +
+  '{{#imovel.livro}}, no Livro {{ imovel.livroNumeral }}' +
+  '{{#imovel.livroExtenso}} ({{ imovel.livroExtenso }}){{/imovel.livroExtenso}}{{/imovel.livro}}' +
+  '{{#imovel.folha}}, folhas/ficha {{ imovel.folhaNumeral }}' +
+  '{{#imovel.folhaExtenso}} ({{ imovel.folhaExtenso }}){{/imovel.folhaExtenso}}{{/imovel.folha}}' +
   ' do {{ imovel.cartorio }}' +
   '{{#imovel.cartorioComarca}} da comarca de {{ imovel.cartorioComarca }}{{/imovel.cartorioComarca}}' +
   '{{#imovel.ufCartorio}}, Estado de {{ imovel.ufCartorio }}{{/imovel.ufCartorio}}' +
@@ -414,11 +417,58 @@ describe('cartório, livro e folha na descrição do imóvel (B4/B14)', () => {
   it('livro não numérico sai íntegro, sem zero à esquerda', () => {
     // "2-AUX" é livro auxiliar de cartório antigo: preencher com zero o
     // transformaria em outro livro. O extenso de um valor não numérico fica vazio
-    // (ver cardinalCampo), e o par de parênteses vazio é item aberto do contrato
-    // L2/L3 — o aceite aqui é a integridade do numeral.
+    // (ver cardinalCampo), e por isso o parêntese é condicionado (emenda 9.7):
+    // sai "Livro 2-AUX", não "Livro 2-AUX ()".
     const texto = gerarRegistro({ ...MAT_REGISTRO, livro: '2-AUX' });
-    expect(texto).toContain('no Livro 2-AUX');
+    expect(texto).toContain('no Livro 2-AUX, folhas/ficha 01 (um)');
     expect(texto).not.toContain('02-AUX');
+    expect(texto).not.toContain('()');
+  });
+});
+
+// Cabeçalho do bloco "Matrícula digitada: identificação" depois de
+// 20260813000300. A linha do cartório é condicionada pelo sinal explícito de
+// vínculo, e não por {{#imovel.cartorio}}: como o item 1 obriga o nome a nunca
+// ser vazio, aquela guarda passou a valer sempre e imprimiria o rótulo genérico
+// sozinho numa matrícula sem cartório vinculado (emenda 9.8).
+const CONTEUDO_IDENTIFICACAO =
+  '*MATRÍCULA Nº {{ imovel.numero }}*' +
+  '{{#imovel.livro}}, Livro {{ imovel.livro }}{{/imovel.livro}}' +
+  '{{#imovel.folha}}, Folhas/Ficha {{ imovel.folha }}{{/imovel.folha}}' +
+  '{{#imovel.temCartorio}}\n{{ imovel.cartorio }}' +
+  '{{#imovel.cartorioComarca}}, comarca de {{ imovel.cartorioComarca }}{{/imovel.cartorioComarca}}' +
+  '{{#imovel.ufCartorio}}, Estado de {{ imovel.ufCartorio }}{{/imovel.ufCartorio}}{{/imovel.temCartorio}}';
+
+describe('identificação da matrícula digitada — a linha do cartório (9.8)', () => {
+  function gerarIdentificacao(m: MatriculaParaMapear): string {
+    const { bindings } = detectarBindingsDeConteudo(CONTEUDO_IDENTIFICACAO);
+    const ctx = montarContexto(bindings, { imovel: mapearMatricula(m) });
+    const template: Template = {
+      id: 'fixture-ident', nome: 'Fixture — identificação',
+      blocos: [{ id: 'b', obrigatorio: true, conteudo: CONTEUDO_IDENTIFICACAO }],
+    };
+    return gerarDocumento(template, ctx);
+  }
+
+  it('com cartório vinculado, a serventia sai numa linha própria', () => {
+    expect(gerarIdentificacao(MAT_REGISTRO)).toBe(
+      '*MATRÍCULA Nº 9.617*, Livro 2, Folhas/Ficha 1\n' +
+      'Cartório de 1° Ofício de Imóveis, comarca de Lucas do Rio Verde, Estado de Mato Grosso',
+    );
+  });
+
+  it('sem cartório vinculado, a linha some — e não sai um rótulo genérico solitário', () => {
+    const texto = gerarIdentificacao({ ...MAT_REGISTRO, cartorio: null });
+    expect(texto).toBe('*MATRÍCULA Nº 9.617*, Livro 2, Folhas/Ficha 1');
+    expect(texto).not.toContain('Cartório de Registro de Imóveis');
+  });
+
+  it('cartório vinculado sem comarca continua aparecendo pelo fallback', () => {
+    const texto = gerarIdentificacao({
+      ...MAT_REGISTRO,
+      cartorio: { nome_completo: null, comarca: null, uf: null },
+    });
+    expect(texto).toContain('\nCartório de Registro de Imóveis');
   });
 });
 
@@ -761,6 +811,20 @@ describe('fecho e assinaturas — uma linha por signatário (B12/B13)', () => {
     ]);
     expect(reguas(texto)).toBe(2);
     expect(texto).toContain('*JOSÉ EDUARDO DE MACEDO SOARES JUNIOR*\nAdministrador');
+  });
+
+  it('papel combinado sai inteiro: o bloco imprime o rótulo, não o monta (9.9)', () => {
+    // Sócia que também é cônjuge outorgante do outro sócio assina UMA vez, com
+    // as duas qualidades no papel. Quem combina é o motor; aqui se prova que a
+    // redação não supõe formato de papel (nada de sufixo, prefixo ou condicional
+    // em volta) e imprime o que vier.
+    const texto = gerarFecho([
+      signatario('José Eduardo de Macedo Soares Junior', 'Sócio administrador e cônjuge outorgante'),
+      signatario('Maria Auxiliadora de Macedo Soares', 'Sócia e cônjuge outorgante'),
+    ]);
+    expect(reguas(texto)).toBe(2);
+    expect(texto).toContain('*MARIA AUXILIADORA DE MACEDO SOARES*\nSócia e cônjuge outorgante');
+    expect(texto.match(/MARIA AUXILIADORA/g) ?? []).toHaveLength(1);
   });
 
   it('quem é sócio E administrador ocupa uma linha só: o bloco imprime a lista como veio', () => {
