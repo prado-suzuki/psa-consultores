@@ -31,6 +31,7 @@ descartando o nome cadastrado (`Cartório de 1° Ofício de Imóveis`), que é o
 | Campo | Quem preenche | Garantia |
 |---|---|---|
 | `imovel.cartorio` | L2, no mapeador | **Nunca vazio.** Nome cadastrado (`cartorio.nome_completo`). Quando o cadastro não tem nome, o mapeador devolve o rótulo genérico `Cartório de Registro de Imóveis`, **sem comarca, sem preposição e sem ponto final**. |
+| `imovel.temCartorio` | L2, no mapeador (**campo novo**) | `'sim'` quando existe vínculo com cartório, mesmo que nome/comarca estejam vazios; `''` sem vínculo. É a guarda de trechos que só existem para cartório cadastrado. |
 | `imovel.cartorioComarca` | L2, no mapeador (**campo novo**) | A comarca **apenas quando ela ainda não estiver contida em `imovel.cartorio`**; `''` caso contrário. É o campo que o bloco condiciona. |
 | `imovel.comarca` | L2 (já existe) | Comarca crua, `''` quando ausente. Continua existindo para quem precisar dela isolada. Não é o campo do fecho da frase. |
 | `imovel.ufCartorio` | L2 (já existe) | Inalterado. |
@@ -327,9 +328,10 @@ da 9.6 para a guarda não lançar.
 
 `imovel.cartorio` nunca ser vazio (item 1) transformou `{{#imovel.cartorio}}` em guarda que sempre passa.
 No bloco "Matrícula digitada: identificação" isso faz uma matrícula **sem cartório cadastrado**, que antes
-não imprimia a linha, passar a imprimir um `Cartório de Registro de Imóveis` solitário. É da **L3**: a
-condição do trecho precisa ser outra coisa (o campo que de fato indica ausência de cadastro), não o campo
-que o contrato obriga a estar sempre preenchido.
+não imprimia a linha, passar a imprimir um `Cartório de Registro de Imóveis` solitário. A L2 publica
+`imovel.temCartorio` (item 1) como sinal explícito do vínculo, e a **L3** usa esse campo como condição do
+trecho. Não usar `comarca` como aproximação: cartório vinculado sem comarca continua sendo cadastro real e
+precisa aparecer pelo fallback gramatical.
 
 ### 9.9 · Signatários: uma linha, papel combinado
 
