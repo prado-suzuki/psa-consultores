@@ -50,31 +50,41 @@ function estruturar(blocos: Bloco[]): EstruturaBloco[] {
 }
 
 /**
- * Prefixa cada bloco com seu rótulo de numeração, conforme o tipo:
- * - capitulo:  "CAPÍTULO {romano}" + título na linha seguinte
- * - clausula:  "CLÁUSULA {ORDINAL FEMININO}:"
- * - paragrafo: "Parágrafo Único:" ou "Parágrafo {Ordinal Masculino}:"
- * - livre (ou sem tipo): passa intacto
+ * O PREFIXO de numeração de cada bloco, exatamente como entra no conteúdo:
+ * - capitulo:  "*CAPÍTULO {romano}*\n"
+ * - clausula:  "*CLÁUSULA {ORDINAL FEMININO}:* "
+ * - paragrafo: "*Parágrafo Único:* " ou "*Parágrafo {Ordinal Masculino}:* "
+ * - livre (ou sem tipo): "" (passa intacto)
  *
  * Os rótulos saem envolvidos na marca de negrito (*…* — ver marcas.ts), então
  * ficam em negrito por padrão na prévia e no .docx, sem etapa extra.
+ *
+ * Existe separado de `numerarBlocos` porque a geração precisa aplicar o rótulo
+ * DEPOIS do render (o descarte de blocos vazios muda a sequência), colando-o no
+ * primeiro segmento em vez de na string de origem — ver index.ts.
  */
-export function numerarBlocos(blocos: Bloco[]): Bloco[] {
-  return estruturar(blocos).map((e, i) => {
-    const bloco = blocos[i];
+export function prefixosNumeracao(blocos: Bloco[]): string[] {
+  return estruturar(blocos).map((e) => {
     switch (e?.tipo) {
       case 'capitulo':
-        return { ...bloco, conteudo: `*CAPÍTULO ${romano(e.n)}*\n${bloco.conteudo}` };
+        return `*CAPÍTULO ${romano(e.n)}*\n`;
       case 'clausula':
-        return { ...bloco, conteudo: `*CLÁUSULA ${ordinalExtenso(e.n, 'f').toUpperCase()}:* ${bloco.conteudo}` };
+        return `*CLÁUSULA ${ordinalExtenso(e.n, 'f').toUpperCase()}:* `;
       case 'paragrafo': {
         const rotulo = e.unico ? 'Parágrafo Único' : `Parágrafo ${capitalizarPalavras(ordinalExtenso(e.n, 'm'))}`;
-        return { ...bloco, conteudo: `*${rotulo}:* ${bloco.conteudo}` };
+        return `*${rotulo}:* `;
       }
       default:
-        return bloco;
+        return '';
     }
   });
+}
+
+/** Prefixa cada bloco com seu rótulo de numeração (ver prefixosNumeracao). */
+export function numerarBlocos(blocos: Bloco[]): Bloco[] {
+  return prefixosNumeracao(blocos).map((prefixo, i) =>
+    prefixo ? { ...blocos[i], conteudo: `${prefixo}${blocos[i].conteudo}` } : blocos[i],
+  );
 }
 
 /**
