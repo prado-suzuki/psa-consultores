@@ -38,6 +38,19 @@ const PERSON_COLORS = [
   '#dc2626',
 ];
 
+// Versões pastéis explícitas: usar `opacity` sobre o fundo cinza deixava o trecho
+// de "em progresso" praticamente indistinguível da parte ainda não iniciada.
+const PERSON_MUTED_COLORS = [
+  '#8dd3cd',
+  '#9bbcf4',
+  '#c1a7ef',
+  '#f4b183',
+  '#eca6c8',
+  '#91cfdb',
+  '#bad787',
+  '#eea1a1',
+];
+
 const STATUS_PRESENTATION: Record<SprintProgressTaskStatus, {
   label: string;
   className: string;
@@ -98,7 +111,7 @@ export function DailySprintProgressCard({
                     if (person.completed === 0) return null;
                     const color = PERSON_COLORS[index % PERSON_COLORS.length];
                     return (
-                      <Tooltip key={person.id}>
+                      <Tooltip key={`completed-${person.id}`}>
                         <TooltipTrigger asChild>
                           <button
                             type="button"
@@ -118,6 +131,33 @@ export function DailySprintProgressCard({
                           </p>
                           <p className="text-xs text-muted-foreground">
                             {person.completed}/{person.total} próprias concluídas · {person.inProgress} em andamento
+                          </p>
+                          <p className="mt-1 text-[11px] text-muted-foreground">Clique para ver as tarefas</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    );
+                  })}
+                  {progress.people.map((person, index) => {
+                    if (person.inProgress === 0) return null;
+                    const mutedColor = PERSON_MUTED_COLORS[index % PERSON_MUTED_COLORS.length];
+                    return (
+                      <Tooltip key={`in-progress-${person.id}`}>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="h-full shrink-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 focus-visible:ring-inset"
+                            style={{
+                              width: `${(person.inProgress / progress.total) * 100}%`,
+                              backgroundColor: mutedColor,
+                            }}
+                            aria-label={`${person.name}: ${person.inProgress} ${person.inProgress === 1 ? 'tarefa em progresso' : 'tarefas em progresso'}`}
+                            onClick={() => setSelectedPerson(person)}
+                          />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="font-semibold">{person.name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {person.inProgress} {person.inProgress === 1 ? 'tarefa em progresso' : 'tarefas em progresso'}
                           </p>
                           <p className="mt-1 text-[11px] text-muted-foreground">Clique para ver as tarefas</p>
                         </TooltipContent>
