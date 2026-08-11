@@ -30,10 +30,19 @@
 --
 -- `pode_isoladamente` CONTINUA
 --   A coluna antiga não sai e continua sendo escrita pela tela como
---   `forma = 'isolada'`. O gerador de documentos e a auditoria já a leem; tirá-la
---   agora quebraria os dois. Ela passa a ser o resumo de `poderes.forma`, e a
---   leitura da tela deriva `forma` do booleano enquanto `poderes` for nulo — por
---   isso não há backfill: linha antiga sem `poderes` continua correta.
+--   `forma = 'isolada'`. Não é porque o gerador a leia: nenhum bloco ou mapeador
+--   consulta `pode_isoladamente` hoje (só a tela e o rótulo de auditoria). É
+--   porque ela é a única informação de poderes das linhas anteriores a esta
+--   coluna, e é dela que a leitura deriva `forma` enquanto `poderes` for nulo —
+--   por isso também não há backfill: linha antiga continua correta. Mantê-la
+--   escrita em sincronia evita que ela envelheça e vire uma segunda verdade
+--   enquanto não for aposentada (o que exige migration destrutiva, types
+--   regerados e o formatador de auditoria, que é de outra frente).
+--
+-- O QUE OS DOCUMENTOS AINDA NÃO FAZEM COM ISSO
+--   `poderes.excecoes` é, por ora, dado de cadastro: nenhum bloco imprime as
+--   exceções. Fazer a cláusula de administração percorrer a lista é trabalho do
+--   motor de templates, e por isso ficou de fora desta entrega.
 --
 -- Idempotente: pode ser reaplicada.
 --

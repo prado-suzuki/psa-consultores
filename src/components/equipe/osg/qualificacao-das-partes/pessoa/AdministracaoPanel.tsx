@@ -67,9 +67,11 @@ export function AdministracaoPanel({ pjPessoaId, pessoasCliente }: Administracao
     }
     const original = editingId ? administradores.find((item) => item.id === editingId) ?? null : null;
     const entityName = pessoasCliente.find((p) => p.id === draft.administradorId)?.denominacao ?? 'administrador';
-    // `pode_isoladamente` continua sendo escrito porque o gerador de documentos e
-    // a auditoria ainda leem a coluna antiga; `poderesParaGravar` mantém as duas
-    // em sincronia a partir de uma fonte só.
+    // `pode_isoladamente` continua sendo escrito porque é dele que a leitura
+    // deriva a forma dos cadastros anteriores a `poderes` (e a auditoria já tem
+    // rótulo para ele). Nenhum código do gerador lê a coluna hoje;
+    // `poderesParaGravar` mantém as duas em sincronia a partir de uma fonte só,
+    // para que ela não vire uma segunda verdade enquanto existir.
     const { poderes, pode_isoladamente } = poderesParaGravar(draft.poderes);
     upsert.mutate({
       values: {

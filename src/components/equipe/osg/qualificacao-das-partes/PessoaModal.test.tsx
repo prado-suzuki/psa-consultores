@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   parentescos: [] as Record<string, unknown>[],
   administradores: [] as Record<string, unknown>[],
   temDocumento: false,
-  toast: { error: vi.fn() },
+  toast: { error: vi.fn(), warning: vi.fn() },
 }));
 
 vi.mock('sonner', () => ({ toast: mocks.toast }));
@@ -332,6 +332,71 @@ describe('PessoaModal - cônjuge recíproco e lista de parentesco', () => {
     }, expect.any(Object));
     // Gravar vínculo não passa pelo "Salvar alterações" da pessoa.
     expect(mocks.pessoaMutate).not.toHaveBeenCalled();
+  });
+
+  it('sair do estado civil casado desfaz o vínculo, avisando de quem era', async () => {
+    const helenaCasada = pessoa({
+      id: 'PF-HELENA', denominacao: 'Helena', estado_civil: 'Casado(a)', conjuge_id: 'PF-IVO',
+    });
+    renderModal({ pessoa: helenaCasada, pessoasCliente: [helenaCasada, ivo, lucia] });
+    expect(screen.getByText('Cônjuge', { selector: 'label' })).toBeInTheDocument();
+
+    await selectByLabel('Estado civil', 'Viúvo(a)');
+    expect(mocks.toast.warning).toHaveBeenCalledWith(expect.stringContaining('Ivo'));
+    // O campo some junto, então deixar o ponteiro para trás travaria os dois
+    // cadastros como casados sem nenhum caminho de tela para desfazer.
+    expect(screen.queryByText('Cônjuge', { selector: 'label' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    expect(mocks.pessoaMutate.mock.calls[0][0].values).toMatchObject({
+      estado_civil: 'Viúvo(a)', conjuge_id: null,
+    });
+  });
+
+  it('filiação de pessoa gravada vem do vínculo e não aceita um segundo nome digitado', async () => {
+    const user = userEvent.setup();
+    // A linha da pessoa carrega um nome divergente do vínculo: é exatamente o
+    // estado que as duas entradas para o mesmo fato produziam.
+    const helenaComTexto = pessoa({
+      id: 'PF-HELENA', denominacao: 'Helena', filiacao_pai: 'Nome Divergente', filiacao_pai_pessoa_id: null,
+    });
+    mocks.parentescos = [vinculo('V-PAI', pai, 'Pai')];
+    renderModal({ pessoa: helenaComTexto, pessoasCliente: [helenaComTexto, pai, mae] });
+
+    const campoPai = screen.getByLabelText('Filiação (pai)');
+    expect(campoPai).toHaveValue('Joaquim Pai');
+    expect(campoPai).toBeDisabled();
+
+    // O slot sem vínculo continua sendo a única origem daquele nome e segue editável.
+    const campoMae = screen.getByLabelText('Filiação (mãe)');
+    expect(campoMae).toBeEnabled();
+    await user.type(campoMae, 'Mãe Sem Cadastro');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    expect(mocks.pessoaMutate.mock.calls[0][0].values).toMatchObject({
+      filiacao_pai: 'Joaquim Pai',
+      filiacao_pai_pessoa_id: 'PF-PAI',
+      filiacao_mae: 'Mãe Sem Cadastro',
+      filiacao_mae_pessoa_id: null,
+    });
+  });
+
+  it('no cadastro novo o pai escolhido no texto vira vínculo de verdade', async () => {
+    const user = userEvent.setup();
+    renderModal({ pessoasCliente: [pai, mae] });
+    fireEvent.change(controlByLabel(/Nome completo/), { target: { value: 'Nova Filha' } });
+    await user.type(screen.getByPlaceholderText('Nome do pai'), 'Joaquim');
+    await user.click(await screen.findByRole('button', { name: 'Joaquim Pai' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Cadastrar pessoa' }));
+    await submitSuccess('PF-NOVA');
+
+    // Sem isto, a escolha ficaria só na coluna da pessoa e a lista (que é a
+    // origem da filiação) nasceria vazia — a segunda verdade de volta.
+    expect(mocks.parentescoUpsert).toHaveBeenCalledWith({
+      values: { pessoa_id: 'PF-NOVA', parente_pessoa_id: 'PF-PAI', tipo: 'Pai', natureza: null },
+      original: null,
+      clienteId: 'C1',
+    });
   });
 
   it('recusa vínculo repetido e remove um dos três sem tocar nos outros', async () => {

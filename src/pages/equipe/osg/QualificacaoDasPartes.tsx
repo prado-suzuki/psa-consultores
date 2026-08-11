@@ -40,12 +40,27 @@ interface PessoasTableProps {
   documentoLabel: string;
   // Exibe a coluna "Papel" (tipo_empresa) — só PJ.
   mostrarPapel?: boolean;
-  // Quando presente, exibe a coluna "Filiação" (vínculo de parentesco) — só PF.
-  filiacaoPorPessoa?: Map<string, string>;
+  // Quando presente, exibe a coluna "Filiação" (vínculos de parentesco) — só PF.
+  filiacaoPorPessoa?: Map<string, string[]>;
   onNovo: () => void;
   onEditar: (p: PessoaRow) => void;
   onRemover: (p: PessoaRow) => void;
 }
+
+/**
+ * Coluna "Filiação". Uma pessoa pode ter pai, mãe, tio e o que mais a família
+ * tiver: `parentesco` sempre aceitou N linhas, e mostrar só a última escondia o
+ * resto do cadastro de quem lê a lista.
+ */
+const FiliacaoCell = ({ fundador, vinculos }: { fundador: boolean | null; vinculos: string[] }) => {
+  if (!fundador && vinculos.length === 0) return <>—</>;
+  return (
+    <div className="space-y-0.5">
+      {fundador && <div className="font-medium text-osg-moss">Fundador</div>}
+      {vinculos.map((vinculo) => <div key={vinculo}>{vinculo}</div>)}
+    </div>
+  );
+};
 
 const PessoasTable = ({
   titulo, icone, tipo, pessoas, buscaAtiva, documentoLabel, mostrarPapel, filiacaoPorPessoa, onNovo, onEditar, onRemover,
@@ -102,11 +117,7 @@ const PessoasTable = ({
                   )}
                   {filiacaoPorPessoa && (
                     <TableCell className="text-xs text-muted-foreground">
-                      {p.is_fundador ? (
-                        <span className="font-medium text-osg-moss">Fundador</span>
-                      ) : (
-                        filiacaoPorPessoa.get(p.id) || '—'
-                      )}
+                      <FiliacaoCell fundador={p.is_fundador} vinculos={filiacaoPorPessoa.get(p.id) ?? []} />
                     </TableCell>
                   )}
                   <TableCell className="text-xs text-muted-foreground">
@@ -166,11 +177,16 @@ const QualificacaoDasPartes = () => {
   const { data: pessoas = [], isLoading: loadingPessoas } = usePessoasByCliente(clienteId || null);
   const { data: parentescos = [] } = useParentescosByCliente(clienteId || null);
 
-  // Resumo do vínculo de parentesco (1:1) por pessoa, ex.: "Filho(a) de João".
+  // Todos os vínculos de parentesco de cada pessoa, ex.: ["Pai de João",
+  // "Mãe de Maria", "Tio(a) de Tobias"]. A relação é 1:N e a coluna mostra a
+  // lista inteira; guardar só o último apagava pai, mãe ou tio da tela.
   const filiacaoPorPessoa = useMemo(() => {
-    const map = new Map<string, string>();
+    const map = new Map<string, string[]>();
     for (const v of parentescos) {
-      map.set(v.pessoa_id, v.tipo ? `${v.tipo} de ${v.parente_denominacao}` : v.parente_denominacao);
+      const resumo = v.tipo ? `${v.tipo}: ${v.parente_denominacao}` : v.parente_denominacao;
+      const acumulado = map.get(v.pessoa_id);
+      if (acumulado) acumulado.push(resumo);
+      else map.set(v.pessoa_id, [resumo]);
     }
     return map;
   }, [parentescos]);
