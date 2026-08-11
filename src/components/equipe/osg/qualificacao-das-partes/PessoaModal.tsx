@@ -17,7 +17,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useClienteTemDocumentoGerado } from '@/hooks/useDocumentoGerado';
 import {
-  useDeleteParentesco,
   useParentescosByCliente,
   useUpsertParentesco,
   useUpsertPessoa,
@@ -73,13 +72,14 @@ export function PessoaModal({
   const initialParentescoRef = useRef('');
   const upsert = useUpsertPessoa();
   const upsertParentesco = useUpsertParentesco();
-  const deleteParentesco = useDeleteParentesco();
   const { data: parentescosCliente = [] } = useParentescosByCliente(open ? clienteId : null);
   const isPF = draft.tipo_pessoa === 'PF';
   const isEdit = Boolean(pessoa?.id);
-  const parentescoAtual = pessoa?.id
-    ? parentescosCliente.find((vinculo) => vinculo.pessoa_id === pessoa.id) ?? null
-    : null;
+  // Pessoa já gravada administra os vínculos pela lista (ParentescoPanel), que
+  // grava na hora; o rascunho de vínculo único só existe no cadastro novo.
+  const vinculosDaPessoa = pessoa?.id
+    ? parentescosCliente.filter((vinculo) => vinculo.pessoa_id === pessoa.id)
+    : [];
   const { data: temDocumento = false } = useClienteTemDocumentoGerado(isEdit ? clienteId : null);
   // O rascunho emprestado é lido SÓ na abertura: enquanto está aberto, o modal é
   // o dono do formulário. A ref evita que uma identidade nova do objeto (a cada
@@ -100,17 +100,10 @@ export function PessoaModal({
 
   useEffect(() => {
     if (!open) return;
-    const emprestado = pessoa ? undefined : externoRef.current?.parentesco;
-    const initial = parentescoAtual ? {
-      parenteId: parentescoAtual.parente_pessoa_id,
-      tipo: parentescoAtual.tipo ?? '',
-      natureza: parentescoAtual.natureza ?? '',
-    } : emprestado ?? emptyParentesco();
+    const initial = pessoa ? emptyParentesco() : externoRef.current?.parentesco ?? emptyParentesco();
     setParentescoDraft(initial);
     initialParentescoRef.current = JSON.stringify(initial);
-    // O id identifica a versão carregada do vínculo sem reagir a novas identidades do array da query.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, pessoa?.id, parentescoAtual?.id]);
+  }, [open, pessoa]);
 
   const isDirty = JSON.stringify(draft) !== initialDraftRef.current
     || JSON.stringify(parentescoDraft) !== initialParentescoRef.current;
@@ -125,20 +118,38 @@ export function PessoaModal({
     onClose: fechar,
   });
 
-  const reconcileParentesco = async (pessoaId: string) => {
+  /**
+   * Só no cadastro novo: os vínculos digitados junto da pessoa. Depois de
+   * gravada, eles entram e saem pela lista, sem passar pelo save daqui.
+   *
+   * Pai e mãe escolhidos no campo de filiação viram vínculo de verdade, e não só
+   * texto na linha da pessoa: a lista é a origem da filiação (a projeção de
+   * volta para `pessoa.filiacao_*` é do banco), então deixar a escolha só na
+   * coluna criaria justamente a segunda verdade que o B11 mandou eliminar.
+   */
+  const criarVinculosIniciais = async (pessoaId: string) => {
+    const novos: { parenteId: string; tipo: string | null; natureza: string | null }[] = [];
     if (parentescoDraft.parenteId) {
+      novos.push({
+        parenteId: parentescoDraft.parenteId,
+        tipo: parentescoDraft.tipo || null,
+        natureza: parentescoDraft.natureza || null,
+      });
+    }
+    if (draft.filiacao_pai_pessoa_id) novos.push({ parenteId: draft.filiacao_pai_pessoa_id, tipo: 'Pai', natureza: null });
+    if (draft.filiacao_mae_pessoa_id) novos.push({ parenteId: draft.filiacao_mae_pessoa_id, tipo: 'Mãe', natureza: null });
+
+    for (const novo of novos) {
       await upsertParentesco.mutateAsync({
         values: {
           pessoa_id: pessoaId,
-          parente_pessoa_id: parentescoDraft.parenteId,
-          tipo: parentescoDraft.tipo || null,
-          natureza: parentescoDraft.natureza || null,
+          parente_pessoa_id: novo.parenteId,
+          tipo: novo.tipo,
+          natureza: novo.natureza,
         },
-        original: parentescoAtual,
+        original: null,
         clienteId,
       });
-    } else if (parentescoAtual) {
-      await deleteParentesco.mutateAsync({ row: parentescoAtual, clienteId });
     }
   };
 
@@ -165,7 +176,7 @@ export function PessoaModal({
     upsert.mutate(
       { values: buildPessoaPayload(draft, clienteId), original: pessoa },
       { onSuccess: async (result) => {
-        if (isPF) await reconcileParentesco(result.row.id);
+        if (isPF && !pessoa) await criarVinculosIniciais(result.row.id);
         onClose();
       } },
     );
@@ -174,8 +185,9 @@ export function PessoaModal({
   const pessoaCandidates = pessoasCliente.filter((candidate) => candidate.tipo_pessoa === 'PF' && candidate.id !== pessoa?.id);
   const parenteCandidates = pessoaCandidates.filter((candidate) => candidate.is_fundador || candidate.id === parentescoDraft.parenteId);
   const mostrarTabsList = !isPF || isEdit;
-  const pending = upsert.isPending || upsertParentesco.isPending || deleteParentesco.isPending;
-  const historyIds = [pessoa?.id, parentescoAtual?.id].filter((id): id is string => Boolean(id));
+  const pending = upsert.isPending || upsertParentesco.isPending;
+  const historyIds = [pessoa?.id, ...vinculosDaPessoa.map((vinculo) => vinculo.id)]
+    .filter((id): id is string => Boolean(id));
 
   return (
     <>
@@ -208,6 +220,7 @@ export function PessoaModal({
                   parenteCandidates={parenteCandidates}
                   parentesco={parentescoDraft}
                   setParentesco={setParentescoDraft}
+                  pessoaSalva={pessoa?.id ? { pessoaId: pessoa.id, clienteId } : undefined}
                 />
               </TabsContent>
               <TabsContent value="administracao" className="mt-0 focus-visible:ring-0">

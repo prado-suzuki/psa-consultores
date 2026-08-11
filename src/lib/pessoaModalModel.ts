@@ -57,6 +57,20 @@ export const pessoaToDraft = (p: PessoaRow): PessoaDraft => {
 
 const nullify = (value: string) => (value.trim() ? value : null);
 
+/**
+ * Estados civis em que existe cônjuge para apontar.
+ *
+ * A lista é a regra, não a tela: fora dela o vínculo conjugal não pode
+ * sobreviver no payload. Antes, mudar de "Casado(a)" para "Divorciado(a)" só
+ * escondia o campo e o `conjuge_id` continuava sendo gravado; com o vínculo
+ * agora recíproco no banco, esse ponteiro esquecido deixaria as duas pessoas
+ * marcadas como casadas e sem caminho de tela para desfazer.
+ */
+export const ESTADOS_CIVIS_COM_CONJUGE = ['Casado(a)', 'União Estável'];
+
+export const ehEstadoCivilComConjuge = (estadoCivil: string) =>
+  ESTADOS_CIVIS_COM_CONJUGE.includes(estadoCivil);
+
 export function buildPessoaPayload(draft: PessoaDraft, clienteId: string): PessoaInsert {
   const common = {
     cliente_id: clienteId,
@@ -84,7 +98,9 @@ export function buildPessoaPayload(draft: PessoaDraft, clienteId: string): Pesso
       documento_identidade_tipo: nullify(draft.documento_identidade_tipo),
       documento_identidade_numero: nullify(draft.documento_identidade_numero),
       documento_identidade_orgao: nullify(draft.documento_identidade_orgao),
-      documento_identidade_uf: nullify(draft.documento_identidade_uf), conjuge_id: draft.conjuge_id || null,
+      documento_identidade_uf: nullify(draft.documento_identidade_uf),
+      // Estado civil sem cônjuge não grava cônjuge, venha o rascunho de onde vier.
+      conjuge_id: ehEstadoCivilComConjuge(draft.estado_civil) ? draft.conjuge_id || null : null,
       is_fundador: draft.is_fundador, nire: null, junta_comercial_uf: null, data_constituicao: null,
       objeto_social: null, status_constituicao: null, tipo_empresa: null,
     };

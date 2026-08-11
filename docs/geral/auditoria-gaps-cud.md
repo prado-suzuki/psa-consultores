@@ -170,3 +170,18 @@ pois muda comportamento (novas linhas em `audit_logs`) e exige `changed_fields` 
 | `pages/equipe/EquipeDemandas.tsx` | `useEquipeDemandaItemMutations.createItemMutation` | `demand_items` | insert | payload integral preservado; validações permanecem no consumidor; sem precheck |
 | `pages/equipe/EquipeDemandas.tsx` | `useEquipeDemandaItemMutations.updateItemStatusMutation` | `demand_items` | update | alteração de status e filtro por ID preservados; sem precheck; campo `error` intencionalmente ignorado |
 | `pages/equipe/EquipeDemandas.tsx` | `useEquipeDemandaItemMutations.deleteItemMutation` | `demand_items` | delete | filtro por ID preservado; sem precheck; campo `error` intencionalmente ignorado |
+
+## Escritas que não vêm do frontend (gatilhos de banco)
+
+A auditoria deste sistema é toda de frontend: só grava em `audit_logs` quem chama
+`src/hooks/useAuditLog.ts`. Linha alterada por gatilho, portanto, muda sem deixar rastro no histórico
+que o usuário lê — inclusive nos painéis de histórico dos modais do OSG, que leem `audit_logs` por
+`entity_id`. Os gatilhos abaixo foram acrescentados de olhos abertos: cada um resolve um problema de
+integridade que a tela não consegue garantir sozinha, e cada um paga este preço. Fechar o gap (fazer o
+gatilho escrever em `audit_logs` com `changed_fields`) é tarefa própria; **registrar não é opcional**.
+
+| Gatilho (migration) | Tabela | Operação | Por que não passa por `useAuditLog` |
+|---|---|---|---|
+| `trg_pessoa_conjuge_reciproco` (`20260813120000`) | `pessoa` | update de `conjuge_id` na linha do **parceiro** | Casamento é simétrico e a reciprocidade tem que valer em qualquer caminho de escrita (modal, importação, RPC futura), não só no ponto do formulário. O log registra a mudança de quem foi editado; a linha do parceiro muda por consequência e **não gera entrada própria** — hoje "quem desfez o vínculo de B" só se explica olhando o log de A na mesma janela de tempo. |
+| `trg_parentesco_projeta_filiacao` (`20260813120200`) | `pessoa` | update de `filiacao_pai`, `filiacao_pai_pessoa_id`, `filiacao_mae`, `filiacao_mae_pessoa_id` | As colunas viraram projeção da tabela `parentesco` (uma origem só para o mesmo fato). O log do vínculo criado/removido existe (`entity_type: 'parentesco'`), mas a atualização da linha da pessoa não aparece como alteração dela. |
+| `trg_pessoa_renome_projeta_filiacao` (`20260813120200`) | `pessoa` | update das mesmas quatro colunas nos **filhos** de quem foi renomeado | Mesma projeção acima, disparada pela correção do nome do parente. O log registra o rename do parente, não a atualização em cascata. |
