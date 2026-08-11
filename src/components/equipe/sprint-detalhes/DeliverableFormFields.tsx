@@ -186,9 +186,11 @@ export function DeliverableFormFields({
         {description}
       </section>
 
-      <aside className="rounded-3xl border border-teal-600/20 bg-gradient-to-b from-card via-card to-muted/30 p-4 shadow-sm sm:p-5">
+      {/* Painel de propriedades tingido: junto com a faixa do cabeçalho, é o
+          segundo bloco de cor do modal e separa planejamento de conteúdo. */}
+      <aside className="rounded-3xl border border-teal-600/30 bg-teal-600/[0.11] p-4 shadow-sm sm:p-5">
         <Tabs defaultValue="planning">
-          <TabsList className="mb-5 grid h-11 w-full grid-cols-2 rounded-xl bg-muted/70 p-1">
+          <TabsList className="mb-5 grid h-11 w-full grid-cols-2 rounded-xl bg-teal-700/10 p-1">
             <TabsTrigger
               value="planning"
               className={cn(tabTriggerClass, 'h-9 gap-2 rounded-lg text-xs')}

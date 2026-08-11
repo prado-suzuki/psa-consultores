@@ -31,18 +31,26 @@ import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDeta
 // altura máxima para o campo esticar sem empurrar o rodapé para fora da tela.
 const contentClass = (expanded: boolean) =>
   cn(
-    'flex max-h-[90vh] flex-col gap-0 overflow-hidden border-teal-600/20 p-0 transition-[max-width] duration-200',
+    'flex max-h-[90vh] flex-col gap-0 overflow-hidden border-teal-700/30 p-0 transition-[max-width] duration-200',
+    // O "X" de fechar é filho direto do content e herdaria a cor do texto: sobre
+    // a faixa teal ele precisa ser claro.
+    '[&>button]:text-white/70 [&>button:hover]:text-white',
     expanded ? 'h-[88vh] sm:max-w-4xl' : 'sm:max-w-[calc(100vw-2rem)] xl:max-w-7xl',
   );
 
-// Molduras e divisórias puxam o teal da área: cor nas linhas, não nos fundos.
-const headerClass = 'border-b border-teal-600/20 bg-muted/30 px-6 py-4 pr-12';
+// Faixa de cor no topo: o teal da área entra em bloco, não em linha fina, e é o
+// que tira o modal do branco. Miolo e rodapé seguem claros para o formulário
+// respirar embaixo dela.
+// Degrau mais claro da escala (a paleta do projeto só tem 500/600/700), não
+// transparência: misturar com o branco do modal deixaria o teal acinzentado.
+// A borda mais escura mantém a faixa com um limite definido embaixo.
+const headerClass = 'border-b border-teal-700 bg-teal-500 px-6 py-4 pr-12 text-white';
 const footerClass = 'border-t border-teal-600/20 bg-background px-6 py-4';
 
-/** Selo do accent da área antes do título: dá um ponto de cor ao cabeçalho. */
+/** Selo antes do título: recorte claro dentro da faixa, para o ícone respirar. */
 function TitleSeal({ icon: Icon }: { icon: typeof ClipboardList }) {
   return (
-    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-teal-500/10 text-teal-700">
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white">
       <Icon className="h-4 w-4" />
     </span>
   );
@@ -92,11 +100,15 @@ export function DeliverableDialogs({
                 <DialogTitle className="text-xl tracking-tight">Editar Entregável</DialogTitle>
               </div>
               {c.editingDeliverable && !editDescriptionExpanded && (
-                <RetrospectiveReportDialog
-                  deliverable={c.editingDeliverable}
-                  controller={c}
-                  showLabel
-                />
+                // A ação vive dentro da faixa teal: texto e ícone claros, realce
+                // por transparência em vez da cor de fundo padrão do botão.
+                <div className="[&_button:hover]:bg-white/15 [&_button:hover]:text-white [&_button]:text-white [&_svg]:text-white">
+                  <RetrospectiveReportDialog
+                    deliverable={c.editingDeliverable}
+                    controller={c}
+                    showLabel
+                  />
+                </div>
               )}
             </div>
           </DialogHeader>
