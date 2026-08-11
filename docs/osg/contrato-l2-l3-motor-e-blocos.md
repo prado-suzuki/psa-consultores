@@ -242,7 +242,61 @@ têm conjuntos de obrigatórios diferentes. Quem sabe disso é o vocabulário, q
 Interação com o item 2 (bloco descartado): bloco descartado não gera pendência. Um modelo que
 legitimamente não tem sócios (matrícula digitada) sai sem alarme, que é o aceite do B2.
 
-## 9 · O que continua verdadeiro (regressão)
+## 9 · Emenda de 13/08/2026 — valor sintetizado e descarte que se anuncia
+
+A revisão da L2 achou um defeito **neste contrato**, não na implementação. Fica emendado assim.
+
+### 9.1 · Valor sintetizado pelo motor não conta como dado
+
+Os itens 1 e 6 obrigam campos a **nunca serem vazios**: `imovel.cartorio` cai no rótulo genérico quando o
+cadastro não tem nome, e `sociedade.quotaValorNominal` publica o valor nominal sempre. Combinados com a
+regra de descarte do item 2 ("todos os segmentos de valor resolveram vazio"), esses campos **seguram no
+documento exatamente o bloco que deveria sumir**: assim que a L3 trocar o literal `R$ 1,00 (um real)` pelas
+duas variáveis, o bloco de capital passa a ter dois segmentos nunca vazios e o contrato sem sócios volta a
+sair com `O capital social será de R$ (), dividido em () quotas`, que é o sintoma do B2.
+
+Emenda: o motor **marca** o valor que ele próprio sintetizou (fallback, default, rótulo genérico) e
+`blocoSemDado` **não o conta como dado**. Um bloco cujos únicos valores preenchidos são sintetizados é
+descartado como se estivesse vazio, porque é isso que ele é. A alternativa de "só publicar quando houver
+capital" resolve o capital e não resolve o cartório, que por contrato não pode deixar de existir: por isso
+a saída é a marcação, e ela vale para os dois.
+
+### 9.2 · Descarte se anuncia
+
+`gerarBlocos` passa a **reportar** quais blocos foram descartados, em vez de sumir com eles calado. Motivo
+concreto: o controller da tela Gerar injeta `''` para seção que o motor não conhece, então um bloco cujo
+laço não está fiado renderiza vazio e **desaparece do documento sem sinal nenhum**, em vez de aparecer
+visivelmente quebrado. Descarte silencioso esconde erro de fiação, e o fecho de assinaturas é justamente um
+bloco cujo conteúdo inteiro é um laço.
+
+### 9.3 · A regra de descarte é mais ampla do que o item 2 enumerava
+
+Fica ratificado o que a L2 implementou além do enunciado, porque o enunciado estrito era incoerente com o
+próprio bullet sobre tabela (uma tabela de zero linhas não emite segmento de valor nenhum, então a regra
+"ao menos um segmento de valor" nunca a alcançaria). Além do item 2, também são descartados:
+
+- bloco cujo render sai **em branco**;
+- bloco com **seção de repetição sem nenhum item**, mesmo tendo prosa fixa em volta (o caput que só existe
+  para introduzir uma lista vazia).
+
+Consequência que a L3 precisa saber: um caput com valor jurídico próprio, que introduza uma lista hoje
+vazia, **será descartado**. Se algum bloco depender de aparecer mesmo sem itens, ele precisa de conteúdo
+que não seja o laço, e isso é escolha de redação, não de motor.
+
+### 9.4 · `livroNumeral` / `folhaNumeral` têm dono
+
+O item 5 atribui os dois campos à L2, mas eles não estavam na lista de bugs dela e não foram implementados,
+enquanto a L3 já publicou a redação canônica que os usa. **São da L2**, e entram na rodada 2 dela.
+
+### 9.5 · Bloco ancorado e `{{ ref }}` sobrevivem ao descarte
+
+Reordenar para renderizar → descartar → numerar criou duas falhas novas que o contrato não previa, e que
+ficam proibidas: um item de coleção cujo bloco repetidor foi descartado não pode manter o `ref` da passada
+anterior (imprimiria referência para cláusula inexistente), e um bloco com `ancora` descartado não pode
+fazer o render lançar `Placeholder não resolvido` em quem o referencia. Cada um precisa de destino
+declarado.
+
+## 10 · O que continua verdadeiro (regressão)
 
 Nenhuma das duas raias pode quebrar isto, e o teste de cada uma deve continuar provando:
 
