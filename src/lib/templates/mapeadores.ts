@@ -1,4 +1,7 @@
 import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, formatarValor, letraAlinea, romano, valorExtenso, type UnidadeArea } from './extenso';
+import { capitalDeQuotas, quotasDeValor, quotasDoSocio, VALOR_NOMINAL_QUOTA } from './capital';
+import { comarcaComplementar, CARTORIO_SEM_NOME, nomeDoCartorio } from './cartorio';
+import { marcarSintetizados } from './sintetizado';
 import { ufPorExtenso } from './concordancia';
 import { comOrigem } from './origem';
 import { camposDaEntidade, derivarCampos, numeroProsa } from './vocabulario';
@@ -83,6 +86,28 @@ function enderecoProsa(row: PartesEndereco): string {
   ].filter(Boolean).join(', ');
 }
 
+/**
+ * Publica como '' todo campo OPCIONAL do catálogo da entidade que o cadastro não
+ * trouxe. Campo ausente não é o mesmo que campo vazio para o render: o
+ * placeholder ausente derruba a prévia inteira, e a SEÇÃO ausente também
+ * ({{#imovel.ccir}} numa matrícula sem CCIR vira "Seção não resolvida", e não um
+ * trecho pulado). Como o bloco não tem como saber o que o cadastro tem, quem
+ * garante a presença é o mapeador — é o que permite ao autor escrever guarda de
+ * trecho ({{#imovel.livro}}…) sem risco. Vale para a profissão que espólio e PJ
+ * não têm, para o complemento de endereço que casa não tem, e para livro, folha,
+ * comarca, CCIR, UF do cartório e inscrição municipal.
+ *
+ * Campo marcado como OBRIGATÓRIO fica de fora: ele continua ausente quando o
+ * cadastro não o tem, e o placeholder falha cedo em vez de deixar o documento
+ * sair mudo no dado que o identifica.
+ */
+function publicarOpcionais(tipo: TipoEntidade, campos: Campos): Campos {
+  for (const campo of camposDaEntidade(tipo)) {
+    if (!campo.obrigatorio) campos[campo.id] = campos[campo.id] ?? '';
+  }
+  return campos;
+}
+
 export function mapearPessoa(row: PessoaRow): Campos {
   const { out, set } = coletor();
   set('nome', row.denominacao);
@@ -94,9 +119,7 @@ export function mapearPessoa(row: PessoaRow): Campos {
   set('dataNascimento', formatarDataBR(row.data_nascimento));
   set('nire', row.nire);
   set('juntaComercialUf', row.junta_comercial_uf);
-  // Profissão é opcional: espólios e PJs (sócias) não têm — resolve em branco
-  // em vez de travar a geração; {{#profissao}}…{{/profissao}} segue condicional.
-  out.profissao = row.profissao ?? '';
+  set('profissao', row.profissao);
   set('rg', row.documento_identidade_numero);
   set('orgaoExpedidor', [row.documento_identidade_orgao, row.documento_identidade_uf].filter(Boolean).join('/'));
   set('genero', row.genero);
@@ -105,21 +128,37 @@ export function mapearPessoa(row: PessoaRow): Campos {
 
   // A origem sobrevive aos spreads a jusante (derivarCampos, mapearSocio,
   // edição manual na Gerar) — é o que liga o valor na prévia ao cadastro.
-  return comOrigem(derivarCampos('pessoa', out), { tipo: 'pessoa', id: row.id });
+  return comOrigem(derivarCampos('pessoa', publicarOpcionais('pessoa', out)), { tipo: 'pessoa', id: row.id });
 }
 
 /** Capital social e total de quotas da sociedade — calculados, não digitados. */
 export interface CapitalSociedade {
   capitalValor: number | null;
   totalQuotas: number | null;
+  /**
+   * Valor nominal da quota (R$) usado na conta — parâmetro, não constante
+   * implícita. `calcularCapitalSociedade` sempre o devolve; é opcional na
+   * ENTRADA de `mapearSociedade` porque quem só repassa capital e quotas (a tela
+   * Gerar desestrutura os dois) cai no valor nominal da casa, o mesmo da conta.
+   */
+  quotaValorNominal?: number;
 }
 
 /**
- * Calcula capital social e total de quotas conforme o tipo da empresa:
- * - PR (Proprietária): capital = Σ valor contábil das matrículas APROVADAS para
- *   integralização (é daí que a distribuição de quotas nasce), com quotas de
- *   R$ 1,00 — totalQuotas = capital arredondado para inteiro.
- * - Demais (CN/Controladora…): Σ vlr_total e Σ quotas do quadro societário.
+ * Calcula capital social e total de quotas conforme o tipo da empresa, SEMPRE
+ * coerentes entre si: o capital do contrato é o valor das quotas emitidas
+ * (totalQuotas × VALOR_NOMINAL_QUOTA), nunca o somatório cru dos valores
+ * contábeis. Era daí que vinha a cláusula quinta afirmando capital de
+ * R$ 558.413,55 dividido em 558.414 quotas de R$ 1,00.
+ *
+ * - PR (Proprietária): as quotas nascem do valor contábil das matrículas
+ *   APROVADAS para integralização — quantas quotas aquele valor compra;
+ * - Demais (CN/Controladora…): as quotas são as do quadro societário (é o que
+ *   está registrado na Junta). Sócio lançado só com valor, sem quotas digitadas,
+ *   tem as quotas dele convertidas do valor (ver quotasDoSocio), inclusive no
+ *   quadro MISTO: senão ele contribuiria zero para o total enquanto a linha dele
+ *   imprime o valor, e a tabela deixaria de fechar com a cláusula.
+ *
  * Sem dados, devolve null — os placeholders resolvem em branco e os condicionais
  * {{#sociedade.capitalValor}} pulam o trecho.
  */
@@ -128,20 +167,45 @@ export function calcularCapitalSociedade(
   socios: SocioParaMapear[],
   integralizacoes: MatriculaParaMapear[],
 ): CapitalSociedade {
-  if (empresa?.tipo_empresa === 'PR') {
-    const valores = integralizacoes
-      .map((m) => m.vlr_contabil ?? m.bem?.vlr_contabil)
-      .filter((v): v is number => v != null);
-    if (valores.length === 0) return { capitalValor: null, totalQuotas: null };
-    const capital = valores.reduce((s, v) => s + v, 0);
-    return { capitalValor: capital, totalQuotas: Math.round(capital) };
-  }
-  const comQuotas = socios.filter((s) => s.quotas != null);
-  const comVlr = socios.filter((s) => s.vlr_total != null);
-  return {
-    capitalValor: comVlr.length ? comVlr.reduce((s, x) => s + x.vlr_total!, 0) : null,
-    totalQuotas: comQuotas.length ? comQuotas.reduce((s, x) => s + x.quotas!, 0) : null,
+  const semCapital: CapitalSociedade = {
+    capitalValor: null,
+    totalQuotas: null,
+    quotaValorNominal: VALOR_NOMINAL_QUOTA,
   };
+  const deQuotas = (quotas: number): CapitalSociedade => ({
+    capitalValor: capitalDeQuotas(quotas),
+    totalQuotas: quotas,
+    quotaValorNominal: VALOR_NOMINAL_QUOTA,
+  });
+
+  if (empresa?.tipo_empresa === 'PR') {
+    // MESMA base de calcularParticipacoesPR: a matrícula que fica fora de um
+    // lado tem de ficar fora do outro, senão Σ quotas dos sócios ≠ totalQuotas.
+    const valores = integralizacoes
+      .map(valorParaCapital)
+      .filter((v): v is number => v != null);
+    if (valores.length === 0) return semCapital;
+    return deQuotas(quotasDeValor(valores.reduce((s, v) => s + v, 0)));
+  }
+
+  const quotas = socios
+    .map((s) => quotasDoSocio(s.quotas, s.vlr_total))
+    .filter((q): q is number => q != null);
+  if (quotas.length === 0) return semCapital;
+  return deQuotas(quotas.reduce((s, q) => s + q, 0));
+}
+
+/**
+ * O valor contábil que uma matrícula leva ao capital, ou `null` quando ela fica
+ * de fora. Sem valor não há o que somar; sem titular não há a quem atribuir as
+ * quotas, e o rateio (calcularParticipacoesPR) a pula — as duas contas precisam
+ * pular a MESMA matrícula, senão a identidade "Σ quotas dos sócios ===
+ * totalQuotas" quebra sem ninguém perceber.
+ */
+function valorParaCapital(m: MatriculaParaMapear): number | null {
+  const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
+  if (vlr == null || m.titulares.length === 0) return null;
+  return vlr;
 }
 
 /**
@@ -168,11 +232,20 @@ export function mapearSociedade(row: PessoaRow, capital?: CapitalSociedade): Cam
   set('sedeCep', row.endereco_cep);
   if (capital?.capitalValor != null) set('capitalValor', formatarValor(capital.capitalValor));
   if (capital?.totalQuotas != null) set('totalQuotas', formatarInteiro(capital.totalQuotas));
+  // O valor nominal da quota é PARÂMETRO da sociedade, não dado do cadastro:
+  // sai sempre, mesmo sem capital calculado, para o bloco imprimir
+  // "R$ {{ sociedade.quotaValorNominal }} ({{ sociedade.quotaValorNominalExtenso }})"
+  // em vez de trazer "R$ 1,00 (um real)" escrito à mão.
+  set('quotaValorNominal', formatarValor(capital?.quotaValorNominal ?? VALOR_NOMINAL_QUOTA));
   // Campo do catálogo ausente vira '' (cadastro incompleto) para o condicional
   // {{#sociedade.objeto}}…{{/sociedade.objeto}} pular o trecho em vez de a prévia
   // travar — a sociedade é preenchida da empresa, sem formulário que complete a mão.
   const campos = derivarCampos('sociedade', out);
   for (const c of camposDaEntidade('sociedade')) campos[c.id] = campos[c.id] ?? '';
+  // O valor nominal (e o extenso dele) é invenção do motor, não notícia do
+  // cadastro: preenche a frase, mas não pode segurar no documento a cláusula de
+  // capital de uma sociedade que ainda não tem capital nenhum (emenda 9.1).
+  marcarSintetizados(campos, ['quotaValorNominal', 'quotaValorNominalExtenso']);
   return comOrigem(campos, { tipo: 'sociedade', id: row.id });
 }
 
@@ -311,17 +384,13 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
   }
 
   // Endereço do imóvel (identificação do urbano): partes atômicas do bem, mais a
-  // prosa. Sem logradouro não há endereço, só localização (que o rural já dá por
-  // município/UF): o campo fica ausente para o placeholder falhar cedo em vez de
-  // o contrato dizer "localizado no município de…" como se fosse um endereço.
+  // prosa. O rural não tem nenhuma delas (a localização dele é município/UF mais
+  // a denominação), e é por isso que todas resolvem '' quando faltam.
   set('enderecoLogradouro', m.bem?.endereco_logradouro);
   // `enderecoNumeroProsa` não entra aqui: é derivado de `enderecoNumero` (ver
   // vocabulario.ts), e derivarCampos o calcula no fim desta função.
   set('enderecoNumero', m.bem?.endereco_numero);
-  // Complemento é opcional de verdade (casa não tem apartamento) e a redação
-  // urbana o usa dentro de {{#imovel.enderecoComplemento}}: resolve em branco em
-  // vez de derrubar a prévia com "Seção não resolvida", como profissao em pessoa.
-  out.enderecoComplemento = m.bem?.endereco_complemento ?? '';
+  set('enderecoComplemento', m.bem?.endereco_complemento);
   set('enderecoBairro', m.bem?.endereco_bairro);
   set('enderecoCep', m.bem?.endereco_cep);
   if (m.bem?.endereco_logradouro) {
@@ -364,8 +433,18 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
       : titulares;
     set('proprietario', ordenados.map((t) => t.denominacao).filter(Boolean).join(' e '));
   }
-  set('cartorio', m.cartorio?.nome_completo);
-  set('comarca', m.cartorio?.comarca);
+  // Cartório: o que identifica a serventia é o NOME CADASTRADO ("2º Ofício de
+  // Registro de Imóveis de Sinop"), não um rótulo institucional montado com a
+  // comarca. Nome vazio (cadastro incompleto) cai no rótulo genérico aqui, num
+  // lugar só, para o bloco não precisar de guarda — e a comarca entra como
+  // COMPLEMENTO, só quando ainda não estiver dita no nome.
+  out.cartorio = nomeDoCartorio(m.cartorio?.nome_completo);
+  // `cartorio` nunca vazio não pode responder se existe vínculo: o fallback
+  // genérico faria uma guarda sempre passar. Este sinal permanece correto até
+  // para cartório cadastrado sem nome e sem comarca.
+  out.temCartorio = m.cartorio ? 'sim' : '';
+  set('comarca', (m.cartorio?.comarca ?? '').trim());
+  out.cartorioComarca = comarcaComplementar(out.cartorio, m.cartorio?.comarca);
   set('ufCartorio', ufPorExtenso(m.cartorio?.uf));
   set('ccir', m.bem?.ccir_codigo);
   set('inscricaoMunicipal', m.bem?.inscricao_municipal);
@@ -377,12 +456,20 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
   // descrição PSA, que é do mesmo naipe.
   set('confrontacoes', semPontoFinal(m.confrontacoes_texto ?? m.descricao_psa_completa));
 
-  const campos = derivarCampos('matricula', out);
+  // Campo opcional que o cadastro não tem publica '' (ver publicarOpcionais):
+  // livro e folha são nulos em matrícula antiga, comarca e UF do cartório somem
+  // junto com o cartório, CCIR não existe em imóvel urbano, inscrição municipal
+  // não existe em rural. Ausente derruba a prévia inteira; vazio é o que as
+  // guardas dos blocos esperam.
+  const campos = derivarCampos('matricula', publicarOpcionais('matricula', out));
   // Georref (caminho de volta) é OPCIONAL e vem de fonte assíncrona (BigQuery):
   // default '' para o documento não travar quando a matrícula não tem georref ou
   // o dado ainda não chegou. O efeito da tela Gerar sobrescreve quando carrega
   // (ver useGeorefByMatricula / mapearGeorefCabecalho).
   for (const id of GEOREF_CAMPOS_MATRICULA) campos[id] = campos[id] ?? '';
+  // O rótulo genérico não é notícia do cadastro: preenche a frase, mas não pode
+  // segurar no documento um bloco que só tem ele de "dado" (emenda 9.1).
+  if (campos.cartorio === CARTORIO_SEM_NOME) marcarSintetizados(campos, ['cartorio']);
   return m.id ? comOrigem(campos, { tipo: 'matricula', id: m.id }) : campos;
 }
 
@@ -437,14 +524,20 @@ export interface SocioParaMapear {
 
 export function mapearSocio(s: SocioParaMapear): ItemLista {
   const campos = mapearPessoa(s.pessoa);
-  if (s.quotas != null) {
-    campos.quotas = formatarInteiro(s.quotas);
+  // A linha do sócio é escrita a partir das QUOTAS dele, digitadas ou
+  // convertidas do valor lançado (quadro misto — ver quotasDoSocio): é o que faz
+  // a soma da tabela fechar com a cláusula de capital, em vez de a linha
+  // imprimir um valor cru que ninguém contou no total.
+  const quotas = quotasDoSocio(s.quotas, s.vlr_total);
+  if (quotas != null) {
+    campos.quotas = formatarInteiro(quotas);
     // Feminino: o extenso conta QUOTAS ("quinhentas quotas"), como no registro.
-    campos.quotasExtenso = cardinalExtenso(s.quotas, true);
-  }
-  if (s.vlr_total != null) {
-    campos.vlrTotal = formatarValor(s.vlr_total);
-    campos.vlrTotalExtenso = valorExtenso(s.vlr_total);
+    campos.quotasExtenso = cardinalExtenso(quotas, true);
+    // O valor integralizado SEGUE as quotas: é aqui que a diferença de centavos
+    // entre o valor contábil e a quota indivisível tem destino declarado.
+    const valorDasQuotas = capitalDeQuotas(quotas);
+    campos.vlrTotal = formatarValor(valorDasQuotas);
+    campos.vlrTotalExtenso = valorExtenso(valorDasQuotas);
   }
   if (s.representante) campos.representante = s.representante;
   // Re-deriva após mesclar os extras da relação: a qualificação da sócia PJ
@@ -478,13 +571,17 @@ export function mapearQuadroSocietario(
   socios: SocioParaMapear[],
   idsAdministradores: ReadonlySet<string> = new Set(),
 ): QuadroSocietarioMapeado {
-  const totalQuotas = socios.reduce((s, x) => s + (x.quotas ?? 0), 0);
-  const totalVlr = socios.reduce((s, x) => s + (x.vlr_total ?? 0), 0);
+  // As MESMAS quotas que a linha do sócio imprime (digitadas ou convertidas do
+  // valor lançado), para o total, o percentual e a cláusula de capital saírem da
+  // mesma conta — inclusive no quadro misto.
+  const quotasPorSocio = socios.map((s) => quotasDoSocio(s.quotas, s.vlr_total));
+  const totalQuotas = quotasPorSocio.reduce((s, q) => s + (q ?? 0), 0);
 
   const itens = socios.map((s, i) => {
     const item = mapearSocio(s);
-    if (s.quotas != null && totalQuotas > 0) {
-      (item.socio as Campos).percentual = formatarPercentual((s.quotas / totalQuotas) * 100);
+    const quotas = quotasPorSocio[i];
+    if (quotas != null && totalQuotas > 0) {
+      (item.socio as Campos).percentual = formatarPercentual((quotas / totalQuotas) * 100);
     }
     // Enumeração do caput de capital ("sendo: i) … e ii) …"), como já existe na
     // integralização: a cláusula de capital em moeda corrente lista os sócios do
@@ -502,7 +599,9 @@ export function mapearQuadroSocietario(
   const total: Campos = {};
   if (totalQuotas > 0) {
     total.quotas = formatarInteiro(totalQuotas);
-    total.vlrTotal = formatarValor(totalVlr);
+    // A linha TOTAL fecha com a cláusula de capital, não com a soma dos valores
+    // digitados: capital = Σ quotas × valor nominal (ver capital.ts).
+    total.vlrTotal = formatarValor(capitalDeQuotas(totalQuotas));
     total.percentual = formatarPercentual(100);
   }
   return { itens, total };
@@ -522,11 +621,15 @@ export interface ParticipacaoPR {
   denominacao: string;
   tipoPessoa: string | null;
   cpfCnpj: string | null;
-  /** R$ — Σ frações × valores das matrículas (centavos exatos). */
+  /**
+   * R$ — o valor das QUOTAS do titular (quotas × valor nominal), já ajustado.
+   * O rateio bruto das matrículas (Σ frações × valores) tem centavos que a quota
+   * indivisível não representa; o ajuste mora aqui, não no capital (ver capital.ts).
+   */
   valor: number;
-  /** Inteiro — quota de R$ 1,00; Σ quotas === Math.round(Σ valor). */
+  /** Inteiro — Σ quotas === totalQuotas de calcularCapitalSociedade. */
   quotas: number;
-  /** valor ÷ capital × 100. */
+  /** quotas ÷ total de quotas × 100. */
   percentual: number;
 }
 
@@ -535,7 +638,7 @@ export interface ParticipacaoPR {
  * matrícula aprovada para integralização pela fração de titularidade (em
  * centavos, espelhando mapearIntegralizacoes — quando as frações fecham 100%,
  * o último titular absorve o resíduo de arredondamento), agrega por pessoa e
- * converte em quotas de R$ 1,00. Titulares sem fração dividem igualmente o que
+ * converte em quotas ao valor nominal da casa. Titulares sem fração dividem o que
  * sobra (titular único sem fração leva 100%). Matrícula sem valor contábil
  * fica fora do cálculo. Ordena por valor decrescente; o último absorve a
  * diferença de quotas para fechar com calcularCapitalSociedade.
@@ -549,10 +652,11 @@ export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): 
   const porChave = new Map<string, Acumulado>();
 
   for (const m of matriculas) {
-    const vlr = m.vlr_contabil ?? m.bem?.vlr_contabil ?? null;
-    if (vlr == null) continue; // sem valor contábil ⇒ matrícula fora do cálculo
+    // MESMA base de calcularCapitalSociedade: sem valor ou sem titular, a
+    // matrícula fica fora dos DOIS lados da identidade Σ quotas === totalQuotas.
+    const vlr = valorParaCapital(m);
+    if (vlr == null) continue;
     const titulares = dedupTitulares(m.titulares);
-    if (titulares.length === 0) continue;
 
     const totalCent = Math.round(vlr * 100);
     const comFracao = titulares.filter((t) => t.fracao != null);
@@ -610,16 +714,22 @@ export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): 
       denominacao: a.denominacao,
       tipoPessoa: a.tipoPessoa,
       cpfCnpj: a.cpfCnpj,
-      valor: a.cent / 100,
-      quotas: Math.round(a.cent / 100),
-      percentual: (a.cent / capitalCent) * 100,
+      valor: 0, // preenchido abaixo: o valor segue as quotas
+      quotas: quotasDeValor(a.cent / 100),
+      percentual: 0,
     }));
 
-  // Quota a R$ 1,00: o último absorve a diferença para Σ quotas fechar com
-  // Math.round(capital) — paridade com calcularCapitalSociedade (totalQuotas).
-  const totalQuotas = Math.round(capitalCent / 100);
+  // O último absorve a diferença para Σ quotas fechar com o totalQuotas de
+  // calcularCapitalSociedade (que converte o capital inteiro de uma vez, e não
+  // titular a titular). Só então valor e percentual de cada um são derivados
+  // DAS QUOTAS — é o que faz a linha da tabela nunca contradizer a cláusula.
+  const totalQuotas = quotasDeValor(capitalCent / 100);
   const somaQuotas = participacoes.reduce((s, p) => s + p.quotas, 0);
   participacoes[participacoes.length - 1].quotas += totalQuotas - somaQuotas;
+  for (const p of participacoes) {
+    p.valor = capitalDeQuotas(p.quotas);
+    p.percentual = totalQuotas > 0 ? (p.quotas / totalQuotas) * 100 : 0;
+  }
 
   return participacoes;
 }
