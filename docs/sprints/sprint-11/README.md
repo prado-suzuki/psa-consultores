@@ -5,6 +5,7 @@
 | Tarefa | Escopo | Banco? | Status |
 |---|---|---|---|
 | [Notificações da coleta de documentos (OSG · P1)](TAREFA_notificacoes-coleta-documentos.md) | 15 avisos (cliente, time e gestor), em 4 entregas: sino, botão de solicitar, aprovar/recusar, varredura. O "como" é do tech lead. | Sim — 5 dos 15 avisos dependem de campo novo (marcados na tarefa) | A fazer |
+| [Correções do fluxo de geração de contrato (OSG)](TAREFA_correcoes-e2e-geracao-contrato.md) | 21 bugs achados no teste e2e do caso MMS: 7 vermelhos (unicidade de matrícula, documento vazio baixável, cartório descartado, bloco vazio, capital x quotas, quadro societário de Proprietária) e 14 amarelos. Cada bug traz causa, rastro de código e a correção generalizada. | Sim — B1 exige migration de constraint (com deriva entre repo e produção); B4, B5 e B14 são migrations de conteúdo de blocos | A fazer |
 
 ## Como usar esta pasta
 
