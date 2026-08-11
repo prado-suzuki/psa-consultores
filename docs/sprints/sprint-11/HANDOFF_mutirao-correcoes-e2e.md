@@ -105,9 +105,9 @@ em Docker**, aplicar a **migration real do repo sem editá-la**, e afirmar o ace
 | L2 | rodada 2 **interrompida**, árvore suja | `768e4eaa` + alterações não commitadas |
 | L3 | rodada 2 **interrompida**, árvore suja | `1276efe8` + alterações não commitadas |
 | L4 | ✅ **APROVADO** (rodada 2) | `b871ff60` |
-| L5 | rodada 2 commitada, **rerrevisão interrompida** | `3d33ce64` |
+| L5 | ❌ **REPROVADA** na rodada 2 (7 de 8 itens fechados; o 8º **destrói dado**) | `3d33ce64` |
 | L6 | **não despachada** (ver §6) | — |
-| L7 | rodada 2 commitada, **falta rerrevisar** | `9e7141d3` |
+| L7 | rodada 2 fechada pelo implementador, **falta rerrevisar** | `9e7141d3` |
 | L8 | **bloqueada** por decisão do Bernardo | — |
 
 ### L1 · B1 — APROVADO
@@ -212,15 +212,50 @@ validação com toast, troca de aba e foco.
 - **`useRelatorioDP.ts:44` ainda lê `bem.vlr_contabil` direto**, então o relatório do DP mostrará `R$ 0,00`
   para imóvel enquanto a lista mostra a soma. **Fora de todas as raias; precisa de dono.**
 
-### L5 · Qualificação das partes — rodada 2 commitada, rerrevisão interrompida
+### L5 · Qualificação das partes — REPROVADA na rodada 2, três itens, PERDA DE DADO
 
-Rodada 1 reprovada com 8 itens; rodada 2 (`3d33ce64`) diz ter corrigido todos, com prova em Postgres
-efêmero (44 afirmações). **Falta a rerrevisão.** Os pontos que o revisor precisa checar com mais rigor:
-- A exceção do "valor legado inalterado" na barreira de tenancy do gatilho `SECURITY DEFINER`: abre porta
-  para propagar vínculo cruzado já existente?
-- A migration nova `20260813120200_filiacao_derivada_do_parentesco.sql`, com dois gatilhos de projeção e
-  mudança do vocabulário de tipos (`Pai` e `Mãe` separados, `Pai/Mãe` legado resolvido pelo gênero): o que
-  acontece com legado de gênero nulo? A projeção pode divergir da origem?
+Rodada 1 reprovada com 8 itens. Rodada 2 (`3d33ce64`) fechou **sete**: o B11 na tela principal, a limpeza do
+vínculo ao sair do estado civil casado (que vale também para a ficha de Classificar, por estar no construtor
+de payload), o backfill sem vencedor arbitrário, o índice alheio, a prova do gatilho em Postgres efêmero
+(rodada pelo revisor: exit 0, 44 afirmações que leem estado depois de cada operação, não só execução), o
+registro do gap de auditoria, e a barreira de tenancy (a exceção do "valor legado inalterado" foi
+investigada e **não abre porta**: só é alcançada quando o valor já é cruzado e idêntico ao `OLD`, e nesse
+ramo o gatilho não escreve nada).
+
+**O item 8 (filiação derivada) reprovou, e o primeiro achado destrói dado em produção.** Os três:
+
+1. **`20260813120200_filiacao_derivada_do_parentesco.sql:86-96` apaga filiação que nunca veio de vínculo.**
+   A projeção usa `filiacao_pai_pessoa_id IS NOT NULL` como prova de que o valor veio de um vínculo, mas a
+   população que existe hoje foi criada pelo `FiliacaoCombobox` antigo, que gravava esse ponteiro **sem**
+   criar linha em `parentesco`. O revisor reproduziu num Postgres com o fixture: pessoa com
+   `filiacao_pai = 'Joaquim Pai'` e ponteiro preenchido perde o pai no instante em que alguém cadastra um
+   vínculo **de tio** para ela, que não tem nada a ver com o slot. E o caso que o cabeçalho da migration jura
+   ser seguro falha: vínculo `Pai/Mãe` cujo parente tem `genero` nulo não casa com slot nenhum, o ponteiro
+   está preenchido, e a projeção zera texto e ponteiro **dentro do backfill da própria migration, no
+   deploy**. Sem `NOTICE`, sem auditoria, sem volta. Requisito: materializar os ponteiros existentes como
+   vínculos `Pai`/`Mãe` **antes** de qualquer projeção; a projeção não pode esvaziar slot cujo ponteiro nunca
+   teve vínculo; e o fixture precisa das duas populações com afirmação de que nada se perdeu.
+2. **`classificar/FichaColuna.tsx:161` + `ClassificarDocumentos.tsx:331-343` continuam fabricando essa
+   população:** os pais escolhidos no combobox viram ponteiro sem vínculo. A conversão para vínculo real
+   ficou só em `PessoaModal.criarVinculosIniciais`. A segunda verdade que o B11 mandou eliminar continua
+   nascendo por esse caminho, e cada pessoa criada por ele já nasce armada para o apagamento do item 1.
+   Requisito: conversão numa função só, compartilhada por todo caminho de criação, com teste na Classificar.
+3. **`FiliacaoDerivada.tsx:11-16` põe `'Pai/Mãe'` nos dois slots**, enquanto a migration resolve o mesmo tipo
+   pelo `genero` do parente. Com um vínculo legado, o modal mostra a mesma pessoa como pai e como mãe, e o
+   `useEffect` de sincronia escreve os dois no rascunho, de modo que "Salvar alterações" persiste uma
+   filiação que **contraria a projeção do banco**. Requisito: uma regra só para o mesmo fato.
+
+Duas sobras menores, que não reprovaram: `TIPOS_PARENTESCO` deixou de oferecer `Pai/Mãe`, então editar um
+vínculo legado mostra o campo Tipo em branco; e `criarVinculosIniciais` não deduplica, então a mesma pessoa
+escolhida no trio e no combobox cria duas linhas iguais, coisa que o `ParentescoPanel` já sabe recusar.
+
+**Duas sobras do item de tenancy, para não se perderem:** o lado do outro cliente nunca é limpo (por
+desenho, o gatilho não escreve fora do tenant), e como o gatilho é `UPDATE OF conjuge_id`, **mover uma pessoa
+de cliente** (`UPDATE ... SET cliente_id`) criaria um par cruzado sem passar por checagem nenhuma.
+
+**Leitura para quem assumir:** o item 8 é o mais ambicioso da raia e foi o único que nasceu de uma
+reprovação, não do bug original. Vale considerar **separá-lo** numa frente própria e mesclar os sete itens
+fechados, em vez de segurar a L5 inteira por uma migration que mexe em dado histórico.
 
 **Anotado e não corrigido:** `poderes.excecoes` é hoje dado só de cadastro, que **nenhum documento imprime**.
 Fazer a cláusula de administração percorrer a lista é trabalho do motor (L2) e não foi pedido em bug nenhum.
@@ -380,23 +415,28 @@ Repita isto em **todo** prompt de subagente. Custa pouco e evita retrabalho.
 
 Em ordem.
 
-1. Conferir o que ficou sujo nas worktrees da **L2** e da **L3** e retomar a rodada 2 das duas.
-2. Rerrevisar **L5** e **L7** (rodada 2 já commitada nas duas).
-3. Aprovar a **L2**, mesclar na base, recriar a worktree da **L6** a partir dela e despachar a L6 com a
+1. Conferir o que ficou sujo nas worktrees da **L2** e da **L3** e retomar a rodada 2 das duas. Os dois
+   agentes foram **parados no meio**, então a árvore suja é trabalho a meio caminho, não trabalho pronto: leia
+   o diff antes de aproveitar qualquer coisa. A lista das 10 correções da L2 e das 7 da L3 está no §4.
+2. Decidir o que fazer com a **L5**: ou rodada 3 no item da filiação derivada, ou separá-lo numa frente
+   própria e mesclar os sete itens já fechados. **Nada da migration `20260813120200` pode ir para o Lovable
+   como está**: ela apaga filiação de pessoas cadastradas pelo fluxo antigo, no próprio backfill do deploy.
+3. Rerrevisar **L7** (rodada 2 fechada, os cinco itens têm pontos de atenção listados no §4).
+4. Aprovar a **L2**, mesclar na base, recriar a worktree da **L6** a partir dela e despachar a L6 com a
    especificação do §4.
-4. Mesclar na ordem: **L1, L4, L5, L7** em qualquer ordem; depois **L2**, então **L3**, então **L6**.
-5. Antes de propor merge para `develop`: `bun run lint`, `bun run typecheck`, `bun run test` e
+5. Mesclar na ordem: **L1, L4, L5, L7** em qualquer ordem; depois **L2**, então **L3**, então **L6**.
+6. Antes de propor merge para `develop`: `bun run lint`, `bun run typecheck`, `bun run test` e
    `bun run build`, tudo verde.
-6. **Reexecutar o roteiro `e2e/dados/roteiro.md` do P00 ao P26**, num cliente de teste **novo**, apontando
+7. **Reexecutar o roteiro `e2e/dados/roteiro.md` do P00 ao P26**, num cliente de teste **novo**, apontando
    para **localhost** (nunca produção), e **confirmar com o Bernardo antes do primeiro insert**.
-7. Confirmar que a seção "Confirmações que devem continuar passando" no fim do arquivo de tarefa continua
+8. Confirmar que a seção "Confirmações que devem continuar passando" no fim do arquivo de tarefa continua
    verdadeira: CCIR compartilhado entre duas matrículas do mesmo bem; bem fora da estruturação ausente do
    documento; modal de matrícula adaptando ITR/IPTU por tipo; área em hectare com quatro casas; outorga
    conjugal só para quem o regime exige; CNAE virando lista.
-8. Marcar `✅ CONCLUÍDO (data)` bug a bug no arquivo de tarefa e atualizar a coluna Status no `README.md` da
+9. Marcar `✅ CONCLUÍDO (data)` bug a bug no arquivo de tarefa e atualizar a coluna Status no `README.md` da
    sprint. **Isso é do orquestrador, não das raias** (arquivo compartilhado, conflito garantido), e por isso
    ainda não foi feito para nenhum bug.
-9. Itens novos que nasceram do mutirão e precisam de dono, listados ao longo do §4: os dois erros crus de UI
+10. Itens novos que nasceram do mutirão e precisam de dono, listados ao longo do §4: os dois erros crus de UI
    do B1, `useRelatorioDP.ts:44`, o aviso de arredondamento em `ha e m²`, a guarda quebrada do §7, e o
    rastro errado do B20 no arquivo de tarefa.
 
