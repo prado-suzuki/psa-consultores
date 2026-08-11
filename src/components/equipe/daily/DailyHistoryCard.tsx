@@ -4,6 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import { TarefaRichTextView } from '@/components/equipe/TarefaRichTextView';
 import type { DailyStandup, Sprint, TeamMember } from '@/hooks/useDomainEquipeDaily';
 import type { Cluster } from '@/hooks/useClusters';
@@ -22,6 +29,8 @@ interface DailyHistoryCardProps {
   filters: DailyFilters;
   lookups: DailyLookups;
   loading: boolean;
+  page: number;
+  hasNextPage: boolean;
   onFiltersChange: (filters: DailyFilters) => void;
   onClusterChange: (value: string) => void;
   onSearch: () => void;
@@ -29,6 +38,7 @@ interface DailyHistoryCardProps {
   onExport: () => void;
   onEdit: (standup: DailyStandup) => void;
   onDelete: (standupId: string) => void;
+  onPageChange: (page: number) => void;
 }
 
 export function DailyHistoryCard({
@@ -41,6 +51,8 @@ export function DailyHistoryCard({
   filters,
   lookups,
   loading,
+  page,
+  hasNextPage,
   onFiltersChange,
   onClusterChange,
   onSearch,
@@ -48,6 +60,7 @@ export function DailyHistoryCard({
   onExport,
   onEdit,
   onDelete,
+  onPageChange,
 }: DailyHistoryCardProps) {
   return (
     <Card className="bg-white border-gray-200">
@@ -107,6 +120,37 @@ export function DailyHistoryCard({
                 onDelete={onDelete}
               />
             ))}
+            {(page > 1 || hasNextPage) && (
+              <Pagination className="pt-2">
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious
+                      href="#"
+                      aria-disabled={page === 1}
+                      className={page === 1 ? 'pointer-events-none opacity-50' : undefined}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        onPageChange(page - 1);
+                      }}
+                    />
+                  </PaginationItem>
+                  <PaginationItem>
+                    <span className="px-3 text-sm text-gray-600">Página {page}</span>
+                  </PaginationItem>
+                  <PaginationItem>
+                    <PaginationNext
+                      href="#"
+                      aria-disabled={!hasNextPage}
+                      className={!hasNextPage ? 'pointer-events-none opacity-50' : undefined}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        onPageChange(page + 1);
+                      }}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            )}
           </div>
         ) : (
           <div className="text-center py-8">

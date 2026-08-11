@@ -11,13 +11,15 @@ import {
 } from '@/hooks/useDomainEquipeDaily';
 import { usePersistedState } from '@/hooks/usePersistedState';
 import { useClusters } from '@/hooks/useClusters';
+import { useDomainDailySprintProgress } from '@/hooks/useDomainDailySprintProgress';
 import {
   useDailySprintTasks,
   useUpdateDailyTaskStatus,
   type DailySprintTask,
   type DailyTaskStatus,
 } from '@/hooks/useDailySprintTasks';
-import { matchCluster } from '@/lib/clusterFilter';
+import { matchCluster, SEM_CLUSTER } from '@/lib/clusterFilter';
+import { buildDailySprintProgress } from '@/lib/dailySprintProgress';
 import { toast } from '@/hooks/use-toast';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 import {
@@ -47,7 +49,8 @@ export function useEquipeDailyController() {
   const [processes, setProcesses] = useState<Process[]>([]);
   const [selectedUserId, setSelectedUserId] = useState('');
   const [loading, setLoading] = useState(true);
-  const [membersLoaded, setMembersLoaded] = useState(false);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
+  const [sprintsLoaded, setSprintsLoaded] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [copyingYesterday, setCopyingYesterday] = useState(false);
   const [quickUpdateOpen, setQuickUpdateOpen] = useState(false);
@@ -59,9 +62,15 @@ export function useEquipeDailyController() {
   const [filterEndDate, setFilterEndDate] = useState('');
   const [filterPerson, setFilterPerson] = usePersistedState<string>('rotina.daily.pessoa', 'all');
   const [filterSprint, setFilterSprint] = usePersistedState<string>('rotina.daily.sprint', 'all');
-  // Cluster é filtrado client-side (os dailys são filtrados no servidor por pessoa/sprint/data,
-  // mas não têm cluster_id direto). Chave compartilhada com as outras telas de /equipe.
   const [filterCluster, setFilterCluster] = usePersistedState<string>('rotina.cluster', '');
+  const [page, setPage] = useState(1);
+  const [appliedFilters, setAppliedFilters] = useState<DailyFilters>(() => ({
+    startDate: '',
+    endDate: '',
+    person: filterPerson,
+    sprint: filterSprint,
+  }));
+  const [appliedCluster, setAppliedCluster] = useState(filterCluster);
   const { data: clusters = [] } = useClusters();
   // Tarefas da pessoa na sprint escolhida — alimentam os chips e o dropdown de bloqueio.
   const { data: sprintTasks = [] } = useDailySprintTasks(form.sprint_id, selectedUserId);
@@ -70,6 +79,16 @@ export function useEquipeDailyController() {
     isLoading: quickUpdateLoading,
   } = useDailySprintTasks(form.sprint_id, user?.id ?? '', quickUpdateOpen);
   const updateDailyTaskStatus = useUpdateDailyTaskStatus(user?.id);
+  const activeSprintId = useMemo(() => findCurrentActiveSprintId(sprints), [sprints]);
+  const activeSprint = useMemo(
+    () => sprints.find((sprint) => sprint.id === activeSprintId) ?? null,
+    [activeSprintId, sprints],
+  );
+  const activeSprintProgressQuery = useDomainDailySprintProgress(activeSprintId);
+  const activeSprintProgress = useMemo(
+    () => buildDailySprintProgress(activeSprintProgressQuery.data ?? [], teamMembers),
+    [activeSprintProgressQuery.data, teamMembers],
+  );
   const today = new Date().toISOString().split('T')[0];
   const filters: DailyFilters = {
     startDate: filterStartDate,
@@ -77,12 +96,27 @@ export function useEquipeDailyController() {
     person: filterPerson,
     sprint: filterSprint,
   };
+  const clusterProjectIds = useMemo(() => projects
+    .filter((project) => appliedCluster === SEM_CLUSTER
+      ? !project.cluster_id
+      : project.cluster_id === appliedCluster)
+    .map((project) => project.id), [appliedCluster, projects]);
+  const clusterProjectIdSet = useMemo(() => new Set(clusterProjectIds), [clusterProjectIds]);
+  const clusterSprintIds = useMemo(() => sprints
+    .filter((sprint) => appliedCluster === SEM_CLUSTER
+      ? !sprint.project_id || clusterProjectIdSet.has(sprint.project_id)
+      : Boolean(sprint.project_id && clusterProjectIdSet.has(sprint.project_id)))
+    .map((sprint) => sprint.id), [appliedCluster, clusterProjectIdSet, sprints]);
 
   const domain = useDomainEquipeDaily({
     userId: user?.id,
     today,
-    membersLoaded,
-    filters,
+    filters: appliedFilters,
+    page,
+    clusterFilter: appliedCluster,
+    clusterProjectIds,
+    clusterSprintIds,
+    clusterDataLoaded: projectsLoaded && sprintsLoaded,
   });
 
   useEffect(() => {
@@ -96,15 +130,18 @@ export function useEquipeDailyController() {
       domain.teamMembersResult?.roleProfiles,
       domain.teamMembersResult?.additionalProfiles,
     ));
-    setMembersLoaded(true);
   }, [domain.teamMembersResult]);
 
   useEffect(() => {
-    if (domain.sprintsResult?.data) setSprints(domain.sprintsResult.data);
+    if (!domain.sprintsResult?.data) return;
+    setSprints(domain.sprintsResult.data);
+    setSprintsLoaded(true);
   }, [domain.sprintsResult]);
 
   useEffect(() => {
-    if (domain.projectsResult?.data) setProjects(domain.projectsResult.data);
+    if (!domain.projectsResult?.data) return;
+    setProjects(domain.projectsResult.data);
+    setProjectsLoaded(true);
   }, [domain.projectsResult]);
 
   useEffect(() => {
@@ -113,13 +150,17 @@ export function useEquipeDailyController() {
 
   useEffect(() => {
     if (!domain.standupsResult) return;
+    if (domain.standupsResult.standups?.length === 0 && page > 1) {
+      setPage((currentPage) => currentPage - 1);
+      return;
+    }
     if (domain.standupsResult.myStandup) {
       setMyStandup(domain.standupsResult.myStandup);
       setForm(hydrateDailyForm(domain.standupsResult.myStandup));
     }
     if (domain.standupsResult.standups) setStandups(domain.standupsResult.standups);
     setLoading(false);
-  }, [domain.standupsResult]);
+  }, [domain.standupsResult, page]);
 
   // Sprint sugerida: a ativa mais atual, uma única vez e só quando ainda não existe
   // daily de hoje (um daily já gravado manda no valor, inclusive quando é "sem sprint").
@@ -159,8 +200,8 @@ export function useEquipeDailyController() {
   }, [projects, sprints]);
 
   const visibleStandups = useMemo(
-    () => standups.filter((standup) => matchCluster(filterCluster, clusterOfStandup(standup))),
-    [standups, filterCluster, clusterOfStandup],
+    () => standups.filter((standup) => matchCluster(appliedCluster, clusterOfStandup(standup))),
+    [standups, appliedCluster, clusterOfStandup],
   );
 
   const fetchStandups = async () => {
@@ -308,23 +349,57 @@ export function useEquipeDailyController() {
     setFilterSprint(nextFilters.sprint);
   };
 
+  const handleSearch = async () => {
+    const sameFilters = page === 1
+      && appliedCluster === filterCluster
+      && appliedFilters.startDate === filters.startDate
+      && appliedFilters.endDate === filters.endDate
+      && appliedFilters.person === filters.person
+      && appliedFilters.sprint === filters.sprint;
+
+    setLoading(true);
+    setPage(1);
+    setAppliedFilters(filters);
+    setAppliedCluster(filterCluster);
+    if (sameFilters) await fetchStandups();
+  };
+
   const handleClearFilters = () => {
-    handleFiltersChange({ startDate: '', endDate: '', person: 'all', sprint: 'all' });
+    const clearedFilters = { startDate: '', endDate: '', person: 'all', sprint: 'all' };
+    handleFiltersChange(clearedFilters);
     setFilterCluster('');
+    setAppliedFilters(clearedFilters);
+    setAppliedCluster('');
+    setPage(1);
+    setLoading(true);
     toast({ title: 'Filtros limpos', description: 'Todos os filtros foram removidos.' });
   };
 
-  const handleExportExcel = () => {
-    if (visibleStandups.length === 0) {
-      toast({ title: 'Sem dados', description: 'Não há dailys para exportar.', variant: 'destructive' });
-      return;
+  const handlePageChange = (nextPage: number) => {
+    if (nextPage < 1 || (nextPage > page && !domain.standupsResult?.hasNextPage)) return;
+    setLoading(true);
+    setPage(nextPage);
+  };
+
+  const handleExportExcel = async () => {
+    try {
+      const allFilteredStandups = await domain.fetchStandupsForExport();
+      const exportStandups = allFilteredStandups.filter((standup) =>
+        matchCluster(appliedCluster, clusterOfStandup(standup)));
+      if (exportStandups.length === 0) {
+        toast({ title: 'Sem dados', description: 'Não há dailys para exportar.', variant: 'destructive' });
+        return;
+      }
+      const worksheet = XLSX.utils.json_to_sheet(buildDailyExportRows(exportStandups, lookups));
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Dailys');
+      const dateLabel = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
+      XLSX.writeFile(workbook, `dailys_${dateLabel}.xlsx`);
+      toast({ title: 'Excel exportado', description: `${exportStandups.length} daily(s) exportado(s) com sucesso.` });
+    } catch (error) {
+      console.error('Error exporting standups:', error);
+      toast({ title: 'Erro', description: 'Não foi possível exportar os dailys.', variant: 'destructive' });
     }
-    const worksheet = XLSX.utils.json_to_sheet(buildDailyExportRows(visibleStandups, lookups));
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Dailys');
-    const dateLabel = new Date().toLocaleDateString('pt-BR').replace(/\//g, '-');
-    XLSX.writeFile(workbook, `dailys_${dateLabel}.xlsx`);
-    toast({ title: 'Excel exportado', description: `${visibleStandups.length} daily(s) exportado(s) com sucesso.` });
   };
 
   return {
@@ -334,6 +409,9 @@ export function useEquipeDailyController() {
     sprints,
     projects,
     sprintTasks,
+    activeSprint,
+    activeSprintProgress,
+    activeSprintProgressLoading: activeSprintProgressQuery.isLoading,
     quickUpdateTasks,
     quickUpdateLoading,
     quickUpdateOpen,
@@ -345,7 +423,9 @@ export function useEquipeDailyController() {
     filteredProcesses: filterProcesses(processes, form.project_id),
     selectedUserId,
     setSelectedUserId,
-    loading,
+    loading: loading || Boolean(domain.standupsFetching),
+    page,
+    hasNextPage: Boolean(domain.standupsResult?.hasNextPage),
     submitting,
     copyingYesterday,
     form,
@@ -365,7 +445,9 @@ export function useEquipeDailyController() {
     handleEditSubmit,
     handleDelete,
     handleFiltersChange,
+    handleSearch,
     handleClearFilters,
+    handlePageChange,
     handleExportExcel,
     fetchStandups,
   };

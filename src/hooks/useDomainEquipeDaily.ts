@@ -1,6 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
+import { SEM_CLUSTER } from '@/lib/clusterFilter';
 
 export interface DailyStandup {
   id: string;
@@ -56,8 +57,12 @@ interface EquipeDailyFilters {
 interface UseDomainEquipeDailyOptions {
   userId: string | undefined;
   today: string;
-  membersLoaded: boolean;
   filters: EquipeDailyFilters;
+  page: number;
+  clusterFilter: string;
+  clusterProjectIds: string[];
+  clusterSprintIds: string[];
+  clusterDataLoaded: boolean;
 }
 
 interface TeamMembersResult {
@@ -68,6 +73,7 @@ interface TeamMembersResult {
 interface StandupsResult {
   myStandup?: DailyStandup;
   standups?: DailyStandup[];
+  hasNextPage?: boolean;
 }
 
 interface ListResult<T> {
@@ -79,9 +85,19 @@ interface UpdateDailyStandupVariables {
   payload: TablesUpdate<'daily_standups'>;
 }
 
-const formerEffectQueryOptions = {
-  staleTime: 0,
-  gcTime: 0,
+export const DAILY_PAGE_SIZE = 20;
+
+const referenceQueryOptions = {
+  staleTime: 10 * 60_000,
+  gcTime: 30 * 60_000,
+  retry: false,
+  refetchOnWindowFocus: false,
+  refetchOnReconnect: false,
+} as const;
+
+const standupsQueryOptions = {
+  staleTime: 30_000,
+  gcTime: 5 * 60_000,
   retry: false,
   refetchOnWindowFocus: false,
   refetchOnReconnect: false,
@@ -99,6 +115,8 @@ const equipeDailyKeys = {
   standups: (
     userId: string | undefined,
     { startDate, endDate, person, sprint }: EquipeDailyFilters,
+    page: number,
+    clusterFilter: string,
   ) =>
     [
       'domain-equipe-daily',
@@ -108,14 +126,20 @@ const equipeDailyKeys = {
       endDate,
       person,
       sprint,
+      clusterFilter,
+      page,
     ] as const,
 };
 
 export function useDomainEquipeDaily({
   userId,
   today,
-  membersLoaded,
   filters,
+  page,
+  clusterFilter,
+  clusterProjectIds,
+  clusterSprintIds,
+  clusterDataLoaded,
 }: UseDomainEquipeDailyOptions) {
   const teamMembersQuery = useQuery<TeamMembersResult>({
     queryKey: equipeDailyKeys.teamMembers(userId),
@@ -123,37 +147,37 @@ export function useDomainEquipeDaily({
       const result: TeamMembersResult = {};
 
       try {
-        const { data: rolesData } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .in('role', ['team_member', 'admin']);
+        const [{ data: rolesData, error: rolesError }, { data: standupUsers, error: standupsError }] =
+          await Promise.all([
+            supabase
+              .from('user_roles')
+              .select('user_id')
+              .in('role', ['team_member', 'admin']),
+            supabase
+              .from('daily_standups')
+              .select('user_id')
+              .order('date', { ascending: false })
+              .limit(200),
+          ]);
 
-        if (rolesData && rolesData.length > 0) {
-          const userIds = rolesData.map((role) => role.user_id);
-          const { data: profilesData } = await supabase
+        if (rolesError) throw rolesError;
+        if (standupsError) throw standupsError;
+
+        const roleIds = new Set((rolesData ?? []).map((role) => role.user_id));
+        const allIds = [...new Set([
+          ...roleIds,
+          ...(standupUsers ?? []).map((standup) => standup.user_id),
+        ])];
+
+        if (allIds.length > 0) {
+          const { data: profilesData, error: profilesError } = await supabase
             .from('profiles_safe')
             .select('id, first_name, last_name')
-            .in('id', userIds);
+            .in('id', allIds);
 
-          if (profilesData) {
-            result.roleProfiles = profilesData;
-          }
-        }
-
-        const { data: standupUsers } = await supabase
-          .from('daily_standups')
-          .select('user_id');
-
-        if (standupUsers && standupUsers.length > 0) {
-          const uniqueUserIds = [...new Set(standupUsers.map((standup) => standup.user_id))];
-          const { data: additionalProfiles } = await supabase
-            .from('profiles_safe')
-            .select('id, first_name, last_name')
-            .in('id', uniqueUserIds);
-
-          if (additionalProfiles) {
-            result.additionalProfiles = additionalProfiles;
-          }
+          if (profilesError) throw profilesError;
+          result.roleProfiles = (profilesData ?? []).filter((profile) => roleIds.has(profile.id));
+          result.additionalProfiles = (profilesData ?? []).filter((profile) => !roleIds.has(profile.id));
         }
       } catch (error) {
         console.error('Error fetching team members:', error);
@@ -162,7 +186,7 @@ export function useDomainEquipeDaily({
       return result;
     },
     enabled: !!userId,
-    ...formerEffectQueryOptions,
+    ...referenceQueryOptions,
   });
 
   const sprintsQuery = useQuery<ListResult<Sprint[]>>({
@@ -181,7 +205,7 @@ export function useDomainEquipeDaily({
       }
     },
     enabled: !!userId,
-    ...formerEffectQueryOptions,
+    ...referenceQueryOptions,
   });
 
   const projectsQuery = useQuery<ListResult<Project[]>>({
@@ -200,7 +224,7 @@ export function useDomainEquipeDaily({
       }
     },
     enabled: !!userId,
-    ...formerEffectQueryOptions,
+    ...referenceQueryOptions,
   });
 
   const processesQuery = useQuery<ListResult<Process[]>>({
@@ -219,56 +243,73 @@ export function useDomainEquipeDaily({
       }
     },
     enabled: !!userId,
-    ...formerEffectQueryOptions,
+    ...referenceQueryOptions,
   });
 
   const standupsQuery = useQuery<StandupsResult>({
-    queryKey: equipeDailyKeys.standups(userId, filters),
+    queryKey: equipeDailyKeys.standups(userId, filters, page, clusterFilter),
     queryFn: async () => {
       const result: StandupsResult = {};
       if (!userId) return result;
 
       try {
-        const { data: myData } = await supabase
+        const myStandupQuery = supabase
           .from('daily_standups')
           .select('*')
           .eq('user_id', userId)
           .eq('date', today)
           .maybeSingle();
 
-        if (myData) {
-          result.myStandup = myData;
-        }
-
-        let query = supabase
+        let historyQuery = supabase
           .from('daily_standups')
           .select('*')
           .order('date', { ascending: false })
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: false });
 
-        if (filters.startDate) {
-          query = query.gte('date', filters.startDate);
-        }
-        if (filters.endDate) {
-          query = query.lte('date', filters.endDate);
-        }
-        if (filters.sprint !== 'all') {
-          query = query.eq('sprint_id', filters.sprint);
-        }
-        if (filters.person !== 'all') {
-          query = query.eq('user_id', filters.person);
+        if (filters.startDate) historyQuery = historyQuery.gte('date', filters.startDate);
+        if (filters.endDate) historyQuery = historyQuery.lte('date', filters.endDate);
+        if (filters.sprint !== 'all') historyQuery = historyQuery.eq('sprint_id', filters.sprint);
+        if (filters.person !== 'all') historyQuery = historyQuery.eq('user_id', filters.person);
+
+        if (clusterFilter) {
+          const clauses: string[] = [];
+          if (clusterProjectIds.length > 0) {
+            clauses.push(`project_id.in.(${clusterProjectIds.join(',')})`);
+          }
+          if (clusterSprintIds.length > 0) {
+            clauses.push(`and(project_id.is.null,sprint_id.in.(${clusterSprintIds.join(',')}))`);
+          }
+          if (clusterFilter === SEM_CLUSTER) {
+            clauses.push('and(project_id.is.null,sprint_id.is.null)');
+          }
+          historyQuery = clauses.length > 0
+            ? historyQuery.or(clauses.join(','))
+            : historyQuery.eq('id', '00000000-0000-0000-0000-000000000000');
         }
 
-        const { data: allStandups } = await query;
-        result.standups = allStandups || [];
+        const from = (page - 1) * DAILY_PAGE_SIZE;
+        historyQuery = historyQuery.range(from, from + DAILY_PAGE_SIZE);
+
+        const [myStandupResponse, historyResponse] = await Promise.all([
+          myStandupQuery,
+          historyQuery,
+        ]);
+        if (myStandupResponse.error) throw myStandupResponse.error;
+        if (historyResponse.error) throw historyResponse.error;
+
+        if (myStandupResponse.data) result.myStandup = myStandupResponse.data;
+        const rows = historyResponse.data ?? [];
+        result.standups = rows.slice(0, DAILY_PAGE_SIZE);
+        result.hasNextPage = rows.length > DAILY_PAGE_SIZE;
       } catch (error) {
         console.error('Error fetching standups:', error);
       }
 
       return result;
     },
-    enabled: !!userId && membersLoaded,
-    ...formerEffectQueryOptions,
+    enabled: !!userId && (!clusterFilter || clusterDataLoaded),
+    ...standupsQueryOptions,
   });
 
   const updateDailyStandup = useMutation({
@@ -304,6 +345,36 @@ export function useDomainEquipeDaily({
     onError: () => undefined,
   });
 
+  const fetchStandupsForExport = async () => {
+    let query = supabase
+      .from('daily_standups')
+      .select('*')
+      .order('date', { ascending: false })
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false });
+
+    if (filters.startDate) query = query.gte('date', filters.startDate);
+    if (filters.endDate) query = query.lte('date', filters.endDate);
+    if (filters.sprint !== 'all') query = query.eq('sprint_id', filters.sprint);
+    if (filters.person !== 'all') query = query.eq('user_id', filters.person);
+
+    if (clusterFilter) {
+      const clauses: string[] = [];
+      if (clusterProjectIds.length > 0) clauses.push(`project_id.in.(${clusterProjectIds.join(',')})`);
+      if (clusterSprintIds.length > 0) {
+        clauses.push(`and(project_id.is.null,sprint_id.in.(${clusterSprintIds.join(',')}))`);
+      }
+      if (clusterFilter === SEM_CLUSTER) clauses.push('and(project_id.is.null,sprint_id.is.null)');
+      query = clauses.length > 0
+        ? query.or(clauses.join(','))
+        : query.eq('id', '00000000-0000-0000-0000-000000000000');
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+    return data ?? [];
+  };
+
   const copyFromYesterday = useMutation({
     mutationFn: async ({ copyUserId, copyDate }: { copyUserId: string; copyDate: string }) => {
       const { data, error } = await supabase
@@ -327,10 +398,12 @@ export function useDomainEquipeDaily({
     projectsResult: projectsQuery.data,
     processesResult: processesQuery.data,
     standupsResult: standupsQuery.data,
+    standupsFetching: standupsQuery.isFetching,
     refetchStandups: standupsQuery.refetch,
     updateDailyStandup,
     insertDailyStandup,
     deleteDailyStandup,
+    fetchStandupsForExport,
     copyFromYesterday,
   };
 }

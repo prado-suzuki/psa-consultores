@@ -103,6 +103,7 @@ export function useUpdateDailyTaskStatus(authenticatedUserId?: string) {
         tasks?.map((task) => task.id === updatedTask.id ? updatedTask : task),
       );
       void queryClient.invalidateQueries({ queryKey: ['daily-sprint-tasks'] });
+      void queryClient.invalidateQueries({ queryKey: ['daily-sprint-progress'] });
       void queryClient.invalidateQueries({ queryKey: ['sprint_deliverables'] });
       void queryClient.invalidateQueries({ queryKey: ['domain-equipe-sprint-detalhes'] });
       void queryClient.invalidateQueries({ queryKey: ['domain-equipe-kanban'] });

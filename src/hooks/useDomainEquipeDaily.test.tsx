@@ -48,7 +48,9 @@ function makeSupabaseChain(table: string) {
     'lte',
     'lt',
     'filter',
+    'or',
     'order',
+    'range',
     'limit',
     'single',
     'maybeSingle',
@@ -91,8 +93,12 @@ function render(overrides: Partial<Parameters<typeof useDomainEquipeDaily>[0]> =
     useDomainEquipeDaily({
       userId: 'user-1',
       today: '2026-07-20',
-      membersLoaded: true,
       filters: baseFilters,
+      page: 1,
+      clusterFilter: '',
+      clusterProjectIds: [],
+      clusterSprintIds: [],
+      clusterDataLoaded: true,
       ...overrides,
     }),
   );
@@ -114,17 +120,18 @@ describe('useDomainEquipeDaily — queries', () => {
       ['domain-equipe-daily', 'sprints', 'user-1'],
       ['domain-equipe-daily', 'projects', 'user-1'],
       ['domain-equipe-daily', 'processes', 'user-1'],
-      ['domain-equipe-daily', 'standups', 'user-1', '2026-07-01', '2026-07-31', 'all', 'all'],
+      ['domain-equipe-daily', 'standups', 'user-1', '2026-07-01', '2026-07-31', 'all', 'all', '', 1],
     ]);
   });
 
-  it('desabilita as queries sem userId e standups sem membros carregados', () => {
-    render({ userId: undefined, membersLoaded: false });
+  it('desabilita as queries sem userId e espera os metadados quando há filtro de cluster', () => {
+    render({ userId: undefined });
     const regs = queryRegistrations();
-    // team-members, sprints, projects, processes → enabled !!userId === false
-    expect(regs.slice(0, 4).every((r) => r.enabled === false)).toBe(true);
-    // standups → !!userId && membersLoaded === false
-    expect(regs[4].enabled).toBe(false);
+    expect(regs.every((r) => r.enabled === false)).toBe(true);
+
+    vi.clearAllMocks();
+    render({ clusterFilter: 'cluster-1', clusterDataLoaded: false });
+    expect(queryRegistrations()[4].enabled).toBe(false);
   });
 
   it('team-members: filtra roles por team_member/admin e busca perfis pelos ids', async () => {
@@ -137,9 +144,10 @@ describe('useDomainEquipeDaily — queries', () => {
     await (queryRegistrations()[0].queryFn as () => Promise<unknown>)();
 
     expect(callsFor('user_roles', 'in')[0].args).toEqual(['role', ['team_member', 'admin']]);
-    expect(callsFor('profiles_safe', 'in')[0].args).toEqual(['id', ['u-a', 'u-b']]);
-    // segunda passagem: perfis extras dos autores de standups
-    expect(callsFor('profiles_safe', 'in')[1].args).toEqual(['id', ['u-c']]);
+    expect(callsFor('daily_standups', 'limit')[0].args).toEqual([200]);
+    // Roles e autores recentes são descobertos em paralelo e os perfis vêm em uma única chamada.
+    expect(callsFor('profiles_safe', 'in')).toHaveLength(1);
+    expect(callsFor('profiles_safe', 'in')[0].args).toEqual(['id', ['u-a', 'u-b', 'u-c']]);
   });
 
   it('sprints/projects/processes: selecionam e ordenam corretamente', async () => {
@@ -172,6 +180,8 @@ describe('useDomainEquipeDaily — queries', () => {
     expect(callsFor('daily_standups', 'lte')[0].args).toEqual(['date', '2026-07-31']);
     // sprint='all' e person='all' → não filtra por sprint_id nem por user_id na lista
     expect(eqCalls).not.toContainEqual(['sprint_id', 'all']);
+    // Busca uma linha extra para descobrir se existe próxima página, sem COUNT global.
+    expect(callsFor('daily_standups', 'range')[0].args).toEqual([0, 20]);
   });
 
   it('standups: aplica eq de sprint_id e user_id quando filtros são específicos', async () => {
@@ -183,6 +193,34 @@ describe('useDomainEquipeDaily — queries', () => {
     const eqCalls = callsFor('daily_standups', 'eq').map((c) => c.args);
     expect(eqCalls).toContainEqual(['sprint_id', 'sprint-9']);
     expect(eqCalls).toContainEqual(['user_id', 'user-42']);
+  });
+
+  it('standups: pagina no servidor e informa quando há próxima página', async () => {
+    const rows = Array.from({ length: 21 }, (_, index) => ({ id: `daily-${index}` }));
+    setDbResult('daily_standups', 'select', { data: rows, error: null });
+    render({ page: 2 });
+
+    const result = await (queryRegistrations()[4].queryFn as () => Promise<{
+      standups: unknown[];
+      hasNextPage: boolean;
+    }>)();
+
+    expect(callsFor('daily_standups', 'range')[0].args).toEqual([20, 40]);
+    expect(result.standups).toHaveLength(20);
+    expect(result.hasNextPage).toBe(true);
+  });
+
+  it('standups: aplica cluster no servidor considerando projeto direto e sprint', async () => {
+    render({
+      clusterFilter: 'cluster-1',
+      clusterProjectIds: ['project-1'],
+      clusterSprintIds: ['sprint-1'],
+    });
+    await (queryRegistrations()[4].queryFn as () => Promise<unknown>)();
+
+    expect(callsFor('daily_standups', 'or')[0].args).toEqual([
+      'project_id.in.(project-1),and(project_id.is.null,sprint_id.in.(sprint-1))',
+    ]);
   });
 
   it('standups: retorna cedo sem userId sem tocar no supabase', async () => {
