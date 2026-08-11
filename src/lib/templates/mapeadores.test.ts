@@ -190,8 +190,10 @@ describe('calcularCapitalSociedade — PR (integralizações) × demais (quadro 
   const empresaPR = { tipo_empresa: 'PR' } as unknown as PessoaRow;
   const empresaCN = { tipo_empresa: 'CN' } as unknown as PessoaRow;
 
+  // Com titular: é ele que recebe as quotas. Matrícula SEM titular fica fora do
+  // capital (e do rateio) — caso próprio, mais abaixo.
   const matDeValor = (vlr: number | null, vlrBem: number | null = null): MatriculaParaMapear => ({
-    ...matriculaCom([]),
+    ...matriculaCom([{ denominacao: 'Titular Único', pessoaId: 't1' }]),
     vlr_contabil: vlr,
     bem: vlrBem != null ? { denominacao: null, vlr_contabil: vlrBem, ccir_codigo: null } : null,
   });
@@ -251,8 +253,10 @@ describe('mapearMatricula — titularidade (forma inteira × fracionada)', () =>
   it('titular único: forma inteira, sem fração nem remanescente', () => {
     const c = mapearMatricula(matriculaCom([{ denominacao: 'José Eduardo', pessoaId: 'a' }]));
     expect(c.proprietario).toBe('José Eduardo');
-    expect(c.percentual).toBeUndefined();
-    expect(c.remanescente).toBeUndefined();
+    // Campo opcional sem valor resolve '' (presente e falso), nunca ausente: é
+    // o que faz {{#imovel.fracionado}} pular o trecho em vez de derrubar a prévia.
+    expect(c.percentual).toBe('');
+    expect(c.remanescente).toBe('');
     expect(c.fracionado).toBe('');
   });
 
@@ -286,7 +290,7 @@ describe('mapearMatricula — titularidade (forma inteira × fracionada)', () =>
       matriculaCom([{ denominacao: 'José Eduardo', pessoaId: 'a', integralizador: true, fracao: 50 }]),
     );
     expect(c.proprietario).toBe('José Eduardo');
-    expect(c.percentual).toBeUndefined();
+    expect(c.percentual).toBe('');
     expect(c.fracionado).toBe('');
   });
 
@@ -320,15 +324,19 @@ function matriculaImovel(over: Partial<MatriculaParaMapear>): MatriculaParaMapea
 // de Sinop, cujo nome JÁ traz a comarca, contra o cadastro sem nome nenhum — os
 // dois extremos que a frase tem que atravessar sem sair torta.
 describe('mapearMatricula — cartório: nome cadastrado + comarca como complemento (B4)', () => {
-  const REDACAO = 'do {{ imovel.cartorio }}{{#imovel.cartorioComarca}} da comarca de {{ imovel.cartorioComarca }}{{/imovel.cartorioComarca}}';
+  // Como o bloco vivo escreve: a serventia vem depois do registro da matrícula.
+  const REDACAO =
+    'Matrícula {{ imovel.numero }} do {{ imovel.cartorio }}' +
+    '{{#imovel.cartorioComarca}} da comarca de {{ imovel.cartorioComarca }}{{/imovel.cartorioComarca}}';
 
+  /** Só o trecho do cartório, para o assert não repetir o número da matrícula. */
   function frase(cartorio: MatriculaParaMapear['cartorio']): string {
     const campos = mapearMatricula(matriculaImovel({ cartorio }));
     const template: Template = {
       id: 'cartorio', nome: 'cartório',
       blocos: [{ id: 'b', obrigatorio: true, conteudo: REDACAO }],
     };
-    return gerarDocumento(template, { imovel: campos });
+    return gerarDocumento(template, { imovel: campos }).replace('Matrícula 2.628 ', '');
   }
 
   it('cartório cujo nome JÁ traz a cidade não repete a comarca', () => {
@@ -345,6 +353,27 @@ describe('mapearMatricula — cartório: nome cadastrado + comarca como compleme
     expect(frase({ nome_completo: null, comarca: 'Sorriso', uf: 'MT' }))
       .toBe('do Cartório de Registro de Imóveis da comarca de Sorriso');
     expect(frase(null)).toBe('do Cartório de Registro de Imóveis');
+    // A guarda da linha distingue vínculo real do fallback, inclusive quando o
+    // cartório cadastrado também não tem comarca.
+    expect(mapearMatricula(matriculaImovel({ cartorio: { nome_completo: null, comarca: null, uf: null } })).temCartorio)
+      .toBe('sim');
+    expect(mapearMatricula(matriculaImovel({ cartorio: null })).temCartorio).toBe('');
+  });
+
+  it('comarca que também é palavra do rótulo ("Registro", SP) NÃO é suprimida', () => {
+    // Um teste de substring apagaria a comarca de toda serventia chamada
+    // "Cartório de Registro de Imóveis", que é quase todas: a comparação é pelo
+    // FIM do nome, que é onde a serventia diz a cidade.
+    expect(frase({ nome_completo: 'Cartório de Registro de Imóveis', comarca: 'Registro', uf: 'SP' }))
+      .toBe('do Cartório de Registro de Imóveis da comarca de Registro');
+    // E na serventia da própria comarca de Registro, some, como deve.
+    expect(frase({ nome_completo: 'Oficial de Registro de Imóveis de Registro', comarca: 'Registro', uf: 'SP' }))
+      .toBe('do Oficial de Registro de Imóveis de Registro');
+  });
+
+  it('sigla de UF colada no fim do nome não atrapalha a supressão', () => {
+    expect(frase({ nome_completo: '2º Ofício de Registro de Imóveis de Sinop - MT', comarca: 'Sinop', uf: 'MT' }))
+      .toBe('do 2º Ofício de Registro de Imóveis de Sinop - MT');
   });
 
   it('a redundância é detectada sem depender de acento ou de caixa', () => {
@@ -354,6 +383,74 @@ describe('mapearMatricula — cartório: nome cadastrado + comarca como compleme
     expect(c.cartorioComarca).toBe('');
     // A comarca crua continua disponível para quem precisar dela isolada.
     expect(c.comarca).toBe('Várzea Grande');
+  });
+});
+
+// B14 — o padrão da casa é numeral E extenso lado a lado ("no Livro 02 (dois),
+// folhas/ficha 01 (um)"), não só o extenso.
+describe('mapearMatricula — livro e folha: numeral acompanha o extenso (B14)', () => {
+  it('valor numérico ganha zero à esquerda até dois dígitos; o extenso não muda', () => {
+    const c = mapearMatricula(matriculaImovel({ livro: '2', folha: '1' }));
+    expect(c.livroNumeral).toBe('02');
+    expect(c.folhaNumeral).toBe('01');
+    expect(c.livroExtenso).toBe('dois');
+    expect(c.folhaExtenso).toBe('um');
+  });
+
+  it('com dois dígitos ou mais, sai como está', () => {
+    const c = mapearMatricula(matriculaImovel({ livro: '13', folha: '145' }));
+    expect(c.livroNumeral).toBe('13');
+    expect(c.folhaNumeral).toBe('145');
+  });
+
+  it('livro auxiliar não é número: sai ÍNTEGRO (o cartório o registra assim)', () => {
+    const c = mapearMatricula(matriculaImovel({ livro: '2-AUX', folha: '3-Auxiliar' }));
+    expect(c.livroNumeral).toBe('2-AUX');
+    expect(c.folhaNumeral).toBe('3-Auxiliar');
+    // E o extenso continua sendo só o extenso: não vira "02 (dois)".
+    expect(c.livroExtenso).toBe('');
+  });
+
+  it('a redação canônica sai como o padrão da PSA', () => {
+    const campos = mapearMatricula(matriculaImovel({ livro: '2', folha: '1' }));
+    const template: Template = {
+      id: 'livro', nome: 'livro',
+      blocos: [{
+        id: 'b', obrigatorio: true,
+        conteudo: 'no Livro {{ imovel.livroNumeral }} ({{ imovel.livroExtenso }}), ' +
+          'folhas/ficha {{ imovel.folhaNumeral }} ({{ imovel.folhaExtenso }})',
+      }],
+    };
+    expect(gerarDocumento(template, { imovel: campos })).toBe('no Livro 02 (dois), folhas/ficha 01 (um)');
+  });
+});
+
+// Achado da L3: matrícula com livro/folha nulos derrubava a prévia inteira, e
+// não só o placeholder — {{#imovel.livro}} virava "Seção não resolvida".
+describe('mapearMatricula — campo opcional ausente publica "" em vez de sumir', () => {
+  it('livro, folha, comarca e UF do cartório nulos resolvem vazio', () => {
+    const c = mapearMatricula(matriculaImovel({ livro: null, folha: null, cartorio: null }));
+    expect(c.livro).toBe('');
+    expect(c.folha).toBe('');
+    expect(c.comarca).toBe('');
+    expect(c.ufCartorio).toBe('');
+    // Os derivados acompanham, sem inventar nada.
+    expect(c.livroNumeral).toBe('');
+    expect(c.folhaExtenso).toBe('');
+  });
+
+  it('a guarda {{#imovel.livro}} pula o trecho em vez de derrubar o render', () => {
+    const campos = mapearMatricula(matriculaImovel({ livro: null, folha: null, cartorio: null }));
+    const template: Template = {
+      id: 'guarda', nome: 'guarda',
+      blocos: [{
+        id: 'b', obrigatorio: true,
+        conteudo: 'Matrícula {{ imovel.numero }}' +
+          '{{#imovel.livro}}, no Livro {{ imovel.livroNumeral }}{{/imovel.livro}}' +
+          '{{#imovel.comarca}}, da comarca de {{ imovel.comarca }}{{/imovel.comarca}}.',
+      }],
+    };
+    expect(gerarDocumento(template, { imovel: campos })).toBe('Matrícula 2.628.');
   });
 });
 
@@ -489,10 +586,10 @@ describe('mapearMatricula — endereço do imóvel (identificação do urbano)',
     );
   });
 
-  it('sem logradouro não há endereço: o campo fica ausente (falha cedo, não "no município de…")', () => {
+  it('sem logradouro não há endereço: o campo resolve vazio (não "no município de…")', () => {
     const c = mapearMatricula(matriculaImovel({ tipo_bem: 'IR' }));
-    expect(c.endereco).toBeUndefined();
-    expect(c.enderecoLogradouro).toBeUndefined();
+    expect(c.endereco).toBe('');
+    expect(c.enderecoLogradouro).toBe('');
   });
 
   it('com bem cadastrado mas sem logradouro (o caso do rural) também não há endereço', () => {
@@ -504,7 +601,7 @@ describe('mapearMatricula — endereço do imóvel (identificação do urbano)',
         endereco_cep: '78000-000',
       },
     }));
-    expect(c.endereco).toBeUndefined();
+    expect(c.endereco).toBe('');
     // As partes atômicas que existem seguem publicadas: quem falta é só a prosa.
     expect(c.enderecoNumero).toBe('119');
     expect(c.enderecoBairro).toBe('Centro');
@@ -545,18 +642,18 @@ describe('mapearMatricula — área construída e a condicional temAreaConstruid
     expect(c.temAreaConstruida).toBe('');
   });
 
-  it('sem área construída: campo ausente e condicional desligada', () => {
+  it('sem área construída: campo vazio e condicional desligada', () => {
     const c = mapearMatricula(comAreas({ area_documento: 360, area_unidade: 'm2', construida: null }));
-    expect(c.areaConstruida).toBeUndefined();
+    expect(c.areaConstruida).toBe('');
     expect(c.temAreaConstruida).toBe('');
   });
 
   it.each([0, -10])(
-    'construída %s é cadastro inválido, não construção: campo ausente e condicional desligada',
+    'construída %s é cadastro inválido, não construção: campo vazio e condicional desligada',
     (construida) => {
       const c = mapearMatricula(comAreas({ area_documento: 360, area_unidade: 'm2', construida }));
       // Sem o guard, o Math.abs de formatarArea faria -10 sair como "10,00 m²".
-      expect(c.areaConstruida).toBeUndefined();
+      expect(c.areaConstruida).toBe('');
       expect(c.temAreaConstruida).toBe('');
     },
   );

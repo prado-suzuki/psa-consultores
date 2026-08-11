@@ -106,13 +106,55 @@ describe('B12/B13 · lista de signatários com papel', () => {
     expect(linha.qualificacao).toBe('neste ato representada por Nelson Bortolotto');
   });
 
-  it('cônjuge que já assina como sócio não ganha segunda linha', () => {
+  it('cônjuge que administra sem ser sócio ainda assina a outorga', () => {
+    // Solange administra a sociedade, mas não é sócia. Administrador assina em
+    // nome da SOCIEDADE; a anuência do regime de bens é pessoal e não se supre
+    // com ela, então a linha de cônjuge outorgante tem de existir.
+    const linhas = campos(
+      mapearSignatarios({
+        socios: [socio(ROGERIO)],
+        administradores: [administrador(SOLANGE, 'Diretora')],
+        pessoaPorId,
+      }),
+    );
+    expect(linhas.map((l) => [l.nome, l.papel])).toEqual([
+      ['Rogério Kunzler', 'Sócio'],
+      ['Solange Kunzler', 'Cônjuge outorgante'],
+    ]);
+    expect(linhas[1].eConjuge).toBe('sim');
+  });
+
+  it('casal em comunhão, os dois sócios: uma linha cada, com o papel combinado', () => {
+    // Emenda 9.9: assinar duas vezes não outorga mais do que assinar uma, e a
+    // ordem do quadro não pode decidir se a pessoa sai como "Sócia" ou como
+    // "Cônjuge outorgante". Sai como as duas coisas, que é o que a Junta lê.
     const linhas = campos(
       mapearSignatarios({ socios: [socio(ROGERIO), socio(SOLANGE)], pessoaPorId }),
     );
     expect(linhas.map((l) => [l.nome, l.papel])).toEqual([
-      ['Rogério Kunzler', 'Sócio'],
-      ['Solange Kunzler', 'Sócia'],
+      ['Rogério Kunzler', 'Sócio e cônjuge outorgante'],
+      ['Solange Kunzler', 'Sócia e cônjuge outorgante'],
+    ]);
+    expect(linhas.every((l) => l.eSocio === 'sim' && l.eConjuge === 'sim')).toBe(true);
+  });
+
+  it('sócio administrador que também outorga acumula as três qualidades', () => {
+    const marido = pessoa('p-caio', 'Caio Trentin', {
+      regime_bens: 'Comunhão Universal', estado_civil: 'Casado(a)', conjuge_id: 'p-lia',
+    });
+    const esposa = pessoa('p-lia', 'Lia Trentin', {
+      genero: 'F', regime_bens: 'Comunhão Universal', estado_civil: 'Casado(a)', conjuge_id: 'p-caio',
+    });
+    const linhas = campos(
+      mapearSignatarios({
+        socios: [socio(marido), socio(esposa)],
+        administradores: [administrador(marido, 'Diretor')],
+        pessoaPorId: (id) => [marido, esposa].find((p) => p.id === id) ?? null,
+      }),
+    );
+    expect(linhas.map((l) => l.papel)).toEqual([
+      'Sócio administrador e cônjuge outorgante',
+      'Sócia e cônjuge outorgante',
     ]);
   });
 
@@ -124,8 +166,10 @@ describe('B12/B13 · lista de signatários com papel', () => {
         pessoaPorId: (id) => (id === 'p-solange' ? soUmLado : pessoaPorId(id)),
       }),
     );
-    // Rogério aponta para Solange, e ela entra como sócia antes de ser cônjuge.
-    expect(linhas.map((l) => l.papel)).toEqual(['Sócio', 'Sócia']);
+    // Rogério aponta para Solange e ela acumula a outorga; ele, não, porque o
+    // vínculo dela está em branco. É o desequilíbrio que a reciprocidade do
+    // cadastro resolve (B10, de outra frente), e não o motor.
+    expect(linhas.map((l) => l.papel)).toEqual(['Sócio', 'Sócia e cônjuge outorgante']);
   });
 
   it('advogado e testemunhas fecham a lista, com as condicionais próprias', () => {

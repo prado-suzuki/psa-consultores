@@ -88,10 +88,15 @@ function itemSignatario(dados: DadosSignatario): Campos {
  * outorgante quando o regime de bens exigir; depois os administradores que não
  * são sócios; depois advogado e testemunhas.
  *
- * Ninguém aparece duas vezes: a pessoa que é sócia E administradora sai uma só,
- * com o papel combinado ("Sócio administrador"), e o cônjuge que já assina por
- * conta própria (sócio ou administrador) não ganha uma segunda linha — assinar
- * duas vezes não outorga mais do que assinar uma.
+ * Ninguém aparece duas vezes, e o papel acumula as qualidades: a pessoa que é
+ * sócia E administradora sai uma só ("Sócio administrador"), e a que é sócia E
+ * cônjuge outorgante de outro sócio também ("Sócia e cônjuge outorgante") —
+ * assinar duas vezes não outorga mais do que assinar uma, e a ordem do quadro
+ * não pode decidir qual das duas qualidades aparece.
+ *
+ * O dedupe NÃO alcança o cônjuge que só administra: administrador assina em
+ * nome da sociedade, e isso não supre a anuência pessoal que o regime de bens
+ * exige, então ele ganha a linha de cônjuge outorgante.
  *
  * Item sem nome não entra: uma régua de assinatura sem nome embaixo não é
  * signatário, é ruído no fecho.
@@ -100,10 +105,12 @@ export function mapearSignatarios(entrada: EntradaSignatarios): ItemLista[] {
   const { socios, administradores = [], pessoaPorId, advogado, testemunhas = [] } = entrada;
 
   const idsAdministradores = new Set(administradores.map((a) => a.pessoa.id).filter(Boolean));
-  // Quem já assina por direito próprio (sócio ou administrador) não vira linha
-  // de cônjuge: assinar duas vezes não outorga mais do que assinar uma, e a
-  // ordem de leitura do quadro não pode decidir qual dos dois papéis aparece.
-  const idsProprios = new Set([...socios.map((s) => s.pessoa.id), ...idsAdministradores].filter(Boolean));
+  // Quem já assina como SÓCIO não vira também linha de cônjuge: a assinatura
+  // dele já é pessoal, e a ordem de leitura do quadro não pode decidir qual dos
+  // dois papéis aparece. Administrador NÃO entra nessa conta: ele assina em
+  // nome da sociedade, e isso não supre a anuência pessoal que o regime de bens
+  // exige do cônjuge.
+  const idsProprios = new Set(socios.map((s) => s.pessoa.id).filter(Boolean));
   const idsEmitidos = new Set<string>();
   const itens: ItemLista[] = [];
 
@@ -129,19 +136,33 @@ export function mapearSignatarios(entrada: EntradaSignatarios): ItemLista[] {
     };
   };
 
-  for (const s of socios) {
-    const p = dePessoa(s.pessoa);
+  const quadro = socios.map((s) => ({ socio: s, p: dePessoa(s.pessoa) }));
+  // Casal em comunhão em que os DOIS são sócios da mesma sociedade: a pessoa
+  // assina uma vez só, e o papel diz as duas qualidades ("Sócia e cônjuge
+  // outorgante"). Uma linha por qualidade faria a mesma assinatura aparecer
+  // duas vezes; só a qualidade de sócio faria sumir a anuência que a Junta lê.
+  const sociosOutorgantes = new Set<string>();
+  for (const { socio: s, p } of quadro) {
+    if (p.campos.exigeOutorgaConjugal !== 'sim') continue;
+    const conjugeId = s.pessoa.conjuge_id;
+    if (conjugeId && idsProprios.has(conjugeId)) sociosOutorgantes.add(conjugeId);
+  }
+
+  for (const { socio: s, p } of quadro) {
     const administra = !!s.pessoa.id && idsAdministradores.has(s.pessoa.id);
+    const outorga = !!s.pessoa.id && sociosOutorgantes.has(s.pessoa.id);
+    const papelSocio = administra ? PAPEL.socioAdministrador(p.genero) : PAPEL.socio(p.genero);
     emitir(
       itemSignatario({
         nome: p.nome,
         nomeMaiusculo: p.nomeMaiusculo,
-        papel: administra ? PAPEL.socioAdministrador(p.genero) : PAPEL.socio(p.genero),
+        papel: outorga ? `${papelSocio} e cônjuge outorgante` : papelSocio,
         cpfCnpj: p.cpfCnpj,
         // Sócia PJ assina por quem a representa — o complemento vai sob o papel.
         qualificacao: s.representante ? `neste ato representada por ${s.representante}` : '',
         eSocio: true,
         eAdministrador: administra,
+        eConjuge: outorga,
       }),
       s.pessoa,
     );
@@ -151,6 +172,7 @@ export function mapearSignatarios(entrada: EntradaSignatarios): ItemLista[] {
     // sócio, ela põe o cônjuge na lista, com nome e linha próprios.
     if (p.campos.exigeOutorgaConjugal !== 'sim') continue;
     const conjuge = s.pessoa.conjuge_id ? pessoaPorId?.(s.pessoa.conjuge_id) : null;
+    // Cônjuge que também é sócio já assinou acima, com o papel combinado.
     if (!conjuge || (conjuge.id && idsProprios.has(conjuge.id))) continue;
     const c = dePessoa(conjuge);
     emitir(

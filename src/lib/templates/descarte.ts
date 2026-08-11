@@ -14,16 +14,38 @@ import { segmentar } from './tabela';
 //
 // Nada aqui olha para o NOME nem para o id do bloco: o próximo bloco condicional
 // (ônus, benfeitorias, arrendamento) é coberto sem uma linha a mais.
+//
+// O motivo do descarte é devolvido, e não só um booleano, porque o descarte tem
+// que se ANUNCIAR (emenda 9.2 do contrato): um bloco cujo laço não está fiado
+// renderiza vazio e sumiria sem sinal nenhum, escondendo erro de fiação em vez
+// de aparecer visivelmente quebrado.
+
+/** Por que um bloco não entrou no documento. */
+export type MotivoDescarte =
+  /** Tem seção de repetição e ela não produziu item nenhum (lista vazia ou não fiada). */
+  | 'lista-vazia'
+  /** Tem tabela textual e o corpo dela saiu com zero linhas (só cabeçalho e separadora). */
+  | 'tabela-vazia'
+  /** Todos os campos do bloco resolveram vazio (ou foram sintetizados pelo motor). */
+  | 'campos-vazios'
+  /** O render inteiro saiu em branco. */
+  | 'render-em-branco';
 
 /**
- * Um bloco é descartado quando TEM ponto de dado e NENHUM deles trouxe dado:
+ * O motivo pelo qual o bloco deve ser descartado, ou `null` para ficar.
+ * Descarta quando o bloco TEM ponto de dado e NENHUM deles trouxe dado:
  *
  * - ponto de dado é um segmento de valor ({{ campo }} resolvido), uma tabela
  *   textual (convenção `| … |` do tabela.ts) ou uma seção de repetição. Bloco
  *   de prosa fixa, sem nenhum dos três, NUNCA é descartado;
- * - trouxe dado é: algum segmento de valor não vazio, alguma seção de repetição
- *   com item, ou alguma tabela com corpo. Cabeçalho e separadora sozinhos não
- *   seguram o bloco no documento;
+ * - trouxe dado é: algum segmento de valor não vazio E não sintetizado pelo
+ *   motor, alguma seção de repetição com item, ou alguma tabela com corpo (linha
+ *   com célula preenchida — linha de células vazias é buraco, não dado).
+ *   Cabeçalho e separadora sozinhos não seguram o bloco no documento;
+ * - valor SINTETIZADO (rótulo genérico de cartório, valor nominal da quota) não
+ *   conta como dado: senão a cláusula de capital que cita {{ sociedade.
+ *   quotaValorNominal }} sobreviveria sempre, e o contrato sem sócios voltaria a
+ *   sair com "O capital social será de R$ (), dividido em () quotas" (emenda 9.1);
  * - a LACUNA de um campo manual (ver campos.ts) é um segmento de valor não
  *   vazio e portanto CONTA como conteúdo, de propósito: o fecho de assinaturas
  *   nunca desaparece por estar com data e testemunhas em branco.
@@ -31,24 +53,30 @@ import { segmentar } from './tabela';
  * Bloco em que 1 de 5 campos veio preenchido não é descartado — a pontuação
  * órfã que sobra é assunto do aviso de documento incompleto (pendências).
  */
-export function blocoSemDado({
+export function motivoDeDescarte({
   segmentos,
   secoesDeRepeticao,
   itensDeRepeticao,
-}: RenderDeBloco): boolean {
+}: RenderDeBloco): MotivoDescarte | null {
   const texto = segmentos.map((s) => s.texto).join('');
   const valores = segmentos.filter((s) => s.tipo === 'valor');
   const tabelas = segmentar(texto.split('\n')).filter((s) => s.tipo === 'tabela');
 
+  const tabelaComCorpo = tabelas.some(
+    (t) => t.tipo === 'tabela' && t.corpo.some((linha) => linha.some((celula) => celula.trim() !== '')),
+  );
   const trouxeDado =
-    valores.some((v) => v.texto.trim() !== '') ||
+    valores.some((v) => v.tipo === 'valor' && !v.sintetizado && v.texto.trim() !== '') ||
     itensDeRepeticao > 0 ||
-    tabelas.some((t) => t.tipo === 'tabela' && t.corpo.length > 0);
-  if (trouxeDado) return false;
+    tabelaComCorpo;
+  if (trouxeDado) return null;
 
-  // Render que resultou só em espaço em branco: nada a imprimir, e um parágrafo
+  // Do mais específico para o mais genérico: o motivo é o que a tela vai
+  // mostrar para alguém entender por que o bloco não saiu.
+  if (secoesDeRepeticao > 0) return 'lista-vazia';
+  if (tabelas.length > 0) return 'tabela-vazia';
+  if (valores.length > 0) return 'campos-vazios';
+  // Render em branco sem ponto de dado nenhum: nada a imprimir, e um parágrafo
   // mudo ainda consumiria um número de cláusula.
-  if (texto.trim() === '') return true;
-
-  return valores.length > 0 || tabelas.length > 0 || secoesDeRepeticao > 0;
+  return texto.trim() === '' ? 'render-em-branco' : null;
 }

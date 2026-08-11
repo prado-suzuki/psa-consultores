@@ -1,4 +1,5 @@
 import { origemDe, type OrigemValor } from './origem';
+import { ehSintetizado } from './sintetizado';
 import { PALAVRA_INCLUSAO, resolverVariante, type RegistroFamilias } from './familia';
 import type { Contexto } from './types';
 
@@ -126,6 +127,12 @@ export type SegmentoRender =
       lacuna?: true;
       /** Este segmento é um campo OBRIGATÓRIO que resolveu vazio — o documento está incompleto. */
       pendente?: true;
+      /**
+       * O valor foi SINTETIZADO pelo motor (rótulo genérico, default), não veio
+       * do cadastro: preenche a frase, mas não conta como dado para o descarte
+       * (ver sintetizado.ts e descarte.ts).
+       */
+      sintetizado?: true;
     };
 
 /**
@@ -153,20 +160,29 @@ export interface OpcoesRender {
  * um item de lista pode carregar a origem no topo, ou no sub-objeto do papel —
  * `{{ socio.nome }}` acha a origem em item.socio).
  */
-function resolver(caminho: string, escopos: Contexto[]): { valor: unknown; origem?: OrigemValor } {
+function resolver(
+  caminho: string,
+  escopos: Contexto[],
+): { valor: unknown; origem?: OrigemValor; sintetizado?: boolean } {
   const [cabeca, ...resto] = caminho.split('.');
   for (let i = escopos.length - 1; i >= 0; i--) {
     if (!(cabeca in escopos[i])) continue;
     let origem = origemDe(escopos[i]);
     let valor: unknown = escopos[i][cabeca];
     origem = origemDe(valor) ?? origem;
+    // Dono do ÚLTIMO trecho do caminho: é nele que mora a marca de valor
+    // sintetizado (a marca é por campo, não pelo objeto inteiro).
+    let dono: unknown = escopos[i];
+    let folha = cabeca;
     for (const chave of resto) {
+      dono = valor;
+      folha = chave;
       valor = valor !== null && typeof valor === 'object'
         ? (valor as Record<string, unknown>)[chave]
         : undefined;
       origem = origemDe(valor) ?? origem;
     }
-    return { valor, origem };
+    return { valor, origem, sintetizado: ehSintetizado(dono, folha) };
   }
   return { valor: undefined };
 }
@@ -193,18 +209,19 @@ function segmentoDeValor(
   texto: string,
   caminho: string,
   origem: OrigemValor | undefined,
+  sintetizado: boolean | undefined,
   opcoes: OpcoesRender,
 ): SegmentoRender {
-  if (texto !== '') return { tipo: 'valor', texto, caminho, origem };
+  const segmento: SegmentoRender = { tipo: 'valor', texto, caminho, origem };
+  if (sintetizado) segmento.sintetizado = true;
+  if (texto !== '') return segmento;
+
   const marcacao = opcoes.campo?.(caminho);
-  if (!marcacao) return { tipo: 'valor', texto, caminho, origem };
-  const segmento: SegmentoRender = {
-    tipo: 'valor',
-    texto: marcacao.lacuna ?? texto,
-    caminho,
-    origem,
-  };
-  if (marcacao.lacuna) segmento.lacuna = true;
+  if (!marcacao) return segmento;
+  if (marcacao.lacuna) {
+    segmento.texto = marcacao.lacuna;
+    segmento.lacuna = true;
+  }
   if (marcacao.obrigatorio) segmento.pendente = true;
   return segmento;
 }
@@ -221,11 +238,11 @@ function renderNos(
     if (no.tipo === 'texto') {
       out.push({ tipo: 'texto', texto: no.texto });
     } else if (no.tipo === 'placeholder') {
-      const { valor, origem } = resolver(no.caminho, escopos);
+      const { valor, origem, sintetizado } = resolver(no.caminho, escopos);
       if (valor === undefined || valor === null) {
         throw new Error(`Placeholder não resolvido: {{${no.caminho}}}`);
       }
-      out.push(segmentoDeValor(String(valor), no.caminho, origem, opcoes));
+      out.push(segmentoDeValor(String(valor), no.caminho, origem, sintetizado, opcoes));
     } else if (no.tipo === 'inclusao') {
       renderInclusao(no.familia, escopos, out, opcoes, contagem, dentroDeFamilia);
     } else {

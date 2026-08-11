@@ -162,6 +162,30 @@ function cardinalCampo(id: string, label: string, derivadoDe: string): CampoEnti
   };
 }
 
+/**
+ * Campo derivado com o NUMERAL do livro/folha no padrão da casa: dois dígitos
+ * com zero à esquerda quando o valor é puramente numérico ("2" → "02", "13" →
+ * "13"), e INALTERADO quando não é ("2-AUX", "3-Auxiliar" saem íntegros, porque
+ * o cartório os registra assim).
+ *
+ * É campo próprio, e não uma mudança em `livroExtenso`: o padrão da PSA é
+ * numeral E extenso lado a lado ("no Livro 02 (dois), folhas/ficha 01 (um)"),
+ * e fazer o extenso devolver "02 (dois)" o faria mentir sobre o que é, além de
+ * tirar a opção de quem quer só o extenso.
+ */
+function numeralCampo(id: string, label: string, derivadoDe: string): CampoEntidade {
+  return {
+    id,
+    label,
+    tipo: 'texto',
+    derivadoDe,
+    derivar: (v) => {
+      const bruto = (v[derivadoDe] ?? '').trim();
+      return /^\d+$/.test(bruto) ? bruto.padStart(2, '0') : bruto;
+    },
+  };
+}
+
 /** Campo derivado que expande uma UF (sigla) por extenso ("MT" → "Mato Grosso"). */
 function ufExtensoCampo(id: string, label: string, derivadoDe: string): CampoEntidade {
   return {
@@ -457,8 +481,10 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       // em branco descreve um imóvel que o registro não reconhece.
       { id: 'numero', label: 'Nº da matrícula', tipo: 'texto', obrigatorio: true },
       { id: 'livro', label: 'Livro', tipo: 'texto' },
+      numeralCampo('livroNumeral', 'Livro (numeral, "02")', 'livro'),
       cardinalCampo('livroExtenso', 'Livro (por extenso)', 'livro'),
       { id: 'folha', label: 'Folha / Ficha', tipo: 'texto' },
+      numeralCampo('folhaNumeral', 'Folha (numeral, "01")', 'folha'),
       cardinalCampo('folhaExtenso', 'Folha (por extenso)', 'folha'),
       { id: 'municipio', label: 'Município do imóvel', tipo: 'texto' },
       { id: 'uf', label: 'Estado (UF) do imóvel', tipo: 'texto' },
@@ -599,6 +625,9 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       // Nome CADASTRADO da serventia ("2º Ofício de Registro de Imóveis de
       // Sinop"), com fallback genérico no mapeador — nunca vazio.
       { id: 'cartorio', label: 'Cartório', tipo: 'texto' },
+      // Sinal de vínculo real. `cartorio` não serve de guarda porque recebe um
+      // fallback sintético quando não há serventia cadastrada.
+      { id: 'temCartorio', label: 'Tem cartório vinculado? (condicional)', tipo: 'texto' },
       { id: 'comarca', label: 'Comarca', tipo: 'texto' },
       {
         // A comarca APENAS quando ela ainda não está contida no nome do

@@ -52,3 +52,18 @@ export function quotasDeValor(reais: number): number {
 export function capitalDeQuotas(quotas: number): number {
   return (Math.round(quotas) * NOMINAL_CENT) / 100;
 }
+
+/**
+ * As quotas de um sócio do quadro societário: as digitadas quando existem, ou o
+ * que o valor lançado compra quando só há valor. `null` quando não há nem um nem
+ * outro.
+ *
+ * O quadro MISTO (um sócio com quotas, outro só com valor) é o caso que a conta
+ * tem de fechar: sem converter, o sócio sem quotas contribuía zero para o total
+ * enquanto a linha dele imprimia o valor cru, e a soma da tabela deixava de bater
+ * com a cláusula de capital — o mesmo defeito do B6, entrando por outra porta.
+ */
+export function quotasDoSocio(quotas: number | null | undefined, vlrTotal: number | null | undefined): number | null {
+  if (quotas != null) return quotas;
+  return vlrTotal != null ? quotasDeValor(vlrTotal) : null;
+}

@@ -1,11 +1,11 @@
 import { classificarCaminho, marcacaoDoCaminho } from './campos';
 import { comporBlocos } from './composition';
-import { blocoSemDado } from './descarte';
+import { motivoDeDescarte, type MotivoDescarte } from './descarte';
 import type { RegistroFamilias } from './familia';
 import { prefixosNumeracao, refsNumeracao, unirBlocos } from './numeracao';
 import { expandirRepetidores } from './repetidor';
 import { renderBloco, type OpcoesRender, type RenderDeBloco, type SegmentoRender } from './render';
-import type { Bloco, Contexto, Template } from './types';
+import type { Bloco, Contexto, Template, TipoBloco } from './types';
 
 /** Bloco pronto: conteúdo renderizado (string) + os mesmos segmentos com proveniência (prévia interativa). */
 export interface BlocoGerado extends Bloco {
@@ -22,9 +22,21 @@ export interface BlocoGerado extends Bloco {
  *   parágrafo expandido às menções a ele, e cada geração recarimba do zero.
  * - bloco com `ancora`: publica em {{ refs.<ancora> }} para referência avulsa
  *   ("observado o disposto na {{ refs.haveres }}").
+ *
+ * Os DESCARTADOS entram por argumento e recebem referência VAZIA, não a da
+ * passada anterior (emenda 9.5 do contrato). Sem isso, um item cujo parágrafo
+ * saiu do documento manteria o carimbo antigo e o caput citaria uma cláusula
+ * inexistente; e um bloco ancorado descartado sumiria de {{ refs.* }}, fazendo
+ * o render lançar "Placeholder não resolvido" em quem o cita. Vazio é o destino
+ * declarado dos dois: a citação some, o resto do documento sai, e o trecho órfão
+ * cai nas mesmas regras de bloco sem dado e de pendência.
+ *
+ * Âncora de bloco excluído pelas FLAGS continua não existindo (o bloco nem
+ * chegou à composição): esse erro segue falhando cedo, como sempre.
  */
 function renderizarComReferencias(
   blocos: Bloco[],
+  descartados: Bloco[],
   contexto: Contexto,
   opcoes: OpcoesRender,
 ): RenderDeBloco[] {
@@ -36,8 +48,33 @@ function renderizarComReferencias(
     if (bloco.escopo) bloco.escopo.ref = ref;
     else if (bloco.ancora) globais[bloco.ancora] = ref;
   });
+  for (const bloco of descartados) {
+    if (bloco.escopo) bloco.escopo.ref = '';
+    else if (bloco.ancora) globais[bloco.ancora] = '';
+  }
   const ctx: Contexto = { ...contexto, refs: globais };
   return blocos.map((bloco) => renderBloco(bloco.conteudo, ctx, bloco.escopo ? [bloco.escopo] : [], opcoes));
+}
+
+/** Bloco que a composição removeu do documento, com o porquê (ver descarte.ts). */
+export interface BlocoDescartado {
+  id: string;
+  /** Id do bloco repetidor de origem, quando o descartado era uma instância. */
+  instanciaDe?: string;
+  tipo?: TipoBloco;
+  motivo: MotivoDescarte;
+}
+
+/** A composição inteira: o que entrou no documento e o que ficou de fora. */
+export interface Composicao {
+  blocos: BlocoGerado[];
+  /**
+   * Blocos removidos por não trazerem dado. O descarte se ANUNCIA (emenda 9.2):
+   * um bloco cujo laço não está fiado renderiza vazio e sumiria sem sinal, o que
+   * esconde erro de fiação em vez de mostrá-lo. O fecho de assinaturas é
+   * justamente um bloco cujo conteúdo inteiro é um laço.
+   */
+  descartados: BlocoDescartado[];
 }
 
 /**
@@ -54,31 +91,44 @@ function renderizarComReferencias(
  * Quinta" seguida de "Cláusula Sétima"). Por isso o rótulo é colado no primeiro
  * segmento, e não na string de origem do bloco.
  */
-export function gerarBlocos(
+export function gerarComposicao(
   template: Template,
   contexto: Contexto,
   flagsAtivas: Iterable<string> = [],
   familias: RegistroFamilias = {},
-): BlocoGerado[] {
+): Composicao {
   const expandidos = expandirRepetidores(comporBlocos(template, flagsAtivas), contexto);
   const opcoes: OpcoesRender = { familias, campo: marcacaoDoCaminho };
 
   let blocos = expandidos;
-  let renders = renderizarComReferencias(blocos, contexto, opcoes);
-  const sobreviventes = blocos.filter((_, i) => !blocoSemDado(renders[i]));
-  if (sobreviventes.length !== blocos.length) {
-    // O descarte mudou a sequência, e com ela as referências já publicadas
-    // ({{ ref }}, {{ refs.* }}): os sobreviventes precisam de um segundo render
-    // com a numeração corrigida. UMA passada basta — descartar só REMOVE
-    // referências, e nenhuma referência resolve vazia (o carimbo é sempre um
-    // rótulo), então nenhum bloco que sobreviveu pode ficar sem dado por causa
-    // do novo número.
+  let renders: RenderDeBloco[] = [];
+  const descartados: BlocoDescartado[] = [];
+  const blocosDescartados: Bloco[] = [];
+
+  // Ponto fixo: remover um bloco esvazia as referências que apontavam para ele.
+  // Se uma citação era o único dado de outro bloco, esse segundo bloco também
+  // precisa sair. Uma segunda passada fixa não basta para cadeias A → B → C;
+  // como cada volta remove ao menos um bloco, o laço termina em no máximo N.
+  while (true) {
+    renders = renderizarComReferencias(blocos, blocosDescartados, contexto, opcoes);
+    const motivos = renders.map(motivoDeDescarte);
+    if (motivos.every((motivo) => !motivo)) break;
+
+    const sobreviventes: Bloco[] = [];
+    blocos.forEach((bloco, i) => {
+      const motivo = motivos[i];
+      if (!motivo) {
+        sobreviventes.push(bloco);
+        return;
+      }
+      blocosDescartados.push(bloco);
+      descartados.push({ id: bloco.id, instanciaDe: bloco.instanciaDe, tipo: bloco.tipo, motivo });
+    });
     blocos = sobreviventes;
-    renders = renderizarComReferencias(blocos, contexto, opcoes);
   }
 
   const prefixos = prefixosNumeracao(blocos);
-  return blocos.map((bloco, i) => {
+  const gerados = blocos.map((bloco, i) => {
     // O rótulo cola no primeiro segmento de texto (em vez de virar um segmento
     // à parte) para o fatiamento sair idêntico ao de numerar antes de render:
     // quem consome os segmentos casa posições com o conteúdo (marcas, realce
@@ -92,6 +142,18 @@ export function gerarBlocos(
     }
     return { ...bloco, conteudo: segmentos.map((s) => s.texto).join(''), segmentos };
   });
+
+  return { blocos: gerados, descartados };
+}
+
+/** Os blocos que entraram no documento. Quem precisa saber o que ficou de fora usa `gerarComposicao`. */
+export function gerarBlocos(
+  template: Template,
+  contexto: Contexto,
+  flagsAtivas: Iterable<string> = [],
+  familias: RegistroFamilias = {},
+): BlocoGerado[] {
+  return gerarComposicao(template, contexto, flagsAtivas, familias).blocos;
 }
 
 /** Campo obrigatório que o documento usa e não resolveu (ver pendenciasDoDocumento). */
@@ -147,7 +209,9 @@ export { expandirRepetidores } from './repetidor';
 export { numerarBlocos, unirBlocos, rotulosNumeracao, refsNumeracao, prefixosNumeracao } from './numeracao';
 export { renderConteudo, renderSegmentos, renderBloco, extrairCampos, expandirInclusoes, inclusoesDe } from './render';
 export type { SegmentoRender, OpcoesRender, MarcacaoCampo, RenderDeBloco } from './render';
-export { blocoSemDado } from './descarte';
+export { motivoDeDescarte } from './descarte';
+export type { MotivoDescarte } from './descarte';
+export { marcarSintetizados, ehSintetizado } from './sintetizado';
 export { classificarCaminho, lacunaDoTipo, marcacaoDoCaminho } from './campos';
 export type { CampoDoCaminho } from './campos';
 export { VALOR_NOMINAL_QUOTA, capitalDeQuotas, quotasDeValor } from './capital';
