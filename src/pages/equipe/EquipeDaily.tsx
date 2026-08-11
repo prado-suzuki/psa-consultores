@@ -2,6 +2,7 @@ import { DailyEditDialog } from '@/components/equipe/daily/DailyEditDialog';
 import { DailyFormCard } from '@/components/equipe/daily/DailyFormCard';
 import { DailyHistoryCard } from '@/components/equipe/daily/DailyHistoryCard';
 import { DailyQuickStatusDialog } from '@/components/equipe/daily/DailyQuickStatusDialog';
+import { DailySprintProgressCard } from '@/components/equipe/daily/DailySprintProgressCard';
 import { EquipeLayout } from '@/components/equipe/EquipeLayout';
 import { useEquipeDailyController } from '@/hooks/useEquipeDailyController';
 
@@ -17,6 +18,13 @@ const EquipeDaily = () => {
   return (
     <EquipeLayout title="Daily Standup" subtitle={todayFormatted}>
       <div className="space-y-6">
+        {daily.activeSprint && (
+          <DailySprintProgressCard
+            sprintName={daily.activeSprint.name}
+            progress={daily.activeSprintProgress}
+            loading={daily.activeSprintProgressLoading}
+          />
+        )}
         <DailyFormCard
           authenticatedUserId={daily.userId}
           selectedUserId={daily.selectedUserId}
@@ -45,10 +53,13 @@ const EquipeDaily = () => {
           filters={daily.filters}
           lookups={daily.lookups}
           loading={daily.loading}
+          page={daily.page}
+          hasNextPage={daily.hasNextPage}
           onFiltersChange={daily.handleFiltersChange}
           onClusterChange={daily.setFilterCluster}
-          onSearch={daily.fetchStandups}
+          onSearch={daily.handleSearch}
           onClearFilters={daily.handleClearFilters}
+          onPageChange={daily.handlePageChange}
           onExport={daily.handleExportExcel}
           onEdit={daily.handleEdit}
           onDelete={daily.handleDelete}

@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => ({
   insert: vi.fn(),
   remove: vi.fn(),
   copy: vi.fn(),
+  exportStandups: vi.fn(),
   updateTaskStatus: vi.fn(),
   toast: vi.fn(),
   jsonToSheet: vi.fn(),
@@ -36,6 +37,9 @@ vi.mock('@/hooks/useClusters', () => ({
 vi.mock('@/hooks/useDailySprintTasks', () => ({
   useDailySprintTasks: () => ({ data: [], isLoading: false }),
   useUpdateDailyTaskStatus: () => ({ mutateAsync: mocks.updateTaskStatus, isPending: false }),
+}));
+vi.mock('@/hooks/useDomainDailySprintProgress', () => ({
+  useDomainDailySprintProgress: () => ({ data: [], isLoading: false }),
 }));
 vi.mock('xlsx', () => ({
   utils: {
@@ -119,7 +123,11 @@ type Results = {
   sprintsResult?: { data: typeof sprints };
   projectsResult?: { data: typeof projects };
   processesResult?: { data: typeof processes };
-  standupsResult?: { myStandup?: typeof ownStandup | null; standups?: Array<typeof ownStandup> };
+  standupsResult?: {
+    myStandup?: typeof ownStandup | null;
+    standups?: Array<typeof ownStandup>;
+    hasNextPage?: boolean;
+  };
 };
 
 let results: Results;
@@ -164,6 +172,7 @@ beforeEach(() => {
   mocks.insert.mockResolvedValue(undefined);
   mocks.remove.mockResolvedValue(undefined);
   mocks.copy.mockResolvedValue(null);
+  mocks.exportStandups.mockImplementation(async () => results.standupsResult?.standups ?? []);
   mocks.refetchStandups.mockResolvedValue(undefined);
   mocks.jsonToSheet.mockReturnValue({ sheet: true });
   mocks.bookNew.mockReturnValue({ book: true });
@@ -174,6 +183,7 @@ beforeEach(() => {
     updateDailyStandup: { mutateAsync: mocks.update },
     insertDailyStandup: { mutateAsync: mocks.insert },
     deleteDailyStandup: { mutateAsync: mocks.remove },
+    fetchStandupsForExport: mocks.exportStandups,
     copyFromYesterday: { mutateAsync: mocks.copy },
   }));
 });
@@ -183,7 +193,7 @@ describe('EquipeDaily — caracterização', () => {
     mocks.useAuth.mockReturnValue({ user: null });
     const { rerender } = render(<EquipeDaily />);
 
-    expect(latestDomainArgs()).toMatchObject({ userId: undefined, membersLoaded: true });
+    expect(latestDomainArgs()).toMatchObject({ userId: undefined });
     expect(screen.getByRole('button', { name: 'Registrar Daily' })).toBeDisabled();
     expect(screen.getByText('Sem membro selecionado')).toBeInTheDocument();
 
@@ -208,7 +218,7 @@ describe('EquipeDaily — caracterização', () => {
     });
     renderAfterAuthHydration();
 
-    await waitFor(() => expect(screen.getByText('Sprint Agosto')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'Sprint Agosto' })).toBeInTheDocument());
     await user.type(screen.getByPlaceholderText('Descreva suas entregas de ontem...'), 'Ontem');
     await user.type(screen.getByPlaceholderText('Suas tarefas para hoje...'), 'Hoje');
     await user.click(screen.getByRole('button', { name: 'Registrar Daily' }));
@@ -233,7 +243,8 @@ describe('EquipeDaily — caracterização', () => {
 
     expect(await screen.findByRole('button', { name: 'Atualizar Daily' })).toBeInTheDocument();
     expect(screen.getAllByText('Sprint Julho').length).toBeGreaterThanOrEqual(1);
-    expect(screen.queryByText('Sprint Agosto')).not.toBeInTheDocument();
+    // O card mostra a sprint vigente, mas o contexto do daily permanece na sprint gravada.
+    expect(screen.getByRole('heading', { name: 'Sprint Agosto' })).toBeInTheDocument();
   });
 
   it('deduplica perfis adicionais e preserva os textos do formulário e do estado vazio', async () => {
@@ -377,11 +388,12 @@ describe('EquipeDaily — caracterização', () => {
     await chooseSelect(user, 0, 'Bruno Souza');
     await chooseSelect(user, 1, 'Sprint Julho');
 
+    // Os controles são um rascunho: ainda não disparam consultas a cada alteração.
     expect(latestDomainArgs().filters).toEqual({
-      startDate: '2026-07-01',
-      endDate: '2026-07-31',
-      person: 'other-user',
-      sprint: 'sprint-1',
+      startDate: '',
+      endDate: '',
+      person: 'all',
+      sprint: 'all',
     });
     // pessoa + sprint (daily) + cluster (chave compartilhada 'rotina.cluster', default '').
     expect(localStorage.length).toBe(3);
@@ -390,13 +402,33 @@ describe('EquipeDaily — caracterização', () => {
     expect(localStorage.getItem('rotina.cluster')).toBe('""');
 
     await user.click(screen.getByRole('button', { name: 'Buscar' }));
-    expect(mocks.refetchStandups).toHaveBeenCalledTimes(1);
+    expect(latestDomainArgs().filters).toEqual({
+      startDate: '2026-07-01',
+      endDate: '2026-07-31',
+      person: 'other-user',
+      sprint: 'sprint-1',
+    });
+    // A troca da query key faz a busca; não há refetch duplicado da chave anterior.
+    expect(mocks.refetchStandups).not.toHaveBeenCalled();
     await user.click(screen.getByRole('button', { name: 'Limpar Filtros' }));
     expect(latestDomainArgs().filters).toEqual({ startDate: '', endDate: '', person: 'all', sprint: 'all' });
     expect(mocks.toast).toHaveBeenCalledWith({
       title: 'Filtros limpos',
       description: 'Todos os filtros foram removidos.',
     });
+  });
+
+  it('avança o histórico paginado sem carregar todos os dailys', async () => {
+    const user = userEvent.setup();
+    setResults({
+      standupsResult: { myStandup: ownStandup, standups: [ownStandup], hasNextPage: true },
+    });
+    render(<EquipeDaily />);
+
+    expect(await screen.findByText('Página 1')).toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Go to next page' }));
+
+    expect(latestDomainArgs().page).toBe(2);
   });
 
   it('renderiza cards, contexto e ações somente no daily do usuário autenticado', async () => {
