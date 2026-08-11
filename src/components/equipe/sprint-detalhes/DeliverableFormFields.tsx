@@ -14,7 +14,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AvisoHorasDigitadas } from '@/components/equipe/AvisoHorasDigitadas';
 import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
+import { avaliarHorasApontadas } from '@/lib/horasApontamento';
 import { cn } from '@/lib/utils';
 import type {
   DeliverableForm,
@@ -318,6 +320,13 @@ export function DeliverableFormFields({
                       value={form.actual_hours}
                       onChange={(event) => update('actual_hours', event.target.value)}
                       className="h-9 border-amber-300 bg-amber-50/50"
+                    />
+                    <AvisoHorasDigitadas
+                      aviso={avaliarHorasApontadas({
+                        realizadas: form.actual_hours,
+                        estimadas: form.estimated_hours,
+                      })}
+                      onUsarSugestao={(horas) => update('actual_hours', String(horas))}
                     />
                   </div>
                 )}

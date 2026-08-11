@@ -11,6 +11,7 @@ import {
   Sparkles,
   TimerReset,
 } from 'lucide-react';
+import { AvisoHorasDigitadas } from '@/components/equipe/AvisoHorasDigitadas';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -24,6 +25,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { DailySprintTask, DailyTaskStatus } from '@/hooks/useDailySprintTasks';
 import { filterDailyTasksBySearch, parseDailyActualHours } from '@/lib/equipeDaily';
+import { avaliarHorasApontadas } from '@/lib/horasApontamento';
 import { cn } from '@/lib/utils';
 
 interface DailyQuickStatusDialogProps {
@@ -79,6 +81,8 @@ export function DailyQuickStatusDialog({
   const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
   const [actualHours, setActualHours] = useState('');
   const [hoursError, setHoursError] = useState(false);
+  // Aviso de digitação já confirmado por quem está apontando as horas.
+  const [hoursAck, setHoursAck] = useState(false);
 
   useEffect(() => {
     if (open) return;
@@ -86,6 +90,7 @@ export function DailyQuickStatusDialog({
     setCompletingTaskId(null);
     setActualHours('');
     setHoursError(false);
+    setHoursAck(false);
   }, [open]);
 
   const visibleTasks = useMemo(
@@ -104,6 +109,7 @@ export function DailyQuickStatusDialog({
       setCompletingTaskId(task.id);
       setActualHours(task.actual_hours === null ? '' : String(task.actual_hours));
       setHoursError(false);
+      setHoursAck(false);
       return;
     }
     setCompletingTaskId(null);
@@ -117,11 +123,16 @@ export function DailyQuickStatusDialog({
       setHoursError(true);
       return;
     }
+    // Horas fora do padrão só passam depois de confirmadas no aviso ao lado.
+    if (!hoursAck && avaliarHorasApontadas({ realizadas: hours, estimadas: task.estimated_hours })) {
+      return;
+    }
     const updated = await onUpdate(task, 'completed', hours);
     if (updated) {
       setCompletingTaskId(null);
       setActualHours('');
       setHoursError(false);
+      setHoursAck(false);
     }
   };
 
@@ -219,6 +230,12 @@ export function DailyQuickStatusDialog({
                   <AnimatePresence initial={false}>
               {group.tasks.map((task, index) => {
                 const isCompleting = completingTaskId === task.id;
+                const avisoHoras = isCompleting
+                  ? avaliarHorasApontadas({
+                      realizadas: actualHours,
+                      estimadas: task.estimated_hours,
+                    })
+                  : null;
                 return (
                   <motion.article
                     layout
@@ -314,6 +331,7 @@ export function DailyQuickStatusDialog({
                                   onChange={(event) => {
                                     setActualHours(event.target.value);
                                     setHoursError(false);
+                                    setHoursAck(false);
                                   }}
                                   placeholder="Ex.: 3,5"
                                   className={cn(
@@ -329,6 +347,16 @@ export function DailyQuickStatusDialog({
                                 </div>
                               </div>
                               {hoursError && <p className="text-xs font-medium text-rose-600">Informe um valor igual ou maior que zero.</p>}
+                              <AvisoHorasDigitadas
+                                aviso={avisoHoras}
+                                confirmado={hoursAck}
+                                className="bg-white/70"
+                                onConfirmar={() => setHoursAck(true)}
+                                onUsarSugestao={(horas) => {
+                                  setActualHours(String(horas));
+                                  setHoursAck(false);
+                                }}
+                              />
                             </div>
                             <div className="flex gap-2">
                               <Button
@@ -340,7 +368,12 @@ export function DailyQuickStatusDialog({
                               >
                                 Cancelar
                               </Button>
-                              <Button type="submit" size="sm" disabled={updating} className="bg-teal-600 hover:bg-teal-700">
+                              <Button
+                                type="submit"
+                                size="sm"
+                                disabled={updating || (!!avisoHoras && !hoursAck)}
+                                className="bg-teal-600 hover:bg-teal-700"
+                              >
                                 {updating ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Check className="mr-1.5 h-4 w-4" />}
                                 Concluir tarefa
                               </Button>

@@ -2,6 +2,7 @@ import type { UseFormReturn } from 'react-hook-form';
 import { format } from 'date-fns';
 import { AlertCircle, CalendarIcon } from 'lucide-react';
 
+import { AvisoHorasDigitadas } from '@/components/equipe/AvisoHorasDigitadas';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -14,6 +15,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select';
+import { avaliarHorasApontadas } from '@/lib/horasApontamento';
 import { CHIP_BUTTON, CHIP_LABEL, CHIP_TRIGGER } from '@/lib/modalChipStyles';
 import { taskPriorityColors, taskPriorityList } from '@/lib/taskPriorityColors';
 import type { TaskFieldOptions, TaskFormValues } from '@/lib/orgTaskForm';
@@ -46,7 +48,21 @@ export function TaskPropertyBar({
   const assignedTo = form.watch('assigned_to');
   const isDone = status === 'done';
   const actualHoursValue = form.watch('actual_hours');
-  const needsAttention = isDone && (!actualHoursValue || !!form.formState.errors.actual_hours);
+  const estimatedHoursValue = form.watch('estimated_hours');
+  const hoursAck = form.watch('hours_ack') ?? false;
+  // Aviso de digitação: recalculado a cada tecla, some sozinho quando o valor
+  // volta ao padrão. Salvar exige corrigir ou confirmar (ver `taskSchema`).
+  const avisoHoras = avaliarHorasApontadas({
+    realizadas: actualHoursValue,
+    estimadas: estimatedHoursValue,
+  });
+  const needsAttention =
+    (isDone && (!actualHoursValue || !!form.formState.errors.actual_hours)) ||
+    (!!avisoHoras && !hoursAck);
+
+  const resetHoursAck = () => {
+    if (form.getValues('hours_ack')) form.setValue('hours_ack', false);
+  };
 
   const assignee = teamMembers.find((member) => member.id === assignedTo);
   // Um rascunho restaurado pode não trazer a prioridade; sem o fallback a
@@ -176,6 +192,7 @@ export function TaskPropertyBar({
                 name="estimated_hours"
                 label="Horas estimadas"
                 placeholder="0"
+                onAfterChange={resetHoursAck}
               />
               <span className="text-sm text-muted-foreground">/</span>
               <HoursField
@@ -187,13 +204,29 @@ export function TaskPropertyBar({
                 autoFocus={isDone && !actualHoursValue}
                 required={isDone}
                 highlight={needsAttention}
+                onAfterChange={resetHoursAck}
               />
               <span className="text-xs text-muted-foreground">h</span>
             </div>
           </div>
         </div>
 
-        {isDone && (
+        <AvisoHorasDigitadas
+          aviso={avisoHoras}
+          confirmado={hoursAck}
+          className="mt-3"
+          onConfirmar={() => {
+            form.setValue('hours_ack', true);
+            form.clearErrors('actual_hours');
+          }}
+          onUsarSugestao={(horas) => {
+            form.setValue('actual_hours', horas);
+            form.setValue('hours_ack', false);
+            form.clearErrors('actual_hours');
+          }}
+        />
+
+        {isDone && !avisoHoras && (
           <div className="mt-3 flex items-start gap-2 text-xs text-warning">
             <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
@@ -255,6 +288,7 @@ function HoursField({
   autoFocus,
   required,
   highlight,
+  onAfterChange,
 }: {
   form: UseFormReturn<TaskFormValues>;
   name: 'estimated_hours' | 'actual_hours';
@@ -264,6 +298,8 @@ function HoursField({
   autoFocus?: boolean;
   required?: boolean;
   highlight?: boolean;
+  /** Chamado a cada digitação — usado para desfazer a confirmação do aviso. */
+  onAfterChange?: () => void;
 }) {
   return (
     <FormField
@@ -288,9 +324,10 @@ function HoursField({
               )}
               {...field}
               value={field.value ?? ''}
-              onChange={(event) =>
-                field.onChange(event.target.value === '' ? '' : Number(event.target.value))
-              }
+              onChange={(event) => {
+                field.onChange(event.target.value === '' ? '' : Number(event.target.value));
+                onAfterChange?.();
+              }}
             />
           </FormControl>
           <FormMessage className="max-w-[8rem] text-[11px] leading-tight" />

@@ -2,6 +2,7 @@ import { format } from 'date-fns';
 import { z } from 'zod';
 
 import type { CreateOrgTaskInput, OrgTaskStatus } from '@/hooks/useOrgTasks';
+import { horasApontadasPrecisamConfirmacao } from '@/lib/horasApontamento';
 import type { StatusColorConfig } from '@/lib/taskStatusColors';
 
 /**
@@ -41,6 +42,12 @@ export const taskSchema = z
       .union([z.coerce.number(), z.literal('')])
       .optional()
       .nullable(),
+    /**
+     * Só do formulário (não vai para o banco): marca que o responsável viu o
+     * aviso de digitação das horas e confirmou o valor. Volta a false a cada
+     * novo valor digitado.
+     */
+    hours_ack: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     if (data.status === 'done') {
@@ -53,6 +60,22 @@ export const taskSchema = z
           message: 'Informe as horas realizadas',
         });
       }
+    }
+
+    // Horas muito acima da estimativa quase sempre são erro de digitação — e o
+    // erro só apareceria semanas depois, na auditoria de produtividade.
+    if (
+      !data.hours_ack &&
+      horasApontadasPrecisamConfirmacao({
+        realizadas: data.actual_hours,
+        estimadas: data.estimated_hours,
+      })
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['actual_hours'],
+        message: 'Confirme o aviso',
+      });
     }
   });
 

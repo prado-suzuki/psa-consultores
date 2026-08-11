@@ -9154,6 +9154,7 @@ export type Database = {
         Args: { _user_id: string }
         Returns: string[]
       }
+      ve_todas_as_sprints: { Args: never; Returns: boolean }
       visible_org_project_ids: { Args: { _uid: string }; Returns: string[] }
     }
     Enums: {
