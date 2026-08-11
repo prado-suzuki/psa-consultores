@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Download, FileText, Hand, Trash2 } from 'lucide-react';
+import { Download, FileText, Hand, Send, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
@@ -156,6 +156,26 @@ export function ColetaDocumentosCliente() {
         <h2 className="text-2xl font-bold text-foreground">A PSA solicitou estes documentos</h2>
         <div className="mt-3 h-[3px] w-6 rounded-full bg-teal-600" />
       </div>
+
+      {/*
+        Quando o pedido foi enviado, o cliente precisa saber DESDE QUANDO: é o que
+        dá referência para "faz uma semana que me pediram". O dado vem da própria
+        função que alimenta a tela, sem consulta extra, e o formato é o mesmo já
+        usado na lista de enviados, abaixo.
+      */}
+      {pedido?.solicitacao?.enviada_em && (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Send className="h-4 w-4 shrink-0 text-teal-700" />
+          <span>
+            Pedido enviado em{' '}
+            <span className="font-medium text-foreground">
+              {format(new Date(pedido.solicitacao.enviada_em), "dd/MM/yyyy 'às' HH:mm", {
+                locale: ptBR,
+              })}
+            </span>
+          </span>
+        </div>
+      )}
 
       <Card className="flex gap-4 border-l-4 border-l-teal-600 p-6">
         <Hand className="h-7 w-7 shrink-0 text-teal-700" />
