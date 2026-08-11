@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAvisoSolicitacaoEnviada } from '@/hooks/useAvisoSolicitacaoEnviada';
 import { supabase } from '@/integrations/supabase/client';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import {
@@ -159,6 +160,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
   const queryKey = solicitacaoAtivaKey(clienteId);
+  const avisoDeEnvio = useAvisoSolicitacaoEnviada();
 
   const solicitacaoQuery = useQuery<SolicitacaoAtiva | null>({
     queryKey,
@@ -556,7 +558,25 @@ export function useDomainSolicitacao(clienteId: string | null) {
       'enviada_em',
       'Esta solicitação não está mais em rascunho — alguém já a enviou ou encerrou. Recarregue a página.',
     ),
-    onSuccess: invalidar,
+    /**
+     * Bloco, e não `onSuccess: invalidar`, para o aviso por e-mail ao cliente
+     * entrar aqui como uma linha só, sem reescrever a assinatura.
+     *
+     * `mutate` sem `await` de propósito: a transição já gravou status e data e
+     * liberou a área do cliente. Falha do aviso não desfaz o envio, e cai no
+     * `onError` da própria mutação do aviso, não no deste envio.
+     */
+    onSuccess: () => {
+      invalidar();
+
+      const atual = solicitacaoQuery.data;
+      if (atual) {
+        avisoDeEnvio.mutate({
+          cliente_id: atual.clienteId,
+          ordem_servico_id: atual.ordemServicoId,
+        });
+      }
+    },
     onError: (error: Error) => toast.error('Não foi possível enviar: ' + error.message),
   });
 

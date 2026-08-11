@@ -77,6 +77,7 @@ const SYSTEM_LABELS: Record<Exclude<OrgComment['kind'], 'comment'>, string> = {
   review_approved: 'Revisão aprovada',
   review_adjustments: 'Ajustes solicitados',
   status_changed: 'Status alterado',
+  documentos_solicitados: 'Documentos solicitados ao cliente',
 };
 
 function systemEventBody(comment: OrgComment) {

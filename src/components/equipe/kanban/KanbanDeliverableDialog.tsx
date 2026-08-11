@@ -29,8 +29,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { avaliarHorasApontadas } from '@/lib/horasApontamento';
 import { cn } from '@/lib/utils';
 import { AnexosEntregavel } from '@/components/equipe/AnexosEntregavel';
+import { AvisoHorasDigitadas } from '@/components/equipe/AvisoHorasDigitadas';
 import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
 import type {
   EquipeKanbanDeliverable,
@@ -180,6 +182,16 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 onChange={(event) => setEditForm({ ...editForm, actual_hours: event.target.value })}
                 className="bg-white border-amber-300 text-gray-900"
                 placeholder="0"
+              />
+              <AvisoHorasDigitadas
+                aviso={avaliarHorasApontadas({
+                  realizadas: editForm.actual_hours,
+                  estimadas: editForm.estimated_hours,
+                })}
+                className="bg-white"
+                onUsarSugestao={(horas) =>
+                  setEditForm({ ...editForm, actual_hours: String(horas) })
+                }
               />
               <p className="text-xs text-amber-700">
                 Preencha as horas reais — usado nas análises (estimadas × realizadas).
