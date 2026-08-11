@@ -19,6 +19,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
+/**
+ * Não há conta identificada para reautenticar.
+ *
+ * Distinta de credencial recusada de propósito: mandar "confira a senha" para
+ * quem não tem e-mail em estado é pedir que a pessoa repita para sempre uma
+ * tentativa que nunca vai funcionar. A saída daqui é sair e entrar de novo.
+ */
+export class SessaoSemContaError extends Error {
+  constructor() {
+    super('Sessão sem conta identificada para reautenticar');
+    this.name = 'SessaoSemContaError';
+  }
+}
+
 export interface ReautenticacaoDialogProps {
   open: boolean;
   /** E-mail da sessão que caiu, só para a pessoa confirmar quem está voltando. */
@@ -52,7 +66,11 @@ export default function ReautenticacaoDialog({
     const { error } = await onEntrar(senha);
     setEntrando(false);
     if (error) {
-      setErro('Não foi possível entrar. Confira a senha e tente de novo.');
+      setErro(
+        error instanceof SessaoSemContaError
+          ? 'Não foi possível identificar a conta desta sessão. Use "Sair e descartar" e entre de novo.'
+          : 'Não foi possível entrar. Confira a senha e tente de novo.',
+      );
       return;
     }
     setSenha('');

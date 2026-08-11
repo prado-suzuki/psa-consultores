@@ -64,7 +64,7 @@ function aguardarBackoff(delayMs: number, signal?: AbortSignal | null): Promise<
 }
 
 export function useApiAuth() {
-  const { session, refreshSession } = useAuth();
+  const { session, refreshSession, sessaoExpirada, sinalizarSessaoExpirada } = useAuth();
   const navigate = useNavigate();
 
   const getAuthHeaders = async (): Promise<Record<string, string> | null> => {
@@ -82,6 +82,11 @@ export function useApiAuth() {
   };
 
   const getValidToken = async (): Promise<string | null> => {
+    // Com o diálogo de reautenticação aberto, insistir só gera tráfego de
+    // rotação de token (e mais chance da corrida que derrubou a sessão). Quem
+    // resolve é a pessoa digitando a senha; até lá, a chamada falha rápido.
+    if (sessaoExpirada) return null;
+
     const currentSession = session ?? (await supabase.auth.getSession()).data.session;
 
     if (!currentSession) {
@@ -102,27 +107,34 @@ export function useApiAuth() {
       return null;
     }
 
-    // Check if token is expired or about to expire (5 min buffer)
-    const expiresAt = currentSession.expires_at;
-    if (expiresAt) {
-      const now = Math.floor(Date.now() / 1000);
-      const bufferSeconds = 5 * 60; // 5 minutes
-
-      if (expiresAt - now < bufferSeconds) {
-        console.log('[Auth] Token expirando em breve, tentando refresh...');
-        const newSession = await refreshSession();
-        if (!newSession) {
-          handleSessionExpired();
-          return null;
-        }
-        return newSession.access_token;
-      }
-    }
-
+    // A renovação preventiva a cinco minutos do fim morava aqui e disparava a
+    // CADA chamada de API, incluindo todo refetch de fundo do React Query. Era
+    // um dos renovadores concorrendo pelo mesmo refresh token (junto do ticker
+    // do auth-js e do retry de 401), e a rotação é o que devolve 400 "already
+    // used". Quem cuida da renovação por antecipação agora é o vigia do
+    // AuthContext, uma vez a cada trinta segundos e não uma por requisição.
+    // Aqui basta o caminho reativo: manda o token, e se voltar 401 renova e
+    // repete (ver `fetchWithAuth`).
     return currentSession.access_token;
   };
 
+  /**
+   * Sessão perdida no meio de uma chamada.
+   *
+   * Navegar daqui era destrutivo e silencioso: qualquer refetch de fundo (o
+   * OSG usa `useDocumentoArquivo` e `useGeorefByMatricula`, o fiscal usa uns
+   * trinta hooks) arrastava a pessoa para /equipe e levava junto o formulário
+   * aberto. Pior: com o diálogo de reautenticação prometendo que nada se
+   * perdeu, e com `user` em estado, /equipe nem mostra login, mostra o seletor
+   * de áreas, como se estivesse tudo bem.
+   *
+   * Enquanto houver sessão viva na tela, quem resolve é o diálogo: aqui a
+   * chamada só falha e devolve o erro a quem pediu. Sem sessão viva (boot frio,
+   * já deslogado) o comportamento antigo continua valendo, porque aí não há
+   * formulário aberto para preservar nem conta para reautenticar.
+   */
   const handleSessionExpired = () => {
+    if (sinalizarSessaoExpirada()) return;
     toast({
       title: 'Sessão expirada',
       description: 'Faça login novamente para continuar.',
