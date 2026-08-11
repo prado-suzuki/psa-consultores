@@ -15,7 +15,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RequiredMark } from '@/components/ui/required-mark';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { validarFormulario } from '@/lib/osg/validacaoFormulario';
 import { UF_STATES } from '@/components/equipe/client-form/constants';
 import {
   useCartorios, useUpsertCartorio, useDeleteCartorio, type CartorioRow,
@@ -58,18 +58,14 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
   };
 
   const handleSave = () => {
-    if (!draft.nome_completo.trim()) {
-      toast.error('Informe o nome do cartório');
-      return;
-    }
-    if (!draft.comarca.trim()) {
-      toast.error('Informe a comarca');
-      return;
-    }
-    if (!draft.uf) {
-      toast.error('Selecione a UF');
-      return;
-    }
+    // Mesma trilha de falha dos modais do módulo (@/lib/osg/validacaoFormulario):
+    // avisa o que falta e leva o foco ao campo.
+    const ok = validarFormulario([
+      { invalido: !draft.nome_completo.trim(), mensagem: 'Informe o nome completo do cartório.', campo: 'cartorio_nome' },
+      { invalido: !draft.comarca.trim(), mensagem: 'Informe a comarca do cartório.', campo: 'cartorio_comarca' },
+      { invalido: !draft.uf, mensagem: 'Selecione a UF do cartório.', campo: 'cartorio_uf' },
+    ]);
+    if (!ok) return;
 
     upsert.mutate(
       {
@@ -208,7 +204,7 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
             <DialogTitle>{editing ? 'Editar cartório' : 'Novo cartório'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1.5">
+            <div className="space-y-1.5" data-campo="cartorio_nome">
               <Label className="text-xs font-semibold text-muted-foreground">
                 Nome completo<RequiredMark />
               </Label>
@@ -220,7 +216,7 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
               />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              <div className="md:col-span-2 space-y-1.5">
+              <div className="md:col-span-2 space-y-1.5" data-campo="cartorio_comarca">
                 <Label className="text-xs font-semibold text-muted-foreground">
                   Comarca<RequiredMark />
                 </Label>
@@ -230,7 +226,7 @@ export function CartorioSelect({ value, onChange, disabled }: CartorioSelectProp
                   className="h-9"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5" data-campo="cartorio_uf">
                 <Label className="text-xs font-semibold text-muted-foreground">
                   UF<RequiredMark />
                 </Label>

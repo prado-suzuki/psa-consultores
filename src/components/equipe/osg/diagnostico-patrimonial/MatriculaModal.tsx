@@ -5,7 +5,7 @@ import { UnsavedChangesAlert } from '@/components/equipe/osg/UnsavedChangesAlert
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { validarFormulario } from '@/lib/osg/validacaoFormulario';
 import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
 import { formScopeCls } from '@/lib/osgFormGrid';
 import { DocumentosTab } from '@/components/equipe/osg/documentos/DocumentosTab';
@@ -89,17 +89,20 @@ export function MatriculaModal({ open, bemId, bemTipo, matricula, pessoasCliente
   const { requestClose, alertProps } = useDirtyClose({ isDirty: rascunhoExterno ? false : isDirty, onClose: fechar });
 
   const handleSave = () => {
-    if (!draft.numero.trim()) { toast.error('Número da matrícula é obrigatório'); return; }
-    if (!draft.cartorio_id) { toast.error('Selecione o cartório'); return; }
-    if (!draft.municipio_imovel.trim()) { toast.error('Município do imóvel é obrigatório'); return; }
-    if (!draft.uf_imovel) { toast.error('UF do imóvel é obrigatória'); return; }
-    if (!draft.area_documento.trim() || Number.isNaN(Number(draft.area_documento))) { toast.error('Área do documento é obrigatória'); return; }
-    let titular;
-    if (!isEdit) {
-      if (!titularInicial.titular_pessoa_id) { setActiveTab('titulares'); toast.error('Selecione o titular inicial da matrícula'); return; }
-      titular = parseTitularInicial(titularInicial) ?? undefined;
-      if (!titular) { toast.error('Fração do titular deve estar entre 0 e 100'); return; }
-    }
+    const titularEscolhido = isEdit ? null : parseTitularInicial(titularInicial);
+    // Uma trilha só de falha: a regra diz o que falta, o utilitário avisa, abre a
+    // aba onde o campo mora e leva o foco até ele (ver @/lib/osg/validacaoFormulario).
+    const ok = validarFormulario([
+      { invalido: !draft.numero.trim(), mensagem: 'Informe o número da matrícula.', aba: 'dados', campo: 'numero' },
+      { invalido: !draft.cartorio_id, mensagem: 'Selecione o cartório da matrícula.', aba: 'dados', campo: 'cartorio_id' },
+      { invalido: !draft.municipio_imovel.trim(), mensagem: 'Informe o município do imóvel.', aba: 'dados', campo: 'municipio_imovel' },
+      { invalido: !draft.uf_imovel, mensagem: 'Selecione a UF do imóvel.', aba: 'dados', campo: 'uf_imovel' },
+      { invalido: !draft.area_documento.trim() || Number.isNaN(Number(draft.area_documento)), mensagem: 'Informe a área do documento.', aba: 'dados', campo: 'area_documento' },
+      { invalido: !isEdit && !titularInicial.titular_pessoa_id, mensagem: 'Selecione o titular inicial da matrícula, na aba Titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
+      { invalido: !isEdit && !!titularInicial.titular_pessoa_id && !titularEscolhido, mensagem: 'A fração do titular deve estar entre 0 e 100.', aba: 'titulares', campo: 'titular_fracao' },
+    ], { abrirAba: setActiveTab });
+    if (!ok) return;
+    const titular = titularEscolhido ?? undefined;
     if (rascunhoExterno) {
       // Quem abriu grava: criar a matrícula é só metade do que o clique promete.
       rascunhoExterno.onSalvar(matriculaDraftToValues(draft, bemId, matricula, bemTipo), titular);

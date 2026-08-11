@@ -8,6 +8,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Loader2, Plus, Pencil, X, Copy, Star } from 'lucide-react';
 import { toast } from 'sonner';
+import { FRACAO_STEP, clampFracaoInput } from '@/components/equipe/osg/diagnostico-patrimonial/fracaoUtils';
+import { validarFormulario } from '@/lib/osg/validacaoFormulario';
 import { fieldCls, FieldSection } from '@/components/equipe/osg/formKit';
 import {
   useTitularidadesByMatricula,
@@ -130,23 +132,17 @@ function TitularBucket({
   };
 
   const handleSave = () => {
-    if (!draft.titular_pessoa_id) {
-      toast.error('Selecione o titular');
-      return;
-    }
-    let fracaoNum: number | null = null;
-    if (draft.fracao.trim()) {
-      const parsed = Number(draft.fracao);
-      if (isNaN(parsed)) {
-        toast.error('Fração inválida');
-        return;
-      }
-      if (parsed <= 0 || parsed > 100) {
-        toast.error('Fração deve estar entre 0 e 100');
-        return;
-      }
-      fracaoNum = parsed;
-    }
+    const fracaoDigitada = draft.fracao.trim();
+    const fracaoParsed = fracaoDigitada ? Number(fracaoDigitada) : null;
+    // Mesma trilha de falha dos modais do módulo (@/lib/osg/validacaoFormulario):
+    // avisa o que falta e leva o foco ao campo, em vez de só piscar um toast.
+    const ok = validarFormulario([
+      { invalido: !draft.titular_pessoa_id, mensagem: 'Selecione o titular.', campo: 'titularidade_titular' },
+      { invalido: fracaoParsed != null && Number.isNaN(fracaoParsed), mensagem: 'A fração digitada não é um número.', campo: 'titularidade_fracao' },
+      { invalido: fracaoParsed != null && !Number.isNaN(fracaoParsed) && (fracaoParsed <= 0 || fracaoParsed > 100), mensagem: 'A fração deve estar entre 0 e 100.', campo: 'titularidade_fracao' },
+    ]);
+    if (!ok) return;
+    const fracaoNum: number | null = fracaoParsed;
 
     const original = editingId ? titularidades.find((t) => t.id === editingId) ?? null : null;
 
@@ -250,7 +246,7 @@ function TitularBucket({
                 value={draft.titular_pessoa_id || undefined}
                 onValueChange={(v) => setDraft((p) => ({ ...p, titular_pessoa_id: v }))}
               >
-                <SelectTrigger className={`${fieldCls} flex-1`}>
+                <SelectTrigger data-campo="titularidade_titular" className={`${fieldCls} flex-1`}>
                   <SelectValue placeholder={pessoasCliente.length ? 'Selecione o titular...' : 'Cadastre uma pessoa na Qualificação das Partes'} />
                 </SelectTrigger>
                 <SelectContent>
@@ -262,12 +258,13 @@ function TitularBucket({
                 </SelectContent>
               </Select>
               <Input
+                data-campo="titularidade_fracao"
                 type="number"
-                step="0.01"
+                step={FRACAO_STEP}
                 min="0"
                 max="100"
                 value={draft.fracao}
-                onChange={(e) => setDraft((p) => ({ ...p, fracao: e.target.value }))}
+                onChange={(e) => setDraft((p) => ({ ...p, fracao: clampFracaoInput(e.target.value) }))}
                 placeholder="Fração %"
                 className={`${fieldCls} font-mono sm:w-28`}
               />

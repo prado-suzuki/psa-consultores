@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { usePessoasByCliente, type PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { useBensByCliente, useCartorios } from '@/hooks/useDiagnosticoPatrimonial';
+import { STATUS_ELEGIVEIS_PARA_INTEGRALIZACAO } from '@/lib/osg/statusIntegralizacao';
 import type { TipoEntidade } from '@/lib/templates/vocabulario';
 import { PARES } from '@/lib/templates/concordancia';
 import {
@@ -193,9 +194,14 @@ interface RawAdministracao {
 }
 
 /**
- * Matrículas dos bens APROVADOS para integralização na empresa (PJ destino),
+ * Matrículas dos bens ELEGÍVEIS para integralização na empresa (PJ destino),
  * sem impedimento ativo — fonte única do gerador (seção {{#integralizacoes}})
  * E da visão derivada do Quadro Societário (empresa PR).
+ *
+ * "Elegível" não é literal daqui: o conjunto de status vive em
+ * `@/lib/osg/statusIntegralizacao`, o mesmo que a tela do Diagnóstico
+ * Patrimonial usa para avisar o consultor. Mudar o conjunto lá muda esta query,
+ * o painel de conferência e qualquer relatório que use o conceito.
  */
 export function useIntegralizacoesAprovadas(empresaId: string | null) {
   return useQuery<MatriculaIntegralizacao[]>({
@@ -219,7 +225,7 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
           )
         `)
         .eq('empresa_destino_pessoa_id', empresaId!)
-        .eq('status_integralizacao', 'Aprovado');
+        .in('status_integralizacao', [...STATUS_ELEGIVEIS_PARA_INTEGRALIZACAO]);
       if (error) throw error;
 
       const bens = (data ?? []) as unknown as Array<{
@@ -381,7 +387,7 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
     },
   });
 
-  // Matrículas dos bens APROVADOS para integralização nesta empresa, sem
+  // Matrículas dos bens ELEGÍVEIS para integralização nesta empresa, sem
   // impedimento ativo — a matéria-prima da seção {{#integralizacoes}}.
   const integralizacoesQ = useIntegralizacoesAprovadas(empresaId);
 
