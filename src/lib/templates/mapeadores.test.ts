@@ -17,9 +17,11 @@ import {
   type SocioParaMapear,
   type TitularParaMapear,
 } from './mapeadores';
+import { gerarDocumento } from './index';
 import { origemDe } from './origem';
 import { derivarCampos } from './vocabulario';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
+import type { Template } from './types';
 
 type Campos = Record<string, string>;
 
@@ -204,15 +206,29 @@ describe('calcularCapitalSociedade — PR (integralizações) × demais (quadro 
     expect(totalQuotas).toBe(872674);
   });
 
-  it('PR: capital com centavos arredonda o total de quotas', () => {
+  it('PR: o capital SEGUE as quotas — valor com centavos não fica no capital (B6)', () => {
     const { capitalValor, totalQuotas } = calcularCapitalSociedade(empresaPR, [], [matDeValor(100.6)]);
-    expect(capitalValor).toBe(100.6);
+    // Antes: capital 100,60 dividido em 101 quotas de R$ 1,00 (a cláusula se
+    // contradizia). Agora as quotas mandam e o capital é o valor delas.
     expect(totalQuotas).toBe(101);
+    expect(capitalValor).toBe(101);
   });
 
   it('PR sem integralização aprovada → nulls', () => {
     const r = calcularCapitalSociedade(empresaPR, [socio('A', 10, 10)], []);
-    expect(r).toEqual({ capitalValor: null, totalQuotas: null });
+    expect(r).toEqual({ capitalValor: null, totalQuotas: null, quotaValorNominal: 1 });
+  });
+
+  it('CN sem quotas digitadas: converte os valores do quadro, em vez de perder o capital', () => {
+    const semQuotas = {
+      pessoa: { denominacao: 'A', tipo_pessoa: 'PF' } as unknown as PessoaRow,
+      quotas: null,
+      vlr_total: 250.4,
+      representante: null,
+    };
+    const { capitalValor, totalQuotas } = calcularCapitalSociedade(empresaCN, [semQuotas], []);
+    expect(totalQuotas).toBe(250);
+    expect(capitalValor).toBe(250);
   });
 
   it('CN: Σ quotas e Σ vlr_total do quadro societário', () => {
@@ -227,7 +243,7 @@ describe('calcularCapitalSociedade — PR (integralizações) × demais (quadro 
 
   it('quadro vazio fora de PR → nulls', () => {
     const r = calcularCapitalSociedade(empresaCN, [], []);
-    expect(r).toEqual({ capitalValor: null, totalQuotas: null });
+    expect(r).toEqual({ capitalValor: null, totalQuotas: null, quotaValorNominal: 1 });
   });
 });
 
@@ -297,6 +313,49 @@ function matriculaImovel(over: Partial<MatriculaParaMapear>): MatriculaParaMapea
     ...over,
   };
 }
+
+// B4 — o nome CADASTRADO da serventia é o que identifica o cartório, e a
+// comarca entra só como complemento. O cenário do aceite não é o da MMS
+// ("Cartório de 1° Ofício de Imóveis", nome que não traz a cidade): é o cartório
+// de Sinop, cujo nome JÁ traz a comarca, contra o cadastro sem nome nenhum — os
+// dois extremos que a frase tem que atravessar sem sair torta.
+describe('mapearMatricula — cartório: nome cadastrado + comarca como complemento (B4)', () => {
+  const REDACAO = 'do {{ imovel.cartorio }}{{#imovel.cartorioComarca}} da comarca de {{ imovel.cartorioComarca }}{{/imovel.cartorioComarca}}';
+
+  function frase(cartorio: MatriculaParaMapear['cartorio']): string {
+    const campos = mapearMatricula(matriculaImovel({ cartorio }));
+    const template: Template = {
+      id: 'cartorio', nome: 'cartório',
+      blocos: [{ id: 'b', obrigatorio: true, conteudo: REDACAO }],
+    };
+    return gerarDocumento(template, { imovel: campos });
+  }
+
+  it('cartório cujo nome JÁ traz a cidade não repete a comarca', () => {
+    expect(frase({ nome_completo: '2º Ofício de Registro de Imóveis de Sinop', comarca: 'Sinop', uf: 'MT' }))
+      .toBe('do 2º Ofício de Registro de Imóveis de Sinop');
+  });
+
+  it('cartório cujo nome NÃO traz a cidade recebe a comarca como complemento', () => {
+    expect(frase({ nome_completo: 'Cartório de 1° Ofício de Imóveis', comarca: 'Lucas do Rio Verde', uf: 'MT' }))
+      .toBe('do Cartório de 1° Ofício de Imóveis da comarca de Lucas do Rio Verde');
+  });
+
+  it('cartório SEM nome preenchido continua gerando frase gramatical', () => {
+    expect(frase({ nome_completo: null, comarca: 'Sorriso', uf: 'MT' }))
+      .toBe('do Cartório de Registro de Imóveis da comarca de Sorriso');
+    expect(frase(null)).toBe('do Cartório de Registro de Imóveis');
+  });
+
+  it('a redundância é detectada sem depender de acento ou de caixa', () => {
+    const c = mapearMatricula(matriculaImovel({
+      cartorio: { nome_completo: 'CARTÓRIO DE REGISTRO DE IMÓVEIS DE VARZEA GRANDE', comarca: 'Várzea Grande', uf: 'MT' },
+    }));
+    expect(c.cartorioComarca).toBe('');
+    // A comarca crua continua disponível para quem precisar dela isolada.
+    expect(c.comarca).toBe('Várzea Grande');
+  });
+});
 
 describe('mapearMatricula — confrontações sem o ponto final (quem pontua é o modelo)', () => {
   it('poda o ponto final do texto do cartório', () => {
@@ -717,27 +776,30 @@ describe('calcularParticipacoesPR — quadro derivado da empresa PR', () => {
   const meio = (pessoaId: string, denominacao: string): TitularParaMapear =>
     ({ pessoaId, denominacao, fracao: 50 });
 
-  it('titular único sem fração leva 100% da matrícula', () => {
+  it('titular único sem fração leva 100% da matrícula, e o valor segue as quotas (B6)', () => {
     const [p] = calcularParticipacoesPR([
       matPR('m1', 558413.55, [{ pessoaId: 'j', denominacao: 'José Eduardo' }]),
     ]);
     expect(p.denominacao).toBe('José Eduardo');
-    expect(p.valor).toBe(558413.55);
     expect(p.quotas).toBe(558414);
+    // Os quarenta e cinco centavos do rateio bruto não somem nem viram capital
+    // com centavos: o valor integralizado é o das quotas.
+    expect(p.valor).toBe(558414);
     expect(p.percentual).toBe(100);
   });
 
-  it('50/50 com centavo ímpar: último titular absorve (69.013,61 + 69.013,60)', () => {
+  it('50/50 com centavo ímpar: o último absorve, e a linha da tabela fecha com o capital', () => {
     const [a, b] = calcularParticipacoesPR([
       matPR('m2', 138027.21, [meio('j', 'José Eduardo'), meio('m', 'Maria Auxiliadora')]),
     ]);
-    // Ordenado por valor desc: José (primeiro do rateio) leva o centavo a mais.
+    // Ordenado por valor desc: José (primeiro do rateio) leva a quota a mais.
     expect(a.denominacao).toBe('José Eduardo');
-    expect(a.valor).toBe(69013.61);
     expect(b.denominacao).toBe('Maria Auxiliadora');
-    expect(b.valor).toBe(69013.6);
-    // Σ quotas fecha com Math.round(capital) = 138.027 (último absorve −1).
+    expect(a.quotas).toBe(69014);
+    expect(b.quotas).toBe(69013);
     expect(a.quotas + b.quotas).toBe(138027);
+    // Σ valor === capital: nenhuma linha contradiz a cláusula quinta.
+    expect(a.valor + b.valor).toBe(138027);
   });
 
   it('agrega a mesma pessoa através de várias matrículas', () => {
@@ -747,7 +809,8 @@ describe('calcularParticipacoesPR — quadro derivado da empresa PR', () => {
     ]);
     expect(participacoes).toHaveLength(2);
     const jose = participacoes.find((p) => p.pessoaId === 'j')!;
-    expect(jose.valor).toBe(125000 + 558413.55);
+    expect(jose.quotas).toBe(683414); // 125.000 + 558.413,55 → quotas inteiras
+    expect(jose.valor).toBe(683414);
   });
 
   it('deduplica posse de fato + de direito da mesma pessoa na matrícula', () => {
@@ -783,7 +846,7 @@ describe('calcularParticipacoesPR — quadro derivado da empresa PR', () => {
     expect(p.cpfCnpj).toBe('111.222.333-44');
   });
 
-  it('invariantes: Σ valor = capital, Σ quotas = Math.round(capital), coerência com calcularCapitalSociedade', () => {
+  it('invariantes: Σ valor = capital, Σ quotas = totalQuotas, coerência com calcularCapitalSociedade', () => {
     const matriculas = [
       matPR('m1', 250000, [meio('j', 'José Eduardo'), meio('m', 'Maria Auxiliadora')]),
       matPR('m2', 138027.21, [meio('j', 'José Eduardo'), meio('m', 'Maria Auxiliadora')]),
