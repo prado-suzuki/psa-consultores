@@ -14,7 +14,7 @@ import {
   type SocioParaMapear,
 } from './mapeadores';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import type { Template } from './types';
+import type { Contexto, Template } from './types';
 
 // Fixture namespaced: o mesmo bloco da Mat. 9.617, agora todo sob o binding `imovel`.
 const CONTEUDO_IMOVEL =
@@ -241,8 +241,9 @@ describe('vocabulário namespaced — paridade Mat. 9.617', () => {
 });
 
 // Redação urbana da família "Descrição de imóvel" (variante 4 do seed
-// 20260806140000, já com a troca de "nº {{ enderecoNumero }}" por
-// {{ enderecoNumeroProsa }} aplicada no banco), verbatim — é o texto que o
+// 20260806140000, com a troca de "nº {{ enderecoNumero }}" por
+// {{ enderecoNumeroProsa }} e com a emenda de 20260813000300 — cartório pelo nome
+// cadastrado, livro e folha em numeral + extenso), verbatim: é o texto que o
 // cartório vai ler.
 const CONTEUDO_IMOVEL_URBANO =
   'Um imóvel urbano com área total de {{ imovel.area }} ({{ imovel.areaExtenso }})' +
@@ -251,9 +252,12 @@ const CONTEUDO_IMOVEL_URBANO =
   '{{#imovel.enderecoComplemento}}{{ imovel.enderecoComplemento }}, {{/imovel.enderecoComplemento}}' +
   '{{ imovel.enderecoBairro }}, no município de {{ imovel.municipio }}, Estado de {{ imovel.uf }}, ' +
   'CEP {{ imovel.enderecoCep }}, de propriedade de {{ imovel.proprietario }}, ' +
-  'com registro na matrícula de nº {{ imovel.numero }}, no Livro {{ imovel.livroExtenso }}, ' +
-  'Folhas/Ficha {{ imovel.folhaExtenso }} do Cartório de Registro de Imóveis de {{ imovel.comarca }}, ' +
-  'Estado de {{ imovel.ufCartorio }}, inscrito no cadastro municipal sob o nº {{ imovel.inscricaoMunicipal }}, ' +
+  'com registro na matrícula de nº {{ imovel.numero }}, ' +
+  'no Livro {{ imovel.livroNumeral }} ({{ imovel.livroExtenso }}), ' +
+  'folhas/ficha {{ imovel.folhaNumeral }} ({{ imovel.folhaExtenso }}) do {{ imovel.cartorio }}' +
+  '{{#imovel.cartorioComarca}} da comarca de {{ imovel.cartorioComarca }}{{/imovel.cartorioComarca}}' +
+  '{{#imovel.ufCartorio}}, Estado de {{ imovel.ufCartorio }}{{/imovel.ufCartorio}}' +
+  ', inscrito no cadastro municipal sob o nº {{ imovel.inscricaoMunicipal }}, ' +
   'no valor de R$ {{ imovel.valor }} ({{ imovel.valorExtenso }}), ' +
   'e com os seguintes limites e confrontações: {{ imovel.confrontacoes }}.';
 
@@ -300,7 +304,8 @@ describe('descrição de imóvel urbano — campos e condicionais do seed', () =
     expect(texto).toContain('localizado na Rua das Acácias, nº 119, apartamento 302, Centro');
     expect(texto).toContain('no município de Cuiabá, Estado de Mato Grosso, CEP 78000-000');
     expect(texto).toContain('inscrito no cadastro municipal sob o nº 1.234.567-8');
-    expect(texto).toContain('no Livro dois, Folhas/Ficha quinze');
+    expect(texto).toContain('no Livro 02 (dois), folhas/ficha 15 (quinze)');
+    expect(texto).toContain('do Cartório do 2º Ofício da comarca de Cuiabá, Estado de Mato Grosso');
     expect(texto).toContain('R$ 450.000,00 (quatrocentos e cinquenta mil reais)');
   });
 
@@ -328,6 +333,92 @@ describe('descrição de imóvel urbano — campos e condicionais do seed', () =
       bem: { ...MAT_URBANA.bem!, area_construida_m2: 360 },
     });
     expect(texto).not.toContain('área construída');
+  });
+});
+
+// A frase de registro como as 5 variantes da família "Descrição de imóvel"
+// passaram a escrevê-la (migration 20260813000300): o cartório sai pelo NOME
+// CADASTRADO, a comarca é complemento e não substituto, e livro e folha saem em
+// numeral + extenso. Fixture própria porque o aceite do B4 e do B14 é sobre esta
+// frase, e não sobre a redação urbana inteira — e porque ele não é o caso MMS:
+// cartório com a comarca no nome, cartório sem nome e livro não numérico são
+// cadastros de outros clientes.
+const CONTEUDO_REGISTRO =
+  'com registro na matrícula de nº {{ imovel.numero }}' +
+  '{{#imovel.livro}}, no Livro {{ imovel.livroNumeral }} ({{ imovel.livroExtenso }}){{/imovel.livro}}' +
+  '{{#imovel.folha}}, folhas/ficha {{ imovel.folhaNumeral }} ({{ imovel.folhaExtenso }}){{/imovel.folha}}' +
+  ' do {{ imovel.cartorio }}' +
+  '{{#imovel.cartorioComarca}} da comarca de {{ imovel.cartorioComarca }}{{/imovel.cartorioComarca}}' +
+  '{{#imovel.ufCartorio}}, Estado de {{ imovel.ufCartorio }}{{/imovel.ufCartorio}}' +
+  ', no valor de R$ {{ imovel.valor }} ({{ imovel.valorExtenso }}).';
+
+const MAT_REGISTRO: MatriculaParaMapear = {
+  numero: '9.617', livro: '2', folha: '1',
+  municipio_imovel: 'Sinop', uf_imovel: 'MT',
+  area_documento: 396.4, area_unidade: 'ha', vlr_contabil: 250000,
+  confrontacoes_texto: null, descricao_psa_completa: null,
+  bem: { denominacao: 'Fazenda Tarumã', vlr_contabil: null, ccir_codigo: null },
+  cartorio: { nome_completo: 'Cartório de 1° Ofício de Imóveis', comarca: 'Lucas do Rio Verde', uf: 'MT' },
+  titulares: [{ denominacao: 'Jose Eduardo de Macedo Soares Junior' }],
+};
+
+describe('cartório, livro e folha na descrição do imóvel (B4/B14)', () => {
+  function gerarRegistro(m: MatriculaParaMapear): string {
+    const { bindings } = detectarBindingsDeConteudo(CONTEUDO_REGISTRO);
+    const ctx = montarContexto(bindings, { imovel: mapearMatricula(m) });
+    const template: Template = {
+      id: 'fixture-registro', nome: 'Fixture — registro do imóvel',
+      blocos: [{ id: 'b', obrigatorio: true, conteudo: CONTEUDO_REGISTRO }],
+    };
+    return gerarDocumento(template, ctx);
+  }
+
+  it('imprime o nome cadastrado da serventia, com a comarca como complemento', () => {
+    const texto = gerarRegistro(MAT_REGISTRO);
+    expect(texto).toContain('do Cartório de 1° Ofício de Imóveis da comarca de Lucas do Rio Verde');
+    // O ofício é o que identifica a serventia: o rótulo genérico não pode voltar.
+    expect(texto).not.toContain('do Cartório de Registro de Imóveis de Lucas do Rio Verde');
+  });
+
+  it('cartório cujo nome já traz a comarca não sai com a comarca duas vezes', () => {
+    const texto = gerarRegistro({
+      ...MAT_REGISTRO,
+      cartorio: { nome_completo: '2º Ofício de Registro de Imóveis de Sinop', comarca: 'Sinop', uf: 'MT' },
+    });
+    expect(texto).toContain('do 2º Ofício de Registro de Imóveis de Sinop, Estado de Mato Grosso');
+    expect(texto).not.toContain('da comarca de Sinop');
+  });
+
+  it('cartório sem nome cadastrado ainda gera frase gramatical', () => {
+    const texto = gerarRegistro({
+      ...MAT_REGISTRO,
+      cartorio: { nome_completo: null, comarca: 'Sinop', uf: 'MT' },
+    });
+    expect(texto).toContain('do Cartório de Registro de Imóveis da comarca de Sinop, Estado de Mato Grosso');
+    expect(texto).not.toMatch(/do\s+(da comarca|,)/);
+  });
+
+  it('sem cartório no cadastro, somem a comarca e a UF — não a frase', () => {
+    const texto = gerarRegistro({ ...MAT_REGISTRO, cartorio: null });
+    expect(texto).toContain('do Cartório de Registro de Imóveis, no valor de');
+    expect(texto).not.toContain('comarca');
+    expect(texto).not.toContain('Estado de');
+  });
+
+  it('livro e folha saem em numeral com dois dígitos, seguidos do extenso', () => {
+    expect(gerarRegistro(MAT_REGISTRO)).toContain('no Livro 02 (dois), folhas/ficha 01 (um)');
+    expect(gerarRegistro({ ...MAT_REGISTRO, livro: '13', folha: '7' }))
+      .toContain('no Livro 13 (treze), folhas/ficha 07 (sete)');
+  });
+
+  it('livro não numérico sai íntegro, sem zero à esquerda', () => {
+    // "2-AUX" é livro auxiliar de cartório antigo: preencher com zero o
+    // transformaria em outro livro. O extenso de um valor não numérico fica vazio
+    // (ver cardinalCampo), e o par de parênteses vazio é item aberto do contrato
+    // L2/L3 — o aceite aqui é a integridade do numeral.
+    const texto = gerarRegistro({ ...MAT_REGISTRO, livro: '2-AUX' });
+    expect(texto).toContain('no Livro 2-AUX');
+    expect(texto).not.toContain('02-AUX');
   });
 });
 
@@ -611,5 +702,134 @@ describe('qualificação completa (pessoa.qualificacao)', () => {
     expect(editado.qualificacao).toBe(
       '*EUDA DIAS DE OLIVEIRA*, brasileira, separada judicialmente, agropecuarista',
     );
+  });
+});
+
+// Texto do bloco "Fecho e assinaturas" depois de 20260813000302: uma linha por
+// SIGNATÁRIO, com o papel já pronto (concordado em gênero) vindo do motor. O
+// bloco imprime, não monta — por isso os itens abaixo são dados de fixture, do
+// mesmo formato que a lista `signatarios` entrega.
+const CONTEUDO_FECHO =
+  '{{#signatarios sep="\\n\\n"}}_______________________________________\n' +
+  '*{{ signatario.nomeMaiusculo }}*\n' +
+  '{{ signatario.papel }}{{#signatario.qualificacao}}\n' +
+  '{{ signatario.qualificacao }}{{/signatario.qualificacao}}{{/signatarios}}';
+
+function signatario(nome: string, papel: string, qualificacao = '') {
+  return {
+    signatario: {
+      nome, nomeMaiusculo: nome.toUpperCase(), papel, qualificacao, cpfCnpj: '',
+    },
+  };
+}
+
+describe('fecho e assinaturas — uma linha por signatário (B12/B13)', () => {
+  function gerarFecho(itens: ReturnType<typeof signatario>[]): string {
+    const ctx: Contexto = { signatarios: itens };
+    const template: Template = {
+      id: 'fixture-fecho', nome: 'Fixture — fecho',
+      blocos: [{ id: 'b', obrigatorio: true, conteudo: CONTEUDO_FECHO }],
+    };
+    return gerarDocumento(template, ctx);
+  }
+
+  const reguas = (texto: string) => (texto.match(/_{10,}/g) ?? []).length;
+
+  it('sócio casado em comunhão: ele assina, e o cônjuge assina embaixo, nomeado', () => {
+    const texto = gerarFecho([
+      signatario('José Eduardo de Macedo Soares Junior', 'Sócio administrador'),
+      signatario('Maria Auxiliadora de Macedo Soares', 'Cônjuge outorgante'),
+    ]);
+    expect(reguas(texto)).toBe(2);
+    expect(texto).toContain('*JOSÉ EDUARDO DE MACEDO SOARES JUNIOR*\nSócio administrador');
+    expect(texto).toContain('*MARIA AUXILIADORA DE MACEDO SOARES*\nCônjuge outorgante');
+    // A outorga deixou de ser sufixo do rótulo de quem NÃO outorga.
+    expect(texto).not.toContain('e Outorga Conjugal');
+  });
+
+  it('sócia solteira gera uma linha só, sem rótulo de outorga', () => {
+    const texto = gerarFecho([signatario('Bruna Mirandola', 'Sócia')]);
+    expect(reguas(texto)).toBe(1);
+    expect(texto).toContain('*BRUNA MIRANDOLA*\nSócia');
+    expect(texto).not.toContain('Outorga');
+  });
+
+  it('administrador que não é sócio também assina, com o papel dele', () => {
+    const texto = gerarFecho([
+      signatario('Camila Mirandola', 'Sócia'),
+      signatario('José Eduardo de Macedo Soares Junior', 'Administrador'),
+    ]);
+    expect(reguas(texto)).toBe(2);
+    expect(texto).toContain('*JOSÉ EDUARDO DE MACEDO SOARES JUNIOR*\nAdministrador');
+  });
+
+  it('quem é sócio E administrador ocupa uma linha só: o bloco imprime a lista como veio', () => {
+    // A deduplicação é do motor (a lista chega com uma entrada e o papel
+    // combinado); o que este teste trava é que o fecho não tem um segundo laço
+    // {{#administradores}} para reintroduzir a linha repetida.
+    const texto = gerarFecho([signatario('Camila Mirandola', 'Sócia administradora')]);
+    expect(reguas(texto)).toBe(1);
+    expect(texto.match(/CAMILA MIRANDOLA/g) ?? []).toHaveLength(1);
+    expect(texto).toContain('*CAMILA MIRANDOLA*\nSócia administradora');
+  });
+
+  it('a qualificação, quando existe, entra embaixo do papel (e some quando não existe)', () => {
+    const comRepresentante = gerarFecho([
+      signatario('MMS Participações Ltda.', 'Sócia', 'neste ato representada por Bruna Mirandola'),
+    ]);
+    expect(comRepresentante).toContain(
+      '*MMS PARTICIPAÇÕES LTDA.*\nSócia\nneste ato representada por Bruna Mirandola',
+    );
+    expect(gerarFecho([signatario('Bruna Mirandola', 'Sócia')])).toBe(
+      '_______________________________________\n*BRUNA MIRANDOLA*\nSócia',
+    );
+  });
+
+  it('duas assinaturas ficam separadas por linha em branco', () => {
+    const texto = gerarFecho([
+      signatario('Camila Mirandola', 'Sócia'),
+      signatario('Eduardo Mirandola', 'Cônjuge outorgante'),
+    ]);
+    expect(texto).toContain('Sócia\n\n_______________________________________');
+  });
+});
+
+// Cláusula de capital depois de 20260813000301: o valor nominal da quota é
+// parâmetro da sociedade, não o literal "R$ 1,00 (um real)" que o bloco escrevia.
+const CONTEUDO_CAPITAL =
+  'O capital social da empresa será de R$ {{ sociedade.capitalValor }} ' +
+  '({{ sociedade.capitalExtenso }}), dividido em {{ sociedade.totalQuotas }} ' +
+  '({{ sociedade.totalQuotasExtenso }}) quotas, no valor nominal de ' +
+  'R$ {{ sociedade.quotaValorNominal }} ({{ sociedade.quotaValorNominalExtenso }}) cada uma.';
+
+describe('capital social — o valor nominal da quota vem da sociedade (B6)', () => {
+  function gerarCapital(sociedade: Record<string, string>): string {
+    const template: Template = {
+      id: 'fixture-capital', nome: 'Fixture — capital',
+      blocos: [{ id: 'b', obrigatorio: true, conteudo: CONTEUDO_CAPITAL }],
+    };
+    return gerarDocumento(template, { sociedade } as Contexto);
+  }
+
+  it('quota de um real sai do dado, não do texto', () => {
+    expect(gerarCapital({
+      capitalValor: '558.414,00', capitalExtenso: 'quinhentos e cinquenta e oito mil, quatrocentos e catorze reais',
+      totalQuotas: '558.414', totalQuotasExtenso: 'quinhentos e cinquenta e oito mil, quatrocentos e catorze',
+      quotaValorNominal: '1,00', quotaValorNominalExtenso: 'um real',
+    })).toBe(
+      'O capital social da empresa será de R$ 558.414,00 (quinhentos e cinquenta e oito mil, ' +
+      'quatrocentos e catorze reais), dividido em 558.414 (quinhentos e cinquenta e oito mil, ' +
+      'quatrocentos e catorze) quotas, no valor nominal de R$ 1,00 (um real) cada uma.',
+    );
+  });
+
+  it('sociedade com quota de outro valor nominal não sai mais como "um real"', () => {
+    const texto = gerarCapital({
+      capitalValor: '10.000,00', capitalExtenso: 'dez mil reais',
+      totalQuotas: '1.000', totalQuotasExtenso: 'mil',
+      quotaValorNominal: '10,00', quotaValorNominalExtenso: 'dez reais',
+    });
+    expect(texto).toContain('dividido em 1.000 (mil) quotas, no valor nominal de R$ 10,00 (dez reais)');
+    expect(texto).not.toContain('um real');
   });
 });
