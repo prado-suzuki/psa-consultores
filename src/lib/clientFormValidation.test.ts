@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   isSameRecord,
+  validateClustersCliente,
   validateNomeCliente,
   validateObservacoesCliente,
   validateContribuinteDocumento,
@@ -100,6 +101,17 @@ describe('validateNomeCliente', () => {
   });
   it('aceita nome preenchido', () => {
     expect(validateNomeCliente('Agro Amazônia')).toBeNull();
+  });
+});
+
+describe('validateClustersCliente', () => {
+  it('sem cluster, recusa com a mesma frase da RPC', () => {
+    expect(validateClustersCliente([])).toBe('Selecione ao menos 1 cluster');
+    expect(validateClustersCliente(undefined)).toBe('Selecione ao menos 1 cluster');
+  });
+
+  it('um cluster já basta', () => {
+    expect(validateClustersCliente(['4b0d0a02-6a0e-4a34-9f2a-2d4e6f7a8b9c'])).toBeNull();
   });
 });
 

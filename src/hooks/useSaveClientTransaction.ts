@@ -10,6 +10,7 @@ import { computeFieldDiff, computeEntityListDiff } from '@/lib/diffUtils';
 import {
   isSameRecord,
   validateNomeCliente,
+  validateClustersCliente,
   validateObservacoesCliente,
   validateContribuinteDocumento,
   validateContribuinteDados,
@@ -152,6 +153,13 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     // Nome é a identidade do cadastro: exigido sempre, tocado ou não.
     const nomeErro = validateNomeCliente(clientData.nome);
     if (nomeErro) { toast.error(nomeErro); return; }
+
+    // Cluster também é exigido sempre, e nos dois ramos: na criação quem recusa é
+    // a RPC, na edição é o gatilho DEFERRED `trg_cliente_tem_cluster` (que roda no
+    // UPDATE) e o `trg_cliente_cluster_last` do vínculo. Barrar aqui só antecipa a
+    // recusa do banco — que continua valendo como rede de segurança.
+    const clusterErro = validateClustersCliente(clusterIds);
+    if (clusterErro) { toast.error(clusterErro); return; }
 
     const clienteTocado = !snapVal || !isSameRecord(clientData, snapVal.clientData);
     if (registrarErro(validateObservacoesCliente(clientData), clienteTocado)) return;

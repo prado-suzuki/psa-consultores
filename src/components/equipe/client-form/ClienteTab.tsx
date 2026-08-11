@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 import { useAcentoArea } from "./acentoArea";
 import MarcaPendencia, { CLASSE_CAMPO_PENDENTE } from "./MarcaPendencia";
 import SecaoFormulario from "./SecaoFormulario";
-import type { defaultClientData } from "./constants";
+import { UF_STATES, type defaultClientData } from "./constants";
+import { normalizarNomeDigitado } from "@/lib/nomeProprio";
 
 interface ClusterOption {
   id: string;
@@ -70,6 +71,11 @@ export default function ClienteTab({
             <span className="font-medium">{clientData.nome || "—"}</span>
           </ReadRow>
           <ReadRow label="Categoria">{clientData.categoria || "—"}</ReadRow>
+          <ReadRow label="Município / UF">
+            {clientData.municipio?.trim() || clientData.uf?.trim()
+              ? [clientData.municipio?.trim(), clientData.uf?.trim()].filter(Boolean).join(" / ")
+              : "—"}
+          </ReadRow>
           <ReadRow label="Status">
             <span className="inline-flex items-center gap-2">
               <span className={cn("h-2 w-2 rounded-full", clientData.ativo ? acento.positivoBarra : "bg-muted-foreground/50")} />
@@ -122,6 +128,13 @@ export default function ClienteTab({
               disabled={isReadOnly}
               value={clientData.nome}
               onChange={(e) => setClientData({ ...clientData, nome: e.target.value })}
+              // A única arrumação de nome acontece aqui, no blur, com o campo à
+              // vista: apara espaço, nunca caixa. O `initcap()` que rodava no
+              // banco (B20) achatava sigla e razão social sem ninguém ver.
+              onBlur={(e) => {
+                const arrumado = normalizarNomeDigitado(e.target.value);
+                if (arrumado !== clientData.nome) setClientData({ ...clientData, nome: arrumado });
+              }}
               placeholder="Ex: Grupo Empresarial Silva"
               aria-invalid={!!falta('nome') || undefined}
               className={cn("h-8 w-full", falta('nome') && CLASSE_CAMPO_PENDENTE)}
@@ -150,6 +163,48 @@ export default function ClienteTab({
               <SelectItem value="Diamante">Diamante</SelectItem>
             </SelectContent>
           </Select>
+        </div>
+
+        {/*
+          2.5. Município e UF do cliente/grupo.
+
+          As colunas `cliente.municipio` e `cliente.uf` já existiam: o carregador
+          lia (useClientEditData), o salvamento gravava, a auditoria comparava e
+          o sync do DW mandava adiante. Só não havia campo — dado que nenhuma
+          tela sabia escrever, e que os modelos de documento precisam para o foro
+          e para a qualificação da sede (B18).
+        */}
+        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
+          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
+            Município / UF
+          </Label>
+          <div className="flex min-w-0 flex-1 gap-2">
+            <Input
+              disabled={isReadOnly}
+              value={clientData.municipio ?? ""}
+              onChange={(e) => setClientData({ ...clientData, municipio: e.target.value })}
+              onBlur={(e) => {
+                const arrumado = normalizarNomeDigitado(e.target.value);
+                if (arrumado !== clientData.municipio) setClientData({ ...clientData, municipio: arrumado });
+              }}
+              placeholder="Ex: Lucas do Rio Verde"
+              className="h-8 min-w-0 flex-1"
+            />
+            <Select
+              disabled={isReadOnly}
+              value={clientData.uf || undefined}
+              onValueChange={(v) => setClientData({ ...clientData, uf: v })}
+            >
+              <SelectTrigger className="h-8 w-24 shrink-0">
+                <SelectValue placeholder="UF" />
+              </SelectTrigger>
+              <SelectContent>
+                {UF_STATES.map((uf) => (
+                  <SelectItem key={uf} value={uf}>{uf}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
         </div>
         </SecaoFormulario>
@@ -202,16 +257,21 @@ export default function ClienteTab({
         </div>
 
         {/* 4.5. Clusters */}
-        <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-            Clusters
+        <div className="flex flex-col md:flex-row md:items-start gap-1 md:gap-3">
+          <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground md:pt-2">
+            Clusters <RequiredMark />
           </Label>
+          <div className="min-w-0 flex-1">
           <Popover>
             <PopoverTrigger asChild>
               <button
                 type="button"
                 disabled={isReadOnly}
-                className="flex-1 flex items-center gap-1 flex-wrap min-h-[2rem] px-3 py-1 border rounded-md text-sm bg-background hover:bg-accent/50 transition-colors disabled:opacity-50"
+                aria-invalid={!!falta('cluster_ids') || undefined}
+                className={cn(
+                  "w-full flex items-center gap-1 flex-wrap min-h-[2rem] px-3 py-1 border rounded-md text-sm bg-background hover:bg-accent/50 transition-colors disabled:opacity-50",
+                  falta('cluster_ids') && CLASSE_CAMPO_PENDENTE,
+                )}
               >
                 {selectedClusters.length > 0 ? (
                   selectedClusters.map(c => (
@@ -246,6 +306,8 @@ export default function ClienteTab({
               </div>
             </PopoverContent>
           </Popover>
+          <MarcaPendencia>{falta('cluster_ids')}</MarcaPendencia>
+          </div>
         </div>
 
         </div>

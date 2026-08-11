@@ -47,12 +47,18 @@ export function pendenciasCliente(clientData: {
   nome?: string;
   ativo?: boolean;
   observacoes?: string;
+  cluster_ids?: readonly string[];
 }): Pendencia[] {
   const faltas: Pendencia[] = [];
   const add = (secao: number, campo: string, mensagem: string) =>
     faltas.push({ aba: 'cliente', secao, campo, mensagem });
 
   if (vazio(clientData.nome)) add(1, 'nome', 'Informe o nome do cliente');
+
+  // Espelho de `validateClustersCliente`. A regra é do banco (a RPC de criação e
+  // os dois gatilhos de cliente_clusters), e antes só aparecia como `400` depois
+  // de enviar o cadastro inteiro.
+  if (!clientData.cluster_ids?.length) add(2, 'cluster_ids', 'Selecione ao menos 1 cluster');
 
   // Observação curta demais barra o salvamento em dois casos: sempre que está
   // preenchida, e obrigatoriamente quando o cliente está sendo inativado.

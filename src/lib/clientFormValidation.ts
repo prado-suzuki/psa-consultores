@@ -43,6 +43,21 @@ export interface ClientDataValidacao {
 export const validateNomeCliente = (nome: string): string | null =>
   nome.trim() ? null : 'Nome do cliente é obrigatório';
 
+/**
+ * Cluster é obrigatório, e a regra vive no banco em três lugares.
+ *
+ * `criar_cliente_com_clusters` recusa a criação sem cluster; o gatilho DEFERRED
+ * `trg_cliente_tem_cluster` recusa INSERT **e** UPDATE que deixem o cliente sem
+ * vínculo; e `trg_cliente_cluster_last` recusa apagar o último vínculo. Até o
+ * B20/B17 nada disso tinha par na tela: o consultor descobria pelo `400` da RPC,
+ * depois do round-trip, com o formulário inteiro preenchido.
+ *
+ * A frase é a mesma que a RPC emite, de propósito: quem vir a mensagem do
+ * servidor (a rede de segurança continua lá) lê exatamente o que a tela diria.
+ */
+export const validateClustersCliente = (clusterIds: readonly string[] | undefined): string | null =>
+  (clusterIds?.length ?? 0) > 0 ? null : 'Selecione ao menos 1 cluster';
+
 /** Observações: obrigatória ao INATIVAR; se preenchida, mín. 20 caracteres. */
 export const validateObservacoesCliente = (clientData: ClientDataValidacao): string | null => {
   const obs = (clientData.observacoes || '').trim();
