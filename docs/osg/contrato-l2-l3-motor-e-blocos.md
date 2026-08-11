@@ -214,7 +214,35 @@ Vale para toda migration da L3 (e para qualquer raia que mexa em texto de bloco)
 
 ---
 
-## 8 · O que continua verdadeiro (regressão)
+## 8 · Completude do documento: o que a L6 lê do motor (B2)
+
+A raia L6 (tela Gerar) precisa de um terceiro gate, ao lado de `selecoesCompletas` e `erro`: se o
+documento está **completo**. A regra tem que ser genérica ("algum campo obrigatório do modelo não foi
+resolvido"), não uma lista fixa no controller, porque matrícula digitada, doação e alteração contratual
+têm conjuntos de obrigatórios diferentes. Quem sabe disso é o vocabulário, que é da L2.
+
+**L2 entrega, e a L6 apenas consome (leitura livre, escrita proibida):**
+
+1. Em `CampoEntidade` (`vocabulario.ts`), dois marcadores novos:
+   - `obrigatorio?: boolean` — sem esse campo resolvido, o documento que o usa está incompleto.
+   - `manual?: boolean` — preenchido na tela Gerar, não vem de cadastro. É o mesmo conceito que
+     dispara a lacuna assinalável do item 4.
+2. Em `SegmentoRender` (`render.ts`), dois marcadores novos no segmento de valor:
+   - `lacuna?: true` — este segmento é a lacuna de um campo manual não preenchido (item 4).
+   - `pendente?: true` — este segmento é um campo **obrigatório** que resolveu vazio.
+   Sem isso a L6 não teria como distinguir um campo em branco de um traço que o próprio bloco escreveu,
+   já que depois do item 4 a lacuna é texto normal.
+3. Uma função exportada por `src/lib/templates/index.ts`:
+   ```ts
+   pendenciasDoDocumento(blocos: BlocoGerado[]): Array<{ caminho: string; label: string; manual: boolean }>
+   ```
+   Devolve, sem repetir, os campos obrigatórios não resolvidos do documento inteiro, com o label do
+   vocabulário, para a L6 **nomear o que falta** na confirmação antes de baixar.
+
+Interação com o item 2 (bloco descartado): bloco descartado não gera pendência. Um modelo que
+legitimamente não tem sócios (matrícula digitada) sai sem alarme, que é o aceite do B2.
+
+## 9 · O que continua verdadeiro (regressão)
 
 Nenhuma das duas raias pode quebrar isto, e o teste de cada uma deve continuar provando:
 
