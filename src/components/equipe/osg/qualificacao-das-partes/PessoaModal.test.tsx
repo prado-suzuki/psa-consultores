@@ -1,10 +1,11 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   pessoaMutate: vi.fn(),
   parentescoUpsert: vi.fn(),
+  parentescoMutate: vi.fn(),
   parentescoDelete: vi.fn(),
   adminMutate: vi.fn(),
   adminDelete: vi.fn(),
@@ -20,9 +21,15 @@ vi.mock('@/hooks/useDocumentoGerado', () => ({
 }));
 vi.mock('@/hooks/useQualificacaoDasPartes', () => ({
   useUpsertPessoa: () => ({ mutate: mocks.pessoaMutate, isPending: false }),
-  useUpsertParentesco: () => ({ mutateAsync: mocks.parentescoUpsert, isPending: false }),
-  useDeleteParentesco: () => ({ mutateAsync: mocks.parentescoDelete, isPending: false }),
-  useParentescosByCliente: () => ({ data: mocks.parentescos }),
+  // O modal grava o primeiro vínculo com `mutateAsync` (precisa esperar a pessoa
+  // existir); a lista de vínculos grava com `mutate`, como Administradores.
+  useUpsertParentesco: () => ({
+    mutate: mocks.parentescoMutate, mutateAsync: mocks.parentescoUpsert, isPending: false,
+  }),
+  useDeleteParentesco: () => ({
+    mutate: mocks.parentescoDelete, mutateAsync: mocks.parentescoDelete, isPending: false,
+  }),
+  useParentescosByCliente: () => ({ data: mocks.parentescos, isLoading: false }),
   useAdministracaoByPj: () => ({ data: mocks.administradores, isLoading: false }),
   useUpsertAdministracao: () => ({ mutate: mocks.adminMutate, isPending: false }),
   useDeleteAdministracao: () => ({ mutate: mocks.adminDelete, isPending: false }),
@@ -236,21 +243,6 @@ describe('PessoaModal - matriz, drafts e persistência', () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it('carrega parentesco existente, mas preserva a ausência atual de affordance para removê-lo', async () => {
-    const original = pessoa();
-    const vinculo = {
-      id: 'V1', pessoa_id: original.id, parente_pessoa_id: 'PF-FUNDADOR', tipo: 'Filho(a)', natureza: 'Civil',
-    };
-    mocks.parentescos = [vinculo];
-    renderModal({ pessoa: original });
-    await waitFor(() => expect(screen.getByText('Carlos Fundador')).toBeInTheDocument());
-    const parenteLabel = screen.getByText('Parente', { selector: 'label' });
-    const trigger = parenteLabel.parentElement!.querySelector('button')!;
-    // O Select não oferece opção vazia nem outro controle para limpar o vínculo.
-    expect(trigger).toHaveTextContent('Carlos Fundador');
-    expect(mocks.parentescoDelete).not.toHaveBeenCalled();
-  });
-
   it('valida textos obrigatórios e tamanho de CPF/CNPJ sem chamar persistência', () => {
     const pf = renderModal();
     fireEvent.click(screen.getByRole('button', { name: 'Cadastrar pessoa' }));
@@ -269,6 +261,107 @@ describe('PessoaModal - matriz, drafts e persistência', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Cadastrar pessoa' }));
     expect(mocks.toast.error).toHaveBeenLastCalledWith('CNPJ deve ter 14 dígitos');
     expect(mocks.pessoaMutate).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * Cenário próprio, diferente do caso do teste e2e (um casal só, PF-01/PF-02, com
+ * no máximo um vínculo de filiação): um cliente com três casais, uma pessoa
+ * solteira, e uma pessoa com pai, mãe e tio cadastrados. É esse elenco que
+ * separa "funciona" de "funciona só para o caso testado".
+ */
+const helena = pessoa({ id: 'PF-HELENA', denominacao: 'Helena', estado_civil: 'Casado(a)' });
+const ivo = pessoa({ id: 'PF-IVO', denominacao: 'Ivo', conjuge_id: 'PF-HELENA' });
+const joana = pessoa({ id: 'PF-JOANA', denominacao: 'Joana', conjuge_id: 'PF-KLEBER' });
+const kleber = pessoa({ id: 'PF-KLEBER', denominacao: 'Kleber', conjuge_id: 'PF-JOANA' });
+const lucia = pessoa({ id: 'PF-LUCIA', denominacao: 'Lúcia' });
+const pai = pessoa({ id: 'PF-PAI', denominacao: 'Joaquim Pai' });
+const mae = pessoa({ id: 'PF-MAE', denominacao: 'Marta Mãe' });
+const tio = pessoa({ id: 'PF-TIO', denominacao: 'Tobias Tio' });
+const avo = pessoa({ id: 'PF-AVO', denominacao: 'Vera Avó' });
+
+const vinculo = (id: string, parente: PessoaRow, tipo: string) => ({
+  id,
+  pessoa_id: helena.id,
+  parente_pessoa_id: parente.id,
+  parente_denominacao: parente.denominacao,
+  pessoa_denominacao: helena.denominacao,
+  tipo,
+  natureza: 'Consanguíneo',
+});
+
+describe('PessoaModal - cônjuge recíproco e lista de parentesco', () => {
+  it('oferece como cônjuge apenas quem está livre ou é o cônjuge da própria pessoa', async () => {
+    const user = userEvent.setup();
+    // Ivo já aponta Helena (vínculo gravado pela metade, o legado que o gatilho
+    // do banco fecha); Joana e Kleber são um casal alheio e não podem ser opção.
+    renderModal({ pessoa: helena, pessoasCliente: [helena, ivo, joana, kleber, lucia] });
+    const trigger = screen.getByText('Cônjuge', { selector: 'label' }).parentElement!.querySelector('button')!;
+    await user.click(trigger);
+    expect((await screen.findAllByRole('option')).map((o) => o.textContent)).toEqual(['Ivo', 'Lúcia']);
+    expect(screen.getByText(/2 pessoa\(s\) não aparecem/)).toBeInTheDocument();
+
+    // Trocar o cônjuge é o caminho que libera Ivo: o espelho e a liberação do
+    // vínculo anterior ficam com o gatilho `trg_pessoa_conjuge_reciproco`.
+    await user.click(await screen.findByRole('option', { name: 'Lúcia' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Salvar alterações' }));
+    expect(mocks.pessoaMutate.mock.calls[0][0].values).toMatchObject({ conjuge_id: 'PF-LUCIA' });
+  });
+
+  it('lista pai, mãe e tio da mesma pessoa e aceita mais um vínculo, sem limite de tipo', async () => {
+    const user = userEvent.setup();
+    mocks.parentescos = [
+      vinculo('V-PAI', pai, 'Pai/Mãe'), vinculo('V-MAE', mae, 'Pai/Mãe'), vinculo('V-TIO', tio, 'Tio(a)'),
+    ];
+    renderModal({ pessoa: helena, pessoasCliente: [helena, pai, mae, tio, avo] });
+    expect(screen.getByText('3 vínculo(s)')).toBeInTheDocument();
+    for (const nome of ['Joaquim Pai', 'Marta Mãe', 'Tobias Tio']) {
+      expect(screen.getByText(nome)).toBeInTheDocument();
+    }
+
+    await user.click(screen.getByRole('button', { name: 'Adicionar vínculo' }));
+    await selectByLabel(/Parente/, 'Vera Avó');
+    await selectByLabel('Tipo', 'Avô(ó)');
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }));
+    expect(mocks.parentescoMutate).toHaveBeenCalledWith({
+      values: {
+        pessoa_id: 'PF-HELENA', parente_pessoa_id: 'PF-AVO', tipo: 'Avô(ó)', natureza: null,
+      },
+      original: null,
+      clienteId: 'C1',
+    }, expect.any(Object));
+    // Gravar vínculo não passa pelo "Salvar alterações" da pessoa.
+    expect(mocks.pessoaMutate).not.toHaveBeenCalled();
+  });
+
+  it('recusa vínculo repetido e remove um dos três sem tocar nos outros', async () => {
+    const user = userEvent.setup();
+    mocks.parentescos = [
+      vinculo('V-PAI', pai, 'Pai/Mãe'), vinculo('V-MAE', mae, 'Pai/Mãe'), vinculo('V-TIO', tio, 'Tio(a)'),
+    ];
+    renderModal({ pessoa: helena, pessoasCliente: [helena, pai, mae, tio, avo] });
+
+    await user.click(screen.getByRole('button', { name: 'Adicionar vínculo' }));
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }));
+    expect(mocks.toast.error).toHaveBeenLastCalledWith('Selecione o parente');
+    await selectByLabel(/Parente/, 'Tobias Tio');
+    await selectByLabel('Tipo', 'Tio(a)');
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }));
+    expect(mocks.toast.error).toHaveBeenLastCalledWith('Este vínculo já está cadastrado para a mesma pessoa');
+    expect(mocks.parentescoMutate).not.toHaveBeenCalled();
+
+    // O mesmo parente com outro tipo continua permitido (multiparentalidade,
+    // adoção, tutela: a tabela sempre admitiu, a tela é que não deixava).
+    await selectByLabel('Tipo', 'Padrasto/Madrasta');
+    await user.click(screen.getByRole('button', { name: 'Adicionar' }));
+    expect(mocks.parentescoMutate).toHaveBeenCalledOnce();
+
+    const linhaDaMae = screen.getByText('Marta Mãe').closest('div.flex-1')!.parentElement!;
+    await user.click(within(linhaDaMae).getAllByRole('button').at(-1)!);
+    await user.click(await screen.findByRole('button', { name: 'Remover' }));
+    expect(mocks.parentescoDelete).toHaveBeenCalledWith({
+      row: expect.objectContaining({ id: 'V-MAE' }), clienteId: 'C1',
+    });
   });
 });
 
@@ -305,13 +398,35 @@ describe('PessoaModal - fechamento sujo e administração imediata', () => {
     expect(mocks.toast.error).toHaveBeenLastCalledWith('Data fim deve ser igual ou posterior à data início');
     fireEvent.change(controlByLabel('Data fim'), { target: { value: '2026-07-21' } });
     await selectByLabel('Cargo', 'Diretor');
-    await userEvent.click(screen.getByText('Pode assinar isoladamente'));
+    // Poderes: regra geral isolada, com um ato que exige as duas assinaturas e
+    // outro em que ela age sozinha. O booleano antigo não descrevia nem o
+    // primeiro; a observação recolhe o que a estrutura não prevê.
+    await selectByLabel('Forma de assinatura', 'Isoladamente');
+    await userEvent.click(screen.getByRole('button', { name: 'Adicionar exceção' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Adicionar exceção' }));
+    const excecoes = screen.getAllByPlaceholderText(/^Atos/);
+    fireEvent.change(excecoes[0], { target: { value: '  atos da cláusula sexta  ' } });
+    fireEvent.change(excecoes[1], { target: { value: 'movimentação bancária até R$ 50.000,00' } });
+    await userEvent.click(screen.getByLabelText('Exigência da exceção 2'));
+    await userEvent.click(await screen.findByRole('option', { name: 'Isoladamente' }));
+    fireEvent.change(controlByLabel(/Observação sobre os poderes/, 'textarea'), {
+      target: { value: 'Mandato por prazo indeterminado.' },
+    });
     await userEvent.click(screen.getByRole('button', { name: 'Adicionar' }));
 
     expect(mocks.adminMutate).toHaveBeenCalledWith({
       values: {
         pj_pessoa_id: 'PJ1', administrador_pessoa_id: 'PF-ADMIN', cargo: 'Diretor',
-        pode_isoladamente: true, data_inicio: '2026-07-20', data_fim: '2026-07-21',
+        pode_isoladamente: true,
+        poderes: {
+          forma: 'isolada',
+          excecoes: [
+            { atos: 'atos da cláusula sexta', exigencia: 'conjunta' },
+            { atos: 'movimentação bancária até R$ 50.000,00', exigencia: 'isolada' },
+          ],
+          observacao: 'Mandato por prazo indeterminado.',
+        },
+        data_inicio: '2026-07-20', data_fim: '2026-07-21',
       },
       original: null,
       entityName: 'Amanda Gestora',

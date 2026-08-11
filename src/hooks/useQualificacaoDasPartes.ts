@@ -35,8 +35,12 @@ const PARENTESCO_DIFF_FIELDS: (keyof ParentescoRow)[] = [
   'pessoa_id', 'parente_pessoa_id', 'tipo', 'natureza',
 ];
 
-const ADMINISTRACAO_DIFF_FIELDS: (keyof AdministracaoRow)[] = [
-  'pj_pessoa_id', 'administrador_pessoa_id', 'cargo', 'pode_isoladamente', 'data_inicio', 'data_fim',
+// `poderes` é coluna nova (migration 20260813120100): o `types.ts` autogerado só
+// a conhece depois que o Lovable regerar, por isso a lista é de string em vez de
+// `keyof AdministracaoRow`. Ao regenerar, voltar ao tipo derivado.
+const ADMINISTRACAO_DIFF_FIELDS: string[] = [
+  'pj_pessoa_id', 'administrador_pessoa_id', 'cargo', 'pode_isoladamente', 'poderes',
+  'data_inicio', 'data_fim',
 ];
 
 export function usePessoasByCliente(clienteId: string | null) {
@@ -271,9 +275,20 @@ export function useDeleteParentesco() {
   });
 }
 
+/**
+ * `poderes` (jsonb com forma/exceções/observação) entra por interseção porque
+ * `src/integrations/supabase/types.ts` é autogerado e só conhece a coluna depois
+ * que o Lovable regerar. `select('*')` já a traz em runtime.
+ */
 export interface AdministracaoEnriched extends AdministracaoRow {
   administrador_denominacao: string;
+  poderes?: unknown;
 }
+
+/** Payload de administração aceitando a coluna `poderes` (ver nota acima). */
+export type AdministracaoValues = (AdministracaoInsert | AdministracaoUpdate) & {
+  poderes?: unknown;
+};
 
 export function useAdministracaoByPj(pjPessoaId: string | null) {
   return useQuery<AdministracaoEnriched[]>({
@@ -310,7 +325,7 @@ export function useUpsertAdministracao() {
       original,
       entityName,
     }: {
-      values: AdministracaoInsert | AdministracaoUpdate;
+      values: AdministracaoValues;
       original?: AdministracaoRow | null;
       entityName: string;
     }) => {
@@ -338,7 +353,7 @@ export function useUpsertAdministracao() {
       const changed = computeFieldDiff(
         original as unknown as Record<string, unknown> | null,
         row as unknown as Record<string, unknown>,
-        ADMINISTRACAO_DIFF_FIELDS as string[],
+        ADMINISTRACAO_DIFF_FIELDS,
       );
 
       await logAction({
