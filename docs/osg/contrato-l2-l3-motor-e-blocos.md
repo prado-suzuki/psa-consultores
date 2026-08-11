@@ -296,6 +296,49 @@ anterior (imprimiria referência para cláusula inexistente), e um bloco com `an
 fazer o render lançar `Placeholder não resolvido` em quem o referencia. Cada um precisa de destino
 declarado.
 
+### 9.6 · Campo opcional declarado é publicado como `''`, sempre
+
+A revisão da L3 provou, contra o motor da L2, que uma seção sobre campo **ausente** lança, e o mapeador
+omite a chave quando o valor é nulo (`set()` não publica vazio). Portanto `{{#imovel.ufCartorio}}` não
+"pula o trecho": ele derruba o render. E isso **já é verdade em produção hoje**, no texto vivo: uma
+matrícula rural sem CCIR faz `{{#imovel.ccir}}` lançar, e matrícula sem livro ou folha faz o mesmo, nas
+cinco variantes da família.
+
+Emenda: todo campo **opcional declarado no vocabulário** é publicado como `''` quando não há valor, do
+mesmo jeito que os campos `georef*` e `cartorioComarca` já são. Isso vale no mínimo para `ufCartorio`,
+`comarca`, `ccir`, `livro`, `folha` e `inscricaoMunicipal`. É entrega da **L2**. Só a partir daí a L3 pode
+escrever guarda de trecho sobre esses campos, e o item 1 deixa de mentir ao dizer `ufCartorio`
+"inalterado": ele passa a ter presença garantida, valor vazio.
+
+### 9.7 · A redação canônica de livro e folha ganha guarda no parêntese
+
+Com livro não numérico (`2-AUX`), `livroExtenso` resolve `''` e a redação do item 5 sai `Livro 2-AUX ()`.
+A saída não é tornar o extenso tolerante (mentiria sobre o que é) nem deixar o parêntese vazio. A redação
+canônica do item 5 fica assim, e é ela que vale:
+
+```
+no Livro {{ imovel.livroNumeral }}{{#imovel.livroExtenso}} ({{ imovel.livroExtenso }}){{/imovel.livroExtenso}}, folhas/ficha {{ imovel.folhaNumeral }}{{#imovel.folhaExtenso}} ({{ imovel.folhaExtenso }}){{/imovel.folhaExtenso}}
+```
+
+Rende `Livro 02 (dois), folhas/ficha 01 (um)` no caso numérico e `Livro 2-AUX` no caso alfanumérico. Depende
+da 9.6 para a guarda não lançar.
+
+### 9.8 · Guarda que o item 1 tornou morta
+
+`imovel.cartorio` nunca ser vazio (item 1) transformou `{{#imovel.cartorio}}` em guarda que sempre passa.
+No bloco "Matrícula digitada: identificação" isso faz uma matrícula **sem cartório cadastrado**, que antes
+não imprimia a linha, passar a imprimir um `Cartório de Registro de Imóveis` solitário. É da **L3**: a
+condição do trecho precisa ser outra coisa (o campo que de fato indica ausência de cadastro), não o campo
+que o contrato obriga a estar sempre preenchido.
+
+### 9.9 · Signatários: uma linha, papel combinado
+
+Decisão do Bernardo sobre o caso em que a mesma pessoa é **sócia e cônjuge outorgante** de outro sócio
+(casal em comunhão, ambos sócios): sai **uma linha só**, com o papel dizendo as duas qualidades
+("Sócia e cônjuge outorgante"). Resolve a ambiguidade de ordem sem perder a qualificação que a Junta lê.
+O dedupe **não** vale para cônjuge que é apenas administrador não sócio: administrador assina em nome da
+sociedade e isso não supre a anuência pessoal do regime de bens, então esse cônjuge ganha a sua linha.
+
 ## 10 · O que continua verdadeiro (regressão)
 
 Nenhuma das duas raias pode quebrar isto, e o teste de cada uma deve continuar provando:
