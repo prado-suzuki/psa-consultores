@@ -1,4 +1,5 @@
 import { origemDe, type OrigemValor } from './origem';
+import { ehSintetizado } from './sintetizado';
 import { PALAVRA_INCLUSAO, resolverVariante, type RegistroFamilias } from './familia';
 import type { Contexto } from './types';
 
@@ -115,11 +116,42 @@ export function compilar(conteudo: string, opcoes: { tolerante?: boolean } = {})
  */
 export type SegmentoRender =
   | { tipo: 'texto'; texto: string; realce?: boolean; blocoId?: string }
-  | { tipo: 'valor'; texto: string; caminho: string; origem?: OrigemValor; realce?: boolean; blocoId?: string };
+  | {
+      tipo: 'valor';
+      texto: string;
+      caminho: string;
+      origem?: OrigemValor;
+      realce?: boolean;
+      blocoId?: string;
+      /** Este segmento é a LACUNA de um campo manual não preenchido (não é traço escrito pelo bloco). */
+      lacuna?: true;
+      /** Este segmento é um campo OBRIGATÓRIO que resolveu vazio — o documento está incompleto. */
+      pendente?: true;
+      /**
+       * O valor foi SINTETIZADO pelo motor (rótulo genérico, default), não veio
+       * do cadastro: preenche a frase, mas não conta como dado para o descarte
+       * (ver sintetizado.ts e descarte.ts).
+       */
+      sintetizado?: true;
+    };
+
+/**
+ * O que o render precisa saber de um campo que resolveu VAZIO. Vem INJETADO
+ * (ver campos.ts) porque o render é agnóstico de domínio: ele não conhece o
+ * vocabulário, só aplica o que a classificação disser.
+ */
+export interface MarcacaoCampo {
+  /** Texto da lacuna assinalável, quando o campo é manual (ex.: "____ de ______________ de 20__"). */
+  lacuna?: string;
+  /** Campo obrigatório: o segmento vazio sai marcado como pendente. */
+  obrigatorio?: boolean;
+}
 
 /** Opções do render. `familias` é o que torna {{familia nome="…"}} resolvível. */
 export interface OpcoesRender {
   familias?: RegistroFamilias;
+  /** Classificação de campo por caminho, para lacuna/pendência (ver campos.ts). */
+  campo?: (caminho: string) => MarcacaoCampo | undefined;
 }
 
 /**
@@ -128,20 +160,29 @@ export interface OpcoesRender {
  * um item de lista pode carregar a origem no topo, ou no sub-objeto do papel —
  * `{{ socio.nome }}` acha a origem em item.socio).
  */
-function resolver(caminho: string, escopos: Contexto[]): { valor: unknown; origem?: OrigemValor } {
+function resolver(
+  caminho: string,
+  escopos: Contexto[],
+): { valor: unknown; origem?: OrigemValor; sintetizado?: boolean } {
   const [cabeca, ...resto] = caminho.split('.');
   for (let i = escopos.length - 1; i >= 0; i--) {
     if (!(cabeca in escopos[i])) continue;
     let origem = origemDe(escopos[i]);
     let valor: unknown = escopos[i][cabeca];
     origem = origemDe(valor) ?? origem;
+    // Dono do ÚLTIMO trecho do caminho: é nele que mora a marca de valor
+    // sintetizado (a marca é por campo, não pelo objeto inteiro).
+    let dono: unknown = escopos[i];
+    let folha = cabeca;
     for (const chave of resto) {
+      dono = valor;
+      folha = chave;
       valor = valor !== null && typeof valor === 'object'
         ? (valor as Record<string, unknown>)[chave]
         : undefined;
       origem = origemDe(valor) ?? origem;
     }
-    return { valor, origem };
+    return { valor, origem, sintetizado: ehSintetizado(dono, folha) };
   }
   return { valor: undefined };
 }
@@ -151,24 +192,59 @@ function truthy(valor: unknown): boolean {
   return Boolean(valor);
 }
 
+/** Contagem que o render acumula durante a passada (ver renderBloco). */
+interface Contagem {
+  /** Seções de REPETIÇÃO (array) que o bloco atravessou, com ou sem itens. */
+  secoesDeRepeticao: number;
+  /** Itens produzidos por essas seções, em qualquer nível. */
+  itensDeRepeticao: number;
+}
+
+/**
+ * Segmento de um placeholder já resolvido. Só o valor VAZIO consulta a
+ * classificação: campo manual vira lacuna assinalável, campo obrigatório sai
+ * marcado como pendente (os dois juntos, quando é os dois).
+ */
+function segmentoDeValor(
+  texto: string,
+  caminho: string,
+  origem: OrigemValor | undefined,
+  sintetizado: boolean | undefined,
+  opcoes: OpcoesRender,
+): SegmentoRender {
+  const segmento: SegmentoRender = { tipo: 'valor', texto, caminho, origem };
+  if (sintetizado) segmento.sintetizado = true;
+  if (texto !== '') return segmento;
+
+  const marcacao = opcoes.campo?.(caminho);
+  if (!marcacao) return segmento;
+  if (marcacao.lacuna) {
+    segmento.texto = marcacao.lacuna;
+    segmento.lacuna = true;
+  }
+  if (marcacao.obrigatorio) segmento.pendente = true;
+  return segmento;
+}
+
 function renderNos(
   nos: No[],
   escopos: Contexto[],
   out: SegmentoRender[],
   opcoes: OpcoesRender,
+  contagem: Contagem,
   dentroDeFamilia = false,
 ): void {
   for (const no of nos) {
     if (no.tipo === 'texto') {
       out.push({ tipo: 'texto', texto: no.texto });
     } else if (no.tipo === 'placeholder') {
-      const { valor, origem } = resolver(no.caminho, escopos);
+      const { valor, origem, sintetizado } = resolver(no.caminho, escopos);
       if (valor === undefined || valor === null) {
         throw new Error(`Placeholder não resolvido: {{${no.caminho}}}`);
       }
-      out.push({ tipo: 'valor', texto: String(valor), caminho: no.caminho, origem });
+      out.push(segmentoDeValor(String(valor), no.caminho, origem, sintetizado, opcoes));
     } else if (no.tipo === 'inclusao') {
-      renderInclusao(no.familia, escopos, out, opcoes, dentroDeFamilia);
+      renderInclusao(no.familia, escopos, out, opcoes, contagem, dentroDeFamilia);
     } else {
       const { valor } = resolver(no.nome, escopos);
       if (valor === undefined || valor === null) {
@@ -177,14 +253,16 @@ function renderNos(
       if (Array.isArray(valor)) {
         const sep = no.atributos.sep ?? '\n';
         const fim = no.atributos.fim ?? sep;
+        contagem.secoesDeRepeticao += 1;
+        contagem.itensDeRepeticao += valor.length;
         valor.forEach((item, i) => {
           // Juntura ANTES de cada item após o primeiro: sep entre os do meio,
           // fim antes do último — mesma prosa "A; B; e C" da versão em string.
           if (i > 0) out.push({ tipo: 'texto', texto: i === valor.length - 1 ? fim : sep });
-          renderNos(no.filhos, [...escopos, (item ?? {}) as Contexto], out, opcoes, dentroDeFamilia);
+          renderNos(no.filhos, [...escopos, (item ?? {}) as Contexto], out, opcoes, contagem, dentroDeFamilia);
         });
       } else if (truthy(valor)) {
-        renderNos(no.filhos, escopos, out, opcoes, dentroDeFamilia);
+        renderNos(no.filhos, escopos, out, opcoes, contagem, dentroDeFamilia);
       }
     }
   }
@@ -207,6 +285,7 @@ function renderInclusao(
   escopos: Contexto[],
   out: SegmentoRender[],
   opcoes: OpcoesRender,
+  contagem: Contagem,
   dentroDeFamilia: boolean,
 ): void {
   if (dentroDeFamilia) {
@@ -223,24 +302,50 @@ function renderInclusao(
   const variante = resolverVariante(variantes, (caminho) => resolver(caminho, escopos).valor, nome);
 
   const internos: SegmentoRender[] = [];
-  renderNos(compilar(variante.conteudo), escopos, internos, opcoes, true);
+  renderNos(compilar(variante.conteudo), escopos, internos, opcoes, contagem, true);
   for (const seg of internos) out.push({ ...seg, blocoId: variante.id });
 }
 
+/** Render de um bloco com o que a composição precisa saber para descartá-lo (ver descarte.ts). */
+export interface RenderDeBloco {
+  segmentos: SegmentoRender[];
+  /**
+   * Quantas seções de repetição o bloco tem (com ou sem itens). É o que
+   * distingue "prosa fixa" de um bloco que PEDIA uma lista e não recebeu nada.
+   */
+  secoesDeRepeticao: number;
+  /**
+   * Quantos itens essas seções produziram, em qualquer nível — a tabela que
+   * rendeu linhas contra a que saiu só com cabeçalho.
+   */
+  itensDeRepeticao: number;
+}
+
 /**
- * Render estruturado de um bloco: segmentos com proveniência (prévia interativa).
+ * Render estruturado de um bloco, com a contagem de itens de repetição.
  * Mesmos erros do renderConteudo. `escoposExtras` empilha escopos por cima do
  * contexto (instância de bloco repetidor: o item resolve antes do global).
  */
+export function renderBloco(
+  conteudo: string,
+  contexto: Contexto,
+  escoposExtras: Contexto[] = [],
+  opcoes: OpcoesRender = {},
+): RenderDeBloco {
+  const segmentos: SegmentoRender[] = [];
+  const contagem: Contagem = { secoesDeRepeticao: 0, itensDeRepeticao: 0 };
+  renderNos(compilar(conteudo), [contexto, ...escoposExtras], segmentos, opcoes, contagem);
+  return { segmentos, ...contagem };
+}
+
+/** Segmentos com proveniência (prévia interativa) — `renderBloco` sem a contagem. */
 export function renderSegmentos(
   conteudo: string,
   contexto: Contexto,
   escoposExtras: Contexto[] = [],
   opcoes: OpcoesRender = {},
 ): SegmentoRender[] {
-  const out: SegmentoRender[] = [];
-  renderNos(compilar(conteudo), [contexto, ...escoposExtras], out, opcoes);
-  return out;
+  return renderBloco(conteudo, contexto, escoposExtras, opcoes).segmentos;
 }
 
 /** Preenche placeholders e seções de um bloco. Lança erro se algo não resolver (falha cedo, evita texto incompleto no cartório). */
