@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { computeFieldDiff } from '@/lib/diffUtils';
+import { derivarValoresDoBem, type ValoresDoBem } from '@/lib/osg/valoresDoBem';
 import type { Database, Json } from '@/integrations/supabase/types';
 
 // Endereço e área construída do imóvel urbano (migration 20260806120500). Vivem
@@ -99,18 +100,38 @@ const CARTORIO_DIFF_FIELDS: (keyof CartorioRow)[] = [
 // BEM
 // ============================================================================
 
+/**
+ * Bem com os valores já DERIVADOS na leitura: para bem com matrícula, o valor é
+ * a soma das matrículas; para bem sem matrícula, é o do próprio bem. Ver
+ * `@/lib/osg/valoresDoBem` para o porquê de não haver coluna paralela no bem.
+ */
+export interface BemComValores extends BemRow {
+  valores: ValoresDoBem;
+}
+
+type RawBemComMatriculas = BemRow & {
+  matricula: Array<{ vlr_contabil: number | null; vlr_mercado: number | null }> | null;
+};
+
 export function useBensByCliente(clienteId: string | null) {
-  return useQuery<BemRow[]>({
+  return useQuery<BemComValores[]>({
     queryKey: ['bens-by-cliente', clienteId],
     queryFn: async () => {
       if (!clienteId) return [];
       const { data, error } = await supabase
         .from('bem')
-        .select('*')
+        // As matrículas entram só com as colunas de valor: elas são a fonte do
+        // número que a lista mostra, e nenhuma outra tela lê a partir daqui.
+        .select('*, matricula ( vlr_contabil, vlr_mercado )')
         .eq('cliente_id', clienteId)
         .order('referencia_dp');
       if (error) throw error;
-      return (data ?? []) as BemRow[];
+      return ((data ?? []) as unknown as RawBemComMatriculas[]).map((linha) => {
+        // O array embutido não é coluna de `bem`: fica fora da linha devolvida
+        // para ninguém confundi-lo com dado do cadastro (nem mandá-lo de volta).
+        const { matricula, ...bem } = linha;
+        return { ...bem, valores: derivarValoresDoBem(bem, matricula ?? []) } as BemComValores;
+      });
     },
     enabled: !!clienteId,
   });
