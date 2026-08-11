@@ -10,6 +10,8 @@ export type DocumentoGeradoRow = Database['public']['Tables']['documento_gerado'
 export interface SnapshotDados {
   selecao: Record<string, Record<string, string>>;
   registroPorBinding: Record<string, string>;
+  /** Seleções de papéis com cardinalidade múltipla (ex.: {{#imoveis}}). */
+  registrosPorLista?: Record<string, string[]>;
   valoresLivres: Record<string, string>;
   empresaId: string | null;
   itensPorLista: Record<string, ItemLista[]>;

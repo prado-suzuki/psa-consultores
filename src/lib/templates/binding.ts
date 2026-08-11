@@ -148,7 +148,7 @@ export function normalizarSelecaoLegada(
  * Fonte de uma lista. As três primeiras vêm da empresa (PJ) escolhida; `georef`
  * vem do BigQuery pela matrícula selecionada (não depende da empresa).
  */
-export type FonteLista = 'quadro_societario' | 'administracao' | 'integralizacao' | 'georef';
+export type FonteLista = 'quadro_societario' | 'administracao' | 'integralizacao' | 'georef' | 'signatarios' | 'selecao';
 
 export interface CampoExtra {
   id: string;
@@ -195,6 +195,31 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     itemKey: 'administrador',
     fonte: 'administracao',
     camposExtras: [{ id: 'cargo', label: 'Cargo' }],
+  },
+  signatarios: {
+    label: 'Signatários',
+    tipo: 'pessoa',
+    itemKey: 'signatario',
+    fonte: 'signatarios',
+    camposExtras: [
+      { id: 'nome', label: 'Nome' },
+      { id: 'nomeMaiusculo', label: 'Nome em caixa alta' },
+      { id: 'papel', label: 'Papel na assinatura' },
+      { id: 'cpfCnpj', label: 'CPF/CNPJ' },
+      { id: 'qualificacao', label: 'Qualificação complementar' },
+      { id: 'eSocio', label: 'É sócio? (condicional)' },
+      { id: 'eAdministrador', label: 'É administrador? (condicional)' },
+      { id: 'eConjuge', label: 'É cônjuge outorgante? (condicional)' },
+      { id: 'eTestemunha', label: 'É testemunha? (condicional)' },
+      { id: 'eAdvogado', label: 'É advogado? (condicional)' },
+    ],
+  },
+  imoveis: {
+    label: 'Imóveis selecionados',
+    tipo: 'matricula',
+    itemKey: 'imovel',
+    fonte: 'selecao',
+    camposExtras: [],
   },
   integralizacoes: {
     label: 'Integralizações (imóveis aprovados, por sócio)',
@@ -393,7 +418,14 @@ export function detectarBindingsDeConteudo(conteudo: string): DeteccaoConteudo {
       continue;
     }
     listas.push({ nome: secao.nome, papel });
-    const chavesItem = [papel.itemKey, ...(papel.itemKeysExtras ?? [])];
+    // Campos de listas aninhadas também vivem no item, não no topo. Ex.: cada
+    // item de {{#imoveis}} pode carregar seus próprios {{#vertices}}; tratar
+    // `vertice.codVertice` como texto livre criaria um formulário fantasma.
+    const chavesListasInternas = secao.secoesInternas.flatMap((nome) => {
+      const interna = PAPEIS_LISTA[nome];
+      return interna ? [interna.itemKey, ...(interna.itemKeysExtras ?? [])] : [];
+    });
+    const chavesItem = [papel.itemKey, ...(papel.itemKeysExtras ?? []), ...chavesListasInternas];
     // Condicionais internas conhecidas: sePF/sePJ, seções do próprio item
     // (listas aninhadas), condicionais de binding e condicionais sobre campos
     // do escopo do item ({{#socio.vlrTotal}} — inclui extras da relação).

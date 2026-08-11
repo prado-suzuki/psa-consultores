@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PassoCard } from '@/components/equipe/osg/gerar/gerarKit';
@@ -16,7 +17,8 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
   const navigate = useNavigate();
   const {
   modelos, carregandoModelos, modeloId, setModeloId, carregandoBlocos, clienteId, registros,
-  carregandoRegistros, selecao, registroPorBinding, valoresLivres, setValoresLivres,
+  carregandoRegistros, selecao, registroPorBinding, registrosPorLista,
+  alternarRegistroDaLista, listasDeSelecao, valoresLivres, setValoresLivres,
   empresaId, setEmpresaId, copiado, passoAberto, setPassoAberto, ajustesAbertos,
   setAjustesAbertos, railAberto, setRailAberto, versaoVisualizadaId, setVersaoVisualizadaId,
   abaEfetiva, setAba, documentoGeradoId, documentoRaizId, versoes, congelado,
@@ -120,6 +122,29 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
                   carregando={carregandoRegistros}
                 />
               )}
+
+              {listasDeSelecao.map((lista) => (
+                <div key={lista.nome} className="space-y-2">
+                  <Label className={labelCls}>{lista.papel.label}</Label>
+                  <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-3">
+                    {registros[lista.papel.tipo].map((registro) => {
+                      const marcado = (registrosPorLista[lista.nome] ?? []).includes(registro.id);
+                      return (
+                        <label key={registro.id} className="flex cursor-pointer items-center gap-2 text-sm">
+                          <Checkbox
+                            checked={marcado}
+                            onCheckedChange={() => alternarRegistroDaLista(lista.nome, registro.id)}
+                          />
+                          <span>{registro.label}</span>
+                        </label>
+                      );
+                    })}
+                    {registros[lista.papel.tipo].length === 0 && (
+                      <p className="text-sm text-slate-500">Nenhum registro cadastrado.</p>
+                    )}
+                  </div>
+                </div>
+              ))}
 
               {bindingsNaoSociedade.length > 0 && (
                 <div className="space-y-3">

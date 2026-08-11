@@ -25,13 +25,46 @@ export function GerarDocumentoDialogs({ controller }: { controller: GerarDocumen
   naoLidas, linhasNotificacao, marcarVistas, autorPorId, desconhecidosVisiveis,
   camposPorBinding, escolherRegistro, editarCampo, matriculasDoCliente, origemClicavel,
   abrirCadastroOrigem, fecharCadastroOrigem, resultado, copiar, nomeModelo, baixando,
-  baixar, empresas, bindingsNaoSociedade, modeloPronto, passo1Estado, passo2Estado,
+  baixar, baixarIncompletoOpen, setBaixarIncompletoOpen, confirmarDownloadIncompleto,
+  pendenciasDocumento, empresas, bindingsNaoSociedade, modeloPronto, passo1Estado, passo2Estado,
   modoDocumento, empresaLabel, labelsRegistros, resumoPasso2, mensagemPendente,
   blocosFolha, versaoView, modoVisualizacao, blocosFolhaVersao, baixandoVersao,
   baixarVersao, folhaEstado, infoFolha, temPainel, mostraSocios, mostraAdministradores,
   mostraIntegralizacoes,
 } = controller;
-  return (<>      {/* Ajuste de bloco (override) escopado a este documento. */}
+  return (<>
+      <AlertDialog open={baixarIncompletoOpen} onOpenChange={setBaixarIncompletoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Baixar documento incompleto?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>Estes campos obrigatórios ainda não foram resolvidos:</p>
+                <ul className="list-disc space-y-1 pl-5">
+                  {pendenciasDocumento.map((pendencia) => (
+                    <li key={pendencia.caminho}>{pendencia.label}</li>
+                  ))}
+                </ul>
+                <p>Se continuar, o arquivo será identificado como rascunho.</p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar e completar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                void confirmarDownloadIncompleto();
+              }}
+              className="bg-amber-600 hover:bg-amber-700"
+            >
+              Baixar como rascunho
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Ajuste de bloco (override) escopado a este documento. */}
       {documentoGeradoId && documentoRaizId && (
         <OverrideBlocoDialog
           open={blocoOverrideAlvo !== null}
