@@ -119,7 +119,10 @@ vi.mock('@/hooks/useGeracaoDocumento', () => ({
   }),
 }));
 
-vi.mock('@/hooks/useGeorefByMatricula', () => ({ useGeorefByMatricula: () => ({ data: undefined }) }));
+vi.mock('@/hooks/useGeorefByMatricula', () => ({
+  useGeorefByMatricula: () => ({ data: undefined }),
+  useGeorefsByMatriculas: () => ({ porMatricula: new Map(), isFetching: false }),
+}));
 vi.mock('@/hooks/useDiagnosticoPatrimonial', () => ({ useAllMatriculas: () => ({ data: [] }) }));
 
 vi.mock('@/hooks/useNotificacoesDocumento', () => ({
@@ -272,8 +275,12 @@ describe('GerarDocumento — caracterização O1', () => {
     expect(payload).toMatchObject({ clienteId: 'cliente-1', pjPessoaId: 'empresa-1', modeloId: 'modelo-1', novaVersao: false });
     expect(payload.snapshotDados).toEqual({
       selecao: expect.objectContaining({ sociedade: expect.objectContaining({ razaoSocial: empresa.denominacao }) }),
-      registroPorBinding: {}, valoresLivres: { observacao: 'Observação viva' }, empresaId: 'empresa-1',
-      itensPorLista: { socios: [], administradores: [], integralizacoes: [], vertices: [] }, total: null,
+      registroPorBinding: {}, registrosPorLista: {},
+      valoresLivres: { observacao: 'Observação viva' }, empresaId: 'empresa-1',
+      itensPorLista: {
+        socios: [], administradores: [], integralizacoes: [], imoveis: [], signatarios: [], vertices: [],
+      },
+      total: null,
     });
     // Snapshot da versão = blocos resolvidos + famílias citadas (nenhuma aqui).
     expect(payload.snapshotVersoesBlocos.blocos.map((bloco: { id: string }) => bloco.id)).toEqual(['posicao-1', 'posicao-2']);
