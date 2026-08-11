@@ -1,7 +1,19 @@
 # Handoff · mutirão de correções do e2e de geração de contrato (OSG)
 
 Estado em **13/08/2026**, escrito para quem assume a orquestração numa sessão nova (outra conta, outro
-agente). Este arquivo é a fonte de verdade do andamento. A lista de bugs continua em
+agente). Este arquivo é a fonte de verdade do andamento.
+
+> **Atualização da retomada:** L1, L2, L3, L4, L5, L6 e L7 foram revisadas e integradas na branch
+> `fix/osg-mutirao-base` até o commit `09ce68ec` (com uma correção posterior de testes da L6). A L5 ganhou
+> barreira também para mudança de `cliente_id`; a L2/L3 ganharam `imovel.temCartorio`; a L6 ligou
+> signatários, pendências/rascunho e seleção múltipla com georref por matrícula. Validação integrada:
+> `bun run lint` sem erros (539 warnings preexistentes), `bun run typecheck`, 2.909 testes, build e provas
+> PostgreSQL B1/B10/B11 verdes. **L8/B7 continua bloqueada por decisão do Bernardo.** O que falta agora é
+> o Lovable aplicar as migrations e a reexecução manual P00–P26, sempre confirmando com o Bernardo antes
+> do primeiro insert. As seções antigas abaixo preservam a cronologia e podem descrever raias como
+> pendentes; esta atualização prevalece.
+
+A lista de bugs continua em
 `TAREFA_correcoes-e2e-geracao-contrato.md`, nesta mesma pasta, e o contrato técnico entre as raias do
 motor de documentos em `docs/osg/contrato-l2-l3-motor-e-blocos.md`.
 

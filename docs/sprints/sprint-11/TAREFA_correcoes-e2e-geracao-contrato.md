@@ -511,13 +511,29 @@ manuais de uma vez, e não bloco a bloco. Casa com o aviso de documento incomple
 
 ---
 
-### B20 · Nome do cliente exibido em Title Case
+### B20 · Nome do cliente gravado em Title Case ⚠️ MIGRAÇÃO
 
-**Sintoma.** `[TESTE E2E] Grupo MMS` aparece como `[Teste E2e] Grupo Mms`. O valor gravado está correto.
+**Sintoma.** `[TESTE E2E] Grupo MMS` aparece como `[Teste E2e] Grupo Mms`.
 
-**Correção esperada.** Não normalizar caixa na exibição de nomes próprios e razões sociais: sigla é
-significado. Se a intenção era uniformizar entrada bagunçada, fazer isso na escrita, com o usuário vendo, e
-nunca na renderização.
+**Causa raiz corrigida no diagnóstico.** Não era renderização: o valor já chegava achatado do banco. O
+gatilho `normalize_name_title_case` aplicava `initcap()` antes de gravar `cliente.nome`,
+`contribuinte.nome_razao_social` e `contribuinte.nome_fantasia`, destruindo siglas e caixa significativa.
+
+**Rastro.**
+- `supabase/migrations/20260319152802_*.sql` — função/gatilho de `initcap()` e RPC
+  `get_ordens_by_client_name`, que dependia da igualdade exata de nome;
+- `src/hooks/useSaveClientTransaction.ts` — checagem de duplicidade que também dependia da igualdade exata;
+- `supabase/migrations/20260813103000_nome_proprio_preserva_caixa.sql` — correção completa.
+
+**Correção esperada.** Preservar na escrita a caixa que a pessoa digitou e remover apenas espaços
+acidentais, de forma visível no formulário. No mesmo pacote, manter as duas invariantes que o gatilho
+sustentava por acidente: pareamento dev/prod por nome e aviso de duplicidade passam a comparar nomes sem
+diferença de caixa ou espaços. Nomes antigos já achatados não são corrigidos automaticamente, porque a
+grafia original foi destruída.
+
+**Não faça.** Apenas remover o gatilho, nem normalizar caixa na exibição. A primeira opção quebra em silêncio
+o pareamento dev/prod e a detecção de duplicados; a segunda continua ocultando que o dado gravado está
+errado.
 
 ---
 
@@ -534,6 +550,34 @@ se perdeu.
 suspeita mais comum) e, independente da causa, tornar a expiração não destrutiva: avisar antes, permitir
 reautenticar sem perder o formulário aberto, e reenviar a operação pendente. Vale para qualquer formulário
 longo do sistema, não só os do OSG.
+
+---
+
+## Achados derivados do mutirão (fora dos 21 originais)
+
+### N1 · Erros de unicidade da matrícula ainda podem chegar crus à UI
+
+Depois da B1, vincular uma matrícula a um bem de cliente que já possui o mesmo número, ou atribuir o
+primeiro titular a uma matrícula órfã na mesma situação, pode expor a mensagem do Postgres. A identidade do
+dado está protegida; falta traduzir esses dois caminhos TypeScript para feedback amigável.
+
+### N2 · Relatório do Diagnóstico Patrimonial ainda lê o valor antigo do bem
+
+`src/hooks/useRelatorioDP.ts:44` lê `bem.vlr_contabil` diretamente. Para imóvel, a fonte correta passou a
+ser a soma das matrículas (B9), então relatório e lista podem divergir. Precisa consumir o mesmo utilitário
+de valor derivado.
+
+### N3 · Aviso de arredondamento degenera na unidade “ha e m²”
+
+`MatriculaDadosTab.tsx` pode mostrar antes e depois idênticos ao avisar a conversão para `ha e m²`. É um
+defeito de mensagem, separado da preservação de quatro casas resolvida na B8.
+
+### N4 · Guarda sobre campo opcional ausente derrubava o render
+
+O motor distinguia chave ausente de valor vazio; por isso `{{#imovel.ccir}}`, `{{#imovel.livro}}` e
+`{{#imovel.folha}}` lançavam em matrículas sem esses dados. A correção da L2 passou a publicar `''` para todo
+campo opcional declarado e ganhou testes de regressão. Manter este item visível até o novo e2e confirmar as
+cinco variantes vivas da família “Descrição de imóvel”.
 
 ---
 
