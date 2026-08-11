@@ -1,12 +1,34 @@
 import { useNavigate } from 'react-router-dom';
-import { Bell, Clock, AlertTriangle, ArrowRight, AtSign, ClipboardCheck, Reply } from 'lucide-react';
+import {
+  Bell,
+  BellRing,
+  Clock,
+  AlertTriangle,
+  ArrowRight,
+  AtSign,
+  ClipboardCheck,
+  FileCheck,
+  FileText,
+  FileX,
+  Reply,
+  Send,
+  UserPlus,
+  type LucideIcon,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useTicketNotifications, TicketNotification } from '@/hooks/useTicketNotifications';
 import { useReviewTaskNotifications, ReviewTaskNotification } from '@/hooks/useReviewTaskNotifications';
 import { useNotificacoesMencao, type MencaoNotificacao } from '@/hooks/useNotificacoesMencao';
+import { useNotificacoesInternas, type NotificacaoInterna } from '@/hooks/useNotificacoesInternas';
 import { hrefDeOrigem, origemDoComentario, type AreaDeProjetos } from '@/lib/feedComentarios';
+import {
+  apresentacaoDoAviso,
+  destinoDoAviso,
+  textoDaRepeticao,
+  type NotificacaoTipo,
+} from '@/lib/notificacoesInternas';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
@@ -37,10 +59,29 @@ const departmentLabels: Record<string, string> = {
   'geral': 'Geral',
 };
 
+/**
+ * Ícone por tipo de aviso interno.
+ *
+ * `Record` exaustivo sobre o enum do banco: um oitavo tipo, depois de regenerar
+ * `types.ts`, quebra a compilação aqui e no rótulo, em vez de aparecer sem ícone
+ * na tela. `tarefa_em_revisao` reusa o `ClipboardCheck` do aviso derivado de
+ * revisão, porque é o mesmo assunto visto do outro lado.
+ */
+const ICONES_INTERNAS: Record<NotificacaoTipo, LucideIcon> = {
+  tarefa_atribuida: UserPlus,
+  tarefa_em_revisao: ClipboardCheck,
+  documento_recebido: FileText,
+  solicitacao_enviada: Send,
+  documento_aprovado: FileCheck,
+  documento_recusado: FileX,
+  cobranca_pendencia: BellRing,
+};
+
 type UnifiedNotification =
   | ({ kind: 'ticket' } & TicketNotification)
   | ({ kind: 'review' } & ReviewTaskNotification)
-  | ({ kind: 'mencao' } & MencaoNotificacao);
+  | ({ kind: 'mencao' } & MencaoNotificacao)
+  | ({ kind: 'interna' } & NotificacaoInterna);
 
 function TicketNotificationItem({
   notification,
@@ -217,6 +258,74 @@ function MencaoNotificationItem({
   );
 }
 
+/**
+ * Aviso interno, a primeira fonte do sino que não é derivada: a linha vem de
+ * `public.notificacao`, gravada por trigger do banco.
+ *
+ * Um item só para os sete tipos, porque a linha já traz título e corpo prontos —
+ * o `tipo` muda apenas ícone, etiqueta e tom. A contagem de repetições aparece
+ * quando o mesmo evento se acumulou na mesma chave, e sem ela o agrupamento
+ * ficaria invisível: 63 documentos do mesmo cliente no mesmo dia são UMA linha
+ * com `quantidade = 63`.
+ */
+function InternaNotificationItem({
+  notification,
+  onClick,
+}: {
+  notification: NotificacaoInterna;
+  onClick: () => void;
+}) {
+  const { rotulo, tom } = apresentacaoDoAviso(notification.tipo);
+  const Icone = ICONES_INTERNAS[notification.tipo] ?? Bell;
+  const repeticao = textoDaRepeticao(notification.quantidade);
+
+  return (
+    <button
+      onClick={onClick}
+      className="w-full p-3 text-left hover:bg-muted/50 transition-colors border-b border-border last:border-b-0 group"
+    >
+      <div className="flex items-start gap-3">
+        <div className={cn(
+          "flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center",
+          tom
+        )}>
+          <Icone className="h-4 w-4" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-medium text-sm text-foreground truncate group-hover:text-primary transition-colors">
+            {notification.titulo}
+          </p>
+          {notification.corpo && (
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+              {notification.corpo}
+            </p>
+          )}
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
+            <span className="text-xs font-medium text-primary">
+              {rotulo}
+            </span>
+            {repeticao && (
+              <>
+                <span className="text-xs text-muted-foreground">•</span>
+                <span className="text-xs text-muted-foreground">
+                  {repeticao}
+                </span>
+              </>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {formatDistanceToNow(new Date(notification.created_at), {
+              addSuffix: true,
+              locale: ptBR,
+            })}
+          </p>
+        </div>
+        <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
+      </div>
+    </button>
+  );
+}
+
 export function NotificationPopover({
   navigateTo,
   backTo,
@@ -238,17 +347,30 @@ export function NotificationPopover({
     isLoading: mencoesLoading,
     marcarComoLidas,
   } = useNotificacoesMencao();
+  const {
+    notifications: internaNotifications,
+    isLoading: internasLoading,
+    marcarComoLidas: marcarInternasLidas,
+  } = useNotificacoesInternas();
 
-  const isLoading = ticketsLoading || reviewsLoading || mencoesLoading;
+  const isLoading = ticketsLoading || reviewsLoading || mencoesLoading || internasLoading;
+  // Conta AVISOS, não movimentações: um aviso interno pode representar 63
+  // documentos (`quantidade`), e somar isso faria a bolinha saltar para 63 por um
+  // evento só, destoando das outras três fontes. A contagem aparece dentro do item.
   const unreadCount =
-    mencaoNotifications.length + ticketNotifications.length + reviewNotifications.length;
+    mencaoNotifications.length +
+    internaNotifications.length +
+    ticketNotifications.length +
+    reviewNotifications.length;
 
   const navState = backTo ? { state: { from: backTo } } : undefined;
 
-  // Feed unificado: menções (alguém chamou a pessoa pelo nome) no topo, depois
-  // revisões pendentes e por fim os chamados, na ordem de urgência já calculada.
+  // Feed unificado: menções (alguém chamou a pessoa pelo nome) no topo, depois os
+  // avisos internos, que são acontecimentos e não estado pendente, depois as
+  // revisões e por fim os chamados, na ordem de urgência já calculada.
   const items: UnifiedNotification[] = [
     ...mencaoNotifications.map((n) => ({ kind: 'mencao' as const, ...n })),
+    ...internaNotifications.map((n) => ({ kind: 'interna' as const, ...n })),
     ...reviewNotifications.map((n) => ({ kind: 'review' as const, ...n })),
     ...ticketNotifications.map((n) => ({ kind: 'ticket' as const, ...n })),
   ];
@@ -270,6 +392,24 @@ export function NotificationPopover({
   const handleMencaoClick = (notification: MencaoNotificacao) => {
     marcarComoLidas.mutate([notification.id]);
     navigate(hrefDeOrigem(notification, mencoesArea), navState);
+  };
+
+  /**
+   * Mesmo padrão do de menção: carimba e navega sem esperar a gravação.
+   *
+   * O destino é DERIVADO da entidade, não lido de uma coluna: `href` vem nulo em
+   * todo aviso gravado pelos triggers, por decisão registrada na migração da
+   * EDU-2, porque a rota depende de qual sino a pessoa está olhando e
+   * `tasksNavigateTo` é justamente essa informação.
+   *
+   * Aviso sem destino ainda assim é marcado como lido. O de documento recebido
+   * aponta para um cliente e não existe tela de destino por cliente; se o clique
+   * não fizesse nada, a linha ficaria pendurada no sino sem jeito de baixar.
+   */
+  const handleInternaClick = (notification: NotificacaoInterna) => {
+    marcarInternasLidas.mutate([notification.id]);
+    const destino = destinoDoAviso(notification, tasksNavigateTo);
+    if (destino) navigate(destino, navState);
   };
 
   const handleViewAll = () => {
@@ -333,6 +473,15 @@ export function NotificationPopover({
                       key={`mencao-${item.id}`}
                       notification={item}
                       onClick={() => handleMencaoClick(item)}
+                    />
+                  );
+                }
+                if (item.kind === 'interna') {
+                  return (
+                    <InternaNotificationItem
+                      key={`interna-${item.id}`}
+                      notification={item}
+                      onClick={() => handleInternaClick(item)}
                     />
                   );
                 }
