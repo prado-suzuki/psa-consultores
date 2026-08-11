@@ -6,6 +6,7 @@ import type { AreaKey } from '@/config/areaCategories';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import { textoPlanoDoCorpo } from '@/lib/orgCommentRichText';
 
@@ -27,13 +28,19 @@ const RPC = 'criar_org_comment';
 
 export type OrgCommentEntityType = 'org_task' | 'org_project';
 
-export type OrgCommentKind =
-  | 'comment'
-  | 'assignment_changed'
-  | 'review_submitted'
-  | 'review_approved'
-  | 'review_adjustments'
-  | 'status_changed';
+/**
+ * DERIVADO do enum do banco, não reescrito à mão.
+ *
+ * Era uma união digitada com os seis valores de então. O problema da união à mão
+ * é que ela não sabe quando o banco muda: a EDU-1 acrescentou
+ * `documentos_solicitados` ao enum `org_comment_kind` e nada quebrou na
+ * compilação, então o `SYSTEM_LABELS` do `OrgCommentsPanel` continuaria sem o
+ * rótulo e a linha renderizaria com a etiqueta vazia, sem erro nenhum.
+ *
+ * Derivando, um valor novo no enum passa a quebrar o build em todo `Record` total
+ * sobre este tipo, que é o lembrete que se quer.
+ */
+export type OrgCommentKind = Database['public']['Enums']['org_comment_kind'];
 
 /**
  * Espelha as colunas de `public.org_comments_feed`.

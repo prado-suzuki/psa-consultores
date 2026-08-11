@@ -34,6 +34,11 @@ const mocks = vi.hoisted(() => ({
       bloco: { id: 'biblioteca-2', nome: 'Qualificação repetida', tipo: 'paragrafo', conteudo: 'CNPJ {{ sociedade.cnpj }}.', flags: [], repete_colecao: null, ancora: null },
     },
   ],
+  // Catálogo da Biblioteca (useBlocos): cabeças com as variantes aninhadas, que é
+  // de onde o controller monta o registro de famílias do render.
+  catalogoBlocos: [] as unknown[],
+  socios: [] as unknown[],
+  integralizacoes: [] as unknown[],
   rascunho: null as Record<string, unknown> | null,
   overrides: new Map<string, { conteudoSubstituto: string }>(),
   versoes: [] as Array<{ row: Record<string, unknown>; numero: number; ehHead: boolean }>,
@@ -72,11 +77,11 @@ vi.mock('@/hooks/useModelosDocumento', () => ({
   }),
 }));
 
-vi.mock('@/hooks/useBibliotecaModelos', () => ({
-  useBlocos: () => ({ data: [
-    { id: 'biblioteca-1', nome: 'Qualificação', conteudo: 'original' },
-    { id: 'biblioteca-2', nome: 'Qualificação repetida', conteudo: 'original 2' },
-  ] }),
+// Só as queries são mockadas: montarRegistroFamilias é função pura da Biblioteca
+// e entra de verdade, para o controller montar o registro como em produção.
+vi.mock('@/hooks/useBibliotecaModelos', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/hooks/useBibliotecaModelos')>()),
+  useBlocos: () => ({ data: mocks.catalogoBlocos }),
   useFlags: () => ({ data: mocks.vazia }),
 }));
 
@@ -106,7 +111,12 @@ vi.mock('@/hooks/useGeracaoDocumento', () => ({
     registros: { ...registrosVazios, pessoa: [{ id: 'empresa-1', label: empresa.denominacao, row: empresa }] },
     isFetching: false,
   }),
-  useListasDaEmpresa: () => ({ socios: mocks.vazia, administradores: mocks.vazia, integralizacoes: mocks.vazia, isFetching: false }),
+  useListasDaEmpresa: () => ({
+    socios: mocks.socios,
+    administradores: mocks.vazia,
+    integralizacoes: mocks.integralizacoes,
+    isFetching: false,
+  }),
 }));
 
 vi.mock('@/hooks/useGeorefByMatricula', () => ({ useGeorefByMatricula: () => ({ data: undefined }) }));
@@ -155,6 +165,55 @@ const documento = (dados: SnapshotDados = snapshot()) => ({
   gerado_por_id: 'autor-1', status: 'rascunho',
 });
 
+const CATALOGO_SEM_FAMILIA = [
+  { id: 'biblioteca-1', nome: 'Qualificação', ativo: true, versao_atual: { conteudo: 'original' }, variantes: [] },
+  { id: 'biblioteca-2', nome: 'Qualificação repetida', ativo: true, versao_atual: { conteudo: 'original 2' }, variantes: [] },
+];
+
+/** Cabeça de família com duas redações, como a Biblioteca a devolve (variantes aninhadas). */
+const CABECA_DESCRICAO_IMOVEL = {
+  id: 'familia-imovel',
+  nome: 'Descrição de imóvel',
+  ativo: true,
+  versao_atual: null,
+  variantes: [
+    {
+      id: 'variante-rural',
+      nome: 'Descrição de imóvel: Rural',
+      ativo: true,
+      variante_rotulo: 'Rural, propriedade exclusiva',
+      variante_ordem: 1,
+      variante_seletor: { 'imovel.rural': 'sim', 'imovel.inteiro': 'sim' },
+      versao_atual: { conteudo: 'Um imóvel rural denominado {{ imovel.denominacao }}' },
+    },
+    {
+      id: 'variante-urbana',
+      nome: 'Descrição de imóvel: Urbano',
+      ativo: true,
+      variante_rotulo: 'Urbano, propriedade exclusiva',
+      variante_ordem: 2,
+      variante_seletor: { 'imovel.urbano': 'sim', 'imovel.inteiro': 'sim' },
+      versao_atual: { conteudo: 'Um imóvel urbano na {{ imovel.enderecoLogradouro }}, {{ imovel.enderecoNumeroProsa }}' },
+    },
+  ],
+};
+
+/** Matrícula urbana no formato que useIntegralizacoesAprovadas entrega. */
+const MATRICULA_URBANA = {
+  id: 'matricula-urbana', numero: '24.318-DEV', livro: '02', folha: '01',
+  municipio_imovel: 'Sinop', uf_imovel: 'MT', area_documento: 120.75, area_unidade: 'm2',
+  vlr_contabil: 420000, confrontacoes_texto: 'Norte: com a Sala 1205.', descricao_psa_completa: null,
+  tipo_bem: 'IB', tipo_exploracao_posse: null,
+  bem: {
+    denominacao: 'Sala Comercial 1204', vlr_contabil: null, ccir_codigo: null, tipo_bem: 'IB',
+    inscricao_municipal: '01.4.0235.0412.001', endereco_logradouro: 'Avenida das Itaúbas',
+    endereco_numero: '3255', endereco_complemento: null, endereco_bairro: 'Setor Comercial',
+    endereco_cep: '78550-218', area_construida_m2: null,
+  },
+  cartorio: { nome_completo: 'Registro de Imóveis de Sinop', comarca: 'Sinop', uf: 'MT' },
+  titulares: [{ denominacao: 'Avelino Neri Bocolli', pessoaId: 'socio-1', fracao: 100, integralizador: true }],
+};
+
 async function escolherModelo() {
   await userEvent.click(screen.getByRole('button', { name: /Contrato Social/i }));
   await screen.findByText('Escolha a empresa do contrato');
@@ -185,6 +244,10 @@ describe('GerarDocumento — caracterização O1', () => {
     mocks.notificacoes = [];
     mocks.autores = {};
     mocks.docBlocos[0].bloco.conteudo = 'Empresa {{ sociedade.razaoSocial }}. {{ observacao }}';
+    mocks.docBlocos[0].bloco.repete_colecao = null;
+    mocks.catalogoBlocos = [...CATALOGO_SEM_FAMILIA];
+    mocks.socios = [];
+    mocks.integralizacoes = [];
     mocks.mutateAsync.mockResolvedValue(documento());
     Object.values(mocks.hookCalls).forEach((calls) => calls.splice(0));
   });
@@ -212,7 +275,9 @@ describe('GerarDocumento — caracterização O1', () => {
       registroPorBinding: {}, valoresLivres: { observacao: 'Observação viva' }, empresaId: 'empresa-1',
       itensPorLista: { socios: [], administradores: [], integralizacoes: [], vertices: [] }, total: null,
     });
-    expect(payload.snapshotVersoesBlocos.map((bloco: { id: string }) => bloco.id)).toEqual(['posicao-1', 'posicao-2']);
+    // Snapshot da versão = blocos resolvidos + famílias citadas (nenhuma aqui).
+    expect(payload.snapshotVersoesBlocos.blocos.map((bloco: { id: string }) => bloco.id)).toEqual(['posicao-1', 'posicao-2']);
+    expect(payload.snapshotVersoesBlocos.familias).toEqual({});
   });
 
   it('hidrata SnapshotDados antigo, mantém o documento congelado e religa a proveniência Symbol', async () => {
@@ -339,6 +404,46 @@ describe('GerarDocumento — caracterização O1', () => {
     ));
     await userEvent.click(screen.getByRole('button', { name: 'Voltar à versão atual' }));
     expect(screen.getByRole('button', { name: 'Atualizar versão' })).toBeInTheDocument();
+  });
+
+  it('resolve a família de variantes por imóvel e congela as variantes no snapshot', async () => {
+    // O bloco do modelo só CITA a família; a redação urbana é escolhida no render
+    // a partir do imóvel (tipo_bem IB), e o endereço vem das colunas de `bem`.
+    mocks.catalogoBlocos = [...CATALOGO_SEM_FAMILIA, CABECA_DESCRICAO_IMOVEL];
+    mocks.docBlocos[0].bloco.repete_colecao = 'integralizacoes';
+    mocks.docBlocos[0].bloco.conteudo =
+      'O sócio {{ socio.nome }} integraliza: {{#imoveis}}{{ imovel.alinea }}) {{familia nome="Descrição de imóvel"}}.{{/imoveis}}';
+    mocks.socios = [{
+      pessoa: { id: 'socio-1', denominacao: 'Avelino Neri Bocolli', tipo_pessoa: 'PF' },
+      quotas: null, vlr_total: null, representante: null,
+    }];
+    mocks.integralizacoes = [MATRICULA_URBANA];
+
+    await abrirDocumentoVivo();
+
+    expect(
+      await screen.findByText(/Um imóvel urbano na Avenida das Itaúbas, nº 3255/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Um imóvel rural/)).not.toBeInTheDocument();
+
+    // Editar pela prévia mira a VARIANTE que escreveu o trecho, não o hospedeiro.
+    await userEvent.click(screen.getByText(/Um imóvel urbano na Avenida das Itaúbas/));
+    expect(
+      await screen.findByRole('button', { name: /Editar a redação "Urbano, propriedade exclusiva"/ }),
+    ).toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Validar versão' }));
+    const confirmacao = await screen.findByRole('alertdialog');
+    await userEvent.click(within(confirmacao).getByRole('button', { name: 'Validar versão' }));
+
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalledTimes(1));
+    const familias = mocks.mutateAsync.mock.calls[0][0].snapshotVersoesBlocos.familias;
+    expect(Object.keys(familias)).toEqual(['Descrição de imóvel']);
+    expect(familias['Descrição de imóvel'].map((v: { id: string }) => v.id)).toEqual([
+      'variante-rural',
+      'variante-urbana',
+    ]);
   });
 
   it('copia sem marcas e baixa a head com o nome do modelo', async () => {

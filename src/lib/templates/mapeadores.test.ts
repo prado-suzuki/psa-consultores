@@ -43,6 +43,52 @@ function socio(denominacao: string, quotas: number, vlr_total: number): SocioPar
   };
 }
 
+describe('mapearQuadroSocietario — enumeração, administração e outorga', () => {
+  const pessoa = (denominacao: string, over: Record<string, unknown> = {}) =>
+    ({
+      pessoa: { id: denominacao.toLowerCase(), denominacao, tipo_pessoa: 'PF', genero: 'M', ...over } as unknown as PessoaRow,
+      quotas: 50,
+      vlr_total: 50,
+      representante: null,
+    }) as SocioParaMapear;
+
+  it('numera os sócios em romano minúsculo (caput do capital em moeda corrente)', () => {
+    const { itens } = mapearQuadroSocietario([pessoa('A'), pessoa('B'), pessoa('C')]);
+    expect(itens.map((i) => (i.socio as Record<string, string>).ordemRomana)).toEqual(['i', 'ii', 'iii']);
+    expect(itens.map((i) => (i.socio as Record<string, string>).ordem)).toEqual(['1', '2', '3']);
+  });
+
+  it('marca quem administra, e o ramo oposto junto (o engine não tem else)', () => {
+    const { itens } = mapearQuadroSocietario([pessoa('A'), pessoa('B')], new Set(['a']));
+    const campos = itens.map((i) => i.socio as Record<string, string>);
+    expect([campos[0].administrador, campos[0].naoAdministrador]).toEqual(['sim', '']);
+    expect([campos[1].administrador, campos[1].naoAdministrador]).toEqual(['', 'sim']);
+  });
+
+  it('sem lista de administradores, ninguém administra', () => {
+    const { itens } = mapearQuadroSocietario([pessoa('A')]);
+    expect((itens[0].socio as Record<string, string>).administrador).toBe('');
+  });
+
+  it('rótulo da assinatura concorda com o gênero', () => {
+    const { itens } = mapearQuadroSocietario([pessoa('Maria', { genero: 'F' })], new Set(['maria']));
+    const campos = itens[0].socio as Record<string, string>;
+    expect(campos.socioAdministrador).toBe('Sócia administradora');
+    expect(campos.socioTitulo).toBe('Sócia');
+  });
+
+  it.each([
+    ['Comunhão Parcial', 'sim'],
+    ['Comunhão Universal', 'sim'],
+    ['Participação Final nos Aquestos', 'sim'],
+    ['Separação Total', ''],
+    [null, ''],
+  ])('regime %s exige outorga conjugal: %s', (regime, esperado) => {
+    const { itens } = mapearQuadroSocietario([pessoa('A', { regime_bens: regime })]);
+    expect((itens[0].socio as Record<string, string>).exigeOutorgaConjugal).toBe(esperado);
+  });
+});
+
 describe('mapearQuadroSocietario — percentual calculado e total', () => {
   it('injeta socio.percentual (quotas ÷ total) e agrega a linha total', () => {
     const { itens, total } = mapearQuadroSocietario([
@@ -123,7 +169,10 @@ describe('mapearSociedade — PJ objeto do contrato', () => {
     expect(c.capitalValor).toBe('1.500,00');
     expect(c.capitalExtenso).toBe('mil e quinhentos reais');
     expect(c.totalQuotas).toBe('1.500');
-    expect(c.totalQuotasExtenso).toBe('mil e quinhentos');
+    // Feminino porque conta QUOTAS: os contratos registrados escrevem
+    // "872.674 (oitocentas e setenta e duas mil, seiscentas e setenta e quatro) quotas".
+    // O valor em reais segue masculino ("mil e quinhentos reais"), acima.
+    expect(c.totalQuotasExtenso).toBe('mil e quinhentas');
   });
 
   it('sem capital calculado, os campos resolvem em branco (condicionais pulam)', () => {
@@ -248,6 +297,32 @@ function matriculaImovel(over: Partial<MatriculaParaMapear>): MatriculaParaMapea
     ...over,
   };
 }
+
+describe('mapearMatricula — confrontações sem o ponto final (quem pontua é o modelo)', () => {
+  it('poda o ponto final do texto do cartório', () => {
+    const c = mapearMatricula(
+      matriculaImovel({ confrontacoes_texto: 'Norte: com o Lote 04, na extensão de 12,00 metros.' }),
+    );
+    expect(c.confrontacoes).toBe('Norte: com o Lote 04, na extensão de 12,00 metros');
+  });
+
+  it('texto sem ponto final fica intacto', () => {
+    const c = mapearMatricula(matriculaImovel({ confrontacoes_texto: 'Norte: com o Lote 04' }));
+    expect(c.confrontacoes).toBe('Norte: com o Lote 04');
+  });
+
+  it('vale para o fallback da descrição PSA', () => {
+    const c = mapearMatricula(
+      matriculaImovel({ confrontacoes_texto: null, descricao_psa_completa: 'Inicia-se no vértice A9D.' }),
+    );
+    expect(c.confrontacoes).toBe('Inicia-se no vértice A9D');
+  });
+
+  it('não engole abreviação interna nem espaço no meio', () => {
+    const c = mapearMatricula(matriculaImovel({ confrontacoes_texto: 'Conforme matrícula n.º 12, ao norte.' }));
+    expect(c.confrontacoes).toBe('Conforme matrícula n.º 12, ao norte');
+  });
+});
 
 describe('mapearMatricula — classificação do imóvel (condicionais rural/urbano/posse)', () => {
   it('IR liga rural e desliga urbano', () => {

@@ -105,3 +105,34 @@ describe('normalizarReferenciasLegadas — contratos societários', () => {
     });
   });
 });
+
+describe('detectarBindingsDeConteudo — papel de lista dentro de uma condicional', () => {
+  // O memorial do georreferenciamento só entra quando a matrícula tem georref, e é
+  // por isso que {{#vertices}} vive dentro de {{#imovel.georefArea}}. A condicional
+  // não é papel de lista, mas a lista aninhada tem de ser carregada, senão o
+  // contexto não a tem e o render acusa "Seção não resolvida" num trecho opcional.
+  const memorial =
+    '{{#imovel.georefArea}}Área de {{ imovel.georefArea }} ha:\n' +
+    '{{#vertices}}| {{ vertice.codVertice }} | {{ vertice.azimute }} |{{/vertices}}{{/imovel.georefArea}}';
+
+  it('registra a lista aninhada', () => {
+    expect(detectarBindingsDeConteudo(memorial).listas.map((l) => l.nome)).toEqual(['vertices']);
+  });
+
+  it('mantém o binding da condicional e não inventa um do item da lista', () => {
+    const { bindings } = detectarBindingsDeConteudo(memorial);
+    expect(bindings.map((b) => [b.nome, b.tipo, b.cardinalidade])).toEqual([['imovel', 'matricula', 'um']]);
+  });
+
+  it('campos do item ficam no escopo do item, não viram campo de topo', () => {
+    const { campos } = detectarBindingsDeConteudo(memorial);
+    expect(campos).toContain('imovel.georefArea');
+    expect(campos).not.toContain('vertice.codVertice');
+    expect(campos).not.toContain('vertice.azimute');
+  });
+
+  it('a mesma lista em duas condicionais entra uma vez', () => {
+    const duas = `${memorial}${memorial.replace('georefArea', 'georefPerimetro')}`;
+    expect(detectarBindingsDeConteudo(duas).listas.map((l) => l.nome)).toEqual(['vertices']);
+  });
+});

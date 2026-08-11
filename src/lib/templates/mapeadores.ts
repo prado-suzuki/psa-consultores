@@ -34,6 +34,18 @@ function formatarDataBR(iso: string | null): string {
   return m ? `${m[3]}/${m[2]}/${m[1]}` : (iso ?? '');
 }
 
+/**
+ * Tira o ponto final (e o espaço em branco à direita) de um texto longo de
+ * cadastro. A pontuação da frase é do MODELO, não do dado: assim o mesmo valor
+ * serve tanto no fim do período quanto emendado no meio dele. Só o ponto final
+ * sai — reticências e abreviações internas ("n.º") não são tocadas.
+ */
+function semPontoFinal(texto: string | null): string | null {
+  if (!texto) return texto;
+  const podado = texto.replace(/\s*\.\s*$/, '');
+  return podado === '' ? texto : podado;
+}
+
 /** Prefixa "bairro" salvo quando o valor já é zona/distrito ("zona rural" fica como está). */
 function bairroProsa(bairro: string | null): string {
   if (!bairro) return '';
@@ -357,7 +369,13 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
   set('ufCartorio', ufPorExtenso(m.cartorio?.uf));
   set('ccir', m.bem?.ccir_codigo);
   set('inscricaoMunicipal', m.bem?.inscricao_municipal);
-  set('confrontacoes', m.confrontacoes_texto ?? m.descricao_psa_completa);
+  // Confrontações SEM o ponto final: quem pontua é o modelo, que escreve
+  // "…confrontações: {{ imovel.confrontacoes }}." e emenda o período seguinte
+  // ("… A área remanescente…"). O texto do cartório vem com ponto no cadastro
+  // (todas as matrículas da casa terminam em "."), e sem esta poda o contrato
+  // sai com "na extensão de 30,00 metros..". Vale igual para o fallback da
+  // descrição PSA, que é do mesmo naipe.
+  set('confrontacoes', semPontoFinal(m.confrontacoes_texto ?? m.descricao_psa_completa));
 
   const campos = derivarCampos('matricula', out);
   // Georref (caminho de volta) é OPCIONAL e vem de fonte assíncrona (BigQuery):
@@ -421,7 +439,8 @@ export function mapearSocio(s: SocioParaMapear): ItemLista {
   const campos = mapearPessoa(s.pessoa);
   if (s.quotas != null) {
     campos.quotas = formatarInteiro(s.quotas);
-    campos.quotasExtenso = cardinalExtenso(s.quotas);
+    // Feminino: o extenso conta QUOTAS ("quinhentas quotas"), como no registro.
+    campos.quotasExtenso = cardinalExtenso(s.quotas, true);
   }
   if (s.vlr_total != null) {
     campos.vlrTotal = formatarValor(s.vlr_total);
@@ -449,16 +468,34 @@ export interface QuadroSocietarioMapeado {
  * `socio.percentual` (quotas ÷ total de quotas — não vem do banco) e os agregados
  * `total` (quotas, vlrTotal e 100,000%). O percentual precisa da soma, que só
  * existe no nível da lista — por isso não cabe em mapearSocio (um sócio por vez).
+ *
+ * `idsAdministradores` (de `administracao`) marca quem, no quadro, também
+ * administra: a linha de assinatura do fecho escreve "Sócia administradora" em vez
+ * de só "Sócia". Vem por argumento porque é outra fonte, e o padrão do quadro é
+ * não consultar nada por conta própria.
  */
-export function mapearQuadroSocietario(socios: SocioParaMapear[]): QuadroSocietarioMapeado {
+export function mapearQuadroSocietario(
+  socios: SocioParaMapear[],
+  idsAdministradores: ReadonlySet<string> = new Set(),
+): QuadroSocietarioMapeado {
   const totalQuotas = socios.reduce((s, x) => s + (x.quotas ?? 0), 0);
   const totalVlr = socios.reduce((s, x) => s + (x.vlr_total ?? 0), 0);
 
-  const itens = socios.map((s) => {
+  const itens = socios.map((s, i) => {
     const item = mapearSocio(s);
     if (s.quotas != null && totalQuotas > 0) {
       (item.socio as Campos).percentual = formatarPercentual((s.quotas / totalQuotas) * 100);
     }
+    // Enumeração do caput de capital ("sendo: i) … e ii) …"), como já existe na
+    // integralização: a cláusula de capital em moeda corrente lista os sócios do
+    // QUADRO, não das integralizações, e precisa do mesmo romano minúsculo.
+    (item.socio as Campos).ordem = String(i + 1);
+    (item.socio as Campos).ordemRomana = romano(i + 1).toLowerCase();
+    // Duas condicionais, gravadas juntas: o engine não tem "else", então cada ramo
+    // da linha de assinatura tem a sua (mesmo padrão de inteiro/fracionado).
+    const administra = !!s.pessoa.id && idsAdministradores.has(s.pessoa.id);
+    (item.socio as Campos).administrador = administra ? 'sim' : '';
+    (item.socio as Campos).naoAdministrador = administra ? '' : 'sim';
     return item;
   });
 

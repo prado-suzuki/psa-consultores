@@ -23,6 +23,10 @@ export const PARES = {
   senhor: (g: Genero) => concordar(g, 'o senhor', 'a senhora'),
   /** Agente da subscrição no caput de capital: "pelo sócio"/"pela sócia". */
   peloSocio: (g: Genero) => concordar(g, 'pelo sócio', 'pela sócia'),
+  // Rótulos da linha de assinatura, já capitalizados: são título embaixo do nome,
+  // não meio de frase ("Sócia administradora e Outorga Conjugal").
+  socioTitulo: (g: Genero) => concordar(g, 'Sócio', 'Sócia'),
+  socioAdministrador: (g: Genero) => concordar(g, 'Sócio administrador', 'Sócia administradora'),
 } as const;
 
 export type ParJuridico = keyof typeof PARES;

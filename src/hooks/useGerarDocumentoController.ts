@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { avaliarFlags, comOrigem, comporBlocos, copiarOrigemProfunda, gerarBlocos, marcarRealceDiff, removerMarcas, unirBlocos, type Bloco, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type Template } from '@/lib/templates';
+import { avaliarFlags, comOrigem, comporBlocos, copiarOrigemProfunda, gerarBlocos, inclusoesDe, marcarRealceDiff, removerMarcas, unirBlocos, type Bloco, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type RegistroFamilias, type Template } from '@/lib/templates';
 import { baixarDocx } from '@/lib/templates/docx';
 import { campoDaEntidade, camposDaEntidade, derivarCampos, type CampoEntidade, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
 import { calcularCapitalSociedade, mapearAdministrador, mapearGeorefCabecalho, mapearIntegralizacoes, mapearQuadroSocietario, mapearRegistro, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, type ItemLista } from '@/lib/templates/mapeadores';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
-import { useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
+import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
 import { useDocumentoGeradoRascunho, useDocumentoOverrides, useDocumentoVersoes, useSalvarDocumentoGerado, type DocumentoGeradoRow, type OverrideAplicavel, type SnapshotDados } from '@/hooks/useDocumentoGerado';
 import { toast } from '@/hooks/use-toast';
 import type { Json } from '@/integrations/supabase/types';
@@ -19,7 +19,7 @@ import { useOsgWork } from '@/contexts/OsgWorkContext';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { BlocoFolha, EstadoFolha } from '@/components/equipe/osg/gerar/FolhaDocumento';
 import type { EstadoPasso } from '@/components/equipe/osg/gerar/gerarKit';
-import { realcarMudancas, renderizarVersao } from '@/components/equipe/osg/gerar/renderizarVersao';
+import { realcarMudancas, renderizarVersao, type SnapshotVersoes } from '@/components/equipe/osg/gerar/renderizarVersao';
 
 const fmtDataNotificacao = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 export interface LinhaNotificacao {
@@ -106,15 +106,54 @@ export function useGerarDocumentoController() {
     [overrides],
   );
 
+  // Famílias de variantes disponíveis ao render: {{familia nome="…"}} dentro de um
+  // bloco resolve por aqui, uma variante por item do laço (ver familia.ts). O
+  // override do documento vale para a VARIANTE (que é um bloco de verdade), então
+  // entra no conteúdo antes de o registro chegar ao motor; `familiasOriginais` é o
+  // espelho sem override, que alimenta o realce do diff.
+  const familias = useMemo(
+    () =>
+      montarRegistroFamilias(
+        catalogoBlocos,
+        (v) => porBlocoAlvo.get(v.id)?.conteudoSubstituto ?? v.versao_atual?.conteudo ?? null,
+      ),
+    [catalogoBlocos, porBlocoAlvo],
+  );
+  const familiasOriginais = useMemo(() => montarRegistroFamilias(catalogoBlocos), [catalogoBlocos]);
+
+  // Variantes por id (achatadas do catálogo): o render marca os segmentos com o id
+  // da variante, e tanto o rótulo na prévia quanto o override precisam do bloco.
+  const variantePorId = useMemo(() => {
+    const mapa = new Map<string, BlocoComVersao>();
+    for (const cabeca of catalogoBlocos) {
+      for (const v of cabeca.variantes) mapa.set(v.id, v);
+    }
+    return mapa;
+  }, [catalogoBlocos]);
+  const nomePorVarianteId = useMemo(
+    () => new Map([...variantePorId].map(([id, v]) => [id, v.variante_rotulo ?? v.nome])),
+    [variantePorId],
+  );
+
   // Posições do modelo (tmpl_documento_bloco.id) cujo bloco-alvo tem override —
-  // alimenta o selo "Ajustado neste documento" na prévia.
+  // alimenta o selo "Ajustado neste documento" na prévia. Uma posição também conta
+  // como ajustada quando o override caiu numa VARIANTE que ela pode escrever: o
+  // texto sai daquele parágrafo, mesmo que o bloco hospedeiro esteja intocado.
   const posicoesSobrescritas = useMemo(() => {
     const set = new Set<string>();
     docBlocos.forEach((b) => {
       if (b.bloco?.id && porBlocoAlvo.has(b.bloco.id)) set.add(b.id);
+      else if (
+        b.bloco?.conteudo &&
+        inclusoesDe(b.bloco.conteudo).some((nome) =>
+          (familias[nome] ?? []).some((v) => porBlocoAlvo.has(v.id)),
+        )
+      ) {
+        set.add(b.id);
+      }
     });
     return set;
-  }, [docBlocos, porBlocoAlvo]);
+  }, [docBlocos, porBlocoAlvo, familias]);
 
   // Template do engine: blocos do modelo com tipo, obrigatório e flags requeridas.
   // Para um bloco sobrescrito, mantemos posição/flags/tipo e só trocamos o
@@ -188,6 +227,18 @@ export function useGerarDocumentoController() {
   // Persiste o snapshot. novaVersao=true (commit deliberado "Atualizar versão")
   // sela a versão atual e cria uma nova; false (1ª validação / re-congelar ao
   // editar) cria a raiz ou atualiza a head no lugar.
+  // Congelamento do texto da versão: os blocos do modelo (com override aplicado)
+  // MAIS as famílias que eles citam, com o texto de cada variante como está agora.
+  // Só as citadas: o snapshot é o retrato deste documento, não da Biblioteca.
+  const snapshotVersoes = useMemo<SnapshotVersoes>(() => {
+    const citadas = new Set(template.blocos.flatMap((b) => inclusoesDe(b.conteudo)));
+    const usadas: RegistroFamilias = {};
+    for (const nome of citadas) {
+      if (familias[nome]) usadas[nome] = familias[nome];
+    }
+    return { blocos: template.blocos, familias: usadas };
+  }, [template, familias]);
+
   const validarVersao = async (novaVersao = false): Promise<DocumentoGeradoRow | null> => {
     if (!clienteId || !modeloId) return null;
     const snap: SnapshotDados = {
@@ -210,8 +261,9 @@ export function useGerarDocumentoController() {
       modeloId,
       snapshotFlags: flagsAtivas,
       snapshotDados: snap as unknown as Json,
-      // Texto dos blocos já resolvido (com overrides) — congela o render da versão.
-      snapshotVersoesBlocos: template.blocos as unknown as Json,
+      // Texto dos blocos já resolvido (com overrides) + variantes das famílias
+      // citadas — congela o render da versão.
+      snapshotVersoesBlocos: snapshotVersoes as unknown as Json,
       novaVersao,
     });
     setDocumentoGerado(doc);
@@ -263,7 +315,7 @@ export function useGerarDocumentoController() {
       modeloId,
       snapshotFlags: flagsAtivasLive,
       snapshotDados: snap as unknown as Json,
-      snapshotVersoesBlocos: template.blocos as unknown as Json,
+      snapshotVersoesBlocos: snapshotVersoes as unknown as Json,
       // Re-sync de dados na mesma versão — não ramifica.
       novaVersao: false,
     });
@@ -311,8 +363,14 @@ export function useGerarDocumentoController() {
     }
   };
 
-  const editarBlocoNaPrevia = (b: BlocoFolha) => {
-    const bloco = b.blocoId ? (catalogoBlocos.find((x) => x.id === b.blocoId) ?? null) : null;
+  /**
+   * Edição a partir da prévia. `alvoId` permite mirar a VARIANTE que escreveu o
+   * trecho em vez do bloco hospedeiro: variante é bloco de verdade, então o
+   * override cai nela e passa a valer em toda alínea que a eleger neste documento.
+   */
+  const editarBlocoNaPrevia = (b: BlocoFolha, alvoId?: string) => {
+    const id = alvoId ?? b.blocoId;
+    const bloco = id ? (catalogoBlocos.find((x) => x.id === id) ?? variantePorId.get(id) ?? null) : null;
     if (!bloco) return;
     // Sem versão validada, conduz à validação em vez de bloquear passivamente.
     if (!documentoGeradoId) {
@@ -361,10 +419,12 @@ export function useGerarDocumentoController() {
   );
 
   // Bloco repetidor entra na detecção embrulhado na própria seção (os campos do
-  // item ficam no escopo da lista; a coleção entra como lista a carregar).
+  // item ficam no escopo da lista; a coleção entra como lista a carregar), e a
+  // inclusão de família entra como a união das variantes (os campos que só a
+  // redação urbana usa também precisam ser pedidos).
   const { bindings, listas, desconhecidos, secoesDesconhecidas, campos: placeholders } = useMemo(
-    () => detectarBindingsDeConteudo(blocosCompostos.map(conteudoParaDeteccao).join(' ')),
-    [blocosCompostos],
+    () => detectarBindingsDeConteudo(blocosCompostos.map((b) => conteudoParaDeteccao(b, familias)).join(' ')),
+    [blocosCompostos, familias],
   );
 
   // --- Georreferenciamento (caminho de volta: BigQuery → memorial no contrato) ---
@@ -419,7 +479,14 @@ export function useGerarDocumentoController() {
 
   // `socio.percentual` e a linha `total` são derivados (calculados aqui, não vêm
   // do banco): dependem da soma das quotas, que só existe no nível da lista.
-  const quadro = useMemo(() => mapearQuadroSocietario(socios), [socios]);
+  // Os ids de quem administra entram no mapeador do quadro: é o que a linha de
+  // assinatura precisa para escrever "Sócia administradora" em vez de só "Sócia".
+  // A informação cruza duas fontes (quadro_societario x administracao), e o
+  // mapeador é quem tem a linha da pessoa para casar.
+  const quadro = useMemo(
+    () => mapearQuadroSocietario(socios, new Set(administradores.map((a) => a.pessoa.id).filter(Boolean))),
+    [socios, administradores],
+  );
   const itensPorLista = useMemo<Record<string, ItemLista[]>>(
     () => ({
       socios: quadro.itens,
@@ -820,14 +887,15 @@ export function useGerarDocumentoController() {
       // Total dos sócios: campos em branco mantêm a prévia viva antes de a empresa
       // ser escolhida; preenchem quando as quotas carregam.
       if (usaTotalSocios) ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...totalEfetivo };
-      const blocos = gerarBlocos(template, ctx, flagsAtivas);
+      const blocos = gerarBlocos(template, ctx, flagsAtivas, familias);
       const texto = unirBlocos(blocos);
 
       // Blocos sobrescritos: renderiza os MESMOS blocos com o conteúdo original
       // (mesmo ctx → numeração/placeholders idênticos) e marca, por palavra, só o
-      // que mudou. Sem overrides, nada é renderizado a mais.
+      // que mudou. Sem overrides, nada é renderizado a mais. As famílias também
+      // vão sem override, senão a variante sobrescrita não apareceria realçada.
       if (posicoesSobrescritas.size === 0) return { blocos, texto, erro: null };
-      const original = gerarBlocos(templateOriginal, ctx, flagsAtivas);
+      const original = gerarBlocos(templateOriginal, ctx, flagsAtivas, familiasOriginais);
       const textoOriginalPorId = new Map(original.map((b) => [b.id, b.conteudo]));
       const comRealce = blocos.map((b) => {
         const posId = b.instanciaDe ?? b.id;
@@ -839,7 +907,7 @@ export function useGerarDocumentoController() {
     } catch (e) {
       return { blocos: null, texto: null, erro: e instanceof Error ? e.message : String(e) };
     }
-  }, [template, templateOriginal, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados, bindingMatricula, georefCabecalhoCampos]);
+  }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados, bindingMatricula, georefCabecalhoCampos]);
 
   const copiar = async () => {
     if (!resultado.texto) return;
@@ -920,6 +988,14 @@ export function useGerarDocumentoController() {
     () =>
       (resultado.blocos ?? []).map((b) => {
         const posicaoId = b.instanciaDe ?? b.id;
+        // Variantes que escreveram trecho DESTA instância (o render marca cada
+        // segmento com o bloco de origem): a prévia oferece editar a redação que
+        // saiu de verdade, não só o parágrafo hospedeiro. Num repetidor cada
+        // instância pode ter caído numa variante diferente, e é por isso que a
+        // lista sai do render e não do conteúdo do bloco.
+        const variantes = [...new Set(b.segmentos.map((s) => s.blocoId).filter((id): id is string => !!id))].map(
+          (id) => ({ id, nome: nomePorVarianteId.get(id) ?? id }),
+        );
         return {
           id: b.id,
           blocoId: bibliotecaIdPorBlocoId.get(posicaoId) ?? null,
@@ -928,9 +1004,10 @@ export function useGerarDocumentoController() {
           conteudo: b.conteudo,
           segmentos: b.segmentos,
           sobrescrito: posicoesSobrescritas.has(posicaoId),
+          variantes,
         };
       }),
-    [resultado.blocos, nomePorBlocoId, bibliotecaIdPorBlocoId, posicoesSobrescritas],
+    [resultado.blocos, nomePorBlocoId, nomePorVarianteId, bibliotecaIdPorBlocoId, posicoesSobrescritas],
   );
 
   // --- Visualização de versão anterior (somente leitura) --------------------
@@ -944,14 +1021,14 @@ export function useGerarDocumentoController() {
     const alvo = versoes[idx].row;
     const anterior = idx > 0 ? versoes[idx - 1].row : null;
     const atual = renderizarVersao(
-      alvo.snapshot_versoes_blocos as unknown as Bloco[] | null,
+      alvo.snapshot_versoes_blocos as unknown as SnapshotVersoes | null,
       alvo.snapshot_flags as string[] | null,
       alvo.snapshot_dados as unknown as SnapshotDados | null,
       modeloSocietario,
     );
     const base = anterior
       ? renderizarVersao(
-          anterior.snapshot_versoes_blocos as unknown as Bloco[] | null,
+          anterior.snapshot_versoes_blocos as unknown as SnapshotVersoes | null,
           anterior.snapshot_flags as string[] | null,
           anterior.snapshot_dados as unknown as SnapshotDados | null,
           modeloSocietario,

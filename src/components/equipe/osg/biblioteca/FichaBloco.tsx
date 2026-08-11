@@ -79,10 +79,23 @@ const ChipSecao = ({ nome }: { nome: string }) => (
   </span>
 );
 
+/**
+ * Inclusão de família: aqui o texto não existe ainda (quem escreve é a variante
+ * eleita na geração, por item), então a prévia mostra de qual família o trecho
+ * vem em vez de fingir uma redação.
+ */
+const ChipFamilia = ({ nome }: { nome: string }) => (
+  <span className="mx-[1px] inline-flex items-center gap-1 rounded border border-dashed border-osg-moss/50 bg-osg-moss/5 px-1.5 py-px align-baseline font-sans text-[0.8em] font-medium leading-snug text-osg-moss whitespace-nowrap">
+    <Layers className="h-3 w-3" />
+    {nome}
+  </span>
+);
+
 const renderNos = (nos: No[]): ReactNode =>
   nos.map((no, i) => {
     if (no.tipo === 'texto') return <TextoComMarcas key={i} texto={no.texto} />;
     if (no.tipo === 'placeholder') return <ChipCampo key={i} caminho={no.caminho} />;
+    if (no.tipo === 'inclusao') return <ChipFamilia key={i} nome={no.familia} />;
     return (
       <Fragment key={i}>
         <ChipSecao nome={no.nome} />

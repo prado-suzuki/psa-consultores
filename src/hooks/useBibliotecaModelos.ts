@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import type { Database } from '@/integrations/supabase/types';
-import type { TipoBloco } from '@/lib/templates';
+import type { RegistroFamilias, TipoBloco, VarianteFamilia } from '@/lib/templates';
 
 /**
  * Colunas de família de variantes (migration 20260806120000_tmpl_bloco_familia_variantes).
@@ -114,6 +114,47 @@ export function useBlocos() {
       return linhas.filter((b) => !b.familia_id);
     },
   });
+}
+
+/**
+ * Traduz as cabeças de família da Biblioteca no registro que o render consome
+ * ({{familia nome="…"}} => variantes elegíveis). A chave é o NOME da cabeça,
+ * porque é o nome que o autor do modelo escreve.
+ *
+ * `conteudoDe` existe para o chamador injetar o texto que vale naquele contexto:
+ * a tela Gerar passa o conteúdo com OVERRIDE do documento aplicado, o espelho do
+ * diff passa o original, e a versão selada passa o texto congelado no snapshot.
+ *
+ * Variante inativa ou sem versão publicada fica FORA: sem texto ela renderizaria
+ * um trecho vazio no meio do contrato, e é melhor o resolvedor acusar que nenhuma
+ * redação atende o caso.
+ */
+export function montarRegistroFamilias(
+  blocos: BlocoComVersao[],
+  conteudoDe: (variante: BlocoComVersao) => string | null = (v) => v.versao_atual?.conteudo ?? null,
+): RegistroFamilias {
+  const registro: RegistroFamilias = {};
+  for (const cabeca of blocos) {
+    if (cabeca.variantes.length === 0) continue;
+    const variantes: VarianteFamilia[] = [];
+    for (const v of cabeca.variantes) {
+      const conteudo = v.ativo ? conteudoDe(v) : null;
+      if (!conteudo) continue;
+      variantes.push({
+        id: v.id,
+        rotulo: v.variante_rotulo,
+        ordem: v.variante_ordem ?? 0,
+        // O seletor vem de jsonb: os valores são comparados como texto pelo
+        // resolvedor, então normaliza aqui em vez de espalhar String() no render.
+        seletor: Object.fromEntries(
+          Object.entries(v.variante_seletor ?? {}).map(([caminho, valor]) => [caminho, String(valor ?? '')]),
+        ),
+        conteudo,
+      });
+    }
+    if (variantes.length > 0) registro[cabeca.nome] = variantes;
+  }
+  return registro;
 }
 
 export interface SalvarBlocoInput {

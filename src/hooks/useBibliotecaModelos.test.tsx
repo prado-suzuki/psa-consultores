@@ -16,7 +16,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 import { mockSupabaseChain } from '@/test/supabaseMock';
-import { useBlocos, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
+import { montarRegistroFamilias, useBlocos, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
 
 /** Linha crua de tmpl_bloco como a consulta a devolve (com os embeds). */
 const linha = (over: Record<string, unknown>) => ({
@@ -144,5 +144,56 @@ describe('useBlocos', () => {
     expect(normal.variantes).toEqual([]);
     expect(normal.familia_id).toBeNull();
     expect(normal.versao_atual?.conteudo).toBe('texto solto');
+  });
+});
+
+describe('montarRegistroFamilias', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('indexa pelo NOME da cabeça, que é o que o autor do modelo escreve', async () => {
+    const { blocos } = await rodarQueryFn();
+    expect(Object.keys(montarRegistroFamilias(blocos))).toEqual(['Descrição de imóvel']);
+  });
+
+  it('deixa fora a variante sem versão publicada (renderizaria trecho vazio no contrato)', async () => {
+    const { blocos } = await rodarQueryFn();
+    const familia = montarRegistroFamilias(blocos)['Descrição de imóvel'];
+    // var-rural-inteiro não tem versão; var-urbano-inteiro também não.
+    expect(familia.map((v) => v.id)).toEqual(['var-posse']);
+    expect(familia[0].ordem).toBe(1);
+    expect(familia[0].conteudo).toBe('imóvel rural de posse, direitos de promessa de compra');
+  });
+
+  it('deixa fora variante inativa', async () => {
+    const { blocos } = await rodarQueryFn();
+    const cabeca = blocos.find((b) => b.id === 'cabeca')!;
+    cabeca.variantes = cabeca.variantes.map((v) => ({ ...v, ativo: false }));
+    expect(montarRegistroFamilias(blocos)).toEqual({});
+  });
+
+  it('normaliza o seletor jsonb para texto (é como o resolvedor compara)', async () => {
+    const { blocos } = await rodarQueryFn();
+    const cabeca = blocos.find((b) => b.id === 'cabeca')!;
+    cabeca.variantes[0].variante_seletor = { 'imovel.andar': 12, 'imovel.posse': null };
+    const familia = montarRegistroFamilias(blocos)['Descrição de imóvel'];
+    expect(familia[0].seletor).toEqual({ 'imovel.andar': '12', 'imovel.posse': '' });
+  });
+
+  it('conteudoDe injeta o texto do contexto (override do documento, snapshot selado)', async () => {
+    const { blocos } = await rodarQueryFn();
+    const familia = montarRegistroFamilias(blocos, (v) => `ajustado: ${v.id}`)['Descrição de imóvel'];
+    expect(familia.map((v) => [v.id, v.conteudo])).toEqual([
+      ['var-posse', 'ajustado: var-posse'],
+      ['var-rural-inteiro', 'ajustado: var-rural-inteiro'],
+      ['var-urbano-inteiro', 'ajustado: var-urbano-inteiro'],
+    ]);
+  });
+
+  it('bloco sem variantes não vira família', async () => {
+    const { blocos } = await rodarQueryFn();
+    const normal = blocos.filter((b) => b.id === 'normal');
+    expect(montarRegistroFamilias(normal)).toEqual({});
   });
 });

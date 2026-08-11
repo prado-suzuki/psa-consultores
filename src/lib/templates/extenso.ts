@@ -15,21 +15,31 @@ const ESCALAS = [
   { singular: 'bilhão', plural: 'bilhões' },
 ];
 
-function ate99(n: number): string {
-  if (n < 10) return UNIDADES[n];
+/**
+ * Formas femininas: só "um/dois" e as centenas a partir de duzentos flexionam.
+ * "cem", "cento", as dezenas e os especiais (onze, quinze…) são invariáveis.
+ * Serve para contar substantivo feminino, e o caso da casa é QUOTA: os contratos
+ * registrados escrevem "1.000 (mil) quotas" e "500 (quinhentas) quotas".
+ */
+const UNIDADES_F = ['zero', 'uma', 'duas', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove'];
+const CENTENAS_F = ['', 'cento', 'duzentas', 'trezentas', 'quatrocentas', 'quinhentas', 'seiscentas', 'setecentas', 'oitocentas', 'novecentas'];
+
+function ate99(n: number, feminino = false): string {
+  const unidades = feminino ? UNIDADES_F : UNIDADES;
+  if (n < 10) return unidades[n];
   if (n < 20) return ESPECIAIS[n - 10];
   const d = Math.floor(n / 10);
   const u = n % 10;
-  return u === 0 ? DEZENAS[d] : `${DEZENAS[d]} e ${UNIDADES[u]}`;
+  return u === 0 ? DEZENAS[d] : `${DEZENAS[d]} e ${unidades[u]}`;
 }
 
-function ate999(n: number): string {
+function ate999(n: number, feminino = false): string {
   if (n === 100) return 'cem';
   const c = Math.floor(n / 100);
   const resto = n % 100;
   const partes: string[] = [];
-  if (c > 0) partes.push(CENTENAS[c]);
-  if (resto > 0) partes.push(ate99(resto));
+  if (c > 0) partes.push((feminino ? CENTENAS_F : CENTENAS)[c]);
+  if (resto > 0) partes.push(ate99(resto, feminino));
   return partes.join(' e ');
 }
 
@@ -47,8 +57,16 @@ function juntarGrupos(partes: Array<{ texto: string; valor: number }>): string {
   return `${inicio}${conector}${ultimo.texto}`;
 }
 
-/** Cardinal por extenso (masculino). Ex.: 396 → "trezentos e noventa e seis". */
-export function cardinalExtenso(valor: number): string {
+/**
+ * Cardinal por extenso. Ex.: 396 → "trezentos e noventa e seis".
+ *
+ * `feminino` concorda com o substantivo contado: 500 quotas são "quinhentas", e
+ * 872.674 quotas são "oitocentas e setenta e duas mil, seiscentas e setenta e
+ * quatro", como nos contratos registrados. A flexão vale para o grupo das
+ * unidades e para o dos milhares (que conta o próprio substantivo); milhão e
+ * bilhão são substantivos masculinos e não flexionam ("dois milhões de quotas").
+ */
+export function cardinalExtenso(valor: number, feminino = false): string {
   const n = Math.floor(Math.abs(valor));
   if (n === 0) return 'zero';
 
@@ -65,9 +83,9 @@ export function cardinalExtenso(valor: number): string {
     if (g === 0) continue;
     let texto: string;
     if (i === 0) {
-      texto = ate999(g);
+      texto = ate999(g, feminino);
     } else if (i === 1) {
-      texto = g === 1 ? 'mil' : `${ate999(g)} mil`;
+      texto = g === 1 ? 'mil' : `${ate999(g, feminino)} mil`;
     } else {
       const escala = ESCALAS[i];
       texto = `${ate999(g)} ${g === 1 ? escala.singular : escala.plural}`;

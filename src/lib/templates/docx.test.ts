@@ -18,6 +18,7 @@ describe('export .docx (formatação do modelo de referência)', () => {
   it('aplica margens, fonte padrão e formatação por tipo estrutural', async () => {
     const doc = await montarDocx([
       bloco('cab', 'livre', 'INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE SOCIEDADE LIMITADA'),
+      bloco('razao', 'livre', 'Agro Aliança Ltda'),
       // Conteúdos como saem de numerarBlocos: rótulos já envolvidos em *negrito*.
       bloco('cap', 'capitulo', '*CAPÍTULO I*\nDenominação, Sede e Prazo de Duração'),
       bloco('cl', 'clausula', '*CLÁUSULA PRIMEIRA:* A sociedade girará sob o nome X.\n    a) Primeira alínea;'),
@@ -26,17 +27,20 @@ describe('export .docx (formatação do modelo de referência)', () => {
     ]);
     const xml = await parteXml(doc, /word\/document\.xml$/);
 
-    // Página e margens do modelo (A4; 2,5 / 2,25 / 3,0 / 2,0 cm)
+    // Página e margens do modelo (A4; 3,0 / 2,5 / 2,0 / 2,5 cm)
     expect(xml).toContain('w:w="11906"');
-    expect(xml).toContain('w:top="1418"');
-    expect(xml).toContain('w:bottom="1276"');
+    expect(xml).toContain('w:top="1134"');
+    expect(xml).toContain('w:bottom="1418"');
     expect(xml).toContain('w:left="1701"');
-    expect(xml).toContain('w:right="1133"');
+    expect(xml).toContain('w:right="1418"');
 
-    // Fonte padrão do corpo (docDefaults em styles.xml)
+    // Fonte padrão do corpo, em docDefaults E num estilo `Normal` de verdade:
+    // sem o Normal os estilos embutidos ficam com basedOn pendurado e leitor
+    // fora do Word ignora a fonte.
     const styles = await parteXml(doc, /word\/styles\.xml$/);
     expect(styles).toContain('Arial Narrow');
     expect(styles).toContain('w:val="24"'); // 12pt
+    expect(styles).toContain('w:styleId="Normal"');
 
     // Rótulos em negrito (runs separados, sem as marcas literais)
     expect(xml).toContain('<w:b/>');
@@ -46,12 +50,84 @@ describe('export .docx (formatação do modelo de referência)', () => {
     expect(xml).not.toContain('*CAPÍTULO');
     expect(xml).not.toContain('*CLÁUSULA');
 
-    // Alínea com recuo de 1,27 cm
-    expect(xml).toContain('w:left="720"');
+    // Alínea com recuo pendente: marcador a 0,5 cm, corpo a 1,0 cm
+    expect(xml).toContain('w:left="567"');
+    expect(xml).toContain('w:hanging="284"');
 
-    // Título 18pt (36 half-points) e justificação no corpo
+    // Título 18pt (36 half-points), razão social 20pt (40) e corpo justificado
     expect(xml).toContain('w:val="36"');
+    expect(xml).toContain('w:val="40"');
     expect(xml).toContain('w:val="both"');
+
+    // Entrelinha 1,15 do modelo e nenhum espaçamento entre parágrafos: a
+    // respiração vem de parágrafo vazio, como no .docx nativo do modelo.
+    expect(xml).toContain('w:line="276" w:lineRule="auto"');
+    expect(xml).not.toContain('w:line="240"');
+    expect(xml).not.toContain('w:after="120"');
+    expect(xml).not.toContain('w:before="240"');
+  });
+
+  it('capítulo e subtítulo saem centralizados em negrito sublinhado', async () => {
+    const doc = await montarDocx([
+      bloco('cap', 'capitulo', '*CAPÍTULO III*\nCapital Social'),
+      bloco('cl', 'clausula', '*CLÁUSULA QUINTA:* O capital social é de R$ 1,00.'),
+      bloco('par', 'paragrafo', '*Parágrafo Único:* Responsabilidade restrita.'),
+      bloco('cl2', 'clausula', '*CLÁUSULA SEXTA:* Administração.'),
+    ]);
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+
+    // As duas linhas do capítulo levam sublinhado (o subtítulo saía sem nada)
+    const sublinhados = xml.match(/<w:u w:val="single"\/>/g) ?? [];
+    expect(sublinhados.length).toBeGreaterThanOrEqual(2);
+    expect(xml).toContain('Capital Social');
+    expect(xml).toContain('w:val="center"');
+
+    // Parágrafo vazio: só o pPr, sem run.
+    const VAZIO = /<w:p><w:pPr><w:spacing[^>]*\/><\/w:pPr><\/w:p>/;
+    const entre = (de: string, ate: string) =>
+      xml.slice(xml.indexOf(de), xml.indexOf(ate));
+
+    // Subtítulo → cláusula e cláusula → seu parágrafo saem colados
+    expect(entre('Capital Social', 'CLÁUSULA QUINTA:')).not.toMatch(VAZIO);
+    expect(entre('CLÁUSULA QUINTA:', 'Parágrafo Único:')).not.toMatch(VAZIO);
+    // Cláusula nova depois de um parágrafo abre com linha em branco
+    expect(entre('Parágrafo Único:', 'CLÁUSULA SEXTA:')).toMatch(VAZIO);
+  });
+
+  it('lista de alíneas é compacta: linha em branco entre itens não sai', async () => {
+    const doc = await montarDocx([
+      bloco(
+        'par',
+        'paragrafo',
+        '*Parágrafo Segundo:* Bens integralizados:\na) Primeiro imóvel.\n\nb) Segundo imóvel.\n\nc) Terceiro imóvel.',
+      ),
+      bloco('cl', 'clausula', '*CLÁUSULA SEXTA:* Administração.'),
+    ]);
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+    const VAZIO = /<w:p><w:pPr><w:spacing[^>]*\/><\/w:pPr><\/w:p>/g;
+
+    // As três alíneas saem colada uma na outra…
+    const lista = xml.slice(xml.indexOf('Primeiro imóvel'), xml.indexOf('Terceiro imóvel'));
+    expect(lista).not.toMatch(VAZIO);
+    // …e a linha em branco antes da cláusula seguinte continua lá.
+    expect(xml.slice(xml.indexOf('Terceiro imóvel'), xml.indexOf('CLÁUSULA SEXTA:'))).toMatch(VAZIO);
+  });
+
+  it('bloco de assinatura fica inteiro centralizado (régua, nome e papel)', async () => {
+    const doc = await montarDocx([
+      bloco(
+        'fecho',
+        'livre',
+        '_______________________________________\n*Fulano de Tal*\nSócio administrador e Outorga Conjugal',
+      ),
+    ]);
+    const xml = await parteXml(doc, /word\/document\.xml$/);
+
+    // Nenhuma linha do bloco de assinatura pode sair justificada: o papel do
+    // signatário saía à esquerda, desalinhado do nome centralizado acima.
+    expect(xml).not.toContain('w:val="both"');
+    expect((xml.match(/w:val="center"/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect(xml).toContain('Sócio administrador e Outorga Conjugal');
   });
 
   it('marcas inline viram runs formatados (e não aparecem literais)', async () => {
@@ -97,16 +173,17 @@ describe('export .docx (formatação do modelo de referência)', () => {
     expect(xml).toContain('Fim.');
   });
 
-  it('rodapé tem "Página X de Y" com campos dinâmicos em Arial 9pt à direita', async () => {
+  it('rodapé tem "Página X de Y" em Arial Narrow 12pt à direita, números em negrito', async () => {
     const doc = await montarDocx([bloco('a', 'livre', 'Qualquer texto.')]);
     const footer = await parteXml(doc, /word\/footer\d*\.xml$/);
 
     expect(footer).toContain('Página ');
     expect(footer).toContain('PAGE');
     expect(footer).toContain('NUMPAGES');
-    expect(footer).toContain('Arial');
-    expect(footer).toContain('w:val="18"'); // 9pt
+    expect(footer).toContain('Arial Narrow');
+    expect(footer).toContain('w:val="24"'); // 12pt
     expect(footer).toContain('w:val="right"');
+    expect(footer).toContain('<w:b/>'); // PAGE e NUMPAGES em negrito
   });
 
   it.each([

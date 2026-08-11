@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2 } from 'lucide-react';
+import { ClipboardList, ListPlus, Trash2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,9 +31,30 @@ import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDeta
 // altura máxima para o campo esticar sem empurrar o rodapé para fora da tela.
 const contentClass = (expanded: boolean) =>
   cn(
-    'flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 transition-[max-width] duration-200',
+    'flex max-h-[90vh] flex-col gap-0 overflow-hidden border-teal-700/30 p-0 transition-[max-width] duration-200',
+    // O "X" de fechar é filho direto do content e herdaria a cor do texto: sobre
+    // a faixa teal ele precisa ser claro.
+    '[&>button]:text-white/70 [&>button:hover]:text-white',
     expanded ? 'h-[88vh] sm:max-w-4xl' : 'sm:max-w-[calc(100vw-2rem)] xl:max-w-7xl',
   );
+
+// Faixa de cor no topo: o teal da área entra em bloco, não em linha fina, e é o
+// que tira o modal do branco. Miolo e rodapé seguem claros para o formulário
+// respirar embaixo dela.
+// Degrau mais claro da escala (a paleta do projeto só tem 500/600/700), não
+// transparência: misturar com o branco do modal deixaria o teal acinzentado.
+// A borda mais escura mantém a faixa com um limite definido embaixo.
+const headerClass = 'border-b border-teal-700 bg-teal-500 px-6 py-4 pr-12 text-white';
+const footerClass = 'border-t border-teal-600/20 bg-background px-6 py-4';
+
+/** Selo antes do título: recorte claro dentro da faixa, para o ícone respirar. */
+function TitleSeal({ icon: Icon }: { icon: typeof ClipboardList }) {
+  return (
+    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/15 text-white">
+      <Icon className="h-4 w-4" />
+    </span>
+  );
+}
 
 export function DeliverableDialogs({
   controller: c,
@@ -72,15 +93,22 @@ export function DeliverableDialogs({
             }
           }}
         >
-          <DialogHeader className="border-b bg-muted/30 px-6 py-4 pr-12">
+          <DialogHeader className={headerClass}>
             <div className="flex items-center justify-between gap-3">
-              <DialogTitle className="text-xl tracking-tight">Editar Entregável</DialogTitle>
+              <div className="flex min-w-0 items-center gap-2.5">
+                <TitleSeal icon={ClipboardList} />
+                <DialogTitle className="text-xl tracking-tight">Editar Entregável</DialogTitle>
+              </div>
               {c.editingDeliverable && !editDescriptionExpanded && (
-                <RetrospectiveReportDialog
-                  deliverable={c.editingDeliverable}
-                  controller={c}
-                  showLabel
-                />
+                // A ação vive dentro da faixa teal: texto e ícone claros, realce
+                // por transparência em vez da cor de fundo padrão do botão.
+                <div className="[&_button:hover]:bg-white/15 [&_button:hover]:text-white [&_button]:text-white [&_svg]:text-white">
+                  <RetrospectiveReportDialog
+                    deliverable={c.editingDeliverable}
+                    controller={c}
+                    showLabel
+                  />
+                </div>
               )}
             </div>
           </DialogHeader>
@@ -98,7 +126,7 @@ export function DeliverableDialogs({
               <AnexosEntregavel deliverableId={c.editingDeliverable?.id} ativo={c.editModalOpen} />
             )}
           </div>
-          <DialogFooter className="border-t bg-background px-6 py-4 sm:justify-between">
+          <DialogFooter className={cn(footerClass, 'sm:justify-between')}>
             <AlertDialog open={c.deleteDialogOpen} onOpenChange={c.setDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
                 <Button variant="outline" className="text-destructive hover:bg-destructive/10">
@@ -168,8 +196,11 @@ export function DeliverableDialogs({
             }
           }}
         >
-          <DialogHeader className="border-b bg-muted/30 px-6 py-4 pr-12">
-            <DialogTitle className="text-xl tracking-tight">Nova Tarefa</DialogTitle>
+          <DialogHeader className={headerClass}>
+            <div className="flex min-w-0 items-center gap-2.5">
+              <TitleSeal icon={ListPlus} />
+              <DialogTitle className="text-xl tracking-tight">Nova Tarefa</DialogTitle>
+            </div>
           </DialogHeader>
           <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto bg-muted/20 px-4 py-4 sm:px-6 sm:py-5">
             <DeliverableFormFields
@@ -181,7 +212,7 @@ export function DeliverableDialogs({
               onToggleDescription={() => setCreateDescriptionExpanded((current) => !current)}
             />
           </div>
-          <DialogFooter className="border-t bg-background px-6 py-4">
+          <DialogFooter className={footerClass}>
             <Button variant="outline" onClick={() => c.setCreateModalOpen(false)}>
               Cancelar
             </Button>
