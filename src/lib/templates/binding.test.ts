@@ -136,3 +136,40 @@ describe('detectarBindingsDeConteudo — papel de lista dentro de uma condiciona
     expect(detectarBindingsDeConteudo(duas).listas.map((l) => l.nome)).toEqual(['vertices']);
   });
 });
+
+describe('B15 · imóvel singular e imóveis múltiplos têm contratos distintos', () => {
+  it('laço de imóveis pede seleção múltipla, sem inventar binding singular', () => {
+    const deteccao = detectarBindingsDeConteudo(
+      '{{#imoveis}}{{ imovel.numero }}{{#vertices}}{{ vertice.codVertice }}{{/vertices}}{{/imoveis}}',
+    );
+    expect(deteccao.listas.map((lista) => [lista.nome, lista.papel.fonte])).toEqual([
+      ['imoveis', 'selecao'],
+    ]);
+    expect(deteccao.bindings).toEqual([]);
+    expect(deteccao.desconhecidos).toEqual([]);
+  });
+
+  it('modelo de matrícula digitada continua pedindo exatamente um imóvel', () => {
+    expect(detectarBindingsDeConteudo('{{ imovel.numero }}').bindings).toEqual([
+      { nome: 'imovel', tipo: 'matricula', cardinalidade: 'um' },
+    ]);
+  });
+});
+
+describe('B12/B13 · fecho reconhece signatários como lista própria', () => {
+  it('não transforma os campos do signatário em bindings ou texto livre', () => {
+    const fecho =
+      '{{#signatarios}}' +
+      '{{ signatario.nomeMaiusculo }} — {{ signatario.papel }}' +
+      '{{#signatario.qualificacao}} {{ signatario.qualificacao }}{{/signatario.qualificacao}}' +
+      '{{/signatarios}}';
+    const deteccao = detectarBindingsDeConteudo(fecho);
+
+    expect(deteccao.listas.map((lista) => [lista.nome, lista.papel.fonte])).toEqual([
+      ['signatarios', 'signatarios'],
+    ]);
+    expect(deteccao.bindings).toEqual([]);
+    expect(deteccao.desconhecidos).toEqual([]);
+    expect(deteccao.secoesDesconhecidas).toEqual([]);
+  });
+});
