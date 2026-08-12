@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PassoCard } from '@/components/equipe/osg/gerar/gerarKit';
 import { EscolhaModelo } from '@/components/equipe/osg/gerar/EscolhaModelo';
 import { EscolhaEmpresa } from '@/components/equipe/osg/gerar/EscolhaEmpresa';
+import { SelecaoRegistrosLista } from '@/components/equipe/osg/gerar/SelecaoRegistrosLista';
 import { fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { labelDoBinding } from '@/lib/templates/binding';
@@ -18,7 +18,8 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
   const {
   modelos, carregandoModelos, modeloId, setModeloId, carregandoBlocos, clienteId, registros,
   carregandoRegistros, selecao, registroPorBinding, registrosPorLista,
-  alternarRegistroDaLista, listasDeSelecao, valoresLivres, setValoresLivres,
+  alternarRegistroDaLista, confirmarSelecaoDeListas, listasDeSelecao,
+  listasSelecaoPendentes, valoresLivres, setValoresLivres,
   empresaId, setEmpresaId, copiado, passoAberto, setPassoAberto, ajustesAbertos,
   setAjustesAbertos, railAberto, setRailAberto, versaoVisualizadaId, setVersaoVisualizadaId,
   abaEfetiva, setAba, documentoGeradoId, documentoRaizId, versoes, congelado,
@@ -123,28 +124,39 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
                 />
               )}
 
-              {listasDeSelecao.map((lista) => (
-                <div key={lista.nome} className="space-y-2">
-                  <Label className={labelCls}>{lista.papel.label}</Label>
-                  <div className="max-h-56 space-y-2 overflow-y-auto rounded-lg border border-slate-200 p-3">
-                    {registros[lista.papel.tipo].map((registro) => {
-                      const marcado = (registrosPorLista[lista.nome] ?? []).includes(registro.id);
-                      return (
-                        <label key={registro.id} className="flex cursor-pointer items-center gap-2 text-sm">
-                          <Checkbox
-                            checked={marcado}
-                            onCheckedChange={() => alternarRegistroDaLista(lista.nome, registro.id)}
-                          />
-                          <span>{registro.label}</span>
-                        </label>
-                      );
-                    })}
-                    {registros[lista.papel.tipo].length === 0 && (
-                      <p className="text-sm text-slate-500">Nenhum registro cadastrado.</p>
-                    )}
-                  </div>
+              {listasDeSelecao.length > 0 && (
+                <div className="space-y-4">
+                  {listasDeSelecao.map((lista) => {
+                    const marcados = registrosPorLista[lista.nome] ?? [];
+                    return (
+                      <div key={lista.nome} className="space-y-2">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <Label className={labelCls}>{lista.papel.label}</Label>
+                          <span className="text-xs tabular-nums text-slate-500">
+                            {marcados.length} selecionado{marcados.length === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                        <SelecaoRegistrosLista
+                          nome={lista.nome}
+                          registros={registros[lista.papel.tipo]}
+                          selecionados={marcados}
+                          onAlternar={(registroId) => alternarRegistroDaLista(lista.nome, registroId)}
+                        />
+                      </div>
+                    );
+                  })}
+                  {/* Marcar um item NÃO conclui o passo: o documento pode
+                      descrever várias matrículas, e quem diz que terminou de
+                      montar a lista é o consultor, aqui. */}
+                  <Button
+                    onClick={confirmarSelecaoDeListas}
+                    disabled={listasSelecaoPendentes.length > 0}
+                    className="w-full sm:w-auto"
+                  >
+                    Concluir seleção
+                  </Button>
                 </div>
-              ))}
+              )}
 
               {bindingsNaoSociedade.length > 0 && (
                 <div className="space-y-3">
