@@ -53,6 +53,13 @@ export interface OrgProject {
   is_multidisciplinar: boolean;
   objective: string | null;
   ordem_servico_id: string | null;
+  servico_id: string | null;
+  /**
+   * Produto contratado que o projeto atende (1 por projeto). É o dado gravado —
+   * `servico_contratado` abaixo é só o rótulo dele. Nulo em projeto antigo que o
+   * backfill da migration 20260814140000 não identificou.
+   */
+  produto_segmento_id: string | null;
   // Joined data
   responsible?: { id: string; first_name: string; last_name: string } | null;
   leader?: { id: string; first_name: string; last_name: string } | null;
@@ -60,6 +67,7 @@ export interface OrgProject {
   equipe_ref?: { id: string; name: string } | null;
   external_client?: { id: string; nome: string } | null;
   contribuinte?: { id: string; nome_razao_social: string } | null;
+  /** Rótulo "CÓDIGO — Nome" do produto do projeto. Ver resolveProdutoLabel. */
   servico_contratado?: string | null;
   servico_nome?: string | null;
 }
@@ -85,6 +93,8 @@ export interface OrgProjectFormData {
   member_ids: string[];
   ordem_servico_id: string;
   servico_id: string;
+  /** Produto contratado escolhido no formulário. '' = nenhum. */
+  produto_segmento_id: string;
 }
 
 // ── @deprecated aliases (backward compat) ──────────────────────────────
@@ -139,9 +149,15 @@ export const useOrgProjects = () => {
         (contribs || []).forEach(c => { contribMap[c.id] = c.nome_razao_social; });
       }
 
-      // Resolve servico_contratado via os_produtos_contratados → produto_segmento
+      // Rótulo do produto. Duas fontes, nesta ordem:
+      //  1. `produto_segmento_id` do próprio projeto — o dado gravado desde a
+      //     migration 20260814140000, e o único que diz QUAL produto é;
+      //  2. os produtos da OS concatenados — fallback só para projeto antigo que
+      //     o backfill não identificou. Esse rótulo é o da OS, não o do projeto:
+      //     numa OS de 3 produtos ele lista os 3. É por isso que ele é fallback.
       const osIds = [...new Set(projetos.filter(p => p.ordem_servico_id).map(p => p.ordem_servico_id as string))];
       const servicoMap: Record<string, string> = {};
+      const produtoLabelById: Record<string, string> = {};
 
       if (osIds.length > 0) {
         // os_produtos_contratados não está no schema tipado — cast justificado
@@ -160,11 +176,28 @@ export const useOrgProjects = () => {
           if (label) {
             if (!osProductMap[osId]) osProductMap[osId] = [];
             osProductMap[osId].push(label);
+            produtoLabelById[row.produto_segmento_id as string] = label;
           }
         }
         for (const [osId, labels] of Object.entries(osProductMap)) {
           servicoMap[osId] = labels.join(', ');
         }
+      }
+
+      // Produto gravado que não veio no lote acima: projeto sem OS, ou produto
+      // que saiu da OS depois que o projeto foi criado. Sem esta busca o rótulo
+      // sumiria justamente no caso que a coluna existe para resolver.
+      const produtoIdsFaltantes = [...new Set(projetos
+        .map(p => (p as { produto_segmento_id?: string | null }).produto_segmento_id)
+        .filter((id): id is string => Boolean(id) && !produtoLabelById[id as string]))];
+      if (produtoIdsFaltantes.length > 0) {
+        const { data: produtos } = await supabase
+          .from('produto_segmento')
+          .select('id, codigo, nome')
+          .in('id', produtoIdsFaltantes);
+        (produtos || []).forEach(produto => {
+          produtoLabelById[produto.id] = `${produto.codigo} — ${produto.nome}`;
+        });
       }
 
       // Resolve servico_id → nome via servicos_prestados
@@ -178,15 +211,22 @@ export const useOrgProjects = () => {
         (servicos || []).forEach((s: any) => { servicoNomeMap[s.id] = s.nome; });
       }
 
-      return projetos.map(p => ({
-        ...p,
-        // is_multidisciplinar ainda ausente do schema tipado gerado — coerce a boolean
-        is_multidisciplinar: !!(p as { is_multidisciplinar?: boolean }).is_multidisciplinar,
-        external_client: p.external_client_id ? { id: p.external_client_id, nome: clientMap[p.external_client_id] || 'Desconhecido' } : null,
-        contribuinte: p.contribuinte_id ? { id: p.contribuinte_id, nome_razao_social: contribMap[p.contribuinte_id] || 'Desconhecido' } : null,
-        servico_contratado: p.ordem_servico_id ? servicoMap[p.ordem_servico_id] || null : null,
-        servico_nome: p.servico_id ? servicoNomeMap[p.servico_id] || null : null,
-      })) as OrgProject[];
+      return projetos.map(p => {
+        // produto_segmento_id ainda ausente do schema tipado gerado — cast justificado
+        const produtoId = (p as { produto_segmento_id?: string | null }).produto_segmento_id || null;
+        return {
+          ...p,
+          // is_multidisciplinar ainda ausente do schema tipado gerado — coerce a boolean
+          is_multidisciplinar: !!(p as { is_multidisciplinar?: boolean }).is_multidisciplinar,
+          produto_segmento_id: produtoId,
+          external_client: p.external_client_id ? { id: p.external_client_id, nome: clientMap[p.external_client_id] || 'Desconhecido' } : null,
+          contribuinte: p.contribuinte_id ? { id: p.contribuinte_id, nome_razao_social: contribMap[p.contribuinte_id] || 'Desconhecido' } : null,
+          servico_contratado: produtoId
+            ? produtoLabelById[produtoId] || null
+            : (p.ordem_servico_id ? servicoMap[p.ordem_servico_id] || null : null),
+          servico_nome: p.servico_id ? servicoNomeMap[p.servico_id] || null : null,
+        };
+      }) as OrgProject[];
     },
   });
 };
@@ -298,8 +338,9 @@ async function insertProjectWithMembers(data: OrgProjectFormData, userId: string
     is_multidisciplinar: data.is_multidisciplinar,
     ordem_servico_id: data.ordem_servico_id || null,
     servico_id: data.servico_id || null,
+    produto_segmento_id: data.produto_segmento_id || null,
     created_by: userId || null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- is_multidisciplinar ainda ausente do schema tipado gerado
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- is_multidisciplinar e produto_segmento_id ainda ausentes do schema tipado gerado
   } as any).select('id').single();
   if (error) throw error;
 
@@ -410,7 +451,8 @@ export const useUpdateOrgProject = () => {
         ['external_client_id', oldProject.external_client_id || null, data.external_client_id || null],
         ['contribuinte_id', oldProject.contribuinte_id || null, data.contribuinte_id || null],
         ['ordem_servico_id', oldProject.ordem_servico_id || null, data.ordem_servico_id || null],
-        ['servico_id', (oldProject as any).servico_id || null, data.servico_id || null],
+        ['servico_id', oldProject.servico_id || null, data.servico_id || null],
+        ['produto_segmento_id', oldProject.produto_segmento_id || null, data.produto_segmento_id || null],
       ];
       // Patch isolado: monta o payload só com as colunas que realmente mudaram,
       // reaproveitando o mesmo diff da auditoria. Assim uma edição nunca reescreve
@@ -434,7 +476,7 @@ export const useUpdateOrgProject = () => {
       // Update project — só dispara quando alguma coluna mudou (patch isolado acima).
       if (Object.keys(updatePayload).length > 0) {
         await assertCanPerform('org_projects', 'update', id);
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- is_multidisciplinar ainda ausente do schema tipado gerado
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- is_multidisciplinar e produto_segmento_id ainda ausentes do schema tipado gerado
         const { error } = await supabase.from('org_projects').update(updatePayload as any).eq('id', id);
         if (error) throw error;
       }

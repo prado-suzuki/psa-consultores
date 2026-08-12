@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { AreaKey } from '@/config/areaCategories';
@@ -60,7 +60,6 @@ export function useProjetosCadastroController(area: AreaKey) {
   // própria: ao reabrir, deduz de responsible_id vazio.
   const [semExecutorFixo, setSemExecutorFixo] = useState(false);
   const [selectedOsId, setSelectedOsId] = useState<string | null>(null);
-  const [selectedProdutoId, setSelectedProdutoId] = useState<string | null>(null);
   const [prevEquipeId, setPrevEquipeId] = useState('');
   const isOpeningEditRef = useRef(false);
   const collapsedInitializedRef = useRef(false);
@@ -132,22 +131,49 @@ export function useProjetosCadastroController(area: AreaKey) {
   const selectedOsProdutos = useMemo(() => selectedOsId ? (osProdutosByOs[selectedOsId] || []) : [],
     [osProdutosByOs, selectedOsId]);
 
+  /**
+   * O produto escolhido é campo do formulário, não estado à parte: ele é gravado
+   * em `org_projects.produto_segmento_id`. Enquanto era só estado de React, a
+   * escolha sumia no salvamento e o projeto reabria como "Produto: Não
+   * informado" (ver migration 20260814140000).
+   */
+  const selectedProdutoId = formData.produto_segmento_id || null;
+  const setSelectedProdutoId = useCallback((produtoId: string | null) => {
+    setFormData(previous => (previous.produto_segmento_id === (produtoId || '')
+      ? previous
+      : { ...previous, produto_segmento_id: produtoId || '' }));
+  }, []);
+
   // A abertura de edição depende desta sequência: primeiro fixa OS/form e só então
   // permite que os efeitos derivados resolvam produto/serviço sem limpar datas.
   useEffect(() => {
     if (isOpeningEditRef.current) return;
-    setSelectedProdutoId(selectedOsProdutos.length === 1 ? selectedOsProdutos[0].produto_segmento_id : null);
-  }, [selectedOsProdutos]);
+    // Sugestão, não sobrescrita: OS de produto único preenche sozinha. O caso de
+    // vários produtos NÃO zera a escolha — quem zera é a troca de OS (efeito
+    // abaixo). Zerar aqui era o que apagava o produto gravado assim que a lista
+    // de produtos da OS terminava de carregar.
+    if (selectedOsProdutos.length === 1) {
+      setSelectedProdutoId(selectedOsProdutos[0].produto_segmento_id);
+      return;
+    }
+    // Produto que não está mais contratado nesta OS não pode seguir marcado.
+    if (selectedOsProdutos.length > 1 && selectedProdutoId
+      && !selectedOsProdutos.some(product => product.produto_segmento_id === selectedProdutoId)) {
+      setSelectedProdutoId(null);
+    }
+  }, [selectedOsProdutos, selectedProdutoId, setSelectedProdutoId]);
 
   const { resolveProdutoIdByServico } = useDomainFiscalProjetosCadastro(selectedProdutoId);
 
+  // Projeto antigo sem produto gravado: recupera pelo serviço, como antes. A
+  // dedução só existe para o legado — projeto novo já chega com o produto.
   useEffect(() => {
     if (!editingProject || !formData.servico_id || selectedProdutoId || selectedOsProdutos.length === 0) return;
     resolveProdutoIdByServico(formData.servico_id, selectedOsProdutos.map(product => product.produto_segmento_id))
       .then(produtoId => {
         if (produtoId) setSelectedProdutoId(produtoId);
       });
-  }, [editingProject, formData.servico_id, selectedOsProdutos, selectedProdutoId, resolveProdutoIdByServico]);
+  }, [editingProject, formData.servico_id, selectedOsProdutos, selectedProdutoId, resolveProdutoIdByServico, setSelectedProdutoId]);
 
   useEffect(() => {
     if (!formData.external_client_id) {
@@ -167,8 +193,10 @@ export function useProjetosCadastroController(area: AreaKey) {
       return;
     }
     if (editingProject && formData.ordem_servico_id === (selectedOsId || '')) return;
-    setFormData(previous => ({ ...previous, ordem_servico_id: selectedOsId || '', servico_id: '' }));
-    setSelectedProdutoId(null);
+    // Trocar a OS invalida produto e serviço juntos: os dois pertencem à OS antiga.
+    setFormData(previous => ({
+      ...previous, ordem_servico_id: selectedOsId || '', servico_id: '', produto_segmento_id: '',
+    }));
     if (!selectedOsId || editingProject) return;
     const os = clienteOS.find(item => item.id === selectedOsId);
     if (!os) return;
@@ -288,7 +316,8 @@ export function useProjetosCadastroController(area: AreaKey) {
         is_multidisciplinar: Boolean(project.is_multidisciplinar),
         member_ids: [],
         ordem_servico_id: project.ordem_servico_id || '',
-        servico_id: 'servico_id' in project && typeof project.servico_id === 'string' ? project.servico_id : '',
+        servico_id: project.servico_id || '',
+        produto_segmento_id: project.produto_segmento_id || '',
       });
     } else {
       setEditingProject(null);

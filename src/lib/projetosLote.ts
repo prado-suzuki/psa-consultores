@@ -192,7 +192,7 @@ export interface LoteOsOption {
 export function buildLoteOsOptionsByClient(
   clientes: Array<{ id: string; nome: string }>,
   osRows: LoteOsAberta[],
-  projetos: Array<{ name: string; ordem_servico_id: string | null }>,
+  projetos: Array<{ name: string; ordem_servico_id: string | null; produto_segmento_id?: string | null }>,
 ): Map<string, LoteOsOption[]> {
   const osByClientId = new Map<string, LoteOsAberta[]>();
   for (const os of osRows) {
@@ -201,7 +201,7 @@ export function buildLoteOsOptionsByClient(
     osByClientId.set(os.cliente_id, rows);
   }
 
-  const projetosByOs = new Map<string, Array<{ name: string }>>();
+  const projetosByOs = new Map<string, Array<{ name: string; produto_segmento_id?: string | null }>>();
   for (const projeto of projetos) {
     if (!projeto.ordem_servico_id) continue;
     const rows = projetosByOs.get(projeto.ordem_servico_id) || [];
@@ -254,8 +254,12 @@ function normalizeProjectName(value: string): string {
 /**
  * Produtos da OS que já têm projeto criado — evita criar o mesmo projeto duas vezes.
  *
- * O projeto não guarda qual produto ele é (grava só `ordem_servico_id`; ver
- * `buildLoteFormData`), então a comparação é pelo nome, em três formas:
+ * O caminho certo é `produto_segmento_id`: desde a migration 20260814140000 o
+ * projeto guarda qual produto ele é, e aí a detecção é exata — renomear o
+ * projeto não muda nada.
+ *
+ * O casamento por NOME sobrevive só para o projeto antigo que ficou sem produto
+ * gravado (o backfill não preenche quando é ambíguo). São três formas:
  *
  * 1. o nome padrão atual — só o nome do produto;
  * 2. o padrão antigo "Cliente — OS nº — CÓDIGO — Nome", para reconhecer os
@@ -263,21 +267,29 @@ function normalizeProjectName(value: string): string {
  * 3. qualquer nome que ainda contenha o rótulo "CÓDIGO — Nome", para o projeto
  *    que alguém renomeou mantendo a sigla.
  *
- * Renomear apagando essas marcas escapa da detecção — limite conhecido.
- * A comparação é sempre dentro de UMA OS, então nomes curtos iguais entre
- * clientes diferentes não se confundem.
+ * Renomear apagando essas marcas escapa da detecção — limite conhecido, e agora
+ * restrito ao legado. A comparação é sempre dentro de UMA OS, então nomes curtos
+ * iguais entre clientes diferentes não se confundem.
  *
  * @param projetosDaOs projetos já existentes DESTA OS (filtrar antes de chamar).
  */
 export function findProdutosJaCriados(
-  projetosDaOs: Array<{ name: string }>,
+  projetosDaOs: Array<{ name: string; produto_segmento_id?: string | null }>,
   clientName: string,
   osNumero: string,
   produtos: LoteProduto[],
 ): string[] {
-  const nomesExistentes = projetosDaOs.map(projeto => normalizeProjectName(projeto.name));
+  const produtosGravados = new Set(projetosDaOs
+    .map(projeto => projeto.produto_segmento_id)
+    .filter((id): id is string => Boolean(id)));
+  // Só os projetos SEM produto gravado entram na comparação por nome: com a
+  // coluna preenchida, o nome não decide nada.
+  const nomesExistentes = projetosDaOs
+    .filter(projeto => !projeto.produto_segmento_id)
+    .map(projeto => normalizeProjectName(projeto.name));
   return produtos
     .filter(produto => {
+      if (produtosGravados.has(produto.produtoSegmentoId)) return true;
       const esperado = normalizeProjectName(produto.produtoNome);
       const legado = normalizeProjectName(
         buildLegacyLoteProjectName(clientName, osNumero, produto.produtoLabel),
@@ -336,6 +348,9 @@ export function buildLoteFormData(
     member_ids: row.memberIds,
     ordem_servico_id: ordemServicoId,
     servico_id: '',
+    // A linha É o produto — é este campo que faz o projeto saber qual produto
+    // ele atende, em vez de deixar isso implícito no nome.
+    produto_segmento_id: row.produtoSegmentoId,
   };
 }
 

@@ -73,6 +73,57 @@ describe('escopo de ambiente dos projetos', () => {
     expect(result.current.data?.[1].external_client).toEqual({ id: 'cli-inexistente', nome: 'Desconhecido' });
   });
 
+  /**
+   * O rótulo da coluna Produto sai de `produto_segmento_id`, o dado gravado.
+   * A concatenação dos produtos da OS é só fallback do projeto antigo — e é
+   * justamente ela que mostrava três produtos numa OS de três produtos.
+   */
+  describe('rótulo do produto', () => {
+    const OS_PRODUTOS = [
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'prd-a', produto_segmento: { id: 'prd-a', codigo: 'DC', nome: 'Diagnóstico contábil' } },
+      { ordem_servico_id: 'os-1', produto_segmento_id: 'prd-b', produto_segmento: { id: 'prd-b', codigo: 'CHA', nome: 'Canal de Chamados' } },
+    ];
+
+    function mockComProdutos(projetos: unknown[], produtoSegmento: unknown[] = []) {
+      chains.org_projects = mockSupabaseChain({ data: projetos, error: null });
+      chains.cliente = mockSupabaseChain({ data: CLIENTES, error: null });
+      chains.os_produtos_contratados = mockSupabaseChain({ data: OS_PRODUTOS, error: null });
+      chains.produto_segmento = mockSupabaseChain({ data: produtoSegmento, error: null });
+      vi.mocked(supabase.from).mockImplementation(((table: string) =>
+        chains[table] ?? mockSupabaseChain({ data: [], error: null })) as never);
+    }
+
+    it('mostra só o produto do projeto, não os da OS inteira', async () => {
+      mockComProdutos([projeto({ ordem_servico_id: 'os-1', produto_segmento_id: 'prd-b' })]);
+      const { result } = renderHook(() => useOrgProjects(), { wrapper: makeHookWrapper() });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data?.[0].servico_contratado).toBe('CHA — Canal de Chamados');
+    });
+
+    it('projeto antigo sem produto gravado ainda cai nos produtos da OS', async () => {
+      mockComProdutos([projeto({ ordem_servico_id: 'os-1' })]);
+      const { result } = renderHook(() => useOrgProjects(), { wrapper: makeHookWrapper() });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data?.[0].servico_contratado)
+        .toBe('DC — Diagnóstico contábil, CHA — Canal de Chamados');
+    });
+
+    it('produto que não está na OS do projeto é buscado no catálogo', async () => {
+      // Produto saiu da OS depois, ou o projeto nem tem OS: sem essa busca o
+      // rótulo sumiria no caso que a coluna existe para resolver.
+      mockComProdutos(
+        [projeto({ ordem_servico_id: null, produto_segmento_id: 'prd-z' })],
+        [{ id: 'prd-z', codigo: 'AF', nome: 'Atendimento a fiscalizações' }],
+      );
+      const { result } = renderHook(() => useOrgProjects(), { wrapper: makeHookWrapper() });
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data?.[0].servico_contratado).toBe('AF — Atendimento a fiscalizações');
+    });
+  });
+
   it('useOrgProjectsList aplica o mesmo escopo nos seletores', async () => {
     mockTables([
       projeto({ id: 'proj-daqui', external_client_id: 'cli-daqui' }),

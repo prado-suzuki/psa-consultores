@@ -21,6 +21,8 @@ const project = (id: string, osId: string | null = 'os-1'): OrgProject => ({
   is_multidisciplinar: false,
   objective: null,
   ordem_servico_id: osId,
+  servico_id: null,
+  produto_segmento_id: null,
 });
 
 const task = (id: string, overrides: Partial<OrgTask> = {}): OrgTask => ({

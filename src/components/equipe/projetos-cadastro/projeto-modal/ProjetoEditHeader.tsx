@@ -42,6 +42,7 @@ export function ProjetoEditHeader({ actions }: ProjetoEditHeaderProps) {
   const {
     formData,
     setFormData,
+    editingProject,
     externalClients,
     equipesOptions,
     clienteOS,
@@ -56,6 +57,15 @@ export function ProjetoEditHeader({ actions }: ProjetoEditHeaderProps) {
   const produto = selectedOsProdutos.find(
     (item) => item.produto_segmento_id === selectedProdutoId,
   );
+  // O rótulo sai dos produtos da OS enquanto a escolha estiver lá. Quando o
+  // produto gravado não está mais contratado na OS (ou a lista ainda não
+  // chegou), cai no rótulo que a lista de projetos já resolveu — sem isso o
+  // modal dizia "Não informado" para um projeto que TEM produto.
+  const produtoLabel = produto
+    ? [produto.produto_codigo, produto.produto_nome].filter(Boolean).join(' — ')
+    : (selectedProdutoId && selectedProdutoId === editingProject?.produto_segmento_id
+      ? editingProject?.servico_contratado
+      : null);
   const equipe = equipesOptions.find((item) => item.id === formData.equipe_id);
 
   return (
@@ -102,9 +112,7 @@ export function ProjetoEditHeader({ actions }: ProjetoEditHeaderProps) {
           <ContextRow
             icon={<Package className="h-4 w-4" />}
             label="Produto"
-            value={
-              produto && [produto.produto_codigo, produto.produto_nome].filter(Boolean).join(' — ')
-            }
+            value={produtoLabel}
           />
           <ContextRow
             icon={<Users className="h-4 w-4" />}
