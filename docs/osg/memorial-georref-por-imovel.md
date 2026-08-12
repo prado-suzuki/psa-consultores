@@ -56,8 +56,26 @@ Uma migration de conteúdo que faça o memorial ser **por imóvel**:
    continua no binding singular. Este é o ponto que impede a saída preguiçosa de "usar sempre todos os
    imóveis aprovados da empresa" — o "Não faça" do B15.
 
-Enquanto (1) não for aplicada, a seleção múltipla alimenta corretamente as alíneas de integralização e
-o memorial continua sendo o do binding singular.
+## Enquanto (1) não for aplicada: a seleção múltipla existe e não acende
+
+Correção de uma afirmação errada que estava aqui antes, apontada na revisão: **a seleção múltipla não
+alimenta as alíneas de integralização.** As alíneas vêm de `{{#integralizacoes}}`, montadas por
+`mapearIntegralizacoes(socios, integralizacoes)` sobre `useIntegralizacoesAprovadas(empresaId)`
+(`src/hooks/useGeracaoDocumento.ts`), que não passa pela seleção do consultor.
+
+O que decorre disso, e é a informação que faltava: **hoje nenhum modelo vivo expõe a lista de seleção.**
+A única ocorrência de `{{#imoveis}}` nos blocos vivos está **dentro** do repetidor de integralizações, e
+`conteudoParaDeteccao` (`src/lib/templates/binding.ts`) embrulha o conteúdo do repetidor na própria
+coleção, então `imoveis` fica aninhada e não vira `listasDeSelecao`. Ou seja, a UI de seleção múltipla só
+**acende** quando a migration do passo (1) for aplicada.
+
+Isso responde ao aceite do B15 ("as sete matrículas entram?") com precisão: **entram pelo mecanismo**,
+provado em teste com modelo sintético (`src/pages/equipe/osg/GerarDocumento.test.tsx`), e **ainda não por
+conteúdo em produção**. O B15 fica **parcial e declarado**: seleção múltipla entregue, memorial por imóvel
+pendente desta migration.
+
+Até lá, o memorial continua sendo o do binding singular, e o contrato de constituição com várias
+matrículas continua saindo com um memorial só.
 
 ## O que foi deliberadamente NÃO feito aqui
 
