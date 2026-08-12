@@ -54,6 +54,7 @@ export const EMPTY_PROJECT_FORM: OrgProjectFormData = {
   member_ids: [],
   ordem_servico_id: '',
   servico_id: '',
+  produto_segmento_id: '',
 };
 
 export const STATUS_LABELS: Record<string, string> = {

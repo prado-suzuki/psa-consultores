@@ -111,6 +111,8 @@ const PROJECT: OrgProject = {
   is_multidisciplinar: false,
   objective: null,
   ordem_servico_id: 'OS1',
+  servico_id: null,
+  produto_segmento_id: 'PRD1',
 };
 
 const EDIT_FORM: OrgProjectFormData = {

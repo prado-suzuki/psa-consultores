@@ -114,6 +114,26 @@ describe('findProdutosJaCriados', () => {
     const semNome: LoteProduto[] = [{ produtoSegmentoId: 'x', produtoLabel: '', produtoNome: '' }];
     expect(findProdutosJaCriados([{ name: '   ' }], cliente, os, semNome)).toEqual([]);
   });
+
+  it('produto gravado detecta mesmo com o projeto renomeado sem nenhuma marca', () => {
+    const existentes = [{ name: 'Projeto de chamados do Agro', produto_segmento_id: 'cha' }];
+    expect(findProdutosJaCriados(existentes, cliente, os, produtos)).toEqual(['cha']);
+  });
+
+  it('projeto com produto gravado não empresta o nome para outro produto', () => {
+    // O projeto se chama "Canal de Chamados" mas está gravado como DC. Pela
+    // heurística de nome ele marcaria CHA; pelo dado gravado marca só DC.
+    const existentes = [{ name: 'Canal de Chamados', produto_segmento_id: 'dc' }];
+    expect(findProdutosJaCriados(existentes, cliente, os, produtos)).toEqual(['dc']);
+  });
+
+  it('mistura legado sem produto e projeto novo com produto gravado', () => {
+    const existentes = [
+      { name: 'Diagnóstico contábil' },
+      { name: 'Qualquer nome', produto_segmento_id: 'af' },
+    ];
+    expect(findProdutosJaCriados(existentes, cliente, os, produtos)).toEqual(['dc', 'af']);
+  });
 });
 
 describe('buildLoteFormData', () => {
@@ -125,6 +145,10 @@ describe('buildLoteFormData', () => {
   it('fluxo normal: envia o responsável escolhido', () => {
     const row = { ...baseRow, responsibleId: 'e1' };
     expect(buildLoteFormData('cli1', 'os1', common, row).responsible_id).toBe('e1');
+  });
+
+  it('grava o produto da linha: é o lote inteiro que existe para separar produto por projeto', () => {
+    expect(buildLoteFormData('cli1', 'os1', common, baseRow).produto_segmento_id).toBe('cha');
   });
 });
 

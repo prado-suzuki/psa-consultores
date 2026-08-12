@@ -473,6 +473,10 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
         member_ids: ['member-1', 'member-2'],
         ordem_servico_id: 'os-1',
         servico_id: '',
+        // O produto escolhido no formulário vai no insert. Enquanto era só
+        // estado de React, o projeto nascia sem produto e reabria como "Produto:
+        // Não informado".
+        produto_segmento_id: 'product-1',
       },
       expect.objectContaining({ onSuccess: expect.any(Function) }),
     );
@@ -505,6 +509,10 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
           name: 'Zeta Tax',
           ordem_servico_id: 'os-1',
           servico_id: 'service-1',
+          // Projeto legado sem produto gravado: ao salvar, o produto que a tela
+          // já resolveu (OS de produto único) é persistido em vez de ser
+          // redescoberto por dedução a cada abertura.
+          produto_segmento_id: 'product-1',
           start_date: '2026-02-10',
           end_date: '2026-11-20',
           leader_ids: ['leader-1'],
