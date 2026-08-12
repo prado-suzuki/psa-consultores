@@ -44,8 +44,8 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.pessoas = [helena, marta, solteira];
   mocks.parentescos = [
-    vinculo('V-PAI', 'PF-HELENA', 'Joaquim Pai', 'Pai'),
-    vinculo('V-MAE', 'PF-HELENA', 'Marta Mãe', 'Mãe'),
+    vinculo('V-PAI', 'PF-HELENA', 'Joaquim Pai', 'Pai/Mãe'),
+    vinculo('V-MAE', 'PF-HELENA', 'Marta Mãe', 'Pai/Mãe'),
     vinculo('V-TIO', 'PF-HELENA', 'Tobias Tio', 'Tio(a)'),
     vinculo('V-IRMA', 'PF-MAE', 'Irene Irmã', 'Irmão(ã)'),
   ];
@@ -55,7 +55,7 @@ describe('QualificacaoDasPartes - coluna Filiação', () => {
   it('mostra todos os vínculos da pessoa, não só o último', () => {
     render(<QualificacaoDasPartes />);
     const linha = linhaDe('Helena Filha');
-    for (const texto of ['Pai: Joaquim Pai', 'Mãe: Marta Mãe', 'Tio(a): Tobias Tio']) {
+    for (const texto of ['Pai/Mãe: Joaquim Pai', 'Pai/Mãe: Marta Mãe', 'Tio(a): Tobias Tio']) {
       expect(within(linha).getByText(texto)).toBeInTheDocument();
     }
   });

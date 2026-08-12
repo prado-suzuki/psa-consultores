@@ -1,12 +1,11 @@
 -- =============================================================================
--- Fixture das provas do B10/B11 — recorte do schema que as migrations tocam
+-- Fixture da prova do B10 — recorte do schema que a migration toca
 -- =============================================================================
 -- Não é o banco de produção: é só o pedaço de `public` que
---   20260813120000_pessoa_conjuge_reciproco.sql       e
---   20260813120200_filiacao_derivada_do_parentesco.sql
--- leem ou escrevem — cliente, pessoa, parentesco, o índice `idx_pessoa_conjuge_id`
--- que já existe desde 20260525152456 e o gatilho de `updated_at`. Colunas que não
--- participam de nenhuma propriedade provada aqui ficaram de fora de propósito.
+--   20260813120000_pessoa_conjuge_reciproco.sql
+-- lê ou escreve — cliente, pessoa, o índice `idx_pessoa_conjuge_id` que já existe
+-- desde 20260525152456 e o gatilho de `updated_at`. Colunas que não participam de
+-- nenhuma propriedade provada aqui ficaram de fora de propósito.
 --
 -- Os dados entram ANTES das migrations, com os quatro estados que existem hoje em
 -- produção: vínculo pela metade, vínculo ambíguo (duas origens para o mesmo
@@ -39,26 +38,12 @@ CREATE TABLE public.pessoa (
   denominacao            text NOT NULL,
   genero                 text,
   conjuge_id             uuid REFERENCES public.pessoa(id),
-  filiacao_pai           text,
-  filiacao_pai_pessoa_id uuid REFERENCES public.pessoa(id),
-  filiacao_mae           text,
-  filiacao_mae_pessoa_id uuid REFERENCES public.pessoa(id),
   created_at             timestamptz NOT NULL DEFAULT now(),
   updated_at             timestamptz NOT NULL DEFAULT now()
 );
 
 -- O índice que a migration do B10 NÃO cria, porque já existe desde 20260525152456.
 CREATE INDEX idx_pessoa_conjuge_id ON public.pessoa (conjuge_id);
-
-CREATE TABLE public.parentesco (
-  id                uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  pessoa_id         uuid NOT NULL REFERENCES public.pessoa(id) ON DELETE CASCADE,
-  parente_pessoa_id uuid NOT NULL REFERENCES public.pessoa(id) ON DELETE CASCADE,
-  tipo              text,
-  natureza          text,
-  created_at        timestamptz NOT NULL DEFAULT now(),
-  updated_at        timestamptz NOT NULL DEFAULT now()
-);
 
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS trigger LANGUAGE plpgsql AS $$
@@ -94,13 +79,6 @@ INSERT INTO public.pessoa (id, cliente_id, denominacao, genero, updated_at) VALU
   ('a0000000-0000-4000-8000-00000000000c', 'c1000000-0000-4000-8000-000000000001', 'Livre Dois',    'M', '2020-01-01'),
   ('a0000000-0000-4000-8000-00000000000d', 'c1000000-0000-4000-8000-000000000001', 'Livre Tres',    'F', '2020-01-01'),
   ('a0000000-0000-4000-8000-00000000000e', 'c1000000-0000-4000-8000-000000000001', 'Cruzada Cida',  'F', '2020-01-01'),
-  ('a0000000-0000-4000-8000-00000000000f', 'c1000000-0000-4000-8000-000000000001', 'Helena Filha',  'F', '2020-01-01'),
-  ('a0000000-0000-4000-8000-000000000010', 'c1000000-0000-4000-8000-000000000001', 'Joaquim Pai',   'M', '2020-01-01'),
-  ('a0000000-0000-4000-8000-000000000011', 'c1000000-0000-4000-8000-000000000001', 'Marta Mae',     'F', '2020-01-01'),
-  ('a0000000-0000-4000-8000-000000000012', 'c1000000-0000-4000-8000-000000000001', 'Tobias Tio',    'M', '2020-01-01'),
-  ('a0000000-0000-4000-8000-000000000013', 'c1000000-0000-4000-8000-000000000001', 'Legado Lurdes', 'F', '2020-01-01'),
-  ('a0000000-0000-4000-8000-000000000014', 'c1000000-0000-4000-8000-000000000001', 'Filha Sem Cad', 'F', '2020-01-01'),
-  ('a0000000-0000-4000-8000-000000000015', 'c1000000-0000-4000-8000-000000000001', 'Filha Legada',  'F', '2020-01-01'),
   ('b0000000-0000-4000-8000-000000000001', 'c2000000-0000-4000-8000-000000000002', 'Outra Olga',    'F', '2020-01-01'),
   ('b0000000-0000-4000-8000-000000000002', 'c2000000-0000-4000-8000-000000000002', 'Outro Osmar',   'M', '2020-01-01'),
   ('b0000000-0000-4000-8000-000000000003', 'c2000000-0000-4000-8000-000000000002', 'Outra Odete',   'F', '2020-01-01');
@@ -137,17 +115,3 @@ UPDATE public.pessoa SET conjuge_id = 'b0000000-0000-4000-8000-000000000003'
  WHERE id = 'b0000000-0000-4000-8000-000000000002';
 UPDATE public.pessoa SET conjuge_id = 'b0000000-0000-4000-8000-000000000002'
  WHERE id = 'b0000000-0000-4000-8000-000000000003';
-
--- ----------------------------------------------------------------------------
--- Filiação: os vínculos existem, as colunas de `pessoa` ainda não
--- ----------------------------------------------------------------------------
-INSERT INTO public.parentesco (pessoa_id, parente_pessoa_id, tipo, natureza, created_at) VALUES
-  ('a0000000-0000-4000-8000-00000000000f', 'a0000000-0000-4000-8000-000000000010', 'Pai',     'Consanguíneo', '2020-01-01'),
-  ('a0000000-0000-4000-8000-00000000000f', 'a0000000-0000-4000-8000-000000000011', 'Mãe',     'Consanguíneo', '2020-01-02'),
-  ('a0000000-0000-4000-8000-00000000000f', 'a0000000-0000-4000-8000-000000000012', 'Tio(a)',  'Consanguíneo', '2020-01-03'),
-  -- vínculo legado, do tempo em que "Pai/Mãe" era um tipo só: resolve por gênero
-  ('a0000000-0000-4000-8000-000000000015', 'a0000000-0000-4000-8000-000000000013', 'Pai/Mãe', 'Consanguíneo', '2020-01-04');
-
--- Filiação digitada à mão, para um pai que não tem cadastro de pessoa.
-UPDATE public.pessoa SET filiacao_pai = 'Pai Sem Cadastro'
- WHERE id = 'a0000000-0000-4000-8000-000000000014';

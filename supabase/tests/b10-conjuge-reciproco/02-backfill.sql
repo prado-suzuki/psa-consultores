@@ -1,5 +1,5 @@
 -- =============================================================================
--- Prova do backfill — roda logo depois das duas migrations, sobre o fixture
+-- Prova do backfill — roda logo depois da migration, sobre o fixture
 -- =============================================================================
 -- O que se prova: o backfill fecha o que é inequívoco e NÃO escolhe vencedor
 -- onde a escolha seria arbitrária. Antes da revisão, o `UPDATE ... FROM` fechava
@@ -62,27 +62,4 @@ BEGIN
       JOIN pg_class c ON c.oid = i.indexrelid
      WHERE c.relname = 'idx_pessoa_conjuge_id' AND i.indpred IS NULL) = 1,
     'índice: idx_pessoa_conjuge_id continua total, não virou parcial nem foi duplicado');
-END $$;
-
--- ----------------------------------------------------------------------------
--- 8. Projeção da filiação (migration do B11)
--- ----------------------------------------------------------------------------
-DO $$
-DECLARE p public.pessoa;
-BEGIN
-  SELECT * INTO p FROM public.pessoa WHERE id = 'a0000000-0000-4000-8000-00000000000f';
-  PERFORM public.afirma(p.filiacao_pai = 'Joaquim Pai'
-    AND p.filiacao_pai_pessoa_id = 'a0000000-0000-4000-8000-000000000010',
-    'filiação: backfill projetou o pai a partir do vínculo');
-  PERFORM public.afirma(p.filiacao_mae = 'Marta Mae'
-    AND p.filiacao_mae_pessoa_id = 'a0000000-0000-4000-8000-000000000011',
-    'filiação: backfill projetou a mãe a partir do vínculo');
-
-  SELECT * INTO p FROM public.pessoa WHERE id = 'a0000000-0000-4000-8000-000000000015';
-  PERFORM public.afirma(p.filiacao_mae = 'Legado Lurdes' AND p.filiacao_pai IS NULL,
-    'filiação: vínculo legado "Pai/Mãe" foi para o slot certo pelo gênero do parente');
-
-  SELECT * INTO p FROM public.pessoa WHERE id = 'a0000000-0000-4000-8000-000000000014';
-  PERFORM public.afirma(p.filiacao_pai = 'Pai Sem Cadastro' AND p.filiacao_pai_pessoa_id IS NULL,
-    'filiação: texto livre sem vínculo sobreviveu ao backfill');
 END $$;
