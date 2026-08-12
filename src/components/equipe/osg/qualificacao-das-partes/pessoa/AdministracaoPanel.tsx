@@ -21,6 +21,7 @@ import {
   useAdministracaoByPj, useDeleteAdministracao, useUpsertAdministracao,
   type AdministracaoEnriched, type PessoaRow,
 } from '@/hooks/useQualificacaoDasPartes';
+import type { Json } from '@/integrations/supabase/types';
 
 const CARGOS = ['Administrador', 'Sócio-Administrador', 'Diretor', 'Presidente'];
 const emptyAdmin = () => ({
