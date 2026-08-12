@@ -3651,6 +3651,7 @@ export type Database = {
           area_unidade: string
           bem_id: string | null
           cartorio_id: string
+          cliente_id: string | null
           confrontacoes_texto: string | null
           created_at: string
           created_by: string | null
@@ -3685,6 +3686,7 @@ export type Database = {
           area_unidade: string
           bem_id?: string | null
           cartorio_id: string
+          cliente_id?: string | null
           confrontacoes_texto?: string | null
           created_at?: string
           created_by?: string | null
@@ -3719,6 +3721,7 @@ export type Database = {
           area_unidade?: string
           bem_id?: string | null
           cartorio_id?: string
+          cliente_id?: string | null
           confrontacoes_texto?: string | null
           created_at?: string
           created_by?: string | null
@@ -3759,6 +3762,13 @@ export type Database = {
             columns: ["cartorio_id"]
             isOneToOne: false
             referencedRelation: "cartorio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matricula_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
             referencedColumns: ["id"]
           },
           {
@@ -8815,6 +8825,7 @@ export type Database = {
           area_unidade: string
           bem_id: string | null
           cartorio_id: string
+          cliente_id: string | null
           confrontacoes_texto: string | null
           created_at: string
           created_by: string | null
