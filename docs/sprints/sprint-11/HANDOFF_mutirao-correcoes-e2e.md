@@ -430,9 +430,12 @@ Em ordem.
 1. Conferir o que ficou sujo nas worktrees da **L2** e da **L3** e retomar a rodada 2 das duas. Os dois
    agentes foram **parados no meio**, então a árvore suja é trabalho a meio caminho, não trabalho pronto: leia
    o diff antes de aproveitar qualquer coisa. A lista das 10 correções da L2 e das 7 da L3 está no §4.
-2. Decidir o que fazer com a **L5**: ou rodada 3 no item da filiação derivada, ou separá-lo numa frente
-   própria e mesclar os sete itens já fechados. **Nada da migration `20260813120200` pode ir para o Lovable
-   como está**: ela apaga filiação de pessoas cadastradas pelo fluxo antigo, no próprio backfill do deploy.
+2. ~~Decidir o que fazer com a **L5**~~ — **RESOLVIDO em 13/08/2026.** O item da filiação derivada foi
+   **extraído** da entrega (frente `fix/osg-f1-filiacao-extracao`, revisada e mesclada na base): a migration
+   `20260813120200` e tudo que pertencia a ela saíram, os sete itens aprovados da L5 ficaram. A frente
+   adiada, com as duas perdas reproduzidas e os cinco requisitos para a próxima tentativa, está em
+   **`docs/osg/filiacao-derivada-do-parentesco.md`**. Não reabra a discussão aqui: o registro do §4 abaixo é
+   histórico da revisão, e continua verdadeiro como tal.
 3. Rerrevisar **L7** (rodada 2 fechada, os cinco itens têm pontos de atenção listados no §4).
 4. Aprovar a **L2**, mesclar na base, recriar a worktree da **L6** a partir dela e despachar a L6 com a
    especificação do §4.
