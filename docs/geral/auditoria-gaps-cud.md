@@ -183,5 +183,8 @@ gatilho escrever em `audit_logs` com `changed_fields`) é tarefa própria; **reg
 | Gatilho (migration) | Tabela | Operação | Por que não passa por `useAuditLog` |
 |---|---|---|---|
 | `trg_pessoa_conjuge_reciproco` (`20260813120000`) | `pessoa` | update de `conjuge_id` na linha do **parceiro** | Casamento é simétrico e a reciprocidade tem que valer em qualquer caminho de escrita (modal, importação, RPC futura), não só no ponto do formulário. O log registra a mudança de quem foi editado; a linha do parceiro muda por consequência e **não gera entrada própria** — hoje "quem desfez o vínculo de B" só se explica olhando o log de A na mesma janela de tempo. |
-| `trg_parentesco_projeta_filiacao` (`20260813120200`) | `pessoa` | update de `filiacao_pai`, `filiacao_pai_pessoa_id`, `filiacao_mae`, `filiacao_mae_pessoa_id` | As colunas viraram projeção da tabela `parentesco` (uma origem só para o mesmo fato). O log do vínculo criado/removido existe (`entity_type: 'parentesco'`), mas a atualização da linha da pessoa não aparece como alteração dela. |
-| `trg_pessoa_renome_projeta_filiacao` (`20260813120200`) | `pessoa` | update das mesmas quatro colunas nos **filhos** de quem foi renomeado | Mesma projeção acima, disparada pela correção do nome do parente. O log registra o rename do parente, não a atualização em cascata. |
+
+A projeção de `pessoa.filiacao_*` a partir de `parentesco` traria mais dois gatilhos para esta tabela
+(`trg_parentesco_projeta_filiacao` e `trg_pessoa_renome_projeta_filiacao`). Ela saiu desta entrega e
+virou frente própria, por destruir dado: ver `docs/osg/filiacao-derivada-do-parentesco.md`. Quando
+voltar, os dois entram aqui.

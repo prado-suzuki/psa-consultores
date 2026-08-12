@@ -12,7 +12,6 @@ import { Textarea } from '@/components/ui/textarea';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { ehEstadoCivilComConjuge, type PessoaDraft } from '@/lib/pessoaModalModel';
 import { FiliacaoCombobox } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/FiliacaoCombobox';
-import { FiliacaoDerivada } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/FiliacaoDerivada';
 import { ParentescoPanel } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/ParentescoPanel';
 import { NATUREZAS_PARENTESCO, TIPOS_PARENTESCO } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/parentescoOpcoes';
 import { conjugesDisponiveis, conjugesOcultosPorVinculo } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/vinculoConjugal';
@@ -69,7 +68,7 @@ export function PessoaDadosTab(props: PessoaDadosTabProps) {
         </div>
       </FieldSection>
       {isPF ? (
-        <PfFields draft={draft} setDraft={setDraft} candidates={pessoaCandidates} pessoaSalva={pessoaSalva} number={next()} />
+        <PfFields draft={draft} setDraft={setDraft} candidates={pessoaCandidates} pessoaId={pessoaSalva?.pessoaId} number={next()} />
       ) : (
         <PjFields draft={draft} setDraft={setDraft} number={next()} />
       )}
@@ -80,10 +79,10 @@ export function PessoaDadosTab(props: PessoaDadosTabProps) {
   );
 }
 
-function PfFields({ draft, setDraft, candidates, pessoaSalva, number }: { draft: PessoaDraft; setDraft: React.Dispatch<React.SetStateAction<PessoaDraft>>; candidates: PessoaRow[]; pessoaSalva?: { pessoaId: string; clienteId: string }; number: string }) {
+function PfFields({ draft, setDraft, candidates, pessoaId, number }: { draft: PessoaDraft; setDraft: React.Dispatch<React.SetStateAction<PessoaDraft>>; candidates: PessoaRow[]; pessoaId?: string; number: string }) {
   const setField = <K extends keyof PessoaDraft>(field: K, value: PessoaDraft[K]) => setDraft((old) => ({ ...old, [field]: value }));
   const married = ehEstadoCivilComConjuge(draft.estado_civil);
-  const contextoConjuge = { pessoaId: pessoaSalva?.pessoaId, selecionadoId: draft.conjuge_id || undefined };
+  const contextoConjuge = { pessoaId, selecionadoId: draft.conjuge_id || undefined };
   const conjugeCandidates = conjugesDisponiveis(candidates, contextoConjuge);
   const conjugesOcultos = conjugesOcultosPorVinculo(candidates, contextoConjuge);
   // Sair do estado civil que admite cônjuge desfaz o vínculo, e o vínculo é
@@ -118,16 +117,10 @@ function PfFields({ draft, setDraft, candidates, pessoaSalva, number }: { draft:
             {conjugesOcultos > 0 && <p className="text-[11px] text-muted-foreground">{conjugesOcultos} pessoa(s) não aparecem por já terem cônjuge cadastrado. O vínculo é recíproco: gravar aqui grava do outro lado.</p>}
           </div>
         )}
-        {pessoaSalva ? (
-          <FiliacaoDerivada pessoaId={pessoaSalva.pessoaId} clienteId={pessoaSalva.clienteId} draft={draft} setDraft={setDraft} />
-        ) : (
-          // Cadastro novo ainda não tem lista de vínculos: aqui o texto (com a
-          // sugestão de PF já cadastrada) é a única origem que existe.
-          <div className={`${formGridCls(2)} gap-3 ${formSpanCls(3)}`}>
-            <div className="space-y-1.5"><Label className={labelCls}>Filiação (pai)</Label><FiliacaoCombobox nome={draft.filiacao_pai} pessoaId={draft.filiacao_pai_pessoa_id} candidates={candidates} placeholder="Nome do pai" onChange={(nome, id) => setDraft((old) => ({ ...old, filiacao_pai: nome, filiacao_pai_pessoa_id: id }))} /></div>
-            <div className="space-y-1.5"><Label className={labelCls}>Filiação (mãe)</Label><FiliacaoCombobox nome={draft.filiacao_mae} pessoaId={draft.filiacao_mae_pessoa_id} candidates={candidates} placeholder="Nome da mãe" onChange={(nome, id) => setDraft((old) => ({ ...old, filiacao_mae: nome, filiacao_mae_pessoa_id: id }))} /></div>
-          </div>
-        )}
+        <div className={`${formGridCls(2)} gap-3 ${formSpanCls(3)}`}>
+          <div className="space-y-1.5"><Label className={labelCls}>Filiação (pai)</Label><FiliacaoCombobox nome={draft.filiacao_pai} pessoaId={draft.filiacao_pai_pessoa_id} candidates={candidates} placeholder="Nome do pai" onChange={(nome, id) => setDraft((old) => ({ ...old, filiacao_pai: nome, filiacao_pai_pessoa_id: id }))} /></div>
+          <div className="space-y-1.5"><Label className={labelCls}>Filiação (mãe)</Label><FiliacaoCombobox nome={draft.filiacao_mae} pessoaId={draft.filiacao_mae_pessoa_id} candidates={candidates} placeholder="Nome da mãe" onChange={(nome, id) => setDraft((old) => ({ ...old, filiacao_mae: nome, filiacao_mae_pessoa_id: id }))} /></div>
+        </div>
         <SelectField label="Tipo de documento" value={draft.documento_identidade_tipo} onChange={(value) => setField('documento_identidade_tipo', value)} options={DOCUMENTOS} />
         <TextField label="Nº do documento" value={draft.documento_identidade_numero} onChange={(value) => setField('documento_identidade_numero', value)} />
         <TextField label="Órgão emissor" value={draft.documento_identidade_orgao} onChange={(value) => setField('documento_identidade_orgao', value)} />

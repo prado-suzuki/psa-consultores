@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Prova das migrations do B10/B11 num Postgres efêmero
+# Prova da migration do B10 num Postgres efêmero
 # =============================================================================
 # Não faz parte do `bun run test`: precisa de Docker, e o repo não tem harness
 # de SQL. Rode à mão:
@@ -9,16 +9,19 @@
 #
 # Existe um banco Supabase só, e ele é PRODUÇÃO. Um gatilho que reescreve linhas
 # de `pessoa` não pode ir para lá com "eu li o SQL e parece certo": sobe aqui um
-# Postgres descartável, cria o recorte de schema que as migrations tocam
+# Postgres descartável, cria o recorte de schema que a migration toca
 # (00-fixture.sql, já com os quatro estados de vínculo que existem hoje), aplica
-# as MIGRATIONS REAIS do repo sem tocá-las e roda as afirmações:
+# a MIGRATION REAL do repo sem tocá-la e roda as afirmações:
 #
 #   02-backfill.sql    o que o backfill fecha e o que ele se recusa a decidir
-#   (migrations de novo)
+#   (migration de novo)
 #   03-reaplicacao.sql idempotência
 #   04-regras.sql      as quatro regras de reciprocidade do B10, em operação
 #   05-tenancy.sql     SECURITY DEFINER confinado ao cliente
-#   06-filiacao.sql    filiação derivada dos vínculos (B11), uma origem só
+#
+# A projeção da filiação a partir de `parentesco` saiu desta entrega e virou
+# frente própria (docs/osg/filiacao-derivada-do-parentesco.md): a versão
+# reprovada destruía dado, e a próxima tentativa traz a prova junto.
 #
 # Qualquer afirmação falsa aborta com exit != 0.
 #
@@ -30,7 +33,6 @@ set -euo pipefail
 AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_RAIZ="$(cd "$AQUI/../../.." && pwd)"
 MIGRACAO_CONJUGE="supabase/migrations/20260813120000_pessoa_conjuge_reciproco.sql"
-MIGRACAO_FILIACAO="supabase/migrations/20260813120200_filiacao_derivada_do_parentesco.sql"
 TESTES="supabase/tests/b10-conjuge-reciproco"
 IMAGEM="${IMAGEM_POSTGRES:-postgres:17-alpine}"
 CONTAINER="psa-prova-b10-$$"
@@ -54,16 +56,13 @@ rodar() {
 
 rodar "$TESTES/00-fixture.sql"
 rodar "$MIGRACAO_CONJUGE"
-rodar "$MIGRACAO_FILIACAO"
 rodar "$TESTES/02-backfill.sql"
 
-echo "→ reaplicando as duas migrations"
+echo "→ reaplicando a migration"
 rodar "$MIGRACAO_CONJUGE"
-rodar "$MIGRACAO_FILIACAO"
 rodar "$TESTES/03-reaplicacao.sql"
 
 rodar "$TESTES/04-regras.sql"
 rodar "$TESTES/05-tenancy.sql"
-rodar "$TESTES/06-filiacao.sql"
 
-echo "✓ prova do B10/B11 passou"
+echo "✓ prova do B10 passou"

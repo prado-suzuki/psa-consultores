@@ -118,39 +118,20 @@ export function PessoaModal({
     onClose: fechar,
   });
 
-  /**
-   * Só no cadastro novo: os vínculos digitados junto da pessoa. Depois de
-   * gravada, eles entram e saem pela lista, sem passar pelo save daqui.
-   *
-   * Pai e mãe escolhidos no campo de filiação viram vínculo de verdade, e não só
-   * texto na linha da pessoa: a lista é a origem da filiação (a projeção de
-   * volta para `pessoa.filiacao_*` é do banco), então deixar a escolha só na
-   * coluna criaria justamente a segunda verdade que o B11 mandou eliminar.
-   */
-  const criarVinculosIniciais = async (pessoaId: string) => {
-    const novos: { parenteId: string; tipo: string | null; natureza: string | null }[] = [];
-    if (parentescoDraft.parenteId) {
-      novos.push({
-        parenteId: parentescoDraft.parenteId,
+  /** Só no cadastro novo: o primeiro vínculo digitado junto da pessoa. Depois de
+   *  gravada, os vínculos entram e saem pela lista, sem passar pelo save daqui. */
+  const criarPrimeiroParentesco = async (pessoaId: string) => {
+    if (!parentescoDraft.parenteId) return;
+    await upsertParentesco.mutateAsync({
+      values: {
+        pessoa_id: pessoaId,
+        parente_pessoa_id: parentescoDraft.parenteId,
         tipo: parentescoDraft.tipo || null,
         natureza: parentescoDraft.natureza || null,
-      });
-    }
-    if (draft.filiacao_pai_pessoa_id) novos.push({ parenteId: draft.filiacao_pai_pessoa_id, tipo: 'Pai', natureza: null });
-    if (draft.filiacao_mae_pessoa_id) novos.push({ parenteId: draft.filiacao_mae_pessoa_id, tipo: 'Mãe', natureza: null });
-
-    for (const novo of novos) {
-      await upsertParentesco.mutateAsync({
-        values: {
-          pessoa_id: pessoaId,
-          parente_pessoa_id: novo.parenteId,
-          tipo: novo.tipo,
-          natureza: novo.natureza,
-        },
-        original: null,
-        clienteId,
-      });
-    }
+      },
+      original: null,
+      clienteId,
+    });
   };
 
   const handleSave = () => {
@@ -176,7 +157,7 @@ export function PessoaModal({
     upsert.mutate(
       { values: buildPessoaPayload(draft, clienteId), original: pessoa },
       { onSuccess: async (result) => {
-        if (isPF && !pessoa) await criarVinculosIniciais(result.row.id);
+        if (isPF && !pessoa) await criarPrimeiroParentesco(result.row.id);
         onClose();
       } },
     );
