@@ -1,4 +1,5 @@
 import { X } from 'lucide-react';
+import { toast } from 'sonner';
 import { formatCep, formatCpfCnpj, UF_STATES } from '@/components/equipe/client-form/constants';
 import { FieldSection, fieldCls, labelCls, switchBoxCls, textareaCls } from '@/components/equipe/osg/formKit';
 import { formGridCls, formSpanCls } from '@/lib/osgFormGrid';
@@ -9,15 +10,16 @@ import { RequiredMark } from '@/components/ui/required-mark';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import type { PessoaDraft } from '@/lib/pessoaModalModel';
+import { ehEstadoCivilComConjuge, type PessoaDraft } from '@/lib/pessoaModalModel';
 import { FiliacaoCombobox } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/FiliacaoCombobox';
+import { ParentescoPanel } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/ParentescoPanel';
+import { NATUREZAS_PARENTESCO, TIPOS_PARENTESCO } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/parentescoOpcoes';
+import { conjugesDisponiveis, conjugesOcultosPorVinculo } from '@/components/equipe/osg/qualificacao-das-partes/pessoa/vinculoConjugal';
 
 const ESTADOS_CIVIS = ['Solteiro(a)', 'Casado(a)', 'Divorciado(a)', 'Viúvo(a)', 'União Estável'];
 const REGIMES_BENS = ['Comunhão Parcial', 'Comunhão Universal', 'Separação Total', 'Separação Obrigatória', 'Participação Final nos Aquestos'];
 const STATUS_CONSTITUICAO = ['Ativa', 'Suspensa', 'Inapta', 'Baixada', 'Em constituição'];
 const TIPOS_EMPRESA = [{ value: 'PR', label: 'Proprietária' }, { value: 'CN', label: 'Controladora' }, { value: 'SC', label: 'Sócia' }];
-const TIPOS_PARENTESCO = ['Filho(a)', 'Pai/Mãe', 'Irmão(ã)', 'Avô(ó)', 'Neto(a)', 'Tio(a)', 'Sobrinho(a)', 'Primo(a)', 'Sogro(a)', 'Genro/Nora', 'Cunhado(a)', 'Padrasto/Madrasta', 'Enteado(a)', 'Outro'];
-const NATUREZAS = ['Consanguíneo', 'Afim', 'Adotivo', 'Civil'];
 const GENEROS = [{ value: 'M', label: 'Masculino' }, { value: 'F', label: 'Feminino' }];
 const DOCUMENTOS = [{ value: 'rg', label: 'RG' }, { value: 'cnh', label: 'CNH' }, { value: 'reservista', label: 'Reservista' }, { value: 'ctps', label: 'CTPS' }];
 
@@ -30,10 +32,17 @@ interface PessoaDadosTabProps {
   parenteCandidates: PessoaRow[];
   parentesco: ParentescoDraft;
   setParentesco: React.Dispatch<React.SetStateAction<ParentescoDraft>>;
+  /**
+   * Presente só quando a pessoa já existe no banco. Troca o vínculo único do
+   * rascunho pela lista de parentesco (que grava na hora, como Administradores)
+   * e permite reconhecer o cônjuge que aponta de volta para esta pessoa.
+   * Cadastro novo ainda não tem id, então segue com o vínculo único.
+   */
+  pessoaSalva?: { pessoaId: string; clienteId: string };
 }
 
 export function PessoaDadosTab(props: PessoaDadosTabProps) {
-  const { draft, setDraft, pessoaCandidates, parenteCandidates, parentesco, setParentesco } = props;
+  const { draft, setDraft, pessoaCandidates, parenteCandidates, parentesco, setParentesco, pessoaSalva } = props;
   const isPF = draft.tipo_pessoa === 'PF';
   const setField = <K extends keyof PessoaDraft>(field: K, value: PessoaDraft[K]) => setDraft((old) => ({ ...old, [field]: value }));
   let section = 0;
@@ -59,18 +68,36 @@ export function PessoaDadosTab(props: PessoaDadosTabProps) {
         </div>
       </FieldSection>
       {isPF ? (
-        <PfFields draft={draft} setDraft={setDraft} candidates={pessoaCandidates} number={next()} />
+        <PfFields draft={draft} setDraft={setDraft} candidates={pessoaCandidates} pessoaId={pessoaSalva?.pessoaId} number={next()} />
       ) : (
         <PjFields draft={draft} setDraft={setDraft} number={next()} />
       )}
-      {isPF && <ParentescoFields value={parentesco} onChange={setParentesco} candidates={parenteCandidates} number={next()} />}
+      {isPF && (pessoaSalva
+        ? <ParentescoPanel pessoaId={pessoaSalva.pessoaId} clienteId={pessoaSalva.clienteId} candidates={pessoaCandidates} number={next()} />
+        : <ParentescoFields value={parentesco} onChange={setParentesco} candidates={parenteCandidates} number={next()} />)}
     </div>
   );
 }
 
-function PfFields({ draft, setDraft, candidates, number }: { draft: PessoaDraft; setDraft: React.Dispatch<React.SetStateAction<PessoaDraft>>; candidates: PessoaRow[]; number: string }) {
+function PfFields({ draft, setDraft, candidates, pessoaId, number }: { draft: PessoaDraft; setDraft: React.Dispatch<React.SetStateAction<PessoaDraft>>; candidates: PessoaRow[]; pessoaId?: string; number: string }) {
   const setField = <K extends keyof PessoaDraft>(field: K, value: PessoaDraft[K]) => setDraft((old) => ({ ...old, [field]: value }));
-  const married = draft.estado_civil === 'Casado(a)' || draft.estado_civil === 'União Estável';
+  const married = ehEstadoCivilComConjuge(draft.estado_civil);
+  const contextoConjuge = { pessoaId, selecionadoId: draft.conjuge_id || undefined };
+  const conjugeCandidates = conjugesDisponiveis(candidates, contextoConjuge);
+  const conjugesOcultos = conjugesOcultosPorVinculo(candidates, contextoConjuge);
+  // Sair do estado civil que admite cônjuge desfaz o vínculo, e o vínculo é
+  // recíproco: some do cadastro do parceiro também. Deixar o ponteiro pendurado
+  // marcaria os dois como casados sem nenhum campo na tela para desfazer, então
+  // o certo é limpar aqui e dizer, com nome e sobrenome, o que isso derrubou.
+  const trocarEstadoCivil = (valor: string) => {
+    if (!ehEstadoCivilComConjuge(valor) && draft.conjuge_id) {
+      const conjuge = candidates.find((candidate) => candidate.id === draft.conjuge_id);
+      toast.warning(`Vínculo de cônjuge com ${conjuge?.denominacao ?? 'a pessoa vinculada'} será desfeito nos dois cadastros ao salvar.`);
+      setDraft((old) => ({ ...old, estado_civil: valor, conjuge_id: '' }));
+      return;
+    }
+    setField('estado_civil', valor);
+  };
   return (
     <FieldSection number={number} title="Dados pessoais">
       <div className={`${formGridCls(3)} gap-3`}>
@@ -80,13 +107,14 @@ function PfFields({ draft, setDraft, candidates, number }: { draft: PessoaDraft;
         <SelectField label="Naturalidade (UF)" value={draft.naturalidade_uf} onChange={(value) => setField('naturalidade_uf', value)} options={UF_STATES} />
         <TextField type="date" label="Data de nascimento" value={draft.data_nascimento} onChange={(value) => setField('data_nascimento', value)} />
         <TextField label="Profissão" value={draft.profissao} onChange={(value) => setField('profissao', value)} />
-        <SelectField label="Estado civil" value={draft.estado_civil} onChange={(value) => setField('estado_civil', value)} options={ESTADOS_CIVIS} />
+        <SelectField label="Estado civil" value={draft.estado_civil} onChange={trocarEstadoCivil} options={ESTADOS_CIVIS} />
         {married && <SelectField label="Regime de bens" value={draft.regime_bens} onChange={(value) => setField('regime_bens', value)} options={REGIMES_BENS} />}
         {married && (
           <div className="relative space-y-1.5">
             <Label className={labelCls}>Cônjuge</Label>
             {draft.conjuge_id && <button type="button" onClick={() => setField('conjuge_id', '')} aria-label="Remover cônjuge" className="absolute right-0 top-0 text-destructive hover:text-destructive/80"><X className="h-3.5 w-3.5" /></button>}
-            <Select value={draft.conjuge_id || undefined} onValueChange={(value) => setField('conjuge_id', value)}><SelectTrigger className={fieldCls}><SelectValue placeholder={candidates.length ? 'Selecione...' : 'Nenhuma PF cadastrada'} /></SelectTrigger><SelectContent>{candidates.map((candidate) => <SelectItem key={candidate.id} value={candidate.id}>{candidate.denominacao}</SelectItem>)}</SelectContent></Select>
+            <Select value={draft.conjuge_id || undefined} onValueChange={(value) => setField('conjuge_id', value)}><SelectTrigger className={fieldCls}><SelectValue placeholder={conjugeCandidates.length ? 'Selecione...' : 'Nenhuma PF disponível'} /></SelectTrigger><SelectContent>{conjugeCandidates.map((candidate) => <SelectItem key={candidate.id} value={candidate.id}>{candidate.denominacao}</SelectItem>)}</SelectContent></Select>
+            {conjugesOcultos > 0 && <p className="text-[11px] text-muted-foreground">{conjugesOcultos} pessoa(s) não aparecem por já terem cônjuge cadastrado. O vínculo é recíproco: gravar aqui grava do outro lado.</p>}
           </div>
         )}
         <div className={`${formGridCls(2)} gap-3 ${formSpanCls(3)}`}>
@@ -124,7 +152,7 @@ function ParentescoFields({ value, onChange, candidates, number }: { value: Pare
     <FieldSection number={number} title="Filiação"><div className={`${formGridCls(4)} items-end gap-2`}>
       <div className={`space-y-1.5 ${formSpanCls(2)}`}><Label className={labelCls}>Parente</Label><Select value={value.parenteId || undefined} onValueChange={(id) => onChange((old) => ({ ...old, parenteId: id }))}><SelectTrigger className={fieldCls}><SelectValue placeholder={candidates.length ? 'Selecione...' : 'Cadastre um fundador primeiro'} /></SelectTrigger><SelectContent>{candidates.map((candidate) => <SelectItem key={candidate.id} value={candidate.id}>{candidate.denominacao}</SelectItem>)}</SelectContent></Select></div>
       <SelectField label="Tipo" value={value.tipo} onChange={(tipo) => onChange((old) => ({ ...old, tipo }))} options={TIPOS_PARENTESCO} />
-      <SelectField label="Natureza" value={value.natureza} onChange={(natureza) => onChange((old) => ({ ...old, natureza }))} options={NATUREZAS} />
+      <SelectField label="Natureza" value={value.natureza} onChange={(natureza) => onChange((old) => ({ ...old, natureza }))} options={NATUREZAS_PARENTESCO} />
     </div></FieldSection>
   );
 }

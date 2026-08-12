@@ -11,6 +11,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 import { campoDaEntidade } from '@/lib/templates/vocabulario';
 import { labelDoBinding } from '@/lib/templates/binding';
+import { BlocosSemDado } from '@/components/equipe/osg/gerar/BlocosSemDado';
 import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
 import type { LinhaNotificacao } from '@/hooks/useGerarDocumentoController';
@@ -58,7 +59,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
   const navigate = useNavigate();
   const {
   modelos, carregandoModelos, modeloId, setModeloId, carregandoBlocos, clienteId, registros,
-  carregandoRegistros, selecao, registroPorBinding, valoresLivres, setValoresLivres,
+  carregandoRegistros, selecao, registroPorBinding, blocosSemDado, valoresLivres, setValoresLivres,
   empresaId, setEmpresaId, copiado, passoAberto, setPassoAberto, ajustesAbertos,
   setAjustesAbertos, railAberto, setRailAberto, versaoVisualizadaId, setVersaoVisualizadaId,
   abaEfetiva, setAba, documentoGeradoId, documentoRaizId, versoes, congelado,
@@ -316,6 +317,8 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                         )}
                       </>
                     )}
+
+                    <BlocosSemDado blocos={blocosSemDado} />
 
                     {secoesDesconhecidas.length > 0 && (
                       <AvisoPendencia>

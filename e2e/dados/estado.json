@@ -1,0 +1,226 @@
+{
+  "_meta": {
+    "descricao": "Estado da execução do roteiro em e2e/dados/roteiro.md. Atualizado ao fim de cada passo. É a fonte de retomada: se a sessão cair, continuar pelo primeiro passo que não estiver 'ok'.",
+    "status_possiveis": [
+      "pendente",
+      "ok",
+      "falhou",
+      "bloqueado",
+      "pulado"
+    ],
+    "iniciado_em": "2026-08-11T14:19",
+    "ambiente": "dev (localhost:8080)",
+    "cliente_id": "8f9c2796-b9f3-4349-923b-b04e86bc6012",
+    "encerrado_em": "2026-08-11T16:05"
+  },
+  "ids": {
+    "cliente": "8f9c2796-b9f3-4349-923b-b04e86bc6012",
+    "pessoas": {},
+    "bens": {},
+    "matriculas": {},
+    "cartorio": null,
+    "documento_gerado": null
+  },
+  "passos": [
+    {
+      "id": "P00",
+      "titulo": "Login",
+      "status": "ok",
+      "obs": "Login OK. A tela /equipe pede email/senha primeiro e o seletor de area aparece depois; cai em /equipe/osg."
+    },
+    {
+      "id": "P01",
+      "titulo": "Criar cliente [TESTE E2E] Grupo MMS",
+      "status": "ok",
+      "obs": "Cliente criado. Exigiu selecionar >=1 cluster (nao previsto no dossie): usado cluster OSG. Form nao tem campo municipio/UF."
+    },
+    {
+      "id": "P02",
+      "titulo": "Selecionar cliente na barra Work",
+      "status": "ok",
+      "obs": "Cliente selecionado na barra Work; a pagina passou a listar PJ (0) e PF (0)."
+    },
+    {
+      "id": "P03",
+      "titulo": "Pessoa PF-01 José Eduardo",
+      "status": "ok",
+      "obs": "PF-01 na lista (Fundador, Cuiaba/MT). Conjuge ficou vazio ('Nenhuma PF cadastrada'), como previsto no P05. Naturalidade municipio/UF sem dado no dossie: deixados vazios."
+    },
+    {
+      "id": "P04",
+      "titulo": "Pessoa PF-02 Maria Auxiliadora",
+      "status": "ok",
+      "obs": "PF-02 na lista com conjuge PF-01 escolhido no proprio cadastro."
+    },
+    {
+      "id": "P05",
+      "titulo": "Vincular cônjuge em PF-01",
+      "status": "ok",
+      "obs": "PF-01 reaberto e conjuge PF-02 salvo. Confirmado nos dois sentidos (PF-01 -> Maria, PF-02 -> Jose)."
+    },
+    {
+      "id": "P06",
+      "titulo": "Pessoa PF-03 Camila",
+      "status": "ok",
+      "obs": "PF-03 na lista como 'Filho(a) de JOSE EDUARDO'. Conjuge (PF-04) ainda nao existia, fica para depois do P07."
+    },
+    {
+      "id": "P07",
+      "titulo": "Pessoa PF-04 Eduardo Mirandola",
+      "status": "ok",
+      "obs": "PF-04 na lista como 'Genro/Nora de JOSE EDUARDO' (natureza Afim). Conjuge Camila escolhido no cadastro; depois editei Camila para fechar o lado dela (mesmo nao-espelhamento do P05)."
+    },
+    {
+      "id": "P08",
+      "titulo": "Pessoa PF-05 Bruna",
+      "status": "ok",
+      "obs": "PF-05 na lista. Criterio confirmado: com Solteiro(a) o modal nao mostra Regime de bens nem Conjuge."
+    },
+    {
+      "id": "P09",
+      "titulo": "Pessoa PJ-01 MMS Agro",
+      "status": "ok",
+      "obs": "PJ-01 na lista (Proprietaria, Lucas do Rio Verde/MT) com 2 administradores Socio-Administrador 'Assina isoladamente'. A aba Administracao so habilita depois de criar a PJ."
+    },
+    {
+      "id": "P10",
+      "titulo": "Pessoa PJ-02 MMS Participações",
+      "status": "ok",
+      "obs": "PJ-02 na lista (Controladora, Cuiaba/MT) com Jose Eduardo e Maria como Administrador (nao socios), assina isoladamente."
+    },
+    {
+      "id": "P11",
+      "titulo": "Cartório 1º Ofício Lucas do Rio Verde",
+      "status": "ok",
+      "obs": "Nao precisou cadastrar: o cartorio 'Cartorio de 1 Oficio de Imoveis - Lucas do Rio Verde/MT' JA EXISTIA na tabela cartorio. Busca por 'Lucas' no popover (cmdk) achou de primeira; ha botao 'Novo cartorio' se faltasse."
+    },
+    {
+      "id": "P12",
+      "titulo": "Bem BS-08 Fazenda Tarumã",
+      "status": "ok",
+      "obs": "BS 08 na lista (Imovel Rural, Fazenda Taruma, Integralizado)."
+    },
+    {
+      "id": "P13",
+      "titulo": "Matrícula 9.617",
+      "status": "ok",
+      "obs": "Matricula listada dentro do BS 08 ('Mat. [TESTE] 9.617 | Lucas do Rio Verde/MT | Area doc: 396,4 ha | Georref: Nao'). Numero com prefixo [TESTE] por causa da colisao de unique. Titular inicial obrigatorio: Jose Eduardo (titularidade da descricao_psa)."
+    },
+    {
+      "id": "P14",
+      "titulo": "Bem BS-09 Terreno Urbano",
+      "status": "ok",
+      "obs": "BS 09 na lista. Criterio ok: com tipo IB o modal troca a secao 02 para 'ENDERECO E AREA CONSTRUIDA' (CEP/logradouro/numero/complemento/bairro/area construida) + Inscricao municipal, e avisa 'municipio e UF vem da matricula'."
+    },
+    {
+      "id": "P15",
+      "titulo": "Matrícula 25.365",
+      "status": "ok",
+      "obs": "Mat. [TESTE] 25.365 dentro do BS 09, 'Area doc: 699,86 m2' (unidade m2 correta; as 2 casas extras foram truncadas pelo campo). O modal de matricula tambem se adapta ao urbano: 'IPTU anual' em vez de 'ITR anual', sem georreferenciado/prejudica transferencia/area explorada."
+    },
+    {
+      "id": "P16",
+      "titulo": "Bem BS-01 Lote 05 / Ipê Amarelo",
+      "status": "ok",
+      "obs": "BS 01 na lista (Imovel Rural, Lote n.o 05 do Setor 10 / Fazenda Ipe Amarelo)."
+    },
+    {
+      "id": "P17",
+      "titulo": "Matrícula 2.424",
+      "status": "ok",
+      "obs": "Mat. [TESTE] 2.424 dentro do BS 01, area 200,6846 ha gravada com as 4 casas."
+    },
+    {
+      "id": "P18",
+      "titulo": "Bem BS-02 Fazenda Capuaba",
+      "status": "ok",
+      "obs": "BS 02 na lista (Fazenda Capuaba)."
+    },
+    {
+      "id": "P19",
+      "titulo": "Matrículas 2.623 e 2.625",
+      "status": "ok",
+      "obs": "DUAS matriculas sob o BS 02 ([TESTE] 2.623 com 284,861 ha e [TESTE] 2.625 com 117,243 ha), mesmo CCIR 901.016.074.624-4 no bem. O app NAO recusou: o CCIR e do bem (unidade rural), nao da matricula, exatamente como o dossie previa."
+    },
+    {
+      "id": "P20",
+      "titulo": "Bem BS-03 Fazenda Cristalina",
+      "status": "ok",
+      "obs": "BS 03 na lista (Fazenda Cristalina)."
+    },
+    {
+      "id": "P21",
+      "titulo": "Matrículas 2.627 e 2.628",
+      "status": "ok",
+      "obs": "DUAS matriculas sob o BS 03 ([TESTE] 2.627 173,537 ha e [TESTE] 2.628 225,548 ha) com o mesmo CCIR 901.407.103.560-7, aceitas. Na 2.628 acrescentei Maria Auxiliadora como 2o titular DT (titularidade dupla da alinea g), via lapis do card -> aba Titularidade."
+    },
+    {
+      "id": "P22",
+      "titulo": "Bem BS-51 Quotas Cooperbio",
+      "status": "ok",
+      "obs": "BS 51 na lista com o selo 'Nao participa da estruturacao' e R$ 22.640,00. Switch participa_estruturacao desligado. Com tipo PS o modal mostra a secao VALORES (Vlr. contabil obrigatorio) e a observacao virou 'Motivo de nao integralizacao'; bem sem matricula exige titular inicial (Jose Eduardo, como no dossie)."
+    },
+    {
+      "id": "P23",
+      "titulo": "Quadro societário MMS Agro",
+      "status": "bloqueado",
+      "obs": "Nao e possivel pela UI: para empresa Proprietaria (PR) a tela mostra 'Calculado da integralizacao aprovada (Diagnostico Patrimonial)' e 'esta tela nao grava nada para empresas Proprietarias', com 'Nenhum bem aprovado para integralizacao com destino a esta empresa'. Nao existe botao Vincular Socio. Logo MMS Participacoes com 4.234.822 quotas da MMS Agro nao pode ser cadastrada aqui."
+    },
+    {
+      "id": "P24",
+      "titulo": "Quadro societário MMS Participações",
+      "status": "ok",
+      "obs": "Bruna e Camila com 4.770.898 quotas e R$ 4.770.898,00 cada, 50,00% cada; capital social total R$ 9.541.796,00 e valor nominal R$ 1,00 calculados pela tela. Bate com o dossie."
+    },
+    {
+      "id": "P25",
+      "titulo": "Gerar o contrato",
+      "status": "ok",
+      "obs": "Gerado e baixado Contrato_Social_Sociedade_Limitada_Agro.docx (modelo Agro, empresa MMS AGRO LTDA, imovel [TESTE] 9.617). Documento saiu com preambulo de socios vazio, capital social vazio e tabela de socios sem linhas, porque a tela de conferencia acusou 'Sócios 0' e 'Imoveis integralizados 0' (o gerador conta bem com status 'Aprovado', e o dossie manda 'Integralizado'). Administradores sairam corretos."
+    },
+    {
+      "id": "P26",
+      "titulo": "Conferir o .docx contra os gabaritos",
+      "status": "ok",
+      "obs": "Conferido campo a campo. Foram gerados 3 .docx (em .playwright-mcp/): (1) agro fiel ao dossie [status Integralizado] = vazio; (2) agro-aprovado.docx apos trocar BS 08 para 'Aprovado' = preenchido; (3) participacoes.docx = preenchido e correto. Detalhe dos bugs e das divergencias de origem nos achados."
+    },
+    {
+      "id": "P27",
+      "titulo": "Limpeza",
+      "status": "pulado",
+      "obs": "Bernardo optou por manter o cliente de pe em 11/08/2026 para inspecionar os dados e os 3 .docx. Cliente 8f9c2796-b9f3-4349-923b-b04e86bc6012, ambiente='dev', invisivel em producao. ATENCAO ao retomar: o BS 08 esta com status 'Aprovado' (alterado no experimento do P25), nao 'Integralizado' como manda o dossie; e os numeros das 7 matriculas tem prefixo '[TESTE] '."
+    }
+  ],
+  "achados": [
+    "P01: 'Selecione ao menos 1 cluster' (RPC criar_cliente_com_clusters, erro 23514) bloqueia o cadastro de cliente. Campo obrigatorio sem correspondente no dossie; escolhido cluster OSG para desbloquear.",
+    "P01: o formulario de cliente nao tem campo de municipio/UF, que o dossie traz (Cuiaba/MT). Dado ficou sem onde entrar.",
+    "P01: a lista exibe o nome em Title Case ('[Teste E2e] Grupo Mms'); o valor gravado preserva o que foi digitado ('[TESTE E2E] Grupo MMS', visto no filtro nome=eq. da query). Cosmetico, mas descaracteriza siglas.",
+    "Geral: a UI nao expoe os ids das entidades filhas (pessoa/bem/matricula) no DOM; verificacao possivel so pela linha na lista. Somente cliente_id foi capturado (via query do app).",
+    "P04/P05: o vinculo de conjuge NAO e espelhado automaticamente. Ao gravar PF-02 com conjuge PF-01, PF-01 continuou com o campo vazio; foi preciso editar PF-01 a mao. Depois de salvo aparece o botao 'Remover conjuge' nos dois lados.",
+    "P06: a secao Filiacao do modal aceita UM unico vinculo (Parente/Tipo/Natureza). Nao ha como apontar pai E mae; a mae ficou so no campo texto 'Filiacao (mae)'. O criterio do roteiro (filiacao aponta para PF-01 e PF-02) nao e alcancavel pela UI atual.",
+    "P07: o select de Conjuge lista pessoas que ja tem conjuge (Jose Eduardo e Maria apareceram como opcao para Eduardo). Nao ha filtro nem aviso de vinculo duplicado.",
+    "P09/P10: a administracao nao tem campo de observacao; o texto do dossie (administracao isolada, atos da clausula sexta exigem as duas assinaturas) so caberia no checkbox 'Pode assinar isoladamente', que foi marcado.",
+    "Sessao: apos ~40min o refresh do token voltou 400 (auth/v1/token?grant_type=refresh_token) e o app deslogou para /equipe no meio do preenchimento. Os dados ja gravados sobreviveram (PJ-01 e os 2 administradores), mas o ultimo 'Salvar alteracoes' foi perdido.",
+    "P12: o modal de bem nao tem campos de valor (vlr_contabil, vlr_itr_iptu, exercicio, vlr_mercado) nem observacao; a lista de bens mostra colunas Vlr. contabil/Vlr. mercado que vem das matriculas. Os valores e a observacao do dossie para o bem entraram pela matricula.",
+    "P13 (GRAVE): matricula 9.617 no 1o Oficio de Lucas do Rio Verde recusada com 409 / 23505 'duplicate key value violates unique constraint matricula_numero_cartorio_unq' (toast: 'Ja existe uma matricula com esse numero neste cartorio'). A unicidade e (numero, cartorio) GLOBAL, nao por cliente, e a tabela matricula nao tem coluna ambiente: um cliente de teste em dev colide com matriculas reais de producao. Efeito colateral no negocio: dois clientes distintos que compartilhem uma matricula (condominio, espolio, permuta) nao podem coexistir.",
+    "P13-P21 (desvio deliberado, autorizado pelo Bernardo): para contornar a colisao acima, os numeros de matricula foram cadastrados com prefixo '[TESTE] '. Toda diferenca de numero de matricula entre o .docx gerado e o gabarito descricao_psa_completa vem daqui, NAO do gerador.",
+    "P12 (corrige achado anterior): o modal de bem TEM secao '04 OBSERVACAO', mas o textarea nao tem <label>, so o cabecalho da secao. Continua sem campos de valor: vlr_contabil/vlr_itr_iptu/exercicio/vlr_mercado do bem so existem na matricula.",
+    "P13: a lista de bens mostra 'Vlr. contabil' e 'Vlr. mercado' como '—' e 'Total contabil: R$ 0,00' mesmo com a matricula gravada com vlr_contabil 558.413,55 (conferido apos reload). A coluna nao agrega o valor das matriculas e nao existe campo no formulario de bem para preenche-la.",
+    "P13: campo obrigatorio 'Titular inicial' na matricula nao tem correspondente de coluna no dossie; preenchido com a titularidade que consta na descricao_psa_completa (Jose Eduardo; na 2.628 os dois).",
+    "P15: 'Area documento' muda o step conforme a unidade: em ha step=0.0001 (as 4 casas do dossie passam, ex. 284,8610 e 200,6846 gravados intactos), em m2 step=0.01 e a area e truncada em 2 casas. A matricula urbana 25.365 tinha 699,8677 m2 e ficou 699,86, perda real de precisao (m2 e a unidade que MAIS precisa de casas). Pior: trocar a unidade de ha para m2 arredonda em silencio o valor ja digitado.",
+    "P22: ao clicar 'Cadastrar bem' sem titular, o app troca para a aba Titularidade e marca o campo com '*', mas nao mostra toast nem mensagem dizendo o que faltou. Quem nao repara na troca de aba acha que o botao nao funcionou.",
+    "P23 (conflito de modelo): o quadro societario de empresa PR e derivado da integralizacao aprovada no Diagnostico Patrimonial, mas a composicao real da MMS Agro vem de CESSAO de quotas (2a Alteracao: as quotas dos fundadores passaram integralmente a MMS Participacoes), que nao e integralizacao de bem. Ou seja, a estrutura societaria dessa proprietaria nao tem por onde ser representada. Alem disso os bens foram salvos com status 'Integralizado' e a tela diz 'nenhum bem aprovado', sugerindo que ela conta so status 'Aprovado'/'Aprovado para 2a Instancia'.",
+    "P25 (GRAVE): com 0 socios e 0 imoveis o app ainda deixa baixar o .docx, e o documento sai com a clausula quinta assim: 'O capital social da empresa sera de R$ () , dividido em () quotas ... sendo: ,' e a tabela SOCIOS/QUOTAS/VALOR/% so com cabecalho. Nao ha bloqueio nem marca de rascunho: um contrato invalido sai com aparencia de pronto.",
+    "P25 (GRAVE): o bloco de georreferenciamento e impresso mesmo sem dado nenhum. No fim do .docx sai 'O imovel possui area de  ha e perimetro de  m, georreferenciado no sistema , certificado junto ao SIGEF sob o codigo  em , conforme o memorial descritivo:' seguido da tabela de vertices vazia (so cabecalho VERTICE/SEGMENTO VANTE/...). A matricula 9.617 tem georreferenciado='Nao', logo o bloco deveria ser suprimido. O endpoint /osg/documentos/georreferenciamento respondeu 404 para essa matricula.",
+    "P26 (BUG do gerador, o mais grave do documento): o nome do cartorio e ignorado. O bloco do imovel imprime 'do Cartorio de Registro de Imoveis de Lucas do Rio Verde' quando o cadastro (e o select do P11) diz 'Cartorio de 1o Oficio de Imoveis'. O gabarito PSA exige 'Cartorio de 1o Oficio de Imoveis da comarca de Lucas do Rio Verde'. O gerador monta um texto generico a partir do municipio e perde o oficio, que e identificacao registral.",
+    "P26 (BUG do gerador): capital social nao fecha com o numero de quotas. Clausula quinta: capital R$ 558.413,55 dividido em 558.414 quotas de R$ 1,00 (= R$ 558.414,00, 45 centavos a mais). A tabela repete 558.414 quotas / 558.413,55 / 100,000%. O gerador arredonda quotas para cima e mantem o capital com centavos.",
+    "P26 (BUG do gerador): livro e folha saem so em extenso, 'no Livro dois, Folhas/Ficha um', enquanto o gabarito PSA usa 'no Livro 02 (dois), folhas/ficha 01 (um)' (numeral + extenso).",
+    "P26 (BUG do gerador): a outorga conjugal fica na linha do proprio socio ('JOSE EDUARDO ... Socio administrador e Outorga Conjugal'; 'CAMILA ... Socia e Outorga Conjugal'), sem linha de assinatura para o conjuge que de fato outorga (Maria Auxiliadora e Eduardo Mirandola). A logica de QUANDO exigir outorga esta certa (Bruna, solteira, saiu so 'Socia').",
+    "P26: no contrato da Participacoes os administradores nao socios (Jose Eduardo e Maria) sao qualificados na clausula sexta mas nao tem linha de assinatura; assinam so Bruna e Camila.",
+    "P26: a data de assinatura sai como 'Lucas do Rio Verde/MT, .' (campo manual vazio, com a pontuacao quebrada). Os 10 campos 'Preencher a mao' (data, advogado, 2 testemunhas) nao tem dado no dossie e ficaram em branco de proposito.",
+    "P26 (CONTROLE NEGATIVO OK): nenhum dos 3 .docx cita a Cooperbio, quotas de cooperativa ou o valor 22.640. O P22 passou.",
+    "P26 (OK): area saiu certa, '396,4000 ha (trezentos e noventa e seis hectares e quarenta ares)', identica ao gabarito, e as confrontacoes sairam integrais. A divergencia de origem 220,066 ha do Diagnostico Patrimonial nao contaminou o documento. Objeto social, CNAE em bullets, capital da Participacoes (9.541.796 e as duas cotas de 4.770.898) e qualificacao das socias bateram com o dossie.",
+    "Desvio deliberado no P25/P26: para provar o mecanismo, o BS 08 foi alterado de 'Integralizado' para 'Aprovado' e o contrato foi gerado de novo. Os outros 4 imoveis seguem 'Integralizado', por isso o contrato gerado tem 1 imovel e 1 socio (Jose Eduardo, 100%) em vez dos 7 imoveis e do 50/50 do case real.",
+    "P25: o modelo Agro pede UM unico imovel no passo 'Este modelo tambem precisa de: Imovel', mas um contrato de constituicao integraliza varios (aqui seriam 7 matriculas). O binding e single-select; nao ha como amarrar o conjunto."
+  ]
+}

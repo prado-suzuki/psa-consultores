@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PassoCard } from '@/components/equipe/osg/gerar/gerarKit';
 import { EscolhaModelo } from '@/components/equipe/osg/gerar/EscolhaModelo';
 import { EscolhaEmpresa } from '@/components/equipe/osg/gerar/EscolhaEmpresa';
+import { SelecaoRegistrosLista } from '@/components/equipe/osg/gerar/SelecaoRegistrosLista';
 import { fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { labelDoBinding } from '@/lib/templates/binding';
@@ -16,7 +17,9 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
   const navigate = useNavigate();
   const {
   modelos, carregandoModelos, modeloId, setModeloId, carregandoBlocos, clienteId, registros,
-  carregandoRegistros, selecao, registroPorBinding, valoresLivres, setValoresLivres,
+  carregandoRegistros, selecao, registroPorBinding, registrosPorLista,
+  alternarRegistroDaLista, confirmarSelecaoDeListas, listasDeSelecao,
+  listasSelecaoPendentes, valoresLivres, setValoresLivres,
   empresaId, setEmpresaId, copiado, passoAberto, setPassoAberto, ajustesAbertos,
   setAjustesAbertos, railAberto, setRailAberto, versaoVisualizadaId, setVersaoVisualizadaId,
   abaEfetiva, setAba, documentoGeradoId, documentoRaizId, versoes, congelado,
@@ -119,6 +122,40 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
                   temCliente={!!clienteId}
                   carregando={carregandoRegistros}
                 />
+              )}
+
+              {listasDeSelecao.length > 0 && (
+                <div className="space-y-4">
+                  {listasDeSelecao.map((lista) => {
+                    const marcados = registrosPorLista[lista.nome] ?? [];
+                    return (
+                      <div key={lista.nome} className="space-y-2">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <Label className={labelCls}>{lista.papel.label}</Label>
+                          <span className="text-xs tabular-nums text-slate-500">
+                            {marcados.length} selecionado{marcados.length === 1 ? '' : 's'}
+                          </span>
+                        </div>
+                        <SelecaoRegistrosLista
+                          nome={lista.nome}
+                          registros={registros[lista.papel.tipo]}
+                          selecionados={marcados}
+                          onAlternar={(registroId) => alternarRegistroDaLista(lista.nome, registroId)}
+                        />
+                      </div>
+                    );
+                  })}
+                  {/* Marcar um item NÃO conclui o passo: o documento pode
+                      descrever várias matrículas, e quem diz que terminou de
+                      montar a lista é o consultor, aqui. */}
+                  <Button
+                    onClick={confirmarSelecaoDeListas}
+                    disabled={listasSelecaoPendentes.length > 0}
+                    className="w-full sm:w-auto"
+                  >
+                    Concluir seleção
+                  </Button>
+                </div>
               )}
 
               {bindingsNaoSociedade.length > 0 && (

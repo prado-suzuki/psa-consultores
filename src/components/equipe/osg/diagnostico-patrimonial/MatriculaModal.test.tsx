@@ -11,7 +11,7 @@ Object.defineProperties(Element.prototype, {
 const mocks = vi.hoisted(() => ({
   upsert: vi.fn(), upsertImpedimento: vi.fn(), deleteImpedimento: vi.fn(),
   impedimentos: [] as Record<string, unknown>[],
-  toast: { error: vi.fn(), success: vi.fn() },
+  toast: { error: vi.fn(), info: vi.fn(), warning: vi.fn(), success: vi.fn() },
   titularPanelProps: undefined as Record<string, unknown> | undefined,
 }));
 
@@ -82,7 +82,7 @@ beforeEach(() => {
 });
 
 describe('MatriculaModal', () => {
-  it('cria matrícula e titular pela fronteira atômica, preservando o número ao trocar unidade', async () => {
+  it('cria matrícula e titular pela fronteira atômica, convertendo a área ao trocar a unidade', async () => {
     const user = userEvent.setup();
     const { props } = renderModal();
     await user.type(inputAfter('Nº da matrícula'), '  456  ');
@@ -91,7 +91,12 @@ describe('MatriculaModal', () => {
     await choose(2, 'GO');
     await user.type(inputAfter('Área documento'), '123');
     await choose(3, '^m²$');
-    expect(inputAfter('Área documento')).toHaveValue(123);
+    // Trocar de ha para m² converte de fato (1 ha = 10.000 m²) e avisa: a
+    // quantidade representada não muda, o número muda porque a unidade mudou.
+    expect(inputAfter('Área documento')).toHaveValue(1_230_000);
+    expect(mocks.toast.info).toHaveBeenCalledWith(
+      'Áreas convertidas de ha para m² — a quantidade não mudou.',
+    );
 
     await user.click(screen.getByRole('tab', { name: /Titularidade/ }));
     expect(
@@ -110,11 +115,32 @@ describe('MatriculaModal', () => {
       titular: { titular_pessoa_id: 'P1', tipo: 'DIREITO', fracao: 40 },
       values: {
         bem_id: 'B1', numero: '456', tipo_bem: 'IR', cartorio_id: 'CART1',
-        municipio_imovel: 'Anápolis', uf_imovel: 'GO', area_documento: 123, area_unidade: 'm2',
+        municipio_imovel: 'Anápolis', uf_imovel: 'GO', area_documento: 1_230_000,
+        area_unidade: 'm2',
       },
     });
     options.onSuccess();
     expect(props.onClose).toHaveBeenCalledOnce();
+  });
+
+  it('avisa, com o antes e o depois, quando a troca de unidade arredonda', async () => {
+    const user = userEvent.setup();
+    renderModal();
+    await choose(3, '^m²$');
+    // Área da matrícula urbana do aceite de B8: 699,8677 m² não cabe em quatro
+    // casas depois de virar hectare (0,06998677 ha).
+    fireEvent.change(inputAfter('Área documento'), { target: { value: '699.8677' } });
+    await choose(3, '^ha$');
+
+    expect(inputAfter('Área documento')).toHaveValue(0.07);
+    expect(mocks.toast.warning).toHaveBeenCalledWith(
+      'Áreas convertidas de m² para ha, com arredondamento em 4 casas.',
+      { description: 'Área documento: 0,06998677 ha → 0,07 ha' },
+    );
+    expect(mocks.toast.info).not.toHaveBeenCalled();
+    // Sem o aviso, o próximo toque no campo truncaria a diferença em silêncio.
+    fireEvent.change(inputAfter('Área documento'), { target: { value: '0.06998677' } });
+    expect(inputAfter('Área documento')).toHaveValue(0.0699);
   });
 
   it('valida titular e fração antes de chamar a RPC atômica', async () => {
@@ -126,8 +152,16 @@ describe('MatriculaModal', () => {
     await choose(2, 'GO');
     await user.type(inputAfter('Área documento'), '10');
     await user.click(screen.getByRole('button', { name: 'Cadastrar matrícula' }));
-    expect(mocks.toast.error).toHaveBeenCalledWith('Selecione o titular inicial da matrícula');
+    // B16: o aviso diz o que falta E onde, a aba abre e o foco para no campo.
+    expect(mocks.toast.error).toHaveBeenCalledWith(
+      'Selecione o titular inicial da matrícula, na aba Titularidade.',
+    );
     expect(screen.getByRole('tab', { name: /Titularidade/ })).toHaveAttribute('data-state', 'active');
+    await waitFor(() =>
+      expect(
+        screen.getByText('Titular').closest('[data-campo="titular_pessoa_id"]'),
+      ).toContainElement(document.activeElement as HTMLElement),
+    );
     expect(mocks.upsert).not.toHaveBeenCalled();
   });
 
