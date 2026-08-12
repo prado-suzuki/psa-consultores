@@ -9118,6 +9118,7 @@ export type Database = {
         Args: { _melhoria_id: string }
         Returns: boolean
       }
+      nome_cliente_normalizado: { Args: { p_nome: string }; Returns: string }
       org_project_cluster_ids: {
         Args: { _project_id: string }
         Returns: string[]
