@@ -341,6 +341,44 @@ Decisão do Bernardo sobre o caso em que a mesma pessoa é **sócia e cônjuge o
 O dedupe **não** vale para cônjuge que é apenas administrador não sócio: administrador assina em nome da
 sociedade e isso não supre a anuência pessoal do regime de bens, então esse cônjuge ganha a sua linha.
 
+### 9.10 · Sobreposição de papel SEMPRE combina, nunca descarta
+
+A emenda 9.9 resolveu o caso "sócia e cônjuge outorgante" e deixou um buraco: ela diz que o cônjuge que é
+**administrador não sócio** "ganha a sua linha", sem dizer o que acontece com a qualidade de administrador.
+A implementação escolheu **descartar**: o cônjuge é emitido dentro do laço de sócios, a deduplicação
+engole a segunda emissão, e a administradora não sócia aparece só como `Cônjuge outorgante`. O contrato
+nomeia a pessoa administradora na cláusula de administração e o fecho não tem ninguém assinando como tal.
+Pior, o teste congelou esse comportamento.
+
+Fica valendo a regra geral, que já era a do resto do motor: **uma pessoa aparece uma vez só, e o `papel`
+acumula todas as qualidades que ela tem naquele instrumento.** Vale para qualquer combinação, incluindo as
+que ainda não existem:
+
+| Qualidades | `papel` |
+|---|---|
+| sócio | `Sócio` / `Sócia` |
+| sócio + administrador | `Sócio administrador` / `Sócia administradora` |
+| sócia + cônjuge outorgante de outro sócio | `Sócia e cônjuge outorgante` |
+| administradora não sócia + cônjuge outorgante | `Administradora e cônjuge outorgante` |
+| sócio + administrador + cônjuge outorgante | `Sócio administrador e cônjuge outorgante` |
+
+Nenhuma qualidade pode sumir em silêncio. Se uma combinação nova não tiver rótulo previsto, o motor
+**falha alto** em vez de escolher uma das duas. O teste tem que cobrir a sobreposição tripla, que é a que
+prova a regra em vez do caso.
+
+### 9.11 · Pessoa jurídica concorda no feminino
+
+`signatario.papel` de sócia PJ sai hoje como `Sócio`, porque a concordância cai no masculino quando
+`genero` é nulo e PJ não tem gênero cadastrado. A fixture da L3 escreve `Sócia`. As duas raias divergem no
+mesmo campo, cada uma com o seu congelado em teste.
+
+Fica: **pessoa jurídica concorda no feminino** (a sociedade, a empresa, a sócia), que é o uso da casa e o
+que a L3 já escrevia. A concordância por `genero` continua valendo para pessoa física; a ausência de gênero
+numa PF continua caindo no masculino, como hoje.
+
+> Assunção minha, não decisão do Bernardo: adotei o que a L3 já tinha escrito por ser o uso corrente em
+> instrumento societário. Se a PSA escreve `Sócio` para PJ em algum modelo, isto se inverte e é uma linha.
+
 ## 10 · O que continua verdadeiro (regressão)
 
 Nenhuma das duas raias pode quebrar isto, e o teste de cada uma deve continuar provando:
