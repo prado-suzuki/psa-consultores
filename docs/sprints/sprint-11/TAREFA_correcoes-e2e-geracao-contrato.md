@@ -255,7 +255,7 @@ integralização de bens convivem na mesma tela, cada um com sua origem visível
 
 ## Amarelos
 
-### B8 · Área em m² é truncada em duas casas, e trocar a unidade arredonda em silêncio
+### B8 · Área em m² é truncada em duas casas, e trocar a unidade arredonda em silêncio — ✅ CONCLUÍDO (12/08/2026)
 
 **Sintoma.** `699,8677 m²` (valor da matrícula real) vira `699,86`. Trocar a unidade de ha para m² depois de
 digitar arredonda o número já preenchido, sem aviso.
@@ -279,6 +279,11 @@ armazenamento a unidade; qualquer unidade nova repete o bug.
 
 **Aceite.** `699,8677 m²`, `284,8610 ha` e `1.234 ha e 5.678 m²` entram, gravam e voltam idênticos, e trocar
 a unidade com valor preenchido não altera a quantidade representada.
+
+**Fechamento.** A correção do cadastro preservou as quatro casas, mas B8 só podia ser considerada encerrada
+quando N5 também deixasse de descartá-las na renderização do documento. N3 tornou honesto o aviso da perda
+inevitável em conversões, e N5 passou numeral e extenso de m² para a mesma precisão do cadastro; portanto a
+cadeia entrada → armazenamento → documento agora fecha.
 
 ---
 
@@ -584,6 +589,18 @@ O motor distinguia chave ausente de valor vazio; por isso `{{#imovel.ccir}}`, `{
 `{{#imovel.folha}}` lançavam em matrículas sem esses dados. A correção da L2 passou a publicar `''` para todo
 campo opcional declarado e ganhou testes de regressão. Manter este item visível até o novo e2e confirmar as
 cinco variantes vivas da família “Descrição de imóvel”.
+
+### N5 · Documento truncava área em m² para duas casas — ✅ CONCLUÍDO (12/08/2026)
+
+A conferência pós-correção mostrou que a matrícula 25.365 chegava ao motor com `699,8677 m²`, mas o contrato
+imprimia `699,87 m²` e descrevia a fração como centésimos de metro quadrado. Assim, a precisão preservada por
+B8 ainda era perdida na última etapa.
+
+**Correção.** O motor agora segue os sete gabaritos do dossiê e formata toda área com quatro casas fixas,
+inclusive m² inteiros (`360,0000 m²`), mantendo a simetria documental com hectares. A fração de m² é
+convertida para centímetros quadrados (`0,8677 m² = 8.677 cm²`) no extenso. `areaConstruida`, também medida
+em m², herda deliberadamente a mesma precisão para não criar outra perda silenciosa. Testes cobrem o gabarito
+de `699,8677 m²`, zeros à esquerda, 1 cm², inteiro, zero e a cadeia numeral → parser → extenso.
 
 ---
 

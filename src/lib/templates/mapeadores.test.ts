@@ -628,7 +628,7 @@ describe('mapearMatricula — área construída e a condicional temAreaConstruid
 
   it('construída menor que a total liga o trecho', () => {
     const c = mapearMatricula(comAreas({ area_documento: 360, area_unidade: 'm2', construida: 87.5 }));
-    expect(c.areaConstruida).toBe('87,50 m²');
+    expect(c.areaConstruida).toBe('87,5000 m²');
     expect(c.temAreaConstruida).toBe('sim');
   });
 
@@ -652,7 +652,7 @@ describe('mapearMatricula — área construída e a condicional temAreaConstruid
     'construída %s é cadastro inválido, não construção: campo vazio e condicional desligada',
     (construida) => {
       const c = mapearMatricula(comAreas({ area_documento: 360, area_unidade: 'm2', construida }));
-      // Sem o guard, o Math.abs de formatarArea faria -10 sair como "10,00 m²".
+      // Sem o guard, o Math.abs de formatarArea faria -10 sair como "10,0000 m²".
       expect(c.areaConstruida).toBe('');
       expect(c.temAreaConstruida).toBe('');
     },
@@ -672,7 +672,7 @@ describe('mapearMatricula — área construída e a condicional temAreaConstruid
 
   it('sem área total comparável fica desligada (não se afirma "inferior" sem os dois lados)', () => {
     const c = mapearMatricula(comAreas({ area_documento: null, area_unidade: null, construida: 87.5 }));
-    expect(c.areaConstruida).toBe('87,50 m²');
+    expect(c.areaConstruida).toBe('87,5000 m²');
     expect(c.temAreaConstruida).toBe('');
   });
 });
@@ -684,9 +684,17 @@ describe('mapearMatricula — área na unidade do imóvel', () => {
 
   it('urbano em m² sai em m², com o extenso em metros quadrados', () => {
     const c = comArea('IB', 360, 'm2');
-    expect(c.area).toBe('360,00 m²');
+    expect(c.area).toBe('360,0000 m²');
     expect(c.areaUnidade).toBe('m2');
     expect(c.areaExtenso).toBe('trezentos e sessenta metros quadrados');
+  });
+
+  it('preserva as quatro casas do documento urbano no numeral e no extenso', () => {
+    const c = comArea('IB', 699.8677, 'm2');
+    expect(c.area).toBe('699,8677 m²');
+    expect(c.areaExtenso).toBe(
+      'seiscentos e noventa e nove metros quadrados e oito mil seiscentos e setenta e sete centímetros quadrados',
+    );
   });
 
   it('RURAL em m² segue convertido para hectare (regressão: contrato rural mede em ha)', () => {
@@ -713,7 +721,7 @@ describe('mapearMatricula — área na unidade do imóvel', () => {
     'urbano cadastrado em %s é convertido para m² (simétrico ao rural, que converte m² em ha)',
     (unidade) => {
       const c = comArea('IB', 1.036, unidade);
-      expect(c.area).toBe('10.360,00 m²');
+      expect(c.area).toBe('10.360,0000 m²');
       expect(c.areaUnidade).toBe('m2');
       expect(c.areaExtenso).toBe('dez mil, trezentos e sessenta metros quadrados');
     },
@@ -721,7 +729,7 @@ describe('mapearMatricula — área na unidade do imóvel', () => {
 
   it('apartamento cadastrado em hectare não sai em ares (bug original do imóvel urbano)', () => {
     const c = comArea('IB', 0.036, 'ha');
-    expect(c.area).toBe('360,00 m²');
+    expect(c.area).toBe('360,0000 m²');
     expect(c.areaExtenso).toBe('trezentos e sessenta metros quadrados');
   });
 
