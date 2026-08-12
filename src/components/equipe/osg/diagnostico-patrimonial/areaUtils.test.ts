@@ -88,6 +88,27 @@ describe('troca de unidade', () => {
     // O aviso da tela usa `exato` e `valor` para mostrar o antes e o depois.
     expect(formatArea(Number(convertido.exato), 'ha')).toBe('0,06998677 ha');
     expect(formatArea(Number(convertido.valor), 'ha')).toBe('0,07 ha');
+    expect(formatArea(Number(convertido.exato), 'ha_m2')).toBe('0 ha e 699,8677 m²');
+    expect(formatArea(Number(convertido.valor), 'ha_m2')).toBe('0 ha e 700 m²');
+  });
+
+  it('toda conversão que declara arredondamento produz textos distintos no aviso', () => {
+    const unidades = ['ha', 'm2', 'ha_m2'];
+    // Propriedade sobre valores de 1 a 4 casas, incluindo frações pequenas e
+    // próximas da virada do hectare — não apenas a matrícula que revelou N3.
+    const valores = ['0.1', '0.01', '0.001', '0.0001', '1.2345', '12.3456', '699.8677', '9999.9999'];
+
+    for (const de of unidades) {
+      for (const para of unidades) {
+        for (const valor of valores) {
+          const convertido = converterArea(valor, de, para);
+          if (!convertido.arredondou) continue;
+          const antes = formatArea(Number(convertido.exato), para);
+          const depois = formatArea(Number(convertido.valor), para);
+          expect(antes, `${valor} ${de} → ${para}`).not.toBe(depois);
+        }
+      }
+    }
   });
 
   it('não mexe no número entre ha e "ha e m²", que são a mesma grandeza', () => {

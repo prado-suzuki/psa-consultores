@@ -567,10 +567,16 @@ dado está protegida; falta traduzir esses dois caminhos TypeScript para feedbac
 ser a soma das matrículas (B9), então relatório e lista podem divergir. Precisa consumir o mesmo utilitário
 de valor derivado.
 
-### N3 · Aviso de arredondamento degenera na unidade “ha e m²”
+### N3 · Aviso de arredondamento degenera na unidade “ha e m²” — ✅ CONCLUÍDO (12/08/2026)
 
-`MatriculaDadosTab.tsx` pode mostrar antes e depois idênticos ao avisar a conversão para `ha e m²`. É um
+`MatriculaDadosTab.tsx` podia mostrar antes e depois idênticos ao avisar a conversão para `ha e m²`. Era um
 defeito de mensagem, separado da preservação de quatro casas resolvida na B8.
+
+**Correção.** A exibição composta passou a preservar a fração de m² quando ela existe, em vez de arredondar
+silenciosamente para o metro inteiro. Assim, `699,8677 m²` convertido sob o teto de quatro casas mostra
+`0 ha e 699,8677 m² → 0 ha e 700 m²`; valores inteiros continuam sem zeros artificiais. Um teste de
+propriedade percorre as três unidades e valores com uma a quatro casas e garante que toda conversão marcada
+como arredondada produza textos diferentes no aviso.
 
 ### N4 · Guarda sobre campo opcional ausente derrubava o render
 
