@@ -58,6 +58,7 @@ export type Database = {
           id: string
           pj_pessoa_id: string
           pode_isoladamente: boolean | null
+          poderes: Json | null
           updated_at: string
           updated_by: string | null
         }
@@ -71,6 +72,7 @@ export type Database = {
           id?: string
           pj_pessoa_id: string
           pode_isoladamente?: boolean | null
+          poderes?: Json | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -84,6 +86,7 @@ export type Database = {
           id?: string
           pj_pessoa_id?: string
           pode_isoladamente?: boolean | null
+          poderes?: Json | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -3651,6 +3654,7 @@ export type Database = {
           area_unidade: string
           bem_id: string | null
           cartorio_id: string
+          cliente_id: string | null
           confrontacoes_texto: string | null
           created_at: string
           created_by: string | null
@@ -3685,6 +3689,7 @@ export type Database = {
           area_unidade: string
           bem_id?: string | null
           cartorio_id: string
+          cliente_id?: string | null
           confrontacoes_texto?: string | null
           created_at?: string
           created_by?: string | null
@@ -3719,6 +3724,7 @@ export type Database = {
           area_unidade?: string
           bem_id?: string | null
           cartorio_id?: string
+          cliente_id?: string | null
           confrontacoes_texto?: string | null
           created_at?: string
           created_by?: string | null
@@ -3759,6 +3765,13 @@ export type Database = {
             columns: ["cartorio_id"]
             isOneToOne: false
             referencedRelation: "cartorio"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matricula_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
             referencedColumns: ["id"]
           },
           {
@@ -8815,6 +8828,7 @@ export type Database = {
           area_unidade: string
           bem_id: string | null
           cartorio_id: string
+          cliente_id: string | null
           confrontacoes_texto: string | null
           created_at: string
           created_by: string | null
@@ -9107,6 +9121,7 @@ export type Database = {
         Args: { _melhoria_id: string }
         Returns: boolean
       }
+      nome_cliente_normalizado: { Args: { p_nome: string }; Returns: string }
       org_project_cluster_ids: {
         Args: { _project_id: string }
         Returns: string[]
@@ -9159,6 +9174,7 @@ export type Database = {
         Returns: undefined
       }
       sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
+      sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }

@@ -276,19 +276,15 @@ export function useDeleteParentesco() {
 }
 
 /**
- * `poderes` (jsonb com forma/exceções/observação) entra por interseção porque
- * `src/integrations/supabase/types.ts` é autogerado e só conhece a coluna depois
- * que o Lovable regerar. `select('*')` já a traz em runtime.
+ * `poderes` (jsonb com forma/exceções/observação) já vem tipado como `Json` em
+ * `src/integrations/supabase/types.ts` desde a migration 20260813120100.
  */
 export interface AdministracaoEnriched extends AdministracaoRow {
   administrador_denominacao: string;
-  poderes?: unknown;
 }
 
-/** Payload de administração aceitando a coluna `poderes` (ver nota acima). */
-export type AdministracaoValues = (AdministracaoInsert | AdministracaoUpdate) & {
-  poderes?: unknown;
-};
+/** Payload de administração aceitando a coluna `poderes`. */
+export type AdministracaoValues = AdministracaoInsert | AdministracaoUpdate;
 
 export function useAdministracaoByPj(pjPessoaId: string | null) {
   return useQuery<AdministracaoEnriched[]>({

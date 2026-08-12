@@ -21,6 +21,7 @@ import {
   useAdministracaoByPj, useDeleteAdministracao, useUpsertAdministracao,
   type AdministracaoEnriched, type PessoaRow,
 } from '@/hooks/useQualificacaoDasPartes';
+import type { Json } from '@/integrations/supabase/types';
 
 const CARGOS = ['Administrador', 'Sócio-Administrador', 'Diretor', 'Presidente'];
 const emptyAdmin = () => ({
@@ -76,7 +77,10 @@ export function AdministracaoPanel({ pjPessoaId, pessoasCliente }: Administracao
     upsert.mutate({
       values: {
         pj_pessoa_id: pjPessoaId, administrador_pessoa_id: draft.administradorId,
-        cargo: draft.cargo.trim() || null, pode_isoladamente, poderes,
+        cargo: draft.cargo.trim() || null, pode_isoladamente,
+        // `PoderesAdministracao` é um objeto JSON simples; o tipo `Json` gerado
+        // exige index signature, que a interface de domínio não declara.
+        poderes: poderes as unknown as Json,
         data_inicio: draft.dataInicio || null, data_fim: draft.dataFim || null,
       },
       original,
