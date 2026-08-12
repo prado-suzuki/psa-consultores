@@ -600,12 +600,28 @@ export function useDomainSolicitacao(clienteId: string | null) {
    * novo.
    */
   const abrirNovaSolicitacao = useMutation({
-    mutationFn: async () => {
+    /**
+     * A OS é obrigatória no insert, e não opcional como era antes.
+     *
+     * A RLS de escrita de `solicitacao` pergunta "você é membro de algum projeto
+     * da OS desta solicitação?" (`sublider_na_os`), e essa pergunta não tem
+     * resposta com a coluna nula: sem OS não há projeto do qual ser membro, e o
+     * insert volta negado. Nascer sem OS e amarrar depois era o fluxo de antes da
+     * ALE-31, que fez a solicitação nascer sempre da OS.
+     */
+    mutationFn: async (ordemServicoId: string) => {
       if (!clienteId) throw new Error('Selecione um cliente.');
+      if (!ordemServicoId) throw new Error('Selecione a ordem de serviço.');
+
+      const novaSolicitacao = {
+        cliente_id: clienteId,
+        status: 'rascunho' as const,
+        ordem_servico_id: ordemServicoId,
+      };
 
       const { data, error } = await supabase
         .from('solicitacao')
-        .insert({ cliente_id: clienteId, status: 'rascunho' })
+        .insert(novaSolicitacao)
         .select('id')
         .single();
 
@@ -624,8 +640,8 @@ export function useDomainSolicitacao(clienteId: string | null) {
         action: 'created',
         changed_fields: computeFieldDiff(
           null,
-          { cliente_id: clienteId, status: 'rascunho' },
-          ['cliente_id', 'status'],
+          novaSolicitacao,
+          ['cliente_id', 'status', 'ordem_servico_id'],
         ),
       });
       return data.id;

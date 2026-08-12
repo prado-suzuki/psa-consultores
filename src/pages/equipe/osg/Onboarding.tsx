@@ -144,8 +144,21 @@ const Onboarding = () => {
     toast.success('Solicitação encerrada');
   };
 
+  /**
+   * A OS vai junto porque a RLS de escrita de `solicitacao` exige — ver o
+   * comentário em `abrirNovaSolicitacao`.
+   *
+   * Com mais de uma OS, pega a de maior `numero_os`, que é a última da lista já
+   * ordenada por esse campo. É padrão determinístico e não escolha: quem decide de
+   * qual OS a lista sai é o consultor no passo de gerar, que já pergunta.
+   */
   const abrirNova = async () => {
-    await abrirNovaSolicitacao.mutateAsync();
+    const os = ordensServico.at(-1);
+    if (!os) {
+      toast.error('Este cliente não tem ordem de serviço da OSG.');
+      return;
+    }
+    await abrirNovaSolicitacao.mutateAsync(os.id);
     toast.success('Nova solicitação aberta em rascunho');
   };
 
