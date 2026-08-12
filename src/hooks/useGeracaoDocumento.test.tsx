@@ -21,8 +21,9 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn() } }
 vi.mock('@/hooks/useQualificacaoDasPartes', () => ({
   usePessoasByCliente: () => ({ data: [], isFetching: false }),
 }));
+const bensDoCliente = vi.hoisted(() => ({ linhas: [] as unknown[] }));
 vi.mock('@/hooks/useDiagnosticoPatrimonial', () => ({
-  useBensByCliente: () => ({ data: [], isFetching: false }),
+  useBensByCliente: () => ({ data: bensDoCliente.linhas, isFetching: false }),
   useCartorios: () => ({ data: [], isFetching: false }),
 }));
 
@@ -121,6 +122,7 @@ beforeEach(() => {
   dbCalls.length = 0;
   dbResults.clear();
   dadosPorQuery.clear();
+  bensDoCliente.linhas = [];
   reactQueryMocks.useQuery.mockImplementation((options: Record<string, unknown>) => ({
     ...options,
     data: dadosPorQuery.get(JSON.stringify(options.queryKey)),
@@ -173,7 +175,7 @@ describe('useRegistrosPorTipo — colunas da query de matrícula', () => {
       'area_construida_m2', 'ccir_codigo', 'cliente_id', 'denominacao',
       'endereco_bairro', 'endereco_cep', 'endereco_complemento',
       'endereco_logradouro', 'endereco_numero', 'inscricao_municipal',
-      'tipo_bem', 'vlr_contabil',
+      'participa_estruturacao', 'tipo_bem', 'vlr_contabil',
     ]);
   });
 
@@ -196,6 +198,56 @@ describe('useRegistrosPorTipo — colunas da query de matrícula', () => {
     expect(campos.temAreaConstruida).toBe('sim');
     expect(campos.enderecoNumeroProsa).toBe('nº 119');
     expect(campos.inscricaoMunicipal).toBe('1.234.567-8');
+  });
+});
+
+// "Bem com participa_estruturacao desligado não aparece em NENHUM documento
+// gerado" é confirmação de regressão do e2e. A fonte dos seletores da tela Gerar
+// não olhava a coluna — e a seleção múltipla de imóveis passou a expor essa fonte
+// num caminho novo, onde marcar o bem errado é um clique.
+describe('useRegistrosPorTipo — recorte da estruturação', () => {
+  const bemDoCliente = (id: string, participa: boolean) => ({
+    denominacao: `Bem ${id}`, vlr_contabil: null, ccir_codigo: null, cliente_id: 'cliente-1',
+    tipo_bem: 'IR', inscricao_municipal: null, endereco_logradouro: null, endereco_numero: null,
+    endereco_complemento: null, endereco_bairro: null, endereco_cep: null, area_construida_m2: null,
+    participa_estruturacao: participa,
+  });
+
+  it('tira dos seletores a matrícula do bem fora da estruturação, e mantém as demais', () => {
+    dadosPorQuery.set(JSON.stringify(['matriculas-geracao', 'cliente-1']), [
+      { ...LINHA_URBANA, id: 'mat-dentro', numero: '9.617', bem: bemDoCliente('dentro', true) },
+      { ...LINHA_URBANA, id: 'mat-fora', numero: '51.001', bem: bemDoCliente('fora', false) },
+      // Matrícula ÓRFÃ (sem bem) do titular do cliente: não tem flag para
+      // consultar e continua disponível — é o caminho da matrícula digitada.
+      { ...LINHA_URBANA, id: 'mat-orfa', numero: '24.318', bem: null },
+    ]);
+    const { result } = renderHook(() => useRegistrosPorTipo('cliente-1'));
+
+    expect(result.current.registros.matricula.map((r) => r.id)).toEqual(['mat-dentro', 'mat-orfa']);
+  });
+
+  it('tira o próprio bem fora da estruturação do seletor de bem', () => {
+    bensDoCliente.linhas = [
+      { id: 'bem-dentro', referencia_dp: 'BS-01', denominacao: 'Fazenda', participa_estruturacao: true },
+      { id: 'bem-fora', referencia_dp: 'BS-51', denominacao: 'Quotas Cooperbio', participa_estruturacao: false },
+      // Sem a coluna (linha antiga): o default é participar.
+      { id: 'bem-antigo', referencia_dp: 'BS-02', denominacao: 'Sítio' },
+    ];
+    const { result } = renderHook(() => useRegistrosPorTipo('cliente-1'));
+
+    expect(result.current.registros.bem.map((r) => r.id)).toEqual(['bem-dentro', 'bem-antigo']);
+  });
+
+  it('a query de integralização também recorta pela estruturação', async () => {
+    renderHook(() => useIntegralizacoesAprovadas('empresa-1'));
+    const q = queryPorKey(['integralizacoes-geracao', 'empresa-1']);
+    await (q.queryFn as () => Promise<unknown>)();
+
+    expect(dbCalls).toContainEqual({
+      table: 'bem',
+      method: 'eq',
+      args: ['participa_estruturacao', true],
+    });
   });
 });
 
