@@ -18,5 +18,11 @@ decisões de implementação.
   gênero + tela Gerar com múltiplas entidades. Objetivo, critérios de pronto, passos ordenados e decisões
   já tomadas. Sem flags, sem migrations.
 
+- [`memorial-georref-por-imovel.md`](./memorial-georref-por-imovel.md) — **lacuna aberta** do B15: o
+  memorial de georreferenciamento ainda pende de UMA matrícula; o dado por item já existe, falta a
+  migration de conteúdo que faz o bloco repetir sobre `imoveis`. Desenho fechado + handoff.
+- [`tela-gerar-descarte-visivel.md`](./tela-gerar-descarte-visivel.md) — decisão de como a tela Gerar
+  conta os blocos que saíram e anuncia os que o motor descartou (emenda 9.2 do contrato L2/L3).
+
 Base de conhecimento de domínio (fora do repo): vault Obsidian em
 `~/Documentos/vaults/osg_vault/Arquitetura/`.

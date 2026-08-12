@@ -11,6 +11,7 @@ import {
   findDocumentosDuplicados,
   validateContribuinteDados,
   validateContribuinteDocumento,
+  validateClustersCliente,
   validateObservacoesCliente,
   validateOrdemServico,
   validateRepresentante,
@@ -51,21 +52,40 @@ const osCompleta = (over: Partial<DraftOrdemServico> = {}): DraftOrdemServico =>
 const representanteCompleto = (over: Partial<DraftRepresentante> = {}): DraftRepresentante =>
   ({ _id: 3, nome: 'Maria', tipo_representante: 'Contador', email: 'maria@x.com', ...over }) as DraftRepresentante;
 
+const CLUSTER = '33333333-3333-4333-8333-333333333333';
+
+/** Cadastro de cliente que passa em tudo — o ponto de partida das faltas. */
+type DadosCliente = Parameters<typeof pendenciasCliente>[0];
+const dadosCliente = (over: Partial<DadosCliente> = {}): DadosCliente =>
+  ({ nome: 'Grupo X', ativo: true, observacoes: '', cluster_ids: [CLUSTER], ...over });
+const clienteCompleto = (over: Partial<DadosCliente> = {}) => pendenciasCliente(dadosCliente(over));
+
 describe('pendenciasCliente', () => {
   it('cobra o nome', () => {
-    expect(pendenciasCliente({ nome: '' }).map((p) => p.campo)).toEqual(['nome']);
-    expect(pendenciasCliente({ nome: 'Grupo X', ativo: true })).toEqual([]);
+    expect(pendenciasCliente({ nome: '', cluster_ids: [CLUSTER] }).map((p) => p.campo)).toEqual(['nome']);
+    expect(clienteCompleto()).toEqual([]);
+  });
+
+  it('cobra o cluster, que antes só o servidor sabia exigir', () => {
+    // B17: `criar_cliente_com_clusters` devolvia 400 com esta mesma frase depois
+    // de mandar o cadastro inteiro, e a tela não marcava o campo.
+    const faltas = pendenciasCliente({ nome: 'Grupo X', ativo: true, cluster_ids: [] });
+    expect(faltas.map((p) => p.campo)).toEqual(['cluster_ids']);
+    expect(faltas[0].mensagem).toBe('Selecione ao menos 1 cluster');
+  });
+
+  it('cliente sem a chave de cluster também é falta (rascunho antigo)', () => {
+    expect(pendenciasCliente({ nome: 'Grupo X' }).map((p) => p.campo)).toEqual(['cluster_ids']);
   });
 
   it('inativar sem justificativa é falta na observação', () => {
-    const faltas = pendenciasCliente({ nome: 'Grupo X', ativo: false, observacoes: '' });
+    const faltas = clienteCompleto({ ativo: false, observacoes: '' });
     expect(faltas.map((p) => p.campo)).toEqual(['observacoes']);
     expect(faltas[0].mensagem).toContain('inativar');
   });
 
   it('observação preenchida curta demais também é falta', () => {
-    const faltas = pendenciasCliente({ nome: 'Grupo X', ativo: true, observacoes: 'curta' });
-    expect(faltas.map((p) => p.campo)).toEqual(['observacoes']);
+    expect(clienteCompleto({ observacoes: 'curta' }).map((p) => p.campo)).toEqual(['observacoes']);
   });
 });
 
@@ -156,10 +176,12 @@ describe('seção de cada campo', () => {
     expect(porCampo.get('observacoes')).toBe(3);
   });
 
-  it('cliente: 01 identificação, 03 observações', () => {
-    const faltas = pendenciasCliente({ nome: '', ativo: false, observacoes: '' });
+  it('cliente: 01 identificação, 02 relacionamento, 03 observações', () => {
+    const faltas = pendenciasCliente({ nome: '', ativo: false, observacoes: '', cluster_ids: [] });
     const porCampo = new Map(faltas.map((f) => [f.campo, f.secao]));
     expect(porCampo.get('nome')).toBe(1);
+    // Cluster mora na seção "Relacionamento", junto do tipo de relacionamento.
+    expect(porCampo.get('cluster_ids')).toBe(2);
     expect(porCampo.get('observacoes')).toBe(3);
   });
 });
@@ -208,16 +230,30 @@ describe('pendenciasRepresentante', () => {
 describe('acordo com a validação que barra o save', () => {
   it('cliente: acusam juntos', () => {
     const casos = [
-      { nome: 'Grupo X', ativo: true, observacoes: '' },
-      { nome: 'Grupo X', ativo: false, observacoes: '' },
-      { nome: 'Grupo X', ativo: true, observacoes: 'curta' },
-      { nome: 'Grupo X', ativo: false, observacoes: 'motivo suficientemente longo da inativação' },
+      dadosCliente(),
+      dadosCliente({ ativo: false }),
+      dadosCliente({ observacoes: 'curta' }),
+      dadosCliente({ ativo: false, observacoes: 'motivo suficientemente longo da inativação' }),
     ];
     for (const c of casos) {
-      const barra = !!validateObservacoesCliente(c);
-      // O nome está sempre preenchido nos casos, então a única falta possível
-      // aqui é a observação — é ela que os dois lados precisam enxergar igual.
+      const barra = !!validateObservacoesCliente(c as Parameters<typeof validateObservacoesCliente>[0]);
+      // Nome e cluster estão sempre preenchidos nos casos, então a única falta
+      // possível aqui é a observação — é ela que os dois lados precisam ver igual.
       expect(pendenciasCliente(c).length > 0).toBe(barra);
+    }
+  });
+
+  it('cluster: acusam juntos', () => {
+    // A frase da tela é a mesma que a RPC emite, e as duas metades entram e saem
+    // juntas: espelho na UI, mensagem do servidor como rede de segurança.
+    for (const clusters of [[], [CLUSTER], [CLUSTER, 'outro']]) {
+      const barra = !!validateClustersCliente(clusters);
+      const faltas = pendenciasCliente(dadosCliente({ cluster_ids: clusters }));
+      expect(faltas.some((f) => f.campo === 'cluster_ids')).toBe(barra);
+      if (barra) {
+        expect(faltas.find((f) => f.campo === 'cluster_ids')?.mensagem)
+          .toBe(validateClustersCliente(clusters));
+      }
     }
   });
 

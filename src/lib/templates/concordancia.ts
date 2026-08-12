@@ -10,6 +10,19 @@ export function concordar(genero: Genero, masculino: string, feminino: string): 
   return genero === 'F' ? feminino : masculino;
 }
 
+/**
+ * Gênero com que a pessoa concorda no instrumento. Pessoa JURÍDICA concorda no
+ * FEMININO — a sociedade, a empresa, a sócia —, qualquer que seja o `genero` da
+ * linha: PJ não tem gênero cadastrado, e sem esta regra a concordância cairia no
+ * fallback masculino e a sócia PJ assinaria como "Sócio" no fecho.
+ *
+ * Pessoa física continua concordando pelo `genero` cadastrado, e a PF sem gênero
+ * continua no masculino.
+ */
+export function generoDeConcordancia(genero: Genero, tipoPessoa: string | null | undefined): Genero {
+  return tipoPessoa === 'PJ' ? 'F' : genero;
+}
+
 // Pares jurídicos recorrentes nas qualificações. Cada entrada produz a forma já
 // concordada a partir do gênero — basta `PARES.brasileiro(genero)`.
 export const PARES = {

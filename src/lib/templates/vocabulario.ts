@@ -1,5 +1,5 @@
 import { areaExtenso, cardinalExtenso, percentualExtenso, valorExtenso, type UnidadeArea } from './extenso';
-import { PARES, concordarTexto, ufPorExtenso, type Genero } from './concordancia';
+import { PARES, concordarTexto, generoDeConcordancia, ufPorExtenso, type Genero } from './concordancia';
 
 // Vocabulário de campos organizado POR ENTIDADE (pessoa/bem/matricula/cartorio).
 // Cada placeholder é `binding.campo` (ex.: {{ proprietario.nome }}, {{ imovel.area }});
@@ -7,7 +7,7 @@ import { PARES, concordarTexto, ufPorExtenso, type Genero } from './concordancia
 // catálogo de campos de cada tipo e a derivação (extensos / concordância) usada
 // tanto pelos mapeadores (dados do banco) quanto na edição manual da tela Gerar.
 
-export type TipoCampo = 'texto' | 'textarea' | 'area' | 'valor' | 'inteiro';
+export type TipoCampo = 'texto' | 'textarea' | 'area' | 'valor' | 'inteiro' | 'data';
 
 export type TipoEntidade = 'pessoa' | 'sociedade' | 'bem' | 'matricula' | 'cartorio' | 'vertice';
 
@@ -20,6 +20,21 @@ export interface CampoEntidade {
   derivadoDe?: string | string[];
   /** Recalcula o valor do campo a partir dos demais (extensos, concordância). */
   derivar?: (valores: Record<string, string>) => string;
+  /**
+   * Sem este campo resolvido, o documento que o USA está incompleto. É daqui —
+   * e não de uma lista fixa no controller — que sai o aviso de "documento
+   * incompleto" da tela Gerar: matrícula digitada, doação e alteração
+   * contratual têm conjuntos de obrigatórios diferentes porque usam campos
+   * diferentes. Ver pendenciasDoDocumento (index.ts).
+   */
+  obrigatorio?: boolean;
+  /**
+   * Campo preenchido na tela Gerar, não vindo de cadastro (data de assinatura,
+   * testemunhas, advogado). Vazio, ele NÃO resolve para '': vira a lacuna
+   * assinalável do tipo (ver lacunaDoTipo em campos.ts), que é o que um
+   * instrumento assinado à mão quer no lugar de "Lucas do Rio Verde/MT, .".
+   */
+  manual?: boolean;
 }
 
 export interface Entidade {
@@ -147,6 +162,30 @@ function cardinalCampo(id: string, label: string, derivadoDe: string): CampoEnti
   };
 }
 
+/**
+ * Campo derivado com o NUMERAL do livro/folha no padrão da casa: dois dígitos
+ * com zero à esquerda quando o valor é puramente numérico ("2" → "02", "13" →
+ * "13"), e INALTERADO quando não é ("2-AUX", "3-Auxiliar" saem íntegros, porque
+ * o cartório os registra assim).
+ *
+ * É campo próprio, e não uma mudança em `livroExtenso`: o padrão da PSA é
+ * numeral E extenso lado a lado ("no Livro 02 (dois), folhas/ficha 01 (um)"),
+ * e fazer o extenso devolver "02 (dois)" o faria mentir sobre o que é, além de
+ * tirar a opção de quem quer só o extenso.
+ */
+function numeralCampo(id: string, label: string, derivadoDe: string): CampoEntidade {
+  return {
+    id,
+    label,
+    tipo: 'texto',
+    derivadoDe,
+    derivar: (v) => {
+      const bruto = (v[derivadoDe] ?? '').trim();
+      return /^\d+$/.test(bruto) ? bruto.padStart(2, '0') : bruto;
+    },
+  };
+}
+
 /** Campo derivado que expande uma UF (sigla) por extenso ("MT" → "Mato Grosso"). */
 function ufExtensoCampo(id: string, label: string, derivadoDe: string): CampoEntidade {
   return {
@@ -158,7 +197,15 @@ function ufExtensoCampo(id: string, label: string, derivadoDe: string): CampoEnt
   };
 }
 
-/** Campo de concordância derivado do gênero (ex.: brasileiro → brasileiro/brasileira). */
+/**
+ * Campo de concordância derivado do gênero (ex.: brasileiro → brasileiro/brasileira).
+ *
+ * `tipoPessoa` entra na concordância (PJ concorda no feminino) mas NÃO em
+ * `derivadoDe`: a base é o que o painel "Ajustar dados manualmente" abre para o
+ * consultor corrigir, e o tipo da pessoa é identidade do cadastro, não redação.
+ * `derivarCampos` recalcula sobre o registro inteiro, então o tipo é lido de
+ * qualquer jeito.
+ */
 function concordanciaCampo(
   id: string,
   label: string,
@@ -169,7 +216,7 @@ function concordanciaCampo(
     label,
     tipo: 'texto',
     derivadoDe: 'genero',
-    derivar: (v) => par((v.genero || null) as Genero),
+    derivar: (v) => par(generoDeConcordancia((v.genero || null) as Genero, v.tipoPessoa)),
   };
 }
 
@@ -286,9 +333,11 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
     tipo: 'pessoa',
     label: 'Pessoa',
     campos: [
-      { id: 'nome', label: 'Nome / Denominação', tipo: 'texto' },
+      // Nome e CPF/CNPJ identificam a parte: sem eles o instrumento não é
+      // registrável, e é por isso que são os obrigatórios da pessoa.
+      { id: 'nome', label: 'Nome / Denominação', tipo: 'texto', obrigatorio: true },
       { id: 'tipoPessoa', label: 'Tipo de pessoa (PF/PJ)', tipo: 'texto' },
-      { id: 'cpfCnpj', label: 'CPF / CNPJ', tipo: 'texto' },
+      { id: 'cpfCnpj', label: 'CPF / CNPJ', tipo: 'texto', obrigatorio: true },
       { id: 'nacionalidade', label: 'Nacionalidade', tipo: 'texto' },
       { id: 'estadoCivil', label: 'Estado civil', tipo: 'texto' },
       { id: 'regimeBens', label: 'Regime de bens', tipo: 'texto' },
@@ -358,7 +407,9 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
     tipo: 'sociedade',
     label: 'Sociedade',
     campos: [
-      { id: 'razaoSocial', label: 'Razão social', tipo: 'texto' },
+      { id: 'razaoSocial', label: 'Razão social', tipo: 'texto', obrigatorio: true },
+      // CNPJ NÃO é obrigatório: o contrato de constituição é justamente o
+      // documento que a sociedade leva à Junta para obtê-lo.
       { id: 'cnpj', label: 'CNPJ', tipo: 'texto' },
       { id: 'nire', label: 'NIRE (registro na Junta)', tipo: 'texto' },
       { id: 'juntaUf', label: 'UF da Junta Comercial', tipo: 'texto' },
@@ -368,7 +419,7 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       // Capital social e quotas: calculados na geração (calcularCapitalSociedade
       // em mapeadores.ts — PR soma as integralizações aprovadas; demais somam o
       // quadro societário), aqui só os campos + extensos derivados (editáveis).
-      { id: 'capitalValor', label: 'Capital social (R$)', tipo: 'valor' },
+      { id: 'capitalValor', label: 'Capital social (R$)', tipo: 'valor', obrigatorio: true },
       {
         id: 'capitalExtenso',
         label: 'Capital social (por extenso)',
@@ -379,7 +430,21 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
           return Number.isFinite(n) ? valorExtenso(n) : '';
         },
       },
-      { id: 'totalQuotas', label: 'Total de quotas', tipo: 'inteiro' },
+      { id: 'totalQuotas', label: 'Total de quotas', tipo: 'inteiro', obrigatorio: true },
+      // Valor nominal da quota: parâmetro da sociedade (capital.ts), publicado
+      // como campo para o bloco imprimir em vez de trazer "R$ 1,00 (um real)"
+      // escrito à mão — trocar o nominal deixa de ser caçada por literais.
+      { id: 'quotaValorNominal', label: 'Valor nominal da quota (R$)', tipo: 'valor' },
+      {
+        id: 'quotaValorNominalExtenso',
+        label: 'Valor nominal da quota (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'quotaValorNominal',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.quotaValorNominal);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
       {
         id: 'totalQuotasExtenso',
         label: 'Total de quotas (por extenso)',
@@ -420,10 +485,14 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
     tipo: 'matricula',
     label: 'Imóvel / Matrícula',
     campos: [
-      { id: 'numero', label: 'Nº da matrícula', tipo: 'texto' },
+      // Número e área identificam o imóvel na matrícula: o documento que os cita
+      // em branco descreve um imóvel que o registro não reconhece.
+      { id: 'numero', label: 'Nº da matrícula', tipo: 'texto', obrigatorio: true },
       { id: 'livro', label: 'Livro', tipo: 'texto' },
+      numeralCampo('livroNumeral', 'Livro (numeral, "02")', 'livro'),
       cardinalCampo('livroExtenso', 'Livro (por extenso)', 'livro'),
       { id: 'folha', label: 'Folha / Ficha', tipo: 'texto' },
+      numeralCampo('folhaNumeral', 'Folha (numeral, "01")', 'folha'),
       cardinalCampo('folhaExtenso', 'Folha (por extenso)', 'folha'),
       { id: 'municipio', label: 'Município do imóvel', tipo: 'texto' },
       { id: 'uf', label: 'Estado (UF) do imóvel', tipo: 'texto' },
@@ -492,7 +561,7 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
       { id: 'enderecoComplemento', label: 'Endereço — complemento', tipo: 'texto' },
       { id: 'enderecoBairro', label: 'Endereço — bairro', tipo: 'texto' },
       { id: 'enderecoCep', label: 'Endereço — CEP', tipo: 'texto' },
-      { id: 'area', label: 'Área (hectares no rural, m² no urbano)', tipo: 'area' },
+      { id: 'area', label: 'Área (hectares no rural, m² no urbano)', tipo: 'area', obrigatorio: true },
       // A unidade é DADO (vem de matricula.area_unidade combinada com o tipo do
       // imóvel), não formatação: é campo base, editável, e é dele que o extenso
       // tira a unidade. O sufixo em `area` é só exibição.
@@ -561,8 +630,24 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivadoDe: ['percentual', 'remanescente'],
         derivar: (v) => (v.percentual && v.remanescente ? '' : 'sim'),
       },
+      // Nome CADASTRADO da serventia ("2º Ofício de Registro de Imóveis de
+      // Sinop"), com fallback genérico no mapeador — nunca vazio.
       { id: 'cartorio', label: 'Cartório', tipo: 'texto' },
+      // Sinal de vínculo real. `cartorio` não serve de guarda porque recebe um
+      // fallback sintético quando não há serventia cadastrada.
+      { id: 'temCartorio', label: 'Tem cartório vinculado? (condicional)', tipo: 'texto' },
       { id: 'comarca', label: 'Comarca', tipo: 'texto' },
+      {
+        // A comarca APENAS quando ela ainda não está contida no nome do
+        // cartório. É o campo que o bloco condiciona ("do {{ imovel.cartorio
+        // }}{{#imovel.cartorioComarca}} da comarca de …{{/…}}"): sem ele, o
+        // cartório cujo nome já traz a cidade sai "…de Sinop da comarca de
+        // Sinop". A supressão da redundância é decisão do MAPEADOR, num lugar
+        // só, não de cada bloco.
+        id: 'cartorioComarca',
+        label: 'Comarca (complemento, quando não está no nome do cartório)',
+        tipo: 'texto',
+      },
       { id: 'ufCartorio', label: 'Estado (UF) do cartório', tipo: 'texto' },
       { id: 'ccir', label: 'Cadastro do imóvel rural (CCIR/SNCR)', tipo: 'texto' },
       // Equivalente urbano do CCIR ("inscrito no cadastro municipal sob o nº").
@@ -608,6 +693,40 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
 };
 
 export const TIPOS_ENTIDADE = Object.keys(ENTIDADES) as TipoEntidade[];
+
+// --- Campos MANUAIS (preenchidos na tela Gerar, sem cadastro por trás) --------
+
+/**
+ * Placeholders de topo (sem binding) que o consultor preenche na hora de gerar:
+ * não existe cadastro de "data desta assinatura" nem de testemunha do ato. Eles
+ * são declarados aqui, e não bloco a bloco, porque o comportamento do campo
+ * vazio (a lacuna assinalável) é decisão do MOTOR para todos de uma vez — o
+ * bloco que escreve "{{ foroComarca }}/{{ foroUf }}, {{ dataAssinatura }}."
+ * está com a pontuação certa; era o campo que mentia ao resolver ''.
+ *
+ * Declarar um campo manual novo é acrescentar uma linha aqui. Placeholder livre
+ * NÃO declarado continua resolvendo '' como sempre: virar lacuna é opt-in, para
+ * um {{ observacao }} opcional não estampar um traço no contrato.
+ */
+export const CAMPOS_MANUAIS: CampoEntidade[] = [
+  { id: 'dataAssinatura', label: 'Data da assinatura', tipo: 'data', manual: true, obrigatorio: true },
+  { id: 'testemunha1Nome', label: 'Testemunha 1 — nome', tipo: 'texto', manual: true },
+  { id: 'testemunha1Cpf', label: 'Testemunha 1 — CPF', tipo: 'texto', manual: true },
+  { id: 'testemunha1Rg', label: 'Testemunha 1 — RG', tipo: 'texto', manual: true },
+  { id: 'testemunha2Nome', label: 'Testemunha 2 — nome', tipo: 'texto', manual: true },
+  { id: 'testemunha2Cpf', label: 'Testemunha 2 — CPF', tipo: 'texto', manual: true },
+  { id: 'testemunha2Rg', label: 'Testemunha 2 — RG', tipo: 'texto', manual: true },
+  { id: 'advogadoNome', label: 'Advogado — nome', tipo: 'texto', manual: true },
+  { id: 'advogadoOabNumero', label: 'Advogado — nº da OAB', tipo: 'texto', manual: true },
+  { id: 'advogadoOabUf', label: 'Advogado — UF da OAB', tipo: 'texto', manual: true },
+];
+
+const CAMPOS_MANUAIS_POR_ID = new Map(CAMPOS_MANUAIS.map((c) => [c.id, c]));
+
+/** O campo manual de um placeholder de topo, se declarado. */
+export function campoManual(id: string): CampoEntidade | undefined {
+  return CAMPOS_MANUAIS_POR_ID.get(id);
+}
 
 export function camposDaEntidade(tipo: TipoEntidade): CampoEntidade[] {
   return ENTIDADES[tipo].campos;

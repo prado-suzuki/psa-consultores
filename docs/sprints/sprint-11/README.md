@@ -5,6 +5,7 @@
 | Tarefa | Escopo | Banco? | Status |
 |---|---|---|---|
 | [Notificações da coleta de documentos (OSG · P1)](TAREFA_notificacoes-coleta-documentos.md) | 15 avisos (cliente, time e gestor), em 4 entregas: sino, botão de solicitar, aprovar/recusar, varredura. O "como" é do tech lead. | Sim — 5 dos 15 avisos dependem de campo novo (marcados na tarefa) | A fazer |
+| [Correções do fluxo de geração de contrato (OSG)](TAREFA_correcoes-e2e-geracao-contrato.md) | 21 bugs achados no teste e2e do caso MMS: 7 vermelhos e 14 amarelos. B7 continua bloqueada por decisão de produto; as demais raias foram integradas com testes generalizados. | Sim — migrations de identidade da matrícula, conteúdo dos blocos, vínculos de pessoa e preservação de nomes aguardam aplicação pelo Lovable | Em validação — falta aplicar migrations e reexecutar o e2e |
 
 ## Como usar esta pasta
 

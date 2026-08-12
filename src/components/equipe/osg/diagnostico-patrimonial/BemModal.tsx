@@ -5,7 +5,7 @@ import { UnsavedChangesAlert } from '@/components/equipe/osg/UnsavedChangesAlert
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { validarFormulario } from '@/lib/osg/validacaoFormulario';
 import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
 import { formScopeCls } from '@/lib/osgFormGrid';
 import { useDeleteMatricula, useMatriculasByBem, useSetMatriculaBem, useUpsertBem, type BemInsert, type BemRow, type MatriculaRow, type TitularInicial } from '@/hooks/useDiagnosticoPatrimonial';
@@ -84,16 +84,20 @@ export function BemModal({ open, clienteId, bem, pessoasCliente, onClose, rascun
   // o aviso de "descartar alterações?" não tem o que avisar.
   const { requestClose, alertProps } = useDirtyClose({ isDirty: rascunhoExterno ? false : isDirty, onClose: fechar });
   const handleSave = () => {
-    if (!draft.referencia_dp.trim()) { toast.error('Referência DP é obrigatória'); return; }
-    if (!draft.denominacao.trim()) { toast.error('Denominação é obrigatória'); return; }
-    if (draft.tipo_bem === 'OU' && !draft.descricao_outros.trim()) { toast.error('Especifique o tipo de bem'); return; }
-    if (!isImovel && (!draft.vlr_contabil.trim() || Number.isNaN(Number(draft.vlr_contabil)))) { toast.error('Valor contábil é obrigatório'); return; }
-    let titular;
-    if (temTitularidade && !isEdit) {
-      if (!titularInicial.titular_pessoa_id) { setActiveTab('titulares'); toast.error('Selecione o titular inicial do bem'); return; }
-      titular = parseTitularInicial(titularInicial) ?? undefined;
-      if (!titular) { toast.error('Fração do titular deve estar entre 0 e 100'); return; }
-    }
+    const exigeTitularInicial = temTitularidade && !isEdit;
+    const titularEscolhido = exigeTitularInicial ? parseTitularInicial(titularInicial) : null;
+    // Uma trilha só de falha: a regra diz o que falta, o utilitário avisa, abre a
+    // aba onde o campo mora e leva o foco até ele (ver @/lib/osg/validacaoFormulario).
+    const ok = validarFormulario([
+      { invalido: !draft.referencia_dp.trim(), mensagem: 'Informe a Referência DP do bem.', aba: 'dados', campo: 'referencia_dp' },
+      { invalido: !draft.denominacao.trim(), mensagem: 'Informe a denominação do bem.', aba: 'dados', campo: 'denominacao' },
+      { invalido: draft.tipo_bem === 'OU' && !draft.descricao_outros.trim(), mensagem: 'Especifique o tipo de bem.', aba: 'dados', campo: 'descricao_outros' },
+      { invalido: !isImovel && (!draft.vlr_contabil.trim() || Number.isNaN(Number(draft.vlr_contabil))), mensagem: 'Informe o valor contábil do bem.', aba: 'dados', campo: 'vlr_contabil' },
+      { invalido: exigeTitularInicial && !titularInicial.titular_pessoa_id, mensagem: 'Selecione o titular inicial do bem, na aba Titularidade.', aba: 'titulares', campo: 'titular_pessoa_id' },
+      { invalido: exigeTitularInicial && !!titularInicial.titular_pessoa_id && !titularEscolhido, mensagem: 'A fração do titular deve estar entre 0 e 100.', aba: 'titulares', campo: 'titular_fracao' },
+    ], { abrirAba: setActiveTab });
+    if (!ok) return;
+    const titular = titularEscolhido ?? undefined;
     if (rascunhoExterno) {
       // Quem abriu grava: criar o bem é só metade do que o clique promete.
       rascunhoExterno.onSalvar(bemDraftToValues(draft, clienteId), titular);

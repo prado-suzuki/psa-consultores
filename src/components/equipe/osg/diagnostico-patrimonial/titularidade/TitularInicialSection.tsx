@@ -4,6 +4,7 @@ import { RequiredMark } from '@/components/ui/required-mark';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { FieldSection, fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import { formGridCls } from '@/lib/osgFormGrid';
+import { FRACAO_STEP, clampFracaoInput } from '@/components/equipe/osg/diagnostico-patrimonial/fracaoUtils';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { TitularInicialDraft } from '@/lib/diagnosticoPatrimonialModalModels';
 
@@ -25,7 +26,7 @@ export function TitularInicialSection({ entity, pessoas, value, onChange }: Titu
           </p>
         ) : (
           <div className={`${formGridCls(2)} gap-3`}>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5" data-campo="titular_pessoa_id">
               <Label className={labelCls}>Titular<RequiredMark /></Label>
               <Select value={value.titular_pessoa_id || undefined} onValueChange={(id) => onChange({ ...value, titular_pessoa_id: id })}>
                 <SelectTrigger className={fieldCls}><SelectValue placeholder="Selecione..." /></SelectTrigger>
@@ -38,10 +39,10 @@ export function TitularInicialSection({ entity, pessoas, value, onChange }: Titu
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5" data-campo="titular_fracao">
               <Label className={labelCls}>Fração (%) — opcional</Label>
-              <Input type="number" step="0.01" min="0" max="100" value={value.fracao}
-                onChange={(event) => onChange({ ...value, fracao: event.target.value })}
+              <Input type="number" step={FRACAO_STEP} min="0" max="100" value={value.fracao}
+                onChange={(event) => onChange({ ...value, fracao: clampFracaoInput(event.target.value) })}
                 placeholder="ex: 50" className={`${fieldCls} font-mono`} />
             </div>
           </div>

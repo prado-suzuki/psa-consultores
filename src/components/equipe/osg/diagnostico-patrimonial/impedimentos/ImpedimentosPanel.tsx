@@ -12,10 +12,10 @@ import DateFieldWithInput from '@/components/equipe/client-form/DateFieldWithInp
 import { CurrencyInput } from '@/components/equipe/osg/CurrencyInput';
 import { FieldSection, fieldCls, labelCls, switchBoxCls, textareaCls } from '@/components/equipe/osg/formKit';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { useDeleteImpedimento, useImpedimentosByMatricula, useUpsertImpedimento, type ImpedimentoEnriched, type ImpedimentoRow } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import { areaStep, clampAreaInput, formatAreaUnidade } from '@/components/equipe/osg/diagnostico-patrimonial/areaUtils';
+import { AREA_STEP, clampAreaInput, formatAreaUnidade } from '@/components/equipe/osg/diagnostico-patrimonial/areaUtils';
+import { validarFormulario } from '@/lib/osg/validacaoFormulario';
 
 const TIPOS = ['Hipoteca', 'Penhora', 'Arrolamento Fiscal', 'Indisponibilidade', 'Servidão', 'Reserva Legal', 'APP', 'Usufruto', 'Cláusula de Inalienabilidade', 'Cessão Fiduciária', 'Outro'];
 type Draft = { tipo: string; referencia: string; descricao: string; credor_pessoa_id: string; credor_nome: string; data_constituicao: string; data_validade: string; vlr: string; area_afetada: string; impede_transferencia: boolean; cancelado: boolean };
@@ -35,7 +35,8 @@ export function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: 
     setDraft({ tipo: item.tipo, referencia: item.referencia ?? '', descricao: item.descricao ?? '', credor_pessoa_id: item.credor_pessoa_id ?? '', credor_nome: item.credor_nome ?? '', data_constituicao: item.data_constituicao ?? '', data_validade: item.data_validade ?? '', vlr: item.vlr != null ? String(item.vlr) : '', area_afetada: item.area_afetada != null ? String(item.area_afetada) : '', impede_transferencia: item.impede_transferencia, cancelado: item.cancelado });
   };
   const save = () => {
-    if (!draft.tipo.trim()) { toast.error('Selecione o tipo'); return; }
+    // Mesma trilha de falha dos modais do módulo: avisa o que falta e foca o campo.
+    if (!validarFormulario([{ invalido: !draft.tipo.trim(), mensagem: 'Selecione o tipo do impedimento.', campo: 'impedimento_tipo' }])) return;
     const nullify = (value: string) => value.trim() ? value : null;
     const toNum = (value: string) => value.trim() && !Number.isNaN(Number(value)) ? Number(value) : null;
     const original = editingId ? impedimentos.find((item) => item.id === editingId) ?? null : null;
@@ -50,14 +51,14 @@ export function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: 
       {formOpen ? <div className="space-y-3 rounded-md border border-osg-moss/20 bg-osg-moss/[0.04] p-4">
         <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-osg-700">{editingId ? 'Editar impedimento' : 'Novo impedimento'}</p>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Field label="Tipo" required><Select value={draft.tipo} onValueChange={(v) => set('tipo', v)}><SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger><SelectContent>{TIPOS.map((tipo) => <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>)}</SelectContent></Select></Field>
+          <Field label="Tipo" required campo="impedimento_tipo"><Select value={draft.tipo} onValueChange={(v) => set('tipo', v)}><SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger><SelectContent>{TIPOS.map((tipo) => <SelectItem key={tipo} value={tipo}>{tipo}</SelectItem>)}</SelectContent></Select></Field>
           <Field label="Referência"><Input value={draft.referencia} onChange={(e) => set('referencia', e.target.value)} placeholder="R-X/Av-Y" className={`${fieldCls} font-mono`} /></Field>
           <Field label="Valor (R$)"><CurrencyInput value={draft.vlr} onChange={(v) => set('vlr', v)} className={`${fieldCls} font-mono`} /></Field>
           <Field label="Credor (PSA)"><Select value={draft.credor_pessoa_id || undefined} onValueChange={(v) => set('credor_pessoa_id', v)}><SelectTrigger className={fieldCls}><SelectValue placeholder="—" /></SelectTrigger><SelectContent>{pessoasCliente.map((p) => <SelectItem key={p.id} value={p.id}>{p.denominacao}</SelectItem>)}</SelectContent></Select></Field>
           <div className="space-y-1.5 md:col-span-2"><Label className={labelCls}>Credor (texto livre)</Label><Input value={draft.credor_nome} onChange={(e) => set('credor_nome', e.target.value)} placeholder="Quando o credor não estiver cadastrado" className={fieldCls} /></div>
           <Field label="Data constituição"><DateFieldWithInput value={draft.data_constituicao} onChange={(v) => set('data_constituicao', v)} /></Field>
           <Field label="Data validade"><DateFieldWithInput value={draft.data_validade} onChange={(v) => set('data_validade', v)} /></Field>
-          <Field label={`Área afetada (${formatAreaUnidade(areaUnidade)})`}><Input type="number" step={areaStep(areaUnidade)} value={draft.area_afetada} onChange={(e) => set('area_afetada', clampAreaInput(e.target.value, areaUnidade))} className={`${fieldCls} font-mono`} /></Field>
+          <Field label={`Área afetada (${formatAreaUnidade(areaUnidade)})`}><Input type="number" step={AREA_STEP} value={draft.area_afetada} onChange={(e) => set('area_afetada', clampAreaInput(e.target.value))} className={`${fieldCls} font-mono`} /></Field>
           <div className="space-y-1.5 md:col-span-3"><Label className={labelCls}>Descrição</Label><Textarea value={draft.descricao} onChange={(e) => set('descricao', e.target.value)} className={`min-h-[60px] ${textareaCls}`} /></div>
           <div className={switchBoxCls}><Switch checked={draft.impede_transferencia} onCheckedChange={(v) => set('impede_transferencia', v)} /><Label className="text-sm">Impede transferência</Label></div>
           <div className={switchBoxCls}><Switch checked={draft.cancelado} onCheckedChange={(v) => set('cancelado', v)} /><Label className="text-sm">Cancelado</Label></div>
@@ -68,7 +69,7 @@ export function ImpedimentosPanel({ matriculaId, areaUnidade, pessoasCliente }: 
   </FieldSection>;
 }
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) { return <div className="space-y-1.5"><Label className={labelCls}>{label}{required && <RequiredMark />}</Label>{children}</div>; }
+function Field({ label, required, campo, children }: { label: string; required?: boolean; campo?: string; children: React.ReactNode }) { return <div className="space-y-1.5" data-campo={campo}><Label className={labelCls}>{label}{required && <RequiredMark />}</Label>{children}</div>; }
 
 function ImpedimentoItem({ item, areaUnidade, editing, onEdit, onDelete }: { item: ImpedimentoEnriched; areaUnidade: string; editing: boolean; onEdit: () => void; onDelete: () => void }) {
   const money = item.vlr == null ? null : item.vlr.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });

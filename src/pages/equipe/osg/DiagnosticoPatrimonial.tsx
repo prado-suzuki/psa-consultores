@@ -24,6 +24,10 @@ import {
   type BemRow,
 } from '@/hooks/useDiagnosticoPatrimonial';
 import { BemModal } from '@/components/equipe/osg/diagnostico-patrimonial/BemModal';
+// A lista mostra um número derivado; `origemDoValor` é o que o consultor lê no
+// tooltip para saber de onde ele veio (e por que não há campo editável no bem
+// com matrícula), inclusive quando a soma é parcial.
+import { origemDoValor, totalizarValoresDosBens } from '@/lib/osg/valoresDoBem';
 
 const formatBrl = (v: number | null | undefined) =>
   v == null ? '—' : v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -59,15 +63,10 @@ const DiagnosticoPatrimonial = () => {
     });
   }, [bens, busca, filtroTipo]);
 
-  const totais = useMemo(() => {
-    return bensFiltrados.reduce(
-      (acc, b) => ({
-        contabil: acc.contabil + Number(b.vlr_contabil ?? 0),
-        mercado: acc.mercado + Number(b.vlr_mercado ?? 0),
-      }),
-      { contabil: 0, mercado: 0 },
-    );
-  }, [bensFiltrados]);
+  // Totais sobre o valor DERIVADO (soma das matrículas, ou o do próprio bem
+  // quando não há matrícula) — nunca sobre a coluna do bem, que para imóvel
+  // deixou de ser a fonte e ficaria em R$ 0,00. Ver `@/lib/osg/valoresDoBem`.
+  const totais = useMemo(() => totalizarValoresDosBens(bensFiltrados), [bensFiltrados]);
 
   const buscaAtiva = busca.trim().length > 0 || filtroTipo !== '__todos__';
 
@@ -180,11 +179,17 @@ const DiagnosticoPatrimonial = () => {
                                   )}
                                 </div>
                               </TableCell>
-                              <TableCell className="text-right font-mono text-xs">
-                                {formatBrl(b.vlr_contabil)}
+                              <TableCell
+                                className="text-right font-mono text-xs"
+                                title={origemDoValor(b.valores, 'contabil')}
+                              >
+                                {formatBrl(b.valores.contabil.valor)}
                               </TableCell>
-                              <TableCell className="text-right font-mono text-xs">
-                                {formatBrl(b.vlr_mercado)}
+                              <TableCell
+                                className="text-right font-mono text-xs"
+                                title={origemDoValor(b.valores, 'mercado')}
+                              >
+                                {formatBrl(b.valores.mercado.valor)}
                               </TableCell>
                               <TableCell className="text-xs text-muted-foreground">
                                 {b.status_integralizacao ?? '—'}

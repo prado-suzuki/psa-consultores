@@ -25,6 +25,7 @@ import ContribuinteDadosFiscais from "./ContribuinteDadosFiscais";
 import SecaoFormulario from "./SecaoFormulario";
 import MarcaPendencia, { CLASSE_CAMPO_PENDENTE } from "./MarcaPendencia";
 import { idsAlterados, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
+import { normalizarNomeDigitado } from "@/lib/nomeProprio";
 import type { FocoPendencia, MapaPendencias } from "@/lib/camposObrigatorios";
 
 export interface ContribuintesTabProps {
@@ -452,13 +453,14 @@ export default function ContribuintesTab({
                             )}
                           </div>
                         </div>
-                        {/* Razão Social */}
+                        {/* Razão Social. O blur arruma espaço e só: aqui o gatilho do banco achatava a caixa (B20). */}
                         <div className="flex flex-row items-center gap-4">
                           <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">{ent.tipo_pessoa === "PF" ? <>Nome completo<RequiredMark /></> : <>Razão Social<RequiredMark /></>}</Label>
                           <div className="flex-1">
                             <Input
                               value={ent.nome_razao_social || ""}
                               onChange={(e) => updateEntity(ent._id, { nome_razao_social: e.target.value })}
+                              onBlur={(e) => updateEntity(ent._id, { nome_razao_social: normalizarNomeDigitado(e.target.value) })}
                               placeholder={ent.tipo_pessoa === "PF" ? "Nome completo do contribuinte" : "Nome Empresarial"}
                               aria-invalid={!!falta('nome_razao_social') || undefined}
                               className={cn("font-medium h-8", falta('nome_razao_social') && CLASSE_CAMPO_PENDENTE)}
@@ -469,7 +471,7 @@ export default function ContribuintesTab({
                         {ent.tipo_pessoa !== "PF" && (
                           <div className="flex flex-row items-center gap-4">
                             <Label className="w-48 shrink-0 text-xs font-semibold text-muted-foreground">Nome Fantasia</Label>
-                            <div className="flex-1"><Input value={ent.nome_fantasia || ""} onChange={(e) => updateEntity(ent._id, { nome_fantasia: e.target.value })} className="h-8" /></div>
+                            <div className="flex-1"><Input value={ent.nome_fantasia || ""} onChange={(e) => updateEntity(ent._id, { nome_fantasia: e.target.value })} onBlur={(e) => updateEntity(ent._id, { nome_fantasia: normalizarNomeDigitado(e.target.value) })} className="h-8" /></div>
                           </div>
                         )}
                         {/* Telefone */}

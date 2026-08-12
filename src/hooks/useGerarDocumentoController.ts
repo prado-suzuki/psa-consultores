@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { avaliarFlags, comOrigem, comporBlocos, copiarOrigemProfunda, gerarBlocos, inclusoesDe, marcarRealceDiff, removerMarcas, unirBlocos, type Bloco, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type RegistroFamilias, type Template } from '@/lib/templates';
+import { avaliarFlags, comporBlocos, copiarOrigemProfunda, gerarBlocos, gerarComposicao, inclusoesDe, mapearSignatarios, marcarRealceDiff, pendenciasDoDocumento, removerMarcas, unirBlocos, type Bloco, type BlocoDescartado, type BlocoGerado, type FlagDeclarativa, type OrigemValor, type RegistroFamilias, type Template } from '@/lib/templates';
 import { baixarDocx } from '@/lib/templates/docx';
-import { campoDaEntidade, camposDaEntidade, derivarCampos, type CampoEntidade, type TipoEntidade } from '@/lib/templates/vocabulario';
+import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
 import { calcularCapitalSociedade, mapearAdministrador, mapearGeorefCabecalho, mapearIntegralizacoes, mapearQuadroSocietario, mapearRegistro, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, type ItemLista } from '@/lib/templates/mapeadores';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
@@ -12,7 +12,7 @@ import { toast } from '@/hooks/use-toast';
 import type { Json } from '@/integrations/supabase/types';
 import { useAllMatriculas, type BemRow, type MatriculaEnriched } from '@/hooks/useDiagnosticoPatrimonial';
 import { PESSOA_LEGADA_PREFIX, useListasDaEmpresa, useRegistrosPorTipo } from '@/hooks/useGeracaoDocumento';
-import { useGeorefByMatricula } from '@/hooks/useGeorefByMatricula';
+import { useGeorefByMatricula, useGeorefsByMatriculas } from '@/hooks/useGeorefByMatricula';
 import { useAuditAutores, useMarcarNotificacoesVistas, useNotificacaoVisto, useNotificacoesDocumento } from '@/hooks/useNotificacoesDocumento';
 import { formatChangedFields, type LookupMaps } from '@/components/equipe/audit/auditFieldFormatter';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
@@ -20,6 +20,10 @@ import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { BlocoFolha, EstadoFolha } from '@/components/equipe/osg/gerar/FolhaDocumento';
 import type { EstadoPasso } from '@/components/equipe/osg/gerar/gerarKit';
 import { realcarMudancas, renderizarVersao, type SnapshotVersoes } from '@/components/equipe/osg/gerar/renderizarVersao';
+import { prepararDownloadDocumento } from '@/components/equipe/osg/gerar/downloadDocumento';
+import { completarListasDoSnapshot, contextoComGeoref, selecaoComOrigemDoSnapshot } from '@/components/equipe/osg/gerar/contextoDoDocumento';
+import { blocosForaDaFolha, resumoDaFolha } from '@/components/equipe/osg/gerar/resumoDaComposicao';
+import { camposEditaveisPorBinding } from '@/components/equipe/osg/gerar/camposDoBinding';
 
 const fmtDataNotificacao = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
 export interface LinhaNotificacao {
@@ -44,6 +48,10 @@ export function useGerarDocumentoController() {
   // selecao[binding][campoId] = valor; selecaoRegistroId[binding] = id do registro escolhido.
   const [selecao, setSelecao] = useState<Record<string, Record<string, string>>>({});
   const [registroPorBinding, setRegistroPorBinding] = useState<Record<string, string>>({});
+  const [registrosPorLista, setRegistrosPorLista] = useState<Record<string, string[]>>({});
+  // A seleção múltipla só se declara pronta quando o consultor diz que terminou
+  // de montar a lista (ver alternarRegistroDaLista / confirmarSelecaoDeListas).
+  const [listasConfirmadas, setListasConfirmadas] = useState(false);
   const [valoresLivres, setValoresLivres] = useState<Record<string, string>>({});
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const camposEditadosRef = useRef(new Set<string>());
@@ -53,7 +61,10 @@ export function useGerarDocumentoController() {
   const [passoAberto, setPassoAberto] = useState<1 | 2 | null>(null);
   const [ajustesAbertos, setAjustesAbertos] = useState(false);
   // Seletor expandido no rail ao lado da folha (um por vez, estilo acordeão).
-  const [railAberto, setRailAberto] = useState<'modelo' | 'empresa' | 'registros' | 'versoes' | null>(null);
+  // `lista:<nome>` é a seleção múltipla de uma lista do modelo ({{#imoveis}}).
+  const [railAberto, setRailAberto] = useState<
+    'modelo' | 'empresa' | 'registros' | 'versoes' | `lista:${string}` | null
+  >(null);
   // Versão selada sob visualização (somente leitura na folha central); null = a
   // head viva e editável. Trocar de modelo/empresa zera (effect mais abaixo).
   const [versaoVisualizadaId, setVersaoVisualizadaId] = useState<string | null>(null);
@@ -85,6 +96,10 @@ export function useGerarDocumentoController() {
           : (snap.selecao ?? {}),
       );
       setRegistroPorBinding(snap.registroPorBinding ?? {});
+      setRegistrosPorLista(snap.registrosPorLista ?? {});
+      // Rascunho com lista já montada reabre direto no documento: a confirmação
+      // é do ato de montar, e ele aconteceu quando o rascunho foi salvo.
+      setListasConfirmadas(Object.values(snap.registrosPorLista ?? {}).some((ids) => ids.length > 0));
       setValoresLivres(snap.valoresLivres ?? {});
       setEmpresaId(snap.empresaId ?? null);
     }
@@ -244,6 +259,7 @@ export function useGerarDocumentoController() {
     const snap: SnapshotDados = {
       selecao,
       registroPorBinding,
+      registrosPorLista,
       valoresLivres,
       empresaId,
       itensPorLista,
@@ -298,6 +314,7 @@ export function useGerarDocumentoController() {
     const snap: SnapshotDados = {
       selecao: selecaoFresh,
       registroPorBinding,
+      registrosPorLista,
       valoresLivres,
       empresaId,
       itensPorLista,
@@ -446,7 +463,7 @@ export function useGerarDocumentoController() {
   // Listas relacionais (sócios/administradores) carregam da empresa escolhida;
   // a empresa também alimenta as flags, então o passo aparece em ambos os casos.
   // Vértices (fonte 'georef') vêm da matrícula, não da empresa — não contam aqui.
-  const usaListas = listas.some((l) => l.papel.fonte !== 'georef');
+  const usaListas = listas.some((l) => !['georef', 'selecao'].includes(l.papel.fonte));
   // A "Sociedade" (objeto do contrato) é dirigida pela mesma Empresa que alimenta
   // listas e flags — não tem seletor próprio. Detectar aqui faz o passo de Empresa
   // aparecer mesmo num modelo que só usa sociedade.* (sem listas nem flags).
@@ -487,14 +504,51 @@ export function useGerarDocumentoController() {
     () => mapearQuadroSocietario(socios, new Set(administradores.map((a) => a.pessoa.id).filter(Boolean))),
     [socios, administradores],
   );
+  const idsImoveisSelecionados = useMemo(
+    () => registrosPorLista.imoveis ?? [],
+    [registrosPorLista.imoveis],
+  );
+  const { porMatricula: georefsPorMatricula, isFetching: carregandoGeorefsSelecionados } =
+    useGeorefsByMatriculas(idsImoveisSelecionados);
+  const imoveisSelecionados = useMemo<ItemLista[]>(
+    () => idsImoveisSelecionados.flatMap((id) => {
+      const registro = registros.matricula.find((item) => item.id === id);
+      if (!registro) return [];
+      const georefDoImovel = georefsPorMatricula[id];
+      return [{
+        imovel: {
+          ...mapearRegistro('matricula', registro.row),
+          ...mapearGeorefCabecalho(georefDoImovel?.cabecalho),
+        },
+        vertices: (georefDoImovel?.vertices ?? []).map(mapearVertice),
+      }];
+    }),
+    [idsImoveisSelecionados, registros.matricula, georefsPorMatricula],
+  );
+  const carregandoDadosDocumento = carregandoListasEfetivo || carregandoGeorefsSelecionados;
+  const pessoaPorId = useMemo(
+    () => new Map(registros.pessoa.map((registro) => {
+      const pessoa = registro.row as PessoaRow;
+      return [pessoa.id, pessoa] as const;
+    })),
+    [registros.pessoa],
+  );
   const itensPorLista = useMemo<Record<string, ItemLista[]>>(
     () => ({
       socios: quadro.itens,
       administradores: administradores.map(mapearAdministrador),
       integralizacoes: mapearIntegralizacoes(socios, integralizacoes),
+      imoveis: imoveisSelecionados,
+      signatarios: mapearSignatarios({
+        socios,
+        administradores,
+        pessoaPorId: (id) => pessoaPorId.get(id) ?? null,
+        // Advogado e testemunhas continuam em linhas fixas no bloco de fecho.
+        // Passá-los aqui os faria assinar duas vezes.
+      }),
       vertices: verticesItens,
     }),
-    [quadro, socios, administradores, integralizacoes, verticesItens],
+    [quadro, socios, administradores, integralizacoes, imoveisSelecionados, pessoaPorId, verticesItens],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------
@@ -591,61 +645,19 @@ export function useGerarDocumentoController() {
     [usaTotalSocios, desconhecidos],
   );
 
-  // Campos editáveis (base, não-derivados) de cada binding, conforme o que o modelo referencia.
-  const camposPorBinding = useMemo<Record<string, CampoEntidade[]>>(() => {
-    const refs = new Map<string, Set<string>>();
-    for (const ph of placeholders) {
-      const ponto = ph.indexOf('.');
-      if (ponto < 0) continue;
-      const nome = ph.slice(0, ponto);
-      const campoId = ph.slice(ponto + 1);
-      if (!bindings.some((b) => b.nome === nome)) continue;
-      if (!refs.has(nome)) refs.set(nome, new Set());
-      refs.get(nome)!.add(campoId);
-    }
-    const out: Record<string, CampoEntidade[]> = {};
-    for (const b of bindings) {
-      const referenciados = refs.get(b.nome) ?? new Set<string>();
-      const vistos = new Set<string>();
-      const lista: CampoEntidade[] = [];
-      const adicionar = (c: CampoEntidade) => {
-        if (!vistos.has(c.id)) {
-          vistos.add(c.id);
-          lista.push(c);
-        }
-      };
-      for (const campoId of referenciados) {
-        const campo = campoDaEntidade(b.tipo, campoId);
-        if (campo?.derivadoDe) {
-          // Derivados compostos (ex.: qualificação) listam vários campos-base.
-          const bases = Array.isArray(campo.derivadoDe) ? campo.derivadoDe : [campo.derivadoDe];
-          for (const baseId of bases) {
-            const base = campoDaEntidade(b.tipo, baseId);
-            if (base) adicionar(base);
-          }
-        } else if (campo) {
-          adicionar(campo);
-        } else {
-          // Campo referenciado fora do catálogo: vira input de texto livre sob o binding.
-          adicionar({ id: campoId, label: campoId, tipo: 'texto' });
-        }
-      }
-      // Ordena conforme o catálogo da entidade (campos fora dele vão ao fim).
-      const ordem = camposDaEntidade(b.tipo).map((c) => c.id);
-      lista.sort((a, z) => {
-        const ia = ordem.indexOf(a.id);
-        const iz = ordem.indexOf(z.id);
-        return (ia < 0 ? Infinity : ia) - (iz < 0 ? Infinity : iz);
-      });
-      out[b.nome] = lista;
-    }
-    return out;
-  }, [placeholders, bindings]);
+  // Campos editáveis (base, não-derivados) de cada binding, conforme o que o
+  // modelo referencia — a regra inteira vive em camposDoBinding.ts, com teste.
+  const camposPorBinding = useMemo(
+    () => camposEditaveisPorBinding(placeholders, bindings),
+    [placeholders, bindings],
+  );
 
   // Trocar de modelo ou de cliente zera as seleções.
   useEffect(() => {
     setSelecao({});
     setRegistroPorBinding({});
+    setRegistrosPorLista({});
+    setListasConfirmadas(false);
     setValoresLivres({});
     setEmpresaId(null);
     camposEditadosRef.current.clear();
@@ -719,6 +731,26 @@ export function useGerarDocumentoController() {
     setSelecao((prev) => ({ ...prev, [nome]: mapearRegistro(tipo, reg.row) }));
     setPassoAberto(null);
     if (congelado) setRecongelarPendente(true);
+  };
+
+  // Seleção MÚLTIPLA: marcar um item não fecha o passo nem conclui a escolha —
+  // o contrato de constituição integraliza várias matrículas, e fechar no
+  // primeiro clique (como faz a escolha unitária) tirava a lista da tela com um
+  // item só. Quem declara o fim da montagem é `confirmarSelecaoDeListas`.
+  const alternarRegistroDaLista = (nome: string, registroId: string) => {
+    setRegistrosPorLista((prev) => {
+      const atuais = prev[nome] ?? [];
+      const proximos = atuais.includes(registroId)
+        ? atuais.filter((id) => id !== registroId)
+        : [...atuais, registroId];
+      return { ...prev, [nome]: proximos };
+    });
+    if (congelado) setRecongelarPendente(true);
+  };
+
+  const confirmarSelecaoDeListas = () => {
+    setListasConfirmadas(true);
+    setPassoAberto(null);
   };
 
   const editarCampo = (nome: string, tipo: TipoEntidade, campoId: string, valor: string) => {
@@ -825,9 +857,10 @@ export function useGerarDocumentoController() {
   }, [origemPendenteRemap, registros, carregandoRegistros, bindings, registroPorBinding, congelado]);
 
   const resultado = useMemo<
-    { blocos: BlocoGerado[]; texto: string; erro: null } | { blocos: null; texto: null; erro: string }
+    | { blocos: BlocoGerado[]; texto: string; descartados: BlocoDescartado[]; erro: null }
+    | { blocos: null; texto: null; descartados: BlocoDescartado[]; erro: string }
   >(() => {
-    if (template.blocos.length === 0) return { blocos: [], texto: '', erro: null };
+    if (template.blocos.length === 0) return { blocos: [], texto: '', descartados: [], erro: null };
     try {
       // Texto livre: todo placeholder sem binding resolve em branco quando vazio,
       // para a prévia não travar antes de preencher (diferente dos bindings, que
@@ -838,14 +871,14 @@ export function useGerarDocumentoController() {
       // Snapshot antigo sem itensPorLista/total cai para a fonte viva até revalidar.
       // O snapshot vem do jsonb (round-trip): reidratar religa as referências
       // cruzadas de integralizacoes ({{ refItem.ref }}) perdidas na serialização.
-      let itensEfetivo = reidratarItensPorLista(
-        congelado ? (snapshotDados?.itensPorLista ?? itensPorLista) : itensPorLista,
+      // Listas que o snapshot selado pode não ter (georref, signatários): sem esta
+      // ponte, a chave ausente vira laço vazio e o motor descarta o bloco inteiro —
+      // é o que apagava a folha de assinaturas de todo documento validado antes de
+      // `signatarios` existir. A regra de cada lista está em contextoDoDocumento.ts.
+      const itensEfetivo = completarListasDoSnapshot(
+        reidratarItensPorLista(congelado ? (snapshotDados?.itensPorLista ?? itensPorLista) : itensPorLista),
+        itensPorLista,
       );
-      // Georref: snapshots selados ANTES desta feature não têm a lista 'vertices' —
-      // cai para a fonte viva (do BQ) para a tabela do memorial não sair vazia.
-      if (!itensEfetivo.vertices || itensEfetivo.vertices.length === 0) {
-        itensEfetivo = { ...itensEfetivo, vertices: itensPorLista.vertices ?? [] };
-      }
       const totalEfetivo = congelado ? (snapshotDados?.total ?? quadro.total) : quadro.total;
 
       // A serialização do snapshot também PERDE a proveniência (a origem viaja
@@ -855,46 +888,26 @@ export function useGerarDocumentoController() {
       // ordem). No caminho vivo (não congelado) a origem já está lá — nada a fazer.
       let selecaoEfetiva = selecao;
       if (congelado) {
-        selecaoEfetiva = {};
-        for (const [nome, campos] of Object.entries(selecao)) {
-          const b = bindings.find((x) => x.nome === nome);
-          const id = b?.tipo === 'sociedade' ? empresaId : registroPorBinding[nome];
-          selecaoEfetiva[nome] = b && id ? comOrigem({ ...campos }, { tipo: b.tipo, id }) : campos;
-        }
+        selecaoEfetiva = selecaoComOrigemDoSnapshot(selecao, bindings, registroPorBinding, empresaId);
         // itensEfetivo === itensPorLista quando o snapshot não tinha listas (fonte
         // viva, já com origem) — só copia quando são estruturas distintas.
         if (itensEfetivo !== itensPorLista) copiarOrigemProfunda(itensEfetivo, itensPorLista);
       }
       const ctx = montarContexto(bindings, selecaoEfetiva, livres, itensEfetivo, listas);
-      // Georref: o binding de matrícula SEMPRE carrega os campos georef* (default ''
-      // p/ {{ imovel.georefArea }} nunca ficar indefinido — undefined trava, '' resolve).
-      // O georref vivo (do BQ) é aplicado por cima QUANDO TEM VALOR, cobrindo o caminho
-      // vivo E os snapshots selados antes desta feature (que não têm esses campos).
-      if (bindingMatricula && ctx[bindingMatricula]) {
-        const campos: Record<string, string> = {
-          georefArea: '',
-          georefPerimetro: '',
-          georefSistema: '',
-          georefCertificacao: '',
-          georefDataCertificacao: '',
-          ...(ctx[bindingMatricula] as Record<string, string>),
-        };
-        for (const [k, v] of Object.entries(georefCabecalhoCampos)) {
-          if (v) campos[k] = v;
-        }
-        ctx[bindingMatricula] = campos;
-      }
+      contextoComGeoref(ctx, bindingMatricula, georefCabecalhoCampos);
       // Total dos sócios: campos em branco mantêm a prévia viva antes de a empresa
       // ser escolhida; preenchem quando as quotas carregam.
       if (usaTotalSocios) ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...totalEfetivo };
-      const blocos = gerarBlocos(template, ctx, flagsAtivas, familias);
+      // gerarComposicao, e não gerarBlocos: o descarte de bloco sem dado se ANUNCIA
+      // (emenda 9.2), e é o que a folha conta e o painel de conferência mostra.
+      const { blocos, descartados } = gerarComposicao(template, ctx, flagsAtivas, familias);
       const texto = unirBlocos(blocos);
 
       // Blocos sobrescritos: renderiza os MESMOS blocos com o conteúdo original
       // (mesmo ctx → numeração/placeholders idênticos) e marca, por palavra, só o
       // que mudou. Sem overrides, nada é renderizado a mais. As famílias também
       // vão sem override, senão a variante sobrescrita não apareceria realçada.
-      if (posicoesSobrescritas.size === 0) return { blocos, texto, erro: null };
+      if (posicoesSobrescritas.size === 0) return { blocos, texto, descartados, erro: null };
       const original = gerarBlocos(templateOriginal, ctx, flagsAtivas, familiasOriginais);
       const textoOriginalPorId = new Map(original.map((b) => [b.id, b.conteudo]));
       const comRealce = blocos.map((b) => {
@@ -903,9 +916,9 @@ export function useGerarDocumentoController() {
         if (!posicoesSobrescritas.has(posId) || orig == null) return b;
         return { ...b, segmentos: marcarRealceDiff(b.segmentos, orig) };
       });
-      return { blocos: comRealce, texto, erro: null };
+      return { blocos: comRealce, texto, descartados, erro: null };
     } catch (e) {
-      return { blocos: null, texto: null, erro: e instanceof Error ? e.message : String(e) };
+      return { blocos: null, texto: null, descartados: [], erro: e instanceof Error ? e.message : String(e) };
     }
   }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados, bindingMatricula, georefCabecalhoCampos]);
 
@@ -922,15 +935,37 @@ export function useGerarDocumentoController() {
     [modelos, modeloId],
   );
 
+  const pendenciasDocumento = useMemo(
+    () => resultado.blocos ? pendenciasDoDocumento(resultado.blocos) : [],
+    [resultado.blocos],
+  );
+  const documentoCompleto = pendenciasDocumento.length === 0;
   const [baixando, setBaixando] = useState(false);
-  const baixar = async () => {
+  const [baixarIncompletoOpen, setBaixarIncompletoOpen] = useState(false);
+
+  const executarDownload = async (rascunho: boolean) => {
     if (!resultado.blocos?.length) return;
     setBaixando(true);
     try {
-      await baixarDocx(nomeModelo, resultado.blocos);
+      const download = prepararDownloadDocumento(nomeModelo, resultado.blocos, rascunho);
+      await baixarDocx(download.nome, download.blocos);
     } finally {
       setBaixando(false);
     }
+  };
+
+  const baixar = async () => {
+    if (!resultado.blocos?.length) return;
+    if (!documentoCompleto) {
+      setBaixarIncompletoOpen(true);
+      return;
+    }
+    await executarDownload(false);
+  };
+
+  const confirmarDownloadIncompleto = async () => {
+    setBaixarIncompletoOpen(false);
+    await executarDownload(true);
   };
 
   // Bindings ainda não preenchidos (sem registro escolhido e sem edição manual):
@@ -941,7 +976,15 @@ export function useGerarDocumentoController() {
       !registroPorBinding[b.nome] &&
       Object.keys(selecao[b.nome] ?? {}).length === 0,
   );
-  const listasPendentes = precisaEmpresa && !empresaId;
+  const listasDeSelecao = listas.filter((lista) => lista.papel.fonte === 'selecao');
+  const listasSelecaoPendentes = listasDeSelecao.filter(
+    (lista) => (registrosPorLista[lista.nome] ?? []).length === 0,
+  );
+  // Enquanto o consultor monta a lista, a seleção NÃO está completa mesmo com um
+  // item marcado — senão o passo sai de cena no primeiro clique.
+  const selecaoDeListasEmAberto = listasDeSelecao.length > 0 && !listasConfirmadas;
+  const listasPendentes =
+    (precisaEmpresa && !empresaId) || listasSelecaoPendentes.length > 0 || selecaoDeListasEmAberto;
 
   // Empresas (PJ) do cliente, para a fonte das listas relacionais.
   const empresas = useMemo(
@@ -952,7 +995,7 @@ export function useGerarDocumentoController() {
   // --- Fluxo guiado: estado de cada passo -----------------------------------
 
   const bindingsNaoSociedade = bindings.filter((b) => b.tipo !== 'sociedade');
-  const precisaSelecoes = precisaEmpresa || bindingsNaoSociedade.length > 0;
+  const precisaSelecoes = precisaEmpresa || bindingsNaoSociedade.length > 0 || listasDeSelecao.length > 0;
   const selecoesCompletas = !listasPendentes && bindingsPendentes.length === 0;
   const modeloPronto = !!modeloId && !carregandoBlocos && template.blocos.length > 0;
 
@@ -974,7 +1017,12 @@ export function useGerarDocumentoController() {
     .join(' · ');
 
   const pendencias = [
-    listasPendentes ? 'escolha a empresa do contrato' : null,
+    precisaEmpresa && !empresaId ? 'escolha a empresa do contrato' : null,
+    listasSelecaoPendentes.length > 0
+      ? `selecione ${listasSelecaoPendentes.map((lista) => lista.papel.label).join(', ')}`
+      : selecaoDeListasEmAberto
+        ? 'conclua a seleção dos registros'
+        : null,
     bindingsPendentes.length > 0
       ? `selecione ${bindingsPendentes.map((b) => labelDoBinding(b.nome)).join(', ')}`
       : null,
@@ -1074,19 +1122,34 @@ export function useGerarDocumentoController() {
 
   const folhaEstado: EstadoFolha = !selecoesCompletas
     ? 'pendente'
-    : carregandoListasEfetivo
+    : carregandoDadosDocumento
       ? 'carregando'
       : resultado.erro
         ? 'erro'
         : 'pronto';
 
-  const infoFolha =
-    blocosCompostos.length === template.blocos.length
-      ? `${template.blocos.length} blocos · preenchido do cadastro`
-      : `${blocosCompostos.length} de ${template.blocos.length} blocos · ajustado ao perfil da empresa`;
+  // Rodapé da folha: conta o que SAIU, não o que foi composto. Contar os
+  // compostos anunciava "1 blocos · preenchido do cadastro" numa folha vazia,
+  // depois que o descarte de bloco sem dado passou a valer.
+  const infoFolha = resumoDaFolha({
+    blocos: resultado.blocos ?? [],
+    descartados: resultado.descartados,
+    totalNoModelo: template.blocos.length,
+    excluidosPorFlag: blocosExcluidos.length,
+  });
 
-  // O painel de conferência só existe quando há algo a conferir/ajustar.
+  // O que não entrou no documento, com o porquê — o descarte se anuncia na tela,
+  // não só no retorno do motor (emenda 9.2).
+  const blocosSemDado = blocosForaDaFolha(
+    resultado.descartados,
+    resultado.blocos ?? [],
+    (id) => nomePorBlocoId.get(id) ?? id,
+  );
+
+  // O painel de conferência só existe quando há algo a conferir/ajustar — e um
+  // bloco que ficou de fora do documento é algo a conferir.
   const temPainel =
+    blocosSemDado.length > 0 ||
     precisaEmpresa ||
     bindings.length > 0 ||
     desconhecidosVisiveis.length > 0 ||
@@ -1098,7 +1161,9 @@ export function useGerarDocumentoController() {
 
   return {
     modelos, carregandoModelos, modeloId, setModeloId, docBlocos, carregandoBlocos,
-    clienteId, registros, carregandoRegistros, selecao, registroPorBinding, valoresLivres,
+    clienteId, registros, carregandoRegistros, selecao, registroPorBinding,
+    registrosPorLista, alternarRegistroDaLista, confirmarSelecaoDeListas,
+    listasDeSelecao, listasSelecaoPendentes, blocosSemDado, valoresLivres,
     setValoresLivres, empresaId, setEmpresaId, copiado, passoAberto, setPassoAberto,
     ajustesAbertos, setAjustesAbertos, railAberto, setRailAberto, versaoVisualizadaId,
     setVersaoVisualizadaId, abaEfetiva, setAba, documentoGeradoId, documentoRaizId,
@@ -1109,12 +1174,15 @@ export function useGerarDocumentoController() {
     setRecongelarPendente, confirmarValidacao, confirmarNovaVersao, revalidar,
     confirmarValidacaoEAbrirBloco, pessoaEditando, bemEditando, matriculaEditando,
     flagsAtivas, temBlocosComFlags, blocosExcluidos, bindings, secoesDesconhecidas,
-    precisaEmpresa, socios, administradores, integralizacoes, carregandoListasEfetivo,
+    precisaEmpresa, socios, administradores, integralizacoes,
+    carregandoListasEfetivo: carregandoDadosDocumento,
     ehEmpresaPR, sociosSemCadastro, capitalValor, totalQuotas, naoLidas,
     linhasNotificacao, marcarVistas, autorPorId, usaTotalSocios,
     desconhecidosVisiveis, camposPorBinding, escolherRegistro, editarCampo, editarBlocoNaPrevia,
     matriculasDoCliente, origemClicavel, abrirCadastroOrigem, fecharCadastroOrigem,
-    resultado, copiar, nomeModelo, baixando, baixar, bindingsPendentes,
+    resultado, copiar, nomeModelo, baixando, baixar, baixarIncompletoOpen,
+    setBaixarIncompletoOpen, confirmarDownloadIncompleto, pendenciasDocumento,
+    documentoCompleto, bindingsPendentes,
     listasPendentes, empresas, bindingsNaoSociedade, precisaSelecoes,
     selecoesCompletas, modeloPronto, passo1Estado, passo2Estado, modoDocumento,
     empresaLabel, labelsRegistros, resumoPasso2, mensagemPendente, blocosFolha,

@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   deleteMatricula: vi.fn(),
   setMatriculaBem: vi.fn(),
   matriculas: [] as Record<string, unknown>[],
-  toast: { error: vi.fn(), success: vi.fn() },
+  toast: { error: vi.fn(), info: vi.fn(), warning: vi.fn(), success: vi.fn() },
   matriculaModalProps: undefined as Record<string, unknown> | undefined,
   titularPanelProps: undefined as Record<string, unknown> | undefined,
 }));
@@ -158,8 +158,16 @@ describe('BemModal', () => {
     await user.type(inputAfter('Vlr. contábil'), '10');
     await user.click(screen.getByRole('button', { name: 'Cadastrar bem' }));
 
-    expect(mocks.toast.error).toHaveBeenCalledWith('Selecione o titular inicial do bem');
+    // B16: o aviso diz o que falta E onde, a aba abre e o foco para no campo.
+    expect(mocks.toast.error).toHaveBeenCalledWith(
+      'Selecione o titular inicial do bem, na aba Titularidade.',
+    );
     expect(screen.getByRole('tab', { name: /Titularidade/ })).toHaveAttribute('data-state', 'active');
+    await waitFor(() =>
+      expect(
+        screen.getByText('Titular').closest('[data-campo="titular_pessoa_id"]'),
+      ).toContainElement(document.activeElement as HTMLElement),
+    );
     expect(mocks.upsert).not.toHaveBeenCalled();
   });
 

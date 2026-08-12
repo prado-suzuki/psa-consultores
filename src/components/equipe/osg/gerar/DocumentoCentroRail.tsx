@@ -8,13 +8,15 @@ import { FolhaDocumento } from '@/components/equipe/osg/gerar/FolhaDocumento';
 import { PainelAcoes } from '@/components/equipe/osg/gerar/PainelAcoes';
 import { BannerVersaoAnterior, HistoricoVersoes } from '@/components/equipe/osg/gerar/HistoricoVersoes';
 import { SeletorRail, OpcaoRail } from '@/components/equipe/osg/gerar/gerarKit';
+import { SelecaoRegistrosLista } from '@/components/equipe/osg/gerar/SelecaoRegistrosLista';
 import { fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import { labelDoBinding } from '@/lib/templates/binding';
 
 export function DocumentoCentroRail({ controller }: { controller: GerarDocumentoController }) {
   const {
   modelos, carregandoModelos, modeloId, setModeloId, carregandoBlocos, clienteId, registros,
-  carregandoRegistros, selecao, registroPorBinding, valoresLivres, setValoresLivres,
+  carregandoRegistros, selecao, registroPorBinding, registrosPorLista,
+  alternarRegistroDaLista, listasDeSelecao, valoresLivres, setValoresLivres,
   empresaId, setEmpresaId, copiado, passoAberto, setPassoAberto, ajustesAbertos,
   setAjustesAbertos, railAberto, setRailAberto, versaoVisualizadaId, setVersaoVisualizadaId,
   abaEfetiva, setAba, documentoGeradoId, documentoRaizId, versoes, congelado,
@@ -210,6 +212,30 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                       </div>
                     </SeletorRail>
                   )}
+
+                  {/* Caminho de volta da seleção múltipla: com o documento em
+                      cena os passos saem da tela, e sem isto não haveria como
+                      acrescentar ou tirar uma matrícula da lista. */}
+                  {listasDeSelecao.map((lista) => {
+                    const marcados = registrosPorLista[lista.nome] ?? [];
+                    return (
+                      <SeletorRail
+                        key={lista.nome}
+                        titulo={lista.papel.label}
+                        resumo={`${marcados.length} selecionado${marcados.length === 1 ? '' : 's'}`}
+                        aberto={railAberto === `lista:${lista.nome}`}
+                        onAbertoChange={(aberto) => setRailAberto(aberto ? `lista:${lista.nome}` : null)}
+                      >
+                        <SelecaoRegistrosLista
+                          compacto
+                          nome={lista.nome}
+                          registros={registros[lista.papel.tipo]}
+                          selecionados={marcados}
+                          onAlternar={(registroId) => alternarRegistroDaLista(lista.nome, registroId)}
+                        />
+                      </SeletorRail>
+                    );
+                  })}
 
                   {bindingsNaoSociedade.length > 0 && (
                     <SeletorRail

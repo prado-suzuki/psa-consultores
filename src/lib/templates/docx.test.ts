@@ -114,11 +114,15 @@ describe('export .docx (formatação do modelo de referência)', () => {
   });
 
   it('bloco de assinatura fica inteiro centralizado (régua, nome e papel)', async () => {
+    // Duas linhas de assinatura, como o fecho passou a renderizar depois de
+    // 20260813000302: quem outorga é o cônjuge, e ele assina em linha própria,
+    // com o papel embaixo do nome — não como sufixo do rótulo do sócio.
     const doc = await montarDocx([
       bloco(
         'fecho',
         'livre',
-        '_______________________________________\n*Fulano de Tal*\nSócio administrador e Outorga Conjugal',
+        '_______________________________________\n*JOSÉ EDUARDO DE MACEDO SOARES JUNIOR*\nSócio administrador' +
+        '\n\n_______________________________________\n*MARIA AUXILIADORA DE MACEDO SOARES*\nCônjuge outorgante',
       ),
     ]);
     const xml = await parteXml(doc, /word\/document\.xml$/);
@@ -126,8 +130,10 @@ describe('export .docx (formatação do modelo de referência)', () => {
     // Nenhuma linha do bloco de assinatura pode sair justificada: o papel do
     // signatário saía à esquerda, desalinhado do nome centralizado acima.
     expect(xml).not.toContain('w:val="both"');
-    expect((xml.match(/w:val="center"/g) ?? []).length).toBeGreaterThanOrEqual(3);
-    expect(xml).toContain('Sócio administrador e Outorga Conjugal');
+    expect((xml.match(/w:val="center"/g) ?? []).length).toBeGreaterThanOrEqual(6);
+    expect(xml).toContain('Sócio administrador');
+    expect(xml).toContain('Cônjuge outorgante');
+    expect(xml).not.toContain('e Outorga Conjugal');
   });
 
   it('marcas inline viram runs formatados (e não aparecem literais)', async () => {
