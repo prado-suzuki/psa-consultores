@@ -4566,6 +4566,7 @@ export type Database = {
           name: string
           objective: string | null
           ordem_servico_id: string | null
+          produto_segmento_id: string | null
           responsible_id: string | null
           servico_id: string | null
           start_date: string | null
@@ -4587,6 +4588,7 @@ export type Database = {
           name: string
           objective?: string | null
           ordem_servico_id?: string | null
+          produto_segmento_id?: string | null
           responsible_id?: string | null
           servico_id?: string | null
           start_date?: string | null
@@ -4608,6 +4610,7 @@ export type Database = {
           name?: string
           objective?: string | null
           ordem_servico_id?: string | null
+          produto_segmento_id?: string | null
           responsible_id?: string | null
           servico_id?: string | null
           start_date?: string | null
@@ -4648,6 +4651,13 @@ export type Database = {
             columns: ["ordem_servico_id"]
             isOneToOne: false
             referencedRelation: "ordem_servico"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_produto_segmento_id_fkey"
+            columns: ["produto_segmento_id"]
+            isOneToOne: false
+            referencedRelation: "produto_segmento"
             referencedColumns: ["id"]
           },
           {
