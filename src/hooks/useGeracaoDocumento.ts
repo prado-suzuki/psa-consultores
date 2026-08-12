@@ -39,7 +39,7 @@ const MATRICULA_GERACAO_SELECT = `
   bem:bem_id (
     denominacao, vlr_contabil, ccir_codigo, cliente_id, tipo_bem, inscricao_municipal,
     endereco_logradouro, endereco_numero, endereco_complemento, endereco_bairro, endereco_cep,
-    area_construida_m2
+    area_construida_m2, participa_estruturacao
   ),
   cartorio:cartorio_id ( nome_completo, comarca, uf ),
   titularidade ( integralizador, fracao, titular:titular_pessoa_id ( id, denominacao, cliente_id ) )
@@ -58,6 +58,7 @@ interface RawMatriculaGeracao {
     endereco_logradouro: string | null; endereco_numero: string | null;
     endereco_complemento: string | null; endereco_bairro: string | null;
     endereco_cep: string | null; area_construida_m2: number | null;
+    participa_estruturacao: boolean | null;
   } | null;
   cartorio: { nome_completo: string | null; comarca: string | null; uf: string | null } | null;
   titularidade: Array<{
@@ -83,10 +84,36 @@ function useMatriculasGeracao(clienteId: string | null) {
 }
 
 /**
+ * "Esse bem pode entrar num documento?" — o recorte da ESTRUTURAÇÃO.
+ *
+ * `participa_estruturacao` desligado significa que o bem foi levantado no
+ * Diagnóstico Patrimonial mas está fora do desenho (com o motivo escrito em
+ * `motivo_nao_integralizacao`): ele tem de aparecer na tela do Diagnóstico e não
+ * pode aparecer em documento NENHUM. Antes, a fonte dos seletores da tela Gerar
+ * não olhava a coluna, e o consultor podia marcar um bem excluído — o que a
+ * seleção múltipla de imóveis tornou fácil de fazer sem perceber.
+ *
+ * Só o `false` explícito exclui: o default da coluna é participar (linha antiga
+ * sem valor continua participando, como no relatório do DP) e matrícula ÓRFÃ, sem
+ * bem, não tem flag para consultar — ela continua disponível, que é o caminho da
+ * matrícula digitada.
+ *
+ * O que este predicado NÃO faz: filtrar por `status_integralizacao`. Elegibilidade
+ * de status é sobre INTEGRALIZAR um bem numa PJ (ver `useIntegralizacoesAprovadas`
+ * e `STATUS_ELEGIVEIS_PARA_INTEGRALIZACAO`), e um modelo pode descrever um imóvel
+ * sem integralizá-lo — a matrícula digitada urbana é exatamente isso. Filtrar por
+ * status aqui esconderia do seletor a matrícula que o modelo quer descrever.
+ */
+function foraDaEstruturacao(bem: { participa_estruturacao?: boolean | null } | null | undefined): boolean {
+  return bem?.participa_estruturacao === false;
+}
+
+/**
  * Registros do cliente por tipo de entidade, prontos para os seletores da tela
  * Gerar (um por binding). Pessoas e bens vêm filtrados pelo cliente; matrículas
  * são filtradas por bem.cliente_id ou pelo cliente de algum titular; cartórios
- * são globais (não pertencem a um cliente).
+ * são globais (não pertencem a um cliente). Bem (e matrícula de bem) fora da
+ * estruturação não entra em nenhum dos dois — ver `participaDaEstruturacao`.
  */
 export function useRegistrosPorTipo(clienteId: string | null) {
   const pessoasQ = usePessoasByCliente(clienteId);
@@ -101,17 +128,20 @@ export function useRegistrosPorTipo(clienteId: string | null) {
       row: p,
     }));
 
-    const bem: Registro[] = (bensQ.data ?? []).map((b) => ({
-      id: b.id,
-      label: [b.referencia_dp, b.denominacao].filter(Boolean).join(' — ') || 's/ ref',
-      row: b,
-    }));
+    const bem: Registro[] = (bensQ.data ?? [])
+      .filter((b) => !foraDaEstruturacao(b))
+      .map((b) => ({
+        id: b.id,
+        label: [b.referencia_dp, b.denominacao].filter(Boolean).join(' — ') || 's/ ref',
+        row: b,
+      }));
 
     const matricula: Registro<MatriculaParaMapear>[] = (matriculasQ.data ?? [])
       .filter(
         (m) =>
-          m.bem?.cliente_id === clienteId ||
-          (m.titularidade ?? []).some((t) => t.titular?.cliente_id === clienteId),
+          !foraDaEstruturacao(m.bem) &&
+          (m.bem?.cliente_id === clienteId ||
+            (m.titularidade ?? []).some((t) => t.titular?.cliente_id === clienteId)),
       )
       .map((m) => ({
         id: m.id,
@@ -225,6 +255,11 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
           )
         `)
         .eq('empresa_destino_pessoa_id', empresaId!)
+        // Fora da estruturação, fora de todo documento — a mesma regra dos
+        // seletores (ver `foraDaEstruturacao`). Um bem marcado como "não
+        // participa" que tivesse ficado com status elegível entraria no contrato
+        // pelas alíneas de integralização sem passar por escolha nenhuma.
+        .eq('participa_estruturacao', true)
         .in('status_integralizacao', [...STATUS_ELEGIVEIS_PARA_INTEGRALIZACAO]);
       if (error) throw error;
 
