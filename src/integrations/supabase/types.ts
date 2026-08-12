@@ -58,6 +58,7 @@ export type Database = {
           id: string
           pj_pessoa_id: string
           pode_isoladamente: boolean | null
+          poderes: Json | null
           updated_at: string
           updated_by: string | null
         }
@@ -71,6 +72,7 @@ export type Database = {
           id?: string
           pj_pessoa_id: string
           pode_isoladamente?: boolean | null
+          poderes?: Json | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -84,6 +86,7 @@ export type Database = {
           id?: string
           pj_pessoa_id?: string
           pode_isoladamente?: boolean | null
+          poderes?: Json | null
           updated_at?: string
           updated_by?: string | null
         }
