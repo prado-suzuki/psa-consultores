@@ -1,5 +1,5 @@
 import { areaExtenso, cardinalExtenso, percentualExtenso, valorExtenso, type UnidadeArea } from './extenso';
-import { PARES, concordarTexto, ufPorExtenso, type Genero } from './concordancia';
+import { PARES, concordarTexto, generoDeConcordancia, ufPorExtenso, type Genero } from './concordancia';
 
 // Vocabulário de campos organizado POR ENTIDADE (pessoa/bem/matricula/cartorio).
 // Cada placeholder é `binding.campo` (ex.: {{ proprietario.nome }}, {{ imovel.area }});
@@ -197,7 +197,15 @@ function ufExtensoCampo(id: string, label: string, derivadoDe: string): CampoEnt
   };
 }
 
-/** Campo de concordância derivado do gênero (ex.: brasileiro → brasileiro/brasileira). */
+/**
+ * Campo de concordância derivado do gênero (ex.: brasileiro → brasileiro/brasileira).
+ *
+ * `tipoPessoa` entra na concordância (PJ concorda no feminino) mas NÃO em
+ * `derivadoDe`: a base é o que o painel "Ajustar dados manualmente" abre para o
+ * consultor corrigir, e o tipo da pessoa é identidade do cadastro, não redação.
+ * `derivarCampos` recalcula sobre o registro inteiro, então o tipo é lido de
+ * qualquer jeito.
+ */
 function concordanciaCampo(
   id: string,
   label: string,
@@ -208,7 +216,7 @@ function concordanciaCampo(
     label,
     tipo: 'texto',
     derivadoDe: 'genero',
-    derivar: (v) => par((v.genero || null) as Genero),
+    derivar: (v) => par(generoDeConcordancia((v.genero || null) as Genero, v.tipoPessoa)),
   };
 }
 

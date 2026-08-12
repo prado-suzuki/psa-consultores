@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapearSignatarios } from './signatarios';
+import { mapearSignatarios, papelDeQualidades, type QualidadeSignatario } from './signatarios';
 import { gerarDocumento } from './index';
 import { origemDe } from './origem';
 import type { AdministradorParaMapear, SocioParaMapear } from './mapeadores';
@@ -14,6 +14,10 @@ import type { Template } from './types';
 // estados civis diferentes, uma sócia PJ e um administrador contratado que não é
 // sócio — a combinação que o fecho antigo ({{#socios}} com sufixo de outorga)
 // errava de quatro maneiras ao mesmo tempo.
+//
+// Emendas 9.10 e 9.11 do contrato L2/L3: o papel ACUMULA todas as qualidades da
+// pessoa (nenhuma some porque ela foi lida duas vezes) e a pessoa jurídica
+// concorda no feminino.
 
 type Over = Partial<Record<keyof PessoaRow, unknown>>;
 
@@ -51,6 +55,21 @@ const administrador = (pessoa: PessoaRow, cargo: string | null = null): Administ
 function campos(itens: ReturnType<typeof mapearSignatarios>) {
   return itens.map((i) => i.signatario as Record<string, string>);
 }
+
+/** Redação canônica do fecho (item 3 do contrato L2/L3): o bloco IMPRIME o papel. */
+const TEMPLATE_FECHO: Template = {
+  id: 'fecho',
+  nome: 'fecho',
+  blocos: [{
+    id: 'b',
+    tipo: 'livre',
+    obrigatorio: true,
+    conteudo:
+      '{{#signatarios sep="\\n\\n"}}_______________________________________\n' +
+      '*{{ signatario.nomeMaiusculo }}*\n{{ signatario.papel }}' +
+      '{{#signatario.qualificacao}}\n{{ signatario.qualificacao }}{{/signatario.qualificacao}}{{/signatarios}}',
+  }],
+};
 
 describe('B12/B13 · lista de signatários com papel', () => {
   it('casado em comunhão gera DUAS linhas (ele e o cônjuge, nomeado); solteiro gera uma', () => {
@@ -96,20 +115,40 @@ describe('B12/B13 · lista de signatários com papel', () => {
     expect(linhas[0].eSocio).toBe('sim');
     expect(linhas[0].eAdministrador).toBe('sim');
     expect(linhas[2].eSocio).toBe('');
+    // O cargo complementa a linha de quem só administra; no sócio ele seria
+    // repetição do papel, e o complemento fica para o representante da sócia PJ.
+    expect(linhas[0].qualificacao).toBe('');
+    expect(linhas[2].qualificacao).toBe('Diretora');
   });
 
-  it('sócia PJ leva o representante como complemento, não no rótulo', () => {
+  it('sócia PJ concorda no feminino e leva o representante como complemento (9.11)', () => {
+    // PJ não tem gênero cadastrado; sem regra própria a concordância cairia no
+    // masculino e a sociedade assinaria como "Sócio".
     const [linha] = campos(
       mapearSignatarios({ socios: [socio(AGROPECUARIA, 'Nelson Bortolotto')], pessoaPorId }),
     );
-    expect(linha.papel).toBe('Sócio');
+    expect(linha.papel).toBe('Sócia');
     expect(linha.qualificacao).toBe('neste ato representada por Nelson Bortolotto');
   });
 
-  it('cônjuge que administra sem ser sócio ainda assina a outorga', () => {
-    // Solange administra a sociedade, mas não é sócia. Administrador assina em
-    // nome da SOCIEDADE; a anuência do regime de bens é pessoal e não se supre
-    // com ela, então a linha de cônjuge outorgante tem de existir.
+  it('sócia PJ que administra sai "Sócia administradora", nunca no masculino', () => {
+    const [linha] = campos(
+      mapearSignatarios({
+        socios: [socio(AGROPECUARIA, 'Nelson Bortolotto')],
+        administradores: [administrador(AGROPECUARIA)],
+        pessoaPorId,
+      }),
+    );
+    expect(linha.papel).toBe('Sócia administradora');
+  });
+
+  it('administradora não sócia que é cônjuge de sócio ACUMULA as duas qualidades (9.10)', () => {
+    // Solange administra a sociedade sem ser sócia, e é casada em comunhão com o
+    // sócio Rogério. Administrador assina em nome da SOCIEDADE e isso não supre a
+    // anuência pessoal do regime de bens, então a outorga tem de aparecer — mas a
+    // qualidade de administradora não pode sumir com ela: o contrato nomeia a
+    // Solange na cláusula de administração, e o fecho precisa de alguém assinando
+    // como tal.
     const linhas = campos(
       mapearSignatarios({
         socios: [socio(ROGERIO)],
@@ -119,9 +158,14 @@ describe('B12/B13 · lista de signatários com papel', () => {
     );
     expect(linhas.map((l) => [l.nome, l.papel])).toEqual([
       ['Rogério Kunzler', 'Sócio'],
-      ['Solange Kunzler', 'Cônjuge outorgante'],
+      ['Solange Kunzler', 'Administradora e cônjuge outorgante'],
     ]);
+    expect(linhas).toHaveLength(2); // uma linha só para a Solange
     expect(linhas[1].eConjuge).toBe('sim');
+    expect(linhas[1].eAdministrador).toBe('sim');
+    expect(linhas[1].eSocio).toBe('');
+    // O complemento diz de quem ela é cônjuge — é o que liga a outorga ao sócio.
+    expect(linhas[1].qualificacao).toBe('cônjuge de Rogério Kunzler');
   });
 
   it('casal em comunhão, os dois sócios: uma linha cada, com o papel combinado', () => {
@@ -136,6 +180,8 @@ describe('B12/B13 · lista de signatários com papel', () => {
       ['Solange Kunzler', 'Sócia e cônjuge outorgante'],
     ]);
     expect(linhas.every((l) => l.eSocio === 'sim' && l.eConjuge === 'sim')).toBe(true);
+    // Os dois estão no quadro: dizer de quem cada um é cônjuge seria repetição.
+    expect(linhas.every((l) => l.qualificacao === '')).toBe(true);
   });
 
   it('sócio administrador que também outorga acumula as três qualidades', () => {
@@ -145,17 +191,65 @@ describe('B12/B13 · lista de signatários com papel', () => {
     const esposa = pessoa('p-lia', 'Lia Trentin', {
       genero: 'F', regime_bens: 'Comunhão Universal', estado_civil: 'Casado(a)', conjuge_id: 'p-caio',
     });
+    const casal = (id: string) => [marido, esposa].find((p) => p.id === id) ?? null;
+
     const linhas = campos(
       mapearSignatarios({
         socios: [socio(marido), socio(esposa)],
         administradores: [administrador(marido, 'Diretor')],
-        pessoaPorId: (id) => [marido, esposa].find((p) => p.id === id) ?? null,
+        pessoaPorId: casal,
       }),
     );
     expect(linhas.map((l) => l.papel)).toEqual([
       'Sócio administrador e cônjuge outorgante',
       'Sócia e cônjuge outorgante',
     ]);
+
+    // A tripla também concorda no feminino quando é ela quem administra.
+    const ambosAdministram = campos(
+      mapearSignatarios({
+        socios: [socio(marido), socio(esposa)],
+        administradores: [administrador(marido, 'Diretor'), administrador(esposa, 'Diretora')],
+        pessoaPorId: casal,
+      }),
+    );
+    expect(ambosAdministram.map((l) => l.papel)).toEqual([
+      'Sócio administrador e cônjuge outorgante',
+      'Sócia administradora e cônjuge outorgante',
+    ]);
+    expect(ambosAdministram).toHaveLength(2);
+    expect(ambosAdministram.every((l) => l.eSocio === 'sim' && l.eAdministrador === 'sim' && l.eConjuge === 'sim'))
+      .toBe(true);
+  });
+
+  it('o cônjuge que também é sócio assina na posição DELE no quadro', () => {
+    // O casal está separado por outro sócio no quadro. A linha do cônjuge só é
+    // adiantada para junto do sócio quando ela não existe por conta própria;
+    // aqui existe, e a ordem do quadro manda.
+    const linhas = campos(
+      mapearSignatarios({ socios: [socio(ROGERIO), socio(IVETE), socio(SOLANGE)], pessoaPorId }),
+    );
+    expect(linhas.map((l) => [l.nome, l.papel])).toEqual([
+      ['Rogério Kunzler', 'Sócio e cônjuge outorgante'],
+      ['Ivete Zanella', 'Sócia'],
+      ['Solange Kunzler', 'Sócia e cônjuge outorgante'],
+    ]);
+  });
+
+  it('combinação de qualidades sem rótulo previsto FALHA, em vez de escolher uma', () => {
+    // Qualidade que o motor ainda não conhece (procurador, anuente,
+    // interveniente). O cast é o único jeito de simular o dia em que alguém
+    // acrescentar uma: o valor não existe no tipo hoje, e é isso que se quer.
+    const nova = 'procurador' as unknown as QualidadeSignatario;
+    expect(() => papelDeQualidades(new Set<QualidadeSignatario>(['socio', nova]), 'M'))
+      .toThrow(/sem rótulo previsto/);
+    // Nem sequer o silêncio do conjunto vazio passa.
+    expect(() => papelDeQualidades(new Set<QualidadeSignatario>(), 'F')).toThrow(/sem rótulo previsto/);
+    // E o que a tabela prevê continua saindo inteiro.
+    expect(papelDeQualidades(new Set<QualidadeSignatario>(['administrador', 'conjuge']), 'F'))
+      .toBe('Administradora e cônjuge outorgante');
+    expect(papelDeQualidades(new Set<QualidadeSignatario>(['conjuge', 'administrador', 'socio']), 'M'))
+      .toBe('Sócio administrador e cônjuge outorgante');
   });
 
   it('vínculo gravado de um lado só produz o cônjuge de um lado só (B10 é de outra frente)', () => {
@@ -206,25 +300,32 @@ describe('B12/B13 · lista de signatários com papel', () => {
       administradores: [administrador(NELSON), administrador(CRISTIANE)],
       pessoaPorId,
     });
-    const template: Template = {
-      id: 'fecho',
-      nome: 'fecho',
-      blocos: [{
-        id: 'b',
-        tipo: 'livre',
-        obrigatorio: true,
-        conteudo:
-          '{{#signatarios sep="\\n\\n"}}_______________________________________\n' +
-          '*{{ signatario.nomeMaiusculo }}*\n{{ signatario.papel }}' +
-          '{{#signatario.qualificacao}}\n{{ signatario.qualificacao }}{{/signatario.qualificacao}}{{/signatarios}}',
-      }],
-    };
 
-    expect(gerarDocumento(template, { signatarios: itens })).toBe(
+    expect(gerarDocumento(TEMPLATE_FECHO, { signatarios: itens })).toBe(
       '_______________________________________\n*ROGÉRIO KUNZLER*\nSócio\n\n' +
       '_______________________________________\n*SOLANGE KUNZLER*\nCônjuge outorgante\ncônjuge de Rogério Kunzler\n\n' +
       '_______________________________________\n*NELSON BORTOLOTTO*\nSócio administrador\n\n' +
       '_______________________________________\n*CRISTIANE HALMENSCHLAGER*\nAdministradora',
+    );
+  });
+
+  it('alteração contratual com sócia PJ e administradora não sócia: o fecho sai inteiro', () => {
+    // O cenário que revelou a perda de qualidade: sócia PJ representada, sócio
+    // pessoa física casado em comunhão e a mulher dele administrando sem ser
+    // sócia. Nenhuma das três qualidades da Solange pode faltar no fecho.
+    const holding = pessoa('p-holding', 'Agro Holding MMS Ltda.', { tipo_pessoa: 'PJ', genero: null });
+    const itens = mapearSignatarios({
+      socios: [socio(holding, 'Bruna Mirandola'), socio(ROGERIO)],
+      administradores: [administrador(SOLANGE, 'Administradora')],
+      pessoaPorId: (id) => (id === 'p-holding' ? holding : pessoaPorId(id)),
+    });
+
+    expect(gerarDocumento(TEMPLATE_FECHO, { signatarios: itens })).toBe(
+      '_______________________________________\n*AGRO HOLDING MMS LTDA.*\nSócia\n' +
+      'neste ato representada por Bruna Mirandola\n\n' +
+      '_______________________________________\n*ROGÉRIO KUNZLER*\nSócio\n\n' +
+      '_______________________________________\n*SOLANGE KUNZLER*\n' +
+      'Administradora e cônjuge outorgante\ncônjuge de Rogério Kunzler',
     );
   });
 });
