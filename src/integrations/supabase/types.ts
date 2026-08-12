@@ -9159,6 +9159,7 @@ export type Database = {
         Returns: undefined
       }
       sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
+      sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
         Args: { _user_id: string }
