@@ -60,7 +60,11 @@ export default function OsValoresEdicao({ contrato, onChange }: OsValoresEdicaoP
               aria-label="Número de parcelas"
             />
           </div>
-          <p className="mt-1 text-[11px] text-muted-foreground">1 = pagamento único. Mensal.</p>
+          {/* "Mensal" e "1 = pagamento único" na mesma frase se liam como
+              "pagamento único mensal". O que o campo pede é a contagem de
+              mensalidades; a periodicidade mensal é implícita (não há campo de
+              periodicidade porque todo contrato de hoje é mensal). */}
+          <p className="mt-1 text-[11px] text-muted-foreground">Mensalidades do contrato. 1 = à vista.</p>
         </div>
 
         <div>
