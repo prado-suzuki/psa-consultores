@@ -381,7 +381,7 @@ export default function ContribuintesTab({
             )
           )}
           {isEditingThis ? (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setEditingEntityId(null)}>
+            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setEditingEntityId(null)}>
               <Check size={12} /> Pronto
             </Button>
           ) : (

@@ -211,7 +211,7 @@ export default function RepresentantesTab({
             </AlertDialog>
           )}
           {isEditingThis ? (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setEditingParticipantId(null)}>
+            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setEditingParticipantId(null)}>
               <Check size={12} /> Pronto
             </Button>
           ) : (
@@ -371,7 +371,7 @@ export default function RepresentantesTab({
               não há o que concluir, e o botão viraria enfeite que não faz nada. */}
           {isEditingThis && (
             <div className="flex justify-end border-t pt-2">
-              <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditingParticipantId(null)}>
+              <Button size="sm" variant="outline" className={cn('gap-1.5', acento.botaoSuave)} onClick={() => setEditingParticipantId(null)}>
                 <Check size={14} /> Pronto
               </Button>
             </div>
