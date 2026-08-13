@@ -2,24 +2,41 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import {
-  ArrowLeft, ArrowRight, Building2, Check, ClipboardCheck, FileText, FolderKanban, Landmark,
-  Search, ShieldAlert, TriangleAlert, User,
+  ArrowLeft, ArrowRight, Building2, Check, ClipboardCheck, FileText, FolderKanban, Hourglass,
+  Landmark, Loader2, Search, ShieldAlert, TriangleAlert, Undo2, User, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { useChecklistDerivado } from '@/hooks/useChecklistDerivado';
+import { useRevisarDocumento } from '@/hooks/useDocumentoArquivo';
 import {
   agruparPorInstancia, resumirChecklist,
-  type ClusterChecklist, type GrupoChecklist, type LinhaChecklist, type StatusChecklist,
+  type ArquivoDaLinha, type ClusterChecklist, type GrupoChecklist, type LinhaChecklist,
+  type StatusChecklist,
 } from '@/lib/checklistDerivado';
+import {
+  contarEstados, estadoDoDocumento, ESTADOS_DOCUMENTO, type EstadoDocumento,
+} from '@/lib/estadoDocumento';
 
 /**
- * O checklist do consultor: LEITURA da subtração, sem uma única escrita.
+ * O checklist do consultor: a leitura da subtração, mais o veredito sobre o que
+ * chegou.
+ *
+ * A ÚNICA ESCRITA QUE EXISTE AQUI é a revisão do arquivo recebido do cliente
+ * (aprovar, recusar com motivo, ou desfazer). Ela entrou depois — a tela nasceu
+ * 100% em leitura — porque sem ela o upload do cliente era aceito em silêncio: foto
+ * tremida e documento vencido fechavam a pendência igual ao documento certo.
+ * Recusar devolve a linha para "pendente" e reabre o envio no portal.
+ *
+ * Note o que ela NÃO é: não edita status de linha, não vincula arquivo, não muda o
+ * pedido. O veredito é sobre o ARQUIVO, não sobre a pendência — a subtração
+ * continua derivada, e é ela que decide o que falta.
  *
  * O que era editável aqui e por que saiu (docs/planos/checklist-por-subtracao.md §4):
  * o select de 6 status (`recebido` agora é fato derivado do arquivo, e
@@ -73,6 +90,34 @@ const STATUS_LINHA: Record<StatusChecklist, { label: string; classe: string }> =
   dispensado: { label: 'Dispensado', classe: 'bg-osg-100 text-osg-500' },
 };
 
+/**
+ * O vocabulário do consultor para os quatro estados (o portal chama de outro
+ * jeito: "Falta enviar" no lugar de "Pendente", por exemplo). A conta em si é a
+ * mesma, e mora em `@/lib/estadoDocumento`.
+ */
+const ESTADO_LABEL: Record<EstadoDocumento, string> = {
+  pendente: 'Pendente',
+  em_analise: 'A revisar',
+  recusado: 'Recusado',
+  aprovado: 'Aprovado',
+};
+const ESTADO_CHIP: Record<EstadoDocumento, string> = {
+  pendente: 'border-osg-highlighter/50 bg-osg-highlighter/20 text-osg-700 hover:border-osg-highlighter',
+  em_analise: 'border-osg-200 bg-osg-100/60 text-osg-600 hover:border-osg-300',
+  recusado: 'border-osg-red/30 bg-osg-red/10 text-osg-red hover:border-osg-red/60',
+  aprovado: 'border-osg-moss/30 bg-osg-moss/10 text-osg-moss hover:border-osg-moss/60',
+};
+
+/**
+ * O estado de uma linha entre os quatro dos chips, ou `null` para o que não é
+ * documento pendente de ninguém (dispensado e não aplicável são ausência de
+ * pedido, não estado de documento).
+ */
+const estadoDaLinha = (linha: LinhaChecklist): EstadoDocumento | null => {
+  if (linha.status === 'dispensado' || linha.status === 'nao_aplicavel') return null;
+  return estadoDoDocumento(linha.status === 'recebido', linha.arquivos);
+};
+
 const casaComStatus = (linha: LinhaChecklist, filtro: StatusFilter) => filtro === 'todos'
   || (filtro === 'abertos' && linha.status === 'pendente')
   || (filtro === 'recebidos' && linha.status === 'recebido')
@@ -81,12 +126,22 @@ const casaComStatus = (linha: LinhaChecklist, filtro: StatusFilter) => filtro ==
 export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   const { data: clientes = [] } = useClientesLista();
   const { linhas, solicitacao, arquivosSemTipo, isLoading } = useChecklistDerivado(clienteId);
+  const revisar = useRevisarDocumento();
+
+  // A recusa passa por um modal porque o motivo é o que o cliente vai ler para
+  // saber o que refazer; aprovar e desfazer são um clique só.
+  const [aRecusar, setARecusar] = useState<ArquivoDaLinha | null>(null);
+  const [motivo, setMotivo] = useState('');
 
   const [busca, setBusca] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState<CategoryFilter>('todos');
   const [filtroStatus, setFiltroStatus] = useState<StatusFilter>('todos');
   const [categoriaExpandida, setCategoriaExpandida] = useState<ClusterChecklist | null>(null);
   const [grupoAtivo, setGrupoAtivo] = useState<string | null>(null);
+  // O estado escolhido no chip do card recorta a ficha que abre. Vive separado do
+  // filtro global da barra: aquele pergunta "quais entidades", este pergunta
+  // "dentro desta entidade, o quê" — e some quando a ficha fecha.
+  const [filtroFicha, setFiltroFicha] = useState<EstadoDocumento | null>(null);
   const clienteNome = clientes.find((cliente) => cliente.id === clienteId)?.nome ?? '';
 
   const resumo = useMemo(() => resumirChecklist(linhas), [linhas]);
@@ -291,7 +346,13 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
               </div>
               {emFoco ? (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {categoria.grupos.map((grupo) => <EntityCard key={grupo.chave} grupo={grupo} onOpen={() => setGrupoAtivo(grupo.chave)} />)}
+                  {categoria.grupos.map((grupo) => (
+                    <EntityCard
+                      key={grupo.chave}
+                      grupo={grupo}
+                      onOpen={(estado) => { setFiltroFicha(estado ?? null); setGrupoAtivo(grupo.chave); }}
+                    />
+                  ))}
                 </div>
               ) : (
                 <div
@@ -300,7 +361,10 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                 >
                   {categoria.grupos.map((grupo) => (
                     <div key={grupo.chave} className="w-[85%] shrink-0 snap-start sm:w-[calc((100%_-_1rem)/2)] xl:w-[calc((100%_-_2rem)/3)]">
-                      <EntityCard grupo={grupo} onOpen={() => setGrupoAtivo(grupo.chave)} />
+                      <EntityCard
+                        grupo={grupo}
+                        onOpen={(estado) => { setFiltroFicha(estado ?? null); setGrupoAtivo(grupo.chave); }}
+                      />
                     </div>
                   ))}
                 </div>
@@ -309,7 +373,31 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
           );
         })}
 
-      <DocumentosDialog grupo={grupoSelecionado} onOpenChange={(open) => !open && setGrupoAtivo(null)} />
+      <DocumentosDialog
+        grupo={grupoSelecionado}
+        filtro={filtroFicha}
+        onLimparFiltro={() => setFiltroFicha(null)}
+        onOpenChange={(open) => { if (!open) { setGrupoAtivo(null); setFiltroFicha(null); } }}
+        emRevisao={revisar.isPending ? revisar.variables?.documentoId ?? null : null}
+        onAprovar={(arquivo) => revisar.mutate({ clienteId, documentoId: arquivo.id, veredito: 'aprovado' })}
+        onDesfazer={(arquivo) => revisar.mutate({ clienteId, documentoId: arquivo.id, veredito: 'pendente' })}
+        onRecusar={(arquivo) => { setMotivo(arquivo.motivo ?? ''); setARecusar(arquivo); }}
+      />
+
+      <RecusaDialog
+        arquivo={aRecusar}
+        motivo={motivo}
+        onMotivo={setMotivo}
+        onOpenChange={(aberto) => !aberto && setARecusar(null)}
+        onConfirmar={() => {
+          if (aRecusar) {
+            revisar.mutate({
+              clienteId, documentoId: aRecusar.id, veredito: 'recusado', motivo,
+            });
+          }
+          setARecusar(null);
+        }}
+      />
     </div>
   );
 }
@@ -383,7 +471,10 @@ function Metric({ label, value, tone }: { label: string; value: number; tone: 'w
   );
 }
 
-function EntityCard({ grupo, onOpen }: { grupo: GrupoChecklist; onOpen: () => void }) {
+function EntityCard({ grupo, onOpen }: {
+  grupo: GrupoChecklist;
+  onOpen: (estado?: EstadoDocumento) => void;
+}) {
   const Icon = CLUSTER_ICON[grupo.instancia.cluster];
   const { recebidos, pendentes, base, pct } = resumirChecklist(grupo.linhas);
   const cardStatus: StatusChecklist | 'encerrado' = pendentes > 0
@@ -394,13 +485,23 @@ function EntityCard({ grupo, onOpen }: { grupo: GrupoChecklist; onOpen: () => vo
     .slice(0, 2)
     .map((linha) => linha.documento)
     .join(' · ');
+  const contagem = contarEstados(grupo.linhas.map(estadoDaLinha));
+
+  /**
+   * O card é `div` com um botão invisível por cima porque os chips de estado são
+   * botões, e botão dentro de botão é HTML inválido — o navegador desmonta a
+   * árvore e o clique de dentro some. O conteúdo fica com `pointer-events-none`
+   * para o clique atravessar; só os chips reativam o ponteiro.
+   */
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group flex h-full min-h-48 w-full flex-col rounded-2xl border border-osg-300/60 bg-white/75 p-5 text-left shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)] transition-all duration-200 hover:-translate-y-1 hover:border-osg-moss/40 hover:shadow-[0_16px_30px_-20px_hsl(var(--osg-moss)/0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40"
-    >
-      <div className="flex items-start justify-between gap-3">
+    <div className="group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-osg-300/60 bg-white/75 p-5 text-left shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)] transition-all duration-200 hover:-translate-y-1 hover:border-osg-moss/40 hover:shadow-[0_16px_30px_-20px_hsl(var(--osg-moss)/0.24)] focus-within:border-osg-moss/40">
+      <button
+        type="button"
+        onClick={() => onOpen()}
+        aria-label={`Ver os documentos de ${grupo.instancia.label}`}
+        className="absolute inset-0 z-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40"
+      />
+      <div className="pointer-events-none relative z-10 flex items-start justify-between gap-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-osg-50 text-osg-moss"><Icon className="h-5 w-5" /></span>
         <span className={cn(
           'rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]',
@@ -411,15 +512,52 @@ function EntityCard({ grupo, onOpen }: { grupo: GrupoChecklist; onOpen: () => vo
           {cardStatus === 'recebido' ? 'Completo' : cardStatus === 'pendente' ? 'Pendente' : 'Tratado'}
         </span>
       </div>
-      <h4 className="mt-5 font-semibold leading-snug text-osg-700">{grupo.instancia.label}</h4>
-      {grupo.instancia.detalhe && <p className="text-xs font-medium text-osg-500">{grupo.instancia.detalhe}</p>}
-      <p className="mt-1 line-clamp-2 min-h-10 text-sm leading-relaxed text-osg-500">{preview || 'Nada pendente nesta entidade.'}</p>
-      <div className="mt-auto flex items-center gap-3 pt-5">
+      <h4 className="pointer-events-none relative z-10 mt-5 font-semibold leading-snug text-osg-700">{grupo.instancia.label}</h4>
+      {grupo.instancia.detalhe && <p className="pointer-events-none relative z-10 text-xs font-medium text-osg-500">{grupo.instancia.detalhe}</p>}
+      <p className="pointer-events-none relative z-10 mt-1 line-clamp-2 min-h-10 text-sm leading-relaxed text-osg-500">{preview || 'Nada pendente nesta entidade.'}</p>
+
+      <ChipsDeEstado contagem={contagem} onEscolher={onOpen} />
+
+      <div className="pointer-events-none relative z-10 mt-auto flex items-center gap-3 pt-5">
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-osg-100"><div className={cn('h-full rounded-full', pendentes ? 'bg-osg-highlighter' : 'bg-osg-moss')} style={{ width: `${pct}%` }} /></div>
         <span className="text-sm font-bold tabular-nums text-osg-600">{recebidos}/{base}</span>
       </div>
-      <span className="mt-3 text-xs font-semibold text-osg-moss group-hover:underline">Ver {grupo.linhas.length} documento{grupo.linhas.length === 1 ? '' : 's'}</span>
-    </button>
+      <span className="pointer-events-none relative z-10 mt-3 text-xs font-semibold text-osg-moss group-hover:underline">Ver {grupo.linhas.length} documento{grupo.linhas.length === 1 ? '' : 's'}</span>
+    </div>
+  );
+}
+
+/**
+ * Os quatro estados como atalho: abre a ficha já recortada.
+ *
+ * Estado zerado não vira botão. Quatro chips iguais em toda ficha, três deles
+ * levando a uma lista vazia, seria ruído — o chip existe para dizer "tem coisa
+ * aqui".
+ */
+function ChipsDeEstado({ contagem, onEscolher }: {
+  contagem: Record<EstadoDocumento, number>;
+  onEscolher: (estado: EstadoDocumento) => void;
+}) {
+  const visiveis = ESTADOS_DOCUMENTO.filter((estado) => contagem[estado] > 0);
+  if (visiveis.length === 0) return null;
+
+  return (
+    <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap gap-1.5">
+      {visiveis.map((estado) => (
+        <button
+          key={estado}
+          type="button"
+          onClick={() => onEscolher(estado)}
+          className={cn(
+            'pointer-events-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
+            ESTADO_CHIP[estado],
+          )}
+        >
+          {ESTADO_LABEL[estado]}
+          <span className="tabular-nums opacity-70">{contagem[estado]}</span>
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -427,10 +565,26 @@ const PESO_STATUS: Record<StatusChecklist, number> = {
   pendente: 0, recebido: 1, nao_aplicavel: 2, dispensado: 3,
 };
 
-function DocumentosDialog({ grupo, onOpenChange }: {
+interface AcoesRevisao {
+  /** id do arquivo cuja revisão está em voo, para travar só a linha dele. */
+  emRevisao: string | null;
+  onAprovar: (arquivo: ArquivoDaLinha) => void;
+  onRecusar: (arquivo: ArquivoDaLinha) => void;
+  onDesfazer: (arquivo: ArquivoDaLinha) => void;
+}
+
+function DocumentosDialog({ grupo, filtro, onLimparFiltro, onOpenChange, ...acoes }: AcoesRevisao & {
   grupo: GrupoChecklist | null;
+  /** O estado escolhido no chip do card; nulo mostra a ficha inteira. */
+  filtro: EstadoDocumento | null;
+  onLimparFiltro: () => void;
   onOpenChange: (open: boolean) => void;
 }) {
+  const linhas = (grupo?.linhas ?? [])
+    .filter((linha) => !filtro || estadoDaLinha(linha) === filtro)
+    .slice()
+    .sort((a, b) => PESO_STATUS[a.status] - PESO_STATUS[b.status] || a.ordem - b.ordem);
+
   return (
     <Dialog open={!!grupo} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden p-0">
@@ -442,19 +596,34 @@ function DocumentosDialog({ grupo, onOpenChange }: {
               ? `${grupo.instancia.detalhe}. O que falta é derivado do que foi pedido menos o que chegou.`
               : 'O que falta é derivado do que foi pedido menos o que chegou.'}
           </DialogDescription>
+          {filtro && (
+            <div className="flex items-center gap-2 pt-1">
+              <span className={cn(
+                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                ESTADO_CHIP[filtro],
+              )}>
+                {ESTADO_LABEL[filtro]}
+                <span className="tabular-nums opacity-70">{linhas.length}</span>
+              </span>
+              <button
+                type="button"
+                onClick={onLimparFiltro}
+                className="rounded-md text-[11px] font-semibold text-osg-500 underline-offset-2 hover:text-osg-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40"
+              >
+                ver todos os {grupo?.linhas.length}
+              </button>
+            </div>
+          )}
         </DialogHeader>
         <div className="max-h-[calc(90vh-130px)] divide-y divide-osg-100 overflow-y-auto px-2 pb-2 sm:px-4">
-          {grupo?.linhas
-            .slice()
-            .sort((a, b) => PESO_STATUS[a.status] - PESO_STATUS[b.status] || a.ordem - b.ordem)
-            .map((linha) => <DocumentRow key={linha.chave} linha={linha} />)}
+          {linhas.map((linha) => <DocumentRow key={linha.chave} linha={linha} {...acoes} />)}
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-function DocumentRow({ linha }: { linha: LinhaChecklist }) {
+function DocumentRow({ linha, ...acoes }: AcoesRevisao & { linha: LinhaChecklist }) {
   const status = STATUS_LINHA[linha.status];
   return (
     <div className="px-2 py-4 sm:px-3">
@@ -473,7 +642,11 @@ function DocumentRow({ linha }: { linha: LinhaChecklist }) {
           </div>
           {linha.nota && <p className="mt-1 text-xs leading-relaxed text-osg-500">{linha.nota}</p>}
           {linha.arquivos.length > 0 && (
-            <p className="mt-2 truncate text-xs font-medium text-osg-moss">{linha.arquivos.map((arquivo) => arquivo.nome).join(', ')}</p>
+            <ul className="mt-2 space-y-1.5">
+              {linha.arquivos.map((arquivo) => (
+                <ArquivoRevisavel key={arquivo.id} arquivo={arquivo} {...acoes} />
+              ))}
+            </ul>
           )}
         </div>
         <span className={cn('shrink-0 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]', status.classe)}>
@@ -481,6 +654,155 @@ function DocumentRow({ linha }: { linha: LinhaChecklist }) {
         </span>
       </div>
     </div>
+  );
+}
+
+/**
+ * O arquivo recebido, com o veredito ao lado.
+ *
+ * Só o que veio do cliente ganha botão: arquivo de `fonte = 'psa'` é produção
+ * interna, e a casa não aprova o que a casa fez (a RPC recusaria também). Aprovado
+ * e recusado mantêm uma saída — "Recusar" e "Aprovar" continuam à vista — porque
+ * veredito errado tem de ter conserto sem passar pelo banco.
+ */
+function ArquivoRevisavel({ arquivo, emRevisao, onAprovar, onRecusar, onDesfazer }: AcoesRevisao & {
+  arquivo: ArquivoDaLinha;
+}) {
+  const ocupado = emRevisao === arquivo.id;
+  const doCliente = arquivo.fonte === 'cliente';
+  const recusado = arquivo.revisao === 'recusado';
+  const aprovado = arquivo.revisao === 'aprovado';
+
+  return (
+    <li className={cn(
+      'rounded-lg border px-3 py-2',
+      recusado ? 'border-osg-red/30 bg-osg-red/5' : 'border-osg-100 bg-osg-50/50',
+    )}>
+      <div className="flex flex-wrap items-center gap-2">
+        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? 'text-osg-red' : 'text-osg-moss')} />
+        <span className={cn(
+          'min-w-0 flex-1 truncate text-xs font-medium',
+          recusado ? 'text-osg-red line-through' : 'text-osg-600',
+        )}>
+          {arquivo.nome}
+        </span>
+
+        {!doCliente ? (
+          <Badge>Enviado pela PSA</Badge>
+        ) : ocupado ? (
+          <Loader2 className="h-4 w-4 animate-spin text-osg-500" />
+        ) : (
+          <div className="flex shrink-0 items-center gap-1">
+            {aprovado && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-osg-moss/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-moss">
+                <Check className="h-3 w-3" />Aprovado
+              </span>
+            )}
+            {recusado && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-osg-red/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-red">
+                <TriangleAlert className="h-3 w-3" />Recusado
+              </span>
+            )}
+            {!aprovado && !recusado && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-osg-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-500">
+                <Hourglass className="h-3 w-3" />A revisar
+              </span>
+            )}
+
+            {!aprovado && (
+              <BotaoVeredito tom="aprovar" onClick={() => onAprovar(arquivo)}>
+                <Check className="h-3.5 w-3.5" />Aprovar
+              </BotaoVeredito>
+            )}
+            {!recusado && (
+              <BotaoVeredito tom="recusar" onClick={() => onRecusar(arquivo)}>
+                <X className="h-3.5 w-3.5" />Recusar
+              </BotaoVeredito>
+            )}
+            {(aprovado || recusado) && (
+              <BotaoVeredito tom="desfazer" onClick={() => onDesfazer(arquivo)}>
+                <Undo2 className="h-3.5 w-3.5" />
+                <span className="sr-only">Desfazer revisão de {arquivo.nome}</span>
+              </BotaoVeredito>
+            )}
+          </div>
+        )}
+      </div>
+      {recusado && arquivo.motivo && (
+        <p className="mt-1 pl-5 text-xs leading-relaxed text-osg-red">{arquivo.motivo}</p>
+      )}
+    </li>
+  );
+}
+
+function BotaoVeredito({ tom, onClick, children }: {
+  tom: 'aprovar' | 'recusar' | 'desfazer';
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={tom === 'desfazer' ? 'Desfazer revisão' : undefined}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
+        tom === 'aprovar' && 'border-osg-moss/30 text-osg-moss hover:bg-osg-moss/10',
+        tom === 'recusar' && 'border-osg-red/30 text-osg-red hover:bg-osg-red/10',
+        tom === 'desfazer' && 'border-osg-200 text-osg-500 hover:bg-osg-100/70 hover:text-osg-700',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * A recusa, com o motivo que o cliente vai ler.
+ *
+ * O motivo é opcional no banco, mas a tela insiste: recusa sem explicação devolve
+ * o problema para o cliente sem dizer o que corrigir, e ele reenvia o mesmo
+ * arquivo. Por isso o texto é o corpo do modal, e não um campo escondido.
+ */
+function RecusaDialog({ arquivo, motivo, onMotivo, onOpenChange, onConfirmar }: {
+  arquivo: ArquivoDaLinha | null;
+  motivo: string;
+  onMotivo: (valor: string) => void;
+  onOpenChange: (aberto: boolean) => void;
+  onConfirmar: () => void;
+}) {
+  return (
+    <Dialog open={!!arquivo} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-osg-700">Recusar este documento?</DialogTitle>
+          <DialogDescription>
+            "{arquivo?.nome}" volta a contar como pendente para o cliente, que vê a tag de recusado
+            e o botão de enviar de novo.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <label htmlFor="motivo-recusa" className="text-xs font-semibold text-osg-600">
+            O que o cliente precisa corrigir
+          </label>
+          <Textarea
+            id="motivo-recusa"
+            value={motivo}
+            onChange={(evento) => onMotivo(evento.target.value)}
+            rows={3}
+            placeholder="Ex.: a última página saiu cortada; reenvie a matrícula inteira."
+            className="border-osg-200/80 bg-osg-50/50"
+          />
+          <p className="text-xs text-osg-500">
+            Sem texto, o cliente vê só "Recusado" e fica sem saber o que refazer.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="destructive" onClick={onConfirmar}>Recusar documento</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
