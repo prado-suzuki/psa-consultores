@@ -29,10 +29,6 @@ vi.mock('@/integrations/supabase/client', () => ({
   supabase: { from: dbMocks.from, auth: { getUser: dbMocks.getUser } },
 }));
 
-// useOsgChecklist NÃO é mockado de propósito: o teste ancora na fábrica de chave
-// real (checklistClienteKey), senão um rename lá passaria batido aqui — que é
-// exatamente o drift que a invalidação do checklist precisa evitar.
-import { checklistClienteKey } from '@/hooks/useOsgChecklist';
 import {
   useAtualizarDocumento, useExcluirDocumento, type AtualizarDocumentoPatch,
   type DocumentoArquivoRow,
@@ -156,14 +152,13 @@ describe('useExcluirDocumento', () => {
     expect(auditMocks.logAction).not.toHaveBeenCalled();
   });
 
-  it('invalida as listas de documentos e o checklist', () => {
+  // A invalidação por prefixo é a única, e é ela que recompõe também o checklist
+  // do consultor, hoje derivado desta mesma lista.
+  it('invalida as listas de documentos do cliente', () => {
     excluirMutation().onSuccess({ deleted: true }, docRow());
 
     expect(qcMocks.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ['documento-arquivo', 'cliente-1'],
-    });
-    expect(qcMocks.invalidateQueries).toHaveBeenCalledWith({
-      queryKey: checklistClienteKey('cliente-1'),
     });
     expect(toastMocks.toast).toHaveBeenCalledWith({
       title: 'Documento excluído',

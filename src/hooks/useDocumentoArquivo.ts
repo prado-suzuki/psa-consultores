@@ -4,7 +4,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { checklistClienteKey } from '@/hooks/useOsgChecklist';
 import { getApiUrl, currentAmbiente } from '@/config/api';
 import type { Database } from '@/integrations/supabase/types';
 // Só o tipo: as chaves dos 4 grupos são definidas em agrupadorDocumentos, que é
@@ -357,10 +356,11 @@ export function useExcluirDocumento(clienteId: string) {
       return resultado;
     },
     onSuccess: (resultado, doc) => {
+      // A invalidação por prefixo já recompõe o checklist do consultor: ele
+      // deixou de ser tabela e passou a ser derivado desta mesma lista de
+      // arquivos (src/lib/checklistDerivado.ts). Antes havia uma segunda
+      // invalidação, da query de `checklist_cliente_item`, que não existe mais.
       qc.invalidateQueries({ queryKey: [LIST_KEY, clienteId] });
-      // O checklist embute documento_arquivo (item "recebido" = tem arquivo
-      // ativo vinculado), então precisa recontar quando um documento sai.
-      qc.invalidateQueries({ queryKey: checklistClienteKey(clienteId) });
       // O georref vive no BigQuery e foi purgado pelo backend; sem invalidar,
       // a tela Gerar seguiria montando a tabela de vértices (e o .docx) com
       // coordenadas que já não existem.
