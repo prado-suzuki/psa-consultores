@@ -88,8 +88,12 @@ export function converterArea(
 // Decompõe um valor em ha nas partes "ha" e "m²" (123.1234 ha -> 123 ha e 1234 m²).
 export const splitHaM2 = (v: number): { ha: number; m2: number } => {
   const ha = Math.floor(v);
-  const m2 = Math.round((v - ha) * 10_000);
-  // Arredondamento pode estourar para 10000 m² (ex.: 122.99999) — normaliza para o ha seguinte.
+  // "ha e m²" não pode arredondar silenciosamente para o m² inteiro: o aviso
+  // de conversão compara, por exemplo, 699,8677 m² com 700 m². Quatro casas em
+  // m² expõem toda a precisão que o cadastro aceita sem poluir inteiros com
+  // zeros; toPrecision remove apenas o ruído binário da multiplicação.
+  const m2 = Number(Number(((v - ha) * 10_000).toPrecision(15)).toFixed(AREA_DECIMAIS));
+  // Arredondamento pode estourar para 10000 m² (ex.: 122.999999999) — normaliza para o ha seguinte.
   return m2 >= 10_000 ? { ha: ha + 1, m2: 0 } : { ha, m2 };
 };
 
@@ -99,6 +103,10 @@ export const splitHaM2 = (v: number): { ha: number; m2: number } => {
 // esconderia justamente o que o consultor precisaria ver para corrigir.
 const casasDe = (v: number): number => {
   const texto = String(v);
+  const exponencial = texto.match(/^(\d+)(?:\.(\d+))?e-(\d+)$/i);
+  if (exponencial) {
+    return Math.min(Number(exponencial[3]) + (exponencial[2]?.length ?? 0), 8);
+  }
   const ponto = texto.indexOf('.');
   return ponto === -1 ? 0 : Math.min(texto.length - ponto - 1, 8);
 };
@@ -108,7 +116,10 @@ export const formatArea = (v: number | null | undefined, u: string | null | unde
   if (v == null) return '—';
   if (u === 'ha_m2') {
     const { ha, m2 } = splitHaM2(v);
-    return `${ha.toLocaleString('pt-BR')} ha e ${m2.toLocaleString('pt-BR')} m²`;
+    const metros = m2.toLocaleString('pt-BR', {
+      maximumFractionDigits: Math.max(AREA_DECIMAIS, casasDe(m2)),
+    });
+    return `${ha.toLocaleString('pt-BR')} ha e ${metros} m²`;
   }
   const num = v.toLocaleString('pt-BR', {
     maximumFractionDigits: Math.max(AREA_DECIMAIS, casasDe(v)),

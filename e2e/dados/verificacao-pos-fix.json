@@ -1,0 +1,295 @@
+{
+  "_meta": {
+    "titulo": "Conferência pós-correção do fluxo de geração de contrato (OSG) — caso MMS",
+    "roteiro": "e2e/roteiro-verificacao-pos-fix.md",
+    "tarefa": "docs/sprints/sprint-11/TAREFA_correcoes-e2e-geracao-contrato.md",
+    "executado_em": "2026-08-12",
+    "branch": "develop",
+    "app": "http://localhost:8080 (Vite dev, ambiente='dev', nenhum SQL executado)",
+    "estado": "CONCLUÍDO",
+    "legenda_status": ["corrigido", "corrigido_com_ressalva", "nao_corrigido", "nao_aplicado_no_banco", "nao_verificavel_nesta_etapa", "fora_de_escopo"],
+    "artefatos_gerados": {
+      ".playwright-mcp/v2-agro-aprovado.docx": "caso 1 — Agro com os 5 bens em Aprovado e data preenchida (arquivo limpo)",
+      ".playwright-mcp/v2-agro-aprovado-rascunho.docx": "mesmo caso 1, baixado sem a data (traz o carimbo RASCUNHO)",
+      ".playwright-mcp/v2-participacoes-rascunho.docx": "caso 2 — holding MMS Participações",
+      ".playwright-mcp/v2-agro-B2-nao-elegivel.docx": "caso 3 — 5 bens em Pendente, sem data (rascunho)",
+      ".playwright-mcp/v2-agro-B2-nao-elegivel-com-data.docx": "caso 3 com a data preenchida — baixou LIMPO, é a prova da ressalva do B2"
+    },
+    "estado_do_cadastro_ao_final": "sete matrículas com o número real (sem prefixo [TESTE]); 25.365 com 699,8677 m²; BS 01/02/03/08/09 de volta em 'Aprovado'; nenhuma outra alteração."
+  },
+
+  "passo_0_migrations": {
+    "20260813000300_blocos_cartorio_e_livro_folha.sql": {
+      "cobre": ["B4", "B14"],
+      "tipo": "conteúdo de bloco",
+      "veredito": "aplicada",
+      "prova": "Biblioteca de Modelos, família \"Descrição de imóvel\": as 5 variantes (Direitos de escritura não averbada, Rural propriedade exclusiva, Rural condomínio, Urbano propriedade exclusiva, Urbano condomínio) trazem \"no Livro ____ (____), folhas/ficha ____ (____) do ____ da comarca de ____, Estado de ____\". O literal \"Cartório de Registro de Imóveis de\" não aparece em nenhuma. Bloco \"Matrícula digitada: identificação\" na composição do Agro: \"{{#imovel.temCartorio}} {{ imovel.cartorio }}{{#imovel.cartorioComarca}}, comarca de {{ imovel.cartorioComarca }}{{/imovel.cartorioComarca}}{{#imovel.ufCartorio}}, Estado de {{ imovel.ufCartorio }}{{/imovel.ufCartorio}}{{/imovel.temCartorio}}\"."
+    },
+    "20260813000301_blocos_capital_valor_nominal_da_quota.sql": {
+      "cobre": ["B6"],
+      "tipo": "conteúdo de bloco",
+      "veredito": "aplicada",
+      "prova": "Biblioteca, \"Capital Social - Agro\" e cláusula \"Capital social\": \"no valor nominal de R$ ____ (____) cada uma\" — o literal \"R$ 1,00 (um real)\" saiu do texto e virou placeholder. Na tela Gerar, \"Ajustar dados manualmente\" expõe \"Valor nominal da quota (R$) = 1,00\" como parâmetro editável da sociedade."
+    },
+    "20260813000302_fecho_percorre_signatarios.sql": {
+      "cobre": ["B12", "B13"],
+      "tipo": "conteúdo de bloco",
+      "veredito": "aplicada",
+      "prova": "Bloco \"Fecho e assinaturas\" em v4; composição do Agro, item 78: \"{{#signatarios sep=\\\"\\\\n\\\\n\\\"}}_____ *{{ signatario.nomeMaiusculo }}* {{ signatario.papel }}{{#signatario.qualificacao}} {{ signatario.qualificacao }}{{/signatario.qualificacao}}{{/signatarios}}\". O laço {{#socios}} e o sufixo \" e Outorga Conjugal\" saíram do fecho."
+    },
+    "20260813000303_memorial_georref_anexo_do_contrato_agro.sql": {
+      "cobre": ["B5"],
+      "tipo": "conteúdo de bloco",
+      "veredito": "aplicada",
+      "prova": "Bloco canônico \"Memorial descritivo do georreferenciamento (SIGEF)\" em v2, com o título dentro da guarda: \"{{#imovel.georefArea}}*MEMORIAL DESCRITIVO DO GEORREFERENCIAMENTO (SIGEF)* O imóvel possui área de ...\". Na composição do Agro é o item 79 de 79, depois do Fecho (item 78). A cópia sem guarda (\"Teste Tabela GeoRef\") não está mais na composição.",
+      "observacao": "A cópia \"Teste Tabela GeoRef\" continua ATIVA na Biblioteca (aparece na paleta e sem a nota \"[Desativado em 13/08/2026 (B5)]\" na descrição). Pela própria migration isso é o esperado se outro modelo ainda a referenciar — existe um modelo \"Teste V1\" com 11 blocos. Não afeta o Agro."
+    },
+    "20260813010000_matricula_identidade_por_cliente.sql": {
+      "cobre": ["B1"],
+      "tipo": "schema",
+      "veredito": "aplicada",
+      "prova": "As sete matrículas foram regravadas com o número real (9.617, 25.365, 2.424, 2.623, 2.625, 2.627, 2.628), todas com PATCH 200 e toast \"Matrícula atualizada — Nº 9.617\". Nenhum 409/23505. O par (cartório 1° Ofício de Lucas do Rio Verde, 9.617) é justamente o que colidia com outro cliente na rodada anterior."
+    },
+    "20260813103000_nome_proprio_preserva_caixa.sql": {
+      "cobre": ["B20"],
+      "tipo": "schema (gatilho)",
+      "veredito": "nao_verificavel_nesta_etapa",
+      "prova": "O cliente continua gravado como \"[Teste E2e] Grupo Mms\" (achatado), o que a própria migration prevê: \"Nomes antigos já achatados não são corrigidos automaticamente\". Não gravei nome nenhum nesta etapa, então não exercitei o caminho de escrita que a correção protege.",
+      "observacao": "Para fechar o veredito basta reeditar o nome do cliente para \"[TESTE E2E] Grupo MMS\" e conferir se a caixa sobrevive — mexe em tela de cadastro, fora do escopo deste roteiro."
+    },
+    "20260813120000_pessoa_conjuge_reciproco.sql": {
+      "cobre": ["B10"],
+      "tipo": "schema (gatilho)",
+      "veredito": "aplicada (indício forte, indireto)",
+      "prova": "No fecho da holding, EDUARDO MIRANDOLA CARDOSO DA SILVA aparece como \"Cônjuge outorgante / cônjuge de CAMILA MALHEIROS DE MACEDO SOARES MIRANDOLA\". O motor monta a outorga lendo o conjuge_id de QUEM É SÓCIA (Camila); na rodada anterior o vínculo foi escrito no cadastro de Eduardo (criado depois), justamente o lado que o B10 deixava pela metade. O lado da Camila estar preenchido hoje é o backfill/gatilho desta migration (a migration tem seção \"3. Backfill dos vínculos pela metade\").",
+      "observacao": "Indício, não prova direta: não gravei vínculo novo para ver o gatilho espelhar em tempo real. B10 é fora de escopo por roteiro."
+    },
+    "20260813120100_administracao_poderes.sql": {
+      "cobre": ["B18"],
+      "tipo": "schema",
+      "veredito": "aplicada",
+      "prova": "Modal da PJ MMS PARTICIPAÇÕES → aba Administração → editar vínculo: o formulário tem \"Forma de assinatura: Isoladamente\", \"Exceções por tipo de ato\" (com \"Adicionar exceção\" e o texto \"Sem exceções: a forma acima vale para todos os atos.\") e \"Observação sobre os poderes\" — exatamente as três partes do jsonb `poderes` descrito na migration.",
+      "observacao": "A metade do B18 sobre município/UF no formulário de cliente não foi checada (fora do escopo desta etapa). Nenhuma exceção está cadastrada no caso MMS, então a regra real (\"atos da cláusula sexta exigem as duas assinaturas\") ainda não aparece no contrato gerado — falta o dado, não o campo."
+    }
+  },
+
+  "passo_1_preparacao": {
+    "1.1_B1": "sete matrículas regravadas sem o prefixo [TESTE], todas 200, zero conflito",
+    "1.2_B3": "BS 01, BS 02, BS 03, BS 08 e BS 09 em 'Aprovado'; aviso presente no campo de status",
+    "1.3_B8": "25.365 gravou 699,8677 m² e a listagem confirma depois de recarregar; N3 reproduzido ao trocar a unidade"
+  },
+
+  "bugs": {
+    "B1": {
+      "status": "corrigido",
+      "prova": "Controle de Matrículas: as sete matrículas gravaram o número real com PATCH 200 (toast \"Matrícula atualizada / Nº 9.617\"). A listagem passou a exibir 2.424, 2.623, 2.625, 2.627, 2.628, 25.365 e 9.617, zero ocorrências de \"[TESTE]\".",
+      "observacao": "A outra metade do aceite (o mesmo cliente continuar impedido de cadastrar 9.617 duas vezes) NÃO foi testada, para não sujar o cadastro com duplicata."
+    },
+    "B2": {
+      "status": "corrigido_com_ressalva",
+      "prova_do_que_funciona": "Caso 3 (cinco bens em 'Pendente'): o painel de conferência diz \"Sócios 0 — Nenhum bem aprovado para integralização nesta empresa\", \"Imóveis integralizados 0\" e \"4 blocos não entraram: Preâmbulo — qualificação dos sócios / Capital Social - Agro / Tabela Quotistas / Memorial descritivo do georreferenciamento (SIGEF)\". O .docx NÃO tem mais \"R$ (), dividido em () quotas\" nem tabela de sócios só com cabeçalho — os blocos simplesmente não entram (grep por \"capital social da empresa será\" e \"SÓCIOS\" no arquivo: zero). Sem a data preenchida, o botão abre confirmação: \"Baixar documento incompleto? Estes campos obrigatórios ainda não foram resolvidos: Data da assinatura. Se continuar, o arquivo será identificado como rascunho.\" com \"Voltar e completar\" / \"Baixar como rascunho\"; o arquivo sai como \"Contrato_Social_Sociedade_Limitada_Agro_rascunho.docx\" e começa com \"RASCUNHO — DOCUMENTO INCOMPLETO\".",
+      "prova_da_ressalva": "Ainda no caso 3 (zero sócios, zero imóveis, cláusula de capital ausente), bastou preencher \"Data da assinatura\" para o download sair SEM aviso nenhum e SEM carimbo: arquivo \"Contrato_Social_Sociedade_Limitada_Agro.docx\", grep \"RASCUNHO\" = 0. Ver .playwright-mcp/v2-agro-B2-nao-elegivel-com-data.docx.",
+      "observacao": "A completude está medida só pelos CAMPOS MANUAIS não resolvidos, não pela completude do documento. O painel de conferência já calcula \"4 blocos não entraram\" e essa contagem não alimenta o gate do download — que era exatamente o \"terceiro gate\" pedido no bloco B2 da tarefa. Um contrato social sem sócios e sem cláusula de capital continua saindo com cara de pronto, desde que a data esteja digitada."
+    },
+    "B3": {
+      "status": "corrigido",
+      "prova": "(a) Modal do bem, seção 03 INTEGRALIZAÇÃO, abaixo do select: \"Levam o bem para o documento gerado: Aprovado · Aprovado para 2ª Instancia.\" (b) O painel de conferência acompanha o status: com os cinco em 'Aprovado' mostra \"Imóveis integralizados 7\" e \"Sócios 2\"; com os cinco em 'Pendente' mostra \"0\" nos dois, com a frase \"Nenhum bem aprovado para integralização nesta empresa — os sócios da Proprietária vêm do Diagnóstico Patrimonial\" e atalho \"Abrir Diagnóstico Patrimonial\".",
+      "observacao": "'Integralizado' fora do conjunto é decisão em aberto registrada no cabeçalho de src/lib/osg/statusIntegralizacao.ts, não defeito — como o roteiro determina, não está registrado como bug."
+    },
+    "B4": {
+      "status": "corrigido",
+      "prova": "Contrato Agro, todas as sete alíneas: \"... do Cartório de 1° Ofício de Imóveis da comarca de Lucas do Rio Verde, Estado de Mato Grosso ...\". No .docx anterior (agro-aprovado.docx) havia \"Cartório de Registro de Imóveis\" e não havia \"Cartório de 1° Ofício de Imóveis\"; no novo é exatamente o inverso.",
+      "observacao": "A comarca entrou como complemento e não houve redundância (o nome cadastrado não contém a comarca). O fallback para cartório sem nome não foi exercitado."
+    },
+    "B5": {
+      "status": "corrigido",
+      "prova": "No contrato Agro novo: zero ocorrências de \"georreferenciado no sistema\" e zero de \"VÉRTICE\" (ambas presentes no .docx da rodada anterior). Nenhum parágrafo órfão e nenhuma tabela de vértices vazia. O painel avisa: \"1 bloco não entrou — Memorial descritivo do georreferenciamento (SIGEF): ele saiu em branco. Bloco sem dado nenhum fica de fora do documento\", e o rodapé conta \"78 de 79 blocos · 1 sem dado para preencher\".",
+      "observacao": "Posição: na composição do Agro o memorial é o item 79 de 79, depois do fecho, tratado como anexo com título próprio dentro da guarda — quando houver georref ele sai anunciado, e não como sobra depois das testemunhas. O caminho positivo (matrícula COM georref) não foi exercitado: nenhuma matrícula do caso tem georreferenciamento e a API respondeu 404 (comportamento contratado, vira null)."
+    },
+    "B6": {
+      "status": "corrigido",
+      "prova": "Agro: \"O capital social da empresa será de R$ 1.170.800,00 (um milhão, cento e setenta mil e oitocentos reais), dividido em 1.170.800 (...) quotas, no valor nominal de R$ 1,00 (um real) cada uma\" — 1.170.800 × R$ 1,00 = R$ 1.170.800,00. A tabela fecha: JOSE EDUARDO 1.142.542 + MARIA AUXILIADORA 28.258 = 1.170.800 (97,586% + 2,414% = 100%). Holding: R$ 9.541.796,00 em 9.541.796 quotas, 4.770.898 + 4.770.898, 50% + 50% — idêntico ao gabarito do dossiê. O par incoerente da rodada anterior (558.413,55 com 558.414 quotas) desapareceu: grep \"558.414\" no .docx novo = 0, no antigo = 1.",
+      "observacao": "A diferença de centavos tem destino declarado: a soma contábil dos cinco bens é R$ 1.170.799,96 e o capital do contrato é o valor inteiro das quotas emitidas (R$ 1.170.800,00), como a correção previa. O teste de propriedade em si não foi rodado aqui (é unitário, não e2e)."
+    },
+    "B7": {
+      "status": "fora_de_escopo",
+      "prova": "Continua bloqueado por decisão de produto, como o roteiro determina. O painel da tela Gerar declara a origem: \"Sócios calculados das integralizações aprovadas (participação decrescente); administradores do cadastro.\"",
+      "observacao": "É para continuar assim; nenhuma ação."
+    },
+    "B8": {
+      "status": "corrigido",
+      "ressalva_resolvida_em": "commit 08473b8d (N5). O documento passou a imprimir 699,8677 m², então a cadeia entrada → armazenamento → documento fecha e a ressalva abaixo não vale mais.",
+      "prova_do_que_funciona": "Matrícula 25.365: o campo Área documento é <input type=\"number\" step=\"0.0001\">; gravou 699.8677 com PATCH 200 e a listagem mostra \"699,8677 m²\" depois de recarregar a página. As áreas em hectare mantêm as quatro casas no documento (200,6846 ha, 284,8610 ha, 117,2430 ha, 173,5370 ha, 225,5480 ha, 396,4000 ha).",
+      "prova_da_ressalva": "O DOCUMENTO trunca m² em duas casas: \"Um imóvel urbano com área total de 699,87 m² (seiscentos e noventa e nove metros quadrados e oitenta e sete centésimos de metro quadrado)\", quando o gabarito da 25.365 pede \"699,8677 m² (seiscentos e noventa e nove metros quadrados e oito mil seiscentos e setenta e sete centímetros quadrados)\".",
+      "observacao": "Causa: src/lib/templates/extenso.ts:247, formatarArea → `const casas = unidade === 'm2' ? 2 : 4`. É a mesma premissa que o \"Não faça\" do B8 condena (amarrar precisão à unidade), agora do lado da renderização e não da entrada. Registrado também como achado novo N5."
+    },
+    "B9": {
+      "status": "fora_de_escopo",
+      "observacao": "Não se julga nesta etapa. Observação incidental: a lista do Diagnóstico Patrimonial já não mostra R$ 0,00 — \"Total contábil: R$ 1.193.439,96\", e BS 02 aparece com R$ 194.836,41, exatamente a soma das suas duas matrículas (138.027,21 + 56.809,20), o que indica valor derivado. O aceite completo (bem sem matrícula; nenhum caminho gravando o mesmo número em dois lugares) não foi testado."
+    },
+    "B10": {
+      "status": "fora_de_escopo",
+      "observacao": "Vive nas telas de cadastro. Indício indireto de que está resolvido: o cônjuge de Camila (Eduardo Mirandola) é encontrado a partir do cadastro DELA e ganha linha de assinatura, o lado que o bug deixava vazio. Ver o veredito da migration 20260813120000."
+    },
+    "B11": { "status": "fora_de_escopo", "observacao": "Filiação plural vive na tela de cadastro de pessoa; não aparece no documento gerado. Não testado." },
+    "B12": {
+      "status": "corrigido",
+      "prova": "Contrato da holding, fecho: \"_____ / EDUARDO MIRANDOLA CARDOSO DA SILVA / Cônjuge outorgante / cônjuge de CAMILA MALHEIROS DE MACEDO SOARES MIRANDOLA\" — o cônjuge que outorga tem LINHA PRÓPRIA E NOMEADA, sendo ele não sócio. Bruna, solteira, tem uma linha só (\"Sócia\"), sem outorga. O sufixo antigo desapareceu dos dois documentos: grep \"Outorga Conjugal\" = 1 no antigo (Agro e Participações) e 0 nos novos.",
+      "observacao": "No Agro os dois sócios são casados entre si, então cada um sai numa única linha acumulando as qualidades (\"Sócio administrador e cônjuge outorgante\" / \"Sócia administradora e cônjuge outorgante\") — é a deduplicação prevista no desenho, não o sufixo antigo: quem outorga é nomeado e assina. O caso que separa o cônjuge do sócio é o da holding, e ele passa."
+    },
+    "B13": {
+      "status": "corrigido_com_ressalva",
+      "prova_do_que_funciona": "Contrato da holding: JOSE EDUARDO DE MACEDO SOARES JUNIOR e MARIA AUXILIADORA MALHEIROS, administradores NÃO sócios, agora têm linha de assinatura própria no fecho — antes só as sócias assinavam. Ninguém aparece duas vezes (no Agro, onde os administradores também são sócios, saiu uma linha por pessoa).",
+      "prova_da_ressalva": "O papel sai duplicado nessas linhas: \"JOSE EDUARDO DE MACEDO SOARES JUNIOR / Administrador / Administrador\" e \"MARIA AUXILIADORA MALHEIROS / Administradora / Administrador\" (presente no .docx, não é artefato da prévia).",
+      "observacao": "Causa: src/lib/templates/signatarios.ts:166, complementoDaLinha devolve `sig.cargo` para quem não é sócio; como o papel derivado já é \"Administrador(a)\" e o cargo cadastrado é literalmente \"Administrador\", a qualificação repete o papel (e na linha da Maria repete em outro gênero). Registrado como achado novo N6."
+    },
+    "B14": {
+      "status": "corrigido",
+      "prova": "\"no Livro 02 (dois), folhas/ficha 01 (um)\" nas seis matrículas numéricas do contrato Agro, exatamente o padrão da PSA. No .docx anterior havia \"Livro dois\" e nenhum \"Livro 02 (dois)\"; no novo é o inverso.",
+      "observacao": "Na 25.365 sai \"folhas/ficha 01f/2f\", sem o parêntese do extenso, porque a folha é alfanumérica e não tem cardinal — é a emenda 9.7 documentada na migration (\"Livro 2-AUX\" não pode sair \"2-AUX ()\"). O gabarito humano escreve \"01f/2f (um/dois)\"; a diferença é decisão de desenho, não defeito."
+    },
+    "B15": {
+      "status": "corrigido",
+      "prova": "As sete matrículas entram no documento: o painel mostra \"Imóveis integralizados 7\" (2.424, 2.623, 2.625, 2.627, 2.628, 9.617, 25.365) e o parágrafo de integralização descreve sete alíneas (a até g), com sete ocorrências de \"Livro\" e \"Cartório\" e as sete matrículas nomeadas no texto. A referência cruzada funciona: o Parágrafo Terceiro da Maria diz \"Imóvel descrito na alínea \\\"e\\\" do parágrafo segundo, desta cláusula, matrícula de n.º 2.628\" em vez de repetir a descrição inteira.",
+      "observacao": "O caminho é o laço {{#imoveis}} alimentado pela fonte 'integralizacao' (bens aprovados por titular), não o binding. O papel \"Imóvel\" do passo de registros continua de escolha ÚNICA neste modelo — e nesta composição ele existe para servir o bloco do memorial, que é por matrícula. O motor já tem cardinalidade de papel (src/lib/templates/binding.ts: PAPEIS_LISTA.imoveis, fonte 'selecao'), então é conteúdo de modelo pendente, não regressão do motor, e o objetivo do bug (as sete matrículas no documento) está atendido por outro caminho."
+    },
+    "B16": { "status": "fora_de_escopo", "observacao": "Feedback de validação em modais de cadastro; não aparece no documento. Não testado — nenhum salvamento desta etapa falhou validação." },
+    "B17": { "status": "fora_de_escopo", "observacao": "Obrigatoriedade de cluster no modal de cliente; não abri o modal de cliente. Não testado." },
+    "B18": {
+      "status": "fora_de_escopo",
+      "observacao": "Não se julga pelo documento. Observação: o campo estruturado de poderes existe na tela (Forma de assinatura / Exceções por tipo de ato / Observação sobre os poderes) — ver o veredito da migration 20260813120100. Como nenhuma exceção está cadastrada no caso MMS, a regra real da cláusula sexta ainda não chega ao contrato: falta o dado, não o campo. A metade sobre município/UF do cliente não foi checada."
+    },
+    "B19": {
+      "status": "corrigido",
+      "prova": "Agro sem data preenchida: \"Lucas do Rio Verde/MT, ____ de ______________ de 20__.\" Holding: \"Cuiabá/MT, ____ de ______________ de 20__.\" A pontuação quebrada \"/MT, .\" existia nos dois .docx da rodada anterior e não existe em nenhum dos novos. Com a data digitada, sai \"Lucas do Rio Verde/MT, 14 de agosto de 2026.\"",
+      "observacao": "A lacuna vale para todos os campos manuais: advogado e testemunhas saem como \"____________________\" em vez de vazio."
+    },
+    "B20": {
+      "status": "fora_de_escopo",
+      "observacao": "Vive na tela de cadastro. O nome do cliente segue \"[Teste E2e] Grupo Mms\" no banco (e assim aparece no seletor), o que a migration prevê explicitamente: grafia antiga destruída não é recuperada. No documento os nomes de pessoa saem em caixa alta por decisão do bloco ({{ signatario.nomeMaiusculo }}, preâmbulo em maiúsculas), então a diferença de caixa contra o gabarito não é defeito."
+    },
+    "B21": { "status": "nao_verificavel_nesta_etapa", "observacao": "Expiração de sessão. A sessão não caiu durante esta execução (cerca de 40 minutos de trabalho contínuo), o que não prova correção nem regressão." },
+
+    "N1": {
+      "status": "nao_verificavel_nesta_etapa",
+      "prova": "Nenhum erro de unicidade foi disparado: os sete PATCH voltaram 200 e nenhuma mensagem crua do Postgres apareceu. Os dois caminhos que a N1 descreve (vincular matrícula existente a bem de cliente que já tem o número; atribuir o primeiro titular a matrícula órfã na mesma situação) não foram exercitados.",
+      "observacao": "Segue pendente como já estava mapeado."
+    },
+    "N2": { "status": "fora_de_escopo", "observacao": "Exige a tela de Relatórios, fora do escopo desta etapa por decisão do roteiro." },
+    "N3": {
+      "status": "corrigido",
+      "prova_do_defeito": "Matrícula 25.365, trocando a unidade de m² para \"ha e m²\", o toast dizia: \"Áreas convertidas de m² para ha e m², com arredondamento em 4 casas. Área documento: 0 ha e 700 m² → 0 ha e 700 m²\" — antes e depois idênticos.",
+      "prova_da_correcao": "Reteste em 12/08/2026 sobre o commit 8cf0a52e: o mesmo caminho agora avisa \"Área documento: 0 ha e 699,8677 m² → 0 ha e 700 m²\", com a perda de 0,8677 m² visível. Cancelei o modal e a matrícula segue 699,8677 m².",
+      "observacao": "A perda em si foi mantida de propósito, e está certo: o teto de AREA_DECIMAIS = 4 é decisão declarada no cabeçalho de areaUtils.ts (a escala real da coluna numeric não existe em migration nenhuma e o banco é produção). O defeito era só o formatador do destino: splitHaM2 arredondava para metro quadrado inteiro e colapsava os dois lados. A correção preserva a fração de m² na EXIBIÇÃO, sem mexer no teto de gravação. Há teste de propriedade sobre as três unidades garantindo que arredondou === true implica textos diferentes.",
+      "correcao_em": "commit 8cf0a52e"
+    },
+    "N4": {
+      "status": "corrigido_parcialmente_verificado",
+      "prova": "Nenhum \"Placeholder não resolvido\" e nenhuma \"Seção não resolvida\" em matrícula sem os campos opcionais: a 25.365 é urbana, não tem CCIR e não tem georref, e renderizou pelo contrato Agro (alínea g) e também pelo modelo \"Matrícula Digitada\" isolado, onde o cabeçalho saiu \"MATRÍCULA Nº 25.365, Livro 02, Folhas/Ficha 01f/2f / Cartório de 1° Ofício de Imóveis, comarca de Lucas do Rio Verde, Estado de Mato Grosso\" e o memorial foi descartado por estar vazio.",
+      "observacao": "Só DUAS das cinco variantes vivas foram exercitadas com dados reais: \"Rural, propriedade exclusiva\" (seis matrículas) e \"Urbano, propriedade exclusiva\" (a 25.365). \"Direitos de escritura não averbada\", \"Rural, condomínio\" e \"Urbano, condomínio\" NÃO renderizaram nesta etapa: a variante é resolvida a partir dos dados do imóvel (posse, fracionamento) e não há escolha manual na tela Gerar, e o cadastro do caso MMS não tem imóvel em condomínio fracionado nem direito de escritura não averbada. Para fechar a N4 o caso e2e precisa de uma matrícula com titularidade fracionada e uma com posse por escritura não averbada. Também não existe no caso matrícula sem livro ou sem folha, que é o outro cenário citado na N4."
+    },
+
+    "N5_novo": {
+      "titulo": "Área em m² é truncada em duas casas NO DOCUMENTO, apesar de o cadastro guardar quatro",
+      "status": "corrigido",
+      "prova_do_defeito": "Documento gerado antes da correção: \"área total de 699,87 m² (seiscentos e noventa e nove metros quadrados e oitenta e sete centésimos de metro quadrado)\", com o cadastro em 699,8677 m².",
+      "prova_da_correcao": "Reteste em 12/08/2026 sobre o commit 08473b8d: a alínea g do contrato Agro sai \"Um imóvel urbano com área total de 699,8677 m² (seiscentos e noventa e nove metros quadrados e oito mil seiscentos e setenta e sete centímetros quadrados)\", string IDÊNTICA ao gabarito descricao_psa_completa da MAT-25365 no dossiê (comparação literal, não visual). Artefato: .playwright-mcp/v3-agro-pos-n5.docx.",
+      "causa": "src/lib/templates/extenso.ts, formatarArea: `const casas = unidade === 'm2' ? 2 : 4`, com areaExtensoM2 acoplado às 2 casas. Agora são 4 casas para toda unidade e a fração de m² sai em centímetros quadrados (0,8677 m² = 8.677 cm²), simétrico a ares/centiares no hectare.",
+      "regressao_verificada": "Diff palavra a palavra do .docx antes e depois: as ÚNICAS diferenças em todo o documento são o numeral urbano (699,87 → 699,8677) e o extenso dele (centésimos → centímetros quadrados). As seis áreas em hectare, o capital, o fecho e o descarte do memorial ficaram byte a byte iguais. Controle negativo segue passando (zero Cooperbio/22.640).",
+      "nao_exercitado": "O campo areaConstruida, que passou a herdar as 4 casas, não foi exercitado: nenhuma matrícula do caso MMS tem area_construida_m2. Um imóvel urbano com área construída redonda passará a imprimir \"120,0000 m²\".",
+      "correcao_em": "commit 08473b8d"
+    },
+    "N6_novo": {
+      "titulo": "Linha de assinatura do administrador não sócio repete o papel",
+      "status": "achado_novo",
+      "prova": "Contrato da holding (.docx): \"JOSE EDUARDO DE MACEDO SOARES JUNIOR / Administrador / Administrador\" e \"MARIA AUXILIADORA MALHEIROS / Administradora / Administrador\".",
+      "causa": "src/lib/templates/signatarios.ts:166, complementoDaLinha: para quem não é sócio devolve `sig.cargo`. O papel derivado já é \"Administrador(a)\" e o cargo cadastrado é \"Administrador\", então a qualificação duplica o papel — e no caso da Maria duplica trocando o gênero. Só aparece quando cargo == papel; com cargo informativo (Diretor, Presidente) o complemento faria sentido.",
+      "relacao": "Efeito colateral da entrega do B12/B13; não invalida a linha de assinatura, que é o que o bug pedia."
+    },
+    "N7_novo": {
+      "titulo": "Documento já validado quebra depois da migration de conteúdo, e a aba Notificações diz que está tudo em dia",
+      "status": "achado_novo",
+      "prova": "Ao abrir o contrato da holding (que tinha versão validada da rodada anterior), a tela mostrou \"Algo impediu a geração do documento. Placeholder não resolvido: {{sociedade.quotaValorNominal}}\" — o placeholder novo, introduzido pela migration do B6, contra um snapshot antigo que não o tem. A aba \"Notificações\" dizia ao mesmo tempo \"Tudo em dia desde a validação / Nenhuma alteração desde a validação\". Clicar em \"Atualizar do cadastro\" resolveu e o documento passou a gerar normalmente.",
+      "causa": "Não é defeito do mapeador (mapearSociedade sempre publica quotaValorNominal, mapeadores.ts:239). É o snapshot do documento validado ficando velho em relação ao texto do bloco: a notificação de mudança observa alterações de CADASTRO, e mudança no TEXTO DO BLOCO (que é o que uma migration de conteúdo faz) não gera aviso.",
+      "impacto": "Qualquer documento validado antes de uma migration de conteúdo pode ficar sem gerar, com mensagem crua do motor, enquanto a tela afirma que nada mudou. O caminho de saída existe (\"Atualizar do cadastro\") mas não é apontado pela mensagem de erro."
+    },
+    "N8_novo": {
+      "titulo": "Título de capítulo sobrevive ao descarte da sua cláusula",
+      "status": "achado_novo_menor",
+      "prova": "No caso 3 (sem bens elegíveis), o documento traz \"CAPÍTULO III / Capital Social / Parágrafo Único: A responsabilidade de cada sócio é restrita ao valor de suas quotas...\" — o capítulo do capital e um Parágrafo Único sem caput, porque a cláusula de capital foi descartada por estar vazia e o título, sendo prosa fixa sem placeholder, não é descartável.",
+      "observacao": "Limitação já prevista por escrito na migration do B5 (\"um título em bloco separado seria prosa fixa sem placeholder e o motor nunca o descartaria\"). Registrado porque é o que o consultor vê, e porque casa com a ressalva do B2."
+    }
+  },
+
+  "controle_negativo": {
+    "status": "passa",
+    "prova": "grep -i por \"cooperbio\", \"cooperativa\" e \"22.640\" nos dois .docx novos (Agro e Participações): zero ocorrências. O bem BS 51 tem participa_estruturacao desligado e continua fora de todo documento."
+  },
+
+  "comparacao_com_o_gabarito": {
+    "resultado": "As sete descrições batem substancialmente com descricao_psa_completa.",
+    "divergencias_do_gerador": [
+      "25.365: área 699,87 m² contra 699,8677 m² do gabarito (achado N5, defeito do gerador)."
+    ],
+    "divergencias_por_decisao_de_desenho": [
+      "25.365: \"folhas/ficha 01f/2f\" sem o parêntese do extenso, contra \"01f/2f (um/dois)\" do gabarito — emenda 9.7, folha alfanumérica não tem cardinal.",
+      "Abreviatura: o gerador escreve \"matrícula de nº\" e o gabarito varia entre \"n.º\", \"n°\" e \"nº\" no próprio dossiê.",
+      "Nomes em caixa alta no documento, contra Title Case no gabarito — decisão do bloco (nomeMaiusculo), ver B20.",
+      "Extenso de valor: \"cento e trinta e oito mil E vinte e sete reais\" (gerador) contra \"cento e trinta e oito mil, vinte e sete reais\" (gabarito). O gerador segue a regra do 'e' antes do último grupo menor que cem; a forma do gabarito é a menos canônica."
+    ],
+    "divergencias_de_origem_que_apareceram_como_o_dossie_previa": [
+      "9.617: saiu 396,4000 ha, o valor escolhido no dossiê (_divergencias #1). Os 220,066 ha do contrato original são o recorte integralizado e não foram impressos — não é erro de cadastro nem do gerador.",
+      "2.623: saiu R$ 138.027,21, o valor escolhido no dossiê, e NÃO os R$ 138.027,22 do arredondamento do contrato (_divergencias #6). O gerador imprimiu o cadastro.",
+      "2.628: saiu \"de propriedade de JOSE EDUARDO DE MACEDO SOARES JUNIOR e MARIA AUXILIADORA MALHEIROS\", a titularidade dupla escolhida no dossiê (_divergencias #7). A contradição interna do contrato do cliente aparece no documento gerado, como o dossiê quis.",
+      "CCIR repetido nas duas matrículas da Capuaba (901.016.074.624-4) e nas duas da Cristalina (901.407.103.560-7), aceito sem reclamação (_divergencias #9)."
+    ],
+    "observacao_sobre_a_divisao_de_quotas": "O capital do Agro ficou 97,586% para José Eduardo e 2,414% para Maria Auxiliadora, porque no cadastro a Maria só é titular (50%) da 2.628: 56.516,28 × 50% = 28.258,14 → 28.258 quotas. O dossiê descreve 50/50 em cada matrícula, mas as descrições padrão PSA nomeiam só o José Eduardo em seis das sete. É lacuna de titularidade no cadastro do caso, herdada da rodada anterior, não defeito do gerador — o gerador somou exatamente as titularidades gravadas."
+  },
+
+  "_reteste_12_08_2026": {
+    "escopo": "N3 e N5, corrigidos nos commits 8cf0a52e e 08473b8d",
+    "resultado": "os dois passam",
+    "validacoes": "suíte completa: 262 arquivos, 2998 testes, todos passando; bun run typecheck limpo; eslint limpo nos arquivos alterados. Conferência na UI e no .docx gerado, com diff contra o artefato da rodada anterior.",
+    "ruido_conhecido": "A execução da suíte completa emite um Uncaught Exception (\"window is not defined\") vindo de um setTimeout de 1500ms do fluxo \"Copiar texto\" (useGerarDocumentoController.ts:930) que dispara depois do teardown do ambiente de GerarDocumento.test.tsx. Em isolamento o arquivo passa sem erro, e nenhum dos dois commits tocou esse teste nem esse controller: é artefato de teardown da execução paralela, sem relação com N3/N5."
+  },
+
+  "placar": {
+    "corrigidos": ["B1", "B3", "B4", "B5", "B6", "B8", "B12", "B14", "B15", "B19", "N3", "N5"],
+    "corrigidos_com_ressalva": ["B2", "B13"],
+    "nao_corrigidos": [],
+    "nao_aplicados_no_banco": [],
+    "nao_verificaveis_nesta_etapa": ["N1", "B21", "B20 (migration)"],
+    "parcialmente_verificados": ["N4"],
+    "fora_de_escopo": ["B7", "B9", "B10", "B11", "B16", "B17", "B18", "B20", "N2"],
+    "achados_novos": ["N5", "N6", "N7", "N8"],
+    "migrations_aplicadas": 7,
+    "migrations_sem_veredito": 1
+  },
+
+  "proposta_de_marcacao_na_tarefa": {
+    "podem_receber_concluido": {
+      "B1": "matrícula por cliente comprovada com o número real; ressalva de que a duplicidade intra-cliente não foi testada",
+      "B4": "nome cadastrado no documento, com comarca como complemento",
+      "B5": "bloco vazio não entra, com aviso na tela, e o memorial virou anexo na última posição",
+      "B6": "capital × quotas × valor nominal fecham nos dois contratos",
+      "B12": "cônjuge outorgante não sócio ganhou linha própria nomeada; solteira segue com uma linha",
+      "B14": "numeral + extenso em livro e folha",
+      "B15": "as sete matrículas no parágrafo de integralização",
+      "B19": "lacuna assinalável no lugar da pontuação quebrada",
+      "B3": "aviso no campo de status e painel de conferência coerente; a decisão sobre 'Integralizado' continua aberta e deve ficar registrada no bloco",
+      "B8": "fechado junto com N5 no commit 08473b8d, já marcado na tarefa em 12/08/2026",
+      "N3": "corrigido no commit 8cf0a52e, já marcado na tarefa em 12/08/2026",
+      "N5": "corrigido no commit 08473b8d, já registrado como bloco novo na tarefa em 12/08/2026"
+    },
+    "nao_podem_ainda": {
+      "B2": "o gate de completude ignora blocos descartados: com a data preenchida, contrato sem sócios e sem cláusula de capital baixa limpo. Falta ligar a contagem do painel ao gate, que era o terceiro gate pedido no bloco.",
+      "B13": "a linha existe, mas o papel sai duplicado (N6). Correção pequena em complementoDaLinha.",
+      "N4": "só 2 das 5 variantes vivas renderizaram com dados reais; manter aberto até o caso e2e ganhar matrícula em condomínio e por escritura não averbada.",
+      "N3": "reproduzido, sem correção.",
+      "N1": "não exercitado nesta etapa.",
+      "B7": "decisão de produto, permanece aberto por escolha.",
+      "B9_B10_B11_B16_B17_B18_B20_B21": "vivem em telas fora desta etapa; não há prova aqui para marcar. B10, B18 e B20 têm indícios registrados nos vereditos das migrations."
+    },
+    "achados_novos_a_registrar_na_tarefa": ["N5", "N6", "N7", "N8"]
+  }
+}

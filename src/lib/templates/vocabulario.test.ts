@@ -4,6 +4,7 @@ import { gerarDocumento } from './index';
 import { campoDaEntidade, camposDaEntidade, derivarCampos, type TipoEntidade } from './vocabulario';
 import { condicionalDeBinding, conteudoParaDeteccao, detectarBindings, detectarBindingsDeConteudo, resolverTipoDoBinding } from './binding';
 import { concordarTexto } from './concordancia';
+import { formatarArea } from './extenso';
 import {
   mapearIntegralizacoes,
   mapearMatricula,
@@ -300,8 +301,8 @@ describe('descrição de imóvel urbano — campos e condicionais do seed', () =
 
   it('renderiza a redação urbana com área em m², endereço e cadastro municipal', () => {
     const texto = gerarUrbano(MAT_URBANA);
-    expect(texto).toContain('área total de 360,00 m² (trezentos e sessenta metros quadrados)');
-    expect(texto).toContain('sendo 180,00 m² de área construída');
+    expect(texto).toContain('área total de 360,0000 m² (trezentos e sessenta metros quadrados)');
+    expect(texto).toContain('sendo 180,0000 m² de área construída');
     expect(texto).toContain('localizado na Rua das Acácias, nº 119, apartamento 302, Centro');
     expect(texto).toContain('no município de Cuiabá, Estado de Mato Grosso, CEP 78000-000');
     expect(texto).toContain('inscrito no cadastro municipal sob o nº 1.234.567-8');
@@ -483,6 +484,14 @@ describe('unidade da área na edição manual (tela Gerar)', () => {
     // 'm²' digitado à mão no lugar de 'm2' também vale.
     expect(derivarCampos('matricula', { area: '360,00', areaUnidade: 'm²' }).areaExtenso).toBe(
       'trezentos e sessenta metros quadrados',
+    );
+  });
+
+  it('fecha a cadeia numeral formatado → número → extenso com 4 casas em m²', () => {
+    const area = formatarArea(699.8677, 'm2');
+    expect(area).toBe('699,8677 m²');
+    expect(derivarCampos('matricula', { area, areaUnidade: 'm2' }).areaExtenso).toBe(
+      'seiscentos e noventa e nove metros quadrados e oito mil seiscentos e setenta e sete centímetros quadrados',
     );
   });
 

@@ -376,9 +376,11 @@ export function mapearMatricula(m: MatriculaParaMapear): Campos {
     set('area', formatarArea(valorNaUnidade, unidade));
     set('areaUnidade', unidade);
   }
-  // Área construída é sempre m² (coluna area_construida_m2). Zero ou negativo é
-  // cadastro inválido, não construção: fica ausente, porque formatarArea aplica
-  // Math.abs e "-10" viraria "10,00 m²" ligando temAreaConstruida.
+  // Área construída é sempre m² (coluna area_construida_m2) e herda as quatro
+  // casas da área total: é desejável não inventar uma precisão menor para outro
+  // dado documental da mesma unidade. Zero ou negativo é cadastro inválido, não
+  // construção: fica ausente, porque formatarArea aplica Math.abs e "-10"
+  // viraria "10,0000 m²" ligando temAreaConstruida.
   if (m.bem?.area_construida_m2 != null && m.bem.area_construida_m2 > 0) {
     set('areaConstruida', formatarArea(m.bem.area_construida_m2, 'm2'));
   }

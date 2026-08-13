@@ -193,7 +193,7 @@ describe('useRegistrosPorTipo — colunas da query de matrícula', () => {
 
     const campos = mapearMatricula(row);
     expect(campos.urbano).toBe('sim');
-    expect(campos.area).toBe('360,00 m²');
+    expect(campos.area).toBe('360,0000 m²');
     expect(campos.areaExtenso).toBe('trezentos e sessenta metros quadrados');
     expect(campos.temAreaConstruida).toBe('sim');
     expect(campos.enderecoNumeroProsa).toBe('nº 119');
@@ -302,8 +302,8 @@ describe('useIntegralizacoesAprovadas — colunas da query de bem + matrícula',
 
     const campos = mapearMatricula(m);
     expect(campos.urbano).toBe('sim');
-    expect(campos.area).toBe('360,00 m²');
-    expect(campos.areaConstruida).toBe('180,00 m²');
+    expect(campos.area).toBe('360,0000 m²');
+    expect(campos.areaConstruida).toBe('180,0000 m²');
     expect(campos.temAreaConstruida).toBe('sim');
     expect(campos.enderecoNumeroProsa).toBe('s/nº');
   });

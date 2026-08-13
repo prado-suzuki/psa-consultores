@@ -139,23 +139,27 @@ function areaExtensoHa(hectares: number): string {
 }
 
 /**
- * Área urbana por extenso, em metros quadrados. O imóvel urbano não se decompõe
- * em are/centiare (isso é medida agrária): a parte decimal, que a formatação
- * limita a 2 casas, sai em centésimos de metro quadrado.
+ * Área urbana por extenso, em metros e centímetros quadrados. As quatro casas
+ * do numeral são preservadas como cm² (1 m² = 10.000 cm²), conforme o padrão
+ * documental da PSA: 0,8677 m² = 8.677 cm². Are/centiare ficam restritos à
+ * medida agrária em hectare.
  * Ex.: 360 → "trezentos e sessenta metros quadrados".
  */
 function areaExtensoM2(metrosQuadrados: number): string {
-  const totalCentesimos = Math.round(metrosQuadrados * 100);
-  const inteiros = Math.floor(totalCentesimos / 100);
-  const centesimos = totalCentesimos % 100;
+  const totalCentimetrosQuadrados = Math.round(metrosQuadrados * 10_000);
+  const inteiros = Math.floor(totalCentimetrosQuadrados / 10_000);
+  const centimetrosQuadrados = totalCentimetrosQuadrados % 10_000;
 
   const componentes: string[] = [];
   if (inteiros > 0) {
     componentes.push(`${cardinalExtenso(inteiros)} ${inteiros === 1 ? 'metro quadrado' : 'metros quadrados'}`);
   }
-  if (centesimos > 0) {
+  if (centimetrosQuadrados > 0) {
+    // O gabarito PSA liga milhar e centena dos cm² sem vírgula ("oito mil
+    // seiscentos..."), diferente da pontuação geral de cardinalExtenso.
+    const centimetrosExtenso = cardinalExtenso(centimetrosQuadrados).replace(' mil, ', ' mil ');
     componentes.push(
-      `${cardinalExtenso(centesimos)} ${centesimos === 1 ? 'centésimo' : 'centésimos'} de metro quadrado`,
+      `${centimetrosExtenso} ${centimetrosQuadrados === 1 ? 'centímetro quadrado' : 'centímetros quadrados'}`,
     );
   }
   if (componentes.length === 0) return 'zero metros quadrados';
@@ -235,17 +239,18 @@ function agruparMilhar(inteiro: string): string {
 }
 
 /**
- * Área no formato numérico pt-BR, com o sufixo da unidade: hectare com 4 casas
- * (as 2 primeiras são ares, as 2 últimas centiares) e metro quadrado com 2.
- * Ex.: 396.4 → "396,4000 ha"; (360, 'm2') → "360,00 m²".
+ * Área no formato numérico pt-BR, com o sufixo da unidade e 4 casas. O padrão
+ * documental da PSA usa as quatro casas tanto no hectare (ares/centiares)
+ * quanto no m² (fração convertida em cm² no extenso), inclusive em valores
+ * inteiros; os sete gabaritos do dossiê confirmam essa convenção, em especial
+ * 699,8677 m² e os seis imóveis rurais com zeros finais.
  *
  * O sufixo é EXIBIÇÃO, não fonte da unidade: quem carrega a unidade adiante é o
  * campo `matricula.areaUnidade` (ver unidadeDaArea em vocabulario.ts). Derivar o
  * extenso do sufixo já produziu extenso na unidade errada.
  */
 export function formatarArea(valor: number, unidade: UnidadeArea = 'ha'): string {
-  const casas = unidade === 'm2' ? 2 : 4;
-  const [inteiro, decimais] = Math.abs(valor).toFixed(casas).split('.');
+  const [inteiro, decimais] = Math.abs(valor).toFixed(4).split('.');
   return `${agruparMilhar(inteiro)},${decimais} ${unidade === 'm2' ? 'm²' : 'ha'}`;
 }
 

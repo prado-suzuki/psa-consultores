@@ -143,6 +143,19 @@ describe('MatriculaModal', () => {
     expect(inputAfter('Área documento')).toHaveValue(0.0699);
   });
 
+  it('mantém legível a perda ao converter m² para ha e m²', async () => {
+    renderModal();
+    await choose(3, '^m²$');
+    fireEvent.change(inputAfter('Área documento'), { target: { value: '699.8677' } });
+    await choose(3, '^ha e m²$');
+
+    expect(inputAfter('Área documento')).toHaveValue(0.07);
+    expect(mocks.toast.warning).toHaveBeenCalledWith(
+      'Áreas convertidas de m² para ha e m², com arredondamento em 4 casas.',
+      { description: 'Área documento: 0 ha e 699,8677 m² → 0 ha e 700 m²' },
+    );
+  });
+
   it('valida titular e fração antes de chamar a RPC atômica', async () => {
     const user = userEvent.setup();
     renderModal();

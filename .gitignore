@@ -29,6 +29,9 @@ dist-ssr
 # Claude Code local state (não commitar)
 .claude/
 
+# Definições locais de agentes (não commitar)
+.pi/
+
 # Lovale attachments
 .lovale-attachments/
 
