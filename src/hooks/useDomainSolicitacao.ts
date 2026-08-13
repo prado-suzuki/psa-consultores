@@ -547,7 +547,34 @@ export function useDomainSolicitacao(clienteId: string | null) {
       .in('status', de as Database['public']['Enums']['osg_solicitacao_status'][])
       .select('id, status');
     if (error) throw error;
-    if (!data || data.length === 0) throw new Error(erroSeNaoMoveu);
+    if (!data || data.length === 0) {
+      /**
+       * Zero linhas tem DUAS causas, e acusar a errada custou tempo de verdade:
+       *
+       *   a) alguém mudou o status antes (a corrida que o WHERE existe para pegar);
+       *   b) a RLS de escrita recusou. Desde a migration 20260812160000, escrever
+       *      em `solicitacao` exige papel de sublíder ou acima E ser membro de
+       *      algum projeto da OS do cliente. A LEITURA não mudou, então a tela
+       *      mostra o pedido inteiro e só as ações falham, o que faz a recusa
+       *      parecer bug de estado.
+       *
+       * A leitura é permitida a quem vê o cliente, então uma consulta separa as
+       * duas: se o status continua onde estava, ninguém correu, foi permissão.
+       */
+      const { data: agora } = await supabase
+        .from('solicitacao')
+        .select('status')
+        .eq('id', atual.id)
+        .maybeSingle();
+      const statusAgora = agora?.status as SolicitacaoStatus | undefined;
+      if (statusAgora && de.includes(statusAgora)) {
+        throw new Error(
+          'Você não tem permissão para alterar esta solicitação. A escrita exige papel de '
+          + 'sublíder ou acima e ser membro de algum projeto da OS deste cliente.',
+        );
+      }
+      throw new Error(erroSeNaoMoveu);
+    }
 
     await logAction({
       area: 'osg',
@@ -589,7 +616,10 @@ export function useDomainSolicitacao(clienteId: string | null) {
         });
       }
     },
-    onError: (error: Error) => toast.error('Não foi possível enviar: ' + error.message),
+    onError: (error: Error) => {
+      invalidar();
+      toast.error('Não foi possível enviar: ' + error.message);
+    },
   });
 
   /**
@@ -611,8 +641,10 @@ export function useDomainSolicitacao(clienteId: string | null) {
       'Esta solicitação não está mais em aberto para o cliente. Recarregue a página.',
     ),
     onSuccess: invalidar,
-    onError: (error: Error) =>
-      toast.error('Não foi possível passar para o checklist: ' + error.message),
+    onError: (error: Error) => {
+      invalidar();
+      toast.error('Não foi possível passar para o checklist: ' + error.message);
+    },
   });
 
   const encerrarSolicitacao = useMutation({
@@ -623,7 +655,10 @@ export function useDomainSolicitacao(clienteId: string | null) {
       'Esta solicitação já estava encerrada. Recarregue a página.',
     ),
     onSuccess: invalidar,
-    onError: (error: Error) => toast.error('Não foi possível encerrar: ' + error.message),
+    onError: (error: Error) => {
+      invalidar();
+      toast.error('Não foi possível encerrar: ' + error.message);
+    },
   });
 
   /**
