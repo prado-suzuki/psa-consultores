@@ -45,7 +45,6 @@ function montar() {
         cepLookup={async () => {}}
         isReadOnly={false}
         escopoEdicao="cliente"
-        cadastroNovo
       />
     );
   }

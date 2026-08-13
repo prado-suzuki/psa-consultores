@@ -82,8 +82,6 @@ export interface ContratosTabProps {
   pendencias?: MapaPendencias | null;
   /** OS a abrir quando o consultor clica no aviso de pendências do rodapé. */
   foco?: FocoPendencia | null;
-  /** Cadastro de cliente novo, que não tem modo de visualização. */
-  cadastroNovo?: boolean;
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -111,7 +109,6 @@ export default function ContratosTab({
   contratosOriginais,
   pendencias,
   foco,
-  cadastroNovo,
 }: ContratosTabProps) {
   const setorById = (id: string) => setoresCliente.find(s => s.id === id);
   const setorLabel = (id: string | undefined, sigla: string | undefined) => {
@@ -143,11 +140,17 @@ export default function ContratosTab({
   /** A lixeira vale nas duas frentes: vendo a OS ou com ela aberta. */
   const mostrarRemover = !isReadOnly || !!onRequestItemEdit;
   /**
-   * Criar OS na visualização, que é a porta de entrada, e no cadastro de cliente
-   * novo, que não tem visualização. Com uma edição em curso o botão some: quem
-   * entrou para ajustar algo não deve sair com uma OS nova sem perceber.
+   * Criar OS: onde já dá para editar, e na visualização de quem pode entrar em
+   * edição — a mesma regra da lixeira acima.
+   *
+   * A condição anterior sumia com o botão depois do primeiro uso: criar uma OS
+   * num cliente que já existe chama `onRequestItemEdit()`, que tira a tela da
+   * visualização e põe o escopo em 'item', e aí as duas metades ficavam falsas.
+   * "Não sair com uma OS a mais sem perceber" passou a ser garantido pelo
+   * `editingContractId == null` no `acaoCriar`, que é onde essa regra já mora
+   * nas outras duas abas de lista.
    */
-  const mostrarCriarOs = (isReadOnly && !!onRequestItemEdit) || (cadastroNovo && escopoCliente);
+  const mostrarCriarOs = !isReadOnly || !!onRequestItemEdit;
 
   // Mantém sempre algo selecionado, inclusive quando a lista chega depois.
   const selecaoEfetiva = resolverSelecao(contracts, selecionadoId);
@@ -257,7 +260,7 @@ export default function ContratosTab({
   return (
     <ListaMestreDetalhe
       titulo={`OS - Ordem de Serviço (${contracts.length})`}
-      acaoCriar={mostrarCriarOs ? (
+      acaoCriar={mostrarCriarOs && editingContractId == null ? (
         <Button size="sm" onClick={createOs} disabled={isCreatingOs} className={cn('gap-1.5 h-7 text-xs', acento.botao)}>
           <Plus size={14} /> {isCreatingOs ? "Criando..." : "Criar nova OS"}
         </Button>

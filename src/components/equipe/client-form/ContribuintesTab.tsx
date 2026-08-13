@@ -54,8 +54,6 @@ export interface ContribuintesTabProps {
   pendencias?: MapaPendencias | null;
   /** Item a abrir quando o consultor clica no aviso de pendências do rodapé. */
   foco?: FocoPendencia | null;
-  /** Cadastro de cliente novo, que não tem modo de visualização. */
-  cadastroNovo?: boolean;
   onInlineEditingChange?: (isEditing: boolean) => void;
 }
 
@@ -70,7 +68,6 @@ export default function ContribuintesTab({
   entidadesOriginais,
   pendencias,
   foco,
-  cadastroNovo,
   onInlineEditingChange,
 }: ContribuintesTabProps) {
   const { isAdmin } = useAuth();
@@ -85,12 +82,23 @@ export default function ContribuintesTab({
    */
   const mostrarEditarPorLinha = isReadOnly ? !!onRequestItemEdit : escopoEdicao === 'item';
   /**
-   * Adicionar: na visualização, que é a porta de entrada, e no cadastro novo,
-   * que não tem visualização para onde voltar. Mesma regra do "Criar nova OS":
-   * com uma edição em curso o botão some, para ninguém sair com um contribuinte
-   * a mais sem perceber.
+   * Adicionar: onde já dá para editar, e na visualização de quem pode entrar em
+   * edição. Mesma regra da lixeira logo abaixo — quem pode remover uma linha
+   * pode acrescentar outra.
+   *
+   * A regra anterior era `(isReadOnly && onRequestItemEdit) || (cadastroNovo &&
+   * escopoCliente)`, e sumia com o botão depois do primeiro uso: adicionar um
+   * contribuinte num cliente que já existe chama `onRequestItemEdit()`, que tira
+   * a tela da visualização e põe o escopo em 'item'. Aí as duas metades da
+   * condição ficavam falsas, e não havia como adicionar um segundo contribuinte
+   * sem fechar e reabrir o cadastro. Editando o cliente inteiro, o botão nunca
+   * aparecia.
+   *
+   * Quem cuida de "não sair com uma linha a mais sem perceber" é o
+   * `editingEntityId == null` no `acaoCriar`, que esconde o botão enquanto uma
+   * linha está aberta. Essa parte continua igual.
    */
-  const mostrarCriar = (isReadOnly && !!onRequestItemEdit) || (cadastroNovo && escopoCliente);
+  const mostrarCriar = !isReadOnly || !!onRequestItemEdit;
   /** A lixeira vale nas duas frentes: vendo o contribuinte ou com ele aberto. */
   const mostrarRemover = !isReadOnly || !!onRequestItemEdit;
 

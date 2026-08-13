@@ -213,6 +213,7 @@ export default function NewClientModal({
     clientData, entities, participants, contracts, inscricoesMap,
     clusterIds: clientData.cluster_ids,
     isEditing, editingClienteId, setoresCliente,
+    centrosCusto: CENTRO_CUSTO_OPTIONS,
     onDuplicateFound,
     onSuccess: () => voltarParaLeitura(),
     originalSnapshot,
@@ -433,7 +434,6 @@ export default function NewClientModal({
                       entidadesOriginais={originalSnapshot?.entities}
                       pendencias={mapaPendencias}
                       foco={focoDa('contribuintes')}
-                      cadastroNovo={!isEditing}
                       onInlineEditingChange={setInlineEditingContrib}
                       onRequestItemEdit={canEdit ? () => { setIsReadOnly(false); setEscopoEdicao('item'); } : undefined}
                     />
@@ -447,7 +447,6 @@ export default function NewClientModal({
                       representantesOriginais={originalSnapshot?.participants}
                       pendencias={mapaPendencias}
                       foco={focoDa('representantes')}
-                      cadastroNovo={!isEditing}
                       onRequestItemEdit={canEdit ? () => { setIsReadOnly(false); setEscopoEdicao('item'); } : undefined}
                     />
                   </TabsContent>
@@ -467,8 +466,7 @@ export default function NewClientModal({
                           contratosOriginais={originalSnapshot?.contracts}
                           pendencias={mapaPendencias}
                           foco={focoDa('contratos')}
-                          cadastroNovo={!isEditing}
-                        />
+                            />
                       </TabsContent>
 
                       <TabsContent value="faturamento" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">

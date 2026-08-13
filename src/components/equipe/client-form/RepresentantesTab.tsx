@@ -41,8 +41,6 @@ export interface RepresentantesTabProps {
   pendencias?: MapaPendencias | null;
   /** Item a abrir quando o consultor clica no aviso de pendências do rodapé. */
   foco?: FocoPendencia | null;
-  /** Cadastro de cliente novo, que não tem modo de visualização. */
-  cadastroNovo?: boolean;
 }
 
 export default function RepresentantesTab({
@@ -53,7 +51,6 @@ export default function RepresentantesTab({
   representantesOriginais,
   pendencias,
   foco,
-  cadastroNovo,
 }: RepresentantesTabProps) {
   const { isAdmin } = useAuth();
   const acento = useAcentoArea();
@@ -64,10 +61,13 @@ export default function RepresentantesTab({
   /** O lápis por linha e a porta de entrada do escopo de item, so na leitura. */
   const mostrarEditarPorLinha = isReadOnly ? !!onRequestItemEdit : escopoEdicao === 'item';
   /**
-   * Adicionar: na visualização, que é a porta de entrada, e no cadastro novo,
-   * que não tem visualização para onde voltar. Mesma regra do "Criar nova OS".
+   * Adicionar: onde já dá para editar, e na visualização de quem pode entrar em
+   * edição — a mesma regra da lixeira. A condição anterior sumia com o botão
+   * depois do primeiro uso, porque adicionar tira a tela da visualização e põe o
+   * escopo em 'item'. Quem impede acrescentar linha com outra aberta é o
+   * `editingParticipantId == null` no `acaoCriar`.
    */
-  const mostrarCriar = (isReadOnly && !!onRequestItemEdit) || (cadastroNovo && escopoCliente);
+  const mostrarCriar = !isReadOnly || !!onRequestItemEdit;
   /** A lixeira vale nas duas frentes: vendo o representante ou com ele aberto. */
   const mostrarRemover = !isReadOnly || !!onRequestItemEdit;
 
