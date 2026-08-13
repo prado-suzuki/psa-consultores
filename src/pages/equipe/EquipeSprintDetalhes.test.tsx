@@ -741,6 +741,35 @@ describe('EquipeSprintDetalhes: UI pública', () => {
     expect(screen.getByText('1/2 subtarefas')).toBeInTheDocument();
   });
 
+  it('marca na lista, em tarefa-mãe e em subtarefa, quem já tem retrospectiva anexada', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    boundary.useDomain.mockReturnValue(
+      pageData({
+        deliverables: [
+          { ...deliverables[0], tem_retrospectiva: true },
+          { ...deliverables[1], tem_retrospectiva: true },
+          deliverables[2],
+        ],
+      }),
+    );
+    renderPage();
+
+    // Só a mãe está visível antes de expandir.
+    expect(screen.getAllByText('Retrospectiva')).toHaveLength(1);
+
+    const parentCard = screen.getByText('Tarefa Pai').closest('[class*="rounded-lg"]');
+    await user.click(within(parentCard as HTMLElement).getAllByRole('button')[0]);
+
+    const subtarefaComRetro = screen
+      .getByText('Subtarefa Dez')
+      .closest('[class*="rounded-lg"]') as HTMLElement;
+    const subtarefaSemRetro = screen
+      .getByText('Subtarefa Dois')
+      .closest('[class*="rounded-lg"]') as HTMLElement;
+    expect(within(subtarefaComRetro).getByText('Retrospectiva')).toBeInTheDocument();
+    expect(within(subtarefaSemRetro).queryByText('Retrospectiva')).not.toBeInTheDocument();
+  });
+
   it('mantém indicadores de data nos cards e omite responsáveis sem perfil do filtro', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     boundary.useDomain.mockReturnValue(
