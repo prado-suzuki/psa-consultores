@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useEquipeKanbanAttachments } from '@/hooks/useDomainEquipeKanbanAttachments';
 import { isImagemAnexo, nomeDoPrintColado, primeiraImagemColada } from '@/lib/anexosEntregavel';
 import {
+  EQUIPE_KANBAN_FILE_ACCEPT,
   formatEquipeKanbanFileSize,
   getEquipeKanbanErrorMessage,
   validateEquipeKanbanFile,
@@ -159,7 +160,7 @@ export function AnexosEntregavel({ deliverableId, ativo = true }: AnexosEntregav
           <input
             type="file"
             className="hidden"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.zip"
+            accept={EQUIPE_KANBAN_FILE_ACCEPT}
             onChange={async (event) => {
               const file = event.target.files?.[0];
               event.target.value = '';
