@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Download,
   Edit2,
+  FileText,
   Plus,
   Upload,
 } from 'lucide-react';
@@ -36,6 +37,22 @@ function DateBadge({ date }: { date: string }) {
     );
   }
   return null;
+}
+
+// Marca, na própria lista, a tarefa que já tem retrospectiva anexada. Da
+// listagem só chega o "tem ou não tem" (`tem_retrospectiva`); o texto continua
+// só no modal, onde é anexado.
+function RetrospectivaBadge() {
+  return (
+    <Badge
+      variant="outline"
+      className="gap-1 border-primary/40 text-primary text-xs"
+      title="Retrospectiva anexada"
+    >
+      <FileText className="h-3 w-3" />
+      Retrospectiva
+    </Badge>
+  );
 }
 
 export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDetalhesController }) {
@@ -115,7 +132,7 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                         }
                       />
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           {task.task_code && (
                             <span className="text-xs font-mono text-gray-400">
                               {task.task_code}
@@ -132,6 +149,7 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                             </Badge>
                           )}
                           <DateBadge date={task.due_date} />
+                          {task.tem_retrospectiva && <RetrospectivaBadge />}
                         </div>
                         <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                           <span>{c.getProfileName(task.assigned_to)}</span>
@@ -201,9 +219,9 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                               }
                             />
                             <div className="flex-1">
-                              <div>
+                              <div className="flex flex-wrap items-center gap-2">
                                 {subtask.task_code && (
-                                  <span className="text-xs font-mono text-gray-400 mr-2">
+                                  <span className="text-xs font-mono text-gray-400">
                                     {subtask.task_code}
                                   </span>
                                 )}
@@ -216,6 +234,7 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                                 >
                                   {subtask.title}
                                 </span>
+                                {subtask.tem_retrospectiva && <RetrospectivaBadge />}
                               </div>
                               <div className="text-xs text-gray-500">
                                 {c.getProfileName(subtask.assigned_to)} ·{' '}
