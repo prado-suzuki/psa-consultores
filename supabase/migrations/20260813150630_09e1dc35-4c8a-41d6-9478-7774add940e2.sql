@@ -1,0 +1,1 @@
+ALTER TYPE public.osg_solicitacao_status ADD VALUE IF NOT EXISTS 'em_checklist' AFTER 'enviada';

@@ -22,11 +22,15 @@ describe('DailySprintProgressCard', () => {
     expect(screen.getByText('1 de 3 concluídas · 1 em andamento')).toBeInTheDocument();
     const progressBar = screen.getByRole('group', { name: 'Progresso coletivo: 33%' });
     const contribution = screen.getByRole('button', { name: 'Ana Silva: 1 de 2 concluídas, 1 em andamento' });
+    const inProgress = screen.getByRole('button', { name: 'Ana Silva: 1 tarefa em progresso' });
     expect(progressBar).toBeInTheDocument();
-    // Cada trecho colorido ocupa somente sua contribuição no total; assim todos
-    // ficam contíguos à esquerda e, juntos, formam exatamente o percentual geral.
-    expect(progressBar.querySelectorAll('button')).toHaveLength(1);
+    // As concluídas formam o percentual geral; tarefas em progresso vêm logo
+    // depois, com a mesma cor da pessoa em baixa saturação/opacidade.
+    expect(progressBar.querySelectorAll('button')).toHaveLength(2);
     expect(Number.parseFloat(contribution.style.width)).toBe(33);
+    expect(Number.parseFloat(inProgress.style.width)).toBeCloseTo(100 / 3);
+    expect(inProgress).toHaveStyle({ backgroundColor: '#8dd3cd' });
+    expect(inProgress).not.toHaveClass('opacity-30');
     expect(screen.getByText('Próximo marco: 50%')).toBeInTheDocument();
   });
 
