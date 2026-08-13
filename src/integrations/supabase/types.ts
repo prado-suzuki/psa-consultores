@@ -9218,6 +9218,11 @@ export type Database = {
         | "documento_aprovado"
         | "documento_recusado"
         | "cobranca_pendencia"
+        | "chamado_criado"
+        | "chamado_atribuido"
+        | "chamado_respondido"
+        | "chamado_vencido"
+        | "chamado_resolvido"
       org_comment_entity: "org_task" | "org_project"
       org_comment_kind:
         | "comment"
@@ -9469,6 +9474,11 @@ export const Constants = {
         "documento_aprovado",
         "documento_recusado",
         "cobranca_pendencia",
+        "chamado_criado",
+        "chamado_atribuido",
+        "chamado_respondido",
+        "chamado_vencido",
+        "chamado_resolvido",
       ],
       org_comment_entity: ["org_task", "org_project"],
       org_comment_kind: [

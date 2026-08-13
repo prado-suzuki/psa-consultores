@@ -1,9 +1,28 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
+import { jaEnviadoHoje } from "../_shared/jaEnviadoHoje.ts";
 // corsHeaders agora vem de ../_shared/cors.ts via buildCorsHeaders(req).
 const PUBLISHED_URL = "https://psa-consultores.lovable.app";
 const MANAGEMENT_URL = "https://psaconsultores.com.br";
+
+// ── Log de borda (ALE-1) ──
+//
+// entidade_tipo: 'ticket', singular, na mesma convenção que os disparos da
+// EDU-2 já usam para org_tasks/cliente ('org_task', 'cliente') — nome de
+// negócio no singular, não o nome plural da tabela.
+//
+// O mapa cobre só os 5 event_type que esta função de fato recebe em
+// produção. Migração 20260814170100_notificacao_tipo_chamado.sql acrescenta
+// os 5 valores correspondentes ao enum notificacao_tipo.
+const TICKET_ENTIDADE_TIPO = "ticket";
+const EVENT_TYPE_TO_NOTIFICACAO_TIPO: Record<string, string> = {
+  ticket_created: "chamado_criado",
+  ticket_assigned: "chamado_atribuido",
+  ticket_replied: "chamado_respondido",
+  ticket_overdue: "chamado_vencido",
+  ticket_resolved: "chamado_resolvido",
+};
 
 // Rich text dos chamados é persistido como `[[ticket-rich-text:v1]]{...JSON...}`.
 // Notificações externas (e-mail/N8N) precisam do texto plano; senão o payload
@@ -210,6 +229,29 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Guard: cobrança de chamado vencido já saiu hoje para este ticket.
+    // check-ticket-deadlines roda por cron e pode reprocessar o mesmo ticket
+    // vencido mais de uma vez no dia; sem este corte o gestor recebe a mesma
+    // cobrança repetida a cada execução.
+    if (event_type === "ticket_overdue") {
+      const jaEnviado = await jaEnviadoHoje(
+        supabase,
+        EVENT_TYPE_TO_NOTIFICACAO_TIPO.ticket_overdue,
+        TICKET_ENTIDADE_TIPO,
+        ticket.id,
+        "email"
+      );
+      if (jaEnviado) {
+        console.log(
+          `[notify-ticket] Skipped: ticket_overdue already sent today for ticket ${ticket.id}`
+        );
+        return new Response(
+          JSON.stringify({ success: true, skipped: true, reason: "already_sent_today" }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     const ticketDepartment = departmentLabels[ticket.department] || ticket.department || "N/A";
     const recipients: Recipient[] = [];
 
@@ -311,6 +353,35 @@ Deno.serve(async (req) => {
         recipients: uniqueRecipients,
       }),
     });
+
+    // ── Log de borda (ALE-1) ──
+    // Acréscimo puro depois do webhook: grava quem recebeu, mas uma falha
+    // aqui nunca pode virar erro HTTP nem mudar a resposta que a
+    // notify-ticket já dá hoje. Notify-ticket é a única notificação em
+    // produção da casa.
+    try {
+      const tipoRegistro = EVENT_TYPE_TO_NOTIFICACAO_TIPO[event_type];
+      if (tipoRegistro) {
+        await Promise.all(
+          uniqueRecipients.map(async (r) => {
+            const { error: registroError } = await supabase.rpc("registrar_envio", {
+              _canal: "email",
+              _tipo: tipoRegistro,
+              _entidade_tipo: TICKET_ENTIDADE_TIPO,
+              _entidade_id: ticket.id,
+              _email: r.email,
+              _papel: r.role,
+              _sucesso: response.ok,
+            });
+            if (registroError) {
+              console.error("[notify-ticket] registrar_envio failed:", registroError);
+            }
+          })
+        );
+      }
+    } catch (registroError) {
+      console.error("[notify-ticket] Failed to log notificacao_envio:", registroError);
+    }
 
     return new Response(
       JSON.stringify({ success: response.ok, recipients: uniqueRecipients.length }),
