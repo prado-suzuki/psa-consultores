@@ -63,6 +63,11 @@ export function useChecklistDerivado(clienteId: string | null): ChecklistDerivad
       pessoa_id: arquivo.pessoa_id,
       bem_id: arquivo.bem_id,
       matricula_id: arquivo.matricula_id,
+      // `revisao` é NOT NULL no banco; o `??` cobre só a janela entre aplicar a
+      // migration e o cache do React Query expirar com linhas antigas em memória.
+      revisao: arquivo.revisao ?? 'pendente',
+      revisao_motivo: arquivo.revisao_motivo ?? null,
+      fonte: arquivo.fonte,
     })),
     [arquivos],
   );

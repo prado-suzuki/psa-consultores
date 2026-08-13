@@ -35,6 +35,9 @@ const arquivo = (overrides: Partial<ArquivoClassificado> = {}): ArquivoClassific
   pessoa_id: null,
   bem_id: null,
   matricula_id: null,
+  revisao: 'pendente',
+  revisao_motivo: null,
+  fonte: 'cliente',
   ...overrides,
 });
 
@@ -107,8 +110,47 @@ describe('derivarChecklist', () => {
     const joao = linhas.find((l) => l.instancia.chave === 'pessoa:p-joao');
     const maria = linhas.find((l) => l.instancia.chave === 'pessoa:p-maria');
     expect(joao?.status).toBe('recebido');
-    expect(joao?.arquivos).toEqual([{ id: 'arq-1', nome: 'cpf-joao.pdf' }]);
+    expect(joao?.arquivos).toEqual([
+      { id: 'arq-1', nome: 'cpf-joao.pdf', revisao: 'pendente', motivo: null, fonte: 'cliente' },
+    ]);
     expect(maria?.status).toBe('pendente');
+  });
+
+  it('arquivo recusado reabre a pendência, mas continua na linha', () => {
+    const linhas = derivarChecklist(entrada({
+      arquivos: [arquivo({
+        pessoa_id: 'p-joao', revisao: 'recusado', revisao_motivo: 'Página cortada',
+      })],
+    }));
+
+    const joao = linhas.find((l) => l.instancia.chave === 'pessoa:p-joao');
+    // Volta a faltar (é o que reabre o envio no portal)...
+    expect(joao?.status).toBe('pendente');
+    // ...sem esconder o que já veio, senão ninguém sabe o que foi recusado.
+    expect(joao?.arquivos).toEqual([
+      { id: 'arq-1', nome: 'cpf-joao.pdf', revisao: 'recusado', motivo: 'Página cortada', fonte: 'cliente' },
+    ]);
+  });
+
+  it('um recusado não derruba o recebido quando outro arquivo vale', () => {
+    const linhas = derivarChecklist(entrada({
+      arquivos: [
+        arquivo({ id: 'arq-velho', pessoa_id: 'p-joao', revisao: 'recusado' }),
+        arquivo({ id: 'arq-novo', pessoa_id: 'p-joao', revisao: 'aprovado' }),
+      ],
+    }));
+
+    expect(linhas.find((l) => l.instancia.chave === 'pessoa:p-joao')?.status).toBe('recebido');
+  });
+
+  it('aprovado e ainda não revisado contam igual como recebido', () => {
+    const semRevisao = derivarChecklist(entrada({ arquivos: [arquivo({ pessoa_id: 'p-joao' })] }));
+    const aprovado = derivarChecklist(entrada({
+      arquivos: [arquivo({ pessoa_id: 'p-joao', revisao: 'aprovado' })],
+    }));
+
+    expect(semRevisao.find((l) => l.instancia.chave === 'pessoa:p-joao')?.status).toBe('recebido');
+    expect(aprovado.find((l) => l.instancia.chave === 'pessoa:p-joao')?.status).toBe('recebido');
   });
 
   it('ignora arquivo do tipo certo sem dono quando o grão é por pessoa', () => {

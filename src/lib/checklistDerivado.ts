@@ -1,3 +1,4 @@
+import type { DocFonte, DocRevisao } from '@/hooks/useDocumentoArquivo';
 import type { Alvo } from '@/lib/classificarFicha';
 import type { Granularidade, ItemSolicitacao } from '@/lib/solicitacao';
 
@@ -49,10 +50,20 @@ export interface InstanciaChecklist {
 
 export type StatusChecklist = 'recebido' | 'pendente' | 'nao_aplicavel' | 'dispensado';
 
-/** Um arquivo que responde por uma linha. */
+/**
+ * Um arquivo que responde por uma linha.
+ *
+ * O recusado continua aqui: ele não conta como recebido (ver `derivarChecklist`),
+ * mas some da tela seria pior — o consultor precisa ver o que já voltou, e o
+ * cliente precisa do motivo. Quem separa um do outro é `revisao`.
+ */
 export interface ArquivoDaLinha {
   id: string;
   nome: string;
+  revisao: DocRevisao;
+  motivo: string | null;
+  /** Só o que veio do cliente é revisável; o que a PSA subiu não se aprova. */
+  fonte: DocFonte;
 }
 
 /** Uma linha do checklist: um documento pedido, para uma entidade. */
@@ -175,6 +186,9 @@ export interface ArquivoClassificado {
   pessoa_id: string | null;
   bem_id: string | null;
   matricula_id: string | null;
+  revisao: DocRevisao;
+  revisao_motivo: string | null;
+  fonte: DocFonte;
 }
 
 /** A marca de "não se aplica a esta entidade". */
@@ -228,7 +242,13 @@ export function derivarChecklist(entrada: EntradaChecklist): LinhaChecklist[] {
     if (!arquivo.documento_tipo_id) continue;
     const chave = `${arquivo.documento_tipo_id}|${chaveDoDono(arquivo)}`;
     const atuais = arquivosPorChave.get(chave) ?? [];
-    atuais.push({ id: arquivo.id, nome: arquivo.nome_original });
+    atuais.push({
+      id: arquivo.id,
+      nome: arquivo.nome_original,
+      revisao: arquivo.revisao,
+      motivo: arquivo.revisao_motivo,
+      fonte: arquivo.fonte,
+    });
     arquivosPorChave.set(chave, atuais);
   }
 
@@ -243,11 +263,14 @@ export function derivarChecklist(entrada: EntradaChecklist): LinhaChecklist[] {
       const arquivos = documentoTipoId
         ? arquivosPorChave.get(`${documentoTipoId}|${instancia.chave}`) ?? []
         : [];
+      // Recusado não fecha linha: a pendência volta a faltar, e é essa volta que
+      // o consultor vê na tela dele e o cliente vê no botão de envio reaberto.
+      const valem = arquivos.some((arquivo) => arquivo.revisao !== 'recusado');
       const status: StatusChecklist = item.status === 'dispensado'
         ? 'dispensado'
         : naoAplicaveis.has(`${item.id}|${chaveDoAlvo(instancia.alvo)}`)
           ? 'nao_aplicavel'
-          : arquivos.length > 0
+          : valem
             ? 'recebido'
             : 'pendente';
 

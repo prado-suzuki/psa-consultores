@@ -87,10 +87,9 @@ Matrícula "do cliente" é `bem_cliente_id = cliente` **ou** `titular_cliente_id
 3. **Grão `cliente` não aceita "não se aplica".** O CHECK de `solicitacao_item_nao_aplicavel` exige
    exatamente um alvo entre pessoa, bem e matrícula. Para item de grão `cliente` a única alavanca é
    dispensar o item inteiro, que é equivalente (a instância é única).
-4. **Read-only absoluto não se sustenta sozinho.** Se o cliente subir o arquivo errado no tipo certo,
-   a subtração dá "recebido" e o consultor não tem alavanca. A fase 2 tem de reservar uma válvula
-   (rejeitar ou reclassificar o arquivo). Não é escopo da fase 1, mas é pré-requisito de confiar na
-   tela quando o upload do cliente virar a via normal.
+4. ~~**Read-only absoluto não se sustenta sozinho.**~~ **Resolvido em 14/08/2026** pela revisão do
+   arquivo (§6): o consultor aprova ou recusa o que chegou, e recusar reabre a pendência. A outra
+   metade da válvula, reclassificar o arquivo, continua fora daqui: é ato do Cadastro por Documento.
 
 ---
 
@@ -220,7 +219,58 @@ derivado lê. Derrubar a tabela `checklist_cliente_item` é limpeza separada.
    `ColetaDocumentosCliente` só roteia por status. A gaveta-balde fica intacta para a fase inicial.
    As 4 gavetas seguem como agrupador, agora com um bloco por entidade dentro de cada uma, e sem
    dedup de nome: as três linhas de "CPF" são o ponto.
-5. **A válvula do consultor** (buraco 4 do §3).
+5. ~~**A válvula do consultor**~~ (buraco 4 do §3). **Entregue em 14/08/2026**, ver §6.
 6. ~~**O acervo sem tipo**~~: saiu da lista, ver o buraco 1 do §3. Sobra um item de limpeza, não de
    produto: descartar os arquivos de teste de `documento_arquivo` (e os binários no GCS) antes de o
    fluxo novo entrar em uso, para nenhum "recebido" de teste virar recebido de verdade.
+
+---
+
+## 6. A válvula do consultor: revisão do arquivo (14/08/2026)
+
+Fecha o buraco 4 do §3. Migration `20260814180000_documento_revisao_do_consultor.sql`.
+
+**O veredito é sobre o ARQUIVO, não sobre a pendência.** Três colunas novas em `documento_arquivo`
+(`revisao` do enum `osg_doc_revisao` = pendente | aprovado | recusado, mais `revisao_em`,
+`revisao_por` e `revisao_motivo`). A alternativa era marcar a linha do checklist, e ela perde a
+memória: a mesma pendência pode receber três tentativas, e "quantas vezes isto voltou" é justamente
+o que o consultor quer ver. Todo arquivo que já existia entra como `pendente` — nada retroativo é
+dado por bom.
+
+**A conta do §2 ganha um predicado, e só:**
+
+```
+recebido = existe arquivo do (tipo, dono) ... que não esteja recusado
+```
+
+Recusar, portanto, desmarca: a pendência volta a faltar, o botão de envio reabre no portal, e o
+arquivo recusado **continua listado**, com o motivo, para o cliente saber o que corrigir em vez de
+reenviar o mesmo arquivo. Aprovado e ainda-não-revisado contam igual: travar o progresso até alguém
+passar o olho faria a barra do cliente mentir para baixo.
+
+**Quem pode o quê:**
+
+| ação | quem | onde | guard |
+|---|---|---|---|
+| aprovar / recusar / desfazer | team_member+ | `ChecklistPendentes`, dentro da ficha | RPC `revisar_documento_pendencia`, só `fonte = 'cliente'` |
+| remover o arquivo enviado | o próprio cliente | `ChecklistDocumentosCliente`, na linha | RPC `soft_delete_documento_cliente`, recusa `revisao = 'aprovado'` |
+
+O cliente remove enquanto ninguém aprovou: mandou errado, tira e manda de novo. Depois da aprovação
+aquele arquivo virou insumo de trabalho interno (vínculo com pessoa/imóvel, base de documento
+gerado), e sumir com ele por fora quebraria o que já foi feito em cima. Esconder o botão é cortesia;
+a regra mora na RPC.
+
+**Classificar é aprovar (14/08/2026).** O Cadastro por Documento grava `revisao = 'aprovado'` no
+mesmo patch do vínculo (`patchVinculo`), e devolver o arquivo ao balde (`patchDesfazerTriagem`)
+reabre a revisão. Sem isso o consultor veria o balde inteiro voltar como "a revisar" depois de já ter
+aberto arquivo por arquivo — e, pior, o cliente continuaria podendo remover pelo portal um arquivo já
+vinculado a uma pessoa ou imóvel, porque o guard da remoção olha só `aprovado`. O custo assumido: o
+que passa pela gaveta não recebe uma segunda conferência de conteúdo, só a que aconteceu na hora de
+decidir de quem o arquivo é.
+
+**Sem backfill**, pela mesma razão do buraco 1 do §3: o que está hoje em `documento_arquivo` é dado
+de teste. Tudo entra como `pendente` e o fluxo novo carrega a marca daqui para a frente.
+
+**Nota sobre a tela do consultor:** ela deixou de ser 100% leitura, e essa é a única escrita que
+existe lá. Não edita status de linha, não vincula arquivo, não mexe no pedido — a subtração continua
+derivada.

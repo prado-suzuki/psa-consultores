@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { currentAmbiente } from '@/config/api';
-import { subirArquivoGcs, type DocCategoria } from '@/hooks/useDocumentoArquivo';
+import { subirArquivoGcs, type DocCategoria, type DocRevisao } from '@/hooks/useDocumentoArquivo';
 
 /**
  * A fase de CHECKLIST no portal do cliente: o que falta, de quem, e o anexo por
@@ -37,6 +37,14 @@ export interface AlvoPendencia {
 export interface ArquivoDaPendencia {
   id: string;
   nome: string;
+  /**
+   * O veredito do consultor (migration 20260814180000). `recusado` é o único que
+   * muda a conta: o arquivo continua aqui, com o `motivo`, mas a pendência volta a
+   * faltar e o envio reabre.
+   */
+  revisao: DocRevisao;
+  /** O que o consultor escreveu ao recusar. Nulo em qualquer outro estado. */
+  motivo: string | null;
 }
 
 export interface PendenciaCliente {
@@ -139,6 +147,39 @@ export function useAnexarPendencia() {
     },
     onError: (erro: unknown) => toast({
       title: 'Não foi possível enviar',
+      description: (erro as Error).message,
+      variant: 'destructive',
+    }),
+  });
+}
+
+/**
+ * Remove um arquivo que o cliente enviou pela linha da pendência.
+ *
+ * É a mesma RPC da gaveta (`soft_delete_documento_cliente`, EDU-02), que desde a
+ * migration 20260814180000 recusa arquivo já aprovado pela PSA. O hook próprio
+ * existe pela invalidação: a tela do checklist lê da RPC de pendências, e a de
+ * arquivos do portal lê da lista — sem invalidar as duas, o arquivo some de um
+ * lado e continua do outro.
+ */
+export function useRemoverDocumentoPendencia() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ documentoId }: { clienteId: string; documentoId: string }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.rpc as any)('soft_delete_documento_cliente', {
+        _id: documentoId,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_vazio, vars) => {
+      queryClient.invalidateQueries({ queryKey: pendenciasClienteKey(vars.clienteId) });
+      queryClient.invalidateQueries({ queryKey: ['documento-arquivo', vars.clienteId] });
+      toast({ title: 'Documento removido' });
+    },
+    onError: (erro: unknown) => toast({
+      title: 'Não foi possível remover',
       description: (erro as Error).message,
       variant: 'destructive',
     }),
