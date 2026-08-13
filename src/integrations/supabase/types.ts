@@ -9035,6 +9035,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_pendencias_documentos_cliente: { Args: never; Returns: Json }
       get_profiles_with_email: {
         Args: never
         Returns: {
@@ -9249,7 +9250,11 @@ export type Database = {
       osg_doc_grupo: "pf" | "pj" | "bens_imoveis" | "outros"
       osg_doc_status: "pendente" | "ativo"
       osg_solicitacao_item_status: "ativo" | "dispensado"
-      osg_solicitacao_status: "rascunho" | "enviada" | "encerrada"
+      osg_solicitacao_status:
+        | "rascunho"
+        | "enviada"
+        | "em_checklist"
+        | "encerrada"
       osg_tipo_exploracao:
         | "arrendamento"
         | "parceria"
@@ -9500,7 +9505,12 @@ export const Constants = {
       osg_doc_grupo: ["pf", "pj", "bens_imoveis", "outros"],
       osg_doc_status: ["pendente", "ativo"],
       osg_solicitacao_item_status: ["ativo", "dispensado"],
-      osg_solicitacao_status: ["rascunho", "enviada", "encerrada"],
+      osg_solicitacao_status: [
+        "rascunho",
+        "enviada",
+        "em_checklist",
+        "encerrada",
+      ],
       osg_tipo_exploracao: [
         "arrendamento",
         "parceria",
