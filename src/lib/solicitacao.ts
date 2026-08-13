@@ -13,7 +13,19 @@
 import type { Database } from '@/integrations/supabase/types';
 
 export type OsgDocGrupo = Database['public']['Enums']['osg_doc_grupo'];
-export type SolicitacaoStatus = Database['public']['Enums']['osg_solicitacao_status'];
+/**
+ * Os quatro estados do pedido: `rascunho`, `enviada`, `em_checklist`, `encerrada`.
+ *
+ * O `| 'em_checklist'` é temporário e some sozinho: o valor existe no banco desde
+ * a migration 20260814140000, e o `types.ts` autogerado só o ganha na próxima
+ * regeneração. Sem a união, todo lugar que cita o estado novo pararia o typecheck.
+ *
+ * O que ele significa: a solicitação inicial terminou e a coleta virou cobrança
+ * fina. A tela do cliente troca de gaveta-balde para checklist por entidade, e
+ * `encerrada` volta a significar "acabou de verdade".
+ */
+export type SolicitacaoStatus =
+  Database['public']['Enums']['osg_solicitacao_status'] | 'em_checklist';
 export type SolicitacaoItemStatus = Database['public']['Enums']['osg_solicitacao_item_status'];
 export type SolicitacaoItemInsert = Database['public']['Tables']['solicitacao_item']['Insert'];
 export type SolicitacaoItemUpdate = Database['public']['Tables']['solicitacao_item']['Update'];

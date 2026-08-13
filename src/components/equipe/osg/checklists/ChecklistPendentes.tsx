@@ -166,6 +166,14 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
           então o que aparece como pendente nunca foi cobrado dele.
         </Aviso>
       )}
+      {solicitacao.status === 'enviada' && (
+        <Aviso>
+          A solicitação inicial ainda está <strong>na fase de gaveta</strong>: o cliente
+          envia os arquivos em lote e alguém classifica depois, então a conta abaixo tende a
+          mostrar pendência de documento já entregue. Passe para o checklist na tela de
+          Solicitação Inicial para o envio dele nascer classificado.
+        </Aviso>
+      )}
       {solicitacao.status === 'encerrada' && (
         <Aviso tom="neutro">
           Solicitação <strong>encerrada</strong>

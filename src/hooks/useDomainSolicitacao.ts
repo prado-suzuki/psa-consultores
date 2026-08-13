@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAvisoSolicitacaoEnviada } from '@/hooks/useAvisoSolicitacaoEnviada';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import {
   CAMPOS_AUDITADOS_ITEM,
@@ -521,18 +522,29 @@ export function useDomainSolicitacao(clienteId: string | null) {
   const moverStatus = async (
     de: SolicitacaoStatus[],
     para: SolicitacaoStatus,
-    carimbo: 'enviada_em' | 'encerrada_em',
+    /**
+     * A coluna de data da transição, quando existe.
+     *
+     * `null` na passagem para `em_checklist`: não há coluna própria para ela, e
+     * criar uma só para o carimbo não se paga enquanto `updated_at` responde
+     * "desde quando". A auditoria registra a transição de todo jeito.
+     */
+    carimbo: 'enviada_em' | 'encerrada_em' | null,
     erroSeNaoMoveu: string,
   ) => {
     const atual = solicitacaoQuery.data;
     if (!atual) throw new Error('Nenhuma solicitação carregada para este cliente.');
 
-    const alteracoes = { status: para, [carimbo]: new Date().toISOString() };
+    const alteracoes = carimbo
+      ? { status: para, [carimbo]: new Date().toISOString() }
+      : { status: para };
     const { data, error } = await supabase
       .from('solicitacao')
-      .update(alteracoes)
+      // O valor novo do enum ainda não está no types.ts autogerado (migration
+      // 20260814140000); o cast some na próxima regeneração de tipos.
+      .update(alteracoes as { status: Database['public']['Enums']['osg_solicitacao_status'] })
       .eq('id', atual.id)
-      .in('status', de)
+      .in('status', de as Database['public']['Enums']['osg_solicitacao_status'][])
       .select('id, status');
     if (error) throw error;
     if (!data || data.length === 0) throw new Error(erroSeNaoMoveu);
@@ -546,7 +558,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
       changed_fields: computeFieldDiff(
         { status: atual.status },
         alteracoes,
-        ['status', carimbo],
+        carimbo ? ['status', carimbo] : ['status'],
       ),
     });
   };
@@ -580,9 +592,32 @@ export function useDomainSolicitacao(clienteId: string | null) {
     onError: (error: Error) => toast.error('Não foi possível enviar: ' + error.message),
   });
 
+  /**
+   * A virada da solicitação inicial para a fase de checklist.
+   *
+   * Só de `enviada`: passar de rascunho seria pôr o cliente a responder o que
+   * nunca foi pedido a ele. Não tem volta pela tela, como as outras transições.
+   *
+   * O que muda para o cliente: a tela dele deixa de ser gaveta-balde e passa a ser
+   * checklist por entidade, com upload no documento que falta. O que muda para o
+   * consultor: nada trava, incluir documento novo continua liberado, e é o normal
+   * desta fase ("faltou o X").
+   */
+  const passarParaChecklist = useMutation({
+    mutationFn: () => moverStatus(
+      ['enviada'],
+      'em_checklist',
+      null,
+      'Esta solicitação não está mais em aberto para o cliente. Recarregue a página.',
+    ),
+    onSuccess: invalidar,
+    onError: (error: Error) =>
+      toast.error('Não foi possível passar para o checklist: ' + error.message),
+  });
+
   const encerrarSolicitacao = useMutation({
     mutationFn: () => moverStatus(
-      ['rascunho', 'enviada'],
+      ['rascunho', 'enviada', 'em_checklist'],
       'encerrada',
       'encerrada_em',
       'Esta solicitação já estava encerrada. Recarregue a página.',
@@ -662,6 +697,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
     editarItem,
     dispensarItem,
     enviarSolicitacao,
+    passarParaChecklist,
     encerrarSolicitacao,
     abrirNovaSolicitacao,
   };
