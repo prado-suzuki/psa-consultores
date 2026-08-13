@@ -5,13 +5,17 @@ a variável que alimenta cada marcador. O conteúdo é o dos
 [textos de e-mail](avisos-cliente.md); aqui muda o formato, a categoria e a
 submissão.
 
-Tarefa **ALE-11**. Idioma `pt_BR` e categoria **utility** nos quatro — nenhum é
-promocional. Redação revisada pela Patrícia Melo em 11/08/2026.
+Tarefa **ALE-11**. Idioma `pt_BR`, categoria **utility** e tipo **Padrão** nos quatro —
+nenhum é promocional. Redação revisada pela Patrícia Melo em 11/08/2026; corpos
+adaptados ao formato da Meta e **submetidos em 12/08/2026**.
+
+Contexto da conta, identificadores e a decisão pela API oficial estão em
+[`whatsapp-meta-onboarding.md`](whatsapp-meta-onboarding.md).
 
 | # | Modelo | `notificacao_tipo` | Marc. | Botão | Dispara |
 |---|---|---|---|---|---|
 | 1 | `solicitacao_enviada` | idem | 3 | Enviar meus documentos | clique em Enviar solicitação |
-| 2 | `cobranca_pendencia` | idem | 5 | Enviar meus documentos | varredura diária |
+| 2 | `cobranca_pendencia` | idem | 4 | Enviar meus documentos | varredura diária |
 | 3 | `documento_aprovado` | idem | 3 | Ver meus documentos | envio completo ou solicitação encerrada |
 | 4 | `documento_recusado` | idem | 2 | Reenviar meus documentos | conferência de um lote |
 
@@ -19,22 +23,75 @@ O nome do modelo na Meta é o próprio valor de `notificacao_tipo`, para o fluxo
 o modelo do tipo da notificação sem tabela de tradução. Canal `whatsapp` no enum
 `notificacao_canal`.
 
-O botão dos quatro aponta para `PUBLISHED_URL` + caminho do portal, **fixo e sem
-sufixo dinâmico**: não há link profundo por solicitação — a coleta é renderizada
-dentro de `src/pages/cliente/ClienteDashboard.tsx`.
+**Assinatura: `PSA Prado Suzuki`, no componente Rodapé** — não no corpo. A marca migrou
+em 12/08/2026, e o rodapé renderiza menor e acinzentado, como assinatura, sem consumir o
+limite do corpo.
+
+**Botão dos quatro:** Chamada para ação · Acessar o site · URL **estática**
+`https://psaconsultores.com.br/cliente`, fixa e sem sufixo dinâmico. Não há link profundo
+por solicitação — a coleta é renderizada dentro de
+`src/pages/cliente/ClienteDashboard.tsx`. Usar o domínio institucional e não o
+`PUBLISHED_URL` (`psa-consultores.lovable.app`) é deliberado: o revisor da Meta olha se a
+URL tem relação com o negócio, e a URL é **imutável depois de aprovada**.
+
+**Período de validade: 12 horas** nos quatro, o maior valor oferecido. Sem isso vale o
+padrão de **10 minutos** — mensagem não entregue nesse prazo é descartada, não cobrada e
+o cliente nunca a vê. Para aviso assíncrono, que o cliente lê quando puder, 10 minutos
+perde entrega em silêncio.
 
 ## O que o formato da Meta impõe
 
+Constatado na submissão, não só na documentação:
+
 - Corpo de até 1.024 caracteres, e **não pode começar nem terminar em marcador**.
+  Terminar com marcador seguido de ponto **não basta** — a Meta exige texto real depois
+  do último parâmetro. Foi o que reprovou a primeira versão do modelo 2.
 - **Parâmetro não aceita quebra de linha**, tabulação nem mais de quatro espaços
   seguidos — logo nenhum marcador carrega lista de várias linhas.
 - O modelo é fixo: **não há parágrafo condicional**. Um corpo aprovado sai sempre
   igual, com todos os parâmetros preenchidos.
-- **Parâmetro vazio impede o envio.** Toda variável tem de ter valor garantido.
-- Rótulo de botão: até 25 caracteres, e **fixo na aprovação** — mudar o rótulo é
+- **Parâmetro vazio impede o envio.** Toda variável tem de ter valor garantido. Cada
+  marcador a mais é mais uma forma de a mensagem não sair.
+- Rótulo de botão: até 40 caracteres, e **fixo na aprovação** — mudar o rótulo é
   ressubmeter e esperar a fila.
-- `Sr(a).` e o objeto em linha corrida são **texto fixo** do modelo; só os valores
-  variáveis são marcador.
+- **Cabeçalho é para título, não para saudação.** Renderiza em negrito e destacado, e tem
+  numeração de marcador própria, separada da do corpo. A saudação vai no corpo.
+- **Corpo e rodapé aceitam formatação:** `*negrito*`, `_itálico_`, `~tachado~`.
+- **O classificador de categoria roda no formulário, antes de submeter.** Se ele discordar
+  da categoria escolhida, avisa que o modelo será rejeitado e oferece a troca. Dá para
+  editar o texto e ver o aviso sumir sem gastar fila.
+- `Sr(a).` é **texto fixo** do modelo. Só flexão de **número** vai para dentro da
+  variável — gênero fica em parênteses, decidido em 12/08/2026.
+
+## A regra da flexão
+
+Decidido em 12/08/2026: **o n8n entrega o valor já flexionado**, e o corpo fica com o
+texto fixo. Isso evita `documento(s)`, `Falta(m)` e `precisa(m)` espalhados pela
+mensagem, que o WhatsApp deixa mais feio que o e-mail.
+
+O que isso significa por tipo de valor:
+
+| Valor | 1 | Vários |
+|---|---|---|
+| Contagem | `1 documento` | `52 documentos` |
+| Contagem com artigo | `o documento` | `os 52 documentos` |
+| Verbo e particípio | `1 precisa ser reenviado` | `6 precisam ser reenviados` |
+| Frase de pendência | `Falta 1 dos 52 documentos solicitados` | `Faltam 6 dos 52 documentos solicitados` |
+
+**O objeto precisa de duas formas**, porque a preposição contrai com o artigo e o artigo
+varia com o número:
+
+| Contexto | 1 produto | Vários |
+|---|---|---|
+| modelos 1 e 3 (`de`) | `do seu projeto de X` | `dos seus projetos de X e Y` |
+| modelo 2 (`com`) | `o seu projeto de X` | `os seus projetos de X e Y` |
+
+Separador da lista: **vírgula**, com `e` antes do último. Avaliamos ponto e vírgula
+porque metade do catálogo OSG tem vírgula no próprio nome — `Diagnóstico Societário,
+Sucessório e Governança` — e uma lista por vírgula fica indistinguível de um produto
+composto. Ficou vírgula mesmo: são **2 OS multiproduto na base inteira**, o "e" seguido de
+"e" é corrente em português, e o separador vive no valor da variável, então trocar depois
+não passa pela Meta.
 
 ---
 
@@ -43,22 +100,22 @@ dentro de `src/pages/cliente/ClienteDashboard.tsx`.
 ```
 Olá, Sr(a). {{1}}.
 
-Já está disponível no portal do cliente a relação de documentos necessários ao seu
-projeto de {{2}}: são {{3}} documentos, cada um com a orientação de envio.
-
-PSA Consultores
+Já está disponível no portal do cliente a relação de documentos necessários {{2}}: *{{3}}*, cada um com a orientação de envio.
 ```
 
-**Botão** URL fixo, rótulo `Enviar meus documentos`.
+**Rodapé** `PSA Prado Suzuki` · **Botão** URL fixa, rótulo `Enviar meus documentos`
 
 | Marcador | Variável | Exemplo |
 |---|---|---|
 | `{{1}}` | `destinatarios_cliente(cliente_id).nome` | `Carlos Eduardo Silva` |
-| `{{2}}` | objeto: produtos contratados na OS da solicitação, sem repetição, vírgula entre eles e `e` antes do último | `Diagnóstico Societário, Sucessório e Governança` |
-| `{{3}}` | contagem de `solicitacao_item` com `status = 'ativo'` | `52` |
+| `{{2}}` | objeto na forma `de`, com preposição e artigo flexionados | `aos seus projetos de Estruturação Societária e Planejamento Sucessório` |
+| `{{3}}` | contagem de `solicitacao_item` com `status = 'ativo'`, com o substantivo | `52 documentos` |
 
-O objeto entra depois de **"projeto de"** porque a preposição `de` serve aos dois
-gêneros: `ao Diagnóstico` e `à Constituição` quebrariam a cada produto.
+O objeto entra depois de **"necessários"** porque a preposição `a` contrai com o artigo,
+e o artigo varia com o número: `ao seu projeto` / `aos seus projetos`.
+
+Saiu do texto original apenas o verbo **`são`**, que é concordância de número — os
+dois-pontos cumprem a função, e assim o negrito cai só na contagem, sem pegar verbo.
 
 ---
 
@@ -67,28 +124,37 @@ gêneros: `ao Diagnóstico` e `à Constituição` quebrariam a cada produto.
 ```
 Olá, Sr(a). {{1}}.
 
-Falta(m) {{2}} dos {{3}} documentos solicitados no portal do cliente para seguirmos com
-o seu projeto de {{4}}. A relação dos pendentes, com a orientação de envio de cada um,
-está lá.
+{{2}} para seguirmos com {{3}}.
 
-Prazo de envio: {{5}}
+Prazo de envio: *{{4}}*
 
-PSA Consultores
+A relação dos pendentes, com a orientação de envio de cada um, está no portal do cliente.
 ```
 
-**Botão** URL fixo, rótulo `Enviar meus documentos`.
+**Rodapé** `PSA Prado Suzuki` · **Botão** URL fixa, rótulo `Enviar meus documentos`
 
 | Marcador | Variável | Exemplo |
 |---|---|---|
 | `{{1}}` | `destinatarios_cliente(cliente_id).nome` | `Carlos Eduardo Silva` |
-| `{{2}}` | documentos pendentes no checklist da solicitação | `6` |
-| `{{3}}` | contagem de `solicitacao_item` com `status = 'ativo'` | `52` |
-| `{{4}}` | objeto, o mesmo do modelo 1 | `Diagnóstico Societário, Sucessório e Governança` |
-| `{{5}}` | prazo de envio: `enviada_em` mais 30 dias. Depois de vencido, o mesmo marcador leva o aviso entre parênteses | `03/09/2026` · `03/09/2026 (vencido)` |
+| `{{2}}` | frase de pendência: verbo, pendentes e total, tudo flexionado junto | `Faltam 6 dos 52 documentos solicitados` |
+| `{{3}}` | objeto na forma `com` | `os seus projetos de Estruturação Societária e Planejamento Sucessório` |
+| `{{4}}` | prazo de envio: `enviada_em` mais 30 dias. Depois de vencido, o mesmo marcador leva o aviso entre parênteses | `03/09/2026` |
+
+**A ordem mudou em relação ao e-mail, e o motivo é a regra do marcador final.** Com a
+assinatura no rodapé, terminar em `Prazo de envio: {{4}}` reprovaria — e ponto final
+depois do marcador não resolve. O prazo subiu e a frase da relação fecha o texto.
+
+**O portal migrou para o fecho.** No e-mail ele aparece no meio e a frase final diz "está
+lá". Com o prazo entre as duas, o "lá" ficaria apontando dois parágrafos atrás. O portal
+passou a ser citado **uma vez só, no fecho** — que é exatamente o que o guia de estilo da
+ALE-12 pede.
 
 **O prazo vai em linha rotulada, e não em pedido.** A cobrança repete, e "envie até
 03/09" deixa de ser verdade no dia 4 — `Prazo de envio: 03/09/2026` é verdade sempre.
 O vencimento entra no próprio valor do marcador, então muda sem passar pela Meta.
+
+**Negrito só no prazo:** numa cobrança é a data que o cliente age em cima, e a contagem
+está dentro de uma frase longa, onde o destaque se dilui.
 
 O checklist é **calculado**: cada `solicitacao_item` com `status = 'ativo'` é
 expandido pela `granularidade` (`cliente`, `pessoa_pf`, `pessoa_pj`,
@@ -103,22 +169,35 @@ arquivo vinculado ao mesmo `documento_tipo_id` e à mesma entidade, e sai o que 
 ```
 Olá, Sr(a). {{1}}.
 
-Recebemos e conferimos o(s) {{2}} documento(s) do seu projeto de {{3}}. Não há
-pendências.
+Recebemos e conferimos {{2}} {{3}}. *Não há pendências.*
+
 A próxima etapa é a execução do projeto, e entraremos em contato ao concluí-la.
-
-Agradecemos a agilidade no envio.
-
-PSA Consultores
 ```
 
-**Botão** URL fixo, rótulo `Ver meus documentos`.
+**Rodapé** `PSA Prado Suzuki` · **Botão** URL fixa, rótulo `Ver meus documentos`
 
 | Marcador | Variável | Exemplo |
 |---|---|---|
 | `{{1}}` | `destinatarios_cliente(cliente_id).nome` | `Carlos Eduardo Silva` |
-| `{{2}}` | documentos aceitos no pedido, acumulado | `52` |
-| `{{3}}` | objeto, o mesmo do modelo 1 | `Diagnóstico Societário, Sucessório e Governança` |
+| `{{2}}` | documentos aceitos no pedido, acumulado, com artigo e substantivo | `os 52 documentos` |
+| `{{3}}` | objeto na forma `de` | `dos seus projetos de Estruturação Societária e Planejamento Sucessório` |
+
+**⚠️ Este foi recusado pelo classificador de categoria antes da submissão.** A Meta
+acusou "a categoria não corresponde" e recomendou **Marketing**, avisando que o modelo
+seria rejeitado. O que destravou foi cortar a última linha do texto original:
+
+> ~~Agradecemos a agilidade no envio.~~
+
+Cortesia sem conteúdo transacional puxa utilidade para marketing. O restante do corpo —
+"Recebemos e conferimos… Não há pendências" — é inequivocamente transacional e passou.
+
+**A regra a guardar:** agradecimento e projeção de etapa futura empurram utility para
+marketing. O documento previa esse risco no `cobranca_pendencia`, por ele sair sem ação
+do cliente; foi o `documento_aprovado` que bateu — e **antes** da submissão, não depois.
+
+**Negrito em texto fixo, não em variável** — é o único dos quatro. Aqui não há ação
+pedida: o que o cliente procura é o desfecho, e o desfecho é "não há pendências". Nos
+outros o destaque é um número que muda; aqui é uma afirmação sempre igual.
 
 **É o aviso de fechamento, não de lote.** Sai quando o cliente enviou tudo ou quando a
 solicitação é encerrada. O nome do modelo é `documento_aprovado` por causa do valor do
@@ -128,7 +207,9 @@ por recebimento, seja por dispensa.
 
 A etapa é **texto fixo — "a execução do projeto"** —, e não marcador: o cliente pode
 ter um projeto por produto contratado, e não existe campo que diga em que ponto cada
-um está.
+um está. Avaliamos um marcador só para `do projeto` / `dos projetos` e descartamos: são 2
+OS multiproduto na base, e cada marcador a mais é mais uma forma de o envio falhar por
+valor vazio.
 
 ---
 
@@ -137,19 +218,22 @@ um está.
 ```
 Olá, Sr(a). {{1}}.
 
-Na conferência dos documentos, {{2}} precisa(m) ser reenviado(s). O motivo de cada um
-está
-no portal do cliente, com a orientação de envio.
+Na conferência dos documentos, *{{2}}*.
 
-PSA Consultores
+O motivo de cada um está no portal do cliente, com a orientação de envio.
 ```
 
-**Botão** URL fixo, rótulo `Reenviar meus documentos`.
+**Rodapé** `PSA Prado Suzuki` · **Botão** URL fixa, rótulo `Reenviar meus documentos`
 
 | Marcador | Variável | Exemplo |
 |---|---|---|
 | `{{1}}` | `destinatarios_cliente(cliente_id).nome` | `Carlos Eduardo Silva` |
-| `{{2}}` | documentos não aceitos na conferência do lote | `2` |
+| `{{2}}` | documentos não aceitos na conferência do lote, **sem o substantivo**, com verbo e particípio flexionados | `6 precisam ser reenviados` |
+
+**O `{{2}}` não leva `documentos`** — o substantivo já está em "Na conferência dos
+documentos". Repetir produz "Na conferência dos documentos, 6 documentos precisam ser
+reenviados". E tirar o substantivo do texto fixo em vez do marcador deixaria "Na
+conferência," pendurado, sem objeto.
 
 O **motivo**, que o card lista como campo deste modelo, não vira marcador: o aviso é
 por lote, são vários motivos, e parâmetro não aceita quebra de linha. Fica no portal e
@@ -185,6 +269,11 @@ Dois dos quatro ficarão **aprovados e sem disparo** até a próxima sprint: o
 porque o ato de recusar não existe. Submeter antes é deliberado: a fila de aprovação
 da Meta é o gargalo, e cada modelo tem fila própria.
 
+**Com o objeto agora carregando a preposição e o artigo, o `ordem_servico_id` nulo deixa
+de produzir frase capenga e passa a produzir frase quebrada** — "a relação de documentos
+necessários ." Parâmetro vazio já impede o envio de qualquer forma, mas fica registrado
+como pré-condição dura: **sem OS, não envia.**
+
 ## Custo por mensagem
 
 A Meta cobra **por mensagem entregue** desde julho de 2025, e a categoria define o
@@ -211,19 +300,22 @@ mensagens por evento.
 
 ## Submissão
 
-Pelo Gerenciador de WhatsApp, no Business Manager. Cada modelo pede nome, idioma,
-categoria, corpo e **um exemplo de cada marcador**, sem quebra de linha e sem espaço
-múltiplo.
+Pelo Gerenciador de WhatsApp, em Modelos de mensagens → Gerenciar modelos → Criar modelo.
+Cada modelo pede nome, idioma, categoria, tipo, corpo e **um exemplo de cada marcador**,
+sem quebra de linha e sem espaço múltiplo.
 
-O `cobranca_pendencia` é o de maior risco, e não pela redação: é o único que sai sem
-ação do cliente, e a reclassificação de utility para marketing acontece **depois** da
-aprovação, olhando o uso real — muda custo e política sem avisar. A regra de não
+Não usar a **Biblioteca de modelos**: são 157 modelos pré-aprovados em inglês, de
+cenários de e-commerce e agendamento. Nenhum cobre coleta de documentos de projeto de
+consultoria.
+
+O `cobranca_pendencia` é o de maior risco em produção, e não pela redação: é o único que
+sai sem ação do cliente, e a reclassificação de utility para marketing acontece **depois**
+da aprovação, olhando o uso real — muda custo e política sem avisar. A regra de não
 repetir no mesmo dia vem na ALE-1 (19/08), pelo ajudante `jaEnviadoHoje`, que no
 WhatsApp precisa comparar `destinatario_telefone`.
 
-A submissão depende da verificação do negócio na Meta (ALE-10). Até ela sair, vale o
-ramo do critério de aceite que pede os quatro modelos **prontos para submissão, com a
-estimativa de custo por mensagem feita** — que é o estado deste arquivo.
+A verificação do negócio (ALE-10) **saiu aprovada em 12/08/2026**, antes da submissão dos
+modelos — então vale o ramo cheio do critério de aceite, não o de contingência.
 
 ## Fora do escopo, declarado no card
 
@@ -240,8 +332,19 @@ descrevem, e é por isso que dois dos quatro serão aprovados e sem disparo.
 
 | Dependência | Dono |
 |---|---|
+| **`representante.telefone` preenchido em 7 de 38**, contra e-mail em 38 de 38 — sem telefone o modelo aprovado não alcança o cliente. É a maior limitação do canal | cadastro; nenhuma tarefa desta sprint preenche |
 | `solicitacao.ordem_servico_id` nulo em **6 de 10** — `gerar_solicitacao_os` só grava a OS ao criar o cabeçalho, e sem ela o objeto vai vazio e o modelo não dispara | Eduardo, no gerador; ou exigência de OS na tela de envio |
-| `representante.telefone` preenchido em **7 de 38**, contra e-mail em 38 de 38 — sem telefone o modelo aprovado não alcança o cliente | cadastro; nenhuma tarefa desta sprint preenche |
+| O n8n precisa montar os valores já flexionados, incluindo as duas formas do objeto | próxima sprint |
 | Coluna do motivo da recusa: sem coluna, sem tarefa e sem item de backlog | próxima sprint, junto do ato de recusar |
 | Gatilho do modelo 3: o dado existe (checklist zerado ou `solicitacao.encerrada_em`), mas nenhuma tarefa liga o disparo | próxima sprint |
 | Checklist da solicitação, gerado ou declarado — o `useGerarChecklistCliente` já gera por entidade, e a EDU-9 registra "não haverá cálculo de faltante". A chave por solicitação já está fixada, e o marcador não muda nos dois casos | EDU-6 e EDU-9 |
+
+## O que os e-mails da ALE-12 herdam desta tarefa
+
+Não é mudança automática — precisa ser aplicada em
+[`avisos-cliente.md`](avisos-cliente.md):
+
+- **Assinatura `PSA Prado Suzuki`** nos quatro, no lugar de `PSA Consultores`
+- A flexão de número pode continuar em parênteses no e-mail, que aceita melhor
+  `documento(s)` que o WhatsApp — mas o objeto tem o mesmo problema de artigo e
+  preposição com múltiplos produtos
