@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Contratos de Exploração Rural — mockup OSG Work</title>
+<style>
+  /* Prévia estática do OSG Work — replica as classes de src/components/equipe/osg/
+     (formKit.tsx, OsgDialog.tsx, OsgLayout.tsx) e as cores de src/index.css
+     (.osg-theme). Não é código de produção. O porquê de cada campo (lastro,
+     pendência, decisão em aberto) fica nos docs desta pasta — aqui é só a tela. */
+
+  :root{
+    --radius: .75rem;
+    --background: 32 28% 98.5%;
+    --foreground: 220 26% 12%;
+    --card: 32 28% 98.5%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --muted: 32 28% 92%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 149 66% 22%;
+    --accent-foreground: 0 0% 100%;
+    --primary: 149 66% 22%;
+    --primary-foreground: 0 0% 100%;
+    --destructive: 356 59% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --ring: 149 66% 22%;
+
+    --osg-50: 32 28% 92%;
+    --osg-100: 30 26% 84%;
+    --osg-200: 30 25% 70%;
+    --osg-300: 30 23% 56%;
+    --osg-500: 22 24% 33%;
+    --osg-600: 19 24% 25%;
+    --osg-700: 17 25% 19%;
+    --osg-moss: 149 66% 22%;      /* #125837 */
+    --osg-highlighter: 41 73% 71%; /* #EBC97D */
+    --osg-red: 356 59% 45%;        /* #B62F38 */
+    --osg-canvas: 32 24% 96%;
+
+    --slate-500: 215 16% 47%;
+    --slate-600: 215 19% 35%;
+    --slate-900: 222 47% 11%;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Work Sans','Segoe UI',sans-serif;
+    background:hsl(var(--osg-canvas));
+    color:hsl(var(--foreground));
+    font-size:14px;
+    line-height:1.45;
+  }
+  button{font-family:inherit;}
+  h1,h2,h3,h4{margin:0;}
+  input,select,textarea{font-family:inherit;font-size:13px;color:hsl(var(--foreground));}
+
+  /* ---------- shell / sidebar ---------- */
+  .shell{display:flex;min-height:100vh;width:100%;}
+  .sidebar{
+    width:16rem;flex-shrink:0;background:hsl(var(--background));
+    border-right:1px solid hsl(215 20% 91% / .6);
+    display:flex;flex-direction:column;
+  }
+  .sidebar-head{padding:1.5rem 1rem;border-bottom:1px solid hsl(215 20% 91% / .6);display:flex;align-items:center;gap:.75rem;}
+  .sidebar-logo{
+    height:2.5rem;width:2.5rem;border-radius:.6rem;background:hsl(var(--osg-moss));
+    display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px;flex-shrink:0;
+  }
+  .sidebar-head h2{font-size:1.05rem;font-weight:600;color:hsl(var(--slate-900));}
+  .sidebar-head p{margin:0;font-size:.72rem;color:hsl(var(--slate-500));}
+  nav.sidenav{padding:1rem;display:flex;flex-direction:column;gap:.25rem;flex:1;}
+  .nav-item{
+    display:flex;align-items:center;gap:.7rem;padding:.55rem .75rem;border-radius:.5rem;
+    font-size:.85rem;font-weight:500;color:hsl(var(--slate-600));text-decoration:none;cursor:default;
+  }
+  .nav-item svg{flex-shrink:0;width:16px;height:16px;}
+  .nav-item.active{background:hsl(var(--osg-100));color:hsl(var(--osg-700));}
+  .nav-group-label{
+    display:flex;align-items:center;gap:.7rem;padding:.55rem .75rem;border-radius:.5rem;
+    font-size:.85rem;font-weight:500;color:hsl(var(--slate-600));background:hsl(var(--osg-50));
+  }
+  .nav-group-label svg{width:16px;height:16px;flex-shrink:0;}
+  .nav-sub{margin-left:.5rem;padding-left:.5rem;border-left:1px solid hsl(var(--osg-100));display:flex;flex-direction:column;gap:.15rem;padding-top:.25rem;}
+  .nav-sub .nav-item{padding:.45rem .6rem;font-size:.82rem;}
+  .nav-badge-new{
+    margin-left:auto;font-size:.6rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+    background:hsl(var(--osg-highlighter));color:hsl(28 45% 18%);padding:.1rem .4rem;border-radius:.3rem;
+  }
+  .sidebar-foot{padding:1rem;border-top:1px solid hsl(215 20% 91% / .6);}
+  .user-card{display:flex;align-items:center;gap:.6rem;background:hsl(210 20% 98%);border-radius:.5rem;padding:.5rem .6rem;}
+  .user-avatar{height:2rem;width:2rem;border-radius:999px;background:hsl(var(--osg-500) / .12);display:flex;align-items:center;justify-content:center;color:hsl(var(--osg-600));flex-shrink:0;}
+  .user-card .name{font-size:.82rem;font-weight:500;color:hsl(var(--slate-900));}
+  .user-card .role{font-size:.72rem;color:hsl(var(--slate-500));}
+
+  /* ---------- main / header / cliente bar ---------- */
+  main{flex:1;display:flex;flex-direction:column;min-width:0;}
+  header.topbar{
+    height:4rem;border-bottom:1px solid hsl(215 20% 91% / .6);background:hsl(var(--background));
+    display:flex;align-items:center;justify-content:space-between;padding:0 1.5rem;flex-shrink:0;
+  }
+  header.topbar h1{font-size:1.25rem;font-weight:700;color:hsl(var(--slate-900));}
+  header.topbar p{margin:0;font-size:.82rem;color:hsl(var(--slate-500));}
+  .cliente-bar{
+    border-bottom:1px solid hsl(var(--osg-100));background:hsl(var(--osg-50) / .4);
+    padding:.7rem 1.5rem;display:flex;align-items:center;gap:1rem;flex-wrap:wrap;
+  }
+  .cliente-chip{display:flex;align-items:center;gap:.5rem;}
+  .cliente-chip .ico{height:2rem;width:2rem;border-radius:.5rem;background:hsl(var(--osg-100));color:hsl(var(--osg-700));display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .cliente-chip label{font-size:.8rem;font-weight:700;color:hsl(var(--osg-700));text-transform:uppercase;letter-spacing:.03em;}
+  .cliente-select{height:2.25rem;min-width:18rem;border:1px solid hsl(var(--osg-200));border-radius:.5rem;background:hsl(var(--background));padding:0 .7rem;font-weight:500;font-size:.85rem;}
+  .cliente-note{font-size:.78rem;color:hsl(var(--slate-600));}
+
+  .content{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:1rem;}
+
+  /* ---------- card ---------- */
+  .card{background:hsl(var(--card));border:1px solid hsl(var(--border));border-radius:var(--radius);box-shadow:0 1px 2px rgba(16,24,40,.04);}
+  .card-head{padding:1.1rem 1.4rem .6rem;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;}
+  .card-title{font-size:1rem;font-weight:700;color:hsl(var(--slate-900));display:flex;align-items:center;gap:.5rem;}
+  .card-body{padding:0 1.4rem 1.3rem;}
+
+  /* ---------- buttons ---------- */
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:.4rem;white-space:nowrap;
+    border-radius:.5rem;font-size:.83rem;font-weight:600;height:2.25rem;padding:0 .9rem;cursor:pointer;
+    border:1px solid transparent;transition:background .15s,color .15s,border-color .15s;
+  }
+  .btn-primary{background:hsl(var(--osg-moss));color:#fff;}
+  .btn-primary:hover{background:hsl(149 66% 18%);}
+  .btn-outline{background:hsl(var(--background));border-color:hsl(var(--input));color:hsl(var(--foreground));}
+  .btn-outline:hover{background:hsl(var(--osg-50));}
+  .btn-ghost{background:transparent;color:hsl(var(--slate-600));}
+  .btn-ghost:hover{background:hsl(var(--osg-50));color:hsl(var(--osg-700));}
+  .btn-sm{height:1.9rem;padding:0 .65rem;font-size:.78rem;}
+  .btn-icon{height:1.9rem;width:1.9rem;padding:0;}
+  .btn svg{width:14px;height:14px;flex-shrink:0;}
+
+  /* ---------- selo existe/novo/mapeado (o único selo que a tela mostra) ---------- */
+  .selo{
+    display:inline-flex;align-items:center;gap:.3rem;font-size:.62rem;font-weight:700;
+    letter-spacing:.04em;text-transform:uppercase;padding:.12rem .45rem;border-radius:999px;line-height:1.5;
+  }
+  .selo-existe{background:hsl(160 40% 94%);color:hsl(160 45% 28%);border:1px solid hsl(160 35% 80%);}
+  .selo-novo{background:hsl(var(--osg-highlighter) / .35);color:hsl(28 55% 22%);border:1px solid hsl(var(--osg-highlighter));}
+  .legenda{display:flex;gap:1.1rem;align-items:center;font-size:.75rem;color:hsl(var(--slate-600));flex-wrap:wrap;}
+
+  /* ---------- filtros / tabela ---------- */
+  .toolbar{display:flex;gap:.7rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1rem;}
+  .field-inline{display:flex;flex-direction:column;gap:.3rem;}
+  .field-inline label{font-size:.68rem;font-weight:700;color:hsl(var(--slate-500));text-transform:uppercase;letter-spacing:.03em;}
+  .search-wrap{position:relative;}
+  .search-wrap svg{position:absolute;left:.6rem;top:50%;transform:translateY(-50%);color:hsl(var(--slate-500));width:14px;height:14px;}
+  .search-wrap input{padding-left:1.85rem;}
+  .input-osg,.select-osg{
+    height:2.2rem;border-radius:.5rem;border:1px solid hsl(var(--osg-200) / .8);background:hsl(var(--background));
+    padding:0 .65rem;box-shadow:0 1px 1px rgba(16,24,40,.04);
+  }
+  .input-osg:focus,.select-osg:focus{outline:none;border-color:hsl(var(--osg-moss));box-shadow:0 0 0 3px hsl(var(--osg-moss) / .12);}
+
+  table.osg-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+  .table-wrap{border:1px solid hsl(var(--border));border-radius:.5rem;overflow:hidden;}
+  table.osg-table thead tr{border-bottom:1px solid hsl(var(--border));}
+  table.osg-table th{
+    text-align:left;padding:.6rem .9rem;font-size:.72rem;font-weight:700;text-transform:uppercase;
+    letter-spacing:.03em;color:hsl(var(--slate-500));background:hsl(var(--osg-50) / .5);
+  }
+  table.osg-table td{padding:.7rem .9rem;border-bottom:1px solid hsl(var(--border));vertical-align:middle;}
+  table.osg-table tbody tr:last-child td{border-bottom:none;}
+  table.osg-table tbody tr:hover{background:hsl(var(--osg-50) / .5);cursor:pointer;}
+  .mono{font-family:'SF Mono',ui-monospace,Consolas,monospace;}
+  .muted-txt{color:hsl(var(--slate-500));}
+  .pill{display:inline-flex;align-items:center;gap:.3rem;font-size:.72rem;font-weight:600;padding:.15rem .55rem;border-radius:999px;}
+  .pill-parceria{background:hsl(var(--osg-moss) / .1);color:hsl(var(--osg-moss));border:1px solid hsl(var(--osg-moss) / .25);}
+  .pill-composse{background:hsl(200 60% 95%);color:hsl(205 55% 35%);border:1px solid hsl(205 45% 78%);}
+  .pill-vigente{background:hsl(160 40% 94%);color:hsl(160 45% 28%);}
+  .pill-vencido{background:hsl(var(--osg-red) / .1);color:hsl(var(--osg-red));}
+
+  /* ---------- modal ---------- */
+  .osg-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px);
+    display:none;align-items:center;justify-content:center;z-index:50;padding:2rem;
+  }
+  .osg-overlay.open{display:flex;}
+  .osg-modal{
+    background:hsl(var(--background));border-radius:var(--radius);box-shadow:0 20px 60px -15px rgba(0,0,0,.35);
+    width:100%;max-width:68rem;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;
+    animation:osgModalIn .3s cubic-bezier(.22,1,.36,1);
+  }
+  @keyframes osgModalIn{from{opacity:0;transform:translateY(18px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+  .modal-head{padding:1.25rem 1.5rem 0;flex-shrink:0;}
+  .modal-title-row{display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;}
+  .modal-title-row h3{font-size:1rem;font-weight:700;}
+  .modal-title-row .code{background:hsl(var(--osg-50));color:hsl(var(--osg-700));font-family:monospace;font-weight:700;font-size:.85rem;padding:.1rem .5rem;border-radius:.4rem;}
+  .modal-close{position:absolute;right:1.4rem;top:1.3rem;color:hsl(var(--slate-500) / .8);background:none;border:none;cursor:pointer;font-size:1.1rem;line-height:1;padding:.2rem;border-radius:.3rem;}
+  .modal-close:hover{background:hsl(var(--osg-50));}
+
+  .tabs-list{display:flex;gap:.4rem;border-bottom:1px solid hsl(var(--osg-100));}
+  .tab-trigger{
+    position:relative;margin-bottom:-1px;border-bottom:3px solid transparent;background:none;border-top:none;border-left:none;border-right:none;
+    padding:.35rem .7rem .6rem;font-size:.85rem;font-weight:600;color:hsl(var(--slate-500));cursor:pointer;border-radius:.4rem .4rem 0 0;
+  }
+  .tab-trigger:hover{background:hsl(var(--osg-50));color:hsl(var(--osg-700));}
+  .tab-trigger.active{border-bottom-color:hsl(var(--osg-moss));background:hsl(var(--osg-50));color:hsl(var(--osg-700));}
+  .tab-trigger .dot{display:inline-block;width:.4rem;height:.4rem;border-radius:999px;background:hsl(var(--osg-highlighter));margin-left:.3rem;}
+
+  .modal-body{flex:1;overflow-y:auto;padding:1.25rem 1.5rem;}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  .modal-foot{
+    flex-shrink:0;border-top:1px solid hsl(var(--osg-100));background:hsl(var(--background));
+    padding:.85rem 1.5rem;display:flex;justify-content:flex-end;gap:.6rem;
+  }
+
+  /* ---------- field section (mirrors formKit.tsx FieldSection) ---------- */
+  .field-section{margin-top:1.5rem;border-top:2px solid hsl(var(--osg-100));padding-top:1.5rem;}
+  .field-section:first-child{margin-top:0;border-top:none;padding-top:0;}
+  .fs-inner{position:relative;padding-left:1.5rem;}
+  .fs-rail{position:absolute;top:0;bottom:0;left:0;width:.25rem;border-radius:999px;background:hsl(var(--osg-moss) / .7);}
+  .fs-head{display:flex;align-items:center;gap:.65rem;margin-bottom:1rem;flex-wrap:wrap;}
+  .fs-num{font-family:monospace;font-size:.72rem;font-weight:700;color:hsl(var(--osg-moss));}
+  .fs-title{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:hsl(var(--osg-700));}
+  .fs-hint{margin-left:auto;font-size:.68rem;font-weight:500;color:hsl(var(--slate-500));}
+
+  .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:.85rem;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:.85rem;}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:.85rem;}
+  .span2{grid-column:span 2;}
+  .field{display:flex;flex-direction:column;gap:.35rem;}
+  .field label{font-size:.72rem;font-weight:600;color:hsl(var(--slate-600));display:flex;align-items:center;gap:.4rem;}
+  .field label .req{color:hsl(var(--destructive));margin-left:.1rem;}
+  .field input, .field select, .field textarea{
+    height:2.25rem;border-radius:.5rem;border:1px solid hsl(var(--osg-200) / .8);background:hsl(var(--background));
+    padding:0 .65rem;box-shadow:0 1px 1px rgba(16,24,40,.04);width:100%;
+  }
+  .field input:focus,.field select:focus,.field textarea:focus{outline:none;border-color:hsl(var(--osg-moss));box-shadow:0 0 0 3px hsl(var(--osg-moss) / .12);}
+  .field input:disabled{background:hsl(var(--osg-50) / .6);color:hsl(var(--slate-500));}
+  .field .hint{font-size:.7rem;color:hsl(var(--slate-500));}
+
+  .switchbox{display:flex;align-items:center;gap:.6rem;height:2.25rem;border:1px solid hsl(var(--osg-200) / .8);border-radius:.5rem;background:hsl(var(--background));padding:0 .75rem;}
+  .switch{position:relative;width:2rem;height:1.1rem;border-radius:999px;background:hsl(var(--osg-200));flex-shrink:0;cursor:pointer;border:none;padding:0;}
+  .switch::after{content:'';position:absolute;top:2px;left:2px;width:.9rem;height:.9rem;border-radius:999px;background:#fff;transition:transform .15s;}
+  .switch.on{background:hsl(var(--osg-moss));}
+  .switch.on::after{transform:translateX(.9rem);}
+
+  .conditional{display:none;}
+  .conditional.show{display:block;}
+
+  .soma-check{font-size:.72rem;font-weight:600;margin-top:.5rem;display:flex;align-items:center;gap:.35rem;}
+  .soma-ok{color:hsl(160 45% 32%);}
+  .soma-bad{color:hsl(var(--osg-red));}
+
+  .composs-row{display:flex;align-items:center;gap:.6rem;padding:.5rem .6rem;border:1px solid hsl(var(--border));border-radius:.5rem;margin-bottom:.5rem;background:hsl(var(--background));}
+  .composs-row input[type=text]{flex:1;height:2rem;}
+  .composs-row .frac{width:5.5rem;height:2rem;text-align:right;}
+  .composs-row .rm{color:hsl(var(--slate-500));background:none;border:none;cursor:pointer;font-size:1rem;}
+  .add-row-btn{font-size:.78rem;font-weight:600;color:hsl(var(--osg-moss));background:none;border:1px dashed hsl(var(--osg-moss) / .4);border-radius:.5rem;padding:.4rem .7rem;cursor:pointer;width:100%;text-align:center;}
+  .add-row-btn:hover{background:hsl(var(--osg-moss) / .06);}
+
+  .anexo-table-wrap{border:1px solid hsl(var(--border));border-radius:.5rem;overflow:auto;}
+  table.anexo-table{width:100%;border-collapse:collapse;font-size:.78rem;min-width:940px;}
+  table.anexo-table th{background:hsl(var(--osg-50) / .6);padding:.5rem .6rem;text-align:left;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.02em;color:hsl(var(--slate-500));border-bottom:1px solid hsl(var(--border));white-space:nowrap;}
+  table.anexo-table td{padding:.4rem .5rem;border-bottom:1px solid hsl(var(--border));}
+  table.anexo-table input{height:1.9rem;border-radius:.4rem;border:1px solid hsl(var(--osg-200) / .7);padding:0 .4rem;width:100%;background:hsl(var(--background));font-size:.78rem;}
+  table.anexo-table select{height:1.9rem;border-radius:.4rem;border:1px solid hsl(var(--osg-200) / .7);padding:0 .35rem;width:100%;min-width:8rem;background:hsl(var(--background));font-size:.78rem;}
+
+  /* ---------- combobox com CRUD embutido (padrão CartorioSelect) ---------- */
+  .combo{position:relative;}
+  .combo input{
+    height:2.25rem;width:100%;border-radius:.5rem;border:1px solid hsl(var(--osg-200) / .8);
+    background:hsl(var(--background));padding:0 .65rem;box-shadow:0 1px 1px rgba(16,24,40,.04);
+  }
+  .combo input:focus{outline:none;border-color:hsl(var(--osg-moss));box-shadow:0 0 0 3px hsl(var(--osg-moss) / .12);}
+  .combo-panel{
+    display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:20;
+    background:hsl(var(--background));border:1px solid hsl(var(--border));border-radius:.5rem;
+    box-shadow:0 10px 30px -10px rgba(0,0,0,.25);max-height:15rem;overflow-y:auto;padding:.3rem;
+  }
+  .combo-panel.open{display:block;}
+  .combo-item{
+    padding:.5rem .6rem;border-radius:.4rem;cursor:pointer;font-size:.83rem;display:flex;
+    align-items:center;justify-content:space-between;gap:.5rem;
+  }
+  .combo-item:hover{background:hsl(var(--osg-50));}
+  .combo-item-sub{font-size:.72rem;color:hsl(var(--slate-500));}
+  .combo-divider{height:1px;background:hsl(var(--border));margin:.3rem 0;}
+  .combo-item-new{color:hsl(var(--osg-moss));font-weight:600;}
+  .combo-empty{padding:.6rem;font-size:.78rem;color:hsl(var(--slate-500));text-align:center;}
+
+  .banner{
+    display:flex;gap:.6rem;align-items:flex-start;border-radius:.6rem;padding:.7rem .9rem;font-size:.78rem;
+    border:1px solid hsl(var(--osg-highlighter));background:hsl(var(--osg-highlighter) / .08);
+  }
+  .banner svg{flex-shrink:0;margin-top:.1rem;color:hsl(28 55% 30%);}
+
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:hsl(var(--osg-200));border-radius:999px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+
+  @media (max-width: 860px){ .sidebar{display:none;} .grid3,.grid4{grid-template-columns:repeat(2,1fr);} }
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="sidebar-head">
+      <div class="sidebar-logo">OW</div>
+      <div>
+        <h2>OSG Work</h2>
+        <p>Ferramentas OSG</p>
+      </div>
+    </div>
+    <nav class="sidenav">
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Qualificação das Partes
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>
+        Diagnóstico Patrimonial
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 2v6h6"/></svg>
+        Controle de Matrículas
+      </div>
+
+      <div class="nav-group-label">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path stroke-linecap="round" stroke-linejoin="round" d="M14 2v6h6M9 15l3-3 3 3M12 12v6"/></svg>
+        Oficina de Contratos
+      </div>
+      <div class="nav-sub">
+        <div class="nav-item">Biblioteca de Modelos</div>
+        <div class="nav-item">Montagem de Documentos</div>
+        <div class="nav-item">Gerar Documento</div>
+        <div class="nav-item active">
+          Contratos de Exploração Rural
+          <span class="nav-badge-new">novo</span>
+        </div>
+      </div>
+
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v20M2 12h20"/></svg>
+        Quadro Societário
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        Documentos
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 3v18h18M18.7 8 12 14.7 8.7 11.4 3 17"/></svg>
+        Relatórios
+      </div>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="user-card">
+        <div class="user-avatar">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </div>
+        <div>
+          <div class="name">alexandre.silva</div>
+          <div class="role">OSG</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <main>
+    <header class="topbar">
+      <div>
+        <h1>Cadastro de Exploração Rural</h1>
+        <p>Prévia do formulário de parceria e composse — sem salvamento</p>
+      </div>
+      <div class="legenda">
+        <span class="selo selo-existe">existe</span>
+        <span class="selo selo-novo">novo</span>
+      </div>
+    </header>
+
+    <div class="cliente-bar">
+      <div class="cliente-chip">
+        <div class="ico">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4M10 10h4M10 14h4M10 18h4"/></svg>
+        </div>
+        <label>Cliente</label>
+      </div>
+      <select class="cliente-select">
+        <option>Fazenda Modelo Agropecuária Ltda.</option>
+      </select>
+      <div class="cliente-note">Trabalhando em: <strong>Fazenda Modelo Agropecuária Ltda.</strong></div>
+    </div>
+
+    <div class="content">
+
+      <div class="banner">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+        <div>Mockup da ALE-3. Nenhum campo desta página consulta ou grava no banco. Ver <code>docs/osg/levantamento-contratos-rurais.md</code>.</div>
+      </div>
+
+      <!-- ============ CARD: LISTA DE CONTRATOS ============ -->
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
+            Explorações rurais cadastradas (4)
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="abrirModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 5v14M5 12h14"/></svg>
+            Nova exploração
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="toolbar">
+            <div class="field-inline" style="flex:1;min-width:14rem;">
+              <label>Buscar</label>
+              <div class="search-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path stroke-linecap="round" d="m21 21-4.35-4.35"/></svg>
+                <input class="input-osg" style="width:100%;" placeholder="Referência, imóvel ou parte">
+              </div>
+            </div>
+            <div class="field-inline">
+              <label>Tipo</label>
+              <select class="select-osg">
+                <option>Todos</option><option>Parceria</option><option>Composse</option>
+              </select>
+            </div>
+            <div class="field-inline">
+              <label>Situação</label>
+              <select class="select-osg"><option>Todas</option><option>Vigente</option><option>Vencido</option></select>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="osg-table">
+              <thead>
+                <tr>
+                  <th>Ref.</th><th>Tipo</th><th>Imóvel / matrícula</th>
+                  <th style="text-align:right;">Área documento × explorada</th>
+                  <th>Outorgante → explorador</th><th>Vigência</th><th>Situação</th>
+                  <th style="width:6rem;text-align:right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr onclick="abrirModal('ER 01')">
+                  <td class="mono">ER 01</td>
+                  <td><span class="pill pill-parceria">Parceria</span></td>
+                  <td>Fazenda Boa Vista · Mat. 2.424</td>
+                  <td class="mono" style="text-align:right;">234,00 / 200,68 ha</td>
+                  <td>Modelo Agro Ltda. → José da Silva</td>
+                  <td class="mono">2022–2025</td>
+                  <td><span class="pill pill-vigente">vigente</span></td>
+                  <td style="text-align:right;"><button class="btn btn-ghost btn-icon" title="Editar" onclick="event.stopPropagation();abrirModal('ER 01')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button></td>
+                </tr>
+                <tr onclick="abrirModal('ER 02')">
+                  <td class="mono">ER 02</td>
+                  <td><span class="pill pill-composse">Composse</span></td>
+                  <td>Fazenda Boa Vista · Mat. 2.424</td>
+                  <td class="mono" style="text-align:right;">234,00 / 200,68 ha</td>
+                  <td>José da Silva + Maria Souza (50/50)</td>
+                  <td class="mono">2022–2025</td>
+                  <td><span class="pill pill-vigente">vigente</span></td>
+                  <td style="text-align:right;"><button class="btn btn-ghost btn-icon" title="Editar" onclick="event.stopPropagation();abrirModal('ER 02')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button></td>
+                </tr>
+                <tr onclick="abrirModal('ER 03')">
+                  <td class="mono">ER 03</td>
+                  <td><span class="pill pill-composse">Composse</span></td>
+                  <td>Fazenda Cristal · Mat. 2.628</td>
+                  <td class="mono" style="text-align:right;">225,54 / 225,54 ha</td>
+                  <td>José da Silva + 2 compossuidores (70/15/15)</td>
+                  <td class="mono">2020–2027</td>
+                  <td><span class="pill pill-vigente">vigente</span></td>
+                  <td style="text-align:right;"><button class="btn btn-ghost btn-icon" title="Editar" onclick="event.stopPropagation();abrirModal('ER 03')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button></td>
+                </tr>
+                <tr onclick="abrirModal('ER 04')" style="opacity:.6;">
+                  <td class="mono">ER 04</td>
+                  <td><span class="pill pill-parceria">Parceria</span></td>
+                  <td>Sítio Vencido · Mat. 1.010</td>
+                  <td class="mono" style="text-align:right;">80,00 / 80,00 ha</td>
+                  <td>Modelo Agro Ltda. → Antigo Parceiro</td>
+                  <td class="mono">2018–2021</td>
+                  <td><span class="pill pill-vencido">vencido</span></td>
+                  <td style="text-align:right;"><button class="btn btn-ghost btn-icon" title="Editar" onclick="event.stopPropagation();abrirModal('ER 04')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="muted-txt" style="font-size:.74rem;margin-top:.6rem;">Dado fictício — só para mostrar a grade.</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- ============ MODAL: MOCKUP DO FORMULÁRIO ============ -->
+<div class="osg-overlay" id="overlay">
+  <div class="osg-modal">
+    <div class="modal-head" style="position:relative;">
+      <button class="modal-close" onclick="fecharModal()">✕</button>
+      <div class="modal-title-row">
+        <h3 id="modalTitulo">Nova exploração rural</h3>
+        <span class="code" id="modalCode">ER 05</span>
+      </div>
+      <div class="tabs-list">
+        <button class="tab-trigger active" onclick="setTab('dados', this)">Dados</button>
+        <button class="tab-trigger" id="tabImoveisBtn" onclick="setTab('imoveis', this)">Imóveis e origens</button>
+      </div>
+    </div>
+
+    <div class="modal-body">
+      <div class="banner" style="margin-bottom:1rem;">
+        <div><strong>Prévia isolada:</strong> os controles abaixo não salvam, não consultam o banco e não criam matrícula.</div>
+      </div>
+
+      <!-- ---- TAB: DADOS ---- -->
+      <div class="tab-panel active" id="tab-dados">
+
+        <!-- 01 Instrumento -->
+        <section class="field-section">
+          <div class="fs-inner">
+            <span class="fs-rail"></span>
+            <div class="fs-head"><span class="fs-num">01</span><h4 class="fs-title">Instrumento</h4></div>
+            <div class="grid4">
+              <div class="field">
+                <label>Referência<span class="req">*</span> <span class="selo selo-existe">existe</span></label>
+                <input value="ER 05" class="mono">
+              </div>
+              <div class="field">
+                <label>Tipo de exploração<span class="req">*</span> <span class="selo selo-existe">existe</span></label>
+                <select id="tipoExploracao" onchange="onTipoChange()">
+                  <option value="parceria">Parceria</option>
+                  <option value="composse">Composse</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Data da assinatura <span class="selo selo-existe">existe</span></label>
+                <input type="date" value="2025-03-12">
+              </div>
+              <div class="field">
+                <label>Data de encerramento <span class="selo selo-existe">existe</span></label>
+                <input type="date" value="2028-03-11">
+              </div>
+              <div class="field span2">
+                <label>Vigência <span class="selo selo-existe">existe</span></label>
+                <input value="3 anos, contados da assinatura">
+              </div>
+              <div class="field span2">
+                <label>Vigência prorrogável <span class="selo selo-novo">novo</span></label>
+                <div class="switchbox"><button class="switch on" onclick="this.classList.toggle('on')"></button><span style="font-size:.8rem;">por prazo indeterminado</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 02 Imóvel e áreas -->
+        <section class="field-section">
+          <div class="fs-inner">
+            <span class="fs-rail"></span>
+            <div class="fs-head"><span class="fs-num">02</span><h4 class="fs-title">Imóvel e áreas</h4><span class="fs-hint">dados da matrícula existente</span></div>
+            <div class="field">
+              <label>Imóvel / matrícula<span class="req">*</span> <span class="selo selo-existe">existe</span></label>
+              <select>
+                <option>Fazenda Boa Vista — Matrícula 2.424</option>
+                <option>Fazenda Cristal — Matrícula 2.628</option>
+              </select>
+              <span class="hint">Somente seleciona cadastro existente. Use a aba “Imóveis e origens” para incluir outras matrículas no instrumento.</span>
+              <div class="banner" style="margin-top:.6rem;" id="avisoMatriculaCompartilhada">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+                <div><strong>Esta matrícula já está em outra Parceria ativa:</strong> ER 01 — Modelo Agro Ltda. → José da Silva, 60% da área. Confirmado com a OSG (13/08/2026): duas Parcerias concorrentes na mesma matrícula são válidas se cobrirem fração distinta da área/percentual, com outorgados diferentes — o cadastro não bloqueia, só avisa.</div>
+              </div>
+            </div>
+            <div class="grid4" style="margin-top:.75rem;">
+              <div class="field"><label>Município / UF <span class="selo selo-existe">existe</span></label><input value="Sorriso / MT" disabled></div>
+              <div class="field"><label>Área documento <span class="selo selo-existe">existe</span></label><input class="mono" value="284,9610 ha" disabled></div>
+              <div class="field"><label>Área real <span class="selo selo-existe">existe</span></label><input class="mono" value="284,9610 ha" disabled></div>
+              <div class="field"><label>Área explorada <span class="selo selo-existe">existe</span></label><input class="mono" value="234,0000 ha"></div>
+              <div class="field"><label>Unidade <span class="selo selo-existe">existe</span></label><input value="hectare" disabled></div>
+              <div class="field span2"><label>Georreferenciamento <span class="selo selo-existe">existe</span></label><input value="Sim — não prejudica transferência" disabled></div>
+            </div>
+            <span class="hint">O modelo de cabeçalho+detalhes já suporta isso sem tabela nova — a mesma matrícula pode aparecer no detalhe de duas Parcerias diferentes. Falta só decidir se o aviso acima soma percentuais/áreas automaticamente ou fica só informativo.</span>
+          </div>
+        </section>
+
+        <!-- 03 Partes -->
+        <section class="field-section">
+          <div class="fs-inner">
+            <span class="fs-rail"></span>
+            <div class="fs-head"><span class="fs-num">03</span><h4 class="fs-title">Partes</h4></div>
+
+            <div class="conditional show" id="bloco-partes-parceria">
+              <div class="grid2">
+                <div class="field">
+                  <label>Outorgante <span class="selo selo-existe">existe</span></label>
+                  <select><option>Modelo Agro Ltda. — qualificação completa</option></select>
+                  <span class="hint">A qualificação vem de Pessoa; não é redigitada aqui.</span>
+                </div>
+                <div class="field">
+                  <label>Explorador <span class="selo selo-existe">existe</span></label>
+                  <select><option>José da Silva — qualificação completa</option></select>
+                  <span class="hint">Na UI: Explorador. No gerador: papel outorgado, a confirmar com Bernardo.</span>
+                </div>
+              </div>
+              <div id="partes-extra-parceria" style="margin-top:.6rem;"></div>
+              <button class="add-row-btn" style="margin-top:.6rem;" onclick="addParteExtra('partes-extra-parceria')">+ Adicionar outra parte</button>
+              <span class="hint">Cobre N outorgantes/exploradores e papéis como anuente, interveniente e garantidor (achado real em Nodari) — a lista aceita qualquer papel. O texto exato dos papéis e se o dado persiste no cadastro ou só na renderização ad hoc ainda depende do acordo com o Bernardo.</span>
+            </div>
+
+            <div class="conditional" id="bloco-partes-composse">
+              <label style="font-size:.72rem;font-weight:600;color:hsl(var(--slate-600));display:block;margin-bottom:.5rem;">
+                Compossuidores e distribuição interna <span class="selo selo-novo">novo</span>
+              </label>
+              <div id="composs-rows">
+                <div class="composs-row">
+                  <select><option>José da Silva — qualificação completa</option></select>
+                  <input type="number" class="frac mono" value="70" oninput="recalcComposse()"> <span>%</span>
+                  <button class="rm" onclick="this.parentElement.remove();recalcComposse()">✕</button>
+                </div>
+                <div class="composs-row">
+                  <select><option>Maria Souza — qualificação completa</option></select>
+                  <input type="number" class="frac mono" value="15" oninput="recalcComposse()"> <span>%</span>
+                  <button class="rm" onclick="this.parentElement.remove();recalcComposse()">✕</button>
+                </div>
+                <div class="composs-row">
+                  <select><option>Pedro Souza — qualificação completa</option></select>
+                  <input type="number" class="frac mono" value="15" oninput="recalcComposse()"> <span>%</span>
+                  <button class="rm" onclick="this.parentElement.remove();recalcComposse()">✕</button>
+                </div>
+              </div>
+              <button class="add-row-btn" onclick="addComposseRow()">+ Adicionar compossuidor</button>
+              <div class="soma-check soma-ok" id="somaComposse">✓ soma 100% — confirmado com a OSG: a base é sempre os frutos deste instrumento de composse, sem cobertura parcial</div>
+
+              <div id="partes-extra-composse" style="margin-top:.85rem;"></div>
+              <button class="add-row-btn" onclick="addParteExtra('partes-extra-composse')">+ Adicionar anuente / interveniente / garantidor</button>
+              <span class="hint">Mesmo mecanismo da Parceria (achado real em Nodari) — não entra na soma de 100% dos compossuidores, é um papel à parte.</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- 04 Percentual e produção -->
+        <section class="field-section">
+          <div class="fs-inner">
+            <span class="fs-rail"></span>
+            <div class="fs-head"><span class="fs-num">04</span><h4 class="fs-title">Percentual e produção</h4></div>
+
+            <div class="conditional show" id="bloco-percentual-parceria">
+              <div class="grid4">
+                <div class="field"><label>Percentual do outorgante <span class="selo selo-novo">novo</span></label><input class="mono" value="30,000%"></div>
+                <div class="field"><label>Percentual do explorador <span class="selo selo-novo">novo</span></label><input class="mono" value="70,000%"></div>
+                <div class="field"><label>Vigência do percentual <span class="selo selo-novo">novo</span></label><input type="date" value="2025-03-12"></div>
+                <div class="field"><label>Termo Aditivo de referência <span class="selo selo-novo">novo</span></label><input placeholder="preencher só se o percentual já mudou no meio do prazo"></div>
+                <div class="field"><label>Sacas por hectare <span class="selo selo-existe">existe</span></label><input class="mono" placeholder="se aplicável"></div>
+                <div class="field span2"><label>Culturas/atividades permitidas <span class="selo selo-novo">novo</span></label><input value="soja; milho; algodão; pecuária"></div>
+                <div class="field"><label>Benfeitorias indenizáveis <span class="selo selo-novo">novo</span></label><div class="switchbox"><button class="switch" onclick="this.classList.toggle('on')"></button><span style="font-size:.8rem;">sim</span></div></div>
+                <div class="field"><label>Permite penhor / financiamento <span class="selo selo-novo">novo</span></label><div class="switchbox"><button class="switch on" onclick="this.classList.toggle('on')"></button><span style="font-size:.8rem;">sim</span></div></div>
+              </div>
+              <span class="hint">Entregável confirmado com o Fiscal: relatório/apresentação em PDF, não a planilha WP interna. Confirmado com a OSG: o percentual pode mudar no meio do prazo da Parceria e, quando muda, exige Termo Aditivo assinado — a vigência não se sincroniza automaticamente com a renovação de 3 anos.</span>
+            </div>
+
+            <div class="conditional" id="bloco-percentual-composse">
+              <p class="hint">A composse usa a distribuição interna informada em Partes. A partilha de frutos pertence ao instrumento de parceria de origem — confirmado pela OSG: a composse é sempre resultado da Parceria, nunca o contrário, mesmo quando reúne mais de uma Parceria de origem.</p>
+              <div class="grid2" style="margin-top:.75rem;">
+                <div class="field"><label>Prazo de indivisão <span class="selo selo-novo">novo</span></label><input value="3 anos"></div>
+                <div class="field"><label>Indivisão prorrogável <span class="selo selo-novo">novo</span></label><div class="switchbox"><button class="switch on" onclick="this.classList.toggle('on')"></button><span style="font-size:.8rem;">por prazo indeterminado</span></div></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 05 Documento de origem -->
+        <section class="field-section">
+          <div class="fs-inner">
+            <span class="fs-rail"></span>
+            <div class="fs-head"><span class="fs-num">05</span><h4 class="fs-title">Documento de origem</h4></div>
+
+            <div class="conditional show" id="bloco-documento-parceria">
+              <div class="field">
+                <label>Estudo fiscal <span class="selo selo-existe">existe</span></label>
+                <select><option>Estudo de Cálculo da Parceria na Atividade Pecuária — 12/03/2025</option></select>
+                <span class="hint">Arquivo já recebido do cliente/Fiscal. A planilha é transformada em cadastro por digitação; não há importação nesta sprint.</span>
+              </div>
+            </div>
+
+            <div class="conditional" id="bloco-documento-composse">
+              <div class="grid2">
+                <div class="field"><label>Tipo do instrumento de origem <span class="selo selo-novo">novo</span></label><select><option>Parceria</option><option>Arrendamento</option><option>Herança</option><option>Outro</option></select></div>
+                <div class="field"><label>Instrumento de origem da posse <span class="selo selo-novo">novo</span></label><select><option>ER 01 — Parceria Modelo Agro Ltda. → José da Silva</option></select></div>
+                <div class="field span2"><label>Documento comprobatório <span class="selo selo-existe">existe</span></label><select><option>Contrato de Parceria Rural registrado — 10/10/2022</option></select></div>
+              </div>
+              <span class="hint">A origem definitiva é vinculada a cada imóvel na aba “Imóveis e origens”, pois um contrato de composse pode reunir várias origens.</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ---- TAB: IMÓVEIS E ORIGENS ---- -->
+      <div class="tab-panel" id="tab-imoveis">
+        <p class="hint" style="margin-bottom:.7rem;">Uma linha por matrícula dentro do instrumento. Os dados cartoriais são lidos do cadastro; somente a área explorada e a origem são próprios da relação. "Situação da origem" é um estado computado (Parceria de origem ainda vigente / já encerrada) — confirmado em <code>[BV-COM]</code>: quando a origem encerra, o imóvel sai da composse sem precisar de aditivo; não é um campo digitado.</p>
+        <div class="anexo-table-wrap">
+          <table class="anexo-table">
+            <thead>
+              <tr>
+                <th>Ref. <span class="selo selo-existe">existe</span></th>
+                <th>Imóvel / matrícula <span class="selo selo-existe">existe</span></th>
+                <th>Área documento <span class="selo selo-existe">existe</span></th>
+                <th>Área real <span class="selo selo-existe">existe</span></th>
+                <th>Área explorada <span class="selo selo-existe">existe</span></th>
+                <th>Instrumento de origem <span class="selo selo-novo">novo</span></th>
+                <th>Situação da origem <span class="selo selo-novo">novo</span></th>
+              </tr>
+            </thead>
+            <tbody id="imoveis-rows">
+              <tr>
+                <td><input value="a"></td>
+                <td><select><option>Fazenda Boa Vista — Mat. 2.424</option></select></td>
+                <td><input class="mono" value="284,9610 ha" disabled></td>
+                <td><input class="mono" value="284,9610 ha" disabled></td>
+                <td><input class="mono" value="234,0000 ha"></td>
+                <td><select><option>ER 01 — Parceria de origem</option><option>Não se aplica à parceria</option></select></td>
+                <td><span class="pill pill-vigente">vigente</span></td>
+              </tr>
+              <tr>
+                <td><input value="b"></td>
+                <td><select><option>Fazenda Cristal — Mat. 2.628</option></select></td>
+                <td><input class="mono" value="225,5480 ha" disabled></td>
+                <td><input class="mono" value="225,5480 ha" disabled></td>
+                <td><input class="mono" value="225,5480 ha"></td>
+                <td><select><option>ER 03 — Outra parceria de origem</option><option>Não se aplica à parceria</option></select></td>
+                <td><span class="pill pill-vencido">encerrado c/ origem</span></td>
+              </tr>
+              <tr><td colspan="7" style="text-align:center;padding:.6rem;"><button class="add-row-btn" style="width:auto;padding:.35rem 1rem;" onclick="adicionarImovel()">+ Selecionar outro imóvel</button></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <span class="hint" style="margin-right:auto;">Mockup: nenhum dado será salvo.</span>
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" id="btnSalvar" onclick="fecharModal()">Cadastrar exploração</button>
+    </div>
+  </div>
+</div>
+
+<script>
+function abrirModal(ref){
+  const isEdit = !!ref;
+  document.getElementById('overlay').classList.add('open');
+  document.getElementById('modalTitulo').textContent = isEdit ? 'Editar exploração rural' : 'Nova exploração rural';
+  document.getElementById('modalCode').textContent = isEdit ? ref : 'ER 05';
+  document.getElementById('btnSalvar').textContent = isEdit ? 'Salvar alterações' : 'Cadastrar exploração';
+  setTab('dados', document.querySelector('.tab-trigger'));
+}
+
+function fecharModal(){ document.getElementById('overlay').classList.remove('open'); }
+
+function setTab(id, el){
+  document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+
+function onTipoChange(){
+  const isComposse = document.getElementById('tipoExploracao').value === 'composse';
+  document.getElementById('bloco-partes-parceria').classList.toggle('show', !isComposse);
+  document.getElementById('bloco-partes-composse').classList.toggle('show', isComposse);
+  document.getElementById('bloco-percentual-parceria').classList.toggle('show', !isComposse);
+  document.getElementById('bloco-percentual-composse').classList.toggle('show', isComposse);
+  document.getElementById('bloco-documento-parceria').classList.toggle('show', !isComposse);
+  document.getElementById('bloco-documento-composse').classList.toggle('show', isComposse);
+}
+
+function addParteExtra(containerId){
+  const wrap = document.getElementById(containerId);
+  const row = document.createElement('div');
+  row.className = 'composs-row';
+  row.innerHTML = '<select style="max-width:12rem;flex:none;"><option>Outorgante adicional</option><option>Explorador adicional</option><option>Anuente</option><option>Interveniente</option><option>Garantidor</option><option>Outro (definir com Bernardo)</option></select><select style="flex:1;"><option>Selecionar pessoa qualificada…</option></select><button class="rm" onclick="this.parentElement.remove()">✕</button>';
+  wrap.appendChild(row);
+}
+
+function addComposseRow(){
+  const wrap = document.getElementById('composs-rows');
+  const row = document.createElement('div');
+  row.className = 'composs-row';
+  row.innerHTML = '<select><option>Selecionar pessoa qualificada…</option></select><input type="number" class="frac mono" value="0" oninput="recalcComposse()"> <span>%</span><button class="rm" onclick="this.parentElement.remove();recalcComposse()">✕</button>';
+  wrap.appendChild(row);
+  recalcComposse();
+}
+
+function recalcComposse(){
+  const fracs = Array.from(document.querySelectorAll('#composs-rows .frac')).map(i => parseFloat(i.value) || 0);
+  const soma = fracs.reduce((a,b) => a+b, 0);
+  const el = document.getElementById('somaComposse');
+  if (Math.abs(soma - 100) < 0.01){
+    el.textContent = '✓ soma 100% — confirmado com a OSG: sem cobertura parcial nos frutos deste instrumento';
+    el.className = 'soma-check soma-ok';
+  } else {
+    el.textContent = '✕ soma ' + soma + '% — a OSG confirmou que a distribuição precisa fechar em 100%';
+    el.className = 'soma-check soma-bad';
+  }
+}
+
+function adicionarImovel(){
+  const wrap = document.getElementById('imoveis-rows');
+  const actionRow = wrap.lastElementChild;
+  const row = document.createElement('tr');
+  row.innerHTML = '<td><input value="c"></td><td><select><option>Selecionar imóvel / matrícula existente…</option></select></td><td><input disabled></td><td><input disabled></td><td><input class="mono"></td><td><select><option>Selecionar instrumento de origem…</option><option>Não se aplica à parceria</option></select></td><td><span class="pill pill-vigente">vigente</span></td>';
+  wrap.insertBefore(row, actionRow);
+}
+
+const previewParams = new URLSearchParams(window.location.search);
+const previewTipo = previewParams.get('tipo');
+if (previewTipo === 'parceria' || previewTipo === 'composse') {
+  document.getElementById('tipoExploracao').value = previewTipo;
+}
+onTipoChange();
+if (previewParams.get('abrir') === '1') abrirModal();
+if (previewParams.get('aba') === 'imoveis') {
+  setTab('imoveis', document.getElementById('tabImoveisBtn'));
+}
+</script>
+</body>
+</html>
