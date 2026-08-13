@@ -381,7 +381,7 @@ export default function ContribuintesTab({
             )
           )}
           {isEditingThis ? (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setEditingEntityId(null)}>
+            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setEditingEntityId(null)}>
               <Check size={12} /> Pronto
             </Button>
           ) : (
@@ -588,7 +588,7 @@ export default function ContribuintesTab({
                         inteiro não há o que concluir. */}
                     {isEditingThis && (
                       <div className="flex justify-end border-t pt-2">
-                        <Button size="sm" variant="outline" className="gap-1.5" onClick={() => setEditingEntityId(null)}><Check size={14} /> Pronto</Button>
+                        <Button size="sm" variant="outline" className={cn('gap-1.5', acento.botaoSuave)} onClick={() => setEditingEntityId(null)}><Check size={14} /> Pronto</Button>
                       </div>
                     )}
                     </div>
