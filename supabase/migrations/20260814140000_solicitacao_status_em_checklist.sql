@@ -1,0 +1,39 @@
+-- Estado novo da solicitação: `em_checklist`, entre `enviada` e `encerrada`.
+--
+-- POR QUE UM ESTADO NOVO, E NÃO REAPROVEITAR `encerrada`
+--
+-- Quando o consultor termina de receber a primeira leva, a tela do cliente deixa
+-- de ser gaveta-balde e passa a ser checklist: o que falta, de quem, com upload
+-- na própria linha (docs/planos/checklist-por-subtracao.md §5.1). Essa virada é
+-- ato explícito do consultor, por um botão que substitui o "Encerrar" na tela de
+-- solicitação.
+--
+-- Marcar a solicitação como `encerrada` nesse momento pareceria mais barato e
+-- quebraria quatro coisas que hoje dependem desse valor:
+--
+--   1. o índice único `uq_solicitacao_ativa_por_cliente` conta como ativa toda
+--      solicitação `status <> 'encerrada'`. Encerrar liberaria abrir uma segunda
+--      solicitação com o checklist da primeira ainda vivo;
+--   2. as policies do cliente em `solicitacao` e `solicitacao_item` filtram
+--      `status = 'enviada'`: o cliente perderia a lista no instante da virada;
+--   3. `solicitacaoAberta` (src/hooks/useDomainSolicitacao.ts) recusa incluir item
+--      em solicitação encerrada, e pedir "faltou o X" é o normal desta fase;
+--   4. a tela do cliente tranca o envio em `encerrada`, exatamente o contrário do
+--      que o checklist precisa.
+--
+-- Com o valor novo, `enviada` continua significando o que significa hoje (nada
+-- muda para o fluxo de solicitação em execução) e `encerrada` volta a significar
+-- "acabou de verdade", seguindo como ação final.
+--
+-- POR QUE ESTA MIGRATION ESTÁ SOZINHA
+--
+-- `ALTER TYPE ... ADD VALUE` pode rodar dentro de transação no Postgres 12+, mas
+-- o valor novo NÃO pode ser USADO na mesma transação ("unsafe use of new value of
+-- enum type"). As policies que passam a citar `em_checklist` vêm na migration
+-- seguinte, em outra transação, por isso.
+--
+-- Reversão: não existe DROP VALUE em enum do Postgres. Para reverter de fato, é
+-- preciso recriar o tipo (criar o enum antigo, converter a coluna, dropar o novo),
+-- e antes disso levar as linhas que estiverem em `em_checklist` para `enviada`.
+
+ALTER TYPE public.osg_solicitacao_status ADD VALUE IF NOT EXISTS 'em_checklist' AFTER 'enviada';
