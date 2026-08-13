@@ -159,7 +159,7 @@ export default function ContratosTab({
   // pedido: se dependesse da seleção, escolher outra OS na lista seria desfeito
   // no mesmo instante.
   useEffect(() => {
-    if (foco) setSelecionadoId(foco.itemId);
+    if (foco?.itemId != null) setSelecionadoId(foco.itemId);
   }, [foco]);
 
   const acento = useAcentoArea();

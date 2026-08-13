@@ -81,7 +81,7 @@ export default function RepresentantesTab({
   // pedido: se dependesse da seleção, escolher outro item na lista seria
   // desfeito no mesmo instante.
   useEffect(() => {
-    if (foco) setSelecionadoId(foco.itemId);
+    if (foco?.itemId != null) setSelecionadoId(foco.itemId);
   }, [foco]);
 
   const alterados = useMemo(

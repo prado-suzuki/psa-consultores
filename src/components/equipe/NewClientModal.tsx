@@ -33,6 +33,8 @@ import {
   type Pendencia,
 } from "@/lib/camposObrigatorios";
 
+import { useFocoPendencia } from "./client-form/useFocoPendencia";
+
 import ClienteTab from "./client-form/ClienteTab";
 import ContribuintesTab from "./client-form/ContribuintesTab";
 import RepresentantesTab from "./client-form/RepresentantesTab";
@@ -86,6 +88,9 @@ export default function NewClientModal({
   const [tentouSalvar, setTentouSalvar] = useState(false);
   /** Item que o aviso do rodapé mandou abrir. */
   const [foco, setFoco] = useState<{ aba: AbaCadastro; pedido: FocoPendencia } | null>(null);
+  /** Corpo do modal: é dentro dele que o foco procura o campo em falta. */
+  const conteudoRef = useRef<HTMLDivElement>(null);
+  useFocoPendencia(foco, conteudoRef);
 
   useEffect(() => {
     if (open) {
@@ -145,8 +150,11 @@ export default function NewClientModal({
    * o que a tela chama de sujo e o que o salvamento chama de alterado passam a ser
    * a mesma coisa, e não há mais janela de tempo para errar.
    *
-   * Cadastro novo não tem original: aí sujo é ter qualquer coisa preenchida, e
-   * quem cuida disso é o rascunho, não este indicador.
+   * Cadastro novo não tem original: a referência passa a ser o formulário em
+   * branco. Antes daqui ele retornava `false` sempre, e o comentário dizia que
+   * "quem cuida disso é o rascunho" — só que `resetAndClose()` apaga o rascunho.
+   * O efeito medido: preencher um cliente novo, clicar em Cancelar e perder
+   * tudo, sem confirmação nenhuma e sem o aviso de alterações não salvas.
    */
   const currentSnapshot = useMemo(
     () => JSON.stringify({ clientData, entities, participants, contracts }),
@@ -163,10 +171,18 @@ export default function NewClientModal({
       : null),
     [originalSnapshot],
   );
+  const referenciaVazia = useMemo(
+    () => JSON.stringify({ clientData: defaultClientData, entities: [], participants: [], contracts: [] }),
+    [],
+  );
   const hasUnsavedChanges = useMemo(() => {
-    if (!referenciaSalva || loadingEdit) return false;
-    return currentSnapshot !== referenciaSalva;
-  }, [currentSnapshot, referenciaSalva, loadingEdit]);
+    if (loadingEdit) return false;
+    const referencia = isEditing ? referenciaSalva : referenciaVazia;
+    // Edição sem snapshot é carregamento que não veio: sem referência confiável
+    // não dá para afirmar que há alteração pendente.
+    if (!referencia) return false;
+    return currentSnapshot !== referencia;
+  }, [currentSnapshot, referenciaSalva, referenciaVazia, isEditing, loadingEdit]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -262,7 +278,11 @@ export default function NewClientModal({
   /** Abre a aba e o item da falta, a partir do aviso do rodapé. */
   const irParaPendencia = (p: Pendencia) => {
     setActiveTab(p.aba);
-    setFoco(p.itemId != null ? { aba: p.aba, pedido: { itemId: p.itemId } } : null);
+    // Sempre um pedido novo, mesmo sem item: a aba Cliente não tem lista, e era
+    // o `null` daqui que deixava o cursor parado no botão Salvar. O objeto é
+    // recriado a cada chamada de propósito — é o que refaz o foco quando a
+    // mesma falta é apontada duas vezes seguidas.
+    setFoco({ aba: p.aba, pedido: { itemId: p.itemId } });
   };
 
   /** O pedido de foco só vale para a aba de onde ele veio. */
@@ -332,6 +352,7 @@ export default function NewClientModal({
           Antes o clique era simplesmente ignorado, e a única saída era o botão.
         */}
         <DialogContent
+          ref={conteudoRef}
           className={cn("max-w-7xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", acento.fundoModal)}
           onInteractOutside={(e) => { e.preventDefault(); handleAttemptClose(); }}
         >

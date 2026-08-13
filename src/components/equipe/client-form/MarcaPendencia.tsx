@@ -12,6 +12,18 @@ import { AlertCircle } from 'lucide-react';
 /** Aplicada ao campo (Input, SelectTrigger, área de seleção) que está em falta. */
 export const CLASSE_CAMPO_PENDENTE = 'border-destructive focus-visible:ring-destructive';
 
+/**
+ * Acha na tela o campo marcado acima, para levar o cursor até ele.
+ *
+ * Mora aqui, colado na classe, porque os dois têm de mudar juntos: um seletor
+ * escrito noutro arquivo envelheceria calado, e o sintoma seria o cursor parar
+ * de andar sem nada quebrar.
+ *
+ * `border-destructive` é um token exato, então não colide com os botões de
+ * remover, que usam `border-destructive/40` e `hover:border-destructive`.
+ */
+export const SELETOR_CAMPO_PENDENTE = '.border-destructive';
+
 export interface MarcaPendenciaProps {
   /** A frase da falta. Sem ela nada é renderizado, e o chamador não precisa de `&&`. */
   children?: string;

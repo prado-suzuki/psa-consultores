@@ -21,7 +21,11 @@ export type AbaCadastro = 'cliente' | 'contribuintes' | 'representantes' | 'cont
  * consultor tenha navegado para outro no meio do caminho.
  */
 export interface FocoPendencia {
-  itemId: number;
+  /**
+   * Item da lista a abrir. Ausente quando a falta é da aba Cliente, que não tem
+   * lista — e era esse caso que ficava sem pedido de foco nenhum.
+   */
+  itemId?: number;
 }
 
 export interface Pendencia {
