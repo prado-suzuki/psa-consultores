@@ -32,27 +32,51 @@ export const useAuditLog = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  const inserirLog = useCallback(async (entry: AuditLogEntry, userId: string) => {
+    // `insert` do supabase-js NÃO lança: devolve `{ error }`. Sem checar aqui,
+    // uma recusa de RLS passava batida — nem o console.error abaixo rodava.
+    const { error } = await supabase.from('audit_logs' as any).insert({
+      area: entry.area,
+      entity_type: entry.entity_type,
+      entity_id: entry.entity_id,
+      entity_name: entry.entity_name,
+      action: entry.action,
+      changed_fields: entry.changed_fields ?? null,
+      performed_by: userId,
+      details: entry.details ?? null,
+    });
+    if (error) throw error;
+    // Recém-escrito o log, a timeline do histórico (painel flutuante nos
+    // modais de cadastro) fica obsoleta — refetch para refletir na hora,
+    // inclusive nas edições de sub-cadastros que não fecham o modal.
+    queryClient.invalidateQueries({ queryKey: ['historico-cadastro'] });
+  }, [queryClient]);
+
+  /** Registra depois da operação, sem atrapalhar quem chamou se falhar. */
   const logAction = useCallback(async (entry: AuditLogEntry) => {
     if (!user?.id) return;
     try {
-      await supabase.from('audit_logs' as any).insert({
-        area: entry.area,
-        entity_type: entry.entity_type,
-        entity_id: entry.entity_id,
-        entity_name: entry.entity_name,
-        action: entry.action,
-        changed_fields: entry.changed_fields ?? null,
-        performed_by: user.id,
-        details: entry.details ?? null,
-      });
-      // Recém-escrito o log, a timeline do histórico (painel flutuante nos
-      // modais de cadastro) fica obsoleta — refetch para refletir na hora,
-      // inclusive nas edições de sub-cadastros que não fecham o modal.
-      queryClient.invalidateQueries({ queryKey: ['historico-cadastro'] });
+      await inserirLog(entry, user.id);
     } catch (err) {
       console.error('Audit log error:', err);
     }
-  }, [user?.id, queryClient]);
+  }, [user?.id, inserirLog]);
 
-  return { logAction };
+  /**
+   * Igual ao `logAction`, mas propaga a falha.
+   *
+   * Para quem grava o log ANTES da operação e desiste dela se o log não entrar
+   * — o caso das ações que precisam de rastro obrigatório (ex.: exclusão de
+   * cliente, que tira o registro da vista de todo mundo que não é admin). Com o
+   * `logAction` normal, a operação aconteceria e o log sumiria calado, que é
+   * exatamente como a base ficou sem nenhum registro de exclusão de cliente.
+   */
+  const logActionOrThrow = useCallback(async (entry: AuditLogEntry) => {
+    if (!user?.id) {
+      throw new Error('Sessão expirada. Entre novamente para concluir esta ação.');
+    }
+    await inserirLog(entry, user.id);
+  }, [user?.id, inserirLog]);
+
+  return { logAction, logActionOrThrow };
 };
