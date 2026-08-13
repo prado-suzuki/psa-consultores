@@ -165,6 +165,10 @@ export const createDefaultDraftContract = () => ({
   data_inicio_projeto: "",
   data_fim_projeto: "",
   valor_projeto: 0,
+  // OS nova nasce como pagamento único; quem cadastra troca pelo parcelamento
+  // do contrato. Ver `src/lib/osParcelamento.ts`.
+  numero_parcelas: 1 as number | null,
+  valor_entrada: 0,
   valor_reembolso_km: 0,
   valor_reembolso_refeicao: 0,
   situacao_projeto: "em_andamento",

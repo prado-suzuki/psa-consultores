@@ -525,6 +525,10 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           data_inicio: c.data_inicio_projeto || null,
           data_fim: c.data_fim_projeto || null,
           valor_projeto: c.valor_projeto || 0,
+          // Nulo é "não informado" e é aceito pela coluna; o valor da parcela
+          // não vai no payload — é derivado na tela (src/lib/osParcelamento.ts).
+          numero_parcelas: c.numero_parcelas ?? null,
+          valor_entrada: c.valor_entrada || 0,
           valor_reembolso_km: c.valor_reembolso_km || 0,
           valor_reembolso_refeicao: c.valor_reembolso_refeicao || 0,
           situacao: c.situacao_projeto || "em_andamento",
@@ -750,7 +754,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       const clientFields = ['nome', 'categoria', 'ativo', 'fixo', 'telefone', 'municipio', 'uf', 'observacoes'];
       const contribFields = ['tipo_pessoa', 'cpf_cnpj', 'nome_razao_social', 'nome_fantasia', 'situacao_inscricao_estadual', 'inscricao_estadual', 'cod_cnae', 'setor', 'simples_nacional', 'telefone', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'municipio', 'uf', 'contribuinte_faturamento'];
       const partFields = ['nome', 'tipo_representante', 'cargo', 'email', 'telefone', 'observacoes', 'acesso_chamados'];
-      const osFields = ['ordem_servico', 'data_emissao', 'data_inicio_projeto', 'data_fim_projeto', 'valor_projeto', 'valor_reembolso_km', 'valor_reembolso_refeicao', 'situacao_projeto', 'observacoes_projeto', 'cluster_id', 'setor_cliente', 'setor_cliente_id', 'regiao'];
+      const osFields = ['ordem_servico', 'data_emissao', 'data_inicio_projeto', 'data_fim_projeto', 'valor_projeto', 'numero_parcelas', 'valor_entrada', 'valor_reembolso_km', 'valor_reembolso_refeicao', 'situacao_projeto', 'observacoes_projeto', 'cluster_id', 'setor_cliente', 'setor_cliente_id', 'regiao'];
 
       const snap = isEditing ? originalSnapshot : null;
 

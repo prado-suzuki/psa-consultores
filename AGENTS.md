@@ -23,7 +23,7 @@ Sistema de gestão interna e portal de clientes da PSA Consultores, com foco em 
 ## ✅ DIRETRIZES DE ARQUITETURA
 - **Auditoria Obrigatória (CUD):** SEMPRE use o hook `useAuditLog` para operações de Create/Update/Delete. Você deve enviar o diff campo-a-campo em `changed_fields`.
 - **Autenticação e RLS:** Mantenha o RLS sempre habilitado. Utilize as funções SECURITY DEFINER `has_role(uuid, app_role)` e `is_project_member()` para checar permissões.
-- **Separação de Ambientes:** O sistema detecta dev/prod via URL (`src/config/api.ts`). Tabelas como `cliente`, `contribuinte`, `representante` e `ordem_servico` possuem a coluna `ambiente`. Suas queries DEVEM incluir o filtro `.eq('ambiente', currentAmbiente)`.
+- **Separação de Ambientes:** O sistema detecta dev/prod via URL (`src/config/api.ts`). Tabelas como `cliente`, `contribuinte` e `representante` possuem a coluna `ambiente`. Suas queries DEVEM incluir o filtro `.eq('ambiente', currentAmbiente)`. **`ordem_servico` NÃO tem essa coluna** — o recorte dev/prod da OS vem do cliente a que ela pertence; filtrar `ambiente` nela quebra a query.
 - **Soft Delete:** Várias tabelas usam a coluna `excluido` (boolean). Suas consultas de leitura devem sempre conter `.eq('excluido', false)`.
 - **Imports:** Use SEMPRE aliases (ex: `@/components`, `@/hooks`, `@/lib`).
 

@@ -58,6 +58,8 @@ const os = (over: Partial<DraftOrdemServico> = {}): DraftOrdemServico => ({
   data_inicio_projeto: '2026-01-15',
   data_fim_projeto: '2026-06-15',
   valor_projeto: 1000,
+  numero_parcelas: 1,
+  valor_entrada: 0,
   valor_reembolso_km: 0,
   valor_reembolso_refeicao: 0,
   situacao_projeto: 'em_andamento',
