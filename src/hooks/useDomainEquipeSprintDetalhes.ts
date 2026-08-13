@@ -511,6 +511,34 @@ export function useDomainEquipeSprintDetalhes(
     );
   };
 
+  /**
+   * A descrição mora em caches próprios (o da tarefa aberta e o da sprint
+   * inteira), fora da listagem. Quem grava o texto precisa passar por aqui:
+   * sem isto, o cache guarda a versão anterior por até 10 min e reabrir a
+   * tarefa devolve o texto velho (vazio, quando a descrição acabou de ser
+   * escrita), que o modal então regrava por cima do banco.
+   */
+  const sincronizarDescricaoNoCache = useCallback(
+    (deliverableId: string, description: string | null) => {
+      queryClient.setQueryData(
+        sprintDetalhesKeys.descricaoDaTarefa(deliverableId),
+        description,
+      );
+      queryClient.setQueryData<Array<{ id: string; description: string | null }>>(
+        sprintDetalhesKeys.descricoes(sprintId),
+        (current) => {
+          if (!current) return current;
+          return current.some((linha) => linha.id === deliverableId)
+            ? current.map((linha) =>
+                linha.id === deliverableId ? { ...linha, description } : linha,
+              )
+            : [...current, { id: deliverableId, description }];
+        },
+      );
+    },
+    [queryClient, sprintId],
+  );
+
   useEffect(() => {
     if (!sprintId) return;
 
@@ -545,6 +573,19 @@ export function useDomainEquipeSprintDetalhes(
             pendingRealtimeChangesRef.current.push(change);
           }
 
+          // O payload traz a linha inteira: aproveita para acertar o cache da
+          // descrição quando quem editou foi outra pessoa.
+          if (
+            payload.eventType !== 'DELETE' &&
+            typeof newRecord.id === 'string' &&
+            'description' in newRecord
+          ) {
+            sincronizarDescricaoNoCache(
+              newRecord.id,
+              (newRecord.description as string | null) ?? null,
+            );
+          }
+
           queryClient.setQueryData<SprintDetalhesData | null>(
             currentQueryKey,
             (current) => {
@@ -564,7 +605,7 @@ export function useDomainEquipeSprintDetalhes(
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [queryClient, sprintId]);
+  }, [queryClient, sincronizarDescricaoNoCache, sprintId]);
 
   const updateDeliverableStatus = useMutation({
     mutationFn: async ({ deliverableId, newStatus }: DeliverableStatusInput) => {
@@ -636,6 +677,9 @@ export function useDomainEquipeSprintDetalhes(
           deliverable.id === deliverableId ? { ...deliverable, ...updates } : deliverable,
         ),
       }));
+      if ('description' in updates) {
+        sincronizarDescricaoNoCache(deliverableId, updates.description ?? null);
+      }
     },
     onError: () => undefined,
   });
@@ -986,6 +1030,7 @@ export function useDomainEquipeSprintDetalhes(
         ...current,
         deliverables: [...current.deliverables, deliverable],
       }));
+      sincronizarDescricaoNoCache(deliverable.id, deliverable.description ?? null);
     },
     onError: () => undefined,
   });
