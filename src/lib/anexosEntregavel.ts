@@ -9,7 +9,7 @@
 export function isImagemAnexo(fileType: string | null, fileName: string) {
   if (fileType?.startsWith('image/')) return true;
   const ext = (fileName.split('.').pop() ?? '').toLowerCase();
-  return ['png', 'jpg', 'jpeg'].includes(ext);
+  return ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
 }
 
 /** Primeira imagem de um Ctrl+V. Devolve null quando o que foi colado é texto. */

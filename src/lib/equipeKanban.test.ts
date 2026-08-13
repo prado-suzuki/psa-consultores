@@ -382,9 +382,20 @@ describe('equipeKanban', () => {
     const allowed = new File([new Uint8Array(10 * 1024 * 1024)], 'report.final.PDF', {
       type: 'application/pdf',
     });
+    // Markdown e texto: o navegador manda mime vazio ou 'text/plain' conforme o
+    // sistema, então quem decide é a extensão.
+    const markdownSemMime = new File(['# retro'], 'retrospectiva.md', { type: '' });
+    const markdownComoTexto = new File(['# retro'], 'retrospectiva.markdown', {
+      type: 'text/plain',
+    });
+    // Sem ponto no nome não há extensão para montar o caminho no bucket.
+    const semExtensao = new File(['conteudo'], 'anexo', { type: 'application/pdf' });
     expect(validateEquipeKanbanFile(invalidLarge)).toContain('Tipo de arquivo');
     expect(validateEquipeKanbanFile(tooLarge)).toBe('Arquivo muito grande. Máximo 10MB.');
     expect(validateEquipeKanbanFile(allowed)).toBeNull();
+    expect(validateEquipeKanbanFile(markdownSemMime)).toBeNull();
+    expect(validateEquipeKanbanFile(markdownComoTexto)).toBeNull();
+    expect(validateEquipeKanbanFile(semExtensao)).toContain('Tipo de arquivo');
 
     vi.useFakeTimers();
     vi.setSystemTime(1234);

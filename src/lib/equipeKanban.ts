@@ -103,18 +103,43 @@ export type EquipeKanbanDeliverableUpdate = {
   completed_at?: string | null;
 };
 
-const ALLOWED_FILE_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'image/jpeg',
-  'image/png',
-  'application/zip',
-  'application/x-zip-compressed',
+// O filtro é pela extensão, não pelo mime: o navegador não é confiável ao dizer
+// o tipo de arquivos de texto (um .md chega como 'text/markdown', 'text/plain'
+// ou string vazia, dependendo do sistema), e é da extensão que sai o caminho no
+// bucket. Como o mime também é informado pelo cliente, nada se perde em
+// segurança ao deixar de checá-lo.
+const ALLOWED_FILE_EXTENSIONS = [
+  // documentos
+  'pdf',
+  'doc',
+  'docx',
+  'odt',
+  'rtf',
+  'xls',
+  'xlsx',
+  'xlsm',
+  'ods',
+  'ppt',
+  'pptx',
+  'odp',
+  // texto
+  'md',
+  'markdown',
+  'txt',
+  'csv',
+  'json',
+  // imagens
+  'jpg',
+  'jpeg',
+  'png',
+  'gif',
+  'webp',
+  // compactados
+  'zip',
 ];
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+export const EQUIPE_KANBAN_FILE_ACCEPT = ALLOWED_FILE_EXTENSIONS.map((ext) => `.${ext}`).join(',');
 
 export function filterEquipeKanbanDeliverables(
   deliverables: EquipeKanbanDeliverable[],
@@ -353,8 +378,10 @@ export function buildDeliverableUpdatePayload(
 }
 
 export function validateEquipeKanbanFile(file: File) {
-  if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-    return 'Tipo de arquivo não permitido. Use PDF, Word, Excel, imagens ou ZIP.';
+  const extensao = (file.name.split('.').pop() ?? '').toLowerCase();
+  // Nome sem ponto cai aqui também: sem extensão não há como montar o caminho.
+  if (!file.name.includes('.') || !ALLOWED_FILE_EXTENSIONS.includes(extensao)) {
+    return 'Tipo de arquivo não permitido. Use PDF, Word, Excel, PowerPoint, imagens, texto (md, txt, csv, json) ou ZIP.';
   }
   if (file.size > MAX_FILE_SIZE) return 'Arquivo muito grande. Máximo 10MB.';
   return null;
