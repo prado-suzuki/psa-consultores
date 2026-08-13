@@ -300,7 +300,7 @@ export default function ContratosTab({
             </AlertDialog>
           )}
           {isEditingThis ? (
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setEditingContractId(null)}>
+            <Button size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setEditingContractId(null)}>
               <Check size={12} /> Pronto
             </Button>
           ) : (
@@ -453,7 +453,7 @@ export default function ContratosTab({
                       titulo="Produtos contratados"
                       pendente={secaoPendente(3)}
                       acao={(
-                        <Button type="button" size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setPickerAberto(true)}>
+                        <Button type="button" size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setPickerAberto(true)}>
                           <Plus size={14} /> Produtos
                         </Button>
                       )}
@@ -506,7 +506,7 @@ export default function ContratosTab({
                       titulo="Distribuição de receita (centros de custo)"
                       pendente={secaoPendente(5)}
                       acao={(
-                        <Button type="button" size="sm" variant="outline" className="gap-1.5 text-xs" onClick={() => setCentrosAberto(true)}>
+                        <Button type="button" size="sm" variant="outline" className={cn('gap-1.5 text-xs', acento.botaoSuave)} onClick={() => setCentrosAberto(true)}>
                           <Plus size={14} /> Centros de custo
                         </Button>
                       )}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useDraftPersistence } from "@/hooks/useDraftPersistence";
 import { useSetoresCliente } from "@/hooks/useSetorCliente";
@@ -129,21 +130,43 @@ export default function NewClientModal({
     setActiveTab(tab);
   };
 
-  // --- Unsaved changes detection ---
-  const initialSnapshotRef = useRef<string | null>(null);
-  const currentSnapshot = useMemo(() => JSON.stringify({ clientData, entities, participants, contracts }), [clientData, entities, participants, contracts]);
+  /**
+   * Alterações não salvas: comparado contra o que o BANCO devolveu, não contra uma
+   * foto tirada por tempo.
+   *
+   * Antes daqui a referência era capturada por `setTimeout` de 100ms depois de
+   * abrir. Qualquer normalização que rodasse fora dessa janela — máscara, o
+   * `initcap` do nome, um valor que o carregador ajusta — fazia a foto nascer
+   * diferente do estado, e o modal abria já se considerando sujo. Era o que
+   * produzia o "Dados não salvos" ao fechar sem ter mexido em nada.
+   *
+   * `originalSnapshot` vem do carregamento e tem a mesma forma, e é a MESMA
+   * referência que `useSaveClientTransaction` usa para decidir o que mudou. Então
+   * o que a tela chama de sujo e o que o salvamento chama de alterado passam a ser
+   * a mesma coisa, e não há mais janela de tempo para errar.
+   *
+   * Cadastro novo não tem original: aí sujo é ter qualquer coisa preenchida, e
+   * quem cuida disso é o rascunho, não este indicador.
+   */
+  const currentSnapshot = useMemo(
+    () => JSON.stringify({ clientData, entities, participants, contracts }),
+    [clientData, entities, participants, contracts],
+  );
+  const referenciaSalva = useMemo(
+    () => (originalSnapshot
+      ? JSON.stringify({
+          clientData: originalSnapshot.clientData,
+          entities: originalSnapshot.entities,
+          participants: originalSnapshot.participants,
+          contracts: originalSnapshot.contracts,
+        })
+      : null),
+    [originalSnapshot],
+  );
   const hasUnsavedChanges = useMemo(() => {
-    if (!initialSnapshotRef.current) return false;
-    return currentSnapshot !== initialSnapshotRef.current;
-  }, [currentSnapshot]);
-
-  useEffect(() => {
-    if (open && !loadingEdit) {
-      const t = setTimeout(() => { initialSnapshotRef.current = JSON.stringify({ clientData, entities, participants, contracts }); }, 100);
-      return () => clearTimeout(t);
-    }
-    if (!open) initialSnapshotRef.current = null;
-  }, [open, loadingEdit]);
+    if (!referenciaSalva || loadingEdit) return false;
+    return currentSnapshot !== referenciaSalva;
+  }, [currentSnapshot, referenciaSalva, loadingEdit]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -179,8 +202,35 @@ export default function NewClientModal({
     originalSnapshot,
   });
 
+  /**
+   * Salvar não passa por cima de campo obrigatório em branco.
+   *
+   * Antes daqui, `executeSave` era chamado direto e a validação dele só barra
+   * linha que a pessoa TOCOU nesta sessão. Quem abriu um cliente antigo, clicou
+   * em Editar e em Salvar sem mexer em nada tinha o cadastro salvo mesmo com
+   * obrigatório vazio: as faltas estavam em linhas intocadas, e o aviso de
+   * pendência aparecia junto com o recarregamento, sem tempo de ler.
+   *
+   * A trava usa `pendencias`, que é o mesmo mapa exibido na tela, e não o critério
+   * de "tocado". Assim o que a tela aponta e o que o botão recusa são a mesma
+   * coisa — a divergência entre os dois era o defeito.
+   */
   const handleSave = () => {
     setTentouSalvar(true);
+
+    if (pendencias.length > 0) {
+      const primeira = mapearPendencias(pendencias).todas[0];
+      // Levar até o campo, em vez de só recusar: a pessoa clicou em salvar, então
+      // o próximo passo dela é preencher, não procurar.
+      if (primeira) irParaPendencia(primeira);
+      toast.error(
+        pendencias.length === 1
+          ? 'Falta 1 campo obrigatório. Preencha para salvar.'
+          : `Faltam ${pendencias.length} campos obrigatórios. Preencha para salvar.`,
+      );
+      return;
+    }
+
     executeSave();
   };
 
