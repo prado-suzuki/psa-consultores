@@ -227,6 +227,10 @@ export const useClientEditData = (
               data_inicio_projeto: os.data_inicio || "",
               data_fim_projeto: os.data_fim || "",
               valor_projeto: os.valor_projeto || 0,
+              // OS anterior ao parcelamento vem sem nº de parcelas, e continua
+              // "não informada" até alguém preencher — não vira 1 na abertura.
+              numero_parcelas: os.numero_parcelas != null ? Number(os.numero_parcelas) : null,
+              valor_entrada: os.valor_entrada || 0,
               valor_reembolso_km: os.valor_reembolso_km || 0,
               valor_reembolso_refeicao: os.valor_reembolso_refeicao || 0,
               situacao_projeto: os.situacao || "em_andamento",

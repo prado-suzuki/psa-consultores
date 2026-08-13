@@ -16,8 +16,9 @@ import { SITUACAO_PROJETO_OPTIONS, formatCurrencyDisplay, isoToMasked } from "./
 import type { DraftOrdemServico, DraftProdutoContratado } from "@/types/clientForm";
 import { createDefaultDraftContract } from "./constants";
 import DateFieldWithInput from "./DateFieldWithInput";
-import CurrencyField from "./CurrencyField";
 import FieldPair from "./FieldPair";
+import OsValoresEdicao from "./OsValoresEdicao";
+import OsValoresLeitura from "./OsValoresLeitura";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { useGenerateNextOsNumber } from "@/hooks/useDomainOrdemServicoNumero";
 import ListaMestreDetalhe from "./ListaMestreDetalhe";
@@ -327,13 +328,11 @@ export default function ContratosTab({
                       <FieldPair label="Data Início" value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : "—"} />
                       <FieldPair label="Data Fim" value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : "—"} />
                       <FieldPair label="Data Emissão" value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"} />
-                      <FieldPair label="Valor do Projeto" value={formatCurrencyDisplay(cont.valor_projeto)} />
                       <FieldPair label="Situação do Projeto" value={SITUACAO_PROJETO_OPTIONS.find((o) => o.value === cont.situacao_projeto)?.label || "—"} />
                       <FieldPair label="Área do Negócio" value={setorLabel(cont.setor_cliente_id, cont.setor_cliente)} />
                       <FieldPair label="Região" value={getRegiaoLabel(cont.regiao)} />
-                      <div className="col-span-2 min-w-0 grid grid-cols-2 gap-4 [&>*]:min-w-0">
-                        <FieldPair label="Reembolso por KM" value={formatCurrencyDisplay(cont.valor_reembolso_km)} />
-                        <FieldPair label="Reembolso Refeição" value={formatCurrencyDisplay(cont.valor_reembolso_refeicao)} />
+                      <div className="col-span-2 min-w-0 md:col-span-3">
+                        <OsValoresLeitura contrato={cont} />
                       </div>
                       <div className="col-span-2 min-w-0 md:col-span-3">
                         <ProdutoContratadoBlock
@@ -494,11 +493,7 @@ export default function ContratosTab({
                     />
 
                     <SecaoFormulario numero={4} titulo="Valores">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 [&>*]:min-w-0">
-                      <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Valor do Projeto (R$)</Label><div className="mt-1"><CurrencyField value={cont.valor_projeto || 0} onChange={(v) => updateContract(cont._id, { valor_projeto: v })} /></div></div>
-                      <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso por KM (R$)</Label><div className="mt-1"><CurrencyField value={cont.valor_reembolso_km || 0} onChange={(v) => updateContract(cont._id, { valor_reembolso_km: v })} /></div></div>
-                      <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Reembolso Refeição (R$)</Label><div className="mt-1"><CurrencyField value={cont.valor_reembolso_refeicao || 0} onChange={(v) => updateContract(cont._id, { valor_reembolso_refeicao: v })} /></div></div>
-                    </div>
+                      <OsValoresEdicao contrato={cont} onChange={(patch) => updateContract(cont._id, patch)} />
                     </SecaoFormulario>
 
                     <SecaoFormulario
