@@ -24,7 +24,7 @@ import ContribuinteLeitura from "./ContribuinteLeitura";
 import ContribuinteDadosFiscais from "./ContribuinteDadosFiscais";
 import SecaoFormulario from "./SecaoFormulario";
 import MarcaPendencia, { CLASSE_CAMPO_PENDENTE } from "./MarcaPendencia";
-import { idsAlterados, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
+import { idsAlterados, ordenarPorNome, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
 import { normalizarNomeDigitado } from "@/lib/nomeProprio";
 import type { FocoPendencia, MapaPendencias } from "@/lib/camposObrigatorios";
 
@@ -94,8 +94,20 @@ export default function ContribuintesTab({
   /** A lixeira vale nas duas frentes: vendo o contribuinte ou com ele aberto. */
   const mostrarRemover = !isReadOnly || !!onRequestItemEdit;
 
+  /**
+   * A lista da esquerda sai em ordem alfabética. É ordem de exibição apenas:
+   * `entities` segue na ordem original, que é o que o save enxerga, e as buscas
+   * por item continuam sendo por `_id`. Quem resolve seleção e vizinhança usa
+   * esta lista para casar com o que a pessoa vê — cair no "primeiro item" tem
+   * que significar o primeiro da tela.
+   */
+  const entidadesOrdenadas = useMemo(
+    () => ordenarPorNome(entities, (e) => e.nome_razao_social),
+    [entities],
+  );
+
   // Mantem sempre algo selecionado, inclusive quando a lista chega depois.
-  const selecaoEfetiva = resolverSelecao(entities, selecionadoId);
+  const selecaoEfetiva = resolverSelecao(entidadesOrdenadas, selecionadoId);
   useEffect(() => {
     if (selecaoEfetiva !== selecionadoId) setSelecionadoId(selecaoEfetiva);
   }, [selecaoEfetiva, selecionadoId]);
@@ -261,7 +273,7 @@ export default function ContribuintesTab({
     }
     // A seleção vai para o vizinho antes da lista encolher, para o consultor
     // continuar no mesmo ponto em vez de ser jogado para o começo.
-    setSelecionadoId(selecaoAposRemover(entities, id));
+    setSelecionadoId(selecaoAposRemover(entidadesOrdenadas, id));
     setEntities(prev => prev.filter(e => e._id !== id));
     if (editingEntityId === id) setEditingEntityId(null);
   };
@@ -302,7 +314,7 @@ export default function ContribuintesTab({
           <Plus size={14} /> Adicionar contribuinte
         </Button>
       ) : null}
-      linhas={entities.map((e) => ({
+      linhas={entidadesOrdenadas.map((e) => ({
         id: e._id,
         titulo: e.nome_razao_social?.trim() || "Novo contribuinte",
         subtitulo: e.cpf_cnpj || "sem documento",
