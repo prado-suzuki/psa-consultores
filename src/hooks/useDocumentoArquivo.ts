@@ -121,9 +121,9 @@ interface SignUploadResponse {
   upload_headers: Record<string, string>;
 }
 
-type FetchWithAuth = ReturnType<typeof useApiAuth>['fetchWithAuth'];
+export type FetchWithAuth = ReturnType<typeof useApiAuth>['fetchWithAuth'];
 
-interface SubirArquivoGcsArgs {
+export interface SubirArquivoGcsArgs {
   clienteId: string;
   file: File;
   categoria: DocCategoria;
@@ -131,7 +131,7 @@ interface SubirArquivoGcsArgs {
   nrMatricula?: string | null;
 }
 
-interface ArquivoGcsResultado {
+export interface ArquivoGcsResultado {
   gcs_uri: string;
   checksum: string;
   tamanho: number;
@@ -141,9 +141,11 @@ interface ArquivoGcsResultado {
 
 /**
  * Helper: sign-upload → PUT no GCS → finalize. Reusado por `enviarUmDocumento`
- * (fluxo interno da equipe) e pelo upload da área do cliente.
+ * (fluxo interno da equipe), pelo upload da área do cliente e pelo anexo por
+ * pendência da fase de checklist (useDomainPendenciasCliente), que sobe o binário
+ * igual e só troca a gravação da linha por uma RPC que valida o vínculo.
  */
-async function subirArquivoGcs(
+export async function subirArquivoGcs(
   fetchWithAuth: FetchWithAuth,
   args: SubirArquivoGcsArgs,
 ): Promise<ArquivoGcsResultado> {

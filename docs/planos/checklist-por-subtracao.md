@@ -7,8 +7,9 @@ Duas frentes, nesta ordem:
 
 1. **Consultor: checklist read-only** (fase 1, implementada em 13/08/2026). A casca visual da tela
    legada, alimentada pela subtração. Nenhuma escrita.
-2. **Cliente: upload contra o documento faltante** (fase 2, não implementada). O arquivo nasce
-   classificado, e o consultor não classifica depois.
+2. **Cliente: upload contra o documento faltante** (fase 2, implementada em 13/08/2026, menos a
+   válvula do §3.4 e as notificações). O arquivo nasce classificado, e o consultor não classifica
+   depois.
 
 ---
 
@@ -32,9 +33,13 @@ Consequência direta: a visão do consultor não precisa de escrita. Ela lê a s
 
 **O cliente passa a ver as instâncias nomeadas do cadastro dele.** Sem isso o upload não pode nascer
 classificado: a linha do checklist é documento × pessoa/imóvel, e "CPF" sem dizer de quem não fecha
-nada. Implica expor no portal os nomes de pessoas (inclusive sócios e familiares) e a identificação
-dos imóveis, que hoje o portal não vê: não existe policy de leitura de `pessoa`, `bem` ou `matricula`
-para o cliente, só de `solicitacao`, `solicitacao_item` e dos próprios arquivos.
+nada. Isso expõe ao portal os nomes de pessoas (inclusive sócios e familiares) e a identificação dos
+imóveis, que ele não via.
+
+**Como foi feito, e por que assim:** a exposição mora DENTRO da RPC de leitura, que é `SECURITY
+DEFINER` e devolve só `id` e `nome` da entidade. Nenhuma policy nova em `pessoa`, `bem` ou `matricula`
+foi criada, e o portal continua sem poder ler essas tabelas. Multiplicar no front exigiria abrir as
+três, o que entregaria muito mais do que o nome.
 
 ---
 
@@ -138,6 +143,21 @@ derivado lê. Derrubar a tabela `checklist_cliente_item` é limpeza separada.
 > cenário montado, arquivo excluído não conta, arquivo sem tipo não conta, item dispensado e instância
 > "não se aplica" não viram linha, tipo avulso resolve o item pedido à mão, grão `cliente` casa com
 > arquivo sem dono, matrícula órfã de bem entra pela titularidade, e nada de outro cliente aparece.
+>
+> **Também entregue em 13/08/2026:** a migration `20260814170000_anexar_documento_pendencia.sql` (o
+> anexo validado, item 2), o botão da virada no front (item 3) e a tela de checklist do cliente
+> (item 4). Restam o item 5 e a frente de notificações.
+>
+> A RPC de anexo deriva o tipo do item pedido e recusa dez situações (item de outro cliente,
+> solicitação fora de `em_checklist`, item dispensado, grão incompatível com o alvo, alvo de outro
+> cliente, par marcado como não aplicável, item sem tipo, `gcs_uri` fora da pasta do cliente,
+> categoria `georreferenciamento`, alvo ausente ou sobrando). As dez foram exercitadas uma a uma no
+> Postgres descartável, mais o caminho feliz nos grãos pessoa e cliente, e a pendência virando
+> recebida na leitura seguinte.
+>
+> **Bug encontrado de graça:** a `anexar_documento_solicitado` (2026-07-23) trocava `mime` com
+> `tamanho` no INSERT e estouraria em qualquer chamada. Nunca foi exercitada porque a tela que a
+> chamava saiu na EDU-27. A substituta nasce com a ordem conferida e um comentário no lugar.
 
 1. **Leitura do cliente por instância, em RPC NOVA.** `get_solicitacao_ativa_cliente` **fica como
    está** (decisão de 13/08/2026): ela serve a solicitação inicial, que é outro momento do processo, e
@@ -182,7 +202,9 @@ derivado lê. Derrubar a tabela `checklist_cliente_item` é limpeza separada.
 
    **Recomendação, não decisão:** o botão avisar antes de virar quando existirem arquivos sem
    classificar, senão o cliente cai num checklist quase todo pendente com documentos que já entregou.
-2. **Anexo validado.** A policy `cliente can insert own documento_arquivo` checa só
+2. ~~**Anexo validado.**~~ **Entregue** como `anexar_documento_pendencia` (o nome mudou: a antiga
+   fica onde está, sem leitor). O diagnóstico que a motivou segue valendo, e é o motivo de o tipo ser
+   derivado no banco em vez de recebido do cliente: a policy `cliente can insert own documento_arquivo` checa só
    `fonte = 'cliente'` e o `cliente_id`: nenhuma coluna de vínculo é validada. No minuto em que o
    front passar a mandar dono e tipo, o cliente poderá apontar para pessoa de outro cliente ou para
    tipo que ninguém pediu a ele. A saída é RPC `SECURITY DEFINER`, e
@@ -192,9 +214,12 @@ derivado lê. Derrubar a tabela `checklist_cliente_item` é limpeza separada.
    `documento_tipo`.
 3. ~~**Exposição do cadastro ao cliente.**~~ Absorvida pelo item 1: a RPC nova entrega id e nome, e
    nenhuma policy de leitura de `pessoa`, `bem` ou `matricula` precisa existir para o portal.
-4. **A tela do cliente.** `ColetaDocumentosCliente.tsx` (279 linhas) e
-   `src/lib/coletaDocumentosCliente.ts` deixam de ser gaveta-balde e passam a lista de pendências com
-   destino. As 4 gavetas seguem como agrupador.
+4. ~~**A tela do cliente.**~~ **Entregue** como tela PRÓPRIA
+   (`src/components/cliente/ChecklistDocumentosCliente.tsx` + `src/lib/checklistCliente.ts`), e não
+   como modo da gaveta: são leituras diferentes (RPC própria) e ações diferentes (anexo por item), e
+   `ColetaDocumentosCliente` só roteia por status. A gaveta-balde fica intacta para a fase inicial.
+   As 4 gavetas seguem como agrupador, agora com um bloco por entidade dentro de cada uma, e sem
+   dedup de nome: as três linhas de "CPF" são o ponto.
 5. **A válvula do consultor** (buraco 4 do §3).
 6. ~~**O acervo sem tipo**~~: saiu da lista, ver o buraco 1 do §3. Sobra um item de limpeza, não de
    produto: descartar os arquivos de teste de `documento_arquivo` (e os binários no GCS) antes de o
