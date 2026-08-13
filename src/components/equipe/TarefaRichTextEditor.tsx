@@ -155,7 +155,12 @@ export function TarefaRichTextEditor({
         return true;
       },
     },
-    onUpdate: ({ editor: updated }) => {
+    onUpdate: ({ editor: updated, transaction }) => {
+      // Ao montar, o TipTap dispara um update que não mexeu no documento
+      // (docChanged false, zero steps). Propagar isso emitia o texto vazio do
+      // editor recém-criado e apagava a descrição que tinha acabado de chegar
+      // do banco: a tarefa reabria com o campo em branco.
+      if (!transaction.docChanged) return;
       const next = serializeTarefaRichText(updated.getJSON());
       lastEmitted.current = next;
       onChangeRef.current(next);

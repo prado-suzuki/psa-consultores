@@ -78,6 +78,8 @@ export function useEquipeSprintDetalhesController() {
   // mostra). Ela é pedida em dois casos: a tarefa aberta no modal e a aba
   // Métricas, que cruza o texto com o nome da métrica.
   const [editingDeliverable, setEditingDeliverable] = useState<Deliverable | null>(null);
+  /** Quantas vezes o modal de edição foi aberto (ver `openEditModal`). */
+  const [aberturasDoModal, setAberturasDoModal] = useState(0);
   const [descricoesPedidas, setDescricoesPedidas] = useState(false);
   const data = useDomainEquipeSprintDetalhes(id, {
     tarefaEmEdicao: editingDeliverable?.id,
@@ -87,7 +89,7 @@ export function useEquipeSprintDetalhesController() {
     data;
   const handledError = useRef<unknown>(null);
   const handledNotFoundAt = useRef(0);
-  const descricaoAplicadaRef = useRef<string | null>(null);
+  const descricaoAplicadaRef = useRef<{ abertura: number; valor: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [filterResponsible, setFilterResponsible] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
@@ -323,7 +325,12 @@ export function useEquipeSprintDetalhesController() {
 
   const openEditModal = useCallback((item: Deliverable) => {
     setEditingDeliverable(item);
-    descricaoAplicadaRef.current = null;
+    // Reabrir a mesma tarefa entrega o MESMO objeto (react-query preserva a
+    // identidade das linhas que não mudaram), então `setEditingDeliverable`
+    // não muda estado nenhum e o efeito da descrição não reagiria. Este
+    // contador é o que garante uma releitura por abertura. Sem ele, a
+    // segunda abertura ficava com o campo em branco.
+    setAberturasDoModal((total) => total + 1);
     setEditForm({
       title: item.title,
       // Preenchida pelo efeito abaixo, quando a descrição da tarefa chegar.
@@ -348,15 +355,28 @@ export function useEquipeSprintDetalhesController() {
     if (task) openEditModal(task);
   }, [deepLinkedTaskId, deliverables, editModalOpen, openEditModal]);
 
-  // A descrição chega depois do resto (leitura própria, de uma linha). Só
-  // entra no formulário uma vez por tarefa aberta, para não passar por cima do
-  // que a pessoa já digitou.
+  // A descrição chega depois do resto (leitura própria, de uma linha) e pode
+  // chegar duas vezes: o cache entrega o texto guardado na hora e o refetch
+  // traz o do banco em seguida. O segundo texto entra no formulário só se o
+  // campo ainda estiver exatamente como o primeiro deixou, assim o valor de
+  // cache velho é corrigido sem passar por cima do que a pessoa digitou.
   useEffect(() => {
     if (!editingDeliverable || data.descricaoDaTarefaCarregando) return;
-    if (descricaoAplicadaRef.current === editingDeliverable.id) return;
-    descricaoAplicadaRef.current = editingDeliverable.id;
-    setEditForm((form) => ({ ...form, description: data.descricaoDaTarefa ?? '' }));
-  }, [data.descricaoDaTarefa, data.descricaoDaTarefaCarregando, editingDeliverable]);
+    const chegou = data.descricaoDaTarefa ?? '';
+    const aplicada = descricaoAplicadaRef.current;
+    if (aplicada && aplicada.abertura === aberturasDoModal) {
+      const pessoaDigitou = editForm.description !== aplicada.valor;
+      if (aplicada.valor === chegou || pessoaDigitou) return;
+    }
+    descricaoAplicadaRef.current = { abertura: aberturasDoModal, valor: chegou };
+    setEditForm((form) => ({ ...form, description: chegou }));
+  }, [
+    aberturasDoModal,
+    data.descricaoDaTarefa,
+    data.descricaoDaTarefaCarregando,
+    editForm.description,
+    editingDeliverable,
+  ]);
 
   const changeEditModalOpen = (open: boolean) => {
     setEditModalOpen(open);
