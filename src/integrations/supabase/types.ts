@@ -9035,6 +9035,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_pendencias_documentos_cliente: { Args: never; Returns: Json }
       get_profiles_with_email: {
         Args: never
         Returns: {
