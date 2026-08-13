@@ -217,7 +217,10 @@ export default function ContratosTab({
     const hoje = new Date().toISOString().slice(0, 10);
     const novaOs = {
       ...createDefaultDraftContract(),
-      // Data de abertura, gravada uma vez e travada no formulário.
+      // Emissão é a data em que a OS foi emitida: gravada uma vez, na criação, e
+      // travada no formulário. Início é o começo combinado do trabalho — nasce
+      // igual a hoje só como ponto de partida e continua editável.
+      data_emissao: hoje,
       data_inicio_projeto: hoje,
       ordem_servico: osNumber,
       _id: Date.now() + Math.random(),
@@ -371,21 +374,22 @@ export default function ContratosTab({
                       {/* As três datas num subgrupo apertado: separadas pela grade
                           principal elas ficavam longe umas das outras. */}
                       <div className="md:col-span-2 grid grid-cols-3 gap-2 [&>*]:min-w-0">
+                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Início</Label><div className="mt-1"><DateFieldWithInput value={cont.data_inicio_projeto || ""} onChange={(v) => updateContract(cont._id, { data_inicio_projeto: v })} /></div></div>
+                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label><div className="mt-1"><DateFieldWithInput value={cont.data_fim_projeto || ""} onChange={(v) => updateContract(cont._id, { data_fim_projeto: v })} /></div></div>
                         <div>
-                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Data Início</Label>
-                          {/* Travada: é a data de abertura da OS, e mudá-la depois
-                              desalinharia a OS do que foi combinado com o cliente. */}
+                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Data de Emissão</Label>
+                          {/* Travada: é a data em que a OS foi emitida, preenchida
+                              automaticamente na criação. Mudá-la depois desalinharia
+                              a OS do documento entregue ao cliente. */}
                           <div className="mt-1">
                             <Input
-                              value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : "—"}
+                              value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"}
                               readOnly disabled
                               className="h-8 cursor-not-allowed bg-muted/60"
-                              title="Data de abertura da OS. Não é editável."
+                              title="Data de emissão da OS, preenchida na criação. Não é editável."
                             />
                           </div>
                         </div>
-                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label><div className="mt-1"><DateFieldWithInput value={cont.data_fim_projeto || ""} onChange={(v) => updateContract(cont._id, { data_fim_projeto: v })} /></div></div>
-                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data de Emissão</Label><div className="mt-1"><DateFieldWithInput value={cont.data_emissao || ""} onChange={(v) => updateContract(cont._id, { data_emissao: v })} /></div></div>
                       </div>
                       <div>
                         <Label className="text-xs font-semibold uppercase text-muted-foreground">Situação do Projeto</Label>
