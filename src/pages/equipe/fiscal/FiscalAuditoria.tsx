@@ -5,21 +5,15 @@ import { AuditPessoasTable } from '@/components/equipe/audit/AuditPessoasTable';
 import { AuditProdutividadeTable } from '@/components/equipe/audit/AuditProdutividadeTable';
 import { AuditProdutosTable } from '@/components/equipe/audit/AuditProdutosTable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Shield } from 'lucide-react';
 
+// O cabeçalho interno que existia aqui repetia o título da página logo abaixo
+// dele, e o fazia com outra palavra: "Logs de Auditoria - Tax". Na Tax isso lia
+// como se a tela fosse do setor de auditoria, porque é assim que o time se
+// chama. Quem nomeia a tela é o `title` do layout.
 const FiscalAuditoria = () => {
   return (
-    <FiscalLayout title="Logs de Equipe" subtitle="Histórico de alterações em projetos e tarefas">
+    <FiscalLayout title="Logs de Uso" subtitle="Histórico de alterações em projetos e tarefas">
       <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-lg bg-warning/10 flex items-center justify-center">
-            <Shield className="h-5 w-5 text-warning" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-foreground">Logs de Auditoria - Tax</h2>
-            <p className="text-sm text-muted-foreground">Registro de criações, edições e exclusões</p>
-          </div>
-        </div>
         <Tabs defaultValue="pessoas">
           <TabsList>
             <TabsTrigger value="pessoas">Pessoas</TabsTrigger>
