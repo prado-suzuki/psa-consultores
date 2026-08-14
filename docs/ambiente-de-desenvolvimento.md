@@ -68,24 +68,48 @@ vira `devlocal123`, o que também é a forma de entrar como qualquer papel.
 
 O script se recusa a carregar dado real em banco que não seja `127.0.0.1`.
 
-## Usar o dev compartilhado
+## O dev compartilhado
 
-Ainda não existe. Quando existir, é um projeto Supabase próprio da PSA, separado do
-projeto de produção (que é gerenciado pelo Lovable e não expõe credencial). Montagem:
+Já existe e é o padrão: quem roda `bun run dev` sem `.env.development.local` cai nele.
 
-```bash
-supabase link --project-ref <ref-do-projeto-dev>
-supabase db push                                    # aplica o baseline
-SUPABASE_DB_URL="<connection string do dev>" \
-  scripts/carregar-dados-locais.sh <arquivo.backup> --anonimizar
+```
+ref:     vgzomuwnsdgrxbkyoavq
+região:  ca-central-1
+URL:     https://vgzomuwnsdgrxbkyoavq.supabase.co
 ```
 
-Depois é só preencher `.env.development` com a URL e a publishable key do projeto dev
-e commitar. As duas são públicas por natureza.
+É um projeto Supabase próprio da PSA, separado do de produção (que é gerenciado pelo
+Lovable e não expõe credencial de Postgres para ninguém). Está com o schema idêntico
+ao de produção, conferido pelas onze dimensões, e com os dados de produção
+**anonimizados**. A senha de todos os usuários é `devlocal123`, o que é a forma de
+entrar como qualquer papel.
 
-**`supabase db push` só pode ser usado contra o dev.** Produção não tem o baseline
-registrado em `supabase_migrations.schema_migrations`, então um push lá tentaria
-aplicar o schema inteiro por cima.
+A conexão direta (`db.<ref>.supabase.co`) é IPv6-only. Use o pooler:
+
+```
+postgresql://postgres.vgzomuwnsdgrxbkyoavq:<SENHA>@aws-0-ca-central-1.pooler.supabase.com:5432/postgres
+```
+
+### Migration nova
+
+```bash
+supabase link --project-ref vgzomuwnsdgrxbkyoavq
+supabase db push
+```
+
+O baseline já está registrado em `supabase_migrations.schema_migrations` do dev com a
+versão `00000000000000`, então o push aplica só o que veio depois.
+
+**`supabase db push` não pode ser usado contra produção.** Lá o baseline não está
+registrado, então o push tentaria aplicar o schema inteiro por cima. Produção continua
+recebendo migration pelo Lovable.
+
+### Recarregar do zero
+
+```bash
+CONN='postgresql://postgres.vgzomuwnsdgrxbkyoavq:<SENHA>@aws-0-ca-central-1.pooler.supabase.com:5432/postgres'
+SUPABASE_DB_URL="$CONN" scripts/carregar-dados-locais.sh <arquivo.backup> --anonimizar
+```
 
 ## A regra de convivência
 
