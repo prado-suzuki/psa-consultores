@@ -184,11 +184,22 @@ update public.contatos set
   mensagem      = '[anonimizado]',
   notas_internas = case when notas_internas is null then null else '[anonimizado]' end;
 
+-- A equipe da PSA preserva nome e email: são as pessoas que efetivamente logam
+-- no ambiente, e trocar isso quer dizer ninguém conseguir entrar com a própria
+-- conta. O que é sensível aqui é o usuário de cliente, e esse continua trocado.
+create or replace view pg_temp.usuario_interno as
+  select id from auth.users where email ilike '%@psaconsultores.com.br';
+
 update public.profiles set
   first_name = split_part(pg_temp.nome_pf(id::text), ' ', 1),
   last_name  = split_part(pg_temp.nome_pf(id::text), ' ', 2),
   phone      = pg_temp.fone_falso(phone, id::text),
-  company    = case when company is null then null else pg_temp.nome_pj(id::text) end;
+  company    = case when company is null then null else pg_temp.nome_pj(id::text) end
+where id not in (select id from pg_temp.usuario_interno);
+
+-- telefone da equipe também sai, o que fica é nome e email
+update public.profiles set phone = pg_temp.fone_falso(phone, id::text)
+where id in (select id from pg_temp.usuario_interno);
 
 -- ---------------------------------------------------------------------------
 -- Bens, cartórios, exploração rural
@@ -240,16 +251,23 @@ update public.org_comments      set author_name = case when author_name is null 
 -- ---------------------------------------------------------------------------
 -- Login
 -- ---------------------------------------------------------------------------
--- Todo mundo passa a ter a mesma senha, para dar para entrar como qualquer papel.
--- O email vira <primeiro nome do papel real><n>@exemplo.dev, preservando unicidade.
+-- A senha de TODO MUNDO, equipe inclusive, vira devlocal123. Dois motivos: dá
+-- para entrar como qualquer papel, e hash bcrypt de senha real de funcionário
+-- não fica guardado num banco de desenvolvimento compartilhado.
+--
+-- O email da equipe é preservado, senão ninguém loga com a própria conta. Só o
+-- usuário de cliente vira userNNN@exemplo.dev.
 
 update auth.users u set
   email = 'user' || lpad(row_number::text, 3, '0') || '@exemplo.dev',
   phone = null,
-  encrypted_password = extensions.crypt('devlocal123', extensions.gen_salt('bf')),
   raw_user_meta_data = jsonb_build_object('nome_anonimizado', true)
 from (select id, row_number() over (order by created_at, id) from auth.users) s
-where u.id = s.id;
+where u.id = s.id
+  and u.id not in (select id from pg_temp.usuario_interno);
+
+update auth.users set
+  encrypted_password = extensions.crypt('devlocal123', extensions.gen_salt('bf'));
 
 update auth.identities i set
   identity_data = jsonb_set(
