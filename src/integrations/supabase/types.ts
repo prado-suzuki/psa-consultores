@@ -9098,6 +9098,7 @@ export type Database = {
         Args: { _cliente_id: string; _ordem_servico_id: string }
         Returns: number
       }
+      gerar_tarefas_projeto: { Args: { _project_id: string }; Returns: number }
       get_accessible_dashboards: {
         Args: { _target_page?: string }
         Returns: {
