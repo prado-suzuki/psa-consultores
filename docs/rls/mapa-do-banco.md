@@ -113,7 +113,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`notificacao`](#notificacao) | 16 | — | interno | profiles |
 | [`notificacao_envio`](#notificacaoenvio) | 15 | — | interno | profiles, notificacao |
 | [`novidades`](#novidades) | 17 | — | interno | — |
-| [`ordem_servico`](#ordemservico) | 20 | excluido | cluster-cliente | estrutura_clusters, produto_segmento, servicos_prestados, setor_cliente |
+| [`ordem_servico`](#ordemservico) | 22 | excluido | cluster-cliente | estrutura_clusters, produto_segmento, servicos_prestados, setor_cliente |
 | [`org_comment_attachments`](#orgcommentattachments) | 10 | — | interno | org_comments, org_comments_feed, profiles |
 | [`org_comment_mentions`](#orgcommentmentions) | 6 | — | interno | org_comments, org_comments_feed, profiles |
 | [`org_comments`](#orgcomments) | 16 | excluido | interno | profiles, org_comments, org_comments_feed, org_projects |
@@ -490,7 +490,8 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="ordemservico"></a>`ordem_servico`
 **Acesso:** cluster-cliente · **Flags:** excluido
-`cluster_id` string? · `created_at` string? · `data_emissao` string? · `data_fim` string? · `data_inicio` string? · `excluido` boolean · `id` string · `id_cliente` string · `id_produto_segmento` string? · `id_servico` string? · `numero_os` string? · `observacoes` string? · `regiao` string? · `setor_cliente` string? · `setor_cliente_id` string? · `situacao` string? · `updated_at` string? · `valor_projeto` number? · `valor_reembolso_km` number? · `valor_reembolso_refeicao` number?  ·  **FK:** `cluster_id`→estrutura_clusters.id · `id_produto_segmento`→produto_segmento.id · `id_servico`→servicos_prestados.id · `setor_cliente_id`→setor_cliente.id
+`cluster_id` string? · `created_at` string? · `data_emissao` string? · `data_fim` string? · `data_inicio` string? · `excluido` boolean · `id` string · `id_cliente` string · `id_produto_segmento` string? · `id_servico` string? · `numero_os` string? · `numero_parcelas` number? · `observacoes` string? · `regiao` string? · `setor_cliente` string? · `setor_cliente_id` string? · `situacao` string? · `updated_at` string? · `valor_entrada` number? · `valor_projeto` number? · `valor_reembolso_km` number? · `valor_reembolso_refeicao` number?  ·  **FK:** `cluster_id`→estrutura_clusters.id · `id_produto_segmento`→produto_segmento.id · `id_servico`→servicos_prestados.id · `setor_cliente_id`→setor_cliente.id
+> **Parcelamento (migração `20260814170000`, aguardando aplicação):** `valor_projeto` é o **total do contrato**, nunca uma parcela. `numero_parcelas` (1..360, nulo = não informado, default 1 só para OS nova) é do contrato inteiro, não do exercício; `valor_entrada` sai do contrato, não da planilha do financeiro. O **valor da parcela não é coluna** — é `(valor_projeto − valor_entrada) ÷ numero_parcelas`, derivado na tela (`src/lib/osParcelamento.ts`). Esta tabela **não tem coluna `ambiente`**: o recorte dev/prod da OS vem do cliente.
 
 ### <a id="orgcommentattachments"></a>`org_comment_attachments`
 **Acesso:** interno

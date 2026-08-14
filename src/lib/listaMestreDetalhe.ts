@@ -50,6 +50,35 @@ export function selecaoAposRemover(
 }
 
 /**
+ * Os itens em ordem alfabética pelo nome exibido, só para a lista da esquerda.
+ *
+ * A lista chega na ordem em que as linhas entraram no banco, que não ajuda
+ * ninguém a achar um contribuinte pelo nome. Ordenar aqui não altera o que é
+ * gravado: a ordem da lista não é dado do cadastro, e a chave de cada linha
+ * continua sendo o `_id`.
+ *
+ * Duas decisões dentro da comparação:
+ *  · `sensitivity: 'base'` — "AGROPECUARIA BOMFIM" e "Agropecuaria Miranda"
+ *    precisam ficar lado a lado; comparação sensível a caixa jogaria todos os
+ *    nomes em maiúsculas para um bloco separado;
+ *  · nome em branco vai para o fim — é a linha recém-criada, ainda sem nome. No
+ *    topo ela empurraria a lista inteira a cada item novo.
+ */
+export function ordenarPorNome<T>(
+  itens: readonly T[],
+  nomeDe: (item: T) => string | undefined | null,
+): T[] {
+  return itens.slice().sort((a, b) => {
+    const nomeA = (nomeDe(a) || '').trim();
+    const nomeB = (nomeDe(b) || '').trim();
+    // Sem nome dos dois lados: `sort` é estável, então eles mantêm a ordem
+    // relativa em que foram criados.
+    if (!nomeA || !nomeB) return (nomeA ? 0 : 1) - (nomeB ? 0 : 1);
+    return nomeA.localeCompare(nomeB, 'pt-BR', { sensitivity: 'base' });
+  });
+}
+
+/**
  * Quais linhas foram mexidas em relação ao que veio do banco.
  *
  * Serve para marcar a lista: hoje o aviso de "alterações não salvas" é global no

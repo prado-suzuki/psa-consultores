@@ -104,35 +104,39 @@ export const useClientEditData = (
           .select("*")
           .eq("cliente_id", editingClienteId)
           .eq("excluido", false);
-        let snapEntities: DraftEntity[] = [];
-        if (contribs) {
-          const mapped = contribs.map((c) => ({
-              _id: stableIdFromUuid(c.id),
-              _dbId: c.id,
-              tipo_pessoa: c.tipo_pessoa || "PJ",
-              cpf_cnpj: formatCpfCnpj(c.cpf_cnpj || "", c.tipo_pessoa || "PJ"),
-              nome_razao_social: c.nome_razao_social || "",
-              nome_fantasia: (c as any).nome_fantasia || "",
-              situacao_inscricao_estadual: (c as any).situacao_inscricao_estadual || (c.inscricao_estadual ? "sim" : "isento"),
-              inscricao_estadual: c.inscricao_estadual || "",
-              cod_cnae: c.cod_cnae || "",
-              setor: c.setor || "",
-              simples_nacional:
-                c.simples_nacional === true ? "optante" : c.simples_nacional === false ? "nao_optante" : "",
-              telefone: (c as any).telefone || "",
-              cep: (c as any).cep || "",
-              logradouro: (c as any).logradouro || "",
-              numero: (c as any).numero || "",
-              complemento: (c as any).complemento || "",
-              bairro: (c as any).bairro || "",
-              municipio: (c as any).municipio || "",
-              uf: (c as any).uf || "",
-              contribuinte_faturamento: (c as any).contribuinte_faturamento ?? false,
-              atividade_principal: "",
-            }));
-          setters.setEntities(mapped);
-          snapEntities = structuredClone(mapped);
-        }
+        // Consulta que volta nula é lista VAZIA, não "não mexa em nada".
+        //
+        // Enquanto os dois casos foram tratados como o mesmo, uma leitura que
+        // falhava deixava a tela com as linhas do cliente ANTERIOR (o setter não
+        // rodava) e a referência com a lista vazia (o snapshot rodava). O
+        // cadastro nascia sujo, sem ninguém ter digitado nada, e o aviso de
+        // "alterações não salvas" não tinha como apagar.
+        const mappedContribs = (contribs ?? []).map((c) => ({
+          _id: stableIdFromUuid(c.id),
+          _dbId: c.id,
+          tipo_pessoa: c.tipo_pessoa || "PJ",
+          cpf_cnpj: formatCpfCnpj(c.cpf_cnpj || "", c.tipo_pessoa || "PJ"),
+          nome_razao_social: c.nome_razao_social || "",
+          nome_fantasia: (c as any).nome_fantasia || "",
+          situacao_inscricao_estadual: (c as any).situacao_inscricao_estadual || (c.inscricao_estadual ? "sim" : "isento"),
+          inscricao_estadual: c.inscricao_estadual || "",
+          cod_cnae: c.cod_cnae || "",
+          setor: c.setor || "",
+          simples_nacional:
+            c.simples_nacional === true ? "optante" : c.simples_nacional === false ? "nao_optante" : "",
+          telefone: (c as any).telefone || "",
+          cep: (c as any).cep || "",
+          logradouro: (c as any).logradouro || "",
+          numero: (c as any).numero || "",
+          complemento: (c as any).complemento || "",
+          bairro: (c as any).bairro || "",
+          municipio: (c as any).municipio || "",
+          uf: (c as any).uf || "",
+          contribuinte_faturamento: (c as any).contribuinte_faturamento ?? false,
+          atividade_principal: "",
+        }));
+        setters.setEntities(mappedContribs);
+        const snapEntities: DraftEntity[] = structuredClone(mappedContribs);
 
         // Load inscricoes estaduais
         let snapInscricoes: Record<string, InscricaoIE[]> = {};
@@ -160,31 +164,34 @@ export const useClientEditData = (
           } else {
             setters.setInscricoesMap({});
           }
+        } else {
+          // Cliente sem contribuinte também precisa limpar: sem isto as IEs do
+          // cliente aberto antes sobrevivem na tela.
+          setters.setInscricoesMap({});
         }
 
         // representante table — PK is id_representante
-        let snapParticipants: DraftRepresentante[] = [];
         const { data: parts } = await (supabase.from(representanteTable) as any)
           .select("*")
           .eq("id_cliente", editingClienteId)
           .eq("excluido", false);
-        if (parts) {
-          const mapped = parts.map((p: any) => ({
-              _id: stableIdFromUuid(p.id_representante || p.id),
-              _dbId: p.id_representante || p.id,
-              nome: p.nome || "",
-              tipo_representante: p.tipo_representante || "",
-              cargo: p.cargo || "",
-              email: p.email || "",
-              telefone: p.telefone || "",
-              observacoes: p.observacoes || "",
-              acesso_chamados: p.acesso_chamados ?? false,
-            }));
-          setters.setParticipants(mapped);
-          snapParticipants = structuredClone(mapped);
-        }
+        // Mesma regra dos contribuintes: nulo é lista vazia.
+        const mappedParts: DraftRepresentante[] = (parts ?? []).map((p: any) => ({
+          _id: stableIdFromUuid(p.id_representante || p.id),
+          _dbId: p.id_representante || p.id,
+          nome: p.nome || "",
+          tipo_representante: p.tipo_representante || "",
+          cargo: p.cargo || "",
+          email: p.email || "",
+          telefone: p.telefone || "",
+          observacoes: p.observacoes || "",
+          acesso_chamados: p.acesso_chamados ?? false,
+        }));
+        setters.setParticipants(mappedParts);
+        const snapParticipants: DraftRepresentante[] = structuredClone(mappedParts);
 
         // Carregar ordens de serviço do banco
+        let snapContracts: DraftOrdemServico[] = [];
         const { data: existingOS } = await (supabase.from("ordem_servico" as any) as any)
           .select("*")
           .eq("id_cliente", editingClienteId)
@@ -227,6 +234,10 @@ export const useClientEditData = (
               data_inicio_projeto: os.data_inicio || "",
               data_fim_projeto: os.data_fim || "",
               valor_projeto: os.valor_projeto || 0,
+              // OS anterior ao parcelamento vem sem nº de parcelas, e continua
+              // "não informada" até alguém preencher — não vira 1 na abertura.
+              numero_parcelas: os.numero_parcelas != null ? Number(os.numero_parcelas) : null,
+              valor_entrada: os.valor_entrada || 0,
               valor_reembolso_km: os.valor_reembolso_km || 0,
               valor_reembolso_refeicao: os.valor_reembolso_refeicao || 0,
               situacao_projeto: os.situacao || "em_andamento",
@@ -241,27 +252,29 @@ export const useClientEditData = (
               regiao: os.regiao || "",
             }));
           setters.setContracts(mappedContracts);
-
-          // Store snapshot
-          setOriginalSnapshot({
-            clientData: snapClient!,
-            entities: snapEntities,
-            participants: snapParticipants,
-            contracts: structuredClone(mappedContracts),
-            inscricoesMap: snapInscricoes,
-          });
+          snapContracts = structuredClone(mappedContracts);
         } else {
           setters.setContracts([]);
-          if (snapClient) {
-            setOriginalSnapshot({
-              clientData: snapClient,
-              entities: snapEntities,
-              participants: snapParticipants,
-              contracts: [],
-              inscricoesMap: snapInscricoes,
-            });
-          }
         }
+
+        // A referência só nasce se a linha do cliente veio.
+        //
+        // O `snapClient!` que estava aqui montava uma referência com
+        // `clientData: null` quando a leitura do cliente falhava E ele tinha OS:
+        // a comparação passava a dar diferente sempre, e o cadastro ficava sujo
+        // para sempre. Sem a linha do cliente não há referência confiável, e
+        // dizer isso com `null` é mais honesto do que inventar uma.
+        setOriginalSnapshot(
+          snapClient
+            ? {
+                clientData: snapClient,
+                entities: snapEntities,
+                participants: snapParticipants,
+                contracts: snapContracts,
+                inscricoesMap: snapInscricoes,
+              }
+            : null,
+        );
       } catch (err: any) {
         console.error("Erro ao carregar dados do cliente:", err);
         toast.error("Erro ao carregar dados do cliente");

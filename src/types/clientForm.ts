@@ -63,7 +63,16 @@ export interface DraftOrdemServico {
   data_emissao: string;
   data_inicio_projeto: string;
   data_fim_projeto: string;
+  /** Total do contrato — não o valor da parcela. */
   valor_projeto: number;
+  /**
+   * Parcelas do contrato, do contrato inteiro e não do exercício: 24 parcelas
+   * que atravessam dois anos são UMA OS com 24. `null` = não informado, que é
+   * o estado das OS cadastradas antes deste campo. 1 = pagamento único.
+   */
+  numero_parcelas: number | null;
+  /** Entrada paga fora do parcelamento. 0 quando não houver. */
+  valor_entrada: number;
   valor_reembolso_km: number;
   valor_reembolso_refeicao: number;
   situacao_projeto: string;

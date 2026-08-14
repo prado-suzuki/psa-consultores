@@ -17,6 +17,15 @@ export interface AcentoArea {
   barra: string;
   /** Botão principal (Confirmar, Salvar). */
   botao: string;
+  /**
+   * Botão de ação dentro de uma seção (Produtos, Centro de custo, Pronto).
+   *
+   * Existe porque `variant="outline"` deixa esses três quase invisíveis: fundo
+   * transparente sobre a folha clara do modal, e só uma borda cinza. Preenchido
+   * com o tom claro do acento eles aparecem, e continuam sem competir com o botão
+   * principal, que é o acento sólido.
+   */
+  botaoSuave: string;
   /** Linha selecionada da lista mestre. */
   selecionado: string;
   /** Preenchimento da barra de rateio e estados "fechou certo". */
@@ -37,6 +46,7 @@ const TEAL: AcentoArea = {
   texto: 'text-teal-600',
   barra: 'border-l-teal-600/70',
   botao: 'bg-teal-600 hover:bg-teal-700 text-white',
+  botaoSuave: 'border-teal-600/40 bg-teal-50 text-teal-700 hover:border-teal-600 hover:bg-teal-100 hover:text-teal-800',
   selecionado: 'bg-teal-50 border-l-teal-600',
   positivoFundo: 'bg-teal-50',
   positivoTexto: 'text-teal-700',
@@ -53,6 +63,7 @@ const OSG: AcentoArea = {
   texto: 'text-osg-moss',
   barra: 'border-l-osg-moss/70',
   botao: 'bg-osg-moss hover:bg-osg-moss/90 text-white',
+  botaoSuave: 'border-osg-moss/40 bg-osg-50 text-osg-moss hover:border-osg-moss hover:bg-osg-100 hover:text-osg-moss',
   selecionado: 'bg-osg-50 border-l-osg-moss',
   positivoFundo: 'bg-osg-50',
   positivoTexto: 'text-osg-moss',

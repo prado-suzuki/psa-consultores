@@ -57,6 +57,8 @@ const FIELD_LABELS: Record<string, string> = {
   observacoes: 'Observações',
   numero_os: 'Número OS',
   valor_projeto: 'Valor do Projeto',
+  numero_parcelas: 'Nº de Parcelas',
+  valor_entrada: 'Entrada',
   situacao_projeto: 'Situação',
   data_emissao: 'Data de Emissão',
   data_inicio_projeto: 'Data Início',
