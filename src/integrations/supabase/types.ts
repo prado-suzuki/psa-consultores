@@ -1893,6 +1893,10 @@ export type Database = {
           mime: string | null
           nome_original: string
           pessoa_id: string | null
+          revisao: Database["public"]["Enums"]["osg_doc_revisao"]
+          revisao_em: string | null
+          revisao_motivo: string | null
+          revisao_por: string | null
           solicitacao_id: string | null
           status: Database["public"]["Enums"]["osg_doc_status"]
           tamanho: number | null
@@ -1921,6 +1925,10 @@ export type Database = {
           mime?: string | null
           nome_original: string
           pessoa_id?: string | null
+          revisao?: Database["public"]["Enums"]["osg_doc_revisao"]
+          revisao_em?: string | null
+          revisao_motivo?: string | null
+          revisao_por?: string | null
           solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["osg_doc_status"]
           tamanho?: number | null
@@ -1949,6 +1957,10 @@ export type Database = {
           mime?: string | null
           nome_original?: string
           pessoa_id?: string | null
+          revisao?: Database["public"]["Enums"]["osg_doc_revisao"]
+          revisao_em?: string | null
+          revisao_motivo?: string | null
+          revisao_por?: string | null
           solicitacao_id?: string | null
           status?: Database["public"]["Enums"]["osg_doc_status"]
           tamanho?: number | null
@@ -2012,6 +2024,13 @@ export type Database = {
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_arquivo_revisao_por_fkey"
+            columns: ["revisao_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -4243,12 +4262,14 @@ export type Database = {
           id_produto_segmento: string | null
           id_servico: string | null
           numero_os: string | null
+          numero_parcelas: number | null
           observacoes: string | null
           regiao: string | null
           setor_cliente: string | null
           setor_cliente_id: string | null
           situacao: string | null
           updated_at: string | null
+          valor_entrada: number | null
           valor_projeto: number | null
           valor_reembolso_km: number | null
           valor_reembolso_refeicao: number | null
@@ -4265,12 +4286,14 @@ export type Database = {
           id_produto_segmento?: string | null
           id_servico?: string | null
           numero_os?: string | null
+          numero_parcelas?: number | null
           observacoes?: string | null
           regiao?: string | null
           setor_cliente?: string | null
           setor_cliente_id?: string | null
           situacao?: string | null
           updated_at?: string | null
+          valor_entrada?: number | null
           valor_projeto?: number | null
           valor_reembolso_km?: number | null
           valor_reembolso_refeicao?: number | null
@@ -4287,12 +4310,14 @@ export type Database = {
           id_produto_segmento?: string | null
           id_servico?: string | null
           numero_os?: string | null
+          numero_parcelas?: number | null
           observacoes?: string | null
           regiao?: string | null
           setor_cliente?: string | null
           setor_cliente_id?: string | null
           situacao?: string | null
           updated_at?: string | null
+          valor_entrada?: number | null
           valor_projeto?: number | null
           valor_reembolso_km?: number | null
           valor_reembolso_refeicao?: number | null
@@ -8742,6 +8767,21 @@ export type Database = {
       }
     }
     Functions: {
+      anexar_documento_pendencia: {
+        Args: {
+          _alvo_id: string
+          _alvo_kind: string
+          _ambiente: string
+          _categoria: string
+          _checksum: string
+          _gcs_uri: string
+          _mime: string
+          _nome_original: string
+          _solicitacao_item_id: string
+          _tamanho: number
+        }
+        Returns: string
+      }
       anexar_documento_solicitado: {
         Args: {
           _ambiente: string
@@ -9018,12 +9058,14 @@ export type Database = {
           id_produto_segmento: string | null
           id_servico: string | null
           numero_os: string | null
+          numero_parcelas: number | null
           observacoes: string | null
           regiao: string | null
           setor_cliente: string | null
           setor_cliente_id: string | null
           situacao: string | null
           updated_at: string | null
+          valor_entrada: number | null
           valor_projeto: number | null
           valor_reembolso_km: number | null
           valor_reembolso_refeicao: number | null
@@ -9166,6 +9208,10 @@ export type Database = {
       }
       resolve_user_cliente_id: { Args: { _uid: string }; Returns: string }
       resolve_user_cluster_ids: { Args: { _uid: string }; Returns: string[] }
+      revisar_documento_pendencia: {
+        Args: { _documento_id: string; _motivo?: string; _veredito: string }
+        Returns: undefined
+      }
       sistema_cluster_visivel: {
         Args: { _sistema_id: string }
         Returns: boolean
@@ -9253,6 +9299,7 @@ export type Database = {
         | "georreferenciamento"
       osg_doc_fonte: "cliente" | "psa" | "arquivar"
       osg_doc_grupo: "pf" | "pj" | "bens_imoveis" | "outros"
+      osg_doc_revisao: "pendente" | "aprovado" | "recusado"
       osg_doc_status: "pendente" | "ativo"
       osg_solicitacao_item_status: "ativo" | "dispensado"
       osg_solicitacao_status:
@@ -9513,6 +9560,7 @@ export const Constants = {
       ],
       osg_doc_fonte: ["cliente", "psa", "arquivar"],
       osg_doc_grupo: ["pf", "pj", "bens_imoveis", "outros"],
+      osg_doc_revisao: ["pendente", "aprovado", "recusado"],
       osg_doc_status: ["pendente", "ativo"],
       osg_solicitacao_item_status: ["ativo", "dispensado"],
       osg_solicitacao_status: [
