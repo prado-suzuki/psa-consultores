@@ -52,6 +52,13 @@ export interface VinculoProjeto {
    * `resolverVinculos`.
    */
   external_client_id?: string | null;
+  /**
+   * `org_projects.produto_segmento_id`: qual produto contratado este projeto é,
+   * dito pelo cadastro em vez de deduzido. Existe desde a migration
+   * 20260814140000. Opcional aqui porque projeto antigo que o backfill não
+   * conseguiu identificar continua nulo, e aí a dedução volta a valer.
+   */
+  produto_segmento_id?: string | null;
 }
 
 export interface VinculosItens {
@@ -63,6 +70,12 @@ export interface VinculosItens {
   servicoPorId: VinculoPorId;
   /** `ordem_servico.id` do projeto do item. */
   osPorId: VinculoPorId;
+  /**
+   * `produto_segmento.id` que o PROJETO declara, herdado pelas tarefas dele.
+   * Vazio para projeto antigo sem a coluna preenchida: ver
+   * `resolverProdutoContratado`, que só então cai na dedução.
+   */
+  produtoExplicitoPorId: VinculoPorId;
 }
 
 /**
@@ -72,7 +85,8 @@ export interface VinculosItens {
  * - cliente: `client_id` → cliente do `contribuinte_id` → cliente do projeto;
  * - contribuinte: `contribuinte_id` da tarefa → do projeto;
  * - serviço: `servico_id` da tarefa → do projeto;
- * - OS: só existe no projeto (`ordem_servico_id`).
+ * - OS: só existe no projeto (`ordem_servico_id`);
+ * - produto declarado: também só no projeto (`produto_segmento_id`).
  *
  * Normalizar contribuinte para cliente é o que impede contar o mesmo cliente
  * duas vezes quando uma tarefa aponta para o cliente e outra para um CNPJ dele.
@@ -96,6 +110,7 @@ export function resolverVinculos(
   const contribuintePorId: VinculoPorId = {};
   const servicoPorId: VinculoPorId = {};
   const osPorId: VinculoPorId = {};
+  const produtoExplicitoPorId: VinculoPorId = {};
 
   for (const projeto of projetos) {
     if (projeto.contribuinte_id) {
@@ -109,6 +124,7 @@ export function resolverVinculos(
     }
     if (projeto.servico_id) servicoPorId[projeto.id] = projeto.servico_id;
     if (projeto.ordem_servico_id) osPorId[projeto.id] = projeto.ordem_servico_id;
+    if (projeto.produto_segmento_id) produtoExplicitoPorId[projeto.id] = projeto.produto_segmento_id;
   }
 
   for (const tarefa of tarefas) {
@@ -127,37 +143,64 @@ export function resolverVinculos(
 
     const os = tarefa.project_id ? osPorId[tarefa.project_id] : undefined;
     if (os) osPorId[tarefa.id] = os;
+
+    // `org_tasks` não tem coluna de produto: a tarefa é do produto do projeto
+    // dela, e nada mais. Só herança, sem preferência local como nos outros elos.
+    const produto = tarefa.project_id ? produtoExplicitoPorId[tarefa.project_id] : undefined;
+    if (produto) produtoExplicitoPorId[tarefa.id] = produto;
   }
 
-  return { clientePorId, contribuintePorId, servicoPorId, osPorId };
+  return { clientePorId, contribuintePorId, servicoPorId, osPorId, produtoExplicitoPorId };
 }
 
 /**
- * Produto contratado na OS de cada item, em `produto_segmento.id`.
- *
- * O produto não fica gravado no projeto nem na tarefa: o que fica gravado é o
- * `servico_id`. O produto se resolve cruzando esse serviço com os produtos
- * contratados na OS do projeto (`os_produtos_contratados` × `produto_servico`) —
- * a mesma regra que a tela de cadastro de projeto usa em
- * `resolveProdutoIdByServico`, para os dois lugares mostrarem o mesmo produto.
+ * Produto de cada item, em `produto_segmento.id`.
  *
  * Regras, nesta ordem:
- * 1. serviço do item que também está em algum produto contratado na OS → esse
+ * 1. produto que o projeto DECLARA (`org_projects.produto_segmento_id`, herdado
+ *    pelas tarefas dele);
+ * 2. serviço do item que também está em algum produto contratado na OS → esse
  *    produto (empate resolvido pelo menor id, para o número não dançar entre
  *    carregamentos);
- * 2. sem cruzamento, mas a OS tem um único produto contratado → esse produto;
- * 3. caso contrário fica sem produto — a agregação joga no bucket próprio em vez
+ * 3. sem cruzamento, mas a OS tem um único produto contratado → esse produto;
+ * 4. caso contrário fica sem produto — a agregação joga no bucket próprio em vez
  *    de escolher um produto no chute.
+ *
+ * A regra 1 é nova e manda em todas as outras. Antes só existia a dedução, que
+ * era o melhor possível quando o projeto não guardava produto nenhum, e que erra
+ * de duas maneiras hoje que ele guarda:
+ *
+ * - CALA quando não tem como escolher. Projeto de criação em lote nasce com
+ *   `servico_id` vazio (e trocar a OS no modal também limpa), então em OS com
+ *   mais de um produto contratado a regra 2 não tem por onde decidir e a 3 não
+ *   se aplica. O item caía em "Sem produto identificado" com o cadastro correto
+ *   preenchido do lado.
+ * - ERRA quando tem escolha demais. Serviço que pertence a vários produtos da
+ *   mesma OS deixa a regra 2 desempatando por menor id, que é estável mas
+ *   arbitrário: as horas iam para um produto contratado plausível e não para o
+ *   que o projeto é.
+ *
+ * A dedução fica de fallback para projeto antigo, cuja coluna o backfill da
+ * migration 20260814140000 deixou nula de propósito em vez de chutar.
+ *
+ * Produto declarado vale mesmo que ele não esteja contratado na OS do projeto: a
+ * coerência entre os dois é responsabilidade da tela, que só oferece os produtos
+ * da OS escolhida (`ProjetoOsProdutoFields`), e uma divergência aqui é dado para
+ * corrigir no cadastro, não motivo para o relatório preferir o palpite.
  */
 export function resolverProdutoContratado(
+  produtoExplicitoPorId: VinculoPorId,
   servicoPorId: VinculoPorId,
   osPorId: VinculoPorId,
   produtosPorOs: Record<string, string[]>,
   produtosPorServico: Record<string, string[]>,
 ): VinculoPorId {
-  const produtoPorId: VinculoPorId = {};
+  const produtoPorId: VinculoPorId = { ...produtoExplicitoPorId };
 
   for (const [itemId, osId] of Object.entries(osPorId)) {
+    // Quem já sabe qual produto é não passa pela dedução.
+    if (produtoPorId[itemId]) continue;
+
     const produtosDaOs = produtosPorOs[osId];
     if (!produtosDaOs?.length) continue;
 

@@ -108,6 +108,10 @@ function zerarMotivos(): Record<MotivoPendencia, number> {
  * contratar; com OS vazia não há produto; com OS de vários produtos o serviço é
  * quem decide, e sem ele (ou com serviço que não pertence à OS) o sistema se
  * recusa a escolher no chute.
+ *
+ * Projeto que declara o produto (`produto_segmento_id`) sai da fila no teste de
+ * `produtoPorId`, antes de qualquer motivo de dedução: cobrar "informe o serviço"
+ * de quem já disse qual produto é seria pedir cadastro que não falta.
  */
 function motivoDoItem(
   itemId: string,
