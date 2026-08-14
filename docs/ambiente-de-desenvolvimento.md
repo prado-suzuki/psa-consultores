@@ -8,7 +8,32 @@ O **dev compartilhado é o padrão**, para que a alteração de um dev apareça 
 outro no mesmo dia. O **local é a bancada de teste**, para quem vai mexer em algo que
 pode quebrar o dos outros.
 
-## Precedência dos arquivos de env
+## Qual banco cada branch usa
+
+| onde | banco |
+|---|---|
+| build publicado (Lovable, a partir de `main`) | produção |
+| `bun run dev` em `main` | produção |
+| `bun run dev` em `develop` e branches de trabalho | dev compartilhado |
+| qualquer lugar, com `.env.development.local` | o que você puser lá |
+
+A escolha por branch é feita no `vite.config.ts`, não com conteúdo diferente de `.env`
+em cada lado. O motivo é o merge: arquivo versionado com valor diferente nas duas
+branches conflita em todo `develop → main`, e uma resolução errada troca o banco do app
+sem ninguém perceber. Como está, os dois lados carregam exatamente os mesmos arquivos e
+o merge não tem o que decidir.
+
+O `vite.config.ts` ainda derruba o build de produção se o valor de desenvolvimento
+chegar no `.env`, que é o dano que essa separação existe para evitar. A mensagem diz o
+que aconteceu.
+
+Quando `bun run dev` sobe, ele imprime para onde está apontando e por quê:
+
+```
+➜  Supabase:   https://vgzomuwnsdgrxbkyoavq.supabase.co  (.env.development)
+```
+
+### Precedência dos arquivos de env
 
 O Vite carrega nesta ordem, e **o último vence**:
 
@@ -18,12 +43,13 @@ O Vite carrega nesta ordem, e **o último vence**:
 
 Isso importa: um `.env.development` commitado sobrescreve o `.env.local` de todo mundo.
 Por isso a configuração pessoal mora em `.env.development.local`, que é o slot de maior
-precedência e cai no `*.local` do `.gitignore`.
+precedência e cai no `*.local` do `.gitignore`. A regra de branch fica entre os dois:
+vence o `.env.development`, perde para o `.env.development.local`.
 
 | arquivo | no git | aponta para | quem usa |
 |---|---|---|---|
-| `.env` | sim | produção | build de produção |
-| `.env.development` | sim | dev compartilhado | todo mundo, por padrão |
+| `.env` | sim | produção | build de produção, e `dev` em `main` |
+| `.env.development` | sim | dev compartilhado | `dev` fora de `main` |
 | `.env.development.local` | não | seu `supabase start` | quem quer isolamento |
 
 ## Usar o banco local
