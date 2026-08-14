@@ -23,7 +23,7 @@ Sistema de gestão interna e portal de clientes da PSA Consultores, com foco em 
 ## ✅ DIRETRIZES DE ARQUITETURA
 - **Auditoria Obrigatória (CUD):** SEMPRE use o hook `useAuditLog` para operações de Create/Update/Delete. Você deve enviar o diff campo-a-campo em `changed_fields`.
 - **Autenticação e RLS:** Mantenha o RLS sempre habilitado. Utilize as funções SECURITY DEFINER `has_role(uuid, app_role)` e `is_project_member()` para checar permissões.
-- **Separação de Ambientes:** O sistema detecta dev/prod via URL (`src/config/api.ts`). Tabelas como `cliente`, `contribuinte`, `representante` e `ordem_servico` possuem a coluna `ambiente`. Suas queries DEVEM incluir o filtro `.eq('ambiente', currentAmbiente)`.
+- **Separação de Ambientes:** O sistema detecta dev/prod via URL (`src/config/api.ts`). `cliente` e `contribuinte` possuem a coluna `ambiente`, e suas queries DEVEM incluir o filtro `.eq('ambiente', currentAmbiente)`. `representante`, `ordem_servico`, `org_projects`, `org_tasks`, `tickets`, `pessoa` e `bem` NÃO têm a coluna: o ambiente delas é o do cliente a que se ligam, e o recorte é feito na mão (ver `src/lib/ambienteScope.ts`). Todo cadastro de dev carrega o prefixo `[TESTE] ` no nome, para que um vazamento se identifique sozinho em produção. Regras e conjunto padrão em `docs/geral/clientes-de-teste-dev.md`.
 - **Soft Delete:** Várias tabelas usam a coluna `excluido` (boolean). Suas consultas de leitura devem sempre conter `.eq('excluido', false)`.
 - **Imports:** Use SEMPRE aliases (ex: `@/components`, `@/hooks`, `@/lib`).
 
