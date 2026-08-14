@@ -19429,6 +19429,26 @@ GRANT ALL ON FUNCTION public.cliente_visivel_para(_cliente_id uuid) TO service_r
 -- Name: TABLE bem; Type: ACL; Schema: public; Owner: -
 --
 
+--
+-- Zera os privilégios dos três roles antes de reaplicá-los.
+--
+-- Motivo: pg_dump emite GRANT, nunca "a ausência de grant". Todo ambiente
+-- Supabase tem ALTER DEFAULT PRIVILEGES dando ALL no que o postgres cria, então
+-- sem este REVOKE as tabelas nascem mais permissivas do que são em produção, e o
+-- quanto mais depende de como o ambiente configurou as default privileges. Num
+-- Supabase hospedado, por exemplo, authenticated ganharia DELETE em org_comments,
+-- que produção nega de propósito (a exclusão é lógica, pela coluna excluido).
+--
+-- Com o REVOKE aqui, os GRANTs logo abaixo, que vieram do dump, passam a ser a
+-- palavra final, e o resultado é o mesmo em qualquer ambiente. A cobertura foi
+-- conferida: o dump emite GRANT explícito para todas as 150 relações e as 2
+-- sequences nos casos em que produção concede algo, e omite exatamente onde
+-- produção não concede nada (anon em 8 objetos, authenticated em
+-- sprint_deliverables_backup_20260809).
+
+REVOKE ALL ON ALL TABLES    IN SCHEMA public FROM anon, authenticated, service_role;
+REVOKE ALL ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated, service_role;
+
 GRANT ALL ON TABLE public.bem TO anon;
 GRANT ALL ON TABLE public.bem TO authenticated;
 GRANT ALL ON TABLE public.bem TO service_role;
@@ -21702,61 +21722,3 @@ ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public GRANT ALL ON TABLES 
 --
 -- PostgreSQL database dump complete
 --
-
-
-
--- Ajuste de privilégios que o pg_dump não consegue expressar.
---
--- O dump emite GRANT, nunca "a ausência de grant". Como o Supabase local tem
--- ALTER DEFAULT PRIVILEGES dando ALL em tudo que o postgres cria, esses 8 objetos
--- nasceriam mais permissivos aqui do que são em produção. Abaixo, o estado exato
--- de produção, reafirmado com REVOKE + GRANT.
-
--- anon não tem privilégio nenhum em nenhum dos oito
-REVOKE ALL ON TABLE public.cobertura_documentos_cliente FROM anon;
-REVOKE ALL ON TABLE public.notificacao FROM anon;
-REVOKE ALL ON TABLE public.notificacao_envio FROM anon;
-REVOKE ALL ON TABLE public.profiles_safe FROM anon;
-REVOKE ALL ON TABLE public.solicitacao FROM anon;
-REVOKE ALL ON TABLE public.solicitacao_item FROM anon;
-REVOKE ALL ON TABLE public.solicitacao_item_nao_aplicavel FROM anon;
-REVOKE ALL ON TABLE public.sprint_deliverables_backup_20260809 FROM anon;
-
--- authenticated também não tem nada nesta
-REVOKE ALL ON TABLE public.sprint_deliverables_backup_20260809 FROM authenticated;
-
--- somente leitura para authenticated
-REVOKE ALL ON TABLE public.cobertura_documentos_cliente FROM authenticated;
-GRANT SELECT ON TABLE public.cobertura_documentos_cliente TO authenticated;
-REVOKE ALL ON TABLE public.notificacao FROM authenticated;
-GRANT SELECT ON TABLE public.notificacao TO authenticated;
-REVOKE ALL ON TABLE public.notificacao_envio FROM authenticated;
-GRANT SELECT ON TABLE public.notificacao_envio TO authenticated;
-
--- acesso completo para authenticated
-REVOKE ALL ON TABLE public.profiles_safe FROM authenticated;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.profiles_safe TO authenticated;
-REVOKE ALL ON TABLE public.solicitacao FROM authenticated;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.solicitacao TO authenticated;
-REVOKE ALL ON TABLE public.solicitacao_item FROM authenticated;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.solicitacao_item TO authenticated;
-REVOKE ALL ON TABLE public.solicitacao_item_nao_aplicavel FROM authenticated;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.solicitacao_item_nao_aplicavel TO authenticated;
-
--- service_role
-REVOKE ALL ON TABLE public.cobertura_documentos_cliente FROM service_role;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.cobertura_documentos_cliente TO service_role;
-REVOKE ALL ON TABLE public.notificacao FROM service_role;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.notificacao TO service_role;
-REVOKE ALL ON TABLE public.notificacao_envio FROM service_role;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.notificacao_envio TO service_role;
-REVOKE ALL ON TABLE public.profiles_safe FROM service_role;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.profiles_safe TO service_role;
-REVOKE ALL ON TABLE public.solicitacao FROM service_role;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.solicitacao TO service_role;
-REVOKE ALL ON TABLE public.solicitacao_item FROM service_role;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.solicitacao_item TO service_role;
-REVOKE ALL ON TABLE public.solicitacao_item_nao_aplicavel FROM service_role;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.solicitacao_item_nao_aplicavel TO service_role;
-REVOKE ALL ON TABLE public.sprint_deliverables_backup_20260809 FROM service_role;
-GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.sprint_deliverables_backup_20260809 TO service_role;
