@@ -1,2 +1,9 @@
-supabase/migrations/20260429120000_import_legacy_tickets.sql
-supabase/migrations/20260429130000_import_legacy_tickets_retry.sql
+# Caminhos que a busca deve pular. Respeitado por ripgrep, fd e ag, e portanto
+# também pelas ferramentas de busca dos agentes. Não afeta o git: os arquivos
+# continuam versionados e `git grep` continua achando.
+
+# Migrations aposentadas: 558 arquivos e 76 mil linhas de SQL que não é mais
+# aplicado. Buscar por uma coluna aqui devolve o schema de ontem misturado com o
+# de hoje, e o de hoje está em supabase/migrations/00000000000000_baseline.sql.
+# Ver supabase/migrations_arquivo/LEIA-ME.md.
+supabase/migrations_arquivo/

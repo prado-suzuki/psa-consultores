@@ -38,6 +38,25 @@ Conferido contra produção por impressão digital md5 em 11 dimensões (tabelas
 colunas, constraints, índices, funções, policies, triggers, enums, views, RLS e
 grants). As 11 batem.
 
+## Buscar aqui dentro
+
+Esta pasta está no `.ignore` da raiz, então **ripgrep, fd, ag e as ferramentas de
+busca dos agentes já pulam ela**. É o que se quer no dia a dia: procurar por uma
+coluna aqui devolve o schema de ontem misturado com o de hoje.
+
+Duas ferramentas não leem `.ignore`:
+
+```bash
+git grep <termo> -- ':!supabase/migrations_arquivo'   # precisa do pathspec
+grep -r --exclude-dir=migrations_arquivo <termo> .    # precisa da flag
+```
+
+Para procurar de propósito **dentro** do arquivo histórico:
+
+```bash
+rg --no-ignore <termo> supabase/migrations_arquivo/
+```
+
 ## Podem ser apagadas?
 
 Sim, o git guarda tudo. Ficam aqui só enquanto a transição é recente e alguém
