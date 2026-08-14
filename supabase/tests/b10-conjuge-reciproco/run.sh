@@ -32,7 +32,9 @@ set -euo pipefail
 
 AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_RAIZ="$(cd "$AQUI/../../.." && pwd)"
-MIGRACAO_CONJUGE="supabase/migrations/20260813120000_pessoa_conjuge_reciproco.sql"
+# A migration foi dobrada no baseline e arquivada; o teste continua provando a
+# transformação contra o arquivo histórico, que é o que ele sempre fez.
+MIGRACAO_CONJUGE="supabase/migrations_arquivo/20260813120000_pessoa_conjuge_reciproco.sql"
 TESTES="supabase/tests/b10-conjuge-reciproco"
 IMAGEM="${IMAGEM_POSTGRES:-postgres:17-alpine}"
 CONTAINER="psa-prova-b10-$$"

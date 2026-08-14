@@ -104,6 +104,20 @@ versão `00000000000000`, então o push aplica só o que veio depois.
 registrado, então o push tentaria aplicar o schema inteiro por cima. Produção continua
 recebendo migration pelo Lovable.
 
+### Cuidado: o seed não roda no compartilhado
+
+`supabase/seed.sql` roda no fim de todo `supabase db reset`, e reset só acontece no
+local. No dev compartilhado ele foi aplicado à mão na montagem. Se você acrescentar um
+bucket ou uma policy de `storage.objects` lá, o local recebe no próximo reset e o
+compartilhado **não**. Aplique nos dois:
+
+```bash
+psql "$CONN" -f supabase/seed.sql
+```
+
+Os drops no começo de cada policy deixam o arquivo reaplicável, então rodar de novo é
+seguro.
+
 ### Recarregar do zero
 
 ```bash
