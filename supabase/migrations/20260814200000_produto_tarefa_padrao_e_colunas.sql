@@ -81,6 +81,18 @@
 -- zero para todo projeto existente NAO vale mais, porque 90 projetos ja apontam
 -- produto. E os projetos hoje sao 101, nao 126.
 --
+-- ACHADO NA BATERIA DE TESTE DE 14/08/2026, sobre o SET NULL de tarefa_padrao_id:
+-- apagar linha do catalogo dispara um UPDATE em org_tasks, e esse update passa
+-- pelo trigger org_tasks_team_member_status_only() (RLS-06). O trigger libera
+-- quem e sublider ou acima e RECUSA o resto com 42501. Consequencias:
+--   - pela tela funciona: so admin apaga linha do catalogo (policy desta
+--     migracao), e admin passa no trigger. Testado, e a tarefa sobrevive com o
+--     ponteiro nulo, como a tarefa manda.
+--   - em contexto SEM auth.uid() (job de servidor, cron, service_role, ou o
+--     proprio editor SQL sem JWT) o cascade FALHA e a exclusao aborta.
+-- Nao e defeito desta migracao e nao muda o desenho; fica registrado porque
+-- qualquer rotina automatica que venha a limpar catalogo vai esbarrar nisso.
+--
 -- Reversao:
 --   drop index if exists public.uq_org_tasks_tarefa_padrao;
 --   drop index if exists public.idx_org_tasks_tarefa_padrao;
@@ -198,19 +210,28 @@ create trigger trg_produto_tarefa_padrao_updated_at
 -- uma vez por consulta, e nao uma vez por linha.
 alter table public.produto_tarefa_padrao enable row level security;
 
+-- `create policy` NAO aceita IF NOT EXISTS, entao cada uma vem precedida de
+-- `drop policy if exists`. Sem isso o arquivo nao e re-executavel e a segunda
+-- aplicacao aborta a transacao inteira com 42710. E o padrao da casa (ver
+-- 20260813150648, da propria Lovable). Importa aqui porque a mesma migracao pode
+-- ser aplicada por caminhos diferentes.
+drop policy if exists "equipe can view produto_tarefa_padrao" on public.produto_tarefa_padrao;
 create policy "equipe can view produto_tarefa_padrao"
   on public.produto_tarefa_padrao for select to authenticated
   using (public.has_role_or_higher((select auth.uid()), 'team_member'::public.app_role));
 
+drop policy if exists "lider can insert produto_tarefa_padrao" on public.produto_tarefa_padrao;
 create policy "lider can insert produto_tarefa_padrao"
   on public.produto_tarefa_padrao for insert to authenticated
   with check (public.has_role_or_higher((select auth.uid()), 'lider'::public.app_role));
 
+drop policy if exists "lider can update produto_tarefa_padrao" on public.produto_tarefa_padrao;
 create policy "lider can update produto_tarefa_padrao"
   on public.produto_tarefa_padrao for update to authenticated
   using      (public.has_role_or_higher((select auth.uid()), 'lider'::public.app_role))
   with check (public.has_role_or_higher((select auth.uid()), 'lider'::public.app_role));
 
+drop policy if exists "admin can delete produto_tarefa_padrao" on public.produto_tarefa_padrao;
 create policy "admin can delete produto_tarefa_padrao"
   on public.produto_tarefa_padrao for delete to authenticated
   using (public.has_role((select auth.uid()), 'admin'::public.app_role));
