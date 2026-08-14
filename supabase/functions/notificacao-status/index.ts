@@ -91,6 +91,46 @@ Deno.serve(async (req) => {
     // Corpo BRUTO antes de qualquer parse — é sobre ele que o HMAC é calculado.
     const raw = await req.text();
 
+    // ── Chamador 2: o n8n fechando uma linha que ele mesmo enviou ──
+    //
+    // O n8n NÃO fala com o banco. No modelo do Lovable Cloud, chave secreta e
+    // chamada autenticada vivem na camada de edge function; o n8n é serviço
+    // externo. Colocar a service role key nele daria acesso total ao banco a uma
+    // plataforma de automação de terceiro — aqui ele só consegue fechar linha de
+    // envio.
+    const apiKey = req.headers.get("x-api-key");
+    const callbackToken = Deno.env.get("N8N_CALLBACK_TOKEN");
+    if (apiKey && callbackToken && apiKey === callbackToken) {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const b = JSON.parse(raw);
+      if (!b?.envio_id || !b?.status) {
+        return new Response(JSON.stringify({ error: "envio_id e status são obrigatórios" }), {
+          status: 400, headers: { "Content-Type": "application/json" },
+        });
+      }
+      const { error } = await supabase.rpc("confirmar_envio", {
+        _id: b.envio_id,
+        _status: b.status,
+        _provedor_message_id: b.provedor_message_id ?? null,
+        _erro_codigo: b.erro_codigo ?? null,
+        _erro: b.erro ?? null,
+      });
+      if (error) {
+        console.error("[notificacao-status] confirmar_envio (n8n) failed:", error);
+        return new Response(JSON.stringify({ error: "falha ao confirmar" }), {
+          status: 500, headers: { "Content-Type": "application/json" },
+        });
+      }
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200, headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    // ── Chamador 1: a Meta, com webhook de status ──
+
     const appSecret = Deno.env.get("META_APP_SECRET");
     if (!appSecret) {
       console.error("[notificacao-status] META_APP_SECRET not configured");
