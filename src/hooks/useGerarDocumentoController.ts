@@ -4,7 +4,8 @@ import { avaliarFlags, comporBlocos, copiarOrigemProfunda, gerarBlocos, gerarCom
 import { baixarDocx } from '@/lib/templates/docx';
 import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, mapearAdministrador, mapearGeorefCabecalho, mapearIntegralizacoes, mapearQuadroSocietario, mapearRegistro, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, mapearAdministrador, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, type ItemLista } from '@/lib/templates/mapeadores';
+import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
 import { useDocumentoGeradoRascunho, useDocumentoOverrides, useDocumentoVersoes, useSalvarDocumentoGerado, type DocumentoGeradoRow, type OverrideAplicavel, type SnapshotDados } from '@/hooks/useDocumentoGerado';
@@ -533,6 +534,48 @@ export function useGerarDocumentoController() {
     })),
     [registros.pessoa],
   );
+  // Quotas de cada pessoa no quadro da empresa selecionada, para a ORDEM das
+  // partes (ver mapearPartesSelecionadas). Sai do NÚMERO (quotasDoSocio), não do
+  // `socio.quotas` do quadro mapeado, que já é texto formatado com milhar —
+  // ordenar por ele ordenaria "1.500" antes de "900". Sem empresa (ou empresa sem
+  // quadro) o mapa fica vazio, e a ordenação cai no balde alfabético sozinha.
+  const quotasPorPessoa = useMemo(() => {
+    const mapa = new Map<string, number>();
+    for (const s of socios) {
+      const quotas = quotasDoSocio(s.quotas, s.vlr_total);
+      if (s.pessoa.id && quotas != null) mapa.set(s.pessoa.id, quotas);
+    }
+    return mapa;
+  }, [socios]);
+  // Listas de PESSOAS escolhidas a dedo ({{#partes}}): mesma fonte 'selecao' dos
+  // imóveis (registrosPorLista + registros do cliente), derivadas genericamente do
+  // papel — declarar outra seção de pessoas em PAPEIS_LISTA não pede código aqui.
+  // Os imóveis ficam de fora de propósito: eles têm tratamento próprio (georref por
+  // imóvel e a lista aninhada {{#vertices}}).
+  const listasDePessoaSelecionada = useMemo(
+    () =>
+      listas
+        .filter((l) => l.papel.fonte === 'selecao' && l.papel.tipo === 'pessoa')
+        .map((l) => l.nome),
+    [listas],
+  );
+  // A chave existe sempre que o papel é detectado — array vazio quando ainda não
+  // há seleção. É o que `montarContexto` já garante para toda lista detectada; num
+  // bloco REPETIDOR a coleção ausente derruba a prévia inteira (repetidor.ts:34-36),
+  // e numa seção inline ela sairia como laço vazio, descartando o bloco calado.
+  const partesPorLista = useMemo<Record<string, ItemLista[]>>(() => {
+    const out: Record<string, ItemLista[]> = {};
+    for (const nome of listasDePessoaSelecionada) {
+      out[nome] = mapearPartesSelecionadas(
+        (registrosPorLista[nome] ?? []).flatMap((id) => {
+          const registro = registros.pessoa.find((item) => item.id === id);
+          return registro ? [{ id, campos: mapearRegistro('pessoa', registro.row) }] : [];
+        }),
+        quotasPorPessoa,
+      );
+    }
+    return out;
+  }, [listasDePessoaSelecionada, registrosPorLista, registros.pessoa, quotasPorPessoa]);
   const itensPorLista = useMemo<Record<string, ItemLista[]>>(
     () => ({
       socios: quadro.itens,
@@ -547,8 +590,10 @@ export function useGerarDocumentoController() {
         // Passá-los aqui os faria assinar duas vezes.
       }),
       vertices: verticesItens,
+      // Listas de seleção manual de pessoas ({{#partes}}), por nome do papel.
+      ...partesPorLista,
     }),
-    [quadro, socios, administradores, integralizacoes, imoveisSelecionados, pessoaPorId, verticesItens],
+    [quadro, socios, administradores, integralizacoes, imoveisSelecionados, pessoaPorId, verticesItens, partesPorLista],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------

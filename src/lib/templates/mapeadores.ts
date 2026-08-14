@@ -931,6 +931,70 @@ export function mapearAdministrador(a: AdministradorParaMapear): ItemLista {
   };
 }
 
+// --- Partes escolhidas a dedo (seção {{#partes}}) -----------------------------
+
+/** Pessoa que o consultor escolheu a dedo para a seção {{#partes}}, já mapeada. */
+export interface ParteSelecionada {
+  /** Id da pessoa no cadastro — a chave do mapa de quotas. */
+  id: string;
+  /** Campos do vocabulário `pessoa` (de `mapearRegistro('pessoa', row)`). */
+  campos: Campos;
+}
+
+/**
+ * Itens da seção {{#partes}}: qualifica N pessoas escolhidas a dedo pelo
+ * consultor, sem exigir que elas estejam no quadro societário ou na administração
+ * da empresa do documento. É o contrato rural com uma PJ outorgante e várias
+ * pessoas físicas — o outorgado que não é sócio, o compossuidor, o donatário, a
+ * testemunha nominada.
+ *
+ * A ORDEM é do resolvedor, não da tela: mudar a sequência de cliques do consultor
+ * não muda a saída. A regra, decidida pelo negócio:
+ *
+ *   1. mais quotas na empresa selecionada primeiro (decrescente);
+ *   2. empate em quotas resolve por ordem alfabética;
+ *   3. quem NÃO tem quota vem depois de todos os que têm, entre si em ordem
+ *      alfabética.
+ *
+ * Sem empresa selecionada (ou empresa sem quadro societário) o mapa de quotas
+ * chega VAZIO e todo mundo cai no balde alfabético: é o caso degenerado da MESMA
+ * regra, não um segundo caminho de código.
+ *
+ * `quotasPorPessoa` vem de fora (quotasDoSocio aplicado às linhas do quadro, no
+ * controller) e não do quadro já mapeado: lá as quotas são texto formatado
+ * ("1.500"), e ordenar por ele ordenaria por milhar.
+ */
+export function mapearPartesSelecionadas(
+  partes: ParteSelecionada[],
+  quotasPorPessoa: ReadonlyMap<string, number> = new Map(),
+): ItemLista[] {
+  const ordenadas = [...partes].sort((a, z) => {
+    const quotasA = quotasPorPessoa.get(a.id);
+    const quotasZ = quotasPorPessoa.get(z.id);
+    // Sem quota vai para o fim, por mais que o nome venha antes no alfabeto.
+    if ((quotasA == null) !== (quotasZ == null)) return quotasA == null ? 1 : -1;
+    if (quotasA != null && quotasZ != null && quotasA !== quotasZ) return quotasZ - quotasA;
+    // Locale pt-BR: sem ele "Ávila" cairia depois de "Zuleica" (ordem de código).
+    const porNome = (a.campos.nome ?? '').localeCompare(z.campos.nome ?? '', 'pt-BR');
+    // Homônimos com as mesmas quotas: a id desempata, para a saída não depender
+    // da ordem em que os registros chegaram (determinismo, não estabilidade).
+    return porNome !== 0 ? porNome : a.id.localeCompare(z.id);
+  });
+
+  return ordenadas.map((parte, i) => ({
+    // O spread preserva a proveniência da pessoa (viaja como Symbol — ver
+    // origem.ts): o valor continua clicável na prévia.
+    parte: {
+      ...parte.campos,
+      ordem: String(i + 1),
+      ordemRomana: romano(i + 1).toLowerCase(),
+    },
+    // O engine não tem "else": cada ramo da qualificação tem a sua condicional.
+    sePF: parte.campos.tipoPessoa === 'PF',
+    sePJ: parte.campos.tipoPessoa === 'PJ',
+  }));
+}
+
 /** Despacha para o mapeador do tipo de entidade do binding. */
 export function mapearRegistro(tipo: TipoEntidade, row: unknown): Campos {
   switch (tipo) {
