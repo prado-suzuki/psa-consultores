@@ -4789,6 +4789,7 @@ export type Database = {
           start_date: string | null
           status: Database["public"]["Enums"]["fiscal_task_status"]
           tags: string[] | null
+          tarefa_padrao_id: string | null
           title: string
           updated_at: string | null
         }
@@ -4821,6 +4822,7 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["fiscal_task_status"]
           tags?: string[] | null
+          tarefa_padrao_id?: string | null
           title: string
           updated_at?: string | null
         }
@@ -4853,6 +4855,7 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["fiscal_task_status"]
           tags?: string[] | null
+          tarefa_padrao_id?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -4911,6 +4914,13 @@ export type Database = {
             columns: ["reviewer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_tarefa_padrao_id_fkey"
+            columns: ["tarefa_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "produto_tarefa_padrao"
             referencedColumns: ["id"]
           },
         ]
@@ -6203,6 +6213,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean | null
+          is_canal_chamados: boolean
           nome: string
         }
         Insert: {
@@ -6211,6 +6222,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_canal_chamados?: boolean
           nome: string
         }
         Update: {
@@ -6219,6 +6231,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_canal_chamados?: boolean
           nome?: string
         }
         Relationships: [
@@ -6260,6 +6273,62 @@ export type Database = {
             columns: ["servico_prestado_id"]
             isOneToOne: false
             referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_tarefa_padrao: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          dias_offset: number
+          horas_estimadas: number | null
+          id: string
+          ordem: number
+          papel_responsavel: string
+          produto_segmento_id: string
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          dias_offset?: number
+          horas_estimadas?: number | null
+          id?: string
+          ordem: number
+          papel_responsavel?: string
+          produto_segmento_id: string
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          dias_offset?: number
+          horas_estimadas?: number | null
+          id?: string
+          ordem?: number
+          papel_responsavel?: string
+          produto_segmento_id?: string
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_tarefa_padrao_produto_segmento_id_fkey"
+            columns: ["produto_segmento_id"]
+            isOneToOne: false
+            referencedRelation: "produto_segmento"
             referencedColumns: ["id"]
           },
         ]
