@@ -21,7 +21,7 @@ import FieldPair from "./FieldPair";
 import { useAcentoArea } from "./acentoArea";
 import ListaMestreDetalhe from "./ListaMestreDetalhe";
 import SecaoFormulario from "./SecaoFormulario";
-import MarcaPendencia, { CLASSE_CAMPO_PENDENTE } from "./MarcaPendencia";
+import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
 import { idsAlterados, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
 import type { FocoPendencia, MapaPendencias } from "@/lib/camposObrigatorios";
 
@@ -150,6 +150,9 @@ export default function RepresentantesTab({
   /** A frase da falta de um campo do item aberto, e as seções que acusam. */
   const camposDoItem = part ? pendencias?.camposPorItem.get(part._id) : undefined;
   const falta = (campo: string) => camposDoItem?.get(campo);
+  /** Id da frase da falta, para o campo apontar. Leva o item, porque a mesma
+   *  aba renderiza um representante por vez mas o id precisa ser único na página. */
+  const idFalta = (campo: string) => `pend-rep-${part?._id}-${campo}`;
   const secoesPendentes = part ? pendencias?.secoesPorItem.get(part._id) : undefined;
   const secaoPendente = (numero: number) => secoesPendentes?.has(numero) ?? false;
 
@@ -266,10 +269,10 @@ export default function RepresentantesTab({
                 value={part.nome || ""}
                 onChange={(e) => updateParticipant(part._id, { nome: e.target.value })}
                 placeholder="Nome do contato"
-                aria-invalid={!!falta('nome') || undefined}
+                {...acessibilidadeObrigatorio(idFalta('nome'), falta('nome'))}
                 className={cn("h-8", falta('nome') && CLASSE_CAMPO_PENDENTE)}
               />
-              <MarcaPendencia>{falta('nome')}</MarcaPendencia>
+              <MarcaPendencia id={idFalta('nome')}>{falta('nome')}</MarcaPendencia>
             </div>
           </div>
 
@@ -280,7 +283,10 @@ export default function RepresentantesTab({
                 value={part.tipo_representante || "__none__"}
                 onValueChange={(v) => updateParticipant(part._id, { tipo_representante: v === "__none__" ? "" : v })}
               >
-                <SelectTrigger className={cn("h-8", falta('tipo_representante') && CLASSE_CAMPO_PENDENTE)}>
+                <SelectTrigger
+                  {...acessibilidadeObrigatorio(idFalta('tipo_representante'), falta('tipo_representante'))}
+                  className={cn("h-8", falta('tipo_representante') && CLASSE_CAMPO_PENDENTE)}
+                >
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -288,7 +294,7 @@ export default function RepresentantesTab({
                   {TIPO_REPRESENTANTE_OPTIONS.map((opt) => <SelectItem key={opt} value={opt}>{opt}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <MarcaPendencia>{falta('tipo_representante')}</MarcaPendencia>
+              <MarcaPendencia id={idFalta('tipo_representante')}>{falta('tipo_representante')}</MarcaPendencia>
             </div>
           </div>
           </div>
@@ -302,10 +308,10 @@ export default function RepresentantesTab({
               <Input
                 value={part.email || ""}
                 onChange={(e) => updateParticipant(part._id, { email: e.target.value })}
-                aria-invalid={!!falta('email') || undefined}
+                {...acessibilidadeObrigatorio(idFalta('email'), falta('email'))}
                 className={cn("h-8", falta('email') && CLASSE_CAMPO_PENDENTE)}
               />
-              <MarcaPendencia>{falta('email')}</MarcaPendencia>
+              <MarcaPendencia id={idFalta('email')}>{falta('email')}</MarcaPendencia>
             </div>
           </div>
 
@@ -315,10 +321,12 @@ export default function RepresentantesTab({
               <Input
                 value={part.telefone || ""}
                 onChange={(e) => updateParticipant(part._id, { telefone: formatPhone(e.target.value) })}
-                aria-invalid={!!falta('telefone') || undefined}
+                // Telefone não é obrigatório aqui: só ganha marca quando o valor
+                // digitado é curto demais, então `aria-required` fica de fora.
+                {...acessibilidadeObrigatorio(idFalta('telefone'), falta('telefone'), false)}
                 className={cn("h-8", falta('telefone') && CLASSE_CAMPO_PENDENTE)}
               />
-              <MarcaPendencia>{falta('telefone')}</MarcaPendencia>
+              <MarcaPendencia id={idFalta('telefone')}>{falta('telefone')}</MarcaPendencia>
             </div>
           </div>
           </div>
@@ -359,9 +367,10 @@ export default function RepresentantesTab({
                 value={part.observacoes || ""}
                 onChange={(e) => updateParticipant(part._id, { observacoes: e.target.value })}
                 placeholder="Observações sobre o representante (mín. 20 caracteres se preenchido)..."
+                {...acessibilidadeObrigatorio(idFalta('observacoes'), falta('observacoes'), false)}
                 className={cn("min-h-[60px]", falta('observacoes') && CLASSE_CAMPO_PENDENTE)}
               />
-              <MarcaPendencia>{falta('observacoes')}</MarcaPendencia>
+              <MarcaPendencia id={idFalta('observacoes')}>{falta('observacoes')}</MarcaPendencia>
             </div>
           </div>
           </div>

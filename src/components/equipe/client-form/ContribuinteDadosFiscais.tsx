@@ -12,7 +12,7 @@ import { RequiredMark } from '@/components/ui/required-mark';
 import { cn } from '@/lib/utils';
 import type { DraftEntity, InscricaoIE } from '@/types/clientForm';
 import InscricoesEstaduaisEditor from './InscricoesEstaduaisEditor';
-import MarcaPendencia, { CLASSE_CAMPO_PENDENTE } from './MarcaPendencia';
+import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from './MarcaPendencia';
 
 const ROTULO = 'w-48 shrink-0 text-xs font-semibold text-muted-foreground';
 
@@ -33,6 +33,8 @@ export default function ContribuinteDadosFiscais({
   falta,
 }: ContribuinteDadosFiscaisProps) {
   const ehPJ = ent.tipo_pessoa === 'PJ';
+  /** Id da frase da falta, para o campo apontar com `aria-describedby`. */
+  const idFalta = (campo: string) => `pend-contrib-${ent._id}-${campo}`;
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-row items-center gap-4">
@@ -72,10 +74,10 @@ export default function ContribuinteDadosFiscais({
             <Input
               value={ent.cod_cnae || ''}
               onChange={(e) => onChange({ cod_cnae: e.target.value })}
-              aria-invalid={!!falta('cod_cnae') || undefined}
+              {...acessibilidadeObrigatorio(idFalta('cod_cnae'), falta('cod_cnae'), ehPJ)}
               className={cn('h-8 max-w-[200px]', falta('cod_cnae') && CLASSE_CAMPO_PENDENTE)}
             />
-            <MarcaPendencia>{falta('cod_cnae')}</MarcaPendencia>
+            <MarcaPendencia id={idFalta('cod_cnae')}>{falta('cod_cnae')}</MarcaPendencia>
           </div>
         </div>
       )}
@@ -95,7 +97,10 @@ export default function ContribuinteDadosFiscais({
           <Label className={ROTULO}>Simples Nacional<RequiredMark /></Label>
           <div className="flex-1">
             <Select value={ent.simples_nacional || undefined} onValueChange={(v) => onChange({ simples_nacional: v })}>
-              <SelectTrigger className={cn('h-8 max-w-[200px]', falta('simples_nacional') && CLASSE_CAMPO_PENDENTE)}>
+              <SelectTrigger
+                {...acessibilidadeObrigatorio(idFalta('simples_nacional'), falta('simples_nacional'), ehPJ)}
+                className={cn('h-8 max-w-[200px]', falta('simples_nacional') && CLASSE_CAMPO_PENDENTE)}
+              >
                 <SelectValue placeholder="Selecione..." />
               </SelectTrigger>
               <SelectContent>
@@ -103,7 +108,7 @@ export default function ContribuinteDadosFiscais({
                 <SelectItem value="nao_optante">Não Optante</SelectItem>
               </SelectContent>
             </Select>
-            <MarcaPendencia>{falta('simples_nacional')}</MarcaPendencia>
+            <MarcaPendencia id={idFalta('simples_nacional')}>{falta('simples_nacional')}</MarcaPendencia>
           </div>
         </div>
       )}

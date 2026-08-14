@@ -29,7 +29,7 @@ import CentrosCustoPickerDialog from "./CentrosCustoPickerDialog";
 import ResumoSelecao from "./ResumoSelecao";
 import RateioLista from "./RateioLista";
 import { useAcentoArea } from "./acentoArea";
-import MarcaPendencia, { CLASSE_CAMPO_PENDENTE } from "./MarcaPendencia";
+import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
 import { getEmpresaLabel, getProductLabel, ordenarPorRotulo } from "./contratosLabels";
 import { idsAlterados, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
 import type { FocoPendencia, MapaPendencias } from "@/lib/camposObrigatorios";
@@ -254,6 +254,8 @@ export default function ContratosTab({
   /** A frase da falta de um campo da OS aberta, e as seções que acusam. */
   const camposDoItem = cont ? pendencias?.camposPorItem.get(cont._id) : undefined;
   const falta = (campo: string) => camposDoItem?.get(campo);
+  /** Id da frase da falta, para o campo apontar com `aria-describedby`. */
+  const idFalta = (campo: string) => `pend-os-${cont?._id}-${campo}`;
   const secoesPendentes = cont ? pendencias?.secoesPorItem.get(cont._id) : undefined;
   const secaoPendente = (numero: number) => secoesPendentes?.has(numero) ?? false;
 
@@ -422,7 +424,10 @@ export default function ContratosTab({
                               }
                             }}
                           >
-                            <SelectTrigger className={cn("h-8", falta('setor_cliente_id') && CLASSE_CAMPO_PENDENTE)}><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectTrigger
+                              {...acessibilidadeObrigatorio(idFalta('setor_cliente_id'), falta('setor_cliente_id'))}
+                              className={cn("h-8", falta('setor_cliente_id') && CLASSE_CAMPO_PENDENTE)}
+                            ><SelectValue placeholder="Selecione..." /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="__none__">Selecione...</SelectItem>
                               {setoresCliente.map((setor) => (
@@ -430,7 +435,7 @@ export default function ContratosTab({
                               ))}
                             </SelectContent>
                           </Select>
-                          <MarcaPendencia>{falta('setor_cliente_id')}</MarcaPendencia>
+                          <MarcaPendencia id={idFalta('setor_cliente_id')}>{falta('setor_cliente_id')}</MarcaPendencia>
                         </div>
                       </div>
                       <div>
@@ -440,7 +445,10 @@ export default function ContratosTab({
                             value={cont.regiao || "__none__"}
                             onValueChange={(v) => updateContract(cont._id, { regiao: v === "__none__" ? "" : v })}
                           >
-                            <SelectTrigger className={cn("h-8", falta('regiao') && CLASSE_CAMPO_PENDENTE)}><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                            <SelectTrigger
+                              {...acessibilidadeObrigatorio(idFalta('regiao'), falta('regiao'))}
+                              className={cn("h-8", falta('regiao') && CLASSE_CAMPO_PENDENTE)}
+                            ><SelectValue placeholder="Selecione..." /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="__none__">Selecione...</SelectItem>
                               {REGIAO_OPTIONS.map(opt => (
@@ -448,7 +456,7 @@ export default function ContratosTab({
                               ))}
                             </SelectContent>
                           </Select>
-                          <MarcaPendencia>{falta('regiao')}</MarcaPendencia>
+                          <MarcaPendencia id={idFalta('regiao')}>{falta('regiao')}</MarcaPendencia>
                         </div>
                       </div>
                     </div>
@@ -472,7 +480,10 @@ export default function ContratosTab({
                           detalhe: pc.horas_contratadas != null ? pc.horas_contratadas + "h" : undefined,
                         }))}
                       />
-                      <MarcaPendencia>{falta('produtos_contratados')}</MarcaPendencia>
+                      {/* Sem campo para apontar: a falta é da seleção inteira,
+                          feita por diálogo. O `role="alert"` do MarcaPendencia já
+                          anuncia a frase quando ela aparece. */}
+                      <MarcaPendencia id={idFalta('produtos_contratados')}>{falta('produtos_contratados')}</MarcaPendencia>
                     </SecaoFormulario>
 
                     <ProdutosPickerDialog
@@ -520,7 +531,10 @@ export default function ContratosTab({
                           <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa / Faturamento<RequiredMark /></Label>
                           <div className="mt-1">
                             <Select value={osEmpresaId} onValueChange={(v) => handleEmpresaChange(cont._id, v)}>
-                              <SelectTrigger className={cn("h-9", falta('cluster_id') && CLASSE_CAMPO_PENDENTE)}>
+                              <SelectTrigger
+                                {...acessibilidadeObrigatorio(idFalta('cluster_id'), falta('cluster_id'))}
+                                className={cn("h-9", falta('cluster_id') && CLASSE_CAMPO_PENDENTE)}
+                              >
                                 <SelectValue placeholder="Selecione a empresa que fatura" />
                               </SelectTrigger>
                               <SelectContent className="max-h-72">
@@ -542,7 +556,7 @@ export default function ContratosTab({
                                 ))}
                               </SelectContent>
                             </Select>
-                            <MarcaPendencia>{falta('cluster_id')}</MarcaPendencia>
+                            <MarcaPendencia id={idFalta('cluster_id')}>{falta('cluster_id')}</MarcaPendencia>
                           </div>
                         </div>
 
@@ -555,7 +569,7 @@ export default function ContratosTab({
                             onRemover={(idx) =>
                               updateDistribuicao(cont._id, (d) => d.filter((_, i) => i !== idx))}
                           />
-                          <MarcaPendencia>{falta('distribuicao_receita')}</MarcaPendencia>
+                          <MarcaPendencia id={idFalta('distribuicao_receita')}>{falta('distribuicao_receita')}</MarcaPendencia>
                         </div>
                       </div>
                     </SecaoFormulario>

@@ -99,7 +99,11 @@ export function pendenciasContribuinte(e: DraftEntity, inscricoes: InscricaoIE[]
   if (vazio(e.logradouro)) add(2, 'logradouro', 'Logradouro é obrigatório');
   if (vazio(e.bairro)) add(2, 'bairro', 'Bairro é obrigatório');
   if (vazio(e.municipio)) add(2, 'municipio', 'Município é obrigatório');
-  if (vazio(e.uf) || (e.uf || '').trim().length !== 2) add(2, 'uf', 'UF tem 2 letras');
+  // Vazio e mal preenchido são faltas diferentes e merecem frases diferentes.
+  // Juntos numa condição só, quem deixava a UF em branco lia "UF tem 2 letras",
+  // que fala de formato, enquanto os cinco campos vizinhos dizem "é obrigatório".
+  if (vazio(e.uf)) add(2, 'uf', 'UF é obrigatória');
+  else if ((e.uf || '').trim().length !== 2) add(2, 'uf', 'UF tem 2 letras');
 
   if (e.tipo_pessoa === 'PJ') {
     if (vazio(e.cod_cnae)) add(3, 'cod_cnae', 'CNAE é obrigatório para pessoa jurídica');
