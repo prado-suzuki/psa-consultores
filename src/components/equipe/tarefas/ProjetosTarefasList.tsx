@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
@@ -48,6 +49,12 @@ import {
   type ProjetosTarefasTaskNode,
 } from '@/lib/projetosTarefasHierarchy';
 import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
+import {
+  esforcoDaTarefa,
+  resumoEsforco,
+  type EsforcoAgregado,
+  type EsforcoTarefa,
+} from '@/lib/projetosTarefasEsforco';
 import type { ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
 
 interface ProjetosTarefasListProps {
@@ -77,7 +84,9 @@ interface ProjetosTarefasListProps {
   currentUserId?: string | null;
 }
 
-const GRID = 'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_160px_44px] min-w-[1060px]';
+const GRID = 'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px] min-w-[1200px]';
+/** Faixas que atravessam a tabela inteira (divisor de cliente, "adicionar tarefa"). */
+const FULL_ROW_MIN_WIDTH = 'min-w-[1150px]';
 
 const projectStatusStyles: Record<string, string> = {
   planned: 'bg-slate-100 text-slate-700',
@@ -107,6 +116,27 @@ function completedTasksLabel(completed: number, total: number) {
 
 function completionPercentage(completed: number, total: number) {
   return total > 0 ? Math.round(completed / total * 100) : 0;
+}
+
+/**
+ * Célula de esforço. O estado `sem_apontamento` — concluído sem horas — vem em
+ * pílula de alerta porque é o único que exige ação de alguém.
+ */
+function EsforcoCell({ esforco, className }: { esforco: EsforcoTarefa; className?: string }) {
+  if (esforco.estado === 'sem_apontamento') {
+    return <div className={cn('flex items-center px-3', className)}>
+      <span title={esforco.descricao} className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+        <AlertTriangle className="h-3 w-3 shrink-0" />{esforco.label}
+      </span>
+    </div>;
+  }
+  return <div className={cn('flex items-center px-3 text-xs', esforco.estado === 'apontado' ? 'text-foreground' : 'text-muted-foreground', className)}>
+    <span title={esforco.descricao} className="truncate">{esforco.label}</span>
+  </div>;
+}
+
+function EsforcoAgregadoCell({ esforco, className }: { esforco: EsforcoAgregado; className?: string }) {
+  return <EsforcoCell esforco={resumoEsforco(esforco)} className={className} />;
 }
 
 export function ProjetosTarefasList({
@@ -227,6 +257,7 @@ export function ProjetosTarefasList({
         <div className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs', task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done' ? 'font-medium text-destructive' : 'text-muted-foreground')}>
           <CalendarDays className="h-3.5 w-3.5" />{dateLabel(task.due_date)}
         </div>
+        <EsforcoCell esforco={esforcoDaTarefa(task)} className="py-1.5" />
         <div />
         <div className="flex items-center justify-center">
           <DropdownMenu>
@@ -314,6 +345,7 @@ export function ProjetosTarefasList({
     <div className={cn(GRID, 'border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
       <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div>
       <button type="button" onClick={() => cycleSort('prazo')} className={cn('flex items-center gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'prazo' ? 'text-foreground' : '')}>Prazo{sortIcon('prazo')}</button>
+      <div className="px-3 py-2.5" title="Horas realizadas/estimadas. Alerta nas tarefas concluídas sem horas apontadas.">Esforço</div>
       <button type="button" onClick={() => cycleSort('progresso')} className={cn('flex items-center justify-end gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'progresso' ? 'text-foreground' : '')}>Progresso{sortIcon('progresso')}</button>
       <div />
     </div>
@@ -322,7 +354,7 @@ export function ProjetosTarefasList({
       const isExpanded = expanded.has(groupId);
       const showClientDivider = index === 0 || sortedHierarchy[index - 1].clientKey !== group.clientKey;
       return <Fragment key={group.id}>
-        {showClientDivider && <div className="flex min-w-[1010px] items-center gap-2 border-b border-t bg-muted/60 px-4 py-2.5 first:border-t-0">
+        {showClientDivider && <div className={cn('flex items-center gap-2 border-b border-t bg-muted/60 px-4 py-2.5 first:border-t-0', FULL_ROW_MIN_WIDTH)}>
           <Building2 className="h-4 w-4 text-primary" />
           <span className="text-xs font-bold uppercase tracking-wider text-foreground">{group.clientName}</span>
           <span className="text-xs text-muted-foreground">{sortedHierarchy.filter(item => item.clientKey === group.clientKey).length} OS/grupo(s)</span>
@@ -337,6 +369,7 @@ export function ProjetosTarefasList({
           <div />
           <div />
           <div className="flex items-center gap-1.5 px-3 text-xs text-muted-foreground">{group.os?.data_fim ? <><CalendarDays className="h-3.5 w-3.5" />{dateLabel(group.os.data_fim)}</> : 'Sem prazo'}</div>
+          <EsforcoAgregadoCell esforco={group.esforco} />
           <div className="flex items-center justify-end gap-2 px-3 text-xs font-medium text-muted-foreground">
             <Progress value={completionPercentage(group.completedTaskCount, group.taskCount)} className="h-1.5 w-16 bg-primary/15" />
             <span className="shrink-0">{completedTasksLabel(group.completedTaskCount, group.taskCount)}</span>
@@ -364,6 +397,7 @@ export function ProjetosTarefasList({
               <div className="flex items-center px-3">{projectNode.project && <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', projectStatusStyles[projectNode.project.status] || 'bg-muted text-muted-foreground')}>{STATUS_LABELS[projectNode.project.status] || projectNode.project.status}</span>}</div>
               <div className="flex items-center px-3 text-xs text-muted-foreground"><span className="truncate">{projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}`.trim() : 'Não atribuído'}</span></div>
               <div />
+              <EsforcoAgregadoCell esforco={projectNode.esforco} />
               <div className="flex items-center justify-end gap-2 px-3 text-xs font-medium text-muted-foreground">
                 <Progress value={completionPercentage(projectNode.completedTaskCount, projectNode.taskCount)} className="h-1.5 w-16 bg-primary/15" />
                 <span className="shrink-0">{completedTasksLabel(projectNode.completedTaskCount, projectNode.taskCount)}</span>
@@ -383,7 +417,7 @@ export function ProjetosTarefasList({
                 </DropdownMenuContent>
               </DropdownMenu>}</div>
             </div>
-            {projectExpanded && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className="flex min-w-[1010px] items-center gap-2 border-t px-14 py-2 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground"><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}
+            {projectExpanded && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className={cn('flex items-center gap-2 border-t px-14 py-2 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground', FULL_ROW_MIN_WIDTH)}><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}
           </div>;
         })}
         </section>
