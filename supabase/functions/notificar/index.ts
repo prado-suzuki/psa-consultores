@@ -53,7 +53,7 @@ interface NotificarRequest {
 
 // ── Auth ──
 //
-// Aceita `x-api-key` igual a DW_SYNC_TOKEN (chamada de servidor) OU Bearer
+// Aceita `x-api-key` igual a N8N_CALLBACK_TOKEN (chamada de servidor) OU Bearer
 // validado por getClaims. No Bearer, `service_role` passa direto e usuário
 // autenticado precisa ter `claims.sub`.
 //
@@ -61,8 +61,8 @@ interface NotificarRequest {
 // o token do usuário logado, e seria rejeitada.
 async function validateCaller(req: Request): Promise<{ authorized: boolean; error?: string }> {
   const apiKey = req.headers.get("x-api-key");
-  const syncToken = Deno.env.get("DW_SYNC_TOKEN");
-  if (apiKey && syncToken && apiKey === syncToken) {
+  const callbackToken = Deno.env.get("N8N_CALLBACK_TOKEN");
+  if (apiKey && callbackToken && apiKey === callbackToken) {
     return { authorized: true };
   }
 
@@ -340,19 +340,31 @@ Deno.serve(async (req) => {
       erroEnvio = err instanceof Error ? err.message : String(err);
     }
 
-    // ── Fecha as linhas reservadas ──
-    // `enviado` significa "o n8n aceitou o POST", NÃO "o cliente recebeu".
-    // Entrega real só existe no WhatsApp, e chega pelo webhook da Meta.
-    await Promise.all(
-      recipients.map(async (r) => {
-        const { error } = await supabase.rpc("confirmar_envio", {
-          _id: r.envio_id,
-          _status: ok ? "enviado" : "falhou",
-          _erro: erroEnvio,
-        });
-        if (error) console.error("[notificar] confirmar_envio failed:", error);
-      })
-    );
+    // ── Se o POST não chegou, fecha como `falhou` ──
+    //
+    // No caminho de SUCESSO não escrevemos nada, de propósito: 200 do webhook
+    // significa "o n8n aceitou", não "o Gmail enviou". Quem sabe o desfecho é o
+    // n8n, e é ele que chama confirmar_envio pela notificacao-status.
+    //
+    // Um único dono por transição, e aqui isso é regra e não estilo: se a borda
+    // marcasse `enviado`, a guarda "só avança" do confirmar_envio REJEITARIA o
+    // `falhou` que o n8n manda quando o Gmail falha — e a linha ficaria afirmando
+    // um envio que não houve.
+    //
+    // Até o n8n fechar, a linha fica `pendente`, que é exatamente o que ela é:
+    // está na mão dele e o desfecho é desconhecido.
+    if (!ok) {
+      await Promise.all(
+        recipients.map(async (r) => {
+          const { error } = await supabase.rpc("confirmar_envio", {
+            _id: r.envio_id,
+            _status: "falhou",
+            _erro: erroEnvio,
+          });
+          if (error) console.error("[notificar] confirmar_envio failed:", error);
+        })
+      );
+    }
 
     return json({ success: ok, recipients: recipients.length });
   } catch (error) {
