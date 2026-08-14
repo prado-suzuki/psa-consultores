@@ -24,7 +24,7 @@ import ContribuinteLeitura from "./ContribuinteLeitura";
 import ContribuinteDadosFiscais from "./ContribuinteDadosFiscais";
 import SecaoFormulario from "./SecaoFormulario";
 import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
-import { idsAlterados, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
+import { idsAlterados, ordenarPorNome, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
 import { normalizarNomeDigitado } from "@/lib/nomeProprio";
 import type { FocoPendencia, MapaPendencias } from "@/lib/camposObrigatorios";
 
