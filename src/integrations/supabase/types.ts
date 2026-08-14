@@ -4124,51 +4124,69 @@ export type Database = {
         Row: {
           agrupamento_chave: string | null
           canal: Database["public"]["Enums"]["notificacao_canal"]
+          chave_idempotencia: string | null
           destinatario_email: string | null
           destinatario_id: string | null
           destinatario_papel: string | null
           destinatario_telefone: string | null
           entidade_id: string
           entidade_tipo: string
-          enviado_em: string
+          entregue_em: string | null
+          enviado_em: string | null
           erro: string | null
+          erro_codigo: string | null
           id: string
+          lido_em: string | null
           metadata: Json
           notificacao_id: string | null
+          provedor_message_id: string | null
+          status: Database["public"]["Enums"]["notificacao_envio_status"]
           sucesso: boolean
           tipo: Database["public"]["Enums"]["notificacao_tipo"]
         }
         Insert: {
           agrupamento_chave?: string | null
           canal: Database["public"]["Enums"]["notificacao_canal"]
+          chave_idempotencia?: string | null
           destinatario_email?: string | null
           destinatario_id?: string | null
           destinatario_papel?: string | null
           destinatario_telefone?: string | null
           entidade_id: string
           entidade_tipo: string
-          enviado_em?: string
+          entregue_em?: string | null
+          enviado_em?: string | null
           erro?: string | null
+          erro_codigo?: string | null
           id?: string
+          lido_em?: string | null
           metadata?: Json
           notificacao_id?: string | null
+          provedor_message_id?: string | null
+          status?: Database["public"]["Enums"]["notificacao_envio_status"]
           sucesso?: boolean
           tipo: Database["public"]["Enums"]["notificacao_tipo"]
         }
         Update: {
           agrupamento_chave?: string | null
           canal?: Database["public"]["Enums"]["notificacao_canal"]
+          chave_idempotencia?: string | null
           destinatario_email?: string | null
           destinatario_id?: string | null
           destinatario_papel?: string | null
           destinatario_telefone?: string | null
           entidade_id?: string
           entidade_tipo?: string
-          enviado_em?: string
+          entregue_em?: string | null
+          enviado_em?: string | null
           erro?: string | null
+          erro_codigo?: string | null
           id?: string
+          lido_em?: string | null
           metadata?: Json
           notificacao_id?: string | null
+          provedor_message_id?: string | null
+          status?: Database["public"]["Enums"]["notificacao_envio_status"]
           sucesso?: boolean
           tipo?: Database["public"]["Enums"]["notificacao_tipo"]
         }
@@ -4790,6 +4808,7 @@ export type Database = {
           status: Database["public"]["Enums"]["fiscal_task_status"]
           tags: string[] | null
           tarefa_padrao_id: string | null
+          ticket_id: string | null
           title: string
           updated_at: string | null
         }
@@ -4823,6 +4842,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["fiscal_task_status"]
           tags?: string[] | null
           tarefa_padrao_id?: string | null
+          ticket_id?: string | null
           title: string
           updated_at?: string | null
         }
@@ -4856,6 +4876,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["fiscal_task_status"]
           tags?: string[] | null
           tarefa_padrao_id?: string | null
+          ticket_id?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -4921,6 +4942,13 @@ export type Database = {
             columns: ["tarefa_padrao_id"]
             isOneToOne: false
             referencedRelation: "produto_tarefa_padrao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -8883,6 +8911,16 @@ export type Database = {
       }
       cliente_id_de_pessoa: { Args: { _pessoa_id: string }; Returns: string }
       cliente_visivel_para: { Args: { _cliente_id: string }; Returns: boolean }
+      confirmar_envio: {
+        Args: {
+          _erro?: string
+          _erro_codigo?: string
+          _id: string
+          _provedor_message_id?: string
+          _status: Database["public"]["Enums"]["notificacao_envio_status"]
+        }
+        Returns: undefined
+      }
       criar_bem_com_titular: {
         Args: { bem_data: Json; titular_data: Json }
         Returns: {
@@ -9275,6 +9313,21 @@ export type Database = {
         }
         Returns: string
       }
+      reservar_envio: {
+        Args: {
+          _canal: Database["public"]["Enums"]["notificacao_canal"]
+          _chave: string
+          _destinatario_id?: string
+          _email?: string
+          _entidade_id: string
+          _entidade_tipo: string
+          _metadata?: Json
+          _papel?: string
+          _telefone?: string
+          _tipo: Database["public"]["Enums"]["notificacao_tipo"]
+        }
+        Returns: string
+      }
       resolve_user_cliente_id: { Args: { _uid: string }; Returns: string }
       resolve_user_cluster_ids: { Args: { _uid: string }; Returns: string[] }
       revisar_documento_pendencia: {
@@ -9325,6 +9378,13 @@ export type Database = {
         | "em_ajuste"
         | "done"
       notificacao_canal: "sino" | "email" | "whatsapp"
+      notificacao_envio_status:
+        | "pendente"
+        | "enviado"
+        | "entregue"
+        | "lido"
+        | "falhou"
+        | "ignorado"
       notificacao_tipo:
         | "tarefa_atribuida"
         | "tarefa_em_revisao"
@@ -9582,6 +9642,14 @@ export const Constants = {
         "done",
       ],
       notificacao_canal: ["sino", "email", "whatsapp"],
+      notificacao_envio_status: [
+        "pendente",
+        "enviado",
+        "entregue",
+        "lido",
+        "falhou",
+        "ignorado",
+      ],
       notificacao_tipo: [
         "tarefa_atribuida",
         "tarefa_em_revisao",
