@@ -51,7 +51,7 @@ const FERRAMENTAS: FerramentaOsg[] = [
   },
   {
     id: 'auditoria',
-    titulo: 'Logs de Equipe',
+    titulo: 'Logs de Uso',
     descricao: 'Histórico, produtividade e acesso do time na área OSG (acesso de líder).',
     path: '/equipe/osg/gerencial/logs-equipe',
     icon: <Shield className="h-5 w-5 text-osg-600" />,

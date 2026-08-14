@@ -181,7 +181,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
     { path: '/equipe/osg/gerencial', label: 'Dashboards', icon: LayoutDashboard },
     { path: '/equipe/osg/gerencial/chamados', label: 'Gestão de Chamados', icon: MessageSquare },
     { path: '/equipe/osg/gerencial/chamados/dashboard', label: 'Dashboard de Chamados', icon: LineChart },
-    { path: '/equipe/osg/gerencial/logs-equipe', label: 'Logs de Equipe', icon: Shield },
+    { path: '/equipe/osg/gerencial/logs-equipe', label: 'Logs de Uso', icon: Shield },
   ];
   const isGerencialActive = location.pathname.startsWith('/equipe/osg/gerencial');
 

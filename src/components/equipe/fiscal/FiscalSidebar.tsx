@@ -113,7 +113,7 @@ const menuItems: MenuItem[] = [
       },
       {
         id: 'gerencial-logs',
-        label: 'Logs de Equipe',
+        label: 'Logs de Uso',
         icon: Shield,
         path: '/equipe/tax/gerencial/logs-equipe'
       }
