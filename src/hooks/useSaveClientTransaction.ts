@@ -109,6 +109,15 @@ interface SaveTransactionParams {
   isEditing: boolean;
   editingClienteId?: string | null;
   setoresCliente: SetorCliente[];
+  /**
+   * Centros de custo, só para a trilha de auditoria do rateio nomear a linha.
+   *
+   * Sem isto, duas linhas de rateio alteradas do mesmo jeito viram dois
+   * registros idênticos byte a byte, e quem for conferir não sabe qual centro
+   * de custo mudou. Opcional para não quebrar quem chama o hook sem auditar
+   * rateio — na falta, cai no id.
+   */
+  centrosCusto?: Array<{ id: string; label: string }>;
   /** Opcional: abas com rascunho pendente. Quem não usa rascunho intermediário não precisa passar. */
   getDraftPendingTabs?: () => string[];
   onDuplicateFound: (name: string) => Promise<boolean>;
@@ -119,7 +128,7 @@ interface SaveTransactionParams {
 export const useSaveClientTransaction = (params: SaveTransactionParams) => {
   const {
     clientData, entities, participants, contracts, inscricoesMap, clusterIds = [],
-    isEditing, editingClienteId, setoresCliente, getDraftPendingTabs,
+    isEditing, editingClienteId, setoresCliente, centrosCusto = [], getDraftPendingTabs,
     onDuplicateFound, onSuccess, originalSnapshot,
   } = params;
 
@@ -234,6 +243,68 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     // pra dizer QUAL tabela/op recusou, em vez de um genérico "sem permissão".
     let currentStep = "cliente/update";
     try {
+      // ─── O que mudou, decidido UMA vez ───────────────────────────────────
+      //
+      // Esta conta já existia, mas rodava lá embaixo, junto da auditoria —
+      // depois de todos os UPDATE terem sido disparados. Era por isso que abrir
+      // um cliente, clicar em Editar e em Salvar sem tocar em nada dizia
+      // "Nenhuma alteração detectada" e mesmo assim gravava quatro linhas: a
+      // auditoria sabia que nada mudou, o banco não.
+      //
+      // Subindo para cá, a MESMA comparação decide o que se grava e o que se
+      // audita. Duas contas para a mesma pergunta acabam divergindo — foi
+      // exatamente esse o defeito que f50a2703 corrigiu na tela, entre o que
+      // ela apontava e o que o botão recusava.
+      //
+      // Fica de fora do diff o que não é dado editável na tela: `ambiente` e as
+      // chaves de ligação (`cliente_id`, `id_cliente`), que valem no insert e
+      // não mudam numa linha que já existe.
+      const clientFields = ['nome', 'categoria', 'ativo', 'fixo', 'telefone', 'municipio', 'uf', 'observacoes'];
+      const contribFields = ['tipo_pessoa', 'cpf_cnpj', 'nome_razao_social', 'nome_fantasia', 'situacao_inscricao_estadual', 'inscricao_estadual', 'cod_cnae', 'setor', 'simples_nacional', 'telefone', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'municipio', 'uf', 'contribuinte_faturamento'];
+      const partFields = ['nome', 'tipo_representante', 'cargo', 'email', 'telefone', 'observacoes', 'acesso_chamados'];
+      const osFields = ['ordem_servico', 'data_emissao', 'data_inicio_projeto', 'data_fim_projeto', 'valor_projeto', 'numero_parcelas', 'valor_entrada', 'valor_reembolso_km', 'valor_reembolso_refeicao', 'situacao_projeto', 'observacoes_projeto', 'cluster_id', 'setor_cliente', 'setor_cliente_id', 'regiao'];
+
+      const snap = isEditing ? originalSnapshot : null;
+
+      const clientDiff = snap
+        ? computeFieldDiff(snap.clientData as unknown as Record<string, unknown>, clientData as unknown as Record<string, unknown>, clientFields)
+        : null;
+      const clientHasChange = !!clientDiff && Object.keys(clientDiff).length > 0;
+
+      const contribDiffs = snap
+        ? computeEntityListDiff(snap.entities as unknown as Record<string, unknown>[], entities as unknown as Record<string, unknown>[], '_dbId', contribFields)
+        : [];
+      const contribDiffMap = new Map(contribDiffs.map(d => [d.entityId, d.diff]));
+
+      const partDiffs = snap
+        ? computeEntityListDiff(snap.participants as unknown as Record<string, unknown>[], participants as unknown as Record<string, unknown>[], '_dbId', partFields)
+        : [];
+      const partDiffMap = new Map(partDiffs.map(d => [d.entityId, d.diff]));
+
+      const osDiffs = snap
+        ? computeEntityListDiff(snap.contracts as unknown as Record<string, unknown>[], contracts as unknown as Record<string, unknown>[], '_dbId', osFields)
+        : [];
+      const osDiffMap = new Map(osDiffs.map(d => [d.entityId, d.diff]));
+
+      /**
+       * A OS como o banco a entregou, para comparar as listas FILHAS dela.
+       *
+       * Rateio e produtos contratados não entram em `osDiffMap`: o diff olha
+       * campo escalar, e estes são listas. Sem uma comparação própria, o rateio
+       * era reescrito inteiro a cada salvamento — quatro PATCH com os mesmos
+       * valores só por abrir e salvar um cliente que tem OS.
+       */
+      const snapOsPorId = new Map(
+        (snap?.contracts ?? []).filter(c => c._dbId).map(c => [c._dbId!, c]),
+      );
+
+      /** Linha existente que precisa ir ao banco. Sem `snap` não há com que comparar: grava. */
+      const linhaAlterada = (mapa: Map<string, Record<string, unknown>>, dbId: string) => {
+        if (!snap) return true;
+        const diff = mapa.get(dbId);
+        return !!diff && Object.keys(diff).length > 0;
+      };
+
       const clientPayload = {
         nome: clientData.nome.trim(),
         categoria: clientData.categoria || null,
@@ -250,17 +321,31 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       let clienteResult: any;
 
       if (isEditing) {
-        currentStep = "cliente/update";
-        const { data: updated, error } = await supabase
-          .from(clienteTable)
-          // cast: coluna `observacoes` é aplicada via migração no Lovable e ainda não está nos tipos gerados
-          .update(clientPayload as any)
-          .eq("id", editingClienteId!)
-          .select()
-          .single();
-        if (error) throw error;
+        if (clientHasChange) {
+          currentStep = "cliente/update";
+          const { data: updated, error } = await supabase
+            .from(clienteTable)
+            // cast: coluna `observacoes` é aplicada via migração no Lovable e ainda não está nos tipos gerados
+            .update(clientPayload as any)
+            .eq("id", editingClienteId!)
+            .select()
+            .single();
+          if (error) throw error;
+          clienteResult = updated;
+        } else {
+          // Nada mudou na aba Cliente: não há o que gravar. A linha ainda é
+          // necessária porque o sync do DW mais abaixo lê dela (inclusive
+          // `updated_at`), então a escrita vira leitura.
+          currentStep = "cliente/read";
+          const { data: atual, error } = await supabase
+            .from(clienteTable)
+            .select()
+            .eq("id", editingClienteId!)
+            .single();
+          if (error) throw error;
+          clienteResult = atual;
+        }
         clienteId = editingClienteId!;
-        clienteResult = updated;
 
         // --- Contribuintes: update existentes, insert novos, soft-delete removidos ---
         const currentContribDbIds = entities.filter(e => e._dbId).map(e => e._dbId!);
@@ -352,12 +437,17 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       for (const e of entities) {
         let contribId = e._dbId;
         if (e._dbId) {
-          // Usar .select() garante que uma falha silenciosa de RLS (0 rows
-          // afetadas) apareça como erro, em vez de o save "concluir" sem gravar.
-          const { data: updRows, error } = await supabase.from(contribuinteTable).update(buildContribFields(e)).eq("id", e._dbId).select("id");
-          if (error) throw error;
-          if (!updRows || updRows.length === 0) {
-            throw new Error(`UPDATE de contribuinte ${e._dbId} não atingiu nenhuma linha (RLS ou id inválido).`);
+          // Contribuinte intocado não vai ao banco. O pulo é só desta linha: as
+          // inscrições estaduais logo abaixo continuam sendo reconciliadas,
+          // porque elas mudam sem o contribuinte mudar.
+          if (linhaAlterada(contribDiffMap, e._dbId)) {
+            // Usar .select() garante que uma falha silenciosa de RLS (0 rows
+            // afetadas) apareça como erro, em vez de o save "concluir" sem gravar.
+            const { data: updRows, error } = await supabase.from(contribuinteTable).update(buildContribFields(e)).eq("id", e._dbId).select("id");
+            if (error) throw error;
+            if (!updRows || updRows.length === 0) {
+              throw new Error(`UPDATE de contribuinte ${e._dbId} não atingiu nenhuma linha (RLS ou id inválido).`);
+            }
           }
         } else {
           const { data: newContrib, error } = await supabase.from(contribuinteTable).insert(buildContribFields(e)).select("id").single();
@@ -501,10 +591,16 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             .maybeSingle();
           const currentUserId = (current as any)?.user_id ?? null;
           const linkedUserId = await ensureRepresentanteUser(p, currentUserId);
-          const { error } = await (supabase.from(representanteTable) as any)
-            .update(buildPartFields(p, linkedUserId))
-            .eq(pIdField, p._dbId);
-          if (error) throw error;
+          // O vínculo com o usuário entra na conta junto com os campos: ele é
+          // resolvido aqui, não vem do rascunho, então não aparece no diff. Sem
+          // isto, um representante que só ganhou conta de acesso não teria o
+          // `user_id` gravado.
+          if (linhaAlterada(partDiffMap, p._dbId) || linkedUserId !== currentUserId) {
+            const { error } = await (supabase.from(representanteTable) as any)
+              .update(buildPartFields(p, linkedUserId))
+              .eq(pIdField, p._dbId);
+            if (error) throw error;
+          }
         } else {
           const linkedUserId = await ensureRepresentanteUser(p, null);
           const { error } = await (supabase.from(representanteTable) as any).insert(buildPartFields(p, linkedUserId));
@@ -540,6 +636,16 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         };
       };
 
+      /**
+       * Alguma lista filha de OS mudou (rateio ou produtos contratados).
+       *
+       * Existe porque `nothingChanged`, lá embaixo, só soma cliente,
+       * contribuintes, representantes e OS. Mexer só no rateio gravava o valor
+       * novo e a tela dizia "Nenhuma alteração detectada" — a mensagem mentia
+       * justamente para quem tinha acabado de mexer.
+       */
+      let filhosDeOsAlterados = false;
+
       // Precheck do update uma única vez antes do loop — se houver pelo menos uma OS existente.
       const firstUpdateOs = contracts.find(c => c._dbId);
       if (firstUpdateOs?._dbId) {
@@ -550,12 +656,16 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         currentStep = c._dbId ? "ordem_servico/update" : "ordem_servico/insert";
         let osId = c._dbId;
         if (c._dbId) {
-          // .select() para que uma falha silenciosa de RLS (0 rows) apareça como
-          // erro, em vez de o save "concluir" sem gravar a OS.
-          const { data: updOs, error } = await (supabase.from("ordem_servico" as any) as any).update(buildOsFields(c)).eq("id", c._dbId).select("id");
-          if (error) throw error;
-          if (!updOs || updOs.length === 0) {
-            throw new Error(`UPDATE da OS ${c.ordem_servico || "(sem número)"} não atingiu nenhuma linha (RLS ou id inválido).`);
+          // Como no contribuinte: pular a OS intocada não pula o rateio nem os
+          // produtos contratados, que são reconciliados logo abaixo.
+          if (linhaAlterada(osDiffMap, c._dbId)) {
+            // .select() para que uma falha silenciosa de RLS (0 rows) apareça como
+            // erro, em vez de o save "concluir" sem gravar a OS.
+            const { data: updOs, error } = await (supabase.from("ordem_servico" as any) as any).update(buildOsFields(c)).eq("id", c._dbId).select("id");
+            if (error) throw error;
+            if (!updOs || updOs.length === 0) {
+              throw new Error(`UPDATE da OS ${c.ordem_servico || "(sem número)"} não atingiu nenhuma linha (RLS ou id inválido).`);
+            }
           }
         } else {
           const { data: newOs, error } = await (supabase.from("ordem_servico" as any) as any).insert(buildOsFields(c)).select("id").single();
@@ -590,9 +700,35 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
             await assertCanPerform('distribuicao_receita', 'update', distRemovidos[0]);
             await softDeleteVerificado("distribuicao_receita", "id", distRemovidos, `linha(s) de Distribuição de Receita da OS ${rotuloOs}`);
+            filhosDeOsAlterados = true;
+            logAction({
+              area: 'dev',
+              entity_type: 'ordem_servico',
+              entity_id: osId!,
+              entity_name: rotuloOs,
+              action: 'updated',
+              details: `Rateio: ${distRemovidos.length} linha(s) removida(s)`,
+            });
           }
 
+          // O que o banco entregou para esta OS, linha a linha do rateio. É com
+          // isto que se decide gravar — comparar contra o snapshot, e não contra
+          // uma segunda leitura, é o que evita a diferença de arredondamento
+          // (33.339999999999996 nunca vai ser igual a 33.34 relido).
+          const distOriginal = new Map(
+            ((c._dbId ? snapOsPorId.get(c._dbId)?.distribuicao_receita : undefined) ?? [])
+              .filter(d => d._dbId)
+              .map(d => [d._dbId!, d]),
+          );
+
           for (const d of draftDist.filter(d => d._dbId)) {
+            const original = distOriginal.get(d._dbId!);
+            const mudou =
+              !original ||
+              original.id_centro_custo !== d.id_centro_custo ||
+              (original.percentual_rateio ?? 0) !== (d.percentual_rateio ?? 0);
+            if (!mudou) continue;
+
             currentStep = "distribuicao_receita/update";
             const { data: updDist, error: updDistError } = await (supabase.from("distribuicao_receita" as any) as any)
               .update({ id_centro_custo: d.id_centro_custo, percentual_rateio: d.percentual_rateio || 0 })
@@ -606,6 +742,29 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
                 `Não foi possível atualizar a Distribuição de Receita da OS ${rotuloOs}. Feche e abra o cadastro para recarregar os dados e tente de novo.`
               );
             }
+            filhosDeOsAlterados = true;
+            // Diff campo-a-campo, como o AGENTS.md exige de toda escrita.
+            //
+            // O centro de custo vai no `entity_name`, pelo rótulo que a tela
+            // mostra. Ele é o que distingue uma linha de rateio da outra: duas
+            // linhas que caem de 33,33 para 30 produziriam dois registros
+            // idênticos byte a byte, e quem conferisse não saberia qual mudou.
+            // Pelo UUID distinguiria, mas ninguém lê UUID numa trilha.
+            const rotuloCc = centrosCusto.find(cc => cc.id === d.id_centro_custo)?.label
+              || d.id_centro_custo;
+            logAction({
+              area: 'dev',
+              entity_type: 'ordem_servico',
+              entity_id: osId!,
+              entity_name: `${rotuloOs} · ${rotuloCc}`,
+              action: 'updated',
+              details: `Rateio da OS ${rotuloOs}`,
+              changed_fields: computeFieldDiff(
+                (original ?? {}) as unknown as Record<string, unknown>,
+                d as unknown as Record<string, unknown>,
+                ['id_centro_custo', 'percentual_rateio'],
+              ),
+            });
           }
 
           const distNovos = draftDist.filter(d => !d._dbId);
@@ -619,6 +778,15 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
               }))
             );
             if (distError) throw distError;
+            filhosDeOsAlterados = true;
+            logAction({
+              area: 'dev',
+              entity_type: 'ordem_servico',
+              entity_id: osId!,
+              entity_name: rotuloOs,
+              action: 'updated',
+              details: `Rateio: ${distNovos.length} linha(s) adicionada(s)`,
+            });
           }
 
           // Persist os_produtos_contratados: selective upsert preserving _dbId
@@ -638,6 +806,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             currentStep = "os_produtos_contratados/delete";
             const { error: delProdError } = await (supabase.from("os_produtos_contratados" as any) as any).delete().in("id", toDelete);
             if (delProdError) throw delProdError;
+            filhosDeOsAlterados = true;
             for (const delId of toDelete) {
               const delProdId = existingMap.get(delId);
               logAction({
@@ -662,6 +831,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             }));
             const { error: insErr } = await (supabase.from("os_produtos_contratados" as any) as any).insert(insertPayload);
             if (insErr) throw insErr;
+            filhosDeOsAlterados = true;
             for (const ins of toInsert) {
               logAction({
                 area: 'dev',
@@ -689,6 +859,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
                 })
                 .eq("id", dp._dbId);
               if (updProdError) throw updProdError;
+              filhosDeOsAlterados = true;
             }
           }
         }
@@ -751,18 +922,11 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
 
       // ─── Audit logs with granular changed_fields ─────────────
       const auditClienteId = isEditing ? editingClienteId! : createdClienteId!;
-      const clientFields = ['nome', 'categoria', 'ativo', 'fixo', 'telefone', 'municipio', 'uf', 'observacoes'];
-      const contribFields = ['tipo_pessoa', 'cpf_cnpj', 'nome_razao_social', 'nome_fantasia', 'situacao_inscricao_estadual', 'inscricao_estadual', 'cod_cnae', 'setor', 'simples_nacional', 'telefone', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'municipio', 'uf', 'contribuinte_faturamento'];
-      const partFields = ['nome', 'tipo_representante', 'cargo', 'email', 'telefone', 'observacoes', 'acesso_chamados'];
-      const osFields = ['ordem_servico', 'data_emissao', 'data_inicio_projeto', 'data_fim_projeto', 'valor_projeto', 'numero_parcelas', 'valor_entrada', 'valor_reembolso_km', 'valor_reembolso_refeicao', 'situacao_projeto', 'observacoes_projeto', 'cluster_id', 'setor_cliente', 'setor_cliente_id', 'regiao'];
 
-      const snap = isEditing ? originalSnapshot : null;
+      // Os diffs são os mesmos que decidiram o que gravar, lá em cima. Recalcular
+      // aqui abriria espaço para a auditoria e o banco discordarem.
 
       // Cliente
-      const clientDiff = snap
-        ? computeFieldDiff(snap.clientData as unknown as Record<string, unknown>, clientData as unknown as Record<string, unknown>, clientFields)
-        : null;
-      const clientHasChange = !!clientDiff && Object.keys(clientDiff).length > 0;
       // Só emitir audit de cliente se houve criação OU se realmente houve alteração
       // (evita "fantasmas" com changed_fields=null quando o usuário salva sem mudar nada).
       if (!isEditing || clientHasChange) {
@@ -777,11 +941,6 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
 
       // Contribuintes
-      const contribDiffs = snap
-        ? computeEntityListDiff(snap.entities as unknown as Record<string, unknown>[], entities as unknown as Record<string, unknown>[], '_dbId', contribFields)
-        : [];
-      const contribDiffMap = new Map(contribDiffs.map(d => [d.entityId, d.diff]));
-
       for (const e of entities) {
         const diff = e._dbId ? contribDiffMap.get(e._dbId) : undefined;
         // Skip audit for existing entities with no changes
@@ -798,11 +957,6 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
 
       // Representantes
-      const partDiffs = snap
-        ? computeEntityListDiff(snap.participants as unknown as Record<string, unknown>[], participants as unknown as Record<string, unknown>[], '_dbId', partFields)
-        : [];
-      const partDiffMap = new Map(partDiffs.map(d => [d.entityId, d.diff]));
-
       for (const p of participants) {
         const diff = p._dbId ? partDiffMap.get(p._dbId) : undefined;
         if (p._dbId && (!diff || Object.keys(diff).length === 0)) continue;
@@ -818,11 +972,6 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       }
 
       // Ordens de Serviço
-      const osDiffs = snap
-        ? computeEntityListDiff(snap.contracts as unknown as Record<string, unknown>[], contracts as unknown as Record<string, unknown>[], '_dbId', osFields)
-        : [];
-      const osDiffMap = new Map(osDiffs.map(d => [d.entityId, d.diff]));
-
       for (const c of contracts) {
         const diff = c._dbId ? osDiffMap.get(c._dbId) : undefined;
         if (c._dbId && (!diff || Object.keys(diff).length === 0)) continue;
@@ -867,7 +1016,11 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         !clientHasChange &&
         contribDiffs.length === 0 &&
         partDiffs.length === 0 &&
-        osDiffs.length === 0;
+        osDiffs.length === 0 &&
+        // Rateio e produtos são listas filhas da OS e não aparecem nos diffs
+        // acima. Sem esta parcela, mexer só no rateio gravava o valor novo e a
+        // tela ainda dizia "Nenhuma alteração detectada".
+        !filhosDeOsAlterados;
       if (nothingChanged) {
         toast.info("Nenhuma alteração detectada. Se você editou algum item, confirme o botão Salvar da linha antes de salvar o cliente.");
       } else {
@@ -911,7 +1064,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     } finally {
       setSaving(false);
     }
-  }, [clientData, entities, participants, contracts, inscricoesMap, clusterIds, isEditing, editingClienteId, setoresCliente, onDuplicateFound, onSuccess, logAction, queryClient, originalSnapshot, authUser]);
+  }, [clientData, entities, participants, contracts, inscricoesMap, clusterIds, isEditing, editingClienteId, setoresCliente, centrosCusto, onDuplicateFound, onSuccess, logAction, queryClient, originalSnapshot, authUser]);
 
   // Mantido para as telas que ainda barram o save quando há rascunho de aba
   // aberto; devolve as abas pendentes em vez de salvar.

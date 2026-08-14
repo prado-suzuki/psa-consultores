@@ -68,6 +68,17 @@ const AMBAR = 'bg-amber-500 text-white';
  * Rótulo e tom por tipo. `tarefa_em_revisao` reusa o roxo do
  * `ReviewNotificationItem` de propósito: é o mesmo assunto visto de outro lado,
  * e duas cores para a mesma coisa confundiriam quem olha o balão.
+ *
+ * Os 5 `chamado_*` (ALE-1) nunca deveriam aparecer aqui de fato: chamado só
+ * grava em `notificacao_envio` (log de borda, via `registrar_envio()`), nunca
+ * em `notificacao` (esta caixa, via `criar_notificacao()`) — chamado tem sino
+ * próprio, derivado direto de `tickets` (`useTicketNotifications.ts`). Os 5
+ * valores existem aqui só porque o enum do banco é compartilhado entre as duas
+ * tabelas, e este `Record` continua exaustivo de propósito (não virou
+ * `Partial`): a trava de compilação para tipo novo continua valendo para
+ * qualquer valor que ainda vá ganhar gatilho de verdade. Rótulo idêntico ao
+ * `PADRAO` abaixo — se um dia aparecer aqui por bug em outro lugar, o usuário
+ * vê "Aviso" genérico, igual ao que já aconteceria pelo fallback.
  */
 const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   tarefa_atribuida: { rotulo: 'Tarefa atribuída', tom: PRIMARIO },
@@ -77,6 +88,11 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   documento_aprovado: { rotulo: 'Documento aprovado', tom: VERDE },
   documento_recusado: { rotulo: 'Documento recusado', tom: VERMELHO },
   cobranca_pendencia: { rotulo: 'Pendência em cobrança', tom: AMBAR },
+  chamado_criado: { rotulo: 'Aviso', tom: PRIMARIO },
+  chamado_atribuido: { rotulo: 'Aviso', tom: PRIMARIO },
+  chamado_respondido: { rotulo: 'Aviso', tom: PRIMARIO },
+  chamado_vencido: { rotulo: 'Aviso', tom: PRIMARIO },
+  chamado_resolvido: { rotulo: 'Aviso', tom: PRIMARIO },
 };
 
 const PADRAO: ApresentacaoDoAviso = { rotulo: 'Aviso', tom: PRIMARIO };

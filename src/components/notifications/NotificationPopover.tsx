@@ -66,6 +66,10 @@ const departmentLabels: Record<string, string> = {
  * `types.ts`, quebra a compilação aqui e no rótulo, em vez de aparecer sem ícone
  * na tela. `tarefa_em_revisao` reusa o `ClipboardCheck` do aviso derivado de
  * revisão, porque é o mesmo assunto visto do outro lado.
+ *
+ * Os 5 `chamado_*` (ALE-1) nunca deveriam renderizar aqui — ver o comentário
+ * equivalente em `notificacoesInternas.ts` sobre `APRESENTACAO`. `Bell`
+ * genérico só para satisfazer o `Record`, não é escolha de design.
  */
 const ICONES_INTERNAS: Record<NotificacaoTipo, LucideIcon> = {
   tarefa_atribuida: UserPlus,
@@ -75,6 +79,11 @@ const ICONES_INTERNAS: Record<NotificacaoTipo, LucideIcon> = {
   documento_aprovado: FileCheck,
   documento_recusado: FileX,
   cobranca_pendencia: BellRing,
+  chamado_criado: Bell,
+  chamado_atribuido: Bell,
+  chamado_respondido: Bell,
+  chamado_vencido: Bell,
+  chamado_resolvido: Bell,
 };
 
 type UnifiedNotification =

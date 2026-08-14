@@ -23,7 +23,7 @@ import ListaMestreDetalhe from "./ListaMestreDetalhe";
 import ContribuinteLeitura from "./ContribuinteLeitura";
 import ContribuinteDadosFiscais from "./ContribuinteDadosFiscais";
 import SecaoFormulario from "./SecaoFormulario";
-import MarcaPendencia, { CLASSE_CAMPO_PENDENTE } from "./MarcaPendencia";
+import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
 import { idsAlterados, ordenarPorNome, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
 import { normalizarNomeDigitado } from "@/lib/nomeProprio";
 import type { FocoPendencia, MapaPendencias } from "@/lib/camposObrigatorios";
@@ -54,8 +54,6 @@ export interface ContribuintesTabProps {
   pendencias?: MapaPendencias | null;
   /** Item a abrir quando o consultor clica no aviso de pendências do rodapé. */
   foco?: FocoPendencia | null;
-  /** Cadastro de cliente novo, que não tem modo de visualização. */
-  cadastroNovo?: boolean;
   onInlineEditingChange?: (isEditing: boolean) => void;
 }
 
@@ -70,7 +68,6 @@ export default function ContribuintesTab({
   entidadesOriginais,
   pendencias,
   foco,
-  cadastroNovo,
   onInlineEditingChange,
 }: ContribuintesTabProps) {
   const { isAdmin } = useAuth();
@@ -85,12 +82,23 @@ export default function ContribuintesTab({
    */
   const mostrarEditarPorLinha = isReadOnly ? !!onRequestItemEdit : escopoEdicao === 'item';
   /**
-   * Adicionar: na visualização, que é a porta de entrada, e no cadastro novo,
-   * que não tem visualização para onde voltar. Mesma regra do "Criar nova OS":
-   * com uma edição em curso o botão some, para ninguém sair com um contribuinte
-   * a mais sem perceber.
+   * Adicionar: onde já dá para editar, e na visualização de quem pode entrar em
+   * edição. Mesma regra da lixeira logo abaixo — quem pode remover uma linha
+   * pode acrescentar outra.
+   *
+   * A regra anterior era `(isReadOnly && onRequestItemEdit) || (cadastroNovo &&
+   * escopoCliente)`, e sumia com o botão depois do primeiro uso: adicionar um
+   * contribuinte num cliente que já existe chama `onRequestItemEdit()`, que tira
+   * a tela da visualização e põe o escopo em 'item'. Aí as duas metades da
+   * condição ficavam falsas, e não havia como adicionar um segundo contribuinte
+   * sem fechar e reabrir o cadastro. Editando o cliente inteiro, o botão nunca
+   * aparecia.
+   *
+   * Quem cuida de "não sair com uma linha a mais sem perceber" é o
+   * `editingEntityId == null` no `acaoCriar`, que esconde o botão enquanto uma
+   * linha está aberta. Essa parte continua igual.
    */
-  const mostrarCriar = (isReadOnly && !!onRequestItemEdit) || (cadastroNovo && escopoCliente);
+  const mostrarCriar = !isReadOnly || !!onRequestItemEdit;
   /** A lixeira vale nas duas frentes: vendo o contribuinte ou com ele aberto. */
   const mostrarRemover = !isReadOnly || !!onRequestItemEdit;
 
@@ -116,7 +124,7 @@ export default function ContribuintesTab({
   // pedido: se dependesse da seleção, escolher outro item na lista seria
   // desfeito no mesmo instante.
   useEffect(() => {
-    if (foco) setSelecionadoId(foco.itemId);
+    if (foco?.itemId != null) setSelecionadoId(foco.itemId);
   }, [foco]);
 
   const alterados = useMemo(
@@ -298,6 +306,8 @@ export default function ContribuintesTab({
   /** A frase da falta de um campo do item aberto, e as seções que acusam. */
   const camposDoItem = ent ? pendencias?.camposPorItem.get(ent._id) : undefined;
   const falta = (campo: string) => camposDoItem?.get(campo);
+  /** Id da frase da falta, para o campo apontar com `aria-describedby`. */
+  const idFalta = (campo: string) => `pend-contrib-${ent?._id}-${campo}`;
   const secoesPendentes = ent ? pendencias?.secoesPorItem.get(ent._id) : undefined;
   const secaoPendente = (numero: number) => secoesPendentes?.has(numero) ?? false;
 
@@ -449,12 +459,16 @@ export default function ContribuintesTab({
                                 value={ent.cpf_cnpj || ""}
                                 onChange={(e) => { updateEntity(ent._id, { cpf_cnpj: formatCpfCnpj(e.target.value, ent.tipo_pessoa || "PJ") }); setEditDuplicate(null); }}
                                 onBlur={(e) => handleEntityCnpjBlur(ent, e.target.value)}
+                                {...acessibilidadeObrigatorio(idFalta('cpf_cnpj'), falta('cpf_cnpj'))}
+                                // Duplicidade também deixa o campo inválido, e é
+                                // avisada por outro caminho: o `aria-invalid` do
+                                // helper não cobre esse caso, então soma aqui.
                                 aria-invalid={editDuplicate?.found || !!falta('cpf_cnpj') || undefined}
                                 className={cn("font-mono pr-8 h-8", (editDuplicate?.found || falta('cpf_cnpj')) && CLASSE_CAMPO_PENDENTE)}
                               />
                               {(cnpjLoading || checkingDuplicate) && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
                             </div>
-                            <MarcaPendencia>{falta('cpf_cnpj')}</MarcaPendencia>
+                            <MarcaPendencia id={idFalta('cpf_cnpj')}>{falta('cpf_cnpj')}</MarcaPendencia>
                             {editDuplicate?.found && (
                               <div className="mt-1 flex items-center gap-1.5 text-xs text-destructive">
                                 <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
@@ -474,10 +488,10 @@ export default function ContribuintesTab({
                               onChange={(e) => updateEntity(ent._id, { nome_razao_social: e.target.value })}
                               onBlur={(e) => updateEntity(ent._id, { nome_razao_social: normalizarNomeDigitado(e.target.value) })}
                               placeholder={ent.tipo_pessoa === "PF" ? "Nome completo do contribuinte" : "Nome Empresarial"}
-                              aria-invalid={!!falta('nome_razao_social') || undefined}
+                              {...acessibilidadeObrigatorio(idFalta('nome_razao_social'), falta('nome_razao_social'))}
                               className={cn("font-medium h-8", falta('nome_razao_social') && CLASSE_CAMPO_PENDENTE)}
                             />
-                            <MarcaPendencia>{falta('nome_razao_social')}</MarcaPendencia>
+                            <MarcaPendencia id={idFalta('nome_razao_social')}>{falta('nome_razao_social')}</MarcaPendencia>
                           </div>
                         </div>
                         {ent.tipo_pessoa !== "PF" && (
@@ -514,12 +528,12 @@ export default function ContribuintesTab({
                                 value={ent.cep || ""}
                                 onChange={(e) => updateEntity(ent._id, { cep: formatCep(e.target.value) })}
                                 onBlur={(e) => handleEntityCepBlur(ent, e.target.value)}
-                                aria-invalid={!!falta('cep') || undefined}
+                                {...acessibilidadeObrigatorio(idFalta('cep'), falta('cep'))}
                                 className={cn("font-mono pr-8 h-8", falta('cep') && CLASSE_CAMPO_PENDENTE)}
                               />
                               {cepLoading && <Loader2 className="absolute right-2.5 top-2 h-4 w-4 animate-spin text-muted-foreground" />}
                             </div>
-                            <MarcaPendencia>{falta('cep')}</MarcaPendencia>
+                            <MarcaPendencia id={idFalta('cep')}>{falta('cep')}</MarcaPendencia>
                           </div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
@@ -528,10 +542,10 @@ export default function ContribuintesTab({
                             <Input
                               value={ent.logradouro || ""}
                               onChange={(e) => updateEntity(ent._id, { logradouro: e.target.value })}
-                              aria-invalid={!!falta('logradouro') || undefined}
+                              {...acessibilidadeObrigatorio(idFalta('logradouro'), falta('logradouro'))}
                               className={cn("h-8", falta('logradouro') && CLASSE_CAMPO_PENDENTE)}
                             />
-                            <MarcaPendencia>{falta('logradouro')}</MarcaPendencia>
+                            <MarcaPendencia id={idFalta('logradouro')}>{falta('logradouro')}</MarcaPendencia>
                           </div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
@@ -548,10 +562,10 @@ export default function ContribuintesTab({
                             <Input
                               value={ent.bairro || ""}
                               onChange={(e) => updateEntity(ent._id, { bairro: e.target.value })}
-                              aria-invalid={!!falta('bairro') || undefined}
+                              {...acessibilidadeObrigatorio(idFalta('bairro'), falta('bairro'))}
                               className={cn("h-8", falta('bairro') && CLASSE_CAMPO_PENDENTE)}
                             />
-                            <MarcaPendencia>{falta('bairro')}</MarcaPendencia>
+                            <MarcaPendencia id={idFalta('bairro')}>{falta('bairro')}</MarcaPendencia>
                           </div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
@@ -560,10 +574,10 @@ export default function ContribuintesTab({
                             <Input
                               value={ent.municipio || ""}
                               onChange={(e) => updateEntity(ent._id, { municipio: e.target.value })}
-                              aria-invalid={!!falta('municipio') || undefined}
+                              {...acessibilidadeObrigatorio(idFalta('municipio'), falta('municipio'))}
                               className={cn("h-8", falta('municipio') && CLASSE_CAMPO_PENDENTE)}
                             />
-                            <MarcaPendencia>{falta('municipio')}</MarcaPendencia>
+                            <MarcaPendencia id={idFalta('municipio')}>{falta('municipio')}</MarcaPendencia>
                           </div>
                         </div>
                         <div className="flex flex-row items-center gap-4">
@@ -573,10 +587,10 @@ export default function ContribuintesTab({
                               value={ent.uf || ""}
                               onChange={(e) => updateEntity(ent._id, { uf: e.target.value })}
                               maxLength={2}
-                              aria-invalid={!!falta('uf') || undefined}
+                              {...acessibilidadeObrigatorio(idFalta('uf'), falta('uf'))}
                               className={cn("h-8 max-w-[120px]", falta('uf') && CLASSE_CAMPO_PENDENTE)}
                             />
-                            <MarcaPendencia>{falta('uf')}</MarcaPendencia>
+                            <MarcaPendencia id={idFalta('uf')}>{falta('uf')}</MarcaPendencia>
                           </div>
                         </div>
                       </div>

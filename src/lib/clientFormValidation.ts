@@ -96,7 +96,9 @@ export const validateContribuinteDados = (e: DraftEntity, inscricoes: InscricaoI
   if (!e.logradouro?.trim()) return `Contribuinte "${quem}": Logradouro é obrigatório`;
   if (!e.bairro?.trim()) return `Contribuinte "${quem}": Bairro é obrigatório`;
   if (!e.municipio?.trim()) return `Contribuinte "${quem}": Município é obrigatório`;
-  if (!e.uf?.trim() || e.uf.trim().length !== 2) return `Contribuinte "${quem}": UF deve ter 2 caracteres`;
+  // Espelho de `camposObrigatorios`: vazio e mal preenchido são faltas distintas.
+  if (!e.uf?.trim()) return `Contribuinte "${quem}": UF é obrigatória`;
+  if (e.uf.trim().length !== 2) return `Contribuinte "${quem}": UF deve ter 2 caracteres`;
   if (e.tipo_pessoa === 'PJ') {
     if (!e.cod_cnae?.trim()) return `Contribuinte "${quem}": CNAE é obrigatório para PJ`;
     if (!e.simples_nacional) return `Contribuinte "${quem}": informe a situação do Simples Nacional`;

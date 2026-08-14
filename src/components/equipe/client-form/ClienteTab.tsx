@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ChevronsUpDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAcentoArea } from "./acentoArea";
-import MarcaPendencia, { CLASSE_CAMPO_PENDENTE } from "./MarcaPendencia";
+import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
 import SecaoFormulario from "./SecaoFormulario";
 import { UF_STATES, type defaultClientData } from "./constants";
 import { normalizarNomeDigitado } from "@/lib/nomeProprio";
@@ -136,10 +136,10 @@ export default function ClienteTab({
                 if (arrumado !== clientData.nome) setClientData({ ...clientData, nome: arrumado });
               }}
               placeholder="Ex: Grupo Empresarial Silva"
-              aria-invalid={!!falta('nome') || undefined}
+              {...acessibilidadeObrigatorio('pend-cliente-nome', falta('nome'))}
               className={cn("h-8 w-full", falta('nome') && CLASSE_CAMPO_PENDENTE)}
             />
-            <MarcaPendencia>{falta('nome')}</MarcaPendencia>
+            <MarcaPendencia id="pend-cliente-nome">{falta('nome')}</MarcaPendencia>
           </div>
         </div>
 
@@ -267,7 +267,7 @@ export default function ClienteTab({
               <button
                 type="button"
                 disabled={isReadOnly}
-                aria-invalid={!!falta('cluster_ids') || undefined}
+                {...acessibilidadeObrigatorio('pend-cliente-clusters', falta('cluster_ids'))}
                 className={cn(
                   "w-full flex items-center gap-1 flex-wrap min-h-[2rem] px-3 py-1 border rounded-md text-sm bg-background hover:bg-accent/50 transition-colors disabled:opacity-50",
                   falta('cluster_ids') && CLASSE_CAMPO_PENDENTE,
@@ -306,7 +306,7 @@ export default function ClienteTab({
               </div>
             </PopoverContent>
           </Popover>
-          <MarcaPendencia>{falta('cluster_ids')}</MarcaPendencia>
+          <MarcaPendencia id="pend-cliente-clusters">{falta('cluster_ids')}</MarcaPendencia>
           </div>
         </div>
 
@@ -324,9 +324,12 @@ export default function ClienteTab({
               value={clientData.observacoes ?? ""}
               onChange={(e) => setClientData({ ...clientData, observacoes: e.target.value })}
               placeholder="Observações sobre o cliente (mín. 20 caracteres se preenchido)..."
+              // Obrigatória só para inativar o cliente, então `aria-required`
+              // acompanha o estado em vez de mentir que é sempre exigida.
+              {...acessibilidadeObrigatorio('pend-cliente-observacoes', falta('observacoes'), !clientData.ativo)}
               className={cn("min-h-[60px]", falta('observacoes') && CLASSE_CAMPO_PENDENTE)}
             />
-            <MarcaPendencia>{falta('observacoes')}</MarcaPendencia>
+            <MarcaPendencia id="pend-cliente-observacoes">{falta('observacoes')}</MarcaPendencia>
             {!clientData.ativo && !falta('observacoes') && (
               <p className="text-xs text-muted-foreground mt-1">
                 Obrigatória para inativar o cliente (mín. 20 caracteres).
