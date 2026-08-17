@@ -205,7 +205,7 @@ const PerformanceDashboard = () => {
           {/* O subtítulo nomeia a FONTE em vez de prometer cobertura. "Todas as
               áreas" aqui significa "todas as áreas presentes em org_projects" —
               o trabalho da Digital vive em sprints (sprint_deliverables) e entra
-              pela Visão Executiva, não por esta tela. */}
+              pelo Estratégico, não por esta tela. */}
           <div className="pg-sub">
             Projetos e tarefas de Tax e OSG · equipe e economia validada · atualizado a cada 5 min
           </div>

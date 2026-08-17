@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useDomainBoardLayout } from '@/hooks/useDomainBoardLayout';
 import { usePageAccess } from '@/hooks/usePageAccess';
+import { BoardClienteBar, honraClienteGlobal } from '@/components/equipe/board/BoardClienteBar';
 
 interface BoardLayoutProps {
   children: React.ReactNode;
@@ -70,7 +71,7 @@ const buildNavItems = (
   acesso: BoardNavAccess,
   pendingDecisions: number,
 ): NavItem[] => [
-  { icon: LayoutDashboard, label: 'Dashboard Estrategico', path: '/equipe/board/dashboard' },
+  { icon: LayoutDashboard, label: 'Estratégico', path: '/equipe/board/dashboard' },
   { icon: FileBarChart, label: 'Dashboards', path: '/equipe/board/relatorios' },
   ...(acesso.usoEnvio ? [
     { icon: BarChart3, label: 'Uso e envio', path: '/equipe/board/uso-envio' } as NavItem,
@@ -115,7 +116,7 @@ const getBreadcrumb = (pathname: string) => {
     else if (pathname.includes('/evolucao')) segments.push({ label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' });
   } else if (pathname.includes('/chamados')) {
     // Antes do teste de '/dashboard': `/chamados/dashboard` cairia no ramo do
-    // Dashboard Estrategico e o breadcrumb mentiria.
+    // Estratégico e o breadcrumb mentiria.
     segments.push({ label: 'Chamados', path: '/equipe/board/chamados' });
     if (pathname.endsWith('/dashboard')) segments.push({ label: 'Dashboard', path: '/equipe/board/chamados/dashboard' });
     else if (!pathname.endsWith('/chamados')) segments.push({ label: 'Detalhe', path: pathname });
@@ -132,7 +133,7 @@ const getBreadcrumb = (pathname: string) => {
   } else if (pathname.includes('/clientes')) {
     segments.push({ label: 'Clientes', path: '/equipe/board/clientes' });
   } else if (pathname.includes('/dashboard')) {
-    segments.push({ label: 'Dashboard', path: '/equipe/board/dashboard' });
+    segments.push({ label: 'Estratégico', path: '/equipe/board/dashboard' });
   }
   return segments;
 };
@@ -470,6 +471,11 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
             {headerActions}
           </div>
         </header>
+
+        {/* Seletor global de cliente — só nas rotas que realmente o honram
+            (ver ROTAS_COM_CLIENTE_GLOBAL). Fora do scroll, como no OSG Work:
+            fica sempre visível enquanto a página rola. */}
+        {honraClienteGlobal(location.pathname) && <BoardClienteBar />}
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">

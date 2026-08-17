@@ -40,6 +40,12 @@ export interface PerformanceProject {
   area_name: string | null;
   /** Bucket do painel resolvido por CLUSTER (área → equipe → cliente). */
   area_key: BoardAreaKey | null;
+  /**
+   * Cluster do projeto pela mesma cadeia que resolve `area_key`. É o que o
+   * seletor global de cliente do Board usa — ID puro, sem classificação por
+   * nome. `null` quando nem a área, nem a equipe, nem o cliente têm cluster.
+   */
+  cluster_id: string | null;
   area_color: string | null;
   responsible_name: string | null;
   responsible_id: string | null;
@@ -54,7 +60,7 @@ export interface PerformanceProject {
 
 // ── Main hook ──
 /**
- * Snapshot do painel Operacional / Visão Executiva.
+ * Snapshot do painel Operacional / Estratégico.
  *
  * Este hook devolve SEMPRE o conjunto completo: o recorte por área é do
  * consumidor (`filtrarPorArea` / `filtrarTarefasPorArea`, memoizados na tela).
@@ -238,6 +244,7 @@ export const usePerformanceData = (periodo: string, _areaIgnorada?: string) => {
           client_name: p.cliente?.nome || null,
           area_name: p.area?.name || areaDaEquipe?.name || null,
           area_key: areaKey,
+          cluster_id: clusterDoProjeto,
           area_color: p.area?.color || null,
           responsible_name: null, // resolved separately if needed
           responsible_id: responsible?.user_id || null,

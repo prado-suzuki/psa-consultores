@@ -132,6 +132,7 @@ import DocumentosCliente from "./pages/equipe/osg/DocumentosCliente";
 import ChecklistsDocumentos from "./pages/equipe/osg/ChecklistsDocumentos";
 import Relatorios from "./pages/equipe/osg/Relatorios";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
+import { BoardClusterProvider } from "./contexts/BoardClusterContext";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
 import BoardDashboardClientesOs from "./pages/equipe/board/BoardDashboardClientesOs";
@@ -327,6 +328,11 @@ const App = () => (
               <Route path="/equipe/osg/auditoria" element={<Navigate to="/equipe/osg/gerencial/logs-equipe" replace />} />
 
               {/* Board Routes */}
+              {/* Rota sem path só para o Provider: o seletor global de cliente
+                  precisa estar ACIMA das páginas. Cada página do Board renderiza
+                  o próprio <BoardLayout>, então um Provider dentro do layout
+                  ficaria abaixo dos hooks da página e ela não enxergaria nada. */}
+              <Route element={<BoardClusterProvider><Outlet /></BoardClusterProvider>}>
               {/* Raiz da área Gerencial: o breadcrumb "Board" e links externos
                   apontavam para /equipe/board, que caía no NotFound. */}
               <Route path="/equipe/board" element={<Navigate to="/equipe/board/dashboard" replace />} />
@@ -369,6 +375,7 @@ const App = () => (
               <Route path="/equipe/board/desempenho/decisoes" element={<DesempenhoAccessGate><DesempenhoDecisoes /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/relatorios" element={<DesempenhoAccessGate><DesempenhoRelatorios /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/minha-evolucao" element={<ProtectedRoute><MinhaEvolucao /></ProtectedRoute>} />
+              </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

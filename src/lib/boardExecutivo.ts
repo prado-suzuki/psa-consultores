@@ -127,6 +127,44 @@ export function filtrarPorArea<T extends ItemComArea>(
   return itens.filter((i) => bucketDoItem(i) === area);
 }
 
+// ── Filtro por CLUSTER (o seletor global de cliente do Board) ─────────────
+
+/**
+ * Recorta qualquer coleção cujas linhas carreguem `cluster_id`.
+ *
+ * Diferente de `filtrarPorArea`, não há classificação nem palpite por nome: o
+ * cluster é o ID que a própria linha traz. Foi por isso que ele substituiu a
+ * área no seletor — a área dependia de casar texto e jogava em "Outros" tudo
+ * que não casasse.
+ *
+ * Linha com `cluster_id` nulo NÃO entra quando há cliente selecionado: com
+ * filtro ativo, "não sei de quem é" não pode virar "é deste". Sem filtro
+ * (`cluster === ''`), a coleção passa inteira.
+ */
+export function filtrarPorCluster<T extends { cluster_id?: string | null }>(
+  itens: T[],
+  cluster: string,
+): T[] {
+  if (!cluster) return itens;
+  return itens.filter((i) => i.cluster_id === cluster);
+}
+
+/**
+ * Mantém só as tarefas dos projetos informados.
+ *
+ * Necessário porque `resumoPorArea` resolve a área da tarefa pelo projeto dela:
+ * passar projetos já filtrados sem filtrar as tarefas faria toda tarefa de fora
+ * do recorte cair em "Outros" — inflando uma linha que deveria ter sumido.
+ * Tarefa sem `project_id` fica de fora pelo mesmo motivo do filtro de cluster.
+ */
+export function filtrarTarefasPorProjetos<T extends { project_id: string | null }>(
+  tarefas: T[],
+  projetos: { id: string }[],
+): T[] {
+  const ids = new Set(projetos.map((p) => p.id));
+  return tarefas.filter((t) => t.project_id !== null && ids.has(t.project_id));
+}
+
 // ── Saúde dos projetos ───────────────────────────────────────────────────
 export interface ProjetoSaude {
   area_name: string | null;
