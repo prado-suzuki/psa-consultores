@@ -98,8 +98,6 @@ function pgTypeToTs(typeObj, { nullable = false, forInsert = false, forUpdate = 
   return ts;
 }
 
-const typeByName = new Map(meta.types.map(t => [t.name, t]));
-
 function columnTsType(col) {
   let typeObj = typeById.get(col.type_id);
   if (!typeObj && col.udt_name) typeObj = typeByName.get(col.udt_name);
