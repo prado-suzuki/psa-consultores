@@ -22,6 +22,26 @@ if (error) {
 
 await pgMeta.end();
 
+// DEBUG: dump colunas problemáticas
+const debugTables = ['documento_arquivo', 'solicitacao_item', 'org_comments_feed', 'checklist_item_padrao'];
+for (const t of debugTables) {
+  console.error(`\n=== ${t} ===`);
+  const cols = meta.columns.filter(c => c.schema === 'public' && c.table_name === t);
+  for (const c of cols) {
+    const typeObj = typeById.get(c.type_id);
+    console.error(JSON.stringify({
+      name: c.name,
+      type_id: c.type_id,
+      data_type: c.data_type,
+      udt_name: c.udt_name,
+      format: c.format,
+      is_nullable: c.is_nullable,
+      typeObj_name: typeObj?.name,
+      typeObj_enums: typeObj?.enums,
+    }));
+  }
+}
+
 // Mapa de type_id -> type object
 const typeById = new Map(meta.types.map(t => [t.id, t]));
 
