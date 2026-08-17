@@ -1,5 +1,6 @@
 import type { OrgProject } from '@/hooks/useOrgProjects';
 import type { OrgTask, TaskFilters } from '@/hooks/useOrgTasks';
+import { agregarEsforco, somarEsforco, type EsforcoAgregado } from '@/lib/projetosTarefasEsforco';
 
 export interface ProjetosTarefasOs {
   os_id: string;
@@ -23,6 +24,8 @@ export interface ProjetosTarefasProjectNode {
   tasks: ProjetosTarefasTaskNode[];
   taskCount: number;
   completedTaskCount: number;
+  /** Horas apontadas e concluídas sem apontamento (coluna "Esforço"). */
+  esforco: EsforcoAgregado;
 }
 
 export interface ProjetosTarefasOsGroup {
@@ -35,6 +38,8 @@ export interface ProjetosTarefasOsGroup {
   projects: ProjetosTarefasProjectNode[];
   taskCount: number;
   completedTaskCount: number;
+  /** Soma do esforço dos projetos do grupo. */
+  esforco: EsforcoAgregado;
 }
 
 function normalize(value: string | null | undefined) {
@@ -147,6 +152,7 @@ export function buildProjetosTarefasHierarchy(
       tasks: buildTaskTree(projectTasks),
       taskCount: projectTasks.length,
       completedTaskCount: projectTasks.filter(task => task.status === 'done').length,
+      esforco: agregarEsforco(projectTasks),
     };
   })];
 
@@ -167,6 +173,7 @@ export function buildProjetosTarefasHierarchy(
       tasks: buildTaskTree(clientTasks),
       taskCount: clientTasks.length,
       completedTaskCount: clientTasks.filter(task => task.status === 'done').length,
+      esforco: agregarEsforco(clientTasks),
     });
   }
 
@@ -194,10 +201,12 @@ export function buildProjetosTarefasHierarchy(
       projects: [],
       taskCount: 0,
       completedTaskCount: 0,
+      esforco: { concluidasSemHoras: 0, horasRealizadas: 0 },
     };
     group.projects.push(projectNode);
     group.taskCount += projectNode.taskCount;
     group.completedTaskCount += projectNode.completedTaskCount;
+    group.esforco = somarEsforco([group.esforco, projectNode.esforco]);
     groups.set(groupId, group);
   }
 
