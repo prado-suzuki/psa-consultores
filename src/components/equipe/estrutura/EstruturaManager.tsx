@@ -23,6 +23,7 @@ import {
   type Cluster, type Area, type Equipe,
 } from '@/hooks/useEstruturaManager';
 import { useProfilesMinRole, type Profile } from '@/hooks/useDomainEstruturaManager';
+import EmpresaPicker from '@/components/equipe/empresas/EmpresaPicker';
 
 const colorPresets = [
   '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444',
@@ -535,22 +536,12 @@ export default function EstruturaManager() {
               <Label>Nome do Cluster *</Label>
               <Input value={clusterForm.name} onChange={e => setClusterForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Tributário, Contábil..." />
             </div>
-            <div className="space-y-2">
-              <Label>Nome da Empresa</Label>
-              <Input
-                value={clusterForm.nome_empresa}
-                onChange={e => setClusterForm(f => ({ ...f, nome_empresa: e.target.value }))}
-                placeholder="Ex: PSA Consultores Ltda"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>CNPJ</Label>
-              <Input
-                value={clusterForm.cnpj}
-                onChange={e => setClusterForm(f => ({ ...f, cnpj: e.target.value }))}
-                placeholder="00.000.000/0000-00"
-              />
-            </div>
+            {/* Empresa vem do que já está cadastrado (aba Empresas) — sem redigitar razão social/CNPJ. */}
+            <EmpresaPicker
+              value={{ nome: clusterForm.nome_empresa, cnpj: clusterForm.cnpj }}
+              onChange={empresa => setClusterForm(f => ({ ...f, nome_empresa: empresa.nome, cnpj: empresa.cnpj }))}
+              clusterAtualId={editingCluster?.id ?? null}
+            />
             <div className="space-y-2">
               <Label>Centro de Custo</Label>
               <Select

@@ -136,6 +136,11 @@ import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
 import BoardDashboardClientesOs from "./pages/equipe/board/BoardDashboardClientesOs";
 import BoardClientes from "./pages/equipe/board/BoardClientes";
+import BoardChamados from "./pages/equipe/board/BoardChamados";
+import BoardChamadosDashboard from "./pages/equipe/board/BoardChamadosDashboard";
+import BoardChamadoDetalhe from "./pages/equipe/board/BoardChamadoDetalhe";
+import BoardCapacidade from "./pages/equipe/board/BoardCapacidade";
+import BoardLogsEquipe from "./pages/equipe/board/BoardLogsEquipe";
 import DashboardUsoEnvioGerencial from "./pages/equipe/board/DashboardUsoEnvioGerencial";
 
 // Gestão
@@ -330,6 +335,28 @@ const App = () => (
               <Route path="/equipe/board/uso-envio" element={<PageAccessGate pagePath="/equipe/board/uso-envio"><DashboardUsoEnvioGerencial /></PageAccessGate>} />
               <Route path="/equipe/board/dashboard-clientes-os" element={<PageAccessGate pagePath="/equipe/board/dashboard-clientes-os"><BoardDashboardClientesOs /></PageAccessGate>} />
               <Route path="/equipe/board/clientes" element={<PageAccessGate pagePath="/equipe/board/clientes"><BoardClientes /></PageAccessGate>} />
+
+              {/* Chamados no Board — o consolidado das mesmas telas que a Gerencial
+                  da Tax e da OSG montam. Só o escopo muda, e ele vem da RLS de
+                  `tickets`, não daqui.
+
+                  Duas travas, iguais às da Gerencial: papel (LiderRoute) e permissão
+                  nominal. A trava de papel importa antes do sincronizador de
+                  `/equipe/acessos` rodar — página ainda não cadastrada é tratada como
+                  livre pelo `usePageAccess`, e esta é a visão da empresa inteira.
+                  `fallbackPath` é a home do portal: quem não é líder+ não tem Board. */}
+              <Route path="/equipe/board/chamados" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/chamados"><BoardChamados /></PageAccessGate></LiderRoute>} />
+              {/* A estática vem antes da dinâmica: `dashboard` não pode cair no `:id`. */}
+              <Route path="/equipe/board/chamados/dashboard" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/chamados/dashboard"><BoardChamadosDashboard /></PageAccessGate></LiderRoute>} />
+              {/* O detalhe usa a permissão da LISTA, como na Tax: rota com parâmetro
+                  não se cadastra, e quem vê a lista pode abrir um item dela. */}
+              <Route path="/equipe/board/chamados/:id" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/chamados"><BoardChamadoDetalhe /></PageAccessGate></LiderRoute>} />
+
+              {/* Capacidade e Logs de Equipe — dashboard de área e auditoria das
+                  áreas somadas, nos mesmos componentes do Tax e da OSG. Líder+ pelo
+                  mesmo motivo das originais: é leitura sobre o time todo. */}
+              <Route path="/equipe/board/capacidade" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/capacidade"><BoardCapacidade /></PageAccessGate></LiderRoute>} />
+              <Route path="/equipe/board/logs-equipe" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/logs-equipe"><BoardLogsEquipe /></PageAccessGate></LiderRoute>} />
 
               {/* Performance & Desempenho Routes (inside Board) */}
               <Route path="/equipe/board/performance" element={<DesempenhoAccessGate><PerformanceDashboard /></DesempenhoAccessGate>} />

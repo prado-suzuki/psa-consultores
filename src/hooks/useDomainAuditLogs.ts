@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { currentAmbiente } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
+import { areasDoEscopo, type AuditArea } from '@/lib/auditAreas';
 import { resolverProdutoContratado, resolverVinculos } from '@/lib/auditProdutividade';
 import type { JanelaAuditoria } from '@/lib/auditPeriodos';
 import type {
@@ -114,8 +115,11 @@ export const LIMITE_LOGS_AUDITORIA = 5000;
  * A janela vem pronta de `janelaDoPeriodo` — em datas, não em "quantos dias" —
  * porque o seletor tem tanto "últimos N dias" quanto recortes de calendário.
  * Datas em vez de timestamp mantêm o cache estável dentro do mesmo dia.
+ *
+ * `area` aceita o consolidado ('todas'): o Board lê Tax e OSG na mesma tela. Com
+ * uma área só, o `in` é equivalente ao `eq` de antes.
  */
-export function useDomainAuditProdutividade(area: 'tax' | 'osg', janela: JanelaAuditoria) {
+export function useDomainAuditProdutividade(area: AuditArea, janela: JanelaAuditoria) {
   const { desde, ate } = janela;
 
   return useQuery({
@@ -124,7 +128,7 @@ export function useDomainAuditProdutividade(area: 'tax' | 'osg', janela: JanelaA
       let query = supabase
         .from('audit_logs')
         .select('*')
-        .eq('area', area);
+        .in('area', areasDoEscopo(area));
 
       if (desde) query = query.gte('performed_at', `${desde}T00:00:00.000Z`);
       // Fim inclusivo: o dia escolhido entra inteiro.
@@ -347,7 +351,7 @@ export function useDomainOrgTasksProdutividade(ids: { tarefas: string[]; projeto
 }
 
 export function useDomainAuditLogs(
-  area: 'tax' | 'osg',
+  area: AuditArea,
   entityFilter: string,
   actionFilter: string,
 ) {
@@ -357,7 +361,7 @@ export function useDomainAuditLogs(
       let query = supabase
         .from('audit_logs')
         .select('*')
-        .eq('area', area)
+        .in('area', areasDoEscopo(area))
         .order('performed_at', { ascending: false })
         .limit(200);
 

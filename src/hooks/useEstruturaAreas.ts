@@ -6,21 +6,34 @@ export interface EstruturaArea {
   name: string;
   color: string | null;
   cluster_id: string;
+  /** Categorias de página da área — é por aqui que se sabe se ela é Tax ou OSG. */
+  page_categories?: string[] | null;
 }
 
 /**
  * Fetches active estrutura_areas filtered by page_categories.
  * Usage: useEstruturaAreas('tax')
+ *
+ * Uma LISTA de categorias significa "qualquer uma delas" (`overlaps`), e é o que
+ * o consolidado do Board usa: `useEstruturaAreas(['tax', 'osg'])` devolve as
+ * áreas das duas em uma consulta só. Categoria única mantém o `contains` de
+ * sempre — mesmo resultado, mesma chave de cache.
  */
-export const useEstruturaAreas = (category: string) => {
+export const useEstruturaAreas = (category: string | string[]) => {
+  // Ordenado para ['tax','osg'] e ['osg','tax'] compartilharem a entrada de cache.
+  const categorias = Array.isArray(category) ? [...category].sort() : category;
+
   return useQuery({
-    queryKey: ['estrutura-areas', category],
+    queryKey: ['estrutura-areas', categorias],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const base = supabase
         .from('estrutura_areas')
-        .select('id, name, color, cluster_id')
-        .eq('is_active', true)
-        .contains('page_categories', [category])
+        .select('id, name, color, cluster_id, page_categories')
+        .eq('is_active', true);
+
+      const { data, error } = await (Array.isArray(categorias)
+        ? base.overlaps('page_categories', categorias)
+        : base.contains('page_categories', [categorias]))
         .order('name');
       if (error) throw error;
       return (data || []) as EstruturaArea[];

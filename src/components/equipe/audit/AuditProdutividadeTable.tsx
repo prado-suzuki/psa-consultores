@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { useDomainAuditProdutividade, useDomainOrgTasksProdutividade } from '@/hooks/useDomainAuditLogs';
 import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
+import type { AuditArea } from '@/lib/auditAreas';
 import {
   agregarProdutividade, agregarProdutoPorPessoa, buildProdutividadeCsv, COLUNAS_POR_VISAO,
   direcaoInicial, formatarHoras, idsTocados, ORDENACAO_INICIAL, ordenarProdutividade,
@@ -32,7 +33,8 @@ import { AuditProdutosDaPessoa } from './AuditProdutosDaPessoa';
 import { ENTITY_LABELS } from './auditLabels';
 
 interface AuditProdutividadeTableProps {
-  area: 'tax' | 'osg';
+  /** Área do módulo, ou 'todas' no consolidado do Board. */
+  area: AuditArea;
   /**
    * Qual leitura dos logs esta instância mostra. Produtividade = resultado
    * entregue; Atividade = uso do sistema. Cada aba renderiza a sua, com as

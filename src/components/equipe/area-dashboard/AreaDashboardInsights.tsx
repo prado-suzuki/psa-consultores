@@ -18,11 +18,11 @@ export function AreaDashboardInsights({ dashboard }: { dashboard: AreaDashboardC
 
 function Distributions({ dashboard }: { dashboard: AreaDashboardController }) {
   return <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-    <DataCard title="Distribuição por Status" icon={<ListChecks className="h-4 w-4 text-primary" />} area={dashboard.area} loading={dashboard.isLoading}
+    <DataCard title="Distribuição por Status" icon={<ListChecks className="h-4 w-4 text-primary" />} area={dashboard.paleta} loading={dashboard.isLoading}
       empty={dashboard.statusSegments.length === 0} emptyMessage="Nenhuma tarefa no recorte atual">
       <HatchedBar segments={dashboard.statusSegments} />
     </DataCard>
-    <DataCard title="Distribuição por Área Fiscal" icon={<FolderKanban className="h-4 w-4 text-primary" />} area={dashboard.area} loading={dashboard.isLoading}
+    <DataCard title="Distribuição por Área Fiscal" icon={<FolderKanban className="h-4 w-4 text-primary" />} area={dashboard.paleta} loading={dashboard.isLoading}
       empty={dashboard.areaSegments.length === 0} emptyMessage="Sem dados de área">
       <HatchedBar segments={dashboard.areaSegments} />
     </DataCard>
@@ -32,11 +32,11 @@ function Distributions({ dashboard }: { dashboard: AreaDashboardController }) {
 function WorkloadAndClients({ dashboard }: { dashboard: AreaDashboardController }) {
   return <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <DataCard title="Workload por Membro · próximos 14 dias" icon={<Users className="h-4 w-4 text-primary" />}
-      className="lg:col-span-2" area={dashboard.area} loading={dashboard.isLoading} empty={dashboard.heatmap.rows.length === 0}
+      className="lg:col-span-2" area={dashboard.paleta} loading={dashboard.isLoading} empty={dashboard.heatmap.rows.length === 0}
       emptyMessage="Sem atribuições no recorte atual">
       <WorkloadHeatmap rows={dashboard.heatmap.rows} columnLabels={dashboard.heatmap.columnLabels} />
     </DataCard>
-    <DataCard title="Top Clientes · Horas" icon={<Clock className="h-4 w-4 text-primary" />} area={dashboard.area} loading={dashboard.isLoading}
+    <DataCard title="Top Clientes · Horas" icon={<Clock className="h-4 w-4 text-primary" />} area={dashboard.paleta} loading={dashboard.isLoading}
       empty={dashboard.topClients.length === 0} emptyMessage="Sem horas estimadas" contentClassName="pt-3">
       <ul className="space-y-3">{dashboard.topClients.map((client, index) => {
         const percentage = (client.hours / (dashboard.topClients[0].hours || 1)) * 100;
@@ -58,19 +58,21 @@ function DashboardTables({ dashboard }: { dashboard: AreaDashboardController }) 
         <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2"><AlertCircle className="h-4 w-4 text-destructive" />Tarefas Atrasadas</CardTitle>
         {dashboard.overdueRows.length > 0 && <Badge className="bg-destructive/5 text-destructive border-0 text-[10px]">{dashboard.overdueRows.length}</Badge>}
       </CardHeader>
-      <CardContent>{dashboard.isLoading ? <LoadingSpinner area={dashboard.area} /> : dashboard.overdueRows.length === 0
+      <CardContent>{dashboard.isLoading ? <LoadingSpinner area={dashboard.paleta} /> : dashboard.overdueRows.length === 0
         ? <EmptyMessage message="Nenhuma tarefa atrasada no recorte atual" />
         : <div className="max-h-72 overflow-auto"><Table><TableHeader><TableRow>
           <SmallHead>Tarefa</SmallHead><SmallHead>Cliente</SmallHead><SmallHead>Resp.</SmallHead><SmallHead className="text-right">Atraso</SmallHead>
         </TableRow></TableHeader><TableBody>{dashboard.overdueRows.slice(0, 15).map(row =>
-          <TableRow key={row.id} onClick={() => navigate(`${dashboard.areaBase}/projetos/tarefas?taskId=${row.id}`)} className="cursor-pointer hover:bg-muted transition-colors" title="Abrir tarefa em Tarefas">
+          // `row.areaBase` só vem preenchido no consolidado do Board, onde a linha
+          // pode ser de outra área que não a base da tela.
+          <TableRow key={row.id} onClick={() => navigate(`${row.areaBase ?? dashboard.areaBase}/projetos/tarefas?taskId=${row.id}`)} className="cursor-pointer hover:bg-muted transition-colors" title="Abrir tarefa em Tarefas">
             <TableCell className="text-sm font-medium max-w-[180px] truncate">{row.title}</TableCell><TableCell className="text-xs text-muted-foreground max-w-[120px] truncate">{row.client}</TableCell>
             <TableCell className="text-xs text-muted-foreground">{row.responsible}</TableCell><TableCell className="text-sm font-bold text-destructive text-right tabular-nums">{row.daysOverdue}d</TableCell>
           </TableRow>)}</TableBody></Table></div>}</CardContent>
     </Card>
     <Card className="border-border/60 shadow-sm rounded-2xl">
       <CardHeader className="pb-2"><CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2"><Users className="h-4 w-4 text-primary" />Carga por Membro</CardTitle></CardHeader>
-      <CardContent>{dashboard.isLoading ? <LoadingSpinner area={dashboard.area} /> : dashboard.memberRows.length === 0
+      <CardContent>{dashboard.isLoading ? <LoadingSpinner area={dashboard.paleta} /> : dashboard.memberRows.length === 0
         ? <EmptyMessage message="Sem dados de atribuição" />
         : <div className="max-h-72 overflow-auto"><Table><TableHeader><TableRow>
           <SmallHead>Membro</SmallHead><SmallHead className="text-right">Ativas</SmallHead><SmallHead className="text-right">Horas</SmallHead><SmallHead className="text-right">Atrasadas</SmallHead>

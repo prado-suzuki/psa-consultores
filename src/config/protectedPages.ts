@@ -703,6 +703,43 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
+  // Consolidados do Board: as mesmas telas da Gerencial da Tax e da OSG, sem
+  // recorte de cluster. As quatro são líder+ na rota (LiderRoute em App.tsx) —
+  // liberar a permissão aqui para um team_member não faz a página abrir.
+  // O detalhe (`/chamados/:id`) não se cadastra: rota com parâmetro usa a
+  // permissão da lista, como na Tax.
+  {
+    page_path: '/equipe/board/chamados',
+    page_name: 'Board - Chamados',
+    page_description: 'Lista consolidada dos chamados de todas as áreas (somente líder+)',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/board/chamados/dashboard',
+    page_name: 'Board - Dashboard de Chamados',
+    page_description: 'Atendimento consolidado: tempo de resposta, prazos e rankings (somente líder+)',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/board/capacidade',
+    page_name: 'Board - Capacidade',
+    page_description: 'Carga do time, workload de 14 dias, atrasos e horas por cliente — Tax + OSG (somente líder+)',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/board/logs-equipe',
+    page_name: 'Board - Logs de Equipe',
+    page_description: 'Produtividade, acesso e pendências do time nas áreas somadas (somente líder+)',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
   {
     page_path: '/equipe/board/performance',
     page_name: 'Performance',
