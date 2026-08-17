@@ -30,41 +30,6 @@ const typeByName = new Map(meta.types.map(t => [t.name, t]));
 const enumTypes = meta.types.filter(t => t.schema === 'public' && t.enums && t.enums.length > 0);
 const enumNames = new Set(enumTypes.map(t => t.name));
 
-// DEBUG: dump estrutura de colunas
-console.error('Meta keys:', Object.keys(meta));
-console.error('Total tables:', meta.tables.length);
-console.error('Total views:', meta.views.length);
-console.error('Total columns:', meta.columns.length);
-console.error('Sample column keys:', Object.keys(meta.columns[0] || {}));
-console.error('Sample table keys:', Object.keys(meta.tables[0] || {}));
-console.error('Sample view keys:', Object.keys(meta.views[0] || {}));
-console.error('Public table names:', meta.tables.filter(t => t.schema === 'public').map(t => t.name).sort());
-console.error('Public view names:', meta.views.filter(v => v.schema === 'public').map(v => v.name).sort());
-const debugTargets = [
-  { kind: 'table', name: 'documento_arquivo' },
-  { kind: 'table', name: 'solicitacao_item' },
-  { kind: 'view', name: 'org_comments_feed' },
-];
-for (const target of debugTargets) {
-  const entity = target.kind === 'view'
-    ? meta.views.find(v => v.schema === 'public' && v.name === target.name)
-    : meta.tables.find(t => t.schema === 'public' && t.name === target.name);
-  console.error(`\n=== ${target.name} (${target.kind}, id=${entity?.id}, schema=${entity?.schema}) ===`);
-  const cols = meta.columns.filter(c => c.schema === 'public' && c.table_id === entity?.id);
-  for (const c of cols) {
-    const typeObj = typeById.get(c.type_id);
-    console.error(JSON.stringify({
-      name: c.name,
-      table_id: c.table_id,
-      data_type: c.data_type,
-      format: c.format,
-      is_nullable: c.is_nullable,
-      enums: c.enums,
-      typeObj_name: typeObj?.name,
-    }));
-  }
-}
-
 function pgTypeToTs(typeObj, { nullable = false, forInsert = false, forUpdate = false } = {}) {
   if (!typeObj) return 'unknown';
 
