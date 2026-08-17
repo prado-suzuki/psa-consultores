@@ -100,9 +100,9 @@ function pgTypeToTs(typeObj, { nullable = false, forInsert = false, forUpdate = 
 
 function columnTsType(col) {
   let typeObj = typeById.get(col.type_id);
-  if (!typeObj && col.udt_name) typeObj = typeByName.get(col.udt_name);
+  if (!typeObj && col.format) typeObj = typeByName.get(col.format);
   if (!typeObj && col.data_type) typeObj = typeByName.get(col.data_type);
-  if (!typeObj) typeObj = { name: col.format || col.data_type };
+  if (!typeObj) typeObj = { name: col.format || col.data_type, enums: col.enums };
   return pgTypeToTs(typeObj, { nullable: col.is_nullable });
 }
 
