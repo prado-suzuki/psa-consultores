@@ -103,6 +103,23 @@ describe('buildProjetosTarefasHierarchy', () => {
     expect(result[1].projects.map(node => node.project?.id ?? null)).toEqual(['project-sem-os', null]);
   });
 
+  it('agrega o esforço do projeto até a OS, contando concluídas sem horas', () => {
+    const result = buildProjetosTarefasHierarchy(
+      [project('project-1'), project('project-2')],
+      [
+        task('apontada', { status: 'done', actual_hours: 5 }),
+        task('sem-horas', { status: 'done', estimated_hours: 3 }),
+        task('em-andamento', { status: 'in_progress', actual_hours: 1.5 }),
+        task('outra-sem-horas', { project_id: 'project-2', status: 'done' }),
+      ],
+      [os],
+    );
+
+    expect(result[0].projects[0].esforco).toEqual({ concluidasSemHoras: 1, horasRealizadas: 6.5 });
+    expect(result[0].projects[1].esforco).toEqual({ concluidasSemHoras: 1, horasRealizadas: 0 });
+    expect(result[0].esforco).toEqual({ concluidasSemHoras: 2, horasRealizadas: 6.5 });
+  });
+
   it('busca sem acentos e preserva os ancestrais de uma subtarefa encontrada', () => {
     const result = buildProjetosTarefasHierarchy(
       [project('project-1')],

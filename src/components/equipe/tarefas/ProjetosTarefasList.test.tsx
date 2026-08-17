@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { OrgProject } from '@/hooks/useOrgProjects';
+import type { OrgTask } from '@/hooks/useOrgTasks';
 import { ProjetosTarefasList } from '@/components/equipe/tarefas/ProjetosTarefasList';
 
 // Radix (Progress/DropdownMenu) usa APIs de pointer ausentes no jsdom.
@@ -50,6 +51,59 @@ const projeto = {
   ordem_servico_id: null,
   responsible: null,
 } as unknown as OrgProject;
+
+const tarefa = (id: string, overrides: Partial<OrgTask> = {}) => ({
+  id,
+  title: id,
+  status: 'todo',
+  priority: 'medium',
+  assigned_to_name: 'Geizi Andrade',
+  tags: [],
+  estimated_hours: null,
+  actual_hours: null,
+  parent_task_id: null,
+  project_id: 'p1',
+  ...overrides,
+}) as unknown as OrgTask;
+
+describe('ProjetosTarefasList — coluna Esforço', () => {
+  it('acusa na tarefa quem concluiu sem apontar horas', () => {
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { status: 'done', estimated_hours: 4 })],
+    });
+
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+
+    // Duas pílulas: a da tarefa e o resumo do projeto/OS acima dela.
+    expect(screen.getAllByText('Sem horas').length).toBeGreaterThan(0);
+    expect(screen.getByText('Geizi Andrade')).toBeInTheDocument();
+  });
+
+  it('resume a pendência na OS sem precisar expandir a árvore', () => {
+    renderList({
+      projects: [projeto],
+      tasks: [
+        tarefa('Coleta', { status: 'done' }),
+        tarefa('Relatório', { status: 'done' }),
+        tarefa('Revisão', { status: 'done', actual_hours: 6 }),
+      ],
+    });
+
+    expect(screen.getByText('2 sem horas')).toBeInTheDocument();
+  });
+
+  it('sem pendência, mostra o total de horas realizadas', () => {
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { status: 'done', actual_hours: 2.5 })],
+    });
+
+    expect(screen.getByText('2,5h')).toBeInTheDocument();
+    expect(screen.queryByText(/sem horas/i)).not.toBeInTheDocument();
+  });
+});
 
 describe('ProjetosTarefasList — estado de carregamento', () => {
   it('mostra o loader em vez do vazio enquanto os dados não resolvem', () => {
