@@ -13,7 +13,7 @@ import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategor
  *
  * COMO A TELA SABE O QUE É "DA OSG"
  *
- * Pela OS, no campo que o cadastro chama de **Empresa / Cluster** — que é
+ * Pela OS, no campo que o cadastro chama de **Empresa / Faturamento** — que é
  * obrigatório para salvar uma OS (`clientFormValidation.ts`) e que grava
  * `ordem_servico.cluster_id` (ver o comentário em `ContratosTab.tsx`). O select
  * mostra o nome da empresa do cluster e guarda o cluster.
@@ -111,7 +111,7 @@ export function useOnboarding(clienteId: string | null) {
     queryFn: async () => {
       if (!clienteId || !clusterOsg) return VAZIO;
 
-      // A OS da OSG: Empresa/Cluster aponta para o cluster da OSG.
+      // A OS da OSG: Empresa/Faturamento aponta para o cluster da OSG.
       const { data: orderRows, error: orderError } = await supabase
         .from('ordem_servico')
         .select('id, numero_os')

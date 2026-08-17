@@ -205,7 +205,7 @@ describe('validateRepresentante', () => {
 
 describe('validateOrdemServico', () => {
   it('exige empresa, área e região', () => {
-    expect(validateOrdemServico(os({ cluster_id: '' }))).toMatch(/Empresa\/Cluster/);
+    expect(validateOrdemServico(os({ cluster_id: '' }))).toMatch(/Empresa\/Faturamento/);
     expect(validateOrdemServico(os({ setor_cliente_id: '' }))).toMatch(/Área do Negócio/);
     expect(validateOrdemServico(os({ regiao: '' }))).toMatch(/Região/);
   });
