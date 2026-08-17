@@ -44,6 +44,15 @@ const SEM_CARGA: CargaPorPessoa = {};
 interface DefinicaoColuna {
   label: string;
   numerica: boolean;
+  /**
+   * Centraliza cabeçalho e célula.
+   *
+   * Existe para a coluna de selo: o rótulo varia de "Ativo" a "Sem registro no
+   * período", e encostado à esquerda a coluna fica visualmente torta, com os
+   * selos de larguras diferentes começando no mesmo ponto e terminando em
+   * lugares distantes. `numerica` só sabia dizer esquerda ou direita.
+   */
+  centralizada?: boolean;
   /** Toda coluna explica no hover o que mostra, em linguagem de usuário. */
   ajuda: string;
   render: (linha: LinhaPessoa) => ReactNode;
@@ -129,6 +138,7 @@ const COLUNAS: Record<ColunaPessoa, DefinicaoColuna> = {
   situacao: {
     label: 'Situação',
     numerica: false,
+    centralizada: true,
     ajuda: `Leitura rápida do registro: "Ativo" registrou algo nos últimos ${DIAS_PARA_PAROU} dias; "Parou de registrar" passou disso; "Sem registro no período" não gravou nada na janela escolhida. É sobre registro no sistema, não sobre o trabalho da pessoa.`,
     render: linha => (
       <Badge variant="secondary" className={cn('font-normal', CORES_SITUACAO[linha.situacao])}>
@@ -160,10 +170,11 @@ interface Ordenacao {
 }
 
 const HeaderOrdenavel = ({
-  label, numerica, ativa, direcao, ajuda, onClick,
+  label, numerica, centralizada, ativa, direcao, ajuda, onClick,
 }: {
   label: string;
   numerica: boolean;
+  centralizada?: boolean;
   ativa: boolean;
   direcao: DirecaoOrdenacao;
   ajuda: string;
@@ -173,7 +184,7 @@ const HeaderOrdenavel = ({
 
   return (
     <TableHead
-      className={cn('p-0', numerica && 'text-right')}
+      className={cn('p-0', numerica && 'text-right', centralizada && 'text-center')}
       aria-sort={ativa ? (direcao === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       <Tooltip>
@@ -187,6 +198,7 @@ const HeaderOrdenavel = ({
             className={cn(
               'flex w-full items-center gap-1 px-4 py-3 text-left transition-colors hover:text-slate-900',
               numerica && 'justify-end',
+              centralizada && 'justify-center',
               ativa ? 'font-semibold text-slate-900' : 'text-slate-500',
             )}
           >
@@ -194,7 +206,7 @@ const HeaderOrdenavel = ({
             <Icone className={cn('h-3.5 w-3.5 shrink-0', ativa ? 'opacity-100' : 'opacity-40')} />
           </button>
         </TooltipTrigger>
-        <TooltipContent side="top" align={numerica ? 'end' : 'start'} className="max-w-xs">
+        <TooltipContent side="top" align={numerica ? 'end' : centralizada ? 'center' : 'start'} className="max-w-xs">
           <p className="text-xs leading-relaxed">{ajuda}</p>
           <p className="mt-1 text-xs italic opacity-70">Clique para ordenar por esta coluna.</p>
         </TooltipContent>
@@ -318,6 +330,7 @@ export const AuditPessoasTable = ({ area }: AuditPessoasTableProps) => {
                     key={coluna}
                     label={COLUNAS[coluna].label}
                     numerica={COLUNAS[coluna].numerica}
+                    centralizada={COLUNAS[coluna].centralizada}
                     ajuda={COLUNAS[coluna].ajuda}
                     ativa={ordenacao.coluna === coluna}
                     direcao={ordenacao.direcao}
@@ -343,11 +356,11 @@ export const AuditPessoasTable = ({ area }: AuditPessoasTableProps) => {
                 linhas.map(linha => (
                   <TableRow key={linha.userId}>
                     {colunas.map(coluna => {
-                      const { numerica, classeCelula, render } = COLUNAS[coluna];
+                      const { numerica, centralizada, classeCelula, render } = COLUNAS[coluna];
                       return (
                         <TableCell
                           key={coluna}
-                          className={cn('text-sm', numerica && 'text-right', classeCelula)}
+                          className={cn('text-sm', numerica && 'text-right', centralizada && 'text-center', classeCelula)}
                         >
                           {render(linha)}
                         </TableCell>

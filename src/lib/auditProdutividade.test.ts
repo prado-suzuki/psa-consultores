@@ -328,6 +328,29 @@ describe('resolverVinculos', () => {
     expect(contribuintePorId.t1).toBe('contrib-9');
   });
 
+  it('herda o produto declarado do projeto para as tarefas dele', () => {
+    const { produtoExplicitoPorId } = resolverVinculos(
+      [
+        { id: 't1', client_id: null, contribuinte_id: null, servico_id: null, project_id: 'p1' },
+        { id: 't2', client_id: null, contribuinte_id: null, servico_id: null, project_id: 'p2' },
+        { id: 't3', client_id: null, contribuinte_id: null, servico_id: null, project_id: null },
+      ],
+      [
+        { id: 'p1', contribuinte_id: null, servico_id: null, ordem_servico_id: 'os-1', produto_segmento_id: 'prod-A' },
+        { id: 'p2', contribuinte_id: null, servico_id: null, ordem_servico_id: 'os-2' },
+      ],
+      {},
+    );
+
+    expect(produtoExplicitoPorId.p1).toBe('prod-A');
+    expect(produtoExplicitoPorId.t1).toBe('prod-A');
+    // Projeto antigo sem a coluna e tarefa órfã ficam de fora: quem decide o que
+    // fazer com isso é `resolverProdutoContratado`, caindo na dedução.
+    expect(produtoExplicitoPorId.p2).toBeUndefined();
+    expect(produtoExplicitoPorId.t2).toBeUndefined();
+    expect(produtoExplicitoPorId.t3).toBeUndefined();
+  });
+
   it('omite o item sem nenhum vínculo', () => {
     const { clientePorId, contribuintePorId, servicoPorId, osPorId } = resolverVinculos(
       [{ id: 't1', client_id: null, contribuinte_id: null, servico_id: null, project_id: null }],
@@ -343,8 +366,49 @@ describe('resolverVinculos', () => {
 });
 
 describe('resolverProdutoContratado', () => {
+  it('usa o produto que o projeto declara, sem passar pela dedução', () => {
+    const produtoPorId = resolverProdutoContratado(
+      { p1: 'prod-declarado', t1: 'prod-declarado' },
+      { t1: 'srv-1' },
+      { t1: 'os-1', p1: 'os-1' },
+      { 'os-1': ['prod-A', 'prod-B'] },
+      { 'srv-1': ['prod-B'] },
+    );
+
+    // A dedução fecharia em prod-B pelo serviço; o cadastro diz outra coisa e é
+    // o cadastro que vale.
+    expect(produtoPorId.t1).toBe('prod-declarado');
+    expect(produtoPorId.p1).toBe('prod-declarado');
+  });
+
+  it('vale o produto declarado mesmo sem OS ou sem produto contratado nela', () => {
+    const produtoPorId = resolverProdutoContratado(
+      { semOs: 'prod-declarado', osVazia: 'prod-declarado' },
+      {},
+      { osVazia: 'os-1' },
+      { 'os-1': [] },
+      {},
+    );
+
+    expect(produtoPorId.semOs).toBe('prod-declarado');
+    expect(produtoPorId.osVazia).toBe('prod-declarado');
+  });
+
+  it('deduz quando o projeto não declara nada (projeto antigo)', () => {
+    const produtoPorId = resolverProdutoContratado(
+      { outro: 'prod-declarado' },
+      { t1: 'srv-1' },
+      { t1: 'os-1' },
+      { 'os-1': ['prod-A', 'prod-B'] },
+      { 'srv-1': ['prod-B'] },
+    );
+
+    expect(produtoPorId.t1).toBe('prod-B');
+  });
+
   it('escolhe o produto da OS que casa com o serviço do item', () => {
     const produtoPorId = resolverProdutoContratado(
+      {},
       { t1: 'srv-1' },
       { t1: 'os-1' },
       { 'os-1': ['prod-A', 'prod-B'] },
@@ -358,6 +422,7 @@ describe('resolverProdutoContratado', () => {
 
   it('usa o produto único da OS quando o serviço não casa com nenhum', () => {
     const produtoPorId = resolverProdutoContratado(
+      {},
       { t1: 'srv-9' },
       { t1: 'os-1' },
       { 'os-1': ['prod-A'] },
@@ -370,6 +435,7 @@ describe('resolverProdutoContratado', () => {
   it('usa o produto único da OS quando o item não tem serviço', () => {
     const produtoPorId = resolverProdutoContratado(
       {},
+      {},
       { t1: 'os-1' },
       { 'os-1': ['prod-A'] },
       {},
@@ -380,6 +446,7 @@ describe('resolverProdutoContratado', () => {
 
   it('não escolhe no chute quando a OS tem vários produtos e nenhum casa', () => {
     const produtoPorId = resolverProdutoContratado(
+      {},
       { t1: 'srv-9' },
       { t1: 'os-1' },
       { 'os-1': ['prod-A', 'prod-B'] },
@@ -391,6 +458,7 @@ describe('resolverProdutoContratado', () => {
 
   it('desempata pelo menor id, para o número não mudar entre carregamentos', () => {
     const produtoPorId = resolverProdutoContratado(
+      {},
       { t1: 'srv-1' },
       { t1: 'os-1' },
       { 'os-1': ['prod-B', 'prod-A'] },
@@ -402,6 +470,7 @@ describe('resolverProdutoContratado', () => {
 
   it('ignora item sem OS e OS sem produto contratado', () => {
     const produtoPorId = resolverProdutoContratado(
+      {},
       { t1: 'srv-1', t2: 'srv-1' },
       { t2: 'os-vazia' },
       { 'os-vazia': [] },

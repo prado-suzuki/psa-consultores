@@ -21,6 +21,21 @@ export const getTodayBrazil = (): Date => {
 };
 
 /**
+ * Hoje como `YYYY-MM-DD` no fuso local, para gravar em coluna `date`.
+ *
+ * Existe porque `new Date().toISOString().slice(0, 10)` devolve o dia em UTC:
+ * das 21h em diante, no horário de Brasília, ele já responde "amanhã". Numa data
+ * gravada automaticamente e travada depois — como a emissão da OS — o erro só
+ * apareceria como uma OS emitida no dia seguinte ao que foi criada.
+ */
+export const todayIsoBrazil = (): string => {
+  const today = getTodayBrazil();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${today.getFullYear()}-${month}-${day}`;
+};
+
+/**
  * Verifica se uma data é hoje (timezone brasileiro)
  */
 export const isTodayBrazil = (date: Date): boolean => {

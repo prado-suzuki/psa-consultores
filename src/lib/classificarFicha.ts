@@ -42,6 +42,14 @@ export function alvoDeValor(valor: string): Alvo {
  * no patch, o vínculo acontece igual e um tipo que já estivesse gravado
  * sobrevive. Tipo e dono são eixos ortogonais — a constraint
  * `documento_arquivo_um_dono_apenas` não olha para o tipo.
+ *
+ * `revisao = 'aprovado'` entra junto (decisão de 14/08/2026): CLASSIFICAR É
+ * APROVAR. Quem chega até aqui abriu o arquivo para decidir de quem ele é, e
+ * exigir um segundo clique de "aprovar" na tela de checklist seria pedir a
+ * mesma conferência duas vezes — o consultor veria o balde inteiro voltar como
+ * "a revisar". A consequência que importa não é o rótulo: aprovado é o que
+ * impede o cliente de remover pelo portal um arquivo que a PSA já vinculou a
+ * uma pessoa ou imóvel. Ver docs/planos/checklist-por-subtracao.md §6.
  */
 export function patchVinculo(alvo: Alvo, documentoTipoId?: string | null): AtualizarDocumentoPatch {
   const patch: AtualizarDocumentoPatch = {
@@ -49,20 +57,28 @@ export function patchVinculo(alvo: Alvo, documentoTipoId?: string | null): Atual
     bem_id: alvo.kind === 'bem' ? alvo.id : null,
     matricula_id: alvo.kind === 'matricula' ? alvo.id : null,
     triado_em: alvo.kind === 'cliente' ? new Date().toISOString() : null,
+    revisao: 'aprovado',
   };
   if (documentoTipoId) patch.documento_tipo_id = documentoTipoId;
   return patch;
 }
 
 /**
- * Devolve o arquivo ao balde: sem dono e sem marca de triagem.
+ * Devolve o arquivo ao balde: sem dono, sem marca de triagem e sem aprovação.
  *
  * É o inverso do `patchVinculo({ kind: 'cliente' })` e existe como função
  * própria porque não há alvo que signifique "nenhum": voltar ao balde não é
  * escolher um destino, é apagar o que foi decidido.
+ *
+ * A `revisao` volta a `pendente` junto, e não é detalhe: se a aprovação ficasse
+ * de pé, o arquivo estaria de novo no balde (ninguém decidiu nada sobre ele) e
+ * mesmo assim trancado para o cliente, que perdeu o botão de remover por causa
+ * de uma decisão que acabou de ser desfeita.
  */
 export function patchDesfazerTriagem(): AtualizarDocumentoPatch {
-  return { pessoa_id: null, bem_id: null, matricula_id: null, triado_em: null };
+  return {
+    pessoa_id: null, bem_id: null, matricula_id: null, triado_em: null, revisao: 'pendente',
+  };
 }
 
 /**

@@ -145,8 +145,13 @@ export function normalizarSelecaoLegada(
 // --- Papéis de lista (seções de repetição) -----------------------------------
 
 /**
- * Fonte de uma lista. As três primeiras vêm da empresa (PJ) escolhida; `georef`
- * vem do BigQuery pela matrícula selecionada (não depende da empresa).
+ * Fonte de uma lista:
+ * - `quadro_societario`, `administracao`, `integralizacao`: relações da empresa
+ *   (PJ) escolhida — o consultor liga a empresa, não cada item;
+ * - `signatarios`: derivada dessas relações (quem assina o documento);
+ * - `georef`: BigQuery, pela matrícula selecionada (não depende da empresa);
+ * - `selecao`: registros que o consultor escolhe a dedo na tela Gerar (também
+ *   não depende da empresa — ver `usaListas` em useGerarDocumentoController).
  */
 export type FonteLista = 'quadro_societario' | 'administracao' | 'integralizacao' | 'georef' | 'signatarios' | 'selecao';
 
@@ -220,6 +225,22 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     itemKey: 'imovel',
     fonte: 'selecao',
     camposExtras: [],
+  },
+  // Pessoas escolhidas a dedo pelo consultor, sem passar por nenhuma relação da
+  // empresa: é o contrato rural que qualifica a PJ outorgante e várias pessoas
+  // físicas que não são sócias nem administradoras dela (outorgado, compossuidor,
+  // donatário, testemunha nominada). Um bloco só, uma seção de repetição — e a
+  // ORDEM dos itens é do resolvedor (quotas ↓, depois alfabética; ver
+  // mapearPartesSelecionadas), não da sequência em que o consultor clicou.
+  partes: {
+    label: 'Partes (seleção manual)',
+    tipo: 'pessoa',
+    itemKey: 'parte',
+    fonte: 'selecao',
+    camposExtras: [
+      { id: 'ordem', label: 'Ordem da parte na lista (1, 2…)' },
+      { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
+    ],
   },
   integralizacoes: {
     label: 'Integralizações (imóveis aprovados, por sócio)',

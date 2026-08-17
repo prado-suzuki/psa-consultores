@@ -1,74 +1,82 @@
 import { useMemo, useState, type ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import {
-  ArrowLeft, ArrowRight, Building2, Check, ClipboardCheck, FileText, FolderKanban, Landmark, Link2,
-  Plus, RefreshCw, Search, ShieldAlert, Trash2, User,
+  ArrowLeft, ArrowRight, Building2, Check, ClipboardCheck, FileText, FolderKanban, Hourglass,
+  Landmark, Loader2, Search, ShieldAlert, TriangleAlert, Undo2, User, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle,
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
-import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
-import { useBensByCliente, useAllMatriculas } from '@/hooks/useDiagnosticoPatrimonial';
-import { useDocumentosByCliente } from '@/hooks/useDocumentoArquivo';
+import { useChecklistDerivado } from '@/hooks/useChecklistDerivado';
+import { useRevisarDocumento } from '@/hooks/useDocumentoArquivo';
+import { BotaoComprovante } from './BotaoComprovante';
 import {
-  useChecklistPadrao, useChecklistClienteItens, useGerarChecklistCliente,
-  useAdicionarCondicional, useDefinirStatusItem, useVincularDocumento, useRemoverChecklistItem,
-  itemRecebido, type ChecklistClienteRow, type ChecklistStatus,
-} from '@/hooks/useOsgChecklist';
+  agruparPorInstancia, resumirChecklist,
+  type ArquivoDaLinha, type ClusterChecklist, type GrupoChecklist, type LinhaChecklist,
+  type StatusChecklist,
+} from '@/lib/checklistDerivado';
 import {
-  AddCondicionalDialog, VincularDocumentoDialog,
-} from '@/components/equipe/osg/checklists/ChecklistItemDialogs';
+  contarEstados, estadoDoDocumento, ESTADOS_DOCUMENTO, type EstadoDocumento,
+} from '@/lib/estadoDocumento';
 
-const ENTIDADE_ICON: Record<string, LucideIcon> = {
-  'Pessoa Física': User,
-  'Pessoa Jurídica': Building2,
-  'Pessoa Jurídica (Cooperativa)': Building2,
-  'Matrícula (Imóvel Rural)': Landmark,
-  'Matrícula (Imóvel Urbano)': Landmark,
-  Bem: FolderKanban,
+/**
+ * O checklist do consultor: a leitura da subtração, mais o veredito sobre o que
+ * chegou.
+ *
+ * A ÚNICA ESCRITA QUE EXISTE AQUI é a revisão do arquivo recebido do cliente
+ * (aprovar, recusar com motivo, ou desfazer). Ela entrou depois — a tela nasceu
+ * 100% em leitura — porque sem ela o upload do cliente era aceito em silêncio: foto
+ * tremida e documento vencido fechavam a pendência igual ao documento certo.
+ * Recusar devolve a linha para "pendente" e reabre o envio no portal.
+ *
+ * Note o que ela NÃO é: não edita status de linha, não vincula arquivo, não muda o
+ * pedido. O veredito é sobre o ARQUIVO, não sobre a pendência — a subtração
+ * continua derivada, e é ela que decide o que falta.
+ *
+ * O que era editável aqui e por que saiu (docs/planos/checklist-por-subtracao.md §4):
+ * o select de 6 status (`recebido` agora é fato derivado do arquivo, e
+ * `solicitado`/`nao_solicitado` não existem no modelo novo: item ativo de
+ * solicitação enviada já é solicitado), o botão de vincular arquivo (o vínculo é
+ * ato do Cadastro por Documento, e será da origem quando o cliente subir contra o
+ * documento pedido) e os botões de gerar/adicionar item (o conjunto esperado é a
+ * solicitação, que nasce da OS).
+ */
+
+const CLUSTER_LABEL: Record<ClusterChecklist, string> = {
+  pessoa_pf: 'Pessoas Físicas',
+  pessoa_pj: 'Pessoas Jurídicas',
+  imovel_rural: 'Imóveis Rurais',
+  imovel_urbano: 'Imóveis Urbanos',
+  bem: 'Bens e Direitos',
+  cliente: 'Documentos do Cliente',
 };
-const TIPO_CLUSTER_LABEL: Record<string, string> = {
-  'Pessoa Física': 'Pessoas Físicas',
-  'Pessoa Jurídica': 'Pessoas Jurídicas',
-  'Pessoa Jurídica (Cooperativa)': 'Pessoas Jurídicas',
-  'Matrícula (Imóvel Rural)': 'Imóveis Rurais',
-  'Matrícula (Imóvel Urbano)': 'Imóveis Urbanos',
-  Bem: 'Bens e Direitos',
+const CLUSTER_ICON: Record<ClusterChecklist, LucideIcon> = {
+  pessoa_pf: User,
+  pessoa_pj: Building2,
+  imovel_rural: Landmark,
+  imovel_urbano: Landmark,
+  bem: FolderKanban,
+  cliente: ClipboardCheck,
 };
-const TIPO_CLUSTER_ORDER = [
-  'Pessoa Física', 'Pessoa Jurídica',
-  'Matrícula (Imóvel Rural)', 'Matrícula (Imóvel Urbano)', 'Bem',
-];
-const clusterKey = (tipo: string) => tipo === 'Pessoa Jurídica (Cooperativa)' ? 'Pessoa Jurídica' : tipo;
-type CategoryFilter = 'todos' | typeof TIPO_CLUSTER_ORDER[number];
+
+type CategoryFilter = 'todos' | ClusterChecklist;
 const CATEGORIAS_FILTRO: Array<{ value: CategoryFilter; label: string; Icon: LucideIcon }> = [
   { value: 'todos', label: 'Tudo', Icon: ClipboardCheck },
-  { value: 'Pessoa Física', label: 'Pessoas físicas', Icon: User },
-  { value: 'Pessoa Jurídica', label: 'Pessoas jurídicas', Icon: Building2 },
-  { value: 'Matrícula (Imóvel Rural)', label: 'Imóveis rurais', Icon: Landmark },
-  { value: 'Matrícula (Imóvel Urbano)', label: 'Imóveis urbanos', Icon: Landmark },
-  { value: 'Bem', label: 'Bens', Icon: FolderKanban },
-];
-const STATUS_OPTIONS: { value: ChecklistStatus; label: string }[] = [
-  { value: 'pendente', label: 'Pendente' },
-  { value: 'solicitado', label: 'Solicitado' },
-  { value: 'recebido', label: 'Recebido' },
-  { value: 'dispensado', label: 'Dispensado' },
-  { value: 'nao_aplicavel', label: 'Não aplicável' },
-  { value: 'nao_solicitado', label: 'Não solicitado' },
+  { value: 'pessoa_pf', label: 'Pessoas físicas', Icon: User },
+  { value: 'pessoa_pj', label: 'Pessoas jurídicas', Icon: Building2 },
+  { value: 'imovel_rural', label: 'Imóveis rurais', Icon: Landmark },
+  { value: 'imovel_urbano', label: 'Imóveis urbanos', Icon: Landmark },
+  { value: 'bem', label: 'Bens', Icon: FolderKanban },
+  { value: 'cliente', label: 'Do cliente', Icon: ClipboardCheck },
 ];
 
-type StatusEfetivo = 'pendente' | 'solicitado' | 'recebido' | 'dispensado' | 'nao_aplicavel' | 'nao_solicitado';
 type StatusFilter = 'todos' | 'abertos' | 'recebidos' | 'encerrados';
-type Grupo = { key: string; label: string; tipo: string; items: ChecklistClienteRow[] };
-
 const STATUS_FILTRO: { value: StatusFilter; label: string; dot?: string }[] = [
   { value: 'todos', label: 'Todos' },
   { value: 'abertos', label: 'Em aberto', dot: 'bg-amber-500' },
@@ -76,181 +84,175 @@ const STATUS_FILTRO: { value: StatusFilter; label: string; dot?: string }[] = [
   { value: 'encerrados', label: 'Encerrados', dot: 'bg-slate-400' },
 ];
 
-const statusEfetivo = (item: ChecklistClienteRow): StatusEfetivo => {
-  if (item.status === 'dispensado') return 'dispensado';
-  if (item.status === 'nao_aplicavel') return 'nao_aplicavel';
-  if (item.status === 'solicitado') return 'solicitado';
-  if (item.status === 'nao_solicitado') return 'nao_solicitado';
-  return itemRecebido(item) ? 'recebido' : 'pendente';
+const STATUS_LINHA: Record<StatusChecklist, { label: string; classe: string }> = {
+  recebido: { label: 'Recebido', classe: 'bg-osg-moss/10 text-osg-moss' },
+  pendente: { label: 'Pendente', classe: 'bg-osg-highlighter/25 text-osg-700' },
+  nao_aplicavel: { label: 'Não se aplica', classe: 'bg-osg-100 text-osg-500' },
+  dispensado: { label: 'Dispensado', classe: 'bg-osg-100 text-osg-500' },
 };
-const itemAberto = (item: ChecklistClienteRow) => ['pendente', 'solicitado'].includes(statusEfetivo(item));
 
-// Progresso de uma categoria: recebidos sobre a base (recebidos + pendentes + solicitados);
-// itens encerrados (dispensado / não aplicável / não solicitado) ficam fora da base.
-const progressoCategoria = (grupos: Grupo[]) => {
-  let recebidos = 0;
-  let base = 0;
-  for (const grupo of grupos) {
-    for (const item of grupo.items) {
-      const status = statusEfetivo(item);
-      if (status === 'recebido') { recebidos++; base++; }
-      else if (status === 'pendente' || status === 'solicitado') base++;
-    }
-  }
-  return { recebidos, base, pct: base ? Math.round((recebidos / base) * 100) : 0 };
+/**
+ * O vocabulário do consultor para os quatro estados (o portal chama de outro
+ * jeito: "Falta enviar" no lugar de "Pendente", por exemplo). A conta em si é a
+ * mesma, e mora em `@/lib/estadoDocumento`.
+ */
+const ESTADO_LABEL: Record<EstadoDocumento, string> = {
+  pendente: 'Pendente',
+  em_analise: 'A revisar',
+  recusado: 'Recusado',
+  aprovado: 'Aprovado',
 };
+const ESTADO_CHIP: Record<EstadoDocumento, string> = {
+  pendente: 'border-osg-highlighter/50 bg-osg-highlighter/20 text-osg-700 hover:border-osg-highlighter',
+  em_analise: 'border-osg-200 bg-osg-100/60 text-osg-600 hover:border-osg-300',
+  recusado: 'border-osg-red/30 bg-osg-red/10 text-osg-red hover:border-osg-red/60',
+  aprovado: 'border-osg-moss/30 bg-osg-moss/10 text-osg-moss hover:border-osg-moss/60',
+};
+
+/**
+ * O estado de uma linha entre os quatro dos chips, ou `null` para o que não é
+ * documento pendente de ninguém (dispensado e não aplicável são ausência de
+ * pedido, não estado de documento).
+ */
+const estadoDaLinha = (linha: LinhaChecklist): EstadoDocumento | null => {
+  if (linha.status === 'dispensado' || linha.status === 'nao_aplicavel') return null;
+  return estadoDoDocumento(linha.status === 'recebido', linha.arquivos);
+};
+
+const casaComStatus = (linha: LinhaChecklist, filtro: StatusFilter) => filtro === 'todos'
+  || (filtro === 'abertos' && linha.status === 'pendente')
+  || (filtro === 'recebidos' && linha.status === 'recebido')
+  || (filtro === 'encerrados' && (linha.status === 'nao_aplicavel' || linha.status === 'dispensado'));
 
 export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   const { data: clientes = [] } = useClientesLista();
-  const { data: itens = [], isLoading } = useChecklistClienteItens(clienteId);
-  const { data: padrao = [] } = useChecklistPadrao();
-  const { data: pessoas = [] } = usePessoasByCliente(clienteId);
-  const { data: bens = [] } = useBensByCliente(clienteId);
-  const { data: allMatriculas = [] } = useAllMatriculas();
-  const { data: docs = [] } = useDocumentosByCliente(clienteId);
-  const gerar = useGerarChecklistCliente(clienteId);
-  const addCond = useAdicionarCondicional(clienteId);
-  const setStatus = useDefinirStatusItem(clienteId);
-  const vincular = useVincularDocumento(clienteId);
-  const remover = useRemoverChecklistItem(clienteId);
+  const { linhas, solicitacao, arquivosSemTipo, isLoading } = useChecklistDerivado(clienteId);
+  const revisar = useRevisarDocumento();
+
+  // A recusa passa por um modal porque o motivo é o que o cliente vai ler para
+  // saber o que refazer; aprovar e desfazer são um clique só.
+  const [aRecusar, setARecusar] = useState<ArquivoDaLinha | null>(null);
+  const [motivo, setMotivo] = useState('');
 
   const [busca, setBusca] = useState('');
   const [filtroCategoria, setFiltroCategoria] = useState<CategoryFilter>('todos');
   const [filtroStatus, setFiltroStatus] = useState<StatusFilter>('todos');
-  const [categoriaExpandida, setCategoriaExpandida] = useState<string | null>(null);
+  const [categoriaExpandida, setCategoriaExpandida] = useState<ClusterChecklist | null>(null);
   const [grupoAtivo, setGrupoAtivo] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
-  const [vincId, setVincId] = useState<string | null>(null);
+  // O estado escolhido no chip do card recorta a ficha que abre. Vive separado do
+  // filtro global da barra: aquele pergunta "quais entidades", este pergunta
+  // "dentro desta entidade, o quê" — e some quando a ficha fecha.
+  const [filtroFicha, setFiltroFicha] = useState<EstadoDocumento | null>(null);
   const clienteNome = clientes.find((cliente) => cliente.id === clienteId)?.nome ?? '';
 
-  const { pessoaById, bemLabelById, matriculaById } = useMemo(() => ({
-    pessoaById: new Map(pessoas.map((pessoa) => [pessoa.id, pessoa])),
-    bemLabelById: new Map(bens.map((bem) => [bem.id, [bem.referencia_dp, bem.denominacao].filter(Boolean).join(' — ')])),
-    matriculaById: new Map(allMatriculas.map((matricula) => [
-      matricula.id,
-      { imovel: matricula.bem_denominacao || matricula.bem_referencia || null, numero: matricula.numero as string | null },
-    ])),
-  }), [pessoas, bens, allMatriculas]);
-
-  const instanceLabel = (item: ChecklistClienteRow): string | null => {
-    if (item.pessoa_id) return pessoaById.get(item.pessoa_id)?.denominacao ?? 'Pessoa';
-    if (item.matricula_id) {
-      const matricula = matriculaById.get(item.matricula_id);
-      return matricula?.imovel ?? (matricula?.numero ? `Matrícula ${matricula.numero}` : 'Imóvel');
-    }
-    if (item.bem_id) return bemLabelById.get(item.bem_id) ?? 'Bem';
-    return null;
-  };
-  const instanceDetail = (item: ChecklistClienteRow): string | null => {
-    if (!item.matricula_id) return null;
-    const matricula = matriculaById.get(item.matricula_id);
-    return matricula?.imovel && matricula.numero ? `Matrícula ${matricula.numero}` : null;
-  };
-
-  const totais = useMemo(() => {
-    let pendentes = 0;
-    let recebidos = 0;
-    let solicitados = 0;
-    let encerrados = 0;
-    for (const item of itens) {
-      const status = statusEfetivo(item);
-      if (status === 'recebido') recebidos++;
-      else if (status === 'pendente') pendentes++;
-      else if (status === 'solicitado') solicitados++;
-      else encerrados++;
-    }
-    const base = recebidos + pendentes + solicitados;
-    return { pendentes, recebidos, solicitados, encerrados, base, pct: base ? Math.round((recebidos / base) * 100) : 0 };
-  }, [itens]);
-
-  const todosGrupos = useMemo<Grupo[]>(() => {
-    const map = new Map<string, Grupo>();
-    for (const item of itens) {
-      const label = instanceLabel(item) ?? item.entidade;
-      const key = `${item.entidade}:${label}`;
-      const existente = map.get(key);
-      if (existente) existente.items.push(item);
-      else map.set(key, { key, label, tipo: item.entidade, items: [item] });
-    }
-    return [...map.values()].sort((a, b) => {
-      const tipoA = TIPO_CLUSTER_ORDER.indexOf(clusterKey(a.tipo));
-      const tipoB = TIPO_CLUSTER_ORDER.indexOf(clusterKey(b.tipo));
-      if (tipoA !== tipoB) return (tipoA < 0 ? 99 : tipoA) - (tipoB < 0 ? 99 : tipoB);
-      const abertoA = a.items.some(itemAberto);
-      const abertoB = b.items.some(itemAberto);
-      if (abertoA !== abertoB) return abertoA ? -1 : 1;
-      return a.label.localeCompare(b.label, 'pt-BR');
-    });
-    // Os mapas de entidades alteram os rótulos que formam as chaves dos grupos.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itens, pessoaById, bemLabelById, matriculaById]);
+  const resumo = useMemo(() => resumirChecklist(linhas), [linhas]);
 
   const gruposFiltrados = useMemo(() => {
     const termo = busca.trim().toLocaleLowerCase('pt-BR');
-    return todosGrupos.filter((grupo) => grupo.items.some((item) => {
-      const status = statusEfetivo(item);
-      const correspondeStatus = filtroStatus === 'todos'
-        || (filtroStatus === 'abertos' && (status === 'pendente' || status === 'solicitado'))
-        || (filtroStatus === 'recebidos' && status === 'recebido')
-        || (filtroStatus === 'encerrados' && ['dispensado', 'nao_aplicavel', 'nao_solicitado'].includes(status));
-      const correspondeBusca = !termo || [grupo.label, grupo.tipo, item.documento, item.nota, instanceDetail(item)]
-        .filter(Boolean).some((valor) => valor!.toLocaleLowerCase('pt-BR').includes(termo));
-      return correspondeStatus && correspondeBusca;
-    }));
-    // instanceDetail depende do mapa de matrículas.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [todosGrupos, busca, filtroStatus, matriculaById]);
+    const visiveis = linhas.filter((linha) => {
+      if (!casaComStatus(linha, filtroStatus)) return false;
+      if (!termo) return true;
+      return [linha.documento, linha.nota, linha.instancia.label, linha.instancia.detalhe]
+        .filter(Boolean)
+        .some((valor) => valor!.toLocaleLowerCase('pt-BR').includes(termo));
+    });
+    return agruparPorInstancia(visiveis);
+  }, [linhas, busca, filtroStatus]);
 
   const contagemPorCategoria = useMemo(() => {
-    const contagem = new Map<string, number>();
-    gruposFiltrados.forEach((grupo) => {
-      const categoria = clusterKey(grupo.tipo);
-      contagem.set(categoria, (contagem.get(categoria) ?? 0) + 1);
-    });
+    const contagem = new Map<ClusterChecklist, number>();
+    for (const grupo of gruposFiltrados) {
+      const cluster = grupo.instancia.cluster;
+      contagem.set(cluster, (contagem.get(cluster) ?? 0) + 1);
+    }
     return contagem;
   }, [gruposFiltrados]);
+
   const gruposVisiveis = filtroCategoria === 'todos'
     ? gruposFiltrados
-    : gruposFiltrados.filter((grupo) => clusterKey(grupo.tipo) === filtroCategoria);
+    : gruposFiltrados.filter((grupo) => grupo.instancia.cluster === filtroCategoria);
 
-  const grupoSelecionado = todosGrupos.find((grupo) => grupo.key === grupoAtivo) ?? null;
-  const vincItem = vincId ? itens.find((item) => item.id === vincId) ?? null : null;
+  // `gruposVisiveis` já vem ordenado por cluster (agruparPorInstancia), então as
+  // seções saem da varredura sem reordenar nada.
+  const categorias = useMemo(() => {
+    const secoes: { cluster: ClusterChecklist; grupos: GrupoChecklist[] }[] = [];
+    for (const grupo of gruposVisiveis) {
+      const ultima = secoes[secoes.length - 1];
+      if (ultima && ultima.cluster === grupo.instancia.cluster) ultima.grupos.push(grupo);
+      else secoes.push({ cluster: grupo.instancia.cluster, grupos: [grupo] });
+    }
+    return secoes;
+  }, [gruposVisiveis]);
 
-  if (isLoading) return <p className="py-16 text-center text-sm text-osg-500">Carregando checklist do cliente...</p>;
-  if (itens.length === 0) {
+  const grupoSelecionado = gruposFiltrados.find((grupo) => grupo.chave === grupoAtivo) ?? null;
+
+  if (isLoading) {
+    return <p className="py-16 text-center text-sm text-osg-500">Carregando checklist do cliente...</p>;
+  }
+
+  if (!solicitacao) {
     return (
-      <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-osg-300/70 bg-white/60 px-6 py-16 text-center shadow-sm">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-osg-100 text-osg-moss"><ClipboardCheck className="h-7 w-7" /></span>
-        <div>
-          <p className="font-semibold text-osg-700">Nenhum checklist gerado para {clienteNome || 'este cliente'}.</p>
-          <p className="mt-1 max-w-xl text-sm text-osg-500">Gere os documentos obrigatórios do padrão para cada pessoa, bem e matrícula.</p>
-        </div>
-        <Button onClick={() => gerar.mutate()} disabled={gerar.isPending}>
-          <RefreshCw className={cn('mr-2 h-4 w-4', gerar.isPending && 'animate-spin')} />
-          {gerar.isPending ? 'Gerando...' : 'Gerar checklist do cliente'}
-        </Button>
-      </div>
+      <EstadoVazio
+        titulo={`Nenhuma solicitação de documentos para ${clienteNome || 'este cliente'}.`}
+        descricao="O checklist é a subtração do que foi pedido menos o que chegou, e o pedido nasce dos produtos da OS. Gere a lista no onboarding para o checklist existir."
+        acao={{ para: '/equipe/osg/work/onboarding', rotulo: 'Ir para o onboarding' }}
+      />
     );
   }
 
-  const categorias = [...new Set(gruposVisiveis.map((grupo) => clusterKey(grupo.tipo)))]
-    .sort((a, b) => {
-      const indexA = TIPO_CLUSTER_ORDER.indexOf(a);
-      const indexB = TIPO_CLUSTER_ORDER.indexOf(b);
-      return (indexA < 0 ? 99 : indexA) - (indexB < 0 ? 99 : indexB) || a.localeCompare(b, 'pt-BR');
-    })
-    .map((tipo) => ({ tipo, grupos: gruposVisiveis.filter((grupo) => clusterKey(grupo.tipo) === tipo) }));
-  const categoriaEmFoco = categorias.some((categoria) => categoria.tipo === categoriaExpandida) ? categoriaExpandida : null;
-  const categoriasExibidas = categoriaEmFoco
-    ? categorias.filter((categoria) => categoria.tipo === categoriaEmFoco)
-    : categorias;
+  if (linhas.length === 0) {
+    return (
+      <EstadoVazio
+        titulo="A solicitação deste cliente não gera nenhuma linha de checklist."
+        descricao={solicitacao.status === 'rascunho'
+          ? 'A lista está em rascunho: o consultor ainda monta os itens e o cliente não recebeu o pedido.'
+          : 'Ou o pedido não tem itens ativos, ou o cliente não tem pessoas, bens e matrículas cadastrados nos grãos pedidos.'}
+        acao={{ para: '/equipe/osg/work/onboarding', rotulo: 'Ver a solicitação' }}
+      />
+    );
+  }
 
   return (
     <div className="space-y-8">
-      <ResumoHero clienteNome={clienteNome} {...totais} />
+      <ResumoHero clienteNome={clienteNome} {...resumo} />
+
+      <BotaoComprovante
+        clienteId={clienteId}
+        clienteNome={clienteNome}
+        solicitacao={solicitacao}
+      />
+
+      {solicitacao.status === 'rascunho' && (
+        <Aviso>
+          Esta solicitação está em <strong>rascunho</strong>: o cliente ainda não recebeu o pedido,
+          então o que aparece como pendente nunca foi cobrado dele.
+        </Aviso>
+      )}
+      {solicitacao.status === 'enviada' && (
+        <Aviso>
+          A solicitação inicial ainda está <strong>na fase de gaveta</strong>: o cliente
+          envia os arquivos em lote e alguém classifica depois, então a conta abaixo tende a
+          mostrar pendência de documento já entregue. Passe para o checklist na tela de
+          Solicitação Inicial para o envio dele nascer classificado.
+        </Aviso>
+      )}
+      {solicitacao.status === 'encerrada' && (
+        <Aviso tom="neutro">
+          Solicitação <strong>encerrada</strong>
+          {solicitacao.encerradaEm ? ` em ${new Date(solicitacao.encerradaEm).toLocaleDateString('pt-BR')}` : ''}.
+          O checklist continua legível como retrato do que foi pedido.
+        </Aviso>
+      )}
+      {arquivosSemTipo > 0 && (
+        <Aviso>
+          {arquivosSemTipo} arquivo{arquivosSemTipo === 1 ? '' : 's'} do cliente ainda
+          {arquivosSemTipo === 1 ? ' está' : ' estão'} sem tipo de documento e por isso não
+          fecha{arquivosSemTipo === 1 ? '' : 'm'} pendência aqui. Classifique
+          {arquivosSemTipo === 1 ? '-o' : '-os'} no Cadastro por Documento.
+        </Aviso>
+      )}
 
       <div className="space-y-3 rounded-2xl border border-osg-200/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_hsl(var(--osg-700)/0.28)]">
-        {/* Filtro por tipo (categoria) */}
         <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-osg-100 bg-osg-50 p-1">
           {CATEGORIAS_FILTRO.map(({ value, label, Icon }) => {
             const ativo = filtroCategoria === value;
@@ -276,7 +278,6 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
           })}
         </div>
 
-        {/* Filtro por status (visível) + busca */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
             {STATUS_FILTRO.map(({ value, label, dot }) => {
@@ -303,28 +304,26 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-osg-300" />
             <Input value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar pessoa, imóvel ou documento..." className="border-osg-200/80 bg-osg-50/60 pl-9" />
           </div>
-          <Button size="sm" className="shrink-0" onClick={() => setAddOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Adicionar ao checklist
-          </Button>
         </div>
       </div>
 
       {categorias.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-osg-200 py-14 text-center text-sm text-osg-500">Nenhum resultado para os filtros selecionados.</div>
-      ) : categoriasExibidas.map((categoria, index) => (
-        <section key={categoria.tipo} className="animate-osg-rise">
-          <div className="mb-4">
-            <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-osg-500">Categoria {String(index + 1).padStart(2, '0')}</span>
-            <div className="mt-1 flex items-center justify-between gap-4">
-              <div className="flex min-w-0 items-center gap-4">
-                <div className="min-w-0">
-                  <h3 className="truncate text-xl font-bold tracking-tight text-osg-700">{TIPO_CLUSTER_LABEL[categoria.tipo] ?? categoria.tipo}</h3>
-                  <div className="mt-1 h-[3px] w-8 rounded-full bg-osg-moss" />
-                </div>
-                {(() => {
-                  const progresso = progressoCategoria(categoria.grupos);
-                  return (
+      ) : categorias
+        .filter((categoria) => !categoriaExpandida || categoria.cluster === categoriaExpandida)
+        .map((categoria, index) => {
+          const emFoco = categoriaExpandida === categoria.cluster;
+          const progresso = resumirChecklist(categoria.grupos.flatMap((grupo) => grupo.linhas));
+          return (
+            <section key={categoria.cluster} className="animate-osg-rise">
+              <div className="mb-4">
+                <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-osg-500">Categoria {String(index + 1).padStart(2, '0')}</span>
+                <div className="mt-1 flex items-center justify-between gap-4">
+                  <div className="flex min-w-0 items-center gap-4">
+                    <div className="min-w-0">
+                      <h3 className="truncate text-xl font-bold tracking-tight text-osg-700">{CLUSTER_LABEL[categoria.cluster]}</h3>
+                      <div className="mt-1 h-[3px] w-8 rounded-full bg-osg-moss" />
+                    </div>
                     <div className="w-32 shrink-0 sm:w-36">
                       <div className="mb-1 flex items-baseline justify-between text-[11px] font-semibold">
                         <span className="tabular-nums text-osg-moss">{progresso.pct}%</span>
@@ -334,73 +333,115 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
                         <span className="block h-full rounded-full bg-osg-moss transition-[width] duration-500" style={{ width: `${progresso.pct}%` }} />
                       </div>
                     </div>
-                  );
-                })()}
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (categoriaEmFoco) {
-                    setFiltroCategoria('todos');
-                    setCategoriaExpandida(null);
-                  } else {
-                    setCategoriaExpandida(categoria.tipo);
-                  }
-                }}
-                className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-osg-moss transition-colors hover:text-osg-700 hover:underline"
-              >
-                {categoriaEmFoco ? <><ArrowLeft className="h-3.5 w-3.5" />Voltar às categorias</> : <>Ver todos <ArrowRight className="h-3.5 w-3.5" /></>}
-              </button>
-            </div>
-            <span className="mt-2 block text-xs font-semibold tabular-nums text-osg-500">{categoria.grupos.length} entidade{categoria.grupos.length === 1 ? '' : 's'}</span>
-          </div>
-          {categoriaEmFoco ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {categoria.grupos.map((grupo) => <EntityCard key={grupo.key} grupo={grupo} onOpen={() => setGrupoAtivo(grupo.key)} />)}
-            </div>
-          ) : (
-            <div
-              className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pt-2 pb-4 [scrollbar-color:hsl(var(--osg-moss))_hsl(var(--osg-100))] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-osg-moss [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-osg-100"
-              aria-label={`Entidades de ${TIPO_CLUSTER_LABEL[categoria.tipo] ?? categoria.tipo}`}
-            >
-              {categoria.grupos.map((grupo) => (
-                <div key={grupo.key} className="w-[85%] shrink-0 snap-start sm:w-[calc((100%_-_1rem)/2)] xl:w-[calc((100%_-_2rem)/3)]">
-                  <EntityCard grupo={grupo} onOpen={() => setGrupoAtivo(grupo.key)} />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (emFoco) {
+                        setFiltroCategoria('todos');
+                        setCategoriaExpandida(null);
+                      } else {
+                        setCategoriaExpandida(categoria.cluster);
+                      }
+                    }}
+                    className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-osg-moss transition-colors hover:text-osg-700 hover:underline"
+                  >
+                    {emFoco ? <><ArrowLeft className="h-3.5 w-3.5" />Voltar às categorias</> : <>Ver todos <ArrowRight className="h-3.5 w-3.5" /></>}
+                  </button>
                 </div>
-              ))}
-            </div>
-          )}
-        </section>
-      ))}
+                <span className="mt-2 block text-xs font-semibold tabular-nums text-osg-500">{categoria.grupos.length} entidade{categoria.grupos.length === 1 ? '' : 's'}</span>
+              </div>
+              {emFoco ? (
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {categoria.grupos.map((grupo) => (
+                    <EntityCard
+                      key={grupo.chave}
+                      grupo={grupo}
+                      onOpen={(estado) => { setFiltroFicha(estado ?? null); setGrupoAtivo(grupo.chave); }}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div
+                  className="flex snap-x snap-mandatory gap-4 overflow-x-auto px-1 pt-2 pb-4 [scrollbar-color:hsl(var(--osg-moss))_hsl(var(--osg-100))] [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-osg-moss [&::-webkit-scrollbar-track]:rounded-full [&::-webkit-scrollbar-track]:bg-osg-100"
+                  aria-label={`Entidades de ${CLUSTER_LABEL[categoria.cluster]}`}
+                >
+                  {categoria.grupos.map((grupo) => (
+                    <div key={grupo.chave} className="w-[85%] shrink-0 snap-start sm:w-[calc((100%_-_1rem)/2)] xl:w-[calc((100%_-_2rem)/3)]">
+                      <EntityCard
+                        grupo={grupo}
+                        onOpen={(estado) => { setFiltroFicha(estado ?? null); setGrupoAtivo(grupo.chave); }}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          );
+        })}
 
       <DocumentosDialog
         grupo={grupoSelecionado}
-        onOpenChange={(open) => !open && setGrupoAtivo(null)}
-        onVincular={(id) => setVincId(id)}
-        onSetStatus={(id, status) => setStatus.mutate({ id, status })}
-        onRemover={(id) => remover.mutate(id)}
+        filtro={filtroFicha}
+        onLimparFiltro={() => setFiltroFicha(null)}
+        onOpenChange={(open) => { if (!open) { setGrupoAtivo(null); setFiltroFicha(null); } }}
+        emRevisao={revisar.isPending ? revisar.variables?.documentoId ?? null : null}
+        onAprovar={(arquivo) => revisar.mutate({ clienteId, documentoId: arquivo.id, veredito: 'aprovado' })}
+        onDesfazer={(arquivo) => revisar.mutate({ clienteId, documentoId: arquivo.id, veredito: 'pendente' })}
+        onRecusar={(arquivo) => { setMotivo(arquivo.motivo ?? ''); setARecusar(arquivo); }}
       />
-      <VincularDocumentoDialog
-        item={vincItem}
-        documentos={docs}
-        onOpenChange={(open) => !open && setVincId(null)}
-        onVincular={(documentoId, itemId) => vincular.mutate({ documentoId, itemId })}
-      />
-      <AddCondicionalDialog
-        open={addOpen}
-        onOpenChange={setAddOpen}
-        padrao={padrao}
-        pessoas={pessoas}
-        bens={bens}
-        matriculas={allMatriculas.filter((matricula) => matricula.bem_cliente_id === clienteId || matricula.titular_cliente_ids.includes(clienteId))}
-        onConfirm={(lista) => { lista.forEach((argumento) => addCond.mutate(argumento)); setAddOpen(false); }}
+
+      <RecusaDialog
+        arquivo={aRecusar}
+        motivo={motivo}
+        onMotivo={setMotivo}
+        onOpenChange={(aberto) => !aberto && setARecusar(null)}
+        onConfirmar={() => {
+          if (aRecusar) {
+            revisar.mutate({
+              clienteId, documentoId: aRecusar.id, veredito: 'recusado', motivo,
+            });
+          }
+          setARecusar(null);
+        }}
       />
     </div>
   );
 }
 
-function ResumoHero({ clienteNome, pct, base, recebidos, pendentes, solicitados, encerrados }: {
-  clienteNome: string; pct: number; base: number; recebidos: number; pendentes: number; solicitados: number; encerrados: number;
+function EstadoVazio({ titulo, descricao, acao }: {
+  titulo: string;
+  descricao: string;
+  acao: { para: string; rotulo: string };
+}) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-osg-300/70 bg-white/60 px-6 py-16 text-center shadow-sm">
+      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-osg-100 text-osg-moss"><ClipboardCheck className="h-7 w-7" /></span>
+      <div>
+        <p className="font-semibold text-osg-700">{titulo}</p>
+        <p className="mt-1 max-w-xl text-sm text-osg-500">{descricao}</p>
+      </div>
+      <Button asChild variant="outline"><Link to={acao.para}>{acao.rotulo}</Link></Button>
+    </div>
+  );
+}
+
+function Aviso({ children, tom = 'atencao' }: { children: ReactNode; tom?: 'atencao' | 'neutro' }) {
+  return (
+    <div className={cn(
+      'flex items-start gap-3 rounded-xl border px-4 py-3 text-sm',
+      tom === 'atencao'
+        ? 'border-osg-highlighter/50 bg-osg-highlighter/10 text-osg-700'
+        : 'border-osg-200/70 bg-osg-50/60 text-osg-600',
+    )}>
+      <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss" />
+      <p className="leading-relaxed">{children}</p>
+    </div>
+  );
+}
+
+function ResumoHero({ clienteNome, pct, base, recebidos, pendentes, encerrados }: {
+  clienteNome: string; pct: number; base: number; recebidos: number; pendentes: number; encerrados: number;
 }) {
   return (
     <section className="relative overflow-hidden rounded-2xl border border-osg-300/60 bg-white/75 p-5 shadow-[0_14px_40px_-28px_hsl(var(--osg-700)/0.35)] sm:p-7">
@@ -420,7 +461,7 @@ function ResumoHero({ clienteNome, pct, base, recebidos, pendentes, solicitados,
         </div>
         <div className="grid grid-cols-3 gap-3 border-osg-100 lg:border-l lg:pl-7">
           <Metric label="Pendentes" value={pendentes} tone="warning" />
-          <Metric label="Solicitados" value={solicitados} tone="neutral" />
+          <Metric label="Recebidos" value={recebidos} tone="neutral" />
           <Metric label="Encerrados" value={encerrados} tone="neutral" />
         </div>
       </div>
@@ -437,106 +478,339 @@ function Metric({ label, value, tone }: { label: string; value: number; tone: 'w
   );
 }
 
-function EntityCard({ grupo, onOpen }: { grupo: Grupo; onOpen: () => void }) {
-  const Icon = ENTIDADE_ICON[grupo.tipo] ?? ClipboardCheck;
-  const recebidos = grupo.items.filter((item) => statusEfetivo(item) === 'recebido').length;
-  const abertos = grupo.items.filter(itemAberto).length;
-  const base = recebidos + abertos;
-  const pct = base ? Math.round((recebidos / base) * 100) : 0;
-  const cardStatus = abertos > 0
-    ? grupo.items.some((item) => statusEfetivo(item) === 'solicitado') ? 'solicitado' : 'pendente'
+function EntityCard({ grupo, onOpen }: {
+  grupo: GrupoChecklist;
+  onOpen: (estado?: EstadoDocumento) => void;
+}) {
+  const Icon = CLUSTER_ICON[grupo.instancia.cluster];
+  const { recebidos, pendentes, base, pct } = resumirChecklist(grupo.linhas);
+  const cardStatus: StatusChecklist | 'encerrado' = pendentes > 0
+    ? 'pendente'
     : recebidos > 0 ? 'recebido' : 'encerrado';
-  const preview = grupo.items.filter(itemAberto).slice(0, 2).map((item) => item.documento).join(' · ');
+  const preview = grupo.linhas
+    .filter((linha) => linha.status === 'pendente')
+    .slice(0, 2)
+    .map((linha) => linha.documento)
+    .join(' · ');
+  const contagem = contarEstados(grupo.linhas.map(estadoDaLinha));
+
+  /**
+   * O card é `div` com um botão invisível por cima porque os chips de estado são
+   * botões, e botão dentro de botão é HTML inválido — o navegador desmonta a
+   * árvore e o clique de dentro some. O conteúdo fica com `pointer-events-none`
+   * para o clique atravessar; só os chips reativam o ponteiro.
+   */
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className="group flex h-full min-h-48 w-full flex-col rounded-2xl border border-osg-300/60 bg-white/75 p-5 text-left shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)] transition-all duration-200 hover:-translate-y-1 hover:border-osg-moss/40 hover:shadow-[0_16px_30px_-20px_hsl(var(--osg-moss)/0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40"
-    >
-      <div className="flex items-start justify-between gap-3">
+    <div className="group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-osg-300/60 bg-white/75 p-5 text-left shadow-[0_8px_24px_-22px_hsl(var(--osg-700)/0.35)] transition-all duration-200 hover:-translate-y-1 hover:border-osg-moss/40 hover:shadow-[0_16px_30px_-20px_hsl(var(--osg-moss)/0.24)] focus-within:border-osg-moss/40">
+      <button
+        type="button"
+        onClick={() => onOpen()}
+        aria-label={`Ver os documentos de ${grupo.instancia.label}`}
+        className="absolute inset-0 z-0 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40"
+      />
+      <div className="pointer-events-none relative z-10 flex items-start justify-between gap-3">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-osg-50 text-osg-moss"><Icon className="h-5 w-5" /></span>
-        <StatusPill status={cardStatus} />
+        <span className={cn(
+          'rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]',
+          cardStatus === 'recebido' ? 'bg-osg-moss/10 text-osg-moss'
+            : cardStatus === 'pendente' ? 'bg-osg-highlighter/25 text-osg-700'
+              : 'bg-osg-100 text-osg-500',
+        )}>
+          {cardStatus === 'recebido' ? 'Completo' : cardStatus === 'pendente' ? 'Pendente' : 'Tratado'}
+        </span>
       </div>
-      <h4 className="mt-5 font-semibold leading-snug text-osg-700">{grupo.label}</h4>
-      <p className="mt-1 line-clamp-2 min-h-10 text-sm leading-relaxed text-osg-500">{preview || 'Todos os documentos foram tratados.'}</p>
-      <div className="mt-auto flex items-center gap-3 pt-5">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-osg-100"><div className={cn('h-full rounded-full', abertos ? 'bg-osg-highlighter' : 'bg-osg-moss')} style={{ width: `${pct}%` }} /></div>
+      <h4 className="pointer-events-none relative z-10 mt-5 font-semibold leading-snug text-osg-700">{grupo.instancia.label}</h4>
+      {grupo.instancia.detalhe && <p className="pointer-events-none relative z-10 text-xs font-medium text-osg-500">{grupo.instancia.detalhe}</p>}
+      <p className="pointer-events-none relative z-10 mt-1 line-clamp-2 min-h-10 text-sm leading-relaxed text-osg-500">{preview || 'Nada pendente nesta entidade.'}</p>
+
+      <ChipsDeEstado contagem={contagem} onEscolher={onOpen} />
+
+      <div className="pointer-events-none relative z-10 mt-auto flex items-center gap-3 pt-5">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-osg-100"><div className={cn('h-full rounded-full', pendentes ? 'bg-osg-highlighter' : 'bg-osg-moss')} style={{ width: `${pct}%` }} /></div>
         <span className="text-sm font-bold tabular-nums text-osg-600">{recebidos}/{base}</span>
       </div>
-      <span className="mt-3 text-xs font-semibold text-osg-moss group-hover:underline">Ver {grupo.items.length} documento{grupo.items.length === 1 ? '' : 's'}</span>
-    </button>
+      <span className="pointer-events-none relative z-10 mt-3 text-xs font-semibold text-osg-moss group-hover:underline">Ver {grupo.linhas.length} documento{grupo.linhas.length === 1 ? '' : 's'}</span>
+    </div>
   );
 }
 
-function DocumentosDialog({ grupo, onOpenChange, onVincular, onSetStatus, onRemover }: {
-  grupo: Grupo | null;
-  onOpenChange: (open: boolean) => void;
-  onVincular: (id: string) => void;
-  onSetStatus: (id: string, status: ChecklistStatus) => void;
-  onRemover: (id: string) => void;
+/**
+ * Os quatro estados como atalho: abre a ficha já recortada.
+ *
+ * Estado zerado não vira botão. Quatro chips iguais em toda ficha, três deles
+ * levando a uma lista vazia, seria ruído — o chip existe para dizer "tem coisa
+ * aqui".
+ */
+function ChipsDeEstado({ contagem, onEscolher }: {
+  contagem: Record<EstadoDocumento, number>;
+  onEscolher: (estado: EstadoDocumento) => void;
 }) {
+  const visiveis = ESTADOS_DOCUMENTO.filter((estado) => contagem[estado] > 0);
+  if (visiveis.length === 0) return null;
+
+  return (
+    <div className="pointer-events-none relative z-10 mt-3 flex flex-wrap gap-1.5">
+      {visiveis.map((estado) => (
+        <button
+          key={estado}
+          type="button"
+          onClick={() => onEscolher(estado)}
+          className={cn(
+            'pointer-events-auto inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
+            ESTADO_CHIP[estado],
+          )}
+        >
+          {ESTADO_LABEL[estado]}
+          <span className="tabular-nums opacity-70">{contagem[estado]}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const PESO_STATUS: Record<StatusChecklist, number> = {
+  pendente: 0, recebido: 1, nao_aplicavel: 2, dispensado: 3,
+};
+
+interface AcoesRevisao {
+  /** id do arquivo cuja revisão está em voo, para travar só a linha dele. */
+  emRevisao: string | null;
+  onAprovar: (arquivo: ArquivoDaLinha) => void;
+  onRecusar: (arquivo: ArquivoDaLinha) => void;
+  onDesfazer: (arquivo: ArquivoDaLinha) => void;
+}
+
+function DocumentosDialog({ grupo, filtro, onLimparFiltro, onOpenChange, ...acoes }: AcoesRevisao & {
+  grupo: GrupoChecklist | null;
+  /** O estado escolhido no chip do card; nulo mostra a ficha inteira. */
+  filtro: EstadoDocumento | null;
+  onLimparFiltro: () => void;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const linhas = (grupo?.linhas ?? [])
+    .filter((linha) => !filtro || estadoDaLinha(linha) === filtro)
+    .slice()
+    .sort((a, b) => PESO_STATUS[a.status] - PESO_STATUS[b.status] || a.ordem - b.ordem);
+
   return (
     <Dialog open={!!grupo} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden p-0">
         <DialogHeader className="border-b border-osg-100 bg-osg-50/50 px-6 py-5 text-left">
-          <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-osg-500">{grupo ? TIPO_CLUSTER_LABEL[grupo.tipo] ?? grupo.tipo : ''}</span>
-          <DialogTitle className="text-xl text-osg-700">{grupo?.label}</DialogTitle>
-          <DialogDescription>Consulte arquivos e atualize o andamento de cada documento.</DialogDescription>
+          <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-osg-500">{grupo ? CLUSTER_LABEL[grupo.instancia.cluster] : ''}</span>
+          <DialogTitle className="text-xl text-osg-700">{grupo?.instancia.label}</DialogTitle>
+          <DialogDescription>
+            {grupo?.instancia.detalhe
+              ? `${grupo.instancia.detalhe}. O que falta é derivado do que foi pedido menos o que chegou.`
+              : 'O que falta é derivado do que foi pedido menos o que chegou.'}
+          </DialogDescription>
+          {filtro && (
+            <div className="flex items-center gap-2 pt-1">
+              <span className={cn(
+                'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                ESTADO_CHIP[filtro],
+              )}>
+                {ESTADO_LABEL[filtro]}
+                <span className="tabular-nums opacity-70">{linhas.length}</span>
+              </span>
+              <button
+                type="button"
+                onClick={onLimparFiltro}
+                className="rounded-md text-[11px] font-semibold text-osg-500 underline-offset-2 hover:text-osg-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40"
+              >
+                ver todos os {grupo?.linhas.length}
+              </button>
+            </div>
+          )}
         </DialogHeader>
         <div className="max-h-[calc(90vh-130px)] divide-y divide-osg-100 overflow-y-auto px-2 pb-2 sm:px-4">
-          {grupo?.items.slice().sort((a, b) => Number(itemAberto(b)) - Number(itemAberto(a))).map((item) => (
-            <DocumentRow key={item.id} item={item} onVincular={() => onVincular(item.id)} onSetStatus={(status) => onSetStatus(item.id, status)} onRemover={() => onRemover(item.id)} />
-          ))}
+          {linhas.map((linha) => <DocumentRow key={linha.chave} linha={linha} {...acoes} />)}
         </div>
       </DialogContent>
     </Dialog>
   );
 }
 
-function DocumentRow({ item, onVincular, onSetStatus, onRemover }: {
-  item: ChecklistClienteRow;
-  onVincular: () => void;
-  onSetStatus: (status: ChecklistStatus) => void;
-  onRemover: () => void;
-}) {
-  const status = statusEfetivo(item);
+function DocumentRow({ linha, ...acoes }: AcoesRevisao & { linha: LinhaChecklist }) {
+  const status = STATUS_LINHA[linha.status];
   return (
     <div className="px-2 py-4 sm:px-3">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
-        <span className={cn('mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', status === 'recebido' ? 'bg-osg-moss/10 text-osg-moss' : 'bg-osg-highlighter/20 text-osg-700')}>
-          {status === 'recebido' ? <Check className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+        <span className={cn('mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', linha.status === 'recebido' ? 'bg-osg-moss/10 text-osg-moss' : 'bg-osg-highlighter/20 text-osg-700')}>
+          {linha.status === 'recebido' ? <Check className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h4 className="text-sm font-semibold text-osg-700">{item.documento}</h4>
-            {item.obrigatorio && <Badge>Obrigatório</Badge>}
-            {item.origem === 'manual' && <Badge>Manual</Badge>}
-            {item.confidencial && <Badge tone="danger"><ShieldAlert className="h-3 w-3" />Confidencial</Badge>}
+            <h4 className="text-sm font-semibold text-osg-700">{linha.documento}</h4>
+            {!linha.doCatalogo && <Badge>Pedido à mão</Badge>}
+            {linha.confidencial && <Badge tone="danger"><ShieldAlert className="h-3 w-3" />Confidencial</Badge>}
+            {/* Item manual sem tipo avulso nunca casa com arquivo: a pendência é
+                estrutural, e dizer isso é melhor que deixá-la inexplicada. */}
+            {!linha.documentoTipoId && <Badge tone="danger">Sem tipo no catálogo</Badge>}
           </div>
-          {item.nota && <p className="mt-1 text-xs leading-relaxed text-osg-500">{item.nota}</p>}
-          {item.arquivos.length > 0 && <p className="mt-2 truncate text-xs font-medium text-osg-moss">{item.arquivos.map((arquivo) => arquivo.nome_original).join(', ')}</p>}
+          {linha.nota && <p className="mt-1 text-xs leading-relaxed text-osg-500">{linha.nota}</p>}
+          {linha.arquivos.length > 0 && (
+            <ul className="mt-2 space-y-1.5">
+              {linha.arquivos.map((arquivo) => (
+                <ArquivoRevisavel key={arquivo.id} arquivo={arquivo} {...acoes} />
+              ))}
+            </ul>
+          )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <Select value={item.status} onValueChange={(value) => onSetStatus(value as ChecklistStatus)}>
-            <SelectTrigger className="h-8 w-36 border-osg-200/80 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>{STATUS_OPTIONS.map((opcao) => <SelectItem key={opcao.value} value={opcao.value} disabled={opcao.value === 'recebido'}>{opcao.label}</SelectItem>)}</SelectContent>
-          </Select>
-          <Button variant="outline" size="sm" onClick={onVincular} title="Vincular arquivo"><Link2 className="h-4 w-4" /></Button>
-          {item.origem === 'manual' && <Button variant="ghost" size="sm" className="text-osg-red" onClick={onRemover} title="Remover documento"><Trash2 className="h-4 w-4" /></Button>}
-        </div>
+        <span className={cn('shrink-0 rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]', status.classe)}>
+          {status.label}
+        </span>
       </div>
     </div>
   );
 }
 
-function StatusPill({ status }: { status: 'recebido' | 'pendente' | 'solicitado' | 'encerrado' }) {
-  const config = {
-    recebido: ['Concluído', 'bg-osg-moss/10 text-osg-moss'],
-    pendente: ['Pendente', 'bg-osg-highlighter/25 text-osg-700'],
-    solicitado: ['Solicitado', 'bg-osg-100 text-osg-700'],
-    encerrado: ['Tratado', 'bg-osg-100 text-osg-500'],
-  }[status];
-  return <span className={cn('rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]', config[1])}>{config[0]}</span>;
+/**
+ * O arquivo recebido, com o veredito ao lado.
+ *
+ * Só o que veio do cliente ganha botão: arquivo de `fonte = 'psa'` é produção
+ * interna, e a casa não aprova o que a casa fez (a RPC recusaria também). Aprovado
+ * e recusado mantêm uma saída — "Recusar" e "Aprovar" continuam à vista — porque
+ * veredito errado tem de ter conserto sem passar pelo banco.
+ */
+function ArquivoRevisavel({ arquivo, emRevisao, onAprovar, onRecusar, onDesfazer }: AcoesRevisao & {
+  arquivo: ArquivoDaLinha;
+}) {
+  const ocupado = emRevisao === arquivo.id;
+  const doCliente = arquivo.fonte === 'cliente';
+  const recusado = arquivo.revisao === 'recusado';
+  const aprovado = arquivo.revisao === 'aprovado';
+
+  return (
+    <li className={cn(
+      'rounded-lg border px-3 py-2',
+      recusado ? 'border-osg-red/30 bg-osg-red/5' : 'border-osg-100 bg-osg-50/50',
+    )}>
+      <div className="flex flex-wrap items-center gap-2">
+        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? 'text-osg-red' : 'text-osg-moss')} />
+        <span className={cn(
+          'min-w-0 flex-1 truncate text-xs font-medium',
+          recusado ? 'text-osg-red line-through' : 'text-osg-600',
+        )}>
+          {arquivo.nome}
+        </span>
+
+        {!doCliente ? (
+          <Badge>Enviado pela PSA</Badge>
+        ) : ocupado ? (
+          <Loader2 className="h-4 w-4 animate-spin text-osg-500" />
+        ) : (
+          <div className="flex shrink-0 items-center gap-1">
+            {aprovado && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-osg-moss/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-moss">
+                <Check className="h-3 w-3" />Aprovado
+              </span>
+            )}
+            {recusado && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-osg-red/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-red">
+                <TriangleAlert className="h-3 w-3" />Recusado
+              </span>
+            )}
+            {!aprovado && !recusado && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-osg-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em] text-osg-500">
+                <Hourglass className="h-3 w-3" />A revisar
+              </span>
+            )}
+
+            {!aprovado && (
+              <BotaoVeredito tom="aprovar" onClick={() => onAprovar(arquivo)}>
+                <Check className="h-3.5 w-3.5" />Aprovar
+              </BotaoVeredito>
+            )}
+            {!recusado && (
+              <BotaoVeredito tom="recusar" onClick={() => onRecusar(arquivo)}>
+                <X className="h-3.5 w-3.5" />Recusar
+              </BotaoVeredito>
+            )}
+            {(aprovado || recusado) && (
+              <BotaoVeredito tom="desfazer" onClick={() => onDesfazer(arquivo)}>
+                <Undo2 className="h-3.5 w-3.5" />
+                <span className="sr-only">Desfazer revisão de {arquivo.nome}</span>
+              </BotaoVeredito>
+            )}
+          </div>
+        )}
+      </div>
+      {recusado && arquivo.motivo && (
+        <p className="mt-1 pl-5 text-xs leading-relaxed text-osg-red">{arquivo.motivo}</p>
+      )}
+    </li>
+  );
+}
+
+function BotaoVeredito({ tom, onClick, children }: {
+  tom: 'aprovar' | 'recusar' | 'desfazer';
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={tom === 'desfazer' ? 'Desfazer revisão' : undefined}
+      className={cn(
+        'inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss/40',
+        tom === 'aprovar' && 'border-osg-moss/30 text-osg-moss hover:bg-osg-moss/10',
+        tom === 'recusar' && 'border-osg-red/30 text-osg-red hover:bg-osg-red/10',
+        tom === 'desfazer' && 'border-osg-200 text-osg-500 hover:bg-osg-100/70 hover:text-osg-700',
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * A recusa, com o motivo que o cliente vai ler.
+ *
+ * O motivo é opcional no banco, mas a tela insiste: recusa sem explicação devolve
+ * o problema para o cliente sem dizer o que corrigir, e ele reenvia o mesmo
+ * arquivo. Por isso o texto é o corpo do modal, e não um campo escondido.
+ */
+function RecusaDialog({ arquivo, motivo, onMotivo, onOpenChange, onConfirmar }: {
+  arquivo: ArquivoDaLinha | null;
+  motivo: string;
+  onMotivo: (valor: string) => void;
+  onOpenChange: (aberto: boolean) => void;
+  onConfirmar: () => void;
+}) {
+  return (
+    <Dialog open={!!arquivo} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="text-osg-700">Recusar este documento?</DialogTitle>
+          <DialogDescription>
+            "{arquivo?.nome}" volta a contar como pendente para o cliente, que vê a tag de recusado
+            e o botão de enviar de novo.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <label htmlFor="motivo-recusa" className="text-xs font-semibold text-osg-600">
+            O que o cliente precisa corrigir
+          </label>
+          <Textarea
+            id="motivo-recusa"
+            value={motivo}
+            onChange={(evento) => onMotivo(evento.target.value)}
+            rows={3}
+            placeholder="Ex.: a última página saiu cortada; reenvie a matrícula inteira."
+            className="border-osg-200/80 bg-osg-50/50"
+          />
+          <p className="text-xs text-osg-500">
+            Sem texto, o cliente vê só "Recusado" e fica sem saber o que refazer.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="destructive" onClick={onConfirmar}>Recusar documento</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }
 
 function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'danger' }) {

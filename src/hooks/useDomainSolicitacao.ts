@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAvisoSolicitacaoEnviada } from '@/hooks/useAvisoSolicitacaoEnviada';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import {
   CAMPOS_AUDITADOS_ITEM,
@@ -521,21 +522,59 @@ export function useDomainSolicitacao(clienteId: string | null) {
   const moverStatus = async (
     de: SolicitacaoStatus[],
     para: SolicitacaoStatus,
-    carimbo: 'enviada_em' | 'encerrada_em',
+    /**
+     * A coluna de data da transição, quando existe.
+     *
+     * `null` na passagem para `em_checklist`: não há coluna própria para ela, e
+     * criar uma só para o carimbo não se paga enquanto `updated_at` responde
+     * "desde quando". A auditoria registra a transição de todo jeito.
+     */
+    carimbo: 'enviada_em' | 'encerrada_em' | null,
     erroSeNaoMoveu: string,
   ) => {
     const atual = solicitacaoQuery.data;
     if (!atual) throw new Error('Nenhuma solicitação carregada para este cliente.');
 
-    const alteracoes = { status: para, [carimbo]: new Date().toISOString() };
+    const alteracoes = carimbo
+      ? { status: para, [carimbo]: new Date().toISOString() }
+      : { status: para };
     const { data, error } = await supabase
       .from('solicitacao')
-      .update(alteracoes)
+      // O valor novo do enum ainda não está no types.ts autogerado (migration
+      // 20260814140000); o cast some na próxima regeneração de tipos.
+      .update(alteracoes as { status: Database['public']['Enums']['osg_solicitacao_status'] })
       .eq('id', atual.id)
-      .in('status', de)
+      .in('status', de as Database['public']['Enums']['osg_solicitacao_status'][])
       .select('id, status');
     if (error) throw error;
-    if (!data || data.length === 0) throw new Error(erroSeNaoMoveu);
+    if (!data || data.length === 0) {
+      /**
+       * Zero linhas tem DUAS causas, e acusar a errada custou tempo de verdade:
+       *
+       *   a) alguém mudou o status antes (a corrida que o WHERE existe para pegar);
+       *   b) a RLS de escrita recusou. Desde a migration 20260812160000, escrever
+       *      em `solicitacao` exige papel de sublíder ou acima E ser membro de
+       *      algum projeto da OS do cliente. A LEITURA não mudou, então a tela
+       *      mostra o pedido inteiro e só as ações falham, o que faz a recusa
+       *      parecer bug de estado.
+       *
+       * A leitura é permitida a quem vê o cliente, então uma consulta separa as
+       * duas: se o status continua onde estava, ninguém correu, foi permissão.
+       */
+      const { data: agora } = await supabase
+        .from('solicitacao')
+        .select('status')
+        .eq('id', atual.id)
+        .maybeSingle();
+      const statusAgora = agora?.status as SolicitacaoStatus | undefined;
+      if (statusAgora && de.includes(statusAgora)) {
+        throw new Error(
+          'Você não tem permissão para alterar esta solicitação. A escrita exige papel de '
+          + 'sublíder ou acima e ser membro de algum projeto da OS deste cliente.',
+        );
+      }
+      throw new Error(erroSeNaoMoveu);
+    }
 
     await logAction({
       area: 'osg',
@@ -546,7 +585,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
       changed_fields: computeFieldDiff(
         { status: atual.status },
         alteracoes,
-        ['status', carimbo],
+        carimbo ? ['status', carimbo] : ['status'],
       ),
     });
   };
@@ -577,11 +616,14 @@ export function useDomainSolicitacao(clienteId: string | null) {
         });
 
         /**
-         * Aviso por e-mail ao cliente (ALE-2). `invoke` sem `await` e com a
-         * falha morrendo no `catch`, igual aos seis pontos de chamada de
-         * `notify-ticket` (useTicketMutations.ts:144 e :192): o e-mail não pode
-         * desfazer a mutação, que já gravou status e data e já registrou
-         * auditoria.
+         * Aviso ao cliente (ALE-2 / ALE-2.1). Uma chamada só para os dois canais:
+         * a borda resolve e-mail e WhatsApp por conta própria, cada um com sua
+         * rota no n8n e sua linha de registro.
+         *
+         * `invoke` sem `await` e com a falha morrendo no `catch`, igual aos seis
+         * pontos de chamada de `notify-ticket` (useTicketMutations.ts:144 e :192):
+         * o aviso não pode desfazer a mutação, que já gravou status e data e já
+         * registrou auditoria.
          */
         supabase.functions.invoke('notificar', {
           body: {
@@ -591,18 +633,80 @@ export function useDomainSolicitacao(clienteId: string | null) {
         }).catch(console.error);
       }
     },
-    onError: (error: Error) => toast.error('Não foi possível enviar: ' + error.message),
+    onError: (error: Error) => {
+      invalidar();
+      toast.error('Não foi possível enviar: ' + error.message);
+    },
+  });
+
+  /**
+   * A virada da solicitação inicial para a fase de checklist.
+   *
+   * Só de `enviada`: passar de rascunho seria pôr o cliente a responder o que
+   * nunca foi pedido a ele. Não tem volta pela tela, como as outras transições.
+   *
+   * O que muda para o cliente: a tela dele deixa de ser gaveta-balde e passa a ser
+   * checklist por entidade, com upload no documento que falta. O que muda para o
+   * consultor: nada trava, incluir documento novo continua liberado, e é o normal
+   * desta fase ("faltou o X").
+   */
+  const passarParaChecklist = useMutation({
+    mutationFn: () => moverStatus(
+      ['enviada'],
+      'em_checklist',
+      null,
+      'Esta solicitação não está mais em aberto para o cliente. Recarregue a página.',
+    ),
+    onSuccess: invalidar,
+    onError: (error: Error) => {
+      invalidar();
+      toast.error('Não foi possível passar para o checklist: ' + error.message);
+    },
   });
 
   const encerrarSolicitacao = useMutation({
     mutationFn: () => moverStatus(
-      ['rascunho', 'enviada'],
+      ['rascunho', 'enviada', 'em_checklist'],
       'encerrada',
       'encerrada_em',
       'Esta solicitação já estava encerrada. Recarregue a página.',
     ),
-    onSuccess: invalidar,
-    onError: (error: Error) => toast.error('Não foi possível encerrar: ' + error.message),
+    onSuccess: () => {
+      invalidar();
+
+      const atual = solicitacaoQuery.data;
+
+      /**
+       * Aviso 3 — documentação conferida e aceita. O gatilho é o ENCERRAMENTO,
+       * e não o ato de aceitar documento, que não existe em tela: o
+       * avisos-cliente.md autoriza "sai quando o cliente enviou tudo ou quando a
+       * solicitação é encerrada".
+       *
+       * `enviadaEm` é a condição, não um detalhe: `moverStatus` aceita encerrar a
+       * partir de 'rascunho', e um rascunho encerrado nunca chegou ao cliente —
+       * mandar "recebemos e conferimos" nesse caso seria afirmar algo falso. Vale
+       * para os outros dois estados de origem: tanto `enviada` quanto
+       * `em_checklist` têm `enviada_em` gravado, então os dois disparam. A borda
+       * repete essa checagem porque é ela que pode ser chamada de fora; aqui a
+       * guarda existe só para não gerar chamada condenada em todo encerramento de
+       * rascunho.
+       *
+       * Sem `await` e com a falha no `catch`, pelo mesmo motivo do envio: o aviso
+       * não desfaz a transição, que já gravou status e data.
+       */
+      if (atual?.enviadaEm) {
+        supabase.functions.invoke('notificar', {
+          body: {
+            event_type: 'documento_aprovado',
+            solicitacao_id: atual.id,
+          },
+        }).catch(console.error);
+      }
+    },
+    onError: (error: Error) => {
+      invalidar();
+      toast.error('Não foi possível encerrar: ' + error.message);
+    },
   });
 
   /**
@@ -676,6 +780,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
     editarItem,
     dispensarItem,
     enviarSolicitacao,
+    passarParaChecklist,
     encerrarSolicitacao,
     abrirNovaSolicitacao,
   };

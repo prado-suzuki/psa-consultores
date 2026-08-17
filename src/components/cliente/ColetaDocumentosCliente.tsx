@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { toast } from '@/hooks/use-toast';
 import { useClienteAtual } from '@/hooks/useClienteAtual';
+import { ChecklistDocumentosCliente } from '@/components/cliente/ChecklistDocumentosCliente';
 import {
   useBaixarDocumento,
   useDocumentosByCliente,
@@ -84,6 +85,18 @@ export function ColetaDocumentosCliente() {
     ? 'Este pedido foi encerrado'
     : 'Nenhum pedido de documentos aberto';
 
+  /**
+   * Fase de CHECKLIST: outra tela, não outro modo desta.
+   *
+   * Depois que o consultor passa a solicitação para o checklist, o eixo deixa de
+   * ser a gaveta (jogue os arquivos, a PSA classifica) e passa a ser a pendência
+   * concreta (este documento, desta pessoa, envie aqui). São leituras diferentes
+   * (RPC própria) e ações diferentes (anexo validado por item), então trocar de
+   * componente é mais honesto que multiplicar condicional dentro deste.
+   *
+   * O retorno vem depois de todos os hooks desta função, de propósito: retorno
+   * antecipado acima deles quebraria a ordem entre renders.
+   */
   const grupos = useMemo(() => montarGruposColeta(pedido?.itens ?? [], docs), [pedido, docs]);
   // "Enviados": tudo que o cliente mandou e a PSA ainda não classificou, na ordem
   // de chegada (docs já vem por created_at desc).
@@ -96,6 +109,10 @@ export function ColetaDocumentosCliente() {
     [enviados],
   );
   const { data: uploaderNames = {} } = useUploaderNames(uploaderIds);
+
+  if (status === 'em_checklist' && clienteId) {
+    return <ChecklistDocumentosCliente clienteId={clienteId} />;
+  }
 
   const enviar = async (grupo: GrupoColeta, lista: File[]) => {
     if (!clienteId || lista.length === 0) return;

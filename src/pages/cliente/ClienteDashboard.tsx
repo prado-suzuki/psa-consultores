@@ -63,16 +63,20 @@ export default function ClienteDashboard() {
   const { user, signOut } = useAuth();
 
   /**
-   * A aba Documentos só existe com pedido ENVIADO.
+   * A aba Documentos existe nas duas fases em que o cliente tem o que fazer:
+   * `enviada` (gaveta de envio em lote) e `em_checklist` (o que falta, por
+   * entidade, com envio na linha). Qual das duas telas aparece é decisão de
+   * ColetaDocumentosCliente.
    *
    * Antes ela aparecia sempre, e sem pedido aberto anunciava "A PSA solicitou
-   * estes documentos" sobre quatro gavetas vazias e trancadas — a tela prometia
-   * uma lista que não existia. Encerrada também esconde: o ciclo acabou, e os
-   * arquivos entregues seguem no Drive da PSA, não aqui.
+   * estes documentos" sobre quatro gavetas vazias e trancadas: a tela prometia
+   * uma lista que não existia. Rascunho e encerrada continuam escondendo, por
+   * isso a lista de estados é explícita em vez de "diferente de encerrada".
    */
   const { data: clienteId } = useClienteAtual();
   const { data: pedido } = useSolicitacaoAtivaCliente(clienteId ?? null);
-  const comDocumentos = pedido?.solicitacao?.status === 'enviada';
+  const statusDoPedido = pedido?.solicitacao?.status;
+  const comDocumentos = statusDoPedido === 'enviada' || statusDoPedido === 'em_checklist';
   // Filter states for Chamados
   const [ticketStatus, setTicketStatus] = useState<string>("__all__");
   const [ticketDateFrom, setTicketDateFrom] = useState<Date | undefined>();
@@ -358,9 +362,10 @@ export default function ClienteDashboard() {
               )}
             </TabsContent>
 
-            {/* Documents Tab — coleta por grupo (4 gavetas com drag and drop) e
-                a lista "Enviados", ambas em ColetaDocumentosCliente. Só existe
-                com pedido enviado; ver `comDocumentos`. */}
+            {/* Documents Tab. Em `enviada`, coleta por grupo (4 gavetas com drag
+                and drop) e a lista "Enviados"; em `em_checklist`, o checklist com
+                envio por documento que falta. As duas entram por
+                ColetaDocumentosCliente, que roteia. Ver `comDocumentos`. */}
             {comDocumentos && (
               <TabsContent value="documents" className="flex-1 mt-0">
                 <ColetaDocumentosCliente />

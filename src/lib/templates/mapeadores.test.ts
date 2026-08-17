@@ -6,6 +6,7 @@ import {
   mapearBem,
   mapearIntegralizacoes,
   mapearMatricula,
+  mapearPartesSelecionadas,
   mapearPessoa,
   mapearQuadroSocietario,
   mapearSociedade,
@@ -975,6 +976,97 @@ describe('calcularParticipacoesPR — quadro derivado da empresa PR', () => {
     expect(calcularParticipacoesPR([
       matPR('m1', null, [{ pessoaId: 'j', denominacao: 'José Eduardo' }]),
     ])).toEqual([]);
+  });
+});
+
+describe('mapearPartesSelecionadas — N pessoas escolhidas a dedo (seção {{#partes}})', () => {
+  const parte = (id: string, denominacao: string, tipo: 'PF' | 'PJ' = 'PF') => ({
+    id,
+    campos: mapearPessoa({ id, denominacao, tipo_pessoa: tipo, genero: 'M' } as unknown as PessoaRow),
+  });
+  const nomes = (itens: ItemLista[]) => itens.map((i) => (i.parte as Campos).nome);
+
+  it('cada item sai como { parte: … } com ordem e ordem romana', () => {
+    const itens = mapearPartesSelecionadas([parte('p1', 'Ana'), parte('p2', 'Bruno')]);
+    expect(nomes(itens)).toEqual(['Ana', 'Bruno']);
+    expect(itens.map((i) => (i.parte as Campos).ordem)).toEqual(['1', '2']);
+    expect(itens.map((i) => (i.parte as Campos).ordemRomana)).toEqual(['i', 'ii']);
+  });
+
+  it('marca sePF/sePJ — a parte pode ser física ou jurídica', () => {
+    const itens = mapearPartesSelecionadas([parte('p1', 'Agro Ltda', 'PJ'), parte('p2', 'Bruno')]);
+    expect(itens.map((i) => [i.sePF, i.sePJ])).toEqual([[false, true], [true, false]]);
+    // A qualificação da PJ e a da PF saem do mesmo vocabulário `pessoa`: o campo
+    // opcional que a PJ não tem publica '' e a guarda do bloco pula o trecho.
+    expect((itens[0].parte as Campos).profissao).toBe('');
+  });
+
+  it('preserva a proveniência da pessoa (valor clicável na prévia)', () => {
+    const [item] = mapearPartesSelecionadas([parte('p1', 'Ana')]);
+    expect(origemDe(item.parte as Campos)).toEqual({ tipo: 'pessoa', id: 'p1' });
+  });
+
+  it('ordena por quotas na empresa, da maior para a menor', () => {
+    const itens = mapearPartesSelecionadas(
+      [parte('p1', 'Ana'), parte('p2', 'Bruno'), parte('p3', 'Carla')],
+      new Map([['p1', 10], ['p2', 500], ['p3', 100]]),
+    );
+    expect(nomes(itens)).toEqual(['Bruno', 'Carla', 'Ana']);
+    // A numeração acompanha a ordem resolvida, não a de entrada.
+    expect(itens.map((i) => (i.parte as Campos).ordem)).toEqual(['1', '2', '3']);
+  });
+
+  it('empate em quotas resolve por ordem alfabética', () => {
+    const itens = mapearPartesSelecionadas(
+      [parte('p1', 'Carla'), parte('p2', 'Ana'), parte('p3', 'Bruno')],
+      new Map([['p1', 100], ['p2', 100], ['p3', 100]]),
+    );
+    expect(nomes(itens)).toEqual(['Ana', 'Bruno', 'Carla']);
+  });
+
+  it('parte sem quota vem depois de todas as que têm, e entre si em ordem alfabética', () => {
+    const itens = mapearPartesSelecionadas(
+      [parte('p1', 'Ana'), parte('p2', 'Bruno'), parte('p3', 'Carla'), parte('p4', 'Daniel')],
+      // Ana e Daniel não são sócios: são o outorgado e a testemunha nominada.
+      new Map([['p2', 1], ['p3', 999]]),
+    );
+    expect(nomes(itens)).toEqual(['Carla', 'Bruno', 'Ana', 'Daniel']);
+  });
+
+  it('mapa de quotas vazio (sem empresa, ou empresa sem quadro) é ordem alfabética', () => {
+    const itens = mapearPartesSelecionadas([
+      parte('p1', 'Carla'), parte('p2', 'Ana'), parte('p3', 'Bruno'),
+    ]);
+    expect(nomes(itens)).toEqual(['Ana', 'Bruno', 'Carla']);
+  });
+
+  it('acento não joga o nome para o fim da lista (locale pt-BR)', () => {
+    const itens = mapearPartesSelecionadas([
+      parte('p1', 'Zuleica'), parte('p2', 'Ávila'), parte('p3', 'Bento'),
+    ]);
+    expect(nomes(itens)).toEqual(['Ávila', 'Bento', 'Zuleica']);
+  });
+
+  it('a ordem é do resolvedor: permutar a entrada não muda a saída', () => {
+    const quotas = new Map([['p2', 100], ['p3', 100], ['p4', 7]]);
+    const todas = [parte('p1', 'Ana'), parte('p2', 'Bruno'), parte('p3', 'Álvaro'), parte('p4', 'Diego')];
+    const primeira = mapearPartesSelecionadas(todas, quotas);
+    const outra = mapearPartesSelecionadas([...todas].reverse(), quotas);
+    expect(nomes(primeira)).toEqual(['Álvaro', 'Bruno', 'Diego', 'Ana']);
+    expect(nomes(outra)).toEqual(nomes(primeira));
+  });
+
+  it('homônimos com as mesmas quotas saem em ordem estável (a id desempata)', () => {
+    const quotas = new Map([['p1', 5], ['p2', 5]]);
+    const um = mapearPartesSelecionadas([parte('p2', 'Ana'), parte('p1', 'Ana')], quotas);
+    const outro = mapearPartesSelecionadas([parte('p1', 'Ana'), parte('p2', 'Ana')], quotas);
+    const ids = (itens: ItemLista[]) => itens.map((i) => origemDe(i.parte as Campos)?.id);
+    expect(ids(um)).toEqual(['p1', 'p2']);
+    expect(ids(outro)).toEqual(ids(um));
+  });
+
+  it('sem seleção, a lista é vazia (a chave existe no contexto, o laço não entra)', () => {
+    expect(mapearPartesSelecionadas([], new Map())).toEqual([]);
   });
 });
 

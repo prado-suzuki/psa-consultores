@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { parseDate } from '@/lib/dateUtils';
 import { JUSTIFICATION_TYPES, PROJECT_FRONTS } from '@/components/equipe/projetos/constants';
 import {
   extractPriority,
@@ -45,6 +46,15 @@ import type {
   ProjectEditDraft,
   TeamMember,
 } from '@/components/equipe/projetos/types';
+
+/**
+ * `YYYY-MM-DD` como DD/MM/AAAA. Via `parseDate`, e não `new Date(iso)`, que lê a
+ * data como UTC e mostra o dia anterior no fuso de Brasília.
+ */
+const dataBR = (iso: string) => {
+  const data = parseDate(iso);
+  return data.toLocaleDateString('pt-BR');
+};
 
 interface ProjectInfoTabProps {
   project: Project;
@@ -272,27 +282,29 @@ export const ProjectInfoTab = ({
           />
         </div>
 
+        {/* Período em leitura: ele vem da Ordem de Serviço vinculada, como no
+            modal de cadastro de projeto. Enquanto era editável aqui, esta tela
+            era o caminho por onde o projeto passava a divergir da OS que o
+            originou — duas datas para o mesmo período, e nenhuma vencendo. */}
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label className="text-gray-700">Data Início</Label>
             <Input
-              type="date"
-              value={editProject.start_date}
-              onChange={(event) =>
-                onEditProjectChange({ ...editProject, start_date: event.target.value })
-              }
-              className="bg-white border-gray-300 text-gray-900"
+              value={editProject.start_date ? dataBR(editProject.start_date) : '—'}
+              readOnly
+              disabled
+              className="cursor-not-allowed border-gray-300 bg-gray-100 text-gray-900"
+              title="Herdada da Ordem de Serviço vinculada. Para alterar, edite a OS."
             />
           </div>
           <div className="space-y-2">
             <Label className="text-gray-700">Data Fim</Label>
             <Input
-              type="date"
-              value={editProject.end_date}
-              onChange={(event) =>
-                onEditProjectChange({ ...editProject, end_date: event.target.value })
-              }
-              className="bg-white border-gray-300 text-gray-900"
+              value={editProject.end_date ? dataBR(editProject.end_date) : '—'}
+              readOnly
+              disabled
+              className="cursor-not-allowed border-gray-300 bg-gray-100 text-gray-900"
+              title="Herdada da Ordem de Serviço vinculada. Para alterar, edite a OS."
             />
           </div>
         </div>
@@ -391,10 +403,9 @@ export const ProjectInfoTab = ({
         <div className="flex items-center gap-2 text-gray-600">
           <Calendar className="h-4 w-4" />
           <span>
-            {project.start_date &&
-              `Início: ${new Date(project.start_date).toLocaleDateString('pt-BR')}`}
+            {project.start_date && `Início: ${dataBR(project.start_date)}`}
             {project.start_date && project.end_date && ' | '}
-            {project.end_date && `Fim: ${new Date(project.end_date).toLocaleDateString('pt-BR')}`}
+            {project.end_date && `Fim: ${dataBR(project.end_date)}`}
           </span>
         </div>
       )}

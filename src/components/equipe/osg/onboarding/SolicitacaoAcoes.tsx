@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileStack, Loader2, Lock, Plus, Send } from 'lucide-react';
+import { FileStack, ListChecks, Loader2, Lock, Plus, Send } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,14 +16,15 @@ import type { SolicitacaoStatus } from '@/lib/solicitacao';
 /**
  * As ações do topo da Solicitação Inicial, que dependem do status.
  *
- * rascunho  → Atualizar da OS · Enviar (só com item ativo) · Encerrar
- * enviada   → Atualizar da OS (com confirmação) · Encerrar
- * encerrada → Abrir nova solicitação
+ * rascunho     → Atualizar da OS · Enviar (só com item ativo) · Encerrar
+ * enviada      → Atualizar da OS (com confirmação) · Passar para o checklist · Encerrar
+ * em_checklist → Atualizar da OS (com confirmação) · Encerrar
+ * encerrada    → Abrir nova solicitação
  *
- * Enviar e encerrar não convivem com "voltar atrás": existe uma solicitação não
+ * Nenhuma transição convive com "voltar atrás": existe uma solicitação não
  * encerrada por cliente, ela não retorna para rascunho, e encerrar é definitivo.
- * Por isso o encerramento pede confirmação, e a atualização também pede quando a
- * lista já está com o cliente — ali o documento novo aparece para ele na hora.
+ * Por isso as três pedem confirmação, e a atualização também pede quando a lista
+ * já está com o cliente, porque ali o documento novo aparece para ele na hora.
  */
 interface SolicitacaoAcoesProps {
   status: SolicitacaoStatus | null;
@@ -31,9 +32,18 @@ interface SolicitacaoAcoesProps {
   temOrigemNaOs: boolean;
   listaVazia: boolean;
   itensAtivos: number;
+  /**
+   * Arquivos do cliente ainda sem tipo de documento.
+   *
+   * Entra só no aviso da confirmação: enquanto eles não forem classificados, a
+   * subtração não os vê, e o cliente cairia num checklist quase todo pendente com
+   * documentos que já entregou.
+   */
+  arquivosSemTipo: number;
   ocupado: boolean;
   onGerar: () => void;
   onEnviar: () => void;
+  onPassarParaChecklist: () => void;
   onEncerrar: () => void;
   onAbrirNova: () => void;
 }
@@ -43,13 +53,16 @@ export function SolicitacaoAcoes({
   temOrigemNaOs,
   listaVazia,
   itensAtivos,
+  arquivosSemTipo,
   ocupado,
   onGerar,
   onEnviar,
+  onPassarParaChecklist,
   onEncerrar,
   onAbrirNova,
 }: SolicitacaoAcoesProps) {
   const [confirmarAtualizacao, setConfirmarAtualizacao] = useState(false);
+  const [confirmarChecklist, setConfirmarChecklist] = useState(false);
   const [confirmarEncerramento, setConfirmarEncerramento] = useState(false);
 
   if (status === 'encerrada') {
@@ -62,6 +75,9 @@ export function SolicitacaoAcoes({
   }
 
   const enviada = status === 'enviada';
+  // A lista já está com o cliente: atualizar a partir da OS aparece para ele na
+  // hora, nos dois estados em que ele a vê.
+  const comOCliente = enviada || status === 'em_checklist';
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -69,7 +85,7 @@ export function SolicitacaoAcoes({
         <Button
           size="sm"
           variant={listaVazia ? 'default' : 'outline'}
-          onClick={() => (enviada ? setConfirmarAtualizacao(true) : onGerar())}
+          onClick={() => (comOCliente ? setConfirmarAtualizacao(true) : onGerar())}
           disabled={ocupado}
         >
           {ocupado
@@ -83,6 +99,13 @@ export function SolicitacaoAcoes({
         <Button size="sm" onClick={onEnviar} disabled={ocupado || itensAtivos === 0}>
           <Send className="mr-2 h-4 w-4" />
           Enviar solicitação
+        </Button>
+      )}
+
+      {enviada && (
+        <Button size="sm" onClick={() => setConfirmarChecklist(true)} disabled={ocupado}>
+          <ListChecks className="mr-2 h-4 w-4" />
+          Passar para o checklist
         </Button>
       )}
 
@@ -115,14 +138,44 @@ export function SolicitacaoAcoes({
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={confirmarChecklist} onOpenChange={setConfirmarChecklist}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Passar esta solicitação para o checklist?</AlertDialogTitle>
+            <AlertDialogDescription>
+              A tela do cliente deixa de ser a gaveta de envio e passa a ser o checklist:
+              ele vê o que falta, de quem é cada documento, e envia na própria linha, já
+              classificado. Não há como voltar para a fase de gaveta.
+              {arquivosSemTipo > 0 && (
+                <>
+                  {' '}
+                  <strong className="font-semibold">
+                    Atenção: {arquivosSemTipo} arquivo(s) dele ainda estão sem tipo de
+                    documento.
+                  </strong>{' '}
+                  Enquanto não forem classificados no Cadastro por Documento, o checklist
+                  vai cobrar coisa que já foi entregue.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={onPassarParaChecklist}>
+              Passar para o checklist
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={confirmarEncerramento} onOpenChange={setConfirmarEncerramento}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Encerrar esta solicitação?</AlertDialogTitle>
             <AlertDialogDescription>
-              O encerramento é definitivo — não há como reabrir. A lista fica só para
-              consulta, e a gaveta do cliente passa a modo leitura: os arquivos continuam
-              visíveis, mas ele não envia mais nada.
+              O encerramento é definitivo, não há como reabrir. A lista fica só para
+              consulta, e a tela do cliente passa a modo leitura: os arquivos continuam
+              visíveis, mas ele não envia mais nada, nem pela gaveta nem pelo checklist.
               {itensAtivos > 0 && ` São ${itensAtivos} documento(s) ainda ativos.`}
             </AlertDialogDescription>
           </AlertDialogHeader>

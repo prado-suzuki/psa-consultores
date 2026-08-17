@@ -15,13 +15,13 @@ describe('patchVinculo — 1:1', () => {
   // constraint documento_arquivo_um_dono_apenas (BER-39) recusa os dois juntos.
   it('grava o dono escolhido e zera os outros dois, mais a marca de triagem', () => {
     expect(patchVinculo({ kind: 'pessoa', id: 'P1' })).toEqual({
-      pessoa_id: 'P1', bem_id: null, matricula_id: null, triado_em: null,
+      pessoa_id: 'P1', bem_id: null, matricula_id: null, triado_em: null, revisao: 'aprovado',
     });
     expect(patchVinculo({ kind: 'bem', id: 'B1' })).toEqual({
-      pessoa_id: null, bem_id: 'B1', matricula_id: null, triado_em: null,
+      pessoa_id: null, bem_id: 'B1', matricula_id: null, triado_em: null, revisao: 'aprovado',
     });
     expect(patchVinculo({ kind: 'matricula', id: 'M1' })).toEqual({
-      pessoa_id: null, bem_id: null, matricula_id: 'M1', triado_em: null,
+      pessoa_id: null, bem_id: null, matricula_id: 'M1', triado_em: null, revisao: 'aprovado',
     });
   });
 
@@ -29,7 +29,8 @@ describe('patchVinculo — 1:1', () => {
   // no mesmo patch, sem interferir na conta da constraint de um dono só.
   it('anexa o tipo escolhido ao patch do dono', () => {
     expect(patchVinculo({ kind: 'pessoa', id: 'P1' }, 'T-CPF')).toEqual({
-      pessoa_id: 'P1', bem_id: null, matricula_id: null, triado_em: null, documento_tipo_id: 'T-CPF',
+      pessoa_id: 'P1', bem_id: null, matricula_id: null, triado_em: null,
+      revisao: 'aprovado', documento_tipo_id: 'T-CPF',
     });
   });
 
@@ -64,9 +65,11 @@ describe('patchVinculo — 1:1', () => {
 });
 
 describe('patchDesfazerTriagem', () => {
-  it('devolve o arquivo ao balde: sem dono e sem marca', () => {
+  // A aprovação volta atrás junto: arquivo de novo no balde não pode continuar
+  // trancado para o cliente por uma decisão que acabou de ser desfeita.
+  it('devolve o arquivo ao balde: sem dono, sem marca e sem aprovação', () => {
     expect(patchDesfazerTriagem()).toEqual({
-      pessoa_id: null, bem_id: null, matricula_id: null, triado_em: null,
+      pessoa_id: null, bem_id: null, matricula_id: null, triado_em: null, revisao: 'pendente',
     });
   });
 });

@@ -27,6 +27,11 @@ upload/armazenamento no GCS já existem e funcionam.
 
 ## 2. As decisões fechadas em 31/07/2026
 
+> **Revisão de 13/08/2026:** as decisões **4** (sem progresso nem contador de pendência) e **5** (o
+> arquivo não se liga ao item pedido) foram revertidas. O upload do cliente passa a ser por documento
+> pedido × entidade, e o arquivo nasce classificado. As demais seguem valendo, inclusive a 3
+> (encerramento manual). Ver `docs/planos/checklist-por-subtracao.md`.
+
 1. **Uma solicitação ativa por cliente.** Encerrar para abrir outra.
 2. **`solicitacao.status` é enum próprio**, 3 valores: `rascunho`, `enviada`, `encerrada`.
 3. **A solicitação é encerrada manualmente**, por botão na tela de onboarding. Não há fechamento

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { gerarDocumento, type Template } from './index';
-import { detectarBindingsDeConteudo, normalizarReferenciasLegadas, normalizarSelecaoLegada } from './binding';
+import { detectarBindingsDeConteudo, listarPlaceholders, normalizarReferenciasLegadas, normalizarSelecaoLegada } from './binding';
 
 describe('normalizarReferenciasLegadas — contratos societários', () => {
   it('liga campos planos à sociedade selecionada', () => {
@@ -153,6 +153,45 @@ describe('B15 · imóvel singular e imóveis múltiplos têm contratos distintos
     expect(detectarBindingsDeConteudo('{{ imovel.numero }}').bindings).toEqual([
       { nome: 'imovel', tipo: 'matricula', cardinalidade: 'um' },
     ]);
+  });
+});
+
+describe('partes · qualificação de N pessoas escolhidas a dedo', () => {
+  // O contrato rural qualifica uma empresa outorgante e várias pessoas físicas que
+  // NÃO estão no quadro societário nem na administração dela (outorgado,
+  // compossuidor, donatário, testemunha nominada). Um bloco, uma seção de
+  // repetição, e a lista sai da escolha do consultor — não de uma relação da PJ.
+  const secao =
+    '{{#partes}}{{ parte.ordemRomana }}) {{ parte.nome }}' +
+    '{{#sePF}}, portador do CPF {{ parte.cpfCnpj }}{{/sePF}}' +
+    '{{#sePJ}}, inscrita no CNPJ {{ parte.cpfCnpj }}{{/sePJ}}{{/partes}}';
+
+  it('entra como lista de seleção manual de pessoas', () => {
+    const deteccao = detectarBindingsDeConteudo(secao);
+    expect(deteccao.listas.map((lista) => [lista.nome, lista.papel.fonte, lista.papel.tipo])).toEqual([
+      ['partes', 'selecao', 'pessoa'],
+    ]);
+    expect(deteccao.secoesDesconhecidas).toEqual([]);
+  });
+
+  it('campos do item não vazam para binding unitário nem para texto livre', () => {
+    const deteccao = detectarBindingsDeConteudo(secao);
+    expect(deteccao.bindings).toEqual([]);
+    expect(deteccao.desconhecidos).toEqual([]);
+    expect(deteccao.campos).not.toContain('parte.nome');
+    expect(deteccao.campos).not.toContain('parte.cpfCnpj');
+    expect(deteccao.campos).not.toContain('parte.ordemRomana');
+  });
+
+  it('o autocomplete do editor sugere o laço e os extras de ordem', () => {
+    const sugeridos = listarPlaceholders();
+    expect(sugeridos.find((p) => p.placeholder === 'partes')?.insercao).toBe(
+      '{{#partes sep="; " fim="; e "}}{{ parte.nome }}{{/partes}}',
+    );
+    const placeholders = sugeridos.map((p) => p.placeholder);
+    expect(placeholders).toContain('partes.linhas');
+    expect(placeholders).toContain('parte.ordem');
+    expect(placeholders).toContain('parte.ordemRomana');
   });
 });
 

@@ -171,6 +171,14 @@ export const validateRepresentante = (p: DraftRepresentante): string | null => {
 export const validateOrdemServico = (c: DraftOrdemServico): string | null => {
   const os = c.ordem_servico || '(sem número)';
   if (!c.cluster_id) return `OS "${os}": selecione a Empresa/Faturamento`;
+  // O período é obrigatório aqui porque a OS é a origem das datas do projeto: o
+  // cadastro de projeto herda início e fim dela e não oferece campo para digitar.
+  // OS salva sem período = projeto impossível de criar, sem saída pela interface.
+  if (!c.data_inicio_projeto) return `OS "${os}": informe a Data Início`;
+  if (!c.data_fim_projeto) return `OS "${os}": informe a Data Fim`;
+  if (c.data_inicio_projeto > c.data_fim_projeto) {
+    return `OS "${os}": a Data Fim deve ser posterior à Data Início`;
+  }
   if (!c.setor_cliente_id) return `OS "${os}": selecione a Área do Negócio`;
   if (!c.regiao) return `OS "${os}": selecione a Região`;
   if (!c.produtos_contratados || c.produtos_contratados.length === 0) {

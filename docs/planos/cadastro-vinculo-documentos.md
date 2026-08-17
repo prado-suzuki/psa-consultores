@@ -289,7 +289,9 @@ recorrência não ler nome velho.
    também o que faz o avulso aparecer, já que ele está fora do catálogo por construção.
 2. ~~O bloco de "não se aplica" no modal, e a tabela por (item pedido + entidade) que o sustenta.~~
    Implementado em `20260807180000_solicitacao_item_nao_aplicavel.sql`.
-3. O checklist como tela, leitura pura da subtração.
+3. ~~O checklist como tela, leitura pura da subtração.~~ A visão read-only do consultor foi
+   implementada em 13/08/2026; o desenho, as reversões que ela trouxe e o que falta do lado do cliente
+   estão em `docs/planos/checklist-por-subtracao.md`.
 4. O tipo como rótulo na linha do explorador, no lugar do `vinculoLabel`, que dentro da pasta de uma
    entidade repete o nome dela em toda linha.
 

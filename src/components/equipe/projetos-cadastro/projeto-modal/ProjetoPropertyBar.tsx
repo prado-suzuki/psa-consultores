@@ -1,3 +1,5 @@
+import { format } from 'date-fns';
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -7,6 +9,7 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 import { useProjetosCadastro } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
+import { parseDate } from '@/lib/dateUtils';
 import { CHIP_INPUT, CHIP_LABEL, CHIP_TRIGGER } from '@/lib/modalChipStyles';
 import { projectStatusConfig, projectStatusList } from '@/lib/projetoStatusColors';
 import { cn } from '@/lib/utils';
@@ -18,6 +21,9 @@ import { cn } from '@/lib/utils';
  * É uma segunda apresentação dos mesmos campos que o formulário de criação
  * mostra empilhados — aqui o controle é uma pílula de leitura rápida, lá é um
  * campo com rótulo completo. Mesma divisão do modal de tarefa.
+ *
+ * Status e responsável se editam aqui; o período, não: ele vem da OS vinculada
+ * (ver `DateChip` abaixo).
  */
 export function ProjetoPropertyBar() {
   const { formData, setFormData, executores } = useProjetosCadastro();
@@ -84,33 +90,20 @@ export function ProjetoPropertyBar() {
         </Select>
       </div>
 
-      <DateChip
-        id="projeto-inicio"
-        label="Início"
-        value={formData.start_date}
-        onChange={(value) => setFormData((previous) => ({ ...previous, start_date: value }))}
-      />
-      <DateChip
-        id="projeto-termino"
-        label="Término"
-        value={formData.end_date}
-        onChange={(value) => setFormData((previous) => ({ ...previous, end_date: value }))}
-      />
+      <DateChip id="projeto-inicio" label="Início" value={formData.start_date} />
+      <DateChip id="projeto-termino" label="Término" value={formData.end_date} />
     </div>
   );
 }
 
-function DateChip({
-  id,
-  label,
-  value,
-  onChange,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
+/**
+ * Data herdada da OS, em leitura.
+ *
+ * O período do projeto é o da OS vinculada — não há campo para digitar aqui,
+ * porque duas datas editáveis para o mesmo período abriam a divergência entre a
+ * OS e o projeto que nasceu dela. Para mudar o período, muda-se a OS.
+ */
+function DateChip({ id, label, value }: { id: string; label: string; value: string }) {
   return (
     <div className="min-w-0 space-y-1.5">
       <Label htmlFor={id} className={CHIP_LABEL}>
@@ -118,10 +111,11 @@ function DateChip({
       </Label>
       <Input
         id={id}
-        type="date"
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className={CHIP_INPUT}
+        value={value ? format(parseDate(value), 'dd/MM/yyyy') : '—'}
+        readOnly
+        disabled
+        className={cn(CHIP_INPUT, 'cursor-not-allowed bg-muted/60')}
+        title="Herdada da Ordem de Serviço vinculada. Para alterar, edite a OS."
       />
     </div>
   );

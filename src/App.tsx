@@ -285,7 +285,7 @@ const App = () => (
                   cadastra, e quem pode ver a lista pode abrir um item dela. */}
               <Route path="/equipe/tax/gerencial/chamados/:id" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/gerencial/chamados"><FiscalGerencialChamadoDetalhe /></PageAccessGate></LiderRoute>} />
 
-              {/* Logs de Equipe (ex-Auditoria) — líder+ e permissão nominal, como antes.
+              {/* Logs de Uso (ex-Auditoria, ex-Logs de Equipe) — líder+ e permissão nominal, como antes.
                   O endereço antigo redireciona para não quebrar link salvo. */}
               <Route path="/equipe/tax/gerencial/logs-equipe" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/gerencial/logs-equipe"><FiscalAuditoria /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/tax/auditoria" element={<Navigate to="/equipe/tax/gerencial/logs-equipe" replace />} />
@@ -322,7 +322,7 @@ const App = () => (
               <Route path="/equipe/osg/gerencial/chamados/dashboard" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/chamados/dashboard"><OsgGerencialChamadosDashboard /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/osg/gerencial/chamados/:id" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/chamados"><OsgGerencialChamadoDetalhe /></PageAccessGate></LiderRoute>} />
 
-              {/* Logs de Equipe (ex-Auditoria) — líder+, igual à Tax; quem não é volta para a home do OSG. */}
+              {/* Logs de Uso (ex-Auditoria, ex-Logs de Equipe) — líder+, igual à Tax; quem não é volta para a home do OSG. */}
               <Route path="/equipe/osg/gerencial/logs-equipe" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/logs-equipe"><OsgAuditoria /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/osg/auditoria" element={<Navigate to="/equipe/osg/gerencial/logs-equipe" replace />} />
 

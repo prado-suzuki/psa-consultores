@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils";
 import { SITUACAO_PROJETO_OPTIONS, formatCurrencyDisplay, isoToMasked } from "./constants";
 import type { DraftOrdemServico, DraftProdutoContratado } from "@/types/clientForm";
 import { createDefaultDraftContract } from "./constants";
-import DateFieldWithInput from "./DateFieldWithInput";
 import FieldPair from "./FieldPair";
 import OsValoresEdicao from "./OsValoresEdicao";
 import OsValoresLeitura from "./OsValoresLeitura";
@@ -31,6 +30,8 @@ import RateioLista from "./RateioLista";
 import { useAcentoArea } from "./acentoArea";
 import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
 import { getEmpresaLabel, getProductLabel, ordenarPorRotulo } from "./contratosLabels";
+import OsPeriodoFields from "./OsPeriodoFields";
+import { todayIsoBrazil } from "@/lib/dateUtils";
 import { idsAlterados, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
 import type { FocoPendencia, MapaPendencias } from "@/lib/camposObrigatorios";
 
@@ -217,7 +218,7 @@ export default function ContratosTab({
       onRequestItemEdit();
     }
     const osNumber = await generateNextOsNumber(contracts);
-    const hoje = new Date().toISOString().slice(0, 10);
+    const hoje = todayIsoBrazil();
     const novaOs = {
       ...createDefaultDraftContract(),
       // Emissão é a data em que a OS foi emitida: gravada uma vez, na criação, e
@@ -375,37 +376,12 @@ export default function ContratosTab({
                 {linhaEditavel && (
                   <div className="space-y-6">
                     <SecaoFormulario numero={1} titulo="Período">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 [&>*]:min-w-0">
-                      {/* As três datas num subgrupo apertado: separadas pela grade
-                          principal elas ficavam longe umas das outras. */}
-                      <div className="md:col-span-2 grid grid-cols-3 gap-2 [&>*]:min-w-0">
-                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Início</Label><div className="mt-1"><DateFieldWithInput value={cont.data_inicio_projeto || ""} onChange={(v) => updateContract(cont._id, { data_inicio_projeto: v })} /></div></div>
-                        <div><Label className="text-xs font-semibold uppercase text-muted-foreground">Data Fim</Label><div className="mt-1"><DateFieldWithInput value={cont.data_fim_projeto || ""} onChange={(v) => updateContract(cont._id, { data_fim_projeto: v })} /></div></div>
-                        <div>
-                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Data de Emissão</Label>
-                          {/* Travada: é a data em que a OS foi emitida, preenchida
-                              automaticamente na criação. Mudá-la depois desalinharia
-                              a OS do documento entregue ao cliente. */}
-                          <div className="mt-1">
-                            <Input
-                              value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"}
-                              readOnly disabled
-                              className="h-8 cursor-not-allowed bg-muted/60"
-                              title="Data de emissão da OS, preenchida na criação. Não é editável."
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div>
-                        <Label className="text-xs font-semibold uppercase text-muted-foreground">Situação do Projeto</Label>
-                        <div className="mt-1">
-                          <Select value={cont.situacao_projeto || "em_andamento"} onValueChange={(v) => updateContract(cont._id, { situacao_projeto: v })}>
-                            <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                            <SelectContent>{SITUACAO_PROJETO_OPTIONS.map((opt) => <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>)}</SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                    </div>
+                      <OsPeriodoFields
+                        contrato={cont}
+                        onChange={(patch) => updateContract(cont._id, patch)}
+                        falta={falta}
+                        idFalta={idFalta}
+                      />
                     </SecaoFormulario>
 
                     <SecaoFormulario numero={2} titulo="Classificação" pendente={secaoPendente(2)}>
