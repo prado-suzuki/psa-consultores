@@ -25,7 +25,9 @@ set -euo pipefail
 
 AQUI="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_RAIZ="$(cd "$AQUI/../../.." && pwd)"
-MIGRATION="supabase/migrations/20260813010000_matricula_identidade_por_cliente.sql"
+# A migration foi dobrada no baseline e arquivada; o teste continua provando a
+# transformação contra o arquivo histórico, que é o que ele sempre fez.
+MIGRATION="supabase/migrations_arquivo/20260813010000_matricula_identidade_por_cliente.sql"
 TESTES="supabase/tests/b1-matricula-identidade-por-cliente"
 IMAGEM="${IMAGEM_POSTGRES:-postgres:17-alpine}"
 CONTAINER="psa-prova-b1-$$"

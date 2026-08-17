@@ -13,7 +13,9 @@ Sistema de gestão interna e portal de clientes da PSA Consultores, com foco em 
 - **NUNCA** use `alert()`, `confirm()` ou `prompt()`. O feedback visual DEVE ser feito via `useToast` (`src/hooks/use-toast.ts`) ou `sonner`.
 - **NUNCA** armazene papéis (roles) em `localStorage`, `sessionStorage` ou na tabela `profiles`. Eles vivem exclusivamente em `public.user_roles`.
 - **NUNCA** crie FK referenciando `auth.users` diretamente. Use `profiles.id` como proxy.
-- **NUNCA** edite arquivos autogerados: `components.json`, `supabase/config.toml`, `src/integrations/supabase/*`.
+- **NUNCA** edite arquivos autogerados: `components.json`, `supabase/config.toml`, `src/integrations/supabase/*`. Regenerar `types.ts` pelo gerador oficial (`supabase gen types`) **não** conta como editar; editar à mão, costurar conflito ou acrescentar campo na mão conta (ver "Dois bancos").
+- **NUNCA** aplique DDL em produção, por nenhum caminho (MCP `query_database`, SQL editor, `db push`). Aplicar migration em produção é ação **humana**, pelo chat do Lovable. Agente aplica só no sandbox.
+- **NUNCA** ponha `src/integrations/supabase/types.ts` no `.gitignore`. A CI faz checkout puro e roda `tsc --build --noEmit` e `bun run build`; sem o arquivo, os dois falham, e ninguém além do Lovable consegue gerar a versão de produção.
 - **NUNCA** use `CHECK` constraints com `now()`. Use triggers de validação.
 - **NUNCA** crie rotas protegidas sem registrá-las em `src/config/protectedPages.ts`.
 - **NUNCA** remova tipagens TypeScript ou use `any` sem justificativa via comentário.
@@ -26,6 +28,29 @@ Sistema de gestão interna e portal de clientes da PSA Consultores, com foco em 
 - **Separação de Ambientes:** O sistema detecta dev/prod via URL (`src/config/api.ts`). `cliente` e `contribuinte` possuem a coluna `ambiente`, e suas queries DEVEM incluir o filtro `.eq('ambiente', currentAmbiente)`. `representante`, `ordem_servico`, `org_projects`, `org_tasks`, `tickets`, `pessoa` e `bem` NÃO têm a coluna: o ambiente delas é o do cliente a que se ligam, e o recorte é feito na mão (ver `src/lib/ambienteScope.ts`). **Filtrar `ambiente` numa dessas tabelas quebra a query.** Todo cadastro de dev carrega o prefixo `[TESTE] ` no nome, para que um vazamento se identifique sozinho em produção. Regras e conjunto padrão em `docs/geral/clientes-de-teste-dev.md`.
 - **Soft Delete:** Várias tabelas usam a coluna `excluido` (boolean). Suas consultas de leitura devem sempre conter `.eq('excluido', false)`.
 - **Imports:** Use SEMPRE aliases (ex: `@/components`, `@/hooks`, `@/lib`).
+
+## 🗄 DOIS BANCOS: SANDBOX E PRODUÇÃO
+
+**Não confunda com a coluna `ambiente`.** `ambiente` separa cadastro de teste de cadastro real **dentro** de um banco (ver Diretrizes de Arquitetura). Esta seção é sobre **dois bancos diferentes**. As duas coisas coexistem: o sandbox tem cadastros dos dois `ambiente`s.
+
+- **Qual banco o app usa** é decidido por branch, no `vite.config.ts`, em tempo de execução: `main` usa produção (`.env`), `develop` e branches de trabalho usam o sandbox (`.env.development`, ref `vgzomuwnsdgrxbkyoavq`), e um `.env.development.local` vence de todos. O `bun run dev` imprime o alvo ao subir. Os arquivos são idênticos nas duas branches de propósito: valor diferente por branch conflitaria em todo merge.
+- **Produção é Lovable Cloud e não tem credencial Supabase da PSA.** Logo não existe `supabase link`, `db push` nem `gen types` contra ela, e um `db push` apontado para lá tentaria aplicar o schema inteiro (o baseline não está registrado). Leitura de produção: MCP do Lovable, `query_database`, **só SELECT**.
+- **`supabase_migrations.schema_migrations` de produção não é registro confiável.** Migration aplicada à mão não é registrada lá. Para saber se algo já está no ar, consulte o schema, não essa tabela.
+
+**Mudança de schema, na ordem (agente executa 1 e 2, para em 3):**
+
+1. Migration em `supabase/migrations/`, timestamp real (`date -u +%Y%m%d%H%M%S`) e **idempotente** (`if not exists`, `create or replace`, `drop policy if exists`): ela vai ser aplicada por dois caminhos e existir em duas versões.
+2. `supabase db push` (sandbox) e `supabase gen types typescript --project-id vgzomuwnsdgrxbkyoavq > src/integrations/supabase/types.ts`, commitado **sozinho**. Sem CLI logada, pare e peça ao humano. O código da feature vem depois, normal, sem cast de contorno.
+3. **Humano** pede ao Lovable para aplicar o SQL em produção; o bot regenera o `types.ts` de lá e commita na `main`.
+4. `main → develop` sobrescreve o `types.ts` pelo da `main`. Só então o PR `develop → main`.
+
+**Regra dura:** produção recebe a coluna **antes** de o código que a usa chegar na `main`, porque o app publicado é buildado da `main` e fala com produção. Coluna aditiva parada em produção é inofensiva; o inverso quebra na cara do cliente.
+
+**Sobre o `types.ts`:** ele descreve o banco **daquela** branch (`main` = produção, pelo bot; branch de trabalho = sandbox, pelo CLI). Conflito nele se resolve **regenerando** a partir do banco da branch, nunca costurando os dois lados: o conteúdo é função do schema, e costurar produz arquivo que não corresponde a banco nenhum.
+
+**Migration exclusiva do sandbox nunca altera schema**, só dados (ex.: `20260814190000_dev_clientes_prefixo_teste.sql`). Schema que só existe no sandbox faz o código compilar em `develop` e quebrar em produção.
+
+Detalhes e passo a passo em `docs/ambiente-de-desenvolvimento.md`.
 
 ## 💻 PADRÃO DE CÓDIGO (Show, don't tell)
 
