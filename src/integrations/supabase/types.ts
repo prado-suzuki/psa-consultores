@@ -8914,14 +8914,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "per_nr_proc_ret_fkey"
             columns: ["nr_proc_ret"]
             isOneToOne: false
             referencedRelation: "per"
             referencedColumns: ["nr_per"]
-          }
+          },
           {
             foreignKeyName: "per_nr_proc_ret_fkey"
             columns: ["nr_proc_ret"]
@@ -8960,21 +8960,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_comments_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "org_comments"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_comments_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "org_comments_feed"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_comments_author_id_fkey"
             columns: ["author_id"]
