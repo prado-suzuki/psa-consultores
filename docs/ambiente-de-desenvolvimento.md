@@ -88,6 +88,48 @@ versão `00000000000000`, então o push aplica só o que veio depois.
 registrado, então o push tentaria aplicar o schema inteiro por cima. Produção continua
 recebendo migration pelo Lovable.
 
+Escreva a migration **idempotente** (`add column if not exists`, `create or replace`,
+`drop policy if exists`). Não é preciosismo: a mesma mudança vai ser aplicada por dois
+caminhos (você no compartilhado, o Lovable em produção) e vai acabar existindo em dois
+arquivos, o seu e o que o bot commita com nome UUID.
+
+### O ciclo completo de uma coluna nova
+
+O `src/integrations/supabase/types.ts` é gerado a partir do banco, e o do repositório
+descreve **produção**, porque quem o gera e commita é o bot do Lovable. Enquanto a coluna
+existir só no compartilhado, o `typecheck` não conhece ela. O ciclo resolve isso sem
+ninguém editar o arquivo à mão:
+
+1. Migration no arquivo, `supabase db push` no compartilhado.
+2. Regenere o arquivo a partir do compartilhado e commite **sozinho**:
+
+   ```bash
+   supabase gen types typescript --project-id vgzomuwnsdgrxbkyoavq > src/integrations/supabase/types.ts
+   ```
+
+3. Escreva a feature normalmente e mande para a `develop`. Teste contra o compartilhado.
+4. Antes de fechar o ciclo, peça ao Lovable, pelo chat, para aplicar aquele SQL em
+   produção. Ele aplica e regenera o `types.ts` de lá, commitando na `main`.
+5. Traga `main → develop`, sobrescrevendo o `types.ts` pelo da `main`.
+6. Abra o PR `develop → main`. O arquivo já é igual nos dois lados, então nem aparece no
+   diff.
+
+**Produção recebe a coluna antes de o código que a usa chegar na `main`** (passo 4 antes
+do 6). O app publicado é buildado da `main` e fala com produção: código na frente da
+coluna quebra na tela do cliente, coluna aditiva na frente do código não incomoda ninguém.
+
+O princípio por trás: **o `types.ts` descreve o banco daquela branch.** Conflito nele se
+resolve regenerando a partir do banco da branch, nunca costurando os dois lados, porque o
+conteúdo é função do schema. Colocar o arquivo no `.gitignore` não é opção: a CI faz
+checkout puro e depende dele, e ninguém além do Lovable consegue gerar a versão de
+produção.
+
+### Migration só do compartilhado
+
+Existe (`20260814190000_dev_clientes_prefixo_teste.sql`) e é legítima, mas com um limite:
+ela mexe em **dados**, nunca em schema. Schema que só existe no compartilhado faz o código
+compilar na `develop` e quebrar em produção.
+
 ### O que não está versionado
 
 Duas coisas foram feitas à mão na montagem do compartilhado e não têm receita neste
