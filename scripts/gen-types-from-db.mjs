@@ -134,7 +134,7 @@ function generateView(view) {
     `            referencedRelation: "${r.referenced_relation}"`,
     `            referencedColumns: [${r.referenced_columns.map(c => `"${c}"`).join(', ')}]`,
     '          }',
-  ].join('\n')).join('\n');
+  ].join('\n')).join(',\n');
 
   return [
     `      ${view.name}: {`,
