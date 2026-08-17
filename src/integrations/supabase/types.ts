@@ -9376,7 +9376,7 @@ export type Database = {
           _only_mentions?: boolean
           _since?: string
         }
-        Returns: Database["public"]["Tables"]["org_comments_feed"]["Row"][]
+        Returns: Database["public"]["Views"]["org_comments_feed"]["Row"][]
       }
       criar_org_comment: {
         Args: {
