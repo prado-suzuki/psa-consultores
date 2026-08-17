@@ -4124,51 +4124,69 @@ export type Database = {
         Row: {
           agrupamento_chave: string | null
           canal: Database["public"]["Enums"]["notificacao_canal"]
+          chave_idempotencia: string | null
           destinatario_email: string | null
           destinatario_id: string | null
           destinatario_papel: string | null
           destinatario_telefone: string | null
           entidade_id: string
           entidade_tipo: string
-          enviado_em: string
+          entregue_em: string | null
+          enviado_em: string | null
           erro: string | null
+          erro_codigo: string | null
           id: string
+          lido_em: string | null
           metadata: Json
           notificacao_id: string | null
+          provedor_message_id: string | null
+          status: Database["public"]["Enums"]["notificacao_envio_status"]
           sucesso: boolean
           tipo: Database["public"]["Enums"]["notificacao_tipo"]
         }
         Insert: {
           agrupamento_chave?: string | null
           canal: Database["public"]["Enums"]["notificacao_canal"]
+          chave_idempotencia?: string | null
           destinatario_email?: string | null
           destinatario_id?: string | null
           destinatario_papel?: string | null
           destinatario_telefone?: string | null
           entidade_id: string
           entidade_tipo: string
-          enviado_em?: string
+          entregue_em?: string | null
+          enviado_em?: string | null
           erro?: string | null
+          erro_codigo?: string | null
           id?: string
+          lido_em?: string | null
           metadata?: Json
           notificacao_id?: string | null
+          provedor_message_id?: string | null
+          status?: Database["public"]["Enums"]["notificacao_envio_status"]
           sucesso?: boolean
           tipo: Database["public"]["Enums"]["notificacao_tipo"]
         }
         Update: {
           agrupamento_chave?: string | null
           canal?: Database["public"]["Enums"]["notificacao_canal"]
+          chave_idempotencia?: string | null
           destinatario_email?: string | null
           destinatario_id?: string | null
           destinatario_papel?: string | null
           destinatario_telefone?: string | null
           entidade_id?: string
           entidade_tipo?: string
-          enviado_em?: string
+          entregue_em?: string | null
+          enviado_em?: string | null
           erro?: string | null
+          erro_codigo?: string | null
           id?: string
+          lido_em?: string | null
           metadata?: Json
           notificacao_id?: string | null
+          provedor_message_id?: string | null
+          status?: Database["public"]["Enums"]["notificacao_envio_status"]
           sucesso?: boolean
           tipo?: Database["public"]["Enums"]["notificacao_tipo"]
         }
@@ -4789,6 +4807,8 @@ export type Database = {
           start_date: string | null
           status: Database["public"]["Enums"]["fiscal_task_status"]
           tags: string[] | null
+          tarefa_padrao_id: string | null
+          ticket_id: string | null
           title: string
           updated_at: string | null
         }
@@ -4821,6 +4841,8 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["fiscal_task_status"]
           tags?: string[] | null
+          tarefa_padrao_id?: string | null
+          ticket_id?: string | null
           title: string
           updated_at?: string | null
         }
@@ -4853,6 +4875,8 @@ export type Database = {
           start_date?: string | null
           status?: Database["public"]["Enums"]["fiscal_task_status"]
           tags?: string[] | null
+          tarefa_padrao_id?: string | null
+          ticket_id?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -4911,6 +4935,20 @@ export type Database = {
             columns: ["reviewer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_tarefa_padrao_id_fkey"
+            columns: ["tarefa_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "produto_tarefa_padrao"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_tasks_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "tickets"
             referencedColumns: ["id"]
           },
         ]
@@ -6203,6 +6241,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean | null
+          is_canal_chamados: boolean
           nome: string
         }
         Insert: {
@@ -6211,6 +6250,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_canal_chamados?: boolean
           nome: string
         }
         Update: {
@@ -6219,6 +6259,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          is_canal_chamados?: boolean
           nome?: string
         }
         Relationships: [
@@ -6260,6 +6301,62 @@ export type Database = {
             columns: ["servico_prestado_id"]
             isOneToOne: false
             referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      produto_tarefa_padrao: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          created_by: string | null
+          descricao: string | null
+          dias_offset: number
+          horas_estimadas: number | null
+          id: string
+          ordem: number
+          papel_responsavel: string
+          produto_segmento_id: string
+          titulo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          dias_offset?: number
+          horas_estimadas?: number | null
+          id?: string
+          ordem: number
+          papel_responsavel?: string
+          produto_segmento_id: string
+          titulo: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          created_by?: string | null
+          descricao?: string | null
+          dias_offset?: number
+          horas_estimadas?: number | null
+          id?: string
+          ordem?: number
+          papel_responsavel?: string
+          produto_segmento_id?: string
+          titulo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "produto_tarefa_padrao_produto_segmento_id_fkey"
+            columns: ["produto_segmento_id"]
+            isOneToOne: false
+            referencedRelation: "produto_segmento"
             referencedColumns: ["id"]
           },
         ]
@@ -8814,6 +8911,16 @@ export type Database = {
       }
       cliente_id_de_pessoa: { Args: { _pessoa_id: string }; Returns: string }
       cliente_visivel_para: { Args: { _cliente_id: string }; Returns: boolean }
+      confirmar_envio: {
+        Args: {
+          _erro?: string
+          _erro_codigo?: string
+          _id: string
+          _provedor_message_id?: string
+          _status: Database["public"]["Enums"]["notificacao_envio_status"]
+        }
+        Returns: undefined
+      }
       criar_bem_com_titular: {
         Args: { bem_data: Json; titular_data: Json }
         Returns: {
@@ -8991,6 +9098,7 @@ export type Database = {
         Args: { _cliente_id: string; _ordem_servico_id: string }
         Returns: number
       }
+      gerar_tarefas_projeto: { Args: { _project_id: string }; Returns: number }
       get_accessible_dashboards: {
         Args: { _target_page?: string }
         Returns: {
@@ -9206,6 +9314,21 @@ export type Database = {
         }
         Returns: string
       }
+      reservar_envio: {
+        Args: {
+          _canal: Database["public"]["Enums"]["notificacao_canal"]
+          _chave: string
+          _destinatario_id?: string
+          _email?: string
+          _entidade_id: string
+          _entidade_tipo: string
+          _metadata?: Json
+          _papel?: string
+          _telefone?: string
+          _tipo: Database["public"]["Enums"]["notificacao_tipo"]
+        }
+        Returns: string
+      }
       resolve_user_cliente_id: { Args: { _uid: string }; Returns: string }
       resolve_user_cluster_ids: { Args: { _uid: string }; Returns: string[] }
       revisar_documento_pendencia: {
@@ -9256,6 +9379,13 @@ export type Database = {
         | "em_ajuste"
         | "done"
       notificacao_canal: "sino" | "email" | "whatsapp"
+      notificacao_envio_status:
+        | "pendente"
+        | "enviado"
+        | "entregue"
+        | "lido"
+        | "falhou"
+        | "ignorado"
       notificacao_tipo:
         | "tarefa_atribuida"
         | "tarefa_em_revisao"
@@ -9513,6 +9643,14 @@ export const Constants = {
         "done",
       ],
       notificacao_canal: ["sino", "email", "whatsapp"],
+      notificacao_envio_status: [
+        "pendente",
+        "enviado",
+        "entregue",
+        "lido",
+        "falhou",
+        "ignorado",
+      ],
       notificacao_tipo: [
         "tarefa_atribuida",
         "tarefa_em_revisao",

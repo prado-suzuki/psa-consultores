@@ -614,6 +614,20 @@ export function useDomainSolicitacao(clienteId: string | null) {
           cliente_id: atual.clienteId,
           ordem_servico_id: atual.ordemServicoId,
         });
+
+        /**
+         * Aviso por e-mail ao cliente (ALE-2). `invoke` sem `await` e com a
+         * falha morrendo no `catch`, igual aos seis pontos de chamada de
+         * `notify-ticket` (useTicketMutations.ts:144 e :192): o e-mail não pode
+         * desfazer a mutação, que já gravou status e data e já registrou
+         * auditoria.
+         */
+        supabase.functions.invoke('notificar', {
+          body: {
+            event_type: 'solicitacao_enviada',
+            solicitacao_id: atual.id,
+          },
+        }).catch(console.error);
       }
     },
     onError: (error: Error) => {
