@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { DOWNLOADS_QUERY_KEY } from '@/hooks/useDomainDocumentoDownload';
 import { getApiUrl, currentAmbiente } from '@/config/api';
 import type { Database } from '@/integrations/supabase/types';
 // Só o tipo: as chaves dos 4 grupos são definidas em agrupadorDocumentos, que é
@@ -775,9 +776,17 @@ export function usePreviewUrl() {
   });
 }
 
-/** Pede a signed GET URL e abre o download em nova aba. */
+/**
+ * Pede a signed GET URL, abre o download em nova aba e registra o acesso.
+ *
+ * O que fica registrado é que a URL assinada foi entregue a esta pessoa para
+ * este documento, não que o arquivo chegou ao disco dela: o download acontece
+ * direto no armazenamento em nuvem e o backend só assina, então este é o único
+ * ponto observável dentro do sistema. Para auditoria de acesso é suficiente.
+ */
 export function useBaixarDocumento() {
   const { fetchWithAuth } = useApiAuth();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: DocumentoArquivoRow) => {
       if (!row.gcs_uri) throw new Error('Documento sem arquivo associado');
@@ -788,6 +797,27 @@ export function useBaixarDocumento() {
       if (!res.ok) throw new Error('Falha ao gerar link de download');
       const { signed_url } = (await res.json()) as { signed_url: string };
       window.open(signed_url, '_blank', 'noopener');
+
+      // Abra primeiro: adiar o window.open para fora do turno síncrono do gesto
+      // faz o navegador bloquear a janela. E só depois da resposta OK, senão
+      // passaria a registrar tentativa que falhou.
+      //
+      // Sem await, de propósito: falhar o registro não pode acionar o onError
+      // sobre um download que funcionou. Por isso o erro vai ao console em vez
+      // de captura vazia — se a migração não estiver aplicada, é o único aviso.
+      void (async () => {
+        const { error } = await supabase.rpc('registrar_download_documento', {
+          _documento_id: row.id,
+        });
+        if (error) console.error('Falha ao registrar download do documento', error);
+      })().catch((error) => {
+        console.error('Falha ao registrar download do documento', error);
+      });
+    },
+    // Por prefixo: a aba de Downloads da auditoria tem uma entrada de cache por
+    // janela de período, e aqui não se sabe qual delas está aberta.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [DOWNLOADS_QUERY_KEY] });
     },
     onError: (e: unknown) =>
       toast({ title: 'Erro ao baixar', description: (e as Error).message, variant: 'destructive' }),
