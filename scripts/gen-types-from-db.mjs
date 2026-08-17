@@ -31,9 +31,12 @@ const enumTypes = meta.types.filter(t => t.schema === 'public' && t.enums && t.e
 const enumNames = new Set(enumTypes.map(t => t.name));
 
 // DEBUG: dump estrutura de colunas
+console.error('Meta keys:', Object.keys(meta));
+console.error('Total tables:', meta.tables.length);
 console.error('Total columns:', meta.columns.length);
 console.error('Sample column keys:', Object.keys(meta.columns[0] || {}));
 console.error('Sample table keys:', Object.keys(meta.tables[0] || {}));
+console.error('Public table names:', meta.tables.filter(t => t.schema === 'public').map(t => t.name).sort());
 const debugTables = ['documento_arquivo', 'solicitacao_item', 'org_comments_feed', 'checklist_item_padrao'];
 for (const t of debugTables) {
   const table = meta.tables.find(tb => tb.schema === 'public' && tb.name === t);
