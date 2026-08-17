@@ -339,6 +339,24 @@ descrevem, e é por isso que dois dos quatro serão aprovados e sem disparo.
 | Gatilho do modelo 3: o dado existe (checklist zerado ou `solicitacao.encerrada_em`), mas nenhuma tarefa liga o disparo | próxima sprint |
 | Checklist da solicitação, gerado ou declarado — o `useGerarChecklistCliente` já gera por entidade, e a EDU-9 registra "não haverá cálculo de faltante". A chave por solicitação já está fixada, e o marcador não muda nos dois casos | EDU-6 e EDU-9 |
 
+**Estado em 17/08/2026 — o que saiu desta tabela.** Três linhas foram resolvidas:
+
+- **O canal está ligado**: workflow próprio, ativo, com rota e segredo próprios
+  (`N8N_OSG_WA_WEBHOOK_URL`). O `wamid` da resposta volta para o `confirmar_envio`, e o
+  webhook de status da Meta preenche `entregue` e `lido` — medido em produção com
+  9s até o segundo tique e 210s até a leitura.
+- **O n8n monta os valores flexionados, com as duas formas do objeto.** A forma `a`
+  ("aos seus projetos de") serve o modelo 1; a forma `de` ("dos seus projetos de")
+  serve o modelo 3. São formas diferentes do mesmo dado, e é por isso que a **ordem
+  dos parâmetros difere entre os dois modelos**: no 1, `{{2}}` é o objeto e `{{3}}` a
+  contagem; no 3, `{{2}}` é a contagem **com artigo** e `{{3}}` o objeto. Trocar a
+  ordem não faz o envio falhar — monta uma frase sem sentido, que é pior.
+- **O gatilho do modelo 3 existe:** o encerramento da solicitação.
+
+Segue de pé a linha do **`representante.telefone`**, que é a maior limitação do canal:
+medidos 8 de 38 em 14/08/2026. O modelo aprovado, o número verificado e o fluxo ativo
+não mudam esse alcance.
+
 ## O que os e-mails da ALE-12 herdam desta tarefa
 
 Não é mudança automática — precisa ser aplicada em
