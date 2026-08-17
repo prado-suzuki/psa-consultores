@@ -2,11 +2,15 @@
  * Métricas do painel Operacional (`/equipe/board/performance`) — o painel do
  * sócio.
  *
- * Regra que dá nome ao arquivo: **o filtro de área tem que valer para tudo que
- * a tela afirma**. Três dos cinco KPIs eram globais e o filtro "certificava" um
- * número que não era da área escolhida. O que NÃO dá para recortar (economia
- * validada, cuja tabela `process_improvements` só tem `cluster_id`) continua
- * global — mas rotulado como global, nunca disfarçado.
+ * Regra que dá nome ao arquivo: **o recorte tem que valer para tudo que a tela
+ * afirma**. Três dos cinco KPIs eram globais e o filtro "certificava" um número
+ * que não era do escopo escolhido.
+ *
+ * O recorte hoje é por CLUSTER (o seletor global de cliente do Board), não mais
+ * por área. Isso resolveu a última exceção: a economia validada era
+ * necessariamente global porque `process_improvements` só tem `cluster_id` e o
+ * filtro era por área. Agora ela também é recortável. Todo KPI segue rotulando
+ * o escopo real — número global com cliente escolhido diz o motivo.
  *
  * Funções PURAS: recebem o snapshot já buscado pelos hooks e devolvem números e
  * rótulos. Nada de cálculo dentro do `.tsx`. Testado em
@@ -38,7 +42,11 @@ function primeiro<T>(valor: Aninhado<T>): T | null {
 export interface MembroEquipeBruto {
   user_id: string | null;
   equipe?: Aninhado<{
-    area?: Aninhado<{ name?: string | null; page_categories?: string[] | null }>;
+    area?: Aninhado<{
+      name?: string | null;
+      page_categories?: string[] | null;
+      cluster_id?: string | null;
+    }>;
   }>;
 }
 
@@ -47,6 +55,12 @@ export interface MembroEquipeArea {
   area_name: string | null;
   /** Bucket declarado pela área (por ID, não pelo nome). */
   area_key?: BoardAreaKey | null;
+  /**
+   * Cluster da área da equipe. É o recorte do seletor global de cliente: ID
+   * puro, sem bucket nem palpite por nome — e por isso alcança clusters que a
+   * classificação por nome jogava em "Outros".
+   */
+  cluster_id?: string | null;
 }
 
 /**
@@ -63,8 +77,28 @@ export function normalizarMembrosEquipe(linhas: MembroEquipeBruto[]): MembroEqui
       area_name: area?.name ?? null,
       // `page_categories` é a fonte canônica: sobrevive a renomear a área.
       area_key: bucketDePageCategories(area?.page_categories),
+      cluster_id: area?.cluster_id ?? null,
     };
   });
+}
+
+/**
+ * `user_id` → clusters em que a pessoa atua, via equipe → área → cluster.
+ *
+ * Gêmeo de `mapaAreasPorPessoa`, mas por ID: enquanto aquele depende de a área
+ * declarar `page_categories` ou de o nome casar com tax/osg/dev, este só
+ * precisa da FK que a área já tem. Pessoa cuja área não tem cluster fica de
+ * fora do mapa — e `pessoaNoRecorte` a trata como "não é deste recorte".
+ */
+export function mapaClustersPorPessoa(membros: MembroEquipeArea[]): Map<string, Set<string>> {
+  const mapa = new Map<string, Set<string>>();
+  for (const m of membros || []) {
+    if (!m?.user_id || !m.cluster_id) continue;
+    const atual = mapa.get(m.user_id) ?? new Set<string>();
+    atual.add(m.cluster_id);
+    mapa.set(m.user_id, atual);
+  }
+  return mapa;
 }
 
 /**
@@ -83,15 +117,26 @@ export function mapaAreasPorPessoa(membros: MembroEquipeArea[]): Map<string, Set
   return mapa;
 }
 
-/** `todas` aceita qualquer pessoa; sem vínculo cadastrado, a pessoa não é da área. */
-export function pessoaNaArea(
-  mapa: Map<string, Set<BoardAreaKey>>,
+/**
+ * A pessoa pertence ao recorte?
+ *
+ * A `chave` é um bucket de área (`'tax'`) OU um id de cluster — a função não
+ * precisa saber qual, só compara com o conjunto que o mapa guarda. É isso que
+ * deixa o mesmo predicado servir ao filtro de área e ao seletor global de
+ * cliente, com o mapa correspondente (`mapaAreasPorPessoa` /
+ * `mapaClustersPorPessoa`).
+ *
+ * `''` e `'todas'` aceitam qualquer pessoa; sem vínculo cadastrado, a pessoa
+ * não é do recorte.
+ */
+export function pessoaNoRecorte(
+  mapa: Map<string, Set<string>>,
   userId: string | null | undefined,
-  area: string,
+  chave: string,
 ): boolean {
-  if (!area || area === 'todas') return true;
+  if (!chave || chave === 'todas') return true;
   if (!userId) return false;
-  return mapa.get(userId)?.has(area as BoardAreaKey) ?? false;
+  return mapa.get(userId)?.has(chave) ?? false;
 }
 
 export interface EscopoPessoas<T> {
@@ -100,54 +145,26 @@ export interface EscopoPessoas<T> {
 }
 
 /**
- * Recorta pessoas pela área da equipe. Sem NENHUM vínculo equipe→área
- * cadastrado o recorte é impossível: devolve todas e marca `global`, para a tela
- * dizer que a lista não está filtrada (em vez de mostrar uma lista vazia que
- * parece "ninguém trabalhou").
+ * Recorta pessoas pelo vínculo da equipe — por área ou por cluster, conforme o
+ * mapa recebido. Sem NENHUM vínculo cadastrado o recorte é impossível: devolve
+ * todas e marca `global`, para a tela dizer que a lista não está filtrada (em
+ * vez de mostrar uma lista vazia que parece "ninguém trabalhou").
  */
 export function pessoasNoEscopo<T extends { id: string }>(
   pessoas: T[],
-  mapa: Map<string, Set<BoardAreaKey>>,
-  area: string,
+  mapa: Map<string, Set<string>>,
+  chave: string,
 ): EscopoPessoas<T> {
   const todas = pessoas || [];
-  if (!area || area === 'todas') return { pessoas: todas, escopo: 'global' };
+  if (!chave || chave === 'todas') return { pessoas: todas, escopo: 'global' };
   if (mapa.size === 0) return { pessoas: todas, escopo: 'global' };
-  return { pessoas: todas.filter((p) => pessoaNaArea(mapa, p.id, area)), escopo: 'area' };
+  return { pessoas: todas.filter((p) => pessoaNoRecorte(mapa, p.id, chave)), escopo: 'area' };
 }
 
-// ── Projeto → área e recorte de tarefas ──────────────────────────────────
-export interface ProjetoComArea {
-  id: string;
-  area_name: string | null;
-  /** Bucket resolvido por cluster no hook; tem precedência sobre o nome. */
-  area_key?: BoardAreaKey | null;
-}
-
-export function mapaAreaPorProjeto(projetos: ProjetoComArea[]): Map<string, BoardAreaKey> {
-  // `bucketDoItem` prefere `area_key` (resolvida por CLUSTER no hook) e só cai
-  // no nome quando ela não veio. Classificar pelo nome aqui fazia a tarefa de um
-  // projeto sem área cadastrada virar "Outros" mesmo com o cluster conhecido.
-  return new Map((projetos || []).map((p) => [p.id, bucketDoItem(p)]));
-}
-
-/** Tarefa sem projeto (ou de projeto fora do escopo carregado) vira `outros`. */
-export function areaDaTarefa(
-  mapa: Map<string, BoardAreaKey>,
-  projectId: string | null | undefined,
-): BoardAreaKey {
-  if (!projectId) return 'outros';
-  return mapa.get(projectId) ?? 'outros';
-}
-
-export function filtrarTarefasPorArea<T extends { project_id?: string | null }>(
-  tarefas: T[],
-  mapa: Map<string, BoardAreaKey>,
-  area: string,
-): T[] {
-  if (!area || area === 'todas') return tarefas || [];
-  return (tarefas || []).filter((t) => areaDaTarefa(mapa, t?.project_id) === area);
-}
+// `mapaAreaPorProjeto`, `areaDaTarefa` e `filtrarTarefasPorArea` foram removidos
+// junto com o filtro de área da tela: o recorte de tarefa agora é
+// `filtrarTarefasPorProjetos` (@/lib/boardExecutivo), que segue o projeto já
+// recortado por cluster em vez de reclassificar a tarefa por bucket.
 
 // ── Tempo médio (desvio de prazo das entregas) ───────────────────────────
 export interface TarefaOperacional {
@@ -220,16 +237,16 @@ export interface EscopoMetas {
  */
 export function metasNoEscopo(
   metas: MetaCiclo[],
-  mapa: Map<string, Set<BoardAreaKey>>,
-  area: string,
+  mapa: Map<string, Set<string>>,
+  chave: string,
 ): EscopoMetas {
   const todas = metas || [];
   const semVinculoDeArea = todas.filter((m) => !m?.responsavel_id || !mapa.has(m.responsavel_id)).length;
-  if (!area || area === 'todas') return { metas: todas, escopo: 'global', semVinculoDeArea };
+  if (!chave || chave === 'todas') return { metas: todas, escopo: 'global', semVinculoDeArea };
   const atribuiveis = todas.length - semVinculoDeArea;
   if (atribuiveis === 0) return { metas: todas, escopo: 'global', semVinculoDeArea };
   return {
-    metas: todas.filter((m) => pessoaNaArea(mapa, m.responsavel_id, area)),
+    metas: todas.filter((m) => pessoaNoRecorte(mapa, m.responsavel_id, chave)),
     escopo: 'area',
     semVinculoDeArea,
   };
@@ -390,21 +407,18 @@ export function chipDeArea(
 }
 
 /** Nome curto do recorte de área para os rótulos da tela. */
-export function rotuloArea(area: string): string {
-  if (!area || area === 'todas') return 'todas as áreas';
-  return BOARD_AREAS.includes(area as BoardAreaKey)
-    ? BOARD_AREA_LABEL[area as BoardAreaKey]
-    : area;
-}
-
 /**
- * Rótulo do escopo REAL de um número. Quando a área foi escolhida mas o dado não
- * é atribuível, o texto entrega o motivo em vez de omitir.
+ * Rótulo do escopo REAL de um número, para o seletor global de cliente.
+ *
+ * Substituiu `rotuloArea`/`rotuloEscopo`, removidos com o filtro de área.
+ * Recebe o NOME já resolvido (o mapa de clusters vive no hook, não aqui) e
+ * mantém a regra que importa: número que caiu para global com cliente escolhido
+ * diz o motivo, em vez de se passar por recortado.
  */
-export function rotuloEscopo(escopo: EscopoTipo, area: string): string {
-  if (escopo === 'area') return rotuloArea(area);
-  if (!area || area === 'todas') return 'todas as áreas';
-  return 'todas as áreas (sem vínculo de área)';
+export function rotuloEscopoCliente(escopo: EscopoTipo, nomeCliente: string | null): string {
+  if (!nomeCliente) return 'todos os clientes';
+  if (escopo === 'area') return nomeCliente;
+  return 'todos os clientes (sem vínculo de equipe)';
 }
 
 export function rotuloJanela(periodo: string): string {

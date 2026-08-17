@@ -14,6 +14,7 @@ import { useBoardCluster } from '@/hooks/useBoardCluster';
  */
 export const ROTAS_COM_CLIENTE_GLOBAL: string[] = [
   '/equipe/board/dashboard',
+  '/equipe/board/performance',
 ];
 
 export const honraClienteGlobal = (pathname: string): boolean =>

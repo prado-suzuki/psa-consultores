@@ -118,14 +118,9 @@ export function bucketDoItem(item: ItemComArea): BoardAreaKey {
   return item.area_key ?? classificarArea(item.area_name);
 }
 
-/** Filtro de área da barra de filtros: `todas` ou uma `BoardAreaKey`. */
-export function filtrarPorArea<T extends ItemComArea>(
-  itens: T[],
-  area: string,
-): T[] {
-  if (!area || area === 'todas') return itens;
-  return itens.filter((i) => bucketDoItem(i) === area);
-}
+// `filtrarPorArea` foi removido: o filtro de área saiu das telas do Board,
+// substituído pelo seletor global de cliente abaixo. `bucketDoItem` continua —
+// o rollup "Áreas em um olhar" ainda agrupa por área.
 
 // ── Filtro por CLUSTER (o seletor global de cliente do Board) ─────────────
 
@@ -157,12 +152,12 @@ export function filtrarPorCluster<T extends { cluster_id?: string | null }>(
  * do recorte cair em "Outros" — inflando uma linha que deveria ter sumido.
  * Tarefa sem `project_id` fica de fora pelo mesmo motivo do filtro de cluster.
  */
-export function filtrarTarefasPorProjetos<T extends { project_id: string | null }>(
+export function filtrarTarefasPorProjetos<T extends { project_id?: string | null }>(
   tarefas: T[],
   projetos: { id: string }[],
 ): T[] {
   const ids = new Set(projetos.map((p) => p.id));
-  return tarefas.filter((t) => t.project_id !== null && ids.has(t.project_id));
+  return (tarefas || []).filter((t) => !!t?.project_id && ids.has(t.project_id));
 }
 
 // ── Saúde dos projetos ───────────────────────────────────────────────────
@@ -296,6 +291,8 @@ export function serieTarefasPorArea(
  */
 export interface MelhoriaRoi {
   id: string;
+  /** Cluster da melhoria — permite recortar a economia pelo cliente global. */
+  cluster_id?: string | null;
   cost_saved_monthly: number | null;
   implementation_cost: number | null;
   one_time_external_cost: number | null;

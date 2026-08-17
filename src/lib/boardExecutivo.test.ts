@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   classificarArea,
-  filtrarPorArea,
   filtrarPorCluster,
   filtrarTarefasPorProjetos,
   saudeProjetos,
@@ -44,19 +43,6 @@ describe('classificarArea', () => {
     expect(classificarArea('')).toBe('outros');
     expect(classificarArea(null)).toBe('outros');
     expect(classificarArea(undefined)).toBe('outros');
-  });
-});
-
-describe('filtrarPorArea', () => {
-  it('"todas" não filtra', () => {
-    expect(filtrarPorArea(projetos, 'todas')).toHaveLength(6);
-  });
-
-  it('filtra pelo bucket da área, não por substring do nome', () => {
-    expect(filtrarPorArea(projetos, 'tax').map((p) => p.id)).toEqual(['p1', 'p2']);
-    expect(filtrarPorArea(projetos, 'osg').map((p) => p.id)).toEqual(['p3']);
-    expect(filtrarPorArea(projetos, 'dev').map((p) => p.id)).toEqual(['p4']);
-    expect(filtrarPorArea(projetos, 'outros').map((p) => p.id)).toEqual(['p5', 'p6']);
   });
 });
 
@@ -121,9 +107,10 @@ describe('saudeProjetos', () => {
     });
   });
 
-  it('acompanha o filtro de área (pontualidade do escopo, não global)', () => {
-    expect(saudeProjetos(filtrarPorArea(projetos, 'tax')).pontualidade).toBe(50);
-    expect(saudeProjetos(filtrarPorArea(projetos, 'osg')).pontualidade).toBe(100);
+  it('acompanha o recorte da tela (pontualidade do escopo, não global)', () => {
+    const bucket = (a: string) => projetos.filter((p) => bucketDoItem(p) === a);
+    expect(saudeProjetos(bucket('tax')).pontualidade).toBe(50);
+    expect(saudeProjetos(bucket('osg')).pontualidade).toBe(100);
   });
 });
 
@@ -375,14 +362,14 @@ describe('bucketDoItem', () => {
     expect(bucketDoItem({ area_name: null, area_key: null })).toBe('outros');
   });
 
-  it('filtro por área usa a chave resolvida', () => {
+  it('a chave resolvida vence o palpite pelo nome', () => {
     const itens = [
       { area_name: null, area_key: 'tax' as const },
       { area_name: 'Tax', area_key: null },
       { area_name: null, area_key: null },
     ];
-    expect(filtrarPorArea(itens, 'tax')).toHaveLength(2);
-    expect(filtrarPorArea(itens, 'outros')).toHaveLength(1);
+    expect(itens.filter((i) => bucketDoItem(i) === 'tax')).toHaveLength(2);
+    expect(itens.filter((i) => bucketDoItem(i) === 'outros')).toHaveLength(1);
   });
 });
 
