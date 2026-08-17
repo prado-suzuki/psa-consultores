@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { useChecklistDerivado } from '@/hooks/useChecklistDerivado';
 import { useRevisarDocumento } from '@/hooks/useDocumentoArquivo';
+import { BotaoAvisarCliente } from './BotaoAvisarCliente';
 import { BotaoComprovante } from './BotaoComprovante';
 import {
   agruparPorInstancia, resumirChecklist,
@@ -216,11 +217,22 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
     <div className="space-y-8">
       <ResumoHero clienteNome={clienteNome} {...resumo} />
 
-      <BotaoComprovante
-        clienteId={clienteId}
-        clienteNome={clienteNome}
-        solicitacao={solicitacao}
-      />
+      <div className="flex flex-wrap items-center gap-3">
+        <BotaoComprovante
+          clienteId={clienteId}
+          clienteNome={clienteNome}
+          solicitacao={solicitacao}
+        />
+
+        {/* O aviso 2 sai daqui, à mão: é o clique que fecha o lote de conferência
+            (decisão de 17/08/2026). Recebe `linhas` inteiras, e não o resumo,
+            porque a mensagem lista documento por documento. */}
+        <BotaoAvisarCliente
+          clienteId={clienteId}
+          linhas={linhas}
+          solicitacao={solicitacao}
+        />
+      </div>
 
       {solicitacao.status === 'rascunho' && (
         <Aviso>

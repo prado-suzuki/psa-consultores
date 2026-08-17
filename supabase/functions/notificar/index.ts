@@ -57,28 +57,82 @@ const SEGREDO_WEBHOOK: Record<Canal, string> = {
   whatsapp: "N8N_OSG_WA_WEBHOOK_URL",
 };
 
-// ── Quais avisos esta versão dispara ──
+// ── Os TRÊS avisos ao cliente ──
 //
-// Os quatro textos estão escritos e os quatro modelos estão APPROVED na Meta, mas
-// só dois têm gatilho:
+// Eram quatro. DECISÃO DE 17/08/2026 (Bernardo e coordenação): os avisos 2
+// (cobrança de pendente) e 4 (reenvio necessário) foram FUNDIDOS num só.
 //
-//   1 solicitacao_enviada  -> clique em "enviar solicitação"      (ALE-2)
-//   3 documento_aprovado   -> encerramento da solicitação          (aviso 3)
+// O motivo é o fluxo real: o analista abre o checklist, confere o que chegou,
+// vincula as entidades e recusa o que está errado — tudo na mesma sessão. Dois
+// avisos separados sairiam do mesmo ato, um atrás do outro. E o texto do aviso 4
+// já pedia "um aviso por lote de conferência, não por documento" (10/08) sem
+// definir o que fecha um lote: o clique do analista fecha.
 //
-// Os outros dois são recusados de propósito, em vez de sair incompletos:
-//   2 cobranca_pendencia  -> depende da varredura periódica e da fonte do
-//                            pendente (tabela das faltas do Bernardo, card `2`,
-//                            ou cálculo do checklist — decisão EDU-6/EDU-9)
-//   4 documento_recusado  -> depende do ato de aceitar/recusar documento, que
-//                            não existe em tela e não tem card. O modelo de
-//                            WhatsApp diz "o motivo de cada um está no portal";
-//                            sem a tela, o aviso mentiria para o cliente.
-const EVENTOS_COM_DISPARO = new Set(["solicitacao_enviada", "documento_aprovado"]);
-const EVENTOS_SEM_DISPARO = new Set(["cobranca_pendencia", "documento_recusado"]);
+//   1 solicitacao_enviada    AUTOMÁTICO, no envio da solicitação
+//   2 situacao_documentos    MANUAL, botão na tela do checklist       <- novo
+//   3 documento_aprovado     AUTOMÁTICO, no encerramento
+//
+// POR QUE O MANUAL RECEBE OS DADOS DE QUEM CHAMA, e não os resolve aqui: a tela
+// do consultor deriva o checklist no navegador (`checklistDerivado.ts`), e é essa
+// conta que o analista está OLHANDO quando clica. Recalcular aqui — por RPC ou
+// reescrevendo a subtração em SQL — abriria a porta para a mensagem divergir da
+// tela, e o cliente ser cobrado por documento que o analista viu como recebido.
+// Uma conta, uma fonte. É o mesmo princípio do `estadoDocumento.ts`.
+//
+// A contrapartida é que o corpo passa a ser dado de entrada, e por isso este
+// evento exige PAPEL DE EQUIPE (ver `validateCaller`) — os outros dois nascem de
+// transição do banco e não aceitam lista de fora.
+const EVENTOS_COM_DISPARO = new Set([
+  "solicitacao_enviada",
+  "situacao_documentos",
+  "documento_aprovado",
+]);
+
+// Nomes antigos, dos tempos em que eram quatro avisos. Recusados com mensagem
+// própria para quem chamar com o nome velho saber para onde foi.
+const EVENTOS_FUNDIDOS = new Set(["cobranca_pendencia", "documento_recusado"]);
+
+/**
+ * `notificacao_tipo` é um enum do banco, e `situacao_documentos` NÃO está nele.
+ *
+ * Reusamos `cobranca_pendencia` como valor gravado, de propósito: acrescentar
+ * valor a enum é migração, e migração aqui custa crédito do Lovable sem entregar
+ * nada além do nome. O mapa deixa o nome da API honesto (o aviso não é só
+ * cobrança) sem tocar no banco.
+ *
+ * É o mesmo desacoplamento que o mapa `TEMPLATE` do n8n faz entre valor de enum e
+ * nome de modelo na Meta, e pelo mesmo motivo: nome é caro de mudar em um lado só.
+ */
+const TIPO_NO_BANCO: Record<string, string> = {
+  situacao_documentos: "cobranca_pendencia",
+};
+
+/** Um documento que o cliente precisa resolver, como a tela do consultor o vê. */
+interface ItemAviso {
+  documento: string;
+  entidade: string;
+  motivo?: string;
+}
 
 interface NotificarRequest {
   event_type: string;
   solicitacao_id: string;
+  /**
+   * Quais canais usar. Ausente = os dois, que e o comportamento dos avisos
+   * AUTOMATICOS: eles nascem de transicao e nao tem quem escolha.
+   *
+   * So o aviso manual manda esse campo, porque so ele tem um analista decidindo.
+   * O padrao ser "os dois" e deliberado: canal esquecido e cliente nao avisado, e o
+   * erro por omissao tem de ser mandar mais e nao menos.
+   */
+  canais?: Canal[];
+  /** Só em `situacao_documentos`: o que a tela derivou no momento do clique. */
+  situacao?: {
+    pendentes: ItemAviso[];
+    recusados: ItemAviso[];
+    base: number;
+    recebidos: number;
+  };
 }
 
 // ── Auth ──
@@ -89,11 +143,29 @@ interface NotificarRequest {
 //
 // NÃO endureça para só service_role: a chamada vem do navegador do analista, com
 // o token do usuário logado, e seria rejeitada.
-async function validateCaller(req: Request): Promise<{ authorized: boolean; error?: string }> {
+/**
+ * Papéis que podem disparar aviso cujo CONTEÚDO vem de fora.
+ *
+ * `client` e `timecliente` ficam de fora e a razão é concreta: um cliente logado
+ * chamaria `situacao_documentos` com uma lista inventada e a mensagem sairia com
+ * o texto dele. Nos outros dois avisos isso não se aplica — eles nascem de
+ * transição gravada no banco e não aceitam lista.
+ */
+const PAPEIS_DE_EQUIPE = new Set(["admin", "team_member", "lider", "sublider", "marketing"]);
+
+interface Caller {
+  authorized: boolean;
+  error?: string;
+  /** Verdadeiro para service role e para papel de equipe. */
+  equipe?: boolean;
+  userId?: string;
+}
+
+async function validateCaller(req: Request): Promise<Caller> {
   const apiKey = req.headers.get("x-api-key");
   const callbackToken = Deno.env.get("N8N_CALLBACK_TOKEN");
   if (apiKey && callbackToken && apiKey === callbackToken) {
-    return { authorized: true };
+    return { authorized: true, equipe: true };
   }
 
   const authHeader = req.headers.get("Authorization");
@@ -110,9 +182,23 @@ async function validateCaller(req: Request): Promise<{ authorized: boolean; erro
 
   const { data, error } = await supabase.auth.getClaims(token);
   if (error || !data?.claims) return { authorized: false, error: "Invalid token" };
-  if (data.claims.role === "service_role") return { authorized: true };
-  if (!data.claims.sub) return { authorized: false, error: "No user ID in token" };
-  return { authorized: true };
+  if (data.claims.role === "service_role") return { authorized: true, equipe: true };
+
+  const userId = data.claims.sub as string | undefined;
+  if (!userId) return { authorized: false, error: "No user ID in token" };
+
+  // O papel é lido com a chave de serviço, e não com o token do usuário: a
+  // política de `user_roles` não é assunto desta checagem, e ler com o próprio
+  // token faria a autorização depender de RLS que pode mudar por outro motivo.
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  const { data: papeis } = await admin
+    .from("user_roles").select("role").eq("user_id", userId);
+
+  const equipe = (papeis ?? []).some((p: { role: string }) => PAPEIS_DE_EQUIPE.has(p.role));
+  return { authorized: true, equipe, userId };
 }
 
 // ── Helpers ──
@@ -136,15 +222,43 @@ function prazoDeEnvio(enviadaEm: string | null): string | null {
   return base.toISOString().slice(0, 10);
 }
 
+/**
+ * O "dia" da janela de não-repetição, no fuso da casa.
+ *
+ * ERA UTC, e virou local em 17/08/2026 quando o aviso 2 passou a ser disparado à
+ * mão. A ALE-1 escolheu UTC para a varredura diária de chamados, e ali é
+ * inofensivo: aquele cron roda 11h UTC, que é 7h da manhã em Cuiabá — bem longe
+ * da virada.
+ *
+ * Com botão manual a virada cai DENTRO do expediente. O número da casa é +55 65
+ * (Mato Grosso, UTC−4, sem horário de verão desde 2019), então o dia UTC vira às
+ * 20h locais:
+ *
+ *   analista envia 19h50  -> dia X
+ *   outro envia   20h10  -> dia X+1, PASSA, e o cliente recebe duas vezes
+ *
+ * É exatamente o que a janela existe para evitar. Com o dia local, "já avisado
+ * hoje, tente amanhã" também passa a ser verdade — em UTC a frase mentia às 20h.
+ *
+ * `en-CA` porque devolve AAAA-MM-DD, que é o formato que a chave usa.
+ */
+const FUSO_DA_CASA = "America/Cuiaba";
+
+function diaLocal(): string {
+  return new Date().toLocaleDateString("en-CA", { timeZone: FUSO_DA_CASA });
+}
+
 // tipo:entidade_tipo:entidade_id:canal:destinatario:AAAA-MM-DD
 //
-// A data no fim deixa a cobrança diária repetir dia após dia e impede o mesmo
-// aviso sair duas vezes no mesmo dia. O canal no meio é o que permite o mesmo
-// aviso sair por e-mail E por WhatsApp para a mesma pessoa no mesmo dia, sem uma
-// reserva bloquear a outra. Ver comentário da coluna no banco.
+// A data no fim impede o mesmo aviso sair duas vezes no mesmo dia — regra da
+// ALE-1, mantida por decisão do Bernardo em 17/08: evita que dois analistas
+// avisem o mesmo cliente e que o número caia por sinal de spam, que é o que
+// derruba a nota de qualidade e leva modelo a `FLAGGED` e depois `PAUSED`.
+//
+// O canal no meio é o que permite o mesmo aviso sair por e-mail E por WhatsApp
+// para a mesma pessoa no mesmo dia, sem uma reserva bloquear a outra.
 function chaveIdempotencia(tipo: string, entidadeId: string, canal: Canal, destino: string): string {
-  const dia = new Date().toISOString().slice(0, 10);
-  return `${tipo}:${ENTIDADE_TIPO}:${entidadeId}:${canal}:${destino}:${dia}`;
+  return `${tipo}:${ENTIDADE_TIPO}:${entidadeId}:${canal}:${destino}:${diaLocal()}`;
 }
 
 interface Alcancavel {
@@ -186,17 +300,42 @@ Deno.serve(async (req) => {
       return json({ error: "Não autorizado" }, 401);
     }
 
-    const { event_type, solicitacao_id } = (await req.json()) as NotificarRequest;
+    const { event_type, solicitacao_id, situacao, canais } = (await req.json()) as NotificarRequest;
     if (!event_type || !solicitacao_id) {
       return json({ error: "event_type and solicitacao_id are required" }, 400);
     }
 
     if (!EVENTOS_COM_DISPARO.has(event_type)) {
-      const motivo = EVENTOS_SEM_DISPARO.has(event_type)
-        ? "tem texto e modelo aprovado, mas o gatilho não existe nesta versão"
+      const motivo = EVENTOS_FUNDIDOS.has(event_type)
+        ? "foi fundido em situacao_documentos na decisão de 17/08/2026"
         : "desconhecido";
       return json({ error: `event_type ${motivo}: ${event_type}` }, 400);
     }
+
+    // O aviso manual carrega conteúdo de fora, então exige papel de equipe. Os
+    // automáticos não: eles nascem de transição gravada e não aceitam lista.
+    if (event_type === "situacao_documentos") {
+      if (!authResult.equipe) {
+        console.error(`[notificar] ${authResult.userId} sem papel de equipe tentou situacao_documentos`);
+        return json({ error: "Apenas a equipe pode enviar este aviso" }, 403);
+      }
+      if (!situacao || (!situacao.pendentes?.length && !situacao.recusados?.length)) {
+        // Sem nada para o cliente resolver não há aviso: "faltam 0 documentos"
+        // pediria ação inexistente, e quem cobre o pedido completo é o aviso 3.
+        return json({ error: "situacao com pendentes ou recusados é obrigatória" }, 400);
+      }
+    }
+
+    // Canal desconhecido no pedido e recusado em vez de ignorado: ignorar faria a
+    // tela achar que mandou por um canal que a borda nunca percorreu.
+    if (canais) {
+      const invalido = canais.find((c) => !CANAIS.includes(c));
+      if (invalido) return json({ error: `canal desconhecido: ${invalido}` }, 400);
+      if (canais.length === 0) return json({ error: "canais nao pode ser lista vazia" }, 400);
+    }
+    const canaisDoEnvio: Canal[] = canais?.length ? CANAIS.filter((c) => canais.includes(c)) : CANAIS;
+
+    const tipoNoBanco = TIPO_NO_BANCO[event_type] ?? event_type;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -229,9 +368,7 @@ Deno.serve(async (req) => {
     //                     tudo ou quando a solicitação é encerrada").
     //
     // O "não houver documento pendente" do doc fica satisfeito pelo encerramento,
-    // que é o ato do consultor declarando o pedido concluído. Contar pendente
-    // exigiria a fonte do checklist, que é decisão aberta (EDU-6/EDU-9) — e é
-    // justamente por isso que o aviso 2 não sai nesta versão.
+    // que é o ato do consultor declarando o pedido concluído.
     if (event_type === "documento_aprovado") {
       if (!solicitacao.enviada_em) {
         console.log(`[notificar] Skipped: solicitação ${solicitacao.id} encerrada sem nunca ter sido enviada`);
@@ -241,6 +378,15 @@ Deno.serve(async (req) => {
         console.log(`[notificar] Skipped: solicitação ${solicitacao.id} não está encerrada`);
         return json({ success: true, skipped: true, reason: "nao_encerrada" });
       }
+    }
+
+    // O aviso 2 cobra documento. Cobrar quem nunca foi solicitado é pedir o que
+    // não se pediu — o rascunho é a lista sendo montada, e o cliente não a viu.
+    // A tela deixa o botão fora do rascunho; aqui é a segunda linha de defesa,
+    // porque a borda pode ser chamada de fora dela.
+    if (event_type === "situacao_documentos" && !solicitacao.enviada_em) {
+      console.log(`[notificar] Skipped: solicitação ${solicitacao.id} nunca foi enviada ao cliente`);
+      return json({ success: true, skipped: true, reason: "nunca_enviada" });
     }
 
     // ── Destinatários ──
@@ -350,7 +496,10 @@ Deno.serve(async (req) => {
     const resultado: Record<string, unknown> = {};
     let algumEnviado = false;
 
-    for (const canal of CANAIS) {
+    // Percorre so os canais pedidos. `CANAIS.filter` acima preserva a ordem
+    // canonica (e-mail primeiro), para o log sair legivel independente da ordem em
+    // que a tela mandou.
+    for (const canal of canaisDoEnvio) {
       const webhookUrl = Deno.env.get(SEGREDO_WEBHOOK[canal]);
       if (!webhookUrl) {
         // Sem segredo é configuração faltando, não caminho normal: reporta em vez
@@ -378,9 +527,9 @@ Deno.serve(async (req) => {
       for (const d of doCanal) {
         const destino = destinoDoCanal(canal, d)!;
         const { data: envioId, error: reservaError } = await supabase.rpc("reservar_envio", {
-          _chave: chaveIdempotencia(event_type, solicitacao.id, canal, destino),
+          _chave: chaveIdempotencia(tipoNoBanco, solicitacao.id, canal, destino),
           _canal: canal,
-          _tipo: event_type,
+          _tipo: tipoNoBanco,
           _entidade_tipo: ENTIDADE_TIPO,
           _entidade_id: solicitacao.id,
           _email: d.email,
@@ -426,6 +575,9 @@ Deno.serve(async (req) => {
             event_type,
             canal,
             solicitacao: solicitacaoData,
+            // Presente so no aviso 2. Vai como veio da tela: e a mesma conta que
+            // o analista estava olhando quando clicou.
+            ...(situacao ? { situacao } : {}),
             // envio_id vai junto para o fluxo fechar a linha por conta própria,
             // com o identificador do provedor quando houver (o wamid).
             recipients: reservados.map((r) => ({
