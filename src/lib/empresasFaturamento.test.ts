@@ -1,7 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-  apenasDigitos, encontrarEmpresa, listarEmpresasCadastradas,
-} from './empresasFaturamento';
+import { encontrarEmpresa, listarEmpresasCadastradas } from './empresasFaturamento';
 
 const clusters = [
   { id: 'c-digital', name: 'Digital', nome_empresa: 'PRADO SUZUKI', cnpj: null },
@@ -11,13 +9,6 @@ const clusters = [
   { id: 'c-sem', name: 'Sem empresa', nome_empresa: null, cnpj: null },
   { id: 'c-vazio', name: 'Vazio', nome_empresa: '   ', cnpj: '00.000.000/0000-00' },
 ];
-
-describe('apenasDigitos', () => {
-  it('extrai os dígitos do CNPJ formatado', () => {
-    expect(apenasDigitos('12.345.678/0001-99')).toBe('12345678000199');
-    expect(apenasDigitos(null)).toBe('');
-  });
-});
 
 describe('listarEmpresasCadastradas', () => {
   const empresas = listarEmpresasCadastradas(clusters);

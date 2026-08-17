@@ -23,11 +23,6 @@ export interface EmpresaCadastrada {
   clusters: { id: string; name: string }[];
 }
 
-/** Só os dígitos do CNPJ, para comparar "12.345.678/0001-99" com "12345678000199". */
-export function apenasDigitos(valor: string | null | undefined): string {
-  return (valor || '').replace(/\D/g, '');
-}
-
 const chaveNome = (nome: string) =>
   nome
     .normalize('NFD')

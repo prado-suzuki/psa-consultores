@@ -292,6 +292,10 @@ export const useProdutoServicoList = () =>
     },
   });
 
+/** Lê `code`/`message` do erro do Supabase sem recorrer a `any`. */
+const erroSupabase = (erro: unknown): { code?: string; message?: string } =>
+  (erro && typeof erro === 'object' ? erro : {}) as { code?: string; message?: string };
+
 /** Prefixo do id de linha otimista — nunca chega ao banco. */
 const VINCULO_OTIMISTA = 'otimista:';
 
@@ -357,14 +361,15 @@ export const useProdutoServicoToggle = () => {
     },
     onSuccess: (resultado, vars) => {
       logAction({
-        area: 'cadastros', entity_type: 'produto_servico' as any,
+        area: 'cadastros', entity_type: 'produto_servico',
         entity_id: resultado.id, entity_name: vars.entityName, action: resultado.action,
       });
     },
-    onError: (erro: any, _vars, contexto) => {
+    onError: (erro: unknown, _vars, contexto) => {
       if (contexto?.anterior) qc.setQueryData(['produto_servico'], contexto.anterior);
-      if (erro?.code === '23505') toast.error('Este vínculo já existe');
-      else toast.error(erro?.message || 'Erro ao salvar vínculo');
+      const { code, message } = erroSupabase(erro);
+      if (code === '23505') toast.error('Este vínculo já existe');
+      else toast.error(message || 'Erro ao salvar vínculo');
     },
     onSettled: () => invalidarVinculos(qc),
   });
@@ -413,7 +418,7 @@ export const useProdutoServicoLote = () => {
         const nomePorServico = new Map(vars.servicos.map(s => [s.id, s.nome]));
         resultado.criados.forEach(linha => {
           logAction({
-            area: 'cadastros', entity_type: 'produto_servico' as any, entity_id: linha.id,
+            area: 'cadastros', entity_type: 'produto_servico', entity_id: linha.id,
             entity_name: `${vars.produtoCodigo} → ${nomePorServico.get(linha.servico_prestado_id) || '?'}`,
             action: 'created',
           });
@@ -424,15 +429,15 @@ export const useProdutoServicoLote = () => {
       if (vars.acao === 'desvincular') {
         vars.vinculos.forEach(vinculo => {
           logAction({
-            area: 'cadastros', entity_type: 'produto_servico' as any, entity_id: vinculo.id,
+            area: 'cadastros', entity_type: 'produto_servico', entity_id: vinculo.id,
             entity_name: `${vars.produtoCodigo} → ${vinculo.servicoNome}`, action: 'deleted',
           });
         });
         toast.success(`${vars.vinculos.length} vínculo(s) removido(s)`);
       }
     },
-    onError: (erro: any) => {
-      toast.error(erro?.message || 'Erro ao aplicar os vínculos');
+    onError: (erro: unknown) => {
+      toast.error(erroSupabase(erro).message || 'Erro ao aplicar os vínculos');
     },
     onSettled: () => invalidarVinculos(qc),
   });
