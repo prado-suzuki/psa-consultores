@@ -155,28 +155,28 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tickets_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tickets_estrutura_area_id_fkey"
             columns: ["estrutura_area_id"]
             isOneToOne: false
             referencedRelation: "estrutura_areas"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tickets_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tickets_cluster_id_fkey"
             columns: ["cluster_id"]
@@ -224,14 +224,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documents_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "tickets"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
@@ -273,7 +273,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tickets"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "ticket_messages_user_id_fkey"
             columns: ["user_id"]
@@ -327,7 +327,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprints_project_id_fkey"
             columns: ["project_id"]
@@ -387,35 +387,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "daily_standups_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "daily_standups_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "daily_standups_process_id_fkey"
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "daily_standups_blocked_deliverable_id_fkey"
             columns: ["blocked_deliverable_id"]
             isOneToOne: false
             referencedRelation: "sprint_deliverables"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "daily_standups_sprint_id_fkey"
             columns: ["sprint_id"]
@@ -502,28 +502,28 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estrutura_equipes"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "projects_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "catalog_clients"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "projects_external_client_id_fkey"
             columns: ["external_client_id"]
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "projects_leader_id_fkey"
             columns: ["leader_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "projects_cluster_id_fk"
             columns: ["cluster_id"]
@@ -586,7 +586,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "routines_created_by_fkey"
             columns: ["created_by"]
@@ -664,35 +664,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_deliverables_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "sprint_deliverables"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_deliverables_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_deliverables_process_id_fkey"
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_deliverables_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_deliverables_sprint_id_fkey"
             columns: ["sprint_id"]
@@ -749,7 +749,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_events_sprint_id_fkey"
             columns: ["sprint_id"]
@@ -800,7 +800,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_metrics_sprint_id_fkey"
             columns: ["sprint_id"]
@@ -950,21 +950,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estrutura_equipes"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "processes_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "processes_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "catalog_clients"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "processes_cluster_id_fk"
             columns: ["cluster_id"]
@@ -1069,7 +1069,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processes"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "process_stages_job_role_id_fkey"
             columns: ["job_role_id"]
@@ -1111,7 +1111,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "project_processes_process_id_fkey"
             columns: ["process_id"]
@@ -1159,7 +1159,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tickets"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "ticket_attachments_uploaded_by_fkey"
             columns: ["uploaded_by"]
@@ -1207,7 +1207,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sprint_deliverables"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "deliverable_attachments_uploaded_by_fkey"
             columns: ["uploaded_by"]
@@ -1270,21 +1270,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "project_documents_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "project_documents_process_id_fkey"
             columns: ["process_id"]
             isOneToOne: false
             referencedRelation: "processes"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "project_documents_sprint_id_fkey"
             columns: ["sprint_id"]
@@ -1394,35 +1394,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sprints"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_backlog_items_moved_to_deliverable_id_fkey"
             columns: ["moved_to_deliverable_id"]
             isOneToOne: false
             referencedRelation: "sprint_deliverables"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_backlog_items_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_backlog_items_suggested_by_fkey"
             columns: ["suggested_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_backlog_items_cluster_id_fkey"
             columns: ["cluster_id"]
             isOneToOne: false
             referencedRelation: "estrutura_clusters"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sprint_backlog_items_sprint_id_fkey"
             columns: ["sprint_id"]
@@ -1635,7 +1635,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "contribuinte_setor_cliente_id_fkey"
             columns: ["setor_cliente_id"]
@@ -2198,28 +2198,28 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processes"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "process_improvements_sprint_deliverable_id_fkey"
             columns: ["sprint_deliverable_id"]
             isOneToOne: false
             referencedRelation: "sprint_deliverables"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "process_improvements_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "process_improvements_evaluated_by_fkey"
             columns: ["evaluated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "process_improvements_cluster_id_fk"
             columns: ["cluster_id"]
@@ -2264,14 +2264,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "process_improvements"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "improvement_team_members_job_role_id_fkey"
             columns: ["job_role_id"]
             isOneToOne: false
             referencedRelation: "job_roles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "improvement_team_members_profile_id_fkey"
             columns: ["profile_id"]
@@ -2316,14 +2316,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "client_visible_projects_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "client_visible_projects_created_by_fkey"
             columns: ["created_by"]
@@ -2383,7 +2383,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "client_documents_created_by_fkey"
             columns: ["created_by"]
@@ -2452,14 +2452,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "per_nr_proc_ret_fkey"
             columns: ["nr_proc_ret"]
             isOneToOne: false
             referencedRelation: "per"
             referencedColumns: ["nr_per"]
-          }
+          },
           {
             foreignKeyName: "per_nr_proc_ret_fkey"
             columns: ["nr_proc_ret"]
@@ -2501,14 +2501,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "per_situacao_nr_proc_per_fkey"
             columns: ["nr_proc_per"]
             isOneToOne: false
             referencedRelation: "per"
             referencedColumns: ["nr_per"]
-          }
+          },
           {
             foreignKeyName: "per_situacao_nr_proc_per_fkey"
             columns: ["nr_proc_per"]
@@ -2562,21 +2562,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "dcomp_nr_per_orig_fkey"
             columns: ["nr_per_orig"]
             isOneToOne: false
             referencedRelation: "per"
             referencedColumns: ["nr_per"]
-          }
+          },
           {
             foreignKeyName: "dcomp_nr_dcomp_ret_fkey"
             columns: ["nr_dcomp_ret"]
             isOneToOne: false
             referencedRelation: "dcomp"
             referencedColumns: ["nr_documento"]
-          }
+          },
           {
             foreignKeyName: "dcomp_nr_per_orig_fkey"
             columns: ["nr_per_orig"]
@@ -2684,63 +2684,63 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_tasks"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_tasks_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_tasks_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "org_projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_tasks_categoria_id_fkey"
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "servicos_prestados"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_tasks_assigned_to_fkey"
             columns: ["assigned_to"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_tasks_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_tasks_contribuinte_id_fkey"
             columns: ["contribuinte_id"]
             isOneToOne: false
             referencedRelation: "contribuinte"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_tasks_tarefa_padrao_id_fkey"
             columns: ["tarefa_padrao_id"]
             isOneToOne: false
             referencedRelation: "produto_tarefa_padrao"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_tasks_ticket_id_fkey"
             columns: ["ticket_id"]
             isOneToOne: false
             referencedRelation: "tickets"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_tasks_reviewer_id_fkey"
             columns: ["reviewer_id"]
@@ -2785,7 +2785,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_tasks"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_task_comments_user_id_fkey"
             columns: ["user_id"]
@@ -2913,49 +2913,49 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estrutura_equipes"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_projects_estrutura_area_id_fkey"
             columns: ["estrutura_area_id"]
             isOneToOne: false
             referencedRelation: "estrutura_areas"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_projects_leader_id_fkey"
             columns: ["leader_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_projects_responsible_id_fkey"
             columns: ["responsible_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_projects_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_projects_servico_id_fkey"
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "servicos_prestados"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_projects_ordem_servico_id_fkey"
             columns: ["ordem_servico_id"]
             isOneToOne: false
             referencedRelation: "ordem_servico"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_projects_produto_segmento_id_fkey"
             columns: ["produto_segmento_id"]
@@ -3018,7 +3018,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "representante_user_id_fkey"
             columns: ["user_id"]
@@ -3057,7 +3057,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_project_members_user_id_fkey"
             columns: ["user_id"]
@@ -3157,7 +3157,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "servicos_prestados"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "area_servicos_estrutura_area_id_fkey"
             columns: ["estrutura_area_id"]
@@ -3190,7 +3190,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "servicos_prestados"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_project_servicos_project_id_fkey"
             columns: ["project_id"]
@@ -3280,21 +3280,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "setor_cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "ordem_servico_id_servico_fkey"
             columns: ["id_servico"]
             isOneToOne: false
             referencedRelation: "servicos_prestados"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "ordem_servico_id_produto_segmento_fkey"
             columns: ["id_produto_segmento"]
             isOneToOne: false
             referencedRelation: "produto_segmento"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "ordem_servico_cluster_id_fkey"
             columns: ["cluster_id"]
@@ -3421,14 +3421,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "estrutura_areas_cluster_id_fkey"
             columns: ["cluster_id"]
             isOneToOne: false
             referencedRelation: "estrutura_clusters"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "estrutura_areas_cost_center_id_fkey"
             columns: ["cost_center_id"]
@@ -3470,7 +3470,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "estrutura_equipes_area_id_fkey"
             columns: ["area_id"]
@@ -3506,7 +3506,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "estrutura_equipes"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "estrutura_equipe_membros_user_id_fkey"
             columns: ["user_id"]
@@ -3603,7 +3603,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "produto_segmento"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "produto_servico_servico_prestado_id_fkey"
             columns: ["servico_prestado_id"]
@@ -3683,7 +3683,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordem_servico"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "distribuicao_receita_id_centro_custo_fkey"
             columns: ["id_centro_custo"]
@@ -3861,14 +3861,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contribuinte"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "pis_cofins_class_id_regra_fkey"
             columns: ["id_regra"]
             isOneToOne: false
             referencedRelation: "pis_cofins_regra"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "pis_cofins_class_classificado_por_fkey"
             columns: ["classificado_por"]
@@ -4093,7 +4093,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ciclos_avaliacao"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "metas_meta_pai_id_fkey"
             columns: ["meta_pai_id"]
@@ -4566,7 +4566,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "ordem_servico"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "os_produtos_contratados_produto_segmento_id_fkey"
             columns: ["produto_segmento_id"]
@@ -4602,7 +4602,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "cliente_clusters_cluster_id_fkey"
             columns: ["cluster_id"]
@@ -4712,14 +4712,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "grupo_tributo"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "distribuicao_dcomp_codigo_receita_id_fkey"
             columns: ["codigo_receita_id"]
             isOneToOne: false
             referencedRelation: "codigo_receita"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "distribuicao_dcomp_nr_documento_fkey"
             columns: ["nr_documento"]
@@ -4827,28 +4827,28 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processes"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "process_scenarios_parent_scenario_id_fkey"
             columns: ["parent_scenario_id"]
             isOneToOne: false
             referencedRelation: "process_scenarios"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "process_scenarios_improvement_id_fkey"
             columns: ["improvement_id"]
             isOneToOne: false
             referencedRelation: "process_improvements"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "process_scenarios_project_id_fkey"
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "process_scenarios_created_by_fkey"
             columns: ["created_by"]
@@ -5076,42 +5076,42 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "pessoa_contribuinte_id_fkey"
             columns: ["contribuinte_id"]
             isOneToOne: false
             referencedRelation: "contribuinte"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "pessoa_conjuge_id_fkey"
             columns: ["conjuge_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "pessoa_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "pessoa_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "pessoa_filiacao_pai_pessoa_id_fkey"
             columns: ["filiacao_pai_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "pessoa_filiacao_mae_pessoa_id_fkey"
             columns: ["filiacao_mae_pessoa_id"]
@@ -5162,21 +5162,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "parentesco_parente_pessoa_id_fkey"
             columns: ["parente_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "parentesco_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "parentesco_updated_by_fkey"
             columns: ["updated_by"]
@@ -5224,7 +5224,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "cartorio_updated_by_fkey"
             columns: ["updated_by"]
@@ -5338,21 +5338,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "bem_empresa_destino_pessoa_id_fkey"
             columns: ["empresa_destino_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "bem_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "bem_updated_by_fkey"
             columns: ["updated_by"]
@@ -5475,35 +5475,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "matricula"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "matricula_cartorio_id_fkey"
             columns: ["cartorio_id"]
             isOneToOne: false
             referencedRelation: "cartorio"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "matricula_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "matricula_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "matricula_bem_id_fkey"
             columns: ["bem_id"]
             isOneToOne: false
             referencedRelation: "bem"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "matricula_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -5560,28 +5560,28 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "matricula"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "titularidade_titular_pessoa_id_fkey"
             columns: ["titular_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "titularidade_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "titularidade_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "titularidade_bem_id_fkey"
             columns: ["bem_id"]
@@ -5656,21 +5656,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "matricula"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "impedimento_credor_pessoa_id_fkey"
             columns: ["credor_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "impedimento_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "impedimento_updated_by_fkey"
             columns: ["updated_by"]
@@ -5736,7 +5736,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_flag_updated_by_fkey"
             columns: ["updated_by"]
@@ -5787,7 +5787,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_documento_updated_by_fkey"
             columns: ["updated_by"]
@@ -5871,35 +5871,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tmpl_bloco"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_bloco_bloco_origem_id_fkey"
             columns: ["bloco_origem_id"]
             isOneToOne: false
             referencedRelation: "tmpl_bloco"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_bloco_autor_id_fkey"
             columns: ["autor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_bloco_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_bloco_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_bloco_escopo_documento_raiz_fk"
             columns: ["escopo_documento_raiz_id"]
@@ -5962,21 +5962,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tmpl_bloco"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_bloco_versao_autor_id_fkey"
             columns: ["autor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_bloco_versao_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_bloco_versao_updated_by_fkey"
             columns: ["updated_by"]
@@ -6018,21 +6018,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "tmpl_bloco"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_bloco_flag_flag_id_fkey"
             columns: ["flag_id"]
             isOneToOne: false
             referencedRelation: "tmpl_flag"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_bloco_flag_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_bloco_flag_updated_by_fkey"
             columns: ["updated_by"]
@@ -6086,21 +6086,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_documento_bloco_documento_id_fkey"
             columns: ["documento_id"]
             isOneToOne: false
             referencedRelation: "tmpl_documento"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_documento_bloco_bloco_id_fkey"
             columns: ["bloco_id"]
             isOneToOne: false
             referencedRelation: "tmpl_bloco"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "tmpl_documento_bloco_created_by_fkey"
             columns: ["created_by"]
@@ -6154,35 +6154,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "projeto_flag_valor_pj_pessoa_id_fkey"
             columns: ["pj_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "projeto_flag_valor_flag_id_fkey"
             columns: ["flag_id"]
             isOneToOne: false
             referencedRelation: "tmpl_flag"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "projeto_flag_valor_setado_por_id_fkey"
             columns: ["setado_por_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "projeto_flag_valor_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "projeto_flag_valor_updated_by_fkey"
             columns: ["updated_by"]
@@ -6263,49 +6263,49 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_gerado_pj_pessoa_id_fkey"
             columns: ["pj_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_gerado_documento_template_id_fkey"
             columns: ["documento_template_id"]
             isOneToOne: false
             referencedRelation: "tmpl_documento"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_gerado_documento_anterior_id_fkey"
             columns: ["documento_anterior_id"]
             isOneToOne: false
             referencedRelation: "documento_gerado"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_gerado_documento_raiz_id_fkey"
             columns: ["documento_raiz_id"]
             isOneToOne: false
             referencedRelation: "documento_gerado"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_gerado_gerado_por_id_fkey"
             columns: ["gerado_por_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_gerado_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_gerado_updated_by_fkey"
             columns: ["updated_by"]
@@ -6362,28 +6362,28 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "documento_gerado"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_override_bloco_alvo_id_fkey"
             columns: ["bloco_alvo_id"]
             isOneToOne: false
             referencedRelation: "tmpl_bloco"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_override_bloco_substituto_id_fkey"
             columns: ["bloco_substituto_id"]
             isOneToOne: false
             referencedRelation: "tmpl_bloco"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_override_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_override_updated_by_fkey"
             columns: ["updated_by"]
@@ -6443,21 +6443,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "administracao_administrador_pessoa_id_fkey"
             columns: ["administrador_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "administracao_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "administracao_updated_by_fkey"
             columns: ["updated_by"]
@@ -6514,21 +6514,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "quadro_societario_socio_pessoa_id_fkey"
             columns: ["socio_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "quadro_societario_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "quadro_societario_updated_by_fkey"
             columns: ["updated_by"]
@@ -6600,35 +6600,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "capital_integralizacao_bem_id_fkey"
             columns: ["bem_id"]
             isOneToOne: false
             referencedRelation: "bem"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "capital_integralizacao_socio_pessoa_id_fkey"
             columns: ["socio_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "capital_integralizacao_empresa_destino_pessoa_id_fkey"
             columns: ["empresa_destino_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "capital_integralizacao_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "capital_integralizacao_updated_by_fkey"
             columns: ["updated_by"]
@@ -6723,7 +6723,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "documentos_processo"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documentos_processo_cluster_id_fk"
             columns: ["cluster_id"]
@@ -6833,7 +6833,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "job_roles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "etapa_responsaveis_etapa_fk"
             columns: ["etapa_id", "scenario"]
@@ -6875,7 +6875,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sistemas_processo"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "etapa_sistemas_etapa_fk"
             columns: ["etapa_id", "scenario"]
@@ -6920,7 +6920,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "documentos_processo"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "etapa_documentos_etapa_fk"
             columns: ["etapa_id", "scenario"]
@@ -6983,7 +6983,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "process_improvements"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "gargalos_cluster_id_fk"
             columns: ["cluster_id"]
@@ -7019,7 +7019,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gargalos"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "gargalo_processos_processo_id_fkey"
             columns: ["processo_id"]
@@ -7058,7 +7058,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "job_roles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "gargalo_responsaveis_gargalo_id_fkey"
             columns: ["gargalo_id"]
@@ -7132,7 +7132,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sistemas_processo"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sistema_clusters_cluster_id_fk"
             columns: ["cluster_id"]
@@ -7171,7 +7171,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "sistemas_processo"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "sistema_responsaveis_responsavel_id_fkey"
             columns: ["responsavel_id"]
@@ -7207,7 +7207,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "process_improvements"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "melhoria_processos_processo_id_fkey"
             columns: ["processo_id"]
@@ -7246,7 +7246,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "process_improvements"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "melhoria_sistemas_sistema_id_fkey"
             columns: ["sistema_id"]
@@ -7288,7 +7288,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "process_improvements"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "melhoria_responsaveis_responsavel_id_fkey"
             columns: ["responsavel_id"]
@@ -7359,7 +7359,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gargalos"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "gargalo_etapas_etapa_fk"
             columns: ["etapa_id", "scenario"]
@@ -7395,7 +7395,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "gargalos"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "gargalo_melhorias_melhoria_id_fkey"
             columns: ["melhoria_id"]
@@ -7428,7 +7428,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_notificacao_visto_documento_gerado_id_fkey"
             columns: ["documento_gerado_id"]
@@ -7542,63 +7542,63 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_arquivo_bem_id_fkey"
             columns: ["bem_id"]
             isOneToOne: false
             referencedRelation: "bem"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_arquivo_matricula_id_fkey"
             columns: ["matricula_id"]
             isOneToOne: false
             referencedRelation: "matricula"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_arquivo_documento_tipo_id_fkey"
             columns: ["documento_tipo_id"]
             isOneToOne: false
             referencedRelation: "documento_tipo"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_arquivo_revisao_por_fkey"
             columns: ["revisao_por"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_arquivo_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_arquivo_documento_gerado_id_fkey"
             columns: ["documento_gerado_id"]
             isOneToOne: false
             referencedRelation: "documento_gerado"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_arquivo_solicitacao_id_fkey"
             columns: ["solicitacao_id"]
             isOneToOne: false
             referencedRelation: "solicitacao"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_arquivo_checklist_item_id_fkey"
             columns: ["checklist_item_id"]
             isOneToOne: false
             referencedRelation: "checklist_cliente_item"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_arquivo_checklist_item_id_fkey"
             columns: ["checklist_item_id"]
@@ -7667,7 +7667,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "dashboards_updated_by_fkey"
             columns: ["updated_by"]
@@ -7739,7 +7739,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "processes"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "roi_snapshots_created_by_fkey"
             columns: ["created_by"]
@@ -7778,14 +7778,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dashboards"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "dashboard_cluster_access_cluster_id_fkey"
             columns: ["cluster_id"]
             isOneToOne: false
             referencedRelation: "estrutura_clusters"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "dashboard_cluster_access_created_by_fkey"
             columns: ["created_by"]
@@ -7824,14 +7824,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dashboards"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "dashboard_cliente_access_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "dashboard_cliente_access_created_by_fkey"
             columns: ["created_by"]
@@ -7915,7 +7915,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "documento_tipo_solicitacao_item_id_fkey"
             columns: ["solicitacao_item_id"]
@@ -8002,28 +8002,28 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "checklist_cliente_item_item_padrao_id_fkey"
             columns: ["item_padrao_id"]
             isOneToOne: false
             referencedRelation: "documento_tipo"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "checklist_cliente_item_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "checklist_cliente_item_bem_id_fkey"
             columns: ["bem_id"]
             isOneToOne: false
             referencedRelation: "bem"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "checklist_cliente_item_matricula_id_fkey"
             columns: ["matricula_id"]
@@ -8122,21 +8122,21 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "exploracao_rural_bem_id_fkey"
             columns: ["bem_id"]
             isOneToOne: false
             referencedRelation: "bem"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "exploracao_rural_explorador_pessoa_id_fkey"
             columns: ["explorador_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "exploracao_rural_outorgante_pessoa_id_fkey"
             columns: ["outorgante_pessoa_id"]
@@ -8208,28 +8208,28 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_projects"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_comments_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "org_comments"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_comments_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_comments_excluido_por_fkey"
             columns: ["excluido_por"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_comments_parent_id_fkey"
             columns: ["parent_id"]
@@ -8271,14 +8271,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_comments"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_comment_mentions_mentioned_user_id_fkey"
             columns: ["mentioned_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_comment_mentions_comment_id_fkey"
             columns: ["comment_id"]
@@ -8332,14 +8332,14 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "org_comments"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_comment_attachments_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "org_comment_attachments_comment_id_fkey"
             columns: ["comment_id"]
@@ -8387,7 +8387,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "documento_tipo"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "produto_documento_tipo_produto_segmento_id_fkey"
             columns: ["produto_segmento_id"]
@@ -8444,7 +8444,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "solicitacao_ordem_servico_id_fkey"
             columns: ["ordem_servico_id"]
@@ -8513,7 +8513,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "solicitacao"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "solicitacao_item_item_padrao_id_fkey"
             columns: ["item_padrao_id"]
@@ -8599,35 +8599,35 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "solicitacao_item"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "solicitacao_item_nao_aplicavel_cliente_id_fkey"
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "cliente"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "solicitacao_item_nao_aplicavel_pessoa_id_fkey"
             columns: ["pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "solicitacao_item_nao_aplicavel_bem_id_fkey"
             columns: ["bem_id"]
             isOneToOne: false
             referencedRelation: "bem"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "solicitacao_item_nao_aplicavel_matricula_id_fkey"
             columns: ["matricula_id"]
             isOneToOne: false
             referencedRelation: "matricula"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "solicitacao_item_nao_aplicavel_created_by_fkey"
             columns: ["created_by"]
@@ -8808,7 +8808,7 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "notificacao"
             referencedColumns: ["id"]
-          }
+          },
           {
             foreignKeyName: "notificacao_envio_destinatario_id_fkey"
             columns: ["destinatario_id"]
