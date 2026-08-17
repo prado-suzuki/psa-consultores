@@ -68,17 +68,17 @@ export type Database = {
         Row: {
           id: string
           user_id: string
-          role: unknown
+          role: Database["public"]["Enums"]["app_role"]
         }
         Insert: {
           id?: string
           user_id: string
-          role?: unknown
+          role?: Database["public"]["Enums"]["app_role"]
         }
         Update: {
           id?: string
           user_id?: string
-          role?: unknown
+          role?: Database["public"]["Enums"]["app_role"]
         }
         Relationships: [
           {
@@ -2591,18 +2591,18 @@ export type Database = {
           id: string
           title: string
           description: string | null
-          status: unknown
-          priority: unknown
+          status: Database["public"]["Enums"]["fiscal_task_status"]
+          priority: Database["public"]["Enums"]["fiscal_task_priority"]
           assigned_to: string | null
           assigned_to_name: string | null
           created_by: string | null
           due_date: string | null
           due_time: string | null
           is_recurring: boolean | null
-          recurrence_type: unknown | null
-          category: unknown
+          recurrence_type: Database["public"]["Enums"]["fiscal_recurrence_type"] | null
+          category: Database["public"]["Enums"]["fiscal_task_category"]
           tags: string[] | null
-          department: unknown | null
+          department: Database["public"]["Enums"]["fiscal_task_department"] | null
           parent_task_id: string | null
           created_at: string | null
           updated_at: string | null
@@ -2621,18 +2621,18 @@ export type Database = {
           id?: string
           title: string
           description?: string | null
-          status?: unknown
-          priority?: unknown
+          status?: Database["public"]["Enums"]["fiscal_task_status"]
+          priority?: Database["public"]["Enums"]["fiscal_task_priority"]
           assigned_to?: string | null
           assigned_to_name?: string | null
           created_by?: string | null
           due_date?: string | null
           due_time?: string | null
           is_recurring?: boolean | null
-          recurrence_type?: unknown | null
-          category?: unknown
+          recurrence_type?: Database["public"]["Enums"]["fiscal_recurrence_type"] | null
+          category?: Database["public"]["Enums"]["fiscal_task_category"]
           tags?: string[] | null
-          department?: unknown | null
+          department?: Database["public"]["Enums"]["fiscal_task_department"] | null
           parent_task_id?: string | null
           created_at?: string | null
           updated_at?: string | null
@@ -2651,18 +2651,18 @@ export type Database = {
           id?: string
           title?: string
           description?: string | null
-          status?: unknown
-          priority?: unknown
+          status?: Database["public"]["Enums"]["fiscal_task_status"]
+          priority?: Database["public"]["Enums"]["fiscal_task_priority"]
           assigned_to?: string | null
           assigned_to_name?: string | null
           created_by?: string | null
           due_date?: string | null
           due_time?: string | null
           is_recurring?: boolean | null
-          recurrence_type?: unknown | null
-          category?: unknown
+          recurrence_type?: Database["public"]["Enums"]["fiscal_recurrence_type"] | null
+          category?: Database["public"]["Enums"]["fiscal_task_category"]
           tags?: string[] | null
-          department?: unknown | null
+          department?: Database["public"]["Enums"]["fiscal_task_department"] | null
           parent_task_id?: string | null
           created_at?: string | null
           updated_at?: string | null
@@ -4738,10 +4738,10 @@ export type Database = {
           project_id: string | null
           name: string
           description: string | null
-          scenario_kind: unknown
-          scenario_type: unknown
-          unit_basis: unknown
-          status: unknown
+          scenario_kind: Database["public"]["Enums"]["scenario_kind"]
+          scenario_type: Database["public"]["Enums"]["scenario_type"]
+          unit_basis: Database["public"]["Enums"]["scenario_unit_basis"]
+          status: Database["public"]["Enums"]["scenario_status"]
           varied_field: string
           locked_fields: string[]
           parameters: Json
@@ -4768,10 +4768,10 @@ export type Database = {
           project_id?: string | null
           name: string
           description?: string | null
-          scenario_kind: unknown
-          scenario_type?: unknown
-          unit_basis?: unknown
-          status?: unknown
+          scenario_kind: Database["public"]["Enums"]["scenario_kind"]
+          scenario_type?: Database["public"]["Enums"]["scenario_type"]
+          unit_basis?: Database["public"]["Enums"]["scenario_unit_basis"]
+          status?: Database["public"]["Enums"]["scenario_status"]
           varied_field: string
           locked_fields?: string[]
           parameters: Json
@@ -4798,10 +4798,10 @@ export type Database = {
           project_id?: string | null
           name?: string
           description?: string | null
-          scenario_kind?: unknown
-          scenario_type?: unknown
-          unit_basis?: unknown
-          status?: unknown
+          scenario_kind?: Database["public"]["Enums"]["scenario_kind"]
+          scenario_type?: Database["public"]["Enums"]["scenario_type"]
+          unit_basis?: Database["public"]["Enums"]["scenario_unit_basis"]
+          status?: Database["public"]["Enums"]["scenario_status"]
           varied_field?: string
           locked_fields?: string[]
           parameters?: Json
@@ -7442,8 +7442,8 @@ export type Database = {
         Row: {
           id: string
           cliente_id: string
-          fonte: unknown
-          categoria: unknown
+          fonte: Database["public"]["Enums"]["osg_doc_fonte"]
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"]
           bem_id: string | null
           matricula_id: string | null
           pessoa_id: string | null
@@ -7453,7 +7453,7 @@ export type Database = {
           checksum: string | null
           mime: string | null
           tamanho: number | null
-          status: unknown
+          status: Database["public"]["Enums"]["osg_doc_status"]
           excluido: boolean
           ambiente: string
           created_at: string
@@ -7461,12 +7461,12 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           checklist_item_id: string | null
-          area: unknown | null
+          area: Database["public"]["Enums"]["osg_doc_area"] | null
           solicitacao_id: string | null
           triado_em: string | null
           triado_por: string | null
           documento_tipo_id: string | null
-          revisao: unknown
+          revisao: Database["public"]["Enums"]["osg_doc_revisao"]
           revisao_em: string | null
           revisao_por: string | null
           revisao_motivo: string | null
@@ -7474,8 +7474,8 @@ export type Database = {
         Insert: {
           id?: string
           cliente_id: string
-          fonte?: unknown
-          categoria: unknown
+          fonte?: Database["public"]["Enums"]["osg_doc_fonte"]
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"]
           bem_id?: string | null
           matricula_id?: string | null
           pessoa_id?: string | null
@@ -7485,7 +7485,7 @@ export type Database = {
           checksum?: string | null
           mime?: string | null
           tamanho?: number | null
-          status?: unknown
+          status?: Database["public"]["Enums"]["osg_doc_status"]
           excluido?: boolean
           ambiente?: string
           created_at?: string
@@ -7493,12 +7493,12 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           checklist_item_id?: string | null
-          area?: unknown | null
+          area?: Database["public"]["Enums"]["osg_doc_area"] | null
           solicitacao_id?: string | null
           triado_em?: string | null
           triado_por?: string | null
           documento_tipo_id?: string | null
-          revisao?: unknown
+          revisao?: Database["public"]["Enums"]["osg_doc_revisao"]
           revisao_em?: string | null
           revisao_por?: string | null
           revisao_motivo?: string | null
@@ -7506,8 +7506,8 @@ export type Database = {
         Update: {
           id?: string
           cliente_id?: string
-          fonte?: unknown
-          categoria?: unknown
+          fonte?: Database["public"]["Enums"]["osg_doc_fonte"]
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"]
           bem_id?: string | null
           matricula_id?: string | null
           pessoa_id?: string | null
@@ -7517,7 +7517,7 @@ export type Database = {
           checksum?: string | null
           mime?: string | null
           tamanho?: number | null
-          status?: unknown
+          status?: Database["public"]["Enums"]["osg_doc_status"]
           excluido?: boolean
           ambiente?: string
           created_at?: string
@@ -7525,12 +7525,12 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           checklist_item_id?: string | null
-          area?: unknown | null
+          area?: Database["public"]["Enums"]["osg_doc_area"] | null
           solicitacao_id?: string | null
           triado_em?: string | null
           triado_por?: string | null
           documento_tipo_id?: string | null
-          revisao?: unknown
+          revisao?: Database["public"]["Enums"]["osg_doc_revisao"]
           revisao_em?: string | null
           revisao_por?: string | null
           revisao_motivo?: string | null
@@ -7622,7 +7622,7 @@ export type Database = {
           updated_at: string
           updated_by: string | null
           sop_url: string | null
-          min_role: unknown | null
+          min_role: Database["public"]["Enums"]["app_role"] | null
           grupo: string | null
           all_clusters: boolean
         }
@@ -7639,7 +7639,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           sop_url?: string | null
-          min_role?: unknown | null
+          min_role?: Database["public"]["Enums"]["app_role"] | null
           grupo?: string | null
           all_clusters?: boolean
         }
@@ -7656,7 +7656,7 @@ export type Database = {
           updated_at?: string
           updated_by?: string | null
           sop_url?: string | null
-          min_role?: unknown | null
+          min_role?: Database["public"]["Enums"]["app_role"] | null
           grupo?: string | null
           all_clusters?: boolean
         }
@@ -7849,7 +7849,7 @@ export type Database = {
           entidade: string
           documento: string
           nota: string | null
-          categoria: unknown | null
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox: string | null
           confidencial: boolean
           obrigatorio_default: boolean
@@ -7860,7 +7860,7 @@ export type Database = {
           created_by: string | null
           updated_at: string
           updated_by: string | null
-          grupo: unknown
+          grupo: Database["public"]["Enums"]["osg_doc_grupo"]
           cliente_id: string | null
           solicitacao_item_id: string | null
         }
@@ -7871,7 +7871,7 @@ export type Database = {
           entidade: string
           documento: string
           nota?: string | null
-          categoria?: unknown | null
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox?: string | null
           confidencial?: boolean
           obrigatorio_default?: boolean
@@ -7882,7 +7882,7 @@ export type Database = {
           created_by?: string | null
           updated_at?: string
           updated_by?: string | null
-          grupo: unknown
+          grupo: Database["public"]["Enums"]["osg_doc_grupo"]
           cliente_id?: string | null
           solicitacao_item_id?: string | null
         }
@@ -7893,7 +7893,7 @@ export type Database = {
           entidade?: string
           documento?: string
           nota?: string | null
-          categoria?: unknown | null
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox?: string | null
           confidencial?: boolean
           obrigatorio_default?: boolean
@@ -7904,7 +7904,7 @@ export type Database = {
           created_by?: string | null
           updated_at?: string
           updated_by?: string | null
-          grupo?: unknown
+          grupo?: Database["public"]["Enums"]["osg_doc_grupo"]
           cliente_id?: string | null
           solicitacao_item_id?: string | null
         }
@@ -7934,12 +7934,12 @@ export type Database = {
           entidade: string
           documento: string
           nota: string | null
-          categoria: unknown | null
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox: string | null
           confidencial: boolean
           obrigatorio: boolean
-          origem: unknown
-          status: unknown
+          origem: Database["public"]["Enums"]["osg_checklist_origem"]
+          status: Database["public"]["Enums"]["osg_checklist_status"]
           pessoa_id: string | null
           bem_id: string | null
           matricula_id: string | null
@@ -7957,12 +7957,12 @@ export type Database = {
           entidade: string
           documento: string
           nota?: string | null
-          categoria?: unknown | null
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox?: string | null
           confidencial?: boolean
           obrigatorio?: boolean
-          origem?: unknown
-          status?: unknown
+          origem?: Database["public"]["Enums"]["osg_checklist_origem"]
+          status?: Database["public"]["Enums"]["osg_checklist_status"]
           pessoa_id?: string | null
           bem_id?: string | null
           matricula_id?: string | null
@@ -7980,12 +7980,12 @@ export type Database = {
           entidade?: string
           documento?: string
           nota?: string | null
-          categoria?: unknown | null
+          categoria?: Database["public"]["Enums"]["osg_doc_categoria"] | null
           categoria_docbox?: string | null
           confidencial?: boolean
           obrigatorio?: boolean
-          origem?: unknown
-          status?: unknown
+          origem?: Database["public"]["Enums"]["osg_checklist_origem"]
+          status?: Database["public"]["Enums"]["osg_checklist_status"]
           pessoa_id?: string | null
           bem_id?: string | null
           matricula_id?: string | null
@@ -8038,7 +8038,7 @@ export type Database = {
           id: string
           cliente_id: string
           referencia: string | null
-          tipo_exploracao: unknown
+          tipo_exploracao: Database["public"]["Enums"]["osg_tipo_exploracao"]
           bem_id: string | null
           imovel_descricao: string | null
           matricula_texto: string | null
@@ -8065,7 +8065,7 @@ export type Database = {
           id?: string
           cliente_id: string
           referencia?: string | null
-          tipo_exploracao: unknown
+          tipo_exploracao: Database["public"]["Enums"]["osg_tipo_exploracao"]
           bem_id?: string | null
           imovel_descricao?: string | null
           matricula_texto?: string | null
@@ -8092,7 +8092,7 @@ export type Database = {
           id?: string
           cliente_id?: string
           referencia?: string | null
-          tipo_exploracao?: unknown
+          tipo_exploracao?: Database["public"]["Enums"]["osg_tipo_exploracao"]
           bem_id?: string | null
           imovel_descricao?: string | null
           matricula_texto?: string | null
@@ -8149,11 +8149,11 @@ export type Database = {
       org_comments: {
         Row: {
           id: string
-          entity_type: unknown
+          entity_type: Database["public"]["Enums"]["org_comment_entity"]
           entity_id: string
           project_id: string
           parent_id: string | null
-          kind: unknown
+          kind: Database["public"]["Enums"]["org_comment_kind"]
           body: string
           metadata: Json
           author_id: string | null
@@ -8167,11 +8167,11 @@ export type Database = {
         }
         Insert: {
           id?: string
-          entity_type: unknown
+          entity_type: Database["public"]["Enums"]["org_comment_entity"]
           entity_id: string
           project_id: string
           parent_id?: string | null
-          kind?: unknown
+          kind?: Database["public"]["Enums"]["org_comment_kind"]
           body: string
           metadata?: Json
           author_id?: string | null
@@ -8185,11 +8185,11 @@ export type Database = {
         }
         Update: {
           id?: string
-          entity_type?: unknown
+          entity_type?: Database["public"]["Enums"]["org_comment_entity"]
           entity_id?: string
           project_id?: string
           parent_id?: string | null
-          kind?: unknown
+          kind?: Database["public"]["Enums"]["org_comment_kind"]
           body?: string
           metadata?: Json
           author_id?: string | null
@@ -8402,7 +8402,7 @@ export type Database = {
           id: string
           cliente_id: string
           ordem_servico_id: string | null
-          status: unknown
+          status: Database["public"]["Enums"]["osg_solicitacao_status"]
           enviada_em: string | null
           encerrada_em: string | null
           observacao: string | null
@@ -8415,7 +8415,7 @@ export type Database = {
           id?: string
           cliente_id: string
           ordem_servico_id?: string | null
-          status?: unknown
+          status?: Database["public"]["Enums"]["osg_solicitacao_status"]
           enviada_em?: string | null
           encerrada_em?: string | null
           observacao?: string | null
@@ -8428,7 +8428,7 @@ export type Database = {
           id?: string
           cliente_id?: string
           ordem_servico_id?: string | null
-          status?: unknown
+          status?: Database["public"]["Enums"]["osg_solicitacao_status"]
           enviada_em?: string | null
           encerrada_em?: string | null
           observacao?: string | null
@@ -8460,11 +8460,11 @@ export type Database = {
           solicitacao_id: string
           item_padrao_id: string | null
           granularidade: string
-          grupo: unknown
+          grupo: Database["public"]["Enums"]["osg_doc_grupo"]
           documento: string | null
           entidade: string | null
           nota: string | null
-          status: unknown
+          status: Database["public"]["Enums"]["osg_solicitacao_item_status"]
           ordem: number
           observacao: string | null
           created_at: string
@@ -8477,11 +8477,11 @@ export type Database = {
           solicitacao_id: string
           item_padrao_id?: string | null
           granularidade: string
-          grupo: unknown
+          grupo: Database["public"]["Enums"]["osg_doc_grupo"]
           documento?: string | null
           entidade?: string | null
           nota?: string | null
-          status?: unknown
+          status?: Database["public"]["Enums"]["osg_solicitacao_item_status"]
           ordem?: number
           observacao?: string | null
           created_at?: string
@@ -8494,11 +8494,11 @@ export type Database = {
           solicitacao_id?: string
           item_padrao_id?: string | null
           granularidade?: string
-          grupo?: unknown
+          grupo?: Database["public"]["Enums"]["osg_doc_grupo"]
           documento?: string | null
           entidade?: string | null
           nota?: string | null
-          status?: unknown
+          status?: Database["public"]["Enums"]["osg_solicitacao_item_status"]
           ordem?: number
           observacao?: string | null
           created_at?: string
@@ -8670,7 +8670,7 @@ export type Database = {
         Row: {
           id: string
           destinatario_id: string
-          tipo: unknown
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
           titulo: string
           corpo: string | null
           entidade_tipo: string
@@ -8688,7 +8688,7 @@ export type Database = {
         Insert: {
           id?: string
           destinatario_id: string
-          tipo: unknown
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
           titulo: string
           corpo?: string | null
           entidade_tipo: string
@@ -8706,7 +8706,7 @@ export type Database = {
         Update: {
           id?: string
           destinatario_id?: string
-          tipo?: unknown
+          tipo?: Database["public"]["Enums"]["notificacao_tipo"]
           titulo?: string
           corpo?: string | null
           entidade_tipo?: string
@@ -8735,8 +8735,8 @@ export type Database = {
         Row: {
           id: string
           notificacao_id: string | null
-          canal: unknown
-          tipo: unknown
+          canal: Database["public"]["Enums"]["notificacao_canal"]
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
           entidade_tipo: string
           entidade_id: string
           agrupamento_chave: string | null
@@ -8748,7 +8748,7 @@ export type Database = {
           erro: string | null
           metadata: Json
           enviado_em: string | null
-          status: unknown
+          status: Database["public"]["Enums"]["notificacao_envio_status"]
           entregue_em: string | null
           lido_em: string | null
           erro_codigo: string | null
@@ -8758,8 +8758,8 @@ export type Database = {
         Insert: {
           id?: string
           notificacao_id?: string | null
-          canal: unknown
-          tipo: unknown
+          canal: Database["public"]["Enums"]["notificacao_canal"]
+          tipo: Database["public"]["Enums"]["notificacao_tipo"]
           entidade_tipo: string
           entidade_id: string
           agrupamento_chave?: string | null
@@ -8771,7 +8771,7 @@ export type Database = {
           erro?: string | null
           metadata?: Json
           enviado_em?: string | null
-          status?: unknown
+          status?: Database["public"]["Enums"]["notificacao_envio_status"]
           entregue_em?: string | null
           lido_em?: string | null
           erro_codigo?: string | null
@@ -8781,8 +8781,8 @@ export type Database = {
         Update: {
           id?: string
           notificacao_id?: string | null
-          canal?: unknown
-          tipo?: unknown
+          canal?: Database["public"]["Enums"]["notificacao_canal"]
+          tipo?: Database["public"]["Enums"]["notificacao_tipo"]
           entidade_tipo?: string
           entidade_id?: string
           agrupamento_chave?: string | null
@@ -8794,7 +8794,7 @@ export type Database = {
           erro?: string | null
           metadata?: Json
           enviado_em?: string | null
-          status?: unknown
+          status?: Database["public"]["Enums"]["notificacao_envio_status"]
           entregue_em?: string | null
           lido_em?: string | null
           erro_codigo?: string | null
@@ -8934,11 +8934,11 @@ export type Database = {
       org_comments_feed: {
         Row: {
           id: string | null
-          entity_type: unknown | null
+          entity_type: Database["public"]["Enums"]["org_comment_entity"] | null
           entity_id: string | null
           project_id: string | null
           parent_id: string | null
-          kind: unknown | null
+          kind: Database["public"]["Enums"]["org_comment_kind"] | null
           body: string | null
           metadata: Json | null
           author_id: string | null
@@ -8994,9 +8994,9 @@ export type Database = {
           entidade_catalogo: string | null
           modulo: string | null
           documento: string | null
-          categoria: unknown | null
+          categoria: Database["public"]["Enums"]["osg_doc_categoria"] | null
           obrigatorio: boolean | null
-          status: unknown | null
+          status: Database["public"]["Enums"]["osg_checklist_status"] | null
           arquivos_vinculados: number | null
         }
         Relationships: [
