@@ -163,9 +163,12 @@ export function validateProjectForm(
   if (form.leader_ids.length === 0) return 'Selecione ao menos um Líder Geral';
   if (!semExecutorFixo && !form.responsible_id) return 'Selecione o Responsável Executor';
   if (form.member_ids.length === 0) return 'Selecione ao menos um Membro do Projeto';
-  if (!form.start_date) return 'Data de Início é obrigatória';
-  if (!form.end_date) return 'Data de Término é obrigatória';
-  if (form.start_date > form.end_date) return 'Data de Término deve ser posterior à Data de Início';
+  // O período vem da OS e não é digitável no modal, então a mensagem tem de dizer
+  // onde se conserta: a frase antiga ("Data de Início é obrigatória") mandava
+  // preencher um campo que a tela não oferece.
+  if (!form.start_date) return 'A OS vinculada não tem Data Início — informe-a na OS, no cadastro do cliente';
+  if (!form.end_date) return 'A OS vinculada não tem Data Fim — informe-a na OS, no cadastro do cliente';
+  if (form.start_date > form.end_date) return 'Na OS vinculada, a Data Fim é anterior à Data Início — corrija na OS';
   if (!form.description.trim()) return 'Descrição do Projeto é obrigatória';
   return null;
 }

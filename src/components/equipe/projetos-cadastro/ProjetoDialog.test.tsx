@@ -264,8 +264,12 @@ describe('ProjetoDialog — edição', () => {
 
     expect(screen.getByLabelText('Status')).toHaveTextContent('Ativo');
     expect(screen.getByLabelText('Responsável')).toHaveTextContent('Ana S');
-    expect(screen.getByLabelText('Início')).toHaveValue('2026-04-01');
-    expect(screen.getByLabelText('Término')).toHaveValue('2026-06-30');
+    // Período herdado da OS: pílula de leitura com a data formatada, sem campo
+    // para digitar. Quem muda o período muda a OS.
+    expect(screen.getByLabelText('Início')).toHaveValue('01/04/2026');
+    expect(screen.getByLabelText('Término')).toHaveValue('30/06/2026');
+    expect(screen.getByLabelText('Início')).toHaveAttribute('readonly');
+    expect(screen.getByLabelText('Término')).toHaveAttribute('readonly');
     // O responsável não é repetido na seção Equipe.
     expect(screen.queryByText('Responsável Executor')).not.toBeInTheDocument();
   });
@@ -345,8 +349,10 @@ describe('ProjetoDialog — criação', () => {
     // As mesmas pílulas da edição: status, responsável e período.
     expect(screen.getByLabelText('Status')).toHaveTextContent('Ativo');
     expect(screen.getByLabelText('Responsável')).toHaveTextContent('Selecione');
-    expect(screen.getByLabelText('Início')).toHaveValue('');
-    expect(screen.getByLabelText('Término')).toHaveValue('');
+    // Sem OS escolhida ainda não há período: o travessão é o vazio da pílula de
+    // leitura, que espera a data vir da OS.
+    expect(screen.getByLabelText('Início')).toHaveValue('—');
+    expect(screen.getByLabelText('Término')).toHaveValue('—');
 
     expect(screen.getByLabelText('Descrição do Projeto')).toBeInTheDocument();
     // O responsável executor não é repetido na seção Equipe, como na edição.

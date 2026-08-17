@@ -210,6 +210,20 @@ describe('validateOrdemServico', () => {
     expect(validateOrdemServico(os({ regiao: '' }))).toMatch(/Região/);
   });
 
+  // O cadastro de projeto herda o período da OS e não oferece campo de data:
+  // deixar a OS salvar sem início ou fim é o que tornava o projeto insalvável.
+  it('exige o período, que é o que o projeto herda', () => {
+    expect(validateOrdemServico(os({ data_inicio_projeto: '' }))).toMatch(/Data Início/);
+    expect(validateOrdemServico(os({ data_fim_projeto: '' }))).toMatch(/Data Fim/);
+  });
+
+  it('recusa fim anterior ao início', () => {
+    const erro = validateOrdemServico(os({
+      data_inicio_projeto: '2026-06-15', data_fim_projeto: '2026-01-15',
+    }));
+    expect(erro).toMatch(/Data Fim deve ser posterior/);
+  });
+
   it('exige ao menos um produto e uma linha de rateio', () => {
     expect(validateOrdemServico(os({ produtos_contratados: [] }))).toMatch(/Produto Contratado/);
     expect(validateOrdemServico(os({ distribuicao_receita: [] }))).toMatch(/Centro de Custo/);

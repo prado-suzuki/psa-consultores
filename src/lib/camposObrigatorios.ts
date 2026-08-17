@@ -183,6 +183,15 @@ export function pendenciasOrdemServico(c: DraftOrdemServico): Pendencia[] {
   const add = (secao: number, campo: string, mensagem: string) =>
     faltas.push({ aba: 'contratos', itemId: c._id, secao, campo, mensagem });
 
+  // Seção 1 (Período): o projeto herda início e fim daqui e não tem campo de
+  // data própria, então OS sem período trava a criação do projeto lá na frente.
+  if (vazio(c.data_inicio_projeto)) add(1, 'data_inicio_projeto', 'Informe a data de início');
+  if (vazio(c.data_fim_projeto)) add(1, 'data_fim_projeto', 'Informe a data de fim');
+  if (!vazio(c.data_inicio_projeto) && !vazio(c.data_fim_projeto)
+    && c.data_inicio_projeto > c.data_fim_projeto) {
+    add(1, 'data_fim_projeto', 'A data de fim deve ser posterior à de início');
+  }
+
   if (vazio(c.setor_cliente_id)) add(2, 'setor_cliente_id', 'Selecione a área do negócio');
   if (vazio(c.regiao)) add(2, 'regiao', 'Selecione a região');
   if (!c.produtos_contratados?.length) add(3, 'produtos_contratados', 'Adicione ao menos um produto');

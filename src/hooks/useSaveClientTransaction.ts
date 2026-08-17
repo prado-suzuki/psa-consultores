@@ -6,6 +6,7 @@ import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuth } from '@/contexts/AuthContext';
 import { isProductionEnvironment, currentAmbiente } from '@/config/api';
 import { toast } from 'sonner';
+import { todayIsoBrazil } from '@/lib/dateUtils';
 import { computeFieldDiff, computeEntityListDiff } from '@/lib/diffUtils';
 import {
   isSameRecord,
@@ -668,7 +669,13 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             }
           }
         } else {
-          const { data: newOs, error } = await (supabase.from("ordem_servico" as any) as any).insert(buildOsFields(c)).select("id").single();
+          // Emissão é a data em que a OS foi criada, e é o insert que marca esse
+          // instante. O formulário já preenche na criação da linha, mas o
+          // fallback aqui fecha os caminhos que não passam por lá (rascunho
+          // antigo, OS clonada) — a coluna nunca nasce vazia.
+          const { data: newOs, error } = await (supabase.from("ordem_servico" as any) as any)
+            .insert({ ...buildOsFields(c), data_emissao: c.data_emissao || todayIsoBrazil() })
+            .select("id").single();
           if (error) throw error;
           osId = newOs.id;
         }

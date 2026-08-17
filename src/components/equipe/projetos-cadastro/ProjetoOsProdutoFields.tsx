@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { Calendar, FileText } from 'lucide-react';
+import { AlertCircle, Calendar, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,6 +20,8 @@ export function ProjetoOsProdutoFields() {
     formData, setFormData, clienteOS, osProdutosByOs, selectedOsId, setSelectedOsId,
     selectedOsProdutos, selectedProdutoId, setSelectedProdutoId,
   } = useProjetosCadastro();
+  const osSelecionada = clienteOS.find(os => os.id === selectedOsId);
+  const osSemPeriodo = Boolean(osSelecionada) && !(osSelecionada?.data_inicio && osSelecionada?.data_fim);
   return <>
     {formData.external_client_id && <div className="space-y-2">
       <Label className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"><FileText className="h-3.5 w-3.5" />Ordens de Serviço Vinculadas</Label>
@@ -39,6 +41,13 @@ export function ProjetoOsProdutoFields() {
           </div>;
         })}
         <p className="text-[11px] text-muted-foreground">{clienteOS.length > 1 ? `Este cliente possui ${clienteOS.length} ordens de serviço. Clique em uma OS para preencher as datas automaticamente.` : 'OS única selecionada automaticamente — datas de início e término preenchidas.'}</p>
+        {/* O período do projeto é o da OS e não é digitável aqui: sem este aviso,
+            a OS incompleta só se revelaria como uma recusa no botão Criar, com o
+            campo da data mostrando "—" e sem dizer onde se conserta. */}
+        {osSemPeriodo && <p className="flex items-start gap-1.5 text-[11px] text-destructive" role="alert">
+          <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden />
+          <span>Esta OS está sem data de início ou de fim. O projeto herda o período dela, então informe as datas na OS (cadastro do cliente, aba OS) antes de criar o projeto.</span>
+        </p>}
       </div>}
     </div>}
     {selectedOsId && selectedOsProdutos.length >= 1 && <div className="space-y-1.5">

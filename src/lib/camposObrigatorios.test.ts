@@ -42,6 +42,8 @@ const osCompleta = (over: Partial<DraftOrdemServico> = {}): DraftOrdemServico =>
     _id: 7,
     ordem_servico: '001/2026',
     cluster_id: 'c1',
+    data_inicio_projeto: '2026-01-10',
+    data_fim_projeto: '2026-12-20',
     setor_cliente_id: 's1',
     regiao: '3NO',
     produtos_contratados: [{ _id: 1, produto_segmento_id: 'p1' }],
@@ -146,7 +148,27 @@ describe('pendenciasOrdemServico', () => {
 
   it('cada falta sabe em qual seção mora', () => {
     const faltas = pendenciasOrdemServico({ _id: 9 } as DraftOrdemServico);
-    expect(new Set(faltas.map((f) => f.secao))).toEqual(new Set([2, 3, 5]));
+    expect(new Set(faltas.map((f) => f.secao))).toEqual(new Set([1, 2, 3, 5]));
+  });
+
+  // O projeto herda início e fim da OS e não tem campo de data editável: OS sem
+  // período deixa o projeto impossível de criar, e a falta precisa aparecer aqui.
+  it('período em falta cai na seção 01', () => {
+    const faltas = pendenciasOrdemServico(osCompleta({
+      data_inicio_projeto: '', data_fim_projeto: '',
+    }));
+    expect(faltas.map((f) => [f.secao, f.campo])).toEqual([
+      [1, 'data_inicio_projeto'],
+      [1, 'data_fim_projeto'],
+    ]);
+  });
+
+  it('fim anterior ao início é falta da data de fim', () => {
+    const faltas = pendenciasOrdemServico(osCompleta({
+      data_inicio_projeto: '2026-12-20', data_fim_projeto: '2026-01-10',
+    }));
+    expect(faltas.map((f) => f.campo)).toEqual(['data_fim_projeto']);
+    expect(faltas[0].mensagem).toContain('posterior');
   });
 });
 

@@ -444,9 +444,12 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
     expect(await screen.findByText(/OS: 001\/2026 — P01 — Consultoria/)).toBeInTheDocument();
     expect(screen.getByText('OS única selecionada automaticamente — datas de início e término preenchidas.')).toBeInTheDocument();
     // Depois do redesenho o período é pílula na faixa de propriedades
-    // ("Início" / "Término"), como na edição.
-    await waitFor(() => expect(inputNear(/^Início/)).toHaveValue('2026-01-10'));
-    expect(inputNear(/^Término/)).toHaveValue('2026-12-20');
+    // ("Início" / "Término"), como na edição. Herdado da OS e só de leitura: as
+    // pílulas mostram a data formatada, não um campo `type=date` para digitar.
+    await waitFor(() => expect(inputNear(/^Início/)).toHaveValue('10/01/2026'));
+    expect(inputNear(/^Término/)).toHaveValue('20/12/2026');
+    expect(inputNear(/^Início/)).toHaveAttribute('readonly');
+    expect(inputNear(/^Término/)).toHaveAttribute('readonly');
     expect(screen.getByText('P01 — Consultoria')).toBeInTheDocument();
 
     fireEvent.change(inputNear(/^Nome do Projeto/), { target: { value: 'Novo Fiscal' } });
@@ -491,8 +494,9 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
     // "Término"), com a thread de atividade do projeto na coluna da direita.
     expect(screen.getByRole('heading', { name: 'Editar Projeto' })).toBeInTheDocument();
     expect(screen.getByLabelText('Nome do Projeto')).toHaveValue('Zeta Tax');
-    expect(screen.getByLabelText('Início')).toHaveValue('2026-02-10');
-    expect(screen.getByLabelText('Término')).toHaveValue('2026-11-20');
+    // Período herdado da OS, em leitura: data formatada e sem campo para digitar.
+    expect(screen.getByLabelText('Início')).toHaveValue('10/02/2026');
+    expect(screen.getByLabelText('Término')).toHaveValue('20/11/2026');
     expect(screen.getByTestId('activity-panel')).toHaveAttribute('data-entity-type', 'org_project');
     expect(screen.getByTestId('activity-panel')).toHaveAttribute('data-entity-id', 'project-tax');
     expect(screen.getByTestId('anexos-agregados')).toHaveAttribute('data-entity-id', 'project-tax');

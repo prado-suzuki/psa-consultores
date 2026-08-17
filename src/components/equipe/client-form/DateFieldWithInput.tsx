@@ -5,16 +5,22 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { parseDate } from "@/lib/dateUtils";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { formatDateMask, parseDateMask, isoToMasked } from "./constants";
+import { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
 
 interface DateFieldWithInputProps {
   value: string;
   onChange: (iso: string) => void;
   label?: string;
+  /** A frase da falta, quando o campo obrigatório está vazio ou inválido. */
+  falta?: string;
+  /** Id da frase da falta, para o `aria-describedby`. Ver `MarcaPendencia`. */
+  idFalta?: string;
 }
 
-const DateFieldWithInput = ({ value, onChange, label }: DateFieldWithInputProps) => {
+const DateFieldWithInput = ({ value, onChange, label, falta, idFalta }: DateFieldWithInputProps) => {
   const [textValue, setTextValue] = useState(isoToMasked(value));
 
   useEffect(() => {
@@ -61,7 +67,8 @@ const DateFieldWithInput = ({ value, onChange, label }: DateFieldWithInputProps)
         onKeyDown={handleKeyDown}
         onBlur={handleTextBlur}
         placeholder="DD/MM/AAAA"
-        className="h-8 font-mono text-sm"
+        {...(idFalta ? acessibilidadeObrigatorio(idFalta, falta) : {})}
+        className={cn("h-8 font-mono text-sm", falta && CLASSE_CAMPO_PENDENTE)}
         maxLength={10}
       />
       <Popover>

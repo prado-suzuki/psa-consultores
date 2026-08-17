@@ -369,8 +369,8 @@ export function validateLoteRow(row: LoteRow, common: LoteCommon): string | null
   if (!row.semExecutorFixo && !row.responsibleId) return `${prefix}Selecione o Responsável Executor`;
   if (row.memberIds.length === 0) return `${prefix}Selecione ao menos um Membro do Projeto`;
   // Datas/status/descrição vêm da OS (não editáveis nesta tela); descrição é opcional.
-  if (!common.startDate) return 'A OS não possui Data de Início';
-  if (!common.endDate) return 'A OS não possui Data de Término';
-  if (common.startDate > common.endDate) return 'Data de Término deve ser posterior à Data de Início';
+  if (!common.startDate) return 'A OS não tem Data Início — informe-a na OS, no cadastro do cliente';
+  if (!common.endDate) return 'A OS não tem Data Fim — informe-a na OS, no cadastro do cliente';
+  if (common.startDate > common.endDate) return 'Na OS, a Data Fim é anterior à Data Início — corrija na OS';
   return null;
 }
