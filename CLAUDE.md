@@ -4,6 +4,20 @@ As convenções, regras inegociáveis e padrões de arquitetura deste repositór
 
 OBRIGATORIAMENTE Leia-o antes de qualquer alteração e siga-o como fonte única de verdade.
 
+## Qual banco esta na sua frente
+
+Existem dois: o sandbox (desenvolvimento) e producao. A regra completa esta na secao
+"Dois bancos" do AGENTS.md; o que muda a sua proxima acao:
+
+- Fora da `main`, o `bun run dev` aponta para o sandbox. Em `main`, para producao. Confira
+  com `git rev-parse --abbrev-ref HEAD` antes de concluir qualquer coisa sobre "o banco".
+- Voce pode aplicar migration no sandbox (`supabase db push`). Em producao, **nunca**: por
+  nenhum caminho, nem MCP. Aplicar em producao e passo humano pelo chat do Lovable.
+- `src/integrations/supabase/types.ts` se **regenera** pelo CLI, nunca se edita nem se
+  costura em conflito, e nunca vai para o `.gitignore` (a CI depende dele).
+- Antes de afirmar que uma coluna existe em producao, confira o schema pelo MCP do Lovable
+  (`query_database`, apenas SELECT). A tabela de migrations de la nao registra tudo.
+
 ## Validacoes locais mais rapidas
 
 - Durante o desenvolvimento, execute o ESLint apenas nos arquivos alterados: `bunx eslint <arquivos>`.

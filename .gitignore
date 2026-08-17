@@ -97,3 +97,8 @@ playwright-report/
 # Entries de preview descartáveis (conferir UI sem login) — nunca commitar
 /*-preview.html
 /src/__preview/
+
+# Estado local da CLI do Supabase (gerado por `supabase start`)
+supabase/.branches/
+supabase/.temp/
+# .env.development.local e .env.local já caem no `*.local` lá em cima
