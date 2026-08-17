@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const reactQueryMocks = vi.hoisted(() => ({
   useQuery: vi.fn((options: unknown) => options),
@@ -11,7 +11,9 @@ const qcMocks = vi.hoisted(() => ({ invalidateQueries: vi.fn() }));
 const apiMocks = vi.hoisted(() => ({ fetchWithAuth: vi.fn() }));
 const toastMocks = vi.hoisted(() => ({ toast: vi.fn() }));
 const auditMocks = vi.hoisted(() => ({ logAction: vi.fn() }));
-const dbMocks = vi.hoisted(() => ({ from: vi.fn(), update: vi.fn(), eq: vi.fn(), getUser: vi.fn() }));
+const dbMocks = vi.hoisted(() => ({
+  from: vi.fn(), update: vi.fn(), eq: vi.fn(), getUser: vi.fn(), rpc: vi.fn(),
+}));
 
 vi.mock('@tanstack/react-query', () => reactQueryMocks);
 vi.mock('@/hooks/useApiAuth', () => ({
@@ -26,13 +28,14 @@ vi.mock('@/config/api', () => ({
   currentAmbiente: 'dev',
 }));
 vi.mock('@/integrations/supabase/client', () => ({
-  supabase: { from: dbMocks.from, auth: { getUser: dbMocks.getUser } },
+  supabase: { from: dbMocks.from, rpc: dbMocks.rpc, auth: { getUser: dbMocks.getUser } },
 }));
 
 import {
-  useAtualizarDocumento, useExcluirDocumento, type AtualizarDocumentoPatch,
-  type DocumentoArquivoRow,
+  useAtualizarDocumento, useBaixarDocumento, useExcluirDocumento,
+  type AtualizarDocumentoPatch, type DocumentoArquivoRow,
 } from '@/hooks/useDocumentoArquivo';
+import { DOWNLOADS_QUERY_KEY } from '@/hooks/useDomainDocumentoDownload';
 
 const OBJECT_KEY = 'outros/cliente-1/objeto-1.pdf';
 
@@ -295,5 +298,105 @@ describe('useAtualizarDocumento — auditoria do vínculo (BER-41)', () => {
 
     expect(linha.id).toBe('doc-1');
     expect(linha.pessoa_id).toBe('P1');
+  });
+});
+
+describe('useBaixarDocumento — registro do acesso (EDU-8)', () => {
+  const RESPOSTA_ASSINADA = {
+    ok: true,
+    status: 200,
+    json: async () => ({ signed_url: 'https://storage.test/objeto-1.pdf?assinatura' }),
+  } as unknown as Response;
+
+  function baixarMutation() {
+    renderHook(() => useBaixarDocumento());
+    return reactQueryMocks.useMutation.mock.calls.map(
+      ([o]) =>
+        o as {
+          mutationFn: (row: DocumentoArquivoRow) => Promise<void>;
+          onSuccess: () => void;
+          onError: (e: unknown) => void;
+        },
+    )[0];
+  }
+
+  /** A gravação é disparada e esquecida: os avisos dela chegam num microtask. */
+  const esvaziarFila = () => new Promise(resolve => setTimeout(resolve, 0));
+
+  const abrir = vi.fn();
+  const erroNoConsole = vi.fn();
+  const ordem: string[] = [];
+
+  beforeEach(() => {
+    ordem.length = 0;
+    apiMocks.fetchWithAuth.mockResolvedValue(RESPOSTA_ASSINADA);
+    abrir.mockImplementation(() => {
+      ordem.push('abriu');
+      return null;
+    });
+    dbMocks.rpc.mockImplementation(() => {
+      ordem.push('registrou');
+      return Promise.resolve({ data: 'ev-1', error: null });
+    });
+    vi.stubGlobal('open', abrir);
+    vi.spyOn(console, 'error').mockImplementation(erroNoConsole);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('identifica o documento por id, nunca pela URI do objeto', async () => {
+    await baixarMutation().mutationFn(docRow());
+
+    expect(dbMocks.rpc).toHaveBeenCalledWith('registrar_download_documento', {
+      _documento_id: 'doc-1',
+    });
+  });
+
+  // A ordem é requisito, não estilo: adiar a abertura para fora do turno
+  // síncrono do gesto faz o navegador bloquear a janela.
+  it('grava depois de abrir a URL assinada, e não antes', async () => {
+    await baixarMutation().mutationFn(docRow());
+
+    expect(ordem).toEqual(['abriu', 'registrou']);
+  });
+
+  it('falha do registro não rejeita a mutação nem avisa o usuário', async () => {
+    dbMocks.rpc.mockResolvedValue({ data: null, error: { message: 'permission denied' } });
+
+    await expect(baixarMutation().mutationFn(docRow())).resolves.toBeUndefined();
+    await esvaziarFila();
+
+    // O download funcionou: transformar falha de auditoria em "erro ao baixar"
+    // mentiria sobre o que aconteceu. Por isso vai ao console, e não ao toast.
+    expect(toastMocks.toast).not.toHaveBeenCalled();
+    expect(erroNoConsole).toHaveBeenCalled();
+  });
+
+  it('exceção do registro também não derruba o download', async () => {
+    dbMocks.rpc.mockRejectedValue(new Error('rede caiu no meio'));
+
+    await expect(baixarMutation().mutationFn(docRow())).resolves.toBeUndefined();
+    await esvaziarFila();
+
+    expect(erroNoConsole).toHaveBeenCalled();
+  });
+
+  it('não registra tentativa que falhou antes de assinar', async () => {
+    apiMocks.fetchWithAuth.mockResolvedValue({ ok: false, status: 403 } as unknown as Response);
+
+    await expect(baixarMutation().mutationFn(docRow())).rejects.toThrow('Falha ao gerar link');
+    expect(abrir).not.toHaveBeenCalled();
+    expect(dbMocks.rpc).not.toHaveBeenCalled();
+  });
+
+  it('invalida a aba de auditoria por prefixo, sem saber qual período está aberto', () => {
+    baixarMutation().onSuccess();
+
+    expect(qcMocks.invalidateQueries).toHaveBeenCalledWith({
+      queryKey: [DOWNLOADS_QUERY_KEY],
+    });
   });
 });
