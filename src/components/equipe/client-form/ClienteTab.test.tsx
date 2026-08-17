@@ -8,7 +8,8 @@
 import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ClienteTab from '@/components/equipe/client-form/ClienteTab';
 import { defaultClientData } from '@/components/equipe/client-form/constants';
 import { mapearPendencias, pendenciasCliente } from '@/lib/camposObrigatorios';
@@ -43,9 +44,38 @@ function montar(inicial: Partial<DadosCliente> = {}, comPendencias = false) {
     );
   }
 
-  render(<Anfitriao />);
+  // O provedor é necessário desde que o município virou lista do IBGE: o campo
+  // consulta por UF. `retry: false` para o caso de erro falhar de uma vez.
+  const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <QueryClientProvider client={qc}>
+      <Anfitriao />
+    </QueryClientProvider>,
+  );
   return estado;
 }
+
+/**
+ * Municípios de MT como o IBGE devolve, com o aninhado que o parser descarta.
+ *
+ * A rede é simulada de propósito: teste que depende do IBGE no ar não é teste.
+ */
+const MUNICIPIOS_MT = ['Cuiabá', 'Nova Mutum', 'Sorriso'].map((nome) => ({
+  id: 5100000,
+  nome,
+  microrregiao: { mesorregiao: { UF: { sigla: 'MT' } } },
+}));
+
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => ({ ok: true, json: async () => MUNICIPIOS_MT }) as unknown as Response),
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const campoNome = () => screen.getByPlaceholderText('Ex: Grupo Empresarial Silva');
 
@@ -82,20 +112,69 @@ describe('B20 · a aba não normaliza a caixa do nome', () => {
 });
 
 describe('B18 · município e UF têm onde ser preenchidos', () => {
-  it('o município digitado chega ao rascunho que o salvamento envia', async () => {
-    const user = userEvent.setup();
-    const estado = montar();
+  // O município deixou de ser campo aberto: virou lista da UF (tarefa [4] da
+  // sprint 11). Digitar não é mais o caminho, e sem UF não há lista.
+  it('sem UF, o município não pode ser preenchido e a tela diz por quê', () => {
+    montar();
 
-    expect(estado.atual.municipio).toBe('');
-    await user.type(screen.getByPlaceholderText('Ex: Lucas do Rio Verde'), 'Sorriso');
-    expect(estado.atual.municipio).toBe('Sorriso');
+    const campo = screen.getByRole('button', { name: /Escolha a UF primeiro/ });
+    expect(campo).toBeDisabled();
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 
   it('mostra o que já estava gravado (colunas que a tela antes ignorava)', () => {
     montar({ municipio: 'Nova Mutum', uf: 'MT' });
-    expect(screen.getByPlaceholderText('Ex: Lucas do Rio Verde')).toHaveValue('Nova Mutum');
-    // A UF é lista fechada: o valor gravado aparece no gatilho do seletor.
+
+    // Município e UF aparecem no gatilho de cada seletor.
+    expect(screen.getByText('Nova Mutum')).toBeInTheDocument();
     expect(screen.getByText('MT')).toBeInTheDocument();
+  });
+
+  // Achado na validação de tela: o Radix não mostrava valor nem placeholder
+  // quando recebia "MATO GROSSO", e o campo parecia vazio num cliente que TEM
+  // UF preenchida. O seletor passou a receber a sigla.
+  it('UF gravada por extenso aparece como sigla, e não como campo vazio', () => {
+    montar({ municipio: 'CUIABA', uf: 'MATO GROSSO' });
+
+    expect(screen.getByText('MT')).toBeInTheDocument();
+    expect(screen.queryByText('MATO GROSSO')).not.toBeInTheDocument();
+  });
+
+  it('consulta a lista da UF gravada, uma vez', async () => {
+    montar({ municipio: 'Nova Mutum', uf: 'MT' });
+
+    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(global.fetch).mock.calls[0][0]).toContain('/estados/MT/municipios');
+  });
+
+  // A UF por extenso é metade do dado gravado hoje, herança de importação por
+  // planilha. Se a tradução para sigla falhasse, o campo nasceria sem lista.
+  it('UF por extenso também resolve a lista', async () => {
+    montar({ municipio: 'CUIABA', uf: 'MATO GROSSO' });
+
+    await vi.waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(global.fetch).mock.calls[0][0]).toContain('/estados/MT/municipios');
+  });
+
+  it('valor gravado que não é município da UF é marcado, não apagado', async () => {
+    montar({ municipio: 'Mapito', uf: 'MT' });
+
+    expect(await screen.findByText(/Não é município de MT/)).toBeInTheDocument();
+    // Continua na tela: apagar em silêncio perderia o dado sem ninguém ver.
+    expect(screen.getByText('Mapito')).toBeInTheDocument();
+  });
+
+  it('IBGE fora do ar não trava o cadastro: oferece digitar', async () => {
+    vi.mocked(global.fetch).mockRejectedValue(new Error('sem rede'));
+    const user = userEvent.setup();
+    const estado = montar({ uf: 'MT' });
+
+    // Espera folgada: o hook tenta de novo uma vez antes de desistir, e a nova
+    // tentativa tem atraso próprio.
+    await user.click(await screen.findByRole('button', { name: 'digitar' }, { timeout: 5000 }));
+    await user.type(screen.getByPlaceholderText('Ex: Lucas do Rio Verde'), 'Sorriso');
+
+    expect(estado.atual.municipio).toBe('Sorriso');
   });
 
   // A lista de UFs em si não é testada por interação: o `Select` do Radix não
