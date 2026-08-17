@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   concentracaoCarteira,
+  ratearPorCentroCusto,
   receitaEmRisco,
   entregasEmRisco,
   carteiraDormindo,
@@ -87,6 +88,50 @@ const area = (over: Partial<ResumoArea> & Pick<ResumoArea, 'area'>): ResumoArea 
   pontualidade: null,
   concluidas: 0,
   ...over,
+});
+
+// ── ratearPorCentroCusto ───────────────────────────────────────────────
+
+describe('ratearPorCentroCusto', () => {
+  const linhas = [
+    os({ os_id: 'a', cliente_id: 'c1', faturamento: 100_000 }),
+    os({ os_id: 'b', cliente_id: 'c2', faturamento: 50_000 }),
+  ];
+  const rateio = new Map([
+    ['a', [
+      { id: 'cc-1', label: 'CC 1', percentual: 60 },
+      { id: 'cc-2', label: 'CC 2', percentual: 40 },
+    ]],
+    ['b', [{ id: 'cc-2', label: 'CC 2', percentual: 100 }]],
+  ]);
+
+  it('sem centro escolhido, a coleção passa intacta', () => {
+    expect(ratearPorCentroCusto(linhas, rateio, null)).toBe(linhas);
+  });
+
+  it('com centro, a OS entra pela fatia dele', () => {
+    const r = ratearPorCentroCusto(linhas, rateio, 'cc-1');
+    expect(r).toHaveLength(1);
+    expect(r[0].faturamento).toBe(60_000);
+  });
+
+  it('OS sem fatia no centro some, em vez de entrar zerada', () => {
+    const r = ratearPorCentroCusto(linhas, rateio, 'cc-1');
+    expect(r.map((o) => o.os_id)).toEqual(['a']);
+  });
+
+  it('somar todos os centros devolve o valor cheio — nada some nem duplica', () => {
+    const total = ['cc-1', 'cc-2'].reduce(
+      (acc, cc) => acc + ratearPorCentroCusto(linhas, rateio, cc).reduce((s, o) => s + o.faturamento, 0),
+      0,
+    );
+    expect(total).toBe(150_000);
+  });
+
+  it('não muta as linhas originais', () => {
+    ratearPorCentroCusto(linhas, rateio, 'cc-1');
+    expect(linhas[0].faturamento).toBe(100_000);
+  });
 });
 
 // ── concentracaoCarteira ───────────────────────────────────────────────

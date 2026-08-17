@@ -14,7 +14,8 @@
  * "agora" implícita — `hoje` é sempre parâmetro ('YYYY-MM-DD'), como no resto
  * de `dashboardClientesOs`.
  */
-import type { ClienteRow, OsRow, ProjetoRow } from '@/lib/dashboardClientesOs/types';
+import type { ClienteRow, FatiaRateio, OsRow, ProjetoRow } from '@/lib/dashboardClientesOs/types';
+import { shareCentroCusto } from '@/lib/dashboardClientesOs/aggregations';
 import type { ResumoArea } from '@/lib/boardExecutivo';
 
 // ── Limiares das regras ────────────────────────────────────────────────
@@ -43,6 +44,37 @@ const DAY_MS = 86_400_000;
 /** 'YYYY-MM-DD' → ms UTC (mesma convenção de `dashboardClientesOs`). */
 function toUTCms(dateStr: string): number {
   return Date.parse(`${dateStr}T00:00:00Z`);
+}
+
+// ── Rateio por centro de custo ─────────────────────────────────────────
+
+/**
+ * Aplica o rateio de centro de custo ao faturamento das OS.
+ *
+ * DUAS operações independentes, e é importante não confundi-las:
+ *
+ * - a EMPRESA (cluster) inclui/exclui a OS inteira — atribuição, feita antes,
+ *   por `ordem_servico.cluster_id`. Não muda aqui;
+ * - o CENTRO DE CUSTO divide o valor da OS que sobrou. Ele é atributo da ÁREA
+ *   (`estrutura_areas.cost_center_id`), um nível abaixo da empresa.
+ *
+ * Sem centro escolhido a coleção passa intacta (`shareCentroCusto` devolve 1).
+ * Com um centro, a OS entra pela fatia dele e a que não tem fatia some — é o
+ * mesmo comportamento da tela "Clientes e OS", de propósito: as duas telas
+ * precisam responder o mesmo número para o mesmo recorte.
+ */
+export function ratearPorCentroCusto(
+  os: OsRow[],
+  rateioPorOs: Map<string, FatiaRateio[]>,
+  centroCustoId: string | null,
+): OsRow[] {
+  if (!centroCustoId) return os;
+  return os.reduce<OsRow[]>((acc, o) => {
+    const share = shareCentroCusto(o.os_id, rateioPorOs, centroCustoId);
+    if (share <= 0) return acc;
+    acc.push(share === 1 ? o : { ...o, faturamento: o.faturamento * share });
+    return acc;
+  }, []);
 }
 
 // ── Concentração da carteira ───────────────────────────────────────────

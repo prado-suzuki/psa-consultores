@@ -27,21 +27,23 @@ import { BoardEconomiaAcumulada } from '@/components/board/BoardEconomiaAcumulad
 import { BoardProjetosCriticos } from '@/components/board/BoardProjetosCriticos';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import {
-  BOARD_AREAS, filtrarPorCluster, filtrarTarefasPorProjetos, saudeProjetos,
-  consolidarRoi, serieRoiAcumulado, resumoPorArea, mesclarResumoArea,
-  type BoardAreaKey, type ResumoArea,
+  filtrarPorCluster, filtrarTarefasPorProjetos, saudeProjetos,
+  consolidarRoi, serieRoiAcumulado,
 } from '@/lib/boardExecutivo';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
 import {
-  alertasEstrategicos, concentracaoCarteira, receitaAnoCorrente, receitaEmRisco,
-  serieReceitaComparada, ticketMedioAtivo,
+  alertasEstrategicos, concentracaoCarteira, ratearPorCentroCusto, receitaAnoCorrente,
+  receitaEmRisco, serieReceitaComparada, ticketMedioAtivo,
 } from '@/lib/boardEstrategico';
-import { useDomainTrabalhoDigital } from '@/hooks/useDomainTrabalhoDigital';
-import { resumoDigital, diagnosticoDigital } from '@/lib/trabalhoDigital';
+import { centrosCustoEmUso } from '@/lib/dashboardClientesOs/aggregations';
+import { useBoardRollupAreas } from '@/hooks/useBoardRollupAreas';
 
 // O recorte por EMPRESA não mora aqui: vem da barra global (`useBoardCluster`),
-// que vale para a área Board inteira. Aqui fica só a janela de execução.
-const DEFAULTS = { periodo: '30d' };
+// que vale para a área Board inteira. Aqui ficam a janela de execução e o
+// centro de custo, que fatia a receita um nível abaixo da empresa.
+/** Sentinela do "sem recorte" no select de centro de custo. */
+const TODOS_CC = '__todos__';
+const DEFAULTS = { periodo: '30d', centroCusto: TODOS_CC };
 
 const MES_EXTENSO = [
   'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -60,8 +62,12 @@ const brlMil = (v: number) => Math.round(v / 1000);
  *   ruído, não informação.
  * - **Execução** (áreas, projetos críticos): a janela do filtro de período.
  *
- * O filtro de ÁREA recorta só a execução: receita vive na OS, que não tem área
- * (o mais próximo é centro de custo, e o rateio dele fica em "Clientes e OS").
+ * TRÊS recortes, em níveis diferentes da estrutura:
+ *
+ * - **Empresa** (barra global): inclui/exclui a OS inteira, por `cluster_id`;
+ * - **Centro de custo** (filtro da tela): divide o valor da OS que sobrou. É
+ *   atributo da ÁREA (`estrutura_areas.cost_center_id`), um nível abaixo;
+ * - **Período**: só a execução — receita usa o ano corrente, sempre rotulado.
  *
  * As linhas de receita vêm de `useDashboardClientesOs` — a MESMA fonte da tela
  * "Clientes e OS". Duas origens para o mesmo número nas duas telas seria a pior
@@ -76,6 +82,7 @@ const BoardDashboard = () => {
   // sessão — sem trocar a chave, o valor órfão voltaria do sessionStorage.
   const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({ pageKey: 'dashboard-v2', defaults: DEFAULTS });
   const periodo = filters.periodo as string;
+  const centroCusto = filters.centroCusto as string;
   const { cluster } = useBoardCluster();
 
   // Sempre 'todas': o recorte acontece aqui (`filtrarPorCluster`), porque esta
@@ -95,19 +102,47 @@ const BoardDashboard = () => {
   // A empresa global recorta a camada de negócio inteira — o que o filtro de
   // área ANTIGO nunca conseguiu, porque classificava por nome e OS não tem nome
   // de área. Toda linha aqui carrega `cluster_id`.
+  const rateioPorOs = negocio.data?.rateioPorOs;
+  const ccSelecionado = centroCusto === TODOS_CC ? null : centroCusto;
+
+  /**
+   * Duas operações em sequência, nesta ordem:
+   *   1. EMPRESA — inclui/exclui a OS inteira, por `cluster_id`;
+   *   2. CENTRO DE CUSTO — divide o valor da que sobrou.
+   * A atribuição à empresa NÃO passa pelo rateio: a OS pertence a um cluster só.
+   */
   const osRows = useMemo(
-    () => filtrarPorCluster(negocio.data?.osRows ?? [], cluster),
-    [negocio.data, cluster],
+    () => ratearPorCentroCusto(
+      filtrarPorCluster(negocio.data?.osRows ?? [], cluster),
+      rateioPorOs ?? new Map(),
+      ccSelecionado,
+    ),
+    [negocio.data, cluster, rateioPorOs, ccSelecionado],
   );
-  const clienteRows = useMemo(
-    () => filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster),
-    [negocio.data, cluster],
-  );
+  // Com centro de custo escolhido, a carteira é a dos clientes que têm OS nele —
+  // mesma regra da tela "Clientes e OS", senão o KPI de clientes ativos contaria
+  // quem ficou de fora da receita mostrada ao lado.
+  const clienteRows = useMemo(() => {
+    const base = filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster);
+    if (!ccSelecionado) return base;
+    const comOs = new Set(osRows.map((o) => o.cliente_id));
+    return base.filter((c) => comOs.has(c.cliente_id));
+  }, [negocio.data, cluster, ccSelecionado, osRows]);
   const projetoRows = useMemo(
     () => filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster),
     [negocio.data, cluster],
   );
   const hoje = negocio.hoje;
+
+  // Só os centros que aparecem em algum rateio — catálogo inteiro traria dezenas
+  // de opções que devolveriam tela vazia.
+  const ccOptions = useMemo(() => [
+    { value: TODOS_CC, label: 'Todos os centros de custo' },
+    ...centrosCustoEmUso(rateioPorOs ?? new Map()).map((c) => ({ value: c.id, label: c.label })),
+  ], [rateioPorOs]);
+  const ccLabel = ccSelecionado
+    ? ccOptions.find((o) => o.value === ccSelecionado)?.label ?? ccSelecionado
+    : null;
 
   const anoCorrente = hoje.slice(0, 4);
   const janelaReceita = `${anoCorrente} até ${MES_EXTENSO[Number(hoje.slice(5, 7)) - 1]}`;
@@ -157,71 +192,11 @@ const BoardDashboard = () => {
     ? `ciclo ${cicloAtivo?.nome ?? 'ativo'}`
     : `últimos ${diasJanela} dias`;
 
-  // ── Área Digital: fonte própria ────────────────────────────────────────
-  // Tax e OSG trabalham em `org_projects`/`org_tasks`; a Digital cadastra em
-  // `projects` (antiga) + `sprint_deliverables`. Sem esta segunda fonte a linha
-  // "Dev" apareceria vazia — e vazio, aqui, seria lido como "não produziu".
-  const janelaDigital = useMemo(
-    () => ({ desdeISO: periodFrom, ateISO: periodTo }),
-    [periodFrom, periodTo],
-  );
-  const { snapshotQuery: digitalQuery } = useDomainTrabalhoDigital({ janela: janelaDigital });
-  const digital = digitalQuery.data;
-
-  // `resumoDigital` devolve TODOS os buckets que achou: um entregável pode
-  // pertencer a projeto de mapeamento do Tax/OSG, e o que não resolve área cai
-  // em "outros". Levamos TODOS — filtrar só 'dev' faria o trabalho de sprint
-  // sem área vinculada desaparecer da tela. As fontes são tabelas distintas de
-  // `org_*`, então mesclar soma, não duplica.
-  const linhasDigital = useMemo<ResumoArea[]>(
-    () => (digital ? resumoDigital({ ...digital, janela: janelaDigital }) : []),
-    [digital, janelaDigital],
-  );
-
-  const diagDigital = useMemo(
-    () => (digital ? diagnosticoDigital({ ...digital, janela: janelaDigital }) : null),
-    [digital, janelaDigital],
-  );
-
-  const resumoAreas = useMemo(() => {
-    const porArea = new Map<BoardAreaKey, ResumoArea>(
-      resumoPorArea(projetos, tarefas).map((r) => [r.area, r]),
-    );
-    // A fonte da Digital (`sprint_deliverables`) não tem cluster: com empresa
-    // selecionada ela entraria inteira, somando trabalho de outras empresas na
-    // linha Dev. Fora do recorte é melhor ausente que errada — o rodapé avisa.
-    if (!cluster) {
-      for (const linha of linhasDigital) {
-        const existente = porArea.get(linha.area);
-        porArea.set(linha.area, existente ? mesclarResumoArea(existente, linha) : linha);
-      }
-    }
-    return [...porArea.values()]
-      // Ordem canônica das áreas, independente de qual fonte chegou primeiro.
-      .sort((a, b) => BOARD_AREAS.indexOf(a.area) - BOARD_AREAS.indexOf(b.area));
-  }, [projetos, tarefas, linhasDigital, cluster]);
-
-  /** Ressalvas do rodapé do rollup: fonte, acesso negado e dado incompleto. */
-  const notaAreas = useMemo(() => {
-    if (cluster) {
-      return 'Só tarefas de projeto (Tax/OSG): os entregáveis de sprint da Digital não têm cluster e ficam fora quando há uma empresa selecionada.';
-    }
-    const partes = ['Fontes somadas: tarefas de projeto (Tax/OSG) + entregáveis de sprint (Digital). Unidades de trabalho diferentes.'];
-    if (diagDigital && diagDigital.semVinculoDeProjeto > 0) {
-      partes.push(`${diagDigital.semVinculoDeProjeto} entregáveis de sprint sem projeto vinculado entraram em "Outros".`);
-    }
-    if (digital && !digital.podeLerEntregaveis) {
-      partes.push('Sem permissão para ler os entregáveis da Digital — a linha Dev não reflete o trabalho dela.');
-    } else if (digital?.entregaveisTruncados) {
-      partes.push('Entregáveis da Digital truncados no limite de leitura: a linha Dev está sobre uma fatia.');
-    } else if (diagDigital && diagDigital.concluidosSemCompletedAt > 0) {
-      partes.push(`${diagDigital.concluidosSemCompletedAt} entregáveis concluídos sem data de conclusão ficaram fora da conta.`);
-    }
-    if (digitalQuery.isError) {
-      partes.push('Falha ao carregar a fonte da Digital.');
-    }
-    return partes.join(' ');
-  }, [digital, diagDigital, digitalQuery.isError, cluster]);
+  // Rollup por área: soma a fonte da Digital (`sprint_deliverables`) à de
+  // projeto. Vive num hook porque carrega query própria — ver o porquê lá.
+  const { areas: resumoAreas, nota: notaAreas } = useBoardRollupAreas({
+    projetos, tarefas, desdeISO: periodFrom, ateISO: periodTo, cluster,
+  });
 
   // ── A faixa de decisão ─────────────────────────────────────────────────
   const alertas = useMemo(
@@ -244,7 +219,17 @@ const BoardDashboard = () => {
     ? undefined
     : 'Receita limitada aos clientes do seu acesso — não é o total da empresa.';
 
+  /**
+   * Com centro de custo escolhido, a receita da tela é uma FATIA da OS, não o
+   * valor contratado. Sem este aviso o número leria como "a empresa faturou
+   * isso" — e o sócio compararia fatia com total.
+   */
+  const notaRateio = ccLabel
+    ? `Receita rateada: só a fatia de "${ccLabel}" de cada OS. OS sem rateio nesse centro ficam fora.`
+    : undefined;
+
   const notaReceita = [
+    notaRateio,
     receita.semData > 0
       ? `${receita.semData} OS sem data de início ficaram fora da janela (não dá para atribuir ano).`
       : null,
@@ -330,6 +315,7 @@ const BoardDashboard = () => {
         <BoardFilterBar
           filters={[
             { key: 'periodo', label: 'Período (execução)', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
+            { key: 'centroCusto', label: 'Centro de custo (receita)', type: 'select', options: ccOptions },
           ]}
           activeFilters={filters}
           onFilterChange={setFilter}
@@ -380,7 +366,11 @@ const BoardDashboard = () => {
 
         {/* 4. O resultado econômico do ano */}
         <div className="v4-g2">
-          <BoardReceitaMensal serie={serieReceita} receita={receita} nota={notaEscopo} />
+          <BoardReceitaMensal
+            serie={serieReceita}
+            receita={receita}
+            nota={[notaRateio, notaEscopo].filter(Boolean).join(' ') || undefined}
+          />
           <BoardEconomiaAcumulada
             serie={serieRoi}
             economiaAnual={roi.economiaAnual}
