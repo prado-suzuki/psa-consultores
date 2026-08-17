@@ -73,8 +73,13 @@ function pgTypeToTs(typeObj, { nullable = false, forInsert = false, forUpdate = 
   return ts;
 }
 
+const typeByName = new Map(meta.types.map(t => [t.name, t]));
+
 function columnTsType(col) {
-  const typeObj = typeById.get(col.type_id) || { name: col.format || col.data_type };
+  let typeObj = typeById.get(col.type_id);
+  if (!typeObj && col.udt_name) typeObj = typeByName.get(col.udt_name);
+  if (!typeObj && col.data_type) typeObj = typeByName.get(col.data_type);
+  if (!typeObj) typeObj = { name: col.format || col.data_type };
   return pgTypeToTs(typeObj, { nullable: col.is_nullable });
 }
 
