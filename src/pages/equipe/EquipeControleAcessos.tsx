@@ -2,7 +2,7 @@ import { useState } from 'react';
 import EstruturaManager from '@/components/equipe/estrutura/EstruturaManager';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,9 +32,12 @@ import {
   FolderKanban,
   Workflow,
   LayoutDashboard,
+  Network,
+  Wallet,
 } from 'lucide-react';
 import { GestaoClientesContent } from '@/pages/equipe/fiscal/GestaoClientes';
 import CadastroCategorias from '@/components/equipe/CadastroCategorias';
+import CentroCustoTab from '@/components/equipe/CentroCustoTab';
 import { PagesTab } from '@/components/acessos/PagesTab';
 import { UsersTab } from '@/components/acessos/UsersTab';
 import DashboardsTab from '@/components/acessos/DashboardsTab';
@@ -272,7 +275,7 @@ const EquipeControleAcessos = () => {
                   className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
                 >
                   <FolderKanban className="h-4 w-4 mr-2" />
-                  Cadastro Categorias
+                  Produtos & Serviços
                 </TabsTrigger>
                 <TabsTrigger
                   value="dashboards"
@@ -293,9 +296,46 @@ const EquipeControleAcessos = () => {
                 <UsersTab />
               </TabsContent>
 
-              {/* Cadastros Estrutura Tab */}
+              {/* Cadastros Estrutura Tab — dona da estrutura organizacional:
+                  clusters/empresas, áreas, equipes, membros e centros de custo.
+                  Os dois cadastros são irmãos em sub-abas, nunca empilhados. */}
               <TabsContent value="cadastros" className="space-y-4">
-                <EstruturaManager />
+                <Tabs defaultValue="organizacao" className="space-y-4">
+                  <TabsList className="bg-slate-100 border border-slate-200">
+                    <TabsTrigger
+                      value="organizacao"
+                      className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                    >
+                      <Network className="h-4 w-4 mr-2" />
+                      Estrutura
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="centros_custo"
+                      className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                    >
+                      <Wallet className="h-4 w-4 mr-2" />
+                      Centros de Custo
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="organizacao">
+                    <EstruturaManager />
+                  </TabsContent>
+
+                  <TabsContent value="centros_custo">
+                    <Card className="bg-white border-slate-200/60 shadow-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base text-slate-900">Centros de Custo</CardTitle>
+                        <p className="text-sm text-slate-500">
+                          Usados pelos clusters e pelas áreas — cada área pode ter o seu.
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        <CentroCustoTab />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
 
               {/* Cadastros Clientes Tab */}

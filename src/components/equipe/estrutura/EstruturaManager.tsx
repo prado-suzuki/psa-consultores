@@ -23,7 +23,8 @@ import {
   type Cluster, type Area, type Equipe,
 } from '@/hooks/useEstruturaManager';
 import { useProfilesMinRole, type Profile } from '@/hooks/useDomainEstruturaManager';
-import EmpresaPicker from '@/components/equipe/empresas/EmpresaPicker';
+import CentroCustoSelect from '@/components/equipe/estrutura/CentroCustoSelect';
+import { cnpjIncompleto, formatarCnpj } from '@/lib/cnpj';
 
 const colorPresets = [
   '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444',
@@ -158,7 +159,7 @@ export default function EstruturaManager() {
     await mutations.saveCluster({
       name: clusterForm.name,
       nome_empresa: clusterForm.nome_empresa.trim() || null,
-      cnpj: clusterForm.cnpj.trim() || null,
+      cnpj: formatarCnpj(clusterForm.cnpj) || null,
       cost_center_id: clusterForm.cost_center_id || null,
       is_active: clusterForm.is_active,
     }, editingCluster);
@@ -267,7 +268,7 @@ export default function EstruturaManager() {
               {(cluster.nome_empresa || cluster.cnpj || cluster.cost_center_id) && (
                 <div className="text-xs text-slate-500">
                   {cluster.nome_empresa && <>Empresa: {cluster.nome_empresa}</>}
-                  {cluster.cnpj && <> • CNPJ: {cluster.cnpj}</>}
+                  {cluster.cnpj && <> • CNPJ: {formatarCnpj(cluster.cnpj)}</>}
                   {getCcLabel(cluster.cost_center_id) && <> • CC: {getCcLabel(cluster.cost_center_id)}</>}
                 </div>
               )}
@@ -536,26 +537,35 @@ export default function EstruturaManager() {
               <Label>Nome do Cluster *</Label>
               <Input value={clusterForm.name} onChange={e => setClusterForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Tributário, Contábil..." />
             </div>
-            {/* Empresa vem do que já está cadastrado (aba Empresas) — sem redigitar razão social/CNPJ. */}
-            <EmpresaPicker
-              value={{ nome: clusterForm.nome_empresa, cnpj: clusterForm.cnpj }}
-              onChange={empresa => setClusterForm(f => ({ ...f, nome_empresa: empresa.nome, cnpj: empresa.cnpj }))}
-              clusterAtualId={editingCluster?.id ?? null}
-            />
+            {/* A empresa é o próprio cluster: razão social e CNPJ são dados dele. */}
             <div className="space-y-2">
-              <Label>Centro de Custo</Label>
-              <Select
-                value={clusterForm.cost_center_id || '_none'}
-                onValueChange={(val) => setClusterForm(f => ({ ...f, cost_center_id: val === '_none' ? '' : val }))}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecionar centro de custo..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">Nenhum</SelectItem>
-                  {centrosCusto.map(cc => (
-                    <SelectItem key={cc.id} value={cc.id}>{cc.codigo} - {cc.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Nome da Empresa</Label>
+              <Input
+                value={clusterForm.nome_empresa}
+                onChange={e => setClusterForm(f => ({ ...f, nome_empresa: e.target.value }))}
+                placeholder="Ex: PSA Consultores Ltda"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>CNPJ</Label>
+              <Input
+                value={formatarCnpj(clusterForm.cnpj)}
+                onChange={e => setClusterForm(f => ({ ...f, cnpj: formatarCnpj(e.target.value) }))}
+                placeholder="00.000.000/0000-00"
+                inputMode="numeric"
+                className="font-mono"
+              />
+              {cnpjIncompleto(clusterForm.cnpj) && (
+                <p className="text-xs text-amber-700">CNPJ incompleto — faltam dígitos.</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label>Centro de custo padrão das áreas</Label>
+              <CentroCustoSelect
+                value={clusterForm.cost_center_id}
+                onChange={valor => setClusterForm(f => ({ ...f, cost_center_id: valor }))}
+                ajuda="Herdado pelas áreas que não definirem o próprio. Não é o centro de custo da empresa — cada área pode ter o seu."
+              />
             </div>
             {editingCluster && (
               <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2.5">
@@ -638,16 +648,12 @@ export default function EstruturaManager() {
             </div>
             <div className="space-y-2">
               <Label>Centro de Custo (opcional)</Label>
-              <p className="text-xs text-slate-500">Pode ser diferente do centro de custo do cluster/empresa.</p>
-              <Select value={areaForm.cost_center_id} onValueChange={(val) => setAreaForm(f => ({ ...f, cost_center_id: val === '_none' ? '' : val }))}>
-                <SelectTrigger><SelectValue placeholder="Herdar do cluster" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">Herdar do cluster</SelectItem>
-                  {centrosCusto.map(cc => (
-                    <SelectItem key={cc.id} value={cc.id}>{cc.codigo} - {cc.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <p className="text-xs text-slate-500">Áreas da mesma empresa podem ter centros de custo diferentes.</p>
+              <CentroCustoSelect
+                value={areaForm.cost_center_id}
+                onChange={valor => setAreaForm(f => ({ ...f, cost_center_id: valor }))}
+                rotuloVazio="Herdar do cluster"
+              />
             </div>
           </div>
           <DialogFooter>

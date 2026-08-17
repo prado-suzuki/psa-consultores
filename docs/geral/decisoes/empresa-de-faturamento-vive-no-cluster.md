@@ -1,6 +1,6 @@
 # Empresa de faturamento continua vivendo nas colunas do cluster
 
-**Status:** Aceita
+**Status:** Aceita — reavaliada e mantida em 2026-08-17 (ver "Reavaliação" no fim)
 **Data:** 2026-08-17
 
 ## Contexto
@@ -17,30 +17,40 @@ dependente do Lovable.
 
 ## Decisão
 
-Não criar tabela por enquanto. Resolver por código, sobre as colunas que já existem:
+Não criar tabela. A **empresa de faturamento é o próprio cluster**: razão social e CNPJ são
+colunas dele, e cada cluster corresponde a uma pessoa jurídica.
 
-- `lib/empresasFaturamento.ts` deriva a lista de empresas distintas a partir dos
-  clusters, agrupando por razão social normalizada (sem acento/caixa/espaço duplo) e
-  herdando o primeiro CNPJ não vazio do grupo;
-- `components/equipe/empresas/EmpresaPicker.tsx` substitui os campos livres por
-  seleção dessa lista (razão social + CNPJ vêm juntos), com "+ Cadastrar nova empresa"
-  como único caminho de digitação. Usado na aba Empresas e no diálogo de cluster;
-- `useEstruturaMutations().aplicarEmpresaEmClusters` grava a mesma empresa em vários
-  clusters de uma vez (um `UPDATE ... IN`, um log de auditoria por cluster com diff
-  campo-a-campo). A aba Empresas oferece isso ao editar, marcado por padrão quando a
-  empresa é usada por mais de um cluster.
+- Razão social e CNPJ são campos diretos do diálogo de cluster, em Cadastros Estrutura
+  (`EstruturaManager`), com máscara de CNPJ (`lib/cnpj.ts`) na digitação e na exibição.
+- **Não existe tela separada de "empresas".** Uma aba assim chegou a ser construída em
+  2026-08-17 e foi removida no mesmo dia: ela recadastrava a mesma linha de
+  `estrutura_clusters`, e "Nova Empresa" acabava pedindo um cluster — a incoerência que
+  denunciou o modelo.
+- O **centro de custo não é atributo da empresa**: cada área tem o seu
+  (`estrutura_areas.cost_center_id`), e o CC do cluster é apenas o padrão herdado por área
+  sem CC próprio. O campo no diálogo de cluster é rotulado como tal.
+
+## Reavaliação (2026-08-17)
+
+Chegou-se a montar a tarefa de criar `empresas` + `estrutura_clusters.empresa_id`. Ela foi
+cancelada quando a Patrícia apontou o que o modelo já resolve: **uma empresa tem várias áreas,
+e são as áreas que carregam centros de custo diferentes.** Os dados confirmam — Prado Advogados
+tem `PRADO ADV CIVIL` (CC-0002) e `TAX LEGAL` (CC-0003) na mesma empresa; TAX tem 6 áreas, todas
+em CC-0007. A multiplicidade que motivaria a tabela já está modelada um nível abaixo.
+
+Em 2026-08-17 havia 9 clusters e **9 razões sociais distintas** — nenhuma empresa repetida.
+
+**O gatilho que reabriria a discussão:** duas linhas de `estrutura_clusters` faturando pela
+**mesma** pessoa jurídica. Aí passam a existir texto duplicado, duas opções idênticas no select
+da OS e correção em dois lugares — e a tabela própria volta a valer a migração.
 
 ## Consequência
 
-- Corrigir a razão social ou o CNPJ de uma empresa passa a atualizar todos os clusters
-  que a usam, sem migração.
-- "Compartilhar empresa" continua sendo ter a mesma razão social: se alguém gravar uma
-  variante do nome por fora do seletor, volta a existir uma empresa duplicada. O seletor
-  torna isso difícil, não impossível.
-- A exclusão de empresa não é oferecida na aba Empresas de propósito: apagar o registro
-  é apagar o cluster, o que derruba áreas e equipes vinculadas. Isso segue apenas em
-  Cadastros Estrutura, onde a árvore está visível.
-- Se um dia a empresa precisar ser entidade (uma empresa faturando vários clusters com
-  cadastro único, ou dados fiscais próprios), o caminho é `empresas` + `empresa_id`
-  no cluster, migrando os valores distintos que `listarEmpresasCadastradas` já sabe
-  extrair.
+- Cadastro em um lugar só: cluster/empresa, áreas, equipes e centros de custo em Cadastros
+  Estrutura; produto, serviço e o vínculo entre eles em Produtos & Serviços.
+- **"Empresa / Faturamento" na OS grava `ordem_servico.cluster_id`** e é esse campo que o
+  `useOnboarding` usa para saber o que é "da OSG". Ou seja, o campo carrega dois significados:
+  quem fatura e a qual cluster a OS pertence. Enquanto empresa e cluster forem a mesma linha
+  isso é inofensivo — mas qualquer mudança futura nesse campo precisa considerar o roteamento.
+- A exclusão de cluster/empresa segue só em Cadastros Estrutura, onde a árvore de áreas e
+  equipes que ela derruba está visível.
