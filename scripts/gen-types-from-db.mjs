@@ -22,11 +22,18 @@ if (error) {
 
 await pgMeta.end();
 
+// Mapa de type_id -> type object
+const typeById = new Map(meta.types.map(t => [t.id, t]));
+const typeByName = new Map(meta.types.map(t => [t.name, t]));
+
+// Enums do schema public
+const enumTypes = meta.types.filter(t => t.schema === 'public' && t.enums && t.enums.length > 0);
+const enumNames = new Set(enumTypes.map(t => t.name));
+
 // DEBUG: dump estrutura de colunas
 console.error('Total columns:', meta.columns.length);
 console.error('Sample column keys:', Object.keys(meta.columns[0] || {}));
 console.error('Sample table keys:', Object.keys(meta.tables[0] || {}));
-const tableIdByName = new Map(meta.tables.map(t => [t.id, t.name]));
 const debugTables = ['documento_arquivo', 'solicitacao_item', 'org_comments_feed', 'checklist_item_padrao'];
 for (const t of debugTables) {
   const table = meta.tables.find(tb => tb.schema === 'public' && tb.name === t);
@@ -38,21 +45,14 @@ for (const t of debugTables) {
       name: c.name,
       type_id: c.type_id,
       data_type: c.data_type,
-      udt_name: c.udt_name,
       format: c.format,
       is_nullable: c.is_nullable,
+      enums: c.enums,
       typeObj_name: typeObj?.name,
       typeObj_enums: typeObj?.enums,
     }));
   }
 }
-
-// Mapa de type_id -> type object
-const typeById = new Map(meta.types.map(t => [t.id, t]));
-
-// Enums do schema public
-const enumTypes = meta.types.filter(t => t.schema === 'public' && t.enums && t.enums.length > 0);
-const enumNames = new Set(enumTypes.map(t => t.name));
 
 function pgTypeToTs(typeObj, { nullable = false, forInsert = false, forUpdate = false } = {}) {
   if (!typeObj) return 'unknown';
