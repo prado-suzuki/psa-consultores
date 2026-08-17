@@ -2042,6 +2042,54 @@ export type Database = {
           },
         ]
       }
+      documento_download: {
+        Row: {
+          acao: string
+          ambiente: string
+          baixado_em: string
+          baixado_por: string
+          cliente_id: string
+          documento_id: string
+          id: string
+          papel: string
+        }
+        Insert: {
+          acao?: string
+          ambiente: string
+          baixado_em?: string
+          baixado_por: string
+          cliente_id: string
+          documento_id: string
+          id?: string
+          papel: string
+        }
+        Update: {
+          acao?: string
+          ambiente?: string
+          baixado_em?: string
+          baixado_por?: string
+          cliente_id?: string
+          documento_id?: string
+          id?: string
+          papel?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documento_download_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_download_documento_id_fkey"
+            columns: ["documento_id"]
+            isOneToOne: false
+            referencedRelation: "documento_arquivo"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       documento_gerado: {
         Row: {
           caminho_arquivo: string | null
@@ -9296,6 +9344,10 @@ export type Database = {
         Returns: boolean
       }
       psa_mapa_uuid: { Args: { slug: string }; Returns: string }
+      registrar_download_documento: {
+        Args: { _acao?: string; _documento_id: string }
+        Returns: string
+      }
       registrar_envio: {
         Args: {
           _agrupamento?: string
