@@ -26,8 +26,18 @@ import type { SolicitacaoStatus } from '@/lib/solicitacao';
 
 export interface ChecklistDerivado {
   linhas: LinhaChecklist[];
-  /** O cabeçalho do pedido, para a tela dizer em que estado ele está. */
-  solicitacao: { id: string; status: SolicitacaoStatus; encerradaEm: string | null } | null;
+  /**
+   * O cabeçalho do pedido, para a tela dizer em que estado ele está.
+   *
+   * `enviadaEm` entrou na EDU-7: é o que identifica a solicitação no comprovante
+   * de recebimento. Já vinha de `useDomainSolicitacao`, só não era repassada.
+   */
+  solicitacao: {
+    id: string;
+    status: SolicitacaoStatus;
+    enviadaEm: string | null;
+    encerradaEm: string | null;
+  } | null;
   /**
    * Arquivos ativos sem tipo, que a subtração não consegue enxergar. A tela avisa
    * em vez de dar a conta como fechada.
@@ -104,7 +114,12 @@ export function useChecklistDerivado(clienteId: string | null): ChecklistDerivad
   return {
     linhas,
     solicitacao: solicitacao
-      ? { id: solicitacao.id, status: solicitacao.status, encerradaEm: solicitacao.encerradaEm }
+      ? {
+          id: solicitacao.id,
+          status: solicitacao.status,
+          enviadaEm: solicitacao.enviadaEm,
+          encerradaEm: solicitacao.encerradaEm,
+        }
       : null,
     arquivosSemTipo: contarArquivosSemTipo(arquivosClassificados),
     isLoading: carregandoSolicitacao || carregandoPessoas || carregandoBens

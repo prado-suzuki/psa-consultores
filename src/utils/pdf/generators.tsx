@@ -15,6 +15,7 @@ import { gargalosDoProcesso } from '@/utils/gargaloMelhorias';
 import { slugFilename } from '@/utils/slugify';
 import { makeZip, type ZipEntry } from '@/utils/zip';
 import { buildProcessDiagram, buildProcessComparison, buildProjectComparison } from '../processDiagram';
+import { ComprovanteDocument, type ComprovanteDocumentProps } from './ComprovanteDocument';
 import { SopDocument, type SOPMode } from './SopDocument';
 import { SopComparativoDocument } from './SopComparativoDocument';
 import { buildSopMarkdown } from './sopMarkdown';
@@ -132,6 +133,36 @@ export async function generateSOPComparativo(
   const slug = slugFilename(input.processo.name, input.processo.id);
   const filename = `SOP_COMPARATIVO_${slug}_${new Date().toISOString().slice(0, 10)}.pdf`;
   downloadBlob(blob, filename);
+}
+
+// ════════════════════════════════════════════════════════════════════════
+//  Comprovante de recebimento de documentos (EDU-7) — área OSG.
+// ════════════════════════════════════════════════════════════════════════
+
+/**
+ * Comprovante de recebimento em PDF, com download disparado.
+ *
+ * Mesma forma de `generateSOP`: monta o blob e chama o download já definido
+ * acima, com o nome de arquivo pelo utilitário de slug e a data pela função
+ * `today()`.
+ *
+ * A data de emissão do CONTEÚDO vem em `input.emitidoEm`, não daqui: o modelo é
+ * puro de propósito e quem chama decide o instante. `today()` serve só para o
+ * nome do arquivo.
+ *
+ * Este módulo é pesado e só entra pela rota do mapeamento. Quem chamar esta
+ * função na área OSG deve fazer `await import(...)` DENTRO do clique, para não
+ * arrastar os geradores para o pacote da área.
+ */
+export async function generateComprovanteRecebimento(
+  input: ComprovanteDocumentProps,
+  options: { returnBlob?: boolean } = {},
+): Promise<Blob | void> {
+  const instance = pdf(<ComprovanteDocument {...input} />);
+  const blob = await instance.toBlob();
+  if (options.returnBlob) return blob;
+  const slug = slugFilename(input.clienteNome, 'comprovante');
+  downloadBlob(blob, `COMPROVANTE_RECEBIMENTO_${slug}_${today()}.pdf`);
 }
 
 // ════════════════════════════════════════════════════════════════════════

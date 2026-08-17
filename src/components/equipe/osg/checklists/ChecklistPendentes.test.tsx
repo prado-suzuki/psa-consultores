@@ -23,12 +23,15 @@ vi.mock('@/hooks/useGestaoClientes', () => ({
 
 vi.mock('@/hooks/useDocumentoArquivo', () => ({
   useRevisarDocumento: () => ({ mutate: mocks.revisar, isPending: false, variables: undefined }),
+  // Os dois abaixo são do BotaoComprovante (EDU-7), que a tela renderiza.
+  useDocumentosByCliente: () => ({ data: [] }),
+  useUploaderNames: () => ({ data: {} }),
 }));
 
 vi.mock('@/hooks/useChecklistDerivado', () => ({
   useChecklistDerivado: () => ({
     linhas: mocks.linhas,
-    solicitacao: { id: 'sol-1', status: 'em_checklist', encerradaEm: null },
+    solicitacao: { id: 'sol-1', status: 'em_checklist', enviadaEm: null, encerradaEm: null },
     arquivosSemTipo: 0,
     isLoading: false,
   }),

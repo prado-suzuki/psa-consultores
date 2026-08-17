@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useClientesLista } from '@/hooks/useGestaoClientes';
 import { useChecklistDerivado } from '@/hooks/useChecklistDerivado';
 import { useRevisarDocumento } from '@/hooks/useDocumentoArquivo';
+import { BotaoComprovante } from './BotaoComprovante';
 import {
   agruparPorInstancia, resumirChecklist,
   type ArquivoDaLinha, type ClusterChecklist, type GrupoChecklist, type LinhaChecklist,
@@ -214,6 +215,12 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
   return (
     <div className="space-y-8">
       <ResumoHero clienteNome={clienteNome} {...resumo} />
+
+      <BotaoComprovante
+        clienteId={clienteId}
+        clienteNome={clienteNome}
+        solicitacao={solicitacao}
+      />
 
       {solicitacao.status === 'rascunho' && (
         <Aviso>
