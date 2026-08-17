@@ -255,11 +255,12 @@ function generateFunction(func) {
     const relTable = meta.tables.find(t => t.id === func.return_type_relation_id);
     const relView = meta.views.find(v => v.id === func.return_type_relation_id);
     const relName = relTable?.name || relView?.name;
-    if (relName) {
+    const relNamespace = relTable ? 'Tables' : relView ? 'Views' : null;
+    if (relName && relNamespace) {
       if (func.is_set_returning_function) {
-        returns = `Database["public"]["Tables"]["${relName}"]["Row"][]`;
+        returns = `Database["public"]["${relNamespace}"]["${relName}"]["Row"][]`;
       } else {
-        returns = `Database["public"]["Tables"]["${relName}"]["Row"]`;
+        returns = `Database["public"]["${relNamespace}"]["${relName}"]["Row"]`;
       }
     } else {
       returns = 'unknown';
