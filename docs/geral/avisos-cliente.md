@@ -254,3 +254,19 @@ botão.
 | Gatilho do aviso 3: o dado existe (checklist zerado ou `solicitacao.encerrada_em`), mas nenhuma tarefa liga o disparo | próxima sprint |
 | Checklist da solicitação, gerado ou declarado — o `useGerarChecklistCliente` já gera por entidade, e a EDU-9 registra "não haverá cálculo de faltante". A chave por solicitação já está fixada, e os textos não mudam nos dois casos | EDU-6 e EDU-9 |
 | Prazo por exceção: os 30 dias são regra, sem coluna, então não há como abrir exceção por cliente ou produto | evolução futura |
+
+**Estado em 17/08/2026 — o que saiu desta tabela.** Duas linhas foram resolvidas:
+
+- **O canal está ligado no fluxo**, nos dois sentidos: um workflow por canal, ativo,
+  recebendo o mesmo corpo. A borda decide os destinatários de cada um — e-mail em 38
+  de 38 destinatários com acesso ao portal, telefone em 8 de 38.
+- **O gatilho do aviso 3 existe:** é o encerramento da solicitação, ligado no
+  `encerrarSolicitacao`, com `enviada_em` como condição — encerrar um rascunho não
+  dispara nada, porque um rascunho nunca chegou ao cliente. Não precisou de migração:
+  `notificacao_tipo` já tinha `documento_aprovado`.
+
+Os avisos **2 e 4 seguem sem disparo**, pelos motivos das linhas acima: o 2 depende da
+fonte do pendente e da varredura periódica; o 4 depende do ato de aceitar e recusar
+documento, que não existe em tela. Vale registrar por que o 4 é o mais preso dos dois:
+o modelo de WhatsApp dele diz *"o motivo de cada um está no portal do cliente"* — sem a
+tela, o aviso mandaria o cliente procurar algo que não está lá.
