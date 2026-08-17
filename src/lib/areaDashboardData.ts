@@ -1,10 +1,18 @@
 import { addDays, differenceInDays, eachDayOfInterval, format } from 'date-fns';
 import type { HatchedBarSegment, HeatmapRow } from '@/components/dashboard/momentum';
-import type { AreaKey } from '@/config/areaCategories';
 import { statusList } from '@/lib/taskStatusColors';
 import type { FiscalDashProject, FiscalDashTask } from '@/hooks/useFiscalDashboardData';
 
 export const AREA_DASHBOARD_ALL = '__ALL__';
+
+/**
+ * Escopo do dashboard de área.
+ *
+ * Tax e OSG olham a própria área. `'todas'` é o Board: a MESMA tela somando as
+ * duas, que é o que o sócio precisa para ver carga de time e prazos da empresa
+ * inteira em um lugar.
+ */
+export type AreaDashboardScope = 'tax' | 'osg' | 'todas';
 
 export type UrgencyFilter = typeof AREA_DASHBOARD_ALL | 'overdue' | 'next_7' | 'next_30' | 'no_due';
 
@@ -28,10 +36,14 @@ export const emptyAreaDashboardFilters: AreaDashboardFilters = {
 
 export type TaskClientResolver = (task: Pick<FiscalDashTask, 'client_id' | 'contribuinte_id' | 'project_id'>) => string | null;
 
-export function scopeProjects(projects: FiscalDashProject[], areaIds: Set<string>, area: AreaKey) {
+export function scopeProjects(
+  projects: FiscalDashProject[], areaIds: Set<string>, area: AreaDashboardScope,
+) {
   return projects.filter(project => project.estrutura_area_id
     ? areaIds.has(project.estrutura_area_id)
-    : area === 'tax');
+    // Projeto sem área na estrutura é legado do Tax: entra no Tax e no
+    // consolidado, nunca no OSG.
+    : area === 'tax' || area === 'todas');
 }
 
 export function scopeTasks(tasks: FiscalDashTask[], projectIds: Set<string>) {
@@ -115,7 +127,20 @@ export function buildAreaSegments(
     .sort((left, right) => right.value - left.value);
 }
 
-export function buildHeatmap(tasks: FiscalDashTask[], memberMap: Record<string, string>, today: Date) {
+/** Pessoas no heatmap de workload numa área. */
+export const HEATMAP_MEMBROS_PADRAO = 6;
+
+/**
+ * Pessoas no heatmap no consolidado. Seis cabia numa área; somando Tax e OSG,
+ * seis esconderia metade do time — e um heatmap de capacidade que omite gente
+ * responde a pergunta errada.
+ */
+export const HEATMAP_MEMBROS_CONSOLIDADO = 12;
+
+export function buildHeatmap(
+  tasks: FiscalDashTask[], memberMap: Record<string, string>, today: Date,
+  maxMembros = HEATMAP_MEMBROS_PADRAO,
+) {
   const days = eachDayOfInterval({ start: today, end: addDays(today, 13) });
   const dayKeys = days.map(day => format(day, 'yyyy-MM-dd'));
   const grid: Record<string, Record<string, number>> = {};
@@ -126,7 +151,7 @@ export function buildHeatmap(tasks: FiscalDashTask[], memberMap: Record<string, 
   });
   const rankedMembers = Object.entries(grid).map(([id, values]) => ({
     id, total: Object.values(values).reduce((sum, value) => sum + value, 0),
-  })).sort((left, right) => right.total - left.total).slice(0, 6);
+  })).sort((left, right) => right.total - left.total).slice(0, maxMembros);
   const rows: HeatmapRow[] = rankedMembers.map(({ id }) => {
     const fullName = memberMap[id] || id.slice(0, 4);
     const initials = fullName.split(' ').filter(Boolean).slice(0, 2)
@@ -139,18 +164,42 @@ export function buildHeatmap(tasks: FiscalDashTask[], memberMap: Record<string, 
 export function buildOverdueRows(
   tasks: FiscalDashTask[], projectMap: Record<string, FiscalDashProject>, memberMap: Record<string, string>,
   clientMap: Record<string, string>, resolveClientId: TaskClientResolver, today: Date,
+  /**
+   * Área da estrutura → base da rota do módulo dono dela (`/equipe/osg`).
+   * Só o consolidado passa: lá cada linha precisa voltar para a SUA área, senão
+   * a tarefa da OSG abriria a tela do Tax. Sem o mapa, `areaBase` fica null e
+   * quem exibe usa a base da própria área, como antes.
+   */
+  baseDaArea?: Record<string, string>,
 ) {
   return tasks.filter(task => task.due_date && task.status !== 'done' && new Date(`${task.due_date}T00:00:00`) < today)
     .map(task => {
       const clientId = resolveClientId(task);
+      const project = projectMap[task.project_id || ''];
       return {
-        id: task.id, title: task.title, project: projectMap[task.project_id || '']?.name || '-',
+        id: task.id, title: task.title, project: project?.name || '-',
         client: (clientId && clientMap[clientId]) || '-',
         responsible: task.assigned_to_name || (task.assigned_to ? memberMap[task.assigned_to] : null) || '-',
         dueDate: task.due_date!,
         daysOverdue: differenceInDays(today, new Date(`${task.due_date}T00:00:00`)),
+        areaBase: (project?.estrutura_area_id && baseDaArea?.[project.estrutura_area_id]) || null,
       };
     }).sort((left, right) => right.daysOverdue - left.daysOverdue);
+}
+
+/**
+ * Base de rota por área da estrutura, para o consolidado saber de quem é cada
+ * linha. A área diz a que módulo pertence pelas `page_categories` — a mesma
+ * convenção do login e do controle de acessos, sem mapa novo por nome de área.
+ */
+export function buildBaseDaArea(
+  areas: { id: string; page_categories?: string[] | null }[],
+): Record<string, string> {
+  const base: Record<string, string> = {};
+  for (const area of areas) {
+    base[area.id] = (area.page_categories ?? []).includes('osg') ? '/equipe/osg' : '/equipe/tax';
+  }
+  return base;
 }
 
 export function buildMemberRows(tasks: FiscalDashTask[], memberMap: Record<string, string>, today: Date) {

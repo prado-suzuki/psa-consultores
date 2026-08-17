@@ -28,12 +28,14 @@ import {
   type CargaPorPessoa, type ColunaPessoa, type LinhaPessoa, type SituacaoPessoa,
 } from '@/lib/auditPessoas';
 import { useAuditPeriodo } from '@/hooks/useAuditPeriodo';
+import type { AuditArea } from '@/lib/auditAreas';
 import type { DirecaoOrdenacao } from '@/lib/auditProdutividade';
 import { triggerCsvDownload } from '@/lib/roiCsv';
 import { AuditLimiteAviso } from './AuditLimiteAviso';
 
 interface AuditPessoasTableProps {
-  area: 'tax' | 'osg';
+  /** Área do módulo, ou 'todas' no consolidado do Board. */
+  area: AuditArea;
 }
 
 const SEM_ESTRUTURA: EstruturaPessoas = { estrutura: {}, roster: [] };

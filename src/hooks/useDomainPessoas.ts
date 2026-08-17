@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AREA_CATEGORIES_MAP, type AreaKey } from '@/config/areaCategories';
+import { AUDIT_AREAS_MODULO } from '@/lib/auditAreas';
 import {
   agregarCargaPessoas, idsDasAreas, pessoasDasAreas, resolverEstruturaPessoas,
   type CargaPorPessoa, type EstruturaPorPessoa,
@@ -22,9 +23,14 @@ export interface EstruturaPessoas {
  *
  * As três tabelas são de catálogo (leitura interna liberada), então isso
  * funciona para qualquer papel do time, não só admin.
+ *
+ * `'todas'` é o escopo do Board: o roster vira a soma das áreas de módulo, para
+ * a aba Pessoas listar quem está lotado no Tax OU na OSG.
  */
-export function useDomainPessoasEstrutura(area: AreaKey) {
-  const categorias = AREA_CATEGORIES_MAP[area].categories;
+export function useDomainPessoasEstrutura(area: AreaKey | 'todas') {
+  const categorias = area === 'todas'
+    ? AUDIT_AREAS_MODULO.flatMap((modulo) => AREA_CATEGORIES_MAP[modulo].categories)
+    : AREA_CATEGORIES_MAP[area].categories;
 
   return useQuery<EstruturaPessoas>({
     queryKey: ['pessoas-estrutura', area],

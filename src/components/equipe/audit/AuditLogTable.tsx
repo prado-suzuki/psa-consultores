@@ -15,12 +15,14 @@ import {
   Collapsible, CollapsibleContent, CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { useDomainAuditLogs, useDomainAuditLookupMaps } from '@/hooks/useDomainAuditLogs';
+import type { AuditArea } from '@/lib/auditAreas';
 import { formatChangedFields, LookupMaps } from './auditFieldFormatter';
 import { ACTION_LABELS, ENTITY_LABELS } from './auditLabels';
 
 
 interface AuditLogTableProps {
-  area: 'tax' | 'osg';
+  /** Área do módulo, ou 'todas' no consolidado do Board. */
+  area: AuditArea;
 }
 
 export const AuditLogTable = ({ area }: AuditLogTableProps) => {

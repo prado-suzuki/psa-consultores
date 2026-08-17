@@ -218,6 +218,7 @@ describe('destinoPendencia', () => {
       motivo: 'sem_os',
       ultimoToqueEm: '2026-07-20T10:00:00.000Z',
       ultimoToquePor: 'Maria Silva',
+      area: 'tax',
       ...over,
     };
   }
@@ -264,6 +265,17 @@ describe('destinoPendencia', () => {
 
   it('respeita a área na rota', () => {
     expect(destinoPendencia(linha({}), 'osg').rota).toContain('/equipe/osg/');
+  });
+
+  // Board: o escopo é 'todas' e a área do link tem de sair da linha, senão todo
+  // item do OSG mandaria o sócio para a tela do Tax.
+  it('no consolidado usa a área da própria linha', () => {
+    expect(destinoPendencia(linha({ area: 'osg' }), 'todas').rota).toContain('/equipe/osg/');
+    expect(destinoPendencia(linha({ area: 'tax' }), 'todas').rota).toContain('/equipe/tax/');
+  });
+
+  it('no consolidado cai no Tax quando a linha não tem área conhecida', () => {
+    expect(destinoPendencia(linha({ area: 'fixos' }), 'todas').rota).toContain('/equipe/tax/');
   });
 });
 

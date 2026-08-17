@@ -12,12 +12,14 @@ import {
   type ClientePorId, type HorasPorId, type VinculoPorId,
 } from '@/lib/auditProdutividade';
 import { useAuditPeriodo } from '@/hooks/useAuditPeriodo';
+import type { AuditArea } from '@/lib/auditAreas';
 import { triggerCsvDownload } from '@/lib/roiCsv';
 import { AuditLimiteAviso } from './AuditLimiteAviso';
 import { AuditTempoMedioProduto } from './AuditTempoMedioProduto';
 
 interface AuditProdutosTableProps {
-  area: 'tax' | 'osg';
+  /** Área do módulo, ou 'todas' no consolidado do Board. */
+  area: AuditArea;
 }
 
 const SEM_HORAS: HorasPorId = {};

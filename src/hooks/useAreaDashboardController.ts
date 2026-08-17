@@ -9,20 +9,30 @@ import {
 import { useFiscalClientsList } from '@/hooks/useFiscalClients';
 import { useTeamProfilesSafe } from '@/hooks/useTaxReferenceData';
 import {
-  AREA_DASHBOARD_ALL, buildAreaSegments, buildHeatmap, buildMemberRows, buildOverdueRows,
-  buildStatusSegments, buildTopClients, createTaskClientResolver, emptyAreaDashboardFilters,
-  filterAreaProjects, filterAreaTasks, scopeProjects, scopeTasks, type AreaDashboardFilters,
+  AREA_DASHBOARD_ALL, buildAreaSegments, buildBaseDaArea, buildHeatmap, buildMemberRows,
+  buildOverdueRows, buildStatusSegments, buildTopClients, createTaskClientResolver,
+  emptyAreaDashboardFilters, filterAreaProjects, filterAreaTasks,
+  HEATMAP_MEMBROS_CONSOLIDADO, HEATMAP_MEMBROS_PADRAO, scopeProjects, scopeTasks,
+  type AreaDashboardFilters, type AreaDashboardScope,
 } from '@/lib/areaDashboardData';
 
-export function useAreaDashboardController(area: AreaKey) {
+/**
+ * `area` aceita 'todas' — o escopo consolidado que o Board usa para ver carga do
+ * time e prazos das duas áreas na mesma tela. Nesse caso as áreas da estrutura
+ * vêm das duas categorias de uma vez, e nada mais muda: os projetos e as tarefas
+ * já eram lidos inteiros e recortados aqui.
+ */
+export function useAreaDashboardController(area: AreaDashboardScope) {
+  const consolidado = area === 'todas';
+  const categorias = consolidado ? ['tax', 'osg'] : area;
   const [filters, setFilters] = useState<AreaDashboardFilters>(emptyAreaDashboardFilters);
   const { data: allProjects = [], isLoading: loadingProjects } = useFiscalDashProjects();
   const { data: allTasks = [], isLoading: loadingTasks } = useFiscalDashTasks();
   const { data: clients = [] } = useFiscalClientsList();
   const { data: contribuintes = [] } = useFiscalDashContribuintes();
   const { data: clientNames = [] } = useFiscalDashClientNames();
-  const { data: areas = [], isLoading: loadingAreas } = useEstruturaAreas(area);
-  const { data: equipes = [] } = useEstruturaEquipesByCategory(area);
+  const { data: areas = [], isLoading: loadingAreas } = useEstruturaAreas(categorias);
+  const { data: equipes = [] } = useEstruturaEquipesByCategory(categorias);
   const { data: members = [] } = useTeamProfilesSafe();
   const today = useMemo(() => startOfDay(new Date()), []);
 
@@ -44,13 +54,25 @@ export function useAreaDashboardController(area: AreaKey) {
   const totalTasks = filteredTasks.length;
   const doneTasks = filteredTasks.filter(task => task.status === 'done').length;
   const totalEstHours = filteredTasks.reduce((sum, task) => sum + (task.estimated_hours || 0), 0);
+  // Só o consolidado precisa do mapa: nas telas de área toda linha é da área.
+  const baseDaArea = useMemo(
+    () => (consolidado ? buildBaseDaArea(areas) : undefined),
+    [consolidado, areas],
+  );
   const overdueRows = useMemo(() => buildOverdueRows(
-    filteredTasks, projectMap, memberMap, clientMap, resolveClientId, today,
-  ), [filteredTasks, projectMap, memberMap, clientMap, resolveClientId, today]);
+    filteredTasks, projectMap, memberMap, clientMap, resolveClientId, today, baseDaArea,
+  ), [filteredTasks, projectMap, memberMap, clientMap, resolveClientId, today, baseDaArea]);
   const activeFiltersCount = Object.values(filters).filter(value => value && value !== AREA_DASHBOARD_ALL).length;
 
   return {
     area,
+    consolidado,
+    /**
+     * Área para efeito visual (paleta do banner, spinner). O consolidado não tem
+     * cor própria: usa a do Tax, como o resto do Board.
+     */
+    paleta: (area === 'osg' ? 'osg' : 'tax') as AreaKey,
+    /** Base de rota da tela. No consolidado cada linha pode trazer a sua — ver `overdueRows`. */
     areaBase: area === 'osg' ? '/equipe/osg' : '/equipe/tax',
     isLoading: loadingProjects || loadingTasks || loadingAreas,
     filters,
@@ -78,7 +100,10 @@ export function useAreaDashboardController(area: AreaKey) {
     },
     statusSegments: buildStatusSegments(filteredTasks),
     areaSegments: buildAreaSegments(filteredTasks, projectMap, areaMap),
-    heatmap: buildHeatmap(filteredTasks, memberMap, today),
+    heatmap: buildHeatmap(
+      filteredTasks, memberMap, today,
+      consolidado ? HEATMAP_MEMBROS_CONSOLIDADO : HEATMAP_MEMBROS_PADRAO,
+    ),
     overdueRows,
     memberRows: buildMemberRows(filteredTasks, memberMap, today),
     topClients: buildTopClients(filteredTasks, clientMap, resolveClientId),

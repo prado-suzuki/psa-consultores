@@ -22,6 +22,7 @@ import {
   FileText,
   FileBarChart,
   MapPin,
+  Shield,
   User,
   LogOut,
 } from 'lucide-react';
@@ -56,26 +57,45 @@ const buildDesempenhoSubItems = (pendingDecisions: number) => [
   { icon: Users2, label: '1:1s', path: '/equipe/board/desempenho/1a1' },
 ];
 
+interface BoardNavAccess {
+  performance: boolean;
+  desempenho: boolean;
+  usoEnvio: boolean;
+  chamados: boolean;
+  capacidade: boolean;
+  logsEquipe: boolean;
+}
+
 const buildNavItems = (
-  canPerformance: boolean,
-  canDesempenho: boolean,
-  canUsoEnvio: boolean,
+  acesso: BoardNavAccess,
   pendingDecisions: number,
 ): NavItem[] => [
   { icon: LayoutDashboard, label: 'Dashboard Estrategico', path: '/equipe/board/dashboard' },
   { icon: FileBarChart, label: 'Dashboards', path: '/equipe/board/relatorios' },
-  ...(canUsoEnvio ? [
+  ...(acesso.usoEnvio ? [
     { icon: BarChart3, label: 'Uso e envio', path: '/equipe/board/uso-envio' } as NavItem,
   ] : []),
   { icon: Users2, label: 'Clientes e OS', path: '/equipe/board/dashboard-clientes-os' },
   { icon: MapPin, label: 'Clientes', path: '/equipe/board/clientes' },
-  ...(canPerformance ? [
+  ...(acesso.chamados ? [
+    // Aponta para o DASHBOARD, não para a lista: o sócio entra pelo panorama de
+    // atendimento e desce para a lista pelo botão que a própria tela tem.
+    { icon: MessageSquareHeart, label: 'Chamados', path: '/equipe/board/chamados/dashboard' } as NavItem,
+  ] : []),
+  ...(acesso.performance ? [
     // "Operacional" (antes: "Performance") — nome PT-BR claro, distingue de "Desempenho" (pessoas).
     // Foca em projetos, ROI e atividade. Rota mantida em /performance por compatibilidade.
     { icon: BarChart3, label: 'Operacional', path: '/equipe/board/performance', adminOnly: true } as NavItem,
   ] : []),
-  ...(canDesempenho ? [
+  ...(acesso.capacidade ? [
+    // Carga do time e prazos — o dashboard de área do Tax e da OSG, somado.
+    { icon: Users2, label: 'Capacidade', path: '/equipe/board/capacidade', adminOnly: true } as NavItem,
+  ] : []),
+  ...(acesso.desempenho ? [
     { icon: Target, label: 'Desempenho', path: '/equipe/board/desempenho', adminOnly: true, children: buildDesempenhoSubItems(pendingDecisions) } as NavItem,
+  ] : []),
+  ...(acesso.logsEquipe ? [
+    { icon: Shield, label: 'Logs de Equipe', path: '/equipe/board/logs-equipe', adminOnly: true } as NavItem,
   ] : []),
 ];
 
@@ -93,6 +113,16 @@ const getBreadcrumb = (pathname: string) => {
     else if (pathname.includes('/1a1')) segments.push({ label: '1:1s', path: '/equipe/board/desempenho/1a1' });
     else if (pathname.includes('/minha-evolucao')) segments.push({ label: 'Minha Evolucao', path: '/equipe/board/desempenho/minha-evolucao' });
     else if (pathname.includes('/evolucao')) segments.push({ label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' });
+  } else if (pathname.includes('/chamados')) {
+    // Antes do teste de '/dashboard': `/chamados/dashboard` cairia no ramo do
+    // Dashboard Estrategico e o breadcrumb mentiria.
+    segments.push({ label: 'Chamados', path: '/equipe/board/chamados' });
+    if (pathname.endsWith('/dashboard')) segments.push({ label: 'Dashboard', path: '/equipe/board/chamados/dashboard' });
+    else if (!pathname.endsWith('/chamados')) segments.push({ label: 'Detalhe', path: pathname });
+  } else if (pathname.includes('/capacidade')) {
+    segments.push({ label: 'Capacidade', path: '/equipe/board/capacidade' });
+  } else if (pathname.includes('/logs-equipe')) {
+    segments.push({ label: 'Logs de Equipe', path: '/equipe/board/logs-equipe' });
   } else if (pathname.includes('/uso-envio')) {
     segments.push({ label: 'Uso e envio', path: '/equipe/board/uso-envio' });
   } else if (pathname.includes('/relatorios')) {
@@ -112,6 +142,9 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
   const { hasAccess: canPerformance } = usePageAccess('/equipe/board/performance');
   const { hasAccess: canDesempenho } = usePageAccess('/equipe/board/desempenho');
   const { hasAccess: canUsoEnvio } = usePageAccess('/equipe/board/uso-envio');
+  const { hasAccess: canChamados } = usePageAccess('/equipe/board/chamados/dashboard');
+  const { hasAccess: canCapacidade } = usePageAccess('/equipe/board/capacidade');
+  const { hasAccess: canLogsEquipe } = usePageAccess('/equipe/board/logs-equipe');
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -142,19 +175,37 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
     userId: user?.id,
   });
 
+  // `isLider` é ESTRITO no AuthContext (não engloba admin) — daí o OR, como no
+  // LiderRoute.
+  const podeGerencial = isAdmin || isLider;
+
   const navItems = buildNavItems(
-    canPerformance === true,
-    canDesempenho === true,
-    canUsoEnvio === true,
+    {
+      performance: canPerformance === true,
+      desempenho: canDesempenho === true,
+      usoEnvio: canUsoEnvio === true,
+      // Estas três rotas são líder+ (LiderRoute em App.tsx). Sem o mesmo teste
+      // aqui, quem não é líder veria o item e o clique só redirecionaria.
+      chamados: canChamados === true && podeGerencial,
+      capacidade: canCapacidade === true && podeGerencial,
+      logsEquipe: canLogsEquipe === true && podeGerencial,
+    },
     pendingDecisions,
   );
-  const showGestaoTime = canPerformance === true || canDesempenho === true;
+  // O grupo aparece quando existe pelo menos um item dele — hoje Operacional,
+  // Capacidade, Desempenho e Logs de Equipe.
+  const showGestaoTime = navItems.some(item => item.adminOnly);
   const isDesempenhoRoute = location.pathname.startsWith('/equipe/board/desempenho');
   const isMiEvolucaoRoute = location.pathname.includes('/minha-evolucao');
   const breadcrumb = getBreadcrumb(location.pathname);
 
   const isActive = (path: string) => {
     if (path === '/equipe/board/desempenho') return location.pathname === path;
+    // O menu de Chamados leva ao dashboard, mas fica aceso na lista e no detalhe
+    // também — são a mesma seção para quem está navegando.
+    if (path === '/equipe/board/chamados/dashboard') {
+      return location.pathname.startsWith('/equipe/board/chamados');
+    }
     return location.pathname === path || location.pathname.startsWith(path + '/');
   };
 
