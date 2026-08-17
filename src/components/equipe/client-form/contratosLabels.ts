@@ -4,9 +4,10 @@
 // arquivos precisando da mesma função, e importar um do outro criaria ciclo.
 
 /**
- * "Empresa / Faturamento" aponta para o cluster, mas quem fatura é a empresa
- * cadastrada nele (Estrutura > Clusters > Nome da empresa). Exibimos o nome da
- * empresa e caímos no nome do cluster só quando ela não foi preenchida.
+ * O campo grava `cluster_id`: a empresa de faturamento É o cluster (razão social
+ * e CNPJ são colunas dele — ver `docs/geral/decisoes/empresa-de-faturamento-vive-no-cluster.md`).
+ * Exibimos a razão social e caímos no nome do cluster só quando ela não foi
+ * preenchida. Daí o rótulo "Empresa / Cluster", que diz o que o campo é.
  */
 export function getEmpresaLabel(cluster: { name: string; nome_empresa?: string | null }): string {
   return cluster.nome_empresa?.trim() || cluster.name;

@@ -57,9 +57,10 @@ function getRegiaoLabel(value: string | undefined): string {
 }
 
 /**
- * "Empresa / Faturamento" aponta para o cluster, mas quem fatura é a empresa
- * cadastrada nele (Estrutura > Clusters > Nome da empresa). Exibimos o nome da
- * empresa e caímos no nome do cluster só quando ela não foi preenchida.
+ * O campo grava `cluster_id`: a empresa de faturamento É o cluster (razão social
+ * e CNPJ são colunas dele — ver `docs/geral/decisoes/empresa-de-faturamento-vive-no-cluster.md`).
+ * Exibimos a razão social e caímos no nome do cluster só quando ela não foi
+ * preenchida. Daí o rótulo "Empresa / Cluster", que diz o que o campo é.
  */
 
 export interface ContratosTabProps {
@@ -504,7 +505,7 @@ export default function ContratosTab({
                         {/* A empresa que fatura pertence ao rateio, não à
                             classificação: é ela que define para onde a receita vai. */}
                         <div className="max-w-2xl">
-                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa / Faturamento<RequiredMark /></Label>
+                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa / Cluster<RequiredMark /></Label>
                           <div className="mt-1">
                             <Select value={osEmpresaId} onValueChange={(v) => handleEmpresaChange(cont._id, v)}>
                               <SelectTrigger

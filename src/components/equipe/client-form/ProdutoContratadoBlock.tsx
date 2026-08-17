@@ -30,7 +30,7 @@ export default function ProdutoContratadoBlock({
   produtoOptions: ContratosTabProps['produtoSegmentoFullOptions'];
   allClusters: ContratosTabProps['allClusters'];
   readOnly?: boolean;
-  /** Empresa de faturamento da OS (`cluster_id`). Não filtra os produtos. */
+  /** Empresa/cluster de faturamento da OS (`cluster_id`). Não filtra os produtos. */
   empresaId: string;
   onEmpresaChange: (v: string) => void;
 }) {
@@ -115,7 +115,7 @@ export default function ProdutoContratadoBlock({
     <div className="space-y-3">
       {/* Empresa filter */}
       <div>
-        <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa / Faturamento<RequiredMark /></Label>
+        <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa / Cluster<RequiredMark /></Label>
         <Select value={empresaId} onValueChange={onEmpresaChange}>
           <SelectTrigger className="h-8 mt-1"><SelectValue placeholder="Selecione a empresa..." /></SelectTrigger>
           <SelectContent>
