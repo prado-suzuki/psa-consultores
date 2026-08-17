@@ -616,11 +616,14 @@ export function useDomainSolicitacao(clienteId: string | null) {
         });
 
         /**
-         * Aviso por e-mail ao cliente (ALE-2). `invoke` sem `await` e com a
-         * falha morrendo no `catch`, igual aos seis pontos de chamada de
-         * `notify-ticket` (useTicketMutations.ts:144 e :192): o e-mail não pode
-         * desfazer a mutação, que já gravou status e data e já registrou
-         * auditoria.
+         * Aviso ao cliente (ALE-2 / ALE-2.1). Uma chamada só para os dois canais:
+         * a borda resolve e-mail e WhatsApp por conta própria, cada um com sua
+         * rota no n8n e sua linha de registro.
+         *
+         * `invoke` sem `await` e com a falha morrendo no `catch`, igual aos seis
+         * pontos de chamada de `notify-ticket` (useTicketMutations.ts:144 e :192):
+         * o aviso não pode desfazer a mutação, que já gravou status e data e já
+         * registrou auditoria.
          */
         supabase.functions.invoke('notificar', {
           body: {
@@ -668,7 +671,38 @@ export function useDomainSolicitacao(clienteId: string | null) {
       'encerrada_em',
       'Esta solicitação já estava encerrada. Recarregue a página.',
     ),
-    onSuccess: invalidar,
+    onSuccess: () => {
+      invalidar();
+
+      const atual = solicitacaoQuery.data;
+
+      /**
+       * Aviso 3 — documentação conferida e aceita. O gatilho é o ENCERRAMENTO,
+       * e não o ato de aceitar documento, que não existe em tela: o
+       * avisos-cliente.md autoriza "sai quando o cliente enviou tudo ou quando a
+       * solicitação é encerrada".
+       *
+       * `enviadaEm` é a condição, não um detalhe: `moverStatus` aceita encerrar a
+       * partir de 'rascunho', e um rascunho encerrado nunca chegou ao cliente —
+       * mandar "recebemos e conferimos" nesse caso seria afirmar algo falso. Vale
+       * para os outros dois estados de origem: tanto `enviada` quanto
+       * `em_checklist` têm `enviada_em` gravado, então os dois disparam. A borda
+       * repete essa checagem porque é ela que pode ser chamada de fora; aqui a
+       * guarda existe só para não gerar chamada condenada em todo encerramento de
+       * rascunho.
+       *
+       * Sem `await` e com a falha no `catch`, pelo mesmo motivo do envio: o aviso
+       * não desfaz a transição, que já gravou status e data.
+       */
+      if (atual?.enviadaEm) {
+        supabase.functions.invoke('notificar', {
+          body: {
+            event_type: 'documento_aprovado',
+            solicitacao_id: atual.id,
+          },
+        }).catch(console.error);
+      }
+    },
     onError: (error: Error) => {
       invalidar();
       toast.error('Não foi possível encerrar: ' + error.message);
