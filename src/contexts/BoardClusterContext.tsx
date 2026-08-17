@@ -1,6 +1,6 @@
-// Seletor global de cliente (cluster) da área Board — vive numa faixa acima do
-// conteúdo, igual ao OSG Work e ao MAPA, e recorta as páginas que o honram.
-// '' = todos os clientes.
+// Seletor global de EMPRESA (entidade: cluster) do Board — vive numa faixa acima
+// do conteúdo, igual ao OSG Work e ao MAPA, e recorta as páginas que o honram.
+// '' = todas as empresas.
 //
 // O contexto e o hook `useBoardCluster` vivem em @/hooks/useBoardCluster (este
 // arquivo exporta só o Provider, por causa do Fast Refresh).

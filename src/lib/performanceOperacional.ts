@@ -6,11 +6,14 @@
  * afirma**. Três dos cinco KPIs eram globais e o filtro "certificava" um número
  * que não era do escopo escolhido.
  *
- * O recorte hoje é por CLUSTER (o seletor global de cliente do Board), não mais
- * por área. Isso resolveu a última exceção: a economia validada era
- * necessariamente global porque `process_improvements` só tem `cluster_id` e o
- * filtro era por área. Agora ela também é recortável. Todo KPI segue rotulando
- * o escopo real — número global com cliente escolhido diz o motivo.
+ * O recorte hoje é por `cluster_id` — o seletor global de EMPRESA do Board
+ * (`estrutura_clusters` é a pessoa jurídica; ver a decisão em
+ * `docs/geral/decisoes/empresa-de-faturamento-vive-no-cluster.md`) — e não mais
+ * pelo bucket adivinhado a partir do nome da área. Isso resolveu a última
+ * exceção: a economia validada era necessariamente global porque
+ * `process_improvements` só tem `cluster_id` e o filtro antigo classificava por
+ * nome de área. Agora ela também é recortável. Todo KPI segue rotulando o escopo
+ * real — número global com empresa escolhida diz o motivo.
  *
  * Funções PURAS: recebem o snapshot já buscado pelos hooks e devolvem números e
  * rótulos. Nada de cálculo dentro do `.tsx`. Testado em
@@ -56,9 +59,9 @@ export interface MembroEquipeArea {
   /** Bucket declarado pela área (por ID, não pelo nome). */
   area_key?: BoardAreaKey | null;
   /**
-   * Cluster da área da equipe. É o recorte do seletor global de cliente: ID
-   * puro, sem bucket nem palpite por nome — e por isso alcança clusters que a
-   * classificação por nome jogava em "Outros".
+   * Empresa (cluster) da área da equipe. É o recorte do seletor global: ID
+   * puro, sem bucket nem palpite por nome — e por isso alcança as empresas que
+   * a classificação por nome jogava em "Outros".
    */
   cluster_id?: string | null;
 }
@@ -122,9 +125,8 @@ export function mapaAreasPorPessoa(membros: MembroEquipeArea[]): Map<string, Set
  *
  * A `chave` é um bucket de área (`'tax'`) OU um id de cluster — a função não
  * precisa saber qual, só compara com o conjunto que o mapa guarda. É isso que
- * deixa o mesmo predicado servir ao filtro de área e ao seletor global de
- * cliente, com o mapa correspondente (`mapaAreasPorPessoa` /
- * `mapaClustersPorPessoa`).
+ * deixa o mesmo predicado servir aos dois mapas (`mapaAreasPorPessoa` /
+ * `mapaClustersPorPessoa`) sem duplicação.
  *
  * `''` e `'todas'` aceitam qualquer pessoa; sem vínculo cadastrado, a pessoa
  * não é do recorte.
@@ -408,17 +410,18 @@ export function chipDeArea(
 
 /** Nome curto do recorte de área para os rótulos da tela. */
 /**
- * Rótulo do escopo REAL de um número, para o seletor global de cliente.
+ * Rótulo do escopo REAL de um número, para o seletor global de empresa.
  *
- * Substituiu `rotuloArea`/`rotuloEscopo`, removidos com o filtro de área.
- * Recebe o NOME já resolvido (o mapa de clusters vive no hook, não aqui) e
- * mantém a regra que importa: número que caiu para global com cliente escolhido
- * diz o motivo, em vez de se passar por recortado.
+ * Substituiu `rotuloArea`/`rotuloEscopo`, que rotulavam o filtro antigo — aquele
+ * classificava por casamento de nome; este recebe o NOME já resolvido pelo ID do
+ * cluster (o mapa vive no hook, não aqui). A regra que importa continua: número
+ * que caiu para global com área escolhida diz o motivo, em vez de se passar por
+ * recortado.
  */
-export function rotuloEscopoCliente(escopo: EscopoTipo, nomeCliente: string | null): string {
-  if (!nomeCliente) return 'todos os clientes';
-  if (escopo === 'area') return nomeCliente;
-  return 'todos os clientes (sem vínculo de equipe)';
+export function rotuloEscopoCluster(escopo: EscopoTipo, nomeEmpresa: string | null): string {
+  if (!nomeEmpresa) return 'todas as empresas';
+  if (escopo === 'area') return nomeEmpresa;
+  return 'todas as empresas (sem vínculo de equipe)';
 }
 
 export function rotuloJanela(periodo: string): string {

@@ -39,7 +39,7 @@ import {
 import { useDomainTrabalhoDigital } from '@/hooks/useDomainTrabalhoDigital';
 import { resumoDigital, diagnosticoDigital } from '@/lib/trabalhoDigital';
 
-// O recorte por CLIENTE não mora aqui: vem da barra global (`useBoardCluster`),
+// O recorte por EMPRESA não mora aqui: vem da barra global (`useBoardCluster`),
 // que vale para a área Board inteira. Aqui fica só a janela de execução.
 const DEFAULTS = { periodo: '30d' };
 
@@ -92,9 +92,9 @@ const BoardDashboard = () => {
   // ── Fonte do negócio (mesma query da tela "Clientes e OS") ─────────────
   const { ambiente } = useDashboardAmbiente();
   const negocio = useDashboardClientesOs(ambiente);
-  // O cliente global recorta a camada de negócio inteira — o que o filtro de
-  // área nunca conseguiu fazer, porque OS não tem área. Toda linha aqui carrega
-  // `cluster_id`.
+  // A empresa global recorta a camada de negócio inteira — o que o filtro de
+  // área ANTIGO nunca conseguiu, porque classificava por nome e OS não tem nome
+  // de área. Toda linha aqui carrega `cluster_id`.
   const osRows = useMemo(
     () => filtrarPorCluster(negocio.data?.osRows ?? [], cluster),
     [negocio.data, cluster],
@@ -187,8 +187,8 @@ const BoardDashboard = () => {
     const porArea = new Map<BoardAreaKey, ResumoArea>(
       resumoPorArea(projetos, tarefas).map((r) => [r.area, r]),
     );
-    // A fonte da Digital (`sprint_deliverables`) não tem cluster: com cliente
-    // selecionado ela entraria inteira, somando trabalho de outros clientes na
+    // A fonte da Digital (`sprint_deliverables`) não tem cluster: com empresa
+    // selecionada ela entraria inteira, somando trabalho de outras empresas na
     // linha Dev. Fora do recorte é melhor ausente que errada — o rodapé avisa.
     if (!cluster) {
       for (const linha of linhasDigital) {
@@ -204,7 +204,7 @@ const BoardDashboard = () => {
   /** Ressalvas do rodapé do rollup: fonte, acesso negado e dado incompleto. */
   const notaAreas = useMemo(() => {
     if (cluster) {
-      return 'Só tarefas de projeto (Tax/OSG): os entregáveis de sprint da Digital não têm cluster e ficam fora quando há cliente selecionado.';
+      return 'Só tarefas de projeto (Tax/OSG): os entregáveis de sprint da Digital não têm cluster e ficam fora quando há uma empresa selecionada.';
     }
     const partes = ['Fontes somadas: tarefas de projeto (Tax/OSG) + entregáveis de sprint (Digital). Unidades de trabalho diferentes.'];
     if (diagDigital && diagDigital.semVinculoDeProjeto > 0) {
@@ -325,8 +325,8 @@ const BoardDashboard = () => {
           </div>
         </div>
 
-        {/* Janela da EXECUÇÃO. O recorte por cliente é a barra global acima —
-            ele já recortou receita, carteira, projetos e alertas. */}
+        {/* Janela da EXECUÇÃO. O recorte por empresa é a barra global acima —
+            ela já recortou receita, carteira, projetos e alertas. */}
         <BoardFilterBar
           filters={[
             { key: 'periodo', label: 'Período (execução)', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },

@@ -21,7 +21,7 @@ import {
 import {
   chipDeArea, classificarContribuicao, contribuicaoNoPeriodo, desvioMedioEntrega,
   listarFalhas, mapaClustersPorPessoa,
-  metasNoEscopo, pessoasNoEscopo, resumoMetas, rotuloEscopoCliente, rotuloJanela,
+  metasNoEscopo, pessoasNoEscopo, resumoMetas, rotuloEscopoCluster, rotuloJanela,
   type MetaCiclo, type PessoaBasica,
 } from '@/lib/performanceOperacional';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
@@ -37,20 +37,20 @@ const COR_AREA: Record<string, string> = {
 };
 const corDaArea = (a: string) => COR_AREA[a] ?? COR_OUTROS;
 
-// O recorte por CLIENTE vem da barra global (`useBoardCluster`); aqui ficam só
-// os filtros próprios da tela. `area` saiu — classificava por casamento de
-// texto e jogava em "Outros" tudo que não casasse.
+// O recorte por EMPRESA vem da barra global (`useBoardCluster`), que filtra por
+// `cluster_id`. O filtro `area` local saiu: classificava por casamento de texto
+// e jogava em "Outros" tudo que não casasse.
 const DEFAULTS = { periodo: '30d', search: '', statusFilter: 'todos', ordenacao: 'prazo_asc' };
 
 const PerformanceDashboard = () => {
   const revealRef = useBoardReveal();
-  // pageKey v2: o filtro de área saiu e a chave antiga guardava `area` na
+  // pageKey v2: o filtro `area` local saiu e a chave antiga o guardava na
   // sessão — sem trocar a chave, o valor órfão voltaria do sessionStorage.
   const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({ pageKey: 'performance-v2', defaults: DEFAULTS });
   const periodo = filters.periodo as string;
   const { cluster } = useBoardCluster();
   const { data: clusters = [] } = useClusters();
-  const nomeCliente = cluster ? clusters.find((c) => c.id === cluster)?.nome ?? '—' : null;
+  const nomeEmpresa = cluster ? clusters.find((c) => c.id === cluster)?.nome ?? '—' : null;
   const searchTerm = filters.search as string;
   const statusFilter = filters.statusFilter as string;
   const ordenacao = filters.ordenacao as string;
@@ -73,9 +73,9 @@ const PerformanceDashboard = () => {
     if (prefsQuery.data) {
       const prefs = prefsQuery.data as any;
       if (prefs.periodo_padrao && prefs.periodo_padrao !== periodo) setFilter('periodo', prefs.periodo_padrao);
-      // `area_padrao` não é mais lida: o filtro de área saiu e o recorte por
-      // cliente persiste sozinho no localStorage (BoardClusterProvider). A
-      // coluna fica no banco — remover exigiria migration em produção.
+      // `area_padrao` não é mais lida: o filtro local saiu e a empresa global
+      // persiste sozinha no localStorage (BoardClusterProvider). A coluna fica
+      // no banco — remover exigiria migration em produção.
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefsQuery.data]);
@@ -86,7 +86,7 @@ const PerformanceDashboard = () => {
     setLastUpdate(new Date());
   };
 
-  // ── Escopo: tudo que a tela afirma passa pelo recorte de cliente ──
+  // ── Escopo: tudo que a tela afirma passa pelo recorte de empresa ──
   const todosProjetos = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
   const projetos = useMemo(() => filtrarPorCluster(todosProjetos, cluster), [todosProjetos, cluster]);
   const saude = useMemo(() => saudeProjetos(projetos), [projetos]);
@@ -97,7 +97,7 @@ const PerformanceDashboard = () => {
     () => (membersQuery.data?.profiles ?? []) as unknown as PessoaBasica[],
     [membersQuery.data],
   );
-  /** pessoa → cluster (via equipe → área): base do recorte de pessoas e metas. */
+  /** pessoa → empresa (via equipe → área, por ID): base do recorte de pessoas e metas. */
   const clustersPorPessoa = useMemo(() => mapaClustersPorPessoa(membros), [membros]);
 
   // Tarefa segue o projeto: `projetos` já está recortado, então a tarefa de um
@@ -115,14 +115,14 @@ const PerformanceDashboard = () => {
   const last3MonthsTasks = useMemo(() => last3MonthsTasksQuery.data ?? [], [last3MonthsTasksQuery.data]);
 
   // Economia validada deixou de ser necessariamente global: `process_improvements`
-  // sempre teve `cluster_id` — o que faltava era o filtro ser por cluster.
+  // sempre teve `cluster_id` — o que faltava era o filtro ser por ID de empresa.
   const melhorias = useMemo(
     () => filtrarPorCluster(melhoriasQuery.data ?? [], cluster),
     [melhoriasQuery.data, cluster],
   );
   const roi = consolidarRoi(melhorias);
   const janelaLabel = rotuloJanela(periodo);
-  const escopoLabel = nomeCliente ?? 'todos os clientes';
+  const escopoLabel = nomeEmpresa ?? 'todas as empresas';
 
   // "Tempo Médio": desvio das entregas do período, agora recortado por área e
   // com o tamanho da amostra — sem amostra a tela declara que não há base.
@@ -210,8 +210,8 @@ const PerformanceDashboard = () => {
     || periodTasksQuery.isLoading || metasQuery.isLoading;
 
   // Rótulo de escopo de cada KPI — nenhum número fica global sem dizer.
-  const escopoMetasLabel = rotuloEscopoCliente(escopoMetas.escopo, nomeCliente);
-  const escopoPessoasLabel = rotuloEscopoCliente(escopoPessoas.escopo, nomeCliente);
+  const escopoMetasLabel = rotuloEscopoCluster(escopoMetas.escopo, nomeEmpresa);
+  const escopoPessoasLabel = rotuloEscopoCluster(escopoPessoas.escopo, nomeEmpresa);
   const metasSubText = metasBrutas.length === 0
     ? 'nenhuma meta no ciclo ativo'
     : resumoDasMetas.individuais === 0

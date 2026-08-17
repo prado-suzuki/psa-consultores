@@ -6,13 +6,16 @@
 // semântica de '' = todos, mesma tolerância a viver fora do provider (testes de
 // página isolada renderizam sem filtro em vez de quebrar).
 //
-// NOME: a entidade é `estrutura_clusters`; na tela ela se chama "Cliente",
-// igual ao OSG Work e ao MAPA. Não renomear hook, contexto nem coluna.
+// NOME: a entidade é `estrutura_clusters` — daí `cluster` aqui. Na tela ela se
+// chama "Empresa": a linha TEM `nome_empresa` e `cnpj`, é uma pessoa jurídica
+// (ver `docs/geral/decisoes/empresa-de-faturamento-vive-no-cluster.md`), e o
+// cadastro da OS já chama o mesmo campo de "Empresa / Faturamento". Não
+// renomear hook, contexto nem coluna.
 
 import { createContext, useContext } from 'react';
 
 export interface BoardClusterValue {
-  /** UUID do cluster selecionado. '' = todos os clientes. */
+  /** UUID do cluster selecionado. '' = todas as empresas. */
   cluster: string;
   setCluster: (id: string) => void;
 }

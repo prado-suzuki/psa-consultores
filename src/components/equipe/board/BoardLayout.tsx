@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { useDomainBoardLayout } from '@/hooks/useDomainBoardLayout';
 import { usePageAccess } from '@/hooks/usePageAccess';
-import { BoardClienteBar, honraClienteGlobal } from '@/components/equipe/board/BoardClienteBar';
+import { BoardClusterBar, honraClusterGlobal } from '@/components/equipe/board/BoardClusterBar';
 
 interface BoardLayoutProps {
   children: React.ReactNode;
@@ -472,10 +472,10 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
           </div>
         </header>
 
-        {/* Seletor global de cliente — só nas rotas que realmente o honram
-            (ver ROTAS_COM_CLIENTE_GLOBAL). Fora do scroll, como no OSG Work:
+        {/* Seletor global de empresa — só nas rotas que realmente o honram
+            (ver ROTAS_COM_CLUSTER_GLOBAL). Fora do scroll, como no OSG Work:
             fica sempre visível enquanto a página rola. */}
-        {honraClienteGlobal(location.pathname) && <BoardClienteBar />}
+        {honraClusterGlobal(location.pathname) && <BoardClusterBar />}
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">

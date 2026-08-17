@@ -11,7 +11,7 @@ import {
   contribuicaoNoPeriodo,
   classificarContribuicao,
   chipDeArea,
-  rotuloEscopoCliente,
+  rotuloEscopoCluster,
   rotuloJanela,
   listarFalhas,
   type MetaCiclo,
@@ -122,23 +122,23 @@ describe('mapaClustersPorPessoa', () => {
   it('serve ao mesmo predicado de recorte', () => {
     expect(pessoaNoRecorte(mapa, 'u1', 'cl-tax')).toBe(true);
     expect(pessoaNoRecorte(mapa, 'u2', 'cl-tax')).toBe(false);
-    // '' = todos os clientes.
+    // '' = todas as empresas.
     expect(pessoaNoRecorte(mapa, 'u3', '')).toBe(true);
   });
 });
 
-describe('rotuloEscopoCliente', () => {
-  it('sem cliente escolhido, o rótulo é global', () => {
-    expect(rotuloEscopoCliente('global', null)).toBe('todos os clientes');
-    expect(rotuloEscopoCliente('area', null)).toBe('todos os clientes');
+describe('rotuloEscopoCluster', () => {
+  it('sem empresa escolhida, o rótulo é global', () => {
+    expect(rotuloEscopoCluster('global', null)).toBe('todas as empresas');
+    expect(rotuloEscopoCluster('area', null)).toBe('todas as empresas');
   });
 
-  it('com cliente e recorte aplicado, nomeia o cliente', () => {
-    expect(rotuloEscopoCliente('area', 'TAX')).toBe('TAX');
+  it('com empresa e recorte aplicado, nomeia a empresa', () => {
+    expect(rotuloEscopoCluster('area', 'Prado Advogados')).toBe('Prado Advogados');
   });
 
-  it('com cliente mas número global, entrega o motivo em vez de omitir', () => {
-    expect(rotuloEscopoCliente('global', 'TAX')).toBe('todos os clientes (sem vínculo de equipe)');
+  it('com empresa mas número global, entrega o motivo em vez de omitir', () => {
+    expect(rotuloEscopoCluster('global', 'Prado Advogados')).toBe('todas as empresas (sem vínculo de equipe)');
   });
 });
 
