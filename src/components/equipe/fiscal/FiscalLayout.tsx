@@ -36,7 +36,7 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
         {/* Header — altura, tipografia e conteúdo espelhados do OSG Projects. O
             usuário mora no rodapé da barra da esquerda; aqui ficam só o título
             da página e as ações. */}
-        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-border/60 bg-primary/10 flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"

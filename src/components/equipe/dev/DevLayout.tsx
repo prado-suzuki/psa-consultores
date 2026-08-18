@@ -345,7 +345,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
       </aside>
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-slate-200/60 bg-white px-6">
+        <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border/60 bg-primary/10 px-6">
           <div className="flex items-center gap-3">
             {collapsed && (
               <Button
