@@ -92,7 +92,7 @@ exibe; não duplica a digitação.
 | Instrumento | Data da assinatura | existe | `exploracao_rural.data_assinatura` | data | instrumento assinado | consultora OSG | `exploracao.data_assinatura` (proposto) | Nenhuma técnica. |
 | Instrumento | Data de encerramento | existe | `exploracao_rural.data_encerramento` | data, opcional | instrumento assinado | consultora OSG | `exploracao.data_encerramento` (proposto) | Confirmar uso quando houver prorrogação automática. |
 | Instrumento | Vigência | existe | `exploracao_rural.vigencia` | texto | instrumento assinado | consultora OSG | `exploracao.vigencia` (proposto) | O campo atual é livre; avaliar datas estruturadas na próxima sprint. |
-| Instrumento | Vigência prorrogável | novo | sem coluna | booleano | decisão do consultor | consultora OSG | `vigencia_prorrogavel` | Não tratar `vigencia` livre como se já fosse esta flag. |
+| Instrumento | Vigência prorrogável | novo | sem coluna | booleano | decisão do consultor | consultora OSG | `vigencia_prorrogavel` | Não tratar `vigencia` livre como se já fosse esta flag. **Lacuna encontrada no preview (14/08/2026):** um booleano sozinho não diz por quanto tempo renova — precisa de um campo de prazo de renovação ao lado. Sem nenhum contrato real lido até agora com essa cláusula no corpo da própria Parceria (só a composse/indivisão tem, linha abaixo); confirmar com a consultora se o prazo de renovação é sempre igual ao prazo original ou pode ser diferente. |
 | Instrumento | Declarado no IRPF | existe | `exploracao_rural.declarado_irpf` | booleano | planilha do cliente / IRPF | consultora OSG | não necessário ao contrato | Confirmar se pertence ao formulário ou apenas ao relatório fiscal. |
 | Imóvel e áreas | Imóvel | existe | `exploracao_rural.bem_id` → `bem.id` | relação | cadastro existente | consultora OSG | `imovel.*` | Selecionar; não cadastrar nem redesenhar o imóvel dentro deste formulário. |
 | Imóvel e áreas | Matrícula | existe, mas em lugar errado | `exploracao_rural.matricula_texto`; autoridade em `matricula.id`/`.numero` | relação + texto legado | cartório | consultora OSG | `imovel.numero` | Próxima sprint deve preferir FK; não duplicar texto quando houver matrícula cadastrada. |
@@ -115,11 +115,11 @@ exibe; não duplica a digitação.
 | Percentual e produção | Culturas/atividades permitidas | **novo — CONFIRMADO em `[BV-COM]`** | sem coluna/lista | lista de textos ou catálogo | decisão do consultor | consultora OSG | lista `culturas`; item `cultura.nome` (propostos) | Cláusula Primeira do `[BV-COM]` lista lavouras (soja, algodão, milho, café, cana, cacau, feijão, outros cereais) **e pecuária** (bovinos, suínos, ovinos, aves) — renomear de "culturas" para "culturas/atividades", o campo é mais largo que só cultivo. `tem_cultura_algodao` continua derivado da lista, não digitado duas vezes. |
 | Percentual e produção | Benfeitorias indenizáveis | novo — mapeado no catálogo, **não achado no `[BV-COM]`** | sem coluna | booleano | decisão do consultor | consultora OSG | `benfeitorias_indenizaveis` | Este contrato só fala em manter os bens indivisos, não em indenização de benfeitoria — mas a pasta do cliente tem um modelo à parte chamado `V1_Contrato Modelo Parceria Benfeitorias não [indenizáveis].docx` (não aberto nesta revisão), indício de que é cláusula real de Parceria. Confirmar redação/padrão com a consultora. |
 | Percentual e produção | Permite penhor / financiamento | **novo — CONFIRMADO em `[BV-COM]`** | sem coluna | booleano | decisão do consultor | consultora OSG | `permite_penhor` | Cláusulas 14ª a 17ª do `[BV-COM]`: os compossuidores autorizam penhor da produção e dos bens em garantia de financiamento, pelo prazo da obrigação garantida. Confirmado pelo menos para Composse; confirmar se a mesma cláusula aparece nas Parcerias de origem. |
-| Documento de origem | Tipo do instrumento de origem | novo | sem coluna | enum: parceria, arrendamento, herança, **outro (uso real, não fallback)** | instrumento de origem | consultora OSG | `tipo_instrumento_origem` | `[BV-COM]` mostra 3 títulos reais diferentes para o que a composse trata como equivalente: "Instrumento Particular de Parceria para Fins de Exploração Agropecuária", "Contrato de Parceria Agrícola e Outras Avenças" e — sem a palavra "parceria" nenhuma vez — "Instrumento Particular de Exploração de Atividade Rural" (3 dos 6 instrumentos de origem usam esse 3º nome). "Outro" não é resíduo raro, é metade dos casos reais vistos até agora. Deve ficar associado ao imóvel/detalhe, não como campo único do cabeçalho. |
+| Documento de origem | Tipo do instrumento de origem | novo | sem coluna | enum: parceria, arrendamento, herança, **outro (uso real, não fallback)** | instrumento de origem | consultora OSG | `tipo_instrumento_origem` | `[BV-COM]` mostra 3 títulos reais diferentes para o que a composse trata como equivalente: "Instrumento Particular de Parceria para Fins de Exploração Agropecuária", "Contrato de Parceria Agrícola e Outras Avenças" e — sem a palavra "parceria" nenhuma vez — "Instrumento Particular de Exploração de Atividade Rural" (3 dos 6 instrumentos de origem usam esse 3º nome). "Outro" não é resíduo raro, é metade dos casos reais vistos até agora. Deve ficar associado ao imóvel/detalhe, não como campo único do cabeçalho. **Bug corrigido no preview (14/08/2026):** a primeira versão do componente tinha esse campo duplicado — uma vez (errado) como valor único da seção "Documento de origem" na aba Dados, herdado por cópia do mockup estático antigo, e outra vez (certo) por imóvel na aba "Imóveis e origens". Removida a versão do cabeçalho; só a versão por imóvel existe agora, coerente com o que esta linha já dizia. |
 | Documento de origem | Instrumento de origem da posse | novo | sem relação | relação opcional com instrumento cadastrado ou documento | instrumento de origem | consultora OSG | `exploracao_imovel.origem.*` (proposto) | **CONFIRMADO com números em `[BV-COM]`**: 15 imóveis (alíneas a–o do Anexo Único), vindos de 6 instrumentos de origem distintos, 5 contrapartes diferentes, firmados entre 2021 e 2024 (a composse em si é de 2024). Cada imóvel tem exatamente 1 origem — a multiplicidade é no conjunto de imóveis do contrato, não em cada imóvel. Achado extra: pelo Parágrafo Único da Cláusula Quarta, quando a Parceria de origem de um imóvel termina, o imóvel sai da composse **sem aditivo** — o vínculo precisa de um estado computado (vigente / caído), não uma lista estática. |
 | Documento de origem | Documento comprobatório | existe, mas em lugar errado | `documento_arquivo.*` com vínculos a cliente/bem/matrícula/pessoa | arquivo relacionado | arquivo do cliente | consultora OSG | não renderizar; lastro do dado | Planilha é digitada manualmente; importação fica para sprint futura. |
 | Composse | Prazo de indivisão | **novo — CONFIRMADO em `[BV-COM]`** | sem coluna | texto ou intervalo de datas | instrumento | consultora OSG | `composse.prazo_indivisao` (proposto) | Cláusula Quarta: 3 anos, contados da assinatura. Distinto da vigência da(s) parceria(s) de origem, que têm datas próprias e independentes. |
-| Composse | Indivisão prorrogável | **novo — CONFIRMADO em `[BV-COM]`** | sem coluna | booleano | instrumento | consultora OSG | `indivisao_prorrogavel` | Cláusula Quarta: renova automaticamente por períodos iguais de 3 anos, salvo pedido escrito de divisão feito por qualquer compossuidor até 3 meses antes do vencimento. Regra de renovação, portanto, já está confirmada — não é mais pendência. |
+| Composse | Indivisão prorrogável | **novo — CONFIRMADO em `[BV-COM]`** | sem coluna | booleano + prazo de aviso | instrumento | consultora OSG | `indivisao_prorrogavel` e `indivisao_aviso_prazo` (proposto) | Cláusula Quarta: renova automaticamente por períodos iguais de 3 anos (mesmo valor de `prazo_indivisao`, acima), salvo pedido escrito de divisão feito por qualquer compossuidor **até 3 meses antes do vencimento**. Regra de renovação já está confirmada — o booleano sozinho não bastava (mesma lacuna encontrada na "Vigência prorrogável"), por isso o prazo de aviso virou campo próprio, não só texto solto no rótulo. |
 
 ## 3. Nomes a combinar com Bernardo
 
@@ -387,12 +387,55 @@ pela outra, é rascunho visual vs. entrega em código real.
   clique manual no navegador — sem ferramenta de captura de tela disponível
   nesta sessão para conferir renderização/estilo visualmente; recomenda-se
   abrir a URL acima antes de considerar a peça pronta para a consultora.
+- **Achados do clique manual (14/08/2026, feito pelo solicitante):** quatro
+  correções nesta primeira versão em código, todas já aplicadas —
+  (1) cabeçalho de tabela quebrado por `flex` direto no `<th>`, corrigido com
+  `<span>` interno; (2) "Vigência prorrogável"/"Indivisão prorrogável" eram
+  booleanos sem prazo — adicionados os campos de prazo de renovação/aviso
+  prévio; o texto do switch de indivisão também estava errado (dizia "prazo
+  indeterminado", a cláusula real é período fixo com aviso); (3) "Instrumento
+  de origem" e "Imóvel e áreas" existiam duplicados — uma vez certo por imóvel
+  (aba "Imóveis e origens"), outra vez errado como campo único do cabeçalho
+  (aba Dados), herdado por cópia do mockup estático antigo sem checar contra o
+  resto do formulário. As duas versões de cabeçalho foram removidas; a aba
+  "Imóveis e origens" é agora a única fonte de imóvel/matrícula, tipo e
+  referência de origem, e também herdou o aviso de "matrícula já em outra
+  Parceria ativa" (agora por cartão, não mais um valor único do formulário);
+  (4) a mesma aba, depois da consolidação do item 3, virou uma tabela de 10+
+  colunas com scroll horizontal dentro do modal — ilegível, copiado sem pensar
+  do formato de planilha da fonte original. Trocada por um cartão por imóvel,
+  usando a mesma grade (`formGridCls`) e os mesmos `Field`/`Wide` (extraídos
+  pra `SeloCampo.tsx`, reaproveitados agora pelas duas abas) que a aba Dados já
+  usa — mesma cara do resto do formulário, sem scroll horizontal.
+- **Achado #5 do clique manual (14/08/2026):** o aviso de "matrícula já em outra
+  Parceria ativa" tinha dois problemas. Primeiro, um bug: nunca excluía o
+  próprio registro em edição — ER 01 aparecia "colidindo com ER 01". Segundo, o
+  aviso só afirmava o fato ("já está em outra Parceria, 60% da área"), sem
+  calcular o que sobra — corrigido pra computar e mostrar "resta X% livre (Y
+  ha)" e, se a área explorada digitada ultrapassar isso, destacar a conta em
+  vermelho. Ainda avisa, não bloqueia (travar o campo é decisão de UX que
+  depende do Bernardo). E um terceiro ajuste, de escopo: o aviso só faz sentido
+  quando o registro sendo criado/editado também é uma Parceria — uma Composse
+  não reivindica área independente da matrícula, ela só reparte entre os
+  compossuidores o direito que a própria Parceria de origem já concedeu (par
+  Parceria+Composse, seção 1), então não compete pelo espaço restante e não
+  deve disparar o aviso.
+- **Pendência aberta (14/08/2026):** "Prazo de indivisão" e "Aviso prévio para
+  não renovar" ainda são texto livre; o solicitante apontou que deveriam ser
+  quantidade + unidade (dias/meses/anos, mesmo padrão de `matricula.area_unidade`)
+  para permitir calcular prazos de verdade depois — nenhum contrato real exige
+  texto livre aqui, ao contrário de `vigencia` (que É texto livre hoje só por
+  causa da coluna legada). Ainda não implementado.
 
-O preview segue as seções numeradas do cadastro atual: **Instrumento**, **Imóvel e
-áreas**, **Partes**, **Percentual e produção** e **Documento de origem**, mais a
-aba **Imóveis e origens**. Campos de matrícula e qualificação são exibidos como
-leitura do cadastro já existente (fixture no preview; consulta real na próxima
-sprint).
+O preview (código real) segue as seções **Instrumento**, **Partes**, **Percentual
+e produção** e **Documento de origem** na aba Dados, mais a aba **Imóveis e
+origens** — que é a única fonte de imóvel/matrícula do formulário, não uma seção
+à parte (ver achado do clique manual acima). O mockup estático antigo, mantido
+em `docs/osg/contratos_exploracao/mockup.html`, ainda tem "Imóvel e áreas" como
+seção própria da aba Dados e não foi atualizado — os dois artefatos divergiram
+nisso; o preview em código é a versão corrigida. Campos de matrícula e
+qualificação são exibidos como leitura do cadastro já existente (fixture no
+preview; consulta real na próxima sprint).
 
 ## 6. Migrações candidatas para a próxima sprint
 

@@ -29,11 +29,11 @@ interface Props {
   matriculas: MatriculaRow[];
   pessoas: PessoaRow[];
   instrumentosDeOrigem: { ref: string; label: string }[];
-  avisoMatriculaCompartilhada?: string | null;
+  avisoParaMatricula?: (matriculaId: string, refAtual: string) => { percentualUsado: number; detalhe: string } | null;
   onClose: () => void;
 }
 
-export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange, matriculas, pessoas, instrumentosDeOrigem, avisoMatriculaCompartilhada, onClose }: Props) {
+export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange, matriculas, pessoas, instrumentosDeOrigem, avisoParaMatricula, onClose }: Props) {
   const [activeTab, setActiveTab] = useState('dados');
 
   return (
@@ -57,10 +57,7 @@ export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange,
               <ExploracaoRuralDadosTab
                 draft={draft}
                 onChange={onChange}
-                matriculas={matriculas}
                 pessoas={pessoas}
-                instrumentosDeOrigem={instrumentosDeOrigem}
-                avisoMatriculaCompartilhada={avisoMatriculaCompartilhada}
               />
             </TabsContent>
             <TabsContent value="imoveis" className="mt-0 focus-visible:ring-0">
@@ -69,6 +66,7 @@ export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange,
                 onChange={(imoveis) => onChange({ ...draft, imoveis })}
                 matriculas={matriculas}
                 instrumentosDeOrigem={instrumentosDeOrigem}
+                avisoParaMatricula={avisoParaMatricula ? (matriculaId: string) => avisoParaMatricula(matriculaId, refCodigo) : undefined}
               />
             </TabsContent>
           </div>

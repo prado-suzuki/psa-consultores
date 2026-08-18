@@ -40,8 +40,6 @@ function draftDeExemplo(tipo: TipoExploracao): ExploracaoRuralDraft {
       dataAssinatura: '2022-03-12',
       dataEncerramento: '2025-03-11',
       vigencia: '3 anos, contados da assinatura',
-      matriculaId: boaVista.id,
-      areaExplorada: '234,0000',
       outorganteId: modeloAgro.id,
       exploradorId: jose.id,
       percentualOutorgante: '30,000%',
@@ -49,24 +47,23 @@ function draftDeExemplo(tipo: TipoExploracao): ExploracaoRuralDraft {
       percentualVigenteDesde: '2022-03-12',
       culturas: 'soja; milho; algodão; pecuária',
       permitePenhor: true,
+      imoveis: [
+        { id: 'imv-fx-0', ref: 'a', matriculaId: boaVista.id, areaExplorada: '234,0000', tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: null, situacaoOrigem: 'vigente' },
+      ],
     };
   }
   return {
     ...base,
     referencia: 'ER 02',
     dataAssinatura: '2022-03-12',
-    matriculaId: boaVista.id,
-    areaExplorada: '234,0000',
     compossuidores: [
       { id: 'fx-1', pessoaId: jose.id, fracao: '70' },
       { id: 'fx-2', pessoaId: maria.id, fracao: '15' },
       { id: 'fx-3', pessoaId: pedro.id, fracao: '15' },
     ],
-    tipoInstrumentoOrigem: 'Parceria',
-    instrumentoOrigemRef: 'ER 01',
     imoveis: [
-      { id: 'imv-fx-1', ref: 'a', matriculaId: boaVista.id, areaExplorada: '234,0000', instrumentoOrigemRef: 'ER 01', situacaoOrigem: 'vigente' },
-      { id: 'imv-fx-2', ref: 'b', matriculaId: matriculasFixture[1].id, areaExplorada: '225,5480', instrumentoOrigemRef: 'ER 04', situacaoOrigem: 'encerrada' },
+      { id: 'imv-fx-1', ref: 'a', matriculaId: boaVista.id, areaExplorada: '234,0000', tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: 'ER 01', situacaoOrigem: 'vigente' },
+      { id: 'imv-fx-2', ref: 'b', matriculaId: matriculasFixture[1].id, areaExplorada: '225,5480', tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: 'ER 04', situacaoOrigem: 'encerrada' },
     ],
   };
 }
@@ -88,9 +85,22 @@ function ContratosExploracaoPreview() {
     });
   }, [busca, filtroTipo]);
 
-  const avisoMatriculaCompartilhada = draft.matriculaId === matriculasFixture[0].id
-    ? 'Esta matrícula já está em outra Parceria ativa: ER 01 — Modelo Agro Ltda. → José da Silva, 60% da área. Confirmado com a OSG (13/08/2026): duas Parcerias concorrentes na mesma matrícula são válidas se cobrirem fração distinta da área/percentual, com outorgados diferentes — o cadastro não bloqueia, só avisa.'
-    : null;
+  // Fixture: quanto de cada matrícula já está reivindicado por OUTRA Parceria ativa
+  // (excluindo o próprio registro que está sendo editado — antes esse filtro não
+  // existia e ER 01 "colidia consigo mesma"). Confirmado com a OSG (13/08/2026):
+  // duas Parcerias concorrentes na mesma matrícula são válidas se cobrirem fração
+  // distinta da área/percentual, com outorgados diferentes — por isso o percentual
+  // usado importa, não só o fato de já estar em uso.
+  //
+  // Só se aplica quando o registro sendo criado/editado também é uma Parceria: a
+  // Composse não faz reivindicação independente de área, ela só reparte entre os
+  // compossuidores o direito que a própria Parceria de origem já concedeu — não
+  // "usa" um pedaço adicional da matrícula, então não compete pelo espaço restante.
+  const avisoParaMatricula = (matriculaId: string, refAtual: string): { percentualUsado: number; detalhe: string } | null => {
+    if (draft.tipo !== 'parceria') return null;
+    if (matriculaId !== matriculasFixture[0].id || refAtual === 'ER 01') return null;
+    return { percentualUsado: 60, detalhe: 'ER 01 — Modelo Agro Ltda. → José da Silva' };
+  };
 
   const abrirNova = () => { setDraft(emptyExploracaoDraft('parceria')); setIsEdit(false); setRefCodigo('ER 05'); setOpen(true); };
   const abrirExistente = (item: ExploracaoListaItemFixture) => { setDraft(draftDeExemplo(item.tipo)); setIsEdit(true); setRefCodigo(item.ref); setOpen(true); };
@@ -183,7 +193,7 @@ function ContratosExploracaoPreview() {
         matriculas={matriculasFixture}
         pessoas={pessoasFixture}
         instrumentosDeOrigem={INSTRUMENTOS_DE_ORIGEM_FIXTURE}
-        avisoMatriculaCompartilhada={avisoMatriculaCompartilhada}
+        avisoParaMatricula={avisoParaMatricula}
         onClose={() => setOpen(false)}
       />
     </main>

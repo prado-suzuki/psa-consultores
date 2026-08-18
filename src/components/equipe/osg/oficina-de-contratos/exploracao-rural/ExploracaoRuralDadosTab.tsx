@@ -1,42 +1,38 @@
-import type { ReactNode } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import DateFieldWithInput from '@/components/equipe/client-form/DateFieldWithInput';
 import { FieldSection, fieldCls, labelCls, switchBoxCls } from '@/components/equipe/osg/formKit';
-import { formGridCls, formSpanCls } from '@/lib/osgFormGrid';
-import type { MatriculaRow } from '@/hooks/useDiagnosticoPatrimonial';
+import { formGridCls } from '@/lib/osgFormGrid';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import { AlertTriangle, Plus, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Selo } from './SeloCampo';
+import { Field, Selo, Wide } from './SeloCampo';
 import type { CompossuidorDraft, ExploracaoRuralDraft, ParteExtraDraft } from '@/previews/contratosExploracaoModel';
 
 // Aba "Dados" do cadastro de exploração rural — cópia do padrão de
 // MatriculaDadosTab.tsx (mesmo FieldSection, mesmo formGridCls, mesmos campos de
 // formulário reais). Ver docs/osg/levantamento-contratos-rurais.md, seção 2,
 // para a origem/pendência de cada campo. Componente puro: nada aqui consulta o
-// banco — quem popula `matriculas`/`pessoas` decide isso por fora (na próxima
-// sprint, um hook real; neste preview, um fixture).
+// banco — quem popula `pessoas` decide isso por fora (na próxima sprint, um
+// hook real; neste preview, um fixture). Os imóveis (matrícula, área, origem)
+// não têm campo aqui — moram só na aba "Imóveis e origens", ver
+// ExploracaoRuralImoveisTab.tsx; consolidado em 14/08/2026 porque havia um
+// campo de matrícula única aqui, desconectado da lista, duplicando a mesma
+// informação sem sincronia.
 
 const PAPEIS_PARTE_EXTRA = ['Outorgante adicional', 'Explorador adicional', 'Anuente', 'Interveniente', 'Garantidor', 'Outro (definir com Bernardo)'];
-const TIPOS_INSTRUMENTO_ORIGEM = ['Parceria', 'Arrendamento', 'Herança', 'Outro'];
 
 interface Props {
   draft: ExploracaoRuralDraft;
   onChange: (draft: ExploracaoRuralDraft) => void;
-  matriculas: MatriculaRow[];
   pessoas: PessoaRow[];
-  instrumentosDeOrigem: { ref: string; label: string }[];
-  /** Pré-computado por quem monta a tela: se a matrícula escolhida já está em outra Parceria ativa. */
-  avisoMatriculaCompartilhada?: string | null;
 }
 
-export function ExploracaoRuralDadosTab({ draft, onChange, matriculas, pessoas, instrumentosDeOrigem, avisoMatriculaCompartilhada }: Props) {
+export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
   const set = <K extends keyof ExploracaoRuralDraft>(key: K, value: ExploracaoRuralDraft[K]) => onChange({ ...draft, [key]: value });
   const isComposse = draft.tipo === 'composse';
-  const matriculaSelecionada = matriculas.find((m) => m.id === draft.matriculaId) ?? null;
   let number = 0;
   const next = () => String((number += 1)).padStart(2, '0');
 
@@ -67,39 +63,13 @@ export function ExploracaoRuralDadosTab({ draft, onChange, matriculas, pessoas, 
           <Field label="Data da assinatura" selo="existe"><DateFieldWithInput value={draft.dataAssinatura} onChange={(v) => set('dataAssinatura', v)} /></Field>
           <Field label="Data de encerramento" selo="existe"><DateFieldWithInput value={draft.dataEncerramento} onChange={(v) => set('dataEncerramento', v)} /></Field>
           <Wide label="Vigência" selo="existe"><Input value={draft.vigencia} onChange={(e) => set('vigencia', e.target.value)} className={fieldCls} placeholder="ex: 3 anos, contados da assinatura" /></Wide>
-          <Wide label="Vigência prorrogável" selo="novo">
-            <div className={switchBoxCls}><Switch checked={draft.vigenciaProrrogavel} onCheckedChange={(v) => set('vigenciaProrrogavel', v)} /><Label className="text-sm">renova automaticamente, salvo aviso em contrário</Label></div>
-          </Wide>
+          <Field label="Vigência prorrogável" selo="novo">
+            <div className={switchBoxCls}><Switch checked={draft.vigenciaProrrogavel} onCheckedChange={(v) => set('vigenciaProrrogavel', v)} /><Label className="text-sm">sim</Label></div>
+          </Field>
+          <Field label="Prazo de renovação" selo="novo" hint="sem contrato real com esta cláusula ainda — confirmar se é sempre igual ao prazo original">
+            <Input disabled={!draft.vigenciaProrrogavel} value={draft.prazoRenovacaoVigencia} onChange={(e) => set('prazoRenovacaoVigencia', e.target.value)} className={fieldCls} placeholder="ex: por períodos iguais ao prazo original" />
+          </Field>
         </div>
-      </FieldSection>
-
-      <FieldSection number={next()} title="Imóvel e áreas" hint="dados lidos da matrícula existente">
-        <Field label="Imóvel / matrícula" required selo="existe">
-          <Select value={draft.matriculaId ?? undefined} onValueChange={(v) => set('matriculaId', v)}>
-            <SelectTrigger className={fieldCls}><SelectValue placeholder="Selecionar matrícula cadastrada…" /></SelectTrigger>
-            <SelectContent>{matriculas.map((m) => <SelectItem key={m.id} value={m.id}>{m.numero ? `Matrícula ${m.numero}` : m.id} — {m.municipio_imovel}/{m.uf_imovel}</SelectItem>)}</SelectContent>
-          </Select>
-        </Field>
-
-        {avisoMatriculaCompartilhada && (
-          <div className="mt-2 flex items-start gap-2 rounded-md border border-osg-highlighter bg-osg-highlighter/10 px-3 py-2 text-xs text-amber-900">
-            <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            <span>{avisoMatriculaCompartilhada}</span>
-          </div>
-        )}
-
-        <div className={`${formGridCls(4)} mt-3 gap-3`}>
-          <Field label="Município / UF" selo="existe"><Input disabled value={matriculaSelecionada ? `${matriculaSelecionada.municipio_imovel} / ${matriculaSelecionada.uf_imovel}` : '—'} className={fieldCls} /></Field>
-          <Field label="Área documento" selo="existe"><Input disabled value={matriculaSelecionada ? `${matriculaSelecionada.area_documento} ${matriculaSelecionada.area_unidade}` : '—'} className={`${fieldCls} font-mono`} /></Field>
-          <Field label="Área real" selo="existe"><Input disabled value={matriculaSelecionada?.area_real != null ? `${matriculaSelecionada.area_real} ${matriculaSelecionada.area_unidade}` : '—'} className={`${fieldCls} font-mono`} /></Field>
-          <Field label="Área explorada" required selo="existe"><Input value={draft.areaExplorada} onChange={(e) => set('areaExplorada', e.target.value)} className={`${fieldCls} font-mono`} /></Field>
-          <Field label="Georreferenciamento" selo="existe"><Input disabled value={matriculaSelecionada?.georreferenciado ?? '—'} className={fieldCls} /></Field>
-        </div>
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          O modelo de cabeçalho+detalhes já suporta a mesma matrícula em duas Parcerias diferentes sem tabela nova —
-          confirmado com a OSG (13/08/2026). O aviso acima é só informativo nesta versão; falta decidir se soma
-          percentuais/áreas automaticamente.
-        </p>
       </FieldSection>
 
       <FieldSection number={next()} title="Partes">
@@ -173,9 +143,12 @@ export function ExploracaoRuralDadosTab({ draft, onChange, matriculas, pessoas, 
         </p>
 
         {isComposse && (
-          <div className={`${formGridCls(2)} mt-4 items-end gap-3`}>
+          <div className={`${formGridCls(3)} mt-4 items-end gap-3`}>
             <Field label="Prazo de indivisão" selo="novo"><Input className={fieldCls} value={draft.prazoIndivisao} onChange={(e) => set('prazoIndivisao', e.target.value)} /></Field>
-            <Field label="Indivisão prorrogável" selo="novo"><div className={switchBoxCls}><Switch checked={draft.indivisaoProrrogavel} onCheckedChange={(v) => set('indivisaoProrrogavel', v)} /><Label className="text-sm">por prazo indeterminado</Label></div></Field>
+            <Field label="Indivisão prorrogável" selo="novo"><div className={switchBoxCls}><Switch checked={draft.indivisaoProrrogavel} onCheckedChange={(v) => set('indivisaoProrrogavel', v)} /><Label className="text-sm">sim</Label></div></Field>
+            <Field label="Aviso prévio para não renovar" selo="novo" hint="CONFIRMADO em [BV-COM]: renova por período igual ao prazo de indivisão acima, salvo pedido escrito até este prazo antes do vencimento">
+              <Input disabled={!draft.indivisaoProrrogavel} className={fieldCls} value={draft.indivisaoAvisoPrazo} onChange={(e) => set('indivisaoAvisoPrazo', e.target.value)} />
+            </Field>
           </div>
         )}
       </FieldSection>
@@ -187,22 +160,15 @@ export function ExploracaoRuralDadosTab({ draft, onChange, matriculas, pessoas, 
           </Field>
         ) : (
           <div className={`${formGridCls(2)} gap-3`}>
-            <Field label="Tipo do instrumento de origem" selo="novo">
-              <Select value={draft.tipoInstrumentoOrigem} onValueChange={(v) => set('tipoInstrumentoOrigem', v)}>
-                <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
-                <SelectContent>{TIPOS_INSTRUMENTO_ORIGEM.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-              </Select>
-            </Field>
-            <Field label="Instrumento de origem da posse" selo="novo">
-              <Select value={draft.instrumentoOrigemRef ?? undefined} onValueChange={(v) => set('instrumentoOrigemRef', v)}>
-                <SelectTrigger className={fieldCls}><SelectValue placeholder="Selecionar…" /></SelectTrigger>
-                <SelectContent>{instrumentosDeOrigem.map((i) => <SelectItem key={i.ref} value={i.ref}>{i.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </Field>
             <Wide label="Documento comprobatório" selo="existe"><Input className={fieldCls} placeholder="Contrato de Parceria Rural registrado — 10/10/2022" disabled /></Wide>
           </div>
         )}
-        <p className="mt-2 text-[11px] text-muted-foreground">A origem definitiva é vinculada a cada imóvel na aba "Imóveis e origens", pois um contrato de composse pode reunir várias origens — confirmado pela OSG: a composse é sempre resultado da Parceria, nunca o contrário.</p>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          O tipo e a referência do instrumento de origem <strong>não ficam aqui</strong>: uma composse pode reunir
+          várias origens diferentes (<code>[BV-COM]</code>: 15 imóveis, 6 instrumentos de origem distintos) —
+          confirmado pela OSG, a composse é sempre resultado da Parceria, nunca o contrário. Por isso cada imóvel
+          declara sua própria origem na aba "Imóveis e origens", não o instrumento como um todo.
+        </p>
       </FieldSection>
     </>
   );
@@ -214,24 +180,5 @@ function PessoaSelect({ value, onChange, pessoas, placeholder }: { value: string
       <SelectTrigger className={fieldCls}><SelectValue placeholder={placeholder} /></SelectTrigger>
       <SelectContent>{pessoas.map((p) => <SelectItem key={p.id} value={p.id}>{p.denominacao}{p.cpf_cnpj ? ` — ${p.cpf_cnpj}` : ''}</SelectItem>)}</SelectContent>
     </Select>
-  );
-}
-
-function Field({ label, required, selo, hint, children }: { label: string; required?: boolean; selo: 'existe' | 'novo'; hint?: string; children: ReactNode }) {
-  return (
-    <div className="space-y-1.5">
-      <Label className={`${labelCls} flex items-center gap-1.5`}>{label}{required && <span className="text-osg-red">*</span>}<Selo tipo={selo} /></Label>
-      {children}
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
-function Wide({ label, selo, children }: { label: string; selo: 'existe' | 'novo'; children: ReactNode }) {
-  return (
-    <div className={`space-y-1.5 ${formSpanCls(2)}`}>
-      <Label className={`${labelCls} flex items-center gap-1.5`}>{label}<Selo tipo={selo} /></Label>
-      {children}
-    </div>
   );
 }

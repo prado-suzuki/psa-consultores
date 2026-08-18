@@ -20,11 +20,15 @@ export interface ParteExtraDraft {
   pessoaId: string | null;
 }
 
+export const TIPOS_INSTRUMENTO_ORIGEM = ['Parceria', 'Arrendamento', 'Herança', 'Outro'];
+
 export interface ExploracaoImovelDraft {
   id: string;
   ref: string;
   matriculaId: string | null;
   areaExplorada: string;
+  /** Por imóvel, não pelo instrumento inteiro — [BV-COM] tem 6 origens distintas numa só composse. */
+  tipoInstrumentoOrigem: string;
   instrumentoOrigemRef: string | null;
   /** Estado computado (não digitado): se a Parceria de origem deste imóvel ainda vigora. */
   situacaoOrigem: 'vigente' | 'encerrada';
@@ -40,10 +44,14 @@ export interface ExploracaoRuralDraft {
   declaradoIrpf: boolean;
   // Instrumento — novo
   vigenciaProrrogavel: boolean;
+  /** Por quanto tempo renova quando prorrogável — sem contrato real com essa cláusula ainda, ver pendência na seção 2. */
+  prazoRenovacaoVigencia: string;
 
-  // Imóvel e áreas — existe (lido de `matricula`, só a área explorada é editável aqui)
-  matriculaId: string | null;
-  areaExplorada: string;
+  // Imóvel e áreas: não é campo do cabeçalho — mora inteiro na lista `imoveis`
+  // (aba "Imóveis e origens"), porque um instrumento pode cobrir mais de uma
+  // matrícula (`[BV-COM]`: 15 imóveis numa só composse). Consolidado em
+  // 14/08/2026: havia um campo de matrícula única aqui, desconectado da lista,
+  // que duplicava a mesma informação sem sincronia.
 
   // Partes — existe
   outorganteId: string | null;
@@ -62,17 +70,18 @@ export interface ExploracaoRuralDraft {
   permitePenhor: boolean;
   prazoIndivisao: string;
   indivisaoProrrogavel: boolean;
+  /** CONFIRMADO em [BV-COM], Cláusula Quarta: renova por período igual a `prazoIndivisao`, salvo aviso até este prazo antes do vencimento. */
+  indivisaoAvisoPrazo: string;
   // Percentual e produção — existe, mas em lugar errado (`exploracao_rural.sacas_por_hectare`)
   sacasPorHectare: string;
 
   // Documento de origem — existe
   estudoFiscalDocumentoId: string | null;
   documentoComprobatorioId: string | null;
-  // Documento de origem — novo
-  tipoInstrumentoOrigem: string;
-  instrumentoOrigemRef: string | null;
 
-  // Imóveis e origens — aba própria (existe + novo, ver ExploracaoImovelDraft)
+  // Imóveis e origens — aba própria (existe + novo, ver ExploracaoImovelDraft). Tipo e
+  // referência do instrumento de origem moram por imóvel, não aqui — [BV-COM] mostra até
+  // 6 origens diferentes numa única composse.
   imoveis: ExploracaoImovelDraft[];
 }
 
@@ -88,8 +97,7 @@ export function emptyExploracaoDraft(tipo: TipoExploracao = 'parceria'): Explora
     vigencia: '',
     declaradoIrpf: false,
     vigenciaProrrogavel: true,
-    matriculaId: null,
-    areaExplorada: '',
+    prazoRenovacaoVigencia: '',
     outorganteId: null,
     exploradorId: null,
     compossuidores: [],
@@ -103,11 +111,10 @@ export function emptyExploracaoDraft(tipo: TipoExploracao = 'parceria'): Explora
     permitePenhor: false,
     prazoIndivisao: '3 anos',
     indivisaoProrrogavel: true,
+    indivisaoAvisoPrazo: '3 meses antes do vencimento',
     sacasPorHectare: '',
     estudoFiscalDocumentoId: null,
     documentoComprobatorioId: null,
-    tipoInstrumentoOrigem: 'parceria',
-    instrumentoOrigemRef: null,
     imoveis: [],
   };
 }
