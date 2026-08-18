@@ -37,6 +37,7 @@ import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { isTodayBrazil, isTomorrowBrazil, isPastBrazil, parseDate } from '@/lib/dateUtils';
 import * as XLSX from 'xlsx';
+import { chamadoStatusConfig } from '@/lib/chamadoStatusColors';
 
 const deadlineOptions: Record<string, string> = {
   'none': 'Sem prazo',
@@ -50,13 +51,6 @@ const deadlineOptions: Record<string, string> = {
 
 type SortDirection = 'asc' | 'desc' | null;
 type SortColumn = 'status' | 'title' | 'department' | 'created_by' | 'updated_at' | 'activity_status' | null;
-
-const statusColors: Record<string, string> = {
-  aberto: 'bg-info hover:bg-info',
-  em_andamento: 'bg-warning hover:bg-warning',
-  resolvido: 'bg-success hover:bg-success',
-  fechado: 'bg-muted-foreground hover:bg-muted-foreground/90',
-};
 
 const statusLabels: Record<string, string> = {
   aberto: 'Aberto',
@@ -598,7 +592,7 @@ export function ChamadosGestaoContent({ basePath }: ChamadosGestaoContentProps) 
                       />
                     </TableCell>
                     <TableCell>
-                      <Badge className={statusColors[ticket.status]}>
+                      <Badge className={chamadoStatusConfig(ticket.status).solid}>
                         {statusLabels[ticket.status]}
                       </Badge>
                     </TableCell>
