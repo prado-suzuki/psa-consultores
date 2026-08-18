@@ -15,8 +15,8 @@ import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import { useDomainMelhoriasRoi } from '@/hooks/useDomainMelhoriasRoi';
 import {
-  BOARD_AREAS, consolidarRoi, filtrarPorCluster, filtrarTarefasPorProjetos, saudeProjetos,
-  serieTarefasPorArea, type BoardAreaKey,
+  BOARD_AREAS, BOARD_AREA_LABEL, consolidarRoi, filtrarPorCluster, filtrarTarefasPorProjetos,
+  saudeProjetos, serieTarefasPorArea, type BoardAreaKey,
 } from '@/lib/boardExecutivo';
 import {
   chipDeArea, classificarContribuicao, contribuicaoNoPeriodo, desvioMedioEntrega,
@@ -448,10 +448,8 @@ const PerformanceDashboard = () => {
             totalCount={todosProjetos.length}
           />
           {filteredProjects.length === 0 ? (
-            // O reset do estado vazio também limpa a ÁREA — sem isso o botão
-            // "Limpar filtros" parecia não fazer nada quando era a área que
-            // zerava a tabela.
-            <FilterEmptyState onReset={() => { setFilter('search', ''); setFilter('statusFilter', 'todos'); handleAreaChange('todas'); }} />
+            // O filtro de ÁREA local foi removido; o reset limpa busca e status.
+            <FilterEmptyState onReset={() => { setFilter('search', ''); setFilter('statusFilter', 'todos'); }} />
           ) : (
             <div className="v3-tw">
               <table>
