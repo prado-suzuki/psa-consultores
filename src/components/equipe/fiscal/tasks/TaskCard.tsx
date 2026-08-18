@@ -44,11 +44,14 @@ interface TaskCardProps {
   compact?: boolean;
 }
 
+// Prioridade nos mesmos papéis de status da área (ver index.css). Antes `medium`
+// usava --info, que é azul e não pertence à paleta de nenhuma área — era o último
+// azul solto da tela.
 const priorityColors = {
-  urgent: 'bg-destructive/10 text-destructive border-destructive/20',
-  high: 'bg-warning/10 text-warning border-warning/20',
-  medium: 'bg-info/10 text-info border-info/20',
-  low: 'bg-muted text-muted-foreground border-border',
+  urgent: 'bg-status-ajuste-soft text-status-ajuste border-status-ajuste/20',
+  high: 'bg-status-alerta-soft text-status-alerta border-status-alerta/20',
+  medium: 'bg-status-fila-soft text-status-fila border-status-fila/20',
+  low: 'bg-status-neutro-soft text-status-neutro border-status-neutro/15',
 };
 
 const priorityLabels = {
@@ -68,15 +71,15 @@ const statusIcons: Record<OrgTask['status'], LucideIcon> = {
   done: CheckCircle2,
 };
 
+// Tons categóricos da área (--tag-a..d). Eram 8 matizes de estoque — azul, rosa,
+// ciano, índigo —, que davam à tag mais destaque que ao status da tarefa.
+// A opacidade tem que ser um passo da escala do Tailwind (múltiplos de 5): com
+// `/12` a classe é descartada na build, sem erro, e a tag sai sem fundo.
 const TAG_COLORS = [
-  'bg-blue-100 text-blue-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-amber-100 text-amber-700',
-  'bg-purple-100 text-purple-700',
-  'bg-pink-100 text-pink-700',
-  'bg-cyan-100 text-cyan-700',
-  'bg-orange-100 text-orange-700',
-  'bg-indigo-100 text-indigo-700',
+  'bg-tag-a/15 text-tag-a',
+  'bg-tag-b/15 text-tag-b',
+  'bg-tag-c/15 text-tag-c',
+  'bg-tag-d/15 text-tag-d',
 ];
 
 const getTagColor = (tag: string) => {
@@ -120,7 +123,7 @@ export const TaskCard = ({
       <div 
         className={cn(
           "p-3 bg-card rounded-lg border shadow-sm hover:shadow-md transition-shadow",
-          isFixedEvent && "border-l-4 border-l-purple-500"
+          isFixedEvent && "border-l-4 border-l-tag-c"
         )}
       >
         <div 
@@ -207,7 +210,7 @@ export const TaskCard = ({
   return (
     <Card className={cn(
       "hover:shadow-md transition-shadow",
-      isFixedEvent && "border-l-4 border-l-purple-500"
+      isFixedEvent && "border-l-4 border-l-tag-c"
     )}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
@@ -235,7 +238,7 @@ export const TaskCard = ({
               </Badge>
               
               {isFixedEvent && (
-                <Badge variant="outline" className="border-purple-300 text-purple-700">
+                <Badge variant="outline" className="border-tag-c/40 text-tag-c">
                   Evento Fixo
                 </Badge>
               )}

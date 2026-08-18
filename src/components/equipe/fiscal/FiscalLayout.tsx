@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Menu } from 'lucide-react';
 import { FiscalSidebar } from './FiscalSidebar';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,14 @@ interface FiscalLayoutProps {
 
 export const FiscalLayout = ({ children, title, subtitle, headerActions }: FiscalLayoutProps) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // Enquanto a área Tax está montada, marca o <html> com o tema dela — mesmo
+  // mecanismo do OsgLayout, para alcançar menus e modais em portal (body).
+  // Sem isso a Tax herdaria a paleta base do sistema em vez de declarar a sua.
+  useEffect(() => {
+    document.documentElement.classList.add('tax-theme');
+    return () => document.documentElement.classList.remove('tax-theme');
+  }, []);
 
   return (
     <div className="min-h-screen bg-muted flex w-full">

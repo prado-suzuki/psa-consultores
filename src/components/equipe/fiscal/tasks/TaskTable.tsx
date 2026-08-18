@@ -132,12 +132,12 @@ const statusLabels = Object.fromEntries(
                  </Button>
                )}
                <span className={cn(
-                 task.category === 'fixed_event' && "text-purple-700"
+                 task.category === 'fixed_event' && "text-tag-c"
                )}>
                  {task.title}
                </span>
                {task.category === 'fixed_event' && (
-                 <Badge variant="outline" className="border-purple-300 text-purple-700 text-xs">
+                 <Badge variant="outline" className="border-tag-c/40 text-tag-c text-xs">
                    Fixo
                  </Badge>
                )}

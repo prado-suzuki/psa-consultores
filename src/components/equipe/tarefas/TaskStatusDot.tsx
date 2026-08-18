@@ -26,7 +26,7 @@ export function TaskStatusDot({ status, className }: { status: OrgTaskStatus; cl
       role="img"
       aria-label={`${statusColors[status].label}: ${progress}%`}
       className={cn(
-        'flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-current p-px',
+        'flex h-3 w-3 shrink-0 items-center justify-center rounded-full border border-current p-px',
         statusColors[status].text,
         className,
       )}
@@ -40,7 +40,7 @@ export function TaskStatusDot({ status, className }: { status: OrgTaskStatus; cl
               : `conic-gradient(currentColor ${progress * 3.6}deg, transparent 0deg)`,
         }}
       >
-        {progress === 100 && <Check className="h-2 w-2 stroke-[3] text-white" />}
+        {progress === 100 && <Check className="h-1.5 w-1.5 stroke-[4] text-white" />}
       </span>
     </span>
   );

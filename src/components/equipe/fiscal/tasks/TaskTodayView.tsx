@@ -121,7 +121,7 @@ import { parseDate } from '@/lib/dateUtils';
                        {priorityLabels[task.priority]}
                      </Badge>
                      {task.category === 'fixed_event' && (
-                       <Badge variant="outline" className="border-purple-300 text-purple-700">
+                       <Badge variant="outline" className="border-tag-c/40 text-tag-c">
                          Fixo
                        </Badge>
                      )}
