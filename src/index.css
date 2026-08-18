@@ -246,7 +246,26 @@ All colors MUST be HSL.
      A paleta vem declarada INTEIRA, inclusive os papéis iguais aos da base: a
      paleta de uma área tem que ser legível de uma vez, num bloco só. */
   .tax-theme {
-    --muted-foreground: 28 10% 44%;
+    /* Superfícies da Tax — a área tem temperatura própria também no fundo.
+       Antes a Tax herdava da base o marfim quente (matiz 42), a 10° do bege da
+       OSG (32): duas áreas com acento diferente e o MESMO pano de fundo, e a
+       tela inteira lia como "a mesma coisa" antes de qualquer conteúdo. Agora o
+       fundo da Tax puxa para o frio, herdando um fio do teal da marca.
+
+       Saturação baixíssima de propósito: é neutro com cast, não superfície
+       colorida — se o fundo tem cor, o acento para de saltar. As luminosidades
+       são as mesmas de antes (só `--muted` desce 1 ponto, para o card se
+       destacar do corpo), então nenhum contraste do sistema muda. */
+    --background: 170 18% 99.6%;
+    --card: 170 18% 99.6%;
+    --popover: 170 18% 99.6%;
+    --canvas: 170 16% 98.8%;
+    --muted: 168 20% 97%;
+
+    /* O secundário acompanha a temperatura da superfície: com o fundo da Tax
+       frio, um neutro quente aqui repetiria — ao contrário — a dissonância que
+       o matiz 220 causava sobre os beges. Mesma luminosidade de antes. */
+    --muted-foreground: 185 8% 44%;
     --status-neutro: 30 20% 33%;
     --status-neutro-soft: 30 20% 86%;
     --status-fila: 197 45% 34%;
