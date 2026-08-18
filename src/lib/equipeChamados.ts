@@ -33,13 +33,6 @@ export interface PrazoInfo {
   tipo: 'expirado' | 'urgente' | 'atencao' | 'normal' | 'concluido' | 'aguardando_cliente';
 }
 
-export const statusColors: Record<string, string> = {
-  aberto: 'bg-blue-500 hover:bg-blue-600',
-  em_andamento: 'bg-yellow-500 hover:bg-yellow-600',
-  resolvido: 'bg-green-500 hover:bg-green-600',
-  fechado: 'bg-gray-500 hover:bg-gray-600',
-};
-
 export const statusLabels: Record<string, string> = {
   aberto: 'Aberto',
   em_andamento: 'Em Andamento',
@@ -53,11 +46,9 @@ export const activityLabels: Record<string, string> = {
   em_analise: 'Em análise',
 };
 
-export const activityColors: Record<string, string> = {
-  aguardando_resposta: 'bg-orange-100 text-orange-800',
-  respondido: 'bg-green-100 text-green-800',
-  em_analise: 'bg-blue-100 text-blue-800',
-};
+// As cores de status, prioridade, atividade e prazo vivem em
+// `@/lib/chamadoStatusColors` — em papéis de status, não em matiz fixa, para o
+// chamado pegar a paleta da área que o hospeda. Aqui ficam só rótulos e regras.
 
 export const departmentLabels: Record<string, string> = {
   contabilidade: 'Contabilidade/Societário',
