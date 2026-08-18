@@ -6,6 +6,7 @@ import { KanbanBoard } from '@/components/equipe/kanban/KanbanBoard';
 import { KanbanDeliverableDialog } from '@/components/equipe/kanban/KanbanDeliverableDialog';
 import { KanbanFilters } from '@/components/equipe/kanban/KanbanFilters';
 import { KanbanTable } from '@/components/equipe/kanban/KanbanTable';
+import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 import { OpenSubtasksWarningDialog } from '@/components/equipe/OpenSubtasksWarningDialog';
 import { Button } from '@/components/ui/button';
 import { useEquipeKanbanDeliverableMutations } from '@/hooks/useDomainEquipeKanbanDeliverableMutations';
@@ -32,6 +33,9 @@ import {
 } from '@/lib/equipeKanban';
 
 const EquipeKanban = () => {
+  // Quadro de três colunas ocupando a largura toda: a barra recolhe sozinha.
+  useTelaDeTrabalhoLargo();
+
   const [deliverables, setDeliverables] = useState<Deliverable[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);

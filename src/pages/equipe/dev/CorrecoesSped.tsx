@@ -6,6 +6,7 @@ import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { FieldTooltip } from '@/components/equipe/dev/correcoes-sped/tooltipHelpers';
 import { SPED_TOOLTIPS } from '@/components/equipe/dev/correcoes-sped/tooltipConstants';
+import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -63,6 +64,9 @@ const formatCurrency = (v: number) =>
   v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const CorrecoesSped = () => {
+  // Seis abas de planilha somando mais de 2000px, com filtro por coluna.
+  useTelaDeTrabalhoLargo();
+
   const [clienteId, setClienteId] = useState('');
   const [contribuinteId, setContribuinteId] = useState('');
   const [dtIni, setDtIni] = useState('');

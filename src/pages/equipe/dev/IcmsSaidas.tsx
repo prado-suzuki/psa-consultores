@@ -11,6 +11,7 @@ import { T01ApuracaoTab } from '@/components/equipe/dev/icms-saidas/T01ApuracaoT
 import { T02CfopTab } from '@/components/equipe/dev/icms-saidas/T02CfopTab';
 import { T03_1SaidasTab } from '@/components/equipe/dev/icms-saidas/T03_1SaidasTab';
 import { T03_2SaidasStTab } from '@/components/equipe/dev/icms-saidas/T03_2SaidasStTab';
+import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 import {
   ButtonTooltip,
   FieldTooltip,
@@ -33,6 +34,9 @@ const getDefaultDates = () => {
 };
 
 const IcmsSaidas = () => {
+  // Apuração em abas com cabeçalho de dois níveis e colunas largas em scroll.
+  useTelaDeTrabalhoLargo();
+
   const { toast } = useToast();
   const defaultDates = getDefaultDates();
 

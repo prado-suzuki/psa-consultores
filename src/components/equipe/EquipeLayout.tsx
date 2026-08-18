@@ -29,6 +29,7 @@ import {
    Sparkles,
    Map
 } from 'lucide-react';
+import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 
 interface EquipeLayoutProps {
   children: React.ReactNode;
@@ -87,7 +88,9 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
   const { signOut, isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  // O recolhimento automático em telas de trabalho largo mora no hook — é a
+  // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
+  const { collapsed, setCollapsed } = useSidebarRecolhimentoController();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     '/equipe/dashboard': true,
     '/equipe/sprints': true,

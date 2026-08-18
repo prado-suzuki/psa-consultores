@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { DEV_HUBS } from "@/constants/devHubDefinitions";
 import { DEV_NAV_LABELS } from "@/constants/devNavLabels";
+import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 
 interface DevLayoutProps {
   children: React.ReactNode;
@@ -156,7 +157,9 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  // O recolhimento automático em telas de trabalho largo mora no hook — é a
+  // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
+  const { collapsed, setCollapsed } = useSidebarRecolhimentoController();
 
   const handleSignOut = async () => {
     await signOut();

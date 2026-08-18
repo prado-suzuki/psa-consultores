@@ -5,6 +5,7 @@ import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { ControlePerdcompFilters } from '@/components/equipe/dev/perdcomp/controle/ControlePerdcompFilters';
 import { ControlePerdcompResults } from '@/components/equipe/dev/perdcomp/controle/ControlePerdcompResults';
+import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 import { PerDetailModal } from '@/components/equipe/dev/perdcomp/PerDetailModal';
 import { PerFormModal } from '@/components/equipe/dev/perdcomp/PerFormModal';
 import { SoftDeleteModal } from '@/components/equipe/dev/perdcomp/SoftDeleteModal';
@@ -38,6 +39,9 @@ import {
 const ITEMS_PER_PAGE = 10;
 
 export default function ControlePerdcomp() {
+  // Planilha de 16 colunas (min-w-[1400px]) com rodapé fixo: pede a largura toda.
+  useTelaDeTrabalhoLargo();
+
   const [clienteId, setClienteId] = useState('');
   const [contribuinteId, setContribuinteId] = useState('');
   const [exercicioFilter, setExercicioFilter] = useState('');

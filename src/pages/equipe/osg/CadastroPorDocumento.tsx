@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ClassificarDocumentos } from '@/components/equipe/osg/documentos/classificar/ClassificarDocumentos';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useDocumentosByCliente } from '@/hooks/useDocumentoArquivo';
+import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 import { contarSemDono } from '@/lib/classificarBalde';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +16,8 @@ import { cn } from '@/lib/utils';
  * casca (contador de arquivos sem dono + a tela).
  */
 const CadastroPorDocumento = () => {
+  // Três colunas lado a lado: a barra lateral recolhe sozinha para dar o espaço.
+  useTelaDeTrabalhoLargo();
   const { clienteId } = useOsgWork();
   const { data: docs = [], isLoading } = useDocumentosByCliente(clienteId || null);
   // Contador e balde leem a mesma regra da mesma lista: desde a BER-40 a marca

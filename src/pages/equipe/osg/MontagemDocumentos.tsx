@@ -9,6 +9,7 @@ import { Plus, Loader2 } from 'lucide-react';
 import { GaleriaModelos } from '@/components/equipe/osg/montagem/GaleriaModelos';
 import { MontadorWorkbench } from '@/components/equipe/osg/montagem/MontadorWorkbench';
 import { useModelos, useSalvarModelo, useToggleModeloAtivo, useDuplicarModelo } from '@/hooks/useModelosDocumento';
+import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 
 interface ModeloForm {
   id?: string;
@@ -33,6 +34,9 @@ const MontagemDocumentos = () => {
   const [modeloDialog, setModeloDialog] = useState<{ open: boolean; form: ModeloForm }>({ open: false, form: MODELO_VAZIO });
 
   const selecionado = modelos.find((m) => m.id === selectedId) ?? null;
+  // A bancada de montagem (canvas de blocos + paleta de altura cheia) só abre
+  // com um modelo escolhido — antes disso é a galeria, que não pede espaço.
+  useTelaDeTrabalhoLargo(Boolean(selecionado));
 
   const handleSalvarModelo = async () => {
     const f = modeloDialog.form;

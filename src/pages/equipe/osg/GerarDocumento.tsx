@@ -4,10 +4,14 @@ import { PainelConferencia } from '@/components/equipe/osg/gerar/PainelConferenc
 import { DocumentoCentroRail } from '@/components/equipe/osg/gerar/DocumentoCentroRail';
 import { GerarDocumentoDialogs } from '@/components/equipe/osg/gerar/GerarDocumentoDialogs';
 import { useGerarDocumentoController } from '@/hooks/useGerarDocumentoController';
+import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 import { cn } from '@/lib/utils';
 
 const GerarDocumento = () => {
   const controller = useGerarDocumentoController();
+  // So no modo documento a tela vira tres colunas (conferência + documento +
+  // rail); na etapa de escolhas ela é estreita e a barra continua aberta.
+  useTelaDeTrabalhoLargo(Boolean(controller.modoDocumento));
 
   return (
     <OsgLayout
