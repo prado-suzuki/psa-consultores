@@ -24,6 +24,7 @@ const ENTITY_LABELS_OSG: Record<string, string> = {
   parentesco: 'Parentesco',
   administracao: 'Administração',
   quadro_societario: 'Quadro societário',
+  movimentacao_quotas: 'Movimentação de quotas',
   bem: 'Bem',
   matricula: 'Matrícula',
   titularidade: 'Titularidade',

@@ -614,6 +614,13 @@ export function mapearQuadroSocietario(
 /** Matrícula de bem aprovado para integralização (o id cruza as referências entre sócios). */
 export interface MatriculaIntegralizacao extends MatriculaParaMapear {
   id: string;
+  /**
+   * Id do BEM a que a matrícula pertence. Opcional: o gerador não precisa dele
+   * (a seção {{#integralizacoes}} descreve a matrícula, não o bem), mas a
+   * proposta de aporte inicial grava um movimento por bem aportado e é ele que
+   * vira `movimentacao_quotas.bem_id`.
+   */
+  bemId?: string | null;
 }
 
 /** Participação derivada de uma pessoa no quadro da empresa PR (visão calculada). */
@@ -645,6 +652,64 @@ export interface ParticipacaoPR {
  * fica fora do cálculo. Ordena por valor decrescente; o último absorve a
  * diferença de quotas para fechar com calcularCapitalSociedade.
  */
+/**
+ * Rateio em CENTAVOS do valor de capital de UMA matrícula entre os titulares
+ * dela, na ordem em que os titulares aparecem no cadastro (a ordem importa: ela
+ * é o desempate estável de quem tem o mesmo valor no quadro).
+ *
+ * `null` quando a matrícula não entra na conta (sem valor contábil).
+ *
+ * Existe separado de `calcularParticipacoesPR` porque a proposta de aporte
+ * inicial precisa do mesmo rateio ABERTO por bem, para gravar um movimento por
+ * bem aportado; duplicar a regra ali faria a proposta divergir do quadro
+ * derivado no primeiro caso de arredondamento.
+ */
+export function ratearMatriculaEntreTitulares(
+  m: MatriculaIntegralizacao,
+): Map<TitularParaMapear, number> | null {
+  // MESMA base de calcularCapitalSociedade: sem valor ou sem titular, a
+  // matrícula fica fora dos DOIS lados da identidade Σ quotas === totalQuotas.
+  const vlr = valorParaCapital(m);
+  if (vlr == null) return null;
+  const titulares = dedupTitulares(m.titulares);
+
+  const totalCent = Math.round(vlr * 100);
+  const comFracao = titulares.filter((t) => t.fracao != null);
+  const semFracao = titulares.filter((t) => t.fracao == null);
+  // Matrícula "fechada": todos com fração e Σ frações ≈ 100 — o último titular
+  // absorve o resíduo de arredondamento (padrão dos contratos registrados).
+  const fechada =
+    semFracao.length === 0 &&
+    Math.abs(comFracao.reduce((s, t) => s + t.fracao!, 0) - 100) < 0.001;
+
+  const calculado = new Map<TitularParaMapear, number>();
+  let alocado = 0;
+  comFracao.forEach((t, i) => {
+    const cent = fechada && i === comFracao.length - 1
+      ? totalCent - alocado
+      : Math.round((totalCent * t.fracao!) / 100);
+    alocado += cent;
+    calculado.set(t, cent);
+  });
+  // Sem fração: dividem igualmente o restante (último absorve o resíduo).
+  const restante = totalCent - alocado;
+  let alocadoSem = 0;
+  semFracao.forEach((t, i) => {
+    const cent = i === semFracao.length - 1
+      ? restante - alocadoSem
+      : Math.round(restante / semFracao.length);
+    alocadoSem += cent;
+    calculado.set(t, cent);
+  });
+
+  // Devolvido na ordem do cadastro, não na ordem "com fração antes de sem":
+  // quem consome agrega por pessoa e depois ordena com sort estável, então a
+  // ordem daqui é o desempate de dois titulares com o mesmo valor.
+  const centDe = new Map<TitularParaMapear, number>();
+  for (const t of titulares) centDe.set(t, calculado.get(t) ?? 0);
+  return centDe;
+}
+
 export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): ParticipacaoPR[] {
   interface Acumulado {
     pessoaId: string | null; denominacao: string;
@@ -654,42 +719,10 @@ export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): 
   const porChave = new Map<string, Acumulado>();
 
   for (const m of matriculas) {
-    // MESMA base de calcularCapitalSociedade: sem valor ou sem titular, a
-    // matrícula fica fora dos DOIS lados da identidade Σ quotas === totalQuotas.
-    const vlr = valorParaCapital(m);
-    if (vlr == null) continue;
-    const titulares = dedupTitulares(m.titulares);
+    const centDe = ratearMatriculaEntreTitulares(m);
+    if (centDe == null) continue;
 
-    const totalCent = Math.round(vlr * 100);
-    const comFracao = titulares.filter((t) => t.fracao != null);
-    const semFracao = titulares.filter((t) => t.fracao == null);
-    // Matrícula "fechada": todos com fração e Σ frações ≈ 100 — o último titular
-    // absorve o resíduo de arredondamento (padrão dos contratos registrados).
-    const fechada =
-      semFracao.length === 0 &&
-      Math.abs(comFracao.reduce((s, t) => s + t.fracao!, 0) - 100) < 0.001;
-
-    const centDe = new Map<TitularParaMapear, number>();
-    let alocado = 0;
-    comFracao.forEach((t, i) => {
-      const cent = fechada && i === comFracao.length - 1
-        ? totalCent - alocado
-        : Math.round((totalCent * t.fracao!) / 100);
-      alocado += cent;
-      centDe.set(t, cent);
-    });
-    // Sem fração: dividem igualmente o restante (último absorve o resíduo).
-    const restante = totalCent - alocado;
-    let alocadoSem = 0;
-    semFracao.forEach((t, i) => {
-      const cent = i === semFracao.length - 1
-        ? restante - alocadoSem
-        : Math.round(restante / semFracao.length);
-      alocadoSem += cent;
-      centDe.set(t, cent);
-    });
-
-    for (const t of titulares) {
+    for (const t of centDe.keys()) {
       const chave = t.pessoaId ?? `nome:${t.denominacao ?? ''}`;
       const atual = porChave.get(chave);
       if (atual) {

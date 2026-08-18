@@ -292,6 +292,9 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
           if ((m.impedimento ?? []).some((i) => !i.cancelado)) continue;
           matriculas.push({
             id: m.id,
+            // O bem a que a matrícula pertence: vira `bem_id` do aporte quando a
+            // tela do Quadro Societário grava a proposta da PR.
+            bemId: b.id,
             numero: m.numero,
             livro: m.livro,
             folha: m.folha,
