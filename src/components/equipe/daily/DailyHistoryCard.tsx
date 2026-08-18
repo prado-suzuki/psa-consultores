@@ -63,45 +63,45 @@ export function DailyHistoryCard({
   onPageChange,
 }: DailyHistoryCardProps) {
   return (
-    <Card className="bg-white border-gray-200">
+    <Card className="bg-card border-border">
       <CardHeader>
         <div className="flex flex-col gap-4">
-          <CardTitle className="text-gray-900 flex items-center gap-2"><User className="h-5 w-5 text-gray-500" />Histórico de Dailys</CardTitle>
+          <CardTitle className="text-foreground flex items-center gap-2"><User className="h-5 w-5 text-muted-foreground" />Histórico de Dailys</CardTitle>
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2"><Filter className="h-4 w-4 text-gray-500" /><span className="text-sm text-gray-500">Filtros:</span></div>
+            <div className="flex items-center gap-2"><Filter className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Filtros:</span></div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">De:</span>
-              <Input type="date" value={filters.startDate} onChange={(event) => onFiltersChange({ ...filters, startDate: event.target.value })} className="bg-white border-gray-300 text-gray-900 w-40" placeholder="Data Início" />
+              <span className="text-xs text-muted-foreground">De:</span>
+              <Input type="date" value={filters.startDate} onChange={(event) => onFiltersChange({ ...filters, startDate: event.target.value })} className="bg-card border-border text-foreground w-40" placeholder="Data Início" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Até:</span>
-              <Input type="date" value={filters.endDate} onChange={(event) => onFiltersChange({ ...filters, endDate: event.target.value })} className="bg-white border-gray-300 text-gray-900 w-40" placeholder="Data Fim" />
+              <span className="text-xs text-muted-foreground">Até:</span>
+              <Input type="date" value={filters.endDate} onChange={(event) => onFiltersChange({ ...filters, endDate: event.target.value })} className="bg-card border-border text-foreground w-40" placeholder="Data Fim" />
             </div>
             <Select value={filters.person} onValueChange={(person) => onFiltersChange({ ...filters, person })}>
-              <SelectTrigger className="bg-white border-gray-300 text-gray-900 w-44"><SelectValue placeholder="Pessoa" /></SelectTrigger>
-              <SelectContent className="bg-white border-gray-200">
+              <SelectTrigger className="bg-card border-border text-foreground w-44"><SelectValue placeholder="Pessoa" /></SelectTrigger>
+              <SelectContent className="bg-card border-border">
                 <SelectItem value="all">Todas as pessoas</SelectItem>
                 {teamMembers.map((member) => <SelectItem key={member.id} value={member.id}>{member.first_name} {member.last_name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filters.sprint} onValueChange={(sprint) => onFiltersChange({ ...filters, sprint })}>
-              <SelectTrigger className="bg-white border-gray-300 text-gray-900 w-44"><SelectValue placeholder="Sprint" /></SelectTrigger>
-              <SelectContent className="bg-white border-gray-200">
+              <SelectTrigger className="bg-card border-border text-foreground w-44"><SelectValue placeholder="Sprint" /></SelectTrigger>
+              <SelectContent className="bg-card border-border">
                 <SelectItem value="all">Todas as sprints</SelectItem>
                 {sprints.map((sprint) => <SelectItem key={sprint.id} value={sprint.id}>{sprint.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={clusterFilter === '' ? '__todos__' : clusterFilter} onValueChange={(value) => onClusterChange(value === '__todos__' ? '' : value)}>
-              <SelectTrigger className="bg-white border-gray-300 text-gray-900 w-44"><SelectValue placeholder="Cluster" /></SelectTrigger>
-              <SelectContent className="bg-white border-gray-200">
+              <SelectTrigger className="bg-card border-border text-foreground w-44"><SelectValue placeholder="Cluster" /></SelectTrigger>
+              <SelectContent className="bg-card border-border">
                 <SelectItem value="__todos__">Todos os clusters</SelectItem>
                 <SelectItem value={SEM_CLUSTER}>— Sem cluster</SelectItem>
                 {clusters.filter((cluster) => cluster.ativo).map((cluster) => <SelectItem key={cluster.id} value={cluster.id}>{cluster.nome}</SelectItem>)}
               </SelectContent>
             </Select>
             <Button onClick={onSearch} className="bg-primary hover:bg-primary/90"><Search className="h-4 w-4 mr-2" />Buscar</Button>
-            <Button onClick={onClearFilters} variant="outline" className="border-gray-400 text-gray-600 hover:bg-gray-50"><X className="h-4 w-4 mr-2" />Limpar Filtros</Button>
-            <Button onClick={onExport} variant="outline" className="border-green-600 text-green-600 hover:bg-green-50"><FileSpreadsheet className="h-4 w-4 mr-2" />Exportar Excel</Button>
+            <Button onClick={onClearFilters} variant="outline" className="border-border text-muted-foreground hover:bg-muted"><X className="h-4 w-4 mr-2" />Limpar Filtros</Button>
+            <Button onClick={onExport} variant="outline" className="border-status-feito/40 text-status-feito hover:bg-status-feito-soft"><FileSpreadsheet className="h-4 w-4 mr-2" />Exportar Excel</Button>
           </div>
         </div>
       </CardHeader>
@@ -135,7 +135,7 @@ export function DailyHistoryCard({
                     />
                   </PaginationItem>
                   <PaginationItem>
-                    <span className="px-3 text-sm text-gray-600">Página {page}</span>
+                    <span className="px-3 text-sm text-muted-foreground">Página {page}</span>
                   </PaginationItem>
                   <PaginationItem>
                     <PaginationNext
@@ -154,9 +154,9 @@ export function DailyHistoryCard({
           </div>
         ) : (
           <div className="text-center py-8">
-            <User className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-500">Nenhum daily encontrado para os filtros selecionados</p>
-            <p className="text-sm text-gray-400">Tente alterar a data ou os filtros</p>
+            <User className="h-12 w-12 text-muted-foreground/70 mx-auto mb-4" />
+            <p className="text-muted-foreground">Nenhum daily encontrado para os filtros selecionados</p>
+            <p className="text-sm text-muted-foreground/70">Tente alterar a data ou os filtros</p>
           </div>
         )}
       </CardContent>
@@ -178,18 +178,18 @@ function DailyStandupCard({
   onDelete: (standupId: string) => void;
 }) {
   return (
-    <div className={`p-4 rounded-lg border ${isOwn ? 'bg-primary/5 border-primary/20' : 'bg-gray-50 border-gray-200'}`}>
+    <div className={`p-4 rounded-lg border ${isOwn ? 'bg-primary/5 border-primary/20' : 'bg-muted border-border'}`}>
       <div className="flex items-start gap-2 mb-3">
-        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0"><User className="h-4 w-4 text-gray-500" /></div>
+        <div className="w-8 h-8 rounded-full bg-border flex items-center justify-center flex-shrink-0"><User className="h-4 w-4 text-muted-foreground" /></div>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <span className="text-gray-900 font-medium">{lookups.memberName(standup.user_id)}</span>
-            <span className="text-xs text-gray-500">{new Date(standup.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+            <span className="text-foreground font-medium">{lookups.memberName(standup.user_id)}</span>
+            <span className="text-xs text-muted-foreground">{new Date(standup.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
             {isOwn && (
               <div className="flex gap-1 ml-auto">
-                <Button variant="ghost" size="sm" onClick={() => onEdit(standup)} className="h-8 w-8 p-0"><Pencil className="h-4 w-4 text-gray-500 hover:text-gray-700" /></Button>
+                <Button variant="ghost" size="sm" onClick={() => onEdit(standup)} className="h-8 w-8 p-0"><Pencil className="h-4 w-4 text-muted-foreground hover:text-foreground" /></Button>
                 <AlertDialog>
-                  <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Trash2 className="h-4 w-4 text-red-500 hover:text-red-700" /></Button></AlertDialogTrigger>
+                  <AlertDialogTrigger asChild><Button variant="ghost" size="sm" className="h-8 w-8 p-0"><Trash2 className="h-4 w-4 text-destructive hover:text-destructive/80" /></Button></AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Excluir Daily?</AlertDialogTitle>
@@ -197,14 +197,14 @@ function DailyStandupCard({
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onDelete(standup.id)} className="bg-red-600 hover:bg-red-700">Excluir</AlertDialogAction>
+                      <AlertDialogAction onClick={() => onDelete(standup.id)} className="bg-destructive hover:bg-destructive/90">Excluir</AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
               </div>
             )}
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500 mt-1 flex-wrap">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 flex-wrap">
             <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{new Date(`${standup.date}T12:00:00`).toLocaleDateString('pt-BR')}</span>
             <span>•</span><span className="flex items-center gap-1"><Target className="h-3 w-3" />{lookups.sprintName(standup.sprint_id)}</span>
             {standup.project_id && <><span>•</span><span className="flex items-center gap-1"><FolderOpen className="h-3 w-3" />{lookups.projectName(standup.project_id)}</span></>}
@@ -212,9 +212,9 @@ function DailyStandupCard({
           </div>
         </div>
       </div>
-      {standup.did_yesterday && <div className="mb-2"><p className="text-xs text-gray-500 mb-1">Ontem:</p><DailyText value={standup.did_yesterday} /></div>}
-      {standup.will_do_today && <div className="mb-2"><p className="text-xs text-gray-500 mb-1">Hoje:</p><DailyText value={standup.will_do_today} /></div>}
-      {standup.blockers && <div className="p-2 bg-yellow-50 rounded border border-yellow-200"><p className="text-xs text-yellow-700 mb-1">Bloqueio:</p><div className="text-sm text-yellow-800">{renderMarkdown(standup.blockers)}</div></div>}
+      {standup.did_yesterday && <div className="mb-2"><p className="text-xs text-muted-foreground mb-1">Ontem:</p><DailyText value={standup.did_yesterday} /></div>}
+      {standup.will_do_today && <div className="mb-2"><p className="text-xs text-muted-foreground mb-1">Hoje:</p><DailyText value={standup.will_do_today} /></div>}
+      {standup.blockers && <div className="p-2 bg-status-alerta-soft/60 rounded border border-status-alerta/20"><p className="text-xs text-status-alerta mb-1">Bloqueio:</p><div className="text-sm text-status-alerta">{renderMarkdown(standup.blockers)}</div></div>}
     </div>
   );
 }
@@ -225,7 +225,7 @@ function DailyStandupCard({
  */
 function DailyText({ value }: { value: string }) {
   if (hasTarefaRichTextMarker(value)) {
-    return <TarefaRichTextView value={value} className="text-sm text-gray-700" />;
+    return <TarefaRichTextView value={value} className="text-sm text-foreground" />;
   }
-  return <div className="text-sm text-gray-700">{renderMarkdown(value)}</div>;
+  return <div className="text-sm text-foreground">{renderMarkdown(value)}</div>;
 }

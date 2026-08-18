@@ -55,9 +55,9 @@ const STATUS_PRESENTATION: Record<SprintProgressTaskStatus, {
   label: string;
   className: string;
 }> = {
-  pending: { label: 'A fazer', className: 'border-slate-200 bg-slate-50 text-slate-600' },
-  in_progress: { label: 'Em progresso', className: 'border-amber-200 bg-amber-50 text-amber-700' },
-  completed: { label: 'Concluída', className: 'border-teal-200 bg-teal-50 text-teal-700' },
+  pending: { label: 'A fazer', className: 'border-border bg-muted text-muted-foreground' },
+  in_progress: { label: 'Em progresso', className: 'border-status-alerta/20 bg-status-alerta-soft/60 text-status-alerta' },
+  completed: { label: 'Concluída', className: 'border-primary/25 bg-primary/5 text-primary' },
 };
 
 export function DailySprintProgressCard({
@@ -89,21 +89,21 @@ export function DailySprintProgressCard({
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs font-medium text-muted-foreground">Progresso da sprint</p>
-              <h2 className="mt-0.5 text-base font-semibold text-slate-800">{sprintName}</h2>
+              <h2 className="mt-0.5 text-base font-semibold text-foreground">{sprintName}</h2>
               <p className="mt-1 text-xs text-muted-foreground">
                 {progress.total === 0
                   ? 'Nenhuma tarefa cadastrada.'
                   : `${progress.completed} de ${progress.total} concluídas · ${progress.inProgress} em andamento`}
               </p>
             </div>
-            <strong className="text-2xl font-semibold tabular-nums text-slate-700">{progress.percentage}%</strong>
+            <strong className="text-2xl font-semibold tabular-nums text-foreground">{progress.percentage}%</strong>
           </div>
 
           {progress.total > 0 && (
             <>
               <TooltipProvider delayDuration={150}>
                 <div
-                  className="mt-5 flex h-5 overflow-hidden rounded-full bg-slate-200 ring-1 ring-slate-200"
+                  className="mt-5 flex h-5 overflow-hidden rounded-full bg-border ring-1 ring-border"
                   role="group"
                   aria-label={`Progresso coletivo: ${progress.percentage}%`}
                 >
@@ -115,7 +115,7 @@ export function DailySprintProgressCard({
                         <TooltipTrigger asChild>
                           <button
                             type="button"
-                            className="h-full shrink-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-700 focus-visible:ring-inset"
+                            className="h-full shrink-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
                             style={{
                               width: `${(person.completed / progress.completed) * progress.percentage}%`,
                               backgroundColor: color,
@@ -145,7 +145,7 @@ export function DailySprintProgressCard({
                         <TooltipTrigger asChild>
                           <button
                             type="button"
-                            className="h-full shrink-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-600 focus-visible:ring-inset"
+                            className="h-full shrink-0 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-muted-foreground focus-visible:ring-inset"
                             style={{
                               width: `${(person.inProgress / progress.total) * 100}%`,
                               backgroundColor: mutedColor,
@@ -172,7 +172,7 @@ export function DailySprintProgressCard({
                   <button
                     key={person.id}
                     type="button"
-                    className="group flex items-center gap-2 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
+                    className="group flex items-center gap-2 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                     onClick={() => setSelectedPerson(person)}
                   >
                     <span
@@ -182,7 +182,7 @@ export function DailySprintProgressCard({
                       {person.initials}
                     </span>
                     <span>
-                      <span className="block text-xs font-medium text-slate-700">{person.name}</span>
+                      <span className="block text-xs font-medium text-foreground">{person.name}</span>
                       <span className="block text-[11px] tabular-nums text-muted-foreground">{person.completed}/{person.total} · {person.percentage}%</span>
                     </span>
                   </button>
@@ -231,7 +231,7 @@ function PersonTasksDialog({
               <div key={task.id} className="flex items-start justify-between gap-3 rounded-lg border bg-card p-3">
                 <div className="min-w-0">
                   {task.task_code && <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{task.task_code}</p>}
-                  <p className="text-sm font-medium text-slate-800">{task.title}</p>
+                  <p className="text-sm font-medium text-foreground">{task.title}</p>
                 </div>
                 <Badge variant="outline" className={`shrink-0 ${status.className}`}>
                   {status.label}

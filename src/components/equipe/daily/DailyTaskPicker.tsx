@@ -31,7 +31,7 @@ export function DailyTaskPicker({ tasks, onPick }: DailyTaskPickerProps) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button type="button" variant="outline" size="sm" className="h-8 text-gray-600">
+        <Button type="button" variant="outline" size="sm" className="h-8 text-muted-foreground">
           <Plus className="h-3.5 w-3.5 mr-1.5" />
           Inserir tarefa
         </Button>
@@ -53,9 +53,9 @@ export function DailyTaskPicker({ tasks, onPick }: DailyTaskPickerProps) {
                         onPick(task);
                         setOpen(false);
                       }}
-                      className={cn(done && 'text-gray-400 line-through')}
+                      className={cn(done && 'text-muted-foreground/70 line-through')}
                     >
-                      {task.task_code && <span className="text-gray-400 mr-1">{task.task_code}</span>}
+                      {task.task_code && <span className="text-muted-foreground/70 mr-1">{task.task_code}</span>}
                       {task.title}
                     </CommandItem>
                   );
