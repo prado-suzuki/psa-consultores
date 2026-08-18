@@ -27,15 +27,18 @@ export const EtiquetaOrigem = ({ origem, tabela }: { origem?: Origem; tabela?: s
   const qual = origem ?? 'novo';
   const cor =
     qual === 'existe'
-      ? 'border-osg-moss/40 bg-osg-moss/10 text-osg-moss'
+      ? 'border-osg-moss/50 bg-osg-moss/10 font-semibold text-osg-moss'
       : qual === 'derivado'
-        ? 'border-osg-200 bg-osg-50 text-osg-600'
-        : 'border-osg-100 bg-transparent text-osg-300';
+        ? 'border-osg-300/70 bg-osg-100/70 font-medium text-osg-600'
+        // `novo` é a maioria (50 de 61), então não pode gritar. Mas borda
+        // osg-100 sobre fundo transparente com texto osg-300 ficava ilegível:
+        // borda e texto sobem um degrau, sem virar destaque.
+        : 'border-osg-200 bg-background font-medium text-osg-500';
 
   return (
-    <span className={`inline-flex shrink-0 items-baseline gap-1 rounded-full border px-2 py-0.5 text-[10px] tracking-wide ${cor}`}>
+    <span className={`inline-flex shrink-0 items-baseline gap-1 rounded-full border px-2 py-0.5 text-[10.5px] leading-tight tracking-wide ${cor}`}>
       {ORIGEM_ROTULO[qual]}
-      {tabela && <span className="font-mono text-[9px] opacity-70">{tabela}</span>}
+      {tabela && <span className="font-mono text-[9px] opacity-80">{tabela}</span>}
     </span>
   );
 };
@@ -66,7 +69,7 @@ export const CampoLeitura = ({ campo }: { campo: Campo }) => {
         sistema, e reescrever à mão foi o que fez a tela parecer outra coisa.
       */}
       <span
-        className={`${fieldCls} flex w-full items-center px-3 text-sm ${
+        className={`${fieldCls} flex w-full items-center px-3 text-sm !border-osg-200 bg-background ${
           campo.vazio ? 'italic text-muted-foreground' : 'text-osg-700'
         }`}
       >
@@ -87,7 +90,7 @@ export const CampoLeitura = ({ campo }: { campo: Campo }) => {
  * então o campo dentro de painel estreito não fica apertado.
  */
 export const Campos = ({ campos, colunas = 2 }: { campos: Campo[]; colunas?: 2 | 3 }) => (
-  <div className={`${formScopeCls} rounded-md border border-osg-100 bg-background p-4`}>
+  <div className={`${formScopeCls} rounded-md border border-osg-100 bg-muted/70 p-4`}>
     <div className={`${formGridCls(colunas)} gap-x-4 gap-y-3.5`}>
       {campos.map((c) => (
         <CampoLeitura key={c.rotulo} campo={c} />

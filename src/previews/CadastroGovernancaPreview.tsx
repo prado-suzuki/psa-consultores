@@ -139,7 +139,7 @@ export const CadastroGovernancaPreview = () => {
             </Nota>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {GRUPOS_BENEFICIARIO.map((g, i) => (
-                <div key={g.rotulo} className="flex flex-col gap-3.5 rounded-md border border-osg-100 bg-background p-4">
+                <div key={g.rotulo} className="flex flex-col gap-3.5 rounded-md border border-osg-100 bg-muted/70 p-4">
                   <CampoLeitura
                     campo={{
                       rotulo: `Grupo · ${i + 1}`,
