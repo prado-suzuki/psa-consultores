@@ -56,6 +56,14 @@ const CATEGORIA_OPTIONS: CategoriaOption[] = categoriaClienteList.map((c) => ({
   dot: c.dot,
 }));
 
+/*
+ * Trilho dos grupos de filtro. Fica numa constante porque STATUS/TIPO e
+ * CATEGORIA já haviam divergido: os dois primeiros eram um segmented control com
+ * fundo, e a categoria eram chips soltos com borda própria — mesma função, dois
+ * desenhos, e a linha de filtros parecia montada por duas pessoas diferentes.
+ */
+const TRILHO_DE_GRUPO = "inline-flex flex-wrap p-1 rounded-lg bg-foreground/[0.06]";
+
 /* ── Rótulo de grupo ───────────────────────────────────────────────── */
 
 function GroupLabel({ children }: { children: React.ReactNode }) {
@@ -80,11 +88,7 @@ function Segment({
   onValueChange: (value: string) => void;
 }) {
   return (
-    <div
-      role="radiogroup"
-      aria-label={ariaLabel}
-      className="inline-flex p-1 rounded-lg bg-foreground/[0.06]"
-    >
+    <div role="radiogroup" aria-label={ariaLabel} className={TRILHO_DE_GRUPO}>
       {options.map((opt) => {
         const active = value === opt.value;
         return (
@@ -120,7 +124,7 @@ function CategoriaChips({
   onValueChange: (value: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2" role="group" aria-label="Filtrar por categoria">
+    <div className={TRILHO_DE_GRUPO} role="group" aria-label="Filtrar por categoria">
       {CATEGORIA_OPTIONS.map((opt) => {
         const active = value === opt.value;
         return (
@@ -130,11 +134,11 @@ function CategoriaChips({
             aria-pressed={active}
             onClick={() => onValueChange(active ? "" : opt.value)}
             className={cn(
-              "flex items-center gap-2 px-4 py-1.5 rounded border text-sm font-medium transition-all",
+              "flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               active
-                ? "border-primary/50 bg-primary/10 text-foreground"
-                : "border-border bg-card text-muted-foreground hover:bg-muted",
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             <span className={cn("w-2 h-2 rounded-full", opt.dot)} aria-hidden />
