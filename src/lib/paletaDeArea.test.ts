@@ -10,6 +10,7 @@ import {
   paletaDoTema,
   problemasDeSeparacao,
   problemasDoTema,
+  problemasEntreAreas,
 } from '@/lib/paletaDeArea';
 
 const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8');
@@ -47,6 +48,22 @@ describe('paletas de área declaradas no index.css', () => {
     const problemas = problemasDeSeparacao(css, tema);
     const relatorio = problemas.map(p => `  ${p.tema} · ${p.item}: ${p.motivo}`).join('\n');
     expect(problemas, `papéis que colidem como bolinha:\n${relatorio}`).toEqual([]);
+  });
+
+  it('o mesmo papel muda de cara ao trocar de área', () => {
+    // O buraco que a usuária encontrou. Os testes acima olham UMA paleta por
+    // vez: cada área podia declarar os oito papéis, cumprir contraste, faixa e
+    // separação interna — e ainda assim ser cópia da outra. Era o caso: o
+    // `alerta` da Tax (`43 68% 28%`) e o da OSG (`44 66% 28%`) estavam a 1° de
+    // matiz e ZERO ponto de luminosidade, e os quatro quentes inteiros ficavam
+    // entre 1° e 6°. A legenda do Gantt na Tax e na OSG liam como a mesma
+    // paleta, e a área deixou de ser reconhecível pela cor.
+    //
+    // Limiares e o porquê de serem menores que os de `SEPARACAO`: ver
+    // `SEPARACAO_ENTRE_AREAS`.
+    const problemas = problemasEntreAreas(css);
+    const relatorio = problemas.map(p => `  ${p.item}: ${p.tema} — ${p.motivo}`).join('\n');
+    expect(problemas, `papéis que não distinguem uma área da outra:\n${relatorio}`).toEqual([]);
   });
 
   it('o soft acompanha o tom cheio do próprio papel, em toda área', () => {

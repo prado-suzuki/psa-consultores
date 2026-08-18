@@ -1,8 +1,16 @@
 # Paleta por área: papéis de status e tons de tag
 
 Cada área tem a **sua** paleta, e as paletas **conversam** entre si: mesma estrutura,
-mesma temperatura, mesma rampa — muda a família de matiz. Nenhuma área é neon, nenhuma
+mesma temperatura, mesma rampa — muda a família de cor. Nenhuma área é neon, nenhuma
 área empresta a identidade de outra.
+
+> **"Conversar" já foi confundido com "ser igual".** Uma versão anterior tratava os quatro
+> quentes (`ajuste`, `espera`, `neutro`, `alerta`) como vocabulário comum: valores
+> praticamente idênticos nas três paletas — o `alerta` da Tax a 1° do da OSG, com **zero**
+> ponto de luminosidade de diferença. Na tela isso não é "conversa", é a mesma paleta duas
+> vezes: a legenda do Gantt da Tax e a da OSG viravam a mesma imagem e a usuária deixava de
+> reconhecer a área pela cor. O que as paletas compartilham são os **papéis** e o
+> **registro** (faixa de luminosidade, teto de saturação, contraste) — não os valores.
 
 O componente **nunca** nomeia uma cor. Ele nomeia um **papel** (`bg-status-andamento`), e
 quem resolve o valor é o tema da área aplicado no `<html>`. É isso que faz o módulo de
@@ -30,13 +38,14 @@ Cada papel é um par: `--status-<papel>-soft` (fundo da pílula) e `--status-<pa
 sobre esse fundo, ponto, barra, e fundo de badge com texto branco). No Tailwind saem como
 `bg-status-<papel>-soft`, `text-status-<papel>`, `bg-status-<papel>`.
 
-## Duas regras de leitura
+## Três regras de leitura
 
 1. **Dois papéis quaisquer se separam por matiz OU por luminosidade.** Não existe rampa de
    matiz único: os quatro verdes (`fila`, `andamento`, `revisao`, `feito`) ficam espaçados
    ao longo do arco verde da área, e os quatro quentes (`ajuste`, `espera`, `neutro`,
-   `alerta`) ao longo do arco carmim → dourado. Onde dois vizinhos do mesmo arco ficam
-   perto demais em matiz, quem separa é a luminosidade — com folga, não com 5 pontos.
+   `alerta`) ao longo do arco vermelho → amarelo **da área**. Onde dois vizinhos do mesmo
+   arco ficam perto demais em matiz, quem separa é a luminosidade — com folga, não com 5
+   pontos.
 
    > **A lição que custou uma refação.** A primeira versão desta paleta era uma rampa de
    > matiz único: `fila`/`andamento`/`revisao` no mesmo teal, variando só a luminosidade
@@ -48,17 +57,39 @@ sobre esse fundo, ponto, barra, e fundo de badge com texto branco). No Tailwind 
    > sobrevive em elemento pequeno sem rótulo quando é grande; matiz é o canal que
    > sobrevive.** O teste hoje reprova esse desenho — ver "O que o teste trava".
 
-2. **Quente é exceção.** Entra só onde há gente envolvida (`espera`) ou erro (`ajuste`), e
-   o ocre do `alerta` é o único amarelo — reservado para o que exige ação. Amarelo
+2. **O mesmo papel, em duas áreas, também se separa por matiz OU por luminosidade.** A
+   regra 1 olha uma paleta por vez e não impede duas áreas de serem cópia uma da outra —
+   foi assim que os quatro quentes acabaram idênticos entre Tax e OSG. Aqui o piso é menor
+   (12° **ou** 6 pontos, contra 20°/8 da regra 1), e a diferença de piso é deliberada:
+   dentro de uma paleta as oito bolinhas aparecem juntas na mesma legenda e a comparação é
+   lado a lado; entre áreas ninguém vê as duas legendas na mesma tela, e o que precisa
+   mudar é o **caráter** da paleta. Piso não é meta: as três paletas em uso passam com
+   metade da distância sobrando (18° onde quem resolve é a matiz, 9 pontos onde é a
+   luminosidade). Constante: `SEPARACAO_ENTRE_AREAS`, em `src/lib/paletaDeArea.ts`.
+
+   Na prática isso significa usar os **três** canais, não só a matiz. Os arcos verdes das
+   áreas nem se tocam (Tax 163–197, OSG 127–160, base 89–122), e nos quentes — onde o arco
+   útil é estreito e não cabe girar — quem separa é a luminosidade: o `ajuste` da Tax é um
+   tijolo escuro (13%) contra o carmim claro da OSG (40%).
+
+3. **Quente é exceção.** Entra só onde há gente envolvida (`espera`) ou erro (`ajuste`), e
+   o amarelo do `alerta` é o único amarelo — reservado para o que exige ação. Amarelo
    distribuído por toda a tela é o que dá cara de template.
 
 ## Onde cada paleta mora
 
-| Bloco em `src/index.css` | Quem aplica | Identidade |
-|---|---|---|
-| `:root` | ninguém — é a base | marfim + verde sábio; fallback de área sem paleta |
-| `.tax-theme` | `FiscalLayout` | teal `#0d9488` da marca |
-| `.osg-theme` | `OsgLayout` | verde musgo, dourado marca-texto, carmim |
+| Bloco em `src/index.css` | Quem aplica | Identidade | Arco verde | Quentes |
+|---|---|---|---|---|
+| `:root` | ninguém — é a base | marfim + verde sábio; fallback de área sem paleta | 89–122 (sábio/oliva) | vinho 343, barro 32, palha 48–54 |
+| `.tax-theme` | `FiscalLayout` | teal `#0d9488` da marca | 163–197 (teal) | tijolo 7–12, ocre 30–36 (escala `--tax-*`) |
+| `.osg-theme` | `OsgLayout` | verde musgo, dourado marca-texto, carmim | 127–160 (musgo) | carmim 356, taupe 18–19, dourado 41 |
+
+A OSG é a **âncora** do sistema, não a variável: a identidade dela (`--osg-moss`,
+`--osg-highlighter`, `--osg-red`, escala `--osg-*`) existia antes de haver sistema de
+papéis, e a paleta de status dela é construída sobre esses tokens, com o mínimo de desvio —
+`andamento` é o musgo número por número, `ajuste` é o carmim só o quanto o contraste da
+pílula exigiu escurecer. Quando duas áreas disputam a mesma região de cor, **quem se move é
+a outra**.
 
 A classe vai no `<html>` (`document.documentElement`), não num `<div>`: menus, selects e
 modais são renderizados em portal, fora da árvore da página, e ficariam sem tema.
@@ -117,15 +148,33 @@ Duas armadilhas que já morderam aqui:
 2. **Gire o arco verde inteiro** (`fila`, `andamento`, `revisao`, `feito`) e `tag-a` para a
    matiz da área, preservando os espaçamentos entre eles — é o espaçamento, não o valor
    absoluto, que faz os quatro se distinguirem. Ancore no tom da marca: na Tax o
-   `andamento` é o próprio teal `175`, na OSG é o musgo `149`. Os quentes (`espera`,
-   `ajuste`, `alerta`, `neutro`) são o vocabulário comum que faz as paletas conversarem;
-   mexa neles só para trocar o tijolo pelo vermelho da área, como a OSG faz com o carmim.
-3. Declare **todos** os papéis e tons, mesmo os iguais aos da base. Uma paleta tem que ser
+   `andamento` é o próprio teal `175`, na OSG é o musgo `149`.
+3. **Gire os quentes também.** Eles **não** são mais vocabulário comum, e é aqui que a
+   versão anterior errou: `espera`, `ajuste`, `alerta` e `neutro` eram os mesmos valores em
+   todas as áreas, e por isso a legenda do Gantt da Tax e a da OSG viravam a mesma imagem.
+   Cada área declara os quentes dela — a Tax fala tijolo e ocre afinados com `--tax-*`, a
+   OSG fala carmim, taupe e dourado afinados com `--osg-*`, a base fala vinho, barro e
+   palha.
+4. **Meça a distância para as áreas que já existem**, papel a papel, não só dentro da sua
+   paleta. O arco quente útil é estreito (~55° de vinho a palha) e não cabe girar quatro
+   papéis em três áreas só na matiz: quando a matiz acabar, **desloque a luminosidade**. É
+   legítimo — e desejado — que o mesmo papel seja escuro numa área e claro em outra. Se a
+   sua área disputa a região de cor de uma existente, **quem se move é a sua**: a OSG é a
+   âncora, e a Tax já cedeu o carmim e o dourado para ela.
+5. Declare **todos** os papéis e tons, mesmo os iguais aos da base. Uma paleta tem que ser
    legível de uma vez, num bloco só — e o teste exige.
-4. No layout da área, aplique a classe no `<html>` com `useEffect`, como
+6. No layout da área, aplique a classe no `<html>` com `useEffect`, como
    `FiscalLayout`/`OsgLayout` fazem (adiciona ao montar, remove ao desmontar).
-5. Acrescente o seletor em `TEMAS`, em `src/lib/paletaDeArea.ts`.
-6. Rode `bunx vitest run src/lib/paletaDeArea.test.ts`.
+7. Acrescente o seletor em `TEMAS`, em `src/lib/paletaDeArea.ts`. É esse array que faz a
+   área nova entrar tanto na checagem interna quanto na de distância entre áreas.
+8. Rode `bunx vitest run src/lib/paletaDeArea.test.ts`.
+
+> **Cuidado com o teto de luminosidade.** A faixa declarada vai até 40%, mas quem manda de
+> verdade é o contraste: um tom cheio precisa de 4,5:1 com o branco em cima **e** 4,5:1 com
+> o `soft` da mesma matiz — e amarelo, ciano e verde-limão atingem esse teto muito antes de
+> 40%. O dourado da OSG (`41 73% 71%`) só cabe como `alerta` a 31% de luminosidade; o teal
+> `#0d9488` (29%) só cabe como `andamento` a 25%. Ancore na **matiz** da marca, não na
+> luminosidade dela.
 
 ## O que o teste trava
 
@@ -142,7 +191,14 @@ Duas armadilhas que já morderam aqui:
   O caminho da matiz só vale se as duas cores tiverem saturação ≥ 20%: matiz não se enxerga
   sem croma, e dois cinzas a 180° continuam sendo o mesmo cinza. A mensagem de falha diz o
   par e o tema. As três paletas cumprem com folga — o menor separador por matiz em uso é
-  24°, o menor por luminosidade é 10 pontos;
+  22°, o menor por luminosidade é 9 pontos;
+- **duas áreas que viram a mesma paleta** — para **cada papel**, em **cada par de temas**,
+  exige-se 12° de matiz **ou** 6 pontos de luminosidade (`SEPARACAO_ENTRE_AREAS`). É o
+  guard que faltava: até ele existir, uma área podia declarar os oito papéis, passar em
+  contraste, faixa e separação interna, e ainda assim ser cópia da vizinha — e era o caso,
+  com 16 dos 24 pares colidindo. A mensagem de falha diz o papel, os dois temas e as duas
+  distâncias medidas. As três paletas cumprem com metade da distância sobrando: 18° onde
+  quem resolve é a matiz, 9 pontos onde é a luminosidade;
 - **`soft` que foge do próprio tom cheio** — mais de 12° de matiz entre os dois faz a
   pílula parecer dois papéis empilhados;
 - **`feito` e `ajuste` a menos de 60° de matiz** — o par que mais dói confundir numa lista.
