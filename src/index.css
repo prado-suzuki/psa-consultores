@@ -52,6 +52,54 @@ All colors MUST be HSL.
     --info: 221 83% 53%;
     --info-foreground: 0 0% 100%;
 
+    /* ─── Papéis de status: BASE DO SISTEMA ───────────────────────────────
+       Esta é a "família comum" que todas as áreas conversam: neutro marfim,
+       rampa verde para o avanço, quentes só para espera/erro. NÃO é a paleta da
+       Tax — a Tax declara a dela em .tax-theme, a OSG em .osg-theme. Área que
+       ainda não declarou paleta (Board, Digital, Marketing, portal) cai aqui, e
+       cai num lugar coerente em vez de emprestar a identidade de outra área.
+
+       O contrato de uma paleta de área está em docs/geral/paleta-por-area.md:
+       mesmos 8 papéis, cada par de tons cheios separado por matiz OU por
+       luminosidade, saturação em faixa — é o que impede que uma área nova entre
+       neon e destoe das outras.
+
+       Cada papel tem um par: `soft` (fundo da pílula) e a cor cheia (texto sobre
+       o soft, ponto, barra, e fundo de badge com texto branco).
+
+       A constelação: quatro verdes espaçados no arco (fila → andamento →
+       revisao → feito) e quatro quentes espaçados no arco carmim → dourado
+       (ajuste, espera, neutro, alerta). Onde a matiz não dá conta — vizinhos no
+       mesmo arco — quem separa é a luminosidade, com 10 pontos de distância.
+       Uma rampa de matiz ÚNICO variando só a luminosidade não sobrevive à
+       bolinha de 8px da legenda do Gantt; foi o erro da primeira versão, e
+       `SEPARACAO` em src/lib/paletaDeArea.ts agora o reprova. */
+    --status-neutro: 30 24% 15%;
+    --status-neutro-soft: 36 26% 93%;
+    --status-fila: 182 30% 33%;
+    --status-fila-soft: 182 28% 93%;
+    --status-andamento: 168 42% 23%;
+    --status-andamento-soft: 168 34% 88%;
+    --status-revisao: 151 46% 13%;
+    --status-revisao-soft: 151 30% 82%;
+    --status-espera: 18 44% 25%;
+    --status-espera-soft: 22 40% 90%;
+    --status-ajuste: 352 52% 34%;
+    --status-ajuste-soft: 354 48% 92%;
+    --status-feito: 134 48% 26%;
+    --status-feito-soft: 136 40% 88%;
+    --status-alerta: 43 64% 28%;
+    --status-alerta-soft: 41 70% 88%;
+
+    /* Tons categóricos (tags de texto livre, sorteadas por hash). Quatro tons
+       dentro do mesmo registro da área — antes eram 8 matizes de estoque
+       (azul, rosa, ciano, índigo…), o carnaval que não pertencia a paleta
+       nenhuma. Usados como `bg-tag-x/12 text-tag-x`. */
+    --tag-a: 155 35% 28%;
+    --tag-b: 32 58% 30%;
+    --tag-c: 22 28% 34%;
+    --tag-d: 100 26% 26%;
+
     /* Ícone de ferramenta/card (acento). Tax usa a marca; OSG usa o taupe osg-600. */
     --tool-icon: var(--primary);
     --tool-icon-bg: 175 60% 95%;
@@ -127,6 +175,44 @@ All colors MUST be HSL.
     --sidebar-ring: 85 85% 37%;
   }
 
+  /* Tema da área Tax: o teal #0d9488 da marca é a cor da área — a mesma da barra
+     de progresso. Aplicado no <html> pelo FiscalLayout, então alcança menus e
+     modais renderizados em portal, igual ao .osg-theme.
+
+     fila → andamento → revisão → feito percorrem o arco verde a partir do teal
+     da marca (andamento = 175, o próprio #0d9488): cada degrau desloca a matiz E
+     o tom, porque na bolinha de 8px da legenda uma rampa de matiz único vira uma
+     cor só. Quente entra só onde há gente envolvida (espera) ou erro (ajuste), e
+     o ocre `alerta` é o único amarelo — reservado para pendência que exige ação,
+     senão volta a virar decoração.
+
+     A paleta vem declarada INTEIRA, inclusive os papéis iguais aos da base: a
+     paleta de uma área tem que ser legível de uma vez, num bloco só, e replicar
+     para uma área nova é copiar este bloco e deslocar a família de matiz. */
+  .tax-theme {
+    --status-neutro: 30 24% 15%;
+    --status-neutro-soft: 36 26% 93%;
+    --status-fila: 189 42% 33%;
+    --status-fila-soft: 189 34% 93%;
+    --status-andamento: 175 78% 23%;
+    --status-andamento-soft: 175 48% 88%;
+    --status-revisao: 158 62% 13%;
+    --status-revisao-soft: 158 34% 82%;
+    --status-espera: 18 46% 25%;
+    --status-espera-soft: 22 42% 90%;
+    --status-ajuste: 352 56% 34%;
+    --status-ajuste-soft: 354 50% 92%;
+    --status-feito: 141 60% 26%;
+    --status-feito-soft: 143 44% 88%;
+    --status-alerta: 43 68% 28%;
+    --status-alerta-soft: 41 72% 88%;
+
+    --tag-a: 175 55% 26%;
+    --tag-b: 32 58% 30%;
+    --tag-c: 22 28% 34%;
+    --tag-d: 100 26% 26%;
+  }
+
   /* Tema da área OSG: troca o accent teal padrão pelo verde osg-moss.
      Aplicado no <html> pelo OsgLayout, então alcança menus renderizados em portal. */
   .osg-theme {
@@ -143,6 +229,34 @@ All colors MUST be HSL.
        (azul mais próximo dos demais itens da página). */
     --success: var(--osg-moss);
     --warning: var(--osg-highlighter);
+
+    /* Paleta de status da OSG — mesma estrutura da Tax, girada: o arco verde
+       nasce no musgo da marca (andamento = 149) e desce até o verde-folha do
+       `feito`, o ocre vira o dourado marca-texto e o tijolo vira o carmim
+       osg-red. Sem esta sobrescrita a OSG herdaria o teal da Tax e perderia a
+       identidade. */
+    --status-neutro: 24 22% 15%;
+    --status-neutro-soft: 30 22% 92%;
+    --status-fila: 163 38% 33%;
+    --status-fila-soft: 163 30% 93%;
+    --status-andamento: 149 62% 23%;
+    --status-andamento-soft: 149 40% 88%;
+    --status-revisao: 132 50% 13%;
+    --status-revisao-soft: 134 32% 82%;
+    --status-espera: 20 44% 25%;
+    --status-espera-soft: 24 38% 90%;
+    --status-ajuste: 356 58% 34%;
+    --status-ajuste-soft: 356 46% 92%;
+    --status-feito: 115 50% 26%;
+    --status-feito-soft: 118 38% 88%;
+    --status-alerta: 44 66% 28%;
+    --status-alerta-soft: 41 70% 88%;
+
+    --tag-a: 149 50% 22%;
+    --tag-b: 41 55% 26%;
+    --tag-c: 19 24% 30%;
+    --tag-d: 100 22% 24%;
+
     /* Ícones de ferramenta/card na OSG: taupe da paleta (igual ao OSG Work):
        ícone osg-600 sobre quadrado osg-100 (bege quente) — match exato. */
     --tool-icon: var(--osg-600);

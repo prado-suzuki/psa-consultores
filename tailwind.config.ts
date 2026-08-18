@@ -126,6 +126,52 @@ export default {
           800: 'hsl(var(--gray-800))',
           900: 'hsl(var(--gray-900))',
         },
+        /* Papéis de status (tarefa e projeto). O valor de cada papel vem do tema
+           da área — Tax no :root, OSG em .osg-theme —, então a mesma classe pinta
+           teal na Tax e musgo na OSG. `soft` é o fundo da pílula; o tom cheio vale
+           para texto, ponto e barra. */
+        status: {
+          neutro: {
+            DEFAULT: 'hsl(var(--status-neutro) / <alpha-value>)',
+            soft: 'hsl(var(--status-neutro-soft) / <alpha-value>)',
+          },
+          fila: {
+            DEFAULT: 'hsl(var(--status-fila) / <alpha-value>)',
+            soft: 'hsl(var(--status-fila-soft) / <alpha-value>)',
+          },
+          andamento: {
+            DEFAULT: 'hsl(var(--status-andamento) / <alpha-value>)',
+            soft: 'hsl(var(--status-andamento-soft) / <alpha-value>)',
+          },
+          revisao: {
+            DEFAULT: 'hsl(var(--status-revisao) / <alpha-value>)',
+            soft: 'hsl(var(--status-revisao-soft) / <alpha-value>)',
+          },
+          espera: {
+            DEFAULT: 'hsl(var(--status-espera) / <alpha-value>)',
+            soft: 'hsl(var(--status-espera-soft) / <alpha-value>)',
+          },
+          ajuste: {
+            DEFAULT: 'hsl(var(--status-ajuste) / <alpha-value>)',
+            soft: 'hsl(var(--status-ajuste-soft) / <alpha-value>)',
+          },
+          feito: {
+            DEFAULT: 'hsl(var(--status-feito) / <alpha-value>)',
+            soft: 'hsl(var(--status-feito-soft) / <alpha-value>)',
+          },
+          alerta: {
+            DEFAULT: 'hsl(var(--status-alerta) / <alpha-value>)',
+            soft: 'hsl(var(--status-alerta-soft) / <alpha-value>)',
+          },
+        },
+        /* Tons categóricos das tags de texto livre — quatro, sorteados por hash,
+           dentro do registro da área. */
+        tag: {
+          a: 'hsl(var(--tag-a) / <alpha-value>)',
+          b: 'hsl(var(--tag-b) / <alpha-value>)',
+          c: 'hsl(var(--tag-c) / <alpha-value>)',
+          d: 'hsl(var(--tag-d) / <alpha-value>)',
+        },
         tax: {
           50: 'hsl(var(--tax-50) / <alpha-value>)',
           100: 'hsl(var(--tax-100) / <alpha-value>)',
