@@ -102,15 +102,45 @@ All colors MUST be HSL.
     --status-alerta: 54 58% 20%;
     --status-alerta-soft: 54 58% 86%;
 
-    /* Tons categóricos (tags de texto livre, sorteadas por hash). Quatro tons
-       dentro do mesmo registro da área — antes eram 8 matizes de estoque
-       (azul, rosa, ciano, índigo…), o carnaval que não pertencia a paleta
-       nenhuma. Usados como `bg-tag-x/12 text-tag-x`. Um tom por família da
-       área: sábio, palha, barro e vinho. */
-    --tag-a: 111 34% 26%;
-    --tag-b: 54 50% 24%;
-    --tag-c: 32 30% 30%;
-    --tag-d: 343 42% 28%;
+    /* ─── Tons categóricos: --tag-a … --tag-d ────────────────────────────
+       Quatro tons, e eles têm DOIS empregos ao mesmo tempo:
+
+       1. chip da tag de texto livre, sorteado por hash (`bg-tag-x/15 text-tag-x`);
+       2. paleta categórica dos GRÁFICOS (a constante `SERIES`, em
+          src/components/equipe/board/clientes-os/shared.ts).
+
+       Cada emprego impõe um contrato, e é a soma dos dois que fixa estes valores:
+
+       · como texto sobre o chip, o tom precisa de 4,5:1 (AA) sobre 15% dele mesmo
+         no card claro — é isso que o prende à faixa escura (luminosidade ≤ 40%) e,
+         de quebra, o que limita o croma: quanto mais claro/cromático, menor o
+         contraste do chip;
+       · como marca de gráfico, dois tons quaisquer precisam ser distinguíveis:
+         croma OKLCH ≥ 0,10 (abaixo disso a matiz lê como cinza), luminosidade
+         OKLCH entre 0,43 e 0,77, e ΔE OKLab ≥ 15 na visão normal e ≥ 8 sob
+         protanopia/deutanopia, para TODOS os pares.
+
+       O segundo contrato foi quem redesenhou a constelação. Sob deutanopia o
+       dourado e o carmim são a MESMA cor (ΔE 0,4), e o mesmo vale para azul e
+       roxo de luminosidade parecida: sobram, na prática, quatro classes —
+       quente-escuro, quente-claro, frio-escuro, frio-claro. Daí a escolha:
+
+         --tag-a  verde da área, ESCURO      --tag-b  frio da área, ESCURO
+         --tag-d  quente da área, CLARO      --tag-c  uva da área, CLARA
+
+       Saíram do conjunto o dourado (que colide com o quente sob daltonismo; ele
+       continua vivo como papel `alerta`) e o barro/taupe (um quase-neutro fica
+       abaixo do piso de croma e lê como cinza numa barra). Entraram um frio e uma
+       uva, que são o que fecha as quatro classes. A identidade da área continua
+       nos dois PRIMEIROS tons da ordem de série (verde e quente) — que são os que
+       um gráfico de duas ou três séries usa.
+
+       Base: sábio, ardósia, uva e vinho. Validado pelo script `validate_palette.js`
+       da skill `dataviz` contra a superfície do tema (#ffffff no Board). */
+    --tag-a: 112 64% 24%;
+    --tag-b: 211 60% 33%;
+    --tag-c: 289 78% 40%;
+    --tag-d: 339 84% 40%;
 
     /* Ícone de ferramenta/card (acento). Tax usa a marca; OSG usa o taupe osg-600. */
     --tool-icon: var(--primary);
@@ -234,11 +264,17 @@ All colors MUST be HSL.
     --status-alerta: 36 62% 22%;
     --status-alerta-soft: 36 58% 86%;
 
-    /* Um tom por família da Tax: teal, ocre, marfim tax-* e tijolo. */
-    --tag-a: 175 55% 26%;
-    --tag-b: 36 56% 26%;
-    --tag-c: 30 24% 30%;
-    --tag-d: 7 46% 30%;
+    /* Tons categóricos da Tax — quatro classes, o contrato está no :root.
+       Âncora: --tag-a é o teal #0d9488 da marca (matiz 175), --tag-d é o tijolo.
+       O teal é o ÚNICO tom do sistema que não alcança o piso de croma (0,083
+       contra 0,10): nesta faixa de luminosidade o arco 164–197 não tem croma
+       para dar, e clarear para ganhar croma derruba o contraste do chip abaixo
+       de AA. Ficou o teal, porque a identidade da área não se negocia por
+       0,017 de croma — nos gráficos ele sempre vem com rótulo direto ao lado. */
+    --tag-a: 175 77% 25%;
+    --tag-b: 223 78% 40%;
+    --tag-c: 298 70% 31%;
+    --tag-d: 7 72% 39%;
   }
 
   /* Tema da área OSG: troca o accent teal padrão pelo verde osg-moss.
@@ -296,11 +332,16 @@ All colors MUST be HSL.
     --status-alerta: 41 64% 31%;
     --status-alerta-soft: 41 58% 90%;
 
-    /* Um tom por âncora da OSG: musgo, dourado, taupe e carmim. */
-    --tag-a: 149 50% 22%;
-    --tag-b: 41 55% 26%;
-    --tag-c: 19 24% 30%;
-    --tag-d: 356 44% 32%;
+    /* Tons categóricos da OSG — quatro classes, o contrato está no :root.
+       Âncoras nos dois primeiros da ordem de série: --tag-a é o musgo (149, a
+       matiz do --osg-moss) e --tag-d é o carmim (356, a matiz do --osg-red).
+       O frio e a uva não são cor de marca da OSG — a área não tem azul —, mas
+       sem um par frio não existem quatro categorias separáveis sob daltonismo,
+       e eles só aparecem a partir da terceira série. */
+    --tag-a: 149 60% 26%;
+    --tag-b: 218 74% 37%;
+    --tag-c: 306 52% 32%;
+    --tag-d: 356 82% 40%;
 
     /* Ícones de ferramenta/card na OSG: taupe da paleta (igual ao OSG Work):
        ícone osg-600 sobre quadrado osg-100 (bege quente) — match exato. */

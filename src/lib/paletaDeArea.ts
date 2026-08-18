@@ -33,7 +33,18 @@ export const PAPEIS_DE_STATUS = [
   'alerta',
 ] as const;
 
-/** Tons categóricos (tags de texto livre, sorteadas por hash). */
+/**
+ * Tons categóricos. Servem a dois empregos: o chip da tag de texto livre
+ * (sorteado por hash) e a paleta categórica dos GRÁFICOS (`SERIES`, em
+ * `components/equipe/board/clientes-os/shared.ts`).
+ *
+ * São quatro, e o número não é folgado: dentro da faixa de luminosidade que o
+ * contraste do chip permite, protanopia/deutanopia deixam só quatro classes
+ * separáveis (quente-escuro, quente-claro, frio-escuro, frio-claro). Um quinto
+ * tom colidiria com algum dos quatro sob daltonismo. As checagens deste arquivo
+ * NÃO enxergam daltonismo — quem mede isso é o `validate_palette.js` da skill
+ * `dataviz`; ver `docs/geral/paleta-por-area.md`.
+ */
 export const TONS_DE_TAG = ['a', 'b', 'c', 'd'] as const;
 
 /** Blocos de tema esperados no `index.css`: a base e uma classe por área. */

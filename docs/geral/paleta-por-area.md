@@ -30,9 +30,45 @@ veste a paleta de quem o hospeda.
 | `feito` | Concluído, aprovar revisão, contador de concluídas | acabou |
 | `alerta` | pílula "sem horas" | pendência que exige ação agora |
 
-Mais quatro tons categóricos — `tag-a` … `tag-d` — para tags de texto livre, sorteadas por
-hash. São **quatro** de propósito: oito matizes davam à tag mais destaque que ao status da
-tarefa.
+Mais quatro tons categóricos — `tag-a` … `tag-d`. São **quatro** de propósito: oito matizes
+davam à tag mais destaque que ao status da tarefa.
+
+Eles servem a **dois** empregos, e é a soma dos dois contratos que fixa os valores:
+
+1. o chip da tag de texto livre, sorteado por hash (`bg-tag-x/15 text-tag-x`) — daqui vem a
+   exigência de 4,5:1 do tom sobre 15% dele mesmo, que é o que prende os quatro à faixa
+   escura e, de tabela, limita o croma;
+2. a **paleta categórica dos gráficos** (a constante `SERIES`, em
+   `src/components/equipe/board/clientes-os/shared.ts`) — daqui vêm as exigências de marca de
+   gráfico: croma OKLCH ≥ 0,10, luminosidade OKLCH em 0,43–0,77 e ΔE OKLab ≥ 15 na visão
+   normal e ≥ 8 sob protanopia/deutanopia, para **todos** os pares. Quem mede é o
+   `scripts/validate_palette.js` da skill `dataviz`, rodado contra a superfície **daquele**
+   tema (o card do Board é branco; o da OSG é areia).
+
+Foi o segundo contrato que desenhou a constelação atual. Sob deutanopia o dourado e o carmim
+são a **mesma** cor (ΔE 0,4), e azul e roxo de luminosidade parecida também: dentro da faixa
+de luminosidade que o chip permite sobram quatro classes, e os quatro tons são exatamente uma
+de cada —
+
+| Token | Classe | Base | Tax | OSG |
+|---|---|---|---|---|
+| `--tag-a` | verde da área, escuro | sábio 112 | teal 175 (a marca) | musgo 149 |
+| `--tag-d` | quente da área, claro | vinho 339 | tijolo 7 | carmim 356 |
+| `--tag-b` | frio da área, escuro | ardósia 211 | azul 223 | azul 218 |
+| `--tag-c` | uva da área, clara | uva 289 | ameixa 298 | uva 306 |
+
+A ordem das linhas é a de `SERIES`, e ela alterna quente/frio e claro/escuro de propósito: as
+**âncoras da área vêm primeiro**, então um gráfico de duas ou três séries sai na cara da área,
+e o frio e a uva — que não são cor de marca de ninguém — só aparecem na terceira e na quarta.
+
+Duas consequências que valem registrar. O **dourado saiu** do conjunto categórico (ele
+continua sendo o papel `alerta`, onde a cor significa estado e ninguém a compara com outra
+série) e o **barro/taupe também** — um quase-neutro fica abaixo do piso de croma e lê como
+cinza numa barra. E o teal `#0d9488` da Tax é o **único** tom do sistema abaixo do piso de
+croma (0,083 contra 0,10): nesta faixa de luminosidade o arco 164–197 não tem croma para dar,
+e clarear para ganhar croma derruba o contraste do chip abaixo de AA. Ficou o teal — a
+identidade da área não se troca por 0,017 de croma —, e nos gráficos ele sempre vem com
+rótulo direto ao lado.
 
 Cada papel é um par: `--status-<papel>-soft` (fundo da pílula) e `--status-<papel>` (texto
 sobre esse fundo, ponto, barra, e fundo de badge com texto branco). No Tailwind saem como
@@ -168,6 +204,11 @@ Duas armadilhas que já morderam aqui:
 7. Acrescente o seletor em `TEMAS`, em `src/lib/paletaDeArea.ts`. É esse array que faz a
    área nova entrar tanto na checagem interna quanto na de distância entre áreas.
 8. Rode `bunx vitest run src/lib/paletaDeArea.test.ts`.
+9. Rode o validador de paleta categórica nos quatro `--tag-*` da área nova, **na ordem de
+   `SERIES`** e contra a superfície do card daquela área: `node scripts/validate_palette.js
+   "<hex,hex,hex,hex>" --mode light --surface "<hex do card>"` (o script vem com a skill
+   `dataviz`). Ele é a única checagem que enxerga daltonismo — o teste do repo não olha isso.
+   Use `--pairs all`: em rosca e em legenda os quatro aparecem juntos, não só em vizinhos.
 
 > **Cuidado com o teto de luminosidade.** A faixa declarada vai até 40%, mas quem manda de
 > verdade é o contraste: um tom cheio precisa de 4,5:1 com o branco em cima **e** 4,5:1 com
@@ -207,9 +248,18 @@ Duas armadilhas que já morderam aqui:
 
 ## Fora do módulo de tarefas
 
+O dashboard **Clientes e OS** (`src/pages/equipe/board/BoardDashboardClientesOs.tsx` e
+`src/components/equipe/board/clientes-os/`) já foi convertido: ele roda no Board, na Tax e na
+OSG a partir do mesmo componente, e a cor entra por papel — `--primary` na série única,
+`--tag-*` na paleta categórica, papéis de status no que é estado, `--muted-foreground` e
+`--border` no eixo e na grade.
+
 Estas telas continuam com cor de estoque, fora do sistema de papéis — ainda não foram
 convertidas: chamados (`src/lib/equipeChamados.ts`), notificações internas
-(`src/lib/notificacoesInternas.ts`), sprints e os dashboards gerenciais. Enquanto seguirem
+(`src/lib/notificacoesInternas.ts`), sprints e os demais dashboards gerenciais (os
+hexadecimais de gráfico ainda vivem em `src/lib/board-chart-defaults.ts`,
+`src/constants/brandColors.ts`, `src/pages/equipe/mapa/**`, `dashboard-roi/Charts.tsx` e
+`sprint/SprintHoursDashboard.tsx`). Enquanto seguirem
 assim, elas mostram a mesma cor em qualquer área que as hospede; convertê-las para papéis é
 o que as torna sensíveis à área, como já são projetos e tarefas.
 
