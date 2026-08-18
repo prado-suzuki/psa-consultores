@@ -142,6 +142,18 @@ All colors MUST be HSL.
     --tag-c: 289 78% 40%;
     --tag-d: 339 84% 40%;
 
+    /* Categoria do cliente (Bronze → Diamante). Atributo de NEGÓCIO, não
+       identidade de área: Ouro é Ouro na Tax e na OSG, então mora no :root e
+       nenhuma área sobrescreve. Mantém a metáfora do metal — que o usuário
+       reconhece — mas em versões contidas: os valores anteriores eram hex da web
+       (#FFD700 ouro puro, #00BFFF azul-céu) cravados direto no componente, e
+       gritavam mais que qualquer dado da tela. Luminosidade próxima entre os
+       quatro, para lerem como uma escala; contraste ≥ 3,4:1 em toda superfície. */
+    --categoria-bronze: 25 42% 42%;
+    --categoria-prata: 212 9% 48%;
+    --categoria-ouro: 43 60% 38%;
+    --categoria-diamante: 196 42% 44%;
+
     /* Ícone de ferramenta/card (acento). Tax usa a marca; OSG usa o taupe osg-600. */
     --tool-icon: var(--primary);
     --tool-icon-bg: 175 60% 95%;

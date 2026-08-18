@@ -2,6 +2,7 @@ import { Search, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { categoriaClienteList } from '@/lib/categoriaClienteColors';
 
 /* ── Tipos ─────────────────────────────────────────────────────────── */
 
@@ -49,12 +50,11 @@ const TIPO_OPTIONS: SegmentOption[] = [
   { value: "Em Análise", label: "Em Análise" },
 ];
 
-const CATEGORIA_OPTIONS: CategoriaOption[] = [
-  { value: "Bronze", label: "Bronze", dot: "bg-[#CD7F32]" },
-  { value: "Prata", label: "Prata", dot: "bg-[#C0C0C0]" },
-  { value: "Ouro", label: "Ouro", dot: "bg-[#FFD700]" },
-  { value: "Diamante", label: "Diamante", dot: "bg-[#00BFFF]" },
-];
+const CATEGORIA_OPTIONS: CategoriaOption[] = categoriaClienteList.map((c) => ({
+  value: c.key,
+  label: c.key,
+  dot: c.dot,
+}));
 
 /* ── Rótulo de grupo ───────────────────────────────────────────────── */
 

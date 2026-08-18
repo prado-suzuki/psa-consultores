@@ -164,6 +164,13 @@ export default {
             soft: 'hsl(var(--status-alerta-soft) / <alpha-value>)',
           },
         },
+        /* Categoria do cliente — atributo de negócio, igual em toda área. */
+        categoria: {
+          bronze: 'hsl(var(--categoria-bronze) / <alpha-value>)',
+          prata: 'hsl(var(--categoria-prata) / <alpha-value>)',
+          ouro: 'hsl(var(--categoria-ouro) / <alpha-value>)',
+          diamante: 'hsl(var(--categoria-diamante) / <alpha-value>)',
+        },
         /* Tons categóricos das tags de texto livre — quatro, sorteados por hash,
            dentro do registro da área. */
         tag: {
