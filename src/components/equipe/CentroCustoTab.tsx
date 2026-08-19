@@ -107,7 +107,7 @@ export default function CentroCustoTab() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>Excluir "{deleteTarget?.codigo}"?</AlertDialogDescription>
+            <AlertDialogDescription>Excluir"{deleteTarget?.codigo}"?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

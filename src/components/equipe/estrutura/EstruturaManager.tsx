@@ -67,7 +67,7 @@ export default function EstruturaManager() {
 
   // ─── Quem já tem cluster x quem está solto ────────────────────────
   // Em que clusters cada pessoa já aparece: membro de equipe, gestora de equipe
-  // ou gestora de chamados de uma área. Quem não aparece em nenhum está "solto"
+  // ou gestora de chamados de uma área. Quem não aparece em nenhum está"solto"
   // e é justamente quem falta cadastrar — por isso vem primeiro nos selects.
   const clustersByUser = useMemo(() => {
     const clusterNameById = new Map(clusters.map(c => [c.id, c.name]));
@@ -91,7 +91,7 @@ export default function EstruturaManager() {
 
   const clusterHint = (userId: string) => [...(clustersByUser.get(userId) ?? [])].join(', ');
 
-  /** Opções do select separadas em "sem cluster" (primeiro) e "já em cluster". */
+  /** Opções do select separadas em"sem cluster" (primeiro) e"já em cluster". */
   const renderProfileOptions = (list: Profile[], showCluster: boolean) => {
     const byName = (a: Profile, b: Profile) => profileLabel(a).localeCompare(profileLabel(b), 'pt-BR');
     const soltos = list.filter(p => !clustersByUser.has(p.id)).sort(byName);
@@ -101,7 +101,7 @@ export default function EstruturaManager() {
       <>
         {soltos.length > 0 && (
           <SelectGroup>
-            <SelectLabel className="text-[11px] font-semibold uppercase tracking-wide text-teal-700">
+            <SelectLabel className="text-[11px] font-semibold uppercase tracking-wide text-primary">
               Sem cluster ({soltos.length})
             </SelectLabel>
             {soltos.map(p => (
@@ -262,7 +262,7 @@ export default function EstruturaManager() {
       <AccordionItem key={cluster.id} value={cluster.id} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
         <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-slate-50">
           <div className="flex items-center gap-3 flex-1 text-left">
-            <Network className="h-5 w-5 text-teal-600 shrink-0" />
+            <Network className="h-5 w-5 text-primary shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="font-medium text-slate-900">{cluster.name}</div>
               {(cluster.nome_empresa || cluster.cnpj || cluster.cost_center_id) && (
@@ -303,7 +303,7 @@ export default function EstruturaManager() {
               >
                 {clusterAreas.map(area => {
                   const areaEquipes = equipes.filter(e => e.area_id === area.id);
-                  // Gestores das equipes da área (substitui o antigo "líder da área")
+                  // Gestores das equipes da área (substitui o antigo"líder da área")
                   const gestorIds = [...new Set(areaEquipes.map(e => e.gestor_id).filter(Boolean) as string[])];
                   const gestorProfiles = gestorIds
                     .map(id => allProfiles.find(p => p.id === id))
@@ -449,7 +449,7 @@ export default function EstruturaManager() {
           <h3 className="text-base font-medium text-slate-900">Estrutura Organizacional</h3>
           <p className="text-sm text-slate-500">Gerencie clusters, áreas, líderes, equipes e membros.</p>
         </div>
-        <Button onClick={openClusterCreate} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+        <Button onClick={openClusterCreate} className="gap-2">
           <Plus className="h-4 w-4" />
           Novo Cluster
         </Button>
@@ -457,10 +457,10 @@ export default function EstruturaManager() {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard icon={<Network className="h-4 w-4 text-teal-600" />} label="Clusters" value={clusters.length} />
-        <StatCard icon={<Building2 className="h-4 w-4 text-teal-600" />} label="Áreas" value={areas.length} />
-        <StatCard icon={<Users className="h-4 w-4 text-teal-600" />} label="Equipes" value={totalEquipes} />
-        <StatCard icon={<UserCheck className="h-4 w-4 text-teal-600" />} label="Membros Alocados" value={totalMembros} />
+        <StatCard icon={<Network className="h-4 w-4 text-primary" />} label="Clusters" value={clusters.length} />
+        <StatCard icon={<Building2 className="h-4 w-4 text-primary" />} label="Áreas" value={areas.length} />
+        <StatCard icon={<Users className="h-4 w-4 text-primary" />} label="Equipes" value={totalEquipes} />
+        <StatCard icon={<UserCheck className="h-4 w-4 text-primary" />} label="Membros Alocados" value={totalMembros} />
       </div>
 
       {/* Clusters accordion */}
@@ -469,7 +469,7 @@ export default function EstruturaManager() {
       ) : clusters.length === 0 ? (
         <Card className="bg-white border-slate-200/60 shadow-sm">
           <CardContent className="py-8 text-center text-slate-500">
-            Nenhum cluster cadastrado. Clique em "Novo Cluster" para começar.
+            Nenhum cluster cadastrado. Clique em"Novo Cluster" para começar.
           </CardContent>
         </Card>
       ) : (
@@ -589,7 +589,7 @@ export default function EstruturaManager() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setClusterDialog(false)}>Cancelar</Button>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveCluster}>Salvar</Button>
+            <Button onClick={saveCluster}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -636,7 +636,7 @@ export default function EstruturaManager() {
                       }))}
                       className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                         selected
-                          ? 'bg-teal-600 text-white border-teal-600'
+                          ? 'bg-primary text-white border-primary'
                           : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
                       }`}
                     >
@@ -658,7 +658,7 @@ export default function EstruturaManager() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAreaDialog(false)}>Cancelar</Button>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveArea}>Salvar</Button>
+            <Button onClick={saveArea}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -677,7 +677,7 @@ export default function EstruturaManager() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEquipeDialog(false)}>Cancelar</Button>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEquipe}>Salvar</Button>
+            <Button onClick={saveEquipe}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -691,7 +691,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
     <Card className="bg-white border-slate-200/60 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-slate-600">{label}</CardTitle>
-        <div className="p-2 rounded-full bg-teal-100">{icon}</div>
+        <div className="p-2 rounded-full bg-primary/15">{icon}</div>
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-bold text-slate-900">{value}</div>

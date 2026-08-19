@@ -36,7 +36,7 @@ export interface UsersRolesViewProps {
   variant?: 'compact' | 'full';
   /** Colunas customizadas (sobrescreve variant). */
   roleColumns?: AppRole[];
-  /** Label customizado para a coluna "team_member" (compact usa "Equipe", full usa "Membro"). */
+  /** Label customizado para a coluna"team_member" (compact usa"Equipe", full usa"Membro"). */
   teamMemberColumnLabel?: string;
 }
 
@@ -107,8 +107,8 @@ export const UsersRolesView = ({
         <MetricCard
           title="Clientes"
           value={stats.clients}
-          icon={<Users className="h-5 w-5 text-teal-600" />}
-          iconColor="bg-teal-100"
+          icon={<Users className="h-5 w-5 text-primary" />}
+          iconColor="bg-primary/15"
         />
       </div>
 
@@ -123,7 +123,7 @@ export const UsersRolesView = ({
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : (
             <Table>

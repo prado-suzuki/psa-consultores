@@ -27,12 +27,12 @@ const normalizar = (valor: string) =>
   valor.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 
 /**
- * Aba "Páginas" do Controle de Acessos.
+ * Aba"Páginas" do Controle de Acessos.
  *
  * Lista todas as páginas registradas em `page_permissions`, navegando por
  * categoria em abas — antes as categorias vinham empilhadas, e ver a última
  * exigia rolar por todas as anteriores. A busca varre todas as categorias de
- * propósito: senão a página de outra aba "não existiria".
+ * propósito: senão a página de outra aba"não existiria".
  *
  * Autossuficiente: usa os hooks de dados diretamente, sem props.
  */
@@ -87,7 +87,7 @@ export const PagesTab = () => {
     ).includes(termo));
   }, [busca, buscando, categoriaAtiva, chaves, groupedPages]);
 
-  // Com busca ou em "Todas", a categoria de cada linha deixa de ser óbvia.
+  // Com busca ou em"Todas", a categoria de cada linha deixa de ser óbvia.
   const mostrarCategoriaNaLinha = buscando || categoriaAtiva === TODAS;
 
   return (
@@ -113,7 +113,7 @@ export const PagesTab = () => {
             size="sm"
             onClick={() => syncPages()}
             disabled={loadingPages || isSyncing}
-            className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-teal-600"
+            className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-primary"
           >
             <RefreshCw
               className={`h-4 w-4 mr-2 ${loadingPages || isSyncing ? 'animate-spin' : ''}`}
@@ -125,7 +125,7 @@ export const PagesTab = () => {
 
       {loadingPages ? (
         <div className="flex items-center justify-center py-8">
-          <RefreshCw className="h-6 w-6 animate-spin text-teal-600" />
+          <RefreshCw className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
         <Card className="bg-white border-slate-200/60 shadow-sm">
@@ -195,7 +195,7 @@ export const PagesTab = () => {
                         {page.requires_team_member && (
                           <Badge
                             variant="outline"
-                            className="text-xs border-teal-200 text-teal-600 bg-teal-50"
+                            className="text-xs border-primary/20 text-primary bg-primary/5"
                           >
                             Team
                           </Badge>

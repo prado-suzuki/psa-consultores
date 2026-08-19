@@ -17,9 +17,9 @@ export const PAGE_CATEGORY_LABELS: Record<string, string> = {
 };
 
 export const PAGE_CATEGORY_COLORS: Record<string, string> = {
-  rotina: 'bg-teal-100 text-teal-700 border-teal-200',
+  rotina: 'bg-primary/15 text-primary border-primary/20',
   dev: 'bg-slate-100 text-slate-700 border-slate-200',
-  gestao: 'bg-teal-50 text-teal-600 border-teal-100',
+  gestao: 'bg-primary/5 text-primary border-primary/15',
   geral: 'bg-slate-50 text-slate-600 border-slate-100',
   tax: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   projetos: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -51,7 +51,7 @@ const GROUP_LABELS: Record<string, string> = {
 };
 
 const GROUP_COLORS: Record<string, string> = {
-  digital: 'bg-teal-100 text-teal-700 border-teal-200',
+  digital: 'bg-primary/15 text-primary border-primary/20',
 };
 
 export const getCategoryLabel = (category: string): string =>

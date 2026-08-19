@@ -35,10 +35,10 @@ const ROLE_ORDER: AppRole[] = [
 ];
 
 /**
- * Aba "Usuários" do Controle de Acessos.
+ * Aba"Usuários" do Controle de Acessos.
  *
  * Composta de:
- * - Header com botão "Criar Novo Usuário" (CreateUserDialog).
+ * - Header com botão"Criar Novo Usuário" (CreateUserDialog).
  * - Lista lateral de usuários, agrupada pela área da estrutura e filtrável por
  *   papel e por área (selecionável).
  * - Painel central com botões Editar / Excluir + acessos granulares
@@ -213,7 +213,7 @@ export const UsersTab = () => {
           <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
             {loadingUsers ? (
               <div className="flex items-center justify-center py-4">
-                <RefreshCw className="h-5 w-5 animate-spin text-teal-600" />
+                <RefreshCw className="h-5 w-5 animate-spin text-primary" />
               </div>
             ) : groupedUsers.length === 0 ? (
               <div className="text-center py-6 text-sm text-slate-500">
@@ -237,7 +237,7 @@ export const UsersTab = () => {
                       key={`${group.area?.id ?? SEM_AREA}-${u.id}`}
                       className={`w-full p-3 rounded-lg text-left transition-colors ${
                         selectedUserId === u.id
-                          ? 'bg-teal-500/10 border border-teal-200'
+                          ? 'bg-primary/10 border border-primary/20'
                           : 'bg-slate-50 hover:bg-slate-100 border border-transparent'
                       }`}
                       onClick={() => setSelectedUserId(u.id)}
@@ -287,7 +287,7 @@ export const UsersTab = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsEditOpen(true)}
-                    className="border-slate-200 text-slate-600 hover:text-teal-600 hover:bg-teal-50"
+                    className="border-slate-200 text-slate-600 hover:text-primary hover:bg-primary/5"
                   >
                     <Pencil className="h-4 w-4 mr-1" />
                     Editar

@@ -36,20 +36,20 @@ const FILTER_LABEL: Record<DashboardFilterType, string> = {
   nenhum: 'Sem filtro',
 };
 const FILTER_BADGE_CLASS: Record<DashboardFilterType, string> = {
-  cluster: 'border-teal-200 bg-teal-50 text-teal-700',
+  cluster: 'border-primary/20 bg-primary/5 text-primary',
   cliente: 'border-indigo-200 bg-indigo-50 text-indigo-700',
   nenhum: 'border-slate-200 bg-slate-100 text-slate-500',
 };
 // Ordenação padrão: sem filtro -> por cluster -> por cliente.
 const FILTER_RANK: Record<DashboardFilterType, number> = { nenhum: 0, cluster: 1, cliente: 2 };
-// "Tipo" é derivado do filtro: nenhum = interno (sem RLS); cluster/cliente = externo.
+//"Tipo" é derivado do filtro: nenhum = interno (sem RLS); cluster/cliente = externo.
 const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'Externo');
 const tipoBadgeClass = (ft: DashboardFilterType) =>
   ft === 'nenhum' ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
 const FILTER_HELP: Record<DashboardFilterType, string> = {
   cluster: 'Valor resolvido do cluster do usuário que abre (ou do cliente).',
   cliente: 'Valor resolvido do id_cliente do viewer. Use p/ relatórios externos (ex.: PERDCOMP).',
-  nenhum: 'Dashboard sem RLS — não envia ?params=. ⚠️ Para mostrar tudo, a fonte no Data Studio NÃO pode ter parâmetro de RLS com "Modificar no URL" ativo: desative o "Modificar no URL" desse parâmetro (com ele ativo + padrão vazio, fica fail-closed e o dashboard aparece VAZIO).',
+  nenhum: 'Dashboard sem RLS — não envia ?params=. ⚠️ Para mostrar tudo, a fonte no Data Studio NÃO pode ter parâmetro de RLS com"Modificar no URL" ativo: desative o"Modificar no URL" desse parâmetro (com ele ativo + padrão vazio, fica fail-closed e o dashboard aparece VAZIO).',
 };
 
 // Nível mínimo ("X ou superior") — hierarquia do has_role_or_higher.
@@ -67,7 +67,7 @@ const MIN_ROLE_LABEL: Record<MinRole, string> = {
 // externo por cluster = globo teal; externo por cliente = prédio indigo.
 const VARIANT_STYLE: Record<DashboardFilterType, { icon: typeof Globe; disc: string; iconColor: string }> = {
   nenhum: { icon: Lock, disc: 'bg-slate-100', iconColor: 'text-slate-500' },
-  cluster: { icon: Globe, disc: 'bg-teal-500/10', iconColor: 'text-teal-600' },
+  cluster: { icon: Globe, disc: 'bg-primary/10', iconColor: 'text-primary' },
   cliente: { icon: Building2, disc: 'bg-indigo-500/10', iconColor: 'text-indigo-600' },
 };
 
@@ -114,7 +114,7 @@ export default function DashboardsTab() {
   const clusterName = useMemo(() => new Map(clusters.map((c) => [c.id, c.nome])), [clusters]);
   const clienteName = useMemo(() => new Map(clientes.map((c) => [c.id, c.nome])), [clientes]);
 
-  // Grupos já usados — sugestões p/ o campo "Grupo" do cadastro.
+  // Grupos já usados — sugestões p/ o campo"Grupo" do cadastro.
   const existingGroups = useMemo(
     () => Array.from(new Set(items.map((d) => (d.grupo || '').trim()).filter(Boolean))).sort(),
     [items],
@@ -219,17 +219,17 @@ export default function DashboardsTab() {
           <Shield className="h-3 w-3" />{MIN_ROLE_LABEL[d.min_role ?? 'team_member']}
         </span>
         {d.all_clusters ? (
-          <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[11px] font-medium text-teal-700">Todos os clusters</span>
+          <span className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-[11px] font-medium text-primary">Todos os clusters</span>
         ) : ids.length === 0 ? (
           <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-400">Só Admin</span>
         ) : (
           <>
-            <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[11px] text-teal-700 max-w-[130px] truncate">
+            <span className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-[11px] text-primary max-w-[130px] truncate">
               {clusterName.get(ids[0]) ?? '—'}
             </span>
             {ids.length > 1 && (
               <IconTooltip label={ids.slice(1).map((id) => clusterName.get(id) ?? id).join(' · ')}>
-                <span className="rounded-full border border-teal-200 bg-teal-100 px-2 py-1 text-[11px] font-medium text-teal-700">+{ids.length - 1}</span>
+                <span className="rounded-full border border-primary/20 bg-primary/15 px-2 py-1 text-[11px] font-medium text-primary">+{ids.length - 1}</span>
               </IconTooltip>
             )}
           </>
@@ -252,7 +252,7 @@ export default function DashboardsTab() {
         tabIndex={0}
         onClick={() => setOverviewTarget(d)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOverviewTarget(d); } }}
-        className="group grid cursor-pointer grid-cols-1 items-center gap-2 px-4 py-3 transition-colors hover:bg-teal-50/40 focus-visible:bg-teal-50/40 focus-visible:outline-none sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:gap-3"
+        className="group grid cursor-pointer grid-cols-1 items-center gap-2 px-4 py-3 transition-colors hover:bg-primary/5 focus-visible:bg-primary/5 focus-visible:outline-none sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:gap-3"
       >
         {/* identidade */}
         <div className="flex items-center gap-3 min-w-0">
@@ -285,7 +285,7 @@ export default function DashboardsTab() {
         {/* controles */}
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <div className="flex gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
-            <IconAction label="Editar dashboard e acessos" className="h-8 w-8 text-slate-500 hover:text-teal-600 hover:bg-teal-50" onClick={() => openEdit(d)}><Pencil className="h-4 w-4" /></IconAction>
+            <IconAction label="Editar dashboard e acessos" className="h-8 w-8 text-slate-500 hover:text-primary hover:bg-primary/5" onClick={() => openEdit(d)}><Pencil className="h-4 w-4" /></IconAction>
             <IconAction label="Excluir dashboard" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(d)}><Trash2 className="h-4 w-4" /></IconAction>
           </div>
           <IconTooltip label={d.is_active ? 'Ativo — clique para desativar' : 'Inativo — clique para ativar'}>
@@ -302,8 +302,8 @@ export default function DashboardsTab() {
     <>
       <div className="flex items-end justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center">
-            <LayoutDashboard className="h-5 w-5 text-teal-600" />
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <LayoutDashboard className="h-5 w-5 text-primary" />
           </div>
           <div>
             <h3 className="text-base font-semibold text-slate-900">Dashboards</h3>
@@ -315,7 +315,7 @@ export default function DashboardsTab() {
           </div>
         </div>
         <IconTooltip label="Cadastrar um novo dashboard do Looker">
-          <Button size="sm" onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white shadow-sm">
+          <Button size="sm" onClick={openCreate} className="shadow-sm">
             <Plus className="h-4 w-4 mr-1" />Adicionar
           </Button>
         </IconTooltip>
@@ -339,7 +339,7 @@ export default function DashboardsTab() {
             <Card key={f.key} className="overflow-hidden border-slate-200/70 shadow-sm">
               {f.name && (
                 <div className="flex items-center gap-2 border-b border-slate-200/70 bg-slate-50/80 px-4 py-2.5">
-                  <Layers className="h-4 w-4 text-teal-600" />
+                  <Layers className="h-4 w-4 text-primary" />
                   <span className="text-sm font-semibold text-slate-800">{f.name}</span>
                   <span className="text-xs text-slate-400">· {f.members.length} relatório{f.members.length > 1 ? 's' : ''}</span>
                 </div>
@@ -357,8 +357,8 @@ export default function DashboardsTab() {
         <DialogContent className="w-[94vw] max-w-[920px] max-h-[92vh] p-0 gap-0 flex flex-col overflow-hidden">
           <DialogHeader className="shrink-0 border-b border-slate-200 px-6 py-4 text-left">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-teal-500/10 flex items-center justify-center shrink-0">
-                <LayoutDashboard className="h-5 w-5 text-teal-600" />
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <LayoutDashboard className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <DialogTitle>{editId ? 'Editar Dashboard' : 'Novo Dashboard'}</DialogTitle>
@@ -461,7 +461,7 @@ export default function DashboardsTab() {
             {/* ── Acesso ─────────────────────────────────────────────────── */}
             <div className="sm:col-span-2 space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-teal-600" />
+                <Shield className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium text-slate-800">Acesso</span>
               </div>
 
@@ -557,7 +557,7 @@ export default function DashboardsTab() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>Excluir o dashboard "{deleteTarget?.name}"? Os acessos concedidos também deixam de valer.</AlertDialogDescription>
+            <AlertDialogDescription>Excluir o dashboard"{deleteTarget?.name}"? Os acessos concedidos também deixam de valer.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

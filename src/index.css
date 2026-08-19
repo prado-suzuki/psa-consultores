@@ -171,7 +171,27 @@ All colors MUST be HSL.
     /* Sombra do modo edição nas tabelas SPED */
     --edit-shadow-color: 30 89% 51%;
 
-    /* Paleta Teal */
+    /* ─── Escala teal — PRIMITIVA, não token de componente ─────────────────
+       Existe para ALIMENTAR os tokens semânticos (o `--primary` da base sai
+       daqui, e a `.rotina-theme` usa `var(--teal-500)` no `--ring`). Componente
+       NÃO usa: usa `bg-primary`, `text-primary`, `border-primary` — ou, em botão
+       primário, a variante `default` do `ui/button`, sem classe de cor.
+
+       Por que a distinção precisa estar escrita: o `tailwind.config.ts` gera
+       `bg-teal-500/600/700` a partir destas variáveis, então essas classes
+       PARECEM cor crua do Tailwind e não são. `bg-teal-600` não pinta o #0D9488
+       do Tailwind — pinta o #0A756C daqui. Foi isso que as fez atravessar todas
+       as revisões: quem procura hex ou paleta crua não as encontra, e no tema
+       base o resultado era idêntico ao de `bg-primary`.
+
+       Só que esta escala mora no `:root` e NENHUM tema a sobrescreve. É token
+       que não acompanha o tema. Quando `/equipe/acessos` virou grafite, os
+       botões que usavam `bg-teal-600` continuaram teal — e o mesmo vale para
+       qualquer área futura.
+
+       Uma regra de lint (`eslint.config.js`) avisa sobre `teal-500/600/700` em
+       `src/components` e `src/pages`. É `warn`, não `error`: as ocorrências
+       antigas ficam visíveis e o número só cai. */
     --teal-500: 175 82% 29%;
     --teal-600: 175 84% 25%;
     --teal-700: 175 86% 20%;

@@ -180,7 +180,7 @@ const EquipeControleAcessos = () => {
   };
 
   const handleDeleteCadastro = async (area: ControleAcessosAreaInterna) => {
-    if (!confirm(`Tem certeza que deseja excluir "${area.name}"?`)) return;
+    if (!confirm(`Tem certeza que deseja excluir"${area.name}"?`)) return;
     try {
       await deleteCatalogClient(area.id);
       toast.success('Área excluída');
@@ -304,14 +304,14 @@ const EquipeControleAcessos = () => {
                   <TabsList className="bg-slate-100 border border-slate-200">
                     <TabsTrigger
                       value="organizacao"
-                      className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                      className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                     >
                       <Network className="h-4 w-4 mr-2" />
                       Estrutura
                     </TabsTrigger>
                     <TabsTrigger
                       value="centros_custo"
-                      className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                      className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                     >
                       <Wallet className="h-4 w-4 mr-2" />
                       Centros de Custo

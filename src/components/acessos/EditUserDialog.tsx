@@ -180,7 +180,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                           : prev.roles.filter((r) => r !== role.value),
                       }));
                     }}
-                    className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                    className="border-slate-300  mt-0.5"
                   />
                   <div>
                     <Label
@@ -225,7 +225,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                             : prev.areas.filter((a) => a !== key),
                         }));
                       }}
-                      className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                      className="border-slate-300  mt-0.5"
                     />
                     <div>
                       <Label
@@ -254,7 +254,6 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
             <Button
               type="submit"
               disabled={updateUser.isPending}
-              className="bg-teal-600 hover:bg-teal-700 text-white"
             >
               {updateUser.isPending ? (
                 <>

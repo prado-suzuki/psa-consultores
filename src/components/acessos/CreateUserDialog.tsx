@@ -93,7 +93,7 @@ export const CreateUserDialog = () => {
       }}
     >
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+        <Button className="gap-2">
           <UserPlus className="h-4 w-4" />
           Criar Novo Usuário
         </Button>
@@ -103,7 +103,7 @@ export const CreateUserDialog = () => {
           <>
             <DialogHeader>
               <DialogTitle className="text-slate-900 flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-teal-600" />
+                <CheckCircle2 className="h-5 w-5 text-primary" />
                 Usuário Criado!
               </DialogTitle>
               <DialogDescription className="text-slate-500">
@@ -120,7 +120,7 @@ export const CreateUserDialog = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-slate-600 hover:text-teal-600"
+                    className="text-slate-600 hover:text-primary"
                     onClick={() => copyToClipboard(createdCredentials.email)}
                   >
                     <Copy className="h-4 w-4" />
@@ -134,7 +134,7 @@ export const CreateUserDialog = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-slate-600 hover:text-teal-600"
+                    className="text-slate-600 hover:text-primary"
                     onClick={() => copyToClipboard(createdCredentials.password)}
                   >
                     <Copy className="h-4 w-4" />
@@ -148,7 +148,7 @@ export const CreateUserDialog = () => {
             <DialogFooter>
               <Button
                 onClick={handleClose}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                className="w-full"
               >
                 Fechar
               </Button>
@@ -215,7 +215,7 @@ export const CreateUserDialog = () => {
                             : prev.roles.filter((r) => r !== role.value),
                         }));
                       }}
-                      className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                      className="border-slate-300  mt-0.5"
                     />
                     <div>
                       <Label
@@ -260,7 +260,7 @@ export const CreateUserDialog = () => {
                               : prev.areas.filter((a) => a !== key),
                           }));
                         }}
-                        className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                        className="border-slate-300  mt-0.5"
                       />
                       <div>
                         <Label
@@ -289,7 +289,6 @@ export const CreateUserDialog = () => {
               <Button
                 type="submit"
                 disabled={createUser.isPending}
-                className="bg-teal-600 hover:bg-teal-700 text-white"
               >
                 {createUser.isPending ? (
                   <>

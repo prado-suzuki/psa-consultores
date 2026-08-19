@@ -82,7 +82,7 @@ export const EquipesEstruturaField = ({
     <div className="space-y-3">
       <Label className="text-slate-700 text-sm font-medium">Equipe na estrutura</Label>
       <p className="text-xs text-slate-500">
-        Cluster e área vêm da equipe escolhida. Sem isso a pessoa fica em "Sem área".
+        Cluster e área vêm da equipe escolhida. Sem isso a pessoa fica em"Sem área".
       </p>
 
       {value.length > 0 && (
