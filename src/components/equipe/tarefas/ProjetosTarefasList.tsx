@@ -26,6 +26,7 @@ import type { AreaKey } from '@/config/areaCategories';
 import { toast } from 'sonner';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { Badge } from '@/components/ui/badge';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -368,17 +369,16 @@ export function ProjetosTarefasList({
 
   return <div className="space-y-2">
     <div className="flex flex-wrap items-center gap-2">
-      {selectedTaskIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-primary/5 px-3 py-1.5">
-          <span className="text-sm font-medium">{selectedTaskIds.size} tarefa(s) selecionada(s)</span>
-          <Button size="sm" variant="secondary" className="h-7 gap-2" onClick={onMoveSelected}>
-            <FolderInput className="h-3.5 w-3.5" />Mover para outro projeto
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7" onClick={() => onToggleSelection([...selectedTaskIds], false)}>
-            Limpar seleção
-          </Button>
-        </div>
-      )}
+      <BulkActionBar
+        count={selectedTaskIds.size}
+        label={n => `${n} tarefa(s) selecionada(s)`}
+        onClear={() => onToggleSelection([...selectedTaskIds], false)}
+        actions={[{
+          label: 'Mover para outro projeto',
+          icon: <FolderInput className="h-3.5 w-3.5" />,
+          onClick: onMoveSelected,
+        }]}
+      />
       <Button variant="outline" size="sm" onClick={toggleAll} className="ml-auto gap-2">
         {allOsExpanded ? <ChevronsUp className="h-4 w-4" /> : <ChevronsDown className="h-4 w-4" />}
         {allOsExpanded ? 'Recolher tudo' : 'Expandir tudo'}
