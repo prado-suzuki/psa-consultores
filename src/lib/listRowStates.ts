@@ -49,7 +49,15 @@ export function listRowClasses(estado: ListRowState = {}): string {
   const { selecionado, vinculado, desabilitado } = estado;
   return cn(
     'flex items-start gap-2 rounded-xl border border-l-2 px-2 py-2',
-    'transition-colors duration-[120ms]',
+    // Propriedade arbitraria, e nao a utilitaria `duration` com valor entre
+    // colchetes: o Tailwind 3 nao consegue desambiguar aquela forma entre
+    // `transition-duration` e `animation-duration`, avisa no log e DESCARTA a
+    // classe — ela nao chega ao bundle. O efeito era silencioso: sem erro de
+    // build nem de lint, as linhas ficavam nos 150ms que o proprio
+    // `transition-colors` ja traz.
+    // (O texto acima evita escrever a forma ambigua: o Tailwind varre ate
+    // comentario e o aviso voltaria por causa dele.)
+    'transition-colors [transition-duration:120ms]',
     vinculado ? 'border-primary' : 'border-border',
     selecionado ? 'border-l-border bg-muted' : 'bg-card',
     // Hover só no repouso: linha já marcada ou já aberta não tem para onde ir,
