@@ -104,6 +104,7 @@ export const CadastroGovernancaPreview = () => {
             produz="nada; alimenta as seções 1, 2 e 3"
             entidade="o cliente / grupo"
             contagem="4 instâncias, marcar quais existem"
+            desde="10/03/2026"
             pasta="não é documento"
           >
             <Nota>
@@ -139,6 +140,7 @@ export const CadastroGovernancaPreview = () => {
             produz="nada; alimenta as seções 2 e 3"
             entidade="as pessoas do cliente"
             contagem="1 rótulo e 1 lista por grupo, mais 2 gerais"
+            desde="10/03/2026"
             pasta="não é documento"
           >
             <Nota>
@@ -194,6 +196,9 @@ export const CadastroGovernancaPreview = () => {
             entidade="o cliente / grupo"
             contagem={`${ASSUNTOS_MATRIZ.length} assuntos × ${orgaosAtivos.length} órgãos · nenhum já no sistema`}
             pasta="pastas 01 e 04"
+            desde="10/03/2026"
+            gerar="Matriz"
+            ultimaGeracao="12/03/2026 · versão 2"
           >
             <Nota>
               O documento-eixo, e a primeira tela do fluxo. Antes chamada de Diagnóstico de
@@ -237,6 +242,9 @@ export const CadastroGovernancaPreview = () => {
             entidade="a holding e os sócios"
             contagem={resumo(CAMPOS_ACORDO)}
             pasta="pasta 02"
+            desde="10/03/2026"
+            gerar="Acordo"
+            ultimaGeracao="29/09/2025 · assinado com firma reconhecida"
           >
             <Nota>
               As regras entre os sócios: como se vota, quem pode comprar a parte de quem sai, quanto
@@ -254,6 +262,9 @@ export const CadastroGovernancaPreview = () => {
             entidade="os grupos de pessoas da seção B"
             contagem={`${FAMILIAS_PROTOCOLO.length} famílias de benefício · ${resumo(CAMPOS_PROTOCOLO_GERAIS)} de regra geral`}
             pasta="pasta 03"
+            desde="10/03/2026"
+            gerar="Protocolo"
+            ultimaGeracao="09/06/2025"
           >
             <Nota>
               O que cada grupo da família recebe da empresa, além de salário: carro, plano de saúde,
@@ -310,6 +321,9 @@ export const CadastroGovernancaPreview = () => {
             entidade="o conselho de administração"
             contagem={resumo(CAMPOS_REGIMENTO)}
             pasta="pasta 05"
+            desde="10/03/2026"
+            gerar="Regimento"
+            ultimaGeracao="vigência 2026 a 2031"
           >
             <Nota>
               Como o conselho funciona por dentro: quantos membros, de quanto em quanto tempo se
@@ -327,6 +341,9 @@ export const CadastroGovernancaPreview = () => {
             entidade="a holding"
             contagem={resumo(CAMPOS_AC_REFLEXO)}
             pasta="pasta 06"
+            desde="10/03/2026"
+            gerar="Alteração Contratual"
+            ultimaGeracao="18/03/2025 · 5ª Alteração"
           >
             <Nota>
               A alteração do contrato social que leva a governança para dentro do contrato, porque

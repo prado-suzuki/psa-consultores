@@ -144,6 +144,9 @@ export const Secao = ({
   entidade,
   contagem,
   pasta,
+  desde,
+  gerar,
+  ultimaGeracao,
   children,
 }: {
   numero: string;
@@ -152,9 +155,33 @@ export const Secao = ({
   entidade: string;
   contagem: string;
   pasta: string;
+  /** Desde quando este conjunto de parâmetros vale. */
+  desde?: string;
+  /**
+   * Documento que sai desta seção. Ausente = a seção não produz documento.
+   *
+   * É só indicação: a GERAÇÃO não acontece aqui. Nos cadastros que já existem
+   * (matrícula, bem, pessoa, cliente) o formulário só guarda o dado, e o documento
+   * sai da tela "Gerar Documento", alcançada pelo menu do OSG Work. Botão de gerar
+   * dentro da seção criaria um segundo caminho e quebraria o padrão da casa.
+   */
+  gerar?: string;
+  /** O que já saiu daqui, para o histórico ficar na pilha e não no formulário. */
+  ultimaGeracao?: string;
   children: React.ReactNode;
 }) => (
-  <FieldSection number={numero} title={titulo} hint={pasta}>
+  <FieldSection
+    number={numero}
+    title={titulo}
+    hint={pasta}
+    actions={
+      gerar ? (
+        <span className="text-[11px] text-muted-foreground">
+          gera <span className="font-medium text-osg-700">{gerar}</span>
+        </span>
+      ) : undefined
+    }
+  >
     <dl className="-mt-2 mb-3 flex flex-wrap gap-x-5 gap-y-0.5 text-[11px] text-muted-foreground">
       <div className="flex gap-1.5">
         <dt className="font-semibold text-osg-600">Produz</dt>
@@ -168,6 +195,18 @@ export const Secao = ({
         <dt className="font-semibold text-osg-600">Campos</dt>
         <dd>{contagem}</dd>
       </div>
+      {desde && (
+        <div className="flex gap-1.5">
+          <dt className="font-semibold text-osg-600">Vigente desde</dt>
+          <dd>{desde}</dd>
+        </div>
+      )}
+      {ultimaGeracao && (
+        <div className="flex gap-1.5">
+          <dt className="font-semibold text-osg-600">Última geração</dt>
+          <dd>{ultimaGeracao}</dd>
+        </div>
+      )}
     </dl>
     {children}
   </FieldSection>
