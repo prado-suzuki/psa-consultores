@@ -7,10 +7,15 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
-  ArrowLeft,
-  User
+  ArrowLeft
 } from 'lucide-react';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
+import {
+  classeLarguraBarra,
+  classeRecuoCabecalho,
+  larguraBarraCss,
+} from '@/lib/sidebarMedidas';
 
 interface FixosLayoutProps {
   children: React.ReactNode;
@@ -20,7 +25,7 @@ interface FixosLayoutProps {
 }
 
 export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosLayoutProps) => {
-  const { signOut, user } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
   // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
@@ -35,10 +40,10 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
     <div className="min-h-screen bg-slate-50 flex w-full">
       {/* Sidebar */}
       <aside
-        className={`${collapsed ? 'w-16' : 'w-64'} bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
+        className={`${classeLarguraBarra(collapsed)} bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
       >
         {/* Header */}
-        <div className="p-6 border-b border-slate-200/60">
+        <div className={`${classeRecuoCabecalho(collapsed)} border-b border-slate-200/60`}>
           {collapsed ? (
             <div className="flex justify-center">
               <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
@@ -63,7 +68,7 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
           variant="ghost"
           size="icon"
           className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 shadow-sm"
-          style={{ '--sidebar-width': collapsed ? '64px' : '256px' } as React.CSSProperties}
+          style={{ '--sidebar-width': larguraBarraCss(collapsed) } as React.CSSProperties}
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
@@ -76,20 +81,9 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
 
         {/* Footer Actions */}
         <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
-          {/* User Card */}
-          {!collapsed && (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
-              <div className="h-8 w-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                <User className="h-4 w-4 text-blue-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 truncate">
-                  {user?.email?.split('@')[0] || 'Usuário'}
-                </p>
-                <p className="text-xs text-slate-500">Fixos</p>
-              </div>
-            </div>
-          )}
+          {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
+          <SidebarCartaoUsuario area="fixos" collapsed={collapsed} />
+
           
           <Button 
             variant="ghost" 

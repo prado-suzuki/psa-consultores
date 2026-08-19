@@ -15,7 +15,6 @@ import {
   ChevronDown,
   Menu,
   ArrowLeft,
-  User,
   Shield,
   Users,
   Landmark,
@@ -37,6 +36,8 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
+import { classeLarguraBarra } from '@/lib/sidebarMedidas';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
 
@@ -115,7 +116,7 @@ interface OsgLayoutProps {
 }
 
 export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayoutProps) => {
-  const { signOut, user, isAdmin, isLider } = useAuth();
+  const { signOut, isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // Telas de trabalho largas recolhem a barra sozinhas — quem pede é a própria
@@ -220,7 +221,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           // sombra). A curva é ease-out-quint: sai rápido e "pousa" devagar.
           'transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
           'motion-reduce:transition-none',
-          collapsed ? 'w-16' : 'w-64',
+          // 5rem, e não 4rem: ver docs/geral/sidebar-recolhe-em-tela-larga.md.
+          classeLarguraBarra(collapsed),
         )}
       >
         {/* Toggle Button — sibling of <aside> so it isn't clipped by overflow */}
@@ -672,18 +674,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
 
         {/* Footer Actions */}
         <div className="mt-auto p-4 border-t border-border/60 space-y-2">
-          {/* User Card — o avatar fica; só o texto desbota ao recolher. */}
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted mb-3">
-            <div className="h-8 w-8 rounded-full bg-osg-500/10 flex items-center justify-center flex-shrink-0">
-              <User className="h-4 w-4 text-osg-600" />
-            </div>
-            <div className={cn(rotuloCls, "flex-1 min-w-0")}>
-              <p className="text-sm font-medium text-foreground truncate">
-                {user?.email?.split('@')[0] || 'Usuário'}
-              </p>
-              <p className="text-xs text-muted-foreground">OSG</p>
-            </div>
-          </div>
+          {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
+          <SidebarCartaoUsuario area="osg" collapsed={collapsed} />
 
           <Button
             variant="ghost"

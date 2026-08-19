@@ -11,9 +11,14 @@ import {
   LayoutDashboard,
   Newspaper,
   Users,
-  User,
 } from 'lucide-react';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
+import {
+  classeLarguraBarra,
+  classeRecuoCabecalho,
+  larguraBarraCss,
+} from '@/lib/sidebarMedidas';
 
 interface GestaoLayoutProps {
   children: React.ReactNode;
@@ -29,7 +34,7 @@ interface NavItem {
 }
 
 export const GestaoLayout = ({ children, title, subtitle, headerActions }: GestaoLayoutProps) => {
-  const { signOut, user, isAdmin, isLider } = useAuth();
+  const { signOut, isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // O recolhimento automático em telas de trabalho largo mora no hook — é a
@@ -60,7 +65,7 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
         variant="ghost"
         size="icon"
         className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-30 h-6 w-6 rounded-full border border-border bg-card hover:bg-muted text-muted-foreground shadow-sm"
-        style={{ '--sidebar-width': collapsed ? '64px' : '256px' } as React.CSSProperties}
+        style={{ '--sidebar-width': larguraBarraCss(collapsed) } as React.CSSProperties}
         onClick={() => setCollapsed(!collapsed)}
       >
         {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
@@ -68,10 +73,10 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
 
       {/* Sidebar */}
       <aside
-        className={`${collapsed ? 'w-16' : 'w-64'} bg-card border-r border-border/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
+        className={`${classeLarguraBarra(collapsed)} bg-card border-r border-border/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
       >
         {/* Header */}
-        <div className="p-6 border-b border-border/60">
+        <div className={`${classeRecuoCabecalho(collapsed)} border-b border-border/60`}>
           {collapsed ? (
             <div className="flex justify-center">
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -113,20 +118,8 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
 
         {/* Footer Actions */}
         <div className="mt-auto p-4 border-t border-border/60 space-y-2">
-          {/* User Card */}
-          {!collapsed && (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted mb-3">
-              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <User className="h-4 w-4 text-primary" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {user?.email?.split('@')[0] || 'Usuário'}
-                </p>
-                <p className="text-xs text-muted-foreground">Gestão</p>
-              </div>
-            </div>
-          )}
+          {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
+          <SidebarCartaoUsuario area="gestao" collapsed={collapsed} />
 
           <Button
             variant="ghost"

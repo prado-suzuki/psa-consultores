@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import { MEDIDAS_TRILHO_SIDEBAR } from '@/lib/sidebarMedidas';
 import { MapaClusterProvider } from '@/contexts/MapaClusterContext';
 import ClusterBar from './ClusterBar';
 import { MapaTourProvider } from './tour/MapaTourProvider';
@@ -103,7 +104,17 @@ export default function Layout() {
   return (
     <MapaClusterProvider>
     <MapaTourProvider>
-    <div className={`app-root${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
+    <div
+      className={`app-root${sidebarCollapsed ? ' sidebar-collapsed' : ''}`}
+      // O CSS do Mapeamento é legado e escapa ao Tailwind, mas a medida do
+      // trilho recolhido é a mesma do resto do sistema: em vez de um 72px solto
+      // no arquivo .css, a variável é alimentada pela constante compartilhada.
+      style={
+        {
+          '--sidebar-width-collapsed': `${MEDIDAS_TRILHO_SIDEBAR.larguraRecolhidaPx}px`,
+        } as React.CSSProperties
+      }
+    >
       <button
         type="button"
         className="sidebar-toggle"

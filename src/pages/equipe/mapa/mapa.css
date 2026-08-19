@@ -5,7 +5,10 @@
 .app-root{
   /* === Layout === */
   --sidebar-width: 260px;
-  --sidebar-width-collapsed: 72px;
+  /* --sidebar-width-collapsed NÃO é declarada aqui: o valor chega do Layout, a
+     partir de MEDIDAS_TRILHO_SIDEBAR (src/lib/sidebarMedidas.ts), para que o
+     trilho recolhido do Mapeamento não volte a divergir dos outros (media 72px,
+     contra os 80px do padrão). Ver docs/geral/sidebar-recolhe-em-tela-larga.md. */
 
   /* === Paleta institucional (mantida) === */
   --primary-color: #0f172a;
