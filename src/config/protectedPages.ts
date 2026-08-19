@@ -665,8 +665,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // =============================================
   {
     page_path: '/equipe/board/dashboard',
-    page_name: 'Board Dashboard',
-    page_description: 'Painel principal da área Board',
+    page_name: 'Board - Estratégico',
+    page_description: 'Painel principal da área Board: negócio, risco e entrega',
     category: 'board',
     requires_admin: false,
     requires_team_member: true,

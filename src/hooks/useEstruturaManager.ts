@@ -157,34 +157,6 @@ export const useEstruturaMutations = () => {
     invalidateAll();
   }, [logAction, invalidateAll]);
 
-  /**
-   * Grava a mesma empresa (razão social + CNPJ) em vários clusters de uma vez.
-   *
-   * A empresa não é entidade própria: vive nas colunas `nome_empresa`/`cnpj` de
-   * cada cluster. Sem isso, corrigir a razão social de uma empresa usada por
-   * dois clusters deixaria o outro com o texto antigo.
-   */
-  const aplicarEmpresaEmClusters = useCallback(async (
-    clusters: Cluster[],
-    empresa: { nome_empresa: string | null; cnpj: string | null },
-  ) => {
-    if (clusters.length === 0) return;
-    const { error } = await supabase.from('estrutura_clusters')
-      .update({ nome_empresa: empresa.nome_empresa, cnpj: empresa.cnpj })
-      .in('id', clusters.map(c => c.id));
-    if (error) { toast.error(error.message); return; }
-    clusters.forEach(cluster => logAction({
-      area: 'estrutura', entity_type: 'cluster', entity_id: cluster.id,
-      entity_name: cluster.name, action: 'updated',
-      changed_fields: {
-        nome_empresa: { old: cluster.nome_empresa, new: empresa.nome_empresa },
-        cnpj: { old: cluster.cnpj, new: empresa.cnpj },
-      },
-    }));
-    toast.success(`Empresa aplicada a ${clusters.length} cluster(s)`);
-    invalidateAll();
-  }, [logAction, invalidateAll]);
-
   const deleteCluster = useCallback(async (cluster: Cluster) => {
     const { error } = await supabase.from('estrutura_clusters').delete().eq('id', cluster.id);
     if (error) { toast.error(error.message); return; }
@@ -311,7 +283,7 @@ export const useEstruturaMutations = () => {
   }, [logAction, invalidateAll]);
 
   return {
-    saveCluster, deleteCluster, aplicarEmpresaEmClusters,
+    saveCluster, deleteCluster,
     saveArea, deleteArea,
     setEquipeGestor,
     saveEquipe, deleteEquipe,

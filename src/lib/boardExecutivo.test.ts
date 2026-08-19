@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   classificarArea,
-  filtrarPorArea,
+  filtrarPorCluster,
+  filtrarTarefasPorProjetos,
   saudeProjetos,
   granularidadePara,
   serieTarefasPorArea,
@@ -45,16 +46,51 @@ describe('classificarArea', () => {
   });
 });
 
-describe('filtrarPorArea', () => {
-  it('"todas" não filtra', () => {
-    expect(filtrarPorArea(projetos, 'todas')).toHaveLength(6);
+describe('filtrarPorCluster', () => {
+  const linhas = [
+    { id: 'a', cluster_id: 'c1' },
+    { id: 'b', cluster_id: 'c2' },
+    { id: 'c', cluster_id: 'c1' },
+    { id: 'd', cluster_id: null },
+  ];
+
+  it('sem cliente selecionado passa a coleção inteira', () => {
+    expect(filtrarPorCluster(linhas, '')).toHaveLength(4);
   });
 
-  it('filtra pelo bucket da área, não por substring do nome', () => {
-    expect(filtrarPorArea(projetos, 'tax').map((p) => p.id)).toEqual(['p1', 'p2']);
-    expect(filtrarPorArea(projetos, 'osg').map((p) => p.id)).toEqual(['p3']);
-    expect(filtrarPorArea(projetos, 'dev').map((p) => p.id)).toEqual(['p4']);
-    expect(filtrarPorArea(projetos, 'outros').map((p) => p.id)).toEqual(['p5', 'p6']);
+  it('filtra pelo ID do cluster', () => {
+    expect(filtrarPorCluster(linhas, 'c1').map((l) => l.id)).toEqual(['a', 'c']);
+  });
+
+  it('linha sem cluster fica de fora com filtro ativo — "não sei de quem é" não vira "é deste"', () => {
+    expect(filtrarPorCluster(linhas, 'c2').map((l) => l.id)).toEqual(['b']);
+  });
+
+  it('cluster inexistente devolve vazio, não a coleção inteira', () => {
+    expect(filtrarPorCluster(linhas, 'nao-existe')).toEqual([]);
+  });
+});
+
+describe('filtrarTarefasPorProjetos', () => {
+  const tarefas = [
+    { project_id: 'p1', nome: 't1' },
+    { project_id: 'p2', nome: 't2' },
+    { project_id: 'p1', nome: 't3' },
+    { project_id: null, nome: 'orfa' },
+  ];
+
+  it('mantém só as tarefas dos projetos informados', () => {
+    expect(filtrarTarefasPorProjetos(tarefas, [{ id: 'p1' }]).map((t) => t.nome))
+      .toEqual(['t1', 't3']);
+  });
+
+  it('tarefa sem projeto fica de fora — cairia em "Outros" e inflaria a linha', () => {
+    expect(filtrarTarefasPorProjetos(tarefas, [{ id: 'p1' }, { id: 'p2' }]))
+      .toHaveLength(3);
+  });
+
+  it('nenhum projeto no recorte devolve nenhuma tarefa', () => {
+    expect(filtrarTarefasPorProjetos(tarefas, [])).toEqual([]);
   });
 });
 
@@ -71,9 +107,10 @@ describe('saudeProjetos', () => {
     });
   });
 
-  it('acompanha o filtro de área (pontualidade do escopo, não global)', () => {
-    expect(saudeProjetos(filtrarPorArea(projetos, 'tax')).pontualidade).toBe(50);
-    expect(saudeProjetos(filtrarPorArea(projetos, 'osg')).pontualidade).toBe(100);
+  it('acompanha o recorte da tela (pontualidade do escopo, não global)', () => {
+    const bucket = (a: string) => projetos.filter((p) => bucketDoItem(p) === a);
+    expect(saudeProjetos(bucket('tax')).pontualidade).toBe(50);
+    expect(saudeProjetos(bucket('osg')).pontualidade).toBe(100);
   });
 });
 
@@ -325,14 +362,14 @@ describe('bucketDoItem', () => {
     expect(bucketDoItem({ area_name: null, area_key: null })).toBe('outros');
   });
 
-  it('filtro por área usa a chave resolvida', () => {
+  it('a chave resolvida vence o palpite pelo nome', () => {
     const itens = [
       { area_name: null, area_key: 'tax' as const },
       { area_name: 'Tax', area_key: null },
       { area_name: null, area_key: null },
     ];
-    expect(filtrarPorArea(itens, 'tax')).toHaveLength(2);
-    expect(filtrarPorArea(itens, 'outros')).toHaveLength(1);
+    expect(itens.filter((i) => bucketDoItem(i) === 'tax')).toHaveLength(2);
+    expect(itens.filter((i) => bucketDoItem(i) === 'outros')).toHaveLength(1);
   });
 });
 

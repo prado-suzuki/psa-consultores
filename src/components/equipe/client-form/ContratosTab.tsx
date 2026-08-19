@@ -57,9 +57,11 @@ function getRegiaoLabel(value: string | undefined): string {
 }
 
 /**
- * "Empresa / Faturamento" aponta para o cluster, mas quem fatura é a empresa
- * cadastrada nele (Estrutura > Clusters > Nome da empresa). Exibimos o nome da
- * empresa e caímos no nome do cluster só quando ela não foi preenchida.
+ * O campo grava `cluster_id`: a empresa de faturamento É o cluster (razão social
+ * e CNPJ são colunas dele — ver `docs/geral/decisoes/empresa-de-faturamento-vive-no-cluster.md`).
+ * Exibimos a razão social e caímos no nome do cluster só quando ela não foi
+ * preenchida. O rótulo segue "Empresa / Faturamento": é assim que o time
+ * conhece o campo — "cluster" é vocabulário interno do sistema.
  */
 
 export interface ContratosTabProps {

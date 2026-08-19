@@ -12,6 +12,7 @@ import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
 import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
+import { useBoardCluster } from '@/hooks/useBoardCluster';
 import {
   kpisClientes, kpisOperacional, kpisProjetos,
   faturamentoPorTipo, faturamentoPorCliente, faturamentoMensal,
@@ -104,9 +105,19 @@ function SortTh<T>({ label, colKey, sort, align = 'left' }: {
 
 export const DashboardClientesOsContent = ({
   scopeProjetosAClientesVisiveis = false,
+  usarClusterGlobal = false,
 }: {
   /** Área Gerencial: restringe a aba de projetos aos clientes visíveis (cluster). */
   scopeProjetosAClientesVisiveis?: boolean;
+  /**
+   * Board: obedece o seletor global de empresa da `BoardClusterBar`.
+   *
+   * Opt-in explícito, e não "o contexto devolve '' fora do provider": esta tela
+   * também é a Gerencial do Tax e da OSG, e depender da posição na árvore faria
+   * o dia em que alguém subir o Provider mais alto virar um recorte silencioso
+   * naquelas telas.
+   */
+  usarClusterGlobal?: boolean;
 } = {}) => {
   const { ambiente } = useDashboardAmbiente();
   const { data, isLoading, error, hoje } = useDashboardClientesOs(ambiente);
@@ -114,6 +125,9 @@ export const DashboardClientesOsContent = ({
     // v3: o filtro de cluster virou centro de custo (chaves salvas na sessão mudaram).
     pageKey: 'dashboard-clientes-os-v3', defaults: DEFAULTS,
   });
+  // Hook chamado sempre (regra dos hooks); a prop decide se o valor vale.
+  const { cluster } = useBoardCluster();
+  const clusterGlobal = usarClusterGlobal ? cluster : '';
   const [aba, setAba] = useState<Aba>('clientes');
   const [detalhe, setDetalhe] = useState<Detalhe>('centro_custo');
   const revealRef = useBoardReveal();
@@ -167,12 +181,24 @@ export const DashboardClientesOsContent = ({
     setFilter('periodo', periodo === range ? PERIODO_VAZIO : range);
   }, [periodo, setFilter]);
 
+  /**
+   * O recorte global EMPILHA com o centro de custo, não compete com ele: são
+   * níveis diferentes da estrutura. A EMPRESA (cluster) inclui/exclui a OS
+   * inteira — a OS tem um `cluster_id` só. O CENTRO DE CUSTO divide o
+   * faturamento da OS que sobrou (`shareCentroCusto`), e ele é atributo da
+   * ÁREA (`estrutura_areas.cost_center_id`), um nível ABAIXO da empresa. Por
+   * isso a empresa entra aqui, no filtro de dimensão, e o rateio segue depois.
+   *
+   * `cluster_id` existe nas três linhas (`ClienteRow`, `OsRow`, `ProjetoRow`) e
+   * resolve pela mesma cadeia, então um teste só cobre as três.
+   */
   const matchDim = useCallback(
-    (r: { cliente_id: string | null; tipo_cliente: string; categoria: string }) =>
+    (r: { cliente_id: string | null; tipo_cliente: string; categoria: string; cluster_id?: string }) =>
+      (!clusterGlobal || r.cluster_id === clusterGlobal) &&
       (cliente === TODOS || r.cliente_id === cliente) &&
       (tipo === TODOS || r.tipo_cliente === tipo) &&
       (categoria === TODOS || r.categoria === categoria),
-    [cliente, tipo, categoria],
+    [clusterGlobal, cliente, tipo, categoria],
   );
 
   const ccSelecionado = centroCusto === TODOS ? null : centroCusto;
@@ -597,7 +623,7 @@ export const DashboardClientesOsContent = ({
 // FiscalLayout, então o miolo vive separado do layout.
 const BoardDashboardClientesOs = () => (
   <BoardLayout title="Clientes e OS" subtitle="Painel nativo (teste)">
-    <DashboardClientesOsContent />
+    <DashboardClientesOsContent usarClusterGlobal />
   </BoardLayout>
 );
 

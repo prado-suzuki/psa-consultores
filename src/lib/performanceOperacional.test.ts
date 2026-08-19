@@ -2,24 +2,20 @@ import { describe, it, expect } from 'vitest';
 import {
   normalizarMembrosEquipe,
   mapaAreasPorPessoa,
-  pessoaNaArea,
+  mapaClustersPorPessoa,
+  pessoaNoRecorte,
   pessoasNoEscopo,
-  mapaAreaPorProjeto,
-  areaDaTarefa,
-  filtrarTarefasPorArea,
   desvioMedioEntrega,
   metasNoEscopo,
   resumoMetas,
   contribuicaoNoPeriodo,
   classificarContribuicao,
   chipDeArea,
-  rotuloArea,
-  rotuloEscopo,
+  rotuloEscopoCluster,
   rotuloJanela,
   listarFalhas,
   type MetaCiclo,
   type PessoaBasica,
-  type ProjetoComArea,
   type TarefaOperacional,
 } from './performanceOperacional';
 
@@ -38,17 +34,11 @@ const membrosBrutos = [
   { user_id: null, equipe: { area: { name: 'Tax' } } },
 ];
 
-const projetos: ProjetoComArea[] = [
-  { id: 'p-tax', area_name: 'Fiscal / Tributário' },
-  { id: 'p-osg', area_name: 'OSG' },
-  { id: 'p-nula', area_name: null },
-];
-
 describe('normalizarMembrosEquipe', () => {
   it('achata equipe→área tanto em objeto quanto em array', () => {
     const linhas = normalizarMembrosEquipe(membrosBrutos);
-    expect(linhas[0]).toEqual({ user_id: 'u-tax', area_name: 'Tributário', area_key: null });
-    expect(linhas[1]).toEqual({ user_id: 'u-osg', area_name: 'Societário', area_key: null });
+    expect(linhas[0]).toEqual({ user_id: 'u-tax', area_name: 'Tributário', area_key: null, cluster_id: null });
+    expect(linhas[1]).toEqual({ user_id: 'u-osg', area_name: 'Societário', area_key: null, cluster_id: null });
   });
 
   it('preserva uma linha por vínculo (a contagem de membros não muda)', () => {
@@ -57,10 +47,10 @@ describe('normalizarMembrosEquipe', () => {
 
   it('equipe ou área ausente vira area_name null em vez de quebrar', () => {
     expect(normalizarMembrosEquipe([{ user_id: 'x' }])).toEqual([
-      { user_id: 'x', area_name: null, area_key: null },
+      { user_id: 'x', area_name: null, area_key: null, cluster_id: null },
     ]);
     expect(normalizarMembrosEquipe([{ user_id: 'x', equipe: null }])).toEqual([
-      { user_id: 'x', area_name: null, area_key: null },
+      { user_id: 'x', area_name: null, area_key: null, cluster_id: null },
     ]);
   });
 
@@ -100,22 +90,74 @@ describe('mapaAreasPorPessoa', () => {
   });
 });
 
-describe('pessoaNaArea', () => {
+describe('mapaClustersPorPessoa', () => {
+  const linhas = normalizarMembrosEquipe([
+    // Nome que não casa com nenhum bucket e SEM page_categories: o caminho da
+    // área devolveria "outros"; o do cluster acerta pela FK.
+    { user_id: 'u1', equipe: { area: { name: 'Núcleo Alfa', cluster_id: 'cl-tax' } } },
+    { user_id: 'u2', equipe: { area: { name: 'Núcleo Beta', cluster_id: 'cl-osg' } } },
+    // Mesma pessoa em duas equipes de clusters diferentes.
+    { user_id: 'u1', equipe: { area: { name: 'Núcleo Beta', cluster_id: 'cl-osg' } } },
+    // Área sem cluster: fica de fora do mapa.
+    { user_id: 'u3', equipe: { area: { name: 'Solta' } } },
+    { user_id: null, equipe: { area: { name: 'X', cluster_id: 'cl-tax' } } },
+  ]);
+  const mapa = mapaClustersPorPessoa(linhas);
+
+  it('mapeia pessoa → cluster pela FK da área, sem depender do nome', () => {
+    expect([...(mapa.get('u2') ?? [])]).toEqual(['cl-osg']);
+    // O caminho da área não conseguiria: o nome não casa e não há categoria.
+    expect(mapaAreasPorPessoa(linhas).get('u2')?.has('outros')).toBe(true);
+  });
+
+  it('pessoa em dois clusters acumula os dois', () => {
+    expect([...(mapa.get('u1') ?? [])].sort()).toEqual(['cl-osg', 'cl-tax']);
+  });
+
+  it('área sem cluster e linha sem user_id ficam fora', () => {
+    expect(mapa.has('u3')).toBe(false);
+    expect(mapa.size).toBe(2);
+  });
+
+  it('serve ao mesmo predicado de recorte', () => {
+    expect(pessoaNoRecorte(mapa, 'u1', 'cl-tax')).toBe(true);
+    expect(pessoaNoRecorte(mapa, 'u2', 'cl-tax')).toBe(false);
+    // '' = todas as empresas.
+    expect(pessoaNoRecorte(mapa, 'u3', '')).toBe(true);
+  });
+});
+
+describe('rotuloEscopoCluster', () => {
+  it('sem empresa escolhida, o rótulo é global', () => {
+    expect(rotuloEscopoCluster('global', null)).toBe('todas as empresas');
+    expect(rotuloEscopoCluster('area', null)).toBe('todas as empresas');
+  });
+
+  it('com empresa e recorte aplicado, nomeia a empresa', () => {
+    expect(rotuloEscopoCluster('area', 'Prado Advogados')).toBe('Prado Advogados');
+  });
+
+  it('com empresa mas número global, entrega o motivo em vez de omitir', () => {
+    expect(rotuloEscopoCluster('global', 'Prado Advogados')).toBe('todas as empresas (sem vínculo de equipe)');
+  });
+});
+
+describe('pessoaNoRecorte', () => {
   const mapa = mapaAreasPorPessoa(normalizarMembrosEquipe(membrosBrutos));
 
   it('"todas" aceita qualquer pessoa, inclusive sem vínculo', () => {
-    expect(pessoaNaArea(mapa, 'desconhecido', 'todas')).toBe(true);
-    expect(pessoaNaArea(mapa, null, 'todas')).toBe(true);
+    expect(pessoaNoRecorte(mapa, 'desconhecido', 'todas')).toBe(true);
+    expect(pessoaNoRecorte(mapa, null, 'todas')).toBe(true);
   });
 
   it('pessoa sem vínculo não pertence a nenhuma área específica', () => {
-    expect(pessoaNaArea(mapa, 'desconhecido', 'tax')).toBe(false);
-    expect(pessoaNaArea(mapa, null, 'tax')).toBe(false);
+    expect(pessoaNoRecorte(mapa, 'desconhecido', 'tax')).toBe(false);
+    expect(pessoaNoRecorte(mapa, null, 'tax')).toBe(false);
   });
 
   it('pessoa de duas áreas pertence às duas', () => {
-    expect(pessoaNaArea(mapa, 'u-dupla', 'tax')).toBe(true);
-    expect(pessoaNaArea(mapa, 'u-dupla', 'osg')).toBe(true);
+    expect(pessoaNoRecorte(mapa, 'u-dupla', 'tax')).toBe(true);
+    expect(pessoaNoRecorte(mapa, 'u-dupla', 'osg')).toBe(true);
   });
 });
 
@@ -143,52 +185,6 @@ describe('pessoasNoEscopo', () => {
 
   it('lista de pessoas vazia devolve lista vazia', () => {
     expect(pessoasNoEscopo([], mapa, 'tax').pessoas).toEqual([]);
-  });
-});
-
-describe('mapaAreaPorProjeto / areaDaTarefa', () => {
-  const mapa = mapaAreaPorProjeto(projetos);
-
-  it('classifica cada projeto no bucket da área cadastrada', () => {
-    expect(mapa.get('p-tax')).toBe('tax');
-    expect(mapa.get('p-osg')).toBe('osg');
-  });
-
-  it('projeto com área NULL vira "outros"', () => {
-    expect(mapa.get('p-nula')).toBe('outros');
-  });
-
-  it('tarefa sem projeto, ou de projeto fora do escopo, vira "outros"', () => {
-    expect(areaDaTarefa(mapa, null)).toBe('outros');
-    expect(areaDaTarefa(mapa, undefined)).toBe('outros');
-    expect(areaDaTarefa(mapa, 'p-que-nao-veio')).toBe('outros');
-  });
-});
-
-describe('filtrarTarefasPorArea', () => {
-  const mapa = mapaAreaPorProjeto(projetos);
-  const tarefas: TarefaOperacional[] = [
-    { project_id: 'p-tax' },
-    { project_id: 'p-osg' },
-    { project_id: 'p-nula' },
-    { project_id: null },
-  ];
-
-  it('"todas" não filtra', () => {
-    expect(filtrarTarefasPorArea(tarefas, mapa, 'todas')).toHaveLength(4);
-  });
-
-  it('mantém só as tarefas cujo projeto é da área', () => {
-    expect(filtrarTarefasPorArea(tarefas, mapa, 'tax')).toEqual([{ project_id: 'p-tax' }]);
-  });
-
-  it('agrupa área NULL e tarefa sem projeto em "outros"', () => {
-    expect(filtrarTarefasPorArea(tarefas, mapa, 'outros')).toHaveLength(2);
-  });
-
-  it('mapa vazio deixa toda tarefa em "outros"', () => {
-    expect(filtrarTarefasPorArea(tarefas, new Map(), 'tax')).toEqual([]);
-    expect(filtrarTarefasPorArea(tarefas, new Map(), 'outros')).toHaveLength(4);
   });
 });
 
@@ -452,19 +448,7 @@ describe('chipDeArea', () => {
 });
 
 describe('rótulos de escopo e janela', () => {
-  it('rotuloArea usa o vocabulário canônico de áreas', () => {
-    expect(rotuloArea('todas')).toBe('todas as áreas');
-    expect(rotuloArea('')).toBe('todas as áreas');
-    expect(rotuloArea('tax')).toBe('Tax');
-    expect(rotuloArea('osg')).toBe('OSG');
-    expect(rotuloArea('area-nova')).toBe('area-nova');
-  });
 
-  it('rotuloEscopo entrega o motivo quando o número não é da área filtrada', () => {
-    expect(rotuloEscopo('area', 'tax')).toBe('Tax');
-    expect(rotuloEscopo('global', 'todas')).toBe('todas as áreas');
-    expect(rotuloEscopo('global', 'tax')).toBe('todas as áreas (sem vínculo de área)');
-  });
 
   it('rotuloJanela descreve a janela do filtro', () => {
     expect(rotuloJanela('7d')).toBe('últimos 7 dias');

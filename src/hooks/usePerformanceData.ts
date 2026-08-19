@@ -40,6 +40,12 @@ export interface PerformanceProject {
   area_name: string | null;
   /** Bucket do painel resolvido por CLUSTER (área → equipe → cliente). */
   area_key: BoardAreaKey | null;
+  /**
+   * Cluster do projeto pela mesma cadeia que resolve `area_key`. É o que o
+   * seletor global de cliente do Board usa — ID puro, sem classificação por
+   * nome. `null` quando nem a área, nem a equipe, nem o cliente têm cluster.
+   */
+  cluster_id: string | null;
   area_color: string | null;
   responsible_name: string | null;
   responsible_id: string | null;
@@ -54,10 +60,10 @@ export interface PerformanceProject {
 
 // ── Main hook ──
 /**
- * Snapshot do painel Operacional / Visão Executiva.
+ * Snapshot do painel Operacional / Estratégico.
  *
- * Este hook devolve SEMPRE o conjunto completo: o recorte por área é do
- * consumidor (`filtrarPorArea` / `filtrarTarefasPorArea`, memoizados na tela).
+ * Este hook devolve SEMPRE o conjunto completo: o recorte é do consumidor
+ * (`filtrarPorCluster` / `filtrarTarefasPorProjetos`, memoizados na tela).
  * Motivo: a resposta HTTP é idêntica para qualquer área — o recorte era
  * client-side — então `area` na queryKey só criava até 4 entradas de cache com o
  * mesmo payload e refazia o download inteiro de `org_tasks` a cada troca de
@@ -196,7 +202,7 @@ export const usePerformanceData = (periodo: string, _areaIgnorada?: string) => {
       // Sem recorte por área aqui: a lista COMPLETA é necessária para
       // classificar tarefa→projeto→área (senão as tarefas das outras áreas caem
       // no bucket "Outros" e o gráfico inventa uma área gigante). O recorte
-      // visual é do consumidor, via `filtrarPorArea` de `@/lib/boardExecutivo`.
+      // visual é do consumidor, via `filtrarPorCluster` de `@/lib/boardExecutivo`.
       const enriched: PerformanceProject[] = projects.map((p: any) => {
         const pTasks = tasks.filter((t: any) => t.project_id === p.id);
         const total = pTasks.length;
@@ -238,6 +244,7 @@ export const usePerformanceData = (periodo: string, _areaIgnorada?: string) => {
           client_name: p.cliente?.nome || null,
           area_name: p.area?.name || areaDaEquipe?.name || null,
           area_key: areaKey,
+          cluster_id: clusterDoProjeto,
           area_color: p.area?.color || null,
           responsible_name: null, // resolved separately if needed
           responsible_id: responsible?.user_id || null,
@@ -265,10 +272,12 @@ export const usePerformanceData = (periodo: string, _areaIgnorada?: string) => {
     queryKey: ['perf-members'],
     queryFn: async () => {
       const [membersRes, profilesRes] = await Promise.all([
+        // `cluster_id` acompanha `page_categories`: é o recorte do seletor
+        // global de cliente, que não depende de a área declarar categoria.
         supabase.from('estrutura_equipe_membros').select(`
           user_id,
           equipe:estrutura_equipes!estrutura_equipe_membros_equipe_id_fkey(
-            area:estrutura_areas!estrutura_equipes_area_id_fkey(name, page_categories)
+            area:estrutura_areas!estrutura_equipes_area_id_fkey(name, page_categories, cluster_id)
           )
         `),
         supabase.from('profiles_safe' as any).select('id, first_name, last_name'),

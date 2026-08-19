@@ -110,7 +110,7 @@ export default function ServicosVinculoPanel({
             />
           </div>
 
-          <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5">
+          <div className="inline-flex rounded-md bg-slate-100 p-0.5">
             {MODOS.map(modo => (
               <button
                 key={modo.valor}
@@ -129,36 +129,39 @@ export default function ServicosVinculoPanel({
             ))}
           </div>
 
-          <Button size="sm" variant="outline" className="h-8 bg-white text-xs" onClick={acoes.onNovo}>
+          <Button size="sm" variant="ghost" className="h-8 shrink-0 text-xs text-teal-700 hover:bg-teal-500/10" onClick={acoes.onNovo}>
             <Plus className="mr-1 h-3 w-3" />Novo serviço
           </Button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 bg-white text-xs"
-            disabled={loteEmAndamento || resumo.faltamVincular === 0}
-            onClick={() => acoes.onLote('vincular')}
-          >
-            {loteEmAndamento ? <RefreshCw className="mr-1 h-3 w-3 animate-spin" /> : <Check className="mr-1 h-3 w-3" />}
-            Vincular visíveis ({resumo.faltamVincular})
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="h-7 bg-white text-xs text-red-600 hover:text-red-700"
-            disabled={loteEmAndamento || resumo.podeDesvincular === 0}
-            onClick={() => setConfirmarDesvincular(true)}
-          >
-            <X className="mr-1 h-3 w-3" />
-            Desvincular visíveis ({resumo.podeDesvincular})
-          </Button>
-          <span className="ml-auto text-[11px] text-slate-400">
-            {totalVisivel} de {resumo.total} serviços exibidos
-          </span>
-        </div>
+        {(resumo.faltamVincular > 0 || resumo.podeDesvincular > 0) && (
+          <div className="flex flex-wrap items-center gap-3 text-xs">
+            {resumo.faltamVincular > 0 && (
+              <button
+                type="button"
+                disabled={loteEmAndamento}
+                onClick={() => acoes.onLote('vincular')}
+                className="inline-flex items-center gap-1 text-teal-700 hover:underline disabled:opacity-50"
+              >
+                {loteEmAndamento
+                  ? <RefreshCw className="h-3 w-3 animate-spin" />
+                  : <Check className="h-3 w-3" />}
+                Vincular os {resumo.faltamVincular} visíveis
+              </button>
+            )}
+            {resumo.podeDesvincular > 0 && (
+              <button
+                type="button"
+                disabled={loteEmAndamento}
+                onClick={() => setConfirmarDesvincular(true)}
+                className="inline-flex items-center gap-1 text-slate-500 hover:text-red-600 hover:underline disabled:opacity-50"
+              >
+                <X className="h-3 w-3" />
+                Desvincular os {resumo.podeDesvincular} visíveis
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <ScrollArea className="h-[460px]">
@@ -173,6 +176,7 @@ export default function ServicosVinculoPanel({
         ) : (
           grupos.map(grupo => (
             <div key={grupo.key}>
+              {grupos.length > 1 && (
               <div className="sticky top-0 z-10 flex items-center gap-2 border-y border-slate-100 bg-slate-50/95 px-3 py-1.5 backdrop-blur">
                 <span className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{grupo.nome}</span>
                 {grupo.sugerido && (
@@ -185,12 +189,13 @@ export default function ServicosVinculoPanel({
                   {grupo.items.filter(s => s.vinculado).length}/{grupo.items.length}
                 </span>
               </div>
+              )}
               <ul className="p-1">
                 {grupo.items.map(servico => (
                   <li
                     key={servico.id}
                     className={cn(
-                      'flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors',
+                      'group flex items-center gap-2.5 rounded-md px-2.5 py-2 transition-colors',
                       servico.vinculado ? 'bg-teal-500/5 hover:bg-teal-500/10' : 'hover:bg-slate-50',
                       servico.salvando && 'opacity-60',
                     )}
@@ -214,7 +219,7 @@ export default function ServicosVinculoPanel({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 shrink-0 text-slate-300 hover:text-slate-600"
+                      className="h-7 w-7 shrink-0 text-slate-400 transition-opacity hover:text-slate-700 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                       aria-label={`Editar ${servico.nome}`}
                       onClick={() => acoes.onEditar(servico)}
                     >
@@ -223,7 +228,7 @@ export default function ServicosVinculoPanel({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-7 w-7 shrink-0 text-slate-300 hover:text-red-600"
+                      className="h-7 w-7 shrink-0 text-slate-400 transition-opacity hover:text-red-600 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                       aria-label={`Excluir ${servico.nome}`}
                       onClick={() => acoes.onExcluir(servico)}
                     >
