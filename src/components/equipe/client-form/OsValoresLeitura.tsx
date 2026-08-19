@@ -12,9 +12,16 @@ import type { DraftOrdemServico } from "@/types/clientForm";
 
 export interface OsValoresLeituraProps {
   contrato: DraftOrdemServico;
+  /**
+   * Colunas da grade. Quatro na aba de OS, que ocupa a largura do modal; três na
+   * aba de Faturamento, onde o bloco tem metade dela: com duas, os seis valores
+   * ocupavam três linhas e obrigavam a rolar; com três cabem em duas linhas, e o
+   * rótulo mais longo ("Reembolso Refeição") ainda cabe.
+   */
+  colunas?: 2 | 3 | 4;
 }
 
-export default function OsValoresLeitura({ contrato }: OsValoresLeituraProps) {
+export default function OsValoresLeitura({ contrato, colunas = 4 }: OsValoresLeituraProps) {
   const valorParcela = calcularValorParcela({
     valorProjeto: contrato.valor_projeto,
     valorEntrada: contrato.valor_entrada,
@@ -22,9 +29,13 @@ export default function OsValoresLeitura({ contrato }: OsValoresLeituraProps) {
   });
 
   return (
-    // Quatro colunas: o contrato ocupa a primeira linha inteira e os dois
+    // Com quatro colunas o contrato ocupa a primeira linha inteira e os dois
     // reembolsos caem sozinhos na segunda, na mesma separação da edição.
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-3 [&>*]:min-w-0">
+    <div
+      className={`grid grid-cols-2 gap-x-6 gap-y-3 [&>*]:min-w-0 ${
+        colunas === 4 ? 'md:grid-cols-4' : colunas === 3 ? 'md:grid-cols-3' : ''
+      }`}
+    >
       <FieldPair label="Valor do Projeto" value={formatCurrencyDisplay(contrato.valor_projeto || 0)} />
       {/* OS anterior aos campos novos fica em "—": é dado que ninguém informou,
           e exibir "1" ali inventaria um pagamento único que não foi combinado. */}
