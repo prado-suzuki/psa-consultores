@@ -77,22 +77,43 @@ export const ORGAOS: Orgao[] = [
   { nome: 'Gerentes corporativos', existe: false },
 ];
 
-/** Os 21 assuntos das linhas da Matriz, na ordem do modelo VF. */
-export const ASSUNTOS_MATRIZ: { assunto: string; papeis: string[]; alcada?: string }[] = [
+/**
+ * Os 21 assuntos das linhas da Matriz, na ordem do modelo.
+ *
+ * A ALÇADA VIROU DUAS COLUNAS, e isso saiu da leitura do contrato social. A
+ * cláusula do Perci Smaniotto diz: "para atos e negócios cujo valor não exceda
+ * R$ 2.000.000,00 [representação pelos Diretores]. Já os atos cujo objeto seja
+ * superior a R$ 2.000.000,00 ou que não expressem valores deverão ser previamente
+ * autorizados pelo Conselho".
+ *
+ * Ou seja, o limite não pertence ao assunto: ele é a FRONTEIRA ENTRE DOIS ÓRGÃOS.
+ * Com uma coluna só, o gerador não teria como redigir a cláusula, porque não sabe
+ * quem decide abaixo e quem autoriza acima. E o "ou que não expressem valores"
+ * revela um terceiro caso que o cadastro precisa admitir: ato sem valor sobe
+ * sempre.
+ */
+export const ASSUNTOS_MATRIZ: {
+  assunto: string;
+  papeis: string[];
+  /** Teto em reais. Ausente = o assunto não é decisão de valor. */
+  alcada?: string;
+  /** Quem autoriza acima do teto. Sem isso a cláusula não pode ser redigida. */
+  acima?: string;
+}[] = [
   { assunto: 'Distribuição de lucros', papeis: ['delibera', 'aprova', 'propõe'] },
   { assunto: 'Alienação de participações', papeis: ['delibera', 'aprova', 'submete à aprovação'] },
   { assunto: 'Aumento de capital, fusão, cisão e incorporação', papeis: ['delibera', 'analisa', 'submete à aprovação'] },
   { assunto: 'Atos estranhos à atividade', papeis: ['delibera', 'aprova', 'não participa'] },
   { assunto: 'Expansão com imóveis rurais', papeis: ['delibera', 'aprova', 'propõe'] },
   { assunto: 'Alienação e oneração de imóveis', papeis: ['delibera', 'aprova', 'submete à aprovação'] },
-  { assunto: 'Emissão de garantias (aval, fiança, penhor, CPR)', papeis: ['delibera', 'aprova', 'submete à aprovação'], alcada: 'R$ 2.000.000,00' },
+  { assunto: 'Emissão de garantias (aval, fiança, penhor, CPR)', papeis: ['delibera', 'aprova', 'submete à aprovação'], alcada: 'R$ 2.000.000,00', acima: 'Conselho de Administração' },
   { assunto: 'Salário de admissão e promoções', papeis: ['não participa', 'analisa', 'autoriza'] },
   { assunto: 'Contratação e desligamento', papeis: ['não participa', 'não participa', 'autoriza'] },
   { assunto: 'Remuneração variável (bônus e PPR)', papeis: ['delibera', 'aprova', 'propõe'] },
-  { assunto: 'Prestadores de serviço', papeis: ['não participa', 'analisa', 'autoriza'], alcada: 'R$ 200.000,00' },
-  { assunto: 'Operações de crédito', papeis: ['delibera', 'aprova', 'submete à aprovação'], alcada: 'R$ 5.000.000,00' },
-  { assunto: 'Aquisição de insumos', papeis: ['não participa', 'analisa', 'autoriza'], alcada: 'R$ 500.000,00' },
-  { assunto: 'Limites de investimento fixo', papeis: ['delibera', 'aprova', 'propõe'], alcada: 'R$ 1.000.000,00' },
+  { assunto: 'Prestadores de serviço', papeis: ['não participa', 'analisa', 'autoriza'], alcada: 'R$ 200.000,00', acima: 'Conselho de Administração' },
+  { assunto: 'Operações de crédito', papeis: ['delibera', 'aprova', 'submete à aprovação'], alcada: 'R$ 5.000.000,00', acima: 'Reunião de Sócios' },
+  { assunto: 'Aquisição de insumos', papeis: ['não participa', 'analisa', 'autoriza'], alcada: 'R$ 500.000,00', acima: 'Conselho de Administração' },
+  { assunto: 'Limites de investimento fixo', papeis: ['delibera', 'aprova', 'propõe'], alcada: 'R$ 1.000.000,00', acima: 'Reunião de Sócios' },
   { assunto: 'Orçamento anual', papeis: ['aprova', 'analisa', 'consolida'] },
   { assunto: 'Eleger administradores em controladas', papeis: ['delibera', 'indica', 'sugere'] },
   { assunto: 'Planejamento estratégico', papeis: ['aprova', 'analisa', 'propõe'] },
@@ -234,11 +255,46 @@ export const ORIGEM_ROTULO: Record<Origem, string> = {
   novo: 'novo',
 };
 
+/**
+ * Tipo do campo, no MESMO vocabulário do gerador de documentos que já existe.
+ *
+ * Não é enfeite de mockup: `src/lib/templates/vocabulario.ts` só aceita estes
+ * tipos, e é deles que saem os derivados por extenso (`cardinalExtenso`,
+ * `valorExtenso`, `percentualExtenso`) e a concordância de gênero. A cláusula do
+ * contrato escreve "R$ 2.000.000,00 (dois milhões de reais)" e "02 (dois)
+ * Diretores", então o cadastro tem de guardar NÚMERO, nunca a forma escrita.
+ *
+ * Campo guardado como texto onde deveria ser número é o defeito que só aparece
+ * na geração, quando já não há de onde tirar o extenso.
+ */
+export type TipoCampo = 'texto' | 'inteiro' | 'valor' | 'percentual' | 'data' | 'enum' | 'booleano';
+
+/**
+ * Para onde o dado vai depois de cadastrado.
+ *
+ * Descoberto lendo a 5ª Alteração do Perci Smaniotto, que é o contrato social
+ * consolidado com a governança dentro: quase todo parâmetro do Regimento aparece
+ * lá como cláusula, MENOS a periodicidade das reuniões, que tem zero ocorrência.
+ * Ou seja, existe um corte real entre o que vira cláusula registrada na Junta e o
+ * que fica em documento interno, e o cadastro precisa saber disso para o gerador
+ * não levar para o contrato o que não é dele.
+ */
+export type Destino = 'contrato' | 'interno';
+
+export const DESTINO_ROTULO: Record<Destino, string> = {
+  contrato: 'vira cláusula',
+  interno: 'só interno',
+};
+
 export type Campo = {
   rotulo: string;
   valor: string;
   /** O que o campo quer dizer, para quem nunca viu governança. Uma frase. */
   explicacao: string;
+  /** Tipo no vocabulário do gerador. Ausente = `texto`. */
+  tipo?: TipoCampo;
+  /** Ausente = `interno`: só o que foi visto em cláusula é marcado `contrato`. */
+  destino?: Destino;
   /** Ausente = `novo`. */
   origem?: Origem;
   /** Tabela do banco, quando a origem não é `novo`. */
@@ -250,61 +306,73 @@ export type Campo = {
 export const CAMPOS_ACORDO: Campo[] = [
   {
     rotulo: 'Quórum de deliberação ordinária',
+    tipo: 'enum', destino: 'contrato',
     valor: 'Maioria simples',
     explicacao: 'Quantos votos o assunto do dia a dia precisa para passar. Maioria simples é mais da metade de quem está na reunião.',
   },
   {
     rotulo: 'Quórum de maioria absoluta do capital',
+    tipo: 'percentual', destino: 'contrato',
     valor: '50% + 1',
     explicacao: 'Para assunto grave, exige mais da metade de TODO o capital da empresa, e não só de quem apareceu na reunião.',
   },
   {
     rotulo: 'Quórum de destituição de administrador',
+    tipo: 'percentual', destino: 'contrato',
     valor: 'Dois terços',
     explicacao: 'Quantos votos são necessários para tirar um administrador do cargo.',
   },
   {
     rotulo: 'Ordem do direito de preferência',
+    tipo: 'enum', destino: 'contrato',
     valor: '1º mesmo ramo · 2º outro ramo',
     explicacao: 'Quem tem a primeira chance de comprar a parte de um sócio que quer sair. Aqui os primos do mesmo ramo da família vêm antes dos outros ramos, e ninguém de fora entra antes deles.',
   },
   {
     rotulo: 'Objetos sujeitos à preferência',
+    tipo: 'texto', destino: 'contrato',
     valor: 'Quotas, imóveis, máquinas, oportunidades',
     explicacao: 'O que mais, além da parte na empresa, tem de ser oferecido aos sócios antes de ser vendido para fora.',
   },
   {
     rotulo: 'Institutos de venda presentes',
+    tipo: 'enum',
     valor: 'Lock-up, Drag Along',
     explicacao: 'Regras de venda com nome próprio. Lock-up proíbe vender durante um prazo. Drag Along obriga o sócio pequeno a vender junto quando o grande vende.',
   },
   {
     rotulo: 'Metodologia de valor da quota',
+    tipo: 'enum', destino: 'contrato',
     valor: 'Dupla avaliação',
     explicacao: 'Como se calcula quanto vale a parte de quem sai. Dupla avaliação significa dois laudos independentes, para nenhum lado escolher o número sozinho.',
   },
   {
     rotulo: 'Consolida composse na avaliação',
+    tipo: 'booleano',
     valor: 'Sim',
     explicacao: 'Se os bens que a família tem em condomínio entram na conta do valor da parte, ou se ficam de fora.',
   },
   {
     rotulo: 'Limite de aval e fiança',
+    tipo: 'percentual', destino: 'contrato',
     valor: '10% do faturamento',
     explicacao: 'Até quanto a empresa pode se comprometer garantindo dívida de outra pessoa ou empresa.',
   },
   {
     rotulo: 'Solução de litígios',
+    tipo: 'enum', destino: 'contrato',
     valor: 'Arbitragem',
     explicacao: 'Onde a briga entre sócios é resolvida. Arbitragem é um julgamento privado, mais rápido e sigiloso que a Justiça comum.',
   },
   {
     rotulo: 'Câmara arbitral',
+    tipo: 'texto', destino: 'contrato',
     valor: 'CAM-CCBC',
     explicacao: 'Qual instituição conduz essa arbitragem. Precisa estar nomeada, senão a cláusula não funciona na prática.',
   },
   {
     rotulo: 'Prazo para indicação de árbitros',
+    tipo: 'inteiro',
     valor: '15 dias',
     explicacao: 'Quantos dias cada lado tem para escolher o seu árbitro depois que a briga começa.',
   },
@@ -317,11 +385,13 @@ export const CAMPOS_ACORDO: Campo[] = [
   },
   {
     rotulo: 'Quotas gravadas com usufruto',
+    tipo: 'booleano', destino: 'contrato',
     valor: 'Sim',
     explicacao: 'Se a parte na empresa foi doada aos filhos mantendo os rendimentos com quem doou. É o arranjo mais comum de sucessão em vida.',
   },
   {
     rotulo: 'Quem exerce o voto da quota',
+    tipo: 'enum', destino: 'contrato',
     valor: 'Usufrutuário',
     explicacao: 'Nessa doação, quem vota nas decisões: o filho que recebeu a parte, ou o pai que ficou com os rendimentos. Sem definir isso, a reunião trava.',
   },
@@ -331,86 +401,103 @@ export const CAMPOS_ACORDO: Campo[] = [
 export const CAMPOS_REGIMENTO: Campo[] = [
   {
     rotulo: 'Mínimo de membros',
+    tipo: 'inteiro', destino: 'contrato',
     valor: '3',
     explicacao: 'Menos que isso e o conselho não pode funcionar. Serve para não sobrar uma pessoa decidindo sozinha.',
   },
   {
     rotulo: 'Máximo de membros',
+    tipo: 'inteiro', destino: 'contrato',
     valor: '5',
     explicacao: 'Teto de cadeiras. Número ímpar é proposital, para votação não empatar.',
   },
   {
     rotulo: 'Remuneração dos conselheiros',
+    tipo: 'enum', destino: 'contrato',
     valor: 'Nenhuma',
     explicacao: 'Se a cadeira é paga ou honorária. Em empresa familiar costuma começar sem remuneração.',
   },
   {
     rotulo: 'Mandato do presidente',
+    tipo: 'inteiro', destino: 'contrato',
     valor: '5 anos',
     explicacao: 'Quanto tempo o presidente do conselho fica no cargo antes de nova eleição.',
   },
   {
     rotulo: 'Quórum de deliberação',
+    tipo: 'percentual', destino: 'contrato',
     valor: '51%',
     explicacao: 'Quantos conselheiros precisam concordar para a decisão valer.',
   },
   {
     rotulo: 'Duração máxima da reunião',
+    tipo: 'inteiro',
     valor: '2 horas',
     explicacao: 'Limite de tempo por reunião. Existe para a pauta ser preparada e a reunião não virar conversa aberta.',
   },
   {
     rotulo: 'Periodicidade das reuniões',
+    tipo: 'enum',
     valor: 'Mensal',
     explicacao: 'De quanto em quanto tempo o conselho se reúne por obrigação.',
   },
   {
     rotulo: 'Convocação ordinária',
+    tipo: 'inteiro', destino: 'contrato',
     valor: '5 dias',
     explicacao: 'Com quanta antecedência a reunião normal precisa ser avisada.',
   },
   {
     rotulo: 'Convocação extraordinária',
+    tipo: 'inteiro', destino: 'contrato',
     valor: '24 horas',
     explicacao: 'A antecedência mínima quando é urgente. Prazo curto demais permitiria convocar sem alguém conseguir chegar.',
   },
   {
     rotulo: 'Local das reuniões',
+    tipo: 'texto', destino: 'contrato',
     valor: 'Sede da sociedade',
     explicacao: 'Onde a reunião acontece por padrão, para ninguém ser convocado longe de propósito.',
   },
   {
     rotulo: 'Diária do conselheiro',
+    tipo: 'valor',
     valor: 'R$ 200,00',
     explicacao: 'Valor pago por dia de reunião para cobrir deslocamento e alimentação. Não é salário.',
   },
   {
     rotulo: 'Período de formação de novo membro',
+    tipo: 'inteiro',
     valor: '6 meses sem voto',
     explicacao: 'Tempo em que o conselheiro novo participa e aprende, mas ainda não vota.',
   },
   {
     rotulo: 'Quórum de exclusão de membro',
+    tipo: 'percentual', destino: 'contrato',
     valor: '51%',
     explicacao: 'Quantos votos são necessários para tirar um conselheiro do conselho.',
   },
   {
     rotulo: 'Hipóteses de vacância',
+    tipo: 'texto', destino: 'contrato',
     valor: 'Renúncia, destituição, falecimento',
     explicacao: 'Os casos em que a cadeira fica vazia. Precisa estar listado, senão não se sabe quando abrir vaga.',
   },
   {
     rotulo: 'Ausências que causam perda do cargo',
+    tipo: 'inteiro', destino: 'contrato',
     valor: '3',
     explicacao: 'Quantas faltas seguidas fazem o conselheiro perder a cadeira.',
   },
   {
     rotulo: 'Prazo para eleger substituto',
+    tipo: 'inteiro', destino: 'contrato',
     valor: '30 dias',
     explicacao: 'Quanto tempo o grupo tem para preencher a cadeira vazia.',
   },
   {
     rotulo: 'Alçada da diretoria votada anualmente',
+    tipo: 'booleano',
     valor: 'Sim',
     explicacao: 'Se os limites de valor do diretor são revistos todo ano. É o elo entre este documento e a Matriz de Alçadas.',
   },
@@ -420,35 +507,62 @@ export const CAMPOS_REGIMENTO: Campo[] = [
 export const CAMPOS_AC_REFLEXO: Campo[] = [
   {
     rotulo: 'Situação',
+    tipo: 'enum',
     valor: 'não iniciada',
     vazio: true,
     explicacao: 'Em que ponto está a alteração do contrato social: não iniciada, em redação, assinada ou registrada na Junta Comercial.',
   },
   {
     rotulo: 'Mandato dos conselheiros',
+    tipo: 'inteiro', destino: 'contrato',
     valor: '2 anos',
     explicacao: 'Duração da cadeira, agora escrita no contrato social. É o mesmo prazo que a ata de eleição usou.',
     origem: 'derivado',
   },
   {
     rotulo: 'Reeleição admitida',
+    tipo: 'booleano', destino: 'contrato',
     valor: 'Sim',
     explicacao: 'Se o conselheiro pode ser eleito de novo ao fim do mandato.',
   },
   {
     rotulo: 'Vice-presidente eleito pelos membros',
+    tipo: 'booleano', destino: 'contrato',
     valor: 'Sim',
     explicacao: 'Se o vice é escolhido pelo próprio conselho ou vem indicado pelos sócios.',
   },
   {
     rotulo: 'Voto de desempate do presidente',
+    tipo: 'booleano', destino: 'contrato',
     valor: 'Sim',
     explicacao: 'Se o presidente decide quando a votação empata. Sem isso, empate paralisa a decisão.',
   },
   {
     rotulo: 'Distribuição mínima de lucros',
+    tipo: 'percentual', destino: 'contrato',
     valor: '25%',
     explicacao: 'Quanto do lucro tem de ser distribuído aos sócios todo ano, no mínimo. Protege quem não trabalha na empresa e vive da participação.',
+  },
+  {
+    rotulo: 'Número da alteração',
+    valor: '5ª',
+    explicacao: 'Qual alteração contratual é esta na vida da empresa. O documento se chama "5ª Alteração", então o número entra no título e o gerador não pode inventá-lo.',
+    tipo: 'inteiro',
+    destino: 'contrato',
+  },
+  {
+    rotulo: 'Altera e consolida',
+    valor: 'Sim',
+    explicacao: 'Se o documento reescreve o contrato inteiro ou só muda as cláusulas afetadas. Muda o texto de abertura e o tamanho do ato.',
+    tipo: 'booleano',
+    destino: 'contrato',
+  },
+  {
+    rotulo: 'Acordo de quotistas arquivado na sede',
+    valor: 'Sim',
+    explicacao: 'A cláusula do conselho manda "dar cumprimento ao acordo de quotistas arquivado na sede". Sem saber se existe acordo arquivado, o gerador não sabe se escreve essa obrigação.',
+    tipo: 'booleano',
+    destino: 'contrato',
   },
 ];
 
@@ -464,6 +578,7 @@ export const ELEITOS: { pessoa: string; cargo: string; socio: string; inicio: st
 export const CAMPOS_INSTALACAO: Campo[] = [
   {
     rotulo: 'Órgãos previstos no contrato social',
+    tipo: 'enum', destino: 'contrato',
     valor: 'Conselho e Diretoria',
     explicacao: 'Quais instâncias o contrato social já autoriza a existir. Não se pode instalar um órgão que o contrato não prevê.',
     origem: 'existe',
@@ -471,26 +586,31 @@ export const CAMPOS_INSTALACAO: Campo[] = [
   },
   {
     rotulo: 'Quórum de instalação da reunião',
+    tipo: 'enum', destino: 'contrato',
     valor: 'Totalidade do capital votante',
     explicacao: 'Quanto do capital precisa estar presente para a reunião poder começar. Diferente do quórum para decidir.',
   },
   {
     rotulo: 'Tipo de convocação',
+    tipo: 'enum',
     valor: 'Primeira',
     explicacao: 'Se é a primeira chamada ou a segunda. A segunda costuma exigir menos gente presente.',
   },
   {
     rotulo: 'Deliberação unânime',
+    tipo: 'booleano',
     valor: 'Sim',
     explicacao: 'Se todos votaram a favor. Registrar unanimidade evita contestação futura da eleição.',
   },
   {
     rotulo: 'Marco de contagem do mandato',
+    tipo: 'enum', destino: 'contrato',
     valor: 'Assinatura do termo de posse',
     explicacao: 'De que data o mandato começa a contar: da eleição ou da posse. Muda quando ele termina.',
   },
   {
     rotulo: 'Mesa diretora · presidente',
+    tipo: 'texto',
     valor: 'Marta Campos',
     explicacao: 'Quem conduz a reunião de eleição. Não é o presidente do conselho: é só quem preside aquele encontro.',
     origem: 'existe',
@@ -498,10 +618,36 @@ export const CAMPOS_INSTALACAO: Campo[] = [
   },
   {
     rotulo: 'Mesa diretora · secretário',
+    tipo: 'texto',
     valor: 'Helena Braga',
     explicacao: 'Quem redige a ata daquela reunião.',
     origem: 'existe',
     tabela: 'pessoa',
+  },
+  {
+    rotulo: 'Cargos da diretoria',
+    valor: 'Diretor Presidente e Diretor Executivo',
+    explicacao: 'Os nomes dos cargos deste cliente. A cláusula escreve "administrada por 02 (dois) Diretores, um Diretor Presidente e um Diretor Executivo", então os cargos são texto por cliente e o número deles é contado.',
+    tipo: 'texto',
+    destino: 'contrato',
+    origem: 'existe',
+    tabela: 'administracao',
+  },
+  {
+    rotulo: 'Representação isolada ou conjunta',
+    valor: 'Isolada',
+    explicacao: 'Se um diretor assina sozinho pela sociedade ou se precisa de dois. É o que a cláusula de representação diz, e o banco já guarda em administracao.pode_isoladamente.',
+    tipo: 'enum',
+    destino: 'contrato',
+    origem: 'existe',
+    tabela: 'administracao',
+  },
+  {
+    rotulo: 'Regra de término do mandato',
+    valor: 'Até a investidura dos novos eleitos',
+    explicacao: 'O contrato diz que "os mandatos se findam na investidura dos novos membros eleitos". Ou seja, o fim do mandato pode ser uma REGRA e não uma data, e o gerador precisa saber qual dos dois para não escrever data onde a cláusula pede condição.',
+    tipo: 'enum',
+    destino: 'contrato',
   },
 ];
 
@@ -509,27 +655,32 @@ export const CAMPOS_INSTALACAO: Campo[] = [
 export const CAMPOS_PROTOCOLO_GERAIS: Campo[] = [
   {
     rotulo: 'Índice de atualização',
+    tipo: 'enum',
     valor: 'INPC',
     explicacao: 'Qual índice corrige os valores do protocolo com o tempo, para não perderem valor com a inflação.',
   },
   {
     rotulo: 'Dia de pagamento',
+    tipo: 'inteiro',
     valor: '5º dia útil',
     explicacao: 'Quando o valor combinado é pago a cada mês.',
   },
   {
     rotulo: 'Revisão dos valores',
+    tipo: 'enum',
     valor: 'Anual, em Reunião de Sócios',
     explicacao: 'De quanto em quanto tempo os valores são revistos, e em que instância.',
   },
   {
     rotulo: 'Órgão que aprova ou revisa',
+    tipo: 'enum', destino: 'contrato',
     valor: 'Reunião de Sócios',
     explicacao: 'Quem tem poder de mudar o protocolo. É o elo com a seção de órgãos.',
     origem: 'derivado',
   },
   {
     rotulo: 'Prazo de sigilo',
+    tipo: 'inteiro',
     valor: '10 anos',
     explicacao: 'Por quanto tempo o conteúdo do protocolo não pode ser divulgado, inclusive entre parentes fora do grupo.',
   },

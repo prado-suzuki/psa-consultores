@@ -91,7 +91,7 @@ export const CadastroGovernancaPreview = () => {
           <Secao
             numero="A"
             titulo="Órgãos de governança"
-            produz="nada; alimenta as seções 1, 2, 3 e 4"
+            produz="nada; alimenta as seções 1, 2 e 3"
             entidade="o cliente / grupo"
             contagem="4 instâncias, marcar quais existem"
             pasta="não é documento"
@@ -134,8 +134,8 @@ export const CadastroGovernancaPreview = () => {
             <Nota>
               Como as pessoas se organizam neste cliente. Muda de cliente para cliente: três
               documentos entregues trazem três conjuntos diferentes de grupos, então o rótulo é
-              escrito pelo consultor e não escolhido de uma lista. É este agrupamento que vira as
-              colunas do Protocolo de Remuneração.
+              escrito pelo consultor e não escolhido de uma lista. O ramo é o que o Acordo de
+              Quotistas usa para ordenar quem tem preferência de compra.
             </Nota>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
               {GRUPOS_BENEFICIARIO.map((g, i) => (
@@ -236,6 +236,7 @@ export const CadastroGovernancaPreview = () => {
             <Campos campos={CAMPOS_ACORDO} />
           </Secao>
 
+
           <Secao
             numero="03"
             titulo="Protocolo de Remuneração"
@@ -326,41 +327,6 @@ export const CadastroGovernancaPreview = () => {
             <Campos campos={CAMPOS_AC_REFLEXO} />
           </Secao>
 
-          <Secao
-            numero="06"
-            titulo="Instalação do Conselho e da Diretoria"
-            produz="Ata de Eleição e Termo de Posse"
-            entidade="as pessoas eleitas"
-            contagem={`${ELEITOS.length} eleitos · ${resumo(CAMPOS_INSTALACAO)}`}
-            pasta="pasta 07"
-          >
-            <Nota>
-              Quem foi eleito, para qual cargo e por quanto tempo. Produz dois documentos, a Ata de
-              Eleição e o Termo de Posse. A mesa diretora conduz a reunião e não é a mesma coisa que
-              o presidente do conselho, por isso aparecem separadas.
-            </Nota>
-            <Rolagem>
-              <table className="w-full min-w-[620px] border-collapse text-sm">
-                <Cabecalho titulos={['Pessoa', 'Cargo', 'É sócio', 'Início do mandato', 'Fim do mandato']} />
-                <tbody>
-                  {ELEITOS.map((e) => (
-                    <tr key={e.pessoa}>
-                      <th className="whitespace-nowrap border-b border-osg-50 px-3 py-2 text-left font-normal text-osg-700">
-                        {e.pessoa}
-                      </th>
-                      <td className="border-b border-osg-50 px-3 py-2 text-osg-500">{e.cargo}</td>
-                      <td className="border-b border-osg-50 px-3 py-2 text-osg-500">{e.socio}</td>
-                      <td className="border-b border-osg-50 px-3 py-2 tabular-nums text-osg-500">{e.inicio}</td>
-                      <td className="border-b border-osg-50 px-3 py-2 tabular-nums text-osg-500">{e.fim}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Rolagem>
-            <div className="mt-3">
-              <Campos campos={CAMPOS_INSTALACAO} />
-            </div>
-          </Secao>
 
           <footer className="mt-12 flex flex-col gap-3 border-t border-osg-100 pt-5 text-[13px] text-osg-500">
             {/*
