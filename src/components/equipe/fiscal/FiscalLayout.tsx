@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { Menu } from 'lucide-react';
 import { FiscalSidebar } from './FiscalSidebar';
 import { Button } from '@/components/ui/button';
@@ -18,13 +17,11 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
   const { collapsed: isCollapsed, setCollapsed: setIsCollapsed } =
     useSidebarRecolhimentoController();
 
-  // Enquanto a área Tax está montada, marca o <html> com o tema dela — mesmo
-  // mecanismo do OsgLayout, para alcançar menus e modais em portal (body).
-  // Sem isso a Tax herdaria a paleta base do sistema em vez de declarar a sua.
-  useEffect(() => {
-    document.documentElement.classList.add('tax-theme');
-    return () => document.documentElement.classList.remove('tax-theme');
-  }, []);
+  // O tema da área NÃO é aplicado aqui: quem o aplica é o `AreaThemeProvider`,
+  // a partir da rota, acima dos gates de acesso (ver `src/lib/areaTheme.ts`).
+  // Fazer isso no layout deixava a tela sem tema enquanto o `LiderRoute`
+  // carregava o papel do usuário — era de onde vinha o anel de foco lime em
+  // /equipe/tax/gerencial/chamados.
 
   return (
     <div className="min-h-screen bg-muted flex w-full">

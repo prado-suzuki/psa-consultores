@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -97,13 +97,8 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
     '/equipe/kanban': true,
   });
 
-  // Tema da área no <html> (mesmo mecanismo do OsgLayout): o anel de foco dos
-  // campos vira o teal do accent. Vai no documentElement porque modal e select
-  // nascem em portal, fora desta árvore.
-  useEffect(() => {
-    document.documentElement.classList.add('rotina-theme');
-    return () => document.documentElement.classList.remove('rotina-theme');
-  }, []);
+  // O tema da área NÃO é aplicado aqui: quem o aplica é o `AreaThemeProvider`,
+  // a partir da rota, acima dos gates de acesso (ver `src/lib/areaTheme.ts`).
 
   const handleSignOut = async () => {
     await signOut();

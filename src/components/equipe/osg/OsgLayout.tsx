@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
@@ -135,12 +134,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
     collapsed ? 'pointer-events-none -translate-x-1 opacity-0' : 'opacity-100 delay-150',
   );
 
-  // Enquanto a área OSG está montada, marca o <html> para o tema OSG sobrescrever
-  // o accent teal padrão pelo verde osg-moss — alcança também menus em portal (body).
-  useEffect(() => {
-    document.documentElement.classList.add('osg-theme');
-    return () => document.documentElement.classList.remove('osg-theme');
-  }, []);
+  // O tema da área NÃO é aplicado aqui: quem o aplica é o `AreaThemeProvider`,
+  // a partir da rota, acima dos gates de acesso (ver `src/lib/areaTheme.ts`).
 
   const handleSignOut = async () => {
     await signOut();

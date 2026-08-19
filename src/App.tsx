@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AreaThemeProvider } from "@/components/AreaThemeProvider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -174,6 +175,11 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            {/* O tema da área vem da ROTA, e é aplicado aqui — acima de
+                <Routes> e, portanto, acima de todo gate de acesso. Dentro dos
+                gates não serve: LiderRoute devolve `null` enquanto carrega o
+                papel do usuário, e nesse intervalo a tela ficaria sem tema. */}
+            <AreaThemeProvider>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/missao" element={<Missao />} />
@@ -380,6 +386,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </AreaThemeProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
