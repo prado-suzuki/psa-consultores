@@ -423,7 +423,8 @@ export const useProdutoServicoLote = () => {
             action: 'created',
           });
         });
-        toast.success(`${resultado.criados.length} vínculo(s) criado(s)`);
+        // Sem toast aqui: quem chama mostra o dele, COM "Desfazer". Dois
+        // toasts por ação em massa era o que a bancada exibia antes.
         return;
       }
       if (vars.acao === 'desvincular') {
@@ -433,7 +434,7 @@ export const useProdutoServicoLote = () => {
             entity_name: `${vars.produtoCodigo} → ${vinculo.servicoNome}`, action: 'deleted',
           });
         });
-        toast.success(`${vars.vinculos.length} vínculo(s) removido(s)`);
+        // Idem: o toast com "Desfazer" é do chamador.
       }
     },
     onError: (erro: unknown) => {
