@@ -20,19 +20,31 @@ export interface ParteExtraDraft {
   pessoaId: string | null;
 }
 
-// "Composse" entrou em 19/08/2026: a cadeia de origem não é exclusiva de
-// composse virar parceria — uma composse também pode ser a origem de uma nova
-// parceria (ex.: os compossuidores decidem ceder o uso a novos outorgados).
-// Sem contrato real lido confirmando esse encadeamento específico ainda — é
-// extensão por analogia com o padrão Parceria→Composse, que esse sim é confirmado.
-export const TIPOS_INSTRUMENTO_ORIGEM = ['Parceria', 'Composse', 'Arrendamento', 'Herança', 'Outro'];
+/** Pessoa sem fração própria — usado pelos exploradores da Parceria, ver `ExploracaoRuralDraft.exploradores`. */
+export interface ParteSimplesDraft {
+  id: string;
+  pessoaId: string | null;
+}
+
+// CONFIRMADO em reunião de validação com a OSG (Luana, 19/08/2026): este campo
+// só existe na Composse — numa Parceria a origem sempre é a própria matrícula
+// (a parceria não pode vir de outra parceria nem de uma composse; "trava na
+// composse"). "Composse" não é um valor válido aqui: se um terceiro quer
+// participar dos frutos, ele entra na composse existente, não cria uma
+// parceria nova sobre ela. "Exploração própria" substitui o "Outro" genérico
+// que cobria esse caso — é o nome que a própria OSG usa.
+export const TIPOS_INSTRUMENTO_ORIGEM = ['Parceria', 'Arrendamento', 'Exploração própria', 'Herança', 'Outro'];
 
 export interface ExploracaoImovelDraft {
   id: string;
   ref: string;
   matriculaId: string | null;
   areaExplorada: string;
-  /** Por imóvel, não pelo instrumento inteiro — [BV-COM] tem 6 origens distintas numa só composse. */
+  /**
+   * Por imóvel, não pelo instrumento inteiro — [BV-COM] tem 6 origens distintas numa só
+   * composse. CONFIRMADO em reunião de validação (Luana, 19/08/2026): só faz sentido na
+   * Composse — numa Parceria a origem é sempre a própria matrícula, nunca outro instrumento.
+   */
   tipoInstrumentoOrigem: string;
   instrumentoOrigemRef: string | null;
   /** Estado computado (não digitado): se a Parceria de origem deste imóvel ainda vigora. */
@@ -58,15 +70,17 @@ export interface ExploracaoRuralDraft {
   // 14/08/2026: havia um campo de matrícula única aqui, desconectado da lista,
   // que duplicava a mesma informação sem sincronia.
 
-  // Partes — existe, mas em grão errado: um único outorgante e um único
-  // explorador. [BV-PAR] mostra 1 outorgante e 3 outorgados numa parceria só
-  // — por isso os dois lados viraram lista, igual à composse. `fracao` aqui é
-  // a distribuição *dentro* do próprio lado (quem leva quanto dos 90%/70%
-  // etc. que cabem a este lado como um todo) — não confundir com
-  // `percentualOutorgante`/`percentualExplorador` abaixo, que é o corte entre
-  // os dois lados.
-  outorgantes: CompossuidorDraft[];
-  exploradores: CompossuidorDraft[];
+  // Partes — existe. CONFIRMADO em reunião de validação com a OSG (Luana,
+  // 19/08/2026): outorgante é sempre único — se duas empresas diferentes
+  // cedem, são duas parcerias separadas, nunca uma com dois outorgantes.
+  // (Tentativa anterior, de 19/08 mais cedo, tinha isso como lista por
+  // analogia com `[BV-PAR]`; a reunião corrigiu.)
+  outorganteId: string | null;
+  // Explorador pode ser vários (`[BV-PAR]` tem 3 outorgados numa parceria
+  // só, confirmado), mas SEM fração própria aqui — o percentual individual de
+  // cada um só existe na composse (ver `compossuidores` abaixo); na parceria
+  // só o agregado `percentualOutorgante`/`percentualExplorador`.
+  exploradores: ParteSimplesDraft[];
   // Partes — novo
   compossuidores: CompossuidorDraft[];
   partesExtras: ParteExtraDraft[];
@@ -94,6 +108,37 @@ export interface ExploracaoRuralDraft {
   // referência do instrumento de origem moram por imóvel, não aqui — [BV-COM] mostra até
   // 6 origens diferentes numa única composse.
   imoveis: ExploracaoImovelDraft[];
+
+  // Assinatura — novo. Achados ao escrever `docs/osg/contratos_exploracao/05-` e
+  // `06-modelo-*-rural.md`: campos que TODO contrato real tem, sem coluna em
+  // lugar nenhum do banco (confirmado por consulta ao schema, 19/08/2026) — se
+  // não entrarem aqui, ficam de fora mesmo que a tela vire produção.
+  foroComarca: string;
+  foroUf: string;
+  testemunha1Nome: string;
+  testemunha2Nome: string;
+  /** Só relevante quando o outorgante é PJ. Sem coluna em `pessoa` nem em `quadro_societario` hoje. */
+  capitalSocialOutorgante: string;
+
+  // Administração (Composse) — novo. Achado #9: `[BV-COM]` autoriza atos por
+  // "maioria dos percentuais"; `[ROS-COM]` nomeia 2 compossuidores fixos. Sem
+  // regra padrão única, sem coluna em lugar nenhum.
+  regraAdministracao: 'maioria' | 'nomeados';
+  administradoresNomeados: ParteSimplesDraft[];
+
+  // Liquidação de haveres (Composse) — novo. Achado #9: `[BV-COM]` usa 60
+  // parcelas mensais; `[ROS-COM]` usa 10 parcelas anuais. Sem coluna em lugar
+  // nenhum.
+  liquidacaoPeriodicidade: 'mensal' | 'anual';
+  liquidacaoNumeroParcelas: string;
+}
+
+/** Nome que a composse "gira" — 1º compossuidor listado + "E OUTROS". Confirmado em `[BV-COM]` e `[ROS-COM]`; sempre derivado, nunca digitado. */
+export function nomeComposseDe(compossuidores: CompossuidorDraft[], pessoas: PessoaRow[]): string {
+  const primeiro = compossuidores[0];
+  if (!primeiro?.pessoaId) return '';
+  const pessoa = pessoas.find((p) => p.id === primeiro.pessoaId);
+  return pessoa ? `${pessoa.denominacao.toUpperCase()} E OUTROS` : '';
 }
 
 let seq = 0;
@@ -109,7 +154,7 @@ export function emptyExploracaoDraft(tipo: TipoExploracao = 'parceria'): Explora
     declaradoIrpf: false,
     vigenciaProrrogavel: true,
     prazoRenovacaoVigencia: '',
-    outorgantes: [],
+    outorganteId: null,
     exploradores: [],
     compossuidores: [],
     partesExtras: [],
@@ -127,6 +172,15 @@ export function emptyExploracaoDraft(tipo: TipoExploracao = 'parceria'): Explora
     estudoFiscalDocumentoId: null,
     documentoComprobatorioId: null,
     imoveis: [],
+    foroComarca: '',
+    foroUf: '',
+    testemunha1Nome: '',
+    testemunha2Nome: '',
+    capitalSocialOutorgante: '',
+    regraAdministracao: 'maioria',
+    administradoresNomeados: [],
+    liquidacaoPeriodicidade: 'mensal',
+    liquidacaoNumeroParcelas: '',
   };
 }
 
@@ -217,11 +271,26 @@ function pessoaFixtureBase(overrides: Partial<PessoaRow>): PessoaRow {
   };
 }
 
+/** Espelha `cartorio` (nome_completo/comarca/uf) — confirmado via Supabase MCP em 19/08/2026. */
+export interface CartorioFixture {
+  id: string;
+  nome_completo: string;
+  comarca: string;
+  uf: string;
+}
+
+export const cartoriosFixture: CartorioFixture[] = [
+  { id: 'cartorio-sorriso', nome_completo: 'Cartório do Registro de Imóveis de Sorriso', comarca: 'Sorriso', uf: 'MT' },
+  { id: 'cartorio-lucas', nome_completo: 'Cartório do Registro de Imóveis de Lucas do Rio Verde', comarca: 'Lucas do Rio Verde', uf: 'MT' },
+  { id: 'cartorio-nova-mutum', nome_completo: 'Cartório do Registro de Imóveis de Nova Mutum', comarca: 'Nova Mutum', uf: 'MT' },
+];
+
 export const matriculasFixture: MatriculaRow[] = [
   matriculaFixtureBase({
     numero: '2.424',
     municipio_imovel: 'Sorriso',
     uf_imovel: 'MT',
+    cartorio_id: 'cartorio-sorriso',
     area_documento: 284.961,
     area_real: 284.961,
     area_explorada: 234,
@@ -232,6 +301,7 @@ export const matriculasFixture: MatriculaRow[] = [
     numero: '2.628',
     municipio_imovel: 'Lucas do Rio Verde',
     uf_imovel: 'MT',
+    cartorio_id: 'cartorio-lucas',
     area_documento: 225.548,
     area_real: 225.548,
     area_explorada: 225.548,
@@ -242,6 +312,7 @@ export const matriculasFixture: MatriculaRow[] = [
     numero: '1.010',
     municipio_imovel: 'Nova Mutum',
     uf_imovel: 'MT',
+    cartorio_id: 'cartorio-nova-mutum',
     area_documento: 80,
     area_real: 80,
     area_explorada: 80,
@@ -258,6 +329,33 @@ export const pessoasFixture: PessoaRow[] = [
   pessoaFixtureBase({ tipo_pessoa: 'PF', denominacao: 'Antigo Parceiro', cpf_cnpj: '456.789.012-33' }),
 ];
 
+/** Espelha `administracao` (pj_pessoa_id → administrador_pessoa_id) — mesmo padrão real do `[BV-PAR]`: os outorgados também administram a outorgante PJ. */
+export interface AdministradorFixture {
+  id: string;
+  pjPessoaId: string;
+  administradorPessoaId: string;
+  cargo: string | null;
+}
+
+export const administracaoFixture: AdministradorFixture[] = [
+  { id: 'adm-1', pjPessoaId: pessoasFixture[0].id, administradorPessoaId: pessoasFixture[1].id, cargo: 'Administrador' },
+  { id: 'adm-2', pjPessoaId: pessoasFixture[0].id, administradorPessoaId: pessoasFixture[2].id, cargo: 'Administradora' },
+];
+
+/** Espelha `titularidade` (matricula_id → titular_pessoa_id, com fração) — quem é o dono registrado do imóvel, distinto de quem outorga/explora. */
+export interface TitularidadeFixture {
+  id: string;
+  matriculaId: string;
+  titularPessoaId: string;
+  fracao: string;
+}
+
+export const titularidadeFixture: TitularidadeFixture[] = [
+  { id: 'tit-1', matriculaId: matriculasFixture[0].id, titularPessoaId: pessoasFixture[0].id, fracao: '100' },
+  { id: 'tit-2', matriculaId: matriculasFixture[1].id, titularPessoaId: pessoasFixture[4].id, fracao: '100' },
+  { id: 'tit-3', matriculaId: matriculasFixture[2].id, titularPessoaId: pessoasFixture[0].id, fracao: '100' },
+];
+
 export interface ExploracaoListaItemFixture {
   id: string;
   ref: string;
@@ -270,7 +368,7 @@ export interface ExploracaoListaItemFixture {
 }
 
 export const explosacoesListaFixture: ExploracaoListaItemFixture[] = [
-  { id: 'er-01', ref: 'ER 01', tipo: 'parceria', imovelResumo: 'Fazenda Boa Vista · Mat. 2.424', areaResumo: '234,00 / 200,68 ha', partesResumo: 'Modelo Agro Ltda. → José da Silva + Maria Souza (70/30)', vigenciaResumo: '2022–2025', situacao: 'vigente' },
+  { id: 'er-01', ref: 'ER 01', tipo: 'parceria', imovelResumo: 'Fazenda Boa Vista · Mat. 2.424', areaResumo: '234,00 / 200,68 ha', partesResumo: 'Modelo Agro Ltda. → José da Silva + Maria Souza', vigenciaResumo: '2022–2025', situacao: 'vigente' },
   { id: 'er-02', ref: 'ER 02', tipo: 'composse', imovelResumo: 'Fazenda Boa Vista · Mat. 2.424', areaResumo: '234,00 / 200,68 ha', partesResumo: 'José da Silva + Maria Souza (50/50)', vigenciaResumo: '2022–2025', situacao: 'vigente' },
   { id: 'er-03', ref: 'ER 03', tipo: 'composse', imovelResumo: 'Fazenda Cristal · Mat. 2.628', areaResumo: '225,54 / 225,54 ha', partesResumo: 'José da Silva + 2 compossuidores (70/15/15)', vigenciaResumo: '2020–2027', situacao: 'vigente' },
   { id: 'er-04', ref: 'ER 04', tipo: 'parceria', imovelResumo: 'Sítio Vencido · Mat. 1.010', areaResumo: '80,00 / 80,00 ha', partesResumo: 'Modelo Agro Ltda. → Antigo Parceiro', vigenciaResumo: '2018–2021', situacao: 'vencido' },

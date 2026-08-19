@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus, Search, FileText } from 'lucide-react';
 import '@/index.css';
 import {
-  emptyExploracaoDraft, explosacoesListaFixture, matriculasFixture, pessoasFixture,
+  administracaoFixture, cartoriosFixture, emptyExploracaoDraft, explosacoesListaFixture, matriculasFixture, pessoasFixture, titularidadeFixture,
   type ExploracaoListaItemFixture, type ExploracaoRuralDraft, type TipoExploracao,
 } from './contratosExploracaoModel';
 import { ExploracaoRuralModal } from '@/components/equipe/osg/oficina-de-contratos/exploracao-rural/ExploracaoRuralModal';
@@ -41,17 +41,24 @@ function draftDeExemplo(tipo: TipoExploracao): ExploracaoRuralDraft {
       dataEncerramento: '2025-03-11',
       vigencia: '3 anos, contados da assinatura',
       // [BV-PAR]: 1 outorgante, 3 outorgados numa parceria só — aqui com 2, só
-      // pra provar que o cadastro aceita mais de uma pessoa por lado.
-      outorgantes: [{ id: 'out-fx-1', pessoaId: modeloAgro.id, fracao: '100' }],
+      // pra provar que o cadastro aceita mais de uma pessoa do lado do
+      // explorador. Outorgante é sempre único (confirmado em reunião de
+      // validação, 19/08/2026) — sem fração por pessoa em nenhum dos dois lados.
+      outorganteId: modeloAgro.id,
       exploradores: [
-        { id: 'exp-fx-1', pessoaId: jose.id, fracao: '70' },
-        { id: 'exp-fx-2', pessoaId: maria.id, fracao: '30' },
+        { id: 'exp-fx-1', pessoaId: jose.id },
+        { id: 'exp-fx-2', pessoaId: maria.id },
       ],
       percentualOutorgante: '30,000%',
       percentualExplorador: '70,000%',
       percentualVigenteDesde: '2022-03-12',
       culturas: 'soja; milho; algodão; pecuária',
       permitePenhor: true,
+      capitalSocialOutorgante: 'R$ 8.050.169,00',
+      foroComarca: 'Sorriso',
+      foroUf: 'MT',
+      testemunha1Nome: 'Marcio Vassoler Gamborgi',
+      testemunha2Nome: 'Eduardo Caetano de Souza',
       imoveis: [
         { id: 'imv-fx-0', ref: 'a', matriculaId: boaVista.id, areaExplorada: '234,0000', tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: null, situacaoOrigem: 'vigente' },
       ],
@@ -66,6 +73,14 @@ function draftDeExemplo(tipo: TipoExploracao): ExploracaoRuralDraft {
       { id: 'fx-2', pessoaId: maria.id, fracao: '15' },
       { id: 'fx-3', pessoaId: pedro.id, fracao: '15' },
     ],
+    regraAdministracao: 'maioria',
+    liquidacaoPeriodicidade: 'mensal',
+    liquidacaoNumeroParcelas: '60',
+    permitePenhor: true,
+    foroComarca: 'Sorriso',
+    foroUf: 'MT',
+    testemunha1Nome: 'Marcio Vassoler Gamborgi',
+    testemunha2Nome: 'Eduardo Caetano de Souza',
     imoveis: [
       { id: 'imv-fx-1', ref: 'a', matriculaId: boaVista.id, areaExplorada: '234,0000', tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: 'ER 01', situacaoOrigem: 'vigente' },
       { id: 'imv-fx-2', ref: 'b', matriculaId: matriculasFixture[1].id, areaExplorada: '225,5480', tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: 'ER 04', situacaoOrigem: 'encerrada' },
@@ -198,6 +213,9 @@ function ContratosExploracaoPreview() {
         matriculas={matriculasFixture}
         pessoas={pessoasFixture}
         instrumentosDeOrigem={INSTRUMENTOS_DE_ORIGEM_FIXTURE}
+        administracao={administracaoFixture}
+        titularidade={titularidadeFixture}
+        cartorios={cartoriosFixture}
         avisoParaMatricula={avisoParaMatricula}
         onClose={() => setOpen(false)}
       />

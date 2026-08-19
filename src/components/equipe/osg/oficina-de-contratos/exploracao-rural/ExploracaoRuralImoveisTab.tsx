@@ -6,7 +6,8 @@ import { fieldCls } from '@/components/equipe/osg/formKit';
 import { formGridCls } from '@/lib/osgFormGrid';
 import { AlertTriangle, Plus, X } from 'lucide-react';
 import type { MatriculaRow } from '@/hooks/useDiagnosticoPatrimonial';
-import { TIPOS_INSTRUMENTO_ORIGEM, type ExploracaoImovelDraft } from '@/previews/contratosExploracaoModel';
+import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
+import { TIPOS_INSTRUMENTO_ORIGEM, type CartorioFixture, type ExploracaoImovelDraft, type TipoExploracao, type TitularidadeFixture } from '@/previews/contratosExploracaoModel';
 import { Field, Wide } from './SeloCampo';
 
 // Aba "Imóveis e origens": um cartão por matrícula dentro do instrumento —
@@ -18,17 +19,27 @@ import { Field, Wide } from './SeloCampo';
 // Parágrafo Único do `[BV-COM]`: quando a origem encerra, o imóvel sai da
 // composse sem precisar de aditivo.
 //
-// Layout em cartão, não em tabela larga: são 8 campos por imóvel (matrícula,
+// Tipo/Instrumento de origem só aparecem quando `tipo === 'composse'` —
+// CONFIRMADO em reunião de validação com a OSG (Luana, 19/08/2026): numa
+// Parceria a origem é sempre a própria matrícula, nunca outro instrumento
+// (parceria não pode vir de outra parceria nem de uma composse).
+//
+// Layout em cartão, não em tabela larga: são até 8 campos por imóvel (matrícula,
 // 4 leituras da matrícula, área explorada, tipo e referência da origem) — numa
 // tabela isso vira 8+ colunas com scroll horizontal dentro de um modal, ilegível.
 // Um cartão por imóvel, com a mesma grade (`formGridCls`) da aba Dados, deixa
 // tudo visível de uma vez e com a mesma cara do resto do formulário.
 
 interface Props {
+  tipo: TipoExploracao;
   imoveis: ExploracaoImovelDraft[];
   onChange: (imoveis: ExploracaoImovelDraft[]) => void;
   matriculas: MatriculaRow[];
   instrumentosDeOrigem: { ref: string; label: string }[];
+  /** Espelham `titularidade` e `cartorio` — leitura do cadastro, não digitação. */
+  titularidade: TitularidadeFixture[];
+  cartorios: CartorioFixture[];
+  pessoas: PessoaRow[];
   /** Checado por cartão, já excluindo o próprio registro: se a matrícula escolhida já está em outra Parceria ativa, e com quanto %. */
   avisoParaMatricula?: (matriculaId: string) => { percentualUsado: number; detalhe: string } | null;
 }
@@ -39,7 +50,8 @@ function paraNumero(valor: string): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-export function ExploracaoRuralImoveisTab({ imoveis, onChange, matriculas, instrumentosDeOrigem, avisoParaMatricula }: Props) {
+export function ExploracaoRuralImoveisTab({ tipo, imoveis, onChange, matriculas, instrumentosDeOrigem, titularidade, cartorios, pessoas, avisoParaMatricula }: Props) {
+  const isComposse = tipo === 'composse';
   const update = (id: string, patch: Partial<ExploracaoImovelDraft>) =>
     onChange(imoveis.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   const remove = (id: string) => onChange(imoveis.filter((item) => item.id !== id));
@@ -52,9 +64,16 @@ export function ExploracaoRuralImoveisTab({ imoveis, onChange, matriculas, instr
     <div>
       <p className="mb-3 text-[11px] text-muted-foreground">
         Um cartão por matrícula dentro do instrumento. Os dados cartoriais são lidos do cadastro; somente a área
-        explorada e a origem são próprios da relação. "Situação da origem" é um estado computado — confirmado em{' '}
-        <code>[BV-COM]</code>: quando a Parceria de origem encerra, o imóvel sai da composse sem precisar de aditivo;
-        não é um campo digitado.
+        explorada e a origem são próprios da relação.
+        {isComposse ? (
+          <>
+            {' '}"Situação da origem" é um estado computado — confirmado em <code>[BV-COM]</code>: quando a Parceria
+            de origem encerra, o imóvel sai da composse sem precisar de aditivo; não é um campo digitado.
+          </>
+        ) : (
+          <> Sem campos de origem aqui: confirmado em reunião de validação com a OSG (19/08/2026), numa Parceria a
+            origem é sempre a própria matrícula.</>
+        )}
       </p>
       <div className="space-y-3">
         {imoveis.map((item) => {
@@ -64,6 +83,10 @@ export function ExploracaoRuralImoveisTab({ imoveis, onChange, matriculas, instr
           const areaDisponivel = aviso && matricula ? (matricula.area_documento * (100 - aviso.percentualUsado)) / 100 : null;
           const percentualDesteImovel = matricula ? (paraNumero(item.areaExplorada) / matricula.area_documento) * 100 : 0;
           const excedeODisponivel = percentualDisponivel != null && percentualDesteImovel > percentualDisponivel;
+          const titulares = matricula
+            ? titularidade.filter((t) => t.matriculaId === matricula.id).map((t) => pessoas.find((p) => p.id === t.titularPessoaId)?.denominacao).filter(Boolean)
+            : [];
+          const cartorio = matricula ? cartorios.find((c) => c.id === matricula.cartorio_id) ?? null : null;
           return (
             <div key={item.id} className="rounded-lg border border-osg-200/70 bg-background p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
@@ -114,27 +137,37 @@ export function ExploracaoRuralImoveisTab({ imoveis, onChange, matriculas, instr
                   )}
                 </Wide>
                 <Field label="Município / UF" selo="existe"><Input disabled value={matricula ? `${matricula.municipio_imovel} / ${matricula.uf_imovel}` : '—'} className={fieldCls} /></Field>
+                <Field label="Proprietário" selo="existe" hint="lido de titularidade — não é o outorgante nem o explorador, é o dono registrado do imóvel">
+                  <Input disabled value={titulares.length ? titulares.join(' + ') : '—'} className={fieldCls} />
+                </Field>
+                <Field label="Cartório de registro" selo="existe" hint="lido de cartorio, via matricula.cartorio_id">
+                  <Input disabled value={cartorio ? `${cartorio.nome_completo} — ${cartorio.comarca}/${cartorio.uf}` : '—'} className={fieldCls} />
+                </Field>
 
                 <Field label="Área documento" selo="existe"><Input disabled value={matricula ? `${matricula.area_documento} ${matricula.area_unidade}` : '—'} className={`${fieldCls} font-mono`} /></Field>
                 <Field label="Área real" selo="existe"><Input disabled value={matricula?.area_real != null ? `${matricula.area_real} ${matricula.area_unidade}` : '—'} className={`${fieldCls} font-mono`} /></Field>
                 <Field label="Área explorada" selo="existe"><Input value={item.areaExplorada} onChange={(e) => update(item.id, { areaExplorada: e.target.value })} className={`${fieldCls} font-mono`} /></Field>
                 <Field label="Georreferenciamento" selo="existe"><Input disabled value={matricula?.georreferenciado ?? '—'} className={fieldCls} /></Field>
 
-                <Field label="Tipo da origem" selo="novo">
-                  <Select value={item.tipoInstrumentoOrigem} onValueChange={(v) => update(item.id, { tipoInstrumentoOrigem: v })}>
-                    <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
-                    <SelectContent>{TIPOS_INSTRUMENTO_ORIGEM.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
-                  </Select>
-                </Field>
-                <Wide label="Instrumento de origem" selo="novo">
-                  <Select value={item.instrumentoOrigemRef ?? undefined} onValueChange={(v) => update(item.id, { instrumentoOrigemRef: v })}>
-                    <SelectTrigger className={fieldCls}><SelectValue placeholder="Sem origem anterior" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__">Sem origem anterior (imóvel entra direto por este instrumento)</SelectItem>
-                      {instrumentosDeOrigem.map((i) => <SelectItem key={i.ref} value={i.ref}>{i.label}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </Wide>
+                {isComposse && (
+                  <>
+                    <Field label="Tipo da origem" selo="novo">
+                      <Select value={item.tipoInstrumentoOrigem} onValueChange={(v) => update(item.id, { tipoInstrumentoOrigem: v })}>
+                        <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
+                        <SelectContent>{TIPOS_INSTRUMENTO_ORIGEM.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+                      </Select>
+                    </Field>
+                    <Wide label="Instrumento de origem" selo="novo">
+                      <Select value={item.instrumentoOrigemRef ?? undefined} onValueChange={(v) => update(item.id, { instrumentoOrigemRef: v })}>
+                        <SelectTrigger className={fieldCls}><SelectValue placeholder="Sem origem anterior" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__none__">Sem origem anterior (imóvel entra direto por este instrumento)</SelectItem>
+                          {instrumentosDeOrigem.map((i) => <SelectItem key={i.ref} value={i.ref}>{i.label}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Wide>
+                  </>
+                )}
               </div>
             </div>
           );

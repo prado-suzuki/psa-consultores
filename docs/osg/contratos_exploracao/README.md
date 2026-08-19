@@ -26,3 +26,10 @@ o banco e não salva dados.
 - `01-campos.md`, `02-fluxo-processo.md` e `04-perguntas-abertas.md`: notas de
   trabalho anteriores à consolidação. Podem conter hipóteses superadas e não devem
   ser usadas como requisito, schema ou resposta assinada.
+- `05-modelo-parceria-rural.md` e `06-modelo-composse-rural.md`: modelo de
+  contrato replicável, cláusula a cláusula sobre o texto real dos contratos em
+  `docs/notebooklm/exemplo-*.md`, com variáveis (`{{campo}}`) e blocos
+  condicionais (`[[BLOCO]]`) nos pontos de variação real confirmados entre os
+  exemplos. Insumo para o gerador da Oficina de Contratos, não um documento
+  assinável por si só — os pontos marcados como pendência ainda precisam de
+  confirmação com a consultora antes de ir para produção.

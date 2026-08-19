@@ -9,7 +9,7 @@ import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Field, Selo, Wide } from './SeloCampo';
-import type { CompossuidorDraft, ExploracaoRuralDraft, ParteExtraDraft } from '@/previews/contratosExploracaoModel';
+import { nomeComposseDe, type AdministradorFixture, type CompossuidorDraft, type ExploracaoRuralDraft, type ParteExtraDraft, type ParteSimplesDraft } from '@/previews/contratosExploracaoModel';
 
 // Aba "Dados" do cadastro de exploração rural — cópia do padrão de
 // MatriculaDadosTab.tsx (mesmo FieldSection, mesmo formGridCls, mesmos campos de
@@ -22,22 +22,36 @@ import type { CompossuidorDraft, ExploracaoRuralDraft, ParteExtraDraft } from '@
 // campo de matrícula única aqui, desconectado da lista, duplicando a mesma
 // informação sem sincronia.
 
-// Sem mais "Outorgante/Explorador adicional" aqui: viraram lista própria com
-// fração (ver PartesFracaoList) em 19/08/2026 — esta lista ad hoc ficou só
-// para papéis sem participação nos frutos (sem campo de percentual).
+// Sem "Outorgante/Explorador adicional" aqui: explorador já é lista própria
+// (ver PartesFracaoList) e outorgante é sempre único, confirmado em reunião de
+// validação (19/08/2026) — esta lista ad hoc ficou só para papéis sem
+// participação nos frutos.
 const PAPEIS_PARTE_EXTRA = ['Anuente', 'Interveniente', 'Garantidor', 'Outro (definir com Bernardo)'];
 
 interface Props {
   draft: ExploracaoRuralDraft;
   onChange: (draft: ExploracaoRuralDraft) => void;
   pessoas: PessoaRow[];
+  /** Espelha `administracao` — leitura do cadastro, não digitação (ver `administracaoFixture`). */
+  administracao: AdministradorFixture[];
 }
 
-export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
+export function ExploracaoRuralDadosTab({ draft, onChange, pessoas, administracao }: Props) {
   const set = <K extends keyof ExploracaoRuralDraft>(key: K, value: ExploracaoRuralDraft[K]) => onChange({ ...draft, [key]: value });
   const isComposse = draft.tipo === 'composse';
   let number = 0;
   const next = () => String((number += 1)).padStart(2, '0');
+
+  const outorgante = pessoas.find((p) => p.id === draft.outorganteId) ?? null;
+  const administradoresDoOutorgante = draft.outorganteId
+    ? administracao.filter((a) => a.pjPessoaId === draft.outorganteId).map((a) => pessoas.find((p) => p.id === a.administradorPessoaId)?.denominacao).filter(Boolean)
+    : [];
+
+  const setAdministradorNomeado = (id: string, patch: Partial<ParteSimplesDraft>) =>
+    set('administradoresNomeados', draft.administradoresNomeados.map((a) => (a.id === id ? { ...a, ...patch } : a)));
+  const addAdministradorNomeado = () =>
+    set('administradoresNomeados', [...draft.administradoresNomeados, { id: `adm-nom-${Date.now()}-${draft.administradoresNomeados.length}`, pessoaId: null }]);
+  const removeAdministradorNomeado = (id: string) => set('administradoresNomeados', draft.administradoresNomeados.filter((a) => a.id !== id));
 
   const setCompossuidor = (id: string, patch: Partial<CompossuidorDraft>) =>
     set('compossuidores', draft.compossuidores.map((c) => (c.id === id ? { ...c, ...patch } : c)));
@@ -45,16 +59,10 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
     set('compossuidores', [...draft.compossuidores, { id: `comp-${Date.now()}-${draft.compossuidores.length}`, pessoaId: null, fracao: '0' }]);
   const removeCompossuidor = (id: string) => set('compossuidores', draft.compossuidores.filter((c) => c.id !== id));
 
-  const setOutorgante = (id: string, patch: Partial<CompossuidorDraft>) =>
-    set('outorgantes', draft.outorgantes.map((o) => (o.id === id ? { ...o, ...patch } : o)));
-  const addOutorgante = () =>
-    set('outorgantes', [...draft.outorgantes, { id: `out-${Date.now()}-${draft.outorgantes.length}`, pessoaId: null, fracao: '0' }]);
-  const removeOutorgante = (id: string) => set('outorgantes', draft.outorgantes.filter((o) => o.id !== id));
-
-  const setExplorador = (id: string, patch: Partial<CompossuidorDraft>) =>
+  const setExplorador = (id: string, patch: Partial<ParteSimplesDraft>) =>
     set('exploradores', draft.exploradores.map((e) => (e.id === id ? { ...e, ...patch } : e)));
   const addExplorador = () =>
-    set('exploradores', [...draft.exploradores, { id: `exp-${Date.now()}-${draft.exploradores.length}`, pessoaId: null, fracao: '0' }]);
+    set('exploradores', [...draft.exploradores, { id: `exp-${Date.now()}-${draft.exploradores.length}`, pessoaId: null }]);
   const removeExplorador = (id: string) => set('exploradores', draft.exploradores.filter((e) => e.id !== id));
 
   const setParteExtra = (id: string, patch: Partial<ParteExtraDraft>) =>
@@ -89,19 +97,23 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
       <FieldSection number={next()} title="Partes">
         {!isComposse ? (
           <div className="space-y-4">
-            <div>
-              <Label className={`${labelCls} mb-2 flex items-center gap-1.5`}>Outorgantes e distribuição interna <Selo tipo="novo" /></Label>
-              <PartesFracaoList
-                items={draft.outorgantes}
-                pessoas={pessoas}
-                onAdd={addOutorgante}
-                onChange={setOutorgante}
-                onRemove={removeOutorgante}
-                addLabel="Adicionar outorgante"
-              />
+            <div className={`${formGridCls(2)} gap-3`}>
+              <Field label="Outorgante" selo="existe">
+                <PessoaSelect value={draft.outorganteId} onChange={(v) => set('outorganteId', v)} pessoas={pessoas} placeholder="Selecionar outorgante…" />
+              </Field>
+              {outorgante?.tipo_pessoa === 'PJ' && (
+                <Field label="Administradores" selo="existe" hint="lido de administracao — mesma tabela usada em Qualificação das Partes">
+                  <Input disabled className={fieldCls} value={administradoresDoOutorgante.length ? administradoresDoOutorgante.join(', ') : 'Nenhum administrador cadastrado'} />
+                </Field>
+              )}
+              {outorgante?.tipo_pessoa === 'PJ' && (
+                <Field label="Capital social" selo="novo" hint="sem coluna em pessoa nem em quadro_societario — confirmar se dá pra derivar de quadro_societario.vlr_total antes de tratar como digitação livre">
+                  <Input className={`${fieldCls} font-mono`} value={draft.capitalSocialOutorgante} onChange={(e) => set('capitalSocialOutorgante', e.target.value)} placeholder="ex: R$ 8.050.169,00" />
+                </Field>
+              )}
             </div>
             <div>
-              <Label className={`${labelCls} mb-2 flex items-center gap-1.5`}>Exploradores e distribuição interna <Selo tipo="novo" /></Label>
+              <Label className={`${labelCls} mb-2 flex items-center gap-1.5`}>Exploradores <Selo tipo="existe" /></Label>
               <PartesFracaoList
                 items={draft.exploradores}
                 pessoas={pessoas}
@@ -109,15 +121,15 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
                 onChange={setExplorador}
                 onRemove={removeExplorador}
                 addLabel="Adicionar explorador"
+                semFracao
               />
               <p className="mt-1 text-[11px] text-muted-foreground">na UI: Explorador; no gerador: papel outorgado, a confirmar com Bernardo</p>
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Achado em <code>[BV-PAR]</code>: uma parceria pode ter mais de uma pessoa de cada lado (lá, 1 outorgante e
-              3 outorgados). O campo "Fração" aqui é a distribuição <strong>dentro</strong> de cada lado — o corte entre
-              outorgante e explorador continua sendo o percentual da seção 03. A regra de soma 100% por lado é uma
-              hipótese por analogia com a composse; não há, entre os exemplos lidos, um contrato com sub-percentual
-              individual explícito por outorgado — a confirmar com a OSG.
+              Confirmado em reunião de validação com a OSG (19/08/2026): a parceria sempre tem um único outorgante — se
+              duas empresas diferentes cedem, são duas parcerias separadas. Pode ter vários outorgados (<code>[BV-PAR]</code>:
+              3 outorgados numa parceria só), mas sem percentual individual aqui — o percentual de cada pessoa só existe
+              na composse; na parceria só o agregado outorgante × outorgados (seção 03).
             </p>
           </div>
         ) : (
@@ -133,6 +145,9 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
               confirmadoTexto="confirmado com a OSG: sem cobertura parcial nos frutos deste instrumento"
               faltaTexto="a OSG confirmou que a distribuição precisa fechar em 100%"
             />
+            <Field label="Nome da composse" selo="novo" hint="derivado, não digitado — 1º compossuidor + 'E OUTROS', confirmado em [BV-COM] e [ROS-COM]">
+              <Input disabled className={`${fieldCls} mt-2`} value={nomeComposseDe(draft.compossuidores, pessoas) || '—'} />
+            </Field>
           </div>
         )}
 
@@ -181,6 +196,54 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
             </Field>
           </div>
         )}
+
+        {isComposse && (
+          <div className="mt-4 space-y-4">
+            <div>
+              <Label className={`${labelCls} mb-2 flex items-center gap-1.5`}>Regra de administração <Selo tipo="novo" /></Label>
+              <div className={`${formGridCls(2)} gap-3`}>
+                <Select value={draft.regraAdministracao} onValueChange={(v: 'maioria' | 'nomeados') => set('regraAdministracao', v)}>
+                  <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="maioria">Maioria dos percentuais</SelectItem>
+                    <SelectItem value="nomeados">Administradores nomeados</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {draft.regraAdministracao === 'nomeados' && (
+                <div className="mt-2">
+                  <PartesFracaoList
+                    items={draft.administradoresNomeados}
+                    pessoas={pessoas}
+                    onAdd={addAdministradorNomeado}
+                    onChange={setAdministradorNomeado}
+                    onRemove={removeAdministradorNomeado}
+                    addLabel="Adicionar administrador"
+                    semFracao
+                  />
+                </div>
+              )}
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Achado ao escrever o modelo de contrato: <code>[BV-COM]</code> usa "maioria dos percentuais";{' '}
+                <code>[ROS-COM]</code> nomeia 2 compossuidores fixos. Sem regra padrão única entre os dois exemplos reais.
+              </p>
+            </div>
+            <div className={`${formGridCls(2)} gap-3`}>
+              <Field label="Periodicidade da liquidação de haveres" selo="novo">
+                <Select value={draft.liquidacaoPeriodicidade} onValueChange={(v: 'mensal' | 'anual') => set('liquidacaoPeriodicidade', v)}>
+                  <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="mensal">Mensal</SelectItem>
+                    <SelectItem value="anual">Anual</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Número de parcelas" selo="novo" hint="[BV-COM]: 60 mensais. [ROS-COM]: 10 anuais.">
+                <Input className={`${fieldCls} font-mono`} value={draft.liquidacaoNumeroParcelas} onChange={(e) => set('liquidacaoNumeroParcelas', e.target.value)} />
+              </Field>
+            </div>
+          </div>
+        )}
       </FieldSection>
 
       <FieldSection number={next()} title="Documento de origem">
@@ -200,22 +263,42 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
           declara sua própria origem na aba "Imóveis e origens", não o instrumento como um todo.
         </p>
       </FieldSection>
+
+      <FieldSection number={next()} title="Assinatura">
+        <div className={`${formGridCls(4)} gap-3`}>
+          <Field label="Foro — comarca" selo="novo"><Input className={fieldCls} value={draft.foroComarca} onChange={(e) => set('foroComarca', e.target.value)} /></Field>
+          <Field label="Foro — UF" selo="novo"><Input className={fieldCls} value={draft.foroUf} onChange={(e) => set('foroUf', e.target.value)} maxLength={2} /></Field>
+          <Field label="Testemunha 1" selo="novo"><Input className={fieldCls} value={draft.testemunha1Nome} onChange={(e) => set('testemunha1Nome', e.target.value)} /></Field>
+          <Field label="Testemunha 2" selo="novo"><Input className={fieldCls} value={draft.testemunha2Nome} onChange={(e) => set('testemunha2Nome', e.target.value)} /></Field>
+        </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Achado ao escrever o modelo de contrato (<code>docs/osg/contratos_exploracao/05-</code> e{' '}
+          <code>06-modelo-*-rural.md</code>): nenhum dos dois campos tem coluna em lugar nenhum do banco — confirmado
+          por consulta ao schema em 19/08/2026. Todo contrato real lido tem os dois preenchidos.
+        </p>
+      </FieldSection>
     </>
   );
 }
 
-/** Lista de pessoa+fração reutilizada por compossuidores, outorgantes e exploradores — mesmo padrão de edição, textos de confirmação diferentes por chamador. */
+/**
+ * Lista de pessoas reutilizada por compossuidores e exploradores — mesmo padrão de edição.
+ * `semFracao` desliga o campo de percentual e a checagem de soma 100%: usado pelos
+ * exploradores da Parceria, onde não existe percentual individual (confirmado em reunião
+ * de validação com a OSG, 19/08/2026) — só a composse tem fração por pessoa.
+ */
 function PartesFracaoList({
-  items, pessoas, onAdd, onChange, onRemove, addLabel, confirmadoTexto, faltaTexto,
+  items, pessoas, onAdd, onChange, onRemove, addLabel, confirmadoTexto, faltaTexto, semFracao,
 }: {
-  items: CompossuidorDraft[];
+  items: { id: string; pessoaId: string | null; fracao?: string }[];
   pessoas: PessoaRow[];
   onAdd: () => void;
-  onChange: (id: string, patch: Partial<CompossuidorDraft>) => void;
+  onChange: (id: string, patch: { pessoaId?: string | null; fracao?: string }) => void;
   onRemove: (id: string) => void;
   addLabel: string;
   confirmadoTexto?: string;
   faltaTexto?: string;
+  semFracao?: boolean;
 }) {
   const soma = items.reduce((acc, c) => acc + (Number(c.fracao) || 0), 0);
   const fechou = Math.abs(soma - 100) < 0.01;
@@ -225,14 +308,18 @@ function PartesFracaoList({
         {items.map((c) => (
           <div key={c.id} className="flex items-center gap-2 rounded-md border border-osg-200/80 bg-background p-2">
             <div className="flex-1"><PessoaSelect value={c.pessoaId} onChange={(v) => onChange(c.id, { pessoaId: v })} pessoas={pessoas} placeholder="Selecionar pessoa qualificada…" /></div>
-            <Input type="number" value={c.fracao} onChange={(e) => onChange(c.id, { fracao: e.target.value })} className={`${fieldCls} w-24 text-right font-mono`} />
-            <span className="text-xs text-muted-foreground">%</span>
+            {!semFracao && (
+              <>
+                <Input type="number" value={c.fracao ?? '0'} onChange={(e) => onChange(c.id, { fracao: e.target.value })} className={`${fieldCls} w-24 text-right font-mono`} />
+                <span className="text-xs text-muted-foreground">%</span>
+              </>
+            )}
             <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => onRemove(c.id)}><X className="h-3.5 w-3.5" /></Button>
           </div>
         ))}
       </div>
       <Button variant="outline" size="sm" className="mt-2 gap-1.5 border-dashed" onClick={onAdd}><Plus className="h-3.5 w-3.5" />{addLabel}</Button>
-      {items.length > 0 && (
+      {!semFracao && items.length > 0 && (
         <p className={`mt-2 text-xs font-semibold ${fechou ? 'text-emerald-700' : 'text-osg-red'}`}>
           {fechou ? `✓ soma 100%${confirmadoTexto ? ` — ${confirmadoTexto}` : ''}` : `✕ soma ${soma}%${faltaTexto ? ` — ${faltaTexto}` : ' — precisa fechar em 100%'}`}
         </p>

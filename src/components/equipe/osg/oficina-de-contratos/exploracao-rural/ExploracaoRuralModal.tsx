@@ -6,7 +6,7 @@ import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKi
 import { formScopeCls } from '@/lib/osgFormGrid';
 import type { MatriculaRow } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import type { ExploracaoRuralDraft } from '@/previews/contratosExploracaoModel';
+import type { AdministradorFixture, CartorioFixture, ExploracaoRuralDraft, TitularidadeFixture } from '@/previews/contratosExploracaoModel';
 import { ExploracaoRuralDadosTab } from './ExploracaoRuralDadosTab';
 import { ExploracaoRuralImoveisTab } from './ExploracaoRuralImoveisTab';
 
@@ -29,11 +29,14 @@ interface Props {
   matriculas: MatriculaRow[];
   pessoas: PessoaRow[];
   instrumentosDeOrigem: { ref: string; label: string }[];
+  administracao: AdministradorFixture[];
+  titularidade: TitularidadeFixture[];
+  cartorios: CartorioFixture[];
   avisoParaMatricula?: (matriculaId: string, refAtual: string) => { percentualUsado: number; detalhe: string } | null;
   onClose: () => void;
 }
 
-export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange, matriculas, pessoas, instrumentosDeOrigem, avisoParaMatricula, onClose }: Props) {
+export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange, matriculas, pessoas, instrumentosDeOrigem, administracao, titularidade, cartorios, avisoParaMatricula, onClose }: Props) {
   const [activeTab, setActiveTab] = useState('dados');
 
   return (
@@ -58,14 +61,19 @@ export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange,
                 draft={draft}
                 onChange={onChange}
                 pessoas={pessoas}
+                administracao={administracao}
               />
             </TabsContent>
             <TabsContent value="imoveis" className="mt-0 focus-visible:ring-0">
               <ExploracaoRuralImoveisTab
+                tipo={draft.tipo}
                 imoveis={draft.imoveis}
                 onChange={(imoveis) => onChange({ ...draft, imoveis })}
                 matriculas={matriculas}
                 instrumentosDeOrigem={instrumentosDeOrigem}
+                titularidade={titularidade}
+                cartorios={cartorios}
+                pessoas={pessoas}
                 avisoParaMatricula={avisoParaMatricula ? (matriculaId: string) => avisoParaMatricula(matriculaId, refCodigo) : undefined}
               />
             </TabsContent>
