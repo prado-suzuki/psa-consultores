@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, X, CheckCircle2, Pencil, Building2, History, AlertCircle } from "lucide-react";
+import { Plus, X, CheckCircle2, Pencil, Building2, FileSignature, History, AlertCircle } from "lucide-react";
 import { AreaLoader } from "@/components/equipe/AreaLoader";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
@@ -40,6 +40,7 @@ import ContribuintesTab from "./client-form/ContribuintesTab";
 import RepresentantesTab from "./client-form/RepresentantesTab";
 import ContratosTab from "./client-form/ContratosTab";
 import FaturamentoTab from "./client-form/FaturamentoTab";
+import PropostaTab from "./client-form/PropostaTab";
 import HistoricoTab from "./client-form/HistoricoTab";
 
 export default function NewClientModal({
@@ -62,7 +63,7 @@ export default function NewClientModal({
     });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "representantes" | "contratos" | "faturamento" | "historico">("cliente");
+  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "representantes" | "contratos" | "faturamento" | "proposta" | "historico">("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   /** O que confirmar o descarte deve fazer: fechar o modal ou só sair da edição. */
@@ -105,8 +106,24 @@ export default function NewClientModal({
   const visibleTabs = canViewFinancialTabs
     ? (["cliente", "contribuintes", "representantes", "contratos", "faturamento"] as const)
     : (["cliente", "contribuintes", "representantes"] as const);
+  /**
+   * A aba de Proposta (ALE-8) exige DUAS condições: permissão financeira e cliente
+   * já salvo — sem cliente não há a que vincular o arquivo.
+   *
+   * Por isso ela NÃO entra em `visibleTabs`: aquele array não é condicionado a
+   * `editingClienteId`, então o gatilho apareceria também no cadastro novo. O
+   * caminho certo é o mesmo do Histórico, que se renderiza fora do `.map`.
+   */
+  const podeVerProposta = !!editingClienteId && canViewFinancialTabs;
+  /**
+   * Contagem EXPLÍCITA de colunas, porque a lista de abas usa `grid` com número
+   * fixo. Sem somar a aba nova aqui, ela estoura o grid visualmente.
+   *
+   * Editando + permissão: 5 de `visibleTabs` + Proposta + Histórico = 7. Sem
+   * permissão a Proposta não existe, então o ramo segue em 4 (3 + Histórico).
+   */
   const tabsGridClass = editingClienteId
-    ? canViewFinancialTabs ? "grid-cols-6" : "grid-cols-4"
+    ? canViewFinancialTabs ? "grid-cols-7" : "grid-cols-4"
     : canViewFinancialTabs ? "grid-cols-5" : "grid-cols-3";
 
   // --- Hooks ---
@@ -405,6 +422,11 @@ export default function NewClientModal({
                         )}
                       </TabsTrigger>
                     ))}
+                    {podeVerProposta && (
+                      <TabsTrigger value="proposta" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                        <FileSignature size={14} /> Proposta
+                      </TabsTrigger>
+                    )}
                     {editingClienteId && (
                       <TabsTrigger value="historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <History size={14} /> Histórico
@@ -482,6 +504,14 @@ export default function NewClientModal({
                         />
                       </TabsContent>
                     </>
+                  )}
+
+                  {podeVerProposta && (
+                    <TabsContent value="proposta" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
+                      {/* `editingClienteId` é garantido por `podeVerProposta`; o
+                          `!` evita alargar a prop da aba para aceitar nulo. */}
+                      <PropostaTab clienteId={editingClienteId!} />
+                    </TabsContent>
                   )}
 
                   {editingClienteId && (
