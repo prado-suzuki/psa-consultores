@@ -85,6 +85,16 @@ export const CadastroGovernancaPreview = () => {
             <span className="flex items-center gap-1.5">
               <EtiquetaOrigem origem="novo" /> precisa ser criado
             </span>
+            <span className="flex items-center gap-1.5">
+              <span className="rounded-full border border-osg-moss/40 bg-osg-moss/[0.07] px-2 py-0.5 text-[10.5px] leading-tight text-osg-moss">
+                vira cláusula
+              </span>
+              o campo é registrado no contrato social
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="font-mono text-[10px] text-muted-foreground">inteiro</span>
+              o tipo do campo, que o gerador usa para escrever o número por extenso
+            </span>
             <span className="ml-auto text-osg-300">Cliente fictício; a estrutura é a dos documentos reais.</span>
           </div>
 

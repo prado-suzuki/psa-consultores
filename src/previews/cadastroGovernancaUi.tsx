@@ -58,7 +58,27 @@ export const CampoLeitura = ({ campo }: { campo: Campo }) => {
     <div className="flex min-w-0 flex-col gap-1.5">
       <div className="flex items-baseline gap-2">
         <span className={labelCls}>{campo.rotulo}</span>
-        <span className="ml-auto">
+        {/*
+          O TIPO fica junto do rótulo, em monoespaçada miúda, porque ele é
+          informação de quem vai construir: é o tipo do vocabulário do gerador, e
+          é o que decide se o campo aceita número, data ou lista fechada. Sai de
+          propósito sem moldura, para não competir com a origem.
+        */}
+        {campo.tipo && campo.tipo !== 'texto' && (
+          <span className="shrink-0 font-mono text-[10px] text-muted-foreground">{campo.tipo}</span>
+        )}
+        <span className="ml-auto flex shrink-0 items-baseline gap-1.5">
+          {/*
+            O DESTINO só aparece quando o campo VIRA CLÁUSULA do contrato social.
+            "Só interno" é a maioria e ficaria como ruído repetido em quase toda
+            linha; a informação útil é o inverso, saber qual campo será registrado
+            na Junta Comercial e por isso não admite improviso.
+          */}
+          {campo.destino === 'contrato' && (
+            <span className="rounded-full border border-osg-moss/40 bg-osg-moss/[0.07] px-2 py-0.5 text-[10.5px] leading-tight text-osg-moss">
+              vira cláusula
+            </span>
+          )}
           <EtiquetaOrigem origem={campo.origem} tabela={campo.tabela} />
         </span>
       </div>
