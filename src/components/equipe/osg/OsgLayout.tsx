@@ -214,7 +214,15 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           'flex-shrink-0 sticky top-0 h-screen relative',
           // Só a largura anima (o `transition-all` de antes também pegava cor e
           // sombra). A curva é ease-out-quint: sai rápido e "pousa" devagar.
-          'transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          //
+          // A curva vai como propriedade arbitrária, e não pela utilitária
+          // `ease` com valor entre colchetes: naquela forma o Tailwind 3 não
+          // desambigua entre `transition-timing-function` e
+          // `animation-timing-function`, avisa no build e DESCARTA a classe. A
+          // barra vinha animando sem curva nenhuma — sem erro de build, de lint
+          // ou de tipo. Mesmo defeito que a duração das linhas de lista tinha.
+          'transition-[width] duration-500',
+          '[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]',
           'motion-reduce:transition-none',
           // 5rem, e não 4rem: ver docs/geral/sidebar-recolhe-em-tela-larga.md.
           classeLarguraBarra(collapsed),
