@@ -23,7 +23,8 @@ describe('os três casos em que o segundo segmento mente', () => {
    */
   it('/equipe/acessos é Digital, apesar do caminho dizer "acessos"', () => {
     expect(areaDaRota('/equipe/acessos')).toBe('digital');
-    expect(resolverTemaDaRota('/equipe/acessos')).toEqual([CLASSE_BASE]);
+    // Digital ainda não tem paleta própria: veste a de infraestrutura.
+    expect(resolverTemaDaRota('/equipe/acessos')).toEqual([CLASSE_BASE, 'sistema-theme']);
   });
 
   it('/equipe/chamados é Rotina, não uma área chamada "chamados"', () => {
@@ -67,12 +68,29 @@ describe('cobertura das rotas reais do App.tsx', () => {
     }
   });
 
-  it('Board e Dev ficam na base — decisão registrada, não esquecimento', () => {
+  it('Board e Dev são infraestrutura: grafite, não a cor da marca', () => {
     for (const rota of rotasDoApp()) {
       if (rota.startsWith('/equipe/board') || rota.startsWith('/equipe/dev')) {
-        expect(areaDaRota(rota)).toBe('base');
-        expect(resolverTemaDaRota(rota)).toEqual([CLASSE_BASE]);
+        expect(areaDaRota(rota)).toBe('sistema');
+        expect(resolverTemaDaRota(rota)).toEqual([CLASSE_BASE, 'sistema-theme']);
       }
+    }
+  });
+
+  /*
+   * O piso carrega a MARCA, e é isso que protege o que não está no mapa.
+   *
+   * A primeira versão desta etapa pintou o grafite no `.base-theme`. Como ele é
+   * aplicado em toda rota, o site institucional, o portal do cliente e a Gestão
+   * foram junto — o botão principal de psaconsultores.com.br virou grafite, e
+   * nenhuma variável fora das 7 previstas havia mudado: o defeito era de
+   * alcance, não de valor. Este teste é o que impede a inversão de voltar.
+   */
+  it('site público, portal do cliente e Gestão ficam com a cor da marca', () => {
+    for (const rota of ['/', '/missao', '/novidades', '/novidades/abc', '/ajuda',
+      '/cliente', '/cliente/chamados', '/gestao', '/gestao/chamados', '/auth']) {
+      expect(resolverTemaDaRota(rota), rota).toEqual([CLASSE_BASE]);
+      expect(areaDaRota(rota), rota).toBe('base');
     }
   });
 });
@@ -230,12 +248,48 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
     expect(contrato.size).toBe(41);
   });
 
-  const areas = Object.values(TEMA_DA_AREA).filter((c): c is string => c !== null);
+  /*
+   * Há DOIS tipos de tema, e a diferença não é descuido:
+   *
+   * · CONGELADO — declara as 41. São os que existiam quando o piso ainda ia
+   *   mudar de identidade: a Tax herdava 15 e a Rotina 40, e uma mudança no
+   *   base as repintaria em silêncio. Congelar cortou esse fio.
+   *
+   * · DELTA — declara só o que difere. Nasce DEPOIS do piso estar estável, e o
+   *   que ele herda (superfícies, texto, papéis de status, tags) ele quer
+   *   herdar mesmo. Copiar 34 valores só para mantê-los iguais seria ruído, e
+   *   ruído que sai de sincronia na primeira mudança do piso.
+   *
+   * O que o teste cobra de cada um é diferente, e é o ponto deste bloco.
+   */
+  const CONGELADOS = ['tax-theme', 'osg-theme', 'rotina-theme'];
+  const DELTAS = ['sistema-theme'];
 
-  it.each(areas)('.%s declara o contrato inteiro', (classe) => {
+  it('todo tema conhecido está classificado como congelado ou delta', () => {
+    const declarados = Object.values(TEMA_DA_AREA).filter((c): c is string => c !== null);
+    for (const classe of new Set(declarados)) {
+      expect(
+        [...CONGELADOS, ...DELTAS],
+        `.${classe} não está classificado — decida se é congelado ou delta`,
+      ).toContain(classe);
+    }
+  });
+
+  it.each(CONGELADOS)('.%s (congelado) declara o contrato inteiro', (classe) => {
     const declaradas = declaradasEm(css, `.${classe}`);
     const faltando = [...contrato].filter((v) => !declaradas.has(v));
     expect(faltando, `.${classe} herdaria da base: ${faltando.join(', ')}`).toEqual([]);
+  });
+
+  it.each(DELTAS)('.%s (delta) declara um subconjunto do contrato', (classe) => {
+    const declaradas = [...declaradasEm(css, `.${classe}`)];
+    // Não se cobra completude — cobra-se que não invente variável. Um
+    // `--primry` com erro de digitação não quebraria nada visível: a regra
+    // simplesmente não valeria, e a tela ficaria com a cor do piso.
+    const forasteiras = declaradas.filter((v) => !contrato.has(v));
+    expect(forasteiras, `.${classe} declara fora do contrato: ${forasteiras.join(', ')}`).toEqual([]);
+    expect(declaradas.length).toBeGreaterThan(0);
+    expect(declaradas.length).toBeLessThan(contrato.size);
   });
 
   it('--tool-icon segue o acento local, em vez de ser congelado', () => {

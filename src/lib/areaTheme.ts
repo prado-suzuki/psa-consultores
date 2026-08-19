@@ -30,19 +30,25 @@
 export const CLASSE_BASE = 'base-theme';
 
 /** Áreas do ponto de vista do TEMA (ver nota acima sobre `AreaKey`). */
-export type AreaDeTema = 'tax' | 'osg' | 'rotina' | 'digital' | 'base';
+export type AreaDeTema = 'tax' | 'osg' | 'rotina' | 'digital' | 'sistema' | 'base';
 
 /**
- * Classe de tema de cada área, ou `null` para "só a base".
+ * Classe de tema de cada área, ou `null` para "só o piso".
  *
- * `digital` aponta para `null` porque a área ainda não tem paleta própria — e
- * é aqui que ela ganha uma, quando ganhar, sem tocar no mapa de rotas.
+ * `base` é o fallback e aponta para `null` DE PROPÓSITO: rota não mapeada nasce
+ * com o piso, que carrega a cor da marca. É o padrão seguro — uma página
+ * pública nova sai teal em vez de sair grafite sem ninguém perceber.
+ *
+ * `digital` e `sistema` apontam para a mesma classe porque o Digital ainda não
+ * tem paleta própria e, por ora, é infraestrutura como Board e Dev. Quando
+ * ganhar identidade, é esta linha que muda — nada no mapa de rotas.
  */
 export const TEMA_DA_AREA: Record<AreaDeTema, string | null> = {
   tax: 'tax-theme',
   osg: 'osg-theme',
   rotina: 'rotina-theme',
-  digital: null,
+  digital: 'sistema-theme',
+  sistema: 'sistema-theme',
   base: null,
 };
 
@@ -76,7 +82,7 @@ export const MAPA_DE_ROTAS: RegraDeRota[] = [
   { prefixo: '/equipe/tax', area: 'tax' },
   { prefixo: '/equipe/osg', area: 'osg' },
 
-  // ── Digital: sem paleta própria ainda, cai na base ──────────────────
+  // ── Digital: sem paleta própria ainda, veste a de infraestrutura ────
   { prefixo: '/equipe/acessos', area: 'digital' },
   { prefixo: '/equipe/digital', area: 'digital' },
 
@@ -97,12 +103,13 @@ export const MAPA_DE_ROTAS: RegraDeRota[] = [
   // Redirecionam para /equipe/kanban; mapeadas para não piscar de tema no meio.
   { prefixo: '/equipe/tarefas', area: 'rotina' },
 
-  // ── Sem área própria hoje: Board e Dev vão para a base ──────────────
-  // Não é esquecimento: é a decisão de olhar o grafite da base aplicado antes
-  // de decidir se elas pertencem à Rotina. Estão aqui, e não no fallback, para
-  // que essa decisão seja uma troca de palavra nesta linha.
-  { prefixo: '/equipe/board', area: 'base' },
-  { prefixo: '/equipe/dev', area: 'base' },
+  // ── Infraestrutura: grafite ─────────────────────────────────────────
+  // Telas que servem o sistema, nao uma area de negocio. Enumeradas aqui de
+  // propósito: esta lista é finita e conhecida, enquanto o site público (que
+  // fica no piso) é o que ganha rota nova. Enumerar o que cresce apodrece.
+  // Se um dia Board ou Dev pertencerem à Rotina, é trocar a palavra na linha.
+  { prefixo: '/equipe/board', area: 'sistema' },
+  { prefixo: '/equipe/dev', area: 'sistema' },
 ];
 
 /** Regras da mais específica para a menos — prefixo mais longo vence. */

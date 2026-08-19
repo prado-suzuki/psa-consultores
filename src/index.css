@@ -606,6 +606,45 @@ All colors MUST be HSL.
     --popover-foreground: 20 81% 10%;
   }
 
+  /* ─── .sistema-theme — grafite quente para as telas de infraestrutura ────
+     Board, Dev, Digital e Acessos. Telas que servem o sistema, não uma área de
+     negócio: elas não devem competir com a Tax nem com a OSG, e até aqui eram
+     indistinguíveis da Tax, porque o piso é o teal institucional.
+
+     DELTA PURO — declara 7 variáveis, não 41, e isso é de propósito.
+     É a diferença entre este bloco e `.tax-theme`/`.rotina-theme`, que foram
+     CONGELADOS no contrato inteiro. Aquelas duas precisaram do congelamento
+     porque herdavam de um piso que ia mudar de identidade. Este nasce depois do
+     piso estar estável, e o que ele quer do piso — superfícies, texto, papéis de
+     status, tags — ele quer mesmo: herdar é o comportamento correto aqui.
+     Congelá-lo seria copiar 34 valores só para mantê-los iguais.
+
+     `--tool-icon` não aparece: o `.base-theme` o declara como `var(--primary)`,
+     e essa referência viva resolve contra o `--primary` daqui. O ícone de
+     ferramenta vira grafite sozinho.
+
+     POR QUE O GRAFITE NÃO FOI PARA O PISO. Foi a primeira tentativa, e o alcance
+     reprovou: o `.base-theme` é aplicado em TODA rota, então o site institucional
+     (`/`, `/novidades`, `/ajuda`), o portal do cliente e a Gestão iam junto — o
+     botão principal de psaconsultores.com.br virava grafite. O piso tem que ser
+     o padrão seguro, e o padrão seguro é a cor da marca: rota nova nasce teal.
+     Enumera-se a infraestrutura, que é finita e conhecida, e não o site público,
+     que é justamente a parte que ganha rota nova.
+
+     Quente (matiz 35) e não frio (~210): o canvas da base é marfim
+     (42 24% 99.8%) e o texto é marrom (20 81% 10%) — um grafite azulado brigaria
+     com os dois. Saturação de 10% mantém o tom quase neutro: é acento por
+     contraste de luminosidade, não por cor. Branco sobre ele dá 9,72:1. */
+  .sistema-theme {
+    --primary: 35 10% 26%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 35 10% 26%;
+    --accent: 35 10% 26%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 35 10% 26%;
+    --tool-icon-bg: 35 20% 94%;
+  }
+
   /* Hover das linhas de tabela na área OSG: marrom/areia claro (osg-50)
      no lugar do cinza padrão (muted). */
   .osg-theme tbody tr:hover {
