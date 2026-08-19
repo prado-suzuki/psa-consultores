@@ -86,12 +86,22 @@ export function CommentComposer({
 
   return (
     <div
-      className={cn('relative rounded-xl border bg-background p-3 shadow-sm', compact && 'mt-3')}
+      className={cn(
+        'relative rounded-xl border bg-background p-3 shadow-sm',
+        // O campo de resposta é ESTADO, não decoração: ele existe só enquanto se
+        // responde, então é ele que carrega o acento da área. Antes tinha o
+        // `bg-background` — que vale o MESMO que `--card`, a superfície do bloco
+        // do feed em volta — e a borda base `220 13% 91%`, um cinza azulado que
+        // nenhuma área redeclara: ~1,2:1 contra o entorno, quando um contorno de
+        // componente precisa de 3:1 para ser visto. Some na tela, e foi assim que
+        // ele foi encontrado ("quase não enxerguei").
+        compact && 'mt-3 border-primary shadow-md ring-2 ring-primary/10',
+      )}
       onDragOver={(event) => event.preventDefault()}
       onDrop={handleDrop}
     >
       {replyingToName && (
-        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+        <p className="mb-2 flex items-center gap-1.5 text-[11px] font-medium text-primary">
           <Reply className="h-3.5 w-3.5" aria-hidden />
           Respondendo a {primeiroNome(replyingToName)}
         </p>
