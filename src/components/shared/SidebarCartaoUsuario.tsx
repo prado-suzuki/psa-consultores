@@ -30,7 +30,7 @@ const TONS = {
   /**
    * Áreas ainda em slate cru (Administração e Fixos), cujas barras são
    * `bg-white` fixo. Trocá-las por token aqui tingiria o chip (o `--muted` base
-   * é `--tax-50`) e o escureceria no tema escuro dentro de uma barra que
+   * é `--base-50`) e o escureceria no tema escuro dentro de uma barra que
    * continuaria branca — é migração de paleta, não correção de corte.
    */
   slate: {

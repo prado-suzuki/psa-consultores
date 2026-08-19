@@ -179,14 +179,14 @@ export default {
           c: 'hsl(var(--tag-c) / <alpha-value>)',
           d: 'hsl(var(--tag-d) / <alpha-value>)',
         },
-        tax: {
-          50: 'hsl(var(--tax-50) / <alpha-value>)',
-          100: 'hsl(var(--tax-100) / <alpha-value>)',
-          200: 'hsl(var(--tax-200) / <alpha-value>)',
-          300: 'hsl(var(--tax-300) / <alpha-value>)',
-          500: 'hsl(var(--tax-500) / <alpha-value>)',
-          600: 'hsl(var(--tax-600) / <alpha-value>)',
-          700: 'hsl(var(--tax-700) / <alpha-value>)',
+        base: {
+          50: 'hsl(var(--base-50) / <alpha-value>)',
+          100: 'hsl(var(--base-100) / <alpha-value>)',
+          200: 'hsl(var(--base-200) / <alpha-value>)',
+          300: 'hsl(var(--base-300) / <alpha-value>)',
+          500: 'hsl(var(--base-500) / <alpha-value>)',
+          600: 'hsl(var(--base-600) / <alpha-value>)',
+          700: 'hsl(var(--base-700) / <alpha-value>)',
         },
         osg: {
           50: 'hsl(var(--osg-50) / <alpha-value>)',

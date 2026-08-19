@@ -25,17 +25,21 @@ All colors MUST be HSL.
     --popover: 42 24% 99.8%;
     --popover-foreground: 20 81% 10%;
 
-    /* Teal - Cor protagonista #0d9488 */
+    /* Teal institucional #0D877C — protagonista.
+       NÃO é o #0d9488 (teal-600 do Tailwind, que é 175 84% 32%): o comentário
+       antigo aqui dizia isso e estava errado. O institucional é este valor,
+       escolhido a dedo; o #0d9488 cravado em ~49 pontos do JSX é dívida a
+       migrar para o token. */
     --primary: 175 82% 29%;
     --primary-foreground: 0 0% 100%;
 
-    /* Teal - Cor complementar #0D9488 */
+    /* Teal institucional #0D877C — complementar. */
     --secondary: 175 82% 29%;
     --secondary-foreground: 0 0% 100%;
 
     /* "muted" (barras de filtro, cabeçalho de tabela, zebra, fundo do FiscalLayout):
        marfim tax-50 no lugar do cinza-azulado. */
-    --muted: var(--tax-50);
+    --muted: var(--base-50);
     /* Neutro secundario (icone de menu, rotulo inativo, legenda, subtitulo).
        Era matiz 220 — cinza-AZULADO — sobre superficies marfim/bege: a camada
        secundaria inteira do sistema destoava da temperatura das superficies.
@@ -177,17 +181,24 @@ All colors MUST be HSL.
     --lime-500: 85 85% 37%;
     --lime-600: 85 88% 30%;
     
-    /* Tax neutro — marfim/aveia quente (fundo que casa com o teal).
-       Mesma lógica da OSG: o neutro NÃO é uma versão dessaturada do accent;
-       é uma matiz quente que faz o teal (accent) saltar. Escala do claro (fundos)
-       ao escuro (texto/detalhe), análoga à escala osg. */
-    --tax-50: 42 26% 98%;
-    --tax-100: 40 24% 94%;
-    --tax-200: 38 25% 83%;
-    --tax-300: 34 20% 66%;
-    --tax-500: 32 16% 42%;
-    --tax-600: 30 18% 32%;
-    --tax-700: 28 20% 24%;
+    /* Neutro da BASE — marfim/aveia quente (fundo que faz o teal saltar).
+       Mesma lógica da OSG: o neutro NÃO é uma versão dessaturada do accent; é
+       uma matiz quente própria. Escala do claro (fundos) ao escuro
+       (texto/detalhe), análoga à escala osg.
+
+       Chamava-se `--tax-*` e o nome estava errado: a matiz 42 é a das
+       superfícies da BASE (`--background: 42 24% 99.8%`), não a da Tax — que
+       depois moveu as superfícies dela para o frio (170) e passou a declarar o
+       próprio `--muted: 168 20% 97%`. Ou seja, a escala nunca foi consumida
+       pela Tax; ela alimenta o `--muted` da base e do `.base-theme`, e só.
+       Renomeada sem mexer em valor: nenhuma tela muda de cor. */
+    --base-50: 42 26% 98%;
+    --base-100: 40 24% 94%;
+    --base-200: 38 25% 83%;
+    --base-300: 34 20% 66%;
+    --base-500: 32 16% 42%;
+    --base-600: 30 18% 32%;
+    --base-700: 28 20% 24%;
 
     /* OSG accent — taupe/brown (versão mais escura) */
     --osg-50: 32 28% 92%;
@@ -229,6 +240,90 @@ All colors MUST be HSL.
     --sidebar-ring: 85 85% 37%;
   }
 
+  /* ─── .base-theme — o contrato completo, e o piso de todo tema ──────────
+     ⚠️ ESTE BLOCO TEM QUE VIR ANTES DE .tax-theme, .osg-theme E .rotina-theme.
+     As classes de tema convivem no MESMO <html> e todas têm a mesma
+     especificidade (0-1-0): quem vence é quem vem depois no arquivo. Mover
+     este bloco para baixo faz o base sobrescrever as áreas e apaga a
+     identidade de todas elas de uma vez, sem erro de build.
+
+     O resolvedor (`src/lib/areaTheme.ts`) aplica SEMPRE `base-theme`, e por
+     cima dele a classe da área quando existe. Com isso o base é o único lugar
+     que precisa declarar o contrato inteiro (as 41 variáveis que a `.osg-theme`
+     declara) e a área passa a ser só o DELTA: a `.tax-theme` declara 26, a
+     `.rotina-theme` declara 1, e nenhuma das duas precisa copiar o resto.
+
+     Foi a falta desse piso que criou o anel lime: sem ninguém declarando
+     `--ring`, a Tax herdava o `85 85% 37%` do `:root` e o foco saía
+     verde-limão ao lado de um botão teal.
+
+     Os valores são os do `:root`, copiados como estão — zero mudança visual.
+     UMA exceção, deliberada: `--ring` vem do `--primary` em vez do lime. É a
+     única regressão visual aceita da mudança, e é a correção. */
+  .base-theme {
+    /* Acento e marca */
+    --accent: 175 82% 29%;
+    --accent-foreground: 0 0% 100%;
+    --primary: 175 82% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 175 82% 29%;
+    --secondary-foreground: 0 0% 100%;
+    /* Anel de foco = acento. O `:root` traz lime (85 85% 37%), herança de uma
+       paleta anterior; é o valor que este bloco existe para corrigir. */
+    --ring: 175 82% 29%;
+
+    /* Status semânticos */
+    --success: 160 84% 30%;
+    --warning: 38 92% 50%;
+
+    /* Papéis de status — são os valores ORIGINAIS do sistema, anteriores à
+       separação por área. O :root era o tema único; depois foi readaptado para
+       a Tax, e só então a OSG ganhou o seu. Por isso a base se parece com a Tax:
+       ela É a origem da Tax, não um meio-termo entre as áreas.
+       Copiados aqui como estão, sem alteração. Se um dia a base ganhar identidade
+       própria, é neste bloco — e aí deixa de ser herança e passa a ser escolha. */
+    --status-neutro: 48 22% 30%;
+    --status-neutro-soft: 48 22% 86%;
+    --status-fila: 122 28% 33%;
+    --status-fila-soft: 122 28% 87%;
+    --status-andamento: 100 38% 27%;
+    --status-andamento-soft: 100 38% 86%;
+    --status-revisao: 111 32% 17%;
+    --status-revisao-soft: 111 32% 86%;
+    --status-espera: 32 34% 20%;
+    --status-espera-soft: 32 34% 86%;
+    --status-ajuste: 343 50% 24%;
+    --status-ajuste-soft: 343 50% 86%;
+    --status-feito: 89 40% 17%;
+    --status-feito-soft: 89 40% 86%;
+    --status-alerta: 54 58% 20%;
+    --status-alerta-soft: 54 58% 86%;
+
+    /* Tons categóricos (chip de tag + série de gráfico) */
+    --tag-a: 112 64% 24%;
+    --tag-b: 211 60% 33%;
+    --tag-c: 289 78% 40%;
+    --tag-d: 339 84% 40%;
+
+    /* Ícone de ferramenta/card */
+    --tool-icon: var(--primary);
+    --tool-icon-bg: 175 60% 95%;
+
+    /* Superfícies */
+    --background: 42 24% 99.8%;
+    --card: 42 24% 99.8%;
+    --popover: 42 24% 99.8%;
+    --canvas: 42 22% 99%;
+    --muted: var(--base-50);
+    --muted-foreground: 28 9% 45%;
+    --destructive: 0 84% 60%;
+
+    /* Texto */
+    --foreground: 20 81% 10%;
+    --card-foreground: 20 81% 10%;
+    --popover-foreground: 20 81% 10%;
+  }
+
   /* Tema da área Tax: o teal #0d9488 da marca é a cor da área — a mesma da barra
      de progresso. Aplicado no <html> pelo FiscalLayout, então alcança menus e
      modais renderizados em portal, igual ao .osg-theme.
@@ -251,7 +346,7 @@ All colors MUST be HSL.
      2. Os quentes deixaram de ser "vocabulário comum". Eram carmim + dourado
         idênticos aos da OSG (1° a 6° de distância, 0 ponto de luminosidade), e
         por isso as duas legendas liam como a mesma paleta. Agora a Tax fala
-        tijolo (7–12) e ocre (30–36), afinados com a escala --tax-*, e cai num
+        tijolo (7–12) e ocre (30–36), afinados com a escala --base-*, e cai num
         registro de luminosidade próprio: ajuste/revisao/feito escuros contra os
         equivalentes claros da OSG.
 
