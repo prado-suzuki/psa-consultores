@@ -14,6 +14,7 @@ import {
 } from '@/hooks/useOrgTasks';
 import { AreaKey } from '@/config/areaCategories';
 import { useDashboardProjectIds } from '@/hooks/useDashboardProjectIds';
+import { useGerarTarefasProjeto } from '@/hooks/useGerarTarefasProjeto';
 import { useProjetosCadastroController } from '@/hooks/useProjetosCadastroController';
 import { useOrgProjectOrders } from '@/hooks/useOrgProjectOrders';
 import { ProjetosCadastroContext } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
@@ -118,6 +119,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   );
   const { data: allTasks = [], isLoading: isTasksLoading } = useOrgTasks(deepLinkTaskId ? {} : queryFilters);
   const deleteTask = useDeleteOrgTask(area);
+  const gerarTarefasProjeto = useGerarTarefasProjeto();
 
   const { data: clusterId, isLoading: isClusterLoading } = useClusterIdByPageCategory(area);
   const { data: teamMembers = [] } = useTeamMembersForTasks(clusterId ?? undefined);
@@ -407,6 +409,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 onClearFilters={() => setFilters({})}
                 onEditProject={projectController.handleOpenModal}
                 onDeleteProject={projectController.setDeleteProjectId}
+                onGerarTarefas={project => gerarTarefasProjeto.mutate({ projectId: project.id, projectName: project.name })}
                 onNewTask={handleNewTask}
                 onEditTask={handleEditTask}
                 onDeleteTask={handleDeleteTask}

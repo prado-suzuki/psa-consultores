@@ -16,6 +16,7 @@ import {
   FilterX,
   FolderInput,
   FolderKanban,
+  ListPlus,
   MoreHorizontal,
   Plus,
   Trash2,
@@ -69,6 +70,14 @@ interface ProjetosTarefasListProps {
   onClearFilters?: () => void;
   onEditProject: (project: OrgProject) => void;
   onDeleteProject: (projectId: string) => void;
+  /**
+   * Redisparo da geração de tarefas do produto num projeto que já existe.
+   *
+   * A geração acontece sozinha ao criar o projeto; isto é para o projeto criado
+   * antes de o catálogo do produto existir, e para o catálogo que ganhou item
+   * novo depois. A chamada é idempotente: rodar de novo não duplica nada.
+   */
+  onGerarTarefas: (project: OrgProject) => void;
   onNewTask: (projectId?: string) => void;
   onEditTask: (task: OrgTask) => void;
   onDeleteTask: (taskId: string) => void;
@@ -178,6 +187,7 @@ export function ProjetosTarefasList({
   onClearFilters,
   onEditProject,
   onDeleteProject,
+  onGerarTarefas,
   onNewTask,
   onEditTask,
   onDeleteTask,
@@ -444,10 +454,17 @@ export function ProjetosTarefasList({
                 <span className="shrink-0">{completedTasksLabel(projectNode.completedTaskCount, projectNode.taskCount)}</span>
               </div>
               <div className="flex items-center justify-center">{projectNode.project && <DropdownMenu>
-                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Ações do projeto" className="h-7 w-7 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => onNewTask(projectNode.project!.id)}><Plus className="mr-2 h-4 w-4" />Nova tarefa</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onEditProject(projectNode.project!)}><Edit3 className="mr-2 h-4 w-4" />Editar projeto</DropdownMenuItem>
+                  {/* Redisparo da geração de tarefas do produto. Existe porque a
+                      geração automática só alcança projeto criado DEPOIS dela —
+                      e porque o catálogo do produto ganha item novo com o tempo.
+                      Idempotente: a segunda chamada não cria nada. */}
+                  <DropdownMenuItem onClick={() => onGerarTarefas(projectNode.project!)}>
+                    <ListPlus className="mr-2 h-4 w-4" />Gerar tarefas do produto
+                  </DropdownMenuItem>
                   {/* Consolidar projeto legado no projeto certo: leva a carteira
                       inteira de uma vez, sem marcar tarefa por tarefa. */}
                   {projectTaskIds.length > 0 && <DropdownMenuItem onClick={() => onMoveProjectTasks(projectTaskIds)}>

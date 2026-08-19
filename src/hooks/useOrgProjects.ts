@@ -356,6 +356,23 @@ async function insertProjectWithMembers(data: OrgProjectFormData, userId: string
     entity_name: data.name, action: 'created',
   });
 
+  // Abrir a demanda passa a gerar as tarefas-pai do produto contratado. Aqui, e
+  // não no `onSuccess` das mutações: o lote tem UM sucesso para N projetos e só
+  // devolve contagens — os ids dos projetos criados não sobrevivem até lá. Neste
+  // ponto os dois caminhos (avulso e lote) passam pela mesma função.
+  try {
+    const { error: erroGeracao } = await supabase.rpc('gerar_tarefas_projeto', {
+      _project_id: project.id,
+    });
+    if (erroGeracao) throw erroGeracao;
+  } catch (erroGeracao) {
+    // Não desfaz o projeto já criado e auditado: a RPC é idempotente e há
+    // redisparo manual no menu do projeto. A alternativa — propagar — faria a
+    // guarda de escopo da geração de tarefa derrubar a criação de projeto, que é
+    // a operação que o usuário realmente pediu.
+    console.error('Erro ao gerar tarefas do projeto:', project.id, erroGeracao);
+  }
+
   return project;
 }
 
@@ -368,6 +385,9 @@ export const useCreateOrgProject = () => {
     mutationFn: (data: OrgProjectFormData) => insertProjectWithMembers(data, user?.id || null, logAction),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['org-projects'] });
+      // As tarefas geradas na criação (ver insertProjectWithMembers) só aparecem
+      // sem recarregar a página se o prefixo de tarefas também for invalidado.
+      queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
       toast.success('Projeto criado com sucesso');
     },
     onError: (error) => {
@@ -407,6 +427,9 @@ export const useCreateOrgProjectsBatch = () => {
     },
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['org-projects'] });
+      // Idem ao avulso: a geração acontece dentro de insertProjectWithMembers,
+      // uma vez por projeto do lote.
+      queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
       const total = result.created + result.failures.length;
       if (result.failures.length === 0) {
         toast.success(`${result.created} projeto${result.created !== 1 ? 's' : ''} criado${result.created !== 1 ? 's' : ''} com sucesso`);

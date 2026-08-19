@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import type { OrgProject } from '@/hooks/useOrgProjects';
 import type { OrgTask } from '@/hooks/useOrgTasks';
@@ -27,6 +28,7 @@ function renderList(props: Partial<Parameters<typeof ProjetosTarefasList>[0]> = 
       search=""
       onEditProject={noop}
       onDeleteProject={noop}
+      onGerarTarefas={noop}
       onNewTask={noop}
       onEditTask={noop}
       onDeleteTask={noop}
@@ -102,6 +104,38 @@ describe('ProjetosTarefasList — coluna Esforço', () => {
 
     expect(screen.getByText('2,5h')).toBeInTheDocument();
     expect(screen.queryByText(/sem horas/i)).not.toBeInTheDocument();
+  });
+});
+
+describe('ProjetosTarefasList — redisparo da geração de tarefas', () => {
+  it('o menu do projeto oferece gerar as tarefas do produto, com o projeto inteiro', async () => {
+    const user = userEvent.setup();
+    const onGerarTarefas = vi.fn();
+    renderList({ projects: [projeto], onGerarTarefas });
+
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    await user.click(screen.getByRole('button', { name: 'Ações do projeto' }));
+    await user.click(screen.getByRole('menuitem', { name: /Gerar tarefas do produto/ }));
+
+    // O projeto inteiro, e não só o id: a auditoria da mutação precisa do nome.
+    expect(onGerarTarefas).toHaveBeenCalledWith(projeto);
+  });
+
+  it('fica entre editar e mover, não no fim do menu junto do excluir', async () => {
+    const user = userEvent.setup();
+    renderList({ projects: [projeto], tasks: [tarefa('Coleta')] });
+
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    await user.click(screen.getByRole('button', { name: 'Ações do projeto' }));
+
+    const itens = screen.getAllByRole('menuitem').map(item => item.textContent);
+    expect(itens).toEqual([
+      'Nova tarefa',
+      'Editar projeto',
+      'Gerar tarefas do produto',
+      'Mover as 1 tarefas para outro projeto',
+      'Excluir projeto',
+    ]);
   });
 });
 

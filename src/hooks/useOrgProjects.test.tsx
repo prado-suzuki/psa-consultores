@@ -4,9 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
 import { makeHookWrapper } from '@/test/queryWrapper';
 import { mockSupabaseChain } from '@/test/supabaseMock';
-import { useOrgProjects, useOrgProjectsList } from './useOrgProjects';
+import { useCreateOrgProject, useOrgProjects, useOrgProjectsList, type OrgProjectFormData } from './useOrgProjects';
 
-vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn() } }));
+vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn(), rpc: vi.fn() } }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1' } }) }));
 vi.mock('@/hooks/useAuditLog', () => ({ useAuditLog: () => ({ logAction: vi.fn() }) }));
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
@@ -121,6 +121,87 @@ describe('escopo de ambiente dos projetos', () => {
 
       await waitFor(() => expect(result.current.isSuccess).toBe(true));
       expect(result.current.data?.[0].servico_contratado).toBe('AF — Atendimento a fiscalizações');
+    });
+  });
+
+  /**
+   * Abrir a demanda dispara a geração das tarefas do produto (ALE-7).
+   *
+   * A chamada vive em `insertProjectWithMembers`, e não no `onSuccess`: o lote
+   * tem um sucesso para N projetos e só devolve contagens, então os ids não
+   * chegariam lá. Estes testes cobrem o contrato dessa chamada e — o mais
+   * importante — que a falha dela não derruba a criação do projeto.
+   */
+  describe('geração de tarefas na criação do projeto', () => {
+    const formulario = {
+      name: 'Fazenda Horizonte — CHA',
+      description: '',
+      status: 'active',
+      start_date: '',
+      end_date: '',
+      leader_ids: [],
+      responsible_id: '',
+      external_client_id: 'cli-daqui',
+      estrutura_area_id: '',
+      equipe_id: '',
+      is_multidisciplinar: false,
+      member_ids: [],
+      ordem_servico_id: '',
+      servico_id: '',
+      produto_segmento_id: 'prd-b',
+    } satisfies OrgProjectFormData;
+
+    beforeEach(() => {
+      vi.mocked(supabase.from).mockReset();
+      vi.mocked(supabase.rpc).mockReset();
+      // Insert do projeto devolvendo o id; sem membros, a segunda tabela não é
+      // tocada (buildMembersList devolve lista vazia).
+      const chain = mockSupabaseChain({ data: { id: 'proj-novo' }, error: null });
+      vi.mocked(supabase.from).mockImplementation(((): unknown => chain) as never);
+    });
+
+    it('chama a RPC com o id do projeto recém-criado', async () => {
+      vi.mocked(supabase.rpc).mockResolvedValue({ data: 3, error: null } as never);
+      const { result } = renderHook(() => useCreateOrgProject(), { wrapper: makeHookWrapper() });
+
+      result.current.mutate(formulario);
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(supabase.rpc).toHaveBeenCalledWith('gerar_tarefas_projeto', { _project_id: 'proj-novo' });
+    });
+
+    it('RPC recusada NÃO derruba a criação: o projeto fica, e o erro vai só ao console', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.mocked(supabase.rpc).mockResolvedValue({
+        data: null,
+        error: { message: 'projeto fora do seu escopo', code: '42501' },
+      } as never);
+      const { result } = renderHook(() => useCreateOrgProject(), { wrapper: makeHookWrapper() });
+
+      result.current.mutate(formulario);
+
+      // A mutação conclui em SUCESSO: quem pediu criou o projeto, e é o projeto
+      // que ela devolve. A geração de tarefa é efeito, não requisito.
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(result.current.data).toEqual({ id: 'proj-novo' });
+      expect(consoleError).toHaveBeenCalledWith(
+        'Erro ao gerar tarefas do projeto:',
+        'proj-novo',
+        expect.objectContaining({ code: '42501' }),
+      );
+      consoleError.mockRestore();
+    });
+
+    it('RPC lançando exceção de rede também não derruba a criação', async () => {
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      vi.mocked(supabase.rpc).mockRejectedValue(new Error('Failed to fetch'));
+      const { result } = renderHook(() => useCreateOrgProject(), { wrapper: makeHookWrapper() });
+
+      result.current.mutate(formulario);
+
+      await waitFor(() => expect(result.current.isSuccess).toBe(true));
+      expect(consoleError).toHaveBeenCalled();
+      consoleError.mockRestore();
     });
   });
 

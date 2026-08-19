@@ -5,6 +5,7 @@ import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAre
 import { useAssignTicket, useUpdateTicketDeadline, useDeleteTickets } from '@/hooks/useTicketMutations';
 import { GestaoLayout } from '@/components/gestao/GestaoLayout';
 import { CreateTicketDialog } from '@/components/gestao/CreateTicketDialog';
+import { ClienteSemProjetoChamadosAlert } from '@/components/gestao/ClienteSemProjetoChamadosAlert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -124,6 +125,12 @@ export function ChamadosGestaoContent({ basePath }: ChamadosGestaoContentProps) 
   const [selectedTickets, setSelectedTickets] = useState<string[]>([]);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  // Cliente do último chamado delegado nesta sessão da tela. É o que dá assunto
+  // ao aviso de "cliente sem projeto de canal de chamados": sem guardar quem
+  // acabou de ser delegado, não há a quem se referir.
+  const [ultimoClienteDelegado, setUltimoClienteDelegado] = useState<
+    { id: string; nome: string | null } | null
+  >(null);
   const [filters, setFilters] = useState({
     periodo: 'todas',
     status: 'todos',
@@ -243,12 +250,20 @@ export function ChamadosGestaoContent({ basePath }: ChamadosGestaoContentProps) 
 
   const handleAssignAgent = async (ticketId: string, agentId: string | null) => {
     const agent = agents.find(a => a.id === agentId);
+    const ticket = tickets.find(t => t.id === ticketId);
     try {
       await assignTicket.mutateAsync({
         ticketId,
         agentId,
         agentName: agent ? `${agent.first_name} ${agent.last_name}` : null,
       });
+      // Só delegação gera tarefa: remover a atribuição não gera nada e, por
+      // isso, também não tem lacuna a avisar — o estado volta a nulo.
+      setUltimoClienteDelegado(
+        agentId && ticket?.cliente_id
+          ? { id: ticket.cliente_id, nome: ticket.cliente_nome ?? null }
+          : null,
+      );
       toast({
         title: 'Agente atribuído',
         description: agentId 
@@ -354,6 +369,13 @@ export function ChamadosGestaoContent({ basePath }: ChamadosGestaoContentProps) 
 
   return (
     <>
+      {/* Delegou e o cliente não tem projeto de canal de chamados: a tarefa da
+          EDU-11 não nasceu, e só este aviso conta isso. */}
+      <ClienteSemProjetoChamadosAlert
+        clienteId={ultimoClienteDelegado?.id}
+        clienteNome={ultimoClienteDelegado?.nome}
+      />
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <Card>
