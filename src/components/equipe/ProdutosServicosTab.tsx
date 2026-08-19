@@ -341,8 +341,23 @@ export default function ProdutosServicosTab() {
   return (
     <div className="flex min-h-[70vh] flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
+        {/*
+          O texto anterior — "define quais serviços aparecem ao cadastrar
+          projetos" — descrevia a premissa de 09/08/2026, em que `produto_servico`
+          era taxonomia de escopo e nada mais. A sprint reverteu isso em
+          18/08/2026: `gerar_tarefas_projeto` passou a ler esta tabela, e agora
+          marcar aqui decide se um projeto NOVO nasce com aquela tarefa.
+
+          A última oração não é conforto, é o que destrava a tela: sem ela a
+          pessoa fica na dúvida se desmarcar mexe no que já existe, e não mexe em
+          nada. Tela de curadoria que ninguém ousa editar não serve para nada.
+          Verificado no banco: a geração não insere quando o projeto já tem
+          tarefa de nível superior para o serviço, e desvincular não apaga tarefa
+          já gerada.
+        */}
         <p className="text-xs text-muted-foreground">
-          O vínculo define quais serviços aparecem ao cadastrar projetos do produto.
+          O vínculo define os serviços do produto. Cada serviço vinculado vira uma tarefa em
+          projetos novos desse produto — projetos já criados não mudam.
         </p>
         <span className="shrink-0 text-xs text-muted-foreground">Salvo automaticamente</span>
       </div>
