@@ -20,7 +20,12 @@ export interface ParteExtraDraft {
   pessoaId: string | null;
 }
 
-export const TIPOS_INSTRUMENTO_ORIGEM = ['Parceria', 'Arrendamento', 'Herança', 'Outro'];
+// "Composse" entrou em 19/08/2026: a cadeia de origem não é exclusiva de
+// composse virar parceria — uma composse também pode ser a origem de uma nova
+// parceria (ex.: os compossuidores decidem ceder o uso a novos outorgados).
+// Sem contrato real lido confirmando esse encadeamento específico ainda — é
+// extensão por analogia com o padrão Parceria→Composse, que esse sim é confirmado.
+export const TIPOS_INSTRUMENTO_ORIGEM = ['Parceria', 'Composse', 'Arrendamento', 'Herança', 'Outro'];
 
 export interface ExploracaoImovelDraft {
   id: string;
@@ -53,9 +58,15 @@ export interface ExploracaoRuralDraft {
   // 14/08/2026: havia um campo de matrícula única aqui, desconectado da lista,
   // que duplicava a mesma informação sem sincronia.
 
-  // Partes — existe
-  outorganteId: string | null;
-  exploradorId: string | null;
+  // Partes — existe, mas em grão errado: um único outorgante e um único
+  // explorador. [BV-PAR] mostra 1 outorgante e 3 outorgados numa parceria só
+  // — por isso os dois lados viraram lista, igual à composse. `fracao` aqui é
+  // a distribuição *dentro* do próprio lado (quem leva quanto dos 90%/70%
+  // etc. que cabem a este lado como um todo) — não confundir com
+  // `percentualOutorgante`/`percentualExplorador` abaixo, que é o corte entre
+  // os dois lados.
+  outorgantes: CompossuidorDraft[];
+  exploradores: CompossuidorDraft[];
   // Partes — novo
   compossuidores: CompossuidorDraft[];
   partesExtras: ParteExtraDraft[];
@@ -98,8 +109,8 @@ export function emptyExploracaoDraft(tipo: TipoExploracao = 'parceria'): Explora
     declaradoIrpf: false,
     vigenciaProrrogavel: true,
     prazoRenovacaoVigencia: '',
-    outorganteId: null,
-    exploradorId: null,
+    outorgantes: [],
+    exploradores: [],
     compossuidores: [],
     partesExtras: [],
     percentualOutorgante: '',
@@ -259,7 +270,7 @@ export interface ExploracaoListaItemFixture {
 }
 
 export const explosacoesListaFixture: ExploracaoListaItemFixture[] = [
-  { id: 'er-01', ref: 'ER 01', tipo: 'parceria', imovelResumo: 'Fazenda Boa Vista · Mat. 2.424', areaResumo: '234,00 / 200,68 ha', partesResumo: 'Modelo Agro Ltda. → José da Silva', vigenciaResumo: '2022–2025', situacao: 'vigente' },
+  { id: 'er-01', ref: 'ER 01', tipo: 'parceria', imovelResumo: 'Fazenda Boa Vista · Mat. 2.424', areaResumo: '234,00 / 200,68 ha', partesResumo: 'Modelo Agro Ltda. → José da Silva + Maria Souza (70/30)', vigenciaResumo: '2022–2025', situacao: 'vigente' },
   { id: 'er-02', ref: 'ER 02', tipo: 'composse', imovelResumo: 'Fazenda Boa Vista · Mat. 2.424', areaResumo: '234,00 / 200,68 ha', partesResumo: 'José da Silva + Maria Souza (50/50)', vigenciaResumo: '2022–2025', situacao: 'vigente' },
   { id: 'er-03', ref: 'ER 03', tipo: 'composse', imovelResumo: 'Fazenda Cristal · Mat. 2.628', areaResumo: '225,54 / 225,54 ha', partesResumo: 'José da Silva + 2 compossuidores (70/15/15)', vigenciaResumo: '2020–2027', situacao: 'vigente' },
   { id: 'er-04', ref: 'ER 04', tipo: 'parceria', imovelResumo: 'Sítio Vencido · Mat. 1.010', areaResumo: '80,00 / 80,00 ha', partesResumo: 'Modelo Agro Ltda. → Antigo Parceiro', vigenciaResumo: '2018–2021', situacao: 'vencido' },

@@ -22,7 +22,10 @@ import type { CompossuidorDraft, ExploracaoRuralDraft, ParteExtraDraft } from '@
 // campo de matrícula única aqui, desconectado da lista, duplicando a mesma
 // informação sem sincronia.
 
-const PAPEIS_PARTE_EXTRA = ['Outorgante adicional', 'Explorador adicional', 'Anuente', 'Interveniente', 'Garantidor', 'Outro (definir com Bernardo)'];
+// Sem mais "Outorgante/Explorador adicional" aqui: viraram lista própria com
+// fração (ver PartesFracaoList) em 19/08/2026 — esta lista ad hoc ficou só
+// para papéis sem participação nos frutos (sem campo de percentual).
+const PAPEIS_PARTE_EXTRA = ['Anuente', 'Interveniente', 'Garantidor', 'Outro (definir com Bernardo)'];
 
 interface Props {
   draft: ExploracaoRuralDraft;
@@ -41,12 +44,23 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
   const addCompossuidor = () =>
     set('compossuidores', [...draft.compossuidores, { id: `comp-${Date.now()}-${draft.compossuidores.length}`, pessoaId: null, fracao: '0' }]);
   const removeCompossuidor = (id: string) => set('compossuidores', draft.compossuidores.filter((c) => c.id !== id));
-  const somaFracoes = draft.compossuidores.reduce((acc, c) => acc + (Number(c.fracao) || 0), 0);
+
+  const setOutorgante = (id: string, patch: Partial<CompossuidorDraft>) =>
+    set('outorgantes', draft.outorgantes.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  const addOutorgante = () =>
+    set('outorgantes', [...draft.outorgantes, { id: `out-${Date.now()}-${draft.outorgantes.length}`, pessoaId: null, fracao: '0' }]);
+  const removeOutorgante = (id: string) => set('outorgantes', draft.outorgantes.filter((o) => o.id !== id));
+
+  const setExplorador = (id: string, patch: Partial<CompossuidorDraft>) =>
+    set('exploradores', draft.exploradores.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+  const addExplorador = () =>
+    set('exploradores', [...draft.exploradores, { id: `exp-${Date.now()}-${draft.exploradores.length}`, pessoaId: null, fracao: '0' }]);
+  const removeExplorador = (id: string) => set('exploradores', draft.exploradores.filter((e) => e.id !== id));
 
   const setParteExtra = (id: string, patch: Partial<ParteExtraDraft>) =>
     set('partesExtras', draft.partesExtras.map((p) => (p.id === id ? { ...p, ...patch } : p)));
   const addParteExtra = () =>
-    set('partesExtras', [...draft.partesExtras, { id: `pex-${Date.now()}-${draft.partesExtras.length}`, papel: PAPEIS_PARTE_EXTRA[2], pessoaId: null }]);
+    set('partesExtras', [...draft.partesExtras, { id: `pex-${Date.now()}-${draft.partesExtras.length}`, papel: PAPEIS_PARTE_EXTRA[0], pessoaId: null }]);
   const removeParteExtra = (id: string) => set('partesExtras', draft.partesExtras.filter((p) => p.id !== id));
 
   return (
@@ -74,40 +88,56 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
 
       <FieldSection number={next()} title="Partes">
         {!isComposse ? (
-          <>
-            <div className={`${formGridCls(2)} gap-3`}>
-              <Field label="Outorgante" selo="existe">
-                <PessoaSelect value={draft.outorganteId} onChange={(v) => set('outorganteId', v)} pessoas={pessoas} placeholder="Selecionar outorgante…" />
-              </Field>
-              <Field label="Explorador" selo="existe" hint="na UI: Explorador; no gerador: papel outorgado, a confirmar com Bernardo">
-                <PessoaSelect value={draft.exploradorId} onChange={(v) => set('exploradorId', v)} pessoas={pessoas} placeholder="Selecionar explorador…" />
-              </Field>
+          <div className="space-y-4">
+            <div>
+              <Label className={`${labelCls} mb-2 flex items-center gap-1.5`}>Outorgantes e distribuição interna <Selo tipo="novo" /></Label>
+              <PartesFracaoList
+                items={draft.outorgantes}
+                pessoas={pessoas}
+                onAdd={addOutorgante}
+                onChange={setOutorgante}
+                onRemove={removeOutorgante}
+                addLabel="Adicionar outorgante"
+              />
             </div>
-          </>
+            <div>
+              <Label className={`${labelCls} mb-2 flex items-center gap-1.5`}>Exploradores e distribuição interna <Selo tipo="novo" /></Label>
+              <PartesFracaoList
+                items={draft.exploradores}
+                pessoas={pessoas}
+                onAdd={addExplorador}
+                onChange={setExplorador}
+                onRemove={removeExplorador}
+                addLabel="Adicionar explorador"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">na UI: Explorador; no gerador: papel outorgado, a confirmar com Bernardo</p>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Achado em <code>[BV-PAR]</code>: uma parceria pode ter mais de uma pessoa de cada lado (lá, 1 outorgante e
+              3 outorgados). O campo "Fração" aqui é a distribuição <strong>dentro</strong> de cada lado — o corte entre
+              outorgante e explorador continua sendo o percentual da seção 03. A regra de soma 100% por lado é uma
+              hipótese por analogia com a composse; não há, entre os exemplos lidos, um contrato com sub-percentual
+              individual explícito por outorgado — a confirmar com a OSG.
+            </p>
+          </div>
         ) : (
           <div>
             <Label className={`${labelCls} mb-2 flex items-center gap-1.5`}>Compossuidores e distribuição interna <Selo tipo="novo" /></Label>
-            <div className="space-y-2">
-              {draft.compossuidores.map((c) => (
-                <div key={c.id} className="flex items-center gap-2 rounded-md border border-osg-200/80 bg-background p-2">
-                  <div className="flex-1"><PessoaSelect value={c.pessoaId} onChange={(v) => setCompossuidor(c.id, { pessoaId: v })} pessoas={pessoas} placeholder="Selecionar pessoa qualificada…" /></div>
-                  <Input type="number" value={c.fracao} onChange={(e) => setCompossuidor(c.id, { fracao: e.target.value })} className={`${fieldCls} w-24 text-right font-mono`} />
-                  <span className="text-xs text-muted-foreground">%</span>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => removeCompossuidor(c.id)}><X className="h-3.5 w-3.5" /></Button>
-                </div>
-              ))}
-            </div>
-            <Button variant="outline" size="sm" className="mt-2 gap-1.5 border-dashed" onClick={addCompossuidor}><Plus className="h-3.5 w-3.5" />Adicionar compossuidor</Button>
-            <p className={`mt-2 text-xs font-semibold ${Math.abs(somaFracoes - 100) < 0.01 ? 'text-emerald-700' : 'text-osg-red'}`}>
-              {Math.abs(somaFracoes - 100) < 0.01
-                ? '✓ soma 100% — confirmado com a OSG: sem cobertura parcial nos frutos deste instrumento'
-                : `✕ soma ${somaFracoes}% — a OSG confirmou que a distribuição precisa fechar em 100%`}
-            </p>
+            <PartesFracaoList
+              items={draft.compossuidores}
+              pessoas={pessoas}
+              onAdd={addCompossuidor}
+              onChange={setCompossuidor}
+              onRemove={removeCompossuidor}
+              addLabel="Adicionar compossuidor"
+              confirmadoTexto="confirmado com a OSG: sem cobertura parcial nos frutos deste instrumento"
+              faltaTexto="a OSG confirmou que a distribuição precisa fechar em 100%"
+            />
           </div>
         )}
 
         <div className="mt-4">
-          <Label className={`${labelCls} mb-2 flex items-center gap-1.5`}>Outras partes (outorgante/explorador adicional, anuente, interveniente, garantidor) <Selo tipo="novo" /></Label>
+          <Label className={`${labelCls} mb-2 flex items-center gap-1.5`}>Outras partes (anuente, interveniente, garantidor — sem participação nos frutos) <Selo tipo="novo" /></Label>
           <div className="space-y-2">
             {draft.partesExtras.map((p) => (
               <div key={p.id} className="flex items-center gap-2 rounded-md border border-osg-200/80 bg-background p-2">
@@ -170,6 +200,43 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
           declara sua própria origem na aba "Imóveis e origens", não o instrumento como um todo.
         </p>
       </FieldSection>
+    </>
+  );
+}
+
+/** Lista de pessoa+fração reutilizada por compossuidores, outorgantes e exploradores — mesmo padrão de edição, textos de confirmação diferentes por chamador. */
+function PartesFracaoList({
+  items, pessoas, onAdd, onChange, onRemove, addLabel, confirmadoTexto, faltaTexto,
+}: {
+  items: CompossuidorDraft[];
+  pessoas: PessoaRow[];
+  onAdd: () => void;
+  onChange: (id: string, patch: Partial<CompossuidorDraft>) => void;
+  onRemove: (id: string) => void;
+  addLabel: string;
+  confirmadoTexto?: string;
+  faltaTexto?: string;
+}) {
+  const soma = items.reduce((acc, c) => acc + (Number(c.fracao) || 0), 0);
+  const fechou = Math.abs(soma - 100) < 0.01;
+  return (
+    <>
+      <div className="space-y-2">
+        {items.map((c) => (
+          <div key={c.id} className="flex items-center gap-2 rounded-md border border-osg-200/80 bg-background p-2">
+            <div className="flex-1"><PessoaSelect value={c.pessoaId} onChange={(v) => onChange(c.id, { pessoaId: v })} pessoas={pessoas} placeholder="Selecionar pessoa qualificada…" /></div>
+            <Input type="number" value={c.fracao} onChange={(e) => onChange(c.id, { fracao: e.target.value })} className={`${fieldCls} w-24 text-right font-mono`} />
+            <span className="text-xs text-muted-foreground">%</span>
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => onRemove(c.id)}><X className="h-3.5 w-3.5" /></Button>
+          </div>
+        ))}
+      </div>
+      <Button variant="outline" size="sm" className="mt-2 gap-1.5 border-dashed" onClick={onAdd}><Plus className="h-3.5 w-3.5" />{addLabel}</Button>
+      {items.length > 0 && (
+        <p className={`mt-2 text-xs font-semibold ${fechou ? 'text-emerald-700' : 'text-osg-red'}`}>
+          {fechou ? `✓ soma 100%${confirmadoTexto ? ` — ${confirmadoTexto}` : ''}` : `✕ soma ${soma}%${faltaTexto ? ` — ${faltaTexto}` : ' — precisa fechar em 100%'}`}
+        </p>
+      )}
     </>
   );
 }

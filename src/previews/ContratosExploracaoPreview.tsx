@@ -40,8 +40,13 @@ function draftDeExemplo(tipo: TipoExploracao): ExploracaoRuralDraft {
       dataAssinatura: '2022-03-12',
       dataEncerramento: '2025-03-11',
       vigencia: '3 anos, contados da assinatura',
-      outorganteId: modeloAgro.id,
-      exploradorId: jose.id,
+      // [BV-PAR]: 1 outorgante, 3 outorgados numa parceria só — aqui com 2, só
+      // pra provar que o cadastro aceita mais de uma pessoa por lado.
+      outorgantes: [{ id: 'out-fx-1', pessoaId: modeloAgro.id, fracao: '100' }],
+      exploradores: [
+        { id: 'exp-fx-1', pessoaId: jose.id, fracao: '70' },
+        { id: 'exp-fx-2', pessoaId: maria.id, fracao: '30' },
+      ],
       percentualOutorgante: '30,000%',
       percentualExplorador: '70,000%',
       percentualVigenteDesde: '2022-03-12',
@@ -99,7 +104,7 @@ function ContratosExploracaoPreview() {
   const avisoParaMatricula = (matriculaId: string, refAtual: string): { percentualUsado: number; detalhe: string } | null => {
     if (draft.tipo !== 'parceria') return null;
     if (matriculaId !== matriculasFixture[0].id || refAtual === 'ER 01') return null;
-    return { percentualUsado: 60, detalhe: 'ER 01 — Modelo Agro Ltda. → José da Silva' };
+    return { percentualUsado: 60, detalhe: 'ER 01 — Modelo Agro Ltda. → José da Silva + Maria Souza' };
   };
 
   const abrirNova = () => { setDraft(emptyExploracaoDraft('parceria')); setIsEdit(false); setRefCodigo('ER 05'); setOpen(true); };

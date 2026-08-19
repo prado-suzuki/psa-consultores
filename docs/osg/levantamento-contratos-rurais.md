@@ -102,8 +102,8 @@ exibe; não duplica a digitação.
 | Imóvel e áreas | Área explorada | existe, mas em lugar errado | `matricula.area_explorada` e `exploracao_rural.area_explorada` | decimal + unidade | planilha do cliente | consultora OSG | `exploracao_imovel.area_explorada` (proposto) | Decidir a autoridade e a granularidade: matrícula ou imóvel dentro do instrumento. Achado da OSG (seção 4, pergunta 1): a mesma matrícula pode ter mais de uma Parceria concorrente, cada uma com sua fração de área — reforça que a granularidade certa é por instrumento, não só por matrícula. |
 | Imóvel e áreas | Unidade | existe | `matricula.area_unidade` e `exploracao_rural.area_unidade` | enum/texto | cadastro da matrícula | consultora OSG | `imovel.unidade` / `imovel.unidadeExtenso` já existentes | Herdar da matrícula e impedir divergência. |
 | Imóvel e áreas | Georreferenciamento | existe | `matricula.georreferenciado` e `.georref_prejudica_transferencia` | enum + booleano | cartório / memorial | consultora OSG | família `qualificacaoImovel` já existente | Confirmar se o texto vem do status cadastrado ou do memorial real no BigQuery. |
-| Partes | Outorgante | existe, mas em lugar errado | singleton em `exploracao_rural.outorgante_pessoa_id`/`.outorgante_nome`; qualificação em `pessoa.*` | lista de pessoas | instrumento / cadastro de pessoa | consultora OSG | papel `outorgante` já existe | Contratos reais podem ter N partes; capacidade de lista ad hoc é da subtarefa do Bernardo. |
-| Partes | Explorador | existe, mas em lugar errado | singleton em `exploracao_rural.explorador_pessoa_id`/`.explorador_nome`; qualificação em `pessoa.*` | lista de pessoas | instrumento / cadastro de pessoa | consultora OSG | papel `outorgado` já existe | Na UI manter “Explorador”; combinar com Bernardo que ele alimenta o papel `outorgado` do motor. |
+| Partes | Outorgante | existe, mas em lugar errado | singleton em `exploracao_rural.outorgante_pessoa_id`/`.outorgante_nome`; qualificação em `pessoa.*` | relação N:N ordenada, cada item com fração | instrumento / cadastro de pessoa | consultora OSG | papel `outorgante` já existe | **Corrigido no preview (19/08/2026):** `[BV-PAR]` mostra 1 outorgante e 3 outorgados numa parceria só — virou lista própria (não mais ad hoc), com fração por pessoa. |
+| Partes | Explorador | existe, mas em lugar errado | singleton em `exploracao_rural.explorador_pessoa_id`/`.explorador_nome`; qualificação em `pessoa.*` | relação N:N ordenada, cada item com fração | instrumento / cadastro de pessoa | consultora OSG | papel `outorgado` já existe | Na UI manter “Explorador”; combinar com Bernardo que ele alimenta o papel `outorgado` do motor. Lista própria desde 19/08/2026, mesmo motivo da linha acima. |
 | Partes | Qualificação das partes | existe | `pessoa.*`, `pessoa.conjuge_id`, `pessoa.regime_bens`, `parentesco.*` | dados cadastrais | documentos pessoais | consultora OSG | campos dos papéis de pessoa já existentes | Não reescrever cerca de 40 campos no rural; mostrar somente estado da qualificação. |
 | Partes | Compossuidor | novo | sem relação N por instrumento | relação N:N ordenada | instrumento | consultora OSG | lista `compossuidores` (proposto) | A lista deve aceitar N pessoas. |
 | Partes | Fração do compossuidor | novo | sem coluna; não usar `titularidade.fracao` | decimal 0–100 | instrumento / decisão da consultora | consultora OSG | `compossuidor.fracao` e `.fracaoExtenso` (propostos) | **Resolvido (Thiago Santos/OSG, 13/08/2026):** a base é sempre os frutos do próprio instrumento de composse; a soma dá sempre 100%, sem cobertura parcial — ver seção 4. |
@@ -115,7 +115,7 @@ exibe; não duplica a digitação.
 | Percentual e produção | Culturas/atividades permitidas | **novo — CONFIRMADO em `[BV-COM]`** | sem coluna/lista | lista de textos ou catálogo | decisão do consultor | consultora OSG | lista `culturas`; item `cultura.nome` (propostos) | Cláusula Primeira do `[BV-COM]` lista lavouras (soja, algodão, milho, café, cana, cacau, feijão, outros cereais) **e pecuária** (bovinos, suínos, ovinos, aves) — renomear de "culturas" para "culturas/atividades", o campo é mais largo que só cultivo. `tem_cultura_algodao` continua derivado da lista, não digitado duas vezes. |
 | Percentual e produção | Benfeitorias indenizáveis | novo — mapeado no catálogo, **não achado no `[BV-COM]`** | sem coluna | booleano | decisão do consultor | consultora OSG | `benfeitorias_indenizaveis` | Este contrato só fala em manter os bens indivisos, não em indenização de benfeitoria — mas a pasta do cliente tem um modelo à parte chamado `V1_Contrato Modelo Parceria Benfeitorias não [indenizáveis].docx` (não aberto nesta revisão), indício de que é cláusula real de Parceria. Confirmar redação/padrão com a consultora. |
 | Percentual e produção | Permite penhor / financiamento | **novo — CONFIRMADO em `[BV-COM]`** | sem coluna | booleano | decisão do consultor | consultora OSG | `permite_penhor` | Cláusulas 14ª a 17ª do `[BV-COM]`: os compossuidores autorizam penhor da produção e dos bens em garantia de financiamento, pelo prazo da obrigação garantida. Confirmado pelo menos para Composse; confirmar se a mesma cláusula aparece nas Parcerias de origem. |
-| Documento de origem | Tipo do instrumento de origem | novo | sem coluna | enum: parceria, arrendamento, herança, **outro (uso real, não fallback)** | instrumento de origem | consultora OSG | `tipo_instrumento_origem` | `[BV-COM]` mostra 3 títulos reais diferentes para o que a composse trata como equivalente: "Instrumento Particular de Parceria para Fins de Exploração Agropecuária", "Contrato de Parceria Agrícola e Outras Avenças" e — sem a palavra "parceria" nenhuma vez — "Instrumento Particular de Exploração de Atividade Rural" (3 dos 6 instrumentos de origem usam esse 3º nome). "Outro" não é resíduo raro, é metade dos casos reais vistos até agora. Deve ficar associado ao imóvel/detalhe, não como campo único do cabeçalho. **Bug corrigido no preview (14/08/2026):** a primeira versão do componente tinha esse campo duplicado — uma vez (errado) como valor único da seção "Documento de origem" na aba Dados, herdado por cópia do mockup estático antigo, e outra vez (certo) por imóvel na aba "Imóveis e origens". Removida a versão do cabeçalho; só a versão por imóvel existe agora, coerente com o que esta linha já dizia. |
+| Documento de origem | Tipo do instrumento de origem | novo | sem coluna | enum: parceria, **composse**, arrendamento, herança, **outro (uso real, não fallback)** | instrumento de origem | consultora OSG | `tipo_instrumento_origem` | `[BV-COM]` mostra 3 títulos reais diferentes para o que a composse trata como equivalente: "Instrumento Particular de Parceria para Fins de Exploração Agropecuária", "Contrato de Parceria Agrícola e Outras Avenças" e — sem a palavra "parceria" nenhuma vez — "Instrumento Particular de Exploração de Atividade Rural" (3 dos 6 instrumentos de origem usam esse 3º nome). "Outro" não é resíduo raro, é metade dos casos reais vistos até agora. Deve ficar associado ao imóvel/detalhe, não como campo único do cabeçalho. **Bug corrigido no preview (14/08/2026):** a primeira versão do componente tinha esse campo duplicado — uma vez (errado) como valor único da seção "Documento de origem" na aba Dados, herdado por cópia do mockup estático antigo, e outra vez (certo) por imóvel na aba "Imóveis e origens". Removida a versão do cabeçalho; só a versão por imóvel existe agora, coerente com o que esta linha já dizia. **`composse` adicionado ao enum (19/08/2026):** a cadeia de origem não é exclusiva de terminar em composse — uma composse também pode ser a origem de uma nova Parceria (ex.: os compossuidores decidem ceder o uso a novos outorgados). Sem contrato real lido confirmando este encadeamento específico ainda; extensão por analogia ao padrão Parceria→Composse, esse sim confirmado. |
 | Documento de origem | Instrumento de origem da posse | novo | sem relação | relação opcional com instrumento cadastrado ou documento | instrumento de origem | consultora OSG | `exploracao_imovel.origem.*` (proposto) | **CONFIRMADO com números em `[BV-COM]`**: 15 imóveis (alíneas a–o do Anexo Único), vindos de 6 instrumentos de origem distintos, 5 contrapartes diferentes, firmados entre 2021 e 2024 (a composse em si é de 2024). Cada imóvel tem exatamente 1 origem — a multiplicidade é no conjunto de imóveis do contrato, não em cada imóvel. Achado extra: pelo Parágrafo Único da Cláusula Quarta, quando a Parceria de origem de um imóvel termina, o imóvel sai da composse **sem aditivo** — o vínculo precisa de um estado computado (vigente / caído), não uma lista estática. |
 | Documento de origem | Documento comprobatório | existe, mas em lugar errado | `documento_arquivo.*` com vínculos a cliente/bem/matrícula/pessoa | arquivo relacionado | arquivo do cliente | consultora OSG | não renderizar; lastro do dado | Planilha é digitada manualmente; importação fica para sprint futura. |
 | Composse | Prazo de indivisão | **novo — CONFIRMADO em `[BV-COM]`** | sem coluna | texto ou intervalo de datas | instrumento | consultora OSG | `composse.prazo_indivisao` (proposto) | Cláusula Quarta: 3 anos, contados da assinatura. Distinto da vigência da(s) parceria(s) de origem, que têm datas próprias e independentes. |
@@ -130,8 +130,10 @@ Saída proposta para a conversa do dia 1:
 2. manter `outorgante` como já existe;
 3. criar a lista `compossuidores`, com os campos numéricos `fracao` e
    `fracaoExtenso` por item;
-4. permitir N outorgantes e N exploradores por instrumento através da capacidade
-   de partes ad hoc da subtarefa irmã;
+4. **implementado no preview (19/08/2026):** N outorgantes e N exploradores por
+   instrumento como lista própria com fração — deixou de depender da
+   capacidade de partes ad hoc da subtarefa irmã, que agora só cobre anuente/
+   interveniente/garantidor;
 5. decidir se `anuente`, `interveniente` e `garantidor` entram já no primeiro
    conjunto de papéis;
 6. reservar `exploracao.percentual_outorgante` e
@@ -426,6 +428,31 @@ pela outra, é rascunho visual vs. entrega em código real.
   para permitir calcular prazos de verdade depois — nenhum contrato real exige
   texto livre aqui, ao contrário de `vigencia` (que É texto livre hoje só por
   causa da coluna legada). Ainda não implementado.
+- **Achado #6 do clique manual (19/08/2026):** Outorgante e Explorador da
+  Parceria eram seleção única de pessoa (`outorganteId`/`exploradorId`), mas
+  `[BV-PAR]` (exemplo real lido em `docs/notebooklm/`) mostra uma parceria com
+  1 outorgante e **3 outorgados**. Os dois viraram lista (`outorgantes[]` /
+  `exploradores[]`), cada item com pessoa + fração — mesmo componente
+  (`PartesFracaoList`) já usado pelos compossuidores, sem soma-100%
+  confirmada por contrato real para este caso (é hipótese por analogia; a
+  composse tem confirmação da OSG, isto aqui não). Como consequência, os
+  papéis "Outorgante adicional" e "Explorador adicional" saíram da lista ad
+  hoc de "Outras partes" (`PAPEIS_PARTE_EXTRA`) — ficaram redundantes com a
+  lista dedicada, que já tem campo de fração e a lista ad hoc nunca teve. A
+  lista ad hoc ficou só para papéis sem participação nos frutos (anuente,
+  interveniente, garantidor). Isto muda a leitura da linha 133 da seção 3 e
+  do item 12 da seção 6 abaixo: N outorgantes/exploradores não depende mais
+  da subtarefa de partes ad hoc do Bernardo, já é capacidade própria do
+  cadastro rural.
+- **Achado #7 do clique manual (19/08/2026):** o enum `Tipo da origem` não
+  tinha a opção "Composse". Surgiu perguntando se a cadeia de origem é
+  exclusiva de terminar em composse — não é: uma composse também pode ser a
+  origem de uma nova Parceria (os compossuidores agindo em conjunto como
+  outorgantes, mesma lógica do Achado #6). Adicionado `'Composse'` ao enum
+  `TIPOS_INSTRUMENTO_ORIGEM`. Mesma ressalva do Achado #6: sem contrato real
+  confirmando este encadeamento de 3 elos (Parceria→Composse→nova Parceria)
+  especificamente — só o encadeamento de 2 elos (Parceria→Composse) está
+  confirmado nos exemplos lidos.
 
 O preview (código real) segue as seções **Instrumento**, **Partes**, **Percentual
 e produção** e **Documento de origem** na aba Dados, mais a aba **Imóveis e
@@ -446,7 +473,8 @@ Esta lista é declaração de dependências futuras, não autorização para cri
 2. adicionar FK de matrícula ao detalhe, mantendo `matricula_texto` apenas como
    legado/fallback;
 3. criar lista de partes por instrumento, com papel e ordem, incluindo a fração
-   interna do compossuidor;
+   interna do compossuidor, do outorgante e do explorador (as três já
+   prototipadas no mockup com o mesmo componente de lista);
 4. criar partilha de frutos com os dois percentuais e vigência datada — a
    mudança de percentual exige Termo Aditivo e não se sincroniza com a renovação
    de 3 anos da Parceria (confirmado pela OSG, seção 4); a vigência deveria
@@ -474,12 +502,13 @@ Esta lista é declaração de dependências futuras, não autorização para cri
     percentuais/áreas automaticamente ou fica só informativo (protótipo no
     mockup, seção "Imóvel e áreas");
 12. criar a lista de papéis extras por instrumento (`anuente`, `interveniente`,
-    `garantidor`, N outorgantes/exploradores adicionais) — achado real em
-    Nodari. O mockup já prototipa a interação (seção "Partes", botão
-    "+ Adicionar outra parte" em ambos os blocos, Parceria e Composse); falta
-    fechar com Bernardo os nomes exatos e se o dado fica só na renderização
-    ad hoc do gerador (subtarefa dele) ou também precisa de campo persistido no
-    cadastro rural.
+    `garantidor` — sem participação nos frutos) — achado real em Nodari. O
+    mockup já prototipa a interação (seção "Partes", botão "+ Adicionar outra
+    parte" em ambos os blocos, Parceria e Composse); falta fechar com Bernardo
+    os nomes exatos e se o dado fica só na renderização ad hoc do gerador
+    (subtarefa dele) ou também precisa de campo persistido no cadastro rural.
+    N outorgantes/exploradores **não entra mais aqui** — passou a ser lista
+    própria, ver item 3 acima.
 
 Não é necessária migração para área documento, área real, área explorada da
 matrícula, unidade, georreferenciamento, qualificação de pessoa, cônjuge, regime de

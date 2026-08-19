@@ -34,7 +34,8 @@ prática, porque não há front-end funcionando.
 | Prazo de renovação | texto | sem coluna | Por quanto tempo renova — pendência, sem contrato real confirmando. |
 | Declarado no IRPF | booleano | `exploracao_rural.declarado_irpf` (existe, sem tela) | Se consta na declaração do cliente. |
 | Sacas por hectare | decimal | `exploracao_rural.sacas_por_hectare` (existe, sem tela) | Remuneração fixa, quando aplicável. |
-| Outorgante / Explorador (vínculo) | relação com pessoa | `exploracao_rural.outorgante_pessoa_id/.explorador_pessoa_id` (existe, mas só 1 de cada) | Quem cede/explora a terra — Composse precisa de N (ver Compossuidores). |
+| Outorgantes / Exploradores (vínculo) | relação N:N com pessoa | `exploracao_rural.outorgante_pessoa_id/.explorador_pessoa_id` (existem, mas só 1 de cada) | Corrigido 19/08: virou lista — contrato real (`[BV-PAR]`) tem 1 outorgante e 3 outorgados numa parceria só. |
+| Fração do outorgante / explorador | decimal (0–100) | sem coluna | Fatia de cada um dentro do próprio lado; não confundir com o percentual agregado entre outorgante e explorador, abaixo. |
 | Imóvel vinculado ao instrumento | relação N:N com matrícula | sem coluna (`exploracao_rural.bem_id` é singular) | Um instrumento pode cobrir várias matrículas — hoje só cabe 1. |
 | Compossuidores | relação N:N com pessoa | sem coluna | Quem divide a posse na Composse. |
 | Fração do compossuidor | decimal (0–100) | sem coluna | Fatia de cada um nos frutos; soma sempre 100%. |
