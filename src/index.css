@@ -401,6 +401,36 @@ All colors MUST be HSL.
     --tag-b: 223 78% 40%;
     --tag-c: 298 70% 31%;
     --tag-d: 7 72% 39%;
+
+    /* ─── Congelamento: o que a Tax herdava do .base-theme ─────────────────
+       Estas 15 não são valores novos — são exatamente o que esta área JÁ
+       computava, tornado explícito. Zero mudança visual; conferido variável a
+       variável contra a cascata anterior.
+
+       Por que congelar: enquanto o base for a ORIGEM da Tax (o `:root` era o
+       tema único do sistema e foi readaptado para cá), herdar é inofensivo. No
+       instante em que a base ganhar identidade própria, deixa de ser: o botão
+       primário da Tax viraria a cor da base junto, sem erro de build e sem
+       ninguém pedir. Declarar aqui é o que corta esse fio.
+
+       `--tool-icon` continua sendo `var(--primary)` de propósito — o ícone de
+       ferramenta DEVE seguir o acento da área. Quem foi congelado é o alvo
+       (`--primary`, logo acima), não a referência. */
+    --accent: 175 82% 29%;
+    --accent-foreground: 0 0% 100%;
+    --primary: 175 82% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 175 82% 29%;
+    --secondary-foreground: 0 0% 100%;
+    --ring: 175 82% 29%;
+    --success: 160 84% 30%;
+    --warning: 38 92% 50%;
+    --tool-icon: var(--primary);
+    --tool-icon-bg: 175 60% 95%;
+    --destructive: 0 84% 60%;
+    --foreground: 20 81% 10%;
+    --card-foreground: 20 81% 10%;
+    --popover-foreground: 20 81% 10%;
   }
 
   /* Tema da área OSG: troca o accent teal padrão pelo verde osg-moss.
@@ -512,6 +542,68 @@ All colors MUST be HSL.
      EquipeLayout, então vale também para modais e selects renderizados em portal. */
   .rotina-theme {
     --ring: var(--teal-500);
+
+    /* ─── Congelamento: o que a Rotina herdava do .base-theme ──────────────
+       A Rotina declarava UMA das 41 variáveis do contrato — as outras 40 vinham
+       da base. Era a área mais exposta do sistema: qualquer mudança na base
+       repintava a área inteira sem que nada nesta declaração mudasse.
+
+       As 40 abaixo são exatamente o que ela JÁ computava. Zero mudança visual.
+
+       DECISÃO REGISTRADA, e ela é deliberada: congelar com os valores de hoje
+       significa que a Rotina PARA DE ACOMPANHAR mudanças no base. Isso é
+       desacoplamento de propósito, não efeito colateral. A alternativa seria
+       decidir agora a identidade visual própria da Rotina, e essa decisão não
+       está tomada. Congelar preserva o que está no ar e deixa a escolha para
+       quando ela for feita — a partir daqui, mudar a cor da Rotina é editar
+       este bloco, e nada mais.
+
+       `--ring` acima não entra no congelamento: já era declarado aqui e segue
+       como estava. `--tool-icon` continua `var(--primary)` — o alvo é que foi
+       congelado, não a referência. */
+    --accent: 175 82% 29%;
+    --accent-foreground: 0 0% 100%;
+    --primary: 175 82% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 175 82% 29%;
+    --secondary-foreground: 0 0% 100%;
+    --success: 160 84% 30%;
+    --warning: 38 92% 50%;
+    --status-neutro: 48 22% 30%;
+    --status-neutro-soft: 48 22% 86%;
+    --status-fila: 122 28% 33%;
+    --status-fila-soft: 122 28% 87%;
+    --status-andamento: 100 38% 27%;
+    --status-andamento-soft: 100 38% 86%;
+    --status-revisao: 111 32% 17%;
+    --status-revisao-soft: 111 32% 86%;
+    --status-espera: 32 34% 20%;
+    --status-espera-soft: 32 34% 86%;
+    --status-ajuste: 343 50% 24%;
+    --status-ajuste-soft: 343 50% 86%;
+    --status-feito: 89 40% 17%;
+    --status-feito-soft: 89 40% 86%;
+    --status-alerta: 54 58% 20%;
+    --status-alerta-soft: 54 58% 86%;
+    --tag-a: 112 64% 24%;
+    --tag-b: 211 60% 33%;
+    --tag-c: 289 78% 40%;
+    --tag-d: 339 84% 40%;
+    --tool-icon: var(--primary);
+    --tool-icon-bg: 175 60% 95%;
+    --background: 42 24% 99.8%;
+    --card: 42 24% 99.8%;
+    --popover: 42 24% 99.8%;
+    --canvas: 42 22% 99%;
+    /* Literal, e não `var(--base-50)` como vinha da base: a escala `--base-*`
+       é da base, e manter a referência recriaria pela lateral o acoplamento
+       que este bloco existe para cortar. Mesmo valor. */
+    --muted: 42 26% 98%;
+    --muted-foreground: 28 9% 45%;
+    --destructive: 0 84% 60%;
+    --foreground: 20 81% 10%;
+    --card-foreground: 20 81% 10%;
+    --popover-foreground: 20 81% 10%;
   }
 
   /* Hover das linhas de tabela na área OSG: marrom/areia claro (osg-50)

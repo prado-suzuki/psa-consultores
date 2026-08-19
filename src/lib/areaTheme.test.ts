@@ -196,3 +196,55 @@ describe('validação das rotas (a cascata que o navegador vai aplicar)', () => 
     expect(valorComputado([], '--primary')).toBe('175 82% 29%');
   });
 });
+
+/** Variáveis declaradas literalmente dentro de um bloco `seletor { … }`. */
+function declaradasEm(css: string, seletor: string): Set<string> {
+  const ini = css.indexOf(`${seletor} {`);
+  if (ini === -1) return new Set();
+  const fim = css.indexOf('\n  }', ini);
+  const corpo = css.slice(ini, fim === -1 ? undefined : fim);
+  const nomes = new Set<string>();
+  for (const linha of corpo.split('\n')) {
+    const t = linha.trim();
+    const sep = t.indexOf(':');
+    if (sep > 1 && t.startsWith('--')) nomes.add(t.slice(0, sep));
+  }
+  return nomes;
+}
+
+describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
+  /*
+   * A herança implícita é o defeito que este sistema inteiro existe para
+   * eliminar: variável não declarada não quebra nada visível — a área
+   * simplesmente pega o valor da base e a tela fica com duas identidades
+   * misturadas. Foi assim que a Tax passou a herdar 15 variáveis e a Rotina 40.
+   *
+   * O contrato é o conjunto declarado pelo `.base-theme`. Acrescentar uma
+   * variável a ele passa a EXIGIR que toda área a declare — que é exatamente o
+   * comportamento desejado.
+   */
+  const css = readFileSync('src/index.css', 'utf8');
+  const contrato = declaradasEm(css, `.${CLASSE_BASE}`);
+
+  it('o contrato tem as 41 variáveis', () => {
+    expect(contrato.size).toBe(41);
+  });
+
+  const areas = Object.values(TEMA_DA_AREA).filter((c): c is string => c !== null);
+
+  it.each(areas)('.%s declara o contrato inteiro', (classe) => {
+    const declaradas = declaradasEm(css, `.${classe}`);
+    const faltando = [...contrato].filter((v) => !declaradas.has(v));
+    expect(faltando, `.${classe} herdaria da base: ${faltando.join(', ')}`).toEqual([]);
+  });
+
+  it('--tool-icon segue o acento local, em vez de ser congelado', () => {
+    // Congelar o valor aqui quebraria o ícone de ferramenta: ele DEVE andar
+    // junto com o `--primary` da área que o hospeda. Congela-se o alvo.
+    for (const classe of [CLASSE_BASE, 'tax-theme', 'rotina-theme']) {
+      const ini = css.indexOf(`.${classe} {`);
+      const corpo = css.slice(ini, css.indexOf('\n  }', ini));
+      expect(corpo, `.${classe}`).toContain('--tool-icon: var(--primary);');
+    }
+  });
+});
