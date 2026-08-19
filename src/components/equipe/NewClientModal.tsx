@@ -470,7 +470,16 @@ export default function NewClientModal({
                       </TabsContent>
 
                       <TabsContent value="faturamento" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
-                        <FaturamentoTab entities={entities} />
+                        {/*
+                          A aba de Faturamento não edita: ela espelha o
+                          contribuinte e a OS. Recebe as OS e os centros de custo
+                          só para exibir.
+                        */}
+                        <FaturamentoTab
+                          entities={entities}
+                          contratos={contracts}
+                          centrosCusto={CENTRO_CUSTO_OPTIONS}
+                        />
                       </TabsContent>
                     </>
                   )}

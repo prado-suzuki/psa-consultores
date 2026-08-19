@@ -33,7 +33,7 @@ export function DailyEditDialog({
         <DialogHeader><DialogTitle>Editar Daily</DialogTitle></DialogHeader>
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label className="text-gray-700">O que fiz ontem?</Label>
+            <Label className="text-foreground">O que fiz ontem?</Label>
             <TarefaRichTextEditor
               value={form.did_yesterday}
               onChange={(did_yesterday) => onFormChange({ ...form, did_yesterday })}
@@ -47,7 +47,7 @@ export function DailyEditDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-gray-700">O que vou fazer hoje?</Label>
+            <Label className="text-foreground">O que vou fazer hoje?</Label>
             <TarefaRichTextEditor
               value={form.will_do_today}
               onChange={(will_do_today) => onFormChange({ ...form, will_do_today })}
@@ -61,7 +61,7 @@ export function DailyEditDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-gray-700">Bloqueios? (opcional)</Label>
+            <Label className="text-foreground">Bloqueios? (opcional)</Label>
             <Textarea
               value={form.blockers}
               onChange={(event) => onFormChange({ ...form, blockers: event.target.value })}

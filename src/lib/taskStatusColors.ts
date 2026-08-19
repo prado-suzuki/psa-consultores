@@ -3,20 +3,26 @@ import type { OrgTaskStatus } from '@/hooks/useOrgTasks';
 export interface StatusColorConfig {
   key: OrgTaskStatus;
   label: string;
-  bg: string;        // bg-{color}-100
-  text: string;       // text-{color}-700
-  bgSolid: string;    // bg-{color}-500 (for dots, indicators)
-  combined: string;   // "bg-{x}-100 text-{x}-700" shorthand
+  bg: string;         // fundo suave da pílula
+  text: string;       // cor cheia, para texto sobre o fundo suave
+  bgSolid: string;    // cor cheia como fundo (ponto, barra, badge de texto branco)
+  combined: string;   // "bg + text" para a pílula inteira
 }
 
+/**
+ * Cada status aponta para um PAPEL de status (`--status-<papel>` em `index.css`),
+ * não para uma cor. Quem define o tom é o tema da área: teal na Tax (:root),
+ * verde musgo na OSG (`.osg-theme`). Antes as cores eram Tailwind cru
+ * (azul + âmbar + roxo + rosa + esmeralda), que não pertenciam a paleta nenhuma.
+ */
 export const statusColors: Record<OrgTaskStatus, StatusColorConfig> = {
-  backlog:        { key: 'backlog',        label: 'Backlog',           bg: 'bg-slate-100',   text: 'text-slate-700',   bgSolid: 'bg-slate-400',   combined: 'bg-slate-100 text-slate-700' },
-  waiting_client: { key: 'waiting_client', label: 'Pendente Cliente',  bg: 'bg-orange-100',  text: 'text-orange-700',  bgSolid: 'bg-orange-500',  combined: 'bg-orange-100 text-orange-700' },
-  todo:           { key: 'todo',           label: 'A Fazer',           bg: 'bg-blue-100',    text: 'text-blue-700',    bgSolid: 'bg-blue-500',    combined: 'bg-blue-100 text-blue-700' },
-  in_progress:    { key: 'in_progress',    label: 'Em Progresso',      bg: 'bg-amber-100',   text: 'text-amber-700',   bgSolid: 'bg-amber-500',   combined: 'bg-amber-100 text-amber-700' },
-  review:         { key: 'review',         label: 'Revisão',           bg: 'bg-purple-100',  text: 'text-purple-700',  bgSolid: 'bg-purple-500',  combined: 'bg-purple-100 text-purple-700' },
-  em_ajuste:      { key: 'em_ajuste',      label: 'Em Ajuste',         bg: 'bg-rose-100',    text: 'text-rose-700',    bgSolid: 'bg-rose-500',    combined: 'bg-rose-100 text-rose-700' },
-  done:           { key: 'done',           label: 'Concluído',         bg: 'bg-emerald-100', text: 'text-emerald-700', bgSolid: 'bg-emerald-500', combined: 'bg-emerald-100 text-emerald-700' },
+  backlog:        { key: 'backlog',        label: 'Backlog',           bg: 'bg-status-neutro-soft',     text: 'text-status-neutro',     bgSolid: 'bg-status-neutro',     combined: 'bg-status-neutro-soft text-status-neutro' },
+  waiting_client: { key: 'waiting_client', label: 'Pendente Cliente',  bg: 'bg-status-espera-soft',     text: 'text-status-espera',     bgSolid: 'bg-status-espera',     combined: 'bg-status-espera-soft text-status-espera' },
+  todo:           { key: 'todo',           label: 'A Fazer',           bg: 'bg-status-fila-soft',       text: 'text-status-fila',       bgSolid: 'bg-status-fila',       combined: 'bg-status-fila-soft text-status-fila' },
+  in_progress:    { key: 'in_progress',    label: 'Em Progresso',      bg: 'bg-status-andamento-soft',  text: 'text-status-andamento',  bgSolid: 'bg-status-andamento',  combined: 'bg-status-andamento-soft text-status-andamento' },
+  review:         { key: 'review',         label: 'Revisão',           bg: 'bg-status-revisao-soft',    text: 'text-status-revisao',    bgSolid: 'bg-status-revisao',    combined: 'bg-status-revisao-soft text-status-revisao' },
+  em_ajuste:      { key: 'em_ajuste',      label: 'Em Ajuste',         bg: 'bg-status-ajuste-soft',     text: 'text-status-ajuste',     bgSolid: 'bg-status-ajuste',     combined: 'bg-status-ajuste-soft text-status-ajuste' },
+  done:           { key: 'done',           label: 'Concluído',         bg: 'bg-status-feito-soft',      text: 'text-status-feito',      bgSolid: 'bg-status-feito',      combined: 'bg-status-feito-soft text-status-feito' },
 };
 
 /** Ordered array for rendering lists/KPIs */

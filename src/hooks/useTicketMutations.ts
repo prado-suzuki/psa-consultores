@@ -122,6 +122,7 @@ function useTicketInvalidation() {
 // ── useAssignTicket ───────────────────────────────────────────
 
 export function useAssignTicket() {
+  const queryClient = useQueryClient();
   const invalidate = useTicketInvalidation();
   const { logAction } = useAuditLog();
 
@@ -164,6 +165,12 @@ export function useAssignTicket() {
         details: `Agente atribuído: ${vars.agentName || 'removido'}`,
       });
       invalidate();
+      // Delegar cria uma tarefa no banco (trigger trg_tickets_gera_tarefa,
+      // EDU-11). Sem isto ela só aparece no painel depois de recarregar a
+      // página. Fica AQUI, e não no `useTicketInvalidation` compartilhado: as
+      // outras cinco mutations que usam o auxiliar não geram tarefa nenhuma, e
+      // invalidar ali seria rebuscar a lista mais pesada do sistema de graça.
+      queryClient.invalidateQueries({ queryKey: ['org-tasks'] });
     },
   });
 }

@@ -39,17 +39,18 @@ export function TaskEditBody({
 }: TaskEditBodyProps) {
   return (
     <div className="space-y-6 px-6 pb-6 pt-5">
+      {/* Aviso de revisão delegada: papel `revisao` da área (index.css). */}
       {isReviewer && (
-        <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 dark:border-purple-900 dark:bg-purple-950/30">
+        <div className="rounded-xl border border-status-revisao/25 bg-status-revisao-soft/50 p-4">
           <div className="flex items-start gap-3">
-            <div className="rounded-full bg-purple-100 p-2 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
+            <div className="rounded-full bg-status-revisao-soft p-2 text-status-revisao">
               <UserCheck className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-semibold text-purple-950 dark:text-purple-100">
+              <p className="font-semibold text-status-revisao">
                 Revisão delegada a você
               </p>
-              <p className="mt-1 text-sm text-purple-800/80 dark:text-purple-200/80">
+              <p className="mt-1 text-sm text-status-revisao/80">
                 Revise a tarefa de {assignedToName || 'responsável'} e escolha uma ação ao final.
               </p>
             </div>

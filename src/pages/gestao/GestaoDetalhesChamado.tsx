@@ -21,13 +21,7 @@ import { ArrowLeft, Send, FileText, Download, Image as ImageIcon } from 'lucide-
 import { format, addDays, differenceInCalendarDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { isPastBrazil, isTodayBrazil, isTomorrowBrazil, parseDate } from '@/lib/dateUtils';
-
-const statusColors: Record<string, string> = {
-  aberto: 'bg-info',
-  em_andamento: 'bg-warning',
-  resolvido: 'bg-success',
-  fechado: 'bg-muted-foreground',
-};
+import { chamadoStatusConfig } from '@/lib/chamadoStatusColors';
 
 const statusLabels: Record<string, string> = {
   aberto: 'Aberto',
@@ -296,7 +290,7 @@ export function ChamadoDetalheContent({ listaPath }: ChamadoDetalheContentProps)
             </div>
             
             <div className="flex gap-2 flex-wrap">
-              <Badge className={statusColors[ticket.status]}>
+              <Badge className={chamadoStatusConfig(ticket.status).solid}>
                 {statusLabels[ticket.status]}
               </Badge>
               <Badge variant="outline" className="border-border text-muted-foreground">
@@ -315,10 +309,12 @@ export function ChamadoDetalheContent({ listaPath }: ChamadoDetalheContentProps)
                 const isPast = isPastBrazil(deadlineDate);
                 const isToday = isTodayBrazil(deadlineDate);
                 const isTomorrow = isTomorrowBrazil(deadlineDate);
+                // Mesma escada de urgencia do chamadoPrazoBadge: estourou = ajuste,
+                // vence hoje/amanha = alerta, resto = neutro da area.
                 const cls = isPast
-                  ? 'border-destructive/20 text-destructive bg-destructive/5'
+                  ? 'border-status-ajuste/20 text-status-ajuste bg-status-ajuste-soft/50'
                   : isToday || isTomorrow
-                    ? 'border-warning/20 text-warning bg-warning/5'
+                    ? 'border-status-alerta/20 text-status-alerta bg-status-alerta-soft/50'
                     : 'border-border text-muted-foreground';
                 return (
                   <Badge variant="outline" className={cls}>

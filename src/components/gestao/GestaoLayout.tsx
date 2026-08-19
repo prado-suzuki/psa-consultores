@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import {
   Users,
   User,
 } from 'lucide-react';
+import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 
 interface GestaoLayoutProps {
   children: React.ReactNode;
@@ -32,7 +32,9 @@ export const GestaoLayout = ({ children, title, subtitle, headerActions }: Gesta
   const { signOut, user, isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  // O recolhimento automático em telas de trabalho largo mora no hook — é a
+  // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
+  const { collapsed, setCollapsed } = useSidebarRecolhimentoController();
 
   // Chamados e o dashboard dele saíram daqui: passaram para o dropdown Gerencial
   // da Tax e da OSG, restritos a líder+. A área de Marketing fica com Novidades

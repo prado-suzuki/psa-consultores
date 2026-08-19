@@ -30,6 +30,11 @@ export interface TicketListItem {
   agent?: TicketProfile;
   attachment_count?: number;
   assigned_agent?: { first_name: string; last_name: string } | null;
+  // O id vem junto com o nome porque a tela precisa do cliente, e não só do
+  // rótulo dele: é por ele que a ALE-5 pergunta se o cliente tem projeto de
+  // canal de chamados. Antes o mapeamento usava o id para resolver o nome e o
+  // descartava.
+  cliente_id?: string | null;
   cliente_nome?: string | null;
 }
 
@@ -212,6 +217,7 @@ export function useTicketsList(options?: TicketsListOptions) {
         profiles: profilesMap.get(ticket.user_id),
         agent: ticket.assigned_to ? agentsMap.get(ticket.assigned_to) : undefined,
         attachment_count: attachmentCountMap.get(ticket.id) || 0,
+        cliente_id: ticket.cliente_id ?? null,
         cliente_nome: (ticket as any).cliente_id ? clienteMap.get((ticket as any).cliente_id) || null : null,
       }));
     },

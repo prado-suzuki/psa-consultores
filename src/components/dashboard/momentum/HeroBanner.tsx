@@ -2,7 +2,6 @@ import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
-import type { AreaKey } from '@/config/areaCategories';
 
 interface HeroBannerProps {
   title: string;
@@ -13,14 +12,31 @@ interface HeroBannerProps {
   className?: string;
   /** Subtítulo curto acima do título (eyebrow) */
   eyebrow?: string;
-  /** Área atual — define a paleta do banner (Tax = teal/slate, OSG = verde moss). */
-  area?: AreaKey;
 }
 
 /**
+ * Escurecimento do banner: preto com alpha por cima do `--primary` da área.
+ *
+ * O banner precisa de um degradê "quase preto → tom da área", e é o único jeito
+ * de escurecer um token sem saber qual é o matiz dele. Preto não tem matiz, então
+ * o resultado nunca troca a identidade: na Tax escurece o teal, na OSG escurece o
+ * musgo, e numa área nova escurece o que ela declarar. É o mesmo recurso que o
+ * `.osg-theme .kpi-hero-solid` já usa no `index.css`.
+ *
+ * O que estava aqui antes era um `if (area === 'osg')` escolhendo entre dois
+ * degradês fixos: slate escuro para teal de um lado, musgo do outro. Além de a Tax
+ * vazar para toda área que não caísse no `if`, o padrão obriga a editar este
+ * arquivo a cada área nova.
+ */
+const VEU_ESCURO =
+  'linear-gradient(135deg, hsl(0 0% 0% / 0.92) 0%, hsl(0 0% 0% / 0.62) 45%, hsl(0 0% 0% / 0.12) 100%)';
+
+/**
  * Banner de destaque dark com efeito orgânico/blur.
- * Tax mantém a paleta original (slate escuro + accent teal). OSG usa o mesmo
- * estilo de degradê, porém em verde (osg-moss), sem tons de azul.
+ *
+ * Não recebe (nem precisa de) a área: a superfície é `bg-primary` e quem resolve
+ * o `--primary` é a classe de tema que o layout da área põe no `<html>`. Montado
+ * no `FiscalLayout` sai teal, no `OsgLayout` sai musgo, sem condicional.
  */
 export function HeroBanner({
   title,
@@ -30,55 +46,38 @@ export function HeroBanner({
   icon,
   className,
   eyebrow,
-  area = 'tax',
 }: HeroBannerProps) {
-  const isOsg = area === 'osg';
-  // Cores dos "blobs" de blur — em CSS inline porque são radial-gradients.
-  const blob1 = isOsg ? 'hsl(var(--osg-moss))' : '#0d9488';
-  const blob2 = isOsg ? 'hsl(149 45% 42%)' : '#5eead4';
-
   return (
     <div
       className={cn(
         'relative overflow-hidden rounded-2xl p-6 md:p-8',
-        isOsg
-          ? 'bg-gradient-to-br from-[hsl(149_55%_8%)] via-[hsl(149_60%_13%)] to-[hsl(var(--osg-moss))]'
-          : 'bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900',
-        'text-white shadow-md',
+        'bg-primary text-white shadow-md',
         className
       )}
+      style={{ backgroundImage: VEU_ESCURO }}
     >
-      {/* Efeito orgânico de blur (decorativo) */}
+      {/* Efeito orgânico de blur (decorativo). O primeiro blob devolve o tom cheio
+          da área no canto escuro; o segundo é só luz (branco), sem matiz próprio. */}
       <div
         aria-hidden
         className="absolute -top-20 -right-20 h-64 w-64 rounded-full blur-3xl opacity-30"
-        style={{ background: `radial-gradient(circle, ${blob1} 0%, transparent 70%)` }}
+        style={{ background: 'radial-gradient(circle, hsl(var(--primary)) 0%, transparent 70%)' }}
       />
       <div
         aria-hidden
         className="absolute -bottom-16 -left-10 h-52 w-52 rounded-full blur-3xl opacity-25"
-        style={{ background: `radial-gradient(circle, ${blob2} 0%, transparent 70%)` }}
+        style={{ background: 'radial-gradient(circle, hsl(0 0% 100% / 0.6) 0%, transparent 70%)' }}
       />
 
       <div className="relative z-10 max-w-2xl">
         {eyebrow && (
-          <div
-            className={cn(
-              'text-xs font-semibold uppercase tracking-widest mb-2',
-              isOsg ? 'text-white/70' : 'text-teal-300'
-            )}
-          >
+          <div className="text-xs font-semibold uppercase tracking-widest mb-2 text-white/70">
             {eyebrow}
           </div>
         )}
         <div className="flex items-start gap-3">
           {icon && (
-            <div
-              className={cn(
-                'h-12 w-12 rounded-xl backdrop-blur flex items-center justify-center flex-shrink-0',
-                isOsg ? 'bg-white/15' : 'bg-teal-500/20'
-              )}
-            >
+            <div className="h-12 w-12 rounded-xl backdrop-blur flex items-center justify-center flex-shrink-0 bg-white/15">
               {icon}
             </div>
           )}
@@ -96,14 +95,11 @@ export function HeroBanner({
         </div>
 
         {ctaLabel && onCta && (
+          // O banner é sempre escuro, então o botão é branco com texto escuro
+          // neutro — `gray-900`, não o tom de nenhuma área.
           <Button
             onClick={onCta}
-            className={cn(
-              'mt-5 font-semibold',
-              isOsg
-                ? 'bg-white text-gray-900 hover:bg-white/90'
-                : 'bg-white text-slate-900 hover:bg-teal-50 hover:text-teal-700'
-            )}
+            className="mt-5 font-semibold bg-white text-gray-900 hover:bg-white/90"
           >
             {ctaLabel}
             <ArrowRight className="ml-2 h-4 w-4" />

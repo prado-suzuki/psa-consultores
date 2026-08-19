@@ -14,6 +14,8 @@ import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from
 import SecaoFormulario from "./SecaoFormulario";
 import { UF_STATES, type defaultClientData } from "./constants";
 import { normalizarNomeDigitado } from "@/lib/nomeProprio";
+import { municipioAoTrocarUf, siglaDaUf } from "@/lib/municipiosIbge";
+import { MunicipioCombo } from "./MunicipioCombo";
 
 interface ClusterOption {
   id: string;
@@ -166,34 +168,44 @@ export default function ClienteTab({
         </div>
 
         {/*
-          2.5. Município e UF do cliente/grupo.
+          2.5. UF e município do cliente/grupo.
 
           As colunas `cliente.municipio` e `cliente.uf` já existiam: o carregador
           lia (useClientEditData), o salvamento gravava, a auditoria comparava e
           o sync do DW mandava adiante. Só não havia campo — dado que nenhuma
           tela sabia escrever, e que os modelos de documento precisam para o foro
           e para a qualificação da sede (B18).
+
+          A UF vem ANTES do município porque o município é lista dela. Era campo
+          aberto, e o resultado apareceu no dado: "SINOP" e "Sinop" convivendo
+          como se fossem cidades diferentes. O rótulo acompanha a ordem de
+          preenchimento; a leitura, mais abaixo, segue dizendo "Município / UF",
+          que é a ordem natural de ler um endereço.
         */}
         <div className="flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
           <Label className="w-full md:w-48 shrink-0 text-xs font-semibold text-muted-foreground">
-            Município / UF
+            UF / Município
           </Label>
           <div className="flex min-w-0 flex-1 gap-2">
-            <Input
-              disabled={isReadOnly}
-              value={clientData.municipio ?? ""}
-              onChange={(e) => setClientData({ ...clientData, municipio: e.target.value })}
-              onBlur={(e) => {
-                const arrumado = normalizarNomeDigitado(e.target.value);
-                if (arrumado !== clientData.municipio) setClientData({ ...clientData, municipio: arrumado });
-              }}
-              placeholder="Ex: Lucas do Rio Verde"
-              className="h-8 min-w-0 flex-1"
-            />
+            {/*
+              O seletor recebe a SIGLA, não o valor cru. Metade dos clientes tem
+              o estado por extenso, e "MATO GROSSO" não casa com nenhuma opção da
+              lista: o Radix então não mostrava o valor NEM o placeholder, e o
+              campo parecia vazio num cliente que tem UF preenchida. A sigla é o
+              mesmo fato na forma canônica; o que está gravado só muda quando
+              alguém escolhe na lista.
+            */}
             <Select
               disabled={isReadOnly}
-              value={clientData.uf || undefined}
-              onValueChange={(v) => setClientData({ ...clientData, uf: v })}
+              value={siglaDaUf(clientData.uf)}
+              onValueChange={(v) =>
+                setClientData({
+                  ...clientData,
+                  uf: v,
+                  // A regra de quando a cidade sai está em `municipioAoTrocarUf`.
+                  municipio: municipioAoTrocarUf(v, clientData.uf, clientData.municipio),
+                })
+              }
             >
               <SelectTrigger className="h-8 w-24 shrink-0">
                 <SelectValue placeholder="UF" />
@@ -204,6 +216,12 @@ export default function ClienteTab({
                 ))}
               </SelectContent>
             </Select>
+            <MunicipioCombo
+              uf={clientData.uf}
+              value={clientData.municipio}
+              onChange={(municipio) => setClientData({ ...clientData, municipio })}
+              disabled={isReadOnly}
+            />
           </div>
         </div>
         </div>

@@ -32,7 +32,7 @@ export function TaskEditActions({
           type="button"
           variant="outline"
           size="sm"
-          className="gap-2 border-rose-200 text-rose-700 hover:bg-rose-50 hover:text-rose-800 dark:border-rose-900 dark:text-rose-300 dark:hover:bg-rose-950"
+          className="gap-2 border-status-ajuste/30 text-status-ajuste hover:bg-status-ajuste-soft hover:text-status-ajuste"
           onClick={onRequestAdjustments}
           disabled={isSaving}
         >
@@ -42,7 +42,7 @@ export function TaskEditActions({
         <Button
           type="button"
           size="sm"
-          className="gap-2 bg-emerald-600 hover:bg-emerald-700"
+          className="gap-2 bg-status-feito hover:bg-status-feito/90"
           disabled={isSaving}
           onClick={onApprove}
         >
@@ -60,7 +60,7 @@ export function TaskEditActions({
           type="button"
           variant="outline"
           size="sm"
-          className="gap-2 border-purple-200 text-purple-700 hover:bg-purple-50 hover:text-purple-800 dark:border-purple-900 dark:text-purple-300 dark:hover:bg-purple-950"
+          className="gap-2 border-status-revisao/30 text-status-revisao hover:bg-status-revisao-soft hover:text-status-revisao"
           onClick={onSendForReview}
           disabled={isSaving}
         >

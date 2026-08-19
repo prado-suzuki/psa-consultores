@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { useDomainBoardLayout } from '@/hooks/useDomainBoardLayout';
 import { usePageAccess } from '@/hooks/usePageAccess';
+import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 import { BoardClusterBar, honraClusterGlobal } from '@/components/equipe/board/BoardClusterBar';
 
 interface BoardLayoutProps {
@@ -163,13 +164,12 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
     return () => { document.title = anterior; };
   }, [title]);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(() => {
-    try { return localStorage.getItem('board-sidebar-collapsed') === 'true'; } catch { return false; }
+  // A persistência entre sessões continua, agora dentro do hook: só a escolha
+  // manual é gravada. O recolhimento automático de uma tela larga é daquela
+  // tela — gravá-lo deixaria a barra estreita em todo o Board para sempre.
+  const { collapsed, setCollapsed } = useSidebarRecolhimentoController({
+    persistKey: 'board-sidebar-collapsed',
   });
-
-  useEffect(() => {
-    try { localStorage.setItem('board-sidebar-collapsed', String(collapsed)); } catch { /* ignore quota/private mode */ }
-  }, [collapsed]);
 
   const { pendingDecisions, hasUnreadOrOverdue } = useDomainBoardLayout({
     canDesempenho,

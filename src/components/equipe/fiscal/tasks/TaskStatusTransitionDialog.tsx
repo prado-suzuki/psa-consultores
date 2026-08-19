@@ -142,8 +142,8 @@ export function TaskStatusTransitionDialog({
         <DialogHeader>
           <div className="flex items-center gap-3">
             <div className={isReview
-              ? 'rounded-full bg-purple-100 p-2 text-purple-700 dark:bg-purple-900 dark:text-purple-200'
-              : 'rounded-full bg-rose-100 p-2 text-rose-700 dark:bg-rose-900 dark:text-rose-200'}
+              ? 'rounded-full bg-status-revisao-soft p-2 text-status-revisao'
+              : 'rounded-full bg-status-ajuste-soft p-2 text-status-ajuste'}
             >
               {isReview ? <Send className="h-5 w-5" /> : <RotateCcw className="h-5 w-5" />}
             </div>
@@ -206,7 +206,7 @@ export function TaskStatusTransitionDialog({
             type="button"
             onClick={handleConfirm}
             disabled={isPending}
-            className={isReview ? 'bg-purple-600 hover:bg-purple-700' : 'bg-rose-600 hover:bg-rose-700'}
+            className={isReview ? 'bg-status-revisao hover:bg-status-revisao/90' : 'bg-status-ajuste hover:bg-status-ajuste/90'}
           >
             {isReview ? 'Enviar para revisão' : 'Confirmar ajustes'}
           </Button>

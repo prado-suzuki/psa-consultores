@@ -36,7 +36,11 @@ All colors MUST be HSL.
     /* "muted" (barras de filtro, cabeçalho de tabela, zebra, fundo do FiscalLayout):
        marfim tax-50 no lugar do cinza-azulado. */
     --muted: var(--tax-50);
-    --muted-foreground: 220 9% 46%;
+    /* Neutro secundario (icone de menu, rotulo inativo, legenda, subtitulo).
+       Era matiz 220 — cinza-AZULADO — sobre superficies marfim/bege: a camada
+       secundaria inteira do sistema destoava da temperatura das superficies.
+       Mesma luminosidade de antes, para nao mexer no contraste. */
+    --muted-foreground: 28 9% 45%;
 
     --accent: 175 82% 29%;
     --accent-foreground: 0 0% 100%;
@@ -51,6 +55,104 @@ All colors MUST be HSL.
     --warning-foreground: 28 45% 18%;
     --info: 221 83% 53%;
     --info-foreground: 0 0% 100%;
+
+    /* ─── Papéis de status: BASE DO SISTEMA ───────────────────────────────
+       Esta é a "família comum" que todas as áreas conversam: neutro marfim,
+       rampa verde para o avanço, quentes só para espera/erro. NÃO é a paleta da
+       Tax — a Tax declara a dela em .tax-theme, a OSG em .osg-theme. Área que
+       ainda não declarou paleta (Board, Digital, Marketing, portal) cai aqui, e
+       cai num lugar coerente em vez de emprestar a identidade de outra área.
+
+       O contrato de uma paleta de área está em docs/geral/paleta-por-area.md:
+       mesmos 8 papéis, cada par de tons cheios separado por matiz OU por
+       luminosidade, saturação em faixa — é o que impede que uma área nova entre
+       neon e destoe das outras.
+
+       Cada papel tem um par: `soft` (fundo da pílula) e a cor cheia (texto sobre
+       o soft, ponto, barra, e fundo de badge com texto branco).
+
+       A constelação: quatro verdes espaçados no arco (fila → andamento →
+       revisao → feito) e quatro quentes espaçados no arco vinho → palha
+       (ajuste, espera, neutro, alerta). Onde a matiz não dá conta — vizinhos no
+       mesmo arco — quem separa é a luminosidade, com 9 a 10 pontos de distância.
+       Uma rampa de matiz ÚNICO variando só a luminosidade não sobrevive à
+       bolinha de 8px da legenda do Gantt; foi o erro da primeira versão, e
+       `SEPARACAO` em src/lib/paletaDeArea.ts agora o reprova.
+
+       A IDENTIDADE DA BASE é marfim + verde sábio, e ela é uma TERCEIRA
+       identidade, não um meio-termo entre Tax e OSG: o arco verde é o sábio/
+       oliva (89–122), longe do teal da Tax (163–197) e do musgo da OSG
+       (127–160); os quentes são palha (48–54), barro (32) e vinho (343), longe
+       do tijolo/ocre da Tax e do carmim/dourado da OSG. `SEPARACAO_ENTRE_AREAS`
+       trava isso: paleta de área que copiar outra reprova no teste. */
+    --status-neutro: 48 22% 30%;
+    --status-neutro-soft: 48 22% 86%;
+    --status-fila: 122 28% 33%;
+    --status-fila-soft: 122 28% 87%;
+    --status-andamento: 100 38% 27%;
+    --status-andamento-soft: 100 38% 86%;
+    --status-revisao: 111 32% 17%;
+    --status-revisao-soft: 111 32% 86%;
+    --status-espera: 32 34% 20%;
+    --status-espera-soft: 32 34% 86%;
+    --status-ajuste: 343 50% 24%;
+    --status-ajuste-soft: 343 50% 86%;
+    --status-feito: 89 40% 17%;
+    --status-feito-soft: 89 40% 86%;
+    --status-alerta: 54 58% 20%;
+    --status-alerta-soft: 54 58% 86%;
+
+    /* ─── Tons categóricos: --tag-a … --tag-d ────────────────────────────
+       Quatro tons, e eles têm DOIS empregos ao mesmo tempo:
+
+       1. chip da tag de texto livre, sorteado por hash (`bg-tag-x/15 text-tag-x`);
+       2. paleta categórica dos GRÁFICOS (a constante `SERIES`, em
+          src/components/equipe/board/clientes-os/shared.ts).
+
+       Cada emprego impõe um contrato, e é a soma dos dois que fixa estes valores:
+
+       · como texto sobre o chip, o tom precisa de 4,5:1 (AA) sobre 15% dele mesmo
+         no card claro — é isso que o prende à faixa escura (luminosidade ≤ 40%) e,
+         de quebra, o que limita o croma: quanto mais claro/cromático, menor o
+         contraste do chip;
+       · como marca de gráfico, dois tons quaisquer precisam ser distinguíveis:
+         croma OKLCH ≥ 0,10 (abaixo disso a matiz lê como cinza), luminosidade
+         OKLCH entre 0,43 e 0,77, e ΔE OKLab ≥ 15 na visão normal e ≥ 8 sob
+         protanopia/deutanopia, para TODOS os pares.
+
+       O segundo contrato foi quem redesenhou a constelação. Sob deutanopia o
+       dourado e o carmim são a MESMA cor (ΔE 0,4), e o mesmo vale para azul e
+       roxo de luminosidade parecida: sobram, na prática, quatro classes —
+       quente-escuro, quente-claro, frio-escuro, frio-claro. Daí a escolha:
+
+         --tag-a  verde da área, ESCURO      --tag-b  frio da área, ESCURO
+         --tag-d  quente da área, CLARO      --tag-c  uva da área, CLARA
+
+       Saíram do conjunto o dourado (que colide com o quente sob daltonismo; ele
+       continua vivo como papel `alerta`) e o barro/taupe (um quase-neutro fica
+       abaixo do piso de croma e lê como cinza numa barra). Entraram um frio e uma
+       uva, que são o que fecha as quatro classes. A identidade da área continua
+       nos dois PRIMEIROS tons da ordem de série (verde e quente) — que são os que
+       um gráfico de duas ou três séries usa.
+
+       Base: sábio, ardósia, uva e vinho. Validado pelo script `validate_palette.js`
+       da skill `dataviz` contra a superfície do tema (#ffffff no Board). */
+    --tag-a: 112 64% 24%;
+    --tag-b: 211 60% 33%;
+    --tag-c: 289 78% 40%;
+    --tag-d: 339 84% 40%;
+
+    /* Categoria do cliente (Bronze → Diamante). Atributo de NEGÓCIO, não
+       identidade de área: Ouro é Ouro na Tax e na OSG, então mora no :root e
+       nenhuma área sobrescreve. Mantém a metáfora do metal — que o usuário
+       reconhece — mas em versões contidas: os valores anteriores eram hex da web
+       (#FFD700 ouro puro, #00BFFF azul-céu) cravados direto no componente, e
+       gritavam mais que qualquer dado da tela. Luminosidade próxima entre os
+       quatro, para lerem como uma escala; contraste ≥ 3,4:1 em toda superfície. */
+    --categoria-bronze: 25 42% 42%;
+    --categoria-prata: 212 9% 48%;
+    --categoria-ouro: 43 60% 38%;
+    --categoria-diamante: 196 42% 44%;
 
     /* Ícone de ferramenta/card (acento). Tax usa a marca; OSG usa o taupe osg-600. */
     --tool-icon: var(--primary);
@@ -127,6 +229,85 @@ All colors MUST be HSL.
     --sidebar-ring: 85 85% 37%;
   }
 
+  /* Tema da área Tax: o teal #0d9488 da marca é a cor da área — a mesma da barra
+     de progresso. Aplicado no <html> pelo FiscalLayout, então alcança menus e
+     modais renderizados em portal, igual ao .osg-theme.
+
+     fila → andamento → revisão → feito percorrem o arco verde a partir do teal
+     da marca (andamento = 175, o próprio #0d9488, escurecido para 25% porque a
+     29% da marca o branco em cima dele cai para 4,5:1 e a pílula não fecha AA):
+     cada degrau desloca a matiz E o tom, porque na bolinha de 8px da legenda uma
+     rampa de matiz único vira uma cor só. Quente entra só onde há gente
+     envolvida (espera) ou erro (ajuste), e o ocre `alerta` é o único amarelo —
+     reservado para pendência que exige ação, senão volta a virar decoração.
+
+     A TAX É QUEM SE MOVE. A OSG tinha identidade consolidada (musgo, dourado,
+     carmim, taupe) antes deste sistema de papéis existir, então ela é a âncora e
+     a Tax é a variável. Duas consequências, e as duas são de propósito:
+
+     1. O arco verde da Tax sobe do teal (163 → 197) enquanto o da OSG desce do
+        musgo (127 → 160). Os dois arcos NÃO se tocam — não é só o mesmo papel
+        que se distingue, é a legenda inteira.
+     2. Os quentes deixaram de ser "vocabulário comum". Eram carmim + dourado
+        idênticos aos da OSG (1° a 6° de distância, 0 ponto de luminosidade), e
+        por isso as duas legendas liam como a mesma paleta. Agora a Tax fala
+        tijolo (7–12) e ocre (30–36), afinados com a escala --tax-*, e cai num
+        registro de luminosidade próprio: ajuste/revisao/feito escuros contra os
+        equivalentes claros da OSG.
+
+     A paleta vem declarada INTEIRA, inclusive os papéis iguais aos da base: a
+     paleta de uma área tem que ser legível de uma vez, num bloco só. */
+  .tax-theme {
+    /* Superfícies da Tax — a área tem temperatura própria também no fundo.
+       Antes a Tax herdava da base o marfim quente (matiz 42), a 10° do bege da
+       OSG (32): duas áreas com acento diferente e o MESMO pano de fundo, e a
+       tela inteira lia como "a mesma coisa" antes de qualquer conteúdo. Agora o
+       fundo da Tax puxa para o frio, herdando um fio do teal da marca.
+
+       Saturação baixíssima de propósito: é neutro com cast, não superfície
+       colorida — se o fundo tem cor, o acento para de saltar. As luminosidades
+       são as mesmas de antes (só `--muted` desce 1 ponto, para o card se
+       destacar do corpo), então nenhum contraste do sistema muda. */
+    --background: 170 18% 99.6%;
+    --card: 170 18% 99.6%;
+    --popover: 170 18% 99.6%;
+    --canvas: 170 16% 98.8%;
+    --muted: 168 20% 97%;
+
+    /* O secundário acompanha a temperatura da superfície: com o fundo da Tax
+       frio, um neutro quente aqui repetiria — ao contrário — a dissonância que
+       o matiz 220 causava sobre os beges. Mesma luminosidade de antes. */
+    --muted-foreground: 185 8% 44%;
+    --status-neutro: 30 20% 33%;
+    --status-neutro-soft: 30 20% 86%;
+    --status-fila: 197 45% 34%;
+    --status-fila-soft: 197 45% 88%;
+    --status-andamento: 175 72% 25%;
+    --status-andamento-soft: 175 58% 86%;
+    --status-revisao: 187 58% 13%;
+    --status-revisao-soft: 187 58% 86%;
+    --status-espera: 12 42% 23%;
+    --status-espera-soft: 12 42% 86%;
+    --status-ajuste: 7 56% 13%;
+    --status-ajuste-soft: 7 56% 86%;
+    --status-feito: 163 55% 15%;
+    --status-feito-soft: 163 55% 86%;
+    --status-alerta: 36 62% 22%;
+    --status-alerta-soft: 36 58% 86%;
+
+    /* Tons categóricos da Tax — quatro classes, o contrato está no :root.
+       Âncora: --tag-a é o teal #0d9488 da marca (matiz 175), --tag-d é o tijolo.
+       O teal é o ÚNICO tom do sistema que não alcança o piso de croma (0,083
+       contra 0,10): nesta faixa de luminosidade o arco 164–197 não tem croma
+       para dar, e clarear para ganhar croma derruba o contraste do chip abaixo
+       de AA. Ficou o teal, porque a identidade da área não se negocia por
+       0,017 de croma — nos gráficos ele sempre vem com rótulo direto ao lado. */
+    --tag-a: 175 77% 25%;
+    --tag-b: 223 78% 40%;
+    --tag-c: 298 70% 31%;
+    --tag-d: 7 72% 39%;
+  }
+
   /* Tema da área OSG: troca o accent teal padrão pelo verde osg-moss.
      Aplicado no <html> pelo OsgLayout, então alcança menus renderizados em portal. */
   .osg-theme {
@@ -143,6 +324,56 @@ All colors MUST be HSL.
        (azul mais próximo dos demais itens da página). */
     --success: var(--osg-moss);
     --warning: var(--osg-highlighter);
+
+    /* Paleta de status da OSG — construída SOBRE os tokens de marca da área, não
+       ao lado deles. A OSG tinha identidade (musgo, dourado, carmim, taupe)
+       antes de existir sistema de papéis; aqui ela é a âncora, e cada papel sai
+       de um token que já estava no arquivo, com o mínimo de desvio:
+
+         andamento  149 66% 22%  = --osg-moss, número por número
+         fila       160 42% 32%  musgo clareado, 11° acima
+         revisao    138 50% 12%  musgo escurecido, 11° abaixo
+         feito      127 52% 26%  verde-folha, 22° abaixo do musgo
+         ajuste     356 57% 40%  = --osg-red (356 59% 45%), só o quanto o
+                                 contraste da pílula exigiu escurecer
+         alerta      41 64% 31%  = matiz do --osg-highlighter (41 73% 71%);
+                                 71% de luminosidade é fundo de marca-texto, não
+                                 dá 4,5:1 com branco em cima — 31% é o teto
+         neutro      19 25% 22%  ≈ --osg-600 (19 24% 25%)
+         espera      18 34% 33%  ≈ --osg-500 (22 24% 33%), luminosidade idêntica
+
+       A rodada anterior girou o arco verde inteiro para caber num "vocabulário
+       comum" com a Tax e levou `feito` para 115° (verde-amarelado) e `revisao`
+       para 132°, deixando só `andamento` no musgo. Aqui o arco volta a ser
+       estreito e centrado no musgo: quem se afasta é a Tax. */
+    --status-neutro: 19 25% 22%;
+    --status-neutro-soft: 19 25% 86%;
+    --status-fila: 160 42% 32%;
+    --status-fila-soft: 160 42% 91%;
+    --status-andamento: 149 66% 22%;
+    --status-andamento-soft: 149 58% 86%;
+    --status-revisao: 138 50% 12%;
+    --status-revisao-soft: 138 50% 86%;
+    --status-espera: 18 34% 33%;
+    --status-espera-soft: 18 34% 86%;
+    --status-ajuste: 356 57% 40%;
+    --status-ajuste-soft: 356 43% 86%;
+    --status-feito: 127 52% 26%;
+    --status-feito-soft: 127 52% 86%;
+    --status-alerta: 41 64% 31%;
+    --status-alerta-soft: 41 58% 90%;
+
+    /* Tons categóricos da OSG — quatro classes, o contrato está no :root.
+       Âncoras nos dois primeiros da ordem de série: --tag-a é o musgo (149, a
+       matiz do --osg-moss) e --tag-d é o carmim (356, a matiz do --osg-red).
+       O frio e a uva não são cor de marca da OSG — a área não tem azul —, mas
+       sem um par frio não existem quatro categorias separáveis sob daltonismo,
+       e eles só aparecem a partir da terceira série. */
+    --tag-a: 149 60% 26%;
+    --tag-b: 218 74% 37%;
+    --tag-c: 306 52% 32%;
+    --tag-d: 356 82% 40%;
+
     /* Ícones de ferramenta/card na OSG: taupe da paleta (igual ao OSG Work):
        ícone osg-600 sobre quadrado osg-100 (bege quente) — match exato. */
     --tool-icon: var(--osg-600);
@@ -163,6 +394,8 @@ All colors MUST be HSL.
        trocam o cinza-azulado padrão pelo bege quente osg-50 (#f0ebe5), o mesmo
        fundo da barra CLIENTE do OSG Work. */
     --muted: var(--osg-50);
+    /* Secundario da OSG: neutro quente do lado do taupe da area. */
+    --muted-foreground: 24 12% 42%;
 
     /* Vermelho de exclusão/cancelar — carmim/tijolo OSG (osg-red), menos berrante
        que o vermelho puro padrão, para conviver com a paleta quente da OSG. */
