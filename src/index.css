@@ -318,6 +318,18 @@ All colors MUST be HSL.
     --muted-foreground: 28 9% 45%;
     --destructive: 0 84% 60%;
 
+    /* Superfície escura — o par de fundo dos cartões escuros, do mais escuro
+       (`--surface-escura`, o início do gradiente) para o intermediário
+       (`--surface-escura-2`). O fim do gradiente é o `--primary` da área, e é
+       ele que dá identidade ao cartão.
+
+       Os valores são o `slate-950`/`slate-900` que o único cartão escuro do
+       sistema já usava cravado — tokenizados, sem mudar de cor. São FRIOS
+       porque o acento do piso é o teal: quem tem acento quente sobrescreve o
+       par (ver `.sistema-theme`). */
+    --surface-escura: 229 84% 5%;
+    --surface-escura-2: 222 47% 11%;
+
     /* Texto */
     --foreground: 20 81% 10%;
     --card-foreground: 20 81% 10%;
@@ -431,6 +443,10 @@ All colors MUST be HSL.
     --foreground: 20 81% 10%;
     --card-foreground: 20 81% 10%;
     --popover-foreground: 20 81% 10%;
+    /* A Tax não tem superfície escura hoje. Declara o par do piso para o
+       contrato ficar honesto e para ter o fundo certo se um dia tiver. */
+    --surface-escura: 229 84% 5%;
+    --surface-escura-2: 222 47% 11%;
   }
 
   /* Tema da área OSG: troca o accent teal padrão pelo verde osg-moss.
@@ -534,6 +550,15 @@ All colors MUST be HSL.
     --foreground: 220 26% 12%;
     --card-foreground: 220 26% 12%;
     --popover-foreground: 220 26% 12%;
+
+    /* Superfície escura: o par do piso. A OSG NÃO tem cartão escuro para
+       tokenizar — o que ela tem de escuro é a página do seletor de área
+       (`gray-950/900`, que já são token) e arte de marca com hex próprio
+       (`OsgWorkIcon`, `OsgProjectsIcon`). Escrever um par taupe aqui seria
+       decidir a identidade escura da OSG sem ninguém ter pedido; quando ela
+       tiver uma, é nestas duas linhas. */
+    --surface-escura: 229 84% 5%;
+    --surface-escura-2: 222 47% 11%;
   }
 
   /* Tema da área Digital Rotina: o anel de foco dos campos deixa de ser o lime
@@ -604,6 +629,9 @@ All colors MUST be HSL.
     --foreground: 20 81% 10%;
     --card-foreground: 20 81% 10%;
     --popover-foreground: 20 81% 10%;
+    /* A Rotina não tem superfície escura hoje. Mesmo motivo da Tax. */
+    --surface-escura: 229 84% 5%;
+    --surface-escura-2: 222 47% 11%;
   }
 
   /* ─── .sistema-theme — grafite quente para as telas de infraestrutura ────
@@ -643,6 +671,16 @@ All colors MUST be HSL.
     --accent-foreground: 0 0% 100%;
     --ring: 35 10% 26%;
     --tool-icon-bg: 35 20% 94%;
+
+    /* Superfície escura QUENTE — o par do piso é frio (matiz 222/229, herdado
+       do teal). Um gradiente que sai do frio e termina no grafite quente
+       atravessa o eixo azul→marrom e passa por um cinza morto no meio; e o
+       grafite a 26% de luminosidade é mais CLARO que o azul-ardósia a 11%, o
+       que faz o canto acender em vez de fechar. Na matiz 35 o gradiente inteiro
+       escurece na mesma família e o cartão parece desenhado em grafite, não
+       adaptado. */
+    --surface-escura: 35 10% 8%;
+    --surface-escura-2: 35 11% 12%;
   }
 
   /* Hover das linhas de tabela na área OSG: marrom/areia claro (osg-50)

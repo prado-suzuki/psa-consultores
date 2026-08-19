@@ -244,8 +244,21 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
   const css = readFileSync('src/index.css', 'utf8');
   const contrato = declaradasEm(css, `.${CLASSE_BASE}`);
 
-  it('o contrato tem as 41 variáveis', () => {
-    expect(contrato.size).toBe(41);
+  it('o contrato tem as 43 variáveis', () => {
+    // 41 na origem + o par `--surface-escura`/`-2`, acrescentado quando o
+    // cartão escuro do Painel Dev precisou de um fundo por área.
+    expect(contrato.size).toBe(43);
+  });
+
+  it('o par de superfície escura está em TODOS os temas, não só em quem usa', () => {
+    // É o teste que cobra o preço de acrescentar ao contrato: uma variável nova
+    // no piso obriga cada área a declarar a sua. Sem isso, a área que não
+    // declarasse herdaria o fundo escuro de outra identidade.
+    for (const classe of [CLASSE_BASE, ...CONGELADOS]) {
+      const declaradas = declaradasEm(css, `.${classe}`);
+      expect(declaradas.has('--surface-escura'), `.${classe}`).toBe(true);
+      expect(declaradas.has('--surface-escura-2'), `.${classe}`).toBe(true);
+    }
   });
 
   /*

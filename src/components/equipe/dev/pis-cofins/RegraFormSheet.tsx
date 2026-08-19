@@ -429,14 +429,14 @@ export const RegraFormSheet = ({ open, onOpenChange, regra, mode, onModeChange, 
           {isViewMode ? (
             <div key="view-footer" className="flex gap-2 justify-end w-full">
               <Button type="button" variant="outline" onClick={handleClose}>Fechar</Button>
-              <Button type="button" className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => onModeChange('edit')}>
+              <Button type="button" className="bg-primary hover:bg-primary/90 text-white" onClick={() => onModeChange('edit')}>
                 <Pencil className="h-4 w-4 mr-2" /> Editar
               </Button>
             </div>
           ) : (
             <div key="edit-footer" className="flex gap-2 justify-end w-full">
               <Button type="button" variant="outline" onClick={handleCancel}>Cancelar</Button>
-              <Button type="button" className="bg-teal-600 hover:bg-teal-700 text-white" disabled={isSubmitting} onClick={form.handleSubmit(handleFormSubmit)}>
+              <Button type="button" className="bg-primary hover:bg-primary/90 text-white" disabled={isSubmitting} onClick={form.handleSubmit(handleFormSubmit)}>
                 {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {mode === 'create' ? 'Criar Regra' : 'Salvar'}
               </Button>

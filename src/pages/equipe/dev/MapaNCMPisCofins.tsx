@@ -243,7 +243,7 @@ const MapaNCMPisCofins = () => {
         <Card className="mb-6">
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg text-primary">
-              <Filter className="h-5 w-5 text-teal-600" />
+              <Filter className="h-5 w-5 text-primary" />
               <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
             </CardTitle>
           </CardHeader>
@@ -317,7 +317,7 @@ const MapaNCMPisCofins = () => {
                 </ButtonTooltip>
               )}
               <ButtonTooltip text={TOOLTIPS.novaRegra}>
-                <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={() => { setSelectedRegra(null); setModalMode('create'); }}>
+                <Button className="bg-primary hover:bg-primary/90 text-white" onClick={() => { setSelectedRegra(null); setModalMode('create'); }}>
                   <Plus className="h-4 w-4 mr-2" /> Nova Regra
                 </Button>
               </ButtonTooltip>

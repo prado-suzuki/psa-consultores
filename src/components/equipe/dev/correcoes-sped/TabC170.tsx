@@ -680,7 +680,7 @@ export default function TabC170({
                     const linhaCorrigida = buildChangedFields(item._originalSnapshot, getSnapshotFromItem(item)).length > 0;
 
                     return (
-                      <TableRow key={`${item.chv_nfe}-${item.NUM_ITEM}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.uuid) ? 'bg-teal-100/60 dark:bg-teal-900/25' : 'bg-teal-50/30 dark:bg-teal-950/10') : 'group'}>
+                      <TableRow key={`${item.chv_nfe}-${item.NUM_ITEM}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.uuid) ? 'bg-primary/15 dark:bg-primary/20' : 'bg-primary/5 dark:bg-primary/5') : 'group'}>
                         {isEditMode && (
                           <TableCell className="py-1.5 w-[40px] min-w-[40px] text-center">
                             <Checkbox checked={selection.selectedIds.has(item.uuid)} onCheckedChange={() => selection.toggle(item.uuid)} />
@@ -693,7 +693,7 @@ export default function TabC170({
                           {efdNcm ? (
                             <Badge
                               variant="outline"
-                              className="cursor-pointer gap-1 font-mono text-[11px] hover:bg-teal-50 dark:hover:bg-teal-950/30 text-teal-700 dark:text-teal-400 border-teal-200 dark:border-teal-800"
+                              className="cursor-pointer gap-1 font-mono text-[11px] hover:bg-primary/5 dark:hover:bg-primary/20 text-primary border-primary/20 dark:border-primary/60"
                               onClick={() => onSelectNcm(efdNcm)}
                             >
                               <BookOpen className="h-3 w-3 shrink-0" />
@@ -772,7 +772,7 @@ export default function TabC170({
                             {linhaCorrigida && (
                               <Badge variant="outline" className="text-[10px]">Corrigido</Badge>
                             )}
-                            {isEditMode && <span className="text-[10px] text-teal-700 dark:text-teal-400">Editável</span>}
+                            {isEditMode && <span className="text-[10px] text-primary">Editável</span>}
                           </div>
                         </TableCell>
                       </TableRow>

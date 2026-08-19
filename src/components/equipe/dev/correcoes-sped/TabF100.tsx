@@ -479,7 +479,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                     const displayedF100 = getDisplayedF100(item);
                     const linhaCorrigida = buildChangedFields(getOriginalSnapshot(item), displayedF100 as unknown as Record<string, unknown>).length > 0;
                     return (
-                      <TableRow key={`f100-${item.F100.uuid}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.F100.uuid) ? 'bg-teal-100/60 dark:bg-teal-900/25' : 'bg-teal-50/30 dark:bg-teal-950/10') : 'group'}>
+                      <TableRow key={`f100-${item.F100.uuid}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.F100.uuid) ? 'bg-primary/15 dark:bg-primary/20' : 'bg-primary/5 dark:bg-primary/5') : 'group'}>
                         {isEditMode && (
                           <TableCell className="py-1.5 w-[40px] min-w-[40px] text-center">
                             <Checkbox checked={selection.selectedIds.has(item.F100.uuid)} onCheckedChange={() => selection.toggle(item.F100.uuid)} />
@@ -501,7 +501,7 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
                         <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
                           <div className="flex flex-col items-center justify-center gap-1">
                             {linhaCorrigida && <Badge variant="outline" className="text-[10px]">Corrigido</Badge>}
-                            {isEditMode && <span className="text-[10px] text-teal-700 dark:text-teal-400">Editável</span>}
+                            {isEditMode && <span className="text-[10px] text-primary">Editável</span>}
                           </div>
                         </TableCell>
                       </TableRow>

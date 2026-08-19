@@ -105,7 +105,7 @@ const HubSidebarSection = ({
   <Collapsible open={open} onOpenChange={onOpenChange}>
     <div
       className={`flex items-center gap-1 rounded-lg px-3 py-1 text-sm font-medium transition-colors h-auto ${
-        active ? "bg-teal-500/10 text-teal-700" : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
+        active ? "bg-primary/10 text-primary" : "text-slate-700 hover:bg-slate-50 hover:text-primary"
       }`}
     >
       <button
@@ -125,8 +125,8 @@ const HubSidebarSection = ({
           size="icon"
           className={`h-8 w-8 flex-shrink-0 ${
             active
-              ? "text-teal-700 hover:bg-teal-500/10 hover:text-teal-700"
-              : "text-slate-700 hover:bg-slate-100 hover:text-teal-600"
+              ? "text-primary hover:bg-primary/10 hover:text-primary"
+              : "text-slate-700 hover:bg-slate-100 hover:text-primary"
           }`}
         >
           <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
@@ -141,8 +141,8 @@ const HubSidebarSection = ({
           variant="ghost"
           className={`w-full justify-start rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
             currentPath === item.path
-              ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-              : "text-slate-500 hover:bg-slate-50 hover:text-teal-600"
+              ? "bg-primary/10 text-primary hover:bg-primary/15"
+              : "text-slate-500 hover:bg-slate-50 hover:text-primary"
           }`}
           onClick={() => navigate(item.path)}
         >
@@ -231,8 +231,8 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   variant="ghost"
                   className={`w-full justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isItemActive(item)
-                      ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                      : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
+                      ? "bg-primary/10 text-primary hover:bg-primary/15"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-primary"
                   }`}
                   onClick={() => navigate(item.path)}
                 >
@@ -290,8 +290,8 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   variant="ghost"
                   className={`w-full justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isItemActive(item)
-                      ? "bg-teal-500/10 text-teal-700 hover:bg-teal-500/15"
-                      : "text-slate-700 hover:bg-slate-50 hover:text-teal-600"
+                      ? "bg-primary/10 text-primary hover:bg-primary/15"
+                      : "text-slate-700 hover:bg-slate-50 hover:text-primary"
                   }`}
                   onClick={() => navigate(item.path)}
                 >
@@ -313,8 +313,8 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
 
             <div className="mt-auto space-y-2 border-t border-slate-200/60 p-4">
               <div className="mb-3 flex items-center gap-3 rounded-lg bg-slate-50 px-3 py-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-500/10">
-                  <User className="h-4 w-4 text-teal-600" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                  <User className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-slate-900">{user?.email?.split("@")[0] || "Usuario"}</p>
@@ -324,7 +324,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
 
               <Button
                 variant="ghost"
-                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-teal-600"
+                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-primary"
                 onClick={() => navigate("/equipe/digital")}
               >
                 <ArrowLeft className="mr-3 h-4 w-4" />
@@ -370,7 +370,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                         href={sopUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 font-medium text-teal-600 hover:text-teal-700 hover:underline"
+                        className="inline-flex items-center gap-1 font-medium text-primary hover:text-primary hover:underline"
                       >
                         Acessar SOP desta ferramenta
                         <ExternalLink className="h-3.5 w-3.5" />

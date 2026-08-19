@@ -474,7 +474,7 @@ export function ControlePerdcompResults({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-lg">Resultados - PER</CardTitle>
-        <Button onClick={onNew} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+        <Button onClick={onNew} className="gap-2 bg-primary hover:bg-primary/90 text-white">
           <Plus className="h-4 w-4" />
           Novo PER
         </Button>

@@ -157,10 +157,10 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
               </Card>
               <Card className="border-slate-200">
                 <CardContent className="p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-teal-700 mb-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1">
                     Tributo depois
                   </p>
-                  <p className="text-lg font-bold tabular-nums text-teal-700">
+                  <p className="text-lg font-bold tabular-nums text-primary">
                     {fmtBRL(dados.tribDepois)}
                   </p>
                   <p className="text-[11px] text-slate-500 mt-0.5">

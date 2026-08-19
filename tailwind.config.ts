@@ -55,6 +55,10 @@ export default {
         background: 'hsl(var(--background) / <alpha-value>)',
         foreground: 'hsl(var(--foreground) / <alpha-value>)',
         canvas: 'hsl(var(--canvas) / <alpha-value>)',
+        /* Fundo dos cartões escuros: o par vai do mais escuro (início do
+           gradiente) ao intermediário; o fim é o `--primary` da área. */
+        'surface-escura': 'hsl(var(--surface-escura) / <alpha-value>)',
+        'surface-escura-2': 'hsl(var(--surface-escura-2) / <alpha-value>)',
         'tool-icon': 'hsl(var(--tool-icon) / <alpha-value>)',
         'tool-icon-bg': 'hsl(var(--tool-icon-bg) / <alpha-value>)',
         primary: {
