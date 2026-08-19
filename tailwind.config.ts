@@ -218,6 +218,13 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        /* 4px. Existe para elementos PEQUENOS, onde os degraus de cima passam de
+           raio a forma: com `--radius` em 0.75rem, o `sm` dá 8px, que num
+           quadrado de 16px é metade do lado — ou seja, um círculo. Era o que
+           acontecia com a caixa de seleção, que assim ficava idêntica ao botão
+           de rádio (`rounded-full`, mesmo tamanho, mesma borda) no app inteiro.
+           A escala não estava errada; faltava um degrau para o miúdo. */
+        xs: 'calc(var(--radius) - 8px)',
       },
       keyframes: {
         'accordion-down': {
