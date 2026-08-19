@@ -16,13 +16,7 @@ import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, Download, Image as ImageIcon, Upload, X, Loader2, Lock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-const statusColors: Record<string, string> = {
-  aberto: 'bg-blue-500',
-  em_andamento: 'bg-yellow-500',
-  resolvido: 'bg-green-500',
-  fechado: 'bg-gray-500',
-};
+import { chamadoStatusConfig } from '@/lib/chamadoStatusColors';
 
 const statusLabels: Record<string, string> = {
   aberto: 'Aberto',
@@ -186,7 +180,7 @@ export default function DetalhesChamado() {
             <div className="space-y-4">
               <div className="flex items-start justify-between">
                 <h1 className="text-2xl font-bold text-foreground break-all">{ticket.title}</h1>
-                <Badge className={statusColors[ticket.status]}>
+                <Badge className={chamadoStatusConfig(ticket.status).solid}>
                   {statusLabels[ticket.status]}
                 </Badge>
               </div>

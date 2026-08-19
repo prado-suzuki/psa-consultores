@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 import { MapaClusterProvider } from '@/contexts/MapaClusterContext';
 import ClusterBar from './ClusterBar';
 import { MapaTourProvider } from './tour/MapaTourProvider';
@@ -68,9 +69,12 @@ export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
-    return localStorage.getItem('sidebarCollapsed') === '1';
-  });
+  // Aqui o layout é o pai e a página entra por <Outlet />, mas o hook não
+  // depende disso: a tela larga se declara com `useTelaDeTrabalhoLargo()` e o
+  // recolhimento automático chega igual. A preferencia manual (formato legado
+  // '1'/'0') continua sendo lida e passa a ser gravada pelo hook.
+  const { collapsed: sidebarCollapsed, setCollapsed: setSidebarCollapsed } =
+    useSidebarRecolhimentoController({ persistKey: 'sidebarCollapsed' });
   const rotaEmCadastros = linksCadastros.some((l) => location.pathname.startsWith(l.to));
   const [cadastrosOpen, setCadastrosOpen] = useState<boolean>(() => {
     return localStorage.getItem('mapaCadastrosOpen') === '1';
@@ -89,13 +93,7 @@ export default function Layout() {
   const pageTitle = titles[location.pathname] || 'Mapeamento';
 
   const closeSidebar = () => setSidebarOpen(false);
-  const toggleCollapsed = () => {
-    setSidebarCollapsed((c) => {
-      const next = !c;
-      localStorage.setItem('sidebarCollapsed', next ? '1' : '0');
-      return next;
-    });
-  };
+  const toggleCollapsed = () => setSidebarCollapsed((c) => !c);
 
   useEffect(() => {
     document.body.classList.toggle('sidebar-collapsed', sidebarCollapsed);

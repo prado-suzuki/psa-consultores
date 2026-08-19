@@ -14,6 +14,9 @@
  *    conversar, não só existir.
  * 4. **Separação par a par** — dois papéis distintos não podem virar a mesma
  *    bolinha de 8px. Ver `SEPARACAO` e `problemasDeSeparacao`.
+ * 5. **Separação entre áreas** — o MESMO papel, em dois temas, não pode ser a
+ *    mesma cor: senão a legenda do Gantt da Tax e a da OSG viram a mesma
+ *    imagem. Ver `SEPARACAO_ENTRE_AREAS` e `problemasEntreAreas`.
  *
  * O teste que aplica isso ao `index.css` real é `paletaDeArea.test.ts`.
  */
@@ -30,7 +33,18 @@ export const PAPEIS_DE_STATUS = [
   'alerta',
 ] as const;
 
-/** Tons categóricos (tags de texto livre, sorteadas por hash). */
+/**
+ * Tons categóricos. Servem a dois empregos: o chip da tag de texto livre
+ * (sorteado por hash) e a paleta categórica dos GRÁFICOS (`SERIES`, em
+ * `components/equipe/board/clientes-os/shared.ts`).
+ *
+ * São quatro, e o número não é folgado: dentro da faixa de luminosidade que o
+ * contraste do chip permite, protanopia/deutanopia deixam só quatro classes
+ * separáveis (quente-escuro, quente-claro, frio-escuro, frio-claro). Um quinto
+ * tom colidiria com algum dos quatro sob daltonismo. As checagens deste arquivo
+ * NÃO enxergam daltonismo — quem mede isso é o `validate_palette.js` da skill
+ * `dataviz`; ver `docs/geral/paleta-por-area.md`.
+ */
 export const TONS_DE_TAG = ['a', 'b', 'c', 'd'] as const;
 
 /** Blocos de tema esperados no `index.css`: a base e uma classe por área. */
@@ -76,6 +90,42 @@ export const SEPARACAO = {
   matizMinima: 20,
   /** Pontos de luminosidade que já separam duas cores, sozinhos. */
   luminosidadeMinima: 8,
+  /** Saturação mínima (nas DUAS cores) para o caminho da matiz valer. */
+  saturacaoQueDaMatiz: 20,
+} as const;
+
+/**
+ * Separação exigida entre o MESMO papel em DOIS TEMAS diferentes.
+ *
+ * Por que existe: `SEPARACAO` garante que os oito papéis se distinguem DENTRO
+ * de uma paleta, e nada mais. Duas áreas podiam declarar paletas idênticas e
+ * passar em tudo — foi exatamente o que aconteceu. Medido antes desta regra, o
+ * `alerta` da Tax (`43 68% 28%`) e o da OSG (`44 66% 28%`) estavam a 1° de matiz
+ * e 0 ponto de luminosidade; os quatro quentes inteiros ficaram entre 1° e 6°.
+ * Resultado: a legenda do Gantt na Tax e na OSG liam como a mesma paleta, e a
+ * área deixou de ser reconhecível pela cor.
+ *
+ * O critério é o mesmo OU de `SEPARACAO` — matiz ou luminosidade —, com
+ * limiares MENORES, e a diferença de limiar é deliberada:
+ *
+ * - Dentro de uma paleta as oito bolinhas aparecem JUNTAS, na mesma legenda, e
+ *   a comparação é lado a lado: exige-se mais (20° / 8 pontos).
+ * - Entre áreas a comparação nunca é simultânea — ninguém vê a legenda da Tax e
+ *   a da OSG na mesma tela. O que precisa mudar é o *caráter* da paleta, e para
+ *   isso basta menos. Cobrar 20° dos dois lados tornaria o sistema insolúvel: o
+ *   arco quente útil (carmim → dourado) tem ~55° e precisa acomodar quatro
+ *   papéis em três áreas.
+ *
+ * 12° / 6 pontos é o piso, e as três paletas em uso passam com meia distância
+ * sobrando: quando quem resolve é a matiz, o pior caso real é 18° (1,5× o
+ * piso); quando é a luminosidade, 9 pontos (1,5× também). O piso não é a meta —
+ * é o alarme.
+ */
+export const SEPARACAO_ENTRE_AREAS = {
+  /** Graus de matiz que já separam o mesmo papel em duas áreas. */
+  matizMinima: 12,
+  /** Pontos de luminosidade que já separam o mesmo papel em duas áreas. */
+  luminosidadeMinima: 6,
   /** Saturação mínima (nas DUAS cores) para o caminho da matiz valer. */
   saturacaoQueDaMatiz: 20,
 } as const;
@@ -148,6 +198,22 @@ export function colisaoDeTomCheio(a: Hsl, b: Hsl): string | null {
   if (luz >= SEPARACAO.luminosidadeMinima) return null;
   const ressalva = temCroma ? '' : ` (matiz não conta: saturação abaixo de ${SEPARACAO.saturacaoQueDaMatiz}%)`;
   return `${matiz.toFixed(0)}° de matiz e ${luz.toFixed(0)} pontos de luminosidade — precisa de ${SEPARACAO.matizMinima}° OU ${SEPARACAO.luminosidadeMinima} pontos${ressalva}`;
+}
+
+/**
+ * O mesmo papel, em duas áreas, ainda é reconhecível como área diferente?
+ * Devolve `null` quando passa, ou o motivo da colisão. Ver
+ * `SEPARACAO_ENTRE_AREAS` para o porquê dos limiares serem menores que os de
+ * `SEPARACAO`.
+ */
+export function colisaoEntreAreas(a: Hsl, b: Hsl): string | null {
+  const matiz = distanciaDeMatiz(a, b);
+  const luz = Math.abs(a.l - b.l);
+  const temCroma = Math.min(a.s, b.s) >= SEPARACAO_ENTRE_AREAS.saturacaoQueDaMatiz;
+  if (temCroma && matiz >= SEPARACAO_ENTRE_AREAS.matizMinima) return null;
+  if (luz >= SEPARACAO_ENTRE_AREAS.luminosidadeMinima) return null;
+  const ressalva = temCroma ? '' : ` (matiz não conta: saturação abaixo de ${SEPARACAO_ENTRE_AREAS.saturacaoQueDaMatiz}%)`;
+  return `${matiz.toFixed(0)}° de matiz e ${luz.toFixed(0)} pontos de luminosidade — precisa de ${SEPARACAO_ENTRE_AREAS.matizMinima}° OU ${SEPARACAO_ENTRE_AREAS.luminosidadeMinima} pontos${ressalva}`;
 }
 
 const BRANCO: Hsl = { h: 0, s: 0, l: 100 };
@@ -246,6 +312,40 @@ export function problemasDeSeparacao(css: string, seletor: string): ProblemaDePa
       const colisao = colisaoDeTomCheio(a, b);
       if (colisao) {
         problemas.push({ tema: seletor, item: `${um} × ${outro}`, motivo: `mesma bolinha: ${colisao}` });
+      }
+    }
+  }
+
+  return problemas;
+}
+
+/**
+ * Confere se cada papel muda de cara ao trocar de área. Percorre TODOS os pares
+ * de temas, papel a papel. Lista vazia = aprovado.
+ *
+ * O campo `tema` traz os dois seletores comparados e `item` o papel, para a
+ * mensagem do teste dizer de uma vez qual papel, quais duas áreas e as duas
+ * distâncias medidas. Papel não declarado é queixa de `problemasDoTema`; aqui
+ * é ignorado, para não duplicar a mesma reclamação em dois testes.
+ */
+export function problemasEntreAreas(css: string): ProblemaDePaleta[] {
+  const paletas = TEMAS.map(seletor => ({ seletor, paleta: paletaDoTema(css, seletor) }));
+  const problemas: ProblemaDePaleta[] = [];
+
+  for (const papel of PAPEIS_DE_STATUS) {
+    for (let i = 0; i < paletas.length; i += 1) {
+      for (let j = i + 1; j < paletas.length; j += 1) {
+        const a = paletas[i].paleta[`status-${papel}`];
+        const b = paletas[j].paleta[`status-${papel}`];
+        if (!a || !b) continue;
+        const colisao = colisaoEntreAreas(a, b);
+        if (colisao) {
+          problemas.push({
+            tema: `${paletas[i].seletor} × ${paletas[j].seletor}`,
+            item: papel,
+            motivo: `mesma área aparente: ${colisao}`,
+          });
+        }
       }
     }
   }

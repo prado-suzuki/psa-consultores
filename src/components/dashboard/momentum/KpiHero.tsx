@@ -16,7 +16,11 @@ interface KpiHeroProps {
 
 /**
  * Card de KPI com hierarquia Momentum: número grande + variação colorida.
- * variant="solid" usa fundo teal sólido com texto branco (big metric hero).
+ *
+ * `variant="solid"` usa `bg-primary` com `text-primary-foreground`: quem decide se
+ * o fundo é teal (Tax) ou musgo (OSG) é a classe de tema no `<html>`, não este
+ * componente. O par `primary`/`primary-foreground` anda junto — trocar o contraste
+ * por `text-white` cru só funciona enquanto todo tema declarar branco ali.
  */
 export function KpiHero({
   label,
@@ -50,7 +54,7 @@ export function KpiHero({
             <div
               className={cn(
                 'h-7 w-7 rounded-full flex items-center justify-center',
-                isSolid ? 'bg-white/20 text-white' : 'bg-tool-icon-bg text-tool-icon'
+                isSolid ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-tool-icon-bg text-tool-icon'
               )}
             >
               {icon}
@@ -59,7 +63,7 @@ export function KpiHero({
           <span
             className={cn(
               'text-xs font-medium uppercase tracking-wide',
-              isSolid ? 'text-white/80' : 'text-muted-foreground'
+              isSolid ? 'text-primary-foreground/80' : 'text-muted-foreground'
             )}
           >
             {label}
@@ -72,7 +76,7 @@ export function KpiHero({
               onClick={onViewAll}
               className={cn(
                 'text-[10px] font-medium px-2 py-0.5 rounded-md',
-                isSolid ? 'text-white/80 hover:bg-white/15' : 'text-muted-foreground hover:bg-muted'
+                isSolid ? 'text-primary-foreground/80 hover:bg-primary-foreground/15' : 'text-muted-foreground hover:bg-muted'
               )}
             >
               View all
@@ -83,7 +87,7 @@ export function KpiHero({
               onClick={onRefresh}
               className={cn(
                 'h-6 w-6 rounded-md flex items-center justify-center',
-                isSolid ? 'text-white/80 hover:bg-white/15' : 'text-muted-foreground hover:bg-muted'
+                isSolid ? 'text-primary-foreground/80 hover:bg-primary-foreground/15' : 'text-muted-foreground hover:bg-muted'
               )}
             >
               <RefreshCw className="h-3 w-3" />
@@ -95,7 +99,7 @@ export function KpiHero({
       <div
         className={cn(
           'font-bold leading-none tracking-tight tabular-nums',
-          isSolid ? 'text-white text-5xl' : 'text-foreground text-4xl',
+          isSolid ? 'text-primary-foreground text-5xl' : 'text-foreground text-4xl',
         )}
         style={{ fontFamily: "'Instrument Sans', system-ui, sans-serif" }}
       >
@@ -104,13 +108,13 @@ export function KpiHero({
 
       {variation && (
         <div className="mt-3 flex items-center gap-1.5">
-          {trendUp && <TrendingUp className={cn('h-3.5 w-3.5', isSolid ? 'text-white/90' : 'text-primary')} />}
-          {trendDown && <TrendingDown className={cn('h-3.5 w-3.5', isSolid ? 'text-white/90' : 'text-destructive')} />}
+          {trendUp && <TrendingUp className={cn('h-3.5 w-3.5', isSolid ? 'text-primary-foreground/90' : 'text-primary')} />}
+          {trendDown && <TrendingDown className={cn('h-3.5 w-3.5', isSolid ? 'text-primary-foreground/90' : 'text-destructive')} />}
           <span
             className={cn(
               'text-xs font-medium',
               isSolid
-                ? 'text-white/90'
+                ? 'text-primary-foreground/90'
                 : trendUp
                 ? 'text-primary'
                 : trendDown

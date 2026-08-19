@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, FileText, User, Filter, X } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, subDays, subMonths, startOfMonth, endOfMonth, isPast } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { chamadoPrioridadeConfig, chamadoStatusConfig } from '@/lib/chamadoStatusColors';
 import {
   Select,
   SelectContent,
@@ -16,25 +17,11 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-const statusColors: Record<string, string> = {
-  aberto: 'bg-blue-500',
-  em_andamento: 'bg-yellow-500',
-  resolvido: 'bg-green-500',
-  fechado: 'bg-gray-500',
-};
-
 const statusLabels: Record<string, string> = {
   aberto: 'Aberto',
   em_andamento: 'Em Andamento',
   resolvido: 'Resolvido',
   fechado: 'Fechado',
-};
-
-const priorityColors: Record<string, string> = {
-  baixa: 'bg-gray-400',
-  normal: 'bg-blue-400',
-  alta: 'bg-orange-400',
-  urgente: 'bg-red-500',
 };
 
 const priorityLabels: Record<string, string> = {
@@ -284,10 +271,10 @@ export default function MeusChamados() {
                         {ticket.description}
                       </p>
                       <div className="flex items-center gap-3 mb-2">
-                        <Badge className={statusColors[ticket.status]}>
+                        <Badge className={chamadoStatusConfig(ticket.status).solid}>
                           {statusLabels[ticket.status]}
                         </Badge>
-                        <Badge variant="outline" className={priorityColors[ticket.priority]}>
+                        <Badge variant="outline" className={chamadoPrioridadeConfig(ticket.priority).badge}>
                           {priorityLabels[ticket.priority]}
                         </Badge>
                         {ticket.department && (

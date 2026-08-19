@@ -200,17 +200,40 @@ export function useClienteOrdens(clientId: string | null) {
     enabled: !!clientId,
   });
 }
-/** Resolve cluster_id a partir de page_categories das áreas — reutilizável ('tax', 'osg', etc.) */
+/**
+ * Resolve cluster_id a partir de page_categories das áreas — reutilizável
+ * ('tax', 'osg', etc.).
+ *
+ * Ordena antes de pegar a primeira, preferindo área ATIVA: mais de uma área pode
+ * declarar a mesma categoria (no sandbox são seis para 'tax', cinco delas
+ * inativas), e sem ordenação a escolha fica a cargo da ordem que o Postgres
+ * devolver. Hoje todas apontam para o mesmo cluster, então funciona por sorte —
+ * no dia em que uma área inativa de outro cluster aparecer, a tela troca de
+ * escopo sozinha.
+ *
+ * Prefere ativa em vez de FILTRAR por ativa: se em algum ambiente a única área
+ * da categoria estiver inativa, filtrar devolveria nulo e apagaria a tela. A
+ * ordenação escolhe a ativa quando existe e continua funcionando quando não.
+ *
+ * `maybeSingle` no lugar de `single`: sem nenhuma área na categoria, `single`
+ * ERRA, e o erro estava sendo descartado (`const { data } = ...`). O cluster
+ * virava nulo em silêncio e a lista de projetos aparecia vazia — indistinguível
+ * de "não há projetos". Agora o erro sobe para o React Query, que já tem estado
+ * de falha para os consumidores.
+ */
 export function useClusterIdByPageCategory(category: string) {
   return useQuery({
     queryKey: ['cluster-id-by-page-category', category],
     queryFn: async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('estrutura_areas')
         .select('cluster_id')
         .contains('page_categories', [category])
+        .order('is_active', { ascending: false })
+        .order('created_at', { ascending: true })
         .limit(1)
-        .single();
+        .maybeSingle();
+      if (error) throw error;
       return data?.cluster_id ?? null;
     },
   });

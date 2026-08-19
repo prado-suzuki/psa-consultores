@@ -60,7 +60,12 @@ export function FeedGrupoOrigem({
     <article className="group/origem overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
       <Link
         to={hrefDeOrigem(primeiro, area)}
-        className="flex items-center gap-3 border-b border-border/60 bg-muted/50 px-3.5 py-2.5 transition-colors hover:bg-muted"
+        /*
+          Cabeçalho lavado com o acento da área (teal na Tax, musgo na OSG) em vez
+          do `muted`: na OSG o muted é bege e o cabeçalho sumia contra o corpo do
+          comentário — a faixa inteira lia como um bloco marrom só.
+        */
+        className="flex items-center gap-3 border-b border-border/60 bg-primary/10 px-3.5 py-2.5 transition-colors hover:bg-primary/15"
       >
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-tool-icon-bg text-tool-icon">
           <IconeDoTipo className="h-[18px] w-[18px]" />
@@ -74,7 +79,8 @@ export function FeedGrupoOrigem({
             nome do projeto já o carrega, para não dobrar a informação.
           */}
           <span className="flex min-w-0 items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <span className="shrink-0">{ehProjeto ? 'Projeto' : 'Tarefa'}</span>
+            {/* O tipo é o que diz "isto é cabeçalho": ganha o acento da área. */}
+            <span className="shrink-0 text-primary">{ehProjeto ? 'Projeto' : 'Tarefa'}</span>
             {origem.cliente && (
               <>
                 <ChevronRight aria-hidden className="h-3 w-3 shrink-0 opacity-60" />

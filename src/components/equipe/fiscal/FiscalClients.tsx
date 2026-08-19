@@ -12,6 +12,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useFiscalClientsList } from '@/hooks/useFiscalClients';
+import { categoriaClienteConfig } from '@/lib/categoriaClienteColors';
 
 export function FiscalClients() {
   const [search, setSearch] = useState('');
@@ -78,12 +79,7 @@ export function FiscalClients() {
                   </TableCell>
                   <TableCell>
                     {client.categoria ? (
-                      <Badge variant="outline" className={
-                        client.categoria === 'Bronze' ? 'bg-warning/10 text-warning border-warning/20' :
-                        client.categoria === 'Prata' ? 'bg-muted text-foreground border-border' :
-                        client.categoria === 'Ouro' ? 'bg-warning/10 text-warning border-warning/20' :
-                        client.categoria === 'Diamante' ? 'bg-info/10 text-info border-info/20' : ''
-                      }>
+                      <Badge variant="outline" className={categoriaClienteConfig(client.categoria).badge}>
                         {client.categoria}
                       </Badge>
                     ) : '-'}

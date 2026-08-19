@@ -1,5 +1,6 @@
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { ChamadosGestaoContent } from '@/pages/gestao/GestaoChamados';
+import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 
 /**
  * Gestão de Chamados dentro da Gerencial da OSG.
@@ -10,10 +11,15 @@ import { ChamadosGestaoContent } from '@/pages/gestao/GestaoChamados';
  * cluster OSG (os 329 classificados estão todos no TAX). Verificado em
  * 07/08/2026 e confirmado pelo usuário.
  */
-const OsgGerencialChamados = () => (
-  <OsgLayout title="Gestão de Chamados" subtitle="Chamados dos clientes do seu cluster">
-    <ChamadosGestaoContent basePath="/equipe/osg/gerencial/chamados" />
-  </OsgLayout>
-);
+const OsgGerencialChamados = () => {
+  // Tabela de 14 colunas com rolagem horizontal e coluna de ações congelada.
+  useTelaDeTrabalhoLargo();
+
+  return (
+    <OsgLayout title="Gestão de Chamados" subtitle="Chamados dos clientes do seu cluster">
+      <ChamadosGestaoContent basePath="/equipe/osg/gerencial/chamados" />
+    </OsgLayout>
+  );
+};
 
 export default OsgGerencialChamados;
