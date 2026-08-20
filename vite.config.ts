@@ -38,6 +38,20 @@ const BRANCHES_DE_PRODUCAO = ["main"];
 // esse arquivo nunca ser carregado por ninguém que não seja este config.
 const MODE_SANDBOX = "sandbox";
 
+// O sandbox/preview do Lovable é um checkout git de verdade, numa branch
+// gerada por edição (`edit/edt-…`), então a regra de branch sozinha o
+// classificava como "checkout de trabalho" e apontava o preview para o Supabase
+// de desenvolvimento da PSA. O container do Lovable se identifica por variáveis
+// próprias; usá-las é sinal de fato, não palpite.
+function rodandoNoLovable(): boolean {
+  return (
+    process.env.LOVABLE_SANDBOX === "1" ||
+    process.env.LOVABLE === "sandbox" ||
+    process.env.LOVABLE_DEV_SERVER === "true" ||
+    process.env.LOVABLE_PROJECT_ID !== undefined
+  );
+}
+
 function branchAtual(): string {
   try {
     return execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
@@ -49,6 +63,7 @@ function branchAtual(): string {
     return "";
   }
 }
+
 
 // A regra de branch acima roda uma vez, quando o servidor sobe. Um `git switch`
 // com o dev de pé não faria o Vite reavaliar nada, e o app seguiria no banco da
