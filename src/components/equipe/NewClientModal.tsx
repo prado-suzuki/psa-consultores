@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, X, CheckCircle2, Pencil, Building2, History, AlertCircle } from "lucide-react";
+import { Plus, X, CheckCircle2, Pencil, Building2, FileSignature, History, AlertCircle } from "lucide-react";
 import { AreaLoader } from "@/components/equipe/AreaLoader";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
@@ -33,11 +33,14 @@ import {
   type Pendencia,
 } from "@/lib/camposObrigatorios";
 
+import { useFocoPendencia } from "./client-form/useFocoPendencia";
+
 import ClienteTab from "./client-form/ClienteTab";
 import ContribuintesTab from "./client-form/ContribuintesTab";
 import RepresentantesTab from "./client-form/RepresentantesTab";
 import ContratosTab from "./client-form/ContratosTab";
 import FaturamentoTab from "./client-form/FaturamentoTab";
+import PropostaTab from "./client-form/PropostaTab";
 import HistoricoTab from "./client-form/HistoricoTab";
 
 export default function NewClientModal({
@@ -60,7 +63,7 @@ export default function NewClientModal({
     });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "representantes" | "contratos" | "faturamento" | "historico">("cliente");
+  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "representantes" | "contratos" | "faturamento" | "proposta" | "historico">("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   /** O que confirmar o descarte deve fazer: fechar o modal ou só sair da edição. */
@@ -86,6 +89,9 @@ export default function NewClientModal({
   const [tentouSalvar, setTentouSalvar] = useState(false);
   /** Item que o aviso do rodapé mandou abrir. */
   const [foco, setFoco] = useState<{ aba: AbaCadastro; pedido: FocoPendencia } | null>(null);
+  /** Corpo do modal: é dentro dele que o foco procura o campo em falta. */
+  const conteudoRef = useRef<HTMLDivElement>(null);
+  useFocoPendencia(foco, conteudoRef);
 
   useEffect(() => {
     if (open) {
@@ -100,8 +106,24 @@ export default function NewClientModal({
   const visibleTabs = canViewFinancialTabs
     ? (["cliente", "contribuintes", "representantes", "contratos", "faturamento"] as const)
     : (["cliente", "contribuintes", "representantes"] as const);
+  /**
+   * A aba de Proposta (ALE-8) exige DUAS condições: permissão financeira e cliente
+   * já salvo — sem cliente não há a que vincular o arquivo.
+   *
+   * Por isso ela NÃO entra em `visibleTabs`: aquele array não é condicionado a
+   * `editingClienteId`, então o gatilho apareceria também no cadastro novo. O
+   * caminho certo é o mesmo do Histórico, que se renderiza fora do `.map`.
+   */
+  const podeVerProposta = !!editingClienteId && canViewFinancialTabs;
+  /**
+   * Contagem EXPLÍCITA de colunas, porque a lista de abas usa `grid` com número
+   * fixo. Sem somar a aba nova aqui, ela estoura o grid visualmente.
+   *
+   * Editando + permissão: 5 de `visibleTabs` + Proposta + Histórico = 7. Sem
+   * permissão a Proposta não existe, então o ramo segue em 4 (3 + Histórico).
+   */
   const tabsGridClass = editingClienteId
-    ? canViewFinancialTabs ? "grid-cols-6" : "grid-cols-4"
+    ? canViewFinancialTabs ? "grid-cols-7" : "grid-cols-4"
     : canViewFinancialTabs ? "grid-cols-5" : "grid-cols-3";
 
   // --- Hooks ---
@@ -145,8 +167,11 @@ export default function NewClientModal({
    * o que a tela chama de sujo e o que o salvamento chama de alterado passam a ser
    * a mesma coisa, e não há mais janela de tempo para errar.
    *
-   * Cadastro novo não tem original: aí sujo é ter qualquer coisa preenchida, e
-   * quem cuida disso é o rascunho, não este indicador.
+   * Cadastro novo não tem original: a referência passa a ser o formulário em
+   * branco. Antes daqui ele retornava `false` sempre, e o comentário dizia que
+   * "quem cuida disso é o rascunho" — só que `resetAndClose()` apaga o rascunho.
+   * O efeito medido: preencher um cliente novo, clicar em Cancelar e perder
+   * tudo, sem confirmação nenhuma e sem o aviso de alterações não salvas.
    */
   const currentSnapshot = useMemo(
     () => JSON.stringify({ clientData, entities, participants, contracts }),
@@ -163,10 +188,18 @@ export default function NewClientModal({
       : null),
     [originalSnapshot],
   );
+  const referenciaVazia = useMemo(
+    () => JSON.stringify({ clientData: defaultClientData, entities: [], participants: [], contracts: [] }),
+    [],
+  );
   const hasUnsavedChanges = useMemo(() => {
-    if (!referenciaSalva || loadingEdit) return false;
-    return currentSnapshot !== referenciaSalva;
-  }, [currentSnapshot, referenciaSalva, loadingEdit]);
+    if (loadingEdit) return false;
+    const referencia = isEditing ? referenciaSalva : referenciaVazia;
+    // Edição sem snapshot é carregamento que não veio: sem referência confiável
+    // não dá para afirmar que há alteração pendente.
+    if (!referencia) return false;
+    return currentSnapshot !== referencia;
+  }, [currentSnapshot, referenciaSalva, referenciaVazia, isEditing, loadingEdit]);
 
   useEffect(() => {
     if (!hasUnsavedChanges) return;
@@ -197,6 +230,7 @@ export default function NewClientModal({
     clientData, entities, participants, contracts, inscricoesMap,
     clusterIds: clientData.cluster_ids,
     isEditing, editingClienteId, setoresCliente,
+    centrosCusto: CENTRO_CUSTO_OPTIONS,
     onDuplicateFound,
     onSuccess: () => voltarParaLeitura(),
     originalSnapshot,
@@ -262,7 +296,11 @@ export default function NewClientModal({
   /** Abre a aba e o item da falta, a partir do aviso do rodapé. */
   const irParaPendencia = (p: Pendencia) => {
     setActiveTab(p.aba);
-    setFoco(p.itemId != null ? { aba: p.aba, pedido: { itemId: p.itemId } } : null);
+    // Sempre um pedido novo, mesmo sem item: a aba Cliente não tem lista, e era
+    // o `null` daqui que deixava o cursor parado no botão Salvar. O objeto é
+    // recriado a cada chamada de propósito — é o que refaz o foco quando a
+    // mesma falta é apontada duas vezes seguidas.
+    setFoco({ aba: p.aba, pedido: { itemId: p.itemId } });
   };
 
   /** O pedido de foco só vale para a aba de onde ele veio. */
@@ -332,6 +370,7 @@ export default function NewClientModal({
           Antes o clique era simplesmente ignorado, e a única saída era o botão.
         */}
         <DialogContent
+          ref={conteudoRef}
           className={cn("max-w-7xl h-[95vh] p-0 flex flex-col overflow-hidden gap-0", "[&>button]:hidden", acento.fundoModal)}
           onInteractOutside={(e) => { e.preventDefault(); handleAttemptClose(); }}
         >
@@ -383,6 +422,11 @@ export default function NewClientModal({
                         )}
                       </TabsTrigger>
                     ))}
+                    {podeVerProposta && (
+                      <TabsTrigger value="proposta" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                        <FileSignature size={14} /> Proposta
+                      </TabsTrigger>
+                    )}
                     {editingClienteId && (
                       <TabsTrigger value="historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <History size={14} /> Histórico
@@ -412,7 +456,6 @@ export default function NewClientModal({
                       entidadesOriginais={originalSnapshot?.entities}
                       pendencias={mapaPendencias}
                       foco={focoDa('contribuintes')}
-                      cadastroNovo={!isEditing}
                       onInlineEditingChange={setInlineEditingContrib}
                       onRequestItemEdit={canEdit ? () => { setIsReadOnly(false); setEscopoEdicao('item'); } : undefined}
                     />
@@ -426,7 +469,6 @@ export default function NewClientModal({
                       representantesOriginais={originalSnapshot?.participants}
                       pendencias={mapaPendencias}
                       foco={focoDa('representantes')}
-                      cadastroNovo={!isEditing}
                       onRequestItemEdit={canEdit ? () => { setIsReadOnly(false); setEscopoEdicao('item'); } : undefined}
                     />
                   </TabsContent>
@@ -446,14 +488,30 @@ export default function NewClientModal({
                           contratosOriginais={originalSnapshot?.contracts}
                           pendencias={mapaPendencias}
                           foco={focoDa('contratos')}
-                          cadastroNovo={!isEditing}
-                        />
+                            />
                       </TabsContent>
 
                       <TabsContent value="faturamento" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
-                        <FaturamentoTab entities={entities} />
+                        {/*
+                          A aba de Faturamento não edita: ela espelha o
+                          contribuinte e a OS. Recebe as OS e os centros de custo
+                          só para exibir.
+                        */}
+                        <FaturamentoTab
+                          entities={entities}
+                          contratos={contracts}
+                          centrosCusto={CENTRO_CUSTO_OPTIONS}
+                        />
                       </TabsContent>
                     </>
+                  )}
+
+                  {podeVerProposta && (
+                    <TabsContent value="proposta" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
+                      {/* `editingClienteId` é garantido por `podeVerProposta`; o
+                          `!` evita alargar a prop da aba para aceitar nulo. */}
+                      <PropostaTab clienteId={editingClienteId!} />
+                    </TabsContent>
                   )}
 
                   {editingClienteId && (

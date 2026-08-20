@@ -90,7 +90,7 @@ function MultiSelect({ label, options, selected, onChange, placeholder = "Todos"
                   <span
                     className={`h-4 w-4 rounded border flex items-center justify-center ${
                       checked
-                        ? "bg-teal-600 border-teal-600 text-white"
+                        ? "bg-primary border-primary text-white"
                         : "border-slate-300 bg-white"
                     }`}
                   >
@@ -148,7 +148,7 @@ export function FiltrosCalculadora({
     <Card className="mb-6 border-slate-200 shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-slate-800 dark:text-slate-200">
-          <Filter className="h-4 w-4 text-teal-600" />
+          <Filter className="h-4 w-4 text-primary" />
           Filtros
           {activeCount > 0 && (
             <Badge variant="secondary" className="ml-1 h-5">

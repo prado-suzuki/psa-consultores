@@ -4,24 +4,27 @@ import { CheckCircle2, RotateCcw, Send, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ReviewOutcome } from '@/lib/orgTaskForm';
 
+// Cada desfecho da revisão usa o papel de status correspondente (index.css):
+// enviar para revisão = `revisao`, aprovar = `feito`, devolver = `ajuste`. Assim o
+// overlay tem a cor da área, e não roxo/esmeralda/rosa de estoque.
 const reviewFeedbackConfig = {
   send: {
     label: 'Enviado para revisão!',
     icon: Send,
-    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200',
-    dot: 'bg-purple-400',
+    color: 'bg-status-revisao-soft text-status-revisao',
+    dot: 'bg-status-revisao',
   },
   approved: {
     label: 'Revisão aprovada!',
     icon: CheckCircle2,
-    color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200',
-    dot: 'bg-emerald-400',
+    color: 'bg-status-feito-soft text-status-feito',
+    dot: 'bg-status-feito',
   },
   adjustments: {
     label: 'Ajustes solicitados!',
     icon: RotateCcw,
-    color: 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200',
-    dot: 'bg-rose-400',
+    color: 'bg-status-ajuste-soft text-status-ajuste',
+    dot: 'bg-status-ajuste',
   },
 } satisfies Record<ReviewOutcome, { label: string; icon: typeof Send; color: string; dot: string }>;
 

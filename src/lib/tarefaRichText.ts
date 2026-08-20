@@ -1,6 +1,9 @@
 import type { JSONContent } from '@tiptap/core';
 
-// Formato de rich text da descrição de tarefa/entregável (`sprint_deliverables.description`).
+import { TICKET_RICH_TEXT_MARKER } from '@/components/chamados/ticketRichTextFormat';
+
+// Formato de rich text da descrição de tarefa/entregável (`sprint_deliverables.description`
+// e `org_tasks.description`).
 // A coluna continua `text`: quando o conteúdo vem do editor, a string é o
 // TAREFA_RICH_TEXT_MARKER + JSON do documento TipTap. Descrições antigas (texto
 // plano, importação de Excel, geração de demandas) não têm marcador e são
@@ -10,8 +13,27 @@ export const TAREFA_RICH_TEXT_MARKER = '[[tarefa-rich-text:v1]]';
 
 const EMPTY_DOC: JSONContent = { type: 'doc', content: [{ type: 'paragraph' }] };
 
+// Marcadores de documento TipTap que a descrição de tarefa sabe abrir. O de
+// chamado entra porque `delegar_chamado_gera_tarefa()` (migration
+// 20260817184423) copia `tickets.description` para `org_tasks.description` tal
+// e qual: a tarefa nasce com o marcador do chamado. Os nós do editor de chamado
+// (parágrafo, listas, negrito/itálico/sublinhado) são um subconjunto dos daqui,
+// então o documento abre inteiro; na primeira edição ele volta gravado com o
+// marcador de tarefa.
+const MARCADORES = [TAREFA_RICH_TEXT_MARKER, TICKET_RICH_TEXT_MARKER];
+
+function marcadorDe(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  return MARCADORES.find((marcador) => value.startsWith(marcador)) ?? null;
+}
+
 export function hasTarefaRichTextMarker(value: string | null | undefined): boolean {
   return typeof value === 'string' && value.startsWith(TAREFA_RICH_TEXT_MARKER);
+}
+
+/** Valor que carrega um documento TipTap: o de tarefa ou o copiado do chamado. */
+export function hasTarefaRichTextDoc(value: string | null | undefined): boolean {
+  return marcadorDe(value) !== null;
 }
 
 /** Texto plano vira um parágrafo por linha, preservando linhas em branco. */
@@ -30,15 +52,16 @@ function plainToDoc(value: string): JSONContent {
 /** Documento TipTap do valor — aceita tanto conteúdo marcado quanto texto antigo. */
 export function parseTarefaRichText(value: string | null | undefined): JSONContent {
   if (!value) return EMPTY_DOC;
-  if (!hasTarefaRichTextMarker(value)) return plainToDoc(value);
+  const marcador = marcadorDe(value);
+  if (!marcador) return plainToDoc(value);
   try {
-    const parsed: unknown = JSON.parse(value.slice(TAREFA_RICH_TEXT_MARKER.length));
+    const parsed: unknown = JSON.parse(value.slice(marcador.length));
     if (parsed && typeof parsed === 'object' && (parsed as { type?: string }).type === 'doc') {
       return parsed as JSONContent;
     }
   } catch {
     // Marcador presente mas JSON corrompido: melhor mostrar o texto cru do que sumir com ele.
-    return plainToDoc(value.slice(TAREFA_RICH_TEXT_MARKER.length));
+    return plainToDoc(value.slice(marcador.length));
   }
   return EMPTY_DOC;
 }
@@ -74,7 +97,7 @@ function docToPlain(doc: JSONContent): string {
 /** Texto plano do valor — serve para busca, exportação e prévias em lista. */
 export function tarefaRichTextToPlain(value: string | null | undefined): string {
   if (!value) return '';
-  if (!hasTarefaRichTextMarker(value)) return value;
+  if (!hasTarefaRichTextDoc(value)) return value;
   return docToPlain(parseTarefaRichText(value)).trim();
 }
 

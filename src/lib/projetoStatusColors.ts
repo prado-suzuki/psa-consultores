@@ -16,40 +16,42 @@ export interface ProjectStatusConfig {
   badge: string;
 }
 
+/**
+ * Mesmos papéis de status da tarefa (`--status-<papel>`), aplicados ao ciclo de
+ * vida do projeto: quem manda no tom é o tema da área. Projeto ativo compartilha
+ * o papel `andamento` com a tarefa em progresso de propósito — na mesma tela, a
+ * mesma ideia não deve ter duas cores.
+ */
 export const projectStatusColors: Record<string, ProjectStatusConfig> = {
   planned: {
     key: 'planned',
     label: STATUS_LABELS.planned,
-    dot: 'bg-slate-400',
-    badge: 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:border-slate-800',
+    dot: 'bg-status-neutro',
+    badge: 'bg-status-neutro-soft text-status-neutro border-status-neutro/15',
   },
   active: {
     key: 'active',
     label: STATUS_LABELS.active,
-    dot: 'bg-emerald-500',
-    badge:
-      'bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-200 dark:border-emerald-900',
+    dot: 'bg-status-andamento',
+    badge: 'bg-status-andamento-soft text-status-andamento border-status-andamento/15',
   },
   on_hold: {
     key: 'on_hold',
     label: STATUS_LABELS.on_hold,
-    dot: 'bg-amber-500',
-    badge:
-      'bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-200 dark:border-amber-900',
+    dot: 'bg-status-espera',
+    badge: 'bg-status-espera-soft text-status-espera border-status-espera/15',
   },
   completed: {
     key: 'completed',
     label: STATUS_LABELS.completed,
-    dot: 'bg-blue-500',
-    badge:
-      'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-200 dark:border-blue-900',
+    dot: 'bg-status-feito',
+    badge: 'bg-status-feito-soft text-status-feito border-status-feito/15',
   },
   cancelled: {
     key: 'cancelled',
     label: STATUS_LABELS.cancelled,
-    dot: 'bg-rose-500',
-    badge:
-      'bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-900',
+    dot: 'bg-status-ajuste',
+    badge: 'bg-status-ajuste-soft text-status-ajuste border-status-ajuste/15',
   },
 };
 

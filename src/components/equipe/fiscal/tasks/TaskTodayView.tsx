@@ -9,6 +9,7 @@ import { parseDate } from '@/lib/dateUtils';
  import { OrgTask, useUpdateOrgTask } from '@/hooks/useOrgTasks';
  import { AreaKey } from '@/config/areaCategories';
  import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+ import { tarefaRichTextToPlain } from '@/lib/tarefaRichText';
  import { toast } from 'sonner';
 
  interface TaskTodayViewProps {
@@ -81,7 +82,9 @@ import { parseDate } from '@/lib/dateUtils';
          </Card>
        ) : (
          <div className="space-y-3">
-           {todayTasks.map(task => (
+           {todayTasks.map(task => {
+             const descricaoPreview = tarefaRichTextToPlain(task.description);
+             return (
              <Card 
                key={task.id}
                className={cn(
@@ -105,9 +108,11 @@ import { parseDate } from '@/lib/dateUtils';
                      )}>
                        {task.title}
                      </p>
-                     {task.description && (
+                     {/* Uma linha só: a descrição pode ser rich text (da tarefa
+                         ou do chamado que a gerou), então vai em texto plano. */}
+                     {descricaoPreview && (
                        <p className="text-sm text-muted-foreground truncate">
-                         {task.description}
+                         {descricaoPreview}
                        </p>
                      )}
                    </div>
@@ -121,7 +126,7 @@ import { parseDate } from '@/lib/dateUtils';
                        {priorityLabels[task.priority]}
                      </Badge>
                      {task.category === 'fixed_event' && (
-                       <Badge variant="outline" className="border-purple-300 text-purple-700">
+                       <Badge variant="outline" className="border-tag-c/40 text-tag-c">
                          Fixo
                        </Badge>
                      )}
@@ -129,7 +134,8 @@ import { parseDate } from '@/lib/dateUtils';
                  </div>
                </CardContent>
              </Card>
-           ))}
+             );
+           })}
          </div>
        )}
      </div>

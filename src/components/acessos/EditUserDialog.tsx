@@ -167,7 +167,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
               {ROLE_OPTIONS.map((role) => (
                 <div
                   key={role.value}
-                  className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100"
+                  className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-slate-100"
                 >
                   <Checkbox
                     id={`edit_role_${role.value}`}
@@ -180,7 +180,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                           : prev.roles.filter((r) => r !== role.value),
                       }));
                     }}
-                    className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                    className="border-slate-300  mt-0.5"
                   />
                   <div>
                     <Label
@@ -212,7 +212,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                 {Object.entries(AREA_CATEGORIES_MAP).map(([key, area]) => (
                   <div
                     key={key}
-                    className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100"
+                    className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-slate-100"
                   >
                     <Checkbox
                       id={`edit_area_${key}`}
@@ -225,7 +225,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                             : prev.areas.filter((a) => a !== key),
                         }));
                       }}
-                      className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                      className="border-slate-300  mt-0.5"
                     />
                     <div>
                       <Label
@@ -247,14 +247,13 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-slate-200 text-slate-600 hover:bg-slate-50"
+              className="border-slate-200 text-slate-600 hover:bg-foreground/[0.03]"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
               disabled={updateUser.isPending}
-              className="bg-teal-600 hover:bg-teal-700 text-white"
             >
               {updateUser.isPending ? (
                 <>

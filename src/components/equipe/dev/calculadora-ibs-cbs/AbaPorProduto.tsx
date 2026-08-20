@@ -525,7 +525,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                           fmtBRL(p.tributoAntes)
                         )}
                       </TableCell>
-                      <TableCell className="text-right tabular-nums text-teal-700 font-medium">
+                      <TableCell className="text-right tabular-nums text-primary font-medium">
                         {fmtBRL(getTributoDepoisIbsCbs(p))}
                       </TableCell>
                       <TableCell

@@ -30,7 +30,7 @@ export default function ProdutoContratadoBlock({
   produtoOptions: ContratosTabProps['produtoSegmentoFullOptions'];
   allClusters: ContratosTabProps['allClusters'];
   readOnly?: boolean;
-  /** Empresa de faturamento da OS (`cluster_id`). Não filtra os produtos. */
+  /** Empresa/cluster de faturamento da OS (`cluster_id`). Não filtra os produtos. */
   empresaId: string;
   onEmpresaChange: (v: string) => void;
 }) {

@@ -28,16 +28,22 @@ const startOfToday = () => {
   return d;
 };
 
+/**
+ * Faixa de prazo da rotina, nos papéis de status da área (ver
+ * docs/geral/paleta-por-area.md). O Digital fica na paleta base do sistema, então
+ * é ela que resolve o tom aqui — antes eram matizes de estoque (vermelho, âmbar,
+ * azul, esmeralda) que não pertenciam a paleta nenhuma.
+ */
 const getDueStatus = (dueDate: string | null) => {
-  if (!dueDate) return { label: 'Sem prazo', className: 'bg-slate-100 text-slate-600 border-0' };
+  if (!dueDate) return { label: 'Sem prazo', className: 'bg-status-neutro-soft text-status-neutro border-0' };
   const due = new Date(dueDate);
   due.setHours(0, 0, 0, 0);
   const today = startOfToday();
   const diffDays = Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return { label: 'Atrasada', className: 'bg-red-100 text-red-700 border-0' };
-  if (diffDays <= 2) return { label: 'Em breve', className: 'bg-amber-100 text-amber-700 border-0' };
-  if (diffDays <= 7) return { label: 'Nesta semana', className: 'bg-blue-100 text-blue-700 border-0' };
-  return { label: 'No prazo', className: 'bg-emerald-100 text-emerald-700 border-0' };
+  if (diffDays < 0) return { label: 'Atrasada', className: 'bg-status-ajuste-soft text-status-ajuste border-0' };
+  if (diffDays <= 2) return { label: 'Em breve', className: 'bg-status-alerta-soft text-status-alerta border-0' };
+  if (diffDays <= 7) return { label: 'Nesta semana', className: 'bg-status-fila-soft text-status-fila border-0' };
+  return { label: 'No prazo', className: 'bg-status-feito-soft text-status-feito border-0' };
 };
 
 const EquipeRotinas = () => {
@@ -224,7 +230,7 @@ const EquipeRotinas = () => {
             <Card className="border-border shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
-                <ListChecks className="h-4 w-4 text-slate-400" />
+                <ListChecks className="h-4 w-4 text-muted-foreground/70" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{totalRotinas}</div>
@@ -233,25 +239,25 @@ const EquipeRotinas = () => {
             <Card className="border-border shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Vencem na semana</CardTitle>
-                <CalendarDays className="h-4 w-4 text-blue-500" />
+                <CalendarDays className="h-4 w-4 text-status-fila" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-blue-600">{rotinasNaSemana}</div>
+                <div className="text-3xl font-bold text-status-fila">{rotinasNaSemana}</div>
               </CardContent>
             </Card>
             <Card className="border-border shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Atrasadas</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-red-500" />
+                <AlertTriangle className="h-4 w-4 text-status-ajuste" />
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-red-600">{rotinasAtrasadas}</div>
+                <div className="text-3xl font-bold text-status-ajuste">{rotinasAtrasadas}</div>
               </CardContent>
             </Card>
             <Card className="border-border shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">Diárias</CardTitle>
-                <AlarmClock className="h-4 w-4 text-teal-500" />
+                <AlarmClock className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-bold">{rotinasDiarias}</div>

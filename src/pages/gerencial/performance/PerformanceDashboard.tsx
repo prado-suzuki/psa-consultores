@@ -15,15 +15,17 @@ import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import { useDomainMelhoriasRoi } from '@/hooks/useDomainMelhoriasRoi';
 import {
-  BOARD_AREAS, BOARD_AREA_LABEL, consolidarRoi, filtrarPorArea, saudeProjetos,
-  serieTarefasPorArea, type BoardAreaKey,
+  BOARD_AREAS, BOARD_AREA_LABEL, consolidarRoi, filtrarPorCluster, filtrarTarefasPorProjetos,
+  saudeProjetos, serieTarefasPorArea, type BoardAreaKey,
 } from '@/lib/boardExecutivo';
 import {
   chipDeArea, classificarContribuicao, contribuicaoNoPeriodo, desvioMedioEntrega,
-  filtrarTarefasPorArea, listarFalhas, mapaAreaPorProjeto, mapaAreasPorPessoa,
-  metasNoEscopo, pessoasNoEscopo, resumoMetas, rotuloArea, rotuloEscopo, rotuloJanela,
+  listarFalhas, mapaClustersPorPessoa,
+  metasNoEscopo, pessoasNoEscopo, resumoMetas, rotuloEscopoCluster, rotuloJanela,
   type MetaCiclo, type PessoaBasica,
 } from '@/lib/performanceOperacional';
+import { useBoardCluster } from '@/hooks/useBoardCluster';
+import { useClusters } from '@/hooks/useClusters';
 
 /** Cinza do bucket "Outros" — área não classificada nos buckets nomeados. */
 const COR_OUTROS = '#9AA7B4';
@@ -35,13 +37,20 @@ const COR_AREA: Record<string, string> = {
 };
 const corDaArea = (a: string) => COR_AREA[a] ?? COR_OUTROS;
 
-const DEFAULTS = { periodo: '30d', area: 'todas', search: '', statusFilter: 'todos', ordenacao: 'prazo_asc' };
+// O recorte por EMPRESA vem da barra global (`useBoardCluster`), que filtra por
+// `cluster_id`. O filtro `area` local saiu: classificava por casamento de texto
+// e jogava em "Outros" tudo que não casasse.
+const DEFAULTS = { periodo: '30d', search: '', statusFilter: 'todos', ordenacao: 'prazo_asc' };
 
 const PerformanceDashboard = () => {
   const revealRef = useBoardReveal();
-  const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({ pageKey: 'performance', defaults: DEFAULTS });
+  // pageKey v2: o filtro `area` local saiu e a chave antiga o guardava na
+  // sessão — sem trocar a chave, o valor órfão voltaria do sessionStorage.
+  const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({ pageKey: 'performance-v2', defaults: DEFAULTS });
   const periodo = filters.periodo as string;
-  const area = filters.area as string;
+  const { cluster } = useBoardCluster();
+  const { data: clusters = [] } = useClusters();
+  const nomeEmpresa = cluster ? clusters.find((c) => c.id === cluster)?.nome ?? '—' : null;
   const searchTerm = filters.search as string;
   const statusFilter = filters.statusFilter as string;
   const ordenacao = filters.ordenacao as string;
@@ -64,24 +73,23 @@ const PerformanceDashboard = () => {
     if (prefsQuery.data) {
       const prefs = prefsQuery.data as any;
       if (prefs.periodo_padrao && prefs.periodo_padrao !== periodo) setFilter('periodo', prefs.periodo_padrao);
-      if (prefs.area_padrao && prefs.area_padrao !== area) setFilter('area', prefs.area_padrao);
+      // `area_padrao` não é mais lida: o filtro local saiu e a empresa global
+      // persiste sozinha no localStorage (BoardClusterProvider). A coluna fica
+      // no banco — remover exigiria migration em produção.
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prefsQuery.data]);
 
   const handlePeriodChange = (v: string) => { setFilter('periodo', v); savePrefs.mutate({ periodo_padrao: v }); };
-  const handleAreaChange = (v: string) => { setFilter('area', v); savePrefs.mutate({ area_padrao: v }); };
   const handleRefresh = () => {
     queryClient.invalidateQueries({ predicate: (q) => typeof q.queryKey[0] === 'string' && ((q.queryKey[0] as string).startsWith('perf') || (q.queryKey[0] as string).startsWith('board-')) });
     setLastUpdate(new Date());
   };
 
-  // ── Escopo: tudo que a tela afirma passa pelo filtro de área ──
+  // ── Escopo: tudo que a tela afirma passa pelo recorte de empresa ──
   const todosProjetos = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
-  const projetos = useMemo(() => filtrarPorArea(todosProjetos, area), [todosProjetos, area]);
+  const projetos = useMemo(() => filtrarPorCluster(todosProjetos, cluster), [todosProjetos, cluster]);
   const saude = useMemo(() => saudeProjetos(projetos), [projetos]);
-  /** tarefa → projeto → área: sempre construído com a lista COMPLETA. */
-  const areaPorProjeto = useMemo(() => mapaAreaPorProjeto(todosProjetos), [todosProjetos]);
 
   const membros = useMemo(() => membersQuery.data?.members ?? [], [membersQuery.data]);
   // `profiles_safe` é consultada com cast no hook (view fora dos tipos gerados).
@@ -89,24 +97,32 @@ const PerformanceDashboard = () => {
     () => (membersQuery.data?.profiles ?? []) as unknown as PessoaBasica[],
     [membersQuery.data],
   );
-  /** pessoa → área (via equipe): base do recorte de pessoas e de metas. */
-  const areasPorPessoa = useMemo(() => mapaAreasPorPessoa(membros), [membros]);
+  /** pessoa → empresa (via equipe → área, por ID): base do recorte de pessoas e metas. */
+  const clustersPorPessoa = useMemo(() => mapaClustersPorPessoa(membros), [membros]);
 
+  // Tarefa segue o projeto: `projetos` já está recortado, então a tarefa de um
+  // projeto de fora simplesmente não entra (antes ela viraria "Outros").
   const periodTasks = useMemo(() => periodTasksQuery.data ?? [], [periodTasksQuery.data]);
   const tarefasPeriodo = useMemo(
-    () => filtrarTarefasPorArea(periodTasks, areaPorProjeto, area),
-    [periodTasks, areaPorProjeto, area],
+    () => (cluster ? filtrarTarefasPorProjetos(periodTasks, projetos) : periodTasks),
+    [periodTasks, projetos, cluster],
   );
   const heatmapTasks = useMemo(() => heatmapTasksQuery.data ?? [], [heatmapTasksQuery.data]);
   const tarefasHeatmap = useMemo(
-    () => filtrarTarefasPorArea(heatmapTasks, areaPorProjeto, area),
-    [heatmapTasks, areaPorProjeto, area],
+    () => (cluster ? filtrarTarefasPorProjetos(heatmapTasks, projetos) : heatmapTasks),
+    [heatmapTasks, projetos, cluster],
   );
   const last3MonthsTasks = useMemo(() => last3MonthsTasksQuery.data ?? [], [last3MonthsTasksQuery.data]);
 
-  const roi = consolidarRoi(melhoriasQuery.data ?? []);
+  // Economia validada deixou de ser necessariamente global: `process_improvements`
+  // sempre teve `cluster_id` — o que faltava era o filtro ser por ID de empresa.
+  const melhorias = useMemo(
+    () => filtrarPorCluster(melhoriasQuery.data ?? [], cluster),
+    [melhoriasQuery.data, cluster],
+  );
+  const roi = consolidarRoi(melhorias);
   const janelaLabel = rotuloJanela(periodo);
-  const areaLabel = rotuloArea(area);
+  const escopoLabel = nomeEmpresa ?? 'todas as empresas';
 
   // "Tempo Médio": desvio das entregas do período, agora recortado por área e
   // com o tamanho da amostra — sem amostra a tela declara que não há base.
@@ -115,8 +131,8 @@ const PerformanceDashboard = () => {
   // Metas não têm coluna de área: a atribuição é responsavel_id → equipe → área.
   const metasBrutas = useMemo(() => (metasQuery.data ?? []) as MetaCiclo[], [metasQuery.data]);
   const escopoMetas = useMemo(
-    () => metasNoEscopo(metasBrutas, areasPorPessoa, area),
-    [metasBrutas, areasPorPessoa, area],
+    () => metasNoEscopo(metasBrutas, clustersPorPessoa, cluster),
+    [metasBrutas, clustersPorPessoa, cluster],
   );
   const metas = escopoMetas.metas;
   const resumoDasMetas = useMemo(() => resumoMetas(metas), [metas]);
@@ -127,18 +143,24 @@ const PerformanceDashboard = () => {
   // recortada, as tarefas das outras áreas caíam em "Outros" e o gráfico
   // sugeria uma quarta área gigante. O recorte é visual (quais séries desenhar).
   const barChartData = useMemo(
-    () => serieTarefasPorArea(
-      last3MonthsTasks.filter((t: any) => t.status === 'done'),
-      todosProjetos,
-      'mes',
-    ),
-    [last3MonthsTasks, todosProjetos],
+    () => {
+      const concluidas = last3MonthsTasks.filter((t: any) => t.status === 'done');
+      // O recorte é aplicado nas TAREFAS; a classificação continua usando a
+      // lista COMPLETA de projetos. Recortar os projetos aqui jogaria a tarefa
+      // de fora do escopo em "Outros" e inventaria uma quarta área gigante.
+      const noEscopo = cluster ? filtrarTarefasPorProjetos(concluidas, projetos) : concluidas;
+      return serieTarefasPorArea(noEscopo, todosProjetos, 'mes');
+    },
+    [last3MonthsTasks, todosProjetos, projetos, cluster],
   );
-  const areasVisiveis: BoardAreaKey[] = area === 'todas' ? BOARD_AREAS : [area as BoardAreaKey];
+  // Com cliente escolhido, as séries que não existem no recorte simplesmente
+  // não têm dado — desenhar todas é honesto e evita mapear cluster→bucket só
+  // para decidir cor de barra.
+  const areasVisiveis: BoardAreaKey[] = BOARD_AREAS;
 
   const escopoPessoas = useMemo(
-    () => pessoasNoEscopo(profiles, areasPorPessoa, area),
-    [profiles, areasPorPessoa, area],
+    () => pessoasNoEscopo(profiles, clustersPorPessoa, cluster),
+    [profiles, clustersPorPessoa, cluster],
   );
   const contribuicao = useMemo(
     () => contribuicaoNoPeriodo(escopoPessoas.pessoas, tarefasPeriodo, metas),
@@ -188,8 +210,8 @@ const PerformanceDashboard = () => {
     || periodTasksQuery.isLoading || metasQuery.isLoading;
 
   // Rótulo de escopo de cada KPI — nenhum número fica global sem dizer.
-  const escopoMetasLabel = rotuloEscopo(escopoMetas.escopo, area);
-  const escopoPessoasLabel = rotuloEscopo(escopoPessoas.escopo, area);
+  const escopoMetasLabel = rotuloEscopoCluster(escopoMetas.escopo, nomeEmpresa);
+  const escopoPessoasLabel = rotuloEscopoCluster(escopoPessoas.escopo, nomeEmpresa);
   const metasSubText = metasBrutas.length === 0
     ? 'nenhuma meta no ciclo ativo'
     : resumoDasMetas.individuais === 0
@@ -205,7 +227,7 @@ const PerformanceDashboard = () => {
           {/* O subtítulo nomeia a FONTE em vez de prometer cobertura. "Todas as
               áreas" aqui significa "todas as áreas presentes em org_projects" —
               o trabalho da Digital vive em sprints (sprint_deliverables) e entra
-              pela Visão Executiva, não por esta tela. */}
+              pelo Estratégico, não por esta tela. */}
           <div className="pg-sub">
             Projetos e tarefas de Tax e OSG · equipe e economia validada · atualizado a cada 5 min
           </div>
@@ -215,19 +237,10 @@ const PerformanceDashboard = () => {
         <BoardFilterBar
           filters={[
             { key: 'periodo', label: 'Período', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
-            {
-              // Opções derivadas do vocabulário canônico de áreas: quando
-              // `BOARD_AREAS` muda, a tela acompanha sem novo diff.
-              key: 'area', label: 'Área', type: 'select', options: [
-                { value: 'todas', label: 'Todas as áreas' },
-                ...BOARD_AREAS.map((a) => ({ value: a, label: BOARD_AREA_LABEL[a] })),
-              ],
-            },
           ]}
           activeFilters={filters}
           onFilterChange={(key, value) => {
             if (key === 'periodo') handlePeriodChange(value as string);
-            else if (key === 'area') handleAreaChange(value as string);
             else setFilter(key, value);
           }}
           onReset={resetFilters}
@@ -277,8 +290,8 @@ const PerformanceDashboard = () => {
                   { color: 'var(--board-v4-risk)', text: `${saude.atrasados} atrasados` },
                 ],
                 subText: saude.total > 0
-                  ? `escopo: ${areaLabel}`
-                  : `nenhum projeto ativo · escopo: ${areaLabel}`,
+                  ? `escopo: ${escopoLabel}`
+                  : `nenhum projeto ativo · escopo: ${escopoLabel}`,
               },
               {
                 // Escopo vazio se declara vazio: 0% com pill "Abaixo" afirmava
@@ -289,7 +302,7 @@ const PerformanceDashboard = () => {
                 pill: saude.total > 0
                   ? { text: saude.pontualidade >= 85 ? 'Dentro da meta' : 'Abaixo da meta', variant: saude.pontualidade >= 85 ? 'up' : 'down' }
                   : { text: 'escopo vazio', variant: 'neutral' },
-                subText: `${saude.total} projetos · escopo: ${areaLabel}`,
+                subText: `${saude.total} projetos · escopo: ${escopoLabel}`,
               },
               {
                 // Média ASSINADA: negativo = entregou antes do prazo. O sinal é
@@ -306,7 +319,7 @@ const PerformanceDashboard = () => {
                 pill: desvio.amostra > 0
                   ? { text: `${desvio.atrasadas} de ${desvio.amostra} fora do prazo`, variant: desvio.atrasadas > 0 ? 'down' : 'up' }
                   : { text: 'sem base no período', variant: 'neutral' },
-                subText: `negativo = antes do prazo · ${janelaLabel} · escopo: ${areaLabel}`,
+                subText: `negativo = antes do prazo · ${janelaLabel} · escopo: ${escopoLabel}`,
               },
               {
                 value: Math.round(roi.economiaAnual / 1000), prefix: 'R$', suffix: 'k',
@@ -316,12 +329,12 @@ const PerformanceDashboard = () => {
                 pill: roi.roiPct !== null
                   ? { text: `${Math.round(roi.roiPct)}% ROI`, variant: roi.roiPct >= 0 ? 'up' : 'down' }
                   : { text: 'ROI em construção', variant: 'neutral' },
-                // NÃO é recortável por área: `process_improvements` tem
-                // `cluster_id`, não `estrutura_area_id`. Rótulo explícito para o
-                // filtro de área não "certificar" um número que é da empresa toda.
+                // Passou a ser recortável: `process_improvements` tem
+                // `cluster_id` — era o filtro por ÁREA que não alcançava esta
+                // tabela. O rótulo continua dizendo o escopo, como todos.
                 subText: melhoriasQuery.isError
                   ? 'Falha ao carregar melhorias'
-                  : `todas as áreas · acumulado · ${roi.melhorias} melhorias`,
+                  : `${escopoLabel} · acumulado · ${roi.melhorias} melhorias`,
               },
               {
                 value: resumoDasMetas.individuais > 0 ? resumoDasMetas.progresso : '—',
@@ -362,7 +375,7 @@ const PerformanceDashboard = () => {
                   ))}
                 </div>
                 <div style={{ fontSize: 10.5, color: 'var(--board-v4-ink3)', marginTop: 6, textAlign: 'center' }}>
-                  Tarefas concluídas por mês · escopo: {areaLabel} — não é índice de saúde.
+                  Tarefas concluídas por mês · escopo: {escopoLabel} — não é índice de saúde.
                 </div>
               </>
             ) : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}><BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: '#CBD5E1' }} />Sem dados</div>}
@@ -411,7 +424,7 @@ const PerformanceDashboard = () => {
             {contribuicao.length === 0 && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}>Nenhuma entrega concluída na janela.</div>}
 
             <div className="v4-slabel" style={{ marginTop: 16 }}>
-              Atividade — últimos 90 dias · escopo: {areaLabel} {selectedMemberId && '(1 pessoa)'}
+              Atividade — últimos 90 dias · escopo: {escopoLabel} {selectedMemberId && '(1 pessoa)'}
             </div>
             <ActivityHeatmap tasks={tarefasHeatmap} selectedMemberId={selectedMemberId} />
           </div>
@@ -435,10 +448,8 @@ const PerformanceDashboard = () => {
             totalCount={todosProjetos.length}
           />
           {filteredProjects.length === 0 ? (
-            // O reset do estado vazio também limpa a ÁREA — sem isso o botão
-            // "Limpar filtros" parecia não fazer nada quando era a área que
-            // zerava a tabela.
-            <FilterEmptyState onReset={() => { setFilter('search', ''); setFilter('statusFilter', 'todos'); handleAreaChange('todas'); }} />
+            // O filtro de ÁREA local foi removido; o reset limpa busca e status.
+            <FilterEmptyState onReset={() => { setFilter('search', ''); setFilter('statusFilter', 'todos'); }} />
           ) : (
             <div className="v3-tw">
               <table>

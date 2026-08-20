@@ -14,18 +14,18 @@ export const ManageAccessLink = () => {
   return (
     <Link
       to="/equipe/acessos"
-      className="mb-6 flex items-center justify-between gap-4 rounded-lg border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-800 transition-colors hover:bg-teal-100"
+      className="mb-6 flex items-center justify-between gap-4 rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-primary transition-colors hover:bg-primary/10"
     >
       <div className="flex items-center gap-3">
-        <ShieldCheck className="h-5 w-5 flex-shrink-0 text-teal-600" aria-hidden="true" />
+        <ShieldCheck className="h-5 w-5 flex-shrink-0 text-primary" aria-hidden="true" />
         <div>
           <p className="font-medium">Gerenciamento completo de acessos</p>
-          <p className="text-xs text-teal-700/80">
+          <p className="text-xs text-primary/80">
             Criar usuários, editar papéis, atribuir páginas e gerenciar estrutura.
           </p>
         </div>
       </div>
-      <ArrowRight className="h-4 w-4 flex-shrink-0 text-teal-600" aria-hidden="true" />
+      <ArrowRight className="h-4 w-4 flex-shrink-0 text-primary" aria-hidden="true" />
     </Link>
   );
 };

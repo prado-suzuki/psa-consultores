@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AreaThemeProvider } from "@/components/AreaThemeProvider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -132,10 +133,16 @@ import DocumentosCliente from "./pages/equipe/osg/DocumentosCliente";
 import ChecklistsDocumentos from "./pages/equipe/osg/ChecklistsDocumentos";
 import Relatorios from "./pages/equipe/osg/Relatorios";
 import OsgAuditoria from "./pages/equipe/osg/OsgAuditoria";
+import { BoardClusterProvider } from "./contexts/BoardClusterContext";
 import BoardDashboard from "./pages/equipe/board/BoardDashboard";
 import BoardRelatorios from "./pages/equipe/board/BoardRelatorios";
 import BoardDashboardClientesOs from "./pages/equipe/board/BoardDashboardClientesOs";
 import BoardClientes from "./pages/equipe/board/BoardClientes";
+import BoardChamados from "./pages/equipe/board/BoardChamados";
+import BoardChamadosDashboard from "./pages/equipe/board/BoardChamadosDashboard";
+import BoardChamadoDetalhe from "./pages/equipe/board/BoardChamadoDetalhe";
+import BoardCapacidade from "./pages/equipe/board/BoardCapacidade";
+import BoardLogsEquipe from "./pages/equipe/board/BoardLogsEquipe";
 import DashboardUsoEnvioGerencial from "./pages/equipe/board/DashboardUsoEnvioGerencial";
 
 // Gestão
@@ -168,6 +175,11 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            {/* O tema da área vem da ROTA, e é aplicado aqui — acima de
+                <Routes> e, portanto, acima de todo gate de acesso. Dentro dos
+                gates não serve: LiderRoute devolve `null` enquanto carrega o
+                papel do usuário, e nesse intervalo a tela ficaria sem tema. */}
+            <AreaThemeProvider>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/missao" element={<Missao />} />
@@ -280,7 +292,7 @@ const App = () => (
                   cadastra, e quem pode ver a lista pode abrir um item dela. */}
               <Route path="/equipe/tax/gerencial/chamados/:id" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/gerencial/chamados"><FiscalGerencialChamadoDetalhe /></PageAccessGate></LiderRoute>} />
 
-              {/* Logs de Equipe (ex-Auditoria) — líder+ e permissão nominal, como antes.
+              {/* Logs de Uso (ex-Auditoria, ex-Logs de Equipe) — líder+ e permissão nominal, como antes.
                   O endereço antigo redireciona para não quebrar link salvo. */}
               <Route path="/equipe/tax/gerencial/logs-equipe" element={<LiderRoute><PageAccessGate pagePath="/equipe/tax/gerencial/logs-equipe"><FiscalAuditoria /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/tax/auditoria" element={<Navigate to="/equipe/tax/gerencial/logs-equipe" replace />} />
@@ -317,11 +329,16 @@ const App = () => (
               <Route path="/equipe/osg/gerencial/chamados/dashboard" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/chamados/dashboard"><OsgGerencialChamadosDashboard /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/osg/gerencial/chamados/:id" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/chamados"><OsgGerencialChamadoDetalhe /></PageAccessGate></LiderRoute>} />
 
-              {/* Logs de Equipe (ex-Auditoria) — líder+, igual à Tax; quem não é volta para a home do OSG. */}
+              {/* Logs de Uso (ex-Auditoria, ex-Logs de Equipe) — líder+, igual à Tax; quem não é volta para a home do OSG. */}
               <Route path="/equipe/osg/gerencial/logs-equipe" element={<LiderRoute fallbackPath="/equipe/osg"><PageAccessGate pagePath="/equipe/osg/gerencial/logs-equipe"><OsgAuditoria /></PageAccessGate></LiderRoute>} />
               <Route path="/equipe/osg/auditoria" element={<Navigate to="/equipe/osg/gerencial/logs-equipe" replace />} />
 
               {/* Board Routes */}
+              {/* Rota sem path só para o Provider: o seletor global de cliente
+                  precisa estar ACIMA das páginas. Cada página do Board renderiza
+                  o próprio <BoardLayout>, então um Provider dentro do layout
+                  ficaria abaixo dos hooks da página e ela não enxergaria nada. */}
+              <Route element={<BoardClusterProvider><Outlet /></BoardClusterProvider>}>
               {/* Raiz da área Gerencial: o breadcrumb "Board" e links externos
                   apontavam para /equipe/board, que caía no NotFound. */}
               <Route path="/equipe/board" element={<Navigate to="/equipe/board/dashboard" replace />} />
@@ -330,6 +347,28 @@ const App = () => (
               <Route path="/equipe/board/uso-envio" element={<PageAccessGate pagePath="/equipe/board/uso-envio"><DashboardUsoEnvioGerencial /></PageAccessGate>} />
               <Route path="/equipe/board/dashboard-clientes-os" element={<PageAccessGate pagePath="/equipe/board/dashboard-clientes-os"><BoardDashboardClientesOs /></PageAccessGate>} />
               <Route path="/equipe/board/clientes" element={<PageAccessGate pagePath="/equipe/board/clientes"><BoardClientes /></PageAccessGate>} />
+
+              {/* Chamados no Board — o consolidado das mesmas telas que a Gerencial
+                  da Tax e da OSG montam. Só o escopo muda, e ele vem da RLS de
+                  `tickets`, não daqui.
+
+                  Duas travas, iguais às da Gerencial: papel (LiderRoute) e permissão
+                  nominal. A trava de papel importa antes do sincronizador de
+                  `/equipe/acessos` rodar — página ainda não cadastrada é tratada como
+                  livre pelo `usePageAccess`, e esta é a visão da empresa inteira.
+                  `fallbackPath` é a home do portal: quem não é líder+ não tem Board. */}
+              <Route path="/equipe/board/chamados" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/chamados"><BoardChamados /></PageAccessGate></LiderRoute>} />
+              {/* A estática vem antes da dinâmica: `dashboard` não pode cair no `:id`. */}
+              <Route path="/equipe/board/chamados/dashboard" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/chamados/dashboard"><BoardChamadosDashboard /></PageAccessGate></LiderRoute>} />
+              {/* O detalhe usa a permissão da LISTA, como na Tax: rota com parâmetro
+                  não se cadastra, e quem vê a lista pode abrir um item dela. */}
+              <Route path="/equipe/board/chamados/:id" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/chamados"><BoardChamadoDetalhe /></PageAccessGate></LiderRoute>} />
+
+              {/* Capacidade e Logs de Equipe — dashboard de área e auditoria das
+                  áreas somadas, nos mesmos componentes do Tax e da OSG. Líder+ pelo
+                  mesmo motivo das originais: é leitura sobre o time todo. */}
+              <Route path="/equipe/board/capacidade" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/capacidade"><BoardCapacidade /></PageAccessGate></LiderRoute>} />
+              <Route path="/equipe/board/logs-equipe" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/logs-equipe"><BoardLogsEquipe /></PageAccessGate></LiderRoute>} />
 
               {/* Performance & Desempenho Routes (inside Board) */}
               <Route path="/equipe/board/performance" element={<DesempenhoAccessGate><PerformanceDashboard /></DesempenhoAccessGate>} />
@@ -342,10 +381,12 @@ const App = () => (
               <Route path="/equipe/board/desempenho/decisoes" element={<DesempenhoAccessGate><DesempenhoDecisoes /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/relatorios" element={<DesempenhoAccessGate><DesempenhoRelatorios /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/minha-evolucao" element={<ProtectedRoute><MinhaEvolucao /></ProtectedRoute>} />
+              </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </AreaThemeProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

@@ -14,16 +14,26 @@ export interface EstruturaEquipeOption {
 /**
  * Lists active equipes whose area belongs to a given page_category (e.g., 'tax').
  * Includes joined area + cluster names for display/grouping.
+ *
+ * Uma LISTA de categorias significa "qualquer uma delas" (`overlaps`) — é como o
+ * consolidado do Board pega as equipes do Tax e da OSG juntas. Categoria única
+ * segue com o `contains` de sempre.
  */
-export const useEstruturaEquipesByCategory = (category: string) => {
+export const useEstruturaEquipesByCategory = (category: string | string[]) => {
+  // Ordenado para ['tax','osg'] e ['osg','tax'] caírem na mesma entrada de cache.
+  const categorias = Array.isArray(category) ? [...category].sort() : category;
+
   return useQuery({
-    queryKey: ['estrutura-equipes-by-category', category],
+    queryKey: ['estrutura-equipes-by-category', categorias],
     queryFn: async () => {
-      const { data: areas, error: aErr } = await supabase
+      const baseAreas = supabase
         .from('estrutura_areas')
         .select('id, name, cluster_id, cluster:estrutura_clusters!estrutura_areas_cluster_id_fkey(id, name)')
-        .eq('is_active', true)
-        .contains('page_categories', [category]);
+        .eq('is_active', true);
+
+      const { data: areas, error: aErr } = await (Array.isArray(categorias)
+        ? baseAreas.overlaps('page_categories', categorias)
+        : baseAreas.contains('page_categories', [categorias]));
       if (aErr) throw aErr;
       if (!areas?.length) return [];
 

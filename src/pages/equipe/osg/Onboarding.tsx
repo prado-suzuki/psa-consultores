@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { AlertCircle, Loader2, Lock, PackageOpen, Rocket, Send } from 'lucide-react';
+import { AlertCircle, ListChecks, Loader2, Lock, PackageOpen, Rocket, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { OnboardingWorkspace } from '@/components/equipe/osg/onboarding/OnboardingWorkspace';
@@ -11,6 +11,8 @@ import { panelContainerCls } from '@/components/equipe/osg/onboarding/onboarding
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useOnboarding } from '@/hooks/useOnboarding';
 import { useDomainSolicitacao } from '@/hooks/useDomainSolicitacao';
+import { useDocumentosByCliente } from '@/hooks/useDocumentoArquivo';
+import { contarArquivosSemTipo } from '@/lib/checklistDerivado';
 import {
   type CatalogoDocumento,
   type EdicaoItem,
@@ -39,9 +41,16 @@ const Onboarding = () => {
     editarItem,
     dispensarItem,
     enviarSolicitacao,
+    passarParaChecklist,
     encerrarSolicitacao,
     abrirNovaSolicitacao,
   } = useDomainSolicitacao(clienteId || null);
+
+  /**
+   * Só para avisar na confirmação da virada: arquivo sem tipo é invisível para a
+   * subtração, e o checklist do cliente cobraria o que ele já entregou.
+   */
+  const { data: documentosDoCliente = [] } = useDocumentosByCliente(clienteId || null);
 
   const [escolhendoOs, setEscolhendoOs] = useState(false);
 
@@ -139,6 +148,11 @@ const Onboarding = () => {
     toast.success('Solicitação enviada — o cliente já vê a lista');
   };
 
+  const virarChecklist = async () => {
+    await passarParaChecklist.mutateAsync();
+    toast.success('Agora o cliente vê o checklist, com upload por documento');
+  };
+
   const encerrar = async () => {
     await encerrarSolicitacao.mutateAsync();
     toast.success('Solicitação encerrada');
@@ -163,8 +177,10 @@ const Onboarding = () => {
   };
 
   const encerrada = solicitacao?.status === 'encerrada';
+  const emChecklist = solicitacao?.status === 'em_checklist';
   const ocupado = gerarDaOs.isPending
     || enviarSolicitacao.isPending
+    || passarParaChecklist.isPending
     || encerrarSolicitacao.isPending
     || abrirNovaSolicitacao.isPending;
 
@@ -175,9 +191,11 @@ const Onboarding = () => {
         temOrigemNaOs={ordensServico.length > 0}
         listaVazia={itens.length === 0}
         itensAtivos={ativos.length}
+        arquivosSemTipo={contarArquivosSemTipo(documentosDoCliente)}
         ocupado={ocupado}
         onGerar={() => void gerar()}
         onEnviar={enviar}
+        onPassarParaChecklist={() => void virarChecklist()}
         onEncerrar={encerrar}
         onAbrirNova={abrirNova}
       />
@@ -216,9 +234,11 @@ const Onboarding = () => {
 
   const subtitulo = solicitacao?.status === 'enviada'
     ? `Enviada ao cliente em ${emData(solicitacao.enviadaEm)}`
-    : encerrada
-      ? `Encerrada em ${emData(solicitacao?.encerradaEm ?? null)}`
-      : 'Solicitação inicial de documentos ao cliente';
+    : emChecklist
+      ? 'Em fase de checklist: o cliente envia por documento que falta'
+      : encerrada
+        ? `Encerrada em ${emData(solicitacao?.encerradaEm ?? null)}`
+        : 'Solicitação inicial de documentos ao cliente';
 
   return (
     <OsgLayout title="Solicitação Inicial" subtitle={subtitulo} headerActions={acoesDoTopo}>
@@ -266,6 +286,19 @@ const Onboarding = () => {
                 {emData(solicitacao.enviadaEm)}</strong> — o cliente vê a lista e pode
                 enviar os arquivos. Incluir documentos agora também chega até ele; o
                 pedido só fecha quando você encerrar.
+              </p>
+            </div>
+          )}
+
+          {emChecklist && (
+            <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
+              <ListChecks className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss/70" />
+              <p className="leading-relaxed">
+                Esta solicitação está <strong className="font-semibold">em fase de
+                checklist</strong>: a tela do cliente mostra o que falta, de quem é cada
+                documento, e o envio dele já chega classificado. Incluir documento aqui
+                continua chegando até ele, e é o normal desta fase. O pedido só fecha
+                quando você encerrar.
               </p>
             </div>
           )}

@@ -47,20 +47,20 @@ export interface AreaComCluster {
   page_categories: string[] | null;
 }
 
-export interface ClusterBasico {
-  id: string;
-  name: string | null;
-}
-
 /**
  * Todo o sistema é organizado por CLUSTER — área é campo opcional em
  * `org_projects` e fica NULL em boa parte dos registros, o que jogava projeto de
  * time inteiro em "Outros". Aqui montamos o de-para cluster → bucket do painel:
  *
- * 1. `estrutura_areas.page_categories` (fonte canônica, por ID — imune a
- *    renomear área);
- * 2. nome do cluster, quando nenhuma área dele declara categoria (é o caso da
- *    Digital, que não tem `page_categories` cadastrado).
+ * A fonte é UMA: `estrutura_areas.page_categories`, por ID — imune a renomear
+ * área. Não há palpite por nome aqui.
+ *
+ * Havia um segundo passo, por nome do cluster, justificado no comentário como
+ * "o caso da Digital, que não tem page_categories cadastrado". A Digital tem:
+ * `['dev','rotina']` — a justificativa estava stale. E o passo classificava por
+ * substring: `TAX LEGAL`, área do cluster **Prado Advogados**, virava `tax`
+ * porque o nome contém "tax". Cluster sem área que declare categoria agora fica
+ * fora do mapa e cai em `outros`, que é a resposta honesta.
  */
 /**
  * Bucket declarado em `estrutura_areas.page_categories` — o de-para canônico do
@@ -74,7 +74,6 @@ export function bucketDePageCategories(cats: string[] | null | undefined): Board
 
 export function construirMapaDeClusters(entrada: {
   areas: AreaComCluster[];
-  clusters: ClusterBasico[];
 }): {
   bucketDoCluster: Map<string, BoardAreaKey>;
   bucketDaArea: Map<string, BoardAreaKey>;
@@ -84,23 +83,15 @@ export function construirMapaDeClusters(entrada: {
 
   for (const area of entrada.areas ?? []) {
     if (!area?.id) continue;
-    const porCategoria = bucketDePageCategories(area.page_categories);
-    const bucket = porCategoria ?? classificarArea(area.name);
-    if (bucket !== 'outros') {
+    const bucket = bucketDePageCategories(area.page_categories);
+    if (bucket) {
       bucketDaArea.set(area.id, bucket);
-      // A categoria declarada manda: não deixa o nome de uma área irmã
-      // sobrescrever o cluster já resolvido pela fonte canônica.
-      if (area.cluster_id && (porCategoria || !bucketDoCluster.has(area.cluster_id))) {
+      // Toda área que chega aqui declarou categoria, então não há mais disputa
+      // entre fonte canônica e palpite: a primeira irmã do cluster resolve.
+      if (area.cluster_id && !bucketDoCluster.has(area.cluster_id)) {
         bucketDoCluster.set(area.cluster_id, bucket);
       }
     }
-  }
-
-  // Cluster que nenhuma área classificou: cai no nome do próprio cluster.
-  for (const cluster of entrada.clusters ?? []) {
-    if (!cluster?.id || bucketDoCluster.has(cluster.id)) continue;
-    const bucket = classificarArea(cluster.name);
-    if (bucket !== 'outros') bucketDoCluster.set(cluster.id, bucket);
   }
 
   return { bucketDoCluster, bucketDaArea };
@@ -118,13 +109,46 @@ export function bucketDoItem(item: ItemComArea): BoardAreaKey {
   return item.area_key ?? classificarArea(item.area_name);
 }
 
-/** Filtro de área da barra de filtros: `todas` ou uma `BoardAreaKey`. */
-export function filtrarPorArea<T extends ItemComArea>(
+// `filtrarPorArea` foi removido: o filtro de área saiu das telas do Board,
+// substituído pelo seletor global de cliente abaixo. `bucketDoItem` continua —
+// o rollup "Áreas em um olhar" ainda agrupa por área.
+
+// ── Filtro por CLUSTER (o seletor global de cliente do Board) ─────────────
+
+/**
+ * Recorta qualquer coleção cujas linhas carreguem `cluster_id`.
+ *
+ * Diferente de `filtrarPorArea`, não há classificação nem palpite por nome: o
+ * cluster é o ID que a própria linha traz. Foi por isso que ele substituiu a
+ * área no seletor — a área dependia de casar texto e jogava em "Outros" tudo
+ * que não casasse.
+ *
+ * Linha com `cluster_id` nulo NÃO entra quando há cliente selecionado: com
+ * filtro ativo, "não sei de quem é" não pode virar "é deste". Sem filtro
+ * (`cluster === ''`), a coleção passa inteira.
+ */
+export function filtrarPorCluster<T extends { cluster_id?: string | null }>(
   itens: T[],
-  area: string,
+  cluster: string,
 ): T[] {
-  if (!area || area === 'todas') return itens;
-  return itens.filter((i) => bucketDoItem(i) === area);
+  if (!cluster) return itens;
+  return itens.filter((i) => i.cluster_id === cluster);
+}
+
+/**
+ * Mantém só as tarefas dos projetos informados.
+ *
+ * Necessário porque `resumoPorArea` resolve a área da tarefa pelo projeto dela:
+ * passar projetos já filtrados sem filtrar as tarefas faria toda tarefa de fora
+ * do recorte cair em "Outros" — inflando uma linha que deveria ter sumido.
+ * Tarefa sem `project_id` fica de fora pelo mesmo motivo do filtro de cluster.
+ */
+export function filtrarTarefasPorProjetos<T extends { project_id?: string | null }>(
+  tarefas: T[],
+  projetos: { id: string }[],
+): T[] {
+  const ids = new Set(projetos.map((p) => p.id));
+  return (tarefas || []).filter((t) => !!t?.project_id && ids.has(t.project_id));
 }
 
 // ── Saúde dos projetos ───────────────────────────────────────────────────
@@ -258,6 +282,8 @@ export function serieTarefasPorArea(
  */
 export interface MelhoriaRoi {
   id: string;
+  /** Cluster da melhoria — permite recortar a economia pelo cliente global. */
+  cluster_id?: string | null;
   cost_saved_monthly: number | null;
   implementation_cost: number | null;
   one_time_external_cost: number | null;

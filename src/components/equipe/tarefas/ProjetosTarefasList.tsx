@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
@@ -15,6 +16,7 @@ import {
   FilterX,
   FolderInput,
   FolderKanban,
+  ListPlus,
   MoreHorizontal,
   Plus,
   Trash2,
@@ -24,6 +26,7 @@ import type { AreaKey } from '@/config/areaCategories';
 import { toast } from 'sonner';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { Badge } from '@/components/ui/badge';
+import { BulkActionBar } from '@/components/ui/bulk-action-bar';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -39,7 +42,7 @@ import type { OrgProject } from '@/hooks/useOrgProjects';
 import { type OrgTask, type OrgTaskStatus, useUpdateOrgTask } from '@/hooks/useOrgTasks';
 import { cn } from '@/lib/utils';
 import { parseDate } from '@/lib/dateUtils';
-import { STATUS_LABELS } from '@/lib/projetosCadastro';
+import { projectStatusConfig } from '@/lib/projetoStatusColors';
 import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import {
@@ -48,6 +51,12 @@ import {
   type ProjetosTarefasTaskNode,
 } from '@/lib/projetosTarefasHierarchy';
 import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
+import {
+  esforcoDaTarefa,
+  resumoEsforco,
+  type EsforcoAgregado,
+  type EsforcoTarefa,
+} from '@/lib/projetosTarefasEsforco';
 import type { ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
 
 interface ProjetosTarefasListProps {
@@ -62,6 +71,14 @@ interface ProjetosTarefasListProps {
   onClearFilters?: () => void;
   onEditProject: (project: OrgProject) => void;
   onDeleteProject: (projectId: string) => void;
+  /**
+   * Redisparo da geração de tarefas do produto num projeto que já existe.
+   *
+   * A geração acontece sozinha ao criar o projeto; isto é para o projeto criado
+   * antes de o catálogo do produto existir, e para o catálogo que ganhou item
+   * novo depois. A chamada é idempotente: rodar de novo não duplica nada.
+   */
+  onGerarTarefas: (project: OrgProject) => void;
   onNewTask: (projectId?: string) => void;
   onEditTask: (task: OrgTask) => void;
   onDeleteTask: (taskId: string) => void;
@@ -77,15 +94,45 @@ interface ProjetosTarefasListProps {
   currentUserId?: string | null;
 }
 
-const GRID = 'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_160px_44px] min-w-[1060px]';
+const GRID = 'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px] min-w-[1200px]';
+/** Faixas que atravessam a tabela inteira (divisor de cliente, "adicionar tarefa"). */
+const FULL_ROW_MIN_WIDTH = 'min-w-[1150px]';
 
-const projectStatusStyles: Record<string, string> = {
-  planned: 'bg-slate-100 text-slate-700',
-  active: 'bg-blue-100 text-blue-700',
-  completed: 'bg-emerald-100 text-emerald-700',
-  on_hold: 'bg-amber-100 text-amber-700',
-  cancelled: 'bg-rose-100 text-rose-700',
-};
+/**
+ * Recuos da coluna Nome, em px, e slots de largura fixa para seta e caixa de
+ * seleção. Cada nível reserva os mesmos slots ainda que estejam vazios: era a
+ * caixa de seleção condicional (só aparece em projeto com tarefa) que empurrava
+ * a linha 24px para a direita e fazia o projeto parecer filho do de cima.
+ */
+const PROJECT_INDENT = 36;
+const TASK_INDENT = 60;
+const INDENT_STEP = 24;
+const TOGGLE_SLOT = 'flex h-5 w-5 shrink-0 items-center justify-center';
+const CHECK_SLOT = 'flex h-4 w-4 shrink-0 items-center justify-center';
+/** x das guias verticais: o centro da seta do nível imediatamente acima. */
+const OS_GUIDE = 24;
+const PROJECT_GUIDE = PROJECT_INDENT + 10;
+
+/**
+ * Guia vertical do nível. Recuo sozinho é ambíguo — a linha indentada parece
+ * filha da linha de cima; a guia mostra de qual bloco ela desce.
+ */
+function LevelGuide({ left }: { left: number }) {
+  return <span aria-hidden className="pointer-events-none absolute inset-y-0 border-l border-border/60" style={{ left }} />;
+}
+
+/**
+ * Contadores da linha: em aberto e concluídas. Substitui o número solto, que não
+ * dizia de quê era.
+ */
+function ContadorTarefas({ total, concluidas }: { total: number; concluidas: number }) {
+  if (total === 0) return null;
+  const abertas = total - concluidas;
+  return <span className="flex shrink-0 items-center gap-1">
+    {abertas > 0 && <span title={`${abertas} em aberto`} className="rounded bg-status-neutro-soft px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-status-neutro">{abertas}</span>}
+    {concluidas > 0 && <span title={`${concluidas} concluída(s)`} className="rounded bg-status-feito-soft px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-status-feito">{concluidas}</span>}
+  </span>;
+}
 
 /** Ids de uma subárvore de tarefas — a marcação de um projeto pega tudo dentro dele. */
 function collectNodeTaskIds(nodes: ProjetosTarefasTaskNode[]): string[] {
@@ -109,6 +156,27 @@ function completionPercentage(completed: number, total: number) {
   return total > 0 ? Math.round(completed / total * 100) : 0;
 }
 
+/**
+ * Célula de esforço. O estado `sem_apontamento` — concluído sem horas — vem em
+ * pílula de alerta porque é o único que exige ação de alguém.
+ */
+function EsforcoCell({ esforco, className }: { esforco: EsforcoTarefa; className?: string }) {
+  if (esforco.estado === 'sem_apontamento') {
+    return <div className={cn('flex items-center px-3', className)}>
+      <span title={esforco.descricao} className="inline-flex items-center gap-1 rounded bg-status-alerta-soft px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-status-alerta">
+        <AlertTriangle className="h-3 w-3 shrink-0" />{esforco.label}
+      </span>
+    </div>;
+  }
+  return <div className={cn('flex items-center px-3 text-xs', esforco.estado === 'apontado' ? 'text-foreground' : 'text-muted-foreground', className)}>
+    <span title={esforco.descricao} className="truncate">{esforco.label}</span>
+  </div>;
+}
+
+function EsforcoAgregadoCell({ esforco, className }: { esforco: EsforcoAgregado; className?: string }) {
+  return <EsforcoCell esforco={resumoEsforco(esforco)} className={className} />;
+}
+
 export function ProjetosTarefasList({
   area,
   projects,
@@ -120,6 +188,7 @@ export function ProjetosTarefasList({
   onClearFilters,
   onEditProject,
   onDeleteProject,
+  onGerarTarefas,
   onNewTask,
   onEditTask,
   onDeleteTask,
@@ -196,22 +265,27 @@ export function ProjetosTarefasList({
     const isSelected = selectedTaskIds.has(task.id);
     return <Fragment key={task.id}>
       <div className={cn(GRID, 'group border-t border-border/60 text-sm hover:bg-muted/30', isSelected ? 'bg-primary/5' : 'bg-background')}>
-        <div className="flex min-w-0 items-center gap-2 px-4 py-2" style={{ paddingLeft: `${44 + depth * 24}px` }}>
-          {children.length > 0 ? (
-            <button type="button" onClick={() => toggle(rowId)} className="-ml-7 rounded p-1 text-muted-foreground hover:bg-muted" aria-label={isExpanded ? 'Recolher tarefa' : 'Expandir tarefa'}>
-              {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-            </button>
-          ) : <span className="-ml-6 w-6" />}
-          <Checkbox
-            checked={isSelected}
-            onCheckedChange={checked => onToggleSelection([task.id], checked === true)}
-            aria-label={`Selecionar tarefa ${task.title}`}
-          />
+        <div className="relative flex min-w-0 items-center gap-2 px-4 py-2" style={{ paddingLeft: `${TASK_INDENT + depth * INDENT_STEP}px` }}>
+          {Array.from({ length: depth + 1 }, (_, level) => <LevelGuide key={level} left={PROJECT_GUIDE + level * INDENT_STEP} />)}
+          <span className={TOGGLE_SLOT}>
+            {children.length > 0 && (
+              <button type="button" onClick={() => toggle(rowId)} className="rounded p-0.5 text-muted-foreground hover:bg-muted" aria-label={isExpanded ? 'Recolher tarefa' : 'Expandir tarefa'}>
+                {isExpanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+              </button>
+            )}
+          </span>
+          <span className={CHECK_SLOT}>
+            <Checkbox
+              checked={isSelected}
+              onCheckedChange={checked => onToggleSelection([task.id], checked === true)}
+              aria-label={`Selecionar tarefa ${task.title}`}
+            />
+          </span>
           <TaskStatusDot status={task.status} />
           <button type="button" className="truncate text-left font-medium text-foreground hover:underline" onClick={() => onEditTask(task)}>
             {task.title}
           </button>
-          {children.length > 0 && <span className="text-xs text-muted-foreground">{children.length}</span>}
+          <ContadorTarefas total={children.length} concluidas={children.filter(child => child.task.status === 'done').length} />
         </div>
         <div className="flex items-center px-3 py-1.5">
           <Select value={task.status} onValueChange={value => updateStatus(task, value as OrgTaskStatus)}>
@@ -227,6 +301,7 @@ export function ProjetosTarefasList({
         <div className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs', task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done' ? 'font-medium text-destructive' : 'text-muted-foreground')}>
           <CalendarDays className="h-3.5 w-3.5" />{dateLabel(task.due_date)}
         </div>
+        <EsforcoCell esforco={esforcoDaTarefa(task)} className="py-1.5" />
         <div />
         <div className="flex items-center justify-center">
           <DropdownMenu>
@@ -294,17 +369,16 @@ export function ProjetosTarefasList({
 
   return <div className="space-y-2">
     <div className="flex flex-wrap items-center gap-2">
-      {selectedTaskIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-primary/5 px-3 py-1.5">
-          <span className="text-sm font-medium">{selectedTaskIds.size} tarefa(s) selecionada(s)</span>
-          <Button size="sm" variant="secondary" className="h-7 gap-2" onClick={onMoveSelected}>
-            <FolderInput className="h-3.5 w-3.5" />Mover para outro projeto
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7" onClick={() => onToggleSelection([...selectedTaskIds], false)}>
-            Limpar seleção
-          </Button>
-        </div>
-      )}
+      <BulkActionBar
+        count={selectedTaskIds.size}
+        label={n => `${n} tarefa(s) selecionada(s)`}
+        onClear={() => onToggleSelection([...selectedTaskIds], false)}
+        actions={[{
+          label: 'Mover para outro projeto',
+          icon: <FolderInput className="h-3.5 w-3.5" />,
+          onClick: onMoveSelected,
+        }]}
+      />
       <Button variant="outline" size="sm" onClick={toggleAll} className="ml-auto gap-2">
         {allOsExpanded ? <ChevronsUp className="h-4 w-4" /> : <ChevronsDown className="h-4 w-4" />}
         {allOsExpanded ? 'Recolher tudo' : 'Expandir tudo'}
@@ -314,6 +388,7 @@ export function ProjetosTarefasList({
     <div className={cn(GRID, 'border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
       <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div>
       <button type="button" onClick={() => cycleSort('prazo')} className={cn('flex items-center gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'prazo' ? 'text-foreground' : '')}>Prazo{sortIcon('prazo')}</button>
+      <div className="px-3 py-2.5" title="Horas realizadas/estimadas. Alerta nas tarefas concluídas sem horas apontadas.">Esforço</div>
       <button type="button" onClick={() => cycleSort('progresso')} className={cn('flex items-center justify-end gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'progresso' ? 'text-foreground' : '')}>Progresso{sortIcon('progresso')}</button>
       <div />
     </div>
@@ -322,7 +397,7 @@ export function ProjetosTarefasList({
       const isExpanded = expanded.has(groupId);
       const showClientDivider = index === 0 || sortedHierarchy[index - 1].clientKey !== group.clientKey;
       return <Fragment key={group.id}>
-        {showClientDivider && <div className="flex min-w-[1010px] items-center gap-2 border-b border-t bg-muted/60 px-4 py-2.5 first:border-t-0">
+        {showClientDivider && <div className={cn('flex items-center gap-2 border-b border-t bg-muted/60 px-4 py-2.5 first:border-t-0', FULL_ROW_MIN_WIDTH)}>
           <Building2 className="h-4 w-4 text-primary" />
           <span className="text-xs font-bold uppercase tracking-wider text-foreground">{group.clientName}</span>
           <span className="text-xs text-muted-foreground">{sortedHierarchy.filter(item => item.clientKey === group.clientKey).length} OS/grupo(s)</span>
@@ -337,6 +412,7 @@ export function ProjetosTarefasList({
           <div />
           <div />
           <div className="flex items-center gap-1.5 px-3 text-xs text-muted-foreground">{group.os?.data_fim ? <><CalendarDays className="h-3.5 w-3.5" />{dateLabel(group.os.data_fim)}</> : 'Sem prazo'}</div>
+          <EsforcoAgregadoCell esforco={group.esforco} />
           <div className="flex items-center justify-end gap-2 px-3 text-xs font-medium text-muted-foreground">
             <Progress value={completionPercentage(group.completedTaskCount, group.taskCount)} className="h-1.5 w-16 bg-primary/15" />
             <span className="shrink-0">{completedTasksLabel(group.completedTaskCount, group.taskCount)}</span>
@@ -350,29 +426,45 @@ export function ProjetosTarefasList({
           const selectedInProject = projectTaskIds.filter(id => selectedTaskIds.has(id)).length;
           return <div key={projectId}>
             <div className={cn(GRID, 'group relative z-10 bg-muted/30 text-sm shadow-md hover:bg-muted/45')}>
-              <div className="flex min-w-0 items-center gap-2 px-4 py-2.5 pl-9">
-                <button type="button" onClick={() => toggle(projectId)} className="rounded p-1 text-muted-foreground hover:bg-muted" aria-label={projectExpanded ? 'Recolher projeto' : 'Expandir projeto'}>{projectExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
-                {projectTaskIds.length > 0 && <Checkbox
-                  checked={selectedInProject === 0 ? false : selectedInProject === projectTaskIds.length ? true : 'indeterminate'}
-                  onCheckedChange={checked => onToggleSelection(projectTaskIds, checked === true)}
-                  aria-label={`Selecionar as ${projectTaskIds.length} tarefa(s) do projeto`}
-                />}
+              <div className="relative flex min-w-0 items-center gap-2 px-4 py-2.5" style={{ paddingLeft: `${PROJECT_INDENT}px` }}>
+                <LevelGuide left={OS_GUIDE} />
+                <span className={TOGGLE_SLOT}>
+                  <button type="button" onClick={() => toggle(projectId)} className="rounded p-0.5 text-muted-foreground hover:bg-muted" aria-label={projectExpanded ? 'Recolher projeto' : 'Expandir projeto'}>{projectExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}</button>
+                </span>
+                <span className={CHECK_SLOT}>
+                  {projectTaskIds.length > 0 && <Checkbox
+                    checked={selectedInProject === 0 ? false : selectedInProject === projectTaskIds.length ? true : 'indeterminate'}
+                    onCheckedChange={checked => onToggleSelection(projectTaskIds, checked === true)}
+                    aria-label={`Selecionar as ${projectTaskIds.length} tarefa(s) do projeto`}
+                  />}
+                </span>
                 <FolderKanban className="h-4 w-4 shrink-0 text-primary" />
                 <button type="button" disabled={!projectNode.project} onClick={() => projectNode.project && onEditProject(projectNode.project)} title={projectNode.project?.name} className="truncate text-left font-semibold hover:underline disabled:no-underline">{projectNode.project ? shortProjectName(projectNode.project.name, group.clientName, group.os?.numero_os) : 'Sem projeto'}</button>
-                <span className="text-xs text-muted-foreground">{projectNode.taskCount}</span>
+                <ContadorTarefas total={projectNode.taskCount} concluidas={projectNode.completedTaskCount} />
               </div>
-              <div className="flex items-center px-3">{projectNode.project && <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', projectStatusStyles[projectNode.project.status] || 'bg-muted text-muted-foreground')}>{STATUS_LABELS[projectNode.project.status] || projectNode.project.status}</span>}</div>
+              {/* Pílula de status do projeto: a mesma fonte do modal de projeto
+                  (projectStatusConfig). O mapa local que existia aqui divergia
+                  dela — pintava "Ativo" de azul e "Concluído" de verde, o oposto. */}
+              <div className="flex items-center px-3">{projectNode.project && <span className={cn('rounded border px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide', projectStatusConfig(projectNode.project.status).badge)}>{projectStatusConfig(projectNode.project.status).label}</span>}</div>
               <div className="flex items-center px-3 text-xs text-muted-foreground"><span className="truncate">{projectNode.project?.responsible ? `${projectNode.project.responsible.first_name} ${projectNode.project.responsible.last_name}`.trim() : 'Não atribuído'}</span></div>
               <div />
+              <EsforcoAgregadoCell esforco={projectNode.esforco} />
               <div className="flex items-center justify-end gap-2 px-3 text-xs font-medium text-muted-foreground">
                 <Progress value={completionPercentage(projectNode.completedTaskCount, projectNode.taskCount)} className="h-1.5 w-16 bg-primary/15" />
                 <span className="shrink-0">{completedTasksLabel(projectNode.completedTaskCount, projectNode.taskCount)}</span>
               </div>
               <div className="flex items-center justify-center">{projectNode.project && <DropdownMenu>
-                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="Ações do projeto" className="h-7 w-7 opacity-0 group-hover:opacity-100"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => onNewTask(projectNode.project!.id)}><Plus className="mr-2 h-4 w-4" />Nova tarefa</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onEditProject(projectNode.project!)}><Edit3 className="mr-2 h-4 w-4" />Editar projeto</DropdownMenuItem>
+                  {/* Redisparo da geração de tarefas do produto. Existe porque a
+                      geração automática só alcança projeto criado DEPOIS dela —
+                      e porque o catálogo do produto ganha item novo com o tempo.
+                      Idempotente: a segunda chamada não cria nada. */}
+                  <DropdownMenuItem onClick={() => onGerarTarefas(projectNode.project!)}>
+                    <ListPlus className="mr-2 h-4 w-4" />Gerar tarefas do produto
+                  </DropdownMenuItem>
                   {/* Consolidar projeto legado no projeto certo: leva a carteira
                       inteira de uma vez, sem marcar tarefa por tarefa. */}
                   {projectTaskIds.length > 0 && <DropdownMenuItem onClick={() => onMoveProjectTasks(projectTaskIds)}>
@@ -383,7 +475,7 @@ export function ProjetosTarefasList({
                 </DropdownMenuContent>
               </DropdownMenu>}</div>
             </div>
-            {projectExpanded && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className="flex min-w-[1010px] items-center gap-2 border-t px-14 py-2 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground"><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}
+            {projectExpanded && <>{projectNode.tasks.map(node => renderTask(node, 0))}{projectNode.project && <button type="button" onClick={() => onNewTask(projectNode.project!.id)} className={cn('flex items-center gap-2 border-t py-2 pl-[60px] pr-4 text-xs text-muted-foreground hover:bg-muted/30 hover:text-foreground', FULL_ROW_MIN_WIDTH)}><Plus className="h-3.5 w-3.5" />Adicionar tarefa</button>}</>}
           </div>;
         })}
         </section>

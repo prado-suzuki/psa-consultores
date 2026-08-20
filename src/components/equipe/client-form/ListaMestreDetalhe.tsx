@@ -1,4 +1,12 @@
-// Casca da lista mestre e detalhe do cadastro de cliente.
+// Casca de lista mestre e detalhe.
+//
+// Nasceu para o cadastro de cliente e hoje serve DOIS contextos: as três abas do
+// cadastro (dentro de modal) e a bancada Produtos & Serviços (página inteira). É
+// o que a prop `moldura` distingue.
+//
+// O nome do arquivo e a pasta (`client-form/`) ficaram do primeiro contexto e
+// mentem sobre o alcance. Mover para um lugar neutro é a arrumação certa, mas
+// pertence a uma mudança própria — não à que estreia a segunda tela.
 //
 // Substitui a sanfona: a lista fica fixa à esquerda, com uma linha de resumo por
 // item, e o detalhe ocupa a direita. Escolher na lista troca o detalhe; a edição
@@ -16,8 +24,14 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useAcentoArea } from './acentoArea';
 
-export interface LinhaLista {
-  id: number;
+/**
+ * `Id` é genérico com padrão `number` porque as abas de cliente identificam a
+ * linha pelo `_id` local (numérico) e a bancada Produtos & Serviços pelo uuid do
+ * banco. O padrão mantém os três consumidores originais compilando sem escrever
+ * o tipo.
+ */
+export interface LinhaLista<Id extends string | number = number> {
+  id: Id;
   /** Primeira linha do resumo: o que identifica o item de relance. */
   titulo: ReactNode;
   /** Segunda linha, opcional: documento, cargo, produtos. */
@@ -34,14 +48,68 @@ export interface LinhaLista {
   pendente?: boolean;
 }
 
-export interface ListaMestreDetalheProps {
+export interface ListaMestreDetalheProps<Id extends string | number = number> {
   /** Cabeçalho da seção, com a contagem. Ex.: "OS - Ordem de Serviço (3)". */
   titulo: string;
   /** Botão de criar, quando o escopo permite. */
   acaoCriar?: ReactNode;
-  linhas: LinhaLista[];
-  selecionadoId: number | null;
-  onSelecionar: (id: number) => void;
+  /**
+   * `NoInfer` aqui e em `onSelecionar`/`renderLinha` não é firula: sem ele, o
+   * array de literais passado inline é contextualmente tipado por
+   * `LinhaLista<Id>` e a inferência entra em círculo — `Id` cai na constraint
+   * `string | number` e os três consumidores param de compilar, porque um
+   * `Dispatch<SetStateAction<number>>` não aceita `string`. Fixando a inferência
+   * em `selecionadoId`, `Id` sai `number` para eles e `string` para a bancada.
+   */
+  linhas: LinhaLista<NoInfer<Id>>[];
+  selecionadoId: Id | null;
+  onSelecionar: (id: NoInfer<Id>) => void;
+  /**
+   * Largura da coluna da lista, como classe. O padrão é o das abas de cliente.
+   */
+  larguraLista?: string;
+  /**
+   * Substitui a linha INTEIRA — inclusive o botão. Quem passa isto assume a
+   * seleção, o foco e o `aria-current`, e ganha em troca liberdade de layout.
+   *
+   * Existe porque a linha padrão é uma faixa de uma altura: o título trunca em
+   * `whitespace-nowrap` e divide o espaço com o ponto de pendência. A bancada
+   * Produtos & Serviços precisa de três blocos empilhados ocupando a largura
+   * toda, com o nome quebrando em duas linhas antes de truncar — não dá para
+   * chegar lá por parâmetro, só trocando o markup.
+   *
+   * Sem esta prop, nada muda: as três abas de cliente seguem na linha padrão.
+   *
+   * EFEITO COLATERAL, e ele é deliberado: passar `renderLinha` também remove o
+   * `divide-y` da lista. Linha custom desenha o próprio separador — a de
+   * Produtos & Serviços é um cartão empilhado, e o fio da casca cortaria dentro
+   * dele. Está escrito aqui porque comportamento implícito em prop de render é
+   * como se descobre bug três meses depois.
+   */
+  renderLinha?: (args: {
+    linha: LinhaLista<NoInfer<Id>>;
+    selecionada: boolean;
+    selecionar: () => void;
+  }) => ReactNode;
+  /**
+   * Filtros que pertencem à lista (busca, chips), fixos no topo da coluna
+   * enquanto ela rola. Fora daqui eles teriam de subir para cima do painel
+   * inteiro, onde pareceriam filtrar também o detalhe.
+   */
+  cabecalhoLista?: ReactNode;
+  /**
+   * Onde esta casca está montada.
+   *
+   * `'modal'` (padrão) é para o que ela sempre foi: dentro do cadastro de
+   * cliente, com teto de 62vh e o detalhe já embrulhado em padding, rolagem e
+   * animação de troca.
+   *
+   * `'pagina'` tira o teto e entrega o slot do detalhe CRU, sem padding nem
+   * rolagem. Uma bancada de página inteira monta colunas próprias ali dentro, e
+   * cada uma quer a própria barra de rolagem — embrulhar tudo numa só produz
+   * rolagem aninhada, que é pior que nenhuma.
+   */
+  moldura?: 'modal' | 'pagina';
   /** Texto de lista vazia. */
   vazio: ReactNode;
   /** Título do item aberto, no topo do detalhe. */
@@ -58,18 +126,22 @@ export interface ListaMestreDetalheProps {
   children: ReactNode;
 }
 
-export default function ListaMestreDetalhe({
+export default function ListaMestreDetalhe<Id extends string | number = number>({
   titulo,
   acaoCriar,
   linhas,
   selecionadoId,
   onSelecionar,
+  larguraLista = 'w-[228px]',
+  renderLinha,
+  cabecalhoLista,
+  moldura = 'modal',
   vazio,
   cabecalhoDetalhe,
   acoesDetalhe,
   chaveDetalhe,
   children,
-}: ListaMestreDetalheProps) {
+}: ListaMestreDetalheProps<Id>) {
   const acento = useAcentoArea();
   return (
     <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
@@ -87,14 +159,31 @@ export default function ListaMestreDetalhe({
         //
         // `overflow-hidden` aqui não é enfeite: sem ele um valor comprido no
         // detalhe empurra a linha inteira e corta os botões do cabeçalho.
-        <div className="flex min-h-[300px] max-h-[62vh] overflow-hidden">
+        <div className={cn(
+          'flex min-h-[300px] overflow-hidden',
+          moldura === 'modal' ? 'max-h-[62vh]' : 'flex-1',
+        )}>
           <nav
             aria-label={titulo}
-            className="w-[228px] min-w-0 shrink-0 border-r overflow-y-auto"
+            className={cn('min-w-0 shrink-0 border-r overflow-y-auto', larguraLista)}
           >
-            <ul className="divide-y">
+            {cabecalhoLista && (
+              <div className="sticky top-0 z-10 border-b bg-card px-2.5 py-2">{cabecalhoLista}</div>
+            )}
+            <ul className={cn(!renderLinha && 'divide-y')}>
               {linhas.map((linha) => {
                 const selecionada = linha.id === selecionadoId;
+                if (renderLinha) {
+                  return (
+                    <li key={linha.id}>
+                      {renderLinha({
+                        linha,
+                        selecionada,
+                        selecionar: () => onSelecionar(linha.id),
+                      })}
+                    </li>
+                  );
+                }
                 return (
                   <li key={linha.id}>
                     <button
@@ -149,15 +238,22 @@ export default function ListaMestreDetalhe({
               esqueça de encolher, ele é cortado aqui em vez de alargar o painel
               e empurrar os botões do cabeçalho para fora da tela.
             */}
-            <div
-              // A chave remonta o painel na troca de item ou de modo, e é ela que
-              // dispara a passagem. O prefixo motion-safe respeita quem pediu ao
-              // sistema para reduzir animação.
-              key={chaveDetalhe ?? selecionadoId ?? "vazio"}
-              className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-1 motion-safe:duration-200"
-            >
-              {children}
-            </div>
+            {moldura === 'pagina' ? (
+              // Slot cru: quem monta colunas aqui dentro cuida da própria
+              // rolagem. Sem `key` também — remontar a árvore a cada troca de
+              // item jogaria fora o estado das colunas (sanfona, seleção).
+              <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
+            ) : (
+              <div
+                // A chave remonta o painel na troca de item ou de modo, e é ela que
+                // dispara a passagem. O prefixo motion-safe respeita quem pediu ao
+                // sistema para reduzir animação.
+                key={chaveDetalhe ?? selecionadoId ?? "vazio"}
+                className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 py-3 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-right-1 motion-safe:duration-200"
+              >
+                {children}
+              </div>
+            )}
           </div>
         </div>
       )}

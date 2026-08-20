@@ -45,6 +45,13 @@ interface TarefaRichTextEditorProps {
   className?: string;
   ariaLabel?: string;
   taskReferences?: DailyTaskReferenceItem[];
+  /**
+   * Oferece código na linha e bloco de código na barra. Descrição de tarefa do
+   * projeto desliga: ali código é ruído. As extensões continuam carregadas de
+   * qualquer jeito, senão um bloco já gravado (ou colado em markdown) sumiria
+   * do documento ao abrir.
+   */
+  withCode?: boolean;
 }
 
 interface TaskSuggestionState {
@@ -68,6 +75,7 @@ export function TarefaRichTextEditor({
   className,
   ariaLabel,
   taskReferences,
+  withCode = true,
 }: TarefaRichTextEditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -193,7 +201,7 @@ export function TarefaRichTextEditor({
     }),
   });
 
-  const buttons = [
+  const buttons = ([
     {
       key: 'bold',
       label: 'Negrito (Ctrl+B)',
@@ -235,6 +243,7 @@ export function TarefaRichTextEditor({
       icon: CodeIcon,
       active: active?.code,
       action: () => editor?.chain().focus().toggleCode().run(),
+      somenteComCodigo: true,
     },
     {
       key: 'codeBlock',
@@ -242,8 +251,9 @@ export function TarefaRichTextEditor({
       icon: Braces,
       active: active?.codeBlock,
       action: () => editor?.chain().focus().toggleCodeBlock().run(),
+      somenteComCodigo: true,
     },
-  ];
+  ] as const).filter((botao) => withCode || !('somenteComCodigo' in botao));
 
   const filteredTasks = suggestion
     ? filterDailyTasksBySearch(suggestion.items, taskSearch)
@@ -282,7 +292,7 @@ export function TarefaRichTextEditor({
           </Fragment>
         ))}
 
-        {active?.codeBlock && (
+        {withCode && active?.codeBlock && (
           <>
             <span className="mx-1 h-5 w-px bg-border" aria-hidden />
             {/* <select> nativo de propósito: dentro do modal ele não rouba o foco

@@ -2,6 +2,8 @@ import { AlertCircle, AlertTriangle, CheckCircle, Clock, FolderKanban, ListCheck
 import { HeroBanner, KpiHero } from '@/components/dashboard/momentum';
 import type { AreaDashboardController } from '@/hooks/useAreaDashboardController';
 
+const EYEBROW: Record<string, string> = { tax: 'Tax', osg: 'OSG', todas: 'Tax + OSG' };
+
 export function AreaDashboardOverview({ dashboard }: { dashboard: AreaDashboardController }) {
   const { area, isLoading, activeFiltersCount, metrics } = dashboard;
   const { totalProjects, activeProjects, completedProjects, onHoldProjects, totalTasks, doneTasks,
@@ -18,7 +20,7 @@ export function AreaDashboardOverview({ dashboard }: { dashboard: AreaDashboardC
         variation={{ label: totalTasks > 0 ? `${Math.round(totalEstHours / totalTasks)}h em média por tarefa` : 'sem tarefas planejadas' }} variant="solid" loading={isLoading} />
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      <HeroBanner area={area} className="lg:col-span-2" eyebrow={area === 'osg' ? 'OSG' : 'Tax'}
+      <HeroBanner className="lg:col-span-2" eyebrow={EYEBROW[area]}
         title={overdueCount === 0 ? 'Operação sem atrasos — momentum alto' : `${overdueCount} tarefas precisam de atenção`}
         description={activeFiltersCount > 0
           ? `Visão com ${activeFiltersCount} filtro(s) aplicado(s). ${totalTasks} tarefas no recorte atual.`

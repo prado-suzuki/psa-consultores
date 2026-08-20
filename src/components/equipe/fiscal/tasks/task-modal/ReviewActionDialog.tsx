@@ -62,8 +62,8 @@ export function ReviewActionDialog({
               className={cn(
                 'rounded-full p-2',
                 isSending
-                  ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200'
-                  : 'bg-rose-100 text-rose-700 dark:bg-rose-900 dark:text-rose-200',
+                  ? 'bg-status-revisao-soft text-status-revisao'
+                  : 'bg-status-ajuste-soft text-status-ajuste',
               )}
             >
               {isSending ? <Send className="h-5 w-5" /> : <RotateCcw className="h-5 w-5" />}
@@ -153,7 +153,7 @@ export function ReviewActionDialog({
             onClick={onConfirm}
             disabled={isSaving}
             className={
-              isSending ? 'bg-purple-600 hover:bg-purple-700' : 'bg-rose-600 hover:bg-rose-700'
+              isSending ? 'bg-status-revisao hover:bg-status-revisao/90' : 'bg-status-ajuste hover:bg-status-ajuste/90'
             }
           >
             {isSending ? 'Confirmar envio' : 'Devolver para ajustes'}

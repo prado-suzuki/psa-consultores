@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,7 @@ import {
    Sparkles,
    Map
 } from 'lucide-react';
+import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 
 interface EquipeLayoutProps {
   children: React.ReactNode;
@@ -87,20 +88,17 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
   const { signOut, isAdmin, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  // O recolhimento automático em telas de trabalho largo mora no hook — é a
+  // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
+  const { collapsed, setCollapsed } = useSidebarRecolhimentoController();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({
     '/equipe/dashboard': true,
     '/equipe/sprints': true,
     '/equipe/kanban': true,
   });
 
-  // Tema da área no <html> (mesmo mecanismo do OsgLayout): o anel de foco dos
-  // campos vira o teal do accent. Vai no documentElement porque modal e select
-  // nascem em portal, fora desta árvore.
-  useEffect(() => {
-    document.documentElement.classList.add('rotina-theme');
-    return () => document.documentElement.classList.remove('rotina-theme');
-  }, []);
+  // O tema da área NÃO é aplicado aqui: quem o aplica é o `AreaThemeProvider`,
+  // a partir da rota, acima dos gates de acesso (ver `src/lib/areaTheme.ts`).
 
   const handleSignOut = async () => {
     await signOut();
@@ -259,7 +257,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-slate-200/60 bg-white flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             {collapsed && (
               <Button
@@ -281,6 +279,10 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               variant="ghost"
               size="icon"
               className="relative text-slate-600 hover:text-teal-600 hover:bg-slate-50"
+              // SEM espelho, de propósito. A Rotina é o chão comum e não um
+              // recorte: "os chamados da Rotina" não quer dizer nada. Daqui se vê
+              // a lista completa, no piso. Ver o bloco `ESPELHO` em
+              // `src/lib/areaTheme.ts`, que registra por que ela saiu.
               onClick={() => navigate('/equipe/chamados', { state: { from: location.pathname } })}
               title="Ver Chamados"
             >

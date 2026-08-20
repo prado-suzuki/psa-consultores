@@ -29,7 +29,9 @@ describe('resolverAreasPorUsuario', () => {
   const resolvido = resolverAreasPorUsuario(membros, equipes, areas);
 
   it('resolve a área de quem é membro de equipe', () => {
-    expect(resolvido['u-membro']).toEqual([{ id: 'a-osg', name: 'OSG', color: '#0ea5e9' }]);
+    expect(resolvido['u-membro']).toEqual([
+      { id: 'a-osg', name: 'OSG', color: '#0ea5e9', color_index: null },
+    ]);
   });
 
   it('inclui gestor de equipe e gestor de chamados da área', () => {

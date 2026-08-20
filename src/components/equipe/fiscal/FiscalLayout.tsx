@@ -1,8 +1,8 @@
-import { useState } from 'react';
 import { Menu } from 'lucide-react';
 import { FiscalSidebar } from './FiscalSidebar';
 import { Button } from '@/components/ui/button';
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
+import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 
 interface FiscalLayoutProps {
   children: React.ReactNode;
@@ -12,7 +12,16 @@ interface FiscalLayoutProps {
 }
 
 export const FiscalLayout = ({ children, title, subtitle, headerActions }: FiscalLayoutProps) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // O recolhimento automático em telas de trabalho largo mora no hook — é a
+  // tela que pede, com `useTelaDeTrabalhoLargo()`; o layout não conhece rotas.
+  const { collapsed: isCollapsed, setCollapsed: setIsCollapsed } =
+    useSidebarRecolhimentoController();
+
+  // O tema da área NÃO é aplicado aqui: quem o aplica é o `AreaThemeProvider`,
+  // a partir da rota, acima dos gates de acesso (ver `src/lib/areaTheme.ts`).
+  // Fazer isso no layout deixava a tela sem tema enquanto o `LiderRoute`
+  // carregava o papel do usuário — era de onde vinha o anel de foco lime em
+  // /equipe/tax/gerencial/chamados.
 
   return (
     <div className="min-h-screen bg-muted flex w-full">
@@ -45,6 +54,7 @@ export const FiscalLayout = ({ children, title, subtitle, headerActions }: Fisca
 
             <NotificationPopover
               navigateTo="/equipe/chamados"
+              espelho="tax"
               tasksNavigateTo="/equipe/tax/projetos/tarefas"
             />
           </div>

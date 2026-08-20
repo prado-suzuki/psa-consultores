@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import type { JSONContent } from '@tiptap/core';
 import { cn } from '@/lib/utils';
-import { hasTarefaRichTextMarker, parseTarefaRichText } from '@/lib/tarefaRichText';
+import { hasTarefaRichTextDoc, parseTarefaRichText } from '@/lib/tarefaRichText';
 
 interface TarefaRichTextViewProps {
   value: string | null | undefined;
@@ -60,10 +60,12 @@ function renderNode(node: JSONContent, key: string): ReactNode {
 /**
  * Leitura do rich text de tarefa/daily: documento marcado vira árvore React (sem
  * dangerouslySetInnerHTML). Valor sem marcador é texto plano, com as quebras preservadas.
+ * Descrição de tarefa nascida de chamado delegado chega com o marcador de chamado
+ * e cai no mesmo caminho, porque `parseTarefaRichText` abre os dois.
  */
 export function TarefaRichTextView({ value, className }: TarefaRichTextViewProps) {
   if (!value || value.trim() === '') return null;
-  if (!hasTarefaRichTextMarker(value)) {
+  if (!hasTarefaRichTextDoc(value)) {
     return <div className={cn('whitespace-pre-wrap break-words', className)}>{value}</div>;
   }
   return (

@@ -12,7 +12,7 @@ import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
 import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
-import { GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
+import { useBoardCluster } from '@/hooks/useBoardCluster';
 import {
   kpisClientes, kpisOperacional, kpisProjetos,
   faturamentoPorTipo, faturamentoPorCliente, faturamentoMensal,
@@ -27,8 +27,8 @@ import { ChartEmpty } from '@/components/equipe/board/clientes-os/ChartEmpty';
 import { KpiStrip } from '@/components/equipe/board/clientes-os/KpiStrip';
 import { Field, DateField, SelectFilter } from '@/components/equipe/board/clientes-os/FiltroControles';
 import {
-  PSA, SERIES, AXIS, brl, brlMil, milAxis, num, pct, mesLabel, dataBR, th, td,
-  rotuloMeses, variacaoLabel, corVariacao,
+  ACENTO, PAPEL, SERIES, AXIS, GRID, TOOLTIP, brl, brlMil, milAxis, num, pct, mesLabel, dataBR,
+  th, td, rotuloMeses, variacaoLabel, corVariacao,
 } from '@/components/equipe/board/clientes-os/shared';
 
 type Aba = 'clientes' | 'operacional' | 'projetos';
@@ -97,7 +97,7 @@ function SortTh<T>({ label, colKey, sort, align = 'left' }: {
   return (
     <th style={{ ...th, textAlign: align }} onClick={() => sort.toggle(colKey)}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, flexDirection: align === 'right' ? 'row-reverse' : 'row' }}>
-        {label}<Icon style={{ width: 11, height: 11, opacity: active ? 0.9 : 0.3, color: active ? PSA.teal : 'currentColor' }} />
+        {label}<Icon style={{ width: 11, height: 11, opacity: active ? 0.9 : 0.3, color: active ? ACENTO : 'currentColor' }} />
       </span>
     </th>
   );
@@ -105,9 +105,19 @@ function SortTh<T>({ label, colKey, sort, align = 'left' }: {
 
 export const DashboardClientesOsContent = ({
   scopeProjetosAClientesVisiveis = false,
+  usarClusterGlobal = false,
 }: {
   /** Área Gerencial: restringe a aba de projetos aos clientes visíveis (cluster). */
   scopeProjetosAClientesVisiveis?: boolean;
+  /**
+   * Board: obedece o seletor global de empresa da `BoardClusterBar`.
+   *
+   * Opt-in explícito, e não "o contexto devolve '' fora do provider": esta tela
+   * também é a Gerencial do Tax e da OSG, e depender da posição na árvore faria
+   * o dia em que alguém subir o Provider mais alto virar um recorte silencioso
+   * naquelas telas.
+   */
+  usarClusterGlobal?: boolean;
 } = {}) => {
   const { ambiente } = useDashboardAmbiente();
   const { data, isLoading, error, hoje } = useDashboardClientesOs(ambiente);
@@ -115,6 +125,9 @@ export const DashboardClientesOsContent = ({
     // v3: o filtro de cluster virou centro de custo (chaves salvas na sessão mudaram).
     pageKey: 'dashboard-clientes-os-v3', defaults: DEFAULTS,
   });
+  // Hook chamado sempre (regra dos hooks); a prop decide se o valor vale.
+  const { cluster } = useBoardCluster();
+  const clusterGlobal = usarClusterGlobal ? cluster : '';
   const [aba, setAba] = useState<Aba>('clientes');
   const [detalhe, setDetalhe] = useState<Detalhe>('centro_custo');
   const revealRef = useBoardReveal();
@@ -168,12 +181,24 @@ export const DashboardClientesOsContent = ({
     setFilter('periodo', periodo === range ? PERIODO_VAZIO : range);
   }, [periodo, setFilter]);
 
+  /**
+   * O recorte global EMPILHA com o centro de custo, não compete com ele: são
+   * níveis diferentes da estrutura. A EMPRESA (cluster) inclui/exclui a OS
+   * inteira — a OS tem um `cluster_id` só. O CENTRO DE CUSTO divide o
+   * faturamento da OS que sobrou (`shareCentroCusto`), e ele é atributo da
+   * ÁREA (`estrutura_areas.cost_center_id`), um nível ABAIXO da empresa. Por
+   * isso a empresa entra aqui, no filtro de dimensão, e o rateio segue depois.
+   *
+   * `cluster_id` existe nas três linhas (`ClienteRow`, `OsRow`, `ProjetoRow`) e
+   * resolve pela mesma cadeia, então um teste só cobre as três.
+   */
   const matchDim = useCallback(
-    (r: { cliente_id: string | null; tipo_cliente: string; categoria: string }) =>
+    (r: { cliente_id: string | null; tipo_cliente: string; categoria: string; cluster_id?: string }) =>
+      (!clusterGlobal || r.cluster_id === clusterGlobal) &&
       (cliente === TODOS || r.cliente_id === cliente) &&
       (tipo === TODOS || r.tipo_cliente === tipo) &&
       (categoria === TODOS || r.categoria === categoria),
-    [cliente, tipo, categoria],
+    [clusterGlobal, cliente, tipo, categoria],
   );
 
   const ccSelecionado = centroCusto === TODOS ? null : centroCusto;
@@ -329,7 +354,7 @@ export const DashboardClientesOsContent = ({
         </div>
 
         {error ? (
-          <div className="v4-card" style={{ display: 'flex', gap: 10, alignItems: 'center', color: PSA.risk }}>
+          <div className="v4-card" style={{ display: 'flex', gap: 10, alignItems: 'center', color: 'hsl(var(--destructive))' }}>
             <AlertTriangle style={{ width: 18, height: 18 }} />
             <div>
               <div style={{ fontWeight: 600 }}>Erro ao carregar os dados</div>
@@ -343,9 +368,12 @@ export const DashboardClientesOsContent = ({
             {/* ── ABA CLIENTES ─────────────────────────────────────── */}
             {aba === 'clientes' && (
               <>
+                {/* Barra colorida do KPI: o que é só identidade sai na paleta
+                    categórica da área (SERIES, na ordem); o que é ESTADO
+                    (variação, contrato vencendo) sai no papel de status. */}
                 <KpiStrip
                   items={[
-                    { value: brl(kClientes.faturamento_total), label: 'Faturamento total', color: PSA.lime },
+                    { value: brl(kClientes.faturamento_total), label: 'Faturamento total', color: SERIES[0] },
                     {
                       value: variacaoLabel(comparativo.variacao),
                       label: 'vs. mesmo período do ano anterior',
@@ -354,10 +382,10 @@ export const DashboardClientesOsContent = ({
                         ? 'sem OS com data de início no período'
                         : `${rotuloMeses(comparativo.meses)}: ${brlMil(comparativo.anterior)} · só OS com data de início`,
                     },
-                    { value: kClientes.clientes_ativos, label: 'Clientes ativos', color: PSA.teal, subText: `${kClientes.clientes_ativos_fixos} fixos · ${kClientes.clientes_ativos_pontuais} pontuais` },
-                    { value: kClientes.ticket_medio == null ? '—' : brl(kClientes.ticket_medio), label: 'Ticket médio', color: PSA.moss },
-                    { value: kClientes.os_ativas, label: 'OS ativas', color: PSA.tealLight },
-                    { value: kClientes.contratos_30d, label: 'Contratos vencendo 30d', color: PSA.amber },
+                    { value: kClientes.clientes_ativos, label: 'Clientes ativos', color: SERIES[1], subText: `${kClientes.clientes_ativos_fixos} fixos · ${kClientes.clientes_ativos_pontuais} pontuais` },
+                    { value: kClientes.ticket_medio == null ? '—' : brl(kClientes.ticket_medio), label: 'Ticket médio', color: SERIES[2] },
+                    { value: kClientes.os_ativas, label: 'OS ativas', color: SERIES[3] },
+                    { value: kClientes.contratos_30d, label: 'Contratos vencendo 30d', color: PAPEL.atencao },
                   ]}
                 />
 
@@ -368,13 +396,13 @@ export const DashboardClientesOsContent = ({
                       <div style={{ cursor: 'pointer' }}>
                         <ResponsiveContainer width="100%" height={210}>
                           <BarChart data={serieMensal} onClick={(e) => toggleMes(pickField(e?.activePayload?.[0], 'mes'))}>
-                            <CartesianGrid {...GRID_STYLE} />
+                            <CartesianGrid {...GRID} />
                             <XAxis dataKey="label" {...AXIS} />
                             <YAxis {...AXIS} tickFormatter={milAxis} />
-                            <Tooltip formatter={(v: number) => brl(v)} {...TOOLTIP_STYLE} />
+                            <Tooltip formatter={(v: number) => brl(v)} {...TOOLTIP} />
                             <Bar dataKey="faturamento" radius={[4, 4, 0, 0]} maxBarSize={54}>
                               {serieMensal.map((m) => (
-                                <Cell key={m.mes} fill={PSA.lime} fillOpacity={mesSelecionado && m.mes !== mesSelecionado ? 0.28 : 1} />
+                                <Cell key={m.mes} fill={ACENTO} fillOpacity={mesSelecionado && m.mes !== mesSelecionado ? 0.28 : 1} />
                               ))}
                             </Bar>
                           </BarChart>
@@ -399,7 +427,7 @@ export const DashboardClientesOsContent = ({
                                   <Cell key={t.tipo} fill={SERIES[i % SERIES.length]} fillOpacity={tipo !== TODOS && t.tipo !== tipo ? 0.28 : 1} />
                                 ))}
                               </Pie>
-                              <Tooltip formatter={(v: number) => brl(v)} {...TOOLTIP_STYLE} />
+                              <Tooltip formatter={(v: number) => brl(v)} {...TOOLTIP} />
                             </PieChart>
                           </ResponsiveContainer>
                           <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
@@ -443,10 +471,10 @@ export const DashboardClientesOsContent = ({
               <>
                 <KpiStrip
                   items={[
-                    { value: kOper.contratos_30d, label: 'Contratos vencendo em 30 dias', color: PSA.amber },
-                    { value: kOper.contratos_vencidos, label: 'Contratos vencidos (renovar)', color: PSA.risk },
-                    { value: kOper.novos_clientes_trimestre, label: 'Novos clientes no trimestre', color: PSA.lime },
-                    { value: clientesFiltrados.length, label: 'Clientes na carteira', color: PSA.teal },
+                    { value: kOper.contratos_30d, label: 'Contratos vencendo em 30 dias', color: PAPEL.atencao },
+                    { value: kOper.contratos_vencidos, label: 'Contratos vencidos (renovar)', color: PAPEL.problema },
+                    { value: kOper.novos_clientes_trimestre, label: 'Novos clientes no trimestre', color: SERIES[0] },
+                    { value: clientesFiltrados.length, label: 'Clientes na carteira', color: SERIES[1] },
                   ]}
                 />
 
@@ -497,11 +525,11 @@ export const DashboardClientesOsContent = ({
               <>
                 <KpiStrip
                   items={[
-                    { value: kProj.os_em_andamento, label: 'OS em andamento', color: PSA.teal, subText: `de ${kProj.os_total} OS` },
-                    { value: `${num(kProj.horas_estimadas)} h`, label: 'Horas estimadas', color: PSA.moss },
-                    { value: `${num(kProj.horas_realizadas)} h`, label: 'Horas realizadas', color: PSA.lime },
-                    { value: pct(kProj.desvio_medio), label: 'Desvio médio', color: PSA.amber },
-                    { value: projetosFiltrado.length, label: 'Projetos', color: PSA.tealLight },
+                    { value: kProj.os_em_andamento, label: 'OS em andamento', color: SERIES[0], subText: `de ${kProj.os_total} OS` },
+                    { value: `${num(kProj.horas_estimadas)} h`, label: 'Horas estimadas', color: SERIES[1] },
+                    { value: `${num(kProj.horas_realizadas)} h`, label: 'Horas realizadas', color: SERIES[2] },
+                    { value: pct(kProj.desvio_medio), label: 'Desvio médio', color: PAPEL.atencao },
+                    { value: projetosFiltrado.length, label: 'Projetos', color: SERIES[3] },
                   ]}
                 />
 
@@ -511,17 +539,17 @@ export const DashboardClientesOsContent = ({
                     {serieHoras.length > 0 ? (
                       <ResponsiveContainer width="100%" height={230}>
                         <BarChart data={serieHoras}>
-                          <CartesianGrid {...GRID_STYLE} />
+                          <CartesianGrid {...GRID} />
                           <XAxis dataKey="nome" {...AXIS} interval={0} angle={-30} textAnchor="end" height={60} />
                           <YAxis {...AXIS} />
-                          <Tooltip formatter={(v: number) => `${num(v)} h`} {...TOOLTIP_STYLE} />
-                          <Bar dataKey="horas_estimadas" name="Estimadas" fill={PSA.teal} radius={[3, 3, 0, 0]} />
-                          <Bar dataKey="horas_realizadas" name="Realizadas" fill={PSA.lime} radius={[3, 3, 0, 0]} />
+                          <Tooltip formatter={(v: number) => `${num(v)} h`} {...TOOLTIP} />
+                          <Bar dataKey="horas_estimadas" name="Estimadas" fill={SERIES[0]} radius={[3, 3, 0, 0]} />
+                          <Bar dataKey="horas_realizadas" name="Realizadas" fill={SERIES[1]} radius={[3, 3, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     ) : <ChartEmpty msg="Sem horas apontadas" />}
                     <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 6 }}>
-                      {[{ c: PSA.teal, l: 'Estimadas' }, { c: PSA.lime, l: 'Realizadas' }].map((x) => (
+                      {[{ c: SERIES[0], l: 'Estimadas' }, { c: SERIES[1], l: 'Realizadas' }].map((x) => (
                         <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--board-v4-ink3)' }}>
                           <div style={{ width: 9, height: 9, borderRadius: 2, background: x.c }} />{x.l}
                         </div>
@@ -573,7 +601,7 @@ export const DashboardClientesOsContent = ({
                               <td style={td}>{p.status_projeto_label}</td>
                               <td style={{ ...td, textAlign: 'right' }}>{num(p.horas_estimadas)}</td>
                               <td style={{ ...td, textAlign: 'right' }}>{num(p.horas_realizadas)}</td>
-                              <td style={{ ...td, textAlign: 'right', color: p.desvio_pct != null && p.desvio_pct > 0 ? PSA.risk : PSA.teal }}>{pct(p.desvio_pct)}</td>
+                              <td style={{ ...td, textAlign: 'right', color: p.desvio_pct != null && p.desvio_pct > 0 ? PAPEL.problema : PAPEL.bom }}>{pct(p.desvio_pct)}</td>
                               <td style={td}>{dataBR(p.os_data_fim)}</td>
                             </tr>
                           ))}
@@ -595,7 +623,7 @@ export const DashboardClientesOsContent = ({
 // FiscalLayout, então o miolo vive separado do layout.
 const BoardDashboardClientesOs = () => (
   <BoardLayout title="Clientes e OS" subtitle="Painel nativo (teste)">
-    <DashboardClientesOsContent />
+    <DashboardClientesOsContent usarClusterGlobal />
   </BoardLayout>
 );
 

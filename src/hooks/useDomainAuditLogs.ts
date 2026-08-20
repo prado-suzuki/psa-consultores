@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { currentAmbiente } from '@/config/api';
 import { supabase } from '@/integrations/supabase/client';
 import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
+import { areasDoEscopo, type AuditArea } from '@/lib/auditAreas';
 import { resolverProdutoContratado, resolverVinculos } from '@/lib/auditProdutividade';
 import type { JanelaAuditoria } from '@/lib/auditPeriodos';
 import type {
@@ -114,8 +115,11 @@ export const LIMITE_LOGS_AUDITORIA = 5000;
  * A janela vem pronta de `janelaDoPeriodo` — em datas, não em "quantos dias" —
  * porque o seletor tem tanto "últimos N dias" quanto recortes de calendário.
  * Datas em vez de timestamp mantêm o cache estável dentro do mesmo dia.
+ *
+ * `area` aceita o consolidado ('todas'): o Board lê Tax e OSG na mesma tela. Com
+ * uma área só, o `in` é equivalente ao `eq` de antes.
  */
-export function useDomainAuditProdutividade(area: 'tax' | 'osg', janela: JanelaAuditoria) {
+export function useDomainAuditProdutividade(area: AuditArea, janela: JanelaAuditoria) {
   const { desde, ate } = janela;
 
   return useQuery({
@@ -124,7 +128,7 @@ export function useDomainAuditProdutividade(area: 'tax' | 'osg', janela: JanelaA
       let query = supabase
         .from('audit_logs')
         .select('*')
-        .eq('area', area);
+        .in('area', areasDoEscopo(area));
 
       if (desde) query = query.gte('performed_at', `${desde}T00:00:00.000Z`);
       // Fim inclusivo: o dia escolhido entra inteiro.
@@ -151,9 +155,9 @@ function emLotes(ids: string[]): string[][] {
  * Horas, status atual, cliente, contribuinte e produto contratado dos itens
  * tocados no período. Lê só colunas que já existem — `org_tasks` (horas,
  * `status`, `client_id`, `contribuinte_id`, `servico_id`), `org_projects`
- * (`status`, `contribuinte_id`, `servico_id`, `ordem_servico_id`), `contribuinte.cliente_id`,
- * `os_produtos_contratados`, `produto_servico` e `produto_segmento`.
- * Nenhuma migração.
+ * (`status`, `contribuinte_id`, `servico_id`, `ordem_servico_id`,
+ * `produto_segmento_id`), `contribuinte.cliente_id`, `os_produtos_contratados`,
+ * `produto_servico` e `produto_segmento`. Nenhuma migração.
  *
  * A chave inclui os ids ordenados de propósito: eles mudam quando os logs
  * mudam, e sem isso o React Query devolveria dados defasados após um refetch.
@@ -211,7 +215,7 @@ export function useDomainOrgTasksProdutividade(ids: { tarefas: string[]; projeto
       const respostasProjetos = await Promise.all(emLotes([...projetosNecessarios]).map(lote =>
         supabase
           .from('org_projects')
-          .select('id, name, status, contribuinte_id, external_client_id, servico_id, ordem_servico_id')
+          .select('id, name, status, contribuinte_id, external_client_id, servico_id, ordem_servico_id, produto_segmento_id')
           .in('id', lote),
       ));
 
@@ -270,8 +274,9 @@ export function useDomainOrgTasksProdutividade(ids: { tarefas: string[]; projeto
         }
       }
 
-      // Produto contratado: OS → os_produtos_contratados, cruzado com o serviço
-      // do item via produto_servico. Ver `resolverProdutoContratado`.
+      // Produto: o que o projeto declara em `produto_segmento_id` manda; a OS e o
+      // serviço abaixo são o fallback de projeto antigo, que não tem a coluna
+      // preenchida. Ver `resolverProdutoContratado`.
       const osIds = [...new Set(Object.values(vinculos.osPorId))];
       const produtosPorOs: Record<string, string[]> = {};
       if (osIds.length > 0) {
@@ -312,7 +317,8 @@ export function useDomainOrgTasksProdutividade(ids: { tarefas: string[]; projeto
       }
 
       const produtoPorId = resolverProdutoContratado(
-        vinculos.servicoPorId, vinculos.osPorId, produtosPorOs, produtosPorServico,
+        vinculos.produtoExplicitoPorId, vinculos.servicoPorId, vinculos.osPorId,
+        produtosPorOs, produtosPorServico,
       );
 
       // Nome só dos produtos que apareceram, no formato "código — nome" usado
@@ -345,7 +351,7 @@ export function useDomainOrgTasksProdutividade(ids: { tarefas: string[]; projeto
 }
 
 export function useDomainAuditLogs(
-  area: 'tax' | 'osg',
+  area: AuditArea,
   entityFilter: string,
   actionFilter: string,
 ) {
@@ -355,7 +361,7 @@ export function useDomainAuditLogs(
       let query = supabase
         .from('audit_logs')
         .select('*')
-        .eq('area', area)
+        .in('area', areasDoEscopo(area))
         .order('performed_at', { ascending: false })
         .limit(200);
 

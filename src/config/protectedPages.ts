@@ -10,15 +10,47 @@ export interface ProtectedPage {
   page_path: string;
   page_name: string;
   page_description: string;
-  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos' | 'board' | 'tax' | 'mapa';
+  /**
+   * As OITO categorias que existem de verdade. O tipo declarava mais tres —
+   * `fiscal`, `fixos` e `projetos` — sem nenhuma pagina em nenhuma delas
+   * (conferido em 20/08/2026 por `select category, count(*) from
+   * page_permissions group by category`). Tipo que declara valor inexistente
+   * mente do mesmo jeito que comentario desatualizado: quem le acredita que ha
+   * onde encaixar, e o `every()` de inferencia de area nunca fecha.
+   *
+   * ATENCAO ao acrescentar: a categoria e a chave de acesso E, a partir da
+   * resolucao por categoria, do tema. Categoria desconhecida cai no piso.
+   */
+  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'osg' | 'board' | 'tax' | 'mapa';
   requires_admin: boolean;
   requires_team_member: boolean;
 }
 
 export const PROTECTED_PAGES: ProtectedPage[] = [
-  // =============================================
-  // === GERAL PAGES (acessíveis a todo membro) ===
-  // =============================================
+  // ====================================================================
+  // === CATEGORIA `geral` ===
+  //
+  // O rotulo aqui dizia "acessiveis a todo membro" e isso NUNCA foi verdade
+  // no dado. Medido em 20/08/2026, por
+  // `select pp.page_path, count(*) from page_permissions pp join
+  //  user_page_access u on u.page_permission_id = pp.id where pp.category =
+  //  'geral' group by 1`:
+  //
+  //   /equipe/chamados .... 27 pessoas   <- a unica realmente ampla
+  //   /equipe/mapeamento ... 9 pessoas
+  //   as outras sete ....... 8 pessoas cada
+  //
+  // E das 8 pessoas do grupo restrito, 3 sao contas semente (@exemplo.dev) e
+  // uma e conta de teste. Sobram os quatro do Digital.
+  //
+  // O QUE ESTA CATEGORIA E, entao: telas internas do Digital, mais
+  // `/equipe/chamados`, que e porta de entrada das outras areas. A intencao
+  // sempre foi respeitada na concessao; era o rotulo que mentia.
+  //
+  // Consequencia pratica: `geral` NAO esta em `ALL_AREA_CATEGORIES`
+  // (`config/areaCategories.ts`), logo nao se concede por area — cada linha
+  // aqui e concedida individualmente em `user_page_access`.
+  // ====================================================================
   {
     page_path: '/equipe/dashboard',
     page_name: 'Dashboard Equipe',
@@ -487,11 +519,13 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
-    // Endereço novo: a tela virou "Logs de Equipe" dentro do dropdown Gerencial.
+    // Endereço novo: a tela virou "Logs de Uso" dentro do dropdown Gerencial.
+    // O caminho continua `logs-equipe` de propósito: mudar a URL exigiria
+    // migração e redirecionamento, e ela não aparece para o usuário.
     // A migração 20260807... faz UPDATE do caminho no registro que já existe, em
     // vez de deixar o sincronizador criar um vazio e órfãs as 25 permissões.
     page_path: '/equipe/tax/gerencial/logs-equipe',
-    page_name: 'Logs de Equipe (Tax)',
+    page_name: 'Logs de Uso (Tax)',
     // Restrita a líder+ na rota (LiderRoute em App.tsx): liberar a permissão
     // aqui para um team_member não faz a página abrir.
     page_description: 'Histórico, produtividade e acesso do time Tax (somente líder+)',
@@ -524,6 +558,18 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // =============================================
   // === OSG PAGES ===
   // =============================================
+  {
+    // Estava FORA desta lista, e o efeito era maior que a cor: sem registro,
+    // `usePageAccess` trata a rota como publica (ver o cabecalho daquele hook).
+    // Era a unica tela navegavel do sistema sem categoria — alcancavel pelo menu
+    // do `OsgLayout:264` e pelo `OsgAreaSelector:48`.
+    page_path: '/equipe/osg/inicio',
+    page_name: 'Boas-vindas OSG',
+    page_description: 'Tela inicial da area OSG',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
   {
     page_path: '/equipe/osg/dashboard',
     page_name: 'OSG Projects',
@@ -632,7 +678,7 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   {
     // Ver a observação da versão Tax: caminho novo, registro preservado.
     page_path: '/equipe/osg/gerencial/logs-equipe',
-    page_name: 'Logs de Equipe (OSG)',
+    page_name: 'Logs de Uso (OSG)',
     // Restrita a líder+ na rota (LiderRoute em App.tsx): liberar a permissão
     // aqui para um team_member não faz a página abrir.
     page_description: 'Histórico, produtividade e acesso do time OSG (somente líder+)',
@@ -663,8 +709,8 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // =============================================
   {
     page_path: '/equipe/board/dashboard',
-    page_name: 'Board Dashboard',
-    page_description: 'Painel principal da área Board',
+    page_name: 'Board - Estratégico',
+    page_description: 'Painel principal da área Board: negócio, risco e entrega',
     category: 'board',
     requires_admin: false,
     requires_team_member: true,
@@ -697,6 +743,43 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     page_path: '/equipe/board/clientes',
     page_name: 'Board - Clientes',
     page_description: 'Carteira de clientes e mapa de calor por estado',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  // Consolidados do Board: as mesmas telas da Gerencial da Tax e da OSG, sem
+  // recorte de cluster. As quatro são líder+ na rota (LiderRoute em App.tsx) —
+  // liberar a permissão aqui para um team_member não faz a página abrir.
+  // O detalhe (`/chamados/:id`) não se cadastra: rota com parâmetro usa a
+  // permissão da lista, como na Tax.
+  {
+    page_path: '/equipe/board/chamados',
+    page_name: 'Board - Chamados',
+    page_description: 'Lista consolidada dos chamados de todas as áreas (somente líder+)',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/board/chamados/dashboard',
+    page_name: 'Board - Dashboard de Chamados',
+    page_description: 'Atendimento consolidado: tempo de resposta, prazos e rankings (somente líder+)',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/board/capacidade',
+    page_name: 'Board - Capacidade',
+    page_description: 'Carga do time, workload de 14 dias, atrasos e horas por cliente — Tax + OSG (somente líder+)',
+    category: 'board',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
+    page_path: '/equipe/board/logs-equipe',
+    page_name: 'Board - Logs de Equipe',
+    page_description: 'Produtividade, acesso e pendências do time nas áreas somadas (somente líder+)',
     category: 'board',
     requires_admin: false,
     requires_team_member: true,

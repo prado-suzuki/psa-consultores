@@ -12,7 +12,7 @@ const ROLE_VISUALS: Record<AppRole, RoleVisual> = {
   team_member: { key: 'team_member', label: 'Membro',       className: 'bg-blue-100 text-blue-700 border-0' },
   lider:       { key: 'lider',       label: 'Líder Geral',  className: 'bg-amber-100 text-amber-700 border-0' },
   sublider:    { key: 'sublider',    label: 'Sublíder',     className: 'bg-orange-100 text-orange-700 border-0' },
-  client:      { key: 'client',      label: 'Cliente',      className: 'bg-slate-100 text-slate-600 border-0' },
+  client:      { key: 'client',      label: 'Cliente',      className: 'bg-foreground/[0.05] text-slate-600 border-0' },
   timecliente: { key: 'timecliente', label: 'Time Cliente', className: 'bg-cyan-100 text-cyan-700 border-0' },
   marketing:   { key: 'marketing',   label: 'Marketing',    className: 'bg-violet-100 text-violet-700 border-0' },
 };
@@ -36,7 +36,7 @@ export interface UsersRolesViewProps {
   variant?: 'compact' | 'full';
   /** Colunas customizadas (sobrescreve variant). */
   roleColumns?: AppRole[];
-  /** Label customizado para a coluna "team_member" (compact usa "Equipe", full usa "Membro"). */
+  /** Label customizado para a coluna"team_member" (compact usa"Equipe", full usa"Membro"). */
   teamMemberColumnLabel?: string;
 }
 
@@ -90,7 +90,7 @@ export const UsersRolesView = ({
           title="Total de Usuários"
           value={stats.total}
           icon={<Users className="h-5 w-5 text-slate-600" />}
-          iconColor="bg-slate-100"
+          iconColor="bg-foreground/[0.05]"
         />
         <MetricCard
           title="Administradores"
@@ -107,8 +107,8 @@ export const UsersRolesView = ({
         <MetricCard
           title="Clientes"
           value={stats.clients}
-          icon={<Users className="h-5 w-5 text-teal-600" />}
-          iconColor="bg-teal-100"
+          icon={<Users className="h-5 w-5 text-primary" />}
+          iconColor="bg-primary/15"
         />
       </div>
 
@@ -123,11 +123,11 @@ export const UsersRolesView = ({
         <CardContent>
           {isLoading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : (
             <Table>
-              <TableHeader className="bg-slate-50">
+              <TableHeader className="bg-muted">
                 <TableRow>
                   <TableHead className="text-slate-600">Usuário</TableHead>
                   <TableHead className="text-slate-600">Email</TableHead>
@@ -141,7 +141,7 @@ export const UsersRolesView = ({
               </TableHeader>
               <TableBody>
                 {usersWithRoles?.map((user) => (
-                  <TableRow key={user.id} className="hover:bg-slate-50">
+                  <TableRow key={user.id} className="hover:bg-foreground/[0.03]">
                     <TableCell className="font-medium text-slate-700">
                       {user.first_name} {user.last_name}
                     </TableCell>
@@ -187,7 +187,7 @@ export const UsersRolesView = ({
             {columns.map((role) => (
               <div
                 key={role}
-                className="p-4 border border-slate-200 rounded-lg bg-slate-50"
+                className="p-4 border border-slate-200 rounded-lg bg-muted"
               >
                 <div className="flex items-center gap-2 mb-2">{getRoleBadge(role)}</div>
                 <p className="text-sm text-slate-600">{LEGEND_DESCRIPTIONS[role]}</p>

@@ -110,7 +110,7 @@ export function DifalSummaryActions({
               size="sm"
               onClick={onSaveChanges}
               disabled={pendingDecisionsCount === 0 || isSaving}
-              className="gap-2 bg-teal-600 hover:bg-teal-700"
+              className="gap-2 bg-primary hover:bg-primary/90"
             >
               {isSaving ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

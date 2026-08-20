@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  TICKET_RICH_TEXT_MARKER,
+  serializeTicketRichText,
+} from '@/components/chamados/ticketRichTextFormat';
+import {
   TAREFA_RICH_TEXT_MARKER,
+  hasTarefaRichTextDoc,
   hasTarefaRichTextMarker,
   isTarefaRichTextEmpty,
   parseTarefaRichText,
@@ -79,5 +84,80 @@ describe('tarefaRichText', () => {
       type: 'doc',
       content: [{ type: 'paragraph', content: [{ type: 'text', text: '{não é json' }] }],
     });
+  });
+});
+
+// A tarefa aberta por chamado delegado recebe `tickets.description` copiada tal
+// e qual pelo trigger `delegar_chamado_gera_tarefa()`: o valor chega com o
+// marcador de chamado e precisa abrir como documento, não como texto cru.
+describe('tarefaRichText: descrição vinda de chamado delegado', () => {
+  const doChamado = serializeTicketRichText({
+    type: 'doc',
+    content: [
+      {
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'Preciso do ' },
+          { type: 'text', text: 'balancete', marks: [{ type: 'bold' }] },
+        ],
+      },
+      {
+        type: 'bulletList',
+        content: [
+          {
+            type: 'listItem',
+            content: [{ type: 'paragraph', content: [{ type: 'text', text: 'março' }] }],
+          },
+        ],
+      },
+    ],
+  });
+
+  it('reconhece o marcador de chamado como documento, sem virar rich text de tarefa', () => {
+    expect(hasTarefaRichTextDoc(doChamado)).toBe(true);
+    expect(hasTarefaRichTextMarker(doChamado)).toBe(false);
+    expect(hasTarefaRichTextDoc('Conferir o XML')).toBe(false);
+  });
+
+  it('abre o documento inteiro, com marcas e listas', () => {
+    expect(parseTarefaRichText(doChamado)).toEqual({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Preciso do ' },
+            { type: 'text', text: 'balancete', marks: [{ type: 'bold' }] },
+          ],
+        },
+        {
+          type: 'bulletList',
+          content: [
+            {
+              type: 'listItem',
+              content: [{ type: 'paragraph', content: [{ type: 'text', text: 'março' }] }],
+            },
+          ],
+        },
+      ],
+    });
+  });
+
+  it('projeta em texto plano para prévias e busca, sem marcador nem JSON', () => {
+    const plano = tarefaRichTextToPlain(doChamado);
+    expect(plano).toBe('Preciso do balancete\nmarço');
+    expect(plano).not.toContain(TICKET_RICH_TEXT_MARKER);
+  });
+
+  it('volta gravada com o marcador de tarefa depois de editada', () => {
+    const reserializado = serializeTarefaRichText(parseTarefaRichText(doChamado));
+    expect(reserializado.startsWith(TAREFA_RICH_TEXT_MARKER)).toBe(true);
+    expect(parseTarefaRichText(reserializado)).toEqual(parseTarefaRichText(doChamado));
+  });
+
+  it('marcador de chamado com JSON corrompido mostra o texto cru em vez de sumir', () => {
+    expect(parseTarefaRichText(`${TICKET_RICH_TEXT_MARKER}{não é json`).content).toEqual([
+      { type: 'paragraph', content: [{ type: 'text', text: '{não é json' }] },
+    ]);
   });
 });

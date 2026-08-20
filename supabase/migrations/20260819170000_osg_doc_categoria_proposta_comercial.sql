@@ -1,0 +1,21 @@
+-- 20260819170000_osg_doc_categoria_proposta_comercial.sql
+-- EDU-13 (so a parte da categoria): a proposta comercial ganha categoria propria
+-- em documento_arquivo.
+--
+-- ALTER TYPE ... ADD VALUE nao roda dentro de bloco de transacao: fica solto,
+-- sem BEGIN/COMMIT. E o valor NAO pode ser usado neste mesmo arquivo.
+-- Molde: 20260623100000_osg_doc_categoria_georreferenciamento.sql, inteiro.
+--
+-- Estado conferido antes de escrever: o enum tem 9 valores (bens_direitos,
+-- cadastros_fiscais, declaracao_ir, agrarios, pessoais, societarios,
+-- sucessorios, outros, georreferenciamento) e nao tem proposta_comercial.
+--
+-- Fora de escopo: as tabelas planejamento_tributario e
+-- planejamento_tributario_cenario, os enums delas, indices, triggers e RLS
+-- seguem na EDU-13, intocados aqui.
+--
+-- Depois de regerar o types.ts, o mapa GRUPO_POR_CATEGORIA em
+-- src/lib/agrupadorDocumentos.ts passa a exigir o grupo desta categoria: ele e
+-- um Record exaustivo, de proposito, e o typecheck quebra ate alguem decidir.
+
+ALTER TYPE public.osg_doc_categoria ADD VALUE IF NOT EXISTS 'proposta_comercial';

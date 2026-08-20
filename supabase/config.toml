@@ -44,3 +44,8 @@ verify_jwt = false
 
 [functions.gerar-relatorio-individual]
 verify_jwt = false
+[functions.notificar]
+verify_jwt = false
+
+[functions.notificacao-status]
+verify_jwt = false

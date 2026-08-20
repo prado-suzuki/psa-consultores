@@ -8,7 +8,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import type { TicketListItem } from '@/hooks/useTickets';
-import { activityColors, activityLabels, departmentLabels, statusColors, statusLabels } from '@/lib/equipeChamados';
+import { activityLabels, departmentLabels, statusLabels } from '@/lib/equipeChamados';
+import { chamadoAtividadeConfig, chamadoStatusConfig } from '@/lib/chamadoStatusColors';
 import type { SortColumn, SortDirection } from '@/lib/equipeChamados';
 import { PrazoBadge } from '@/components/chamados/equipe/PrazoBadge';
 
@@ -63,7 +64,7 @@ export function EquipeChamadosTable({ tickets, canAssignTickets, areaMap, cluste
           <TableBody>
             {tickets.map((ticket) => (
               <TableRow key={ticket.id}>
-                <TableCell><Badge className={statusColors[ticket.status]}>{statusLabels[ticket.status] || ticket.status}</Badge></TableCell>
+                <TableCell><Badge className={chamadoStatusConfig(ticket.status).solid}>{statusLabels[ticket.status] || ticket.status}</Badge></TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <button onClick={() => onNavigate(ticket.id)} className="text-left font-medium text-primary hover:underline focus:outline-none">{ticket.title}</button>
@@ -93,7 +94,7 @@ export function EquipeChamadosTable({ tickets, canAssignTickets, areaMap, cluste
                 )}
                 <TableCell>
                   {ticket.activity_status && (
-                    <Badge variant="outline" className={activityColors[ticket.activity_status] || 'bg-gray-100 text-gray-800'}>
+                    <Badge variant="outline" className={chamadoAtividadeConfig(ticket.activity_status).badge}>
                       {activityLabels[ticket.activity_status] || ticket.activity_status}
                     </Badge>
                   )}

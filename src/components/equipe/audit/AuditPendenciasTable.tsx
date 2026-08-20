@@ -17,6 +17,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import { useDomainAuditProdutividade, useDomainOrgTasksProdutividade } from '@/hooks/useDomainAuditLogs';
 import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
+import type { AuditArea } from '@/lib/auditAreas';
 import {
   agregarPendencias, buildPendenciasCsv, destinoPendencia, MOTIVO_COMO_RESOLVER, MOTIVO_LABELS,
   MOTIVOS_POR_SEVERIDADE,
@@ -29,7 +30,8 @@ import { AuditLimiteAviso } from './AuditLimiteAviso';
 import { ENTITY_LABELS } from './auditLabels';
 
 interface AuditPendenciasTableProps {
-  area: 'tax' | 'osg';
+  /** Área do módulo, ou 'todas' no consolidado do Board. */
+  area: AuditArea;
 }
 
 const SEM_EXISTE: Record<string, true> = {};

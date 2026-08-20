@@ -136,7 +136,7 @@ export const PermissionsTree = ({ userId, userIsAdmin, pages, userAccess }: Perm
       {groups.map(({ group, trees }) => (
         <div key={group} className="space-y-2">
           <Badge className={getGroupColor(group)}>{getGroupLabel(group)}</Badge>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <div className="rounded-lg border border-slate-200 bg-muted p-1">
             {trees.map((node) => (
               <TreeRow
                 key={node.path}

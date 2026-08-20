@@ -10,12 +10,11 @@
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LabelList,
 } from 'recharts';
-import { GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
 import { SEM_CENTRO_CUSTO, SEM_PRODUTO, SEM_SERVICO, SEM_DATA } from '@/lib/dashboardClientesOs/aggregations';
 import type { MatrizMensal } from '@/lib/dashboardClientesOs/types';
 import {
-  PSA, AXIS, brl, brlMil, milAxis, mesColuna, celulaBRL, pctDoTotal, larguraEixo,
-  td, thFixo, tdNome, tdTotal, numerico,
+  ACENTO, NEUTRO, AXIS, GRID, TOOLTIP, brl, brlMil, milAxis, mesColuna, celulaBRL, pctDoTotal,
+  larguraEixo, td, thFixo, tdNome, tdTotal, numerico,
 } from './shared';
 import { ChartEmpty } from './ChartEmpty';
 
@@ -95,13 +94,15 @@ export const FaturamentoDetalhe = ({ detalhe, onDetalheChange, matriz }: Props) 
         {barras.length > 0 ? (
           <ResponsiveContainer width="100%" height={Math.max(140, barras.length * 30 + 30)}>
             <BarChart data={barras} layout="vertical" margin={{ top: 4, right: 128, bottom: 4, left: 4 }}>
-              <CartesianGrid {...GRID_STYLE} horizontal={false} />
+              <CartesianGrid {...GRID} horizontal={false} />
               <XAxis type="number" {...AXIS} tickFormatter={milAxis} />
               <YAxis type="category" dataKey="label" {...AXIS} width={larguraEixo(barras)} interval={0} />
-              <Tooltip formatter={(v: number) => brl(v)} {...TOOLTIP_STYLE} cursor={{ fill: 'rgba(13,135,124,.06)' }} />
+              <Tooltip formatter={(v: number) => brl(v)} {...TOOLTIP} />
+              {/* Série única: a barra é o acento da área; o "não classificado" sai no
+                  neutro, para não parecer uma dimensão real. */}
               <Bar dataKey="total" radius={[0, 4, 4, 0]} maxBarSize={22}>
                 {barras.map((l) => (
-                  <Cell key={l.id} fill={SEM_CLASSIFICACAO.has(l.id) ? PSA.grey : PSA.teal} />
+                  <Cell key={l.id} fill={SEM_CLASSIFICACAO.has(l.id) ? NEUTRO : ACENTO} />
                 ))}
                 <LabelList
                   dataKey="total" position="right"

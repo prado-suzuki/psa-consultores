@@ -131,7 +131,7 @@ export const DifalAuditModal = ({
         {/* Header */}
         <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur flex-shrink-0">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-600 shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
               <Scale className="w-7 h-7" />
             </div>
             <div>
@@ -278,8 +278,8 @@ export const DifalAuditModal = ({
                       className={cn(
                         "cursor-pointer transition-all",
                         selectedRegraId === regra.id
-                          ? 'border-teal-500 bg-teal-50 ring-2 ring-teal-500/20 dark:bg-teal-900/20'
-                          : 'border-slate-200 hover:border-teal-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50'
+                          ? 'border-primary bg-primary/5 ring-2 ring-ring/20 dark:bg-primary/20'
+                          : 'border-slate-200 hover:border-primary/40 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50'
                       )}
                       onClick={() => setSelectedRegraId(regra.id)}
                     >
@@ -292,7 +292,7 @@ export const DifalAuditModal = ({
                                 className={cn(
                                   "text-sm",
                                   selectedRegraId === regra.id
-                                    ? 'border-teal-500 text-teal-700 dark:text-teal-400'
+                                    ? 'border-primary text-primary'
                                     : ''
                                 )}
                               >
@@ -323,7 +323,7 @@ export const DifalAuditModal = ({
                               </Badge>
                             )}
                             {selectedRegraId === regra.id && (
-                              <CheckCircle2 className="h-6 w-6 text-teal-600 flex-shrink-0" />
+                              <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0" />
                             )}
                           </div>
                         </div>
@@ -362,7 +362,7 @@ export const DifalAuditModal = ({
           <Button
             onClick={() => handleSaveDecision('REGRA_SELECIONADA', selectedRegraId)}
             disabled={!selectedRegraId || isSaving}
-            className="bg-teal-600 hover:bg-teal-700"
+            className="bg-primary hover:bg-primary/90"
           >
             {isSaving ? (
               <>

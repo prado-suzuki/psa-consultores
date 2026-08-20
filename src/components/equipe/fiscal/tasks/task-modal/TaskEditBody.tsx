@@ -2,11 +2,11 @@ import type { UseFormReturn } from 'react-hook-form';
 import { AlignLeft, Paperclip, Plus, UserCheck } from 'lucide-react';
 
 import { OrgEntityAttachments } from '@/components/comentarios/OrgCommentAttachments';
+import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
 import { TaskSubtasksSection } from '@/components/equipe/fiscal/tasks/task-modal/TaskSubtasksSection';
 import { Button } from '@/components/ui/button';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { SectionHeading } from '@/components/ui/section-heading';
-import { Textarea } from '@/components/ui/textarea';
 import type { AreaKey } from '@/config/areaCategories';
 import type { TaskFormValues } from '@/lib/orgTaskForm';
 
@@ -39,17 +39,18 @@ export function TaskEditBody({
 }: TaskEditBodyProps) {
   return (
     <div className="space-y-6 px-6 pb-6 pt-5">
+      {/* Aviso de revisão delegada: papel `revisao` da área (index.css). */}
       {isReviewer && (
-        <div className="rounded-xl border border-purple-200 bg-purple-50 p-4 dark:border-purple-900 dark:bg-purple-950/30">
+        <div className="rounded-xl border border-status-revisao/25 bg-status-revisao-soft/50 p-4">
           <div className="flex items-start gap-3">
-            <div className="rounded-full bg-purple-100 p-2 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
+            <div className="rounded-full bg-status-revisao-soft p-2 text-status-revisao">
               <UserCheck className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-semibold text-purple-950 dark:text-purple-100">
+              <p className="font-semibold text-status-revisao">
                 Revisão delegada a você
               </p>
-              <p className="mt-1 text-sm text-purple-800/80 dark:text-purple-200/80">
+              <p className="mt-1 text-sm text-status-revisao/80">
                 Revise a tarefa de {assignedToName || 'responsável'} e escolha uma ação ao final.
               </p>
             </div>
@@ -69,11 +70,21 @@ export function TaskEditBody({
               <FormItem className="mt-3 space-y-0">
                 <FormLabel className="sr-only">Descrição</FormLabel>
                 <FormControl>
-                  <Textarea
+                  {/* Mesmo editor da descrição de entregável. Tarefa aberta por
+                      chamado delegado nasce com o rich text do chamado copiado
+                      pelo trigger: num textarea ela mostraria o JSON cru. */}
+                  <TarefaRichTextEditor
+                    value={field.value}
+                    onChange={field.onChange}
+                    ariaLabel="Descrição"
                     placeholder="Descreva a tarefa..."
-                    rows={5}
-                    className="resize-none rounded-xl bg-muted/20 leading-6 disabled:cursor-default disabled:opacity-100"
-                    {...field}
+                    disabled={isReviewer}
+                    withCode={false}
+                    minHeight="min-h-[132px]"
+                    maxHeight="max-h-[360px]"
+                    // opacity-100 mantém o campo legível para o revisor, que o vê
+                    // desabilitado: era o que o `disabled:opacity-100` do textarea fazia.
+                    className="rounded-xl bg-muted/20 opacity-100"
                   />
                 </FormControl>
                 <FormMessage className="pt-1.5" />

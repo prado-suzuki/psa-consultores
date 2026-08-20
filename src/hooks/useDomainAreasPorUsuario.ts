@@ -38,7 +38,7 @@ export function useDomainAreasPorUsuario(): {
   const areas = useMemo(
     () =>
       areasEstrutura
-        .map((area): AreaResumo => ({ id: area.id, name: area.name, color: area.color ?? null }))
+        .map((area): AreaResumo => ({ id: area.id, name: area.name, color: area.color ?? null, color_index: area.color_index ?? null }))
         .sort((a, b) => a.name.localeCompare(b.name, 'pt-BR')),
     [areasEstrutura],
   );

@@ -197,17 +197,41 @@ export function useProjetosCadastroController(area: AreaKey) {
     setFormData(previous => ({
       ...previous, ordem_servico_id: selectedOsId || '', servico_id: '', produto_segmento_id: '',
     }));
-    if (!selectedOsId || editingProject) return;
+    if (!selectedOsId) return;
     const os = clienteOS.find(item => item.id === selectedOsId);
     if (!os) return;
+    // O período do projeto é o da OS, sem exceção: os campos são de leitura no
+    // modal, então não há valor digitado a preservar. Trocar a OS traz as datas
+    // da nova — vale na criação e também na edição, onde antes a troca deixava o
+    // projeto com o período da OS anterior.
     setFormData(previous => ({
       ...previous,
       ordem_servico_id: selectedOsId,
-      start_date: previous.start_date || os.data_inicio || '',
-      end_date: previous.end_date || os.data_fim || '',
+      start_date: os.data_inicio || '',
+      end_date: os.data_fim || '',
     }));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedOsId]);
+
+  /**
+   * Conserta o período de projeto antigo salvo sem datas.
+   *
+   * Abrir a edição não reescreve o período (o efeito acima sai pelo
+   * `isOpeningEditRef`), e o modal não tem mais campo de data editável: um
+   * projeto legado com `start_date` vazio ficaria impossível de salvar, recusado
+   * por uma data que ninguém consegue digitar. A data da OS entra só onde falta —
+   * período já gravado não é reescrito por trás de quem editou.
+   */
+  useEffect(() => {
+    if (!editingProject || !selectedOsId) return;
+    const os = clienteOS.find(item => item.id === selectedOsId);
+    if (!os) return;
+    setFormData(previous => (previous.start_date && previous.end_date) ? previous : ({
+      ...previous,
+      start_date: previous.start_date || os.data_inicio || '',
+      end_date: previous.end_date || os.data_fim || '',
+    }));
+  }, [editingProject, selectedOsId, clienteOS, setFormData]);
 
   useEffect(() => {
     if (prevEquipeId && formData.equipe_id && prevEquipeId !== formData.equipe_id) {

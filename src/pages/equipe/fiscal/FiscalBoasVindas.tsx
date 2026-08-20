@@ -3,6 +3,7 @@ import { FiscalLayout } from '@/components/equipe/fiscal/FiscalLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, LayoutDashboard, Users, FolderKanban, History, LifeBuoy, LineChart } from 'lucide-react';
+import { linkEspelhado } from '@/lib/areaTheme';
 
 interface FerramentaTax {
   id: string;
@@ -52,7 +53,7 @@ const FERRAMENTAS: FerramentaTax[] = [
   },
   {
     id: 'auditoria',
-    titulo: 'Logs de Equipe',
+    titulo: 'Logs de Uso',
     descricao: 'Histórico, produtividade e acesso do time na área Tax (acesso de líder).',
     path: '/equipe/tax/gerencial/logs-equipe',
     icon: <History className="h-5 w-5 text-primary" />,
@@ -62,7 +63,8 @@ const FERRAMENTAS: FerramentaTax[] = [
     id: 'chamados',
     titulo: 'Chamados',
     descricao: 'Abertura e acompanhamento de chamados.',
-    path: '/equipe/chamados',
+    // Espelhada: leva a cor E a lista desta área. Ver `src/lib/areaTheme.ts`.
+    path: linkEspelhado('/equipe/chamados', 'tax'),
     icon: <LifeBuoy className="h-5 w-5 text-primary" />,
   },
 ];

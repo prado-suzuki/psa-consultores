@@ -11,6 +11,7 @@
 // entra na fila, nunca num palpite.
 
 import type { AuditLog } from '@/hooks/useDomainAuditLogs';
+import { areaDoRegistro, type AuditArea } from '@/lib/auditAreas';
 import { escapeCsv, type ClientePorId, type VinculoPorId } from '@/lib/auditProdutividade';
 
 export type MotivoPendencia =
@@ -66,6 +67,11 @@ export interface LinhaPendencia {
   ultimoToqueEm: string;
   /** Quem fez esse último registro. */
   ultimoToquePor: string;
+  /**
+   * `audit_logs.area` do último registro. Só o escopo consolidado do Board usa:
+   * é o que faz o link de "onde resolver" cair na área dona do item.
+   */
+  area: string;
 }
 
 export interface ResumoPendencias {
@@ -108,6 +114,10 @@ function zerarMotivos(): Record<MotivoPendencia, number> {
  * contratar; com OS vazia não há produto; com OS de vários produtos o serviço é
  * quem decide, e sem ele (ou com serviço que não pertence à OS) o sistema se
  * recusa a escolher no chute.
+ *
+ * Projeto que declara o produto (`produto_segmento_id`) sai da fila no teste de
+ * `produtoPorId`, antes de qualquer motivo de dedução: cobrar "informe o serviço"
+ * de quem já disse qual produto é seria pedir cadastro que não falta.
  */
 function motivoDoItem(
   itemId: string,
@@ -144,6 +154,7 @@ export function agregarPendencias(entrada: EntradaPendencias): {
     nome: string;
     em: string;
     por: string;
+    area: string;
   }
   const porItem = new Map<string, UltimoToque>();
 
@@ -158,6 +169,7 @@ export function agregarPendencias(entrada: EntradaPendencias): {
       nome: log.entity_name,
       em: log.performed_at,
       por: log.performed_by,
+      area: log.area,
     });
   }
 
@@ -183,6 +195,7 @@ export function agregarPendencias(entrada: EntradaPendencias): {
       motivo,
       ultimoToqueEm: toque.em,
       ultimoToquePor: entrada.nomePorPessoa[toque.por]?.trim() || 'Desconhecido',
+      area: toque.area,
     });
   }
 
@@ -217,9 +230,12 @@ export interface DestinoPendencia {
  *
  * `?taskId=` e `?projectId=` são os deep-links de `PainelTarefas`, que abre o
  * cadastro já no item certo.
+ *
+ * No escopo consolidado do Board o destino segue a área DA LINHA — o item do OSG
+ * abre a tela do OSG, não a do Tax.
  */
-export function destinoPendencia(linha: LinhaPendencia, area: 'tax' | 'osg'): DestinoPendencia {
-  const base = `/equipe/${area}/projetos`;
+export function destinoPendencia(linha: LinhaPendencia, area: AuditArea): DestinoPendencia {
+  const base = `/equipe/${areaDoRegistro(area, linha.area)}/projetos`;
   const ehProjeto = linha.tipo === 'project';
 
   // Produto contratado se lança na OS, e a OS vive no cadastro de Clientes —

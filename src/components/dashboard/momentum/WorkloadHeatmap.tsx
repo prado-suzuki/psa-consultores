@@ -15,14 +15,25 @@ interface WorkloadHeatmapProps {
   maxValue?: number;
   className?: string;
   showLegend?: boolean;
-  /** Cor base teal para o gradiente */
-  baseColor?: string;
+}
+
+/**
+ * Rampa de intensidade da célula: nível 0 é a superfície apagada (`--muted`) e os
+ * quatro seguintes são o MESMO `--primary` do tema da área, só variando a
+ * opacidade. Nada de tons teal fixos aqui — uma rampa cravada sairia teal da Tax
+ * também dentro do `OsgLayout`, que é exatamente o defeito que este arquivo tinha.
+ */
+const NIVEIS = [0.18, 0.38, 0.65, 1];
+
+/** Fundo da célula por nível (0 = vazio), no formato que o CSS aceita. */
+function tomDaArea(nivel: number): string {
+  return nivel === 0 ? 'hsl(var(--muted))' : `hsl(var(--primary) / ${NIVEIS[nivel - 1]})`;
 }
 
 /**
  * Heatmap matricial estilo "GitHub contribution graph".
  * Eixo Y = membros/recursos, Eixo X = dias.
- * Células com gradiente de intensidade em 4 tons da cor base.
+ * Células com gradiente de intensidade em 4 tons da cor da área.
  */
 export function WorkloadHeatmap({
   rows,
@@ -30,19 +41,10 @@ export function WorkloadHeatmap({
   maxValue,
   className,
   showLegend = true,
-  baseColor = '#0d9488',
 }: WorkloadHeatmapProps) {
   const computedMax =
     maxValue ??
     Math.max(1, ...rows.flatMap(r => r.cells));
-
-  const tones = [
-    '#f1f5f9', // empty/Low (gray)
-    '#99f6e4', // teal-200
-    '#5eead4', // teal-300
-    '#14b8a6', // teal-500
-    baseColor, // teal-600 (Fully Occupied)
-  ];
 
   const intensity = (v: number): number => {
     if (v <= 0) return 0;
@@ -82,7 +84,7 @@ export function WorkloadHeatmap({
                     <td key={cIdx}>
                       <div
                         className="h-5 w-5 rounded-[3px] transition-transform hover:scale-110 cursor-default"
-                        style={{ background: tones[lvl] }}
+                        style={{ background: tomDaArea(lvl) }}
                         title={`${row.label} · ${columnLabels[cIdx]}: ${cell.toFixed(1)}h`}
                       />
                     </td>
@@ -97,8 +99,8 @@ export function WorkloadHeatmap({
       {showLegend && (
         <div className="mt-3 flex items-center justify-end gap-2 text-[10px] text-muted-foreground">
           <span>Low</span>
-          {tones.slice(1).map((t, i) => (
-            <span key={i} className="h-3 w-3 rounded-sm" style={{ background: t }} />
+          {NIVEIS.map((_, i) => (
+            <span key={i} className="h-3 w-3 rounded-sm" style={{ background: tomDaArea(i + 1) }} />
           ))}
           <span>Fully Occupied</span>
         </div>

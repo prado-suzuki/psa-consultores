@@ -24,8 +24,8 @@ export const AccessStatsCards = () => {
       <Card className="bg-white border-slate-200/60 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-slate-600">Páginas Ativas</CardTitle>
-          <div className="p-2 rounded-full bg-teal-100">
-            <FileText className="h-4 w-4 text-teal-600" />
+          <div className="p-2 rounded-full bg-primary/15">
+            <FileText className="h-4 w-4 text-primary" />
           </div>
         </CardHeader>
         <CardContent>
@@ -37,8 +37,8 @@ export const AccessStatsCards = () => {
       <Card className="bg-white border-slate-200/60 shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium text-slate-600">Usuários</CardTitle>
-          <div className="p-2 rounded-full bg-teal-100">
-            <Users className="h-4 w-4 text-teal-600" />
+          <div className="p-2 rounded-full bg-primary/15">
+            <Users className="h-4 w-4 text-primary" />
           </div>
         </CardHeader>
         <CardContent>
@@ -52,8 +52,8 @@ export const AccessStatsCards = () => {
           <CardTitle className="text-sm font-medium text-slate-600">
             Permissões Customizadas
           </CardTitle>
-          <div className="p-2 rounded-full bg-teal-100">
-            <ShieldCheck className="h-4 w-4 text-teal-600" />
+          <div className="p-2 rounded-full bg-primary/15">
+            <ShieldCheck className="h-4 w-4 text-primary" />
           </div>
         </CardHeader>
         <CardContent>

@@ -96,7 +96,9 @@ export const validateContribuinteDados = (e: DraftEntity, inscricoes: InscricaoI
   if (!e.logradouro?.trim()) return `Contribuinte "${quem}": Logradouro é obrigatório`;
   if (!e.bairro?.trim()) return `Contribuinte "${quem}": Bairro é obrigatório`;
   if (!e.municipio?.trim()) return `Contribuinte "${quem}": Município é obrigatório`;
-  if (!e.uf?.trim() || e.uf.trim().length !== 2) return `Contribuinte "${quem}": UF deve ter 2 caracteres`;
+  // Espelho de `camposObrigatorios`: vazio e mal preenchido são faltas distintas.
+  if (!e.uf?.trim()) return `Contribuinte "${quem}": UF é obrigatória`;
+  if (e.uf.trim().length !== 2) return `Contribuinte "${quem}": UF deve ter 2 caracteres`;
   if (e.tipo_pessoa === 'PJ') {
     if (!e.cod_cnae?.trim()) return `Contribuinte "${quem}": CNAE é obrigatório para PJ`;
     if (!e.simples_nacional) return `Contribuinte "${quem}": informe a situação do Simples Nacional`;
@@ -169,6 +171,14 @@ export const validateRepresentante = (p: DraftRepresentante): string | null => {
 export const validateOrdemServico = (c: DraftOrdemServico): string | null => {
   const os = c.ordem_servico || '(sem número)';
   if (!c.cluster_id) return `OS "${os}": selecione a Empresa/Faturamento`;
+  // O período é obrigatório aqui porque a OS é a origem das datas do projeto: o
+  // cadastro de projeto herda início e fim dela e não oferece campo para digitar.
+  // OS salva sem período = projeto impossível de criar, sem saída pela interface.
+  if (!c.data_inicio_projeto) return `OS "${os}": informe a Data Início`;
+  if (!c.data_fim_projeto) return `OS "${os}": informe a Data Fim`;
+  if (c.data_inicio_projeto > c.data_fim_projeto) {
+    return `OS "${os}": a Data Fim deve ser posterior à Data Início`;
+  }
   if (!c.setor_cliente_id) return `OS "${os}": selecione a Área do Negócio`;
   if (!c.regiao) return `OS "${os}": selecione a Região`;
   if (!c.produtos_contratados || c.produtos_contratados.length === 0) {

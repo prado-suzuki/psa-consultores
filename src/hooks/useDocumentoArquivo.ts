@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useApiAuth } from '@/hooks/useApiAuth';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { checklistClienteKey } from '@/hooks/useOsgChecklist';
+import { DOWNLOADS_QUERY_KEY } from '@/hooks/useDomainDocumentoDownload';
 import { getApiUrl, currentAmbiente } from '@/config/api';
 import type { Database } from '@/integrations/supabase/types';
 // Só o tipo: as chaves dos 4 grupos são definidas em agrupadorDocumentos, que é
@@ -21,9 +21,20 @@ import { computeFieldDiff } from '@/lib/diffUtils';
  */
 export type DocumentoArquivoRow = Database['public']['Tables']['documento_arquivo']['Row'] & {
   documento_tipo_id: string | null;
+  /**
+   * O veredito do consultor (migration 20260814180000). Também fora do `types.ts`
+   * até a regeração; `revisao` é NOT NULL DEFAULT 'pendente' no banco, então a
+   * leitura pode contar com ela em toda linha.
+   */
+  revisao: DocRevisao;
+  revisao_em: string | null;
+  revisao_por: string | null;
+  revisao_motivo: string | null;
 };
 export type DocCategoria = Database['public']['Enums']['osg_doc_categoria'];
 export type DocFonte = Database['public']['Enums']['osg_doc_fonte'];
+/** pendente = ninguém olhou ainda; recusado reabre a pendência no checklist. */
+export type DocRevisao = 'pendente' | 'aprovado' | 'recusado';
 
 export interface VinculoDoc {
   bemId?: string | null;
@@ -122,9 +133,9 @@ interface SignUploadResponse {
   upload_headers: Record<string, string>;
 }
 
-type FetchWithAuth = ReturnType<typeof useApiAuth>['fetchWithAuth'];
+export type FetchWithAuth = ReturnType<typeof useApiAuth>['fetchWithAuth'];
 
-interface SubirArquivoGcsArgs {
+export interface SubirArquivoGcsArgs {
   clienteId: string;
   file: File;
   categoria: DocCategoria;
@@ -132,7 +143,7 @@ interface SubirArquivoGcsArgs {
   nrMatricula?: string | null;
 }
 
-interface ArquivoGcsResultado {
+export interface ArquivoGcsResultado {
   gcs_uri: string;
   checksum: string;
   tamanho: number;
@@ -142,9 +153,11 @@ interface ArquivoGcsResultado {
 
 /**
  * Helper: sign-upload → PUT no GCS → finalize. Reusado por `enviarUmDocumento`
- * (fluxo interno da equipe) e pelo upload da área do cliente.
+ * (fluxo interno da equipe), pelo upload da área do cliente e pelo anexo por
+ * pendência da fase de checklist (useDomainPendenciasCliente), que sobe o binário
+ * igual e só troca a gravação da linha por uma RPC que valida o vínculo.
  */
-async function subirArquivoGcs(
+export async function subirArquivoGcs(
   fetchWithAuth: FetchWithAuth,
   args: SubirArquivoGcsArgs,
 ): Promise<ArquivoGcsResultado> {
@@ -357,10 +370,11 @@ export function useExcluirDocumento(clienteId: string) {
       return resultado;
     },
     onSuccess: (resultado, doc) => {
+      // A invalidação por prefixo já recompõe o checklist do consultor: ele
+      // deixou de ser tabela e passou a ser derivado desta mesma lista de
+      // arquivos (src/lib/checklistDerivado.ts). Antes havia uma segunda
+      // invalidação, da query de `checklist_cliente_item`, que não existe mais.
       qc.invalidateQueries({ queryKey: [LIST_KEY, clienteId] });
-      // O checklist embute documento_arquivo (item "recebido" = tem arquivo
-      // ativo vinculado), então precisa recontar quando um documento sai.
-      qc.invalidateQueries({ queryKey: checklistClienteKey(clienteId) });
       // O georref vive no BigQuery e foi purgado pelo backend; sem invalidar,
       // a tela Gerar seguiria montando a tabela de vértices (e o .docx) com
       // coordenadas que já não existem.
@@ -398,6 +412,50 @@ export function useSoftDeleteDocumentoCliente(clienteId: string) {
     },
     onError: (e: unknown) =>
       toast({ title: 'Erro ao remover', description: (e as Error).message, variant: 'destructive' }),
+  });
+}
+
+/** O veredito que o consultor dá sobre um arquivo enviado pelo cliente. */
+export interface RevisarDocumentoArgs {
+  clienteId: string;
+  documentoId: string;
+  veredito: DocRevisao;
+  /** Só vale na recusa: é o texto que o cliente lê embaixo do arquivo. */
+  motivo?: string | null;
+}
+
+/**
+ * Aprova, recusa ou reabre a revisão de um arquivo do cliente.
+ *
+ * A regra inteira mora na RPC `revisar_documento_pendencia` (papel team_member+,
+ * só `fonte = 'cliente'`, motivo limpo fora da recusa). Aqui só resta invalidar a
+ * lista de arquivos, que é de onde o checklist do consultor deriva o "recebido".
+ */
+export function useRevisarDocumento() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ documentoId, veredito, motivo }: RevisarDocumentoArgs) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { error } = await (supabase.rpc as any)('revisar_documento_pendencia', {
+        _documento_id: documentoId,
+        _veredito: veredito,
+        _motivo: motivo ?? null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: (_vazio, vars) => {
+      qc.invalidateQueries({ queryKey: [LIST_KEY, vars.clienteId] });
+      toast({
+        title: vars.veredito === 'aprovado' ? 'Documento aprovado'
+          : vars.veredito === 'recusado' ? 'Documento recusado'
+            : 'Revisão desfeita',
+      });
+    },
+    onError: (erro: unknown) => toast({
+      title: 'Não foi possível revisar',
+      description: (erro as Error).message,
+      variant: 'destructive',
+    }),
   });
 }
 
@@ -520,6 +578,13 @@ export interface AtualizarDocumentoPatch {
    * mexer no tipo simplesmente não manda a chave, e o valor gravado sobrevive.
    */
   documento_tipo_id?: string | null;
+  /**
+   * O veredito (migration 20260814180000). Chega por aqui porque classificar é
+   * aprovar: quem vincula o arquivo a uma entidade já o abriu e conferiu. Quem
+   * manda a chave é `patchVinculo` / `patchDesfazerTriagem`; `revisao_em` e
+   * `revisao_por` são carimbados pelo hook, que tem a sessão.
+   */
+  revisao?: DocRevisao;
 }
 
 /**
@@ -527,7 +592,9 @@ export interface AtualizarDocumentoPatch {
  * Renomear e trocar categoria passam por aqui e não viram histórico, de
  * propósito — o que interessa registrar são as duas decisões de triagem.
  */
-const CAMPOS_AUDITADOS = ['pessoa_id', 'bem_id', 'matricula_id', 'triado_em', 'documento_tipo_id'];
+const CAMPOS_AUDITADOS = [
+  'pessoa_id', 'bem_id', 'matricula_id', 'triado_em', 'documento_tipo_id', 'revisao',
+];
 
 /** Atualiza um documento (categoria, vínculo ou nome exibido) direto no Supabase. */
 export function useAtualizarDocumento(clienteId: string) {
@@ -550,17 +617,38 @@ export function useAtualizarDocumento(clienteId: string) {
 
       const { data: anterior } = await sb
         .from('documento_arquivo')
-        .select('pessoa_id, bem_id, matricula_id, triado_em, documento_tipo_id')
+        .select('pessoa_id, bem_id, matricula_id, triado_em, documento_tipo_id, revisao')
         .eq('id', id)
         .maybeSingle();
 
-      // `triado_por` acompanha `triado_em`: quem decidiu sai da sessão, e não do
-      // patch, para a lib de regras seguir pura. Marca posta preenche o autor;
-      // marca desfeita (triado_em null) limpa junto.
-      let corpo: AtualizarDocumentoPatch & { triado_por?: string | null } = patch;
-      if ('triado_em' in patch) {
+      // `triado_por` e o par `revisao_em`/`revisao_por` acompanham as marcas que
+      // vieram no patch: quem decidiu sai da sessão, e não do patch, para a lib
+      // de regras seguir pura. Marca posta preenche o autor; marca desfeita
+      // (triado_em null, revisao de volta a pendente) limpa junto.
+      let corpo: AtualizarDocumentoPatch & {
+        triado_por?: string | null;
+        revisao_em?: string | null;
+        revisao_por?: string | null;
+        revisao_motivo?: string | null;
+      } = patch;
+      if ('triado_em' in patch || 'revisao' in patch) {
         const { data: sessao } = await supabase.auth.getUser();
-        corpo = { ...patch, triado_por: patch.triado_em ? (sessao.user?.id ?? null) : null };
+        const autor = sessao.user?.id ?? null;
+        if ('triado_em' in patch) {
+          corpo = { ...corpo, triado_por: patch.triado_em ? autor : null };
+        }
+        if ('revisao' in patch) {
+          const aprovado = patch.revisao === 'aprovado';
+          corpo = {
+            ...corpo,
+            revisao_em: aprovado ? new Date().toISOString() : null,
+            revisao_por: aprovado ? autor : null,
+            // Este caminho só aprova ou reabre (a recusa é da RPC do consultor,
+            // que tem o motivo). Reabrir não pode deixar para trás o texto de uma
+            // recusa antiga embaixo de um arquivo que voltou para o balde.
+            revisao_motivo: null,
+          };
+        }
       }
       const { data, error } = await sb
         .from('documento_arquivo')
@@ -688,9 +776,17 @@ export function usePreviewUrl() {
   });
 }
 
-/** Pede a signed GET URL e abre o download em nova aba. */
+/**
+ * Pede a signed GET URL, abre o download em nova aba e registra o acesso.
+ *
+ * O que fica registrado é que a URL assinada foi entregue a esta pessoa para
+ * este documento, não que o arquivo chegou ao disco dela: o download acontece
+ * direto no armazenamento em nuvem e o backend só assina, então este é o único
+ * ponto observável dentro do sistema. Para auditoria de acesso é suficiente.
+ */
 export function useBaixarDocumento() {
   const { fetchWithAuth } = useApiAuth();
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async (row: DocumentoArquivoRow) => {
       if (!row.gcs_uri) throw new Error('Documento sem arquivo associado');
@@ -701,6 +797,27 @@ export function useBaixarDocumento() {
       if (!res.ok) throw new Error('Falha ao gerar link de download');
       const { signed_url } = (await res.json()) as { signed_url: string };
       window.open(signed_url, '_blank', 'noopener');
+
+      // Abra primeiro: adiar o window.open para fora do turno síncrono do gesto
+      // faz o navegador bloquear a janela. E só depois da resposta OK, senão
+      // passaria a registrar tentativa que falhou.
+      //
+      // Sem await, de propósito: falhar o registro não pode acionar o onError
+      // sobre um download que funcionou. Por isso o erro vai ao console em vez
+      // de captura vazia — se a migração não estiver aplicada, é o único aviso.
+      void (async () => {
+        const { error } = await supabase.rpc('registrar_download_documento', {
+          _documento_id: row.id,
+        });
+        if (error) console.error('Falha ao registrar download do documento', error);
+      })().catch((error) => {
+        console.error('Falha ao registrar download do documento', error);
+      });
+    },
+    // Por prefixo: a aba de Downloads da auditoria tem uma entrada de cache por
+    // janela de período, e aqui não se sabe qual delas está aberta.
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [DOWNLOADS_QUERY_KEY] });
     },
     onError: (e: unknown) =>
       toast({ title: 'Erro ao baixar', description: (e as Error).message, variant: 'destructive' }),

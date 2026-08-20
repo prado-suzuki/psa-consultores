@@ -139,6 +139,33 @@ vi.mock('@/components/equipe/fiscal/tasks/ReviewRichText', () => ({
   ),
 }));
 
+// A descrição usa o mesmo editor rico da tarefa/entregável (teste próprio em
+// EquipeDaily/TarefaRichText); aqui ele vira textarea para o teste digitar e
+// conferir o valor que o TaskModal envia.
+vi.mock('@/components/equipe/TarefaRichTextEditor', () => ({
+  TarefaRichTextEditor: ({
+    value,
+    onChange,
+    placeholder,
+    ariaLabel,
+    disabled,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    ariaLabel?: string;
+    disabled?: boolean;
+  }) => (
+    <textarea
+      aria-label={ariaLabel}
+      placeholder={placeholder}
+      disabled={disabled}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  ),
+}));
+
 vi.mock('@/components/comentarios/OrgCommentsPanel', () => ({
   OrgCommentsPanel: ({
     entityId,

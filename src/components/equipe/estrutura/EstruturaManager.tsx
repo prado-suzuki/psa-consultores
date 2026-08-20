@@ -23,7 +23,11 @@ import {
   type Cluster, type Area, type Equipe,
 } from '@/hooks/useEstruturaManager';
 import { useProfilesMinRole, type Profile } from '@/hooks/useDomainEstruturaManager';
+import CentroCustoSelect from '@/components/equipe/estrutura/CentroCustoSelect';
+import { cnpjIncompleto, formatarCnpj } from '@/lib/cnpj';
+import { PontoDaArea } from '@/components/acessos/PontoDaArea';
 
+import { nomeDoTomDaArea } from '@/lib/corDaArea';
 const colorPresets = [
   '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444',
   '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
@@ -65,7 +69,7 @@ export default function EstruturaManager() {
 
   // ─── Quem já tem cluster x quem está solto ────────────────────────
   // Em que clusters cada pessoa já aparece: membro de equipe, gestora de equipe
-  // ou gestora de chamados de uma área. Quem não aparece em nenhum está "solto"
+  // ou gestora de chamados de uma área. Quem não aparece em nenhum está"solto"
   // e é justamente quem falta cadastrar — por isso vem primeiro nos selects.
   const clustersByUser = useMemo(() => {
     const clusterNameById = new Map(clusters.map(c => [c.id, c.name]));
@@ -89,7 +93,7 @@ export default function EstruturaManager() {
 
   const clusterHint = (userId: string) => [...(clustersByUser.get(userId) ?? [])].join(', ');
 
-  /** Opções do select separadas em "sem cluster" (primeiro) e "já em cluster". */
+  /** Opções do select separadas em"sem cluster" (primeiro) e"já em cluster". */
   const renderProfileOptions = (list: Profile[], showCluster: boolean) => {
     const byName = (a: Profile, b: Profile) => profileLabel(a).localeCompare(profileLabel(b), 'pt-BR');
     const soltos = list.filter(p => !clustersByUser.has(p.id)).sort(byName);
@@ -99,7 +103,7 @@ export default function EstruturaManager() {
       <>
         {soltos.length > 0 && (
           <SelectGroup>
-            <SelectLabel className="text-[11px] font-semibold uppercase tracking-wide text-teal-700">
+            <SelectLabel className="text-[11px] font-semibold uppercase tracking-wide text-primary">
               Sem cluster ({soltos.length})
             </SelectLabel>
             {soltos.map(p => (
@@ -157,7 +161,7 @@ export default function EstruturaManager() {
     await mutations.saveCluster({
       name: clusterForm.name,
       nome_empresa: clusterForm.nome_empresa.trim() || null,
-      cnpj: clusterForm.cnpj.trim() || null,
+      cnpj: formatarCnpj(clusterForm.cnpj) || null,
       cost_center_id: clusterForm.cost_center_id || null,
       is_active: clusterForm.is_active,
     }, editingCluster);
@@ -171,13 +175,13 @@ export default function EstruturaManager() {
   // ─── Area CRUD ────────────────────────────────────────────────────
   const [areaDialog, setAreaDialog] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | null>(null);
-  const [areaForm, setAreaForm] = useState({ name: '', color: '#10b981', cluster_id: '', page_categories: [] as string[], cost_center_id: '' });
+  const [areaForm, setAreaForm] = useState({ name: '', cluster_id: '', page_categories: [] as string[], cost_center_id: '' });
 
-  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', color: '#10b981', cluster_id: clusterId, page_categories: [], cost_center_id: '' }); setAreaDialog(true); };
-  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, color: a.color || '#10b981', cluster_id: a.cluster_id, page_categories: a.page_categories || [], cost_center_id: a.cost_center_id || '' }); setAreaDialog(true); };
+  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', cluster_id: clusterId, page_categories: [], cost_center_id: '' }); setAreaDialog(true); };
+  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, cluster_id: a.cluster_id, page_categories: a.page_categories || [], cost_center_id: a.cost_center_id || '' }); setAreaDialog(true); };
 
   const saveArea = async () => {
-    await mutations.saveArea({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories, cost_center_id: areaForm.cost_center_id || null }, editingArea);
+    await mutations.saveArea({ name: areaForm.name, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories, cost_center_id: areaForm.cost_center_id || null }, editingArea);
     setAreaDialog(false);
   };
 
@@ -258,15 +262,15 @@ export default function EstruturaManager() {
     const clusterAreas = areas.filter(a => a.cluster_id === cluster.id);
     return (
       <AccordionItem key={cluster.id} value={cluster.id} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-        <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-slate-50">
+        <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-foreground/[0.03]">
           <div className="flex items-center gap-3 flex-1 text-left">
-            <Network className="h-5 w-5 text-teal-600 shrink-0" />
+            <Network className="h-5 w-5 text-primary shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="font-medium text-slate-900">{cluster.name}</div>
               {(cluster.nome_empresa || cluster.cnpj || cluster.cost_center_id) && (
                 <div className="text-xs text-slate-500">
                   {cluster.nome_empresa && <>Empresa: {cluster.nome_empresa}</>}
-                  {cluster.cnpj && <> • CNPJ: {cluster.cnpj}</>}
+                  {cluster.cnpj && <> • CNPJ: {formatarCnpj(cluster.cnpj)}</>}
                   {getCcLabel(cluster.cost_center_id) && <> • CC: {getCcLabel(cluster.cost_center_id)}</>}
                 </div>
               )}
@@ -301,17 +305,17 @@ export default function EstruturaManager() {
               >
                 {clusterAreas.map(area => {
                   const areaEquipes = equipes.filter(e => e.area_id === area.id);
-                  // Gestores das equipes da área (substitui o antigo "líder da área")
+                  // Gestores das equipes da área (substitui o antigo"líder da área")
                   const gestorIds = [...new Set(areaEquipes.map(e => e.gestor_id).filter(Boolean) as string[])];
                   const gestorProfiles = gestorIds
                     .map(id => allProfiles.find(p => p.id === id))
                     .filter((p): p is Profile => !!p);
 
                   return (
-                    <AccordionItem key={area.id} value={area.id} className="rounded-md border border-slate-100 bg-slate-50/50">
-                      <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-slate-100/50 text-sm">
+                    <AccordionItem key={area.id} value={area.id} className="rounded-md border border-slate-100 bg-muted/50">
+                      <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-foreground/[0.03] text-sm">
                         <div className="flex items-center gap-2 flex-1 text-left">
-                          <div className="w-3 h-3 rounded-full shrink-0 border" style={{ backgroundColor: area.color || '#94a3b8' }} />
+                          <PontoDaArea area={area} comBorda />
                           <span className="font-medium text-slate-800">{area.name}</span>
                           {gestorProfiles.length > 0 && (
                             <span className="text-xs text-slate-500 ml-1">
@@ -447,7 +451,7 @@ export default function EstruturaManager() {
           <h3 className="text-base font-medium text-slate-900">Estrutura Organizacional</h3>
           <p className="text-sm text-slate-500">Gerencie clusters, áreas, líderes, equipes e membros.</p>
         </div>
-        <Button onClick={openClusterCreate} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+        <Button onClick={openClusterCreate} className="gap-2">
           <Plus className="h-4 w-4" />
           Novo Cluster
         </Button>
@@ -455,10 +459,10 @@ export default function EstruturaManager() {
 
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-4">
-        <StatCard icon={<Network className="h-4 w-4 text-teal-600" />} label="Clusters" value={clusters.length} />
-        <StatCard icon={<Building2 className="h-4 w-4 text-teal-600" />} label="Áreas" value={areas.length} />
-        <StatCard icon={<Users className="h-4 w-4 text-teal-600" />} label="Equipes" value={totalEquipes} />
-        <StatCard icon={<UserCheck className="h-4 w-4 text-teal-600" />} label="Membros Alocados" value={totalMembros} />
+        <StatCard icon={<Network className="h-4 w-4 text-primary" />} label="Clusters" value={clusters.length} />
+        <StatCard icon={<Building2 className="h-4 w-4 text-primary" />} label="Áreas" value={areas.length} />
+        <StatCard icon={<Users className="h-4 w-4 text-primary" />} label="Equipes" value={totalEquipes} />
+        <StatCard icon={<UserCheck className="h-4 w-4 text-primary" />} label="Membros Alocados" value={totalMembros} />
       </div>
 
       {/* Clusters accordion */}
@@ -467,7 +471,7 @@ export default function EstruturaManager() {
       ) : clusters.length === 0 ? (
         <Card className="bg-white border-slate-200/60 shadow-sm">
           <CardContent className="py-8 text-center text-slate-500">
-            Nenhum cluster cadastrado. Clique em "Novo Cluster" para começar.
+            Nenhum cluster cadastrado. Clique em"Novo Cluster" para começar.
           </CardContent>
         </Card>
       ) : (
@@ -486,7 +490,7 @@ export default function EstruturaManager() {
 
           {inactiveClusters.length > 0 && (
             <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+              <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg border border-dashed border-slate-300 bg-muted/60 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-foreground/[0.04]">
                 <div className="flex items-center gap-2">
                   <span>Clusters inativos</span>
                   <Badge variant="secondary" className="text-xs">{inactiveClusters.length}</Badge>
@@ -535,6 +539,7 @@ export default function EstruturaManager() {
               <Label>Nome do Cluster *</Label>
               <Input value={clusterForm.name} onChange={e => setClusterForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Tributário, Contábil..." />
             </div>
+            {/* A empresa é o próprio cluster: razão social e CNPJ são dados dele. */}
             <div className="space-y-2">
               <Label>Nome da Empresa</Label>
               <Input
@@ -546,28 +551,26 @@ export default function EstruturaManager() {
             <div className="space-y-2">
               <Label>CNPJ</Label>
               <Input
-                value={clusterForm.cnpj}
-                onChange={e => setClusterForm(f => ({ ...f, cnpj: e.target.value }))}
+                value={formatarCnpj(clusterForm.cnpj)}
+                onChange={e => setClusterForm(f => ({ ...f, cnpj: formatarCnpj(e.target.value) }))}
                 placeholder="00.000.000/0000-00"
+                inputMode="numeric"
+                className="font-mono"
               />
+              {cnpjIncompleto(clusterForm.cnpj) && (
+                <p className="text-xs text-amber-700">CNPJ incompleto — faltam dígitos.</p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label>Centro de Custo</Label>
-              <Select
-                value={clusterForm.cost_center_id || '_none'}
-                onValueChange={(val) => setClusterForm(f => ({ ...f, cost_center_id: val === '_none' ? '' : val }))}
-              >
-                <SelectTrigger><SelectValue placeholder="Selecionar centro de custo..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">Nenhum</SelectItem>
-                  {centrosCusto.map(cc => (
-                    <SelectItem key={cc.id} value={cc.id}>{cc.codigo} - {cc.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label>Centro de custo padrão das áreas</Label>
+              <CentroCustoSelect
+                value={clusterForm.cost_center_id}
+                onChange={valor => setClusterForm(f => ({ ...f, cost_center_id: valor }))}
+                ajuda="Herdado pelas áreas que não definirem o próprio. Não é o centro de custo da empresa — cada área pode ter o seu."
+              />
             </div>
             {editingCluster && (
-              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2.5">
+              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-muted/60 px-3 py-2.5">
                 <div className="space-y-0.5">
                   <Label htmlFor="cluster-active" className="cursor-pointer">
                     {clusterForm.is_active ? 'Cluster ativo' : 'Cluster inativo'}
@@ -588,7 +591,7 @@ export default function EstruturaManager() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setClusterDialog(false)}>Cancelar</Button>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveCluster}>Salvar</Button>
+            <Button onClick={saveCluster}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -604,24 +607,33 @@ export default function EstruturaManager() {
               <Label>Nome da Área *</Label>
               <Input value={areaForm.name} onChange={e => setAreaForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Fiscal, OSG, ADVS..." />
             </div>
-            <div className="space-y-2">
+            {/* Leitura, nao campo — a cor sai de `color_index`. A nota completa
+                esta no bloco --area-* do index.css. */}
+            <div className="space-y-1.5">
               <Label>Cor</Label>
-              <div className="flex gap-2">
-                {colorPresets.map(c => (
-                  <button
-                    key={c}
-                    className={`w-7 h-7 rounded-full border-2 transition-transform ${areaForm.color === c ? 'border-slate-900 scale-110' : 'border-transparent'}`}
-                    style={{ backgroundColor: c }}
-                    onClick={() => setAreaForm(f => ({ ...f, color: c }))}
-                  />
-                ))}
-              </div>
+              <p className="flex items-center gap-2 text-sm text-foreground">
+                <PontoDaArea area={editingArea ?? undefined} comBorda />
+                {nomeDoTomDaArea(editingArea ?? undefined) ?? 'definida ao salvar, no primeiro tom livre'}
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Categorias de Páginas</Label>
-              <p className="text-xs text-slate-500">Membros desta área terão acesso às páginas dessas categorias.</p>
+              {/* O rótulo anterior dizia "Membros desta área terão acesso às
+                  páginas dessas categorias" e isso é FALSO: este campo não
+                  concede nada. Quem concede é o fluxo de membro, que lê
+                  `ALL_AREA_CATEGORIES` de `config/areaCategories.ts`
+                  (`useTeamMemberMutations:143,292`) e escreve em
+                  `user_page_access`. Este campo é de ESCOPO — decide em quais
+                  telas a área aparece (`useEstruturaAreas`,
+                  `useEstruturaEquipes`, `useDomainClusterPorCategoria`) e
+                  alimenta o bucket do Board (`bucketDePageCategories`). */}
+              <p className="text-xs text-slate-500">Em quais telas esta área aparece. Não concede acesso.</p>
               <div className="flex flex-wrap gap-2">
-                {['dev', 'rotina', 'tax', 'projetos', 'fiscal', 'osg', 'board', 'gestao', 'geral'].map(cat => {
+                {/* `projetos` e `fiscal` saíram: nenhuma página em nenhuma das
+                    duas, então marcar não surtia efeito algum. `mapa` continua
+                    fora de propósito — acrescentá-la amplia o que se pode
+                    escopar e não se faz por dedução. */}
+                {['dev', 'rotina', 'tax', 'osg', 'board', 'gestao', 'geral'].map(cat => {
                   const selected = areaForm.page_categories.includes(cat);
                   return (
                     <button
@@ -635,7 +647,7 @@ export default function EstruturaManager() {
                       }))}
                       className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                         selected
-                          ? 'bg-teal-600 text-white border-teal-600'
+                          ? 'bg-primary text-white border-primary'
                           : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
                       }`}
                     >
@@ -647,21 +659,17 @@ export default function EstruturaManager() {
             </div>
             <div className="space-y-2">
               <Label>Centro de Custo (opcional)</Label>
-              <p className="text-xs text-slate-500">Pode ser diferente do centro de custo do cluster/empresa.</p>
-              <Select value={areaForm.cost_center_id} onValueChange={(val) => setAreaForm(f => ({ ...f, cost_center_id: val === '_none' ? '' : val }))}>
-                <SelectTrigger><SelectValue placeholder="Herdar do cluster" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="_none">Herdar do cluster</SelectItem>
-                  {centrosCusto.map(cc => (
-                    <SelectItem key={cc.id} value={cc.id}>{cc.codigo} - {cc.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <p className="text-xs text-slate-500">Áreas da mesma empresa podem ter centros de custo diferentes.</p>
+              <CentroCustoSelect
+                value={areaForm.cost_center_id}
+                onChange={valor => setAreaForm(f => ({ ...f, cost_center_id: valor }))}
+                rotuloVazio="Herdar do cluster"
+              />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAreaDialog(false)}>Cancelar</Button>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveArea}>Salvar</Button>
+            <Button onClick={saveArea}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -680,7 +688,7 @@ export default function EstruturaManager() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEquipeDialog(false)}>Cancelar</Button>
-            <Button className="bg-teal-600 hover:bg-teal-700 text-white" onClick={saveEquipe}>Salvar</Button>
+            <Button onClick={saveEquipe}>Salvar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -694,7 +702,7 @@ function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string
     <Card className="bg-white border-slate-200/60 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium text-slate-600">{label}</CardTitle>
-        <div className="p-2 rounded-full bg-teal-100">{icon}</div>
+        <div className="p-2 rounded-full bg-primary/15">{icon}</div>
       </CardHeader>
       <CardContent>
         <div className="text-3xl font-bold text-slate-900">{value}</div>

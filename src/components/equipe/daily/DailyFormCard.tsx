@@ -72,38 +72,38 @@ export function DailyFormCard({
   const processLabel = processes.find((process) => process.id === form.process_id)?.name;
 
   return (
-    <Card className="bg-white border-gray-200">
+    <Card className="bg-card border-border">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-gray-900">
-          <Clock className="h-5 w-5 text-gray-500" />
+        <CardTitle className="flex items-center gap-2 text-foreground">
+          <Clock className="h-5 w-5 text-muted-foreground" />
           Daily (15 min)
-          {registered && <Badge className="ml-2 bg-green-100 text-green-700">Registrado</Badge>}
+          {registered && <Badge className="ml-2 bg-status-feito-soft text-status-feito">Registrado</Badge>}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-3 border-b border-gray-100 pb-4">
-            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-sm text-gray-500">
+          <div className="space-y-3 border-b border-border pb-4">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" />
-                <span className={isSelf ? 'text-gray-700' : 'font-medium text-amber-700'}>
+                <span className={isSelf ? 'text-foreground' : 'font-medium text-status-alerta'}>
                   {memberLabel || 'Sem membro selecionado'}
                 </span>
               </span>
-              <span className="text-gray-300">·</span>
+              <span className="text-muted-foreground/50">·</span>
               <span className="flex items-center gap-1.5">
                 <Target className="h-3.5 w-3.5" />
-                <span className={sprintLabel ? 'text-gray-700' : 'text-gray-400'}>{sprintLabel || 'Sem sprint'}</span>
+                <span className={sprintLabel ? 'text-foreground' : 'text-muted-foreground/70'}>{sprintLabel || 'Sem sprint'}</span>
               </span>
               {projectLabel && (
                 <>
-                  <span className="text-gray-300">·</span>
+                  <span className="text-muted-foreground/50">·</span>
                   <span className="flex items-center gap-1.5"><FolderOpen className="h-3.5 w-3.5" />{projectLabel}</span>
                 </>
               )}
               {processLabel && (
                 <>
-                  <span className="text-gray-300">·</span>
+                  <span className="text-muted-foreground/50">·</span>
                   <span className="flex items-center gap-1.5"><Zap className="h-3.5 w-3.5" />{processLabel}</span>
                 </>
               )}
@@ -112,7 +112,7 @@ export function DailyFormCard({
                 variant="ghost"
                 size="sm"
                 onClick={() => setContextOpen((open) => !open)}
-                className="ml-auto h-7 px-2 text-xs text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                className="ml-auto h-7 px-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
                 aria-expanded={contextOpen}
               >
                 <SlidersHorizontal className="h-3.5 w-3.5 mr-1.5" />
@@ -122,15 +122,15 @@ export function DailyFormCard({
             </div>
 
             {!isSelf && selectedUserId && (
-              <p className="text-xs text-amber-700">Você está registrando a daily de outra pessoa.</p>
+              <p className="text-xs text-status-alerta">Você está registrando a daily de outra pessoa.</p>
             )}
 
             {contextOpen && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 rounded-lg border border-gray-200 bg-gray-50/70 p-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 rounded-lg border border-border bg-muted/70 p-3">
                 <ContextField label="Membro da equipe">
                   <Select value={selectedUserId} onValueChange={onSelectedUserIdChange}>
-                    <SelectTrigger className="h-9 bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione o membro" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
+                    <SelectTrigger className="h-9 bg-card border-border text-foreground"><SelectValue placeholder="Selecione o membro" /></SelectTrigger>
+                    <SelectContent className="bg-card border-border">
                       {teamMembers.map((member) => (
                         <SelectItem key={member.id} value={member.id}>
                           {member.first_name} {member.last_name}{member.id === authenticatedUserId && ' (você)'}
@@ -141,8 +141,8 @@ export function DailyFormCard({
                 </ContextField>
                 <ContextField label="Sprint" hint={selectedSprint?.status === 'active' ? '(ativa)' : undefined}>
                   <Select value={form.sprint_id} onValueChange={(sprint_id) => onFormChange({ ...form, sprint_id })}>
-                    <SelectTrigger className="h-9 bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione a sprint" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
+                    <SelectTrigger className="h-9 bg-card border-border text-foreground"><SelectValue placeholder="Selecione a sprint" /></SelectTrigger>
+                    <SelectContent className="bg-card border-border">
                       {sprints.map((sprint) => <SelectItem key={sprint.id} value={sprint.id}>{sprint.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
@@ -152,8 +152,8 @@ export function DailyFormCard({
                     value={form.project_id}
                     onValueChange={(value) => onFormChange({ ...form, project_id: value === '__none__' ? '' : value, process_id: '' })}
                   >
-                    <SelectTrigger className="h-9 bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
+                    <SelectTrigger className="h-9 bg-card border-border text-foreground"><SelectValue placeholder="Selecione um projeto" /></SelectTrigger>
+                    <SelectContent className="bg-card border-border">
                       <SelectItem value="__none__">Nenhum</SelectItem>
                       {projects.map((project) => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}
                     </SelectContent>
@@ -164,8 +164,8 @@ export function DailyFormCard({
                   hint={form.project_id ? '(do projeto)' : '(opcional)'}
                 >
                   <Select value={form.process_id} onValueChange={(value) => onFormChange({ ...form, process_id: value === '__none__' ? '' : value })}>
-                    <SelectTrigger className="h-9 bg-white border-gray-300 text-gray-900"><SelectValue placeholder="Selecione um processo" /></SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
+                    <SelectTrigger className="h-9 bg-card border-border text-foreground"><SelectValue placeholder="Selecione um processo" /></SelectTrigger>
+                    <SelectContent className="bg-card border-border">
                       <SelectItem value="__none__">Nenhum</SelectItem>
                       {processes.map((process) => <SelectItem key={process.id} value={process.id}>{process.name}</SelectItem>)}
                     </SelectContent>
@@ -177,7 +177,7 @@ export function DailyFormCard({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
-              <Label className="text-gray-700 flex items-center gap-2"><CheckCircle className="h-4 w-4 text-gray-500" />O que fiz ontem?</Label>
+              <Label className="text-foreground flex items-center gap-2"><CheckCircle className="h-4 w-4 text-muted-foreground" />O que fiz ontem?</Label>
               <Button type="button" variant="outline" size="sm" onClick={onCopyFromYesterday} disabled={copyingYesterday} className="h-8">
                 <Copy className="h-3.5 w-3.5 mr-1.5" />{copyingYesterday ? 'Buscando...' : 'Trazer plano de ontem'}
               </Button>
@@ -188,10 +188,10 @@ export function DailyFormCard({
                 variant="outline"
                 size="sm"
                 onClick={onOpenQuickUpdate}
-                className="group h-8 border-teal-300 bg-teal-50 text-teal-700 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-400 hover:bg-teal-100 hover:text-teal-800 hover:shadow-md"
+                className="group h-8 border-primary/30 bg-primary/5 text-primary shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/10 hover:text-primary hover:shadow-md"
               >
                 <span className="relative mr-1.5 flex h-3.5 w-3.5 items-center justify-center">
-                  <span className="absolute h-2 w-2 rounded-full bg-teal-400 opacity-60 motion-safe:animate-ping" aria-hidden />
+                  <span className="absolute h-2 w-2 rounded-full bg-primary opacity-60 motion-safe:animate-ping" aria-hidden />
                   <ListChecks className="relative h-3.5 w-3.5 transition-transform duration-200 group-hover:scale-110" />
                 </span>
                 Atualizar Tarefas
@@ -203,7 +203,7 @@ export function DailyFormCard({
               placeholder="Descreva suas entregas de ontem..."
               ariaLabel="O que fiz ontem?"
               minHeight="min-h-[100px]"
-              className="border-slate-300 bg-white shadow-md shadow-slate-200/70 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-slate-200/70 focus-within:border-teal-500 focus-within:ring-teal-500"
+              className="border-border bg-card shadow-md shadow-border/70 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-border/70 focus-within:border-primary focus-within:ring-primary"
               taskReferences={sprintTasks.map((task) => ({
                 ...task,
                 href: `/equipe/sprints/${form.sprint_id}?taskId=${task.id}`,
@@ -211,14 +211,14 @@ export function DailyFormCard({
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-gray-700 flex items-center gap-2"><Clock className="h-4 w-4 text-gray-500" />O que vou fazer hoje?</Label>
+            <Label className="text-foreground flex items-center gap-2"><Clock className="h-4 w-4 text-muted-foreground" />O que vou fazer hoje?</Label>
             <TarefaRichTextEditor
               value={form.will_do_today}
               onChange={(will_do_today) => onFormChange({ ...form, will_do_today })}
               placeholder="Suas tarefas para hoje..."
               ariaLabel="O que vou fazer hoje?"
               minHeight="min-h-[100px]"
-              className="border-slate-300 bg-white shadow-md shadow-slate-200/70 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-slate-200/70 focus-within:border-teal-500 focus-within:ring-teal-500"
+              className="border-border bg-card shadow-md shadow-border/70 transition-[border-color,box-shadow] duration-200 hover:shadow-lg hover:shadow-border/70 focus-within:border-primary focus-within:ring-primary"
               taskReferences={sprintTasks.map((task) => ({
                 ...task,
                 href: `/equipe/sprints/${form.sprint_id}?taskId=${task.id}`,
@@ -227,19 +227,19 @@ export function DailyFormCard({
           </div>
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <Label className="text-gray-700 flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-gray-500" />Tem bloqueio hoje?</Label>
+              <Label className="text-foreground flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-muted-foreground" />Tem bloqueio hoje?</Label>
               <div className="flex gap-1">
                 <Button type="button" size="sm" variant={form.has_blocker ? 'outline' : 'default'} className="h-8" onClick={() => onFormChange({ ...form, has_blocker: false })}>Não</Button>
                 <Button type="button" size="sm" variant={form.has_blocker ? 'default' : 'outline'} className="h-8" onClick={() => onFormChange({ ...form, has_blocker: true })}>Sim</Button>
               </div>
             </div>
             {form.has_blocker && (
-              <div className="space-y-3 rounded-md border border-amber-300 bg-amber-50 p-3">
+              <div className="space-y-3 rounded-md border border-status-alerta/30 bg-status-alerta-soft/60 p-3">
                 <div className="space-y-1.5">
-                  <Label className="text-amber-800 text-sm font-medium">Tarefa travada</Label>
+                  <Label className="text-status-alerta text-sm font-medium">Tarefa travada</Label>
                   <Select value={form.blocked_deliverable_id || '__none__'} onValueChange={(value) => onFormChange({ ...form, blocked_deliverable_id: value === '__none__' ? '' : value })}>
-                    <SelectTrigger className="bg-white border-amber-300 text-gray-900"><SelectValue placeholder="Selecione a tarefa" /></SelectTrigger>
-                    <SelectContent className="bg-white border-amber-200">
+                    <SelectTrigger className="bg-card border-status-alerta/30 text-foreground"><SelectValue placeholder="Selecione a tarefa" /></SelectTrigger>
+                    <SelectContent className="bg-card border-status-alerta/20">
                       <SelectItem value="__none__">Nenhuma específica</SelectItem>
                       {blockerGroups.map((group, index) => (
                         <SelectGroup key={group.header ?? '__avulsas__'}>
@@ -252,7 +252,7 @@ export function DailyFormCard({
                             <SelectItem
                               key={task.id}
                               value={task.id}
-                              className={task.status === 'completed' ? 'text-gray-400 line-through' : ''}
+                              className={task.status === 'completed' ? 'text-muted-foreground/70 line-through' : ''}
                             >
                               {task.task_code ? `${task.task_code} - ` : ''}{task.title}
                             </SelectItem>
@@ -261,15 +261,15 @@ export function DailyFormCard({
                       ))}
                     </SelectContent>
                   </Select>
-                  {sprintTasks.length === 0 && <p className="text-xs text-amber-700">Escolha uma sprint com tarefas suas para vincular o bloqueio a uma tarefa.</p>}
+                  {sprintTasks.length === 0 && <p className="text-xs text-status-alerta">Escolha uma sprint com tarefas suas para vincular o bloqueio a uma tarefa.</p>}
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-amber-800 text-sm font-medium">Por quê?</Label>
-                  <Textarea value={form.blockers} onChange={(event) => onFormChange({ ...form, blockers: event.target.value })} className="bg-white border-amber-300 text-gray-900 min-h-[60px]" placeholder="O que está impedindo?" />
+                  <Label className="text-status-alerta text-sm font-medium">Por quê?</Label>
+                  <Textarea value={form.blockers} onChange={(event) => onFormChange({ ...form, blockers: event.target.value })} className="bg-card border-status-alerta/30 text-foreground min-h-[60px]" placeholder="O que está impedindo?" />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-amber-800 text-sm font-medium">Quem/o que destrava? <span className="text-amber-600 font-normal">(opcional)</span></Label>
-                  <Input value={form.blocker_owner} onChange={(event) => onFormChange({ ...form, blocker_owner: event.target.value })} className="bg-white border-amber-300 text-gray-900" placeholder="Ex.: TI, cliente, João" />
+                  <Label className="text-status-alerta text-sm font-medium">Quem/o que destrava? <span className="text-status-alerta font-normal">(opcional)</span></Label>
+                  <Input value={form.blocker_owner} onChange={(event) => onFormChange({ ...form, blocker_owner: event.target.value })} className="bg-card border-status-alerta/30 text-foreground" placeholder="Ex.: TI, cliente, João" />
                 </div>
               </div>
             )}
@@ -287,9 +287,9 @@ export function DailyFormCard({
 function ContextField({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+      <Label className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
-        {hint && <span className="ml-1 font-normal normal-case tracking-normal text-gray-400">{hint}</span>}
+        {hint && <span className="ml-1 font-normal normal-case tracking-normal text-muted-foreground/70">{hint}</span>}
       </Label>
       {children}
     </div>

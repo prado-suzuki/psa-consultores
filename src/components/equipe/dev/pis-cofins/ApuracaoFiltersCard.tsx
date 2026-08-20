@@ -22,15 +22,15 @@ export function ApuracaoFiltersCard({ controller }: { controller: ApuracaoPisCof
   const clientes = controller.clientesQuery.data;
   const contribuintes = controller.contribuintesQuery.data;
   return <>
-    <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1] dark:bg-teal-950/30 dark:border-teal-800">
-      <Info className="h-5 w-5 text-teal-700 dark:text-teal-400" />
+    <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1] dark:bg-primary/10 dark:border-primary/60">
+      <Info className="h-5 w-5 text-primary" />
       <AlertTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">Visão Geral</AlertTitle>
       <AlertDescription className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mt-1">
         A <strong className="font-semibold">Apuração PIS/COFINS</strong> consolida débitos, créditos, isenções e rateios do contribuinte a partir do <strong className="font-semibold">EFD Contribuições</strong> (modo Cliente) ou do <strong className="font-semibold">Balancete</strong> importado (modo Prado), permitindo conferir a base de cálculo, o resultado do período e o saldo apurado mês a mês.
       </AlertDescription>
     </Alert>
     <Card className="mb-6">
-      <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 text-lg text-primary"><Filter className="h-5 w-5 text-teal-600" /><span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span></CardTitle></CardHeader>
+      <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 text-lg text-primary"><Filter className="h-5 w-5 text-primary" /><span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span></CardTitle></CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-4">

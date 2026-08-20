@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   classificarArea,
-  filtrarPorArea,
+  filtrarPorCluster,
+  filtrarTarefasPorProjetos,
   saudeProjetos,
   granularidadePara,
   serieTarefasPorArea,
@@ -45,16 +46,51 @@ describe('classificarArea', () => {
   });
 });
 
-describe('filtrarPorArea', () => {
-  it('"todas" não filtra', () => {
-    expect(filtrarPorArea(projetos, 'todas')).toHaveLength(6);
+describe('filtrarPorCluster', () => {
+  const linhas = [
+    { id: 'a', cluster_id: 'c1' },
+    { id: 'b', cluster_id: 'c2' },
+    { id: 'c', cluster_id: 'c1' },
+    { id: 'd', cluster_id: null },
+  ];
+
+  it('sem cliente selecionado passa a coleção inteira', () => {
+    expect(filtrarPorCluster(linhas, '')).toHaveLength(4);
   });
 
-  it('filtra pelo bucket da área, não por substring do nome', () => {
-    expect(filtrarPorArea(projetos, 'tax').map((p) => p.id)).toEqual(['p1', 'p2']);
-    expect(filtrarPorArea(projetos, 'osg').map((p) => p.id)).toEqual(['p3']);
-    expect(filtrarPorArea(projetos, 'dev').map((p) => p.id)).toEqual(['p4']);
-    expect(filtrarPorArea(projetos, 'outros').map((p) => p.id)).toEqual(['p5', 'p6']);
+  it('filtra pelo ID do cluster', () => {
+    expect(filtrarPorCluster(linhas, 'c1').map((l) => l.id)).toEqual(['a', 'c']);
+  });
+
+  it('linha sem cluster fica de fora com filtro ativo — "não sei de quem é" não vira "é deste"', () => {
+    expect(filtrarPorCluster(linhas, 'c2').map((l) => l.id)).toEqual(['b']);
+  });
+
+  it('cluster inexistente devolve vazio, não a coleção inteira', () => {
+    expect(filtrarPorCluster(linhas, 'nao-existe')).toEqual([]);
+  });
+});
+
+describe('filtrarTarefasPorProjetos', () => {
+  const tarefas = [
+    { project_id: 'p1', nome: 't1' },
+    { project_id: 'p2', nome: 't2' },
+    { project_id: 'p1', nome: 't3' },
+    { project_id: null, nome: 'orfa' },
+  ];
+
+  it('mantém só as tarefas dos projetos informados', () => {
+    expect(filtrarTarefasPorProjetos(tarefas, [{ id: 'p1' }]).map((t) => t.nome))
+      .toEqual(['t1', 't3']);
+  });
+
+  it('tarefa sem projeto fica de fora — cairia em "Outros" e inflaria a linha', () => {
+    expect(filtrarTarefasPorProjetos(tarefas, [{ id: 'p1' }, { id: 'p2' }]))
+      .toHaveLength(3);
+  });
+
+  it('nenhum projeto no recorte devolve nenhuma tarefa', () => {
+    expect(filtrarTarefasPorProjetos(tarefas, [])).toEqual([]);
   });
 });
 
@@ -71,9 +107,10 @@ describe('saudeProjetos', () => {
     });
   });
 
-  it('acompanha o filtro de área (pontualidade do escopo, não global)', () => {
-    expect(saudeProjetos(filtrarPorArea(projetos, 'tax')).pontualidade).toBe(50);
-    expect(saudeProjetos(filtrarPorArea(projetos, 'osg')).pontualidade).toBe(100);
+  it('acompanha o recorte da tela (pontualidade do escopo, não global)', () => {
+    const bucket = (a: string) => projetos.filter((p) => bucketDoItem(p) === a);
+    expect(saudeProjetos(bucket('tax')).pontualidade).toBe(50);
+    expect(saudeProjetos(bucket('osg')).pontualidade).toBe(100);
   });
 });
 
@@ -258,55 +295,47 @@ describe('resumoPorArea', () => {
 });
 
 describe('construirMapaDeClusters', () => {
-  const clusters = [
-    { id: 'c-tax', name: 'PSA Tax' },
-    { id: 'c-osg', name: 'PSA OSG' },
-    { id: 'c-dig', name: 'PSA Digital' },
-    { id: 'c-x', name: 'Holding' },
-  ];
-
   it('usa page_categories como fonte canônica — imune ao nome da área', () => {
     const { bucketDoCluster, bucketDaArea } = construirMapaDeClusters({
       areas: [{ id: 'a1', name: 'Núcleo Alfa', cluster_id: 'c-tax', page_categories: ['tax'] }],
-      clusters,
     });
     expect(bucketDaArea.get('a1')).toBe('tax');
     expect(bucketDoCluster.get('c-tax')).toBe('tax');
   });
 
-  it('sem page_categories, cai no nome da área', () => {
-    const { bucketDoCluster } = construirMapaDeClusters({
-      areas: [{ id: 'a1', name: 'Societário', cluster_id: 'c-osg', page_categories: null }],
-      clusters,
+  // ── O caso real que motivou a remoção do palpite por nome ────────────────
+  // `TAX LEGAL` é área ATIVA do cluster **Prado Advogados** e não declara
+  // `page_categories`. Enquanto o mapa caía no nome, o "tax" do nome fazia o
+  // Prado inteiro ser contado como Tax. Área sem categoria declarada não
+  // classifica mais nada — nem a si, nem o cluster dela.
+  it('área sem page_categories fica fora do mapa, mesmo com nome que casaria', () => {
+    const { bucketDoCluster, bucketDaArea } = construirMapaDeClusters({
+      areas: [{ id: 'a1', name: 'TAX LEGAL', cluster_id: 'c-prado', page_categories: null }],
     });
-    expect(bucketDoCluster.get('c-osg')).toBe('osg');
+    expect(bucketDaArea.has('a1')).toBe(false);
+    expect(bucketDoCluster.has('c-prado')).toBe(false);
   });
 
-  it('cluster sem nenhuma área classificada cai no nome do cluster', () => {
-    // É o caso da Digital: nenhuma área declara page_categories 'dev'.
-    const { bucketDoCluster } = construirMapaDeClusters({ areas: [], clusters });
-    expect(bucketDoCluster.get('c-dig')).toBe('dev');
-    expect(bucketDoCluster.get('c-tax')).toBe('tax');
+  it('page_categories vazio conta como não declarado', () => {
+    const { bucketDaArea } = construirMapaDeClusters({
+      areas: [{ id: 'a1', name: 'Societário', cluster_id: 'c-osg', page_categories: [] }],
+    });
+    expect(bucketDaArea.has('a1')).toBe(false);
   });
 
-  it('cluster que não casa com nenhum bucket fica de fora do mapa', () => {
-    const { bucketDoCluster } = construirMapaDeClusters({ areas: [], clusters });
-    expect(bucketDoCluster.has('c-x')).toBe(false);
-  });
-
-  it('categoria declarada vence o nome de uma área irmã do mesmo cluster', () => {
-    const { bucketDoCluster } = construirMapaDeClusters({
+  it('irmã sem categoria não interfere na que declara', () => {
+    const { bucketDoCluster, bucketDaArea } = construirMapaDeClusters({
       areas: [
         { id: 'a1', name: 'Digital interno', cluster_id: 'c-tax', page_categories: null },
         { id: 'a2', name: 'Fiscal', cluster_id: 'c-tax', page_categories: ['tax'] },
       ],
-      clusters,
     });
     expect(bucketDoCluster.get('c-tax')).toBe('tax');
+    expect(bucketDaArea.has('a1')).toBe(false);
   });
 
   it('entrada vazia não quebra', () => {
-    const { bucketDoCluster, bucketDaArea } = construirMapaDeClusters({ areas: [], clusters: [] });
+    const { bucketDoCluster, bucketDaArea } = construirMapaDeClusters({ areas: [] });
     expect(bucketDoCluster.size).toBe(0);
     expect(bucketDaArea.size).toBe(0);
   });
@@ -325,14 +354,14 @@ describe('bucketDoItem', () => {
     expect(bucketDoItem({ area_name: null, area_key: null })).toBe('outros');
   });
 
-  it('filtro por área usa a chave resolvida', () => {
+  it('a chave resolvida vence o palpite pelo nome', () => {
     const itens = [
       { area_name: null, area_key: 'tax' as const },
       { area_name: 'Tax', area_key: null },
       { area_name: null, area_key: null },
     ];
-    expect(filtrarPorArea(itens, 'tax')).toHaveLength(2);
-    expect(filtrarPorArea(itens, 'outros')).toHaveLength(1);
+    expect(itens.filter((i) => bucketDoItem(i) === 'tax')).toHaveLength(2);
+    expect(itens.filter((i) => bucketDoItem(i) === 'outros')).toHaveLength(1);
   });
 });
 

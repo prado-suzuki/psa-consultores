@@ -51,7 +51,7 @@ const somaContabil = (bens: DPBem[]): number =>
 
 // ---------- células editáveis (validação manual — só nos não integralizados) ----------
 const editBase =
-  'w-full rounded-md border border-[#efe1bd] bg-[#fffdf6] px-2 py-1 text-[12px] text-slate-600 outline-none ' +
+  'w-full rounded-md border border-[#efe1bd] bg-[#fffdf6] px-2 py-1 text-[12px] text-muted-foreground outline-none ' +
   'hover:border-[#e6cf94] focus:border-osg-moss focus:bg-white focus:ring-2 focus:ring-osg-moss/15';
 
 function EditableMoney({ value, onSave }: { value: number | null; onSave: (v: number | null) => void }) {
@@ -61,7 +61,7 @@ function EditableMoney({ value, onSave }: { value: number | null; onSave: (v: nu
     return (
       <button
         type="button"
-        className={cn(editBase, 'text-right tabular-nums', value === null && 'text-slate-400')}
+        className={cn(editBase, 'text-right tabular-nums', value === null && 'text-muted-foreground/70')}
         onClick={() => { setRaw(value === null ? '' : String(value)); setEditing(true); }}
       >
         {value === null ? 'a informar' : fmtMoney(value)}
@@ -96,8 +96,8 @@ function EditableText({ value, onSave }: { value: string; onSave: (v: string) =>
 }
 
 // ---------- estilos de tabela ----------
-const th = 'whitespace-nowrap border-b border-osg-200 bg-slate-50 px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-slate-500';
-const td = 'border-t border-osg-100 px-3 py-2 align-top text-slate-600';
+const th = 'whitespace-nowrap border-b border-osg-200 bg-muted px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground';
+const td = 'border-t border-osg-100 px-3 py-2 align-top text-muted-foreground';
 
 // Colunas exatamente como no pptx (VF Potrich).
 const HEAD_INT = ['Propriedade de direito', 'Referência do bem', 'Matrícula', 'Município/UF', 'Valor Contábil'];
@@ -113,7 +113,7 @@ function BlocoIntegralizados({ titulo, meta, bens }: { titulo: string; meta: str
         <Building2 className="h-4 w-4 shrink-0 text-osg-600" />
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-osg-800">{titulo}</h3>
-          <p className="text-xs text-slate-500">{meta}</p>
+          <p className="text-xs text-muted-foreground">{meta}</p>
         </div>
       </header>
       <div className="overflow-x-auto">
@@ -125,7 +125,7 @@ function BlocoIntegralizados({ titulo, meta, bens }: { titulo: string; meta: str
             {rows.map((r, ri) => (
               <tr key={ri} className="hover:bg-osg-50/30">
                 {r.map((c, ci) => (
-                  <td key={ci} className={cn(td, ci === 4 && 'whitespace-nowrap text-right tabular-nums', ci === 1 && 'font-medium text-slate-800')}>
+                  <td key={ci} className={cn(td, ci === 4 && 'whitespace-nowrap text-right tabular-nums', ci === 1 && 'font-medium text-foreground')}>
                     {c || '—'}
                   </td>
                 ))}
@@ -154,7 +154,7 @@ function BlocoForaProjeto({
         <FileWarning className="h-4 w-4 shrink-0 text-osg-600" />
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-osg-800">{titulo}</h3>
-          <p className="text-xs text-slate-500">{meta}</p>
+          <p className="text-xs text-muted-foreground">{meta}</p>
         </div>
       </header>
       <div className="overflow-x-auto">
@@ -175,11 +175,11 @@ function BlocoForaProjeto({
             {linhas.map((l, ri) => (
               <tr key={`${l.bem.id}-${l.mat?.id ?? ri}`} className="hover:bg-osg-50/30">
                 <td className={td}>{titularTxt(l)}</td>
-                <td className={cn(td, 'font-medium text-slate-800')}>{l.bem.denominacao || '—'}</td>
+                <td className={cn(td, 'font-medium text-foreground')}>{l.bem.denominacao || '—'}</td>
                 <td className={td}>{matTxt(l)}</td>
                 <td className={cn(td, 'whitespace-nowrap')}>{munUfTxt(l)}</td>
                 <td className={cn(td, 'whitespace-nowrap text-right tabular-nums')}>{fmtMoney(valContabil(l))}</td>
-                <td className={cn(td, 'text-right text-slate-400')}>—</td>
+                <td className={cn(td, 'text-right text-muted-foreground/70')}>—</td>
                 <td className={cn(td, 'w-[120px]')}>
                   <EditableMoney value={l.bem.vlr_mercado} onSave={(v) => onEdit(l.bem.id, 'vlr_mercado', v)} />
                 </td>
@@ -244,7 +244,7 @@ export function DiagnosticoPatrimonialReport({ clienteId }: { clienteId: string 
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center">
         <Landmark className="h-10 w-10 text-osg-400" />
-        <p className="text-sm text-slate-600">Nenhum bem cadastrado no Diagnóstico Patrimonial de {clienteNome || 'este cliente'}.</p>
+        <p className="text-sm text-muted-foreground">Nenhum bem cadastrado no Diagnóstico Patrimonial de {clienteNome || 'este cliente'}.</p>
       </div>
     );
   }
@@ -253,10 +253,10 @@ export function DiagnosticoPatrimonialReport({ clienteId }: { clienteId: string 
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-slate-800">
+          <h2 className="text-base font-semibold text-foreground">
             Quadro Patrimonial — <span className="text-osg-700">{clienteNome}</span>
           </h2>
-          <span className="text-xs text-slate-500">Espelha os slides de Organização Patrimonial · fonte: módulo Diagnóstico Patrimonial</span>
+          <span className="text-xs text-muted-foreground">Espelha os slides de Organização Patrimonial · fonte: módulo Diagnóstico Patrimonial</span>
         </div>
         <GerarDeckButton clienteId={clienteId} tipo="patrimonial" label="Gerar deck Patrimonial" />
       </div>
@@ -264,9 +264,9 @@ export function DiagnosticoPatrimonialReport({ clienteId }: { clienteId: string 
       {/* Resumo sóbrio */}
       <div className="flex overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm max-sm:flex-col">
         <ResumoCel titulo="Sociedades" valor={`${totais.nSoc}`} desc="destino de integralização" first />
-        <ResumoCel titulo="Integralizados" valor={`${totais.nInt}`} desc={`${fmtMoney(totais.vInt)} contábil`} dot="bg-osg-moss" />
-        <ResumoCel titulo="Não integralizados" valor={`${totais.nFora}`} desc={`${fmtMoney(totais.vFora)} contábil`} dot="bg-amber-500" />
-        <ResumoCel titulo="Lançamentos" valor={`${totais.lancamentos}`} desc="bens no diagnóstico" dot="bg-slate-400" />
+        <ResumoCel titulo="Integralizados" valor={`${totais.nInt}`} desc={`${fmtMoney(totais.vInt)} contábil`} dot="bg-status-feito" />
+        <ResumoCel titulo="Não integralizados" valor={`${totais.nFora}`} desc={`${fmtMoney(totais.vFora)} contábil`} dot="bg-status-alerta" />
+        <ResumoCel titulo="Lançamentos" valor={`${totais.lancamentos}`} desc="bens no diagnóstico" dot="bg-status-neutro" />
       </div>
 
       {/* Uma tabela por sociedade de integralização (= 1 slide no deck) */}
@@ -288,13 +288,13 @@ export function DiagnosticoPatrimonialReport({ clienteId }: { clienteId: string 
         />
       )}
 
-      <div className="flex items-start gap-2 px-1 text-xs leading-relaxed text-slate-500">
-        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+      <div className="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
         <span>
           Colunas idênticas ao pptx de Organização Patrimonial. Integralizados: automáticas (bem · matrícula · titularidade).
-          Não integralizados: <b className="font-semibold text-slate-600">Valor de Mercado</b> e <b className="font-semibold text-slate-600">Definições/observações</b> são validação manual da OSG (<Pencil className="inline h-3 w-3 text-amber-500" /> salva ao sair do campo);
-          {' '}<b className="font-semibold text-slate-600">Valor ITR/IPTU</b> (•) fica em branco até criarmos o campo — pendência de migration.
-          Use <b className="font-semibold text-slate-600">Gerar deck Patrimonial</b> para montar os slides no modelo PSA.
+          Não integralizados: <b className="font-semibold text-muted-foreground">Valor de Mercado</b> e <b className="font-semibold text-muted-foreground">Definições/observações</b> são validação manual da OSG (<Pencil className="inline h-3 w-3 text-amber-500" /> salva ao sair do campo);
+          {' '}<b className="font-semibold text-muted-foreground">Valor ITR/IPTU</b> (•) fica em branco até criarmos o campo — pendência de migration.
+          Use <b className="font-semibold text-muted-foreground">Gerar deck Patrimonial</b> para montar os slides no modelo PSA.
         </span>
       </div>
     </div>
@@ -306,11 +306,11 @@ function ResumoCel({
 }: { titulo: string; valor: string; desc: string; dot?: string; first?: boolean }) {
   return (
     <div className={cn('flex-1 px-5 py-3.5', !first && 'sm:border-l max-sm:border-t border-osg-100')}>
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         <span className={cn('h-2 w-2 rounded-sm', dot)} /> {titulo}
       </div>
-      <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">{valor}</div>
-      <div className="mt-0.5 text-xs text-slate-500">{desc}</div>
+      <div className="mt-1 text-[22px] font-semibold leading-tight text-foreground">{valor}</div>
+      <div className="mt-0.5 text-xs text-muted-foreground">{desc}</div>
     </div>
   );
 }

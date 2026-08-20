@@ -117,7 +117,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
             <div>
               <Label>Arquivo (PDF ou DOCX, máx. 10MB)</Label>
               <div
-                className="mt-1 border-2 border-dashed border-slate-200 rounded-lg p-6 text-center cursor-pointer hover:border-teal-400 transition-colors"
+                className="mt-1 border-2 border-dashed border-slate-200 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => fileRef.current?.click()}
               >
                 {file ? (

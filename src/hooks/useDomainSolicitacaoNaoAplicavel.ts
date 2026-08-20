@@ -49,6 +49,30 @@ export function useSolicitacaoNaoAplicavel(clienteId: string, alvo: Alvo | null)
   });
 }
 
+/**
+ * Todas as marcas do cliente, sem recortar por alvo.
+ *
+ * O modal de vínculo pergunta "o que não se aplica a ESTA entidade" e por isso lê
+ * por alvo; o checklist derivado precisa do conjunto inteiro de uma vez, porque
+ * ele varre item × instância. A chave compartilha o prefixo `[KEY, clienteId]`, o
+ * mesmo que `useSincronizarSolicitacaoNaoAplicavel` invalida, então marcar algo no
+ * modal atualiza o checklist sem invalidação nova.
+ */
+export function useSolicitacaoNaoAplicavelDoCliente(clienteId: string | null) {
+  return useQuery({
+    queryKey: [KEY, clienteId, '__todos__'],
+    enabled: !!clienteId,
+    queryFn: async (): Promise<SolicitacaoNaoAplicavelRow[]> => {
+      const { data, error } = await sb
+        .from('solicitacao_item_nao_aplicavel')
+        .select('*')
+        .eq('cliente_id', clienteId);
+      if (error) throw error;
+      return (data ?? []) as unknown as SolicitacaoNaoAplicavelRow[];
+    },
+  });
+}
+
 export function useSincronizarSolicitacaoNaoAplicavel(clienteId: string) {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();

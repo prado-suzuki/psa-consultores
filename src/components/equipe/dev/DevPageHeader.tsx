@@ -44,8 +44,8 @@ const renderBoldSegments = (text: string): ReactNode[] => {
  */
 export const DevPageHeader = ({ description, manualUrl, hideManualLink = false }: DevPageHeaderProps) => {
   return (
-    <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1] dark:bg-teal-950/30 dark:border-teal-800">
-      <Info className="h-5 w-5 text-teal-700 dark:text-teal-400" />
+    <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1] dark:bg-primary/10 dark:border-primary/60">
+      <Info className="h-5 w-5 text-primary" />
       <AlertTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">
         Visão Geral
       </AlertTitle>

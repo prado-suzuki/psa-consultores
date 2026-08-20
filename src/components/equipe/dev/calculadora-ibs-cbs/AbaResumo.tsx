@@ -153,7 +153,7 @@ function SegmentoCard({
             <div>
               <p className="text-slate-400 uppercase tracking-wider mb-0.5">Tributo DEPOIS</p>
               <>
-                <p className="font-bold text-teal-700 tabular-nums">
+                <p className="font-bold text-primary tabular-nums">
                   {fmtBRL(segmento.tributoDepoisIbsCbs)}
                 </p>
                 <p className="text-slate-500">Carga {fmtPct(cargaDepois)}</p>

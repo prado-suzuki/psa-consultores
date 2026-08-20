@@ -6,7 +6,7 @@ import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/comp
 import { Input } from '@/components/ui/input';
 import { ModalTopBar } from '@/components/ui/modal-top-bar';
 import { SectionHeading } from '@/components/ui/section-heading';
-import { Textarea } from '@/components/ui/textarea';
+import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
 import { TaskContextSelect } from '@/components/equipe/fiscal/tasks/task-modal/TaskContextSelect';
 import { TaskPropertyBar } from '@/components/equipe/fiscal/tasks/task-modal/TaskPropertyBar';
 import type { TaskFieldOptions, TaskFormValues } from '@/lib/orgTaskForm';
@@ -159,11 +159,17 @@ export function TaskCreateFields({
             <FormItem className="mt-2 space-y-0">
               <FormLabel className="sr-only">Descrição</FormLabel>
               <FormControl>
-                <Textarea
+                {/* Mesmo editor da edição: o que for escrito aqui tem que abrir
+                    formatado depois, e o rich text de chamado delegado também. */}
+                <TarefaRichTextEditor
+                  value={field.value}
+                  onChange={field.onChange}
+                  ariaLabel="Descrição"
+                  withCode={false}
                   placeholder="Descreva a tarefa..."
-                  rows={3}
-                  className="resize-none rounded-xl bg-muted/20 leading-6"
-                  {...field}
+                  minHeight="min-h-[104px]"
+                  maxHeight="max-h-[280px]"
+                  className="rounded-xl bg-muted/20"
                 />
               </FormControl>
               <FormMessage className="pt-1.5" />

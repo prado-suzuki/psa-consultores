@@ -93,17 +93,17 @@ vi.mock('@/components/dashboard/momentum', () => ({
     </section>
   ),
   HeroBanner: ({
-    area,
     eyebrow,
     title,
     description,
   }: {
-    area: string;
     eyebrow: string;
     title: string;
     description: string;
   }) => (
-    <section data-testid="hero" data-area={area}>
+    // O banner deixou de receber `area`: a paleta dele vem do tema no <html>.
+    // Quem caracteriza a área da tela aqui é o eyebrow ("Tax" / "OSG").
+    <section data-testid="hero">
       <span>{eyebrow}</span>
       <h2>{title}</h2>
       <p>{description}</p>
@@ -223,7 +223,7 @@ describe('FiscalDashboard e contrato público compartilhado', () => {
     expect(screen.getByTestId('fiscal-layout')).toBeInTheDocument();
     expect(screen.getByRole('heading', { level: 1, name: 'Dashboard' })).toBeInTheDocument();
     expect(screen.getByText('Visão geral da área fiscal — atualizado em tempo real')).toBeInTheDocument();
-    expect(screen.getByTestId('hero')).toHaveAttribute('data-area', 'tax');
+    expect(screen.getByTestId('hero')).toHaveTextContent('Tax');
     expect(screen.getByText('Tax')).toBeInTheDocument();
     expect(mocks.areas).toHaveBeenCalledWith('tax');
     expect(mocks.equipes).toHaveBeenCalledWith('tax');
@@ -241,7 +241,7 @@ describe('FiscalDashboard e contrato público compartilhado', () => {
 
     expect(screen.getByTestId('osg-layout')).toBeInTheDocument();
     expect(screen.getByText('Visão geral da área OSG')).toBeInTheDocument();
-    expect(screen.getByTestId('hero')).toHaveAttribute('data-area', 'osg');
+    expect(screen.getByTestId('hero')).toHaveTextContent('OSG');
     expect(screen.getByText('OSG')).toBeInTheDocument();
     expect(kpi('Total Projetos')).toHaveTextContent('1');
     expect(kpi('Total Tarefas')).toHaveTextContent('1');

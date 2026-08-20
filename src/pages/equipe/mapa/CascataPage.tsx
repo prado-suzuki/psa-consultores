@@ -24,6 +24,7 @@ import { useClusterGlobal } from '@/hooks/useClusterGlobal';
 import { canon } from '@/utils/cascataEngine';
 import PageStats from '@/components/equipe/mapa/PageStats';
 import CascataCanvas from '@/components/equipe/mapa/cascata/CascataCanvas';
+import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 import { derivarCascataPorEtapas, type DerivacaoCascata } from '@/utils/cascataDocumento';
 import { buildCascataGraph } from '@/utils/cascataGraph';
 import type { Gargalo } from '@/types';
@@ -31,6 +32,9 @@ import './styles/cascata.css';
 import TourTrigger from '@/components/equipe/mapa/tour/TourTrigger';
 
 export default function CascataPage() {
+  // Rail de gargalos (300px) + canvas do grafo por ondas: tela de trabalho largo.
+  useTelaDeTrabalhoLargo();
+
   const { data: gargalos = [], isLoading: gLoading } = useGargalos();
   const { data: etapas = [], isLoading: eLoading } = useEtapas();
   const { data: docs = [], isLoading: dLoading } = useDocumentos();

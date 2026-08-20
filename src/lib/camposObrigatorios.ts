@@ -21,7 +21,11 @@ export type AbaCadastro = 'cliente' | 'contribuintes' | 'representantes' | 'cont
  * consultor tenha navegado para outro no meio do caminho.
  */
 export interface FocoPendencia {
-  itemId: number;
+  /**
+   * Item da lista a abrir. Ausente quando a falta é da aba Cliente, que não tem
+   * lista — e era esse caso que ficava sem pedido de foco nenhum.
+   */
+  itemId?: number;
 }
 
 export interface Pendencia {
@@ -95,7 +99,11 @@ export function pendenciasContribuinte(e: DraftEntity, inscricoes: InscricaoIE[]
   if (vazio(e.logradouro)) add(2, 'logradouro', 'Logradouro é obrigatório');
   if (vazio(e.bairro)) add(2, 'bairro', 'Bairro é obrigatório');
   if (vazio(e.municipio)) add(2, 'municipio', 'Município é obrigatório');
-  if (vazio(e.uf) || (e.uf || '').trim().length !== 2) add(2, 'uf', 'UF tem 2 letras');
+  // Vazio e mal preenchido são faltas diferentes e merecem frases diferentes.
+  // Juntos numa condição só, quem deixava a UF em branco lia "UF tem 2 letras",
+  // que fala de formato, enquanto os cinco campos vizinhos dizem "é obrigatório".
+  if (vazio(e.uf)) add(2, 'uf', 'UF é obrigatória');
+  else if ((e.uf || '').trim().length !== 2) add(2, 'uf', 'UF tem 2 letras');
 
   if (e.tipo_pessoa === 'PJ') {
     if (vazio(e.cod_cnae)) add(3, 'cod_cnae', 'CNAE é obrigatório para pessoa jurídica');
@@ -174,6 +182,15 @@ export function pendenciasOrdemServico(c: DraftOrdemServico): Pendencia[] {
   const faltas: Pendencia[] = [];
   const add = (secao: number, campo: string, mensagem: string) =>
     faltas.push({ aba: 'contratos', itemId: c._id, secao, campo, mensagem });
+
+  // Seção 1 (Período): o projeto herda início e fim daqui e não tem campo de
+  // data própria, então OS sem período trava a criação do projeto lá na frente.
+  if (vazio(c.data_inicio_projeto)) add(1, 'data_inicio_projeto', 'Informe a data de início');
+  if (vazio(c.data_fim_projeto)) add(1, 'data_fim_projeto', 'Informe a data de fim');
+  if (!vazio(c.data_inicio_projeto) && !vazio(c.data_fim_projeto)
+    && c.data_inicio_projeto > c.data_fim_projeto) {
+    add(1, 'data_fim_projeto', 'A data de fim deve ser posterior à de início');
+  }
 
   if (vazio(c.setor_cliente_id)) add(2, 'setor_cliente_id', 'Selecione a área do negócio');
   if (vazio(c.regiao)) add(2, 'regiao', 'Selecione a região');

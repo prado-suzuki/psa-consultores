@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
@@ -15,7 +14,6 @@ import {
   ChevronDown,
   Menu,
   ArrowLeft,
-  User,
   Shield,
   Users,
   Landmark,
@@ -36,8 +34,12 @@ import {
   Rocket,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
+import { classeLarguraBarra } from '@/lib/sidebarMedidas';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
+import { linkEspelhado } from '@/lib/areaTheme';
 
 const OsgWorkClienteBar = () => {
   const { clienteId, setClienteId } = useOsgWork();
@@ -97,7 +99,7 @@ const OsgWorkClienteBar = () => {
             <span>Selecione um cliente para usar as ferramentas</span>
           </div>
         ) : (
-          <div className="text-xs text-slate-600 truncate">
+          <div className="text-xs text-muted-foreground truncate">
             Trabalhando em: <span className="font-semibold">{clienteSelecionado?.nome}</span>
           </div>
         )}
@@ -114,23 +116,12 @@ interface OsgLayoutProps {
 }
 
 export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayoutProps) => {
-  const { signOut, user, isAdmin, isLider } = useAuth();
+  const { signOut, isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
-
-  // Telas de trabalho largas (três colunas) recolhem a sidebar sozinhas para
-  // sobrar espaço. A barra ENTRA ABERTA e recolhe logo depois, na frente do
-  // usuário: o movimento é o que explica que o menu foi recolhido — nascer
-  // estreita parecia um menu quebrado. Cada página monta seu próprio OsgLayout,
-  // então isto roda uma vez por entrada na rota, e sair já devolve a barra
-  // aberta. O botão de expandir continua valendo a qualquer momento.
-  const recolheAoEntrar = location.pathname === '/equipe/osg/work/onboarding/cadastro';
-  useEffect(() => {
-    if (!recolheAoEntrar) return;
-    const id = setTimeout(() => setCollapsed(true), 450);
-    return () => clearTimeout(id);
-  }, [recolheAoEntrar]);
+  // Telas de trabalho largas recolhem a barra sozinhas — quem pede é a própria
+  // tela, com `useTelaDeTrabalhoLargo()`; este layout não conhece rota nenhuma.
+  const { collapsed, setCollapsed } = useSidebarRecolhimentoController();
   // "Gerencial" só aparece para líder+ (isLider é estrito, não engloba admin).
   const canGerencial = isAdmin || isLider;
 
@@ -144,12 +135,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
     collapsed ? 'pointer-events-none -translate-x-1 opacity-0' : 'opacity-100 delay-150',
   );
 
-  // Enquanto a área OSG está montada, marca o <html> para o tema OSG sobrescrever
-  // o accent teal padrão pelo verde osg-moss — alcança também menus em portal (body).
-  useEffect(() => {
-    document.documentElement.classList.add('osg-theme');
-    return () => document.documentElement.classList.remove('osg-theme');
-  }, []);
+  // O tema da área NÃO é aplicado aqui: quem o aplica é o `AreaThemeProvider`,
+  // a partir da rota, acima dos gates de acesso (ver `src/lib/areaTheme.ts`).
 
   const handleSignOut = async () => {
     await signOut();
@@ -181,7 +168,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
     { path: '/equipe/osg/gerencial', label: 'Dashboards', icon: LayoutDashboard },
     { path: '/equipe/osg/gerencial/chamados', label: 'Gestão de Chamados', icon: MessageSquare },
     { path: '/equipe/osg/gerencial/chamados/dashboard', label: 'Dashboard de Chamados', icon: LineChart },
-    { path: '/equipe/osg/gerencial/logs-equipe', label: 'Logs de Equipe', icon: Shield },
+    { path: '/equipe/osg/gerencial/logs-equipe', label: 'Logs de Uso', icon: Shield },
   ];
   const isGerencialActive = location.pathname.startsWith('/equipe/osg/gerencial');
 
@@ -228,16 +215,25 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           'flex-shrink-0 sticky top-0 h-screen relative',
           // Só a largura anima (o `transition-all` de antes também pegava cor e
           // sombra). A curva é ease-out-quint: sai rápido e "pousa" devagar.
-          'transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          //
+          // A curva vai como propriedade arbitrária, e não pela utilitária
+          // `ease` com valor entre colchetes: naquela forma o Tailwind 3 não
+          // desambigua entre `transition-timing-function` e
+          // `animation-timing-function`, avisa no build e DESCARTA a classe. A
+          // barra vinha animando sem curva nenhuma — sem erro de build, de lint
+          // ou de tipo. Mesmo defeito que a duração das linhas de lista tinha.
+          'transition-[width] duration-500',
+          '[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]',
           'motion-reduce:transition-none',
-          collapsed ? 'w-16' : 'w-64',
+          // 5rem, e não 4rem: ver docs/geral/sidebar-recolhe-em-tela-larga.md.
+          classeLarguraBarra(collapsed),
         )}
       >
         {/* Toggle Button — sibling of <aside> so it isn't clipped by overflow */}
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-slate-200 bg-background hover:bg-slate-50 text-slate-600 shadow-sm"
+          className="absolute top-6 -right-3 z-20 h-6 w-6 rounded-full border border-border bg-background hover:bg-muted text-muted-foreground shadow-sm"
           onClick={() => setCollapsed(!collapsed)}
         >
           {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
@@ -245,16 +241,16 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
 
         {/* overflow-x-hidden: é este clipe que "engole" os rótulos conforme a
             largura diminui, em vez de eles sumirem de uma vez. */}
-        <aside className="h-full w-full bg-background border-r border-slate-200/60 flex flex-col overflow-y-auto overflow-x-hidden">
+        <aside className="h-full w-full bg-background border-r border-border/60 flex flex-col overflow-y-auto overflow-x-hidden">
         {/* Header */}
-        <div className="px-4 py-6 border-b border-slate-200/60">
+        <div className="px-4 py-6 border-b border-border/60">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 flex items-center justify-center flex-shrink-0">
               {AreaIcon}
             </div>
             <div className={cn(rotuloCls, "min-w-0 whitespace-nowrap")}>
-              <h2 className="font-semibold text-slate-900 text-lg">{areaLabel}</h2>
-              <p className="text-xs text-slate-500">{areaSubtitle}</p>
+              <h2 className="font-semibold text-foreground text-lg">{areaLabel}</h2>
+              <p className="text-xs text-muted-foreground">{areaSubtitle}</p>
             </div>
           </div>
         </div>
@@ -270,8 +266,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
               location.pathname === '/equipe/osg/inicio'
-                ? "bg-osg-100 text-osg-700"
-                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                ? "bg-osg-100 text-primary"
+                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
             )}
           >
             <Home className="h-4 w-4 flex-shrink-0" />
@@ -282,8 +278,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
               location.pathname === '/equipe/osg/dashboard'
-                ? "bg-osg-100 text-osg-700"
-                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                ? "bg-osg-100 text-primary"
+                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
             )}
           >
             <LayoutDashboard className="h-4 w-4 flex-shrink-0" />
@@ -297,8 +293,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                 isProjetosActive
-                  ? "bg-osg-50 text-osg-700"
-                  : "text-slate-600 group-hover/proj:bg-osg-50 group-hover/proj:text-osg-700"
+                  ? "bg-osg-50 text-primary"
+                  : "text-muted-foreground [&>svg]:opacity-75 group-hover/proj:bg-osg-50 group-hover/proj:text-primary"
               )}
             >
               <FolderKanban className="h-4 w-4 flex-shrink-0" />
@@ -336,8 +332,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       className={cn(
                         "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
                         location.pathname === path
-                          ? "bg-osg-100 text-osg-700"
-                          : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                          ? "bg-osg-100 text-primary"
+                          : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
                       )}
                     >
                       <Icon className="h-4 w-4 flex-shrink-0" />
@@ -362,8 +358,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                 isOnbActive
-                  ? "bg-osg-50 text-osg-700"
-                  : "text-slate-600 group-hover/onb:bg-osg-50 group-hover/onb:text-osg-700"
+                  ? "bg-osg-50 text-primary"
+                  : "text-muted-foreground group-hover/onb:bg-osg-50 group-hover/onb:text-primary"
               )}
             >
               <Rocket className="h-4 w-4 flex-shrink-0" />
@@ -401,8 +397,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       className={cn(
                         "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
                         location.pathname === path
-                          ? "bg-osg-100 text-osg-700"
-                          : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                          ? "bg-osg-100 text-primary"
+                          : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
                       )}
                     >
                       <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
@@ -417,8 +413,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
               location.pathname === '/equipe/osg/work/qualificacao-das-partes'
-                ? "bg-osg-100 text-osg-700"
-                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                ? "bg-osg-100 text-primary"
+                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
             )}
           >
             <Users className="h-4 w-4 flex-shrink-0" />
@@ -429,8 +425,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
               location.pathname === '/equipe/osg/work/diagnostico-patrimonial'
-                ? "bg-osg-100 text-osg-700"
-                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                ? "bg-osg-100 text-primary"
+                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
             )}
           >
             <Landmark className="h-4 w-4 flex-shrink-0" />
@@ -441,8 +437,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
               location.pathname === '/equipe/osg/work/controle-matriculas'
-                ? "bg-osg-100 text-osg-700"
-                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                ? "bg-osg-100 text-primary"
+                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
             )}
           >
             <FileText className="h-4 w-4 flex-shrink-0" />
@@ -455,8 +451,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                 isDocsActive
-                  ? "bg-osg-50 text-osg-700"
-                  : "text-slate-600 group-hover/docs:bg-osg-50 group-hover/docs:text-osg-700"
+                  ? "bg-osg-50 text-primary"
+                  : "text-muted-foreground group-hover/docs:bg-osg-50 group-hover/docs:text-primary"
               )}
             >
               <FileSignature className="h-4 w-4 flex-shrink-0" />
@@ -494,8 +490,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       className={cn(
                         "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
                         location.pathname === path
-                          ? "bg-osg-100 text-osg-700"
-                          : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                          ? "bg-osg-100 text-primary"
+                          : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
                       )}
                     >
                       <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
@@ -510,8 +506,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
               location.pathname === '/equipe/osg/work/quadro-societario'
-                ? "bg-osg-100 text-osg-700"
-                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                ? "bg-osg-100 text-primary"
+                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
             )}
           >
             <PieChart className="h-4 w-4 flex-shrink-0" />
@@ -524,8 +520,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                 isDocClienteActive
-                  ? "bg-osg-50 text-osg-700"
-                  : "text-slate-600 group-hover/docsCli:bg-osg-50 group-hover/docsCli:text-osg-700"
+                  ? "bg-osg-50 text-primary"
+                  : "text-muted-foreground group-hover/docsCli:bg-osg-50 group-hover/docsCli:text-primary"
               )}
             >
               <FolderArchive className="h-4 w-4 flex-shrink-0" />
@@ -563,8 +559,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                       className={cn(
                         "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
                         location.pathname === path
-                          ? "bg-osg-100 text-osg-700"
-                          : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                          ? "bg-osg-100 text-primary"
+                          : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
                       )}
                     >
                       <span className={cn(rotuloCls, "whitespace-nowrap")}>{label}</span>
@@ -579,8 +575,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
               location.pathname === '/equipe/osg/work/relatorios'
-                ? "bg-osg-100 text-osg-700"
-                : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                ? "bg-osg-100 text-primary"
+                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
             )}
           >
             <FileBarChart2 className="h-4 w-4 flex-shrink-0" />
@@ -602,8 +598,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                   isGerencialActive
-                    ? "bg-osg-50 text-osg-700"
-                    : "text-slate-600 group-hover/ger:bg-osg-50 group-hover/ger:text-osg-700"
+                    ? "bg-osg-50 text-primary"
+                    : "text-muted-foreground group-hover/ger:bg-osg-50 group-hover/ger:text-primary"
                 )}
               >
                 <LineChart className="h-4 w-4 flex-shrink-0" />
@@ -644,8 +640,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
                         className={cn(
                           "w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm font-medium min-w-0 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
                           location.pathname === path
-                            ? "bg-osg-100 text-osg-700"
-                            : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                            ? "bg-osg-100 text-primary"
+                            : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
                         )}
                       >
                         <Icon className="h-4 w-4 flex-shrink-0" />
@@ -666,12 +662,12 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               segue liberada para quem tiver o link. */}
           {isProjects && !isLider && (
             <button
-              onClick={() => navigate('/equipe/chamados')}
+              onClick={() => navigate(linkEspelhado('/equipe/chamados', 'osg'))}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
                 location.pathname.startsWith('/equipe/chamados')
-                  ? "bg-osg-100 text-osg-700"
-                  : "text-slate-600 hover:bg-osg-50 hover:text-osg-700"
+                  ? "bg-osg-100 text-primary"
+                  : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
               )}
             >
               <MessageSquare className="h-4 w-4 flex-shrink-0" />
@@ -681,23 +677,13 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
         </nav>
 
         {/* Footer Actions */}
-        <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
-          {/* User Card — o avatar fica; só o texto desbota ao recolher. */}
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
-            <div className="h-8 w-8 rounded-full bg-osg-500/10 flex items-center justify-center flex-shrink-0">
-              <User className="h-4 w-4 text-osg-600" />
-            </div>
-            <div className={cn(rotuloCls, "flex-1 min-w-0")}>
-              <p className="text-sm font-medium text-slate-900 truncate">
-                {user?.email?.split('@')[0] || 'Usuário'}
-              </p>
-              <p className="text-xs text-slate-500">OSG</p>
-            </div>
-          </div>
+        <div className="mt-auto p-4 border-t border-border/60 space-y-2">
+          {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
+          <SidebarCartaoUsuario area="osg" collapsed={collapsed} />
 
           <Button
             variant="ghost"
-            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-osg-600 transition-colors"
+            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-osg-600 transition-colors"
             onClick={() => navigate('/equipe/osg')}
             title={collapsed ? 'Trocar área' : undefined}
           >
@@ -706,7 +692,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           </Button>
           <Button 
             variant="ghost" 
-            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-osg-600 transition-colors"
+            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-osg-600 transition-colors"
             onClick={() => navigate('/')}
             title={collapsed ? 'Voltar ao site' : undefined}
           >
@@ -715,7 +701,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           </Button>
           <Button 
             variant="ghost" 
-            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-destructive/10 hover:text-destructive transition-colors"
+            className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
             onClick={handleSignOut}
             title={collapsed ? 'Sair' : undefined}
           >
@@ -729,25 +715,26 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-slate-200/60 bg-background flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-border/60 bg-card flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-slate-600"
+              className="md:hidden text-muted-foreground"
               onClick={() => setCollapsed(!collapsed)}
             >
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-              {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+              <h1 className="text-xl font-bold text-foreground">{title}</h1>
+              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
           <div className="flex items-center gap-3">
             {headerActions}
             <NotificationPopover
               navigateTo="/equipe/chamados"
+              espelho="osg"
               tasksNavigateTo="/equipe/osg/projetos/tarefas"
               mencoesArea="osg"
             />

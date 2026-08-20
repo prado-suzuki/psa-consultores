@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { idsAlterados, resolverSelecao, selecaoAposRemover } from '@/lib/listaMestreDetalhe';
+import { idsAlterados, ordenarPorNome, resolverSelecao, selecaoAposRemover } from '@/lib/listaMestreDetalhe';
 
 const item = (_id: number, extra: Record<string, unknown> = {}) => ({ _id, ...extra });
 
@@ -74,5 +74,56 @@ describe('idsAlterados', () => {
   it('linha removida não aparece: ela sumiu da lista', () => {
     const originais = [item(1), item(2)];
     expect(idsAlterados([item(1)], originais).size).toBe(0);
+  });
+});
+
+describe('ordenarPorNome', () => {
+  type Linha = { _id: number; nome: string };
+  const nome = (i: Linha) => i.nome;
+
+  it('ordena pelo nome exibido', () => {
+    const itens = [
+      { _id: 1, nome: 'Miranda Gestão' },
+      { _id: 2, nome: 'Concreto Amoroso' },
+      { _id: 3, nome: 'Fribon Transportes Ltda' },
+    ];
+    expect(ordenarPorNome(itens, nome).map((i) => i._id)).toEqual([2, 3, 1]);
+  });
+
+  // Nome todo em maiúsculas é comum no cadastro (veio da Receita) e não pode
+  // formar um bloco separado no fim da lista.
+  it('não separa maiúsculas de minúsculas', () => {
+    const itens = [
+      { _id: 1, nome: 'Agropecuaria Miranda' },
+      { _id: 2, nome: 'AGROPECUARIA BOMFIM' },
+      { _id: 3, nome: 'B B PARTICIPACOES LTDA' },
+    ];
+    expect(ordenarPorNome(itens, nome).map((i) => i._id)).toEqual([2, 1, 3]);
+  });
+
+  it('acento não joga o nome para o fim', () => {
+    const itens = [
+      { _id: 1, nome: 'Azevedo' },
+      { _id: 2, nome: 'Água Boa' },
+    ];
+    expect(ordenarPorNome(itens, nome).map((i) => i._id)).toEqual([2, 1]);
+  });
+
+  // Contribuinte recém-criado ainda não tem nome: no topo ele empurraria a
+  // lista inteira a cada item novo.
+  it('nome em branco vai para o fim, na ordem em que foi criado', () => {
+    const itens = [
+      { _id: 1, nome: '' },
+      { _id: 2, nome: 'Zeta' },
+      { _id: 3, nome: '   ' },
+      { _id: 4, nome: 'Alfa' },
+    ];
+    expect(ordenarPorNome(itens, nome).map((i) => i._id)).toEqual([4, 2, 1, 3]);
+  });
+
+  it('não altera a lista recebida', () => {
+    const itens = [{ _id: 1, nome: 'Zeta' }, { _id: 2, nome: 'Alfa' }];
+    ordenarPorNome(itens, nome);
+    expect(itens.map((i) => i._id)).toEqual([1, 2]);
   });
 });

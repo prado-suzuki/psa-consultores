@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatarPercentual, resumoRateio } from '@/lib/rateioReceita';
 import { useAcentoArea } from './acentoArea';
 
 export interface RateioLinha {
@@ -26,9 +27,6 @@ export interface RateioListaProps {
   onRemover: (indice: number) => void;
 }
 
-/** Percentual sem casas decimais desnecessárias: 33.33% e 50%, não 50.00%. */
-const formatarPct = (valor: number) => valor.toFixed(2).replace(/\.?0+$/, '');
-
 export default function RateioLista({ rateios, opcoes, onPercentual, onRemover }: RateioListaProps) {
   const acento = useAcentoArea();
   if (rateios.length === 0) {
@@ -39,8 +37,10 @@ export default function RateioLista({ rateios, opcoes, onPercentual, onRemover }
     );
   }
 
-  const total = rateios.reduce((acc, r) => acc + (r.percentual_rateio || 0), 0);
-  const fecha = Math.abs(total - 100) <= 0.01;
+  // A conta e a tolerância vivem em `lib/rateioReceita`: a aba de Faturamento
+  // exibe o mesmo total em leitura, e duas cópias da regra divergiriam no dia em
+  // que alguém mudasse a folga de um centésimo.
+  const { total, fecha, faltam, excede } = resumoRateio(rateios);
 
   return (
     <div className="overflow-hidden rounded-lg border">
@@ -49,8 +49,16 @@ export default function RateioLista({ rateios, opcoes, onPercentual, onRemover }
           const rotulo = opcoes.find((o) => o.id === r.id_centro_custo)?.label
             ?? '(centro de custo fora do catálogo)';
           const pct = r.percentual_rateio || 0;
+          // A chave inclui o índice porque o MESMO centro de custo pode aparecer
+          // duas vezes: a OS 088/2026 tem CC-0001 e CC-0007 repetidos, e com a
+          // chave só no identificador o React acusava "two children with the same
+          // key" quatro vezes ao abrir aquela OS em edição. O `_dbId` vem antes
+          // porque é estável quando a linha já existe no banco.
           return (
-            <li key={r.id_centro_custo || idx} className="flex items-center gap-3 px-3 py-2">
+            <li
+              key={r._dbId ?? `${r.id_centro_custo}-${idx}`}
+              className="flex items-center gap-3 px-3 py-2"
+            >
               <span className="min-w-0 flex-1 break-words text-xs text-foreground">{rotulo}</span>
               {/* Barra proporcional: dá a leitura do rateio de relance, sem
                   precisar somar os números de cabeça. */}
@@ -90,10 +98,10 @@ export default function RateioLista({ rateios, opcoes, onPercentual, onRemover }
       )}>
         <span>Total do rateio</span>
         <span className="tabular-nums">
-          {formatarPct(total)}%
+          {formatarPercentual(total)}%
           {fecha && ' ✓'}
-          {!fecha && total < 100 && ` — faltam ${formatarPct(100 - total)}%`}
-          {total > 100 && ` — excedeu ${formatarPct(total - 100)}%`}
+          {faltam > 0 && ` — faltam ${formatarPercentual(faltam)}%`}
+          {excede > 0 && ` — excedeu ${formatarPercentual(excede)}%`}
         </span>
       </div>
     </div>

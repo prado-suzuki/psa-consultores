@@ -93,7 +93,7 @@ export const CreateUserDialog = () => {
       }}
     >
       <DialogTrigger asChild>
-        <Button className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+        <Button className="gap-2">
           <UserPlus className="h-4 w-4" />
           Criar Novo Usuário
         </Button>
@@ -103,7 +103,7 @@ export const CreateUserDialog = () => {
           <>
             <DialogHeader>
               <DialogTitle className="text-slate-900 flex items-center gap-2">
-                <CheckCircle2 className="h-5 w-5 text-teal-600" />
+                <CheckCircle2 className="h-5 w-5 text-primary" />
                 Usuário Criado!
               </DialogTitle>
               <DialogDescription className="text-slate-500">
@@ -111,7 +111,7 @@ export const CreateUserDialog = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="bg-slate-50 rounded-lg p-4 space-y-3 border border-slate-200">
+              <div className="bg-muted rounded-lg p-4 space-y-3 border border-slate-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-slate-500 text-xs">Email</Label>
@@ -120,7 +120,7 @@ export const CreateUserDialog = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-slate-600 hover:text-teal-600"
+                    className="text-slate-600 hover:text-primary"
                     onClick={() => copyToClipboard(createdCredentials.email)}
                   >
                     <Copy className="h-4 w-4" />
@@ -134,7 +134,7 @@ export const CreateUserDialog = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-slate-600 hover:text-teal-600"
+                    className="text-slate-600 hover:text-primary"
                     onClick={() => copyToClipboard(createdCredentials.password)}
                   >
                     <Copy className="h-4 w-4" />
@@ -148,7 +148,7 @@ export const CreateUserDialog = () => {
             <DialogFooter>
               <Button
                 onClick={handleClose}
-                className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+                className="w-full"
               >
                 Fechar
               </Button>
@@ -202,7 +202,7 @@ export const CreateUserDialog = () => {
                 {ROLE_OPTIONS.map((role) => (
                   <div
                     key={role.value}
-                    className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100"
+                    className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-slate-100"
                   >
                     <Checkbox
                       id={`role_${role.value}`}
@@ -215,7 +215,7 @@ export const CreateUserDialog = () => {
                             : prev.roles.filter((r) => r !== role.value),
                         }));
                       }}
-                      className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                      className="border-slate-300  mt-0.5"
                     />
                     <div>
                       <Label
@@ -247,7 +247,7 @@ export const CreateUserDialog = () => {
                   {Object.entries(AREA_CATEGORIES_MAP).map(([key, area]) => (
                     <div
                       key={key}
-                      className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100"
+                      className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-slate-100"
                     >
                       <Checkbox
                         id={`area_${key}`}
@@ -260,7 +260,7 @@ export const CreateUserDialog = () => {
                               : prev.areas.filter((a) => a !== key),
                           }));
                         }}
-                        className="border-slate-300 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600 mt-0.5"
+                        className="border-slate-300  mt-0.5"
                       />
                       <div>
                         <Label
@@ -282,14 +282,13 @@ export const CreateUserDialog = () => {
                 type="button"
                 variant="outline"
                 onClick={handleClose}
-                className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                className="border-slate-200 text-slate-600 hover:bg-foreground/[0.03]"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={createUser.isPending}
-                className="bg-teal-600 hover:bg-teal-700 text-white"
               >
                 {createUser.isPending ? (
                   <>

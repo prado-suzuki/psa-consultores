@@ -2,7 +2,7 @@ import { useState } from 'react';
 import EstruturaManager from '@/components/equipe/estrutura/EstruturaManager';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,13 +32,17 @@ import {
   FolderKanban,
   Workflow,
   LayoutDashboard,
+  Network,
+  Wallet,
 } from 'lucide-react';
 import { GestaoClientesContent } from '@/pages/equipe/fiscal/GestaoClientes';
 import CadastroCategorias from '@/components/equipe/CadastroCategorias';
+import CentroCustoTab from '@/components/equipe/CentroCustoTab';
 import { PagesTab } from '@/components/acessos/PagesTab';
 import { UsersTab } from '@/components/acessos/UsersTab';
 import DashboardsTab from '@/components/acessos/DashboardsTab';
 import { AccessStatsCards } from '@/components/acessos/AccessStatsCards';
+import { PontoDaArea } from '@/components/acessos/PontoDaArea';
 import {
   type ControleAcessosAreaInterna,
   type ControleAcessosCadastroStats,
@@ -177,7 +181,7 @@ const EquipeControleAcessos = () => {
   };
 
   const handleDeleteCadastro = async (area: ControleAcessosAreaInterna) => {
-    if (!confirm(`Tem certeza que deseja excluir "${area.name}"?`)) return;
+    if (!confirm(`Tem certeza que deseja excluir"${area.name}"?`)) return;
     try {
       await deleteCatalogClient(area.id);
       toast.success('Área excluída');
@@ -189,18 +193,18 @@ const EquipeControleAcessos = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-muted">
       {/* Header */}
-      <header className="sticky top-0 z-50 h-16 border-b border-slate-200/60 bg-white">
+      <header className="sticky top-0 z-50 h-16 border-b border-border/60 bg-card">
         <div className="container mx-auto px-4 h-full">
           <div className="flex items-center justify-between h-full">
             <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-                <ShieldCheck className="h-5 w-5 text-teal-600" />
+              <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                <ShieldCheck className="h-5 w-5 text-primary" />
               </div>
               <div className="hidden sm:block">
-                <h1 className="text-lg font-semibold text-slate-900">Controle de Acessos</h1>
-                <p className="text-xs text-slate-500">Gestão de usuários e liberação de acessos</p>
+                <h1 className="text-lg font-semibold text-foreground">Controle de Acessos</h1>
+                <p className="text-xs text-muted-foreground">Gestão de usuários e liberação de acessos</p>
               </div>
             </div>
             
@@ -209,7 +213,7 @@ const EquipeControleAcessos = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/equipe/digital')}
-                className="text-slate-600 hover:text-teal-600 hover:bg-slate-50"
+                className="text-muted-foreground hover:text-primary hover:bg-muted"
               >
                 <Repeat className="h-4 w-4 mr-2" />
                 Trocar área
@@ -218,7 +222,7 @@ const EquipeControleAcessos = () => {
                 variant="ghost"
                 size="sm"
                 onClick={handleSignOut}
-                className="text-slate-600 hover:text-teal-600 hover:bg-slate-50"
+                className="text-muted-foreground hover:text-primary hover:bg-muted"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair
@@ -237,17 +241,17 @@ const EquipeControleAcessos = () => {
 
             {/* Tabs */}
             <Tabs defaultValue="pages" className="space-y-4">
-              <TabsList className="bg-slate-100 border border-slate-200">
+              <TabsList className="bg-muted border border-border">
                 <TabsTrigger 
                   value="pages" 
-                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Páginas
                 </TabsTrigger>
                 <TabsTrigger 
                   value="cadastros"
-                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                   onClick={() => { if (cadastroAreas.length === 0) fetchCadastros(); }}
                 >
                   <Building2 className="h-4 w-4 mr-2" />
@@ -255,28 +259,28 @@ const EquipeControleAcessos = () => {
                 </TabsTrigger>
                 <TabsTrigger 
                   value="users" 
-                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Usuários Estrutura
                 </TabsTrigger>
                 <TabsTrigger 
                   value="cadastros_clientes" 
-                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Cadastros Clientes
                 </TabsTrigger>
                 <TabsTrigger
                   value="cadastro_categorias"
-                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                 >
                   <FolderKanban className="h-4 w-4 mr-2" />
-                  Cadastro Categorias
+                  Produtos & Serviços
                 </TabsTrigger>
                 <TabsTrigger
                   value="dashboards"
-                  className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                 >
                   <LayoutDashboard className="h-4 w-4 mr-2" />
                   Dashboards
@@ -293,9 +297,46 @@ const EquipeControleAcessos = () => {
                 <UsersTab />
               </TabsContent>
 
-              {/* Cadastros Estrutura Tab */}
+              {/* Cadastros Estrutura Tab — dona da estrutura organizacional:
+                  clusters/empresas, áreas, equipes, membros e centros de custo.
+                  Os dois cadastros são irmãos em sub-abas, nunca empilhados. */}
               <TabsContent value="cadastros" className="space-y-4">
-                <EstruturaManager />
+                <Tabs defaultValue="organizacao" className="space-y-4">
+                  <TabsList className="bg-foreground/[0.05] border border-slate-200">
+                    <TabsTrigger
+                      value="organizacao"
+                      className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                    >
+                      <Network className="h-4 w-4 mr-2" />
+                      Estrutura
+                    </TabsTrigger>
+                    <TabsTrigger
+                      value="centros_custo"
+                      className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                    >
+                      <Wallet className="h-4 w-4 mr-2" />
+                      Centros de Custo
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="organizacao">
+                    <EstruturaManager />
+                  </TabsContent>
+
+                  <TabsContent value="centros_custo">
+                    <Card className="bg-white border-slate-200/60 shadow-sm">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-base text-slate-900">Centros de Custo</CardTitle>
+                        <p className="text-sm text-slate-500">
+                          Usados pelos clusters e pelas áreas — cada área pode ter o seu.
+                        </p>
+                      </CardHeader>
+                      <CardContent>
+                        <CentroCustoTab />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
               </TabsContent>
 
               {/* Cadastros Clientes Tab */}
@@ -316,9 +357,9 @@ const EquipeControleAcessos = () => {
 
       {/* Cadastro Dialog */}
       <Dialog open={cadastroDialogOpen} onOpenChange={setCadastroDialogOpen}>
-        <DialogContent className="bg-white border-slate-200">
+        <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle className="text-slate-900">{editingArea ? 'Editar Área' : 'Nova Área'}</DialogTitle>
+            <DialogTitle className="text-foreground">{editingArea ? 'Editar Área' : 'Nova Área'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -341,7 +382,7 @@ const EquipeControleAcessos = () => {
                     <button
                       key={color}
                       type="button"
-                      className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${cadastroForm.color === color ? 'border-gray-900 scale-110' : 'border-transparent'}`}
+                      className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${cadastroForm.color === color ? 'border-foreground scale-110' : 'border-transparent'}`}
                       style={{ backgroundColor: color }}
                       onClick={() => setCadastroForm({ ...cadastroForm, color })}
                     />
@@ -356,7 +397,7 @@ const EquipeControleAcessos = () => {
                 value={cadastroForm.estrutura_area_id}
                 onValueChange={(value) => setCadastroForm({ ...cadastroForm, estrutura_area_id: value === '_none' ? '' : value })}
               >
-                <SelectTrigger className="bg-white border-slate-200">
+                <SelectTrigger className="bg-card border-border">
                   <SelectValue placeholder="Nenhuma (sem vínculo)" />
                 </SelectTrigger>
                 <SelectContent>
@@ -364,19 +405,19 @@ const EquipeControleAcessos = () => {
                   {estruturaAreas.map((ea) => (
                     <SelectItem key={ea.id} value={ea.id}>
                       <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: ea.color || '#94a3b8' }} />
+                        <PontoDaArea area={ea} />
                         {ea.name}
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-slate-500">Associa esta área legada à estrutura organizacional (cluster → área → equipe)</p>
+              <p className="text-xs text-muted-foreground">Associa esta área legada à estrutura organizacional (cluster → área → equipe)</p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setCadastroDialogOpen(false)} className="border-slate-200 text-slate-600">Cancelar</Button>
-            <Button onClick={handleSaveCadastro} className="bg-teal-600 hover:bg-teal-700 text-white">{editingArea ? 'Salvar' : 'Criar'}</Button>
+            <Button variant="outline" onClick={() => setCadastroDialogOpen(false)} className="border-border text-muted-foreground">Cancelar</Button>
+            <Button onClick={handleSaveCadastro} className="bg-primary hover:bg-primary/90 text-white">{editingArea ? 'Salvar' : 'Criar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

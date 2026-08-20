@@ -28,6 +28,7 @@ import { EditUserDialog } from './EditUserDialog';
 import { DeleteUserDialog } from './DeleteUserDialog';
 import { PermissionsTree } from './PermissionsTree';
 import { ROLE_BADGE_CLASSES, ROLE_SHORT_LABELS } from './roleOptions';
+import { PontoDaArea } from './PontoDaArea';
 
 /** Hierarquia de papéis: ordena a lista e define o papel principal de cada um. */
 const ROLE_ORDER: AppRole[] = [
@@ -35,10 +36,10 @@ const ROLE_ORDER: AppRole[] = [
 ];
 
 /**
- * Aba "Usuários" do Controle de Acessos.
+ * Aba"Usuários" do Controle de Acessos.
  *
  * Composta de:
- * - Header com botão "Criar Novo Usuário" (CreateUserDialog).
+ * - Header com botão"Criar Novo Usuário" (CreateUserDialog).
  * - Lista lateral de usuários, agrupada pela área da estrutura e filtrável por
  *   papel e por área (selecionável).
  * - Painel central com botões Editar / Excluir + acessos granulares
@@ -90,8 +91,8 @@ export const UsersTab = () => {
     const comGente = areas.filter((a) => (areaCounts[a.id] ?? 0) > 0);
     if (!comGente.length && !areaCounts[SEM_AREA]) return [];
     return [
-      ...comGente.map((a) => ({ id: a.id, label: a.name, color: a.color })),
-      ...(areaCounts[SEM_AREA] ? [{ id: SEM_AREA, label: 'Sem área', color: null }] : []),
+      ...comGente.map((a) => ({ id: a.id, label: a.name, color: a.color, color_index: a.color_index })),
+      ...(areaCounts[SEM_AREA] ? [{ id: SEM_AREA, label: 'Sem área', color: null, color_index: null }] : []),
     ];
   }, [areas, areaCounts]);
 
@@ -186,12 +187,7 @@ export const UsersTab = () => {
                   {areaOptions.map((opt) => (
                     <SelectItem key={opt.id} value={opt.id} className="text-xs">
                       <span className="flex items-center gap-1.5">
-                        {opt.color && (
-                          <span
-                            className="h-2 w-2 rounded-full shrink-0"
-                            style={{ backgroundColor: opt.color }}
-                          />
-                        )}
+                        <PontoDaArea area={opt} />
                         {opt.label}
                         <span className="text-slate-400">({areaCounts[opt.id] ?? 0})</span>
                       </span>
@@ -213,7 +209,7 @@ export const UsersTab = () => {
           <CardContent className="space-y-2 max-h-[500px] overflow-y-auto">
             {loadingUsers ? (
               <div className="flex items-center justify-center py-4">
-                <RefreshCw className="h-5 w-5 animate-spin text-teal-600" />
+                <RefreshCw className="h-5 w-5 animate-spin text-primary" />
               </div>
             ) : groupedUsers.length === 0 ? (
               <div className="text-center py-6 text-sm text-slate-500">
@@ -223,12 +219,7 @@ export const UsersTab = () => {
               groupedUsers.map((group) => (
                 <div key={group.area?.id ?? SEM_AREA} className="space-y-2">
                   <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-1 pt-2">
-                    {group.area?.color && (
-                      <span
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: group.area.color }}
-                      />
-                    )}
+                    <PontoDaArea area={group.area} />
                     {group.area?.name ?? 'Sem área'}
                     <span className="text-slate-400 font-normal normal-case tracking-normal">({group.usuarios.length})</span>
                   </p>
@@ -237,8 +228,8 @@ export const UsersTab = () => {
                       key={`${group.area?.id ?? SEM_AREA}-${u.id}`}
                       className={`w-full p-3 rounded-lg text-left transition-colors ${
                         selectedUserId === u.id
-                          ? 'bg-teal-500/10 border border-teal-200'
-                          : 'bg-slate-50 hover:bg-slate-100 border border-transparent'
+                          ? 'bg-primary/10 border border-primary/20'
+                          : 'bg-muted hover:bg-foreground/[0.04] border border-transparent'
                       }`}
                       onClick={() => setSelectedUserId(u.id)}
                     >
@@ -252,7 +243,7 @@ export const UsersTab = () => {
                             key={role}
                             variant="outline"
                             className={`text-xs ${
-                              ROLE_BADGE_CLASSES[role] ?? 'border-slate-200 text-slate-600 bg-slate-50'
+                              ROLE_BADGE_CLASSES[role] ?? 'border-slate-200 text-slate-600 bg-muted'
                             }`}
                           >
                             {ROLE_SHORT_LABELS[role] ?? role}
@@ -287,7 +278,7 @@ export const UsersTab = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsEditOpen(true)}
-                    className="border-slate-200 text-slate-600 hover:text-teal-600 hover:bg-teal-50"
+                    className="border-slate-200 text-slate-600 hover:text-primary hover:bg-primary/5"
                   >
                     <Pencil className="h-4 w-4 mr-1" />
                     Editar

@@ -100,7 +100,37 @@ Deno.serve(async (req) => {
     // envio.
     const apiKey = req.headers.get("x-api-key");
     const callbackToken = Deno.env.get("N8N_CALLBACK_TOKEN");
-    if (apiKey && callbackToken && apiKey === callbackToken) {
+
+    // `x-api-key` PRESENTE é declaração de quem está chamando: esse header é do
+    // n8n, nunca da Meta — ela se identifica pela assinatura HMAC e não manda
+    // header de chave nenhum. Então chamada com esse header termina AQUI, mesmo
+    // quando o token não casa, em vez de escorregar para o caminho da Meta.
+    //
+    // Isso custou uma rodada inteira de diagnóstico em 17/08/2026: um token
+    // divergente caía no `!appSecret` logo abaixo e respondia `misconfigured`,
+    // que aponta para o segredo ERRADO. O sintoma acusava `META_APP_SECRET` e a
+    // causa era o `N8N_CALLBACK_TOKEN`.
+    //
+    // O log leva TAMANHO, nunca valor: tamanho já separa as três causas — header
+    // ausente, segredo ausente, valores diferentes — e não deixa a chave escrita
+    // num log, que é lido por mais gente do que o painel de segredos.
+    if (apiKey) {
+      if (!callbackToken) {
+        console.error("[notificacao-status] x-api-key recebido, mas N8N_CALLBACK_TOKEN não está configurado");
+        return new Response(JSON.stringify({ error: "callback token não configurado" }), {
+          status: 500, headers: { "Content-Type": "application/json" },
+        });
+      }
+      if (!igual(apiKey, callbackToken)) {
+        console.error(
+          `[notificacao-status] x-api-key não casa com N8N_CALLBACK_TOKEN ` +
+            `(recebido ${apiKey.length} chars, esperado ${callbackToken.length})`
+        );
+        return new Response(JSON.stringify({ error: "token inválido" }), {
+          status: 401, headers: { "Content-Type": "application/json" },
+        });
+      }
+
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!

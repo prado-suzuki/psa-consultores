@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTicketDetail, useTicketMessages, useTicketAttachments } from '@/hooks/useTickets';
 import { useSendTicketMessage, useUpdateTicketStatus, useUploadTicketAttachments } from '@/hooks/useTicketMutations';
@@ -18,13 +18,7 @@ import { toast } from '@/hooks/use-toast';
 import { ArrowLeft, Send, FileText, Download, Image as ImageIcon, Upload, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-const statusColors: Record<string, string> = {
-  aberto: 'bg-blue-500',
-  em_andamento: 'bg-yellow-500',
-  resolvido: 'bg-green-500',
-  fechado: 'bg-gray-500',
-};
+import { chamadoStatusConfig } from '@/lib/chamadoStatusColors';
 
 const statusLabels: Record<string, string> = {
   aberto: 'Aberto',
@@ -63,6 +57,19 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export default function EquipeDetalhesChamado() {
   const { id } = useParams();
+  const location = useLocation();
+  /**
+   * De volta para de ONDE a pessoa veio, incluindo o espelho.
+   *
+   * A lista passa `state.from` com a query (`/equipe/chamados?area=tax`), então
+   * quem entrou pelo espelho da Tax volta para o espelho da Tax — e não para a
+   * lista de todos, que era a perda de contexto registrada como pendência
+   * enquanto a tela não tinha essa informação.
+   *
+   * Sem `state` (link direto, favorito, recarregar) cai na lista sem escopo, que
+   * é a resposta certa: aí não há espelho de onde voltar.
+   */
+  const voltarPara = (location.state as { from?: string } | null)?.from ?? '/equipe/chamados';
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -89,9 +96,9 @@ export default function EquipeDetalhesChamado() {
         description: 'Você não tem acesso a este chamado ou ele não existe.',
         variant: 'destructive',
       });
-      navigate('/equipe/chamados');
+      navigate(voltarPara);
     }
-  }, [loading, ticket, id, navigate]);
+  }, [loading, ticket, id, navigate, voltarPara]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
@@ -208,7 +215,7 @@ export default function EquipeDetalhesChamado() {
   }
 
   if (!ticket) {
-    navigate('/equipe/chamados');
+    navigate(voltarPara);
     return null;
   }
 
@@ -219,7 +226,7 @@ export default function EquipeDetalhesChamado() {
     <div className="min-h-screen bg-[hsl(210_20%_98%)]">
       <header className="bg-background border-b border-border">
         <div className="container mx-auto px-4 py-4">
-          <Button variant="ghost" onClick={() => navigate('/equipe/chamados')}>
+          <Button variant="ghost" onClick={() => navigate(voltarPara)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar aos Meus Chamados
           </Button>
