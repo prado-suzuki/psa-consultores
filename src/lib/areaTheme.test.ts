@@ -249,10 +249,39 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
   const css = readFileSync('src/index.css', 'utf8');
   const contrato = declaradasEm(css, `.${CLASSE_BASE}`);
 
-  it('o contrato tem as 43 variáveis', () => {
-    // 41 na origem + o par `--surface-escura`/`-2`, acrescentado quando o
-    // cartão escuro do Painel Dev precisou de um fundo por área.
-    expect(contrato.size).toBe(43);
+  it('o contrato tem as 46 variáveis', () => {
+    // 41 na origem
+    // +2 o par `--surface-escura`/`-2`, quando o cartão escuro do Painel Dev
+    //    precisou de um fundo por área
+    // +3 os `-foreground` de estado (`--success-`, `--warning-`,
+    //    `--destructive-foreground`). Eles existiam só no `:root`, fora do
+    //    contrato: um tema podia redefinir `--destructive` e o texto por cima
+    //    continuava vindo de um lugar que nenhum tema controlava. A OSG faz
+    //    exatamente isso, e o par sobrevivia por sorte. Os valores declarados
+    //    são os mesmos do `:root` — nenhum pixel mudou; o que mudou foi quem
+    //    manda neles.
+    expect(contrato.size).toBe(46);
+  });
+
+  /*
+   * Cor de estado e o texto que vai por cima dela andam JUNTOS.
+   *
+   * É a mesma regra do `--ring`/`--primary`: um tema que redefine o fundo sem o
+   * primeiro plano cria um par que ninguém escolheu. A OSG redefine os três
+   * (`--osg-moss`, `--osg-highlighter`, `--osg-red`) e é o caso que prova.
+   */
+  it('todo tema que declara cor de estado declara o primeiro plano dela', () => {
+    for (const classe of [CLASSE_BASE, ...CONGELADOS]) {
+      const declaradas = declaradasEm(css, `.${classe}`);
+      for (const papel of ['success', 'warning', 'destructive']) {
+        if (!declaradas.has(`--${papel}`)) continue;
+        expect(
+          declaradas.has(`--${papel}-foreground`),
+          `.${classe} declara --${papel} sem --${papel}-foreground: o texto viria do :root, `
+          + 'que nenhum tema controla',
+        ).toBe(true);
+      }
+    }
   });
 
   it('o par de superfície escura está em TODOS os temas, não só em quem usa', () => {

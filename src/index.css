@@ -357,6 +357,15 @@ All colors MUST be HSL.
     /* Status semânticos */
     --success: 160 84% 30%;
     --warning: 38 92% 50%;
+    /* Os `-foreground` de estado entram aqui, e são os MESMOS valores do `:root` —
+       nenhum pixel muda. O que muda é o alcance: eles viviam só no `:root`, fora
+       do contrato, então um tema podia redefinir `--destructive` e o texto por
+       cima continuava vindo de um lugar que nenhum tema controla. A OSG faz
+       exatamente isso (`--destructive: var(--osg-red)`), e o par sobrevivia por
+       sorte. Agora o par viaja junto. */
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
 
     /* Papéis de status — são os valores ORIGINAIS do sistema, anteriores à
        separação por área. O :root era o tema único; depois foi readaptado para
@@ -519,6 +528,9 @@ All colors MUST be HSL.
     --ring: 175 82% 29%;
     --success: 160 84% 30%;
     --warning: 38 92% 50%;
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
     --tool-icon: var(--primary);
     --tool-icon-bg: 175 60% 95%;
     --destructive: 0 84% 60%;
@@ -547,6 +559,9 @@ All colors MUST be HSL.
        (azul mais próximo dos demais itens da página). */
     --success: var(--osg-moss);
     --warning: var(--osg-highlighter);
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
 
     /* Paleta de status da OSG — construída SOBRE os tokens de marca da área, não
        ao lado deles. A OSG tinha identidade (musgo, dourado, carmim, taupe)
@@ -676,6 +691,9 @@ All colors MUST be HSL.
     --secondary-foreground: 0 0% 100%;
     --success: 160 84% 30%;
     --warning: 38 92% 50%;
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
     --status-neutro: 48 22% 30%;
     --status-neutro-soft: 48 22% 86%;
     --status-fila: 122 28% 33%;
