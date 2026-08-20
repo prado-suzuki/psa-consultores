@@ -122,52 +122,52 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg bg-white border-slate-200 max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg border-border max-h-[85vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle className="text-slate-900">Editar Usuário</DialogTitle>
-            <DialogDescription className="text-slate-500">
+            <DialogTitle className="text-foreground">Editar Usuário</DialogTitle>
+            <DialogDescription>
               Altere os dados e papéis do usuário
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="edit_first_name" className="text-slate-700">Nome *</Label>
+                <Label htmlFor="edit_first_name" className="text-foreground">Nome *</Label>
                 <Input
                   id="edit_first_name"
                   value={form.first_name}
                   onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                  className="bg-white border-slate-200 text-slate-900"
+                  className="text-foreground"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit_last_name" className="text-slate-700">Sobrenome *</Label>
+                <Label htmlFor="edit_last_name" className="text-foreground">Sobrenome *</Label>
                 <Input
                   id="edit_last_name"
                   value={form.last_name}
                   onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                  className="bg-white border-slate-200 text-slate-900"
+                  className="text-foreground"
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="edit_email" className="text-slate-700">Email *</Label>
+              <Label htmlFor="edit_email" className="text-foreground">Email *</Label>
               <Input
                 id="edit_email"
                 type="email"
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                className="bg-white border-slate-200 text-slate-900"
+                className="text-foreground"
               />
             </div>
 
             <div className="space-y-3">
-              <Label className="text-slate-700 text-sm font-medium">Papéis do usuário</Label>
+              <Label className="text-foreground text-sm font-medium">Papéis do usuário</Label>
               {ROLE_OPTIONS.map((role) => (
                 <div
                   key={role.value}
-                  className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-slate-100"
+                  className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-border"
                 >
                   <Checkbox
                     id={`edit_role_${role.value}`}
@@ -180,16 +180,16 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                           : prev.roles.filter((r) => r !== role.value),
                       }));
                     }}
-                    className="border-slate-300  mt-0.5"
+                    className="border-slate-300 mt-0.5"
                   />
                   <div>
                     <Label
                       htmlFor={`edit_role_${role.value}`}
-                      className="text-slate-900 text-sm font-medium cursor-pointer"
+                      className="text-foreground text-sm font-medium cursor-pointer"
                     >
                       {role.label}
                     </Label>
-                    <p className="text-xs text-slate-500">{role.desc}</p>
+                    <p className="text-xs text-muted-foreground">{role.desc}</p>
                   </div>
                 </div>
               ))}
@@ -205,14 +205,14 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
 
             {hasInternalRole && (
               <div className="space-y-3">
-                <Label className="text-slate-700 text-sm font-medium">Áreas de Acesso</Label>
-                <p className="text-xs text-slate-500">
+                <Label className="text-foreground text-sm font-medium">Áreas de Acesso</Label>
+                <p className="text-xs text-muted-foreground">
                   Selecione as áreas que o membro terá acesso
                 </p>
                 {Object.entries(AREA_CATEGORIES_MAP).map(([key, area]) => (
                   <div
                     key={key}
-                    className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-slate-100"
+                    className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-border"
                   >
                     <Checkbox
                       id={`edit_area_${key}`}
@@ -225,16 +225,16 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                             : prev.areas.filter((a) => a !== key),
                         }));
                       }}
-                      className="border-slate-300  mt-0.5"
+                      className="border-slate-300 mt-0.5"
                     />
                     <div>
                       <Label
                         htmlFor={`edit_area_${key}`}
-                        className="text-slate-900 text-sm font-medium cursor-pointer"
+                        className="text-foreground text-sm font-medium cursor-pointer"
                       >
                         {area.label}
                       </Label>
-                      <p className="text-xs text-slate-500">{area.categories.join(', ')}</p>
+                      <p className="text-xs text-muted-foreground">{area.categories.join(', ')}</p>
                     </div>
                   </div>
                 ))}
@@ -247,7 +247,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-slate-200 text-slate-600 hover:bg-foreground/[0.03]"
+              className="border-border text-muted-foreground hover:bg-foreground/[0.03]"
             >
               Cancelar
             </Button>
