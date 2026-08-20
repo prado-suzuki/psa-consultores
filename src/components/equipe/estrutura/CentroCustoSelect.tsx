@@ -40,7 +40,7 @@ export default function CentroCustoSelect({
           ))}
         </SelectContent>
       </Select>
-      {ajuda && <p className="mt-1 text-xs text-slate-400">{ajuda}</p>}
+      {ajuda && <p className="mt-1 text-xs text-muted-foreground">{ajuda}</p>}
     </>
   );
 }
