@@ -1,5 +1,7 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategoria';
+import type { ChaveDeEspelho } from '@/lib/areaTheme';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
 import { useAssignTicket, useUpdateTicketDeadline, useDeleteTickets } from '@/hooks/useTicketMutations';
@@ -86,10 +88,34 @@ export interface ChamadosGestaoContentProps {
    * pessoa de volta para a area de Gestao.
    */
   basePath: string;
+  /**
+   * A área em que esta tela está montada — `'tax'`, `'osg'`, ou nada.
+   *
+   * O QUE ISSO CONSERTA. Esta tela vive em três rotas, e cada uma pega a cor da
+   * sua área pelo resolvedor. Mas o RECORTE do que aparecia não vinha da rota:
+   * vinha da RLS de `tickets`, que filtra pelos clusters DA PESSOA. Para quem tem
+   * um cluster só as duas coisas coincidiam — por acidente, não por desenho. Para
+   * os cinco admins, que a RLS não recorta, a tela da OSG mostrava os 335
+   * chamados do TAX em musgo.
+   *
+   * Propriedade de correção que vale por coincidência quebra sozinha: basta
+   * alguém entrar em duas equipes de clusters diferentes. E os subtítulos JÁ
+   * prometiam o recorte — "Chamados dos clientes da sua carteira", "do seu
+   * cluster".
+   *
+   * `undefined` é o caso do Board, e é legítimo: ele é o consolidado, e o
+   * subtítulo dele diz "Chamados de todas as áreas".
+   *
+   * Sem parâmetro de URL aqui, diferente de `EquipeChamados`: a rota já é por
+   * área, então o escopo é estático e o invólucro passa o literal.
+   */
+  escopo?: ChaveDeEspelho;
 }
 
-export function ChamadosGestaoContent({ basePath }: ChamadosGestaoContentProps) {
+export function ChamadosGestaoContent({ basePath, escopo }: ChamadosGestaoContentProps) {
   const navigate = useNavigate();
+  const { clusterId: clusterDoEscopo, isLoading: resolvendoEscopo } =
+    useDomainClusterPorCategoria(escopo ?? null);
 
   const { data: tickets = [], isLoading: loading } = useTicketsList();
   const { data: agents = [] } = useTicketAgents();
@@ -352,12 +378,38 @@ export function ChamadosGestaoContent({ basePath }: ChamadosGestaoContentProps) 
     }
   };
 
+  /**
+   * O universo da tela: os chamados do CLUSTER da área onde ela está montada.
+   *
+   * Mesmos três níveis da `EquipeChamados`: `tickets` (o que a RLS entregou), este
+   * (o escopo da rota) e `filteredAndSortedTickets` (os filtros do usuário). Os
+   * cartões ficam neste, não no primeiro — número no topo afirmando escopo que a
+   * lista não tem é o defeito que esta prop existe para fechar.
+   *
+   * Escopo declarado e ainda não resolvido devolve vazio: zero nunca afirma
+   * escopo que não existe.
+   */
+  const ticketsDoEscopo = useMemo(() => {
+    if (!escopo) return tickets;
+    if (!clusterDoEscopo) return [];
+    return tickets.filter(t => t.cluster_id === clusterDoEscopo);
+  }, [tickets, escopo, clusterDoEscopo]);
+
+  // Sincroniza SÓ o filtro de cluster — o resto do estado do usuário sobrevive.
+  useEffect(() => {
+    if (!escopo || !clusterDoEscopo) return;
+    setFilters(f => (f.cluster === clusterDoEscopo ? f : { ...f, cluster: clusterDoEscopo }));
+  }, [escopo, clusterDoEscopo]);
+
   const stats = {
-    total: tickets.length,
-    abertos: tickets.filter(t => t.status === 'aberto').length,
-    emAndamento: tickets.filter(t => t.status === 'em_andamento').length,
-    resolvidos: tickets.filter(t => t.status === 'resolvido' || t.status === 'fechado').length,
+    total: ticketsDoEscopo.length,
+    abertos: ticketsDoEscopo.filter(t => t.status === 'aberto').length,
+    emAndamento: ticketsDoEscopo.filter(t => t.status === 'em_andamento').length,
+    resolvidos: ticketsDoEscopo.filter(t => t.status === 'resolvido' || t.status === 'fechado').length,
   };
+  const nomeDoEscopo = clusterDoEscopo
+    ? clustersData.find(c => c.id === clusterDoEscopo)?.name ?? null
+    : null;
 
   const deleting = deleteTickets.isPending;
 
@@ -483,7 +535,11 @@ export function ChamadosGestaoContent({ basePath }: ChamadosGestaoContentProps) 
 
             <div className="space-y-2">
               <Label>Cluster</Label>
-              <Select value={filters.cluster} onValueChange={(v) => setFilters({...filters, cluster: v})}>
+              {/* Travado quando a tela tem escopo: o cluster não é filtro que o
+                  usuário pôs, é a área onde a tela está montada. Sem a trava a
+                  correção dura até o primeiro clique. */}
+              <Select value={filters.cluster} disabled={!!escopo}
+                onValueChange={(v) => setFilters({...filters, cluster: v})}>
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
                 </SelectTrigger>
@@ -605,6 +661,19 @@ export function ChamadosGestaoContent({ basePath }: ChamadosGestaoContentProps) 
                 </TableRow>
               </TableHeader>
               <TableBody>
+                {/* O vazio NOMEIA o escopo. "Nenhum chamado" e "nenhum chamado em
+                    OSG" são mensagens diferentes, e só a segunda mostra que o
+                    recorte agiu. Antes não havia mensagem nenhuma: a tabela ficava
+                    só com o cabeçalho, e vazio sem explicação parece defeito. */}
+                {!loading && !resolvendoEscopo && filteredAndSortedTickets.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={14} className="py-12 text-center text-muted-foreground">
+                      {escopo
+                        ? `Nenhum chamado em ${nomeDoEscopo ?? escopo.toUpperCase()}.`
+                        : 'Nenhum chamado encontrado com os filtros selecionados.'}
+                    </TableCell>
+                  </TableRow>
+                )}
                 {filteredAndSortedTickets.map((ticket) => (
                   <TableRow key={ticket.id}>
                     <TableCell>

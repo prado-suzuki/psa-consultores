@@ -480,11 +480,6 @@ describe('espelhamento: os menus levam a chave', () => {
    * caso que ninguém quis resolver.
    */
   const SEM_ESPELHO_DE_PROPOSITO: Record<string, string> = {
-    'src/pages/equipe/EquipeDetalhesChamado.tsx':
-      'O "Voltar" do detalhe de um chamado. Volta para a lista sem escopo, e isso NÃO viola a '
-      + 'regra — cor de piso com lista completa é par coerente. Mas é perda de contexto '
-      + 'conhecida: quem entrou pelo espelho da Tax volta para "todos". Registrado como '
-      + 'pendência em docs/geral/decisoes-tema-e-cor.md, não consertado no escuro.',
     'src/components/equipe/EquipeLayout.tsx':
       'A Rotina é o CHÃO COMUM, não um recorte: "os chamados dos clientes da Rotina" não quer '
       + 'dizer nada, porque a Rotina não tem clientes. Daqui o link vai sem parâmetro — piso, '
@@ -552,6 +547,84 @@ describe('espelhamento: os menus levam a chave', () => {
     // obrigação de escrever POR QUE. Motivo curto não passa.
     for (const [arquivo, motivo] of Object.entries(SEM_ESPELHO_DE_PROPOSITO)) {
       expect(() => readFileSync(arquivo, 'utf8'), `${arquivo} não existe mais`).not.toThrow();
+      expect(motivo.length, `motivo raso em ${arquivo}`).toBeGreaterThan(120);
+    }
+  });
+});
+
+/*
+ * A GESTÃO DE CHAMADOS por área — mesma regra, outra tela.
+ *
+ * `ChamadosGestaoContent` vive em três rotas (Tax, OSG, Board) e cada uma pega a
+ * cor da sua área pelo resolvedor. O recorte do conteúdo, porém, vinha só da RLS
+ * de `tickets`, que filtra pelos clusters DA PESSOA — coincidia com a área da rota
+ * para quem tem um cluster só, e não coincidia para os cinco admins, que a RLS não
+ * recorta: a tela da OSG mostrava os 335 chamados do TAX em musgo.
+ *
+ * Correção que vale por coincidência quebra sozinha. A prop `escopo` é o que
+ * amarra, e esta varredura é o que garante que um invólucro novo não nasça sem ela.
+ *
+ * O QUE ESTE TESTE NÃO COBRE, declarado: o comportamento em si — lista recortada,
+ * cartões no escopo, select travado, vazio nomeado. `GestaoChamados.tsx` não tem
+ * arquivo de teste (são 780 linhas e uma dezena de hooks a dublar), e criar esse
+ * arnês é trabalho próprio. O que está coberto por teste de comportamento é a
+ * mesma lógica na `EquipeChamados`, que é onde ela nasceu.
+ */
+describe('gestão de chamados: todo invólucro de área declara o escopo', () => {
+  /** O Board é o consolidado, e o subtítulo dele diz "Chamados de todas as áreas". */
+  const SEM_ESCOPO_DE_PROPOSITO: Record<string, string> = {
+    'src/pages/equipe/board/BoardChamados.tsx':
+      'O Board é o consolidado da empresa: mostrar todas as áreas é o que ele existe para '
+      + 'fazer, e o subtítulo já diz "Chamados de todas as áreas". Cor de infraestrutura sobre '
+      + 'lista de todas as áreas é par coerente — não há recorte prometido e não cumprido.',
+    'src/pages/gestao/GestaoChamados.tsx':
+      'O export default deste arquivo (a tela em /gestao/chamados) é CÓDIGO MORTO: App.tsx o '
+      + 'importa mas nunca o monta, porque a rota /gestao/chamados é um <Navigate> para '
+      + '/equipe/tax/gerencial/chamados (App.tsx:266). O que vive é o export nomeado '
+      + '`ChamadosGestaoContent`, usado pelos três invólucros. Registrado como achado a decidir '
+      + '(apagar ou rotear), não corrigido junto com a mudança de escopo.',
+  };
+
+  function arquivosQueMontam(): string[] {
+    const achados: string[] = [];
+    const varrer = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const c = `${dir}/${e.name}`;
+        if (e.isDirectory()) { varrer(c); continue; }
+        if (!/\.tsx$/.test(e.name) || /\.test\.tsx$/.test(e.name)) continue;
+        if (readFileSync(c, 'utf8').includes('<ChamadosGestaoContent')) achados.push(c);
+      }
+    };
+    varrer('src');
+    return achados;
+  }
+
+  it('quem monta o miolo numa rota de área passa `escopo`', () => {
+    const faltando: string[] = [];
+    for (const arquivo of arquivosQueMontam()) {
+      if (arquivo in SEM_ESCOPO_DE_PROPOSITO) continue;
+      const fonte = readFileSync(arquivo, 'utf8');
+      if (!/escopo=/.test(fonte)) faltando.push(arquivo);
+    }
+    expect(
+      faltando,
+      `Invólucro sem \`escopo\`: a tela pega a cor da área e mostra os chamados de TODAS —\n`
+        + `o defeito que a prop existe para fechar.\n${faltando.join('\n')}`,
+    ).toEqual([]);
+  });
+
+  it('todo escopo declarado é uma chave de espelho válida', () => {
+    // Mesma chave, mesma disciplina: se pinta por área, filtra pela mesma chave.
+    for (const arquivo of arquivosQueMontam()) {
+      for (const m of readFileSync(arquivo, 'utf8').matchAll(/escopo="([^"]+)"/g)) {
+        expect(Object.keys(ESPELHO), `${arquivo}: escopo "${m[1]}"`).toContain(m[1]);
+      }
+    }
+  });
+
+  it('a exceção do Board carrega motivo escrito', () => {
+    for (const [arquivo, motivo] of Object.entries(SEM_ESCOPO_DE_PROPOSITO)) {
+      expect(() => readFileSync(arquivo, 'utf8'), `${arquivo} não existe`).not.toThrow();
       expect(motivo.length, `motivo raso em ${arquivo}`).toBeGreaterThan(120);
     }
   });
