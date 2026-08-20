@@ -178,36 +178,52 @@ export const PARAM_DE_ESPELHO = 'area';
 /**
  * As categorias que podem espelhar, e o tema de cada uma.
  *
- * O critério NÃO é "ser uma categoria válida" — é **ser um recorte**. A chave
- * precisa nomear um conjunto de que faça sentido dizer "os chamados dele".
+ * O CRITÉRIO, e ele não é "ser uma categoria válida".
  *
- * Por isso `geral`, `mapa`, `board` e `gestao` estão fora: nenhuma tem cluster
- * próprio para filtrar, e sem filtro não pode haver cor.
+ * O espelho recorta por `tickets.cluster_id`, e esse cluster vem do CLIENTE que
+ * abriu o chamado — o cliente entra pela área dele e o chamado vai para o cluster
+ * que o atende. Logo o espelho responde a UMA pergunta:
  *
- * POR QUE `rotina` SAIU, e é a correção que vale registrar. Ela entrou aqui
- * porque é uma categoria válida com cluster resolvível (o Digital) — critério
- * errado. A Rotina não é um cluster de negócio: é o CHÃO COMUM, o lugar de onde
- * se olha. Nove das dezesseis telas dela são categoria `geral`, e ela existe
- * porque todas as áreas passam por ali. "Ver os chamados da Rotina" não quer
- * dizer nada: ela não tem chamados.
+ *     "chamados dos CLIENTES desta área"
  *
- * O sintoma que expôs isso: do `/equipe/kanban`, "Ver Chamados" ia para
- * `?area=rotina`, resolvia para o cluster Digital, e o Digital tem ZERO chamados
- * — tela teal com "0 de 0" onde devia haver a lista inteira. Internamente
+ * Tax e OSG têm clientes: 123 e 166 (medido em 20/08/2026). O Digital não tem —
+ * os dois vínculos que existem são `[TESTE] Pantanal Sementes` e `[TESTE] Zebra
+ * de Óculos`, dados de semente. Por isso `dev` e `rotina` NÃO espelham: não é
+ * lacuna de dado, é recorte que não se aplica a eles.
+ *
+ * `geral`, `mapa`, `board` e `gestao` ficam fora pela mesma razão, sem cluster
+ * próprio para recortar.
+ *
+ * O SINTOMA que expôs o critério errado: do `/equipe/kanban`, "Ver Chamados" ia
+ * para `?area=rotina`, que resolvia para o cluster Digital, e o Digital tem ZERO
+ * chamados — tela teal com "0 de 0" onde deviam estar os 354. Internamente
  * coerente (cor e conteúdo andavam juntos) e conceitualmente errado. Só apareceu
- * quando alguém clicou o caminho real.
+ * quando alguém clicou o caminho real. `rotina` e `dev` entraram porque eram
+ * categorias válidas com cluster resolvível, não porque fossem recortes.
  *
- * Do kanban o link vai SEM parâmetro: piso, lista completa, Cluster livre.
+ * Do kanban e do Dev o link vai SEM parâmetro: piso, lista completa, Cluster
+ * livre.
  *
- * Havia aqui uma decisão explícita aceitando que `dev` e `rotina` apontassem
- * para o mesmo cluster com temas diferentes. Ela deixou de ser necessária: sem
- * `rotina`, toda chave é um cluster de verdade e não há mais duas chaves para o
- * mesmo conteúdo. A exceção do modelo desapareceu junto com a causa dela.
+ * REGISTRADO E NÃO É PARA AGORA: haverá um canal de chamados para clientes
+ * INTERNOS — dúvidas e correções da própria equipe. Esse é OUTRO recorte e OUTRA
+ * tela. Não é acrescentar uma chave a esta lista.
+ *
+ * Havia aqui uma decisão explícita aceitando que `dev` e `rotina` apontassem para
+ * o mesmo cluster com temas diferentes. Ela deixou de ser necessária: toda chave
+ * que sobrou é um cluster com clientes, e não há duas chaves para o mesmo
+ * conteúdo. A exceção do modelo saiu junto com a causa dela.
+ *
+ * ⚠️ O PADRÃO DE ROTA JÁ EXISTIA, mas SEM a regra. `ChamadosGestaoContent` vive
+ * em `/equipe/tax/gerencial/chamados` e `/equipe/osg/gerencial/chamados` e pega a
+ * cor certa pelo resolvedor — mas NÃO filtra por área: recebe só `basePath` (usado
+ * para navegar), chama `useAllActiveAreas`/`useAllActiveClusters` e nasce com
+ * `cluster: 'todos'`. Ou seja: ele é precedente do CAMINHO, e é exemplo do
+ * defeito que este bloco existe para não ter — cor de área sobre lista de todas
+ * as áreas. Fica registrado como dívida, não como modelo a copiar.
  */
 export const ESPELHO = {
   tax: 'tax',
   osg: 'osg',
-  dev: 'digital',
 } as const satisfies Record<string, AreaDeTema>;
 
 /**

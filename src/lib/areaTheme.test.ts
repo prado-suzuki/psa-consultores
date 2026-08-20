@@ -407,29 +407,33 @@ describe('espelhamento: cor e conteúdo saem da mesma chave', () => {
     const tema = (chave: string) => resolverTemaDaRota('/equipe/chamados', `?${PARAM_DE_ESPELHO}=${chave}`);
     expect(tema('tax')).toEqual([CLASSE_BASE, 'tax-theme']);
     expect(tema('osg')).toEqual([CLASSE_BASE, 'osg-theme']);
-    expect(tema('dev')).toEqual([CLASSE_BASE, 'sistema-theme']);
   });
 
   /*
-   * O CRITÉRIO de quem pode espelhar é SER UM RECORTE, não ser uma chave válida.
+   * O CRITÉRIO: espelha quem tem CLIENTES.
    *
-   * `rotina` já esteve no ESPELHO porque passava no critério errado: é categoria
-   * de página válida e resolve para um cluster (o Digital). Só que a Rotina é o
-   * chão comum — o lugar de onde se olha —, e o Digital tem zero chamados. O
-   * resultado era uma tela teal com "0 de 0" onde deviam estar os 354.
+   * O espelho recorta por `tickets.cluster_id`, e esse cluster vem do cliente que
+   * abriu o chamado. Então o espelho responde "chamados dos CLIENTES desta área",
+   * e só faz sentido para área que tem clientes: Tax (123) e OSG (166).
    *
-   * Este teste é o que impede a volta: `rotina` fora, e nenhuma categoria que
-   * seja "chão" dentro.
+   * `rotina` e `dev` já estiveram aqui por passarem no critério ERRADO — eram
+   * categorias válidas com cluster resolvível. Mas o Digital não tem clientes (os
+   * dois vínculos são `[TESTE]`), e a Rotina é o chão comum. O sintoma foi uma
+   * tela teal com "0 de 0" onde deviam estar os 354.
+   *
+   * Este teste é o que impede a volta. Inclui `dev` de propósito: quando vier o
+   * canal de chamados INTERNOS, ele é outra tela e outro recorte — quem tentar
+   * resolver acrescentando `dev` aqui quebra e lê o porquê.
    */
-  it('chão comum não espelha — rotina e geral ficam fora', () => {
-    for (const chao of ['rotina', 'geral', 'mapa', 'board', 'gestao']) {
-      expect(Object.keys(ESPELHO), `"${chao}" não é recorte`).not.toContain(chao);
-      expect(resolverTemaDaRota('/equipe/chamados', `?${PARAM_DE_ESPELHO}=${chao}`))
+  it('só espelha quem tem clientes — chão comum e infraestrutura ficam fora', () => {
+    for (const fora of ['rotina', 'dev', 'geral', 'mapa', 'board', 'gestao']) {
+      expect(Object.keys(ESPELHO), `"${fora}" não é recorte de clientes`).not.toContain(fora);
+      expect(resolverTemaDaRota('/equipe/chamados', `?${PARAM_DE_ESPELHO}=${fora}`))
         .toEqual(resolverTemaDaRota('/equipe/chamados'));
     }
   });
 
-  it('sem rotina, não há duas chaves para o mesmo cluster', () => {
+  it('não há duas chaves para o mesmo conteúdo', () => {
     // Era a única brecha aceita do modelo: `dev` e `rotina` apontavam para o
     // cluster Digital com temas diferentes. Saiu junto com a causa.
     const temas = Object.values(ESPELHO);
@@ -482,10 +486,17 @@ describe('espelhamento: os menus levam a chave', () => {
       + 'conhecida: quem entrou pelo espelho da Tax volta para "todos". Registrado como '
       + 'pendência em docs/geral/decisoes-tema-e-cor.md, não consertado no escuro.',
     'src/components/equipe/EquipeLayout.tsx':
-      'A Rotina é o CHÃO COMUM, não um recorte: "os chamados da Rotina" não quer dizer nada. '
-      + 'Daqui o link vai sem parâmetro — piso, lista completa, Cluster livre. Ela já esteve '
-      + 'no ESPELHO por erro de critério (era categoria válida, não recorte) e o sintoma foi '
-      + 'uma tela teal com "0 de 0" no lugar dos 354. Ver o bloco ESPELHO em areaTheme.ts.',
+      'A Rotina é o CHÃO COMUM, não um recorte: "os chamados dos clientes da Rotina" não quer '
+      + 'dizer nada, porque a Rotina não tem clientes. Daqui o link vai sem parâmetro — piso, '
+      + 'lista completa, Cluster livre. Ela já esteve no ESPELHO por erro de critério (era '
+      + 'categoria válida, não recorte) e o sintoma foi uma tela teal com "0 de 0" '
+      + 'no lugar dos 354. Ver o bloco ESPELHO em areaTheme.ts.',
+    'src/components/equipe/dev/DevLayout.tsx':
+      'O espelho responde "chamados dos CLIENTES desta área", e o Digital não tem clientes: '
+      + 'os dois vínculos que existem no cluster Digital são [TESTE] Pantanal Sementes e '
+      + '[TESTE] Zebra de Óculos, dados de semente. Não é lacuna de dado — é recorte que não '
+      + 'se aplica. O canal de chamados para clientes INTERNOS, quando vier, é outra tela e '
+      + 'outro recorte, não uma chave nova nesta lista.',
   };
 
   function arquivosTsx(dir: string): string[] {
