@@ -113,13 +113,13 @@ export default function EstruturaManager() {
         )}
         {alocados.length > 0 && (
           <SelectGroup>
-            <SelectLabel className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <SelectLabel className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
               Já em cluster ({alocados.length})
             </SelectLabel>
             {alocados.map(p => (
               <SelectItem key={p.id} value={p.id} className="text-xs">
                 {profileLabel(p)}
-                {showCluster && <span className="text-slate-400"> · {clusterHint(p.id)}</span>}
+                {showCluster && <span className="text-muted-foreground"> · {clusterHint(p.id)}</span>}
               </SelectItem>
             ))}
           </SelectGroup>
@@ -261,14 +261,14 @@ export default function EstruturaManager() {
   const renderClusterItem = (cluster: Cluster) => {
     const clusterAreas = areas.filter(a => a.cluster_id === cluster.id);
     return (
-      <AccordionItem key={cluster.id} value={cluster.id} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+      <AccordionItem key={cluster.id} value={cluster.id} className="bg-card rounded-lg border border-border shadow-sm overflow-hidden">
         <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-foreground/[0.03]">
           <div className="flex items-center gap-3 flex-1 text-left">
             <Network className="h-5 w-5 text-primary shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="font-medium text-slate-900">{cluster.name}</div>
+              <div className="font-medium text-foreground">{cluster.name}</div>
               {(cluster.nome_empresa || cluster.cnpj || cluster.cost_center_id) && (
-                <div className="text-xs text-slate-500">
+                <div className="text-xs text-muted-foreground">
                   {cluster.nome_empresa && <>Empresa: {cluster.nome_empresa}</>}
                   {cluster.cnpj && <> • CNPJ: {formatarCnpj(cluster.cnpj)}</>}
                   {getCcLabel(cluster.cost_center_id) && <> • CC: {getCcLabel(cluster.cost_center_id)}</>}
@@ -289,14 +289,14 @@ export default function EstruturaManager() {
         <AccordionContent className="px-4 pb-4">
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <span className="text-sm font-medium text-slate-700">Áreas</span>
+              <span className="text-sm font-medium text-foreground">Áreas</span>
               <Button variant="outline" size="sm" className="gap-1 h-7 text-xs" onClick={() => openAreaCreate(cluster.id)}>
                 <Plus className="h-3 w-3" /> Nova Área
               </Button>
             </div>
 
             {clusterAreas.length === 0 ? (
-              <p className="text-sm text-slate-400 italic">Nenhuma área neste cluster.</p>
+              <p className="text-sm text-muted-foreground italic">Nenhuma área neste cluster.</p>
             ) : (
               <Accordion
                 type="multiple"
@@ -312,13 +312,13 @@ export default function EstruturaManager() {
                     .filter((p): p is Profile => !!p);
 
                   return (
-                    <AccordionItem key={area.id} value={area.id} className="rounded-md border border-slate-100 bg-muted/50">
+                    <AccordionItem key={area.id} value={area.id} className="rounded-md border border-border bg-muted/50">
                       <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-foreground/[0.03] text-sm">
                         <div className="flex items-center gap-2 flex-1 text-left">
                           <PontoDaArea area={area} comBorda />
-                          <span className="font-medium text-slate-800">{area.name}</span>
+                          <span className="font-medium text-foreground">{area.name}</span>
                           {gestorProfiles.length > 0 && (
-                            <span className="text-xs text-slate-500 ml-1">
+                            <span className="text-xs text-muted-foreground ml-1">
                               • Gestor{gestorProfiles.length > 1 ? 'es' : ''}: {gestorProfiles.map(profileLabel).join(', ')}
                             </span>
                           )}
@@ -349,14 +349,14 @@ export default function EstruturaManager() {
                         <div className="space-y-3">
                           {/* Equipes */}
                           <div className="flex justify-between items-center">
-                            <span className="text-xs font-medium text-slate-600">Equipes</span>
+                            <span className="text-xs font-medium text-muted-foreground">Equipes</span>
                             <Button variant="outline" size="sm" className="gap-1 h-6 text-xs" onClick={() => openEquipeCreate(area.id)}>
                               <Plus className="h-3 w-3" /> Nova Equipe
                             </Button>
                           </div>
 
                           {areaEquipes.length === 0 ? (
-                            <p className="text-xs text-slate-400 italic">Nenhuma equipe.</p>
+                            <p className="text-xs text-muted-foreground italic">Nenhuma equipe.</p>
                           ) : (
                             <div className="space-y-2">
                               {areaEquipes.map(equipe => {
@@ -365,11 +365,11 @@ export default function EstruturaManager() {
                                 const availableMembers = memberCandidates.filter(p => !equipeMembroIds.has(p.id));
 
                                 return (
-                                  <div key={equipe.id} className="rounded border border-slate-200 bg-white p-3 space-y-2">
+                                  <div key={equipe.id} className="rounded border border-border bg-card p-3 space-y-2">
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-2">
-                                        <Users className="h-3.5 w-3.5 text-slate-500" />
-                                        <span className="text-sm font-medium text-slate-800">{equipe.name}</span>
+                                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
+                                        <span className="text-sm font-medium text-foreground">{equipe.name}</span>
                                       </div>
                                       <div className="flex gap-1">
                                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEquipeEdit(equipe)}>
@@ -383,7 +383,7 @@ export default function EstruturaManager() {
 
                                     {/* Gestor (1 por equipe) */}
                                     <div className="flex items-center gap-2">
-                                      <Label className="text-xs text-slate-600 shrink-0">Gestor:</Label>
+                                      <Label className="text-xs text-muted-foreground shrink-0">Gestor:</Label>
                                       <Select
                                         value={equipe.gestor_id || '_none'}
                                         onValueChange={(val) => handleSetEquipeGestor(equipe.id, val === '_none' ? null : val)}
@@ -446,10 +446,10 @@ export default function EstruturaManager() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex justify-between items-center bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
+      <div className="flex justify-between items-center bg-card rounded-lg p-4 border border-border shadow-sm">
         <div>
-          <h3 className="text-base font-medium text-slate-900">Estrutura Organizacional</h3>
-          <p className="text-sm text-slate-500">Gerencie clusters, áreas, líderes, equipes e membros.</p>
+          <h3 className="text-base font-medium text-foreground">Estrutura Organizacional</h3>
+          <p className="text-sm text-muted-foreground">Gerencie clusters, áreas, líderes, equipes e membros.</p>
         </div>
         <Button onClick={openClusterCreate} className="gap-2">
           <Plus className="h-4 w-4" />
@@ -467,18 +467,18 @@ export default function EstruturaManager() {
 
       {/* Clusters accordion */}
       {loadingClusters ? (
-        <div className="text-center py-8 text-slate-500">Carregando...</div>
+        <div className="text-center py-8 text-muted-foreground">Carregando...</div>
       ) : clusters.length === 0 ? (
-        <Card className="bg-white border-slate-200/60 shadow-sm">
-          <CardContent className="py-8 text-center text-slate-500">
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="py-8 text-center text-muted-foreground">
             Nenhum cluster cadastrado. Clique em"Novo Cluster" para começar.
           </CardContent>
         </Card>
       ) : (
         <div className="space-y-4">
           {activeClusters.length === 0 ? (
-            <Card className="bg-white border-slate-200/60 shadow-sm">
-              <CardContent className="py-6 text-center text-slate-500 text-sm">
+            <Card className="border-border/60 shadow-sm">
+              <CardContent className="py-6 text-center text-muted-foreground text-sm">
                 Nenhum cluster ativo.
               </CardContent>
             </Card>
@@ -490,7 +490,7 @@ export default function EstruturaManager() {
 
           {inactiveClusters.length > 0 && (
             <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg border border-dashed border-slate-300 bg-muted/60 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-foreground/[0.04]">
+              <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg border border-dashed border-border bg-muted/60 px-4 py-2.5 text-sm font-medium text-muted-foreground hover:bg-foreground/[0.04]">
                 <div className="flex items-center gap-2">
                   <span>Clusters inativos</span>
                   <Badge variant="secondary" className="text-xs">{inactiveClusters.length}</Badge>
@@ -530,9 +530,9 @@ export default function EstruturaManager() {
       {/* ─── Dialogs ─────────────────────────────────────────────────── */}
       {/* Cluster dialog */}
       <Dialog open={clusterDialog} onOpenChange={setClusterDialog}>
-        <DialogContent className="bg-white border-slate-200 max-w-md">
+        <DialogContent className="border-border max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-slate-900">{editingCluster ? 'Editar Cluster' : 'Novo Cluster'}</DialogTitle>
+            <DialogTitle className="text-foreground">{editingCluster ? 'Editar Cluster' : 'Novo Cluster'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -570,12 +570,12 @@ export default function EstruturaManager() {
               />
             </div>
             {editingCluster && (
-              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-muted/60 px-3 py-2.5">
+              <div className="flex items-center justify-between rounded-md border border-border bg-muted/60 px-3 py-2.5">
                 <div className="space-y-0.5">
                   <Label htmlFor="cluster-active" className="cursor-pointer">
                     {clusterForm.is_active ? 'Cluster ativo' : 'Cluster inativo'}
                   </Label>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     {clusterForm.is_active
                       ? 'Visível na lista principal.'
                       : 'Será exibido na seção de inativos.'}
@@ -598,9 +598,9 @@ export default function EstruturaManager() {
 
       {/* Area dialog */}
       <Dialog open={areaDialog} onOpenChange={setAreaDialog}>
-        <DialogContent className="bg-white border-slate-200 max-w-md">
+        <DialogContent className="border-border max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-slate-900">{editingArea ? 'Editar Área' : 'Nova Área'}</DialogTitle>
+            <DialogTitle className="text-foreground">{editingArea ? 'Editar Área' : 'Nova Área'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -627,7 +627,7 @@ export default function EstruturaManager() {
                   telas a área aparece (`useEstruturaAreas`,
                   `useEstruturaEquipes`, `useDomainClusterPorCategoria`) e
                   alimenta o bucket do Board (`bucketDePageCategories`). */}
-              <p className="text-xs text-slate-500">Em quais telas esta área aparece. Não concede acesso.</p>
+              <p className="text-xs text-muted-foreground">Em quais telas esta área aparece. Não concede acesso.</p>
               <div className="flex flex-wrap gap-2">
                 {/* `projetos` e `fiscal` saíram: nenhuma página em nenhuma das
                     duas, então marcar não surtia efeito algum. `mapa` continua
@@ -647,8 +647,8 @@ export default function EstruturaManager() {
                       }))}
                       className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                         selected
-                          ? 'bg-primary text-white border-primary'
-                          : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-card text-muted-foreground border-slate-300 hover:border-slate-400'
                       }`}
                     >
                       {cat}
@@ -659,7 +659,7 @@ export default function EstruturaManager() {
             </div>
             <div className="space-y-2">
               <Label>Centro de Custo (opcional)</Label>
-              <p className="text-xs text-slate-500">Áreas da mesma empresa podem ter centros de custo diferentes.</p>
+              <p className="text-xs text-muted-foreground">Áreas da mesma empresa podem ter centros de custo diferentes.</p>
               <CentroCustoSelect
                 value={areaForm.cost_center_id}
                 onChange={valor => setAreaForm(f => ({ ...f, cost_center_id: valor }))}
@@ -676,9 +676,9 @@ export default function EstruturaManager() {
 
       {/* Equipe dialog */}
       <Dialog open={equipeDialog} onOpenChange={setEquipeDialog}>
-        <DialogContent className="bg-white border-slate-200 max-w-md">
+        <DialogContent className="border-border max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-slate-900">{editingEquipe ? 'Editar Equipe' : 'Nova Equipe'}</DialogTitle>
+            <DialogTitle className="text-foreground">{editingEquipe ? 'Editar Equipe' : 'Nova Equipe'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
@@ -699,13 +699,13 @@ export default function EstruturaManager() {
 // ─── Stat Card ──────────────────────────────────────────────────────────
 function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <Card className="bg-white border-slate-200/60 shadow-sm">
+    <Card className="border-border/60 shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium text-slate-600">{label}</CardTitle>
+        <CardTitle className="text-sm font-medium text-foreground">{label}</CardTitle>
         <div className="p-2 rounded-full bg-primary/15">{icon}</div>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold text-slate-900">{value}</div>
+        <div className="text-3xl font-bold text-foreground">{value}</div>
       </CardContent>
     </Card>
   );
