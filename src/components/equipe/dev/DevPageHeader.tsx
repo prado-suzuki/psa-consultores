@@ -44,12 +44,12 @@ const renderBoldSegments = (text: string): ReactNode[] => {
  */
 export const DevPageHeader = ({ description, manualUrl, hideManualLink = false }: DevPageHeaderProps) => {
   return (
-    <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1] dark:bg-primary/10 dark:border-primary/60">
+    <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1]">
       <Info className="h-5 w-5 text-primary" />
-      <AlertTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+      <AlertTitle className="text-sm font-semibold text-slate-700">
         Visão Geral
       </AlertTitle>
-      <AlertDescription className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mt-1">
+      <AlertDescription className="text-sm leading-relaxed text-slate-700 mt-1">
         {renderBoldSegments(description)}
         {!hideManualLink && manualUrl && (
           <>
@@ -58,7 +58,7 @@ export const DevPageHeader = ({ description, manualUrl, hideManualLink = false }
               href={manualUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+              className="font-semibold text-emerald-600 hover:underline"
             >
               aqui
             </a>
