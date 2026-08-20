@@ -19,6 +19,22 @@
  * livre nunca colide, estável porque não é recalculado, e imune a exclusão —
  * a área apagada devolve o slot para a próxima que nascer.
  *
+ * ONDE A COLISAO E TRATADA — e sao dois lugares, de proposito.
+ *
+ * Com mais areas que tons (10 areas, 8 slots) duas sempre compartilham. O
+ * instante em que uma colisao adormecida ACORDA nao e a criacao: e a ativacao,
+ * porque area inativa nao mostra ponto.
+ *
+ * · CRIACAO: aqui, com `proximoIndiceDeCor`. Passa pelo aplicativo.
+ * · ATIVACAO: no BANCO, pelo trigger `realoca_color_index_na_ativacao`
+ *   (migracao 20260820150000). NAO da para fazer daqui: nada em src/ escreve
+ *   `estrutura_areas.is_active` — as referencias sao todas filtro de leitura, e
+ *   area se ativa por update direto no banco. Uma checagem em TypeScript nunca
+ *   dispararia.
+ *
+ * NAO acrescente aqui uma checagem de ativacao achando que falta: ela existe, e
+ * no unico lugar onde o evento passa.
+ *
  * `estrutura_areas.color` continua existindo como OVERRIDE, hoje nulo em todas
  * as linhas. Não há tela para ele: quem precisar de uma cor específica pede um
  * `update`. É de propósito — o escape serve o caso raro e não convida ao caso
