@@ -375,7 +375,73 @@ instrumento específico o define.
 | `administradoresNomeados[]` | Camada 2 — falta tabela de junção; NÃO é `administracao` | §8 (achado #7) |
 | `liquidacaoPeriodicidade`, `liquidacaoNumeroParcelas` | Camada 2, campo novo | §10 |
 
-## 12. Conclusão
+## 12. Pergunta investigada e NÃO confirmada (20/08/2026): qualificação de PJ para Explorador/Compossuidor
+
+Contexto: duas perguntas do tech lead Bernardo depois de uma apresentação
+levaram a olhar o motor de geração (`contratoRuralContexto.ts`/
+`contratoRuralBlocos.ts`) direto, não só o schema. A primeira (administração
+em conjunto vs. isoladamente na Composse) foi confirmada por um caso real (o
+Termo Aditivo do `[ROS-COM]`) e corrigida — ver
+`administradorNomeadoUnico`/`administradorNomeadoConjunto`. A segunda virou
+esta seção — e, diferente da primeira, **não é achado**: é o registro de uma
+pergunta que investiguei e não confirmei, pra não ficar pendente sem
+resposta.
+
+`contratoRuralBlocos.ts` tem uma função que resolve os dois ramos de
+qualificação, PJ ou PF, por escopo:
+
+```ts
+function qualificacaoPessoa(p: string): string {
+  return `{{#${p}.sePJ}}${qualificacaoPJ(p)}{{/${p}.sePJ}}{{#${p}.sePF}}${qualificacaoPF(p)}{{/${p}.sePF}}`;
+}
+```
+
+Ela é usada pro **Outorgante** da Parceria (`qualificacaoPessoa('outorgante')`,
+bloco `par-preambulo`) — e é essa função, junto de `outorganteContexto()` em
+`contratoRuralContexto.ts`, que já resolve automaticamente a qualificação de
+PJ (razão social, CNPJ, NIRE, sede e "neste ato representada por seus
+administradores [nomes]", lidos de `administracao` via
+`useAdministracaoByPj` — sem digitação nenhuma na tela; é o mecanismo que
+explica por que a Parceria não altera o contrato social da empresa, só lê
+quem já é administrador registrado).
+
+**Explorador (Parceria) e Compossuidor (Composse) não passam por essa
+função** — usam `qualificacaoPF` direto, sem ramo de PJ:
+
+```ts
+// par-preambulo
+`**PARCEIROS OUTORGADOS:** {{#exploradores}}${qualificacaoPF('explorador')}\n{{/exploradores}}`
+// com-preambulo-partes
+`{{#compossuidores}}${qualificacaoPF('compossuidor')}\n{{/compossuidores}}`
+```
+
+**Reconferi os 5 contratos reais e não achei nenhum caso**: em todos,
+explorador/compossuidor é pessoa física. `[BV-PAR]` é explícito sobre isso —
+"os mesmos administradores da outorgante, agora **na qualidade de pessoas
+físicas** outorgadas". As duas empresas que eu tinha citado numa versão
+anterior deste texto (Agropecuária Mata do Puba Ltda., Indústria de
+Derivados da Mandioca Santa Cruz Ltda., no Considerando V do `[BV-COM]`) **não
+são compossuidoras** — são as Parceiras Outorgantes dos contratos de ORIGEM,
+um papel diferente, que já usa `qualificacaoPJ` (`origem.outorgante`)
+corretamente.
+
+**Por que isso NÃO entra como achado**: a régua usada em toda esta auditoria
+(e no resto do levantamento da ALE-3) é que campo/comportamento sem contrato
+real por trás não é gap, é especulação — foi por isso que `sacas_por_hectare`,
+`partesExtras` e `prazoRenovacaoVigencia` saíram do rascunho. Aplicar um
+padrão diferente aqui (registrar como gap só porque o código *tecnicamente
+aceitaria* um `pessoa.tipo_pessoa === 'PJ'` nesse papel) seria inconsistente.
+Mais: o próprio `[BV-PAR]` sugere o contrário de um gap — a troca deliberada
+de "administradores da PJ" para "pessoas físicas outorgadas" indica que o
+papel de explorador/compossuidor é **pensado pra pessoa física por natureza**
+(quem exerce a posse/lavra a terra é gente, não a empresa que é dona dela),
+não uma omissão do modelo.
+
+**Fechamento**: pergunta investigada, sem caso real que a sustente — não
+vira achado, não pede correção. Se um dia aparecer um contrato real com PJ
+nesse papel, aí sim há o que registrar.
+
+## 13. Conclusão
 
 Não há vazamento de cadastro para dentro do modelo de contrato, nem o
 inverso — o rascunho, campo a campo, está na camada certa (cadastro
@@ -409,3 +475,11 @@ lado de `documento_gerado`). Os achados reais são:
 
 Nenhum dos achados pede alteração agora — ficam registrados para orientar o
 desenho das tabelas quando o mockup for de fato incorporado à OSG Work.
+
+Uma correção pontual JÁ foi aplicada nesta rodada, fora da lista de achados
+acima porque não é sobre camada de cadastro vs. modelo: a regra de
+administração "em conjunto" da Composse agora vira "isoladamente" quando só
+resta 1 administrador nomeado — confirmado por caso real (Termo Aditivo do
+`[ROS-COM]`), ver §12. A pergunta irmã dessa (PJ como explorador/compossuidor,
+mesmo §12) foi investigada e **não confirmada** — registrada como pergunta
+fechada, não como achado, por falta de caso real que a sustente.

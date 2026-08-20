@@ -470,7 +470,12 @@ export const BLOCOS_COMPOSSE: Bloco[] = [
       'terceiros (não compossuidores), só podem ser feitos em conjunto por COMPOSSUIDORES que representem a maioria ' +
       'dos percentuais da Cláusula Segunda, sob pena de nulidade.{{/regraMaioria}}' +
       '{{#regraNomeados}}Locar, arrendar e/ou formar parcerias rurais em nome da COMPOSSE, e emitir garantias a favor ' +
-      'de terceiros (não compossuidores), só podem ser feitos em conjunto por {{#administradoresNomeados}}{{ admin.nome }}; {{/administradoresNomeados}}' +
+      'de terceiros (não compossuidores), só podem ser feitos ' +
+      // 1 administrador nomeado → isoladamente; 2+ → em conjunto. Ver o comentário de
+      // `administradorNomeadoUnico`/`administradorNomeadoConjunto` em contratoRuralContexto.ts
+      // — achado do Termo Aditivo real do `[ROS-COM]`, não hipótese.
+      '{{#administradorNomeadoUnico}}isoladamente por {{#administradoresNomeados}}{{ admin.nome }} {{/administradoresNomeados}}{{/administradorNomeadoUnico}}' +
+      '{{#administradorNomeadoConjunto}}em conjunto por {{#administradoresNomeados}}{{ admin.nome }}; {{/administradoresNomeados}}{{/administradorNomeadoConjunto}}' +
       'sob pena de nulidade.{{/regraNomeados}}',
   },
   { id: 'com-c11-p2', tipo: 'paragrafo', obrigatorio: true, conteudo: 'Havendo incapacidade civil superveniente de qualquer administrador, a administração passará a ser desempenhada isoladamente pelo administrador remanescente em pleno gozo da capacidade civil.' },

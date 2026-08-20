@@ -284,6 +284,16 @@ export function montarContextoComposse(draft: ExploracaoRuralDraft, recursos: Re
     if (!pessoa) return null;
     return { compossuidor: { ...qualificarPessoaRural(pessoa, { comFiliacao: true }), fracao: comExtensoPorCento(formatarPercentual(Number(c.fracao) || 0)) } };
   };
+  // Isoladamente vs. em conjunto NÃO é uma terceira opção de `regraAdministracao` —
+  // é derivado de quantos administradores nomeados sobraram. Prova real: o Termo
+  // Aditivo do `[ROS-COM]` (docs/osg/contratos_exploracao/notebooklm/
+  // exemplo-04-termo-aditivo-rossato.md) muda a MESMA cláusula de "em conjunto por
+  // Dilceu Rossato e Catia Regina Randon Rossato" para "isoladamente pela
+  // compossuidora Catia Regina Randon" só porque Dilceu deixou de ser compossuidor —
+  // de 2 nomeados para 1. Com 1 só, "em conjunto por X;" nem faz sentido gramatical.
+  const administradoresNomeadosResolvidos = draft.administradoresNomeados
+    .map((a) => recursos.pessoas.find((p) => p.id === a.pessoaId))
+    .filter((p): p is PessoaRow => !!p);
   return {
     compossuidores: draft.compossuidores.map(compossuidorParaMapear).filter((c): c is NonNullable<typeof c> => !!c),
     nomeComposse: primeiroCompossuidor ? `${primeiroCompossuidor.denominacao.toUpperCase()} E OUTROS` : '',
@@ -298,10 +308,9 @@ export function montarContextoComposse(draft: ExploracaoRuralDraft, recursos: Re
     indivisaoAvisoPrazo: prazoProsa(draft.indivisaoAvisoQuantidade, draft.indivisaoAvisoUnidade),
     regraMaioria: draft.regraAdministracao === 'maioria' ? 'sim' : '',
     regraNomeados: draft.regraAdministracao === 'nomeados' ? 'sim' : '',
-    administradoresNomeados: draft.administradoresNomeados
-      .map((a) => recursos.pessoas.find((p) => p.id === a.pessoaId))
-      .filter((p): p is PessoaRow => !!p)
-      .map((p) => ({ admin: { nome: p.denominacao } })),
+    administradoresNomeados: administradoresNomeadosResolvidos.map((p) => ({ admin: { nome: p.denominacao } })),
+    administradorNomeadoUnico: administradoresNomeadosResolvidos.length === 1 ? 'sim' : '',
+    administradorNomeadoConjunto: administradoresNomeadosResolvidos.length >= 2 ? 'sim' : '',
     // Empacotado como `{ origem: {...} }` — mesma convenção de `imoveis`/`exploradores`/`compossuidores`
     // (item da seção de repetição sempre entra sob um nome singular), que o bloco do Considerando V espera
     // (`{{ origem.letra }}`, não `{{ letra }}`).
