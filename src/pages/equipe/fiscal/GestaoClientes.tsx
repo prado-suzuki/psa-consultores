@@ -191,7 +191,10 @@ const ContribuintesExpandSection = ({
 
 const ITEMS_PER_PAGE = 10;
 
-const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) => {
+const GestaoClientes = ({
+  area = 'tax' as AreaKey,
+  todosOsClusters = false,
+}: { area?: AreaKey; todosOsClusters?: boolean } = {}) => {
   const { isAdmin, isLider, isSublider } = useAuth();
   const canEdit = isAdmin || isLider || isSublider;
   const [search, setSearch] = useState('');
@@ -214,7 +217,7 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
   const { data: resultados = [], isLoading } = useClientesFiltrados(
     { clienteId: '', status, tipo, categoria, nomeRazaoSocial: '' },
     true,
-    clusterId ?? undefined,
+    todosOsClusters ? undefined : (clusterId ?? undefined),
     area === 'tax',
   );
   const deleteMutation = useDeleteCliente();
