@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchPerfisEquipeDigital } from '@/lib/equipeDigital';
 import { fetchAllRows } from '@/lib/supabasePagination';
 import type {
   EquipeKanbanDeliverable,
@@ -38,16 +39,19 @@ export function useEquipeKanbanInitialQuery() {
   return useQuery<EquipeKanbanInitialData>({
     queryKey: ['domain-equipe-kanban', 'initial'],
     queryFn: async () => {
-      const [sprintsRes, profilesRes, projectsRes, processesRes, deliverables] = await Promise.all([
+      // Responsáveis são a equipe do cluster Digital, o mesmo recorte da tela de Sprint. Antes
+      // vinham de `profiles_safe` cru, que devolve todo perfil do sistema: representante de
+      // cliente aparecia no filtro. Ver lib/equipeDigital.
+      const [sprintsRes, profiles, projectsRes, processesRes, deliverables] = await Promise.all([
         supabase.from('sprints').select('id, name, project_id').order('name', { ascending: true }),
-        supabase.from('profiles_safe').select('id, first_name, last_name'),
+        fetchPerfisEquipeDigital(),
         supabase.from('projects').select('id, name').order('name'),
         supabase.from('processes').select('id, name, project_id').order('name'),
         fetchAllDeliverables(),
       ]);
       return {
         sprints: (sprintsRes.data || []) as EquipeKanbanSprint[],
-        profiles: (profilesRes.data || []) as EquipeKanbanProfile[],
+        profiles,
         projects: (projectsRes.data || []) as EquipeKanbanProject[],
         processes: (processesRes.data || []) as EquipeKanbanProcess[],
         deliverables,

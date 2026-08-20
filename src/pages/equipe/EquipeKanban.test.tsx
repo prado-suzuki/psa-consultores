@@ -218,4 +218,52 @@ describe('EquipeKanban', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('1 aberta')).toBeInTheDocument();
   });
+
+  it('descarta o filtro de responsável salvo quando a pessoa saiu da lista', async () => {
+    // Caso real: o filtro guardava um representante de cliente, que a lista deixou de oferecer.
+    // Sem o descarte o quadro abre vazio, sem nome no seletor e sem pista do motivo.
+    localStorage.setItem('rotina.kanban.responsavel', JSON.stringify('representante-1'));
+
+    render(<EquipeKanban />);
+
+    await waitFor(() =>
+      expect(localStorage.getItem('rotina.kanban.responsavel')).toBe(JSON.stringify('all')),
+    );
+    expect(screen.getByText('contagem 1/1')).toBeInTheDocument();
+  });
+
+  it('preserva o filtro de responsável salvo de quem continua na lista', async () => {
+    localStorage.setItem('rotina.kanban.responsavel', JSON.stringify('membro-1'));
+    mocks.initial.mockReturnValue({
+      data: {
+        sprints: [],
+        profiles: [{ id: 'membro-1', first_name: 'Bruno', last_name: 'Membro' }],
+        projects: [],
+        processes: [],
+        deliverables: [
+          {
+            id: 'parent',
+            title: 'Entrega',
+            description: null,
+            status: 'pending',
+            assigned_to: 'membro-1',
+            sprint_id: null,
+            estimated_hours: null,
+            due_date: null,
+            start_date: null,
+            parent_id: null,
+            task_code: '1',
+          },
+        ],
+      },
+      isLoading: false,
+      isSuccess: true,
+      error: null,
+    });
+
+    render(<EquipeKanban />);
+
+    await waitFor(() => expect(screen.getByText('contagem 1/1')).toBeInTheDocument());
+    expect(localStorage.getItem('rotina.kanban.responsavel')).toBe(JSON.stringify('membro-1'));
+  });
 });
