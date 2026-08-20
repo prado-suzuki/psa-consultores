@@ -190,6 +190,36 @@ refazer o conjunto com separação por luminosidade, não ajustar tons.
 `PontoDaArea` não renderiza sem cor, e `useEstruturaAreas` filtra `is_active`
 (`useEstruturaManager.ts:74`). Área inativa não mostra ponto.
 
+### As rotas de redirecionamento não piscam porque hoje os acentos coincidem
+
+`areaTheme.ts:103` registra o motivo de `/equipe/tarefas` estar no mapa: *"mapeadas para não
+piscar de tema no meio"*. Medido, o quadro é mais estreito do que a frase sugere — só essa
+rota foi mapeada de propósito; as outras três `<Navigate>` herdam do prefixo da área.
+
+Distância de cada tema até o piso, nas 43 (ΔE OKLab-aproximado em sRGB):
+
+| Tema | Difere do piso | Maior salto |
+|---|---|---|
+| `.rotina-theme` | **0 de 43** | — é duplicata exata do piso |
+| `.tax-theme` | 26 de 43 | `--muted-foreground` **ΔE 12,9**; superfícies ΔE 0,6–1,5 (invisíveis) |
+| `.osg-theme` | 38 de 43 | `--primary` **ΔE 24,4**, `--foreground` **ΔE 23,5** |
+| `.sistema-theme` | 8 de 43 | acento e ícone |
+
+**A premissa:** `/equipe/tarefas*` e `/equipe/tax/auditoria` não piscariam sob resolução por
+categoria — mas por razões diferentes, e nenhuma delas é estável.
+
+- `/equipe/tarefas*` é seguro **estruturalmente**: piso e `.rotina-theme` são idênticos nas
+  43. Enquanto isso valer, não há o que piscar.
+- `/equipe/tax/auditoria` é seguro **por acidente de dois níveis**: o acento coincide (ambos
+  `175 82% 29%`), as superfícies diferem abaixo do limiar visual, e o `--muted-foreground`
+  salta a ΔE 12,9 mas não pinta porque `<Navigate replace>` não renderiza DOM.
+- `/equipe/osg/auditoria` **pisca**: teal → musgo a ΔE 24,4. Precisa de exceção declarada.
+
+> **No dia em que a Tax ganhar acento próprio, `/equipe/tax/auditoria` passa a piscar sem
+> ninguém ter tocado nela** — `--primary` entra nas 26 que já diferem. O mesmo vale para a
+> Rotina no dia em que `.rotina-theme` deixar de ser duplicata do piso. Quem der acento a
+> uma área precisa reler esta lista, não só o bloco do tema.
+
 ---
 
 ## 4. Pendências nomeadas
