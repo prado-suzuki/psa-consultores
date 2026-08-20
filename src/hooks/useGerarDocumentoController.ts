@@ -480,10 +480,12 @@ export function useGerarDocumentoController() {
       .filter((b) => b.tipo === 'sociedade')
       .every((b) => Object.keys(selecao[b.nome] ?? {}).length > 0);
   const precisaEmpresa = usaListas || temBlocosComFlags || (temSociedade && !sociedadeCongeladaSemEmpresa);
-  // A sociedade também precisa das listas: capital social e total de quotas são
-  // calculados das integralizações (PR) ou do quadro societário (demais). Na PR
-  // os próprios sócios são derivados das integralizações (daí o tipo da empresa).
-  const { socios, administradores, integralizacoes, isFetching: carregandoListas } = useListasDaEmpresa(
+  // A sociedade também precisa das listas: capital social e total de quotas saem
+  // do quadro societário, e das integralizações apenas na PR que ainda não gravou
+  // o quadro — onde os próprios sócios são derivados (daí o tipo da empresa).
+  const {
+    socios, administradores, integralizacoes, quadroGravado, isFetching: carregandoListas,
+  } = useListasDaEmpresa(
     usaListas || temSociedade ? empresaId : null,
     empresaRow?.tipo_empresa,
   );
@@ -499,7 +501,7 @@ export function useGerarDocumentoController() {
   // do banco): dependem da soma das quotas, que só existe no nível da lista.
   // Os ids de quem administra entram no mapeador do quadro: é o que a linha de
   // assinatura precisa para escrever "Sócia administradora" em vez de só "Sócia".
-  // A informação cruza duas fontes (quadro_societario x administracao), e o
+  // A informação cruza duas fontes (o quadro societário x administracao), e o
   // mapeador é quem tem a linha da pessoa para casar.
   const quadro = useMemo(
     () => mapearQuadroSocietario(socios, new Set(administradores.map((a) => a.pessoa.id).filter(Boolean))),
@@ -608,7 +610,7 @@ export function useGerarDocumentoController() {
     Object.values(registroPorBinding).forEach((id) => id && ids.add(id)); // bindings unitários
     socios.forEach((s) => {
       if (s.pessoa.id && !s.pessoa.id.startsWith(PESSOA_LEGADA_PREFIX)) ids.add(s.pessoa.id);
-      if (s.quadroSocietarioId) ids.add(s.quadroSocietarioId);
+      s.movimentoIds?.forEach((mid) => ids.add(mid));
     });
     administradores.forEach((a) => {
       if (a.pessoa.id) ids.add(a.pessoa.id);
@@ -710,11 +712,12 @@ export function useGerarDocumentoController() {
     setRecongelarPendente(false);
   }, [modeloId, clienteId]);
 
-  // Capital social + total de quotas da sociedade: PR soma as integralizações
-  // aprovadas (quota = R$ 1,00); demais somam o quadro societário.
+  // Capital social + total de quotas da sociedade: a PR ainda sem quadro gravado
+  // soma as integralizações aprovadas (quota = R$ 1,00); as demais — e a PR
+  // depois de gravar — somam o quadro societário.
   const { capitalValor, totalQuotas } = useMemo(
-    () => calcularCapitalSociedade(empresaRow, socios, integralizacoes),
-    [empresaRow, socios, integralizacoes],
+    () => calcularCapitalSociedade(empresaRow, socios, integralizacoes, quadroGravado),
+    [empresaRow, socios, integralizacoes, quadroGravado],
   );
 
   // A Sociedade (objeto do contrato) espelha a Empresa selecionada: escolher/trocar

@@ -120,6 +120,7 @@ vi.mock('@/hooks/useGeracaoDocumento', () => ({
     socios: mocks.socios,
     administradores: mocks.vazia,
     integralizacoes: mocks.integralizacoes,
+    quadroGravado: mocks.socios.length > 0,
     isFetching: false,
   }),
 }));

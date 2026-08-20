@@ -151,13 +151,18 @@ export interface CapitalSociedade {
  * contábeis. Era daí que vinha a cláusula quinta afirmando capital de
  * R$ 558.413,55 dividido em 558.414 quotas de R$ 1,00.
  *
- * - PR (Proprietária): as quotas nascem do valor contábil das matrículas
- *   APROVADAS para integralização — quantas quotas aquele valor compra;
- * - Demais (CN/Controladora…): as quotas são as do quadro societário (é o que
- *   está registrado na Junta). Sócio lançado só com valor, sem quotas digitadas,
- *   tem as quotas dele convertidas do valor (ver quotasDoSocio), inclusive no
- *   quadro MISTO: senão ele contribuiria zero para o total enquanto a linha dele
- *   imprime o valor, e a tabela deixaria de fechar com a cláusula.
+ * - PR (Proprietária) ainda SEM quadro gravado: as quotas nascem do valor
+ *   contábil das matrículas APROVADAS para integralização — quantas quotas
+ *   aquele valor compra. É a mesma base de `calcularParticipacoesPR`, e é o que
+ *   mantém Σ quotas dos sócios === totalQuotas enquanto o quadro é derivado;
+ * - PR com quadro gravado e demais (CN/Controladora…): as quotas são as do
+ *   quadro societário (é o que está registrado na Junta). Gravado o quadro da
+ *   PR, corrigir o valor contábil de um bem não mexe mais no capital: capital
+ *   registrado só muda por alteração contratual — e continuar somando os bens
+ *   faria a cláusula contradizer a tabela de sócios. Sócio lançado só com valor,
+ *   sem quotas digitadas, tem as quotas dele convertidas do valor (ver
+ *   quotasDoSocio), inclusive no quadro MISTO: senão ele contribuiria zero para
+ *   o total enquanto a linha dele imprime o valor.
  *
  * Sem dados, devolve null — os placeholders resolvem em branco e os condicionais
  * {{#sociedade.capitalValor}} pulam o trecho.
@@ -166,6 +171,8 @@ export function calcularCapitalSociedade(
   empresa: Pick<PessoaRow, 'tipo_empresa'> | undefined,
   socios: SocioParaMapear[],
   integralizacoes: MatriculaParaMapear[],
+  /** Há quadro gravado (saldo dos movimentos de quota) — ver useListasDaEmpresa. */
+  quadroGravado = false,
 ): CapitalSociedade {
   const semCapital: CapitalSociedade = {
     capitalValor: null,
@@ -178,7 +185,7 @@ export function calcularCapitalSociedade(
     quotaValorNominal: VALOR_NOMINAL_QUOTA,
   });
 
-  if (empresa?.tipo_empresa === 'PR') {
+  if (empresa?.tipo_empresa === 'PR' && !quadroGravado) {
     // MESMA base de calcularParticipacoesPR: a matrícula que fica fora de um
     // lado tem de ficar fora do outro, senão Σ quotas dos sócios ≠ totalQuotas.
     const valores = integralizacoes
@@ -516,12 +523,13 @@ export interface SocioParaMapear {
   /** Nome(s) do(s) administrador(es) da sócia PJ ("neste ato representada por…"). */
   representante: string | null;
   /**
-   * Id da linha de `quadro_societario` — metadado p/ as notificações da tela
-   * Gerar (mudança de quotas/valor é logada com este entity_id). Ausente nos
-   * sócios derivados da empresa PR (vêm das integralizações, não do quadro).
+   * Ids dos movimentos de quota que compõem o saldo deste sócio — metadado p/ as
+   * notificações da tela Gerar (registrar um movimento é logado com o id da
+   * linha, e a janela compara contra este conjunto). Vazio/nulo nos sócios
+   * derivados da PR ainda sem movimentação: não há linha no livro a apontar.
    * NÃO vira placeholder.
    */
-  quadroSocietarioId?: string | null;
+  movimentoIds?: string[] | null;
 }
 
 export function mapearSocio(s: SocioParaMapear): ItemLista {
