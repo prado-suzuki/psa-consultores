@@ -88,7 +88,7 @@ const AuditoriaCruzadaContent = () => {
                     <FieldTooltip text={AUDITORIA_TOOLTIPS.cliente} />
                   </label>
                   <Select value={clienteId} onValueChange={setClienteId}>
-                    <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                    <SelectTrigger className="h-11 bg-white">
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -104,7 +104,7 @@ const AuditoriaCruzadaContent = () => {
                     <FieldTooltip text={AUDITORIA_TOOLTIPS.contribuinte} />
                   </label>
                   <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-                    <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                    <SelectTrigger className="h-11 bg-white">
                       <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
                     </SelectTrigger>
                     <SelectContent>
@@ -121,7 +121,7 @@ const AuditoriaCruzadaContent = () => {
                   </label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !start_date && "text-muted-foreground")}>
+                      <Button variant="outline"className={cn("h-11 w-full justify-start text-left font-normal bg-white", !start_date &&"text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {start_date ? format(start_date, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                       </Button>
@@ -138,7 +138,7 @@ const AuditoriaCruzadaContent = () => {
                   </label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !end_date && "text-muted-foreground")}>
+                      <Button variant="outline"className={cn("h-11 w-full justify-start text-left font-normal bg-white", !end_date &&"text-muted-foreground")}>
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {end_date ? format(end_date, 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                       </Button>

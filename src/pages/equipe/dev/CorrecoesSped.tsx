@@ -199,7 +199,7 @@ const CorrecoesSped = () => {
                   <FieldTooltip text={SPED_TOOLTIPS.cliente} />
                 </label>
                 <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
-                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                  <SelectTrigger className="h-11 bg-white">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -215,7 +215,7 @@ const CorrecoesSped = () => {
                   <FieldTooltip text={SPED_TOOLTIPS.contribuinte} />
                 </label>
                 <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                  <SelectTrigger className="h-11 bg-white">
                     <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
                   </SelectTrigger>
                   <SelectContent>
@@ -232,7 +232,7 @@ const CorrecoesSped = () => {
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !dtIni && "text-muted-foreground")}>
+                    <Button variant="outline"className={cn("h-11 w-full justify-start text-left font-normal bg-white", !dtIni &&"text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {dtIni ? format(new Date(dtIni + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                     </Button>
@@ -249,7 +249,7 @@ const CorrecoesSped = () => {
                 </label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className={cn("h-11 w-full justify-start text-left font-normal bg-white dark:bg-slate-800", !dtFin && "text-muted-foreground")}>
+                    <Button variant="outline"className={cn("h-11 w-full justify-start text-left font-normal bg-white", !dtFin &&"text-muted-foreground")}>
                       <CalendarIcon className="mr-2 h-4 w-4" />
                       {dtFin ? format(new Date(dtFin + 'T00:00:00'), 'dd/MM/yyyy', { locale: ptBR }) : 'Selecione...'}
                     </Button>
@@ -265,7 +265,7 @@ const CorrecoesSped = () => {
                   <FieldTooltip text={SPED_TOOLTIPS.ncm} />
                 </label>
                 <Select value={ncmFilter} onValueChange={(v) => setNcmFilter(v as NcmFilter)}>
-                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                  <SelectTrigger className="h-11 bg-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -285,7 +285,7 @@ const CorrecoesSped = () => {
                   </label>
                   <Popover open={natBcCredOpen} onOpenChange={setNatBcCredOpen}>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={natBcCredOpen} className="h-11 w-full justify-between text-sm font-normal bg-white dark:bg-slate-800">
+                      <Button variant="outline"role="combobox"aria-expanded={natBcCredOpen} className="h-11 w-full justify-between text-sm font-normal bg-white">
                         {natBcCreds.length === 0 && <span className="text-muted-foreground">Selecione ou digite...</span>}
                         {natBcCreds.length === 1 && (
                           <span className="truncate">
@@ -375,7 +375,7 @@ const CorrecoesSped = () => {
                     placeholder="Ex: 31010201"
                     value={codCta}
                     onChange={(e) => setCodCta(e.target.value)}
-                    className="h-11 text-sm font-mono bg-white dark:bg-slate-800"
+                    className="h-11 text-sm font-mono bg-white"
                   />
                 </div>
               </div>
@@ -392,7 +392,7 @@ const CorrecoesSped = () => {
                     placeholder="Buscar por descrição, chave ou NCM..."
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
-                    className="pl-9 h-11 bg-white dark:bg-slate-800"
+                    className="pl-9 h-11 bg-white"
                   />
                 </div>
               </div>
