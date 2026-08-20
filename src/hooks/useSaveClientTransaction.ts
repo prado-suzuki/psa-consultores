@@ -50,6 +50,10 @@ const syncCadastrosToDW = (payload: any) => {
  * excluído — e aí o registro "volta" no próximo reload e o insert seguinte
  * duplica a linha. A verificação relê os ids filtrando `excluido = false`:
  * se a linha ainda aparece assim, a exclusão não gravou.
+ *
+ * Restou só para `contribuinte` e `representante`. OS e rateio passaram para
+ * `softDeleteViaRpc` — e estas duas tabelas têm o MESMO defeito de RLS descrito
+ * lá, ainda sem correção (fora do escopo da tarefa que consertou as outras).
  */
 const softDeleteVerificado = async (
   table: string,
@@ -70,6 +74,45 @@ const softDeleteVerificado = async (
       `Não foi possível excluir ${restantes.length} ${rotulo}. O banco recusou a exclusão (permissão/RLS) — nada foi removido. Fale com a liderança.`
     );
   }
+};
+
+/**
+ * Soft-delete de OS e de rateio pelas funções `soft_delete_*` do banco.
+ *
+ * Estas duas tabelas não aceitam `update({ excluido: true })` de quem não é
+ * admin. A policy de SELECT delas exige `excluido = false`, e o UPDATE tem
+ * WHERE — logo exige SELECT sobre a tabela —, então o Postgres aplica as
+ * policies de leitura também à LINHA NOVA. Com `excluido = true` a linha some
+ * da vista de quem gravou e o comando inteiro é recusado com 42501. Não é o
+ * retorno que dispara: medido, falha igual sem `RETURNING`, então tirar o
+ * `.select()` não resolveria.
+ *
+ * As funções são SECURITY DEFINER: gravam fora da policy e conferem a permissão
+ * por dentro, espelhando a mesma regra que autoriza editar a linha. Nenhuma
+ * policy foi afrouxada. Ver
+ * `supabase/migrations/20260820140000_soft_delete_os_e_rateio_security_definer.sql`.
+ *
+ * Não há `assertCanPerform` antes: o `can_perform` ensaia `UPDATE ... SET
+ * id = id`, que mantém `excluido = false` e por isso sempre aprovava justamente
+ * esta operação. A validação agora é a da própria função, que é tudo-ou-nada e
+ * devolve quantas linhas marcou — dispensando também a releitura de conferência
+ * do `softDeleteVerificado`.
+ */
+const softDeleteViaRpc = async (
+  rpc: "soft_delete_ordem_servico" | "soft_delete_distribuicao_receita",
+  ids: string[],
+  rotulo: string,
+): Promise<number> => {
+  // RPCs criadas por migração, ainda fora do schema tipado — cast justificado
+  const { data, error } = await (supabase.rpc as any)(rpc, { _ids: ids });
+  if (error) throw error;
+  const marcadas = typeof data === "number" ? data : 0;
+  // Só acontece quando a linha já estava excluída (caso de admin re-excluindo).
+  // Qualquer id inexistente ou sem permissão já teria abortado a chamada.
+  if (marcadas < ids.length) {
+    console.warn(`[${rpc}] marcou ${marcadas} de ${ids.length} ${rotulo} — o resto já estava excluído.`);
+  }
+  return marcadas;
 };
 
 interface SetorCliente {
@@ -287,10 +330,8 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         const { data: dbOS } = await (supabase.from("ordem_servico" as any) as any).select("id").eq("id_cliente", clienteId).eq("excluido", false);
         const removedOsIds = (dbOS || []).map((o: any) => o.id).filter((id: string) => !currentOsDbIds.includes(id));
         if (removedOsIds.length > 0) {
-          // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
-          await assertCanPerform('ordem_servico', 'update', removedOsIds[0]);
           currentStep = "ordem_servico/soft-delete";
-          await softDeleteVerificado("ordem_servico", "id", removedOsIds, "OS");
+          await softDeleteViaRpc("soft_delete_ordem_servico", removedOsIds, "OS");
 
           // O rateio acompanha a OS: sem isso sobra linha de distribuicao_receita
           // ativa apontando pra OS excluída (receita fantasma nos relatórios).
@@ -301,9 +342,8 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           if (distOrfaError) throw distOrfaError;
           const distOrfaIds = ((distDeOsRemovida || []) as Array<{ id: string }>).map(r => r.id);
           if (distOrfaIds.length > 0) {
-            await assertCanPerform('distribuicao_receita', 'update', distOrfaIds[0]);
             currentStep = "distribuicao_receita/soft-delete-orfas";
-            await softDeleteVerificado("distribuicao_receita", "id", distOrfaIds, "linha(s) de Distribuição de Receita da OS excluída");
+            await softDeleteViaRpc("soft_delete_distribuicao_receita", distOrfaIds, "linha(s) de rateio da OS excluída");
           }
         }
       } else {
@@ -587,9 +627,10 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             .filter(id => !mantidos.has(id));
 
           if (distRemovidos.length > 0) {
-            // Precheck do soft-delete em lote — RLS uniforme, basta uma linha pra cobrir todas.
-            await assertCanPerform('distribuicao_receita', 'update', distRemovidos[0]);
-            await softDeleteVerificado("distribuicao_receita", "id", distRemovidos, `linha(s) de Distribuição de Receita da OS ${rotuloOs}`);
+            // Sem este rótulo o passo continuava valendo "ordem_servico/update"
+            // e o toast culpava a OS por um erro que aconteceu no rateio.
+            currentStep = "distribuicao_receita/soft-delete";
+            await softDeleteViaRpc("soft_delete_distribuicao_receita", distRemovidos, `linha(s) de rateio da OS ${rotuloOs}`);
           }
 
           for (const d of draftDist.filter(d => d._dbId)) {
@@ -903,9 +944,14 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
         rlsMsg.includes("violates row") ||
         rlsMsg.includes("permission denied");
       const acao = isEditing ? "atualizar" : "cadastrar";
+      // O texto genérico escondia o que o banco tinha dito. As funções
+      // `soft_delete_*` já devolvem uma frase que nomeia OS ou rateio e quantas
+      // linhas foram barradas — repassar isso, com o passo e o código, é o que
+      // permite abrir um chamado sem precisar reproduzir o erro.
+      const detalhe = [currentStep, error?.code].filter(Boolean).join(", ");
       toast.error(
         isRls
-          ? `Sem permissão para ${acao} cliente (${currentStep}). Fale com a liderança.`
+          ? `Sem permissão para ${acao} cliente. ${error.message} (${detalhe}). Fale com a liderança.`
           : `Erro ao ${acao} cliente: ` + error.message
       );
     } finally {

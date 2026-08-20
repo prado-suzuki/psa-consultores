@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
 import { formScopeCls } from '@/lib/osgFormGrid';
-import type { MatriculaRow } from '@/hooks/useDiagnosticoPatrimonial';
+import type { MatriculaEnriched } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { ExploracaoRuralDraft } from '@/previews/contratosExploracaoModel';
 import { ExploracaoRuralDadosTab } from './ExploracaoRuralDadosTab';
 import { ExploracaoRuralImoveisTab } from './ExploracaoRuralImoveisTab';
+import { ExploracaoRuralPreviewTab } from './ExploracaoRuralPreviewTab';
 
 // Modal de cadastro de exploração rural — mesma composição de MatriculaModal.tsx
 // (Dialog/DialogContent/Tabs/DialogFooter reais, formScopeCls no contêiner que
@@ -26,14 +27,16 @@ interface Props {
   refCodigo: string;
   draft: ExploracaoRuralDraft;
   onChange: (draft: ExploracaoRuralDraft) => void;
-  matriculas: MatriculaRow[];
+  matriculas: MatriculaEnriched[];
   pessoas: PessoaRow[];
-  instrumentosDeOrigem: { ref: string; label: string }[];
+  instrumentosDeOrigem: { ref: string; label: string; outorganteId?: string; dataAssinatura?: string }[];
+  /** Se os dados vêm do banco (cliente selecionado) ou das fixtures — a aba de preview usa isto pra saber onde buscar administradores/capital social do outorgante. */
+  usandoBanco: boolean;
   avisoParaMatricula?: (matriculaId: string, refAtual: string) => { percentualUsado: number; detalhe: string } | null;
   onClose: () => void;
 }
 
-export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange, matriculas, pessoas, instrumentosDeOrigem, avisoParaMatricula, onClose }: Props) {
+export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange, matriculas, pessoas, instrumentosDeOrigem, usandoBanco, avisoParaMatricula, onClose }: Props) {
   const [activeTab, setActiveTab] = useState('dados');
 
   return (
@@ -50,6 +53,7 @@ export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange,
             <TabsList className={osgTabsListCls}>
               <TabsTrigger value="dados" className={osgTabTriggerCls}>Dados</TabsTrigger>
               <TabsTrigger value="imoveis" className={osgTabTriggerCls}>Imóveis e origens</TabsTrigger>
+              <TabsTrigger value="preview" className={osgTabTriggerCls}>Preview do contrato</TabsTrigger>
             </TabsList>
           </div>
           <div className={`min-h-0 flex-1 overflow-y-auto px-6 py-5 ${formScopeCls}`}>
@@ -68,6 +72,15 @@ export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange,
                 matriculas={matriculas}
                 instrumentosDeOrigem={instrumentosDeOrigem}
                 avisoParaMatricula={avisoParaMatricula ? (matriculaId: string) => avisoParaMatricula(matriculaId, refCodigo) : undefined}
+              />
+            </TabsContent>
+            <TabsContent value="preview" className="mt-0 focus-visible:ring-0">
+              <ExploracaoRuralPreviewTab
+                draft={draft}
+                pessoas={pessoas}
+                matriculas={matriculas}
+                instrumentosDeOrigem={instrumentosDeOrigem}
+                usandoBanco={usandoBanco}
               />
             </TabsContent>
           </div>

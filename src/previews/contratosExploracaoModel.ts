@@ -1,4 +1,4 @@
-import type { MatriculaRow } from '@/hooks/useDiagnosticoPatrimonial';
+import type { MatriculaEnriched } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 
 // Modelo e fixtures do preview isolado da ALE-3 (docs/osg/levantamento-contratos-rurais.md).
@@ -15,18 +15,14 @@ import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 export type TipoExploracao = 'parceria' | 'composse';
 
 /**
- * Valores reais do enum `osg_tipo_exploracao` no banco (conferido no schema dev em
- * 19/08/2026). O cadastro só tem modelo de cláusula para 2 deles — os outros 4 aparecem
- * no select desabilitados, para a tela não fingir que o enum tem só dois valores nem
- * deixar escolher um tipo que geraria contrato sem texto.
+ * O enum `osg_tipo_exploracao` no banco tem 6 valores (conferido no schema dev em
+ * 19/08/2026): parceria, composse, arrendamento, comodato, condomínio, exploração própria.
+ * Esta tela só cadastra os 2 com modelo de cláusula escrito — os outros 4 ficam fora de
+ * propósito (decisão de 20/08/2026: não trabalhar com eles nesta sprint).
  */
-export const TIPOS_EXPLORACAO_DO_BANCO: { valor: string; rotulo: string; temModelo: boolean }[] = [
-  { valor: 'parceria', rotulo: 'Parceria', temModelo: true },
-  { valor: 'composse', rotulo: 'Composse', temModelo: true },
-  { valor: 'arrendamento', rotulo: 'Arrendamento', temModelo: false },
-  { valor: 'comodato', rotulo: 'Comodato', temModelo: false },
-  { valor: 'condominio', rotulo: 'Condomínio', temModelo: false },
-  { valor: 'propria', rotulo: 'Exploração própria', temModelo: false },
+export const TIPOS_EXPLORACAO_DO_BANCO: { valor: string; rotulo: string }[] = [
+  { valor: 'parceria', rotulo: 'Parceria' },
+  { valor: 'composse', rotulo: 'Composse' },
 ];
 
 /** Mesma ideia de `matricula.area_unidade`: quantidade e unidade separadas. */
@@ -190,6 +186,15 @@ export interface ExploracaoRuralDraft {
   percentualOutorgante: string;
   percentualExplorador: string;
 
+  /**
+   * Só Parceria. O template oficial troca "AGROPECUÁRIA" por "AGRÍCOLA" em 3 lugares (título,
+   * caput da vigência, título do capítulo de atividades) conforme a exploração inclui pecuária
+   * ou não — valor padrão do template é AGROPECUÁRIA. Achado em 20/08/2026 ao comparar com um
+   * mapeamento externo: ficou sem campo na tela desde 19/08 (o motor tinha os dois campos de
+   * contexto prontos, `naturezaExploracao`/`naturezaExploracaoPlural`, só hard-coded).
+   */
+  incluiPecuaria: boolean;
+
   culturas: string;
   permitePenhor: boolean;
 
@@ -314,6 +319,7 @@ export function emptyExploracaoDraft(tipo: TipoExploracao = 'parceria'): Explora
     partesExtras: [],
     percentualOutorgante: '',
     percentualExplorador: '',
+    incluiPecuaria: true,
     culturas: '',
     permitePenhor: false,
     prazoIndivisaoQuantidade: '3',
@@ -336,10 +342,23 @@ export function emptyExploracaoDraft(tipo: TipoExploracao = 'parceria'): Explora
   };
 }
 
-/** Molde com todas as colunas de `matricula`, pra fixture não precisar repetir os ~30 campos. */
-function matriculaFixtureBase(overrides: Partial<MatriculaRow>): MatriculaRow {
+/**
+ * Molde com todas as colunas de `matricula` **mais** os campos que `useAllMatriculas`
+ * devolve por join (`MatriculaEnriched`: bem_denominacao, cartorio_*, cliente_nome) — a
+ * fixture precisa da mesma forma que o modo "banco real" usa, porque é o que o preview do
+ * contrato lê pra montar "denominado {{imovel.nomeImovel}}" e "Cartório de {{...}}".
+ */
+function matriculaFixtureBase(overrides: Partial<MatriculaEnriched>): MatriculaEnriched {
   return {
     id: nextId('matricula'),
+    bem_referencia: null,
+    bem_denominacao: null,
+    bem_cliente_id: null,
+    cliente_nome: null,
+    titular_cliente_ids: [],
+    cartorio_nome: null,
+    cartorio_comarca: null,
+    cartorio_uf: null,
     cliente_id: 'cliente-fixture',
     numero: '0',
     cartorio_id: 'cartorio-fixture',
@@ -423,7 +442,7 @@ function pessoaFixtureBase(overrides: Partial<PessoaRow>): PessoaRow {
   };
 }
 
-export const matriculasFixture: MatriculaRow[] = [
+export const matriculasFixture: MatriculaEnriched[] = [
   matriculaFixtureBase({
     numero: '2.424',
     municipio_imovel: 'Sorriso',
@@ -436,6 +455,12 @@ export const matriculasFixture: MatriculaRow[] = [
     georreferenciado: 'Sim',
     georref_prejudica_transferencia: false,
     confrontacoes_texto: 'Ao Norte com a Fazenda São Judas; ao Sul com o Córrego do Lobo; a Leste com a Rodovia MT-242; a Oeste com a Fazenda Santa Helena.',
+    bem_denominacao: 'Fazenda Boa Vista',
+    cartorio_nome: 'Cartório do Registro de Imóveis de Sorriso',
+    cartorio_comarca: 'Sorriso',
+    cartorio_uf: 'MT',
+    // Proprietário = a própria outorgante (Modelo Agro) — caso simples, o mesmo dono cede o que já é seu.
+    cliente_nome: 'Modelo Agro Ltda.',
   }),
   matriculaFixtureBase({
     numero: '2.628',
@@ -449,6 +474,12 @@ export const matriculasFixture: MatriculaRow[] = [
     georreferenciado: 'Parcial',
     georref_prejudica_transferencia: true,
     confrontacoes_texto: 'Ao Norte com a Gleba I da mesma fazenda; ao Sul e a Leste com terras de terceiros; a Oeste com a estrada vicinal.',
+    bem_denominacao: 'Fazenda Cristal',
+    cartorio_nome: 'Cartório do Registro de Imóveis de Lucas do Rio Verde',
+    cartorio_comarca: 'Lucas do Rio Verde',
+    cartorio_uf: 'MT',
+    // Proprietário diferente do outorgante — demonstra o caso [BV-COM] (Anexo com donos distintos).
+    cliente_nome: 'Agropecuária Mata do Puba Ltda.',
   }),
   matriculaFixtureBase({
     numero: '1.010',
@@ -461,6 +492,11 @@ export const matriculasFixture: MatriculaRow[] = [
     area_explorada: 80,
     georreferenciado: 'Não',
     georref_prejudica_transferencia: false,
+    bem_denominacao: 'Sítio Vencido',
+    cartorio_nome: 'Cartório do Registro de Imóveis de Nova Mutum',
+    cartorio_comarca: 'Nova Mutum',
+    cartorio_uf: 'MT',
+    cliente_nome: 'Modelo Agro Ltda.',
   }),
 ];
 
@@ -495,6 +531,20 @@ export const pessoasFixture: PessoaRow[] = [
   }),
   pessoaFixtureBase({ tipo_pessoa: 'PF', denominacao: 'Antigo Parceiro', cpf_cnpj: '456.789.012-33' }),
 ];
+
+/**
+ * Administradores e capital social da(s) PJ da fixture — só usados quando o preview do
+ * contrato roda em modo exemplo (sem cliente selecionado). Em modo banco real, o mesmo dado
+ * vem de `useAdministracaoByPj`/`useQuadroSocietarioByEmpresa`, que não retornam nada para
+ * um `pessoaId` fictício.
+ */
+export const ADMINISTRADORES_FIXTURE_POR_PJ: Record<string, string[]> = {
+  [pessoasFixture[0].id]: ['José da Silva', 'Maria Souza'],
+};
+/** Valor cru (não formatado) — `mapearSociedade` (motor real) formata pra "R$ 8.050.169,00" na hora de montar o contexto. */
+export const CAPITAL_SOCIAL_FIXTURE_POR_PJ: Record<string, number> = {
+  [pessoasFixture[0].id]: 8_050_169,
+};
 
 
 export interface ExploracaoListaItemFixture {

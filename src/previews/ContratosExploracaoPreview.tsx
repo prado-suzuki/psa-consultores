@@ -31,9 +31,12 @@ import { ExploracaoRuralModal } from '@/components/equipe/osg/oficina-de-contrat
 // continua no repositório como primeira versão/rascunho visual — este arquivo é
 // a versão em código real que, se aprovada, vira o cadastro de verdade.
 
+// `outorganteId`/`dataAssinatura` alimentam a aba de preview do contrato (Considerando
+// V da Composse, que cita a qualificação da outorgante de cada origem) — o resto do
+// mockup só usa `ref`/`label` (rótulo do select).
 const INSTRUMENTOS_DE_ORIGEM_FIXTURE = [
-  { ref: 'ER 01', label: 'ER 01 — Parceria Modelo Agro Ltda. → José da Silva' },
-  { ref: 'ER 04', label: 'ER 04 — Parceria Modelo Agro Ltda. → Antigo Parceiro (vencida)' },
+  { ref: 'ER 01', label: 'ER 01 — Parceria Modelo Agro Ltda. → José da Silva', outorganteId: pessoasFixture[0].id, dataAssinatura: '2022-03-12' },
+  { ref: 'ER 04', label: 'ER 04 — Parceria Modelo Agro Ltda. → Antigo Parceiro (vencida)', outorganteId: pessoasFixture[0].id, dataAssinatura: '2018-03-15' },
 ];
 
 function draftDeExemplo(tipo: TipoExploracao): ExploracaoRuralDraft {
@@ -306,6 +309,7 @@ function ContratosExploracaoPreview() {
         matriculas={matriculas}
         pessoas={pessoas}
         instrumentosDeOrigem={INSTRUMENTOS_DE_ORIGEM_FIXTURE}
+        usandoBanco={usandoBanco}
         avisoParaMatricula={avisoParaMatricula}
         onClose={() => setOpen(false)}
       />

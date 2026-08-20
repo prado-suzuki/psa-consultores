@@ -356,7 +356,7 @@ o foro virou a Vigésima; (3) o número de vias é variável — o template de P
 | `percentualOutorgante`/`percentualExplorador` | idem | `[BV-PAR]` (90/10) |
 | ~~`benfeitoriasIndenizaveis`~~ | **removido do cadastro** | Sem lado positivo em ~10 modelos e no contrato transcrito; virou texto fixo. Indenização é instrumento apartado |
 | `permitePenhor` | idem | `[BV-PAR]`, cláusula da anuência |
-| `naturezaExploracao` / `naturezaExploracaoPlural` | **sem campo hoje** — proposto | Template oficial: "AGROPECUÁRIA **[AGRÍCOLA]**" no título, na vigência e no capítulo de atividades |
+| `naturezaExploracao` / `naturezaExploracaoPlural` | `ExploracaoRuralDraft.incluiPecuaria` (boolean; campo "Inclui pecuária?") — **resolvido em 20/08/2026** | Template oficial: "AGROPECUÁRIA **[AGRÍCOLA]**" no título, na vigência e no capítulo de atividades |
 | `foroComarca` / `foroUf` | `ExploracaoRuralDraft` | Template oficial tem placeholder próprio de foro |
 | `numeroVias` | `ExploracaoRuralDraft` | Template de Parceria: 4 vias |
 | `testemunhas[].nome/.cpf/.rg` | **só nome hoje** — CPF e RG propostos | Bloco de assinatura do template pede os três |
