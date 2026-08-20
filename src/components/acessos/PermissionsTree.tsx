@@ -218,7 +218,6 @@ const TreeRow = ({ node, depth, userIsAdmin, grantedIds, onToggle, disabled }: T
           disabled={state === 'disabled' || disabled}
           onCheckedChange={() => onToggle(node)}
           aria-label={`Permissão para ${label}`}
-          className="border-slate-300"
         />
 
         <button
