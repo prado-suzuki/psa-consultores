@@ -648,7 +648,7 @@ export default function EstruturaManager() {
                       className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
                         selected
                           ? 'bg-primary text-primary-foreground border-primary'
-                          : 'bg-card text-muted-foreground border-slate-300 hover:border-slate-400'
+                          : 'bg-card text-muted-foreground'
                       }`}
                     >
                       {cat}
