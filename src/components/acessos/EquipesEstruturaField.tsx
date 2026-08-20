@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PontoDaArea } from './PontoDaArea';
 import { X } from 'lucide-react';
 import {
   useEstruturaAreas,
@@ -121,12 +122,7 @@ export const EquipesEstruturaField = ({
           {disponiveis.map((grupo) => (
             <SelectGroup key={grupo.areaId}>
               <SelectLabel className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                {grupo.cor && (
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: grupo.cor }}
-                  />
-                )}
+                <PontoDaArea area={{ color: grupo.cor, color_index: grupo.corIndice }} />
                 {grupo.caminho}
               </SelectLabel>
               {grupo.equipes.map((equipe) => (

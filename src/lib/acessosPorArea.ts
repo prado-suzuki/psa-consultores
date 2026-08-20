@@ -14,6 +14,7 @@ export interface AreaResumo {
   id: string;
   name: string;
   color: string | null;
+  color_index: number | null;
 }
 
 export interface MembroEquipe {
@@ -31,6 +32,7 @@ export interface AreaEstrutura {
   id: string;
   name: string;
   color?: string | null;
+  color_index?: number | null;
   gestor_chamados_id?: string | null;
 }
 
@@ -64,7 +66,7 @@ export function resolverAreasPorUsuario(
 
     let areasDoUsuario = porUsuario.get(userId);
     if (!areasDoUsuario) porUsuario.set(userId, (areasDoUsuario = new Map()));
-    areasDoUsuario.set(area.id, { id: area.id, name: area.name, color: area.color ?? null });
+    areasDoUsuario.set(area.id, { id: area.id, name: area.name, color: area.color ?? null, color_index: area.color_index ?? null });
   };
 
   for (const membro of membros) vincular(membro.user_id, equipeById.get(membro.equipe_id)?.area_id);

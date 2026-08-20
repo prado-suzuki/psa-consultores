@@ -28,6 +28,7 @@ import { EditUserDialog } from './EditUserDialog';
 import { DeleteUserDialog } from './DeleteUserDialog';
 import { PermissionsTree } from './PermissionsTree';
 import { ROLE_BADGE_CLASSES, ROLE_SHORT_LABELS } from './roleOptions';
+import { PontoDaArea } from './PontoDaArea';
 
 /** Hierarquia de papéis: ordena a lista e define o papel principal de cada um. */
 const ROLE_ORDER: AppRole[] = [
@@ -90,8 +91,8 @@ export const UsersTab = () => {
     const comGente = areas.filter((a) => (areaCounts[a.id] ?? 0) > 0);
     if (!comGente.length && !areaCounts[SEM_AREA]) return [];
     return [
-      ...comGente.map((a) => ({ id: a.id, label: a.name, color: a.color })),
-      ...(areaCounts[SEM_AREA] ? [{ id: SEM_AREA, label: 'Sem área', color: null }] : []),
+      ...comGente.map((a) => ({ id: a.id, label: a.name, color: a.color, color_index: a.color_index })),
+      ...(areaCounts[SEM_AREA] ? [{ id: SEM_AREA, label: 'Sem área', color: null, color_index: null }] : []),
     ];
   }, [areas, areaCounts]);
 
@@ -186,12 +187,7 @@ export const UsersTab = () => {
                   {areaOptions.map((opt) => (
                     <SelectItem key={opt.id} value={opt.id} className="text-xs">
                       <span className="flex items-center gap-1.5">
-                        {opt.color && (
-                          <span
-                            className="h-2 w-2 rounded-full shrink-0"
-                            style={{ backgroundColor: opt.color }}
-                          />
-                        )}
+                        <PontoDaArea area={opt} />
                         {opt.label}
                         <span className="text-slate-400">({areaCounts[opt.id] ?? 0})</span>
                       </span>
@@ -223,12 +219,7 @@ export const UsersTab = () => {
               groupedUsers.map((group) => (
                 <div key={group.area?.id ?? SEM_AREA} className="space-y-2">
                   <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-1 pt-2">
-                    {group.area?.color && (
-                      <span
-                        className="h-2 w-2 rounded-full shrink-0"
-                        style={{ backgroundColor: group.area.color }}
-                      />
-                    )}
+                    <PontoDaArea area={group.area} />
                     {group.area?.name ?? 'Sem área'}
                     <span className="text-slate-400 font-normal normal-case tracking-normal">({group.usuarios.length})</span>
                   </p>

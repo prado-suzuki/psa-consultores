@@ -42,6 +42,7 @@ import { PagesTab } from '@/components/acessos/PagesTab';
 import { UsersTab } from '@/components/acessos/UsersTab';
 import DashboardsTab from '@/components/acessos/DashboardsTab';
 import { AccessStatsCards } from '@/components/acessos/AccessStatsCards';
+import { PontoDaArea } from '@/components/acessos/PontoDaArea';
 import {
   type ControleAcessosAreaInterna,
   type ControleAcessosCadastroStats,
@@ -404,7 +405,7 @@ const EquipeControleAcessos = () => {
                   {estruturaAreas.map((ea) => (
                     <SelectItem key={ea.id} value={ea.id}>
                       <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: ea.color || '#94a3b8' }} />
+                        <PontoDaArea area={ea} />
                         {ea.name}
                       </div>
                     </SelectItem>

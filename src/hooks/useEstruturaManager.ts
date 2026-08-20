@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { toast } from 'sonner';
 import { useCallback } from 'react';
+import { proximoIndiceDeCor } from '@/lib/corDaArea';
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -19,7 +20,10 @@ export interface Area {
   id: string;
   cluster_id: string;
   name: string;
+  /** Override manual da cor, nulo desde 20/08/2026. Ver `src/lib/corDaArea.ts`. */
   color: string | null;
+  /** Slot da paleta (1..8), derivado na criação. É ele que a tela lê. */
+  color_index: number | null;
   is_active: boolean;
   page_categories: string[];
   cost_center_id: string | null;
@@ -167,13 +171,13 @@ export const useEstruturaMutations = () => {
 
   // ─── Area ─────────────────────────────────────────────────────
   const saveArea = useCallback(async (
-    form: { name: string; color: string; cluster_id: string; page_categories: string[]; cost_center_id: string | null },
+    form: { name: string; cluster_id: string; page_categories: string[]; cost_center_id: string | null },
     editing: Area | null,
   ) => {
     if (!form.name.trim()) { toast.error('Nome é obrigatório'); return; }
     if (editing) {
       const { error } = await supabase.from('estrutura_areas')
-        .update({ name: form.name, color: form.color, page_categories: form.page_categories, cost_center_id: form.cost_center_id })
+        .update({ name: form.name, page_categories: form.page_categories, cost_center_id: form.cost_center_id })
         .eq('id', editing.id);
       if (error) { toast.error(error.message); return; }
       toast.success('Área atualizada');
@@ -182,13 +186,21 @@ export const useEstruturaMutations = () => {
         entity_name: form.name, action: 'updated',
         changed_fields: {
           name: { old: editing.name, new: form.name },
-          color: { old: editing.color, new: form.color },
           page_categories: { old: editing.page_categories, new: form.page_categories },
         },
       });
     } else {
+      // O slot da cor e derivado AQUI, no momento da criacao, e gravado. Ver
+      // `src/lib/corDaArea.ts` para por que persistido e nao recalculado na
+      // leitura: hash colide (6 slots para 10 areas no dado real) e ordem de
+      // criacao desloca todas as posteriores quando alguem apaga uma area.
+      const { data: existentes } = await supabase.from('estrutura_areas').select('color_index');
+      const colorIndex = proximoIndiceDeCor((existentes ?? []).map((a) => a.color_index));
       const { data, error } = await supabase.from('estrutura_areas')
-        .insert({ name: form.name, color: form.color, cluster_id: form.cluster_id, page_categories: form.page_categories, cost_center_id: form.cost_center_id })
+        .insert({
+          name: form.name, cluster_id: form.cluster_id, color_index: colorIndex,
+          page_categories: form.page_categories, cost_center_id: form.cost_center_id,
+        })
         .select('id').single();
       if (error) { toast.error(error.message); return; }
       toast.success('Área criada');

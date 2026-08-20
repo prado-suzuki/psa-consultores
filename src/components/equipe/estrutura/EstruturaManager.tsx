@@ -25,7 +25,9 @@ import {
 import { useProfilesMinRole, type Profile } from '@/hooks/useDomainEstruturaManager';
 import CentroCustoSelect from '@/components/equipe/estrutura/CentroCustoSelect';
 import { cnpjIncompleto, formatarCnpj } from '@/lib/cnpj';
+import { PontoDaArea } from '@/components/acessos/PontoDaArea';
 
+import { nomeDoTomDaArea } from '@/lib/corDaArea';
 const colorPresets = [
   '#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444',
   '#ec4899', '#06b6d4', '#84cc16', '#f97316', '#6366f1',
@@ -173,13 +175,13 @@ export default function EstruturaManager() {
   // ─── Area CRUD ────────────────────────────────────────────────────
   const [areaDialog, setAreaDialog] = useState(false);
   const [editingArea, setEditingArea] = useState<Area | null>(null);
-  const [areaForm, setAreaForm] = useState({ name: '', color: '#10b981', cluster_id: '', page_categories: [] as string[], cost_center_id: '' });
+  const [areaForm, setAreaForm] = useState({ name: '', cluster_id: '', page_categories: [] as string[], cost_center_id: '' });
 
-  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', color: '#10b981', cluster_id: clusterId, page_categories: [], cost_center_id: '' }); setAreaDialog(true); };
-  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, color: a.color || '#10b981', cluster_id: a.cluster_id, page_categories: a.page_categories || [], cost_center_id: a.cost_center_id || '' }); setAreaDialog(true); };
+  const openAreaCreate = (clusterId: string) => { setEditingArea(null); setAreaForm({ name: '', cluster_id: clusterId, page_categories: [], cost_center_id: '' }); setAreaDialog(true); };
+  const openAreaEdit = (a: Area) => { setEditingArea(a); setAreaForm({ name: a.name, cluster_id: a.cluster_id, page_categories: a.page_categories || [], cost_center_id: a.cost_center_id || '' }); setAreaDialog(true); };
 
   const saveArea = async () => {
-    await mutations.saveArea({ name: areaForm.name, color: areaForm.color, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories, cost_center_id: areaForm.cost_center_id || null }, editingArea);
+    await mutations.saveArea({ name: areaForm.name, cluster_id: areaForm.cluster_id, page_categories: areaForm.page_categories, cost_center_id: areaForm.cost_center_id || null }, editingArea);
     setAreaDialog(false);
   };
 
@@ -313,7 +315,7 @@ export default function EstruturaManager() {
                     <AccordionItem key={area.id} value={area.id} className="rounded-md border border-slate-100 bg-muted/50">
                       <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-foreground/[0.03] text-sm">
                         <div className="flex items-center gap-2 flex-1 text-left">
-                          <div className="w-3 h-3 rounded-full shrink-0 border" style={{ backgroundColor: area.color || '#94a3b8' }} />
+                          <PontoDaArea area={area} comBorda />
                           <span className="font-medium text-slate-800">{area.name}</span>
                           {gestorProfiles.length > 0 && (
                             <span className="text-xs text-slate-500 ml-1">
@@ -605,18 +607,14 @@ export default function EstruturaManager() {
               <Label>Nome da Área *</Label>
               <Input value={areaForm.name} onChange={e => setAreaForm(f => ({ ...f, name: e.target.value }))} placeholder="Ex: Fiscal, OSG, ADVS..." />
             </div>
-            <div className="space-y-2">
+            {/* Leitura, nao campo — a cor sai de `color_index`. A nota completa
+                esta no bloco --area-* do index.css. */}
+            <div className="space-y-1.5">
               <Label>Cor</Label>
-              <div className="flex gap-2">
-                {colorPresets.map(c => (
-                  <button
-                    key={c}
-                    className={`w-7 h-7 rounded-full border-2 transition-transform ${areaForm.color === c ? 'border-slate-900 scale-110' : 'border-transparent'}`}
-                    style={{ backgroundColor: c }}
-                    onClick={() => setAreaForm(f => ({ ...f, color: c }))}
-                  />
-                ))}
-              </div>
+              <p className="flex items-center gap-2 text-sm text-foreground">
+                <PontoDaArea area={editingArea ?? undefined} comBorda />
+                {nomeDoTomDaArea(editingArea ?? undefined) ?? 'definida ao salvar, no primeiro tom livre'}
+              </p>
             </div>
             <div className="space-y-2">
               <Label>Categorias de Páginas</Label>

@@ -168,6 +168,19 @@ export default {
             soft: 'hsl(var(--status-alerta-soft) / <alpha-value>)',
           },
         },
+        /* Cor de área — derivada por ordem de criação, global como a categoria.
+           Ver o bloco `--area-*` no index.css: a paleta só é adequada porque o
+           nome da área vem sempre ao lado do ponto. */
+        area: {
+          1: 'hsl(var(--area-1) / <alpha-value>)',
+          2: 'hsl(var(--area-2) / <alpha-value>)',
+          3: 'hsl(var(--area-3) / <alpha-value>)',
+          4: 'hsl(var(--area-4) / <alpha-value>)',
+          5: 'hsl(var(--area-5) / <alpha-value>)',
+          6: 'hsl(var(--area-6) / <alpha-value>)',
+          7: 'hsl(var(--area-7) / <alpha-value>)',
+          8: 'hsl(var(--area-8) / <alpha-value>)',
+        },
         /* Categoria do cliente — atributo de negócio, igual em toda área. */
         categoria: {
           bronze: 'hsl(var(--categoria-bronze) / <alpha-value>)',

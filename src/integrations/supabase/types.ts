@@ -2617,6 +2617,7 @@ export type Database = {
         Row: {
           cluster_id: string
           color: string | null
+          color_index: number
           cost_center_id: string | null
           created_at: string
           gestor_chamados_id: string | null
@@ -2629,6 +2630,7 @@ export type Database = {
         Insert: {
           cluster_id: string
           color?: string | null
+          color_index: number
           cost_center_id?: string | null
           created_at?: string
           gestor_chamados_id?: string | null
@@ -2641,6 +2643,7 @@ export type Database = {
         Update: {
           cluster_id?: string
           color?: string | null
+          color_index?: number
           cost_center_id?: string | null
           created_at?: string
           gestor_chamados_id?: string | null

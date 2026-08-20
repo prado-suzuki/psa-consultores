@@ -158,6 +158,63 @@ All colors MUST be HSL.
     --categoria-ouro: 43 60% 38%;
     --categoria-diamante: 196 42% 44%;
 
+    /* ─── Cor de área — oito tons, derivados por ordem de criação ──────────
+       Mora no `:root` e NÃO no contrato dos temas: identidade de área é global,
+       ela não muda conforme o tema de onde se olha. Mesma razão de
+       `--categoria-*` acima. Nenhum tema declara — não entra nas 43.
+
+       A cor deixou de ser escolhida: `estrutura_areas.color_index` guarda o slot,
+       atribuído no primeiro livre quando a área nasce. O motivo é medido — das
+       10 áreas com cor escolhida à mão, SETE ficaram no mesmo verde, que era o
+       terceiro preset do seletor. Escolha manual não diferenciava; só dava
+       trabalho e produzia repetição.
+
+       Esta paleta é adequada PORQUE o nome da área está sempre ao lado do ponto
+       — verificado nos CINCO sites que renderizam a cor de área:
+
+         UsersTab:192                 select de filtro   + {opt.label}
+         UsersTab:229                 cabeçalho do grupo + {group.area?.name}
+         EquipesEstruturaField:127    SelectLabel        + {grupo.caminho}
+         EstruturaManager:316         acordeão           + {area.name}
+         EquipeControleAcessos:407    select             + {ea.name}
+
+       A cor acompanha a varredura; ela não carrega a informação.
+
+       `mapeamento/AreaAccordion:48` parece um sexto site e NÃO é: ele pinta
+       `display_group_color`, que é `'#94a3b8'` cravado em `useProcessMapping`
+       — ponto cinza constante para toda área, que nunca leu esta cor. Fica
+       registrado para a próxima pessoa não o contar como consumidor.
+
+       Separação pelo critério de `SEPARACAO` em `src/lib/paletaDeArea.ts`: os 28
+       pares passam pela MATIZ, com 25° no par mais próximo (terracota × ocre).
+       A luminosidade nem entra como critério — e não poderia: a menor distância
+       entre dois tons é de ZERO ponto. Ela fica em faixa estreita de propósito
+       (32–42%), que é o que faz os oito serem uma família e não um arco-íris.
+       Contraste sobre o card entre 4,32 e 8,43.
+
+       Se algum dia a cor aparecer SOZINHA — legenda de gráfico, mapa de calor,
+       barra empilhada, ponto sem rótulo — esta paleta deixa de servir: sob
+       protanopia e deuteranopia estes tons colapsam, e o pior par cai a ΔE 1,4
+       (terracota × oliva). Nesse caso o conjunto precisa ser refeito com
+       separação por LUMINOSIDADE, e existe uma versão assim medida (ΔE 10,8 no
+       pior par, luminosidade de 26% a 56%) — está no histórico desta mudança.
+
+       Ou seja: não é limitação tolerada, é premissa. Quebrar a premissa quebra
+       a paleta.
+
+       `--area-5` está em 202° e não em 195°: a 195 ele ficava a 20° do teal
+       institucional (175), e uma tela da Tax mostraria ponto petróleo ao lado de
+       botão teal. Em 202 a distância vai a 27° e os vizinhos seguem folgados
+       (verde-mar 42°, ardósia 33°). */
+    --area-1: 20 52% 38%;   /* terracota */
+    --area-2: 45 58% 36%;   /* ocre      */
+    --area-3: 95 42% 33%;   /* oliva     */
+    --area-4: 160 44% 32%;  /* verde-mar */
+    --area-5: 202 50% 34%;  /* petróleo  */
+    --area-6: 235 44% 42%;  /* ardósia   */
+    --area-7: 285 38% 42%;  /* ameixa    */
+    --area-8: 330 46% 40%;  /* vinho     */
+
     /* Ícone de ferramenta/card (acento). Tax usa a marca; OSG usa o taupe osg-600. */
     --tool-icon: var(--primary);
     --tool-icon-bg: 175 60% 95%;

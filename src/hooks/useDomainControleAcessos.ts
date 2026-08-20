@@ -28,6 +28,7 @@ export interface ControleAcessosCadastroPayload {
 }
 
 interface EstruturaAreaMapping {
+  color_index: number | null;
   id: string;
   name: string;
   color: string | null;
@@ -66,7 +67,7 @@ export function useControleAcessosEstruturaAreas() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('estrutura_areas')
-        .select('id, name, color')
+        .select('id, name, color, color_index')
         .eq('is_active', true)
         .order('name');
 

@@ -117,10 +117,12 @@ describe('useDomainControleAcessos — queries', () => {
     expect(cadastros.retry).toBe(false);
   });
 
-  it('estrutura-areas: seleciona id, name, color filtrando is_active=true ordenado por name', async () => {
+  it('estrutura-areas: seleciona id, name, color, color_index filtrando is_active=true ordenado por name', async () => {
     renderHook(() => useControleAcessosEstruturaAreas());
     await (queryRegistrations()[0].queryFn as () => Promise<unknown>)();
-    expect(callsFor('estrutura_areas', 'select')[0].args).toEqual(['id, name, color']);
+    // `color_index` entra no select porque e ele que a tela le: `color` virou
+    // override e esta nulo em todas as linhas. Ver src/lib/corDaArea.ts.
+    expect(callsFor('estrutura_areas', 'select')[0].args).toEqual(['id, name, color, color_index']);
     expect(callsFor('estrutura_areas', 'eq')[0].args).toEqual(['is_active', true]);
     expect(callsFor('estrutura_areas', 'order')[0].args).toEqual(['name']);
   });
