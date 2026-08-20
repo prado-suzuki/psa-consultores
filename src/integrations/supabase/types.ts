@@ -9394,10 +9394,15 @@ export type Database = {
         Args: { _sistema_id: string }
         Returns: boolean
       }
+      soft_delete_distribuicao_receita: {
+        Args: { _ids: string[] }
+        Returns: number
+      }
       soft_delete_documento_cliente: {
         Args: { _id: string }
         Returns: undefined
       }
+      soft_delete_ordem_servico: { Args: { _ids: string[] }; Returns: number }
       sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
       sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
