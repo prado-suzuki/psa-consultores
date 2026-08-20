@@ -169,16 +169,18 @@ All colors MUST be HSL.
        terceiro preset do seletor. Escolha manual não diferenciava; só dava
        trabalho e produzia repetição.
 
-       Esta paleta é adequada PORQUE o nome da área está sempre ao lado do ponto
-       — verificado nos CINCO sites que renderizam a cor de área:
+       Esta paleta é adequada PORQUE o nome da área está sempre ao lado do ponto,
+       em TODOS os sites que renderizam a cor de área. A cor acompanha a
+       varredura; ela não carrega a informação.
 
-         UsersTab:192                 select de filtro   + {opt.label}
-         UsersTab:229                 cabeçalho do grupo + {group.area?.name}
-         EquipesEstruturaField:127    SelectLabel        + {grupo.caminho}
-         EstruturaManager:316         acordeão           + {area.name}
-         EquipeControleAcessos:407    select             + {ea.name}
+       Quantos são e onde estão NÃO fica escrito aqui: a versão anterior deste
+       comentário dizia "CINCO" com cinco números de linha, e no mesmo dia um
+       sexto site nasceu e os cinco números saíram de lugar. A contagem virou
+       asserção em `src/lib/corDaArea.test.ts` — quem acrescentar um site quebra
+       o teste e é obrigado a reverificar a premissa, que é o efeito desejado.
+       Para listá-los:
 
-       A cor acompanha a varredura; ela não carrega a informação.
+         grep -rn 'PontoDaArea area=' src --include=*.tsx
 
        `mapeamento/AreaAccordion:48` parece um sexto site e NÃO é: ele pinta
        `display_group_color`, que é `'#94a3b8'` cravado em `useProcessMapping`
@@ -196,8 +198,11 @@ All colors MUST be HSL.
        barra empilhada, ponto sem rótulo — esta paleta deixa de servir: sob
        protanopia e deuteranopia estes tons colapsam, e o pior par cai a ΔE 1,4
        (terracota × oliva). Nesse caso o conjunto precisa ser refeito com
-       separação por LUMINOSIDADE, e existe uma versão assim medida (ΔE 10,8 no
-       pior par, luminosidade de 26% a 56%) — está no histórico desta mudança.
+       separação por LUMINOSIDADE. Uma versão assim FOI medida durante esta
+       mudança (ΔE 10,8 no pior par, luminosidade de 26% a 56%), mas os oito
+       valores dela não foram guardados em arquivo nenhum — procurados em
+       20/08/2026 e não encontrados. Ou seja: o plano B precisa ser REFEITO, não
+       recuperado. Os dois números acima servem só de alvo a bater.
 
        Ou seja: não é limitação tolerada, é premissa. Quebrar a premissa quebra
        a paleta.

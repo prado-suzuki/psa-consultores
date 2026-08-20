@@ -50,9 +50,19 @@ export default tseslint.config(
     // Componente usa `bg-primary`, `text-primary`, `border-primary` — ou, em
     // botão primário, nenhuma classe de cor: a variante `default` já faz.
     //
-    // Fica em `warn`, e de propósito: são ~258 ocorrências em 57 arquivos, e
+    // Fica em `warn`, e de propósito: são centenas de ocorrências espalhadas, e
     // transformar isso em erro de build seria apagão, não migração. O aviso
     // trava o crescimento; o número só cai.
+    //
+    // O número exato NÃO fica escrito aqui — comentário com contagem é
+    // verdadeiro no instante em que se escreve e falso na mudança seguinte.
+    // Para medir agora:
+    //
+    //   grep -rnoE 'teal-(500|600|700)' src/components src/pages | wc -l
+    //
+    // O total de AVISOS é menor que o de ocorrências, e isso é esperado: a regra
+    // casa o nó (`Literal`/`TemplateElement`), então várias ocorrências dentro
+    // da mesma string contam como um aviso só.
     files: ["src/components/**/*.{ts,tsx}", "src/pages/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-syntax": [

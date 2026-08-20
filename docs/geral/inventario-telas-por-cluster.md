@@ -88,9 +88,14 @@ em nenhum lugar do repositório (o único `slug` é de período de auditoria). S
 alguém introduzir uma, "Adm & Fin" é o primeiro que quebra.
 
 > **Divergência de nome já produziu um bug nesta base**, e é o motivo desta seção
-> existir: `classificarArea` casa `includes('tax')` no nome da área, e por isso
-> "TAX LEGAL" — que é do cluster Prado Advogados — resolve para o bucket `tax` do
+> existir: `classificarArea` casava `includes('tax')` no nome da área, e por isso
+> "TAX LEGAL" — que é do cluster Prado Advogados — resolvia para o bucket `tax` do
 > Board. Nome como chave é o defeito; nome como exibição é o certo.
+>
+> **Corrigido em 20/08/2026 (commit `308a0149`):** o palpite por nome saiu da
+> construção do mapa. Área sem `page_categories` não classifica mais nada, nem a
+> si nem o cluster dela. A lição fica — o defeito voltaria pelo mesmo caminho se
+> alguém reintroduzir nome como chave.
 
 ### 2. `trabalhoDigital` classifica só por nome
 
@@ -100,19 +105,40 @@ equipe e no texto livre `projects.area`. **Não tem caminho por
 onde o nome é só fallback.
 
 Consequência: remover o fallback por substring é remoção limpa nos outros dois, e
-naquele **desliga a classificação** (tudo vira `outros`). Alimenta
-`useBoardRollupAreas` e `useDomainTrabalhoDigital`.
+naquele **desliga a classificação**. Medido em 20/08/2026: **7 dos 17** projetos de
+`projects` têm `equipe_id` nulo e `area = 'OSG'` em texto livre. Sem área
+cadastrada não existe `page_categories` para ler — não há substituto, há vazio.
+Alimenta `useBoardRollupAreas` e `useDomainTrabalhoDigital`.
 
-### 3. Cluster inativo entra na conta do Board
+Para remedir: `select count(*) from projects where equipe_id is null and
+nullif(trim(area),'') is not null`.
 
-`usePerformanceData:152-153` busca `estrutura_areas` e `estrutura_clusters` **sem
-filtro de `is_active`**, e `construirMapaDeClusters` não olha o estado do cluster.
-Hoje isso não move número — nenhum projeto resolve para cluster inativo —, mas é
-defeito independente e vale filtrar.
+### 3. Área inativa entra na conta do Board
+
+**Esta seção mudou de forma em 20/08/2026 (commit `308a0149`).** Ela dizia que
+`usePerformanceData` buscava `estrutura_areas` **e `estrutura_clusters`** sem
+filtro de `is_active`. A query de `estrutura_clusters` **não existe mais**: ela
+só alimentava o loop de classificação por nome do cluster, que saiu junto com o
+substring. `construirMapaDeClusters` não recebe mais clusters.
+
+O que sobra do defeito: a busca de `estrutura_areas` continua **sem filtro de
+`is_active`**, então área desativada ainda entra no mapa. Hoje não move número —
+nenhum projeto resolve por área inativa —, mas é defeito independente.
 
 ### 4. A exposição real do substring não é o Prado
 
 Medido: `Trabalhos compartilhados OSG` é área do cluster **TAX**, com
 `page_categories = ['tax']`, **2 equipes e 6 pessoas**. Conta certo **porque a
-coluna está preenchida**. Limpar essa coluna move 6 pessoas de Tax para OSG, em
-silêncio. O risco do substring é este — uma área real protegida por um campo.
+coluna está preenchida**. O risco do substring é este — uma área real protegida
+por um campo.
+
+> **Correção de 20/08/2026.** A versão anterior desta seção afirmava que limpar a
+> coluna "move 6 pessoas de Tax para OSG". Isso está **errado**, por duas razões
+> medidas: `trabalhoDigital` classifica linhas de `projects`, **não pessoas** — não
+> há coluna de pessoa em passo nenhum do pipeline; e as duas equipes dessa área
+> têm **0 projetos** em `projects` e **0** em `org_projects`. O nome com "OSG"
+> existe e nada passa por ele. Mesma forma do Prado.
+>
+> Para remedir: `select count(*) from projects p join estrutura_equipes e on
+> e.id = p.equipe_id join estrutura_areas a on a.id = e.area_id where a.name =
+> 'Trabalhos compartilhados OSG'`.

@@ -618,9 +618,22 @@ export default function EstruturaManager() {
             </div>
             <div className="space-y-2">
               <Label>Categorias de Páginas</Label>
-              <p className="text-xs text-slate-500">Membros desta área terão acesso às páginas dessas categorias.</p>
+              {/* O rótulo anterior dizia "Membros desta área terão acesso às
+                  páginas dessas categorias" e isso é FALSO: este campo não
+                  concede nada. Quem concede é o fluxo de membro, que lê
+                  `ALL_AREA_CATEGORIES` de `config/areaCategories.ts`
+                  (`useTeamMemberMutations:143,292`) e escreve em
+                  `user_page_access`. Este campo é de ESCOPO — decide em quais
+                  telas a área aparece (`useEstruturaAreas`,
+                  `useEstruturaEquipes`, `useDomainClusterPorCategoria`) e
+                  alimenta o bucket do Board (`bucketDePageCategories`). */}
+              <p className="text-xs text-slate-500">Em quais telas esta área aparece. Não concede acesso.</p>
               <div className="flex flex-wrap gap-2">
-                {['dev', 'rotina', 'tax', 'projetos', 'fiscal', 'osg', 'board', 'gestao', 'geral'].map(cat => {
+                {/* `projetos` e `fiscal` saíram: nenhuma página em nenhuma das
+                    duas, então marcar não surtia efeito algum. `mapa` continua
+                    fora de propósito — acrescentá-la amplia o que se pode
+                    escopar e não se faz por dedução. */}
+                {['dev', 'rotina', 'tax', 'osg', 'board', 'gestao', 'geral'].map(cat => {
                   const selected = areaForm.page_categories.includes(cat);
                   return (
                     <button
