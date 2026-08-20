@@ -7,7 +7,7 @@ Oficina de Contratos, e mapa de variáveis do cadastro de exploração rural.
 `VF_Contrato Modelo_Composse Rural.docx` (Google Drive, id
 `1OpoA2d2_uJNYGuAta6IhcBXAb0_vLi7H`), mais `VF_Modelo Anexo Único_Composse.docx`
 (id `1dpbHBMTmZmuCrx7p2mN36Ubs5aB6RpcP`). A primeira versão deste arquivo foi
-reconstruída sobre `docs/notebooklm/exemplo-01-composse-bela-vista.md` (Sérgio Pitt e
+reconstruída sobre `notebooklm/exemplo-01-composse-bela-vista.md` (Sérgio Pitt e
 Outros, 28/08/2024) e `exemplo-03-composse-rossato.md`, antes de o template ser
 localizado. **Conferido:** a redação do template é praticamente idêntica à dos dois
 contratos assinados — a reconstrução se sustentou. As divergências e os pontos de
@@ -399,7 +399,7 @@ Descrição das áreas objeto do Instrumento, sendo:
 [[REPETIR para cada imovel em imoveis]]| {{imovel.ref}} | {{imovel.areaExplorada}} ha | {{imovel.areaTotal}} ha | {{imovel.nomeImovel}} | {{imovel.matricula}} | {{imovel.municipio}}/{{imovel.uf}} | {{imovel.proprietario}} |
 [[FIM REPETIR]]
 
-*(Estrutura confirmada em `docs/notebooklm/exemplo-05-anexo-imoveis-bela-vista.md`
+*(Estrutura confirmada em `notebooklm/exemplo-05-anexo-imoveis-bela-vista.md`
 — 15 imóveis, 6 origens, 5 proprietários diferentes numa única composse real.
 A coluna "Proprietário" só varia entre imóveis quando a Composse reúne
 origens de mais de um outorgante; numa Parceria, todos os imóveis do Anexo

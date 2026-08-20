@@ -31,7 +31,7 @@ export type CampoContrato =
   | 'origemTipo' | 'origemInstrumento' | 'origemDataAssinatura'
   | 'origemOutorganteNome' | 'origemOutorganteCnpj' | 'origemOutorganteSede' | 'origemOutorganteNire'
   | 'origemOutorganteCapitalSocial' | 'origemOutorganteAdministradores'
-  | 'prazoRenovacaoVigencia' | 'estudoFiscal' | 'documentoComprobatorio' | 'origemTituloInstrumento';
+  | 'estudoFiscal' | 'documentoComprobatorio' | 'origemTituloInstrumento';
 
 interface EntradaCampo {
   /** Caminho(s) do placeholder a procurar em TODOS os blocos — uma varredura, não uma lista de blocos escolhida à mão. */
@@ -81,12 +81,6 @@ const REGISTRO: Record<CampoContrato, EntradaCampo> = {
   // Campos sem placeholder no modelo hoje — a tela captura o dado, mas nenhum bloco o
   // cita. `blocoFixo` (quando existe) mostra a redação fixa que ocupa o lugar dele, pra
   // contexto de por que não há {{variável}}.
-  prazoRenovacaoVigencia: {
-    semOcorrencia: {
-      motivo: 'Nenhum contrato real transcrito tem cláusula de renovação com prazo digitado — a redação do Parágrafo Segundo é fixa (vira prazo indeterminado). Preencher aqui não altera o texto gerado; é uma anotação para quando a consultora pedir redação diferente da padrão.',
-      blocoFixo: { blocoId: 'par-c2-p2', tipo: 'parceria' },
-    },
-  },
   estudoFiscal: {
     semOcorrencia: { motivo: 'Referência de arquivo (Documentos do Cliente) — não é citada no texto do contrato, só no cadastro.' },
   },

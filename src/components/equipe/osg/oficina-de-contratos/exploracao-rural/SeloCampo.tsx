@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { labelCls } from '@/components/equipe/osg/formKit';
 import { formSpanCls } from '@/lib/osgFormGrid';
 import { trechosDoCampo, type CampoContrato } from '@/previews/contratoRuralCampoOrigem';
+import { fonteDoCampo } from '@/previews/contratoRuralCampoFonte';
 import type { TipoExploracao } from '@/previews/contratosExploracaoModel';
 
 // Selo único do cadastro (grão redefinido em 19/08/2026, ver ALE-3 /
@@ -24,6 +25,14 @@ import type { TipoExploracao } from '@/previews/contratosExploracaoModel';
 // seria puxado mas hoje não tem origem nenhuma: esse aparece bloqueado (cinza), com
 // o selo.
 //
+// **POSSUI** (20/08/2026): um segundo rótulo, pro caso intermediário — campo que
+// SELECIONA uma pessoa/matrícula/arquivo que já tem cadastro em outro módulo
+// (Outorgante, Exploradores, Compossuidores, Administradores nomeados, Imóvel/
+// matrícula, Estudo fiscal, Documento comprobatório). "NOVO" continua só pra campo
+// sem cadastro nenhum atrás (foro, testemunha, indivisão, percentuais…) — antes os
+// dois apareciam como "NOVO" igual, dando a impressão de que pessoa/matrícula também
+// precisavam de tela nova. Ver `fonte.tag` em `contratoRuralCampoFonte.ts`.
+//
 // A justificativa de cada campo fica em **tooltip** no ícone ao lado do rótulo
 // (mesmo padrão de `DocumentoCentroRail`/`OnboardingWorkspace`: Tooltip +
 // TooltipContent `max-w-xs text-xs leading-relaxed`), e não como texto sob o campo —
@@ -31,14 +40,41 @@ import type { TipoExploracao } from '@/previews/contratosExploracaoModel';
 // formulário. O `TooltipProvider` é global no `App.tsx`; o preview isolado monta o
 // seu próprio.
 
-export function Selo() {
+const badgeBaseCls = 'h-4 rounded-sm px-1.5 text-[9px] font-bold uppercase leading-4 tracking-wide';
+/** Cor por tag: "novo" continua âmbar (alerta — falta tela); "possui" vira verde (já tem cadastro em outro módulo). */
+const badgeCorPorTag: Record<'novo' | 'possui', string> = {
+  novo: 'border-osg-highlighter bg-osg-highlighter/25 text-amber-900',
+  possui: 'border-emerald-300 bg-emerald-50 text-emerald-700',
+};
+
+/**
+ * Selo "NOVO" ou "POSSUI". Quando `origem` é passado (o `campo` do `trecho`), a própria
+ * tag ganha um SEGUNDO tooltip — diferente do tooltip de trecho do modelo
+ * (`Dica`/`TrechoDoModelo`, que mostra ONDE o campo aparece no texto): este mostra O QUE
+ * o campo significa e DE QUE contrato/exemplo/decisão/cadastro ele foi tirado (pedido do
+ * usuário em 20/08/2026 — a tag por si só não bastava pra lembrar a origem de campos
+ * como "indivisão"). O RÓTULO da tag também muda com `fonte.tag` (ajuste no mesmo dia,
+ * depois do usuário notar que "outorgante"/"exploradores"/"imóvel" apareciam como NOVO
+ * igual a "foro"/"testemunha" — dando a impressão de que pessoa/matrícula também
+ * precisavam de cadastro novo): campo que só SELECIONA um registro que já tem tela
+ * própria (pessoa, matrícula, arquivo) mostra "possui"; campo sem cadastro nenhum por
+ * trás mostra "novo". Fonte do conteúdo: `contratoRuralCampoFonte.ts`.
+ */
+export function Selo({ origem }: { origem?: CampoContrato }) {
+  const fonte = origem ? fonteDoCampo(origem) : null;
+  if (!fonte) {
+    return <Badge variant="outline" className={`${badgeBaseCls} ${badgeCorPorTag.novo}`}>novo</Badge>;
+  }
   return (
-    <Badge
-      variant="outline"
-      className="h-4 rounded-sm border-osg-highlighter bg-osg-highlighter/25 px-1.5 text-[9px] font-bold uppercase leading-4 tracking-wide text-amber-900"
-    >
-      novo
-    </Badge>
+    <Tooltip>
+      <TooltipTrigger aria-label="O que é este campo e de onde ele veio">
+        <Badge variant="outline" className={`${badgeBaseCls} ${badgeCorPorTag[fonte.tag]} cursor-help`}>{fonte.tag}</Badge>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-sm text-xs leading-relaxed">
+        <p>{fonte.explicacao}</p>
+        <p className="mt-1.5 border-t border-border pt-1.5 text-[11px] italic text-muted-foreground">{fonte.fonte}</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -109,7 +145,7 @@ export function Field({ label, required, hint, trecho, children }: { label: stri
   return (
     <div className="space-y-1.5">
       <Label className={`${labelCls} flex items-center gap-1.5`}>
-        {label}{required && <span className="text-osg-red">*</span>}<Selo />
+        {label}{required && <span className="text-osg-red">*</span>}<Selo origem={trecho?.campo} />
         {trecho ? <Dica><TrechoDoModelo {...trecho} /></Dica> : hint && <Dica>{hint}</Dica>}
       </Label>
       {children}
@@ -121,7 +157,7 @@ export function Wide({ label, hint, trecho, children }: { label: string; hint?: 
   return (
     <div className={`space-y-1.5 ${formSpanCls(2)}`}>
       <Label className={`${labelCls} flex items-center gap-1.5`}>
-        {label}<Selo />
+        {label}<Selo origem={trecho?.campo} />
         {trecho ? <Dica><TrechoDoModelo {...trecho} /></Dica> : hint && <Dica>{hint}</Dica>}
       </Label>
       {children}
@@ -134,7 +170,7 @@ export function Full({ label, hint, trecho, children }: { label: string; hint?: 
   return (
     <div className={`space-y-1.5 ${formSpanCls(4)}`}>
       <Label className={`${labelCls} flex items-center gap-1.5`}>
-        {label}<Selo />
+        {label}<Selo origem={trecho?.campo} />
         {trecho ? <Dica><TrechoDoModelo {...trecho} /></Dica> : hint && <Dica>{hint}</Dica>}
       </Label>
       {children}
@@ -158,7 +194,7 @@ export function SubCampo({ label, trecho, children }: { label: string; trecho: T
 export function ListaLabel({ label, trecho }: { label: string; trecho: Trecho }) {
   return (
     <Label className={`${labelCls} mb-1.5 flex items-center gap-1.5`}>
-      {label}<Selo /><Dica><TrechoDoModelo {...trecho} /></Dica>
+      {label}<Selo origem={trecho.campo} /><Dica><TrechoDoModelo {...trecho} /></Dica>
     </Label>
   );
 }

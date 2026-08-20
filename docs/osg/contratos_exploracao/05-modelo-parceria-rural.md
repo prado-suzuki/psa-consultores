@@ -7,7 +7,7 @@ Oficina de Contratos, e mapa de variáveis do cadastro de exploração rural.
 `VF_Contrato Modelo Parceria Benfeitorias não indenizaveis_Com cláusula do Ciclo
 Completo.docx` (Google Drive, id `1g9vN7avGEBdOALJ9N7adjj8GjFnzFzVR`). A primeira
 versão deste arquivo foi reconstruída cláusula a cláusula sobre o contrato assinado
-`docs/notebooklm/exemplo-02-parceria-bela-vista.md` (Bela Vista Agropecuária,
+`notebooklm/exemplo-02-parceria-bela-vista.md` (Bela Vista Agropecuária,
 28/08/2024), porque ninguém sabia que existia template oficial. Agora que ele foi
 localizado, **a redação fixa é a dele**; o contrato assinado continua como conferência
 de que o template é o que de fato se assina. Onde os dois divergem, está anotado.
@@ -109,7 +109,7 @@ cartório do outorgante, o que é atalho errado — o cadastro lê os dois por i
 `titularidade` e `cartorio` via `matricula.cartorio_id`. O template oficial não resolve
 isso: ele traz apenas a instrução "[qualificação padrão dos imóveis rurais **SEM OS
 LIMITES E CONFRONTAÇÕES**, que constarão no anexo]". Se os imóveis tiverem proprietários
-diferentes, listar por alínea — ver `docs/notebooklm/exemplo-05-anexo-imoveis-bela-vista.md`,
+diferentes, listar por alínea — ver `notebooklm/exemplo-05-anexo-imoveis-bela-vista.md`,
 com 5 proprietários num só instrumento.)*
 
 ### DA VIGÊNCIA

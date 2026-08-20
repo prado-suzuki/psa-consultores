@@ -83,7 +83,7 @@ validamos:
   `dataEncerramento` menos de 3 anos após `dataAssinatura`. Candidato a aviso (mesmo padrão
   do `avisoParaMatricula`), não a mudança de texto.
 - **Percentual máximo do outorgante (art. 35, Decreto 59.566/66).** Checado contra o
-  contrato assinado real (`docs/notebooklm/exemplo-02-parceria-bela-vista.md`, Cláusula
+  contrato assinado real (`notebooklm/exemplo-02-parceria-bela-vista.md`, Cláusula
   Quinta) — ele cita só o art. 96, VI, "a", da Lei 4.504/64 pro percentual (10%/90%), sem
   nenhuma menção a art. 35 ou a limite máximo. **Não aparece na fonte real — descartado,
   não implementado.** Confirma o padrão: o Gemini generaliza da lei sem cruzar com o

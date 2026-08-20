@@ -475,7 +475,7 @@ pela outra, é rascunho visual vs. entrega em código real.
   causa da coluna legada). Ainda não implementado.
 - **Achado #6 do clique manual (19/08/2026):** Outorgante e Explorador da
   Parceria eram seleção única de pessoa (`outorganteId`/`exploradorId`), mas
-  `[BV-PAR]` (exemplo real lido em `docs/notebooklm/`) mostra uma parceria com
+  `[BV-PAR]` (exemplo real lido em `docs/osg/contratos_exploracao/notebooklm/`) mostra uma parceria com
   1 outorgante e **3 outorgados**. Os dois viraram lista (`outorgantes[]` /
   `exploradores[]`), cada item com pessoa + fração — mesmo componente
   (`PartesFracaoList`) já usado pelos compossuidores, sem soma-100%
@@ -525,7 +525,7 @@ pela outra, é rascunho visual vs. entrega em código real.
 - **Achado #9 — modelo de contrato replicável (19/08/2026):** ao escrever
   `docs/osg/contratos_exploracao/05-modelo-parceria-rural.md` e
   `06-modelo-composse-rural.md` (cláusula a cláusula sobre o texto real dos
-  contratos em `docs/notebooklm/exemplo-*.md`), apareceram 2 campos novos que
+  contratos em `docs/osg/contratos_exploracao/notebooklm/exemplo-*.md`), apareceram 2 campos novos que
   nenhuma rodada anterior do levantamento tinha capturado, porque só ficam
   visíveis quando se tenta redigir o contrato inteiro: (1) **regra de
   administração da Composse** — `[BV-COM]` autoriza atos como locar/arrendar

@@ -77,6 +77,7 @@ export function ExploracaoRuralModal({ open, isEdit, refCodigo, draft, onChange,
             <TabsContent value="preview" className="mt-0 focus-visible:ring-0">
               <ExploracaoRuralPreviewTab
                 draft={draft}
+                onChange={onChange}
                 pessoas={pessoas}
                 matriculas={matriculas}
                 instrumentosDeOrigem={instrumentosDeOrigem}

@@ -42,8 +42,10 @@ function qualificacaoPessoa(p: string): string {
   return `{{#${p}.sePJ}}${qualificacaoPJ(p)}{{/${p}.sePJ}}{{#${p}.sePF}}${qualificacaoPF(p)}{{/${p}.sePF}}`;
 }
 
+// "CPF/MF:" (não "CPF:") — confirmado no .docx oficial da Composse e numa das duas
+// versões da Parceria (Documentos Agrários/, achado 20/08/2026).
 const FECHO_TESTEMUNHAS =
-  'Testemunhas:\n{{#testemunhas}}{{ testemunha.nome }} — CPF: {{ testemunha.cpf }} — RG: {{ testemunha.rg }}\n{{/testemunhas}}';
+  'Testemunhas:\n{{#testemunhas}}{{ testemunha.nome }} — CPF/MF: {{ testemunha.cpf }} — RG: {{ testemunha.rg }}\n{{/testemunhas}}';
 
 // =============================================================================
 // PARCERIA — docs/osg/contratos_exploracao/05-modelo-parceria-rural.md
@@ -84,7 +86,8 @@ export const BLOCOS_PARCERIA: Bloco[] = [
     id: 'par-c2-p1', tipo: 'paragrafo', obrigatorio: true,
     conteudo:
       'Não havendo renovação nos termos da Cláusula Nona, ao término da vigência, os PARCEIROS OUTORGADOS deverão ' +
-      'devolver à PARCEIRA OUTORGANTE, independentemente de notificação, os imóveis rurais objetos desta parceria.',
+      'devolver à PARCEIRA OUTORGANTE, independentemente de notificação ou interpelação judicial ou extrajudicial, os ' +
+      'imóveis rurais objetos desta parceria.',
   },
   {
     id: 'par-c2-p2', tipo: 'paragrafo', obrigatorio: true,
@@ -112,8 +115,11 @@ export const BLOCOS_PARCERIA: Bloco[] = [
     conteudo:
       'Competem aos PARCEIROS OUTORGADOS todas as despesas de preparo, plantio, cultivo, colheita, extração, limpeza e ' +
       'beneficiamento dos produtos, mão de obra, insumos, defensivos, adubos, corretivos de solo, máquinas, ' +
-      'combustíveis e demais itens necessários à exploração — ressalvadas as despesas do imóvel em si (ITR, CAR, ' +
-      'Georreferenciamento, CCIR), que permanecem com a PARCEIRA OUTORGANTE.',
+      'equipamentos, combustíveis, bem como as despesas de aquisição de gado, vermífugos, ração, vacina, sais minerais ' +
+      'e tudo mais que se fizer necessário para a subsistência, manutenção e desenvolvimento dos animais — ressalvadas ' +
+      'as despesas expressamente assumidas pela PARCEIRA OUTORGANTE neste instrumento, incluindo o disposto na ' +
+      'Cláusula Sétima, bem como as despesas do imóvel em si (ITR, CAR, Georreferenciamento, CCIR), que permanecem ' +
+      'com a PARCEIRA OUTORGANTE.',
   },
   { id: 'par-titulo-frutos', tipo: 'livre', obrigatorio: true, conteudo: 'DA PARTICIPAÇÃO DE CADA PARCEIRO NOS FRUTOS DA PARCERIA' },
   {
@@ -144,6 +150,18 @@ export const BLOCOS_PARCERIA: Bloco[] = [
     conteudo: 'Os frutos da pecuária poderão ser calculados e distribuídos por exercício fiscal ou por período inferior, desde que as partes decidam em conjunto.',
   },
   {
+    // Achado ao conferir contra o .docx oficial (Documentos Agrários/) em 20/08/2026:
+    // parágrafo inteiro ausente da transcrição — sem variável, texto fixo.
+    id: 'par-c5-limpeza', tipo: 'paragrafo', obrigatorio: true,
+    conteudo:
+      'Os PARCEIROS OUTORGADOS se responsabilizam pela limpeza, beneficiamento e demais operações necessárias à ' +
+      'padronização dos frutos a serem pagos à PARCEIRA OUTORGANTE, como também os custos relacionados ao transporte ' +
+      'destes produtos até o depósito, armazém, cerealista ou compradora indicada pela PARCEIRA OUTORGANTE. Ademais, ' +
+      'não sendo possível o rateio dos frutos, eventual diferença será compensada à PARCEIRA OUTORGANTE em uma das ' +
+      'próximas safras, e, se apurada essa diferença na última safra, a diferença será paga em pecúnia pelos ' +
+      'PARCEIROS OUTORGADOS à PARCEIRA OUTORGANTE ou compensada em outros frutos, a critério da PARCEIRA OUTORGANTE.',
+  },
+  {
     id: 'par-c5-mora', tipo: 'paragrafo', obrigatorio: true,
     conteudo:
       'Inadimplemento na entrega dos frutos gera mora automática, com atualização pelo INPC, multa de 10% e juros de 1% ' +
@@ -151,7 +169,8 @@ export const BLOCOS_PARCERIA: Bloco[] = [
       // "o [BV-PAR] assinado usa IAGRO — varia por praça, não é campo") — por isso é literal aqui, sem
       // {{placeholder}}: um valor sempre-igual não é variável, e virar {{}} fazia o preview marcá-lo
       // em amarelo como se viesse de um campo do cadastro que não existe (achado, 20/08/2026).
-      'ao mês, considerando-se como "valor" os preços apurados pelo IMEA na praça do foro deste contrato.',
+      'ao mês, considerando-se como "valor" os preços apurados pelo IMEA – Instituto Mato-grossense de Economia e ' +
+      'Agropecuária na praça do foro deste contrato.',
   },
   {
     id: 'par-c6', tipo: 'clausula', obrigatorio: true,
@@ -175,8 +194,10 @@ export const BLOCOS_PARCERIA: Bloco[] = [
   },
   { id: 'par-c9-p1', tipo: 'paragrafo', obrigatorio: true, conteudo: 'Esse direito não prevalece se a PARCEIRA OUTORGANTE notificar, com a mesma antecedência de 6 meses, que deseja retomar os imóveis para exploração direta.' },
   { id: 'par-c9-p2', tipo: 'paragrafo', obrigatorio: true, conteudo: 'Em caso de venda das áreas, a PARCEIRA OUTORGANTE deve avisar os PARCEIROS OUTORGADOS, que têm 30 dias para exercer preferência.' },
+  { id: 'par-c9-p3', tipo: 'paragrafo', obrigatorio: true, conteudo: 'A alienação ou ainda a imposição de ônus reais sobre os imóveis objetos de exploração da presente parceria não interromperá a vigência deste instrumento.' },
   { id: 'par-titulo-devolucao', tipo: 'livre', obrigatorio: true, conteudo: 'DA FUNÇÃO SOCIAL E DA DEVOLUÇÃO DOS BENS' },
   { id: 'par-c10', tipo: 'clausula', obrigatorio: true, conteudo: 'Os bens serão devolvidos como entregues, salvo deterioração de uso normal.' },
+  { id: 'par-c10-p1', tipo: 'paragrafo', obrigatorio: true, conteudo: 'Competem aos PARCEIROS OUTORGADOS as despesas decorrentes da manutenção das benfeitorias existentes nesta data edificadas sobre os imóveis até a efetiva devolução dos imóveis à PARCEIRA OUTORGANTE.' },
   {
     id: 'par-c10-p2', tipo: 'paragrafo', obrigatorio: true,
     conteudo:
@@ -184,10 +205,24 @@ export const BLOCOS_PARCERIA: Bloco[] = [
       'incorporadas aos imóveis, não incidindo sobre elas qualquer tipo de indenização, salvo se as partes pactuarem em ' +
       'instrumento apartado condição diferente desta.',
   },
+  { id: 'par-c10-p3', tipo: 'paragrafo', obrigatorio: true, conteudo: 'Os PARCEIROS OUTORGADOS se obrigam a cumprir, na posse da terra, a sua função social e o bem-estar coletivo de acordo com os direitos e deveres estabelecidos em lei e nos limites estabelecidos no presente instrumento.' },
   { id: 'par-titulo-solo', tipo: 'livre', obrigatorio: true, conteudo: 'DO USO DO SOLO E MÃO DE OBRA' },
   {
     id: 'par-c11', tipo: 'clausula', obrigatorio: true,
-    conteudo: 'Manejo do solo conforme recomendações agronômicas; atividades pecuárias conforme normas veterinárias e zootécnicas; proibido uso de defensivos não autorizados; respeito a leis ambientais e trabalhistas, sem invasão de terra nem queimadas irregulares.',
+    conteudo:
+      'Manejo do solo conforme recomendações agronômicas; atividades pecuárias conforme normas veterinárias e ' +
+      'zootécnicas; proibido uso de defensivos não autorizados pelo Ministério da Agricultura. Respeito, fiscalização ' +
+      'e atendimento às leis, normas e diretrizes do país para a preservação de reservas florestais, mananciais, ' +
+      'animais, meio ambiente, trabalho escravo, utilização/produção de trabalho ilegal, invasões de terra e ' +
+      'queimadas irregulares, dentre outros.',
+  },
+  {
+    id: 'par-c11-p', tipo: 'paragrafo', obrigatorio: true,
+    conteudo:
+      'Qualquer penalidade ou ação civil, criminal, trabalhista, tributária e/ou indenização pleiteada, por ente ' +
+      'público ou particular, contra os PARCEIROS OUTORGADOS por motivo exclusivo de erro, falta, desobediência, ' +
+      'negligência ou imprudência deste, é de sua inteira responsabilidade; devendo ressarcir à PARCEIRA OUTORGANTE ' +
+      'os prejuízos que ela for obrigada a suportar por força de atos culposos ou dolosos dos PARCEIROS OUTORGADOS.',
   },
   { id: 'par-titulo-extincao', tipo: 'livre', obrigatorio: true, conteudo: 'DA EXTINÇÃO DO CONTRATO' },
   { id: 'par-c12', tipo: 'clausula', obrigatorio: true, conteudo: 'Inadimplemento de qualquer cláusula permite rescisão mediante simples notificação, assegurada a colheita da safra em curso antes da devolução dos imóveis e partilha dos frutos daquela safra.' },
@@ -251,7 +286,7 @@ export const BLOCOS_PARCERIA: Bloco[] = [
       'Descrição das áreas objeto do Instrumento Particular de Parceria para fins de Exploração {{ naturezaExploracao }}, ' +
       'pactuado entre {{#outorgante.sePJ}}{{ outorgante.razaoSocial }}{{/outorgante.sePJ}}{{#outorgante.sePF}}{{ outorgante.nome }}{{/outorgante.sePF}} e ' +
       '{{#exploradores sep=", " fim=" e "}}{{ explorador.nome }}{{/exploradores}}, em {{ dataAssinatura }}, sendo:\n\n' +
-      '| Item | Área cedida | Área total | Nome do imóvel | Matrícula | Município/UF | Proprietário |\n' +
+      '| Item | Área cedida | Área total do imóvel | Nome do imóvel | Matrícula | Município/UF | Proprietário |\n' +
       '|---|---|---|---|---|---|---|\n' +
       '{{#imoveis}}| {{ imovel.ref }} | {{ imovel.areaExplorada }} ha | {{ imovel.areaTotal }} ha | {{ imovel.nomeImovel }} | {{ imovel.matricula }} | {{ imovel.municipio }}/{{ imovel.uf }} | {{ imovel.proprietario }} |\n{{/imoveis}}',
   },
@@ -304,9 +339,15 @@ export const BLOCOS_COMPOSSE: Bloco[] = [
   {
     id: 'com-c1', tipo: 'clausula', obrigatorio: true,
     conteudo:
+      // Achado ao conferir contra o .docx oficial (Documentos Agrários/) em 20/08/2026: a
+      // autorização de pecuária (cria/recria/engorda) some inteira na transcrição anterior —
+      // texto fixo, sem variável, incondicional no modelo oficial (igual à Cláusula Terceira
+      // da Parceria, que também não condiciona essa frase a nenhuma flag).
       'Fica constituída uma COMPOSSE RURAL em que são COMPOSSUIDORES RURAIS as partes qualificadas no preâmbulo, com o ' +
       'objetivo de explorarem, sob o regime disposto neste instrumento, incluindo, mas não se limitando, ao de {{ culturas }}, ' +
-      'ou outra cultura legalmente permitida que pretenderem explorar, nas áreas rurais descritas no anexo único deste instrumento.',
+      'ou outra cultura legalmente permitida que pretenderem explorar, bem como cria, recria e engorda de bovinos, ' +
+      'suínos, ovinos e aves, ou outros animais de qualquer espécie, da maneira que lhes convier, nas áreas rurais ' +
+      'descritas no anexo único deste instrumento.',
   },
   {
     id: 'com-c2', tipo: 'clausula', obrigatorio: true,
@@ -319,13 +360,22 @@ export const BLOCOS_COMPOSSE: Bloco[] = [
     id: 'com-c2-p2', tipo: 'paragrafo', obrigatorio: true,
     conteudo:
       'Caberá a cada COMPOSSUIDOR tão somente a participação estipulada no caput desta cláusula, restando ainda ' +
-      'acordado que caso haja a dissolução da composse, a liquidação dos haveres do compossuidor retirante observará: ' +
-      'a) valor apurado com base no patrimônio líquido em balanço específico, levantado no máximo 60 dias antes do ' +
-      'evento; b) pagamento em moeda corrente nacional, através de depósito em conta bancária do beneficiário, em ' +
-      '{{#liquidacaoMensal}}{{ liquidacaoNumeroParcelas }} parcelas iguais e mensais, atualizadas pelo INPC, vencendo a ' +
-      'primeira em 30 dias após o evento{{/liquidacaoMensal}}{{#liquidacaoAnual}}{{ liquidacaoNumeroParcelas }} parcelas ' +
-      'anuais e consecutivas, atualizadas pelo INPC, vencendo a primeira em 1 ano do evento{{/liquidacaoAnual}}; c) ' +
-      'avaliação por empresa especializada, nomeada pelos compossuidores que possuírem a maioria da participação.',
+      'acordado que caso haja a dissolução da composse, por qualquer motivo, seja em relação ao compossuidor ' +
+      'retirante, seu cônjuge ou companheiro(a), herdeiro(a), sucessor(a) e/ou terceiro, a liquidação dos haveres ' +
+      'observará: a) não sendo possível ou não sendo aprovado o ingresso destes por qualquer um dos compossuidores ' +
+      'remanescentes, o valor dos haveres será apurado e liquidado com base no patrimônio líquido em balanço ' +
+      'específico, levantado no máximo 60 dias antes do evento, de acordo com as normas técnicas contábeis vigentes ' +
+      'à época; b) pagamento em moeda corrente nacional, através de depósito em conta bancária do beneficiário, em ' +
+      '{{#liquidacaoMensal}}{{ liquidacaoNumeroParcelas }} parcelas iguais e mensais, atualizadas pela variação do ' +
+      'INPC – Índice Nacional de Preços ao Consumidor, ou outro índice que vier a substituí-lo, vencendo a primeira ' +
+      'em 30 dias após o evento que deu origem à liquidação{{/liquidacaoMensal}}{{#liquidacaoAnual}}{{ ' +
+      'liquidacaoNumeroParcelas }} parcelas anuais e consecutivas, atualizadas pela variação do INPC – Índice ' +
+      'Nacional de Preços ao Consumidor, ou outro índice que vier a substituí-lo, vencendo a primeira em 1 ano do ' +
+      'evento que deu origem à liquidação{{/liquidacaoAnual}}; c) avaliação por empresa especializada, nomeada ' +
+      'pelos compossuidores que possuírem a maioria da participação; d) em todos os demais casos de resolução da ' +
+      'composse em relação a um ou mais compossuidores, ainda que não previstos expressamente neste instrumento, ' +
+      'os valores devidos serão determinados pela metodologia das alíneas anteriores, incluindo forma de ' +
+      'avaliação, prazo e forma de pagamento.',
   },
   { id: 'com-c3', tipo: 'clausula', obrigatorio: true, conteudo: 'Os COMPOSSUIDORES RURAIS se obrigam aos termos aqui avençados, por si, herdeiros e sucessores, concorrendo para as despesas e suportando os ônus na proporção da parte ideal que possuem.' },
   {
@@ -360,25 +410,58 @@ export const BLOCOS_COMPOSSE: Bloco[] = [
       'na Cláusula Segunda, salvo deliberação em contrário na qual todos concordem.',
   },
   { id: 'com-c6-p1', tipo: 'paragrafo', obrigatorio: true, conteudo: 'Os resultados serão auferidos levando-se em consideração todas as receitas e despesas, apurados mediante livro caixa sob o regime de caixa, nos termos das normativas do CFC.' },
-  { id: 'com-c6-p2', tipo: 'paragrafo', obrigatorio: true, conteudo: 'Havendo prejuízo, estes serão suportados proporcionalmente por cada um dos COMPOSSUIDORES.' },
+  { id: 'com-c6-p2', tipo: 'paragrafo', obrigatorio: true, conteudo: 'Havendo prejuízo, estes serão suportados proporcionalmente por cada um dos COMPOSSUIDORES, observada a proporção descrita no caput da Cláusula Segunda e o disposto na Cláusula Sétima.' },
   { id: 'com-c7', tipo: 'clausula', obrigatorio: true, conteudo: 'As responsabilidades decorrentes da contratação de trabalhadores rurais, obrigações trabalhistas, sociais, passivos tributários, fiscais, ambientais, cíveis, bancários, contratuais e negociais serão suportados pela COMPOSSE.' },
+  {
+    id: 'com-c7-p', tipo: 'paragrafo', obrigatorio: true,
+    conteudo:
+      'Além dos custos elencados no caput, também compõem o resultado (ou o cálculo de apuração de haveres) da ' +
+      'COMPOSSE todos os demais custos de manutenção das benfeitorias e bens próprios e/ou cedidos sob regime de ' +
+      'parceria ou outra forma de cessão, apurados na exploração das atividades deste contrato, bem como os custos ' +
+      'operacionais, despesas administrativas, financeiras e comerciais, máquinas e equipamentos adquiridos e ' +
+      'benfeitorias edificadas, desde que devidamente contabilizados na forma do Parágrafo Primeiro da Cláusula Sexta.',
+  },
   { id: 'com-c8', tipo: 'clausula', obrigatorio: true, conteudo: 'A COMPOSSE deverá abrir inscrição estadual para a exploração de suas atividades, observado o nome designado para a COMPOSSE previsto no parágrafo primeiro da Cláusula Segunda.' },
   { id: 'com-c9', tipo: 'clausula', obrigatorio: true, conteudo: 'Caberá aos COMPOSSUIDORES financiarem, com recursos próprios ou de terceiros, as necessidades de capital de giro, insumos e demais itens necessários à exploração do objeto deste contrato.' },
   {
     id: 'com-c9-p1', tipo: 'paragrafo', obrigatorio: true,
-    conteudo: '{{#permitePenhor}}Fica possibilitada a contratação de financiamentos rurais pelos COMPOSSUIDORES, podendo ceder frutos da atividade comum como garantia, mediante a emissão de Cédula de Produto Rural ou outro instrumento jurídico com o mesmo fim.{{/permitePenhor}}',
+    conteudo: '{{#permitePenhor}}Fica possibilitada, ainda, a contratação de financiamentos rurais pelos COMPOSSUIDORES, observados os limites descritos na Cláusula Décima Primeira, desde que o financiamento se destine à exploração econômica da composse, podendo ceder frutos da atividade comum como garantia, mediante a emissão de Cédula de Produto Rural ou outro instrumento jurídico com o mesmo fim.{{/permitePenhor}}',
+  },
+  {
+    // Gated pela mesma flag do parágrafo anterior: o texto real cita "referido no parágrafo
+    // anterior" — sem permitePenhor, o com-c9-p1 desaparece e essa remissão ficaria solta.
+    id: 'com-c9-p2', tipo: 'paragrafo', obrigatorio: true,
+    conteudo:
+      '{{#permitePenhor}}O custo dos financiamentos obtidos de terceiros, referidos no parágrafo anterior e usados só ' +
+      'no custeio das atividades desta composse, integra a apuração do resultado de cada safra, assim como todas as ' +
+      'receitas auferidas — venda de produtos, incentivos fiscais e governamentais, descontos financeiros, ' +
+      'devoluções de compras, resultado positivo de variação monetária e/ou cambial e prestações de ' +
+      'serviços.{{/permitePenhor}}',
   },
   { id: 'com-c10', tipo: 'clausula', obrigatorio: true, conteudo: 'Os lucros obtidos pela atividade rural resultante da composse serão repassados aos COMPOSSUIDORES RURAIS na forma estabelecida na Cláusula Segunda.' },
   { id: 'com-cap3', tipo: 'capitulo', obrigatorio: true, conteudo: 'ADMINISTRAÇÃO' },
   {
+    // Achado ao conferir contra o .docx oficial em 20/08/2026: a lista de órgãos e 3 das 9
+    // alíneas (firmar correspondência, receber citação/intimação, fornecer fianças/avais)
+    // tinham sido condensadas fora da transcrição anterior — texto fixo, sem variável.
     id: 'com-c11', tipo: 'clausula', obrigatorio: true,
     conteudo:
       'A COMPOSSE será administrada isoladamente por seus COMPOSSUIDORES, que representarão a composse ativa e ' +
-      'passivamente, em juízo ou fora dela, perante qualquer repartição pública e/ou empresa privada, podendo: ' +
-      'celebrar instrumentos e negócios jurídicos, operações financeiras, empréstimos, financiamentos, contratos de ' +
-      'compra e venda, constituição de garantias; comprar, adquirir e permutar bens móveis; assinar títulos de ' +
-      'crédito; abrir, encerrar e movimentar contas bancárias; admitir e demitir funcionários; e outorgar procurações ' +
-      'para defesa de interesses da COMPOSSE.',
+      'passivamente, em juízo ou fora dela, perante qualquer repartição pública e/ou empresa privada, inclusive, mas ' +
+      'não se limitando apenas a estes, face a Caixa Econômica Federal, Banco do Brasil S/A, instituições ' +
+      'financeiras de qualquer natureza, Previdência Social, Receita Federal do Brasil, Procuradoria da Fazenda ' +
+      'Nacional, MAPA – Ministério da Agricultura, Pecuária e Abastecimento, Secretarias de Meio Ambiente Estaduais ' +
+      'ou Municipais, IBAMA, INCRA, Secretarias de Fazenda Estaduais, sindicatos rurais e CONAB, dentre outras, ' +
+      'podendo: celebrar instrumentos e negócios jurídicos, operações financeiras, empréstimos, financiamentos, ' +
+      'contratos de compra e venda, constituição de garantias; comprar, adquirir, emprestar e permutar bens móveis; ' +
+      'assinar, comprometer e endossar títulos, cédulas de crédito, notas promissórias, letras de câmbio e ' +
+      'certificados de custódia; abrir, encerrar e movimentar contas bancárias, assinar cheques, recibos e depósitos ' +
+      'bancários; firmar correspondência, guias para recolhimento de impostos e contribuições, requerimentos e ' +
+      'petições dirigidas a repartições e autarquias públicas federais, estaduais e municipais, bancos e ' +
+      'instituições; admitir e demitir funcionários, vendedores, representantes e agentes comerciais; receber ' +
+      'citação ou intimação referente a processos, procedimentos e autuações, administrativos ou judiciais; ' +
+      'fornecer fianças, avais e outras garantias, inclusive entre si, exceto para terceiros; e outorgar procurações ' +
+      '(inclusive ad judicia) para defesa de interesses da COMPOSSE.',
   },
   {
     id: 'com-c11-p1', tipo: 'paragrafo', obrigatorio: true,
@@ -430,7 +513,7 @@ export const BLOCOS_COMPOSSE: Bloco[] = [
       'ANEXO ÚNICO\n\n' +
       'Descrição das áreas objeto do Instrumento Particular de Constituição de Composse Rural Pro Indiviso firmado por ' +
       '{{#compossuidores sep=", " fim=" e "}}{{ compossuidor.nome }}{{/compossuidores}}, em {{ dataAssinatura }}, sendo:\n\n' +
-      '| Item | Área cedida | Área total | Nome do imóvel | Matrícula | Município/UF | Proprietário |\n' +
+      '| Item | Área cedida | Área total do imóvel | Nome do imóvel | Matrícula | Município/UF | Proprietário |\n' +
       '|---|---|---|---|---|---|---|\n' +
       '{{#imoveis}}| {{ imovel.ref }} | {{ imovel.areaExplorada }} ha | {{ imovel.areaTotal }} ha | {{ imovel.nomeImovel }} | {{ imovel.matricula }} | {{ imovel.municipio }}/{{ imovel.uf }} | {{ imovel.proprietario }} |\n{{/imoveis}}',
   },

@@ -8,7 +8,7 @@ import { formGridCls } from '@/lib/osgFormGrid';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { AlertTriangle, Plus, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Field, Full, ListaLabel, SubCampo, Wide } from './SeloCampo';
+import { Field, ListaLabel, Wide } from './SeloCampo';
 import {
   camposFaltandoNaQualificacao, nomeComposseDe, TIPOS_EXPLORACAO_DO_BANCO, UNIDADES_DE_PRAZO,
   type CompossuidorDraft, type ExploracaoRuralDraft,
@@ -34,10 +34,18 @@ import {
 //
 // Imóveis (matrícula, área, origem) não têm campo aqui — moram só na aba "Imóveis e
 // origens", ver ExploracaoRuralImoveisTab.tsx.
+//
+// A seção "Assinatura" (foro, nº de vias, testemunhas) SAIU de vez desta aba em
+// 20/08/2026 (docs/osg/contratos_exploracao/13-auditoria-cadastro-vs-modelo.md,
+// achados #4/#5): esses campos não são cadastro do instrumento, são dados do ATO de
+// assinar — variam entre minutas do mesmo instrumento e, no Contrato Social real,
+// vivem em `documento_gerado.snapshot_dados` (`CAMPOS_MANUAIS`), versionados por
+// geração, não como coluna fixa. Foram pra dentro da aba "Preview do contrato", no
+// painel "Preencher à mão" — ver ExploracaoRuralPreviewTab.tsx.
 
 // "Outras partes" (anuente/interveniente/garantidor) foi REMOVIDA em 19/08/2026.
 // Procedência não se sustentou: nenhum dos 5 contratos reais transcritos em
-// docs/notebooklm/ cita esses papéis (grep: zero ocorrências); a fonte era uma célula
+// docs/osg/contratos_exploracao/notebooklm/ cita esses papéis (grep: zero ocorrências); a fonte era uma célula
 // da planilha de Diagnóstico Patrimonial do Nodari, não texto de contrato. E na reunião
 // de validação a consultora foi direta: "isso daí não precisaria, a gente não tá
 // colocando mais". O que existe no contrato real é a cláusula "DA ANUÊNCIA" do
@@ -100,9 +108,6 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
               <Field label="Vigência prorrogável" trecho={{ tipo: 'parceria', campo: 'vigenciaProrrogavel' }}>
                 <div className={switchBoxCls}><Switch checked={draft.vigenciaProrrogavel} onCheckedChange={(v) => set('vigenciaProrrogavel', v)} /><Label className="text-sm">sim</Label></div>
               </Field>
-              <Field label="Prazo de renovação" trecho={{ tipo: 'parceria', campo: 'prazoRenovacaoVigencia' }}>
-                <Input disabled={!draft.vigenciaProrrogavel} value={draft.prazoRenovacaoVigencia} onChange={(e) => set('prazoRenovacaoVigencia', e.target.value)} className={fieldCls} placeholder="ex: períodos iguais ao original" />
-              </Field>
             </>
           )}
         </div>
@@ -115,7 +120,7 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
       >
         {!isComposse ? (
           <div className="space-y-3">
-            <div className={`${formGridCls(2)} gap-3`}>
+            <div className={`${formGridCls(4)} gap-3`}>
               <Field label="Outorgante" trecho={{ tipo: 'parceria', campo: 'outorgante' }}>
                 <PessoaSelect value={draft.outorganteId} onChange={(v) => set('outorganteId', v)} pessoas={pessoas} placeholder="Selecionar outorgante…" />
                 <AvisoQualificacao pessoa={outorgante} />
@@ -149,7 +154,7 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
             </div>
             {/* Derivado (1º compossuidor + "E OUTROS"), nunca digitado — mas leva selo
                 porque cadastro nenhum produz esse nome hoje. */}
-            <div className={`${formGridCls(2)} gap-3`}>
+            <div className={`${formGridCls(4)} gap-3`}>
               <Field label="Nome da composse" trecho={{ tipo: 'composse', campo: 'nomeComposse' }}>
                 <Input disabled className={fieldCls} value={nomeComposseDe(draft.compossuidores, pessoas) || '—'} />
               </Field>
@@ -168,24 +173,30 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
           {/* Percentual só existe na Parceria: é o corte outorgante x outorgados da Cláusula
               Quinta. Na Composse os frutos se repartem pelas frações dos compossuidores
               (Cláusula Segunda), e a partilha com quem cedeu a terra pertence à Parceria de
-              origem — não a este instrumento. */}
+              origem — não a este instrumento. Ordem pensada pra fechar a grade de 4 colunas
+              sem buraco no meio: outorgante + explorador + culturas (2 colunas) fecham a 1ª
+              linha; os dois switches ficam juntos na 2ª. */}
           {!isComposse && (
             <>
               <Field label="Percentual do outorgante" trecho={{ tipo: 'parceria', campo: 'percentualOutorgante' }}><Input className={`${fieldCls} font-mono`} value={draft.percentualOutorgante} onChange={(e) => set('percentualOutorgante', e.target.value)} placeholder="ex: 30,000%" /></Field>
               <Field label="Percentual do explorador" trecho={{ tipo: 'parceria', campo: 'percentualExplorador' }}><Input className={`${fieldCls} font-mono`} value={draft.percentualExplorador} onChange={(e) => set('percentualExplorador', e.target.value)} placeholder="ex: 70,000%" /></Field>
-              <Field label="Inclui pecuária?" trecho={{ tipo: 'parceria', campo: 'naturezaExploracao' }}>
-                <div className={switchBoxCls}><Switch checked={draft.incluiPecuaria} onCheckedChange={(v) => set('incluiPecuaria', v)} /><Label className="text-sm">sim</Label></div>
-              </Field>
             </>
           )}
           <Wide label="Culturas/atividades permitidas" trecho={{ tipo: draft.tipo, campo: 'culturas' }}><Input className={fieldCls} value={draft.culturas} onChange={(e) => set('culturas', e.target.value)} placeholder="soja; milho; algodão; pecuária" /></Wide>
+          {!isComposse && (
+            <Field label="Inclui pecuária?" trecho={{ tipo: 'parceria', campo: 'naturezaExploracao' }}>
+              <div className={switchBoxCls}><Switch checked={draft.incluiPecuaria} onCheckedChange={(v) => set('incluiPecuaria', v)} /><Label className="text-sm">sim</Label></div>
+            </Field>
+          )}
           <Field label="Permite penhor / financiamento" trecho={{ tipo: draft.tipo, campo: 'permitePenhor' }}><div className={switchBoxCls}><Switch checked={draft.permitePenhor} onCheckedChange={(v) => set('permitePenhor', v)} /><Label className="text-sm">sim</Label></div></Field>
         </div>
       </FieldSection>
 
       {isComposse && (
         <FieldSection number={next()} title="Indivisão e administração" hint="[BV-COM] usa maioria e 60× mensal; [ROS-COM], nomeados e 10× anual">
-          <div className="space-y-3">
+          <div className="space-y-4">
+            {/* Linha 1 — indivisão: prazo + prorrogação + aviso, 3 campos do mesmo tema
+                fecham a linha sem sobrar espaço pra um campo de outro assunto. */}
             <div className={`${formGridCls(4)} items-end gap-3`}>
               <Field label="Prazo de indivisão" trecho={{ tipo: 'composse', campo: 'prazoIndivisao' }}>
                 <div className="flex gap-2">
@@ -206,6 +217,9 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
                   </Select>
                 </div>
               </Field>
+            </div>
+            {/* Linha 2 — administração e liquidação: outro assunto, linha própria. */}
+            <div className={`${formGridCls(4)} items-end gap-3`}>
               <Field label="Regra de administração" trecho={{ tipo: 'composse', campo: 'regraAdministracao' }}>
                 <Select value={draft.regraAdministracao} onValueChange={(v: 'maioria' | 'nomeados') => set('regraAdministracao', v)}>
                   <SelectTrigger className={fieldCls}><SelectValue /></SelectTrigger>
@@ -244,44 +258,6 @@ export function ExploracaoRuralDadosTab({ draft, onChange, pessoas }: Props) {
           </div>
         </FieldSection>
       )}
-
-      <FieldSection number={next()} title="Assinatura" hint="nenhum destes tem coluna no banco; todo contrato real traz os cinco">
-        <div className={`${formGridCls(4)} gap-3`}>
-          <Field label="Foro — comarca" trecho={{ tipo: draft.tipo, campo: 'foroComarca' }}><Input className={fieldCls} value={draft.foroComarca} onChange={(e) => set('foroComarca', e.target.value)} /></Field>
-          <Field label="Foro — UF" trecho={{ tipo: draft.tipo, campo: 'foroUf' }}><Input className={fieldCls} value={draft.foroUf} onChange={(e) => set('foroUf', e.target.value)} maxLength={2} /></Field>
-          <Field label="Número de vias" trecho={{ tipo: draft.tipo, campo: 'numeroVias' }}><Input className={`${fieldCls} font-mono`} value={draft.numeroVias} onChange={(e) => set('numeroVias', e.target.value)} placeholder="ex: 3" /></Field>
-          <Full label="Testemunha 1">
-            <div className="space-y-2">
-              <SubCampo label="Nome" trecho={{ tipo: draft.tipo, campo: 'testemunhaNome' }}>
-                <Input className={fieldCls} value={draft.testemunha1Nome} onChange={(e) => set('testemunha1Nome', e.target.value)} placeholder="Nome completo" />
-              </SubCampo>
-              <div className="grid grid-cols-2 gap-2">
-                <SubCampo label="CPF" trecho={{ tipo: draft.tipo, campo: 'testemunhaCpf' }}>
-                  <Input className={`${fieldCls} font-mono`} value={draft.testemunha1Cpf} onChange={(e) => set('testemunha1Cpf', e.target.value)} placeholder="CPF" />
-                </SubCampo>
-                <SubCampo label="RG" trecho={{ tipo: draft.tipo, campo: 'testemunhaRg' }}>
-                  <Input className={`${fieldCls} font-mono`} value={draft.testemunha1Rg} onChange={(e) => set('testemunha1Rg', e.target.value)} placeholder="RG" />
-                </SubCampo>
-              </div>
-            </div>
-          </Full>
-          <Full label="Testemunha 2">
-            <div className="space-y-2">
-              <SubCampo label="Nome" trecho={{ tipo: draft.tipo, campo: 'testemunhaNome' }}>
-                <Input className={fieldCls} value={draft.testemunha2Nome} onChange={(e) => set('testemunha2Nome', e.target.value)} placeholder="Nome completo" />
-              </SubCampo>
-              <div className="grid grid-cols-2 gap-2">
-                <SubCampo label="CPF" trecho={{ tipo: draft.tipo, campo: 'testemunhaCpf' }}>
-                  <Input className={`${fieldCls} font-mono`} value={draft.testemunha2Cpf} onChange={(e) => set('testemunha2Cpf', e.target.value)} placeholder="CPF" />
-                </SubCampo>
-                <SubCampo label="RG" trecho={{ tipo: draft.tipo, campo: 'testemunhaRg' }}>
-                  <Input className={`${fieldCls} font-mono`} value={draft.testemunha2Rg} onChange={(e) => set('testemunha2Rg', e.target.value)} placeholder="RG" />
-                </SubCampo>
-              </div>
-            </div>
-          </Full>
-        </div>
-      </FieldSection>
 
       {/* Fora do contrato — referência de arquivo (Documentos do Cliente), não é citada em
           nenhum bloco do modelo (ver tooltip do próprio campo). Por isso fica separada,

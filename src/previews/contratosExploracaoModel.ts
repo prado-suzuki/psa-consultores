@@ -137,8 +137,6 @@ export interface ExploracaoRuralDraft {
   declaradoIrpf: boolean;
   // Instrumento (segue)
   vigenciaProrrogavel: boolean;
-  /** Por quanto tempo renova quando prorrogável — sem contrato real com essa cláusula ainda, ver pendência na seção 2. */
-  prazoRenovacaoVigencia: string;
 
   // Imóvel e áreas: não é campo do cabeçalho — mora inteiro na lista `imoveis`
   // (aba "Imóveis e origens"), porque um instrumento pode cobrir mais de uma
@@ -161,7 +159,7 @@ export interface ExploracaoRuralDraft {
   compossuidores: CompossuidorDraft[];
   /**
    * **Fora do formulário desde 19/08/2026.** Anuente/interveniente/garantidor não
-   * aparecem em nenhum dos 5 contratos reais transcritos em `docs/notebooklm/` (grep:
+   * aparecem em nenhum dos 5 contratos reais transcritos em `docs/osg/contratos_exploracao/notebooklm/` (grep:
    * zero ocorrências) — a origem era uma célula da planilha de Diagnóstico Patrimonial
    * do Nodari, não texto de contrato. Na reunião de validação a consultora descartou:
    * "isso daí não precisaria, a gente não tá colocando mais". O que o contrato real tem
@@ -312,7 +310,6 @@ export function emptyExploracaoDraft(tipo: TipoExploracao = 'parceria'): Explora
     dataEncerramento: '',
     declaradoIrpf: false,
     vigenciaProrrogavel: true,
-    prazoRenovacaoVigencia: '',
     outorganteId: null,
     exploradores: [],
     compossuidores: [],
