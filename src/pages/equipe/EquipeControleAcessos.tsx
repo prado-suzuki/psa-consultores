@@ -301,7 +301,7 @@ const EquipeControleAcessos = () => {
                   Os dois cadastros são irmãos em sub-abas, nunca empilhados. */}
               <TabsContent value="cadastros" className="space-y-4">
                 <Tabs defaultValue="organizacao" className="space-y-4">
-                  <TabsList className="bg-slate-100 border border-slate-200">
+                  <TabsList className="bg-foreground/[0.05] border border-slate-200">
                     <TabsTrigger
                       value="organizacao"
                       className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"

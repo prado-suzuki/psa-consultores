@@ -111,7 +111,7 @@ export const CreateUserDialog = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="bg-slate-50 rounded-lg p-4 space-y-3 border border-slate-200">
+              <div className="bg-muted rounded-lg p-4 space-y-3 border border-slate-200">
                 <div className="flex items-center justify-between">
                   <div>
                     <Label className="text-slate-500 text-xs">Email</Label>
@@ -202,7 +202,7 @@ export const CreateUserDialog = () => {
                 {ROLE_OPTIONS.map((role) => (
                   <div
                     key={role.value}
-                    className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100"
+                    className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-slate-100"
                   >
                     <Checkbox
                       id={`role_${role.value}`}
@@ -247,7 +247,7 @@ export const CreateUserDialog = () => {
                   {Object.entries(AREA_CATEGORIES_MAP).map(([key, area]) => (
                     <div
                       key={key}
-                      className="flex items-start space-x-3 p-2 rounded-lg bg-slate-50 border border-slate-100"
+                      className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-slate-100"
                     >
                       <Checkbox
                         id={`area_${key}`}
@@ -282,7 +282,7 @@ export const CreateUserDialog = () => {
                 type="button"
                 variant="outline"
                 onClick={handleClose}
-                className="border-slate-200 text-slate-600 hover:bg-slate-50"
+                className="border-slate-200 text-slate-600 hover:bg-foreground/[0.03]"
               >
                 Cancelar
               </Button>

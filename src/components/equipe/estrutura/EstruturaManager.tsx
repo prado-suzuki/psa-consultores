@@ -260,7 +260,7 @@ export default function EstruturaManager() {
     const clusterAreas = areas.filter(a => a.cluster_id === cluster.id);
     return (
       <AccordionItem key={cluster.id} value={cluster.id} className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
-        <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-slate-50">
+        <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-foreground/[0.03]">
           <div className="flex items-center gap-3 flex-1 text-left">
             <Network className="h-5 w-5 text-primary shrink-0" />
             <div className="flex-1 min-w-0">
@@ -310,8 +310,8 @@ export default function EstruturaManager() {
                     .filter((p): p is Profile => !!p);
 
                   return (
-                    <AccordionItem key={area.id} value={area.id} className="rounded-md border border-slate-100 bg-slate-50/50">
-                      <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-slate-100/50 text-sm">
+                    <AccordionItem key={area.id} value={area.id} className="rounded-md border border-slate-100 bg-muted/50">
+                      <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-foreground/[0.03] text-sm">
                         <div className="flex items-center gap-2 flex-1 text-left">
                           <div className="w-3 h-3 rounded-full shrink-0 border" style={{ backgroundColor: area.color || '#94a3b8' }} />
                           <span className="font-medium text-slate-800">{area.name}</span>
@@ -488,7 +488,7 @@ export default function EstruturaManager() {
 
           {inactiveClusters.length > 0 && (
             <Collapsible defaultOpen={false}>
-              <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50/60 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-100">
+              <CollapsibleTrigger className="group flex w-full items-center justify-between gap-2 rounded-lg border border-dashed border-slate-300 bg-muted/60 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-foreground/[0.04]">
                 <div className="flex items-center gap-2">
                   <span>Clusters inativos</span>
                   <Badge variant="secondary" className="text-xs">{inactiveClusters.length}</Badge>
@@ -568,7 +568,7 @@ export default function EstruturaManager() {
               />
             </div>
             {editingCluster && (
-              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-slate-50/60 px-3 py-2.5">
+              <div className="flex items-center justify-between rounded-md border border-slate-200 bg-muted/60 px-3 py-2.5">
                 <div className="space-y-0.5">
                   <Label htmlFor="cluster-active" className="cursor-pointer">
                     {clusterForm.is_active ? 'Cluster ativo' : 'Cluster inativo'}

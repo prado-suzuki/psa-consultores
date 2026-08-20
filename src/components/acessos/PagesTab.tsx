@@ -113,7 +113,7 @@ export const PagesTab = () => {
             size="sm"
             onClick={() => syncPages()}
             disabled={loadingPages || isSyncing}
-            className="bg-white border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-primary"
+            className="bg-white border-slate-200 text-slate-600 hover:bg-foreground/[0.03] hover:text-primary"
           >
             <RefreshCw
               className={`h-4 w-4 mr-2 ${loadingPages || isSyncing ? 'animate-spin' : ''}`}
@@ -146,13 +146,13 @@ export const PagesTab = () => {
             <Table>
               <TableHeader>
                 <TableRow className="border-slate-200 hover:bg-transparent">
-                  <TableHead className="text-slate-600 bg-slate-50">Página</TableHead>
+                  <TableHead className="text-slate-600 bg-muted">Página</TableHead>
                   {mostrarCategoriaNaLinha && (
-                    <TableHead className="text-slate-600 bg-slate-50">Categoria</TableHead>
+                    <TableHead className="text-slate-600 bg-muted">Categoria</TableHead>
                   )}
-                  <TableHead className="text-slate-600 bg-slate-50">Caminho</TableHead>
-                  <TableHead className="text-slate-600 bg-slate-50">Requisitos</TableHead>
-                  <TableHead className="text-slate-600 bg-slate-50 text-right">Ativo</TableHead>
+                  <TableHead className="text-slate-600 bg-muted">Caminho</TableHead>
+                  <TableHead className="text-slate-600 bg-muted">Requisitos</TableHead>
+                  <TableHead className="text-slate-600 bg-muted text-right">Ativo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -163,7 +163,7 @@ export const PagesTab = () => {
                     </TableCell>
                   </TableRow>
                 ) : visiveis.map((page) => (
-                  <TableRow key={page.id} className="border-slate-200 hover:bg-slate-50">
+                  <TableRow key={page.id} className="border-slate-200 hover:bg-foreground/[0.03]">
                     <TableCell>
                       <div>
                         <p className="font-medium text-slate-900">{page.page_name}</p>

@@ -38,14 +38,14 @@ const FILTER_LABEL: Record<DashboardFilterType, string> = {
 const FILTER_BADGE_CLASS: Record<DashboardFilterType, string> = {
   cluster: 'border-primary/20 bg-primary/5 text-primary',
   cliente: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  nenhum: 'border-slate-200 bg-slate-100 text-slate-500',
+  nenhum: 'border-slate-200 bg-foreground/[0.05] text-slate-500',
 };
 // Ordenação padrão: sem filtro -> por cluster -> por cliente.
 const FILTER_RANK: Record<DashboardFilterType, number> = { nenhum: 0, cluster: 1, cliente: 2 };
 //"Tipo" é derivado do filtro: nenhum = interno (sem RLS); cluster/cliente = externo.
 const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'Externo');
 const tipoBadgeClass = (ft: DashboardFilterType) =>
-  ft === 'nenhum' ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  ft === 'nenhum' ? 'border-slate-300 bg-foreground/[0.05] text-slate-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
 const FILTER_HELP: Record<DashboardFilterType, string> = {
   cluster: 'Valor resolvido do cluster do usuário que abre (ou do cliente).',
   cliente: 'Valor resolvido do id_cliente do viewer. Use p/ relatórios externos (ex.: PERDCOMP).',
@@ -66,7 +66,7 @@ const MIN_ROLE_LABEL: Record<MinRole, string> = {
 // Identidade visual por variante: interno = cadeado (restrito à equipe);
 // externo por cluster = globo teal; externo por cliente = prédio indigo.
 const VARIANT_STYLE: Record<DashboardFilterType, { icon: typeof Globe; disc: string; iconColor: string }> = {
-  nenhum: { icon: Lock, disc: 'bg-slate-100', iconColor: 'text-slate-500' },
+  nenhum: { icon: Lock, disc: 'bg-foreground/[0.05]', iconColor: 'text-slate-500' },
   cluster: { icon: Globe, disc: 'bg-primary/10', iconColor: 'text-primary' },
   cliente: { icon: Building2, disc: 'bg-indigo-500/10', iconColor: 'text-indigo-600' },
 };
@@ -215,7 +215,7 @@ export default function DashboardsTab() {
     const ids = clustersByDashboard.get(d.id) ?? [];
     return (
       <span className="inline-flex flex-wrap items-center gap-1">
-        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+        <span className="inline-flex items-center gap-1 rounded-full bg-foreground/[0.05] px-2.5 py-1 text-[11px] font-medium text-slate-600">
           <Shield className="h-3 w-3" />{MIN_ROLE_LABEL[d.min_role ?? 'team_member']}
         </span>
         {d.all_clusters ? (
@@ -273,7 +273,7 @@ export default function DashboardsTab() {
         {/* página */}
         <div className="min-w-0">
           {d.target_page ? (
-            <span className="inline-block max-w-full truncate rounded bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-500">
+            <span className="inline-block max-w-full truncate rounded bg-foreground/[0.05] px-2 py-1 font-mono text-[11px] text-slate-500">
               {DASHBOARD_PAGE_PATH[d.target_page] ?? d.target_page}
             </span>
           ) : <span className="text-xs text-slate-300">—</span>}
@@ -338,7 +338,7 @@ export default function DashboardsTab() {
           {families.map((f) => (
             <Card key={f.key} className="overflow-hidden border-slate-200/70 shadow-sm">
               {f.name && (
-                <div className="flex items-center gap-2 border-b border-slate-200/70 bg-slate-50/80 px-4 py-2.5">
+                <div className="flex items-center gap-2 border-b border-slate-200/70 bg-muted/80 px-4 py-2.5">
                   <Layers className="h-4 w-4 text-primary" />
                   <span className="text-sm font-semibold text-slate-800">{f.name}</span>
                   <span className="text-xs text-slate-400">· {f.members.length} relatório{f.members.length > 1 ? 's' : ''}</span>
@@ -459,7 +459,7 @@ export default function DashboardsTab() {
             </div>
 
             {/* ── Acesso ─────────────────────────────────────────────────── */}
-            <div className="sm:col-span-2 space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+            <div className="sm:col-span-2 space-y-3 rounded-lg border border-slate-200 bg-muted/60 p-4">
               <div className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium text-slate-800">Acesso</span>
@@ -543,7 +543,7 @@ export default function DashboardsTab() {
           </div>
           </div>
 
-          <DialogFooter className="shrink-0 border-t border-slate-200 bg-slate-50/60 px-6 py-3.5">
+          <DialogFooter className="shrink-0 border-t border-slate-200 bg-muted/60 px-6 py-3.5">
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />}Salvar

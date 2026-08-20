@@ -238,7 +238,7 @@ export const UsersTab = () => {
                       className={`w-full p-3 rounded-lg text-left transition-colors ${
                         selectedUserId === u.id
                           ? 'bg-primary/10 border border-primary/20'
-                          : 'bg-slate-50 hover:bg-slate-100 border border-transparent'
+                          : 'bg-muted hover:bg-foreground/[0.04] border border-transparent'
                       }`}
                       onClick={() => setSelectedUserId(u.id)}
                     >
@@ -252,7 +252,7 @@ export const UsersTab = () => {
                             key={role}
                             variant="outline"
                             className={`text-xs ${
-                              ROLE_BADGE_CLASSES[role] ?? 'border-slate-200 text-slate-600 bg-slate-50'
+                              ROLE_BADGE_CLASSES[role] ?? 'border-slate-200 text-slate-600 bg-muted'
                             }`}
                           >
                             {ROLE_SHORT_LABELS[role] ?? role}
