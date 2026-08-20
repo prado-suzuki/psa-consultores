@@ -27,9 +27,30 @@ export interface ProtectedPage {
 }
 
 export const PROTECTED_PAGES: ProtectedPage[] = [
-  // =============================================
-  // === GERAL PAGES (acessíveis a todo membro) ===
-  // =============================================
+  // ====================================================================
+  // === CATEGORIA `geral` ===
+  //
+  // O rotulo aqui dizia "acessiveis a todo membro" e isso NUNCA foi verdade
+  // no dado. Medido em 20/08/2026, por
+  // `select pp.page_path, count(*) from page_permissions pp join
+  //  user_page_access u on u.page_permission_id = pp.id where pp.category =
+  //  'geral' group by 1`:
+  //
+  //   /equipe/chamados .... 27 pessoas   <- a unica realmente ampla
+  //   /equipe/mapeamento ... 9 pessoas
+  //   as outras sete ....... 8 pessoas cada
+  //
+  // E das 8 pessoas do grupo restrito, 3 sao contas semente (@exemplo.dev) e
+  // uma e conta de teste. Sobram os quatro do Digital.
+  //
+  // O QUE ESTA CATEGORIA E, entao: telas internas do Digital, mais
+  // `/equipe/chamados`, que e porta de entrada das outras areas. A intencao
+  // sempre foi respeitada na concessao; era o rotulo que mentia.
+  //
+  // Consequencia pratica: `geral` NAO esta em `ALL_AREA_CATEGORIES`
+  // (`config/areaCategories.ts`), logo nao se concede por area — cada linha
+  // aqui e concedida individualmente em `user_page_access`.
+  // ====================================================================
   {
     page_path: '/equipe/dashboard',
     page_name: 'Dashboard Equipe',
