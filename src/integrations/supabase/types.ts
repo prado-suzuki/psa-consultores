@@ -9482,6 +9482,7 @@ export type Database = {
         | "sucessorios"
         | "outros"
         | "georreferenciamento"
+        | "proposta_comercial"
       osg_doc_fonte: "cliente" | "psa" | "arquivar"
       osg_doc_grupo: "pf" | "pj" | "bens_imoveis" | "outros"
       osg_doc_revisao: "pendente" | "aprovado" | "recusado"
@@ -9750,6 +9751,7 @@ export const Constants = {
         "sucessorios",
         "outros",
         "georreferenciamento",
+        "proposta_comercial",
       ],
       osg_doc_fonte: ["cliente", "psa", "arquivar"],
       osg_doc_grupo: ["pf", "pj", "bens_imoveis", "outros"],
