@@ -83,17 +83,52 @@ export const formatDateMask = (value: string): string => {
   return `${d.slice(0, 2)}/${d.slice(2, 4)}/${d.slice(4)}`;
 };
 
-export const parseDateMask = (masked: string): string | null => {
+/** Por que o que foi digitado não vira data. */
+export type MotivoDataInvalida = "incompleta" | "inexistente" | "fora_do_periodo";
+
+/**
+ * A data existe no calendário?
+ *
+ * Conferir faixa (dia 1..31, mês 1..12) não basta: 31/06 e 30/02 passam na faixa
+ * e não existem. O JavaScript, em vez de recusar, rola para o mês seguinte
+ * (`new Date(2026, 5, 31)` é 1 de julho), e era isso que fazia a tela mostrar
+ * uma data diferente da digitada enquanto o rascunho guardava `2026-06-31`, que
+ * só estourava lá na frente, no banco. Montar e conferir o retorno resolve
+ * inclusive fevereiro em ano bissexto, sem regra escrita à mão.
+ */
+const dataExisteNoCalendario = (day: number, month: number, year: number): boolean => {
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+  );
+};
+
+const analisarDataMask = (
+  masked: string,
+): { iso: string; motivo: null } | { iso: null; motivo: MotivoDataInvalida } => {
   const d = masked.replace(/\D/g, "");
-  if (d.length !== 8) return null;
+  if (d.length !== 8) return { iso: null, motivo: "incompleta" };
   const day = parseInt(d.slice(0, 2));
   const month = parseInt(d.slice(2, 4));
   const year = parseInt(d.slice(4, 8));
-  if (year < 2000 || year > 2060) return null;
-  if (month < 1 || month > 12) return null;
-  if (day < 1 || day > 31) return null;
-  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  if (year < 2000 || year > 2060) return { iso: null, motivo: "fora_do_periodo" };
+  if (month < 1 || month > 12) return { iso: null, motivo: "inexistente" };
+  if (day < 1 || day > 31) return { iso: null, motivo: "inexistente" };
+  if (!dataExisteNoCalendario(day, month, year)) return { iso: null, motivo: "inexistente" };
+  return {
+    iso: `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`,
+    motivo: null,
+  };
 };
+
+export const parseDateMask = (masked: string): string | null => analisarDataMask(masked).iso;
+
+/**
+ * O motivo da recusa, para a tela dizer o que houve em vez de "Data inválida".
+ * Devolve `null` quando a data é boa.
+ */
+export const motivoDataInvalida = (masked: string): MotivoDataInvalida | null =>
+  analisarDataMask(masked).motivo;
 
 export const isoToMasked = (iso: string): string => {
   if (!iso) return "";
