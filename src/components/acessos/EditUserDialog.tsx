@@ -180,7 +180,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                           : prev.roles.filter((r) => r !== role.value),
                       }));
                     }}
-                    className="border-slate-300 mt-0.5"
+                    className="mt-0.5"
                   />
                   <div>
                     <Label
@@ -225,7 +225,7 @@ export const EditUserDialog = ({ open, onOpenChange, user }: EditUserDialogProps
                             : prev.areas.filter((a) => a !== key),
                         }));
                       }}
-                      className="border-slate-300 mt-0.5"
+                      className="mt-0.5"
                     />
                     <div>
                       <Label
