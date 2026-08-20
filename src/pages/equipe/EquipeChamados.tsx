@@ -67,7 +67,34 @@ export default function EquipeChamados() {
     () => filterAndSortTickets(tickets, filters, mostrarUrgentes, sortColumn, sortDirection),
     [tickets, filters, mostrarUrgentes, sortColumn, sortDirection],
   );
-  const stats = useMemo(() => getTicketStats(tickets), [tickets]);
+  /**
+   * O UNIVERSO da tela — e ele tem três níveis, não dois.
+   *
+   * 1. `tickets`          tudo que a query carregou
+   * 2. `ticketsDoEscopo`  o universo do espelho          ← este
+   * 3. `filteredTickets`  filtros do usuário, dentro de 2
+   *
+   * Os cartões e o `de N` do contador vivem no nível 2, e isso preserva a
+   * decisão que já estava testada ("mantém stats sobre todos os tickets
+   * carregados enquanto combina os filtros da tabela"): os cartões continuam
+   * sendo o fundo FIXO contra o qual o `X de Y` mostra o estreitamento — só que
+   * agora dentro do universo espelhado, e não do universo inteiro.
+   *
+   * Antes disso os cartões estavam no nível 1, e era a regra caindo no lugar
+   * mais visível da tela: espelhada na OSG, a tela dizia "354 chamados, 8
+   * abertos" com a lista vazia. Número afirmando um escopo que a tela não tem.
+   *
+   * Escopo ainda não resolvido devolve lista vazia, não a lista inteira: cartão
+   * em zero é o que a tela já mostra enquanto os chamados carregam, e zero nunca
+   * afirma escopo que não existe. A lista inteira afirmaria.
+   */
+  const ticketsDoEscopo = useMemo(() => {
+    if (!espelho) return tickets;
+    if (!clusterDoEspelho) return [];
+    return tickets.filter((t) => t.cluster_id === clusterDoEspelho);
+  }, [tickets, espelho, clusterDoEspelho]);
+
+  const stats = useMemo(() => getTicketStats(ticketsDoEscopo), [ticketsDoEscopo]);
 
   const handleSort = (column: SortColumn) => {
     if (sortColumn !== column) {
@@ -141,7 +168,7 @@ export default function EquipeChamados() {
           areas={areasData}
           clusters={canAssignTickets ? clustersData : userClusters}
           filteredCount={filteredTickets.length}
-          totalCount={tickets.length}
+          totalCount={ticketsDoEscopo.length}
           onReset={resetFilters}
           clusterTravado={espelho !== null}
         />

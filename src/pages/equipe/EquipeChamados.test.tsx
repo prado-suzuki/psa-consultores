@@ -363,8 +363,61 @@ describe('EquipeChamados espelhada', () => {
     render(<EquipeChamados />);
     expect(screen.getByText('Do cluster 2')).toBeInTheDocument();
     expect(screen.queryByText('Do cluster 1')).not.toBeInTheDocument();
-    // E o contador confirma que houve recorte, não que só existia um.
+    // `de 1` e não `de 2`: o denominador é o universo do ESPELHO, não o carregado.
+    expect(screen.getByText('1 de 1 chamados')).toBeInTheDocument();
+  });
+
+  /*
+   * OS CARTÕES DO TOPO seguem o ESCOPO — o nível que faltava.
+   *
+   * A versão anterior deste bloco provava que a LISTA encolhia e não olhava os
+   * cartões, e foi por isso que passou enquanto a tela dizia "354 chamados, 8
+   * abertos" com a lista vazia. Era a regra caindo no lugar MAIS visível.
+   *
+   * São três níveis, e os cartões ficam no do meio: o universo do espelho. Isso
+   * preserva a decisão testada em "mantém stats sobre todos os tickets
+   * carregados enquanto combina os filtros da tabela" — os cartões continuam
+   * sendo o fundo fixo que os filtros do usuário não movem; só passam a
+   * descrever o universo espelhado em vez do universo inteiro.
+   */
+  it('os cartões contam o universo do espelho, não o carregado', () => {
+    setTickets([
+      ticket({ id: 'ticket-00000001', status: 'aberto', cluster_id: 'cluster-1' }),
+      ticket({ id: 'ticket-00000002', status: 'aberto', cluster_id: 'cluster-1' }),
+      ticket({ id: 'ticket-00000003', status: 'em_andamento', cluster_id: 'cluster-2' }),
+      ticket({ id: 'ticket-00000004', status: 'fechado', cluster_id: 'cluster-2' }),
+    ]);
+    render(<EquipeChamados />);
+    const cartoes = screen.getAllByText(/^\d+$/, { selector: '.text-3xl' }).map((e) => e.textContent);
+    // Total 2, Abertos 0, Em Andamento 1, Resolvidos 1 — só o cluster-2.
+    expect(cartoes).toEqual(['2', '0', '1', '1']);
+  });
+
+  it('os cartões NÃO se movem com os filtros do usuário, dentro do escopo', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    setTickets([
+      ticket({ id: 'ticket-00000001', title: 'Aberto do 2', status: 'aberto', cluster_id: 'cluster-2' }),
+      ticket({ id: 'ticket-00000002', title: 'Fechado do 2', status: 'fechado', cluster_id: 'cluster-2' }),
+      ticket({ id: 'ticket-00000003', title: 'Do cluster 1', status: 'aberto', cluster_id: 'cluster-1' }),
+    ]);
+    render(<EquipeChamados />);
+    await selectOption(user, 1, 'Aberto');
     expect(screen.getByText('1 de 2 chamados')).toBeInTheDocument();
+    const cartoes = screen.getAllByText(/^\d+$/, { selector: '.text-3xl' }).map((e) => e.textContent);
+    // Continua 2 no total: o filtro estreitou a tabela, não o universo.
+    expect(cartoes).toEqual(['2', '1', '0', '1']);
+  });
+
+  it('escopo ainda não resolvido não afirma número nenhum', () => {
+    // Zero nunca afirma escopo que não existe; a lista inteira afirmaria.
+    mocks.useDomainClusterPorCategoria.mockReturnValue({ clusterId: null, isLoading: true });
+    setTickets([
+      ticket({ id: 'ticket-00000001', status: 'aberto', cluster_id: 'cluster-1' }),
+      ticket({ id: 'ticket-00000002', status: 'aberto', cluster_id: 'cluster-2' }),
+    ]);
+    render(<EquipeChamados />);
+    const cartoes = screen.getAllByText(/^\d+$/, { selector: '.text-3xl' }).map((e) => e.textContent);
+    expect(cartoes).toEqual(['0', '0', '0', '0']);
   });
 
   it('o vazio NOMEIA o escopo — é a prova visível de que o filtro agiu', () => {

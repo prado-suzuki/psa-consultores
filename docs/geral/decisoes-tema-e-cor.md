@@ -257,6 +257,43 @@ está saindo.** Contexto em `inventario-telas-por-cluster.md`.
 Nome oficial confirmado em 20/08. **Se esse cluster ganhar rota, o nome não vira caminho** —
 `&` e espaço não sobrevivem a URL. Registrado em `inventario-telas-por-cluster.md:76-88`.
 
+### Chamado sem cluster nasce invisível para quem usa o espelho
+
+A tela de chamados é **espelhada**: `/equipe/chamados?area=osg` mostra os chamados da OSG com o
+tema da OSG, e o recorte é por `tickets.cluster_id`. Consequência direta: **chamado sem cluster
+não aparece em espelho nenhum.** Só na tela aberta direto, sem parâmetro — que é o caminho que
+ninguém percorre, porque todo menu de área leva a chave.
+
+**Hoje são 19 chamados** (18 resolvidos, 1 em andamento), o mais antigo de 08/04/2025 e o mais
+recente de **13/08/2026** — ou seja, não é resíduo de migração: continua acontecendo.
+
+**Nada impede.** Verificado em três camadas, em 20/08/2026:
+
+| Camada | Estado |
+|---|---|
+| Coluna | `tickets.cluster_id` é `NULL`-ável, sem default e sem CHECK |
+| Triggers | as 4 de `tickets` tratam atribuição, geração de tarefa, `closed_at` e `updated_at` — nenhuma valida cluster |
+| Código | `useCreateTicket.ts:193-203` **auto-resolve** o cluster, e só quando o cliente tem **exatamente um**; `:227` faz `if (resolvedClusterId) insertPayload.cluster_id = …`, então o campo é simplesmente omitido, sem erro nem aviso |
+
+**E a condição falha em 1 de cada 5 clientes:**
+
+| Vínculos do cliente | Clientes | Resultado |
+|---|---|---|
+| 1 cluster | 235 | nasce com cluster |
+| 2 clusters | 45 | **nasce sem** |
+| 0 clusters | 18 | **nasce sem** |
+| 3 clusters | 1 | **nasce sem** |
+
+**64 de 299 (21,4%)** dos clientes produzem chamado invisível no espelho. A exposição atual é
+de um chamado em andamento; o padrão é o que importa.
+
+> **Decisão da usuária, pendente.** Três caminhos, e nenhum é obviamente certo: validação no
+> cadastro (bloqueia, mas o cliente com 2 clusters é caso legítimo e alguém teria de escolher);
+> uma visão de órfãos (não bloqueia nada e dá onde olhar); ou aceitar e documentar. Registrado
+> aqui sem conserto — mexer em criação de chamado não é decisão de quem estava arrumando cor.
+>
+> Para remedir: `select count(*) from tickets where cluster_id is null`.
+
 ### O substring que sobrou, e por que sobrou
 
 Removido de `construirMapaDeClusters` no commit `308a0149`. **Sobraram dois:**
