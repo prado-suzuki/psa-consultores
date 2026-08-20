@@ -46,7 +46,7 @@ const GLINT_PATH = 'M0 -30 L11 -11 30 0 11 11 0 30 -11 11 -30 0 -11 -11Z';
  * repouso sobre o lombo — o resultado é o ícone Tax estático.
  */
 /** Cor base do porquinho — mesclada com a `className` do call site, não trocada por ela. */
-const TAX_LOADER_COLOR = 'text-[#0e4b5a] dark:text-slate-200';
+const TAX_LOADER_COLOR ='text-[#0e4b5a]';
 
 const TaxLoader: React.FC<TaxLoaderProps> = ({
   size = 64,
