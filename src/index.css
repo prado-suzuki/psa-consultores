@@ -407,7 +407,21 @@ All colors MUST be HSL.
     --canvas: 42 22% 99%;
     --muted: var(--base-50);
     --muted-foreground: 28 9% 45%;
-    --destructive: 0 84% 60%;
+    /* 48% e nao os 60% do `:root`, e a diferenca e deliberada — como a do
+       `--ring`. Em 60% o par com `--destructive-foreground` dava 3,62:1, abaixo
+       do 4,5:1 do WCAG AA, nos 36 botoes de confirmar exclusao. E `text-destructive`
+       sobre fundo claro dava 3,77:1 nos 227 sitios de mensagem de erro — tambem
+       reprovando, e isso ninguem tinha medido.
+
+       Em 48%: o botao vai a 4,66:1 e o texto de erro a 4,85:1. Os dois passam.
+
+       Clarear o texto nao era saida: o primeiro plano ja estava em 98% e o BRANCO
+       PURO da 3,78:1 — teto abaixo do minimo. So escurecer o fundo resolvia.
+
+       A OSG nao entra: `--osg-red` ja dava 5,80:1. O `:root` fica em 60% porque
+       nenhuma rota o alcanca (o piso e sempre aplicado) e mexer nele so alargaria
+       o raio sem mudar pixel. */
+    --destructive: 0 84% 48%;
 
     /* Superfície escura — o par de fundo dos cartões escuros, do mais escuro
        (`--surface-escura`, o início do gradiente) para o intermediário
@@ -533,7 +547,7 @@ All colors MUST be HSL.
     --destructive-foreground: 0 0% 98%;
     --tool-icon: var(--primary);
     --tool-icon-bg: 175 60% 95%;
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 48%;
     --foreground: 20 81% 10%;
     --card-foreground: 20 81% 10%;
     --popover-foreground: 20 81% 10%;
@@ -725,7 +739,7 @@ All colors MUST be HSL.
        que este bloco existe para cortar. Mesmo valor. */
     --muted: 42 26% 98%;
     --muted-foreground: 28 9% 45%;
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 48%;
     --foreground: 20 81% 10%;
     --card-foreground: 20 81% 10%;
     --popover-foreground: 20 81% 10%;
