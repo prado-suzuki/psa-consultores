@@ -119,7 +119,7 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                     <Badge variant="outline" className={`${tipoBadgeClass(dashboard.filter_type)} text-[11px]`}>{tipoLabel(dashboard.filter_type)}</Badge>
                     <Badge variant="outline" className={`${FILTER_BADGE_CLASS[dashboard.filter_type]} text-[11px]`}>{FILTER_LABEL[dashboard.filter_type]}</Badge>
                     {dashboard.grupo && <span className="text-xs text-muted-foreground truncate">· {dashboard.grupo}</span>}
-                    {!dashboard.is_active && <Badge className="bg-slate-200 text-slate-600 text-[11px]">Inativo</Badge>}
+                    {!dashboard.is_active && <Badge className="bg-status-neutro-soft text-status-neutro text-[11px]">Inativo</Badge>}
                   </>
                 )}
               </div>
