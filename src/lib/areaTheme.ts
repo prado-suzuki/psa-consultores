@@ -178,22 +178,36 @@ export const PARAM_DE_ESPELHO = 'area';
 /**
  * As categorias que podem espelhar, e o tema de cada uma.
  *
- * São exatamente as categorias que têm área em `estrutura_areas.page_categories`
- * — sem área não há cluster para filtrar, e sem filtro não pode haver cor.
- * `geral`, `mapa`, `board` e `gestao` ficam de fora por isso, não por esquecimento.
+ * O critério NÃO é "ser uma categoria válida" — é **ser um recorte**. A chave
+ * precisa nomear um conjunto de que faça sentido dizer "os chamados dele".
  *
- * DECISÃO EXPLÍCITA — `dev` e `rotina` apontam para o MESMO cluster (Digital) e
- * têm temas DIFERENTES, e isso é aceito. A regra é "cor e conteúdo andam
- * juntos", não "existe bijeção entre cor e conteúdo". Dev e Rotina são as duas
- * metades do Digital: a cor diz em que parte do Digital você está espelhado, o
- * conteúdo diz de que cluster a lista é. As duas afirmações são verdadeiras ao
- * mesmo tempo. Isto está escrito aqui para não virar "achado" daqui a seis meses.
+ * Por isso `geral`, `mapa`, `board` e `gestao` estão fora: nenhuma tem cluster
+ * próprio para filtrar, e sem filtro não pode haver cor.
+ *
+ * POR QUE `rotina` SAIU, e é a correção que vale registrar. Ela entrou aqui
+ * porque é uma categoria válida com cluster resolvível (o Digital) — critério
+ * errado. A Rotina não é um cluster de negócio: é o CHÃO COMUM, o lugar de onde
+ * se olha. Nove das dezesseis telas dela são categoria `geral`, e ela existe
+ * porque todas as áreas passam por ali. "Ver os chamados da Rotina" não quer
+ * dizer nada: ela não tem chamados.
+ *
+ * O sintoma que expôs isso: do `/equipe/kanban`, "Ver Chamados" ia para
+ * `?area=rotina`, resolvia para o cluster Digital, e o Digital tem ZERO chamados
+ * — tela teal com "0 de 0" onde devia haver a lista inteira. Internamente
+ * coerente (cor e conteúdo andavam juntos) e conceitualmente errado. Só apareceu
+ * quando alguém clicou o caminho real.
+ *
+ * Do kanban o link vai SEM parâmetro: piso, lista completa, Cluster livre.
+ *
+ * Havia aqui uma decisão explícita aceitando que `dev` e `rotina` apontassem
+ * para o mesmo cluster com temas diferentes. Ela deixou de ser necessária: sem
+ * `rotina`, toda chave é um cluster de verdade e não há mais duas chaves para o
+ * mesmo conteúdo. A exceção do modelo desapareceu junto com a causa dela.
  */
 export const ESPELHO = {
   tax: 'tax',
   osg: 'osg',
   dev: 'digital',
-  rotina: 'rotina',
 } as const satisfies Record<string, AreaDeTema>;
 
 /**

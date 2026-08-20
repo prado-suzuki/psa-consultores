@@ -408,7 +408,32 @@ describe('espelhamento: cor e conteúdo saem da mesma chave', () => {
     expect(tema('tax')).toEqual([CLASSE_BASE, 'tax-theme']);
     expect(tema('osg')).toEqual([CLASSE_BASE, 'osg-theme']);
     expect(tema('dev')).toEqual([CLASSE_BASE, 'sistema-theme']);
-    expect(tema('rotina')).toEqual([CLASSE_BASE, 'rotina-theme']);
+  });
+
+  /*
+   * O CRITÉRIO de quem pode espelhar é SER UM RECORTE, não ser uma chave válida.
+   *
+   * `rotina` já esteve no ESPELHO porque passava no critério errado: é categoria
+   * de página válida e resolve para um cluster (o Digital). Só que a Rotina é o
+   * chão comum — o lugar de onde se olha —, e o Digital tem zero chamados. O
+   * resultado era uma tela teal com "0 de 0" onde deviam estar os 354.
+   *
+   * Este teste é o que impede a volta: `rotina` fora, e nenhuma categoria que
+   * seja "chão" dentro.
+   */
+  it('chão comum não espelha — rotina e geral ficam fora', () => {
+    for (const chao of ['rotina', 'geral', 'mapa', 'board', 'gestao']) {
+      expect(Object.keys(ESPELHO), `"${chao}" não é recorte`).not.toContain(chao);
+      expect(resolverTemaDaRota('/equipe/chamados', `?${PARAM_DE_ESPELHO}=${chao}`))
+        .toEqual(resolverTemaDaRota('/equipe/chamados'));
+    }
+  });
+
+  it('sem rotina, não há duas chaves para o mesmo cluster', () => {
+    // Era a única brecha aceita do modelo: `dev` e `rotina` apontavam para o
+    // cluster Digital com temas diferentes. Saiu junto com a causa.
+    const temas = Object.values(ESPELHO);
+    expect(new Set(temas).size).toBe(temas.length);
   });
 
   /*
@@ -444,15 +469,24 @@ describe('espelhamento: cor e conteúdo saem da mesma chave', () => {
  */
 describe('espelhamento: os menus levam a chave', () => {
   /**
-   * Navegações que de propósito NÃO espelham, com o motivo.
+   * Navegações que de propósito NÃO espelham — o motivo mora JUNTO da entrada.
    *
-   * `EquipeDetalhesChamado` é o "Voltar" do detalhe de um chamado. Ele volta
-   * para a lista sem escopo, e isso NÃO viola a regra (cor de piso + lista
-   * completa é um par coerente) — mas é uma perda de contexto conhecida: quem
-   * entrou pelo espelho da Tax volta para "todos". Está registrado como
-   * pendência, não como conserto silencioso.
+   * É de propósito que seja um mapa e não uma lista: entrada sem motivo escrito
+   * reprova no teste abaixo. Lista de exceções sem motivo é onde se esconde o
+   * caso que ninguém quis resolver.
    */
-  const SEM_ESPELHO_DE_PROPOSITO = ['src/pages/equipe/EquipeDetalhesChamado.tsx'];
+  const SEM_ESPELHO_DE_PROPOSITO: Record<string, string> = {
+    'src/pages/equipe/EquipeDetalhesChamado.tsx':
+      'O "Voltar" do detalhe de um chamado. Volta para a lista sem escopo, e isso NÃO viola a '
+      + 'regra — cor de piso com lista completa é par coerente. Mas é perda de contexto '
+      + 'conhecida: quem entrou pelo espelho da Tax volta para "todos". Registrado como '
+      + 'pendência em docs/geral/decisoes-tema-e-cor.md, não consertado no escuro.',
+    'src/components/equipe/EquipeLayout.tsx':
+      'A Rotina é o CHÃO COMUM, não um recorte: "os chamados da Rotina" não quer dizer nada. '
+      + 'Daqui o link vai sem parâmetro — piso, lista completa, Cluster livre. Ela já esteve '
+      + 'no ESPELHO por erro de critério (era categoria válida, não recorte) e o sintoma foi '
+      + 'uma tela teal com "0 de 0" no lugar dos 354. Ver o bloco ESPELHO em areaTheme.ts.',
+  };
 
   function arquivosTsx(dir: string): string[] {
     const achados: string[] = [];
@@ -467,7 +501,7 @@ describe('espelhamento: os menus levam a chave', () => {
   it('toda navegação para rota espelhável carrega a chave', () => {
     const faltando: string[] = [];
     for (const arquivo of arquivosTsx('src')) {
-      if (SEM_ESPELHO_DE_PROPOSITO.includes(arquivo)) continue;
+      if (arquivo in SEM_ESPELHO_DE_PROPOSITO) continue;
       const linhas = readFileSync(arquivo, 'utf8').split('\n');
       const fonte = linhas.join('\n');
       linhas.forEach((linha, i) => {
@@ -502,8 +536,12 @@ describe('espelhamento: os menus levam a chave', () => {
     ).toEqual([]);
   });
 
-  it('a lista de exceções não vira depósito', () => {
-    // Cada arquivo aqui precisa de um motivo escrito no comentário acima.
-    expect(SEM_ESPELHO_DE_PROPOSITO.length).toBeLessThanOrEqual(1);
+  it('toda exceção carrega motivo escrito, e o arquivo existe', () => {
+    // O que impede a lista de virar depósito não é um teto de tamanho — é a
+    // obrigação de escrever POR QUE. Motivo curto não passa.
+    for (const [arquivo, motivo] of Object.entries(SEM_ESPELHO_DE_PROPOSITO)) {
+      expect(() => readFileSync(arquivo, 'utf8'), `${arquivo} não existe mais`).not.toThrow();
+      expect(motivo.length, `motivo raso em ${arquivo}`).toBeGreaterThan(120);
+    }
   });
 });

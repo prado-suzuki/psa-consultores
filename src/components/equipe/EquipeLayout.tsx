@@ -30,7 +30,6 @@ import {
    Map
 } from 'lucide-react';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
-import { linkEspelhado } from '@/lib/areaTheme';
 
 interface EquipeLayoutProps {
   children: React.ReactNode;
@@ -280,20 +279,22 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               variant="ghost"
               size="icon"
               className="relative text-slate-600 hover:text-teal-600 hover:bg-slate-50"
-              // Espelhada na Rotina: leva a cor E a lista da Rotina. Ver o bloco
-              // de espelhamento em `src/lib/areaTheme.ts`.
-              onClick={() => navigate(linkEspelhado('/equipe/chamados', 'rotina'), { state: { from: location.pathname } })}
+              // SEM espelho, de propósito. A Rotina é o chão comum e não um
+              // recorte: "os chamados da Rotina" não quer dizer nada. Daqui se vê
+              // a lista completa, no piso. Ver o bloco `ESPELHO` em
+              // `src/lib/areaTheme.ts`, que registra por que ela saiu.
+              onClick={() => navigate('/equipe/chamados', { state: { from: location.pathname } })}
               title="Ver Chamados"
             >
               <MessageSquare className="h-5 w-5" />
             </Button>
-            <NotificationPopover navigateTo="/equipe/chamados" espelho="rotina" backTo={location.pathname} />
+            <NotificationPopover navigateTo="/equipe/chamados" backTo={location.pathname} />
             {headerActions}
           </div>
         </header>
 
         {/* Pending Tickets Alert */}
-        <PendingTicketsAlert navigateTo="/equipe/chamados" espelho="rotina" backTo={location.pathname} />
+        <PendingTicketsAlert navigateTo="/equipe/chamados" backTo={location.pathname} />
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto">
