@@ -80,8 +80,19 @@ export default function RepresentantesTab({
   // O aviso do rodapé manda abrir um item específico. Só reage à mudança do
   // pedido: se dependesse da seleção, escolher outro item na lista seria
   // desfeito no mesmo instante.
+  //
+  // Abrir em edição faz parte do pedido: no escopo por item o detalhe abre em
+  // leitura, onde não há campo para marcar de vermelho nem para receber o cursor.
   useEffect(() => {
-    if (foco?.itemId != null) setSelecionadoId(foco.itemId);
+    if (foco?.itemId == null) return;
+    setSelecionadoId(foco.itemId);
+    if (!mostrarEditarPorLinha) return;
+    if (isReadOnly) {
+      if (!onRequestItemEdit) return;
+      onRequestItemEdit();
+    }
+    setEditingParticipantId(foco.itemId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foco]);
 
   const alterados = useMemo(

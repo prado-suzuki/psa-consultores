@@ -22,6 +22,7 @@ import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewCl
 import { defaultClientData } from "./client-form/constants";
 import { AcentoAreaProvider, acentoDaArea } from "./client-form/acentoArea";
 import {
+  frasePendencia,
   mapearPendencias,
   pendenciasCliente,
   pendenciasContribuinte,
@@ -293,6 +294,32 @@ export default function NewClientModal({
     [tentouSalvar, pendencias],
   );
 
+  /**
+   * Onde a pendência está, em palavras, para a frase do rodapé.
+   *
+   * O rótulo sai da lista que a aba mostra, e não de um campo da pendência: é o
+   * mesmo texto que a pessoa lê na coluna da esquerda, então ela reconhece o
+   * item sem traduzir nada.
+   */
+  const ondeDaPendencia = (p: Pendencia): string | null => {
+    if (p.itemId == null) return null;
+    if (p.aba === 'contratos') {
+      const os = contracts.find((item) => item._id === p.itemId);
+      return os ? `na OS ${os.ordem_servico || 'sem número'}` : null;
+    }
+    if (p.aba === 'contribuintes') {
+      const contribuinte = entities.find((item) => item._id === p.itemId);
+      return contribuinte
+        ? `no contribuinte ${contribuinte.nome_razao_social || 'sem nome'}`
+        : null;
+    }
+    if (p.aba === 'representantes') {
+      const representante = participants.find((item) => item._id === p.itemId);
+      return representante ? `no representante ${representante.nome || 'sem nome'}` : null;
+    }
+    return null;
+  };
+
   /** Abre a aba e o item da falta, a partir do aviso do rodapé. */
   const irParaPendencia = (p: Pendencia) => {
     setActiveTab(p.aba);
@@ -552,9 +579,11 @@ export default function NewClientModal({
                           className="flex items-center gap-1.5 rounded text-sm font-medium text-destructive hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
                         >
                           <AlertCircle size={16} className="shrink-0" />
-                          {mapaPendencias.todas.length === 1
-                            ? "1 campo obrigatório pendente"
-                            : `${mapaPendencias.todas.length} campos obrigatórios pendentes`}
+                          {frasePendencia(
+                            mapaPendencias.todas[0],
+                            mapaPendencias.todas.length,
+                            ondeDaPendencia(mapaPendencias.todas[0]),
+                          )}
                         </button>
                       ) : hasUnsavedChanges && (
                         <span className="flex items-center gap-1.5 text-sm text-amber-700">
