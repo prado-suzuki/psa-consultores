@@ -78,30 +78,30 @@ const SITUACAO_OPTIONS = [
 ];
 
 const SITUACAO_COLORS: Record<string, string> = {
-  'Analise concluida': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+  'Analise concluida':'bg-green-100 text-green-800',
   'Analise preliminar disponibilizada':
-    'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  Cancelado: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+    'bg-blue-100 text-blue-800',
+  Cancelado:'bg-red-100 text-red-800',
   'Contribuinte intimado':
-    'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
+    'bg-orange-100 text-orange-800',
   'Despacho decisorio emitido':
-    'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-  'Em analise': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+    'bg-purple-100 text-purple-800',
+  'Em analise':'bg-yellow-100 text-yellow-800',
   'Em discussao administrativa - CARF':
-    'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+    'bg-amber-100 text-amber-800',
   'Em discussao administrativa - CSRF':
-    'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+    'bg-amber-100 text-amber-800',
   'Em discussao administrativa - DRJ':
-    'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-  Homologado: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-  'Nao admitido': 'bg-status-neutro-soft text-status-neutro dark:bg-gray-900/30 dark:text-gray-400',
+    'bg-amber-100 text-amber-800',
+  Homologado:'bg-emerald-100 text-emerald-800',
+  'Nao admitido':'bg-status-neutro-soft text-status-neutro',
   'Pedido de cancelamento deferido':
-    'bg-status-neutro-soft text-status-neutro dark:bg-slate-900/30 dark:text-slate-400',
-  'PER deferido': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-  Retificado: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
-  Deferido: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-  Analisado: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-  'Em análise': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+    'bg-status-neutro-soft text-status-neutro',
+  'PER deferido':'bg-green-100 text-green-800',
+  Retificado:'bg-indigo-100 text-indigo-800',
+  Deferido:'bg-green-100 text-green-800',
+  Analisado:'bg-blue-100 text-blue-800',
+  'Em análise':'bg-yellow-100 text-yellow-800',
 };
 
 const formatCurrency = (value: number) =>
