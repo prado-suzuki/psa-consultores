@@ -294,6 +294,35 @@ de um chamado em andamento; o padrão é o que importa.
 >
 > Para remedir: `select count(*) from tickets where cluster_id is null`.
 
+### Grant concedido que não abre porta — o `LiderRoute` barra 13 de 25
+
+Segundo caso desta semana de **registro que não exerce controle** (o primeiro foi
+`estrutura_areas.page_categories`, cujo rótulo prometia conceder acesso e não concedia).
+
+As três rotas da Gestão de Chamados são `LiderRoute`, e ele é **estrito**: `isAdmin || isLider`,
+então **sublíder não passa** (`src/components/auth/LiderRoute.tsx:34`).
+
+| Rota | Tem grant | **Passa o gate** | Diferença |
+|---|---|---|---|
+| `/equipe/tax/gerencial/chamados` | 25 | **12** | **13** |
+| `/equipe/osg/gerencial/chamados` | 19 | **9** | **10** |
+| `/equipe/board/chamados` | 6 | **4** | **2** |
+
+Medido em 20/08/2026. As pessoas barradas são `team_member` e `sublider` que **têm a permissão
+concedida em `user_page_access`** e são redirecionadas pelo gate de papel.
+
+**Por que isso importa mais do que parece:** quem administra acessos vê a permissão marcada e
+conclui que a pessoa tem a tela. A pessoa não tem. Não há erro, não há aviso — o gate
+redireciona em silêncio. É a mesma forma do defeito de rótulo: um registro que descreve um
+estado que o sistema não produz.
+
+> **Não consertado, e são três caminhos diferentes:** o gate está certo e os grants estão
+> errados (revogar); os grants estão certos e o gate é rígido demais (incluir sublíder); ou os
+> dois estão certos e falta a tela de acessos **mostrar** que aquele grant não abre porta. A
+> terceira é a única que não muda quem vê o quê.
+>
+> Para remedir, a consulta está no corpo do commit que registrou este item.
+
 ### O substring que sobrou, e por que sobrou
 
 Removido de `construirMapaDeClusters` no commit `308a0149`. **Sobraram dois:**
