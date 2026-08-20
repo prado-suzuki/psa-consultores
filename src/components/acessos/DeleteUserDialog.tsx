@@ -42,19 +42,19 @@ export const DeleteUserDialog = ({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent className="bg-white border-slate-200">
+      <AlertDialogContent className="border-border">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-slate-900">Excluir Usuário</AlertDialogTitle>
-          <AlertDialogDescription className="text-slate-500">
+          <AlertDialogTitle className="text-foreground">Excluir Usuário</AlertDialogTitle>
+          <AlertDialogDescription>
             Tem certeza que deseja excluir o usuário{' '}
-            <strong className="text-slate-700">
+            <strong className="text-foreground">
               {user?.first_name} {user?.last_name}
             </strong>
             ? Esta ação não pode ser desfeita.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel className="border-slate-200 text-slate-600">
+          <AlertDialogCancel className="border-border text-muted-foreground">
             Cancelar
           </AlertDialogCancel>
           <AlertDialogAction asChild>
