@@ -606,12 +606,6 @@ describe('gestão de chamados: todo invólucro de área declara o escopo', () =>
       'O Board é o consolidado da empresa: mostrar todas as áreas é o que ele existe para '
       + 'fazer, e o subtítulo já diz "Chamados de todas as áreas". Cor de infraestrutura sobre '
       + 'lista de todas as áreas é par coerente — não há recorte prometido e não cumprido.',
-    'src/pages/gestao/GestaoChamados.tsx':
-      'O export default deste arquivo (a tela em /gestao/chamados) é CÓDIGO MORTO: App.tsx o '
-      + 'importa mas nunca o monta, porque a rota /gestao/chamados é um <Navigate> para '
-      + '/equipe/tax/gerencial/chamados (App.tsx:266). O que vive é o export nomeado '
-      + '`ChamadosGestaoContent`, usado pelos três invólucros. Registrado como achado a decidir '
-      + '(apagar ou rotear), não corrigido junto com a mudança de escopo.',
   };
 
   function arquivosQueMontam(): string[] {

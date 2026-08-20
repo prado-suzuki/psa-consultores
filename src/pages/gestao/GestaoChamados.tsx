@@ -5,7 +5,6 @@ import type { ChaveDeEspelho } from '@/lib/areaTheme';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
 import { useAssignTicket, useUpdateTicketDeadline, useDeleteTickets } from '@/hooks/useTicketMutations';
-import { GestaoLayout } from '@/components/gestao/GestaoLayout';
 import { CreateTicketDialog } from '@/components/gestao/CreateTicketDialog';
 import { ClienteSemProjetoChamadosAlert } from '@/components/gestao/ClienteSemProjetoChamadosAlert';
 import { Button } from '@/components/ui/button';
@@ -833,18 +832,5 @@ export function ChamadosGestaoContent({ basePath, escopo }: ChamadosGestaoConten
         </AlertDialogContent>
       </AlertDialog>
     </>
-  );
-}
-
-
-/** Rota da area de Gestao: o mesmo miolo dentro da moldura de sempre. */
-export default function GestaoChamados() {
-  return (
-    <GestaoLayout
-      title="Gestão de Chamados"
-      subtitle="Visualize e gerencie os chamados dos clientes"
-    >
-      <ChamadosGestaoContent basePath="/gestao/chamados" />
-    </GestaoLayout>
   );
 }
