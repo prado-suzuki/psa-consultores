@@ -33,6 +33,15 @@ Quando `bun run dev` sobe, ele imprime para onde está apontando e por quê:
 ➜  Supabase:   https://vgzomuwnsdgrxbkyoavq.supabase.co  (.env.development)
 ```
 
+A branch é lida quando o servidor sobe. Trocar de branch com o dev de pé faria o app
+continuar no banco da branch anterior, sem nenhum sinal, então o `vite.config.ts` vigia
+o `HEAD` do git e reinicia o servidor quando a branch muda:
+
+```
+➜  branch main: reiniciando para reavaliar o Supabase...
+➜  Supabase:   https://zwoainzzqhudmmknuycq.supabase.co  (branch main)
+```
+
 ### Precedência dos arquivos de env
 
 O Vite carrega nesta ordem, e **o último vence**:

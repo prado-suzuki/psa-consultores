@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, type PluginOption } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "node:fs";
@@ -34,6 +34,61 @@ function branchAtual(): string {
     // Sem git (sandbox do Lovable, tarball, container de CI). Sem regra de branch.
     return "";
   }
+}
+
+// A regra de branch acima roda uma vez, quando o servidor sobe. Um `git switch`
+// com o dev de pé não faria o Vite reavaliar nada, e o app seguiria no banco da
+// branch anterior sem nenhum sinal na tela. Este plugin vigia o HEAD do git e
+// reinicia o servidor quando a branch muda, para o alvo voltar a bater com onde
+// você está. O watcher do Vite ignora `.git/**` por padrão, daí o fs.watch
+// próprio; e a vigilância é instalada uma vez por processo, já que
+// `server.restart()` reexecuta o `configureServer`.
+let vigilanciaDeBranchInstalada = false;
+let branchVigiada = "";
+
+function caminhoDoHEAD(): string | null {
+  try {
+    const relativo = execFileSync("git", ["rev-parse", "--git-path", "HEAD"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+    return relativo ? path.resolve(process.cwd(), relativo) : null;
+  } catch {
+    return null;
+  }
+}
+
+function reiniciaAoTrocarDeBranch(): PluginOption {
+  return {
+    name: "psa:reinicia-ao-trocar-de-branch",
+    apply: "serve",
+    configureServer(server) {
+      if (vigilanciaDeBranchInstalada) return;
+      const head = caminhoDoHEAD();
+      if (!head || !fs.existsSync(head)) return;
+
+      vigilanciaDeBranchInstalada = true;
+      branchVigiada = branchAtual();
+
+      // O git troca o HEAD por rename (HEAD.lock -> HEAD), então vigiamos o
+      // diretório: um fs.watch no arquivo se perderia na primeira troca.
+      const vigia = fs.watch(path.dirname(head), (_evento, arquivo) => {
+        if (arquivo !== path.basename(head)) return;
+        const agora = branchAtual();
+        if (!agora || agora === branchVigiada) return;
+        branchVigiada = agora;
+        server.config.logger.info(
+          `\n  ➜  branch ${agora}: reiniciando para reavaliar o Supabase...`,
+        );
+        void server.restart();
+      });
+      vigia.unref();
+      server.httpServer?.once("close", () => {
+        vigia.close();
+        vigilanciaDeBranchInstalada = false;
+      });
+    },
+  };
 }
 
 export default defineConfig(({ mode }) => {
@@ -84,7 +139,11 @@ export default defineConfig(({ mode }) => {
           ),
         }
       : {},
-    plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+    plugins: [
+      react(),
+      reiniciaAoTrocarDeBranch(),
+      mode === "development" && componentTagger(),
+    ].filter(Boolean),
     resolve: {
       alias: {
         "@": path.resolve(__dirname, "./src"),
