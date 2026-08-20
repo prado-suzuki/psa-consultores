@@ -112,10 +112,6 @@ export function useGravarAporteInicial() {
             bem_id: a.bemId,
             vlr_capital_arredondado: a.valor,
             created_at: new Date(base + i).toISOString(),
-            // Colunas do modelo antigo, ainda NOT NULL até a migration de
-            // limpeza. Espelham as novas; nada as lê.
-            socio_pessoa_id: a.pessoaId,
-            empresa_destino_pessoa_id: empresaPessoaId,
           })),
         )
         .select('id, destino_pessoa_id');
@@ -194,11 +190,6 @@ export function useRegistrarMovimento() {
           quotas: movimento.quotas,
           vlr_capital_arredondado: capitalDoMovimento(movimento.quotas),
           data_movimento: movimento.dataMovimento,
-          // Colunas do modelo antigo, ainda NOT NULL até a migration de limpeza
-          // (20260820163000). Espelham as novas; nada as lê. `socio_pessoa_id`
-          // recebe o lado que existe, porque na redução não há adquirente.
-          socio_pessoa_id: movimento.destinoPessoaId ?? movimento.origemPessoaId!,
-          empresa_destino_pessoa_id: empresaPessoaId,
         })
         .select('id')
         .single();

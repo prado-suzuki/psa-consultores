@@ -4040,7 +4040,6 @@ export type Database = {
           data_movimento: string | null
           destino_pessoa_id: string | null
           documento_gerado_id: string | null
-          empresa_destino_pessoa_id: string
           empresa_pessoa_id: string
           id: string
           origem_pessoa_id: string | null
@@ -4049,7 +4048,6 @@ export type Database = {
           pct_vlr_mercado: number | null
           quotas: number
           reserva_capital: number | null
-          socio_pessoa_id: string
           tipo: string
           updated_at: string
           updated_by: string | null
@@ -4065,7 +4063,6 @@ export type Database = {
           data_movimento?: string | null
           destino_pessoa_id?: string | null
           documento_gerado_id?: string | null
-          empresa_destino_pessoa_id: string
           empresa_pessoa_id: string
           id?: string
           origem_pessoa_id?: string | null
@@ -4074,7 +4071,6 @@ export type Database = {
           pct_vlr_mercado?: number | null
           quotas: number
           reserva_capital?: number | null
-          socio_pessoa_id: string
           tipo: string
           updated_at?: string
           updated_by?: string | null
@@ -4090,7 +4086,6 @@ export type Database = {
           data_movimento?: string | null
           destino_pessoa_id?: string | null
           documento_gerado_id?: string | null
-          empresa_destino_pessoa_id?: string
           empresa_pessoa_id?: string
           id?: string
           origem_pessoa_id?: string | null
@@ -4099,7 +4094,6 @@ export type Database = {
           pct_vlr_mercado?: number | null
           quotas?: number
           reserva_capital?: number | null
-          socio_pessoa_id?: string
           tipo?: string
           updated_at?: string
           updated_by?: string | null
@@ -4127,20 +4121,6 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_empresa_destino_pessoa_id_fkey"
-            columns: ["empresa_destino_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "capital_integralizacao_socio_pessoa_id_fkey"
-            columns: ["socio_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
             referencedColumns: ["id"]
           },
           {
@@ -6902,77 +6882,6 @@ export type Database = {
           },
         ]
       }
-      quadro_societario: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          data_referencia: string | null
-          empresa_pessoa_id: string
-          id: string
-          percentual: number | null
-          quotas: number | null
-          socio_pessoa_id: string
-          updated_at: string
-          updated_by: string | null
-          vlr_total: number | null
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          data_referencia?: string | null
-          empresa_pessoa_id: string
-          id?: string
-          percentual?: number | null
-          quotas?: number | null
-          socio_pessoa_id: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_total?: number | null
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          data_referencia?: string | null
-          empresa_pessoa_id?: string
-          id?: string
-          percentual?: number | null
-          quotas?: number | null
-          socio_pessoa_id?: string
-          updated_at?: string
-          updated_by?: string | null
-          vlr_total?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "quadro_societario_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_empresa_pessoa_id_fkey"
-            columns: ["empresa_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_socio_pessoa_id_fkey"
-            columns: ["socio_pessoa_id"]
-            isOneToOne: false
-            referencedRelation: "pessoa"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "quadro_societario_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       relatorios_gerados: {
         Row: {
           ciclo_id: string | null
@@ -9488,10 +9397,15 @@ export type Database = {
         Args: { _sistema_id: string }
         Returns: boolean
       }
+      soft_delete_distribuicao_receita: {
+        Args: { _ids: string[] }
+        Returns: number
+      }
       soft_delete_documento_cliente: {
         Args: { _id: string }
         Returns: undefined
       }
+      soft_delete_ordem_servico: { Args: { _ids: string[] }; Returns: number }
       sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
       sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
@@ -9576,6 +9490,7 @@ export type Database = {
         | "sucessorios"
         | "outros"
         | "georreferenciamento"
+        | "proposta_comercial"
       osg_doc_fonte: "cliente" | "psa" | "arquivar"
       osg_doc_grupo: "pf" | "pj" | "bens_imoveis" | "outros"
       osg_doc_revisao: "pendente" | "aprovado" | "recusado"
@@ -9847,6 +9762,7 @@ export const Constants = {
         "sucessorios",
         "outros",
         "georreferenciamento",
+        "proposta_comercial",
       ],
       osg_doc_fonte: ["cliente", "psa", "arquivar"],
       osg_doc_grupo: ["pf", "pj", "bens_imoveis", "outros"],
