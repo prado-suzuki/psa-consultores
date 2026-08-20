@@ -39,6 +39,7 @@ import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import { classeLarguraBarra } from '@/lib/sidebarMedidas';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
+import { linkEspelhado } from '@/lib/areaTheme';
 
 const OsgWorkClienteBar = () => {
   const { clienteId, setClienteId } = useOsgWork();
@@ -661,7 +662,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               segue liberada para quem tiver o link. */}
           {isProjects && !isLider && (
             <button
-              onClick={() => navigate('/equipe/chamados')}
+              onClick={() => navigate(linkEspelhado('/equipe/chamados', 'osg'))}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
                 location.pathname.startsWith('/equipe/chamados')
@@ -733,6 +734,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             {headerActions}
             <NotificationPopover
               navigateTo="/equipe/chamados"
+              espelho="osg"
               tasksNavigateTo="/equipe/osg/projetos/tarefas"
               mencoesArea="osg"
             />

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -429,5 +429,81 @@ describe('espelhamento: cor e conteúdo saem da mesma chave', () => {
 
   it('barra final não engana o casamento exato', () => {
     expect(chaveDeEspelho('/equipe/chamados/', '?area=osg')).toBe('osg');
+  });
+});
+
+/*
+ * A FIAÇÃO DOS MENUS, cobrada pelo build.
+ *
+ * O mecanismo pode estar perfeito e a tela nunca ser alcançada espelhada: basta
+ * um menu apontar para a rota crua. Aí a pessoa sai da OSG, clica em Chamados e
+ * cai numa tela teal com tudo — a divergência de novo, agora pela navegação.
+ *
+ * Esta varredura acha toda NAVEGAÇÃO para uma rota espelhável e exige que ela
+ * carregue a chave. Link novo sem chave reprova.
+ */
+describe('espelhamento: os menus levam a chave', () => {
+  /**
+   * Navegações que de propósito NÃO espelham, com o motivo.
+   *
+   * `EquipeDetalhesChamado` é o "Voltar" do detalhe de um chamado. Ele volta
+   * para a lista sem escopo, e isso NÃO viola a regra (cor de piso + lista
+   * completa é um par coerente) — mas é uma perda de contexto conhecida: quem
+   * entrou pelo espelho da Tax volta para "todos". Está registrado como
+   * pendência, não como conserto silencioso.
+   */
+  const SEM_ESPELHO_DE_PROPOSITO = ['src/pages/equipe/EquipeDetalhesChamado.tsx'];
+
+  function arquivosTsx(dir: string): string[] {
+    const achados: string[] = [];
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const c = `${dir}/${e.name}`;
+      if (e.isDirectory()) achados.push(...arquivosTsx(c));
+      else if (/\.tsx$/.test(e.name) && !/\.test\.tsx$/.test(e.name)) achados.push(c);
+    }
+    return achados;
+  }
+
+  it('toda navegação para rota espelhável carrega a chave', () => {
+    const faltando: string[] = [];
+    for (const arquivo of arquivosTsx('src')) {
+      if (SEM_ESPELHO_DE_PROPOSITO.includes(arquivo)) continue;
+      const linhas = readFileSync(arquivo, 'utf8').split('\n');
+      const fonte = linhas.join('\n');
+      linhas.forEach((linha, i) => {
+        const aponta = ROTAS_ESPELHADAS.some(
+          (r) => linha.includes(`'${r}'`) || linha.includes(`"${r}"`),
+        );
+        if (!aponta) return;
+
+        // NAVEGAÇÃO no próprio lugar: a chave tem de estar por perto. A janela
+        // existe porque JSX multilinha põe a prop `espelho` numa linha vizinha.
+        if (linha.includes('navigate(') || linha.includes('navigateTo=')) {
+          const janela = linhas.slice(Math.max(0, i - 3), i + 4).join('\n');
+          if (!janela.includes('linkEspelhado') && !janela.includes('espelho')) {
+            faltando.push(`${arquivo}:${i + 1}  ${linha.trim()}`);
+          }
+          return;
+        }
+
+        // DADO de configuração (`path:` num array de itens de menu) não navega:
+        // quem navega é o `goTo` do mesmo arquivo, e ali o `path` cru também é a
+        // chave de casamento do item ativo — pôr a query nele apagaria o realce
+        // do menu. Então a exigência é de ARQUIVO: alguém aqui aplica a chave.
+        if (linha.includes('path:') && !fonte.includes('linkEspelhado')) {
+          faltando.push(`${arquivo}:${i + 1}  ${linha.trim()}`);
+        }
+      });
+    }
+    expect(
+      faltando,
+      `Navegação para rota espelhável sem a chave — a tela abriria com a cor do
+       ambiente ANTERIOR e a lista completa:\n${faltando.join('\n')}`,
+    ).toEqual([]);
+  });
+
+  it('a lista de exceções não vira depósito', () => {
+    // Cada arquivo aqui precisa de um motivo escrito no comentário acima.
+    expect(SEM_ESPELHO_DE_PROPOSITO.length).toBeLessThanOrEqual(1);
   });
 });

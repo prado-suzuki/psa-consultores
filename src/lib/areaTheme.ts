@@ -189,12 +189,34 @@ export const PARAM_DE_ESPELHO = 'area';
  * conteúdo diz de que cluster a lista é. As duas afirmações são verdadeiras ao
  * mesmo tempo. Isto está escrito aqui para não virar "achado" daqui a seis meses.
  */
-export const ESPELHO: Record<string, AreaDeTema> = {
+export const ESPELHO = {
   tax: 'tax',
   osg: 'osg',
   dev: 'digital',
   rotina: 'rotina',
-};
+} as const satisfies Record<string, AreaDeTema>;
+
+/**
+ * As chaves como TIPO, e não como string solta.
+ *
+ * É o que faz um erro de digitação no menu (`?area=tx`) ser erro de compilação
+ * em vez de uma tela que abre teal mostrando tudo. A regra "cor e conteúdo andam
+ * juntos" passa a ser cobrada também no ponto de chamada, não só no resolvedor.
+ */
+export type ChaveDeEspelho = keyof typeof ESPELHO;
+
+/**
+ * A URL de uma tela espelhada — um lugar só monta o parâmetro.
+ *
+ * Use isto nos menus, nunca a string crua: quem monta `'/equipe/chamados?area=' + x`
+ * à mão escapa do tipo e do teste.
+ *
+ * NÃO serve para rota de DETALHE (`/equipe/chamados/:id`): detalhe não tem
+ * escopo para filtrar, logo não pode ter cor de escopo — ver `ROTAS_ESPELHADAS`.
+ */
+export function linkEspelhado(rota: string, chave: ChaveDeEspelho): string {
+  return `${rota}?${PARAM_DE_ESPELHO}=${chave}`;
+}
 
 /**
  * As rotas que aceitam espelhamento.
@@ -226,5 +248,6 @@ export function chaveDeEspelho(pathname: string, busca?: string): AreaDeTema | n
   const limpo = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
   if (!ROTAS_ESPELHADAS.includes(limpo)) return null;
   const chave = new URLSearchParams(busca).get(PARAM_DE_ESPELHO);
-  return chave ? ESPELHO[chave] ?? null : null;
+  if (!chave) return null;
+  return (ESPELHO as Record<string, AreaDeTema>)[chave] ?? null;
 }
