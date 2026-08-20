@@ -1,12 +1,18 @@
 # Modelo — Instrumento Particular de Composse Rural Pro Indiviso
 
-Modelo replicável, construído cláusula a cláusula sobre o texto real de
-`docs/notebooklm/exemplo-01-composse-bela-vista.md` (Sérgio Pitt e Outros,
-28/08/2024). Dois pontos de variação real, confirmados por comparação direta
-com `exemplo-03-composse-rossato.md` (mesma estrutura de cláusulas, família
-diferente), estão marcados como blocos condicionais — ver cláusulas Segunda
-(liquidação de haveres) e Décima Primeira (regra de administração). O restante
-da redação fixa é idêntica nos dois contratos reais lidos.
+Modelo replicável — insumo para cadastrar os blocos e as flags no gerador da
+Oficina de Contratos, e mapa de variáveis do cadastro de exploração rural.
+
+**Fonte da redação (revisão de 19/08/2026):** o **template oficial da banca**,
+`VF_Contrato Modelo_Composse Rural.docx` (Google Drive, id
+`1OpoA2d2_uJNYGuAta6IhcBXAb0_vLi7H`), mais `VF_Modelo Anexo Único_Composse.docx`
+(id `1dpbHBMTmZmuCrx7p2mN36Ubs5aB6RpcP`). A primeira versão deste arquivo foi
+reconstruída sobre `docs/notebooklm/exemplo-01-composse-bela-vista.md` (Sérgio Pitt e
+Outros, 28/08/2024) e `exemplo-03-composse-rossato.md`, antes de o template ser
+localizado. **Conferido:** a redação do template é praticamente idêntica à dos dois
+contratos assinados — a reconstrução se sustentou. As divergências e os pontos de
+variação estão anotados nas cláusulas Segunda (liquidação de haveres), Quarta (prazo de
+indivisão) e Décima Primeira (administração).
 
 Mesma convenção de marcação de `05-modelo-parceria-rural.md`
 (`{{campo}}` / `[[BLOCO]]…[[FIM BLOCO]]` / `[[REPETIR]]…[[FIM REPETIR]]`).
@@ -69,11 +75,14 @@ sendo o imóvel já explorado diretamente pelos próprios COMPOSSUIDORES RURAIS,
 sem instrumento de cessão de terceiro por trás,
 [[FIM BLOCO]]
 [[BLOCO: origem.tipoInstrumentoOrigem != 'Exploração própria']]
-firmado em {{origem.dataAssinatura}}, no qual figura como Parceira Outorgante
-{{origem.outorgante.denominacao}}[[SE origem.outorgante.cpf_cnpj]], CNPJ/MF nº
-{{origem.outorgante.cpf_cnpj}}[[FIM SE]], com sede em
-{{origem.outorgante.endereco_municipio}}/{{origem.outorgante.endereco_uf}}, e
-como Parceiros Outorgados os COMPOSSUIDORES RURAIS,
+firmado em {{origem.dataAssinatura}}, no qual figuram como Parceiros Outorgados os
+COMPOSSUIDORES RURAIS e como Parceira Outorgante {{origem.outorgante.denominacao}},
+pessoa jurídica de direito privado inscrita no CNPJ/MF sob o nº
+{{origem.outorgante.cpf_cnpj}} e registrada na Junta Comercial do Estado de
+{{origem.outorgante.junta_comercial_uf}} sob o nº {{origem.outorgante.nire}}, com capital
+social de {{origem.outorgante.capitalSocialNaAssinatura}}, com sede em
+{{origem.outorgante.endereco_municipio}}/{{origem.outorgante.endereco_uf}}, neste ato
+representada por seus administradores {{origem.outorgante.administradores}},
 [[FIM BLOCO]]
 [[FIM REPETIR]]
 
@@ -82,6 +91,17 @@ datas e outorgantes diferentes — cada alínea do "Considerando V" corresponde
 a um subconjunto de imóveis do Anexo Único com a mesma origem. "Exploração
 própria" foi nomeada assim pela consultora na reunião de validação de
 19/08/2026, e substitui o "outro" genérico que cobria esse caso antes.)*
+
+*(**Corrigido em 19/08/2026 contra o template oficial.** A instrução literal dele é
+"[Qualificação completa da empresa, que deverá conter o **NIRE e o capital social na data
+da assinatura**, bem como dos **administradores**]" — a versão anterior deste modelo pedia
+só denominação, CNPJ e sede. E é o capital social **na data da assinatura da origem**:
+valor histórico, não o atual, então não sai de `v_quadro_societario`. Quando a outorgante
+da origem não é cliente da PSA — 5 das 6 origens do `[BV-COM]` — nada disso existe no
+banco e precisa ser digitado; ver `OrigemExternaDraft` no cadastro. O template também
+mostra o caso de **origens de tipos diferentes no mesmo instrumento**: "Itens 'a' ao 'z'
+advém do INSTRUMENTO PARTICULAR DE PARCERIA…" e, na linha seguinte, "AA ao BB
+Arrendamento..".)*
 
 As partes acima identificadas resolvem, em comum acordo, entabular o presente
 INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO DE COMPOSSE RURAL PRO INDIVISO, para
@@ -165,7 +185,15 @@ desejando a divisão da coisa comum e a extinção da presente composse[[FIM BLO
 
 *(Confirmado em `[BV-COM]`, Cláusula Quarta: prazo de 3 anos, prorrogação
 automática salvo aviso até 3 meses antes do vencimento — é o valor padrão de
-`emptyExploracaoDraft`, mas cada cliente pode ter prazo diferente.)*
+`emptyExploracaoDraft` e também o do template oficial, mas cada cliente pode ter prazo
+diferente.)*
+
+*(**Prova de por que o prazo precisa ser quantidade + unidade, não texto livre
+(19/08/2026):** a composse nova do Franciosi ficou com "pelo prazo de **10 (dez) anos**,
+podendo ser prorrogado por igual interstício… renovando-se o prazo de **03 (três) anos**
+sucessivamente" — o "3 anos" ficou do template e ninguém corrigiu. Com dois campos
+estruturados (número + unidade) e o texto derivado deles, essa inconsistência não
+acontece. É a pendência aberta em 14/08, agora com caso real.)*
 
 *Parágrafo Único:* Os imóveis rurais que fazem parte integrante do objeto
 desta COMPOSSE RURAL que eventualmente deixarem de ser objeto de posse dos
@@ -264,6 +292,20 @@ original); `[ROS-COM]` nomeia 2 compossuidores específicos como
 administradores, independente do percentual de cada um. Escolher conforme
 acordo entre as partes no caso concreto — não há uma regra padrão única.)*
 
+*(**Achado de 19/08/2026 — não tratar como enum de dois valores.** O template oficial só
+tem a regra da maioria. Mas a composse nova do Grupo Franciosi (redigida nesta semana)
+tem **as duas coisas ao mesmo tempo**: administração exercida por três compossuidores
+**nomeados** no caput, e a exigência de **maioria dos percentuais** no Parágrafo Primeiro
+para locar/arrendar/formar parcerias e dar garantia a terceiros. São dois eixos
+independentes — quem administra o dia a dia, e quais atos exigem maioria. O campo
+`regraAdministracao` do cadastro, hoje um enum de dois valores, está errado. **Não foi
+mexido de propósito:** governança ficou para a conversa com a Aline, conforme combinado na
+reunião de validação. Ver seção 6, item 10, do levantamento.)*
+
+*(Variação também no Parágrafo Segundo: o template e o `[BV-COM]` passam a administração
+"isoladamente ao administrador remanescente"; o Franciosi passa "conjuntamente a 2
+compossuidores remanescentes".)*
+
 *Parágrafo Segundo:* Havendo incapacidade civil superveniente de qualquer
 administrador, a administração passará a ser desempenhada isoladamente pelo
 administrador remanescente em pleno gozo da capacidade civil.
@@ -323,7 +365,7 @@ Comarca de {{foroComarca}}, Estado de {{foroUf}}, para dirimir quaisquer
 conflitos.
 
 E assim, por estarem justos e contratados, os COMPOSSUIDORES RURAIS assinam
-este INSTRUMENTO em vias de igual teor e forma, perante as 02 (duas)
+este INSTRUMENTO em {{numeroVias}} vias de igual teor e forma, perante as 02 (duas)
 testemunhas abaixo.
 
 {{foroComarca}}/{{foroUf}}, {{dataAssinatura}}.
@@ -331,7 +373,20 @@ testemunhas abaixo.
 [[REPETIR para cada compossuidor em compossuidores]]{{compossuidor.nome}} — Compossuidor Rural
 [[FIM REPETIR]]
 
-Testemunhas: {{testemunha1.nome}}; {{testemunha2.nome}}.
+Testemunhas:
+[[REPETIR para cada testemunha em testemunhas]]
+{{testemunha.nome}} — CPF/MF: {{testemunha.cpf}} — RG: {{testemunha.rg}}
+[[FIM REPETIR]]
+
+*(Template oficial: **3 vias** na Composse (4 na Parceria), e o bloco de assinatura pede
+**nome, CPF/MF e RG** de cada testemunha — não só o nome.)*
+
+*(**Variação nova, fora deste modelo:** a composse do Franciosi (2026) substitui as vias
+físicas por assinatura digital — "através de plataformas de assinatura digital…, incluindo
+a MP 2.200-2/2001 (ICP-Brasil)… observando a LGPD" — e não cita número de vias. São
+mutuamente exclusivos: se a assinatura é digital, `numeroVias` não entra. Bloco
+condicional a combinar com o Bernardo; não está neste modelo porque o template oficial
+ainda é o de vias físicas.)*
 
 ---
 
@@ -363,7 +418,10 @@ pertencem ao mesmo outorgante — repetir o mesmo nome em todas as linhas.)*
 | `liquidacao.periodicidade`/`.numeroParcelas` | **sem campo hoje** — proposto | `[BV-COM]` (60× mensal) vs. `[ROS-COM]` (10× anual) |
 | `regraAdministracao`/`administradoresNomeados[]` | **sem campo hoje** — proposto, ver pendência de governança (seção 4 do levantamento) | `[BV-COM]` (maioria) vs. `[ROS-COM]` (nomeados) |
 | `permitePenhor` | `ExploracaoRuralDraft.permitePenhor` | `[BV-COM]`, Cláusulas 14ª–17ª |
-| `imoveis[].proprietario` (Anexo) | **sem campo hoje** — hoje o cadastro assume 1 outorgante por instrumento; o Anexo real pode ter proprietário por imóvel | `[BV-COM]`, Anexo Único (5 proprietários) |
+| `imoveis[].proprietario` (Anexo) | lido de `titularidade` por imóvel | `[BV-COM]`, Anexo Único (5 proprietários) |
+| `origem.outorgante.nire` / `.capitalSocialNaAssinatura` / `.administradores` | **sem campo hoje** — propostos em `OrigemExternaDraft` | Instrução literal do template oficial |
+| `numeroVias` | `ExploracaoRuralDraft` | Template: 3 vias na Composse, 4 na Parceria |
+| `testemunhas[].cpf` / `.rg` | **só nome hoje** — propostos | Bloco de assinatura do template |
 
 Dois campos propostos aqui (`liquidacao.*`, `regraAdministracao`/
 `administradoresNomeados[]`) **não existem ainda** no levantamento nem no

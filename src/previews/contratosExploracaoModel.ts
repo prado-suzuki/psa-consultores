@@ -2,11 +2,36 @@ import type { MatriculaRow } from '@/hooks/useDiagnosticoPatrimonial';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 
 // Modelo e fixtures do preview isolado da ALE-3 (docs/osg/levantamento-contratos-rurais.md).
-// Nenhum destes tipos/valores é lido do banco — são dados fixos, só para o
-// componente renderizar de forma realista sem consulta nenhuma. Se a ALE-3 for
-// aprovada, o rascunho abaixo é o ponto de partida do hook real da próxima sprint.
+// As fixtures são o modo padrão (roda sem login e sem banco); escolhendo um cliente na
+// barra, o preview passa a ler o banco pelos hooks da própria OSG Work — ver
+// `ContratosExploracaoPreview.tsx`. Se a ALE-3 for aprovada, o rascunho abaixo é o ponto
+// de partida do hook real da próxima sprint.
+//
+// O que este rascunho contém é **só o que esta tela precisa cadastrar**. Campo que já vem
+// de outro cadastro (matrícula, bem, cartório, titularidade, administração, quadro
+// societário) não entra aqui nem é re-exibido no formulário — grão do selo redefinido em
+// 19/08/2026, ver `SeloCampo.tsx`.
 
 export type TipoExploracao = 'parceria' | 'composse';
+
+/**
+ * Valores reais do enum `osg_tipo_exploracao` no banco (conferido no schema dev em
+ * 19/08/2026). O cadastro só tem modelo de cláusula para 2 deles — os outros 4 aparecem
+ * no select desabilitados, para a tela não fingir que o enum tem só dois valores nem
+ * deixar escolher um tipo que geraria contrato sem texto.
+ */
+export const TIPOS_EXPLORACAO_DO_BANCO: { valor: string; rotulo: string; temModelo: boolean }[] = [
+  { valor: 'parceria', rotulo: 'Parceria', temModelo: true },
+  { valor: 'composse', rotulo: 'Composse', temModelo: true },
+  { valor: 'arrendamento', rotulo: 'Arrendamento', temModelo: false },
+  { valor: 'comodato', rotulo: 'Comodato', temModelo: false },
+  { valor: 'condominio', rotulo: 'Condomínio', temModelo: false },
+  { valor: 'propria', rotulo: 'Exploração própria', temModelo: false },
+];
+
+/** Mesma ideia de `matricula.area_unidade`: quantidade e unidade separadas. */
+export type UnidadeDePrazo = 'dias' | 'meses' | 'anos';
+export const UNIDADES_DE_PRAZO: UnidadeDePrazo[] = ['dias', 'meses', 'anos'];
 
 export interface CompossuidorDraft {
   id: string;
@@ -35,6 +60,45 @@ export interface ParteSimplesDraft {
 // que cobria esse caso — é o nome que a própria OSG usa.
 export const TIPOS_INSTRUMENTO_ORIGEM = ['Parceria', 'Arrendamento', 'Exploração própria', 'Herança', 'Outro'];
 
+/**
+ * Origem que **não** é um instrumento cadastrado neste sistema. Necessária para o
+ * "Considerando V" do modelo de Composse (`06-modelo-composse-rural.md`), que cita, por
+ * grupo de imóveis, o título do instrumento de origem, sua data e a qualificação do
+ * outorgante daquela origem.
+ *
+ * Sem isto o `[BV-COM]` real não é reproduzível: das 6 origens dele, **5 são contratos com
+ * terceiros que não são clientes da PSA** (Mata do Puba, Santa Cruz, José Alípio/Ariane,
+ * Conata, José Hildebrando/Maria Cristina) — não existem como `exploracao_rural` nem como
+ * `pessoa`, então não há o que selecionar numa lista de instrumentos cadastrados.
+ */
+export interface OrigemExternaDraft {
+  /** Título literal do instrumento, que varia: [BV-COM] usa 3 nomes diferentes. */
+  tituloInstrumento: string;
+  dataAssinatura: string;
+  outorganteNome: string;
+  outorganteCpfCnpj: string;
+  outorganteMunicipio: string;
+  outorganteUf: string;
+  /**
+   * NIRE, capital social e administradores da outorgante da origem: exigência literal do
+   * template oficial da banca ("Qualificação completa da empresa, que deverá conter o NIRE
+   * e o capital social na data da assinatura, bem como dos administradores").
+   * O capital é o **da data da assinatura da origem** — valor histórico, não o atual, logo
+   * não se deriva de `v_quadro_societario` nem quando a empresa é cliente.
+   */
+  outorganteNire: string;
+  outorganteCapitalSocialNaAssinatura: string;
+  outorganteAdministradores: string;
+}
+
+export function emptyOrigemExterna(): OrigemExternaDraft {
+  return {
+    tituloInstrumento: '', dataAssinatura: '', outorganteNome: '', outorganteCpfCnpj: '',
+    outorganteMunicipio: '', outorganteUf: '', outorganteNire: '',
+    outorganteCapitalSocialNaAssinatura: '', outorganteAdministradores: '',
+  };
+}
+
 export interface ExploracaoImovelDraft {
   id: string;
   ref: string;
@@ -46,20 +110,36 @@ export interface ExploracaoImovelDraft {
    * Composse — numa Parceria a origem é sempre a própria matrícula, nunca outro instrumento.
    */
   tipoInstrumentoOrigem: string;
+  /** Origem que já é um instrumento cadastrado aqui (ex.: "ER 01"). */
   instrumentoOrigemRef: string | null;
+  /** Origem de fora do sistema — preenchida à mão quando o outorgante da origem não é cliente. */
+  origemExterna: OrigemExternaDraft | null;
   /** Estado computado (não digitado): se a Parceria de origem deste imóvel ainda vigora. */
   situacaoOrigem: 'vigente' | 'encerrada';
 }
 
 export interface ExploracaoRuralDraft {
-  // Instrumento — existe
-  referencia: string;
+  // Instrumento
+  // `referencia` (ER 01, ER 02…) saiu em 19/08/2026: é identificador interno, não aparece em
+  // nenhum dos dois modelos de contrato, e a tela numera sozinha.
+  //
+  // `vigencia` (texto) saiu na mesma data: era a coluna legada `exploracao_rural.vigencia`
+  // duplicando `data_assinatura`/`data_encerramento`. A migração deve apagar a legada e
+  // manter as duas datas.
   tipo: TipoExploracao;
   dataAssinatura: string;
   dataEncerramento: string;
-  vigencia: string;
+  /**
+   * **Fora do formulário de propósito.** Não serve ao contrato: quem consome é o
+   * relatório fiscal (`FiscalReport.tsx:72` tem a coluna "Decl. IRPF" lendo
+   * `exploracao_rural.declarado_irpf`). A coluna existe e nenhuma tela grava nela, então
+   * hoje aquela coluna do relatório fica em "—" para sempre.
+   *
+   * Fica no rascunho porque é dado do registro, mas sem campo na tela até a OSG decidir a
+   * pergunta que o levantamento já registra: pertence a este cadastro ou só ao relatório?
+   */
   declaradoIrpf: boolean;
-  // Instrumento — novo
+  // Instrumento (segue)
   vigenciaProrrogavel: boolean;
   /** Por quanto tempo renova quando prorrogável — sem contrato real com essa cláusula ainda, ver pendência na seção 2. */
   prazoRenovacaoVigencia: string;
@@ -70,7 +150,7 @@ export interface ExploracaoRuralDraft {
   // 14/08/2026: havia um campo de matrícula única aqui, desconectado da lista,
   // que duplicava a mesma informação sem sincronia.
 
-  // Partes — existe. CONFIRMADO em reunião de validação com a OSG (Luana,
+  // Partes. CONFIRMADO em reunião de validação com a OSG (Luana,
   // 19/08/2026): outorgante é sempre único — se duas empresas diferentes
   // cedem, são duas parcerias separadas, nunca uma com dois outorgantes.
   // (Tentativa anterior, de 19/08 mais cedo, tinha isso como lista por
@@ -81,26 +161,53 @@ export interface ExploracaoRuralDraft {
   // cada um só existe na composse (ver `compossuidores` abaixo); na parceria
   // só o agregado `percentualOutorgante`/`percentualExplorador`.
   exploradores: ParteSimplesDraft[];
-  // Partes — novo
+  // Partes (segue)
   compossuidores: CompossuidorDraft[];
+  /**
+   * **Fora do formulário desde 19/08/2026.** Anuente/interveniente/garantidor não
+   * aparecem em nenhum dos 5 contratos reais transcritos em `docs/notebooklm/` (grep:
+   * zero ocorrências) — a origem era uma célula da planilha de Diagnóstico Patrimonial
+   * do Nodari, não texto de contrato. Na reunião de validação a consultora descartou:
+   * "isso daí não precisaria, a gente não tá colocando mais". O que o contrato real tem
+   * é a cláusula "DA ANUÊNCIA" ([BV-PAR], 14ª), que é a outorgante autorizando penhor —
+   * coberta pela flag `permitePenhor`, não por um papel de parte.
+   * Fica no rascunho para o dia em que aparecer contrato que use.
+   */
   partesExtras: ParteExtraDraft[];
 
-  // Percentual e produção — novo
+  // Percentual — só na Parceria. Corte agregado entre o lado outorgante e o lado
+  // outorgados, nunca por pessoa (OSG, 19/08/2026).
+  //
+  // Remuneração por QUANTIDADE FIXA (sacas/ha) foi descartada em 19/08/2026, depois de
+  // rastrear o lastro: (1) a citação de "contrato real de cana-de-açúcar, quantidade por
+  // tramo" em `01-campos.md` **não tem chave de fonte** — nenhum cliente, nenhum arquivo;
+  // (2) `[NOD-DP]` é uma **planilha** de Diagnóstico Patrimonial de um cliente **TAX, não
+  // OSG**; (3) nenhum dos dois modelos oficiais tem cláusula de quantidade fixa; (4) a
+  // reunião de validação declarou fora de escopo contrato com preço em dólar/saca ("quem faz
+  // é a trading, o produtor só assina"); (5) os planejamentos tributários do Fiscal são todos
+  // em percentual. A coluna `exploracao_rural.sacas_por_hectare` existe e está morta (0
+  // linhas) — coluna não prova prática, foi o erro do selo "existe".
   percentualOutorgante: string;
   percentualExplorador: string;
-  percentualVigenteDesde: string;
-  termoAditivoReferencia: string;
-  culturas: string;
-  benfeitoriasIndenizaveis: boolean;
-  permitePenhor: boolean;
-  prazoIndivisao: string;
-  indivisaoProrrogavel: boolean;
-  /** CONFIRMADO em [BV-COM], Cláusula Quarta: renova por período igual a `prazoIndivisao`, salvo aviso até este prazo antes do vencimento. */
-  indivisaoAvisoPrazo: string;
-  // Percentual e produção — existe, mas em lugar errado (`exploracao_rural.sacas_por_hectare`)
-  sacasPorHectare: string;
 
-  // Documento de origem — existe
+  culturas: string;
+  permitePenhor: boolean;
+
+  // Indivisão (Composse)
+  /**
+   * Quantidade + unidade, não texto livre (pendência de 14/08 resolvida em 19/08/2026). A
+   * composse nova do Franciosi provou o custo do texto livre: ficou "pelo prazo de 10 (dez)
+   * anos… renovando-se o prazo de 03 (três) anos sucessivamente" — o "3 anos" sobrou do
+   * template e ninguém viu. Com número + unidade, o texto sai derivado e não contradiz.
+   */
+  prazoIndivisaoQuantidade: string;
+  prazoIndivisaoUnidade: UnidadeDePrazo;
+  indivisaoProrrogavel: boolean;
+  /** CONFIRMADO em [BV-COM], Cláusula Quarta: renova por período igual ao prazo de indivisão, salvo aviso com esta antecedência. */
+  indivisaoAvisoQuantidade: string;
+  indivisaoAvisoUnidade: UnidadeDePrazo;
+
+  // Documento de origem
   estudoFiscalDocumentoId: string | null;
   documentoComprobatorioId: string | null;
 
@@ -109,24 +216,29 @@ export interface ExploracaoRuralDraft {
   // 6 origens diferentes numa única composse.
   imoveis: ExploracaoImovelDraft[];
 
-  // Assinatura — novo. Achados ao escrever `docs/osg/contratos_exploracao/05-` e
+  // Assinatura. Achados ao escrever `docs/osg/contratos_exploracao/05-` e
   // `06-modelo-*-rural.md`: campos que TODO contrato real tem, sem coluna em
   // lugar nenhum do banco (confirmado por consulta ao schema, 19/08/2026) — se
   // não entrarem aqui, ficam de fora mesmo que a tela vire produção.
   foroComarca: string;
   foroUf: string;
+  /** Nome, CPF e RG: é o que o bloco de assinatura dos dois templates oficiais pede. */
   testemunha1Nome: string;
+  testemunha1Cpf: string;
+  testemunha1Rg: string;
   testemunha2Nome: string;
-  /** Só relevante quando o outorgante é PJ. Sem coluna em `pessoa` nem em `quadro_societario` hoje. */
-  capitalSocialOutorgante: string;
+  testemunha2Cpf: string;
+  testemunha2Rg: string;
+  /** Quantas vias assinadas. Varia nos contratos reais: `[BV-PAR]` 4 vias, `[BV-COM]` 3 vias. */
+  numeroVias: string;
 
-  // Administração (Composse) — novo. Achado #9: `[BV-COM]` autoriza atos por
+  // Administração (Composse). Achado #9: `[BV-COM]` autoriza atos por
   // "maioria dos percentuais"; `[ROS-COM]` nomeia 2 compossuidores fixos. Sem
   // regra padrão única, sem coluna em lugar nenhum.
   regraAdministracao: 'maioria' | 'nomeados';
   administradoresNomeados: ParteSimplesDraft[];
 
-  // Liquidação de haveres (Composse) — novo. Achado #9: `[BV-COM]` usa 60
+  // Liquidação de haveres (Composse). Achado #9: `[BV-COM]` usa 60
   // parcelas mensais; `[ROS-COM]` usa 10 parcelas anuais. Sem coluna em lugar
   // nenhum.
   liquidacaoPeriodicidade: 'mensal' | 'anual';
@@ -141,16 +253,58 @@ export function nomeComposseDe(compossuidores: CompossuidorDraft[], pessoas: Pes
   return pessoa ? `${pessoa.denominacao.toUpperCase()} E OUTROS` : '';
 }
 
+/**
+ * Campos de `pessoa` que o preâmbulo dos dois modelos de contrato exige de cada parte.
+ * Serve para avisar, no cadastro, que a qualificação está incompleta — o contrato sairia
+ * com lacuna no meio da frase, e o cadastro rural não tem como saber isso sozinho.
+ *
+ * Não é hipótese: no schema dev (19/08/2026), de 87 pessoas físicas só 21 têm
+ * naturalidade, 41 data de nascimento, 35 filiação e 53 regime de bens.
+ */
+const CAMPOS_CONTRATO_PF: { campo: keyof PessoaRow; rotulo: string; soParteExploradora?: boolean }[] = [
+  { campo: 'cpf_cnpj', rotulo: 'CPF' },
+  { campo: 'nacionalidade', rotulo: 'nacionalidade' },
+  { campo: 'naturalidade_municipio', rotulo: 'naturalidade' },
+  { campo: 'data_nascimento', rotulo: 'data de nascimento' },
+  { campo: 'profissao', rotulo: 'profissão' },
+  { campo: 'estado_civil', rotulo: 'estado civil' },
+  { campo: 'regime_bens', rotulo: 'regime de bens' },
+  { campo: 'documento_identidade_numero', rotulo: 'RG' },
+  { campo: 'endereco_logradouro', rotulo: 'endereço' },
+  { campo: 'endereco_municipio', rotulo: 'município' },
+  // Só o preâmbulo de explorador/compossuidor traz "filh[o/a] de X e Y"; o do outorgante não.
+  { campo: 'filiacao_pai', rotulo: 'filiação (pai)', soParteExploradora: true },
+  { campo: 'filiacao_mae', rotulo: 'filiação (mãe)', soParteExploradora: true },
+];
+
+const CAMPOS_CONTRATO_PJ: { campo: keyof PessoaRow; rotulo: string }[] = [
+  { campo: 'cpf_cnpj', rotulo: 'CNPJ' },
+  { campo: 'junta_comercial_uf', rotulo: 'UF da Junta Comercial' },
+  { campo: 'nire', rotulo: 'NIRE' },
+  { campo: 'endereco_logradouro', rotulo: 'endereço da sede' },
+  { campo: 'endereco_municipio', rotulo: 'município da sede' },
+];
+
+/** Rótulos dos campos que faltam para esta pessoa entrar no contrato sem lacuna. */
+export function camposFaltandoNaQualificacao(pessoa: PessoaRow | null, opcoes?: { parteExploradora?: boolean }): string[] {
+  if (!pessoa) return [];
+  const lista = pessoa.tipo_pessoa === 'PJ'
+    ? CAMPOS_CONTRATO_PJ
+    : CAMPOS_CONTRATO_PF.filter((c) => !c.soParteExploradora || opcoes?.parteExploradora);
+  return lista.filter(({ campo }) => {
+    const valor = pessoa[campo];
+    return valor == null || valor === '';
+  }).map((c) => c.rotulo);
+}
+
 let seq = 0;
 const nextId = (prefixo: string) => `${prefixo}-${(seq += 1)}`;
 
 export function emptyExploracaoDraft(tipo: TipoExploracao = 'parceria'): ExploracaoRuralDraft {
   return {
-    referencia: '',
     tipo,
     dataAssinatura: '',
     dataEncerramento: '',
-    vigencia: '',
     declaradoIrpf: false,
     vigenciaProrrogavel: true,
     prazoRenovacaoVigencia: '',
@@ -160,23 +314,21 @@ export function emptyExploracaoDraft(tipo: TipoExploracao = 'parceria'): Explora
     partesExtras: [],
     percentualOutorgante: '',
     percentualExplorador: '',
-    percentualVigenteDesde: '',
-    termoAditivoReferencia: '',
     culturas: '',
-    benfeitoriasIndenizaveis: false,
     permitePenhor: false,
-    prazoIndivisao: '3 anos',
+    prazoIndivisaoQuantidade: '3',
+    prazoIndivisaoUnidade: 'anos',
     indivisaoProrrogavel: true,
-    indivisaoAvisoPrazo: '3 meses antes do vencimento',
-    sacasPorHectare: '',
+    indivisaoAvisoQuantidade: '3',
+    indivisaoAvisoUnidade: 'meses',
     estudoFiscalDocumentoId: null,
     documentoComprobatorioId: null,
     imoveis: [],
     foroComarca: '',
     foroUf: '',
-    testemunha1Nome: '',
-    testemunha2Nome: '',
-    capitalSocialOutorgante: '',
+    testemunha1Nome: '', testemunha1Cpf: '', testemunha1Rg: '',
+    testemunha2Nome: '', testemunha2Cpf: '', testemunha2Rg: '',
+    numeroVias: '',
     regraAdministracao: 'maioria',
     administradoresNomeados: [],
     liquidacaoPeriodicidade: 'mensal',
@@ -271,48 +423,39 @@ function pessoaFixtureBase(overrides: Partial<PessoaRow>): PessoaRow {
   };
 }
 
-/** Espelha `cartorio` (nome_completo/comarca/uf) — confirmado via Supabase MCP em 19/08/2026. */
-export interface CartorioFixture {
-  id: string;
-  nome_completo: string;
-  comarca: string;
-  uf: string;
-}
-
-export const cartoriosFixture: CartorioFixture[] = [
-  { id: 'cartorio-sorriso', nome_completo: 'Cartório do Registro de Imóveis de Sorriso', comarca: 'Sorriso', uf: 'MT' },
-  { id: 'cartorio-lucas', nome_completo: 'Cartório do Registro de Imóveis de Lucas do Rio Verde', comarca: 'Lucas do Rio Verde', uf: 'MT' },
-  { id: 'cartorio-nova-mutum', nome_completo: 'Cartório do Registro de Imóveis de Nova Mutum', comarca: 'Nova Mutum', uf: 'MT' },
-];
-
 export const matriculasFixture: MatriculaRow[] = [
   matriculaFixtureBase({
     numero: '2.424',
     municipio_imovel: 'Sorriso',
     uf_imovel: 'MT',
     cartorio_id: 'cartorio-sorriso',
+    bem_id: 'bem-boa-vista',
     area_documento: 284.961,
     area_real: 284.961,
     area_explorada: 234,
     georreferenciado: 'Sim',
     georref_prejudica_transferencia: false,
+    confrontacoes_texto: 'Ao Norte com a Fazenda São Judas; ao Sul com o Córrego do Lobo; a Leste com a Rodovia MT-242; a Oeste com a Fazenda Santa Helena.',
   }),
   matriculaFixtureBase({
     numero: '2.628',
     municipio_imovel: 'Lucas do Rio Verde',
     uf_imovel: 'MT',
     cartorio_id: 'cartorio-lucas',
+    bem_id: 'bem-cristal',
     area_documento: 225.548,
     area_real: 225.548,
     area_explorada: 225.548,
     georreferenciado: 'Parcial',
     georref_prejudica_transferencia: true,
+    confrontacoes_texto: 'Ao Norte com a Gleba I da mesma fazenda; ao Sul e a Leste com terras de terceiros; a Oeste com a estrada vicinal.',
   }),
   matriculaFixtureBase({
     numero: '1.010',
     municipio_imovel: 'Nova Mutum',
     uf_imovel: 'MT',
     cartorio_id: 'cartorio-nova-mutum',
+    bem_id: 'bem-sitio-vencido',
     area_documento: 80,
     area_real: 80,
     area_explorada: 80,
@@ -321,40 +464,38 @@ export const matriculasFixture: MatriculaRow[] = [
   }),
 ];
 
+// Qualificação preenchida de propósito em graus diferentes: José está completo, Maria e Pedro
+// têm lacunas — é assim que o banco real está hoje (de 87 PF no dev, só 21 têm naturalidade e
+// 35 têm filiação), e é o que o aviso de qualificação incompleta precisa mostrar.
 export const pessoasFixture: PessoaRow[] = [
-  pessoaFixtureBase({ tipo_pessoa: 'PJ', denominacao: 'Modelo Agro Ltda.', cpf_cnpj: '12.345.678/0001-90' }),
-  pessoaFixtureBase({ tipo_pessoa: 'PF', denominacao: 'José da Silva', cpf_cnpj: '123.456.789-00' }),
-  pessoaFixtureBase({ tipo_pessoa: 'PF', denominacao: 'Maria Souza', cpf_cnpj: '234.567.890-11' }),
-  pessoaFixtureBase({ tipo_pessoa: 'PF', denominacao: 'Pedro Souza', cpf_cnpj: '345.678.901-22' }),
+  pessoaFixtureBase({
+    tipo_pessoa: 'PJ', denominacao: 'Modelo Agro Ltda.', cpf_cnpj: '12.345.678/0001-90',
+    junta_comercial_uf: 'MT', nire: '51204567890',
+    endereco_logradouro: 'Rodovia MT-242, km 108, s/n — Zona Rural', endereco_municipio: 'Sorriso', endereco_uf: 'MT',
+  }),
+  pessoaFixtureBase({
+    tipo_pessoa: 'PF', denominacao: 'José da Silva', cpf_cnpj: '123.456.789-00',
+    nacionalidade: 'brasileiro', naturalidade_municipio: 'Vacaria', naturalidade_uf: 'RS',
+    data_nascimento: '1957-09-23', profissao: 'produtor rural', estado_civil: 'casado', regime_bens: 'comunhão universal de bens',
+    documento_identidade_numero: '809.793-3', documento_identidade_orgao: 'SESP/MT',
+    filiacao_pai: 'Cristiano da Silva', filiacao_mae: 'Gentila Furlan da Silva',
+    endereco_logradouro: 'Rua Jorge Amado', endereco_numero: '556', endereco_bairro: 'Jardim Paraíso',
+    endereco_municipio: 'Sorriso', endereco_uf: 'MT', endereco_cep: '78890-000',
+  }),
+  pessoaFixtureBase({
+    tipo_pessoa: 'PF', denominacao: 'Maria Souza', cpf_cnpj: '234.567.890-11',
+    nacionalidade: 'brasileira', profissao: 'produtora rural', estado_civil: 'casada',
+    documento_identidade_numero: '08.235.316-60', documento_identidade_orgao: 'SSP/MT',
+    endereco_logradouro: 'Rodovia MT-449, km 12', endereco_municipio: 'Sorriso', endereco_uf: 'MT',
+  }),
+  pessoaFixtureBase({
+    tipo_pessoa: 'PF', denominacao: 'Pedro Souza', cpf_cnpj: '345.678.901-22',
+    nacionalidade: 'brasileiro', profissao: 'agricultor',
+    endereco_logradouro: 'Rua 24 de Junho', endereco_numero: '205', endereco_municipio: 'Sorriso', endereco_uf: 'MT',
+  }),
   pessoaFixtureBase({ tipo_pessoa: 'PF', denominacao: 'Antigo Parceiro', cpf_cnpj: '456.789.012-33' }),
 ];
 
-/** Espelha `administracao` (pj_pessoa_id → administrador_pessoa_id) — mesmo padrão real do `[BV-PAR]`: os outorgados também administram a outorgante PJ. */
-export interface AdministradorFixture {
-  id: string;
-  pjPessoaId: string;
-  administradorPessoaId: string;
-  cargo: string | null;
-}
-
-export const administracaoFixture: AdministradorFixture[] = [
-  { id: 'adm-1', pjPessoaId: pessoasFixture[0].id, administradorPessoaId: pessoasFixture[1].id, cargo: 'Administrador' },
-  { id: 'adm-2', pjPessoaId: pessoasFixture[0].id, administradorPessoaId: pessoasFixture[2].id, cargo: 'Administradora' },
-];
-
-/** Espelha `titularidade` (matricula_id → titular_pessoa_id, com fração) — quem é o dono registrado do imóvel, distinto de quem outorga/explora. */
-export interface TitularidadeFixture {
-  id: string;
-  matriculaId: string;
-  titularPessoaId: string;
-  fracao: string;
-}
-
-export const titularidadeFixture: TitularidadeFixture[] = [
-  { id: 'tit-1', matriculaId: matriculasFixture[0].id, titularPessoaId: pessoasFixture[0].id, fracao: '100' },
-  { id: 'tit-2', matriculaId: matriculasFixture[1].id, titularPessoaId: pessoasFixture[4].id, fracao: '100' },
-  { id: 'tit-3', matriculaId: matriculasFixture[2].id, titularPessoaId: pessoasFixture[0].id, fracao: '100' },
-];
 
 export interface ExploracaoListaItemFixture {
   id: string;

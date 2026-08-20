@@ -93,7 +93,7 @@ exibe; não duplica a digitação.
 | Instrumento | Data de encerramento | existe | `exploracao_rural.data_encerramento` | data, opcional | instrumento assinado | consultora OSG | `exploracao.data_encerramento` (proposto) | Confirmar uso quando houver prorrogação automática. |
 | Instrumento | Vigência | existe | `exploracao_rural.vigencia` | texto | instrumento assinado | consultora OSG | `exploracao.vigencia` (proposto) | O campo atual é livre; avaliar datas estruturadas na próxima sprint. |
 | Instrumento | Vigência prorrogável | novo | sem coluna | booleano | decisão do consultor | consultora OSG | `vigencia_prorrogavel` | Não tratar `vigencia` livre como se já fosse esta flag. **Lacuna encontrada no preview (14/08/2026):** um booleano sozinho não diz por quanto tempo renova — precisa de um campo de prazo de renovação ao lado. Sem nenhum contrato real lido até agora com essa cláusula no corpo da própria Parceria (só a composse/indivisão tem, linha abaixo); confirmar com a consultora se o prazo de renovação é sempre igual ao prazo original ou pode ser diferente. |
-| Instrumento | Declarado no IRPF | existe | `exploracao_rural.declarado_irpf` | booleano | planilha do cliente / IRPF | consultora OSG | não necessário ao contrato | Confirmar se pertence ao formulário ou apenas ao relatório fiscal. |
+| Instrumento | Declarado no IRPF | existe | `exploracao_rural.declarado_irpf` | booleano | planilha do cliente / IRPF | consultora OSG | não necessário ao contrato | Confirmar se pertence ao formulário ou apenas ao relatório fiscal. **Consumidor identificado (19/08/2026):** `FiscalReport.tsx:72` tem a coluna "Decl. IRPF" lendo esta coluna (linha 37) — como nenhuma tela grava nela, aquela coluna do relatório fica em "—" para sempre. Chegou a ser renderizado no preview e **foi retirado**: não serve ao contrato, e o mockup ficou restrito ao que o contrato exige. Volta se a OSG decidir que este cadastro é o dono do dado. |
 | Imóvel e áreas | Imóvel | existe | `exploracao_rural.bem_id` → `bem.id` | relação | cadastro existente | consultora OSG | `imovel.*` | Selecionar; não cadastrar nem redesenhar o imóvel dentro deste formulário. |
 | Imóvel e áreas | Matrícula | existe, mas em lugar errado | `exploracao_rural.matricula_texto`; autoridade em `matricula.id`/`.numero` | relação + texto legado | cartório | consultora OSG | `imovel.numero` | Próxima sprint deve preferir FK; não duplicar texto quando houver matrícula cadastrada. |
 | Imóvel e áreas | Município / UF | existe, mas em lugar errado | `exploracao_rural.municipio`/`.uf`; autoridade em `matricula.municipio_imovel`/`.uf_imovel` | texto derivado | cartório | consultora OSG | `imovel.municipio` / `imovel.uf` | Exibir da matrícula, sem redigitação. |
@@ -381,9 +381,53 @@ pela outra, é rascunho visual vs. entrega em código real.
   fixture (`src/previews/contratosExploracaoModel.ts`), no mesmo formato
   (`MatriculaRow`/`PessoaRow`) que um hook real devolveria — trocar o fixture
   por um hook é o único ajuste que a próxima sprint precisa fazer nesta casca.
+- **Seletor de cliente + leitura do banco real (19/08/2026).** O preview ganhou a mesma
+  barra de cliente do `OsgLayout` (`useClientesLista`, filtrada por `currentAmbiente`).
+  Sem cliente escolhido segue nas fixtures — funciona offline e sem login; escolhendo um
+  cliente, lê o banco pelos hooks que a OSG Work já usa, **sem nenhum hook ou query nova**:
+  `usePessoasByCliente`, `useAllMatriculas` (filtrada por `bem_cliente_id`/
+  `titular_cliente_ids`, mesma regra do Diagnóstico Patrimonial), `useAdministracaoByPj` e
+  `useQuadroSocietarioByEmpresa`. Bem e cartório saem de `MatriculaEnriched`, que já os traz
+  embutidos — não precisou consultar `bem`/`cartorio` de novo.
+  Duas ressalvas honestas: (1) a página é entry Vite avulso, **sem login próprio** — como RLS
+  está ligada em tudo, ela só lê dado real porque compartilha o `localStorage` do app na
+  mesma origem; sem sessão as listas voltam vazias, e a barra avisa isso. (2) **Proprietário
+  do imóvel fica vazio no modo banco:** `titularidade` só tem hook por matrícula ou por bem,
+  e hook não se chama em laço — falta um `useTitularidadesByCliente`, que é a única leitura
+  que o cadastro definitivo terá de resolver com hook novo.
+- **Correção de ambiente (19/08/2026):** esta branch estava sem o `.env.development` que a
+  `main` tem (commit `a2d7c893`), então `bun run dev` caía no `.env` e apontava para o
+  Supabase de **produção**. Arquivo trazido da `main` — agora aponta para o dev
+  compartilhado (`vgzomuwnsdgrxbkyoavq`), como nas outras branches.
 - Campos novos (sem coluna hoje) existem só como estado local do componente —
-  nenhum é gravado, nenhum tem migração. Selo **existe**/**novo** em cada
-  campo, com `Badge` real, não `<span>` estático.
+  nenhum é gravado, nenhum tem migração.
+- **Selo e limpeza da tela — grão redefinido em 19/08/2026.** O selo comparava com o
+  banco (**existe** = já tem coluna), o que passava a impressão errada de que boa parte
+  da tela estava resolvida: `exploracao_rural` tem 25 colunas e **nenhuma tela grava
+  nelas**. O selo **existe** foi removido; sobrou só **NOVO**, com o sentido de *"não
+  existe tela que cadastre este campo"*, independentemente de já haver coluna. Como
+  nenhum campo desta tela tem cadastro hoje, todos levam o selo — é justamente o recado
+  para o tech lead.
+  **Densidade e tooltips (mesma data):** o formulário estava esticado porque cada campo
+  carregava a justificativa como texto abaixo dele — os modais da OSG (`MatriculaDadosTab`)
+  não têm texto sob campo nenhum. As 36 justificativas viraram **tooltip** num ícone ao
+  lado do rótulo, seguindo o padrão que a OSG já usa (`Tooltip`/`TooltipContent
+  max-w-xs text-xs leading-relaxed`, como em `DocumentoCentroRail` e
+  `OnboardingWorkspace`); a nota de cada seção virou uma linha no cabeçalho
+  (`FieldSection hint`, que já suportava isso). Só sobraram como texto visível os avisos
+  de verdade — qualificação incompleta e matrícula já usada em outra Parceria —, agora em
+  uma linha em vez de caixa. O `TooltipProvider` é global no `App.tsx`, então o preview
+  isolado monta o seu, junto com o `QueryClientProvider`.
+  Junto veio a limpeza: **campo que já vem de outro cadastro não é mais re-exibido**.
+  Saíram da aba Imóveis as 8 leituras da matrícula/bem (nome do imóvel, município/UF,
+  proprietário, cartório, área documento, área real, georreferenciamento, confrontações)
+  e, da aba Dados, "Administradores" e "Capital social" — todos têm tela própria (Modal
+  de Matrícula, Modal de Bem, aba Titularidade, cadastro de Cartório, Modal de Pessoa PJ
+  → Administração, Quadro Societário) e o gerador os lê de lá. O cartão de imóvel caiu
+  de 13 para 3 campos (letra do item, matrícula e área explorada, mais a origem quando
+  Composse). **Única exceção mantida:** campo que seria puxado mas hoje não tem origem
+  nenhuma continua aparecendo bloqueado, em cinza, com o selo — hoje é só o "Nome da
+  composse" (derivado do 1º compossuidor).
 - Validado nesta revisão: `bunx eslint` limpo (0 erros), `bun run typecheck`
   limpo (0 erros no projeto inteiro), servidor Vite local respondendo 200 no
   `.html` e no módulo `.tsx` transformado. **Não validado nesta revisão:**
@@ -524,6 +568,53 @@ pela outra, é rascunho visual vs. entrega em código real.
   `comodato`, `condominio`, `propria`) — o preview só cobre 2; comodato e
   condomínio nunca apareceram em nenhuma rodada do levantamento e ficam como
   pendência aberta.
+
+- **Achado #11 — auditoria "o mockup basta para gerar os dois contratos?" (19/08/2026):**
+  varredura variável a variável dos dois modelos (`05-` e `06-modelo-*-rural.md`) contra o
+  `ExploracaoRuralDraft` e contra o schema dev. **Resposta: não bastava — faltavam 5
+  coisas, todas corrigidas no preview nesta revisão.**
+  1. **Origem fora do sistema (bloqueio real).** O "Considerando V" da Composse cita, por
+     grupo de imóveis, o título do instrumento de origem, sua data e a qualificação do
+     outorgante daquela origem. O cadastro só permitia apontar para um instrumento **já
+     cadastrado aqui** (`instrumentoOrigemRef`) — mas no `[BV-COM]` **5 das 6 origens são
+     contratos com terceiros que não são clientes da PSA** (Mata do Puba, Santa Cruz, José
+     Alípio/Ariane, Conata, José Hildebrando/Maria Cristina): não existem como
+     `exploracao_rural` nem como `pessoa`. Sem isso, o contrato real mais bem documentado
+     deste levantamento não era reproduzível. Criado `OrigemExternaDraft` (título, data,
+     outorgante com CPF/CNPJ e sede) por imóvel.
+  2. **Nome do imóvel** — a Cláusula Primeira exige "denominado **Fazenda X**"; o dado é
+     `bem.denominacao` via `matricula.bem_id` (23/23 preenchidos no dev) e o cadastro não
+     tinha esse campo em lugar nenhum. Agora é leitura.
+  3. **Limites e confrontações** — a mesma cláusula promete "com seus limites e
+     confrontações dispostos no ANEXO ÚNICO"; `matricula.confrontacoes_texto` existe e está
+     100% preenchido no dev, e nunca era lido. Agora é leitura.
+  4. **Capital social do outorgante PJ** — o Achado #10 registrou como "sem coluna em lugar
+     nenhum". **Está errado:** a view `v_quadro_societario` devolve `vlr_total` por sócio, e
+     a soma por empresa é o capital social (conferido em cliente real do dev: R$ 9.541.796).
+     Deixou de ser digitação e passou a ser derivado; o campo de texto sobrou só para PJ sem
+     quadro societário cadastrado.
+  5. **Número de vias** — a cláusula de encerramento cita o número e ele varia
+     (`[BV-PAR]` 4, `[BV-COM]` 3). Campo novo.
+
+  Corrigido de quebra: `declarado_irpf` tinha coluna e campo no rascunho mas nenhuma aba o
+  renderizava; o select de origem gravava a sentinela `"__none__"` dentro de
+  `instrumentoOrigemRef`; e o select de tipo de exploração agora mostra os **6 valores reais**
+  do enum `osg_tipo_exploracao`, com `arrendamento`/`comodato`/`condominio`/`propria`
+  desabilitados e rotulados "sem modelo de cláusula" — a tela deixou de fingir que o enum
+  tem dois valores sem passar a permitir um tipo que geraria documento vazio.
+
+  **Achado colateral, sem correção possível aqui:** a qualificação das pessoas é o furo mais
+  provável na hora de gerar. Dos 87 registros PF do dev, só **21 têm naturalidade, 41 data de
+  nascimento, 35 filiação e 53 regime de bens** — todos exigidos pelo preâmbulo dos dois
+  modelos. O preview passou a avisar, por pessoa selecionada, o que falta; o preenchimento
+  em si é do módulo de Qualificação das Partes, não deste cadastro.
+
+  **Pendências que sobraram nos modelos** (documentais, não de campo): o modelo de Parceria
+  usa o município do outorgante como proxy de cartório e de foro, quando o cadastro já lê
+  `cartorio` por imóvel e tem foro próprio; e a Cláusula Quinta do `[BV-PAR]` real tem
+  parágrafos de pecuária (ganho de peso na recria/engorda, bezerros na cria) que o modelo
+  não reproduz — deveriam ser bloco condicional derivado da lista de culturas, como
+  `tem_cultura_algodao` já é.
 
 O preview (código real) segue as seções **Instrumento**, **Partes**, **Percentual
 e produção** e **Documento de origem** na aba Dados, mais a aba **Imóveis e

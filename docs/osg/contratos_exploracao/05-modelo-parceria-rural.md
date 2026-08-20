@@ -1,11 +1,20 @@
 # Modelo — Instrumento Particular de Parceria Rural
 
-Modelo replicável, construído clausula a cláusula sobre o texto real de
-`docs/notebooklm/exemplo-02-parceria-bela-vista.md` (Instrumento Particular de
-Parceria, Bela Vista Agropecuária Ltda., 28/08/2024). Toda a redação fixa é a
-do contrato real; só os valores específicos de cada cliente foram trocados
-por variáveis. Numeração de cláusulas e títulos de seção preservados como no
-original.
+Modelo replicável — insumo para cadastrar os blocos e as flags no gerador da
+Oficina de Contratos, e mapa de variáveis do cadastro de exploração rural.
+
+**Fonte da redação (revisão de 19/08/2026):** o **template oficial da banca**,
+`VF_Contrato Modelo Parceria Benfeitorias não indenizaveis_Com cláusula do Ciclo
+Completo.docx` (Google Drive, id `1g9vN7avGEBdOALJ9N7adjj8GjFnzFzVR`). A primeira
+versão deste arquivo foi reconstruída cláusula a cláusula sobre o contrato assinado
+`docs/notebooklm/exemplo-02-parceria-bela-vista.md` (Bela Vista Agropecuária,
+28/08/2024), porque ninguém sabia que existia template oficial. Agora que ele foi
+localizado, **a redação fixa é a dele**; o contrato assinado continua como conferência
+de que o template é o que de fato se assina. Onde os dois divergem, está anotado.
+
+Existe também `VF_Modelo Anexo Único_Parceria.docx` (id
+`1oQyVvkuxNnFe4jR41o4i_U-X75GGRixS`) — só o cabeçalho do Anexo, com a tabela de
+imóveis; ver o Anexo no fim de `06-modelo-composse-rural.md`, que é compartilhado.
 
 Cardinalidade confirmada em reunião de validação com a OSG (19/08/2026, ver
 `../levantamento-contratos-rurais.md`, Achado #8): **1 outorgante, N
@@ -24,7 +33,12 @@ uma variação deste modelo.
 
 ---
 
-## INSTRUMENTO PARTICULAR DE PARCERIA PARA FINS DE EXPLORAÇÃO AGROPECUÁRIA
+## INSTRUMENTO PARTICULAR DE PARCERIA PARA FINS DE EXPLORAÇÃO {{naturezaExploracao}}
+
+*(O template oficial escreve "AGROPECUÁRIA **[AGRÍCOLA]**" no título, no caput da
+Cláusula Segunda e no título do capítulo de atividades — é uma flag que troca a palavra
+nos três lugares, conforme a exploração seja agropecuária ou apenas agrícola. Valor
+padrão: AGROPECUÁRIA.)*
 
 **PARCEIRA OUTORGANTE:**
 
@@ -87,20 +101,23 @@ deste instrumento:
   {{imovel.matricula}}, município de {{imovel.municipio}}/{{imovel.uf}};
 [[FIM REPETIR]]
 
-Todos os imóveis são de propriedade de {{outorgante.denominacao}},
-registrados no Cartório do Registro de Imóveis e Hipotecas de
-{{outorgante.endereco_municipio}}/{{outorgante.endereco_uf}}.
+Todos os imóveis são de propriedade de {{imovel.proprietario}}, registrados no
+Cartório do Registro de Imóveis e Hipotecas de {{imovel.cartorio.comarca}}/{{imovel.cartorio.uf}}.
 
-*(Se os imóveis pertencerem a proprietários diferentes entre si — mesmo que
-todos cedidos pela mesma outorgante por procuração ou representação —, listar
-o proprietário por alínea em vez de uma frase única; ver
-`docs/notebooklm/exemplo-05-anexo-imoveis-bela-vista.md` para o caso com 5
-proprietários diferentes numa única composse, que é o padrão análogo.)*
+*(**Corrigido em 19/08/2026:** a versão anterior deste modelo derivava proprietário e
+cartório do outorgante, o que é atalho errado — o cadastro lê os dois por imóvel,
+`titularidade` e `cartorio` via `matricula.cartorio_id`. O template oficial não resolve
+isso: ele traz apenas a instrução "[qualificação padrão dos imóveis rurais **SEM OS
+LIMITES E CONFRONTAÇÕES**, que constarão no anexo]". Se os imóveis tiverem proprietários
+diferentes, listar por alínea — ver `docs/notebooklm/exemplo-05-anexo-imoveis-bela-vista.md`,
+com 5 proprietários num só instrumento.)*
 
 ### DA VIGÊNCIA
 
-**Cláusula Segunda.** A presente parceria rural tem vigência a contar da data
-de {{dataAssinatura}} e findará em {{dataEncerramento}}.
+**Cláusula Segunda.** A presente parceria rural para fins de exploração
+{{naturezaExploracao}} tem vigência a contar da data da assinatura deste instrumento e
+findará em {{dataEncerramento}} *(o template oficial anota a regra legal: prazo final
+**não inferior a 3 anos**)*.
 
 *Parágrafo Primeiro:* Não havendo renovação nos termos da Cláusula Nona, ao
 término da vigência, os PARCEIROS OUTORGADOS deverão devolver à PARCEIRA
@@ -108,21 +125,29 @@ OUTORGANTE, independentemente de notificação, os imóveis rurais objetos desta
 parceria.
 
 [[BLOCO: vigenciaProrrogavel == true]]
-*Parágrafo Segundo:* Ultrapassando o contrato a data prevista no caput, o
-contrato {{prazoRenovacaoVigencia}} *(descrever a regra de prorrogação — ex.:
-"passará a ser por tempo indeterminado, podendo a PARCEIRA OUTORGANTE
-rescindi-lo a qualquer tempo, mediante notificação escrita, com saída dos
-PARCEIROS OUTORGADOS em 30 dias" ou "renova-se por períodos iguais de X anos,
-salvo aviso em contrário até Y meses antes do vencimento" — ver pendência
-aberta em `../levantamento-contratos-rurais.md`, seção 2: nenhum contrato real
-lido tem essa cláusula redigida na própria Parceria; confirmar redação com a
-consultora antes de usar em produção)*.
+*Parágrafo Segundo:* Ultrapassando o contrato a data prevista no caput desta cláusula, o
+contrato passará a ser por tempo indeterminado, podendo a PARCEIRA OUTORGANTE rescindi-lo
+a qualquer tempo. Neste caso, deverá notificar por escrito os PARCEIROS OUTORGADOS, os
+quais deverão sair dos imóveis objetos desta parceria dentro do prazo de 30 (trinta) dias
+a contar do recebimento da referida notificação se inexistir produto pendente de colheita;
+ou, se pendente a colheita, 30 (trinta) dias após a sua realização.
 [[FIM BLOCO]]
 
-### DAS ATIVIDADES AGROPECUÁRIAS
+*(**Pendência resolvida em 19/08/2026:** este parágrafo estava como texto livre
+(`{{prazoRenovacaoVigencia}}`) porque nenhum contrato assinado lido trazia a cláusula. O
+template oficial traz, e com redação fechada — é a de cima. O campo livre deixa de ser
+necessário para a redação; só continua útil se a consultora quiser uma regra diferente da
+padrão.)*
 
-**Cláusula Terceira.** Os PARCEIROS OUTORGADOS poderão explorar {{culturas}},
-podendo inclusive plantar safrinha sem custo adicional.
+### DAS ATIVIDADES {{naturezaExploracaoPlural}}
+
+**Cláusula Terceira.** Os PARCEIROS OUTORGADOS poderão explorar nas áreas objeto deste
+instrumento de parceria lavouras de {{culturas}} ou outra cultura legalmente permitida
+que pretender explorar, ficando esclarecido que o mesmo poderá fazer uso da terra quantas
+vezes desejar, inclusive para exploração agrícola de safrinha, sem qualquer custo ou
+despesa adicional. Em se tratando da exploração pecuária ou de animais, poderão fazer uso
+das terras para cria, recria e engorda de bovinos, suínos, ovinos, equinos e aves; ou
+outros animais, da maneira que lhes convier, obedecendo os limites deste contrato.
 
 ### DAS DESPESAS
 
@@ -147,8 +172,41 @@ mesmo havendo vários outorgados, não há aqui percentual individual por
 pessoa; a divisão interna entre eles, se houver, é assunto de uma eventual
 composse entre os próprios outorgados, não desta cláusula.)*
 
-*Parágrafo Primeiro:* Inadimplemento na entrega dos frutos gera mora
-automática, com atualização pelo INPC, multa de 10% e juros de 1% ao mês.
+[[BLOCO: exploração inclui pecuária de cria]]
+*Parágrafo:* Considerar-se-á como "frutos" da pecuária, no caso de **cria**, os bezerros
+nascidos do rebanho de fêmeas, sendo a parcela da PARCEIRA OUTORGANTE entregue através da
+cessão de animais em quantidade proporcional aos frutos.
+[[FIM BLOCO]]
+
+[[BLOCO: exploração inclui recria/engorda]]
+*Parágrafo:* Considerar-se-á como "frutos" da pecuária, no caso de **recria e engorda**, o
+ganho de peso (kg) dos animais, apurado pela diferença entre o peso de aquisição e o peso
+na alienação; animais já existentes nas áreas são pesados em até 30 (trinta) dias da
+assinatura, valendo esse como "peso inicial". A parcela da PARCEIRA OUTORGANTE é entregue
+via cessão de animais com peso proporcional.
+[[FIM BLOCO]]
+
+[[BLOCO: exploração é de ciclo completo]]
+*Parágrafo:* Considerar-se-á como "frutos" da pecuária, no caso do **ciclo completo**, o
+peso (kg) adquirido pelos animais nos imóveis objeto desta parceria a cada 12 (doze) meses
+contados da assinatura, utilizando-se como parâmetro as notas fiscais de venda e/ou
+eventuais controles internos dos PARCEIROS OUTORGADOS.
+[[FIM BLOCO]]
+
+*(**Achado de 19/08/2026:** o template oficial tem os três parágrafos, e o próprio nome do
+arquivo distingue a variante "Com cláusula do Ciclo Completo" — ou seja, a banca resolve
+isso trocando de arquivo de modelo. No gerador é uma **família de blocos com variante**
+(`tmpl_bloco.familia_id` + `variante_seletor`), não campo de cadastro. O `[BV-PAR]`
+assinado tem cria e recria/engorda; ciclo completo só aparece no template.)*
+
+*Parágrafo:* Os frutos da pecuária poderão ser calculados e distribuídos por exercício
+fiscal ou por período inferior, desde que as partes decidam em conjunto.
+
+*Parágrafo:* Inadimplemento na entrega dos frutos gera mora automática, com atualização
+pelo INPC, multa de 10% e juros de 1% ao mês, considerando-se como "valor" os preços
+apurados pelo {{indicePrecoReferencia}} na praça do foro deste contrato *(texto fixo do
+template: **IMEA**; o `[BV-PAR]` assinado usa **IAGRO** — varia por praça, não é campo do
+cadastro)*.
 
 **Cláusula Sexta.** Os parceiros podem dispor dos frutos antes da partilha,
 comercializando independentemente, respondendo cada um por si perante
@@ -181,21 +239,21 @@ avisar os PARCEIROS OUTORGADOS, que têm 30 dias para exercer preferência.
 **Cláusula Décima.** Os bens serão devolvidos como entregues, salvo
 deterioração de uso normal.
 
-[[BLOCO: benfeitoriasIndenizaveis == false]]
-*Parágrafo Segundo:* Benfeitorias realizadas pelos PARCEIROS OUTORGADOS, úteis
-ou voluptuárias, **incorporam-se aos imóveis sem indenização**.
-[[FIM BLOCO]]
+*Parágrafo Segundo:* Todas as benfeitorias realizadas pelos PARCEIROS OUTORGADOS, sejam
+elas úteis ou voluptuárias, serão incorporadas aos imóveis, **não incidindo sobre elas
+qualquer tipo de indenização**, salvo se as partes pactuarem em instrumento apartado
+condição diferente desta.
 
-[[BLOCO: benfeitoriasIndenizaveis == true]]
-*Parágrafo Segundo:* Benfeitorias necessárias e úteis realizadas pelos
-PARCEIROS OUTORGADOS com o consentimento da PARCEIRA OUTORGANTE serão
-indenizadas ao término do contrato; benfeitorias voluptuárias não geram
-indenização, salvo acordo em contrário. *(Redação de indenização não
-confirmada em contrato real lido — achado em `01-contrato-de-parceria-rural.md`;
-a pasta do cliente pode ter um modelo próprio de "Parceria com Benfeitorias
-Indenizáveis", ver achado na linha correspondente do levantamento. Conferir
-redação exata com a consultora antes de usar em produção.)*
-[[FIM BLOCO]]
+*(**Deixou de ser bloco condicional em 19/08/2026 — é texto fixo.** A flag
+`benfeitorias_indenizaveis` não tem lado positivo: **todos** os modelos e cópias por
+cliente no Drive são "Benfeitorias **não** indenizáveis" (modelo padrão, variante de ciclo
+completo, Santa Terezinha, Novo Campo, Grupo São Francisco, Agrícola Terra Santa, Anjo da
+Guarda, Santa Barbara, Família Webber), e o único contrato transcrito com a cláusula
+(`[BV-PAR]`) também. A regra legal é o contrário — o art. 13, VI, do Decreto 59.566/66 dá
+direito a indenização pelas necessárias e úteis feitas com consentimento —, e é justamente
+dela que este parágrafo renuncia. Quando há pagamento por benfeitoria, é **outro
+instrumento**: existem contratos de "Compra e Venda de Benfeitorias" (Richart, Fazenda
+Pedras II/III e V, Cessão de posse e benfeitorias Avila). O campo saiu do cadastro.)*
 
 ### DO USO DO SOLO E MÃO DE OBRA
 
@@ -223,6 +281,16 @@ agrários, benfeitorias e semoventes de sua propriedade.
 
 *Parágrafo Primeiro:* O penhor de cada safra vale por todo o período de
 vigência da parceria, conforme art. 1.439 do Código Civil.
+
+*Parágrafo Segundo:* A PARCEIRA OUTORGANTE autoriza os PARCEIROS OUTORGADOS a destinar,
+prioritariamente, sob renúncia plena de todos os direitos, os frutos oriundos da
+exploração desta parceria para liquidação dos débitos contraídos por eles e que tenham
+relação direta com os imóveis, as culturas e/ou os animais explorados.
+
+*Parágrafo Terceiro:* A PARCEIRA OUTORGANTE declara ciência do direito das instituições
+privadas — bancárias, comerciais, industriais e financeiras — de fiscalizar os imóveis
+cedidos, e concorda que os bens vinculados ali permaneçam até a liquidação final das
+dívidas, mesmo em caso de alienação do imóvel.
 [[FIM BLOCO]]
 
 ### DISPOSIÇÕES GERAIS
@@ -242,22 +310,35 @@ Estatuto da Terra e pelo Decreto 59.566/1966, já que os PARCEIROS OUTORGADOS
 não estão subordinados à PARCEIRA OUTORGANTE, podendo estipular seus próprios
 horários de trabalho.
 
+**Cláusula Décima Nona.** A relação estabelecida pelo presente contrato autoriza a
+abertura das respectivas inscrições estaduais pelas partes.
+
 ### DO FORO
 
-**Cláusula Décima Nona.** Fica eleito o foro da comarca de
-{{outorgante.endereco_municipio}}, Estado de {{outorgante.endereco_uf}}.
+**Cláusula Vigésima.** Para dirimir quaisquer controvérsias oriundas deste instrumento,
+as partes elegem o foro da comarca de {{foroComarca}}, Estado de {{foroUf}}, renunciando
+expressamente a qualquer outro, por mais privilegiado que seja.
 
-Por estarem justos e contratados, firmam o presente instrumento em vias de
-igual teor, com 2 (duas) testemunhas.
+Por estarem assim justos e contratados, firmam o presente instrumento em
+{{numeroVias}} vias de igual teor e forma, juntamente com 2 (duas) testemunhas.
 
-{{outorgante.endereco_municipio}}/{{outorgante.endereco_uf}}, {{dataAssinatura}}.
+{{foroComarca}}/{{foroUf}}, {{dataAssinatura}}.
 
 {{outorgante.denominacao}} — Parceira Outorgante
 
 [[REPETIR para cada explorador em exploradores]]{{explorador.nome}}[[FIM REPETIR]]
 — Parceiros Outorgados
 
-Testemunhas: {{testemunha1.nome}}; {{testemunha2.nome}}.
+Testemunhas:
+[[REPETIR para cada testemunha em testemunhas]]
+{{testemunha.nome}} — CPF: {{testemunha.cpf}} — RG: {{testemunha.rg}}
+[[FIM REPETIR]]
+
+*(**Corrigido em 19/08/2026, contra o template oficial:** (1) o foro é campo próprio,
+não o município do outorgante — era atalho errado da versão anterior; (2) entrou a
+Cláusula Décima Nona das inscrições estaduais, que existe no template e no `[BV-PAR]`, e
+o foro virou a Vigésima; (3) o número de vias é variável — o template de Parceria usa
+**4**, o de Composse **3**; (4) testemunha pede **nome, CPF e RG**, não só nome.)*
 
 ---
 
@@ -273,8 +354,15 @@ Testemunhas: {{testemunha1.nome}}; {{testemunha2.nome}}.
 | `vigenciaProrrogavel`/`prazoRenovacaoVigencia` | idem | **Pendência** — sem contrato real com esta cláusula; ver seção 2 do levantamento |
 | `culturas` | `ExploracaoRuralDraft.culturas` | `[BV-PAR]`/`[BV-COM]` |
 | `percentualOutorgante`/`percentualExplorador` | idem | `[BV-PAR]` (90/10) |
-| `benfeitoriasIndenizaveis` | idem | Achado catalogado, **não confirmado em `[BV-PAR]`** — ver observação da cláusula |
+| ~~`benfeitoriasIndenizaveis`~~ | **removido do cadastro** | Sem lado positivo em ~10 modelos e no contrato transcrito; virou texto fixo. Indenização é instrumento apartado |
 | `permitePenhor` | idem | `[BV-PAR]`, cláusula da anuência |
+| `naturezaExploracao` / `naturezaExploracaoPlural` | **sem campo hoje** — proposto | Template oficial: "AGROPECUÁRIA **[AGRÍCOLA]**" no título, na vigência e no capítulo de atividades |
+| `foroComarca` / `foroUf` | `ExploracaoRuralDraft` | Template oficial tem placeholder próprio de foro |
+| `numeroVias` | `ExploracaoRuralDraft` | Template de Parceria: 4 vias |
+| `testemunhas[].nome/.cpf/.rg` | **só nome hoje** — CPF e RG propostos | Bloco de assinatura do template pede os três |
+| `imovel.proprietario` / `imovel.cartorio.*` | lidos de `titularidade` e `cartorio` | Corrigido: não derivar do outorgante |
+| `indicePrecoReferencia` | **não é campo** | Texto fixo do template (IMEA); `[BV-PAR]` usa IAGRO — varia por praça |
+| modalidade pecuária (cria / recria-engorda / ciclo completo) | **não é campo** | Variante de bloco no gerador; a banca troca de arquivo de modelo |
 
 Campos do levantamento que **não aparecem** neste modelo por serem
 exclusivos da Composse (confirmado em reunião de validação, 19/08/2026):

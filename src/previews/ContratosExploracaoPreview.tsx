@@ -1,14 +1,21 @@
 import React, { useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, FileText } from 'lucide-react';
+import { Building2, Plus, Search, FileText, AlertTriangle } from 'lucide-react';
 import '@/index.css';
+import { currentAmbiente } from '@/config/api';
+import { useClientesLista } from '@/hooks/useGestaoClientes';
+import { useAllMatriculas } from '@/hooks/useDiagnosticoPatrimonial';
+import { usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import {
-  administracaoFixture, cartoriosFixture, emptyExploracaoDraft, explosacoesListaFixture, matriculasFixture, pessoasFixture, titularidadeFixture,
+  emptyExploracaoDraft, explosacoesListaFixture, matriculasFixture, pessoasFixture,
   type ExploracaoListaItemFixture, type ExploracaoRuralDraft, type TipoExploracao,
 } from './contratosExploracaoModel';
 import { ExploracaoRuralModal } from '@/components/equipe/osg/oficina-de-contratos/exploracao-rural/ExploracaoRuralModal';
@@ -36,10 +43,8 @@ function draftDeExemplo(tipo: TipoExploracao): ExploracaoRuralDraft {
   if (tipo === 'parceria') {
     return {
       ...base,
-      referencia: 'ER 01',
       dataAssinatura: '2022-03-12',
       dataEncerramento: '2025-03-11',
-      vigencia: '3 anos, contados da assinatura',
       // [BV-PAR]: 1 outorgante, 3 outorgados numa parceria só — aqui com 2, só
       // pra provar que o cadastro aceita mais de uma pessoa do lado do
       // explorador. Outorgante é sempre único (confirmado em reunião de
@@ -51,22 +56,22 @@ function draftDeExemplo(tipo: TipoExploracao): ExploracaoRuralDraft {
       ],
       percentualOutorgante: '30,000%',
       percentualExplorador: '70,000%',
-      percentualVigenteDesde: '2022-03-12',
       culturas: 'soja; milho; algodão; pecuária',
       permitePenhor: true,
-      capitalSocialOutorgante: 'R$ 8.050.169,00',
+      // Sem capitalSocialOutorgante: a Modelo Agro tem quadro societário na fixture, então o
+      // capital vem derivado de v_quadro_societario — o campo de texto só aparece pra PJ sem quadro.
       foroComarca: 'Sorriso',
       foroUf: 'MT',
       testemunha1Nome: 'Marcio Vassoler Gamborgi',
       testemunha2Nome: 'Eduardo Caetano de Souza',
+      numeroVias: '4',
       imoveis: [
-        { id: 'imv-fx-0', ref: 'a', matriculaId: boaVista.id, areaExplorada: '234,0000', tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: null, situacaoOrigem: 'vigente' },
+        { id: 'imv-fx-0', ref: 'a', matriculaId: boaVista.id, areaExplorada: '234,0000', tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: null, origemExterna: null, situacaoOrigem: 'vigente' },
       ],
     };
   }
   return {
     ...base,
-    referencia: 'ER 02',
     dataAssinatura: '2022-03-12',
     compossuidores: [
       { id: 'fx-1', pessoaId: jose.id, fracao: '70' },
@@ -81,9 +86,26 @@ function draftDeExemplo(tipo: TipoExploracao): ExploracaoRuralDraft {
     foroUf: 'MT',
     testemunha1Nome: 'Marcio Vassoler Gamborgi',
     testemunha2Nome: 'Eduardo Caetano de Souza',
+    numeroVias: '3',
     imoveis: [
-      { id: 'imv-fx-1', ref: 'a', matriculaId: boaVista.id, areaExplorada: '234,0000', tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: 'ER 01', situacaoOrigem: 'vigente' },
-      { id: 'imv-fx-2', ref: 'b', matriculaId: matriculasFixture[1].id, areaExplorada: '225,5480', tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: 'ER 04', situacaoOrigem: 'encerrada' },
+      { id: 'imv-fx-1', ref: 'a', matriculaId: boaVista.id, areaExplorada: '234,0000', tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: 'ER 01', origemExterna: null, situacaoOrigem: 'vigente' },
+      // Origem fora do sistema: o caso majoritário do [BV-COM] (5 das 6 origens são contratos
+      // com terceiros que não são clientes, logo não existem como instrumento cadastrado aqui).
+      {
+        id: 'imv-fx-2', ref: 'b', matriculaId: matriculasFixture[1].id, areaExplorada: '225,5480',
+        tipoInstrumentoOrigem: 'Parceria', instrumentoOrigemRef: null, situacaoOrigem: 'encerrada',
+        origemExterna: {
+          tituloInstrumento: 'Contrato de Parceria Agrícola e Outras Avenças',
+          dataAssinatura: '2022-05-17',
+          outorganteNome: 'Agropecuária Mata do Puba Ltda.',
+          outorganteCpfCnpj: '34.406.199/0001-74',
+          outorganteMunicipio: 'Barreiras',
+          outorganteUf: 'BA',
+          outorganteNire: '29204829377',
+          outorganteCapitalSocialNaAssinatura: 'R$ 1.200.000,00',
+          outorganteAdministradores: 'Marcos Antônio Puba e Helena Puba',
+        },
+      },
     ],
   };
 }
@@ -95,6 +117,36 @@ function ContratosExploracaoPreview() {
   const [isEdit, setIsEdit] = useState(false);
   const [refCodigo, setRefCodigo] = useState('ER 05');
   const [draft, setDraft] = useState<ExploracaoRuralDraft>(emptyExploracaoDraft());
+
+  // ---------------------------------------------------------------------------
+  // Dado real x fixture
+  // ---------------------------------------------------------------------------
+  // Sem cliente escolhido, o preview roda com as fixtures (funciona offline e sem
+  // login). Escolhendo um cliente, passa a ler o banco do ambiente atual pelos
+  // hooks que a própria OSG Work já usa — nenhuma query nova, nenhum hook novo:
+  // `useClientesLista` (a mesma da barra de cliente do OsgLayout),
+  // `usePessoasByCliente` e `useAllMatriculas`.
+  //
+  // Atenção: RLS está ligada em todas as tabelas. Esta página é um entry Vite
+  // avulso, sem tela de login — ela só lê dado real porque compartilha o
+  // localStorage do app na mesma origem (o cliente Supabase tem
+  // persistSession/localStorage). Sem sessão, as listas voltam vazias.
+  const [clienteId, setClienteId] = useState('');
+  const usandoBanco = !!clienteId;
+
+  const { data: clientes = [], isLoading: carregandoClientes } = useClientesLista();
+  const { data: pessoasDoBanco = [] } = usePessoasByCliente(clienteId || null);
+  const { data: todasMatriculas = [] } = useAllMatriculas();
+
+  // A matrícula chega ao cliente pelo bem ou pelos titulares — mesma regra do
+  // Diagnóstico Patrimonial (ver `MatriculaEnriched.titular_cliente_ids`).
+  const matriculasDoCliente = useMemo(
+    () => todasMatriculas.filter((m) => m.bem_cliente_id === clienteId || m.titular_cliente_ids.includes(clienteId)),
+    [todasMatriculas, clienteId],
+  );
+
+  const pessoas = usandoBanco ? pessoasDoBanco : pessoasFixture;
+  const matriculas = usandoBanco ? matriculasDoCliente : matriculasFixture;
 
   const linhas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -135,10 +187,51 @@ function ContratosExploracaoPreview() {
             <p className="text-xs text-muted-foreground">Componentes reais (FieldSection, formGridCls, Select/Input/Switch) com dado fixture — sem rota, sem consulta ao banco.</p>
           </div>
           <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide">
-            <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">existe</Badge>
             <Badge variant="outline" className="border-osg-highlighter bg-osg-highlighter/25 text-amber-900">novo</Badge>
+            <span className="text-[10px] font-normal normal-case text-muted-foreground">= sem tela que cadastre este campo</span>
           </div>
         </header>
+
+        {/* Mesma barra de cliente do OsgLayout (useClientesLista + Select), só que o
+            estado mora aqui em vez do OsgWorkContext — o preview roda fora do
+            roteamento, então não existe provider do contexto da OSG Work. */}
+        <div className="rounded-lg border border-osg-100 bg-osg-50/40 px-5 py-3">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:gap-4">
+            <div className="flex items-center gap-2 whitespace-nowrap">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-osg-100 text-osg-700"><Building2 className="h-4 w-4" /></div>
+              <Label className="text-sm font-bold uppercase tracking-wide text-osg-700">Cliente</Label>
+            </div>
+            <div className="max-w-md flex-1">
+              <Select value={clienteId || undefined} onValueChange={setClienteId} disabled={carregandoClientes}>
+                <SelectTrigger className="h-10 border-osg-200 bg-background font-medium">
+                  <SelectValue placeholder={carregandoClientes ? 'Carregando…' : 'Nenhum — usando dados de exemplo'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientes.map((c) => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            {usandoBanco ? (
+              <div className="flex items-center gap-2 text-xs">
+                <Badge variant="outline" className="border-emerald-300 bg-emerald-50 text-emerald-700">banco · {currentAmbiente}</Badge>
+                <span className="text-muted-foreground">{matriculas.length} matrícula(s), {pessoas.length} pessoa(s)</span>
+                <Button variant="ghost" size="sm" className="h-7" onClick={() => setClienteId('')}>voltar ao exemplo</Button>
+              </div>
+            ) : (
+              <Badge variant="outline" className="border-osg-highlighter bg-osg-highlighter/25 text-amber-900">dados de exemplo (fixture)</Badge>
+            )}
+          </div>
+          {!carregandoClientes && clientes.length === 0 && (
+            <div className="mt-2 flex items-start gap-1.5 text-[11px] text-amber-900">
+              <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+              <span>
+                Nenhum cliente retornou. RLS está ligada em todas as tabelas e esta página não tem login próprio —
+                entre no app (mesma origem, ex.: <code>localhost:8080/equipe</code>) e recarregue aqui; a sessão é
+                compartilhada pelo localStorage.
+              </span>
+            </div>
+          )}
+        </div>
 
         <div className="flex items-start gap-2 rounded-md border border-osg-highlighter bg-osg-highlighter/10 px-4 py-3 text-xs text-amber-900">
           <FileText className="mt-0.5 h-4 w-4 shrink-0" />
@@ -210,12 +303,9 @@ function ContratosExploracaoPreview() {
         refCodigo={refCodigo}
         draft={draft}
         onChange={setDraft}
-        matriculas={matriculasFixture}
-        pessoas={pessoasFixture}
+        matriculas={matriculas}
+        pessoas={pessoas}
         instrumentosDeOrigem={INSTRUMENTOS_DE_ORIGEM_FIXTURE}
-        administracao={administracaoFixture}
-        titularidade={titularidadeFixture}
-        cartorios={cartoriosFixture}
         avisoParaMatricula={avisoParaMatricula}
         onClose={() => setOpen(false)}
       />
@@ -223,8 +313,17 @@ function ContratosExploracaoPreview() {
   );
 }
 
+// Os hooks reaproveitados são React Query — o preview precisa do provider, que no
+// app inteiro mora no App.tsx.
+const queryClient = new QueryClient();
+
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ContratosExploracaoPreview />
+    <QueryClientProvider client={queryClient}>
+      {/* Os dois providers que o App.tsx monta e este entry avulso não herda. */}
+      <TooltipProvider>
+        <ContratosExploracaoPreview />
+      </TooltipProvider>
+    </QueryClientProvider>
   </React.StrictMode>,
 );
