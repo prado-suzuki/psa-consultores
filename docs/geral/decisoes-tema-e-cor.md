@@ -261,6 +261,36 @@ categoria — mas por razões diferentes, e nenhuma delas é estável.
 
 ---
 
+## 3.1. As 9 exceções da Etapa 2, reavaliadas contra a tabela — **9 → 7**
+
+Feito em 20/08/2026, depois que a linha de estado entrou.
+
+**Resolvidas (2):** o badge "Inativo" em `DashboardOverviewDialog:122`, que era `bg-slate-200` +
+`text-slate-600`. Era o caso que originou a linha, e a linha o resolve.
+
+**Continuam (7), e todas pela MESMA lacuna:**
+
+| Endereço | | |
+|---|---|---|
+| `PermissionsTree:221` | 1 | `border-slate-300` num `<Checkbox>` |
+| `CreateUserDialog:218,263` | 2 | idem |
+| `EditUserDialog:183,228` | 2 | idem |
+| `EstruturaManager:651` | 2 | `border-slate-300 hover:border-slate-400` num chip |
+
+**A tabela nova não as alcança, e isso é preciso, não omissão.** A linha que entrou fala de
+**fundo** que significa estado. Estas sete são **borda de controle** — o contorno de um checkbox
+ou de um chip não-selecionado. Não é estado, não é superfície, não é texto: é uma nona categoria
+que a tabela não tem.
+
+E o token disponível não serve, medido: `--input` e `--border` valem ambos `(229,231,235)`, contra
+`(203,213,225)` do `slate-300` — **seis pontos de luminosidade mais claro**. Trocar clarearia o
+contorno em todos os sete.
+
+> **O que decidiria isto:** ou um token de borda de controle com valor próprio, ou a decisão de
+> que checkbox usa `border-primary` (o padrão do `ui/checkbox`) e as sete sobrescritas saem. A
+> segunda é mais barata e muda a aparência: os checkboxes ficariam acentuados em vez de neutros,
+> e foi justamente isso que alguém decidiu evitar numa árvore densa.
+
 ## 4. Pendências nomeadas
 
 ### `TEMAS` do `paletaDeArea` é mantida à mão — e o `.rotina-theme` nunca foi verificado
@@ -361,6 +391,35 @@ estado que o sistema não produz.
 > terceira é a única que não muda quem vê o quê.
 >
 > Para remedir, a consulta está no corpo do commit que registrou este item.
+
+### Cor crua de estado: 963 sítios — e a inversão é o achado, não o total
+
+Medido em 20/08/2026, fora de `src/components/ui/`. **O número que importa não é o total: é a
+razão entre token e cor crua, e ela é oposta em cada papel.**
+
+| papel | token do contrato | cor crua | razão |
+|---|---|---|---|
+| **destrutivo** | **392** sítios / 118 arq | 284 / 80 arq (`red`, `rose`) | **1,4 : 1 a favor do token** |
+| alerta | 44 / 19 arq | 447 / 120 arq (`amber`, `yellow`, `orange`) | **1 : 10 contra** |
+| sucesso | 38 / 15 arq | 569 / 120 arq (`green`, `emerald`, `lime`, `teal`) | **1 : 15 contra** |
+
+**Destrutivo já venceu.** `--destructive` está em 392 sítios contra 284 crus — a migração dele
+aconteceu, provavelmente porque o `ui/button` tem variante `destructive` e ela puxou o resto.
+
+**Sucesso e alerta nunca começaram.** 38 e 44 sítios de token contra 1.016 crus somados. Não é
+uma dívida de 963 espalhada por igual: são **dois papéis inteiros** que ficaram de fora.
+
+Isso muda o que fazer com ela. Uma migração de 963 sítios é um mutirão; consertar dois papéis
+que têm token pronto e quase nenhum uso é outro tipo de trabalho — e o exemplo do destrutivo diz
+qual alavanca funcionou: **um componente do `ui/` com a variante certa**, não uma varredura.
+
+> Para remedir: `grep -rEo "\b(bg|text|border)-(green|emerald|lime|teal)-[0-9]{2,3}" src
+> --include=*.tsx | grep -v "/ui/" | wc -l` (e as famílias equivalentes para os outros papéis).
+>
+> `teal` conta em sucesso e é dívida própria — a soma por papel passa de 963 por causa dele.
+
+**Não migrado nesta rodada, de propósito.** O que entrou foi só o papel que não tinha linha na
+tabela (desligado, 6 sítios em 5 arquivos).
 
 ### O substring que sobrou, e por que sobrou
 
