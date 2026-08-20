@@ -99,7 +99,7 @@ export const ProjectInfoTab = ({
           <Input
             value={editProject.name}
             onChange={(event) => onEditProjectChange({ ...editProject, name: event.target.value })}
-            className="bg-white border-gray-300 text-gray-900"
+            className="text-gray-900"
           />
         </div>
 
@@ -109,10 +109,10 @@ export const ProjectInfoTab = ({
             value={editProject.cluster_id || ''}
             onValueChange={(value) => onEditProjectChange({ ...editProject, cluster_id: value })}
           >
-            <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+            <SelectTrigger className="text-gray-900">
               <SelectValue placeholder="Selecione o cluster" />
             </SelectTrigger>
-            <SelectContent className="bg-white border-gray-200">
+            <SelectContent className="border-gray-200">
               {clusters
                 .filter((cluster) => cluster.ativo)
                 .map((cluster) => (
@@ -143,10 +143,10 @@ export const ProjectInfoTab = ({
                 });
               }}
             >
-              <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+              <SelectTrigger className="text-gray-900">
                 <SelectValue placeholder="Selecione o cliente" />
               </SelectTrigger>
-              <SelectContent className="bg-white border-gray-200">
+              <SelectContent className="border-gray-200">
                 {externalClients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.nome}
@@ -161,10 +161,10 @@ export const ProjectInfoTab = ({
               value={editProject.leader_id || ''}
               onValueChange={(value) => onEditProjectChange({ ...editProject, leader_id: value })}
             >
-              <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+              <SelectTrigger className="text-gray-900">
                 <SelectValue placeholder="Selecione o líder" />
               </SelectTrigger>
-              <SelectContent className="bg-white border-gray-200">
+              <SelectContent className="border-gray-200">
                 {teamMembers.map((member) => (
                   <SelectItem key={member.id} value={member.id}>
                     {member.first_name} {member.last_name}
@@ -182,10 +182,10 @@ export const ProjectInfoTab = ({
               value={editProject.equipe_id || ''}
               onValueChange={(value) => onEditProjectChange({ ...editProject, equipe_id: value })}
             >
-              <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+              <SelectTrigger className="text-gray-900">
                 <SelectValue placeholder="Selecione a equipe" />
               </SelectTrigger>
-              <SelectContent className="bg-white border-gray-200">
+              <SelectContent className="border-gray-200">
                 {groupedEquipes.map((group) => (
                   <div key={group.area.id}>
                     <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
@@ -209,7 +209,7 @@ export const ProjectInfoTab = ({
                 onEditProjectChange({ ...editProject, product_service: event.target.value })
               }
               placeholder="Ex: Auditoria Fiscal, BI"
-              className="bg-white border-gray-300 text-gray-900"
+              className="text-gray-900"
             />
           </div>
         </div>
@@ -220,10 +220,10 @@ export const ProjectInfoTab = ({
             value={editProject.project_front || ''}
             onValueChange={(value) => onEditProjectChange({ ...editProject, project_front: value })}
           >
-            <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+            <SelectTrigger className="text-gray-900">
               <SelectValue placeholder="Selecione a frente" />
             </SelectTrigger>
-            <SelectContent className="bg-white border-gray-200">
+            <SelectContent className="border-gray-200">
               {PROJECT_FRONTS.map((front) => (
                 <SelectItem key={front.value} value={front.value}>
                   {front.label}
@@ -265,7 +265,7 @@ export const ProjectInfoTab = ({
               }
               placeholder="Descreva o impacto esperado, métricas, economia estimada..."
               rows={3}
-              className="bg-white border-gray-300 text-gray-900"
+              className="text-gray-900"
             />
           </div>
         )}
@@ -277,7 +277,7 @@ export const ProjectInfoTab = ({
             onChange={(event) =>
               onEditProjectChange({ ...editProject, description: event.target.value })
             }
-            className="bg-white border-gray-300 text-gray-900"
+            className="text-gray-900"
             rows={3}
           />
         </div>
@@ -293,7 +293,7 @@ export const ProjectInfoTab = ({
               value={editProject.start_date ? dataBR(editProject.start_date) : '—'}
               readOnly
               disabled
-              className="cursor-not-allowed border-gray-300 bg-gray-100 text-gray-900"
+              className="cursor-not-allowed bg-muted text-gray-900"
               title="Herdada da Ordem de Serviço vinculada. Para alterar, edite a OS."
             />
           </div>
@@ -303,7 +303,7 @@ export const ProjectInfoTab = ({
               value={editProject.end_date ? dataBR(editProject.end_date) : '—'}
               readOnly
               disabled
-              className="cursor-not-allowed border-gray-300 bg-gray-100 text-gray-900"
+              className="cursor-not-allowed bg-muted text-gray-900"
               title="Herdada da Ordem de Serviço vinculada. Para alterar, edite a OS."
             />
           </div>
@@ -315,10 +315,10 @@ export const ProjectInfoTab = ({
             value={editProject.status}
             onValueChange={(value) => onEditProjectChange({ ...editProject, status: value })}
           >
-            <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+            <SelectTrigger className="text-gray-900">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="bg-white border-gray-200">
+            <SelectContent className="border-gray-200">
               <SelectItem value="active">Ativo</SelectItem>
               <SelectItem value="completed">Concluído</SelectItem>
               <SelectItem value="blocked">Bloqueado</SelectItem>
@@ -335,7 +335,7 @@ export const ProjectInfoTab = ({
                 Excluir
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="bg-white">
+            <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Excluir projeto?</AlertDialogTitle>
                 <AlertDialogDescription>
