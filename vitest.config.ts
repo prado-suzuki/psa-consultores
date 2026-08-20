@@ -24,7 +24,11 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
     css: false,
-    include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // `eslint-rules/` entra porque a regra de lint tem teste próprio, e o teste é
+    // o que confere o mapa dela contra `src/components/ui/` — sem ele a regra
+    // descreveria um estado que pode ter mudado, que é o defeito que ela pega.
+    // Não é código de aplicação e por isso não mora em `src/`.
+    include: ['src/**/*.{test,spec}.{ts,tsx}', 'eslint-rules/**/*.{test,spec}.{ts,tsx}'],
     exclude: ['node_modules', 'dist', '.lovable'],
   },
 });

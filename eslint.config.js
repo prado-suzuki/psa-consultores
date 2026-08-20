@@ -3,6 +3,7 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import uiTokens from "./eslint-rules/token-nao-sobrescrito.js";
 
 export default tseslint.config(
   { ignores: ["dist"] },
@@ -31,6 +32,29 @@ export default tseslint.config(
       "no-irregular-whitespace": "warn",
       "prefer-const": "warn",
     },
+  },
+  {
+    // ── Token do `ui/` sobrescrito por cor crua ────────────────────────────
+    //
+    // Os componentes de `src/components/ui/` chegam com o token certo de
+    // fábrica. Quando a `className` local escreve cor fixa na MESMA propriedade,
+    // ela não acrescenta nada: substitui o token, e a tela para de acompanhar o
+    // tema. Foram 19 casos assim só no Controle de Acessos, e nenhum era
+    // redundância.
+    //
+    // Fica em `warn` pela mesma razão da regra do teal: o número é grande e
+    // transformar em erro de build seria apagão. O aviso trava o crescimento e
+    // aparece para quem abrir o arquivo por outro motivo.
+    //
+    // A regra NÃO acusa composição (propriedade diferente) nem sobrescrita para
+    // outro token (escolha de hierarquia). O `ui/` fica fora: ele é o dono do
+    // padrão, não consumidor. Para medir agora:
+    //
+    //   bunx eslint src --rule '{}' | grep -c token-nao-sobrescrito
+    files: ["src/**/*.tsx"],
+    ignores: ["src/components/ui/**"],
+    plugins: { ui: uiTokens },
+    rules: { "ui/token-nao-sobrescrito": "warn" },
   },
   {
     // ── `--teal-*` é PRIMITIVA, não token de componente ────────────────────
