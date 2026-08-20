@@ -4,17 +4,22 @@ Como o banco de desenvolvimento funciona, e como apontar o app para ele.
 
 ## O desenho em uma frase
 
-O **dev compartilhado é o padrão**, para que a alteração de um dev apareça na tela do
-outro no mesmo dia. Quem precisa de isolamento aponta o app para um banco próprio pelo
+**Produção é o default em todo lugar**, e o dev compartilhado é opt-in: só entra em
+cena quando o `vite.config.ts` consegue provar que este é um checkout de trabalho, isto
+é, git respondendo e branch fora de `main`. No dia a dia isso dá no mesmo (você trabalha
+em branch), com a diferença de que ambiente sem branch confiável não cai mais no sandbox
+por descuido. Quem precisa de isolamento aponta o app para um banco próprio pelo
 `.env.development.local`.
 
-## Qual banco cada branch usa
+## Qual banco cada lugar usa
 
 | onde | banco |
 |---|---|
 | build publicado (Lovable, a partir de `main`) | produção |
+| sandbox/preview do Lovable, que roda em modo development | produção (Lovable Cloud) |
 | `bun run dev` em `main` | produção |
 | `bun run dev` em `develop` e branches de trabalho | dev compartilhado |
+| `bun run dev` onde o git não responde (tarball, container) | produção |
 | qualquer lugar, com `.env.development.local` | o que você puser lá |
 
 A escolha por branch é feita no `vite.config.ts`, não com conteúdo diferente de `.env`
@@ -23,6 +28,18 @@ branches conflita em todo `develop → main`, e uma resolução errada troca o b
 sem ninguém perceber. Como está, os dois lados carregam exatamente os mesmos arquivos e
 o merge não tem o que decidir.
 
+O arquivo do sandbox se chama `.env.sandbox`, e o nome é a parte importante:
+`sandbox` não é um mode do Vite, então **nada carrega esse arquivo sozinho**, nem o Vite
+nem o bun. Só o `vite.config.ts` o carrega, e só quando a regra de branch escolhe o
+sandbox. Enquanto ele se chamava `.env.development`, o Vite o carregava em todo
+`mode=development` por cima do `.env`, e o preview do Lovable (que roda em development e
+não tem branch para ler) acabava falando com o banco de desenvolvimento da PSA em vez do
+Lovable Cloud.
+
+O alvo escolhido entra por `define`, que vence qualquer arquivo de env. Por isso um
+`.env.development` esquecido no disco não decide mais nada; se ele existir, o `bun run
+dev` avisa para apagar.
+
 O `vite.config.ts` ainda derruba o build de produção se o valor de desenvolvimento
 chegar no `.env`, que é o dano que essa separação existe para evitar. A mensagem diz o
 que aconteceu.
@@ -30,7 +47,15 @@ que aconteceu.
 Quando `bun run dev` sobe, ele imprime para onde está apontando e por quê:
 
 ```
-➜  Supabase:   https://vgzomuwnsdgrxbkyoavq.supabase.co  (.env.development)
+➜  Supabase:   https://vgzomuwnsdgrxbkyoavq.supabase.co  (.env.sandbox (branch develop))
+```
+
+Fora de branch de trabalho ele diz de onde veio o default, para a escolha não ficar
+implícita:
+
+```
+➜  Supabase:   https://zwoainzzqhudmmknuycq.supabase.co  (.env (branch main))
+➜  Supabase:   https://zwoainzzqhudmmknuycq.supabase.co  (.env (sem git: nada prova que este é um checkout de trabalho))
 ```
 
 A branch é lida quando o servidor sobe. Trocar de branch com o dev de pé faria o app
@@ -39,31 +64,46 @@ o `HEAD` do git e reinicia o servidor quando a branch muda:
 
 ```
 ➜  branch main: reiniciando para reavaliar o Supabase...
-➜  Supabase:   https://zwoainzzqhudmmknuycq.supabase.co  (branch main)
+➜  Supabase:   https://zwoainzzqhudmmknuycq.supabase.co  (.env (branch main))
 ```
 
 ### Precedência dos arquivos de env
 
-O Vite carrega nesta ordem, e **o último vence**:
+O que o Vite carrega sozinho em `mode=development`, e **o último vence**:
 
 ```
-.env  →  .env.local  →  .env.development  →  .env.development.local
+.env  →  .env.local  →  .env.development.local
 ```
 
-Isso importa: um `.env.development` commitado sobrescreve o `.env.local` de todo mundo.
-Por isso a configuração pessoal mora em `.env.development.local`, que é o slot de maior
-precedência e cai no `*.local` do `.gitignore`. A regra de branch fica entre os dois:
-vence o `.env.development`, perde para o `.env.development.local`.
+`.env.sandbox` não aparece nessa lista de propósito: o Vite não conhece esse sufixo.
+Quem decide se ele entra é o `vite.config.ts`, e ele injeta o resultado por `define`,
+que fica acima de tudo. Então a ordem real é:
 
-| arquivo | no git | aponta para | quem usa |
+```
+.env.development.local  (se existe, manda, e a regra sai de cena)
+        ↑
+define do vite.config.ts  (.env.sandbox em branch de trabalho, .env no resto)
+        ↑
+.env  →  .env.local
+```
+
+A configuração pessoal mora em `.env.development.local` porque é o slot que o Vite
+carrega por último e que cai no `*.local` do `.gitignore`. Quando ele existe, o config
+não injeta nada: você fica com `.env` mais o seu arquivo por cima. Como o `.env` aponta
+para produção, ponha ali as três variáveis (`VITE_SUPABASE_URL`,
+`VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID`), e não só a URL, senão você
+mistura o host do seu banco com a chave de produção.
+
+| arquivo | no git | aponta para | quem carrega |
 |---|---|---|---|
-| `.env` | sim | produção | build de produção, e `dev` em `main` |
-| `.env.development` | sim | dev compartilhado | `dev` fora de `main` |
-| `.env.development.local` | não | um banco seu | quem quer isolamento |
+| `.env` | sim | produção | Vite, sempre; é a base e o que o build publica |
+| `.env.sandbox` | sim | dev compartilhado | só o `vite.config.ts`, em branch de trabalho |
+| `.env.development.local` | não | um banco seu | Vite, em dev, por cima de tudo |
 
 ## O dev compartilhado
 
-Já existe e é o padrão: quem roda `bun run dev` sem `.env.development.local` cai nele.
+Já existe: quem roda `bun run dev` numa branch de trabalho, sem
+`.env.development.local`, cai nele.
 
 ```
 ref:     vgzomuwnsdgrxbkyoavq
