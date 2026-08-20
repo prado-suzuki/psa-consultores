@@ -227,6 +227,22 @@ export const ESPELHO = {
 } as const satisfies Record<string, AreaDeTema>;
 
 /**
+ * Para onde o "Voltar" de uma tela espelhada leva, e com que rótulo.
+ *
+ * Antes do espelho a tela não tinha essa informação e o "Voltar" caía em
+ * `/equipe` — o seletor de áreas. Quem viera da Tax era mandado escolher a área
+ * de novo. O espelho É essa informação, então deixou de ser irremediável.
+ *
+ * Mapa próprio, e não `AREA_ROUTES` de `@/config/areaCategories`: aquela é a
+ * taxonomia de PERMISSÃO, e o cabeçalho deste arquivo explica por que as duas não
+ * se amarram — mudança de permissão não deve mexer em navegação de tela.
+ */
+export const VOLTA_DO_ESPELHO = {
+  tax: { rota: '/equipe/tax', rotulo: 'Tax' },
+  osg: { rota: '/equipe/osg', rotulo: 'OSG' },
+} as const;
+
+/**
  * As chaves como TIPO, e não como string solta.
  *
  * É o que faz um erro de digitação no menu (`?area=tx`) ser erro de compilação

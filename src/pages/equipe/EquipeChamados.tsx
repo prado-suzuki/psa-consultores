@@ -14,7 +14,7 @@ import { useTicketsList } from '@/hooks/useTickets';
 import { useToast } from '@/hooks/use-toast';
 import { useUserEstrutura } from '@/hooks/useUserEstrutura';
 import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategoria';
-import { ESPELHO, PARAM_DE_ESPELHO } from '@/lib/areaTheme';
+import { ESPELHO, PARAM_DE_ESPELHO, VOLTA_DO_ESPELHO } from '@/lib/areaTheme';
 import type { PageCategory } from '@/lib/clusterPorCategoria';
 import { createEquipeChamadosFilters, filterAndSortTickets, getTicketStats } from '@/lib/equipeChamados';
 import type { SortColumn, SortDirection } from '@/lib/equipeChamados';
@@ -22,7 +22,7 @@ import type { SortColumn, SortDirection } from '@/lib/equipeChamados';
 export default function EquipeChamados() {
   const navigate = useNavigate();
   const location = useLocation();
-  const backTo = (location.state as { from?: string } | null)?.from ?? '/equipe';
+  // `backTo` fica logo abaixo, depois de o espelho ser lido — ver `voltarPara`.
   const { user } = useAuth();
   const { toast } = useToast();
   const canAssignTickets = useCanAssignTickets();
@@ -52,6 +52,21 @@ export default function EquipeChamados() {
   const espelho = chaveBruta && chaveBruta in ESPELHO ? (chaveBruta as PageCategory) : null;
   const { clusterId: clusterDoEspelho, isLoading: resolvendoEspelho } =
     useDomainClusterPorCategoria(espelho);
+
+  /**
+   * O "Voltar" respeita o espelho.
+   *
+   * Precedência: a origem explícita (`location.state.from`, posta por quem
+   * navegou) vence; depois o espelho; e o piso é `/equipe`, o seletor de áreas.
+   *
+   * Antes o piso era a ÚNICA resposta quando não havia `from`, e quem entrava
+   * pela Tax era mandado escolher a área outra vez. A tela não tinha como saber
+   * de onde a pessoa vinha; o espelho é justamente essa informação.
+   */
+  const volta = espelho ? VOLTA_DO_ESPELHO[espelho] : null;
+  const origemExplicita = (location.state as { from?: string } | null)?.from;
+  const backTo = origemExplicita ?? volta?.rota ?? '/equipe';
+  const rotuloVoltar = !origemExplicita && volta ? `Voltar para ${volta.rotulo}` : 'Voltar';
 
   // Sincroniza SÓ o filtro de cluster, e não por `key` no componente: `key`
   // remontaria a tela inteira a cada troca de espelho e jogaria fora ordenação,
@@ -145,7 +160,7 @@ export default function EquipeChamados() {
       <header className="h-16 border-b border-slate-200/60 bg-white flex items-center px-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="sm" onClick={() => navigate(backTo)} className="text-slate-600 hover:text-teal-600 hover:bg-slate-50">
-            <ArrowLeft className="mr-2 h-4 w-4" />Voltar
+            <ArrowLeft className="mr-2 h-4 w-4" />{rotuloVoltar}
           </Button>
           <div>
             {/* Título fixo, casando com a rota /equipe/chamados. "Gestão de Chamados"
@@ -191,7 +206,12 @@ export default function EquipeChamados() {
             sortColumn={sortColumn}
             sortDirection={sortDirection}
             onSort={handleSort}
-            onNavigate={(ticketId) => navigate(`/equipe/chamados/${ticketId}`)}
+            // A origem vai com a QUERY: é o que faz o "Voltar" do detalhe
+            // devolver a pessoa ao espelho de onde ela veio, em vez de à lista
+            // sem escopo. O detalhe em si NÃO espelha — ver `ROTAS_ESPELHADAS`.
+            onNavigate={(ticketId) => navigate(`/equipe/chamados/${ticketId}`, {
+              state: { from: `${location.pathname}${location.search}` },
+            })}
             onAssign={handleAssignAgent}
             scrollRef={scrollRef}
           />

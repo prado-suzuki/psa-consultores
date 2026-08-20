@@ -12,7 +12,11 @@ if (!HTMLElement.prototype.hasPointerCapture) {
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
-  location: { state: null as { from?: string } | null },
+  location: {
+    state: null as { from?: string } | null,
+    pathname: '/equipe/chamados',
+    search: '',
+  },
   useAuth: vi.fn(),
   useUserEstrutura: vi.fn(),
   useCanAssignTickets: vi.fn(),
@@ -115,6 +119,8 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(NOW);
   mocks.location.state = null;
+  mocks.location.pathname = '/equipe/chamados';
+  mocks.location.search = '';
   // Sem espelho por padrão: `/equipe/chamados` aberta direto mostra tudo.
   mocks.searchParams = new URLSearchParams();
   mocks.useDomainClusterPorCategoria.mockReturnValue({ clusterId: null, isLoading: false });
@@ -320,7 +326,11 @@ describe('EquipeChamados', () => {
     expect(screen.getByText('2')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Apuração mensal' }));
-    expect(mocks.navigate).toHaveBeenCalledWith('/equipe/chamados/ticket-00000001');
+    // A origem viaja no `state`, com a query: é o que devolve a pessoa ao espelho
+    // quando ela clica "Voltar" na tela de detalhe.
+    expect(mocks.navigate).toHaveBeenCalledWith('/equipe/chamados/ticket-00000001', {
+      state: { from: '/equipe/chamados' },
+    });
     await user.click(screen.getByRole('button', { name: 'Voltar' }));
     expect(mocks.navigate).toHaveBeenCalledWith('/equipe/tax');
   });
@@ -468,5 +478,57 @@ describe('EquipeChamados espelhada', () => {
     expect(screen.getByText('Do cluster 1')).toBeInTheDocument();
     expect(screen.getByText('Do cluster 2')).toBeInTheDocument();
     expect(screen.queryByText('Definido pelo ambiente desta tela')).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * O "VOLTAR" respeita o espelho.
+ *
+ * Antes do espelho a tela não tinha como saber de onde a pessoa vinha, e o
+ * "Voltar" caía em `/equipe` — o seletor de áreas. Quem viera da Tax era mandado
+ * escolher a área outra vez. O espelho é essa informação, então o que era
+ * pendência irremediável virou conserto.
+ */
+describe('EquipeChamados — o "Voltar" segue o espelho', () => {
+  beforeEach(() => {
+    mocks.location.search = '?area=tax';
+    mocks.searchParams = new URLSearchParams('area=tax');
+    mocks.useDomainClusterPorCategoria.mockReturnValue({ clusterId: 'cluster-1', isLoading: false });
+  });
+
+  it('espelhada, volta para a área e diz para onde', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<EquipeChamados />);
+    await user.click(screen.getByRole('button', { name: 'Voltar para Tax' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/equipe/tax');
+  });
+
+  it('a origem explícita vence o espelho — quem navegou sabe mais', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mocks.location.state = { from: '/equipe/tax/gerencial' };
+    render(<EquipeChamados />);
+    // Rótulo genérico: o destino não é a área, é a tela de onde vieram.
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/equipe/tax/gerencial');
+  });
+
+  it('sem espelho e sem origem, o piso continua o seletor de áreas', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mocks.location.search = '';
+    mocks.searchParams = new URLSearchParams();
+    mocks.useDomainClusterPorCategoria.mockReturnValue({ clusterId: null, isLoading: false });
+    render(<EquipeChamados />);
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/equipe');
+  });
+
+  it('a origem que vai para o detalhe carrega a query do espelho', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    setTickets([ticket({ cluster_id: 'cluster-1' })]);
+    render(<EquipeChamados />);
+    await user.click(screen.getByRole('button', { name: 'Apuração mensal' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/equipe/chamados/ticket-00000001', {
+      state: { from: '/equipe/chamados?area=tax' },
+    });
   });
 });
