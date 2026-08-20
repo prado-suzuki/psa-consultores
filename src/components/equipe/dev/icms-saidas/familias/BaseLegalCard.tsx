@@ -93,12 +93,12 @@ export const BaseLegalCard = ({ familia }: BaseLegalCardProps) => {
   if (!lines || lines.length === 0) return null;
 
   return (
-    <Alert className="mb-6 bg-emerald-50/70 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800">
-      <Scale className="h-5 w-5 text-emerald-700 dark:text-emerald-400" />
-      <AlertTitle className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+    <Alert className="mb-6 bg-emerald-50/70 border-emerald-200">
+      <Scale className="h-5 w-5 text-emerald-700"/>
+      <AlertTitle className="text-sm font-semibold text-slate-700">
         Base Legal
       </AlertTitle>
-      <AlertDescription className="text-sm leading-relaxed text-slate-700 dark:text-slate-300 mt-1 space-y-1">
+      <AlertDescription className="text-sm leading-relaxed text-slate-700 mt-1 space-y-1">
         {lines.map((line, idx) => (
           <p key={idx}>{renderBoldSegments(line)}</p>
         ))}
