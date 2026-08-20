@@ -168,6 +168,45 @@ aplicado em `ui/checkbox.tsx:19`. **`--radius` e `rounded-sm` não foram tocados
 
 ---
 
+## 2.1. A tabela de mapeamento — cor crua → token
+
+Validada em uso nas duas levas do Controle de Acessos (295 ocorrências). Estava só em
+conversa até 20/08/2026; escrita aqui porque regra que não está em lugar nenhum se aplica
+diferente a cada vez.
+
+| Papel | Token |
+|---|---|
+| texto principal, título | `text-foreground` |
+| texto secundário, legenda | `text-muted-foreground` |
+| terceiro nível, mais fraco que o secundário | `text-muted-foreground/70` |
+| borda e divisória | `border-border` / `divide-border` (com `/60` onde já havia opacidade) |
+| fundo de cartão | `bg-card` |
+| fundo apagado, área secundária | `bg-muted` |
+| branco sobre `bg-primary` | `text-primary-foreground` |
+| **fundo que significa ESTADO — desligado, cancelado, arquivado, somente leitura** | **`bg-status-neutro-soft` + `text-status-neutro`** |
+
+**A linha de estado é a que faltava, e ela é a única que não se resolve por tom.** As outras
+oito olham para a aparência da cor; esta olha para o que a cor *diz*. Um cinza pode ser
+superfície (→ `bg-muted`) ou pode ser o recado de que algo está fora (→ papel de status), e a
+diferença não está na sintaxe — nenhuma regra de lint a alcança.
+
+**Por que `status-neutro` e não um token novo:** ele já existe, já é declarado por tema, já tem
+classe no Tailwind e já era usado em 4 arquivos. Medido em 20/08/2026, o `-soft` vale `#E3E0D3`
+(sistema), `#E2DBD4` (tax) e `#E4D8D2` (osg) — acompanha a área, de leve. Contra ele, o
+`bg-slate-200` que os sítios usavam vale `#E2E8F0` **nos três**: azulado, sobre chão marfim.
+
+E a assimetria que faz o papel funcionar: **o fundo do desligado quase não muda entre temas; o
+texto dele muda muito** (`#5D573C` / `#655443` / `#46332A`), enquanto o fundo do *ativo* muda
+muito (`#D7E9CE` / `#C7F0ED` / `#C7F0DB`). O desligado se distingue por **saturação**, não por
+tom — que é o que se quer de um estado apagado.
+
+> **Regra de decisão, quando houver dúvida:** se trocar aquele fundo por `bg-muted` faria a
+> pessoa perder a informação de que o item está fora, é papel de status. Se não faria diferença
+> nenhuma além do tom, é superfície.
+
+Onde a função não for evidente pelo JSX, **não adivinhe**: deixe como está e registre a linha.
+Um cinza que virou o token errado é pior que um cinza cru, porque passa a mudar de cor sozinho.
+
 ## 3. As premissas — condição de validade, não "limitação conhecida"
 
 ### A paleta de área vale enquanto o nome acompanhar o ponto
