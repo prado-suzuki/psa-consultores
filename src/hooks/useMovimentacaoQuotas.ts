@@ -3,6 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import type { AporteProposto } from '@/lib/osg/aporteInicial';
+import {
+  capitalDoMovimento,
+  FORMAS_MOVIMENTO,
+  type MovimentoDeQuotas,
+} from '@/lib/osg/movimentoQuotas';
 
 // Camada de dados do livro de movimentos de quota (`movimentacao_quotas`) e do
 // quadro societário que sai dele (`v_quadro_societario`). Uma fonte só para a
@@ -141,6 +146,88 @@ export function useGravarAporteInicial() {
     onError: (error: Error) => {
       toast({
         title: 'Erro ao gravar o quadro societário',
+        description: error.message,
+        variant: 'destructive',
+      });
+    },
+  });
+}
+
+/**
+ * Grava UM movimento de quota: um gesto do consultor, uma linha no livro.
+ *
+ * É o que substituiu o CRUD do quadro. Antes, editar o quadro fazia `update` na
+ * linha do sócio e remover sócio fazia `delete` físico — o quadro só sabia o
+ * estado de hoje, e o de ontem era apagado. Agora "vincular sócio" é um aporte,
+ * "aumentar quotas" é outro aporte, "diminuir" é uma redução e "remover" é a
+ * cessão (ou doação) das quotas para quem as recebeu. O saldo continua sendo o
+ * que a tela mostra, mas ele passa a ser CONSEQUÊNCIA, e o histórico existe.
+ *
+ * O valor não vem do formulário: é `capitalDoMovimento(quotas)`. `vlr_total` do
+ * quadro é a soma de `vlr_capital_arredondado`, e gravar ali o preço pago numa
+ * cessão acima do par corromperia o capital da sociedade.
+ */
+export function useRegistrarMovimento() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async ({
+      clienteId,
+      empresaPessoaId,
+      movimento,
+    }: {
+      clienteId: string;
+      empresaPessoaId: string;
+      movimento: MovimentoDeQuotas;
+      /** Nome de quem entra no log (o adquirente, ou o cedente na redução). */
+      entityName: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('movimentacao_quotas')
+        .insert({
+          cliente_id: clienteId,
+          tipo: movimento.tipo,
+          empresa_pessoa_id: empresaPessoaId,
+          origem_pessoa_id: movimento.origemPessoaId,
+          destino_pessoa_id: movimento.destinoPessoaId,
+          quotas: movimento.quotas,
+          vlr_capital_arredondado: capitalDoMovimento(movimento.quotas),
+          data_movimento: movimento.dataMovimento,
+          // Colunas do modelo antigo, ainda NOT NULL até a migration de limpeza
+          // (20260820163000). Espelham as novas; nada as lê. `socio_pessoa_id`
+          // recebe o lado que existe — na redução não há adquirente.
+          socio_pessoa_id: movimento.destinoPessoaId ?? movimento.origemPessoaId!,
+          empresa_destino_pessoa_id: empresaPessoaId,
+        })
+        .select('id')
+        .single();
+      if (error) throw error;
+      return { id: data.id, empresaPessoaId };
+    },
+    onSuccess: async ({ id, empresaPessoaId }, { movimento, entityName }) => {
+      queryClient.invalidateQueries({ queryKey: ['quadro-da-empresa', empresaPessoaId] });
+      // A tela Gerar lê o quadro pela mesma view, com outra key.
+      queryClient.invalidateQueries({ queryKey: ['socios-geracao', empresaPessoaId] });
+      queryClient.invalidateQueries({ queryKey: ['relatorio-societario'] });
+
+      const forma = FORMAS_MOVIMENTO[movimento.tipo];
+      await logAction({
+        area: 'osg',
+        entity_type: 'movimentacao_quotas',
+        entity_id: id,
+        entity_name: entityName,
+        action: 'created',
+      });
+
+      toast({
+        title: `${forma.label} registrada`,
+        description: `${movimento.quotas.toLocaleString('pt-BR')} quota(s) · ${entityName}`,
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: 'Erro ao registrar o movimento',
         description: error.message,
         variant: 'destructive',
       });

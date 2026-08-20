@@ -25,9 +25,15 @@ interface TabelaSociosProps {
   totalQuotas: number;
   capital: number;
   vazio: React.ReactNode;
+  /**
+   * Ação por sócio (movimentar as quotas dele). Quando ausente, a tabela é só
+   * leitura e a coluna de ação não existe — é o estado da proposta da PR, que
+   * ainda não tem sócio no banco para movimentar.
+   */
+  acaoDoSocio?: (linha: LinhaSocio) => React.ReactNode;
 }
 
-export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio }: TabelaSociosProps) => {
+export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio, acaoDoSocio }: TabelaSociosProps) => {
   const [busca, setBusca] = useState('');
   const buscaAtiva = busca.trim().length > 0;
 
@@ -66,6 +72,7 @@ export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio }: TabelaSoci
                 <TableHead className="text-right">Quotas</TableHead>
                 <TableHead className="text-right">Valor (R$)</TableHead>
                 <TableHead className="w-44">Participação</TableHead>
+                {acaoDoSocio && <TableHead className="w-24 text-right">Ações</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -114,6 +121,11 @@ export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio }: TabelaSoci
                         </span>
                       </div>
                     </TableCell>
+                    {acaoDoSocio && (
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">{acaoDoSocio(l)}</div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 );
               })}
@@ -129,6 +141,7 @@ export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio }: TabelaSoci
                     {fmtBRL.format(capital)}
                   </TableCell>
                   <TableCell className="font-semibold tabular-nums">{fmtPct(100)}</TableCell>
+                  {acaoDoSocio && <TableCell />}
                 </TableRow>
               </TableFooter>
             )}
