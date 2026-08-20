@@ -25,6 +25,23 @@ em `/equipe`, a sessão venceu: `node e2e/renovarSessao.mjs`.
 3. Se algo salvar sem querer, parar e relatar cliente/empresa/tipo/quotas.
 4. Leitura e navegação são livres.
 
+## Armadilha: nem todo cliente do banco aparece no seletor
+
+Escolher cliente por SELECT não basta. O seletor da OSG mostrou **43 dos 57**
+clientes `ambiente='dev'` ativos e não excluídos, e cliente `ambiente='prod'` não
+aparece em dev nenhum. Antes de montar roteiro, liste o que a UI oferece:
+
+```
+// com o storageState carregado, na tela do Quadro Societário
+await p.getByRole('combobox').first().click();
+console.log(await p.getByRole('option').allInnerTexts());
+```
+
+Consequência medida em 20/08/2026: o cliente `[TESTE] Banana Quântica` **não é
+selecionável**, e é justamente o único que tem a CN de 42 sócios e a única PR com
+quadro gravado. **Esses dois estados não têm como ser validados pela UI hoje.**
+Quem precisar deles tem de tornar aquele cliente visível primeiro.
+
 ## Os casos, com os nomes do sandbox
 
 Os nomes abaixo são os anonimizados do sandbox (os ids são os mesmos de produção,
@@ -34,12 +51,11 @@ os nomes não). Contagens conferidas por SELECT em 20/08/2026.
 |---|---|---|---|---|---|
 | `[TESTE 1 · ENVIAR] Abacaxi Elétrico…` | Nascente Transportes Eireli | CN | 5 | 0 | ordem do preâmbulo preservada (5 `created_at` distintos) |
 | idem | Farroupilha Logística S.A. | PR | **0** | 7 | **o fallback derivado da PR**, o caso mais crítico: sem ele o documento sairia sem sócio |
-| `[TESTE] Banana Quântica…` | Pantanal Comércio S.A. | CN | 42 | 0 | tabela grande, rodapé de total, busca |
-| idem | Rondon Administradora de Bens S.A. | PR | 1 | 0 | PR **já gravada**: mostra o quadro registrado, não a proposta. É o único caso em que o texto do documento muda de propósito |
+| ~~`[TESTE] Banana Quântica…`~~ | Pantanal Comércio S.A. | CN | 42 | 0 | tabela grande, rodapé de total, busca. **NÃO SELECIONÁVEL na UI** |
+| idem | Rondon Administradora de Bens S.A. | PR | 1 | 0 | PR **já gravada**: único caso em que o texto do documento muda de propósito. **NÃO SELECIONÁVEL na UI** |
 | `[TESTE] Dinossauro Aposentado…` | Jatobá Sementes S.A. | CN | 2 | 0 | modal de movimento |
 | idem | Farroupilha Comércio Ltda | PR | 0 | 5 | segundo fallback derivado |
-| `Estiva Transportes Eireli` | Horizonte Agropecuária S.A. | CN | 2 | 0 | |
-| idem | Tapajós Participações Eireli | CN | 1 | 2 | CN que também tem bens |
+| ~~`Estiva Transportes Eireli`~~ | Horizonte Agropecuária S.A. | CN | 2 | 0 | é `ambiente='prod'`: **não aparece em dev** |
 
 ## O que checar em cada tela
 
