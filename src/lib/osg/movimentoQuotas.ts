@@ -2,8 +2,8 @@ import { capitalDeQuotas } from '@/lib/templates/capital';
 
 // O vocabulário do movimento de quota e as regras que dizem se um movimento pode
 // ser gravado. Fica aqui, puro, porque as mesmas regras valem para a tela (que
-// desabilita o botão e explica o motivo), para o hook (que grava) e para o teste
-// — e porque o banco só checa o que é barato em SQL (`tipo` na lista,
+// desabilita o botão e explica o motivo), para o hook (que grava) e para o
+// teste. E porque o banco só checa o que é barato em SQL (`tipo` na lista,
 // origem-ou-destino preenchido). "O cedente tem quotas suficientes?" é pergunta
 // sobre o SALDO, que é a view, e nenhum check de coluna alcança.
 
@@ -21,7 +21,7 @@ export interface FormaDoMovimento {
 
 /**
  * As quatro formas de mover quota. Espelha o
- * `movimentacao_quotas_tipo_check` — mexer aqui sem mexer na constraint (ou
+ * `movimentacao_quotas_tipo_check`: mexer aqui sem mexer na constraint (ou
  * o contrário) faz a gravação falhar no banco com erro de check.
  *
  * Aporte: as quotas NASCEM (origem nula) e o capital da sociedade cresce.
@@ -120,7 +120,7 @@ export function problemaDoMovimento(
 }
 
 /**
- * O valor de CAPITAL das quotas movidas — nunca o preço pago.
+ * O valor de CAPITAL das quotas movidas, nunca o preço pago.
  *
  * A coluna `vlr_capital_arredondado` é a que a view soma em `vlr_total`: gravar
  * ali o preço de uma cessão acima do par corromperia o valor do quadro. Por isso

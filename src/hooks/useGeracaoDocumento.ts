@@ -341,13 +341,13 @@ export const PESSOA_LEGADA_PREFIX = 'legado:';
  * inteira) + o representante de cada sócia PJ.
  *
  * Representante: administradores dela com qualificação completa ("o senhor
- * FULANO, brasileiro, casado…"), no padrão do preâmbulo real — a qualificação da
+ * FULANO, brasileiro, casado…"), no padrão do preâmbulo real: a qualificação da
  * sócia PJ contrai o primeiro ("representada pelo senhor…") e os demais entram
  * juntados com ", e, ".
  *
  * Existe separado porque o quadro chega de duas formas (gravado na view,
  * derivado dos bens na PR ainda sem movimentação) e as duas precisam do mesmo
- * par de leituras — duplicá-lo faria a qualificação de um lado divergir do outro.
+ * par de leituras, e duplicá-lo faria a qualificação de um lado divergir do outro.
  */
 async function lerPessoasERepresentantes(ids: string[]): Promise<{
   pessoas: Record<string, PessoaRow>;
@@ -390,13 +390,13 @@ async function lerPessoasERepresentantes(ids: string[]): Promise<{
  * **O quadro societário tem uma fonte só**, igual para a Proprietária (PR) e
  * para a Controladora (CN): `v_quadro_societario`, o acumulado dos movimentos de
  * quota da empresa. A ordem dos sócios no preâmbulo é `ordem`, o `created_at` do
- * PRIMEIRO movimento de cada um — o equivalente à ordem de digitação que o
+ * PRIMEIRO movimento de cada um, o equivalente à ordem de digitação que o
  * quadro digitado tinha.
  *
  * Antes daqui havia DUAS fontes e nenhuma servia aos dois casos: a PR derivava
  * os sócios dos titulares das matrículas no render, a CN lia a tabela
  * `quadro_societario`. A derivação responde "quem entrou com o quê", não "quem
- * tem quantas quotas hoje" — as duas coisas coincidem na constituição e divergem
+ * tem quantas quotas hoje": as duas coisas coincidem na constituição e divergem
  * na primeira cessão.
  *
  * **A derivação sobrevive como FALLBACK da PR**, e só enquanto a empresa não tem
@@ -404,7 +404,7 @@ async function lerPessoasERepresentantes(ids: string[]): Promise<{
  * (`gravado = quadro.length > 0`), para tela e gerador nunca discordarem. Sem
  * ele, toda PR que ainda não gravou o quadro de constituição perderia os sócios
  * do documento na troca de fonte. Titular sem pessoa vinculada entra como sócio
- * com uma linha sintética (id "legado:<nome>") e qualificação incompleta —
+ * com uma linha sintética (id "legado:<nome>") e qualificação incompleta,
  * decisão registrada em docs/osg/plano-quadro-societario-pr.md §12.
  */
 export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: string | null) {
@@ -412,7 +412,7 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
 
   // O quadro GRAVADO. Duas leituras e não um embed: o PostgREST só infere
   // relacionamento de view quando a coluna vem direto da tabela base, e
-  // `pessoa_id` aqui nasce de um `union all` com `group by` — `socio:pessoa_id
+  // `pessoa_id` aqui nasce de um `union all` com `group by`, então `socio:pessoa_id
   // (*)` não existe em v_quadro_societario.
   const quadroQ = useQuery<SocioParaMapear[]>({
     queryKey: ['socios-geracao', empresaId],
@@ -420,7 +420,7 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
     queryFn: async () => {
       const { data, error } = await supabase
         .from('v_quadro_societario')
-        // `movimento_ids` são as linhas que compõem o saldo — metadado p/ as
+        // `movimento_ids` são as linhas que compõem o saldo: metadado p/ as
         // notificações de variável alterada da tela Gerar.
         .select('pessoa_id, quotas, vlr_total, movimento_ids')
         .eq('empresa_pessoa_id', empresaId!)
@@ -471,7 +471,7 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
 
   // --- PR sem movimentação: sócios derivados das integralizações -------------
 
-  /** A empresa tem quadro gravado — o saldo dos movimentos de quota existe. */
+  /** A empresa tem quadro gravado: o saldo dos movimentos de quota existe. */
   const quadroGravado = (quadroQ.data?.length ?? 0) > 0;
   /**
    * Cai no quadro derivado: só a PR, e só depois de o quadro ter voltado VAZIO
@@ -542,7 +542,7 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
     integralizacoes,
     /**
      * O capital da PR sai das integralizações enquanto o quadro é derivado, e do
-     * próprio quadro depois de gravado — senão a identidade Σ quotas dos sócios
+     * próprio quadro depois de gravado. Senão a identidade Σ quotas dos sócios
      * === totalQuotas quebra na primeira divergência entre bem e quota.
      */
     quadroGravado,

@@ -482,7 +482,7 @@ export function useGerarDocumentoController() {
   const precisaEmpresa = usaListas || temBlocosComFlags || (temSociedade && !sociedadeCongeladaSemEmpresa);
   // A sociedade também precisa das listas: capital social e total de quotas saem
   // do quadro societário, e das integralizações apenas na PR que ainda não gravou
-  // o quadro — onde os próprios sócios são derivados (daí o tipo da empresa).
+  // o quadro, onde os próprios sócios são derivados (daí o tipo da empresa).
   const {
     socios, administradores, integralizacoes, quadroGravado, isFetching: carregandoListas,
   } = useListasDaEmpresa(
@@ -713,8 +713,8 @@ export function useGerarDocumentoController() {
   }, [modeloId, clienteId]);
 
   // Capital social + total de quotas da sociedade: a PR ainda sem quadro gravado
-  // soma as integralizações aprovadas (quota = R$ 1,00); as demais — e a PR
-  // depois de gravar — somam o quadro societário.
+  // soma as integralizações aprovadas (quota = R$ 1,00); as demais (e a PR
+  // depois de gravar) somam o quadro societário.
   const { capitalValor, totalQuotas } = useMemo(
     () => calcularCapitalSociedade(empresaRow, socios, integralizacoes, quadroGravado),
     [empresaRow, socios, integralizacoes, quadroGravado],

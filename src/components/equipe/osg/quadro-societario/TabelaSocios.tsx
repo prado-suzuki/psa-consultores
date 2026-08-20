@@ -27,7 +27,7 @@ interface TabelaSociosProps {
   vazio: React.ReactNode;
   /**
    * Ação por sócio (movimentar as quotas dele). Quando ausente, a tabela é só
-   * leitura e a coluna de ação não existe — é o estado da proposta da PR, que
+   * leitura e a coluna de ação não existe. É o estado da proposta da PR, que
    * ainda não tem sócio no banco para movimentar.
    */
   acaoDoSocio?: (linha: LinhaSocio) => React.ReactNode;

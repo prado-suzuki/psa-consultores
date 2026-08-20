@@ -11,7 +11,7 @@ const fmtInt = (v: number | null): string => (v === null || Number.isNaN(Number(
 const fmtPct = (n: number | null): string => (n === null ? '—' : `${n.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`);
 
 // % do sócio: SEMPRE quotas/Σquotas. Percentual não soma ao longo do tempo, e
-// por isso o quadro (v_quadro_societario) não o agrega nem o guarda — quem quer
+// por isso o quadro (v_quadro_societario) não o agrega nem o guarda. Quem quer
 // o percentual do quadro calcula de quotas, aqui.
 const socioPct = (e: EmpresaSocietaria, s: SocioLinha): number | null =>
   e.totalQuotas > 0 && s.quotas != null ? (Number(s.quotas) / e.totalQuotas) * 100 : null;

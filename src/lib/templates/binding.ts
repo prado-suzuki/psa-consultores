@@ -7,7 +7,7 @@ import { campoDaEntidade, ENTIDADES, type TipoCampo, type TipoEntidade } from '.
 // o consultor liga cada binding a um registro real do cliente.
 //
 // Cardinalidade 'lista': papéis PLURAIS ({{#socios}}…{{/socios}}) iteram sobre uma
-// FONTE relacional (quadro_societario/administracao) da empresa escolhida — o
+// FONTE relacional (quadro societário/administracao) da empresa escolhida: o
 // consultor liga a empresa, não cada pessoa. Dentro da seção, os campos do item
 // usam a chave singular ({{ socio.nome }}) mais os extras da relação
 // ({{ socio.quotas }}) e as condicionais {{#sePF}}/{{#sePJ}}.
@@ -146,14 +146,16 @@ export function normalizarSelecaoLegada(
 
 /**
  * Fonte de uma lista:
- * - `quadro_societario`, `administracao`, `integralizacao`: relações da empresa
- *   (PJ) escolhida — o consultor liga a empresa, não cada item;
+ * - `quadro`, `administracao`, `integralizacao`: relações da empresa (PJ)
+ *   escolhida, e o consultor liga a empresa, não cada item. `quadro` é o quadro
+ *   societário, lido da view v_quadro_societario (o acumulado dos movimentos de
+ *   quota), não de uma tabela homônima;
  * - `signatarios`: derivada dessas relações (quem assina o documento);
  * - `georef`: BigQuery, pela matrícula selecionada (não depende da empresa);
  * - `selecao`: registros que o consultor escolhe a dedo na tela Gerar (também
  *   não depende da empresa — ver `usaListas` em useGerarDocumentoController).
  */
-export type FonteLista = 'quadro_societario' | 'administracao' | 'integralizacao' | 'georef' | 'signatarios' | 'selecao';
+export type FonteLista = 'quadro' | 'administracao' | 'integralizacao' | 'georef' | 'signatarios' | 'selecao';
 
 export interface CampoExtra {
   id: string;
@@ -180,7 +182,7 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     label: 'Sócios (Quadro Societário)',
     tipo: 'pessoa',
     itemKey: 'socio',
-    fonte: 'quadro_societario',
+    fonte: 'quadro',
     camposExtras: [
       { id: 'quotas', label: 'Quotas' },
       { id: 'quotasExtenso', label: 'Quotas (por extenso)' },

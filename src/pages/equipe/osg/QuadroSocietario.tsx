@@ -28,8 +28,8 @@ interface QuadroEmpresaProps {
   pessoasCliente: PessoaRow[];
 }
 
-// Quadro societário de uma empresa. Nos dois casos ele é o mesmo objeto — o
-// acumulado dos movimentos de quota (`v_quadro_societario`) — e o que muda é o
+// Quadro societário de uma empresa. Nos dois casos ele é o mesmo objeto, o
+// acumulado dos movimentos de quota (`v_quadro_societario`), e o que muda é o
 // que a tela oferece: a Proprietária (PR) ainda sem movimentação PROPÕE o quadro
 // de constituição, calculado dos bens; as demais registram movimento.
 const QuadroEmpresa = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
@@ -43,7 +43,7 @@ const QuadroEmpresa = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
  *
  * Antes daqui a tela era um CRUD da tabela `quadro_societario`: "vincular sócio"
  * inseria uma linha, o lápis editava quotas e valor, e a lixeira fazia DELETE
- * físico. O quadro só sabia o estado de hoje, e o de ontem era apagado — a
+ * físico. O quadro só sabia o estado de hoje, e o de ontem era apagado: a
  * cessão de quotas, que é o fato que a alteração contratual descreve, não tinha
  * como ser expressa. Agora cada gesto é um movimento no livro (aporte, cessão,
  * doação, redução) e o saldo é consequência: não há o que editar numa soma, e

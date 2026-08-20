@@ -31,7 +31,7 @@ describe('problemaDoMovimento', () => {
     expect(problema({})).toBeNull();
   });
 
-  it('aceita a cessão de TODAS as quotas do cedente — é a saída dele do quadro', () => {
+  it('aceita a cessão de TODAS as quotas do cedente, que é a saída dele do quadro', () => {
     // O saldo zerado tira o sócio do quadro (o `having` da view), sem delete
     // físico e sem perder o registro de para quem as quotas foram.
     expect(problema({ quotas: 600 })).toBeNull();
@@ -89,7 +89,7 @@ describe('problemaDoMovimento', () => {
     });
   });
 
-  it('todo tipo tem ao menos um lado — senão a linha não moveria nada', () => {
+  it('todo tipo tem ao menos um lado, senão a linha não moveria nada', () => {
     // Espelha o `movimentacao_quotas_lados_check`: origem OU destino preenchido.
     for (const tipo of TIPOS_MOVIMENTO) {
       const forma = FORMAS_MOVIMENTO[tipo];

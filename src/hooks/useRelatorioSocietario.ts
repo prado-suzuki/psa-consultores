@@ -5,12 +5,12 @@ import { supabase } from '@/integrations/supabase/client';
 // do Quadro Societário e o gerador de documento: `v_quadro_societario`, o
 // acumulado dos movimentos de quota de cada PJ. Antes daqui o relatório lia a
 // tabela `quadro_societario`, e passou a discordar da tela no dia em que a tela
-// trocou de fonte — duas telas discordando é o pior estado possível.
+// trocou de fonte, e duas telas discordando é o pior estado possível.
 //
 // São DUAS leituras e não um embed: o PostgREST só infere relacionamento de view
 // quando a coluna vem direto da tabela base, e `pessoa_id` aqui nasce de um
 // `union all` com `group by`. A view expõe `cliente_id` (da empresa), que é o
-// filtro — não é preciso juntar `pessoa` para restringir ao cliente.
+// filtro, então não é preciso juntar `pessoa` para restringir ao cliente.
 
 export interface SocioLinha {
   pessoaId: string | null;

@@ -23,6 +23,8 @@ const ENTITY_LABELS_OSG: Record<string, string> = {
   pessoa: 'Pessoa',
   parentesco: 'Parentesco',
   administracao: 'Administração',
+  // `quadro_societario` é a tabela que virou movimentacao_quotas: o rótulo fica
+  // porque as linhas de audit_logs anteriores ao corte continuam apontando nele.
   quadro_societario: 'Quadro societário',
   movimentacao_quotas: 'Movimentação de quotas',
   bem: 'Bem',

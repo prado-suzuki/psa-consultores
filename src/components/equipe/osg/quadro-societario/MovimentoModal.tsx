@@ -31,7 +31,7 @@ import { fmtBRL, fmtInt } from './quadroFmt';
 interface MovimentoModalProps {
   open: boolean;
   empresa: PessoaRow;
-  /** Quadro atual (saldo) — de onde saem os candidatos a cedente e os limites. */
+  /** Quadro atual (saldo): de onde saem os candidatos a cedente e os limites. */
   quadro: SocioDoQuadro[];
   pessoasCliente: PessoaRow[];
   /** Cedente já escolhido, quando o gesto partiu da linha de um sócio. */
@@ -85,7 +85,7 @@ export function MovimentoModal({
   );
 
   // Cedente: só quem TEM quotas nesta empresa. Adquirente: qualquer pessoa do
-  // cliente, menos a própria empresa — entrar sócio novo é o caso normal.
+  // cliente, menos a própria empresa, porque entrar sócio novo é o caso normal.
   const candidatosDestino = useMemo(
     () => pessoasCliente.filter((p) => p.id !== empresa.id),
     [pessoasCliente, empresa.id],
@@ -252,7 +252,7 @@ export function MovimentoModal({
                 </div>
               </div>
               {/* O valor não se digita: é as quotas ao valor nominal da casa. Ver
-                  capitalDoMovimento — gravar o preço pago aqui corromperia o
+                  capitalDoMovimento. Gravar o preço pago aqui corromperia o
                   capital do quadro, que é a soma desta coluna. */}
               <p className="mt-3 text-xs text-muted-foreground">
                 Valor de capital das quotas movidas:{' '}

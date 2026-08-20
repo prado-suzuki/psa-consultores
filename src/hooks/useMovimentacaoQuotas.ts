@@ -21,7 +21,7 @@ export interface SocioDoQuadro {
   cpfCnpj: string | null;
   quotas: number;
   vlrTotal: number;
-  /** created_at do PRIMEIRO movimento do sócio — a ordem do preâmbulo. */
+  /** created_at do PRIMEIRO movimento do sócio: a ordem do preâmbulo. */
   ordem: string | null;
   /** Movimentos que compõem o saldo (alimentam a notificação de variável). */
   movimentoIds: string[];
@@ -33,7 +33,7 @@ export interface SocioDoQuadro {
  * São DUAS leituras, e não um embed: o PostgREST só infere relacionamento de
  * view quando a coluna vem direto da tabela base, e `pessoa_id` aqui nasce de um
  * `union all` com `group by`. Ou seja, `socio:pessoa_id (*)` não existe em
- * v_quadro_societario — quem precisa da pessoa busca e costura, como este hook.
+ * v_quadro_societario, então quem precisa da pessoa busca e costura, como aqui.
  */
 export function useQuadroDaEmpresa(empresaPessoaId: string | null) {
   return useQuery<SocioDoQuadro[]>({
@@ -157,7 +157,7 @@ export function useGravarAporteInicial() {
  * Grava UM movimento de quota: um gesto do consultor, uma linha no livro.
  *
  * É o que substituiu o CRUD do quadro. Antes, editar o quadro fazia `update` na
- * linha do sócio e remover sócio fazia `delete` físico — o quadro só sabia o
+ * linha do sócio e remover sócio fazia `delete` físico. O quadro só sabia o
  * estado de hoje, e o de ontem era apagado. Agora "vincular sócio" é um aporte,
  * "aumentar quotas" é outro aporte, "diminuir" é uma redução e "remover" é a
  * cessão (ou doação) das quotas para quem as recebeu. O saldo continua sendo o
@@ -196,7 +196,7 @@ export function useRegistrarMovimento() {
           data_movimento: movimento.dataMovimento,
           // Colunas do modelo antigo, ainda NOT NULL até a migration de limpeza
           // (20260820163000). Espelham as novas; nada as lê. `socio_pessoa_id`
-          // recebe o lado que existe — na redução não há adquirente.
+          // recebe o lado que existe, porque na redução não há adquirente.
           socio_pessoa_id: movimento.destinoPessoaId ?? movimento.origemPessoaId!,
           empresa_destino_pessoa_id: empresaPessoaId,
         })
