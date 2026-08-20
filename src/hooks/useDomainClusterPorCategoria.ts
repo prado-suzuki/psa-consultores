@@ -18,21 +18,28 @@ import {
  * semanas, não de minutos.
  */
 
-export const clusterPorCategoriaKey = (categoria: PageCategory) =>
+export const clusterPorCategoriaKey = (categoria: PageCategory | null) =>
   ['cluster-por-categoria', categoria] as const;
 
-export function useDomainClusterPorCategoria(categoria: PageCategory) {
+/**
+ * `categoria` aceita `null` para o caso da tela ESPELHADA aberta sem espelho:
+ * `/equipe/chamados` sem `?area=` mostra todos os clusters e não tem categoria
+ * para resolver. Nesse caso a query nem sai, e `clusterId` fica `null` — que a
+ * tela lê como "sem recorte", não como "carregando".
+ */
+export function useDomainClusterPorCategoria(categoria: PageCategory | null) {
   const query = useQuery<string>({
     queryKey: clusterPorCategoriaKey(categoria),
+    enabled: categoria !== null,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('estrutura_areas')
         .select('name, cluster_id')
-        .contains('page_categories', [categoria]);
+        .contains('page_categories', [categoria as PageCategory]);
 
       if (error) throw error;
       // A validação (nenhuma área / clusters divergentes) mora na função pura.
-      return resolverClusterDaCategoria(categoria, (data ?? []) as AreaComCluster[]);
+      return resolverClusterDaCategoria(categoria as PageCategory, (data ?? []) as AreaComCluster[]);
     },
     staleTime: 30 * 60 * 1000,
   });

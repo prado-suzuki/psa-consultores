@@ -147,7 +147,84 @@ export function areaDaRota(pathname: string): AreaDeTema {
  * blocos em `src/index.css` (todas as classes têm a mesma especificidade). O
  * aviso está no topo do `.base-theme`.
  */
-export function resolverTemaDaRota(pathname: string): string[] {
-  const classeDaArea = TEMA_DA_AREA[areaDaRota(pathname)];
+export function resolverTemaDaRota(pathname: string, busca?: string): string[] {
+  const area = chaveDeEspelho(pathname, busca) ?? areaDaRota(pathname);
+  const classeDaArea = TEMA_DA_AREA[area];
   return classeDaArea ? [CLASSE_BASE, classeDaArea] : [CLASSE_BASE];
+}
+
+// ─── Espelhamento: uma tela em vários ambientes ───────────────────────────
+//
+// Uma tela ESPELHADA é uma tela só, montada numa rota só, que se apresenta como
+// sendo do ambiente de onde foi aberta: `/equipe/chamados?area=osg` mostra os
+// chamados da OSG com o tema da OSG. Não há rota nova, não há cópia.
+//
+// A REGRA, e ela é o motivo de o parâmetro existir: COR E CONTEÚDO ANDAM SEMPRE
+// JUNTOS. Nunca teal mostrando OSG; nunca mostrando tudo estando teal. Se a cor
+// diz Tax, a lista é Tax.
+//
+// O que torna isso estrutural, e não uma regra a lembrar: a chave do parâmetro é
+// uma CATEGORIA DE PÁGINA, e a mesma categoria resolve as duas coisas —
+//
+//   ?area=tax  →  tema:     ESPELHO['tax']                      (aqui, síncrono)
+//              →  conteúdo: useDomainClusterPorCategoria('tax') (cluster, async)
+//
+// As duas saem de `estrutura_areas.page_categories`. Não existe estado em que
+// uma mude sem a outra, porque não são duas fontes.
+
+/** O parâmetro que carrega o ambiente de espelhamento. */
+export const PARAM_DE_ESPELHO = 'area';
+
+/**
+ * As categorias que podem espelhar, e o tema de cada uma.
+ *
+ * São exatamente as categorias que têm área em `estrutura_areas.page_categories`
+ * — sem área não há cluster para filtrar, e sem filtro não pode haver cor.
+ * `geral`, `mapa`, `board` e `gestao` ficam de fora por isso, não por esquecimento.
+ *
+ * DECISÃO EXPLÍCITA — `dev` e `rotina` apontam para o MESMO cluster (Digital) e
+ * têm temas DIFERENTES, e isso é aceito. A regra é "cor e conteúdo andam
+ * juntos", não "existe bijeção entre cor e conteúdo". Dev e Rotina são as duas
+ * metades do Digital: a cor diz em que parte do Digital você está espelhado, o
+ * conteúdo diz de que cluster a lista é. As duas afirmações são verdadeiras ao
+ * mesmo tempo. Isto está escrito aqui para não virar "achado" daqui a seis meses.
+ */
+export const ESPELHO: Record<string, AreaDeTema> = {
+  tax: 'tax',
+  osg: 'osg',
+  dev: 'digital',
+  rotina: 'rotina',
+};
+
+/**
+ * As rotas que aceitam espelhamento.
+ *
+ * Sem esta lista, `?area=osg` pintaria OSG em QUALQUER rota — inclusive
+ * `/equipe/tax/dashboard`, que é da Tax e não espelha nada. O parâmetro só
+ * sobrescreve onde a tela sabe filtrar por ele.
+ *
+ * O casamento é EXATO, e não por segmento como no `MAPA_DE_ROTAS`. A diferença
+ * importa: por segmento, `/equipe/chamados/:id` — o detalhe de UM chamado —
+ * herdaria o espelho e ficaria musgo mostrando um chamado que pode ser do TAX.
+ * O detalhe não tem escopo para filtrar, então não pode ter cor de escopo.
+ * (Na prática a navegação nem produz essa URL: `onNavigate` vai para
+ * `/equipe/chamados/${id}` sem parâmetro. O casamento exato fecha a porta
+ * também para quem digitar a URL à mão.)
+ */
+export const ROTAS_ESPELHADAS: string[] = ['/equipe/chamados'];
+
+/**
+ * A chave de espelhamento válida de uma navegação, ou `null`.
+ *
+ * `null` quando: a rota não espelha, não há parâmetro, ou a chave é
+ * desconhecida. Chave desconhecida cai no tema próprio da rota em vez de quebrar
+ * — mesma direção à prova de falha do resto: rota não mapeada nasce com a cor da
+ * marca, nunca sem cor.
+ */
+export function chaveDeEspelho(pathname: string, busca?: string): AreaDeTema | null {
+  if (!busca) return null;
+  const limpo = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  if (!ROTAS_ESPELHADAS.includes(limpo)) return null;
+  const chave = new URLSearchParams(busca).get(PARAM_DE_ESPELHO);
+  return chave ? ESPELHO[chave] ?? null : null;
 }

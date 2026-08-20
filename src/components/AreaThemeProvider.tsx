@@ -23,16 +23,22 @@ import { CLASSES_DE_TEMA, resolverTemaDaRota } from '@/lib/areaTheme';
  * aplica.
  */
 export function AreaThemeProvider({ children }: { children: ReactNode }) {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+
+  // Resolvido no render, e a dependência do efeito é o RESULTADO — não a query
+  // crua. Depender de `search` faria qualquer parâmetro sem relação com tema
+  // (ordenação, busca, paginação) re-rodar o efeito a cada tecla.
+  const desejadas = resolverTemaDaRota(pathname, search);
+  const chave = desejadas.join(' ');
 
   useLayoutEffect(() => {
-    const desejadas = resolverTemaDaRota(pathname);
     const html = document.documentElement;
     // Remove só o que sobrou da rota anterior; `classList` não é reescrita
     // inteira para não derrubar classe de terceiro (ex.: `dark`).
-    html.classList.remove(...CLASSES_DE_TEMA.filter((c) => !desejadas.includes(c)));
-    html.classList.add(...desejadas);
-  }, [pathname]);
+    const alvo = chave.split(' ');
+    html.classList.remove(...CLASSES_DE_TEMA.filter((c) => !alvo.includes(c)));
+    html.classList.add(...alvo);
+  }, [chave]);
 
   return <>{children}</>;
 }

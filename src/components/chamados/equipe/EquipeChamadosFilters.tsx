@@ -17,9 +17,18 @@ interface EquipeChamadosFiltersProps {
   filteredCount: number;
   totalCount: number;
   onReset: () => void;
+  /**
+   * Trava o filtro de Cluster quando a tela está ESPELHADA (`?area=`).
+   *
+   * Sem isto a regra "cor e conteúdo andam juntos" cai no primeiro clique: a
+   * tela abre musgo com a lista da OSG e o usuário troca o cluster para TAX à
+   * mão — musgo mostrando TAX. O espelho define o escopo; dentro dele o
+   * usuário filtra o que quiser, menos o escopo.
+   */
+  clusterTravado?: boolean;
 }
 
-export function EquipeChamadosFilters({ filters, onFiltersChange, mostrarUrgentes, onMostrarUrgentesChange, areas, clusters, filteredCount, totalCount, onReset }: EquipeChamadosFiltersProps) {
+export function EquipeChamadosFilters({ filters, onFiltersChange, mostrarUrgentes, onMostrarUrgentesChange, areas, clusters, filteredCount, totalCount, onReset, clusterTravado = false }: EquipeChamadosFiltersProps) {
   const update = (field: keyof Filters, value: string) => onFiltersChange({ ...filters, [field]: value });
   return (
     <Card className="mb-6">
@@ -41,9 +50,12 @@ export function EquipeChamadosFilters({ filters, onFiltersChange, mostrarUrgente
           <FilterSelect label="Área" value={filters.area} onChange={(value) => update('area', value)} options={[
             ['todos', 'Todas Áreas'], ...areas.map((area) => [area.id, area.name] as [string, string]),
           ]} />
-          <FilterSelect label="Cluster" value={filters.cluster} onChange={(value) => update('cluster', value)} options={[
-            ['todos', 'Todos'], ...clusters.map((cluster) => [cluster.id, cluster.name] as [string, string]),
-          ]} />
+          <FilterSelect label="Cluster" value={filters.cluster} onChange={(value) => update('cluster', value)}
+            disabled={clusterTravado}
+            ajuda={clusterTravado ? 'Definido pelo ambiente desta tela' : undefined}
+            options={[
+              ['todos', 'Todos'], ...clusters.map((cluster) => [cluster.id, cluster.name] as [string, string]),
+            ]} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           <div className="space-y-2">
@@ -62,15 +74,19 @@ export function EquipeChamadosFilters({ filters, onFiltersChange, mostrarUrgente
   );
 }
 
-interface FilterSelectProps { label: string; value: string; onChange: (value: string) => void; options: [string, string][] }
-function FilterSelect({ label, value, onChange, options }: FilterSelectProps) {
+interface FilterSelectProps {
+  label: string; value: string; onChange: (value: string) => void;
+  options: [string, string][]; disabled?: boolean; ajuda?: string;
+}
+function FilterSelect({ label, value, onChange, options, disabled = false, ajuda }: FilterSelectProps) {
   return (
     <div className="space-y-2">
       <Label>{label}</Label>
-      <Select value={value} onValueChange={onChange}>
+      <Select value={value} onValueChange={onChange} disabled={disabled}>
         <SelectTrigger><SelectValue /></SelectTrigger>
         <SelectContent>{options.map(([optionValue, text]) => <SelectItem key={optionValue} value={optionValue}>{text}</SelectItem>)}</SelectContent>
       </Select>
+      {ajuda ? <p className="text-xs text-muted-foreground">{ajuda}</p> : null}
     </div>
   );
 }

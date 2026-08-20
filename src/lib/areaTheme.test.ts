@@ -4,11 +4,16 @@ import { describe, expect, it } from 'vitest';
 import {
   CLASSE_BASE,
   CLASSES_DE_TEMA,
+  ESPELHO,
   MAPA_DE_ROTAS,
+  PARAM_DE_ESPELHO,
+  ROTAS_ESPELHADAS,
   TEMA_DA_AREA,
   areaDaRota,
+  chaveDeEspelho,
   resolverTemaDaRota,
 } from '@/lib/areaTheme';
+import { PROTECTED_PAGES } from '@/config/protectedPages';
 
 /** As rotas `/equipe` como o App.tsx as declara — fonte da verdade, não cópia. */
 function rotasDoApp(): string[] {
@@ -313,5 +318,116 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
       const corpo = css.slice(ini, css.indexOf('\n  }', ini));
       expect(corpo, `.${classe}`).toContain('--tool-icon: var(--primary);');
     }
+  });
+});
+
+/*
+ * ESPELHAMENTO — a regra "cor e conteúdo andam juntos", cobrada pelo build.
+ *
+ * A regra não pode viver em comentário: é exatamente o tipo de coisa que se
+ * perde. Estes testes existem para que quebre no CI, não na tela.
+ *
+ * O que os torna possíveis é o desenho: a chave do parâmetro é uma CATEGORIA DE
+ * PÁGINA, e a mesma categoria resolve o tema (aqui) e o cluster da lista
+ * (`useDomainClusterPorCategoria`). Uma chave que pinta mas não filtra não é um
+ * descuido a lembrar — é uma linha que não existe.
+ */
+describe('espelhamento: cor e conteúdo saem da mesma chave', () => {
+  it('toda chave de espelho é uma categoria de página REAL', () => {
+    // Chave que não é categoria não tem como resolver cluster, logo pintaria
+    // sem filtrar. `PROTECTED_PAGES` é a fonte de quais categorias existem.
+    const categoriasReais = new Set(PROTECTED_PAGES.map((p) => p.category as string));
+    for (const chave of Object.keys(ESPELHO)) {
+      expect(categoriasReais.has(chave), `"${chave}" não é categoria de nenhuma página`).toBe(true);
+    }
+  });
+
+  it('toda chave de espelho resolve para um tema declarado', () => {
+    for (const [chave, area] of Object.entries(ESPELHO)) {
+      expect(TEMA_DA_AREA, `chave "${chave}"`).toHaveProperty(area);
+      expect(TEMA_DA_AREA[area], `chave "${chave}" cairia no piso — pintar sem mudar nada`).not.toBeNull();
+    }
+  });
+
+  it('toda rota espelhável existe no App.tsx', () => {
+    const rotas = new Set(rotasDoApp().map((r) => r.replace(/\/\*$/, '')));
+    for (const rota of ROTAS_ESPELHADAS) {
+      expect(rotas.has(rota), `${rota} não é rota declarada`).toBe(true);
+    }
+  });
+
+  /*
+   * O TRAVAMENTO PRINCIPAL: não se pinta sem filtrar.
+   *
+   * Se alguém puser uma rota em `ROTAS_ESPELHADAS` e não fizer a tela ler o
+   * parâmetro, a rota passa a mudar de COR sem mudar de CONTEÚDO — que é
+   * precisamente o defeito que o espelhamento existe para não ter. Aqui a
+   * varredura procura o uso do parâmetro no código da tela.
+   */
+  it('toda rota espelhável tem tela que LÊ o parâmetro', () => {
+    const app = readFileSync('src/App.tsx', 'utf8');
+    const linhas = app.split('\n');
+    for (const rota of ROTAS_ESPELHADAS) {
+      const linha = linhas.find((l) => l.includes(`<Route path="${rota}"`));
+      expect(linha, `rota ${rota} não encontrada no App.tsx`).toBeTruthy();
+      const comp = [...(linha as string).matchAll(/<([A-Z][A-Za-z0-9]*)\s*\/>/g)].pop()?.[1];
+      expect(comp, `sem componente em ${rota}`).toBeTruthy();
+      const linhaImport = linhas.find((l) => l.startsWith('import') && l.includes(` ${comp} `));
+      expect(linhaImport, `import de ${comp} não encontrado`).toBeTruthy();
+      const caminho = (linhaImport as string).match(/from\s+"([^"]+)"/)?.[1];
+      expect(caminho, `caminho do import de ${comp} não lido`).toBeTruthy();
+      const arquivo = `${(caminho as string).replace('@/', 'src/').replace('./', 'src/')}.tsx`;
+      const fonte = readFileSync(arquivo, 'utf8');
+      expect(
+        fonte.includes('PARAM_DE_ESPELHO'),
+        `${arquivo} está em ROTAS_ESPELHADAS mas não lê PARAM_DE_ESPELHO: a rota mudaria de cor sem mudar de conteúdo`,
+      ).toBe(true);
+    }
+  });
+
+  it('rota que não espelha IGNORA o parâmetro', () => {
+    // Sem isto, `?area=osg` pintaria OSG em qualquer tela do sistema.
+    expect(resolverTemaDaRota('/equipe/tax/dashboard', '?area=osg'))
+      .toEqual(resolverTemaDaRota('/equipe/tax/dashboard'));
+    expect(chaveDeEspelho('/equipe/tax/dashboard', '?area=osg')).toBeNull();
+  });
+
+  it('chave desconhecida cai no tema da própria rota, sem quebrar', () => {
+    expect(resolverTemaDaRota('/equipe/chamados', '?area=inventada'))
+      .toEqual(resolverTemaDaRota('/equipe/chamados'));
+  });
+
+  it('sem parâmetro, a rota espelhável mantém o tema dela', () => {
+    expect(resolverTemaDaRota('/equipe/chamados', '')).toEqual(resolverTemaDaRota('/equipe/chamados'));
+    expect(resolverTemaDaRota('/equipe/chamados', '?ordenar=data'))
+      .toEqual(resolverTemaDaRota('/equipe/chamados'));
+  });
+
+  it('cada chave leva ao tema do seu ambiente', () => {
+    const tema = (chave: string) => resolverTemaDaRota('/equipe/chamados', `?${PARAM_DE_ESPELHO}=${chave}`);
+    expect(tema('tax')).toEqual([CLASSE_BASE, 'tax-theme']);
+    expect(tema('osg')).toEqual([CLASSE_BASE, 'osg-theme']);
+    expect(tema('dev')).toEqual([CLASSE_BASE, 'sistema-theme']);
+    expect(tema('rotina')).toEqual([CLASSE_BASE, 'rotina-theme']);
+  });
+
+  /*
+   * O detalhe de UM chamado não espelha, e isto é a regra outra vez.
+   *
+   * `/equipe/chamados/:id` mostra um chamado só — não tem escopo para filtrar,
+   * logo não pode ter cor de escopo. Se o espelho vazasse para lá, a tela
+   * ficaria musgo mostrando um chamado que pode ser do TAX: cor afirmando o que
+   * o conteúdo não cumpre, que é exatamente o defeito que o espelhamento existe
+   * para não ter. Por isso o casamento de `ROTAS_ESPELHADAS` é EXATO.
+   */
+  it('o espelho não vaza para o detalhe do chamado', () => {
+    expect(chaveDeEspelho('/equipe/chamados/abc-123', '?area=osg')).toBeNull();
+    expect(chaveDeEspelho('/equipe/chamadosX', '?area=osg')).toBeNull();
+    expect(resolverTemaDaRota('/equipe/chamados/abc-123', '?area=osg'))
+      .toEqual([CLASSE_BASE, 'rotina-theme']);
+  });
+
+  it('barra final não engana o casamento exato', () => {
+    expect(chaveDeEspelho('/equipe/chamados/', '?area=osg')).toBe('osg');
   });
 });
