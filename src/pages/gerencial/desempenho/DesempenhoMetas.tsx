@@ -179,7 +179,13 @@ const DesempenhoMetas = () => {
       {/* PPR Rules Block */}
       {pprRegras && pprRegras.length > 0 ? (
         <Card className="mb-6 overflow-hidden" style={{ border: '1px solid var(--board-border)' }}>
-          <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)' }}>
+          {/* Par de tokens na ordem documentada no `index.css` (425-434): do mais
+              escuro `--surface-escura` para o intermediário `--surface-escura-2`.
+              O `#0F172A` cravado ERA `hsl(222 47% 11%)`, o próprio
+              `--surface-escura-2` do piso copiado à mão — e por ser hex ignorava
+              o tema. Esta rota resolve `.sistema-theme`, que declara grafite
+              quente. Branco em cima: 18,3:1 no início, 16,4:1 no fim. */}
+          <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg, hsl(var(--surface-escura)) 0%, hsl(var(--surface-escura-2)) 100%)' }}>
             <h3 className="text-sm font-bold text-white" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Regras do PPR — {selectedCiclo?.nome || 'Ciclo Ativo'}</h3>
             <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>Faixas de classificacao e multiplicadores de bonus</p>
           </div>
