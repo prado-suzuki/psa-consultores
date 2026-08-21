@@ -1286,6 +1286,13 @@ All colors MUST be HSL.
   --board-v4-accent: #4B63F7;
   --board-v4-go: #0EA271;
   --board-v4-go-t: rgba(14,162,113,.1);
+  /* Degrau escuro do verde, PARA TEXTO. Aditivo, mesmo raciocínio do
+     `--board-v4-warn-d`: nada que já usava `--board-v4-go` mudou de cor.
+     #0EA271 dava 3,27:1 sobre branco e 2,93:1 sobre o próprio `-t`, que é o
+     fundo do `.pill-up` — o pill do "875% ROI", 10,5px. Mesmo matiz e mesma
+     saturação (H 160°, S 84%), L 34% → 25%: 5,71:1 no branco e 5,12:1 sobre o
+     `-t`. Dimensionado pelo tint, não pelo branco, porque é ali que ele vive. */
+  --board-v4-go-d: #0A7552;
   --board-v4-warn: #D4820A;
   --board-v4-warn-t: rgba(212,130,10,.1);
   /* Degrau escuro do âmbar, PARA TEXTO. Aditivo: nada que já usava
@@ -1357,7 +1364,10 @@ All colors MUST be HSL.
 
 /* Board v4 Pills */
 .pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
-.pill-up { background: var(--board-v4-go-t); color: var(--board-v4-go); }
+/* `color` no degrau `-d` e `background` no tint normal: o pill é texto de 10,5px
+   sobre uma superfície clara, então quem precisa do mínimo é a letra, não o
+   fundo. O `.pill-down` já passa com o `--board-v4-risk` (5,03:1). */
+.pill-up { background: var(--board-v4-go-t); color: var(--board-v4-go-d); }
 .pill-down { background: var(--board-v4-risk-t); color: var(--board-v4-risk); }
 .pill-neutral { background: var(--board-v4-line2); color: var(--board-v4-ink3); }
 
