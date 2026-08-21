@@ -16,6 +16,7 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 import { avaliarHorasApontadas } from '@/lib/horasApontamento';
+import { temHorasApontadas } from '@/lib/orgTaskHours';
 import { CHIP_BUTTON, CHIP_LABEL, CHIP_TRIGGER } from '@/lib/modalChipStyles';
 import { taskPriorityColors, taskPriorityList } from '@/lib/taskPriorityColors';
 import type { TaskFieldOptions, TaskFormValues } from '@/lib/orgTaskForm';
@@ -49,20 +50,17 @@ export function TaskPropertyBar({
   const isDone = status === 'done';
   const actualHoursValue = form.watch('actual_hours');
   const estimatedHoursValue = form.watch('estimated_hours');
-  const hoursAck = form.watch('hours_ack') ?? false;
   // Aviso de digitação: recalculado a cada tecla, some sozinho quando o valor
-  // volta ao padrão. Salvar exige corrigir ou confirmar (ver `taskSchema`).
+  // volta ao padrão. É só informativo — não impede salvar (ver `taskSchema`).
   const avisoHoras = avaliarHorasApontadas({
     realizadas: actualHoursValue,
     estimadas: estimatedHoursValue,
   });
+  // O campo é editável em qualquer status: as horas vão sendo apontadas ao longo
+  // da tarefa. O que trava é concluir sem nenhuma.
+  const faltamHoras = isDone && !temHorasApontadas(actualHoursValue);
   const needsAttention =
-    (isDone && (!actualHoursValue || !!form.formState.errors.actual_hours)) ||
-    (!!avisoHoras && !hoursAck);
-
-  const resetHoursAck = () => {
-    if (form.getValues('hours_ack')) form.setValue('hours_ack', false);
-  };
+    faltamHoras || !!form.formState.errors.actual_hours || !!avisoHoras;
 
   const assignee = teamMembers.find((member) => member.id === assignedTo);
   // Um rascunho restaurado pode não trazer a prioridade; sem o fallback a
@@ -192,41 +190,25 @@ export function TaskPropertyBar({
                 name="estimated_hours"
                 label="Horas estimadas"
                 placeholder="0"
-                onAfterChange={resetHoursAck}
               />
               <span className="text-sm text-muted-foreground">/</span>
               <HoursField
                 form={form}
                 name="actual_hours"
                 label="Horas realizadas"
-                placeholder={isDone ? '0' : '—'}
-                disabled={!isDone}
-                autoFocus={isDone && !actualHoursValue}
+                placeholder="0"
+                autoFocus={faltamHoras}
                 required={isDone}
                 highlight={needsAttention}
-                onAfterChange={resetHoursAck}
               />
               <span className="text-xs text-muted-foreground">h</span>
             </div>
           </div>
         </div>
 
-        <AvisoHorasDigitadas
-          aviso={avisoHoras}
-          confirmado={hoursAck}
-          className="mt-3"
-          onConfirmar={() => {
-            form.setValue('hours_ack', true);
-            form.clearErrors('actual_hours');
-          }}
-          onUsarSugestao={(horas) => {
-            form.setValue('actual_hours', horas);
-            form.setValue('hours_ack', false);
-            form.clearErrors('actual_hours');
-          }}
-        />
+        <AvisoHorasDigitadas aviso={avisoHoras} className="mt-3" />
 
-        {isDone && !avisoHoras && (
+        {faltamHoras && (
           <div className="mt-3 flex items-start gap-2 text-xs text-warning">
             <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
             <span>
@@ -284,22 +266,17 @@ function HoursField({
   name,
   label,
   placeholder,
-  disabled,
   autoFocus,
   required,
   highlight,
-  onAfterChange,
 }: {
   form: UseFormReturn<TaskFormValues>;
   name: 'estimated_hours' | 'actual_hours';
   label: string;
   placeholder: string;
-  disabled?: boolean;
   autoFocus?: boolean;
   required?: boolean;
   highlight?: boolean;
-  /** Chamado a cada digitação — usado para desfazer a confirmação do aviso. */
-  onAfterChange?: () => void;
 }) {
   return (
     <FormField
@@ -316,7 +293,6 @@ function HoursField({
               step="0.5"
               min="0"
               placeholder={placeholder}
-              disabled={disabled}
               autoFocus={autoFocus}
               className={cn(
                 'h-9 w-[3.25rem] rounded-lg border-transparent bg-background px-1.5 text-center text-sm font-medium shadow-sm md:text-sm disabled:cursor-default disabled:opacity-60',
@@ -324,10 +300,9 @@ function HoursField({
               )}
               {...field}
               value={field.value ?? ''}
-              onChange={(event) => {
-                field.onChange(event.target.value === '' ? '' : Number(event.target.value));
-                onAfterChange?.();
-              }}
+              onChange={(event) =>
+                field.onChange(event.target.value === '' ? '' : Number(event.target.value))
+              }
             />
           </FormControl>
           <FormMessage className="max-w-[8rem] text-[11px] leading-tight" />

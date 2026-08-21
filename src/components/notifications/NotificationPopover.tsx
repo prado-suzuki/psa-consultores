@@ -31,11 +31,26 @@ import {
 } from '@/lib/notificacoesInternas';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { cn } from '@/lib/utils';
+import { linkEspelhado, type ChaveDeEspelho } from '@/lib/areaTheme';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface NotificationPopoverProps {
   navigateTo: string;
+  /**
+   * Ambiente em que esta tela está ESPELHADA, quando está.
+   *
+   * Prop separada do `navigateTo` de propósito: o parâmetro NÃO pode viajar
+   * dentro do caminho. `handleTicketClick` faz `navigateTo.replace('/chamados','')`
+   * para montar a rota do detalhe — com a query no caminho, sairia
+   * `/equipe?area=tax/chamados/123`. E o detalhe de um chamado não deve espelhar
+   * de todo jeito: ele não tem escopo para filtrar, logo não pode ter cor de
+   * escopo (ver `ROTAS_ESPELHADAS` em `src/lib/areaTheme.ts`).
+   *
+   * Então o espelho entra SÓ na navegação para a LISTA.
+   */
+  espelho?: ChaveDeEspelho;
+
   /** Origem, para que o botão "Voltar" da lista de chamados retorne à área correta. */
   backTo?: string;
   /**
@@ -173,7 +188,7 @@ function ReviewNotificationItem({
       className="w-full p-3 text-left hover:bg-muted/50 transition-colors border-b border-border last:border-b-0 group"
     >
       <div className="flex items-start gap-3">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200">
+        <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-purple-100 text-purple-700">
           <ClipboardCheck className="h-4 w-4" />
         </div>
         <div className="flex-1 min-w-0">
@@ -184,7 +199,7 @@ function ReviewNotificationItem({
             Enviada por {notification.assignedToName}
           </p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            <span className="text-xs font-medium text-purple-600 dark:text-purple-300">
+            <span className="text-xs font-medium text-purple-600">
               Revisão pendente
             </span>
             {notification.projectName && (
@@ -337,6 +352,7 @@ function InternaNotificationItem({
 
 export function NotificationPopover({
   navigateTo,
+  espelho,
   backTo,
   tasksNavigateTo = '/equipe/tax/projetos/tarefas',
   mencoesArea = 'tax',
@@ -422,7 +438,7 @@ export function NotificationPopover({
   };
 
   const handleViewAll = () => {
-    navigate(navigateTo, navState);
+    navigate(espelho ? linkEspelhado(navigateTo, espelho) : navigateTo, navState);
   };
 
   return (

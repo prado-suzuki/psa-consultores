@@ -67,6 +67,15 @@ o `HEAD` do git e reinicia o servidor quando a branch muda:
 ➜  Supabase:   https://zwoainzzqhudmmknuycq.supabase.co  (.env (branch main))
 ```
 
+A branch é lida quando o servidor sobe. Trocar de branch com o dev de pé faria o app
+continuar no banco da branch anterior, sem nenhum sinal, então o `vite.config.ts` vigia
+o `HEAD` do git e reinicia o servidor quando a branch muda:
+
+```
+➜  branch main: reiniciando para reavaliar o Supabase...
+➜  Supabase:   https://zwoainzzqhudmmknuycq.supabase.co  (branch main)
+```
+
 ### Precedência dos arquivos de env
 
 O que o Vite carrega sozinho em `mode=development`, e **o último vence**:

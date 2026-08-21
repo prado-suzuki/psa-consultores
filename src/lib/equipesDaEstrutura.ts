@@ -19,6 +19,7 @@ export interface AreaDaEstrutura {
   cluster_id: string;
   name: string;
   color?: string | null;
+  color_index?: number | null;
   /** Categorias de página que a área libera (`osg`, `tax`, `rotina`/`dev`…). */
   page_categories?: string[] | null;
 }
@@ -40,6 +41,8 @@ export interface GrupoDeEquipes {
   areaId: string;
   caminho: string;
   cor: string | null;
+  /** Slot da paleta da área — ver src/lib/corDaArea.ts. */
+  corIndice: number | null;
   equipes: Array<{ id: string; name: string }>;
 }
 
@@ -74,6 +77,7 @@ export function montarGruposDeEquipe(
       areaId: area.id,
       caminho: `${cluster.name} › ${area.name}`,
       cor: area.color ?? null,
+      corIndice: area.color_index ?? null,
       equipes: equipesDaArea,
     });
   }

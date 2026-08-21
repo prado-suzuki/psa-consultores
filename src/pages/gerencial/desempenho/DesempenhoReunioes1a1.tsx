@@ -23,7 +23,7 @@ const statusColors: Record<string, string> = {
   aberto: 'bg-amber-100 text-amber-700',
   em_andamento: 'bg-blue-100 text-blue-700',
   concluido: 'bg-emerald-100 text-emerald-700',
-  cancelado: 'bg-slate-100 text-slate-600',
+  cancelado: 'bg-status-neutro-soft text-status-neutro',
 };
 
 const DesempenhoReunioes1a1 = () => {

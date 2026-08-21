@@ -15,6 +15,8 @@ import {
   SEM_UF,
   type ClienteRegiao,
 } from '@/lib/clientesPorRegiao';
+import { useOsVolumePorCliente } from '@/hooks/useOsVolumePorCliente';
+import { formatCurrencyDisplay } from '@/components/equipe/client-form/constants';
 
 /**
  * Mapa de calor (choropleth) dos clientes por estado, para o módulo Gerencial.
@@ -54,13 +56,29 @@ interface BoardMapaClientesProps {
   escopoTotal?: boolean;
 }
 
+/** Quantas linhas o ranking "Top clientes" mostra antes de rolar. */
+const TOP_CLIENTES_QTD = 8;
+
 export const BoardMapaClientes = ({ clientes, escopoTotal }: BoardMapaClientesProps) => {
   const [ufSelecionada, setUfSelecionada] = useState<string | null>(null);
   const [hover, setHover] = useState<{ uf: string; x: number; y: number } | null>(null);
+  const { data: volumePorCliente } = useOsVolumePorCliente();
 
   const agregacao = useMemo(() => agregarClientesPorRegiao(clientes), [clientes]);
   const escala = useMemo(() => escalaDaAgregacao(agregacao), [agregacao]);
   const pintura = useMemo(() => pintarEstados(agregacao, escala), [agregacao, escala]);
+
+  // Top clientes por VALOR total de OS (reunião 17/08, P8) -- ocupa o painel
+  // de municípios quando nenhum estado está selecionado, no lugar do "clique
+  // num estado" vazio.
+  const topClientes = useMemo(() => {
+    if (!volumePorCliente) return [];
+    return clientes
+      .map((c) => ({ id: c.id, nome: c.nome || '—', ...(volumePorCliente.get(c.id) ?? { projetos: 0, valor: 0 }) }))
+      .filter((c) => c.projetos > 0 || c.valor > 0)
+      .sort((a, b) => b.valor - a.valor)
+      .slice(0, TOP_CLIENTES_QTD);
+  }, [clientes, volumePorCliente]);
 
   const municipios = ufSelecionada ? municipiosDaUf(agregacao, ufSelecionada) : [];
   const selecionado =
@@ -324,13 +342,17 @@ export const BoardMapaClientes = ({ clientes, escopoTotal }: BoardMapaClientesPr
               style={{ fontFamily: "'Syne', sans-serif", color: 'var(--board-t1)' }}
             >
               <MapPin className="h-3.5 w-3.5" style={{ color: 'var(--board-indigo)' }} />
-              {selecionado ? selecionado.nome : 'Municípios'}
+              {selecionado ? selecionado.nome : 'Top clientes'}
             </h3>
-            {selecionado && (
+            {selecionado ? (
               <p className="mt-0.5 text-[11.5px]" style={{ color: 'var(--board-t3)' }}>
                 {selecionado.clientes} cliente{selecionado.clientes === 1 ? '' : 's'} ·{' '}
                 {selecionado.ativos} ativo{selecionado.ativos === 1 ? '' : 's'} ·{' '}
                 {municipios.length} município{municipios.length === 1 ? '' : 's'}
+              </p>
+            ) : topClientes.length > 0 && (
+              <p className="mt-0.5 text-[11.5px]" style={{ color: 'var(--board-t3)' }}>
+                por valor de OS · clique num estado para ver municípios
               </p>
             )}
           </div>
@@ -348,15 +370,54 @@ export const BoardMapaClientes = ({ clientes, escopoTotal }: BoardMapaClientesPr
         </div>
 
         {!ufSelecionada ? (
-          <div
-            className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center"
-            style={{ color: 'var(--board-t3)' }}
-          >
-            <Users className="h-5 w-5" style={{ color: 'var(--board-t4)' }} />
-            <span className="text-[12px]">
-              Clique num estado do mapa para ver os municípios.
-            </span>
-          </div>
+          topClientes.length === 0 ? (
+            <div
+              className="flex flex-1 flex-col items-center justify-center gap-2 py-10 text-center"
+              style={{ color: 'var(--board-t3)' }}
+            >
+              <Users className="h-5 w-5" style={{ color: 'var(--board-t4)' }} />
+              <span className="text-[12px]">
+                Nenhuma OS cadastrada para ranquear clientes ainda.
+              </span>
+            </div>
+          ) : (
+            <ul className="mt-3 space-y-px">
+              {topClientes.map((c, i) => (
+                <li
+                  key={c.id}
+                  className="flex items-center gap-2.5 rounded-md px-2 py-1.5"
+                  style={{ background: i % 2 === 0 ? 'var(--board-border-s)' : 'transparent' }}
+                >
+                  <span
+                    className="w-4 shrink-0 text-[11px] font-semibold tabular-nums"
+                    style={{ color: 'var(--board-t4)' }}
+                  >
+                    {i + 1}
+                  </span>
+                  <span
+                    className="min-w-0 flex-1 truncate text-[12.5px]"
+                    style={{ color: 'var(--board-t1)' }}
+                    title={c.nome}
+                  >
+                    {c.nome}
+                  </span>
+                  <span
+                    className="shrink-0 text-[11px] tabular-nums"
+                    style={{ color: 'var(--board-t3)' }}
+                    title={`${c.projetos} OS`}
+                  >
+                    {c.projetos} OS
+                  </span>
+                  <span
+                    className="shrink-0 text-[12px] font-semibold tabular-nums"
+                    style={{ color: 'var(--board-t1)', minWidth: 64, textAlign: 'right' }}
+                  >
+                    {formatCurrencyDisplay(c.valor)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )
         ) : municipios.length === 0 ? (
           <div className="py-8 text-center text-[12px]" style={{ color: 'var(--board-t3)' }}>
             Nenhum cliente cadastrado nesse recorte.

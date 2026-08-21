@@ -139,6 +139,33 @@ vi.mock('@/components/equipe/fiscal/tasks/ReviewRichText', () => ({
   ),
 }));
 
+// A descrição usa o mesmo editor rico da tarefa/entregável (teste próprio em
+// EquipeDaily/TarefaRichText); aqui ele vira textarea para o teste digitar e
+// conferir o valor que o TaskModal envia.
+vi.mock('@/components/equipe/TarefaRichTextEditor', () => ({
+  TarefaRichTextEditor: ({
+    value,
+    onChange,
+    placeholder,
+    ariaLabel,
+    disabled,
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+    placeholder?: string;
+    ariaLabel?: string;
+    disabled?: boolean;
+  }) => (
+    <textarea
+      aria-label={ariaLabel}
+      placeholder={placeholder}
+      disabled={disabled}
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+    />
+  ),
+}));
+
 vi.mock('@/components/comentarios/OrgCommentsPanel', () => ({
   OrgCommentsPanel: ({
     entityId,
@@ -377,7 +404,9 @@ describe('TaskModal — criação', () => {
     expect(screen.getByLabelText(/^Responsável/)).toHaveTextContent('Selecione');
     expect(screen.getByLabelText(/^Início/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Vencimento/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Horas realizadas/)).toBeDisabled();
+    // Editável desde o começo: as horas vão sendo apontadas ao longo da tarefa,
+    // não só na conclusão.
+    expect(screen.getByLabelText(/^Horas realizadas/)).toBeEnabled();
     expect(screen.queryByText('Execução')).not.toBeInTheDocument();
     expect(screen.queryByText('Contexto')).not.toBeInTheDocument();
 
@@ -557,7 +586,29 @@ describe('TaskModal — edição', () => {
     expect(payloadOf('update')).toMatchObject({ status: 'done', actual_hours: 7 });
   });
 
-  it('segura o salvamento quando as horas parecem erro de digitação', async () => {
+  it('relê a tarefa ao reabrir a mesma que mudou fora do modal', () => {
+    const props: React.ComponentProps<typeof TaskModal> = {
+      open: true,
+      onOpenChange: vi.fn(),
+      area: 'tax',
+      teamMembers: TEAM_MEMBERS,
+      task: baseTask,
+    };
+    const { rerender } = render(<TaskModal {...props} />);
+    expect(screen.getByLabelText(/^Status/)).toHaveTextContent('Em Progresso');
+
+    // Fecha; a tarefa muda por fora (arrasto no Kanban, seletor da Lista, horas
+    // apontadas por outra pessoa); a MESMA tarefa é reaberta. O id não muda, então
+    // só a abertura avisa que é hora de reler — sem isso o formulário mostrava o
+    // retrato antigo e um Salvar o gravava por cima do atual.
+    rerender(<TaskModal {...props} open={false} />);
+    rerender(<TaskModal {...props} task={{ ...baseTask, status: 'done', actual_hours: 9 }} />);
+
+    expect(screen.getByLabelText(/^Status/)).toHaveTextContent('Concluído');
+    expect(screen.getByLabelText(/^Horas realizadas/)).toHaveValue(9);
+  });
+
+  it('avisa quando as horas parecem erro de digitação, mas deixa salvar', async () => {
     const user = userEvent.setup();
     renderModal({ task: baseTask });
 
@@ -565,33 +616,27 @@ describe('TaskModal — edição', () => {
     await user.type(screen.getByLabelText(/^Horas realizadas/), '70');
 
     expect(
-      await screen.findByText('70h é 14× as 5h estimadas — confira a digitação.'),
+      await screen.findByText('70h é 14 vezes as 5h estimadas — confira a digitação.'),
     ).toBeInTheDocument();
+    // Aviso de texto puro: nada para confirmar nem botão de correção.
+    expect(screen.queryByRole('button', { name: 'Está certo' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Usar / })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: 'Salvar' }));
-    expect(await screen.findByText('Confirme o aviso')).toBeInTheDocument();
-    expect(mocks.updateTask).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole('button', { name: 'Está certo' }));
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(mocks.updateTask).toHaveBeenCalledTimes(1));
     expect(payloadOf('update')).toMatchObject({ status: 'done', actual_hours: 70 });
   });
 
-  it('corrige as horas pelo valor sugerido no aviso', async () => {
+  it('apontar horas sem concluir salva sem exigir mais nada', async () => {
     const user = userEvent.setup();
     renderModal({ task: baseTask });
 
-    await chooseOption(user, /^Status/, /^Concluído$/);
-    await user.type(screen.getByLabelText(/^Horas realizadas/), '70');
-    await user.click(await screen.findByRole('button', { name: 'Usar 7h' }));
-
-    expect(screen.getByLabelText(/^Horas realizadas/)).toHaveValue(7);
+    await user.type(screen.getByLabelText(/^Horas realizadas/), '3');
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
     await waitFor(() => expect(mocks.updateTask).toHaveBeenCalledTimes(1));
-    expect(payloadOf('update')).toMatchObject({ status: 'done', actual_hours: 7 });
+    expect(payloadOf('update')).toMatchObject({ status: 'in_progress', actual_hours: 3 });
   });
 
   it('mostra erro do servidor sem fechar o modal', async () => {

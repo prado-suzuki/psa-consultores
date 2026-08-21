@@ -47,20 +47,20 @@ export interface AreaComCluster {
   page_categories: string[] | null;
 }
 
-export interface ClusterBasico {
-  id: string;
-  name: string | null;
-}
-
 /**
  * Todo o sistema é organizado por CLUSTER — área é campo opcional em
  * `org_projects` e fica NULL em boa parte dos registros, o que jogava projeto de
  * time inteiro em "Outros". Aqui montamos o de-para cluster → bucket do painel:
  *
- * 1. `estrutura_areas.page_categories` (fonte canônica, por ID — imune a
- *    renomear área);
- * 2. nome do cluster, quando nenhuma área dele declara categoria (é o caso da
- *    Digital, que não tem `page_categories` cadastrado).
+ * A fonte é UMA: `estrutura_areas.page_categories`, por ID — imune a renomear
+ * área. Não há palpite por nome aqui.
+ *
+ * Havia um segundo passo, por nome do cluster, justificado no comentário como
+ * "o caso da Digital, que não tem page_categories cadastrado". A Digital tem:
+ * `['dev','rotina']` — a justificativa estava stale. E o passo classificava por
+ * substring: `TAX LEGAL`, área do cluster **Prado Advogados**, virava `tax`
+ * porque o nome contém "tax". Cluster sem área que declare categoria agora fica
+ * fora do mapa e cai em `outros`, que é a resposta honesta.
  */
 /**
  * Bucket declarado em `estrutura_areas.page_categories` — o de-para canônico do
@@ -74,7 +74,6 @@ export function bucketDePageCategories(cats: string[] | null | undefined): Board
 
 export function construirMapaDeClusters(entrada: {
   areas: AreaComCluster[];
-  clusters: ClusterBasico[];
 }): {
   bucketDoCluster: Map<string, BoardAreaKey>;
   bucketDaArea: Map<string, BoardAreaKey>;
@@ -84,23 +83,15 @@ export function construirMapaDeClusters(entrada: {
 
   for (const area of entrada.areas ?? []) {
     if (!area?.id) continue;
-    const porCategoria = bucketDePageCategories(area.page_categories);
-    const bucket = porCategoria ?? classificarArea(area.name);
-    if (bucket !== 'outros') {
+    const bucket = bucketDePageCategories(area.page_categories);
+    if (bucket) {
       bucketDaArea.set(area.id, bucket);
-      // A categoria declarada manda: não deixa o nome de uma área irmã
-      // sobrescrever o cluster já resolvido pela fonte canônica.
-      if (area.cluster_id && (porCategoria || !bucketDoCluster.has(area.cluster_id))) {
+      // Toda área que chega aqui declarou categoria, então não há mais disputa
+      // entre fonte canônica e palpite: a primeira irmã do cluster resolve.
+      if (area.cluster_id && !bucketDoCluster.has(area.cluster_id)) {
         bucketDoCluster.set(area.cluster_id, bucket);
       }
     }
-  }
-
-  // Cluster que nenhuma área classificou: cai no nome do próprio cluster.
-  for (const cluster of entrada.clusters ?? []) {
-    if (!cluster?.id || bucketDoCluster.has(cluster.id)) continue;
-    const bucket = classificarArea(cluster.name);
-    if (bucket !== 'outros') bucketDoCluster.set(cluster.id, bucket);
   }
 
   return { bucketDoCluster, bucketDaArea };
@@ -175,7 +166,9 @@ export interface SaudeProjetos {
   pontualidade: number;
 }
 
-export function saudeProjetos(projetos: ProjetoSaude[]): SaudeProjetos {
+export function saudeProjetos(
+  projetos: Array<Pick<ProjetoSaude, 'computed_status'>>,
+): SaudeProjetos {
   let emDia = 0, emRisco = 0, atrasados = 0;
   for (const p of projetos) {
     if (p.computed_status === 'em_dia') emDia += 1;
@@ -405,6 +398,125 @@ export function resumoPorArea(
       comPrazo: e.comPrazo,
     };
   }).filter((r) => r.projetos > 0 || r.concluidas > 0);
+}
+
+// ── Resumo por área de CADASTRO (Bloco E, 21/08) ──────────────────────────
+export interface AreaCadastro {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
+export interface ResumoAreaCadastro {
+  id: string;
+  label: string;
+  projetos: number;
+  emDia: number;
+  emRisco: number;
+  atrasados: number;
+  pontualidade: number | null;
+  concluidas: number;
+  comPrazo?: number;
+  /**
+   * Unidade de trabalho da contagem de `concluidas` (Bloco E4, 21/08): tarefa
+   * de projeto e entregável de sprint não são a mesma grandeza — dizer a
+   * unidade por linha em vez de somar tudo numa coluna sem rótulo.
+   */
+  unidade: 'tarefas' | 'entregáveis';
+}
+
+interface ProjetoComArea {
+  id: string;
+  estrutura_area_id: string | null;
+  computed_status: ProjetoSaude['computed_status'];
+}
+
+/**
+ * Uma linha por área CADASTRADA — não por bucket de 4 categorias. Para o
+ * "Áreas em um olhar" (Bloco E, 21/08): o propósito do bloco é o dono ver
+ * TODAS as áreas sem entrar em cada uma, então a lista tem que vir do
+ * CADASTRO (`estrutura_areas`), não do dado. Área sem movimento ainda
+ * aparece, com zero — área ausente pareceria que ela não existe.
+ *
+ * Só áreas ATIVAS entram. As inativas ficam de fora por decisão (21/08):
+ * no estado medido, todas pertencem ao mesmo cluster de uma área ativa, com
+ * zero projeto — são estrutura antiga que virou equipe, não área esperando
+ * dado. Reativar no cadastro é o que as traz de volta (o filtro é
+ * `is_active`, não uma lista fixa).
+ *
+ * Tarefa cujo projeto não tem `estrutura_area_id` não entra em NENHUMA linha
+ * daqui — é resíduo tratado em outro lugar (ver "Sem área atribuída", Bloco
+ * E3), não silenciosamente somado a uma área que não fez o trabalho.
+ */
+export function resumoPorAreaCadastro(
+  areas: AreaCadastro[],
+  projetos: ProjetoComArea[],
+  tarefasConcluidas: TarefaConcluida[],
+): ResumoAreaCadastro[] {
+  const areaPorProjeto = new Map(projetos.map((p) => [p.id, p.estrutura_area_id]));
+  const entregas = new Map<string, { concluidas: number; comPrazo: number; noPrazo: number }>();
+  for (const t of tarefasConcluidas) {
+    const areaId = t.project_id ? areaPorProjeto.get(t.project_id) : null;
+    if (!areaId) continue;
+    const acc = entregas.get(areaId) ?? { concluidas: 0, comPrazo: 0, noPrazo: 0 };
+    acc.concluidas += 1;
+    if (t.due_date) {
+      acc.comPrazo += 1;
+      if (entregaNoPrazo(t.updated_at, t.due_date)) acc.noPrazo += 1;
+    }
+    entregas.set(areaId, acc);
+  }
+
+  return areas
+    .filter((a) => a.is_active)
+    .map((area) => {
+      const doGrupo = projetos.filter((p) => p.estrutura_area_id === area.id);
+      const saude = saudeProjetos(doGrupo);
+      const e = entregas.get(area.id) ?? { concluidas: 0, comPrazo: 0, noPrazo: 0 };
+      return {
+        id: area.id,
+        label: area.name,
+        projetos: saude.total,
+        emDia: saude.emDia,
+        emRisco: saude.emRisco,
+        atrasados: saude.atrasados,
+        pontualidade: e.comPrazo > 0 ? Math.round((e.noPrazo / e.comPrazo) * 100) : null,
+        concluidas: e.concluidas,
+        comPrazo: e.comPrazo,
+        unidade: 'tarefas' as const,
+      };
+    });
+}
+
+/**
+ * Mistura uma linha extra (ex.: entregáveis de sprint da Digital, que não têm
+ * como resolver `estrutura_area_id` — ver Bloco E3) numa lista de
+ * `resumoPorAreaCadastro`, pelo id da área. Mesma regra de mesclagem de
+ * `mesclarResumoArea`: contagens somam, pontualidade é média ponderada.
+ */
+export function mesclarResumoAreaCadastro(
+  linhas: ResumoAreaCadastro[],
+  areaId: string,
+  extra: { concluidas: number; comPrazo?: number; pontualidade?: number | null },
+): ResumoAreaCadastro[] {
+  return linhas.map((r) => {
+    if (r.id !== areaId) return r;
+    const baseA = r.comPrazo ?? (r.pontualidade !== null ? r.concluidas : 0);
+    const baseB = extra.comPrazo ?? (extra.pontualidade != null ? extra.concluidas : 0);
+    const total = baseA + baseB;
+    const pontualidade = total > 0
+      ? Math.round((((r.pontualidade ?? 0) * baseA) + ((extra.pontualidade ?? 0) * baseB)) / total)
+      : null;
+    return {
+      ...r,
+      concluidas: r.concluidas + extra.concluidas,
+      pontualidade,
+      comPrazo: total,
+      // Se a área não tinha NENHUMA tarefa de projeto, a unidade toda vem do
+      // extra (hoje: sempre entregável de sprint da Digital — ver Bloco E3).
+      unidade: r.concluidas === 0 ? 'entregáveis' : r.unidade,
+    };
+  });
 }
 
 /**

@@ -3,6 +3,7 @@ import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChevronRight, LayoutDashboard, Users, FolderKanban, Shield, MessageSquare, LineChart } from 'lucide-react';
+import { linkEspelhado } from '@/lib/areaTheme';
 
 interface FerramentaOsg {
   id: string;
@@ -61,7 +62,8 @@ const FERRAMENTAS: FerramentaOsg[] = [
     id: 'chamados',
     titulo: 'Chamados',
     descricao: 'Abertura e acompanhamento de chamados.',
-    path: '/equipe/chamados',
+    // Espelhada: leva a cor E a lista desta área. Ver `src/lib/areaTheme.ts`.
+    path: linkEspelhado('/equipe/chamados', 'osg'),
     icon: <MessageSquare className="h-5 w-5 text-osg-600" />,
   },
 ];

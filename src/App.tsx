@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AreaThemeProvider } from "@/components/AreaThemeProvider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -146,7 +147,6 @@ import DashboardUsoEnvioGerencial from "./pages/equipe/board/DashboardUsoEnvioGe
 
 // Gestão
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
-import GestaoChamados from "./pages/gestao/GestaoChamados";
 import GestaoChamadosDashboard from "./pages/gestao/GestaoChamadosDashboard";
 import GestaoDetalhesChamado from "./pages/gestao/GestaoDetalhesChamado";
 import GestaoContatos from "./pages/gestao/GestaoContatos";
@@ -174,6 +174,11 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            {/* O tema da área vem da ROTA, e é aplicado aqui — acima de
+                <Routes> e, portanto, acima de todo gate de acesso. Dentro dos
+                gates não serve: LiderRoute devolve `null` enquanto carrega o
+                papel do usuário, e nesse intervalo a tela ficaria sem tema. */}
+            <AreaThemeProvider>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/missao" element={<Missao />} />
@@ -337,7 +342,11 @@ const App = () => (
                   apontavam para /equipe/board, que caía no NotFound. */}
               <Route path="/equipe/board" element={<Navigate to="/equipe/board/dashboard" replace />} />
               <Route path="/equipe/board/dashboard" element={<PageAccessGate pagePath="/equipe/board/dashboard"><BoardDashboard /></PageAccessGate>} />
+              {/* REMOVIDO DA DIRETORIA (reunião 17/08): relatórios do Looker Studio saem
+                  do board. Item de menu já saiu em BoardLayout.tsx; rota desativada
+                  aqui, arquivo BoardRelatorios.tsx intacto.
               <Route path="/equipe/board/relatorios" element={<PageAccessGate pagePath="/equipe/board/relatorios"><BoardRelatorios /></PageAccessGate>} />
+              */}
               <Route path="/equipe/board/uso-envio" element={<PageAccessGate pagePath="/equipe/board/uso-envio"><DashboardUsoEnvioGerencial /></PageAccessGate>} />
               <Route path="/equipe/board/dashboard-clientes-os" element={<PageAccessGate pagePath="/equipe/board/dashboard-clientes-os"><BoardDashboardClientesOs /></PageAccessGate>} />
               <Route path="/equipe/board/clientes" element={<PageAccessGate pagePath="/equipe/board/clientes"><BoardClientes /></PageAccessGate>} />
@@ -352,8 +361,13 @@ const App = () => (
                   livre pelo `usePageAccess`, e esta é a visão da empresa inteira.
                   `fallbackPath` é a home do portal: quem não é líder+ não tem Board. */}
               <Route path="/equipe/board/chamados" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/chamados"><BoardChamados /></PageAccessGate></LiderRoute>} />
-              {/* A estática vem antes da dinâmica: `dashboard` não pode cair no `:id`. */}
+              {/* REMOVIDO DA DIRETORIA (reunião 17/08): item de menu já saiu em
+                  BoardLayout.tsx. Volta depois como recorte estratégico dentro de
+                  Clientes; rota desativada aqui, arquivo BoardChamadosDashboard.tsx
+                  intacto. A estática vinha antes da dinâmica porque `dashboard` não
+                  pode cair no `:id` -- vale de novo se esta rota voltar.
               <Route path="/equipe/board/chamados/dashboard" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/chamados/dashboard"><BoardChamadosDashboard /></PageAccessGate></LiderRoute>} />
+              */}
               {/* O detalhe usa a permissão da LISTA, como na Tax: rota com parâmetro
                   não se cadastra, e quem vê a lista pode abrir um item dela. */}
               <Route path="/equipe/board/chamados/:id" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/chamados"><BoardChamadoDetalhe /></PageAccessGate></LiderRoute>} />
@@ -365,6 +379,10 @@ const App = () => (
               <Route path="/equipe/board/logs-equipe" element={<LiderRoute fallbackPath="/equipe"><PageAccessGate pagePath="/equipe/board/logs-equipe"><BoardLogsEquipe /></PageAccessGate></LiderRoute>} />
 
               {/* Performance & Desempenho Routes (inside Board) */}
+              {/* "Operacional" saiu do menu de Gestão de Time (reunião 17/08,
+                  BoardLayout.tsx), mas a rota fica ATIVA de propósito: "Áreas em um
+                  olhar" e "Acompanhamento de execução" no Estratégico, e um card da
+                  faixa de KPIs, navegam para aqui como detalhe. */}
               <Route path="/equipe/board/performance" element={<DesempenhoAccessGate><PerformanceDashboard /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho" element={<DesempenhoAccessGate><DesempenhoVisaoGeral /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/ciclos" element={<DesempenhoAccessGate><DesempenhoCiclos /></DesempenhoAccessGate>} />
@@ -380,6 +398,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </AreaThemeProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

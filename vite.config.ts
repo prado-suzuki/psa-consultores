@@ -64,7 +64,6 @@ function branchAtual(): string {
   }
 }
 
-
 // A regra de branch acima roda uma vez, quando o servidor sobe. Um `git switch`
 // com o dev de pé não faria o Vite reavaliar nada, e o app seguiria no banco da
 // branch anterior sem nenhum sinal na tela. Este plugin vigia o HEAD do git e

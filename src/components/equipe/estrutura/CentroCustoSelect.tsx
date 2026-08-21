@@ -7,7 +7,7 @@ interface CentroCustoSelectProps {
   onChange: (centroCustoId: string) => void;
   /** Texto de apoio abaixo do campo (o significado muda entre cluster e área). */
   ajuda?: string;
-  /** Rótulo da opção vazia: na área, "sem CC próprio" significa herdar do cluster. */
+  /** Rótulo da opção vazia: na área,"sem CC próprio" significa herdar do cluster. */
   rotuloVazio?: string;
 }
 
@@ -24,7 +24,7 @@ export default function CentroCustoSelect({
   value, onChange, ajuda, rotuloVazio = 'Nenhum',
 }: CentroCustoSelectProps) {
   const { data: centrosCusto = [] } = useCentroCustoList();
-  // Inativo continua aparecendo se já estiver selecionado, senão o campo "esvazia" sozinho.
+  // Inativo continua aparecendo se já estiver selecionado, senão o campo"esvazia" sozinho.
   const opcoes = centrosCusto.filter(cc => cc.is_active || cc.id === value);
 
   return (
@@ -40,7 +40,7 @@ export default function CentroCustoSelect({
           ))}
         </SelectContent>
       </Select>
-      {ajuda && <p className="mt-1 text-xs text-slate-400">{ajuda}</p>}
+      {ajuda && <p className="mt-1 text-xs text-muted-foreground">{ajuda}</p>}
     </>
   );
 }

@@ -39,8 +39,8 @@ export function EFDBlockTree({
       className={cn(
         "space-y-2 overflow-y-auto",
         "[&::-webkit-scrollbar]:w-2",
-        "[&::-webkit-scrollbar-track]:bg-slate-100 dark:[&::-webkit-scrollbar-track]:bg-slate-800",
-        "[&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600",
+        "[&::-webkit-scrollbar-track]:bg-slate-100",
+        "[&::-webkit-scrollbar-thumb]:bg-slate-300",
         "[&::-webkit-scrollbar-thumb]:rounded-full",
         className
       )}
@@ -57,9 +57,9 @@ export function EFDBlockTree({
               onClick={() => toggleBlock(bloco)}
               className={cn(
                 "flex items-center w-full px-3 py-2.5 text-sm font-bold rounded-lg transition-colors",
-                "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm",
-                "hover:bg-slate-50 dark:hover:bg-slate-700/50",
-                "text-slate-800 dark:text-slate-200"
+                "bg-white border border-slate-200 shadow-sm",
+                "hover:bg-slate-50",
+                "text-slate-800"
               )}
             >
               <ChevronRight 
@@ -78,7 +78,7 @@ export function EFDBlockTree({
                 isExpanded ? "max-h-[2000px] opacity-100" : "max-h-0 opacity-0"
               )}
             >
-              <div className="pl-4 mt-1 border-l-2 border-slate-200 dark:border-slate-700 ml-4 space-y-1">
+              <div className="pl-4 mt-1 border-l-2 border-slate-200 ml-4 space-y-1">
                 {registros.map(reg => {
                   const regCode = reg.codigo.replace('REG_', '');
                   const isSelected = selectedRegistro === reg.codigo;
@@ -92,7 +92,7 @@ export function EFDBlockTree({
                         "flex items-center w-full px-2 py-1.5 text-xs font-medium rounded-md transition-colors text-left",
                         isSelected 
                           ? "bg-primary/10 text-primary border border-primary/20" 
-                          : "text-slate-600 dark:text-slate-400 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800"
+                          :"text-slate-600 hover:text-primary hover:bg-slate-100"
                       )}
                     >
                       <span 
@@ -100,7 +100,7 @@ export function EFDBlockTree({
                           "font-mono px-1.5 py-0.5 rounded text-[10px] mr-2 min-w-[40px] text-center border",
                           isSelected 
                             ? "bg-primary/10 text-primary border-primary/30" 
-                            : "bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-600"
+                            :"bg-slate-200 text-slate-700 border-slate-300"
                         )}
                       >
                         {regCode}

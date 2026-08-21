@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
@@ -15,7 +14,6 @@ import {
   ChevronDown,
   Menu,
   ArrowLeft,
-  User,
   Shield,
   Users,
   Landmark,
@@ -37,8 +35,11 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
+import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
+import { classeLarguraBarra } from '@/lib/sidebarMedidas';
 import OsgWorkIcon from '@/components/equipe/osg/OsgWorkIcon';
 import OsgProjectsIcon from '@/components/equipe/osg/OsgProjectsIcon';
+import { linkEspelhado } from '@/lib/areaTheme';
 
 const OsgWorkClienteBar = () => {
   const { clienteId, setClienteId } = useOsgWork();
@@ -115,7 +116,7 @@ interface OsgLayoutProps {
 }
 
 export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayoutProps) => {
-  const { signOut, user, isAdmin, isLider } = useAuth();
+  const { signOut, isAdmin, isLider } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   // Telas de trabalho largas recolhem a barra sozinhas — quem pede é a própria
@@ -134,12 +135,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
     collapsed ? 'pointer-events-none -translate-x-1 opacity-0' : 'opacity-100 delay-150',
   );
 
-  // Enquanto a área OSG está montada, marca o <html> para o tema OSG sobrescrever
-  // o accent teal padrão pelo verde osg-moss — alcança também menus em portal (body).
-  useEffect(() => {
-    document.documentElement.classList.add('osg-theme');
-    return () => document.documentElement.classList.remove('osg-theme');
-  }, []);
+  // O tema da área NÃO é aplicado aqui: quem o aplica é o `AreaThemeProvider`,
+  // a partir da rota, acima dos gates de acesso (ver `src/lib/areaTheme.ts`).
 
   const handleSignOut = async () => {
     await signOut();
@@ -218,9 +215,18 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           'flex-shrink-0 sticky top-0 h-screen relative',
           // Só a largura anima (o `transition-all` de antes também pegava cor e
           // sombra). A curva é ease-out-quint: sai rápido e "pousa" devagar.
-          'transition-[width] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          //
+          // A curva vai como propriedade arbitrária, e não pela utilitária
+          // `ease` com valor entre colchetes: naquela forma o Tailwind 3 não
+          // desambigua entre `transition-timing-function` e
+          // `animation-timing-function`, avisa no build e DESCARTA a classe. A
+          // barra vinha animando sem curva nenhuma — sem erro de build, de lint
+          // ou de tipo. Mesmo defeito que a duração das linhas de lista tinha.
+          'transition-[width] duration-500',
+          '[transition-timing-function:cubic-bezier(0.22,1,0.36,1)]',
           'motion-reduce:transition-none',
-          collapsed ? 'w-16' : 'w-64',
+          // 5rem, e não 4rem: ver docs/geral/sidebar-recolhe-em-tela-larga.md.
+          classeLarguraBarra(collapsed),
         )}
       >
         {/* Toggle Button — sibling of <aside> so it isn't clipped by overflow */}
@@ -656,7 +662,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
               segue liberada para quem tiver o link. */}
           {isProjects && !isLider && (
             <button
-              onClick={() => navigate('/equipe/chamados')}
+              onClick={() => navigate(linkEspelhado('/equipe/chamados', 'osg'))}
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
                 location.pathname.startsWith('/equipe/chamados')
@@ -672,18 +678,8 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
 
         {/* Footer Actions */}
         <div className="mt-auto p-4 border-t border-border/60 space-y-2">
-          {/* User Card — o avatar fica; só o texto desbota ao recolher. */}
-          <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted mb-3">
-            <div className="h-8 w-8 rounded-full bg-osg-500/10 flex items-center justify-center flex-shrink-0">
-              <User className="h-4 w-4 text-osg-600" />
-            </div>
-            <div className={cn(rotuloCls, "flex-1 min-w-0")}>
-              <p className="text-sm font-medium text-foreground truncate">
-                {user?.email?.split('@')[0] || 'Usuário'}
-              </p>
-              <p className="text-xs text-muted-foreground">OSG</p>
-            </div>
-          </div>
+          {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
+          <SidebarCartaoUsuario area="osg" collapsed={collapsed} />
 
           <Button
             variant="ghost"
@@ -738,6 +734,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
             {headerActions}
             <NotificationPopover
               navigateTo="/equipe/chamados"
+              espelho="osg"
               tasksNavigateTo="/equipe/osg/projetos/tarefas"
               mencoesArea="osg"
             />

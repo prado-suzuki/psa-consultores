@@ -32,9 +32,9 @@ export default function ClusterSelect({ value, onChange }: ClusterSelectProps) {
         {inativos.length > 0 && (
           <SelectGroup>
             <SelectSeparator />
-            <SelectLabel className="text-slate-400">Inativos</SelectLabel>
+            <SelectLabel className="text-muted-foreground">Inativos</SelectLabel>
             {inativos.map(c => (
-              <SelectItem key={c.id} value={c.id} className="text-slate-500">{c.name}</SelectItem>
+              <SelectItem key={c.id} value={c.id} className="text-muted-foreground">{c.name}</SelectItem>
             ))}
           </SelectGroup>
         )}

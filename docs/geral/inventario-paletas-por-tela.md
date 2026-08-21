@@ -389,3 +389,39 @@ Duas paletas de área faltam de verdade — **Dev** e **Board** —, uma terceir
 precisa de decisão explícita entre "paleta inteira" e "base, e some com o `.rotina-theme`", e
 o **portal do cliente** está bloqueado por não ter layout. Todas as três dependem de fechar
 antes os chamados e o `acentoArea`, que são o caminho por onde a paleta chega na tela.
+
+---
+
+## Adendo de 2026-08-20 — o que mudou, e o que sobrou em `/equipe/acessos`
+
+Desde o levantamento de 18/08 três coisas mudaram a leitura da tabela acima:
+
+1. **O tema agora vem da ROTA, não do layout.** `src/lib/areaTheme.ts` mapeia rota → área e
+   `AreaThemeProvider` aplica as classes no `<html>`, acima dos gates de acesso. Nenhuma tela
+   roda sem tema. Os três layouts que aplicavam classe por conta própria pararam de aplicar.
+2. **Existe `.base-theme`** (o contrato completo, 43 variáveis) e **`.sistema-theme`** (delta
+   de 9: acento grafite quente para Board, Dev, Digital e Acessos). Tax, OSG e Rotina foram
+   *congeladas* no contrato inteiro — nenhuma herda mais do piso.
+3. **`--teal-500/600/700` são primitivas**, não token de componente: elas geram
+   `bg-teal-*` no Tailwind, o que as fazia parecer cor crua e passar em toda revisão, mas
+   moram no `:root` e nenhum tema as sobrescreve. Há regra de lint (`warn`) em
+   `src/components` e `src/pages` — 164 avisos hoje, e o número só deve cair.
+
+### Passivo de `/equipe/acessos`, medido em 20/08/2026
+
+O acento do módulo foi convertido (92 → 0). O que sobrou, em ordem de tamanho:
+
+| Categoria | Ocorrências | Situação |
+|---|---:|---|
+| **Neutros** (`slate-*`, `gray-*`) | **300** em 17 arquivos | O maior bloco, e o que ainda impede a tela de ser coerente: há borda `slate-200` ao lado de botão grafite. Piores: `border-slate-200` (62), `text-slate-500` (58), `text-slate-900` (35), `text-slate-600` (35), `text-slate-400` (26), `bg-slate-50` (23). **Fora de escopo por decisão**, não por esquecimento: neutro não muda com o tema, e misturar essa massa com a migração de acento tornaria o diff irrevisável. |
+| **Badges de papel de usuário** | 7 famílias | `ROLE_BADGE_CLASSES` em `src/components/acessos/roleOptions.ts` usa `red` para Admin, `amber` para Líder, `orange` para Sublíder, `cyan` para Time Cliente, `violet` para Marketing, `slate` para Cliente. Só `team_member` está em token. **Antes de tokenizar há uma decisão de design**: são níveis de uma hierarquia e pedem progressão, não cores avulsas — e vermelho para "Admin" comunica erro, não privilégio. |
+| **Hex de cor categórica de gráfico** | 26 | `#3B82F6`, `#10B981`, `#F59E0B`… Assunto separado: paleta de série, não acento. O contrato tem `--tag-a…d` para isso. |
+| **`estrutura_areas.color`** | 10 linhas no banco | **NÃO é passivo de cor.** É campo editável pelo usuário (`<Input type="color">` + 8 presets) cujo valor está persistido: 7 áreas em `#10b981`, e `#3b82f6`, `#ef4444`, `#f59e0b` em uma cada. Tokenizar exigiria remover o seletor de cor ou migrar a coluna — decisão de produto, não de design system. |
+
+### O controle segmentado da aba
+
+O filtro `Todos | Vinculados | Disponíveis` e a pílula de "Estrutura" sinalizavam o estado
+ativo por **matiz** (teal contra cinza). Com o acento grafite a distinção passou a depender só
+de luminosidade, que o olho não pega sem comparar. O conserto não é devolver cor: é trocar o
+sinal para **elevação** — trilho cinza, item ativo em `bg-card` com borda sutil e `shadow-sm`,
+que é o desenho que o `ui/tabs` já usa e que não depende de cor nenhuma.

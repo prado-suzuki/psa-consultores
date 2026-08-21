@@ -140,7 +140,7 @@ export function EFDExportDialog({ arquivo, blocosDisponiveis, idContribuinte, di
   return <Dialog open={open} onOpenChange={setOpen}>
     {!hideTrigger && <TooltipProvider><Tooltip><TooltipTrigger asChild><DialogTrigger asChild><Button variant="outline" size="icon" disabled={disabled || !allRecords.length} className="h-9 w-9 text-emerald-600 hover:text-emerald-800 bg-emerald-50 border-emerald-200"><FileDown className="h-4 w-4" /></Button></DialogTrigger></TooltipTrigger><TooltipContent><p>Exportar Excel</p></TooltipContent></Tooltip></TooltipProvider>}
     <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col p-0 overflow-hidden">
-      <DialogHeader className="p-6 pb-4 border-b border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex-shrink-0">
+      <DialogHeader className="p-6 pb-4 border-b border-slate-200 bg-slate-50/50 flex-shrink-0">
         <DialogTitle className="text-xl flex items-center gap-2"><FileDown className="h-6 w-6 text-emerald-600" />Exportar para Excel</DialogTitle>
         <DialogDescription>Selecione os registros para gerar o relatório personalizado.</DialogDescription>
         <EFDExportProfiles profiles={profiles} loading={isLoading} selectedProfile={selectedProfile} selectedIsDefault={selectedProfileIsDefault} defaultPending={setDefaultProfile.isPending} onApply={applyProfile} onSave={openSaveDialog} onDelete={setDeleteConfirmId} onDefault={toggleDefault} onSelectAll={selectAll} onClear={clearSelection} />

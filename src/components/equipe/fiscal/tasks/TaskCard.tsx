@@ -32,6 +32,7 @@ import {
 import { cn } from '@/lib/utils';
 import { OrgTask } from '@/hooks/useOrgTasks';
 import { statusColors } from '@/lib/taskStatusColors';
+import { tarefaRichTextToPlain } from '@/lib/tarefaRichText';
 
 interface TaskCardProps {
   task: OrgTask;
@@ -102,6 +103,7 @@ export const TaskCard = ({
 }: TaskCardProps) => {
   const StatusIcon = statusIcons[task.status];
   const isFixedEvent = task.category === 'fixed_event';
+  const descricaoPreview = tarefaRichTextToPlain(task.description);
 
   const subtasks = allTasks.filter(t => t.parent_task_id === task.id);
   const totalSubtasks = subtasks.length;
@@ -226,9 +228,11 @@ export const TaskCard = ({
               )}
             </div>
 
-            {task.description && (
+            {/* Prévia em texto plano: a descrição pode ser rich text (editor da
+                tarefa ou o do chamado que a gerou), e o cartão só tem duas linhas. */}
+            {descricaoPreview && (
               <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-                {task.description}
+                {descricaoPreview}
               </p>
             )}
 

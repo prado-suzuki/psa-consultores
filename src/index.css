@@ -25,17 +25,21 @@ All colors MUST be HSL.
     --popover: 42 24% 99.8%;
     --popover-foreground: 20 81% 10%;
 
-    /* Teal - Cor protagonista #0d9488 */
+    /* Teal institucional #0D877C — protagonista.
+       NÃO é o #0d9488 (teal-600 do Tailwind, que é 175 84% 32%): o comentário
+       antigo aqui dizia isso e estava errado. O institucional é este valor,
+       escolhido a dedo; o #0d9488 cravado em ~49 pontos do JSX é dívida a
+       migrar para o token. */
     --primary: 175 82% 29%;
     --primary-foreground: 0 0% 100%;
 
-    /* Teal - Cor complementar #0D9488 */
+    /* Teal institucional #0D877C — complementar. */
     --secondary: 175 82% 29%;
     --secondary-foreground: 0 0% 100%;
 
     /* "muted" (barras de filtro, cabeçalho de tabela, zebra, fundo do FiscalLayout):
        marfim tax-50 no lugar do cinza-azulado. */
-    --muted: var(--tax-50);
+    --muted: var(--base-50);
     /* Neutro secundario (icone de menu, rotulo inativo, legenda, subtitulo).
        Era matiz 220 — cinza-AZULADO — sobre superficies marfim/bege: a camada
        secundaria inteira do sistema destoava da temperatura das superficies.
@@ -154,6 +158,68 @@ All colors MUST be HSL.
     --categoria-ouro: 43 60% 38%;
     --categoria-diamante: 196 42% 44%;
 
+    /* ─── Cor de área — oito tons, derivados por ordem de criação ──────────
+       Mora no `:root` e NÃO no contrato dos temas: identidade de área é global,
+       ela não muda conforme o tema de onde se olha. Mesma razão de
+       `--categoria-*` acima. Nenhum tema declara — não entra nas 43.
+
+       A cor deixou de ser escolhida: `estrutura_areas.color_index` guarda o slot,
+       atribuído no primeiro livre quando a área nasce. O motivo é medido — das
+       10 áreas com cor escolhida à mão, SETE ficaram no mesmo verde, que era o
+       terceiro preset do seletor. Escolha manual não diferenciava; só dava
+       trabalho e produzia repetição.
+
+       Esta paleta é adequada PORQUE o nome da área está sempre ao lado do ponto,
+       em TODOS os sites que renderizam a cor de área. A cor acompanha a
+       varredura; ela não carrega a informação.
+
+       Quantos são e onde estão NÃO fica escrito aqui: a versão anterior deste
+       comentário dizia "CINCO" com cinco números de linha, e no mesmo dia um
+       sexto site nasceu e os cinco números saíram de lugar. A contagem virou
+       asserção em `src/lib/corDaArea.test.ts` — quem acrescentar um site quebra
+       o teste e é obrigado a reverificar a premissa, que é o efeito desejado.
+       Para listá-los:
+
+         grep -rn 'PontoDaArea area=' src --include=*.tsx
+
+       `mapeamento/AreaAccordion:48` parece um sexto site e NÃO é: ele pinta
+       `display_group_color`, que é `'#94a3b8'` cravado em `useProcessMapping`
+       — ponto cinza constante para toda área, que nunca leu esta cor. Fica
+       registrado para a próxima pessoa não o contar como consumidor.
+
+       Separação pelo critério de `SEPARACAO` em `src/lib/paletaDeArea.ts`: os 28
+       pares passam pela MATIZ, com 25° no par mais próximo (terracota × ocre).
+       A luminosidade nem entra como critério — e não poderia: a menor distância
+       entre dois tons é de ZERO ponto. Ela fica em faixa estreita de propósito
+       (32–42%), que é o que faz os oito serem uma família e não um arco-íris.
+       Contraste sobre o card entre 4,32 e 8,43.
+
+       Se algum dia a cor aparecer SOZINHA — legenda de gráfico, mapa de calor,
+       barra empilhada, ponto sem rótulo — esta paleta deixa de servir: sob
+       protanopia e deuteranopia estes tons colapsam, e o pior par cai a ΔE 1,4
+       (terracota × oliva). Nesse caso o conjunto precisa ser refeito com
+       separação por LUMINOSIDADE. Uma versão assim FOI medida durante esta
+       mudança (ΔE 10,8 no pior par, luminosidade de 26% a 56%), mas os oito
+       valores dela não foram guardados em arquivo nenhum — procurados em
+       20/08/2026 e não encontrados. Ou seja: o plano B precisa ser REFEITO, não
+       recuperado. Os dois números acima servem só de alvo a bater.
+
+       Ou seja: não é limitação tolerada, é premissa. Quebrar a premissa quebra
+       a paleta.
+
+       `--area-5` está em 202° e não em 195°: a 195 ele ficava a 20° do teal
+       institucional (175), e uma tela da Tax mostraria ponto petróleo ao lado de
+       botão teal. Em 202 a distância vai a 27° e os vizinhos seguem folgados
+       (verde-mar 42°, ardósia 33°). */
+    --area-1: 20 52% 38%;   /* terracota */
+    --area-2: 45 58% 36%;   /* ocre      */
+    --area-3: 95 42% 33%;   /* oliva     */
+    --area-4: 160 44% 32%;  /* verde-mar */
+    --area-5: 202 50% 34%;  /* petróleo  */
+    --area-6: 235 44% 42%;  /* ardósia   */
+    --area-7: 285 38% 42%;  /* ameixa    */
+    --area-8: 330 46% 40%;  /* vinho     */
+
     /* Ícone de ferramenta/card (acento). Tax usa a marca; OSG usa o taupe osg-600. */
     --tool-icon: var(--primary);
     --tool-icon-bg: 175 60% 95%;
@@ -167,7 +233,27 @@ All colors MUST be HSL.
     /* Sombra do modo edição nas tabelas SPED */
     --edit-shadow-color: 30 89% 51%;
 
-    /* Paleta Teal */
+    /* ─── Escala teal — PRIMITIVA, não token de componente ─────────────────
+       Existe para ALIMENTAR os tokens semânticos (o `--primary` da base sai
+       daqui, e a `.rotina-theme` usa `var(--teal-500)` no `--ring`). Componente
+       NÃO usa: usa `bg-primary`, `text-primary`, `border-primary` — ou, em botão
+       primário, a variante `default` do `ui/button`, sem classe de cor.
+
+       Por que a distinção precisa estar escrita: o `tailwind.config.ts` gera
+       `bg-teal-500/600/700` a partir destas variáveis, então essas classes
+       PARECEM cor crua do Tailwind e não são. `bg-teal-600` não pinta o #0D9488
+       do Tailwind — pinta o #0A756C daqui. Foi isso que as fez atravessar todas
+       as revisões: quem procura hex ou paleta crua não as encontra, e no tema
+       base o resultado era idêntico ao de `bg-primary`.
+
+       Só que esta escala mora no `:root` e NENHUM tema a sobrescreve. É token
+       que não acompanha o tema. Quando `/equipe/acessos` virou grafite, os
+       botões que usavam `bg-teal-600` continuaram teal — e o mesmo vale para
+       qualquer área futura.
+
+       Uma regra de lint (`eslint.config.js`) avisa sobre `teal-500/600/700` em
+       `src/components` e `src/pages`. É `warn`, não `error`: as ocorrências
+       antigas ficam visíveis e o número só cai. */
     --teal-500: 175 82% 29%;
     --teal-600: 175 84% 25%;
     --teal-700: 175 86% 20%;
@@ -177,17 +263,24 @@ All colors MUST be HSL.
     --lime-500: 85 85% 37%;
     --lime-600: 85 88% 30%;
     
-    /* Tax neutro — marfim/aveia quente (fundo que casa com o teal).
-       Mesma lógica da OSG: o neutro NÃO é uma versão dessaturada do accent;
-       é uma matiz quente que faz o teal (accent) saltar. Escala do claro (fundos)
-       ao escuro (texto/detalhe), análoga à escala osg. */
-    --tax-50: 42 26% 98%;
-    --tax-100: 40 24% 94%;
-    --tax-200: 38 25% 83%;
-    --tax-300: 34 20% 66%;
-    --tax-500: 32 16% 42%;
-    --tax-600: 30 18% 32%;
-    --tax-700: 28 20% 24%;
+    /* Neutro da BASE — marfim/aveia quente (fundo que faz o teal saltar).
+       Mesma lógica da OSG: o neutro NÃO é uma versão dessaturada do accent; é
+       uma matiz quente própria. Escala do claro (fundos) ao escuro
+       (texto/detalhe), análoga à escala osg.
+
+       Chamava-se `--tax-*` e o nome estava errado: a matiz 42 é a das
+       superfícies da BASE (`--background: 42 24% 99.8%`), não a da Tax — que
+       depois moveu as superfícies dela para o frio (170) e passou a declarar o
+       próprio `--muted: 168 20% 97%`. Ou seja, a escala nunca foi consumida
+       pela Tax; ela alimenta o `--muted` da base e do `.base-theme`, e só.
+       Renomeada sem mexer em valor: nenhuma tela muda de cor. */
+    --base-50: 42 26% 98%;
+    --base-100: 40 24% 94%;
+    --base-200: 38 25% 83%;
+    --base-300: 34 20% 66%;
+    --base-500: 32 16% 42%;
+    --base-600: 30 18% 32%;
+    --base-700: 28 20% 24%;
 
     /* OSG accent — taupe/brown (versão mais escura) */
     --osg-50: 32 28% 92%;
@@ -229,6 +322,125 @@ All colors MUST be HSL.
     --sidebar-ring: 85 85% 37%;
   }
 
+  /* ─── .base-theme — o contrato completo, e o piso de todo tema ──────────
+     ⚠️ ESTE BLOCO TEM QUE VIR ANTES DE .tax-theme, .osg-theme E .rotina-theme.
+     As classes de tema convivem no MESMO <html> e todas têm a mesma
+     especificidade (0-1-0): quem vence é quem vem depois no arquivo. Mover
+     este bloco para baixo faz o base sobrescrever as áreas e apaga a
+     identidade de todas elas de uma vez, sem erro de build.
+
+     O resolvedor (`src/lib/areaTheme.ts`) aplica SEMPRE `base-theme`, e por
+     cima dele a classe da área quando existe. Com isso o base é o único lugar
+     que precisa declarar o contrato inteiro (as 41 variáveis que a `.osg-theme`
+     declara) e a área passa a ser só o DELTA: a `.tax-theme` declara 26, a
+     `.rotina-theme` declara 1, e nenhuma das duas precisa copiar o resto.
+
+     Foi a falta desse piso que criou o anel lime: sem ninguém declarando
+     `--ring`, a Tax herdava o `85 85% 37%` do `:root` e o foco saía
+     verde-limão ao lado de um botão teal.
+
+     Os valores são os do `:root`, copiados como estão — zero mudança visual.
+     UMA exceção, deliberada: `--ring` vem do `--primary` em vez do lime. É a
+     única regressão visual aceita da mudança, e é a correção. */
+  .base-theme {
+    /* Acento e marca */
+    --accent: 175 82% 29%;
+    --accent-foreground: 0 0% 100%;
+    --primary: 175 82% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 175 82% 29%;
+    --secondary-foreground: 0 0% 100%;
+    /* Anel de foco = acento. O `:root` traz lime (85 85% 37%), herança de uma
+       paleta anterior; é o valor que este bloco existe para corrigir. */
+    --ring: 175 82% 29%;
+
+    /* Status semânticos */
+    --success: 160 84% 30%;
+    --warning: 38 92% 50%;
+    /* Os `-foreground` de estado entram aqui, e são os MESMOS valores do `:root` —
+       nenhum pixel muda. O que muda é o alcance: eles viviam só no `:root`, fora
+       do contrato, então um tema podia redefinir `--destructive` e o texto por
+       cima continuava vindo de um lugar que nenhum tema controla. A OSG faz
+       exatamente isso (`--destructive: var(--osg-red)`), e o par sobrevivia por
+       sorte. Agora o par viaja junto. */
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Papéis de status — são os valores ORIGINAIS do sistema, anteriores à
+       separação por área. O :root era o tema único; depois foi readaptado para
+       a Tax, e só então a OSG ganhou o seu. Por isso a base se parece com a Tax:
+       ela É a origem da Tax, não um meio-termo entre as áreas.
+       Copiados aqui como estão, sem alteração. Se um dia a base ganhar identidade
+       própria, é neste bloco — e aí deixa de ser herança e passa a ser escolha. */
+    --status-neutro: 48 22% 30%;
+    --status-neutro-soft: 48 22% 86%;
+    --status-fila: 122 28% 33%;
+    --status-fila-soft: 122 28% 87%;
+    --status-andamento: 100 38% 27%;
+    --status-andamento-soft: 100 38% 86%;
+    --status-revisao: 111 32% 17%;
+    --status-revisao-soft: 111 32% 86%;
+    --status-espera: 32 34% 20%;
+    --status-espera-soft: 32 34% 86%;
+    --status-ajuste: 343 50% 24%;
+    --status-ajuste-soft: 343 50% 86%;
+    --status-feito: 89 40% 17%;
+    --status-feito-soft: 89 40% 86%;
+    --status-alerta: 54 58% 20%;
+    --status-alerta-soft: 54 58% 86%;
+
+    /* Tons categóricos (chip de tag + série de gráfico) */
+    --tag-a: 112 64% 24%;
+    --tag-b: 211 60% 33%;
+    --tag-c: 289 78% 40%;
+    --tag-d: 339 84% 40%;
+
+    /* Ícone de ferramenta/card */
+    --tool-icon: var(--primary);
+    --tool-icon-bg: 175 60% 95%;
+
+    /* Superfícies */
+    --background: 42 24% 99.8%;
+    --card: 42 24% 99.8%;
+    --popover: 42 24% 99.8%;
+    --canvas: 42 22% 99%;
+    --muted: var(--base-50);
+    --muted-foreground: 28 9% 45%;
+    /* 48% e nao os 60% do `:root`, e a diferenca e deliberada — como a do
+       `--ring`. Em 60% o par com `--destructive-foreground` dava 3,62:1, abaixo
+       do 4,5:1 do WCAG AA, nos 36 botoes de confirmar exclusao. E `text-destructive`
+       sobre fundo claro dava 3,77:1 nos 227 sitios de mensagem de erro — tambem
+       reprovando, e isso ninguem tinha medido.
+
+       Em 48%: o botao vai a 4,66:1 e o texto de erro a 4,85:1. Os dois passam.
+
+       Clarear o texto nao era saida: o primeiro plano ja estava em 98% e o BRANCO
+       PURO da 3,78:1 — teto abaixo do minimo. So escurecer o fundo resolvia.
+
+       A OSG nao entra: `--osg-red` ja dava 5,80:1. O `:root` fica em 60% porque
+       nenhuma rota o alcanca (o piso e sempre aplicado) e mexer nele so alargaria
+       o raio sem mudar pixel. */
+    --destructive: 0 84% 48%;
+
+    /* Superfície escura — o par de fundo dos cartões escuros, do mais escuro
+       (`--surface-escura`, o início do gradiente) para o intermediário
+       (`--surface-escura-2`). O fim do gradiente é o `--primary` da área, e é
+       ele que dá identidade ao cartão.
+
+       Os valores são o `slate-950`/`slate-900` que o único cartão escuro do
+       sistema já usava cravado — tokenizados, sem mudar de cor. São FRIOS
+       porque o acento do piso é o teal: quem tem acento quente sobrescreve o
+       par (ver `.sistema-theme`). */
+    --surface-escura: 229 84% 5%;
+    --surface-escura-2: 222 47% 11%;
+
+    /* Texto */
+    --foreground: 20 81% 10%;
+    --card-foreground: 20 81% 10%;
+    --popover-foreground: 20 81% 10%;
+  }
+
   /* Tema da área Tax: o teal #0d9488 da marca é a cor da área — a mesma da barra
      de progresso. Aplicado no <html> pelo FiscalLayout, então alcança menus e
      modais renderizados em portal, igual ao .osg-theme.
@@ -251,7 +463,7 @@ All colors MUST be HSL.
      2. Os quentes deixaram de ser "vocabulário comum". Eram carmim + dourado
         idênticos aos da OSG (1° a 6° de distância, 0 ponto de luminosidade), e
         por isso as duas legendas liam como a mesma paleta. Agora a Tax fala
-        tijolo (7–12) e ocre (30–36), afinados com a escala --tax-*, e cai num
+        tijolo (7–12) e ocre (30–36), afinados com a escala --base-*, e cai num
         registro de luminosidade próprio: ajuste/revisao/feito escuros contra os
         equivalentes claros da OSG.
 
@@ -306,6 +518,43 @@ All colors MUST be HSL.
     --tag-b: 223 78% 40%;
     --tag-c: 298 70% 31%;
     --tag-d: 7 72% 39%;
+
+    /* ─── Congelamento: o que a Tax herdava do .base-theme ─────────────────
+       Estas 15 não são valores novos — são exatamente o que esta área JÁ
+       computava, tornado explícito. Zero mudança visual; conferido variável a
+       variável contra a cascata anterior.
+
+       Por que congelar: enquanto o base for a ORIGEM da Tax (o `:root` era o
+       tema único do sistema e foi readaptado para cá), herdar é inofensivo. No
+       instante em que a base ganhar identidade própria, deixa de ser: o botão
+       primário da Tax viraria a cor da base junto, sem erro de build e sem
+       ninguém pedir. Declarar aqui é o que corta esse fio.
+
+       `--tool-icon` continua sendo `var(--primary)` de propósito — o ícone de
+       ferramenta DEVE seguir o acento da área. Quem foi congelado é o alvo
+       (`--primary`, logo acima), não a referência. */
+    --accent: 175 82% 29%;
+    --accent-foreground: 0 0% 100%;
+    --primary: 175 82% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 175 82% 29%;
+    --secondary-foreground: 0 0% 100%;
+    --ring: 175 82% 29%;
+    --success: 160 84% 30%;
+    --warning: 38 92% 50%;
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
+    --tool-icon: var(--primary);
+    --tool-icon-bg: 175 60% 95%;
+    --destructive: 0 84% 48%;
+    --foreground: 20 81% 10%;
+    --card-foreground: 20 81% 10%;
+    --popover-foreground: 20 81% 10%;
+    /* A Tax não tem superfície escura hoje. Declara o par do piso para o
+       contrato ficar honesto e para ter o fundo certo se um dia tiver. */
+    --surface-escura: 229 84% 5%;
+    --surface-escura-2: 222 47% 11%;
   }
 
   /* Tema da área OSG: troca o accent teal padrão pelo verde osg-moss.
@@ -324,6 +573,9 @@ All colors MUST be HSL.
        (azul mais próximo dos demais itens da página). */
     --success: var(--osg-moss);
     --warning: var(--osg-highlighter);
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
 
     /* Paleta de status da OSG — construída SOBRE os tokens de marca da área, não
        ao lado deles. A OSG tinha identidade (musgo, dourado, carmim, taupe)
@@ -409,6 +661,15 @@ All colors MUST be HSL.
     --foreground: 220 26% 12%;
     --card-foreground: 220 26% 12%;
     --popover-foreground: 220 26% 12%;
+
+    /* Superfície escura: o par do piso. A OSG NÃO tem cartão escuro para
+       tokenizar — o que ela tem de escuro é a página do seletor de área
+       (`gray-950/900`, que já são token) e arte de marca com hex próprio
+       (`OsgWorkIcon`, `OsgProjectsIcon`). Escrever um par taupe aqui seria
+       decidir a identidade escura da OSG sem ninguém ter pedido; quando ela
+       tiver uma, é nestas duas linhas. */
+    --surface-escura: 229 84% 5%;
+    --surface-escura-2: 222 47% 11%;
   }
 
   /* Tema da área Digital Rotina: o anel de foco dos campos deixa de ser o lime
@@ -417,6 +678,123 @@ All colors MUST be HSL.
      EquipeLayout, então vale também para modais e selects renderizados em portal. */
   .rotina-theme {
     --ring: var(--teal-500);
+
+    /* ─── Congelamento: o que a Rotina herdava do .base-theme ──────────────
+       A Rotina declarava UMA das 41 variáveis do contrato — as outras 40 vinham
+       da base. Era a área mais exposta do sistema: qualquer mudança na base
+       repintava a área inteira sem que nada nesta declaração mudasse.
+
+       As 40 abaixo são exatamente o que ela JÁ computava. Zero mudança visual.
+
+       DECISÃO REGISTRADA, e ela é deliberada: congelar com os valores de hoje
+       significa que a Rotina PARA DE ACOMPANHAR mudanças no base. Isso é
+       desacoplamento de propósito, não efeito colateral. A alternativa seria
+       decidir agora a identidade visual própria da Rotina, e essa decisão não
+       está tomada. Congelar preserva o que está no ar e deixa a escolha para
+       quando ela for feita — a partir daqui, mudar a cor da Rotina é editar
+       este bloco, e nada mais.
+
+       `--ring` acima não entra no congelamento: já era declarado aqui e segue
+       como estava. `--tool-icon` continua `var(--primary)` — o alvo é que foi
+       congelado, não a referência. */
+    --accent: 175 82% 29%;
+    --accent-foreground: 0 0% 100%;
+    --primary: 175 82% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 175 82% 29%;
+    --secondary-foreground: 0 0% 100%;
+    --success: 160 84% 30%;
+    --warning: 38 92% 50%;
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
+    --status-neutro: 48 22% 30%;
+    --status-neutro-soft: 48 22% 86%;
+    --status-fila: 122 28% 33%;
+    --status-fila-soft: 122 28% 87%;
+    --status-andamento: 100 38% 27%;
+    --status-andamento-soft: 100 38% 86%;
+    --status-revisao: 111 32% 17%;
+    --status-revisao-soft: 111 32% 86%;
+    --status-espera: 32 34% 20%;
+    --status-espera-soft: 32 34% 86%;
+    --status-ajuste: 343 50% 24%;
+    --status-ajuste-soft: 343 50% 86%;
+    --status-feito: 89 40% 17%;
+    --status-feito-soft: 89 40% 86%;
+    --status-alerta: 54 58% 20%;
+    --status-alerta-soft: 54 58% 86%;
+    --tag-a: 112 64% 24%;
+    --tag-b: 211 60% 33%;
+    --tag-c: 289 78% 40%;
+    --tag-d: 339 84% 40%;
+    --tool-icon: var(--primary);
+    --tool-icon-bg: 175 60% 95%;
+    --background: 42 24% 99.8%;
+    --card: 42 24% 99.8%;
+    --popover: 42 24% 99.8%;
+    --canvas: 42 22% 99%;
+    /* Literal, e não `var(--base-50)` como vinha da base: a escala `--base-*`
+       é da base, e manter a referência recriaria pela lateral o acoplamento
+       que este bloco existe para cortar. Mesmo valor. */
+    --muted: 42 26% 98%;
+    --muted-foreground: 28 9% 45%;
+    --destructive: 0 84% 48%;
+    --foreground: 20 81% 10%;
+    --card-foreground: 20 81% 10%;
+    --popover-foreground: 20 81% 10%;
+    /* A Rotina não tem superfície escura hoje. Mesmo motivo da Tax. */
+    --surface-escura: 229 84% 5%;
+    --surface-escura-2: 222 47% 11%;
+  }
+
+  /* ─── .sistema-theme — grafite quente para as telas de infraestrutura ────
+     Board, Dev, Digital e Acessos. Telas que servem o sistema, não uma área de
+     negócio: elas não devem competir com a Tax nem com a OSG, e até aqui eram
+     indistinguíveis da Tax, porque o piso é o teal institucional.
+
+     DELTA PURO — declara 7 variáveis, não 41, e isso é de propósito.
+     É a diferença entre este bloco e `.tax-theme`/`.rotina-theme`, que foram
+     CONGELADOS no contrato inteiro. Aquelas duas precisaram do congelamento
+     porque herdavam de um piso que ia mudar de identidade. Este nasce depois do
+     piso estar estável, e o que ele quer do piso — superfícies, texto, papéis de
+     status, tags — ele quer mesmo: herdar é o comportamento correto aqui.
+     Congelá-lo seria copiar 34 valores só para mantê-los iguais.
+
+     `--tool-icon` não aparece: o `.base-theme` o declara como `var(--primary)`,
+     e essa referência viva resolve contra o `--primary` daqui. O ícone de
+     ferramenta vira grafite sozinho.
+
+     POR QUE O GRAFITE NÃO FOI PARA O PISO. Foi a primeira tentativa, e o alcance
+     reprovou: o `.base-theme` é aplicado em TODA rota, então o site institucional
+     (`/`, `/novidades`, `/ajuda`), o portal do cliente e a Gestão iam junto — o
+     botão principal de psaconsultores.com.br virava grafite. O piso tem que ser
+     o padrão seguro, e o padrão seguro é a cor da marca: rota nova nasce teal.
+     Enumera-se a infraestrutura, que é finita e conhecida, e não o site público,
+     que é justamente a parte que ganha rota nova.
+
+     Quente (matiz 35) e não frio (~210): o canvas da base é marfim
+     (42 24% 99.8%) e o texto é marrom (20 81% 10%) — um grafite azulado brigaria
+     com os dois. Saturação de 10% mantém o tom quase neutro: é acento por
+     contraste de luminosidade, não por cor. Branco sobre ele dá 9,72:1. */
+  .sistema-theme {
+    --primary: 35 10% 26%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 35 10% 26%;
+    --accent: 35 10% 26%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 35 10% 26%;
+    --tool-icon-bg: 35 20% 94%;
+
+    /* Superfície escura QUENTE — o par do piso é frio (matiz 222/229, herdado
+       do teal). Um gradiente que sai do frio e termina no grafite quente
+       atravessa o eixo azul→marrom e passa por um cinza morto no meio; e o
+       grafite a 26% de luminosidade é mais CLARO que o azul-ardósia a 11%, o
+       que faz o canto acender em vez de fechar. Na matiz 35 o gradiente inteiro
+       escurece na mesma família e o cartão parece desenhado em grafite, não
+       adaptado. */
+    --surface-escura: 35 10% 8%;
+    --surface-escura-2: 35 11% 12%;
   }
 
   /* Hover das linhas de tabela na área OSG: marrom/areia claro (osg-50)
@@ -500,7 +878,12 @@ All colors MUST be HSL.
   --board-border-s: #F0F4F8;
   --board-t1: #0C1222;
   --board-t2: #3D4D6A;
-  --board-t3: #7A8BA8;
+  /* Texto terciário do Board. Escurecido de #7A8BA8 em 21/08: no tom antigo ele
+     dava 3,45:1 sobre branco e 3,12:1 sobre `--board-bg` (#F0F4F8), abaixo do
+     mínimo de 4,5:1 — e é o tom de quase todo rótulo secundário do Board (56
+     sítios em 14 arquivos). Agora dá 5,42:1 e 4,91:1. Só é usado sobre
+     superfície clara; a barra lateral escura tem os `--board-sb-*` próprios. */
+  --board-t3: #5A6B84;
   --board-t4: #A8B8CC;
   --board-r: 12px;
   --board-shadow: 0 1px 4px rgba(12,18,34,.07), 0 0 0 1px rgba(12,18,34,.04);
@@ -692,7 +1075,13 @@ All colors MUST be HSL.
   --cy:#06B2D0;--cy-s:rgba(6,178,208,.11);
   --go:#D4960A;--go-s:rgba(212,150,10,.12);
   --bg:#EEF2F8;--bdr:#E0E8F4;--bdr-s:#F0F5FB;
-  --t1:#0A1020;--t2:#3A4B66;--t3:#6E82A0;--t4:#A4B5CC;
+  /* `--t3` escurecido de #6E82A0 em 21/08: dava 3,35:1 sobre o #E6EEF8 do
+     `.v3-segs`, o trilho dos chips de período (7d / 30d / 90d) da barra de
+     filtros. Mesmo matiz e mesma saturação (H 216°, S 21%), L 53% → 42%; agora
+     4,93:1. Das 10 classes que leem `--t3`, só `.v3-seg` tem consumidor no
+     código (`BoardFilterBar`, `FaturamentoDetalhe`, `BoardDashboardClientesOs`)
+     — as outras 9 são CSS sem chamador. Todas sobre superfície clara. */
+  --t1:#0A1020;--t2:#3A4B66;--t3:#556781;--t4:#A4B5CC;
   --r:12px;--rs:8px;--rxs:6px;
   --sh:0 1px 4px rgba(10,16,32,.07),0 0 0 1px rgba(10,16,32,.04);
   --shm:0 4px 18px rgba(10,16,32,.1),0 0 0 1px rgba(10,16,32,.04);
@@ -861,8 +1250,34 @@ All colors MUST be HSL.
 :root {
   --board-v4-ink: #0D1117;
   --board-v4-ink2: #3D4A5C;
-  --board-v4-ink3: #7A8899;
-  --board-v4-ink4: #B0BBC8;
+  /* Texto terciário da paleta v4 — o irmão do `--board-t3` (que já foi
+     escurecido em 21/08) e o tom de QUASE TODO rótulo de KPI do Estratégico:
+     "Projetos ativos", "Total de horas", "Pontualidade de entrega", "Cluster",
+     "ciclo ativo". 64 sítios em 20 arquivos, mais 6 classes aqui (`.pg-sub`,
+     `.stat-label`, `.sdot`, `.stat-sub`, `.pill-neutral`, `.chip-gy`).
+     No tom antigo (#7A8899) dava 3,61:1 sobre branco, 3,34:1 sobre
+     `--board-v4-page` e 3,21:1 sobre `--board-v4-line2` — abaixo do mínimo de
+     4,5:1 em tamanhos de 10,5 a 12px. Agora dá 5,52 / 5,10 / 4,91.
+     Mesmo matiz e mesma saturação de antes (H 213°, S 13%), só mais escuro:
+     L 54% → 42%. Nenhum dos 64 sítios fica sobre fundo escuro — a paleta v4
+     não tem superfície escura, e a barra lateral usa os `--board-sb-*`. O único
+     sítio condicional (`BoardClusterBar.tsx:84`) já troca para `#fff` quando o
+     fundo vira o azul de destaque, então não há inversão a tratar. */
+  --board-v4-ink3: #5D6A79;
+  /* O degrau mais claro da rampa de texto. Era #B0BBC8 — 1,95:1 sobre branco,
+     o pior contraste da tela, e ele pinta TEXTO de 10px: os cabeçalhos de
+     tabela do "Preenchimento do sistema" ("Área", "Projetos", "Sem resp.",
+     "Sem equipe", "Sem data", "Sem OS", "Centro de custo") e os números de
+     posição #1 a #5 da "Concentração da carteira". 12 sítios em 7 arquivos,
+     nenhum sobre fundo escuro (o único bloco escuro da v4, `.v4-cyb`, usa
+     #5E7399 e #fff crus). Agora 5,17:1 no branco e 4,78:1 no `--board-v4-page`.
+     Mesmo matiz e mesma saturação (H 212°, S 18%), L 74% → 44%.
+     CONSEQUÊNCIA a olhar: neste tom o ink4 fica quase igual ao ink3 (5,17 contra
+     5,52 no branco) — a rampa de 4 degraus vira 3 na ponta clara. Não há como
+     evitar: 4,5:1 em 10px exige esta faixa de luminosidade. A diferença entre
+     cabeçalho e texto secundário passa a vir do peso 700, da caixa alta e do
+     espaçamento de letra, que já estavam lá. */
+  --board-v4-ink4: #5C6F84;
   --board-v4-page: #F4F6FA;
   --board-v4-surface: #FFFFFF;
   --board-v4-surface2: #F8FAFC;
@@ -871,8 +1286,24 @@ All colors MUST be HSL.
   --board-v4-accent: #4B63F7;
   --board-v4-go: #0EA271;
   --board-v4-go-t: rgba(14,162,113,.1);
+  /* Degrau escuro do verde, PARA TEXTO. Aditivo, mesmo raciocínio do
+     `--board-v4-warn-d`: nada que já usava `--board-v4-go` mudou de cor.
+     #0EA271 dava 3,27:1 sobre branco e 2,93:1 sobre o próprio `-t`, que é o
+     fundo do `.pill-up` — o pill do "875% ROI", 10,5px. Mesmo matiz e mesma
+     saturação (H 160°, S 84%), L 34% → 25%: 5,71:1 no branco e 5,12:1 sobre o
+     `-t`. Dimensionado pelo tint, não pelo branco, porque é ali que ele vive. */
+  --board-v4-go-d: #0A7552;
   --board-v4-warn: #D4820A;
   --board-v4-warn-t: rgba(212,130,10,.1);
+  /* Degrau escuro do âmbar, PARA TEXTO. Aditivo: nada que já usava
+     `--board-v4-warn` mudou de cor. Espelha o par `--board-indigo` /
+     `--board-indigo-d` que a paleta do Board já tinha, e é o mesmo raciocínio do
+     LIME[700]: área grande (barra de gráfico, faixa de 3px, dot, fundo de pill)
+     não precisa do mínimo de texto e continua no `--board-v4-warn`; palavra e
+     número, sim. #D4820A dava 3,00:1 sobre branco. Mesmo matiz e mesma saturação
+     (H 36°, S 91%), L 43% → 32%: 5,13:1 no branco e 4,56:1 sobre o próprio
+     `-t`. */
+  --board-v4-warn-d: #9C6007;
   --board-v4-risk: #D03040;
   --board-v4-risk-t: rgba(208,48,64,.1);
   --board-v4-blue: #3478F5;
@@ -933,7 +1364,10 @@ All colors MUST be HSL.
 
 /* Board v4 Pills */
 .pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
-.pill-up { background: var(--board-v4-go-t); color: var(--board-v4-go); }
+/* `color` no degrau `-d` e `background` no tint normal: o pill é texto de 10,5px
+   sobre uma superfície clara, então quem precisa do mínimo é a letra, não o
+   fundo. O `.pill-down` já passa com o `--board-v4-risk` (5,03:1). */
+.pill-up { background: var(--board-v4-go-t); color: var(--board-v4-go-d); }
 .pill-down { background: var(--board-v4-risk-t); color: var(--board-v4-risk); }
 .pill-neutral { background: var(--board-v4-line2); color: var(--board-v4-ink3); }
 

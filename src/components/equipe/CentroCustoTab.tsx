@@ -52,10 +52,10 @@ export default function CentroCustoTab() {
   return (
     <>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-slate-500">{items.length} centros de custo cadastrados</p>
+        <p className="text-sm text-muted-foreground">{items.length} centros de custo cadastrados</p>
         <Button size="sm" onClick={openCreate}><Plus className="h-4 w-4 mr-1" />Adicionar</Button>
       </div>
-      <Card className="border-slate-200/60">
+      <Card className="border-border/60">
         <Table>
           <TableHeader>
             <TableRow>
@@ -67,9 +67,9 @@ export default function CentroCustoTab() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={4} className="text-center py-8"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-slate-400" /></TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center py-8"><RefreshCw className="h-5 w-5 animate-spin mx-auto text-muted-foreground" /></TableCell></TableRow>
             ) : items.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center py-8 text-slate-400">Nenhum centro de custo</TableCell></TableRow>
+              <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Nenhum centro de custo</TableCell></TableRow>
             ) : items.map(item => (
               <TableRow key={item.id}>
                 <TableCell><Badge variant="outline" className="font-mono">{item.codigo}</Badge></TableCell>
@@ -107,7 +107,7 @@ export default function CentroCustoTab() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>Excluir "{deleteTarget?.codigo}"?</AlertDialogDescription>
+            <AlertDialogDescription>Excluir"{deleteTarget?.codigo}"?</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

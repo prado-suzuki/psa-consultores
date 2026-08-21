@@ -102,7 +102,7 @@ const RegraCard = ({
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"
+                className="gap-1.5 border-primary text-primary hover:bg-primary/5"
                 onClick={onEdit}
               >
                 <Pencil size={14} /> Editar
@@ -184,7 +184,7 @@ export const NcmRegrasModal = ({ open, onOpenChange, ncm, setorClienteId }: NcmR
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <PackageSearch className="h-5 w-5 text-teal-600" />
+              <PackageSearch className="h-5 w-5 text-primary" />
               Regras NCM {ncm}
             </DialogTitle>
             <DialogDescription>
@@ -206,7 +206,7 @@ export const NcmRegrasModal = ({ open, onOpenChange, ncm, setorClienteId }: NcmR
                 <Button
                   size="sm"
                   variant="outline"
-                  className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50 mt-2"
+                  className="gap-1.5 border-primary text-primary hover:bg-primary/5 mt-2"
                   onClick={openCreate}
                 >
                   <Plus size={14} /> Adicionar Regra
@@ -228,7 +228,7 @@ export const NcmRegrasModal = ({ open, onOpenChange, ncm, setorClienteId }: NcmR
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1.5 border-teal-600 text-teal-700 hover:bg-teal-50"
+                className="gap-1.5 border-primary text-primary hover:bg-primary/5"
                 onClick={openCreate}
               >
                 <Plus size={14} /> Adicionar Regra

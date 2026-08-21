@@ -172,7 +172,7 @@ const DashboardUsoEnvioGerencial = () => {
   const atualizando = gerencial.isFetching;
 
   return (
-    <BoardLayout title="Uso e envio" subtitle="Adoção, engajamento e retenção">
+    <BoardLayout title="Ferramentas" subtitle="Adoção, engajamento e retenção">
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -180,7 +180,7 @@ const DashboardUsoEnvioGerencial = () => {
               className="text-[22px] font-semibold tracking-[-0.01em]"
               style={{ color: 'var(--board-t1)' }}
             >
-              Uso e envio
+              Ferramentas
             </h1>
             <p className="mt-0.5 text-[13px]" style={{ color: 'var(--board-t3)' }}>
               Adoção, engajamento e retenção das ferramentas internas.
@@ -253,7 +253,8 @@ const DashboardUsoEnvioGerencial = () => {
           </div>
         )}
 
-        <p className="text-xs text-slate-500">
+        {/* slate-600, não 500: sobre o `--board-bg` (#F0F4F8) o 500 dá 4,31:1. */}
+        <p className="text-xs text-slate-600">
           Escopo:{' '}
           <strong className="text-slate-700">
             {clusterId ? rotuloCluster(clusterId) : 'consolidado, todas as unidades'}
@@ -324,8 +325,12 @@ const DashboardUsoEnvioGerencial = () => {
             titulo="Pessoas ativas e novas por mês"
             descricao={
               <>
-                <TermoColorido cor={TEAL[600]}>Ativas</TermoColorido> e{' '}
-                <TermoColorido cor={LIME[500]}>novas no mês</TermoColorido>.
+                {/* Texto vai um degrau mais escuro que o preenchimento do gráfico:
+                    TEAL[600] dava 3,74:1 e LIME[500] dava 1,98:1 como palavra. As
+                    barras seguem em 600/500 — área grande não precisa do mínimo de
+                    texto, e mudar o gráfico mudaria a cara da tela. */}
+                <TermoColorido cor={TEAL[700]}>Ativas</TermoColorido> e{' '}
+                <TermoColorido cor={LIME[700]}>novas no mês</TermoColorido>.
               </>
             }
             tooltip={TOOLTIP_GERENCIAL.evolucao}
@@ -521,7 +526,7 @@ const DashboardUsoEnvioGerencial = () => {
             titulo="Arquivos enviados por mês"
             descricao={
               <>
-                <TermoColorido cor={TEAL[600]}>Arquivos enviados por pessoas</TermoColorido> por
+                <TermoColorido cor={TEAL[700]}>Arquivos enviados por pessoas</TermoColorido> por
                 mês.
               </>
             }

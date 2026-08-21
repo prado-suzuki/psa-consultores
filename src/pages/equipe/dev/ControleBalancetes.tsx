@@ -335,7 +335,7 @@ const ControleBalancetes = () => {
       <Card className="mb-8 rounded-2xl border-slate-200 shadow-sm">
         <CardHeader className="pb-2 p-6 md:p-8 md:pb-4">
           <CardTitle className="flex items-center gap-2.5">
-            <Filter className="h-5 w-5 text-teal-600" />
+            <Filter className="h-5 w-5 text-primary" />
             <span className="uppercase text-xs tracking-widest font-bold text-slate-600">Filtros de Busca</span>
           </CardTitle>
         </CardHeader>
@@ -391,7 +391,7 @@ const ControleBalancetes = () => {
                   Limpar filtros
                 </Button>
               )}
-              <Button onClick={() => handleSearch()} disabled={loading} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg py-2.5 px-5">
+              <Button onClick={() => handleSearch()} disabled={loading} className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-lg py-2.5 px-5">
                 {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                 Buscar
               </Button>
@@ -408,7 +408,7 @@ const ControleBalancetes = () => {
             <Button
               variant="outline"
               size="sm"
-              className="gap-2 text-teal-700 border-teal-200 hover:bg-teal-50"
+              className="gap-2 text-primary border-primary/20 hover:bg-primary/5"
               disabled={selectedIds.size === 0 || downloading['__bulk__'] === 'download'}
               onClick={() => handleBulkAction('batch-download', 'download')}
             >
@@ -448,7 +448,7 @@ const ControleBalancetes = () => {
                 {loading ? (
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={COL_COUNT} className="text-center py-16 text-slate-400">
-                      <Loader2 className="h-10 w-10 mx-auto mb-4 animate-spin text-teal-500" />
+                      <Loader2 className="h-10 w-10 mx-auto mb-4 animate-spin text-primary" />
                       <p className="text-sm font-medium text-slate-500">Buscando balancetes...</p>
                     </TableCell>
                   </TableRow>
@@ -483,14 +483,14 @@ const ControleBalancetes = () => {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-8 w-8 rounded-lg hover:bg-teal-50"
+                                  className="h-8 w-8 rounded-lg hover:bg-primary/5"
                                   disabled={downloading[b.id] === 'download'}
                                   onClick={() => setConfirmDownload(b.id)}
                                 >
                                   {downloading[b.id] === 'download' ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                   ) : (
-                                    <Download className="h-4 w-4 text-teal-600" />
+                                    <Download className="h-4 w-4 text-primary" />
                                   )}
                                 </Button>
                               </TooltipTrigger>
@@ -577,7 +577,7 @@ const ControleBalancetes = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction className="bg-teal-600 hover:bg-teal-700" onClick={() => { if (confirmDownload) handleBlobDownload(confirmDownload, 'download', 'download'); setConfirmDownload(null); }}>Baixar</AlertDialogAction>
+            <AlertDialogAction className="bg-primary hover:bg-primary/90" onClick={() => { if (confirmDownload) handleBlobDownload(confirmDownload, 'download', 'download'); setConfirmDownload(null); }}>Baixar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

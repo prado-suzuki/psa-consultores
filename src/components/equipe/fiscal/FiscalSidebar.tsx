@@ -16,10 +16,12 @@ import {
   Shield,
   Home,
   LineChart,
-  User,
 } from 'lucide-react';
 import logoPsa from '@/assets/logo-psa.png';
 import TaxIcon from '@/components/equipe/fiscal/TaxIcon';
+import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
+import { classeLarguraBarra, classeRecuoCabecalho } from '@/lib/sidebarMedidas';
+import { linkEspelhado } from '@/lib/areaTheme';
 
 export interface MenuItem {
   id: string;
@@ -27,8 +29,8 @@ export interface MenuItem {
   icon: React.ComponentType<{ className?: string }>;
   /**
    * Destino do item. Um agrupador TAMBÉM pode ter destino: clicar no próprio
-   * "Projetos" ou "Gerencial" abre a página principal daquele grupo, no modelo
-   * da Digital. Foi o que permitiu tirar "Dashboard" da raiz do menu.
+   * "Gerencial" abre a página principal daquele grupo, no modelo da Digital.
+   * "Projetos" não usa: ali o clique abria o Dashboard, que voltou para a raiz.
    */
   path?: string;
   /** Item visível apenas para líder ou admin (área Gerencial). */
@@ -56,11 +58,22 @@ const menuItems: MenuItem[] = [
     path: '/equipe/tax'
   },
   {
+    // Item de primeiro nível, espelhando a OSG (Início, Dashboard, Projetos,
+    // Gerencial, Chamados). Ele saiu da raiz em 07/08, quando o agrupador
+    // "Projetos" ganhou destino próprio e passou a abrir esta página no clique
+    // — mas a tela de boas-vindas da Tax continuou oferecendo o cartão
+    // "Dashboard", e o menu ficou sem caminho visível para ela.
+    id: 'dashboard',
+    label: 'Dashboard',
+    icon: LayoutDashboard,
+    path: '/equipe/tax/dashboard'
+  },
+  {
     id: 'projetos',
     label: 'Projetos',
     icon: FolderKanban,
-    // Clicar no grupo abre o antigo item "Dashboard", que saiu da raiz do menu.
-    path: '/equipe/tax/dashboard',
+    // Sem destino próprio, como na OSG: o grupo apenas abre a lista no hover.
+    // O clique que levava ao Dashboard virou o item "Dashboard" da raiz.
     basePath: '/equipe/tax/projetos',
     children: [
       {
@@ -145,7 +158,7 @@ interface FiscalSidebarProps {
 export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { signOut, user, isAdmin, isLider } = useAuth();
+  const { signOut, isAdmin, isLider } = useAuth();
   // "Gerencial" só aparece para líder+ (isLider é estrito, não engloba admin).
   const canGerencial = isAdmin || isLider;
 
@@ -163,7 +176,9 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
 
   const goTo = (path: string) =>
     navigate(
-      path,
+      // O espelho entra AQUI e não no `path` do item: o `path` é também a chave
+      // de casamento do item ativo, e com `?area=tax` nele o menu nunca acenderia.
+      path === '/equipe/chamados' ? linkEspelhado(path, 'tax') : path,
       // Chamados é uma página compartilhada fora da área Tax; informamos a origem
       // para que o "Voltar" retorne ao dashboard Tax, não ao seletor de área.
       path === '/equipe/chamados'
@@ -282,7 +297,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
     <div
       className={cn(
         'transition-all duration-300 flex-shrink-0 sticky top-0 h-screen relative',
-        isCollapsed ? 'w-16' : 'w-64'
+        // 5rem, e não 4rem: ver docs/geral/sidebar-recolhe-em-tela-larga.md.
+        classeLarguraBarra(isCollapsed)
       )}
     >
       {/* Botão de colapso flutuante na borda direita da barra */}
@@ -297,7 +313,7 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
 
       <aside className="h-full w-full bg-card border-r border-border flex flex-col overflow-y-auto">
         {/* Header — no trilho colapsado sobra só o ícone da área, centralizado */}
-        <div className="p-6 border-b border-border">
+        <div className={cn('border-b border-border', classeRecuoCabecalho(isCollapsed))}>
           {isCollapsed ? (
             <div className="flex justify-center">
               <div className="h-10 w-10 flex items-center justify-center">
@@ -330,19 +346,8 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
 
         {/* Footer com o cartão do usuário e as ações da área */}
         <div className="mt-auto p-4 border-t border-border space-y-2">
-          {!isCollapsed && (
-            <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted mb-3">
-              <div className="h-8 w-8 rounded-full bg-success/10 flex items-center justify-center">
-                <User className="h-4 w-4 text-success" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {user?.email?.split('@')[0] || 'Usuário'}
-                </p>
-                <p className="text-xs text-muted-foreground">Tax</p>
-              </div>
-            </div>
-          )}
+          {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
+          <SidebarCartaoUsuario area="tax" collapsed={isCollapsed} />
 
           <Button
             variant="ghost"

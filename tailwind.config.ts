@@ -55,6 +55,10 @@ export default {
         background: 'hsl(var(--background) / <alpha-value>)',
         foreground: 'hsl(var(--foreground) / <alpha-value>)',
         canvas: 'hsl(var(--canvas) / <alpha-value>)',
+        /* Fundo dos cartões escuros: o par vai do mais escuro (início do
+           gradiente) ao intermediário; o fim é o `--primary` da área. */
+        'surface-escura': 'hsl(var(--surface-escura) / <alpha-value>)',
+        'surface-escura-2': 'hsl(var(--surface-escura-2) / <alpha-value>)',
         'tool-icon': 'hsl(var(--tool-icon) / <alpha-value>)',
         'tool-icon-bg': 'hsl(var(--tool-icon-bg) / <alpha-value>)',
         primary: {
@@ -164,6 +168,19 @@ export default {
             soft: 'hsl(var(--status-alerta-soft) / <alpha-value>)',
           },
         },
+        /* Cor de área — derivada por ordem de criação, global como a categoria.
+           Ver o bloco `--area-*` no index.css: a paleta só é adequada porque o
+           nome da área vem sempre ao lado do ponto. */
+        area: {
+          1: 'hsl(var(--area-1) / <alpha-value>)',
+          2: 'hsl(var(--area-2) / <alpha-value>)',
+          3: 'hsl(var(--area-3) / <alpha-value>)',
+          4: 'hsl(var(--area-4) / <alpha-value>)',
+          5: 'hsl(var(--area-5) / <alpha-value>)',
+          6: 'hsl(var(--area-6) / <alpha-value>)',
+          7: 'hsl(var(--area-7) / <alpha-value>)',
+          8: 'hsl(var(--area-8) / <alpha-value>)',
+        },
         /* Categoria do cliente — atributo de negócio, igual em toda área. */
         categoria: {
           bronze: 'hsl(var(--categoria-bronze) / <alpha-value>)',
@@ -179,14 +196,14 @@ export default {
           c: 'hsl(var(--tag-c) / <alpha-value>)',
           d: 'hsl(var(--tag-d) / <alpha-value>)',
         },
-        tax: {
-          50: 'hsl(var(--tax-50) / <alpha-value>)',
-          100: 'hsl(var(--tax-100) / <alpha-value>)',
-          200: 'hsl(var(--tax-200) / <alpha-value>)',
-          300: 'hsl(var(--tax-300) / <alpha-value>)',
-          500: 'hsl(var(--tax-500) / <alpha-value>)',
-          600: 'hsl(var(--tax-600) / <alpha-value>)',
-          700: 'hsl(var(--tax-700) / <alpha-value>)',
+        base: {
+          50: 'hsl(var(--base-50) / <alpha-value>)',
+          100: 'hsl(var(--base-100) / <alpha-value>)',
+          200: 'hsl(var(--base-200) / <alpha-value>)',
+          300: 'hsl(var(--base-300) / <alpha-value>)',
+          500: 'hsl(var(--base-500) / <alpha-value>)',
+          600: 'hsl(var(--base-600) / <alpha-value>)',
+          700: 'hsl(var(--base-700) / <alpha-value>)',
         },
         osg: {
           50: 'hsl(var(--osg-50) / <alpha-value>)',
@@ -214,6 +231,13 @@ export default {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
+        /* 4px. Existe para elementos PEQUENOS, onde os degraus de cima passam de
+           raio a forma: com `--radius` em 0.75rem, o `sm` dá 8px, que num
+           quadrado de 16px é metade do lado — ou seja, um círculo. Era o que
+           acontecia com a caixa de seleção, que assim ficava idêntica ao botão
+           de rádio (`rounded-full`, mesmo tamanho, mesma borda) no app inteiro.
+           A escala não estava errada; faltava um degrau para o miúdo. */
+        xs: 'calc(var(--radius) - 8px)',
       },
       keyframes: {
         'accordion-down': {

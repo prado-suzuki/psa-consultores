@@ -71,12 +71,12 @@ const TaxIcon: React.FC<TaxIconProps> = ({ className = '', size = 64 }) => {
       className={`inline-block ${className}`}
     >
       {/* VERSÃO LIGHT */}
-      <g className="block dark:hidden">
+      <g className="block">
         <TaxSeal glyphFill="#f1f5f9" glowOpacity={0.18} />
       </g>
 
       {/* VERSÃO DARK */}
-      <g className="hidden dark:block">
+      <g className="hidden">
         <TaxSeal glyphFill="#e2e8f0" glowOpacity={0.14} />
       </g>
     </svg>

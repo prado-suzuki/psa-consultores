@@ -36,20 +36,20 @@ const FILTER_LABEL: Record<DashboardFilterType, string> = {
   nenhum: 'Sem filtro',
 };
 const FILTER_BADGE_CLASS: Record<DashboardFilterType, string> = {
-  cluster: 'border-teal-200 bg-teal-50 text-teal-700',
+  cluster: 'border-primary/20 bg-primary/5 text-primary',
   cliente: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  nenhum: 'border-slate-200 bg-slate-100 text-slate-500',
+  nenhum: 'border-border bg-foreground/[0.05] text-muted-foreground',
 };
 // Ordenação padrão: sem filtro -> por cluster -> por cliente.
 const FILTER_RANK: Record<DashboardFilterType, number> = { nenhum: 0, cluster: 1, cliente: 2 };
-// "Tipo" é derivado do filtro: nenhum = interno (sem RLS); cluster/cliente = externo.
+//"Tipo" é derivado do filtro: nenhum = interno (sem RLS); cluster/cliente = externo.
 const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'Externo');
 const tipoBadgeClass = (ft: DashboardFilterType) =>
-  ft === 'nenhum' ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  ft === 'nenhum' ? 'border-border bg-foreground/[0.05] text-muted-foreground' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
 const FILTER_HELP: Record<DashboardFilterType, string> = {
   cluster: 'Valor resolvido do cluster do usuário que abre (ou do cliente).',
   cliente: 'Valor resolvido do id_cliente do viewer. Use p/ relatórios externos (ex.: PERDCOMP).',
-  nenhum: 'Dashboard sem RLS — não envia ?params=. ⚠️ Para mostrar tudo, a fonte no Data Studio NÃO pode ter parâmetro de RLS com "Modificar no URL" ativo: desative o "Modificar no URL" desse parâmetro (com ele ativo + padrão vazio, fica fail-closed e o dashboard aparece VAZIO).',
+  nenhum: 'Dashboard sem RLS — não envia ?params=. ⚠️ Para mostrar tudo, a fonte no Data Studio NÃO pode ter parâmetro de RLS com"Modificar no URL" ativo: desative o"Modificar no URL" desse parâmetro (com ele ativo + padrão vazio, fica fail-closed e o dashboard aparece VAZIO).',
 };
 
 // Nível mínimo ("X ou superior") — hierarquia do has_role_or_higher.
@@ -66,8 +66,8 @@ const MIN_ROLE_LABEL: Record<MinRole, string> = {
 // Identidade visual por variante: interno = cadeado (restrito à equipe);
 // externo por cluster = globo teal; externo por cliente = prédio indigo.
 const VARIANT_STYLE: Record<DashboardFilterType, { icon: typeof Globe; disc: string; iconColor: string }> = {
-  nenhum: { icon: Lock, disc: 'bg-slate-100', iconColor: 'text-slate-500' },
-  cluster: { icon: Globe, disc: 'bg-teal-500/10', iconColor: 'text-teal-600' },
+  nenhum: { icon: Lock, disc: 'bg-foreground/[0.05]', iconColor: 'text-muted-foreground' },
+  cluster: { icon: Globe, disc: 'bg-primary/10', iconColor: 'text-primary' },
   cliente: { icon: Building2, disc: 'bg-indigo-500/10', iconColor: 'text-indigo-600' },
 };
 
@@ -114,7 +114,7 @@ export default function DashboardsTab() {
   const clusterName = useMemo(() => new Map(clusters.map((c) => [c.id, c.nome])), [clusters]);
   const clienteName = useMemo(() => new Map(clientes.map((c) => [c.id, c.nome])), [clientes]);
 
-  // Grupos já usados — sugestões p/ o campo "Grupo" do cadastro.
+  // Grupos já usados — sugestões p/ o campo"Grupo" do cadastro.
   const existingGroups = useMemo(
     () => Array.from(new Set(items.map((d) => (d.grupo || '').trim()).filter(Boolean))).sort(),
     [items],
@@ -215,21 +215,21 @@ export default function DashboardsTab() {
     const ids = clustersByDashboard.get(d.id) ?? [];
     return (
       <span className="inline-flex flex-wrap items-center gap-1">
-        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-600">
+        <span className="inline-flex items-center gap-1 rounded-full bg-foreground/[0.05] px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
           <Shield className="h-3 w-3" />{MIN_ROLE_LABEL[d.min_role ?? 'team_member']}
         </span>
         {d.all_clusters ? (
-          <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[11px] font-medium text-teal-700">Todos os clusters</span>
+          <span className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-[11px] font-medium text-primary">Todos os clusters</span>
         ) : ids.length === 0 ? (
-          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] text-slate-400">Só Admin</span>
+          <span className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] text-muted-foreground">Só Admin</span>
         ) : (
           <>
-            <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-1 text-[11px] text-teal-700 max-w-[130px] truncate">
+            <span className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 text-[11px] text-primary max-w-[130px] truncate">
               {clusterName.get(ids[0]) ?? '—'}
             </span>
             {ids.length > 1 && (
               <IconTooltip label={ids.slice(1).map((id) => clusterName.get(id) ?? id).join(' · ')}>
-                <span className="rounded-full border border-teal-200 bg-teal-100 px-2 py-1 text-[11px] font-medium text-teal-700">+{ids.length - 1}</span>
+                <span className="rounded-full border border-primary/20 bg-primary/15 px-2 py-1 text-[11px] font-medium text-primary">+{ids.length - 1}</span>
               </IconTooltip>
             )}
           </>
@@ -252,7 +252,7 @@ export default function DashboardsTab() {
         tabIndex={0}
         onClick={() => setOverviewTarget(d)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOverviewTarget(d); } }}
-        className="group grid cursor-pointer grid-cols-1 items-center gap-2 px-4 py-3 transition-colors hover:bg-teal-50/40 focus-visible:bg-teal-50/40 focus-visible:outline-none sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:gap-3"
+        className="group grid cursor-pointer grid-cols-1 items-center gap-2 px-4 py-3 transition-colors hover:bg-primary/5 focus-visible:bg-primary/5 focus-visible:outline-none sm:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1.2fr)_auto] sm:gap-3"
       >
         {/* identidade */}
         <div className="flex items-center gap-3 min-w-0">
@@ -261,22 +261,22 @@ export default function DashboardsTab() {
           </div>
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-sm font-medium text-slate-800 truncate">{title}</span>
+              <span className="text-sm font-medium text-foreground truncate">{title}</span>
               {showTipoBadge && (
                 <Badge variant="outline" className={`${tipoBadgeClass(d.filter_type)} text-[10px] px-1.5 py-0`}>{tipoLabel(d.filter_type)}</Badge>
               )}
             </div>
-            <span className="text-[11px] text-slate-400">{FILTER_LABEL[d.filter_type]}</span>
+            <span className="text-[11px] text-muted-foreground">{FILTER_LABEL[d.filter_type]}</span>
           </div>
         </div>
 
         {/* página */}
         <div className="min-w-0">
           {d.target_page ? (
-            <span className="inline-block max-w-full truncate rounded bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-500">
+            <span className="inline-block max-w-full truncate rounded bg-foreground/[0.05] px-2 py-1 font-mono text-[11px] text-muted-foreground">
               {DASHBOARD_PAGE_PATH[d.target_page] ?? d.target_page}
             </span>
-          ) : <span className="text-xs text-slate-300">—</span>}
+          ) : <span className="text-xs text-muted-foreground/70">—</span>}
         </div>
 
         {/* acesso */}
@@ -285,8 +285,8 @@ export default function DashboardsTab() {
         {/* controles */}
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <div className="flex gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
-            <IconAction label="Editar dashboard e acessos" className="h-8 w-8 text-slate-500 hover:text-teal-600 hover:bg-teal-50" onClick={() => openEdit(d)}><Pencil className="h-4 w-4" /></IconAction>
-            <IconAction label="Excluir dashboard" className="h-8 w-8 text-slate-400 hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(d)}><Trash2 className="h-4 w-4" /></IconAction>
+            <IconAction label="Editar dashboard e acessos" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/5" onClick={() => openEdit(d)}><Pencil className="h-4 w-4" /></IconAction>
+            <IconAction label="Excluir dashboard" className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50" onClick={() => setDeleteTarget(d)}><Trash2 className="h-4 w-4" /></IconAction>
           </div>
           <IconTooltip label={d.is_active ? 'Ativo — clique para desativar' : 'Inativo — clique para ativar'}>
             <span className="inline-flex"><Switch checked={d.is_active} onCheckedChange={() => toggle.mutate(d)} aria-label="Ativar/desativar dashboard" /></span>
@@ -302,12 +302,12 @@ export default function DashboardsTab() {
     <>
       <div className="flex items-end justify-between mb-5">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center">
-            <LayoutDashboard className="h-5 w-5 text-teal-600" />
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
+            <LayoutDashboard className="h-5 w-5 text-primary" />
           </div>
           <div>
-            <h3 className="text-base font-semibold text-slate-900">Dashboards</h3>
-            <p className="text-sm text-slate-500">
+            <h3 className="text-base font-semibold text-foreground">Dashboards</h3>
+            <p className="text-sm text-muted-foreground">
               {items.length} relatório{items.length === 1 ? '' : 's'}
               {familiasCount > 0 && <> em {familiasCount} famíli{familiasCount === 1 ? 'a' : 'as'}</>}
               {' '}· clique num relatório para ver detalhes e preview
@@ -315,19 +315,19 @@ export default function DashboardsTab() {
           </div>
         </div>
         <IconTooltip label="Cadastrar um novo dashboard do Looker">
-          <Button size="sm" onClick={openCreate} className="bg-teal-600 hover:bg-teal-700 text-white shadow-sm">
+          <Button size="sm" onClick={openCreate} className="shadow-sm">
             <Plus className="h-4 w-4 mr-1" />Adicionar
           </Button>
         </IconTooltip>
       </div>
 
       {isLoading ? (
-        <Card className="flex items-center justify-center border-slate-200/70 py-16 shadow-sm">
-          <RefreshCw className="h-5 w-5 animate-spin text-slate-400" />
+        <Card className="flex items-center justify-center border-border/70 py-16 shadow-sm">
+          <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
         </Card>
       ) : items.length === 0 ? (
-        <Card className="border-slate-200/70 py-14 shadow-sm">
-          <div className="flex flex-col items-center gap-2 text-slate-400">
+        <Card className="border-border/70 py-14 shadow-sm">
+          <div className="flex flex-col items-center gap-2 text-muted-foreground">
             <LayoutDashboard className="h-8 w-8" />
             <p className="text-sm">Nenhum dashboard cadastrado ainda.</p>
             <Button size="sm" variant="outline" onClick={openCreate} className="mt-1"><Plus className="h-4 w-4 mr-1" />Adicionar o primeiro</Button>
@@ -336,15 +336,15 @@ export default function DashboardsTab() {
       ) : (
         <div className="space-y-4">
           {families.map((f) => (
-            <Card key={f.key} className="overflow-hidden border-slate-200/70 shadow-sm">
+            <Card key={f.key} className="overflow-hidden border-border/70 shadow-sm">
               {f.name && (
-                <div className="flex items-center gap-2 border-b border-slate-200/70 bg-slate-50/80 px-4 py-2.5">
-                  <Layers className="h-4 w-4 text-teal-600" />
-                  <span className="text-sm font-semibold text-slate-800">{f.name}</span>
-                  <span className="text-xs text-slate-400">· {f.members.length} relatório{f.members.length > 1 ? 's' : ''}</span>
+                <div className="flex items-center gap-2 border-b border-border/70 bg-muted/80 px-4 py-2.5">
+                  <Layers className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-foreground">{f.name}</span>
+                  <span className="text-xs text-muted-foreground">· {f.members.length} relatório{f.members.length > 1 ? 's' : ''}</span>
                 </div>
               )}
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-border">
                 {f.members.map(renderReport)}
               </div>
             </Card>
@@ -355,10 +355,10 @@ export default function DashboardsTab() {
       {/* ── Modal de cadastro/edição ──────────────────────────────────────── */}
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="w-[94vw] max-w-[920px] max-h-[92vh] p-0 gap-0 flex flex-col overflow-hidden">
-          <DialogHeader className="shrink-0 border-b border-slate-200 px-6 py-4 text-left">
+          <DialogHeader className="shrink-0 border-b border-border px-6 py-4 text-left">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-lg bg-teal-500/10 flex items-center justify-center shrink-0">
-                <LayoutDashboard className="h-5 w-5 text-teal-600" />
+              <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <LayoutDashboard className="h-5 w-5 text-primary" />
               </div>
               <div>
                 <DialogTitle>{editId ? 'Editar Dashboard' : 'Novo Dashboard'}</DialogTitle>
@@ -395,7 +395,7 @@ export default function DashboardsTab() {
                   <SelectItem value="interno">Interno (sem filtro)</SelectItem>
                 </SelectContent>
               </Select>
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 {tipo === 'externo' ? 'Filtra os dados por cluster ou cliente do usuário.' : FILTER_HELP.nenhum}
               </p>
             </div>
@@ -410,7 +410,7 @@ export default function DashboardsTab() {
                     <SelectItem value="cliente">Por cliente</SelectItem>
                   </SelectContent>
                 </Select>
-                <p className="text-xs text-slate-500">{FILTER_HELP[filterType]}</p>
+                <p className="text-xs text-muted-foreground">{FILTER_HELP[filterType]}</p>
               </div>
             )}
 
@@ -426,7 +426,7 @@ export default function DashboardsTab() {
                         placeholder="ds0.cluster_id_param"
                         className="font-mono text-xs"
                       />
-                      <IconAction label="Remover esta chave" className="h-8 w-8 shrink-0 text-slate-400 hover:text-red-600"
+                      <IconAction label="Remover esta chave" className="h-8 w-8 shrink-0 text-muted-foreground hover:text-red-600"
                         onClick={() => setParamNames((prev) => (prev.length === 1 ? [''] : prev.filter((_, idx) => idx !== i)))}>
                         <Trash2 className="h-4 w-4" />
                       </IconAction>
@@ -436,7 +436,7 @@ export default function DashboardsTab() {
                 <Button type="button" variant="outline" size="sm" onClick={() => setParamNames((prev) => [...prev, ''])}>
                   <Plus className="h-4 w-4 mr-1" />Adicionar chave
                 </Button>
-                <p className="text-xs text-slate-500">Uma chave por fonte do relatório (multi-fonte = várias).</p>
+                <p className="text-xs text-muted-foreground">Uma chave por fonte do relatório (multi-fonte = várias).</p>
               </div>
             )}
 
@@ -459,15 +459,15 @@ export default function DashboardsTab() {
             </div>
 
             {/* ── Acesso ─────────────────────────────────────────────────── */}
-            <div className="sm:col-span-2 space-y-3 rounded-lg border border-slate-200 bg-slate-50/60 p-4">
+            <div className="sm:col-span-2 space-y-3 rounded-lg border border-border bg-muted/60 p-4">
               <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-teal-600" />
-                <span className="text-sm font-medium text-slate-800">Acesso</span>
+                <Shield className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">Acesso</span>
               </div>
 
               {filterType === 'cliente' ? (
                 <div className="space-y-1.5">
-                  <Label className="inline-flex items-center gap-1 text-xs text-slate-500">
+                  <Label className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <Building2 className="h-3.5 w-3.5" /> Clientes com acesso
                     <DicaIcon text="Lista específica de clientes que podem ver este dashboard externo. Cada um enxerga só o próprio id_cliente." />
                   </Label>
@@ -480,17 +480,17 @@ export default function DashboardsTab() {
                     emptyText="Nenhum cliente."
                     addLabel="adicionar cliente"
                   />
-                  <p className="text-xs text-slate-500">Só os clientes listados terão acesso. Vazio = ninguém.</p>
+                  <p className="text-xs text-muted-foreground">Só os clientes listados terão acesso. Vazio = ninguém.</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   <div className="space-y-1.5">
-                    <Label className="inline-flex items-center gap-1 text-xs text-slate-500">
+                    <Label className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <Shield className="h-3.5 w-3.5" /> Nível mínimo (papel)
                       <DicaIcon text="Nível mínimo na hierarquia interna. 'X ou superior' — quem tiver o papel escolhido ou acima consegue ver." />
                     </Label>
                     <Select value={minRole} onValueChange={(v) => setMinRole(v as MinRole)}>
-                      <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {MIN_ROLE_OPTIONS.map((r) => (
                           <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
@@ -500,12 +500,12 @@ export default function DashboardsTab() {
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="inline-flex items-center gap-1 text-xs text-slate-500">
+                    <Label className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                       <Users className="h-3.5 w-3.5" /> Clusters com acesso
                       <DicaIcon text="Quais clusters podem abrir. Vazio (e 'Todos os clusters' desligado) = só Admin. Use p/ relatórios exclusivos (ex.: PERDCOMP = cluster TAX)." />
                     </Label>
                     {todosClusters ? (
-                      <div className="rounded-md border border-dashed border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
+                      <div className="rounded-md border border-dashed border-border bg-card px-3 py-2 text-xs text-muted-foreground">
                         Todos os clusters ativos — lista específica desativada.
                       </div>
                     ) : (
@@ -521,15 +521,15 @@ export default function DashboardsTab() {
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2">
-                    <Label className="inline-flex items-center gap-1 text-xs text-slate-600 cursor-pointer">
+                  <div className="flex items-center justify-between rounded-md border border-border bg-card px-3 py-2">
+                    <Label className="inline-flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
                       <Users className="h-3.5 w-3.5" /> Todos os clusters
                       <DicaIcon text="Ligado = qualquer cluster; quem estiver no nível mínimo abre e vê o próprio cluster, sem precisar listar. Desligado = só os clusters marcados acima (ou só Admin, se nenhum)." />
                     </Label>
                     <Switch checked={todosClusters} onCheckedChange={setTodosClusters} aria-label="Todos os clusters" />
                   </div>
 
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted-foreground">
                     Abre quem tem <strong>{MIN_ROLE_LABEL[minRole]}</strong>{' '}
                     {todosClusters
                       ? <>(<strong>todos os clusters</strong>)</>
@@ -543,7 +543,7 @@ export default function DashboardsTab() {
           </div>
           </div>
 
-          <DialogFooter className="shrink-0 border-t border-slate-200 bg-slate-50/60 px-6 py-3.5">
+          <DialogFooter className="shrink-0 border-t border-border bg-muted/60 px-6 py-3.5">
             <Button variant="outline" onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
               {saving && <RefreshCw className="h-4 w-4 mr-1.5 animate-spin" />}Salvar
@@ -557,7 +557,7 @@ export default function DashboardsTab() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>Excluir o dashboard "{deleteTarget?.name}"? Os acessos concedidos também deixam de valer.</AlertDialogDescription>
+            <AlertDialogDescription>Excluir o dashboard"{deleteTarget?.name}"? Os acessos concedidos também deixam de valer.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>

@@ -167,7 +167,7 @@ export const MoveTasksModal = ({
           />
 
           {warnings.length > 0 && (
-            <div className="rounded-md border border-warning bg-warning/5 p-3 dark:bg-warning/20">
+            <div className="rounded-md border border-warning bg-warning/5 p-3">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                 <ul className="space-y-1 text-sm text-muted-foreground">

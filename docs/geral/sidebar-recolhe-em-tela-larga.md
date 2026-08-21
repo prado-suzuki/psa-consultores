@@ -71,6 +71,107 @@ gravá-lo deixaria a barra estreita em todas as outras telas da área para sempr
 Ao sair da tela larga a barra volta a abrir — mas só se quem a recolheu foi o sistema. Se
 o usuário a recolheu, a escolha dele continua valendo.
 
+## Quanto o trilho recolhido mede (5rem, não 4rem) — e onde a medida mora
+
+A barra recolhida mede **80px** (`w-20`) nos cinco layouts do padrão — Tax
+(`FiscalSidebar`), OSG, Gestão, Administração e Fixos. Ela media 64px, e **não cabia**:
+
+o rodapé da barra tem recuo de 16px de cada lado e o cartão do usuário mais 12px, então
+sobravam 8px de largura útil para um avatar de 32px. No único layout que mantinha o cartão
+montado ao recolher (o `OsgLayout` — nos outros ele desaparecia), o círculo do avatar
+vazava para fora do chip. A mesma aritmética espremia o selo de 40px do cabeçalho, que
+usava `p-6`.
+
+São três medidas que andam juntas, e mexer numa sem as outras traz o corte de volta:
+
+- trilho recolhido de **80px**;
+- **cabeçalho** em `p-4` quando recolhido (com `p-6` sobravam 32px para o selo de 40px);
+- **cartão do usuário** sem `gap` e com `px-2` quando recolhido — o `gap-3` continua
+  ocupando 12px mesmo com o texto reduzido a zero, e é o que empurrava o avatar para fora.
+
+Alargar mais não resolveria melhor: o que corta é o recuo somado, não o trilho.
+
+### Por que virou padrão compartilhado (e não cinco correções iguais)
+
+A primeira correção foi arquivo por arquivo, e isso era o próprio bug: o markup do cartão
+do usuário estava **copiado em cinco layouts**, com diferença apenas de cor de acento e
+rótulo da área. Foi a cópia que deixou o corte vivo em um deles — quatro escondiam o
+cartão ao recolher (`{!collapsed && …}`) e mascaravam o problema, o quinto o mostrava.
+Corrigir cinco vezes só adiaria a sexta cópia.
+
+Agora existem duas peças, e nenhuma barra guarda medida própria:
+
+| Onde | O que mora ali |
+|---|---|
+| `src/lib/sidebarMedidas.ts` | as medidas: `MEDIDAS_TRILHO_SIDEBAR` (px) e os helpers `classeLarguraBarra`, `classeRecuoCabecalho`, `larguraBarraCss` |
+| `src/components/shared/SidebarCartaoUsuario.tsx` | o cartão do usuário, com o estado recolhido embutido e o registro das cinco áreas |
+
+As medidas ficaram **ao lado** do `useSidebarRecolhimentoController.ts`, não dentro dele:
+aquele arquivo é o *comportamento* (quando a barra recolhe) e é consumido como hook; estas
+são dados puros, e quem mais precisa delas não é layout — é o cartão compartilhado e o
+`Layout` do Mapeamento, que precisa do número em px para alimentar uma variável CSS. Módulo
+puro neste repositório vive em `src/lib/` (AGENTS.md, "Anatomia da decomposição").
+
+As strings `w-20`/`w-64`/`p-4`/`p-6` ficam escritas **nos helpers**, e só ali: o Tailwind
+gera a classe apenas quando o literal aparece no fonte, então nenhum layout pode montá-la
+por concatenação — e nenhum precisa.
+
+O cartão recebe **uma** prop de variação, `area`, que resolve rótulo e acento por um
+registro fechado das cinco áreas. Não é um wrapper passa-tudo: uma área nova entra por uma
+linha no registro, não por uma classe de cor vinda de fora. As cores literais de
+Administração e Fixos (teal e blue crus) continuam ali porque essas duas barras ainda não
+declaram tema no `<html>` — trocá-las por token tingiria o chip e o escureceria no tema
+escuro dentro de uma barra que seguiria branca. É migração de paleta, não correção de
+corte, e quando ela vier é um arquivo só que muda.
+
+O comportamento do OSG passou a ser o de todos: ao recolher, **o avatar fica** e só o texto
+desbota. Desmontar o texto fazia o cartão sumir de estalo enquanto a barra ainda encolhia —
+era isso que dava a sensação de corte seco. Recolhido, o avatar carrega o nome e a área
+como rótulo acessível (e o chip como `title`), então nada de informação se perde.
+
+### Quais barras seguem o padrão
+
+| Barra lateral | Recolhida | Cartão do usuário | No padrão? |
+|---|---|---|---|
+| `equipe/fiscal/FiscalSidebar.tsx` (Tax) | 80px | sim, compartilhado | ✅ |
+| `equipe/osg/OsgLayout.tsx` | 80px | sim, compartilhado | ✅ |
+| `gestao/GestaoLayout.tsx` | 80px | sim, compartilhado | ✅ |
+| `administracao/AdminLayout.tsx` | 80px | sim, compartilhado | ✅ |
+| `equipe/fixos/FixosLayout.tsx` | 80px | sim, compartilhado | ✅ |
+| `equipe/mapa/Layout.tsx` | 80px (era 72px) | não tem | ⚠️ só a medida |
+| `equipe/board/BoardLayout.tsx` | 64px | esconde ao recolher | ❌ fora |
+| `equipe/dev/DevLayout.tsx` | `w-0` (some) | esconde ao recolher | ❌ fora |
+| `equipe/EquipeLayout.tsx` | `w-0` (some) | esconde ao recolher | ❌ fora |
+
+**Mapeamento** entra só pela medida. A barra dele é CSS legado (`src/pages/equipe/mapa/mapa.css`,
+escopado em `.app-root`) e não tem cartão do usuário — o rodapé é só ações —, então nunca
+teve o corte. O trilho recolhido, porém, media 72px, um terceiro valor sem motivo: agora a
+variável `--sidebar-width-collapsed` é alimentada pelo `Layout` a partir de
+`MEDIDAS_TRILHO_SIDEBAR`, e o `.css` deixou de declarar número próprio. No estado recolhido
+aquele CSS já zera os recuos horizontais e centraliza tudo, então os 8px extras só sobram.
+
+**Board** fica de fora de propósito: ele tem linguagem visual própria (trilho de 64px,
+aberto em 232px, tipografia de 12,5px, tokens `--board-*`), já centraliza os itens ao
+recolher e, no recolhido, troca o bloco de marca + usuário pelo selo de 28px centralizado —
+não há avatar para vazar, e 28px é exatamente o que sobra dos 64px menos os 18px de recuo
+de cada lado: cabe, com a conta fechada. Alinhá-lo ao padrão seria mudar a identidade do
+módulo, não corrigir corte.
+
+**Dev** e **Equipe** recolhem para `w-0`: a barra desaparece por inteiro e o botão de
+reabrir migra para o cabeçalho da página. Não existe trilho de ícones ali, logo não existe
+o que cortar. Transformá-las em trilho de 80px é mudança de UX (e de navegação: hoje o
+usuário recolhe justamente para não ver a barra), e por isso ficou fora desta correção.
+Se um dia se quiser padronizar, o caminho é adotar o cartão compartilhado e
+`classeLarguraBarra` — as duas peças já existem.
+
+### O que trava o padrão
+
+`src/lib/sidebarMedidas.test.ts` mede o que **sobra**, não as medidas isoladas: o avatar de
+32px tem de caber no chip depois dos dois recuos, e o selo de 40px no cabeçalho recolhido.
+E lê o fonte das cinco barras para garantir que nenhuma tem largura escrita à mão nem
+cartão remontado — é a forma direta de travar "não volte por cópia". Os dois estados do
+cartão estão em `src/components/shared/SidebarCartaoUsuario.test.tsx`.
+
 ## `prefers-reduced-motion`
 
 Com movimento reduzido a barra **já nasce recolhida**, sem os 450ms.
@@ -132,6 +233,10 @@ Tudo em `src/hooks/useSidebarRecolhimentoController.ts`: o hook da tela
 (`useTelaDeTrabalhoLargo`), o hook do layout (`useSidebarRecolhimentoController`) e o
 registro minúsculo que liga os dois. Testes em
 `src/hooks/useSidebarRecolhimentoController.test.tsx`.
+
+O **quanto** a barra mede quando recolhe é vizinho, e não parte do hook: fica em
+`src/lib/sidebarMedidas.ts`, com o cartão compartilhado em
+`src/components/shared/SidebarCartaoUsuario.tsx` (ver "Quanto o trilho recolhido mede").
 
 As duas metades se encontram por um **registro global**, não por React Context, porque
 tela e layout não têm relação de parentesco estável: na maior parte do sistema a página é

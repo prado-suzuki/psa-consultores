@@ -86,7 +86,7 @@ export function ControlePerdcompFilters({
     <Card className="mb-6">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-lg text-primary">
-          <Filter className="h-5 w-5 text-teal-600" />
+          <Filter className="h-5 w-5 text-primary" />
           <span className="uppercase text-sm tracking-wider font-bold text-slate-800">
             Filtros de Busca
           </span>
@@ -99,7 +99,7 @@ export function ControlePerdcompFilters({
               Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} />
             </label>
             <Select value={clienteId} onValueChange={onClienteChange}>
-              <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+              <SelectTrigger className="h-11 bg-white">
                 <SelectValue placeholder="Selecione o cliente" />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
@@ -121,7 +121,7 @@ export function ControlePerdcompFilters({
               onValueChange={onContribuinteChange}
               disabled={!clienteId}
             >
-              <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+              <SelectTrigger className="h-11 bg-white">
                 <SelectValue placeholder="Selecione o contribuinte" />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
@@ -204,7 +204,7 @@ export function ControlePerdcompFilters({
               value={exercicio || '__none__'}
               onValueChange={(value) => onExercicioChange(value === '__none__' ? '' : value)}
             >
-              <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+              <SelectTrigger className="h-11 bg-white">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
               <SelectContent className="bg-white z-50">
@@ -223,7 +223,7 @@ export function ControlePerdcompFilters({
               Nº do Processo <FieldTooltip text={TOOLTIPS.numeroProcesso} />
             </label>
             <Input
-              className="h-11 bg-white dark:bg-slate-800"
+              className="h-11 bg-white"
               placeholder="Digite o número..."
               value={processo}
               onChange={(event) => onProcessoChange(event.target.value)}
@@ -245,7 +245,7 @@ export function ControlePerdcompFilters({
           <Button
             onClick={onSearch}
             disabled={isSearching}
-            className="gap-2 bg-teal-600 hover:bg-teal-700 text-white"
+            className="gap-2 bg-primary hover:bg-primary/90 text-white"
           >
             {isSearching ? (
               <Loader2 className="h-4 w-4 animate-spin" />

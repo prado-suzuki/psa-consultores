@@ -226,7 +226,7 @@ const DevDashboard = () => {
 
           <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
-              <LayoutGrid className="h-4 w-4 text-teal-600" />
+              <LayoutGrid className="h-4 w-4 text-primary" />
               <h3 className="text-sm font-semibold text-slate-900">Distribuicao por Categoria</h3>
             </div>
             <HatchedBar segments={categorySegments} height={48} />
@@ -237,10 +237,10 @@ const DevDashboard = () => {
           href="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/estrutura-pastas-drive/"
           target="_blank"
           rel="noopener noreferrer"
-          className="group relative block overflow-hidden rounded-2xl border-2 border-emerald-300/70 bg-gradient-to-r from-emerald-50 via-white to-teal-50 p-6 shadow-[0_4px_24px_-8px_rgba(5,150,105,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-[0_12px_32px_-8px_rgba(5,150,105,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+          className="group relative block overflow-hidden rounded-2xl border-2 border-emerald-300/70 bg-gradient-to-r from-emerald-50 via-white to-primary/5 p-6 shadow-[0_4px_24px_-8px_rgba(5,150,105,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-[0_12px_32px_-8px_rgba(5,150,105,0.35)] focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
         >
           <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-emerald-200/40 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-teal-200/30 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-20 -left-10 h-48 w-48 rounded-full bg-primary/20 blur-3xl" />
 
           <div className="relative flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-5">
@@ -259,7 +259,7 @@ const DevDashboard = () => {
                   <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                     <ShieldAlert className="h-3 w-3" /> Leitura obrigatória
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-teal-200 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-teal-700">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
                     SOP oficial
                   </span>
                 </div>
@@ -321,7 +321,7 @@ const DevDashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedToolPath("")}
-                  className="h-9 text-xs text-slate-600 hover:text-teal-700"
+                  className="h-9 text-xs text-slate-600 hover:text-primary"
                 >
                   <X className="mr-1 h-3.5 w-3.5" />
                   Limpar
@@ -352,9 +352,9 @@ const DevDashboard = () => {
                     <button
                       type="button"
                       onClick={() => navigate(group.landingPath!)}
-                      className="group flex h-full w-full flex-col rounded-2xl border border-teal-900/20 bg-gradient-to-br from-slate-950 via-slate-900 to-teal-900 p-5 text-left text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-teal-300/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                      className="group flex h-full w-full flex-col rounded-2xl border border-primary/30 bg-gradient-to-br from-surface-escura via-surface-escura-2 to-primary p-5 text-left text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
-                      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-teal-200">
+                      <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-foreground/10 text-primary-foreground/80">
                         <LandingIcon className="h-5 w-5" />
                       </div>
                       <h4 className="text-lg font-semibold tracking-tight">{group.label}</h4>
@@ -370,7 +370,7 @@ const DevDashboard = () => {
                                 navigate(tool.path);
                               }}
                               title={`Abrir ${tool.name}`}
-                              className="rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white/90 transition-colors hover:border-teal-300/50 hover:bg-white/15 hover:text-white"
+                              className="rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 text-xs font-medium text-white/90 transition-colors hover:border-primary-foreground/40 hover:bg-white/15 hover:text-white"
                             >
                               {tool.name}
                             </button>
@@ -395,17 +395,17 @@ const DevDashboard = () => {
                         return (
                           <article
                             key={tool.path}
-                            className="group relative flex flex-col rounded-xl border border-slate-200/70 bg-slate-50/60 p-4 transition-all duration-200 hover:border-teal-300 hover:bg-white hover:shadow-md"
+                            className="group relative flex flex-col rounded-xl border border-slate-200/70 bg-slate-50/60 p-4 transition-all duration-200 hover:border-primary/40 hover:bg-white hover:shadow-md"
                           >
                             <button
                               onClick={() => navigate(tool.path)}
-                              className="mb-4 flex items-start gap-3 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                              className="mb-4 flex items-start gap-3 rounded-lg text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             >
-                              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 transition-colors group-hover:bg-teal-100">
+                              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/5 text-primary transition-colors group-hover:bg-primary/15">
                                 <Icon className="h-5 w-5" />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <h4 className="text-sm font-semibold leading-tight text-slate-900 transition-colors group-hover:text-teal-700">
+                                <h4 className="text-sm font-semibold leading-tight text-slate-900 transition-colors group-hover:text-primary">
                                   {tool.name}
                                 </h4>
                                 <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
@@ -421,7 +421,7 @@ const DevDashboard = () => {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={(event) => event.stopPropagation()}
-                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-teal-700"
+                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-primary"
                                 >
                                   <BookOpen className="h-3 w-3" />
                                   Manual
@@ -433,7 +433,7 @@ const DevDashboard = () => {
 
                               <button
                                 onClick={() => navigate(tool.path)}
-                                className="inline-flex items-center gap-1 rounded-md bg-teal-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-all hover:bg-teal-700"
+                                className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-all hover:bg-primary/90"
                               >
                                 Abrir
                                 <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />

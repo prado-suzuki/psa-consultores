@@ -295,55 +295,47 @@ describe('resumoPorArea', () => {
 });
 
 describe('construirMapaDeClusters', () => {
-  const clusters = [
-    { id: 'c-tax', name: 'PSA Tax' },
-    { id: 'c-osg', name: 'PSA OSG' },
-    { id: 'c-dig', name: 'PSA Digital' },
-    { id: 'c-x', name: 'Holding' },
-  ];
-
   it('usa page_categories como fonte canônica — imune ao nome da área', () => {
     const { bucketDoCluster, bucketDaArea } = construirMapaDeClusters({
       areas: [{ id: 'a1', name: 'Núcleo Alfa', cluster_id: 'c-tax', page_categories: ['tax'] }],
-      clusters,
     });
     expect(bucketDaArea.get('a1')).toBe('tax');
     expect(bucketDoCluster.get('c-tax')).toBe('tax');
   });
 
-  it('sem page_categories, cai no nome da área', () => {
-    const { bucketDoCluster } = construirMapaDeClusters({
-      areas: [{ id: 'a1', name: 'Societário', cluster_id: 'c-osg', page_categories: null }],
-      clusters,
+  // ── O caso real que motivou a remoção do palpite por nome ────────────────
+  // `TAX LEGAL` é área ATIVA do cluster **Prado Advogados** e não declara
+  // `page_categories`. Enquanto o mapa caía no nome, o "tax" do nome fazia o
+  // Prado inteiro ser contado como Tax. Área sem categoria declarada não
+  // classifica mais nada — nem a si, nem o cluster dela.
+  it('área sem page_categories fica fora do mapa, mesmo com nome que casaria', () => {
+    const { bucketDoCluster, bucketDaArea } = construirMapaDeClusters({
+      areas: [{ id: 'a1', name: 'TAX LEGAL', cluster_id: 'c-prado', page_categories: null }],
     });
-    expect(bucketDoCluster.get('c-osg')).toBe('osg');
+    expect(bucketDaArea.has('a1')).toBe(false);
+    expect(bucketDoCluster.has('c-prado')).toBe(false);
   });
 
-  it('cluster sem nenhuma área classificada cai no nome do cluster', () => {
-    // É o caso da Digital: nenhuma área declara page_categories 'dev'.
-    const { bucketDoCluster } = construirMapaDeClusters({ areas: [], clusters });
-    expect(bucketDoCluster.get('c-dig')).toBe('dev');
-    expect(bucketDoCluster.get('c-tax')).toBe('tax');
+  it('page_categories vazio conta como não declarado', () => {
+    const { bucketDaArea } = construirMapaDeClusters({
+      areas: [{ id: 'a1', name: 'Societário', cluster_id: 'c-osg', page_categories: [] }],
+    });
+    expect(bucketDaArea.has('a1')).toBe(false);
   });
 
-  it('cluster que não casa com nenhum bucket fica de fora do mapa', () => {
-    const { bucketDoCluster } = construirMapaDeClusters({ areas: [], clusters });
-    expect(bucketDoCluster.has('c-x')).toBe(false);
-  });
-
-  it('categoria declarada vence o nome de uma área irmã do mesmo cluster', () => {
-    const { bucketDoCluster } = construirMapaDeClusters({
+  it('irmã sem categoria não interfere na que declara', () => {
+    const { bucketDoCluster, bucketDaArea } = construirMapaDeClusters({
       areas: [
         { id: 'a1', name: 'Digital interno', cluster_id: 'c-tax', page_categories: null },
         { id: 'a2', name: 'Fiscal', cluster_id: 'c-tax', page_categories: ['tax'] },
       ],
-      clusters,
     });
     expect(bucketDoCluster.get('c-tax')).toBe('tax');
+    expect(bucketDaArea.has('a1')).toBe(false);
   });
 
   it('entrada vazia não quebra', () => {
-    const { bucketDoCluster, bucketDaArea } = construirMapaDeClusters({ areas: [], clusters: [] });
+    const { bucketDoCluster, bucketDaArea } = construirMapaDeClusters({ areas: [] });
     expect(bucketDoCluster.size).toBe(0);
     expect(bucketDaArea.size).toBe(0);
   });

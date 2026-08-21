@@ -12,7 +12,11 @@ if (!HTMLElement.prototype.hasPointerCapture) {
 
 const mocks = vi.hoisted(() => ({
   navigate: vi.fn(),
-  location: { state: null as { from?: string } | null },
+  location: {
+    state: null as { from?: string } | null,
+    pathname: '/equipe/chamados',
+    search: '',
+  },
   useAuth: vi.fn(),
   useUserEstrutura: vi.fn(),
   useCanAssignTickets: vi.fn(),
@@ -21,11 +25,18 @@ const mocks = vi.hoisted(() => ({
   useAllActiveClusters: vi.fn(),
   mutateAsync: vi.fn(),
   toast: vi.fn(),
+  // Espelhamento: `?area=` na URL e o cluster que a chave resolve.
+  searchParams: new URLSearchParams(),
+  useDomainClusterPorCategoria: vi.fn(),
 }));
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => mocks.navigate,
   useLocation: () => mocks.location,
+  useSearchParams: () => [mocks.searchParams, vi.fn()] as const,
+}));
+vi.mock('@/hooks/useDomainClusterPorCategoria', () => ({
+  useDomainClusterPorCategoria: mocks.useDomainClusterPorCategoria,
 }));
 vi.mock('@/contexts/AuthContext', () => ({ useAuth: mocks.useAuth }));
 vi.mock('@/hooks/useUserEstrutura', () => ({ useUserEstrutura: mocks.useUserEstrutura }));
@@ -108,6 +119,11 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(NOW);
   mocks.location.state = null;
+  mocks.location.pathname = '/equipe/chamados';
+  mocks.location.search = '';
+  // Sem espelho por padrão: `/equipe/chamados` aberta direto mostra tudo.
+  mocks.searchParams = new URLSearchParams();
+  mocks.useDomainClusterPorCategoria.mockReturnValue({ clusterId: null, isLoading: false });
   mocks.useAuth.mockReturnValue({ user: { id: 'user-1' } });
   mocks.useCanAssignTickets.mockReturnValue(false);
   mocks.useUserEstrutura.mockReturnValue({
@@ -310,7 +326,11 @@ describe('EquipeChamados', () => {
     expect(screen.getByText('2')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Apuração mensal' }));
-    expect(mocks.navigate).toHaveBeenCalledWith('/equipe/chamados/ticket-00000001');
+    // A origem viaja no `state`, com a query: é o que devolve a pessoa ao espelho
+    // quando ela clica "Voltar" na tela de detalhe.
+    expect(mocks.navigate).toHaveBeenCalledWith('/equipe/chamados/ticket-00000001', {
+      state: { from: '/equipe/chamados' },
+    });
     await user.click(screen.getByRole('button', { name: 'Voltar' }));
     expect(mocks.navigate).toHaveBeenCalledWith('/equipe/tax');
   });
@@ -327,5 +347,188 @@ describe('EquipeChamados', () => {
     mocks.useCanAssignTickets.mockReturnValue(true);
     rerender(<EquipeChamados />);
     expect(screen.getByText('Nenhum chamado encontrado.')).toBeInTheDocument();
+  });
+});
+
+/*
+ * ESPELHAMENTO — "cor e conteúdo andam juntos" do lado do conteúdo.
+ *
+ * O tema em si é testado em `src/lib/areaTheme.test.ts`, que garante que a chave
+ * pinta. Aqui está a outra metade: que a MESMA chave filtra. Um teste sem o
+ * outro deixaria passar exatamente o defeito que o espelhamento existe para não
+ * ter — pintar sem filtrar.
+ */
+describe('EquipeChamados espelhada', () => {
+  beforeEach(() => {
+    mocks.useCanAssignTickets.mockReturnValue(true);
+    mocks.searchParams = new URLSearchParams('area=osg');
+    mocks.useDomainClusterPorCategoria.mockReturnValue({ clusterId: 'cluster-2', isLoading: false });
+  });
+
+  it('reduz a lista ao cluster do espelho', () => {
+    setTickets([
+      ticket({ id: 'ticket-00000001', title: 'Do cluster 1', cluster_id: 'cluster-1' }),
+      ticket({ id: 'ticket-00000002', title: 'Do cluster 2', cluster_id: 'cluster-2' }),
+    ]);
+    render(<EquipeChamados />);
+    expect(screen.getByText('Do cluster 2')).toBeInTheDocument();
+    expect(screen.queryByText('Do cluster 1')).not.toBeInTheDocument();
+    // `de 1` e não `de 2`: o denominador é o universo do ESPELHO, não o carregado.
+    expect(screen.getByText('1 de 1 chamados')).toBeInTheDocument();
+  });
+
+  /*
+   * OS CARTÕES DO TOPO seguem o ESCOPO — o nível que faltava.
+   *
+   * A versão anterior deste bloco provava que a LISTA encolhia e não olhava os
+   * cartões, e foi por isso que passou enquanto a tela dizia "354 chamados, 8
+   * abertos" com a lista vazia. Era a regra caindo no lugar MAIS visível.
+   *
+   * São três níveis, e os cartões ficam no do meio: o universo do espelho. Isso
+   * preserva a decisão testada em "mantém stats sobre todos os tickets
+   * carregados enquanto combina os filtros da tabela" — os cartões continuam
+   * sendo o fundo fixo que os filtros do usuário não movem; só passam a
+   * descrever o universo espelhado em vez do universo inteiro.
+   */
+  it('os cartões contam o universo do espelho, não o carregado', () => {
+    setTickets([
+      ticket({ id: 'ticket-00000001', status: 'aberto', cluster_id: 'cluster-1' }),
+      ticket({ id: 'ticket-00000002', status: 'aberto', cluster_id: 'cluster-1' }),
+      ticket({ id: 'ticket-00000003', status: 'em_andamento', cluster_id: 'cluster-2' }),
+      ticket({ id: 'ticket-00000004', status: 'fechado', cluster_id: 'cluster-2' }),
+    ]);
+    render(<EquipeChamados />);
+    const cartoes = screen.getAllByText(/^\d+$/, { selector: '.text-3xl' }).map((e) => e.textContent);
+    // Total 2, Abertos 0, Em Andamento 1, Resolvidos 1 — só o cluster-2.
+    expect(cartoes).toEqual(['2', '0', '1', '1']);
+  });
+
+  it('os cartões NÃO se movem com os filtros do usuário, dentro do escopo', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    setTickets([
+      ticket({ id: 'ticket-00000001', title: 'Aberto do 2', status: 'aberto', cluster_id: 'cluster-2' }),
+      ticket({ id: 'ticket-00000002', title: 'Fechado do 2', status: 'fechado', cluster_id: 'cluster-2' }),
+      ticket({ id: 'ticket-00000003', title: 'Do cluster 1', status: 'aberto', cluster_id: 'cluster-1' }),
+    ]);
+    render(<EquipeChamados />);
+    await selectOption(user, 1, 'Aberto');
+    expect(screen.getByText('1 de 2 chamados')).toBeInTheDocument();
+    const cartoes = screen.getAllByText(/^\d+$/, { selector: '.text-3xl' }).map((e) => e.textContent);
+    // Continua 2 no total: o filtro estreitou a tabela, não o universo.
+    expect(cartoes).toEqual(['2', '1', '0', '1']);
+  });
+
+  it('escopo ainda não resolvido não afirma número nenhum', () => {
+    // Zero nunca afirma escopo que não existe; a lista inteira afirmaria.
+    mocks.useDomainClusterPorCategoria.mockReturnValue({ clusterId: null, isLoading: true });
+    setTickets([
+      ticket({ id: 'ticket-00000001', status: 'aberto', cluster_id: 'cluster-1' }),
+      ticket({ id: 'ticket-00000002', status: 'aberto', cluster_id: 'cluster-2' }),
+    ]);
+    render(<EquipeChamados />);
+    const cartoes = screen.getAllByText(/^\d+$/, { selector: '.text-3xl' }).map((e) => e.textContent);
+    expect(cartoes).toEqual(['0', '0', '0', '0']);
+  });
+
+  it('o vazio NOMEIA o escopo — é a prova visível de que o filtro agiu', () => {
+    // Sem o nome, uma tela vazia parece defeito: ninguém distingue "filtrou e
+    // não achou" de "quebrou". Hoje é a única confirmação visível do
+    // espelhamento nos clusters sem chamado.
+    setTickets([ticket({ id: 'ticket-00000001', cluster_id: 'cluster-1' })]);
+    render(<EquipeChamados />);
+    expect(screen.getByText('Nenhum chamado em Cluster Sul.')).toBeInTheDocument();
+    expect(screen.queryByText('Nenhum chamado encontrado.')).not.toBeInTheDocument();
+  });
+
+  it('espera o cluster resolver antes de mostrar lista sem recorte', () => {
+    // Enquanto resolve, a lista ainda está sem filtro e o tema JÁ está aplicado
+    // (o tema é síncrono). Mostrá-la seria a divergência.
+    mocks.useDomainClusterPorCategoria.mockReturnValue({ clusterId: null, isLoading: true });
+    setTickets([ticket({ id: 'ticket-00000001', title: 'Do cluster 1', cluster_id: 'cluster-1' })]);
+    const { container } = render(<EquipeChamados />);
+    expect(container.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(screen.queryByText('Do cluster 1')).not.toBeInTheDocument();
+  });
+
+  it('trava o filtro de Cluster: o escopo não é do usuário, é de onde a tela está', () => {
+    setTickets([ticket({ id: 'ticket-00000001', cluster_id: 'cluster-2' })]);
+    render(<EquipeChamados />);
+    expect(screen.getByText('Definido pelo ambiente desta tela')).toBeInTheDocument();
+  });
+
+  it('limpar filtros mantém o escopo do espelho', () => {
+    setTickets([
+      ticket({ id: 'ticket-00000001', title: 'Do cluster 1', cluster_id: 'cluster-1' }),
+      ticket({ id: 'ticket-00000002', title: 'Do cluster 2', cluster_id: 'cluster-2' }),
+    ]);
+    render(<EquipeChamados />);
+    screen.getByRole('button', { name: 'Limpar Filtros' }).click();
+    expect(screen.queryByText('Do cluster 1')).not.toBeInTheDocument();
+  });
+
+  it('sem espelho, nada trava e a lista não é recortada', () => {
+    mocks.searchParams = new URLSearchParams();
+    mocks.useDomainClusterPorCategoria.mockReturnValue({ clusterId: null, isLoading: false });
+    mocks.useUserEstrutura.mockReturnValue({ clusters: [] });
+    setTickets([
+      ticket({ id: 'ticket-00000001', title: 'Do cluster 1', cluster_id: 'cluster-1' }),
+      ticket({ id: 'ticket-00000002', title: 'Do cluster 2', cluster_id: 'cluster-2' }),
+    ]);
+    render(<EquipeChamados />);
+    expect(screen.getByText('Do cluster 1')).toBeInTheDocument();
+    expect(screen.getByText('Do cluster 2')).toBeInTheDocument();
+    expect(screen.queryByText('Definido pelo ambiente desta tela')).not.toBeInTheDocument();
+  });
+});
+
+/*
+ * O "VOLTAR" respeita o espelho.
+ *
+ * Antes do espelho a tela não tinha como saber de onde a pessoa vinha, e o
+ * "Voltar" caía em `/equipe` — o seletor de áreas. Quem viera da Tax era mandado
+ * escolher a área outra vez. O espelho é essa informação, então o que era
+ * pendência irremediável virou conserto.
+ */
+describe('EquipeChamados — o "Voltar" segue o espelho', () => {
+  beforeEach(() => {
+    mocks.location.search = '?area=tax';
+    mocks.searchParams = new URLSearchParams('area=tax');
+    mocks.useDomainClusterPorCategoria.mockReturnValue({ clusterId: 'cluster-1', isLoading: false });
+  });
+
+  it('espelhada, volta para a área e diz para onde', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<EquipeChamados />);
+    await user.click(screen.getByRole('button', { name: 'Voltar para Tax' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/equipe/tax');
+  });
+
+  it('a origem explícita vence o espelho — quem navegou sabe mais', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mocks.location.state = { from: '/equipe/tax/gerencial' };
+    render(<EquipeChamados />);
+    // Rótulo genérico: o destino não é a área, é a tela de onde vieram.
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/equipe/tax/gerencial');
+  });
+
+  it('sem espelho e sem origem, o piso continua o seletor de áreas', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    mocks.location.search = '';
+    mocks.searchParams = new URLSearchParams();
+    mocks.useDomainClusterPorCategoria.mockReturnValue({ clusterId: null, isLoading: false });
+    render(<EquipeChamados />);
+    await user.click(screen.getByRole('button', { name: 'Voltar' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/equipe');
+  });
+
+  it('a origem que vai para o detalhe carrega a query do espelho', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    setTickets([ticket({ cluster_id: 'cluster-1' })]);
+    render(<EquipeChamados />);
+    await user.click(screen.getByRole('button', { name: 'Apuração mensal' }));
+    expect(mocks.navigate).toHaveBeenCalledWith('/equipe/chamados/ticket-00000001', {
+      state: { from: '/equipe/chamados?area=tax' },
+    });
   });
 });

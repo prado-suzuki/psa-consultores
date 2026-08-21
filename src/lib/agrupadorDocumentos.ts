@@ -36,7 +36,7 @@ export const GRUPOS_DOCUMENTO: GrupoDocumento[] = [
 ];
 
 /**
- * Grupo de cada uma das 9 categorias.
+ * Grupo de cada uma das 10 categorias.
  *
  * O tipo `Record<DocCategoria, ...>` é proposital: se um valor novo entrar no
  * enum osg_doc_categoria, o typecheck quebra aqui até alguém decidir o grupo
@@ -58,6 +58,9 @@ const GRUPO_POR_CATEGORIA: Record<DocCategoria, GrupoDocumentoKey> = {
   bens_direitos: 'bens_imoveis',
   cadastros_fiscais: 'bens_imoveis',
   georreferenciamento: 'bens_imoveis',
+  // A proposta comercial (ALE-8) é `fonte = 'psa'` e por isso NUNCA aparece nas
+  // gavetas da área do cliente — o grupo aqui é só o destino formal que o Record
+  // exaustivo exige. Nada renderiza a proposta a partir deste mapa.
   proposta_comercial: 'outros',
   outros: 'outros',
 };

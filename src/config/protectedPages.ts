@@ -10,15 +10,47 @@ export interface ProtectedPage {
   page_path: string;
   page_name: string;
   page_description: string;
-  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'fiscal' | 'fixos' | 'osg' | 'projetos' | 'board' | 'tax' | 'mapa';
+  /**
+   * As OITO categorias que existem de verdade. O tipo declarava mais tres —
+   * `fiscal`, `fixos` e `projetos` — sem nenhuma pagina em nenhuma delas
+   * (conferido em 20/08/2026 por `select category, count(*) from
+   * page_permissions group by category`). Tipo que declara valor inexistente
+   * mente do mesmo jeito que comentario desatualizado: quem le acredita que ha
+   * onde encaixar, e o `every()` de inferencia de area nunca fecha.
+   *
+   * ATENCAO ao acrescentar: a categoria e a chave de acesso E, a partir da
+   * resolucao por categoria, do tema. Categoria desconhecida cai no piso.
+   */
+  category: 'dev' | 'rotina' | 'gestao' | 'geral' | 'osg' | 'board' | 'tax' | 'mapa';
   requires_admin: boolean;
   requires_team_member: boolean;
 }
 
 export const PROTECTED_PAGES: ProtectedPage[] = [
-  // =============================================
-  // === GERAL PAGES (acessíveis a todo membro) ===
-  // =============================================
+  // ====================================================================
+  // === CATEGORIA `geral` ===
+  //
+  // O rotulo aqui dizia "acessiveis a todo membro" e isso NUNCA foi verdade
+  // no dado. Medido em 20/08/2026, por
+  // `select pp.page_path, count(*) from page_permissions pp join
+  //  user_page_access u on u.page_permission_id = pp.id where pp.category =
+  //  'geral' group by 1`:
+  //
+  //   /equipe/chamados .... 27 pessoas   <- a unica realmente ampla
+  //   /equipe/mapeamento ... 9 pessoas
+  //   as outras sete ....... 8 pessoas cada
+  //
+  // E das 8 pessoas do grupo restrito, 3 sao contas semente (@exemplo.dev) e
+  // uma e conta de teste. Sobram os quatro do Digital.
+  //
+  // O QUE ESTA CATEGORIA E, entao: telas internas do Digital, mais
+  // `/equipe/chamados`, que e porta de entrada das outras areas. A intencao
+  // sempre foi respeitada na concessao; era o rotulo que mentia.
+  //
+  // Consequencia pratica: `geral` NAO esta em `ALL_AREA_CATEGORIES`
+  // (`config/areaCategories.ts`), logo nao se concede por area — cada linha
+  // aqui e concedida individualmente em `user_page_access`.
+  // ====================================================================
   {
     page_path: '/equipe/dashboard',
     page_name: 'Dashboard Equipe',
@@ -526,6 +558,18 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
   // =============================================
   // === OSG PAGES ===
   // =============================================
+  {
+    // Estava FORA desta lista, e o efeito era maior que a cor: sem registro,
+    // `usePageAccess` trata a rota como publica (ver o cabecalho daquele hook).
+    // Era a unica tela navegavel do sistema sem categoria — alcancavel pelo menu
+    // do `OsgLayout:264` e pelo `OsgAreaSelector:48`.
+    page_path: '/equipe/osg/inicio',
+    page_name: 'Boas-vindas OSG',
+    page_description: 'Tela inicial da area OSG',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
   {
     page_path: '/equipe/osg/dashboard',
     page_name: 'OSG Projects',

@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PontoDaArea } from './PontoDaArea';
 import { X } from 'lucide-react';
 import {
   useEstruturaAreas,
@@ -80,9 +81,9 @@ export const EquipesEstruturaField = ({
 
   return (
     <div className="space-y-3">
-      <Label className="text-slate-700 text-sm font-medium">Equipe na estrutura</Label>
-      <p className="text-xs text-slate-500">
-        Cluster e área vêm da equipe escolhida. Sem isso a pessoa fica em "Sem área".
+      <Label className="text-foreground text-sm font-medium">Equipe na estrutura</Label>
+      <p className="text-xs text-muted-foreground">
+        Cluster e área vêm da equipe escolhida. Sem isso a pessoa fica em"Sem área".
       </p>
 
       {value.length > 0 && (
@@ -104,7 +105,7 @@ export const EquipesEstruturaField = ({
       )}
 
       <Select value="" onValueChange={adicionar} disabled={semOpcoes || disponiveis.length === 0}>
-        <SelectTrigger className="h-9 bg-white border-slate-200 text-sm">
+        <SelectTrigger className="h-9 text-sm">
           <SelectValue
             placeholder={
               semOpcoes
@@ -120,13 +121,8 @@ export const EquipesEstruturaField = ({
         <SelectContent>
           {disponiveis.map((grupo) => (
             <SelectGroup key={grupo.areaId}>
-              <SelectLabel className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                {grupo.cor && (
-                  <span
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: grupo.cor }}
-                  />
-                )}
+              <SelectLabel className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <PontoDaArea area={{ color: grupo.cor, color_index: grupo.corIndice }} />
                 {grupo.caminho}
               </SelectLabel>
               {grupo.equipes.map((equipe) => (

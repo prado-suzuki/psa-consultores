@@ -22,7 +22,7 @@ const FILTER_LABEL: Record<DashboardFilterType, string> = {
 const FILTER_BADGE_CLASS: Record<DashboardFilterType, string> = {
   cluster: 'border-teal-200 bg-teal-50 text-teal-700',
   cliente: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  nenhum: 'border-slate-200 bg-slate-100 text-slate-500',
+  nenhum: 'border-border bg-muted text-muted-foreground',
 };
 const MIN_ROLE_LABEL: Record<MinRole, string> = {
   team_member: 'Membro ou superior', sublider: 'Sublíder ou superior',
@@ -30,11 +30,11 @@ const MIN_ROLE_LABEL: Record<MinRole, string> = {
 };
 const tipoLabel = (ft: DashboardFilterType) => (ft === 'nenhum' ? 'Interno' : 'Externo');
 const tipoBadgeClass = (ft: DashboardFilterType) =>
-  ft === 'nenhum' ? 'border-slate-300 bg-slate-100 text-slate-600' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
+  ft === 'nenhum' ? 'border-border bg-muted text-muted-foreground' : 'border-emerald-200 bg-emerald-50 text-emerald-700';
 
 /** Rótulo de seção do painel lateral. */
 const SectionLabel = ({ icon: Icon, children }: { icon: typeof Shield; children: React.ReactNode }) => (
-  <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 inline-flex items-center gap-1.5">
+  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground inline-flex items-center gap-1.5">
     <Icon className="h-3.5 w-3.5" /> {children}
   </p>
 );
@@ -105,7 +105,7 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
         onOpenAutoFocus={(e) => e.preventDefault()}
       >
         {/* ── Cabeçalho ─────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-3 pr-12 shrink-0">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-3 pr-12 shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="h-9 w-9 rounded-lg bg-teal-500/10 flex items-center justify-center shrink-0">
               <LayoutDashboard className="h-5 w-5 text-teal-600" />
@@ -118,8 +118,8 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                   <>
                     <Badge variant="outline" className={`${tipoBadgeClass(dashboard.filter_type)} text-[11px]`}>{tipoLabel(dashboard.filter_type)}</Badge>
                     <Badge variant="outline" className={`${FILTER_BADGE_CLASS[dashboard.filter_type]} text-[11px]`}>{FILTER_LABEL[dashboard.filter_type]}</Badge>
-                    {dashboard.grupo && <span className="text-xs text-slate-400 truncate">· {dashboard.grupo}</span>}
-                    {!dashboard.is_active && <Badge className="bg-slate-200 text-slate-600 text-[11px]">Inativo</Badge>}
+                    {dashboard.grupo && <span className="text-xs text-muted-foreground truncate">· {dashboard.grupo}</span>}
+                    {!dashboard.is_active && <Badge className="bg-status-neutro-soft text-status-neutro text-[11px]">Inativo</Badge>}
                   </>
                 )}
               </div>
@@ -132,19 +132,19 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
 
         {/* ── Corpo: painel de detalhes + preview ───────────────────── */}
         <div className="flex flex-1 min-h-0">
-          <aside className="hidden md:flex w-[300px] shrink-0 flex-col gap-5 overflow-y-auto border-r border-slate-200 bg-slate-50/60 p-4">
+          <aside className="hidden md:flex w-[300px] shrink-0 flex-col gap-5 overflow-y-auto border-r border-border bg-muted/60 p-4">
             {dashboard && (
               <>
                 {/* Exibição */}
                 <div className="space-y-2">
                   <SectionLabel icon={LayoutDashboard}>Exibição</SectionLabel>
                   <div className="space-y-1.5">
-                    <p className="text-xs text-slate-500">Página no app</p>
+                    <p className="text-xs text-muted-foreground">Página no app</p>
                     {dashboard.target_page ? (
-                      <span className="inline-block rounded bg-white border border-slate-200 px-2 py-1 font-mono text-[11px] text-slate-600 break-all">
+                      <span className="inline-block rounded bg-card border border-border px-2 py-1 font-mono text-[11px] text-muted-foreground break-all">
                         {DASHBOARD_PAGE_PATH[dashboard.target_page] ?? dashboard.target_page}
                       </span>
-                    ) : <p className="text-xs text-slate-400">—</p>}
+                    ) : <p className="text-xs text-muted-foreground">—</p>}
                   </div>
                   {dashboard.sop_url && (
                     <Button asChild variant="outline" size="sm" className="w-full justify-start">
@@ -160,7 +160,7 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                   <SectionLabel icon={Shield}>Acesso</SectionLabel>
                   {isCliente ? (
                     <div className="space-y-1.5">
-                      <p className="text-xs text-slate-500 inline-flex items-center gap-1">
+                      <p className="text-xs text-muted-foreground inline-flex items-center gap-1">
                         <Building2 className="h-3.5 w-3.5" /> Clientes liberados ({clienteIds.length})
                       </p>
                       {clienteIds.length === 0 ? (
@@ -178,17 +178,17 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                   ) : (
                     <div className="space-y-2">
                       <div className="space-y-1">
-                        <p className="text-xs text-slate-500">Nível mínimo</p>
+                        <p className="text-xs text-muted-foreground">Nível mínimo</p>
                         <Badge variant="outline" className="text-[11px]">{MIN_ROLE_LABEL[dashboard.min_role ?? 'team_member']}</Badge>
                       </div>
                       <div className="space-y-1">
-                        <p className="text-xs text-slate-500 inline-flex items-center gap-1">
+                        <p className="text-xs text-muted-foreground inline-flex items-center gap-1">
                           <Users className="h-3.5 w-3.5" /> Clusters
                         </p>
                         {dashboard.all_clusters ? (
                           <Badge variant="outline" className="text-[11px] border-teal-200 bg-teal-50 text-teal-700">Todos os clusters</Badge>
                         ) : clusterIds.length === 0 ? (
-                          <p className="text-xs text-slate-400">Só Admin (nenhum cluster marcado).</p>
+                          <p className="text-xs text-muted-foreground">Só Admin (nenhum cluster marcado).</p>
                         ) : (
                           <div className="flex flex-wrap gap-1">
                             {clusterIds.map((id) => (
@@ -199,7 +199,7 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                           </div>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-400">Cada usuário vê o próprio cluster · Admin vê todos consolidado.</p>
+                      <p className="text-[11px] text-muted-foreground">Cada usuário vê o próprio cluster · Admin vê todos consolidado.</p>
                     </div>
                   )}
                 </div>
@@ -207,10 +207,10 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                 {/* Fonte */}
                 <div className="space-y-2">
                   <SectionLabel icon={Link2}>Fonte (Looker)</SectionLabel>
-                  <div className="rounded-md border border-slate-200 bg-white p-2">
+                  <div className="rounded-md border border-border bg-card p-2">
                     <div className="flex items-start gap-1">
-                      <p className="flex-1 font-mono text-[11px] leading-relaxed break-all text-slate-600">{dashboard.embed_url}</p>
-                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-slate-400 hover:text-teal-600" onClick={copyUrl} aria-label="Copiar URL">
+                      <p className="flex-1 font-mono text-[11px] leading-relaxed break-all text-muted-foreground">{dashboard.embed_url}</p>
+                      <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0 text-muted-foreground hover:text-teal-600" onClick={copyUrl} aria-label="Copiar URL">
                         <Copy className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -218,7 +218,7 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                   {(dashboard.param_names || []).length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {dashboard.param_names.map((p) => (
-                        <span key={p} className="rounded bg-white border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] text-slate-500">{p}</span>
+                        <span key={p} className="rounded bg-card border border-border px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">{p}</span>
                       ))}
                     </div>
                   )}
@@ -231,7 +231,7 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
           <div className="flex-1 min-w-0 flex flex-col p-3 gap-2.5">
             {filterType !== 'nenhum' ? (
               <div className="flex flex-wrap items-center gap-2 shrink-0">
-                <span className="text-xs font-medium text-slate-500 inline-flex items-center gap-1">
+                <span className="text-xs font-medium text-muted-foreground inline-flex items-center gap-1">
                   Visualizar como {entidade}
                   <DicaIcon text={`Escolha um ${entidade} — o filtro é injetado no servidor, exatamente como esse ${entidade} veria.`} />
                 </span>
@@ -245,18 +245,18 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                 />
               </div>
             ) : (
-              <p className="text-xs text-slate-500 shrink-0">Sem filtro — todos com acesso veem o mesmo conteúdo.</p>
+              <p className="text-xs text-muted-foreground shrink-0">Sem filtro — todos com acesso veem o mesmo conteúdo.</p>
             )}
 
-            <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="flex-1 min-h-0 overflow-hidden rounded-lg border border-border bg-card">
               {!dashboard?.is_active ? (
-                <div className="flex h-full flex-col items-center justify-center gap-2 text-slate-400">
+                <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
                   <MonitorOff className="h-8 w-8" />
                   <p className="text-sm">Dashboard inativo — reative para visualizar.</p>
                 </div>
               ) : needsTarget ? (
                 <div className="flex h-full items-center justify-center">
-                  <p className="text-sm text-slate-500">Selecione um {entidade} acima para visualizar.</p>
+                  <p className="text-sm text-muted-foreground">Selecione um {entidade} acima para visualizar.</p>
                 </div>
               ) : (
                 <DashboardIframe

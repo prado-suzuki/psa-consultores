@@ -2,11 +2,11 @@ import type { UseFormReturn } from 'react-hook-form';
 import { AlignLeft, Paperclip, Plus, UserCheck } from 'lucide-react';
 
 import { OrgEntityAttachments } from '@/components/comentarios/OrgCommentAttachments';
+import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
 import { TaskSubtasksSection } from '@/components/equipe/fiscal/tasks/task-modal/TaskSubtasksSection';
 import { Button } from '@/components/ui/button';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { SectionHeading } from '@/components/ui/section-heading';
-import { Textarea } from '@/components/ui/textarea';
 import type { AreaKey } from '@/config/areaCategories';
 import type { TaskFormValues } from '@/lib/orgTaskForm';
 
@@ -70,11 +70,21 @@ export function TaskEditBody({
               <FormItem className="mt-3 space-y-0">
                 <FormLabel className="sr-only">Descrição</FormLabel>
                 <FormControl>
-                  <Textarea
+                  {/* Mesmo editor da descrição de entregável. Tarefa aberta por
+                      chamado delegado nasce com o rich text do chamado copiado
+                      pelo trigger: num textarea ela mostraria o JSON cru. */}
+                  <TarefaRichTextEditor
+                    value={field.value}
+                    onChange={field.onChange}
+                    ariaLabel="Descrição"
                     placeholder="Descreva a tarefa..."
-                    rows={5}
-                    className="resize-none rounded-xl bg-muted/20 leading-6 disabled:cursor-default disabled:opacity-100"
-                    {...field}
+                    disabled={isReviewer}
+                    withCode={false}
+                    minHeight="min-h-[132px]"
+                    maxHeight="max-h-[360px]"
+                    // opacity-100 mantém o campo legível para o revisor, que o vê
+                    // desabilitado: era o que o `disabled:opacity-100` do textarea fazia.
+                    className="rounded-xl bg-muted/20 opacity-100"
                   />
                 </FormControl>
                 <FormMessage className="pt-1.5" />

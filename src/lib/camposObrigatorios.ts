@@ -221,6 +221,30 @@ export function pendenciasOrdemServico(c: DraftOrdemServico): Pendencia[] {
   return faltas;
 }
 
+/**
+ * A frase do aviso do rodapé.
+ *
+ * Antes era só a contagem, "1 campo obrigatório pendente", e quem lia tinha de
+ * caçar o campo. Qual é o campo esta função já sabia: a `mensagem` da pendência
+ * existe desde sempre, mas parava na moldura vermelha, que não aparece quando o
+ * item está aberto em leitura — foi assim que a tela ficou dizendo que falta
+ * algo sem dizer o quê.
+ *
+ * @param onde rótulo pronto do item ("na OS 102/2026"). Nulo na aba Cliente,
+ *             que não tem lista, e quando o item sumiu do rascunho.
+ */
+export function frasePendencia(
+  primeira: Pendencia,
+  total: number,
+  onde: string | null,
+): string {
+  const contagem =
+    total === 1 ? '1 campo obrigatório pendente' : `${total} campos obrigatórios pendentes`;
+  const local = onde ? `, ${onde}` : '';
+  const resto = total > 1 ? `, e mais ${total - 1}` : '';
+  return `${contagem}: ${primeira.mensagem}${local}${resto}`;
+}
+
 // ─── Agregações para a tela ───────────────────────────────────────────────
 
 export interface MapaPendencias {

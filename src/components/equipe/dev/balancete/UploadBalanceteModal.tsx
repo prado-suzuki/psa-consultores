@@ -310,8 +310,8 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
               className={`
                 flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer
                 transition-colors h-full min-h-[280px]
-                ${dragging ? 'border-teal-400 bg-teal-50/50' : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-50'}
-                ${file ? 'border-teal-300 bg-teal-50/30' : ''}
+                ${dragging ? 'border-primary/50 bg-primary/5' : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-50'}
+                ${file ? 'border-primary/30 bg-primary/5' : ''}
               `}
             >
               <input
@@ -327,7 +327,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
               />
               {file ? (
                 <div className="flex flex-col items-center gap-3 px-4 text-center">
-                  <FileSpreadsheet className="h-12 w-12 text-teal-500" />
+                  <FileSpreadsheet className="h-12 w-12 text-primary" />
                   <div>
                     <p className="text-sm font-medium text-slate-700 break-all">{file.name}</p>
                     <p className="text-xs text-slate-400 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
@@ -442,7 +442,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleClose(false)} disabled={submitting}>Cancelar</Button>
-          <Button onClick={() => setShowConfirm(true)} disabled={!isValid || submitting} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+          <Button onClick={() => setShowConfirm(true)} disabled={!isValid || submitting} className="gap-2 bg-primary hover:bg-primary/90 text-white">
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             {processing ? 'Processando...' : submitting ? 'Enviando...' : 'Enviar'}
           </Button>
@@ -466,7 +466,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancelar</AlertDialogCancel>
-          <AlertDialogAction className="bg-teal-600 hover:bg-teal-700" onClick={() => { setShowConfirm(false); handleSubmit(); }}>Confirmar</AlertDialogAction>
+          <AlertDialogAction className="bg-primary hover:bg-primary/90" onClick={() => { setShowConfirm(false); handleSubmit(); }}>Confirmar</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

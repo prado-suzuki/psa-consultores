@@ -82,7 +82,7 @@ const STATUS_FILTRO: { value: StatusFilter; label: string; dot?: string }[] = [
   { value: 'todos', label: 'Todos' },
   { value: 'abertos', label: 'Em aberto', dot: 'bg-amber-500' },
   { value: 'recebidos', label: 'Recebidos', dot: 'bg-osg-moss' },
-  { value: 'encerrados', label: 'Encerrados', dot: 'bg-slate-400' },
+  { value: 'encerrados', label: 'Encerrados', dot: 'bg-status-neutro' },
 ];
 
 const STATUS_LINHA: Record<StatusChecklist, { label: string; classe: string }> = {

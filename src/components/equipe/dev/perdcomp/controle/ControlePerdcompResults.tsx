@@ -309,9 +309,9 @@ export function ControlePerdcompResults({
                           className={cn(
                             'font-medium',
                             saldo > 0
-                              ? 'text-green-600 dark:text-green-400'
+                              ?'text-green-600'
                               : saldo < 0
-                                ? 'text-red-600 dark:text-red-400'
+                                ?'text-red-600'
                                 : '',
                           )}
                         >
@@ -323,7 +323,7 @@ export function ControlePerdcompResults({
                           correction.fator > 0 ? (
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span className="cursor-help text-blue-600 dark:text-blue-400 font-medium">
+                                <span className="cursor-help text-blue-600 font-medium">
                                   {formatCurrency(saldo * (1 + correction.fator))}
                                 </span>
                               </TooltipTrigger>
@@ -420,16 +420,16 @@ export function ControlePerdcompResults({
                     <span
                       className={cn(
                         totals.saldo > 0
-                          ? 'text-green-600 dark:text-green-400'
+                          ?'text-green-600'
                           : totals.saldo < 0
-                            ? 'text-red-600 dark:text-red-400'
+                            ?'text-red-600'
                             : '',
                       )}
                     >
                       {formatCurrency(totals.saldo)}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap text-blue-600 dark:text-blue-400">
+                  <TableCell className="text-right font-bold tabular-nums whitespace-nowrap text-blue-600">
                     {formatCurrency(totals.corrigido)}
                   </TableCell>
                   <TableCell />
@@ -474,7 +474,7 @@ export function ControlePerdcompResults({
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0">
         <CardTitle className="text-lg">Resultados - PER</CardTitle>
-        <Button onClick={onNew} className="gap-2 bg-teal-600 hover:bg-teal-700 text-white">
+        <Button onClick={onNew} className="gap-2 bg-primary hover:bg-primary/90 text-white">
           <Plus className="h-4 w-4" />
           Novo PER
         </Button>

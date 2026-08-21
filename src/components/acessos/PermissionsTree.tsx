@@ -128,7 +128,7 @@ export const PermissionsTree = ({ userId, userIsAdmin, pages, userAccess }: Perm
   };
 
   if (pages.length === 0) {
-    return <div className="text-sm text-slate-500">Nenhuma página registrada.</div>;
+    return <div className="text-sm text-muted-foreground">Nenhuma página registrada.</div>;
   }
 
   return (
@@ -136,7 +136,7 @@ export const PermissionsTree = ({ userId, userIsAdmin, pages, userAccess }: Perm
       {groups.map(({ group, trees }) => (
         <div key={group} className="space-y-2">
           <Badge className={getGroupColor(group)}>{getGroupLabel(group)}</Badge>
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-1">
+          <div className="rounded-lg border border-border bg-muted p-1">
             {trees.map((node) => (
               <TreeRow
                 key={node.path}
@@ -196,13 +196,13 @@ const TreeRow = ({ node, depth, userIsAdmin, grantedIds, onToggle, disabled }: T
   return (
     <div>
       <div
-        className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-white transition-colors"
+        className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-card transition-colors"
         style={indent}
       >
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className={`flex h-5 w-5 items-center justify-center rounded text-slate-400 hover:text-slate-600 ${
+          className={`flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground ${
             hasChildren ? '' : 'invisible'
           }`}
           aria-label={open ? 'Colapsar' : 'Expandir'}
@@ -218,7 +218,6 @@ const TreeRow = ({ node, depth, userIsAdmin, grantedIds, onToggle, disabled }: T
           disabled={state === 'disabled' || disabled}
           onCheckedChange={() => onToggle(node)}
           aria-label={`Permissão para ${label}`}
-          className="border-slate-300"
         />
 
         <button
@@ -227,17 +226,17 @@ const TreeRow = ({ node, depth, userIsAdmin, grantedIds, onToggle, disabled }: T
           onClick={() => (hasChildren ? setOpen((v) => !v) : onToggle(node))}
           disabled={disabled || (!hasChildren && state === 'disabled')}
         >
-          <span className="text-sm text-slate-900 truncate">{label}</span>
-          <span className="text-xs text-slate-400 truncate">{subtitle}</span>
+          <span className="text-sm text-foreground truncate">{label}</span>
+          <span className="text-xs text-muted-foreground truncate">{subtitle}</span>
         </button>
 
         {state === 'disabled' && !hasChildren && (
-          <span className="text-xs italic text-slate-400" title="Requer permissão de administrador">
+          <span className="text-xs italic text-muted-foreground" title="Requer permissão de administrador">
             Requer admin
           </span>
         )}
         {total > 0 && hasChildren && (
-          <span className="text-xs text-slate-400 tabular-nums">
+          <span className="text-xs text-muted-foreground tabular-nums">
             {grantedCount}/{total}
           </span>
         )}

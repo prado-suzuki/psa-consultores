@@ -74,8 +74,8 @@ const CalculadoraIbsCbs = () => {
     >
       <Card className="mb-6 border-slate-200 shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-slate-800 dark:text-slate-200">
-            <Filter className="h-4 w-4 text-teal-600" />
+          <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-slate-800">
+            <Filter className="h-4 w-4 text-primary" />
             Escopo
           </CardTitle>
         </CardHeader>
@@ -92,7 +92,7 @@ const CalculadoraIbsCbs = () => {
                   setContribuinteId("");
                 }}
               >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                <SelectTrigger className="h-11 bg-white">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -113,7 +113,7 @@ const CalculadoraIbsCbs = () => {
                 onValueChange={setContribuinteId}
                 disabled={!clienteId}
               >
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                <SelectTrigger className="h-11 bg-white">
                   <SelectValue placeholder={clienteId ? "Selecione..." : "Selecione um cliente"} />
                 </SelectTrigger>
                 <SelectContent>

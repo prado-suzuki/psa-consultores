@@ -105,6 +105,17 @@ const EquipeKanban = () => {
     if (initialQuery.error) console.error('Error fetching data:', initialQuery.error);
   }, [initialQuery.error]);
 
+  // O filtro de responsável fica salvo no navegador, e a lista deixou de trazer quem não é da
+  // equipe. Quem tivesse selecionado alguém que saiu (representante de cliente, por exemplo)
+  // abriria o quadro vazio, sem nome no seletor e sem pista do motivo.
+  useEffect(() => {
+    if (!initialQuery.data || filterResponsible === 'all') return;
+    const aindaExiste = initialQuery.data.profiles.some(
+      (profile) => profile.id === filterResponsible,
+    );
+    if (!aindaExiste) setFilterResponsible('all');
+  }, [initialQuery.data, filterResponsible, setFilterResponsible]);
+
   const toggleTaskExpanded = (taskId: string, event?: React.MouseEvent) => {
     if (event) event.stopPropagation();
     setExpandedTasks((previous) => {

@@ -20,7 +20,6 @@ import {
   ChevronLeft,
   CheckCircle,
   FileText,
-  FileBarChart,
   MapPin,
   Shield,
   User,
@@ -73,22 +72,27 @@ const buildNavItems = (
   pendingDecisions: number,
 ): NavItem[] => [
   { icon: LayoutDashboard, label: 'Estratégico', path: '/equipe/board/dashboard' },
-  { icon: FileBarChart, label: 'Dashboards', path: '/equipe/board/relatorios' },
+  // REMOVIDO DA DIRETORIA (reunião 17/08): os relatórios do Looker Studio saem
+  // do board. Rota desativada em App.tsx, arquivo intacto.
+  // { icon: FileBarChart, label: 'Dashboards', path: '/equipe/board/relatorios' },
   ...(acesso.usoEnvio ? [
-    { icon: BarChart3, label: 'Uso e envio', path: '/equipe/board/uso-envio' } as NavItem,
+    { icon: BarChart3, label: 'Ferramentas', path: '/equipe/board/uso-envio' } as NavItem,
   ] : []),
-  { icon: Users2, label: 'Clientes e OS', path: '/equipe/board/dashboard-clientes-os' },
+  { icon: Users2, label: 'Projetos', path: '/equipe/board/dashboard-clientes-os' },
   { icon: MapPin, label: 'Clientes', path: '/equipe/board/clientes' },
-  ...(acesso.chamados ? [
-    // Aponta para o DASHBOARD, não para a lista: o sócio entra pelo panorama de
-    // atendimento e desce para a lista pelo botão que a própria tela tem.
-    { icon: MessageSquareHeart, label: 'Chamados', path: '/equipe/board/chamados/dashboard' } as NavItem,
-  ] : []),
-  ...(acesso.performance ? [
-    // "Operacional" (antes: "Performance") — nome PT-BR claro, distingue de "Desempenho" (pessoas).
-    // Foca em projetos, ROI e atividade. Rota mantida em /performance por compatibilidade.
-    { icon: BarChart3, label: 'Operacional', path: '/equipe/board/performance', adminOnly: true } as NavItem,
-  ] : []),
+  // REMOVIDO DA DIRETORIA (reunião 17/08): volta depois como recorte estratégico
+  // dentro de Clientes. Rota desativada em App.tsx, arquivo intacto.
+  // ...(acesso.chamados ? [
+  //   { icon: MessageSquareHeart, label: 'Chamados', path: '/equipe/board/chamados/dashboard' } as NavItem,
+  // ] : []),
+  // REMOVIDO DE GESTÃO DE TIME (reunião 17/08): saiu do menu, mas a ROTA em
+  // App.tsx continua ATIVA de propósito -- "Áreas em um olhar" e
+  // "Acompanhamento de execução" no Estratégico, e um card da faixa de KPIs,
+  // navegam para /equipe/board/performance como detalhe. Desativar a rota
+  // também quebraria esses três links.
+  // ...(acesso.performance ? [
+  //   { icon: BarChart3, label: 'Operacional', path: '/equipe/board/performance', adminOnly: true } as NavItem,
+  // ] : []),
   ...(acesso.capacidade ? [
     // Carga do time e prazos — o dashboard de área do Tax e da OSG, somado.
     { icon: Users2, label: 'Capacidade', path: '/equipe/board/capacidade', adminOnly: true } as NavItem,
@@ -97,7 +101,7 @@ const buildNavItems = (
     { icon: Target, label: 'Desempenho', path: '/equipe/board/desempenho', adminOnly: true, children: buildDesempenhoSubItems(pendingDecisions) } as NavItem,
   ] : []),
   ...(acesso.logsEquipe ? [
-    { icon: Shield, label: 'Logs de Equipe', path: '/equipe/board/logs-equipe', adminOnly: true } as NavItem,
+    { icon: Shield, label: 'Logs', path: '/equipe/board/logs-equipe', adminOnly: true } as NavItem,
   ] : []),
 ];
 
@@ -113,7 +117,7 @@ const getBreadcrumb = (pathname: string) => {
     else if (pathname.includes('/relatorios')) segments.push({ label: 'Relatorios', path: '/equipe/board/desempenho/relatorios' });
     else if (pathname.includes('/feedbacks')) segments.push({ label: 'Feedbacks', path: '/equipe/board/desempenho/feedbacks' });
     else if (pathname.includes('/1a1')) segments.push({ label: '1:1s', path: '/equipe/board/desempenho/1a1' });
-    else if (pathname.includes('/minha-evolucao')) segments.push({ label: 'Minha Evolucao', path: '/equipe/board/desempenho/minha-evolucao' });
+    else if (pathname.includes('/minha-evolucao')) segments.push({ label: 'Minha Evolução', path: '/equipe/board/desempenho/minha-evolucao' });
     else if (pathname.includes('/evolucao')) segments.push({ label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' });
   } else if (pathname.includes('/chamados')) {
     // Antes do teste de '/dashboard': `/chamados/dashboard` cairia no ramo do
@@ -124,13 +128,13 @@ const getBreadcrumb = (pathname: string) => {
   } else if (pathname.includes('/capacidade')) {
     segments.push({ label: 'Capacidade', path: '/equipe/board/capacidade' });
   } else if (pathname.includes('/logs-equipe')) {
-    segments.push({ label: 'Logs de Equipe', path: '/equipe/board/logs-equipe' });
+    segments.push({ label: 'Logs', path: '/equipe/board/logs-equipe' });
   } else if (pathname.includes('/uso-envio')) {
-    segments.push({ label: 'Uso e envio', path: '/equipe/board/uso-envio' });
+    segments.push({ label: 'Ferramentas', path: '/equipe/board/uso-envio' });
   } else if (pathname.includes('/relatorios')) {
     segments.push({ label: 'Dashboards', path: '/equipe/board/relatorios' });
   } else if (pathname.includes('/dashboard-clientes-os')) {
-    segments.push({ label: 'Clientes e OS', path: '/equipe/board/dashboard-clientes-os' });
+    segments.push({ label: 'Projetos', path: '/equipe/board/dashboard-clientes-os' });
   } else if (pathname.includes('/clientes')) {
     segments.push({ label: 'Clientes', path: '/equipe/board/clientes' });
   } else if (pathname.includes('/dashboard')) {
@@ -259,7 +263,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
         {/* DIRETORIA group */}
         <div className="mb-5">
           {!collapsed && (
-            <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-grp)' }}>
+            <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-txt)' }}>
               Diretoria
             </p>
           )}
@@ -289,7 +293,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
         {showGestaoTime && (
           <div className="mb-5">
             {!collapsed && (
-              <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-grp)' }}>
+              <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-txt)' }}>
                 Gestão de Time
               </p>
             )}
@@ -350,7 +354,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
         {/* MINHA AREA group */}
         <div className="mb-5">
           {!collapsed && (
-            <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-grp)' }}>
+            <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-txt)' }}>
               Minha Area
             </p>
           )}
@@ -362,13 +366,13 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
               color: isMiEvolucaoRoute ? 'var(--board-sb-txt-a)' : 'var(--board-sb-txt)',
               fontWeight: isMiEvolucaoRoute ? 500 : 450,
             }}
-            title={collapsed ? 'Minha Evolucao' : undefined}
+            title={collapsed ? 'Minha Evolução' : undefined}
           >
             {isMiEvolucaoRoute && (
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r" style={{ backgroundColor: 'var(--board-indigo)' }} />
             )}
             <User className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isMiEvolucaoRoute ? 1 : 0.75 }} />
-            {!collapsed && <span className="flex-1 text-left">Minha Evolucao</span>}
+            {!collapsed && <span className="flex-1 text-left">Minha Evolução</span>}
             {!collapsed && hasUnreadOrOverdue && (
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--board-amber)' }} />
             )}
@@ -450,7 +454,10 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
               <div className="flex items-center gap-[6px] text-[12px]" style={{ color: 'var(--board-t3)' }}>
                 {breadcrumb.map((b, i) => (
                   <span key={b.path} className="flex items-center gap-[6px]">
-                    {i > 0 && <span style={{ color: 'var(--board-border)' }}>/</span>}
+                    {/* Sem cor própria: herda o `--board-t3` do contêiner acima.
+                        Antes o separador pintava com `--board-border`, que é token
+                        de BORDA — dava 1,21:1 como texto. */}
+                    {i > 0 && <span>/</span>}
                     {i === breadcrumb.length - 1 ? (
                       <span className="text-[12.5px] font-medium" style={{ color: 'var(--board-t1)' }}>{b.label}</span>
                     ) : (
@@ -460,7 +467,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
                 ))}
                 {subtitle && (
                   <>
-                    <span style={{ color: 'var(--board-border)' }}>·</span>
+                    <span>·</span>
                     <span className="hidden sm:inline text-[11.5px]">{subtitle}</span>
                   </>
                 )}

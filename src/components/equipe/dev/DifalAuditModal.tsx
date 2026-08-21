@@ -129,17 +129,17 @@ export const DifalAuditModal = ({
         <DialogTitle className="sr-only">Classificar Item DIFAL</DialogTitle>
         <DialogDescription className="sr-only">Modal de classificação de item fiscal DIFAL/ICMS-ST</DialogDescription>
         {/* Header */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/95 backdrop-blur flex-shrink-0">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 bg-white/95 backdrop-blur flex-shrink-0">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-teal-500/10 flex items-center justify-center text-teal-600 shadow-sm">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
               <Scale className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+              <h3 className="text-xl font-bold text-slate-900">
                 Classificar Item
               </h3>
               <p className="text-sm text-slate-500 mt-0.5">
-                NCM: <span className="font-mono font-medium text-slate-700 dark:text-slate-300">{group?.cod_ncm}</span>
+                NCM: <span className="font-mono font-medium text-slate-700">{group?.cod_ncm}</span>
               </p>
             </div>
           </div>
@@ -148,7 +148,7 @@ export const DifalAuditModal = ({
             variant="ghost"
             size="icon"
             onClick={() => onOpenChange(false)}
-            className="h-10 w-10 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
+            className="h-10 w-10 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50"
           >
             <X className="h-6 w-6" />
           </Button>
@@ -158,42 +158,42 @@ export const DifalAuditModal = ({
         {group && (
           <div className="flex-1 flex overflow-hidden">
             {/* Left Column: Product Data */}
-            <div className="w-[30%] border-r border-slate-200 dark:border-slate-700 p-6 overflow-y-auto bg-slate-50/30 dark:bg-slate-800/20">
+            <div className="w-[30%] border-r border-slate-200 p-6 overflow-y-auto bg-slate-50/30">
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="h-5 w-5 text-slate-500" />
-                <h3 className="font-semibold text-lg text-slate-900 dark:text-white">Dados do Produto</h3>
+                <h3 className="font-semibold text-lg text-slate-900">Dados do Produto</h3>
               </div>
 
               <Card className="border-slate-200">
                 <CardContent className="p-5 space-y-4">
                   <div>
                     <span className="text-xs text-slate-500 uppercase font-medium">Produto</span>
-                    <p className="font-medium text-slate-900 dark:text-white text-lg mt-1">{group.xProd}</p>
+                    <p className="font-medium text-slate-900 text-lg mt-1">{group.xProd}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-xs text-slate-500 uppercase font-medium">Código</span>
-                      <p className="font-mono text-sm text-slate-700 dark:text-slate-300 mt-1">{group.cod_produto}</p>
+                      <p className="font-mono text-sm text-slate-700 mt-1">{group.cod_produto}</p>
                     </div>
                     <div>
                       <span className="text-xs text-slate-500 uppercase font-medium">NCM</span>
-                      <p className="font-mono text-sm text-slate-700 dark:text-slate-300 mt-1">{group.cod_ncm}</p>
+                      <p className="font-mono text-sm text-slate-700 mt-1">{group.cod_ncm}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-xs text-slate-500 uppercase font-medium">CFOP</span>
-                      <p className="text-slate-700 dark:text-slate-300 mt-1">{group.cfop}</p>
+                      <p className="text-slate-700 mt-1">{group.cfop}</p>
                     </div>
                     <div>
                       <span className="text-xs text-slate-500 uppercase font-medium">UF Destino</span>
-                      <p className="text-slate-700 dark:text-slate-300 mt-1">{ufDestino}</p>
+                      <p className="text-slate-700 mt-1">{ufDestino}</p>
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                  <div className="pt-4 border-t border-slate-100">
                     <span className="text-xs text-slate-500 uppercase font-medium">
                       Tributação
                     </span>
@@ -220,23 +220,23 @@ export const DifalAuditModal = ({
                   </div>
 
                   {/* Resumo do Grupo */}
-                  <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                  <div className="pt-4 border-t border-slate-100">
                     <span className="text-xs text-slate-500 uppercase font-medium">
                       Resumo do Grupo
                     </span>
                     <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{group.count}</p>
+                      <div className="bg-slate-50 rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-slate-900">{group.count}</p>
                         <p className="text-xs text-slate-500">Itens</p>
                       </div>
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{group.nfesCount}</p>
+                      <div className="bg-slate-50 rounded-lg p-3 text-center">
+                        <p className="text-2xl font-bold text-slate-900">{group.nfesCount}</p>
                         <p className="text-xs text-slate-500">NFes</p>
                       </div>
                     </div>
                     <div className="mt-3">
-                      <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-3 text-center">
-                        <p className="text-lg font-bold text-slate-900 dark:text-white">
+                      <div className="bg-slate-50 rounded-lg p-3 text-center">
+                        <p className="text-lg font-bold text-slate-900">
                           {formatCurrency(group.totalValue)}
                         </p>
                         <p className="text-xs text-slate-500">Valor Total</p>
@@ -248,10 +248,10 @@ export const DifalAuditModal = ({
             </div>
             
             {/* Right Column: Available Rules */}
-            <div className="w-[70%] p-6 overflow-y-auto flex flex-col bg-white dark:bg-slate-900">
+            <div className="w-[70%] p-6 overflow-y-auto flex flex-col bg-white">
               <div className="flex items-center gap-2 mb-4">
                 <Scale className="h-5 w-5 text-slate-500" />
-                <h3 className="font-semibold text-lg text-slate-900 dark:text-white">Regras Disponíveis</h3>
+                <h3 className="font-semibold text-lg text-slate-900">Regras Disponíveis</h3>
                 <Badge variant="secondary" className="ml-auto">
                   UF: {ufDestino}
                 </Badge>
@@ -264,10 +264,10 @@ export const DifalAuditModal = ({
                   <Skeleton className="h-28 w-full" />
                 </div>
               ) : regrasError ? (
-                <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20">
+                <Card className="border-red-200 bg-red-50">
                   <CardContent className="p-6 text-center">
                     <AlertTriangle className="h-10 w-10 text-red-500 mx-auto mb-3" />
-                    <p className="text-red-700 dark:text-red-400">Erro ao carregar regras</p>
+                    <p className="text-red-700">Erro ao carregar regras</p>
                   </CardContent>
                 </Card>
               ) : regrasNCM?.regras && regrasNCM.regras.length > 0 ? (
@@ -278,8 +278,8 @@ export const DifalAuditModal = ({
                       className={cn(
                         "cursor-pointer transition-all",
                         selectedRegraId === regra.id
-                          ? 'border-teal-500 bg-teal-50 ring-2 ring-teal-500/20 dark:bg-teal-900/20'
-                          : 'border-slate-200 hover:border-teal-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/50'
+                          ?'border-primary bg-primary/5 ring-2 ring-ring/20'
+                          :'border-slate-200 hover:border-primary/40 hover:bg-slate-50'
                       )}
                       onClick={() => setSelectedRegraId(regra.id)}
                     >
@@ -292,17 +292,17 @@ export const DifalAuditModal = ({
                                 className={cn(
                                   "text-sm",
                                   selectedRegraId === regra.id
-                                    ? 'border-teal-500 text-teal-700 dark:text-teal-400'
+                                    ? 'border-primary text-primary'
                                     : ''
                                 )}
                               >
                                 {regra.tipo_st}
                               </Badge>
-                              <span className="font-bold text-xl text-slate-900 dark:text-white">
+                              <span className="font-bold text-xl text-slate-900">
                                 {regra.aliquota_st}%
                               </span>
                             </div>
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                            <p className="text-sm text-slate-600 mt-2">
                               {regra.base_legal}
                             </p>
                             {regra.percentual_reducao && (
@@ -323,7 +323,7 @@ export const DifalAuditModal = ({
                               </Badge>
                             )}
                             {selectedRegraId === regra.id && (
-                              <CheckCircle2 className="h-6 w-6 text-teal-600 flex-shrink-0" />
+                              <CheckCircle2 className="h-6 w-6 text-primary flex-shrink-0" />
                             )}
                           </div>
                         </div>
@@ -332,14 +332,14 @@ export const DifalAuditModal = ({
                   ))}
                 </div>
               ) : (
-                <Card className="border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20">
+                <Card className="border-amber-200 bg-amber-50">
                   <CardContent className="p-6 text-center">
                     <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
-                    <p className="text-amber-700 dark:text-amber-400 font-medium">
+                    <p className="text-amber-700 font-medium">
                       Nenhuma regra ST encontrada para este NCM
                     </p>
                     {regrasNCM?.descricao && (
-                      <p className="text-sm text-amber-600 dark:text-amber-500 mt-2">
+                      <p className="text-sm text-amber-600 mt-2">
                         {regrasNCM.descricao}
                       </p>
                     )}
@@ -351,7 +351,7 @@ export const DifalAuditModal = ({
         )}
 
         {/* Footer */}
-        <div className="h-16 px-6 border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-end gap-3 flex-shrink-0">
+        <div className="h-16 px-6 border-t border-slate-200 bg-white flex items-center justify-end gap-3 flex-shrink-0">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -362,7 +362,7 @@ export const DifalAuditModal = ({
           <Button
             onClick={() => handleSaveDecision('REGRA_SELECIONADA', selectedRegraId)}
             disabled={!selectedRegraId || isSaving}
-            className="bg-teal-600 hover:bg-teal-700"
+            className="bg-primary hover:bg-primary/90"
           >
             {isSaving ? (
               <>

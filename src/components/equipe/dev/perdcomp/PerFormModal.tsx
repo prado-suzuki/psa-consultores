@@ -522,7 +522,7 @@ export function PerFormModal({
                   </PopoverContent>
                 </Popover>
                 {tipoDeclaracao === 'retificadora' && !selectedPerRetificado && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                  <p className="text-xs text-amber-600">
                     Selecione o processo que será retificado
                   </p>
                 )}

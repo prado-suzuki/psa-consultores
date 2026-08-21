@@ -4,15 +4,18 @@ import { X, MessageSquare, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTicketNotifications } from '@/hooks/useTicketNotifications';
 import { useAuth } from '@/contexts/AuthContext';
+import { linkEspelhado, type ChaveDeEspelho } from '@/lib/areaTheme';
 import { cn } from '@/lib/utils';
 
 interface PendingTicketsAlertProps {
   navigateTo: string;
+  /** Ambiente em que a lista de destino está espelhada. Ver `NotificationPopover`. */
+  espelho?: ChaveDeEspelho;
   /** Origem, para que o botão "Voltar" da lista de chamados retorne à área correta. */
   backTo?: string;
 }
 
-export function PendingTicketsAlert({ navigateTo, backTo }: PendingTicketsAlertProps) {
+export function PendingTicketsAlert({ navigateTo, espelho, backTo }: PendingTicketsAlertProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { notifications, unreadCount, urgentCount, isLoading } = useTicketNotifications();
@@ -95,8 +98,11 @@ export function PendingTicketsAlert({ navigateTo, backTo }: PendingTicketsAlertP
   
   const handleViewTickets = useCallback(() => {
     handleDismiss();
-    navigate(navigateTo, backTo ? { state: { from: backTo } } : undefined);
-  }, [handleDismiss, navigate, navigateTo, backTo]);
+    navigate(
+      espelho ? linkEspelhado(navigateTo, espelho) : navigateTo,
+      backTo ? { state: { from: backTo } } : undefined,
+    );
+  }, [handleDismiss, navigate, navigateTo, espelho, backTo]);
   
   if (!isVisible) return null;
   

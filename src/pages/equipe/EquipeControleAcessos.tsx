@@ -42,6 +42,7 @@ import { PagesTab } from '@/components/acessos/PagesTab';
 import { UsersTab } from '@/components/acessos/UsersTab';
 import DashboardsTab from '@/components/acessos/DashboardsTab';
 import { AccessStatsCards } from '@/components/acessos/AccessStatsCards';
+import { PontoDaArea } from '@/components/acessos/PontoDaArea';
 import {
   type ControleAcessosAreaInterna,
   type ControleAcessosCadastroStats,
@@ -180,7 +181,7 @@ const EquipeControleAcessos = () => {
   };
 
   const handleDeleteCadastro = async (area: ControleAcessosAreaInterna) => {
-    if (!confirm(`Tem certeza que deseja excluir "${area.name}"?`)) return;
+    if (!confirm(`Tem certeza que deseja excluir"${area.name}"?`)) return;
     try {
       await deleteCatalogClient(area.id);
       toast.success('Área excluída');
@@ -301,17 +302,17 @@ const EquipeControleAcessos = () => {
                   Os dois cadastros são irmãos em sub-abas, nunca empilhados. */}
               <TabsContent value="cadastros" className="space-y-4">
                 <Tabs defaultValue="organizacao" className="space-y-4">
-                  <TabsList className="bg-slate-100 border border-slate-200">
+                  <TabsList className="bg-foreground/[0.05] border border-border">
                     <TabsTrigger
                       value="organizacao"
-                      className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                      className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                     >
                       <Network className="h-4 w-4 mr-2" />
                       Estrutura
                     </TabsTrigger>
                     <TabsTrigger
                       value="centros_custo"
-                      className="data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700"
+                      className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
                     >
                       <Wallet className="h-4 w-4 mr-2" />
                       Centros de Custo
@@ -323,10 +324,10 @@ const EquipeControleAcessos = () => {
                   </TabsContent>
 
                   <TabsContent value="centros_custo">
-                    <Card className="bg-white border-slate-200/60 shadow-sm">
+                    <Card className="border-border/60 shadow-sm">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-base text-slate-900">Centros de Custo</CardTitle>
-                        <p className="text-sm text-slate-500">
+                        <CardTitle className="text-base text-foreground">Centros de Custo</CardTitle>
+                        <p className="text-sm text-muted-foreground">
                           Usados pelos clusters e pelas áreas — cada área pode ter o seu.
                         </p>
                       </CardHeader>
@@ -404,7 +405,7 @@ const EquipeControleAcessos = () => {
                   {estruturaAreas.map((ea) => (
                     <SelectItem key={ea.id} value={ea.id}>
                       <div className="flex items-center gap-2">
-                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: ea.color || '#94a3b8' }} />
+                        <PontoDaArea area={ea} />
                         {ea.name}
                       </div>
                     </SelectItem>
@@ -416,7 +417,7 @@ const EquipeControleAcessos = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCadastroDialogOpen(false)} className="border-border text-muted-foreground">Cancelar</Button>
-            <Button onClick={handleSaveCadastro} className="bg-primary hover:bg-primary/90 text-white">{editingArea ? 'Salvar' : 'Criar'}</Button>
+            <Button onClick={handleSaveCadastro} className="bg-primary hover:bg-primary/90 text-primary-foreground">{editingArea ? 'Salvar' : 'Criar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

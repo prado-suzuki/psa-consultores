@@ -10,10 +10,10 @@ import ProdutosServicosTab from '@/components/equipe/ProdutosServicosTab';
  */
 export default function CadastroCategorias() {
   return (
-    <Card className="bg-white border-slate-200/60 shadow-sm">
+    <Card className="border-border/60 shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="text-base text-slate-900">Produtos &amp; Serviços</CardTitle>
-        <p className="text-sm text-slate-500">
+        <CardTitle className="text-base text-foreground">Produtos &amp; Serviços</CardTitle>
+        <p className="text-sm text-muted-foreground">
           Cadastre produtos/segmentos e serviços prestados, e marque quais serviços valem para cada produto.
         </p>
       </CardHeader>

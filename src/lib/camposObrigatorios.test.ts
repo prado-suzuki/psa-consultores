@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  frasePendencia,
   mapearPendencias,
   pendenciasCliente,
   pendenciasContribuinte,
@@ -358,5 +359,28 @@ describe('mapearPendencias', () => {
     expect(mapa.abas.size).toBe(0);
     expect(mapa.itens.size).toBe(0);
     expect(mapa.camposPorItem.size).toBe(0);
+  });
+});
+
+describe('frasePendencia', () => {
+  const falta = { aba: 'contratos' as const, itemId: 7, secao: 5, campo: 'cluster_id', mensagem: 'Selecione a empresa que fatura' };
+
+  it('diz qual é o campo e onde ele está', () => {
+    expect(frasePendencia(falta, 1, 'na OS 102/2026')).toBe(
+      '1 campo obrigatório pendente: Selecione a empresa que fatura, na OS 102/2026',
+    );
+  });
+
+  it('nomeia a primeira e soma o resto quando há mais de uma', () => {
+    expect(frasePendencia(falta, 3, 'na OS 102/2026')).toBe(
+      '3 campos obrigatórios pendentes: Selecione a empresa que fatura, na OS 102/2026, e mais 2',
+    );
+  });
+
+  it('omite o local quando a falta não é de um item de lista', () => {
+    const doCliente = { aba: 'cliente' as const, secao: 2, campo: 'cluster_ids', mensagem: 'Selecione ao menos 1 cluster' };
+    expect(frasePendencia(doCliente, 1, null)).toBe(
+      '1 campo obrigatório pendente: Selecione ao menos 1 cluster',
+    );
   });
 });

@@ -6,7 +6,7 @@ import { useMemo } from 'react';
 import { normalizarMembrosEquipe, type MembroEquipeBruto } from '@/lib/performanceOperacional';
 import {
   construirMapaDeClusters,
-  type AreaComCluster, type BoardAreaKey, type ClusterBasico,
+  type AreaComCluster, type BoardAreaKey,
 } from '@/lib/boardExecutivo';
 
 // ── helpers ──
@@ -38,6 +38,14 @@ export interface PerformanceProject {
   name: string;
   client_name: string | null;
   area_name: string | null;
+  /**
+   * FK direta para `estrutura_areas` -- a área de CADASTRO do projeto, sem
+   * passar pelo bucket de 4 categorias. Usada pelo "Áreas em um olhar"
+   * (Bloco E, 21/08) pra listar áreas nominalmente, não por bucket.
+   * `null` quando o projeto não tem área própria (cai pela equipe, ver
+   * `area_name`/`area_key`).
+   */
+  estrutura_area_id: string | null;
   /** Bucket do painel resolvido por CLUSTER (área → equipe → cliente). */
   area_key: BoardAreaKey | null;
   /**
@@ -119,7 +127,7 @@ export const usePerformanceData = (periodo: string, _areaIgnorada?: string) => {
     queryFn: async () => {
       // Fire all 3 queries in parallel
       const [
-        projectsRes, tasksRes, membersRes, areasRes, clustersRes, clienteClustersRes,
+        projectsRes, tasksRes, membersRes, areasRes, clienteClustersRes,
       ] = await Promise.all([
         // `is_active` NÃO existe em org_projects (sobra da época de
         // `tax_projects`): o PostgREST devolvia 42703, o erro subia na linha
@@ -150,7 +158,6 @@ export const usePerformanceData = (periodo: string, _areaIgnorada?: string) => {
         // `estrutura_areas.page_categories` é o de-para canônico cluster↔área
         // do painel (mesma fonte de `useClusterIdByPageCategory`).
         supabase.from('estrutura_areas').select('id, name, cluster_id, page_categories'),
-        supabase.from('estrutura_clusters').select('id, name'),
         // Todo projeto tem cliente (obrigatório no cadastro) e todo cliente tem
         // cluster — é o caminho que resolve o projeto sem área nem equipe.
         supabase.from('cliente_clusters').select('cliente_id, cluster_id'),
@@ -163,13 +170,12 @@ export const usePerformanceData = (periodo: string, _areaIgnorada?: string) => {
       if (projectsRes.error) throw projectsRes.error;
       if (tasksRes.error) throw tasksRes.error;
       if (membersRes.error) throw membersRes.error;
-      // As 3 fontes de CLASSIFICAÇÃO são auxiliares: se falharem (RLS, coluna,
+      // As 2 fontes de CLASSIFICAÇÃO são auxiliares: se falharem (RLS, coluna,
       // rede), o projeto continua aparecendo e volta a ser classificado pelo
       // NOME da área (`bucketDoItem` cai em `classificarArea`). Derrubar o
       // painel inteiro por causa do rótulo seria pior que o rótulo impreciso —
       // ao contrário de projetos/tarefas, onde o erro vira número fabricado.
       if (areasRes.error) console.warn('[perf] estrutura_areas indisponível — classificação cai no nome da área', areasRes.error);
-      if (clustersRes.error) console.warn('[perf] estrutura_clusters indisponível', clustersRes.error);
       if (clienteClustersRes.error) console.warn('[perf] cliente_clusters indisponível — projeto sem área não resolve pelo cliente', clienteClustersRes.error);
 
       const projects = projectsRes.data || [];
@@ -177,10 +183,7 @@ export const usePerformanceData = (periodo: string, _areaIgnorada?: string) => {
       const allMembers = membersRes.data || [];
 
       const areas = (areasRes.data || []) as AreaComCluster[];
-      const { bucketDoCluster } = construirMapaDeClusters({
-        areas,
-        clusters: (clustersRes.data || []) as ClusterBasico[],
-      });
+      const { bucketDoCluster } = construirMapaDeClusters({ areas });
       // Resolvemos área→cluster por este mapa em vez de join aninhado no
       // PostgREST: `estrutura_areas` apareceria duas vezes no mesmo select
       // (direto e via equipe) e a query inteira falhava.
@@ -243,6 +246,7 @@ export const usePerformanceData = (periodo: string, _areaIgnorada?: string) => {
           name: p.name,
           client_name: p.cliente?.nome || null,
           area_name: p.area?.name || areaDaEquipe?.name || null,
+          estrutura_area_id: p.estrutura_area_id ?? null,
           area_key: areaKey,
           cluster_id: clusterDoProjeto,
           area_color: p.area?.color || null,

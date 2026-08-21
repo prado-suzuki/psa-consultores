@@ -64,7 +64,7 @@ export const CreateDemandDialog = ({
         Nova Demanda
       </Button>
     </DialogTrigger>
-    <DialogContent className="bg-white border-gray-200 max-w-lg">
+    <DialogContent className="border-gray-200 max-w-lg">
       <DialogHeader>
         <DialogTitle className="text-gray-900">Criar Nova Demanda</DialogTitle>
       </DialogHeader>
@@ -77,7 +77,7 @@ export const CreateDemandDialog = ({
             id="title"
             value={draft.title}
             onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-            className="bg-white border-gray-300 text-gray-900"
+            className="text-gray-900"
             placeholder="Ex: Relatório Trimestral"
             required
           />
@@ -90,7 +90,7 @@ export const CreateDemandDialog = ({
             id="description"
             value={draft.description}
             onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-            className="bg-white border-gray-300 text-gray-900"
+            className="text-gray-900"
             placeholder="Descreva a demanda..."
           />
         </div>
@@ -113,10 +113,10 @@ export const CreateDemandDialog = ({
               value={draft.frequency}
               onValueChange={(value) => setDraft({ ...draft, frequency: value })}
             >
-              <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+              <SelectTrigger className="text-gray-900">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="bg-white border-gray-200">
+              <SelectContent className="border-gray-200">
                 <SelectItem value="daily">Diária</SelectItem>
                 <SelectItem value="weekly">Semanal</SelectItem>
                 <SelectItem value="monthly">Mensal</SelectItem>
@@ -131,7 +131,7 @@ export const CreateDemandDialog = ({
                 type="date"
                 value={draft.start_date}
                 onChange={(e) => setDraft({ ...draft, start_date: e.target.value })}
-                className="bg-white border-gray-300 text-gray-900"
+                className="text-gray-900"
               />
             </div>
             <div className="space-y-2">
@@ -140,7 +140,7 @@ export const CreateDemandDialog = ({
                 type="date"
                 value={draft.due_date}
                 onChange={(e) => setDraft({ ...draft, due_date: e.target.value })}
-                className="bg-white border-gray-300 text-gray-900"
+                className="text-gray-900"
                 required={!draft.is_recurring}
               />
             </div>
@@ -154,10 +154,10 @@ export const CreateDemandDialog = ({
               value={draft.assigned_to}
               onValueChange={(value) => setDraft({ ...draft, assigned_to: value })}
             >
-              <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+              <SelectTrigger className="text-gray-900">
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
-              <SelectContent className="bg-white border-gray-200">
+              <SelectContent className="border-gray-200">
                 {teamMembers.map((member) => (
                   <SelectItem key={member.id} value={member.id}>
                     {member.first_name} {member.last_name}
@@ -177,7 +177,7 @@ export const CreateDemandDialog = ({
               min="0"
               value={draft.estimated_hours}
               onChange={(e) => setDraft({ ...draft, estimated_hours: e.target.value })}
-              className="bg-white border-gray-300 text-gray-900"
+              className="text-gray-900"
               placeholder="Ex: 8"
             />
           </div>
@@ -217,7 +217,7 @@ export const EditDemandDialog = ({
   onDelete,
 }: EditDemandDialogProps) => (
   <Dialog open={!!selectedDemand && editMode} onOpenChange={onClose}>
-    <DialogContent className="bg-white border-gray-200 max-w-lg">
+    <DialogContent className="border-gray-200 max-w-lg">
       {selectedDemand && (
         <>
           <DialogHeader>
@@ -229,7 +229,7 @@ export const EditDemandDialog = ({
               <Input
                 value={draft.title}
                 onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                className="bg-white border-gray-300 text-gray-900"
+                className="text-gray-900"
               />
             </div>
             <div className="space-y-2">
@@ -237,7 +237,7 @@ export const EditDemandDialog = ({
               <Textarea
                 value={draft.description}
                 onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-                className="bg-white border-gray-300 text-gray-900"
+                className="text-gray-900"
               />
             </div>
 
@@ -259,10 +259,10 @@ export const EditDemandDialog = ({
                   value={draft.frequency}
                   onValueChange={(value) => setDraft({ ...draft, frequency: value })}
                 >
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                  <SelectTrigger className="text-gray-900">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
+                  <SelectContent className="border-gray-200">
                     <SelectItem value="daily">Diária</SelectItem>
                     <SelectItem value="weekly">Semanal</SelectItem>
                     <SelectItem value="monthly">Mensal</SelectItem>
@@ -277,7 +277,7 @@ export const EditDemandDialog = ({
                     type="date"
                     value={draft.start_date}
                     onChange={(e) => setDraft({ ...draft, start_date: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900"
+                    className="text-gray-900"
                   />
                 </div>
                 <div className="space-y-2">
@@ -286,7 +286,7 @@ export const EditDemandDialog = ({
                     type="date"
                     value={draft.due_date}
                     onChange={(e) => setDraft({ ...draft, due_date: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900"
+                    className="text-gray-900"
                   />
                 </div>
               </div>
@@ -299,10 +299,10 @@ export const EditDemandDialog = ({
                   value={draft.assigned_to}
                   onValueChange={(value) => setDraft({ ...draft, assigned_to: value })}
                 >
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                  <SelectTrigger className="text-gray-900">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
+                  <SelectContent className="border-gray-200">
                     {teamMembers.map((member) => (
                       <SelectItem key={member.id} value={member.id}>
                         {member.first_name} {member.last_name}
@@ -319,7 +319,7 @@ export const EditDemandDialog = ({
                   min="0"
                   value={draft.estimated_hours}
                   onChange={(e) => setDraft({ ...draft, estimated_hours: e.target.value })}
-                  className="bg-white border-gray-300 text-gray-900"
+                  className="text-gray-900"
                 />
               </div>
             </div>
@@ -334,7 +334,7 @@ export const EditDemandDialog = ({
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </AlertDialogTrigger>
-                <AlertDialogContent className="bg-white">
+                <AlertDialogContent>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Excluir demanda?</AlertDialogTitle>
                     <AlertDialogDescription>

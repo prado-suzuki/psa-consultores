@@ -19,6 +19,12 @@ interface UseDomainBoardDashboardOptions {
  * outro período. A economia/ROI mudou de casa: vive em `useDomainMelhoriasRoi`,
  * compartilhada com o painel Operacional.
  */
+/** Uma linha de `org_tasks` para somar horas -- qualquer status, não só concluída. */
+export interface TarefaHoras {
+  project_id: string | null;
+  estimated_hours: number | null;
+}
+
 export function useDomainBoardDashboard({ desdeISO }: UseDomainBoardDashboardOptions) {
   const tarefasConcluidasQuery = useQuery<TarefaConcluida[]>({
     queryKey: ['board-tarefas-concluidas', desdeISO],
@@ -38,5 +44,23 @@ export function useDomainBoardDashboard({ desdeISO }: UseDomainBoardDashboardOpt
     staleTime: STALE_TIME,
   });
 
-  return { tarefasConcluidasQuery };
+  // Horas ALOCADAS (P3, reunião 17/08): estimated_hours de TODA tarefa da
+  // janela, qualquer status -- "alocado" é o que está no escopo de trabalho,
+  // feito ou não, diferente de `tarefasConcluidasQuery` (só `status = 'done'`).
+  const horasAlocadasQuery = useQuery<TarefaHoras[]>({
+    queryKey: ['board-horas-alocadas', desdeISO],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('org_tasks')
+        .select('project_id, estimated_hours')
+        .gte('updated_at', desdeISO);
+
+      if (error) throw error;
+      return (data ?? []) as TarefaHoras[];
+    },
+    enabled: !!desdeISO,
+    staleTime: STALE_TIME,
+  });
+
+  return { tarefasConcluidasQuery, horasAlocadasQuery };
 }

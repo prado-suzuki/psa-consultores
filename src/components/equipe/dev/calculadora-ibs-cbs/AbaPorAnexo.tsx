@@ -279,7 +279,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                         <TableCell className="text-right tabular-nums text-orange-700">
                           {fmtBRL(a.tributoAntes)}
                         </TableCell>
-                        <TableCell className="text-right tabular-nums text-teal-700 font-medium">
+                        <TableCell className="text-right tabular-nums text-primary font-medium">
                           {fmtBRL(a.tributoDepoisIbsCbs)}
                         </TableCell>
                         <TableCell className="text-right tabular-nums">

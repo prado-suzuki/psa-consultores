@@ -5,6 +5,28 @@ import type { LucideIcon } from 'lucide-react';
 import { File, FileSpreadsheet, FileText, Image as ImageIcon } from 'lucide-react';
 import type { DocCategoria } from '@/hooks/useDocumentoArquivo';
 
+/**
+ * A categoria da proposta comercial (ALE-8).
+ *
+ * O valor entrou no enum `osg_doc_categoria` pela migration
+ * `20260819170000_osg_doc_categoria_proposta_comercial.sql` — a parte da EDU-13 que
+ * destravava esta tela, separada das tabelas do planejamento tributário. Com o
+ * `types.ts` atualizado o literal já pertence à união `DocCategoria`, e o
+ * `as unknown as` que morava aqui saiu.
+ *
+ * ⚠️ APLICADA NO DEV, PENDENTE EM PRODUÇÃO (conferido em 20/08/2026: dev tem os 10
+ * valores, produção tem 9). Enquanto o `ALTER TYPE` não rodar em produção, anexar
+ * proposta lá falha no insert com `invalid input value for enum`. A trava é de
+ * banco, não de código — não há o que fazer neste arquivo. Isto tem de estar
+ * aplicado ANTES de a feature chegar na `main`.
+ *
+ * A constante fica, mesmo sem o cast: ela dá um nome único ao valor para o hook da
+ * proposta e para os testes, então quem grava não precisa conhecer a string. Mora
+ * neste módulo, e não no hook, para a dependência apontar na direção certa — quem
+ * consome metadados é o hook, não o contrário.
+ */
+export const CATEGORIA_PROPOSTA: DocCategoria = 'proposta_comercial';
+
 export const CATEGORIAS: { value: DocCategoria; label: string }[] = [
   { value: 'bens_direitos', label: 'Bens e Direitos' },
   { value: 'cadastros_fiscais', label: 'Cadastros Fiscais' },
@@ -14,6 +36,23 @@ export const CATEGORIAS: { value: DocCategoria; label: string }[] = [
   { value: 'pessoais', label: 'Pessoais' },
   { value: 'societarios', label: 'Societários' },
   { value: 'sucessorios', label: 'Sucessórios' },
+  // Entra antes da genérica para 'Outros' seguir sendo o último item da lista.
+  //
+  // EFEITO COLATERAL ASSUMIDO, conferido consumidor por consumidor em 19/08/2026
+  // (e não deduzido da busca por nome, que dá falso positivo em quatro módulos
+  // com `CATEGORIAS` próprio: EditorBlocoDialog, ChecklistPendentes, Novidades e
+  // dashboardClientesOs/aggregations — outro domínio, sem relação):
+  //
+  // - DocUploadDialog.tsx:284 e DocumentosTab.tsx:80 ganham a opção nos seus
+  //   seletores de categoria. É o que importa avisar na revisão: passa a ser
+  //   possível classificar um documento qualquer como proposta por fora da aba.
+  // - OrganizarDocumentos.tsx:237 exibe um grupo "Proposta Comercial" quando o
+  //   cliente tem uma. Agrupa só o que existe, então é reflexo, não opção nova.
+  //
+  // NÃO afeta a gaveta do balde (classificarBalde.ts:75): a proposta nasce com
+  // `triado_em`, então nunca entra no balde. Nem cria cabeçalho de grupo vazio no
+  // seletor de tipo, porque `tiposPorCategoria` descarta grupo sem itens.
+  { value: CATEGORIA_PROPOSTA, label: 'Proposta Comercial' },
   { value: 'outros', label: 'Outros' },
 ];
 

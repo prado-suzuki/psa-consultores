@@ -69,12 +69,12 @@ const OsgWorkIcon: React.FC<OsgWorkIconProps> = ({ className = '', size = 64 }) 
       className={`inline-block ${className}`}
     >
       {/* VERSÃO LIGHT */}
-      <g className="block dark:hidden">
+      <g className="block">
         <WorkSeal glowColor="#0d9488" />
       </g>
 
       {/* VERSÃO DARK */}
-      <g className="hidden dark:block">
+      <g className="hidden">
         <WorkSeal glowColor="#00bfa5" />
       </g>
     </svg>

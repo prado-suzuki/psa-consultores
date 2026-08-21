@@ -56,7 +56,7 @@ function chainFor(table: string) {
   let operation = 'select';
   let page: DbResult | undefined;
   const chain: Record<string, unknown> = {};
-  for (const method of ['select', 'update', 'insert', 'delete', 'eq', 'order', 'range']) {
+  for (const method of ['select', 'update', 'insert', 'delete', 'eq', 'in', 'order', 'range']) {
     chain[method] = vi.fn((...args: unknown[]) => {
       calls.push({ scope: table, method, args });
       if (['select', 'update', 'insert', 'delete'].includes(method)) operation = method;
@@ -109,10 +109,10 @@ beforeEach(() => {
 });
 
 describe('useEquipeKanbanInitialQuery', () => {
-  it('registra opções exatas, executa os cinco selects e suprime erros das respostas', async () => {
+  it('registra opções exatas, executa os selects do quadro e suprime erros das respostas', async () => {
     for (const table of [
       'sprints',
-      'profiles_safe',
+      'estrutura_equipes',
       'projects',
       'processes',
       'sprint_deliverables',
@@ -144,11 +144,16 @@ describe('useEquipeKanbanInitialQuery', () => {
       calls.filter(({ method }) => method === 'select').map(({ scope, args }) => [scope, ...args]),
     ).toEqual([
       ['sprints', 'id, name, project_id'],
-      ['profiles_safe', 'id, first_name, last_name'],
+      [
+        'estrutura_equipes',
+        'gestor_id, estrutura_areas!inner(cluster_id), estrutura_equipe_membros(user_id)',
+      ],
       ['projects', 'id, name'],
       ['processes', 'id, name, project_id'],
       ['sprint_deliverables', '*', { count: 'exact' }],
     ]);
+    // Sem equipe e sem responsável não sobra id para resolver, então nem consulta o nome.
+    expect(calls.some(({ scope }) => scope === 'profiles_safe')).toBe(false);
     expect(
       calls.filter(({ method }) => method === 'order').map(({ scope, args }) => [scope, ...args]),
     ).toEqual([
@@ -189,6 +194,68 @@ describe('useEquipeKanbanInitialQuery', () => {
     };
 
     await expect(queryFn().then(({ deliverables }) => deliverables.length)).resolves.toBe(620);
+  });
+
+  it('oferece como responsável a equipe do cluster Digital, não todo perfil do sistema', async () => {
+    // `profiles_safe` devolve o sistema inteiro, cliente e representante junto: o recorte tem de
+    // vir da estrutura de equipes, igual à tela de Sprint.
+    results.set('estrutura_equipes:select', {
+      data: [
+        {
+          gestor_id: 'gestor-1',
+          estrutura_equipe_membros: [{ user_id: 'membro-1' }, { user_id: null }],
+        },
+      ],
+      error: null,
+    });
+    results.set('profiles_safe:select', {
+      data: [
+        { id: 'gestor-1', first_name: 'Ana', last_name: 'Gestora' },
+        { id: 'membro-1', first_name: 'Bruno', last_name: 'Membro' },
+      ],
+      error: null,
+    });
+    renderHook(() => useEquipeKanbanInitialQuery());
+    const { queryFn } = queryMocks.useQuery.mock.calls[0][0] as {
+      queryFn: () => Promise<{ profiles: Array<{ id: string }> }>;
+    };
+
+    const { profiles } = await queryFn();
+    expect(
+      calls.filter(({ method }) => method === 'eq').map(({ scope, args }) => [scope, ...args]),
+    ).toEqual([
+      ['estrutura_equipes', 'estrutura_areas.cluster_id', '952435d2-ef26-4829-80a2-e186dc61158c'],
+    ]);
+    expect(calls.filter(({ method }) => method === 'in').map(({ args }) => args)).toEqual([
+      ['id', ['gestor-1', 'membro-1']],
+    ]);
+    expect(profiles.map(({ id }) => id)).toEqual(['gestor-1', 'membro-1']);
+  });
+
+  it('não puxa para a lista quem responde por tarefa e está fora da equipe Digital', async () => {
+    // Paridade com a Sprint: a estrutura de equipes é o único critério. Tarefa de quem está fora
+    // aparece no quadro como "Desconhecido" e não ganha entrada no filtro.
+    results.set('estrutura_equipes:select', {
+      data: [{ gestor_id: 'gestor-1', estrutura_equipe_membros: [] }],
+      error: null,
+    });
+    pages.push({
+      data: [
+        { id: 'd1', assigned_to: 'fora-1' },
+        { id: 'd2', assigned_to: null },
+      ],
+      error: null,
+      count: 2,
+    });
+    renderHook(() => useEquipeKanbanInitialQuery());
+    const { queryFn } = queryMocks.useQuery.mock.calls[0][0] as {
+      queryFn: () => Promise<unknown>;
+    };
+
+    await queryFn();
+    expect(calls.filter(({ method }) => method === 'in').map(({ args }) => args)).toEqual([
+      ['id', ['gestor-1']],
+    ]);
   });
 });
 

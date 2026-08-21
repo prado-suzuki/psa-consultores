@@ -196,7 +196,7 @@ export function FamiliaSaidaTab({
       {resumo.length > 0 && (
         <Card className="border-slate-200 shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700">
               Resumo Mensal
               {allowCorrecoes && correcoes.length > 0 && (
                 <Badge variant="outline" className="ml-2 text-[10px] border-amber-300 text-amber-700">
@@ -250,7 +250,7 @@ export function FamiliaSaidaTab({
 
       <Card className="border-slate-200 shadow-sm">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+          <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700">
             Análise Detalhada
             {isFetching && !showInitialLoading && (
               <Loader2 className="inline-block h-3.5 w-3.5 ml-2 animate-spin text-slate-400" />

@@ -1,7 +1,7 @@
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { BoardMapaClientes } from '@/components/board/BoardMapaClientes';
-import { GestaoClientesContent } from '@/pages/equipe/fiscal/GestaoClientes';
+import { BoardClientesLista } from '@/components/board/BoardClientesLista';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
 import { useDomainClientesPorRegiao } from '@/hooks/useDomainClientesPorRegiao';
@@ -11,17 +11,13 @@ import { useDomainClientesPorRegiao } from '@/hooks/useDomainClientesPorRegiao';
  *
  * Duas partes: o mapa de calor por estado e a lista de clientes.
  *
- * A LISTA reaproveita `GestaoClientesContent`, o MESMO componente do Tax e da
- * OSG, com `area="board"`. Sem cluster de escopo: `useClusterIdByPageCategory`
- * procura em `estrutura_areas` uma linha cujo `page_categories` contenha
- * 'board' — nenhuma migration jamais gravou 'board' lá (só 'tax' e 'osg'),
- * então o hook devolve `null`, `useClientesFiltrados` recebe `scopeClusterId`
- * undefined e NÃO aplica filtro de cluster. O recorte que sobra é o da RLS.
- *
- * Nada foi alterado em `GestaoClientes.tsx`: o único outro comportamento que
- * depende de `area` é `includeUnmapped` (`area === 'tax'`), e ele só é lido
- * DEPOIS do early-return de `scopeClusterId` — com `area="board"` é
- * irrelevante. Tax, OSG e Dev seguem idênticos.
+ * A LISTA (reunião Mariana, 17/08, P8) é `BoardClientesLista`, enxuta e
+ * somente leitura -- nome, status e um cartão de detalhe ao clicar. Até
+ * 20/08 esta tela reaproveitava `GestaoClientesContent` (o módulo de
+ * cadastro completo, com criar/editar/excluir, compartilhado com a Gerencial
+ * da Tax e da OSG). Deixou de ser montada aqui porque não é estratégica para
+ * quem olha o Board -- o componente de cadastro continua intacto e do jeito
+ * que sempre foi para Tax/OSG, em `GestaoClientes.tsx`.
  */
 const BoardClientes = () => {
   const { isAdmin } = useAuth();
@@ -56,7 +52,7 @@ const BoardClientes = () => {
           <BoardMapaClientes clientes={clientes ?? []} escopoTotal={isAdmin} />
         )}
 
-        <GestaoClientesContent area="board" />
+        <BoardClientesLista />
       </div>
     </BoardLayout>
   );

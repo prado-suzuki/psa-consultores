@@ -15,13 +15,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Plus, X, CheckCircle2, Pencil, Building2, History, AlertCircle } from "lucide-react";
+import { Plus, X, CheckCircle2, Pencil, Building2, FileSignature, History, AlertCircle } from "lucide-react";
 import { AreaLoader } from "@/components/equipe/AreaLoader";
 import { cn } from "@/lib/utils";
 import type { DraftEntity, InscricaoIE, DraftRepresentante, DraftContract, NewClientModalProps } from "@/types/clientForm";
 import { defaultClientData } from "./client-form/constants";
 import { AcentoAreaProvider, acentoDaArea } from "./client-form/acentoArea";
 import {
+  frasePendencia,
   mapearPendencias,
   pendenciasCliente,
   pendenciasContribuinte,
@@ -40,6 +41,7 @@ import ContribuintesTab from "./client-form/ContribuintesTab";
 import RepresentantesTab from "./client-form/RepresentantesTab";
 import ContratosTab from "./client-form/ContratosTab";
 import FaturamentoTab from "./client-form/FaturamentoTab";
+import PropostaTab from "./client-form/PropostaTab";
 import HistoricoTab from "./client-form/HistoricoTab";
 
 export default function NewClientModal({
@@ -62,7 +64,7 @@ export default function NewClientModal({
     });
   }, []);
 
-  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "representantes" | "contratos" | "faturamento" | "historico">("cliente");
+  const [activeTab, setActiveTab] = useState<"cliente" | "contribuintes" | "representantes" | "contratos" | "faturamento" | "proposta" | "historico">("cliente");
   const [isReadOnly, setIsReadOnly] = useState(readOnly);
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   /** O que confirmar o descarte deve fazer: fechar o modal ou só sair da edição. */
@@ -105,8 +107,24 @@ export default function NewClientModal({
   const visibleTabs = canViewFinancialTabs
     ? (["cliente", "contribuintes", "representantes", "contratos", "faturamento"] as const)
     : (["cliente", "contribuintes", "representantes"] as const);
+  /**
+   * A aba de Proposta (ALE-8) exige DUAS condições: permissão financeira e cliente
+   * já salvo — sem cliente não há a que vincular o arquivo.
+   *
+   * Por isso ela NÃO entra em `visibleTabs`: aquele array não é condicionado a
+   * `editingClienteId`, então o gatilho apareceria também no cadastro novo. O
+   * caminho certo é o mesmo do Histórico, que se renderiza fora do `.map`.
+   */
+  const podeVerProposta = !!editingClienteId && canViewFinancialTabs;
+  /**
+   * Contagem EXPLÍCITA de colunas, porque a lista de abas usa `grid` com número
+   * fixo. Sem somar a aba nova aqui, ela estoura o grid visualmente.
+   *
+   * Editando + permissão: 5 de `visibleTabs` + Proposta + Histórico = 7. Sem
+   * permissão a Proposta não existe, então o ramo segue em 4 (3 + Histórico).
+   */
   const tabsGridClass = editingClienteId
-    ? canViewFinancialTabs ? "grid-cols-6" : "grid-cols-4"
+    ? canViewFinancialTabs ? "grid-cols-7" : "grid-cols-4"
     : canViewFinancialTabs ? "grid-cols-5" : "grid-cols-3";
 
   // --- Hooks ---
@@ -276,6 +294,32 @@ export default function NewClientModal({
     [tentouSalvar, pendencias],
   );
 
+  /**
+   * Onde a pendência está, em palavras, para a frase do rodapé.
+   *
+   * O rótulo sai da lista que a aba mostra, e não de um campo da pendência: é o
+   * mesmo texto que a pessoa lê na coluna da esquerda, então ela reconhece o
+   * item sem traduzir nada.
+   */
+  const ondeDaPendencia = (p: Pendencia): string | null => {
+    if (p.itemId == null) return null;
+    if (p.aba === 'contratos') {
+      const os = contracts.find((item) => item._id === p.itemId);
+      return os ? `na OS ${os.ordem_servico || 'sem número'}` : null;
+    }
+    if (p.aba === 'contribuintes') {
+      const contribuinte = entities.find((item) => item._id === p.itemId);
+      return contribuinte
+        ? `no contribuinte ${contribuinte.nome_razao_social || 'sem nome'}`
+        : null;
+    }
+    if (p.aba === 'representantes') {
+      const representante = participants.find((item) => item._id === p.itemId);
+      return representante ? `no representante ${representante.nome || 'sem nome'}` : null;
+    }
+    return null;
+  };
+
   /** Abre a aba e o item da falta, a partir do aviso do rodapé. */
   const irParaPendencia = (p: Pendencia) => {
     setActiveTab(p.aba);
@@ -405,6 +449,11 @@ export default function NewClientModal({
                         )}
                       </TabsTrigger>
                     ))}
+                    {podeVerProposta && (
+                      <TabsTrigger value="proposta" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
+                        <FileSignature size={14} /> Proposta
+                      </TabsTrigger>
+                    )}
                     {editingClienteId && (
                       <TabsTrigger value="historico" className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1">
                         <History size={14} /> Histórico
@@ -484,6 +533,14 @@ export default function NewClientModal({
                     </>
                   )}
 
+                  {podeVerProposta && (
+                    <TabsContent value="proposta" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
+                      {/* `editingClienteId` é garantido por `podeVerProposta`; o
+                          `!` evita alargar a prop da aba para aceitar nulo. */}
+                      <PropostaTab clienteId={editingClienteId!} />
+                    </TabsContent>
+                  )}
+
                   {editingClienteId && (
                     <TabsContent value="historico" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
                       <HistoricoTab clienteId={editingClienteId} entities={entities} participants={participants} contracts={contracts} />
@@ -522,9 +579,11 @@ export default function NewClientModal({
                           className="flex items-center gap-1.5 rounded text-sm font-medium text-destructive hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive"
                         >
                           <AlertCircle size={16} className="shrink-0" />
-                          {mapaPendencias.todas.length === 1
-                            ? "1 campo obrigatório pendente"
-                            : `${mapaPendencias.todas.length} campos obrigatórios pendentes`}
+                          {frasePendencia(
+                            mapaPendencias.todas[0],
+                            mapaPendencias.todas.length,
+                            ondeDaPendencia(mapaPendencias.todas[0]),
+                          )}
                         </button>
                       ) : hasUnsavedChanges && (
                         <span className="flex items-center gap-1.5 text-sm text-amber-700">

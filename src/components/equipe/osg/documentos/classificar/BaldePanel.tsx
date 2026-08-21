@@ -6,6 +6,15 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { fileIconOf, formatBytes } from '@/components/equipe/osg/documentos/docMeta';
 import { cn } from '@/lib/utils';
+import {
+  listRowAria,
+  listRowClasses,
+  listRowFocusClasses,
+  listRowIconBoxClasses,
+  listRowIconGlyphClasses,
+  listRowLinkedLabelClasses,
+  listRowTitleClasses,
+} from '@/lib/listRowStates';
 import type { GavetaContagem, Gaveta } from '@/lib/classificarBalde';
 import type { DocumentoArquivoRow } from '@/hooks/useDocumentoArquivo';
 
@@ -127,20 +136,14 @@ export function BaldePanel({
               const aberto = doc.id === abertoId;
               const recrutado = recrutados.includes(doc.id);
               const { Icon, className } = fileIconOf(doc.nome_original, doc.mime);
+              // Marcar é seleção múltipla (neutra); abrir é o vínculo ativo (é
+              // quem fica com o acento). Ver src/lib/listRowStates.ts.
+              const estado = { selecionado: recrutado, vinculado: aberto };
               return (
                 <li key={doc.id}>
                   {/* A caixa e o corpo são irmãos, não aninhados: marcar ("é dela")
                       e abrir (ler) são ações diferentes sobre o mesmo arquivo. */}
-                  <div
-                    className={cn(
-                      'flex items-start gap-2 rounded-xl border px-2 py-2 transition-colors',
-                      recrutado
-                        ? 'border-osg-moss bg-osg-moss/[0.06]'
-                        : aberto
-                          ? 'border-osg-moss/60 bg-osg-50/60'
-                          : 'border-osg-300/60 bg-card hover:border-osg-moss/50 hover:bg-osg-50/60',
-                    )}
-                  >
+                  <div className={listRowClasses(estado)}>
                     <Checkbox
                       checked={recrutado}
                       onCheckedChange={() => onRecrutar(doc.id)}
@@ -150,19 +153,20 @@ export function BaldePanel({
                     <button
                       type="button"
                       onClick={() => onAbrir(doc)}
-                      aria-current={aberto ? 'true' : undefined}
-                      className="flex min-w-0 flex-1 items-start gap-2 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-osg-moss focus-visible:ring-offset-1"
+                      {...listRowAria(estado)}
+                      className={cn(
+                        'flex min-w-0 flex-1 items-start gap-2 rounded-lg text-left',
+                        listRowFocusClasses(),
+                      )}
                     >
-                      <span
-                        className={cn(
-                          'mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md',
-                          aberto ? 'bg-osg-moss text-white' : 'bg-osg-100',
-                        )}
-                      >
-                        <Icon className={cn('h-3.5 w-3.5', aberto ? 'text-white' : className)} aria-hidden />
+                      <span className={cn('mt-0.5 h-7 w-7', listRowIconBoxClasses(estado))}>
+                        <Icon
+                          className={cn('h-3.5 w-3.5', listRowIconGlyphClasses(estado, className))}
+                          aria-hidden
+                        />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[12.5px] font-medium leading-tight text-osg-700">
+                        <span className={cn('block truncate text-[12.5px] leading-tight', listRowTitleClasses(estado))}>
                           {doc.nome_original}
                         </span>
                         <span className="mt-0.5 block text-[10.5px] text-muted-foreground">
@@ -171,7 +175,7 @@ export function BaldePanel({
                         </span>
                       </span>
                       {aberto && (
-                        <span className="mt-0.5 shrink-0 text-[10px] font-semibold uppercase text-osg-moss">aberto</span>
+                        <span className={cn('mt-0.5', listRowLinkedLabelClasses())}>aberto</span>
                       )}
                     </button>
                   </div>

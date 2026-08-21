@@ -42,10 +42,10 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
                 key={option.path}
                 type="button"
                 onClick={() => navigate(option.path)}
-                className="group flex min-h-[320px] flex-col rounded-3xl border border-slate-200 bg-white p-8 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-teal-300 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 focus-visible:ring-offset-2"
+                className="group flex min-h-[320px] flex-col rounded-3xl border border-slate-200 bg-white p-8 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <div className="mb-6 flex items-start justify-between gap-4">
-                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-teal-600 transition-colors group-hover:bg-teal-100">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/5 text-primary transition-colors group-hover:bg-primary/15">
                     <Icon className="h-7 w-7" />
                   </div>
                   <Badge variant="secondary" className="bg-slate-100 text-slate-700">
@@ -73,7 +73,7 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(event) => event.stopPropagation()}
-                      className="inline-flex items-center gap-1.5 text-sm font-medium text-teal-700 transition-colors hover:text-teal-900"
+                      className="inline-flex items-center gap-1.5 text-sm font-medium text-primary transition-colors hover:text-primary"
                     >
                       <BookOpen className="h-4 w-4" />
                       Manual
@@ -82,7 +82,7 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
                   ) : (
                     <span />
                   )}
-                  <span className="inline-flex items-center gap-2 rounded-full bg-teal-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform group-hover:translate-x-1">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform group-hover:translate-x-1">
                     Abrir
                     <ArrowRight className="h-4 w-4" />
                   </span>

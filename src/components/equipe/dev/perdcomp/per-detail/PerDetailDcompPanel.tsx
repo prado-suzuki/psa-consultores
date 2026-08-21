@@ -75,10 +75,10 @@ export function PerDetailDcompPanel({
   onDeleteDcomp,
 }: PerDetailDcompPanelProps) {
   return (
-    <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-slate-900">
-      <div className="h-14 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 bg-white dark:bg-slate-900 flex-shrink-0">
+    <div className="flex-1 flex flex-col min-w-0 bg-white">
+      <div className="h-14 border-b border-slate-200 flex items-center justify-between px-6 bg-white flex-shrink-0">
         <div className="flex items-center gap-4">
-          <h4 className="text-lg font-bold text-slate-800 dark:text-white">Lançamentos PER</h4>
+          <h4 className="text-lg font-bold text-slate-800">Lançamentos PER</h4>
           <Badge variant="secondary" className="text-xs">
             {rows.length} registro{rows.length !== 1 ? 's' : ''}
           </Badge>
@@ -106,7 +106,7 @@ export function PerDetailDcompPanel({
             Exportar Planilha
           </Button>
           {perPago && (
-            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 text-sm px-3 py-1">
+            <Badge className="bg-green-100 text-green-800 text-sm px-3 py-1">
               <CheckCircle2 className="h-4 w-4 mr-1" />
               Ressarcido
             </Badge>
@@ -126,7 +126,7 @@ export function PerDetailDcompPanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-slate-50/30 dark:bg-slate-800/20">
+      <div className="flex-1 overflow-auto bg-slate-50/30">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -169,7 +169,7 @@ export function PerDetailDcompPanel({
                       </TableCell>
                       <TableCell>
                         {isRetificacao ? (
-                          <span className="text-orange-600 dark:text-orange-400 font-medium">
+                          <span className="text-orange-600 font-medium">
                             {formatProcessNumber(dcomp.nr_documento)}
                           </span>
                         ) : (
@@ -212,7 +212,7 @@ export function PerDetailDcompPanel({
         )}
       </div>
 
-      <div className="xl:hidden h-16 px-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 flex items-center justify-between flex-shrink-0">
+      <div className="xl:hidden h-16 px-6 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between flex-shrink-0">
         <div>
           <p className="text-xs text-slate-500">Valor Crédito</p>
           <p className="font-mono font-bold">{formatCurrency(valorCredito)}</p>

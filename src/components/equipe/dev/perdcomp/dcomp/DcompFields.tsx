@@ -235,7 +235,7 @@ export function DcompFields({
                         </span>
                         <span>
                           Atualização SELIC desta DCOMP:{' '}
-                          <strong className="text-blue-600 dark:text-blue-400">
+                          <strong className="text-blue-600">
                             {formatCurrencyDisplay(parcelaSelic)}
                           </strong>
                         </span>
