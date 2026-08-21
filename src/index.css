@@ -1288,6 +1288,15 @@ All colors MUST be HSL.
   --board-v4-go-t: rgba(14,162,113,.1);
   --board-v4-warn: #D4820A;
   --board-v4-warn-t: rgba(212,130,10,.1);
+  /* Degrau escuro do âmbar, PARA TEXTO. Aditivo: nada que já usava
+     `--board-v4-warn` mudou de cor. Espelha o par `--board-indigo` /
+     `--board-indigo-d` que a paleta do Board já tinha, e é o mesmo raciocínio do
+     LIME[700]: área grande (barra de gráfico, faixa de 3px, dot, fundo de pill)
+     não precisa do mínimo de texto e continua no `--board-v4-warn`; palavra e
+     número, sim. #D4820A dava 3,00:1 sobre branco. Mesmo matiz e mesma saturação
+     (H 36°, S 91%), L 43% → 32%: 5,13:1 no branco e 4,56:1 sobre o próprio
+     `-t`. */
+  --board-v4-warn-d: #9C6007;
   --board-v4-risk: #D03040;
   --board-v4-risk-t: rgba(208,48,64,.1);
   --board-v4-blue: #3478F5;
