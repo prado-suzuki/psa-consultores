@@ -1,0 +1,192 @@
+<title>O Vermelho de Excluir</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+
+<style>
+  :root{--ground:#FBFAF7;--ink:#2E1305;--ink-2:#7D7268;--rule:#E7E2DA}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:'Work Sans',system-ui,sans-serif;font-size:15px;line-height:1.55;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto;padding:56px 28px 96px}
+  h1{font-size:31px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+  .sub{color:var(--ink-2);margin:0 0 34px;max-width:62ch}
+  h2{font-size:13px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);
+     margin:52px 0 18px;padding-bottom:9px;border-bottom:1px solid var(--rule)}
+  .mono{font-family:'DM Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  p{max-width:66ch}
+
+  .grid{display:grid;grid-template-columns:130px repeat(3,1fr);gap:0;
+        border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+  @media (max-width:800px){.grid{grid-template-columns:1fr}}
+  .gh{padding:11px 14px;background:#F3F1EC;font-size:11px;font-weight:700;
+      letter-spacing:.09em;text-transform:uppercase;color:var(--ink-2);
+      border-bottom:1px solid var(--rule)}
+  .cell{padding:16px 14px;border-bottom:1px solid var(--rule);
+        display:flex;flex-direction:column;gap:10px;align-items:flex-start}
+  .cell + .cell{border-left:1px solid rgba(0,0,0,.05)}
+  .rowlabel{padding:16px 14px;border-bottom:1px solid var(--rule);
+            font-size:12px;font-weight:600;color:var(--ink-2)}
+  .grid > :nth-last-child(-n+4){border-bottom:none}
+
+  .btn{border:0;border-radius:8px;padding:9px 16px;font-family:inherit;
+       font-size:14px;font-weight:500;cursor:default;letter-spacing:.005em}
+  .badge{border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+  .ratio{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--ink-2)}
+  .ok{color:#1F6B3A;font-weight:500}
+  .no{color:#A61B1B;font-weight:500}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:6px}
+  th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);
+     font-weight:700;padding:0 12px 9px 0;border-bottom:1px solid var(--rule)}
+  td{padding:11px 12px 11px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+  .scroll{overflow-x:auto}
+  .nota{border-left:3px solid #C9BFA8;padding:2px 0 2px 16px;margin:26px 0;max-width:68ch}
+  .q{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:38px 0 6px}
+  ul{padding-left:19px} li{margin:6px 0;max-width:64ch}
+</style>
+
+<div class="wrap">
+  <h1>O vermelho de excluir</h1>
+  <p class="sub">O par <span class="mono">--destructive</span> + <span class="mono">--destructive-foreground</span>
+  dá <strong>3,62:1</strong> em base, tax e rotina — abaixo do 4,5:1 exigido para texto normal.
+  São 45 sítios.</p>
+
+  <div class="nota">
+    <strong>Uma das duas alternativas que você pediu não existe.</strong> Clarear o texto não
+    alcança 4,5:1: o primeiro plano já está em <span class="mono">0 0% 98%</span>, e o
+    <em>branco puro</em> dá <strong>3,78:1</strong> — esse é o teto. O segundo caminho tem
+    de ser <strong>escurecer o texto</strong>, não clareá-lo.
+  </div>
+
+  <h2>As três opções, no botão e no badge</h2>
+
+  <div class="grid">
+    <div class="gh"></div>
+    <div class="gh">hoje · 3,62:1</div>
+    <div class="gh">A · fundo escuro</div>
+    <div class="gh">C · texto escuro</div>
+
+    <div class="rowlabel">base<br><span class="mono" style="font-size:10.5px;font-weight:400">0 84% 60%</span></div>
+    <div class="cell">
+      <button class="btn" style="background:#EF4343;color:#FAFAFA">Excluir</button>
+      <span class="badge" style="background:#EF4343;color:#FAFAFA">Removido</span>
+      <span class="ratio no">3,62:1 · reprova</span></div>
+    <div class="cell">
+      <button class="btn" style="background:#E11414;color:#FAFAFA">Excluir</button>
+      <span class="badge" style="background:#E11414;color:#FAFAFA">Removido</span>
+      <span class="ratio ok">4,66:1 · passa</span></div>
+    <div class="cell">
+      <button class="btn" style="background:#EF4343;color:#290A0A">Excluir</button>
+      <span class="badge" style="background:#EF4343;color:#290A0A">Removido</span>
+      <span class="ratio ok">4,86:1 · passa</span></div>
+
+    <div class="rowlabel">tax<br><span class="mono" style="font-size:10.5px;font-weight:400">0 84% 60%</span></div>
+    <div class="cell">
+      <button class="btn" style="background:#EF4343;color:#FAFAFA">Excluir</button>
+      <span class="badge" style="background:#EF4343;color:#FAFAFA">Removido</span>
+      <span class="ratio no">3,62:1 · reprova</span></div>
+    <div class="cell">
+      <button class="btn" style="background:#E11414;color:#FAFAFA">Excluir</button>
+      <span class="badge" style="background:#E11414;color:#FAFAFA">Removido</span>
+      <span class="ratio ok">4,66:1 · passa</span></div>
+    <div class="cell">
+      <button class="btn" style="background:#EF4343;color:#290A0A">Excluir</button>
+      <span class="badge" style="background:#EF4343;color:#290A0A">Removido</span>
+      <span class="ratio ok">4,86:1 · passa</span></div>
+
+    <div class="rowlabel">rotina<br><span class="mono" style="font-size:10.5px;font-weight:400">0 84% 60%</span></div>
+    <div class="cell">
+      <button class="btn" style="background:#EF4343;color:#FAFAFA">Excluir</button>
+      <span class="badge" style="background:#EF4343;color:#FAFAFA">Removido</span>
+      <span class="ratio no">3,62:1 · reprova</span></div>
+    <div class="cell">
+      <button class="btn" style="background:#E11414;color:#FAFAFA">Excluir</button>
+      <span class="badge" style="background:#E11414;color:#FAFAFA">Removido</span>
+      <span class="ratio ok">4,66:1 · passa</span></div>
+    <div class="cell">
+      <button class="btn" style="background:#EF4343;color:#290A0A">Excluir</button>
+      <span class="badge" style="background:#EF4343;color:#290A0A">Removido</span>
+      <span class="ratio ok">4,86:1 · passa</span></div>
+
+    <div class="rowlabel" style="color:#8A5A3A">osg<br><span class="mono" style="font-size:10.5px;font-weight:400">356 59% 45%</span></div>
+    <div class="cell" style="background:#FBF7F5">
+      <button class="btn" style="background:#B62F38;color:#FAFAFA">Excluir</button>
+      <span class="badge" style="background:#B62F38;color:#FAFAFA">Removido</span>
+      <span class="ratio ok">5,80:1 · já passa</span></div>
+    <div class="cell" style="background:#FBF7F5;justify-content:center">
+      <span class="ratio">não se aplica</span></div>
+    <div class="cell" style="background:#FBF7F5;justify-content:center">
+      <span class="ratio">não se aplica</span></div>
+  </div>
+
+  <p class="sub" style="margin-top:16px;font-size:13.5px">A OSG redefine o vermelho
+  (<span class="mono">--osg-red</span>) e <strong>já passa</strong> com folga. A decisão é só
+  para base, tax e rotina, que compartilham o mesmo valor.</p>
+
+  <h2>Onde o par aparece — e é uma forma só</h2>
+
+  <div class="scroll">
+  <table>
+    <thead><tr><th style="width:80px">sítios</th><th>o que é</th><th>mínimo que se aplica</th></tr></thead>
+    <tbody>
+      <tr><td class="mono">36</td><td><strong>Botão de confirmar exclusão</strong> —
+        <span class="mono">&lt;AlertDialogAction className="bg-destructive text-destructive-foreground …"&gt;</span>,
+        rótulo "Excluir"/"Remover" em 14&nbsp;px</td><td><strong>4,5:1</strong> (texto normal)</td></tr>
+      <tr><td class="mono">7</td><td><span class="mono">hover:text-destructive-foreground</span> —
+        só aparece ao passar o mouse, sobre <span class="mono">hover:bg-destructive</span></td>
+        <td>4,5:1, mas transitório</td></tr>
+      <tr><td class="mono">2</td><td>Variantes do próprio <span class="mono">ui/</span> —
+        <span class="mono">toast</span> e <span class="mono">bulk-action-bar</span></td><td>4,5:1</td></tr>
+      <tr><td class="mono">0</td><td><strong>Badge / texto pequeno</strong></td>
+        <td>— não existe nenhum</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="nota">
+    <strong>Você pediu botão e badge porque o par aparece nos dois. Medido: não aparece.</strong>
+    Os 45 sítios são essencialmente <em>um</em> botão, repetido — o de confirmar exclusão num
+    diálogo. Nenhum badge usa esse par. O badge acima está no render porque você pediu, mas ele
+    não representa nada que exista hoje.
+    <br><br>
+    Isso simplifica a decisão: <strong>não há dois mínimos para conciliar.</strong> O rótulo do
+    botão é <span class="mono">text-sm</span> (14&nbsp;px), texto normal, e o mínimo é 4,5:1 para
+    todos os 45.
+  </div>
+
+  <h2>Os números</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>opção</th><th>fundo</th><th>texto</th><th>contraste</th><th style="width:34%">o que muda na tela</th></tr></thead>
+    <tbody>
+      <tr><td><strong>hoje</strong></td><td class="mono">#EF4343</td><td class="mono">#FAFAFA</td>
+        <td class="mono no">3,62:1</td><td>—</td></tr>
+      <tr><td><strong>A</strong> fundo escuro<br><span style="color:var(--ink-2);font-size:12px">
+        <span class="mono">0 84% 48%</span></span></td>
+        <td class="mono">#E11414</td><td class="mono">#FAFAFA</td><td class="mono ok">4,66:1</td>
+        <td>Vermelho mais fechado e mais sério. O botão continua com texto branco, que é o que a
+            pessoa espera de um botão destrutivo.</td></tr>
+      <tr><td><strong>C</strong> texto escuro<br><span style="color:var(--ink-2);font-size:12px">
+        <span class="mono">0 60% 10%</span></span></td>
+        <td class="mono">#EF4343</td><td class="mono">#290A0A</td><td class="mono ok">4,86:1</td>
+        <td>Mantém o vermelho de hoje. Mas texto quase preto sobre vermelho vivo lê como aviso, não
+            como botão — e nenhum botão destrutivo do mercado se parece com isso.</td></tr>
+      <tr><td>branco puro<br><span style="color:var(--ink-2);font-size:12px">o teto de "clarear"</span></td>
+        <td class="mono">#EF4343</td><td class="mono">#FFFFFF</td><td class="mono no">3,78:1</td>
+        <td>Não alcança. É por isso que a alternativa "clarear o texto" não existe.</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="q">O que eu escolheria, se fosse meu</div>
+  <p><strong>A.</strong> Ela muda uma variável em três temas e nada mais — os 45 sítios não são
+  tocados, porque todos leem o token. E o resultado continua parecendo um botão de excluir.
+  A opção C passa por número e falha por convenção.</p>
+  <p style="color:var(--ink-2);font-size:13.5px">Uma observação para olhar no render, não para
+  ajustar: em <span class="mono">0 84% 48%</span> o vermelho fica a 3 pontos de luminosidade do
+  <span class="mono">--osg-red</span> em saturação percebida, ainda que o matiz seja outro. Os
+  dois passam a conversar melhor do que hoje.</p>
+
+</div>
