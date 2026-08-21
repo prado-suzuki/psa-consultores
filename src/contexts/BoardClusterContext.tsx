@@ -1,27 +1,72 @@
-// Seletor global de EMPRESA (entidade: cluster) do Board — vive numa faixa acima
+// Seletor global CLUSTER -> ÁREA -> EQUIPE do Board — vive numa faixa acima
 // do conteúdo, igual ao OSG Work e ao MAPA, e recorta as páginas que o honram.
-// '' = todas as empresas.
+// '' = todos, em qualquer nível.
 //
 // O contexto e o hook `useBoardCluster` vivem em @/hooks/useBoardCluster (este
 // arquivo exporta só o Provider, por causa do Fast Refresh).
 //
-// NÃO persiste entre carregamentos de página (decisão de 21/08, Bloco D/D4.1):
-// persistia em localStorage, e um recorte esquecido de uma sessão anterior
-// abria o Estratégico já filtrado por uma empresa sem nenhum aviso visível —
-// "Áreas em um olhar" mostrava "sem projeto" nas três áreas e o card de horas
-// caía a zero, e nada na tela dizia que o motivo era um filtro escondido. O
-// board sempre abre em "Todas as empresas"; a escolha ainda vale enquanto a
-// pessoa navega dentro da mesma sessão (o Provider fica montado por cima das
-// rotas do Board), só não sobrevive a um F5 ou a uma aba nova.
+// NÃO persiste em localStorage entre carregamentos de página (decisão de
+// 21/08, Bloco D/D4.1): persistia, e um recorte esquecido de uma sessão
+// anterior abria o Estratégico já filtrado sem nenhum aviso visível. O board
+// sempre abre em "Todos" -- mas os TRÊS níveis vivem na URL (query params
+// `boardCluster`/`boardArea`/`boardEquipe`, prefixados de propósito: `?area=`
+// sozinho já é usado pelo espelhamento de tema em `/equipe/chamados` e
+// afins, ver `src/lib/areaTheme.ts` -- reaproveitar o mesmo nome aqui
+// colidiria), então o sócio pode mandar o link do recorte, e a URL sobrevive
+// a um F5 (o que o localStorage tentava fazer, do jeito errado).
+//
+// Trocar um nível RESETA os de baixo (cluster novo esvazia área e equipe;
+// área nova esvazia equipe) -- ver Bloco G, 21/08.
 
-import { useState, type ReactNode } from 'react';
+import { type ReactNode, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { BoardClusterContext } from '@/hooks/useBoardCluster';
 
+const PARAM_CLUSTER = 'boardCluster';
+const PARAM_AREA = 'boardArea';
+const PARAM_EQUIPE = 'boardEquipe';
+
 export function BoardClusterProvider({ children }: { children: ReactNode }) {
-  const [cluster, setCluster] = useState<string>('');
+  const [params, setParams] = useSearchParams();
+
+  const cluster = params.get(PARAM_CLUSTER) ?? '';
+  const area = params.get(PARAM_AREA) ?? '';
+  const equipe = params.get(PARAM_EQUIPE) ?? '';
+
+  const setCluster = useCallback((id: string) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) next.set(PARAM_CLUSTER, id); else next.delete(PARAM_CLUSTER);
+      next.delete(PARAM_AREA);
+      next.delete(PARAM_EQUIPE);
+      return next;
+    }, { replace: true });
+  }, [setParams]);
+
+  const setArea = useCallback((id: string) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) next.set(PARAM_AREA, id); else next.delete(PARAM_AREA);
+      next.delete(PARAM_EQUIPE);
+      return next;
+    }, { replace: true });
+  }, [setParams]);
+
+  const setEquipe = useCallback((id: string) => {
+    setParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (id) next.set(PARAM_EQUIPE, id); else next.delete(PARAM_EQUIPE);
+      return next;
+    }, { replace: true });
+  }, [setParams]);
+
+  const value = useMemo(
+    () => ({ cluster, setCluster, area, setArea, equipe, setEquipe }),
+    [cluster, setCluster, area, setArea, equipe, setEquipe],
+  );
 
   return (
-    <BoardClusterContext.Provider value={{ cluster, setCluster }}>
+    <BoardClusterContext.Provider value={value}>
       {children}
     </BoardClusterContext.Provider>
   );
