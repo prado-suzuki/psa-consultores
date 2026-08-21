@@ -9,7 +9,7 @@ import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { GRAY, TEAL, type SortState } from './formatadores';
+import { TEAL, type SortState } from './formatadores';
 import { ALTURA_MIN_CABECALHO, ALTURA_MIN_KPI } from './layout';
 
 // ── Faixa de resumo (KPIs sobre fundo escuro) ──────────────────────────
@@ -121,7 +121,13 @@ export const FaixaResumo = ({
   carregando?: boolean;
   colunas?: 3 | 4 | 6;
 }) => (
-  <div className="rounded-xl px-4 py-4" style={{ background: GRAY[900] }}>
+  // `--surface-escura` e não `GRAY[900]`: a superfície escura é token de TEMA, e
+  // cada área já declara a sua (base/tax/osg/rotina em azul-marinho
+  // `229 84% 5%`; sistema em grafite quente `35 10% 8%`). Com o hex cravado, esta
+  // faixa ignorava o tema da rota e ficava azul-marinho no Board inteiro, que
+  // resolve por `.sistema-theme`. O `GRAY` do módulo continua servindo a série
+  // p95 dos gráficos, que é dado e não superfície.
+  <div className="rounded-xl px-4 py-4" style={{ background: 'hsl(var(--surface-escura))' }}>
     <div
       className={cn(
         'grid gap-x-6 gap-y-4 sm:grid-cols-2',
