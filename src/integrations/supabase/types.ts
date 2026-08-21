@@ -4375,6 +4375,7 @@ export type Database = {
       ordem_servico: {
         Row: {
           cluster_id: string | null
+          contribuinte_id: string | null
           created_at: string | null
           data_emissao: string | null
           data_fim: string | null
@@ -4399,6 +4400,7 @@ export type Database = {
         }
         Insert: {
           cluster_id?: string | null
+          contribuinte_id?: string | null
           created_at?: string | null
           data_emissao?: string | null
           data_fim?: string | null
@@ -4423,6 +4425,7 @@ export type Database = {
         }
         Update: {
           cluster_id?: string | null
+          contribuinte_id?: string | null
           created_at?: string | null
           data_emissao?: string | null
           data_fim?: string | null
@@ -4451,6 +4454,13 @@ export type Database = {
             columns: ["cluster_id"]
             isOneToOne: false
             referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordem_servico_contribuinte_id_fkey"
+            columns: ["contribuinte_id"]
+            isOneToOne: false
+            referencedRelation: "contribuinte"
             referencedColumns: ["id"]
           },
           {
@@ -4798,6 +4808,13 @@ export type Database = {
             columns: ["estrutura_area_id"]
             isOneToOne: false
             referencedRelation: "estrutura_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_external_client_id_fkey"
+            columns: ["external_client_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
             referencedColumns: ["id"]
           },
           {
@@ -9210,6 +9227,7 @@ export type Database = {
         Args: { p_client_id: string }
         Returns: {
           cluster_id: string | null
+          contribuinte_id: string | null
           created_at: string | null
           data_emissao: string | null
           data_fim: string | null

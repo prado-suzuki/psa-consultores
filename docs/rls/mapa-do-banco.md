@@ -114,12 +114,12 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`notificacao`](#notificacao) | 16 | — | interno | profiles |
 | [`notificacao_envio`](#notificacaoenvio) | 21 | — | interno | profiles, notificacao |
 | [`novidades`](#novidades) | 17 | — | interno | — |
-| [`ordem_servico`](#ordemservico) | 22 | excluido | cluster-cliente | estrutura_clusters, produto_segmento, servicos_prestados, setor_cliente |
+| [`ordem_servico`](#ordemservico) | 23 | excluido | cluster-cliente | estrutura_clusters, contribuinte, produto_segmento, servicos_prestados, setor_cliente |
 | [`org_comment_attachments`](#orgcommentattachments) | 10 | — | interno | org_comments, org_comments_feed, profiles |
 | [`org_comment_mentions`](#orgcommentmentions) | 6 | — | interno | org_comments, org_comments_feed, profiles |
 | [`org_comments`](#orgcomments) | 16 | excluido | interno | profiles, org_comments, org_comments_feed, org_projects |
 | [`org_project_members`](#orgprojectmembers) | 5 | — | projeto | org_projects |
-| [`org_projects`](#orgprojects) | 20 | — | projeto | profiles, estrutura_equipes, estrutura_areas, ordem_servico, produto_segmento, servicos_prestados |
+| [`org_projects`](#orgprojects) | 20 | — | projeto | profiles, estrutura_equipes, estrutura_areas, cliente, ordem_servico, produto_segmento, servicos_prestados |
 | [`org_task_comments`](#orgtaskcomments) | 7 | — | projeto | org_tasks, profiles |
 | [`org_tasks`](#orgtasks) | 26 | — | projeto | profiles, servicos_prestados, cliente, contribuinte, org_tasks, org_projects, produto_tarefa_padrao, tickets |
 | [`os_produtos_contratados`](#osprodutoscontratados) | 5 | — | cluster-cliente | ordem_servico, produto_segmento |
@@ -495,7 +495,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="ordemservico"></a>`ordem_servico`
 **Acesso:** cluster-cliente · **Flags:** excluido
-`cluster_id` string? · `created_at` string? · `data_emissao` string? · `data_fim` string? · `data_inicio` string? · `excluido` boolean · `id` string · `id_cliente` string · `id_produto_segmento` string? · `id_servico` string? · `numero_os` string? · `numero_parcelas` number? · `observacoes` string? · `regiao` string? · `setor_cliente` string? · `setor_cliente_id` string? · `situacao` string? · `updated_at` string? · `valor_entrada` number? · `valor_projeto` number? · `valor_reembolso_km` number? · `valor_reembolso_refeicao` number?  ·  **FK:** `cluster_id`→estrutura_clusters.id · `id_produto_segmento`→produto_segmento.id · `id_servico`→servicos_prestados.id · `setor_cliente_id`→setor_cliente.id
+`cluster_id` string? · `contribuinte_id` string? · `created_at` string? · `data_emissao` string? · `data_fim` string? · `data_inicio` string? · `excluido` boolean · `id` string · `id_cliente` string · `id_produto_segmento` string? · `id_servico` string? · `numero_os` string? · `numero_parcelas` number? · `observacoes` string? · `regiao` string? · `setor_cliente` string? · `setor_cliente_id` string? · `situacao` string? · `updated_at` string? · `valor_entrada` number? · `valor_projeto` number? · `valor_reembolso_km` number? · `valor_reembolso_refeicao` number?  ·  **FK:** `cluster_id`→estrutura_clusters.id · `contribuinte_id`→contribuinte.id · `id_produto_segmento`→produto_segmento.id · `id_servico`→servicos_prestados.id · `setor_cliente_id`→setor_cliente.id
 
 ### <a id="orgcommentattachments"></a>`org_comment_attachments`
 **Acesso:** interno
@@ -515,7 +515,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="orgprojects"></a>`org_projects`
 **Acesso:** projeto
-`contribuinte_id` string? · `created_at` string? · `created_by` string? · `description` string? · `end_date` string? · `equipe_id` string? · `estrutura_area_id` string? · `external_client_id` string? · `id` string · `is_multidisciplinar` boolean · `leader_id` string? · `name` string · `objective` string? · `ordem_servico_id` string? · `produto_segmento_id` string? · `responsible_id` string? · `servico_id` string? · `start_date` string? · `status` string? · `updated_at` string?  ·  **FK:** `created_by`→profiles.id · `equipe_id`→estrutura_equipes.id · `estrutura_area_id`→estrutura_areas.id · `leader_id`→profiles.id · `ordem_servico_id`→ordem_servico.id · `produto_segmento_id`→produto_segmento.id · `responsible_id`→profiles.id · `servico_id`→servicos_prestados.id
+`contribuinte_id` string? · `created_at` string? · `created_by` string? · `description` string? · `end_date` string? · `equipe_id` string? · `estrutura_area_id` string? · `external_client_id` string? · `id` string · `is_multidisciplinar` boolean · `leader_id` string? · `name` string · `objective` string? · `ordem_servico_id` string? · `produto_segmento_id` string? · `responsible_id` string? · `servico_id` string? · `start_date` string? · `status` string? · `updated_at` string?  ·  **FK:** `created_by`→profiles.id · `equipe_id`→estrutura_equipes.id · `estrutura_area_id`→estrutura_areas.id · `external_client_id`→cliente.id · `leader_id`→profiles.id · `ordem_servico_id`→ordem_servico.id · `produto_segmento_id`→produto_segmento.id · `responsible_id`→profiles.id · `servico_id`→servicos_prestados.id
 
 ### <a id="orgtaskcomments"></a>`org_task_comments`
 **Acesso:** projeto
