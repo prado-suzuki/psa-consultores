@@ -8,8 +8,8 @@
  * Tudo aqui veste o kit de estilo real da OSG (`formKit`, `osgFormGrid`), e não
  * classes inventadas — foi o que fez a primeira versão não parecer o sistema.
  */
-import { createContext, useContext, useState, type ReactNode } from 'react';
-import { ChevronRight, Plus, X } from 'lucide-react';
+import { createContext, useContext, useRef, useState, type ReactNode } from 'react';
+import { ChevronRight, FileText, Plus, X } from 'lucide-react';
 import {
   fieldCls, FieldSection, labelCls, osgTabsListCls, osgTabTriggerCls, switchBoxCls,
 } from '@/components/equipe/osg/formKit';
@@ -22,6 +22,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formGridCls, formScopeCls } from '@/lib/osgFormGrid';
 import { ORIGEM_ROTULO, type Campo, type Origem } from './cadastroGovernancaDados';
@@ -34,6 +35,27 @@ import { ORIGEM_ROTULO, type Campo, type Origem } from './cadastroGovernancaDado
  * chave por todos eles encheria as assinaturas sem ganho.
  */
 export const Explicando = createContext(true);
+
+/**
+ * Os valores editados dos campos, para o documento ao lado reagir.
+ *
+ * Sem isto os controles eram `defaultValue` e o documento era texto fixo: mexer no
+ * campo não mudava a cláusula, que é o contrário do que o mockup precisa provar.
+ * O mapa é por RÓTULO do campo, que é a mesma chave que o clique na marca amarela
+ * usa para navegar, então não há segundo vocabulário.
+ *
+ * Ausente do mapa = usa o valor de exemplo do próprio campo.
+ */
+export const Valores = createContext<{
+  valores: Record<string, string>;
+  setValor: (rotulo: string, valor: string) => void;
+} | null>(null);
+
+/** Lê um campo pelo rótulo, caindo no valor de exemplo. */
+export function useValor() {
+  const ctx = useContext(Valores);
+  return (rotulo: string, padrao: string) => ctx?.valores[rotulo] ?? padrao;
+}
 
 /** Etiqueta de origem: já no sistema, calculado, ou novo. */
 export const EtiquetaOrigem = ({ origem, tabela }: { origem?: Origem; tabela?: string }) => {
@@ -68,9 +90,48 @@ export const CampoLeitura = ({ campo }: { campo: Campo }) => {
   const explicando = useContext(Explicando);
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5">
+    <div
+      data-campo={campo.rotulo}
+      className="flex min-w-0 scroll-mt-4 flex-col gap-1.5 rounded-md transition-shadow"
+    >
       <div className="flex items-baseline gap-2">
         <span className={labelCls}>{campo.rotulo}</span>
+        {/*
+          O trecho da cláusula também vive numa tooltip, e não só na linha abaixo
+          do campo: com as explicações desligadas a tela fica limpa, e a pergunta
+          "de onde isso sai no contrato?" continua a um passe de mouse. O ícone só
+          aparece onde existe trecho, então ele próprio informa quais campos já
+          foram rastreados até o documento.
+        */}
+        {campo.clausula && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                aria-label={`Trecho do contrato para ${campo.rotulo}`}
+                className="shrink-0 text-osg-300 transition-colors hover:text-osg-moss"
+              >
+                <FileText className="h-3.5 w-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-[420px] text-[12px] leading-snug">
+              {/*
+                O rótulo diz de QUAL documento o trecho é. Sem isso a tooltip
+                sugeria que todo campo com trecho ia para o contrato social, e não
+                vai: um quórum escrito no modelo do Acordo prova que o campo
+                existe, não que ele desce ao contrato.
+              */}
+              <span className="mb-1 block font-semibold uppercase tracking-wide text-osg-moss">
+                {campo.fonteClausula === 'acordo'
+                  ? 'no modelo do Acordo de Quotistas'
+                  : campo.fonteClausula === 'ata'
+                    ? 'na ata de eleição'
+                    : 'no contrato social'}
+              </span>
+              <span className="italic">{campo.clausula}</span>
+            </TooltipContent>
+          </Tooltip>
+        )}
         {/*
           O TIPO fica junto do rótulo, em monoespaçada miúda, porque ele é
           informação de quem vai construir: é o tipo do vocabulário do gerador, e
@@ -116,7 +177,13 @@ export const CampoLeitura = ({ campo }: { campo: Campo }) => {
       */}
       {explicando && campo.clausula && (
         <span className="border-l-2 border-osg-moss/40 pl-2.5 text-[11px] italic leading-snug text-osg-500">
-          <span className="mr-1 font-sans font-semibold not-italic text-osg-moss">no contrato:</span>
+          <span className="mr-1 font-sans font-semibold not-italic text-osg-moss">
+            {campo.fonteClausula === 'acordo'
+              ? 'no Acordo:'
+              : campo.fonteClausula === 'ata'
+                ? 'na ata:'
+                : 'no contrato:'}
+          </span>
           {campo.clausula}
         </span>
       )}
@@ -135,8 +202,11 @@ export const CampoLeitura = ({ campo }: { campo: Campo }) => {
  * imitações.
  */
 const Controle = ({ campo }: { campo: Campo }) => {
+  const ctx = useContext(Valores);
   const tipo = campo.tipo ?? 'texto';
   const caixa = `${fieldCls} w-full text-sm !border-osg-200 bg-background`;
+  const atual = ctx?.valores[campo.rotulo] ?? campo.valor;
+  const mudar = ctx ? (v: string) => ctx.setValor(campo.rotulo, v) : undefined;
 
   // Pessoa nunca é digitada: ela já está cadastrada, e o ganho do cadastro único
   // é justamente parar de redigitar nome, CPF e qualificação em cada documento.
@@ -165,8 +235,13 @@ const Controle = ({ campo }: { campo: Campo }) => {
     const sim = campo.valor.trim().toLowerCase().startsWith('s');
     return (
       <div className={switchBoxCls}>
-        <Switch defaultChecked={sim} className="data-[state=checked]:bg-osg-moss" />
-        <span className="text-sm text-osg-700">{campo.valor || (sim ? 'Sim' : 'Não')}</span>
+        <Switch
+          checked={mudar ? atual.trim().toLowerCase().startsWith('s') : undefined}
+          defaultChecked={mudar ? undefined : sim}
+          onCheckedChange={mudar ? (c) => mudar(c ? 'Sim' : 'Não') : undefined}
+          className="data-[state=checked]:bg-osg-moss"
+        />
+        <span className="text-sm text-osg-700">{atual || (sim ? 'Sim' : 'Não')}</span>
       </div>
     );
   }
@@ -202,7 +277,11 @@ const Controle = ({ campo }: { campo: Campo }) => {
 
   if (tipo === 'enum') {
     return (
-      <Select defaultValue={campo.valor}>
+      <Select
+        value={mudar ? atual : undefined}
+        defaultValue={mudar ? undefined : campo.valor}
+        onValueChange={mudar}
+      >
         <SelectTrigger className={caixa}>
           <SelectValue />
         </SelectTrigger>
@@ -220,10 +299,24 @@ const Controle = ({ campo }: { campo: Campo }) => {
   // Campo em branco no documento de exemplo entra como sugestão de preenchimento,
   // e não como valor: é a diferença entre "não sabemos" e "está vazio".
   if (campo.vazio) {
-    return <Input placeholder={campo.valor} className={caixa} />;
+    return (
+      <Input
+        placeholder={campo.valor}
+        value={mudar ? (ctx?.valores[campo.rotulo] ?? '') : undefined}
+        onChange={mudar ? (e) => mudar(e.target.value) : undefined}
+        className={caixa}
+      />
+    );
   }
 
-  return <Input defaultValue={campo.valor} className={caixa} />;
+  return (
+    <Input
+      value={mudar ? atual : undefined}
+      defaultValue={mudar ? undefined : campo.valor}
+      onChange={mudar ? (e) => mudar(e.target.value) : undefined}
+      className={caixa}
+    />
+  );
 };
 
 /**
@@ -308,7 +401,14 @@ export type ItemGovernanca = {
   entidade: string;
   campos: string;
   pasta: string;
-  destino: 'contrato' | 'interno' | 'base';
+  destino: 'contrato' | 'registro' | 'interno' | 'interno-parcial' | 'base';
+  /**
+   * Etapa do fluxo de governança. É por ela que a lista se agrupa, e não pelo
+   * destino: agrupar por destino punha o Protocolo depois da alteração
+   * contratual, que é justamente o documento que ele alimenta. O destino
+   * continua visível, como etiqueta em cada cartão.
+   */
+  etapa: 'base' | 'decide' | 'registra' | 'assume';
   /** Estado do preenchimento. É o que faz a tela ser cadastro e não documento. */
   preenchido: boolean;
   ultimaGeracao?: string;
@@ -318,11 +418,30 @@ export type ItemGovernanca = {
    * alçada caía fora e obrigava a rolar para o lado.
    */
   largo?: boolean;
+  /** Item que mostra o documento na coluna lateral: precisa de modal bem mais largo. */
+  comDocumento?: boolean;
   abas: { valor: string; rotulo: string; conteudo: ReactNode }[];
 };
 
+/**
+ * O rótulo do destino do DOCUMENTO, que não é o mesmo do destino do campo.
+ *
+ * `interno-parcial` existe porque "documento interno" sozinho mentia: o Protocolo
+ * de Remuneração não vai a registro, mas quatro coisas dele descem ao contrato
+ * social, e a etiqueta contradizia os "vira cláusula" que apareciam dentro dele.
+ *
+ * `registro` existe porque a ata de eleição e o termo de posse não viram
+ * cláusula: eles são arquivados na Junta como documento próprio. O termo diz isso
+ * de si mesmo, "com o registro deste termo e da respectiva ata que os elegeram na
+ * Junta Comercial".
+ */
 const DESTINO_ITEM = {
   contrato: { rotulo: 'vai ao contrato social', cor: 'border-osg-moss/40 bg-osg-moss/[0.07] text-osg-moss' },
+  registro: { rotulo: 'vai a registro na Junta', cor: 'border-osg-moss/40 bg-osg-moss/[0.07] text-osg-moss' },
+  'interno-parcial': {
+    rotulo: 'interno, com parte no contrato',
+    cor: 'border-osg-moss/30 bg-osg-50 text-osg-600',
+  },
   interno: { rotulo: 'documento interno', cor: 'border-osg-300/70 bg-osg-100/70 text-osg-600' },
   base: { rotulo: 'não é documento', cor: 'border-osg-200 bg-background text-osg-500' },
 } as const;
@@ -368,7 +487,7 @@ export const CartaoItem = ({ item, onAbrir }: { item: ItemGovernanca; onAbrir: (
     onClick={onAbrir}
     className="group flex min-h-[124px] w-full flex-col gap-2 rounded-lg border border-osg-100 bg-background p-4 text-left shadow-[0_1px_2px_rgba(16,24,40,0.04)] transition-colors hover:border-osg-moss/50 hover:bg-osg-50/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-osg-moss"
   >
-    <div className="flex items-center gap-2.5">
+    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
       <span className="font-mono text-xs font-bold tabular-nums text-osg-moss">{item.numero}</span>
       <h3 className="text-[11px] font-bold uppercase tracking-[0.14em] text-osg-700">{item.titulo}</h3>
       <span
@@ -379,6 +498,9 @@ export const CartaoItem = ({ item, onAbrir }: { item: ItemGovernanca; onAbrir: (
         {item.preenchido ? 'preenchido' : 'falta preencher'}
       </span>
     </div>
+    <span className="self-start">
+      <EtiquetaDestino destino={item.destino} />
+    </span>
     <p className="text-[13px] leading-snug text-osg-500">{item.chamada}</p>
     <div className="mt-auto flex w-full flex-wrap items-baseline gap-x-3 gap-y-0.5 pt-1 text-[11px] text-muted-foreground">
       <span>{item.campos}</span>
@@ -414,6 +536,51 @@ const ResumoItem = ({ item }: { item: ItemGovernanca }) => (
 );
 
 /**
+ * Formulário à esquerda, documento à direita.
+ *
+ * Era prévia no fim do modal e virou coluna lateral porque acompanhar ficou mais
+ * simples: mexe no campo e vê a cláusula mudar sem rolar. A coluna do documento
+ * tem rolagem própria e fica colada no topo.
+ *
+ * O clique numa marca amarela procura o campo pelo `data-campo` DENTRO deste
+ * bloco, rola até ele e pisca a borda. Procuro no nó do próprio componente e não
+ * no documento inteiro para não pegar campo de outra aba com o mesmo rótulo.
+ */
+export const LadoALado = ({
+  formulario,
+  documento,
+}: {
+  formulario: ReactNode;
+  /** Recebe o navegador de campo e o leitor de valores, e devolve o documento. */
+  documento: (
+    irParaCampo: (campo: string) => void,
+    ler: (rotulo: string, padrao: string) => string,
+  ) => ReactNode;
+}) => {
+  const caixa = useRef<HTMLDivElement>(null);
+  const ler = useValor();
+
+  const irParaCampo = (campo: string) => {
+    const alvo = caixa.current?.querySelector<HTMLElement>(`[data-campo="${campo}"]`);
+    if (!alvo) return;
+    alvo.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    alvo.classList.add('ring-2', 'ring-osg-moss', 'ring-offset-2');
+    window.setTimeout(() => alvo.classList.remove('ring-2', 'ring-osg-moss', 'ring-offset-2'), 1600);
+  };
+
+  return (
+    <div ref={caixa} className="flex gap-6">
+      <div className="min-w-0 flex-1">{formulario}</div>
+      <div className="sticky top-0 hidden w-[44%] shrink-0 self-start xl:block">
+        <div className="max-h-[calc(90vh-13rem)] overflow-y-auto pr-1">
+          {documento(irParaCampo, ler)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/**
  * O modal de preenchimento, na moldura real dos modais da OSG: `OsgDialog` com
  * `max-w-4xl`, cabeçalho fixo, abas em passo, corpo que rola e rodapé com os dois
  * botões. O `formScopeCls` no corpo é o que faz a grade medir o modal e não a
@@ -425,12 +592,19 @@ const ResumoItem = ({ item }: { item: ItemGovernanca }) => (
  */
 export const ModalItem = ({ item, onFechar }: { item: ItemGovernanca; onFechar: () => void }) => {
   const [aba, setAba] = useState(item.abas[0].valor);
+  const [valores, setValores] = useState<Record<string, string>>({});
+  const ctx = {
+    valores,
+    setValor: (rotulo: string, valor: string) =>
+      setValores((v) => ({ ...v, [rotulo]: valor })),
+  };
 
   return (
+    <Valores.Provider value={ctx}>
     <Dialog open onOpenChange={(v) => !v && onFechar()}>
       <DialogContent
         className={`flex max-h-[90vh] flex-col gap-0 overflow-visible p-0 sm:[clip-path:none] ${
-          item.largo ? 'max-w-5xl' : 'max-w-4xl'
+          item.comDocumento ? 'max-w-[94vw]' : item.largo ? 'max-w-5xl' : 'max-w-4xl'
         }`}
       >
         <Tabs value={aba} onValueChange={setAba} className="flex min-h-0 flex-1 flex-col">
@@ -476,6 +650,7 @@ export const ModalItem = ({ item, onFechar }: { item: ItemGovernanca; onFechar: 
         </Tabs>
       </DialogContent>
     </Dialog>
+    </Valores.Provider>
   );
 };
 
@@ -524,10 +699,23 @@ export const Glossario = ({
  * "fornece informações", e com 130px o Chrome cortava o texto e amassava a seta.
  * A medida vem do item mais longo da lista, não de um palpite.
  */
-export const Escolha = ({ valor, opcoes, rotulo }: { valor: string; opcoes: readonly string[]; rotulo: string }) => (
+export const Escolha = ({
+  valor,
+  opcoes,
+  rotulo,
+  onChange,
+}: {
+  valor: string;
+  opcoes: readonly string[];
+  rotulo: string;
+  /** Ausente = campo solto, sem estado. Presente = a célula alimenta a prévia. */
+  onChange?: (v: string) => void;
+}) => (
   <select
     aria-label={rotulo}
-    defaultValue={valor}
+    value={onChange ? valor : undefined}
+    defaultValue={onChange ? undefined : valor}
+    onChange={onChange ? (e) => onChange(e.target.value) : undefined}
     className="w-full min-w-[186px] rounded-md border border-osg-200/80 bg-background px-2 py-1 text-[13px] text-osg-700 shadow-[0_1px_1px_rgba(16,24,40,0.04)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-osg-moss"
   >
     {opcoes.map((o) => (

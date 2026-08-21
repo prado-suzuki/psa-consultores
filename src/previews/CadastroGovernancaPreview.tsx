@@ -25,6 +25,7 @@ import { createRoot } from 'react-dom/client';
 
 import { ITENS } from './cadastroGovernancaItens';
 import { MolduraOsgWork } from './cadastroGovernancaMoldura';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import {
   CartaoItem, EtiquetaOrigem, Explicando, GrupoItens, ModalItem,
 } from './cadastroGovernancaUi';
@@ -32,19 +33,24 @@ import '@/index.css';
 
 const GRUPOS = [
   {
-    titulo: 'Parâmetros do cliente',
-    explica: 'Não geram documento. São a base que os itens abaixo consomem.',
-    destino: 'base' as const,
+    titulo: '1 · A base',
+    explica: 'Não geram documento. Definem as colunas da Matriz e do Protocolo.',
+    etapa: 'base' as const,
   },
   {
-    titulo: 'Vão para o contrato social',
-    explica: 'O que for preenchido aqui vira cláusula e é registrado na Junta Comercial.',
-    destino: 'contrato' as const,
+    titulo: '2 · O que a família decide',
+    explica: 'As decisões de governança. Vêm antes de qualquer registro, e é aqui que está o trabalho.',
+    etapa: 'decide' as const,
   },
   {
-    titulo: 'Fica interno',
-    explica: 'Documento da família. Não é registrado, e só a remuneração global desce ao contrato.',
-    destino: 'interno' as const,
+    titulo: '3 · O que vai a registro',
+    explica: 'Leva as decisões acima para o contrato social, na Junta Comercial. Depende de todas elas.',
+    etapa: 'registra' as const,
+  },
+  {
+    titulo: '4 · Quem assume',
+    explica: 'Só depois do registro: a reunião elege e cada eleito assina o termo de posse.',
+    etapa: 'assume' as const,
   },
 ];
 
@@ -65,6 +71,7 @@ export const CadastroGovernancaPreview = () => {
   const feitos = documentos.filter((i) => i.preenchido).length;
 
   return (
+    <TooltipProvider delayDuration={150}>
     <Explicando.Provider value={explicando}>
       <div className="osg-theme font-sans text-foreground">
         <MolduraOsgWork
@@ -111,8 +118,13 @@ export const CadastroGovernancaPreview = () => {
           </div>
 
           {GRUPOS.map((g) => (
-            <GrupoItens key={g.destino} titulo={g.titulo} explica={g.explica}>
-              {ITENS.filter((i) => i.destino === g.destino).map((item) => (
+            <GrupoItens key={g.etapa} titulo={g.titulo} explica={g.explica}>
+              {ITENS.filter((i) => i.etapa === g.etapa)
+                // Ordena pelo número, que é a ordem do fluxo. A ordem física no
+                // arquivo de itens não acompanha, e mover blocos de 200 linhas só
+                // para isso trocaria clareza por churn.
+                .sort((a, b) => a.numero.localeCompare(b.numero))
+                .map((item) => (
                 <CartaoItem key={item.id} item={item} onAbrir={() => setAbertoId(item.id)} />
               ))}
             </GrupoItens>
@@ -120,24 +132,33 @@ export const CadastroGovernancaPreview = () => {
 
           <footer className="mt-12 flex flex-col gap-3 border-t border-osg-100 pt-5 text-[13px] text-osg-500">
             {/*
-              Achado medido no próprio modelo VF: das 14 palavras do vocabulário,
-              12 aparecem nas 21 linhas e duas não aparecem em nenhuma. Ou a
-              consultoria usa em cliente que não estava na amostra, ou o
-              vocabulário tem sobra.
+              CORREÇÃO. A versão anterior desta nota dizia que "garante" e "fornece
+              informações" não apareciam em célula nenhuma, e pedia para a
+              consultoria confirmar. Estava errado: lendo a planilha do modelo por
+              POSIÇÃO de célula, as duas aparecem. A afirmação vinha de uma contagem
+              feita sobre texto extraído sem a grade, que perdia células.
             */}
             <p className="max-w-[76ch]">
-              <strong className="font-semibold">Duas palavras do vocabulário podem estar
-              sobrando.</strong>{' '}
-              Contamos as 21 linhas do modelo: <em>garante</em> e{' '}
-              <em>fornece informações</em> não aparecem em nenhuma célula. Vocês usam essas duas em
-              algum cliente, ou elas podem sair da lista?
+              <strong className="font-semibold">A lista de palavras da célula não é fechada, e é
+              bem maior que catorze.</strong>{' '}
+              Lendo o modelo célula a célula, aparecem também <em>elege</em>, <em>participa</em>,{' '}
+              <em>define</em>, <em>realiza</em>, <em>valida</em>, <em>implanta</em>,{' '}
+              <em>outorga</em>, <em>solicita</em> e <em>elabora</em>. E 25 das 85 células têm mais
+              de um verbo, como "sugere ao Diretor e aprova dos demais". A lista de catorze é
+              fechada de propósito, ou cada consultor escreve o que precisa?
             </p>
+            {/*
+              As duas perguntas que estavam aqui foram RESPONDIDAS pela consultoria
+              em 14/08 e 20/08. Ficam registradas como resposta, e não como dúvida,
+              porque as duas mudam o desenho.
+            */}
             <p className="max-w-[76ch]">
-              <strong className="font-semibold">Duas decisões que dependem de vocês.</strong>{' '}
-              Primeira: a lista de órgãos do item A é fixa ou sai da estrutura de cada cliente?
-              Segunda: o Diagnóstico produz três coisas que não estão em documento nenhum, a
-              qualidade que une os sócios, o organograma macro e os interesses profissionais de cada
-              um. Elas entram como texto livre no cadastro ou ficam fora?
+              <strong className="font-semibold">Duas respostas da consultoria, já aplicadas.</strong>{' '}
+              A lista de órgãos <strong>não é fixa</strong>: "vai de como o cliente atua e atuará,
+              alguns não possuem o órgão de Conselho de Administração, somente Diretoria". E o
+              Diagnóstico <strong>não gera documento</strong>: "é sempre o sócio ou gerente que conduz
+              com o cliente, às vezes não elaborando de fato um documento físico, sem passar por
+              arquivo nenhum". Por isso ele não é item desta tela.
             </p>
             <p className="max-w-[76ch] text-osg-300">
               Cliente fictício; a estrutura é a dos documentos reais. Nada aqui salva, consulta ou
@@ -148,6 +169,7 @@ export const CadastroGovernancaPreview = () => {
       </div>
       {aberto && <ModalItem item={aberto} onFechar={() => setAbertoId(null)} />}
     </Explicando.Provider>
+    </TooltipProvider>
   );
 };
 

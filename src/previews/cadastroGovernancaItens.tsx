@@ -6,12 +6,16 @@
  * cada item é uma linha da lista e o preenchimento acontece dentro do modal,
  * como nos cadastros de cliente, matrícula, bem e pessoa.
  *
- * A ORDEM aqui é a ordem de leitura da tela, e ela não é mais a numeração das
- * pastas do Drive: primeiro a base, depois os quatro que viram cláusula do
- * contrato social, e por último o único interno. A pasta de origem continua
- * declarada em cada item, para não perder a rastreabilidade.
+ * A ORDEM da tela é a ETAPA DO FLUXO, declarada em `etapa`, e não a numeração das
+ * pastas do Drive nem o destino do documento. Agrupar por destino, como estava
+ * antes, punha o Protocolo depois da alteração contratual, que é justamente o
+ * documento que ele alimenta. O destino segue visível como etiqueta no cartão, e
+ * a pasta de origem continua declarada em cada item.
+ *
+ * O `numero` é a ordem dentro da etapa, e a tela ordena por ele: a ordem física
+ * neste arquivo não acompanha.
  */
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 
 import {
   ALTERACOES_CONTRATUAIS,
@@ -19,6 +23,7 @@ import {
   CAMPOS_AC_REFLEXO,
   CAMPOS_ACORDO,
   CAMPOS_INSTALACAO,
+  CAMPOS_MATRIZ,
   CAMPOS_PROTOCOLO_GERAIS,
   CAMPOS_REGIMENTO,
   ELEITOS,
@@ -27,15 +32,25 @@ import {
   GLOSSARIO_RESPOSTAS,
   GRUPOS_BENEFICIARIO,
   ORGAOS,
+  ORGAOS_COM_CLAUSULA,
   PAPEIS_NA_DECISAO,
+  REGENCIA,
   RESPOSTAS_CRITERIO,
 } from './cadastroGovernancaDados';
+import {
+  clausulasDaMatriz,
+  clausulasDoAcordo,
+  clausulasDoAcReflexo,
+  clausulasDoRegimento,
+} from './cadastroGovernancaClausulas';
+import { DocumentoModelo } from './cadastroGovernancaDocumento';
 import {
   Cabecalho,
   CampoLeitura,
   Campos,
   Escolha,
   Glossario,
+  LadoALado,
   Nota,
   resumo,
   Rolagem,
@@ -48,8 +63,10 @@ const Orgaos = () => (
   <>
     <Nota>
       Quais instâncias de decisão existem neste cliente. É o que define as colunas da Matriz de
-      Alçadas. A dúvida aberta é se esta lista é fixa ou se sai da estrutura de cada cliente,
-      seguindo a cascata conselho, diretoria, administradores do contrato social.
+      Alçadas. <strong>A dúvida foi respondida pela consultoria: a lista NÃO é fixa.</strong> "Vai de
+      como o cliente atua e atuará, alguns não possuem o órgão de Conselho de Administração, somente
+      Diretoria." É por isso que existem dois modelos de contrato social, um com conselho e outro só
+      com diretoria, e é a escolha aqui que decide qual deles o gerador usa.
     </Nota>
     <div className="flex flex-wrap gap-2 rounded-md border border-osg-100 bg-background p-4">
       {ORGAOS.map((o) => (
@@ -76,10 +93,9 @@ const Orgaos = () => (
 const Grupos = () => (
   <>
     <Nota>
-      Como as pessoas se organizam neste cliente. Muda de cliente para cliente: três documentos
-      entregues trazem três conjuntos diferentes de grupos, então o rótulo é escrito pelo consultor
-      e não escolhido de uma lista. O ramo é o que o Acordo de Quotistas usa para ordenar quem tem
-      preferência de compra.
+      Quem recebe o quê, pelo papel de cada pessoa na empresa hoje. A consultoria confirmou que este conjunto alimenta SÓ o Protocolo: ele e a Matriz são listas independentes e não devem compartilhar o mesmo conjunto. Muda de cliente para cliente:
+      três documentos entregues trazem três conjuntos diferentes de grupos, então o rótulo é escrito
+      pelo consultor e não escolhido de uma lista. Cada grupo vira uma coluna do Protocolo.
     </Nota>
     <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
       {GRUPOS_BENEFICIARIO.map((g, i) => (
@@ -108,78 +124,123 @@ const Grupos = () => (
         </div>
       ))}
     </div>
-    <div className="mt-3">
-      <Campos
-        campos={[
-          {
-            rotulo: 'Ramo ou Descendentes de',
-            valor: 'RAMO Campos',
-            explicacao:
-              'Cada filho do fundador origina um ramo. O Acordo de Quotistas usa o ramo para ordenar quem compra a parte de quem sai.',
-          },
-          {
-            rotulo: 'Vota em bloco',
-            valor: 'Sim',
-            tipo: 'booleano',
-            explicacao:
-              'Se o ramo precisa votar unido, com uma posição só. Impede que um primo isolado decida contra o próprio ramo.',
-          },
-        ]}
-      />
-    </div>
   </>
 );
 
-const Matriz = () => (
-  <>
+const Matriz = () => {
+  const [grade, setGrade] = useState<string[][]>(() => ASSUNTOS_MATRIZ.map((l) => [...l.papeis]));
+  const [atoSemValor, setAtoSemValor] = useState('Sobe sempre ao órgão de escalada');
+  const trocar = (linha: number, coluna: number, valor: string) =>
+    setGrade((g) => g.map((l, i) => (i === linha ? l.map((p, j) => (j === coluna ? valor : p)) : l)));
+
+  return (
+    <LadoALado
+      formulario={
+        <>
     <Nota>
-      O documento-eixo, e o primeiro item do fluxo. Antes chamada de Diagnóstico de Governança e de
-      Questionário de Governança: os três nomes são o mesmo documento, e ficou decidido usar Matriz
-      de Alçadas. Cada linha é um assunto da empresa, cada coluna é um órgão, e a célula diz o que
-      aquele órgão faz naquele assunto. A coluna da direita é o valor até onde a decisão pode ir sem
-      subir de instância.
+      O documento-eixo. Cada linha é um assunto, cada coluna é um órgão, e a célula diz o que aquele
+      órgão faz naquele assunto. No contrato, cada linha vira uma <strong>alínea</strong> e a palavra
+      da célula vira o <strong>verbo</strong> dela. Troque uma célula e veja a alínea mudar ao lado.
     </Nota>
     <Nota>
-      No contrato social cada assunto não vira uma cláusula: vira uma <strong>alínea</strong> da
-      cláusula de competência do órgão, e a palavra escolhida na célula é o <strong>verbo</strong>{' '}
-      dessa alínea. Quem marca <em>aprova</em> em Orçamento gera "Aprovar o orçamento anual"; quem
-      marca <em>submete à aprovação</em> gera "Encaminhar à Reunião de Sócios". É por isso que as
-      catorze palavras não são sinônimos.
+      Grade lida célula a célula do modelo: <strong>24 assuntos por 5 órgãos</strong>. O órgão{' '}
+      <em>Gerente de Unidade</em> não existia aqui, e a coluna dele é vazia nos dez primeiros
+      assuntos, o que é dado e não falta de dado.
+    </Nota>
+    <Nota>
+      <strong>A alçada não é coluna do modelo.</strong> O único teto escrito está dentro da célula de
+      Representação Legal, e lá passar do teto <strong>não sobe de órgão, muda a forma de assinar</strong>:
+      "deverão assinar 02 (dois) representantes legais". Os outros quatro tetos vieram do contrato de
+      um cliente e precisam ser confirmados.
     </Nota>
     <Glossario
       titulo="As catorze palavras da célula, e elas não são sinônimos"
       itens={GLOSSARIO_PAPEIS.map((p) => ({ termo: p.papel, significa: p.significa }))}
     />
     <Rolagem>
-      <table className="w-full min-w-[880px] border-collapse text-sm">
+      <table className="w-full min-w-[1320px] border-collapse text-sm">
         <Cabecalho
-          titulos={['Assunto', ...ORGAOS_ATIVOS.map((o) => o.nome), 'Alçada']}
-          ultimoADireita
+          titulos={['Assunto', ...ORGAOS_ATIVOS.map((o) => o.nome), 'Alçada', 'Acima disso, autoriza']}
         />
         <tbody>
-          {ASSUNTOS_MATRIZ.map((linha) => (
-            <tr key={linha.assunto}>
-              <th className="border-b border-osg-50 px-3 py-2 text-left font-normal text-osg-700">
+          {ASSUNTOS_MATRIZ.map((linha, iLinha) => (
+            /* `data-campo` é o alvo do clique na marca amarela do documento. */
+            <tr key={linha.assunto} data-campo={linha.assunto} className="scroll-mt-4">
+              <th className="w-[320px] min-w-[320px] border-b border-osg-50 px-3 py-2 text-left align-top font-normal leading-snug text-osg-700">
                 {linha.assunto}
               </th>
-              {linha.papeis.map((papel, i) => (
+              {grade[iLinha].map((papel, i) => (
                 <td key={i} className="border-b border-osg-50 px-3 py-2">
-                  <Escolha valor={papel} opcoes={PAPEIS_NA_DECISAO} rotulo="Papel na decisão" />
+                  {/* Célula em branco na planilha é dado, não falta de dado: nos dez
+                      primeiros assuntos a coluna do Gerente de Unidade está vazia. */}
+                  {papel ? (
+                    <Escolha
+                      valor={papel}
+                      opcoes={PAPEIS_NA_DECISAO}
+                      rotulo="Papel na decisão"
+                      onChange={(v) => trocar(iLinha, i, v)}
+                    />
+                  ) : (
+                    <span className="text-osg-300">—</span>
+                  )}
                 </td>
               ))}
+              {/* Duas colunas, e nao uma: o teto e o orgao de escalada sao dados
+                  distintos, e como texto de rodape na mesma celula o segundo lia
+                  como observacao do primeiro. */}
               <td className="whitespace-nowrap border-b border-osg-50 px-3 py-2 text-right tabular-nums text-osg-500">
                 {linha.alcada ?? '—'}
-                {linha.acima && (
-                  <span className="ml-1.5 text-[11px] text-osg-300">acima: {linha.acima}</span>
-                )}
+              </td>
+              <td className="whitespace-nowrap border-b border-osg-50 px-3 py-2 text-osg-500">
+                {linha.acima ?? '—'}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
     </Rolagem>
-  </>
-);
+    <div className="mt-4 rounded-md border border-osg-100 bg-muted/70 p-4">
+      <div data-campo="Ato sem valor declarado" className="flex scroll-mt-4 flex-col gap-1.5 rounded-md">
+        <span className="text-xs font-medium text-slate-600">Ato sem valor declarado</span>
+        <Escolha
+          valor={atoSemValor}
+          opcoes={['Sobe sempre ao órgão de escalada', 'Segue a competência normal da linha']}
+          rotulo="Ato sem valor declarado"
+          onChange={setAtoSemValor}
+        />
+        <span className="text-[11px] leading-snug text-muted-foreground">
+          Procuração ampla, comodato, anuência: atos sem valor em reais, que não dá para comparar com
+          o teto. Escolhendo <em>sobe sempre</em>, a cláusula de representação ganha o trecho "ou que
+          não expressem valores"; escolhendo <em>segue a competência normal</em>, o trecho sai. Veja
+          na última cláusula ao lado.
+        </span>
+      </div>
+    </div>
+        </>
+      }
+      documento={(ir, ler) => (
+        <DocumentoModelo
+          aoLado
+          onIrParaCampo={ir}
+          rotulo="Como fica no contrato social"
+          paragrafos={clausulasDaMatriz({
+            orgaos: ORGAOS_ATIVOS.map((o) => o.nome),
+            grade,
+            atoSemValor,
+          })}
+          nota={
+            <>
+              Uma cláusula por órgão, como no contrato. Trocar qualquer célula reescreve a alínea na
+              hora; marcar "não participa" faz a alínea <strong>desaparecer</strong>, e o Parágrafo
+              Segundo recalcula as letras.
+            </>
+          }
+        />
+      )}
+    />
+  );
+};
+
 
 /**
  * A pilha de alterações contratuais do cliente.
@@ -250,6 +311,21 @@ const Protocolo = () => (
       este documento absorve assunto que o mapeamento coloca na Matriz e no Acordo. Precisamos saber
       se a tela deve ter um nome só ou aceitar o nome que o cliente usa.
     </Nota>
+    <Nota>
+      <strong>Nada deste documento vira ato societário.</strong> Eu havia marcado quatro linhas como
+      cláusula, e a consultoria corrigiu: o Protocolo "é um documento específico e esse não reflete em
+      ato societário, apenas formaliza". A cláusula do contrato que fala de remuneração existe, mas
+      vem da <em>Matriz</em>, que dá ao Conselho a competência de aprovar a remuneração individual com
+      base na global aprovada em Reunião de Sócios. Não vem daqui.
+    </Nota>
+    <Nota>
+      <strong>As colunas mudam de cliente para cliente, e isto não é a mesma lista da Matriz.</strong>{' '}
+      Confirmado pela consultoria: num cliente há filho na gestão, noutro os fundadores aparecem como
+      "figura cativa" e existem sócios e diretores; e há benefício que só alguns têm, como aeronave.
+      Mais importante: Matriz e Protocolo são <strong>listas independentes e não devem usar o mesmo
+      conjunto</strong>. O Protocolo regra o combinado dos familiares; a Matriz regra os limites da
+      administração e dos órgãos, independentemente de família.
+    </Nota>
     <Glossario
       titulo="Por que a resposta tem três valores e não é sim ou não"
       itens={GLOSSARIO_RESPOSTAS.map((r) => ({ termo: r.resposta, significa: r.significa }))}
@@ -275,6 +351,11 @@ const Protocolo = () => (
                 <tr key={c.criterio}>
                   <th className="border-b border-osg-50 px-3 py-2 text-left font-normal text-osg-700">
                     {c.criterio}
+                    {c.destino === 'contrato' && (
+                      <span className="ml-2 whitespace-nowrap rounded-full border border-osg-moss/40 bg-osg-moss/[0.07] px-2 py-0.5 text-[10.5px] leading-tight text-osg-moss">
+                        vira cláusula
+                      </span>
+                    )}
                   </th>
                   {c.respostas.map((r, i) => (
                     <td key={i} className="border-b border-osg-50 px-3 py-2">
@@ -306,6 +387,7 @@ export const ITENS: ItemGovernanca[] = [
     campos: '4 instâncias, marcar quais existem',
     pasta: 'não é documento',
     destino: 'base',
+    etapa: 'base',
     preenchido: true,
     abas: [{ valor: 'orgaos', rotulo: 'Órgãos', conteudo: <Orgaos /> }],
   },
@@ -313,12 +395,13 @@ export const ITENS: ItemGovernanca[] = [
     id: 'grupos',
     numero: 'B',
     titulo: 'Grupos de pessoas',
-    chamada: 'Como a família se organiza: os grupos que recebem benefício e o ramo de cada um.',
-    produz: 'nada; alimenta o Acordo e o Protocolo',
+    chamada: 'Os grupos que recebem benefício, pelo papel de cada um na empresa hoje.',
+    produz: 'nada; alimenta o Protocolo',
     entidade: 'as pessoas do cliente',
     campos: '1 rótulo e 1 lista por grupo, mais 2 gerais',
     pasta: 'não é documento',
     destino: 'base',
+    etapa: 'base',
     preenchido: true,
     abas: [{ valor: 'grupos', rotulo: 'Grupos', conteudo: <Grupos /> }],
   },
@@ -332,14 +415,16 @@ export const ITENS: ItemGovernanca[] = [
     campos: `${ASSUNTOS_MATRIZ.length} assuntos × ${ORGAOS_ATIVOS.length} órgãos · nenhum já no sistema`,
     pasta: 'pastas 01 e 04 do Drive',
     destino: 'contrato',
+    etapa: 'decide',
     preenchido: true,
     ultimaGeracao: '12/03/2026 · versão 2',
     largo: true,
+    comDocumento: true,
     abas: [{ valor: 'matriz', rotulo: 'Assuntos', conteudo: <Matriz /> }],
   },
   {
     id: 'acordo',
-    numero: '02',
+    numero: '03',
     titulo: 'Acordo de Quotistas',
     chamada:
       'As regras entre os sócios: como se vota, quem compra a parte de quem sai e por quanto.',
@@ -348,8 +433,10 @@ export const ITENS: ItemGovernanca[] = [
     campos: resumo(CAMPOS_ACORDO),
     pasta: 'pasta 02 do Drive',
     destino: 'contrato',
+    etapa: 'decide',
     preenchido: true,
     ultimaGeracao: '29/09/2025 · assinado com firma reconhecida',
+    comDocumento: true,
     abas: [
       {
         valor: 'acordo',
@@ -364,7 +451,25 @@ export const ITENS: ItemGovernanca[] = [
               {CAMPOS_ACORDO.length} parâmetros abaixo. Os outros {CAMPOS_ACORDO.filter((c) => c.destino !== 'contrato').length}{' '}
               não aparecem em cláusula nenhuma e ficam só no acordo.
             </Nota>
-            <Campos campos={CAMPOS_ACORDO} />
+            <LadoALado
+              formulario={<Campos campos={CAMPOS_ACORDO} />}
+              documento={(ir, ler) => (
+                <DocumentoModelo
+                  aoLado
+                  onIrParaCampo={ir}
+                  rotulo="Como fica no contrato social"
+                  deTotal={CAMPOS_ACORDO.length}
+                  paragrafos={clausulasDoAcordo(ler)}
+                  nota={
+                    <>
+                      Em <strong>amarelo forte</strong>, o que o sistema já tem: a qualificação
+                      inteira dos sócios e a identificação da sociedade, com valores reais lidos do
+                      banco de desenvolvimento. Clique numa marca clara para ir ao campo.
+                    </>
+                  }
+                />
+              )}
+            />
           </>
         ),
       },
@@ -372,7 +477,7 @@ export const ITENS: ItemGovernanca[] = [
   },
   {
     id: 'regimento',
-    numero: '03',
+    numero: '02',
     titulo: 'Regimento Interno do Conselho',
     chamada: 'Como o conselho funciona por dentro: tamanho, mandato, quórum e perda de cadeira.',
     produz: 'Regimento Interno',
@@ -380,8 +485,10 @@ export const ITENS: ItemGovernanca[] = [
     campos: resumo(CAMPOS_REGIMENTO),
     pasta: 'pasta 05 do Drive',
     destino: 'contrato',
+    etapa: 'decide',
     preenchido: true,
     ultimaGeracao: 'vigência 2026 a 2031',
+    comDocumento: true,
     abas: [
       {
         valor: 'regimento',
@@ -394,7 +501,24 @@ export const ITENS: ItemGovernanca[] = [
               abaixo. Só a periodicidade das reuniões não aparece em cláusula nenhuma: é o corte
               entre o que se registra e o que fica interno.
             </Nota>
-            <Campos campos={CAMPOS_REGIMENTO} />
+            <LadoALado
+              formulario={<Campos campos={CAMPOS_REGIMENTO} />}
+              documento={(ir, ler) => (
+                <DocumentoModelo
+                  aoLado
+                  onIrParaCampo={ir}
+                  rotulo="Como fica no contrato social"
+                  deTotal={CAMPOS_REGIMENTO.length}
+                  paragrafos={clausulasDoRegimento(ler)}
+                  nota={
+                    <>
+                      O Regimento não é citado pelo nome em cláusula nenhuma: descem os parâmetros
+                      dele, em amarelo claro, dentro do capítulo do Conselho.
+                    </>
+                  }
+                />
+              )}
+            />
           </>
         ),
       },
@@ -402,7 +526,7 @@ export const ITENS: ItemGovernanca[] = [
   },
   {
     id: 'ac-reflexo',
-    numero: '04',
+    numero: '05',
     titulo: 'AC Reflexo',
     chamada:
       'Transforma as decisões dos itens acima em cláusula registrada na Junta Comercial. Uma por alteração.',
@@ -411,9 +535,11 @@ export const ITENS: ItemGovernanca[] = [
     campos: `${ALTERACOES_CONTRATUAIS.length} alterações · ${CAMPOS_AC_REFLEXO.length} campos por alteração`,
     pasta: 'pasta 06 do Drive',
     destino: 'contrato',
+    etapa: 'registra',
     preenchido: false,
     ultimaGeracao: '5ª alteração · 18/03/2025',
     largo: true,
+    comDocumento: true,
     abas: [
       { valor: 'alteracoes', rotulo: 'Alterações do cliente', conteudo: <Alteracoes /> },
       {
@@ -427,7 +553,25 @@ export const ITENS: ItemGovernanca[] = [
               por isso costuma ser o último a ser preenchido. O nome é interno e pode não ser o
               melhor para a tela.
             </Nota>
-            <Campos campos={CAMPOS_AC_REFLEXO} />
+            <LadoALado
+              formulario={<Campos campos={CAMPOS_AC_REFLEXO} />}
+              documento={(ir, ler) => (
+                <DocumentoModelo
+                  aoLado
+                  onIrParaCampo={ir}
+                  rotulo="Como fica no contrato social"
+                  deTotal={CAMPOS_AC_REFLEXO.length}
+                  paragrafos={clausulasDoAcReflexo(ler)}
+                  nota={
+                    <>
+                      Este documento reúne campos de <strong>quatro blocos</strong>: a Matriz dá a
+                      alçada de representação, a Instalação dá os órgãos e o marco do mandato, e este
+                      bloco dá a regra de lucros. É o funil do fluxo.
+                    </>
+                  }
+                />
+              )}
+            />
           </>
         ),
       },
@@ -435,14 +579,15 @@ export const ITENS: ItemGovernanca[] = [
   },
   {
     id: 'instalacao',
-    numero: '05',
+    numero: '06',
     titulo: 'Instalação do Conselho e da Diretoria',
     chamada: 'Quem foi eleito, para que cargo e por quanto tempo, e a reunião que registrou isso.',
     produz: 'Ata de eleição e Termo de Posse',
     entidade: 'as pessoas eleitas',
     campos: `${ELEITOS.length} eleitos · ${CAMPOS_INSTALACAO.length} campos da reunião`,
     pasta: 'pasta 07 do Drive',
-    destino: 'contrato',
+    destino: 'registro',
+    etapa: 'assume',
     preenchido: false,
     largo: true,
     abas: [
@@ -495,9 +640,12 @@ export const ITENS: ItemGovernanca[] = [
         conteudo: (
           <>
             <Nota>
-              Destes dez campos, seis aparecem em cláusula do contrato social e quatro só na ata: o
-              tipo de convocação, se a deliberação foi unânime e quem presidiu e secretariou a mesa.
-              A etiqueta em cada campo diz qual é qual.
+              A etiqueta de cada campo diz se ele vira cláusula do contrato social ou fica só na ata.
+              Os {CAMPOS_INSTALACAO.length} campos saíram de uma ata de eleição real, lida por
+              reconhecimento de imagem porque o arquivo é escaneado. Dois achados vieram dela: o
+              mandato do conselho e o da diretoria <strong>não são o mesmo</strong> (dois anos contra
+              três, declarados na mesma frase), e o número de membros tem dois valores, o intervalo
+              que o contrato permite e o número que a reunião de fato elegeu.
             </Nota>
             <Campos campos={CAMPOS_INSTALACAO} />
           </>
@@ -507,7 +655,7 @@ export const ITENS: ItemGovernanca[] = [
   },
   {
     id: 'protocolo',
-    numero: '06',
+    numero: '04',
     titulo: 'Protocolo de Remuneração',
     chamada: 'O que cada grupo da família recebe além de salário: carro, saúde, casa, viagem.',
     produz: 'Protocolo de Remuneração',
@@ -515,6 +663,7 @@ export const ITENS: ItemGovernanca[] = [
     campos: `${FAMILIAS_PROTOCOLO.length} famílias de benefício · ${CAMPOS_PROTOCOLO_GERAIS.length} campos de regra geral`,
     pasta: 'pasta 03 do Drive',
     destino: 'interno',
+    etapa: 'decide',
     preenchido: true,
     ultimaGeracao: '09/06/2025',
     largo: true,
