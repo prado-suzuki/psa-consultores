@@ -1244,7 +1244,20 @@ All colors MUST be HSL.
 :root {
   --board-v4-ink: #0D1117;
   --board-v4-ink2: #3D4A5C;
-  --board-v4-ink3: #7A8899;
+  /* Texto terciário da paleta v4 — o irmão do `--board-t3` (que já foi
+     escurecido em 21/08) e o tom de QUASE TODO rótulo de KPI do Estratégico:
+     "Projetos ativos", "Total de horas", "Pontualidade de entrega", "Cluster",
+     "ciclo ativo". 64 sítios em 20 arquivos, mais 6 classes aqui (`.pg-sub`,
+     `.stat-label`, `.sdot`, `.stat-sub`, `.pill-neutral`, `.chip-gy`).
+     No tom antigo (#7A8899) dava 3,61:1 sobre branco, 3,34:1 sobre
+     `--board-v4-page` e 3,21:1 sobre `--board-v4-line2` — abaixo do mínimo de
+     4,5:1 em tamanhos de 10,5 a 12px. Agora dá 5,52 / 5,10 / 4,91.
+     Mesmo matiz e mesma saturação de antes (H 213°, S 13%), só mais escuro:
+     L 54% → 42%. Nenhum dos 64 sítios fica sobre fundo escuro — a paleta v4
+     não tem superfície escura, e a barra lateral usa os `--board-sb-*`. O único
+     sítio condicional (`BoardClusterBar.tsx:84`) já troca para `#fff` quando o
+     fundo vira o azul de destaque, então não há inversão a tratar. */
+  --board-v4-ink3: #5D6A79;
   --board-v4-ink4: #B0BBC8;
   --board-v4-page: #F4F6FA;
   --board-v4-surface: #FFFFFF;
