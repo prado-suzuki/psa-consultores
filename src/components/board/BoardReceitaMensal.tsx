@@ -46,10 +46,21 @@ export const BoardReceitaMensal: React.FC<BoardReceitaMensalProps> = ({ serie, r
                 labelFormatter={(m: string) => `${rotuloMes(m)}/${m.slice(2, 4)}`}
                 {...TOOLTIP_STYLE}
               />
+              {/* O `wrapperStyle` sozinho não pegava: o Recharts pinta o rótulo
+                  de cada item com a cor da SÉRIE, inline, e isso ganha do
+                  invólucro. O rótulo "2025" saía em #CBD5E1 (a barra do ano
+                  anterior) — 1,48:1, o texto mais ilegível da tela. O
+                  `formatter` devolve o rótulo com cor de texto própria; o
+                  quadradinho colorido continua fazendo a ligação com a barra,
+                  que é o trabalho da legenda. A barra segue #CBD5E1: área
+                  grande não precisa do mínimo de texto. */}
               <Legend
                 iconType="square"
                 iconSize={9}
-                wrapperStyle={{ fontSize: 11, color: 'var(--board-v4-ink3)', paddingTop: 4 }}
+                wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+                formatter={(value: string) => (
+                  <span style={{ color: 'var(--board-v4-ink2)' }}>{value}</span>
+                )}
               />
               <Bar dataKey="anterior" name={anoAnterior} fill="#CBD5E1" radius={[3, 3, 0, 0]} />
               <Bar dataKey="atual" name={anoAtual} fill={CHART_COLORS.accent} radius={[3, 3, 0, 0]} />
