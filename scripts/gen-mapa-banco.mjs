@@ -15,7 +15,8 @@ function simplifyType(t) {
   return t + (nullable ? '?' : '');
 }
 
-const tStart = lines.findIndex(l => /^    Tables: \{/.test(l));
+const publicStart = lines.findIndex(l => /^  public: \{/.test(l));
+const tStart = lines.findIndex((l, index) => index > publicStart && /^    Tables: \{/.test(l));
 let tEnd = lines.length;
 for (let i = tStart + 1; i < lines.length; i++) if (/^    (Views|Functions|Enums|CompositeTypes): \{/.test(lines[i])) { tEnd = i; break; }
 
@@ -40,7 +41,7 @@ while (i < tEnd) {
   tables.push(table);
 }
 
-const enums = []; const eStart = lines.findIndex(l => /^    Enums: \{/.test(l));
+const enums = []; const eStart = lines.findIndex((l, index) => index > publicStart && /^    Enums: \{/.test(l));
 if (eStart >= 0) { let eEnd = lines.length;
   for (let k = eStart + 1; k < lines.length; k++) if (/^    (CompositeTypes|Functions|Views|Tables): \{/.test(lines[k]) || /^  \}/.test(lines[k])) { eEnd = k; break; }
   for (let k = eStart + 1; k < eEnd; k++) { const m = lines[k].match(/^      (\w+):\s*(.*)$/);

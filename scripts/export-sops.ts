@@ -56,9 +56,24 @@ import { slugFilename } from '@/utils/slugify';
 const { SopDocument } = await import('@/utils/pdf/SopDocument');
 const { SopComparativoDocument } = await import('@/utils/pdf/SopComparativoDocument');
 
-// Aceita SUPABASE_URL com ou sem /rest/v1 (o .env do repo define só o host,
-// e o bun auto-carrega o .env — sem isto o script monta .../processes e dá 404).
-const RAW_BASE = process.env.SUPABASE_URL || 'https://zwoainzzqhudmmknuycq.supabase.co';
+// Este script sempre falou com o sandbox, que é o banco em que se ensaia uma
+// exportação. O host vinha do `.env.development` auto-carregado pelo bun; o
+// arquivo virou `.env.sandbox` (o Vite não podia mais carregá-lo sozinho, ver
+// vite.config.ts) e `sandbox` não é sufixo que o bun conheça, então lemos daqui
+// mesmo, explicitamente. SUPABASE_URL vindo do ambiente continua vencendo.
+function urlDoSandbox(): string | undefined {
+  try {
+    const arquivo = readFileSync(join(import.meta.dir, '..', '.env.sandbox'), 'utf8');
+    return arquivo.match(/^SUPABASE_URL=(.+)$/m)?.[1]?.trim();
+  } catch {
+    return undefined;
+  }
+}
+
+// Aceita SUPABASE_URL com ou sem /rest/v1 (o arquivo de env define só o host,
+// sem isto o script monta .../processes e dá 404).
+const RAW_BASE =
+  process.env.SUPABASE_URL || urlDoSandbox() || 'https://zwoainzzqhudmmknuycq.supabase.co';
 const BASE = /\/rest\/v\d+$/.test(RAW_BASE) ? RAW_BASE : `${RAW_BASE.replace(/\/$/, '')}/rest/v1`;
 const JWT = process.env.JWT;
 const ANON = process.env.ANON;

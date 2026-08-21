@@ -341,7 +341,7 @@ const EquipeControleAcessos = () => {
 
               {/* Cadastros Clientes Tab */}
               <TabsContent value="cadastros_clientes" className="space-y-4">
-                <GestaoClientesContent />
+                <GestaoClientesContent todosOsClusters />
               </TabsContent>
 
               {/* Cadastro Categorias Tab */}

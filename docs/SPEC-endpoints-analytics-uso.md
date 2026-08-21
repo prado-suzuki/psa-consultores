@@ -370,7 +370,7 @@ e passam.
 ## 7. Do lado do front
 
 Quando os endpoints subirem, some `VITE_ANALYTICS_USO_FIXTURES` de
-`.env.development` e o `fetchWithAuth` assume. Nenhum componente muda.
+`.env.sandbox` e o `fetchWithAuth` assume. Nenhum componente muda.
 
 Duas coisas passam a funcionar sozinhas, sem alteração de schema: o seletor de
 data (hoje o recorte de período acontece no cliente, só sobre a série mensal) e
