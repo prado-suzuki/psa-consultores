@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, ListTree, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
+import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
+ import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
 import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -52,6 +54,7 @@ export function TaskSubtasksSection({
   const createSubtask = useCreateOrgTask(area, { showToasts: false });
   const updateSubtask = useUpdateOrgTask(area, { showToasts: false });
 
+  const conclusao = useTaskCompletionHours();
   const [expandido, setExpandido] = useState(true);
   const [adicionando, setAdicionando] = useState(false);
   const [novoNome, setNovoNome] = useState('');
@@ -83,6 +86,9 @@ export function TaskSubtasksSection({
   };
 
   const alterarSubtarefa = async (subtask: OrgTask, patch: Partial<OrgTask>) => {
+    // Concluir a subtarefa daqui também exige o apontamento — o diálogo pergunta
+    // as horas e conclui; sem isso a mutation recusaria e a linha só piscaria.
+    if (patch.status === 'done' && !conclusao.pedirHoras(subtask)) return;
     try {
       await updateSubtask.mutateAsync({ id: subtask.id, ...patch });
     } catch (error) {
@@ -306,6 +312,11 @@ export function TaskSubtasksSection({
           )}
         </div>
       )}
+      <TaskCompletionHoursDialog
+        task={conclusao.taskPendente}
+        area={area}
+        onClose={conclusao.fechar}
+      />
     </section>
   );
 }

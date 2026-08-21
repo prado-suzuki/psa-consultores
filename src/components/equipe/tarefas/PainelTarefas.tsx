@@ -447,13 +447,17 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
             </TabsContent>
 
             <TabsContent value="kanban" className="m-0">
+              {/* Papéis vão para o quadro porque ele espelha a rls_org_tasks_update
+                  antes de deixar arrastar — não oferece um movimento que o banco
+                  vai recusar (ver canUpdateOrgTaskStatus). */}
               <TaskKanban
                 tasks={tasks}
                 area={area}
                 onEdit={handleEditTask}
-                 onDelete={handleDeleteTask}
-                 onReassign={handleReassignTask}
-                 currentUserId={user?.id}
+                currentUserId={user?.id}
+                isAdmin={isAdmin}
+                isLider={isLider}
+                isSublider={isSublider}
               />
             </TabsContent>
 

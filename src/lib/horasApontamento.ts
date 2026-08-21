@@ -46,9 +46,9 @@ export function avaliarHorasApontadas(params: {
     const razao = realizadas / estimadas;
     if (razao >= RAZAO_HORAS_SUSPEITA) {
       return {
-        mensagem: `${formatarHoras(realizadas)}h é ${formatarRazao(razao)}× as ${formatarHoras(
-          estimadas,
-        )}h estimadas — confira a digitação.`,
+        mensagem: `${formatarHoras(realizadas)}h é ${formatarRazao(
+          razao,
+        )} vezes as ${formatarHoras(estimadas)}h estimadas — confira a digitação.`,
         sugestao: sugerirCorrecao(realizadas, estimadas),
       };
     }
@@ -71,14 +71,6 @@ export function avaliarHorasApontadas(params: {
   }
 
   return null;
-}
-
-/** `true` quando o apontamento precisa ser confirmado antes de salvar. */
-export function horasApontadasPrecisamConfirmacao(params: {
-  realizadas: number | string | null | undefined;
-  estimadas: number | string | null | undefined;
-}): boolean {
-  return avaliarHorasApontadas(params) !== null;
 }
 
 /**

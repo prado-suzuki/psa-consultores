@@ -1,259 +1,300 @@
-import { useState } from 'react';
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-import { ChevronRight, ChevronDown, Building2 } from 'lucide-react';
-import { OrgTask, OrgTaskStatus, useUpdateOrgTask } from '@/hooks/useOrgTasks';
-import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { statusList } from '@/lib/taskStatusColors';
-import { AreaKey } from '@/config/areaCategories';
-import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
+
+import { TaskKanbanCard } from '@/components/equipe/fiscal/tasks/kanban/TaskKanbanCard';
+import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
+ import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
 import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/TaskStatusTransitionDialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { AreaKey } from '@/config/areaCategories';
+import { OrgTask, OrgTaskStatus, useUpdateOrgTask } from '@/hooks/useOrgTasks';
+import { canUpdateOrgTaskStatus, isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import {
+  buildTaskKanbanColumns,
+  parentToRevealAfterStatusChange,
+} from '@/lib/taskKanbanHierarchy';
+import { statusColors, statusList } from '@/lib/taskStatusColors';
+import { cn } from '@/lib/utils';
+
+const BOARD_STATUSES = statusList.map((status) => status.key);
 
 interface TaskKanbanProps {
   tasks: OrgTask[];
   area: AreaKey;
   onEdit: (task: OrgTask) => void;
-  onDelete: (taskId: string) => void;
-  onReassign: (task: OrgTask) => void;
   currentUserId?: string | null;
+  isAdmin?: boolean;
+  isLider?: boolean;
+  isSublider?: boolean;
 }
 
-interface HierarchicalOrgTask extends OrgTask {
-  subtasks: OrgTask[];
-  subtaskCount: number;
-  completedSubtasks: number;
-}
-
-const columns = statusList.map(s => ({
-  status: s.key,
-  label: s.label,
-  color: s.bg,
-}));
-
-export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign, currentUserId }: TaskKanbanProps) => {
+/**
+ * Quadro de tarefas.
+ *
+ * A subtarefa é cidadã do quadro: quando o status dela difere do da mãe, ela
+ * ganha card próprio na SUA coluna (ancorado no nome da mãe); quando está no
+ * mesmo status, segue aninhada no card da mãe — que está naquela mesma coluna.
+ * Assim é possível puxar uma filha para "Em Progresso" e deixar as irmãs em
+ * "A Fazer", que era o que faltava: antes só a mãe era arrastável e todas as
+ * filhas apareciam na coluna dela, qualquer que fosse o status delas.
+ *
+ * O contador do cabeçalho conta TAREFAS (cards + aninhadas), então bate com os
+ * KPIs do topo da página; o "+N" ao lado diz quantas estão aninhadas e expande
+ * os cards que as guardam.
+ */
+export const TaskKanban = ({
+  tasks,
+  area,
+  onEdit,
+  currentUserId,
+  isAdmin,
+  isLider,
+  isSublider,
+}: TaskKanbanProps) => {
   const [draggedTask, setDraggedTask] = useState<OrgTask | null>(null);
+  const [dragOverStatus, setDragOverStatus] = useState<OrgTaskStatus | null>(null);
   const [pendingTransition, setPendingTransition] = useState<{
     task: OrgTask;
     status: 'review' | 'em_ajuste';
   } | null>(null);
+  const conclusao = useTaskCompletionHours();
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [highlightedTaskIds, setHighlightedTaskIds] = useState<Set<string>>(new Set());
+  const highlightTimeout = useRef<number | null>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const autoScroll = useRef<{ speed: number; frame: number | null }>({ speed: 0, frame: null });
   const updateTask = useUpdateOrgTask(area);
 
-  const subtasksByParent: Record<string, OrgTask[]> = {};
-  tasks.filter(t => t.parent_task_id).forEach(t => {
-    if (t.parent_task_id) {
-      if (!subtasksByParent[t.parent_task_id]) subtasksByParent[t.parent_task_id] = [];
-      subtasksByParent[t.parent_task_id].push(t);
-    }
-  });
-
-  const parentTasks = tasks.filter(t => !t.parent_task_id);
-
-  const getHierarchicalByStatus = (status: OrgTaskStatus): HierarchicalOrgTask[] => {
-    return parentTasks
-      .filter(t => t.status === status)
-      .map(t => ({
-        ...t,
-        subtasks: subtasksByParent[t.id] || [],
-        subtaskCount: subtasksByParent[t.id]?.length || 0,
-        completedSubtasks: subtasksByParent[t.id]?.filter(s => s.status === 'done').length || 0,
-      }));
+  const stopAutoScroll = () => {
+    if (autoScroll.current.frame !== null) window.cancelAnimationFrame(autoScroll.current.frame);
+    autoScroll.current = { speed: 0, frame: null };
   };
 
-  const toggleTaskExpanded = (taskId: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setExpandedTasks(prev => {
-      const next = new Set(prev);
+  useEffect(
+    () => () => {
+      if (highlightTimeout.current) window.clearTimeout(highlightTimeout.current);
+      stopAutoScroll();
+    },
+    [],
+  );
+
+  /**
+   * Rola o quadro na horizontal quando o arrasto chega perto de uma borda.
+   *
+   * São 7 colunas em rolagem horizontal, e o arrasto HTML5 não rola o
+   * contêiner: sem isso, não havia como levar um card da última coluna para a
+   * primeira — a coluna de destino simplesmente não estava na tela. A rolagem
+   * roda em requestAnimationFrame porque `dragover` dispara de forma irregular
+   * (e continua disparando com o cursor parado), o que deixaria o movimento aos
+   * trancos.
+   */
+  const stepAutoScroll = () => {
+    const board = boardRef.current;
+    if (!board || autoScroll.current.speed === 0) {
+      autoScroll.current.frame = null;
+      return;
+    }
+    board.scrollLeft += autoScroll.current.speed;
+    autoScroll.current.frame = window.requestAnimationFrame(stepAutoScroll);
+  };
+
+  const updateAutoScroll = (clientX: number) => {
+    const board = boardRef.current;
+    if (!board) return;
+    const { left, right } = board.getBoundingClientRect();
+    const ZONA = 96;
+    const VELOCIDADE_MAX = 22;
+    // Quanto mais fundo na zona da borda, mais rápido rola.
+    const proporcao = clientX < left + ZONA
+      ? -(left + ZONA - clientX) / ZONA
+      : clientX > right - ZONA
+        ? (clientX - (right - ZONA)) / ZONA
+        : 0;
+    autoScroll.current.speed = Math.round(
+      Math.max(-1, Math.min(1, proporcao)) * VELOCIDADE_MAX,
+    );
+    if (autoScroll.current.speed !== 0 && autoScroll.current.frame === null) {
+      autoScroll.current.frame = window.requestAnimationFrame(stepAutoScroll);
+    }
+  };
+
+  const actor = useMemo(
+    () => ({ userId: currentUserId, isAdmin, isLider, isSublider }),
+    [currentUserId, isAdmin, isLider, isSublider],
+  );
+  const columns = useMemo(() => buildTaskKanbanColumns(tasks, BOARD_STATUSES), [tasks]);
+
+  const canChangeStatus = (task: OrgTask) => canUpdateOrgTaskStatus(task, actor);
+
+  const toggleTaskExpanded = (taskId: string) =>
+    setExpandedTasks((previous) => {
+      const next = new Set(previous);
       if (next.has(taskId)) next.delete(taskId);
       else next.add(taskId);
       return next;
     });
+
+  const expandCards = (taskIds: string[]) =>
+    setExpandedTasks((previous) => new Set([...previous, ...taskIds]));
+
+  /**
+   * Destaca as tarefas pedidas e traz a primeira para a área visível.
+   *
+   * É a resposta ao "vejo que a mãe tem 2 subtarefas e não sei onde elas
+   * estão": a coluna de destino pode estar fora da tela (são 7 colunas com
+   * rolagem horizontal), então destacar sem rolar não resolveria nada. O card é
+   * procurado pelo `data-task-card` porque quem rola é o contêiner do quadro, e
+   * não este componente.
+   */
+  const revealTasks = (taskIds: string[]) => {
+    if (taskIds.length === 0) return;
+    setHighlightedTaskIds(new Set(taskIds));
+    if (highlightTimeout.current) window.clearTimeout(highlightTimeout.current);
+    highlightTimeout.current = window.setTimeout(() => setHighlightedTaskIds(new Set()), 3000);
+    const alvo = document.querySelector(`[data-task-card="${taskIds[0]}"]`);
+    alvo?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   };
 
-  const toggleSubtaskComplete = (subtask: OrgTask, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const newStatus: OrgTaskStatus = subtask.status === 'done' ? 'todo' : 'done';
-    if (newStatus === 'done' && isDelegatedOrgTaskReviewer(subtask, currentUserId)) {
+  const applyStatusChange = (task: OrgTask, nextStatus: OrgTaskStatus) => {
+    if (task.status === nextStatus) return;
+    if (!canChangeStatus(task)) {
+      toast.error('Você não tem permissão para mover esta tarefa.', {
+        description: 'Apenas o responsável, o criador ou um líder pode alterar o status.',
+      });
+      return;
+    }
+    // A filha que passa a ter o status da mãe volta a ficar aninhada no card
+    // dela — e o aninhamento nasce fechado. Abrir a mãe evita a impressão de
+    // que o card desapareceu do quadro.
+    const parentToReveal = parentToRevealAfterStatusChange(task, nextStatus, tasks);
+    if (parentToReveal) expandCards([parentToReveal]);
+
+    if (nextStatus === 'review' || nextStatus === 'em_ajuste') {
+      setPendingTransition({ task, status: nextStatus });
+      return;
+    }
+    if (nextStatus === 'done' && isDelegatedOrgTaskReviewer(task, currentUserId)) {
       toast.error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
       return;
     }
-    updateTask.mutate({ id: subtask.id, status: newStatus });
+    // Concluir arrastando o card também passa pelo apontamento de horas: sem
+    // hora, `useUpdateOrgTask` recusaria a conclusão sem dar onde digitar.
+    if (nextStatus === 'done' && !conclusao.pedirHoras(task)) return;
+    updateTask.mutate({ id: task.id, status: nextStatus });
   };
 
-  const handleDragStart = (e: React.DragEvent, task: OrgTask) => {
-    setDraggedTask(task);
-    e.dataTransfer.effectAllowed = 'move';
+  const handleDragOver = (event: React.DragEvent, status: OrgTaskStatus) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    setDragOverStatus(status);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
+  const handleDragLeave = (event: React.DragEvent, status: OrgTaskStatus) => {
+    // dragleave dispara ao passar de um filho para outro dentro da mesma coluna.
+    const proximo = event.relatedTarget as Node | null;
+    if (proximo && event.currentTarget.contains(proximo)) return;
+    setDragOverStatus((atual) => (atual === status ? null : atual));
   };
 
-  const handleDrop = (e: React.DragEvent, newStatus: OrgTaskStatus) => {
-    e.preventDefault();
-    if (draggedTask && draggedTask.status !== newStatus) {
-      if (newStatus === 'review' || newStatus === 'em_ajuste') {
-        setPendingTransition({ task: draggedTask, status: newStatus });
-        setDraggedTask(null);
-        return;
-      }
-      if (newStatus === 'done' && isDelegatedOrgTaskReviewer(draggedTask, currentUserId)) {
-        toast.error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
-        setDraggedTask(null);
-        return;
-      }
-      updateTask.mutate({ id: draggedTask.id, status: newStatus });
-    }
+  const handleDrop = (event: React.DragEvent, status: OrgTaskStatus) => {
+    event.preventDefault();
+    setDragOverStatus(null);
+    stopAutoScroll();
+    const task = draggedTask;
     setDraggedTask(null);
+    if (task) applyStatusChange(task, status);
   };
 
-  const handleDragEnd = () => setDraggedTask(null);
-
-  const formatDueDate = (date: string | null) => {
-    if (!date) return '';
-    return format(new Date(date + 'T00:00:00'), 'dd/MM', { locale: ptBR });
+  const handleDragEnd = () => {
+    setDraggedTask(null);
+    setDragOverStatus(null);
+    stopAutoScroll();
   };
 
   return (
     <>
-      <div className="flex gap-4 h-[calc(100vh-300px)] overflow-x-auto pb-4">
-      {columns.map(column => {
-        const columnTasks = getHierarchicalByStatus(column.status);
-        return (
-          <div
-            key={column.status}
-            className="flex-shrink-0 w-[340px] flex flex-col bg-muted/30 rounded-lg overflow-visible"
-            onDragOver={handleDragOver}
-            onDrop={(e) => handleDrop(e, column.status)}
-          >
-            <div className={cn(
-              "px-3 py-2 rounded-t-lg flex items-center justify-between",
-              column.color
-            )}>
-              <span className="font-medium text-sm">{column.label}</span>
-              <span className="text-xs bg-card/60 px-2 py-0.5 rounded-full">
-                {columnTasks.length}
-              </span>
-            </div>
-
-            <ScrollArea className="flex-1 p-1">
-              <div className="space-y-3 p-1">
-                {columnTasks.map(task => (
-                  <div key={task.id}>
-                    <Card
-                      className={cn(
-                        "bg-card border-border cursor-pointer hover:shadow-md transition-shadow",
-                        draggedTask?.id === task.id && "opacity-50"
-                      )}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, task)}
-                      onDragEnd={handleDragEnd}
-                      onClick={() => onEdit(task)}
-                    >
-                      <CardContent className="p-3">
-                        <div className="flex items-start gap-2">
-                          {task.subtaskCount > 0 && (
-                            <button
-                              onClick={(e) => toggleTaskExpanded(task.id, e)}
-                              className="mt-0.5 p-0.5 hover:bg-muted rounded flex-shrink-0"
-                            >
-                              {expandedTasks.has(task.id) ? (
-                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                              )}
-                            </button>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-foreground text-sm font-medium mb-2 line-clamp-3 break-words">
-                              {task.title}
-                            </h4>
-                            {task.project?.name && (
-                              <span className="text-xs text-info mb-1 block break-words line-clamp-2">{task.project.name}</span>
-                            )}
-                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                              <span className="break-words">{task.assigned_to_name || 'Não atribuído'}</span>
-                              <span className="flex-shrink-0 ml-1">{formatDueDate(task.due_date)}</span>
-                            </div>
-                            {(task as any).contribuinte?.nome_razao_social && (
-                              <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground">
-                                <Building2 className="h-3 w-3 flex-shrink-0" />
-                                <span className="break-words line-clamp-2">{(task as any).contribuinte.nome_razao_social}</span>
-                              </div>
-                            )}
-                            <div className="flex items-center justify-end mt-2">
-                              {task.subtaskCount > 0 && (
-                                <Badge
-                                  variant="secondary"
-                                  className={cn(
-                                    "text-xs",
-                                    task.completedSubtasks === task.subtaskCount && task.subtaskCount > 0
-                                      ? "bg-success/10 text-success"
-                                      : ""
-                                  )}
-                                >
-                                  {task.completedSubtasks}/{task.subtaskCount} subtarefas
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {expandedTasks.has(task.id) && task.subtasks.length > 0 && (
-                      <div className="ml-4 mt-2 space-y-1 border-l-2 border-border pl-3">
-                        {task.subtasks.map(subtask => (
-                          <div
-                            key={subtask.id}
-                            className={cn(
-                              "flex items-center gap-2 p-2 rounded-md bg-card border border-border text-sm cursor-pointer hover:bg-muted",
-                              subtask.status === 'done' && "opacity-60"
-                            )}
-                            onClick={() => onEdit(subtask)}
-                          >
-                             <Checkbox
-                               checked={subtask.status === 'done'}
-                               disabled={subtask.status !== 'done' && isDelegatedOrgTaskReviewer(subtask, currentUserId)}
-                              onCheckedChange={() => {}}
-                              onClick={(e) => toggleSubtaskComplete(subtask, e as unknown as React.MouseEvent)}
-                              className="flex-shrink-0"
-                            />
-                            <div className="flex-1 min-w-0">
-                              <span className={cn(
-                                "text-foreground",
-                                subtask.status === 'done' && "line-through"
-                              )}>
-                                {subtask.title}
-                              </span>
-                            </div>
-                            {subtask.due_date && (
-                              <span className="text-xs text-muted-foreground flex-shrink-0">
-                                {formatDueDate(subtask.due_date)}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {columnTasks.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground text-sm">
-                    Arraste tarefas aqui
-                  </div>
+      <div
+        ref={boardRef}
+        className="flex h-[calc(100vh-300px)] gap-4 overflow-x-auto pb-4"
+        // O dragover das colunas borbulha até aqui, então a borda é vigiada num
+        // lugar só. Sair do quadro (ou soltar) para a rolagem.
+        onDragOver={(event) => updateAutoScroll(event.clientX)}
+        onDragLeave={(event) => {
+          const proximo = event.relatedTarget as Node | null;
+          if (proximo && event.currentTarget.contains(proximo)) return;
+          stopAutoScroll();
+        }}
+        onDrop={stopAutoScroll}
+      >
+        {columns.map((column) => {
+          const config = statusColors[column.status];
+          return (
+            <div
+              key={column.status}
+              className={cn(
+                'flex w-[340px] flex-shrink-0 flex-col overflow-visible rounded-lg bg-muted/30',
+                dragOverStatus === column.status && 'ring-2 ring-primary/40',
+              )}
+              onDragOver={(event) => handleDragOver(event, column.status)}
+              onDragLeave={(event) => handleDragLeave(event, column.status)}
+              onDrop={(event) => handleDrop(event, column.status)}
+            >
+              <div
+                className={cn(
+                  'flex items-center justify-between rounded-t-lg px-3 py-2',
+                  config.bg,
                 )}
+              >
+                <span className="text-sm font-medium">{config.label}</span>
+                <div className="flex items-center gap-1">
+                  {column.nestedCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => expandCards(column.cardIdsWithNested)}
+                      title={`${column.nestedCount} subtarefa(s) aninhadas em cards desta coluna — clique para expandir`}
+                      className="rounded-full bg-card/60 px-2 py-0.5 text-xs tabular-nums hover:bg-card"
+                    >
+                      +{column.nestedCount}
+                    </button>
+                  )}
+                  <span
+                    title={`${column.taskCount} tarefa(s) neste status: ${column.cards.length} card(s) + ${column.nestedCount} aninhada(s)`}
+                    className="rounded-full bg-card/60 px-2 py-0.5 text-xs tabular-nums"
+                  >
+                    {column.taskCount}
+                  </span>
+                </div>
               </div>
-            </ScrollArea>
-          </div>
-        );
-      })}
+
+              <ScrollArea className="flex-1 p-1">
+                <div className="space-y-3 p-1">
+                  {column.cards.map((card) => (
+                    <TaskKanbanCard
+                      key={card.task.id}
+                      card={card}
+                      draggedTaskId={draggedTask?.id}
+                      highlightedTaskIds={highlightedTaskIds}
+                      isExpanded={expandedTasks.has(card.task.id)}
+                      currentUserId={currentUserId}
+                      canChangeStatus={canChangeStatus}
+                      onToggleExpanded={toggleTaskExpanded}
+                      onOpen={onEdit}
+                      onReveal={revealTasks}
+                      onDragStart={setDraggedTask}
+                      onDragEnd={handleDragEnd}
+                      onStatusChange={applyStatusChange}
+                    />
+                  ))}
+                  {column.cards.length === 0 && (
+                    <div className="py-8 text-center text-sm text-muted-foreground">
+                      Arraste tarefas aqui
+                    </div>
+                  )}
+                </div>
+              </ScrollArea>
+            </div>
+          );
+        })}
       </div>
       <TaskStatusTransitionDialog
         open={!!pendingTransition}
@@ -263,6 +304,11 @@ export const TaskKanban = ({ tasks, area, onEdit, onDelete, onReassign, currentU
         task={pendingTransition?.task || null}
         status={pendingTransition?.status || 'review'}
         area={area}
+      />
+      <TaskCompletionHoursDialog
+        task={conclusao.taskPendente}
+        area={area}
+        onClose={conclusao.fechar}
       />
     </>
   );
