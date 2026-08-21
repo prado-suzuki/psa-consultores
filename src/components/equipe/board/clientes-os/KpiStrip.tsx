@@ -20,11 +20,7 @@ export interface KpiItem {
 }
 
 export const KpiStrip = ({ items }: { items: KpiItem[] }) => (
-  <div
-    className="stat-strip"
-    style={{ gridTemplateColumns: `repeat(auto-fit, minmax(200px, 1fr))` }}
-    data-reveal
-  >
+  <div className="stat-strip" data-cols={items.length} data-reveal>
     {items.map((it, i) => (
       <div key={i} className="stat-item">
         <div

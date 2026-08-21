@@ -11,7 +11,13 @@ interface BoardRingProps {
   color?: string;
   /** Texto grande no centro. Sem ele, o anel fica só como indicador. */
   value?: React.ReactNode;
-  /** Rótulo minúsculo embaixo do valor (ex.: "no prazo"). */
+  /**
+   * Rótulo minúsculo embaixo do valor (ex.: "no prazo"). SÓ é renderizado em
+   * anel de 72px ou mais: em 58px ele é mais largo que o próprio anel e vazava
+   * por cima da borda do cartão — foi o que apareceu na primeira olhada da
+   * usuária no Estratégico. Em anel pequeno, o rótulo pertence ao `subText` do
+   * cartão, que tem a largura toda para ele.
+   */
   label?: string;
   /** Lido por leitor de tela — o anel é decorativo por si só. */
   title?: string;
@@ -57,12 +63,12 @@ export const BoardRing: React.FC<BoardRingProps> = ({
           strokeDashoffset={offset}
         />
       </svg>
-      {(value !== undefined || label) && (
+      {(value !== undefined || (label && size >= 72)) && (
         <div className="v4-ring-val">
           {value !== undefined && (
             <span className="v4-ring-num" style={{ fontSize: Math.round(size * 0.29) }}>{value}</span>
           )}
-          {label && <span className="v4-ring-lbl">{label}</span>}
+          {label && size >= 72 && <span className="v4-ring-lbl">{label}</span>}
         </div>
       )}
     </div>

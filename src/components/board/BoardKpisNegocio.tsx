@@ -119,16 +119,17 @@ export const BoardKpisNegocio: React.FC<BoardKpisNegocioProps> = ({
           // anel NEM pill: anel em 0% desenha um círculo vazio que se lê como
           // "nenhuma entrega saiu no prazo", e a pill diria "abaixo da meta"
           // sobre medida que não existe.
+          // Medidor, sem número por dentro: o número grande do cartão já é este
+          // valor. O "no prazo" desceu para o subtexto, que tem largura.
           ring: pontualidade === null ? undefined : {
             pct: pontualidade,
-            label: 'no prazo',
             title: `${pontualidade}% das entregas com prazo saíram no prazo · meta ${META_PONTUALIDADE}%`,
           },
           pill: pontualidade === null ? undefined : {
             text: pontualidade >= META_PONTUALIDADE ? 'Dentro da meta' : 'Abaixo da meta',
             variant: pontualidade >= META_PONTUALIDADE ? 'up' : 'down',
           },
-          subText: pontualidade === null ? 'não apurado' : janelaExecucao,
+          subText: pontualidade === null ? 'não apurado' : `no prazo · ${janelaExecucao}`,
           onClick: () => onNavigate('/equipe/board/performance'),
         },
         {

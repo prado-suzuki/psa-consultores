@@ -1576,7 +1576,20 @@ All colors MUST be HSL.
    direita sem que um item empurre o vizinho. O nome da classe fica — quem
    passa `grid-template-columns` inline (BoardStatStrip) continua mandando no
    número de colunas. */
-.stat-strip { display: grid; gap: 14px; margin-bottom: 18px; background: none; border: 0; border-radius: 0; overflow: visible; }
+/* COLUNAS QUE DIVIDEM O NÚMERO DE ITENS, e não `auto-fit`. O `auto-fit` com
+   seis itens cabia CINCO na largura de um notebook e deixava o sexto órfão numa
+   segunda linha, ocupando um quinto da tela — apareceu na primeira olhada da
+   usuária. A regra agora é: 2 colunas no estreito, 3 no médio (seis itens saem
+   3+3, e o cartão fica largo o suficiente para o anel), e `cols` colunas quando
+   a tela tem largura de sobra. Quem passa `data-cols` é o `BoardStatStrip`. */
+.stat-strip { display: grid; gap: 14px; margin-bottom: 18px; grid-template-columns: repeat(2, 1fr); background: none; border: 0; border-radius: 0; overflow: visible; }
+@media (min-width: 700px) { .stat-strip { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1080px) {
+  .stat-strip[data-cols="4"] { grid-template-columns: repeat(4, 1fr); }
+  .stat-strip[data-cols="2"] { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1280px) { .stat-strip[data-cols="5"] { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1560px) { .stat-strip[data-cols="6"] { grid-template-columns: repeat(6, 1fr); } }
 .stat-item {
   position: relative; padding: 17px 18px 16px;
   background: var(--bd-surface); border: 1px solid var(--bd-line);
@@ -1612,9 +1625,13 @@ All colors MUST be HSL.
 .v4-ring-bg { fill: none; stroke: var(--bd-line2); }
 .v4-ring-fg { fill: none; stroke-linecap: round; transition: stroke-dashoffset .9s cubic-bezier(.22,1,.36,1); }
 .v4-ring-wrap { position: relative; flex-shrink: 0; }
-.v4-ring-val { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+/* `overflow: hidden` e `nowrap` não são zelo: o rótulo interno é mais largo que
+   o anel de 58px e ESTAVA VAZANDO por cima da borda do cartão. Hoje o rótulo só
+   é renderizado em anel grande (ver `BoardRing`), e a guarda fica para o caso de
+   alguém passar texto comprido. */
+.v4-ring-val { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
 .v4-ring-num { font-family: 'Instrument Sans', sans-serif; font-weight: 700; color: var(--bd-ink); letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
-.v4-ring-lbl { font-size: 8.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--bd-ink3); margin-top: 2px; }
+.v4-ring-lbl { font-size: 8.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--bd-ink3); margin-top: 2px; max-width: 100%; white-space: nowrap; }
 
 /* ── Pílulas de variação ── */
 .pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }

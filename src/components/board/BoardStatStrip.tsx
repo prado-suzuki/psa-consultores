@@ -23,8 +23,13 @@ interface StatItem {
   /**
    * Anel de proporção no canto (0–100). Só para o que É proporção; número
    * absoluto com anel mente sobre o denominador.
+   *
+   * O anel é um MEDIDOR: ele não repete o número por dentro. A primeira versão
+   * escrevia "54%" no centro do anel ao lado do "54%" grande do cartão — o
+   * mesmo dado duas vezes, a 2cm de distância. `mostrarValor` existe para o
+   * caso em que o anel aparece SEM o número grande do lado.
    */
-  ring?: { pct: number; label?: string; title?: string };
+  ring?: { pct: number; label?: string; title?: string; mostrarValor?: boolean };
   /** Cartão de destaque: fundo tingido no acento. Um por faixa, no máximo. */
   hero?: boolean;
 }
@@ -48,17 +53,15 @@ interface BoardStatStripProps {
  * 3. em tela estreita a grade quebra em duas colunas em vez de comprimir seis
  *    números até o número encostar no rótulo.
  *
- * `cols` continua governando a largura em telas grandes; abaixo de 1180px a
- * própria grade decide (auto-fit), porque seis colunas fixas em notebook de
- * 13" era o que fazia "R$ 1.482k" quebrar em duas linhas.
+ * `cols` vira `data-cols`, e o CSS escolhe uma contagem de colunas que DIVIDE o
+ * número de itens: 2 no estreito, 3 no médio, `cols` quando há largura de sobra.
+ * A primeira versão usava `auto-fit`, que com seis itens cabia cinco na largura
+ * de um notebook e deixava o sexto órfão numa segunda linha — foi o primeiro
+ * defeito que a usuária viu ao abrir a tela.
  */
 export const BoardStatStrip: React.FC<BoardStatStripProps> = ({ items, cols = 5, className = '' }) => {
   return (
-    <div
-      className={`stat-strip ${className}`}
-      style={{ gridTemplateColumns: `repeat(auto-fit, minmax(${cols >= 5 ? 190 : 220}px, 1fr))` }}
-      data-reveal
-    >
+    <div className={`stat-strip ${className}`} data-cols={cols} data-reveal>
       {items.map((item, i) => {
         const Icone = item.icon;
         return (
@@ -87,10 +90,9 @@ export const BoardStatStrip: React.FC<BoardStatStripProps> = ({ items, cols = 5,
                 <BoardRing
                   pct={item.ring.pct}
                   color={item.color}
-                  size={58}
+                  size={54}
                   stroke={6}
-                  value={`${Math.round(item.ring.pct)}%`}
-                  label={item.ring.label}
+                  value={item.ring.mostrarValor ? `${Math.round(item.ring.pct)}%` : undefined}
                   title={item.ring.title}
                 />
               ) : Icone ? (
