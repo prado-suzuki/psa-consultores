@@ -1,25 +1,20 @@
 import React, { useState } from 'react';
 import { BoardChip } from './BoardChip';
-import type { BoardAreaKey, ResumoArea } from '@/lib/boardExecutivo';
+import type { ResumoAreaCadastro } from '@/lib/boardExecutivo';
 
 /** Sentinela do "sem recorte" no filtro interno de área. */
 const TODAS_AREAS = '__todas__';
+/** Mesmo id sentinela de `useBoardRollupAreas` para o residual sem área. */
+const SEM_AREA_ID = 'SEM_AREA';
 
 interface BoardAreaRollupProps {
-  areas: ResumoArea[];
+  areas: ResumoAreaCadastro[];
   /** Rótulo da janela analisada (ex.: "últimos 30 dias") — entra no subtítulo. */
   janelaLabel: string;
   /** Nota de rodapé: fontes e ressalvas (ex.: acesso negado, dado truncado). */
   nota?: string;
-  onAreaClick?: (area: BoardAreaKey) => void;
+  onAreaClick?: (areaId: string) => void;
 }
-
-const CHIP_VARIANT: Record<BoardAreaKey, 'tax' | 'osg' | 'dev' | 'gy'> = {
-  tax: 'tax',
-  osg: 'osg',
-  dev: 'dev',
-  outros: 'gy',
-};
 
 const corPontualidade = (pct: number) =>
   pct >= 85 ? 'var(--board-v4-go)' : pct >= 70 ? 'var(--board-v4-warn)' : 'var(--board-v4-risk)';
@@ -28,9 +23,15 @@ const classePontualidade = (pct: number) =>
   pct >= 85 ? 'v4-pg' : pct >= 70 ? 'v4-pa' : 'v4-pr';
 
 /**
- * Resumo de uma linha por área — a leitura de sócio: quantos projetos, quantos
- * fora de prazo, pontualidade e entregas no período, sem entrar no detalhe de
- * projeto ou pessoa. O detalhe fica a um clique, no painel Operacional.
+ * Resumo de uma linha por área do CADASTRO (Bloco E, 21/08) — a leitura de
+ * sócio: quantos projetos, quantos fora de prazo, pontualidade e entregas no
+ * período, sem entrar no detalhe de projeto ou pessoa. O detalhe fica a um
+ * clique, no painel Operacional.
+ *
+ * Não nomeia cor por área — a identidade da linha é o `label` (nome real do
+ * cadastro), não um chip colorido de 4 categorias fixas. "Sem área
+ * atribuída" (Bloco E3) ganha o chip de alerta, porque é resíduo a resolver,
+ * não uma área do negócio.
  */
 export const BoardAreaRollup: React.FC<BoardAreaRollupProps> = ({
   areas,
@@ -41,7 +42,7 @@ export const BoardAreaRollup: React.FC<BoardAreaRollupProps> = ({
   // Filtro só desta lista -- não afeta o resto da página, por isso é estado
   // local do bloco, e não mais um filtro de `useBoardFilters`.
   const [filtro, setFiltro] = useState<string>(TODAS_AREAS);
-  const areasFiltradas = filtro === TODAS_AREAS ? areas : areas.filter((a) => a.area === filtro);
+  const areasFiltradas = filtro === TODAS_AREAS ? areas : areas.filter((a) => a.id === filtro);
 
   return (
   <div className="v4-card" data-reveal>
@@ -59,39 +60,40 @@ export const BoardAreaRollup: React.FC<BoardAreaRollupProps> = ({
         >
           <option value={TODAS_AREAS}>Todas as áreas</option>
           {areas.map((a) => (
-            <option key={a.area} value={a.area}>{a.label}</option>
+            <option key={a.id} value={a.id}>{a.label}</option>
           ))}
         </select>
       )}
     </div>
     <div style={{ fontSize: 11, color: 'var(--board-v4-ink3)', marginBottom: 10 }}>
-      Projetos, entregas e % no prazo por área · {janelaLabel}
+      Todas as áreas ativas do cadastro · {janelaLabel}
     </div>
 
     {areasFiltradas.length === 0 && (
       <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}>
-        Nenhuma área com projeto ou entrega no período.
+        Nenhuma área ativa cadastrada.
       </div>
     )}
 
     {areasFiltradas.map((a) => {
       const foraDePrazo = a.emRisco + a.atrasados;
+      const semAreaAtribuida = a.id === SEM_AREA_ID;
       return (
         <div
-          key={a.area}
+          key={a.id}
           className="v4-mrow"
-          onClick={onAreaClick ? () => onAreaClick(a.area) : undefined}
+          onClick={onAreaClick ? () => onAreaClick(a.id) : undefined}
           style={{ cursor: onAreaClick ? 'pointer' : undefined }}
         >
-          <div style={{ width: 52 }}>
-            <BoardChip variant={CHIP_VARIANT[a.area]}>{a.label}</BoardChip>
+          <div style={{ width: 96, flexShrink: 0 }}>
+            <BoardChip variant={semAreaAtribuida ? 'warn' : 'gy'}>{a.label}</BoardChip>
           </div>
 
           <div style={{ flex: 1, minWidth: 0, color: 'var(--board-v4-ink)' }}>
             <strong style={{ fontWeight: 600 }}>{a.projetos}</strong>{' '}
             {a.projetos === 1 ? 'projeto' : 'projetos'}
             <span style={{ color: 'var(--board-v4-ink3)' }}>
-              {' · '}{a.concluidas} {a.concluidas === 1 ? 'entrega' : 'entregas'}
+              {' · '}<strong style={{ fontWeight: 600, color: 'var(--board-v4-ink)' }}>{a.concluidas}</strong> {a.unidade}
             </span>
           </div>
 
@@ -119,8 +121,10 @@ export const BoardAreaRollup: React.FC<BoardAreaRollupProps> = ({
             {a.pontualidade !== null ? `${a.pontualidade}%` : '—'}
           </span>
 
-          <div style={{ width: 86, display: 'flex', justifyContent: 'flex-end' }}>
-            {a.projetos === 0 ? (
+          <div style={{ width: 110, display: 'flex', justifyContent: 'flex-end' }}>
+            {a.projetos === 0 && a.concluidas === 0 ? (
+              <BoardChip variant="gy">sem movimento no período</BoardChip>
+            ) : a.projetos === 0 ? (
               // Área com entrega mas sem projeto ativo: "Tudo no prazo" seria
               // elogio sobre escopo vazio.
               <BoardChip variant="gy">sem projeto</BoardChip>
