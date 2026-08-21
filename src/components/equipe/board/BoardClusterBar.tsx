@@ -27,20 +27,28 @@ const TODAS = '__todas__';
 /**
  * Faixa de seleção de ÁREA do Board.
  *
- * Rótulo corrigido em 21/08 (Bloco D, verificação ao vivo): a tela chamava
- * isto de "Empresa", mas a fonte é `estrutura_clusters` -- área/cluster
- * interno (Digital, OSG, TAX...), misturado com algumas cascas que alguém
- * criou para representar pessoa jurídica (a maioria "(inativa)", nunca
- * alimentada). Não é a mesma coisa que empresa/CNPJ: das 9 empresas do
- * filtro de CENTRO DE CUSTO, só 3 têm cluster correspondente aqui, e a que
- * concentra 87% do valor (PSA Consultores) não tem nenhum.
+ * Rótulo corrigido em 21/08 (Bloco D, verificação ao vivo com acesso direto
+ * ao banco). A entidade é `estrutura_clusters`, e ela FOI PROJETADA para ser
+ * a empresa de faturamento -- decisão documentada em
+ * `docs/geral/decisoes/empresa-de-faturamento-vive-no-cluster.md` (17/08),
+ * com colunas `nome_empresa`, `cnpj` e `cost_center_id` dedicadas a isso.
  *
- * A empresa de verdade (CNPJ) NÃO tem dimensão própria hoje. O caminho mais
- * plausível para modelar isso sem inventar do zero: `estrutura_areas` já tem
- * `cluster_id` (obrigatório) e `cost_center_id` (opcional) na MESMA linha --
- * a ponte cluster↔centro-de-custo existe no banco, um nível abaixo, só que
- * nenhuma query do board passa por ela. Decisão de modelo pendente, a
- * alinhar com a Mariana.
+ * O rótulo "Área" é medida temporária e honesta, não decisão de arquitetura:
+ * medido no banco, `nome_empresa` está preenchido nos 11 clusters, mas com
+ * NOME DE MENTIRA do gerador de dado de semente (TAX = "Cerrado Logística
+ * S.A.", OSG = "Ouro Verde Transportes Ltda"...) -- e `estrutura_clusters`
+ * não tem coluna `ambiente`, então isso vale em produção também, não só em
+ * dev. `cnpj` só tem 2 de 11 preenchidos, de origem igualmente suspeita. A
+ * tela não pode dizer "Empresa" sem mentir enquanto isso não for cadastrado
+ * de verdade -- é tarefa de cadastro, não de código.
+ *
+ * O caminho de volta para "Empresa" já está no banco, não precisa ser
+ * inventado: `estrutura_areas` tem `cluster_id` (10/10 linhas) e
+ * `cost_center_id` (9/10) preenchidos -- a ponte cluster↔centro-de-custo
+ * existe e está quase completa, só nenhuma query do board passa por ela.
+ * Três clusters já têm o vínculo direto certo: TAX → PSA CONSULTORES,
+ * OSG → PSA CONSULTORIA EMPRESARIAL, Adm & Fin → PRADO SUZUKI. Preencher os
+ * outros 8 destrava a dimensão empresa de verdade.
  *
  * Diferença deliberada para o OSG Work: lá, ficar sem cliente BLOQUEIA as
  * ferramentas, e a barra pulsa para cobrar a escolha. Aqui, "Todas as áreas"
