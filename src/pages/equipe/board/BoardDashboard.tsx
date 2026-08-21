@@ -8,6 +8,7 @@ import { useDesempenhoOverview } from '@/hooks/useDesempenhoOverview';
 import { useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useDomainBoardDashboard } from '@/hooks/useDomainBoardDashboard';
 import { useDomainMelhoriasRoi } from '@/hooks/useDomainMelhoriasRoi';
+import { useDomainPreenchimentoSistema } from '@/hooks/useDomainPreenchimentoSistema';
 import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
 import { listarFalhas } from '@/lib/performanceOperacional';
@@ -23,6 +24,7 @@ import { BoardAlertas } from '@/components/board/BoardAlertas';
 import { BoardConcentracao } from '@/components/board/BoardConcentracao';
 import { BoardReceitaMensal } from '@/components/board/BoardReceitaMensal';
 import { BoardProjetosCriticos } from '@/components/board/BoardProjetosCriticos';
+import { BoardPreenchimentoSistema } from '@/components/board/BoardPreenchimentoSistema';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import {
   filtrarPorCluster, filtrarTarefasPorProjetos, saudeProjetos,
@@ -35,6 +37,9 @@ import {
 } from '@/lib/boardEstrategico';
 import { centrosCustoEmUso } from '@/lib/dashboardClientesOs/aggregations';
 import { useBoardRollupAreas } from '@/hooks/useBoardRollupAreas';
+import {
+  resumoPreenchimentoPorArea, linhaSemArea, faixaEmpresaPreenchimento,
+} from '@/lib/preenchimentoSistema';
 
 // O recorte por EMPRESA não mora aqui: vem da barra global (`useBoardCluster`),
 // que vale para a área Board inteira. Aqui ficam a janela de execução e o
@@ -90,6 +95,12 @@ const BoardDashboard = () => {
   const { data: overview } = useDesempenhoOverview(cicloAtivo?.id);
   const { tarefasConcluidasQuery, horasAlocadasQuery } = useDomainBoardDashboard({ desdeISO: periodFrom });
   const melhoriasQuery = useDomainMelhoriasRoi();
+  // Query dedicada e enxuta do bloco "Preenchimento do sistema" -- deliberadamente
+  // SEPARADA de `usePerformanceData` (ver `useDomainPreenchimentoSistema`).
+  const {
+    areasQuery: preenchAreasQuery, projetosQuery: preenchProjetosQuery,
+    osQuery: preenchOsQuery, clientesQuery: preenchClientesQuery,
+  } = useDomainPreenchimentoSistema();
 
   // ── Fonte do negócio (mesma query da tela "Clientes e OS") ─────────────
   const { ambiente } = useDashboardAmbiente();
@@ -246,6 +257,40 @@ const BoardDashboard = () => {
   const foraDePrazo = saude.emRisco + saude.atrasados;
   const receitaEmJogo = emRisco.vencido.valor + emRisco.renovacao.valor;
 
+  // ── Preenchimento do sistema (Bloco F, 21/08) ──────────────────────────
+  // `data ?? null` (nunca `?? []`): a consulta que falhou precisa chegar como
+  // `null` nas funções puras, senão elas leriam "nenhum registro" (zero) onde
+  // a verdade é "não sei" -- ver a regra de honestidade em `preenchimentoSistema.ts`.
+  const preenchProjetos = useMemo(
+    () => preenchProjetosQuery.data ?? (preenchProjetosQuery.isError ? null : []),
+    [preenchProjetosQuery.data, preenchProjetosQuery.isError],
+  );
+  const preenchOs = useMemo(
+    () => preenchOsQuery.data ?? (preenchOsQuery.isError ? null : []),
+    [preenchOsQuery.data, preenchOsQuery.isError],
+  );
+  const preenchClientes = useMemo(
+    () => preenchClientesQuery.data ?? (preenchClientesQuery.isError ? null : []),
+    [preenchClientesQuery.data, preenchClientesQuery.isError],
+  );
+  const preenchAreas = useMemo(
+    () => resumoPreenchimentoPorArea(preenchAreasQuery.data ?? [], preenchProjetos),
+    [preenchAreasQuery.data, preenchProjetos],
+  );
+  const preenchSemArea = useMemo(() => linhaSemArea(preenchProjetos), [preenchProjetos]);
+  const preenchFaixa = useMemo(
+    () => faixaEmpresaPreenchimento(preenchOs, preenchClientes),
+    [preenchOs, preenchClientes],
+  );
+  const falhasPreenchimento = useMemo(() => listarFalhas([
+    { rotulo: 'áreas do cadastro', falhou: preenchAreasQuery.isError },
+    { rotulo: 'projetos (preenchimento)', falhou: preenchProjetosQuery.isError },
+    { rotulo: 'ordens de serviço (preenchimento)', falhou: preenchOsQuery.isError },
+    { rotulo: 'clientes (preenchimento)', falhou: preenchClientesQuery.isError },
+  ]), [
+    preenchAreasQuery.isError, preenchProjetosQuery.isError, preenchOsQuery.isError, preenchClientesQuery.isError,
+  ]);
+
   const execucaoLoading = projectsQuery.isLoading || membersQuery.isLoading
     || melhoriasQuery.isLoading || tarefasConcluidasQuery.isLoading || horasAlocadasQuery.isLoading
     || (!!cicloAtivo && !overview);
@@ -393,6 +438,19 @@ const BoardDashboard = () => {
           projetos={projetosCriticos}
           onProjetoClick={() => navigate('/equipe/board/performance')}
         />
+
+        {/* 6. Preenchimento do sistema -- o inverso dos blocos acima: não é
+            resultado de trabalho, é o que falta cadastrar, por área, para o
+            dono cobrar quem alimenta o sistema (Bloco F, 21/08). */}
+        <div style={{ marginTop: 16 }}>
+          <BoardPreenchimentoSistema
+            areas={preenchAreas}
+            semArea={preenchSemArea}
+            faixa={preenchFaixa}
+            falhaAreas={preenchAreasQuery.isError}
+            falhas={falhasPreenchimento}
+          />
+        </div>
       </div>
     </BoardLayout>
   );
