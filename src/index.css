@@ -1264,7 +1264,20 @@ All colors MUST be HSL.
      sítio condicional (`BoardClusterBar.tsx:84`) já troca para `#fff` quando o
      fundo vira o azul de destaque, então não há inversão a tratar. */
   --board-v4-ink3: #5D6A79;
-  --board-v4-ink4: #B0BBC8;
+  /* O degrau mais claro da rampa de texto. Era #B0BBC8 — 1,95:1 sobre branco,
+     o pior contraste da tela, e ele pinta TEXTO de 10px: os cabeçalhos de
+     tabela do "Preenchimento do sistema" ("Área", "Projetos", "Sem resp.",
+     "Sem equipe", "Sem data", "Sem OS", "Centro de custo") e os números de
+     posição #1 a #5 da "Concentração da carteira". 12 sítios em 7 arquivos,
+     nenhum sobre fundo escuro (o único bloco escuro da v4, `.v4-cyb`, usa
+     #5E7399 e #fff crus). Agora 5,17:1 no branco e 4,78:1 no `--board-v4-page`.
+     Mesmo matiz e mesma saturação (H 212°, S 18%), L 74% → 44%.
+     CONSEQUÊNCIA a olhar: neste tom o ink4 fica quase igual ao ink3 (5,17 contra
+     5,52 no branco) — a rampa de 4 degraus vira 3 na ponta clara. Não há como
+     evitar: 4,5:1 em 10px exige esta faixa de luminosidade. A diferença entre
+     cabeçalho e texto secundário passa a vir do peso 700, da caixa alta e do
+     espaçamento de letra, que já estavam lá. */
+  --board-v4-ink4: #5C6F84;
   --board-v4-page: #F4F6FA;
   --board-v4-surface: #FFFFFF;
   --board-v4-surface2: #F8FAFC;
