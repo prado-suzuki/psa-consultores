@@ -109,7 +109,15 @@ const MinhaEvolucao = () => {
     <BoardLayout title="Minha Evolução" subtitle="Acompanhe seu desempenho">
       <div className="space-y-5">
         {/* Identity Header */}
-        <div className="rounded-xl p-5 text-white" style={{ background: 'linear-gradient(135deg, #0F172A, #1E293B)' }}>
+        {/* Gradiente pelo par de tokens, na ordem que o `index.css` documenta
+            (linhas 425-434): do mais escuro `--surface-escura` para o
+            intermediário `--surface-escura-2`. O `#0F172A` que estava cravado
+            aqui É `hsl(222 47% 11%)`, ou seja o próprio `--surface-escura-2` do
+            piso copiado à mão — e por ser hex ignorava o tema da rota. Esta
+            tela resolve por `.sistema-theme` (`areaTheme.ts:111`), que declara
+            grafite quente, então o cartão vinha azul-marinho contra o tema dele.
+            Branco em cima dá 18,3:1 no início e 16,4:1 no fim. */}
+        <div className="rounded-xl p-5 text-white" style={{ background: 'linear-gradient(135deg, hsl(var(--surface-escura)), hsl(var(--surface-escura-2)))' }}>
           <div className="flex items-center gap-4 mb-4">
             <div className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold" style={{ background: 'linear-gradient(135deg, #5B6EF0, #8054F0)' }}>{initials}</div>
             <div className="flex-1">
