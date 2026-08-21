@@ -70,25 +70,29 @@ export const BoardClusterBar = () => {
 
   return (
     <div
-      className="px-6 py-2.5 flex flex-col md:flex-row md:items-center gap-2 md:gap-4 flex-wrap"
+      className="px-4 md:px-6 py-3 flex flex-col md:flex-row md:items-center gap-2.5 md:gap-4 flex-wrap"
       style={{
-        backgroundColor: todos ? 'var(--board-card)' : 'var(--board-v4-blue-t)',
-        borderBottom: '1px solid var(--board-border)',
+        /* Recorte ATIVO tinge a faixa inteira no acento: o sócio precisa ver,
+           de longe, que a tela não está mostrando a empresa toda. Sem recorte
+           ela é branca como o resto do chrome. */
+        backgroundColor: todos ? 'var(--bd-chrome)' : 'var(--bd-accent-soft)',
+        borderBottom: `1px solid ${todos ? 'var(--bd-chrome-line)' : 'hsl(175 82% 29% / .22)'}`,
       }}
     >
       <div className="flex items-center gap-2 whitespace-nowrap">
         <div
-          className="h-7 w-7 rounded-lg flex items-center justify-center flex-shrink-0"
+          className="h-7 w-7 rounded-[9px] flex items-center justify-center flex-shrink-0"
           style={{
-            backgroundColor: todos ? 'var(--board-v4-line2)' : 'var(--board-v4-accent)',
-            color: todos ? 'var(--board-v4-ink3)' : '#fff',
+            backgroundColor: todos ? 'var(--bd-surface2)' : 'var(--bd-accent-d)',
+            color: todos ? 'var(--bd-ink3)' : '#fff',
+            border: todos ? '1px solid var(--bd-line)' : undefined,
           }}
         >
           <Building2 className="h-3.5 w-3.5" />
         </div>
         <Label
-          className="text-[11px] font-bold uppercase tracking-[0.09em]"
-          style={{ color: 'var(--board-v4-ink3)' }}
+          className="text-[10.5px] font-bold uppercase tracking-[0.11em]"
+          style={{ color: 'var(--bd-ink4)' }}
         >
           Cluster
         </Label>
@@ -101,10 +105,10 @@ export const BoardClusterBar = () => {
           disabled={isLoading}
         >
           <SelectTrigger
-            className="h-9 text-[13px] font-medium"
+            className="h-9 rounded-full text-[13px] font-medium"
             style={{
-              backgroundColor: 'var(--board-v4-surface)',
-              borderColor: todos ? 'var(--board-v4-line)' : 'var(--board-v4-accent)',
+              backgroundColor: 'var(--bd-surface)',
+              borderColor: todos ? 'var(--bd-line)' : 'var(--bd-accent)',
             }}
           >
             <SelectValue placeholder={isLoading ? 'Carregando…' : 'Todos'} />
@@ -124,7 +128,7 @@ export const BoardClusterBar = () => {
       {mostrarSeletorDeArea && (
         <div className="w-full md:w-56">
           <Select value={area || TODOS} onValueChange={(v) => setArea(v === TODOS ? '' : v)}>
-            <SelectTrigger className="h-9 text-[13px] font-medium" style={{ backgroundColor: 'var(--board-v4-surface)' }}>
+            <SelectTrigger className="h-9 rounded-full text-[13px] font-medium" style={{ backgroundColor: 'var(--bd-surface)', borderColor: 'var(--bd-line)' }}>
               <SelectValue placeholder="Todas as áreas" />
             </SelectTrigger>
             <SelectContent>
@@ -139,8 +143,8 @@ export const BoardClusterBar = () => {
         </div>
       )}
       {mostrarNomeDeAreaUnica && (
-        <span className="text-[12.5px]" style={{ color: 'var(--board-v4-ink3)' }}>
-          Área: <strong style={{ color: 'var(--board-v4-ink)' }}>{areasDoCluster[0].nome}</strong>
+        <span className="text-[12.5px]" style={{ color: 'var(--bd-ink3)' }}>
+          Área: <strong style={{ color: 'var(--bd-ink)' }}>{areasDoCluster[0].nome}</strong>
         </span>
       )}
 
@@ -148,7 +152,7 @@ export const BoardClusterBar = () => {
       {mostrarSeletorDeEquipe && (
         <div className="w-full md:w-56">
           <Select value={equipe || TODOS} onValueChange={(v) => setEquipe(v === TODOS ? '' : v)}>
-            <SelectTrigger className="h-9 text-[13px] font-medium" style={{ backgroundColor: 'var(--board-v4-surface)' }}>
+            <SelectTrigger className="h-9 rounded-full text-[13px] font-medium" style={{ backgroundColor: 'var(--bd-surface)', borderColor: 'var(--bd-line)' }}>
               <SelectValue placeholder="Todas as equipes" />
             </SelectTrigger>
             <SelectContent>
@@ -161,19 +165,19 @@ export const BoardClusterBar = () => {
         </div>
       )}
       {mostrarNomeDeEquipeUnica && (
-        <span className="text-[12.5px]" style={{ color: 'var(--board-v4-ink3)' }}>
-          Equipe: <strong style={{ color: 'var(--board-v4-ink)' }}>{equipesDaArea[0].nome}</strong>
+        <span className="text-[12.5px]" style={{ color: 'var(--bd-ink3)' }}>
+          Equipe: <strong style={{ color: 'var(--bd-ink)' }}>{equipesDaArea[0].nome}</strong>
         </span>
       )}
 
-      <div className="text-[11.5px] truncate" style={{ color: 'var(--board-v4-ink3)' }}>
+      <div className="text-[11.5px] truncate" style={{ color: 'var(--bd-ink3)' }}>
         {todos
           ? 'Visão do grupo inteiro — escolha um cluster para recortar a página'
           : (
             <>
-              Filtrando por: <strong style={{ color: 'var(--board-v4-ink)' }}>{clusterSelecionado?.nome ?? '—'}</strong>
-              {areaSelecionada && <> · <strong style={{ color: 'var(--board-v4-ink)' }}>{areaSelecionada.nome}</strong></>}
-              {equipeSelecionada && <> · <strong style={{ color: 'var(--board-v4-ink)' }}>{equipeSelecionada.nome}</strong></>}
+              Filtrando por: <strong style={{ color: 'var(--bd-ink)' }}>{clusterSelecionado?.nome ?? '—'}</strong>
+              {areaSelecionada && <> · <strong style={{ color: 'var(--bd-ink)' }}>{areaSelecionada.nome}</strong></>}
+              {equipeSelecionada && <> · <strong style={{ color: 'var(--bd-ink)' }}>{equipeSelecionada.nome}</strong></>}
             </>
           )}
       </div>

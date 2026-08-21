@@ -85,7 +85,7 @@ export const FaturamentoDetalhe = ({ detalhe, onDetalheChange, matriz }: Props) 
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
           <div>
             <div className="v4-card-title" style={{ marginBottom: 2 }}>Valor por {dimensao} (R$)</div>
-            <div style={{ fontSize: 11, color: 'var(--board-v4-ink3)' }}>
+            <div style={{ fontSize: 11, color: 'var(--bd-ink3)' }}>
               {visao.nota}
               {matriz.linhas.length > MAX_BARRAS
                 && ` · gráfico mostra os ${MAX_BARRAS} maiores de ${matriz.linhas.length}; a tabela abaixo traz todos`}
@@ -116,7 +116,7 @@ export const FaturamentoDetalhe = ({ detalhe, onDetalheChange, matriz }: Props) 
                 <LabelList
                   dataKey="total" position="right"
                   formatter={(v: number | string) => `${brlMil(Number(v))} · ${pctDoTotal(Number(v), total)}`}
-                  style={{ fontSize: 11, fontWeight: 600, fill: 'var(--board-v4-ink2)' }}
+                  style={{ fontSize: 11, fontWeight: 600, fill: 'var(--bd-ink2)' }}
                 />
               </Bar>
             </BarChart>
@@ -128,7 +128,7 @@ export const FaturamentoDetalhe = ({ detalhe, onDetalheChange, matriz }: Props) 
         <div className="v4-card-title">
           Valor por {dimensao} e mês (R$)
           {matriz.linhas.length > 0 && (
-            <span style={{ fontWeight: 400, color: 'var(--board-v4-ink3)' }}> · {matriz.linhas.length} linhas</span>
+            <span style={{ fontWeight: 400, color: 'var(--bd-ink3)' }}> · {matriz.linhas.length} linhas</span>
           )}
         </div>
         {matriz.linhas.length > 0 ? (
@@ -143,7 +143,7 @@ export const FaturamentoDetalhe = ({ detalhe, onDetalheChange, matriz }: Props) 
                     <th key={m} style={{ ...thFixo, textAlign: 'right' }}>{mesColuna(m)}</th>
                   ))}
                   {matriz.temSemData && <th style={{ ...thFixo, textAlign: 'right' }}>Sem data</th>}
-                  <th style={{ ...thFixo, textAlign: 'right', borderLeft: '1px solid var(--board-v4-line)' }}>Total</th>
+                  <th style={{ ...thFixo, textAlign: 'right', borderLeft: '1px solid var(--bd-line)' }}>Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -154,7 +154,7 @@ export const FaturamentoDetalhe = ({ detalhe, onDetalheChange, matriz }: Props) 
                       <td key={m} style={{ ...td, ...numerico }}>{celulaBRL(l.porMes[m])}</td>
                     ))}
                     {matriz.temSemData && <td style={{ ...td, ...numerico }}>{celulaBRL(l.porMes[SEM_DATA])}</td>}
-                    <td style={{ ...td, ...numerico, fontWeight: 700, borderLeft: '1px solid var(--board-v4-line)' }}>
+                    <td style={{ ...td, ...numerico, fontWeight: 700, borderLeft: '1px solid var(--bd-line)' }}>
                       {celulaBRL(l.total)}
                     </td>
                   </tr>
@@ -165,7 +165,7 @@ export const FaturamentoDetalhe = ({ detalhe, onDetalheChange, matriz }: Props) 
                     <td key={m} style={{ ...tdTotal, ...numerico }}>{celulaBRL(somaMes(m))}</td>
                   ))}
                   {matriz.temSemData && <td style={{ ...tdTotal, ...numerico }}>{celulaBRL(somaMes(SEM_DATA))}</td>}
-                  <td style={{ ...tdTotal, ...numerico, fontWeight: 700, borderLeft: '1px solid var(--board-v4-line)' }}>
+                  <td style={{ ...tdTotal, ...numerico, fontWeight: 700, borderLeft: '1px solid var(--bd-line)' }}>
                     {celulaBRL(total)}
                   </td>
                 </tr>

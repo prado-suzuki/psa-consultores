@@ -139,7 +139,7 @@ const DesempenhoRelatorios = () => {
                 </div>
                 {report.ppr !== undefined && (
                   <div className="text-right">
-                    <p className="text-white text-2xl font-bold" style={{ fontFamily: "'Syne', sans-serif" }}>{report.ppr}%</p>
+                    <p className="text-white text-2xl font-bold" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>{report.ppr}%</p>
                     <p className="text-slate-400 text-xs">PPR Calculado</p>
                   </div>
                 )}

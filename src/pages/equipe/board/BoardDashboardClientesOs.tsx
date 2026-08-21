@@ -312,7 +312,7 @@ export const DashboardClientesOsContent = ({
   ];
 
   return (
-      <div ref={containerRef} style={{ background: 'var(--board-v4-page)' }}>
+      <div ref={containerRef} style={{ background: 'var(--bd-page)' }}>
         <div className="pg-head">
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div>
@@ -327,12 +327,12 @@ export const DashboardClientesOsContent = ({
           </div>
         </div>
 
-        <div className="v4-card" style={{ marginBottom: 16 }}>
+        <div className="v4-card" style={{ marginBottom: 18 }}>
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 14 }}>
             <Field label="Período (início da OS)">
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <DateField value={deDate} placeholder="Data inicial" onChange={(d) => setFilter('periodo', `${d ? format(d, 'yyyy-MM-dd') : ''}|${ate}`)} />
-                <span style={{ fontSize: 11, color: 'var(--board-v4-ink3)' }}>até</span>
+                <span style={{ fontSize: 11, color: 'var(--bd-ink3)' }}>até</span>
                 <DateField value={ateDate} placeholder="Data final" onChange={(d) => setFilter('periodo', `${de}|${d ? format(d, 'yyyy-MM-dd') : ''}`)} />
               </div>
             </Field>
@@ -349,7 +349,7 @@ export const DashboardClientesOsContent = ({
               <SelectFilter value={centroCusto} onChange={(v) => setFilter('centroCusto', v)} options={centroCustoOptions} width={220} />
             </Field>
             {activeCount > 0 && (
-              <Button variant="ghost" size="sm" onClick={resetFilters} className="h-9 text-sm" style={{ color: 'var(--board-v4-risk)' }}>
+              <Button variant="ghost" size="sm" onClick={resetFilters} className="h-9 text-sm" style={{ color: 'var(--bd-risk)' }}>
                 <X className="mr-1 h-4 w-4" /> Limpar ({activeCount})
               </Button>
             )}
@@ -366,7 +366,7 @@ export const DashboardClientesOsContent = ({
               role="status"
               style={{
                 marginTop: 10, display: 'flex', alignItems: 'center', gap: 8,
-                fontSize: 11.5, color: 'var(--board-v4-warn)',
+                fontSize: 11.5, color: 'var(--bd-warn-d)',
               }}
             >
               <AlertTriangle style={{ width: 13, height: 13, flexShrink: 0 }} />
@@ -378,7 +378,7 @@ export const DashboardClientesOsContent = ({
                 type="button"
                 onClick={() => setFilter('periodo', PERIODO_VAZIO)}
                 style={{
-                  fontWeight: 600, textDecoration: 'underline', color: 'var(--board-v4-warn)',
+                  fontWeight: 600, textDecoration: 'underline', color: 'var(--bd-warn-d)',
                   background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0,
                 }}
               >
@@ -393,7 +393,7 @@ export const DashboardClientesOsContent = ({
             <AlertTriangle style={{ width: 18, height: 18 }} />
             <div>
               <div style={{ fontWeight: 600 }}>Erro ao carregar os dados</div>
-              <div style={{ fontSize: 12, color: 'var(--board-v4-ink3)' }}>{error.message}</div>
+              <div style={{ fontSize: 12, color: 'var(--bd-ink3)' }}>{error.message}</div>
             </div>
           </div>
         ) : isLoading ? (
@@ -425,7 +425,7 @@ export const DashboardClientesOsContent = ({
                 {/* Sobe para o lugar que "Faturamento por tipo de cliente" e o
                     botão "Por serviço" (abaixo) deixaram livres -- largura
                     total, sem grid partner. */}
-                <div className="v4-card" style={{ marginBottom: 16 }}>
+                <div className="v4-card" style={{ marginBottom: 18 }}>
                   <div className="v4-card-title">Valor dos contratos por mês (R$)</div>
                   {serieMensal.length > 0 ? (
                     <div style={{ cursor: 'pointer' }}>
@@ -473,7 +473,7 @@ export const DashboardClientesOsContent = ({
                   <div className="v4-card-title">Carteira completa ({osFiltrado.length} OS)</div>
                   {osFiltrado.length > 0 ? (
                     <div style={{ maxHeight: 520, overflow: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <table className="v4-tbl">
                         <thead>
                           <tr>
                             <SortTh label="Cliente" colKey="cliente_nome" sort={carteiraSort} />
@@ -541,7 +541,7 @@ export const DashboardClientesOsContent = ({
                     ) : <ChartEmpty msg="Sem horas apontadas" />}
                     <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 6 }}>
                       {[{ c: SERIES[0], l: 'Estimadas' }, { c: SERIES[1], l: 'Realizadas' }].map((x) => (
-                        <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--board-v4-ink3)' }}>
+                        <div key={x.l} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--bd-ink3)' }}>
                           <div style={{ width: 9, height: 9, borderRadius: 2, background: x.c }} />{x.l}
                         </div>
                       ))}
@@ -555,8 +555,8 @@ export const DashboardClientesOsContent = ({
                         {serieStatus.map((s, i) => (
                           <div key={s.status}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
-                              <span style={{ color: 'var(--board-v4-ink)' }}>{s.status}</span>
-                              <span style={{ fontWeight: 700, color: 'var(--board-v4-ink)' }}>{s.qtd}</span>
+                              <span style={{ color: 'var(--bd-ink)' }}>{s.status}</span>
+                              <span style={{ fontWeight: 700, color: 'var(--bd-ink)' }}>{s.qtd}</span>
                             </div>
                             <div className="v4-pb v4-pb6">
                               <div className="v4-pbf" style={{ width: `${(s.qtd / maxStatus) * 100}%`, background: SERIES[i % SERIES.length] }} />
@@ -572,7 +572,7 @@ export const DashboardClientesOsContent = ({
                   <div className="v4-card-title">Detalhamento de projetos e OS</div>
                   {projetosFiltrado.length > 0 ? (
                     <div style={{ maxHeight: 460, overflow: 'auto' }}>
-                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <table className="v4-tbl">
                         <thead>
                           <tr>
                             <SortTh label="Projeto" colKey="projeto_nome" sort={detalheSort} />

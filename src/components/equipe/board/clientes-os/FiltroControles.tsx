@@ -13,7 +13,7 @@ import { cn } from '@/lib/utils';
 
 const fieldLabelCss: React.CSSProperties = {
   fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase',
-  color: 'var(--board-v4-ink3)', marginBottom: 5, display: 'block',
+  color: 'var(--bd-ink3)', marginBottom: 5, display: 'block',
 };
 
 export const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (

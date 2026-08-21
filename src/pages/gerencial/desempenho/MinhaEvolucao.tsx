@@ -118,7 +118,7 @@ const MinhaEvolucao = () => {
             </div>
             {evolucao && (
               <div className="rounded-lg px-4 py-2 text-center" style={{ backgroundColor: classifBgs[evolucao.classificacaoProjetada] + '33' }}>
-                <p className="text-2xl font-bold" style={{ fontFamily: "'Syne', sans-serif", color: classifColors[evolucao.classificacaoProjetada] }}>{evolucao.pprCalculado}%</p>
+                <p className="text-2xl font-bold" style={{ fontFamily: "'Instrument Sans', sans-serif", color: classifColors[evolucao.classificacaoProjetada] }}>{evolucao.pprCalculado}%</p>
                 <p className="text-xs" style={{ color: classifColors[evolucao.classificacaoProjetada] }}>{classifLabels[evolucao.classificacaoProjetada]}</p>
               </div>
             )}

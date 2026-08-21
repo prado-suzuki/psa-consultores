@@ -1,8 +1,8 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
-import { BarChart2 } from 'lucide-react';
-import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
+import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE, LEGEND_STYLE, BAR_RADIUS } from '@/lib/board-chart-defaults';
 import type { MesComparado, ReceitaAno } from '@/lib/boardEstrategico';
+import { BoardCard, BoardCardEmpty } from './ui/BoardCard';
 
 interface BoardReceitaMensalProps {
   serie: MesComparado[];
@@ -21,23 +21,38 @@ const brlCheio = (v: number) => `R$ ${Math.round(v).toLocaleString('pt-BR')}`;
  * Barras lado a lado (e não uma linha acumulada) porque a pergunta do sócio é
  * "este mês foi melhor que o mesmo mês do ano passado?" — sazonalidade de
  * consultoria tributária torna a comparação mês-contra-mês-anterior enganosa.
+ *
+ * ── O par de cores ───────────────────────────────────────────────────
+ * O ano anterior era pintado no #CBD5E1 do Tailwind — um cinza de estoque, que
+ * não pertencia a paleta nenhuma e lia como "sem dado". Passou a ser o degrau
+ * CLARO do próprio acento (`accentSoft`): duas barras da mesma matiz dizem "é
+ * a mesma medida, em outro período", que é exatamente o que o gráfico compara.
+ * A separação entre elas vem da luminosidade, que é o canal que sobrevive ao
+ * daltonismo — e a legenda continua nomeando os dois anos.
  */
 export const BoardReceitaMensal: React.FC<BoardReceitaMensalProps> = ({ serie, receita, nota }) => {
   const anoAtual = serie[0]?.mes.slice(0, 4) ?? '';
   const anoAnterior = anoAtual ? String(Number(anoAtual) - 1) : '';
   const temDados = serie.some((m) => m.atual > 0 || m.anterior > 0);
+  const variacao = receita.anterior > 0
+    ? ((receita.atual - receita.anterior) / receita.anterior) * 100
+    : null;
 
   return (
-    <div className="v4-card" data-reveal>
-      <div className="v4-card-title" style={{ marginBottom: 4 }}>Receita contratada por mês</div>
-      <div style={{ fontSize: 11, color: 'var(--board-v4-ink3)', marginBottom: 10 }}>
-        {anoAtual} contra os mesmos meses de {anoAnterior} · por data de início da OS
-      </div>
-
+    <BoardCard
+      title="Receita contratada por mês"
+      subtitle={`${anoAtual} contra os mesmos meses de ${anoAnterior} · por data de início da OS`}
+      note={nota}
+      actions={variacao !== null ? (
+        <span className={`pill ${variacao >= 0 ? 'pill-up' : 'pill-down'}`}>
+          {variacao >= 0 ? '+' : ''}{variacao.toFixed(1)}% vs {anoAnterior}
+        </span>
+      ) : undefined}
+    >
       {temDados ? (
         <>
-          <ResponsiveContainer width="100%" height={168}>
-            <BarChart data={serie} barCategoryGap="22%">
+          <ResponsiveContainer width="100%" height={210}>
+            <BarChart data={serie} barCategoryGap="26%" margin={{ top: 4, right: 4, left: -8, bottom: 0 }}>
               <CartesianGrid {...GRID_STYLE} />
               <XAxis dataKey="mes" tickFormatter={rotuloMes} {...AXIS_STYLE} />
               <YAxis tickFormatter={(v: number) => (v === 0 ? '0' : brlCurto(v))} {...AXIS_STYLE} />
@@ -46,48 +61,54 @@ export const BoardReceitaMensal: React.FC<BoardReceitaMensalProps> = ({ serie, r
                 labelFormatter={(m: string) => `${rotuloMes(m)}/${m.slice(2, 4)}`}
                 {...TOOLTIP_STYLE}
               />
-              {/* O `wrapperStyle` sozinho não pegava: o Recharts pinta o rótulo
-                  de cada item com a cor da SÉRIE, inline, e isso ganha do
-                  invólucro. O rótulo "2025" saía em #CBD5E1 (a barra do ano
-                  anterior) — 1,48:1, o texto mais ilegível da tela. O
-                  `formatter` devolve o rótulo com cor de texto própria; o
-                  quadradinho colorido continua fazendo a ligação com a barra,
-                  que é o trabalho da legenda. A barra segue #CBD5E1: área
-                  grande não precisa do mínimo de texto. */}
+              {/* O `wrapperStyle` sozinho não pega: o Recharts pinta o rótulo de
+                  cada item com a cor da SÉRIE, inline, e isso ganha do
+                  invólucro. Foi assim que o rótulo "2025" saiu a 1,48:1 — na
+                  cor da barra clara. O `formatter` devolve o rótulo com cor de
+                  TEXTO própria; o disco colorido continua fazendo a ligação
+                  com a barra, que é o trabalho da legenda. */}
               <Legend
-                iconType="square"
-                iconSize={9}
-                wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+                {...LEGEND_STYLE}
                 formatter={(value: string) => (
-                  <span style={{ color: 'var(--board-v4-ink2)' }}>{value}</span>
+                  <span style={{ color: 'var(--bd-ink2)' }}>{value}</span>
                 )}
               />
-              <Bar dataKey="anterior" name={anoAnterior} fill="#CBD5E1" radius={[3, 3, 0, 0]} />
-              <Bar dataKey="atual" name={anoAtual} fill={CHART_COLORS.accent} radius={[3, 3, 0, 0]} />
+              <Bar dataKey="anterior" name={anoAnterior} fill={CHART_COLORS.accentSoft} radius={BAR_RADIUS} />
+              <Bar dataKey="atual" name={anoAtual} fill={CHART_COLORS.accent} radius={BAR_RADIUS} />
             </BarChart>
           </ResponsiveContainer>
 
-          <div style={{ display: 'flex', gap: 14, marginTop: 4, fontSize: 11, flexWrap: 'wrap' }}>
-            <span style={{ color: 'var(--board-v4-ink2)' }}>
-              Acumulado {anoAtual}: <strong>{brlCheio(receita.atual)}</strong>
-            </span>
-            <span style={{ color: 'var(--board-v4-ink3)' }}>
-              {anoAnterior}: {brlCheio(receita.anterior)}
-            </span>
+          <div style={{
+            display: 'flex', gap: 22, marginTop: 12, paddingTop: 12, flexWrap: 'wrap',
+            borderTop: '1px solid var(--bd-line2)',
+          }}>
+            <div>
+              <div style={{ fontSize: 10.5, color: 'var(--bd-ink3)', textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 600 }}>
+                Acumulado {anoAtual}
+              </div>
+              <div style={{
+                fontFamily: "'Instrument Sans', sans-serif", fontSize: 19, fontWeight: 700,
+                letterSpacing: '-.03em', color: 'var(--bd-ink)', marginTop: 3, fontVariantNumeric: 'tabular-nums',
+              }}>
+                {brlCheio(receita.atual)}
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: 10.5, color: 'var(--bd-ink3)', textTransform: 'uppercase', letterSpacing: '.07em', fontWeight: 600 }}>
+                Mesmo período de {anoAnterior}
+              </div>
+              <div style={{
+                fontFamily: "'Instrument Sans', sans-serif", fontSize: 19, fontWeight: 700,
+                letterSpacing: '-.03em', color: 'var(--bd-ink3)', marginTop: 3, fontVariantNumeric: 'tabular-nums',
+              }}>
+                {brlCheio(receita.anterior)}
+              </div>
+            </div>
           </div>
         </>
       ) : (
-        <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}>
-          <BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: '#CBD5E1' }} />
-          Nenhuma OS com data de início nos meses comparados
-        </div>
+        <BoardCardEmpty>Nenhuma OS com data de início nos meses comparados.</BoardCardEmpty>
       )}
-
-      {nota && (
-        <div style={{ fontSize: 10.5, color: 'var(--board-v4-ink3)', marginTop: 8, lineHeight: 1.5 }}>
-          {nota}
-        </div>
-      )}
-    </div>
+    </BoardCard>
   );
 };

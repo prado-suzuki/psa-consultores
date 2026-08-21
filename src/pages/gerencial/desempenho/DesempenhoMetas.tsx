@@ -180,7 +180,7 @@ const DesempenhoMetas = () => {
       {pprRegras && pprRegras.length > 0 ? (
         <Card className="mb-6 overflow-hidden" style={{ border: '1px solid var(--board-border)' }}>
           <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)' }}>
-            <h3 className="text-sm font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>Regras do PPR — {selectedCiclo?.nome || 'Ciclo Ativo'}</h3>
+            <h3 className="text-sm font-bold text-white" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Regras do PPR — {selectedCiclo?.nome || 'Ciclo Ativo'}</h3>
             <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>Faixas de classificacao e multiplicadores de bonus</p>
           </div>
           <CardContent className="p-4 space-y-1">

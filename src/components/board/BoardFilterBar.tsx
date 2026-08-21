@@ -53,7 +53,7 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
         return (
           <div key={f.key} className="flex items-center gap-1.5" style={vertical ? { flexDirection: 'column', alignItems: 'stretch' } : {}}>
             {!vertical && <span className="v3-fi-label">{f.label}</span>}
-            {vertical && <span className="text-xs font-semibold mb-1" style={{ color: 'hsl(var(--muted-foreground))' }}>{f.label}</span>}
+            {vertical && <span className="text-xs font-semibold mb-1" style={{ color: 'var(--bd-ink3)' }}>{f.label}</span>}
             <div className="v3-segs" style={vertical ? { width: '100%' } : {}}>
               {f.options?.map(o => (
                 <button key={o.value} className={`v3-seg ${val === o.value ? 'on' : ''}`} onClick={() => onFilterChange(f.key, o.value)}>
@@ -68,7 +68,7 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
         return (
           <div key={f.key} className="flex items-center gap-1.5" style={vertical ? { flexDirection: 'column', alignItems: 'stretch' } : {}}>
             {!vertical && <span className="v3-fi-label">{f.label}</span>}
-            {vertical && <span className="text-xs font-semibold mb-1" style={{ color: 'hsl(var(--muted-foreground))' }}>{f.label}</span>}
+            {vertical && <span className="text-xs font-semibold mb-1" style={{ color: 'var(--bd-ink3)' }}>{f.label}</span>}
             <select
               className="v3-fi"
               value={val as string}
@@ -95,7 +95,7 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
       case 'search':
         return (
           <div key={f.key} style={vertical ? { width: '100%' } : {}}>
-            {vertical && <span className="text-xs font-semibold mb-1 block" style={{ color: 'hsl(var(--muted-foreground))' }}>{f.label}</span>}
+            {vertical && <span className="text-xs font-semibold mb-1 block" style={{ color: 'var(--bd-ink3)' }}>{f.label}</span>}
             <input
               className="v3-fi"
               placeholder={f.placeholder || `Buscar...`}
@@ -112,9 +112,9 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
         const [from, to] = dates.split('|');
         return (
           <div key={f.key} className="flex items-center gap-1.5" style={vertical ? { flexDirection: 'column', alignItems: 'stretch' } : {}}>
-            {vertical && <span className="text-xs font-semibold mb-1" style={{ color: 'hsl(var(--muted-foreground))' }}>{f.label}</span>}
+            {vertical && <span className="text-xs font-semibold mb-1" style={{ color: 'var(--bd-ink3)' }}>{f.label}</span>}
             <input type="date" className="v3-fi" value={from || ''} onChange={e => onFilterChange(f.key, `${e.target.value}|${to || ''}`)} aria-label={`${f.label} de`} style={{ padding: '4px 6px' }} />
-            <span style={{ fontSize: 11, color: 'hsl(var(--muted-foreground))' }}>até</span>
+            <span style={{ fontSize: 11, color: 'var(--bd-ink3)' }}>até</span>
             <input type="date" className="v3-fi" value={to || ''} onChange={e => onFilterChange(f.key, `${from || ''}|${e.target.value}`)} aria-label={`${f.label} até`} style={{ padding: '4px 6px' }} />
           </div>
         );
@@ -162,6 +162,12 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
   return (
     <>
       <div className="v3-fbar">
+        {/* Rótulo da barra: sem ele os controles flutuavam sem dizer o que
+            governam. Mesmo tom dos cabeçalhos de tabela. */}
+        <span className="v3-fi-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+          <SlidersHorizontal style={{ width: 12, height: 12 }} />
+          Filtros
+        </span>
         {filters.map(f => renderFilter(f))}
         {activeCount > 0 && (
           <>
@@ -202,7 +208,7 @@ const MultiselectFilter: React.FC<{
 
   return (
     <div className="flex items-center gap-1.5" style={vertical ? { flexDirection: 'column', alignItems: 'stretch' } : {}}>
-      {vertical && <span className="text-xs font-semibold mb-1" style={{ color: 'hsl(var(--muted-foreground))' }}>{config.label}</span>}
+      {vertical && <span className="text-xs font-semibold mb-1" style={{ color: 'var(--bd-ink3)' }}>{config.label}</span>}
       {!vertical && <span className="v3-fi-label">{config.label}</span>}
       <Popover>
         <PopoverTrigger asChild>
@@ -229,8 +235,8 @@ const MultiselectFilter: React.FC<{
 // Empty state when filters result in 0 items
 export const FilterEmptyState: React.FC<{ onReset?: () => void }> = ({ onReset }) => (
   <div className="v3-fi-empty">
-    <FilterX style={{ width: 32, height: 32, color: 'hsl(var(--muted-foreground))', marginBottom: 8, opacity: 0.5 }} />
-    <p style={{ fontSize: 13, color: 'hsl(var(--muted-foreground))', marginBottom: 8 }}>Nenhum resultado para os filtros aplicados</p>
+    <FilterX style={{ width: 30, height: 30, color: 'var(--bd-ink4)', marginBottom: 10, opacity: 0.6 }} />
+    <p style={{ fontSize: 13, color: 'var(--bd-ink3)', marginBottom: 10 }}>Nenhum resultado para os filtros aplicados</p>
     {onReset && (
       <button className="v3-fi" onClick={onReset} style={{ padding: '6px 14px', fontSize: 12, fontWeight: 600 }}>Limpar filtros</button>
     )}
