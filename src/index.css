@@ -1075,7 +1075,13 @@ All colors MUST be HSL.
   --cy:#06B2D0;--cy-s:rgba(6,178,208,.11);
   --go:#D4960A;--go-s:rgba(212,150,10,.12);
   --bg:#EEF2F8;--bdr:#E0E8F4;--bdr-s:#F0F5FB;
-  --t1:#0A1020;--t2:#3A4B66;--t3:#6E82A0;--t4:#A4B5CC;
+  /* `--t3` escurecido de #6E82A0 em 21/08: dava 3,35:1 sobre o #E6EEF8 do
+     `.v3-segs`, o trilho dos chips de período (7d / 30d / 90d) da barra de
+     filtros. Mesmo matiz e mesma saturação (H 216°, S 21%), L 53% → 42%; agora
+     4,93:1. Das 10 classes que leem `--t3`, só `.v3-seg` tem consumidor no
+     código (`BoardFilterBar`, `FaturamentoDetalhe`, `BoardDashboardClientesOs`)
+     — as outras 9 são CSS sem chamador. Todas sobre superfície clara. */
+  --t1:#0A1020;--t2:#3A4B66;--t3:#556781;--t4:#A4B5CC;
   --r:12px;--rs:8px;--rxs:6px;
   --sh:0 1px 4px rgba(10,16,32,.07),0 0 0 1px rgba(10,16,32,.04);
   --shm:0 4px 18px rgba(10,16,32,.1),0 0 0 1px rgba(10,16,32,.04);
