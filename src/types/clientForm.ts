@@ -83,6 +83,8 @@ export interface DraftOrdemServico {
   produtos_contratados: DraftProdutoContratado[];
   distribuicao_receita: Array<{ id_centro_custo: string; percentual_rateio: number; _dbId?: string }>;
   cluster_id: string;
+  /** Contribuinte que recebe a nota desta OS. Vazio quando ainda não escolhido. */
+  contribuinte_id: string;
   setor_cliente: string;
   setor_cliente_id: string;
   regiao: string;

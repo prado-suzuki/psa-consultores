@@ -69,6 +69,7 @@ const os = (over: Partial<DraftOrdemServico> = {}): DraftOrdemServico => ({
   produtos_contratados: [{ _id: 1, produto_segmento_id: 'p1' }],
   distribuicao_receita: [{ id_centro_custo: CENTRO_A, percentual_rateio: 100 }],
   cluster_id: 'cl-1',
+  contribuinte_id: '',
   setor_cliente: 'AGR',
   setor_cliente_id: 'st-1',
   regiao: 'centro_oeste',

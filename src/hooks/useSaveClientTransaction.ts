@@ -306,7 +306,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
       const clientFields = ['nome', 'categoria', 'ativo', 'fixo', 'telefone', 'municipio', 'uf', 'observacoes'];
       const contribFields = ['tipo_pessoa', 'cpf_cnpj', 'nome_razao_social', 'nome_fantasia', 'situacao_inscricao_estadual', 'inscricao_estadual', 'cod_cnae', 'setor', 'simples_nacional', 'telefone', 'cep', 'logradouro', 'numero', 'complemento', 'bairro', 'municipio', 'uf', 'contribuinte_faturamento'];
       const partFields = ['nome', 'tipo_representante', 'cargo', 'email', 'telefone', 'observacoes', 'acesso_chamados'];
-      const osFields = ['ordem_servico', 'data_emissao', 'data_inicio_projeto', 'data_fim_projeto', 'valor_projeto', 'numero_parcelas', 'valor_entrada', 'valor_reembolso_km', 'valor_reembolso_refeicao', 'situacao_projeto', 'observacoes_projeto', 'cluster_id', 'setor_cliente', 'setor_cliente_id', 'regiao'];
+      const osFields = ['ordem_servico', 'data_emissao', 'data_inicio_projeto', 'data_fim_projeto', 'valor_projeto', 'numero_parcelas', 'valor_entrada', 'valor_reembolso_km', 'valor_reembolso_refeicao', 'situacao_projeto', 'observacoes_projeto', 'cluster_id', 'contribuinte_id', 'setor_cliente', 'setor_cliente_id', 'regiao'];
 
       const snap = isEditing ? originalSnapshot : null;
 
@@ -671,6 +671,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           situacao: c.situacao_projeto || "em_andamento",
           observacoes: c.observacoes_projeto || null,
           cluster_id: c.cluster_id || null,
+          contribuinte_id: c.contribuinte_id || null,
           setor_cliente: setorSigla,
           setor_cliente_id: c.setor_cliente_id || null,
           regiao: c.regiao || null,

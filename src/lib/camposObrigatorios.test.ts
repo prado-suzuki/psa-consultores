@@ -43,6 +43,7 @@ const osCompleta = (over: Partial<DraftOrdemServico> = {}): DraftOrdemServico =>
     _id: 7,
     ordem_servico: '001/2026',
     cluster_id: 'c1',
+    contribuinte_id: '',
     data_inicio_projeto: '2026-01-10',
     data_fim_projeto: '2026-12-20',
     setor_cliente_id: 's1',
