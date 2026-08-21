@@ -13,9 +13,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Sparkles, Star, DollarSign, AlertTriangle, CheckCircle, RefreshCw, type LucideIcon } from 'lucide-react';
+import { Star, DollarSign, AlertTriangle, CheckCircle, RefreshCw, type LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoBoardDecisoes } from '@/lib/agenteContextoDesempenho';
 
 interface AiRecommendation {
   membro_id: string;
@@ -90,12 +92,39 @@ const DesempenhoDecisoes = () => {
 
   const getAiRec = (membroId: string) => aiResult?.recomendacoes?.find((r) => r.membro_id === membroId);
 
+  // ── O que o Agente PSA lê desta tela ───────────────────────────────────
+  // Percentual de reajuste sugerido NÃO vai no snapshot, de propósito -- ver a
+  // nota em `contextoBoardDecisoes`.
+  useRegistrarContextoAgente('board.desempenho.decisoes', contextoBoardDecisoes({
+    ciclo: cicloAtivo?.nome ?? null,
+    sintese: aiResult?.sintese ?? null,
+    // `null` e não `[]`: a consulta que ainda não respondeu não pode chegar
+    // como "nenhuma pessoa no ciclo".
+    membros: membros
+      ? membros.map((m) => {
+        const rec = getAiRec(m.membro_id);
+        return {
+          nome: `${m.first_name} ${m.last_name}`.trim(),
+          ppr: m.ppr,
+          classificacao: m.classificacao,
+          metas: m.totalMetas,
+          metasConcluidas: m.metasConcluidas,
+          feedbacksPositivos: m.feedbacksPositivos,
+          feedbacksDesenvolvimento: m.feedbacksDesenvolvimento,
+          recomendacao: m.recomendacao_decisao,
+          justificativa: rec?.justificativa ?? null,
+        };
+      })
+      : null,
+    falhas: [],
+  }), isLoading);
+
   return (
     <BoardLayout title="Decisoes" subtitle="Recomendacoes de IA para promocao, reajuste e acompanhamento">
       <div className="space-y-5">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-[18px] font-bold" style={{ fontFamily: "'Syne', sans-serif", color: 'var(--board-t1)' }}>Decisoes de Pessoas</h2>
+            <h2 className="text-[18px] font-bold" style={{ fontFamily: "'Instrument Sans', sans-serif", color: 'var(--board-t1)' }}>Decisoes de Pessoas</h2>
             <p className="text-[12.5px]" style={{ color: 'var(--board-t3)' }}>Recomendacoes baseadas nos dados do ciclo {cicloAtivo?.nome || ''}</p>
           </div>
           <Button onClick={handleGenerateAI} disabled={aiLoading || !cicloAtivo} size="sm">
@@ -103,15 +132,12 @@ const DesempenhoDecisoes = () => {
           </Button>
         </div>
 
-        {/* AI Synthesis */}
-        {aiResult?.sintese && (
-          <div className="board-ai-box">
-            <div className="flex items-center gap-[6px] text-[9.5px] font-bold tracking-[0.1em] uppercase mb-2" style={{ color: 'var(--board-indigo)' }}>
-              <Sparkles className="h-3 w-3" /> Sintese de Recomendacoes
-            </div>
-            <p className="text-[12.5px] leading-[1.55]" style={{ color: 'var(--board-t2)' }}>{aiResult.sintese}</p>
-          </div>
-        )}
+        {/* REMOVIDO (21/08): o cartão "Sintese de Recomendacoes" era um bloco
+            de análise de IA no meio da tela. A síntese continua sendo gerada
+            pelo botão acima -- é ela que preenche a justificativa de cada
+            linha -- mas o TEXTO dela passou a viver no snapshot publicado para
+            o Agente PSA, no ícone ao lado do título, rotulado como texto de
+            modelo e não como número apurado da tela. */}
 
         {isLoading ? <Skeleton className="h-64" /> : (
           <div className="space-y-3">

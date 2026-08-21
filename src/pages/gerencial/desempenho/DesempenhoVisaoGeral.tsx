@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCicloAtivo, useCiclosAvaliacao } from '@/hooks/useCiclosAvaliacao';
@@ -8,14 +8,14 @@ import { useFeedbacks } from '@/hooks/useFeedbacksDesempenho';
 import { useReunioes, useAllOpenItensAcao } from '@/hooks/useReunioes1a1';
 import { useProfilesNomeMap, useProfilesNomeRows } from '@/hooks/useDomainProfiles';
 import { Skeleton } from '@/components/ui/skeleton';
-import { AlertCircle, AlertTriangle, Info, RefreshCw } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
 import { differenceInDays } from 'date-fns';
 import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { BoardStatStrip } from '@/components/board/BoardStatStrip';
-import { BoardAIBox } from '@/components/board/BoardAIBox';
 import { BoardChip } from '@/components/board/BoardChip';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
+import { listarFalhas } from '@/lib/performanceOperacional';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoBoardDesempenho } from '@/lib/agenteContextoDesempenho';
 
 const DEFAULTS = { ciclo: '', area: 'todas', alertas: 'todos' };
 
@@ -37,17 +37,15 @@ const DesempenhoVisaoGeral = () => {
   const { data: ciclos } = useCiclosAvaliacao();
   const { data: cicloAtivo } = useCicloAtivo();
   const { filters, setFilter } = useBoardFilters({ pageKey: 'desempenho-geral', defaults: DEFAULTS });
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiData, setAiData] = useState<{ sintese: string; bullets: string[] } | null>(null);
   const revealRef = useBoardReveal();
   const navigate = useNavigate();
 
   const cicloId = (filters.ciclo as string) || cicloAtivo?.id;
   const selectedCiclo = ciclos?.find(c => c.id === cicloId);
-  const { data: overview, isLoading } = useDesempenhoOverview(cicloId);
-  const { data: metasIndividuais } = useMetas({ ciclo_id: cicloId, nivel: 'individual' });
-  const { data: feedbacks } = useFeedbacks({ ciclo_id: cicloId });
-  const { data: reunioes } = useReunioes();
+  const { data: overview, isLoading, isError: erroOverview } = useDesempenhoOverview(cicloId);
+  const { data: metasIndividuais, isError: erroMetas } = useMetas({ ciclo_id: cicloId, nivel: 'individual' });
+  const { data: feedbacks, isError: erroFeedbacks } = useFeedbacks({ ciclo_id: cicloId });
+  const { data: reunioes, isError: erroReunioes } = useReunioes();
   const { data: openItems } = useAllOpenItensAcao();
 
   const { data: profiles } = useProfilesNomeMap('profiles_safe');
@@ -127,26 +125,6 @@ const DesempenhoVisaoGeral = () => {
     return { reconhecimento, desenvolvimento };
   }, [feedbacks]);
 
-  const handleGenerateAI = async () => {
-    setAiLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('gerar-sintese-executiva');
-      if (error) throw error;
-      setAiData(data);
-    } catch {
-      const membrosRisco = pprPorMembro.filter(m => m.ppr < 70);
-      setAiData({
-        sintese: `Com ${pctDecorrido}% do ciclo decorrido e média em ${overview?.mediaProgresso ?? 0}%, a projeção aponta para ${(overview?.mediaProgresso ?? 0) >= 85 ? 'Atende Expectativas' : 'atenção necessária'} — ${membrosRisco.length > 0 ? `${membrosRisco.length} membros podem cair para Atende Parcialmente` : 'sem membros em risco crítico'}.`,
-        bullets: [
-          pprPorMembro.filter(m => m.ppr >= 85).length > 0 ? `${pprPorMembro.filter(m => m.ppr >= 85).map(m => m.name.split(' ')[0]).join(' e ')} estão acima da linha — sem intervenção necessária` : 'Nenhum membro acima de 85%',
-          membrosRisco.length > 0 ? `${membrosRisco[0]?.name}: queda sugere bloqueador — agendar 1:1` : 'Todos os membros dentro do esperado',
-          `${overview?.totalFeedbacks ?? 0} feedbacks registrados no ciclo`,
-        ],
-      });
-    }
-    setAiLoading(false);
-  };
-
   const getClassifChipVariant = (c: string): 'ppr-s' | 'ppr-a' | 'ppr-p' | 'ppr-b' => c === 'supera' ? 'ppr-s' : c === 'atende' ? 'ppr-a' : c === 'parcial' ? 'ppr-p' : 'ppr-b';
   const getClassifLabel = (c: string) => c === 'supera' ? 'Supera' : c === 'atende' ? 'Atende' : c === 'parcial' ? 'Parcial' : 'Abaixo';
   const getPbColor = (pct: number) => pct >= 85 ? 'v4-pg' : pct >= 70 ? 'v4-pa' : 'v4-pr';
@@ -158,6 +136,58 @@ const DesempenhoVisaoGeral = () => {
     return !last || differenceInDays(new Date(), new Date(last.data_reuniao)) > 30;
   });
   const itensVencidos = (openItems ?? []).filter(i => i.prazo && new Date(i.prazo) < new Date()).length;
+
+  // ── O que o Agente PSA lê desta tela ───────────────────────────────────
+  // Montado INLINE de propósito: `useRegistrarContextoAgente` compara a
+  // SERIALIZAÇÃO do snapshot, não a identidade do objeto, então um `useMemo`
+  // com dez dependências aqui só adicionaria uma lista para esquecer de
+  // atualizar. Os valores são os MESMOS que os blocos abaixo desenham.
+  useRegistrarContextoAgente('board.desempenho', contextoBoardDesempenho({
+    ciclo: {
+      nome: selectedCiclo?.nome ?? null,
+      status: selectedCiclo?.status ?? null,
+      fim: selectedCiclo?.data_fim ?? null,
+      pctDecorrido,
+      analiseSemestral: selectedCiclo?.data_analise_semestral ?? null,
+    },
+    // `?? null` e nunca `?? 0`: consulta que não respondeu é "não apurado", e
+    // zero metas é uma resposta diferente de "não sei quantas metas existem".
+    totalMetas: overview?.totalMetas ?? null,
+    metasConcluidas: overview?.metasConcluidas ?? null,
+    metasEmRisco: metasIndividuais
+      ? metasIndividuais.filter(m => m.progresso_atual < 70 && m.status === 'ativa').length
+      : null,
+    mediaProgresso: overview?.mediaProgresso ?? null,
+    feedbacks: {
+      total: overview?.totalFeedbacks ?? null,
+      reconhecimento: feedbacksByType.reconhecimento,
+      desenvolvimento: feedbacksByType.desenvolvimento,
+    },
+    reunioes: {
+      noCiclo: reunioesNoCiclo.length,
+      membrosSem1a1: membrosSem1a1.length,
+      itensVencidos,
+    },
+    ppr: pprPorMembro.map(m => ({
+      nome: m.name, ppr: m.ppr, classificacao: m.classificacao,
+      metas: m.metas, metasAtivas: m.metasAtivas,
+      feedbacks: m.fbCount, reunioes: m.rnCount,
+    })),
+    // Os alertas que o cartão removido desenhava. 'blue' era informativo.
+    alertas: alerts.map(a => ({
+      severidade: a.type === 'red' ? 'risco' as const
+        : a.type === 'amber' ? 'atencao' as const
+        : 'info' as const,
+      titulo: a.title,
+      detalhe: a.desc,
+    })),
+    falhas: listarFalhas([
+      { rotulo: 'overview do ciclo', falhou: erroOverview },
+      { rotulo: 'metas individuais', falhou: erroMetas },
+      { rotulo: 'feedbacks', falhou: erroFeedbacks },
+      { rotulo: '1:1s', falhou: erroReunioes },
+    ]),
+  }), isLoading);
 
   return (
     <BoardLayout title="Visão Geral" subtitle="Desempenho da equipe">
@@ -239,30 +269,13 @@ const DesempenhoVisaoGeral = () => {
               ]}
             />
 
-            {/* AI + Alerts */}
-            <div className="v4-g2">
-              <BoardAIBox
-                label="Análise IA do Ciclo"
-                data={aiData}
-                loading={aiLoading}
-                onGenerate={handleGenerateAI}
-              />
-
-              <div className="v4-card" data-reveal>
-                <div className="v4-card-title">Alertas que Requerem Ação</div>
-                {alerts.length === 0 && <div style={{ background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: 8, padding: '10px 13px', fontSize: 12, color: '#065F46' }}>Nenhum alerta no momento.</div>}
-                {alerts.map((a, i) => (
-                  <div key={i} className={`v4-alert ${a.type === 'red' ? 'v4-alert-r' : a.type === 'amber' ? 'v4-alert-a' : 'v4-alert-b'}`}>
-                    {a.type === 'red' ? <AlertCircle style={{ width: 14, height: 14, color: 'var(--board-v4-risk)', flexShrink: 0 }} /> : a.type === 'amber' ? <AlertTriangle style={{ width: 14, height: 14, color: 'var(--board-v4-warn)', flexShrink: 0 }} /> : <Info style={{ width: 14, height: 14, color: 'var(--board-v4-blue)', flexShrink: 0 }} />}
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--board-v4-ink)', marginBottom: 1 }}>{a.title}</div>
-                      <div style={{ fontSize: 11, color: 'var(--board-v4-ink3)' }}>{a.desc}</div>
-                    </div>
-                    <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--board-v4-accent)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }} onClick={() => navigate(a.link)}>Ver</span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* REMOVIDO (21/08): "Análise IA do Ciclo" e "Alertas que Requerem
+                Ação" eram dois cartões no meio da grade. A análise por IA virou
+                conversa com o Agente PSA e os alertas viraram a faixa "Exige
+                decisão" DENTRO do painel dele -- os dois no ícone ao lado do
+                título, com ponto colorido quando há risco ou falha de
+                carregamento. O cálculo de `alerts` continua aqui: ele alimenta
+                o snapshot publicado acima, que é o que o painel desenha. */}
 
             {/* Member Cards */}
             <div className="v4-slabel" data-reveal>Progresso Individual — Ciclo Atual</div>

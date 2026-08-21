@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AreaThemeProvider } from "@/components/AreaThemeProvider";
+import { AgenteProvider } from "@/contexts/AgenteProvider";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -179,6 +180,11 @@ const App = () => (
                 gates não serve: LiderRoute devolve `null` enquanto carrega o
                 papel do usuário, e nesse intervalo a tela ficaria sem tema. */}
             <AreaThemeProvider>
+            {/* Agente PSA: o Provider e global, o BALAO nao. Ele so aparece na
+                tela que publica contexto (`useRegistrarContextoAgente`) -- e por
+                isso pode morar aqui, acima das rotas, sem vazar para a home
+                publica nem para o portal do cliente. Hoje: Board > Estrategico. */}
+            <AgenteProvider>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/missao" element={<Missao />} />
@@ -398,6 +404,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </AgenteProvider>
             </AreaThemeProvider>
           </AuthProvider>
         </BrowserRouter>

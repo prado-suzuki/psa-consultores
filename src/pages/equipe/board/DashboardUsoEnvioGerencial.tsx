@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { AlertCircle, BarChart3, FlaskConical, RefreshCw } from 'lucide-react';
+import { BarChart3, FlaskConical, RefreshCw } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Bar,
@@ -62,6 +62,8 @@ import { useUserEstrutura } from '@/hooks/useUserEstrutura';
 import { rotuloCluster } from '@/lib/analytics-uso/metricas';
 import type { AnalyticsUsoFiltros } from '@/lib/analytics-uso/types';
 import { prepararGerencialViewModel } from '@/lib/analytics-uso/viewModels';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoBoardFerramentas } from '@/lib/agenteContextoFerramentas';
 
 const TODOS = 'todos';
 const periodoValido = (valor: string | null) =>
@@ -130,7 +132,6 @@ const DashboardUsoEnvioGerencial = () => {
   const tabelaPessoas = useSort(atividadePessoas, 'chamadas');
   const pessoasVisiveis = useTopN(tabelaPessoas.sorted, 20);
   const carregando = !escopoPronto || gerencial.isLoading;
-  const erro = gerencial.error ?? catalogo.error;
   const catalogoFerramentas =
     catalogo.data?.ferramentas.length ?? gerencial.data?.porFerramenta.length;
 
@@ -170,6 +171,39 @@ const DashboardUsoEnvioGerencial = () => {
   );
   const temFiltro = usuarioSelecionado !== TODOS || (isAdmin && clusterSelecionado !== TODOS);
   const atualizando = gerencial.isFetching;
+
+  // ── O que o Agente PSA lê desta tela ───────────────────────────────────
+  // Os DOIS qualificadores desta base viajam junto do número: mês de
+  // referência parcial e retenção `null` no primeiro mês da série. Sem eles o
+  // agente leria queda de adoção onde há mês pela metade.
+  useRegistrarContextoAgente('board.ferramentas', contextoBoardFerramentas({
+    periodo: OPCOES_PERIODO.find((o) => o.id === periodoSelecionado)?.rotulo ?? periodoSelecionado,
+    escopo: clusterId ? rotuloCluster(clusterId) : 'consolidado, todas as unidades',
+    pessoa: usuarioSelecionado === TODOS ? null : usuarioSelecionado,
+    // `?? null`: sem resposta da consulta, o bloco inteiro fica não apurado —
+    // nunca zeros, que aqui leriam como "ninguém usa a ferramenta".
+    totais: totais ?? null,
+    mesReferencia: {
+      label: apiMes ? mesLabel(apiMes.mes) : null,
+      parcial: mesReferenciaParcial,
+      taxaRetencao: apiMes?.taxaRetencao ?? null,
+      anteriorLabel: mesAnteriorRotulo,
+    },
+    ferramentas,
+    pessoas: atividadePessoas.map((p) => ({
+      usuario: p.usuario,
+      chamadas: p.chamadas,
+      diasAtivos: p.diasAtivos,
+      ferramentasUsadas: p.ferramentasUsadas,
+      documentosEnviados: p.documentosEnviados,
+    })),
+    catalogoFerramentas: catalogoFerramentas ?? null,
+    usandoFixtures: USANDO_FIXTURES,
+    falhas: [
+      ...(gerencial.error ? [`uso das ferramentas (${gerencial.error.message})`] : []),
+      ...(catalogo.error ? [`catálogo de ferramentas (${catalogo.error.message})`] : []),
+    ],
+  }), carregando);
 
   return (
     <BoardLayout title="Ferramentas" subtitle="Adoção, engajamento e retenção">
@@ -230,28 +264,11 @@ const DashboardUsoEnvioGerencial = () => {
           }}
         />
 
-        {erro && (
-          <div
-            className="flex items-start gap-3 rounded-xl border-l-[3px] border-rose-700 bg-rose-50 px-4 py-3 text-sm text-rose-900"
-            role="alert"
-          >
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-700" />
-            <span className="flex-1">{erro.message}</span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-7 gap-1 text-rose-800 hover:bg-rose-100"
-              onClick={() => {
-                if (catalogo.error) void catalogo.refetch();
-                if (gerencial.error) void gerencial.refetch();
-              }}
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Tentar novamente
-            </Button>
-          </div>
-        )}
+        {/* REMOVIDO (21/08): o banner de erro com "Tentar novamente" era um
+            cartão vermelho no topo. A informação vai para o painel do Agente
+            PSA (ícone ao lado do título), com o ponto VERMELHO aceso enquanto
+            houver falha, e o caminho de tentar de novo não se perdeu: o botão
+            "Atualizar" continua na barra de filtros acima. */}
 
         {/* slate-600, não 500: sobre o `--board-bg` (#F0F4F8) o 500 dá 4,31:1. */}
         <p className="text-xs text-slate-600">

@@ -34,6 +34,7 @@ import {
   LayoutDashboard,
   Network,
   Wallet,
+  Bot,
 } from 'lucide-react';
 import { GestaoClientesContent } from '@/pages/equipe/fiscal/GestaoClientes';
 import CadastroCategorias from '@/components/equipe/CadastroCategorias';
@@ -43,6 +44,7 @@ import { UsersTab } from '@/components/acessos/UsersTab';
 import DashboardsTab from '@/components/acessos/DashboardsTab';
 import { AccessStatsCards } from '@/components/acessos/AccessStatsCards';
 import { PontoDaArea } from '@/components/acessos/PontoDaArea';
+import { AgenteTab } from '@/components/acessos/AgenteTab';
 import {
   type ControleAcessosAreaInterna,
   type ControleAcessosCadastroStats,
@@ -285,6 +287,13 @@ const EquipeControleAcessos = () => {
                   <LayoutDashboard className="h-4 w-4 mr-2" />
                   Dashboards
                 </TabsTrigger>
+                <TabsTrigger
+                  value="agente"
+                  className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                >
+                  <Bot className="h-4 w-4 mr-2" />
+                  Agente
+                </TabsTrigger>
               </TabsList>
 
               {/* Pages Tab (extraído em componente) */}
@@ -352,6 +361,13 @@ const EquipeControleAcessos = () => {
               {/* Dashboards Tab (cadastro) */}
               <TabsContent value="dashboards" className="space-y-4">
                 <DashboardsTab />
+              </TabsContent>
+
+              {/* Agente Tab — cockpit do Agente PSA: configuracao, prompt,
+                  nivel de acesso, o que ele processa por resposta, volume de
+                  insights e o historico de aprendizado. */}
+              <TabsContent value="agente" className="space-y-4">
+                <AgenteTab />
               </TabsContent>
             </Tabs>
 
