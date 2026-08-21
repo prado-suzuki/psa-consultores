@@ -354,6 +354,38 @@ export const DashboardClientesOsContent = ({
               </Button>
             )}
           </div>
+
+          {/* Achado do Bloco G (21/08): o período padrão corta OS antigas em
+              silêncio -- `activeCount` não conta esse recorte como "filtro
+              ativo" (é o valor de DEFAULTS), então o botão "Limpar" acima nem
+              aparece. É a causa de PSA Norte, Prado Suzuki e outros centros
+              de custo com OS lançada ficarem fora do gráfico "Valor por
+              centro de custo". Recorte impossível de não ver, mesmo no padrão. */}
+          {periodo === PERIODO_DEFAULT && (
+            <div
+              role="status"
+              style={{
+                marginTop: 10, display: 'flex', alignItems: 'center', gap: 8,
+                fontSize: 11.5, color: 'var(--board-v4-warn)',
+              }}
+            >
+              <AlertTriangle style={{ width: 13, height: 13, flexShrink: 0 }} />
+              <span>
+                Mostrando só OS iniciadas a partir de 01/01/2026 (padrão desta tela) — OS mais
+                antigas com centro de custo já lançado podem não aparecer nos gráficos.
+              </span>
+              <button
+                type="button"
+                onClick={() => setFilter('periodo', PERIODO_VAZIO)}
+                style={{
+                  fontWeight: 600, textDecoration: 'underline', color: 'var(--board-v4-warn)',
+                  background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0,
+                }}
+              >
+                Ver tudo
+              </button>
+            </div>
+          )}
         </div>
 
         {error ? (

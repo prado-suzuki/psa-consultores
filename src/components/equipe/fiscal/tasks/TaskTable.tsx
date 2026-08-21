@@ -32,6 +32,8 @@ import { OrgTask, OrgTaskStatus, OrgTaskPriority, useUpdateOrgTask } from '@/hoo
 import { statusColors } from '@/lib/taskStatusColors';
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
+ import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
 import { toast } from 'sonner';
 
 interface TaskTableProps {
@@ -67,6 +69,7 @@ const statusLabels = Object.fromEntries(
  export const TaskTable = ({ tasks, area, onEdit, onDelete, onReassign, onMove, onAddSubtask, currentUserId }: TaskTableProps) => {
    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
    const updateTask = useUpdateOrgTask(area);
+   const conclusao = useTaskCompletionHours();
  
    const parentTasks = tasks.filter(t => !t.parent_task_id);
    const getSubtasks = (parentId: string) => tasks.filter(t => t.parent_task_id === parentId);
@@ -88,6 +91,7 @@ const statusLabels = Object.fromEntries(
        toast.error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
        return;
      }
+     if (status === 'done' && !conclusao.pedirHoras(task)) return;
      updateTask.mutate({ id: task.id, status });
    };
  
@@ -285,6 +289,11 @@ const statusLabels = Object.fromEntries(
            )}
          </TableBody>
        </Table>
+       <TaskCompletionHoursDialog
+         task={conclusao.taskPendente}
+         area={area}
+         onClose={conclusao.fechar}
+       />
      </div>
    );
  };

@@ -56,17 +56,21 @@ describe('taskSchema', () => {
     );
   });
 
-  it('exige confirmação quando as horas realizadas passam do triplo da estimativa', () => {
-    const suspeito = { ...validInput, status: 'done' as const, actual_hours: 60 };
-    const result = taskSchema.safeParse(suspeito);
+  it('não bloqueia horas muito acima da estimativa — o aviso ao lado do campo é informativo', () => {
+    // 60h em 5h estimadas acende o `AvisoHorasDigitadas`, mas salvar não exige
+    // confirmar nada: a hora pode ter estourado de verdade.
+    expect(
+      taskSchema.safeParse({ ...validInput, status: 'done', actual_hours: 60 }).success,
+    ).toBe(true);
+  });
+
+  it('trata zero como ausência de apontamento ao concluir', () => {
+    const result = taskSchema.safeParse({ ...validInput, status: 'done', actual_hours: 0 });
     expect(result.success).toBe(false);
     expect(result.error?.issues[0]).toMatchObject({
       path: ['actual_hours'],
-      message: 'Confirme o aviso',
+      message: 'Informe as horas realizadas',
     });
-
-    expect(taskSchema.safeParse({ ...suspeito, hours_ack: true }).success).toBe(true);
-    expect(taskSchema.safeParse({ ...suspeito, actual_hours: 8 }).success).toBe(true);
   });
 
   it('coage actual_hours vazio para 0 (achado nº 2)', () => {

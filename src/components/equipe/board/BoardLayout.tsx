@@ -263,7 +263,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
         {/* DIRETORIA group */}
         <div className="mb-5">
           {!collapsed && (
-            <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-grp)' }}>
+            <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-txt)' }}>
               Diretoria
             </p>
           )}
@@ -293,7 +293,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
         {showGestaoTime && (
           <div className="mb-5">
             {!collapsed && (
-              <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-grp)' }}>
+              <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-txt)' }}>
                 Gestão de Time
               </p>
             )}
@@ -354,7 +354,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
         {/* MINHA AREA group */}
         <div className="mb-5">
           {!collapsed && (
-            <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-grp)' }}>
+            <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-txt)' }}>
               Minha Area
             </p>
           )}
@@ -454,7 +454,10 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
               <div className="flex items-center gap-[6px] text-[12px]" style={{ color: 'var(--board-t3)' }}>
                 {breadcrumb.map((b, i) => (
                   <span key={b.path} className="flex items-center gap-[6px]">
-                    {i > 0 && <span style={{ color: 'var(--board-border)' }}>/</span>}
+                    {/* Sem cor própria: herda o `--board-t3` do contêiner acima.
+                        Antes o separador pintava com `--board-border`, que é token
+                        de BORDA — dava 1,21:1 como texto. */}
+                    {i > 0 && <span>/</span>}
                     {i === breadcrumb.length - 1 ? (
                       <span className="text-[12.5px] font-medium" style={{ color: 'var(--board-t1)' }}>{b.label}</span>
                     ) : (
@@ -464,7 +467,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
                 ))}
                 {subtitle && (
                   <>
-                    <span style={{ color: 'var(--board-border)' }}>·</span>
+                    <span>·</span>
                     <span className="hidden sm:inline text-[11.5px]">{subtitle}</span>
                   </>
                 )}

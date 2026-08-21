@@ -38,6 +38,14 @@ export interface PerformanceProject {
   name: string;
   client_name: string | null;
   area_name: string | null;
+  /**
+   * FK direta para `estrutura_areas` -- a área de CADASTRO do projeto, sem
+   * passar pelo bucket de 4 categorias. Usada pelo "Áreas em um olhar"
+   * (Bloco E, 21/08) pra listar áreas nominalmente, não por bucket.
+   * `null` quando o projeto não tem área própria (cai pela equipe, ver
+   * `area_name`/`area_key`).
+   */
+  estrutura_area_id: string | null;
   /** Bucket do painel resolvido por CLUSTER (área → equipe → cliente). */
   area_key: BoardAreaKey | null;
   /**
@@ -238,6 +246,7 @@ export const usePerformanceData = (periodo: string, _areaIgnorada?: string) => {
           name: p.name,
           client_name: p.cliente?.nome || null,
           area_name: p.area?.name || areaDaEquipe?.name || null,
+          estrutura_area_id: p.estrutura_area_id ?? null,
           area_key: areaKey,
           cluster_id: clusterDoProjeto,
           area_color: p.area?.color || null,

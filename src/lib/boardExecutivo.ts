@@ -398,6 +398,124 @@ export function resumoPorArea(
   }).filter((r) => r.projetos > 0 || r.concluidas > 0);
 }
 
+// ── Resumo por área de CADASTRO (Bloco E, 21/08) ──────────────────────────
+export interface AreaCadastro {
+  id: string;
+  name: string;
+  is_active: boolean;
+}
+
+export interface ResumoAreaCadastro {
+  id: string;
+  label: string;
+  projetos: number;
+  emDia: number;
+  emRisco: number;
+  atrasados: number;
+  pontualidade: number | null;
+  concluidas: number;
+  comPrazo?: number;
+  /**
+   * Unidade de trabalho da contagem de `concluidas` (Bloco E4, 21/08): tarefa
+   * de projeto e entregável de sprint não são a mesma grandeza — dizer a
+   * unidade por linha em vez de somar tudo numa coluna sem rótulo.
+   */
+  unidade: 'tarefas' | 'entregáveis';
+}
+
+interface ProjetoComArea extends ProjetoSaude {
+  id: string;
+  estrutura_area_id: string | null;
+}
+
+/**
+ * Uma linha por área CADASTRADA — não por bucket de 4 categorias. Para o
+ * "Áreas em um olhar" (Bloco E, 21/08): o propósito do bloco é o dono ver
+ * TODAS as áreas sem entrar em cada uma, então a lista tem que vir do
+ * CADASTRO (`estrutura_areas`), não do dado. Área sem movimento ainda
+ * aparece, com zero — área ausente pareceria que ela não existe.
+ *
+ * Só áreas ATIVAS entram. As inativas ficam de fora por decisão (21/08):
+ * no estado medido, todas pertencem ao mesmo cluster de uma área ativa, com
+ * zero projeto — são estrutura antiga que virou equipe, não área esperando
+ * dado. Reativar no cadastro é o que as traz de volta (o filtro é
+ * `is_active`, não uma lista fixa).
+ *
+ * Tarefa cujo projeto não tem `estrutura_area_id` não entra em NENHUMA linha
+ * daqui — é resíduo tratado em outro lugar (ver "Sem área atribuída", Bloco
+ * E3), não silenciosamente somado a uma área que não fez o trabalho.
+ */
+export function resumoPorAreaCadastro(
+  areas: AreaCadastro[],
+  projetos: ProjetoComArea[],
+  tarefasConcluidas: TarefaConcluida[],
+): ResumoAreaCadastro[] {
+  const areaPorProjeto = new Map(projetos.map((p) => [p.id, p.estrutura_area_id]));
+  const entregas = new Map<string, { concluidas: number; comPrazo: number; noPrazo: number }>();
+  for (const t of tarefasConcluidas) {
+    const areaId = t.project_id ? areaPorProjeto.get(t.project_id) : null;
+    if (!areaId) continue;
+    const acc = entregas.get(areaId) ?? { concluidas: 0, comPrazo: 0, noPrazo: 0 };
+    acc.concluidas += 1;
+    if (t.due_date) {
+      acc.comPrazo += 1;
+      if (entregaNoPrazo(t.updated_at, t.due_date)) acc.noPrazo += 1;
+    }
+    entregas.set(areaId, acc);
+  }
+
+  return areas
+    .filter((a) => a.is_active)
+    .map((area) => {
+      const doGrupo = projetos.filter((p) => p.estrutura_area_id === area.id);
+      const saude = saudeProjetos(doGrupo);
+      const e = entregas.get(area.id) ?? { concluidas: 0, comPrazo: 0, noPrazo: 0 };
+      return {
+        id: area.id,
+        label: area.name,
+        projetos: saude.total,
+        emDia: saude.emDia,
+        emRisco: saude.emRisco,
+        atrasados: saude.atrasados,
+        pontualidade: e.comPrazo > 0 ? Math.round((e.noPrazo / e.comPrazo) * 100) : null,
+        concluidas: e.concluidas,
+        comPrazo: e.comPrazo,
+        unidade: 'tarefas' as const,
+      };
+    });
+}
+
+/**
+ * Mistura uma linha extra (ex.: entregáveis de sprint da Digital, que não têm
+ * como resolver `estrutura_area_id` — ver Bloco E3) numa lista de
+ * `resumoPorAreaCadastro`, pelo id da área. Mesma regra de mesclagem de
+ * `mesclarResumoArea`: contagens somam, pontualidade é média ponderada.
+ */
+export function mesclarResumoAreaCadastro(
+  linhas: ResumoAreaCadastro[],
+  areaId: string,
+  extra: { concluidas: number; comPrazo?: number; pontualidade?: number | null },
+): ResumoAreaCadastro[] {
+  return linhas.map((r) => {
+    if (r.id !== areaId) return r;
+    const baseA = r.comPrazo ?? (r.pontualidade !== null ? r.concluidas : 0);
+    const baseB = extra.comPrazo ?? (extra.pontualidade != null ? extra.concluidas : 0);
+    const total = baseA + baseB;
+    const pontualidade = total > 0
+      ? Math.round((((r.pontualidade ?? 0) * baseA) + ((extra.pontualidade ?? 0) * baseB)) / total)
+      : null;
+    return {
+      ...r,
+      concluidas: r.concluidas + extra.concluidas,
+      pontualidade,
+      comPrazo: total,
+      // Se a área não tinha NENHUMA tarefa de projeto, a unidade toda vem do
+      // extra (hoje: sempre entregável de sprint da Digital — ver Bloco E3).
+      unidade: r.concluidas === 0 ? 'entregáveis' : r.unidade,
+    };
+  });
+}
+
 /**
  * Junta duas linhas da MESMA área vindas de fontes diferentes (ex.: projetos da
  * Digital em `org_projects` + entregáveis de sprint). Contagens somam; a

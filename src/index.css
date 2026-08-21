@@ -878,7 +878,12 @@ All colors MUST be HSL.
   --board-border-s: #F0F4F8;
   --board-t1: #0C1222;
   --board-t2: #3D4D6A;
-  --board-t3: #7A8BA8;
+  /* Texto terciário do Board. Escurecido de #7A8BA8 em 21/08: no tom antigo ele
+     dava 3,45:1 sobre branco e 3,12:1 sobre `--board-bg` (#F0F4F8), abaixo do
+     mínimo de 4,5:1 — e é o tom de quase todo rótulo secundário do Board (56
+     sítios em 14 arquivos). Agora dá 5,42:1 e 4,91:1. Só é usado sobre
+     superfície clara; a barra lateral escura tem os `--board-sb-*` próprios. */
+  --board-t3: #5A6B84;
   --board-t4: #A8B8CC;
   --board-r: 12px;
   --board-shadow: 0 1px 4px rgba(12,18,34,.07), 0 0 0 1px rgba(12,18,34,.04);
@@ -1070,7 +1075,13 @@ All colors MUST be HSL.
   --cy:#06B2D0;--cy-s:rgba(6,178,208,.11);
   --go:#D4960A;--go-s:rgba(212,150,10,.12);
   --bg:#EEF2F8;--bdr:#E0E8F4;--bdr-s:#F0F5FB;
-  --t1:#0A1020;--t2:#3A4B66;--t3:#6E82A0;--t4:#A4B5CC;
+  /* `--t3` escurecido de #6E82A0 em 21/08: dava 3,35:1 sobre o #E6EEF8 do
+     `.v3-segs`, o trilho dos chips de período (7d / 30d / 90d) da barra de
+     filtros. Mesmo matiz e mesma saturação (H 216°, S 21%), L 53% → 42%; agora
+     4,93:1. Das 10 classes que leem `--t3`, só `.v3-seg` tem consumidor no
+     código (`BoardFilterBar`, `FaturamentoDetalhe`, `BoardDashboardClientesOs`)
+     — as outras 9 são CSS sem chamador. Todas sobre superfície clara. */
+  --t1:#0A1020;--t2:#3A4B66;--t3:#556781;--t4:#A4B5CC;
   --r:12px;--rs:8px;--rxs:6px;
   --sh:0 1px 4px rgba(10,16,32,.07),0 0 0 1px rgba(10,16,32,.04);
   --shm:0 4px 18px rgba(10,16,32,.1),0 0 0 1px rgba(10,16,32,.04);
@@ -1239,8 +1250,34 @@ All colors MUST be HSL.
 :root {
   --board-v4-ink: #0D1117;
   --board-v4-ink2: #3D4A5C;
-  --board-v4-ink3: #7A8899;
-  --board-v4-ink4: #B0BBC8;
+  /* Texto terciário da paleta v4 — o irmão do `--board-t3` (que já foi
+     escurecido em 21/08) e o tom de QUASE TODO rótulo de KPI do Estratégico:
+     "Projetos ativos", "Total de horas", "Pontualidade de entrega", "Cluster",
+     "ciclo ativo". 64 sítios em 20 arquivos, mais 6 classes aqui (`.pg-sub`,
+     `.stat-label`, `.sdot`, `.stat-sub`, `.pill-neutral`, `.chip-gy`).
+     No tom antigo (#7A8899) dava 3,61:1 sobre branco, 3,34:1 sobre
+     `--board-v4-page` e 3,21:1 sobre `--board-v4-line2` — abaixo do mínimo de
+     4,5:1 em tamanhos de 10,5 a 12px. Agora dá 5,52 / 5,10 / 4,91.
+     Mesmo matiz e mesma saturação de antes (H 213°, S 13%), só mais escuro:
+     L 54% → 42%. Nenhum dos 64 sítios fica sobre fundo escuro — a paleta v4
+     não tem superfície escura, e a barra lateral usa os `--board-sb-*`. O único
+     sítio condicional (`BoardClusterBar.tsx:84`) já troca para `#fff` quando o
+     fundo vira o azul de destaque, então não há inversão a tratar. */
+  --board-v4-ink3: #5D6A79;
+  /* O degrau mais claro da rampa de texto. Era #B0BBC8 — 1,95:1 sobre branco,
+     o pior contraste da tela, e ele pinta TEXTO de 10px: os cabeçalhos de
+     tabela do "Preenchimento do sistema" ("Área", "Projetos", "Sem resp.",
+     "Sem equipe", "Sem data", "Sem OS", "Centro de custo") e os números de
+     posição #1 a #5 da "Concentração da carteira". 12 sítios em 7 arquivos,
+     nenhum sobre fundo escuro (o único bloco escuro da v4, `.v4-cyb`, usa
+     #5E7399 e #fff crus). Agora 5,17:1 no branco e 4,78:1 no `--board-v4-page`.
+     Mesmo matiz e mesma saturação (H 212°, S 18%), L 74% → 44%.
+     CONSEQUÊNCIA a olhar: neste tom o ink4 fica quase igual ao ink3 (5,17 contra
+     5,52 no branco) — a rampa de 4 degraus vira 3 na ponta clara. Não há como
+     evitar: 4,5:1 em 10px exige esta faixa de luminosidade. A diferença entre
+     cabeçalho e texto secundário passa a vir do peso 700, da caixa alta e do
+     espaçamento de letra, que já estavam lá. */
+  --board-v4-ink4: #5C6F84;
   --board-v4-page: #F4F6FA;
   --board-v4-surface: #FFFFFF;
   --board-v4-surface2: #F8FAFC;
@@ -1249,8 +1286,24 @@ All colors MUST be HSL.
   --board-v4-accent: #4B63F7;
   --board-v4-go: #0EA271;
   --board-v4-go-t: rgba(14,162,113,.1);
+  /* Degrau escuro do verde, PARA TEXTO. Aditivo, mesmo raciocínio do
+     `--board-v4-warn-d`: nada que já usava `--board-v4-go` mudou de cor.
+     #0EA271 dava 3,27:1 sobre branco e 2,93:1 sobre o próprio `-t`, que é o
+     fundo do `.pill-up` — o pill do "875% ROI", 10,5px. Mesmo matiz e mesma
+     saturação (H 160°, S 84%), L 34% → 25%: 5,71:1 no branco e 5,12:1 sobre o
+     `-t`. Dimensionado pelo tint, não pelo branco, porque é ali que ele vive. */
+  --board-v4-go-d: #0A7552;
   --board-v4-warn: #D4820A;
   --board-v4-warn-t: rgba(212,130,10,.1);
+  /* Degrau escuro do âmbar, PARA TEXTO. Aditivo: nada que já usava
+     `--board-v4-warn` mudou de cor. Espelha o par `--board-indigo` /
+     `--board-indigo-d` que a paleta do Board já tinha, e é o mesmo raciocínio do
+     LIME[700]: área grande (barra de gráfico, faixa de 3px, dot, fundo de pill)
+     não precisa do mínimo de texto e continua no `--board-v4-warn`; palavra e
+     número, sim. #D4820A dava 3,00:1 sobre branco. Mesmo matiz e mesma saturação
+     (H 36°, S 91%), L 43% → 32%: 5,13:1 no branco e 4,56:1 sobre o próprio
+     `-t`. */
+  --board-v4-warn-d: #9C6007;
   --board-v4-risk: #D03040;
   --board-v4-risk-t: rgba(208,48,64,.1);
   --board-v4-blue: #3478F5;
@@ -1311,7 +1364,10 @@ All colors MUST be HSL.
 
 /* Board v4 Pills */
 .pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
-.pill-up { background: var(--board-v4-go-t); color: var(--board-v4-go); }
+/* `color` no degrau `-d` e `background` no tint normal: o pill é texto de 10,5px
+   sobre uma superfície clara, então quem precisa do mínimo é a letra, não o
+   fundo. O `.pill-down` já passa com o `--board-v4-risk` (5,03:1). */
+.pill-up { background: var(--board-v4-go-t); color: var(--board-v4-go-d); }
 .pill-down { background: var(--board-v4-risk-t); color: var(--board-v4-risk); }
 .pill-neutral { background: var(--board-v4-line2); color: var(--board-v4-ink3); }
 

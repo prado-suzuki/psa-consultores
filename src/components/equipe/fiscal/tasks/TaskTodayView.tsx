@@ -9,6 +9,8 @@ import { parseDate } from '@/lib/dateUtils';
  import { OrgTask, useUpdateOrgTask } from '@/hooks/useOrgTasks';
  import { AreaKey } from '@/config/areaCategories';
  import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+ import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
+ import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
  import { tarefaRichTextToPlain } from '@/lib/tarefaRichText';
  import { toast } from 'sonner';
 
@@ -37,7 +39,8 @@ import { parseDate } from '@/lib/dateUtils';
  
  export const TaskTodayView = ({ tasks, area, onEdit, currentUserId }: TaskTodayViewProps) => {
    const updateTask = useUpdateOrgTask(area);
- 
+   const conclusao = useTaskCompletionHours();
+
    const todayTasks = tasks
      .filter(task => task.due_date && isToday(parseDate(task.due_date)))
      .sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
@@ -51,6 +54,7 @@ import { parseDate } from '@/lib/dateUtils';
         toast.error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
         return;
       }
+      if (newStatus === 'done' && !conclusao.pedirHoras(task)) return;
       updateTask.mutate({ id: task.id, status: newStatus });
    };
  
@@ -138,6 +142,11 @@ import { parseDate } from '@/lib/dateUtils';
            })}
          </div>
        )}
+       <TaskCompletionHoursDialog
+         task={conclusao.taskPendente}
+         area={area}
+         onClose={conclusao.fechar}
+       />
      </div>
    );
  };
