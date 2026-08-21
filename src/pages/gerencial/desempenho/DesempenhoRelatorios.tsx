@@ -128,7 +128,13 @@ const DesempenhoRelatorios = () => {
         {report && !generating && (
           <div className="board-card overflow-hidden">
             {/* Report Header */}
-            <div className="p-6" style={{ background: 'linear-gradient(135deg, #0F172A, #1E293B)' }}>
+            {/* Par de tokens na ordem documentada no `index.css` (425-434): do
+                mais escuro `--surface-escura` para o intermediário
+                `--surface-escura-2`. O `#0F172A` cravado ERA `hsl(222 47% 11%)`,
+                o próprio `--surface-escura-2` do piso copiado à mão — e por ser
+                hex ignorava o tema. Esta rota resolve `.sistema-theme`, que
+                declara grafite quente. Branco em cima: 18,3:1 / 16,4:1. */}
+            <div className="p-6" style={{ background: 'linear-gradient(135deg, hsl(var(--surface-escura)), hsl(var(--surface-escura-2)))' }}>
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold text-white" style={{ background: 'linear-gradient(135deg, #5B6EF0, #8054F0)' }}>
                   {(selectedProfile?.first_name?.[0] ?? '') + (selectedProfile?.last_name?.[0] ?? '')}
