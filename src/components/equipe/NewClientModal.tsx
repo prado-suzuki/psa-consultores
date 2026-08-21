@@ -505,6 +505,7 @@ export default function NewClientModal({
                       <TabsContent value="contratos" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
                         <ContratosTab
                           contracts={contracts} setContracts={setContracts}
+                          contribuintes={entities}
                           isReadOnly={isReadOnly}
                           produtoSegmentoFullOptions={produtoSegmentoFullOptions}
                           allClusters={allClusters}

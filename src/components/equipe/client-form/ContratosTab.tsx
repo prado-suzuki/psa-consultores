@@ -13,7 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Plus, Pencil, Trash2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SITUACAO_PROJETO_OPTIONS, formatCurrencyDisplay, isoToMasked } from "./constants";
-import type { DraftOrdemServico, DraftProdutoContratado } from "@/types/clientForm";
+import type { DraftEntity, DraftOrdemServico, DraftProdutoContratado } from "@/types/clientForm";
 import { createDefaultDraftContract } from "./constants";
 import FieldPair from "./FieldPair";
 import OsValoresEdicao from "./OsValoresEdicao";
@@ -67,6 +67,7 @@ function getRegiaoLabel(value: string | undefined): string {
 export interface ContratosTabProps {
   contracts: DraftOrdemServico[];
   setContracts: React.Dispatch<React.SetStateAction<DraftOrdemServico[]>>;
+  contribuintes: DraftEntity[];
   isReadOnly: boolean;
   produtoSegmentoFullOptions: Array<{ id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: { name: string; nome_empresa?: string | null } | null }>;
   allClusters: Array<{ id: string; name: string; nome_empresa?: string | null }>;
@@ -98,12 +99,19 @@ function getProductCodigos(produtos: DraftProdutoContratado[], options: Contrato
     .join(', ');
 }
 
+function getContribuinteLabel(contribuinte: DraftEntity): string {
+  const nome = contribuinte.nome_razao_social.trim() || "Sem razão social";
+  const documento = contribuinte.cpf_cnpj.trim() || "CPF/CNPJ não informado";
+  return `${nome} (${documento})`;
+}
+
 
 
 // ── Main Component ────────────────────────────────────────────────────
 
 export default function ContratosTab({
   contracts, setContracts,
+  contribuintes,
   isReadOnly,
   produtoSegmentoFullOptions, allClusters, CENTRO_CUSTO_OPTIONS,
   setoresCliente,
@@ -183,6 +191,16 @@ export default function ContratosTab({
   const empresasOrdenadas = useMemo(
     () => allClusters.slice().sort((a, b) => getEmpresaLabel(a).localeCompare(getEmpresaLabel(b))),
     [allClusters],
+  );
+
+  // A OS guarda uma FK: contribuintes criados neste mesmo formulário só entram
+  // na lista depois de salvos e, portanto, de receberem um id do banco.
+  const contribuintesSalvos = useMemo(
+    () => contribuintes
+      .filter((contribuinte): contribuinte is DraftEntity & { _dbId: string } => Boolean(contribuinte._dbId))
+      .slice()
+      .sort((a, b) => getContribuinteLabel(a).localeCompare(getContribuinteLabel(b))),
+    [contribuintes],
   );
 
   const alterados = useMemo(
@@ -515,36 +533,64 @@ export default function ContratosTab({
                       <div className="space-y-4">
                         {/* A empresa que fatura pertence ao rateio, não à
                             classificação: é ela que define para onde a receita vai. */}
-                        <div className="max-w-2xl">
-                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa / Faturamento<RequiredMark /></Label>
-                          <div className="mt-1">
-                            <Select value={osEmpresaId} onValueChange={(v) => handleEmpresaChange(cont._id, v)}>
-                              <SelectTrigger
-                                {...acessibilidadeObrigatorio(idFalta('cluster_id'), falta('cluster_id'))}
-                                className={cn("h-9", falta('cluster_id') && CLASSE_CAMPO_PENDENTE)}
+                        <div className="grid max-w-5xl gap-4 md:grid-cols-2">
+                          <div>
+                            <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa / Faturamento<RequiredMark /></Label>
+                            <div className="mt-1">
+                              <Select value={osEmpresaId} onValueChange={(v) => handleEmpresaChange(cont._id, v)}>
+                                <SelectTrigger
+                                  {...acessibilidadeObrigatorio(idFalta('cluster_id'), falta('cluster_id'))}
+                                  className={cn("h-9", falta('cluster_id') && CLASSE_CAMPO_PENDENTE)}
+                                >
+                                  <SelectValue placeholder="Selecione a empresa que fatura" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-72">
+                                  <SelectItem value="__all__">Selecione a empresa que fatura</SelectItem>
+                                  {empresasOrdenadas.map((c) => (
+                                    <SelectItem key={c.id} value={c.id}>
+                                      {/* Uma linha só: o gatilho do select repete o
+                                          conteúdo do item, e em duas linhas ele ficava
+                                          espremido. O cluster vai ao lado, herdando a
+                                          cor do item (com opacidade) para continuar
+                                          legível quando a linha fica realçada. */}
+                                      <span className="flex items-baseline gap-2">
+                                        <span className="font-medium">{getEmpresaLabel(c)}</span>
+                                        {c.nome_empresa?.trim() && c.nome_empresa.trim() !== c.name && (
+                                          <span className="text-[11px] opacity-60">{c.name}</span>
+                                        )}
+                                      </span>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <MarcaPendencia id={idFalta('cluster_id')}>{falta('cluster_id')}</MarcaPendencia>
+                            </div>
+                          </div>
+
+                          <div>
+                            <Label className="text-xs font-semibold uppercase text-muted-foreground">Contribuinte de faturamento</Label>
+                            <div className="mt-1">
+                              <Select
+                                value={cont.contribuinte_id || "__none__"}
+                                onValueChange={(v) => updateContract(cont._id, { contribuinte_id: v === "__none__" ? "" : v })}
+                                disabled={contribuintesSalvos.length === 0}
                               >
-                                <SelectValue placeholder="Selecione a empresa que fatura" />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-72">
-                                <SelectItem value="__all__">Selecione a empresa que fatura</SelectItem>
-                                {empresasOrdenadas.map((c) => (
-                                  <SelectItem key={c.id} value={c.id}>
-                                    {/* Uma linha só: o gatilho do select repete o
-                                        conteúdo do item, e em duas linhas ele ficava
-                                        espremido. O cluster vai ao lado, herdando a
-                                        cor do item (com opacidade) para continuar
-                                        legível quando a linha fica realçada. */}
-                                    <span className="flex items-baseline gap-2">
-                                      <span className="font-medium">{getEmpresaLabel(c)}</span>
-                                      {c.nome_empresa?.trim() && c.nome_empresa.trim() !== c.name && (
-                                        <span className="text-[11px] opacity-60">{c.name}</span>
-                                      )}
-                                    </span>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <MarcaPendencia id={idFalta('cluster_id')}>{falta('cluster_id')}</MarcaPendencia>
+                                <SelectTrigger className="h-9">
+                                  <SelectValue placeholder="Selecione o contribuinte" />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-72">
+                                  <SelectItem value="__none__">Selecione o contribuinte</SelectItem>
+                                  {contribuintesSalvos.map((contribuinte) => (
+                                    <SelectItem key={contribuinte._dbId} value={contribuinte._dbId}>
+                                      {getContribuinteLabel(contribuinte)}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              {contribuintesSalvos.length === 0 && (
+                                <p className="mt-1 text-xs text-muted-foreground">Cadastre e salve um contribuinte para selecioná-lo nesta OS.</p>
+                              )}
+                            </div>
                           </div>
                         </div>
 
