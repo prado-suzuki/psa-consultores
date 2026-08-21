@@ -172,7 +172,7 @@ const DashboardUsoEnvioGerencial = () => {
   const atualizando = gerencial.isFetching;
 
   return (
-    <BoardLayout title="Uso e envio" subtitle="Adoção, engajamento e retenção">
+    <BoardLayout title="Ferramentas" subtitle="Adoção, engajamento e retenção">
       <div className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
@@ -180,7 +180,7 @@ const DashboardUsoEnvioGerencial = () => {
               className="text-[22px] font-semibold tracking-[-0.01em]"
               style={{ color: 'var(--board-t1)' }}
             >
-              Uso e envio
+              Ferramentas
             </h1>
             <p className="mt-0.5 text-[13px]" style={{ color: 'var(--board-t3)' }}>
               Adoção, engajamento e retenção das ferramentas internas.

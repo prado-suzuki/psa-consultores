@@ -313,7 +313,7 @@ export const DashboardClientesOsContent = ({
         <div className="pg-head">
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div>
-              <div className="pg-title">Dashboard · Clientes e OS</div>
+              <div className="pg-title">Dashboard · Projetos</div>
               <div className="pg-sub">Dados ao vivo do Supabase · clique nos gráficos para filtrar e nos títulos das colunas para ordenar</div>
             </div>
             <div className="v3-segs">
@@ -622,7 +622,7 @@ export const DashboardClientesOsContent = ({
 // reaproveitado na área Gerencial da Tax (/equipe/tax/gerencial) dentro do
 // FiscalLayout, então o miolo vive separado do layout.
 const BoardDashboardClientesOs = () => (
-  <BoardLayout title="Clientes e OS" subtitle="Painel nativo (teste)">
+  <BoardLayout title="Projetos" subtitle="Painel nativo (teste)">
     <DashboardClientesOsContent usarClusterGlobal />
   </BoardLayout>
 );
