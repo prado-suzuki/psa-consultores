@@ -878,7 +878,12 @@ All colors MUST be HSL.
   --board-border-s: #F0F4F8;
   --board-t1: #0C1222;
   --board-t2: #3D4D6A;
-  --board-t3: #7A8BA8;
+  /* Texto terciário do Board. Escurecido de #7A8BA8 em 21/08: no tom antigo ele
+     dava 3,45:1 sobre branco e 3,12:1 sobre `--board-bg` (#F0F4F8), abaixo do
+     mínimo de 4,5:1 — e é o tom de quase todo rótulo secundário do Board (56
+     sítios em 14 arquivos). Agora dá 5,42:1 e 4,91:1. Só é usado sobre
+     superfície clara; a barra lateral escura tem os `--board-sb-*` próprios. */
+  --board-t3: #5A6B84;
   --board-t4: #A8B8CC;
   --board-r: 12px;
   --board-shadow: 0 1px 4px rgba(12,18,34,.07), 0 0 0 1px rgba(12,18,34,.04);
