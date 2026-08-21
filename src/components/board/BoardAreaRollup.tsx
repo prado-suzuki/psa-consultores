@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BoardChip } from './BoardChip';
 import type { BoardAreaKey, ResumoArea } from '@/lib/boardExecutivo';
+
+/** Sentinela do "sem recorte" no filtro interno de área. */
+const TODAS_AREAS = '__todas__';
 
 interface BoardAreaRollupProps {
   areas: ResumoArea[];
@@ -34,22 +37,44 @@ export const BoardAreaRollup: React.FC<BoardAreaRollupProps> = ({
   janelaLabel,
   nota,
   onAreaClick,
-}) => (
+}) => {
+  // Filtro só desta lista -- não afeta o resto da página, por isso é estado
+  // local do bloco, e não mais um filtro de `useBoardFilters`.
+  const [filtro, setFiltro] = useState<string>(TODAS_AREAS);
+  const areasFiltradas = filtro === TODAS_AREAS ? areas : areas.filter((a) => a.area === filtro);
+
+  return (
   <div className="v4-card" data-reveal>
-    <div className="v4-card-title" style={{ marginBottom: 4 }}>
-      Áreas em um olhar
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+      <div className="v4-card-title" style={{ marginBottom: 0 }}>
+        Áreas em um olhar
+      </div>
+      {areas.length > 1 && (
+        <select
+          className="v3-fi"
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+          aria-label="Filtrar por área"
+          style={{ padding: '3px 8px', fontSize: 11.5 }}
+        >
+          <option value={TODAS_AREAS}>Todas as áreas</option>
+          {areas.map((a) => (
+            <option key={a.area} value={a.area}>{a.label}</option>
+          ))}
+        </select>
+      )}
     </div>
     <div style={{ fontSize: 11, color: 'var(--board-v4-ink3)', marginBottom: 10 }}>
       Projetos, entregas e % no prazo por área · {janelaLabel}
     </div>
 
-    {areas.length === 0 && (
+    {areasFiltradas.length === 0 && (
       <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}>
         Nenhuma área com projeto ou entrega no período.
       </div>
     )}
 
-    {areas.map((a) => {
+    {areasFiltradas.map((a) => {
       const foraDePrazo = a.emRisco + a.atrasados;
       return (
         <div
@@ -117,4 +142,5 @@ export const BoardAreaRollup: React.FC<BoardAreaRollupProps> = ({
       </div>
     )}
   </div>
-);
+  );
+};

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
@@ -7,28 +7,24 @@ import { useDesempenhoOverview } from '@/hooks/useDesempenhoOverview';
 import { useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useDomainBoardDashboard } from '@/hooks/useDomainBoardDashboard';
 import { useDomainMelhoriasRoi } from '@/hooks/useDomainMelhoriasRoi';
-import { useSinteseExecutiva } from '@/hooks/useSinteseExecutiva';
 import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
-import { useToast } from '@/hooks/use-toast';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { BoardFilterBar } from '@/components/board/BoardFilterBar';
 import { BoardKpisNegocio } from '@/components/board/BoardKpisNegocio';
-import { BoardAIBox } from '@/components/board/BoardAIBox';
 import { BoardChip } from '@/components/board/BoardChip';
 import { BoardAreaRollup } from '@/components/board/BoardAreaRollup';
 import { BoardAlertas } from '@/components/board/BoardAlertas';
 import { BoardConcentracao } from '@/components/board/BoardConcentracao';
 import { BoardReceitaMensal } from '@/components/board/BoardReceitaMensal';
-import { BoardEconomiaAcumulada } from '@/components/board/BoardEconomiaAcumulada';
 import { BoardProjetosCriticos } from '@/components/board/BoardProjetosCriticos';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import {
   filtrarPorCluster, filtrarTarefasPorProjetos, saudeProjetos,
-  consolidarRoi, serieRoiAcumulado,
+  consolidarRoi,
 } from '@/lib/boardExecutivo';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
 import {
@@ -77,7 +73,6 @@ const BoardDashboard = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const revealRef = useBoardReveal();
-  const { toast } = useToast();
   // pageKey v2: o filtro de área saiu e a chave antiga guardava `area` na
   // sessão — sem trocar a chave, o valor órfão voltaria do sessionStorage.
   const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({ pageKey: 'dashboard-v2', defaults: DEFAULTS });
@@ -93,8 +88,6 @@ const BoardDashboard = () => {
   const { data: overview } = useDesempenhoOverview(cicloAtivo?.id);
   const { tarefasConcluidasQuery } = useDomainBoardDashboard({ desdeISO: periodFrom });
   const melhoriasQuery = useDomainMelhoriasRoi();
-  const sintese = useSinteseExecutiva();
-  const [sinteseLocal, setSinteseLocal] = useState<{ sintese: string; bullets: string[] } | null>(null);
 
   // ── Fonte do negócio (mesma query da tela "Clientes e OS") ─────────────
   const { ambiente } = useDashboardAmbiente();
@@ -170,7 +163,6 @@ const BoardDashboard = () => {
   const todosProjetos = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
   const projetos = useMemo(() => filtrarPorCluster(todosProjetos, cluster), [todosProjetos, cluster]);
   const saude = useMemo(() => saudeProjetos(projetos), [projetos]);
-  const members = membersQuery.data?.members || [];
   // Tarefa segue o projeto: sem isto, toda tarefa de fora do recorte cairia em
   // "Outros" no rollup em vez de sumir.
   const tarefas = useMemo(
@@ -181,7 +173,6 @@ const BoardDashboard = () => {
     [tarefasConcluidasQuery.data, projetos, cluster],
   );
   const roi = useMemo(() => consolidarRoi(melhoriasQuery.data ?? []), [melhoriasQuery.data]);
-  const serieRoi = useMemo(() => serieRoiAcumulado(melhoriasQuery.data ?? []), [melhoriasQuery.data]);
 
   // Janela real analisada — o mesmo range dos projetos, para o rótulo não mentir.
   const diasJanela = useMemo(() => {
@@ -247,38 +238,6 @@ const BoardDashboard = () => {
 
   const foraDePrazo = saude.emRisco + saude.atrasados;
   const receitaEmJogo = emRisco.vencido.valor + emRisco.renovacao.valor;
-
-  const handleGenerateSintese = async () => {
-    setSinteseLocal(null);
-    try {
-      await sintese.mutateAsync();
-    } catch {
-      // Sem IA a tela ainda ajuda, mas o texto é rotulado como resumo LOCAL —
-      // nunca apresentado como análise da IA.
-      setSinteseLocal({
-        sintese: `Receita contratada de R$ ${brlMil(receita.atual)}k em ${janelaReceita}`
-          + `${receita.variacao !== null ? ` (${receita.variacao > 0 ? '+' : ''}${(receita.variacao * 100).toFixed(1)}% contra o ano anterior)` : ''}`
-          + `, ${clientesAtivos.length} clientes ativos e ${saude.total} projetos no escopo (${janelaLabel}).`,
-        bullets: [
-          alertas.length > 0
-            ? `${alertas.length} ${alertas.length === 1 ? 'item exige' : 'itens exigem'} decisão — ver a faixa no topo.`
-            : 'Nenhum item na faixa de decisão.',
-          receitaEmJogo > 0
-            ? `R$ ${brlMil(receitaEmJogo)}k em contratos vencidos ou em renovação.`
-            : 'Nenhum contrato vencido ou em janela de renovação.',
-          concentracao.clientesParaMetade !== null
-            ? `${concentracao.clientesParaMetade} ${concentracao.clientesParaMetade === 1 ? 'cliente responde' : 'clientes respondem'} por metade da receita.`
-            : 'Sem receita na janela para medir concentração.',
-          `${foraDePrazo} projetos fora de prazo · ${members.length} membros ativos.`,
-        ],
-      });
-      toast({
-        title: 'IA indisponível',
-        description: 'Mostrando um resumo local dos números desta tela.',
-        variant: 'destructive',
-      });
-    }
-  };
 
   const execucaoLoading = projectsQuery.isLoading || membersQuery.isLoading
     || melhoriasQuery.isLoading || tarefasConcluidasQuery.isLoading
@@ -347,15 +306,21 @@ const BoardDashboard = () => {
           />
         )}
 
-        {/* 3. De quem depende × como as áreas estão entregando */}
-        <div className="v4-g2">
+        {/* 3a. De quem depende -- largura total: perdeu o parceiro de grade
+            quando "Áreas em um olhar" (3b) ganhou linha própria. */}
+        <div style={{ marginBottom: 16 }}>
           <BoardConcentracao
             concentracao={concentracao}
             janelaLabel={janelaReceita}
             nota={notaReceita}
             onClienteClick={() => navigate('/equipe/board/dashboard-clientes-os')}
           />
+        </div>
 
+        {/* 3b. Como as áreas estão entregando -- largura total (reunião 17/08):
+            mostra todas as áreas, não divide espaço, e ganhou filtro próprio
+            no cabeçalho (dentro de BoardAreaRollup). */}
+        <div style={{ marginBottom: 16 }}>
           <BoardAreaRollup
             areas={resumoAreas}
             janelaLabel={janelaLabel}
@@ -364,32 +329,22 @@ const BoardDashboard = () => {
           />
         </div>
 
-        {/* 4. O resultado econômico do ano */}
-        <div className="v4-g2">
+        {/* 4. O resultado econômico do ano -- "Economia validada acumulada"
+            saiu (reunião 17/08, é projeção); Receita mensal fica sozinha e
+            passa a ocupar a largura total. */}
+        <div style={{ marginBottom: 16 }}>
           <BoardReceitaMensal
             serie={serieReceita}
             receita={receita}
             nota={[notaRateio, notaEscopo].filter(Boolean).join(' ') || undefined}
           />
-          <BoardEconomiaAcumulada
-            serie={serieRoi}
-            economiaAnual={roi.economiaAnual}
-            investimento={roi.investimento}
-            melhorias={roi.melhorias}
-          />
         </div>
 
-        {/* 5. Leitura em texto */}
-        <div style={{ marginBottom: 16 }}>
-          <BoardAIBox
-            label={sinteseLocal ? 'Resumo local — IA indisponível' : 'Síntese Estratégica — IA Executiva'}
-            data={sinteseLocal ?? sintese.data ?? null}
-            loading={sintese.isPending}
-            onGenerate={handleGenerateSintese}
-          />
-        </div>
+        {/* ESPAÇO RESERVADO: chat de IA lateral — próxima etapa (reunião
+            17/08). "Síntese Estratégica — IA Executiva" saiu daqui; o lugar
+            dela é ao lado do conteúdo, à direita, quando o chat entrar. */}
 
-        {/* 6. Acompanhamento de execução */}
+        {/* 5. Acompanhamento de execução */}
         <BoardProjetosCriticos
           projetos={projetosCriticos}
           onProjetoClick={() => navigate('/equipe/board/performance')}

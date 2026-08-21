@@ -281,7 +281,7 @@ Nenhum item vira trabalho sem passar pela regra do §8.
 |---|---|
 | migrações de `color_index` não existem como arquivo | aplicadas direto no banco; gravar em `supabase/migrations/` |
 | `color_index` vira `NOT NULL` | quando o código novo subir |
-| comparar esquema dev × produção | nunca foi feito |
+| comparar esquema dev × produção | **não é possível daqui** — precisa de acesso aos dois bancos; as consultas prontas estão em `levantamentos-2026-08-21.md`, seção 3 |
 | **três migrações de tarefas/RLS aplicadas em produção sem decisão** | inclui troca de `rls_org_tasks_insert` — ver abaixo |
 
 **Sobre a troca de RLS**, porque é o item mais delicado da fila: em 20/08 uma mensagem montada
@@ -298,6 +298,15 @@ que a nova permite e a antiga não, além de subtarefa de tarefa já visível?*
 
 **Não reverter sem esse levantamento.**
 
+> **LEVANTADO em 21/08/2026** — `docs/geral/levantamentos-2026-08-21.md`, seção 1. A resposta é
+> **não**: a política nova é puramente aditiva (os três ramos antigos idênticos), o guardrail
+> `org_task_visivel` é literalmente o `USING` do `SELECT`, e o ramo novo atinge **só os 15
+> `team_member`** — `client` (33) e `marketing` (1) não têm nenhuma `org_task` em nenhum dos três
+> papéis, então é inalcançável para eles. E o ramo novo concede **menos** que o
+> `assigned_to = auth.uid()` que já vigorava, porque aquele permitia criar tarefa **de topo**.
+> O delta inteiro: subtarefa **sem responsável** sob tarefa já visível. **Sobra decisão, não
+> medição.**
+
 ### Chamado → tarefa
 
 O gatilho `trg_tickets_gera_tarefa` está **ativo em produção**: delegar chamado cria tarefa no
@@ -305,10 +314,20 @@ projeto de Canal de Chamados do cliente. **A função é desejada** — ela conf
 tela: identificar a tarefa como vinda de chamado e linkar para o chamado. Escopo escolhido: **só o
 link mínimo.**
 
-Ponto aberto que vale medir antes de construir: **quantos clientes têm projeto de Canal de
+Ponto aberto que valia medir antes de construir: **quantos clientes têm projeto de Canal de
 Chamados?** Sem esse projeto, delegar não gera tarefa e ninguém é avisado — o gatilho grava
 `RAISE WARNING` no log e segue. Falha silenciosa. Se for raro, é linha de fila; se for comum, é o
 problema principal.
+
+> **MEDIDO em 21/08/2026** — `levantamentos-2026-08-21.md`, seção 2. **É comum: 6 dos 11 clientes
+> com chamado não têm canal (55%).** Pelo critério acima, é o problema principal e não linha de
+> fila. Mas a incidência é mínima — **1 falha silenciosa em 4 delegações** desde que o gatilho
+> existe, porque delegar é raro. Não é incêndio; é armadilha aberta. E o número é do **dev**: em
+> produção o dado é outro.
+>
+> Dois achados que a fila não previa: existe **1 só** produto marcado `is_canal_chamados`, e a
+> função tem um **segundo** aviso invisível — cliente com mais de um canal usa o mais antigo e
+> grava `raise warning`.
 
 ### Cor
 
