@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  BarChart, Bar, PieChart, Pie, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
+  BarChart, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell,
 } from 'recharts';
 import { AlertTriangle, ArrowUp, ArrowDown, ChevronsUpDown, X } from 'lucide-react';
 import { format } from 'date-fns';
@@ -15,9 +15,8 @@ import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
 import {
   kpisClientes, kpisOperacional, kpisProjetos,
-  faturamentoPorTipo, faturamentoPorCliente, faturamentoMensal,
+  faturamentoPorCliente, faturamentoMensal,
   matrizCentroCustoPorMes, matrizClientePorMes, matrizServicoPorMes, matrizProdutoPorMes,
-  comparativoAnoAnterior,
   osPorStatus, estimadoVsRealizado,
   shareCentroCusto, centrosCustoEmUso,
 } from '@/lib/dashboardClientesOs/aggregations';
@@ -28,7 +27,7 @@ import { KpiStrip } from '@/components/equipe/board/clientes-os/KpiStrip';
 import { Field, DateField, SelectFilter } from '@/components/equipe/board/clientes-os/FiltroControles';
 import {
   ACENTO, PAPEL, SERIES, AXIS, GRID, TOOLTIP, brl, brlMil, milAxis, num, pct, mesLabel, dataBR,
-  th, td, rotuloMeses, variacaoLabel, corVariacao,
+  th, td,
 } from '@/components/equipe/board/clientes-os/shared';
 
 type Aba = 'clientes' | 'operacional' | 'projetos';
@@ -39,6 +38,13 @@ const EMPTY_CLIENTES: ClienteRow[] = [];
 const EMPTY_OS: OsRow[] = [];
 const EMPTY_PROJETOS: ProjetoRow[] = [];
 const EMPTY_RATEIO: Map<string, FatiaRateio[]> = new Map();
+
+// Meta mensal do setor (reunião 17/08, P7): não existe campo de meta por
+// setor no banco -- verificado no schema, não é ausência de query. A linha
+// no gráfico de "Valor por mês" já está preparada; fica desligada (`null`)
+// até alguém confirmar o valor com o time e trocar por um número real (ou por
+// leitura de uma tabela/config dedicada).
+const META_MENSAL_SETOR: number | null = null;
 
 const TODOS = '__todos__';
 const PERIODO_VAZIO = '|';
@@ -85,10 +91,6 @@ function useSort<T>(rows: T[], initialKey: keyof T, initialDir: SortDir = 'desc'
   return { sorted, key, dir, toggle };
 }
 
-// Grids assimétricos: a série temporal e a tabela de nomes longos ganham mais largura
-// que o donut / gráfico de poucas barras. minmax(0,..) evita estouro de conteúdo.
-const gridMensalDonut: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)', gap: 12, marginBottom: 16 };
-
 function SortTh<T>({ label, colKey, sort, align = 'left' }: {
   label: string; colKey: keyof T; sort: SortState<T>; align?: 'left' | 'right';
 }) {
@@ -106,6 +108,7 @@ function SortTh<T>({ label, colKey, sort, align = 'left' }: {
 export const DashboardClientesOsContent = ({
   scopeProjetosAClientesVisiveis = false,
   usarClusterGlobal = false,
+  tituloInterno = 'Clientes e OS',
 }: {
   /** Área Gerencial: restringe a aba de projetos aos clientes visíveis (cluster). */
   scopeProjetosAClientesVisiveis?: boolean;
@@ -118,6 +121,12 @@ export const DashboardClientesOsContent = ({
    * naquelas telas.
    */
   usarClusterGlobal?: boolean;
+  /**
+   * Título grande da própria página (`pg-title`), não o do menu/breadcrumb.
+   * Default é o nome que a Gerencial da Tax/OSG já usa -- o Board (reunião
+   * Mariana 17/08) é que passa "Projetos"; as outras duas não pediram troca.
+   */
+  tituloInterno?: string;
 } = {}) => {
   const { ambiente } = useDashboardAmbiente();
   const { data, isLoading, error, hoje } = useDashboardClientesOs(ambiente);
@@ -168,11 +177,6 @@ export const DashboardClientesOsContent = ({
   const ateDate = ate ? new Date(`${ate}T00:00:00`) : undefined;
   const mesSelecionado = de && ate && de.slice(0, 7) === ate.slice(0, 7) ? de.slice(0, 7) : null;
 
-  // Cross-filter: clicar num gráfico alterna o filtro correspondente (toggle).
-  const toggleFilter = useCallback((key: string, value: string | undefined) => {
-    if (!value) return;
-    setFilter(key, filters[key] === value ? TODOS : value);
-  }, [filters, setFilter]);
   const toggleMes = useCallback((mes: string | undefined) => {
     if (!mes) return;
     const [y, m] = mes.split('-');
@@ -265,11 +269,6 @@ export const DashboardClientesOsContent = ({
   const kOper = useMemo(() => kpisOperacional(clientesFiltrados, hoje), [clientesFiltrados, hoje]);
   const kProj = useMemo(() => kpisProjetos(projetosFiltrado, osFiltrado), [projetosFiltrado, osFiltrado]);
   const serieMensal = useMemo(() => faturamentoMensal(osFiltrado).map((m) => ({ ...m, label: mesLabel(m.mes) })), [osFiltrado]);
-  const serieTipo = useMemo(
-    () => faturamentoPorTipo(clientesFiltrados, fatPorCliente).filter((t) => t.faturamento > 0),
-    [clientesFiltrados, fatPorCliente],
-  );
-  const totalTipo = useMemo(() => serieTipo.reduce((a, t) => a + t.faturamento, 0), [serieTipo]);
   // Detalhamento (centro de custo × cliente): alimenta o gráfico de barras E a
   // matriz por mês logo abaixo, para os dois nunca divergirem.
   const centroSelecionado = useMemo(
@@ -280,15 +279,12 @@ export const DashboardClientesOsContent = ({
   );
   const matriz = useMemo(() => {
     if (detalhe === 'centro_custo') return matrizCentroCustoPorMes(osFiltrado, rateioPorOs, centroSelecionado);
-    if (detalhe === 'servico') return matrizServicoPorMes(osFiltrado);
+    // REMOVIDO (reunião 17/08): "Por serviço" saiu do alternador em
+    // FaturamentoDetalhe.tsx. `matrizServicoPorMes` continua em aggregations.ts.
+    // if (detalhe === 'servico') return matrizServicoPorMes(osFiltrado);
     if (detalhe === 'produto') return matrizProdutoPorMes(osFiltrado, rateioProdutoPorOs);
     return matrizClientePorMes(osFiltrado);
   }, [detalhe, osFiltrado, rateioPorOs, rateioProdutoPorOs, centroSelecionado]);
-  // Comparativo: os mesmos meses que a tela está mostrando, um ano antes.
-  const comparativo = useMemo(
-    () => comparativoAnoAnterior(osDimensao, matriz.meses),
-    [osDimensao, matriz.meses],
-  );
   const serieStatus = useMemo(() => osPorStatus(osFiltrado), [osFiltrado]);
   const serieHoras = useMemo(
     () => estimadoVsRealizado(projetosFiltrado).map((p) => ({
@@ -313,7 +309,7 @@ export const DashboardClientesOsContent = ({
         <div className="pg-head">
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div>
-              <div className="pg-title">Dashboard · Projetos</div>
+              <div className="pg-title">Dashboard · {tituloInterno}</div>
               <div className="pg-sub">Dados ao vivo do Supabase · clique nos gráficos para filtrar e nos títulos das colunas para ordenar</div>
             </div>
             <div className="v3-segs">
@@ -371,95 +367,48 @@ export const DashboardClientesOsContent = ({
                 {/* Barra colorida do KPI: o que é só identidade sai na paleta
                     categórica da área (SERIES, na ordem); o que é ESTADO
                     (variação, contrato vencendo) sai no papel de status. */}
+                {/* Faixa reduzida a 4 cards (reunião 17/08, P7): "vs. ano
+                    anterior" e "Contratos vencendo 30d" saem. O segundo não
+                    precisa de casa nova -- a aba Operacional já tem o mesmo
+                    sinal ("Contratos vencendo em 30 dias", kOper.contratos_30d). */}
                 <KpiStrip
                   items={[
-                    { value: brl(kClientes.faturamento_total), label: 'Faturamento total', color: SERIES[0] },
-                    {
-                      value: variacaoLabel(comparativo.variacao),
-                      label: 'vs. mesmo período do ano anterior',
-                      color: corVariacao(comparativo.variacao),
-                      subText: comparativo.meses.length === 0
-                        ? 'sem OS com data de início no período'
-                        : `${rotuloMeses(comparativo.meses)}: ${brlMil(comparativo.anterior)} · só OS com data de início`,
-                    },
                     { value: kClientes.clientes_ativos, label: 'Clientes ativos', color: SERIES[1], subText: `${kClientes.clientes_ativos_fixos} fixos · ${kClientes.clientes_ativos_pontuais} pontuais` },
-                    { value: kClientes.ticket_medio == null ? '—' : brl(kClientes.ticket_medio), label: 'Ticket médio', color: SERIES[2] },
+                    { value: kClientes.ticket_medio == null ? '—' : brl(kClientes.ticket_medio), label: 'Ticket médio dos projetos', color: SERIES[2] },
                     { value: kClientes.os_ativas, label: 'OS ativas', color: SERIES[3] },
-                    { value: kClientes.contratos_30d, label: 'Contratos vencendo 30d', color: PAPEL.atencao },
+                    { value: brl(kClientes.faturamento_total), label: 'Valor total dos projetos', color: SERIES[0] },
                   ]}
                 />
 
-                <div style={gridMensalDonut}>
-                  <div className="v4-card">
-                    <div className="v4-card-title">Faturamento mensal (R$)</div>
-                    {serieMensal.length > 0 ? (
-                      <div style={{ cursor: 'pointer' }}>
-                        <ResponsiveContainer width="100%" height={210}>
-                          <BarChart data={serieMensal} onClick={(e) => toggleMes(pickField(e?.activePayload?.[0], 'mes'))}>
-                            <CartesianGrid {...GRID} />
-                            <XAxis dataKey="label" {...AXIS} />
-                            <YAxis {...AXIS} tickFormatter={milAxis} />
-                            <Tooltip formatter={(v: number) => brl(v)} {...TOOLTIP} />
-                            <Bar dataKey="faturamento" radius={[4, 4, 0, 0]} maxBarSize={54}>
-                              {serieMensal.map((m) => (
-                                <Cell key={m.mes} fill={ACENTO} fillOpacity={mesSelecionado && m.mes !== mesSelecionado ? 0.28 : 1} />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </div>
-                    ) : <ChartEmpty msg="Sem OS com data de emissão no período" />}
-                  </div>
-
-                  <div className="v4-card">
-                    <div className="v4-card-title">Faturamento por tipo de cliente</div>
-                    {serieTipo.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, paddingTop: 4 }}>
-                        <div style={{ position: 'relative', width: 208, height: 208, cursor: 'pointer' }}>
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie
-                                data={serieTipo} dataKey="faturamento" nameKey="tipo"
-                                innerRadius={66} outerRadius={98} paddingAngle={serieTipo.length > 1 ? 2 : 0} stroke="none"
-                                onClick={(e) => toggleFilter('tipo', pickField(e, 'tipo'))}
-                              >
-                                {serieTipo.map((t, i) => (
-                                  <Cell key={t.tipo} fill={SERIES[i % SERIES.length]} fillOpacity={tipo !== TODOS && t.tipo !== tipo ? 0.28 : 1} />
-                                ))}
-                              </Pie>
-                              <Tooltip formatter={(v: number) => brl(v)} {...TOOLTIP} />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                            <div style={{ fontSize: 10.5, color: 'var(--board-v4-ink3)' }}>Total</div>
-                            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--board-v4-ink)' }}>{brlMil(totalTipo)}</div>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5, width: '100%' }}>
-                          {serieTipo.map((t, i) => {
-                            const on = tipo === t.tipo;
-                            return (
-                              <button
-                                key={t.tipo}
-                                onClick={() => toggleFilter('tipo', t.tipo)}
-                                title={`Filtrar por ${t.tipo}`}
-                                style={{
-                                  display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', borderRadius: 7, width: '100%',
-                                  border: `1px solid ${on ? 'var(--board-v4-line)' : 'transparent'}`,
-                                  background: on ? 'var(--board-v4-surface2)' : 'transparent', cursor: 'pointer', textAlign: 'left',
-                                }}
-                              >
-                                <span style={{ width: 10, height: 10, borderRadius: 3, background: SERIES[i % SERIES.length], flexShrink: 0 }} />
-                                <span style={{ flex: 1, fontSize: 12.5, color: 'var(--board-v4-ink)', fontWeight: on ? 700 : 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.tipo}</span>
-                                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--board-v4-ink)', minWidth: 48, textAlign: 'right' }}>{((t.faturamento / totalTipo) * 100).toFixed(1)}%</span>
-                                <span style={{ fontSize: 11.5, color: 'var(--board-v4-ink3)', minWidth: 66, textAlign: 'right' }}>{brlMil(t.faturamento)}</span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : <ChartEmpty msg="Sem dados" />}
-                  </div>
+                {/* Sobe para o lugar que "Faturamento por tipo de cliente" e o
+                    botão "Por serviço" (abaixo) deixaram livres -- largura
+                    total, sem grid partner. */}
+                <div className="v4-card" style={{ marginBottom: 16 }}>
+                  <div className="v4-card-title">Valor dos contratos por mês (R$)</div>
+                  {serieMensal.length > 0 ? (
+                    <div style={{ cursor: 'pointer' }}>
+                      <ResponsiveContainer width="100%" height={230}>
+                        <ComposedChart data={serieMensal} onClick={(e) => toggleMes(pickField(e?.activePayload?.[0], 'mes'))}>
+                          <CartesianGrid {...GRID} />
+                          <XAxis dataKey="label" {...AXIS} />
+                          <YAxis {...AXIS} tickFormatter={milAxis} />
+                          <Tooltip formatter={(v: number) => brl(v)} {...TOOLTIP} />
+                          <Bar dataKey="faturamento" radius={[4, 4, 0, 0]} maxBarSize={54}>
+                            {serieMensal.map((m) => (
+                              <Cell key={m.mes} fill={ACENTO} fillOpacity={mesSelecionado && m.mes !== mesSelecionado ? 0.28 : 1} />
+                            ))}
+                          </Bar>
+                          {/* Linha de meta do setor (reunião 17/08, P7): preparada e
+                              desligada -- não existe campo de meta por setor no
+                              banco (verificado, não é ausência de query). Ligar
+                              META_MENSAL_SETOR quando o time confirmar o valor. */}
+                          {META_MENSAL_SETOR !== null && (
+                            <Line type="monotone" dataKey={() => META_MENSAL_SETOR} name="Meta do setor" stroke={PAPEL.atencao} strokeDasharray="4 3" dot={false} />
+                          )}
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  ) : <ChartEmpty msg="Sem OS com data de emissão no período" />}
                 </div>
 
                 <FaturamentoDetalhe detalhe={detalhe} onDetalheChange={setDetalhe} matriz={matriz} />
@@ -491,7 +440,7 @@ export const DashboardClientesOsContent = ({
                             <SortTh label="Início" colKey="data_inicio" sort={carteiraSort} />
                             <SortTh label="Fim" colKey="data_fim" sort={carteiraSort} />
                             <SortTh label="Status contrato" colKey="status_contrato" sort={carteiraSort} />
-                            <SortTh label="Faturamento" colKey="faturamento" sort={carteiraSort} align="right" />
+                            <SortTh label="Valor" colKey="faturamento" sort={carteiraSort} align="right" />
                           </tr>
                         </thead>
                         <tbody>
@@ -623,7 +572,7 @@ export const DashboardClientesOsContent = ({
 // FiscalLayout, então o miolo vive separado do layout.
 const BoardDashboardClientesOs = () => (
   <BoardLayout title="Projetos" subtitle="Painel nativo (teste)">
-    <DashboardClientesOsContent usarClusterGlobal />
+    <DashboardClientesOsContent usarClusterGlobal tituloInterno="Projetos" />
   </BoardLayout>
 );
 

@@ -18,12 +18,18 @@ import {
 } from './shared';
 import { ChartEmpty } from './ChartEmpty';
 
-/** Detalhamento do bloco de faturamento. */
-export type Detalhe = 'centro_custo' | 'servico' | 'produto' | 'cliente';
+/**
+ * Detalhamento do bloco de valor. "servico" saiu do alternador (reunião
+ * Mariana 17/08, P7) -- ver VISOES abaixo. O tipo perde o membro para o
+ * `Object.keys(VISOES)` do alternador não desenhar um botão morto; a função
+ * `matrizServicoPorMes` que a alimentava continua em
+ * `dashboardClientesOs/aggregations.ts`, intocada.
+ */
+export type Detalhe = 'centro_custo' | 'produto' | 'cliente';
 
 /**
  * Cada visão: rótulo do botão, nome da dimensão nos títulos e a explicação de
- * COMO a receita foi dividida (rateio nunca pode ficar implícito).
+ * COMO o valor foi dividido (rateio nunca pode ficar implícito).
  */
 const VISOES: Record<Detalhe, { botao: string; dimensao: string; coluna: string; nota: string }> = {
   centro_custo: {
@@ -32,12 +38,15 @@ const VISOES: Record<Detalhe, { botao: string; dimensao: string; coluna: string;
     coluna: 'Centro de custo',
     nota: 'Receita das OS dividida pelo percentual de rateio de cada centro de custo',
   },
-  servico: {
-    botao: 'Por serviço',
-    dimensao: 'serviço',
-    coluna: 'Serviço',
-    nota: 'Serviço cadastrado na OS (um por OS) — o valor entra inteiro, sem rateio',
-  },
+  // REMOVIDO (reunião 17/08): "Por serviço". Reversão: devolver o membro
+  // 'servico' ao tipo `Detalhe` acima e esta entrada ao mapa; a leitura em
+  // `matriz` (BoardDashboardClientesOs.tsx) já está comentada, não apagada.
+  // servico: {
+  //   botao: 'Por serviço',
+  //   dimensao: 'serviço',
+  //   coluna: 'Serviço',
+  //   nota: 'Serviço cadastrado na OS (um por OS) — o valor entra inteiro, sem rateio',
+  // },
   produto: {
     botao: 'Por produto',
     dimensao: 'produto',
@@ -75,7 +84,7 @@ export const FaturamentoDetalhe = ({ detalhe, onDetalheChange, matriz }: Props) 
       <div className="v4-card" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
           <div>
-            <div className="v4-card-title" style={{ marginBottom: 2 }}>Faturamento por {dimensao} (R$)</div>
+            <div className="v4-card-title" style={{ marginBottom: 2 }}>Valor por {dimensao} (R$)</div>
             <div style={{ fontSize: 11, color: 'var(--board-v4-ink3)' }}>
               {visao.nota}
               {matriz.linhas.length > MAX_BARRAS
@@ -117,7 +126,7 @@ export const FaturamentoDetalhe = ({ detalhe, onDetalheChange, matriz }: Props) 
 
       <div className="v4-card">
         <div className="v4-card-title">
-          Faturamento por {dimensao} e mês (R$)
+          Valor por {dimensao} e mês (R$)
           {matriz.linhas.length > 0 && (
             <span style={{ fontWeight: 400, color: 'var(--board-v4-ink3)' }}> · {matriz.linhas.length} linhas</span>
           )}
