@@ -271,8 +271,19 @@ export const BLOCOS_PARCERIA: Bloco[] = [
       'Por estarem assim justos e contratados, firmam o presente instrumento em {{ numeroVias }} vias de igual teor e ' +
       'forma, juntamente com 2 (duas) testemunhas.\n\n' +
       '{{ foroComarca }}/{{ foroUf }}, {{ dataAssinatura }}.\n\n' +
-      '{{#outorgante.sePJ}}{{ outorgante.razaoSocial }}{{/outorgante.sePJ}}{{#outorgante.sePF}}{{ outorgante.nome }}{{/outorgante.sePF}} — Parceira Outorgante\n\n' +
-      '{{#exploradores}}{{ explorador.nome }}\n{{/exploradores}}— Parceiros Outorgados\n\n' +
+      // Achado A (21/08/2026, relatório 14): outorgante PJ com mais de um
+      // administrador assina uma linha POR administrador — confirmado no modelo
+      // em branco (duas colunas "representada por ___" lado a lado) e em dois
+      // contratos reais novos (Agro Aliança, 2 administradores assinando
+      // separado). Sem administrador cadastrado, cai numa linha só. Cada
+      // outorgado assina com o próprio rótulo concordado em gênero, não um
+      // rótulo plural fixo no fim.
+      '{{#outorgante.sePJ}}' +
+      '{{#outorganteAdministradores}}{{ outorgante.razaoSocial }}\nParceira Outorgante representada por {{ admin.nome }}\n\n{{/outorganteAdministradores}}' +
+      '{{#outorganteSemAdministrador}}{{ outorgante.razaoSocial }}\nParceira Outorgante\n\n{{/outorganteSemAdministrador}}' +
+      '{{/outorgante.sePJ}}' +
+      '{{#outorgante.sePF}}{{ outorgante.nome }}\nParceira Outorgante\n\n{{/outorgante.sePF}}' +
+      '{{#exploradores}}{{ explorador.nome }}\n{{ explorador.papel }}\n\n{{/exploradores}}' +
       FECHO_TESTEMUNHAS,
   },
   {
@@ -509,7 +520,11 @@ export const BLOCOS_COMPOSSE: Bloco[] = [
       'E assim, por estarem justos e contratados, os COMPOSSUIDORES RURAIS assinam este INSTRUMENTO em {{ numeroVias }} ' +
       'vias de igual teor e forma, perante as 02 (duas) testemunhas abaixo.\n\n' +
       '{{ foroComarca }}/{{ foroUf }}, {{ dataAssinatura }}.\n\n' +
-      '{{#compossuidores}}{{ compossuidor.nome }} — Compossuidor Rural\n{{/compossuidores}}\n' +
+      // Achado A (21/08/2026, relatório 14): cada compossuidor assina em linha
+      // própria com o rótulo concordado em gênero ("Compossuidor"/"Compossuidora"),
+      // confirmado no contrato real de Avelino Neri (1 homem + 2 mulheres,
+      // rótulo trocando pessoa a pessoa) — não "Compossuidor Rural" fixo.
+      '{{#compossuidores}}{{ compossuidor.nome }}\n{{ compossuidor.papel }}\n\n{{/compossuidores}}' +
       FECHO_TESTEMUNHAS,
   },
   {

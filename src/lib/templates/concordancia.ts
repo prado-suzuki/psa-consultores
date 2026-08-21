@@ -40,6 +40,12 @@ export const PARES = {
   // não meio de frase ("Sócia administradora e Outorga Conjugal").
   socioTitulo: (g: Genero) => concordar(g, 'Sócio', 'Sócia'),
   socioAdministrador: (g: Genero) => concordar(g, 'Sócio administrador', 'Sócia administradora'),
+  // Rurais: confirmados em dois contratos reais assinados em 20/03/2026 (Avelino
+  // Neri Bocolli/Agro Aliança) — cada outorgado/compossuidor assina com o próprio
+  // rótulo concordado ("Parceiro Outorgado" / "Parceira Outorgada", "Compossuidor"
+  // / "Compossuidora"), não um rótulo plural fixo só no fim da lista.
+  outorgadoTitulo: (g: Genero) => concordar(g, 'Parceiro Outorgado', 'Parceira Outorgada'),
+  compossuidorTitulo: (g: Genero) => concordar(g, 'Compossuidor', 'Compossuidora'),
 } as const;
 
 export type ParJuridico = keyof typeof PARES;

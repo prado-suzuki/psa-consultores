@@ -2,6 +2,7 @@ import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { MatriculaEnriched } from '@/hooks/useDiagnosticoPatrimonial';
 import type { AdministradorParaMapear, CapitalSociedade } from '@/lib/templates/mapeadores';
 import { mapearPessoa, mapearSociedade } from '@/lib/templates/mapeadores';
+import { PARES, type Genero } from '@/lib/templates/concordancia';
 import { cardinalExtenso, formatarPercentual, letraAlinea } from '@/lib/templates/extenso';
 import type { Contexto } from '@/lib/templates/types';
 import type {
@@ -243,17 +244,30 @@ export function montarContextoParceria(draft: ExploracaoRuralDraft, recursos: Re
   // proprietário/cartório vale pra todos os imóveis do Anexo. Usa o 1º imóvel
   // como referência; nos exemplos reais os dois sempre coincidem.
   const primeiraMatricula = matriculaDe(draft.imoveis[0]?.matriculaId ?? null);
+  // Fecho (achado A, relatório 14): outorgante PJ assina uma linha POR
+  // administrador ("representada por" cada um), confirmado em dois contratos
+  // reais (Agro Aliança) com 2 administradores assinando separado. Sem
+  // administrador cadastrado, cai numa linha só com a razão social — nunca some
+  // a assinatura da outorgante por falta de dado.
+  const outorgantePessoa = recursos.pessoas.find((p) => p.id === draft.outorganteId);
+  const outorganteSemAdministrador =
+    outorgantePessoa?.tipo_pessoa === 'PJ' && recursos.administradoresOutorgante.length === 0 ? 'sim' : '';
   return {
     naturezaExploracao: draft.incluiPecuaria ? 'AGROPECUÁRIA' : 'AGRÍCOLA',
     naturezaExploracaoPlural: draft.incluiPecuaria ? 'AGROPECUÁRIAS' : 'AGRÍCOLAS',
     outorgante: outorganteContexto(draft, recursos),
+    outorganteAdministradores: recursos.administradoresOutorgante.map((a) => ({ admin: { nome: a.pessoa.denominacao } })),
+    outorganteSemAdministrador,
     proprietarioComum: primeiraMatricula?.cliente_nome ?? '',
     cartorioComarcaComum: primeiraMatricula?.cartorio_comarca ?? '',
     cartorioUfComum: primeiraMatricula?.cartorio_uf ?? '',
     exploradores: draft.exploradores
       .map((e) => recursos.pessoas.find((p) => p.id === e.pessoaId))
       .filter((p): p is PessoaRow => !!p)
-      .map((p) => ({ explorador: qualificarPessoaRural(p, { comFiliacao: true }) })),
+      .map((p) => {
+        const campos = qualificarPessoaRural(p, { comFiliacao: true });
+        return { explorador: { ...campos, papel: PARES.outorgadoTitulo(campos.genero as Genero) } };
+      }),
     imoveis: draft.imoveis.map((item) => ({ imovel: mapearImovelRural(item, matriculaDe(item.matriculaId)) })),
     dataAssinatura: draft.dataAssinatura,
     dataEncerramento: draft.dataEncerramento,
@@ -282,7 +296,14 @@ export function montarContextoComposse(draft: ExploracaoRuralDraft, recursos: Re
   const compossuidorParaMapear = (c: CompossuidorDraft) => {
     const pessoa = recursos.pessoas.find((p) => p.id === c.pessoaId);
     if (!pessoa) return null;
-    return { compossuidor: { ...qualificarPessoaRural(pessoa, { comFiliacao: true }), fracao: comExtensoPorCento(formatarPercentual(Number(c.fracao) || 0)) } };
+    const campos = qualificarPessoaRural(pessoa, { comFiliacao: true });
+    return {
+      compossuidor: {
+        ...campos,
+        fracao: comExtensoPorCento(formatarPercentual(Number(c.fracao) || 0)),
+        papel: PARES.compossuidorTitulo(campos.genero as Genero),
+      },
+    };
   };
   // Isoladamente vs. em conjunto NÃO é uma terceira opção de `regraAdministracao` —
   // é derivado de quantos administradores nomeados sobraram. Prova real: o Termo
