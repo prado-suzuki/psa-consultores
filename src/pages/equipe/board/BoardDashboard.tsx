@@ -29,7 +29,7 @@ import {
 import { useBoardCluster } from '@/hooks/useBoardCluster';
 import {
   alertasEstrategicos, concentracaoCarteira, ratearPorCentroCusto, receitaAnoCorrente,
-  receitaEmRisco, serieReceitaComparada, ticketMedioAtivo,
+  receitaEmRisco, serieReceitaComparada,
 } from '@/lib/boardEstrategico';
 import { centrosCustoEmUso } from '@/lib/dashboardClientesOs/aggregations';
 import { useBoardRollupAreas } from '@/hooks/useBoardRollupAreas';
@@ -86,7 +86,7 @@ const BoardDashboard = () => {
   const { projectsQuery, membersQuery, periodFrom, periodTo } = usePerformanceData(periodo, 'todas');
   const { data: cicloAtivo } = useCicloAtivo();
   const { data: overview } = useDesempenhoOverview(cicloAtivo?.id);
-  const { tarefasConcluidasQuery } = useDomainBoardDashboard({ desdeISO: periodFrom });
+  const { tarefasConcluidasQuery, horasAlocadasQuery } = useDomainBoardDashboard({ desdeISO: periodFrom });
   const melhoriasQuery = useDomainMelhoriasRoi();
 
   // ── Fonte do negócio (mesma query da tela "Clientes e OS") ─────────────
@@ -142,9 +142,7 @@ const BoardDashboard = () => {
 
   const receita = useMemo(() => receitaAnoCorrente(osRows, hoje), [osRows, hoje]);
   const serieReceita = useMemo(() => serieReceitaComparada(osRows, hoje), [osRows, hoje]);
-  const ticketMedio = useMemo(() => ticketMedioAtivo(osRows), [osRows]);
   const emRisco = useMemo(() => receitaEmRisco(osRows), [osRows]);
-  const osAtivas = useMemo(() => osRows.filter((o) => o.situacao === 'em_andamento').length, [osRows]);
 
   // Concentração sobre o MESMO recorte do KPI de receita (ano corrente): a
   // fatia de um cliente só significa algo contra o denominador que está na tela.
@@ -153,9 +151,6 @@ const BoardDashboard = () => {
     [osRows, anoCorrente],
   );
   const concentracao = useMemo(() => concentracaoCarteira(osDoAno), [osDoAno]);
-
-  const clientesAtivos = useMemo(() => clienteRows.filter((c) => c.ativo), [clienteRows]);
-  const clientesFixos = clientesAtivos.filter((c) => c.tipo_cliente === 'Fixo').length;
 
   // ── Execução ───────────────────────────────────────────────────────────
   // `projetos` é o recorte da tela; `todosProjetos` fica intacto porque
@@ -172,6 +167,16 @@ const BoardDashboard = () => {
     },
     [tarefasConcluidasQuery.data, projetos, cluster],
   );
+
+  // Horas ALOCADAS no escopo (P3, reunião 17/08) -- estimated_hours de toda
+  // tarefa da janela, qualquer status, recortada pelo mesmo escopo de projeto
+  // que o resto da execução usa. `null` enquanto a consulta carrega, nunca 0
+  // por omissão -- 0 é uma resposta, "carregando" é outra.
+  const totalHoras = useMemo(() => {
+    if (!horasAlocadasQuery.data) return null;
+    const escopo = cluster ? filtrarTarefasPorProjetos(horasAlocadasQuery.data, projetos) : horasAlocadasQuery.data;
+    return escopo.reduce((soma, t) => soma + (t.estimated_hours ?? 0), 0);
+  }, [horasAlocadasQuery.data, projetos, cluster]);
   const roi = useMemo(() => consolidarRoi(melhoriasQuery.data ?? []), [melhoriasQuery.data]);
 
   // Janela real analisada — o mesmo range dos projetos, para o rótulo não mentir.
@@ -240,7 +245,7 @@ const BoardDashboard = () => {
   const receitaEmJogo = emRisco.vencido.valor + emRisco.renovacao.valor;
 
   const execucaoLoading = projectsQuery.isLoading || membersQuery.isLoading
-    || melhoriasQuery.isLoading || tarefasConcluidasQuery.isLoading
+    || melhoriasQuery.isLoading || tarefasConcluidasQuery.isLoading || horasAlocadasQuery.isLoading
     || (!!cicloAtivo && !overview);
   const kpisLoading = execucaoLoading || negocio.isLoading;
 
@@ -295,13 +300,13 @@ const BoardDashboard = () => {
           <Skeleton className="h-[120px] rounded-xl mb-4" />
         ) : (
           <BoardKpisNegocio
-            receita={receita}
-            janelaReceita={janelaReceita}
-            ticketMedio={ticketMedio}
-            osAtivas={osAtivas}
-            emRisco={emRisco}
-            carteira={{ ativos: clientesAtivos.length, fixos: clientesFixos }}
-            execucao={{ pontualidade: saude.pontualidade, projetos: saude.total, janela: janelaLabel }}
+            projetosAtivos={saude.total}
+            janelaExecucao={janelaLabel}
+            totalHoras={totalHoras}
+            pontualidade={saude.pontualidade}
+            valorProjetos={receita.atual}
+            janelaValor={janelaReceita}
+            roi={roi}
             onNavigate={navigate}
           />
         )}

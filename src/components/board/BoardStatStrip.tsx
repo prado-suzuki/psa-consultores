@@ -17,7 +17,7 @@ interface StatItem {
 
 interface BoardStatStripProps {
   items: StatItem[];
-  cols?: 4 | 5;
+  cols?: 4 | 5 | 6;
   className?: string;
 }
 
