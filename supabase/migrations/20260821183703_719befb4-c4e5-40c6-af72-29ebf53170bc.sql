@@ -1,0 +1,1 @@
+ALTER TYPE public.osg_doc_categoria ADD VALUE IF NOT EXISTS 'proposta_comercial';

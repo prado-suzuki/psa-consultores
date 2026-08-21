@@ -2617,7 +2617,7 @@ export type Database = {
         Row: {
           cluster_id: string
           color: string | null
-          color_index: number | null
+          color_index: number
           cost_center_id: string | null
           created_at: string
           gestor_chamados_id: string | null
@@ -2630,7 +2630,7 @@ export type Database = {
         Insert: {
           cluster_id: string
           color?: string | null
-          color_index?: number | null
+          color_index: number
           cost_center_id?: string | null
           created_at?: string
           gestor_chamados_id?: string | null
@@ -2643,7 +2643,7 @@ export type Database = {
         Update: {
           cluster_id?: string
           color?: string | null
-          color_index?: number | null
+          color_index?: number
           cost_center_id?: string | null
           created_at?: string
           gestor_chamados_id?: string | null
@@ -4744,6 +4744,13 @@ export type Database = {
             columns: ["estrutura_area_id"]
             isOneToOne: false
             referencedRelation: "estrutura_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "org_projects_external_client_id_fkey"
+            columns: ["external_client_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
             referencedColumns: ["id"]
           },
           {
@@ -9487,6 +9494,7 @@ export type Database = {
         | "sucessorios"
         | "outros"
         | "georreferenciamento"
+        | "proposta_comercial"
       osg_doc_fonte: "cliente" | "psa" | "arquivar"
       osg_doc_grupo: "pf" | "pj" | "bens_imoveis" | "outros"
       osg_doc_revisao: "pendente" | "aprovado" | "recusado"
@@ -9755,6 +9763,7 @@ export const Constants = {
         "sucessorios",
         "outros",
         "georreferenciamento",
+        "proposta_comercial",
       ],
       osg_doc_fonte: ["cliente", "psa", "arquivar"],
       osg_doc_grupo: ["pf", "pj", "bens_imoveis", "outros"],

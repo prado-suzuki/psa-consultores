@@ -58,6 +58,7 @@ const GRUPO_POR_CATEGORIA: Record<DocCategoria, GrupoDocumentoKey> = {
   bens_direitos: 'bens_imoveis',
   cadastros_fiscais: 'bens_imoveis',
   georreferenciamento: 'bens_imoveis',
+  proposta_comercial: 'outros',
   outros: 'outros',
 };
 

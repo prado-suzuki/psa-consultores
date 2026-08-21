@@ -187,9 +187,19 @@ export const useEstruturaMutations = () => {
         },
       });
     } else {
+      // color_index é NOT NULL no banco (slot 1..8 da paleta --area-*).
+      // Escolhe o primeiro slot livre entre as áreas ativas; sem livre, o menos usado.
+      const { data: slots } = await supabase.from('estrutura_areas')
+        .select('color_index').eq('is_active', true);
+      const usados = (slots ?? []).map((s) => s.color_index);
+      const livre = [1, 2, 3, 4, 5, 6, 7, 8].find((v) => !usados.includes(v))
+        ?? [1, 2, 3, 4, 5, 6, 7, 8].reduce((a, b) =>
+          usados.filter((u) => u === a).length <= usados.filter((u) => u === b).length ? a : b);
+
       const { data, error } = await supabase.from('estrutura_areas')
-        .insert({ name: form.name, color: form.color, cluster_id: form.cluster_id, page_categories: form.page_categories, cost_center_id: form.cost_center_id })
+        .insert({ name: form.name, color: form.color, color_index: livre, cluster_id: form.cluster_id, page_categories: form.page_categories, cost_center_id: form.cost_center_id })
         .select('id').single();
+
       if (error) { toast.error(error.message); return; }
       toast.success('Área criada');
       logAction({ area: 'estrutura', entity_type: 'area', entity_id: data.id, entity_name: form.name, action: 'created' });
