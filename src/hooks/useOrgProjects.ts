@@ -5,6 +5,7 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
 import { isProjetoDoAmbiente } from '@/lib/ambienteScope';
+import { splitProjectMembers } from '@/lib/projetoEquipe';
 import { toast } from 'sonner';
 
 // ── Helpers ────────────────────────────────────────────────────────────
@@ -489,8 +490,11 @@ export const useUpdateOrgProject = () => {
         }
       }
 
-      // Compare member_ids arrays
-      const oldMemberIds = oldMembers.filter(m => m.role === 'member').map(m => m.user_id).sort();
+      // Compare member_ids arrays — a leitura tem de ser a MESMA que o modal faz
+      // ao abrir (`splitProjectMembers`). Comparar só as linhas 'member' contra um
+      // `member_ids` que inclui a responsável executora acusaria "membros
+      // alterados" em todo salvamento de projeto com responsável.
+      const oldMemberIds = splitProjectMembers(oldMembers, oldProject.leader_id).memberIds.sort();
       const newMemberIds = [...data.member_ids].sort();
       if (JSON.stringify(oldMemberIds) !== JSON.stringify(newMemberIds)) {
         changedFields.member_ids = { old: oldMemberIds, new: newMemberIds };
