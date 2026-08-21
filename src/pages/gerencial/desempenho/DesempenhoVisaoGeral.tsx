@@ -288,7 +288,12 @@ const DesempenhoVisaoGeral = () => {
                   data-reveal
                 >
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9, marginBottom: 11 }}>
-                    <div className="v4-av v4-av-lg" style={{ background: `linear-gradient(135deg, ${m.classificacao === 'supera' ? '#4B63F7, #6B46E8' : m.classificacao === 'atende' ? '#4B63F7, #3478F5' : m.classificacao === 'parcial' ? '#7A8899, #3D4A5C' : '#D03040, #D4820A'})` }}>{m.initials}</div>
+                    <div className="v4-av v4-av-lg" /* Cor CHEIA por classificacao, e nao gradiente: os quatro gradientes
+                       eram o indigo/roxo do design antigo do Board (#4B63F7, #6B46E8,
+                       #3478F5), fora da paleta desde 21/08. Letra branca em cima, medida:
+                       6,7:1 no acento escuro, 8,0:1 no azul, 5,2:1 no ink4, 7,7:1 no
+                       carmim escuro. */
+                    style={{ background: m.classificacao === 'supera' ? 'var(--bd-accent-d)' : m.classificacao === 'atende' ? 'var(--bd-blue)' : m.classificacao === 'parcial' ? 'var(--bd-ink4)' : 'var(--bd-risk-d)' }}>{m.initials}</div>
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--board-v4-ink)' }}>{m.name}</div>
                       <div style={{ fontSize: 10.5, color: m.classificacao === 'parcial' || m.classificacao === 'abaixo' ? 'var(--board-v4-warn)' : 'var(--board-v4-ink3)', marginTop: 1 }}>

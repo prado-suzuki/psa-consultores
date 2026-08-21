@@ -270,7 +270,10 @@ const DashboardUsoEnvioGerencial = () => {
             houver falha, e o caminho de tentar de novo não se perdeu: o botão
             "Atualizar" continua na barra de filtros acima. */}
 
-        {/* slate-600, não 500: sobre o `--board-bg` (#F0F4F8) o 500 dá 4,31:1. */}
+        {/* slate-600, não 500: sobre o fundo da página o 500 dá 4,31:1. O valor de
+            `--board-bg` mudou em 21/08 (era #F0F4F8, virou o neutro com cast de teal
+            do bloco `--bd-*`), e a conclusão não muda — a luminosidade do fundo é a
+            mesma. */}
         <p className="text-xs text-slate-600">
           Escopo:{' '}
           <strong className="text-slate-700">

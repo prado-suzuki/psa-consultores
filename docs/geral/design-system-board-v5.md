@@ -73,6 +73,41 @@ A barra lateral era azul-noite (`#0C1222`), a única superfície escura do siste
 cheia** no teal escuro e o chip do usuário no topbar — onde continua visível com a
 barra recolhida.
 
+### 5. O Board saiu da infraestrutura (correção de 21/08, à noite)
+
+A primeira versão desta refatoração pintou o chrome do Board de teal e **deixou o
+tema semântico como estava** — e estava errado: `/equipe/board` era mapeado como
+infraestrutura em `src/lib/areaTheme.ts`, então o `<html>` carregava
+`.sistema-theme`, cujo `--primary`/`--accent`/`--ring` é grafite quente
+(`35 10% 26%`).
+
+Resultado na tela, e foi a usuária que viu ao abrir: **quatro famílias ao mesmo
+tempo**. Cartões, gráficos, tabelas e barra lateral em teal (os `--bd-*`); todo
+botão, select, calendário e anel de foco em grafite; superfícies dos módulos
+compartilhados (Capacidade, Clientes) em marfim; e as oito subtelas de Desempenho
+pintando com hexadecimal de estoque do Tailwind (emerald `#10B981`, amber
+`#D97706`, blue `#3B82F6`, violet `#EDE9FE`, slate `#F1F5F9`) mais o índigo/roxo
+do design antigo do Board em quatro avatares.
+
+A correção tem três partes:
+
+1. **`/equipe/board` deixou de ser infraestrutura** (`MAPA_DE_ROTAS`: `sistema` →
+   `board`). Dev e Acessos *servem* o sistema; o Board é a tela da diretoria, e
+   área de negócio veste a marca. O comentário do próprio arquivo já previa que a
+   mudança seria uma palavra na tabela.
+2. **`.board-theme`**, um delta de acento + superfície (20 das 46 variáveis do
+   contrato), com os MESMOS números do bloco `--bd-*` — é o que faz o card do
+   shadcn e o card do Board serem o mesmo branco. Herda do piso os papéis de
+   status e os tons de tag, e o porquê está em `docs/geral/paleta-por-area.md`.
+3. **As oito subtelas de Desempenho entraram na família**: ~55 hexadecimais de
+   estoque viraram token, e a faixa escura dos cartões de PPR passou de grafite
+   para teal profundo (branco em cima: 16,8:1 e 12,5:1, medidos nos valores
+   novos).
+
+A lição, para a próxima área: **trocar o design system de uma área sem trocar o
+tema semântico dela deixa metade da tela para trás.** O chrome é o que o
+refatorador vê; os controles, o que o usuário clica.
+
 ## Contraste (o que foi medido)
 
 Todo tom que carrega TEXTO tem um degrau `-d`; o tom cheio fica para área grande

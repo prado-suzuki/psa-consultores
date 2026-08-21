@@ -21,8 +21,8 @@ import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const classifLabels: Record<string, string> = { supera: 'Supera', atende: 'Atende', atende_parcialmente: 'Parcial', abaixo: 'Abaixo' };
-const classifColors: Record<string, string> = { supera: '#065F46', atende: '#1E40AF', atende_parcialmente: '#92400E', abaixo: '#991B1B' };
-const classifBgs: Record<string, string> = { supera: '#F0FDF4', atende: '#EFF6FF', atende_parcialmente: '#FFFBEB', abaixo: '#FFF8F8' };
+const classifColors: Record<string, string> = { supera: 'var(--bd-go-d)', atende: 'var(--bd-blue)', atende_parcialmente: 'var(--bd-warn-d)', abaixo: 'var(--bd-risk-d)' };
+const classifBgs: Record<string, string> = { supera: 'var(--bd-go-t)', atende: 'var(--bd-blue-t)', atende_parcialmente: 'var(--bd-warn-t)', abaixo: 'var(--bd-risk-t)' };
 const dimensaoLabels: Record<string, string> = { entrega: 'Entrega', impacto: 'Impacto', gestao: 'Gestao' };
 
 const MinhaEvolucao = () => {
@@ -114,15 +114,16 @@ const MinhaEvolucao = () => {
             intermediário `--surface-escura-2`. O `#0F172A` que estava cravado
             aqui É `hsl(222 47% 11%)`, ou seja o próprio `--surface-escura-2` do
             piso copiado à mão — e por ser hex ignorava o tema da rota. Esta
-            tela resolve por `.sistema-theme` (`areaTheme.ts:111`), que declara
-            grafite quente, então o cartão vinha azul-marinho contra o tema dele.
-            Branco em cima dá 18,3:1 no início e 16,4:1 no fim. */}
+            tela resolve por `.board-theme` (o Board saiu da infraestrutura em
+            21/08/2026), que declara teal profundo — antes era o grafite quente
+            da `.sistema-theme`, e o cartão vinha azul-marinho contra os dois.
+            Branco em cima, medido nos valores novos: 16,8:1 e 12,5:1. */}
         <div className="rounded-xl p-5 text-white" style={{ background: 'linear-gradient(135deg, hsl(var(--surface-escura)), hsl(var(--surface-escura-2)))' }}>
           <div className="flex items-center gap-4 mb-4">
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold" style={{ background: 'linear-gradient(135deg, #5B6EF0, #8054F0)' }}>{initials}</div>
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold" style={{ background: 'var(--bd-accent-d)' }}>{initials}</div>
             <div className="flex-1">
               <h2 className="text-lg font-bold">{firstName} {lastName}</h2>
-              <p className="text-slate-400 text-sm">Ciclo: {selectedCiclo?.nome || 'Nenhum selecionado'}</p>
+              <p className="text-muted-foreground text-sm">Ciclo: {selectedCiclo?.nome || 'Nenhum selecionado'}</p>
             </div>
             {evolucao && (
               <div className="rounded-lg px-4 py-2 text-center" style={{ backgroundColor: classifBgs[evolucao.classificacaoProjetada] + '33' }}>
@@ -143,7 +144,7 @@ const MinhaEvolucao = () => {
               ].map((m, i) => (
                 <div key={i} className="text-center">
                   <p className="text-lg font-bold">{m.value}</p>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-wider">{m.label}</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{m.label}</p>
                 </div>
               ))}
             </div>
@@ -166,7 +167,7 @@ const MinhaEvolucao = () => {
                   const barColor = m.progresso_atual >= 85 ? 'var(--board-green)' : m.progresso_atual >= 70 ? 'var(--board-amber)' : 'var(--board-red)';
                   return (
                     <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg" style={{ backgroundColor: 'var(--board-border-s)' }}>
-                      <Badge variant="outline" className="text-[10px] px-2 rounded-full border-0" style={{ backgroundColor: m.dimensao === 'entrega' ? 'rgba(59,130,246,0.12)' : m.dimensao === 'impacto' ? 'rgba(16,185,129,0.12)' : 'rgba(139,92,246,0.12)', color: m.dimensao === 'entrega' ? '#3B82F6' : m.dimensao === 'impacto' ? '#10B981' : '#8B5CF6' }}>
+                      <Badge variant="outline" className="text-[10px] px-2 rounded-full border-0" style={{ backgroundColor: m.dimensao === 'entrega' ? 'var(--bd-blue-t)' : m.dimensao === 'impacto' ? 'var(--bd-go-t)' : 'var(--bd-purple-t)', color: m.dimensao === 'entrega' ? 'var(--bd-blue)' : m.dimensao === 'impacto' ? 'var(--bd-go-d)' : 'var(--bd-purple)' }}>
                         {dimensaoLabels[m.dimensao] || m.dimensao}
                       </Badge>
                       <span className="flex-1 text-[12.5px] font-medium truncate" style={{ color: 'var(--board-t1)' }}>{m.titulo}</span>
@@ -210,7 +211,7 @@ const MinhaEvolucao = () => {
                 {comentariosLider?.map(c => {
                   const autor = profileMap.get(c.autor_id);
                   return (
-                    <div key={c.id} className="p-3 rounded-lg" style={{ backgroundColor: !c.lido ? 'rgba(91,110,240,0.06)' : 'var(--board-border-s)', borderLeft: !c.lido ? '3px solid var(--board-indigo)' : 'none' }}>
+                    <div key={c.id} className="p-3 rounded-lg" style={{ backgroundColor: !c.lido ? 'var(--bd-accent-t)' : 'var(--bd-surface2)', borderLeft: !c.lido ? '3px solid var(--board-indigo)' : 'none' }}>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[12px] font-medium" style={{ color: 'var(--board-t1)' }}>{autor?.first_name || 'Lider'} {autor?.last_name || ''}</span>
                         <span className="text-[10px]" style={{ color: 'var(--board-t4)' }}>{formatDistanceToNow(new Date(c.created_at), { addSuffix: true, locale: ptBR })}</span>

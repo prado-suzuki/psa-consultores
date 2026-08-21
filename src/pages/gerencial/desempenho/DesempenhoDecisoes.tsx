@@ -31,11 +31,22 @@ interface AiResult {
   sintese?: string;
 }
 
-const recStyles: Record<string, { bg: string; border: string; icon: LucideIcon; label: string }> = {
-  promocao: { bg: '#ECFDF5', border: '#6EE7B7', icon: Star, label: 'Promocao' },
-  reajuste: { bg: '#FFFBEB', border: '#FCD34D', icon: DollarSign, label: 'Reajuste' },
-  acompanhamento: { bg: '#FFF5F5', border: '#FCA5A5', icon: AlertTriangle, label: 'Acompanhamento' },
-  manter: { bg: '#F8FAFC', border: '#E2E8F0', icon: CheckCircle, label: 'Manter' },
+/**
+ * Cada recomendacao tem QUATRO tons, e nao dois, porque o cartao e o chip
+ * pedem coisas diferentes: o fundo e area grande (tint), o traco e borda, e a
+ * LETRA do chip precisa do degrau escuro para passar AA sobre o proprio tint.
+ *
+ * Antes eram dois hexadecimais de estoque do Tailwind por linha (emerald 50/300,
+ * amber 50/300, red 50/300, slate 50/200) e o chip nascia de `border + '33'` --
+ * concatenacao de alfa em hexadecimal, que e o truque que impedia a cor de vir
+ * de token. Numa tela do Board, que agora veste o teal da marca, essas quatro
+ * familias eram quatro paletas estranhas a tela.
+ */
+const recStyles: Record<string, { bg: string; border: string; chipBg: string; chipTxt: string; icon: LucideIcon; label: string }> = {
+  promocao: { bg: 'var(--bd-go-t)', border: 'hsl(175 82% 29% / .3)', chipBg: 'var(--bd-go-t)', chipTxt: 'var(--bd-go-d)', icon: Star, label: 'Promocao' },
+  reajuste: { bg: 'var(--bd-warn-t)', border: 'hsl(36 91% 43% / .32)', chipBg: 'var(--bd-warn-t)', chipTxt: 'var(--bd-warn-d)', icon: DollarSign, label: 'Reajuste' },
+  acompanhamento: { bg: 'var(--bd-risk-t)', border: 'hsl(353 63% 51% / .3)', chipBg: 'var(--bd-risk-t)', chipTxt: 'var(--bd-risk-d)', icon: AlertTriangle, label: 'Acompanhamento' },
+  manter: { bg: 'var(--bd-surface2)', border: 'var(--bd-line)', chipBg: 'var(--bd-surface2)', chipTxt: 'var(--bd-ink3)', icon: CheckCircle, label: 'Manter' },
 };
 
 const classifLabels: Record<string, string> = { supera: 'Supera', atende: 'Atende', atende_parcialmente: 'Parcial', abaixo: 'Abaixo' };
@@ -149,14 +160,14 @@ const DesempenhoDecisoes = () => {
               return (
                 <div key={m.membro_id} className="rounded-xl p-4 transition-all" style={{ backgroundColor: style.bg, border: `1px solid ${style.border}` }}>
                   <div className="flex items-center gap-3 mb-3">
-                    <RecIcon className="h-4 w-4" style={{ color: style.border }} />
-                    <div className="w-[28px] h-[28px] rounded-lg flex items-center justify-center text-[10px] font-bold text-white" style={{ background: 'linear-gradient(135deg, #5B6EF0, #8054F0)' }}>
+                    <RecIcon className="h-4 w-4" style={{ color: style.chipTxt }} />
+                    <div className="w-[28px] h-[28px] rounded-lg flex items-center justify-center text-[10px] font-bold text-white" style={{ background: 'var(--bd-accent-d)' }}>
                       {(m.first_name?.[0] ?? '') + (m.last_name?.[0] ?? '')}
                     </div>
                     <div className="flex-1">
                       <p className="text-[13px] font-semibold" style={{ color: 'var(--board-t1)' }}>{m.first_name} {m.last_name}</p>
                     </div>
-                    <Badge className="board-chip" style={{ background: style.border + '33', color: style.border === '#E2E8F0' ? 'var(--board-t3)' : style.border }}>{style.label}</Badge>
+                    <Badge className="board-chip" style={{ background: style.chipBg, color: style.chipTxt, border: `1px solid ${style.border}` }}>{style.label}</Badge>
                   </div>
                   {aiRec?.justificativa && <p className="text-[12px] mb-3" style={{ color: 'var(--board-t2)' }}>{aiRec.justificativa}</p>}
                   <div className="flex items-center gap-4 text-[11px] mb-3" style={{ color: 'var(--board-t3)' }}>

@@ -19,9 +19,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import React from 'react';
 
 const tipoColors: Record<string, string> = {
-  reconhecimento: 'bg-emerald-100 text-emerald-700',
-  desenvolvimento: 'bg-amber-100 text-amber-700',
-  '360': 'bg-blue-100 text-blue-700',
+  reconhecimento: 'bg-[var(--bd-go-t)] text-[var(--bd-go-d)]',
+  desenvolvimento: 'bg-[var(--bd-warn-t)] text-[var(--bd-warn-d)]',
+  '360': 'bg-[var(--bd-blue-t)] text-[var(--bd-blue)]',
 };
 const tipoLabels: Record<string, string> = { reconhecimento: 'Reconhecimento', desenvolvimento: 'Desenvolvimento', '360': '360' };
 
@@ -93,7 +93,7 @@ const DesempenhoFeedbacks = () => {
                   <TableBody>
                     {feedbacks?.map(f => (
                       <React.Fragment key={f.id}>
-                        <TableRow className="hover:bg-slate-50 cursor-pointer" onClick={() => setExpandedId(expandedId === f.id ? null : f.id)}>
+                        <TableRow className="hover:bg-muted cursor-pointer" onClick={() => setExpandedId(expandedId === f.id ? null : f.id)}>
                           <TableCell className="text-sm">{f.anonimo ? 'Anonimo' : getName(f.de_usuario_id)}</TableCell>
                           <TableCell className="text-sm">{getName(f.para_usuario_id)}</TableCell>
                           <TableCell><Badge className={`${tipoColors[f.tipo] ?? ''} border-0 text-xs`}>{tipoLabels[f.tipo] ?? f.tipo}</Badge></TableCell>

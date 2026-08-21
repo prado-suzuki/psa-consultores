@@ -20,9 +20,9 @@ const tipoLabels: Record<string, string> = {
 };
 
 const recColors: Record<string, { bg: string; color: string }> = {
-  promocao: { bg: '#ECFDF5', color: '#065F46' },
-  reajuste: { bg: '#FFFBEB', color: '#92400E' },
-  manter: { bg: '#F1F5F9', color: '#475569' },
+  promocao: { bg: 'var(--bd-go-t)', color: 'var(--bd-go-d)' },
+  reajuste: { bg: 'var(--bd-warn-t)', color: 'var(--bd-warn-d)' },
+  manter: { bg: 'var(--bd-surface2)', color: 'var(--bd-ink3)' },
 };
 
 const DesempenhoRelatorios = () => {
@@ -102,7 +102,7 @@ const DesempenhoRelatorios = () => {
             <div className="board-sec-label">Relatorios anteriores</div>
             <div className="space-y-1">
               {historico.filter(r => r.status === 'pronto').slice(0, 5).map(r => (
-                <div key={r.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[#F7FAFF] transition-colors">
+                <div key={r.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--bd-surface2)] transition-colors">
                   <FileText className="h-3.5 w-3.5" style={{ color: 'var(--board-t4)' }} />
                   <span className="text-[12px] flex-1" style={{ color: 'var(--board-t2)' }}>{tipoLabels[r.tipo]}</span>
                   <span className="text-[11px]" style={{ color: 'var(--board-t4)' }}><Clock className="h-3 w-3 inline mr-1" />{format(new Date(r.gerado_em), "dd/MM/yy HH:mm")}</span>
@@ -132,21 +132,23 @@ const DesempenhoRelatorios = () => {
                 mais escuro `--surface-escura` para o intermediário
                 `--surface-escura-2`. O `#0F172A` cravado ERA `hsl(222 47% 11%)`,
                 o próprio `--surface-escura-2` do piso copiado à mão — e por ser
-                hex ignorava o tema. Esta rota resolve `.sistema-theme`, que
-                declara grafite quente. Branco em cima: 18,3:1 / 16,4:1. */}
+                hex ignorava o tema. Esta rota resolve `.board-theme` (o Board
+                saiu da infraestrutura em 21/08), que declara teal profundo —
+                antes, o grafite quente da `.sistema-theme`. Branco em cima,
+                medido nos valores novos: 16,8:1 / 12,5:1. */}
             <div className="p-6" style={{ background: 'linear-gradient(135deg, hsl(var(--surface-escura)), hsl(var(--surface-escura-2)))' }}>
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold text-white" style={{ background: 'linear-gradient(135deg, #5B6EF0, #8054F0)' }}>
+                <div className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold text-white" style={{ background: 'var(--bd-accent-d)' }}>
                   {(selectedProfile?.first_name?.[0] ?? '') + (selectedProfile?.last_name?.[0] ?? '')}
                 </div>
                 <div className="flex-1">
                   <h3 className="text-white text-lg font-bold">{selectedProfile?.first_name} {selectedProfile?.last_name}</h3>
-                  <p className="text-slate-400 text-sm">{ciclos?.find(c => c.id === cicloId)?.nome} · {format(new Date(), "dd/MM/yyyy")}</p>
+                  <p className="text-muted-foreground text-sm">{ciclos?.find(c => c.id === cicloId)?.nome} · {format(new Date(), "dd/MM/yyyy")}</p>
                 </div>
                 {report.ppr !== undefined && (
                   <div className="text-right">
                     <p className="text-white text-2xl font-bold" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>{report.ppr}%</p>
-                    <p className="text-slate-400 text-xs">PPR Calculado</p>
+                    <p className="text-muted-foreground text-xs">PPR Calculado</p>
                   </div>
                 )}
               </div>
@@ -163,7 +165,7 @@ const DesempenhoRelatorios = () => {
                       <thead><tr><th>Dimensao</th><th>Peso</th><th>Progresso</th><th>%</th></tr></thead>
                       <tbody>
                         {report.dimensoes.map((d: any, i: number) => (
-                          <tr key={i}><td>{d.dimensao}</td><td>{d.peso}</td><td><div className="w-full h-1.5 rounded-full bg-[#E8EFF7]"><div className="h-full rounded-full bg-[var(--board-indigo)]" style={{ width: `${d.progresso}%` }} /></div></td><td>{d.progresso}%</td></tr>
+                          <tr key={i}><td>{d.dimensao}</td><td>{d.peso}</td><td><div className="w-full h-1.5 rounded-full bg-[var(--bd-line2)]"><div className="h-full rounded-full bg-[var(--bd-accent)]" style={{ width: `${d.progresso}%` }} /></div></td><td>{d.progresso}%</td></tr>
                         ))}
                       </tbody>
                     </table>
@@ -180,20 +182,20 @@ const DesempenhoRelatorios = () => {
               {/* Right Column */}
               <div className="space-y-5">
                 {report.pontos_fortes && (
-                  <div className="rounded-lg p-4" style={{ background: 'rgba(91,110,240,0.06)' }}>
+                  <div className="rounded-lg p-4" style={{ background: 'var(--bd-accent-t)' }}>
                     <h4 className="text-[13px] font-semibold mb-2" style={{ color: 'var(--board-indigo)' }}>Pontos Fortes</h4>
                     <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--board-t2)' }}>{report.pontos_fortes}</p>
                   </div>
                 )}
                 {report.pontos_desenvolvimento && (
-                  <div className="rounded-lg p-4" style={{ background: 'rgba(232,147,10,0.06)' }}>
+                  <div className="rounded-lg p-4" style={{ background: 'var(--bd-warn-t)' }}>
                     <h4 className="text-[13px] font-semibold mb-2" style={{ color: 'var(--board-amber)' }}>Pontos de Desenvolvimento</h4>
                     <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--board-t2)' }}>{report.pontos_desenvolvimento}</p>
                   </div>
                 )}
                 {report.recomendacao_rh && (
-                  <div className="rounded-lg p-4" style={{ background: recColors[report.tipo_recomendacao]?.bg || '#F1F5F9' }}>
-                    <h4 className="text-[13px] font-semibold mb-2" style={{ color: recColors[report.tipo_recomendacao]?.color || '#475569' }}>Recomendacao de RH</h4>
+                  <div className="rounded-lg p-4" style={{ background: recColors[report.tipo_recomendacao]?.bg || 'var(--bd-surface2)' }}>
+                    <h4 className="text-[13px] font-semibold mb-2" style={{ color: recColors[report.tipo_recomendacao]?.color || 'var(--bd-ink3)' }}>Recomendacao de RH</h4>
                     <p className="text-[12.5px] leading-relaxed" style={{ color: 'var(--board-t2)' }}>{report.recomendacao_rh}</p>
                   </div>
                 )}

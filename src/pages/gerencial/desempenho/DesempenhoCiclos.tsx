@@ -21,10 +21,10 @@ import { RadialBarChart, RadialBar, ResponsiveContainer } from 'recharts';
 import { toast } from '@/hooks/use-toast';
 
 const statusColors: Record<string, string> = {
-  planejado: 'bg-slate-100 text-slate-700',
-  em_andamento: 'bg-blue-100 text-blue-700',
-  em_avaliacao: 'bg-amber-100 text-amber-700',
-  encerrado: 'bg-emerald-100 text-emerald-700',
+  planejado: 'bg-muted text-foreground',
+  em_andamento: 'bg-[var(--bd-blue-t)] text-[var(--bd-blue)]',
+  em_avaliacao: 'bg-[var(--bd-warn-t)] text-[var(--bd-warn-d)]',
+  encerrado: 'bg-[var(--bd-go-t)] text-[var(--bd-go-d)]',
 };
 const statusLabels: Record<string, string> = {
   planejado: 'Planejado', em_andamento: 'Em andamento', em_avaliacao: 'Em avaliacao', encerrado: 'Encerrado',
@@ -134,7 +134,7 @@ const DesempenhoCiclos = () => {
               </TableHeader>
               <TableBody>
                 {ciclos?.map((c) => (
-                  <TableRow key={c.id} className="hover:bg-slate-50 cursor-pointer transition-colors" onClick={() => setSelectedCiclo(c)}>
+                  <TableRow key={c.id} className="hover:bg-muted cursor-pointer transition-colors" onClick={() => setSelectedCiclo(c)}>
                     <TableCell className="font-medium">{c.nome}</TableCell>
                     <TableCell className="text-sm" style={{ color: 'var(--board-t3)' }}>{c.data_inicio} -- {c.data_fim}</TableCell>
                     <TableCell className="text-sm" style={{ color: 'var(--board-t3)' }}>{c.data_analise_semestral ?? '--'}</TableCell>
@@ -182,7 +182,7 @@ const DesempenhoCiclos = () => {
                 <div className="flex items-center justify-center">
                   <div className="w-40 h-40">
                     <ResponsiveContainer width="100%" height="100%">
-                      <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" data={[{ value: avgProgress, fill: avgProgress >= 85 ? '#10B981' : avgProgress >= 70 ? '#D97706' : '#EF4444' }]} startAngle={180} endAngle={0}>
+                      <RadialBarChart cx="50%" cy="50%" innerRadius="60%" outerRadius="90%" data={[{ value: avgProgress, fill: avgProgress >= 85 ? 'var(--bd-go)' : avgProgress >= 70 ? 'var(--bd-warn)' : 'var(--bd-risk)' }]} startAngle={180} endAngle={0}>
                         <RadialBar background dataKey="value" />
                       </RadialBarChart>
                     </ResponsiveContainer>
@@ -204,9 +204,9 @@ const DesempenhoCiclos = () => {
 
                 {/* Counts by dimension */}
                 <div className="flex gap-2">
-                  <Badge className="bg-blue-500/12 text-blue-600 border-0 text-xs rounded-full px-3">Entrega {entregaCount}</Badge>
-                  <Badge className="bg-emerald-500/12 text-emerald-600 border-0 text-xs rounded-full px-3">Impacto {impactoCount}</Badge>
-                  <Badge className="bg-violet-500/12 text-violet-600 border-0 text-xs rounded-full px-3">Gestao {gestaoCount}</Badge>
+                  <Badge className="bg-[var(--bd-blue-t)] text-[var(--bd-blue)] border-0 text-xs rounded-full px-3">Entrega {entregaCount}</Badge>
+                  <Badge className="bg-[var(--bd-go-t)] text-[var(--bd-go-d)] border-0 text-xs rounded-full px-3">Impacto {impactoCount}</Badge>
+                  <Badge className="bg-[var(--bd-purple-t)] text-[var(--bd-purple)] border-0 text-xs rounded-full px-3">Gestao {gestaoCount}</Badge>
                 </div>
 
                 {/* Actions */}
