@@ -28,7 +28,7 @@ const CAT_LABEL: Record<DocCategoria, string> = {
   sucessorios: 'Sucessórios',
   pessoais: 'Pessoais',
   georreferenciamento: 'Georreferenciamento',
-  proposta_comercial: 'Proposta Comercial',
+  proposta_comercial: 'Proposta comercial',
   outros: 'Outros',
 };
 

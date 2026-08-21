@@ -166,7 +166,9 @@ export interface SaudeProjetos {
   pontualidade: number;
 }
 
-export function saudeProjetos(projetos: ProjetoSaude[]): SaudeProjetos {
+export function saudeProjetos(
+  projetos: Array<Pick<ProjetoSaude, 'computed_status'>>,
+): SaudeProjetos {
   let emDia = 0, emRisco = 0, atrasados = 0;
   for (const p of projetos) {
     if (p.computed_status === 'em_dia') emDia += 1;
@@ -423,9 +425,10 @@ export interface ResumoAreaCadastro {
   unidade: 'tarefas' | 'entregáveis';
 }
 
-interface ProjetoComArea extends ProjetoSaude {
+interface ProjetoComArea {
   id: string;
   estrutura_area_id: string | null;
+  computed_status: ProjetoSaude['computed_status'];
 }
 
 /**

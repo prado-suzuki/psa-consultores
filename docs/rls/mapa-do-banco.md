@@ -5,7 +5,7 @@
 > **Regra:** para consultar o schema, use ESTE arquivo — **nunca** leia `types.ts` inteiro.
 > **Acesso (RLS):** a coluna "Acesso" resume "quem acessa" via arquetipos (ver legenda). Reconstruido do `pg_policies` vivo; para o texto exato de uma policy, ver `supabase/migrations`.
 
-**143 tabelas** de negocio · 2 de backup (ignorar) · 35 enums.
+**144 tabelas** de negocio · 2 de backup (ignorar) · 35 enums.
 Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ## Convencoes (do CLAUDE.md)
@@ -45,6 +45,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`audit_logs`](#auditlogs) | 10 | — | interno | — |
 | [`bem`](#bem) | 30 | — | cluster-cliente | cliente, profiles, pessoa |
 | [`bkp_20260807_ticket_messages_dup`](#bkp20260807ticketmessagesdup) | 9 | — | interno | — |
+| [`capital_integralizacao`](#capitalintegralizacao) | 16 | — | cluster-cliente | bem, cliente, profiles, pessoa |
 | [`cartorio`](#cartorio) | 8 | — | interno | profiles |
 | [`catalog_clients`](#catalogclients) | 9 | — | interno | estrutura_areas |
 | [`centros_custo`](#centroscusto) | 5 | — | catalogo | — |
@@ -110,11 +111,10 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`melhoria_responsaveis`](#melhoriaresponsaveis) | 6 | — | cluster-mapa | process_improvements, job_roles |
 | [`melhoria_sistemas`](#melhoriasistemas) | 5 | — | cluster-mapa | process_improvements, sistemas_processo |
 | [`metas`](#metas) | 22 | — | desempenho | ciclos_avaliacao, metas |
-| [`movimentacao_quotas`](#movimentacaoquotas) | 21 | — | interno | bem, cliente, profiles, pessoa, documento_gerado |
 | [`notificacao`](#notificacao) | 16 | — | interno | profiles |
 | [`notificacao_envio`](#notificacaoenvio) | 21 | — | interno | profiles, notificacao |
 | [`novidades`](#novidades) | 17 | — | interno | — |
-| [`ordem_servico`](#ordemservico) | 23 | excluido | cluster-cliente | estrutura_clusters, contribuinte, produto_segmento, servicos_prestados, setor_cliente |
+| [`ordem_servico`](#ordemservico) | 22 | excluido | cluster-cliente | estrutura_clusters, produto_segmento, servicos_prestados, setor_cliente |
 | [`org_comment_attachments`](#orgcommentattachments) | 10 | — | interno | org_comments, org_comments_feed, profiles |
 | [`org_comment_mentions`](#orgcommentmentions) | 6 | — | interno | org_comments, org_comments_feed, profiles |
 | [`org_comments`](#orgcomments) | 16 | excluido | interno | profiles, org_comments, org_comments_feed, org_projects |
@@ -148,6 +148,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`projects`](#projects) | 21 | — | interno | catalog_clients, estrutura_clusters, estrutura_equipes, cliente, profiles |
 | [`projeto_flag_valor`](#projetoflagvalor) | 10 | — | interno | cliente, profiles, tmpl_flag, pessoa |
 | [`projeto_justificativas`](#projetojustificativas) | 5 | — | cluster-mapa | projects |
+| [`quadro_societario`](#quadrosocietario) | 11 | — | cluster-cliente | profiles, pessoa |
 | [`relatorios_gerados`](#relatoriosgerados) | 8 | — | interno | ciclos_avaliacao |
 | [`representante`](#representante) | 13 | excluido | interno | cliente |
 | [`reunioes_1a1`](#reunioes1a1) | 10 | — | desempenho | ciclos_avaliacao |
@@ -216,6 +217,10 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 ### <a id="bkp20260807ticketmessagesdup"></a>`bkp_20260807_ticket_messages_dup`
 **Acesso:** interno
 `backup_em` string · `copia_numero` number · `created_at` string? · `id` string · `is_admin` boolean? · `message` string · `segundos_apos` number · `ticket_id` string · `user_id` string
+
+### <a id="capitalintegralizacao"></a>`capital_integralizacao`
+**Acesso:** cluster-cliente
+`bem_id` string · `cliente_id` string · `created_at` string · `created_by` string? · `empresa_destino_pessoa_id` string · `id` string · `pct_capital` number? · `pct_vlr_contabil` number? · `pct_vlr_mercado` number? · `reserva_capital` number? · `socio_pessoa_id` string · `updated_at` string · `updated_by` string? · `vlr_capital_arredondado` number? · `vlr_contabil` number? · `vlr_mercado` number?  ·  **FK:** `bem_id`→bem.id · `cliente_id`→cliente.id · `created_by`→profiles.id · `empresa_destino_pessoa_id`→pessoa.id · `socio_pessoa_id`→pessoa.id · `updated_by`→profiles.id
 
 ### <a id="cartorio"></a>`cartorio`
 **Acesso:** interno
@@ -477,10 +482,6 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 **Acesso:** desempenho
 `ajuste_qualitativo` string? · `ajuste_qualitativo_publico` string? · `ciclo_id` string? · `classificacao_final` string? · `comentario_membro` string? · `created_at` string? · `created_by` string? · `criterio_evidencia` string? · `descricao` string? · `dimensao` string · `id` string · `meta_pai_id` string? · `nivel` string · `peso` number? · `prazo` string? · `progresso_atual` number? · `recomendacao_decisao` string? · `responsavel_id` string? · `status` string? · `titulo` string · `ultima_atualizacao_membro` string? · `updated_at` string?  ·  **FK:** `ciclo_id`→ciclos_avaliacao.id · `meta_pai_id`→metas.id
 
-### <a id="movimentacaoquotas"></a>`movimentacao_quotas`
-**Acesso:** interno
-`bem_id` string? · `cliente_id` string · `created_at` string · `created_by` string? · `data_movimento` string? · `destino_pessoa_id` string? · `documento_gerado_id` string? · `empresa_pessoa_id` string · `id` string · `origem_pessoa_id` string? · `pct_capital` number? · `pct_vlr_contabil` number? · `pct_vlr_mercado` number? · `quotas` number · `reserva_capital` number? · `tipo` string · `updated_at` string · `updated_by` string? · `vlr_capital_arredondado` number? · `vlr_contabil` number? · `vlr_mercado` number?  ·  **FK:** `bem_id`→bem.id · `cliente_id`→cliente.id · `created_by`→profiles.id · `updated_by`→profiles.id · `destino_pessoa_id`→pessoa.id · `documento_gerado_id`→documento_gerado.id · `empresa_pessoa_id`→pessoa.id · `origem_pessoa_id`→pessoa.id
-
 ### <a id="notificacao"></a>`notificacao`
 **Acesso:** interno
 `agrupamento_chave` string · `corpo` string? · `created_at` string · `created_by` string? · `destinatario_id` string · `entidade_id` string · `entidade_tipo` string · `href` string? · `id` string · `lido_em` string? · `metadata` Json · `quantidade` number · `tipo` Database["public"]["Enums"]["notificacao_tipo"] · `titulo` string · `updated_at` string · `updated_by` string?  ·  **FK:** `destinatario_id`→profiles.id
@@ -495,7 +496,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="ordemservico"></a>`ordem_servico`
 **Acesso:** cluster-cliente · **Flags:** excluido
-`cluster_id` string? · `contribuinte_id` string? · `created_at` string? · `data_emissao` string? · `data_fim` string? · `data_inicio` string? · `excluido` boolean · `id` string · `id_cliente` string · `id_produto_segmento` string? · `id_servico` string? · `numero_os` string? · `numero_parcelas` number? · `observacoes` string? · `regiao` string? · `setor_cliente` string? · `setor_cliente_id` string? · `situacao` string? · `updated_at` string? · `valor_entrada` number? · `valor_projeto` number? · `valor_reembolso_km` number? · `valor_reembolso_refeicao` number?  ·  **FK:** `cluster_id`→estrutura_clusters.id · `contribuinte_id`→contribuinte.id · `id_produto_segmento`→produto_segmento.id · `id_servico`→servicos_prestados.id · `setor_cliente_id`→setor_cliente.id
+`cluster_id` string? · `created_at` string? · `data_emissao` string? · `data_fim` string? · `data_inicio` string? · `excluido` boolean · `id` string · `id_cliente` string · `id_produto_segmento` string? · `id_servico` string? · `numero_os` string? · `numero_parcelas` number? · `observacoes` string? · `regiao` string? · `setor_cliente` string? · `setor_cliente_id` string? · `situacao` string? · `updated_at` string? · `valor_entrada` number? · `valor_projeto` number? · `valor_reembolso_km` number? · `valor_reembolso_refeicao` number?  ·  **FK:** `cluster_id`→estrutura_clusters.id · `id_produto_segmento`→produto_segmento.id · `id_servico`→servicos_prestados.id · `setor_cliente_id`→setor_cliente.id
 
 ### <a id="orgcommentattachments"></a>`org_comment_attachments`
 **Acesso:** interno
@@ -628,6 +629,10 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 ### <a id="projetojustificativas"></a>`projeto_justificativas`
 **Acesso:** cluster-mapa
 `created_at` string · `id` string · `justificativa` string · `ordem` number? · `projeto_id` string  ·  **FK:** `projeto_id`→projects.id
+
+### <a id="quadrosocietario"></a>`quadro_societario`
+**Acesso:** cluster-cliente
+`created_at` string · `created_by` string? · `data_referencia` string? · `empresa_pessoa_id` string · `id` string · `percentual` number? · `quotas` number? · `socio_pessoa_id` string · `updated_at` string · `updated_by` string? · `vlr_total` number?  ·  **FK:** `created_by`→profiles.id · `empresa_pessoa_id`→pessoa.id · `socio_pessoa_id`→pessoa.id · `updated_by`→profiles.id
 
 ### <a id="relatoriosgerados"></a>`relatorios_gerados`
 **Acesso:** interno

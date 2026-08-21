@@ -198,10 +198,11 @@ export const useEstruturaMutations = () => {
       const colorIndex = proximoIndiceDeCor((existentes ?? []).map((a) => a.color_index));
       const { data, error } = await supabase.from('estrutura_areas')
         .insert({
-          name: form.name, cluster_id: form.cluster_id, color_index: colorIndex,
-          page_categories: form.page_categories, cost_center_id: form.cost_center_id,
-        })
+           name: form.name, cluster_id: form.cluster_id, color_index: colorIndex,
+           page_categories: form.page_categories, cost_center_id: form.cost_center_id,
+         })
         .select('id').single();
+
       if (error) { toast.error(error.message); return; }
       toast.success('Área criada');
       logAction({ area: 'estrutura', entity_type: 'area', entity_id: data.id, entity_name: form.name, action: 'created' });
