@@ -19,12 +19,19 @@ Se a sessão de amanhã é sobre cor, o caminho curto é este. O resto do docume
 
 **As duas comparações renderizadas** (feitas para decidir olhando, não por número):
 
-- **Cinza de desligado** nos três temas, com badge ativo ao lado —
-  https://claude.ai/code/artifact/3f78cf45-6525-4e1b-a39f-83086069db30
-  Decidido: acompanha o tema, com `--status-neutro` que já existia. Nenhum token novo.
-- **O vermelho de excluir**, o atual contra as duas saídas que passam em 4,5:1 —
-  https://claude.ai/code/artifact/b45f3470-f08a-4b2e-a359-2c7d71bf29ad
-  Decidido: opção A, `--destructive` a `0 84% 48%`. Aplicado.
+Estão **no repositório**, em `docs/geral/comparacoes-de-cor/` — abra no navegador, são
+autocontidas. As URLs publicadas existem também, mas o arquivo é a copia que não depende de
+link resolver.
+
+- `cinza-de-desligado.html` — o cinza de desligado acompanha o tema ou fica neutro em todos?
+  Decidido: **acompanha**, com `--status-neutro` que já existia. Nenhum token novo.
+  (também em https://claude.ai/code/artifact/3f78cf45-6525-4e1b-a39f-83086069db30)
+- `vermelho-de-excluir.html` — o par `destructive` dá 3,62:1; quais saídas passam em 4,5:1?
+  Decidido: **opção A**, `--destructive` a `0 84% 48%`. Aplicado.
+  (também em https://claude.ai/code/artifact/b45f3470-f08a-4b2e-a359-2c7d71bf29ad)
+
+⚠️ Os valores dentro desses arquivos são de 20/08 e **não se atualizam**. A fonte corrente é
+sempre o `index.css`.
 
 **A tabela de mapeamento** (cor crua → token) está em `docs/geral/decisoes-tema-e-cor.md`,
 seção 2.1, com as nove linhas e a regra de decisão para o caso de estado. **Ela é o primeiro
