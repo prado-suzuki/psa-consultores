@@ -25,21 +25,25 @@ export const honraClusterGlobal = (pathname: string): boolean =>
 const TODAS = '__todas__';
 
 /**
- * Faixa de seleção de EMPRESA do Board.
+ * Faixa de seleção de ÁREA do Board.
  *
- * NOME: a entidade é `estrutura_clusters` — daí `cluster` no código. Na tela é
- * "Empresa" porque é literalmente o que a linha é: `estrutura_clusters` tem
- * `nome_empresa` e `cnpj`, uma pessoa jurídica por linha (ver
- * `docs/geral/decisoes/empresa-de-faturamento-vive-no-cluster.md`). O cadastro
- * da OS já chama o mesmo `cluster_id` de "Empresa / Faturamento" — é o
- * vocabulário que o time usa.
+ * Rótulo corrigido em 21/08 (Bloco D, verificação ao vivo): a tela chamava
+ * isto de "Empresa", mas a fonte é `estrutura_clusters` -- área/cluster
+ * interno (Digital, OSG, TAX...), misturado com algumas cascas que alguém
+ * criou para representar pessoa jurídica (a maioria "(inativa)", nunca
+ * alimentada). Não é a mesma coisa que empresa/CNPJ: das 9 empresas do
+ * filtro de CENTRO DE CUSTO, só 3 têm cluster correspondente aqui, e a que
+ * concentra 87% do valor (PSA Consultores) não tem nenhum.
  *
- * NÃO é "Área": `estrutura_areas` é um nível ABAIXO (uma empresa tem várias) e é
- * ela que carrega o centro de custo. Nem "Cliente": esse é a tabela `cliente`,
- * as empresas ATENDIDAS, e colidiria com o filtro de `Clientes e OS`.
+ * A empresa de verdade (CNPJ) NÃO tem dimensão própria hoje. O caminho mais
+ * plausível para modelar isso sem inventar do zero: `estrutura_areas` já tem
+ * `cluster_id` (obrigatório) e `cost_center_id` (opcional) na MESMA linha --
+ * a ponte cluster↔centro-de-custo existe no banco, um nível abaixo, só que
+ * nenhuma query do board passa por ela. Decisão de modelo pendente, a
+ * alinhar com a Mariana.
  *
  * Diferença deliberada para o OSG Work: lá, ficar sem cliente BLOQUEIA as
- * ferramentas, e a barra pulsa para cobrar a escolha. Aqui, "Todas as empresas"
+ * ferramentas, e a barra pulsa para cobrar a escolha. Aqui, "Todas as áreas"
  * é o estado normal e desejado do sócio — a visão do grupo inteiro. Alarme sobre
  * o estado padrão seria gritar lobo.
  */
@@ -74,7 +78,7 @@ export const BoardClusterBar = () => {
           className="text-[11px] font-bold uppercase tracking-[0.09em]"
           style={{ color: 'var(--board-v4-ink3)' }}
         >
-          Empresa
+          Área
         </Label>
       </div>
 
@@ -91,10 +95,10 @@ export const BoardClusterBar = () => {
               borderColor: todas ? 'var(--board-v4-line)' : 'var(--board-v4-accent)',
             }}
           >
-            <SelectValue placeholder={isLoading ? 'Carregando…' : 'Todas as empresas'} />
+            <SelectValue placeholder={isLoading ? 'Carregando…' : 'Todas as áreas'} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value={TODAS}>Todas as empresas</SelectItem>
+            <SelectItem value={TODAS}>Todas as áreas</SelectItem>
             {ativos.map((c) => (
               <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>
             ))}
@@ -108,7 +112,7 @@ export const BoardClusterBar = () => {
 
       <div className="text-[11.5px] truncate" style={{ color: 'var(--board-v4-ink3)' }}>
         {todas
-          ? 'Visão do grupo inteiro — escolha uma empresa para recortar a página'
+          ? 'Visão do grupo inteiro — escolha uma área para recortar a página'
           : <>Filtrando por: <strong style={{ color: 'var(--board-v4-ink)' }}>{selecionado?.nome ?? '—'}</strong></>}
       </div>
     </div>

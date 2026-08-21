@@ -7,8 +7,15 @@ interface BoardKpisNegocioProps {
   /** `null` enquanto a consulta de horas ainda carrega. */
   totalHoras: number | null;
   pontualidade: number;
-  /** Valor dos contratos/OS no período -- em reais, o componente formata em mil. */
+  /** Valor dos contratos/OS no período (COM data de início) -- em reais. */
   valorProjetos: number;
+  /**
+   * Valor das OS sem `data_inicio`, do MESMO período de recorte -- Bloco D/D3,
+   * 21/08: ninguém decide sozinho excluir 37% do valor de uma tela de sócio.
+   * Some ao card e aparece numa linha própria, visível, em vez de nota de
+   * rodapé (opção C, decisão da usuária).
+   */
+  valorSemData: number;
   janelaValor: string;
   /** `null` só quando não há investimento cadastrado (ver `ratioRoi`). */
   roi: { economiaAnual: number; roiPct: number | null; melhorias: number };
@@ -31,10 +38,12 @@ export const BoardKpisNegocio: React.FC<BoardKpisNegocioProps> = ({
   totalHoras,
   pontualidade,
   valorProjetos,
+  valorSemData,
   janelaValor,
   roi,
   onNavigate,
 }) => {
+  const valorTotal = valorProjetos + valorSemData;
   return (
     <BoardStatStrip
       cols={6}
@@ -65,9 +74,17 @@ export const BoardKpisNegocio: React.FC<BoardKpisNegocioProps> = ({
           onClick: () => onNavigate('/equipe/board/performance'),
         },
         {
-          value: brlMil(valorProjetos), prefix: 'R$', suffix: 'k',
+          value: brlMil(valorTotal), prefix: 'R$', suffix: 'k',
           label: 'Valor acumulado dos projetos', color: 'var(--board-v4-purple)',
-          subText: janelaValor,
+          // Opção C do D3 (decisão da usuária, 21/08): o total NUNCA esconde
+          // valor -- soma OS com e sem data de início. O que não tem data
+          // fica visível na pill em vez de sumir em nota de rodapé.
+          pill: valorSemData > 0
+            ? { text: `R$${brlMil(valorSemData)}k sem data`, variant: 'neutral' }
+            : undefined,
+          subText: valorSemData > 0
+            ? `${janelaValor} · R$${brlMil(valorProjetos)}k com data de início`
+            : janelaValor,
           onClick: () => onNavigate('/equipe/board/dashboard-clientes-os'),
         },
         {

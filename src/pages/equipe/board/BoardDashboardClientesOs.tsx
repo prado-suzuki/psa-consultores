@@ -266,6 +266,13 @@ export const DashboardClientesOsContent = ({
   // KPIs / séries. `fatPorCliente` é a fonte única de faturamento da tela.
   const fatPorCliente = useMemo(() => faturamentoPorCliente(osFiltrado), [osFiltrado]);
   const kClientes = useMemo(() => kpisClientes(clientesFiltrados, fatPorCliente), [clientesFiltrados, fatPorCliente]);
+  // Opção C do D3 (decisão da usuária, 21/08): "Valor total dos projetos" já
+  // soma OS com e sem data -- o que faltava era mostrar o "sem data" visível
+  // em vez de só na coluna da tabela por centro de custo.
+  const valorSemData = useMemo(
+    () => osFiltrado.filter((o) => !o.data_inicio).reduce((acc, o) => acc + o.faturamento, 0),
+    [osFiltrado],
+  );
   const kOper = useMemo(() => kpisOperacional(clientesFiltrados, hoje), [clientesFiltrados, hoje]);
   const kProj = useMemo(() => kpisProjetos(projetosFiltrado, osFiltrado), [projetosFiltrado, osFiltrado]);
   const serieMensal = useMemo(() => faturamentoMensal(osFiltrado).map((m) => ({ ...m, label: mesLabel(m.mes) })), [osFiltrado]);
@@ -376,7 +383,10 @@ export const DashboardClientesOsContent = ({
                     { value: kClientes.clientes_ativos, label: 'Clientes ativos', color: SERIES[1], subText: `${kClientes.clientes_ativos_fixos} fixos · ${kClientes.clientes_ativos_pontuais} pontuais` },
                     { value: kClientes.ticket_medio == null ? '—' : brl(kClientes.ticket_medio), label: 'Ticket médio dos projetos', color: SERIES[2] },
                     { value: kClientes.os_ativas, label: 'OS ativas', color: SERIES[3] },
-                    { value: brl(kClientes.faturamento_total), label: 'Valor total dos projetos', color: SERIES[0] },
+                    {
+                      value: brl(kClientes.faturamento_total), label: 'Valor total dos projetos', color: SERIES[0],
+                      subText: valorSemData > 0 ? `inclui ${brl(valorSemData)} sem data de início` : undefined,
+                    },
                   ]}
                 />
 

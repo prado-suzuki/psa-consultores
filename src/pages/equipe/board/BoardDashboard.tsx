@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { usePerformanceData } from '@/hooks/usePerformanceData';
@@ -9,6 +10,7 @@ import { useDomainBoardDashboard } from '@/hooks/useDomainBoardDashboard';
 import { useDomainMelhoriasRoi } from '@/hooks/useDomainMelhoriasRoi';
 import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
+import { listarFalhas } from '@/lib/performanceOperacional';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -249,6 +251,22 @@ const BoardDashboard = () => {
     || (!!cicloAtivo && !overview);
   const kpisLoading = execucaoLoading || negocio.isLoading;
 
+  // Estado de erro visível (Bloco D, 21/08): a FK ausente de org_projects fez
+  // esta consulta falhar em silêncio e a tela desenhou 0 projetos ativos como
+  // se fosse dado real -- o Operacional já avisava disso, o Estratégico não.
+  // Mesmo padrão de `listarFalhas`/`performanceOperacional.ts`.
+  const falhas = useMemo(() => listarFalhas([
+    { rotulo: 'projetos e tarefas', falhou: projectsQuery.isError },
+    { rotulo: 'equipe', falhou: membersQuery.isError },
+    { rotulo: 'melhorias (ROI)', falhou: melhoriasQuery.isError },
+    { rotulo: 'entregas concluídas', falhou: tarefasConcluidasQuery.isError },
+    { rotulo: 'horas alocadas', falhou: horasAlocadasQuery.isError },
+    { rotulo: 'contratos e clientes', falhou: !!negocio.error },
+  ]), [
+    projectsQuery.isError, membersQuery.isError, melhoriasQuery.isError,
+    tarefasConcluidasQuery.isError, horasAlocadasQuery.isError, negocio.error,
+  ]);
+
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (containerRef.current) revealRef(containerRef.current);
@@ -287,6 +305,26 @@ const BoardDashboard = () => {
           activeCount={activeCount}
         />
 
+        {/* Falha de carregamento: nunca substituir dado ausente por número */}
+        {falhas.length > 0 && (
+          <div
+            role="alert"
+            className="v4-card"
+            style={{ marginBottom: 12, borderLeft: '3px solid var(--board-v4-risk)', display: 'flex', gap: 8 }}
+            data-reveal
+          >
+            <AlertTriangle style={{ width: 15, height: 15, flexShrink: 0, color: 'var(--board-v4-risk)' }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--board-v4-risk)' }}>
+                Dados incompletos — os números abaixo podem estar errados
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--board-v4-ink3)', marginTop: 2 }}>
+                Falha ao carregar: {falhas.join(', ')}. Atualize a página para tentar de novo.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 1. O que exige decisão */}
         <BoardAlertas
           alertas={alertas}
@@ -305,6 +343,7 @@ const BoardDashboard = () => {
             totalHoras={totalHoras}
             pontualidade={saude.pontualidade}
             valorProjetos={receita.atual}
+            valorSemData={receita.semDataValor}
             janelaValor={janelaReceita}
             roi={roi}
             onNavigate={navigate}

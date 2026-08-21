@@ -425,6 +425,13 @@ export interface ReceitaAno {
   meses: string[];
   /** OS sem `data_inicio` — ficam fora dos dois lados e a tela precisa dizer. */
   semData: number;
+  /**
+   * Valor (R$) das OS sem `data_inicio` -- Bloco D/D3, 21/08: antes só a
+   * CONTAGEM aparecia na tela, o valor ficava escondido. Confirmado: é 37% do
+   * total (R$ 418k de R$ 1.139k), grande demais pra viver em nota de rodapé.
+   * `atual + semDataValor` é o "valor total" que a tela de Projetos mostra.
+   */
+  semDataValor: number;
 }
 
 /**
@@ -454,12 +461,14 @@ export function receitaAnoCorrente(os: OsRow[], hoje: string): ReceitaAno {
 
   const atual = soma(meses);
   const anterior = soma(mesesAnteriores);
+  const semDataOs = os.filter((o) => !o.data_inicio);
   return {
     atual,
     anterior,
     variacao: anterior > 0 ? (atual - anterior) / anterior : null,
     meses,
-    semData: os.filter((o) => !o.data_inicio).length,
+    semData: semDataOs.length,
+    semDataValor: semDataOs.reduce((acc, o) => acc + o.faturamento, 0),
   };
 }
 
