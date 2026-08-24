@@ -529,6 +529,7 @@ export default function NewClientModal({
                           entities={entities}
                           contratos={contracts}
                           centrosCusto={CENTRO_CUSTO_OPTIONS}
+                          empresas={allClusters}
                         />
                       </TabsContent>
                     </>
