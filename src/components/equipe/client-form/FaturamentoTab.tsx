@@ -1,9 +1,17 @@
 // Aba de Faturamento do modal de cliente.
 //
 // ELA É UM ESPELHO, E ISSO É DE PROPÓSITO. Tudo que ela mostra é gravado em
-// outro lugar: a identificação e o endereço vêm do contribuinte marcado para
-// faturamento (aba Contribuintes), e os valores e o rateio vêm da OS (aba OS).
-// Ela não edita nada.
+// outro lugar: quem recebe a nota, os valores e o rateio vêm todos da OS (aba
+// OS), e a identificação e o endereço vêm do cadastro do contribuinte que a OS
+// aponta (aba Contribuintes). Ela não edita nada.
+//
+// QUEM RECEBE A NOTA É DECISÃO DA OS, não do cliente (tarefa [5], Sprint 11).
+// Antes disso a escolha morava numa marca do contribuinte
+// (`contribuinte.contribuinte_faturamento`) e valia para o cliente inteiro, então
+// cliente com contribuinte PF e PJ não tinha como faturar uma OS em cada, que é
+// exatamente o pedido: "às vezes o cliente é uma pessoa física mas ele quer
+// faturar num contribuinte da pessoa jurídica e vice-versa". E quando ninguém
+// marcava nada, esta aba mostrava o PRIMEIRO da lista, sem critério estável.
 //
 // A alternativa era liberar aqui os campos de valor, e foi recusada: são colunas
 // de `ordem_servico`, então elas ganhariam uma segunda tela de escrita e as regras
@@ -59,6 +67,43 @@ const TituloOs = ({ contrato }: { contrato: DraftOrdemServico }) => (
 );
 
 /**
+ * Em quem a nota desta OS sai.
+ *
+ * Aparece SEMPRE, e nas duas seções que listam por OS. É repetição de propósito:
+ * o pedido da tarefa é o administrativo "receber no resumo do faturamento em qual
+ * contribuinte vai faturar aquela OS", e ler o valor do contrato ou a divisão da
+ * receita sem saber em quem a nota sai é justamente a dúvida a resolver. Ao
+ * contrário do `TituloOs`, não pode esconder quando há uma OS só: com uma OS a
+ * pergunta continua de pé.
+ *
+ * OS sem contribuinte escolhido existe de verdade e não é erro de tela: cliente
+ * que não tem contribuinte cadastrado ficou nulo na carga, e OS criada junto com
+ * o cliente nasce sem, porque a escolha exige contribuinte já salvo. Então diz o
+ * que falta em vez de deixar a linha vazia.
+ */
+const SeloContribuinte = ({ contribuinte }: { contribuinte: DraftEntity | undefined }) => (
+  <p className="mb-1.5 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 border-b border-dashed pb-1.5 text-xs">
+    <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+      Faturado em
+    </span>
+    {contribuinte ? (
+      <>
+        <span className="min-w-0 font-medium text-foreground">
+          {contribuinte.nome_razao_social || "sem razão social"}
+        </span>
+        {contribuinte.cpf_cnpj && (
+          <span className="font-mono text-[11px] text-muted-foreground">{contribuinte.cpf_cnpj}</span>
+        )}
+      </>
+    ) : (
+      <span className="italic text-muted-foreground">
+        nenhum contribuinte escolhido nesta OS
+      </span>
+    )}
+  </p>
+);
+
+/**
  * Uma OS: os seis valores do contrato, com o cabeçalho que a identifica.
  *
  * O cabeçalho só aparece quando o cliente tem MAIS DE UMA OS. Com uma só, ele era
@@ -66,9 +111,18 @@ const TituloOs = ({ contrato }: { contrato: DraftOrdemServico }) => (
  * em cada uma das duas seções, o que é justamente o que fazia a aba passar da
  * dobra da tela.
  */
-const BlocoValores = ({ contrato, mostrarTitulo }: { contrato: DraftOrdemServico; mostrarTitulo: boolean }) => (
+const BlocoValores = ({
+  contrato,
+  contribuinte,
+  mostrarTitulo,
+}: {
+  contrato: DraftOrdemServico;
+  contribuinte: DraftEntity | undefined;
+  mostrarTitulo: boolean;
+}) => (
   <div className="rounded-md bg-muted/40 px-3 py-2">
     {mostrarTitulo && <TituloOs contrato={contrato} />}
+    <SeloContribuinte contribuinte={contribuinte} />
     <OsValoresLeitura contrato={contrato} colunas={3} />
   </div>
 );
@@ -88,10 +142,12 @@ const BlocoValores = ({ contrato, mostrarTitulo }: { contrato: DraftOrdemServico
  */
 const BlocoRateio = ({
   contrato,
+  contribuinte,
   centrosCusto,
   mostrarTitulo,
 }: {
   contrato: DraftOrdemServico;
+  contribuinte: DraftEntity | undefined;
   centrosCusto: Array<{ id: string; label: string }>;
   mostrarTitulo: boolean;
 }) => {
@@ -102,6 +158,7 @@ const BlocoRateio = ({
   return (
     <div className="rounded-md bg-muted/40 px-3 py-2">
       {mostrarTitulo && <TituloOs contrato={contrato} />}
+      <SeloContribuinte contribuinte={contribuinte} />
 
       {vazio ? (
         <p className="text-xs italic text-muted-foreground">
@@ -154,7 +211,34 @@ export default function FaturamentoTab({
   contratos,
   centrosCusto,
 }: FaturamentoTabProps) {
-  const faturamentoEntity = entities.find((e) => e.contribuinte_faturamento) || entities[0];
+  // `_dbId` no teste não é zelo excessivo: contribuinte criado nesta sessão ainda
+  // não tem id, e sem ele `undefined === undefined` casaria a OS sem contribuinte
+  // com o primeiro contribuinte novo da lista.
+  const contribuinteDaOs = (contrato: DraftOrdemServico) =>
+    entities.find((e) => e._dbId && e._dbId === contrato.contribuinte_id);
+
+  // As OS podem faturar em contribuintes diferentes, e é para isso que a coluna
+  // existe. Os blocos 01 e 02 mostram UM cadastro só, então precisam avisar
+  // quando não representam o cliente inteiro.
+  const contribuintesEmUso = new Set(
+    contratos.map((c) => c.contribuinte_id).filter((id): id is string => !!id),
+  );
+  const variaPorOs = contribuintesEmUso.size > 1;
+
+  // Identificação e endereço saem da PRIMEIRA OS, não de uma marca do cliente.
+  // O recuo para `entities[0]` cobre cliente sem OS e OS ainda sem escolha: é
+  // preferível mostrar o cadastro que existe, com o aviso ao lado, a deixar dois
+  // blocos vazios num cliente que tem contribuinte.
+  const faturamentoEntity =
+    (contratos.length > 0 ? contribuinteDaOs(contratos[0]) : undefined) ?? entities[0];
+
+  /** Ao lado do título dos blocos 01 e 02, quando as OS não convergem. */
+  const avisoVariaPorOs = variaPorOs ? (
+    <span className="flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-amber-700">
+      <Info size={11} className="shrink-0" />
+      varia por OS
+    </span>
+  ) : undefined;
 
   return (
     <section className="overflow-hidden rounded-xl border bg-card shadow-sm">
@@ -168,7 +252,8 @@ export default function FaturamentoTab({
           tela, e caber sem rolar é o pedido central da Patricia. */}
       <p className="flex items-center gap-1.5 px-3 pt-2 text-[11px] italic text-muted-foreground">
         <Info size={11} className="shrink-0" />
-        Só leitura. O contribuinte se troca em Contribuintes; valores e rateio, na aba de OS.
+        Só leitura. Contribuinte, valores e rateio se trocam na aba de OS; o cadastro do
+        contribuinte, em Contribuintes.
       </p>
 
       {/*
@@ -199,7 +284,7 @@ export default function FaturamentoTab({
         */}
         <div className="flex flex-col gap-3">
         <div className="rounded-lg border bg-card p-3">
-        <SecaoFormulario numero={1} titulo="Contribuinte de faturamento">
+        <SecaoFormulario numero={1} titulo="Contribuinte de faturamento" acao={avisoVariaPorOs}>
           {faturamentoEntity ? (
             <div className="grid grid-cols-2 gap-x-5 gap-y-2 [&>*]:min-w-0">
               <FieldPair label="Razão Social" value={faturamentoEntity.nome_razao_social} />
@@ -217,8 +302,8 @@ export default function FaturamentoTab({
               </div>
               <p className="text-sm font-semibold text-foreground">Nenhum contribuinte cadastrado</p>
               <p className="max-w-sm text-xs text-muted-foreground">
-                Os dados de faturamento aparecem aqui depois de cadastrar um contribuinte marcado
-                para faturamento.
+                Os dados de faturamento aparecem aqui depois de cadastrar um contribuinte e
+                escolhê-lo na OS.
               </p>
             </div>
           )}
@@ -226,7 +311,7 @@ export default function FaturamentoTab({
         </div>
 
         <div className="rounded-lg border bg-card p-3">
-        <SecaoFormulario numero={2} titulo="Endereço de cobrança">
+        <SecaoFormulario numero={2} titulo="Endereço de cobrança" acao={avisoVariaPorOs}>
           {faturamentoEntity ? (
             <div className="grid grid-cols-2 gap-x-5 gap-y-2 [&>*]:min-w-0">
               <FieldPair label="CEP" value={faturamentoEntity.cep} />
@@ -267,7 +352,12 @@ export default function FaturamentoTab({
           ) : (
             <div className="flex flex-col gap-2">
               {contratos.map((contrato) => (
-                <BlocoValores key={contrato._id} contrato={contrato} mostrarTitulo={contratos.length > 1} />
+                <BlocoValores
+                  key={contrato._id}
+                  contrato={contrato}
+                  contribuinte={contribuinteDaOs(contrato)}
+                  mostrarTitulo={contratos.length > 1}
+                />
               ))}
             </div>
           )}
@@ -281,24 +371,14 @@ export default function FaturamentoTab({
             seção. Os centros de custo do rateio SÃO as empresas do grupo PSA
             (Prado Suzuki, PSA Auditores, PSA Norte, Profitto), então quem recebe
             cada fatia já estava dito; o que faltava era a outra ponta, a empresa do
-            CLIENTE em quem a nota sai. Ela vive na seção 01, e repetir aqui é o que
-            permite ler a divisão sem subir a tela.
+            CLIENTE em quem a nota sai.
+
+            Era uma linha única no topo da seção, herdada de quando a escolha valia
+            para o cliente inteiro. Agora ela vive dentro de cada OS
+            (`SeloContribuinte`), porque uma linha só no topo passaria a mentir no
+            caso que motivou a tarefa: duas OS faturando em contribuintes
+            diferentes.
           */}
-          {faturamentoEntity && (
-            <p className="mb-3 flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-md bg-muted/60 px-3 py-2 text-xs">
-              <span className="font-semibold uppercase tracking-wide text-muted-foreground">
-                Faturado em
-              </span>
-              <span className="font-medium text-foreground">
-                {faturamentoEntity.nome_razao_social || "sem razão social"}
-              </span>
-              {faturamentoEntity.cpf_cnpj && (
-                <span className="font-mono text-muted-foreground">
-                  {faturamentoEntity.cpf_cnpj}
-                </span>
-              )}
-            </p>
-          )}
           {contratos.length === 0 ? (
             <Vazio>Nenhuma OS cadastrada, então não há receita a distribuir.</Vazio>
           ) : (
@@ -307,6 +387,7 @@ export default function FaturamentoTab({
                 <BlocoRateio
                   key={contrato._id}
                   contrato={contrato}
+                  contribuinte={contribuinteDaOs(contrato)}
                   centrosCusto={centrosCusto}
                   mostrarTitulo={contratos.length > 1}
                 />
