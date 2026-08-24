@@ -58,7 +58,9 @@ export default function OsPeriodoFields({ contrato, onChange, falta, idFalta }: 
           </div>
         </div>
         <div>
-          <Label className={ROTULO}>Data de Emissão</Label>
+          {/* "Data Emissão", sem o "de": é como a visualização da OS chama, e ela
+              é o padrão dos rótulos da OS. */}
+          <Label className={ROTULO}>Data Emissão</Label>
           {/* Travada: é a data em que a OS foi emitida, preenchida
               automaticamente na criação. Mudá-la depois desalinharia a OS do
               documento entregue ao cliente. */}
