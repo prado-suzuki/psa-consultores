@@ -146,19 +146,26 @@ export const TaskKanban = ({
    * É a resposta ao "vejo que a mãe tem 2 subtarefas e não sei onde elas
    * estão": a coluna de destino pode estar fora da tela (são 7 colunas com
    * rolagem horizontal), então destacar sem rolar não resolveria nada. O card é
-   * procurado pelo `data-task-card` porque quem rola é o contêiner do quadro, e
-   * não este componente. `data-task-member` cobre a filha que não tem card
-   * próprio: quem aparece no lugar dela é o card de agrupamento.
+   * procurado no DOM porque quem rola é o contêiner do quadro, e não este
+   * componente. Quando o alvo é uma filha, o card que a guarda é informado em
+   * `entryKey` — a filha em si pode estar dentro de uma lista fechada, e o
+   * destaque dela abre esse card (ver `isExpanded` na renderização).
    */
-  const revealTasks = (taskIds: string[]) => {
+  const revealTasks = (taskIds: string[], entryKey?: string) => {
     if (taskIds.length === 0) return;
     setHighlightedTaskIds(new Set(taskIds));
     if (highlightTimeout.current) window.clearTimeout(highlightTimeout.current);
     highlightTimeout.current = window.setTimeout(() => setHighlightedTaskIds(new Set()), 3000);
-    const alvo = document.querySelector(
-      `[data-task-card="${taskIds[0]}"], [data-task-member~="${taskIds[0]}"]`,
-    );
-    alvo?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    if (entryKey) expandCard(entryKey);
+    const seletor = entryKey
+      ? `[data-task-entry="${entryKey}"]`
+      : `[data-task-card="${taskIds[0]}"]`;
+    // Em quadro grande a rolagem só acerta depois que o card destino existir.
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector(seletor)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    });
   };
 
   const applyStatusChange = (task: OrgTask, nextStatus: OrgTaskStatus) => {
