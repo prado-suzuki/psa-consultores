@@ -1,17 +1,13 @@
 import { useState } from 'react';
-import { Building2, Filter, FolderKanban, Search, User, X } from 'lucide-react';
+import { Building2, Filter, Flag, FolderKanban, ListChecks, Search, SlidersHorizontal, User, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  type OrgTaskPriority,
-  type OrgTaskStatus,
-  type TaskFilters as TaskFiltersType,
-} from '@/hooks/useOrgTasks';
+import { Sheet, SheetClose, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { FilterMultiSelectField } from './FilterMultiSelectField';
+import { type OrgTaskPriority, type OrgTaskStatus, type TaskFilters as TaskFiltersType } from '@/hooks/useOrgTasks';
 import { useExternalClients } from '@/hooks/useTaxReferenceData';
 
 interface TaskFiltersProps {
@@ -40,18 +36,19 @@ const priorityOptions: { value: OrgTaskPriority; label: string }[] = [
 
 export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = [] }: TaskFiltersProps) => {
   const [open, setOpen] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<TaskFiltersType>(filters);
   const { data: clients = [] } = useExternalClients();
 
   const toggleStatus = (status: OrgTaskStatus) => {
-    const current = filters.status || [];
+    const current = draftFilters.status || [];
     const updated = current.includes(status) ? current.filter(item => item !== status) : [...current, status];
-    onFiltersChange({ ...filters, status: updated.length ? updated : undefined });
+    setDraftFilters({ ...draftFilters, status: updated.length ? updated : undefined });
   };
 
   const togglePriority = (priority: OrgTaskPriority) => {
-    const current = filters.priority || [];
+    const current = draftFilters.priority || [];
     const updated = current.includes(priority) ? current.filter(item => item !== priority) : [...current, priority];
-    onFiltersChange({ ...filters, priority: updated.length ? updated : undefined });
+    setDraftFilters({ ...draftFilters, priority: updated.length ? updated : undefined });
   };
 
   const activeCount = (filters.status?.length || 0)
@@ -60,9 +57,20 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
     + (filters.projectId ? 1 : 0)
     + (filters.clientId ? 1 : 0);
 
+  const clearAppliedFilters = () => onFiltersChange({ search: filters.search });
+  const handleDrawerChange = (nextOpen: boolean) => {
+    if (nextOpen) setDraftFilters(filters);
+    setOpen(nextOpen);
+  };
+  const applyFilters = () => {
+    onFiltersChange(draftFilters);
+    setOpen(false);
+  };
+  const resetDraftFilters = () => setDraftFilters({ search: filters.search });
+
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-      <div className="relative min-w-52 flex-1 sm:max-w-sm">
+      <div className="relative min-w-52 flex-1 sm:max-w-md">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           placeholder="Buscar tarefas..."
@@ -72,93 +80,83 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
         />
       </div>
 
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className="h-9 gap-2">
-            <Filter className="h-4 w-4" />Filtros
-            {activeCount > 0 && <Badge variant="secondary" className="h-5 min-w-5 justify-center px-1.5">{activeCount}</Badge>}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[min(92vw,560px)]" align="start">
-          <div className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-1.5">
-                <Label>Responsável</Label>
-                <Select value={filters.assignedTo || 'all'} onValueChange={value => onFiltersChange({ ...filters, assignedTo: value === 'all' ? undefined : value })}>
-                  <SelectTrigger><User className="mr-2 h-4 w-4" /><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todas as pessoas</SelectItem>
-                    <SelectItem value="mine">Minhas tarefas</SelectItem>
-                    {teamMembers.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Projeto</Label>
-                <Select value={filters.projectId || 'all'} onValueChange={value => onFiltersChange({ ...filters, projectId: value === 'all' ? undefined : value })}>
-                  <SelectTrigger><FolderKanban className="mr-2 h-4 w-4" /><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os projetos</SelectItem>
-                    {projects.map(project => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Cliente</Label>
-                <Select
-                  value={filters.clientId || 'all'}
-                  onValueChange={value => onFiltersChange({
-                    ...filters,
-                    clientId: value === 'all' ? undefined : value,
-                    contribuinteId: undefined,
-                  })}
-                >
-                  <SelectTrigger><Building2 className="mr-2 h-4 w-4" /><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Todos os clientes</SelectItem>
-                    {clients.map(client => <SelectItem key={client.id} value={client.id}>{client.nome}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium">Status</Label>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {statusOptions.map(option => (
-                  <label key={option.value} className="flex cursor-pointer items-center gap-2 text-sm">
-                    <Checkbox checked={filters.status?.includes(option.value)} onCheckedChange={() => toggleStatus(option.value)} />
-                    {option.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium">Prioridade</Label>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {priorityOptions.map(option => (
-                  <label key={option.value} className="flex cursor-pointer items-center gap-2 text-sm">
-                    <Checkbox checked={filters.priority?.includes(option.value)} onCheckedChange={() => togglePriority(option.value)} />
-                    {option.label}
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        </PopoverContent>
-      </Popover>
-
-      {activeCount > 0 && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-9 gap-1 text-muted-foreground"
-          onClick={() => onFiltersChange({ search: filters.search })}
-        >
-          <X className="h-3.5 w-3.5" />Limpar
+      <Sheet open={open} onOpenChange={handleDrawerChange}>
+        <Button variant="outline" size="sm" className="h-9 shrink-0 gap-2 font-medium" onClick={() => handleDrawerChange(true)}>
+          <SlidersHorizontal className="h-4 w-4" />Filtros
+          {activeCount > 0 && <Badge className="h-5 min-w-5 justify-center rounded-full px-1.5 text-[11px]">{activeCount}</Badge>}
         </Button>
-      )}
+        <SheetContent
+          side="right"
+          hideCloseButton
+          overlayClassName="bg-black/40"
+          className="fixed right-0 top-0 flex h-screen w-[300px] max-w-[calc(100vw-1rem)] flex-col gap-0 border-l p-0 shadow-2xl"
+        >
+          <SheetHeader className="flex-row items-center justify-between space-y-0 border-b px-6 py-5 pr-4 text-left">
+            <div className="flex items-center gap-2"><Filter className="h-4 w-4 text-primary" /><SheetTitle>Filtrar tarefas</SheetTitle></div>
+            <SheetClose asChild><Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground" aria-label="Fechar filtros"><X className="h-4 w-4" /></Button></SheetClose>
+          </SheetHeader>
+
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-6">
+            <section className="space-y-3">
+              <div><h3 className="text-sm font-semibold">Contexto</h3><p className="mt-0.5 text-xs text-muted-foreground">Refine por pessoa, projeto, cliente, status ou prioridade.</p></div>
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="task-filter-assignee">Responsável</Label>
+                  <Select value={draftFilters.assignedTo || 'all'} onValueChange={value => setDraftFilters({ ...draftFilters, assignedTo: value === 'all' ? undefined : value })}>
+                    <SelectTrigger id="task-filter-assignee" className="w-full"><User className="mr-2 h-4 w-4 shrink-0" /><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">Todas as pessoas</SelectItem><SelectItem value="mine">Minhas tarefas</SelectItem>{teamMembers.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="task-filter-project">Projeto</Label>
+                  <Select value={draftFilters.projectId || 'all'} onValueChange={value => setDraftFilters({ ...draftFilters, projectId: value === 'all' ? undefined : value })}>
+                    <SelectTrigger id="task-filter-project" className="w-full"><FolderKanban className="mr-2 h-4 w-4 shrink-0" /><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">Todos os projetos</SelectItem>{projects.map(project => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="task-filter-client">Cliente</Label>
+                  <Select value={draftFilters.clientId || 'all'} onValueChange={value => setDraftFilters({ ...draftFilters, clientId: value === 'all' ? undefined : value, contribuinteId: undefined })}>
+                    <SelectTrigger id="task-filter-client" className="w-full"><Building2 className="mr-2 h-4 w-4 shrink-0" /><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{clients.map(client => <SelectItem key={client.id} value={client.id}>{client.nome}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="task-filter-status">Status</Label>
+                  <FilterMultiSelectField
+                    id="task-filter-status"
+                    icon={ListChecks}
+                    options={statusOptions}
+                    selected={draftFilters.status || []}
+                    onToggle={toggleStatus}
+                    allLabel="Todos os status"
+                    manyLabel="status selecionados"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="task-filter-priority">Prioridade</Label>
+                  <FilterMultiSelectField
+                    id="task-filter-priority"
+                    icon={Flag}
+                    options={priorityOptions}
+                    selected={draftFilters.priority || []}
+                    onToggle={togglePriority}
+                    allLabel="Todas as prioridades"
+                    manyLabel="prioridades selecionadas"
+                  />
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div className="flex gap-2 border-t bg-background px-6 py-4">
+            <Button variant="outline" className="flex-1" onClick={resetDraftFilters}>Limpar filtros</Button>
+            <Button className="flex-1" onClick={applyFilters}>Aplicar filtros</Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {activeCount > 0 && <Button variant="ghost" size="sm" className="h-9 shrink-0 gap-1 text-muted-foreground" onClick={clearAppliedFilters}><X className="h-3.5 w-3.5" />Limpar</Button>}
     </div>
   );
 };
