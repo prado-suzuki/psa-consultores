@@ -172,6 +172,25 @@ describe('pendenciasOrdemServico', () => {
     expect(faltas.map((f) => f.campo)).toEqual(['data_fim_projeto']);
     expect(faltas[0].mensagem).toContain('posterior');
   });
+
+  // `ordem_servico.contribuinte_id` é chave estrangeira: contribuinte sem `_dbId`
+  // ainda não existe no banco, então não há o que escolher, e exigir o campo aí
+  // travaria o cadastro de cliente novo num campo impossível de preencher.
+  it('contribuinte de faturamento só é exigido havendo contribuinte salvo', () => {
+    expect(pendenciasOrdemServico(osCompleta(), [])).toEqual([]);
+    expect(pendenciasOrdemServico(osCompleta(), [contribuinteCompleto()])).toEqual([]);
+
+    const faltas = pendenciasOrdemServico(osCompleta(), [contribuinteCompleto({ _dbId: 'ctb-1' })]);
+    expect(faltas.map((f) => [f.secao, f.campo])).toEqual([[5, 'contribuinte_id']]);
+  });
+
+  it('contribuinte já escolhido na OS não acusa falta', () => {
+    const faltas = pendenciasOrdemServico(
+      osCompleta({ contribuinte_id: 'ctb-1' }),
+      [contribuinteCompleto({ _dbId: 'ctb-1' })],
+    );
+    expect(faltas).toEqual([]);
+  });
 });
 
 // O número da seção é o que fica vermelho no formulário. Reordenar as seções na
@@ -317,6 +336,13 @@ describe('acordo com a validação que barra o save', () => {
     ];
     for (const c of casos) {
       expect(pendenciasOrdemServico(c).length > 0).toBe(!!validateOrdemServico(c));
+    }
+
+    // Com contribuinte salvo o campo passa a ser exigido, e as duas têm de
+    // continuar concordando: a lista entra nas duas ou em nenhuma.
+    const salvos = [contribuinteCompleto({ _dbId: 'ctb-1' })];
+    for (const c of [osCompleta(), osCompleta({ contribuinte_id: 'ctb-1' })]) {
+      expect(pendenciasOrdemServico(c, salvos).length > 0).toBe(!!validateOrdemServico(c, salvos));
     }
   });
 

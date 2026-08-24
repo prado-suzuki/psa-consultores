@@ -568,14 +568,24 @@ export default function ContratosTab({
                           </div>
 
                           <div>
-                            <Label className="text-xs font-semibold uppercase text-muted-foreground">Contribuinte de faturamento</Label>
+                            {/* A marca de obrigatório acompanha a regra de
+                                `pendenciasOrdemServico`: sem contribuinte salvo o
+                                campo não pode ser exigido, então prometer
+                                obrigatoriedade ali seria pedir o impossível. */}
+                            <Label className="text-xs font-semibold uppercase text-muted-foreground">
+                              Contribuinte de faturamento
+                              {contribuintesSalvos.length > 0 && <RequiredMark />}
+                            </Label>
                             <div className="mt-1">
                               <Select
                                 value={cont.contribuinte_id || "__none__"}
                                 onValueChange={(v) => updateContract(cont._id, { contribuinte_id: v === "__none__" ? "" : v })}
                                 disabled={contribuintesSalvos.length === 0}
                               >
-                                <SelectTrigger className="h-9">
+                                <SelectTrigger
+                                  {...acessibilidadeObrigatorio(idFalta('contribuinte_id'), falta('contribuinte_id'))}
+                                  className={cn("h-9", falta('contribuinte_id') && CLASSE_CAMPO_PENDENTE)}
+                                >
                                   <SelectValue placeholder="Selecione o contribuinte" />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-72">
@@ -587,6 +597,7 @@ export default function ContratosTab({
                                   ))}
                                 </SelectContent>
                               </Select>
+                              <MarcaPendencia id={idFalta('contribuinte_id')}>{falta('contribuinte_id')}</MarcaPendencia>
                               {contribuintesSalvos.length === 0 && (
                                 <p className="mt-1 text-xs text-muted-foreground">Cadastre e salve um contribuinte para selecioná-lo nesta OS.</p>
                               )}

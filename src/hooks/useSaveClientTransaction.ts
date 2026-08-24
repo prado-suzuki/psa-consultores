@@ -248,7 +248,7 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
     for (const c of contracts) {
       const orig = c._dbId ? origOs.get(c._dbId) : undefined;
       const tocado = !snapVal || !orig || !isSameRecord(c, orig);
-      if (registrarErro(validateOrdemServico(c), tocado)) return;
+      if (registrarErro(validateOrdemServico(c, entities), tocado)) return;
     }
 
     // --- Duplicate name check (only on creation) ---

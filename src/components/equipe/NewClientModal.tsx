@@ -282,7 +282,7 @@ export default function NewClientModal({
       ...entities.flatMap((e) => pendenciasContribuinte(e, inscricoesMap[e._dbId || String(e._id)] || [])),
       ...pendenciasDocumentosRepetidos(entities),
       ...participants.flatMap(pendenciasRepresentante),
-      ...contracts.flatMap(pendenciasOrdemServico),
+      ...contracts.flatMap((c) => pendenciasOrdemServico(c, entities)),
     ];
     // Contar uma falta de OS para quem não enxerga a aba de OS seria mandar a
     // pessoa procurar um campo que a tela não mostra.
