@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { PassoCard } from '@/components/equipe/osg/gerar/gerarKit';
 import { EscolhaModelo } from '@/components/equipe/osg/gerar/EscolhaModelo';
 import { EscolhaEmpresa } from '@/components/equipe/osg/gerar/EscolhaEmpresa';
+import { EscolhaFlagsManuais } from '@/components/equipe/osg/gerar/EscolhaFlagsManuais';
 import { SelecaoRegistrosLista } from '@/components/equipe/osg/gerar/SelecaoRegistrosLista';
 import { fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
@@ -35,6 +36,8 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
   camposPorBinding, escolherRegistro, editarCampo, matriculasDoCliente, origemClicavel,
   abrirCadastroOrigem, fecharCadastroOrigem, resultado, copiar, nomeModelo, baixando,
   baixar, empresas, bindingsNaoSociedade, precisaSelecoes, modeloPronto, passo1Estado, passo2Estado,
+  passo3Estado, precisaFlagsManuais, flagsManuaisDoModelo, valorPorFlagId, alternarFlagManual,
+  confirmarFlagsManuais, salvandoFlagManual, resumoPasso3,
   modoDocumento, empresaLabel, labelsRegistros, resumoPasso2, mensagemPendente,
   blocosFolha, versaoView, modoVisualizacao, blocosFolhaVersao, baixandoVersao,
   baixarVersao, folhaEstado, infoFolha, temPainel, mostraSocios, mostraAdministradores,
@@ -202,6 +205,29 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
                 </div>
               )}
             </div>
+          </PassoCard>
+        )}
+
+        {/* Passo 3 — condições manuais. Só existe quando o modelo tem bloco que
+            pende de flag manual: um contrato de constituição não pergunta nada
+            disso, uma alteração contratual pergunta o evento que ela registra. */}
+        {modeloPronto && precisaFlagsManuais && (
+          <PassoCard
+            numero={precisaSelecoes ? 3 : 2}
+            titulo="Marque o que se aplica"
+            descricao="Condições que o sistema não tem como deduzir do cadastro"
+            estado={passo3Estado}
+            resumo={resumoPasso3}
+            onTrocar={() => setPassoAberto(3)}
+            delay={120}
+          >
+            <EscolhaFlagsManuais
+              flags={flagsManuaisDoModelo}
+              valorPorFlagId={valorPorFlagId}
+              onAlternar={alternarFlagManual}
+              onConcluir={confirmarFlagsManuais}
+              salvando={salvandoFlagManual}
+            />
           </PassoCard>
         )}
         </div>
