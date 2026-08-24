@@ -7,6 +7,13 @@ import type { OrgTask, OrgTaskStatus } from '@/hooks/useOrgTasks';
  */
 export type KanbanTask = Pick<OrgTask, 'id' | 'status' | 'parent_task_id'>;
 
+/** Filhas que estão em OUTRA coluna, agrupadas pelo status onde foram parar. */
+export interface TaskKanbanSubtaskGroup {
+  status: OrgTaskStatus;
+  count: number;
+  taskIds: string[];
+}
+
 /**
  * Um card do quadro. Só existe este tipo: ou é a tarefa no lugar dela, ou é a
  * CÓPIA da tarefa-mãe na coluna onde as filhas dela estão.
@@ -23,6 +30,12 @@ export interface TaskKanbanEntry<T extends KanbanTask> {
   isCopy: boolean;
   /** Filhas desta tarefa QUE ESTÃO NESTA COLUNA — a lista colapsável do card. */
   children: T[];
+  /**
+   * Em que colunas estão as OUTRAS filhas, na ordem do quadro. Sem isso o card
+   * da mãe dizia "1/9 subtarefas" e não havia como saber onde elas estavam nem
+   * como chegar até lá — e a coluna de destino costuma estar fora da tela.
+   */
+  elsewhere: TaskKanbanSubtaskGroup[];
   /** TODAS as filhas diretas — é o que a pílula "x/y subtarefas" conta. */
   subtaskCount: number;
   /** Filhas diretas concluídas, em qualquer coluna. */
@@ -48,6 +61,19 @@ export interface TaskKanbanColumn<T extends KanbanTask> {
 /** Chave da cópia de uma mãe numa coluna. */
 export function taskKanbanCopyKey(parentId: string, status: OrgTaskStatus) {
   return `copia:${parentId}:${status}`;
+}
+
+/** Agrupa tarefas por status, na ordem das colunas do quadro. */
+function groupByStatus<T extends KanbanTask>(
+  tasks: T[],
+  statuses: readonly OrgTaskStatus[],
+): TaskKanbanSubtaskGroup[] {
+  return statuses
+    .map((status) => {
+      const doStatus = tasks.filter((task) => task.status === status);
+      return { status, count: doStatus.length, taskIds: doStatus.map((task) => task.id) };
+    })
+    .filter((group) => group.count > 0);
 }
 
 /**
@@ -129,6 +155,10 @@ export function buildTaskKanbanColumns<T extends KanbanTask>(
       task: dona,
       isCopy,
       children,
+      elsewhere: groupByStatus(
+        filhas.filter((filha) => filha.status !== status),
+        statuses,
+      ),
       subtaskCount: filhas.length,
       completedSubtasks: filhas.filter((filha) => filha.status === 'done').length,
     });

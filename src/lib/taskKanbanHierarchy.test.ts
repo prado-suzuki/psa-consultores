@@ -190,6 +190,46 @@ describe('buildTaskKanbanColumns', () => {
     expect(column(columns, 'done').entries[0].subtaskCount).toBe(3);
   });
 
+  it('diz em que colunas estão as filhas que não aparecem neste card', () => {
+    const tasks = [
+      task('mae', 'todo'),
+      task('f1', 'done', 'mae'),
+      task('f2', 'done', 'mae'),
+      task('f3', 'in_progress', 'mae'),
+      task('f4', 'todo', 'mae'),
+    ];
+
+    const columns = buildTaskKanbanColumns(tasks, STATUSES);
+    const cardDaMae = column(columns, 'todo').entries[0];
+
+    // Na ordem das colunas, não na ordem das tarefas.
+    expect(cardDaMae.elsewhere).toEqual([
+      { status: 'in_progress', count: 1, taskIds: ['f3'] },
+      { status: 'done', count: 2, taskIds: ['f1', 'f2'] },
+    ]);
+    // A que está nesta coluna sai da lista de destinos: ela já está no card.
+    expect(cardDaMae.children.map((item) => item.id)).toEqual(['f4']);
+  });
+
+  it('não aponta destino nenhum quando todas as filhas estão neste card', () => {
+    const tasks = [task('mae', 'todo'), task('f1', 'todo', 'mae')];
+
+    expect(column(buildTaskKanbanColumns(tasks, STATUSES), 'todo').entries[0].elsewhere).toEqual([]);
+  });
+
+  it('a cópia também sabe onde estão as irmãs que ficaram fora dela', () => {
+    const tasks = [
+      task('mae', 'todo'),
+      task('f1', 'review', 'mae'),
+      task('f2', 'done', 'mae'),
+    ];
+
+    const copia = column(buildTaskKanbanColumns(tasks, STATUSES), 'review').entries[0];
+
+    expect(copia.isCopy).toBe(true);
+    expect(copia.elsewhere).toEqual([{ status: 'done', count: 1, taskIds: ['f2'] }]);
+  });
+
   it('não trava com tarefa apontando para si mesma nem com ciclo entre duas', () => {
     const tasks = [
       task('sozinha', 'todo', 'sozinha'),

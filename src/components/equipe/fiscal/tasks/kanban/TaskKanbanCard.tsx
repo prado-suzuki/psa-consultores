@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import type { OrgTask, OrgTaskStatus } from '@/hooks/useOrgTasks';
 import { formatKanbanDate } from '@/lib/taskKanbanFormat';
 import { statusColors } from '@/lib/taskStatusColors';
-import type { TaskKanbanEntry } from '@/lib/taskKanbanHierarchy';
+import { taskKanbanCopyKey, type TaskKanbanEntry } from '@/lib/taskKanbanHierarchy';
 import { cn } from '@/lib/utils';
 
 interface TaskKanbanCardProps {
@@ -20,7 +20,8 @@ interface TaskKanbanCardProps {
   canChangeStatus: (task: OrgTask) => boolean;
   onToggleExpanded: (key: string) => void;
   onOpen: (task: OrgTask) => void;
-  onReveal: (taskIds: string[]) => void;
+  /** Destaca as tarefas e rola até o card que as guarda (`entryKey`, se houver). */
+  onReveal: (taskIds: string[], entryKey?: string) => void;
   onDragStart: (task: OrgTask) => void;
   onDragEnd: () => void;
   onStatusChange: (task: OrgTask, status: OrgTaskStatus) => void;
@@ -50,16 +51,18 @@ export function TaskKanbanCard({
   onDragEnd,
   onStatusChange,
 }: TaskKanbanCardProps) {
-  const { task, isCopy, children, subtaskCount, completedSubtasks } = entry;
+  const { task, isCopy, children, elsewhere, subtaskCount, completedSubtasks } = entry;
   const canDrag = !isCopy && canChangeStatus(task);
   const statusReal = statusColors[task.status];
 
   return (
     <div>
       <Card
-        // Só o original leva o marcador: com dois elementos anunciando o mesmo
-        // id, "mostrar no quadro" acharia a cópia em vez da tarefa.
+        // Só o original leva o marcador de TAREFA: com dois elementos anunciando
+        // o mesmo id, "mostrar no quadro" acharia a cópia em vez da tarefa. A
+        // chave do card é única e serve de alvo para o caminho inverso (mãe → cópia).
         data-task-card={isCopy ? undefined : task.id}
+        data-task-entry={entry.key}
         className={cn(
           'border-border bg-card transition-shadow hover:shadow-md',
           canDrag ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer',
@@ -151,21 +154,42 @@ export function TaskKanbanCard({
                   cópia um ar de tarefa. Na cópia, quem conta é o número ao lado
                   da setinha — esse sim muda de coluna para coluna. */}
               {subtaskCount > 0 && !isCopy && (
-                <div className="mt-2 flex items-center justify-end">
-                  <Badge
-                    variant="secondary"
-                    title={
-                      children.length === subtaskCount
-                        ? `${completedSubtasks} de ${subtaskCount} concluídas`
-                        : `${completedSubtasks} de ${subtaskCount} concluídas · ${children.length} nesta coluna`
-                    }
-                    className={cn(
-                      'text-xs',
-                      completedSubtasks === subtaskCount && 'bg-success/10 text-success',
-                    )}
-                  >
-                    {completedSubtasks}/{subtaskCount} subtarefas
-                  </Badge>
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-center justify-start">
+                    <Badge
+                      variant="secondary"
+                      title={`${completedSubtasks} de ${subtaskCount} concluídas`}
+                      className={cn(
+                        'text-xs',
+                        completedSubtasks === subtaskCount && 'bg-success/10 text-success',
+                      )}
+                    >
+                      {completedSubtasks}/{subtaskCount} subtarefas
+                    </Badge>
+                  </div>
+                  {/* Onde estão as filhas que não aparecem neste card. Clicar
+                      rola até a cópia daquela coluna, abre a lista dela e
+                      destaca as subtarefas. */}
+                  <div className="flex flex-wrap items-center gap-1">
+                    {elsewhere.map((grupo) => (
+                      <button
+                        key={grupo.status}
+                        type="button"
+                        title={`Mostrar no quadro: ${grupo.count} subtarefa(s) em ${statusColors[grupo.status].label}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onReveal(grupo.taskIds, taskKanbanCopyKey(task.id, grupo.status));
+                        }}
+                        className={cn(
+                          'flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide transition-shadow hover:ring-1 hover:ring-current',
+                          statusColors[grupo.status].combined,
+                        )}
+                      >
+                        <Crosshair className="h-2.5 w-2.5 shrink-0" />
+                        {grupo.count} {statusColors[grupo.status].label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
