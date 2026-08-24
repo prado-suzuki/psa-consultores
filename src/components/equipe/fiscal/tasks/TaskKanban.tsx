@@ -11,7 +11,7 @@ import { OrgTask, OrgTaskStatus, useUpdateOrgTask } from '@/hooks/useOrgTasks';
 import { canUpdateOrgTaskStatus, isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import {
   buildTaskKanbanColumns,
-  parentToRevealAfterStatusChange,
+  keyToRevealAfterStatusChange,
 } from '@/lib/taskKanbanHierarchy';
 import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { cn } from '@/lib/utils';
@@ -31,16 +31,18 @@ interface TaskKanbanProps {
 /**
  * Quadro de tarefas.
  *
- * A subtarefa é cidadã do quadro: quando o status dela difere do da mãe, ela
- * ganha card próprio na SUA coluna (ancorado no nome da mãe); quando está no
- * mesmo status, segue aninhada no card da mãe — que está naquela mesma coluna.
- * Assim é possível puxar uma filha para "Em Progresso" e deixar as irmãs em
- * "A Fazer", que era o que faltava: antes só a mãe era arrastável e todas as
- * filhas apareciam na coluna dela, qualquer que fosse o status delas.
+ * A subtarefa aparece na coluna do STATUS DELA, e não na da mãe — antes só a
+ * mãe era arrastável e as filhas iam todas juntas no card dela, então não havia
+ * como puxar uma para "Em Progresso" e deixar as irmãs em "A Fazer".
  *
- * O contador do cabeçalho conta TAREFAS (cards + aninhadas), então bate com os
- * KPIs do topo da página; o "+N" ao lado diz quantas estão aninhadas e expande
- * os cards que as guardam.
+ * Para isso o card da mãe se repete em cada coluna onde ela tem filha, como
+ * cópia marcada com o status real dela, levando junto a lista daquelas filhas.
+ * Um formato só de card no quadro inteiro: uma mãe com 9 subtarefas espalhadas
+ * ocupa quatro cards em vez de dez, e nenhuma filha aparece solta.
+ *
+ * O contador do cabeçalho conta TAREFAS, então bate com os KPIs do topo da
+ * página; o "+N" ao lado diz quantas estão dentro da lista de algum card e
+ * expande esses cards.
  */
 export const TaskKanban = ({
   tasks,
@@ -58,7 +60,9 @@ export const TaskKanban = ({
     status: 'review' | 'em_ajuste';
   } | null>(null);
   const conclusao = useTaskCompletionHours();
-  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  // Guarda ids de card de tarefa E chaves de card de agrupamento (ver
+  // taskKanbanGroupKey) — os dois abrem e fecham do mesmo jeito.
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
   const [highlightedTaskIds, setHighlightedTaskIds] = useState<Set<string>>(new Set());
   const highlightTimeout = useRef<number | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -126,16 +130,15 @@ export const TaskKanban = ({
 
   const canChangeStatus = (task: OrgTask) => canUpdateOrgTaskStatus(task, actor);
 
-  const toggleTaskExpanded = (taskId: string) =>
-    setExpandedTasks((previous) => {
+  const toggleExpanded = (key: string) =>
+    setExpandedKeys((previous) => {
       const next = new Set(previous);
-      if (next.has(taskId)) next.delete(taskId);
-      else next.add(taskId);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
 
-  const expandCards = (taskIds: string[]) =>
-    setExpandedTasks((previous) => new Set([...previous, ...taskIds]));
+  const expandCard = (key: string) => setExpandedKeys((previous) => new Set(previous).add(key));
 
   /**
    * Destaca as tarefas pedidas e traz a primeira para a área visível.
@@ -143,16 +146,26 @@ export const TaskKanban = ({
    * É a resposta ao "vejo que a mãe tem 2 subtarefas e não sei onde elas
    * estão": a coluna de destino pode estar fora da tela (são 7 colunas com
    * rolagem horizontal), então destacar sem rolar não resolveria nada. O card é
-   * procurado pelo `data-task-card` porque quem rola é o contêiner do quadro, e
-   * não este componente.
+   * procurado no DOM porque quem rola é o contêiner do quadro, e não este
+   * componente. Quando o alvo é uma filha, o card que a guarda é informado em
+   * `entryKey` — a filha em si pode estar dentro de uma lista fechada, e o
+   * destaque dela abre esse card (ver `isExpanded` na renderização).
    */
-  const revealTasks = (taskIds: string[]) => {
+  const revealTasks = (taskIds: string[], entryKey?: string) => {
     if (taskIds.length === 0) return;
     setHighlightedTaskIds(new Set(taskIds));
     if (highlightTimeout.current) window.clearTimeout(highlightTimeout.current);
     highlightTimeout.current = window.setTimeout(() => setHighlightedTaskIds(new Set()), 3000);
-    const alvo = document.querySelector(`[data-task-card="${taskIds[0]}"]`);
-    alvo?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    if (entryKey) expandCard(entryKey);
+    const seletor = entryKey
+      ? `[data-task-entry="${entryKey}"]`
+      : `[data-task-card="${taskIds[0]}"]`;
+    // Em quadro grande a rolagem só acerta depois que o card destino existir.
+    window.requestAnimationFrame(() => {
+      document
+        .querySelector(seletor)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    });
   };
 
   const applyStatusChange = (task: OrgTask, nextStatus: OrgTaskStatus) => {
@@ -163,11 +176,12 @@ export const TaskKanban = ({
       });
       return;
     }
-    // A filha que passa a ter o status da mãe volta a ficar aninhada no card
-    // dela — e o aninhamento nasce fechado. Abrir a mãe evita a impressão de
-    // que o card desapareceu do quadro.
-    const parentToReveal = parentToRevealAfterStatusChange(task, nextStatus, tasks);
-    if (parentToReveal) expandCards([parentToReveal]);
+    // A filha pode perder o card próprio no destino: volta ao ninho da mãe (se
+    // for para a coluna dela) ou entra num agrupamento com as irmãs que já
+    // estão lá. Nos dois casos o aninhamento nasce fechado, então abrimos para
+    // não parecer que o card sumiu do quadro.
+    const chaveParaAbrir = keyToRevealAfterStatusChange(task, nextStatus, tasks);
+    if (chaveParaAbrir) expandCard(chaveParaAbrir);
 
     if (nextStatus === 'review' || nextStatus === 'em_ajuste') {
       setPendingTransition({ task, status: nextStatus });
@@ -228,6 +242,7 @@ export const TaskKanban = ({
       >
         {columns.map((column) => {
           const config = statusColors[column.status];
+          const cardsDeTarefa = column.entries.filter((entry) => !entry.isCopy).length;
           return (
             <div
               key={column.status}
@@ -246,38 +261,34 @@ export const TaskKanban = ({
                 )}
               >
                 <span className="text-sm font-medium">{config.label}</span>
-                <div className="flex items-center gap-1">
-                  {column.nestedCount > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => expandCards(column.cardIdsWithNested)}
-                      title={`${column.nestedCount} subtarefa(s) aninhadas em cards desta coluna — clique para expandir`}
-                      className="rounded-full bg-card/60 px-2 py-0.5 text-xs tabular-nums hover:bg-card"
-                    >
-                      +{column.nestedCount}
-                    </button>
-                  )}
-                  <span
-                    title={`${column.taskCount} tarefa(s) neste status: ${column.cards.length} card(s) + ${column.nestedCount} aninhada(s)`}
-                    className="rounded-full bg-card/60 px-2 py-0.5 text-xs tabular-nums"
-                  >
-                    {column.taskCount}
-                  </span>
-                </div>
+                {/* Um número só, igual à régua de KPIs do topo: são a mesma
+                    conta. O detalhe de quantas estão dentro de uma lista fica
+                    no title, sem virar um segundo número na tela. */}
+                <span
+                  title={`${column.taskCount} tarefa(s) neste status: ${cardsDeTarefa} card(s) + ${column.hiddenCount} dentro de listas`}
+                  className="rounded-full bg-card/60 px-2 py-0.5 text-xs tabular-nums"
+                >
+                  {column.taskCount}
+                </span>
               </div>
 
               <ScrollArea className="flex-1 p-1">
                 <div className="space-y-3 p-1">
-                  {column.cards.map((card) => (
+                  {column.entries.map((entry) => (
                     <TaskKanbanCard
-                      key={card.task.id}
-                      card={card}
+                      key={entry.key}
+                      entry={entry}
                       draggedTaskId={draggedTask?.id}
                       highlightedTaskIds={highlightedTaskIds}
-                      isExpanded={expandedTasks.has(card.task.id)}
+                      // Destacar uma filha abre o card que a guarda: de nada
+                      // adianta rolar até um card que não a mostra.
+                      isExpanded={
+                        expandedKeys.has(entry.key) ||
+                        entry.children.some((child) => highlightedTaskIds.has(child.id))
+                      }
                       currentUserId={currentUserId}
                       canChangeStatus={canChangeStatus}
-                      onToggleExpanded={toggleTaskExpanded}
+                      onToggleExpanded={toggleExpanded}
                       onOpen={onEdit}
                       onReveal={revealTasks}
                       onDragStart={setDraggedTask}
@@ -285,7 +296,7 @@ export const TaskKanban = ({
                       onStatusChange={applyStatusChange}
                     />
                   ))}
-                  {column.cards.length === 0 && (
+                  {column.entries.length === 0 && (
                     <div className="py-8 text-center text-sm text-muted-foreground">
                       Arraste tarefas aqui
                     </div>
