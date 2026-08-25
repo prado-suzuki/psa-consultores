@@ -233,31 +233,41 @@ dois provedores por causa de um ambiente. Se um dia o teste em dev voltar a ser
 necessário, o caminho é esse — e o custo medido no dia era de cerca de
 US$ 0,0005 por pergunta com um modelo `flash-lite`.
 
-### 6.1 Migration (bloqueio real)
+### 6.1 Migration — APLICADA nos dois bancos (25/08)
 
-> Atualização de 21/08, ~15h: produção recebeu migrations pelo bot do Lovable e
-> a `main` foi integrada na `develop` (`af388f17`). Isso **não** inclui as duas
-> migrations do agente — `agente_*` continua fora do `types.ts`, ou seja, fora
-> dos dois bancos. A FK de `org_projects`, sim, entrou nos dois.
+Deixou de ser bloqueio. Estado medido por REST em 25/08, nos dois projetos:
 
+| | sandbox `vgzomuwn…` | produção `zwoainzz…` |
+| --- | --- | --- |
+| 7 tabelas `agente_*` | ✅ HTTP 200 | ✅ HTTP 200 |
+| 18 escopos em `agente_config` | ✅ | (semeados pela migration) |
+| função `agente-psa` | ✅ HTTP 401 (no ar) | ⏳ 404 — sobe com o merge |
 
-O Supabase CLI **não está instalado nesta máquina**, então os passos 1–2 do
-AGENTS.md ("Mudança de schema") não foram executados. O arquivo de migration
-está escrito e é idempotente. Falta:
+Como cada um foi aplicado, porque os caminhos foram diferentes:
 
-1. **Sandbox:** `supabase db push` e
-   `supabase gen types typescript --project-id vgzomuwnsdgrxbkyoavq > src/integrations/supabase/types.ts`,
-   commitado sozinho.
-2. **Produção (humano, pelo chat do Lovable):** aplicar o mesmo SQL; o bot
-   regenera o `types.ts` de lá e commita na `main`.
-3. Deploy da function `agente-psa` e do segredo `LOVABLE_API_KEY` (já usado por
-   `gerar-sintese-executiva` — se está lá, está lá para todas).
+- **Sandbox:** `supabase db query -f <arquivo>`, um por vez, com o CLI via
+  `npx supabase@latest` (a máquina não tem o CLI instalado; o `npx` resolve sem
+  tocar no `package.json` nem no `bun.lock`). **`db push` não serve aqui**: o
+  `config.toml` aponta para produção e o push arrastaria tudo o que estivesse
+  pendente — na medição do dia, 26 arquivos, incluindo mudança de RLS à espera
+  de decisão. Além disso, o histórico de migrations do sandbox tinha 22 versões
+  sem arquivo correspondente no repo (vindas do bot do Lovable), e o `push`
+  exigia marcá-las como revertidas para prosseguir.
+- **Produção:** passo humano, pelo chat do Lovable, como manda o AGENTS.md.
 
-**O front não depende do `types.ts` para compilar.** Tudo passa pela edge
-function, exatamente para o código não ficar preso ao ciclo de regeneração. Sem
-a migration aplicada, o balão aparece e o painel responde
-`Esta tela ainda não tem o agente configurado.` — recusa explícita, não erro
-mudo.
+**Consequência de `db query`:** as versões **não** ficam registradas em
+`supabase_migrations.schema_migrations` do sandbox. O schema está lá, o registro
+não — e a tabela já não era registro confiável antes (ver AGENTS.md). Confira o
+schema, nunca a tabela.
+
+**O front não depende do `types.ts`.** Tudo passa pela edge function,
+exatamente para o código não ficar preso ao ciclo de regeneração — foi o que
+permitiu compilar, buildar e commitar durante os quatro dias em que as tabelas
+não existiam em banco nenhum.
+
+**O que falta para o agente responder em produção:** o merge do PR #65. O
+Lovable sincroniza da `main` e sobe a função junto; o `LOVABLE_API_KEY` já
+existe lá (é o mesmo que a `gerar-sintese-executiva` usa).
 
 ### 6.2 Nunca validado com dado real
 
