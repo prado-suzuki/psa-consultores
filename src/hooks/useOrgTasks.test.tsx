@@ -27,13 +27,21 @@ vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn() } }));
 
-import { useMoveOrgTaskToProject, useMoveOrgTasksToProject, useOrgTasks, type OrgTask } from '@/hooks/useOrgTasks';
+import {
+  useDeleteOrgTask,
+  useMoveOrgTaskToProject,
+  useMoveOrgTasksToProject,
+  useOrgTasks,
+  type OrgTask,
+} from '@/hooks/useOrgTasks';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
 
 interface DbResult {
   data: unknown;
   error: unknown;
+  /** Só as contagens (`head: true`) leem isto. */
+  count?: number;
 }
 interface ChainRecord {
   table: string;
@@ -50,7 +58,7 @@ function makeChain(table: string) {
   const record: ChainRecord = { table, calls: [] };
   chains.push(record);
   const chain: Record<string, unknown> = {};
-  for (const method of ['select', 'update', 'eq', 'in', 'or', 'gte', 'lte', 'order', 'single', 'maybeSingle']) {
+  for (const method of ['select', 'update', 'delete', 'eq', 'neq', 'in', 'or', 'gte', 'lte', 'order', 'single', 'maybeSingle']) {
     chain[method] = vi.fn((...args: unknown[]) => {
       record.calls.push({ method, args });
       return chain;
@@ -474,5 +482,58 @@ describe('useOrgTasks (filtro por responsável)', () => {
     const tasks = await queryFnOf({ assignedTo: 'mine' })();
 
     expect(tasks.map(task => task.id)).toEqual(['minha']);
+  });
+});
+
+/**
+ * `org_tasks_parent_task_id_fkey` é ON DELETE CASCADE: apagar a mãe apaga as
+ * filhas no banco, sem passar pelo app. A guarda contra isso tem que contar as
+ * filhas NO BANCO — contar na lista da tela liberava a exclusão sempre que o
+ * filtro escondia as filhas ativas (outro responsável, outro status), e elas
+ * morriam em silêncio.
+ */
+describe('useDeleteOrgTask (guarda do cascade)', () => {
+  function deleteMutation() {
+    const { result } = renderHook(() => useDeleteOrgTask('tax'));
+    return result.current as unknown as { mutationFn: (id: string) => Promise<void> };
+  }
+
+  /** Fila: busca do título (auditoria) e a contagem de filhas ativas. */
+  function queueDelete(ativas: number) {
+    dbQueue.push({ data: { title: 'Simulação de IBS e CBS', parent_task_id: null }, error: null });
+    dbQueue.push({ data: null, error: null, count: ativas });
+  }
+
+  it('recusa apagar a mãe cujas filhas ativas o filtro escondeu', async () => {
+    queueDelete(3);
+
+    await expect(deleteMutation().mutationFn('mae-1')).rejects.toThrow(/3 subtarefa/);
+    expect(chainOf('org_tasks', 'delete')).toHaveLength(0);
+  });
+
+  it('conta pela mãe e ignora as concluídas', async () => {
+    queueDelete(1);
+
+    await expect(deleteMutation().mutationFn('mae-1')).rejects.toThrow();
+    const contagem = chainOf('org_tasks', 'neq')[0];
+    expect(argsOf(contagem, 'eq')).toEqual([['parent_task_id', 'mae-1']]);
+    expect(argsOf(contagem, 'neq')).toEqual([['status', 'done']]);
+  });
+
+  it('apaga quando o banco não tem nenhuma filha ativa', async () => {
+    queueDelete(0);
+    dbQueue.push({ data: [{ id: 'mae-1' }], error: null });
+
+    await deleteMutation().mutationFn('mae-1');
+
+    expect(chainOf('org_tasks', 'delete')).toHaveLength(1);
+  });
+
+  it('não apaga quando a contagem falha', async () => {
+    dbQueue.push({ data: { title: 'Tarefa', parent_task_id: null }, error: null });
+    dbQueue.push({ data: null, error: { message: 'sem permissão' } });
+
+    await expect(deleteMutation().mutationFn('mae-1')).rejects.toBeTruthy();
+    expect(chainOf('org_tasks', 'delete')).toHaveLength(0);
   });
 });

@@ -9,6 +9,8 @@ import { useTeamMembersForTasks, useTaxProjectsForFilter, useClusterIdByPageCate
 import {
   useOrgTasks,
   useDeleteOrgTask,
+  contarSubtarefasAtivas,
+  mensagemSubtarefasAtivas,
   OrgTask,
   TaskFilters as TaskFiltersType
 } from '@/hooks/useOrgTasks';
@@ -235,7 +237,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     }
   };
 
-  const handleDeleteTask = (taskId: string) => {
+  const handleDeleteTask = async (taskId: string) => {
     // Espelha a RLS rls_org_tasks_delete: somente líder (ou superior) ou o criador podem excluir.
     const task = tasks.find(t => t.id === taskId);
     const canDelete = isAdmin || isLider || (!!task && !!user && task.created_by === user.id);
@@ -245,10 +247,23 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       });
       return;
     }
-    const activeChildren = tasks.filter(t => t.parent_task_id === taskId && t.status !== 'done');
-    if (activeChildren.length > 0) {
+    // Conta no banco, não em `tasks`: a lista está filtrada e não vê as filhas
+    // que o filtro escondeu. O `useDeleteOrgTask` repete a checagem — esta aqui
+    // existe para a recusa aparecer ANTES do diálogo de confirmação.
+    let ativas: number;
+    try {
+      ativas = await contarSubtarefasAtivas(taskId);
+    } catch (error) {
+      // Sem saber quantas filhas existem, não se abre um diálogo que pode
+      // apagá-las em cascata.
+      toast.error('Não foi possível verificar as subtarefas desta tarefa.', {
+        description: error instanceof Error ? error.message : 'Tente novamente.',
+      });
+      return;
+    }
+    if (ativas > 0) {
       toast.error('Não é possível excluir esta tarefa.', {
-        description: `Existe(m) ${activeChildren.length} subtarefa(s) ativa(s). Conclua ou exclua as subtarefas primeiro.`,
+        description: mensagemSubtarefasAtivas(ativas),
       });
       return;
     }
