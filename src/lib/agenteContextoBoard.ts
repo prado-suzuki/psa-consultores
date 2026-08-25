@@ -87,7 +87,11 @@ function blocoDecisao(e: EntradaContextoBoard): BlocoContexto | null {
       severidade: a.severidade,
       alerta: a.titulo,
       evidencia: a.detalhe,
-      valor: a.valor === null ? null : brl(a.valor),
+      // Zero NAO vira "R$ 0 mil": nesses alertas o zero significa "faturamento
+      // nao lancado nessas OS", e a propria evidencia diz isso ("o que se sabe
+      // e a contagem, nao a exposicao"). Escrever R$ 0 mil ao lado do titulo
+      // afirma exposicao nula, que e o oposto de "nao sei".
+      valor: a.valor ? brl(a.valor) : null,
     })),
   };
 }

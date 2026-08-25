@@ -25,7 +25,28 @@ interface ComContexto {
 }
 
 /** Lê `{ error }` do corpo do 4xx/5xx que o supabase-js descartou. */
+/**
+ * Falha de REDE, não de HTTP: a função não existe neste projeto (o preflight
+ * volta 404 sem cabeçalho de CORS), ou o navegador não alcançou o host. O
+ * supabase-js chama isso de `FunctionsFetchError` e a mensagem em inglês
+ * ("Failed to send a request to the Edge Function") não diz a ninguém o que
+ * fazer. Esta é a cara do agente antes de a função ser publicada, então vale
+ * uma frase que aponte o próximo passo em vez de um chute sobre o banco.
+ */
+function ehFalhaDeRede(erro: unknown): boolean {
+  const e = erro as { name?: unknown; message?: unknown } | null;
+  return e?.name === 'FunctionsFetchError'
+    || (typeof e?.message === 'string' && e.message.includes('Failed to send a request'));
+}
+
 export async function mensagemDoErroEdge(erro: unknown): Promise<{ mensagem: string; status?: number }> {
+  if (ehFalhaDeRede(erro)) {
+    return {
+      mensagem: 'A função "agente-psa" não respondeu neste banco — provavelmente ainda '
+        + 'não foi publicada aqui. Publique com "supabase functions deploy agente-psa" '
+        + 'no projeto que este ambiente usa (ver docs/planos/agente-psa-assistente.md).',
+    };
+  }
   const contexto = (erro as ComContexto | null)?.context;
   if (contexto instanceof Response) {
     try {

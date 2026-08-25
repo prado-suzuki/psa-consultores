@@ -109,7 +109,11 @@ export function AgentePsaWidget() {
               </div>
             </div>
 
-            <AgentePainelDecisao itens={itensDecisao} avisos={contexto.avisos} />
+            {/* Teto proprio: com 5 alertas o bloco ocupava metade do painel e
+                a conversa ficava com uma linha. Rola dentro de si mesmo. */}
+            <div className="agente-decisao-wrap">
+              <AgentePainelDecisao itens={itensDecisao} avisos={contexto.avisos} />
+            </div>
 
             {/* `avisosDaTela` não vai aqui de propósito: o bloco acima já os
                 desenha, fora do scroll. O mesmo aviso duas vezes no mesmo

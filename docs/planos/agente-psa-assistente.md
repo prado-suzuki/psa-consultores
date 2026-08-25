@@ -27,54 +27,80 @@ uma linha em `agente_config`. Nenhuma alteração no balão.
 
 ---
 
-## 1.1 Decisão de 21/08 — ponto de entrada ÚNICO
+## 1.1 Ponto de entrada e avisos — como ficou em 21/08
 
-Chegaram a existir dois pontos de entrada: o balão flutuante
-(`AgentePsaWidget`) e um ícone discreto ao lado do título, montado no
-`BoardLayout` (`AgentePsaTrigger`). **Ficou o balão, e só ele.**
+Esta seção foi reescrita: a primeira versão dela dizia "ponto de entrada ÚNICO,
+o balão" e "os cards continuam na grade". As duas coisas mudaram no mesmo dia, e
+prosa descrevendo estado que já mudou é o pior tipo de documentação.
 
-Por quê, na ordem que decidiu:
+**Estado final: um idioma por ambiente.**
 
-1. **O agente é do sistema, não do Board.** O ícone encaixava no cabeçalho
-   padronizado do `BoardLayout` — que Tax, OSG e Acessos não têm. Fora do Board
-   o ícone não existe, então ele nunca foi a alternativa ao balão: era o balão
-   mais um caso especial.
-2. **Dois idiomas para a mesma função é pior que qualquer um dos dois.** Quem
-   aprende o balão no Tax e chega no Board não encontraria balão.
-3. **Descoberta.** Ícone ao lado de título é achado por quem procura; balão de
-   chat no canto é gesto já aprendido em outro lugar.
+| Onde | Entrada | Como acha o escopo |
+| --- | --- | --- |
+| Dentro do Board | ícone discreto ao lado do título (`AgentePsaTrigger`, montado no `BoardLayout`) | pela ROTA (`src/lib/agenteEscopos.ts`, 18 escopos) |
+| Fora do Board (Tax, OSG, Acessos) | balão flutuante (`AgentePsaWidget`) | pelo snapshot publicado pela tela |
 
-A objeção legítima ao balão — aparecer numa apresentação da diretoria — foi
-resolvida **deixando o balão quieto**, não criando uma segunda porta: 46px,
-`opacity: .55` em repouso, presença no hover e no foco de teclado. Com aviso de
-falha na tela ele volta a 100% (`:has(.agente-bolha-ping)`), porque aviso
-apagado não é aviso.
+O balão se retira dentro do Board (`if (escopoDaRota(location.pathname)) return null`)
+para não haver duas portas na mesma tela.
 
-**Uma cópia só da máquina de estado.** O widget virou layout puro e consome
-`useAgenteConversaController`. Havia duas cópias do fluxo (widget e gatilho), e
-duas cópias significam que a correção do usuário pode virar lição por um
-caminho e não pelo outro — divergência que só aparece quando o agente responde
-diferente para a mesma pergunta em dois lugares.
+O caminho até aqui, porque o motivo importa mais que a conclusão:
 
-**O que sobreviveu do gatilho:** `AgentePainelDecisao` passou a ser montado
-dentro do painel do balão. A faixa "Exige decisão" e os avisos de falha agora
-aparecem nos dois lugares — no painel e na grade da tela.
+1. Houve uma proposta de **entrada única pelo balão**, com o argumento de que
+   dois idiomas para a mesma função é pior que qualquer um dos dois, e que o
+   ícone dependia do cabeçalho do `BoardLayout` — que Tax, OSG e Acessos não
+   têm. O argumento continua válido e é o que fixou o balão FORA do Board.
+2. O que o derrubou dentro do Board foi um FATO: **só 5 das 18 telas do Board
+   publicam snapshot**, e o balão exige `contexto` para existir. Nas outras 13
+   não sobraria agente nenhum — e é dentro do painel que "Exige decisão" agora
+   vive. O ícone resolve o escopo pela rota, então existe nas 18.
+3. A objeção de o balão aparecer numa apresentação foi resolvida deixando o
+   balão **quieto** (46px, `opacity: .55`, presença no hover e no foco), não com
+   uma segunda porta.
 
-### Os cards de aviso FICAM na grade
+**Uma cópia só da máquina de estado.** O widget é layout puro e consome
+`useAgenteConversaController`; o ícone usa o mesmo hook. Duas cópias fariam a
+correção do usuário virar lição por um caminho e não pelo outro — divergência
+que só aparece quando o agente responde diferente para a mesma pergunta em dois
+lugares.
 
-O plano paralelo era tirar da grade a faixa de alertas e o card "Dados
-incompletos" e deixá-los só dentro do painel. **Não foi feito**, por medição:
+### Os cards de aviso SAÍRAM da grade — e o que garante a honestidade agora
 
-`/equipe/board/dashboard` está com uma consulta quebrada hoje — o embed de
-`org_projects` devolve HTTP 400 porque `external_client_id` nunca teve FK para
-`cliente` (a correção é `20260821151417_org_projects_external_client_id_fkey.sql`,
-escrita e **não aplicada**). Enquanto ela não entrar, aquele card é o único
-lugar onde o defeito aparece: sem ele na grade, quem não abre o painel vê zero
-projetos ativos, pontualidade sobre nada e áreas vazias, sem sinal de que a
-consulta morreu — o comportamento que o Bloco D existiu para matar.
+A faixa "Exige decisão" e o card "Dados incompletos" deixaram de ocupar a grade
+do Estratégico (`BoardAlertas` foi deletado). A decisão da usuária foi explícita:
+*"não quero um monte de aviso na tela, quero algo mais sutil."*
 
-Depois da FK aplicada o card passa a ser raro em vez de permanente, e a
-conversa sobre tirá-lo da grade fica honesta. Antes disso, não.
+O que substituiu a garantia, em três camadas, nenhuma delas um card:
+
+1. **O número não mente mais.** Com `projectsQuery.isError`, a faixa de KPIs
+   recebe `null` — não `saude.total` — e desenha **"—"** em `--bd-ink3` (o token
+   do que não pode ser medido) em vez de `0`. Na pontualidade, `null` também
+   tira o ANEL e a PILL: anel em 0% se lê como "nenhuma entrega saiu no prazo",
+   e a pill diria "Abaixo da meta" sobre medida que não existe.
+2. **O motivo, em meia linha**, no `.pg-sub` que já existia:
+   `21 ago 2026 · Ciclo ativo: — · projetos e tarefas não carregaram`. Zero
+   elemento novo na tela. A lista é `todasAsFalhas`, a MESMA que alimenta os
+   `avisos` do snapshot — se divergissem, o usuário leria um motivo na tela e
+   ouviria outro do agente, sem nenhum dos dois estar errado.
+3. **O painel e o ponto no ícone**, para o detalhe: `AgentePainelDecisao` desenha
+   a faixa de alertas e os avisos lendo o bloco `alertas` do mesmo snapshot que
+   o agente recebeu.
+
+O que era o argumento mais forte para manter os cards — "a consulta do
+`org_projects` está quebrada e o card é o único lugar onde isso aparece" —
+**deixou de valer no dia**: a FK entrou nos DOIS bancos (medido por REST com a
+publishable key, HTTP 200 em `zwoainzzqhudmmknuycq` e em
+`vgzomuwnsdgrxbkyoavq`). O "—" continua sendo a coisa certa, mas agora como
+proteção contra a PRÓXIMA consulta que morrer, não contra esta.
+
+### A superfície do painel segue o tema
+
+O painel nascia com `#111827` cravado — azul-marinho — e `/equipe/board` resolve
+`.sistema-theme`, que é GRAFITE: era cor de fora do sistema fingindo ser token.
+Agora `--agente-surface` é `hsl(var(--surface-escura-2))`, o token que a casa já
+tinha para cartão escuro, e os degraus internos são branco translúcido, para
+seguirem o piso sozinhos. Contrastes medidos nos dois pisos possíveis estão no
+comentário do `index.css`; o degrau 3 ficou em 8% e não 10% porque a 10% o
+`--agente-ink3` sobre o grafite caía para 4,37.
 
 ---
 
@@ -187,7 +213,33 @@ o número é piso, não total.
 
 ## 6. PENDENTE — o que falta para ir ao ar
 
+### 6.0 Por que a IA não é testável no sandbox
+
+O `LOVABLE_API_KEY` é **gerado e gerenciado pelo Lovable por projeto**, e a
+documentação deles diz que **não existe caminho oficial para obtê-lo fora de um
+projeto gerenciado por eles** — para chamar IA fora, mandam usar chave própria
+de outro fornecedor. Consequência prática, medida em 25/08:
+
+- **produção** é Lovable Cloud: a chave existe sozinha, como nas outras funções
+  de IA da casa (`gerar-sintese-executiva`);
+- **sandbox** é um projeto Supabase comum: a chave não existe e não há como
+  copiar dela. Tudo o mais do agente roda em dev — painel, alertas, cockpit,
+  nível de acesso, mensagens de erro —, **menos a resposta em si**.
+
+Chegou a existir um segundo caminho no `ai.ts` (OpenRouter, escolhido pela chave
+presente no ambiente) para destravar o teste em dev. Foi **revertido em 25/08**,
+por decisão da usuária: validar direto no Lovable é mais simples do que manter
+dois provedores por causa de um ambiente. Se um dia o teste em dev voltar a ser
+necessário, o caminho é esse — e o custo medido no dia era de cerca de
+US$ 0,0005 por pergunta com um modelo `flash-lite`.
+
 ### 6.1 Migration (bloqueio real)
+
+> Atualização de 21/08, ~15h: produção recebeu migrations pelo bot do Lovable e
+> a `main` foi integrada na `develop` (`af388f17`). Isso **não** inclui as duas
+> migrations do agente — `agente_*` continua fora do `types.ts`, ou seja, fora
+> dos dois bancos. A FK de `org_projects`, sim, entrou nos dois.
+
 
 O Supabase CLI **não está instalado nesta máquina**, então os passos 1–2 do
 AGENTS.md ("Mudança de schema") não foram executados. O arquivo de migration

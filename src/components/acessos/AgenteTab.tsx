@@ -130,10 +130,12 @@ export function AgenteTab() {
               <AlertTriangle className="h-4 w-4 shrink-0 text-muted-foreground" />
               <div className="text-sm">
                 <p className="font-medium text-foreground">Não consegui carregar o cockpit</p>
+                {/* Sem chute de causa: `mensagemDoErroEdge` já distingue função
+                    ausente de erro do servidor, e adivinhar aqui produzia a
+                    mensagem errada -- dizia "tabela inexistente" quando o que
+                    faltava era a função publicada. */}
                 <p className="text-muted-foreground">
                   {cockpit.error instanceof Error ? cockpit.error.message : 'Erro desconhecido.'}
-                  {' '}Se a mensagem falar de tabela inexistente, a migration do agente ainda
-                  não foi aplicada neste banco.
                 </p>
               </div>
             </div>
