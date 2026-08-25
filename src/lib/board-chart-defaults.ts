@@ -30,7 +30,12 @@ export const CHART_COLORS = {
   accentSoft: 'var(--bd-accent-l)',
   /** Áreas do negócio — tons de tag/área do sistema, não azul e roxo de web. */
   tax: 'var(--bd-blue)',
-  osg: 'var(--bd-go)',
+  /* `--bd-green` e não `--bd-go`: os dois são verdes, mas o `-go` é o ACENTO da
+     marca, reservado para série única/principal (regra em
+     `clientes-os/shared.ts`) e também usado como ESTADO "no prazo". Como série
+     categórica ele reprovava no validador de paleta — croma 0,097, abaixo do
+     piso, lendo como cinza-esverdeado ao lado do azul e do magenta. */
+  osg: 'var(--bd-green)',
   dev: 'var(--bd-purple)',
   /** Estado. */
   warn: 'var(--bd-warn)',
