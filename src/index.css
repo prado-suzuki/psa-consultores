@@ -266,6 +266,11 @@ All colors MUST be HSL.
     --teal-50: 166 76% 97%;
     --teal-100: 167 85% 89%;
     --teal-200: 168 84% 78%;
+    /* 400 e 800 vieram de `mapa.css`, que também cravava tons claro/escuro do
+       teal Tailwind cru (mesma lógica do 50/100/200 acima) — mas num par que
+       o 50/100/200/500/600/700 não cobria. Preenchem o buraco da escala. */
+    --teal-400: 172 66% 50%;
+    --teal-800: 176 69% 22%;
 
     /* ─── Escala slate — PRIMITIVA, mesma lógica do teal acima ──────────────
        Cinza-azulado do Tailwind. Não existia no sistema: `--gray-*` acima é a
@@ -289,6 +294,15 @@ All colors MUST be HSL.
     --lime-400: 85 78% 50%;
     --lime-500: 85 85% 37%;
     --lime-600: 85 88% 30%;
+    /* Degrau 700, adicionado em 25/08 quando a divergência institucional vs.
+       Manual de Marca (ver comentário em formatadores.ts) foi resolvida a
+       favor do institucional: `formatadores.ts` tinha um LIME[700] próprio
+       (#4D7C0F, hex do manual) escolhido a dedo para dar 4,99:1 de contraste
+       em texto sobre branco — precisão que a ramp de cima não cobria. Este
+       degrau continua a MESMA curva (saturação subindo, luminosidade caindo
+       com passo decrescente: -13, -7, -6) e mede 5,22:1, então fecha o
+       mesmo contrato sem herdar o hex do manual. */
+    --lime-700: 85 90% 25%;
     
     /* Neutro da BASE — marfim/aveia quente (fundo que faz o teal saltar).
        Mesma lógica da OSG: o neutro NÃO é uma versão dessaturada do accent; é
@@ -331,7 +345,13 @@ All colors MUST be HSL.
     --gray-600: 215 14% 34%;
     --gray-700: 217 19% 27%;
     --gray-800: 215 28% 17%;
-    --gray-900: 220 26% 12%;
+    /* Era `220 26% 12%` — não batia com o próprio comentário acima ("#111827
+       base"): a conversão hex→HSL original saiu com a saturação errada (26%
+       ao invés de 39%), resultado um cinza mais lavado que o pretendido.
+       Corrigido em 25/08/2026 para bater exatamente com #111827 (confirmado
+       contra o Manual de Marca PSA e o gray-900 padrão do Tailwind, que os
+       degraus 100/200/300/950 desta mesma escala já usam sem customização). */
+    --gray-900: 221 39% 11%;
     
     --gradient-primary: linear-gradient(135deg, hsl(var(--lime-500)), hsl(var(--teal-500)));
     --gradient-dark: linear-gradient(180deg, hsl(var(--gray-900)) 0%, hsl(var(--gray-800)) 100%);
@@ -2098,6 +2118,52 @@ All colors MUST be HSL.
   --roi-cyan-bd: 186 94% 82%; /* #a5f3fc — borda da tag "to-be" */
   --roi-goal-marker: 224 64% 33%; /* #1e3a8a — marcador de meta no bullet chart */
   --roi-mat-track: 210 31% 95%; /* #eef2f6 — trilho da barra de maturidade */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MAPA — tokens do módulo `mapa.css`
+   ═══════════════════════════════════════════════════════════════════════
+   `mapa.css` já tinha um bloco `.app-root{}` com variáveis PRÓPRIAS e bem
+   nomeadas (`--primary-color`, `--surface`, `--status-mapping` etc.) — só
+   que em hex, não HSL, e sem ligação com o resto do sistema de tokens.
+   Onde o hex batia com algo que já existe (`--slate-*`, `--teal-*`,
+   `--primary`, tokens do ROI), a variável do `.app-root` passou a
+   REFERENCIAR daqui em vez de repetir o número. O que sobrou — cores que só
+   este módulo usa — mora nesta seção, seguindo o mesmo padrão de comentário
+   do bloco ROI acima. */
+:root {
+  /* Rampa "Material surface" do mapa — só usada nas variáveis `--surface*`
+     do `.app-root`; nenhuma delas aparece crua em outro lugar do arquivo. */
+  --mapa-surface: 231 100% 99%; /* #f8f9ff */
+  --mapa-surface-container: 221 100% 95%; /* #e6eeff */
+  --mapa-surface-container-low: 221 100% 97%; /* #eff4ff */
+  --mapa-surface-container-high: 218 100% 93%; /* #dce9ff */
+  --mapa-on-surface: 213 56% 12%; /* #0d1c2e */
+
+  /* Status "melhoria"/"roi" do `.status-badge-v2` — mapping/diagnostic
+     reaproveitam slate/teal já existentes; estes dois são só do mapa. */
+  --mapa-status-improvement-fg: 224 76% 48%; /* #1d4ed8 */
+  --mapa-status-improvement-bg: 214 100% 97%; /* #eff6ff */
+  --mapa-status-improvement-bd: 214 95% 93%; /* #dbeafe */
+  --mapa-status-roi-fg: 336 74% 35%; /* #9d174d */
+  --mapa-status-roi-bg: 327 73% 97%; /* #fdf2f8 */
+  --mapa-status-roi-bd: 326 78% 95%; /* #fce7f3 */
+
+  /* Tag "etapa"/"sistema" (laranja) dos cartões de gargalo/etapa — o par
+     "processo"/"pessoa" (verde) já é `--roi-kpi-positive-*`. */
+  --mapa-tag-etapa-bg: 34 100% 92%; /* #ffedd5 */
+  --mapa-tag-etapa-fg: 15 79% 34%; /* #9a3412 */
+
+  /* Contador do cabeçalho de grupo (índigo). */
+  --mapa-grupo-count-bg: 226 100% 94%; /* #e0e7ff */
+  --mapa-grupo-count-fg: 244 55% 41%; /* #3730a3 */
+
+  /* Nó "retrabalho" do diagrama da Cascata — vermelho mais vivo que o
+     `--roi-danger`/`--roi-status-crit-fg` já tokenizados, usado só ali. */
+  --mapa-cascata-danger: 0 72% 51%; /* #dc2626 */
+
+  /* Borda tracejada do aviso de "sistema pendente". */
+  --mapa-warn-border: 43 96% 56%; /* #fbbf24 */
 }
 
 /* Editor de conteúdo de modelos (TipTap) — ver EditorConteudoModelo.tsx */

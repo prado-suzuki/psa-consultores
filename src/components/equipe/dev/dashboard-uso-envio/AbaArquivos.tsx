@@ -45,6 +45,7 @@ import {
   GRAY,
   GRID_STYLE,
   TEAL,
+  TEAL_SERIE,
   TOOLTIP_STYLE,
   mesLabel,
   num,
@@ -227,7 +228,7 @@ export const AbaArquivos = ({
                 isAnimationActive={false}
                 dataKey="enviados"
                 name="arquivos enviados"
-                fill={TEAL[600]}
+                fill={TEAL_SERIE}
                 radius={[3, 3, 0, 0]}
                 maxBarSize={20}
               />
