@@ -32,9 +32,22 @@ const FERRAMENTA = {
             type: 'object',
             properties: {
               texto: { type: 'string' },
+              // A descricao de cada valor existe porque, sem ela, o modelo
+              // escorregou TRES vezes seguidas em producao (25/08): insight
+              // sobre CADASTRO INCOMPLETO saindo como "execucao". Enum sem
+              // descricao e adivinhacao -- o nome do valor nao ensina onde
+              // termina um e comeca o outro.
               categoria: {
                 type: 'string',
                 enum: ['oportunidade', 'risco', 'execucao', 'dado', 'observacao'],
+                description: 'oportunidade = receita ou economia a ganhar. '
+                  + 'risco = dinheiro ou prazo a perder. '
+                  + 'execucao = ritmo de ENTREGA do time (pontualidade, atraso, carga). '
+                  + 'dado = a informacao esta faltando, incompleta ou suspeita '
+                  + '(cadastro em branco, consulta que falhou, valor implausivel) '
+                  + '-- use SEMPRE que o insight for sobre a QUALIDADE do numero '
+                  + 'e nao sobre o que o numero diz. '
+                  + 'observacao = o que nao cabe em nenhuma acima.',
               },
               severidade: { type: 'string', enum: ['alta', 'media', 'baixa'] },
             },

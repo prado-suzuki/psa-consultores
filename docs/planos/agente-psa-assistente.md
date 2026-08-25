@@ -298,14 +298,43 @@ mensagem em português do próprio código, o que prova que a build no ar é est
 
 - **A pergunta que a tela NÃO responde** ("qual o custo dos projetos?"). É a
   prova de fogo da regra nº2 do prompt — dizer o que falta em vez de estimar.
-- **Categorias frouxas.** Um insight sobre completude de cadastro saiu como
-  "Execução" quando devia ser "Qualidade do dado". Duas vezes seguidas a
-  categoria escorregou; vale apertar a descrição de cada uma no `ai.ts`.
+- ~~**Categorias frouxas.**~~ **CORRIGIDO em 25/08.** O insight sobre cadastro
+  incompleto saiu como "Execução" três vezes seguidas. O enum não tinha
+  descrição nenhuma — o nome do valor não ensina onde termina um e começa o
+  outro. Cada valor ganhou descrição no `ai.ts`, com "dado" explicitamente
+  definido como *qualidade do número, não o que o número diz*. **Só tem efeito
+  depois de a função ser redeployada pelo Lovable.**
 - **O teto de contexto** (24k caracteres). `serializarContexto` avisa no prompt
   quando corta, mas ninguém mediu se o Estratégico chega perto.
 - **Antes do agente, um dado a conferir:** 99,1% da receita num só cliente
   (R$ 196 mi). Ou é real, ou é erro de cadastro — e foi isso que originou a
   primeira lição.
+
+### 6.2.1 Telas que publicam snapshot
+
+O agente existe em todas as 18 telas do Board (o ícone resolve o escopo pela
+rota), mas só conversa sobre números onde a tela **publica** o snapshot. Em
+25/08, **6 publicam**:
+
+| tela | escopo | arquivo do snapshot |
+| --- | --- | --- |
+| Board · Estratégico | `board.estrategico` | `src/lib/agenteContextoBoard.ts` |
+| Board · Projetos | `board.projetos` | `src/lib/agenteContextoProjetos.ts` |
+| Board · Ferramentas | `board.ferramentas` | `src/lib/agenteContextoFerramentas.ts` |
+| Board · Operacional | `board.operacional` | `src/lib/agenteContextoOperacional.ts` |
+| Desempenho · Visão Geral | (desempenho) | `src/lib/agenteContextoDesempenho.ts` |
+| Desempenho · Decisões | (desempenho) | idem |
+
+Nas outras 12 o painel abre, mostra alertas e avisos, e diz que ainda não
+recebeu números. **Ligar uma tela nova é: uma função pura em `src/lib/` com
+testes + `useRegistrarContextoAgente` na página.** Nada no agente muda, nada no
+banco muda — o escopo já está cadastrado.
+
+Cuidado que a tela de Projetos ensinou: quando o conteúdo é REAPROVEITADO em
+outra área (o `DashboardClientesOsContent` roda também na Gerencial da Tax e da
+OSG), o escopo entra como PROP com default vazio. Publicar direto no conteúdo
+faria o agente responder "Board · Projetos" nas outras áreas — mesmo número,
+tela errada.
 
 ### 6.3 Fora do escopo desta entrega
 
