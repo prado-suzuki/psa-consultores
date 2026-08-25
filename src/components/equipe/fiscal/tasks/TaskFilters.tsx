@@ -62,11 +62,21 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
     if (nextOpen) setDraftFilters(filters);
     setOpen(nextOpen);
   };
+  // A busca não é rascunho: ela filtra ao digitar, fora do drawer. O rascunho
+  // carrega o `search` de quando o drawer abriu, então aplicar precisa devolver
+  // o texto que está na caixa AGORA — senão a busca voltaria no tempo.
   const applyFilters = () => {
-    onFiltersChange(draftFilters);
+    onFiltersChange({ ...draftFilters, search: filters.search });
     setOpen(false);
   };
-  const resetDraftFilters = () => setDraftFilters({ search: filters.search });
+  // "Limpar" quer dizer a mesma coisa nos dois botões: some com os filtros de
+  // verdade. Limpar só o rascunho fazia com que fechar no X devolvesse tudo,
+  // sem o contador nunca ter se movido. O drawer fica aberto para escolher os
+  // próximos filtros.
+  const clearFilters = () => {
+    setDraftFilters({ search: filters.search });
+    clearAppliedFilters();
+  };
 
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -150,7 +160,7 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
           </div>
 
           <div className="flex gap-2 border-t bg-background px-6 py-4">
-            <Button variant="outline" className="flex-1" onClick={resetDraftFilters}>Limpar filtros</Button>
+            <Button variant="outline" className="flex-1" onClick={clearFilters}>Limpar filtros</Button>
             <Button className="flex-1" onClick={applyFilters}>Aplicar filtros</Button>
           </div>
         </SheetContent>
