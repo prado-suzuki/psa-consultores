@@ -154,6 +154,99 @@ export function useProcedimentosList(filters: ProcedimentoFilters = {}) {
   });
 }
 
+/**
+ * Documentação que JÁ está cadastrada no sistema e pode virar procedimento sem
+ * ninguém subir arquivo de novo.
+ *
+ * Hoje cobre os SOPs dos processos mapeados (`processes.sop_document_path` e
+ * `sop_link`), que moram no MESMO bucket `sop-documents` que a leitura usa.
+ *
+ * Ficam de fora, por enquanto, e cada um por um motivo concreto:
+ *  - `project_documents`: moram no bucket `project-documents`, e `procedimentos`
+ *    não tem coluna de bucket — a edge function leria no lugar errado.
+ *  - `processes.formatted_content`: é o procedimento já escrito em TEXTO no
+ *    banco (o caso mais fácil de todos, sem extração), mas o CHECK de
+ *    `source_type` só aceita link/pdf/docx.
+ * Os dois destravam com a mesma migration aditiva.
+ */
+export interface FonteExistente {
+  chave: string;
+  titulo: string;
+  subtitulo: string | null;
+  tipo: 'documento' | 'link';
+  arquivo_path: string | null;
+  source_url: string | null;
+  extensao: 'pdf' | 'docx' | null;
+  jaNaBiblioteca: boolean;
+}
+
+function extensaoDe(path: string): 'pdf' | 'docx' | null {
+  const ext = path.split('.').pop()?.toLowerCase();
+  return ext === 'pdf' || ext === 'docx' ? ext : null;
+}
+
+export function useFontesExistentes(habilitado: boolean) {
+  return useQuery({
+    queryKey: ['procedimentos-fontes-existentes'],
+    enabled: habilitado,
+    queryFn: async (): Promise<FonteExistente[]> => {
+      const [{ data: processos, error: erroProcessos }, { data: jaImportados }] = await Promise.all([
+        supabase
+          .from('processes')
+          .select('id, name, code, sop_document_path, sop_link')
+          .or('sop_document_path.not.is.null,sop_link.not.is.null')
+          .order('name'),
+        supabase.from('procedimentos').select('arquivo_path, source_url'),
+      ]);
+
+      if (erroProcessos) throw erroProcessos;
+
+      const usados = new Set(
+        (jaImportados ?? []).flatMap((p) => [p.arquivo_path, p.source_url].filter(Boolean) as string[])
+      );
+
+      const fontes: FonteExistente[] = [];
+
+      for (const proc of processos ?? []) {
+        const subtitulo = proc.code ? `Processo ${proc.code}` : 'Processo mapeado';
+
+        if (proc.sop_document_path) {
+          const extensao = extensaoDe(proc.sop_document_path);
+          // Só PDF e DOCX: é o que a leitura sabe extrair. Oferecer um .xlsx
+          // aqui seria repetir a promessa quebrada que este trabalho veio matar.
+          if (extensao) {
+            fontes.push({
+              chave: `doc:${proc.id}`,
+              titulo: proc.name,
+              subtitulo: `${subtitulo} — SOP em ${extensao.toUpperCase()}`,
+              tipo: 'documento',
+              arquivo_path: proc.sop_document_path,
+              source_url: null,
+              extensao,
+              jaNaBiblioteca: usados.has(proc.sop_document_path),
+            });
+          }
+        }
+
+        if (proc.sop_link) {
+          fontes.push({
+            chave: `link:${proc.id}`,
+            titulo: proc.name,
+            subtitulo: `${subtitulo} — link do SOP`,
+            tipo: 'link',
+            arquivo_path: null,
+            source_url: proc.sop_link,
+            extensao: null,
+            jaNaBiblioteca: usados.has(proc.sop_link),
+          });
+        }
+      }
+
+      return fontes;
+    },
+  });
+}
+
 export function useCreateProcedimento() {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
