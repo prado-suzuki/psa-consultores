@@ -274,14 +274,19 @@ const DashboardUsoEnvioGerencial = () => {
             `--board-bg` mudou em 21/08 (era #F0F4F8, virou o neutro com cast de teal
             do bloco `--bd-*`), e a conclusão não muda — a luminosidade do fundo é a
             mesma. */}
-        <p className="text-xs text-slate-600">
+        <p className="text-xs text-muted-foreground">
           Escopo:{' '}
-          <strong className="text-slate-700">
+          <strong className="text-foreground">
             {clusterId ? rotuloCluster(clusterId) : 'consolidado, todas as unidades'}
           </strong>
         </p>
 
+        {/* `cartoes` e nao a faixa escura: era o unico bloco do Board com layout
+            de outra familia, e a referencia de design nao tem faixa escura --
+            KPI e cartao claro, igual ao Estrategico. O Dev, que monta o mesmo
+            componente, segue na variante escura (default). */}
         <FaixaResumo
+          variante="cartoes"
           carregando={carregando}
           colunas={4}
           itens={[
@@ -514,7 +519,7 @@ const DashboardUsoEnvioGerencial = () => {
                       selecionado={usuarioSelecionado === pessoa.usuario}
                       rotuloInteracao={`Filtrar todo o dashboard por ${pessoa.usuario}`}
                     >
-                      <Td className="font-medium text-slate-800">{pessoa.usuario}</Td>
+                      <Td className="font-medium text-foreground">{pessoa.usuario}</Td>
                       <Td alinhar="right">{num(pessoa.ferramentasUsadas)}</Td>
                       <Td alinhar="right">{num(pessoa.diasAtivos)}</Td>
                       <Td alinhar="right">{num(pessoa.acoesConsulta)}</Td>
@@ -524,7 +529,7 @@ const DashboardUsoEnvioGerencial = () => {
                   ))}
                   {!carregando && pessoasVisiveis.visiveis.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="px-4 py-8 text-center text-xs text-slate-500">
+                      <td colSpan={6} className="px-4 py-8 text-center text-xs text-muted-foreground">
                         Nenhuma atividade humana observada neste recorte.
                       </td>
                     </tr>
@@ -583,7 +588,7 @@ const DashboardUsoEnvioGerencial = () => {
         </div>
 
         {USANDO_FIXTURES && (
-          <p className="flex items-center gap-1.5 text-xs text-slate-400">
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <FlaskConical className="h-3.5 w-3.5" />
             Modo fixture: o período recorta a série e os totais aditivos; pessoas e ferramentas
             permanecem no período completo do fixture.

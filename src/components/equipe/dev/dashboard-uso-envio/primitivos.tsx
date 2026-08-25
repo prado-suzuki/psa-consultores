@@ -43,7 +43,7 @@ export const AjudaTooltip = ({ texto }: { texto: string }) => (
       <button
         type="button"
         aria-label="Mais informações"
-        className="inline-flex shrink-0 cursor-help items-center rounded-sm text-slate-400 hover:text-teal-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"
+        className="inline-flex shrink-0 cursor-help items-center rounded-sm text-muted-foreground hover:text-[var(--bd-accent-d)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <Info className="h-3.5 w-3.5" />
       </button>
@@ -118,15 +118,95 @@ const TOM_BARRA: Record<NonNullable<KpiItem['tom']>, string> = {
   alerta: ALERTA,
 };
 
+/** Tom -> cor do NUMERO na variante clara. Degrau `-d` porque pinta letra. */
+const TOM_VALOR_CLARO: Record<NonNullable<KpiItem['tom']>, string> = {
+  neutro: 'var(--bd-ink)',
+  positivo: 'var(--bd-go-d)',
+  risco: 'var(--bd-risk-d)',
+  alerta: 'var(--bd-warn-d)',
+};
+
+/**
+ * A faixa de KPI em CARTOES CLAROS -- as mesmas classes da faixa do Estrategico
+ * (`.stat-strip` / `.stat-item`), com a mesma anatomia: rotulo em caixa alta,
+ * numero grande tabular, pilula de variacao, linha de apoio.
+ *
+ * POR QUE ELA EXISTE. A faixa escura era o unico bloco do Board com layout de
+ * outra familia -- a usuaria apontou exatamente isso ao abrir Ferramentas. A
+ * referencia de design nao tem faixa escura: KPI e cartao claro. Mas o mesmo
+ * componente serve `/equipe/dev`, que e outra area e nao passou por esta
+ * refatoracao; por isso a escolha e uma PROP explicita, e nao farejar a rota:
+ * quem muda de layout e quem pediu.
+ */
+const FaixaEmCartoes = ({
+  itens,
+  carregando,
+  colunas,
+}: {
+  itens: KpiItem[];
+  carregando?: boolean;
+  colunas: 3 | 4 | 6;
+}) => (
+  <div className="stat-strip" data-cols={colunas} data-reveal>
+    {itens.map((k) => (
+      <div key={k.label} className="stat-item">
+        <div className="stat-label" style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <span>{k.label}</span>
+          {k.tooltip && <AjudaTooltip texto={k.tooltip} />}
+        </div>
+        {carregando ? (
+          <Skeleton className="h-7 w-24" />
+        ) : (
+          <div className="stat-num" style={{ color: TOM_VALOR_CLARO[k.tom ?? 'neutro'] }}>
+            {k.valor}
+          </div>
+        )}
+        {k.variacao && !carregando && (
+          <span
+            className={cn(
+              'pill',
+              k.variacao.pct === undefined || k.variacao.pct === 0
+                ? 'pill-neutral'
+                : k.variacao.pct > 0 === (k.variacao.melhorQuando === 'sobe')
+                  ? 'pill-up'
+                  : 'pill-down',
+            )}
+          >
+            {k.variacao.pct !== undefined && (
+              <span className="tabular-nums">
+                {k.variacao.pct > 0 ? '▲' : k.variacao.pct < 0 ? '▼' : '='}{' '}
+                {Math.abs(k.variacao.pct * 100).toFixed(1).replace('.', ',')}%
+              </span>
+            )}
+            {k.variacao.valor && <span>{k.variacao.valor}</span>}
+            <span style={{ fontWeight: 500 }}>{k.variacao.rotulo}</span>
+          </span>
+        )}
+        {k.detalhe && <div className="stat-sub">{k.detalhe}</div>}
+      </div>
+    ))}
+  </div>
+);
+
 export const FaixaResumo = ({
   itens,
   carregando,
   colunas = 4,
+  variante = 'escura',
 }: {
   itens: KpiItem[];
   carregando?: boolean;
   colunas?: 3 | 4 | 6;
-}) => (
+  /**
+   * `escura` = a faixa original (Dev). `cartoes` = os cartoes claros do design
+   * system do Board. Default na escura para NAO mexer em `/equipe/dev` sem
+   * alguem pedir.
+   */
+  variante?: 'escura' | 'cartoes';
+}) =>
+  variante === 'cartoes' ? (
+    <FaixaEmCartoes itens={itens} carregando={carregando} colunas={colunas} />
+  ) : (
   // `--surface-escura` e não `GRAY[900]`: a superfície escura é token de TEMA, e
   // cada área já declara a sua (base/tax/osg/rotina em azul-marinho
   // `229 84% 5%`; sistema em grafite quente `35 10% 8%`). Com o hex cravado, esta
@@ -156,6 +236,12 @@ export const FaixaResumo = ({
               {k.tooltip && <AjudaTooltip texto={k.tooltip} />}
             </div>
             {carregando ? (
+              /* eslint-disable-next-line ui/token-nao-sobrescrito --
+                 cor fixa DELIBERADA: este skeleton vive dentro da faixa
+                 ESCURA (`--surface-escura`), e o `bg-muted` do componente é
+                 um tom claro de superfície clara -- ali ele desaparece. A
+                 variante de cartões claros (`FaixaEmCartoes`, acima) usa o
+                 `<Skeleton>` sem classe nenhuma, como manda a regra. */
               <Skeleton className="mt-1.5 h-6 w-20 bg-white/10" />
             ) : (
               <p
@@ -200,7 +286,7 @@ export const FaixaResumo = ({
       ))}
     </div>
   </div>
-);
+  );
 
 /** Renderiza um insight calculado. Nada aqui e escrito para um cenario. */
 export const FraseInsight = ({
@@ -286,25 +372,25 @@ export const Painel = ({
 }: CardProps) => (
   <section
     className={cn(
-      'rounded-xl border border-slate-200/80 bg-white shadow-[0_1px_2px_rgba(3,7,18,.04)]',
+      'rounded-xl border border-border bg-white shadow-[0_1px_2px_rgba(3,7,18,.04)]',
       className,
     )}
   >
     <header
-      className="flex items-start justify-between gap-4 border-b border-slate-100 px-4 py-1.5"
+      className="flex items-start justify-between gap-4 border-b border-border px-4 py-1.5"
       style={{ minHeight: ALTURA_MIN_CABECALHO }}
     >
       <div className="min-w-0">
         <div className="flex items-center gap-1.5">
-          <h3 className="text-[13px] font-semibold tracking-tight text-slate-900">{titulo}</h3>
+          <h3 className="text-[13px] font-semibold tracking-tight text-foreground">{titulo}</h3>
           {tooltip && <AjudaTooltip texto={tooltip} />}
         </div>
-        {descricao && <p className="text-[11px] leading-snug text-slate-500">{descricao}</p>}
+        {descricao && <p className="text-[11px] leading-snug text-muted-foreground">{descricao}</p>}
       </div>
       {acao && <div className="shrink-0">{acao}</div>}
     </header>
     {resumo && (
-      <p className="border-b border-slate-100 bg-slate-50/60 px-4 py-1.5 text-xs leading-snug text-slate-700">
+      <p className="border-b border-border bg-muted px-4 py-1.5 text-xs leading-snug text-foreground">
         {resumo}
       </p>
     )}
@@ -313,7 +399,7 @@ export const Painel = ({
         <Skeleton style={{ height: altura ?? 220 }} className="m-2 w-[calc(100%-1rem)]" />
       ) : vazio ? (
         <div
-          className="flex items-center justify-center px-4 text-center text-xs text-slate-500"
+          className="flex items-center justify-center px-4 text-center text-xs text-muted-foreground"
           style={{ height: altura ?? 160 }}
           role="status"
         >
@@ -381,7 +467,7 @@ export function Th<T>({
       scope="col"
       aria-sort={ativo ? (estado.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
       className={cn(
-        'sticky top-0 z-10 select-none whitespace-nowrap bg-slate-50 p-0 text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500',
+        'sticky top-0 z-10 select-none whitespace-nowrap bg-muted p-0 text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground',
         alinhar === 'right' ? 'text-right' : 'text-left',
         className,
       )}
@@ -390,12 +476,12 @@ export function Th<T>({
         type="button"
         onClick={() => estado.toggle(campo)}
         className={cn(
-          'inline-flex w-full items-center gap-1 px-3 py-1.5 transition-colors hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500',
+          'inline-flex w-full items-center gap-1 px-3 py-1.5 transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
           alinhar === 'right' ? 'flex-row-reverse justify-start' : 'justify-start',
         )}
       >
         {rotulo}
-        <Icone className={cn('h-3 w-3', ativo ? 'text-teal-600' : 'text-slate-300')} />
+        <Icone className={cn('h-3 w-3', ativo ? 'text-[var(--bd-accent-d)]' : 'text-muted-foreground')} />
       </button>
     </th>
   );
@@ -415,7 +501,7 @@ export const ThEstatico = ({
   <th
     scope="col"
     className={cn(
-      'whitespace-nowrap bg-slate-50/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.05em] text-slate-500',
+      'whitespace-nowrap bg-muted px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.05em] text-muted-foreground',
       alinhar === 'right' ? 'text-right' : 'text-left',
       className,
     )}
@@ -442,10 +528,10 @@ export const Tr = ({
 }) => (
   <tr
     className={cn(
-      'border-t border-slate-100 transition-colors hover:bg-teal-50/40',
+      'border-t border-border transition-colors hover:bg-[var(--bd-accent-t)]',
       onClick &&
-        'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-teal-500',
-      selecionado && 'bg-teal-50 ring-1 ring-inset ring-teal-200',
+        'cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+      selecionado && 'bg-[var(--bd-accent-t)] ring-1 ring-inset ring-ring',
     )}
     onClick={onClick}
     onKeyDown={(event) => {
@@ -472,7 +558,7 @@ export const Td = ({
 }) => (
   <td
     className={cn(
-      'px-3 py-1.5 tabular-nums text-slate-700',
+      'px-3 py-1.5 tabular-nums text-foreground',
       alinhar === 'right' && 'text-right',
       className,
     )}
@@ -495,7 +581,7 @@ export const CelulaBarra = ({
 }) => (
   <div className="flex items-center justify-end gap-2">
     <span className="tabular-nums">{rotulo}</span>
-    <span className="h-1.5 w-14 shrink-0 overflow-hidden rounded-full bg-slate-100">
+    <span className="h-1.5 w-14 shrink-0 overflow-hidden rounded-full bg-muted">
       <span
         className="block h-full rounded-full"
         style={{ width: `${max > 0 ? Math.max(2, (valor / max) * 100) : 0}%`, background: cor }}
@@ -518,17 +604,17 @@ export const BotaoExpandir = ({
   <button
     type="button"
     onClick={onClick}
-    className="flex w-full items-center justify-center gap-1.5 border-t border-slate-100 py-1.5 text-[11px] font-medium text-teal-700 transition-colors hover:bg-teal-50/60"
+    className="flex w-full items-center justify-center gap-1.5 border-t border-border py-1.5 text-[11px] font-medium text-[var(--bd-accent-d)] transition-colors hover:bg-[var(--bd-accent-t)]"
   >
     {expandido ? 'Mostrar menos' : `Mostrar todos os ${total}`}
     <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', expandido && 'rotate-180')} />
-    {!expandido && <span className="text-slate-400">(exibindo {limite})</span>}
+    {!expandido && <span className="text-muted-foreground">(exibindo {limite})</span>}
   </button>
 );
 
 /** Marcador de conta de automacao, para nao confundir robo com pessoa. */
 export const TagAutomacao = () => (
-  <span className="ml-2 rounded border border-slate-200 bg-slate-50 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-slate-500">
+  <span className="ml-2 rounded border border-border bg-muted px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
     automação
   </span>
 );

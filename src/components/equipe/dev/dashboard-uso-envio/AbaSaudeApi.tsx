@@ -323,7 +323,7 @@ export const AbaSaudeApi = ({ dados, carregando, mesesRecorte = 0 }: Props) => {
             <tbody>
               {endpoints.visiveis.map((e) => (
                 <Tr key={e.endpoint}>
-                  <Td className="max-w-[300px] truncate font-mono text-xs text-slate-800">
+                  <Td className="max-w-[300px] truncate font-mono text-xs text-foreground">
                     {precisaAtencao(e) && (
                       <span
                         className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle"
@@ -333,7 +333,7 @@ export const AbaSaudeApi = ({ dados, carregando, mesesRecorte = 0 }: Props) => {
                     )}
                     <TextoComTooltip texto={e.endpoint}>{e.endpoint}</TextoComTooltip>
                   </Td>
-                  <Td className="hidden whitespace-nowrap text-xs text-slate-500 lg:table-cell">
+                  <Td className="hidden whitespace-nowrap text-xs text-muted-foreground lg:table-cell">
                     {e.ferramenta ?? '—'}
                   </Td>
                   <Td alinhar="right">
@@ -348,7 +348,7 @@ export const AbaSaudeApi = ({ dados, carregando, mesesRecorte = 0 }: Props) => {
                         rotulo={num(e.erros5xx)}
                       />
                     ) : (
-                      <span className="text-slate-300">0</span>
+                      <span className="text-muted-foreground">0</span>
                     )}
                   </Td>
                   <Td alinhar="right">
@@ -362,7 +362,7 @@ export const AbaSaudeApi = ({ dados, carregando, mesesRecorte = 0 }: Props) => {
                         {pct(e.taxa5xx)}
                       </span>
                     ) : (
-                      <span className={e.taxa5xx === 0 ? 'text-slate-300' : 'text-slate-600'}>
+                      <span className={e.taxa5xx === 0 ? 'text-muted-foreground' : 'text-muted-foreground'}>
                         {pct(e.taxa5xx)}
                       </span>
                     )}
@@ -376,7 +376,7 @@ export const AbaSaudeApi = ({ dados, carregando, mesesRecorte = 0 }: Props) => {
                         rotulo={num(e.erros4xx)}
                       />
                     ) : (
-                      <span className="text-slate-300">0</span>
+                      <span className="text-muted-foreground">0</span>
                     )}
                   </Td>
                   <Td alinhar="right">
@@ -385,14 +385,14 @@ export const AbaSaudeApi = ({ dados, carregando, mesesRecorte = 0 }: Props) => {
                         {ms(e.latP95Ms)}
                       </span>
                     ) : (
-                      <span className="text-slate-600">{ms(e.latP95Ms)}</span>
+                      <span className="text-muted-foreground">{ms(e.latP95Ms)}</span>
                     )}
                   </Td>
                 </Tr>
               ))}
               {!carregando && endpoints.visiveis.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-xs text-slate-500">
+                  <td colSpan={7} className="px-4 py-8 text-center text-xs text-muted-foreground">
                     Nenhum endpoint encontrado para os filtros selecionados.
                   </td>
                 </tr>
