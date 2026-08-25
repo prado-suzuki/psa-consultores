@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,38 +7,30 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Loader2, X, Plus, BarChart3, ExternalLink, Download } from 'lucide-react';
-import { Procedimento, useConfirmProcedimento, useUpdateProcedimento, useRetryProcedimento, useGetSignedUrl } from '@/hooks/useProcedimentos';
-
-const PROCESSOS = [
-  'EFD', 'XMLs', 'PERDCOMP', 'Selic', 'IBS/CBS',
-  'Balancetes', 'PIS/COFINS', 'Cruzamento de Dados', 'Correções SPED',
-];
-
-const PROCESSO_COLORS: Record<string, string> = {
-  'EFD': '#3B82F6', 'XMLs': '#8B5CF6', 'PERDCOMP': '#10B981', 'Selic': '#06B6D4',
-  'IBS/CBS': '#F59E0B', 'Balancetes': '#EC4899', 'PIS/COFINS': '#6366F1',
-  'Cruzamento de Dados': '#D97706', 'Correções SPED': '#EF4444',
-};
-
-const COMPLEXIDADE_CONFIG = {
-  simples: { label: 'Simples', color: '#10B981' },
-  intermediario: { label: 'Intermediário', color: '#F59E0B' },
-  avancado: { label: 'Avançado', color: '#EF4444' },
-};
+import { Loader2, X, Plus, BarChart3, ExternalLink, Download, Eraser } from 'lucide-react';
+import {
+  Procedimento, useConfirmProcedimento, useUpdateProcedimento, useRetryProcedimento, useGetSignedUrl,
+} from '@/hooks/useProcedimentos';
+import { COMPLEXIDADE_CONFIG, PROCEDIMENTO_PROCESSOS, estiloChipProcesso } from './theme';
 
 interface ReviewProcedimentoModalProps {
   procedimento: Procedimento | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /**
+   * 'revisar' é a curadoria do que a IA extraiu, antes de publicar.
+   * 'editar' é a manutenção do que já está publicado — o caminho que faltava e
+   * que deixava um procedimento congelado no primeiro erro de digitação.
+   */
+  modo: 'revisar' | 'editar';
 }
 
-export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: ReviewProcedimentoModalProps) {
+export function ReviewProcedimentoModal({ procedimento, open, onOpenChange, modo }: ReviewProcedimentoModalProps) {
   const [titulo, setTitulo] = useState('');
   const [resumo, setResumo] = useState('');
   const [etapas, setEtapas] = useState<string[]>([]);
   const [processos, setProcessos] = useState<string[]>([]);
-  const [complexity_level, setComplexidade] = useState<string>('intermediario');
+  const [complexidade, setComplexidade] = useState<string>('intermediario');
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [newEtapa, setNewEtapa] = useState('');
@@ -48,48 +40,55 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
   const retryMutation = useRetryProcedimento();
   const getSignedUrl = useGetSignedUrl();
 
-  const handleOpenSource = async () => {
-    if (!procedimento) return;
-    if (procedimento.source_url) {
-      window.open(procedimento.source_url, '_blank');
-    } else if (procedimento.arquivo_path) {
-      try {
-        const url = await getSignedUrl(procedimento.arquivo_path);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = procedimento.arquivo_path.split('/').pop() || 'documento';
-        a.click();
-      } catch (err) {
-        console.error('Download error:', err);
-      }
-    }
-  };
-
   useEffect(() => {
     if (procedimento) {
       setTitulo(procedimento.ai_titulo || '');
       setResumo(procedimento.ai_resumo || '');
-      setEtapas(Array.isArray(procedimento.ai_etapas) ? [...procedimento.ai_etapas] : []);
-      setProcessos([...(procedimento.processos_associados || [])]);
+      setEtapas([...procedimento.ai_etapas]);
+      setProcessos([...procedimento.processos_associados]);
       setComplexidade(procedimento.ai_complexidade || 'intermediario');
-      setTags(Array.isArray(procedimento.ai_tags) ? [...procedimento.ai_tags] : []);
+      setTags([...procedimento.ai_tags]);
     }
   }, [procedimento]);
 
   if (!procedimento) return null;
 
-  const handleConfirm = async () => {
-    await confirmMutation.mutateAsync({
-      id: procedimento.id,
-      updates: {
-        ai_titulo: titulo,
-        ai_resumo: resumo,
-        ai_etapas: etapas as any,
-        processos_associados: processos,
-        ai_complexidade: complexity_level as any,
-        ai_tags: tags,
-      },
-    });
+  const handleOpenSource = async () => {
+    if (procedimento.source_url) {
+      window.open(procedimento.source_url, '_blank');
+      return;
+    }
+    if (!procedimento.arquivo_path) return;
+    try {
+      const url = await getSignedUrl(procedimento.arquivo_path);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = procedimento.arquivo_path.split('/').pop() || 'documento';
+      a.click();
+    } catch (err) {
+      console.error('Download error:', err);
+    }
+  };
+
+  const campos = () => ({
+    ai_titulo: titulo.trim(),
+    ai_resumo: resumo.trim(),
+    ai_etapas: etapas,
+    processos_associados: processos,
+    ai_complexidade: complexidade as Procedimento['ai_complexidade'],
+    ai_tags: tags,
+  });
+
+  const handleSalvar = async () => {
+    if (modo === 'editar') {
+      await updateMutation.mutateAsync({
+        id: procedimento.id,
+        updates: campos(),
+        detalhe: 'Procedimento editado',
+      });
+    } else {
+      await confirmMutation.mutateAsync({ id: procedimento.id, updates: campos() });
+    }
     onOpenChange(false);
   };
 
@@ -98,7 +97,8 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
     onOpenChange(false);
   };
 
-  const handleManual = () => {
+  /** Zera o que a IA escreveu para começar do documento de origem. */
+  const handleLimpar = () => {
     setTitulo('');
     setResumo('');
     setEtapas([]);
@@ -119,21 +119,31 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
     }
   };
 
-  const complexConfig = complexity_level ? COMPLEXIDADE_CONFIG[complexity_level as keyof typeof COMPLEXIDADE_CONFIG] : null;
+  const complexConfig = COMPLEXIDADE_CONFIG[complexidade as keyof typeof COMPLEXIDADE_CONFIG] ?? null;
+  const salvando = confirmMutation.isPending || updateMutation.isPending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Revisar e Confirmar Procedimento</DialogTitle>
+          <DialogTitle>
+            {modo === 'editar' ? 'Editar procedimento' : 'Revisar e publicar procedimento'}
+          </DialogTitle>
+          <DialogDescription>
+            {modo === 'editar'
+              ? 'As alterações valem para todo o time assim que você salvar.'
+              : 'A IA leu o documento e preencheu os campos abaixo. Corrija o que estiver errado — só depois de publicar o procedimento aparece para o time.'}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-2">
           {/* Preview Column (40%) */}
           <div className="md:col-span-2 bg-slate-50 rounded-xl p-5 space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Preview</h4>
-              {procedimento && (procedimento.source_url || procedimento.arquivo_path) && (
+              <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                Como vai aparecer
+              </h4>
+              {(procedimento.source_url || procedimento.arquivo_path) && (
                 <Button size="sm" variant="ghost" className="text-xs h-7" onClick={handleOpenSource}>
                   {procedimento.source_url ? (
                     <><ExternalLink className="h-3 w-3 mr-1" /> Abrir link</>
@@ -144,14 +154,15 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
               )}
             </div>
             <div className="flex flex-wrap gap-1.5">
-              {processos.map((proc) => {
-                const color = PROCESSO_COLORS[proc] || '#6B7280';
-                return (
-                  <span key={proc} className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full" style={{ backgroundColor: `${color}26`, color }}>
-                    {proc}
-                  </span>
-                );
-              })}
+              {processos.map((proc) => (
+                <span
+                  key={proc}
+                  className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
+                  style={estiloChipProcesso(proc)}
+                >
+                  {proc}
+                </span>
+              ))}
             </div>
             <h3 className="text-base font-semibold text-slate-900">{titulo || 'Sem título'}</h3>
             <p className="text-[13px] text-slate-500">{resumo || 'Sem resumo'}</p>
@@ -212,7 +223,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
             <div>
               <Label>Processos associados</Label>
               <div className="grid grid-cols-2 gap-2 mt-1">
-                {PROCESSOS.map((p) => (
+                {PROCEDIMENTO_PROCESSOS.map((p) => (
                   <label key={p} className="flex items-center gap-2 text-sm cursor-pointer">
                     <Checkbox checked={processos.includes(p)} onCheckedChange={() => setProcessos(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])} />
                     {p}
@@ -224,11 +235,12 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
             {/* Complexidade */}
             <div>
               <Label>Complexidade</Label>
-              <RadioGroup value={complexity_level} onValueChange={setComplexidade} className="flex gap-4 mt-1">
+              <RadioGroup value={complexidade} onValueChange={setComplexidade} className="flex flex-col gap-1.5 mt-1">
                 {Object.entries(COMPLEXIDADE_CONFIG).map(([key, cfg]) => (
                   <label key={key} className="flex items-center gap-1.5 text-sm cursor-pointer">
                     <RadioGroupItem value={key} />
                     <span style={{ color: cfg.color }}>{cfg.label}</span>
+                    <span className="text-xs text-slate-400">— {cfg.ajuda}</span>
                   </label>
                 ))}
               </RadioGroup>
@@ -255,14 +267,20 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange }: Re
         {/* Actions */}
         <div className="flex flex-wrap gap-2 justify-end mt-4 border-t pt-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
-          <Button variant="outline" onClick={handleManual}>Preencher manualmente</Button>
-          <Button variant="outline" onClick={handleRegenerate} disabled={retryMutation.isPending}>
-            {retryMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            Solicitar regeneração
-          </Button>
-          <Button onClick={handleConfirm} disabled={confirmMutation.isPending || !titulo.trim()}>
-            {confirmMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            Confirmar e publicar
+          {modo === 'revisar' && (
+            <>
+              <Button variant="ghost" onClick={handleLimpar}>
+                <Eraser className="h-4 w-4 mr-1" /> Limpar campos
+              </Button>
+              <Button variant="outline" onClick={handleRegenerate} disabled={retryMutation.isPending}>
+                {retryMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                Ler o documento de novo
+              </Button>
+            </>
+          )}
+          <Button onClick={handleSalvar} disabled={salvando || !titulo.trim()}>
+            {salvando && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+            {modo === 'editar' ? 'Salvar alterações' : 'Publicar para o time'}
           </Button>
         </div>
       </DialogContent>
