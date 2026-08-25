@@ -13,11 +13,11 @@
 import { AlertTriangle, CircleAlert, Info } from 'lucide-react';
 import { contarRiscos, type ItemDecisao } from '@/lib/agenteDecisao';
 
-const RISCO = 'var(--agente-risk, #FF8A94)';
-const WARN = 'var(--agente-warn, #F3C167)';
-const INK = 'var(--agente-ink, #F2F5FB)';
-const INK2 = 'var(--agente-ink2, #C2CCDE)';
-const INK3 = 'var(--agente-ink3, #8E9CB5)';
+const RISCO = 'var(--agente-risk)';
+const WARN = 'var(--agente-warn)';
+const INK = 'var(--agente-ink)';
+const INK2 = 'var(--agente-ink2)';
+const INK3 = 'var(--agente-ink3)';
 const LINHA = 'var(--agente-line, rgba(255,255,255,.10))';
 
 const rotulo = (n: number, um: string, muitos: string) => `${n} ${n === 1 ? um : muitos}`;
