@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoEvolucao, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { useSearchParams } from 'react-router-dom';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao } from '@/hooks/useCiclosAvaliacao';
@@ -71,6 +73,19 @@ const DesempenhoEvolucao = () => {
 
   const currentCiclo = ciclos?.find(c => c.status === 'em_andamento');
   const currentMetas = memberMetasAll?.filter(m => m.ciclo_id === currentCiclo?.id) ?? [];
+
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  // Contagem e progresso. O TEXTO de feedback e de 1:1 fica de fora.
+  const contextoAgente = useMemo(() => contextoDesempenhoEvolucao({
+    ciclo: currentCiclo ? resumoDeCiclo(currentCiclo) : null,
+    membroSelecionado: selectedMembro ? (profilesNomeMap?.[selectedMembro] ?? 'pessoa selecionada') : null,
+    metas: currentMetas.map(m => ({ progresso_atual: m.progresso_atual })),
+    feedbacksRecebidos: feedbacks?.length ?? 0,
+    reunioes1a1: reunioes?.length ?? 0,
+    ultimaReuniao: [...(reunioes ?? [])].map(r => r.data_reuniao).sort().at(-1) ?? null,
+    carregando: false,
+  }), [currentCiclo, selectedMembro, profilesNomeMap, currentMetas, feedbacks, reunioes]);
+  useRegistrarContextoAgente('board.desempenho.evolucao', contextoAgente, false);
   const totalPeso = currentMetas.reduce((a, m) => a + (m.peso ?? 1), 0);
   const pprMedia = totalPeso > 0 ? Math.round(currentMetas.reduce((a, m) => a + m.progresso_atual * (m.peso ?? 1), 0) / totalPeso) : 0;
   const pprClassif = getClassificacao(pprMedia);

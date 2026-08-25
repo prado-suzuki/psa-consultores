@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useReunioes, useCreateReuniao, useAllOpenItensAcao, useUpdateItemAcao, useItensAcao, type Reuniao1a1 } from '@/hooks/useReunioes1a1';
+import { useMemo } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoReunioes, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useProfilesNomeMap, useProfilesNomeRows } from '@/hooks/useDomainProfiles';
 import { useDesempenhoReunioesItensAcao } from '@/hooks/useDomainDesempenhoReunioes';
@@ -29,8 +32,23 @@ const statusColors: Record<string, string> = {
 const DesempenhoReunioes1a1 = () => {
   const { data: allReunioes, isLoading } = useReunioes();
   const { data: openItems } = useAllOpenItensAcao();
+
   const { data: ciclos } = useCiclosAvaliacao();
   const { data: cicloAtivo } = useCicloAtivo();
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  // Temas discutidos e observacoes do lider NAO entram: e o registro mais
+  // reservado do sistema.
+  const contextoAgente = useMemo(() => contextoDesempenhoReunioes({
+    ciclo: cicloAtivo ? resumoDeCiclo(cicloAtivo) : null,
+    reunioes: (allReunioes ?? []).map(r => ({
+      data_reuniao: r.data_reuniao, membro_id: r.membro_id ?? null,
+      sentimento: r.sentimento ?? null,
+    })),
+    itensAbertos: (openItems ?? []).map(i => ({ prazo: i.prazo ?? null, status: i.status })),
+    hoje: new Date().toISOString().slice(0, 10),
+    carregando: isLoading,
+  }), [cicloAtivo, allReunioes, openItems, isLoading]);
+  useRegistrarContextoAgente('board.desempenho.1a1', contextoAgente, isLoading);
   const createReuniao = useCreateReuniao();
   const updateItem = useUpdateItemAcao();
   const { user } = useAuth();

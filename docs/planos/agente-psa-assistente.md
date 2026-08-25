@@ -310,31 +310,65 @@ mensagem em português do próprio código, o que prova que a build no ar é est
   (R$ 196 mi). Ou é real, ou é erro de cadastro — e foi isso que originou a
   primeira lição.
 
-### 6.2.1 Telas que publicam snapshot
+### 6.2.1 Telas que publicam snapshot — as 18, desde 25/08
 
-O agente existe em todas as 18 telas do Board (o ícone resolve o escopo pela
-rota), mas só conversa sobre números onde a tela **publica** o snapshot. Em
-25/08, **6 publicam**:
+Todas as telas do Board publicam. O agente existe em todas elas pela rota, e
+agora conversa sobre números em todas.
 
-| tela | escopo | arquivo do snapshot |
+| escopo | tela | snapshot |
 | --- | --- | --- |
-| Board · Estratégico | `board.estrategico` | `src/lib/agenteContextoBoard.ts` |
-| Board · Projetos | `board.projetos` | `src/lib/agenteContextoProjetos.ts` |
-| Board · Ferramentas | `board.ferramentas` | `src/lib/agenteContextoFerramentas.ts` |
-| Board · Operacional | `board.operacional` | `src/lib/agenteContextoOperacional.ts` |
-| Desempenho · Visão Geral | (desempenho) | `src/lib/agenteContextoDesempenho.ts` |
-| Desempenho · Decisões | (desempenho) | idem |
+| `board.estrategico` | Estratégico | `agenteContextoBoard.ts` |
+| `board.projetos` | Projetos | `agenteContextoProjetos.ts` |
+| `board.clientes` | Clientes | `agenteContextoClientes.ts` |
+| `board.ferramentas` | Ferramentas | `agenteContextoFerramentas.ts` |
+| `board.capacidade` | Capacidade | `agenteContextoCapacidade.ts` |
+| `board.operacional` | Operacional | `agenteContextoOperacional.ts` |
+| `board.logs` | Logs da equipe | `agenteContextoLogs.ts` |
+| `board.chamados` | Chamados | `agenteContextoChamados.ts` |
+| `board.dashboards` | Dashboards (Looker) | `agenteContextoDashboards.ts` |
+| `board.desempenho` | Desempenho · Visão geral | `agenteContextoDesempenho.ts` |
+| `board.desempenho.decisoes` | Desempenho · Decisões | idem |
+| `board.desempenho.ciclos` | Ciclos | `agenteContextoDesempenhoTelas.ts` |
+| `board.desempenho.metas` | Metas e PPR | idem |
+| `board.desempenho.relatorios` | Relatórios | idem |
+| `board.desempenho.evolucao` | Evolução | idem |
+| `board.desempenho.feedbacks` | Feedbacks | idem |
+| `board.desempenho.1a1` | 1:1s | idem |
+| `board.desempenho.minha-evolucao` | Minha evolução | idem |
 
-Nas outras 12 o painel abre, mostra alertas e avisos, e diz que ainda não
-recebeu números. **Ligar uma tela nova é: uma função pura em `src/lib/` com
-testes + `useRegistrarContextoAgente` na página.** Nada no agente muda, nada no
-banco muda — o escopo já está cadastrado.
+**Ligar uma tela é:** uma função pura em `src/lib/` com testes +
+`useRegistrarContextoAgente` na página. Nada no agente muda, nada no banco muda.
 
-Cuidado que a tela de Projetos ensinou: quando o conteúdo é REAPROVEITADO em
-outra área (o `DashboardClientesOsContent` roda também na Gerencial da Tax e da
-OSG), o escopo entra como PROP com default vazio. Publicar direto no conteúdo
-faria o agente responder "Board · Projetos" nas outras áreas — mesmo número,
-tela errada.
+Três padrões que valem para a próxima:
+
+1. **Conteúdo reaproveitado recebe o escopo por PROP, com default vazio.**
+   `DashboardClientesOsContent` (Projetos), `AreaDashboardContent` (Capacidade) e
+   `ChamadosGestaoContent` (Chamados) rodam também na Gerencial da Tax e da OSG.
+   Publicar direto faria o agente responder "Board · ..." nas outras áreas —
+   mesmo número, tela errada.
+2. **O filtro da tela tem que vir da MESMA fonte que a tela lê.** Em Logs, o
+   período mora na URL (`useAuditPeriodo`); ler um período próprio faria o
+   agente responder sobre uma janela e a tela mostrar outra.
+3. **Objeto literal em dependência de `useMemo` fura a memoização.** Aconteceu
+   duas vezes (`TIPO_OPTIONS` em Projetos, `stats` em Chamados): identidade nova
+   a cada render, snapshot recalculado sempre.
+
+**Duas telas exigiram decisão de conteúdo, não de código:**
+
+- **Logs** publica CONTAGEM DE REGISTRO, não as colunas derivadas das abas
+  ("processos executados" tem regra própria e depende de mapas que a aba monta).
+  Reproduzir seria uma segunda implementação da mesma regra, e no dia em que uma
+  mudasse, tela e agente discordariam sobre a mesma pessoa.
+- **Dashboards** é `iframe` do Looker: o número não está no app. O snapshot
+  existe para o agente saber DIZER ISSO com precisão — lista os relatórios
+  liberados e afirma que não lê o conteúdo — em vez de responder "esta tela não
+  publica números", que soa como defeito.
+
+**E uma regra de privacidade para as sete telas de Desempenho:** nenhum snapshot
+leva texto de feedback, tema de 1:1 ou comentário de líder. Só contagem e
+estado. O agente pode dizer "há 4 feedbacks que a pessoa ainda não pode ler";
+não pode recitar o que alguém escreveu sobre outra pessoa. O painel é lido em
+reunião, com a tela compartilhada.
 
 ### 6.3 Fora do escopo desta entrega
 

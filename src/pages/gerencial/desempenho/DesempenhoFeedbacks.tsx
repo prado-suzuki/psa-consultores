@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useFeedbacks, useCreateFeedback, type Feedback } from '@/hooks/useFeedbacksDesempenho';
+import { useMemo } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoFeedbacks, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,6 +32,19 @@ const DesempenhoFeedbacks = () => {
   const { data: ciclos } = useCiclosAvaliacao();
   const { data: cicloAtivo } = useCicloAtivo();
   const { data: feedbacks, isLoading } = useFeedbacks();
+
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  // So contagem: o TEXTO do feedback nao entra no snapshot.
+  const contextoAgente = useMemo(() => contextoDesempenhoFeedbacks({
+    ciclo: cicloAtivo ? resumoDeCiclo(cicloAtivo) : null,
+    feedbacks: (feedbacks ?? []).map(f => ({
+      tipo: f.tipo, anonimo: f.anonimo,
+      visivel_para_avaliado: f.visivel_para_avaliado,
+      para_usuario_id: f.para_usuario_id ?? null, created_at: f.created_at,
+    })),
+    carregando: isLoading,
+  }), [cicloAtivo, feedbacks, isLoading]);
+  useRegistrarContextoAgente('board.desempenho.feedbacks', contextoAgente, isLoading);
   const createFeedback = useCreateFeedback();
   const { user } = useAuth();
 

@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoMinhaEvolucao, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
@@ -34,6 +36,22 @@ const MinhaEvolucao = () => {
   const { data: evolucao, isLoading } = useMinhaEvolucao(cicloId);
   const { data: comentariosLider } = useComentarios({ ciclo_id: cicloId, destinatario_id: user?.id, tipo: 'lider_para_membro' });
   const { data: meusPontosVista } = useComentarios({ ciclo_id: cicloId, destinatario_id: undefined, tipo: 'membro_ponto_vista' });
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  const cicloDoAgente = ciclos?.find(c => c.id === cicloId) ?? cicloAtivo ?? null;
+  const contextoAgente = useMemo(() => contextoMinhaEvolucao({
+    ciclo: cicloDoAgente ? resumoDeCiclo(cicloDoAgente) : null,
+    metas: ((evolucao?.metas ?? []) as { status: string; progresso_atual: number;
+      prazo: string | null; dimensao: string }[]).map(m => ({
+      status: m.status, progresso_atual: m.progresso_atual,
+      prazo: m.prazo ?? null, dimensao: m.dimensao,
+    })),
+    comentariosDoLider: comentariosLider?.length ?? 0,
+    meusPontosDeVista: meusPontosVista?.length ?? 0,
+    hoje: new Date().toISOString().slice(0, 10),
+    carregando: isLoading,
+  }), [cicloDoAgente, evolucao, comentariosLider, meusPontosVista, isLoading]);
+  useRegistrarContextoAgente('board.desempenho.minha-evolucao', contextoAgente, isLoading);
+
   const createComentario = useCreateComentario();
   const updateComentario = useUpdateComentario();
   const markRead = useMarkComentarioRead();

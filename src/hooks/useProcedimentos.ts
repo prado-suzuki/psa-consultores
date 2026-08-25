@@ -410,11 +410,18 @@ export function useDeleteProcedimento() {
   });
 }
 
+/**
+ * URL assinada do documento anexado.
+ *
+ * `nomeParaBaixar` liga o `Content-Disposition: attachment` no Storage. Sem
+ * ele o navegador ignora o atributo `download` da âncora (a URL é de outra
+ * origem) e o clique em "Baixar documento" não baixa nada.
+ */
 export function useGetSignedUrl() {
-  return async (path: string) => {
+  return async (path: string, nomeParaBaixar?: string) => {
     const { data, error } = await supabase.storage
       .from('sop-documents')
-      .createSignedUrl(path, 3600);
+      .createSignedUrl(path, 3600, nomeParaBaixar ? { download: nomeParaBaixar } : undefined);
     if (error) throw error;
     return data.signedUrl;
   };

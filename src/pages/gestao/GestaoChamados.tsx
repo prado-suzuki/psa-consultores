@@ -1,6 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDomainClusterPorCategoria } from '@/hooks/useDomainClusterPorCategoria';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoBoardChamados } from '@/lib/agenteContextoChamados';
 import type { ChaveDeEspelho } from '@/lib/areaTheme';
 import { useTicketsList, useTicketAgents } from '@/hooks/useTickets';
 import { useAllActiveAreas, useAllActiveClusters } from '@/hooks/useEstruturaAreas';
@@ -82,6 +84,12 @@ const departmentLabels: Record<string, string> = {
  */
 export interface ChamadosGestaoContentProps {
   /**
+   * Escopo do Agente PSA. VAZIO por padrão: esta tela vive em três rotas, e
+   * publicar o escopo do Board na Tax faria o agente responder como se a
+   * pessoa estivesse no Board — mesmo número, tela errada.
+   */
+  escopoAgente?: string;
+  /**
    * Endereco onde a tela esta montada, para os links internos (detalhe do
    * chamado e dashboard). Sem isto, clicar em "Ver" dentro da Tax jogaria a
    * pessoa de volta para a area de Gestao.
@@ -111,7 +119,9 @@ export interface ChamadosGestaoContentProps {
   escopo?: ChaveDeEspelho;
 }
 
-export function ChamadosGestaoContent({ basePath, escopo }: ChamadosGestaoContentProps) {
+export function ChamadosGestaoContent({
+  basePath, escopo, escopoAgente = '',
+}: ChamadosGestaoContentProps) {
   const navigate = useNavigate();
   const { clusterId: clusterDoEscopo, isLoading: resolvendoEscopo } =
     useDomainClusterPorCategoria(escopo ?? null);
@@ -400,15 +410,40 @@ export function ChamadosGestaoContent({ basePath, escopo }: ChamadosGestaoConten
     setFilters(f => (f.cluster === clusterDoEscopo ? f : { ...f, cluster: clusterDoEscopo }));
   }, [escopo, clusterDoEscopo]);
 
-  const stats = {
+  // `useMemo` e nao objeto literal: sem isso, `stats` ganha identidade nova a
+  // cada render e qualquer memoizacao que dependa dele recalcula sempre --
+  // inclusive o snapshot do agente, logo abaixo.
+  const stats = useMemo(() => ({
     total: ticketsDoEscopo.length,
     abertos: ticketsDoEscopo.filter(t => t.status === 'aberto').length,
     emAndamento: ticketsDoEscopo.filter(t => t.status === 'em_andamento').length,
     resolvidos: ticketsDoEscopo.filter(t => t.status === 'resolvido' || t.status === 'fechado').length,
-  };
+  }), [ticketsDoEscopo]);
   const nomeDoEscopo = clusterDoEscopo
     ? clustersData.find(c => c.id === clusterDoEscopo)?.name ?? null
     : null;
+
+  // ── O que o Agente PSA le desta tela ─────────────────────────────────
+  // O MESMO `stats` dos cartoes do topo, mais o que a tabela mostra e o
+  // cartao nao resume: prazo estourado, chamado sem dono e area.
+  const contextoAgente = useMemo(() => (escopoAgente ? contextoBoardChamados({
+    escopoLabel: nomeDoEscopo ?? 'todas as áreas do seu acesso',
+    stats,
+    chamados: ticketsDoEscopo.map(t => ({
+      status: t.status,
+      priority: t.priority ?? null,
+      deadline: t.deadline ?? null,
+      assigned_to: t.assigned_to ?? null,
+      estrutura_area_id: t.estrutura_area_id ?? null,
+      activity_status: t.activity_status ?? null,
+    })),
+    areaPorId: Object.fromEntries(areaMap),
+    hoje: new Date().toISOString().slice(0, 10),
+    carregando: loading,
+  }) : null), [
+    escopoAgente, nomeDoEscopo, stats, ticketsDoEscopo, areaMap, loading,
+  ]);
+  useRegistrarContextoAgente(escopoAgente, contextoAgente, loading);
 
   const deleting = deleteTickets.isPending;
 

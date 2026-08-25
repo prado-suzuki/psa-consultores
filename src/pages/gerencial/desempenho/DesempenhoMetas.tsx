@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoMetas, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useMetas, useCreateMeta, useUpdateMeta, useUpdateMetaProgress, type Meta } from '@/hooks/useMetasDesempenho';
@@ -51,6 +53,28 @@ const DesempenhoMetas = () => {
   const cicloId = selectedCicloId || cicloAtivo?.id;
   const { data: pprRegras } = usePprRegras(cicloId);
   const { data: metas, isLoading } = useMetas({ ciclo_id: cicloId, nivel: nivelFilter || undefined, dimensao: dimensaoFilter || undefined, responsavel_id: responsavelFilter || undefined, status: statusFilter || undefined });
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  const cicloDoAgente = ciclos?.find(c => c.id === cicloId) ?? cicloAtivo ?? null;
+  const contextoAgente = useMemo(() => contextoDesempenhoMetas({
+    ciclo: cicloDoAgente ? resumoDeCiclo(cicloDoAgente) : null,
+    metas: (metas ?? []).map(m => ({
+      nivel: m.nivel, dimensao: m.dimensao, status: m.status,
+      progresso_atual: m.progresso_atual, peso: m.peso,
+      prazo: m.prazo ?? null, responsavel_id: m.responsavel_id ?? null,
+    })),
+    regrasPpr: pprRegras?.length ?? 0,
+    filtrosAtivos: {
+      nível: nivelFilter || null, dimensão: dimensaoFilter || null,
+      status: statusFilter || null, responsável: responsavelFilter || null,
+    },
+    hoje: new Date().toISOString().slice(0, 10),
+    carregando: isLoading,
+  }), [
+    cicloDoAgente, metas, pprRegras, nivelFilter, dimensaoFilter,
+    statusFilter, responsavelFilter, isLoading,
+  ]);
+  useRegistrarContextoAgente('board.desempenho.metas', contextoAgente, isLoading);
+
   const createMeta = useCreateMeta();
   const updateMeta = useUpdateMeta();
   const updateProgress = useUpdateMetaProgress();

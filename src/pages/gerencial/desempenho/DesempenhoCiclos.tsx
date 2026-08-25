@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao, useCreateCiclo, useUpdateCiclo, type CicloAvaliacao } from '@/hooks/useCiclosAvaliacao';
 import { useMetas } from '@/hooks/useMetasDesempenho';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoCiclos, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { useAnalisesSemestrais, useUpsertAnalise } from '@/hooks/useAnalisesSemestrais';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -46,6 +48,16 @@ const DesempenhoCiclos = () => {
   const upsertAnalise = useUpsertAnalise();
 
   const { data: profileMap } = useProfilesNomeMap('profiles');
+
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  const contextoAgente = useMemo(() => contextoDesempenhoCiclos({
+    ciclos: (ciclos ?? []).map(resumoDeCiclo),
+    selecionado: selectedCiclo ? resumoDeCiclo(selectedCiclo) : null,
+    metasDoCiclo: (metasCiclo ?? []).map(m => ({ status: m.status, nivel: m.nivel })),
+    analisesRegistradas: analises?.length ?? 0,
+    carregando: isLoading,
+  }), [ciclos, selectedCiclo, metasCiclo, analises, isLoading]);
+  useRegistrarContextoAgente('board.desempenho.ciclos', contextoAgente, isLoading);
 
   // Drill-down computations
   const empresaCount = metasCiclo?.filter(m => m.nivel === 'empresa').length ?? 0;

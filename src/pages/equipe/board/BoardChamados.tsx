@@ -22,7 +22,7 @@ const BoardChamados = () => {
 
   return (
     <BoardLayout title="Chamados" subtitle="Chamados de todas as áreas">
-      <ChamadosGestaoContent basePath="/equipe/board/chamados" />
+      <ChamadosGestaoContent basePath="/equipe/board/chamados" escopoAgente="board.chamados" />
     </BoardLayout>
   );
 };

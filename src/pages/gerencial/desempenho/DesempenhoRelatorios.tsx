@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useProfilesNomeMap, useProfilesNomeRows } from '@/hooks/useDomainProfiles';
 import { useRelatorios } from '@/hooks/useRelatoriosGerados';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoRelatorios, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -41,6 +43,19 @@ const DesempenhoRelatorios = () => {
   const { data: profileRows } = useProfilesNomeRows('profiles');
 
   const { data: historico } = useRelatorios({ membro_id: selectedMembro || undefined, ciclo_id: cicloId || undefined });
+
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  const cicloDoAgente = ciclos?.find(c => c.id === cicloId) ?? null;
+  const contextoAgente = useMemo(() => contextoDesempenhoRelatorios({
+    ciclo: cicloDoAgente ? resumoDeCiclo(cicloDoAgente) : null,
+    relatorios: (historico ?? []).map(r => ({
+      tipo: r.tipo, status: r.status, gerado_em: r.gerado_em ?? null,
+    })),
+    membroSelecionado: selectedMembro ? (profilesNomeMap?.[selectedMembro] ?? 'pessoa selecionada') : null,
+    pessoasElegiveis: profileRows?.length ?? 0,
+    carregando: false,
+  }), [cicloDoAgente, historico, selectedMembro, profilesNomeMap, profileRows]);
+  useRegistrarContextoAgente('board.desempenho.relatorios', contextoAgente, false);
 
   const handleGenerate = async () => {
     if (!selectedMembro || !cicloId) { toast({ title: 'Selecione membro e ciclo', variant: 'destructive' }); return; }

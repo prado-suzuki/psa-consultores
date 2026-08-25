@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Shield } from 'lucide-react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { AuditTabs } from '@/components/equipe/audit/AuditTabs';
@@ -6,6 +6,11 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { AUDIT_AREA_LABEL, AUDIT_AREA_OPCOES, type AuditArea } from '@/lib/auditAreas';
+import { useAuditPeriodo } from '@/hooks/useAuditPeriodo';
+import { useDomainAuditProdutividade } from '@/hooks/useDomainAuditLogs';
+import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoBoardLogs } from '@/lib/agenteContextoLogs';
 
 /**
  * Logs de Equipe no Board — as mesmas seis abas da Tax e da OSG, somadas.
@@ -21,6 +26,24 @@ import { AUDIT_AREA_LABEL, AUDIT_AREA_OPCOES, type AuditArea } from '@/lib/audit
  */
 const BoardLogsEquipe = () => {
   const [area, setArea] = useState<AuditArea>('todas');
+
+  // O periodo vem da URL -- a MESMA fonte que as abas leem (`useAuditPeriodo`).
+  // Com um periodo proprio aqui, o agente responderia sobre uma janela e a
+  // tela mostraria outra.
+  const { periodo, opcoes, janela } = useAuditPeriodo();
+  const { data: logs = [], isLoading, error } = useDomainAuditProdutividade(area, janela);
+  const { data: nomePorId = {} } = useProfilesNomeMap('profiles_safe');
+
+  const contextoAgente = useMemo(() => contextoBoardLogs({
+    areaLabel: AUDIT_AREA_LABEL[area],
+    periodoLabel: opcoes.find((o) => o.valor === periodo)?.label ?? periodo,
+    janela: { desde: janela.desde, ate: janela.ate },
+    logs,
+    nomePorId,
+    carregando: isLoading,
+    falhas: error ? ['logs de auditoria'] : [],
+  }), [area, opcoes, periodo, janela, logs, nomePorId, isLoading, error]);
+  useRegistrarContextoAgente('board.logs', contextoAgente, isLoading);
 
   return (
     <BoardLayout title="Logs" subtitle="Produtividade, acesso e pendências do time">
