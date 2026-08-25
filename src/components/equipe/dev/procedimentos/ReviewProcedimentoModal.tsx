@@ -12,6 +12,8 @@ import {
   Procedimento, useConfirmProcedimento, useUpdateProcedimento, useRetryProcedimento, useGetSignedUrl,
 } from '@/hooks/useProcedimentos';
 import { COMPLEXIDADE_CONFIG, PROCEDIMENTO_PROCESSOS, estiloChipProcesso } from './theme';
+import { abrirAnexoEmNovaAba } from '@/lib/baixarArquivo';
+import { toast } from 'sonner';
 
 interface ReviewProcedimentoModalProps {
   procedimento: Procedimento | null;
@@ -59,14 +61,11 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange, modo
       return;
     }
     if (!procedimento.arquivo_path) return;
+    const nome = procedimento.arquivo_path.split('/').pop() || 'documento';
     try {
-      const url = await getSignedUrl(procedimento.arquivo_path);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = procedimento.arquivo_path.split('/').pop() || 'documento';
-      a.click();
+      abrirAnexoEmNovaAba(await getSignedUrl(procedimento.arquivo_path, nome), nome);
     } catch (err) {
-      console.error('Download error:', err);
+      toast.error('Não consegui abrir o documento: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
 
