@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,7 +9,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { useDomainNovaFerramenta } from '@/hooks/useDomainNovaFerramenta';
 import { useEstruturaAreas, useEstruturaClusters } from '@/hooks/useEstruturaManager';
@@ -88,15 +88,12 @@ const NovaFerramenta = () => {
       }
     >
       <div className="max-w-2xl space-y-4">
-        <Alert>
-          <Lightbulb className="h-4 w-4" />
-          <AlertTitle>Como funciona</AlertTitle>
-          <AlertDescription>
-            Você descreve a necessidade e ela entra no catálogo com status "Em desenvolvimento".
-            O time Digital Dev avalia e desenvolve a ferramenta; quando estiver pronta, as áreas
-            selecionadas abaixo ganham acesso automaticamente.
-          </AlertDescription>
-        </Alert>
+        <DevPageHeader
+          title="Como funciona"
+          icon={Lightbulb}
+          hideManualLink
+          description={'Você descreve a necessidade e ela entra no catálogo com status "Em desenvolvimento". O time Digital Dev avalia e desenvolve a ferramenta; quando estiver pronta, as áreas selecionadas abaixo ganham acesso automaticamente.'}
+        />
 
         <Card>
           <CardHeader>
