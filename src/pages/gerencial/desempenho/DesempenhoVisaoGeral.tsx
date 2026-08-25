@@ -34,14 +34,27 @@ interface PprMembro {
 }
 
 const DesempenhoVisaoGeral = () => {
-  const { data: ciclos } = useCiclosAvaliacao();
-  const { data: cicloAtivo } = useCicloAtivo();
+  // `isLoading` dos DOIS: sem ele, "não há ciclo" e "ainda não sei" viram o
+  // mesmo estado na tela -- foi o que produziu um "Carregando ciclo..." que
+  // nunca terminava, num banco sem nenhum ciclo cadastrado.
+  const { data: ciclos, isLoading: carregandoCiclos } = useCiclosAvaliacao();
+  const { data: cicloAtivo, isLoading: carregandoAtivo } = useCicloAtivo();
   const { filters, setFilter } = useBoardFilters({ pageKey: 'desempenho-geral', defaults: DEFAULTS });
   const revealRef = useBoardReveal();
   const navigate = useNavigate();
 
   const cicloId = (filters.ciclo as string) || cicloAtivo?.id;
   const selectedCiclo = ciclos?.find(c => c.id === cicloId);
+  /**
+   * TRES estados, e a tela tinha dois.
+   *
+   * `carregandoCiclo` = a consulta está em voo. `semCiclo` = ela VOLTOU e não
+   * há ciclo nenhum cadastrado -- que é uma resposta, não uma espera. Vazio
+   * explícito é informação; carregamento eterno faz a pessoa esperar um número
+   * que não existe.
+   */
+  const carregandoCiclo = carregandoCiclos || carregandoAtivo;
+  const semCiclo = !carregandoCiclo && (ciclos?.length ?? 0) === 0;
   const { data: overview, isLoading, isError: erroOverview } = useDesempenhoOverview(cicloId);
   const { data: metasIndividuais, isError: erroMetas } = useMetas({ ciclo_id: cicloId, nivel: 'individual' });
   const { data: feedbacks, isError: erroFeedbacks } = useFeedbacks({ ciclo_id: cicloId });
@@ -198,11 +211,24 @@ const DesempenhoVisaoGeral = () => {
             <div style={{ flex: 1 }}>
               <div className="pg-title">Desempenho da Equipe</div>
               <div className="pg-sub">
-                {selectedCiclo ? selectedCiclo.nome : 'Carregando ciclo...'}
+                {selectedCiclo
+                  ? selectedCiclo.nome
+                  : carregandoCiclo ? 'Carregando ciclo…' : 'Nenhum ciclo de avaliação cadastrado'}
                 {selectedCiclo?.status === 'em_andamento' ? ' · Em andamento' : ''}
               </div>
             </div>
-            <select className="v3-fi" value={cicloId ?? ''} onChange={e => setFilter('ciclo', e.target.value)}>
+            {/* Sem ciclo, o seletor ficava um combobox OCO -- clicável e vazio.
+                Placeholder desabilitado diz o que há para escolher: nada. */}
+            <select
+              className="v3-fi"
+              value={cicloId ?? ''}
+              onChange={e => setFilter('ciclo', e.target.value)}
+              disabled={carregandoCiclo || semCiclo}
+              aria-label="Ciclo de avaliação"
+            >
+              {(carregandoCiclo || semCiclo) && (
+                <option value="">{carregandoCiclo ? 'Carregando…' : 'Nenhum ciclo'}</option>
+              )}
               {ciclos?.map(c => (
                 <option key={c.id} value={c.id}>{c.nome}{c.status === 'em_andamento' ? ' (Ativo)' : ''}</option>
               ))}
@@ -215,6 +241,12 @@ const DesempenhoVisaoGeral = () => {
         ) : (
           <>
             {/* Cycle Bar */}
+            {/* A faixa do ciclo só existe se HOUVER ciclo. Sem ele ela desenhava
+                "— · Ciclo · 0 meses", 0% decorrido e "Encerramento: —": quatro
+                zeros que pareciam medida de um ciclo real. Quem informa o estado
+                é o subtítulo do cabeçalho, que agora distingue "carregando" de
+                "nenhum ciclo cadastrado". */}
+            {selectedCiclo && (
             <div className="v4-cyb" data-reveal>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
                 <div className="v4-cyb-n">{selectedCiclo?.nome ?? '—'}</div>
@@ -228,9 +260,10 @@ const DesempenhoVisaoGeral = () => {
               <div className="v4-cyb-bt">
                 <span>{pctDecorrido}% decorrido</span>
                 <span>{overview?.totalMetas ?? 0} metas cadastradas</span>
-                <span>Encerramento: {selectedCiclo?.data_fim ?? '—'}</span>
+                <span>Encerramento: {selectedCiclo.data_fim}</span>
               </div>
             </div>
+            )}
 
             {/* Stat Strip */}
             <BoardStatStrip

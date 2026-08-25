@@ -92,7 +92,9 @@ const BoardDashboard = () => {
   // tela precisa do conjunto COMPLETO para classificar tarefa→área. Bônus: uma
   // entrada de cache só, sem refetch ao trocar de cliente.
   const { projectsQuery, membersQuery, periodFrom, periodTo } = usePerformanceData(periodo, 'todas');
-  const { data: cicloAtivo } = useCicloAtivo();
+  // `isLoading` junto: sem ele o travessão de "Ciclo ativo: —" servia para os
+  // dois casos, e "ainda não sei" não é "não existe".
+  const { data: cicloAtivo, isLoading: carregandoCiclo } = useCicloAtivo();
   const { data: overview } = useDesempenhoOverview(cicloAtivo?.id);
   const { tarefasConcluidasQuery, horasAlocadasQuery } = useDomainBoardDashboard({ desdeISO: periodFrom });
   const melhoriasQuery = useDomainMelhoriasRoi();
@@ -371,7 +373,11 @@ const BoardDashboard = () => {
                   a tela de mentir não é o aviso — é o "—" no lugar do 0 na
                   faixa de KPIs abaixo. Esta linha só diz por quê. */}
               <div className="pg-sub">
-                {format(new Date(), 'dd MMM yyyy', { locale: ptBR })} · Ciclo ativo: {cicloAtivo?.nome ?? '—'}
+                {format(new Date(), 'dd MMM yyyy', { locale: ptBR })}
+                {' · '}
+                {cicloAtivo
+                  ? `Ciclo ativo: ${cicloAtivo.nome}`
+                  : carregandoCiclo ? 'carregando ciclo…' : 'sem ciclo de avaliação ativo'}
                 {todasAsFalhas.length > 0 && ` · ${todasAsFalhas.join(', ')} não carregaram`}
               </div>
             </div>
