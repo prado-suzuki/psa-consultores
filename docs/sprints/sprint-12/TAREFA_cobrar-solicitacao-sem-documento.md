@@ -8,6 +8,11 @@
 > **Textos em vigor:** [`avisos-cliente.md`](../../geral/avisos-cliente.md) ·
 > [`whatsapp-templates.md`](../../geral/whatsapp-templates.md)
 
+> **Estado em 25/08/2026 — T1 a T5 concluídas, no ar só no sandbox.** As cinco subtarefas
+> fecharam, os dois canais foram testados ponta a ponta e o modelo está aprovado na Meta.
+> Commit `47c02dca`. **Produção não recebeu nada:** nem o valor de enum, nem a função da
+> lista, nem o cron, nem a borda nova. O que falta está em "Falta para produção", abaixo.
+
 ## O que deve passar a acontecer
 
 Um aviso **próprio**, disparado por job, para o cliente que **não enviou nenhum
@@ -60,42 +65,91 @@ depender de quem fizer a fatia 2 lembrar de gravar `fonte = 'psa'`.
 
 ## Subtarefas
 
-- **T1** — A consulta acima, com teste dos quatro casos: nada enviado · enviado pelo
-  portal · anexado pelo analista · arquivo excluído.
-- **T2** — O texto do aviso, nos dois canais: proposta escrita em
-  [`VALIDACAO_aviso-sem-documento.md`](VALIDACAO_aviso-sem-documento.md), aguardando a
-  coordenação. **⚠️ Modelo novo na Meta** (`solicitacao_sem_documento_v1`): fila própria e
-  o classificador de categoria, que já reprovou um modelo por cortesia. Submeter com
-  **validade de 30 dias** — é o único momento em que isso não custa edição.
-- **T3** — Reserva idempotente por período, via `reservar_envio`. A chave é **parâmetro**
-  da função, então o período entra nela sem migração.
-- **T4** — O job. Molde pronto no banco: `check-ticket-deadlines-daily` chama edge
-  function por `pg_net`; `fechar-chamados-resolvidos-diario` chama função plpgsql.
-  **O período é configuração, não constante** — ele vai mudar depois do primeiro mês real.
-- **T5** — **Primeira passada seca:** monta a lista de quem receberia, grava, e não
-  envia. É o que responde quantos são elegíveis, quantos têm telefone e quantos caem em
-  falso positivo — sem gastar mensagem paga nem arriscar a nota de qualidade do número
-  num disparo de estreia.
+- **T1** ✅ **CONCLUÍDO (24/08/2026)** — A consulta acima virou a função
+  `solicitacoes_a_cobrar(_intervalo_dias)`, migração `20260824213938`. As quatro guardas
+  também vivem na borda `notificar`, e a divisão é deliberada: **a borda guarda a VERDADE,
+  o agendador guarda a FREQUÊNCIA.** Chamada solta na borda não pode confiar em quem
+  chamou.
+- **T2** ✅ **CONCLUÍDO (25/08/2026)** — Texto dos dois canais em
+  [`VALIDACAO_aviso-sem-documento.md`](VALIDACAO_aviso-sem-documento.md), validado pela
+  coordenação em 24/08 e **aprovado pela Meta em 25/08** como `solicitacao_vencida_v1`
+  (id `1388762306030268`, categoria Utilidade). Passou pelo classificador de categoria de
+  primeira — nenhuma cortesia, nenhuma projeção de etapa futura.
+  ⚠️ **A validade ficou em 12h (43200s), não 30 dias.** A subida por API saiu do escopo
+  desta sprint; o custo aceito está registrado no anexo técnico da validação.
+- **T3** ✅ **CONCLUÍDO (24/08/2026)** — Reserva idempotente por `reservar_envio`, **sem
+  tocar na chave**: ela continua por DIA, e o que segura o período é o filtro de
+  `notificacao_envio.created_at` dentro do ciclo. A coluna `created_at` nasceu para isso
+  (migração `20260824205811`) — `enviado_em` só é preenchido na confirmação, então linha
+  reservada e nunca confirmada não contava como cobrança.
+- **T4** ✅ **CONCLUÍDO (25/08/2026)** — Cron `cobrar-solicitacoes-vencidas-diario`,
+  migração `20260825132757`, no molde do `check-ticket-deadlines-daily`: um
+  `net.http_post` por linha da lista, com URL e token vindos do `vault`. **Nasce
+  desativado** — armar é ato consciente em cada ambiente. O período é configuração, como
+  a tarefa pedia: parâmetro da função, não constante.
+  ⚠️ **Tudo pelas funções do `pg_cron`, nunca por DML em `cron.job`:** como `postgres`,
+  SELECT passa mas UPDATE e INSERT são negados — a tabela é do `supabase_admin`.
+- **T5** ✅ **CONCLUÍDO (25/08/2026)** — A passada seca é `select * from
+  solicitacoes_a_cobrar()`, e a função não envia nada. Medido em produção nesta data:
+  **zero** solicitações elegíveis (3 abertas, nenhuma vencida). E o teto do canal WhatsApp
+  por ciclo é **8 mensagens**, porque 8 dos 39 destinatários com acesso ao portal têm
+  telefone — R$ 0,28 por ciclo à tarifa de Utilidade.
 
-## Decisão tomada — o valor do enum (⚠️ MIGRAÇÃO escrita, não aplicada)
+## Decisão tomada — o valor do enum (⚠️ MIGRAÇÃO aplicada só no sandbox)
 
-`notificacao_tipo` ganha **`solicitacao_sem_documento`**. Migração escrita em
-`supabase/migrations/20260824143238_notificacao_tipo_solicitacao_sem_documento.sql`,
-com o motivo inteiro no cabeçalho: reusar `cobranca_pendencia` faria a varredura
-automática e o clique manual do aviso 2, no mesmo cliente e no mesmo dia, produzirem
-chave de idempotência **idêntica** — e o segundo não sai, sem erro e sem log.
+`notificacao_tipo` ganha **`solicitacao_vencida`**. Migração em
+`supabase/migrations/20260824143238_notificacao_tipo_solicitacao_vencida.sql`, com o
+motivo inteiro no cabeçalho: reusar `cobranca_pendencia` faria este aviso e o clique
+manual do aviso 2, no mesmo cliente e no mesmo dia, produzirem chave de idempotência
+**idêntica** — e o segundo não sai, sem erro e sem log.
 
-Depois de aplicar no sandbox e regerar o `types.ts`, dois `Record` exaustivos passam a
-exigir entrada (`notificacoesInternas.ts:83` e `NotificationPopover.tsx:89`). O aviso é
-externo e nunca cai no sino, então a entrada segue o molde dos cinco `chamado_*`.
+**O nome mudou em 24/08**, de `solicitacao_sem_documento` para `solicitacao_vencida`: o
+gatilho é o **vencimento** da solicitação, e "sem documento" descrevia a condição, não o
+evento. Nos outros avisos o cliente já enviou algo e falta o resto — ali é cobrança de
+pendência. Aqui os três nomes coincidem de propósito: valor de enum, `event_type` da API
+e modelo na Meta (`solicitacao_vencida_v1`).
 
-## Decisão pendente
+**Aplicada no sandbox em 24/08/2026. Produção não recebeu.** Depois de produção aplicar e
+o `types.ts` ser regerado, dois `Record` exaustivos passam a exigir entrada
+(`notificacoesInternas.ts:83` e `NotificationPopover.tsx:89`) e o typecheck quebra de
+propósito. O aviso é externo e nunca cai no sino, então a entrada segue o molde dos cinco
+`chamado_*`: `rotulo: 'Aviso'`, `tom: PRIMARIO`.
 
-**O período.** 30 dias bate de frente com o prazo de envio, que é `enviada_em + 30 dias`
-por regra (decidido em 11/08, sem coluna): o **primeiro** disparo cairia no dia em que o
-prazo vence. Ou o primeiro sai antes e a repetição é de 30 em 30, ou o texto assume que
-fala de prazo vencido — e aí vale copiar o que o órfão fazia, com o aviso de vencimento
-**dentro** do valor do marcador, que muda sem passar pela Meta.
+## Decisão tomada — o período: 30 dias, checado todo dia
+
+Era a decisão pendente, e a pergunta de 17/08 (*"de quantos em quantos dias cobramos?"*)
+seguia sem resposta da coordenação. Fechada em 25/08/2026, com o tech lead:
+
+**30 dias, ancorados em `enviada_em`** e não na data da última cobrança. Âncora fixa não
+escorrega: um ciclo perdido não empurra todos os seguintes. O intervalo é **parâmetro** da
+`solicitacoes_a_cobrar(_intervalo_dias)`, então mudar para 15 ou 45 não pede migração.
+
+**O primeiro disparo cai no dia em que o prazo vence, e isso deixou de ser problema:** o
+texto assume prazo vencido, com a marca de vencimento **dentro do valor do marcador** —
+`03/09/2026 (vencido)` —, que muda sem passar pela Meta. É exatamente o que o órfão fazia.
+
+**O cron checa todo dia, não de 30 em 30.** O tech lead sugeriu 30; quem devolve vazio
+fora do ciclo é a lista, e checar diariamente uma lista quase sempre vazia é barato. Um
+cron de 30 dias atrasaria cada cobrança em até 29 dias e perderia o dia da virada.
+
+⚠️ **O prazo de 30 dias do texto NÃO é este parâmetro.** Ele é regra fixa (11/08) e está
+impresso na mensagem; o intervalo entre cobranças é configuração. Mudar um não muda o
+outro.
+
+## Falta para produção
+
+Nenhum item é da engenharia do aviso: todos são de entrega ou de conta.
+
+| O que | Por que ainda não | Dono |
+|---|---|---|
+| Aplicar as quatro migrações em produção | Passo **humano** pelo chat do Lovable, por regra da casa. Ordem: enum → `created_at` → `solicitacoes_a_cobrar` → cron | Alexandre |
+| Duas linhas nos `Record` exaustivos | Só quebram depois de o `types.ts` ser regerado, o que acontece na aplicação acima | junto da migração |
+| Publicar a borda `notificar` em produção | O ramo `solicitacao_vencida` e o `ambiente_ref` estão só no sandbox | Alexandre |
+| Armar o cron | Nasce desativado: `vault.create_secret` para `notificar_url` e `n8n_callback_token`, depois `cron.alter_job(job_id, active := true)` | ato consciente |
+| **Publicar o app na Meta** | `AutomacaoPSA` está em `dev_mode` (`is_live: false`, medido em 25/08). Nesse modo a mensagem **só alcança quem tem papel no app** — nenhum cliente recebe, com modelo aprovado ou não. Falta o e-mail de contato verificado; hoje é um Gmail pessoal não verificado. Política de privacidade, Termos e Exclusão de Dados já apontam para `psaconsultores.com.br` | Alexandre |
+
+⚠️ **O último item vale para os quatro avisos, não só para este.** Não é dívida da GES-04;
+é o que separa "o canal funciona" de "o canal alcança cliente".
 
 ## Fora de escopo
 

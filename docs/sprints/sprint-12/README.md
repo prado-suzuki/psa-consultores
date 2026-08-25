@@ -4,7 +4,7 @@
 
 | Tarefa | Escopo | Banco? | Status |
 |---|---|---|---|
-| [Cobrar solicitação sem nenhum documento (GES-04)](TAREFA_cobrar-solicitacao-sem-documento.md) | Aviso próprio, por job, para o cliente que não enviou **nenhum** documento desde o envio da solicitação; repete por período. Confirma e estreita o aviso 8 do catálogo da sprint 11. | Sim — a elegibilidade não pede coluna nova, mas o enum `notificacao_tipo` ganha `solicitacao_sem_documento` (⚠️ MIGRAÇÃO `20260824143238`, **escrita, não aplicada**) | A fazer |
+| [Cobrar solicitação sem nenhum documento (GES-04)](TAREFA_cobrar-solicitacao-sem-documento.md) | Aviso próprio, por job, para o cliente que não enviou **nenhum** documento desde o envio da solicitação; repete a cada 30 dias. Confirma e estreita o aviso 8 do catálogo da sprint 11. | Sim — a elegibilidade não pede coluna nova, mas há **quatro ⚠️ MIGRAÇÕES**: enum `notificacao_tipo` ganha `solicitacao_vencida` (`20260824143238`), `notificacao_envio.created_at` (`20260824205811`), função `solicitacoes_a_cobrar` (`20260824213938`) e o cron (`20260825132757`). **Aplicadas no sandbox, nenhuma em produção** | T1–T5 feitas · falta produção |
 
 ## Como usar esta pasta
 

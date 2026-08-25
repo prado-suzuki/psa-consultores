@@ -5,39 +5,47 @@ variável que alimenta cada marcador. O conteúdo é o dos
 [textos de e-mail](avisos-cliente.md); aqui muda o formato, a categoria e a
 submissão.
 
-Tarefa **ALE-11**. Idioma `pt_BR`, categoria **utility** e tipo **Padrão** nos três —
-nenhum é promocional. Assinatura `PSA Prado Suzuki` no componente Rodapé.
+Tarefas **ALE-11** (os três primeiros) e **GES-04** (o quarto). Idioma `pt_BR`, categoria
+**utility** e tipo **Padrão** nos quatro — nenhum é promocional. Assinatura
+`PSA Prado Suzuki` no componente Rodapé.
 
 Contexto da conta, identificadores e a decisão pela API oficial estão em
 [`whatsapp-meta-onboarding.md`](whatsapp-meta-onboarding.md). O cenário preenchido de
 cada modelo e as amostras de variável para copiar no formulário estão em
 [`avisos-cliente-validacao.md`](avisos-cliente-validacao.md).
 
-> **São TRÊS modelos desde 17/08/2026, e os três são novos.** A fusão dos avisos 2 e 4
-> (decisão do Bernardo com a coordenação) e a reescrita da redação por Patrícia Melo
-> mudaram o corpo dos três, então os três foram submetidos de novo em **17/08/2026** e
-> estão **em análise**.
+> **São QUATRO modelos desde 25/08/2026, e os quatro estão APPROVED.** Os três da ALE-11
+> foram reescritos por Patrícia Melo, ressubmetidos em 17/08 e aprovados em **18/08**. O
+> quarto, `solicitacao_vencida_v1`, é da **GES-04** — submetido em 24/08 e aprovado em
+> **25/08**. Ele não substitui ninguém: é aviso novo, para a solicitação que venceu sem
+> nenhum documento recebido.
 >
-> **Os quatro modelos antigos continuam APPROVED e ficam órfãos.** Não precisam ser
-> apagados: basta o mapa `TEMPLATE` do Code node parar de referenciá-los. Apagar modelo
-> aprovado não devolve nada e fecha a porta de voltar atrás — e produção segue neles
-> até os novos estarem aprovados e testados.
+> **Cinco modelos ficam órfãos, todos APPROVED.** Os quatro antigos mais o
+> `situacao_documentos_v1`, que durou dias — o aviso 2 passou para `_v2`. Não precisam ser
+> apagados: basta o mapa `MODELOS` do Code node parar de referenciá-los. Apagar modelo
+> aprovado não devolve nada e fecha a porta de voltar atrás.
 >
 > ⚠️ **Nome de modelo aprovado é imutável, e editar o corpo o torna inutilizável até a
 > reaprovação.** É por isso que a troca é por modelo novo com sufixo de versão, e não
 > por edição. A próxima revisão de texto é `_v3`.
+>
+> ⚠️ **O `solicitacao_vencida_v1` é o único sem caminho de volta.** Os outros três têm o
+> órfão equivalente no mapa, sob a chave `atual`. Este não tem: se a Meta o pausar, a rota
+> para, porque não existe modelo antigo cobrindo o mesmo texto.
 
 | # | Modelo na Meta | `event_type` | `notificacao_tipo` no banco | Marc. | Botão | Dispara |
 |---|---|---|---|---|---|---|
 | 1 | `solicitacao_enviada_v2` | `solicitacao_enviada` | idem | 4 | Enviar documentos | clique em Enviar solicitação |
-| 2 | `situacao_documentos_v1` | `situacao_documentos` | `cobranca_pendencia` ¹ | 4 | Consultar documentação | **botão do analista no checklist** |
+| 2 | `situacao_documentos_v2` | `situacao_documentos` | `cobranca_pendencia` ¹ | 4 | Consultar documentação | **botão do analista no checklist** |
 | 3 | `documentacao_conferida_v1` | `documento_aprovado` | idem | 3 | Consultar documentação | encerramento da solicitação |
+| 4 | `solicitacao_vencida_v1` | `solicitacao_vencida` | idem ² | 3 | Enviar documentos | **cron diário** — prazo vencido e nada recebido |
 
 | Órfão, APPROVED | Substituído por |
 |---|---|
 | `solicitacao_enviada` | `solicitacao_enviada_v2` |
-| `cobranca_pendencia` | `situacao_documentos_v1` |
-| `documento_recusado` | `situacao_documentos_v1` |
+| `cobranca_pendencia` | `situacao_documentos_v2` |
+| `documento_recusado` | `situacao_documentos_v2` |
+| `situacao_documentos_v1` | `situacao_documentos_v2` |
 | `documento_aprovado` | `documentacao_conferida_v1` |
 
 ¹ **A identidade nome-do-modelo = valor-do-enum se rompeu nos três.** O doc previa que
@@ -47,19 +55,33 @@ migração, e ela não entregaria nada além do nome). O mapa `TEMPLATE` do Code
 **único lugar** onde se lê qual modelo está no ar para qual aviso — era exatamente para
 isso que ele existia.
 
+² **No aviso 4 os três nomes voltam a coincidir, e é deliberado.** `solicitacao_vencida` é
+valor de enum, `event_type` da API e prefixo do modelo. Aqui a migração se pagou, ao
+contrário do aviso 2: sem valor próprio de enum, este aviso dividiria chave de
+idempotência com o `cobranca_pendencia` do aviso 2 — mesmo cliente, mesmo dia — e um dos
+dois desapareceria sem erro e sem log.
+
 Canal `whatsapp` no enum `notificacao_canal`.
 
-**Botão dos três:** Chamada para ação · Acessar o site · URL **estática**
+**Botão dos quatro:** Chamada para ação · Acessar o site · URL **estática**
 `https://psaconsultores.com.br/cliente`, fixa e sem sufixo dinâmico. Não há link profundo
 por solicitação — a coleta é renderizada dentro de
 `src/pages/cliente/ClienteDashboard.tsx`. Usar o domínio institucional e não o
 `PUBLISHED_URL` (`psa-consultores.lovable.app`) é deliberado: o revisor da Meta olha se a
 URL tem relação com o negócio, e a URL é **imutável depois de aprovada**.
 
-**Período de validade: 12 horas** nos três, o maior valor oferecido. Sem isso vale o
-padrão de **10 minutos** — mensagem não entregue nesse prazo é descartada, não cobrada e
-o cliente nunca a vê. Para aviso assíncrono, que o cliente lê quando puder, 10 minutos
-perde entrega em silêncio.
+**Período de validade: 12 horas** nos quatro (43200s, conferido pela API em 25/08/2026), o
+maior valor que o painel oferece. Sem isso vale o padrão de **10 minutos** — mensagem não
+entregue nesse prazo é descartada, não cobrada e o cliente nunca a vê. Para aviso
+assíncrono, que o cliente lê quando puder, 10 minutos perde entrega em silêncio.
+
+⚠️ **12h é o teto do PAINEL, não da Meta.** A documentação diz que utilidade tem padrão de
+**30 dias**, e a subida para lá se faz por API (`POST /<TEMPLATE_ID>` com
+`message_send_ttl_seconds=-1`). Ficou para depois, decidido em 24/08 — o custo aceito é
+que mensagem não entregue em 12h é descartada em silêncio, e o aviso 4 é o que mais sofre
+com isso, porque existe justamente para alcançar quem está inerte há 30 dias. O raciocínio
+inteiro está em
+[`../sprints/sprint-12/VALIDACAO_aviso-sem-documento.md`](../sprints/sprint-12/VALIDACAO_aviso-sem-documento.md).
 
 ## ⚠️ Trocar o nome no mapa `TEMPLATE` não basta
 
@@ -70,7 +92,7 @@ sai assim para o cliente.
 | Modelo novo | O que muda em relação ao órfão |
 |---|---|
 | `solicitacao_enviada_v2` | **ganha o `{{4}}`**, prazo de envio, que o antigo não tinha. E o `{{2}}` perde o possessivo: era `aos seus projetos de`, virou `aos projetos de` |
-| `situacao_documentos_v1` | o `{{3}}` passa da forma `com` para a forma **`de`**, e o `{{2}}` muda de redação — era `faltam 6 documentos e 2 precisam ser reenviados`, virou `constam 6 documentos pendentes e 2 documentos que necessitam de reenvio` |
+| `situacao_documentos_v2` | o `{{3}}` passa da forma `com` para a forma **`de`**, e o `{{2}}` muda de redação — era `faltam 6 documentos e 2 precisam ser reenviados`, virou `constam 6 documentos pendentes e 2 documentos que necessitam de reenvio` |
 | `documentacao_conferida_v1` | **`{{2}}` e `{{3}}` trocaram de posição.** No órfão, `{{2}}` era a contagem **com artigo** (`os 52 documentos`) e `{{3}}` o objeto; agora `{{2}}` é o objeto e `{{3}}` a contagem **sem artigo** (`52 documentos`) |
 
 **A forma `com` do objeto morreu.** Ficam duas formas, e a divisão é outra: **`a`** no
@@ -96,7 +118,7 @@ Constatado na submissão, não só na documentação:
   ressubmeter e esperar a fila.
 - **Cabeçalho é para título, não para saudação.** Renderiza em negrito e destacado, e tem
   numeração de marcador própria, separada da do corpo. A saudação vai no corpo, e nos
-  três modelos o cabeçalho fica **vazio**.
+  quatro modelos o cabeçalho fica **vazio**.
 - **Corpo e rodapé aceitam formatação:** `*negrito*`, `_itálico_`, `~tachado~`.
 - **O classificador de categoria roda no formulário, antes de submeter.** Se ele discordar
   da categoria escolhida, avisa que o modelo será rejeitado e oferece a troca. Dá para
@@ -168,9 +190,13 @@ contagem. Trocar os dois passa pela validação da Meta e produz "documentos nec
 
 ---
 
-## 2. `situacao_documentos_v1`
+## 2. `situacao_documentos_v2`
 
 **Substitui `cobranca_pendencia` e `documento_recusado`.** Fusão de 17/08/2026.
+
+⚠️ **O `_v1` também está APPROVED e ficou órfão, com corpo idêntico byte a byte** — medido
+em 25/08/2026, incluindo a quebra solta no meio da última frase. A duplicata não corrigiu
+nada; corrigir a quebra exige um `_v3`.
 
 ```
 Olá, Sr(a). {{1}}.
@@ -276,6 +302,53 @@ A etapa é **texto fixo — "a execução do projeto"** —, e não marcador: o 
 ter um projeto por produto contratado, e não existe campo que diga em que ponto cada
 um está.
 
+---
+
+## 4. `solicitacao_vencida_v1`
+
+**Aviso novo, não substitui ninguém.** Tarefa GES-04. Sai quando a solicitação venceu e
+**nada** chegou do cliente; se algo chegou e faltou o resto, quem fala é o modelo 2.
+
+```
+Olá, Sr(a). {{1}}.
+
+Até o momento, *não consta o recebimento de nenhum documento* referente {{2}}.
+
+Prazo para envio: {{3}}.
+
+A relação completa dos documentos e as orientações de envio estão disponíveis no portal do cliente.
+```
+
+**Rodapé** `PSA Prado Suzuki` · **Botão** URL fixa, rótulo `Enviar documentos` ·
+**Negrito** na frase do recebimento
+
+225 caracteres de modelo, 309 preenchido. Quatro parágrafos.
+
+| Marcador | Variável | Exemplo |
+|---|---|---|
+| `{{1}}` | `destinatarios_cliente(cliente_id).nome` | `Carlos Eduardo` |
+| `{{2}}` | objeto na forma **`a`** | `aos projetos de Estruturação Societária e Planejamento Sucessório` |
+| `{{3}}` | prazo de envio, **com o estado quando vencido** | `03/09/2026 (vencido)` |
+
+⚠️ **A forma `a`, como o modelo 1, e não a forma `de` dos modelos 2 e 3.** O texto fixo é
+`referente {{2}}`, então `dos projetos de X` produziria *"referente dos projetos de X"* —
+frase quebrada que **sai assim para o cliente**, porque parâmetro com valor não falha o
+envio.
+
+**O vencimento vive dentro do valor do `{{3}}`, não no corpo.** Modelo não tem parágrafo
+condicional, e o corpo é imutável depois de aprovado; a palavra `vencido` é montada na
+hora e muda sem passar pela Meta. `vencido` e não `encerrado`: encerrado sugere porta
+fechada, e o aviso existe para pedir o envio.
+
+**A frase do recebimento é texto fixo, e não marcador.** O aviso só dispara quando o
+número é zero, logo a frase é constante — e cada marcador a menos é uma forma menos de a
+mensagem não sair por parâmetro vazio. É também o que deixa o negrito cair num trecho
+curto em vez de virar mancha.
+
+**É o único aviso do ciclo sem lista**, porque nada chegou. Por isso o corpo do WhatsApp e
+o do e-mail dizem a mesma frase — nos outros três o e-mail carrega listas que não cabem em
+parâmetro.
+
 ## De onde saem nome, telefone e responsável
 
 `destinatarios_cliente(cliente_id)` devolve `nome`, `email` e `telefone` — a mesma
@@ -294,27 +367,35 @@ uma mensagem paga por documento. Em 17/08 ficou definido o que fecha um lote no 
 
 ## Estado de cada modelo
 
-**Retrato de 17/08/2026, no Gerenciador de WhatsApp:**
+**Retrato de 25/08/2026, lido pela Graph API (`GET /{WABA}/message_templates`) e não pelo
+painel: são NOVE modelos na conta, e os nove estão APPROVED.** Quatro no ar, cinco órfãos.
 
-| Modelo | Status na Meta | Falta |
+| Modelo | No ar? | Aprovado em |
 |---|---|---|
-| `solicitacao_enviada_v2` | ⏳ **Em análise** desde 17/08 | aprovação; o `{{4}}` novo no Code node |
-| `situacao_documentos_v1` | ⏳ **Em análise** desde 17/08 | aprovação |
-| `documentacao_conferida_v1` | ⏳ **Em análise** desde 17/08 | aprovação; a inversão de `{{2}}`/`{{3}}` no Code node |
-| `solicitacao_enviada` | ✅ APPROVED, qualidade pendente | **órfão** — segue em produção até o `_v2` ser aprovado e testado |
-| `cobranca_pendencia` | ✅ APPROVED, qualidade pendente | **órfão** |
-| `documento_aprovado` | ✅ APPROVED, qualidade pendente | **órfão** |
-| `documento_recusado` | ✅ APPROVED, qualidade pendente | **órfão** |
+| `solicitacao_enviada_v2` | ✅ aviso 1 | 18/08 |
+| `situacao_documentos_v2` | ✅ aviso 2 | 18/08 |
+| `documentacao_conferida_v1` | ✅ aviso 3 | 18/08 |
+| `solicitacao_vencida_v1` | ✅ aviso 4 | **25/08** — qualidade ainda `UNKNOWN` |
+| `situacao_documentos_v1` | órfão | 18/08 — durou dias |
+| `solicitacao_enviada` | órfão | antes de 17/08 |
+| `cobranca_pendencia` | órfão | antes de 17/08 |
+| `documento_aprovado` | órfão | antes de 17/08 |
+| `documento_recusado` | órfão | antes de 17/08 |
 
-O `solicitacao_enviada` órfão é o único com envio real medido em produção: entregue em
-9s até o segundo tique e lido em 210s. Os outros três nunca dispararam.
+**Envio real medido:** o `solicitacao_enviada` órfão, em produção em 14/08 — entregue em
+8s e lido em 3min, com o status vindo pelo webhook até a nossa tabela. Em agosto saíram 21
+mensagens de template (todas de teste), das quais **10 cobradas** e 11 dentro de janela de
+atendimento aberta, logo gratuitas.
 
-**O bloqueio do canal não é a fila da Meta: é publicar o app.** Em modo de
-desenvolvimento a mensagem só alcança quem tem papel no app ou quem abriu conversa nas
-últimas 24 horas — foi por isso que os nossos testes passaram, e é por isso que eles não
-provam alcance a cliente. Está preso em três itens do painel: URL de política de
-privacidade vazia, Termos e Exclusão de Dados apontando para `facebook.com`, e e-mail de
-contato num Gmail pessoal não verificado.
+⚠️ **O bloqueio do canal não é a fila da Meta: é publicar o app — e continua de pé.**
+Medido em 25/08/2026 pela API: `AutomacaoPSA` está em `app_status: dev_mode`,
+`is_live: false`. Nesse modo a mensagem só alcança quem tem papel no app ou quem abriu
+conversa nas últimas 24h — é por isso que os nossos testes passam, e é por isso que eles
+**não** provam alcance a cliente.
+
+Dos três itens que travavam em 17/08, **dois saíram**: política de privacidade, Termos e
+Exclusão de Dados agora apontam para `psaconsultores.com.br`. Falta um: o e-mail de
+contato é um Gmail pessoal e está **não verificado** (`contact_email_verified: false`).
 
 **Com o objeto carregando a preposição e o artigo, `ordem_servico_id` nulo produz frase
 quebrada, não capenga** — "a relação de documentos necessários ." Parâmetro vazio já
@@ -337,8 +418,30 @@ dólar.
 
 Tarifa conferida em 11/08/2026 na calculadora oficial, em
 `whatsappbusiness.com/pt-br/products/platform-pricing`, com país **Brasil**, moeda
-**Real brasileiro (BRL)** e categoria **Utilidade**. Reconferir na data da submissão:
-muda por mercado e por data.
+**Real brasileiro (BRL)** e categoria **Utilidade**. Reconferida em 25/08/2026 contra o que
+a Meta de fato cobrou, e bate exatamente: **R$ 0,0350 por mensagem cobrada.**
+
+**Medido em 25/08/2026** por `GET /{WABA}?fields=pricing_analytics`, que devolve volume e
+custo por dia, por categoria e por tipo de cobrança:
+
+| Agosto/2026 | Mensagens | Custo |
+|---|---|---|
+| Cobradas (`REGULAR`) | 10 | **R$ 0,35** |
+| Gratuitas (`FREE_CUSTOMER_SERVICE`) | 11 | R$ 0 |
+
+**As 11 gratuitas saíram dentro de janela de atendimento aberta**, porque quem testava
+respondia no celular. **Não conte com isso em produção:** o cliente que passou 30 dias sem
+mandar documento é, por definição, quem não respondeu — janela fechada, mensagem cobrada.
+Orçar a R$ 0,035 cheios.
+
+**O teto real do canal é o cadastro, não o preço.** Medido em produção em 25/08: 8 dos 39
+destinatários com acesso ao portal têm telefone. Um ciclo de cobrança do aviso 4 custa no
+máximo 8 mensagens — R$ 0,28.
+
+⚠️ **Fatura, linha de crédito e forma de pagamento NÃO saem por API.** A Meta exige que o
+negócio dono do app seja Business Solution Provider; o nó do Business responde
+"Missing Permission". O que se lê é o custo por mensagem acima, e valor de fatura fechada
+só no gerenciador de pagamentos.
 
 **Uma mensagem por representante, não por cliente.** `destinatarios_cliente` devolve
 uma linha por representante com acesso ao portal — hoje 23 clientes e 38
@@ -356,7 +459,7 @@ Não usar a **Biblioteca de modelos**: são 157 modelos pré-aprovados em inglê
 cenários de e-commerce e agendamento. Nenhum cobre coleta de documentos de projeto de
 consultoria.
 
-O `situacao_documentos_v1` é o de maior risco em produção, e não pela redação: é o
+O `situacao_documentos_v2` é o de maior risco em produção, e não pela redação: é o
 único que sai por decisão da casa e não por ato do cliente, e a reclassificação de
 utility para marketing acontece **depois** da aprovação, olhando o uso real — muda custo
 e política sem avisar. A janela de um aviso por dia **por canal** está na borda, com o
@@ -369,11 +472,11 @@ cheio do critério de aceite, não o de contingência.
 
 | Dependência | Dono |
 |---|---|
-| Aprovação dos três modelos novos pela Meta. É o item de maior prazo da frente, e cada modelo tem fila própria | Meta |
-| Publicar o app: política de privacidade, Termos, Exclusão de Dados e e-mail de contato verificado. **Sem isso a mensagem não alcança cliente**, mesmo com modelo aprovado | Alexandre |
-| **`representante.telefone` preenchido em 8 de 38**, contra e-mail em 38 de 38 — sem telefone o modelo aprovado não alcança o cliente. É a maior limitação do canal, e nem o modelo aprovado nem o número verificado a mudam | cadastro; nenhuma tarefa desta sprint preenche |
+| **Publicar o app.** Falta só o e-mail de contato verificado — hoje é Gmail pessoal, `contact_email_verified: false`. **Sem isso a mensagem não alcança cliente**, com modelo aprovado ou não | Alexandre |
+| **`representante.telefone` preenchido em 8 de 39**, contra e-mail em 39 de 39 (medido em produção em 25/08/2026) — sem telefone o modelo aprovado não alcança o cliente. É a maior limitação do canal, e nem modelo aprovado nem número verificado a mudam | cadastro; nenhuma tarefa desta sprint preenche |
 | `solicitacao.ordem_servico_id` nulo em **6 de 10** — sem OS o objeto vai vazio e a borda recusa com `sem_os` | Eduardo, no gerador; ou exigência de OS na tela de envio |
-| Os três ramos novos no Code node `Montar Template OSG`, incluindo o marcador a mais do modelo 1 e a inversão do modelo 3 | Alexandre, junto do deploy |
+| Subir a validade de 12h para 30 dias por API, nos nove modelos | fora do escopo da GES-04; algumas sprints à frente |
+| **Não há alerta quando um modelo sai de `APPROVED`.** Se a Meta pausar, o canal para em silêncio — e a rota do aviso 4 não tem modelo de reserva | proposto, sem tarefa |
 
 **O que saiu desta tabela em 17/08/2026:**
 
@@ -385,6 +488,17 @@ cheio do critério de aceite, não o de contingência.
   ao cliente), e com ele a coluna do motivo.
 - **A varredura foi cancelada** — o disparo do modelo 2 virou botão manual.
 - **O gatilho do modelo 3 existe:** o encerramento da solicitação.
+
+**O que saiu desta tabela em 18 e 25/08/2026:**
+
+- **Os três modelos novos foram aprovados** em 18/08, e o aviso 2 já trocou de novo, para
+  `situacao_documentos_v2`.
+- **Os ramos no Code node estão no ar**, incluindo o marcador a mais do modelo 1 e a
+  inversão do modelo 3.
+- **O quarto modelo existe e foi testado**: `solicitacao_vencida_v1`, aprovado em 25/08 e
+  disparado ponta a ponta no sandbox no mesmo dia.
+- **Dois dos três itens de publicação do app saíram** — restou o e-mail de contato.
+- **A tarifa foi conferida contra a cobrança real**, não só contra a calculadora.
 
 ## O que os e-mails da ALE-12 herdam desta tarefa
 

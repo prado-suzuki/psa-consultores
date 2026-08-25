@@ -2,8 +2,18 @@
 
 **Redação validada pela coordenação em 24/08/2026**, com ajuste dela no primeiro
 parágrafo. Molde de
-[`docs/geral/avisos-cliente-validacao.md`](../../geral/avisos-cliente-validacao.md), para
-entrar naquele arquivo como §4.
+[`docs/geral/avisos-cliente-validacao.md`](../../geral/avisos-cliente-validacao.md), onde
+entrou como §4 em 25/08/2026.
+
+> **Estado em 25/08/2026 — no ar no sandbox, nada em produção.** O modelo
+> `solicitacao_vencida_v1` (id `1388762306030268`) está **APPROVED** na Meta, categoria
+> Utilidade, e os dois canais foram testados ponta a ponta contra o cenário 4. Commit
+> `47c02dca`. Produção não recebeu o valor de enum, nem a função da lista, nem o cron.
+>
+> ⚠️ **O canal não alcança cliente real ainda, e não é a fila da Meta.** O app
+> `AutomacaoPSA` está em `dev_mode` (`is_live: false`, medido em 25/08/2026), e nesse modo
+> a mensagem só chega a quem tem papel no app. Vale para os **quatro** avisos, não só para
+> este.
 
 **Quando sai:** a solicitação foi enviada, segue aberta, e **nenhum documento chegou**.
 Repete a cada período enquanto continuar assim. É o único aviso do ciclo em que não há
@@ -56,7 +66,7 @@ depois. No modelo da Meta isso não existe — ver a decisão 1.
 
 ---
 
-# WHATSAPP — `solicitacao_sem_documento_v1`
+# WHATSAPP — `solicitacao_vencida_v1`
 
 ### Corpo
 
@@ -65,15 +75,18 @@ Olá, Sr(a). {{1}}.
 
 Até o momento, *não consta o recebimento de nenhum documento* referente {{2}}.
 
-Prazo para envio: {{3}}
+Prazo para envio: {{3}}.
 
 A relação completa dos documentos e as orientações de envio estão disponíveis no portal do cliente.
 ```
 
 **Negrito:** só na frase do recebimento. **Botão:** `Enviar documentos`
 
-308 caracteres preenchido, contra 341, 338 e 300 dos três aprovados. Quatro parágrafos,
-não começa nem termina em marcador.
+225 caracteres de modelo e **309 preenchido**, medidos na versão aprovada, contra 341, 338
+e 300 dos três aprovados. Quatro parágrafos, não começa nem termina em marcador.
+
+**O ponto depois do `{{3}}` entrou no fim da revisão**, e é o que faz a linha do prazo ser
+frase e não rótulo solto. É texto fixo, logo imutável — não há como acrescentar depois.
 
 ### Variáveis
 
@@ -105,7 +118,7 @@ Flexão do `{{2}}`: `ao projeto de X` com um produto, `aos projetos de X e Y` co
 >
 > Até o momento, **não consta o recebimento de nenhum documento** referente aos projetos de Estruturação Societária e Planejamento Sucessório.
 >
-> Prazo para envio: 03/09/2026 (vencido)
+> Prazo para envio: 03/09/2026 (vencido).
 >
 > A relação completa dos documentos e as orientações de envio estão disponíveis no portal do cliente.
 >
@@ -191,7 +204,7 @@ A PSA também entrega documento ao cliente (gerador e downloads), então qualque
 direção é ambígua — armadilha que a ALE-12 já tinha registrado. `recebimento` resolve:
 só pode ser do nosso lado.
 
-## 4. A periodicidade — pergunta de 17/08, ainda em aberto
+## 4. A periodicidade — decidida em 25/08/2026: 30 dias
 
 *"Depois desses 30 dias, o sistema começará a enviar as notificações. Mas de quantos em
 quantos dias cobramos isso? 30 também? ou menos?"*
@@ -199,13 +212,34 @@ quantos dias cobramos isso? 30 também? ou menos?"*
 **O texto não nomeia o intervalo, de propósito.** Então 30, 15 ou 45 dias é decisão que
 pode mudar depois, sem submeter modelo novo nem esperar fila de aprovação.
 
+**Ficou 30 dias, e o intervalo é parâmetro:** `solicitacoes_a_cobrar(_intervalo_dias)`.
+Três decisões sustentam isso:
+
+**O ciclo é ancorado em `enviada_em`**, sugestão do tech lead, e não na data da última
+cobrança. Âncora fixa não escorrega: um ciclo perdido não empurra todos os seguintes.
+
+**A régua vive no filtro de `notificacao_envio.created_at`** dentro do ciclo corrente, e
+**não** na chave de idempotência. A chave continua sendo por DIA porque ela resolve outro
+problema — dois envios no mesmo dia — e mexer nela quebraria os outros três avisos. Foi
+para isso que a coluna `created_at` nasceu: `enviado_em` só é preenchido na confirmação,
+então uma linha reservada e nunca confirmada não contava como cobrança.
+
+**O cron checa todo dia**, não de 30 em 30. O tech lead sugeriu 30, e a lista é que
+devolve vazio fora do ciclo — checar diariamente uma lista quase sempre vazia é barato, e
+cobre a solicitação que vence hoje sem esperar o próximo despertar do relógio. Um cron de
+30 dias atrasaria cada cobrança em até 29 dias e perderia o dia da virada.
+
+**O prazo de 30 dias do texto NÃO é o mesmo parâmetro.** Ele é regra fixa (decisão de
+11/08) e está impresso na mensagem; o intervalo entre cobranças é configuração. Mudar o
+intervalo para 15 não muda a data que o cliente lê.
+
 ---
 
 # Anexo técnico — para a submissão
 
 | Campo do formulário | Valor |
 |---|---|
-| Nome | `solicitacao_sem_documento_v1` |
+| Nome | `solicitacao_vencida_v1` — submetido em 24/08/2026, **APPROVED** em 25/08, id `1388762306030268` |
 | Categoria | **Utilidade** · tipo **Padrão** |
 | Idioma | **Português (BR)** — `pt_BR` |
 | Cabeçalho | **vazio** |
@@ -262,8 +296,52 @@ do cliente.`), e isso não tem mais correção.
 
 O `event_type` da borda e o valor de enum são os da GES-04
 ([`TAREFA_cobrar-solicitacao-sem-documento.md`](TAREFA_cobrar-solicitacao-sem-documento.md)):
-`notificacao_tipo` = `solicitacao_sem_documento`, migração `20260824143238` escrita e não
-aplicada. O nome do modelo entra no mapa `MODELOS` do nó `Montar Template OSG`, que é o
+`notificacao_tipo` = `solicitacao_vencida`, migração `20260824143238` aplicada no sandbox
+em 24/08/2026 e **não** em produção.
+
+**O nome mudou de `solicitacao_sem_documento` para `solicitacao_vencida` em 24/08**: o
+gatilho é o **vencimento** da solicitação, e "sem documento" descrevia a condição, não o
+evento. Nos outros avisos o cliente já enviou algo e falta o resto — ali é cobrança de
+pendência. Aqui os três nomes coincidem de propósito: valor de enum, `event_type` da API e
+modelo na Meta (`solicitacao_vencida_v1`).
+
+O nome do modelo entra no mapa `MODELOS` do nó `Montar Template OSG`, que é o
 **único** lugar onde se lê qual modelo está no ar para qual aviso. No e-mail, o ramo novo
 vai no nó `Montar Avisos OSG`, e lá a linha do prazo **pode** ser condicional — é a
 assimetria de sempre entre os dois canais.
+
+---
+
+# Como foi testado — 25/08/2026
+
+Cenário 4 (`[TESTE 4 · VENCER] Iglu Tropical`), montado por
+[`supabase/fixtures/cenario4_solicitacao_vencida.sql`](../../../supabase/fixtures/cenario4_solicitacao_vencida.sql):
+solicitação enviada há 40 dias, prazo vencido há 10, três itens ativos, zero documento,
+contato apontado para o Alexandre.
+
+| Canal | Execução n8n | Resultado |
+|---|---|---|
+| E-mail | 733 · `success` | linha `enviado`, reserva 15:15:03 e confirmação 15:15:08 |
+| WhatsApp | 734 · `success` | `wamid` devolvido, linha `enviado`, reserva 17:53:14 e confirmação 17:53:19 |
+
+**O que cada teste provou, além de "chegou":**
+
+- **`ambiente_ref` funciona.** O callback resolveu para
+  `vgzomuwnsdgrxbkyoavq.supabase.co` — o sandbox — e não para produção. Era o defeito que
+  fazia todo disparo de dev confirmar no banco errado, e ele afetava os quatro avisos.
+- **A régua fecha.** Depois da cobrança, `solicitacoes_a_cobrar()` devolve vazio para esta
+  solicitação, e só volta no dia 13/09 (ciclo 2).
+- **A porta que o cron vai usar é a mesma que foi testada:** `x-api-key` com o
+  `N8N_CALLBACK_TOKEN`. O JWT legado de `service_role` **não** serve — o projeto migrou
+  para chaves assimétricas e o `getClaims` o rejeita.
+- **Entrega confirmada pela Meta**, não só aceite: o contador `analytics` da WABA registra
+  1 enviada e 1 entregue em 25/08.
+
+**O que NÃO foi testado, e não dá para testar em dev:** entrega e leitura chegando na nossa
+tabela. O webhook de status da Meta tem **um** destino, cadastrado no app, e ele aponta
+para produção — a WABA é uma só para os dois bancos. Então o `delivered`/`read` de todo
+teste em dev cai em produção, não encontra o `wamid` lá e é descartado. Decidido em
+25/08/2026: **deixar assim.** A perna já se provou em produção (14/08: entregue em 8s,
+lido em 3min), e as alternativas eram pior — repassar de produção para dev cria caminho em
+produção que só serve ao sandbox, e app separado exige número novo e reaprovação dos nove
+modelos.
