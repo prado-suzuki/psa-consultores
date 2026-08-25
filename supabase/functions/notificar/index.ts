@@ -46,6 +46,22 @@ const PRAZO_DIAS = 30;
 
 const ENTIDADE_TIPO = "solicitacao";
 
+/**
+ * De qual projeto Supabase esta função está falando.
+ *
+ * Vai no corpo enviado ao n8n, e é o que faz a CONFIRMAÇÃO voltar para o banco de
+ * onde a reserva saiu. O nó `Resolver Status` tem o mapa dos dois projetos e usa
+ * produção como padrão quando o campo não vem — então, sem isto, um aviso disparado
+ * em desenvolvimento tenta fechar linha em PRODUÇÃO. Medido em 24/08/2026: o n8n já
+ * esperava o campo (tem o mapa e um log de "ambiente_ref ausente, assumindo
+ * produção"), mas nenhuma versão da borda o mandava.
+ *
+ * Sai da própria `SUPABASE_URL` em vez de um segredo novo, então cada deploy se
+ * identifica sozinho e não há o que configurar ao publicar.
+ */
+const AMBIENTE_REF =
+  (Deno.env.get("SUPABASE_URL") ?? "").match(/https:\/\/([a-z0-9]+)\.supabase\.co/)?.[1] ?? "";
+
 type Canal = "email" | "whatsapp";
 
 const CANAIS: Canal[] = ["email", "whatsapp"];
@@ -86,6 +102,10 @@ const EVENTOS_COM_DISPARO = new Set([
   "solicitacao_enviada",
   "situacao_documentos",
   "documento_aprovado",
+  // GES-04. É o primeiro aviso que não nasce de ação humana nem de transição do
+  // banco: nasce de um relógio (pg_cron). Por isso as pré-condições dele são as
+  // mais duras do arquivo — ver o bloco `solicitacao_vencida` no handler.
+  "solicitacao_vencida",
 ]);
 
 // Nomes antigos, dos tempos em que eram quatro avisos. Recusados com mensagem
@@ -105,6 +125,10 @@ const EVENTOS_FUNDIDOS = new Set(["cobranca_pendencia", "documento_recusado"]);
  */
 const TIPO_NO_BANCO: Record<string, string> = {
   situacao_documentos: "cobranca_pendencia",
+  // `solicitacao_vencida` NÃO entra aqui de propósito: o valor de enum tem o mesmo
+  // nome, e o `?? event_type` resolve. Aqui a migração se pagou, ao contrário do
+  // aviso 2 — sem valor próprio, este aviso dividiria chave de idempotência com o
+  // `cobranca_pendencia` do aviso 2 e um dos dois desapareceria sem erro.
 };
 
 /** Um documento que o cliente precisa resolver, como a tela do consultor o vê. */
@@ -389,6 +413,93 @@ Deno.serve(async (req) => {
       return json({ success: true, skipped: true, reason: "nunca_enviada" });
     }
 
+    // ── O aviso 4 afirma um NEGATIVO, e é o único que faz isso ──
+    //
+    // "não consta o recebimento de nenhum documento". Os outros três nascem de um
+    // clique ou de uma transição, e quem dispara está olhando a tela. Este nasce de
+    // um relógio: a borda é o único lugar onde a afirmação do texto pode ser
+    // conferida contra o banco antes de sair. Cada guarda abaixo evita uma mensagem
+    // FALSA, não um envio a mais.
+    if (event_type === "solicitacao_vencida") {
+      if (!solicitacao.enviada_em) {
+        console.log(`[notificar] Skipped: solicitação ${solicitacao.id} nunca foi enviada ao cliente`);
+        return json({ success: true, skipped: true, reason: "nunca_enviada" });
+      }
+      if (solicitacao.encerrada_em) {
+        console.log(`[notificar] Skipped: solicitação ${solicitacao.id} já encerrada`);
+        return json({ success: true, skipped: true, reason: "encerrada" });
+      }
+
+      // O primeiro disparo é no dia SEGUINTE ao vencimento: `prazo < hoje`, não `<=`.
+      //
+      // Nota sobre o dia: `prazoDeEnvio` soma 30 dias em UTC e `diaLocal` lê o dia em
+      // Cuiabá. Para solicitação enviada depois das 20h locais o prazo sai um dia à
+      // frente. É comportamento ANTIGO, compartilhado com a data que os outros três
+      // avisos imprimem no texto — corrigir aqui só faria a guarda discordar da data
+      // que o cliente lê. Fica registrado, não é defeito introduzido aqui.
+      const prazo = prazoDeEnvio(solicitacao.enviada_em);
+      if (!prazo || prazo >= diaLocal()) {
+        console.log(`[notificar] Skipped: solicitação ${solicitacao.id} com prazo em curso (${prazo})`);
+        return json({ success: true, skipped: true, reason: "prazo_em_curso" });
+      }
+
+      // Nada recebido — a condição que dá nome ao aviso.
+      //
+      // `fonte = 'cliente'` e NÃO `solicitacao_id`: o vínculo com a solicitação só é
+      // gravado pelo upload do próprio cliente dentro do portal
+      // (`ColetaDocumentosCliente.tsx`). Documento que o cliente mandou por e-mail e
+      // o analista anexou pelo lado da OSG entra sem vínculo — e cobrar quem enviou é
+      // o pior erro possível neste aviso.
+      //
+      // `documento_gerado_id is null` blinda contra a fatia 2 do plano de storage
+      // (`docs/planos/plano-osg-documentos-recebidos.md`), que vai fazer documento
+      // GERADO pela casa cair nesta mesma tabela. O default da coluna `fonte` no
+      // banco é `'cliente'`, então sem esta guarda um documento que a PSA produziu
+      // silenciaria a cobrança — e mensagem que não sai ninguém percebe.
+      const { count: recebidos, error: erroRecebidos } = await supabase
+        .from("documento_arquivo")
+        .select("id", { count: "exact", head: true })
+        .eq("cliente_id", solicitacao.cliente_id)
+        .eq("fonte", "cliente")
+        .eq("excluido", false)
+        .is("documento_gerado_id", null)
+        .gte("created_at", solicitacao.enviada_em);
+
+      // Erro aqui NÃO cai para zero. Contagem que falhou é "não sei", e afirmar
+      // "nada chegou" sem saber é a mensagem falsa que estas guardas existem para
+      // impedir. Falha alto e o relógio tenta amanhã.
+      if (erroRecebidos) {
+        console.error("[notificar] Falha ao contar documentos recebidos:", erroRecebidos);
+        return json({ error: "não foi possível verificar os documentos recebidos" }, 500);
+      }
+      if ((recebidos ?? 0) > 0) {
+        console.log(`[notificar] Skipped: solicitação ${solicitacao.id} já recebeu ${recebidos} documento(s)`);
+        return json({ success: true, skipped: true, reason: "ja_recebeu_documento" });
+      }
+
+      // A RÉGUA DE 30 EM 30 DIAS NÃO MORA AQUI, E É DE PROPÓSITO.
+      //
+      // A divisão: a borda guarda a VERDADE, o agendador guarda a FREQUÊNCIA. As
+      // quatro guardas acima impedem uma mensagem FALSA, e por isso ficam mesmo com
+      // um chamador só — a solicitação pode mudar de estado entre a consulta do job
+      // e esta chamada, e aí o cliente que acabou de enviar receberia "não consta o
+      // recebimento de nenhum documento".
+      //
+      // Quantas vezes uma mensagem VERDADEIRA pode sair é outra coisa, e mora na
+      // `solicitacoes_a_cobrar`, que filtra quem já foi cobrado no ciclo corrente
+      // lendo `notificacao_envio.created_at`.
+      //
+      // Havia uma cópia dessa regra aqui, e ela saiu em 24/08/2026 por dois motivos.
+      // Primeiro: este aviso não tem chamador humano — sem botão, sem tela, o job é
+      // o único caminho. (O aviso 2 tem botão, e é por isso que lá a segunda linha
+      // de defesa se justifica.) Segundo: as duas cópias usavam noções diferentes de
+      // "agora" — `current_date` do Postgres aqui, `Date.now()` do Deno lá —, e perto
+      // da virada de um ciclo elas discordariam em um dia.
+      //
+      // O que traria a regra de volta: um botão de "cobrar agora" na tela. Aí passa a
+      // existir chamador fora do job, e a frequência precisa ser reforçada aqui.
+    }
+
     // ── Destinatários ──
     //
     // `destinatarios_cliente` devolve uma linha por representante COM acesso ao
@@ -574,6 +685,9 @@ Deno.serve(async (req) => {
           body: JSON.stringify({
             event_type,
             canal,
+            // De onde este disparo saiu. Sem ele o n8n confirma em produção — ver
+            // AMBIENTE_REF.
+            ambiente_ref: AMBIENTE_REF,
             solicitacao: solicitacaoData,
             // Presente so no aviso 2. Vai como veio da tela: e a mesma conta que
             // o analista estava olhando quando clicou.
