@@ -1,0 +1,238 @@
+{
+  "$schema": "interno",
+  "documento": "Casos golden-master do motor ITCMD/MT (doação de quotas)",
+  "spec": "SPEC-motor-itcmd-mt.md",
+  "caso_referencia": "Fazenda Santa Terezinha / GCB",
+  "data": "2026-08-24",
+  "status": "congelado, pendente de aprovação funcional",
+
+  "convencoes": {
+    "aritmetica": "decimal de precisão arbitrária; float proibido",
+    "arredondamento_final": "2 decimais, meio para cima, uma única vez por donatário/cenário",
+    "arredondamento_intermediario": "nenhum",
+    "base_igual_ao_teto": "pertence à faixa de baixo (base <= limite * upf)",
+    "imposto_negativo": "erro; nunca truncar em zero"
+  },
+
+  "parametros": {
+    "faixas_doacao": [
+      { "faixa": 1, "limite_superior_upf": 500,   "aliquota": "0.00", "deducao_upf": 0,   "isento": true },
+      { "faixa": 2, "limite_superior_upf": 1000,  "aliquota": "0.02", "deducao_upf": 10,  "isento": false },
+      { "faixa": 3, "limite_superior_upf": 4000,  "aliquota": "0.04", "deducao_upf": 30,  "isento": false },
+      { "faixa": 4, "limite_superior_upf": 10000, "aliquota": "0.06", "deducao_upf": 110, "isento": false },
+      { "faixa": 5, "limite_superior_upf": null,  "aliquota": "0.08", "deducao_upf": 310, "isento": false }
+    ],
+    "formula": "imposto = aliquota(k) * base - deducao_upf(k) * upf, onde k é a faixa que contém a base",
+    "upf_mt": {
+      "2026-01": "254.36",
+      "2026-02": "255.20",
+      "2026-03": "256.04",
+      "2026-05": "260.10",
+      "observacao": "série divergente entre artefatos (D3) e misturada dentro das pastas (D12); pendente de fonte oficial",
+      "nao_extrapolar": "a série NÃO é linear: Jan→Fev e Fev→Mar sobem 0,84, Mar→Mai sobe 4,06. Extrapolar +0,84/mês daria 257,72 para Mai/2026 contra 260,10 reais — erro de R$ 737,80 por donatário em base acima de 10.000 UPF",
+      "efeito": "d(imposto)/d(upf) = -deducao_upf(k); aumentar a UPF REDUZ o imposto"
+    },
+    "fator_base": {
+      "integral": "1.00",
+      "com_reserva_usufruto": "0.70",
+      "extincao_usufruto": "pendente de homologação (D9): 0.30 ou 0.70"
+    }
+  },
+
+  "G1_regressao": {
+    "descricao": "Células do WP verificadas como corretas. O motor DEVE reproduzi-las.",
+    "origem": "WP, aba visível 'Doação'",
+    "casos": [
+      { "id": "G1.01", "cenario": "consolidado · contábil · 100%", "celula": "E97",  "upf": "255.20", "base": "3324700.00",      "esperado": "186864.00" },
+      { "id": "G1.02", "cenario": "consolidado · contábil · 70%",  "celula": "F97",  "upf": "255.20", "base": "2327290.00",      "esperado": "111565.40" },
+      { "id": "G1.03", "cenario": "consolidado · ITR · 100%",      "celula": "G97",  "upf": "255.20", "base": "14577996.025",    "esperado": "1087127.68" },
+      { "id": "G1.04", "cenario": "consolidado · ITR · 70%",       "celula": "H97",  "upf": "255.20", "base": "10204597.2175",   "esperado": "737255.78" },
+      { "id": "G1.05", "cenario": "consolidado · mercado · 100%",  "celula": "I97",  "upf": "255.20", "base": "161480140.91",    "esperado": "12839299.27" },
+      { "id": "G1.06", "cenario": "consolidado · mercado · 70%",   "celula": "J97",  "upf": "255.20", "base": "113036098.637",   "esperado": "8963775.89" },
+      { "id": "G1.07", "cenario": "Cristiano · contábil · 100%",   "celula": "E126", "upf": "255.20", "base": "3043336.00",      "esperado": "164354.88" },
+      { "id": "G1.08", "cenario": "Cristiano · contábil · 70%",    "celula": "F126", "upf": "255.20", "base": "2130335.20",      "esperado": "99748.11" },
+      { "id": "G1.09", "cenario": "Cristiano · ITR · 100%",        "celula": "G126", "upf": "255.20", "base": "13344283.728077542",  "esperado": "988430.70" },
+      { "id": "G1.10", "cenario": "Cristiano · ITR · 70%",         "celula": "H126", "upf": "255.20", "base": "9340998.60965428",    "esperado": "668167.89" },
+      { "id": "G1.11", "cenario": "Cristiano · mercado · 100%",    "celula": "I126", "upf": "255.20", "base": "147814336.96768904",  "esperado": "11746034.96" },
+      { "id": "G1.12", "cenario": "Cristiano · mercado · 70%",     "celula": "J126", "upf": "255.20", "base": "103470035.87738232",  "esperado": "8198490.87" },
+      { "id": "G1.13", "cenario": "Fabiane · mercado · 100%",      "celula": "I154", "upf": "255.20", "base": "13665803.942310957",  "esperado": "1014152.32" },
+      { "id": "G1.14", "cenario": "Fabiane · mercado · 70%",       "celula": "J154", "upf": "255.20", "base": "9566062.75961767",    "esperado": "686173.02" },
+      { "id": "G1.15", "cenario": "Cristiano integral · contábil · 100%", "celula": "E179", "upf": "255.20", "base": "6086672.00",   "esperado": "407821.76" },
+      { "id": "G1.16", "cenario": "Cristiano integral · contábil · 70%",  "celula": "F179", "upf": "255.20", "base": "4260670.40",   "esperado": "261741.63" },
+      { "id": "G1.17", "cenario": "Cristiano integral · ITR · 100%",      "celula": "G179", "upf": "255.20", "base": "26688567.456155084",  "esperado": "2055973.40" },
+      { "id": "G1.18", "cenario": "Cristiano integral · ITR · 70%",       "celula": "H179", "upf": "255.20", "base": "18681997.21930856",   "esperado": "1415447.78" },
+      { "id": "G1.19", "cenario": "Cristiano integral · mercado · 100%",  "celula": "I179", "upf": "255.20", "base": "295628673.9353781",   "esperado": "23571181.91" },
+      { "id": "G1.20", "cenario": "Cristiano integral · mercado · 70%",   "celula": "J179", "upf": "255.20", "base": "206940071.75476465",  "esperado": "16476093.74" },
+      { "id": "G1.21", "cenario": "PPT slide 11 · quotas · 100%", "celula": "PPTX slide 11, col. 'Quotas 100%'", "upf": "256.04", "base": "1253766.00", "esperado": "47061.56",
+        "nota": "único cálculo íntegro encontrado nos dois artefatos; reproduzido ao centavo" }
+    ]
+  },
+
+  "G2_correcao": {
+    "descricao": "Casos em que o WP está errado. O motor DEVE divergir do WP e produzir 'esperado'.",
+    "casos": [
+      { "id": "G2.01", "cenario": "Fabiane · contábil · 100%", "celula": "E154", "upf": "255.20", "base": "281364.00",
+        "wp": "4121.84", "esperado": "3598.56", "faixa": 3, "defeito": "B2",
+        "explicacao": "WP cobrou 2% sobre (base − teto de 500 UPF) = 153.764, quando a faixa de 2% comporta no máximo 127.600; excesso de 26.164 tributado a 2% em vez de 4%" },
+      { "id": "G2.02", "cenario": "Fabiane · contábil · 70%", "celula": "F154", "upf": "255.20", "base": "196954.80",
+        "wp": "-45832.15", "esperado": "1387.10", "faixa": 2, "defeito": "B1",
+        "explicacao": "WP cobrou as faixas de 2%, 4% e 6% pela largura cheia e aplicou 8% sobre (base − teto de 10.000 UPF), negativo" },
+      { "id": "G2.03", "cenario": "Fabiane · ITR · 100%", "celula": "G154", "upf": "255.20", "base": "1233712.2969224593",
+        "wp": "19584.98", "esperado": "45950.74", "faixa": 4, "defeito": "B1",
+        "explicacao": "faixa de 6% cobrada cheia (91.872) e faixa de 8% negativa (−105.463,02); os erros quase se cancelam e o total fica positivo, mascarando o defeito" },
+      { "id": "G2.04", "cenario": "Fabiane · ITR · 70%", "celula": "H154", "upf": "255.20", "base": "863598.6078457214",
+        "wp": "-10024.11", "esperado": "26887.94", "faixa": 3, "defeito": "B1" },
+      { "id": "G2.05", "cenario": "PPT slide 11 · 70%", "celula": "PPTX slide 11, col. '70,00%'", "upf": "256.04", "base": "877636.20",
+        "wp": "24493.77", "esperado": "27424.25", "faixa": 3, "defeito": "D8",
+        "explicacao": "o total impresso (24.493,77) não confere nem com a soma das próprias linhas do slide (42.076,63) nem com o cálculo correto" }
+    ]
+  },
+
+  "G4_homologado_agro_alianca": {
+    "descricao": "Valores publicados no deck entregue ao Agro Aliança (AA-PDF Fev/2026, repetidos no AA-PPT). A forma fechada os reproduz ao centavo. Cobrem as faixas de 2% e 4% e as bases reduzidas a 70%, que o WP do Santa Terezinha não exercita.",
+    "origem": "AA-PDF págs. 11/13/15/17/20 · AA-PPT slides 18/20/22/24/27",
+    "upf_todos": "254.36",
+    "casos": [
+      { "id": "G4.01", "origem": "S18", "cenario": "Cenário I · Cristina · contábil",        "upf": "254.36", "base": "3295973.00",  "esperado": "184826.24",  "faixa": 5 },
+      { "id": "G4.02", "origem": "S18", "cenario": "Cenário I · Regina · contábil",          "upf": "254.36", "base": "1152527.00",  "esperado": "41172.02",   "faixa": 4 },
+      { "id": "G4.03", "origem": "S18", "cenario": "Cenário I · Cristina · ITR",             "upf": "254.36", "base": "12957378.81", "esperado": "957738.70",  "faixa": 5 },
+      { "id": "G4.04", "origem": "S18", "cenario": "Cenário I · Regina · ITR",               "upf": "254.36", "base": "4530901.48",  "esperado": "283620.52",  "faixa": 5 },
+      { "id": "G4.05", "origem": "S18", "cenario": "Cenário I · Cristina · mercado",         "upf": "254.36", "base": "22297318.63", "esperado": "1704933.89", "faixa": 5 },
+      { "id": "G4.06", "origem": "S18", "cenario": "Cenário I · Regina · mercado",           "upf": "254.36", "base": "7796866.59",  "esperado": "544897.73",  "faixa": 5 },
+      { "id": "G4.07", "origem": "S20", "cenario": "usufruto Regina→fundadores · quotas 100%","upf": "254.36", "base": "426052.00",   "esperado": "9411.28",    "faixa": 3 },
+      { "id": "G4.08", "origem": "S20", "cenario": "usufruto Regina→fundadores · quotas 70%", "upf": "254.36", "base": "298236.40",   "esperado": "4298.66",    "faixa": 3 },
+      { "id": "G4.09", "origem": "S20", "cenario": "usufruto · ITR 100%",                    "upf": "254.36", "base": "1674927.91",  "esperado": "72516.07",   "faixa": 4 },
+      { "id": "G4.10", "origem": "S20", "cenario": "usufruto · ITR 70%",                     "upf": "254.36", "base": "1172449.53",  "esperado": "42367.37",   "faixa": 4 },
+      { "id": "G4.11", "origem": "S20", "cenario": "usufruto · mercado 100%",                "upf": "254.36", "base": "2882249.70",  "esperado": "151728.38",  "faixa": 5 },
+      { "id": "G4.12", "origem": "S20", "cenario": "usufruto · mercado 70%",                 "upf": "254.36", "base": "2017574.79",  "esperado": "93074.89",   "faixa": 4 },
+      { "id": "G4.13", "origem": "S22", "cenario": "Cenário II · irmãs · contábil",          "upf": "254.36", "base": "1071723.00",  "esperado": "36323.78",   "faixa": 4 },
+      { "id": "G4.14", "origem": "S22", "cenario": "Cenário II · irmãs · ITR",               "upf": "254.36", "base": "4213238.67",  "esperado": "258207.49",  "faixa": 5 },
+      { "id": "G4.15", "origem": "S22", "cenario": "Cenário II · irmãs · mercado",           "upf": "254.36", "base": "7250226.02",  "esperado": "501166.48",  "faixa": 5 },
+      { "id": "G4.16", "origem": "S22", "cenario": "Cenário II · fundadores · contábil",     "upf": "254.36", "base": "2224250.00",  "esperado": "105475.40",  "faixa": 4 },
+      { "id": "G4.17", "origem": "S22", "cenario": "Cenário II · fundadores · ITR",          "upf": "254.36", "base": "8744140.14",  "esperado": "620679.61",  "faixa": 5 },
+      { "id": "G4.18", "origem": "S22", "cenario": "Cenário II · fundadores · mercado",      "upf": "254.36", "base": "15047092.61", "esperado": "1124915.81", "faixa": 5 },
+      { "id": "G4.19", "origem": "S24", "cenario": "usufruto metade · quotas 100%",           "upf": "254.36", "base": "213026.00",   "esperado": "1716.92",    "faixa": 2 },
+      { "id": "G4.20", "origem": "S24", "cenario": "usufruto metade · quotas 70%",            "upf": "254.36", "base": "149118.20",   "esperado": "438.76",     "faixa": 2 },
+      { "id": "G4.21", "origem": "S24", "cenario": "usufruto metade · ITR 100%",              "upf": "254.36", "base": "837463.95",   "esperado": "25867.76",   "faixa": 3 },
+      { "id": "G4.22", "origem": "S24", "cenario": "usufruto metade · ITR 70%",               "upf": "254.36", "base": "586224.77",   "esperado": "15818.19",   "faixa": 3 },
+      { "id": "G4.23", "origem": "S24", "cenario": "usufruto metade · mercado 100%",          "upf": "254.36", "base": "1441124.85",  "esperado": "58487.89",   "faixa": 4 },
+      { "id": "G4.24", "origem": "S24", "cenario": "usufruto metade · mercado 70%",           "upf": "254.36", "base": "1008787.40",  "esperado": "32720.70",   "faixa": 3,
+        "nota": "total do bloco = 2.543,60 (faixa 2%) + 30.177,10 (faixa 4% marginal); a faixa de 4% é marginal porque a base não alcança o teto de 4.000 UPF" },
+      { "id": "G4.25", "origem": "S27", "cenario": "Cenário III · Regina · contábil",        "upf": "254.36", "base": "1587527.00",  "esperado": "67272.02",   "faixa": 4 },
+      { "id": "G4.26", "origem": "S27", "cenario": "Cenário III · Cristina · ITR",           "upf": "254.36", "base": "13755054.39", "esperado": "1021552.75", "faixa": 5 },
+      { "id": "G4.27", "origem": "S27", "cenario": "Cenário III · Regina · ITR",             "upf": "254.36", "base": "5852768.23",  "esperado": "389369.86",  "faixa": 5 },
+      { "id": "G4.28", "origem": "S27", "cenario": "Cenário III · Cristina · mercado",       "upf": "254.36", "base": "23445602.40", "esperado": "1796796.59", "faixa": 5 },
+      { "id": "G4.29", "origem": "S27", "cenario": "Cenário III · Regina · mercado",         "upf": "254.36", "base": "9976091.18",  "esperado": "719235.69",  "faixa": 5 }
+    ]
+  },
+
+  "G5_correcao_agro_alianca": {
+    "descricao": "Único valor divergente do deck do Agro Aliança. O motor DEVE divergir do publicado.",
+    "casos": [
+      { "id": "G5.01", "origem": "AA-PPT slide 27 / AA-PDF pág. 20",
+        "cenario": "Cenário III · Cristina · contábil", "upf": "254.36", "base": "3730973.00",
+        "publicado": "184826.24", "esperado": "219626.24", "faixa": 5, "mecanismo": "M3",
+        "celula_raiz": "Cenário III!E52 (ST-WP oculta e BO-WP)",
+        "explicacao": "a base da coluna contábil está digitada como literal 3295973 (valor do Cenário I) enquanto as colunas irmãs referenciam o quadro de quotas (G52=F43, I52=I43); o imposto está correto para o número digitado e errado para a base declarada no próprio slide",
+        "delta": "34800.00",
+        "entregue_ao_cliente": true }
+    ]
+  },
+
+  "G3_borda_sintetica": {
+    "descricao": "Bordas que nenhum dado real do WP exercita. Fixam isenção, fronteiras de faixa e arredondamento.",
+    "casos": [
+      { "id": "G3.01", "caso": "base zero",                    "upf": "255.20", "base": "0.00",         "esperado": "0.00",      "isento": true },
+      { "id": "G3.02", "caso": "exatamente 500 UPF",           "upf": "255.20", "base": "127600.00",    "esperado": "0.00",      "isento": true,
+        "fixa": "base igual ao teto pertence à faixa de baixo" },
+      { "id": "G3.03", "caso": "1 centavo acima da isenção",   "upf": "255.20", "base": "127600.01",    "esperado": "0.00",      "isento": false, "exato": "0.0002",
+        "fixa": "arredondamento na fronteira: resultado não nulo que arredonda para zero NÃO é isenção" },
+      { "id": "G3.04", "caso": "exatamente 1.000 UPF",         "upf": "255.20", "base": "255200.00",    "esperado": "2552.00",   "isento": false },
+      { "id": "G3.05", "caso": "exatamente 4.000 UPF",         "upf": "255.20", "base": "1020800.00",   "esperado": "33176.00",  "isento": false },
+      { "id": "G3.06", "caso": "exatamente 10.000 UPF",        "upf": "255.20", "base": "2552000.00",   "esperado": "125048.00", "isento": false },
+      { "id": "G3.07", "caso": "1 centavo acima de 10.000 UPF","upf": "255.20", "base": "2552000.01",   "esperado": "125048.00", "isento": false, "exato": "125048.0008",
+        "fixa": "continuidade da tabela na fronteira da faixa de topo" },
+      { "id": "G3.08", "caso": "resto na divisão de quotas",   "quotas": 7326877, "herdeiros": 2,
+        "esperado": "pendente de homologação (D4)",
+        "fixa": "regra do resto: 'legítima absorve, disponível reduz' (registrada em aba oculta, não homologada)" }
+    ]
+  },
+
+  "cadeia_avaliacao": {
+    "descricao": "Reconstrução independente das 11 linhas de bens + moeda corrente reproduz os totais do WP ao centavo.",
+    "parametros": { "sacas_por_ha": 900, "preco_saca": "105.00", "valor_ha_mercado": "94500.00", "valor_quota_contabil": "1.00" },
+    "totais": {
+      "contabil": { "reconstruido": "6649400.00",   "wp_celula": "F34", "wp": "6649400.00",   "confere": true },
+      "itr":      { "reconstruido": "29155992.05",  "wp_celula": "G34", "wp": "29155992.05",  "confere": true },
+      "mercado":  { "reconstruido": "322960281.82", "wp_celula": "H34", "wp": "322960281.82", "confere": true }
+    },
+    "valor_por_quota": {
+      "regra": "quociente exato total_da_base / total_contabil, mantido em decimal de precisão arbitrária; NUNCA arredondar",
+      "contabil": { "quociente": "6649400.00 / 6649400.00", "exato_28dig": "1" },
+      "itr":      { "quociente": "29155992.05 / 6649400.00",  "exato_28dig": "4.384755323788612506391554125",  "float_excel_G35": "4.384755323788613" },
+      "mercado":  { "quociente": "322960281.82 / 6649400.00", "exato_28dig": "48.56983815381838962913947123", "float_excel_H35": "48.569838153818388" },
+      "nota": "os valores 'float_excel' são a representação binária que o WP propaga (célula G35/H35) e diferem do quociente exato a partir da 16ª casa; o motor deve usar o quociente, não o float"
+    },
+    "ressalva": "os totais de ITR e mercado reproduzem o WP, mas o WP tem lacunas de dados (23,0% da área sem ITR) e a matrícula 26910 é duplicada — ver seção 11 da spec"
+  },
+
+  "bloqueios": {
+    "descricao": "Divergências não decididas. Nenhum número final é definitivo enquanto D1 e D2 estiverem abertas.",
+    "itens": [
+      { "id": "D1",  "tema": "universo de quotas",            "valores": ["6649400 (WP)", "7326876 (PPT)"], "delta": "677476 quotas", "responsavel": "funcional" },
+      { "id": "D2",  "tema": "rateio do aumento",             "valores": ["91,54%/8,46% (WP)", "58,56%/41,44% (PPT)", "50%/50% (Sheet1 oculta)"], "responsavel": "funcional" },
+      { "id": "D3",  "tema": "competência da UPF",            "valores": ["254,36", "255,20", "256,04"], "delta": "-R$ 260,40 por donatário/cenário (base > 10.000 UPF)", "responsavel": "funcional + fonte oficial" },
+      { "id": "D4",  "tema": "resto legítima/disponível",     "valores": ["partes iguais (WP)", "1 quota para a legítima (PPT)"], "responsavel": "jurídico" },
+      { "id": "D5",  "tema": "base contábil (PPTX interno)",  "valores": ["3036555 (slide 9)", "6649400 (slide 12)"], "responsavel": "funcional" },
+      { "id": "D6",  "tema": "acervo de ITR e mercado",       "valores": ["12.083.427,71 / 133.847.858,43 (PPT)", "29.155.992,05 / 322.960.281,82 (WP)"], "responsavel": "funcional" },
+      { "id": "D7",  "tema": "ITCD do slide 12 irreprodutível", "prova": "alíquota efetiva de mercado = 46,06%, acima do teto legal de 8%", "gravidade": "máxima — valores já apresentados ao cliente", "responsavel": "funcional" },
+      { "id": "D8",  "tema": "coluna 70% do slide 11",        "valores": ["42.076,63 (soma das linhas)", "24.493,77 (total impresso)", "27.424,25 (correto)"], "responsavel": "funcional" },
+      { "id": "D9",  "tema": "fator de extinção do usufruto", "valores": ["mais 70% (slide 8)", "30% remanescentes (slide 12)"], "responsavel": "jurídico + fonte oficial" },
+      { "id": "D10", "tema": "tabela do evento causa mortis", "valores": ["10.000 UPF, tabela de doação (slide 11)", "16.000 UPF (slide 13)"], "responsavel": "jurídico", "nota": "fora do recorte" },
+      { "id": "D11", "tema": "área da matrícula 26910",        "valores": ["199,313 ha (aba visível)", "99,313 ha (aba oculta)"], "delta": "R$ 9.450.000,00 no valor de mercado", "responsavel": "documental (certidão)" },
+      { "id": "D12", "tema": "duas competências de UPF na mesma pasta", "valores": ["ST-WP: 254,36 em 7 blocos + 255,20 em 4", "BO-WP: 254,36 em 6 blocos + 260,10 em 3"], "delta": "R$ 1.779,40 por donatário (Jan vs Mai, base > 10.000 UPF)", "responsavel": "funcional" },
+      { "id": "D13", "tema": "erro de R$ 34.800,00 entregue ao Agro Aliança", "valores": ["publicado 184.826,24", "correto 219.626,24"], "causa_raiz": "Cenário III!E52 — base digitada como literal (mecanismo M3)", "gravidade": "erro de valor com causa e correção determinadas; presente no AA-PDF de Fev/2026 e no AA-PPT posterior", "responsavel": "funcional — decidir reemissão" },
+      { "id": "D14", "tema": "arquivo do Bocolli contém apenas dados do Agro Aliança", "valores": ["3 abas visíveis, 100% Agro Aliança, zero Bocolli"], "gravidade": "exposição de dado de cliente; não é questão de cálculo", "responsavel": "funcional / processo" },
+      { "id": "D15", "tema": "regra de acumulação de doações sucessivas ao mesmo par", "valores": ["ausente em todos os 6 artefatos", "slide 29 aponta base por beneficiário (LC 227/26), mas é paráfrase da norma nacional"], "impacto": "fracionar R$ 4.448.500 em 35 atos de R$ 127.100 zeraria o imposto; a regra que impede isso não está especificada", "consequencia": "motor precisa de doacoes_anteriores_ao_par por evento; simulação aprovada pode caducar com doação nova ao mesmo par", "responsavel": "jurídico — texto da Lei 7.850/02" }
+    ]
+  },
+
+  "modelo_de_dados": {
+    "descricao": "Entidade ausente no briefing da SUC-01B. O briefing prevê simulações, participantes, distribuições, parâmetros, resultados e revisões — não prevê o fato gerador.",
+    "entidade": "evento_tributavel",
+    "campos": ["ordem", "tipo (doacao | instituicao_usufruto | extincao_usufruto)", "doador", "donatario", "competencia_upf", "fator_base"],
+    "por_que_nao_pode_colapsar": {
+      "regra": "progressividade não é aditiva: somar bases de vários eventos e calcular uma vez superestima o imposto",
+      "exemplo_sintetico": { "upf": "254.36", "dois_atos_de_1M": "64738.40", "um_ato_de_2M": "92020.40", "erro": "27282.00", "erro_pct": "+42%" },
+      "exemplo_real": { "caso": "Agro Aliança Cenário II, base contábil", "somando_4_eventos": "250708.42", "colapsado_num_ato": "396850.40", "erro": "146141.98", "erro_pct": "+58%" }
+    },
+    "por_que_papel_e_do_evento": [
+      "a direção inverte no meio do arranjo: atos 3 e 4 do Cenário II vão da filha para os pais",
+      "a mesma pessoa troca de papel: Cristina é donatária no ato 2 e doadora no ato 3"
+    ],
+    "ja_existe_implicitamente": "cada bloco de escalonamento é um evento; são 20 blocos nas duas pastas, criados por cópia, sem identificador e nunca somados — origem dos mecanismos M3 e M4",
+    "nao_e_alavanca_de_economia": "no Agro Aliança o arranjo de 4 eventos (R$ 250.708,42) é MAIS caro que o de 2 (R$ 235.409,54), porque o evento extra move valor novo em vez de fatiar base existente"
+  },
+
+  "d7_busca_exaustiva": {
+    "descricao": "Busca pela origem dos três valores do slide 12 do Santa Terezinha.",
+    "espaco": { "bases": 22, "upfs": 4, "fatores": 5, "variantes": 8, "combinacoes_por_alvo": 3520 },
+    "variantes_testadas": ["correta (marginal)", "M1 larguras cheias + 8% marginal", "M2 marginal desde a isenção", "soma das alíquotas (20%)", "flat 2%", "flat 4%", "flat 6%", "flat 8%"],
+    "alvos": {
+      "contabil": { "base": "3663438.00", "publicado": "163477.48", "efetiva": "4.4624%" },
+      "itr": { "base": "14577996.03", "publicado": "920053.20", "efetiva": "6.3112%" },
+      "mercado": { "base": "161480140.91", "publicado": "74384119.18", "efetiva": "46.0639%", "impossivel": "acima do teto legal de 8%" }
+    },
+    "resultado": "nenhuma combinação chega a 5 centavos de nenhum alvo",
+    "conclusao": "o arquivo que gerou o slide 12 não é nenhum dos artefatos disponíveis; não é erro de fórmula do ST-WP",
+    "acao": "localizar a planilha de origem; sem ela os três valores não têm procedência"
+  },
+
+  "cobertura": {
+    "descricao": "Cobertura dos casos congelados por faixa, conferida por scripts/itcmd/selftest-golden.py.",
+    "por_faixa": { "isento": 2, "2%": 5, "4%": 9, "6%": 13, "8%": 34 },
+    "total_casos_verificaveis": 63,
+    "pendentes_de_homologacao": ["G3.08"],
+    "lacuna": "a faixa de isenção só é exercitada por casos sintéticos (G3.01, G3.02); nenhum dado real dos três trabalhos cai nela"
+  }
+}

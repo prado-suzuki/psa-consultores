@@ -110,3 +110,7 @@ supabase/.temp/
 # Planilha de trabalho na raiz. Insumo de análise, não entregável — a que fica
 # vai para a pasta da tarefa que a usa.
 /*.xlsx
+
+# Material de trabalho da calculadora de ITCMD (SUC-01) — fontes da OSG, relatórios,
+# scripts de análise e WPs gerados. Fica local: os PPTX de exemplo somam 47 MB.
+docs/osg/sucessao/
