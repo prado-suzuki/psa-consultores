@@ -454,12 +454,14 @@ O nome de um modelo aprovado **não pode ser editado**, e mudar o texto exige su
 modelo novo. Por isso o sufixo de versão entra desde agora: a próxima revisão de texto é
 `_v3`, sem decisão de nomenclatura às pressas.
 
-| Modelo no ar | Substitui | Marcadores |
-|---|---|---|
-| `solicitacao_enviada_v2` | `solicitacao_enviada` | 4 |
-| `situacao_documentos_v2` | `cobranca_pendencia` + `documento_recusado` + `situacao_documentos_v1` | 4 |
-| `documentacao_conferida_v1` | `documento_aprovado` | 3 |
-| `solicitacao_vencida_v1` | **ninguém** — aviso novo | 3 |
+Lido da Graph API em 25/08/2026: os quatro **APPROVED**, UTILITY, `pt_BR`, validade 43200s.
+
+| Modelo no ar | `notificacao_tipo` | Substitui | Marc. | Aprovado |
+|---|---|---|---|---|
+| `solicitacao_enviada_v2` | `solicitacao_enviada` | `solicitacao_enviada` | 4 | 18/08/2026 |
+| `situacao_documentos_v2` | `cobranca_pendencia` | `cobranca_pendencia` + `documento_recusado` + `situacao_documentos_v1` | 4 | 18/08/2026 |
+| `documentacao_conferida_v1` | `documento_aprovado` | `documento_aprovado` | 3 | 18/08/2026 |
+| `solicitacao_vencida_v1` | `solicitacao_vencida` | **ninguém** — aviso novo | 3 | 25/08/2026 |
 
 Os órfãos continuam aprovados e **não são apagados**: o fluxo deixa de referenciá-los, e
 apagar modelo aprovado não devolve nada e fecha a porta de voltar atrás. São cinco em

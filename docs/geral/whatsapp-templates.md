@@ -33,6 +33,28 @@ cada modelo e as amostras de variável para copiar no formulário estão em
 > órfão equivalente no mapa, sob a chave `atual`. Este não tem: se a Meta o pausar, a rota
 > para, porque não existe modelo antigo cobrindo o mesmo texto.
 
+## Os quatro avisos, com tipo e versão
+
+**Lido da Graph API em 25/08/2026** (`GET /{WABA}/message_templates`), não do painel. Os
+quatro estão **APPROVED**, categoria **UTILITY**, idioma **`pt_BR`** e validade **43200s**
+(12h). Os quatro avisos estão **concluídos**.
+
+| # | Aviso | `notificacao_tipo` no banco | `event_type` da borda | Modelo e versão na Meta | id do modelo | Aprovado |
+|---|---|---|---|---|---|---|
+| 1 | Solicitação enviada | `solicitacao_enviada` | `solicitacao_enviada` | `solicitacao_enviada_v2` | `900349773153289` | 18/08/2026 |
+| 2 | Situação dos documentos | `cobranca_pendencia` | `situacao_documentos` | `situacao_documentos_v2` | `2674210139701340` | 18/08/2026 |
+| 3 | Documentação conferida | `documento_aprovado` | `documento_aprovado` | `documentacao_conferida_v1` | `1800642144702842` | 18/08/2026 |
+| 4 | Solicitação em aberto | `solicitacao_vencida` | `solicitacao_vencida` | `solicitacao_vencida_v1` | `1388762306030268` | 25/08/2026 |
+
+**Os três nomes coincidem em 1, 3 e 4, e divergem em 2** — é o desacoplamento que o mapa
+`MODELOS` existe para absorver. Não deduza um do outro: o único lugar onde se lê qual
+modelo está no ar para qual aviso é aquele mapa, no nó `Montar Template OSG`.
+
+⚠️ **O aviso 4 está concluído mas não está em produção.** Faltam as quatro migrações da
+GES-04 e a borda `notificar` — ver
+[`../sprints/sprint-12/TAREFA_cobrar-solicitacao-sem-documento.md`](../sprints/sprint-12/TAREFA_cobrar-solicitacao-sem-documento.md).
+Os avisos 1 a 3 estão no ar nos dois canais.
+
 | # | Modelo na Meta | `event_type` | `notificacao_tipo` no banco | Marc. | Botão | Dispara |
 |---|---|---|---|---|---|---|
 | 1 | `solicitacao_enviada_v2` | `solicitacao_enviada` | idem | 4 | Enviar documentos | clique em Enviar solicitação |
@@ -387,15 +409,30 @@ painel: são NOVE modelos na conta, e os nove estão APPROVED.** Quatro no ar, c
 mensagens de template (todas de teste), das quais **10 cobradas** e 11 dentro de janela de
 atendimento aberta, logo gratuitas.
 
-⚠️ **O bloqueio do canal não é a fila da Meta: é publicar o app — e continua de pé.**
-Medido em 25/08/2026 pela API: `AutomacaoPSA` está em `app_status: dev_mode`,
-`is_live: false`. Nesse modo a mensagem só alcança quem tem papel no app ou quem abriu
-conversa nas últimas 24h — é por isso que os nossos testes passam, e é por isso que eles
-**não** provam alcance a cliente.
+✅ **O canal alcança cliente. O "publicar o app" que este documento dava como bloqueio em
+17/08 estava errado, e a correção é de 25/08/2026.**
 
-Dos três itens que travavam em 17/08, **dois saíram**: política de privacidade, Termos e
-Exclusão de Dados agora apontam para `psaconsultores.com.br`. Falta um: o e-mail de
-contato é um Gmail pessoal e está **não verificado** (`contact_email_verified: false`).
+A checagem que vale é `GET /{WABA}?fields=health_status`, que responde exatamente a
+pergunta "posso enviar?" por entidade. Medido em 25/08/2026:
+
+| Entidade | `can_send_message` |
+|---|---|
+| WABA | **AVAILABLE** |
+| Business | **AVAILABLE** |
+| App | **AVAILABLE** |
+
+O número `+55 65 3622-2426` está `CONNECTED`, com `code_verification_status: VERIFIED` e
+qualidade **GREEN**.
+
+**Por que o modo do app não decide isso.** O `AutomacaoPSA` está em `app_status: dev_mode`,
+`is_live: false` — e isso governa outros produtos da Meta, não a entrega do WhatsApp Cloud
+API. Quem governa a entrega é a verificação do negócio, o número registrado e o modelo
+aprovado, e os três estão de pé: o BM é verificado e tem meio de pagamento configurado.
+**Não deduza alcance do modo do app** — pergunte ao `health_status`, que é a fonte.
+
+O que sobrou dos itens de 17/08 é cosmético para a entrega: política de privacidade, Termos
+e Exclusão de Dados apontam para `psaconsultores.com.br`, e o e-mail de contato segue um
+Gmail pessoal não verificado (`contact_email_verified: false`).
 
 **Com o objeto carregando a preposição e o artigo, `ordem_servico_id` nulo produz frase
 quebrada, não capenga** — "a relação de documentos necessários ." Parâmetro vazio já
@@ -472,7 +509,7 @@ cheio do critério de aceite, não o de contingência.
 
 | Dependência | Dono |
 |---|---|
-| **Publicar o app.** Falta só o e-mail de contato verificado — hoje é Gmail pessoal, `contact_email_verified: false`. **Sem isso a mensagem não alcança cliente**, com modelo aprovado ou não | Alexandre |
+| ~~Publicar o app~~ — **saiu em 25/08/2026: não era bloqueio.** `health_status` responde AVAILABLE nas três entidades, e o canal alcança cliente. Ver a seção de estado | — |
 | **`representante.telefone` preenchido em 8 de 39**, contra e-mail em 39 de 39 (medido em produção em 25/08/2026) — sem telefone o modelo aprovado não alcança o cliente. É a maior limitação do canal, e nem modelo aprovado nem número verificado a mudam | cadastro; nenhuma tarefa desta sprint preenche |
 | `solicitacao.ordem_servico_id` nulo em **6 de 10** — sem OS o objeto vai vazio e a borda recusa com `sem_os` | Eduardo, no gerador; ou exigência de OS na tela de envio |
 | Subir a validade de 12h para 30 dias por API, nos nove modelos | fora do escopo da GES-04; algumas sprints à frente |
@@ -497,7 +534,9 @@ cheio do critério de aceite, não o de contingência.
   inversão do modelo 3.
 - **O quarto modelo existe e foi testado**: `solicitacao_vencida_v1`, aprovado em 25/08 e
   disparado ponta a ponta no sandbox no mesmo dia.
-- **Dois dos três itens de publicação do app saíram** — restou o e-mail de contato.
+- **"Publicar o app" nunca foi bloqueio de entrega**, e a linha saiu da tabela. O
+  `health_status` da WABA responde AVAILABLE para WABA, Business e App — o modo do app
+  governa outros produtos da Meta, não o Cloud API.
 - **A tarifa foi conferida contra a cobrança real**, não só contra a calculadora.
 
 ## O que os e-mails da ALE-12 herdam desta tarefa

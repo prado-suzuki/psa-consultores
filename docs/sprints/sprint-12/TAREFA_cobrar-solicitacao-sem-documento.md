@@ -146,10 +146,15 @@ Nenhum item é da engenharia do aviso: todos são de entrega ou de conta.
 | Duas linhas nos `Record` exaustivos | Só quebram depois de o `types.ts` ser regerado, o que acontece na aplicação acima | junto da migração |
 | Publicar a borda `notificar` em produção | O ramo `solicitacao_vencida` e o `ambiente_ref` estão só no sandbox | Alexandre |
 | Armar o cron | Nasce desativado: `vault.create_secret` para `notificar_url` e `n8n_callback_token`, depois `cron.alter_job(job_id, active := true)` | ato consciente |
-| **Publicar o app na Meta** | `AutomacaoPSA` está em `dev_mode` (`is_live: false`, medido em 25/08). Nesse modo a mensagem **só alcança quem tem papel no app** — nenhum cliente recebe, com modelo aprovado ou não. Falta o e-mail de contato verificado; hoje é um Gmail pessoal não verificado. Política de privacidade, Termos e Exclusão de Dados já apontam para `psaconsultores.com.br` | Alexandre |
 
-⚠️ **O último item vale para os quatro avisos, não só para este.** Não é dívida da GES-04;
-é o que separa "o canal funciona" de "o canal alcança cliente".
+**O canal alcança cliente — não há item da Meta pendente.** `health_status` da WABA
+responde `can_send_message: AVAILABLE` para WABA, Business e App (medido em 25/08/2026), o
+número está `CONNECTED` e `VERIFIED`, e o negócio tem verificação e meio de pagamento. O
+`dev_mode` do app governa outros produtos da Meta, não a entrega do Cloud API — não deduza
+alcance dele.
+
+**A única assimetria entre os canais é o cadastro:** telefone em 8 de 39 destinatários
+contra e-mail em 39 de 39. Quem não tem telefone recebe só por e-mail.
 
 ## Fora de escopo
 

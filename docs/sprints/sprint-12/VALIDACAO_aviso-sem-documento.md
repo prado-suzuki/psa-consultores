@@ -10,10 +10,11 @@ entrou como §4 em 25/08/2026.
 > Utilidade, e os dois canais foram testados ponta a ponta contra o cenário 4. Commit
 > `47c02dca`. Produção não recebeu o valor de enum, nem a função da lista, nem o cron.
 >
-> ⚠️ **O canal não alcança cliente real ainda, e não é a fila da Meta.** O app
-> `AutomacaoPSA` está em `dev_mode` (`is_live: false`, medido em 25/08/2026), e nesse modo
-> a mensagem só chega a quem tem papel no app. Vale para os **quatro** avisos, não só para
-> este.
+> ✅ **O canal alcança cliente.** `GET /{WABA}?fields=health_status` responde
+> `can_send_message: AVAILABLE` para WABA, Business e App (medido em 25/08/2026); o número
+> está `CONNECTED` e `VERIFIED`, com qualidade GREEN. O `dev_mode` do app **não** governa
+> a entrega do Cloud API — quem governa é a verificação do negócio, o número registrado e
+> o modelo aprovado. A única assimetria é o cadastro: telefone em 8 de 39 destinatários.
 
 **Quando sai:** a solicitação foi enviada, segue aberta, e **nenhum documento chegou**.
 Repete a cada período enquanto continuar assim. É o único aviso do ciclo em que não há

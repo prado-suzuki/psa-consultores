@@ -21,6 +21,24 @@ próprios.
 > ⚠️ **Cuidado ao ler documento ou commit antigo:** "aviso 4" antes de 17/08 significa
 > reenvio necessário, e depois de 25/08 significa solicitação vencida sem nenhum
 > documento. São textos sem relação. O antigo fica no fim do arquivo como registro.
+>
+> **Os quatro estão concluídos.** O aviso 4 é o único que ainda não foi para produção:
+> faltam as quatro migrações da GES-04 e a borda `notificar`.
+
+**Tipo e versão de cada um**, lidos da Graph API em 25/08/2026 — os quatro modelos de
+WhatsApp estão APPROVED, categoria UTILITY, idioma `pt_BR`:
+
+| # | `notificacao_tipo` no banco | `event_type` da borda | Modelo de WhatsApp | Aprovado |
+|---|---|---|---|---|
+| 1 | `solicitacao_enviada` | `solicitacao_enviada` | `solicitacao_enviada_v2` | 18/08/2026 |
+| 2 | `cobranca_pendencia` | `situacao_documentos` | `situacao_documentos_v2` | 18/08/2026 |
+| 3 | `documento_aprovado` | `documento_aprovado` | `documentacao_conferida_v1` | 18/08/2026 |
+| 4 | `solicitacao_vencida` | `solicitacao_vencida` | `solicitacao_vencida_v1` | 25/08/2026 |
+
+O e-mail não tem modelo aprovado nem versão: ele é montado por nós no nó
+`Montar Avisos OSG`. A coluna do modelo está aqui só para cruzar os dois canais do mesmo
+aviso sem trocar de arquivo — o detalhe de cada modelo vive em
+[`whatsapp-templates.md`](whatsapp-templates.md).
 
 | # | Aviso | `event_type` da borda | `notificacao_tipo` no banco | Dispara | Detalhe | Marc. |
 |---|---|---|---|---|---|---|
@@ -424,7 +442,7 @@ O aviso 4 repete o rótulo do 1, e é o certo: nos dois o que se pede é envio, 
 | `solicitacao.ordem_servico_id` nulo em **6 de 10** — `gerar_solicitacao_os` só grava a OS ao criar o cabeçalho, e sem ela o objeto vai vazio. A borda recusa antes de montar, com `sem_os` | Eduardo, no gerador; ou exigência de OS na tela de envio |
 | Prazo por exceção: os 30 dias são regra, sem coluna, então não há como abrir exceção por cliente ou produto | evolução futura |
 | Deploy em **produção**: os quatro avisos estão no sandbox e commitados (`47c02dca`), e produção não recebeu a borda nova nem as quatro migrações da GES-04 | Alexandre, pelo chat do Lovable |
-| **O app da Meta está em `dev_mode`** (medido em 25/08/2026). Isso não bloqueia o e-mail, mas bloqueia o WhatsApp do mesmo aviso — o cliente receberia por um canal só | Alexandre |
+| **`representante.telefone` em 8 de 39** (produção, 25/08/2026) — quem não tem telefone recebe só por e-mail. É a única assimetria real entre os dois canais | cadastro |
 
 **O que saiu desta tabela em 17/08/2026.** Três linhas foram resolvidas:
 
