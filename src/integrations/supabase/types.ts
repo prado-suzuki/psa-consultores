@@ -121,6 +121,382 @@ export type Database = {
           },
         ]
       }
+      agente_aprendizados: {
+        Row: {
+          ativo: boolean
+          conversa_id: string | null
+          correcao: string
+          criado_em: string
+          criado_por: string | null
+          escopo: string
+          id: string
+          licao: string
+          mensagem_id: string | null
+          pergunta: string | null
+          peso: number
+          resposta_original: string | null
+          revisado_em: string | null
+          revisado_por: string | null
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          conversa_id?: string | null
+          correcao: string
+          criado_em?: string
+          criado_por?: string | null
+          escopo: string
+          id?: string
+          licao: string
+          mensagem_id?: string | null
+          pergunta?: string | null
+          peso?: number
+          resposta_original?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          tipo?: string
+        }
+        Update: {
+          ativo?: boolean
+          conversa_id?: string | null
+          correcao?: string
+          criado_em?: string
+          criado_por?: string | null
+          escopo?: string
+          id?: string
+          licao?: string
+          mensagem_id?: string | null
+          pergunta?: string | null
+          peso?: number
+          resposta_original?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_aprendizados_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_aprendizados_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_aprendizados_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "agente_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_aprendizados_revisado_por_fkey"
+            columns: ["revisado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          escopo: string
+          id: string
+          max_insights_por_resposta: number
+          modelo: string
+          nivel_acesso: string
+          prompt_personalizado: string | null
+          rotulo: string
+          temperatura: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          escopo: string
+          id?: string
+          max_insights_por_resposta?: number
+          modelo?: string
+          nivel_acesso?: string
+          prompt_personalizado?: string | null
+          rotulo: string
+          temperatura?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          escopo?: string
+          id?: string
+          max_insights_por_resposta?: number
+          modelo?: string
+          nivel_acesso?: string
+          prompt_personalizado?: string | null
+          rotulo?: string
+          temperatura?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_conversas: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          escopo: string
+          excluido: boolean
+          filtros: Json | null
+          id: string
+          titulo: string | null
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          escopo: string
+          excluido?: boolean
+          filtros?: Json | null
+          id?: string
+          titulo?: string | null
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          escopo?: string
+          excluido?: boolean
+          filtros?: Json | null
+          id?: string
+          titulo?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_conversas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_insights: {
+        Row: {
+          categoria: string
+          conversa_id: string
+          criado_em: string
+          escopo: string
+          id: string
+          mensagem_id: string
+          severidade: string
+          texto: string
+          util: boolean | null
+        }
+        Insert: {
+          categoria?: string
+          conversa_id: string
+          criado_em?: string
+          escopo: string
+          id?: string
+          mensagem_id: string
+          severidade?: string
+          texto: string
+          util?: boolean | null
+        }
+        Update: {
+          categoria?: string
+          conversa_id?: string
+          criado_em?: string
+          escopo?: string
+          id?: string
+          mensagem_id?: string
+          severidade?: string
+          texto?: string
+          util?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_insights_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_insights_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "agente_mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_mensagens: {
+        Row: {
+          campos_usados: Json | null
+          conteudo: string
+          conversa_id: string
+          criado_em: string
+          id: string
+          metricas: Json | null
+          modo: string | null
+          papel: string
+        }
+        Insert: {
+          campos_usados?: Json | null
+          conteudo: string
+          conversa_id: string
+          criado_em?: string
+          id?: string
+          metricas?: Json | null
+          modo?: string | null
+          papel: string
+        }
+        Update: {
+          campos_usados?: Json | null
+          conteudo?: string
+          conversa_id?: string
+          criado_em?: string
+          id?: string
+          metricas?: Json | null
+          modo?: string | null
+          papel?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_notificacoes: {
+        Row: {
+          conversa_id: string | null
+          criado_em: string
+          escopo: string
+          id: string
+          insight_id: string | null
+          mensagem_id: string | null
+          origem_user_id: string | null
+          severidade: string
+          texto: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          conversa_id?: string | null
+          criado_em?: string
+          escopo: string
+          id?: string
+          insight_id?: string | null
+          mensagem_id?: string | null
+          origem_user_id?: string | null
+          severidade?: string
+          texto: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          conversa_id?: string | null
+          criado_em?: string
+          escopo?: string
+          id?: string
+          insight_id?: string | null
+          mensagem_id?: string | null
+          origem_user_id?: string | null
+          severidade?: string
+          texto?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_notificacoes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_insight_id_fkey"
+            columns: ["insight_id"]
+            isOneToOne: false
+            referencedRelation: "agente_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "agente_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_origem_user_id_fkey"
+            columns: ["origem_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_notificacoes_vistas: {
+        Row: {
+          dispensada: boolean
+          notificacao_id: string
+          user_id: string
+          visto_em: string
+        }
+        Insert: {
+          dispensada?: boolean
+          notificacao_id: string
+          user_id: string
+          visto_em?: string
+        }
+        Update: {
+          dispensada?: boolean
+          notificacao_id?: string
+          user_id?: string
+          visto_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_notificacoes_vistas_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "agente_notificacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_vistas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analises_semestrais: {
         Row: {
           ajustes_necessarios: string | null
@@ -4321,6 +4697,7 @@ export type Database = {
       ordem_servico: {
         Row: {
           cluster_id: string | null
+          contribuinte_id: string | null
           created_at: string | null
           data_emissao: string | null
           data_fim: string | null
@@ -4345,6 +4722,7 @@ export type Database = {
         }
         Insert: {
           cluster_id?: string | null
+          contribuinte_id?: string | null
           created_at?: string | null
           data_emissao?: string | null
           data_fim?: string | null
@@ -4369,6 +4747,7 @@ export type Database = {
         }
         Update: {
           cluster_id?: string | null
+          contribuinte_id?: string | null
           created_at?: string | null
           data_emissao?: string | null
           data_fim?: string | null
@@ -4397,6 +4776,13 @@ export type Database = {
             columns: ["cluster_id"]
             isOneToOne: false
             referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordem_servico_contribuinte_id_fkey"
+            columns: ["contribuinte_id"]
+            isOneToOne: false
+            referencedRelation: "contribuinte"
             referencedColumns: ["id"]
           },
           {
@@ -9214,6 +9600,7 @@ export type Database = {
         Args: { p_client_id: string }
         Returns: {
           cluster_id: string | null
+          contribuinte_id: string | null
           created_at: string | null
           data_emissao: string | null
           data_fim: string | null
