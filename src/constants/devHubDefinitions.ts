@@ -103,7 +103,7 @@ export const DEV_HUBS: Record<
     landingIcon: Calculator,
     landingSopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/",
     title:
-      "LEVANTAMENTO PROGRAMA DE INTEGRACAO SOCIAL (PIS) E CONTRIBUICAO PARA O FINANCIAMENTO DA SEGURIDADE SOCIAL (COFINS)",
+      "LEVANTAMENTO PIS/COFINS — PROGRAMA DE INTEGRAÇÃO SOCIAL E CONTRIBUIÇÃO PARA O FINANCIAMENTO DA SEGURIDADE SOCIAL",
     subtitle: "Escolha a ferramenta de cadastro de regras, apuracao, analise cruzada e revisao de registros.",
     heroEyebrow: "",
     heroTitle: "Levantamento PIS/COFINS",

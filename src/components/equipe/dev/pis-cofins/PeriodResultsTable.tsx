@@ -9,15 +9,20 @@ import type { HeaderBottomColumn, HeaderColumn } from "@/hooks/useTableHeaders";
 import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatPisCofinsCurrency } from "@/lib/pisCofinsPresentation";
+import {
+  PIS_HEADER_CLASS as HEADER_CLASS,
+  PIS_MONTH_HEADER_CLASS as MONTH_HEADER_CLASS,
+  PIS_MONTH_VALUE_CLASS as MONTH_VALUE_CLASS,
+  PIS_ROW_HIGHLIGHT_CLASS as ROW_HIGHLIGHT_CLASS,
+  PIS_HEADER_BUTTON_CLASS as HEADER_BUTTON_CLASS,
+  PIS_MONTH_LEFT_EDGE_CLASS as LEFT_EDGE_CLASS,
+  PIS_MONTH_RIGHT_EDGE_CLASS as RIGHT_EDGE_CLASS,
+  PIS_POSITIVE_VALUE_CLASS,
+  PIS_NEGATIVE_VALUE_CLASS,
+} from "@/components/equipe/dev/pis-cofins/theme";
 
-const HEADER_CLASS = "bg-[#14B8A6] text-white border-[#0B7A70]";
-const MONTH_HEADER_CLASS = "bg-[#3fd8c7] text-white border-[#0B7A70]";
-const MONTH_VALUE_CLASS = "bg-[rgba(20,184,166,0.04)]";
-const LEFT_EDGE_CLASS = "relative overflow-visible before:pointer-events-none before:absolute before:inset-y-0 before:-left-3 before:w-3 before:bg-[linear-gradient(to_left,rgba(15,118,110,0.22),transparent)]";
-const RIGHT_EDGE_CLASS = "relative overflow-visible after:pointer-events-none after:absolute after:inset-y-0 after:-right-3 after:w-3 after:bg-[linear-gradient(to_right,rgba(15,118,110,0.22),transparent)]";
-
-export const POSITIVE_VALUE_CLASS = "text-[#14B8A5]";
-export const NEGATIVE_VALUE_CLASS = "text-[#B84714]";
+export const POSITIVE_VALUE_CLASS = PIS_POSITIVE_VALUE_CLASS;
+export const NEGATIVE_VALUE_CLASS = PIS_NEGATIVE_VALUE_CLASS;
 
 export interface PeriodResultRow {
   label: string;
@@ -84,7 +89,7 @@ export function PeriodResultsTable({
             columnTooltips={columnTooltips} headerClassName={HEADER_CLASS} stickyHeaderClassName={HEADER_CLASS}
             expandedHeaderClassName={HEADER_CLASS} monthHeaderClassName={MONTH_HEADER_CLASS}
             collapsedHeaderClassName={HEADER_CLASS} totalHeaderClassName={HEADER_CLASS}
-            headerButtonClassName="text-white hover:bg-white/10 hover:text-white"
+            headerButtonClassName={HEADER_BUTTON_CLASS}
           />
           <TableBody>
             {rows.map((row) => (
@@ -93,13 +98,17 @@ export function PeriodResultsTable({
                   <TableCell colSpan={headerBottom.length + 2} className="p-2" />
                 </TableRow>
               ) : row.section ? (
-                <TableRow key={row.label} className="bg-[#14B8A6] text-white uppercase text-xs hover:!bg-[#3fd8c7]">
+                <TableRow key={row.label} className={cn(ROW_HIGHLIGHT_CLASS, "uppercase text-xs")}>
+                  {/* bg-[#14B8A6] sem hover aqui: a célula não precisa repetir o
+                      estado da linha-pai. Mesmo teal de PIS_HEADER_CLASS/
+                      PIS_TEAL_HEX em theme.ts — cravado por ser um utilitário
+                      só, sem combo suficiente pra valer um export próprio. */}
                   <TableCell className="font-bold sticky left-0 z-10 bg-[#14B8A6]" style={{ minWidth: 250 }}>{row.label}</TableCell>
                   <TableCell colSpan={headerBottom.length + 1} />
                 </TableRow>
               ) : (
               <TableRow key={row.label} className={cn(
-                row.highlighted && "bg-[#14B8A6] font-bold text-white hover:!bg-[#3fd8c7]",
+                row.highlighted && cn(ROW_HIGHLIGHT_CLASS, "font-bold"),
                 row.muted && "bg-muted/50 text-xs",
                 row.totalRow && "font-bold bg-muted/30",
                 row.subdued && "text-muted-foreground",

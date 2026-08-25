@@ -257,7 +257,34 @@ All colors MUST be HSL.
     --teal-500: 175 82% 29%;
     --teal-600: 175 84% 25%;
     --teal-700: 175 86% 20%;
-    
+    /* Degraus claros — faltavam na escala acima porque nada os consumia ainda.
+       Entraram para o dashboard de ROI (`roi.css`), que usava os tons CLAROS
+       do teal do Tailwind (#f0fdfa/#ccfbf1/#99f6e4) cravados em hex — ao
+       contrário do 500/600/700 acima, aqui o valor bate com o Tailwind cru,
+       porque não havia tom institucional a proteger nesta ponta clara da
+       escala (ela vira tint de fundo/borda, não vira `--primary`). */
+    --teal-50: 166 76% 97%;
+    --teal-100: 167 85% 89%;
+    --teal-200: 168 84% 78%;
+
+    /* ─── Escala slate — PRIMITIVA, mesma lógica do teal acima ──────────────
+       Cinza-azulado do Tailwind. Não existia no sistema: `--gray-*` acima é a
+       família "gray" (base #111827), família DIFERENTE do slate (base
+       #0f172a) — próximas mas não intercambiáveis. Entrou para o dashboard de
+       ROI, que tinha ~120 ocorrências de hex desta escala cravadas em
+       `roi.css`; qualquer outra tela que hoje cravar hex de slate pode migrar
+       para cá também. */
+    --slate-50: 210 40% 98%;
+    --slate-100: 210 40% 96%;
+    --slate-200: 214 32% 91%;
+    --slate-300: 213 27% 84%;
+    --slate-400: 215 20% 65%;
+    --slate-500: 215 16% 47%;
+    --slate-600: 215 19% 35%;
+    --slate-700: 215 25% 27%;
+    --slate-800: 217 33% 17%;
+    --slate-900: 222 47% 11%;
+
     /* Paleta Lime/Verde - #65A30D */
     --lime-400: 85 78% 50%;
     --lime-500: 85 85% 37%;
@@ -1960,6 +1987,109 @@ All colors MUST be HSL.
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   ROI — tokens do Dashboard e do Wizard "Configurar ROI"
+   ═══════════════════════════════════════════════════════════════════════
+   Fonte única de cor de `roi.css` (módulo mapa/ROI). O arquivo tinha ~250
+   ocorrências de hex cravado — a maior concentração do repositório — porque
+   nasceu antes deste sistema de tokens e nunca foi migrado.
+
+   NÃO é o mesmo sistema dos papéis semânticos do topo (`--success`,
+   `--warning`, `--destructive`): o ROI já tinha o SEU PRÓPRIO conjunto de
+   tons "sóbrios e institucionais" (comentário original do arquivo), calibrado
+   para conviver com a paleta PSA teal/navy/lime — trocá-los pelos papéis
+   globais mudaria a cor renderizada. Esta migração é 1-para-1: mesmo hex,
+   agora em HSL e com nome, zero pixel diferente.
+
+   `--roi-status-*` e os degraus `--roi-badge-*` seguem o MESMO contrato
+   fg/bg/bd um do outro (texto, fundo, borda de uma pílula), só que nasceram
+   em dois momentos diferentes do arquivo — o wizard (`--roi-status-*`,
+   4 estados: ok/warn/crit/zero) e o template de dashboard mais antigo
+   (`--roi-badge-*`, 4 badges de fase: mapeamento/diagnóstico/melhorias/roi).
+   Onde os dois já usavam o MESMO hex (ex.: `--roi-status-warn-fg` e o texto
+   do badge "mapeamento" são ambos #92400e), o segundo referencia o primeiro
+   em vez de repetir o número — ver os `var()` abaixo.
+
+   Os tons de uso único (uma cor, um lugar) — `--roi-goal-marker`,
+   `--roi-mat-track`, os dois `--roi-cyan-*` do experimento "to-be" da
+   Cascata — entram do mesmo jeito: um nome, não um hex solto no meio da
+   regra. Generalizá-los numa escala emerald/amber/blue/violet completa (como
+   `--slate-*`/`--teal-*` acima) é o próximo passo natural, mas não o desta
+   migração — o objetivo aqui foi zerar o hex cravado de `roi.css`, não
+   redesenhar o sistema de badges. */
+:root {
+  /* Fundo escuro do hero, do quote de recomendação e do cabeçalho do heatmap
+     — a paleta "navy" que dá nome ao trio teal/navy/lime do cabeçalho de
+     `roi.css`. Não é `--surface-escura` (o par do tema): aqueles alimentam um
+     gradiente de DOIS tons herdado pela área; este é um terceiro tom bespoke,
+     só do ROI, que aparece puro (heatmap) ou como stop de gradiente (hero). */
+  --roi-navy-deep: 222 42% 13%; /* #131b2e */
+  --roi-teal-deep: 176 61% 19%; /* #134e4a — meio-tom do gradiente escuro */
+  --roi-lime: 86 54% 51%; /* #8bc63f — acento lima do hero/quote */
+
+  /* Status do wizard "Configurar ROI" — 4 estados, contrato fg/bg/bd. */
+  --roi-status-ok-fg: 175 77% 26%; /* #0f766e */
+  --roi-status-ok-bg: var(--teal-50);
+  --roi-status-ok-bd: var(--teal-200);
+  --roi-status-warn-fg: 23 83% 31%; /* #92400e */
+  --roi-status-warn-bg: 48 100% 96%; /* #fffbeb */
+  --roi-status-warn-bd: 48 97% 77%; /* #fde68a */
+  --roi-status-crit-fg: 0 70% 35%; /* #991b1b */
+  --roi-status-crit-bg: 0 86% 97%; /* #fef2f2 */
+  --roi-status-crit-bd: 0 96% 89%; /* #fecaca */
+  --roi-status-zero-fg: var(--slate-500);
+  --roi-status-zero-bg: var(--slate-50);
+  --roi-status-zero-bd: var(--slate-200);
+
+  /* Badges de fase do dashboard (template mais antigo, `.status-badge`). */
+  --roi-badge-mapeamento-bg: 48 96% 89%; /* #fef3c7 — fg reusa --roi-status-warn-fg */
+  --roi-badge-mapeamento-bd: 46 97% 65%; /* #fcd34d */
+  --roi-badge-diagnostico-fg: 226 71% 40%; /* #1e40af */
+  --roi-badge-diagnostico-bg: 214 95% 93%; /* #dbeafe */
+  --roi-badge-diagnostico-bd: 212 96% 78%; /* #93c5fd */
+  --roi-badge-melhorias-fg: 263 69% 42%; /* #5b21b6 */
+  --roi-badge-melhorias-bg: 251 91% 95%; /* #ede9fe */
+  --roi-badge-melhorias-bd: 252 95% 85%; /* #c4b5fd */
+  --roi-badge-roi-fg: 163 88% 20%; /* #065f46 */
+  --roi-badge-roi-bg: 149 80% 90%; /* #d1fae5 — também cor do texto do pill-success do hero */
+  --roi-badge-roi-bd: 156 72% 67%; /* #6ee7b7 */
+
+  /* Verde "sucesso" fora do contrato ok/warn/crit — número/badge isolado. */
+  --roi-emerald-strong: 161 94% 30%; /* #059669 */
+  --roi-emerald-fg: 163 94% 24%; /* #047857 */
+  --roi-emerald-tint-bg: 152 81% 96%; /* #ecfdf5 */
+  --roi-emerald-tint-bd: 152 76% 80%; /* #a7f3d0 */
+  --roi-pill-success: 160 84% 39%; /* #10b981 — pill do hero, translúcido */
+
+  /* Variação de KPI (seta positiva/negativa dos cartões `dashv2-kpi-var`). */
+  --roi-kpi-positive-fg: 143 64% 24%; /* #166534 */
+  --roi-kpi-positive-bg: 141 84% 93%; /* #dcfce7 */
+  --roi-kpi-negative-bg: 0 93% 94%; /* #fee2e2 — fg reusa --roi-status-crit-fg */
+
+  /* Amber "warning" fora do contrato ok/warn/crit — borda/gradiente de KPI. */
+  --roi-warn-strong: 26 90% 37%; /* #b45309 */
+  --roi-warn-tint: 33 100% 96%; /* #fff7ed */
+
+  /* Vermelho/verde vivos — barras "atual vs. futuro" e pills do hero (mais
+     saturados que o crit/ok sóbrio do wizard, de propósito: ali é comparação
+     visual rápida, não rótulo de leitura). */
+  --roi-danger: 0 84% 60%; /* #ef4444 */
+  --roi-danger-light: 0 94% 82%; /* #fca5a5 */
+  --roi-success-light: 158 64% 52%; /* #34d399 */
+
+  /* Progress meter do wizard — dois estados que não repetem em nenhum outro
+     token acima. */
+  --roi-progress-warn: 32 95% 44%; /* #d97706 */
+  --roi-progress-crit: 0 74% 42%; /* #b91c1c */
+
+  /* Usos únicos — um hex, um lugar. */
+  --roi-highlight-tint: 183 100% 96%; /* #ecfeff — card de destaque + tag "to-be" da Cascata */
+  --roi-cyan-fg: 194 70% 27%; /* #155e75 — texto da tag "to-be" */
+  --roi-cyan-bd: 186 94% 82%; /* #a5f3fc — borda da tag "to-be" */
+  --roi-goal-marker: 224 64% 33%; /* #1e3a8a — marcador de meta no bullet chart */
+  --roi-mat-track: 210 31% 95%; /* #eef2f6 — trilho da barra de maturidade */
+}
+
 /* Editor de conteúdo de modelos (TipTap) — ver EditorConteudoModelo.tsx */
 .editor-modelo .ProseMirror {
   min-height: var(--editor-min-h, 11rem);
@@ -2265,7 +2395,10 @@ All colors MUST be HSL.
 }
 .agente-icone-btn:hover { background: var(--agente-surface3); color: var(--agente-ink); }
 
-.agente-corpo { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.agente-decisao-wrap { flex-shrink: 0; max-height: 34vh; overflow-y: auto; }
+.agente-decisao-wrap::-webkit-scrollbar { width: 6px; }
+.agente-decisao-wrap::-webkit-scrollbar-thumb { background: var(--agente-surface3); border-radius: 3px; }
+.agente-corpo { flex: 1; min-height: 96px; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
 .agente-corpo::-webkit-scrollbar { width: 6px; }
 .agente-corpo::-webkit-scrollbar-track { background: transparent; }
 .agente-corpo::-webkit-scrollbar-thumb { background: var(--agente-surface3); border-radius: 3px; }

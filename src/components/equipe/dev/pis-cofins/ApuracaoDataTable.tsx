@@ -9,6 +9,13 @@ import { Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import type { PivotRowGeneric } from "@/types/pisCofins";
+import {
+  PIS_MONTH_HEADER_CLASS as MONTH_HEADER_HIGHLIGHT_CLASS,
+  PIS_HEADER_BUTTON_CLASS as HEADER_FOOTER_BUTTON_CLASS,
+  PIS_MONTH_VALUE_CLASS as EXPANDED_MONTH_VALUE_CLASS,
+  PIS_MONTH_LEFT_EDGE_CLASS as EXPANDED_MONTH_LEFT_EDGE_CLASS,
+  PIS_MONTH_RIGHT_EDGE_CLASS as EXPANDED_MONTH_RIGHT_EDGE_CLASS,
+} from "@/components/equipe/dev/pis-cofins/theme";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
@@ -43,12 +50,11 @@ interface ApuracaoDataTableProps {
   columnTooltips?: Record<string, string>;
 }
 
+// Variante do PIS_HEADER_CLASS de theme.ts: aqui a borda repete o próprio
+// teal de fundo (#14B8A6) em vez do teal-700 mais escuro — cabeçalho/rodapé
+// desta tabela não tem o filete de contraste que o das outras duas tem.
+// Diferença real, não descuido: mantida como está.
 const HEADER_FOOTER_HIGHLIGHT_CLASS = "bg-[#14B8A6] text-white border-[#14B8A6]";
-const MONTH_HEADER_HIGHLIGHT_CLASS = "bg-[#3fd8c7] text-white border-[#0B7A70]";
-const HEADER_FOOTER_BUTTON_CLASS = "text-white hover:bg-white/10 hover:text-white";
-const EXPANDED_MONTH_VALUE_CLASS = "bg-[rgba(20,184,166,0.04)]";
-const EXPANDED_MONTH_LEFT_EDGE_CLASS = "relative overflow-visible before:pointer-events-none before:absolute before:inset-y-0 before:-left-3 before:w-3 before:bg-[linear-gradient(to_left,rgba(15,118,110,0.22),transparent)]";
-const EXPANDED_MONTH_RIGHT_EDGE_CLASS = "relative overflow-visible after:pointer-events-none after:absolute after:inset-y-0 after:-right-3 after:w-3 after:bg-[linear-gradient(to_right,rgba(15,118,110,0.22),transparent)]";
 
 export function ApuracaoDataTable({
   title,

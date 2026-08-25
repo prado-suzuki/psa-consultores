@@ -9,7 +9,7 @@ import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { TEAL, type SortState } from './formatadores';
+import { TEAL, LIME, RISCO, ALERTA, type SortState } from './formatadores';
 import { ALTURA_MIN_CABECALHO, ALTURA_MIN_KPI } from './layout';
 
 // ── Faixa de resumo (KPIs sobre fundo escuro) ──────────────────────────
@@ -98,18 +98,24 @@ export const TextoComTooltip = ({
   </Tooltip>
 );
 
+// Cor por tom, aplicada via `style` (não classe Tailwind): assim os valores
+// vem de `formatadores.ts` — a paleta validada do manual de marca — em vez de
+// repetir o hex aqui. `risco`/`alerta` do TOM_VALOR são tons CLAROS para texto
+// (rose-300/amber-300), sem equivalente ainda em `formatadores.ts` (RISCO e
+// ALERTA de lá são os tons escuros usados em fundo); ficam literais até essa
+// variante clara ganhar um nome lá.
 const TOM_VALOR: Record<NonNullable<KpiItem['tom']>, string> = {
-  neutro: 'text-white',
-  positivo: 'text-[#A3E635]',
-  risco: 'text-[#FDA4AF]',
-  alerta: 'text-[#FCD34D]',
+  neutro: '#fff',
+  positivo: LIME[400],
+  risco: '#FDA4AF',
+  alerta: '#FCD34D',
 };
 
 const TOM_BARRA: Record<NonNullable<KpiItem['tom']>, string> = {
-  neutro: 'bg-[#0D9488]',
-  positivo: 'bg-[#84CC16]',
-  risco: 'bg-[#BE123C]',
-  alerta: 'bg-[#B45309]',
+  neutro: TEAL[600],
+  positivo: LIME[500],
+  risco: RISCO,
+  alerta: ALERTA,
 };
 
 export const FaixaResumo = ({
@@ -141,7 +147,8 @@ export const FaixaResumo = ({
       {itens.map((k) => (
         <div key={k.label} className="flex gap-2.5" style={{ minHeight: ALTURA_MIN_KPI }}>
           <span
-            className={cn('mt-0.5 w-0.5 shrink-0 rounded-full', TOM_BARRA[k.tom ?? 'neutro'])}
+            className="mt-0.5 w-0.5 shrink-0 rounded-full"
+            style={{ background: TOM_BARRA[k.tom ?? 'neutro'] }}
           />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-[0.08em] text-slate-400">
@@ -152,10 +159,8 @@ export const FaixaResumo = ({
               <Skeleton className="mt-1.5 h-6 w-20 bg-white/10" />
             ) : (
               <p
-                className={cn(
-                  'mt-0.5 text-[22px] font-semibold leading-none tabular-nums',
-                  TOM_VALOR[k.tom ?? 'neutro'],
-                )}
+                className="mt-0.5 text-[22px] font-semibold leading-none tabular-nums"
+                style={{ color: TOM_VALOR[k.tom ?? 'neutro'] }}
               >
                 {k.valor}
               </p>
@@ -170,7 +175,7 @@ export const FaixaResumo = ({
                         k.variacao.pct === 0
                           ? '#94A3B8'
                           : k.variacao.pct > 0 === (k.variacao.melhorQuando === 'sobe')
-                            ? '#A3E635'
+                            ? LIME[400]
                             : '#FDA4AF',
                     }}
                   >
@@ -206,8 +211,7 @@ export const FraseInsight = ({
   className?: string;
 }) => {
   if (!insight) return null;
-  const cor =
-    insight.tom === 'risco' ? '#BE123C' : insight.tom === 'alerta' ? '#B45309' : undefined;
+  const cor = insight.tom === 'risco' ? RISCO : insight.tom === 'alerta' ? ALERTA : undefined;
   return (
     <span className={className}>
       <strong style={cor ? { color: cor } : undefined}>{insight.destaque}</strong> {insight.texto}
