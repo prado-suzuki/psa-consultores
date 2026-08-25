@@ -8,6 +8,7 @@ import type { ComboOption } from './MultiSelectCombobox';
 
 /** Single-select com busca (Popover + Command). Para usuário/cliente no preview. */
 interface SingleSelectComboboxProps {
+  id?: string;
   options: ComboOption[];
   value: string | null;
   onChange: (value: string | null) => void;
@@ -18,6 +19,7 @@ interface SingleSelectComboboxProps {
 }
 
 export function SingleSelectCombobox({
+  id,
   options,
   value,
   onChange,
@@ -33,6 +35,7 @@ export function SingleSelectCombobox({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          id={id}
           variant="outline"
           role="combobox"
           aria-expanded={open}

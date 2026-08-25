@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { OrgProject } from '@/hooks/useOrgProjects';
 import type { OrgTask } from '@/hooks/useOrgTasks';
 import type { OsRow } from '@/lib/dashboardClientesOs/types';
-import { buildProjetosTarefasHierarchy, extractProductAcronyms, hasTaskFilters, shortProjectName } from '@/lib/projetosTarefasHierarchy';
+import { buildProjetosTarefasHierarchy, extractProductAcronyms, hasTaskFilters, shortProjectName, withProjectClientFallback } from '@/lib/projetosTarefasHierarchy';
 
 const project = (id: string, osId: string | null = 'os-1'): OrgProject => ({
   id,
@@ -70,6 +70,23 @@ describe('buildProjetosTarefasHierarchy', () => {
   it('extrai apenas as siglas dos produtos contratados', () => {
     expect(extractProductAcronyms('PTR — Planejamento Tributário, CT - Consultoria Tributária')).toEqual(['PTR', 'CT']);
     expect(extractProductAcronyms(null)).toEqual([]);
+  });
+
+  it('exibe na tarefa o cliente herdado do projeto sem substituir o vínculo direto', () => {
+    const inheritedProject = project('project-1');
+    inheritedProject.external_client_id = 'client-project';
+    inheritedProject.external_client = { id: 'client-project', nome: 'Cliente do projeto' };
+    const directClient = { id: 'client-task', nome: 'Cliente da tarefa' };
+
+    const result = withProjectClientFallback([
+      task('herdada'),
+      task('direta', { client_id: directClient.id, client: directClient }),
+      task('orfã', { project_id: null }),
+    ], [inheritedProject]);
+
+    expect(result[0].client).toEqual(inheritedProject.external_client);
+    expect(result[1].client).toEqual(directClient);
+    expect(result[2].client).toBeUndefined();
   });
 
   it('encurta o nome do projeto para o produto, sem cliente, OS nem sigla', () => {

@@ -59,6 +59,20 @@ export function hasTaskFilters(filters: TaskFilters) {
   );
 }
 
+export function withProjectClientFallback(tasks: OrgTask[], projects: OrgProject[]) {
+  const clientByProjectId = new Map(
+    projects
+      .filter(project => project.external_client)
+      .map(project => [project.id, project.external_client!]),
+  );
+
+  return tasks.map(task => {
+    if (task.client || !task.project_id) return task;
+    const projectClient = clientByProjectId.get(task.project_id);
+    return projectClient ? { ...task, client: projectClient } : task;
+  });
+}
+
 /**
  * Nome do projeto sem o que a árvore já mostra acima dele: o cliente vem no divisor,
  * o número da OS na linha da OS e as siglas dos produtos junto dela. De

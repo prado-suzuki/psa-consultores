@@ -24,7 +24,7 @@ import { ProjetoDialog } from '@/components/equipe/projetos-cadastro/ProjetoDial
 import { ProjetoDeleteDialog } from '@/components/equipe/projetos-cadastro/ProjetoDeleteDialog';
 import { CriarProjetosOsDialog } from '@/components/equipe/projetos-lote/CriarProjetosOsDialog';
 import { ProjetosTarefasList } from '@/components/equipe/tarefas/ProjetosTarefasList';
-import { extractProductAcronyms, hasTaskFilters, type ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
+import { extractProductAcronyms, hasTaskFilters, withProjectClientFallback, type ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
 import { TaskFilters } from '@/components/equipe/fiscal/tasks/TaskFilters';
 import { TaskKPICards } from '@/components/equipe/fiscal/tasks/TaskKPICards';
 import { TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
@@ -137,20 +137,23 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   // espera — caso contrário o loader giraria para sempre.
   const isScopeUnresolved = isClusterLoading || (!!clusterId && !visibleProjectIds && !isScopeError);
   const tasks = useMemo(() => {
-    if (deepLinkTaskId) return allTasks;
+    const projectsById = new Map(listProjects.map(project => [project.id, project]));
     // Sem cluster resolvido (clusterId nulo/carregando) → NÃO escopar: degrada para o
     // comportamento atual em vez de esconder tarefas indevidamente.
-    const clusterTasks = !visibleProjectIds ? allTasks : allTasks.filter(t =>
-      !t.project_id ||
-      visibleProjectIds.has(t.project_id) ||
-      (!!user?.id && t.reviewer_id === user.id && t.status === 'review')
-    );
-    if (!filters.clientId) return clusterTasks;
-    const projectsById = new Map(listProjects.map(project => [project.id, project]));
-    return clusterTasks.filter(task =>
-      task.client_id === filters.clientId ||
-      (!!task.project_id && projectsById.get(task.project_id)?.external_client_id === filters.clientId)
-    );
+    const clusterTasks = deepLinkTaskId || !visibleProjectIds
+      ? allTasks
+      : allTasks.filter(t =>
+        !t.project_id ||
+        visibleProjectIds.has(t.project_id) ||
+        (!!user?.id && t.reviewer_id === user.id && t.status === 'review')
+      );
+    const clientTasks = !filters.clientId
+      ? clusterTasks
+      : clusterTasks.filter(task =>
+        task.client_id === filters.clientId ||
+        (!!task.project_id && projectsById.get(task.project_id)?.external_client_id === filters.clientId)
+      );
+    return withProjectClientFallback(clientTasks, listProjects);
   }, [allTasks, visibleProjectIds, deepLinkTaskId, user?.id, filters.clientId, listProjects]);
   const visibleListProjects = useMemo(
     () => filters.clientId
