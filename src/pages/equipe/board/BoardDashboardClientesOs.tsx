@@ -5,6 +5,8 @@ import {
 import { AlertTriangle, ArrowUp, ArrowDown, ChevronsUpDown, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoBoardProjetos, rotuloMes } from '@/lib/agenteContextoProjetos';
 import { BoardChip } from '@/components/board/BoardChip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -47,6 +49,12 @@ const EMPTY_RATEIO: Map<string, FatiaRateio[]> = new Map();
 const META_MENSAL_SETOR: number | null = null;
 
 const TODOS = '__todos__';
+const TIPO_OPTIONS = [
+  { value: TODOS, label: 'Todos os tipos' }, { value: 'Fixo', label: 'Fixo' },
+  { value: 'Pontual', label: 'Pontual' }, { value: 'Em Análise', label: 'Em Análise' },
+  { value: 'Não informado', label: 'Não informado' },
+];
+
 const PERIODO_VAZIO = '|';
 const PERIODO_DEFAULT = '2026-01-01|'; // default: OS iniciadas a partir de 01/01/2026
 const DEFAULTS = { periodo: PERIODO_DEFAULT, cliente: TODOS, tipo: TODOS, categoria: TODOS, centroCusto: TODOS };
@@ -109,6 +117,7 @@ export const DashboardClientesOsContent = ({
   scopeProjetosAClientesVisiveis = false,
   usarClusterGlobal = false,
   tituloInterno = 'Clientes e OS',
+  escopoAgente = '',
 }: {
   /** Área Gerencial: restringe a aba de projetos aos clientes visíveis (cluster). */
   scopeProjetosAClientesVisiveis?: boolean;
@@ -127,6 +136,13 @@ export const DashboardClientesOsContent = ({
    * Mariana 17/08) é que passa "Projetos"; as outras duas não pediram troca.
    */
   tituloInterno?: string;
+  /**
+   * Escopo do Agente PSA. VAZIO por padrão de propósito: este conteúdo é
+   * reaproveitado na Gerencial da Tax e da OSG, e publicar `board.projetos`
+   * lá faria o agente responder como se a pessoa estivesse no Board — mesmo
+   * número, tela errada. Cada área que quiser o agente passa o seu escopo.
+   */
+  escopoAgente?: string;
 } = {}) => {
   const { ambiente } = useDashboardAmbiente();
   const { data, isLoading, error, hoje } = useDashboardClientesOs(ambiente);
@@ -301,15 +317,53 @@ export const DashboardClientesOsContent = ({
   );
   const maxStatus = Math.max(1, ...serieStatus.map((s) => s.qtd));
 
+  // ── O que o Agente PSA le desta tela ───────────────────────────────────
+  // Os MESMOS valores que os cartoes, o grafico e a matriz desenham -- nada
+  // recalculado (ver `agenteContextoProjetos`). O rotulo do periodo e montado
+  // aqui porque a barra de filtros mostra o range, nao uma palavra.
+  const janelaAgente = useMemo(() => {
+    if (!de && !ate) return 'todo o periodo';
+    if (de && ate) return `${de} a ${ate}`;
+    return de ? `a partir de ${de}` : `ate ${ate}`;
+  }, [de, ate]);
+
+  const rotuloDe = useCallback(
+    (opcoes: { value: string; label: string }[], valor: string) =>
+      (valor === TODOS ? null : opcoes.find((o) => o.value === valor)?.label ?? valor),
+    [],
+  );
+
+  const contextoAgente = useMemo(() => (escopoAgente ? contextoBoardProjetos({
+    janela: janelaAgente,
+    filtros: {
+      periodo,
+      cliente: rotuloDe(clienteOptions, cliente),
+      tipo: rotuloDe(TIPO_OPTIONS, tipo),
+      categoria: rotuloDe(categoriaOptions, categoria),
+      centroCusto: centroSelecionado?.label ?? null,
+      empresa: clusterGlobal ? 'recorte ativo' : null,
+    },
+    kpisClientes: kClientes,
+    kpisOperacional: kOper,
+    kpisProjetos: kProj,
+    valorSemData,
+    serieMensal,
+    matriz,
+    detalhe,
+    status: serieStatus,
+    falhas: error ? ['contratos, clientes e OS'] : [],
+  }) : null), [
+    escopoAgente, janelaAgente, periodo, rotuloDe, clienteOptions, cliente,
+    tipo, categoriaOptions, categoria, centroSelecionado,
+    clusterGlobal, kClientes, kOper, kProj, valorSemData, serieMensal, matriz,
+    detalhe, serieStatus, error,
+  ]);
+
+  useRegistrarContextoAgente(escopoAgente, contextoAgente, isLoading);
+
   // Ordenação das tabelas.
   const carteiraSort = useSort(osFiltrado, 'cliente_nome', 'asc');
   const detalheSort = useSort(projetosFiltrado, 'horas_estimadas', 'desc');
-
-  const tipoOptions = [
-    { value: TODOS, label: 'Todos os tipos' }, { value: 'Fixo', label: 'Fixo' },
-    { value: 'Pontual', label: 'Pontual' }, { value: 'Em Análise', label: 'Em Análise' },
-    { value: 'Não informado', label: 'Não informado' },
-  ];
 
   return (
       <div ref={containerRef} style={{ background: 'var(--bd-page)' }}>
@@ -340,7 +394,7 @@ export const DashboardClientesOsContent = ({
               <SelectFilter value={cliente} onChange={(v) => setFilter('cliente', v)} options={clienteOptions} width={210} />
             </Field>
             <Field label="Tipo">
-              <SelectFilter value={tipo} onChange={(v) => setFilter('tipo', v)} options={tipoOptions} width={150} />
+              <SelectFilter value={tipo} onChange={(v) => setFilter('tipo', v)} options={TIPO_OPTIONS} width={150} />
             </Field>
             <Field label="Categoria">
               <SelectFilter value={categoria} onChange={(v) => setFilter('categoria', v)} options={categoriaOptions} width={160} />
@@ -614,7 +668,7 @@ export const DashboardClientesOsContent = ({
 // FiscalLayout, então o miolo vive separado do layout.
 const BoardDashboardClientesOs = () => (
   <BoardLayout title="Projetos" subtitle="Painel nativo (teste)">
-    <DashboardClientesOsContent usarClusterGlobal tituloInterno="Projetos" />
+    <DashboardClientesOsContent usarClusterGlobal tituloInterno="Projetos" escopoAgente="board.projetos" />
   </BoardLayout>
 );
 
