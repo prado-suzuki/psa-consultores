@@ -390,6 +390,113 @@ export type Database = {
           },
         ]
       }
+      agente_notificacoes: {
+        Row: {
+          conversa_id: string | null
+          criado_em: string
+          escopo: string
+          id: string
+          insight_id: string | null
+          mensagem_id: string | null
+          origem_user_id: string | null
+          severidade: string
+          texto: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          conversa_id?: string | null
+          criado_em?: string
+          escopo: string
+          id?: string
+          insight_id?: string | null
+          mensagem_id?: string | null
+          origem_user_id?: string | null
+          severidade?: string
+          texto: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          conversa_id?: string | null
+          criado_em?: string
+          escopo?: string
+          id?: string
+          insight_id?: string | null
+          mensagem_id?: string | null
+          origem_user_id?: string | null
+          severidade?: string
+          texto?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_notificacoes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_insight_id_fkey"
+            columns: ["insight_id"]
+            isOneToOne: false
+            referencedRelation: "agente_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "agente_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_origem_user_id_fkey"
+            columns: ["origem_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_notificacoes_vistas: {
+        Row: {
+          dispensada: boolean
+          notificacao_id: string
+          user_id: string
+          visto_em: string
+        }
+        Insert: {
+          dispensada?: boolean
+          notificacao_id: string
+          user_id: string
+          visto_em?: string
+        }
+        Update: {
+          dispensada?: boolean
+          notificacao_id?: string
+          user_id?: string
+          visto_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_notificacoes_vistas_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "agente_notificacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_vistas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analises_semestrais: {
         Row: {
           ajustes_necessarios: string | null
