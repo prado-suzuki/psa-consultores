@@ -7,9 +7,15 @@
 import { useState } from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ isAdmin: true }) }));
+// Papel mutável: cada teste escolhe quem está logado. Os três flags são
+// estritos de propósito, como no AuthContext real — admin não engloba os outros.
+const papel = vi.hoisted(() => ({ isAdmin: true, isLider: false, isSublider: false }));
+const avisos = vi.hoisted(() => ({ warning: vi.fn(), success: vi.fn(), error: vi.fn() }));
+
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => papel }));
+vi.mock('sonner', () => ({ toast: avisos }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn() } }));
 
 import ContribuintesTab from '@/components/equipe/client-form/ContribuintesTab';
@@ -26,8 +32,8 @@ const contribuinte = (over: Partial<DraftEntity> = {}): DraftEntity =>
     ...over,
   }) as DraftEntity;
 
-function montar() {
-  const estado = { atual: [contribuinte()] as DraftEntity[] };
+function montar(over: Partial<DraftEntity> = {}) {
+  const estado = { atual: [contribuinte(over)] as DraftEntity[] };
 
   function Anfitriao() {
     const [entities, setEntities] = useState<DraftEntity[]>(estado.atual);
@@ -52,6 +58,13 @@ function montar() {
   render(<TooltipProvider><Anfitriao /></TooltipProvider>);
   return estado;
 }
+
+beforeEach(() => {
+  papel.isAdmin = true;
+  papel.isLider = false;
+  papel.isSublider = false;
+  avisos.warning.mockClear();
+});
 
 const razaoSocial = () => screen.getByPlaceholderText('Nome Empresarial');
 
@@ -82,5 +95,47 @@ describe('razão social e nome fantasia guardam a caixa digitada', () => {
 
     await user.tab();
     expect(estado.atual[0].nome_razao_social).toBe('AGRO MMS S/A');
+  });
+});
+
+// A lixeira não é mais privilégio de admin. Linha que nunca foi salva (sem
+// `_dbId`) sai da lista por qualquer um que edite o formulário — nada vai ao
+// banco. Linha já salva exige sublíder ou superior, o teto da policy
+// `rls_contribuinte_update`.
+describe('lixeira de contribuinte', () => {
+  it('team_member remove linha que ainda não foi salva, sem checagem de papel', async () => {
+    papel.isAdmin = false;
+    const user = userEvent.setup();
+    const estado = montar(); // sem _dbId: a linha nunca foi ao banco
+
+    await user.click(screen.getByRole('button', { name: 'Remover contribuinte' }));
+    expect(await screen.findByText(/Nada será removido do banco/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Remover' }));
+
+    expect(estado.atual).toHaveLength(0);
+    expect(avisos.warning).not.toHaveBeenCalled();
+  });
+
+  it('team_member é barrado ao excluir contribuinte já salvo, com o motivo correto', async () => {
+    papel.isAdmin = false;
+    const user = userEvent.setup();
+    const estado = montar({ _dbId: 'db-1' });
+
+    await user.click(screen.getByRole('button', { name: 'Remover contribuinte (sem permissão)' }));
+
+    expect(avisos.warning).toHaveBeenCalledWith(expect.stringMatching(/Sublíder ou superior/));
+    expect(estado.atual).toHaveLength(1);
+  });
+
+  it('sublíder exclui contribuinte já salvo', async () => {
+    papel.isAdmin = false;
+    papel.isSublider = true;
+    const user = userEvent.setup();
+    const estado = montar({ _dbId: 'db-1' });
+
+    await user.click(screen.getByRole('button', { name: 'Remover contribuinte' }));
+    await user.click(await screen.findByRole('button', { name: 'Remover' }));
+
+    expect(estado.atual).toHaveLength(0);
   });
 });
