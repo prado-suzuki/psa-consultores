@@ -164,7 +164,15 @@ export interface TaskFilters {
         const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
         allTasks = allTasks.filter(task => isTarefaDoAmbiente(task, ambientePorCliente));
 
-        // Client-side assignedTo filter: shows parent tasks that have matching subtasks
+        // Filtro por responsável no cliente (e não no banco) para preservar o
+        // vínculo da subtarefa: além das tarefas da pessoa, a lista mantém a
+        // tarefa-mãe delas, mesmo que a mãe seja de outra pessoa — é ela que
+        // liga a subtarefa ao projeto e ao cliente na árvore.
+        //
+        // O que NÃO entra: as subtarefas IRMÃS. Manter "toda filha de mãe
+        // preservada" fazia o filtro de uma pessoa mostrar as subtarefas de
+        // quem dividia a mesma mãe (e inflava KPIs e esforço, que leem esta
+        // mesma lista).
         if (filters?.assignedTo && filters.assignedTo !== 'all') {
           const targetId = filters.assignedTo === 'mine' ? user?.id : filters.assignedTo;
           if (targetId) {
@@ -178,8 +186,7 @@ export interface TaskFilters {
             );
             allTasks = allTasks.filter(t =>
               belongsToTarget(t) ||
-              matchingSubtaskParentIds.has(t.id) ||
-              (t.parent_task_id && matchingSubtaskParentIds.has(t.parent_task_id))
+              matchingSubtaskParentIds.has(t.id)
             );
           }
         }
@@ -676,6 +683,28 @@ export const useMoveOrgTasksToProject = (area: AreaKey = 'tax') => {
   });
 };
 
+/**
+ * Subtarefas ativas de uma tarefa CONTADAS NO BANCO — nunca na lista da tela.
+ *
+ * A lista está filtrada, e por isso não enxerga as filhas que o filtro escondeu
+ * (de outro responsável, de outro status). Como `org_tasks_parent_task_id_fkey`
+ * é ON DELETE CASCADE, contar na lista liberava apagar uma mãe cujas filhas
+ * ativas estavam fora da tela — e elas morriam em silêncio, sem aparecer na
+ * confirmação e sem entrar no audit_logs (o cascade não passa pelo app).
+ */
+export const contarSubtarefasAtivas = async (taskId: string) => {
+  const { count, error } = await supabase
+    .from('org_tasks')
+    .select('id', { count: 'exact', head: true })
+    .eq('parent_task_id', taskId)
+    .neq('status', 'done');
+  if (error) throw error;
+  return count ?? 0;
+};
+
+export const mensagemSubtarefasAtivas = (quantidade: number) =>
+  `Existe(m) ${quantidade} subtarefa(s) ativa(s). Conclua ou exclua as subtarefas primeiro.`;
+
  export const useDeleteOrgTask = (area: AreaKey = 'tax') => {
    const queryClient = useQueryClient();
    const { logAction } = useAuditLog();
@@ -684,6 +713,11 @@ export const useMoveOrgTasksToProject = (area: AreaKey = 'tax') => {
      mutationFn: async (id: string) => {
        // Get task info for audit log
        const { data: task } = await supabase.from('org_tasks').select('title, parent_task_id').eq('id', id).single();
+
+       // Trava real contra o cascade: vale para qualquer tela e qualquer filtro,
+       // porque é o único ponto por onde a exclusão passa.
+       const ativas = await contarSubtarefasAtivas(id);
+       if (ativas > 0) throw new Error(mensagemSubtarefasAtivas(ativas));
 
        await assertCanPerform('org_tasks', 'delete', id);
        // `.select()` permite detectar o caso em que a RLS bloqueia silenciosamente
