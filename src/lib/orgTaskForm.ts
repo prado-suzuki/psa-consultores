@@ -36,7 +36,7 @@ export const taskSchema = z
     parent_task_id: z.string().optional(),
     project_id: z.string().min(1, 'Projeto é obrigatório'),
     client_id: z.string().min(1, 'Cliente é obrigatório'),
-    contribuinte_id: z.string().min(1, 'Contribuinte é obrigatório'),
+    contribuinte_id: z.string().optional(),
     estimated_hours: z.coerce.number().positive('Deve ser maior que 0'),
     actual_hours: z
       .union([z.coerce.number(), z.literal('')])

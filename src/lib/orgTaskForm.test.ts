@@ -43,6 +43,10 @@ describe('taskSchema', () => {
     expect(taskSchema.safeParse(validInput).success).toBe(true);
   });
 
+  it('aceita tarefa sem contribuinte', () => {
+    expect(taskSchema.safeParse({ ...validInput, contribuinte_id: undefined }).success).toBe(true);
+  });
+
   it('exige horas realizadas positivas quando o status é done', () => {
     const result = taskSchema.safeParse({ ...validInput, status: 'done', actual_hours: '' });
     expect(result.success).toBe(false);
@@ -59,9 +63,9 @@ describe('taskSchema', () => {
   it('não bloqueia horas muito acima da estimativa — o aviso ao lado do campo é informativo', () => {
     // 60h em 5h estimadas acende o `AvisoHorasDigitadas`, mas salvar não exige
     // confirmar nada: a hora pode ter estourado de verdade.
-    expect(
-      taskSchema.safeParse({ ...validInput, status: 'done', actual_hours: 60 }).success,
-    ).toBe(true);
+    expect(taskSchema.safeParse({ ...validInput, status: 'done', actual_hours: 60 }).success).toBe(
+      true,
+    );
   });
 
   it('trata zero como ausência de apontamento ao concluir', () => {

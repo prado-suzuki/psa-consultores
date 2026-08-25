@@ -395,7 +395,7 @@ describe('TaskModal — criação', () => {
     expect(screen.queryByRole('button', { name: /Alterar contexto/ })).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^Projeto/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Cliente/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Contribuinte/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Contribuinte \(opcional\)/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Tarefa Pai/)).toBeInTheDocument();
 
     // As mesmas pílulas da edição, no lugar da antiga seção "Execução".
@@ -491,12 +491,11 @@ describe('TaskModal — criação', () => {
     // customizadas, porque chegam como `undefined` e não como string vazia.
     //
     // A ordem é a do DOM depois do redesenho: título, cartão de contexto
-    // (projeto → cliente → contribuinte), faixa de propriedades (responsável,
+    // (projeto → cliente), faixa de propriedades (responsável,
     // datas, esforço) e, por último, a descrição.
     expect(formMessages()).toEqual([
       'Título é obrigatório',
       'Projeto é obrigatório',
-      'Required',
       'Required',
       'Required',
       'Data de Início é obrigatória',
@@ -697,24 +696,26 @@ describe('TaskModal — cabeçalho da edição', () => {
     renderModal({ task: baseTask, parentTasks: [{ ...baseTask, id: 'P1', title: 'Pai do Alfa' }] });
 
     expect(screen.getByLabelText(/^Título/)).toHaveValue('Tarefa existente');
-    // Cliente, projeto e contribuinte viram texto — sem select à mostra.
+    // Cliente e projeto viram texto; contribuinte continua editável por tarefa.
     expect(screen.getByText('Cliente Um')).toBeInTheDocument();
     expect(screen.getByText('Projeto Alfa')).toBeInTheDocument();
-    expect(screen.getByText(/Contribuinte Um · 11\.111\.111\/0001-11/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Contribuinte \(opcional\)/)).toHaveTextContent(
+      'Contribuinte Um (11.111.111/0001-11)',
+    );
     expect(screen.queryByLabelText(/^Cliente/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Tarefa Pai/)).not.toBeInTheDocument();
   });
 
-  it('abre o painel de contexto sozinho quando o contexto reprova na validação', async () => {
+  it('mantém o contribuinte opcional visível fora de Alterar contexto', async () => {
     const user = userEvent.setup();
     renderModal({ task: { ...baseTask, contribuinte_id: null } });
 
-    expect(screen.queryByLabelText(/^Contribuinte/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^Contribuinte \(opcional\)/)).toHaveTextContent('Não informado');
+    expect(screen.queryByLabelText(/^Cliente/)).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
-    // Sem isso a mensagem de erro ficaria escondida dentro do painel fechado.
-    expect(await screen.findByLabelText(/^Contribuinte/)).toBeInTheDocument();
-    expect(mocks.updateTask).not.toHaveBeenCalled();
+    await waitFor(() => expect(mocks.updateTask).toHaveBeenCalledTimes(1));
+    expect(payloadOf('update')).toMatchObject({ contribuinte_id: undefined });
   });
 
   it('não oferece Salvar nem Cancelar no rodapé — as ações vivem no cabeçalho', () => {
@@ -1002,12 +1003,12 @@ describe('TaskModal — subtarefas', () => {
     expect(within(secao).getByText('Mapeamento - Revisão de IRPF')).toBeInTheDocument();
     expect(within(secao).getByText('Mapeamento - Livro Caixa')).toBeInTheDocument();
     expect(within(secao).getByText('1/2 concluídas')).toBeInTheDocument();
-    expect(within(secao).getByLabelText('Responsável de Mapeamento - Livro Caixa')).toHaveTextContent(
-      'Atribuir',
-    );
-    expect(within(secao).getByLabelText('Prioridade de Mapeamento - Livro Caixa')).toHaveTextContent(
-      'Alta',
-    );
+    expect(
+      within(secao).getByLabelText('Responsável de Mapeamento - Livro Caixa'),
+    ).toHaveTextContent('Atribuir');
+    expect(
+      within(secao).getByLabelText('Prioridade de Mapeamento - Livro Caixa'),
+    ).toHaveTextContent('Alta');
   });
 
   it('vem antes dos anexos no corpo da edição', () => {
