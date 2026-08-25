@@ -82,9 +82,9 @@ export function AgentePsaTrigger() {
   // notificação nova sem gravidade. Sem ponto quando não há nada — ponto que
   // fica sempre aceso não avisa nada.
   const cor = riscos > 0 || temAviso
-    ? 'var(--agente-risk, #FF8A94)'
+    ? 'var(--agente-risk)'
     : naoVistasAqui > 0
-      ? 'var(--agente-go, #5FD6A4)'
+      ? 'var(--agente-go)'
       : null;
 
   const titulo = `Agente PSA · ${daRota.rotulo}`;
