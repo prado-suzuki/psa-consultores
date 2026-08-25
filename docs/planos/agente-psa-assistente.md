@@ -269,16 +269,43 @@ não existiam em banco nenhum.
 Lovable sincroniza da `main` e sobe a função junto; o `LOVABLE_API_KEY` já
 existe lá (é o mesmo que a `gerar-sintese-executiva` usa).
 
-### 6.2 Nunca validado com dado real
+### 6.2 Validado com dado real em produção (25/08)
 
-Nenhuma resposta do agente foi vista contra a base de produção. O que precisa de
-olho humano na primeira semana:
+A função subiu em produção pelo chat do Lovable — **merge no GitHub não publica
+edge function**, e não há workflow que o faça (o único é a CI). Confirmado do
+lado de fora: `POST` sem token devolve `401 {"error":"Não autenticado."}`, a
+mensagem em português do próprio código, o que prova que a build no ar é esta.
 
-- a resposta cita número que existe na tela? (o teste automatizado trava o
-  formato do snapshot, não a fidelidade do modelo);
-- o insight cruza blocos ou repete a resposta em outras palavras?
-- o teto de contexto (24k caracteres) está cortando bloco no Estratégico?
-  (`serializarContexto` avisa no prompt quando corta, mas ninguém mediu ainda).
+**O que passou:**
+
+- **Não inventou número.** Cada valor citado numa pergunta de concentração
+  ("R$ 197,8 mi", "99,1%", "46 clientes", "99,5% nos 5 maiores") mapeia num
+  campo do snapshot. Ele cita, não estima.
+- **Cruzou blocos.** Para sustentar uma suspeita de cadastro, trouxe "29 OS sem
+  data de início" e "86 clientes sem categoria" do bloco de Preenchimento —
+  outro bloco, não o da pergunta.
+- **O ciclo de aprendizado fecha de ponta a ponta.** Uma correção real ("concentração
+  acima de 90% num cliente é quase sempre erro de cadastro na PSA") foi
+  confirmada em forma imperativa, **aplicada na mesma resposta**, persistida em
+  `agente_aprendizados` e visível no cockpit com o rastro de onde veio.
+- **A curadoria não era enfeite.** Na PRIMEIRA lição real, o texto colado trazia
+  junto uma frase de conversa que não era regra. O campo editável do cockpit
+  resolveu. É o custo consciente de guardar a correção em texto do usuário, sem
+  IA reescrevendo: uma IA "melhorando" a frase inventaria regra que ninguém
+  disse; em troca, às vezes uma pessoa apara.
+
+**O que ainda não foi visto:**
+
+- **A pergunta que a tela NÃO responde** ("qual o custo dos projetos?"). É a
+  prova de fogo da regra nº2 do prompt — dizer o que falta em vez de estimar.
+- **Categorias frouxas.** Um insight sobre completude de cadastro saiu como
+  "Execução" quando devia ser "Qualidade do dado". Duas vezes seguidas a
+  categoria escorregou; vale apertar a descrição de cada uma no `ai.ts`.
+- **O teto de contexto** (24k caracteres). `serializarContexto` avisa no prompt
+  quando corta, mas ninguém mediu se o Estratégico chega perto.
+- **Antes do agente, um dado a conferir:** 99,1% da receita num só cliente
+  (R$ 196 mi). Ou é real, ou é erro de cadastro — e foi isso que originou a
+  primeira lição.
 
 ### 6.3 Fora do escopo desta entrega
 
