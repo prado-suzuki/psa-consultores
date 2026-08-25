@@ -94,6 +94,8 @@ const ICONES_INTERNAS: Record<NotificacaoTipo, LucideIcon> = {
   documento_aprovado: FileCheck,
   documento_recusado: FileX,
   cobranca_pendencia: BellRing,
+  // GES-04: aviso externo, nunca renderiza aqui — ver `APRESENTACAO`.
+  solicitacao_vencida: Bell,
   chamado_criado: Bell,
   chamado_atribuido: Bell,
   chamado_respondido: Bell,

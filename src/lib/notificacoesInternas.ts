@@ -88,6 +88,10 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   documento_aprovado: { rotulo: 'Documento aprovado', tom: VERDE },
   documento_recusado: { rotulo: 'Documento recusado', tom: VERMELHO },
   cobranca_pendencia: { rotulo: 'Pendência em cobrança', tom: AMBAR },
+  // GES-04, mesmo caso dos `chamado_*`: aviso EXTERNO, que só grava em
+  // `notificacao_envio` pela borda e nunca em `notificacao`. Está aqui porque o
+  // enum é compartilhado, e com rótulo genérico porque não tem lugar no sino.
+  solicitacao_vencida: { rotulo: 'Aviso', tom: PRIMARIO },
   chamado_criado: { rotulo: 'Aviso', tom: PRIMARIO },
   chamado_atribuido: { rotulo: 'Aviso', tom: PRIMARIO },
   chamado_respondido: { rotulo: 'Aviso', tom: PRIMARIO },
