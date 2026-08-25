@@ -10,6 +10,12 @@
  * grade, continua a um clique — e o ponto colorido no ícone é o que garante que
  * "a um clique" não vire "ninguém nunca viu".
  */
+/*
+ * A ESCALA DE FONTE VEM DO PAINEL, não daqui: os `fontSize` abaixo são degraus
+ * (`--ag-fs-*`) declarados em `.agente-painel`, no index.css, e a media query de
+ * desktop os aumenta de uma vez. Antes eram px cravados (9,5 / 10,5 / 11 / 11,5)
+ * e este bloco -- que é o que a diretoria vem ler -- ficava ilegível em monitor.
+ */
 import { AlertTriangle, CircleAlert, Info } from 'lucide-react';
 import { contarRiscos, type ItemDecisao } from '@/lib/agenteDecisao';
 
@@ -38,12 +44,12 @@ export function AgentePainelDecisao({
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
             <span style={{
-              fontSize: 9.5, fontWeight: 700, letterSpacing: '.11em',
+              fontSize: 'var(--ag-fs-micro)', fontWeight: 700, letterSpacing: '.11em',
               textTransform: 'uppercase', color: INK3,
             }}>
               Exige decisão
             </span>
-            <span style={{ fontSize: 10.5, color: riscos > 0 ? RISCO : WARN, fontWeight: 600 }}>
+            <span style={{ fontSize: 'var(--ag-fs-xs)', color: riscos > 0 ? RISCO : WARN, fontWeight: 600 }}>
               {riscos > 0
                 ? rotulo(riscos, 'risco', 'riscos')
                 : rotulo(itens.length, 'ponto de atenção', 'pontos de atenção')}
@@ -59,13 +65,13 @@ export function AgentePainelDecisao({
                 <div key={`${item.alerta}-${i}`} style={{ display: 'flex', gap: 7 }}>
                   <Icone style={{ width: 13, height: 13, color: cor, flexShrink: 0, marginTop: 2 }} />
                   <div style={{ minWidth: 0 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 600, color: INK, lineHeight: 1.35 }}>
+                    <div style={{ fontSize: 'var(--ag-fs-sm)', fontWeight: 600, color: INK, lineHeight: 1.35 }}>
                       {item.alerta}
                       {item.valor && (
                         <span style={{ color: cor, fontWeight: 700 }}> · {item.valor}</span>
                       )}
                     </div>
-                    <div style={{ fontSize: 11, color: INK2, lineHeight: 1.45, marginTop: 1 }}>
+                    <div style={{ fontSize: 'var(--ag-fs-sm)', color: INK2, lineHeight: 1.5, marginTop: 2 }}>
                       {item.evidencia}
                     </div>
                   </div>
@@ -90,10 +96,10 @@ export function AgentePainelDecisao({
         >
           <Info style={{ width: 13, height: 13, color: WARN, flexShrink: 0, marginTop: 2 }} />
           <div>
-            <div style={{ fontSize: 11.5, fontWeight: 600, color: WARN }}>
+            <div style={{ fontSize: 'var(--ag-fs-sm)', fontWeight: 600, color: WARN }}>
               Dados incompletos — números desta tela podem estar errados
             </div>
-            <div style={{ fontSize: 11, color: INK2, lineHeight: 1.45, marginTop: 1 }}>
+            <div style={{ fontSize: 'var(--ag-fs-sm)', color: INK2, lineHeight: 1.5, marginTop: 2 }}>
               {avisos.join(' · ')}. Atualize a página para tentar de novo.
             </div>
           </div>

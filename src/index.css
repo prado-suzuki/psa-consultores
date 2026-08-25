@@ -2364,7 +2364,33 @@ All colors MUST be HSL.
 }
 
 /* ── Painel ──────────────────────────────────────────────────────────────── */
+/* ── O painel do Agente PSA ───────────────────────────────────────────────
+   ELE NASCEU TAMANHO CELULAR, e ficou assim no desktop: largura fixa de 420px
+   e uma escala tipográfica que descia até 8,5px. Num monitor a 60cm isso não se
+   lê -- foi a usuária que apontou, abrindo o Board em produção: "pro celular
+   até pode funcionar, mas pra quem usa computador tá muito pequeno, não dá nem
+   pra enxergar".
+
+   Três coisas mudaram, e a primeira é a que resolve o problema de verdade:
+
+   1. A ESCALA É TOKEN, não px cravado em vinte regras. Os cinco degraus abaixo
+      valem para o painel inteiro (inclusive para os `fontSize` inline do
+      `AgentePainelDecisao`), e a media query os aumenta de uma vez. Sem isso,
+      "aumentar a letra no desktop" seria reescrever vinte declarações e
+      esquecer três.
+   2. O TAMANHO ACOMPANHA A TELA: cartão de celular no estreito, painel de
+      560px a partir de 1024px, 620px a partir de 1600px.
+   3. EXPANDIR e ARRASTAR: `.agente-painel--grande` (o botão do cabeçalho) e o
+      posicionamento por `left/top` que o `usePainelArrastavel` escreve. O
+      arraste usa left/top e NÃO transform de propósito -- o framer-motion já
+      controla o transform deste elemento na animação de entrada, e as duas
+      coisas na mesma propriedade brigam.                                    */
 .agente-painel {
+  --ag-fs-micro: 9.5px;   /* rótulo em caixa alta, chip de campo */
+  --ag-fs-xs: 10.5px;     /* meta, subtítulo, modo */
+  --ag-fs-sm: 11.5px;     /* sugestão, aviso, item de decisão */
+  --ag-fs-md: 12.5px;     /* mensagem, compositor */
+  --ag-fs-lg: 13px;       /* título */
   position: fixed;
   right: 20px;
   bottom: 20px;
@@ -2380,6 +2406,34 @@ All colors MUST be HSL.
   overflow: hidden;
   font-family: 'Instrument Sans', sans-serif;
 }
+@media (min-width: 1024px) {
+  .agente-painel {
+    --ag-fs-micro: 11px;
+    --ag-fs-xs: 11.5px;
+    --ag-fs-sm: 12.5px;
+    --ag-fs-md: 13.5px;
+    --ag-fs-lg: 15px;
+    right: 24px;
+    bottom: 24px;
+    width: min(560px, calc(100vw - 48px));
+    max-height: min(84vh, 900px);
+  }
+  /* A faixa de decisão é o que a pessoa veio ver; no desktop ela ganha altura
+     antes de virar rolagem. */
+  .agente-decisao-wrap { max-height: 44vh; }
+}
+@media (min-width: 1600px) {
+  .agente-painel { width: 620px; max-height: min(86vh, 1000px); }
+}
+
+/* Expandido: para ler a faixa de decisão inteira e a conversa sem rolar a cada
+   duas linhas. Continua ancorado (não é modal) — a tela por trás segue à vista,
+   que é o ponto de um painel que fala SOBRE a tela. */
+.agente-painel--grande {
+  width: min(1100px, calc(100vw - 48px));
+  max-height: min(92vh, 1100px);
+}
+
 .agente-painel-head {
   display: flex;
   align-items: center;
@@ -2387,9 +2441,19 @@ All colors MUST be HSL.
   padding: 12px 14px;
   border-bottom: 1px solid var(--agente-line);
   background: var(--agente-surface2);
+  /* Área de arraste. `touch-action: none` para o pointer event não virar
+     rolagem no trackpad/touch; `user-select: none` para o arraste não sair
+     selecionando o título. */
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
 }
-.agente-painel-titulo { font-size: 13px; font-weight: 700; color: var(--agente-ink); letter-spacing: -.01em; }
-.agente-painel-sub { font-size: 10.5px; color: var(--agente-ink3); margin-top: 1px; }
+.agente-painel-head[data-arrastando="sim"] { cursor: grabbing; }
+/* O botão dentro do cabeçalho volta ao cursor normal — e o handler ignora
+   clique que nasce em botão, senão fechar/expandir arrastaria o painel. */
+.agente-painel-head button { cursor: pointer; }
+.agente-painel-titulo { font-size: var(--ag-fs-lg); font-weight: 700; color: var(--agente-ink); letter-spacing: -.01em; }
+.agente-painel-sub { font-size: var(--ag-fs-xs); color: var(--agente-ink3); margin-top: 1px; }
 .agente-icone-btn {
   display: inline-flex;
   align-items: center;
@@ -2414,7 +2478,7 @@ All colors MUST be HSL.
 .agente-corpo::-webkit-scrollbar-thumb { background: var(--agente-surface3); border-radius: 3px; }
 
 /* ── Mensagens ───────────────────────────────────────────────────────────── */
-.agente-msg { font-size: 12.5px; line-height: 1.55; }
+.agente-msg { font-size: var(--ag-fs-md); line-height: 1.55; }
 .agente-msg-user {
   align-self: flex-end;
   max-width: 88%;
@@ -2431,7 +2495,7 @@ All colors MUST be HSL.
   flex-wrap: wrap;
   gap: 6px;
   margin-top: 7px;
-  font-size: 10px;
+  font-size: var(--ag-fs-xs);
   color: var(--agente-ink3);
 }
 .agente-campo {
@@ -2441,7 +2505,7 @@ All colors MUST be HSL.
   border-radius: 999px;
   background: var(--agente-surface2);
   border: 1px solid var(--agente-line);
-  font-size: 9.5px;
+  font-size: var(--ag-fs-micro);
   color: var(--agente-ink3);
   white-space: nowrap;
 }
@@ -2451,15 +2515,15 @@ All colors MUST be HSL.
   border-left: 2px solid var(--agente-accent);
   background: rgba(138, 162, 255, .07);
   border-radius: 0 10px 10px 0;
-  padding: 8px 10px;
-  font-size: 12px;
+  padding: 9px 11px;
+  font-size: var(--ag-fs-sm);
   color: var(--agente-ink2);
 }
 .agente-insight-lbl {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 8.5px;
+  font-size: var(--ag-fs-micro);
   font-weight: 700;
   letter-spacing: .11em;
   text-transform: uppercase;
@@ -2484,7 +2548,7 @@ All colors MUST be HSL.
   border: none;
   background: transparent;
   color: var(--agente-ink);
-  font-size: 12.5px;
+  font-size: var(--ag-fs-md);
   line-height: 1.5;
   font-family: inherit;
   outline: none;
@@ -2504,7 +2568,7 @@ All colors MUST be HSL.
   border: 1px solid transparent;
   background: transparent;
   color: var(--agente-ink3);
-  font-size: 10.5px;
+  font-size: var(--ag-fs-xs);
   font-weight: 600;
   cursor: pointer;
   transition: color .15s, background .15s, border-color .15s;
@@ -2528,7 +2592,7 @@ All colors MUST be HSL.
 .agente-enviar:disabled { opacity: .45; cursor: not-allowed; }
 
 /* ── Estados ─────────────────────────────────────────────────────────────── */
-.agente-vazio { font-size: 12px; color: var(--agente-ink3); line-height: 1.6; }
+.agente-vazio { font-size: var(--ag-fs-sm); color: var(--agente-ink3); line-height: 1.6; }
 .agente-sugestao {
   display: block;
   width: 100%;
@@ -2539,13 +2603,13 @@ All colors MUST be HSL.
   border: 1px solid var(--agente-line);
   background: var(--agente-surface2);
   color: var(--agente-ink2);
-  font-size: 11.5px;
+  font-size: var(--ag-fs-sm);
   cursor: pointer;
   transition: border-color .15s, color .15s;
 }
 .agente-sugestao:hover { border-color: var(--agente-accent); color: var(--agente-ink); }
 .agente-aviso {
-  font-size: 11px;
+  font-size: var(--ag-fs-sm);
   color: var(--agente-warn);
   background: rgba(243, 193, 103, .08);
   border: 1px solid rgba(243, 193, 103, .22);

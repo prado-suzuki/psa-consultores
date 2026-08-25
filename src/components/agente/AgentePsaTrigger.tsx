@@ -21,7 +21,7 @@
 import { useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Minus, RotateCcw, Sparkles } from 'lucide-react';
+import { Maximize2, Minimize2, Minus, PinOff, RotateCcw, Sparkles } from 'lucide-react';
 import logo from '@/assets/logo-psa.png';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgenteContexto } from '@/hooks/useAgenteContexto';
@@ -32,6 +32,7 @@ import { escopoDaRota } from '@/lib/agenteEscopos';
 import { PromptInputBox } from '@/components/ui/ai-prompt-box';
 import { AgenteConversa } from '@/components/agente/AgenteConversa';
 import { AgentePainelDecisao } from '@/components/agente/AgentePainelDecisao';
+import { usePainelArrastavel } from '@/components/agente/usePainelArrastavel';
 import type { ModoAgente } from '@/hooks/useDomainAgentePsa';
 
 /**
@@ -54,6 +55,15 @@ export function AgentePsaTrigger() {
   const { user } = useAuth();
   const location = useLocation();
   const [aberto, setAberto] = useState(false);
+  /**
+   * Expandido é ESTADO DE JANELA, não preferência de conta: quem abre em 420px
+   * para dar uma olhada e expande para ler a faixa inteira não quer que a
+   * próxima tela nasça gigante. Por isso não vai para o localStorage — ao
+   * contrário da POSIÇÃO, que a pessoa arrastou uma vez para não cobrir o
+   * gráfico e espera encontrar no lugar.
+   */
+  const [expandido, setExpandido] = useState(false);
+  const arraste = usePainelArrastavel('agente-painel-pos', aberto);
 
   const daRota = escopoDaRota(location.pathname);
   const escopo = daRota?.escopo ?? null;
@@ -121,7 +131,9 @@ export function AgentePsaTrigger() {
       <AnimatePresence>
         {aberto && (
           <motion.div
-            className="agente-painel"
+            ref={arraste.ref}
+            className={`agente-painel${expandido ? ' agente-painel--grande' : ''}`}
+            style={arraste.estilo}
             initial={{ opacity: 0, y: 16, scale: .97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: .97 }}
@@ -129,7 +141,11 @@ export function AgentePsaTrigger() {
             role="dialog"
             aria-label="Agente PSA"
           >
-            <div className="agente-painel-head">
+            <div
+              className="agente-painel-head"
+              data-arrastando={arraste.arrastando ? 'sim' : undefined}
+              {...arraste.handlers}
+            >
               <img src={logo} alt="" style={{ width: 24 }} />
               <div style={{ minWidth: 0 }}>
                 <div className="agente-painel-titulo">Agente PSA</div>
@@ -143,6 +159,29 @@ export function AgentePsaTrigger() {
                   onClick={conversa.recomecar}
                 >
                   <RotateCcw style={{ width: 14, height: 14 }} />
+                </button>
+                {arraste.deslocado && (
+                  <button
+                    type="button"
+                    className="agente-icone-btn"
+                    title="Voltar para o canto"
+                    aria-label="Voltar o painel para o canto"
+                    onClick={arraste.reancorar}
+                  >
+                    <PinOff style={{ width: 14, height: 14 }} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="agente-icone-btn"
+                  title={expandido ? 'Recolher' : 'Expandir'}
+                  aria-label={expandido ? 'Recolher o painel' : 'Expandir o painel'}
+                  aria-pressed={expandido}
+                  onClick={() => setExpandido((v) => !v)}
+                >
+                  {expandido
+                    ? <Minimize2 style={{ width: 14, height: 14 }} />
+                    : <Maximize2 style={{ width: 14, height: 14 }} />}
                 </button>
                 <button
                   type="button"
