@@ -34,21 +34,21 @@ import {
  */
 const MAX_VISIVEIS = 2;
 
-const SURFACE = 'var(--agente-surface, #111827)';
-const SURFACE2 = 'var(--agente-surface2, #1A2234)';
+const SURFACE = 'var(--agente-surface)';
+const SURFACE2 = 'var(--agente-surface2)';
 const LINHA = 'var(--agente-line, rgba(255,255,255,.10))';
-const INK = 'var(--agente-ink, #F2F5FB)';
-const INK2 = 'var(--agente-ink2, #C2CCDE)';
-const INK3 = 'var(--agente-ink3, #8E9CB5)';
+const INK = 'var(--agente-ink)';
+const INK2 = 'var(--agente-ink2)';
+const INK3 = 'var(--agente-ink3)';
 
 const APARENCIA = {
   insight_critico: {
     Icone: Zap,
-    cor: 'var(--agente-risk, #FF8A94)',
+    cor: 'var(--agente-risk)',
   },
   analise_estrategica: {
     Icone: Compass,
-    cor: 'var(--agente-accent, #8AA2FF)',
+    cor: 'var(--agente-accent)',
   },
 } as const;
 
