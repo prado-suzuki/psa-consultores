@@ -164,7 +164,15 @@ export interface TaskFilters {
         const ambientePorCliente = await queryClient.fetchQuery(ambientePorClienteQuery());
         allTasks = allTasks.filter(task => isTarefaDoAmbiente(task, ambientePorCliente));
 
-        // Client-side assignedTo filter: shows parent tasks that have matching subtasks
+        // Filtro por responsável no cliente (e não no banco) para preservar o
+        // vínculo da subtarefa: além das tarefas da pessoa, a lista mantém a
+        // tarefa-mãe delas, mesmo que a mãe seja de outra pessoa — é ela que
+        // liga a subtarefa ao projeto e ao cliente na árvore.
+        //
+        // O que NÃO entra: as subtarefas IRMÃS. Manter "toda filha de mãe
+        // preservada" fazia o filtro de uma pessoa mostrar as subtarefas de
+        // quem dividia a mesma mãe (e inflava KPIs e esforço, que leem esta
+        // mesma lista).
         if (filters?.assignedTo && filters.assignedTo !== 'all') {
           const targetId = filters.assignedTo === 'mine' ? user?.id : filters.assignedTo;
           if (targetId) {
@@ -178,8 +186,7 @@ export interface TaskFilters {
             );
             allTasks = allTasks.filter(t =>
               belongsToTarget(t) ||
-              matchingSubtaskParentIds.has(t.id) ||
-              (t.parent_task_id && matchingSubtaskParentIds.has(t.parent_task_id))
+              matchingSubtaskParentIds.has(t.id)
             );
           }
         }

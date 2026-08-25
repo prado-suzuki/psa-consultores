@@ -408,3 +408,71 @@ describe('useOrgTasks (escopo de ambiente)', () => {
     expect(tasks.map(task => task.id)).toEqual(['task-sem-cliente', 'task-cliente-apagado']);
   });
 });
+
+/**
+ * O filtro por responsável roda no cliente para preservar o vínculo da
+ * subtarefa: a tarefa-mãe fica na lista mesmo sendo de outra pessoa, porque é
+ * ela que liga a subtarefa ao projeto e ao cliente na árvore. O que não pode
+ * ficar é a subtarefa IRMÃ — filtrar uma pessoa mostrava as subtarefas de quem
+ * dividia a mesma mãe.
+ */
+describe('useOrgTasks (filtro por responsável)', () => {
+  function queryFnOf(filters: Parameters<typeof useOrgTasks>[0]) {
+    const { result } = renderHook(() => useOrgTasks(filters));
+    return (result.current as unknown as { queryFn: () => Promise<OrgTask[]> }).queryFn;
+  }
+
+  /** Sem cliente e sem cliente no projeto: o corte de ambiente deixa passar. */
+  const tarefa = (patch: Partial<OrgTask>) => ({
+    id: 'task-1',
+    title: 'Apurar ICMS',
+    status: 'todo',
+    project_id: 'project-1',
+    client_id: null,
+    parent_task_id: null,
+    assigned_to: null,
+    reviewer_id: null,
+    project: { id: 'project-1', name: 'Projeto Alfa', external_client_id: null },
+    ...patch,
+  });
+
+  function queueTasks(tarefas: unknown[]) {
+    dbQueue.push({ data: tarefas, error: null });
+    dbQueue.push({ data: [], error: null });
+  }
+
+  it('traz a subtarefa da pessoa e a mãe dela, mas não a subtarefa irmã', async () => {
+    queueTasks([
+      tarefa({ id: 'mae', assigned_to: 'monica' }),
+      tarefa({ id: 'sub-anderson', parent_task_id: 'mae', assigned_to: 'anderson' }),
+      tarefa({ id: 'sub-monica', parent_task_id: 'mae', assigned_to: 'monica' }),
+      tarefa({ id: 'solta-monica', assigned_to: 'monica' }),
+    ]);
+
+    const tasks = await queryFnOf({ assignedTo: 'anderson' })();
+
+    expect(tasks.map(task => task.id)).toEqual(['mae', 'sub-anderson']);
+  });
+
+  it('trata como da pessoa a tarefa em que ela é a revisora, e só em revisão', async () => {
+    queueTasks([
+      tarefa({ id: 'em-revisao', status: 'review', assigned_to: 'monica', reviewer_id: 'anderson' }),
+      tarefa({ id: 'em-progresso', status: 'in_progress', assigned_to: 'monica', reviewer_id: 'anderson' }),
+    ]);
+
+    const tasks = await queryFnOf({ assignedTo: 'anderson' })();
+
+    expect(tasks.map(task => task.id)).toEqual(['em-revisao']);
+  });
+
+  it('resolve "mine" para o usuário logado', async () => {
+    queueTasks([
+      tarefa({ id: 'minha', assigned_to: 'user-1' }),
+      tarefa({ id: 'de-outro', assigned_to: 'monica' }),
+    ]);
+
+    const tasks = await queryFnOf({ assignedTo: 'mine' })();
+
+    expect(tasks.map(task => task.id)).toEqual(['minha']);
+  });
+});
