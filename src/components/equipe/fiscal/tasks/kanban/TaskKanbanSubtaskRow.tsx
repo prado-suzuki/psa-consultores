@@ -1,9 +1,11 @@
+import { UserCheck } from 'lucide-react';
+
 import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import type { OrgTask, OrgTaskStatus } from '@/hooks/useOrgTasks';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { formatKanbanDate } from '@/lib/taskKanbanFormat';
-import { statusList } from '@/lib/taskStatusColors';
+import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { cn } from '@/lib/utils';
 
 interface TaskKanbanSubtaskRowProps {
@@ -12,6 +14,8 @@ interface TaskKanbanSubtaskRowProps {
   isHighlighted: boolean;
   currentUserId?: string | null;
   canChangeStatus: (task: OrgTask) => boolean;
+  /** Nome de quem está com a revisão da subtarefa; nulo quando não há revisão em curso. */
+  reviewerName: (task: OrgTask) => string | null;
   onOpen: (task: OrgTask) => void;
   onDragStart: (task: OrgTask) => void;
   onDragEnd: () => void;
@@ -33,12 +37,14 @@ export function TaskKanbanSubtaskRow({
   isHighlighted,
   currentUserId,
   canChangeStatus,
+  reviewerName,
   onOpen,
   onDragStart,
   onDragEnd,
   onStatusChange,
 }: TaskKanbanSubtaskRowProps) {
   const podeMover = canChangeStatus(subtask);
+  const revisor = reviewerName(subtask);
   const opcoes = statusList.filter(
     (status) => !(status.key === 'done' && isDelegatedOrgTaskReviewer(subtask, currentUserId)),
   );
@@ -95,6 +101,19 @@ export function TaskKanbanSubtaskRow({
       >
         {subtask.title}
       </span>
+      {/* A linha é de um só andar e o título já briga com o prazo pelo
+          espaço, então aqui o revisor entra como marca: o nome fica no title,
+          que é o mesmo caminho de leitura do prazo ao lado. Nome inteiro só no
+          card e no modal. */}
+      {revisor && (
+        <span
+          aria-label={`Em revisão com ${revisor}`}
+          title={`Em revisão com ${revisor}`}
+          className={cn('flex-shrink-0', statusColors[subtask.status].text)}
+        >
+          <UserCheck className="h-3.5 w-3.5" />
+        </span>
+      )}
       {subtask.due_date && (
         <span className="flex-shrink-0 text-xs text-muted-foreground">
           {formatKanbanDate(subtask.due_date)}

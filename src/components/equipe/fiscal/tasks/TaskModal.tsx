@@ -30,6 +30,7 @@ import {
 import { useReviewerCandidates } from '@/hooks/useReviewerCandidates';
 import { statusList } from '@/lib/taskStatusColors';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { resolveActiveReviewerName } from '@/lib/orgTaskReviewer';
 import { taskSaveErrorMessage } from '@/lib/rlsMessages';
 import {
   isReviewRichTextEmpty,
@@ -136,6 +137,10 @@ export const TaskModal = ({
 
   const currentUserIsReviewer =
     task?.status === 'review' && isDelegatedOrgTaskReviewer(task, user?.id);
+  // Vem da tarefa salva, não do formulário: o `reviewer_id` do form é o que
+  // está sendo escolhido no diálogo de revisão, e a faixa mostra quem já está
+  // com ela. Os nomes saem de `profiles_safe` (`allProfiles`).
+  const activeReviewerName = task ? resolveActiveReviewerName(task, allProfiles) : null;
   const statusOptions = useMemo(
     () =>
       filterStatusOptions(statusList, {
@@ -543,6 +548,7 @@ export const TaskModal = ({
                     form={form}
                     options={fieldOptions}
                     onAssigneeChange={handleAssigneeChange}
+                    reviewerName={activeReviewerName}
                     disabled={currentUserIsReviewer}
                   />
                   <TaskEditBody

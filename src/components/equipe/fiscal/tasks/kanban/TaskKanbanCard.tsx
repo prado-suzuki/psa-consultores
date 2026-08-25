@@ -1,4 +1,4 @@
-import { Building2, ChevronDown, ChevronRight, Crosshair, Layers } from 'lucide-react';
+import { Building2, ChevronDown, ChevronRight, Crosshair, Layers, UserCheck } from 'lucide-react';
 
 import { TaskKanbanSubtaskRow } from '@/components/equipe/fiscal/tasks/kanban/TaskKanbanSubtaskRow';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,8 @@ interface TaskKanbanCardProps {
   isExpanded: boolean;
   currentUserId?: string | null;
   canChangeStatus: (task: OrgTask) => boolean;
+  /** Nome de quem está com a revisão da tarefa; nulo quando não há revisão em curso. */
+  reviewerName: (task: OrgTask) => string | null;
   onToggleExpanded: (key: string) => void;
   onOpen: (task: OrgTask) => void;
   /** Destaca as tarefas e rola até o card que as guarda (`entryKey`, se houver). */
@@ -44,6 +46,7 @@ export function TaskKanbanCard({
   isExpanded,
   currentUserId,
   canChangeStatus,
+  reviewerName,
   onToggleExpanded,
   onOpen,
   onReveal,
@@ -54,6 +57,7 @@ export function TaskKanbanCard({
   const { task, isCopy, children, elsewhere, subtaskCount, completedSubtasks } = entry;
   const canDrag = !isCopy && canChangeStatus(task);
   const statusReal = statusColors[task.status];
+  const revisor = reviewerName(task);
 
   return (
     <div>
@@ -141,6 +145,16 @@ export function TaskKanbanCard({
                 <span className="break-words">{task.assigned_to_name || 'Não atribuído'}</span>
                 <span className="ml-1 flex-shrink-0">{formatKanbanDate(task.due_date)}</span>
               </div>
+              {/* Em revisão o card ganha uma segunda pessoa: o responsável
+                  (linha de cima) fez, o revisor decide. Vai no tom do status
+                  real da tarefa, então a cópia numa outra coluna não finge que
+                  a revisão é de lá. */}
+              {revisor && (
+                <div className={cn('mt-1 flex items-center gap-1 text-xs', statusReal.text)}>
+                  <UserCheck className="h-3 w-3 flex-shrink-0" />
+                  <span className="break-words">Revisor: {revisor}</span>
+                </div>
+              )}
               {task.contribuinte?.nome_razao_social && (
                 <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                   <Building2 className="h-3 w-3 flex-shrink-0" />
@@ -207,6 +221,7 @@ export function TaskKanbanCard({
               isHighlighted={highlightedTaskIds.has(subtask.id)}
               currentUserId={currentUserId}
               canChangeStatus={canChangeStatus}
+              reviewerName={reviewerName}
               onOpen={onOpen}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}

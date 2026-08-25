@@ -1,6 +1,6 @@
 import type { UseFormReturn } from 'react-hook-form';
 import { format } from 'date-fns';
-import { AlertCircle, CalendarIcon } from 'lucide-react';
+import { AlertCircle, CalendarIcon, UserCheck } from 'lucide-react';
 
 import { AvisoHorasDigitadas } from '@/components/equipe/AvisoHorasDigitadas';
 import { Button } from '@/components/ui/button';
@@ -26,6 +26,11 @@ interface TaskPropertyBarProps {
   form: UseFormReturn<TaskFormValues>;
   options: TaskFieldOptions;
   onAssigneeChange: (userId: string) => void;
+  /**
+   * Nome de quem está com a revisão da tarefa. Sem revisão em curso vem nulo e
+   * a pílula não aparece — ver `resolveActiveReviewerName`.
+   */
+  reviewerName?: string | null;
   /** Revisor delegado só lê os campos da tarefa. */
   disabled?: boolean;
 }
@@ -41,6 +46,7 @@ export function TaskPropertyBar({
   form,
   options,
   onAssigneeChange,
+  reviewerName,
   disabled,
 }: TaskPropertyBarProps) {
   const { teamMembers, statusOptions } = options;
@@ -178,6 +184,22 @@ export function TaskPropertyBar({
               </FormItem>
             )}
           />
+
+          {/* Somente leitura: quem revisa é escolhido no fluxo de revisão
+              (ReviewActionDialog), não editando a tarefa. Aqui a faixa só
+              responde "quem está com isso agora". */}
+          {reviewerName && (
+            <div className="min-w-0 space-y-1.5">
+              <p className={CHIP_LABEL}>Revisor</p>
+              <div
+                className={cn(CHIP_BUTTON, 'flex cursor-default items-center')}
+                title={`Revisão com ${reviewerName}`}
+              >
+                <UserCheck className="h-3.5 w-3.5 shrink-0 opacity-60" />
+                <span className="truncate">{reviewerName}</span>
+              </div>
+            </div>
+          )}
 
           <DateChip form={form} name="start_date" label="Início" />
           <DateChip form={form} name="due_date" label="Vencimento" />
