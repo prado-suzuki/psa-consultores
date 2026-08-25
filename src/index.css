@@ -1058,6 +1058,16 @@ All colors MUST be HSL.
   --bd-purple-t: hsl(var(--tag-c) / .10);
   --bd-cyan:     hsl(var(--area-5));
   --bd-cyan-t:   hsl(var(--area-5) / .10);
+  /* O verde CATEGÓRICO, irmão dos dois acima. Existe porque a série da OSG em
+     "Entregas por Área" usava `--bd-go`, que é o ACENTO da marca — e acento é
+     reservado para série única/principal (regra em `clientes-os/shared.ts`).
+     Além da semântica, o validador de paleta reprovou: o teal #0D877C tem croma
+     0,097, abaixo do piso categórico, e lia como cinza-esverdeado ao lado de um
+     azul e um magenta saturados. `--tag-a` resolve as duas coisas. NÃO é
+     `--bd-go`: aquele continua sendo estado (bom/no prazo) e não deve ser
+     reaproveitado como "série 4". */
+  --bd-green:    hsl(var(--tag-a));
+  --bd-green-t:  hsl(var(--tag-a) / .10);
 
   /* ── Forma ──
      Raio maior e sombra mais rasa que a v4: o cartão passa a se separar do
