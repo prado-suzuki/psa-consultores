@@ -1044,6 +1044,54 @@ describe('TaskModal — subtarefas', () => {
     expect(screen.getByLabelText('Nome da nova subtarefa')).toHaveValue('');
   });
 
+  it('mandar a subtarefa para revisão abre o diálogo em vez de gravar direto', async () => {
+    const user = userEvent.setup();
+    mocks.subtasks = [subtask({ id: 'S1' })];
+    renderModal({ task: baseTask });
+
+    await user.click(
+      within(subtarefasSection()).getByLabelText('Status de Mapeamento - Revisão de IRPF'),
+    );
+    await user.click(await screen.findByRole('option', { name: 'Revisão' }));
+
+    // Quem grava é o diálogo, depois de exigir revisor e detalhamento.
+    expect(kinds()).toEqual([]);
+    const dialog = reviewDialog();
+    expect(within(dialog).getByRole('heading', { name: 'Enviar para revisão' })).toBeInTheDocument();
+    expect(within(dialog).getByText('Revisor')).toBeInTheDocument();
+    expect(within(dialog).getByText('O que precisa ser revisado?')).toBeInTheDocument();
+  });
+
+  it('devolver a subtarefa para ajuste também passa pelo diálogo', async () => {
+    const user = userEvent.setup();
+    mocks.subtasks = [subtask({ id: 'S1', status: 'review' })];
+    renderModal({ task: baseTask });
+
+    await user.click(
+      within(subtarefasSection()).getByLabelText('Status de Mapeamento - Revisão de IRPF'),
+    );
+    await user.click(await screen.findByRole('option', { name: 'Em Ajuste' }));
+
+    expect(kinds()).toEqual([]);
+    expect(
+      within(reviewDialog()).getByRole('heading', { name: 'Devolver para ajustes' }),
+    ).toBeInTheDocument();
+  });
+
+  it('status sem transição de revisão continua gravando direto', async () => {
+    const user = userEvent.setup();
+    mocks.subtasks = [subtask({ id: 'S1' })];
+    renderModal({ task: baseTask });
+
+    await user.click(
+      within(subtarefasSection()).getByLabelText('Status de Mapeamento - Revisão de IRPF'),
+    );
+    await user.click(await screen.findByRole('option', { name: 'Em Progresso' }));
+
+    await waitFor(() => expect(kinds()).toEqual(['update']));
+    expect(payloadOf('update')).toEqual({ id: 'S1', status: 'in_progress' });
+  });
+
   it('não oferece criação ao revisor delegado', () => {
     renderModal({
       task: { ...baseTask, status: 'review', assigned_to: 'U2', reviewer_id: 'U1' },

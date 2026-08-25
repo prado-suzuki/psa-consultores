@@ -365,12 +365,29 @@ export const TaskModal = ({
 
     const reviewComment =
       outcome === 'approved' ? 'Tarefa aprovada' : (values.review_comment?.trim() ?? '');
+    // Sem revisor escolhido a delegação continua sendo delegação: é justamente o
+    // caso a barrar. Antes o `!!values.reviewer_id` fazia a exigência sumir e a
+    // tarefa ia para revisão sem revisor e sem uma linha do que revisar.
     const submittingReviewDelegation =
       nextStatus === 'review' &&
-      !!values.reviewer_id &&
-      (task?.status !== 'review' || values.reviewer_id !== (task?.reviewer_id ?? null));
+      (task?.status !== 'review' ||
+        (values.reviewer_id ?? null) !== (task?.reviewer_id ?? null));
     const submittingReviewReturn = nextStatus === 'em_ajuste' && task?.status !== 'em_ajuste';
     const requiresTransitionComment = submittingReviewDelegation || submittingReviewReturn;
+
+    // Salvamento que não veio dos botões de revisão (o status trocado na faixa
+    // de propriedades, por exemplo) cede a vez ao diálogo: é lá que existem os
+    // campos de revisor e de detalhamento.
+    if (!outcome && requiresTransitionComment) {
+      openReviewAction(submittingReviewDelegation ? 'send' : 'adjustments');
+      return;
+    }
+
+    if (submittingReviewDelegation && !values.reviewer_id) {
+      form.setError('reviewer_id', { type: 'manual', message: 'Selecione quem fará a revisão' });
+      setReviewAction('send');
+      return;
+    }
 
     if (requiresTransitionComment && isReviewRichTextEmpty(reviewComment)) {
       form.setError('review_comment', {

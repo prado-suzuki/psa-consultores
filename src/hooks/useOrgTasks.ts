@@ -342,6 +342,18 @@ export const useUpdateOrgTask = (
            if (!temHorasApontadas(horasFinais)) throw new Error(MENSAGEM_HORAS_OBRIGATORIAS);
          }
 
+         // Mandar para revisão sem revisor não passa — nem pelo modal, nem pelos
+         // atalhos que só trocam o status. Quem pergunta o revisor (e o que
+         // revisar) é o `TaskStatusTransitionDialog`; esta é a rede embaixo.
+         if (changedOnly.status === 'review') {
+           const revisorFinal = 'reviewer_id' in changedOnly
+             ? changedOnly.reviewer_id
+             : current?.reviewer_id;
+           if (!revisorFinal) {
+             throw new Error('Escolha o revisor antes de mandar a tarefa para revisão.');
+           }
+         }
+
          const currentUserIsReviewer = current && isDelegatedOrgTaskReviewer(current, user?.id);
          if (currentUserIsReviewer) {
            if (changedOnly.status === 'done') {

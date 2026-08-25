@@ -3,7 +3,9 @@ import { ChevronDown, ChevronRight, ListTree, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
+import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/TaskStatusTransitionDialog';
  import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
+ import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
 import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +57,7 @@ export function TaskSubtasksSection({
   const updateSubtask = useUpdateOrgTask(area, { showToasts: false });
 
   const conclusao = useTaskCompletionHours();
+  const transicao = useTaskStatusTransition();
   const [expandido, setExpandido] = useState(true);
   const [adicionando, setAdicionando] = useState(false);
   const [novoNome, setNovoNome] = useState('');
@@ -86,6 +89,16 @@ export function TaskSubtasksSection({
   };
 
   const alterarSubtarefa = async (subtask: OrgTask, patch: Partial<OrgTask>) => {
+    // Mandar a subtarefa para revisão (ou devolvê-la para ajuste) por este
+    // seletor passa pelo mesmo diálogo do quadro: revisor e detalhamento são
+    // obrigatórios, e é ele quem grava.
+    if (
+      patch.status &&
+      patch.status !== subtask.status &&
+      !transicao.pedirDetalhes(subtask, patch.status)
+    ) {
+      return;
+    }
     // Concluir a subtarefa daqui também exige o apontamento — o diálogo pergunta
     // as horas e conclui; sem isso a mutation recusaria e a linha só piscaria.
     if (patch.status === 'done' && !conclusao.pedirHoras(subtask)) return;
@@ -316,6 +329,15 @@ export function TaskSubtasksSection({
         task={conclusao.taskPendente}
         area={area}
         onClose={conclusao.fechar}
+      />
+      <TaskStatusTransitionDialog
+        open={!!transicao.transicaoPendente}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) transicao.fechar();
+        }}
+        task={transicao.transicaoPendente?.task || null}
+        status={transicao.transicaoPendente?.status || 'review'}
+        area={area}
       />
     </section>
   );
