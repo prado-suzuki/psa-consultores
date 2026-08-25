@@ -29,6 +29,8 @@ import { useDomainBoardLayout } from '@/hooks/useDomainBoardLayout';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 import { BoardClusterBar, honraClusterGlobal } from '@/components/equipe/board/BoardClusterBar';
+import { AgenteNotificacaoPopup } from '@/components/agente/AgenteNotificacaoPopup';
+import { AgentePsaTrigger } from '@/components/agente/AgentePsaTrigger';
 
 interface BoardLayoutProps {
   children: React.ReactNode;
@@ -143,6 +145,31 @@ const getBreadcrumb = (pathname: string) => {
   return segments;
 };
 
+/**
+ * O shell da área Board.
+ *
+ * ── Por que o chrome ficou CLARO ──────────────────────────────────────
+ * A barra lateral era azul-noite (#0C1222) com acento índigo — a cara de
+ * ferramenta de analytics genérica, e a única superfície escura do sistema
+ * inteiro (Tax e OSG têm barra clara). Três consequências concretas:
+ *
+ * · o Board parecia outro produto, não outra área do mesmo produto;
+ * · o azul-noite fixava a paleta: com ele na tela, qualquer acento quente ou
+ *   teal ao lado lia como enfeite;
+ * · módulos compartilhados (Capacidade monta o `AreaDashboardContent`, que é o
+ *   mesmo do Tax e da OSG) entravam com chrome escuro em cima de conteúdo
+ *   claro, e o contraste entre os dois roubava a atenção do dado.
+ *
+ * Agora a barra é branca, o item ativo é uma PÍLULA cheia no teal escuro
+ * (`--bd-accent-d`, 6,7:1 com o texto branco em cima — o teal cheio da marca
+ * daria 4,40:1 e não serve para carregar letra), e a hierarquia do menu vem do
+ * peso e do espaçamento, como na referência.
+ *
+ * ── O usuário subiu para o topo ───────────────────────────────────────
+ * Nome, papel e iniciais ficavam num bloco na barra lateral, que sumia quando
+ * ela recolhia. Passaram para a direita do topbar, onde a referência os põe e
+ * onde continuam visíveis com a barra recolhida.
+ */
 export const BoardLayout = ({ children, title, subtitle, headerActions, noPadding }: BoardLayoutProps) => {
   const { user, isAdmin, isLider, signOut } = useAuth();
   const { hasAccess: canPerformance } = usePageAccess('/equipe/board/performance');
@@ -224,46 +251,57 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
   const initials = `${firstName[0] || ''}${lastName[0] || ''}`.toUpperCase() || 'U';
   const role = isAdmin ? 'Admin' : isLider ? 'Lider' : 'Membro';
 
-  const SidebarContent = ({ collapsed = false }: { collapsed?: boolean }) => (
-    <div className="flex flex-col h-full relative overflow-hidden" style={{ backgroundColor: 'var(--board-sb)' }}>
-      {/* Radial gradient decoration */}
-      <div className="absolute bottom-[-60px] left-[-40px] w-[180px] h-[180px] pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(91,110,240,.15) 0%, transparent 70%)' }} />
+  /** Uma linha do menu. Ativo = pílula cheia; inativo = texto + hover suave. */
+  const navBtnStyle = (ativo: boolean, recolhido: boolean): React.CSSProperties => ({
+    backgroundColor: ativo ? 'var(--bd-chrome-active)' : 'transparent',
+    color: ativo ? '#FFFFFF' : 'var(--bd-ink2)',
+    fontWeight: ativo ? 600 : 500,
+    justifyContent: recolhido ? 'center' : undefined,
+  });
 
-      {/* Brand + User */}
-      <div className="px-[18px] pt-[22px] pb-[18px]" style={{ borderBottom: '1px solid rgba(255,255,255,.06)' }}>
-        {!collapsed ? (
-          <>
-            <div className="flex items-center gap-[9px] mb-[18px]">
-              <div className="w-7 h-7 rounded-[7px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--board-indigo)' }}>
-                <LayoutDashboard className="h-3.5 w-3.5 text-white" />
-              </div>
-              <span className="text-[15px] font-bold tracking-[-0.01em]" style={{ fontFamily: "'Syne', sans-serif", color: 'var(--board-sb-txt-a)' }}>PSA Board</span>
-            </div>
-            <div className="flex items-center gap-[9px]">
-              <div className="w-[30px] h-[30px] rounded-lg flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0" style={{ background: 'linear-gradient(135deg, #5B6EF0, #8054F0)' }}>
-                {initials}
-              </div>
-              <div>
-                <p className="text-[12.5px] font-medium" style={{ color: '#C8D6EC' }}>{firstName} {lastName}</p>
-                <p className="text-[10.5px]" style={{ color: 'var(--board-sb-txt)' }}>{role}</p>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex justify-center">
-            <div className="w-7 h-7 rounded-[7px] flex items-center justify-center" style={{ backgroundColor: 'var(--board-indigo)' }}>
-              <LayoutDashboard className="h-3.5 w-3.5 text-white" />
-            </div>
+  const SidebarContent = ({ collapsed = false }: { collapsed?: boolean }) => (
+    <div
+      className="flex flex-col h-full relative overflow-hidden"
+      style={{ backgroundColor: 'var(--bd-chrome)', borderRight: '1px solid var(--bd-chrome-line)' }}
+    >
+      {/* Lavagem de acento no pé da barra — o mesmo truque do gradiente radial
+          de antes, agora em teal e quase imperceptível: dá profundidade sem
+          virar cor de fundo. */}
+      <div
+        className="absolute bottom-[-80px] left-[-50px] w-[220px] h-[220px] pointer-events-none"
+        style={{ background: 'radial-gradient(circle, hsl(175 82% 29% / .07) 0%, transparent 70%)' }}
+      />
+
+      {/* Marca */}
+      <div className="px-4 pt-5 pb-4" style={{ borderBottom: '1px solid var(--bd-chrome-line)' }}>
+        <button
+          onClick={() => { navigate('/equipe/board/dashboard'); setMobileOpen(false); }}
+          className={`flex items-center gap-2.5 w-full ${collapsed ? 'justify-center' : ''}`}
+          title="Estratégico"
+        >
+          <div
+            className="w-8 h-8 rounded-[10px] flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: 'var(--bd-accent-d)' }}
+          >
+            <LayoutDashboard className="h-[15px] w-[15px] text-white" />
           </div>
-        )}
+          {!collapsed && (
+            <span
+              className="text-[15.5px] font-bold tracking-[-0.02em]"
+              style={{ fontFamily: "'Instrument Sans', sans-serif", color: 'var(--bd-ink)' }}
+            >
+              PSA Board
+            </span>
+          )}
+        </button>
       </div>
 
-      {/* Navigation */}
-      <ScrollArea className="flex-1 px-3 py-[14px]">
-        {/* DIRETORIA group */}
+      {/* Navegação */}
+      <ScrollArea className="flex-1 px-3 py-4">
+        {/* DIRETORIA */}
         <div className="mb-5">
           {!collapsed && (
-            <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-txt)' }}>
+            <p className="px-2.5 mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.13em]" style={{ color: 'var(--bd-ink4)' }}>
               Diretoria
             </p>
           )}
@@ -271,18 +309,11 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
             <button
               key={item.path}
               onClick={() => { navigate(item.path); setMobileOpen(false); }}
-              className={`w-full flex items-center gap-[9px] rounded-lg text-[13px] font-[450] transition-all duration-150 relative mb-px ${collapsed ? 'justify-center px-2 py-[7px]' : 'px-[10px] py-[7px]'}`}
-              style={{
-                backgroundColor: isActive(item.path) ? 'var(--board-sb-active)' : 'transparent',
-                color: isActive(item.path) ? 'var(--board-sb-txt-a)' : 'var(--board-sb-txt)',
-                fontWeight: isActive(item.path) ? 500 : 450,
-              }}
+              className="w-full flex items-center gap-2.5 rounded-[10px] text-[13px] transition-all duration-150 relative mb-0.5 px-2.5 py-2"
+              style={navBtnStyle(isActive(item.path), collapsed)}
               title={collapsed ? item.label : undefined}
             >
-              {isActive(item.path) && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r" style={{ backgroundColor: 'var(--board-indigo)' }} />
-              )}
-              <item.icon className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isActive(item.path) ? 1 : 0.75 }} />
+              <item.icon className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isActive(item.path) ? 1 : 0.7 }} />
               {!collapsed && <span>{item.label}</span>}
             </button>
           ))}
@@ -293,7 +324,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
         {showGestaoTime && (
           <div className="mb-5">
             {!collapsed && (
-              <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-txt)' }}>
+              <p className="px-2.5 mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.13em]" style={{ color: 'var(--bd-ink4)' }}>
                 Gestão de Time
               </p>
             )}
@@ -301,44 +332,40 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
               <div key={item.path}>
                 <button
                   onClick={() => { navigate(item.path); setMobileOpen(false); }}
-                  className={`w-full flex items-center gap-[9px] rounded-lg text-[13px] font-[450] transition-all duration-150 relative mb-px ${collapsed ? 'justify-center px-2 py-[7px]' : 'px-[10px] py-[7px]'}`}
-                  style={{
-                    backgroundColor: isParentActive(item) ? 'var(--board-sb-active)' : 'transparent',
-                    color: isParentActive(item) ? 'var(--board-sb-txt-a)' : 'var(--board-sb-txt)',
-                    fontWeight: isParentActive(item) ? 500 : 450,
-                  }}
+                  className="w-full flex items-center gap-2.5 rounded-[10px] text-[13px] transition-all duration-150 relative mb-0.5 px-2.5 py-2"
+                  style={navBtnStyle(isParentActive(item), collapsed)}
                   title={collapsed ? item.label : undefined}
                 >
-                  {isParentActive(item) && (
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r" style={{ backgroundColor: 'var(--board-indigo)' }} />
-                  )}
-                  <item.icon className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isParentActive(item) ? 1 : 0.75 }} />
+                  <item.icon className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isParentActive(item) ? 1 : 0.7 }} />
                   {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
                   {!collapsed && item.children && (
-                    <ChevronRight className={`h-3 w-3 transition-transform ${isDesempenhoRoute ? 'rotate-90' : ''}`} style={{ color: 'var(--board-sb-grp)' }} />
+                    <ChevronRight
+                      className={`h-3 w-3 transition-transform ${isDesempenhoRoute ? 'rotate-90' : ''}`}
+                      style={{ color: isParentActive(item) ? 'rgba(255,255,255,.7)' : 'var(--bd-ink4)' }}
+                    />
                   )}
                 </button>
-                {/* Sub-items */}
+                {/* Sub-itens */}
                 {!collapsed && item.children && isDesempenhoRoute && (
-                  <div className="ml-6 mt-0.5 pl-[10px]" style={{ borderLeft: '1px solid rgba(255,255,255,.08)' }}>
+                  <div className="ml-[18px] mt-1 pl-2.5" style={{ borderLeft: '1px solid var(--bd-line)' }}>
                     {item.children.map((sub) => (
                       <button
                         key={sub.path}
                         onClick={() => { navigate(sub.path); setMobileOpen(false); }}
-                        className="w-full flex items-center gap-[9px] rounded-lg text-[12.5px] font-[450] transition-all duration-150 px-2 py-[5px] relative mb-px"
+                        className="w-full flex items-center gap-2.5 rounded-[9px] text-[12.5px] transition-all duration-150 px-2.5 py-[6px] relative mb-0.5"
                         style={{
-                          color: isActive(sub.path) ? 'var(--board-sb-txt-a)' : 'var(--board-sb-txt)',
-                          fontWeight: isActive(sub.path) ? 500 : 450,
-                          backgroundColor: isActive(sub.path) ? 'var(--board-sb-active)' : 'transparent',
+                          color: isActive(sub.path) ? 'var(--bd-accent-d)' : 'var(--bd-ink3)',
+                          fontWeight: isActive(sub.path) ? 600 : 500,
+                          backgroundColor: isActive(sub.path) ? 'var(--bd-accent-t)' : 'transparent',
                         }}
                       >
-                        {isActive(sub.path) && (
-                          <div className="absolute left-[-11px] top-1/2 -translate-y-1/2 w-[3px] h-3 rounded-r" style={{ backgroundColor: 'var(--board-indigo)' }} />
-                        )}
-                        <sub.icon className="h-[14px] w-[14px] flex-shrink-0" style={{ opacity: isActive(sub.path) ? 1 : 0.75 }} />
+                        <sub.icon className="h-[14px] w-[14px] flex-shrink-0" style={{ opacity: isActive(sub.path) ? 1 : 0.7 }} />
                         <span className="flex-1 text-left">{sub.label}</span>
                         {sub.badge !== undefined && sub.badge > 0 && (
-                          <span className="min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: 'var(--board-red)' }}>
+                          <span
+                            className="min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1"
+                            style={{ backgroundColor: 'var(--bd-risk-d)' }}
+                          >
                             {sub.badge}
                           </span>
                         )}
@@ -351,56 +378,50 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
           </div>
         )}
 
-        {/* MINHA AREA group */}
+        {/* MINHA AREA */}
         <div className="mb-5">
           {!collapsed && (
-            <p className="px-2 mb-[5px] text-[9.5px] font-bold uppercase tracking-[0.12em]" style={{ color: 'var(--board-sb-txt)' }}>
+            <p className="px-2.5 mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.13em]" style={{ color: 'var(--bd-ink4)' }}>
               Minha Area
             </p>
           )}
           <button
             onClick={() => { navigate('/equipe/board/desempenho/minha-evolucao'); setMobileOpen(false); }}
-            className={`w-full flex items-center gap-[9px] rounded-lg text-[13px] font-[450] transition-all duration-150 relative mb-px ${collapsed ? 'justify-center px-2 py-[7px]' : 'px-[10px] py-[7px]'}`}
-            style={{
-              backgroundColor: isMiEvolucaoRoute ? 'var(--board-sb-active)' : 'transparent',
-              color: isMiEvolucaoRoute ? 'var(--board-sb-txt-a)' : 'var(--board-sb-txt)',
-              fontWeight: isMiEvolucaoRoute ? 500 : 450,
-            }}
+            className="w-full flex items-center gap-2.5 rounded-[10px] text-[13px] transition-all duration-150 relative mb-0.5 px-2.5 py-2"
+            style={navBtnStyle(isMiEvolucaoRoute, collapsed)}
             title={collapsed ? 'Minha Evolução' : undefined}
           >
-            {isMiEvolucaoRoute && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r" style={{ backgroundColor: 'var(--board-indigo)' }} />
-            )}
-            <User className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isMiEvolucaoRoute ? 1 : 0.75 }} />
+            <User className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isMiEvolucaoRoute ? 1 : 0.7 }} />
             {!collapsed && <span className="flex-1 text-left">Minha Evolução</span>}
             {!collapsed && hasUnreadOrOverdue && (
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--board-amber)' }} />
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--bd-warn)' }} />
             )}
           </button>
         </div>
       </ScrollArea>
 
-      {/* Footer */}
-      <div className="px-3 pb-[14px] pt-[14px] space-y-1" style={{ borderTop: '1px solid rgba(255,255,255,.06)' }}>
+      {/* Rodapé */}
+      <div className="px-3 pb-3.5 pt-3.5 space-y-1" style={{ borderTop: '1px solid var(--bd-chrome-line)' }}>
         <button
           onClick={() => navigate('/equipe/')}
-          className="w-full flex items-center gap-2 rounded-lg text-[12.5px] transition-all duration-150 px-[10px] py-[7px]"
-          style={{ color: 'var(--board-sb-txt)' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--board-sb-hover)'; (e.currentTarget as HTMLElement).style.color = '#A8BADA'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--board-sb-txt)'; }}
+          className="w-full flex items-center gap-2 rounded-[10px] text-[12.5px] transition-colors duration-150 px-2.5 py-2"
+          style={{ color: 'var(--bd-ink3)' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bd-chrome-hover)'; (e.currentTarget as HTMLElement).style.color = 'var(--bd-ink)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--bd-ink3)'; }}
+          title={collapsed ? 'Voltar ao Portal' : undefined}
         >
-          <ArrowLeft className="h-[14px] w-[14px]" />
+          <ArrowLeft className="h-[14px] w-[14px] flex-shrink-0" />
           {!collapsed && <span>Voltar ao Portal</span>}
         </button>
         <button
           onClick={handleSignOut}
-          className="w-full flex items-center gap-2 rounded-lg text-[12.5px] transition-all duration-150 px-[10px] py-[7px]"
-          style={{ color: 'var(--board-sb-txt)' }}
-          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(239,68,68,.12)'; (e.currentTarget as HTMLElement).style.color = '#FCA5A5'; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--board-sb-txt)'; }}
+          className="w-full flex items-center gap-2 rounded-[10px] text-[12.5px] transition-colors duration-150 px-2.5 py-2"
+          style={{ color: 'var(--bd-ink3)' }}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--bd-risk-t)'; (e.currentTarget as HTMLElement).style.color = 'var(--bd-risk-d)'; }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLElement).style.color = 'var(--bd-ink3)'; }}
           title={collapsed ? 'Sair' : undefined}
         >
-          <LogOut className="h-[14px] w-[14px]" />
+          <LogOut className="h-[14px] w-[14px] flex-shrink-0" />
           {!collapsed && <span>Sair</span>}
         </button>
       </div>
@@ -408,20 +429,21 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
   );
 
   return (
-    <div className="min-h-screen flex w-full" style={{ backgroundColor: 'var(--board-bg)' }}>
+    <div className="min-h-screen flex w-full" style={{ backgroundColor: 'var(--bd-page)' }}>
       {/* Desktop/Tablet sidebar (md+) */}
       <aside
-        className={`hidden md:flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-30 transition-all duration-300 ${collapsed ? 'w-[64px]' : 'w-[232px]'}`}
+        className={`hidden md:flex flex-col flex-shrink-0 fixed top-0 left-0 h-screen z-30 transition-all duration-300 ${collapsed ? 'w-[68px]' : 'w-[240px]'}`}
       >
         <SidebarContent collapsed={collapsed} />
-        {/* Toggle button */}
+        {/* Toggle */}
         <button
           onClick={() => setCollapsed(c => !c)}
           className="absolute top-[22px] -right-3 z-40 w-6 h-6 rounded-full flex items-center justify-center border transition-colors"
           style={{
-            backgroundColor: 'var(--board-sb)',
-            borderColor: 'rgba(255,255,255,.12)',
-            color: 'var(--board-sb-txt)',
+            backgroundColor: 'var(--bd-surface)',
+            borderColor: 'var(--bd-line)',
+            color: 'var(--bd-ink3)',
+            boxShadow: 'var(--bd-sh)',
           }}
           title={collapsed ? 'Expandir menu' : 'Recolher menu'}
         >
@@ -431,51 +453,89 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
 
       {/* Mobile sidebar (drawer) */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-        <SheetContent side="left" className="p-0 w-[260px] border-0" style={{ backgroundColor: 'var(--board-sb)' }}>
+        <SheetContent side="left" className="p-0 w-[264px] border-0" style={{ backgroundColor: 'var(--bd-chrome)' }}>
           <SidebarContent />
         </SheetContent>
       </Sheet>
 
       {/* Main content */}
-      <main className={`flex-1 flex flex-col min-w-0 overflow-hidden ml-0 transition-all duration-300 ${collapsed ? 'md:ml-[64px]' : 'md:ml-[232px]'}`}>
-        {/* Topbar — 52px */}
-        <header className="h-[52px] min-h-[52px] flex items-center px-6 gap-[14px] flex-shrink-0" style={{ backgroundColor: 'var(--board-card)', borderBottom: '1px solid var(--board-border)' }}>
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden"
-              onClick={() => setMobileOpen(true)}
-              style={{ color: 'var(--board-t3)' }}
-            >
-              <Menu className="h-5 w-5" />
-            </Button>
-            <div>
-              <div className="flex items-center gap-[6px] text-[12px]" style={{ color: 'var(--board-t3)' }}>
-                {breadcrumb.map((b, i) => (
-                  <span key={b.path} className="flex items-center gap-[6px]">
-                    {/* Sem cor própria: herda o `--board-t3` do contêiner acima.
-                        Antes o separador pintava com `--board-border`, que é token
-                        de BORDA — dava 1,21:1 como texto. */}
-                    {i > 0 && <span>/</span>}
-                    {i === breadcrumb.length - 1 ? (
-                      <span className="text-[12.5px] font-medium" style={{ color: 'var(--board-t1)' }}>{b.label}</span>
-                    ) : (
-                      <button onClick={() => navigate(b.path)} className="hover:underline">{b.label}</button>
-                    )}
-                  </span>
-                ))}
-                {subtitle && (
-                  <>
-                    <span>·</span>
-                    <span className="hidden sm:inline text-[11.5px]">{subtitle}</span>
-                  </>
-                )}
-              </div>
+      <main className={`flex-1 flex flex-col min-w-0 overflow-hidden ml-0 transition-all duration-300 ${collapsed ? 'md:ml-[68px]' : 'md:ml-[240px]'}`}>
+        {/* Topbar — 56px */}
+        <header
+          className="h-14 min-h-14 flex items-center px-4 md:px-6 gap-3 flex-shrink-0"
+          style={{ backgroundColor: 'var(--bd-chrome)', borderBottom: '1px solid var(--bd-chrome-line)' }}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => setMobileOpen(true)}
+            style={{ color: 'var(--bd-ink3)' }}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--bd-ink3)' }}>
+              {breadcrumb.map((b, i) => (
+                <span key={b.path} className="flex items-center gap-1.5">
+                  {/* Sem cor própria: herda o `--bd-ink3` do contêiner acima.
+                      Antes o separador pintava com token de BORDA — 1,21:1
+                      como texto. */}
+                  {i > 0 && <span aria-hidden>/</span>}
+                  {i === breadcrumb.length - 1 ? (
+                    /* O ícone do Agente PSA fica AQUI, colado no título da tela,
+                       e é o ponto de entrada do agente DENTRO do Board (pedido
+                       da diretoria, 21/08: "de forma discreta em todos os menus
+                       e submenus, a partir de um ícone próximo ao título").
+                       Ele entra uma vez, aqui, e por isso vale para as 18 telas
+                       do Board sem que nenhuma precise se lembrar dele.
+
+                       O balão flutuante (`AgentePsaWidget`) continua existindo,
+                       mas se retira dentro do Board (ver o gate lá): fora daqui
+                       — Tax, OSG, Acessos — não há cabeçalho padronizado onde o
+                       ícone encaixe, e é ele que atende essas telas. Um idioma
+                       por ambiente, nunca dois no mesmo lugar.
+
+                       Diferença que importa: o ícone existe em TODA tela do
+                       Board (o escopo vem da rota), enquanto o balão só aparece
+                       onde a tela publicou snapshot. Sem o ícone, os menus que
+                       ainda não publicam ficariam sem agente nenhum — e sem o
+                       lugar onde a faixa "Exige decisão" e o aviso de dado
+                       incompleto passaram a morar, depois de saírem da grade. */
+                    <span className="flex items-center gap-1.5">
+                      <span className="text-[13px] font-semibold" style={{ color: 'var(--bd-ink)' }}>{b.label}</span>
+                      <AgentePsaTrigger />
+                    </span>
+                  ) : (
+                    <button onClick={() => navigate(b.path)} className="hover:underline">{b.label}</button>
+                  )}
+                </span>
+              ))}
             </div>
+            {subtitle && (
+              <div className="hidden sm:block text-[11.5px] leading-tight" style={{ color: 'var(--bd-ink3)' }}>
+                {subtitle}
+              </div>
+            )}
           </div>
-          <div className="flex items-center gap-2 ml-auto">
+
+          <div className="flex items-center gap-2.5 ml-auto">
             {headerActions}
+            {/* Chip do usuário — veio da barra lateral (ver o cabeçalho deste
+                arquivo). Continua visível com a barra recolhida. */}
+            <div
+              className="hidden sm:flex items-center gap-2.5 pl-3"
+              style={{ borderLeft: '1px solid var(--bd-line)' }}
+            >
+              <div className="text-right leading-tight">
+                <p className="text-[12.5px] font-semibold" style={{ color: 'var(--bd-ink)' }}>
+                  {firstName} {lastName}
+                </p>
+                <p className="text-[10.5px]" style={{ color: 'var(--bd-ink3)' }}>{role}</p>
+              </div>
+              <div className="v4-av v4-av-sm">{initials}</div>
+            </div>
           </div>
         </header>
 
@@ -486,10 +546,14 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto">
-          <div className={`${noPadding ? '' : 'p-[22px] md:p-6 lg:p-6'}`} style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
+          <div className={`${noPadding ? '' : 'p-4 md:p-6 lg:p-7'}`} style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
             {children}
           </div>
         </div>
+
+        {/* Pop-up de análise estratégica / insight crítico. Fora do contêiner
+            que rola, para não subir com o conteúdo; estilo próprio, inline. */}
+        <AgenteNotificacaoPopup />
       </main>
     </div>
   );

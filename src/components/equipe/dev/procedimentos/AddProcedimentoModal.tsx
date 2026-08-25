@@ -1,16 +1,13 @@
 import { useState, useRef } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Upload, Link, Loader2 } from 'lucide-react';
+import { Upload, Link, Loader2, Info } from 'lucide-react';
 import { useCreateProcedimento, useUploadProcedimentoFile } from '@/hooks/useProcedimentos';
-
-const PROCESSOS = [
-  'EFD', 'XMLs', 'PERDCOMP', 'Selic', 'IBS/CBS',
-  'Balancetes', 'PIS/COFINS', 'Cruzamento de Dados', 'Correções SPED',
-];
+import { toast } from 'sonner';
+import { PROCEDIMENTO_PROCESSOS } from './theme';
 
 interface AddProcedimentoModalProps {
   open: boolean;
@@ -78,6 +75,10 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Adicionar procedimento</DialogTitle>
+          <DialogDescription>
+            A IA lê o documento e monta a ficha — título, resumo, etapas e tags. Um curador
+            confere antes de publicar para o time.
+          </DialogDescription>
         </DialogHeader>
 
         {/* Toggle */}
@@ -108,10 +109,18 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
             <div>
               <Label>URL do documento</Label>
               <Input
-                placeholder="Cole o link do Google Docs, Notion, Confluence..."
+                placeholder="https://..."
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
               />
+              {/* O leitor busca a página sem estar logado em nada. Documento
+                  privado do Drive/Notion devolve a tela de login, e era ela que
+                  a IA acabava resumindo. */}
+              <p className="text-xs text-slate-400 mt-1.5 flex gap-1.5">
+                <Info className="h-3.5 w-3.5 flex-shrink-0 mt-px" />
+                O link precisa abrir sem login. Documento restrito do Drive, Notion ou
+                Confluence não pode ser lido — nesse caso, anexe o arquivo.
+              </p>
             </div>
           ) : (
             <div>
@@ -133,7 +142,12 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f && f.size <= 10 * 1024 * 1024) setFile(f);
+                  if (!f) return;
+                  if (f.size > 10 * 1024 * 1024) {
+                    toast.error('Arquivo acima de 10MB. Reduza ou envie por link.');
+                    return;
+                  }
+                  setFile(f);
                 }}
               />
             </div>
@@ -143,7 +157,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
           <div>
             <Label className="text-slate-600">Processos sugeridos (opcional)</Label>
             <div className="grid grid-cols-2 gap-2 mt-2">
-              {PROCESSOS.map((p) => (
+              {PROCEDIMENTO_PROCESSOS.map((p) => (
                 <label key={p} className="flex items-center gap-2 text-sm cursor-pointer">
                   <Checkbox
                     checked={selectedProcessos.includes(p)}
@@ -160,7 +174,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
           <Button variant="outline" onClick={resetAndClose}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={!isValid || submitting}>
             {submitting && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-            Analisar com IA
+            Enviar para leitura
           </Button>
         </div>
       </DialogContent>

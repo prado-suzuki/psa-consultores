@@ -1,5 +1,6 @@
 import React from 'react';
 import { BoardChip } from './BoardChip';
+import { BoardCard, BoardCardEmpty } from './ui/BoardCard';
 
 export interface ProjetoCriticoItem {
   id: string;
@@ -24,8 +25,9 @@ const areaChip = (a: string | null): 'tax' | 'osg' | 'dev' | 'gy' => {
 };
 
 const classeBarra = (pct: number) => (pct >= 85 ? 'v4-pg' : pct >= 70 ? 'v4-pa' : 'v4-pr');
+/** Degrau escuro em todos: aqui a cor de estado pinta NÚMERO, não área. */
 const corTexto = (pct: number) =>
-  pct >= 85 ? 'var(--board-v4-go)' : pct >= 70 ? 'var(--board-v4-warn)' : 'var(--board-v4-risk)';
+  pct >= 85 ? 'var(--bd-go-d)' : pct >= 70 ? 'var(--bd-warn-d)' : 'var(--bd-risk-d)';
 
 /**
  * A watchlist de execução: projetos em risco ou atrasados, com o quanto já
@@ -36,13 +38,16 @@ export const BoardProjetosCriticos: React.FC<BoardProjetosCriticosProps> = ({
   projetos,
   onProjetoClick,
 }) => (
-  <div className="v4-card" data-reveal style={{ marginBottom: 16 }}>
-    <div className="v4-card-title">Projetos críticos</div>
-
+  <BoardCard
+    title="Projetos críticos"
+    subtitle="Em risco ou atrasados, com o avanço de tarefas"
+    style={{ marginBottom: 18 }}
+    actions={projetos.length > 0
+      ? <BoardChip variant="warn">{projetos.length} em acompanhamento</BoardChip>
+      : undefined}
+  >
     {projetos.length === 0 && (
-      <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}>
-        Nenhum projeto em risco ou atrasado no escopo.
-      </div>
+      <BoardCardEmpty>Nenhum projeto em risco ou atrasado no escopo.</BoardCardEmpty>
     )}
 
     {projetos.map((p) => {
@@ -52,24 +57,27 @@ export const BoardProjetosCriticos: React.FC<BoardProjetosCriticosProps> = ({
           key={p.id}
           className="v4-mrow"
           onClick={onProjetoClick ? () => onProjetoClick(p.id) : undefined}
-          style={{ cursor: onProjetoClick ? 'pointer' : undefined }}
+          data-clickable={onProjetoClick ? 'true' : undefined}
         >
           <BoardChip variant={areaChip(p.area_name)}>{p.area_name || 'Sem área'}</BoardChip>
           <div
             style={{
-              flex: 1, minWidth: 0, fontWeight: 500, color: 'var(--board-v4-ink)',
+              flex: 1, minWidth: 0, fontWeight: 500, color: 'var(--bd-ink)',
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}
             title={p.name}
           >
             {p.name}
           </div>
-          <div style={{ width: 64 }}>
+          <div style={{ width: 80 }}>
             <div className="v4-pb v4-pb6">
               <div className={`v4-pbf ${classeBarra(pct)}`} style={{ width: `${pct}%` }} />
             </div>
           </div>
-          <span style={{ fontSize: 11.5, fontWeight: 700, minWidth: 28, textAlign: 'right', color: corTexto(pct) }}>
+          <span style={{
+            fontSize: 11.5, fontWeight: 700, minWidth: 30, textAlign: 'right',
+            color: corTexto(pct), fontVariantNumeric: 'tabular-nums',
+          }}>
             {pct}%
           </span>
           <BoardChip variant={p.computed_status === 'atrasado' ? 'risk' : 'warn'}>
@@ -78,5 +86,5 @@ export const BoardProjetosCriticos: React.FC<BoardProjetosCriticosProps> = ({
         </div>
       );
     })}
-  </div>
+  </BoardCard>
 );

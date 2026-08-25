@@ -3,10 +3,15 @@ import { render } from '@testing-library/react';
 import { renderSimpleBoldMarkdown } from './safeBoldMarkdown';
 
 /**
- * Regressão do PR #6: o BoardAIBox antes renderizava a resposta da IA com
- * `dangerouslySetInnerHTML` + regex de `**bold**`, o que permitia XSS se a
- * IA retornasse HTML/script. Esses testes garantem que o replacement é
- * seguro (via React, sem dangerouslySetInnerHTML).
+ * Regressão do PR #6: o `BoardAIBox` (removido em 21/08, quando a análise de IA
+ * saiu dos cartões do Board e virou o painel do Agente PSA) antes renderizava a
+ * resposta da IA com `dangerouslySetInnerHTML` + regex de `**bold**`, o que
+ * permitia XSS se a IA retornasse HTML/script. Esses testes garantem que o
+ * replacement é seguro (via React, sem dangerouslySetInnerHTML).
+ *
+ * A garantia continua valendo, e agora para MAIS superfícies: quem renderiza
+ * texto de modelo hoje é `AgenteConversa` (painel do agente), pelo mesmo
+ * `renderSimpleBoldMarkdown`.
  */
 
 describe('renderSimpleBoldMarkdown', () => {

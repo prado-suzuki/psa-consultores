@@ -317,22 +317,41 @@ export function alertasEstrategicos(entrada: EntradaAlertas): AlertaEstrategico[
   const risco = receitaEmRisco(os);
 
   if (risco.vencido.qtd > 0) {
+    const contratos = `${risco.vencido.qtd} ${risco.vencido.qtd === 1 ? 'contrato vencido' : 'contratos vencidos'}`;
     alertas.push({
       id: 'contrato-vencido',
       severidade: 'risco',
-      titulo: `${brl(risco.vencido.valor)} em ${risco.vencido.qtd} ${risco.vencido.qtd === 1 ? 'contrato vencido' : 'contratos vencidos'} com trabalho em andamento`,
-      detalhe: `Serviço sendo prestado fora da vigência: ${listaNomes(risco.vencido.clientes, risco.vencido.qtd)}.`,
+      // O VALOR só entra no título quando existe. Com OS sem faturamento
+      // lançado, a versão anterior escrevia "R$ 0 em 1 contrato vencido com
+      // trabalho em andamento" e repetia o zero na pílula de valor: o zero
+      // ocupava a posição de destaque da frase e não dizia nada. O FATO é o
+      // contrato vencido com gente trabalhando; o valor é o agravante, e
+      // agravante que não existe não se anuncia. Visto com dado real do
+      // sandbox em 21/08/2026, mas o caminho é o mesmo em produção para OS de
+      // valor nulo.
+      titulo: risco.vencido.valor > 0
+        ? `${brl(risco.vencido.valor)} em ${contratos} com trabalho em andamento`
+        : `${contratos} com trabalho em andamento`,
+      detalhe: `Serviço sendo prestado fora da vigência: ${listaNomes(risco.vencido.clientes, risco.vencido.qtd)}.`
+        + (risco.vencido.valor > 0 ? '' : ' Sem faturamento lançado nessas OS — o que se sabe é a contagem, não a exposição.'),
       valor: risco.vencido.valor,
       rota: '/equipe/board/dashboard-clientes-os',
     });
   }
 
   if (risco.renovacao.qtd > 0) {
+    const vencem = `${risco.renovacao.qtd} ${risco.renovacao.qtd === 1 ? 'contrato vence' : 'contratos vencem'}`;
     alertas.push({
       id: 'renovacao-30d',
       severidade: 'atencao',
-      titulo: `${brl(risco.renovacao.valor)} em renovação nos próximos ${DIAS_RENOVACAO} dias`,
-      detalhe: `${risco.renovacao.qtd} ${risco.renovacao.qtd === 1 ? 'contrato vence' : 'contratos vencem'} na janela: ${listaNomes(risco.renovacao.clientes, risco.renovacao.qtd)}.`,
+      // Mesma regra do alerta acima: sem valor lançado, quem lidera a frase é
+      // a contagem.
+      titulo: risco.renovacao.valor > 0
+        ? `${brl(risco.renovacao.valor)} em renovação nos próximos ${DIAS_RENOVACAO} dias`
+        : `${vencem} nos próximos ${DIAS_RENOVACAO} dias`,
+      detalhe: risco.renovacao.valor > 0
+        ? `${vencem} na janela: ${listaNomes(risco.renovacao.clientes, risco.renovacao.qtd)}.`
+        : `Na janela: ${listaNomes(risco.renovacao.clientes, risco.renovacao.qtd)}. Sem faturamento lançado nessas OS — o que se sabe é a contagem, não a exposição.`,
       valor: risco.renovacao.valor,
       rota: '/equipe/board/dashboard-clientes-os',
     });

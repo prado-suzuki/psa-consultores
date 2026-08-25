@@ -121,37 +121,45 @@ export const TOOLTIP = {
   ...TOOLTIP_STYLE,
   contentStyle: {
     ...TOOLTIP_STYLE.contentStyle,
-    background: 'var(--board-v4-surface)',
-    border: '1px solid var(--board-v4-line)',
+    background: 'hsl(var(--card))',
+    border: '1px solid hsl(var(--border))',
   },
   cursor: { fill: 'hsl(var(--primary) / 0.06)' },
 };
 
 // ── Estilos de tabela ──────────────────────────────────────────────────
+// Continuam como objetos de estilo (e não como as classes `.v4-tbl` do
+// index.css) por um motivo: a matriz dimensão × mês precisa de células
+// GRUDADAS nos dois eixos, com `background` explícito, e sticky em `<td>`
+// dentro de uma classe compartilhada quebraria as outras tabelas do Board.
+// Os valores, porém, passaram a ser os mesmos das classes — cabeçalho em
+// caixa alta minúscula, régua só embaixo e hover de linha inteira.
 export const th: React.CSSProperties = {
-  textAlign: 'left', padding: '7px 10px', fontSize: 11, fontWeight: 700,
-  color: 'var(--board-v4-ink3)', borderBottom: '1px solid var(--board-v4-line)', whiteSpace: 'nowrap',
-  cursor: 'pointer', userSelect: 'none',
+  textAlign: 'left', padding: '9px 12px', fontSize: 10, fontWeight: 700,
+  letterSpacing: '.09em', textTransform: 'uppercase', color: 'var(--bd-ink4)',
+  borderBottom: '1px solid var(--bd-line)', background: 'var(--bd-surface2)',
+  whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none',
 };
 export const td: React.CSSProperties = {
-  padding: '7px 10px', fontSize: 12, color: 'var(--board-v4-ink)',
-  borderBottom: '1px solid var(--board-v4-line)',
+  padding: '10px 12px', fontSize: 12.5, color: 'var(--bd-ink2)',
+  borderBottom: '1px solid var(--bd-line2)',
 };
 
 // Matriz dimensão × mês: cabeçalho e coluna do nome ficam grudados na rolagem
 // (a tabela rola nos dois eixos quando o período pega muitos meses).
-const SURFACE = 'var(--board-v4-surface)';
+const SURFACE = 'var(--bd-surface)';
 export const thFixo: React.CSSProperties = {
-  padding: '7px 10px', fontSize: 11, fontWeight: 700, color: 'var(--board-v4-ink3)',
-  borderBottom: '1px solid var(--board-v4-line)', whiteSpace: 'nowrap',
-  position: 'sticky', top: 0, background: SURFACE, zIndex: 2,
+  padding: '9px 12px', fontSize: 10, fontWeight: 700, letterSpacing: '.09em',
+  textTransform: 'uppercase', color: 'var(--bd-ink4)',
+  borderBottom: '1px solid var(--bd-line)', whiteSpace: 'nowrap',
+  position: 'sticky', top: 0, background: 'var(--bd-surface2)', zIndex: 2,
 };
 export const tdNome: React.CSSProperties = {
-  ...td, fontWeight: 500, whiteSpace: 'nowrap',
+  ...td, fontWeight: 500, color: 'var(--bd-ink)', whiteSpace: 'nowrap',
   position: 'sticky', left: 0, background: SURFACE, zIndex: 1,
 };
 export const tdTotal: React.CSSProperties = {
   ...td, whiteSpace: 'nowrap', position: 'sticky', bottom: 0, background: SURFACE,
-  borderTop: '2px solid var(--board-v4-line)', zIndex: 2,
+  borderTop: '2px solid var(--bd-line)', zIndex: 2, fontWeight: 600,
 };
 export const numerico: React.CSSProperties = { textAlign: 'right', fontVariantNumeric: 'tabular-nums' };

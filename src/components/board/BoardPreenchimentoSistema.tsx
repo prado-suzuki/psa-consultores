@@ -1,6 +1,7 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { BoardChip } from './BoardChip';
+import { BoardCard, BoardCardEmpty } from './ui/BoardCard';
 import {
   tituloLacuna,
   SEM_AREA_ID,
@@ -21,11 +22,9 @@ interface BoardPreenchimentoSistemaProps {
   falhas: string[];
 }
 
-const GRID_COLS = '1fr 76px 108px 96px 84px 84px 118px';
-
 /** Vermelho quando há lacuna, cinza neutro quando zerado -- nunca verde "elogio". */
 const corLacuna = (total: number | null) =>
-  total === null ? 'var(--board-v4-ink3)' : total > 0 ? 'var(--board-v4-risk)' : 'var(--board-v4-ink3)';
+  total === null ? 'var(--bd-ink3)' : total > 0 ? 'var(--bd-risk-d)' : 'var(--bd-ink3)';
 
 /**
  * Uma célula de lacuna nomeável: número (ou alerta de falha), com tooltip
@@ -35,17 +34,17 @@ const CelulaLacuna: React.FC<{ l: { total: number | null; nomes: string[] } }> =
   if (l.total === null) {
     return (
       <span
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--board-v4-risk)' }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--bd-risk)' }}
         title={tituloLacuna(l)}
       >
-        <AlertTriangle style={{ width: 11, height: 11 }} />
+        <AlertTriangle style={{ width: 12, height: 12 }} />
         <span style={{ fontSize: 11 }}>—</span>
       </span>
     );
   }
   return (
     <span
-      style={{ fontWeight: 600, fontSize: 12.5, color: corLacuna(l.total) }}
+      style={{ fontWeight: 600, color: corLacuna(l.total) }}
       title={tituloLacuna(l, 'Nenhum -- tudo cadastrado')}
     >
       {l.total}
@@ -56,66 +55,61 @@ const CelulaLacuna: React.FC<{ l: { total: number | null; nomes: string[] } }> =
 const LinhaArea: React.FC<{ linha: LinhaPreenchimentoArea }> = ({ linha }) => {
   const semArea = linha.id === SEM_AREA_ID;
   return (
-    <div
-      style={{
-        display: 'grid', gridTemplateColumns: GRID_COLS, alignItems: 'center', gap: 8,
-        padding: '7px 0', borderBottom: '1px solid var(--board-v4-line2)', fontSize: 12,
-      }}
-    >
-      <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+    <tr>
+      <td style={{ maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {semArea
           ? <BoardChip variant="warn">{linha.label}</BoardChip>
-          : <span style={{ color: 'var(--board-v4-ink)', fontWeight: 500 }}>{linha.label}</span>}
-      </div>
-      <div>
+          : linha.label}
+      </td>
+      <td className="num">
         {linha.projetos === null ? (
           <span
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--board-v4-risk)' }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: 'var(--bd-risk)' }}
             title="Não foi possível medir -- a consulta de projetos falhou."
           >
-            <AlertTriangle style={{ width: 11, height: 11 }} />
+            <AlertTriangle style={{ width: 12, height: 12 }} />
           </span>
         ) : (
-          <span style={{ fontWeight: 600, fontSize: 12.5, color: 'var(--board-v4-ink)' }}>{linha.projetos}</span>
+          <span style={{ fontWeight: 600, color: 'var(--bd-ink)' }}>{linha.projetos}</span>
         )}
-      </div>
-      <div><CelulaLacuna l={linha.semResponsavel} /></div>
-      <div><CelulaLacuna l={linha.semEquipe} /></div>
-      <div><CelulaLacuna l={linha.semData} /></div>
-      <div><CelulaLacuna l={linha.semOs} /></div>
-      <div>
+      </td>
+      <td className="num"><CelulaLacuna l={linha.semResponsavel} /></td>
+      <td className="num"><CelulaLacuna l={linha.semEquipe} /></td>
+      <td className="num"><CelulaLacuna l={linha.semData} /></td>
+      <td className="num"><CelulaLacuna l={linha.semOs} /></td>
+      <td>
         {semArea ? (
-          <span style={{ color: 'var(--board-v4-ink3)', fontSize: 11 }}>não se aplica</span>
+          <span style={{ color: 'var(--bd-ink3)', fontSize: 11 }}>não se aplica</span>
         ) : (
           <BoardChip variant={linha.centroCustoFaltando ? 'risk' : 'go'}>
             {linha.centroCustoFaltando ? 'FALTANDO' : 'cadastrado'}
           </BoardChip>
         )}
-      </div>
-    </div>
+      </td>
+    </tr>
   );
 };
 
 /** Uma linha da faixa "empresa inteira": número absoluto sobre o total, sem nota ou score. */
 const LinhaFaixaEmpresa: React.FC<{ label: string; efeito: string; m: MetricaFaixaEmpresa }> = ({ label, efeito, m }) => (
-  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, padding: '6px 0', flexWrap: 'wrap' }}>
-    <div style={{ minWidth: 180, fontSize: 12, color: 'var(--board-v4-ink)', fontWeight: 500 }}>{label}</div>
+  <div className="v4-mrow" style={{ flexWrap: 'wrap' }}>
+    <div style={{ minWidth: 186, fontSize: 12, color: 'var(--bd-ink)', fontWeight: 500 }}>{label}</div>
     {m.comLacuna === null ? (
       <span
-        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--board-v4-risk)', fontSize: 12.5, fontWeight: 700 }}
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--bd-risk-d)', fontSize: 12.5, fontWeight: 700 }}
         title="Não foi possível medir -- a consulta falhou."
       >
-        <AlertTriangle style={{ width: 12, height: 12 }} /> não foi possível medir
+        <AlertTriangle style={{ width: 13, height: 13 }} /> não foi possível medir
       </span>
     ) : (
       <span
-        style={{ fontSize: 13.5, fontWeight: 700, color: corLacuna(m.comLacuna) }}
+        style={{ fontSize: 13.5, fontWeight: 700, color: corLacuna(m.comLacuna), fontVariantNumeric: 'tabular-nums' }}
         title={tituloLacuna(m, 'Nenhum -- tudo cadastrado')}
       >
         {m.comLacuna} de {m.total}
       </span>
     )}
-    <span style={{ fontSize: 11, color: 'var(--board-v4-ink3)' }}>— {efeito}</span>
+    <span style={{ fontSize: 11, color: 'var(--bd-ink3)', flex: 1, minWidth: 160 }}>— {efeito}</span>
   </div>
 );
 
@@ -128,6 +122,13 @@ const LinhaFaixaEmpresa: React.FC<{ label: string; efeito: string; m: MetricaFai
  * zero aqui é elogio indevido, ou uma cobrança injusta a uma área cuja
  * consulta só falhou. Toda contagem tem um `title` com os nomes afetados —
  * o dono pergunta "quais são os 18?" e a resposta já está na tela.
+ *
+ * ── Grade → tabela ───────────────────────────────────────────────────
+ * As linhas eram `display: grid` com sete larguras cravadas numa constante
+ * (`GRID_COLS`), e o cabeçalho era outro grid com as MESMAS sete larguras
+ * repetidas — desalinhar era questão de tempo. Virou `<table className="v4-tbl">`:
+ * a largura passa a ser problema do navegador, o cabeçalho gruda na rolagem e
+ * o leitor de tela finalmente anuncia "coluna Sem responsável".
  */
 export const BoardPreenchimentoSistema: React.FC<BoardPreenchimentoSistemaProps> = ({
   areas, semArea, faixa, falhaAreas, falhas,
@@ -135,28 +136,20 @@ export const BoardPreenchimentoSistema: React.FC<BoardPreenchimentoSistemaProps>
   const linhas = semArea ? [...areas, semArea] : areas;
 
   return (
-    <div className="v4-card" data-reveal>
-      <div className="v4-card-title" style={{ marginBottom: 4 }}>Preenchimento do sistema</div>
-      <div style={{ fontSize: 11, color: 'var(--board-v4-ink3)', marginBottom: 12 }}>
-        O que falta cadastrar, por área — não é entrega, é o que cobrar de quem alimenta o sistema.
-      </div>
-
+    <BoardCard
+      title="Preenchimento do sistema"
+      subtitle="O que falta cadastrar, por área — não é entrega, é o que cobrar de quem alimenta o sistema."
+    >
       {/* Mesmo padrão visual do banner de falha da tela (ver PerformanceDashboard):
           nunca deixar dado ausente virar número -- aqui, virar CÉLULA. */}
       {falhas.length > 0 && (
-        <div
-          role="alert"
-          style={{
-            marginBottom: 12, borderLeft: '3px solid var(--board-v4-risk)', display: 'flex', gap: 8,
-            padding: '8px 10px', background: 'var(--board-v4-risk-t)', borderRadius: 6,
-          }}
-        >
-          <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0, color: 'var(--board-v4-risk)', marginTop: 1 }} />
+        <div role="alert" className="v4-alert v4-alert-r" style={{ marginBottom: 14 }}>
+          <AlertTriangle style={{ width: 15, height: 15, flexShrink: 0, color: 'var(--bd-risk)', marginTop: 1 }} />
           <div>
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--board-v4-risk)' }}>
+            <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--bd-risk-d)' }}>
               Preenchimento incompleto — parte dos números abaixo não pôde ser medida
             </div>
-            <div style={{ fontSize: 11, color: 'var(--board-v4-ink3)', marginTop: 2 }}>
+            <div style={{ fontSize: 11, color: 'var(--bd-ink2)', marginTop: 2 }}>
               Falha ao carregar: {falhas.join(', ')}. As células afetadas mostram um alerta, nunca um zero.
             </div>
           </div>
@@ -164,43 +157,37 @@ export const BoardPreenchimentoSistema: React.FC<BoardPreenchimentoSistemaProps>
       )}
 
       {falhaAreas ? (
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '8px 0' }}>
-          <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0, color: 'var(--board-v4-risk)', marginTop: 1 }} />
-          <div style={{ fontSize: 12, color: 'var(--board-v4-risk)' }}>
+        <div className="v4-alert v4-alert-r">
+          <AlertTriangle style={{ width: 15, height: 15, flexShrink: 0, color: 'var(--bd-risk)', marginTop: 1 }} />
+          <div style={{ fontSize: 12, color: 'var(--bd-risk-d)' }}>
             Não foi possível carregar as áreas do cadastro — a lista abaixo não pode ser mostrada.
           </div>
         </div>
       ) : linhas.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}>
-          Nenhuma área ativa cadastrada.
-        </div>
+        <BoardCardEmpty>Nenhuma área ativa cadastrada.</BoardCardEmpty>
       ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <div style={{ minWidth: 640 }}>
-            <div
-              style={{
-                display: 'grid', gridTemplateColumns: GRID_COLS, gap: 8, padding: '0 0 6px',
-                fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase',
-                color: 'var(--board-v4-ink4)', borderBottom: '1px solid var(--board-v4-line2)',
-              }}
-            >
-              <div>Área</div>
-              <div>Projetos</div>
-              <div>Sem resp.</div>
-              <div>Sem equipe</div>
-              <div>Sem data</div>
-              <div>Sem OS</div>
-              <div>Centro de custo</div>
-            </div>
-            {linhas.map((l) => <LinhaArea key={l.id} linha={l} />)}
-          </div>
+        <div className="v4-tbl-wrap">
+          <table className="v4-tbl" style={{ minWidth: 660 }}>
+            <thead>
+              <tr>
+                <th>Área</th>
+                <th className="num">Projetos</th>
+                <th className="num">Sem resp.</th>
+                <th className="num">Sem equipe</th>
+                <th className="num">Sem data</th>
+                <th className="num">Sem OS</th>
+                <th>Centro de custo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {linhas.map((l) => <LinhaArea key={l.id} linha={l} />)}
+            </tbody>
+          </table>
         </div>
       )}
 
-      <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--board-v4-line2)' }}>
-        <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--board-v4-ink4)', marginBottom: 6 }}>
-          Empresa inteira — o que não é por área
-        </div>
+      <div style={{ marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--bd-line2)' }}>
+        <div className="v4-slabel">Empresa inteira — o que não é por área</div>
         <LinhaFaixaEmpresa
           label="OS sem data de início"
           efeito='é isso que aparece como "sem data" na tela Projetos'
@@ -217,6 +204,6 @@ export const BoardPreenchimentoSistema: React.FC<BoardPreenchimentoSistemaProps>
           m={faixa.clientesSemCategoria}
         />
       </div>
-    </div>
+    </BoardCard>
   );
 };

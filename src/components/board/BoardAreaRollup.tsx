@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { BoardChip } from './BoardChip';
+import { BoardCard, BoardCardEmpty } from './ui/BoardCard';
 import type { ResumoAreaCadastro } from '@/lib/boardExecutivo';
 
 /** Sentinela do "sem recorte" no filtro interno de área. */
@@ -16,8 +17,9 @@ interface BoardAreaRollupProps {
   onAreaClick?: (areaId: string) => void;
 }
 
+/** Degrau escuro: pinta NÚMERO. O tom cheio fica na barra, que é área. */
 const corPontualidade = (pct: number) =>
-  pct >= 85 ? 'var(--board-v4-go)' : pct >= 70 ? 'var(--board-v4-warn)' : 'var(--board-v4-risk)';
+  pct >= 85 ? 'var(--bd-go-d)' : pct >= 70 ? 'var(--bd-warn-d)' : 'var(--bd-risk-d)';
 
 const classePontualidade = (pct: number) =>
   pct >= 85 ? 'v4-pg' : pct >= 70 ? 'v4-pa' : 'v4-pr';
@@ -45,34 +47,28 @@ export const BoardAreaRollup: React.FC<BoardAreaRollupProps> = ({
   const areasFiltradas = filtro === TODAS_AREAS ? areas : areas.filter((a) => a.id === filtro);
 
   return (
-  <div className="v4-card" data-reveal>
-    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
-      <div className="v4-card-title" style={{ marginBottom: 0 }}>
-        Áreas em um olhar
-      </div>
-      {areas.length > 1 && (
-        <select
-          className="v3-fi"
-          value={filtro}
-          onChange={(e) => setFiltro(e.target.value)}
-          aria-label="Filtrar por área"
-          style={{ padding: '3px 8px', fontSize: 11.5 }}
-        >
-          <option value={TODAS_AREAS}>Todas as áreas</option>
-          {areas.map((a) => (
-            <option key={a.id} value={a.id}>{a.label}</option>
-          ))}
-        </select>
-      )}
-    </div>
-    <div style={{ fontSize: 11, color: 'var(--board-v4-ink3)', marginBottom: 10 }}>
-      Todas as áreas ativas do cadastro · {janelaLabel}
-    </div>
-
+  <BoardCard
+    title="Áreas em um olhar"
+    subtitle={`Todas as áreas ativas do cadastro · ${janelaLabel}`}
+    note={nota}
+    /* O filtro do bloco mora no cabeçalho do próprio bloco — é o padrão da
+       referência, e evita que um filtro local pareça governar a página. */
+    actions={areas.length > 1 ? (
+      <select
+        className="v3-fi"
+        value={filtro}
+        onChange={(e) => setFiltro(e.target.value)}
+        aria-label="Filtrar por área"
+      >
+        <option value={TODAS_AREAS}>Todas as áreas</option>
+        {areas.map((a) => (
+          <option key={a.id} value={a.id}>{a.label}</option>
+        ))}
+      </select>
+    ) : undefined}
+  >
     {areasFiltradas.length === 0 && (
-      <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}>
-        Nenhuma área ativa cadastrada.
-      </div>
+      <BoardCardEmpty>Nenhuma área ativa cadastrada.</BoardCardEmpty>
     )}
 
     {areasFiltradas.map((a) => {
@@ -83,23 +79,23 @@ export const BoardAreaRollup: React.FC<BoardAreaRollupProps> = ({
           key={a.id}
           className="v4-mrow"
           onClick={onAreaClick ? () => onAreaClick(a.id) : undefined}
-          style={{ cursor: onAreaClick ? 'pointer' : undefined }}
+          data-clickable={onAreaClick ? 'true' : undefined}
         >
           <div style={{ width: 96, flexShrink: 0 }}>
             <BoardChip variant={semAreaAtribuida ? 'warn' : 'gy'}>{a.label}</BoardChip>
           </div>
 
-          <div style={{ flex: 1, minWidth: 0, color: 'var(--board-v4-ink)' }}>
+          <div style={{ flex: 1, minWidth: 0, color: 'var(--bd-ink)' }}>
             <strong style={{ fontWeight: 600 }}>{a.projetos}</strong>{' '}
             {a.projetos === 1 ? 'projeto' : 'projetos'}
-            <span style={{ color: 'var(--board-v4-ink3)' }}>
-              {' · '}<strong style={{ fontWeight: 600, color: 'var(--board-v4-ink)' }}>{a.concluidas}</strong> {a.unidade}
+            <span style={{ color: 'var(--bd-ink3)' }}>
+              {' · '}<strong style={{ fontWeight: 600, color: 'var(--bd-ink)' }}>{a.concluidas}</strong> {a.unidade}
             </span>
           </div>
 
           {/* Pontualidade de ENTREGA. `null` = não há entrega com prazo na
               janela: mostramos "—", nunca 0% (que leria como pior nota). */}
-          <div style={{ width: 72 }}>
+          <div style={{ width: 80 }}>
             <div className="v4-pb v4-pb6">
               {a.pontualidade !== null && (
                 <div
@@ -112,7 +108,7 @@ export const BoardAreaRollup: React.FC<BoardAreaRollupProps> = ({
           <span
             style={{
               fontSize: 11.5, fontWeight: 700, minWidth: 30, textAlign: 'right',
-              color: a.pontualidade !== null ? corPontualidade(a.pontualidade) : 'var(--board-v4-ink3)',
+              color: a.pontualidade !== null ? corPontualidade(a.pontualidade) : 'var(--bd-ink3)',
             }}
             title={a.pontualidade !== null
               ? `${a.pontualidade}% das ${a.comPrazo ?? a.concluidas} entregas com prazo saíram no prazo`
@@ -140,11 +136,6 @@ export const BoardAreaRollup: React.FC<BoardAreaRollupProps> = ({
       );
     })}
 
-    {nota && (
-      <div style={{ fontSize: 10.5, color: 'var(--board-v4-ink3)', marginTop: 10, lineHeight: 1.5 }}>
-        {nota}
-      </div>
-    )}
-  </div>
+  </BoardCard>
   );
 };

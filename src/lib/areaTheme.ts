@@ -30,7 +30,7 @@
 export const CLASSE_BASE = 'base-theme';
 
 /** Áreas do ponto de vista do TEMA (ver nota acima sobre `AreaKey`). */
-export type AreaDeTema = 'tax' | 'osg' | 'rotina' | 'digital' | 'sistema' | 'base';
+export type AreaDeTema = 'tax' | 'osg' | 'board' | 'rotina' | 'digital' | 'sistema' | 'base';
 
 /**
  * Classe de tema de cada área, ou `null` para "só o piso".
@@ -46,6 +46,7 @@ export type AreaDeTema = 'tax' | 'osg' | 'rotina' | 'digital' | 'sistema' | 'bas
 export const TEMA_DA_AREA: Record<AreaDeTema, string | null> = {
   tax: 'tax-theme',
   osg: 'osg-theme',
+  board: 'board-theme',
   rotina: 'rotina-theme',
   digital: 'sistema-theme',
   sistema: 'sistema-theme',
@@ -103,12 +104,22 @@ export const MAPA_DE_ROTAS: RegraDeRota[] = [
   // Redirecionam para /equipe/kanban; mapeadas para não piscar de tema no meio.
   { prefixo: '/equipe/tarefas', area: 'rotina' },
 
+  // ── Board: área de NEGÓCIO, veste a marca ───────────────────────────
+  // Era 'sistema' (grafite) até 21/08/2026, e a troca desta palavra é o que o
+  // comentário abaixo previa. O motivo não é estético: o Board HOSPEDA módulos
+  // compartilhados (Capacidade monta o `AreaDashboardContent` do Tax e da OSG,
+  // Clientes monta a lista), e com o grafite aqui a tela ficava com botão e
+  // anel de foco grafite ao lado de cartão e gráfico teal — o design system
+  // próprio do Board (bloco `--bd-*`, no index.css) é o teal institucional.
+  // Dev e Acessos SERVEM o sistema; o Board é a tela da diretoria, e diretoria
+  // olha a empresa. Delta em `.board-theme`; papéis de status seguem do piso.
+  { prefixo: '/equipe/board', area: 'board' },
+
   // ── Infraestrutura: grafite ─────────────────────────────────────────
   // Telas que servem o sistema, nao uma area de negocio. Enumeradas aqui de
   // propósito: esta lista é finita e conhecida, enquanto o site público (que
   // fica no piso) é o que ganha rota nova. Enumerar o que cresce apodrece.
-  // Se um dia Board ou Dev pertencerem à Rotina, é trocar a palavra na linha.
-  { prefixo: '/equipe/board', area: 'sistema' },
+  // Se um dia o Dev pertencer à Rotina, é trocar a palavra na linha.
   { prefixo: '/equipe/dev', area: 'sistema' },
 ];
 

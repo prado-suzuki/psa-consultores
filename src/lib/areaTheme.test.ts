@@ -73,11 +73,32 @@ describe('cobertura das rotas reais do App.tsx', () => {
     }
   });
 
-  it('Board e Dev são infraestrutura: grafite, não a cor da marca', () => {
+  it('o Dev é infraestrutura: grafite, não a cor da marca', () => {
     for (const rota of rotasDoApp()) {
-      if (rota.startsWith('/equipe/board') || rota.startsWith('/equipe/dev')) {
+      if (rota.startsWith('/equipe/dev')) {
         expect(areaDaRota(rota)).toBe('sistema');
         expect(resolverTemaDaRota(rota)).toEqual([CLASSE_BASE, 'sistema-theme']);
+      }
+    }
+  });
+
+  /*
+   * O Board SAIU da infraestrutura em 21/08/2026.
+   *
+   * O grafite ali produzia quatro famílias na mesma tela: cartão, gráfico e
+   * barra lateral no teal do design system próprio do Board (`--bd-*`), e todo
+   * botão, select e anel de foco no grafite — mais os módulos compartilhados
+   * que o Board hospeda (Capacidade, Clientes) inteiros em grafite sobre
+   * superfície marfim. Quem viu foi a usuária, olhando a tela.
+   *
+   * A separação que este teste trava é a que importa: Dev e Acessos SERVEM o
+   * sistema e seguem grafite; o Board é área de NEGÓCIO e veste a marca.
+   */
+  it('o Board é área de negócio: veste a marca, não o grafite', () => {
+    for (const rota of rotasDoApp()) {
+      if (rota.startsWith('/equipe/board')) {
+        expect(areaDaRota(rota)).toBe('board');
+        expect(resolverTemaDaRota(rota)).toEqual([CLASSE_BASE, 'board-theme']);
       }
     }
   });
@@ -310,7 +331,13 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
    * O que o teste cobra de cada um é diferente, e é o ponto deste bloco.
    */
   const CONGELADOS = ['tax-theme', 'osg-theme', 'rotina-theme'];
-  const DELTAS = ['sistema-theme'];
+  // `board-theme` é DELTA e não CONGELADO de propósito: ele declara acento e
+  // superfície (o que estava brigando com o design system do Board) e HERDA os
+  // papéis de status e os tons de tag do piso. Não há arco verde livre para o
+  // Board declarar — 163–197 é da Tax, 127–160 é da OSG, 89–122 é o do piso —,
+  // e herdar o do piso é a escolha certa, não uma lacuna. Ver o comentário do
+  // bloco `.board-theme` no index.css.
+  const DELTAS = ['sistema-theme', 'board-theme'];
 
   it('todo tema conhecido está classificado como congelado ou delta', () => {
     const declarados = Object.values(TEMA_DA_AREA).filter((c): c is string => c !== null);

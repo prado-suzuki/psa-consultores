@@ -378,14 +378,14 @@ export const AbaUsoApi = ({
                     u.automacao ? undefined : `Filtrar todo o dashboard por ${u.usuario}`
                   }
                 >
-                  <Td className="text-slate-800">
+                  <Td className="text-foreground">
                     <span className="font-medium">{u.usuario}</span>
                     {u.automacao && <TagAutomacao />}
                   </Td>
                   <Td alinhar="right">
                     <CelulaBarra valor={u.chamadas} max={maxUsuario} rotulo={num(u.chamadas)} />
                   </Td>
-                  <Td alinhar="right" className={u.erros > 0 ? 'text-slate-800' : 'text-slate-300'}>
+                  <Td alinhar="right" className={u.erros > 0 ? 'text-foreground' : 'text-muted-foreground'}>
                     {num(u.erros)}
                   </Td>
                   <Td alinhar="right">
@@ -397,22 +397,22 @@ export const AbaUsoApi = ({
                         {pct(u.taxaErro, 0)}
                       </span>
                     ) : (
-                      <span className={u.taxaErro > 0 ? 'text-slate-600' : 'text-slate-300'}>
+                      <span className={u.taxaErro > 0 ? 'text-muted-foreground' : 'text-muted-foreground'}>
                         {pct(u.taxaErro, 0)}
                       </span>
                     )}
                   </Td>
-                  <Td alinhar="right" className="text-slate-600">
+                  <Td alinhar="right" className="text-muted-foreground">
                     {num(u.diasAtivos)}
                   </Td>
-                  <Td alinhar="right" className="text-slate-600">
+                  <Td alinhar="right" className="text-muted-foreground">
                     {num(u.ferramentasUsadas)}
                   </Td>
                 </Tr>
               ))}
               {!carregando && pessoas.visiveis.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-xs text-slate-500">
+                  <td colSpan={6} className="px-4 py-8 text-center text-xs text-muted-foreground">
                     Nenhuma pessoa encontrada para os filtros selecionados.
                   </td>
                 </tr>

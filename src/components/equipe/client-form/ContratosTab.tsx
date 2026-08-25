@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -12,16 +11,15 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Plus, Pencil, Trash2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { SITUACAO_PROJETO_OPTIONS, formatCurrencyDisplay, isoToMasked } from "./constants";
-import type { DraftOrdemServico, DraftProdutoContratado } from "@/types/clientForm";
+import { formatCurrencyDisplay } from "./constants";
+import type { DraftEntity, DraftOrdemServico, DraftProdutoContratado } from "@/types/clientForm";
 import { createDefaultDraftContract } from "./constants";
-import FieldPair from "./FieldPair";
 import OsValoresEdicao from "./OsValoresEdicao";
-import OsValoresLeitura from "./OsValoresLeitura";
+import OsFaturamentoFields from "./OsFaturamentoFields";
+import OsLeitura from "./OsLeitura";
 import { RequiredMark } from "@/components/ui/required-mark";
 import { useGenerateNextOsNumber } from "@/hooks/useDomainOrdemServicoNumero";
 import ListaMestreDetalhe from "./ListaMestreDetalhe";
-import ProdutoContratadoBlock from "./ProdutoContratadoBlock";
 import SecaoFormulario from "./SecaoFormulario";
 import ProdutosPickerDialog from "./ProdutosPickerDialog";
 import CentrosCustoPickerDialog from "./CentrosCustoPickerDialog";
@@ -29,7 +27,7 @@ import ResumoSelecao from "./ResumoSelecao";
 import RateioLista from "./RateioLista";
 import { useAcentoArea } from "./acentoArea";
 import MarcaPendencia, { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
-import { getEmpresaLabel, getProductLabel, ordenarPorRotulo } from "./contratosLabels";
+import { getContribuinteLabel, getEmpresaLabel, getProductLabel, ordenarPorRotulo } from "./contratosLabels";
 import OsPeriodoFields from "./OsPeriodoFields";
 import { todayIsoBrazil } from "@/lib/dateUtils";
 import { idsAlterados, resolverSelecao, selecaoAposRemover } from "@/lib/listaMestreDetalhe";
@@ -67,6 +65,7 @@ function getRegiaoLabel(value: string | undefined): string {
 export interface ContratosTabProps {
   contracts: DraftOrdemServico[];
   setContracts: React.Dispatch<React.SetStateAction<DraftOrdemServico[]>>;
+  contribuintes: DraftEntity[];
   isReadOnly: boolean;
   produtoSegmentoFullOptions: Array<{ id: string; codigo: string; nome: string; is_active: boolean; cluster_id: string | null; estrutura_clusters: { name: string; nome_empresa?: string | null } | null }>;
   allClusters: Array<{ id: string; name: string; nome_empresa?: string | null }>;
@@ -100,10 +99,12 @@ function getProductCodigos(produtos: DraftProdutoContratado[], options: Contrato
 
 
 
+
 // ── Main Component ────────────────────────────────────────────────────
 
 export default function ContratosTab({
   contracts, setContracts,
+  contribuintes,
   isReadOnly,
   produtoSegmentoFullOptions, allClusters, CENTRO_CUSTO_OPTIONS,
   setoresCliente,
@@ -183,6 +184,16 @@ export default function ContratosTab({
   const empresasOrdenadas = useMemo(
     () => allClusters.slice().sort((a, b) => getEmpresaLabel(a).localeCompare(getEmpresaLabel(b))),
     [allClusters],
+  );
+
+  // A OS guarda uma FK: contribuintes criados neste mesmo formulário só entram
+  // na lista depois de salvos e, portanto, de receberem um id do banco.
+  const contribuintesSalvos = useMemo(
+    () => contribuintes
+      .filter((contribuinte): contribuinte is DraftEntity & { _dbId: string } => Boolean(contribuinte._dbId))
+      .slice()
+      .sort((a, b) => getContribuinteLabel(a).localeCompare(getContribuinteLabel(b))),
+    [contribuintes],
   );
 
   const alterados = useMemo(
@@ -344,44 +355,15 @@ export default function ContratosTab({
         <>
                 {/* Leitura */}
                 {!linhaEditavel && (
-                  <div>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 [&>*]:min-w-0">
-                      <FieldPair label="Data Início" value={cont.data_inicio_projeto ? isoToMasked(cont.data_inicio_projeto) : "—"} />
-                      <FieldPair label="Data Fim" value={cont.data_fim_projeto ? isoToMasked(cont.data_fim_projeto) : "—"} />
-                      <FieldPair label="Data Emissão" value={cont.data_emissao ? isoToMasked(cont.data_emissao) : "—"} />
-                      <FieldPair label="Situação do Projeto" value={SITUACAO_PROJETO_OPTIONS.find((o) => o.value === cont.situacao_projeto)?.label || "—"} />
-                      <FieldPair label="Área do Negócio" value={setorLabel(cont.setor_cliente_id, cont.setor_cliente)} />
-                      <FieldPair label="Região" value={getRegiaoLabel(cont.regiao)} />
-                      <div className="col-span-2 min-w-0 md:col-span-3">
-                        <OsValoresLeitura contrato={cont} />
-                      </div>
-                      <div className="col-span-2 min-w-0 md:col-span-3">
-                        <ProdutoContratadoBlock
-                          produtos={cont.produtos_contratados || []}
-                          onChange={() => {}}
-                          produtoOptions={produtoSegmentoFullOptions}
-                          allClusters={allClusters}
-                          readOnly
-                          empresaId="__all__"
-                          onEmpresaChange={() => {}}
-                        />
-                      </div>
-                      {dist.length > 0 && (
-                        <div className="col-span-2 min-w-0 md:col-span-3">
-                          <p className="text-[10px] uppercase font-semibold text-muted-foreground">Distribuição de Receita</p>
-                          <div className="flex flex-wrap gap-2 mt-1 min-w-0">
-                            {dist.map((cc, idx) => {
-                              const ccOpt = CENTRO_CUSTO_OPTIONS.find((o) => o.id === cc.id_centro_custo);
-                              return <Badge key={idx} variant="outline" className="text-xs">{ccOpt?.label || cc.id_centro_custo}: {cc.percentual_rateio}%</Badge>;
-                            })}
-                          </div>
-                        </div>
-                      )}
-                      {cont.observacoes_projeto && (
-                        <div className="col-span-2 min-w-0 md:col-span-3"><FieldPair label="Observações" value={cont.observacoes_projeto} /></div>
-                      )}
-                    </div>
-                  </div>
+                  <OsLeitura
+                    contrato={cont}
+                    allClusters={allClusters}
+                    contribuintes={contribuintes}
+                    produtoSegmentoFullOptions={produtoSegmentoFullOptions}
+                    CENTRO_CUSTO_OPTIONS={CENTRO_CUSTO_OPTIONS}
+                    setorLabel={setorLabel}
+                    regiaoLabel={getRegiaoLabel}
+                  />
                 )}
 
                 {/* Edição — cada campo grava direto na OS */}
@@ -515,38 +497,17 @@ export default function ContratosTab({
                       <div className="space-y-4">
                         {/* A empresa que fatura pertence ao rateio, não à
                             classificação: é ela que define para onde a receita vai. */}
-                        <div className="max-w-2xl">
-                          <Label className="text-xs font-semibold uppercase text-muted-foreground">Empresa / Faturamento<RequiredMark /></Label>
-                          <div className="mt-1">
-                            <Select value={osEmpresaId} onValueChange={(v) => handleEmpresaChange(cont._id, v)}>
-                              <SelectTrigger
-                                {...acessibilidadeObrigatorio(idFalta('cluster_id'), falta('cluster_id'))}
-                                className={cn("h-9", falta('cluster_id') && CLASSE_CAMPO_PENDENTE)}
-                              >
-                                <SelectValue placeholder="Selecione a empresa que fatura" />
-                              </SelectTrigger>
-                              <SelectContent className="max-h-72">
-                                <SelectItem value="__all__">Selecione a empresa que fatura</SelectItem>
-                                {empresasOrdenadas.map((c) => (
-                                  <SelectItem key={c.id} value={c.id}>
-                                    {/* Uma linha só: o gatilho do select repete o
-                                        conteúdo do item, e em duas linhas ele ficava
-                                        espremido. O cluster vai ao lado, herdando a
-                                        cor do item (com opacidade) para continuar
-                                        legível quando a linha fica realçada. */}
-                                    <span className="flex items-baseline gap-2">
-                                      <span className="font-medium">{getEmpresaLabel(c)}</span>
-                                      {c.nome_empresa?.trim() && c.nome_empresa.trim() !== c.name && (
-                                        <span className="text-[11px] opacity-60">{c.name}</span>
-                                      )}
-                                    </span>
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <MarcaPendencia id={idFalta('cluster_id')}>{falta('cluster_id')}</MarcaPendencia>
-                          </div>
-                        </div>
+                        <OsFaturamentoFields
+                          contrato={cont}
+                          empresasOrdenadas={empresasOrdenadas}
+                          contribuintesSalvos={contribuintesSalvos}
+                          empresaId={osEmpresaId}
+                          onEmpresaChange={(v) => handleEmpresaChange(cont._id, v)}
+                          onContribuinteChange={(v) =>
+                            updateContract(cont._id, { contribuinte_id: v === "__none__" ? "" : v })}
+                          falta={falta}
+                          idFalta={idFalta}
+                        />
 
                         <div>
                           <RateioLista

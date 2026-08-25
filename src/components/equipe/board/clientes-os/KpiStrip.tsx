@@ -1,5 +1,17 @@
-/** Faixa de KPIs do dashboard Clientes e OS: TÍTULO acima do número, em cor
- * legível (não o cinza apagado do stat-label padrão do board). */
+/**
+ * Faixa de KPIs do dashboard Clientes e OS.
+ *
+ * Usa as MESMAS classes da faixa do Estratégico (`.stat-strip` / `.stat-item`)
+ * em vez de repetir a anatomia inline. Era o único lugar do Board onde o KPI
+ * tinha borda, raio e padding próprios — e, por isso, o único que não
+ * acompanhou nenhuma das mudanças de estilo anteriores.
+ *
+ * O `color` de cada item pinta o PONTO ao lado do rótulo (a faixa de 3px no
+ * topo do cartão saiu em toda a área — ver o comentário do `.si-bar`). Este
+ * dashboard roda no Board, na Tax e na OSG a partir do mesmo componente, e as
+ * cores que chegam aqui já vêm por papel (`ACENTO`, `PAPEL`, `SERIES`), então
+ * o ponto veste o tema de quem hospeda sem condicional.
+ */
 export interface KpiItem {
   value: React.ReactNode;
   label: string;
@@ -8,17 +20,18 @@ export interface KpiItem {
 }
 
 export const KpiStrip = ({ items }: { items: KpiItem[] }) => (
-  <div style={{
-    display: 'grid', gridTemplateColumns: `repeat(${items.length}, 1fr)`,
-    background: 'var(--board-v4-surface)', border: '1px solid var(--board-v4-line)',
-    borderRadius: 12, overflow: 'hidden', marginBottom: 16,
-  }}>
+  <div className="stat-strip" data-cols={items.length} data-reveal>
     {items.map((it, i) => (
-      <div key={i} style={{ padding: '18px 22px 16px', position: 'relative', borderLeft: i > 0 ? '1px solid var(--board-v4-line)' : undefined }}>
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: it.color }} />
-        <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--board-v4-ink2)', marginBottom: 8 }}>{it.label}</div>
-        <div style={{ fontFamily: "'Instrument Sans', sans-serif", fontSize: 30, fontWeight: 700, letterSpacing: '-.03em', lineHeight: 1, color: 'var(--board-v4-ink)', fontVariantNumeric: 'tabular-nums' }}>{it.value}</div>
-        {it.subText && <div style={{ fontSize: 11.5, color: 'var(--board-v4-ink3)', marginTop: 8 }}>{it.subText}</div>}
+      <div key={i} className="stat-item">
+        <div
+          className="stat-label"
+          style={{ display: 'flex', alignItems: 'center', gap: 6, textTransform: 'none', letterSpacing: 0, fontSize: 12, color: 'var(--bd-ink2)' }}
+        >
+          <span className="sdot-c" style={{ background: it.color }} />
+          {it.label}
+        </div>
+        <div className="stat-num">{it.value}</div>
+        {it.subText && <div className="stat-sub">{it.subText}</div>}
       </div>
     ))}
   </div>

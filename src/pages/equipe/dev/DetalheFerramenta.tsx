@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
@@ -12,15 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useDomainDetalheFerramenta } from '@/hooks/useDomainDetalheFerramenta';
+import { useEstruturaAreas, useEstruturaClusters } from '@/hooks/useEstruturaManager';
 import { ArrowLeft, Save, Trash2, Play, Pause, Code2 } from 'lucide-react';
-
-
-const areas = [
-  { id: 'digital', label: 'Digital' },
-  { id: 'financeiro', label: 'Financeiro' },
-  { id: 'operacional', label: 'Operacional' },
-  { id: 'comercial', label: 'Comercial' },
-];
 
 const DetalheFerramenta = () => {
   const navigate = useNavigate();
@@ -33,6 +26,23 @@ const DetalheFerramenta = () => {
   const [status, setStatus] = useState('');
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [isEditing, setIsEditing] = useState(false);
+
+  const { data: clusters = [] } = useEstruturaClusters();
+  const { data: areas = [] } = useEstruturaAreas();
+
+  const areaNameById = useMemo(() => new Map(areas.map((a) => [a.id, a.name])), [areas]);
+
+  // Áreas agrupadas pelo cluster (empresa do grupo) a que pertencem — um
+  // cluster pode ter várias áreas cadastradas.
+  const areasByCluster = useMemo(() => {
+    const clusterNameById = new Map(clusters.map((c) => [c.id, c.name]));
+    const groups = new Map<string, typeof areas>();
+    areas.forEach((area) => {
+      const clusterName = clusterNameById.get(area.cluster_id) ?? 'Outros';
+      groups.set(clusterName, [...(groups.get(clusterName) ?? []), area]);
+    });
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [areas, clusters]);
 
   const { tool, toolAccess, isLoading, updateTool, deleteTool } = useDomainDetalheFerramenta({
     id,
@@ -224,22 +234,31 @@ const DetalheFerramenta = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <Label>Áreas com Acesso</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {areas.map((area) => (
-                      <div
-                        key={area.id}
-                        className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                        onClick={() => toggleArea(area.id)}
-                      >
-                        <Checkbox
-                          id={area.id}
-                          checked={selectedAreas.includes(area.id)}
-                          onCheckedChange={() => toggleArea(area.id)}
-                        />
-                        <Label htmlFor={area.id} className="cursor-pointer flex-1">
-                          {area.label}
-                        </Label>
+                  <Label>Áreas que vão usar essa ferramenta</Label>
+                  <div className="space-y-4">
+                    {areasByCluster.map(([clusterName, clusterAreas]) => (
+                      <div key={clusterName} className="space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                          {clusterName}
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {clusterAreas.map((area) => (
+                            <div
+                              key={area.id}
+                              className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                              onClick={() => toggleArea(area.id)}
+                            >
+                              <Checkbox
+                                id={area.id}
+                                checked={selectedAreas.includes(area.id)}
+                                onCheckedChange={() => toggleArea(area.id)}
+                              />
+                              <Label htmlFor={area.id} className="cursor-pointer flex-1">
+                                {area.name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -263,12 +282,12 @@ const DetalheFerramenta = () => {
                 </div>
 
                 <div>
-                  <Label className="text-gray-500">Áreas com Acesso</Label>
-                  <div className="flex gap-2 mt-2">
+                  <Label className="text-gray-500">Áreas que usam essa ferramenta</Label>
+                  <div className="flex flex-wrap gap-2 mt-2">
                     {toolAccess && toolAccess.length > 0 ? (
                       toolAccess.map((ta) => (
                         <Badge key={ta.id} variant="outline">
-                          {areas.find(a => a.id === ta.area)?.label || ta.area}
+                          {areaNameById.get(ta.area) || ta.area}
                         </Badge>
                       ))
                     ) : (

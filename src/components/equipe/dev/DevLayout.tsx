@@ -17,7 +17,7 @@ import {
   FileText,
   User,
   Calculator,
-  Users,
+  BookOpen,
   type LucideIcon,
 } from "lucide-react";
 import { DEV_HUBS } from "@/constants/devHubDefinitions";
@@ -89,7 +89,7 @@ const gerenciarDadosSubItems: NavItem[] = DEV_HUBS.gerenciarDados.options.map((o
 const navItemsAfterGroups: NavItem[] = [
   { icon: Calculator, label: DEV_NAV_LABELS.calculadoraIbsCbs, path: "/equipe/dev/calculadora-ibs-cbs" },
   { icon: FileText, label: DEV_NAV_LABELS.controleBalancetes, path: "/equipe/dev/controle-balancetes" },
-  { icon: Users, label: DEV_NAV_LABELS.procedimentos, path: "/equipe/dev/procedimentos" },
+  { icon: BookOpen, label: DEV_NAV_LABELS.procedimentos, path: "/equipe/dev/procedimentos" },
 ];
 
 const HubSidebarSection = ({
@@ -345,8 +345,12 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
       </aside>
 
       <main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-16 flex-shrink-0 items-center justify-between border-b border-border/60 bg-card px-6">
-          <div className="flex items-center gap-3">
+        {/* `min-h` e não `h-16` fixo: alguns títulos de hub (ex. PIS/COFINS,
+            PERDCOMP) passam de 100 caracteres em CAIXA ALTA e quebram em 2-3
+            linhas. Com altura fixa + `overflow-hidden` do <main>, o título
+            simplesmente cortava no meio — a caixa agora cresce para caber. */}
+        <header className="flex min-h-16 flex-shrink-0 items-center justify-between gap-3 border-b border-border/60 bg-card px-6 py-2">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             {collapsed && (
               <Button
                 variant="ghost"
@@ -358,8 +362,8 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               </Button>
             )}
 
-            <div>
-              <h1 className="text-xl font-bold text-slate-900">{title}</h1>
+            <div className="min-w-0">
+              <h1 className="break-words text-xl font-bold text-slate-900">{title}</h1>
               {subtitle && (
                 <p className="flex flex-wrap items-center gap-0 text-sm text-slate-500">
                   {subtitle}

@@ -247,6 +247,7 @@ export const useClientEditData = (
               produtos_contratados: produtosMap[os.id] || [],
               distribuicao_receita: distMap[os.id] || [],
               cluster_id: os.cluster_id || "",
+              contribuinte_id: os.contribuinte_id || "",
               setor_cliente: os.setor_cliente || "",
               setor_cliente_id: os.setor_cliente_id || "",
               regiao: os.regiao || "",

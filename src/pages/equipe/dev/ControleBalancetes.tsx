@@ -380,7 +380,7 @@ const ControleBalancetes = () => {
 
           {/* Action footer */}
           <div className="flex items-center justify-between pt-5 border-t border-slate-100">
-            <Button onClick={() => setModalOpen(true)} className="gap-2 bg-lime-500 hover:bg-lime-600 text-white rounded-lg">
+            <Button onClick={() => setModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-lg">
               <Plus className="h-4 w-4" />
               Novo Balancete
             </Button>

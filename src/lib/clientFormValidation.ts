@@ -168,7 +168,15 @@ export const validateRepresentante = (p: DraftRepresentante): string | null => {
 
 // ─── Ordem de Serviço ─────────────────────────────────────────────────────
 
-export const validateOrdemServico = (c: DraftOrdemServico): string | null => {
+/**
+ * @param contribuintes os contribuintes do cliente. Mesmo contrato de
+ *        `pendenciasOrdemServico`, e os dois precisam andar juntos: há teste que
+ *        quebra se a tela acusar falta que o save aceita, ou o contrário.
+ */
+export const validateOrdemServico = (
+  c: DraftOrdemServico,
+  contribuintes: DraftEntity[] = [],
+): string | null => {
   const os = c.ordem_servico || '(sem número)';
   if (!c.cluster_id) return `OS "${os}": selecione a Empresa/Faturamento`;
   // O período é obrigatório aqui porque a OS é a origem das datas do projeto: o
@@ -183,6 +191,11 @@ export const validateOrdemServico = (c: DraftOrdemServico): string | null => {
   if (!c.regiao) return `OS "${os}": selecione a Região`;
   if (!c.produtos_contratados || c.produtos_contratados.length === 0) {
     return `OS "${os}": adicione ao menos um Produto Contratado`;
+  }
+  // Só exigido havendo contribuinte já salvo para escolher. O motivo está em
+  // `pendenciasOrdemServico`, que é a outra metade deste par.
+  if (contribuintes.some((e) => e._dbId) && !c.contribuinte_id) {
+    return `OS "${os}": selecione o Contribuinte de Faturamento`;
   }
   if (!c.distribuicao_receita || c.distribuicao_receita.length === 0) {
     return `OS "${os}": adicione ao menos um Centro de Custo na Distribuição de Receita`;

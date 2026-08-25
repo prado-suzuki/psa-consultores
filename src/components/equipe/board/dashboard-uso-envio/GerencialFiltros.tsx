@@ -42,10 +42,10 @@ export function GerencialFiltros({
   onAtualizar,
 }: GerencialFiltrosProps) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3">
+    <div className="flex flex-wrap items-end justify-between gap-3 rounded-xl border border-border bg-white px-4 py-3">
       <div className="flex min-w-0 flex-1 flex-wrap items-end gap-3">
         <div className="w-full space-y-1.5 sm:w-auto">
-          <Label htmlFor="filtro-periodo-uso" className="text-xs text-slate-600">
+          <Label htmlFor="filtro-periodo-uso" className="text-xs text-muted-foreground">
             Período
           </Label>
           <Select value={periodo.value} onValueChange={periodo.onChange}>
@@ -64,7 +64,7 @@ export function GerencialFiltros({
 
         {cluster.mostrar && (
           <div className="w-full space-y-1.5 sm:max-w-[240px]">
-            <Label htmlFor="filtro-cluster-uso" className="text-xs font-medium text-slate-600">
+            <Label htmlFor="filtro-cluster-uso" className="text-xs font-medium text-muted-foreground">
               Unidade
             </Label>
             <Select value={cluster.value} onValueChange={cluster.onChange}>
@@ -84,7 +84,7 @@ export function GerencialFiltros({
         )}
 
         <div className="w-full space-y-1.5 sm:max-w-[280px]">
-          <Label htmlFor="filtro-pessoa-uso" className="text-xs font-medium text-slate-600">
+          <Label htmlFor="filtro-pessoa-uso" className="text-xs font-medium text-muted-foreground">
             Pessoa
           </Label>
           <Select value={pessoa.value} onValueChange={pessoa.onChange}>
@@ -104,7 +104,7 @@ export function GerencialFiltros({
 
         {atualizando && (
           <span
-            className="mb-2.5 inline-flex items-center gap-1 text-xs text-teal-700"
+            className="mb-2.5 inline-flex items-center gap-1 text-xs text-[var(--bd-accent-d)]"
             role="status"
             aria-live="polite"
           >
@@ -118,7 +118,7 @@ export function GerencialFiltros({
             type="button"
             variant="ghost"
             size="sm"
-            className="mb-0.5 h-8 gap-1 px-2 text-xs text-slate-600"
+            className="mb-0.5 h-8 gap-1 px-2 text-xs text-muted-foreground"
             onClick={onLimpar}
           >
             <X className="h-3.5 w-3.5" />
@@ -130,7 +130,7 @@ export function GerencialFiltros({
           type="button"
           variant="ghost"
           size="sm"
-          className="mb-0.5 h-8 gap-1 px-2 text-xs text-slate-600"
+          className="mb-0.5 h-8 gap-1 px-2 text-xs text-muted-foreground"
           onClick={onAtualizar}
           disabled={!podeAtualizar || atualizando}
         >
@@ -139,8 +139,8 @@ export function GerencialFiltros({
         </Button>
       </div>
 
-      <p className="text-right text-xs text-slate-500">
-        Dados recebidos <strong className="text-slate-700">{atualizadoEm}</strong>
+      <p className="text-right text-xs text-muted-foreground">
+        Dados recebidos <strong className="text-foreground">{atualizadoEm}</strong>
       </p>
     </div>
   );

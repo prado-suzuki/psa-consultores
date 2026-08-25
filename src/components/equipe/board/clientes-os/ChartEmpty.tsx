@@ -1,9 +1,6 @@
-import { BarChart2 } from 'lucide-react';
-
-/** Estado vazio padrão dos cards de gráfico/tabela do dashboard Clientes e OS. */
+/** Estado vazio padrão dos cards de gráfico/tabela do dashboard Clientes e OS.
+ *  Sem ícone decorativo: o ícone de gráfico vazio repetido em oito cards lia
+ *  como "carregando", e a frase já diz o que falta. */
 export const ChartEmpty = ({ msg }: { msg: string }) => (
-  <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}>
-    <BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: 'var(--board-v4-ink4)' }} />
-    {msg}
-  </div>
+  <div className="v4-card-empty">{msg}</div>
 );
