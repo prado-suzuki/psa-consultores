@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Users, Landmark, FileSearch, FileText, PieChart, Rocket } from 'lucide-react';
+import { Calculator, ChevronRight, Users, Landmark, FileSearch, FileText, PieChart, Rocket } from 'lucide-react';
 
 interface Ferramenta {
   id: string;
@@ -53,6 +53,13 @@ const FERRAMENTAS: Ferramenta[] = [
     descricao: 'Distribuição de quotas e participação dos sócios das empresas do cliente.',
     path: '/equipe/osg/work/quadro-societario',
     icon: <PieChart className="h-5 w-5 text-osg-600" />,
+  },
+  {
+    id: 'calculadora-itcmd',
+    titulo: 'Calculadora de ITCD',
+    descricao: 'Imposto da doação de quotas em três cenários de avaliação, por donatário.',
+    path: '/equipe/osg/work/calculadora-itcmd',
+    icon: <Calculator className="h-5 w-5 text-osg-600" />,
   },
 ];
 
