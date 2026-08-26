@@ -110,3 +110,7 @@ supabase/.temp/
 # Planilha de trabalho na raiz. Insumo de análise, não entregável — a que fica
 # vai para a pasta da tarefa que a usa.
 /*.xlsx
+
+# Dailies/anotações pessoais na raiz (local, não commitar)
+/dailies-*.md
+
