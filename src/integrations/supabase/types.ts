@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.17"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       access_change_log: {
@@ -6163,9 +6188,11 @@ export type Database = {
           ai_resumo: string | null
           ai_tags: string[] | null
           ai_titulo: string | null
+          arquivo_bucket: string
           arquivo_path: string | null
           confirmado_em: string | null
           confirmado_por: string | null
+          conteudo_texto: string | null
           created_at: string | null
           created_by: string | null
           erro_mensagem: string | null
@@ -6184,9 +6211,11 @@ export type Database = {
           ai_resumo?: string | null
           ai_tags?: string[] | null
           ai_titulo?: string | null
+          arquivo_bucket?: string
           arquivo_path?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
+          conteudo_texto?: string | null
           created_at?: string | null
           created_by?: string | null
           erro_mensagem?: string | null
@@ -6205,9 +6234,11 @@ export type Database = {
           ai_resumo?: string | null
           ai_tags?: string[] | null
           ai_titulo?: string | null
+          arquivo_bucket?: string
           arquivo_path?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
+          conteudo_texto?: string | null
           created_at?: string | null
           created_by?: string | null
           erro_mensagem?: string | null
@@ -8779,6 +8810,7 @@ export type Database = {
           familia_id: string | null
           id: string
           nome: string
+          reinicia_numeracao: boolean
           repete_colecao: string | null
           tipo: string
           tipo_derivacao: string | null
@@ -8801,6 +8833,7 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome: string
+          reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
@@ -8823,6 +8856,7 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome?: string
+          reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
@@ -9890,6 +9924,10 @@ export type Database = {
         Returns: boolean
       }
       nome_cliente_normalizado: { Args: { p_nome: string }; Returns: string }
+      notificar_projetos_da_os: {
+        Args: { _detalhe?: string; _evento: string; _solicitacao_id: string }
+        Returns: Json
+      }
       org_project_cluster_ids: {
         Args: { _project_id: string }
         Returns: string[]
@@ -10045,6 +10083,8 @@ export type Database = {
         | "review_adjustments"
         | "status_changed"
         | "documentos_solicitados"
+        | "documentos_cobrados"
+        | "documentos_conferidos"
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
         | "pendente"
@@ -10251,6 +10291,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: [
@@ -10313,6 +10356,8 @@ export const Constants = {
         "review_adjustments",
         "status_changed",
         "documentos_solicitados",
+        "documentos_cobrados",
+        "documentos_conferidos",
       ],
       osg_checklist_origem: ["padrao", "manual"],
       osg_checklist_status: [
