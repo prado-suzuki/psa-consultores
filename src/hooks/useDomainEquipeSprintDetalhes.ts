@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { computeFieldDiff } from '@/lib/diffUtils';
+import { fetchIdsEquipeDigital } from '@/lib/equipeDigital';
 import { clampDatesToSprint, collectDeliverableSubtree } from '@/lib/equipeSprintDetalhes';
 import { findProfileByName, type TaskGroup } from '@/lib/excelImporter';
 
@@ -203,37 +204,15 @@ interface DeliverableRealtimeChange {
   newRecord: Record<string, unknown>;
 }
 
-const DIGITAL_CLUSTER_ID = '952435d2-ef26-4829-80a2-e186dc61158c';
-
-interface EquipeDigitalRow {
-  gestor_id: string | null;
-  estrutura_equipe_membros: Array<{ user_id: string | null }> | null;
-}
-
 /**
  * Pessoas do cluster Digital: os gestores das equipes e os membros delas.
  *
- * Resolvido em duas consultas (equipes+membros, depois perfis) usando embed do
- * PostgREST: a área entra como `!inner` só para filtrar o cluster. Antes eram
- * quatro consultas em fila — áreas, equipes, membros e perfis — cada uma
- * esperando os ids da anterior.
+ * Resolvido em duas consultas (equipes+membros, depois perfis): a busca dos ids
+ * mora em `lib/equipeDigital` porque o Kanban usa o mesmo recorte, e o id do
+ * cluster cravado em dois arquivos era pedido para os dois divergirem.
  */
 const fetchPerfisDigital = async (): Promise<SprintDetalhesProfile[]> => {
-  const { data: equipes } = await supabase
-    .from('estrutura_equipes')
-    .select('gestor_id, estrutura_areas!inner(cluster_id), estrutura_equipe_membros(user_id)')
-    .eq('estrutura_areas.cluster_id', DIGITAL_CLUSTER_ID);
-
-  const userIds = Array.from(
-    new Set(
-      ((equipes ?? []) as unknown as EquipeDigitalRow[])
-        .flatMap((equipe) => [
-          equipe.gestor_id,
-          ...(equipe.estrutura_equipe_membros ?? []).map((membro) => membro.user_id),
-        ])
-        .filter((userId): userId is string => Boolean(userId)),
-    ),
-  );
+  const userIds = await fetchIdsEquipeDigital();
 
   if (userIds.length === 0) return [];
 

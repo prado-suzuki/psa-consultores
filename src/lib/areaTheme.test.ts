@@ -1,14 +1,19 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 import {
   CLASSE_BASE,
   CLASSES_DE_TEMA,
+  ESPELHO,
   MAPA_DE_ROTAS,
+  PARAM_DE_ESPELHO,
+  ROTAS_ESPELHADAS,
   TEMA_DA_AREA,
   areaDaRota,
+  chaveDeEspelho,
   resolverTemaDaRota,
 } from '@/lib/areaTheme';
+import { PROTECTED_PAGES } from '@/config/protectedPages';
 
 /** As rotas `/equipe` como o App.tsx as declara — fonte da verdade, não cópia. */
 function rotasDoApp(): string[] {
@@ -244,10 +249,39 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
   const css = readFileSync('src/index.css', 'utf8');
   const contrato = declaradasEm(css, `.${CLASSE_BASE}`);
 
-  it('o contrato tem as 43 variáveis', () => {
-    // 41 na origem + o par `--surface-escura`/`-2`, acrescentado quando o
-    // cartão escuro do Painel Dev precisou de um fundo por área.
-    expect(contrato.size).toBe(43);
+  it('o contrato tem as 46 variáveis', () => {
+    // 41 na origem
+    // +2 o par `--surface-escura`/`-2`, quando o cartão escuro do Painel Dev
+    //    precisou de um fundo por área
+    // +3 os `-foreground` de estado (`--success-`, `--warning-`,
+    //    `--destructive-foreground`). Eles existiam só no `:root`, fora do
+    //    contrato: um tema podia redefinir `--destructive` e o texto por cima
+    //    continuava vindo de um lugar que nenhum tema controlava. A OSG faz
+    //    exatamente isso, e o par sobrevivia por sorte. Os valores declarados
+    //    são os mesmos do `:root` — nenhum pixel mudou; o que mudou foi quem
+    //    manda neles.
+    expect(contrato.size).toBe(46);
+  });
+
+  /*
+   * Cor de estado e o texto que vai por cima dela andam JUNTOS.
+   *
+   * É a mesma regra do `--ring`/`--primary`: um tema que redefine o fundo sem o
+   * primeiro plano cria um par que ninguém escolheu. A OSG redefine os três
+   * (`--osg-moss`, `--osg-highlighter`, `--osg-red`) e é o caso que prova.
+   */
+  it('todo tema que declara cor de estado declara o primeiro plano dela', () => {
+    for (const classe of [CLASSE_BASE, ...CONGELADOS]) {
+      const declaradas = declaradasEm(css, `.${classe}`);
+      for (const papel of ['success', 'warning', 'destructive']) {
+        if (!declaradas.has(`--${papel}`)) continue;
+        expect(
+          declaradas.has(`--${papel}-foreground`),
+          `.${classe} declara --${papel} sem --${papel}-foreground: o texto viria do :root, `
+          + 'que nenhum tema controla',
+        ).toBe(true);
+      }
+    }
   });
 
   it('o par de superfície escura está em TODOS os temas, não só em quem usa', () => {
@@ -313,5 +347,473 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
       const corpo = css.slice(ini, css.indexOf('\n  }', ini));
       expect(corpo, `.${classe}`).toContain('--tool-icon: var(--primary);');
     }
+  });
+});
+
+/*
+ * ESPELHAMENTO — a regra "cor e conteúdo andam juntos", cobrada pelo build.
+ *
+ * A regra não pode viver em comentário: é exatamente o tipo de coisa que se
+ * perde. Estes testes existem para que quebre no CI, não na tela.
+ *
+ * O que os torna possíveis é o desenho: a chave do parâmetro é uma CATEGORIA DE
+ * PÁGINA, e a mesma categoria resolve o tema (aqui) e o cluster da lista
+ * (`useDomainClusterPorCategoria`). Uma chave que pinta mas não filtra não é um
+ * descuido a lembrar — é uma linha que não existe.
+ */
+describe('espelhamento: cor e conteúdo saem da mesma chave', () => {
+  it('toda chave de espelho é uma categoria de página REAL', () => {
+    // Chave que não é categoria não tem como resolver cluster, logo pintaria
+    // sem filtrar. `PROTECTED_PAGES` é a fonte de quais categorias existem.
+    const categoriasReais = new Set(PROTECTED_PAGES.map((p) => p.category as string));
+    for (const chave of Object.keys(ESPELHO)) {
+      expect(categoriasReais.has(chave), `"${chave}" não é categoria de nenhuma página`).toBe(true);
+    }
+  });
+
+  it('toda chave de espelho resolve para um tema declarado', () => {
+    for (const [chave, area] of Object.entries(ESPELHO)) {
+      expect(TEMA_DA_AREA, `chave "${chave}"`).toHaveProperty(area);
+      expect(TEMA_DA_AREA[area], `chave "${chave}" cairia no piso — pintar sem mudar nada`).not.toBeNull();
+    }
+  });
+
+  it('toda rota espelhável existe no App.tsx', () => {
+    const rotas = new Set(rotasDoApp().map((r) => r.replace(/\/\*$/, '')));
+    for (const rota of ROTAS_ESPELHADAS) {
+      expect(rotas.has(rota), `${rota} não é rota declarada`).toBe(true);
+    }
+  });
+
+  /*
+   * O TRAVAMENTO PRINCIPAL: não se pinta sem filtrar.
+   *
+   * Se alguém puser uma rota em `ROTAS_ESPELHADAS` e não fizer a tela ler o
+   * parâmetro, a rota passa a mudar de COR sem mudar de CONTEÚDO — que é
+   * precisamente o defeito que o espelhamento existe para não ter. Aqui a
+   * varredura procura o uso do parâmetro no código da tela.
+   */
+  it('toda rota espelhável tem tela que LÊ o parâmetro', () => {
+    const app = readFileSync('src/App.tsx', 'utf8');
+    const linhas = app.split('\n');
+    for (const rota of ROTAS_ESPELHADAS) {
+      const linha = linhas.find((l) => l.includes(`<Route path="${rota}"`));
+      expect(linha, `rota ${rota} não encontrada no App.tsx`).toBeTruthy();
+      const comp = [...(linha as string).matchAll(/<([A-Z][A-Za-z0-9]*)\s*\/>/g)].pop()?.[1];
+      expect(comp, `sem componente em ${rota}`).toBeTruthy();
+      const linhaImport = linhas.find((l) => l.startsWith('import') && l.includes(` ${comp} `));
+      expect(linhaImport, `import de ${comp} não encontrado`).toBeTruthy();
+      const caminho = (linhaImport as string).match(/from\s+"([^"]+)"/)?.[1];
+      expect(caminho, `caminho do import de ${comp} não lido`).toBeTruthy();
+      const arquivo = `${(caminho as string).replace('@/', 'src/').replace('./', 'src/')}.tsx`;
+      const fonte = readFileSync(arquivo, 'utf8');
+      expect(
+        fonte.includes('PARAM_DE_ESPELHO'),
+        `${arquivo} está em ROTAS_ESPELHADAS mas não lê PARAM_DE_ESPELHO: a rota mudaria de cor sem mudar de conteúdo`,
+      ).toBe(true);
+    }
+  });
+
+  it('rota que não espelha IGNORA o parâmetro', () => {
+    // Sem isto, `?area=osg` pintaria OSG em qualquer tela do sistema.
+    expect(resolverTemaDaRota('/equipe/tax/dashboard', '?area=osg'))
+      .toEqual(resolverTemaDaRota('/equipe/tax/dashboard'));
+    expect(chaveDeEspelho('/equipe/tax/dashboard', '?area=osg')).toBeNull();
+  });
+
+  it('chave desconhecida cai no tema da própria rota, sem quebrar', () => {
+    expect(resolverTemaDaRota('/equipe/chamados', '?area=inventada'))
+      .toEqual(resolverTemaDaRota('/equipe/chamados'));
+  });
+
+  it('sem parâmetro, a rota espelhável mantém o tema dela', () => {
+    expect(resolverTemaDaRota('/equipe/chamados', '')).toEqual(resolverTemaDaRota('/equipe/chamados'));
+    expect(resolverTemaDaRota('/equipe/chamados', '?ordenar=data'))
+      .toEqual(resolverTemaDaRota('/equipe/chamados'));
+  });
+
+  it('cada chave leva ao tema do seu ambiente', () => {
+    const tema = (chave: string) => resolverTemaDaRota('/equipe/chamados', `?${PARAM_DE_ESPELHO}=${chave}`);
+    expect(tema('tax')).toEqual([CLASSE_BASE, 'tax-theme']);
+    expect(tema('osg')).toEqual([CLASSE_BASE, 'osg-theme']);
+  });
+
+  /*
+   * O CRITÉRIO: espelha quem tem CLIENTES.
+   *
+   * O espelho recorta por `tickets.cluster_id`, e esse cluster vem do cliente que
+   * abriu o chamado. Então o espelho responde "chamados dos CLIENTES desta área",
+   * e só faz sentido para área que tem clientes: Tax (123) e OSG (166).
+   *
+   * `rotina` e `dev` já estiveram aqui por passarem no critério ERRADO — eram
+   * categorias válidas com cluster resolvível. Mas o Digital não tem clientes (os
+   * dois vínculos são `[TESTE]`), e a Rotina é o chão comum. O sintoma foi uma
+   * tela teal com "0 de 0" onde deviam estar os 354.
+   *
+   * Este teste é o que impede a volta. Inclui `dev` de propósito: quando vier o
+   * canal de chamados INTERNOS, ele é outra tela e outro recorte — quem tentar
+   * resolver acrescentando `dev` aqui quebra e lê o porquê.
+   */
+  it('só espelha quem tem clientes — chão comum e infraestrutura ficam fora', () => {
+    for (const fora of ['rotina', 'dev', 'geral', 'mapa', 'board', 'gestao']) {
+      expect(Object.keys(ESPELHO), `"${fora}" não é recorte de clientes`).not.toContain(fora);
+      expect(resolverTemaDaRota('/equipe/chamados', `?${PARAM_DE_ESPELHO}=${fora}`))
+        .toEqual(resolverTemaDaRota('/equipe/chamados'));
+    }
+  });
+
+  it('não há duas chaves para o mesmo conteúdo', () => {
+    // Era a única brecha aceita do modelo: `dev` e `rotina` apontavam para o
+    // cluster Digital com temas diferentes. Saiu junto com a causa.
+    const temas = Object.values(ESPELHO);
+    expect(new Set(temas).size).toBe(temas.length);
+  });
+
+  /*
+   * O detalhe de UM chamado não espelha, e isto é a regra outra vez.
+   *
+   * `/equipe/chamados/:id` mostra um chamado só — não tem escopo para filtrar,
+   * logo não pode ter cor de escopo. Se o espelho vazasse para lá, a tela
+   * ficaria musgo mostrando um chamado que pode ser do TAX: cor afirmando o que
+   * o conteúdo não cumpre, que é exatamente o defeito que o espelhamento existe
+   * para não ter. Por isso o casamento de `ROTAS_ESPELHADAS` é EXATO.
+   */
+  it('o espelho não vaza para o detalhe do chamado', () => {
+    expect(chaveDeEspelho('/equipe/chamados/abc-123', '?area=osg')).toBeNull();
+    expect(chaveDeEspelho('/equipe/chamadosX', '?area=osg')).toBeNull();
+    expect(resolverTemaDaRota('/equipe/chamados/abc-123', '?area=osg'))
+      .toEqual([CLASSE_BASE, 'rotina-theme']);
+  });
+
+  it('barra final não engana o casamento exato', () => {
+    expect(chaveDeEspelho('/equipe/chamados/', '?area=osg')).toBe('osg');
+  });
+});
+
+/*
+ * A FIAÇÃO DOS MENUS, cobrada pelo build.
+ *
+ * O mecanismo pode estar perfeito e a tela nunca ser alcançada espelhada: basta
+ * um menu apontar para a rota crua. Aí a pessoa sai da OSG, clica em Chamados e
+ * cai numa tela teal com tudo — a divergência de novo, agora pela navegação.
+ *
+ * Esta varredura acha toda NAVEGAÇÃO para uma rota espelhável e exige que ela
+ * carregue a chave. Link novo sem chave reprova.
+ */
+describe('espelhamento: os menus levam a chave', () => {
+  /**
+   * Navegações que de propósito NÃO espelham — o motivo mora JUNTO da entrada.
+   *
+   * É de propósito que seja um mapa e não uma lista: entrada sem motivo escrito
+   * reprova no teste abaixo. Lista de exceções sem motivo é onde se esconde o
+   * caso que ninguém quis resolver.
+   */
+  const SEM_ESPELHO_DE_PROPOSITO: Record<string, string> = {
+    'src/components/equipe/EquipeLayout.tsx':
+      'A Rotina é o CHÃO COMUM, não um recorte: "os chamados dos clientes da Rotina" não quer '
+      + 'dizer nada, porque a Rotina não tem clientes. Daqui o link vai sem parâmetro — piso, '
+      + 'lista completa, Cluster livre. Ela já esteve no ESPELHO por erro de critério (era '
+      + 'categoria válida, não recorte) e o sintoma foi uma tela teal com "0 de 0" '
+      + 'no lugar dos 354. Ver o bloco ESPELHO em areaTheme.ts.',
+    'src/components/equipe/dev/DevLayout.tsx':
+      'O espelho responde "chamados dos CLIENTES desta área", e o Digital não tem clientes: '
+      + 'os dois vínculos que existem no cluster Digital são [TESTE] Pantanal Sementes e '
+      + '[TESTE] Zebra de Óculos, dados de semente. Não é lacuna de dado — é recorte que não '
+      + 'se aplica. O canal de chamados para clientes INTERNOS, quando vier, é outra tela e '
+      + 'outro recorte, não uma chave nova nesta lista.',
+  };
+
+  function arquivosTsx(dir: string): string[] {
+    const achados: string[] = [];
+    for (const e of readdirSync(dir, { withFileTypes: true })) {
+      const c = `${dir}/${e.name}`;
+      if (e.isDirectory()) achados.push(...arquivosTsx(c));
+      else if (/\.tsx$/.test(e.name) && !/\.test\.tsx$/.test(e.name)) achados.push(c);
+    }
+    return achados;
+  }
+
+  it('toda navegação para rota espelhável carrega a chave', () => {
+    const faltando: string[] = [];
+    for (const arquivo of arquivosTsx('src')) {
+      if (arquivo in SEM_ESPELHO_DE_PROPOSITO) continue;
+      const linhas = readFileSync(arquivo, 'utf8').split('\n');
+      const fonte = linhas.join('\n');
+      linhas.forEach((linha, i) => {
+        const aponta = ROTAS_ESPELHADAS.some(
+          (r) => linha.includes(`'${r}'`) || linha.includes(`"${r}"`),
+        );
+        if (!aponta) return;
+
+        // NAVEGAÇÃO no próprio lugar: a chave tem de estar por perto. A janela
+        // existe porque JSX multilinha põe a prop `espelho` numa linha vizinha.
+        if (linha.includes('navigate(') || linha.includes('navigateTo=')) {
+          const janela = linhas.slice(Math.max(0, i - 3), i + 4).join('\n');
+          if (!janela.includes('linkEspelhado') && !janela.includes('espelho')) {
+            faltando.push(`${arquivo}:${i + 1}  ${linha.trim()}`);
+          }
+          return;
+        }
+
+        // DADO de configuração (`path:` num array de itens de menu) não navega:
+        // quem navega é o `goTo` do mesmo arquivo, e ali o `path` cru também é a
+        // chave de casamento do item ativo — pôr a query nele apagaria o realce
+        // do menu. Então a exigência é de ARQUIVO: alguém aqui aplica a chave.
+        if (linha.includes('path:') && !fonte.includes('linkEspelhado')) {
+          faltando.push(`${arquivo}:${i + 1}  ${linha.trim()}`);
+        }
+      });
+    }
+    expect(
+      faltando,
+      `Navegação para rota espelhável sem a chave — a tela abriria com a cor do
+       ambiente ANTERIOR e a lista completa:\n${faltando.join('\n')}`,
+    ).toEqual([]);
+  });
+
+  it('toda exceção carrega motivo escrito, e o arquivo existe', () => {
+    // O que impede a lista de virar depósito não é um teto de tamanho — é a
+    // obrigação de escrever POR QUE. Motivo curto não passa.
+    for (const [arquivo, motivo] of Object.entries(SEM_ESPELHO_DE_PROPOSITO)) {
+      expect(() => readFileSync(arquivo, 'utf8'), `${arquivo} não existe mais`).not.toThrow();
+      expect(motivo.length, `motivo raso em ${arquivo}`).toBeGreaterThan(120);
+    }
+  });
+});
+
+/*
+ * A GESTÃO DE CHAMADOS por área — mesma regra, outra tela.
+ *
+ * `ChamadosGestaoContent` vive em três rotas (Tax, OSG, Board) e cada uma pega a
+ * cor da sua área pelo resolvedor. O recorte do conteúdo, porém, vinha só da RLS
+ * de `tickets`, que filtra pelos clusters DA PESSOA — coincidia com a área da rota
+ * para quem tem um cluster só, e não coincidia para os cinco admins, que a RLS não
+ * recorta: a tela da OSG mostrava os 335 chamados do TAX em musgo.
+ *
+ * Correção que vale por coincidência quebra sozinha. A prop `escopo` é o que
+ * amarra, e esta varredura é o que garante que um invólucro novo não nasça sem ela.
+ *
+ * O QUE ESTE TESTE NÃO COBRE, declarado: o comportamento em si — lista recortada,
+ * cartões no escopo, select travado, vazio nomeado. `GestaoChamados.tsx` não tem
+ * arquivo de teste (são 780 linhas e uma dezena de hooks a dublar), e criar esse
+ * arnês é trabalho próprio. O que está coberto por teste de comportamento é a
+ * mesma lógica na `EquipeChamados`, que é onde ela nasceu.
+ */
+describe('gestão de chamados: todo invólucro de área declara o escopo', () => {
+  /** O Board é o consolidado, e o subtítulo dele diz "Chamados de todas as áreas". */
+  const SEM_ESCOPO_DE_PROPOSITO: Record<string, string> = {
+    'src/pages/equipe/board/BoardChamados.tsx':
+      'O Board é o consolidado da empresa: mostrar todas as áreas é o que ele existe para '
+      + 'fazer, e o subtítulo já diz "Chamados de todas as áreas". Cor de infraestrutura sobre '
+      + 'lista de todas as áreas é par coerente — não há recorte prometido e não cumprido.',
+  };
+
+  /*
+   * POR QUE A DESCOBERTA É POR IMPORT, E NÃO PELO TEXTO DA TAG.
+   *
+   * A versão anterior procurava a string `<ChamadosGestaoContent` nos `.tsx`.
+   * Isso tem um modo de falha silencioso: renomear o componente, envolvê-lo, ou
+   * passá-lo por variável esvazia a varredura — e uma varredura vazia faz TODAS
+   * as asserções abaixo passarem sem verificar nada. A guarda desapareceria
+   * junto com o alvo, sem nenhum teste falhar.
+   *
+   * Agora o vínculo é o MÓDULO, que é o que uma refatoração de UI não muda por
+   * acidente: quem importa de `pages/gestao/GestaoChamados` está montando aquela
+   * tela. E três invariantes fecham o resto: o módulo tem que continuar
+   * exportando o símbolo, a varredura não pode vir vazia, e todo arquivo citado
+   * na exceção tem que ser encontrado por ela.
+   */
+  const MODULO_LISTA = 'src/pages/gestao/GestaoChamados.tsx';
+  const SIMBOLO_LISTA = 'ChamadosGestaoContent';
+  const MODULO_DETALHE = 'src/pages/gestao/GestaoDetalhesChamado.tsx';
+  const SIMBOLO_DETALHE = 'ChamadoDetalheContent';
+
+  function arquivosDoSrc(): string[] {
+    const achados: string[] = [];
+    const varrer = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const c = `${dir}/${e.name}`;
+        if (e.isDirectory()) { varrer(c); continue; }
+        if (!/\.tsx$/.test(e.name) || /\.test\.tsx$/.test(e.name)) continue;
+        achados.push(c);
+      }
+    };
+    varrer('src');
+    return achados;
+  }
+
+  /** Quem IMPORTA o símbolo — por caminho de módulo, não por texto de tag. */
+  function arquivosQueMontam(modulo: string, simbolo: string): string[] {
+    // `src/pages/gestao/GestaoChamados.tsx` -> `pages/gestao/GestaoChamados`
+    const semExt = modulo.replace(/^src\//, '').replace(/\.tsx$/, '');
+    const arquivo = semExt.split('/').pop()!;
+    return arquivosDoSrc().filter((c) => {
+      if (c === modulo) return false; // o próprio dono não se monta
+      const fonte = readFileSync(c, 'utf8');
+      // aceita alias (@/pages/...) e relativo (../gestao/..., ./...)
+      const importa = new RegExp(
+        String.raw`import\s*\{[^}]*\b${simbolo}\b[^}]*\}\s*from\s*['"](?:@/${semExt}|[^'"]*/${arquivo})['"]`,
+      );
+      return importa.test(fonte);
+    });
+  }
+
+  it('o módulo da lista continua exportando o símbolo que a guarda persegue', () => {
+    // Se este teste falhar, a guarda inteira ficou sem alvo. Renomear o símbolo
+    // é legítimo — mas exige atualizar SIMBOLO_LISTA aqui, de propósito.
+    const fonte = readFileSync(MODULO_LISTA, 'utf8');
+    expect(
+      new RegExp(String.raw`export\s+(?:function|const)\s+${SIMBOLO_LISTA}\b`).test(fonte),
+      `${MODULO_LISTA} não exporta mais \`${SIMBOLO_LISTA}\`. Se foi renomeado de propósito, `
+        + 'atualize SIMBOLO_LISTA neste teste — não deixe a varredura sem alvo.',
+    ).toBe(true);
+  });
+
+  it('a varredura não vem vazia, e acha todo arquivo citado na exceção', () => {
+    // As duas metades do modo de falha silencioso. Sem elas, uma varredura que
+    // não acha nada faz os testes seguintes passarem sem verificar nada.
+    const montam = arquivosQueMontam(MODULO_LISTA, SIMBOLO_LISTA);
+    expect(
+      montam.length,
+      'Nenhum arquivo monta a lista de chamados. Ou o import mudou de forma, ou a '
+        + 'varredura quebrou — nos dois casos as asserções abaixo passariam vazias.',
+    ).toBeGreaterThan(0);
+
+    for (const arquivo of Object.keys(SEM_ESCOPO_DE_PROPOSITO)) {
+      expect(
+        montam,
+        `${arquivo} está na exceção mas a varredura não o encontra: a exceção virou `
+          + 'letra morta e a tela saiu do radar sem nenhum teste falhar.',
+      ).toContain(arquivo);
+    }
+  });
+
+  it('quem monta o miolo numa rota de área passa `escopo`', () => {
+    const faltando: string[] = [];
+    for (const arquivo of arquivosQueMontam(MODULO_LISTA, SIMBOLO_LISTA)) {
+      if (arquivo in SEM_ESCOPO_DE_PROPOSITO) continue;
+      const fonte = readFileSync(arquivo, 'utf8');
+      if (!/escopo=/.test(fonte)) faltando.push(arquivo);
+    }
+    expect(
+      faltando,
+      `Invólucro sem \`escopo\`: a tela pega a cor da área e mostra os chamados de TODAS —\n`
+        + `o defeito que a prop existe para fechar.\n${faltando.join('\n')}`,
+    ).toEqual([]);
+  });
+
+  it('todo escopo declarado é uma chave de espelho válida', () => {
+    // Mesma chave, mesma disciplina: se pinta por área, filtra pela mesma chave.
+    for (const arquivo of arquivosQueMontam(MODULO_LISTA, SIMBOLO_LISTA)) {
+      for (const m of readFileSync(arquivo, 'utf8').matchAll(/escopo="([^"]+)"/g)) {
+        expect(Object.keys(ESPELHO), `${arquivo}: escopo "${m[1]}"`).toContain(m[1]);
+      }
+    }
+  });
+
+  it('a exceção do Board carrega motivo escrito', () => {
+    for (const [arquivo, motivo] of Object.entries(SEM_ESCOPO_DE_PROPOSITO)) {
+      expect(() => readFileSync(arquivo, 'utf8'), `${arquivo} não existe`).not.toThrow();
+      expect(motivo.length, `motivo raso em ${arquivo}`).toBeGreaterThan(120);
+    }
+  });
+
+  /*
+   * O DETALHE DO CHAMADO — `/equipe/board/chamados/:id` e as duas irmãs.
+   *
+   * Estava fora do alcance da varredura, e por um motivo real: o
+   * `ChamadoDetalheContent` NÃO tem prop `escopo`, nem no Board nem na Tax nem na
+   * OSG. Ele mostra UM registro, recortado pelo `:id` e pela RLS de `tickets` —
+   * não existe lista para recortar errado, então exigir `escopo` dele seria
+   * inventar uma regra que o componente não tem.
+   *
+   * O invariante que ELE tem é outro, e é o defeito que a rota existe para
+   * fechar (está escrito nos três arquivos): o `listaPath` tem que apontar para a
+   * lista DA MESMA ÁREA. Errar isso é o "Ver" jogar a pessoa para outra área no
+   * meio do fluxo — foi assim que o detalhe caía em `/gestao/chamados/:id` e a
+   * barra lateral trocava para a do Marketing.
+   *
+   * A checagem usa o próprio `areaDaRota`, então ela acompanha o mapa de rotas
+   * sozinha em vez de repetir a lista de áreas aqui.
+   */
+  describe('detalhe do chamado: o caminho de volta não troca de área', () => {
+    /** As rotas do App.tsx, sem as que estão dentro de comentário de bloco. */
+    function rotasAtivasPorComponente(): Map<string, string[]> {
+      const app = readFileSync('src/App.tsx', 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length));
+      const mapa = new Map<string, string[]>();
+      for (const m of app.matchAll(/<Route\s+path="([^"]+)"([\s\S]*?)\/>/g)) {
+        for (const c of m[2].matchAll(/<(\w+)/g)) {
+          const lista = mapa.get(c[1]) ?? [];
+          lista.push(m[1]);
+          mapa.set(c[1], lista);
+        }
+      }
+      return mapa;
+    }
+
+    it('o módulo do detalhe continua exportando o símbolo', () => {
+      const fonte = readFileSync(MODULO_DETALHE, 'utf8');
+      expect(
+        new RegExp(String.raw`export\s+(?:function|const)\s+${SIMBOLO_DETALHE}\b`).test(fonte),
+        `${MODULO_DETALHE} não exporta mais \`${SIMBOLO_DETALHE}\` — atualize SIMBOLO_DETALHE.`,
+      ).toBe(true);
+    });
+
+    it('a varredura do detalhe não vem vazia', () => {
+      expect(
+        arquivosQueMontam(MODULO_DETALHE, SIMBOLO_DETALHE).length,
+        'Nenhum arquivo monta o detalhe do chamado — varredura sem alvo.',
+      ).toBeGreaterThan(0);
+    });
+
+    it('todo invólucro passa `listaPath`, e ele é uma rota ativa do App.tsx', () => {
+      const rotas = new Set(
+        [...readFileSync('src/App.tsx', 'utf8')
+          .replace(/\/\*[\s\S]*?\*\//g, (m) => ' '.repeat(m.length))
+          .matchAll(/<Route\s+path="([^"]+)"/g)].map((m) => m[1]),
+      );
+      for (const arquivo of arquivosQueMontam(MODULO_DETALHE, SIMBOLO_DETALHE)) {
+        const fonte = readFileSync(arquivo, 'utf8');
+        const m = /listaPath="([^"]+)"/.exec(fonte);
+        expect(m, `${arquivo} monta o detalhe sem \`listaPath\`: o "Voltar" cai fora da área.`)
+          .not.toBeNull();
+        expect(rotas, `${arquivo}: listaPath "${m![1]}" não é rota ativa do App.tsx`)
+          .toContain(m![1]);
+      }
+    });
+
+    it('o `listaPath` fica na MESMA área da rota que monta o detalhe', () => {
+      const porComponente = rotasAtivasPorComponente();
+      const divergentes: string[] = [];
+
+      for (const arquivo of arquivosQueMontam(MODULO_DETALHE, SIMBOLO_DETALHE)) {
+        const fonte = readFileSync(arquivo, 'utf8');
+        const lista = /listaPath="([^"]+)"/.exec(fonte)?.[1];
+        if (!lista) continue; // já reprovado no teste acima
+        const componente = arquivo.split('/').pop()!.replace(/\.tsx$/, '');
+        const rotasDele = porComponente.get(componente) ?? [];
+        expect(
+          rotasDele.length,
+          `${componente} monta o detalhe mas não aparece em nenhuma rota ativa do App.tsx`,
+        ).toBeGreaterThan(0);
+
+        for (const rota of rotasDele) {
+          const areaDaTela = areaDaRota(rota);
+          const areaDaVolta = areaDaRota(lista);
+          if (areaDaTela !== areaDaVolta) {
+            divergentes.push(
+              `${arquivo}: rota ${rota} é "${areaDaTela}", mas listaPath ${lista} é "${areaDaVolta}"`,
+            );
+          }
+        }
+      }
+
+      expect(
+        divergentes,
+        'Detalhe do chamado apontando para a lista de OUTRA área — o "Voltar" troca a cor e a '
+          + `barra lateral no meio do fluxo:\n${divergentes.join('\n')}`,
+      ).toEqual([]);
+    });
   });
 });

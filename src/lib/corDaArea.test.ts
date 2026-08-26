@@ -1,3 +1,6 @@
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -112,5 +115,77 @@ describe('objeto sem color_index — a origem do ponto que não aparece', () => 
   it('override sem índice ainda pinta — é o escape sem UI', () => {
     expect(classeDaCorDaArea({ color: '#123456' })).toBeNull();
     expect(estiloDaCorDaArea({ color: '#123456' })).toEqual({ backgroundColor: '#123456' });
+  });
+});
+
+/*
+ * A PREMISSA DA PALETA, como asserção em vez de comentário.
+ *
+ * A paleta de área é contida de propósito — oito tons em faixa estreita, que
+ * sob protanopia colapsam (pior par a ΔE 1,4). Ela só é adequada porque o nome
+ * da área está SEMPRE ao lado do ponto: a cor acompanha a varredura, não carrega
+ * a informação.
+ *
+ * Isso estava escrito em prosa no `index.css` — "verificado nos CINCO sites",
+ * com cinco números de linha. No mesmo dia nasceu um sexto site e os cinco
+ * números saíram de lugar. Prosa não segura premissa; teste segura.
+ *
+ * Por isso a contagem vive aqui: acrescentar um site QUEBRA este teste, e quem
+ * quebrar é obrigado a olhar o site novo e confirmar que ele também tem texto ao
+ * lado do ponto. Se tiver, sobe o número. Se não tiver, a premissa caiu e a
+ * paleta precisa ser refeita por luminosidade — não é o número que está errado.
+ */
+describe('premissa: a cor de área nunca aparece sem nome ao lado', () => {
+  const SITES_ESPERADOS = 6;
+
+  function sitesQueRenderizamOPonto(): { arquivo: string; linha: number }[] {
+    const achados: { arquivo: string; linha: number }[] = [];
+    const varrer = (dir: string) => {
+      for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+        const caminho = join(dir, entrada.name);
+        if (entrada.isDirectory()) { varrer(caminho); continue; }
+        if (!entrada.name.endsWith('.tsx')) continue;
+        readFileSync(caminho, 'utf8').split('\n').forEach((texto, i) => {
+          if (/<PontoDaArea\s/.test(texto)) {
+            achados.push({ arquivo: caminho.replace(/\\/g, '/'), linha: i + 1 });
+          }
+        });
+      }
+    };
+    varrer('src');
+    return achados;
+  }
+
+  it(`são ${SITES_ESPERADOS} sites, e nenhum a mais sem reverificar a premissa`, () => {
+    const sites = sitesQueRenderizamOPonto();
+    expect(
+      sites.length,
+      `Sites de <PontoDaArea> mudaram. Encontrados:\n${sites
+        .map((s) => `  ${s.arquivo}:${s.linha}`)
+        .join('\n')}\n\nSe é um site novo: confirme que ele mostra o NOME ao lado do ponto e ` +
+        'atualize SITES_ESPERADOS. Se não mostra, a premissa da paleta caiu — leia o bloco ' +
+        '`--area-*` do index.css antes de mexer no número.',
+    ).toBe(SITES_ESPERADOS);
+  });
+
+  it('nenhum site pinta cor de área fora do componente do ponto', () => {
+    // `classeDaCorDaArea`/`estiloDaCorDaArea` só devem ser chamados por
+    // `PontoDaArea`. Chamada direta em tela seria um site que este teste não
+    // conta — cor de área sem a garantia do nome ao lado.
+    const fora: string[] = [];
+    const varrer = (dir: string) => {
+      for (const entrada of readdirSync(dir, { withFileTypes: true })) {
+        const caminho = join(dir, entrada.name);
+        if (entrada.isDirectory()) { varrer(caminho); continue; }
+        if (!/\.tsx?$/.test(entrada.name)) continue;
+        const rel = caminho.replace(/\\/g, '/');
+        if (rel.includes('PontoDaArea') || rel.includes('corDaArea')) continue;
+        if (/\b(classeDaCorDaArea|estiloDaCorDaArea)\s*\(/.test(readFileSync(caminho, 'utf8'))) {
+          fora.push(rel);
+        }
+      }
+    };
+    varrer('src');
+    expect(fora, `Cor de área pintada fora de PontoDaArea: ${fora.join(', ')}`).toEqual([]);
   });
 });

@@ -59,8 +59,8 @@ export interface ApresentacaoDoAviso {
 }
 
 const PRIMARIO = 'bg-primary/10 text-primary';
-const ROXO = 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-200';
-const VERDE = 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200';
+const ROXO ='bg-purple-100 text-purple-700';
+const VERDE ='bg-emerald-100 text-emerald-700';
 const VERMELHO = 'bg-destructive text-destructive-foreground';
 const AMBAR = 'bg-amber-500 text-white';
 

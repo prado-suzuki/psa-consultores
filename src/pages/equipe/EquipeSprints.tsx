@@ -265,7 +265,7 @@ const EquipeSprints = () => {
               Nova Sprint
             </Button>
           </DialogTrigger>
-          <DialogContent className="bg-white border-gray-200">
+          <DialogContent className="border-gray-200">
             <DialogHeader>
               <DialogTitle className="text-gray-900">Criar Nova Sprint</DialogTitle>
             </DialogHeader>
@@ -280,10 +280,10 @@ const EquipeSprints = () => {
                     project_id: '',
                   })}
                 >
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                  <SelectTrigger className="text-gray-900">
                     <SelectValue placeholder="Selecione um cluster (opcional)" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
+                  <SelectContent className="border-gray-200">
                     <SelectItem value="none">Todos</SelectItem>
                     {clusters.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
@@ -297,10 +297,10 @@ const EquipeSprints = () => {
                   value={newSprint.project_id} 
                   onValueChange={(value) => setNewSprint({ ...newSprint, project_id: value })}
                 >
-                  <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                  <SelectTrigger className="text-gray-900">
                     <SelectValue placeholder="Selecione um projeto (opcional)" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border-gray-200">
+                  <SelectContent className="border-gray-200">
                     {renderProjectOptions(
                       projects.filter(
                         (p) => !newSprint.cluster_id || p.cluster_id === newSprint.cluster_id,
@@ -315,7 +315,7 @@ const EquipeSprints = () => {
                   id="name"
                   value={newSprint.name}
                   onChange={(e) => setNewSprint({ ...newSprint, name: e.target.value })}
-                  className="bg-white border-gray-300 text-gray-900"
+                  className="text-gray-900"
                   placeholder="Sprint 1 - Dezembro"
                   required
                 />
@@ -326,7 +326,7 @@ const EquipeSprints = () => {
                   id="goal"
                   value={newSprint.goal}
                   onChange={(e) => setNewSprint({ ...newSprint, goal: e.target.value })}
-                  className="bg-white border-gray-300 text-gray-900"
+                  className="text-gray-900"
                   placeholder="Descreva o objetivo principal desta sprint"
                 />
               </div>
@@ -338,7 +338,7 @@ const EquipeSprints = () => {
                     type="date"
                     value={newSprint.start_date}
                     onChange={(e) => setNewSprint({ ...newSprint, start_date: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900"
+                    className="text-gray-900"
                     required
                   />
                 </div>
@@ -349,7 +349,7 @@ const EquipeSprints = () => {
                     type="date"
                     value={newSprint.end_date}
                     onChange={(e) => setNewSprint({ ...newSprint, end_date: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900"
+                    className="text-gray-900"
                     required
                   />
                 </div>
@@ -381,7 +381,7 @@ const EquipeSprints = () => {
              const sprintImpact = resumoPorSprint[sprint.id];
             
             return (
-               <Card key={sprint.id} className="bg-white border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+               <Card key={sprint.id} className="border-gray-100 shadow-sm hover:shadow-md transition-shadow">
                  <CardContent className="p-5">
                    <div className="flex items-center justify-between mb-3">
                      <div className="flex items-center gap-3 min-w-0">
@@ -417,7 +417,7 @@ const EquipeSprints = () => {
           ))}
         </div>
       ) : (
-        <Card className="bg-white border-gray-200">
+        <Card className="border-gray-200">
           <CardContent className="py-16 text-center">
             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma sprint criada</h3>
@@ -435,7 +435,7 @@ const EquipeSprints = () => {
 
       {/* Edit Sprint Dialog */}
       <Dialog open={!!selectedSprint && isEditMode} onOpenChange={() => { setSelectedSprint(null); setIsEditMode(false); }}>
-        <DialogContent className="bg-white border-gray-200">
+        <DialogContent className="border-gray-200">
           {selectedSprint && (
             <>
               <DialogHeader>
@@ -456,10 +456,10 @@ const EquipeSprints = () => {
                       })
                     }
                   >
-                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectTrigger className="text-gray-900">
                       <SelectValue placeholder="Selecione um cluster" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
+                    <SelectContent className="border-gray-200">
                       <SelectItem value="none">Todos</SelectItem>
                       {clusters.map((c) => (
                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
@@ -473,10 +473,10 @@ const EquipeSprints = () => {
                     value={editSprint.project_id}
                     onValueChange={(value) => setEditSprint({ ...editSprint, project_id: value })}
                   >
-                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectTrigger className="text-gray-900">
                       <SelectValue placeholder="Selecione um projeto (opcional)" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
+                    <SelectContent className="border-gray-200">
                       {renderProjectOptions(
                         projects.filter(
                           (p) => !editSprint.cluster_id || p.cluster_id === editSprint.cluster_id,
@@ -490,7 +490,7 @@ const EquipeSprints = () => {
                   <Input
                     value={editSprint.name}
                     onChange={(e) => setEditSprint({ ...editSprint, name: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900"
+                    className="text-gray-900"
                   />
                 </div>
                 <div className="space-y-2">
@@ -498,7 +498,7 @@ const EquipeSprints = () => {
                   <Textarea
                     value={editSprint.goal}
                     onChange={(e) => setEditSprint({ ...editSprint, goal: e.target.value })}
-                    className="bg-white border-gray-300 text-gray-900"
+                    className="text-gray-900"
                     rows={3}
                   />
                 </div>
@@ -509,7 +509,7 @@ const EquipeSprints = () => {
                       type="date"
                       value={editSprint.start_date}
                       onChange={(e) => setEditSprint({ ...editSprint, start_date: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900"
+                      className="text-gray-900"
                     />
                   </div>
                   <div className="space-y-2">
@@ -518,17 +518,17 @@ const EquipeSprints = () => {
                       type="date"
                       value={editSprint.end_date}
                       onChange={(e) => setEditSprint({ ...editSprint, end_date: e.target.value })}
-                      className="bg-white border-gray-300 text-gray-900"
+                      className="text-gray-900"
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-gray-700">Status</Label>
                   <Select value={editSprint.status} onValueChange={(value) => setEditSprint({ ...editSprint, status: value })}>
-                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                    <SelectTrigger className="text-gray-900">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-200">
+                    <SelectContent className="border-gray-200">
                       <SelectItem value="active">Ativa</SelectItem>
                       <SelectItem value="completed">Concluída</SelectItem>
                       <SelectItem value="planned">Planejada</SelectItem>
@@ -544,7 +544,7 @@ const EquipeSprints = () => {
                         Excluir
                       </Button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent className="bg-white">
+                    <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Excluir sprint?</AlertDialogTitle>
                         <AlertDialogDescription>

@@ -59,7 +59,7 @@ export function DifalFiltersCard({
       <CardHeader className="pb-4">
         <CardTitle className="text-lg flex items-center gap-2 text-primary">
           <Filter className="h-5 w-5" />
-          <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">
+          <span className="uppercase text-sm tracking-wider font-bold text-slate-800">
             Filtros de Busca
           </span>
         </CardTitle>
@@ -67,7 +67,7 @@ export function DifalFiltersCard({
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-4">
           <div className="md:col-span-3">
-            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
               Cliente <RequiredMark /> <FieldTooltip name="cliente" />
             </label>
             <Select
@@ -75,7 +75,7 @@ export function DifalFiltersCard({
               disabled={isLoadingClientes}
               onValueChange={onClienteChange}
             >
-              <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+              <SelectTrigger className="h-11 bg-white">
                 <SelectValue placeholder="Selecione o cliente" />
               </SelectTrigger>
               <SelectContent>
@@ -89,7 +89,7 @@ export function DifalFiltersCard({
           </div>
 
           <div className="md:col-span-5">
-            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
               Contribuinte <RequiredMark /> <FieldTooltip name="contribuinte" />
             </label>
             <Select
@@ -97,7 +97,7 @@ export function DifalFiltersCard({
               disabled={!selectedCliente || isLoadingContribuintes}
               onValueChange={onContribuinteChange}
             >
-              <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+              <SelectTrigger className="h-11 bg-white">
                 <SelectValue placeholder="Selecione o contribuinte" />
               </SelectTrigger>
               <SelectContent>
@@ -111,7 +111,7 @@ export function DifalFiltersCard({
           </div>
 
           <div className="md:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
               Data Início <RequiredMark /> <FieldTooltip name="start_date" />
             </label>
             <Popover>
@@ -119,7 +119,7 @@ export function DifalFiltersCard({
                 <Button
                   variant="outline"
                   className={cn(
-                    'w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800',
+                    'w-full h-11 px-3 text-left font-normal justify-start bg-white',
                     !startDate && 'text-muted-foreground',
                   )}
                 >
@@ -139,7 +139,7 @@ export function DifalFiltersCard({
           </div>
 
           <div className="md:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
               Data Fim <RequiredMark /> <FieldTooltip name="end_date" />
             </label>
             <Popover>
@@ -147,7 +147,7 @@ export function DifalFiltersCard({
                 <Button
                   variant="outline"
                   className={cn(
-                    'w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800',
+                    'w-full h-11 px-3 text-left font-normal justify-start bg-white',
                     !endDate && 'text-muted-foreground',
                   )}
                 >
@@ -167,11 +167,11 @@ export function DifalFiltersCard({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-slate-200">
           <Button
             variant="ghost"
             onClick={onClear}
-            className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+            className="text-slate-500 hover:text-red-600 hover:bg-red-50"
           >
             <Eraser className="h-4 w-4 mr-2" />
             Limpar filtros

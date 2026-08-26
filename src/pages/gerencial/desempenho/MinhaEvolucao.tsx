@@ -106,7 +106,7 @@ const MinhaEvolucao = () => {
   }));
 
   return (
-    <BoardLayout title="Minha Evolucao" subtitle="Acompanhe seu desempenho">
+    <BoardLayout title="Minha Evolução" subtitle="Acompanhe seu desempenho">
       <div className="space-y-5">
         {/* Identity Header */}
         <div className="rounded-xl p-5 text-white" style={{ background: 'linear-gradient(135deg, #0F172A, #1E293B)' }}>

@@ -38,7 +38,7 @@ import {
   type SortDirection,
   type ProjectPrefillLocationState,
 } from '@/lib/projetosCadastro';
-import { computeAvailableMembers, computeExecutores, computeLideres } from '@/lib/projetoEquipe';
+import { computeAvailableMembers, computeExecutores, computeLideres, splitProjectMembers } from '@/lib/projetoEquipe';
 
 export function useProjetosCadastroController(area: AreaKey) {
   const location = useLocation();
@@ -248,16 +248,14 @@ export function useProjetosCadastroController(area: AreaKey) {
       : previous);
   }, [equipeId, equipeLiderIds, editingProject]);
 
+  // Os vínculos gravados se distribuem pelo papel que a pessoa tem NO projeto,
+  // não pelo cargo dela na empresa — ver `splitProjectMembers`. Por isso este
+  // efeito não depende mais de `userRoles`: ele roda assim que os membros chegam.
   useEffect(() => {
-    if (!editingProject || currentProjectMembers.length === 0 || userRoles.length === 0) return;
-    const roleMap = new Map(userRoles.map(role => [role.user_id, role.role]));
-    const leaderIds: string[] = [];
-    const memberIds: string[] = [];
-    for (const member of currentProjectMembers) {
-      (roleMap.get(member.user_id) === 'lider' ? leaderIds : memberIds).push(member.user_id);
-    }
+    if (!editingProject || currentProjectMembers.length === 0) return;
+    const { leaderIds, memberIds } = splitProjectMembers(currentProjectMembers, editingProject.leader_id);
     setFormData(previous => ({ ...previous, leader_ids: leaderIds, member_ids: memberIds }));
-  }, [editingProject, currentProjectMembers, userRoles]);
+  }, [editingProject, currentProjectMembers]);
 
   const lideres = useMemo(() => computeLideres(teamMembers, userRoles, equipeId, equipeLiderIds, formData.leader_ids),
     [teamMembers, userRoles, equipeId, equipeLiderIds, formData.leader_ids]);

@@ -6,6 +6,7 @@
  import { assertCanPerform } from '@/hooks/useRlsPrecheck';
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { MENSAGEM_HORAS_OBRIGATORIAS, temHorasApontadas } from '@/lib/orgTaskHours';
 import { computeFieldDiff } from '@/lib/diffUtils';
 import { ambientePorClienteQuery } from '@/hooks/useDomainAmbienteClientes';
 import { isTarefaDoAmbiente } from '@/lib/ambienteScope';
@@ -242,6 +243,10 @@ export const useCreateOrgTask = (
 
    return useMutation({
      mutationFn: async (input: CreateOrgTaskInput) => {
+       // Mesma regra da edição: nasce concluída, nasce com hora.
+       if (input.status === 'done' && !temHorasApontadas(input.actual_hours)) {
+         throw new Error(MENSAGEM_HORAS_OBRIGATORIAS);
+       }
        const { data, error } = await supabase
          .from('org_tasks')
          .insert({
@@ -313,6 +318,21 @@ export const useUpdateOrgTask = (
 
          if (Object.keys(changedOnly).length === 0) {
            return current;
+         }
+
+         // Concluir sem hora apontada não passa — nem pelo modal, nem pelos
+         // atalhos que só trocam o status (arrastar, checkbox, selects). Só a
+         // transição para `done` e o ato de zerar as horas de uma tarefa já
+         // concluída são barrados: editar outro campo de uma tarefa antiga sem
+         // apontamento continua possível.
+         const statusFinal = (changedOnly.status ?? current?.status) as OrgTaskStatus | undefined;
+         const estaConcluindo = changedOnly.status === 'done';
+         const estaZerandoHoras =
+           'actual_hours' in changedOnly && !temHorasApontadas(changedOnly.actual_hours);
+         if (statusFinal === 'done' && (estaConcluindo || estaZerandoHoras)) {
+           const horasFinais =
+             'actual_hours' in changedOnly ? changedOnly.actual_hours : current?.actual_hours;
+           if (!temHorasApontadas(horasFinais)) throw new Error(MENSAGEM_HORAS_OBRIGATORIAS);
          }
 
          const currentUserIsReviewer = current && isDelegatedOrgTaskReviewer(current, user?.id);

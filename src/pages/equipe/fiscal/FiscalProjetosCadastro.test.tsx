@@ -152,9 +152,13 @@ const roles = [
   { user_id: 'admin-1', role: 'admin' },
 ];
 
+// Espelha o que `buildMembersList` grava: uma linha por pessoa, com o papel dela
+// NO projeto. A responsável executora entra como 'responsible', não como 'member'
+// — e é ela que o modal precisa reconhecer para não abrir "Membros" vazio.
 const currentMembers = [
-  { project_id: 'project-tax', user_id: 'leader-1' },
-  { project_id: 'project-tax', user_id: 'member-2' },
+  { project_id: 'project-tax', user_id: 'leader-1', role: 'leader' },
+  { project_id: 'project-tax', user_id: 'member-2', role: 'member' },
+  { project_id: 'project-tax', user_id: 'member-1', role: 'responsible' },
 ];
 
 const taxProject = {
@@ -519,8 +523,10 @@ describe('FiscalProjetosCadastro — caracterização F1', () => {
           produto_segmento_id: 'product-1',
           start_date: '2026-02-10',
           end_date: '2026-11-20',
+          // Líder e membros vêm do papel gravado no projeto: 'leader' no campo de
+          // líder, 'member' e 'responsible' no de membros.
           leader_ids: ['leader-1'],
-          member_ids: ['member-2'],
+          member_ids: ['member-2', 'member-1'],
         }),
         oldProject: taxProject,
         oldMembers: currentMembers,

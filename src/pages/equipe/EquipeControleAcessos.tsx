@@ -302,7 +302,7 @@ const EquipeControleAcessos = () => {
                   Os dois cadastros são irmãos em sub-abas, nunca empilhados. */}
               <TabsContent value="cadastros" className="space-y-4">
                 <Tabs defaultValue="organizacao" className="space-y-4">
-                  <TabsList className="bg-foreground/[0.05] border border-slate-200">
+                  <TabsList className="bg-foreground/[0.05] border border-border">
                     <TabsTrigger
                       value="organizacao"
                       className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
@@ -324,10 +324,10 @@ const EquipeControleAcessos = () => {
                   </TabsContent>
 
                   <TabsContent value="centros_custo">
-                    <Card className="bg-white border-slate-200/60 shadow-sm">
+                    <Card className="border-border/60 shadow-sm">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-base text-slate-900">Centros de Custo</CardTitle>
-                        <p className="text-sm text-slate-500">
+                        <CardTitle className="text-base text-foreground">Centros de Custo</CardTitle>
+                        <p className="text-sm text-muted-foreground">
                           Usados pelos clusters e pelas áreas — cada área pode ter o seu.
                         </p>
                       </CardHeader>
@@ -341,7 +341,7 @@ const EquipeControleAcessos = () => {
 
               {/* Cadastros Clientes Tab */}
               <TabsContent value="cadastros_clientes" className="space-y-4">
-                <GestaoClientesContent />
+                <GestaoClientesContent todosOsClusters />
               </TabsContent>
 
               {/* Cadastro Categorias Tab */}
@@ -417,7 +417,7 @@ const EquipeControleAcessos = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCadastroDialogOpen(false)} className="border-border text-muted-foreground">Cancelar</Button>
-            <Button onClick={handleSaveCadastro} className="bg-primary hover:bg-primary/90 text-white">{editingArea ? 'Salvar' : 'Criar'}</Button>
+            <Button onClick={handleSaveCadastro} className="bg-primary hover:bg-primary/90 text-primary-foreground">{editingArea ? 'Salvar' : 'Criar'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

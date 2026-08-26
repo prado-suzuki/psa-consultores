@@ -266,7 +266,14 @@ export const TaskModal = ({
     }
   }, [watchedProjectId, projects, form]);
 
+  // Resemeia o formulário a cada ABERTURA, não só quando o id muda. Sem `open`
+  // aqui, reabrir a MESMA tarefa não disparava reset: o formulário ficava com
+  // os valores de quando foi fechado e ignorava o que aconteceu no meio (status
+  // trocado por arrasto no Kanban, pelo seletor da Lista/Tabela, horas
+  // apontadas por outra pessoa). Além de mostrar dado velho, um Salvar ali
+  // gravava o retrato antigo por cima do atual.
   useEffect(() => {
+    if (!open) return;
     if (task) {
       isResettingRef.current = true;
       form.reset({
@@ -312,7 +319,7 @@ export const TaskModal = ({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [task?.id, defaultParentId, defaultProjectId]);
+  }, [open, task?.id, defaultParentId, defaultProjectId]);
 
   const handleAssigneeChange = (userId: string) => {
     if (userId === '_none') {

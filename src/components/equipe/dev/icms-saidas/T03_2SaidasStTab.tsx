@@ -30,14 +30,14 @@ export const T03_2SaidasStTab = ({
 
   return (
     <Tabs value={familia} onValueChange={(v) => setFamilia(v as FamiliaSaidaSt)} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 h-10 p-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md shadow-sm">
+      <TabsList className="grid w-full grid-cols-2 h-10 p-1 bg-white border border-slate-200 rounded-md shadow-sm">
         {FAMILIA_TABS.map((t) => (
           <InlineTooltip key={t.value} content={ICMS_FAMILIA_TAB_TOOLTIPS[t.value]}>
             <TabsTrigger
               value={t.value}
               className={cn(
                 'relative isolate h-8 overflow-hidden text-xs sm:text-sm font-medium rounded-sm border border-transparent bg-transparent',
-                'text-slate-600 dark:text-slate-300',
+                'text-slate-600',
                 'transition-all duration-300 ease-out',
                 'hover:-translate-y-0.5 hover:border-primary/10 hover:bg-primary/10 hover:text-primary hover:shadow-sm hover:shadow-primary/10',
                 t.value === familia

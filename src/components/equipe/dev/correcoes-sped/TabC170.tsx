@@ -474,13 +474,13 @@ export default function TabC170({
 
       if (field === 'DESCR_COMPL') {
         return (
-          <span className={`text-xs truncate block ${isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : ''}`} title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
+          <span className={`text-xs truncate block ${isChanged ?'text-amber-600 font-bold':''}`} title={item.DESCR_COMPL || item.DESCR_ITEM_0200 || undefined}>
             {item.DESCR_COMPL || item.DESCR_ITEM_0200 || '\u2014'}
           </span>
         );
       }
 
-      const amberClass = isChanged ? 'text-amber-600 font-bold dark:text-amber-500' : '';
+      const amberClass = isChanged ?'text-amber-600 font-bold':'';
 
       if (field === 'VL_ITEM' || field === 'VL_PIS' || field === 'VL_COFINS') {
         return <span className={amberClass}>{formatCurrency(typeof value === 'number' ? value : Number(value ?? 0))}</span>;
@@ -587,8 +587,8 @@ export default function TabC170({
                   <TableRow className="border-b-0">
                     {isEditMode && <TableHead className="w-[40px] min-w-[40px] pb-0 pt-2 bg-muted/40" />}
                     <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 bg-muted/40">{renderColumnLabel('Dados EFD', SPED_TOOLTIPS.dadosEfd)}</TableHead>
-                    <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-bold text-emerald-600/70 dark:text-emerald-400/70 pb-0 pt-2 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1">Dados XML<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Dados lidos diretamente do arquivo XML original para confronto com a escrituração (SPED).</TooltipContent></Tooltip></span></TableHead>
-                    <TableHead colSpan={7} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20">{renderColumnLabel('Impostos', SPED_TOOLTIPS.impostos)}</TableHead>
+                    <TableHead colSpan={3} className="text-[10px] uppercase tracking-wider font-bold text-emerald-600/70 pb-0 pt-2 border-l-2 border-dashed border-emerald-200 bg-emerald-50/60"><span className="flex items-center gap-1">Dados XML<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70"/></TooltipTrigger><TooltipContent side="top"className="max-w-xs text-xs">Dados lidos diretamente do arquivo XML original para confronto com a escrituração (SPED).</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead colSpan={7} className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground/70 pb-0 pt-2 border-l-2 border-dashed border-slate-200 bg-slate-50/60">{renderColumnLabel('Impostos', SPED_TOOLTIPS.impostos)}</TableHead>
                     <TableHead colSpan={1} className="pb-0 pt-2 bg-background" />
                   </TableRow>
                   <TableRow>
@@ -658,17 +658,17 @@ export default function TabC170({
                       </Popover>
                     </TableHead>
                     <TableHead className="text-[11px] text-right min-w-[110px]">{renderColumnLabel('Valor', SPED_TOOLTIPS.c170Valor)}</TableHead>
-                    <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1">Descricao<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">{"Descrição do produto no XML (tag <xProd>). Exibe 'Consolidado' quando o sistema identifica que vários itens do XML foram agrupados em uma única linha no SPED."}</TooltipContent></Tooltip></span></TableHead>
-                    <TableHead className="text-[11px] min-w-[100px] bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1">NCM<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">{"NCM do produto no XML (tag <NCM>). Fica em vermelho quando não bate com o NCM declarado no Registro 0200 do SPED."}</TooltipContent></Tooltip></span></TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[110px] bg-emerald-50/60 dark:bg-emerald-950/20"><span className="flex items-center gap-1 justify-end">Valor<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">{"Valor do produto no XML (tag <vProd>). Fica em laranja quando há diferença em relação ao valor bruto (VL_ITEM) declarado no SPED."}</TooltipContent></Tooltip></span></TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">{renderColumnLabel('CST PIS', SPED_TOOLTIPS.cstPis)}<ColumnFilterDropdown columnKey="CST_PIS" uniqueValues={cascadingUniqueValues['CST_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">{renderColumnLabel('% PIS', SPED_TOOLTIPS.pctPis)}<ColumnFilterDropdown columnKey="ALIQ_PIS" uniqueValues={cascadingUniqueValues['ALIQ_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">{renderColumnLabel('VL PIS', SPED_TOOLTIPS.vlPis)}</TableHead>
-                    <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-center gap-1">{renderColumnLabel('CST COF', SPED_TOOLTIPS.cstCof)}<ColumnFilterDropdown columnKey="CST_COFINS" uniqueValues={cascadingUniqueValues['CST_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center justify-end gap-1">{renderColumnLabel('% COF', SPED_TOOLTIPS.pctCof)}<ColumnFilterDropdown columnKey="ALIQ_COFINS" uniqueValues={cascadingUniqueValues['ALIQ_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
-                    <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60 dark:bg-slate-800/20">{renderColumnLabel('VL COF', SPED_TOOLTIPS.vlCof)}</TableHead>
-                    <TableHead className="text-[11px] min-w-[150px] max-w-[150px] bg-slate-50/60 dark:bg-slate-800/20"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70" /></TooltipTrigger><TooltipContent side="top" className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip><ColumnFilterDropdown columnKey="COD_CTA" uniqueValues={cascadingUniqueValues['COD_CTA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_CTA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
-                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Status</TableHead>
+                    <TableHead className="text-[11px] min-w-[200px] border-l-2 border-dashed border-emerald-200 bg-emerald-50/60"><span className="flex items-center gap-1">Descricao<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70"/></TooltipTrigger><TooltipContent side="top"className="max-w-xs text-xs">{"Descrição do produto no XML (tag <xProd>). Exibe'Consolidado'quando o sistema identifica que vários itens do XML foram agrupados em uma única linha no SPED."}</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] min-w-[100px] bg-emerald-50/60"><span className="flex items-center gap-1">NCM<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70"/></TooltipTrigger><TooltipContent side="top"className="max-w-xs text-xs">{"NCM do produto no XML (tag <NCM>). Fica em vermelho quando não bate com o NCM declarado no Registro 0200 do SPED."}</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[110px] bg-emerald-50/60"><span className="flex items-center gap-1 justify-end">Valor<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70"/></TooltipTrigger><TooltipContent side="top"className="max-w-xs text-xs">{"Valor do produto no XML (tag <vProd>). Fica em laranja quando há diferença em relação ao valor bruto (VL_ITEM) declarado no SPED."}</TooltipContent></Tooltip></span></TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[60px] border-l-2 border-dashed border-slate-200 bg-slate-50/60"><span className="flex items-center justify-center gap-1">{renderColumnLabel('CST PIS', SPED_TOOLTIPS.cstPis)}<ColumnFilterDropdown columnKey="CST_PIS"uniqueValues={cascadingUniqueValues['CST_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60"><span className="flex items-center justify-end gap-1">{renderColumnLabel('% PIS', SPED_TOOLTIPS.pctPis)}<ColumnFilterDropdown columnKey="ALIQ_PIS"uniqueValues={cascadingUniqueValues['ALIQ_PIS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_PIS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60">{renderColumnLabel('VL PIS', SPED_TOOLTIPS.vlPis)}</TableHead>
+                    <TableHead className="text-[11px] text-center min-w-[60px] bg-slate-50/60"><span className="flex items-center justify-center gap-1">{renderColumnLabel('CST COF', SPED_TOOLTIPS.cstCof)}<ColumnFilterDropdown columnKey="CST_COFINS"uniqueValues={cascadingUniqueValues['CST_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['CST_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[70px] bg-slate-50/60"><span className="flex items-center justify-end gap-1">{renderColumnLabel('% COF', SPED_TOOLTIPS.pctCof)}<ColumnFilterDropdown columnKey="ALIQ_COFINS"uniqueValues={cascadingUniqueValues['ALIQ_COFINS'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['ALIQ_COFINS'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                    <TableHead className="text-[11px] text-right min-w-[100px] bg-slate-50/60">{renderColumnLabel('VL COF', SPED_TOOLTIPS.vlCof)}</TableHead>
+                    <TableHead className="text-[11px] min-w-[150px] max-w-[150px] bg-slate-50/60"><span className="flex items-center gap-1">Conta<Tooltip><TooltipTrigger asChild><Info className="h-3 w-3 cursor-help text-muted-foreground/70"/></TooltipTrigger><TooltipContent side="top"className="max-w-xs text-xs">Código da conta analítica contábil (Registro 0500) representativa da operação.</TooltipContent></Tooltip><ColumnFilterDropdown columnKey="COD_CTA"uniqueValues={cascadingUniqueValues['COD_CTA'] ?? []} activeSort={sortConfig} activeFilter={columnFilters['COD_CTA'] ?? null} onSort={handleSort} onFilter={handleFilter} /></span></TableHead>
+                     <TableHead className="text-[11px] text-center w-[90px] min-w-[90px] max-w-[90px] sticky right-0 bg-background z-10 border-l border-slate-200 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -680,7 +680,7 @@ export default function TabC170({
                     const linhaCorrigida = buildChangedFields(item._originalSnapshot, getSnapshotFromItem(item)).length > 0;
 
                     return (
-                      <TableRow key={`${item.chv_nfe}-${item.NUM_ITEM}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.uuid) ? 'bg-primary/15 dark:bg-primary/20' : 'bg-primary/5 dark:bg-primary/5') : 'group'}>
+                      <TableRow key={`${item.chv_nfe}-${item.NUM_ITEM}-${idx}`} className={isEditMode ? (selection.selectedIds.has(item.uuid) ?'bg-primary/15':'bg-primary/5') :'group'}>
                         {isEditMode && (
                           <TableCell className="py-1.5 w-[40px] min-w-[40px] text-center">
                             <Checkbox checked={selection.selectedIds.has(item.uuid)} onCheckedChange={() => selection.toggle(item.uuid)} />
@@ -693,7 +693,7 @@ export default function TabC170({
                           {efdNcm ? (
                             <Badge
                               variant="outline"
-                              className="cursor-pointer gap-1 font-mono text-[11px] hover:bg-primary/5 dark:hover:bg-primary/20 text-primary border-primary/20 dark:border-primary/60"
+                              className="cursor-pointer gap-1 font-mono text-[11px] hover:bg-primary/5 text-primary border-primary/20"
                               onClick={() => onSelectNcm(efdNcm)}
                             >
                               <BookOpen className="h-3 w-3 shrink-0" />
@@ -707,11 +707,11 @@ export default function TabC170({
                           {renderEditableCell(item, 'VL_ITEM', 'h-8 text-xs text-right font-mono', { isCurrency: true })}
                         </TableCell>
                         {/* XML zone */}
-                        <TableCell className="py-1.5 border-l-2 border-dashed border-emerald-200 dark:border-emerald-800 bg-emerald-50/20 dark:bg-emerald-950/5" title={xml?.xProd}>
+                        <TableCell className="py-1.5 border-l-2 border-dashed border-emerald-200 bg-emerald-50/20"title={xml?.xProd}>
                           {xml ? (
                             <Badge
                               variant="outline"
-                              className="cursor-pointer gap-1 text-[11px] max-w-[190px] hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800"
+                              className="cursor-pointer gap-1 text-[11px] max-w-[190px] hover:bg-emerald-50 border-emerald-200"
                               onClick={() => onSelectItem(item)}
                             >
                               <FileSearch className="h-3 w-3 shrink-0" />
@@ -719,7 +719,7 @@ export default function TabC170({
                             </Badge>
                           ) : item.tipo_relacao === 'CONSOLIDADO' ? (
                             <Badge
-                              className="cursor-pointer gap-1 text-[10px] bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800"
+                              className="cursor-pointer gap-1 text-[10px] bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100"
                               onClick={() => onSelectItem(item)}
                             >
                               <Network className="h-3 w-3 shrink-0" />
@@ -729,7 +729,7 @@ export default function TabC170({
                             <span className="text-xs text-muted-foreground/50 italic text-center block">&mdash;</span>
                           )}
                         </TableCell>
-                        <TableCell className="py-1.5 bg-emerald-50/20 dark:bg-emerald-950/5">
+                        <TableCell className="py-1.5 bg-emerald-50/20">
                           {xml ? (
                             ncmDivergent ? (
                               <Badge variant="destructive" className="font-mono text-[11px] gap-1">
@@ -741,33 +741,33 @@ export default function TabC170({
                             )
                           ) : <span className="text-xs text-muted-foreground/50 italic text-center block">&mdash;</span>}
                         </TableCell>
-                        <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-emerald-50/20 dark:bg-emerald-950/5 ${valueDivergent ? 'text-amber-600 dark:text-amber-400 font-semibold' : ''}`}>
+                        <TableCell className={`text-xs text-right py-1.5 font-mono tabular-nums bg-emerald-50/20 ${valueDivergent ?'text-amber-600 font-semibold':''}`}>
                           {xml ? formatCurrency(xml.vProd) : <span className="text-xs text-muted-foreground/50 italic text-center block">&mdash;</span>}
                         </TableCell>
                         {/* Tax zone */}
-                        <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50/30 dark:bg-slate-800/10">
+                        <TableCell className="text-xs text-center py-1.5 font-mono border-l-2 border-dashed border-slate-200 bg-slate-50/30">
                           {renderEditableCell(item, 'CST_PIS', 'h-8 text-xs text-center font-mono')}
                         </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30">
                           {renderEditableCell(item, 'ALIQ_PIS', 'h-8 text-xs text-right font-mono', { isPercentage: true })}
                         </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30">
                           {renderEditableCell(item, 'VL_PIS', 'h-8 text-xs text-right font-mono', { isCurrency: true })}
                         </TableCell>
-                        <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10">
+                        <TableCell className="text-xs text-center py-1.5 font-mono bg-slate-50/30">
                           {renderEditableCell(item, 'CST_COFINS', 'h-8 text-xs text-center font-mono')}
                         </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30">
                           {renderEditableCell(item, 'ALIQ_COFINS', 'h-8 text-xs text-right font-mono', { isPercentage: true })}
                         </TableCell>
-                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30 dark:bg-slate-800/10">
+                        <TableCell className="text-xs text-right py-1.5 font-mono tabular-nums bg-slate-50/30">
                           {renderEditableCell(item, 'VL_COFINS', 'h-8 text-xs text-right font-mono', { isCurrency: true })}
                         </TableCell>
-                        <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 dark:bg-slate-800/10 min-w-[150px] max-w-[150px]">
+                        <TableCell className="text-xs py-1.5 font-mono bg-slate-50/30 min-w-[150px] max-w-[150px]">
                           {renderEditableCell(item, 'COD_CTA', 'h-8 text-xs font-mono')}
                         </TableCell>
                         {/* Actions — sticky right */}
-                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-slate-200 dark:border-slate-700 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
+                        <TableCell className="py-1.5 sticky right-0 bg-background z-10 w-[90px] min-w-[90px] max-w-[90px] border-l border-slate-200 shadow-[-4px_0_10px_rgba(0,0,0,0.02)]">
                           <div className="flex flex-col items-center justify-center gap-1">
                             {linhaCorrigida && (
                               <Badge variant="outline" className="text-[10px]">Corrigido</Badge>

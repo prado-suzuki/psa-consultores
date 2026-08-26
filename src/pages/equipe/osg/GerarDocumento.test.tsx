@@ -12,7 +12,12 @@ const mocks = vi.hoisted(() => ({
   marcarVistas: vi.fn(),
   baixarDocx: vi.fn(),
   toast: vi.fn(),
+  definirFlagManual: vi.fn(),
   vazia: [] as unknown[],
+  /** Catálogo de tmpl_flag (useFlags): derivadas declarativas e manuais. */
+  flags: [] as unknown[],
+  /** Linhas de projeto_flag_valor do par cliente+empresa. */
+  valoresFlagsManuais: [] as unknown[],
   empresa: {
     id: 'empresa-1', denominacao: 'Acme Participações Ltda.', tipo_pessoa: 'PJ',
     tipo_empresa: 'CN', cpf_cnpj: '12.345.678/0001-90', objeto_social: 'Participações',
@@ -31,7 +36,7 @@ const mocks = vi.hoisted(() => ({
     },
     {
       id: 'posicao-2', obrigatorio: true,
-      bloco: { id: 'biblioteca-2', nome: 'Qualificação repetida', tipo: 'paragrafo', conteudo: 'CNPJ {{ sociedade.cnpj }}.', flags: [], repete_colecao: null, ancora: null },
+      bloco: { id: 'biblioteca-2', nome: 'Qualificação repetida', tipo: 'paragrafo', conteudo: 'CNPJ {{ sociedade.cnpj }}.', flags: [] as string[], repete_colecao: null, ancora: null },
     },
   ],
   // Catálogo da Biblioteca (useBlocos): cabeças com as variantes aninhadas, que é
@@ -57,6 +62,11 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.navigate }));
 
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ invalidateQueries: mocks.invalidateQueries }),
+  // Todo hook de dados desta tela é mockado por módulo; o único que continua
+  // real é o das flags manuais (useDomainFlagsManuais), de propósito, para que o
+  // wiring "valor gravado → flag ativa → bloco entra" seja exercitado de verdade.
+  useQuery: () => ({ data: mocks.valoresFlagsManuais }),
+  useMutation: () => ({ mutate: mocks.definirFlagManual, isPending: false }),
 }));
 
 vi.mock('@/components/equipe/osg/OsgLayout', () => ({
@@ -83,7 +93,7 @@ vi.mock('@/hooks/useModelosDocumento', () => ({
 vi.mock('@/hooks/useBibliotecaModelos', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/hooks/useBibliotecaModelos')>()),
   useBlocos: () => ({ data: mocks.catalogoBlocos }),
-  useFlags: () => ({ data: mocks.vazia }),
+  useFlags: () => ({ data: mocks.flags }),
 }));
 
 vi.mock('@/hooks/useDocumentoGerado', () => ({
@@ -143,6 +153,9 @@ vi.mock('@/hooks/useNotificacoesDocumento', () => ({
 
 vi.mock('@/lib/templates/docx', () => ({ baixarDocx: mocks.baixarDocx }));
 vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }));
+// A trilha de auditoria da flag manual pende do AuthContext, que esta tela não
+// monta; o conteúdo do log é assertado no teste do hook.
+vi.mock('@/hooks/useAuditLog', () => ({ useAuditLog: () => ({ logAction: vi.fn() }) }));
 
 vi.mock('@/components/equipe/osg/OverrideBlocoDialog', () => ({
   OverrideBlocoDialog: (props: {
@@ -263,6 +276,9 @@ beforeEach(() => {
   mocks.docBlocos[0].bloco.repete_colecao = null;
   mocks.docBlocos[1].bloco.conteudo = 'CNPJ {{ sociedade.cnpj }}.';
   mocks.catalogoBlocos = [...CATALOGO_SEM_FAMILIA];
+  mocks.docBlocos[1].bloco.flags = [];
+  mocks.flags = [];
+  mocks.valoresFlagsManuais = [];
   mocks.matriculas = [];
   mocks.socios = [];
   mocks.integralizacoes = [];
@@ -641,5 +657,82 @@ describe('GerarDocumento — B2 · baixar com pendência avisa e marca o arquivo
     await waitFor(() => expect(mocks.baixarDocx).toHaveBeenCalledWith(
       'Modelo alternativo', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]),
     ));
+  });
+});
+
+// Flag MANUAL: o interruptor que o consultor liga na mão, para a condição que não
+// se deriva do cadastro (o evento de uma alteração contratual). O valor mora em
+// projeto_flag_valor e entra nas flags VIVAS ao lado das derivadas.
+const FLAG_MANUAL = {
+  id: 'flag-manual-1', nome: 'evento_aumento_capital', tipo: 'manual', escopo: 'pj',
+  descricao: 'Houve aumento de capital', ativo: true, entidade: null, campo: null, valor: null,
+};
+
+describe('GerarDocumento — flags manuais de projeto', () => {
+  beforeEach(() => {
+    mocks.flags = [FLAG_MANUAL];
+    // A segunda cláusula do modelo passa a pender da flag manual.
+    mocks.docBlocos[1].bloco.flags = ['evento_aumento_capital'];
+  });
+
+  async function abrirPassoDeFlags() {
+    render(<GerarDocumento />);
+    await escolherModelo();
+    await userEvent.click(screen.getByRole('button', { name: /Acme Participações Ltda/i }));
+    await screen.findByText('Marque o que se aplica');
+  }
+
+  async function validar() {
+    await userEvent.click(screen.getByRole('button', { name: 'Validar versão' }));
+    const confirmacao = await screen.findByRole('alertdialog');
+    await userEvent.click(within(confirmacao).getByRole('button', { name: 'Validar versão' }));
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalledTimes(1));
+    return mocks.mutateAsync.mock.calls[0][0];
+  }
+
+  it('sem valor gravado, o passo segura o fluxo e o toggle grava no escopo da empresa', async () => {
+    await abrirPassoDeFlags();
+
+    // O passo é uma decisão como as outras: a folha só entra em cena depois dele.
+    expect(screen.queryByText('Conferência dos dados')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('switch', { name: 'Houve aumento de capital' }));
+    expect(mocks.definirFlagManual).toHaveBeenCalledWith({
+      clienteId: 'cliente-1',
+      pjPessoaId: 'empresa-1',
+      flagId: 'flag-manual-1',
+      flagNome: 'evento_aumento_capital',
+      escopo: 'pj',
+      valor: true,
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Concluir' }));
+    await screen.findByText('Conferência dos dados');
+    // Nada gravado ainda ⇒ a cláusula que pende da flag ficou de fora e o
+    // snapshot congela a ausência.
+    expect((await validar()).snapshotFlags).toEqual([]);
+  });
+
+  it('com valor gravado, a manual entra nas vivas e é congelada no snapshot', async () => {
+    mocks.valoresFlagsManuais = [
+      { id: 'pfv-1', cliente_id: 'cliente-1', pj_pessoa_id: 'empresa-1', flag_id: 'flag-manual-1', valor: true },
+    ];
+    await abrirPassoDeFlags();
+
+    expect(screen.getByRole('switch', { name: 'Houve aumento de capital' })).toBeChecked();
+    await userEvent.click(screen.getByRole('button', { name: 'Concluir' }));
+    await screen.findByText('Conferência dos dados');
+
+    expect((await validar()).snapshotFlags).toEqual(['evento_aumento_capital']);
+  });
+
+  it('modelo sem bloco de flag manual não ganha o passo', async () => {
+    mocks.docBlocos[1].bloco.flags = [];
+    render(<GerarDocumento />);
+    await escolherModelo();
+    await userEvent.click(screen.getByRole('button', { name: /Acme Participações Ltda/i }));
+
+    await screen.findByText('Conferência dos dados');
+    expect(screen.queryByText('Marque o que se aplica')).not.toBeInTheDocument();
   });
 });

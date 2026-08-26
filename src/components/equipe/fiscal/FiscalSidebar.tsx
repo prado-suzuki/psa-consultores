@@ -21,6 +21,7 @@ import logoPsa from '@/assets/logo-psa.png';
 import TaxIcon from '@/components/equipe/fiscal/TaxIcon';
 import { SidebarCartaoUsuario } from '@/components/shared/SidebarCartaoUsuario';
 import { classeLarguraBarra, classeRecuoCabecalho } from '@/lib/sidebarMedidas';
+import { linkEspelhado } from '@/lib/areaTheme';
 
 export interface MenuItem {
   id: string;
@@ -175,7 +176,9 @@ export const FiscalSidebar = ({ isCollapsed, onToggle }: FiscalSidebarProps) => 
 
   const goTo = (path: string) =>
     navigate(
-      path,
+      // O espelho entra AQUI e não no `path` do item: o `path` é também a chave
+      // de casamento do item ativo, e com `?area=tax` nele o menu nunca acenderia.
+      path === '/equipe/chamados' ? linkEspelhado(path, 'tax') : path,
       // Chamados é uma página compartilhada fora da área Tax; informamos a origem
       // para que o "Voltar" retorne ao dashboard Tax, não ao seletor de área.
       path === '/equipe/chamados'

@@ -33,7 +33,7 @@ interface OsgWorkLoaderProps {
  * vazio branco sobre o navy, aqui é o navy sobre a página. No escuro esse navy
  * desapareceria no fundo, então vira quase-branco, como faz o `TaxLoader`.
  */
-const OSG_LOADER_COLOR = 'text-[#141a36] dark:text-slate-200';
+const OSG_LOADER_COLOR ='text-[#141a36]';
 
 /** Círculo como subpath, para furar a pedra com `fill-rule: evenodd`. */
 const circlePath = (cx: number, cy: number, r: number) =>

@@ -7,7 +7,24 @@ import { CalendarIcon } from "lucide-react";
 import { parseDate } from "@/lib/dateUtils";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { formatDateMask, parseDateMask, isoToMasked } from "./constants";
+import {
+  formatDateMask,
+  parseDateMask,
+  isoToMasked,
+  motivoDataInvalida,
+  type MotivoDataInvalida,
+} from "./constants";
+
+/**
+ * A frase por motivo. Antes era uma só, "Data inválida", que não dizia o que
+ * fazer: quem digitou 31/06 não sabia se o problema era o formato, o ano ou o
+ * dia que não existe.
+ */
+const MENSAGEM_POR_MOTIVO: Record<MotivoDataInvalida, string> = {
+  incompleta: "Data incompleta. Use o formato DD/MM/AAAA",
+  inexistente: "A data selecionada não existe",
+  fora_do_periodo: "Use um ano entre 2000 e 2060",
+};
 import { CLASSE_CAMPO_PENDENTE, acessibilidadeObrigatorio } from "./MarcaPendencia";
 
 interface DateFieldWithInputProps {
@@ -49,9 +66,9 @@ const DateFieldWithInput = ({ value, onChange, label, falta, idFalta }: DateFiel
 
   const handleTextBlur = () => {
     if (textValue && textValue.replace(/\D/g, "").length === 8) {
-      const parsed = parseDateMask(textValue);
-      if (!parsed) {
-        toast.error("Data inválida");
+      const motivo = motivoDataInvalida(textValue);
+      if (motivo) {
+        toast.error(MENSAGEM_POR_MOTIVO[motivo]);
         setTextValue(isoToMasked(value));
       }
     } else if (textValue && textValue.replace(/\D/g, "").length > 0) {

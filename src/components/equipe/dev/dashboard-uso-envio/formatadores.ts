@@ -20,7 +20,14 @@
 import { useMemo, useState } from 'react';
 
 export const TEAL = { 500: '#14B8A6', 600: '#0D9488', 700: '#0F766E' } as const;
-export const LIME = { 400: '#A3E635', 500: '#84CC16', 600: '#65A30D' } as const;
+/**
+ * `700` acrescentado em 21/08 para TEXTO. O lime claro existe para preencher
+ * barra e linha de grafico, onde area grande resolve a leitura; como cor de
+ * palavra ele reprova: `500` da 1,98:1 sobre branco e `600` da 3,09:1, contra o
+ * minimo de 4,5:1. `700` da 4,99:1. Espelha o `TEAL`, que ja tinha 700.
+ * Preenchimento de grafico continua em `500` -- nada aqui muda de cor.
+ */
+export const LIME = { 400: '#A3E635', 500: '#84CC16', 600: '#65A30D', 700: '#4D7C0F' } as const;
 export const GRAY = {
   50: '#F9FAFB',
   100: '#F3F4F6',

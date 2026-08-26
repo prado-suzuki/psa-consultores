@@ -61,12 +61,12 @@ const OsgProjectsIcon: React.FC<OsgProjectsIconProps> = ({ className = '', size 
       className={`inline-block ${className}`}
     >
       {/* VERSÃO LIGHT */}
-      <g className="block dark:hidden">
+      <g className="block">
         <ProjectsSeal glyphFill="#f1f5f9" glowColor="#0d9488" />
       </g>
 
       {/* VERSÃO DARK */}
-      <g className="hidden dark:block">
+      <g className="hidden">
         <ProjectsSeal glyphFill="#e2e8f0" glowColor="#00bfa5" />
       </g>
     </svg>

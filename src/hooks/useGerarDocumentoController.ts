@@ -9,6 +9,7 @@ import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
 import { useDocumentoGeradoRascunho, useDocumentoOverrides, useDocumentoVersoes, useSalvarDocumentoGerado, type DocumentoGeradoRow, type OverrideAplicavel, type SnapshotDados } from '@/hooks/useDocumentoGerado';
+import { nomesDasFlagsManuaisLigadas, useDefinirFlagManual, useFlagsManuaisProjeto } from '@/hooks/useDomainFlagsManuais';
 import { toast } from '@/hooks/use-toast';
 import type { Json } from '@/integrations/supabase/types';
 import { useAllMatriculas, type BemRow, type MatriculaEnriched } from '@/hooks/useDiagnosticoPatrimonial';
@@ -53,13 +54,17 @@ export function useGerarDocumentoController() {
   // A seleção múltipla só se declara pronta quando o consultor diz que terminou
   // de montar a lista (ver alternarRegistroDaLista / confirmarSelecaoDeListas).
   const [listasConfirmadas, setListasConfirmadas] = useState(false);
+  // Mesma lógica das listas para as flags MANUAIS: nenhum interruptor marcado é
+  // uma resposta legítima ("não houve nenhum destes eventos"), então quem declara
+  // o fim do passo é o consultor (ver confirmarFlagsManuais).
+  const [flagsManuaisConfirmadas, setFlagsManuaisConfirmadas] = useState(false);
   const [valoresLivres, setValoresLivres] = useState<Record<string, string>>({});
   const [empresaId, setEmpresaId] = useState<string | null>(null);
   const camposEditadosRef = useRef(new Set<string>());
   const empresaSociedadeRef = useRef<string | null>(null);
   const [copiado, setCopiado] = useState(false);
   // Passo reaberto pelo botão "Trocar" (volta a fechar na próxima escolha).
-  const [passoAberto, setPassoAberto] = useState<1 | 2 | null>(null);
+  const [passoAberto, setPassoAberto] = useState<1 | 2 | 3 | null>(null);
   const [ajustesAbertos, setAjustesAbertos] = useState(false);
   // Seletor expandido no rail ao lado da folha (um por vez, estilo acordeão).
   // `lista:<nome>` é a seleção múltipla de uma lista do modelo ({{#imoveis}}).
@@ -101,6 +106,9 @@ export function useGerarDocumentoController() {
       // Rascunho com lista já montada reabre direto no documento: a confirmação
       // é do ato de montar, e ele aconteceu quando o rascunho foi salvo.
       setListasConfirmadas(Object.values(snap.registrosPorLista ?? {}).some((ids) => ids.length > 0));
+      // Idem para as flags manuais: o rascunho existe porque alguém já validou
+      // uma versão, e validar pressupõe ter passado por elas.
+      setFlagsManuaisConfirmadas(true);
       setValoresLivres(snap.valoresLivres ?? {});
       setEmpresaId(snap.empresaId ?? null);
     }
@@ -416,12 +424,67 @@ export function useGerarDocumentoController() {
     () => (empresaId ? (registros.pessoa.find((r) => r.id === empresaId)?.row as PessoaRow | undefined) : undefined),
     [registros.pessoa, empresaId],
   );
+
+  // --- Flags MANUAIS -------------------------------------------------------
+  // O interruptor que o consultor liga na mão, para o que não se deriva do
+  // cadastro (na alteração contratual: "houve aumento de capital", "houve cessão
+  // de quotas"). Só interessam as que ESTE modelo referencia — o catálogo é
+  // global e um modelo de constituição não deve pedir nada disso.
+  const nomesDeFlagDoModelo = useMemo(
+    () => new Set(template.blocos.flatMap((b) => b.flagsRequeridas ?? [])),
+    [template],
+  );
+  const flagsManuaisDoModelo = useMemo(
+    () => catalogoFlags.filter((f) => f.tipo === 'manual' && nomesDeFlagDoModelo.has(f.nome)),
+    [catalogoFlags, nomesDeFlagDoModelo],
+  );
+  const { data: valoresFlagsManuais = [] } = useFlagsManuaisProjeto({
+    clienteId: clienteId || null,
+    pjPessoaId: empresaId,
+  });
+  const valorPorFlagId = useMemo(
+    () => new Map(valoresFlagsManuais.map((v) => [v.flag_id, v.valor])),
+    [valoresFlagsManuais],
+  );
+  const nomePorFlagId = useMemo(
+    () => new Map(catalogoFlags.map((f) => [f.id, f.nome])),
+    [catalogoFlags],
+  );
+  const flagsManuaisLigadas = useMemo(
+    () => nomesDasFlagsManuaisLigadas(valoresFlagsManuais, nomePorFlagId),
+    [valoresFlagsManuais, nomePorFlagId],
+  );
+  const definirFlagManual = useDefinirFlagManual();
+  const alternarFlagManual = (flagId: string, valor: boolean) => {
+    const flag = catalogoFlags.find((f) => f.id === flagId);
+    if (!flag || !clienteId) return;
+    definirFlagManual.mutate({
+      clienteId,
+      pjPessoaId: empresaId,
+      flagId,
+      flagNome: flag.nome,
+      escopo: flag.escopo === 'pj' ? 'pj' : 'cliente',
+      valor,
+    });
+    // Mesma regra da troca de registro: mexer numa condição muda a composição,
+    // e um documento já validado precisa recongelar.
+    if (congelado) setRecongelarPendente(true);
+  };
+  const confirmarFlagsManuais = () => {
+    setFlagsManuaisConfirmadas(true);
+    setPassoAberto(null);
+  };
+
   const flagsAtivasLive = useMemo(() => {
     const declarativas: FlagDeclarativa[] = catalogoFlags
       .filter((f) => f.entidade && f.campo && f.valor)
       .map((f) => ({ nome: f.nome, entidade: f.entidade!, campo: f.campo!, valor: f.valor! }));
-    return avaliarFlags(declarativas, { empresa: empresaRow });
-  }, [catalogoFlags, empresaRow]);
+    const derivadas = avaliarFlags(declarativas, { empresa: empresaRow });
+    // Para o motor os dois tipos são o mesmo interruptor: ele recebe uma lista
+    // de nomes ativos e não pergunta de onde cada nome veio. As manuais entram
+    // aqui, nas VIVAS, e por isso são congeladas no snapshot como as demais.
+    return [...new Set([...derivadas, ...flagsManuaisLigadas])];
+  }, [catalogoFlags, empresaRow, flagsManuaisLigadas]);
   // Quando congelado, a estrutura segue os flags gravados; senão, os vivos.
   const flagsAtivas = useMemo(
     () => (congelado && snapshotFlags ? snapshotFlags : flagsAtivasLive),
@@ -705,6 +768,7 @@ export function useGerarDocumentoController() {
     setRegistroPorBinding({});
     setRegistrosPorLista({});
     setListasConfirmadas(false);
+    setFlagsManuaisConfirmadas(false);
     setValoresLivres({});
     setEmpresaId(null);
     camposEditadosRef.current.clear();
@@ -1047,14 +1111,26 @@ export function useGerarDocumentoController() {
   const selecoesCompletas = !listasPendentes && bindingsPendentes.length === 0;
   const modeloPronto = !!modeloId && !carregandoBlocos && template.blocos.length > 0;
 
+  // O passo das condições manuais só existe quando o modelo tem bloco que pende
+  // de flag manual; senão nem aparece, e não segura o fluxo.
+  const precisaFlagsManuais = flagsManuaisDoModelo.length > 0;
+  const flagsManuaisPendentes = precisaFlagsManuais && !flagsManuaisConfirmadas;
+
   const passo1Estado: EstadoPasso = !modeloId || passoAberto === 1 ? 'aberto' : 'concluido';
   const passo2Estado: EstadoPasso =
     !selecoesCompletas || passoAberto === 2 ? 'aberto' : 'concluido';
+  // Bloqueado enquanto as seleções não fecharem: as flags de escopo 'pj' pendem
+  // da empresa, escolhida no passo 2.
+  const passo3Estado: EstadoPasso = !selecoesCompletas
+    ? 'bloqueado'
+    : flagsManuaisPendentes || passoAberto === 3
+      ? 'aberto'
+      : 'concluido';
 
   // Com tudo escolhido, os passos saem de cena e a folha assume a tela; trocar
   // modelo/empresa passa a ser feito nos seletores compactos do rail. Trocar o
   // modelo zera as seleções (useEffect acima) e devolve o fluxo aos passos.
-  const modoDocumento = modeloPronto && selecoesCompletas;
+  const modoDocumento = modeloPronto && selecoesCompletas && !flagsManuaisPendentes;
 
   const empresaLabel = empresas.find((r) => r.id === empresaId)?.label;
   const labelsRegistros = bindingsNaoSociedade
@@ -1063,6 +1139,13 @@ export function useGerarDocumentoController() {
   const resumoPasso2 = [precisaEmpresa ? empresaLabel : null, ...labelsRegistros]
     .filter(Boolean)
     .join(' · ');
+  const rotulosFlagsManuaisLigadas = flagsManuaisDoModelo
+    .filter((f) => valorPorFlagId.get(f.id) === true)
+    .map((f) => f.descricao || f.nome);
+  const resumoPasso3 =
+    rotulosFlagsManuaisLigadas.length > 0
+      ? rotulosFlagsManuaisLigadas.join(' · ')
+      : 'Nenhuma condição marcada';
 
   const pendencias = [
     precisaEmpresa && !empresaId ? 'escolha a empresa do contrato' : null,
@@ -1232,7 +1315,10 @@ export function useGerarDocumentoController() {
     setBaixarIncompletoOpen, confirmarDownloadIncompleto, pendenciasDocumento,
     documentoCompleto, bindingsPendentes,
     listasPendentes, empresas, bindingsNaoSociedade, precisaSelecoes,
-    selecoesCompletas, modeloPronto, passo1Estado, passo2Estado, modoDocumento,
+    selecoesCompletas, modeloPronto, passo1Estado, passo2Estado, passo3Estado,
+    precisaFlagsManuais, flagsManuaisDoModelo, valorPorFlagId, alternarFlagManual,
+    confirmarFlagsManuais, salvandoFlagManual: definirFlagManual.isPending, resumoPasso3,
+    modoDocumento,
     empresaLabel, labelsRegistros, resumoPasso2, mensagemPendente, blocosFolha,
     versaoView, modoVisualizacao, blocosFolhaVersao, baixandoVersao, baixarVersao,
     folhaEstado, infoFolha, temPainel, mostraSocios, mostraAdministradores,

@@ -68,9 +68,9 @@ const SubSectionPlaceholder = ({
 );
 
 const SITUACAO_PILL: Record<string, string> = {
-  em_andamento: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-  concluido: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-  suspenso: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',
+  em_andamento:'bg-sky-500/10 text-sky-700',
+  concluido:'bg-emerald-500/10 text-emerald-700',
+  suspenso:'bg-amber-500/10 text-amber-700',
   cancelado: 'bg-destructive/10 text-destructive',
 };
 
@@ -191,7 +191,10 @@ const ContribuintesExpandSection = ({
 
 const ITEMS_PER_PAGE = 10;
 
-const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) => {
+const GestaoClientes = ({
+  area = 'tax' as AreaKey,
+  todosOsClusters = false,
+}: { area?: AreaKey; todosOsClusters?: boolean } = {}) => {
   const { isAdmin, isLider, isSublider } = useAuth();
   const canEdit = isAdmin || isLider || isSublider;
   const [search, setSearch] = useState('');
@@ -214,7 +217,7 @@ const GestaoClientes = ({ area = 'tax' as AreaKey }: { area?: AreaKey } = {}) =>
   const { data: resultados = [], isLoading } = useClientesFiltrados(
     { clienteId: '', status, tipo, categoria, nomeRazaoSocial: '' },
     true,
-    clusterId ?? undefined,
+    todosOsClusters ? undefined : (clusterId ?? undefined),
     area === 'tax',
   );
   const deleteMutation = useDeleteCliente();

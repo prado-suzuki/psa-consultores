@@ -137,20 +137,20 @@ export const UsersTab = () => {
   return (
     <div className="space-y-4">
       {/* Header com botão de criar usuário */}
-      <div className="flex items-center justify-between bg-white rounded-lg p-4 border border-slate-200 shadow-sm">
+      <div className="flex items-center justify-between bg-card rounded-lg p-4 border border-border shadow-sm">
         <div>
-          <h3 className="text-base font-medium text-slate-900">Usuários do Sistema</h3>
-          <p className="text-sm text-slate-500">Gerencie usuários e suas permissões de acesso</p>
+          <h3 className="text-base font-medium text-foreground">Usuários do Sistema</h3>
+          <p className="text-sm text-muted-foreground">Gerencie usuários e suas permissões de acesso</p>
         </div>
         <CreateUserDialog />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Users List */}
-        <Card className="bg-white border-slate-200/60 shadow-sm">
+        <Card className="border-border/60 shadow-sm">
           <CardHeader>
-            <CardTitle className="text-slate-900 text-sm">Usuários</CardTitle>
-            <CardDescription className="text-slate-500">
+            <CardTitle className="text-foreground text-sm">Usuários</CardTitle>
+            <CardDescription>
               Selecione um usuário para gerenciar acessos
             </CardDescription>
             {/* Papel e Área lado a lado: dois seletores de largura fixa, que não
@@ -158,14 +158,14 @@ export const UsersTab = () => {
                 chips rolava para o lado e escondia opção. */}
             <div className="mt-3 grid grid-cols-2 gap-2">
               <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as AppRole | 'all')}>
-                <SelectTrigger className="h-9 text-xs bg-white border-slate-200">
+                <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Papel" />
                 </SelectTrigger>
                 <SelectContent>
                   {(['all', ...ROLE_ORDER] as Array<AppRole | 'all'>).map((r) => (
                     <SelectItem key={r} value={r} className="text-xs">
                       {r === 'all' ? 'Todos os papéis' : (ROLE_SHORT_LABELS[r] ?? r)}
-                      <span className="ml-1 text-slate-400">({roleCounts[r] ?? 0})</span>
+                      <span className="ml-1 text-muted-foreground">({roleCounts[r] ?? 0})</span>
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -176,20 +176,20 @@ export const UsersTab = () => {
                 onValueChange={setAreaFilter}
                 disabled={areaOptions.length === 0}
               >
-                <SelectTrigger className="h-9 text-xs bg-white border-slate-200">
+                <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="Área" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all" className="text-xs">
                     Todas as áreas
-                    <span className="ml-1 text-slate-400">({users?.length ?? 0})</span>
+                    <span className="ml-1 text-muted-foreground">({users?.length ?? 0})</span>
                   </SelectItem>
                   {areaOptions.map((opt) => (
                     <SelectItem key={opt.id} value={opt.id} className="text-xs">
                       <span className="flex items-center gap-1.5">
                         <PontoDaArea area={opt} />
                         {opt.label}
-                        <span className="text-slate-400">({areaCounts[opt.id] ?? 0})</span>
+                        <span className="text-muted-foreground">({areaCounts[opt.id] ?? 0})</span>
                       </span>
                     </SelectItem>
                   ))}
@@ -197,12 +197,12 @@ export const UsersTab = () => {
               </Select>
             </div>
             <div className="relative mt-2">
-              <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+              <Search className="h-4 w-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
               <Input
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Pesquisar por nome..."
-                className="pl-8 h-9 text-sm bg-white border-slate-200"
+                className="pl-8 h-9 text-sm"
               />
             </div>
           </CardHeader>
@@ -212,16 +212,16 @@ export const UsersTab = () => {
                 <RefreshCw className="h-5 w-5 animate-spin text-primary" />
               </div>
             ) : groupedUsers.length === 0 ? (
-              <div className="text-center py-6 text-sm text-slate-500">
+              <div className="text-center py-6 text-sm text-muted-foreground">
                 Nenhum usuário encontrado
               </div>
             ) : (
               groupedUsers.map((group) => (
                 <div key={group.area?.id ?? SEM_AREA} className="space-y-2">
-                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-500 px-1 pt-2">
+                  <p className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground px-1 pt-2">
                     <PontoDaArea area={group.area} />
                     {group.area?.name ?? 'Sem área'}
-                    <span className="text-slate-400 font-normal normal-case tracking-normal">({group.usuarios.length})</span>
+                    <span className="text-muted-foreground font-normal normal-case tracking-normal">({group.usuarios.length})</span>
                   </p>
                   {group.usuarios.map((u) => (
                     <button
@@ -233,17 +233,17 @@ export const UsersTab = () => {
                       }`}
                       onClick={() => setSelectedUserId(u.id)}
                     >
-                      <p className="font-medium text-slate-900 text-sm">
+                      <p className="font-medium text-foreground text-sm">
                         {u.first_name} {u.last_name}
                       </p>
-                      <p className="text-xs text-slate-500">{u.email}</p>
+                      <p className="text-xs text-muted-foreground">{u.email}</p>
                       <div className="flex gap-1 mt-1 flex-wrap">
                         {u.roles.map((role) => (
                           <Badge
                             key={role}
                             variant="outline"
                             className={`text-xs ${
-                              ROLE_BADGE_CLASSES[role] ?? 'border-slate-200 text-slate-600 bg-muted'
+                              ROLE_BADGE_CLASSES[role] ?? 'border-border text-muted-foreground bg-muted'
                             }`}
                           >
                             {ROLE_SHORT_LABELS[role] ?? role}
@@ -259,16 +259,16 @@ export const UsersTab = () => {
         </Card>
 
         {/* User Permissions */}
-        <Card className="lg:col-span-2 bg-white border-slate-200/60 shadow-sm">
+        <Card className="lg:col-span-2 border-border/60 shadow-sm">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle className="text-slate-900 text-sm">
+                <CardTitle className="text-foreground text-sm">
                   {selectedUser
                     ? `Acessos de ${selectedUser.first_name} ${selectedUser.last_name}`
                     : 'Selecione um usuário'}
                 </CardTitle>
-                <CardDescription className="text-slate-500">
+                <CardDescription>
                   Gerencie as permissões individuais de acesso às páginas
                 </CardDescription>
               </div>
@@ -278,7 +278,7 @@ export const UsersTab = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => setIsEditOpen(true)}
-                    className="border-slate-200 text-slate-600 hover:text-primary hover:bg-primary/5"
+                    className="border-border text-muted-foreground hover:text-primary hover:bg-primary/5"
                   >
                     <Pencil className="h-4 w-4 mr-1" />
                     Editar
@@ -309,7 +309,7 @@ export const UsersTab = () => {
                 />
               </div>
             ) : (
-              <div className="text-center py-8 text-slate-500">
+              <div className="text-center py-8 text-muted-foreground">
                 <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
                 <p>Selecione um usuário na lista ao lado</p>
               </div>

@@ -12,7 +12,7 @@ import {
   LIMITE_SHARE_TOP1,
 } from './boardEstrategico';
 import type { ClienteRow, OsRow, ProjetoRow } from '@/lib/dashboardClientesOs/types';
-import type { ResumoArea } from '@/lib/boardExecutivo';
+import type { ResumoAreaCadastro } from '@/lib/boardExecutivo';
 
 const HOJE = '2026-08-17';
 
@@ -79,14 +79,15 @@ const projeto = (over: Partial<ProjetoRow> & Pick<ProjetoRow, 'projeto_id'>): Pr
   ...over,
 });
 
-const area = (over: Partial<ResumoArea> & Pick<ResumoArea, 'area'>): ResumoArea => ({
-  label: over.area.toUpperCase(),
+const area = (over: Partial<ResumoAreaCadastro> & Pick<ResumoAreaCadastro, 'id'>): ResumoAreaCadastro => ({
+  label: over.id.toUpperCase(),
   projetos: 0,
   emDia: 0,
   emRisco: 0,
   atrasados: 0,
   pontualidade: null,
   concluidas: 0,
+  unidade: 'tarefas',
   ...over,
 });
 
@@ -436,10 +437,10 @@ describe('alertasEstrategicos', () => {
       ...vazio,
       concentracao: concentracaoCarteira([]),
       areas: [
-        area({ area: 'tax', pontualidade: 60, concluidas: 10, atrasados: 2 }),
-        area({ area: 'osg', pontualidade: 95, concluidas: 10 }),
-        area({ area: 'dev', pontualidade: 10, concluidas: 0 }),
-        area({ area: 'outros', pontualidade: null, concluidas: 5 }),
+        area({ id: 'tax', pontualidade: 60, concluidas: 10, atrasados: 2 }),
+        area({ id: 'osg', pontualidade: 95, concluidas: 10 }),
+        area({ id: 'dev', pontualidade: 10, concluidas: 0 }),
+        area({ id: 'outros', pontualidade: null, concluidas: 5 }),
       ],
     });
     expect(r.map((a) => a.id)).toEqual(['pontualidade-tax']);

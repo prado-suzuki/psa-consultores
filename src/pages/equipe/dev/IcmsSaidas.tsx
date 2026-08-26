@@ -91,7 +91,7 @@ const IcmsSaidas = () => {
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2 text-primary">
               <Filter className="h-5 w-5" />
-              <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">
+              <span className="uppercase text-sm tracking-wider font-bold text-slate-800">
                 Filtros de Busca
               </span>
             </CardTitle>
@@ -99,7 +99,7 @@ const IcmsSaidas = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-4">
               <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
                   <span className="inline-flex items-center gap-1.5">
                     <span>
                       Cliente <RequiredMark />
@@ -116,7 +116,7 @@ const IcmsSaidas = () => {
                   }}
                   disabled={isLoadingClientes}
                 >
-                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                  <SelectTrigger className="h-11 bg-white">
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>
                   <SelectContent>
@@ -128,7 +128,7 @@ const IcmsSaidas = () => {
               </div>
 
               <div className="md:col-span-4">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
                   <span className="inline-flex items-center gap-1.5">
                     <span>
                       Contribuinte <RequiredMark />
@@ -144,7 +144,7 @@ const IcmsSaidas = () => {
                   }}
                   disabled={!selectedCliente || isLoadingContribuintes}
                 >
-                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                  <SelectTrigger className="h-11 bg-white">
                     <SelectValue placeholder="Selecione o contribuinte" />
                   </SelectTrigger>
                   <SelectContent>
@@ -156,7 +156,7 @@ const IcmsSaidas = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
                   <span className="inline-flex items-center gap-1.5">
                     <span>
                       Data Início <RequiredMark />
@@ -169,7 +169,7 @@ const IcmsSaidas = () => {
                     <Button
                       variant="outline"
                       className={cn(
-                        'w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800',
+                        'w-full h-11 px-3 text-left font-normal justify-start bg-white',
                         !start_date && 'text-muted-foreground',
                       )}
                     >
@@ -190,7 +190,7 @@ const IcmsSaidas = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
                   <span className="inline-flex items-center gap-1.5">
                     <span>
                       Data Fim <RequiredMark />
@@ -203,7 +203,7 @@ const IcmsSaidas = () => {
                     <Button
                       variant="outline"
                       className={cn(
-                        'w-full h-11 px-3 text-left font-normal justify-start bg-white dark:bg-slate-800',
+                        'w-full h-11 px-3 text-left font-normal justify-start bg-white',
                         !end_date && 'text-muted-foreground',
                       )}
                     >
@@ -224,12 +224,12 @@ const IcmsSaidas = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-slate-200">
               <ButtonTooltip text={ICMS_PAGE_TOOLTIPS.limparFiltros}>
                 <Button
                   variant="ghost"
                   onClick={handleClearFilters}
-                  className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                  className="text-slate-500 hover:text-red-600 hover:bg-red-50"
                 >
                   <Eraser className="h-4 w-4 mr-2" />
                   Limpar filtros
@@ -251,7 +251,7 @@ const IcmsSaidas = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList
-            className="grid w-full grid-cols-4 h-12 p-1 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shadow-sm"
+            className="grid w-full grid-cols-4 h-12 p-1 rounded-lg bg-white border border-slate-200 shadow-sm"
           >
             {[
               { value: 't01', label: 'T01 - Apuração', tip: ICMS_PAGE_TOOLTIPS.tabT01 },
@@ -264,7 +264,7 @@ const IcmsSaidas = () => {
                   value={t.value}
                   className={cn(
                     'relative isolate h-10 overflow-hidden text-sm font-semibold rounded-md border border-transparent',
-                    'text-slate-600 dark:text-slate-300',
+                    'text-slate-600',
                     'transition-all duration-300 ease-out',
                     'hover:-translate-y-0.5 hover:border-primary/15 hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:shadow-primary/20',
                     t.value === activeTab

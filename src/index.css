@@ -169,16 +169,18 @@ All colors MUST be HSL.
        terceiro preset do seletor. Escolha manual não diferenciava; só dava
        trabalho e produzia repetição.
 
-       Esta paleta é adequada PORQUE o nome da área está sempre ao lado do ponto
-       — verificado nos CINCO sites que renderizam a cor de área:
+       Esta paleta é adequada PORQUE o nome da área está sempre ao lado do ponto,
+       em TODOS os sites que renderizam a cor de área. A cor acompanha a
+       varredura; ela não carrega a informação.
 
-         UsersTab:192                 select de filtro   + {opt.label}
-         UsersTab:229                 cabeçalho do grupo + {group.area?.name}
-         EquipesEstruturaField:127    SelectLabel        + {grupo.caminho}
-         EstruturaManager:316         acordeão           + {area.name}
-         EquipeControleAcessos:407    select             + {ea.name}
+       Quantos são e onde estão NÃO fica escrito aqui: a versão anterior deste
+       comentário dizia "CINCO" com cinco números de linha, e no mesmo dia um
+       sexto site nasceu e os cinco números saíram de lugar. A contagem virou
+       asserção em `src/lib/corDaArea.test.ts` — quem acrescentar um site quebra
+       o teste e é obrigado a reverificar a premissa, que é o efeito desejado.
+       Para listá-los:
 
-       A cor acompanha a varredura; ela não carrega a informação.
+         grep -rn 'PontoDaArea area=' src --include=*.tsx
 
        `mapeamento/AreaAccordion:48` parece um sexto site e NÃO é: ele pinta
        `display_group_color`, que é `'#94a3b8'` cravado em `useProcessMapping`
@@ -196,8 +198,11 @@ All colors MUST be HSL.
        barra empilhada, ponto sem rótulo — esta paleta deixa de servir: sob
        protanopia e deuteranopia estes tons colapsam, e o pior par cai a ΔE 1,4
        (terracota × oliva). Nesse caso o conjunto precisa ser refeito com
-       separação por LUMINOSIDADE, e existe uma versão assim medida (ΔE 10,8 no
-       pior par, luminosidade de 26% a 56%) — está no histórico desta mudança.
+       separação por LUMINOSIDADE. Uma versão assim FOI medida durante esta
+       mudança (ΔE 10,8 no pior par, luminosidade de 26% a 56%), mas os oito
+       valores dela não foram guardados em arquivo nenhum — procurados em
+       20/08/2026 e não encontrados. Ou seja: o plano B precisa ser REFEITO, não
+       recuperado. Os dois números acima servem só de alvo a bater.
 
        Ou seja: não é limitação tolerada, é premissa. Quebrar a premissa quebra
        a paleta.
@@ -352,6 +357,15 @@ All colors MUST be HSL.
     /* Status semânticos */
     --success: 160 84% 30%;
     --warning: 38 92% 50%;
+    /* Os `-foreground` de estado entram aqui, e são os MESMOS valores do `:root` —
+       nenhum pixel muda. O que muda é o alcance: eles viviam só no `:root`, fora
+       do contrato, então um tema podia redefinir `--destructive` e o texto por
+       cima continuava vindo de um lugar que nenhum tema controla. A OSG faz
+       exatamente isso (`--destructive: var(--osg-red)`), e o par sobrevivia por
+       sorte. Agora o par viaja junto. */
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
 
     /* Papéis de status — são os valores ORIGINAIS do sistema, anteriores à
        separação por área. O :root era o tema único; depois foi readaptado para
@@ -393,7 +407,21 @@ All colors MUST be HSL.
     --canvas: 42 22% 99%;
     --muted: var(--base-50);
     --muted-foreground: 28 9% 45%;
-    --destructive: 0 84% 60%;
+    /* 48% e nao os 60% do `:root`, e a diferenca e deliberada — como a do
+       `--ring`. Em 60% o par com `--destructive-foreground` dava 3,62:1, abaixo
+       do 4,5:1 do WCAG AA, nos 36 botoes de confirmar exclusao. E `text-destructive`
+       sobre fundo claro dava 3,77:1 nos 227 sitios de mensagem de erro — tambem
+       reprovando, e isso ninguem tinha medido.
+
+       Em 48%: o botao vai a 4,66:1 e o texto de erro a 4,85:1. Os dois passam.
+
+       Clarear o texto nao era saida: o primeiro plano ja estava em 98% e o BRANCO
+       PURO da 3,78:1 — teto abaixo do minimo. So escurecer o fundo resolvia.
+
+       A OSG nao entra: `--osg-red` ja dava 5,80:1. O `:root` fica em 60% porque
+       nenhuma rota o alcanca (o piso e sempre aplicado) e mexer nele so alargaria
+       o raio sem mudar pixel. */
+    --destructive: 0 84% 48%;
 
     /* Superfície escura — o par de fundo dos cartões escuros, do mais escuro
        (`--surface-escura`, o início do gradiente) para o intermediário
@@ -514,9 +542,12 @@ All colors MUST be HSL.
     --ring: 175 82% 29%;
     --success: 160 84% 30%;
     --warning: 38 92% 50%;
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
     --tool-icon: var(--primary);
     --tool-icon-bg: 175 60% 95%;
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 48%;
     --foreground: 20 81% 10%;
     --card-foreground: 20 81% 10%;
     --popover-foreground: 20 81% 10%;
@@ -542,6 +573,9 @@ All colors MUST be HSL.
        (azul mais próximo dos demais itens da página). */
     --success: var(--osg-moss);
     --warning: var(--osg-highlighter);
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
 
     /* Paleta de status da OSG — construída SOBRE os tokens de marca da área, não
        ao lado deles. A OSG tinha identidade (musgo, dourado, carmim, taupe)
@@ -671,6 +705,9 @@ All colors MUST be HSL.
     --secondary-foreground: 0 0% 100%;
     --success: 160 84% 30%;
     --warning: 38 92% 50%;
+    --success-foreground: 0 0% 100%;
+    --warning-foreground: 28 45% 18%;
+    --destructive-foreground: 0 0% 98%;
     --status-neutro: 48 22% 30%;
     --status-neutro-soft: 48 22% 86%;
     --status-fila: 122 28% 33%;
@@ -702,7 +739,7 @@ All colors MUST be HSL.
        que este bloco existe para cortar. Mesmo valor. */
     --muted: 42 26% 98%;
     --muted-foreground: 28 9% 45%;
-    --destructive: 0 84% 60%;
+    --destructive: 0 84% 48%;
     --foreground: 20 81% 10%;
     --card-foreground: 20 81% 10%;
     --popover-foreground: 20 81% 10%;
@@ -841,7 +878,12 @@ All colors MUST be HSL.
   --board-border-s: #F0F4F8;
   --board-t1: #0C1222;
   --board-t2: #3D4D6A;
-  --board-t3: #7A8BA8;
+  /* Texto terciário do Board. Escurecido de #7A8BA8 em 21/08: no tom antigo ele
+     dava 3,45:1 sobre branco e 3,12:1 sobre `--board-bg` (#F0F4F8), abaixo do
+     mínimo de 4,5:1 — e é o tom de quase todo rótulo secundário do Board (56
+     sítios em 14 arquivos). Agora dá 5,42:1 e 4,91:1. Só é usado sobre
+     superfície clara; a barra lateral escura tem os `--board-sb-*` próprios. */
+  --board-t3: #5A6B84;
   --board-t4: #A8B8CC;
   --board-r: 12px;
   --board-shadow: 0 1px 4px rgba(12,18,34,.07), 0 0 0 1px rgba(12,18,34,.04);
@@ -1033,7 +1075,13 @@ All colors MUST be HSL.
   --cy:#06B2D0;--cy-s:rgba(6,178,208,.11);
   --go:#D4960A;--go-s:rgba(212,150,10,.12);
   --bg:#EEF2F8;--bdr:#E0E8F4;--bdr-s:#F0F5FB;
-  --t1:#0A1020;--t2:#3A4B66;--t3:#6E82A0;--t4:#A4B5CC;
+  /* `--t3` escurecido de #6E82A0 em 21/08: dava 3,35:1 sobre o #E6EEF8 do
+     `.v3-segs`, o trilho dos chips de período (7d / 30d / 90d) da barra de
+     filtros. Mesmo matiz e mesma saturação (H 216°, S 21%), L 53% → 42%; agora
+     4,93:1. Das 10 classes que leem `--t3`, só `.v3-seg` tem consumidor no
+     código (`BoardFilterBar`, `FaturamentoDetalhe`, `BoardDashboardClientesOs`)
+     — as outras 9 são CSS sem chamador. Todas sobre superfície clara. */
+  --t1:#0A1020;--t2:#3A4B66;--t3:#556781;--t4:#A4B5CC;
   --r:12px;--rs:8px;--rxs:6px;
   --sh:0 1px 4px rgba(10,16,32,.07),0 0 0 1px rgba(10,16,32,.04);
   --shm:0 4px 18px rgba(10,16,32,.1),0 0 0 1px rgba(10,16,32,.04);
@@ -1202,8 +1250,34 @@ All colors MUST be HSL.
 :root {
   --board-v4-ink: #0D1117;
   --board-v4-ink2: #3D4A5C;
-  --board-v4-ink3: #7A8899;
-  --board-v4-ink4: #B0BBC8;
+  /* Texto terciário da paleta v4 — o irmão do `--board-t3` (que já foi
+     escurecido em 21/08) e o tom de QUASE TODO rótulo de KPI do Estratégico:
+     "Projetos ativos", "Total de horas", "Pontualidade de entrega", "Cluster",
+     "ciclo ativo". 64 sítios em 20 arquivos, mais 6 classes aqui (`.pg-sub`,
+     `.stat-label`, `.sdot`, `.stat-sub`, `.pill-neutral`, `.chip-gy`).
+     No tom antigo (#7A8899) dava 3,61:1 sobre branco, 3,34:1 sobre
+     `--board-v4-page` e 3,21:1 sobre `--board-v4-line2` — abaixo do mínimo de
+     4,5:1 em tamanhos de 10,5 a 12px. Agora dá 5,52 / 5,10 / 4,91.
+     Mesmo matiz e mesma saturação de antes (H 213°, S 13%), só mais escuro:
+     L 54% → 42%. Nenhum dos 64 sítios fica sobre fundo escuro — a paleta v4
+     não tem superfície escura, e a barra lateral usa os `--board-sb-*`. O único
+     sítio condicional (`BoardClusterBar.tsx:84`) já troca para `#fff` quando o
+     fundo vira o azul de destaque, então não há inversão a tratar. */
+  --board-v4-ink3: #5D6A79;
+  /* O degrau mais claro da rampa de texto. Era #B0BBC8 — 1,95:1 sobre branco,
+     o pior contraste da tela, e ele pinta TEXTO de 10px: os cabeçalhos de
+     tabela do "Preenchimento do sistema" ("Área", "Projetos", "Sem resp.",
+     "Sem equipe", "Sem data", "Sem OS", "Centro de custo") e os números de
+     posição #1 a #5 da "Concentração da carteira". 12 sítios em 7 arquivos,
+     nenhum sobre fundo escuro (o único bloco escuro da v4, `.v4-cyb`, usa
+     #5E7399 e #fff crus). Agora 5,17:1 no branco e 4,78:1 no `--board-v4-page`.
+     Mesmo matiz e mesma saturação (H 212°, S 18%), L 74% → 44%.
+     CONSEQUÊNCIA a olhar: neste tom o ink4 fica quase igual ao ink3 (5,17 contra
+     5,52 no branco) — a rampa de 4 degraus vira 3 na ponta clara. Não há como
+     evitar: 4,5:1 em 10px exige esta faixa de luminosidade. A diferença entre
+     cabeçalho e texto secundário passa a vir do peso 700, da caixa alta e do
+     espaçamento de letra, que já estavam lá. */
+  --board-v4-ink4: #5C6F84;
   --board-v4-page: #F4F6FA;
   --board-v4-surface: #FFFFFF;
   --board-v4-surface2: #F8FAFC;
@@ -1212,8 +1286,24 @@ All colors MUST be HSL.
   --board-v4-accent: #4B63F7;
   --board-v4-go: #0EA271;
   --board-v4-go-t: rgba(14,162,113,.1);
+  /* Degrau escuro do verde, PARA TEXTO. Aditivo, mesmo raciocínio do
+     `--board-v4-warn-d`: nada que já usava `--board-v4-go` mudou de cor.
+     #0EA271 dava 3,27:1 sobre branco e 2,93:1 sobre o próprio `-t`, que é o
+     fundo do `.pill-up` — o pill do "875% ROI", 10,5px. Mesmo matiz e mesma
+     saturação (H 160°, S 84%), L 34% → 25%: 5,71:1 no branco e 5,12:1 sobre o
+     `-t`. Dimensionado pelo tint, não pelo branco, porque é ali que ele vive. */
+  --board-v4-go-d: #0A7552;
   --board-v4-warn: #D4820A;
   --board-v4-warn-t: rgba(212,130,10,.1);
+  /* Degrau escuro do âmbar, PARA TEXTO. Aditivo: nada que já usava
+     `--board-v4-warn` mudou de cor. Espelha o par `--board-indigo` /
+     `--board-indigo-d` que a paleta do Board já tinha, e é o mesmo raciocínio do
+     LIME[700]: área grande (barra de gráfico, faixa de 3px, dot, fundo de pill)
+     não precisa do mínimo de texto e continua no `--board-v4-warn`; palavra e
+     número, sim. #D4820A dava 3,00:1 sobre branco. Mesmo matiz e mesma saturação
+     (H 36°, S 91%), L 43% → 32%: 5,13:1 no branco e 4,56:1 sobre o próprio
+     `-t`. */
+  --board-v4-warn-d: #9C6007;
   --board-v4-risk: #D03040;
   --board-v4-risk-t: rgba(208,48,64,.1);
   --board-v4-blue: #3478F5;
@@ -1274,7 +1364,10 @@ All colors MUST be HSL.
 
 /* Board v4 Pills */
 .pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
-.pill-up { background: var(--board-v4-go-t); color: var(--board-v4-go); }
+/* `color` no degrau `-d` e `background` no tint normal: o pill é texto de 10,5px
+   sobre uma superfície clara, então quem precisa do mínimo é a letra, não o
+   fundo. O `.pill-down` já passa com o `--board-v4-risk` (5,03:1). */
+.pill-up { background: var(--board-v4-go-t); color: var(--board-v4-go-d); }
 .pill-down { background: var(--board-v4-risk-t); color: var(--board-v4-risk); }
 .pill-neutral { background: var(--board-v4-line2); color: var(--board-v4-ink3); }
 

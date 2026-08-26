@@ -34,8 +34,11 @@ export const BoardConcentracao: React.FC<BoardConcentracaoProps> = ({
   const corTop1 = shareTop1 !== null && shareTop1 > LIMITE_SHARE_TOP1
     ? 'var(--board-v4-risk)'
     : 'var(--board-v4-ink)';
+  // `-d` e não `--board-v4-warn`: aqui a cor de estado pinta NÚMERO, e o âmbar
+  // normal dá 3,00:1 sobre o branco do cartão. O degrau escuro dá 5,13:1 e
+  // continua lendo como âmbar. Quem pinta área grande segue no tom normal.
   const corTop5 = shareTop5 !== null && shareTop5 > LIMITE_SHARE_TOP5
-    ? 'var(--board-v4-warn)'
+    ? 'var(--board-v4-warn-d)'
     : 'var(--board-v4-ink)';
 
   return (

@@ -50,6 +50,8 @@ import {
   shortProjectName,
   type ProjetosTarefasTaskNode,
 } from '@/lib/projetosTarefasHierarchy';
+import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
+ import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
 import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
 import {
   esforcoDaTarefa,
@@ -206,6 +208,7 @@ export function ProjetosTarefasList({
     [projects, tasks, osRows, search, hideEmpty],
   );
   const updateTask = useUpdateOrgTask(area);
+  const conclusao = useTaskCompletionHours();
   // Expansao opt-in: abrir uma linha revela apenas os filhos diretos, ja fechados.
   // Assim expandir uma OS mostra os projetos sem despejar tarefas e subtarefas.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -255,6 +258,7 @@ export function ProjetosTarefasList({
       toast.error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
       return;
     }
+    if (status === 'done' && !conclusao.pedirHoras(task)) return;
     updateTask.mutate({ id: task.id, status });
   };
 
@@ -482,5 +486,6 @@ export function ProjetosTarefasList({
       </Fragment>;
     })}
     </div>
+    <TaskCompletionHoursDialog task={conclusao.taskPendente} area={area} onClose={conclusao.fechar} />
   </div>;
 }

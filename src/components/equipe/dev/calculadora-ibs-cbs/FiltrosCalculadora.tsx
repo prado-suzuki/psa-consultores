@@ -64,7 +64,7 @@ function MultiSelect({ label, options, selected, onChange, placeholder = "Todos"
         <Button
           variant="outline"
           disabled={disabled}
-          className="w-full h-11 justify-between bg-white dark:bg-slate-800 font-normal"
+          className="w-full h-11 justify-between bg-white font-normal"
         >
           <span className="truncate text-left">{display}</span>
           <ChevronDown className="h-4 w-4 opacity-50 shrink-0" />
@@ -147,7 +147,7 @@ export function FiltrosCalculadora({
   return (
     <Card className="mb-6 border-slate-200 shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-slate-800 dark:text-slate-200">
+        <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-slate-800">
           <Filter className="h-4 w-4 text-primary" />
           Filtros
           {activeCount > 0 && (

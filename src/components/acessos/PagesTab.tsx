@@ -92,19 +92,19 @@ export const PagesTab = () => {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4 shadow-sm">
         <div>
-          <h3 className="text-base font-medium text-slate-900">Páginas Cadastradas</h3>
-          <p className="text-sm text-slate-500">Atualize para ver novas páginas implementadas</p>
+          <h3 className="text-base font-medium text-foreground">Páginas Cadastradas</h3>
+          <p className="text-sm text-muted-foreground">Atualize para ver novas páginas implementadas</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={busca}
               onChange={e => setBusca(e.target.value)}
               placeholder="Buscar em todas as categorias..."
-              className="h-9 w-64 bg-white pl-8 text-sm"
+              className="h-9 w-64 pl-8 text-sm"
               aria-label="Buscar página"
             />
           </div>
@@ -113,7 +113,7 @@ export const PagesTab = () => {
             size="sm"
             onClick={() => syncPages()}
             disabled={loadingPages || isSyncing}
-            className="bg-white border-slate-200 text-slate-600 hover:bg-foreground/[0.03] hover:text-primary"
+            className="border-border text-muted-foreground hover:bg-foreground/[0.03] hover:text-primary"
           >
             <RefreshCw
               className={`h-4 w-4 mr-2 ${loadingPages || isSyncing ? 'animate-spin' : ''}`}
@@ -128,7 +128,7 @@ export const PagesTab = () => {
           <RefreshCw className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : (
-        <Card className="bg-white border-slate-200/60 shadow-sm">
+        <Card className="border-border/60 shadow-sm">
           <CardHeader className="pb-3">
             <AbasDeGrupo
               grupos={abas}
@@ -136,7 +136,7 @@ export const PagesTab = () => {
               onSelecionar={setCategoria}
               inativo={buscando}
             />
-            <p className="pt-2 text-xs text-slate-500">
+            <p className="pt-2 text-xs text-muted-foreground">
               {buscando
                 ? `${visiveis.length} página(s) encontradas em todas as categorias`
                 : `${visiveis.length} página(s)`}
@@ -145,30 +145,30 @@ export const PagesTab = () => {
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow className="border-slate-200 hover:bg-transparent">
-                  <TableHead className="text-slate-600 bg-muted">Página</TableHead>
+                <TableRow className="border-border hover:bg-transparent">
+                  <TableHead className="bg-muted">Página</TableHead>
                   {mostrarCategoriaNaLinha && (
-                    <TableHead className="text-slate-600 bg-muted">Categoria</TableHead>
+                    <TableHead className="bg-muted">Categoria</TableHead>
                   )}
-                  <TableHead className="text-slate-600 bg-muted">Caminho</TableHead>
-                  <TableHead className="text-slate-600 bg-muted">Requisitos</TableHead>
-                  <TableHead className="text-slate-600 bg-muted text-right">Ativo</TableHead>
+                  <TableHead className="bg-muted">Caminho</TableHead>
+                  <TableHead className="bg-muted">Requisitos</TableHead>
+                  <TableHead className="bg-muted text-right">Ativo</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {visiveis.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={mostrarCategoriaNaLinha ? 5 : 4} className="py-8 text-center text-slate-400">
+                    <TableCell colSpan={mostrarCategoriaNaLinha ? 5 : 4} className="py-8 text-center text-muted-foreground">
                       Nenhuma página encontrada
                     </TableCell>
                   </TableRow>
                 ) : visiveis.map((page) => (
-                  <TableRow key={page.id} className="border-slate-200 hover:bg-foreground/[0.03]">
+                  <TableRow key={page.id} className="border-border hover:bg-foreground/[0.03]">
                     <TableCell>
                       <div>
-                        <p className="font-medium text-slate-900">{page.page_name}</p>
+                        <p className="font-medium text-foreground">{page.page_name}</p>
                         {page.page_description && (
-                          <p className="text-xs text-slate-500">{page.page_description}</p>
+                          <p className="text-xs text-muted-foreground">{page.page_description}</p>
                         )}
                       </div>
                     </TableCell>
@@ -179,7 +179,7 @@ export const PagesTab = () => {
                         </Badge>
                       </TableCell>
                     )}
-                    <TableCell className="text-slate-600 font-mono text-xs">
+                    <TableCell className="text-muted-foreground font-mono text-xs">
                       {getDisplayPath(page.category, page.page_path)}
                     </TableCell>
                     <TableCell>

@@ -137,8 +137,28 @@ export default function PropostaTab({ clienteId }: PropostaTabProps) {
                       <Eye className="h-4 w-4" />
                     </Button>
                   )}
-                  <Button variant="ghost" size="icon" onClick={() => baixar.mutate(doc)} title="Baixar">
-                    <Download className="h-4 w-4" />
+                  {/* A trava de clique NÃO é cosmética. Baixar assina uma URL no
+                      backend, e assinar é chamada de rede — medido em 20/08/2026,
+                      ~1,9s por assinatura. Pior: o endpoint chama a assinatura de
+                      forma síncrona dentro de `async def`, então as requisições
+                      SERIALIZAM, uma travando a próxima.
+                      Sem `disabled` o botão aceita clique enquanto nada muda na
+                      tela, e cada clique impaciente enfileira outra assinatura: num
+                      teste, poucos cliques viraram ~17 chamadas de sign-download. O
+                      spinner quebra o ciclo, dando o retorno visual que faltava.
+                      Espelha o botão de abrir, ao lado. A tela irmã
+                      (DocumentosTab.tsx:121) tem o mesmo botão sem trava — é o
+                      padrão herdado, e corrigir lá é tarefa própria. */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => baixar.mutate(doc)}
+                    disabled={baixar.isPending}
+                    title="Baixar"
+                  >
+                    {baixar.isPending
+                      ? <Loader2 className="h-4 w-4 animate-spin" />
+                      : <Download className="h-4 w-4" />}
                   </Button>
                   <Button
                     variant="ghost"

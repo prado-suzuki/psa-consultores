@@ -98,29 +98,29 @@ export const CreateUserDialog = () => {
           Criar Novo Usuário
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg bg-white border-slate-200 max-h-[85vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg border-border max-h-[85vh] overflow-y-auto">
         {createdCredentials ? (
           <>
             <DialogHeader>
-              <DialogTitle className="text-slate-900 flex items-center gap-2">
+              <DialogTitle className="text-foreground flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-primary" />
                 Usuário Criado!
               </DialogTitle>
-              <DialogDescription className="text-slate-500">
+              <DialogDescription>
                 Compartilhe as credenciais abaixo com o novo usuário
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="bg-muted rounded-lg p-4 space-y-3 border border-slate-200">
+              <div className="bg-muted rounded-lg p-4 space-y-3 border border-border">
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-slate-500 text-xs">Email</Label>
-                    <p className="text-slate-900 font-mono text-sm">{createdCredentials.email}</p>
+                    <Label className="text-muted-foreground text-xs">Email</Label>
+                    <p className="text-foreground font-mono text-sm">{createdCredentials.email}</p>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-slate-600 hover:text-primary"
+                    className="text-muted-foreground hover:text-primary"
                     onClick={() => copyToClipboard(createdCredentials.email)}
                   >
                     <Copy className="h-4 w-4" />
@@ -128,20 +128,20 @@ export const CreateUserDialog = () => {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-slate-500 text-xs">Senha temporária</Label>
-                    <p className="text-slate-900 font-mono text-sm">{createdCredentials.password}</p>
+                    <Label className="text-muted-foreground text-xs">Senha temporária</Label>
+                    <p className="text-foreground font-mono text-sm">{createdCredentials.password}</p>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-slate-600 hover:text-primary"
+                    className="text-muted-foreground hover:text-primary"
                     onClick={() => copyToClipboard(createdCredentials.password)}
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
-              <p className="text-xs text-slate-500 text-center">
+              <p className="text-xs text-muted-foreground text-center">
                 O usuário deve trocar a senha no primeiro acesso
               </p>
             </div>
@@ -157,52 +157,52 @@ export const CreateUserDialog = () => {
         ) : (
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <DialogTitle className="text-slate-900">Criar Novo Usuário</DialogTitle>
-              <DialogDescription className="text-slate-500">
+              <DialogTitle className="text-foreground">Criar Novo Usuário</DialogTitle>
+              <DialogDescription>
                 Preencha os dados para criar um novo membro da equipe
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="first_name" className="text-slate-700">Nome *</Label>
+                  <Label htmlFor="first_name" className="text-foreground">Nome *</Label>
                   <Input
                     id="first_name"
                     value={form.first_name}
                     onChange={(e) => setForm({ ...form, first_name: e.target.value })}
-                    className="bg-white border-slate-200 text-slate-900"
+                    className="text-foreground"
                     placeholder="Nome"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="last_name" className="text-slate-700">Sobrenome</Label>
+                  <Label htmlFor="last_name" className="text-foreground">Sobrenome</Label>
                   <Input
                     id="last_name"
                     value={form.last_name}
                     onChange={(e) => setForm({ ...form, last_name: e.target.value })}
-                    className="bg-white border-slate-200 text-slate-900"
+                    className="text-foreground"
                     placeholder="Sobrenome"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700">Email *</Label>
+                <Label htmlFor="email" className="text-foreground">Email *</Label>
                 <Input
                   id="email"
                   type="email"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  className="bg-white border-slate-200 text-slate-900"
+                  className="text-foreground"
                   placeholder="email@exemplo.com"
                 />
               </div>
 
               <div className="space-y-3">
-                <Label className="text-slate-700 text-sm font-medium">Papéis do usuário</Label>
+                <Label className="text-foreground text-sm font-medium">Papéis do usuário</Label>
                 {ROLE_OPTIONS.map((role) => (
                   <div
                     key={role.value}
-                    className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-slate-100"
+                    className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-border"
                   >
                     <Checkbox
                       id={`role_${role.value}`}
@@ -215,16 +215,16 @@ export const CreateUserDialog = () => {
                             : prev.roles.filter((r) => r !== role.value),
                         }));
                       }}
-                      className="border-slate-300  mt-0.5"
+                      className="mt-0.5"
                     />
                     <div>
                       <Label
                         htmlFor={`role_${role.value}`}
-                        className="text-slate-900 text-sm font-medium cursor-pointer"
+                        className="text-foreground text-sm font-medium cursor-pointer"
                       >
                         {role.label}
                       </Label>
-                      <p className="text-xs text-slate-500">{role.desc}</p>
+                      <p className="text-xs text-muted-foreground">{role.desc}</p>
                     </div>
                   </div>
                 ))}
@@ -240,14 +240,14 @@ export const CreateUserDialog = () => {
 
               {hasInternalRole && (
                 <div className="space-y-3">
-                  <Label className="text-slate-700 text-sm font-medium">Áreas de Acesso</Label>
-                  <p className="text-xs text-slate-500">
+                  <Label className="text-foreground text-sm font-medium">Áreas de Acesso</Label>
+                  <p className="text-xs text-muted-foreground">
                     Selecione as áreas que o membro terá acesso
                   </p>
                   {Object.entries(AREA_CATEGORIES_MAP).map(([key, area]) => (
                     <div
                       key={key}
-                      className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-slate-100"
+                      className="flex items-start space-x-3 p-2 rounded-lg bg-muted border border-border"
                     >
                       <Checkbox
                         id={`area_${key}`}
@@ -260,16 +260,16 @@ export const CreateUserDialog = () => {
                               : prev.areas.filter((a) => a !== key),
                           }));
                         }}
-                        className="border-slate-300  mt-0.5"
+                        className="mt-0.5"
                       />
                       <div>
                         <Label
                           htmlFor={`area_${key}`}
-                          className="text-slate-900 text-sm font-medium cursor-pointer"
+                          className="text-foreground text-sm font-medium cursor-pointer"
                         >
                           {area.label}
                         </Label>
-                        <p className="text-xs text-slate-500">{area.categories.join(', ')}</p>
+                        <p className="text-xs text-muted-foreground">{area.categories.join(', ')}</p>
                       </div>
                     </div>
                   ))}
@@ -282,7 +282,7 @@ export const CreateUserDialog = () => {
                 type="button"
                 variant="outline"
                 onClick={handleClose}
-                className="border-slate-200 text-slate-600 hover:bg-foreground/[0.03]"
+                className="border-border text-muted-foreground hover:bg-foreground/[0.03]"
               >
                 Cancelar
               </Button>

@@ -261,7 +261,7 @@ const MapaNCMPisCofins = () => {
                     placeholder="NCM, descrição CST, base legal ou setor..."
                     value={search}
                     onChange={e => setSearch(e.target.value)}
-                    className="pl-9 h-11 bg-white dark:bg-slate-800"
+                    className="pl-9 h-11 bg-white"
                   />
                 </div>
               </div>
@@ -273,7 +273,7 @@ const MapaNCMPisCofins = () => {
                   <FieldTooltip text={TOOLTIPS.setor} />
                 </label>
                 <Select value={setorFilter} onValueChange={setSetorFilter}>
-                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                  <SelectTrigger className="h-11 bg-white">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">
@@ -294,7 +294,7 @@ const MapaNCMPisCofins = () => {
                   <FieldTooltip text={TOOLTIPS.credito} />
                 </label>
                 <Select value={creditFilter} onValueChange={(v) => setCreditFilter(v as 'all' | 'S' | 'N')}>
-                  <SelectTrigger className="h-11 bg-white dark:bg-slate-800">
+                  <SelectTrigger className="h-11 bg-white">
                     <SelectValue placeholder="Todos" />
                   </SelectTrigger>
                   <SelectContent className="bg-white z-50">

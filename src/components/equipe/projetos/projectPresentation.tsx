@@ -22,7 +22,7 @@ export const getStatusBadge = (status: string) => {
     case 'blocked':
       return <Badge className="bg-red-100 text-red-700 hover:bg-red-100">Bloqueado</Badge>;
     case 'archived':
-      return <Badge className="bg-gray-100 text-gray-700 hover:bg-gray-100">Arquivado</Badge>;
+      return <Badge className="bg-status-neutro-soft text-status-neutro hover:bg-status-neutro-soft">Arquivado</Badge>;
     default:
       return <Badge variant="outline">{status}</Badge>;
   }

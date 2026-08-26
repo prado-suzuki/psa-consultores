@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  avaliarHorasApontadas,
-  horasApontadasPrecisamConfirmacao,
-} from '@/lib/horasApontamento';
+import { avaliarHorasApontadas } from '@/lib/horasApontamento';
 
 describe('avaliarHorasApontadas', () => {
   it('não avisa quando as horas batem com a estimativa', () => {
@@ -14,21 +11,21 @@ describe('avaliarHorasApontadas', () => {
   it('avisa a partir do triplo da estimativa', () => {
     expect(avaliarHorasApontadas({ realizadas: 14.9, estimadas: 5 })).toBeNull();
     expect(avaliarHorasApontadas({ realizadas: 15, estimadas: 5 })?.mensagem).toBe(
-      '15h é 3× as 5h estimadas — confira a digitação.',
+      '15h é 3 vezes as 5h estimadas — confira a digitação.',
     );
   });
 
   it('sugere o valor provável quando o erro é de escala (caso DT: 159h × 1.580h)', () => {
     const aviso = avaliarHorasApontadas({ realizadas: 1580, estimadas: 159 });
     expect(aviso).toEqual({
-      mensagem: '1.580h é 9,9× as 159h estimadas — confira a digitação.',
+      mensagem: '1.580h é 9,9 vezes as 159h estimadas — confira a digitação.',
       sugestao: 158,
     });
   });
 
   it('sugere só quando o valor corrigido cai perto da estimativa', () => {
     expect(avaliarHorasApontadas({ realizadas: 40, estimadas: 4 })).toEqual({
-      mensagem: '40h é 10× as 4h estimadas — confira a digitação.',
+      mensagem: '40h é 10 vezes as 4h estimadas — confira a digitação.',
       sugestao: 4,
     });
     // 20h com 5h estimadas: 2h seria um chute pior que o valor digitado.
@@ -58,12 +55,5 @@ describe('avaliarHorasApontadas', () => {
     expect(avaliarHorasApontadas({ realizadas: 'abc', estimadas: 5 })).toBeNull();
     expect(avaliarHorasApontadas({ realizadas: 0, estimadas: 5 })).toBeNull();
     expect(avaliarHorasApontadas({ realizadas: null, estimadas: null })).toBeNull();
-  });
-});
-
-describe('horasApontadasPrecisamConfirmacao', () => {
-  it('só pede confirmação quando existe aviso', () => {
-    expect(horasApontadasPrecisamConfirmacao({ realizadas: 6, estimadas: 5 })).toBe(false);
-    expect(horasApontadasPrecisamConfirmacao({ realizadas: 60, estimadas: 5 })).toBe(true);
   });
 });

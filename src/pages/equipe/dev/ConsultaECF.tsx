@@ -379,7 +379,7 @@ const ConsultaECF = () => {
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2 text-primary">
             <Filter className="h-5 w-5" />
-            <span className="uppercase text-sm tracking-wider font-bold text-slate-800 dark:text-slate-200">
+            <span className="uppercase text-sm tracking-wider font-bold text-slate-800">
               Filtros de Busca
             </span>
           </CardTitle>
@@ -387,34 +387,34 @@ const ConsultaECF = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-3">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} /></label>
               <Select value={selectedCliente} onValueChange={(value) => { setSelectedCliente(value); setSelectedContribuinte(""); setSearchTriggered(false); }}>
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800"><SelectValue placeholder={loadingClientes ? "Carregando..." : "Selecione o cliente"} /></SelectTrigger>
+                <SelectTrigger className="h-11 bg-white"><SelectValue placeholder={loadingClientes ?"Carregando...":"Selecione o cliente"} /></SelectTrigger>
                 <SelectContent className="bg-background border z-50">
                   {clientes?.map((cliente) => (<SelectItem key={cliente.id} value={cliente.id}>{cliente.nome}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
             <div className="md:col-span-5">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} /></label>
               <Select value={selectedContribuinte} onValueChange={(value) => { setSelectedContribuinte(value); setSearchTriggered(false); setSelectedArquivos(new Set()); }}>
-                <SelectTrigger className="h-11 bg-white dark:bg-slate-800"><SelectValue placeholder={loadingContribuintes ? "Carregando..." : "Selecione o contribuinte"} /></SelectTrigger>
+                <SelectTrigger className="h-11 bg-white"><SelectValue placeholder={loadingContribuintes ?"Carregando...":"Selecione o contribuinte"} /></SelectTrigger>
                 <SelectContent className="bg-background border z-50">
                   {contribuintes?.map((contrib) => (<SelectItem key={contrib.id} value={contrib.id}>{contrib.nome_razao_social} {contrib.cpf_cnpj ? `(${formatCNPJ(contrib.cpf_cnpj)})` : ''}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.start_date} /></label>
-              <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Selecione" className="bg-white dark:bg-slate-800" />
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.start_date} /></label>
+              <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Selecione"className="bg-white"/>
             </div>
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.end_date} /></label>
-              <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Selecione" className="bg-white dark:bg-slate-800" />
+              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.end_date} /></label>
+              <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Selecione"className="bg-white"/>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
-            <Button variant="ghost" onClick={handleClearFilters} className="text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+            <Button variant="ghost"onClick={handleClearFilters} className="text-slate-500 hover:text-red-600 hover:bg-red-50">
               <Eraser className="h-4 w-4 mr-2" />Limpar filtros
             </Button>
             <Button onClick={handleSearch} disabled={!selectedContribuinte} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0">
@@ -428,13 +428,13 @@ const ConsultaECF = () => {
       {/* Tabela de Resultados */}
       <Card className="shadow-sm min-h-[400px] flex flex-col overflow-hidden">
         {overview && cnpjContribuinte && (
-          <div className="px-6 py-4 bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Building2 className="h-5 w-5 text-primary" />
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-slate-800 dark:text-white">Escrituração Contábil Fiscal</span>
-                  <span className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">CNPJ: {formatCNPJ(cnpjContribuinte)}</span>
+                  <span className="text-sm font-bold text-slate-800">Escrituração Contábil Fiscal</span>
+                  <span className="text-xs text-slate-500 mt-0.5">CNPJ: {formatCNPJ(cnpjContribuinte)}</span>
                 </div>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => refetchOverview()} disabled={loadingOverview}>
                   {loadingOverview ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -461,10 +461,10 @@ const ConsultaECF = () => {
         <CardContent className="flex-1 p-0">
           {!searchTriggered ? (
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
-              <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4">
+              <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
                 <Search className="w-10 h-10 text-slate-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-700 dark:text-slate-300">Nenhum arquivo listado</h3>
+              <h3 className="text-xl font-bold text-slate-700">Nenhum arquivo listado</h3>
               <p className="text-base text-slate-500 max-w-xs mt-2">Utilize os filtros acima e clique em "Buscar" para carregar os arquivos ECF.</p>
             </div>
           ) : loadingOverview ? (
@@ -472,32 +472,32 @@ const ConsultaECF = () => {
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
             </div>
           ) : arquivosFiltrados.length > 0 ? (
-            <div className={cn("overflow-x-auto", "[&::-webkit-scrollbar]:h-3", "[&::-webkit-scrollbar-track]:bg-slate-100 dark:[&::-webkit-scrollbar-track]:bg-slate-800", "[&::-webkit-scrollbar-thumb]:bg-slate-400 dark:[&::-webkit-scrollbar-thumb]:bg-slate-600", "[&::-webkit-scrollbar-thumb]:rounded-full")}>
+            <div className={cn("overflow-x-auto","[&::-webkit-scrollbar]:h-3","[&::-webkit-scrollbar-track]:bg-slate-100","[&::-webkit-scrollbar-thumb]:bg-slate-400","[&::-webkit-scrollbar-thumb]:rounded-full")}>
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-100 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700">
+                  <tr className="bg-slate-100 border-b border-slate-200">
                     <th className="px-4 py-4 w-12"><Checkbox checked={allSelected} onCheckedChange={handleToggleAll} aria-label="Selecionar todos" /></th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider"><ColumnTooltip label="Arquivo" text={TOOLTIPS.colArquivo} /></th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider"><ColumnTooltip label="Período" text={TOOLTIPS.colPeriodo} /></th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider"><ColumnTooltip label="Tipo" text={TOOLTIPS.colTipo} /></th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider"><ColumnTooltip label="Situação Especial" text={TOOLTIPS.colSituacao} /></th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider text-center w-56"><ColumnTooltip label="Ações" text={TOOLTIPS.colAcoes} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider"><ColumnTooltip label="Arquivo"text={TOOLTIPS.colArquivo} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider"><ColumnTooltip label="Período"text={TOOLTIPS.colPeriodo} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider"><ColumnTooltip label="Tipo"text={TOOLTIPS.colTipo} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider"><ColumnTooltip label="Situação Especial"text={TOOLTIPS.colSituacao} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider text-center w-56"><ColumnTooltip label="Ações"text={TOOLTIPS.colAcoes} /></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 dark:divide-slate-700">
+                <tbody className="divide-y divide-slate-200">
                   {arquivosFiltrados.map((arquivo) => (
-                    <tr key={arquivo.ID_ARQUIVO} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                    <tr key={arquivo.ID_ARQUIVO} className="hover:bg-slate-50 transition-colors group">
                       <td className="px-4 py-4"><Checkbox checked={selectedArquivos.has(arquivo.ID_ARQUIVO)} onCheckedChange={() => handleToggleArquivo(arquivo.ID_ARQUIVO)} /></td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><FileSpreadsheet className="h-5 w-5" /></div>
                           <div>
-                            <p className="font-bold text-sm text-slate-800 dark:text-white">{arquivo.NOME}</p>
+                            <p className="font-bold text-sm text-slate-800">{arquivo.NOME}</p>
                             <p className="text-[10px] text-slate-400 uppercase font-mono">ID: {arquivo.ID_ARQUIVO}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-700 dark:text-slate-300">{formatPeriodo(arquivo.DT_INI, arquivo.DT_FIN)}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">{formatPeriodo(arquivo.DT_INI, arquivo.DT_FIN)}</td>
                       <td className="px-6 py-4">
                         <Badge variant={arquivo.TIPO_ESCRIT === 0 ? 'default' : 'secondary'} className={cn("text-[10px] font-bold uppercase", arquivo.TIPO_ESCRIT === 0 ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-amber-50 text-amber-700 border-amber-200")}>
                           {arquivo.TIPO_ESCRIT === 0 ? 'Original' : 'Retificadora'}
@@ -531,7 +531,7 @@ const ConsultaECF = () => {
           ) : (
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
               <FileText className="h-12 w-12 text-slate-400 mb-3" />
-              <p className="font-medium text-slate-700 dark:text-slate-300">Nenhum arquivo encontrado</p>
+              <p className="font-medium text-slate-700">Nenhum arquivo encontrado</p>
               <p className="text-sm text-slate-500 mt-1">Verifique os filtros e tente novamente.</p>
             </div>
           )}

@@ -183,7 +183,7 @@ export function NovaCorrecaoDialog({
             const isFull = f.type === 'textarea';
             return (
               <div key={f.key} className={isFull ? 'sm:col-span-2' : undefined}>
-                <Label className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-slate-700">
                   <span className="inline-flex items-center gap-1.5">
                     <span>
                       {f.label}

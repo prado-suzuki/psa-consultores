@@ -4801,6 +4801,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "org_projects_external_client_id_fkey"
+            columns: ["external_client_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "org_projects_leader_id_fkey"
             columns: ["leader_id"]
             isOneToOne: false

@@ -58,7 +58,7 @@ export function PerDetailSituationSidebar({
   onDeleteRessarcimento,
 }: PerDetailSituationSidebarProps) {
   return (
-    <aside className="w-80 bg-slate-50 dark:bg-slate-900/50 border-r border-slate-200 dark:border-slate-700 flex flex-col flex-shrink-0 overflow-hidden">
+    <aside className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col flex-shrink-0 overflow-hidden">
       <div className="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
         <div>
           <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
@@ -125,8 +125,8 @@ export function PerDetailSituationSidebar({
                     className={cn(
                       'p-2 rounded-lg border',
                       index === 0
-                        ? 'bg-white dark:bg-slate-800 border-primary/20'
-                        : 'bg-slate-100/50 dark:bg-slate-800/50 border-transparent',
+                        ?'bg-white border-primary/20'
+                        :'bg-slate-100/50 border-transparent',
                     )}
                   >
                     <div className="flex items-center justify-between">
@@ -149,15 +149,15 @@ export function PerDetailSituationSidebar({
       </div>
 
       {perPago && (
-        <div className="mt-auto p-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="rounded-lg border border-green-300 dark:border-green-700 bg-green-50 dark:bg-green-900/20 p-3">
+        <div className="mt-auto p-4 border-t border-slate-200">
+          <div className="rounded-lg border border-green-300 bg-green-50 p-3">
             <div className="flex items-start gap-3">
-              <div className="w-9 h-9 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0">
-                <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
+              <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <DollarSign className="h-4 w-4 text-green-600"/>
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
-                  <h5 className="text-xs font-bold text-green-800 dark:text-green-300 uppercase tracking-wider">
+                  <h5 className="text-xs font-bold text-green-800 uppercase tracking-wider">
                     Ressarcimento Registrado
                   </h5>
                   <Button
@@ -172,29 +172,29 @@ export function PerDetailSituationSidebar({
                 </div>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1">
                   <div>
-                    <span className="text-[10px] text-green-600 dark:text-green-400">
+                    <span className="text-[10px] text-green-600">
                       Valor Atualizado
                     </span>
-                    <p className="text-sm font-mono font-bold text-green-800 dark:text-green-200">
+                    <p className="text-sm font-mono font-bold text-green-800">
                       {formatCurrency(vlrRessarcido)}
                     </p>
                   </div>
                   {vlrRessarcidoOriginal != null && (
                     <div>
-                      <span className="text-[10px] text-green-600 dark:text-green-400">
+                      <span className="text-[10px] text-green-600">
                         Valor Original
                       </span>
-                      <p className="text-sm font-mono font-bold text-green-800 dark:text-green-200">
+                      <p className="text-sm font-mono font-bold text-green-800">
                         {formatCurrency(vlrRessarcidoOriginal)}
                       </p>
                     </div>
                   )}
                   {dataPagamento && (
                     <div>
-                      <span className="text-[10px] text-green-600 dark:text-green-400">
+                      <span className="text-[10px] text-green-600">
                         Data Pagamento
                       </span>
-                      <p className="text-sm font-mono font-bold text-green-800 dark:text-green-200">
+                      <p className="text-sm font-mono font-bold text-green-800">
                         {formatDate(dataPagamento)}
                       </p>
                     </div>

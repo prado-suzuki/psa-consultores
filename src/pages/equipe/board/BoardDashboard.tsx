@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { usePerformanceData } from '@/hooks/usePerformanceData';
@@ -7,36 +8,38 @@ import { useDesempenhoOverview } from '@/hooks/useDesempenhoOverview';
 import { useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useDomainBoardDashboard } from '@/hooks/useDomainBoardDashboard';
 import { useDomainMelhoriasRoi } from '@/hooks/useDomainMelhoriasRoi';
-import { useSinteseExecutiva } from '@/hooks/useSinteseExecutiva';
+import { useDomainPreenchimentoSistema } from '@/hooks/useDomainPreenchimentoSistema';
 import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
-import { useToast } from '@/hooks/use-toast';
+import { listarFalhas } from '@/lib/performanceOperacional';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { BoardFilterBar } from '@/components/board/BoardFilterBar';
 import { BoardKpisNegocio } from '@/components/board/BoardKpisNegocio';
-import { BoardAIBox } from '@/components/board/BoardAIBox';
 import { BoardChip } from '@/components/board/BoardChip';
 import { BoardAreaRollup } from '@/components/board/BoardAreaRollup';
 import { BoardAlertas } from '@/components/board/BoardAlertas';
 import { BoardConcentracao } from '@/components/board/BoardConcentracao';
 import { BoardReceitaMensal } from '@/components/board/BoardReceitaMensal';
-import { BoardEconomiaAcumulada } from '@/components/board/BoardEconomiaAcumulada';
 import { BoardProjetosCriticos } from '@/components/board/BoardProjetosCriticos';
+import { BoardPreenchimentoSistema } from '@/components/board/BoardPreenchimentoSistema';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import {
   filtrarPorCluster, filtrarTarefasPorProjetos, saudeProjetos,
-  consolidarRoi, serieRoiAcumulado,
+  consolidarRoi,
 } from '@/lib/boardExecutivo';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
 import {
   alertasEstrategicos, concentracaoCarteira, ratearPorCentroCusto, receitaAnoCorrente,
-  receitaEmRisco, serieReceitaComparada, ticketMedioAtivo,
+  receitaEmRisco, serieReceitaComparada,
 } from '@/lib/boardEstrategico';
 import { centrosCustoEmUso } from '@/lib/dashboardClientesOs/aggregations';
 import { useBoardRollupAreas } from '@/hooks/useBoardRollupAreas';
+import {
+  resumoPreenchimentoPorArea, linhaSemArea, faixaEmpresaPreenchimento,
+} from '@/lib/preenchimentoSistema';
 
 // O recorte por EMPRESA não mora aqui: vem da barra global (`useBoardCluster`),
 // que vale para a área Board inteira. Aqui ficam a janela de execução e o
@@ -77,7 +80,6 @@ const BoardDashboard = () => {
   const navigate = useNavigate();
   const { isAdmin } = useAuth();
   const revealRef = useBoardReveal();
-  const { toast } = useToast();
   // pageKey v2: o filtro de área saiu e a chave antiga guardava `area` na
   // sessão — sem trocar a chave, o valor órfão voltaria do sessionStorage.
   const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({ pageKey: 'dashboard-v2', defaults: DEFAULTS });
@@ -91,10 +93,14 @@ const BoardDashboard = () => {
   const { projectsQuery, membersQuery, periodFrom, periodTo } = usePerformanceData(periodo, 'todas');
   const { data: cicloAtivo } = useCicloAtivo();
   const { data: overview } = useDesempenhoOverview(cicloAtivo?.id);
-  const { tarefasConcluidasQuery } = useDomainBoardDashboard({ desdeISO: periodFrom });
+  const { tarefasConcluidasQuery, horasAlocadasQuery } = useDomainBoardDashboard({ desdeISO: periodFrom });
   const melhoriasQuery = useDomainMelhoriasRoi();
-  const sintese = useSinteseExecutiva();
-  const [sinteseLocal, setSinteseLocal] = useState<{ sintese: string; bullets: string[] } | null>(null);
+  // Query dedicada e enxuta do bloco "Preenchimento do sistema" -- deliberadamente
+  // SEPARADA de `usePerformanceData` (ver `useDomainPreenchimentoSistema`).
+  const {
+    areasQuery: preenchAreasQuery, projetosQuery: preenchProjetosQuery,
+    osQuery: preenchOsQuery, clientesQuery: preenchClientesQuery,
+  } = useDomainPreenchimentoSistema();
 
   // ── Fonte do negócio (mesma query da tela "Clientes e OS") ─────────────
   const { ambiente } = useDashboardAmbiente();
@@ -149,9 +155,7 @@ const BoardDashboard = () => {
 
   const receita = useMemo(() => receitaAnoCorrente(osRows, hoje), [osRows, hoje]);
   const serieReceita = useMemo(() => serieReceitaComparada(osRows, hoje), [osRows, hoje]);
-  const ticketMedio = useMemo(() => ticketMedioAtivo(osRows), [osRows]);
   const emRisco = useMemo(() => receitaEmRisco(osRows), [osRows]);
-  const osAtivas = useMemo(() => osRows.filter((o) => o.situacao === 'em_andamento').length, [osRows]);
 
   // Concentração sobre o MESMO recorte do KPI de receita (ano corrente): a
   // fatia de um cliente só significa algo contra o denominador que está na tela.
@@ -161,16 +165,12 @@ const BoardDashboard = () => {
   );
   const concentracao = useMemo(() => concentracaoCarteira(osDoAno), [osDoAno]);
 
-  const clientesAtivos = useMemo(() => clienteRows.filter((c) => c.ativo), [clienteRows]);
-  const clientesFixos = clientesAtivos.filter((c) => c.tipo_cliente === 'Fixo').length;
-
   // ── Execução ───────────────────────────────────────────────────────────
   // `projetos` é o recorte da tela; `todosProjetos` fica intacto porque
   // `resumoPorArea` precisa dele para resolver tarefa→projeto→área.
   const todosProjetos = useMemo(() => projectsQuery.data ?? [], [projectsQuery.data]);
   const projetos = useMemo(() => filtrarPorCluster(todosProjetos, cluster), [todosProjetos, cluster]);
   const saude = useMemo(() => saudeProjetos(projetos), [projetos]);
-  const members = membersQuery.data?.members || [];
   // Tarefa segue o projeto: sem isto, toda tarefa de fora do recorte cairia em
   // "Outros" no rollup em vez de sumir.
   const tarefas = useMemo(
@@ -180,8 +180,17 @@ const BoardDashboard = () => {
     },
     [tarefasConcluidasQuery.data, projetos, cluster],
   );
+
+  // Horas ALOCADAS no escopo (P3, reunião 17/08) -- estimated_hours de toda
+  // tarefa da janela, qualquer status, recortada pelo mesmo escopo de projeto
+  // que o resto da execução usa. `null` enquanto a consulta carrega, nunca 0
+  // por omissão -- 0 é uma resposta, "carregando" é outra.
+  const totalHoras = useMemo(() => {
+    if (!horasAlocadasQuery.data) return null;
+    const escopo = cluster ? filtrarTarefasPorProjetos(horasAlocadasQuery.data, projetos) : horasAlocadasQuery.data;
+    return escopo.reduce((soma, t) => soma + (t.estimated_hours ?? 0), 0);
+  }, [horasAlocadasQuery.data, projetos, cluster]);
   const roi = useMemo(() => consolidarRoi(melhoriasQuery.data ?? []), [melhoriasQuery.data]);
-  const serieRoi = useMemo(() => serieRoiAcumulado(melhoriasQuery.data ?? []), [melhoriasQuery.data]);
 
   // Janela real analisada — o mesmo range dos projetos, para o rótulo não mentir.
   const diasJanela = useMemo(() => {
@@ -248,42 +257,60 @@ const BoardDashboard = () => {
   const foraDePrazo = saude.emRisco + saude.atrasados;
   const receitaEmJogo = emRisco.vencido.valor + emRisco.renovacao.valor;
 
-  const handleGenerateSintese = async () => {
-    setSinteseLocal(null);
-    try {
-      await sintese.mutateAsync();
-    } catch {
-      // Sem IA a tela ainda ajuda, mas o texto é rotulado como resumo LOCAL —
-      // nunca apresentado como análise da IA.
-      setSinteseLocal({
-        sintese: `Receita contratada de R$ ${brlMil(receita.atual)}k em ${janelaReceita}`
-          + `${receita.variacao !== null ? ` (${receita.variacao > 0 ? '+' : ''}${(receita.variacao * 100).toFixed(1)}% contra o ano anterior)` : ''}`
-          + `, ${clientesAtivos.length} clientes ativos e ${saude.total} projetos no escopo (${janelaLabel}).`,
-        bullets: [
-          alertas.length > 0
-            ? `${alertas.length} ${alertas.length === 1 ? 'item exige' : 'itens exigem'} decisão — ver a faixa no topo.`
-            : 'Nenhum item na faixa de decisão.',
-          receitaEmJogo > 0
-            ? `R$ ${brlMil(receitaEmJogo)}k em contratos vencidos ou em renovação.`
-            : 'Nenhum contrato vencido ou em janela de renovação.',
-          concentracao.clientesParaMetade !== null
-            ? `${concentracao.clientesParaMetade} ${concentracao.clientesParaMetade === 1 ? 'cliente responde' : 'clientes respondem'} por metade da receita.`
-            : 'Sem receita na janela para medir concentração.',
-          `${foraDePrazo} projetos fora de prazo · ${members.length} membros ativos.`,
-        ],
-      });
-      toast({
-        title: 'IA indisponível',
-        description: 'Mostrando um resumo local dos números desta tela.',
-        variant: 'destructive',
-      });
-    }
-  };
+  // ── Preenchimento do sistema (Bloco F, 21/08) ──────────────────────────
+  // `data ?? null` (nunca `?? []`): a consulta que falhou precisa chegar como
+  // `null` nas funções puras, senão elas leriam "nenhum registro" (zero) onde
+  // a verdade é "não sei" -- ver a regra de honestidade em `preenchimentoSistema.ts`.
+  const preenchProjetos = useMemo(
+    () => preenchProjetosQuery.data ?? (preenchProjetosQuery.isError ? null : []),
+    [preenchProjetosQuery.data, preenchProjetosQuery.isError],
+  );
+  const preenchOs = useMemo(
+    () => preenchOsQuery.data ?? (preenchOsQuery.isError ? null : []),
+    [preenchOsQuery.data, preenchOsQuery.isError],
+  );
+  const preenchClientes = useMemo(
+    () => preenchClientesQuery.data ?? (preenchClientesQuery.isError ? null : []),
+    [preenchClientesQuery.data, preenchClientesQuery.isError],
+  );
+  const preenchAreas = useMemo(
+    () => resumoPreenchimentoPorArea(preenchAreasQuery.data ?? [], preenchProjetos),
+    [preenchAreasQuery.data, preenchProjetos],
+  );
+  const preenchSemArea = useMemo(() => linhaSemArea(preenchProjetos), [preenchProjetos]);
+  const preenchFaixa = useMemo(
+    () => faixaEmpresaPreenchimento(preenchOs, preenchClientes),
+    [preenchOs, preenchClientes],
+  );
+  const falhasPreenchimento = useMemo(() => listarFalhas([
+    { rotulo: 'áreas do cadastro', falhou: preenchAreasQuery.isError },
+    { rotulo: 'projetos (preenchimento)', falhou: preenchProjetosQuery.isError },
+    { rotulo: 'ordens de serviço (preenchimento)', falhou: preenchOsQuery.isError },
+    { rotulo: 'clientes (preenchimento)', falhou: preenchClientesQuery.isError },
+  ]), [
+    preenchAreasQuery.isError, preenchProjetosQuery.isError, preenchOsQuery.isError, preenchClientesQuery.isError,
+  ]);
 
   const execucaoLoading = projectsQuery.isLoading || membersQuery.isLoading
-    || melhoriasQuery.isLoading || tarefasConcluidasQuery.isLoading
+    || melhoriasQuery.isLoading || tarefasConcluidasQuery.isLoading || horasAlocadasQuery.isLoading
     || (!!cicloAtivo && !overview);
   const kpisLoading = execucaoLoading || negocio.isLoading;
+
+  // Estado de erro visível (Bloco D, 21/08): a FK ausente de org_projects fez
+  // esta consulta falhar em silêncio e a tela desenhou 0 projetos ativos como
+  // se fosse dado real -- o Operacional já avisava disso, o Estratégico não.
+  // Mesmo padrão de `listarFalhas`/`performanceOperacional.ts`.
+  const falhas = useMemo(() => listarFalhas([
+    { rotulo: 'projetos e tarefas', falhou: projectsQuery.isError },
+    { rotulo: 'equipe', falhou: membersQuery.isError },
+    { rotulo: 'melhorias (ROI)', falhou: melhoriasQuery.isError },
+    { rotulo: 'entregas concluídas', falhou: tarefasConcluidasQuery.isError },
+    { rotulo: 'horas alocadas', falhou: horasAlocadasQuery.isError },
+    { rotulo: 'contratos e clientes', falhou: !!negocio.error },
+  ]), [
+    projectsQuery.isError, membersQuery.isError, melhoriasQuery.isError,
+    tarefasConcluidasQuery.isError, horasAlocadasQuery.isError, negocio.error,
+  ]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -323,6 +350,26 @@ const BoardDashboard = () => {
           activeCount={activeCount}
         />
 
+        {/* Falha de carregamento: nunca substituir dado ausente por número */}
+        {falhas.length > 0 && (
+          <div
+            role="alert"
+            className="v4-card"
+            style={{ marginBottom: 12, borderLeft: '3px solid var(--board-v4-risk)', display: 'flex', gap: 8 }}
+            data-reveal
+          >
+            <AlertTriangle style={{ width: 15, height: 15, flexShrink: 0, color: 'var(--board-v4-risk)' }} />
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--board-v4-risk)' }}>
+                Dados incompletos — os números abaixo podem estar errados
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--board-v4-ink3)', marginTop: 2 }}>
+                Falha ao carregar: {falhas.join(', ')}. Atualize a página para tentar de novo.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* 1. O que exige decisão */}
         <BoardAlertas
           alertas={alertas}
@@ -336,26 +383,33 @@ const BoardDashboard = () => {
           <Skeleton className="h-[120px] rounded-xl mb-4" />
         ) : (
           <BoardKpisNegocio
-            receita={receita}
-            janelaReceita={janelaReceita}
-            ticketMedio={ticketMedio}
-            osAtivas={osAtivas}
-            emRisco={emRisco}
-            carteira={{ ativos: clientesAtivos.length, fixos: clientesFixos }}
-            execucao={{ pontualidade: saude.pontualidade, projetos: saude.total, janela: janelaLabel }}
+            projetosAtivos={saude.total}
+            janelaExecucao={janelaLabel}
+            totalHoras={totalHoras}
+            pontualidade={saude.pontualidade}
+            valorProjetos={receita.atual}
+            valorSemData={receita.semDataValor}
+            janelaValor={janelaReceita}
+            roi={roi}
             onNavigate={navigate}
           />
         )}
 
-        {/* 3. De quem depende × como as áreas estão entregando */}
-        <div className="v4-g2">
+        {/* 3a. De quem depende -- largura total: perdeu o parceiro de grade
+            quando "Áreas em um olhar" (3b) ganhou linha própria. */}
+        <div style={{ marginBottom: 16 }}>
           <BoardConcentracao
             concentracao={concentracao}
             janelaLabel={janelaReceita}
             nota={notaReceita}
             onClienteClick={() => navigate('/equipe/board/dashboard-clientes-os')}
           />
+        </div>
 
+        {/* 3b. Como as áreas estão entregando -- largura total (reunião 17/08):
+            mostra todas as áreas, não divide espaço, e ganhou filtro próprio
+            no cabeçalho (dentro de BoardAreaRollup). */}
+        <div style={{ marginBottom: 16 }}>
           <BoardAreaRollup
             areas={resumoAreas}
             janelaLabel={janelaLabel}
@@ -364,36 +418,39 @@ const BoardDashboard = () => {
           />
         </div>
 
-        {/* 4. O resultado econômico do ano */}
-        <div className="v4-g2">
+        {/* 4. O resultado econômico do ano -- "Economia validada acumulada"
+            saiu (reunião 17/08, é projeção); Receita mensal fica sozinha e
+            passa a ocupar a largura total. */}
+        <div style={{ marginBottom: 16 }}>
           <BoardReceitaMensal
             serie={serieReceita}
             receita={receita}
             nota={[notaRateio, notaEscopo].filter(Boolean).join(' ') || undefined}
           />
-          <BoardEconomiaAcumulada
-            serie={serieRoi}
-            economiaAnual={roi.economiaAnual}
-            investimento={roi.investimento}
-            melhorias={roi.melhorias}
-          />
         </div>
 
-        {/* 5. Leitura em texto */}
-        <div style={{ marginBottom: 16 }}>
-          <BoardAIBox
-            label={sinteseLocal ? 'Resumo local — IA indisponível' : 'Síntese Estratégica — IA Executiva'}
-            data={sinteseLocal ?? sintese.data ?? null}
-            loading={sintese.isPending}
-            onGenerate={handleGenerateSintese}
-          />
-        </div>
+        {/* ESPAÇO RESERVADO: chat de IA lateral — próxima etapa (reunião
+            17/08). "Síntese Estratégica — IA Executiva" saiu daqui; o lugar
+            dela é ao lado do conteúdo, à direita, quando o chat entrar. */}
 
-        {/* 6. Acompanhamento de execução */}
+        {/* 5. Acompanhamento de execução */}
         <BoardProjetosCriticos
           projetos={projetosCriticos}
           onProjetoClick={() => navigate('/equipe/board/performance')}
         />
+
+        {/* 6. Preenchimento do sistema -- o inverso dos blocos acima: não é
+            resultado de trabalho, é o que falta cadastrar, por área, para o
+            dono cobrar quem alimenta o sistema (Bloco F, 21/08). */}
+        <div style={{ marginTop: 16 }}>
+          <BoardPreenchimentoSistema
+            areas={preenchAreas}
+            semArea={preenchSemArea}
+            faixa={preenchFaixa}
+            falhaAreas={preenchAreasQuery.isError}
+            falhas={falhasPreenchimento}
+          />
+        </div>
       </div>
     </BoardLayout>
   );

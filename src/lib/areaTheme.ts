@@ -147,7 +147,153 @@ export function areaDaRota(pathname: string): AreaDeTema {
  * blocos em `src/index.css` (todas as classes têm a mesma especificidade). O
  * aviso está no topo do `.base-theme`.
  */
-export function resolverTemaDaRota(pathname: string): string[] {
-  const classeDaArea = TEMA_DA_AREA[areaDaRota(pathname)];
+export function resolverTemaDaRota(pathname: string, busca?: string): string[] {
+  const area = chaveDeEspelho(pathname, busca) ?? areaDaRota(pathname);
+  const classeDaArea = TEMA_DA_AREA[area];
   return classeDaArea ? [CLASSE_BASE, classeDaArea] : [CLASSE_BASE];
+}
+
+// ─── Espelhamento: uma tela em vários ambientes ───────────────────────────
+//
+// Uma tela ESPELHADA é uma tela só, montada numa rota só, que se apresenta como
+// sendo do ambiente de onde foi aberta: `/equipe/chamados?area=osg` mostra os
+// chamados da OSG com o tema da OSG. Não há rota nova, não há cópia.
+//
+// A REGRA, e ela é o motivo de o parâmetro existir: COR E CONTEÚDO ANDAM SEMPRE
+// JUNTOS. Nunca teal mostrando OSG; nunca mostrando tudo estando teal. Se a cor
+// diz Tax, a lista é Tax.
+//
+// O que torna isso estrutural, e não uma regra a lembrar: a chave do parâmetro é
+// uma CATEGORIA DE PÁGINA, e a mesma categoria resolve as duas coisas —
+//
+//   ?area=tax  →  tema:     ESPELHO['tax']                      (aqui, síncrono)
+//              →  conteúdo: useDomainClusterPorCategoria('tax') (cluster, async)
+//
+// As duas saem de `estrutura_areas.page_categories`. Não existe estado em que
+// uma mude sem a outra, porque não são duas fontes.
+
+/** O parâmetro que carrega o ambiente de espelhamento. */
+export const PARAM_DE_ESPELHO = 'area';
+
+/**
+ * As categorias que podem espelhar, e o tema de cada uma.
+ *
+ * O CRITÉRIO, e ele não é "ser uma categoria válida".
+ *
+ * O espelho recorta por `tickets.cluster_id`, e esse cluster vem do CLIENTE que
+ * abriu o chamado — o cliente entra pela área dele e o chamado vai para o cluster
+ * que o atende. Logo o espelho responde a UMA pergunta:
+ *
+ *     "chamados dos CLIENTES desta área"
+ *
+ * Tax e OSG têm clientes: 123 e 166 (medido em 20/08/2026). O Digital não tem —
+ * os dois vínculos que existem são `[TESTE] Pantanal Sementes` e `[TESTE] Zebra
+ * de Óculos`, dados de semente. Por isso `dev` e `rotina` NÃO espelham: não é
+ * lacuna de dado, é recorte que não se aplica a eles.
+ *
+ * `geral`, `mapa`, `board` e `gestao` ficam fora pela mesma razão, sem cluster
+ * próprio para recortar.
+ *
+ * O SINTOMA que expôs o critério errado: do `/equipe/kanban`, "Ver Chamados" ia
+ * para `?area=rotina`, que resolvia para o cluster Digital, e o Digital tem ZERO
+ * chamados — tela teal com "0 de 0" onde deviam estar os 354. Internamente
+ * coerente (cor e conteúdo andavam juntos) e conceitualmente errado. Só apareceu
+ * quando alguém clicou o caminho real. `rotina` e `dev` entraram porque eram
+ * categorias válidas com cluster resolvível, não porque fossem recortes.
+ *
+ * Do kanban e do Dev o link vai SEM parâmetro: piso, lista completa, Cluster
+ * livre.
+ *
+ * REGISTRADO E NÃO É PARA AGORA: haverá um canal de chamados para clientes
+ * INTERNOS — dúvidas e correções da própria equipe. Esse é OUTRO recorte e OUTRA
+ * tela. Não é acrescentar uma chave a esta lista.
+ *
+ * Havia aqui uma decisão explícita aceitando que `dev` e `rotina` apontassem para
+ * o mesmo cluster com temas diferentes. Ela deixou de ser necessária: toda chave
+ * que sobrou é um cluster com clientes, e não há duas chaves para o mesmo
+ * conteúdo. A exceção do modelo saiu junto com a causa dela.
+ *
+ * ⚠️ O PADRÃO DE ROTA JÁ EXISTIA, mas SEM a regra. `ChamadosGestaoContent` vive
+ * em `/equipe/tax/gerencial/chamados` e `/equipe/osg/gerencial/chamados` e pega a
+ * cor certa pelo resolvedor — mas NÃO filtra por área: recebe só `basePath` (usado
+ * para navegar), chama `useAllActiveAreas`/`useAllActiveClusters` e nasce com
+ * `cluster: 'todos'`. Ou seja: ele é precedente do CAMINHO, e é exemplo do
+ * defeito que este bloco existe para não ter — cor de área sobre lista de todas
+ * as áreas. Fica registrado como dívida, não como modelo a copiar.
+ */
+export const ESPELHO = {
+  tax: 'tax',
+  osg: 'osg',
+} as const satisfies Record<string, AreaDeTema>;
+
+/**
+ * Para onde o "Voltar" de uma tela espelhada leva, e com que rótulo.
+ *
+ * Antes do espelho a tela não tinha essa informação e o "Voltar" caía em
+ * `/equipe` — o seletor de áreas. Quem viera da Tax era mandado escolher a área
+ * de novo. O espelho É essa informação, então deixou de ser irremediável.
+ *
+ * Mapa próprio, e não `AREA_ROUTES` de `@/config/areaCategories`: aquela é a
+ * taxonomia de PERMISSÃO, e o cabeçalho deste arquivo explica por que as duas não
+ * se amarram — mudança de permissão não deve mexer em navegação de tela.
+ */
+export const VOLTA_DO_ESPELHO = {
+  tax: { rota: '/equipe/tax', rotulo: 'Tax' },
+  osg: { rota: '/equipe/osg', rotulo: 'OSG' },
+} as const;
+
+/**
+ * As chaves como TIPO, e não como string solta.
+ *
+ * É o que faz um erro de digitação no menu (`?area=tx`) ser erro de compilação
+ * em vez de uma tela que abre teal mostrando tudo. A regra "cor e conteúdo andam
+ * juntos" passa a ser cobrada também no ponto de chamada, não só no resolvedor.
+ */
+export type ChaveDeEspelho = keyof typeof ESPELHO;
+
+/**
+ * A URL de uma tela espelhada — um lugar só monta o parâmetro.
+ *
+ * Use isto nos menus, nunca a string crua: quem monta `'/equipe/chamados?area=' + x`
+ * à mão escapa do tipo e do teste.
+ *
+ * NÃO serve para rota de DETALHE (`/equipe/chamados/:id`): detalhe não tem
+ * escopo para filtrar, logo não pode ter cor de escopo — ver `ROTAS_ESPELHADAS`.
+ */
+export function linkEspelhado(rota: string, chave: ChaveDeEspelho): string {
+  return `${rota}?${PARAM_DE_ESPELHO}=${chave}`;
+}
+
+/**
+ * As rotas que aceitam espelhamento.
+ *
+ * Sem esta lista, `?area=osg` pintaria OSG em QUALQUER rota — inclusive
+ * `/equipe/tax/dashboard`, que é da Tax e não espelha nada. O parâmetro só
+ * sobrescreve onde a tela sabe filtrar por ele.
+ *
+ * O casamento é EXATO, e não por segmento como no `MAPA_DE_ROTAS`. A diferença
+ * importa: por segmento, `/equipe/chamados/:id` — o detalhe de UM chamado —
+ * herdaria o espelho e ficaria musgo mostrando um chamado que pode ser do TAX.
+ * O detalhe não tem escopo para filtrar, então não pode ter cor de escopo.
+ * (Na prática a navegação nem produz essa URL: `onNavigate` vai para
+ * `/equipe/chamados/${id}` sem parâmetro. O casamento exato fecha a porta
+ * também para quem digitar a URL à mão.)
+ */
+export const ROTAS_ESPELHADAS: string[] = ['/equipe/chamados'];
+
+/**
+ * A chave de espelhamento válida de uma navegação, ou `null`.
+ *
+ * `null` quando: a rota não espelha, não há parâmetro, ou a chave é
+ * desconhecida. Chave desconhecida cai no tema próprio da rota em vez de quebrar
+ * — mesma direção à prova de falha do resto: rota não mapeada nasce com a cor da
+ * marca, nunca sem cor.
+ */
+export function chaveDeEspelho(pathname: string, busca?: string): AreaDeTema | null {
+  if (!busca) return null;
+  const limpo = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  if (!ROTAS_ESPELHADAS.includes(limpo)) return null;
+  const chave = new URLSearchParams(busca).get(PARAM_DE_ESPELHO);
+  if (!chave) return null;
+  return (ESPELHO as Record<string, AreaDeTema>)[chave] ?? null;
 }

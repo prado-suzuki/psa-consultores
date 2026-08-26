@@ -279,6 +279,10 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               variant="ghost"
               size="icon"
               className="relative text-slate-600 hover:text-teal-600 hover:bg-slate-50"
+              // SEM espelho, de propósito. A Rotina é o chão comum e não um
+              // recorte: "os chamados da Rotina" não quer dizer nada. Daqui se vê
+              // a lista completa, no piso. Ver o bloco `ESPELHO` em
+              // `src/lib/areaTheme.ts`, que registra por que ela saiu.
               onClick={() => navigate('/equipe/chamados', { state: { from: location.pathname } })}
               title="Ver Chamados"
             >

@@ -16,7 +16,7 @@
  */
 import type { ClienteRow, FatiaRateio, OsRow, ProjetoRow } from '@/lib/dashboardClientesOs/types';
 import { shareCentroCusto } from '@/lib/dashboardClientesOs/aggregations';
-import type { ResumoArea } from '@/lib/boardExecutivo';
+import type { ResumoAreaCadastro } from '@/lib/boardExecutivo';
 
 // ── Limiares das regras ────────────────────────────────────────────────
 // Ficam aqui, nomeados e num só lugar, porque são política de sócio — não
@@ -281,7 +281,8 @@ export interface EntradaAlertas {
   projetos: ProjetoRow[];
   /** Concentração já calculada sobre o mesmo recorte de receita da tela. */
   concentracao: Concentracao;
-  areas: ResumoArea[];
+  /** Bloco E2 (21/08): áreas do CADASTRO, não mais bucket de 4 categorias. */
+  areas: ResumoAreaCadastro[];
   hoje: string;
 }
 
@@ -393,7 +394,7 @@ export function alertasEstrategicos(entrada: EntradaAlertas): AlertaEstrategico[
   for (const a of areas) {
     if (a.pontualidade !== null && a.pontualidade < META_PONTUALIDADE && a.concluidas > 0) {
       alertas.push({
-        id: `pontualidade-${a.area}`,
+        id: `pontualidade-${a.id}`,
         severidade: 'atencao',
         titulo: `${a.label} entregou ${a.pontualidade}% no prazo`,
         detalhe: `Meta de ${META_PONTUALIDADE}% · ${a.concluidas} ${a.concluidas === 1 ? 'entrega' : 'entregas'} no período, ${a.emRisco + a.atrasados} ${a.emRisco + a.atrasados === 1 ? 'projeto fora' : 'projetos fora'} de prazo.`,
@@ -425,6 +426,13 @@ export interface ReceitaAno {
   meses: string[];
   /** OS sem `data_inicio` — ficam fora dos dois lados e a tela precisa dizer. */
   semData: number;
+  /**
+   * Valor (R$) das OS sem `data_inicio` -- Bloco D/D3, 21/08: antes só a
+   * CONTAGEM aparecia na tela, o valor ficava escondido. Confirmado: é 37% do
+   * total (R$ 418k de R$ 1.139k), grande demais pra viver em nota de rodapé.
+   * `atual + semDataValor` é o "valor total" que a tela de Projetos mostra.
+   */
+  semDataValor: number;
 }
 
 /**
@@ -454,12 +462,14 @@ export function receitaAnoCorrente(os: OsRow[], hoje: string): ReceitaAno {
 
   const atual = soma(meses);
   const anterior = soma(mesesAnteriores);
+  const semDataOs = os.filter((o) => !o.data_inicio);
   return {
     atual,
     anterior,
     variacao: anterior > 0 ? (atual - anterior) / anterior : null,
     meses,
-    semData: os.filter((o) => !o.data_inicio).length,
+    semData: semDataOs.length,
+    semDataValor: semDataOs.reduce((acc, o) => acc + o.faturamento, 0),
   };
 }
 

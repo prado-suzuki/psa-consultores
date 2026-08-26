@@ -1,0 +1,192 @@
+<title>Cinza de Desligado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+
+<style>
+  :root{
+    --ground:#FBFAF7; --ink:#2E1305; --ink-2:#7D7268; --rule:#E7E2DA;
+    --raw:#E2E8F0; --raw-ink:#475569;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:'Work Sans',system-ui,sans-serif; font-size:15px; line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:56px 28px 96px}
+  h1{font-size:31px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+  .sub{color:var(--ink-2);max-width:62ch;margin:0 0 8px}
+  .lede{max-width:64ch;margin:0 0 40px}
+  h2{font-size:13px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+     color:var(--ink-2);margin:52px 0 18px;padding-bottom:9px;border-bottom:1px solid var(--rule)}
+  mono,.mono{font-family:'DM Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+  .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media (max-width:820px){.cols{grid-template-columns:1fr}}
+  .theme{border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+  .theme > .head{padding:11px 16px;border-bottom:1px solid var(--rule);
+    font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+  .stage{padding:20px 16px 22px}
+
+  /* Cada tema pinta o próprio chão e a própria tinta — é o ponto da página. */
+  .t-sistema .stage{background:#FFFFFE;color:#2E1305}
+  .t-tax     .stage{background:#FEFEFE;color:#2E1305}
+  .t-osg     .stage{background:#FCFBFA;color:#171C27}
+  .t-sistema .head{background:#F3F1EC;color:#5D573C}
+  .t-tax     .head{background:#F1F0EC;color:#655443}
+  .t-osg     .head{background:#F2EEEC;color:#46332A}
+
+  .row{display:flex;align-items:center;gap:10px;padding:9px 0}
+  .row + .row{border-top:1px solid rgba(0,0,0,.055)}
+  .name{flex:1;font-size:14px;font-weight:500;min-width:0;
+        overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;
+         white-space:nowrap;letter-spacing:.01em}
+
+  .caption{font-size:11px;color:var(--ink-2);letter-spacing:.06em;
+           text-transform:uppercase;font-weight:600;margin:18px 0 4px}
+  .hexes{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;margin-top:14px}
+  .hexes span{display:flex;align-items:center;gap:6px;color:var(--ink-2)}
+  .chip{width:13px;height:13px;border-radius:3px;border:1px solid rgba(0,0,0,.1)}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+     color:var(--ink-2);font-weight:700;padding:0 12px 9px 0;border-bottom:1px solid var(--rule)}
+  td{padding:11px 12px 11px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+  .scroll{overflow-x:auto}
+
+  .nota{border-left:3px solid #C9BFA8;padding:2px 0 2px 16px;margin:26px 0;
+        color:var(--ink);max-width:66ch}
+  .nota strong{font-weight:600}
+  ul{padding-left:19px;margin:12px 0} li{margin:6px 0;max-width:64ch}
+  .q{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:38px 0 6px;text-wrap:balance}
+</style>
+
+<div class="wrap">
+
+  <h1>O cinza de desligado</h1>
+  <p class="sub">Comparação nos três temas, para decidir olhando.</p>
+  <p class="lede">O token <span class="mono">--status-neutro-soft</span> <strong>já existe</strong> e já é declarado por
+  tema. A pergunta não é que valor escolher — é se o que existe serve, e se ele acompanha o tema
+  ou fica neutro em todos.</p>
+
+  <h2>Cada tema, com um ativo ao lado</h2>
+
+  <div class="cols">
+
+    <div class="theme t-sistema">
+      <div class="head">sistema · grafite</div>
+      <div class="stage">
+        <div class="row"><span class="name">Uso e envio</span>
+          <span class="badge" style="background:#D7E9CE;color:#2C3D1A">Ativo</span></div>
+        <div class="row"><span class="name">Clientes e OS</span>
+          <span class="badge" style="background:#E2E8F0;color:#475569">Inativo</span></div>
+        <div class="row"><span class="name">Capacidade</span>
+          <span class="badge" style="background:#E3E0D3;color:#5D573C">Inativo</span></div>
+        <div class="hexes">
+          <span><i class="chip" style="background:#E2E8F0"></i><span class="mono">#E2E8F0</span> hoje</span>
+          <span><i class="chip" style="background:#E3E0D3"></i><span class="mono">#E3E0D3</span> token</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="theme t-tax">
+      <div class="head">tax · teal</div>
+      <div class="stage">
+        <div class="row"><span class="name">Uso e envio</span>
+          <span class="badge" style="background:#C7F0ED;color:#113B2F">Ativo</span></div>
+        <div class="row"><span class="name">Clientes e OS</span>
+          <span class="badge" style="background:#E2E8F0;color:#475569">Inativo</span></div>
+        <div class="row"><span class="name">Capacidade</span>
+          <span class="badge" style="background:#E2DBD4;color:#655443">Inativo</span></div>
+        <div class="hexes">
+          <span><i class="chip" style="background:#E2E8F0"></i><span class="mono">#E2E8F0</span> hoje</span>
+          <span><i class="chip" style="background:#E2DBD4"></i><span class="mono">#E2DBD4</span> token</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="theme t-osg">
+      <div class="head">osg · musgo</div>
+      <div class="stage">
+        <div class="row"><span class="name">Uso e envio</span>
+          <span class="badge" style="background:#C7F0DB;color:#206528">Ativo</span></div>
+        <div class="row"><span class="name">Clientes e OS</span>
+          <span class="badge" style="background:#E2E8F0;color:#475569">Inativo</span></div>
+        <div class="row"><span class="name">Capacidade</span>
+          <span class="badge" style="background:#E4D8D2;color:#46332A">Inativo</span></div>
+        <div class="hexes">
+          <span><i class="chip" style="background:#E2E8F0"></i><span class="mono">#E2E8F0</span> hoje</span>
+          <span><i class="chip" style="background:#E4D8D2"></i><span class="mono">#E4D8D2</span> token</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <p class="caption" style="margin-top:22px">Em cada coluna: <strong style="color:var(--ink)">Ativo</strong> (referência) ·
+  <strong style="color:var(--ink)">Inativo</strong> no <span class="mono">bg-slate-200</span> de hoje ·
+  <strong style="color:var(--ink)">Inativo</strong> no token.</p>
+
+  <div class="q">O cinza de hoje é o mesmo nos três. O do token, não.</div>
+  <p class="lede"><span class="mono">bg-slate-200</span> vale <span class="mono">#E2E8F0</span> em qualquer tema — é
+  azulado, e fica azulado sobre chão marfim. O token muda de temperatura com a área, e em nenhuma
+  delas puxa para o azul.</p>
+
+  <h2>Os valores, lado a lado</h2>
+  <div class="scroll">
+    <table>
+      <thead><tr><th></th><th>sistema</th><th>tax</th><th>osg</th><th style="width:38%">o que isso diz</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="mono">bg-slate-200</span><br><span style="color:var(--ink-2);font-size:12px">hoje</span></td>
+          <td class="mono">#E2E8F0</td><td class="mono">#E2E8F0</td><td class="mono">#E2E8F0</td>
+          <td>Fixo. Não acompanha nada.</td>
+        </tr>
+        <tr>
+          <td><span class="mono">--status-neutro-soft</span><br><span style="color:var(--ink-2);font-size:12px">token</span></td>
+          <td class="mono">#E3E0D3</td><td class="mono">#E2DBD4</td><td class="mono">#E4D8D2</td>
+          <td>Acompanha, e de leve: a diferença entre os três é pequena de propósito — o desligado
+              não deve competir com o ativo.</td>
+        </tr>
+        <tr>
+          <td><span class="mono">--status-neutro</span><br><span style="color:var(--ink-2);font-size:12px">texto do badge</span></td>
+          <td class="mono">#5D573C</td><td class="mono">#655443</td><td class="mono">#46332A</td>
+          <td>Aqui a diferença é grande. É o texto que faz o badge parecer da área.</td>
+        </tr>
+        <tr>
+          <td><span class="mono">--status-andamento-soft</span><br><span style="color:var(--ink-2);font-size:12px">o ativo, para comparar</span></td>
+          <td class="mono">#D7E9CE</td><td class="mono">#C7F0ED</td><td class="mono">#C7F0DB</td>
+          <td>O ativo muda muito mais. É assim que o desligado se distingue: por saturação, não por
+              tom.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>O que a medição encontrou</h2>
+  <p class="lede">Sítios onde um <strong>fundo cinza cru</strong> carrega o papel de desligado,
+  cancelado ou arquivado — o que decide se o esforço vale:</p>
+  <ul>
+    <li><strong>7 sítios</strong> genuínos, em 6 arquivos. Não são dois, e não são duzentos.</li>
+    <li><strong>4 dos 7 têm a mesma forma</strong>: um mapa de status, <span class="mono">{ cancelado: 'bg-slate-100 text-slate-600' }</span>.
+        Não são badges soltos — são dicionários de estado→classe.</li>
+    <li>Mais 6 candidatos que a varredura levantou e <strong>não</strong> são o papel: superfície de
+        cartão, painel de login, botão de ícone.</li>
+  </ul>
+
+  <div class="nota">
+    <strong>A decisão não é escolher um valor.</strong> O token existe, é declarado nos temas, tem
+    classe no Tailwind (<span class="mono">bg-status-neutro-soft</span>) e já é usado em 4 arquivos.
+    O que falta é a <strong>linha na tabela de mapeamento</strong> dizendo que fundo que significa
+    estado usa papel de status, não <span class="mono">bg-muted</span>.
+  </div>
+
+  <div class="q">A pergunta que sobra é sua</div>
+  <p class="lede">O desligado deve <strong>acompanhar o tema</strong> — como o token faz, de leve —
+  ou deve ser <strong>igual em todas as áreas</strong>, para dizer "isto está fora" com a mesma voz
+  em qualquer lugar? As duas são defensáveis, e a segunda pediria um token novo. A primeira já está
+  pronta.</p>
+
+</div>

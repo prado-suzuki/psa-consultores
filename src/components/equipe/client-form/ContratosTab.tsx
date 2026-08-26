@@ -164,8 +164,18 @@ export default function ContratosTab({
   // O aviso do rodapé manda abrir uma OS específica. Só reage à mudança do
   // pedido: se dependesse da seleção, escolher outra OS na lista seria desfeito
   // no mesmo instante.
+  //
+  // Abrir em edição faz parte do pedido: no escopo por item o detalhe abre em
+  // leitura, e ali não existe campo para receber a moldura vermelha nem o
+  // cursor. O aviso levava a pessoa até a OS certa e ela continuava sem ver
+  // nada apontado — era metade do defeito da tarefa [6].
   useEffect(() => {
-    if (foco?.itemId != null) setSelecionadoId(foco.itemId);
+    if (foco?.itemId == null) return;
+    setSelecionadoId(foco.itemId);
+    if (!mostrarEditarPorLinha) return;
+    const alvo = contracts.find((c) => c._id === foco.itemId);
+    if (alvo) startEditContract(alvo);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [foco]);
 
   const acento = useAcentoArea();
