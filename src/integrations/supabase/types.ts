@@ -9778,6 +9778,16 @@ export type Database = {
         Returns: undefined
       }
       soft_delete_ordem_servico: { Args: { _ids: string[] }; Returns: number }
+      solicitacoes_a_cobrar: {
+        Args: { _intervalo_dias?: number }
+        Returns: {
+          ciclo: number
+          cliente_id: string
+          enviada_em: string
+          prazo: string
+          solicitacao_id: string
+        }[]
+      }
       sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
       sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
