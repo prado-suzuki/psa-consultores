@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoMetas, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useMetas, useCreateMeta, useUpdateMeta, useUpdateMetaProgress, type Meta } from '@/hooks/useMetasDesempenho';
@@ -23,9 +25,9 @@ import { Plus, Building2, Users, User, TrendingUp, MoreHorizontal, Pencil, Archi
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const dimensaoColors: Record<string, { bg: string; text: string; label: string }> = {
-  entrega: { bg: 'bg-blue-500/12', text: 'text-blue-600', label: 'Entrega' },
-  impacto: { bg: 'bg-emerald-500/12', text: 'text-emerald-600', label: 'Impacto' },
-  gestao: { bg: 'bg-violet-500/12', text: 'text-violet-600', label: 'Gestao' },
+  entrega: { bg: 'bg-[var(--bd-blue-t)]', text: 'text-[var(--bd-blue)]', label: 'Entrega' },
+  impacto: { bg: 'bg-[var(--bd-go-t)]', text: 'text-[var(--bd-go-d)]', label: 'Impacto' },
+  gestao: { bg: 'bg-[var(--bd-purple-t)]', text: 'text-[var(--bd-purple)]', label: 'Gestao' },
 };
 const nivelIcons: Record<string, any> = { empresa: Building2, equipe: Users, individual: User };
 
@@ -36,7 +38,7 @@ const getAutoClassif = (progresso: number) => {
   return 'abaixo';
 };
 const classifLabels: Record<string, string> = { supera: 'Supera', atende: 'Atende', atende_parcialmente: 'Atende Parcialmente', abaixo: 'Abaixo' };
-const classifColors: Record<string, string> = { supera: 'bg-emerald-50 text-emerald-700', atende: 'bg-green-50 text-green-700', atende_parcialmente: 'bg-amber-50 text-amber-700', abaixo: 'bg-red-50 text-red-700' };
+const classifColors: Record<string, string> = { supera: 'bg-[var(--bd-go-t)] text-[var(--bd-go-d)]', atende: 'bg-green-50 text-green-700', atende_parcialmente: 'bg-[var(--bd-warn-t)] text-[var(--bd-warn-d)]', abaixo: 'bg-[var(--bd-risk-t)] text-[var(--bd-risk-d)]' };
 
 const DesempenhoMetas = () => {
   const { isAdmin, isLider } = useAuth();
@@ -51,6 +53,28 @@ const DesempenhoMetas = () => {
   const cicloId = selectedCicloId || cicloAtivo?.id;
   const { data: pprRegras } = usePprRegras(cicloId);
   const { data: metas, isLoading } = useMetas({ ciclo_id: cicloId, nivel: nivelFilter || undefined, dimensao: dimensaoFilter || undefined, responsavel_id: responsavelFilter || undefined, status: statusFilter || undefined });
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  const cicloDoAgente = ciclos?.find(c => c.id === cicloId) ?? cicloAtivo ?? null;
+  const contextoAgente = useMemo(() => contextoDesempenhoMetas({
+    ciclo: cicloDoAgente ? resumoDeCiclo(cicloDoAgente) : null,
+    metas: (metas ?? []).map(m => ({
+      nivel: m.nivel, dimensao: m.dimensao, status: m.status,
+      progresso_atual: m.progresso_atual, peso: m.peso,
+      prazo: m.prazo ?? null, responsavel_id: m.responsavel_id ?? null,
+    })),
+    regrasPpr: pprRegras?.length ?? 0,
+    filtrosAtivos: {
+      nível: nivelFilter || null, dimensão: dimensaoFilter || null,
+      status: statusFilter || null, responsável: responsavelFilter || null,
+    },
+    hoje: new Date().toISOString().slice(0, 10),
+    carregando: isLoading,
+  }), [
+    cicloDoAgente, metas, pprRegras, nivelFilter, dimensaoFilter,
+    statusFilter, responsavelFilter, isLoading,
+  ]);
+  useRegistrarContextoAgente('board.desempenho.metas', contextoAgente, isLoading);
+
   const createMeta = useCreateMeta();
   const updateMeta = useUpdateMeta();
   const updateProgress = useUpdateMetaProgress();
@@ -135,7 +159,7 @@ const DesempenhoMetas = () => {
     const dc = dimensaoColors[m.dimensao] ?? dimensaoColors.entrega;
     const Icon = nivelIcons[m.nivel] ?? User;
     const profile = m.responsavel_id ? profileMap[m.responsavel_id] : null;
-    const barColor = m.progresso_atual >= 85 ? '#10B981' : m.progresso_atual >= 70 ? '#D97706' : '#EF4444';
+    const barColor = m.progresso_atual >= 85 ? 'var(--bd-go)' : m.progresso_atual >= 70 ? 'var(--bd-warn)' : 'var(--bd-risk)';
 
     return (
       <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg hover:shadow-sm transition-shadow" style={{ marginLeft: indent, backgroundColor: indent === 0 ? 'var(--board-border-s)' : 'transparent' }}>
@@ -165,7 +189,7 @@ const DesempenhoMetas = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onClick={() => openEditModal(m)}><Pencil className="h-3.5 w-3.5 mr-2" /> Editar</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setShowArchiveConfirm(m)} className="text-red-600"><Archive className="h-3.5 w-3.5 mr-2" /> Arquivar</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setShowArchiveConfirm(m)} className="text-[var(--bd-risk-d)]"><Archive className="h-3.5 w-3.5 mr-2" /> Arquivar</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -179,17 +203,28 @@ const DesempenhoMetas = () => {
       {/* PPR Rules Block */}
       {pprRegras && pprRegras.length > 0 ? (
         <Card className="mb-6 overflow-hidden" style={{ border: '1px solid var(--board-border)' }}>
-          <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E293B 100%)' }}>
-            <h3 className="text-sm font-bold text-white" style={{ fontFamily: "'Syne', sans-serif" }}>Regras do PPR — {selectedCiclo?.nome || 'Ciclo Ativo'}</h3>
-            <p className="text-xs mt-1" style={{ color: '#94A3B8' }}>Faixas de classificacao e multiplicadores de bonus</p>
+          {/* Par de tokens na ordem documentada no `index.css` (425-434): do mais
+              escuro `--surface-escura` para o intermediário `--surface-escura-2`.
+              O `#0F172A` cravado ERA `hsl(222 47% 11%)`, o próprio
+              `--surface-escura-2` do piso copiado à mão — e por ser hex ignorava
+              o tema. Esta rota resolve `.board-theme` (o Board saiu da
+              infraestrutura em 21/08), que declara teal profundo — antes era o
+              grafite quente da `.sistema-theme`. Branco em cima, MEDIDO nos
+              valores novos: 16,8:1 no início, 12,5:1 no fim. */}
+          <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg, hsl(var(--surface-escura)) 0%, hsl(var(--surface-escura-2)) 100%)' }}>
+            <h3 className="text-sm font-bold text-white" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Regras do PPR — {selectedCiclo?.nome || 'Ciclo Ativo'}</h3>
+            {/* Era o slate #94A3B8 cravado — cinza-azulado sobre faixa que agora é teal
+                profundo, e a única cor da tela que não vinha de token. No tom claro do
+                próprio acento dá 11,4:1 sobre `--surface-escura` e 8,5:1 sobre a `-2`. */}
+            <p className="text-xs mt-1" style={{ color: 'hsl(172 30% 80%)' }}>Faixas de classificacao e multiplicadores de bonus</p>
           </div>
           <CardContent className="p-4 space-y-1">
             {pprRegras.map(r => {
               const colors: Record<string, { text: string; bg: string }> = {
-                supera: { text: '#065F46', bg: '#F0FDF4' },
-                atende: { text: '#1E40AF', bg: '#FFFFFF' },
-                atende_parcialmente: { text: '#92400E', bg: '#FFFBEB' },
-                abaixo: { text: '#991B1B', bg: '#FFF8F8' },
+                supera: { text: 'var(--bd-go-d)', bg: 'var(--bd-go-t)' },
+                atende: { text: 'var(--bd-blue)', bg: '#FFFFFF' },
+                atende_parcialmente: { text: 'var(--bd-warn-d)', bg: 'var(--bd-warn-t)' },
+                abaixo: { text: 'var(--bd-risk-d)', bg: 'var(--bd-risk-t)' },
               };
               const c = colors[r.classificacao] || colors.atende;
               const maxWidth = r.faixa_maxima ? Math.min(r.faixa_maxima, 120) : 120;
@@ -224,29 +259,29 @@ const DesempenhoMetas = () => {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
         <Select value={cicloId ?? ''} onValueChange={setSelectedCicloId}>
-          <SelectTrigger className="w-56 bg-white"><SelectValue placeholder="Ciclo" /></SelectTrigger>
+          <SelectTrigger className="w-56"><SelectValue placeholder="Ciclo" /></SelectTrigger>
           <SelectContent>{ciclos?.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={nivelFilter || '__all__'} onValueChange={v => setNivelFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Nivel" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Nivel" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todos</SelectItem><SelectItem value="empresa">Empresa</SelectItem><SelectItem value="equipe">Equipe</SelectItem><SelectItem value="individual">Individual</SelectItem></SelectContent>
         </Select>
         <Select value={dimensaoFilter || '__all__'} onValueChange={v => setDimensaoFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Dimensao" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Dimensao" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todas</SelectItem><SelectItem value="entrega">Entrega</SelectItem><SelectItem value="impacto">Impacto</SelectItem><SelectItem value="gestao">Gestao</SelectItem></SelectContent>
         </Select>
         <Select value={responsavelFilter || '__all__'} onValueChange={v => setResponsavelFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-48 bg-white"><SelectValue placeholder="Responsavel" /></SelectTrigger>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Responsavel" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todos</SelectItem>{profiles.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todos</SelectItem><SelectItem value="ativa">Ativa</SelectItem><SelectItem value="pausada">Pausada</SelectItem><SelectItem value="concluida">Concluida</SelectItem><SelectItem value="cancelada">Cancelada</SelectItem></SelectContent>
         </Select>
       </div>
 
       {isLoading ? <Skeleton className="h-64" /> : (
-        <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+        <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
           <CardContent className="p-4 space-y-1">
             {empresaMetas.map(em => (
               <div key={em.id}>

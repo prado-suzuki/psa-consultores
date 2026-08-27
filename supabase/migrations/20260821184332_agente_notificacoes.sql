@@ -1,14 +1,3 @@
--- 20260821184332_agente_notificacoes.sql
---
--- IMPORTADA DO LEDGER DO SANDBOX, não escrita aqui primeiro. Esta versão estava
--- registrada em supabase_migrations.schema_migrations sem arquivo correspondente
--- no repositório (migration aplicada pelo chat do Lovable, que carimba a versão
--- dele). O corpo abaixo é o `statements` da própria linha do ledger, transcrito
--- sem alteração, para o repositório voltar a descrever o banco e o `db push`
--- deixar de abortar em "Remote migration versions not found".
---
--- Não editar para corrigir nada: correção vem em migration nova.
-
 -- ============================================================================
 -- Notificações do Agente PSA — o pop-up de análise estratégica / insight crítico
 -- ============================================================================
@@ -66,7 +55,6 @@ comment on table public.agente_notificacoes is
 
 create index if not exists agente_notificacoes_escopo_idx
   on public.agente_notificacoes (escopo, criado_em desc);
-
 create index if not exists agente_notificacoes_recentes_idx
   on public.agente_notificacoes (criado_em desc);
 
@@ -87,7 +75,6 @@ create index if not exists agente_notificacoes_vistas_user_idx
   on public.agente_notificacoes_vistas (user_id, visto_em desc);
 
 alter table public.agente_notificacoes enable row level security;
-
 alter table public.agente_notificacoes_vistas enable row level security;
 
 -- Nenhuma policy para `authenticated` — ver o cabeçalho. Se um dia o pop-up

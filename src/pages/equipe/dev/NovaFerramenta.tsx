@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,14 +11,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useDomainNovaFerramenta } from '@/hooks/useDomainNovaFerramenta';
-import { ArrowLeft, Save } from 'lucide-react';
-
-const areas = [
-  { id: 'digital', label: 'Digital' },
-  { id: 'financeiro', label: 'Financeiro' },
-  { id: 'operacional', label: 'Operacional' },
-  { id: 'comercial', label: 'Comercial' },
-];
+import { useEstruturaAreas, useEstruturaClusters } from '@/hooks/useEstruturaManager';
+import { ArrowLeft, Save, Lightbulb } from 'lucide-react';
 
 const NovaFerramenta = () => {
   const navigate = useNavigate();
@@ -28,17 +23,32 @@ const NovaFerramenta = () => {
   const [description, setDescription] = useState('');
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
 
+  const { data: clusters = [] } = useEstruturaClusters();
+  const { data: areas = [], isLoading: isLoadingAreas } = useEstruturaAreas();
+
+  // Áreas agrupadas pelo cluster (empresa do grupo) a que pertencem — um
+  // cluster pode ter várias áreas cadastradas.
+  const areasByCluster = useMemo(() => {
+    const clusterNameById = new Map(clusters.map((c) => [c.id, c.name]));
+    const groups = new Map<string, typeof areas>();
+    areas.forEach((area) => {
+      const clusterName = clusterNameById.get(area.cluster_id) ?? 'Outros';
+      groups.set(clusterName, [...(groups.get(clusterName) ?? []), area]);
+    });
+    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
+  }, [areas, clusters]);
+
   const createTool = useDomainNovaFerramenta({
     onSuccess: () => {
       toast({
-        title: 'Ferramenta criada',
-        description: 'A ferramenta foi criada com sucesso.',
+        title: 'Solicitação enviada',
+        description: 'A ideia foi registrada e entra no backlog do Digital Dev.',
       });
       navigate('/equipe/dev');
     },
     onError: (error) => {
       toast({
-        title: 'Erro ao criar ferramenta',
+        title: 'Erro ao enviar solicitação',
         description: error.message,
         variant: 'destructive',
       });
@@ -67,9 +77,9 @@ const NovaFerramenta = () => {
   };
 
   return (
-    <DevLayout 
-      title="Nova ferramenta" 
-      subtitle="Crie uma nova ferramenta automatizada"
+    <DevLayout
+      title="Solicitar nova ferramenta"
+      subtitle="Registre uma ideia para entrar no backlog do Digital Dev"
       headerActions={
         <Button variant="outline" onClick={() => navigate('/equipe/dev')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
@@ -77,12 +87,19 @@ const NovaFerramenta = () => {
         </Button>
       }
     >
-      <div className="max-w-2xl">
+      <div className="max-w-2xl space-y-4">
+        <DevPageHeader
+          title="Como funciona"
+          icon={Lightbulb}
+          hideManualLink
+          description={'Você descreve a necessidade e ela entra no catálogo com status "Em desenvolvimento". O time Digital Dev avalia e desenvolve a ferramenta; quando estiver pronta, as áreas selecionadas abaixo ganham acesso automaticamente.'}
+        />
+
         <Card>
           <CardHeader>
             <CardTitle>Informações da ferramenta</CardTitle>
             <CardDescription>
-              Preencha os dados básicos da nova ferramenta
+              Preencha os dados básicos da solicitação
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -96,6 +113,9 @@ const NovaFerramenta = () => {
                   placeholder="Ex: Automação de Relatórios"
                   required
                 />
+                <p className="text-sm text-gray-500">
+                  Um nome curto que identifique a ferramenta no catálogo
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -104,34 +124,52 @@ const NovaFerramenta = () => {
                   id="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Descreva o que a ferramenta faz..."
+                  placeholder="Ex: Automatiza o cruzamento entre XML e SPED para conferência de créditos..."
                   rows={4}
                 />
+                <p className="text-sm text-gray-500">
+                  Explique o problema que essa ferramenta resolve e o resultado esperado — isso ajuda o time a priorizar
+                </p>
               </div>
 
               <div className="space-y-3">
-                <Label>Áreas com Acesso</Label>
+                <Label>Áreas que vão usar essa ferramenta</Label>
                 <p className="text-sm text-gray-500">
-                  Selecione as áreas do negócio que terão acesso a esta ferramenta
+                  Assim que a ferramenta estiver pronta, essas áreas ganham acesso automaticamente
                 </p>
-                <div className="grid grid-cols-2 gap-3">
-                  {areas.map((area) => (
-                    <div
-                      key={area.id}
-                      className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                      onClick={() => toggleArea(area.id)}
-                    >
-                      <Checkbox
-                        id={area.id}
-                        checked={selectedAreas.includes(area.id)}
-                        onCheckedChange={() => toggleArea(area.id)}
-                      />
-                      <Label htmlFor={area.id} className="cursor-pointer flex-1">
-                        {area.label}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
+                {isLoadingAreas ? (
+                  <p className="text-sm text-gray-400">Carregando áreas...</p>
+                ) : areasByCluster.length === 0 ? (
+                  <p className="text-sm text-gray-400">Nenhuma área cadastrada no momento.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {areasByCluster.map(([clusterName, clusterAreas]) => (
+                      <div key={clusterName} className="space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">
+                          {clusterName}
+                        </p>
+                        <div className="grid grid-cols-2 gap-3">
+                          {clusterAreas.map((area) => (
+                            <div
+                              key={area.id}
+                              className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                              onClick={() => toggleArea(area.id)}
+                            >
+                              <Checkbox
+                                id={area.id}
+                                checked={selectedAreas.includes(area.id)}
+                                onCheckedChange={() => toggleArea(area.id)}
+                              />
+                              <Label htmlFor={area.id} className="cursor-pointer flex-1">
+                                {area.name}
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="flex gap-3 pt-4">
@@ -144,7 +182,7 @@ const NovaFerramenta = () => {
                 </Button>
                 <Button type="submit" disabled={createTool.isPending}>
                   <Save className="h-4 w-4 mr-2" />
-                  {createTool.isPending ? 'Salvando...' : 'Criar ferramenta'}
+                  {createTool.isPending ? 'Enviando...' : 'Enviar solicitação'}
                 </Button>
               </div>
             </form>

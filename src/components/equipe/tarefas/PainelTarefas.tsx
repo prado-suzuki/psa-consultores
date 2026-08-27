@@ -9,6 +9,8 @@ import { useTeamMembersForTasks, useTaxProjectsForFilter, useClusterIdByPageCate
 import {
   useOrgTasks,
   useDeleteOrgTask,
+  contarSubtarefasAtivas,
+  mensagemSubtarefasAtivas,
   OrgTask,
   TaskFilters as TaskFiltersType
 } from '@/hooks/useOrgTasks';
@@ -22,7 +24,7 @@ import { ProjetoDialog } from '@/components/equipe/projetos-cadastro/ProjetoDial
 import { ProjetoDeleteDialog } from '@/components/equipe/projetos-cadastro/ProjetoDeleteDialog';
 import { CriarProjetosOsDialog } from '@/components/equipe/projetos-lote/CriarProjetosOsDialog';
 import { ProjetosTarefasList } from '@/components/equipe/tarefas/ProjetosTarefasList';
-import { extractProductAcronyms, hasTaskFilters, type ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
+import { extractProductAcronyms, hasTaskFilters, withProjectClientFallback, type ProjetosTarefasOs } from '@/lib/projetosTarefasHierarchy';
 import { TaskFilters } from '@/components/equipe/fiscal/tasks/TaskFilters';
 import { TaskKPICards } from '@/components/equipe/fiscal/tasks/TaskKPICards';
 import { TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
@@ -135,20 +137,23 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   // espera — caso contrário o loader giraria para sempre.
   const isScopeUnresolved = isClusterLoading || (!!clusterId && !visibleProjectIds && !isScopeError);
   const tasks = useMemo(() => {
-    if (deepLinkTaskId) return allTasks;
+    const projectsById = new Map(listProjects.map(project => [project.id, project]));
     // Sem cluster resolvido (clusterId nulo/carregando) → NÃO escopar: degrada para o
     // comportamento atual em vez de esconder tarefas indevidamente.
-    const clusterTasks = !visibleProjectIds ? allTasks : allTasks.filter(t =>
-      !t.project_id ||
-      visibleProjectIds.has(t.project_id) ||
-      (!!user?.id && t.reviewer_id === user.id && t.status === 'review')
-    );
-    if (!filters.clientId) return clusterTasks;
-    const projectsById = new Map(listProjects.map(project => [project.id, project]));
-    return clusterTasks.filter(task =>
-      task.client_id === filters.clientId ||
-      (!!task.project_id && projectsById.get(task.project_id)?.external_client_id === filters.clientId)
-    );
+    const clusterTasks = deepLinkTaskId || !visibleProjectIds
+      ? allTasks
+      : allTasks.filter(t =>
+        !t.project_id ||
+        visibleProjectIds.has(t.project_id) ||
+        (!!user?.id && t.reviewer_id === user.id && t.status === 'review')
+      );
+    const clientTasks = !filters.clientId
+      ? clusterTasks
+      : clusterTasks.filter(task =>
+        task.client_id === filters.clientId ||
+        (!!task.project_id && projectsById.get(task.project_id)?.external_client_id === filters.clientId)
+      );
+    return withProjectClientFallback(clientTasks, listProjects);
   }, [allTasks, visibleProjectIds, deepLinkTaskId, user?.id, filters.clientId, listProjects]);
   const visibleListProjects = useMemo(
     () => filters.clientId
@@ -235,7 +240,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     }
   };
 
-  const handleDeleteTask = (taskId: string) => {
+  const handleDeleteTask = async (taskId: string) => {
     // Espelha a RLS rls_org_tasks_delete: somente líder (ou superior) ou o criador podem excluir.
     const task = tasks.find(t => t.id === taskId);
     const canDelete = isAdmin || isLider || (!!task && !!user && task.created_by === user.id);
@@ -245,10 +250,23 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       });
       return;
     }
-    const activeChildren = tasks.filter(t => t.parent_task_id === taskId && t.status !== 'done');
-    if (activeChildren.length > 0) {
+    // Conta no banco, não em `tasks`: a lista está filtrada e não vê as filhas
+    // que o filtro escondeu. O `useDeleteOrgTask` repete a checagem — esta aqui
+    // existe para a recusa aparecer ANTES do diálogo de confirmação.
+    let ativas: number;
+    try {
+      ativas = await contarSubtarefasAtivas(taskId);
+    } catch (error) {
+      // Sem saber quantas filhas existem, não se abre um diálogo que pode
+      // apagá-las em cascata.
+      toast.error('Não foi possível verificar as subtarefas desta tarefa.', {
+        description: error instanceof Error ? error.message : 'Tente novamente.',
+      });
+      return;
+    }
+    if (ativas > 0) {
       toast.error('Não é possível excluir esta tarefa.', {
-        description: `Existe(m) ${activeChildren.length} subtarefa(s) ativa(s). Conclua ou exclua as subtarefas primeiro.`,
+        description: mensagemSubtarefasAtivas(ativas),
       });
       return;
     }

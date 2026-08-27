@@ -1,27 +1,21 @@
 -- 20260826151559_org_comment_kind_osg_avisos.sql
--- Dois valores novos no enum public.org_comment_kind, para os avisos de sistema
--- do fluxo de solicitação de documentos da OSG.
+-- GES-03 · a thread do projeto ganha os dois eventos que faltavam da solicitacao
+-- OSG. Sao tres eventos ao todo, e o primeiro deles, 'documentos_solicitados',
+-- ja existe desde a EDU-1 (20260812120100).
 --
--- IMPORTADA DO LEDGER DO SANDBOX, NÃO ESCRITA AQUI PRIMEIRO. A migration foi
--- aplicada pelo chat do Lovable em 26/08/2026 e registrada em
--- supabase_migrations.schema_migrations sob esta versão e este nome, sem arquivo
--- correspondente no repositório. O conteúdo abaixo é o `statements` da própria
--- linha do ledger, transcrito sem alteração, para que o repositório volte a
--- reproduzir o banco e o `db push` não tente reaplicar nada.
+-- POR QUE TRES VALORES E NAO UM. O rotulo do kind ocupa o LUGAR DO NOME DO AUTOR
+-- na linha da mensagem: OrgCommentsPanel.tsx:267 renderiza
+-- `isSystem ? SYSTEM_LABELS[comment.kind] : comment.author_name`. Num comentario
+-- de pessoa a linha diz "Eduardo Nogueira"; num evento de sistema ela diz o nome
+-- do evento. Com um kind so para os tres, o encerramento apareceria assinado
+-- como "Documentos solicitados ao cliente", que e falso para quem le a thread
+-- semanas depois.
 --
--- O drift apareceu de um jeito concreto: ao regenerar `types.ts` pelo CLI, os
--- dois valores entraram no tipo `org_comment_kind`, e o mapa EXAUSTIVO de
--- rótulos de `OrgCommentsPanel.tsx` (Record<Exclude<kind,'comment'>, string>)
--- parou de compilar por faltarem duas chaves. Os rótulos foram acrescentados no
--- mesmo commit, com o texto tirado dos avisos que o banco já gravou:
+-- ALTER TYPE ... ADD VALUE nao roda dentro de bloco de transacao: o arquivo fica
+-- solto, sem BEGIN/COMMIT, e o USO dos valores fica no arquivo seguinte
+-- (20260826120100). Molde: 20260812120100_org_comment_kind_documentos_solicitados.sql
 --
---   documentos_cobrados   "Cobrança de documentos pendentes enviada ao cliente.
---                          N documento(s) pendente(s) e M a reenviar, de T no
---                          checklist."
---   documentos_conferidos "Documentação conferida e solicitação encerrada."
---
--- ALTER TYPE ... ADD VALUE é idempotente aqui pelo IF NOT EXISTS, então o
--- arquivo é seguro de rodar num banco que já tem os valores.
-
+-- Reversao: nao existe DROP VALUE em enum do Postgres. Desfazer exigiria recriar
+-- o tipo inteiro, e nao compensa: valor de enum que ninguem grava e inerte.
 ALTER TYPE public.org_comment_kind ADD VALUE IF NOT EXISTS 'documentos_cobrados';
 ALTER TYPE public.org_comment_kind ADD VALUE IF NOT EXISTS 'documentos_conferidos';

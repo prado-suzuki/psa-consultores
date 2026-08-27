@@ -51,7 +51,9 @@ import {
   type ProjetosTarefasTaskNode,
 } from '@/lib/projetosTarefasHierarchy';
 import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
+import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/TaskStatusTransitionDialog';
  import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
+ import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
 import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
 import {
   esforcoDaTarefa,
@@ -209,6 +211,7 @@ export function ProjetosTarefasList({
   );
   const updateTask = useUpdateOrgTask(area);
   const conclusao = useTaskCompletionHours();
+  const transicao = useTaskStatusTransition();
   // Expansao opt-in: abrir uma linha revela apenas os filhos diretos, ja fechados.
   // Assim expandir uma OS mostra os projetos sem despejar tarefas e subtarefas.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -254,6 +257,10 @@ export function ProjetosTarefasList({
   });
 
   const updateStatus = (task: OrgTask, status: OrgTaskStatus) => {
+    if (status === task.status) return;
+    // Revisão e ajuste passam pelo diálogo (revisor e detalhamento obrigatórios),
+    // igual ao quadro: é ele quem grava.
+    if (!transicao.pedirDetalhes(task, status)) return;
     if (status === 'done' && isDelegatedOrgTaskReviewer(task, currentUserId)) {
       toast.error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
       return;
@@ -487,5 +494,12 @@ export function ProjetosTarefasList({
     })}
     </div>
     <TaskCompletionHoursDialog task={conclusao.taskPendente} area={area} onClose={conclusao.fechar} />
+    <TaskStatusTransitionDialog
+      open={!!transicao.transicaoPendente}
+      onOpenChange={nextOpen => { if (!nextOpen) transicao.fechar(); }}
+      task={transicao.transicaoPendente?.task || null}
+      status={transicao.transicaoPendente?.status || 'review'}
+      area={area}
+    />
   </div>;
 }

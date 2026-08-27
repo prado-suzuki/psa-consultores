@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { useAvisoSolicitacaoEnviada } from '@/hooks/useAvisoSolicitacaoEnviada';
+import { useAvisoProjetosDaOS } from '@/hooks/useAvisoProjetosDaOS';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { computeFieldDiff } from '@/lib/diffUtils';
@@ -161,7 +161,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
   const queryKey = solicitacaoAtivaKey(clienteId);
-  const avisoDeEnvio = useAvisoSolicitacaoEnviada();
+  const avisoNosProjetos = useAvisoProjetosDaOS();
 
   const solicitacaoQuery = useQuery<SolicitacaoAtiva | null>({
     queryKey,
@@ -610,9 +610,15 @@ export function useDomainSolicitacao(clienteId: string | null) {
 
       const atual = solicitacaoQuery.data;
       if (atual) {
-        avisoDeEnvio.mutate({
-          cliente_id: atual.clienteId,
-          ordem_servico_id: atual.ordemServicoId,
+        /**
+         * Aviso 1, lado interno (GES-03). Um evento na thread de TODOS os projetos
+         * da OS e um sino por participante distinto. Antes daqui saía a resolução
+         * de "o projeto" no navegador, que não publicava nada quando a OS tinha
+         * mais de um projeto.
+         */
+        avisoNosProjetos.mutate({
+          solicitacaoId: atual.id,
+          evento: 'solicitacao_enviada',
         });
 
         /**
@@ -701,6 +707,16 @@ export function useDomainSolicitacao(clienteId: string | null) {
             solicitacao_id: atual.id,
           },
         }).catch(console.error);
+
+        /**
+         * Aviso 3, lado interno (GES-03). Mesma guarda de `enviadaEm` do aviso ao
+         * cliente, e pelo mesmo motivo: rascunho encerrado nunca chegou ao cliente,
+         * então "documentação conferida" seria falso também na thread da equipe.
+         */
+        avisoNosProjetos.mutate({
+          solicitacaoId: atual.id,
+          evento: 'documento_aprovado',
+        });
       }
     },
     onError: (error: Error) => {

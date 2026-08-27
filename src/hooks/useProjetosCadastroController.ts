@@ -251,11 +251,23 @@ export function useProjetosCadastroController(area: AreaKey) {
   // Os vínculos gravados se distribuem pelo papel que a pessoa tem NO projeto,
   // não pelo cargo dela na empresa — ver `splitProjectMembers`. Por isso este
   // efeito não depende mais de `userRoles`: ele roda assim que os membros chegam.
+  //
+  // `isModalOpen` está nas dependências, e não é decoração. Este efeito é o
+  // CARREGADOR de `leader_ids` e `member_ids`: o `handleOpenModal` abre o
+  // formulário com os dois vazios de propósito e conta com ele para preencher.
+  // Na primeira abertura ele roda porque a consulta de membros ainda estava
+  // buscando e o array muda de `[]` para os vínculos. Na segunda abertura do
+  // MESMO projeto, `editingProject` e `currentProjectMembers` voltam do cache do
+  // React Query com a MESMA referência da vez anterior: sem `isModalOpen` o
+  // efeito não roda, e a equipe aparece vazia como se o projeto fosse novo.
+  // Quem segurava o estrago era só a validação ("Selecione ao menos um Líder
+  // Geral"), que impedia salvar por cima. Fechar o modal faz o efeito rodar e
+  // sair pela guarda; reabrir faz ele rodar com os membros já em cache.
   useEffect(() => {
-    if (!editingProject || currentProjectMembers.length === 0) return;
+    if (!isModalOpen || !editingProject || currentProjectMembers.length === 0) return;
     const { leaderIds, memberIds } = splitProjectMembers(currentProjectMembers, editingProject.leader_id);
     setFormData(previous => ({ ...previous, leader_ids: leaderIds, member_ids: memberIds }));
-  }, [editingProject, currentProjectMembers]);
+  }, [isModalOpen, editingProject, currentProjectMembers]);
 
   const lideres = useMemo(() => computeLideres(teamMembers, userRoles, equipeId, equipeLiderIds, formData.leader_ids),
     [teamMembers, userRoles, equipeId, equipeLiderIds, formData.leader_ids]);

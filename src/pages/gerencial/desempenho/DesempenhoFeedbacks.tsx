@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useFeedbacks, useCreateFeedback, type Feedback } from '@/hooks/useFeedbacksDesempenho';
+import { useMemo } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoFeedbacks, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,9 +22,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import React from 'react';
 
 const tipoColors: Record<string, string> = {
-  reconhecimento: 'bg-emerald-100 text-emerald-700',
-  desenvolvimento: 'bg-amber-100 text-amber-700',
-  '360': 'bg-blue-100 text-blue-700',
+  reconhecimento: 'bg-[var(--bd-go-t)] text-[var(--bd-go-d)]',
+  desenvolvimento: 'bg-[var(--bd-warn-t)] text-[var(--bd-warn-d)]',
+  '360': 'bg-[var(--bd-blue-t)] text-[var(--bd-blue)]',
 };
 const tipoLabels: Record<string, string> = { reconhecimento: 'Reconhecimento', desenvolvimento: 'Desenvolvimento', '360': '360' };
 
@@ -29,6 +32,19 @@ const DesempenhoFeedbacks = () => {
   const { data: ciclos } = useCiclosAvaliacao();
   const { data: cicloAtivo } = useCicloAtivo();
   const { data: feedbacks, isLoading } = useFeedbacks();
+
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  // So contagem: o TEXTO do feedback nao entra no snapshot.
+  const contextoAgente = useMemo(() => contextoDesempenhoFeedbacks({
+    ciclo: cicloAtivo ? resumoDeCiclo(cicloAtivo) : null,
+    feedbacks: (feedbacks ?? []).map(f => ({
+      tipo: f.tipo, anonimo: f.anonimo,
+      visivel_para_avaliado: f.visivel_para_avaliado,
+      para_usuario_id: f.para_usuario_id ?? null, created_at: f.created_at,
+    })),
+    carregando: isLoading,
+  }), [cicloAtivo, feedbacks, isLoading]);
+  useRegistrarContextoAgente('board.desempenho.feedbacks', contextoAgente, isLoading);
   const createFeedback = useCreateFeedback();
   const { user } = useAuth();
 
@@ -86,14 +102,14 @@ const DesempenhoFeedbacks = () => {
 
         <TabsContent value="todos">
           {isLoading ? <Skeleton className="h-64" /> : (
-            <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+            <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader><TableRow><TableHead>De</TableHead><TableHead>Para</TableHead><TableHead>Tipo</TableHead><TableHead>Contexto</TableHead><TableHead>Data</TableHead><TableHead /></TableRow></TableHeader>
                   <TableBody>
                     {feedbacks?.map(f => (
                       <React.Fragment key={f.id}>
-                        <TableRow className="hover:bg-slate-50 cursor-pointer" onClick={() => setExpandedId(expandedId === f.id ? null : f.id)}>
+                        <TableRow className="hover:bg-muted cursor-pointer" onClick={() => setExpandedId(expandedId === f.id ? null : f.id)}>
                           <TableCell className="text-sm">{f.anonimo ? 'Anonimo' : getName(f.de_usuario_id)}</TableCell>
                           <TableCell className="text-sm">{getName(f.para_usuario_id)}</TableCell>
                           <TableCell><Badge className={`${tipoColors[f.tipo] ?? ''} border-0 text-xs`}>{tipoLabels[f.tipo] ?? f.tipo}</Badge></TableCell>
@@ -125,20 +141,20 @@ const DesempenhoFeedbacks = () => {
         <TabsContent value="membro">
           <div className="mb-4">
             <Select value={selectedMembro} onValueChange={setSelectedMembro}>
-              <SelectTrigger className="w-64 bg-white"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
+              <SelectTrigger className="w-64"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
               <SelectContent>{profiles.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           {membroFeedbacks && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+              <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                 <CardContent className="pt-4">
                   <h3 className="font-semibold text-sm mb-3" style={{ color: 'var(--board-t1)' }}>Recebidos ({membroFeedbacks.recebidos.length})</h3>
                   {membroFeedbacks.recebidos.map(f => renderFeedbackCard(f))}
                   {membroFeedbacks.recebidos.length === 0 && <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Nenhum feedback recebido.</p>}
                 </CardContent>
               </Card>
-              <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+              <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                 <CardContent className="pt-4">
                   <h3 className="font-semibold text-sm mb-3" style={{ color: 'var(--board-t1)' }}>Enviados ({membroFeedbacks.enviados.length})</h3>
                   {membroFeedbacks.enviados.map(f => renderFeedbackCard(f))}

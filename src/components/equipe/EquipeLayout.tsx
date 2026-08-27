@@ -125,8 +125,8 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-slate-200/60 flex-shrink-0">
               <div className="flex items-center gap-3 min-w-0">
-                <div className="h-10 w-10 rounded-xl bg-teal-500/10 flex items-center justify-center flex-shrink-0">
-                  <LayoutDashboard className="h-5 w-5 text-teal-600" />
+                <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <LayoutDashboard className="h-5 w-5 text-primary" />
                 </div>
                 <div className="min-w-0">
                   <h2 className="font-semibold text-slate-900 text-lg">Digital Rotina</h2>
@@ -157,8 +157,8 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                         variant="ghost"
                         className={`flex-1 justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                           isActive(item.path) || isChildActive(item.children)
-                            ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
-                            : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+                            ? 'bg-primary/10 text-primary hover:bg-primary/15'
+                            : 'text-slate-700 hover:bg-slate-50 hover:text-primary'
                         }`}
                         onClick={() => navigate(item.path)}
                       >
@@ -182,8 +182,8 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                           variant="ghost"
                           className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                             isActive(child.path)
-                              ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
-                              : 'text-slate-600 hover:bg-slate-50 hover:text-teal-600'
+                              ? 'bg-primary/10 text-primary hover:bg-primary/15'
+                              : 'text-slate-600 hover:bg-slate-50 hover:text-primary'
                           }`}
                           onClick={() => navigate(child.path)}
                         >
@@ -199,8 +199,8 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                     variant="ghost"
                     className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       isActive(item.path)
-                        ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15'
-                        : 'text-slate-700 hover:bg-slate-50 hover:text-teal-600'
+                        ? 'bg-primary/10 text-primary hover:bg-primary/15'
+                        : 'text-slate-700 hover:bg-slate-50 hover:text-primary'
                     }`}
                     onClick={() => navigate(item.path)}
                   >
@@ -214,8 +214,8 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
             {/* Footer Actions */}
             <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
               <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
-                <div className="h-8 w-8 rounded-full bg-teal-500/10 flex items-center justify-center">
-                  <User className="h-4 w-4 text-teal-600" />
+                <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <User className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-slate-900 truncate">
@@ -227,7 +227,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
 
               <Button
                 variant="ghost"
-                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-teal-600 transition-colors"
+                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors"
                 onClick={() => navigate('/equipe/digital')}
               >
                 <ArrowLeft className="h-4 w-4 mr-3" />
@@ -235,7 +235,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-teal-600 transition-colors"
+                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors"
                 onClick={() => navigate('/')}
               >
                 <ArrowLeft className="h-4 w-4 mr-3" />
@@ -278,7 +278,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
             <Button
               variant="ghost"
               size="icon"
-              className="relative text-slate-600 hover:text-teal-600 hover:bg-slate-50"
+              className="relative text-slate-600 hover:text-primary hover:bg-slate-50"
               // SEM espelho, de propósito. A Rotina é o chão comum e não um
               // recorte: "os chamados da Rotina" não quer dizer nada. Daqui se vê
               // a lista completa, no piso. Ver o bloco `ESPELHO` em

@@ -3,7 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { assertCanPerform } from '@/hooks/useRlsPrecheck';
+import { PROCESSANDO_TIMEOUT_MIN } from '@/components/equipe/dev/procedimentos/theme';
 import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
+
+type ProcedimentoRow = Database['public']['Tables']['procedimentos']['Row'];
+
+export type StatusGeracao = 'processando' | 'gerado' | 'erro';
+export type StatusPublicacao = 'ativo' | 'arquivado';
 
 export interface Procedimento {
   id: string;
@@ -17,14 +24,49 @@ export interface Procedimento {
   ai_complexidade: 'simples' | 'intermediario' | 'avancado' | null;
   ai_tags: string[];
   ai_cover_url: string | null;
-  status_geracao: 'processando' | 'gerado' | 'erro';
-  status_publicacao: 'ativo' | 'em_revisao' | 'arquivado';
+  status_geracao: StatusGeracao;
+  status_publicacao: StatusPublicacao;
   erro_mensagem: string | null;
   confirmado_por: string | null;
   confirmado_em: string | null;
   created_by: string | null;
   updated_at: string;
   created_at: string;
+}
+
+/**
+ * A linha do banco chega com tudo anulável e com `ai_etapas` como `Json` (a
+ * coluna é jsonb). Normalizar aqui é o que permite o resto do módulo trabalhar
+ * com `Procedimento` de verdade — antes o arquivo inteiro rodava atrás de um
+ * `from('procedimentos' as any)` com o comentário "table not yet in generated
+ * types", que já não era verdade, e por isso cada campo precisava de um
+ * `as any` na volta.
+ *
+ * `em_revisao` existe no CHECK da tabela mas nunca foi escrito por ninguém;
+ * registro antigo com esse valor é lido como 'ativo'.
+ */
+function normalizar(row: ProcedimentoRow): Procedimento {
+  return {
+    id: row.id,
+    source_url: row.source_url,
+    source_type: (row.source_type as Procedimento['source_type']) ?? 'link',
+    arquivo_path: row.arquivo_path,
+    processos_associados: row.processos_associados ?? [],
+    ai_titulo: row.ai_titulo,
+    ai_resumo: row.ai_resumo,
+    ai_etapas: Array.isArray(row.ai_etapas) ? (row.ai_etapas as unknown[]).map(String) : [],
+    ai_complexidade: (row.ai_complexidade as Procedimento['ai_complexidade']) ?? null,
+    ai_tags: row.ai_tags ?? [],
+    ai_cover_url: row.ai_cover_url,
+    status_geracao: (row.status_geracao as StatusGeracao) ?? 'processando',
+    status_publicacao: row.status_publicacao === 'arquivado' ? 'arquivado' : 'ativo',
+    erro_mensagem: row.erro_mensagem,
+    confirmado_por: row.confirmado_por,
+    confirmado_em: row.confirmado_em,
+    created_by: row.created_by,
+    updated_at: row.updated_at ?? row.created_at ?? new Date().toISOString(),
+    created_at: row.created_at ?? new Date().toISOString(),
+  };
 }
 
 interface ProcedimentoFilters {
@@ -34,20 +76,39 @@ interface ProcedimentoFilters {
   status_publicacao?: string;
 }
 
+/**
+ * Expira procedimentos travados. Vive FORA do `queryFn` da listagem de
+ * propósito: lá dentro, com o texto da busca dentro da `queryKey`, cada letra
+ * digitada disparava um UPDATE no banco. Aqui roda uma vez por montagem da
+ * página.
+ */
+export function useExpirarProcedimentosTravados() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.rpc('mark_stuck_procedimentos', {
+        timeout_minutes: PROCESSANDO_TIMEOUT_MIN,
+      });
+      if (error) throw error;
+      return data ?? 0;
+    },
+    onSuccess: (quantos) => {
+      if (quantos > 0) queryClient.invalidateQueries({ queryKey: ['procedimentos'] });
+    },
+    onError: (err) => {
+      // Não é erro de usuário: quem não tem permissão simplesmente não expira nada.
+      console.warn('mark_stuck_procedimentos falhou (ignorado):', err);
+    },
+  });
+}
+
 export function useProcedimentosList(filters: ProcedimentoFilters = {}) {
   return useQuery({
     queryKey: ['procedimentos', filters],
     queryFn: async () => {
-      // Defesa em profundidade: expira procedimentos travados há >15min
-      // antes de listar, para que zumbis virem 'erro' com retry/excluir.
-      try {
-        await supabase.rpc('mark_stuck_procedimentos' as any, { timeout_minutes: 15 } as any);
-      } catch (err) {
-        console.warn('mark_stuck_procedimentos falhou (ignorado):', err);
-      }
-
       let query = supabase
-        .from('procedimentos' as any) // table not yet in generated types
+        .from('procedimentos')
         .select('*')
         .order('created_at', { ascending: false });
 
@@ -64,29 +125,124 @@ export function useProcedimentosList(filters: ProcedimentoFilters = {}) {
       const { data, error } = await query;
       if (error) throw error;
 
-      let results = (data || []) as unknown as Procedimento[];
+      let results = (data ?? []).map(normalizar);
 
       if (filters.search) {
         const s = filters.search.toLowerCase();
         results = results.filter(
           (p) =>
             p.ai_titulo?.toLowerCase().includes(s) ||
-            p.ai_tags?.some((t) => t.toLowerCase().includes(s))
+            p.ai_resumo?.toLowerCase().includes(s) ||
+            p.ai_tags.some((t) => t.toLowerCase().includes(s)) ||
+            p.ai_etapas.some((e) => e.toLowerCase().includes(s))
         );
       }
 
       return results;
     },
-    // Polling apenas enquanto houver itens em processamento "fresco" (<10 min).
+    // Polling apenas enquanto houver itens em processamento "fresco".
     // Itens travados ficam fora para não gerar loop infinito de refetch.
     refetchInterval: (query) => {
       const data = query.state.data as Procedimento[] | undefined;
       if (!data || data.length === 0) return false;
-      const cutoff = Date.now() - 10 * 60 * 1000;
+      const cutoff = Date.now() - PROCESSANDO_TIMEOUT_MIN * 60 * 1000;
       const hasFresh = data.some(
         (p) => p.status_geracao === 'processando' && new Date(p.created_at).getTime() > cutoff
       );
       return hasFresh ? 3000 : false;
+    },
+  });
+}
+
+/**
+ * Documentação que JÁ está cadastrada no sistema e pode virar procedimento sem
+ * ninguém subir arquivo de novo.
+ *
+ * Hoje cobre os SOPs dos processos mapeados (`processes.sop_document_path` e
+ * `sop_link`), que moram no MESMO bucket `sop-documents` que a leitura usa.
+ *
+ * Ficam de fora, por enquanto, e cada um por um motivo concreto:
+ *  - `project_documents`: moram no bucket `project-documents`, e `procedimentos`
+ *    não tem coluna de bucket — a edge function leria no lugar errado.
+ *  - `processes.formatted_content`: é o procedimento já escrito em TEXTO no
+ *    banco (o caso mais fácil de todos, sem extração), mas o CHECK de
+ *    `source_type` só aceita link/pdf/docx.
+ * Os dois destravam com a mesma migration aditiva.
+ */
+export interface FonteExistente {
+  chave: string;
+  titulo: string;
+  subtitulo: string | null;
+  tipo: 'documento' | 'link';
+  arquivo_path: string | null;
+  source_url: string | null;
+  extensao: 'pdf' | 'docx' | null;
+  jaNaBiblioteca: boolean;
+}
+
+function extensaoDe(path: string): 'pdf' | 'docx' | null {
+  const ext = path.split('.').pop()?.toLowerCase();
+  return ext === 'pdf' || ext === 'docx' ? ext : null;
+}
+
+export function useFontesExistentes(habilitado: boolean) {
+  return useQuery({
+    queryKey: ['procedimentos-fontes-existentes'],
+    enabled: habilitado,
+    queryFn: async (): Promise<FonteExistente[]> => {
+      const [{ data: processos, error: erroProcessos }, { data: jaImportados }] = await Promise.all([
+        supabase
+          .from('processes')
+          .select('id, name, code, sop_document_path, sop_link')
+          .or('sop_document_path.not.is.null,sop_link.not.is.null')
+          .order('name'),
+        supabase.from('procedimentos').select('arquivo_path, source_url'),
+      ]);
+
+      if (erroProcessos) throw erroProcessos;
+
+      const usados = new Set(
+        (jaImportados ?? []).flatMap((p) => [p.arquivo_path, p.source_url].filter(Boolean) as string[])
+      );
+
+      const fontes: FonteExistente[] = [];
+
+      for (const proc of processos ?? []) {
+        const subtitulo = proc.code ? `Processo ${proc.code}` : 'Processo mapeado';
+
+        if (proc.sop_document_path) {
+          const extensao = extensaoDe(proc.sop_document_path);
+          // Só PDF e DOCX: é o que a leitura sabe extrair. Oferecer um .xlsx
+          // aqui seria repetir a promessa quebrada que este trabalho veio matar.
+          if (extensao) {
+            fontes.push({
+              chave: `doc:${proc.id}`,
+              titulo: proc.name,
+              subtitulo: `${subtitulo} — SOP em ${extensao.toUpperCase()}`,
+              tipo: 'documento',
+              arquivo_path: proc.sop_document_path,
+              source_url: null,
+              extensao,
+              jaNaBiblioteca: usados.has(proc.sop_document_path),
+            });
+          }
+        }
+
+        if (proc.sop_link) {
+          fontes.push({
+            chave: `link:${proc.id}`,
+            titulo: proc.name,
+            subtitulo: `${subtitulo} — link do SOP`,
+            tipo: 'link',
+            arquivo_path: null,
+            source_url: proc.sop_link,
+            extensao: null,
+            jaNaBiblioteca: usados.has(proc.sop_link),
+          });
+        }
+      }
+
+      return fontes;
     },
   });
 }
@@ -103,7 +259,7 @@ export function useCreateProcedimento() {
       processos_associados?: string[];
     }) => {
       const { data, error } = await supabase
-        .from('procedimentos' as any)
+        .from('procedimentos')
         .insert({
           source_type: input.source_type,
           source_url: input.source_url || null,
@@ -115,7 +271,7 @@ export function useCreateProcedimento() {
         .single();
 
       if (error) throw error;
-      const id = (data as any).id;
+      const id = data.id;
 
       // Invoke edge function asynchronously
       supabase.functions.invoke('processar-procedimento', {
@@ -134,9 +290,9 @@ export function useCreateProcedimento() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['procedimentos'] });
-      toast.success('Procedimento enviado para análise');
+      toast.success('Documento enviado para leitura. O card aparece aqui em alguns minutos.');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error('Erro ao criar procedimento: ' + err.message);
     },
   });
@@ -150,14 +306,16 @@ export function useUpdateProcedimento() {
     mutationFn: async ({
       id,
       updates,
+      detalhe,
     }: {
       id: string;
       updates: Partial<Procedimento>;
+      detalhe?: string;
     }) => {
       await assertCanPerform('procedimentos', 'update', id);
       const { error } = await supabase
-        .from('procedimentos' as any)
-        .update(updates as any)
+        .from('procedimentos')
+        .update(updates)
         .eq('id', id);
 
       if (error) throw error;
@@ -168,12 +326,14 @@ export function useUpdateProcedimento() {
         entity_id: id,
         entity_name: updates.ai_titulo || id,
         area: 'dev',
+        details: detalhe,
       });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['procedimentos'] });
+      toast.success('Procedimento atualizado');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error('Erro ao atualizar: ' + err.message);
     },
   });
@@ -188,13 +348,19 @@ export function useConfirmProcedimento() {
     mutationFn: async ({ id, updates }: { id: string; updates: Partial<Procedimento> }) => {
       await assertCanPerform('procedimentos', 'update', id);
       const { error } = await supabase
-        .from('procedimentos' as any)
+        .from('procedimentos')
         .update({
           ...updates,
           confirmado_por: user?.id,
           confirmado_em: new Date().toISOString(),
           status_publicacao: 'ativo',
-        } as any)
+          // Sem isto, confirmar um procedimento que veio de 'erro' (o caminho
+          // "Preencher manualmente") deixava o card renderizando erro para
+          // sempre e o mantinha invisível para o time — a RLS de team_member
+          // exige status_geracao = 'gerado'.
+          status_geracao: 'gerado',
+          erro_mensagem: null,
+        })
         .eq('id', id);
 
       if (error) throw error;
@@ -212,8 +378,42 @@ export function useConfirmProcedimento() {
       queryClient.invalidateQueries({ queryKey: ['procedimentos'] });
       toast.success('Procedimento confirmado e publicado');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error('Erro ao confirmar: ' + err.message);
+    },
+  });
+}
+
+export function useArquivarProcedimento() {
+  const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
+
+  return useMutation({
+    mutationFn: async ({ proc, arquivar }: { proc: Procedimento; arquivar: boolean }) => {
+      await assertCanPerform('procedimentos', 'update', proc.id);
+      const { error } = await supabase
+        .from('procedimentos')
+        .update({ status_publicacao: arquivar ? 'arquivado' : 'ativo' })
+        .eq('id', proc.id);
+
+      if (error) throw error;
+
+      logAction({
+        action: 'updated',
+        entity_type: 'procedimento',
+        entity_id: proc.id,
+        entity_name: proc.ai_titulo || proc.id,
+        area: 'dev',
+        details: arquivar ? 'Procedimento arquivado' : 'Procedimento reativado',
+      });
+      return arquivar;
+    },
+    onSuccess: (arquivou) => {
+      queryClient.invalidateQueries({ queryKey: ['procedimentos'] });
+      toast.success(arquivou ? 'Procedimento arquivado' : 'Procedimento reativado');
+    },
+    onError: (err: Error) => {
+      toast.error('Erro ao arquivar: ' + err.message);
     },
   });
 }
@@ -226,8 +426,8 @@ export function useRetryProcedimento() {
       // Reset status
       await assertCanPerform('procedimentos', 'update', id);
       await supabase
-        .from('procedimentos' as any)
-        .update({ status_geracao: 'processando', erro_mensagem: null } as any)
+        .from('procedimentos')
+        .update({ status_geracao: 'processando', erro_mensagem: null })
         .eq('id', id);
 
       // Re-invoke edge function
@@ -254,7 +454,7 @@ export function useUploadProcedimentoFile() {
       if (error) throw error;
       return path;
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error('Erro no upload: ' + err.message);
     },
   });
@@ -279,7 +479,7 @@ export function useDeleteProcedimento() {
       }
       // Delete the record
       const { error } = await supabase
-        .from('procedimentos' as any)
+        .from('procedimentos')
         .delete()
         .eq('id', proc.id);
 
@@ -297,17 +497,24 @@ export function useDeleteProcedimento() {
       queryClient.invalidateQueries({ queryKey: ['procedimentos'] });
       toast.success('Procedimento excluído');
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       toast.error('Erro ao excluir: ' + err.message);
     },
   });
 }
 
+/**
+ * URL assinada do documento anexado.
+ *
+ * `nomeParaBaixar` liga o `Content-Disposition: attachment` no Storage. Sem
+ * ele o navegador ignora o atributo `download` da âncora (a URL é de outra
+ * origem) e o clique em "Baixar documento" não baixa nada.
+ */
 export function useGetSignedUrl() {
-  return async (path: string) => {
+  return async (path: string, nomeParaBaixar?: string) => {
     const { data, error } = await supabase.storage
       .from('sop-documents')
-      .createSignedUrl(path, 3600);
+      .createSignedUrl(path, 3600, nomeParaBaixar ? { download: nomeParaBaixar } : undefined);
     if (error) throw error;
     return data.signedUrl;
   };

@@ -34,10 +34,17 @@ import { formatCurrencyDisplay } from '@/components/equipe/client-form/constants
  *                    mapa, contados e clicáveis.
  */
 
-/** RGB de `--board-indigo` (#5B6EF0). Rampa sequencial por opacidade. */
-const RAMPA_ALPHAS = [0.22, 0.38, 0.55, 0.74, 0.95];
+/**
+ * Rampa sequencial por opacidade sobre o ACENTO do Board (o teal
+ * institucional, `--bd-accent`). Era o índigo #5B6EF0 em RGB cravado.
+ * Continua em `hsl(... / alpha)` e não em token de tema porque o SVG precisa
+ * dos cinco passos ao mesmo tempo, e não existe token por passo.
+ * O rótulo da UF vira branco a partir do quarto passo (ver `fill`, abaixo),
+ * que é onde o fundo escurece o suficiente para o texto escuro falhar.
+ */
+const RAMPA_ALPHAS = [0.18, 0.34, 0.52, 0.72, 0.95];
 const corDaFaixa = (indice: number) =>
-  `rgba(91,110,240,${RAMPA_ALPHAS[Math.min(indice, RAMPA_ALPHAS.length - 1)]})`;
+  `hsl(175 82% 29% / ${RAMPA_ALPHAS[Math.min(indice, RAMPA_ALPHAS.length - 1)]})`;
 
 const PATTERN_ZERO = 'board-mapa-sem-cliente';
 
@@ -102,7 +109,7 @@ export const BoardMapaClientes = ({ clientes, escopoTotal }: BoardMapaClientesPr
           <div>
             <h2
               className="text-[15px] font-bold tracking-[-0.01em]"
-              style={{ fontFamily: "'Syne', sans-serif", color: 'var(--board-t1)' }}
+              style={{ fontFamily: "'Instrument Sans', sans-serif", letterSpacing: '-.02em', color: 'var(--board-t1)' }}
             >
               Onde estão os clientes
             </h2>
@@ -339,7 +346,7 @@ export const BoardMapaClientes = ({ clientes, escopoTotal }: BoardMapaClientesPr
           <div>
             <h3
               className="flex items-center gap-1.5 text-[13px] font-bold"
-              style={{ fontFamily: "'Syne', sans-serif", color: 'var(--board-t1)' }}
+              style={{ fontFamily: "'Instrument Sans', sans-serif", letterSpacing: '-.02em', color: 'var(--board-t1)' }}
             >
               <MapPin className="h-3.5 w-3.5" style={{ color: 'var(--board-indigo)' }} />
               {selecionado ? selecionado.nome : 'Top clientes'}

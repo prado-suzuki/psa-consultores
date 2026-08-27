@@ -22,7 +22,7 @@ interface TaskCreateFieldsProps {
 
 /**
  * Formulário de criação com a mesma anatomia da edição: título em corpo grande,
- * cartão de contexto (cliente, projeto, contribuinte, tarefa-pai), faixa de
+ * cartão de contexto (cliente, projeto, tarefa-pai), contribuinte opcional, faixa de
  * propriedades em pílulas e, por último, a descrição.
  *
  * A diferença é que aqui o contexto nasce vazio, então os selects aparecem
@@ -91,9 +91,7 @@ export function TaskCreateFields({
           )}
         />
 
-        {/* Cartão de contexto: mesma moldura que na edição mostra cliente,
-            projeto e contribuinte como texto — na criação ela guarda os próprios
-            seletores. */}
+        {/* O contexto vem da OS/projeto; na criação ele fica aberto para seleção. */}
         <div className="mt-3 grid gap-4 rounded-xl border bg-muted/30 px-4 py-3.5 sm:grid-cols-2">
           <TaskContextSelect
             form={form}
@@ -117,22 +115,6 @@ export function TaskCreateFields({
           />
           <TaskContextSelect
             form={form}
-            name="contribuinte_id"
-            label="Contribuinte"
-            icon={<Receipt className="h-3.5 w-3.5" />}
-            required
-            placeholder={clientId ? 'Selecione o contribuinte' : 'Selecione um cliente primeiro'}
-            emptyValue={undefined}
-            disabled={!clientId}
-            options={contribuintes.map((item) => ({
-              value: item.id,
-              label: item.cpf_cnpj
-                ? `${item.nome_razao_social} (${item.cpf_cnpj})`
-                : item.nome_razao_social,
-            }))}
-          />
-          <TaskContextSelect
-            form={form}
             name="parent_task_id"
             label="Tarefa Pai (subtarefa de)"
             icon={<GitBranch className="h-3.5 w-3.5" />}
@@ -140,6 +122,25 @@ export function TaskCreateFields({
             emptyValue={undefined}
             emptyLabel="Nenhuma"
             options={parentTasks.map((parent) => ({ value: parent.id, label: parent.title }))}
+          />
+        </div>
+
+        <div className="mt-3 w-full max-w-sm rounded-lg border bg-muted/20 px-3 py-2.5">
+          <TaskContextSelect
+            form={form}
+            name="contribuinte_id"
+            label="Contribuinte (opcional)"
+            icon={<Receipt className="h-3.5 w-3.5" />}
+            placeholder={clientId ? 'Selecione o contribuinte' : 'Selecione um cliente primeiro'}
+            emptyValue={undefined}
+            emptyLabel="Não informado"
+            disabled={!clientId}
+            options={contribuintes.map((item) => ({
+              value: item.id,
+              label: item.cpf_cnpj
+                ? `${item.nome_razao_social} (${item.cpf_cnpj})`
+                : item.nome_razao_social,
+            }))}
           />
         </div>
       </div>

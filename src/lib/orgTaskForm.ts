@@ -13,31 +13,61 @@ import type { StatusColorConfig } from '@/lib/taskStatusColors';
  * registradas em docs/geral/achados-taskmodal.md.
  */
 
+/**
+ * Toda mensagem daqui tem de cair em português, e é por isso que os campos
+ * obrigatórios declaram `required_error` além do `min(1)`.
+ *
+ * O `min(1)` só fala quando o valor é string vazia. Quando o campo está
+ * `undefined` — que é como o formulário carrega o que nunca foi preenchido, e
+ * como um select fica ao ser limpo — o zod nem chega na regra de tamanho e usa a
+ * mensagem padrão dele, em inglês: era o "Required" que aparecia embaixo do
+ * seletor de Contribuinte, campo que outra frente tornou opcional depois.
+ * Mesmo raciocínio no `estimated_hours`: com `coerce`,
+ * `undefined` vira `NaN` e o erro é de tipo, não de valor, então quem responde é
+ * o `invalid_type_error`.
+ */
 export const taskSchema = z
   .object({
-    title: z.string().min(1, 'Título é obrigatório'),
-    description: z.string().min(1, 'Descrição é obrigatória'),
-    status: z.enum([
-      'backlog',
-      'waiting_client',
-      'todo',
-      'in_progress',
-      'review',
-      'em_ajuste',
-      'done',
-    ]),
-    priority: z.enum(['low', 'medium', 'high', 'urgent']),
-    assigned_to: z.string().min(1, 'Responsável é obrigatório'),
+    title: z.string({ required_error: 'Título é obrigatório' }).min(1, 'Título é obrigatório'),
+    description: z
+      .string({ required_error: 'Descrição é obrigatória' })
+      .min(1, 'Descrição é obrigatória'),
+    status: z.enum(
+      [
+        'backlog',
+        'waiting_client',
+        'todo',
+        'in_progress',
+        'review',
+        'em_ajuste',
+        'done',
+      ],
+      { required_error: 'Status é obrigatório', invalid_type_error: 'Status inválido' },
+    ),
+    priority: z.enum(['low', 'medium', 'high', 'urgent'], {
+      required_error: 'Prioridade é obrigatória',
+      invalid_type_error: 'Prioridade inválida',
+    }),
+    assigned_to: z
+      .string({ required_error: 'Responsável é obrigatório' })
+      .min(1, 'Responsável é obrigatório'),
     assigned_to_name: z.string().optional(),
     reviewer_id: z.string().optional().nullable(),
     review_comment: z.string().optional(),
     start_date: z.date({ required_error: 'Data de Início é obrigatória' }),
     due_date: z.date({ required_error: 'Data de Vencimento é obrigatória' }),
     parent_task_id: z.string().optional(),
-    project_id: z.string().min(1, 'Projeto é obrigatório'),
-    client_id: z.string().min(1, 'Cliente é obrigatório'),
-    contribuinte_id: z.string().min(1, 'Contribuinte é obrigatório'),
-    estimated_hours: z.coerce.number().positive('Deve ser maior que 0'),
+    project_id: z.string({ required_error: 'Projeto é obrigatório' }).min(1, 'Projeto é obrigatório'),
+    client_id: z.string({ required_error: 'Cliente é obrigatório' }).min(1, 'Cliente é obrigatório'),
+    // Opcional por decisão de produto tomada em outra frente na develop: sem
+    // obrigatoriedade, este campo não gera mensagem de vazio nenhuma.
+    contribuinte_id: z.string().optional(),
+    estimated_hours: z.coerce
+      .number({
+        required_error: 'Esforço estimado é obrigatório',
+        invalid_type_error: 'Esforço estimado é obrigatório',
+      })
+      .positive('Deve ser maior que 0'),
     actual_hours: z
       .union([z.coerce.number(), z.literal('')])
       .optional()

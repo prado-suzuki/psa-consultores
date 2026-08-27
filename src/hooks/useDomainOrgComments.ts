@@ -323,17 +323,13 @@ export function useDownloadOrgCommentAttachment() {
   });
 }
 
-/** Abre a URL assinada do anexo em nova aba, preservando o nome original. */
-export function abrirAnexoEmNovaAba(url: string, fileName: string) {
-  const link = document.createElement('a');
-  link.href = url;
-  link.target = '_blank';
-  link.rel = 'noopener noreferrer';
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-}
+/**
+ * Abre a URL assinada do anexo em nova aba, preservando o nome original.
+ * Mora em `@/lib/baixarArquivo` desde que a Biblioteca de Procedimentos passou
+ * a precisar do mesmo comportamento; reexportado aqui para não mexer em quem
+ * já importava daqui.
+ */
+export { abrirAnexoEmNovaAba } from '@/lib/baixarArquivo';
 
 export function useDomainOrgComments(
   entityType: OrgCommentEntityType,

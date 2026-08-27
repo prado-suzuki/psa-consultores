@@ -61,7 +61,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
 
   return (
     <Dialog open={!!selectedDeliverable} onOpenChange={(open) => !open && props.onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-gray-900">
             {selectedDeliverable?.parent_id ? 'Detalhes da Subtarefa' : 'Detalhes do Entregável'}
@@ -80,7 +80,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
             <Input
               value={editForm.title}
               onChange={(event) => setEditForm({ ...editForm, title: event.target.value })}
-              className="bg-white border-gray-300 text-gray-900"
+              className="text-gray-900"
             />
           </div>
 
@@ -106,10 +106,10 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                   setEditForm({ ...editForm, assigned_to: value === 'unassigned' ? '' : value })
                 }
               >
-                <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                <SelectTrigger className="text-gray-900">
                   <SelectValue placeholder="Selecionar" />
                 </SelectTrigger>
-                <SelectContent className="bg-white">
+                <SelectContent>
                   <SelectItem value="unassigned">Não atribuído</SelectItem>
                   {props.profiles.map((profile) => (
                     <SelectItem key={profile.id} value={profile.id}>
@@ -126,10 +126,10 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 value={editForm.status}
                 onValueChange={(value) => setEditForm({ ...editForm, status: value })}
               >
-                <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                <SelectTrigger className="text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-white">
+                <SelectContent>
                   <SelectItem value="pending">A Fazer</SelectItem>
                   <SelectItem value="in_progress">Em Progresso</SelectItem>
                   <SelectItem value="completed">Concluído</SelectItem>
@@ -145,7 +145,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 type="date"
                 value={editForm.start_date}
                 onChange={(event) => setEditForm({ ...editForm, start_date: event.target.value })}
-                className="bg-white border-gray-300 text-gray-900"
+                className="text-gray-900"
               />
             </div>
             <div className="space-y-2">
@@ -154,7 +154,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 type="date"
                 value={editForm.due_date}
                 onChange={(event) => setEditForm({ ...editForm, due_date: event.target.value })}
-                className="bg-white border-gray-300 text-gray-900"
+                className="text-gray-900"
               />
             </div>
             <div className="space-y-2">
@@ -166,7 +166,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 onChange={(event) =>
                   setEditForm({ ...editForm, estimated_hours: event.target.value })
                 }
-                className="bg-white border-gray-300 text-gray-900"
+                className="text-gray-900"
                 placeholder="0"
               />
             </div>
@@ -180,7 +180,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 step="0.5"
                 value={editForm.actual_hours}
                 onChange={(event) => setEditForm({ ...editForm, actual_hours: event.target.value })}
-                className="bg-white border-amber-300 text-gray-900"
+                className="border-amber-300 text-gray-900"
                 placeholder="0"
               />
               <AvisoHorasDigitadas
@@ -260,10 +260,10 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 Excluir
               </Button>
             </AlertDialogTrigger>
-            <AlertDialogContent className="bg-white">
+            <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle className="text-gray-900">Confirmar exclusão</AlertDialogTitle>
-                <AlertDialogDescription className="text-gray-600">
+                <AlertDialogDescription>
                   Tem certeza que deseja excluir este entregável? Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
               </AlertDialogHeader>

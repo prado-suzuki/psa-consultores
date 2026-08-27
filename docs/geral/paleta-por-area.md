@@ -119,6 +119,7 @@ sobre esse fundo, ponto, barra, e fundo de badge com texto branco). No Tailwind 
 | `:root` | ninguém — é a base | marfim + verde sábio; fallback de área sem paleta | 89–122 (sábio/oliva) | vinho 343, barro 32, palha 48–54 |
 | `.tax-theme` | `FiscalLayout` | teal `#0d9488` da marca | 163–197 (teal) | tijolo 7–12, ocre 30–36 (escala `--tax-*`) |
 | `.osg-theme` | `OsgLayout` | verde musgo, dourado marca-texto, carmim | 127–160 (musgo) | carmim 356, taupe 18–19, dourado 41 |
+| `.board-theme` | `AreaThemeProvider` | teal institucional (delta: acento + superfície) | herda o do piso | herda os do piso |
 
 A OSG é a **âncora** do sistema, não a variável: a identidade dela (`--osg-moss`,
 `--osg-highlighter`, `--osg-red`, escala `--osg-*`) existia antes de haver sistema de
@@ -130,9 +131,34 @@ a outra**.
 A classe vai no `<html>` (`document.documentElement`), não num `<div>`: menus, selects e
 modais são renderizados em portal, fora da árvore da página, e ficariam sem tema.
 
-O `:root` é **base**, não a paleta da Tax. Área que ainda não declarou a sua (Board,
-Marketing, portal do cliente) cai na base — num lugar coerente, em vez de vestir a
+O `:root` é **base**, não a paleta da Tax. Área que ainda não declarou a sua
+(Marketing, portal do cliente) cai na base — num lugar coerente, em vez de vestir a
 identidade de outra área.
+
+### O Board declara acento e superfície, e HERDA os papéis
+
+Desde 21/08/2026 o Board tem `.board-theme` (ver `index.css` e `src/lib/areaTheme.ts`).
+É um **delta**, não uma paleta de área: declara o acento (o teal institucional) e as
+superfícies (neutro com cast de teal, matiz 168–180), e **herda do piso os oito papéis
+de status e os quatro tons de tag**.
+
+A herança é escolhida, não esquecida, e o motivo é este documento: não há arco verde
+livre para o Board declarar. O 163–197 é da Tax, o 127–160 é da OSG e o 89–122 é o do
+piso; a regra é "quem se move é a área nova", e não há para onde mover. O arco do piso
+(sábio) também não disputa espaço com o acento do Board (teal 175), então as pílulas de
+tarefa continuam legíveis ao lado dos cartões teal.
+
+Consequência prática: **o Board não entra em `TEMAS`, em `src/lib/paletaDeArea.ts`** —
+ele não declara papéis, logo não há papéis dele para o teste medir. Quem cobra a
+consistência dele é `areaTheme.test.ts`, que exige que todo tema seja classificado como
+*congelado* (declara as 46 variáveis do contrato) ou *delta* (declara um subconjunto,
+sem inventar variável). O `board-theme` é delta.
+
+O que o obrigou a existir: o Board era mapeado como INFRAESTRUTURA e vestia o grafite
+da `.sistema-theme`, enquanto o design system próprio dele (o bloco `--bd-*`) virou
+teal. Na tela isso deu quatro famílias ao mesmo tempo — cartão e gráfico em teal, botão
+e anel de foco em grafite, superfícies dos módulos compartilhados em marfim. Dev e
+Acessos continuam grafite: eles servem o sistema. O Board é a tela da diretoria.
 
 ### O Digital fica na base, por decisão
 

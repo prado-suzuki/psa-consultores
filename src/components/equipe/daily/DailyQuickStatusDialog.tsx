@@ -172,7 +172,7 @@ export function DailyQuickStatusDialog({
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Pesquisar por nome ou código..."
-                  className="h-11 border-white/80 bg-card/85 pl-9 shadow-sm backdrop-blur focus-visible:ring-primary"
+                  className="h-11 border-background/80 bg-card/85 pl-9 shadow-sm backdrop-blur focus-visible:ring-primary"
                 />
               </div>
               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">

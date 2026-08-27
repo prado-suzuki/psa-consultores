@@ -345,7 +345,7 @@ const ControleBalancetes = () => {
             <div className="col-span-4 space-y-2">
               <Label className="text-sm font-medium text-slate-600">Cliente <RequiredMark /></Label>
               <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
-                <SelectTrigger className="h-11 rounded-lg border-slate-200">
+                <SelectTrigger className="h-11 rounded-lg">
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
@@ -360,7 +360,7 @@ const ControleBalancetes = () => {
             <div className="col-span-4 space-y-2">
               <Label className="text-sm font-medium text-slate-600">Contribuinte <RequiredMark /></Label>
               <Select value={contribuinteId} onValueChange={setContribuinteId}>
-                <SelectTrigger className="h-11 rounded-lg border-slate-200">
+                <SelectTrigger className="h-11 rounded-lg">
                   <SelectValue placeholder="Selecione o contribuinte" />
                 </SelectTrigger>
                 <SelectContent>
@@ -380,7 +380,7 @@ const ControleBalancetes = () => {
 
           {/* Action footer */}
           <div className="flex items-center justify-between pt-5 border-t border-slate-100">
-            <Button onClick={() => setModalOpen(true)} className="gap-2 bg-lime-500 hover:bg-lime-600 text-white rounded-lg">
+            <Button onClick={() => setModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-lg">
               <Plus className="h-4 w-4" />
               Novo Balancete
             </Button>
@@ -437,11 +437,11 @@ const ControleBalancetes = () => {
                   <TableHead className="w-10">
                     <Checkbox checked={allSelected} onCheckedChange={handleToggleAll} aria-label="Selecionar todos" />
                   </TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-[340px] max-w-[340px]">Descrição</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-32 whitespace-nowrap">Período Início</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-32 whitespace-nowrap">Período Fim</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-72 whitespace-nowrap">Adicionado por</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 text-center w-36">Ações</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold w-[340px] max-w-[340px]">Descrição</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold w-32 whitespace-nowrap">Período Início</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold w-32 whitespace-nowrap">Período Fim</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold w-72 whitespace-nowrap">Adicionado por</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-center w-36">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

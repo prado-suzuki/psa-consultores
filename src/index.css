@@ -257,11 +257,52 @@ All colors MUST be HSL.
     --teal-500: 175 82% 29%;
     --teal-600: 175 84% 25%;
     --teal-700: 175 86% 20%;
-    
+    /* Degraus claros — faltavam na escala acima porque nada os consumia ainda.
+       Entraram para o dashboard de ROI (`roi.css`), que usava os tons CLAROS
+       do teal do Tailwind (#f0fdfa/#ccfbf1/#99f6e4) cravados em hex — ao
+       contrário do 500/600/700 acima, aqui o valor bate com o Tailwind cru,
+       porque não havia tom institucional a proteger nesta ponta clara da
+       escala (ela vira tint de fundo/borda, não vira `--primary`). */
+    --teal-50: 166 76% 97%;
+    --teal-100: 167 85% 89%;
+    --teal-200: 168 84% 78%;
+    /* 400 e 800 vieram de `mapa.css`, que também cravava tons claro/escuro do
+       teal Tailwind cru (mesma lógica do 50/100/200 acima) — mas num par que
+       o 50/100/200/500/600/700 não cobria. Preenchem o buraco da escala. */
+    --teal-400: 172 66% 50%;
+    --teal-800: 176 69% 22%;
+
+    /* ─── Escala slate — PRIMITIVA, mesma lógica do teal acima ──────────────
+       Cinza-azulado do Tailwind. Não existia no sistema: `--gray-*` acima é a
+       família "gray" (base #111827), família DIFERENTE do slate (base
+       #0f172a) — próximas mas não intercambiáveis. Entrou para o dashboard de
+       ROI, que tinha ~120 ocorrências de hex desta escala cravadas em
+       `roi.css`; qualquer outra tela que hoje cravar hex de slate pode migrar
+       para cá também. */
+    --slate-50: 210 40% 98%;
+    --slate-100: 210 40% 96%;
+    --slate-200: 214 32% 91%;
+    --slate-300: 213 27% 84%;
+    --slate-400: 215 20% 65%;
+    --slate-500: 215 16% 47%;
+    --slate-600: 215 19% 35%;
+    --slate-700: 215 25% 27%;
+    --slate-800: 217 33% 17%;
+    --slate-900: 222 47% 11%;
+
     /* Paleta Lime/Verde - #65A30D */
     --lime-400: 85 78% 50%;
     --lime-500: 85 85% 37%;
     --lime-600: 85 88% 30%;
+    /* Degrau 700, adicionado em 25/08 quando a divergência institucional vs.
+       Manual de Marca (ver comentário em formatadores.ts) foi resolvida a
+       favor do institucional: `formatadores.ts` tinha um LIME[700] próprio
+       (#4D7C0F, hex do manual) escolhido a dedo para dar 4,99:1 de contraste
+       em texto sobre branco — precisão que a ramp de cima não cobria. Este
+       degrau continua a MESMA curva (saturação subindo, luminosidade caindo
+       com passo decrescente: -13, -7, -6) e mede 5,22:1, então fecha o
+       mesmo contrato sem herdar o hex do manual. */
+    --lime-700: 85 90% 25%;
     
     /* Neutro da BASE — marfim/aveia quente (fundo que faz o teal saltar).
        Mesma lógica da OSG: o neutro NÃO é uma versão dessaturada do accent; é
@@ -304,7 +345,13 @@ All colors MUST be HSL.
     --gray-600: 215 14% 34%;
     --gray-700: 217 19% 27%;
     --gray-800: 215 28% 17%;
-    --gray-900: 220 26% 12%;
+    /* Era `220 26% 12%` — não batia com o próprio comentário acima ("#111827
+       base"): a conversão hex→HSL original saiu com a saturação errada (26%
+       ao invés de 39%), resultado um cinza mais lavado que o pretendido.
+       Corrigido em 25/08/2026 para bater exatamente com #111827 (confirmado
+       contra o Manual de Marca PSA e o gray-900 padrão do Tailwind, que os
+       degraus 100/200/300/950 desta mesma escala já usam sem customização). */
+    --gray-900: 221 39% 11%;
     
     --gradient-primary: linear-gradient(135deg, hsl(var(--lime-500)), hsl(var(--teal-500)));
     --gradient-dark: linear-gradient(180deg, hsl(var(--gray-900)) 0%, hsl(var(--gray-800)) 100%);
@@ -797,6 +844,82 @@ All colors MUST be HSL.
     --surface-escura-2: 35 11% 12%;
   }
 
+  /* ─── .board-theme — o Board fala a língua da marca ─────────────────────
+     ⚠️ TEM QUE VIR DEPOIS DE .base-theme (mesma especificidade: vence quem vem
+     depois). Ver o aviso no topo do `.base-theme`.
+
+     POR QUE ELE EXISTE. Até 21/08/2026 o `/equipe/board` era mapeado como
+     INFRAESTRUTURA e vestia a `.sistema-theme` — o grafite quente (35 10% 26%).
+     Ao mesmo tempo, o design system próprio do Board (o bloco `--bd-*`, no fim
+     deste arquivo) passou a ser o teal institucional. Resultado na tela, e foi
+     a usuária quem viu: os CARTÕES, gráficos, tabelas e a barra lateral em
+     teal, e todo BOTÃO, SELECT, calendário e anel de foco em grafite — mais os
+     módulos compartilhados que o Board hospeda (Capacidade monta o
+     `AreaDashboardContent`, Clientes monta a lista) inteiros em grafite sobre
+     superfície marfim. Quatro famílias na mesma tela.
+
+     A decisão que isso obrigou a tomar: o Board **não é infraestrutura**. Dev e
+     Acessos servem o sistema; o Board é a tela da DIRETORIA — a única em que
+     quem olha olha a empresa, e não uma área dela. Área de negócio veste a
+     marca. Foi uma palavra no `MAPA_DE_ROTAS` (`sistema` → `board`), como o
+     comentário de `areaTheme.ts` já previa.
+
+     É UM DELTA, não uma paleta de área nova, e a diferença é deliberada:
+
+     · declara ACENTO e SUPERFÍCIE — é o que estava brigando;
+     · NÃO declara os papéis de status nem os tons de tag. Eles continuam vindo
+       do piso (sábio/vinho), e é herança QUERIDA, não esquecimento: o arco
+       verde da base (89–122) não disputa espaço com o teal do acento (175), e
+       não há arco verde livre para o Board reclamar — o 163–197 é da Tax e o
+       127–160 é da OSG. A regra do sistema é "quem se move é a área nova"
+       (docs/geral/paleta-por-area.md), e mover para onde não há lugar seria
+       inventar uma terceira identidade verde para pintar pílula de tarefa.
+       Por isso o Board não entra em `TEMAS`, em src/lib/paletaDeArea.ts: ele
+       não declara papéis, então não há papéis dele para medir.
+
+     SUPERFÍCIE COM CAST DE TEAL, e não marfim: mesmo raciocínio da `.tax-theme`
+     quando ela moveu as dela para a matiz 170. Saturação baixíssima (14–22%) de
+     propósito — é neutro com cast, não superfície colorida: se o fundo tem cor,
+     o acento para de saltar. Os valores são os MESMOS do bloco `--bd-*`, para
+     card de shadcn e card do Board serem o mesmo branco, e fundo de página ser
+     um só.
+
+     CONTRASTE (medido, mesma tabela do bloco `--bd-*`):
+       --foreground        17,1:1 no card · 15,8:1 na página
+       --muted-foreground   5,6:1 no card ·  5,2:1 na página (era 4,6:1 na base)
+       --primary            4,40:1 com branco em cima — MESMA condição do
+                            `bg-primary` no resto do sistema, não uma regressão
+                            do Board; quem precisa de AA em texto teal usa o
+                            degrau escuro (`--bd-accent-d`, 6,7:1).           */
+  .board-theme {
+    --primary: 175 82% 29%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 175 82% 29%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 175 82% 29%;
+    --accent-foreground: 0 0% 100%;
+    --ring: 175 82% 29%;
+    --tool-icon: var(--primary);
+    --tool-icon-bg: 172 40% 94%;
+
+    --background: 168 22% 99.4%;
+    --card: 0 0% 100%;
+    --card-foreground: 178 30% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 178 30% 9%;
+    --canvas: 168 16% 96%;
+    --muted: 168 20% 98%;
+    --muted-foreground: 180 10% 38%;
+    --foreground: 178 30% 9%;
+
+    /* Faixa escura de KPI (Metas, Relatórios, Minha Evolução — e o `FaixaResumo`
+       de Ferramentas). Era o grafite quente da `.sistema-theme`; agora fecha na
+       família do acento, como o `.v4-cyb` do design system do Board já faz. */
+    --surface-escura: 178 60% 8%;
+    --surface-escura-2: 175 62% 14%;
+  }
+
+
   /* Hover das linhas de tabela na área OSG: marrom/areia claro (osg-50)
      no lugar do cinza padrão (muted). */
   .osg-theme tbody tr:hover {
@@ -809,85 +932,266 @@ All colors MUST be HSL.
     background-image: linear-gradient(to left, hsl(0 0% 0% / 0.45) 0%, transparent 75%);
   }
 
+  /* ESCALA ESCURA — "grafite quente", escolhida em 27/08/2026 olhando as três
+     candidatas em docs/geral/comparacoes-de-cor/escuro-que-nao-separa.html.
+
+     O QUE ESTAVA ERRADO, e não era contraste de texto. Cinco papéis de superfície
+     colapsavam em dois valores: `--background`, `--card` e `--popover` valiam os
+     três `215 28% 17%`, e `--muted` e `--border` valiam os dois `217 19% 27%`. Um
+     card não se separava da página, um popover não se separava do card, e uma
+     linha `muted` era indistinguível de uma borda. Faltava HIERARQUIA DE PLANO.
+     Mais dois defeitos medidos no mesmo bloco: `--destructive` a `0 63% 31%` dava
+     1,49:1 sobre o card (o vermelho de excluir era ilegível — esse token foi
+     corrigido em base, tax e rotina em 21/08 e o `.dark` ficou fora da passada), e
+     `--muted-foreground` sobre `--muted` dava 3,97:1.
+
+     POR QUE MATIZ 35, E NÃO O SLATE. O sistema é quente: `--foreground` da base é
+     `#2E1305`, o `--muted-foreground` é taupe, e o `.sistema-theme` já usa
+     `35 10% 26%` no grafite dele. O escuro era o único lugar que continuava
+     emprestando o slate frio do Tailwind — duas identidades no mesmo produto. A
+     escolha entre as candidatas foi de temperatura, não de contraste: a "A" mantinha
+     o frio e ficava mais perto do gradiente azul das telas de entrada; esta faz o
+     escuro PERTENCER à paleta, e por isso pede o gradiente na mesma família.
+
+     Os quatro planos agora se distinguem (fundo × card 1,16:1, card × popover
+     1,20:1, muted × borda 1,35:1) e nenhum texto reprova — o pior é
+     `--muted-foreground` sobre `--muted`, em 5,23:1.
+
+     A barra lateral entrou na conta: estava em matiz 240, uma TERCEIRA temperatura
+     no mesmo bloco. O acento tem nota própria mais abaixo. */
   .dark {
-    --background: 215 28% 17%;
-    --foreground: 0 0% 98%;
+    --background: 35 12% 9%;
+    --foreground: 38 14% 97%;
 
-    --card: 215 28% 17%;
-    --card-foreground: 0 0% 98%;
+    --card: 35 10% 14%;
+    --card-foreground: 38 14% 97%;
 
-    --popover: 215 28% 17%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 34 9% 19%;
+    --popover-foreground: 38 14% 97%;
 
-    --primary: 84 85% 35%;
-    --primary-foreground: 0 0% 100%;
+    /* ACENTO — `--teal-400`, escolhido em 27/08/2026 olhando
+       `docs/geral/comparacoes-de-cor/porta-de-entrada.html`.
 
-    --secondary: 84 81% 44%;
-    --secondary-foreground: 215 30% 15%;
+       O teal institucional (`175 82% 29%`, o `--primary` do piso) NÃO sobrevive ao
+       escuro: dava 4,03:1 sobre o cartão das telas de entrada como elas estão no
+       ar, e 3,51:1 sobre o cartão desta escala. Abaixo dos 4,5:1 nos dois casos —
+       o ícone do título e o "Esqueci minha senha" de `/equipe` estão nesse teal.
 
-    --muted: 217 19% 27%;
-    --muted-foreground: 220 9% 65%;
+       Era por isso que este bloco carregava um lime `84 85% 35%`: alguém precisou
+       de um acento que passasse no escuro, e o único à mão não era da marca.
+       `--teal-400` já existe no `:root` e é o teal da marca no degrau que o escuro
+       pede: 8,28:1 sobre o cartão, e 9,57:1 para o texto por cima do botão. A
+       marca fica e o contraste passa.
 
-    --accent: 84 81% 44%;
-    --accent-foreground: 0 0% 100%;
+       Os três — `--primary`, `--secondary`, `--accent` — recebem o mesmo valor
+       porque é o que todo tema claro faz (ver `.base-theme`), e `--ring` vem do
+       `--primary`. */
+    --primary: 172 66% 50%;
+    --primary-foreground: 35 12% 9%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 98%;
+    --secondary: 172 66% 50%;
+    --secondary-foreground: 35 12% 9%;
 
-    --border: 217 19% 27%;
-    --input: 217 19% 27%;
-    --ring: 84 85% 35%;
-    
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 84 85% 35%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 84 85% 35%;
+    --muted: 33 8% 23%;
+    --muted-foreground: 34 10% 69%;
+
+    --accent: 172 66% 50%;
+    --accent-foreground: 35 12% 9%;
+
+    --destructive: 6 74% 64%;
+    --destructive-foreground: 35 12% 9%;
+
+    --border: 35 9% 30%;
+    --input: 35 9% 30%;
+    --ring: 172 66% 50%;
+
+    --sidebar-background: 34 14% 8%;
+    --sidebar-foreground: 38 12% 94%;
+    --sidebar-primary: 172 66% 50%;
+    --sidebar-primary-foreground: 35 12% 9%;
+    --sidebar-accent: 33 9% 17%;
+    --sidebar-accent-foreground: 38 12% 94%;
+    --sidebar-border: 34 9% 22%;
+    --sidebar-ring: 172 66% 50%;
 
     --edit-shadow-color: 30 89% 51%;
   }
 }
 
-/* ── Board v2 Design System ── */
+/* ═══════════════════════════════════════════════════════════════════════
+   BOARD v5 — a fonte única de cor, raio e sombra da área Board
+   ═══════════════════════════════════════════════════════════════════════
+
+   POR QUE ESTE BLOCO EXISTE. O Board acumulou TRÊS gerações de tokens
+   (`--board-*` v2, `--in/--gr/--t1` v3, `--board-v4-*`), cada uma com o
+   próprio índigo, o próprio cinza-azulado e o próprio raio. Três paletas
+   parecidas-mas-não-iguais na mesma área é o que dava a sensação de tela
+   remendada: o mesmo "verde de ok" tinha três valores, e o card do
+   Estratégico não tinha o mesmo raio do card de Desempenho.
+
+   Agora as três gerações são APELIDOS destes tokens (ver os blocos abaixo).
+   Mexer aqui repinta a área inteira; mexer num apelido repinta uma tela.
+   Token novo entra AQUI, nunca num dos blocos de compatibilidade.
+
+   A IDENTIDADE. O Board é a área da DIRETORIA — a única tela onde quem olha
+   olha a empresa, não uma área dela. Por isso ela veste a marca (o teal
+   institucional `--primary`, #0D877C) e não uma identidade de área: o índigo
+   #5B6EF0 que estava aqui não vinha de lugar nenhum da marca, e brigava com
+   todo botão `bg-primary` dos módulos compartilhados que o Board hospeda
+   (Capacidade monta o `AreaDashboardContent`, Clientes monta a lista, e os
+   dois entram com o teal do tema base). Chrome índigo + conteúdo teal era
+   duas marcas na mesma tela.
+
+   O NEUTRO ACOMPANHA O ACENTO. Superfícies e linhas puxam um fio de teal
+   (matiz 168–180, saturação 10–20%): é neutro com cast, não superfície
+   colorida — se o fundo tem cor, o acento para de saltar. Mesma decisão, e
+   pelo mesmo motivo, que a `.tax-theme` tomou ao mover as superfícies dela
+   para a matiz 170. O cinza-azulado anterior (#F4F6FA, matiz 220) puxava
+   para o lado oposto do acento.
+
+   CONTRASTE. Todo tom que carrega TEXTO tem um degrau `-d` medido; o tom
+   cheio fica para área grande (barra, anel, faixa de 3px, ponto, fundo de
+   pílula). Medições sobre `--bd-surface` (#fff), `--bd-page` e o tint do
+   próprio tom, que é onde cada um vive:
+
+     ink   17,1:1 no branco · 15,8:1 na página
+     ink2   9,3:1 no branco ·  8,6:1 na página
+     ink3   5,6:1 no branco ·  5,2:1 na página · 5,0:1 no `line2`
+     ink4   5,2:1 no branco ·  4,8:1 na página · 4,6:1 no `line2`
+     accent-d  6,7:1 no branco · 5,7:1 no `accent-t` · branco em cima 6,7:1
+     go-d      idem accent-d (é o mesmo tom: no Board, "bom" é a marca)
+     warn-d    5,1:1 no branco · 4,7:1 no `warn-t`
+     risk-d    7,7:1 no branco · 6,6:1 no `risk-t`
+
+   O tom cheio `--bd-accent` dá 4,40:1 no branco — abaixo de AA para texto,
+   suficiente para marca de gráfico (3:1). É por isso que ele NUNCA pinta
+   letra e nunca recebe letra branca; quem faz isso é o `-d`. Vale para a
+   pílula ativa do menu, para o chip cheio e para o número do KPI.        */
 :root {
-  --board-sb: #0C1222;
-  --board-sb-hover: #151F35;
-  --board-sb-active: #1A2540;
-  --board-sb-txt: #6B7FA3;
-  --board-sb-txt-a: #E2E8F6;
-  --board-sb-grp: #374B6E;
-  --board-indigo: #5B6EF0;
-  --board-indigo-d: #4858CC;
-  --board-indigo-s: rgba(91,110,240,.12);
-  --board-green: #16A97C;
-  --board-green-s: rgba(22,169,124,.12);
-  --board-amber: #E8930A;
-  --board-amber-s: rgba(232,147,10,.12);
-  --board-red: #E5424A;
-  --board-red-s: rgba(229,66,74,.12);
-  --board-blue: #3B82F6;
-  --board-blue-s: rgba(59,130,246,.12);
-  --board-purple: #8054F0;
-  --board-purple-s: rgba(128,84,240,.12);
-  --board-bg: #F0F4F8;
-  --board-card: #FFFFFF;
-  --board-border: #E4EAF2;
-  --board-border-s: #F0F4F8;
-  --board-t1: #0C1222;
-  --board-t2: #3D4D6A;
-  /* Texto terciário do Board. Escurecido de #7A8BA8 em 21/08: no tom antigo ele
-     dava 3,45:1 sobre branco e 3,12:1 sobre `--board-bg` (#F0F4F8), abaixo do
-     mínimo de 4,5:1 — e é o tom de quase todo rótulo secundário do Board (56
-     sítios em 14 arquivos). Agora dá 5,42:1 e 4,91:1. Só é usado sobre
-     superfície clara; a barra lateral escura tem os `--board-sb-*` próprios. */
-  --board-t3: #5A6B84;
-  --board-t4: #A8B8CC;
-  --board-r: 12px;
-  --board-shadow: 0 1px 4px rgba(12,18,34,.07), 0 0 0 1px rgba(12,18,34,.04);
-  --board-shadow-md: 0 4px 16px rgba(12,18,34,.1), 0 0 0 1px rgba(12,18,34,.04);
+  /* ── Superfícies e linhas ──
+     ⚠️ ESTES VALORES TÊM UM PAR: a `.board-theme` (no `@layer base`, acima)
+     declara os MESMOS números nos tokens semânticos (`--canvas`, `--card`,
+     `--background`, `--muted`, `--foreground`, `--muted-foreground`). É o que
+     faz o card de um componente shadcn e o card do Board serem o mesmo branco,
+     e o fundo da página ser um só. Mexer aqui sem mexer lá reabre exatamente o
+     desencontro que a usuária viu em 21/08: chrome numa temperatura, controles
+     em outra. Não deriva um do outro por `var()` porque metade destes tokens
+     (line, line2, ink4, os degraus `-d`) não tem equivalente no contrato de
+     tema — derivação parcial seria pior que duas listas com um aviso. */
+  --bd-page:      hsl(168 16% 96%);   /* fundo da área (fora dos cards)     */
+  --bd-surface:   #FFFFFF;            /* card                               */
+  --bd-surface2:  hsl(168 20% 98%);   /* hover de linha, zebra, cabeçalho   */
+  --bd-line:      hsl(168 14% 89%);   /* borda de card, régua de tabela     */
+  --bd-line2:     hsl(168 16% 94%);   /* divisória interna, trilho de barra */
+
+  /* ── Rampa de tinta ── */
+  --bd-ink:   hsl(178 30% 9%);        /* número grande, título              */
+  --bd-ink2:  hsl(180 12% 26%);       /* corpo                              */
+  --bd-ink3:  hsl(180 10% 38%);       /* rótulo secundário, legenda         */
+  --bd-ink4:  hsl(180 11% 40%);       /* cabeçalho de tabela em caixa alta  */
+
+  /* ── Acento: o teal institucional ── */
+  --bd-accent:      #0D877C;                  /* área: anel, barra, ponto   */
+  --bd-accent-d:    hsl(175 84% 22%);         /* TEXTO e fundo com texto    */
+  --bd-accent-t:    hsl(175 82% 29% / .10);   /* tint de pílula/chip        */
+  --bd-accent-soft: hsl(172 40% 94%);         /* card tingido (KPI de topo) */
+  --bd-accent-l:    hsl(175 45% 72%);         /* série secundária no gráfico*/
+
+  /* ── Semânticos ──
+     "Bom" é o acento, de propósito: um segundo verde só para dizer "ok"
+     colocaria dois verdes a 15° na mesma tela, e a palavra já está do lado
+     ("Tudo no prazo", "Dentro da meta"). Quente é exceção — entra em espera
+     (`warn`) e problema (`risk`), como manda a paleta do sistema.          */
+  --bd-go:     var(--bd-accent);
+  --bd-go-d:   var(--bd-accent-d);
+  --bd-go-t:   var(--bd-accent-t);
+  --bd-warn:   #D4820A;
+  --bd-warn-d: #9C6007;
+  --bd-warn-t: hsl(36 91% 43% / .10);
+  --bd-risk:   #D03040;
+  --bd-risk-d: hsl(353 60% 38%);
+  --bd-risk-t: hsl(353 63% 51% / .10);
+
+  /* ── Categóricos: os tons de tag/área da marca, não hex de estoque ──
+     Eram #3478F5, #6B46E8 e #0A9BB5 — azul, roxo e ciano de web. Passam a
+     ser a ardósia (`--tag-b`), a uva (`--tag-c`) e o petróleo (`--area-5`)
+     do sistema, que já foram medidos para chip e para gráfico.             */
+  --bd-blue:     hsl(var(--tag-b));
+  --bd-blue-t:   hsl(var(--tag-b) / .10);
+  --bd-purple:   hsl(var(--tag-c));
+  --bd-purple-t: hsl(var(--tag-c) / .10);
+  --bd-cyan:     hsl(var(--area-5));
+  --bd-cyan-t:   hsl(var(--area-5) / .10);
+  /* O verde CATEGÓRICO, irmão dos dois acima. Existe porque a série da OSG em
+     "Entregas por Área" usava `--bd-go`, que é o ACENTO da marca — e acento é
+     reservado para série única/principal (regra em `clientes-os/shared.ts`).
+     Além da semântica, o validador de paleta reprovou: o teal #0D877C tem croma
+     0,097, abaixo do piso categórico, e lia como cinza-esverdeado ao lado de um
+     azul e um magenta saturados. `--tag-a` resolve as duas coisas. NÃO é
+     `--bd-go`: aquele continua sendo estado (bom/no prazo) e não deve ser
+     reaproveitado como "série 4". */
+  --bd-green:    hsl(var(--tag-a));
+  --bd-green-t:  hsl(var(--tag-a) / .10);
+
+  /* ── Forma ──
+     Raio maior e sombra mais rasa que a v4: o cartão passa a se separar do
+     fundo pela COR da página (que agora tem cast), não por sombra dura.    */
+  --bd-r:     16px;   /* card, painel                */
+  --bd-r-md:  12px;   /* controle, tile interno      */
+  --bd-r-sm:  9px;    /* chip retangular, ícone      */
+  --bd-sh:    0 1px 2px hsl(180 25% 12% / .04), 0 6px 20px -12px hsl(180 25% 12% / .16);
+  --bd-sh-md: 0 2px 6px hsl(180 25% 12% / .06), 0 14px 34px -16px hsl(180 25% 12% / .22);
+  --bd-ring:  0 0 0 3px hsl(175 82% 29% / .18);
+
+  /* Barra lateral e topo — o chrome ficou CLARO (ver BoardLayout).         */
+  --bd-chrome:        #FFFFFF;
+  --bd-chrome-hover:  hsl(170 24% 96%);
+  --bd-chrome-active: var(--bd-accent-d);
+  --bd-chrome-line:   hsl(168 14% 91%);
+}
+
+/* ── Board v2 — APELIDOS do v5 ──
+   Consumido por `.board-card`, `.board-kpi`, `.board-table`, pelo shell
+   (`BoardLayout`) e pelas telas de Desempenho. Nenhum valor mora aqui: os
+   nomes ficam para não reescrever 14 arquivos, os valores vêm do bloco v5.
+   Os `--board-sb-*` mudaram de PAPEL — a barra lateral ficou clara, então
+   `--board-sb-txt-a` deixou de ser "quase branco sobre azul-noite" e passou
+   a ser "tinta sobre branco". Quem escreve na pílula ativa (fundo escuro) é
+   o `--board-sb-on-active`, novo, porque os dois casos existem ao mesmo
+   tempo e um token não pode servir aos dois. */
+:root {
+  --board-sb: var(--bd-chrome);
+  --board-sb-hover: var(--bd-chrome-hover);
+  --board-sb-active: var(--bd-chrome-active);
+  --board-sb-txt: var(--bd-ink3);
+  --board-sb-txt-a: var(--bd-ink);
+  --board-sb-on-active: #FFFFFF;
+  --board-sb-grp: var(--bd-ink4);
+  --board-sb-line: var(--bd-chrome-line);
+  --board-indigo: var(--bd-accent);
+  --board-indigo-d: var(--bd-accent-d);
+  --board-indigo-s: var(--bd-accent-t);
+  --board-green: var(--bd-go);
+  --board-green-s: var(--bd-go-t);
+  --board-amber: var(--bd-warn);
+  --board-amber-s: var(--bd-warn-t);
+  --board-red: var(--bd-risk);
+  --board-red-s: var(--bd-risk-t);
+  --board-blue: var(--bd-blue);
+  --board-blue-s: var(--bd-blue-t);
+  --board-purple: var(--bd-purple);
+  --board-purple-s: var(--bd-purple-t);
+  --board-bg: var(--bd-page);
+  --board-card: var(--bd-surface);
+  --board-border: var(--bd-line);
+  --board-border-s: var(--bd-line2);
+  --board-t1: var(--bd-ink);
+  --board-t2: var(--bd-ink2);
+  --board-t3: var(--bd-ink3);
+  --board-t4: var(--bd-ink4);
+  --board-r: var(--bd-r);
+  --board-shadow: var(--bd-sh);
+  --board-shadow-md: var(--bd-sh-md);
 }
 
 .board-card {
@@ -917,36 +1221,32 @@ All colors MUST be HSL.
   box-shadow: var(--board-shadow-md);
   transform: translateY(-1px);
 }
-.board-kpi-bar {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  border-radius: var(--board-r) var(--board-r) 0 0;
-}
+/* Desligada: no card de 16px de raio a faixa cortava o canto, e uma grade
+   de KPIs virava um arco-iris de 3px. A cor passou para o icone. */
+.board-kpi-bar { display: none; }
 .board-kpi-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--bd-r-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 10px;
 }
 .board-kpi-val {
-  font-family: 'Syne', sans-serif;
-  font-size: 26px;
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 28px;
   font-weight: 700;
   color: var(--board-t1);
-  letter-spacing: -0.03em;
-  line-height: 1;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
   margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
 }
 .board-kpi-label {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--board-t3);
   margin-bottom: 10px;
@@ -967,38 +1267,28 @@ All colors MUST be HSL.
   border-radius: 999px;
 }
 
-.board-ai-box {
-  background: linear-gradient(135deg, rgba(91,110,240,.06), rgba(128,84,240,.06));
-  border: 1px solid rgba(91,110,240,.18);
-  border-radius: var(--board-r);
-  padding: 14px 16px;
-  position: relative;
-  overflow: hidden;
-}
-.board-ai-box::before {
-  content: '';
-  position: absolute;
-  top: -20px;
-  right: -20px;
-  width: 80px;
-  height: 80px;
-  background: radial-gradient(circle, rgba(91,110,240,.12), transparent 70%);
-  pointer-events: none;
-}
+/* A caixa de análise de IA (`.board-ai-box`, `.ai`, `.ai-box` e a família
+   `.ai-*`) SAIU deste arquivo em 21/08/2026, junto com o componente que a
+   usava: `src/components/board/BoardAIBox.tsx` foi DELETADO na mesma data, com
+   o hook `useSinteseExecutiva`. A análise de IA passou a viver no painel do
+   Agente PSA, aberto pelo ícone ao lado do título da tela, com estilo próprio
+   (`--agente-*`, no fim deste arquivo). Nenhuma classe `.ai-*` tinha consumidor
+   em src/ depois disso — conferido por grep antes de apagar. Quem procurar o
+   componente no repositório não vai achar: está no histórico do git. */
 
 .board-alert {
   display: flex;
   align-items: flex-start;
   gap: 11px;
-  padding: 11px 14px;
-  border-radius: 8px;
+  padding: 12px 14px;
+  border-radius: var(--bd-r-md);
   margin-bottom: 8px;
 }
-.board-alert-red { background: #FFF5F5; border-left: 3px solid var(--board-red); }
-.board-alert-amber { background: #FFFCF0; border-left: 3px solid var(--board-amber); }
+.board-alert-red { background: var(--bd-risk-t); border-left: 3px solid var(--board-red); }
+.board-alert-amber { background: var(--bd-warn-t); border-left: 3px solid var(--board-amber); }
 
 .board-pb {
-  background: #E8EFF7;
+  background: var(--bd-line2);
   border-radius: 999px;
   overflow: hidden;
 }
@@ -1011,11 +1301,12 @@ All colors MUST be HSL.
 .board-chip {
   display: inline-flex;
   align-items: center;
-  padding: 2px 9px;
+  padding: 3px 9px;
   border-radius: 999px;
   font-size: 10.5px;
   font-weight: 600;
   white-space: nowrap;
+  border: 1px solid transparent;
 }
 
 .board-sec-label {
@@ -1027,6 +1318,8 @@ All colors MUST be HSL.
   margin-bottom: 10px;
 }
 .board-sec-title {
+  font-family: 'Instrument Sans', sans-serif;
+  letter-spacing: -0.012em;
   font-size: 14px;
   font-weight: 600;
   color: var(--board-t1);
@@ -1038,11 +1331,11 @@ All colors MUST be HSL.
   padding: 9px 12px;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--board-t4);
   border-bottom: 1px solid var(--board-border);
-  background: #FAFCFF;
+  background: var(--bd-surface2);
   white-space: nowrap;
 }
 .board-table tbody tr {
@@ -1051,7 +1344,7 @@ All colors MUST be HSL.
   cursor: pointer;
 }
 .board-table tbody tr:hover {
-  background: #F7FAFF;
+  background: var(--bd-surface2);
 }
 .board-table tbody td {
   padding: 10px 12px;
@@ -1064,82 +1357,107 @@ All colors MUST be HSL.
   font-weight: 500;
 }
 
-/* ── Board v3 — Design System (from HTML reference) ── */
+/* ── Board v3 — APELIDOS do v5 ──
+   Nomes de uma letra herdados de um HTML de referência antigo. São
+   consumidos SÓ pelas classes `.v3-*`, `.kpi`, `.ch`, `.av`, `.hm` e `.mc`
+   deste arquivo, e essas classes só aparecem em telas do Board (medido:
+   nenhum `.tsx` fora de `/equipe/board`, `/board/desempenho` e
+   `/board/performance` as usa). Valor nenhum mora aqui.
+   `--r/--rs/--rxs` seguem o raio novo, então card v3 e card v4 voltam a ter
+   a mesma silhueta — eram 12px contra 12px com sombras diferentes. */
 :root {
-  --in:#5B6EF0;--in-d:#4858CC;--in-s:rgba(91,110,240,.11);
-  --gr:#13A87A;--gr-s:rgba(19,168,122,.11);
-  --am:#E8920A;--am-s:rgba(232,146,10,.11);
-  --re:#E0404A;--re-s:rgba(224,64,74,.11);
-  --bl:#3680F6;--bl-s:rgba(54,128,246,.11);
-  --pu:#7A50EE;--pu-s:rgba(122,80,238,.11);
-  --cy:#06B2D0;--cy-s:rgba(6,178,208,.11);
-  --go:#D4960A;--go-s:rgba(212,150,10,.12);
-  --bg:#EEF2F8;--bdr:#E0E8F4;--bdr-s:#F0F5FB;
-  /* `--t3` escurecido de #6E82A0 em 21/08: dava 3,35:1 sobre o #E6EEF8 do
-     `.v3-segs`, o trilho dos chips de período (7d / 30d / 90d) da barra de
-     filtros. Mesmo matiz e mesma saturação (H 216°, S 21%), L 53% → 42%; agora
-     4,93:1. Das 10 classes que leem `--t3`, só `.v3-seg` tem consumidor no
-     código (`BoardFilterBar`, `FaturamentoDetalhe`, `BoardDashboardClientesOs`)
-     — as outras 9 são CSS sem chamador. Todas sobre superfície clara. */
-  --t1:#0A1020;--t2:#3A4B66;--t3:#556781;--t4:#A4B5CC;
-  --r:12px;--rs:8px;--rxs:6px;
-  --sh:0 1px 4px rgba(10,16,32,.07),0 0 0 1px rgba(10,16,32,.04);
-  --shm:0 4px 18px rgba(10,16,32,.1),0 0 0 1px rgba(10,16,32,.04);
-  --shl:0 14px 40px rgba(10,16,32,.14);
+  --in:var(--bd-accent);--in-d:var(--bd-accent-d);--in-s:var(--bd-accent-t);
+  --gr:var(--bd-go);--gr-s:var(--bd-go-t);
+  --am:var(--bd-warn);--am-s:var(--bd-warn-t);
+  --re:var(--bd-risk);--re-s:var(--bd-risk-t);
+  --bl:var(--bd-blue);--bl-s:var(--bd-blue-t);
+  --pu:var(--bd-purple);--pu-s:var(--bd-purple-t);
+  --cy:var(--bd-cyan);--cy-s:var(--bd-cyan-t);
+  --go:var(--bd-warn);--go-s:var(--bd-warn-t);
+  --bg:var(--bd-page);--bdr:var(--bd-line);--bdr-s:var(--bd-line2);
+  --t1:var(--bd-ink);--t2:var(--bd-ink2);--t3:var(--bd-ink3);--t4:var(--bd-ink4);
+  --r:var(--bd-r);--rs:var(--bd-r-md);--rxs:var(--bd-r-sm);
+  --sh:var(--bd-sh);--shm:var(--bd-sh-md);--shl:var(--bd-sh-md);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   Board v3 — as classes, agora na linguagem v5
+   ═══════════════════════════════════════════════════════════════════════
+   Telas que ainda falam v3: Projetos (Clientes e OS), Clientes, Operacional,
+   Desempenho (Relatórios, Minha Evolução) e a barra de filtros do Board.
+   Elas NÃO foram reescritas — passaram a desenhar a mesma linguagem do v5,
+   para o card de Projetos ter a mesma silhueta do card do Estratégico.
+
+   Duas mudanças que valem registro:
+
+   · A FONTE. `.pgt`, `.kv`, `.snum`, `.srv`, `.cyb-n` e `.mcs-v` pediam
+     'Syne'; o v4 pede 'Instrument Sans'. Duas famílias de display na mesma
+     área, dependendo da tela em que o número nasceu. Ficou Instrument Sans
+     em todas: é a que a referência sustenta melhor em número tabular, e é a
+     que já pintava a maioria dos números do Board.
+   · A COR DO MAPA DE CALOR (`.hmc`). Era o índigo da v2 em quatro alfas.
+     Passa a ser o acento, mesma rampa de quatro passos.                    */
+
 /* Type */
-.pgt{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:var(--t1);letter-spacing:-.025em;margin-bottom:1px;}
-.pgs{font-size:12px;color:var(--t3);margin-bottom:16px;}
-.sct{font-size:13.5px;font-weight:600;color:var(--t1);margin-bottom:11px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
-.scl{font-size:9px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--t4);margin-bottom:8px;}
+.pgt{font-family:'Instrument Sans',sans-serif;font-size:23px;font-weight:700;color:var(--t1);letter-spacing:-.03em;margin-bottom:2px;}
+.pgs{font-size:12.5px;color:var(--t3);margin-bottom:18px;}
+.sct{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:600;color:var(--t1);letter-spacing:-.012em;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.scl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);margin-bottom:9px;}
 
 /* Card v3 */
-.v3-card{background:#fff;border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bdr-s);padding:16px 18px;}
+.v3-card{background:var(--bd-surface);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bdr);padding:18px 20px;}
 .v3-card-p0{padding:0;overflow:hidden;}
 
 /* Grids */
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
-.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
-.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
-.mb12{margin-bottom:12px;}
-.mb16{margin-bottom:16px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;}
+@media (max-width: 900px){
+  .g2,.g3,.g4,.g5{grid-template-columns:1fr 1fr;}
+}
+@media (max-width: 620px){
+  .g2,.g3,.g4,.g5{grid-template-columns:1fr;}
+}
+.mb12{margin-bottom:14px;}
+.mb16{margin-bottom:18px;}
 
 /* KPI v3 */
-.kpi{background:#fff;border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bdr-s);padding:14px 15px;position:relative;overflow:hidden;cursor:pointer;transition:all .18s;}
-.kpi:hover{box-shadow:var(--shm);transform:translateY(-1px);}
-.ktb{position:absolute;top:0;left:0;right:0;height:2.5px;border-radius:var(--r) var(--r) 0 0;}
-.ki{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;margin-bottom:9px;}
-.ki svg{width:14px;height:14px;}
-.kv{font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:var(--t1);letter-spacing:-.035em;line-height:1;margin-bottom:3px;}
-.kl{font-size:10.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--t3);margin-bottom:8px;}
+.kpi{background:var(--bd-surface);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bdr);padding:16px 18px;position:relative;overflow:hidden;cursor:pointer;transition:box-shadow .18s,transform .18s,border-color .18s;}
+.kpi:hover{box-shadow:var(--shm);transform:translateY(-2px);border-color:hsl(175 82% 29% / .35);}
+/* Faixa do topo desligada pelo mesmo motivo do `.si-bar` do v5: corta o raio
+   de 16px e transforma uma grade de KPIs num arco-íris de 2,5px. */
+.ktb{display:none;}
+.ki{width:34px;height:34px;border-radius:11px;display:flex;align-items:center;justify-content:center;margin-bottom:11px;}
+.ki svg{width:15px;height:15px;}
+.kv{font-family:'Instrument Sans',sans-serif;font-size:28px;font-weight:700;color:var(--t1);letter-spacing:-.045em;line-height:1.05;margin-bottom:4px;font-variant-numeric:tabular-nums;}
+.kl{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-bottom:9px;}
 .ksubs{display:flex;flex-direction:column;gap:3px;}
-.ksub{font-size:10.5px;color:var(--t3);display:flex;align-items:center;gap:4px;}
-.v3-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
-.v3-tr{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:999px;}
-.v3-tr-u{background:var(--gr-s);color:var(--gr);}
-.v3-tr-d{background:var(--re-s);color:var(--re);}
-.v3-tr-n{background:var(--bdr-s);color:var(--t3);}
+.ksub{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:5px;}
+.v3-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.v3-tr{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;}
+.v3-tr-u{background:var(--bd-go-t);color:var(--bd-go-d);}
+.v3-tr-d{background:var(--bd-risk-t);color:var(--bd-risk-d);}
+.v3-tr-n{background:var(--bd-surface2);color:var(--t3);}
 
 /* Chips */
-.ch{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;white-space:nowrap;}
-.c-tax{background:var(--bl-s);color:var(--bl);}
-.c-osg{background:var(--gr-s);color:#0C8A62;}
-.c-dev{background:var(--pu-s);color:var(--pu);}
-.c-ok{background:var(--gr-s);color:#0C8A62;}
-.c-w{background:var(--am-s);color:var(--am);}
-.c-er{background:var(--re-s);color:var(--re);}
-.c-in{background:var(--in-s);color:var(--in);}
-.c-go{background:var(--go-s);color:#A87A08;}
-.c-gy{background:var(--bdr-s);color:var(--t3);}
-.c-ppr-s{background:#D1FAE5;color:#065F46;font-size:11px;padding:3px 10px;}
-.c-ppr-a{background:#DBEAFE;color:#1E40AF;font-size:11px;padding:3px 10px;}
-.c-ppr-p{background:#FEF3C7;color:#92400E;font-size:11px;padding:3px 10px;}
-.c-ppr-b{background:#FEE2E2;color:#991B1B;font-size:11px;padding:3px 10px;}
+.ch{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:600;white-space:nowrap;border:1px solid transparent;}
+.c-tax{background:var(--bd-blue-t);color:var(--bd-blue);border-color:hsl(var(--tag-b) / .22);}
+.c-osg{background:var(--bd-go-t);color:var(--bd-go-d);border-color:hsl(175 82% 29% / .22);}
+.c-dev{background:var(--bd-purple-t);color:var(--bd-purple);border-color:hsl(var(--tag-c) / .22);}
+.c-ok{background:var(--bd-go-t);color:var(--bd-go-d);border-color:hsl(175 82% 29% / .22);}
+.c-w{background:var(--bd-warn-t);color:var(--bd-warn-d);border-color:hsl(36 91% 43% / .24);}
+.c-er{background:var(--bd-risk-t);color:var(--bd-risk-d);border-color:hsl(353 63% 51% / .22);}
+.c-in{background:var(--bd-accent-t);color:var(--bd-accent-d);border-color:hsl(175 82% 29% / .22);}
+.c-go{background:var(--bd-warn-t);color:var(--bd-warn-d);border-color:hsl(36 91% 43% / .24);}
+.c-gy{background:var(--bd-surface2);color:var(--t3);border-color:var(--bdr);}
+.c-ppr-s{background:var(--bd-go-t);color:var(--bd-go-d);border-color:hsl(175 82% 29% / .22);font-size:11px;padding:3px 10px;}
+.c-ppr-a{background:var(--bd-blue-t);color:var(--bd-blue);border-color:hsl(var(--tag-b) / .22);font-size:11px;padding:3px 10px;}
+.c-ppr-p{background:var(--bd-warn-t);color:var(--bd-warn-d);border-color:hsl(36 91% 43% / .24);font-size:11px;padding:3px 10px;}
+.c-ppr-b{background:var(--bd-risk-t);color:var(--bd-risk-d);border-color:hsl(353 63% 51% / .22);font-size:11px;padding:3px 10px;}
 
 /* Progress v3 */
-.v3-pb{background:#E0EAF4;border-radius:999px;overflow:hidden;}
+.v3-pb{background:var(--bd-line2);border-radius:999px;overflow:hidden;}
 .v3-pbf{height:100%;border-radius:999px;transition:width .5s cubic-bezier(.16,1,.3,1);}
 .v3-pb6{height:6px;}
 .v3-pb4{height:4px;}
@@ -1150,313 +1468,423 @@ All colors MUST be HSL.
 .v3-pi{background:var(--in);}
 .v3-pp{background:var(--pu);}
 
-/* AI Box */
-.ai{background:linear-gradient(135deg,rgba(91,110,240,.07),rgba(122,80,238,.05));border:1px solid rgba(91,110,240,.2);border-radius:var(--r);padding:14px 15px;position:relative;overflow:hidden;}
-.ai::after{content:'';position:absolute;top:-24px;right:-24px;width:90px;height:90px;background:radial-gradient(circle,rgba(91,110,240,.1),transparent 70%);pointer-events:none;}
-.ai-lbl{font-size:9px;font-weight:700;letter-spacing:.11em;text-transform:uppercase;color:var(--in);margin-bottom:7px;display:flex;align-items:center;gap:5px;}
-.ai-txt{font-size:12px;color:var(--t2);line-height:1.55;}
-.ai-txt strong{color:var(--t1);}
-.ai-bul{margin-top:7px;display:flex;flex-direction:column;gap:4px;}
-.ai-b{font-size:11.5px;color:var(--t2);display:flex;gap:7px;line-height:1.45;}
-.ai-b::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--in);flex-shrink:0;margin-top:5px;}
-
 /* Alert */
-.v3-al{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;border-radius:var(--rs);margin-bottom:7px;}
+.v3-al{display:flex;align-items:flex-start;gap:11px;padding:12px 14px;border-radius:var(--rs);margin-bottom:8px;}
 .v3-al:last-child{margin-bottom:0;}
-.v3-al-r{background:#FFF5F5;border-left:3px solid var(--re);}
-.v3-al-a{background:#FFFBF0;border-left:3px solid var(--am);}
-.v3-al-b{background:#F0F6FF;border-left:3px solid var(--bl);}
-.v3-al svg{width:14px;height:14px;flex-shrink:0;margin-top:1px;}
-.al-t{font-size:12px;font-weight:600;color:var(--t1);margin-bottom:1px;}
-.al-d{font-size:11px;color:var(--t3);}
-.al-act{margin-left:auto;font-size:11px;color:var(--in);font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.v3-al-r{background:var(--bd-risk-t);border-left:3px solid var(--re);}
+.v3-al-a{background:var(--bd-warn-t);border-left:3px solid var(--am);}
+.v3-al-b{background:var(--bd-blue-t);border-left:3px solid var(--bl);}
+.v3-al svg{width:15px;height:15px;flex-shrink:0;margin-top:1px;}
+.al-t{font-size:12.5px;font-weight:600;color:var(--t1);margin-bottom:1px;}
+.al-d{font-size:11.5px;color:var(--t3);}
+.al-act{margin-left:auto;font-size:11.5px;color:var(--bd-accent-d);font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;}
 
 /* Table v3 */
-.v3-tw{overflow-x:auto;}
-.v3-tw table{width:100%;border-collapse:collapse;font-size:12px;}
-.v3-tw thead th{text-align:left;padding:8px 11px;font-size:9.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--bdr);background:#FAFCFF;white-space:nowrap;}
-.v3-tw tbody tr{border-bottom:1px solid var(--bdr-s);transition:background .1s;cursor:pointer;}
-.v3-tw tbody tr:hover{background:#F5FAFF;}
-.v3-tw tbody td{padding:9px 11px;color:var(--t2);vertical-align:middle;}
+.v3-tw{overflow:auto;}
+.v3-tw table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.v3-tw thead th{text-align:left;padding:9px 12px;font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--bdr);background:var(--bd-surface2);white-space:nowrap;}
+.v3-tw tbody tr{border-bottom:1px solid var(--bdr-s);transition:background .12s;cursor:pointer;}
+.v3-tw tbody tr:last-child{border-bottom:none;}
+.v3-tw tbody tr:hover{background:var(--bd-surface2);}
+.v3-tw tbody td{padding:10px 12px;color:var(--t2);vertical-align:middle;}
 .v3-tw tbody td:first-child{color:var(--t1);font-weight:500;}
 
 /* Metric Row */
-.v3-mr{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--bdr-s);font-size:12px;}
+.v3-mr{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bdr-s);font-size:12px;}
 .v3-mr:last-child{border:none;}
 .mr-t{flex:1;color:var(--t1);font-weight:500;}
 .mr-m{display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .mr-p{font-size:11.5px;font-weight:700;min-width:28px;text-align:right;}
 
 /* Score Row */
-.v3-sr{display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--bdr-s);}
+.v3-sr{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--bdr-s);}
 .v3-sr:last-child{border:none;}
-.srk{font-family:'DM Mono',monospace;font-size:10px;color:var(--t4);min-width:16px;text-align:right;}
+.srk{font-family:'Instrument Sans',sans-serif;font-size:10.5px;font-weight:600;color:var(--t4);min-width:18px;text-align:right;}
 .srb{flex:1;display:flex;align-items:center;gap:7px;}
 .srn{min-width:106px;font-weight:500;color:var(--t1);font-size:12px;}
-.srv{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;min-width:32px;text-align:right;}
+.srv{font-family:'Instrument Sans',sans-serif;font-size:14px;font-weight:700;min-width:32px;text-align:right;}
 
-/* Filters */
-.fbar{display:flex;gap:7px;margin-bottom:14px;align-items:center;flex-wrap:wrap;}
-.v3-fi{padding:5px 10px;border:1px solid var(--bdr);border-radius:var(--rs);font-size:11.5px;font-family:inherit;color:var(--t2);background:#fff;outline:none;cursor:pointer;}
-.v3-fi:focus{border-color:var(--in);}
-.v3-segs{display:flex;background:#E6EEF8;border-radius:var(--rs);padding:3px;gap:2px;}
-.v3-seg{padding:4px 10px;border-radius:6px;font-size:11.5px;font-weight:500;cursor:pointer;color:var(--t3);border:none;background:transparent;font-family:inherit;transition:all .1s;}
-.v3-seg.on{background:#fff;color:var(--t1);box-shadow:0 1px 3px rgba(10,16,32,.09);}
+/* Filters —
+   O campo virou pílula: 999px de raio, borda no `line`, foco com anel do
+   acento em vez de troca de cor de borda (a troca sozinha não sinaliza foco
+   para quem não distingue o teal do cinza). */
+.fbar{display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap;}
+.v3-fi{padding:6px 12px;border:1px solid var(--bdr);border-radius:999px;font-size:11.5px;font-family:inherit;color:var(--t2);background:var(--bd-surface);outline:none;cursor:pointer;transition:border-color .14s,box-shadow .14s;}
+.v3-fi:hover{border-color:hsl(175 82% 29% / .4);}
+.v3-fi:focus-visible{border-color:var(--bd-accent);box-shadow:var(--bd-ring);}
+.v3-segs{display:inline-flex;background:var(--bd-accent-t);border-radius:999px;padding:3px;gap:2px;}
+.v3-seg{padding:5px 13px;border-radius:999px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--t3);border:none;background:transparent;font-family:inherit;transition:all .14s;}
+.v3-seg:hover{color:var(--t1);}
+.v3-seg.on{background:var(--bd-surface);color:var(--bd-accent-d);box-shadow:0 1px 3px hsl(180 25% 12% / .12);}
 
 /* Cycle Bar */
-.cyb{background:linear-gradient(135deg,#0A1020,#162034);border-radius:var(--r);padding:14px 18px;margin-bottom:12px;color:#fff;}
-.cyb-n{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:2px;letter-spacing:-.01em;}
-.cyb-m{font-size:11px;color:#5E7399;margin-bottom:10px;}
-.cyb-pb{background:rgba(255,255,255,.1);border-radius:999px;height:4px;}
-.cyb-pbf{height:100%;border-radius:999px;background:var(--in);}
-.cyb-bt{display:flex;justify-content:space-between;margin-top:5px;font-size:10.5px;color:#5E7399;}
+.cyb{background:linear-gradient(135deg,hsl(178 60% 11%),hsl(175 62% 18%));border-radius:var(--r);padding:16px 20px;margin-bottom:14px;color:#fff;}
+.cyb-n{font-family:'Instrument Sans',sans-serif;font-size:16px;font-weight:700;margin-bottom:3px;letter-spacing:-.015em;}
+.cyb-m{font-size:11px;color:hsl(172 30% 80%);margin-bottom:11px;}
+.cyb-pb{background:rgba(255,255,255,.14);border-radius:999px;height:5px;}
+.cyb-pbf{height:100%;border-radius:999px;background:hsl(172 60% 62%);}
+.cyb-bt{display:flex;justify-content:space-between;margin-top:6px;font-size:10.5px;color:hsl(172 30% 80%);}
 
 /* Strategic Numbers */
-.snum{font-family:'Syne',sans-serif;font-size:42px;font-weight:800;letter-spacing:-.05em;line-height:1;}
-.snum-label{font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--t3);margin-top:4px;}
+.snum{font-family:'Instrument Sans',sans-serif;font-size:40px;font-weight:700;letter-spacing:-.05em;line-height:1;font-variant-numeric:tabular-nums;}
+.snum-label{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--t3);margin-top:5px;}
 .snum-sub{font-size:11.5px;color:var(--t3);margin-top:6px;}
 
 /* Sparkline */
 .spark{display:flex;align-items:flex-end;gap:2px;height:26px;}
-.spb{flex:1;border-radius:2px 2px 0 0;min-width:3px;}
+.spb{flex:1;border-radius:3px 3px 0 0;min-width:3px;}
 
-/* Avatars */
-.av{display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;border-radius:8px;}
-.av-xs{width:22px;height:22px;font-size:9px;border-radius:5px;}
-.av-sm{width:26px;height:26px;font-size:10px;border-radius:7px;}
-.av-md{width:30px;height:30px;font-size:11px;border-radius:8px;}
-.av-lg{width:38px;height:38px;font-size:14px;border-radius:10px;}
+/* Avatars — redondos, como no v5 */
+.av{display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;border-radius:999px;}
+.av-xs{width:24px;height:24px;font-size:9.5px;}
+.av-sm{width:28px;height:28px;font-size:10.5px;}
+.av-md{width:32px;height:32px;font-size:11.5px;}
+.av-lg{width:40px;height:40px;font-size:14px;}
 
 /* Heatmap */
-.hm{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin-top:9px;}
-.hmc{height:8px;border-radius:2px;background:#DDE8F4;}
-.hmc.h1{background:rgba(91,110,240,.2);}
-.hmc.h2{background:rgba(91,110,240,.45);}
-.hmc.h3{background:rgba(91,110,240,.68);}
-.hmc.h4{background:rgba(91,110,240,.92);}
+.hm{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin-top:10px;}
+.hmc{height:9px;border-radius:3px;background:var(--bd-line2);}
+.hmc.h1{background:hsl(175 82% 29% / .2);}
+.hmc.h2{background:hsl(175 82% 29% / .45);}
+.hmc.h3{background:hsl(175 82% 29% / .68);}
+.hmc.h4{background:hsl(175 82% 29% / .92);}
 
 /* Member Card */
-.mc{background:#fff;border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bdr-s);padding:15px;cursor:pointer;transition:all .18s;}
-.mc:hover{box-shadow:var(--shm);transform:translateY(-1px);}
-.mc.warn{border-color:#FCD34D;}
-.mch{display:flex;align-items:flex-start;gap:9px;margin-bottom:11px;}
+.mc{background:var(--bd-surface);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bdr);padding:16px;cursor:pointer;transition:box-shadow .18s,transform .18s;}
+.mc:hover{box-shadow:var(--shm);transform:translateY(-2px);}
+.mc.warn{border-color:hsl(36 91% 43% / .45);}
+.mch{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;}
 .mc-n{font-size:12.5px;font-weight:600;color:var(--t1);}
-.mc-r{font-size:10.5px;color:var(--t3);margin-top:1px;}
+.mc-r{font-size:11px;color:var(--t3);margin-top:1px;}
 .mcs{display:inline-flex;flex-direction:column;gap:1px;}
-.mcs-v{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--t1);}
-.mcs-l{font-size:9.5px;color:var(--t4);}
+.mcs-v{font-family:'Instrument Sans',sans-serif;font-size:15px;font-weight:700;color:var(--t1);font-variant-numeric:tabular-nums;}
+.mcs-l{font-size:10px;color:var(--t3);}
 
-/* ── Board v4 Design System ── */
+/* ── Board v4 — APELIDOS do v5 ──
+   A geração mais usada: 20 arquivos falam `--board-v4-*`. Os nomes ficam;
+   os valores (e as medições de contraste que os justificavam) subiram para o
+   bloco v5, onde há UMA rampa em vez de três. Os degraus `-d` continuam
+   existindo com o mesmo papel de antes: `-d` pinta letra, o tom cheio pinta
+   área. `--board-v4-risk-d` é novo — o `--board-v4-risk` dava 4,32:1 sobre o
+   próprio tint no `.pill-down`, e agora quem escreve ali é o degrau escuro. */
 :root {
-  --board-v4-ink: #0D1117;
-  --board-v4-ink2: #3D4A5C;
-  /* Texto terciário da paleta v4 — o irmão do `--board-t3` (que já foi
-     escurecido em 21/08) e o tom de QUASE TODO rótulo de KPI do Estratégico:
-     "Projetos ativos", "Total de horas", "Pontualidade de entrega", "Cluster",
-     "ciclo ativo". 64 sítios em 20 arquivos, mais 6 classes aqui (`.pg-sub`,
-     `.stat-label`, `.sdot`, `.stat-sub`, `.pill-neutral`, `.chip-gy`).
-     No tom antigo (#7A8899) dava 3,61:1 sobre branco, 3,34:1 sobre
-     `--board-v4-page` e 3,21:1 sobre `--board-v4-line2` — abaixo do mínimo de
-     4,5:1 em tamanhos de 10,5 a 12px. Agora dá 5,52 / 5,10 / 4,91.
-     Mesmo matiz e mesma saturação de antes (H 213°, S 13%), só mais escuro:
-     L 54% → 42%. Nenhum dos 64 sítios fica sobre fundo escuro — a paleta v4
-     não tem superfície escura, e a barra lateral usa os `--board-sb-*`. O único
-     sítio condicional (`BoardClusterBar.tsx:84`) já troca para `#fff` quando o
-     fundo vira o azul de destaque, então não há inversão a tratar. */
-  --board-v4-ink3: #5D6A79;
-  /* O degrau mais claro da rampa de texto. Era #B0BBC8 — 1,95:1 sobre branco,
-     o pior contraste da tela, e ele pinta TEXTO de 10px: os cabeçalhos de
-     tabela do "Preenchimento do sistema" ("Área", "Projetos", "Sem resp.",
-     "Sem equipe", "Sem data", "Sem OS", "Centro de custo") e os números de
-     posição #1 a #5 da "Concentração da carteira". 12 sítios em 7 arquivos,
-     nenhum sobre fundo escuro (o único bloco escuro da v4, `.v4-cyb`, usa
-     #5E7399 e #fff crus). Agora 5,17:1 no branco e 4,78:1 no `--board-v4-page`.
-     Mesmo matiz e mesma saturação (H 212°, S 18%), L 74% → 44%.
-     CONSEQUÊNCIA a olhar: neste tom o ink4 fica quase igual ao ink3 (5,17 contra
-     5,52 no branco) — a rampa de 4 degraus vira 3 na ponta clara. Não há como
-     evitar: 4,5:1 em 10px exige esta faixa de luminosidade. A diferença entre
-     cabeçalho e texto secundário passa a vir do peso 700, da caixa alta e do
-     espaçamento de letra, que já estavam lá. */
-  --board-v4-ink4: #5C6F84;
-  --board-v4-page: #F4F6FA;
-  --board-v4-surface: #FFFFFF;
-  --board-v4-surface2: #F8FAFC;
-  --board-v4-line: #E4E9F0;
-  --board-v4-line2: #EEF2F6;
-  --board-v4-accent: #4B63F7;
-  --board-v4-go: #0EA271;
-  --board-v4-go-t: rgba(14,162,113,.1);
-  /* Degrau escuro do verde, PARA TEXTO. Aditivo, mesmo raciocínio do
-     `--board-v4-warn-d`: nada que já usava `--board-v4-go` mudou de cor.
-     #0EA271 dava 3,27:1 sobre branco e 2,93:1 sobre o próprio `-t`, que é o
-     fundo do `.pill-up` — o pill do "875% ROI", 10,5px. Mesmo matiz e mesma
-     saturação (H 160°, S 84%), L 34% → 25%: 5,71:1 no branco e 5,12:1 sobre o
-     `-t`. Dimensionado pelo tint, não pelo branco, porque é ali que ele vive. */
-  --board-v4-go-d: #0A7552;
-  --board-v4-warn: #D4820A;
-  --board-v4-warn-t: rgba(212,130,10,.1);
-  /* Degrau escuro do âmbar, PARA TEXTO. Aditivo: nada que já usava
-     `--board-v4-warn` mudou de cor. Espelha o par `--board-indigo` /
-     `--board-indigo-d` que a paleta do Board já tinha, e é o mesmo raciocínio do
-     LIME[700]: área grande (barra de gráfico, faixa de 3px, dot, fundo de pill)
-     não precisa do mínimo de texto e continua no `--board-v4-warn`; palavra e
-     número, sim. #D4820A dava 3,00:1 sobre branco. Mesmo matiz e mesma saturação
-     (H 36°, S 91%), L 43% → 32%: 5,13:1 no branco e 4,56:1 sobre o próprio
-     `-t`. */
-  --board-v4-warn-d: #9C6007;
-  --board-v4-risk: #D03040;
-  --board-v4-risk-t: rgba(208,48,64,.1);
-  --board-v4-blue: #3478F5;
-  --board-v4-blue-t: rgba(52,120,245,.09);
-  --board-v4-purple: #6B46E8;
-  --board-v4-purple-t: rgba(107,70,232,.09);
-  --board-v4-cyan: #0A9BB5;
-  --board-v4-cyan-t: rgba(10,155,181,.09);
+  --board-v4-ink:   var(--bd-ink);
+  --board-v4-ink2:  var(--bd-ink2);
+  --board-v4-ink3:  var(--bd-ink3);
+  --board-v4-ink4:  var(--bd-ink4);
+  --board-v4-page:     var(--bd-page);
+  --board-v4-surface:  var(--bd-surface);
+  --board-v4-surface2: var(--bd-surface2);
+  --board-v4-line:     var(--bd-line);
+  --board-v4-line2:    var(--bd-line2);
+  --board-v4-accent:      var(--bd-accent);
+  --board-v4-accent-d:    var(--bd-accent-d);
+  --board-v4-accent-t:    var(--bd-accent-t);
+  --board-v4-accent-soft: var(--bd-accent-soft);
+  --board-v4-accent-l:    var(--bd-accent-l);
+  --board-v4-go:     var(--bd-go);
+  --board-v4-go-d:   var(--bd-go-d);
+  --board-v4-go-t:   var(--bd-go-t);
+  --board-v4-warn:   var(--bd-warn);
+  --board-v4-warn-d: var(--bd-warn-d);
+  --board-v4-warn-t: var(--bd-warn-t);
+  --board-v4-risk:   var(--bd-risk);
+  --board-v4-risk-d: var(--bd-risk-d);
+  --board-v4-risk-t: var(--bd-risk-t);
+  --board-v4-blue:   var(--bd-blue);
+  --board-v4-blue-t: var(--bd-blue-t);
+  --board-v4-purple:   var(--bd-purple);
+  --board-v4-purple-t: var(--bd-purple-t);
+  --board-v4-cyan:   var(--bd-cyan);
+  --board-v4-cyan-t: var(--bd-cyan-t);
 }
 
-/* Área Gerencial do OSG: o dashboard nativo (board-v4) herda a paleta creme/areia
-   da OSG no lugar do cinza-azulado do Board. Precisa de `:root.osg-theme`
-   (especificidade maior que o `:root` acima) — senão o :root, por vir depois na
-   cascata, anularia a sobrescrita. Afeta só /equipe/osg/gerencial (única página
-   OSG que usa board-v4); Board e Tax ficam intactos. Gráficos/texto seguem o painel. */
+/* O dashboard "Clientes e OS" e o gerencial de chamados rodam no Board, na Tax
+   e na OSG a partir do MESMO componente, e usam os `--board-v4-*` de
+   superfície. Fora do Board eles precisam vestir as superfícies de quem os
+   hospeda — senão a Tax marfim e a OSG areia recebem o fundo do Board.
+   Antes isto era um bloco só para a OSG, com hexadecimais de areia repetidos
+   à mão; agora as duas áreas apontam para os próprios tokens semânticos, e uma
+   área nova que declare tema entra aqui com uma linha. */
+:root.tax-theme,
 :root.osg-theme {
-  --board-v4-page: hsl(32 24% 96%);
-  --board-v4-surface: hsl(32 28% 98.5%);
-  --board-v4-surface2: hsl(32 28% 92%);
-  --board-v4-line: hsl(32 20% 90%);
-  --board-v4-line2: hsl(32 22% 93%);
+  --bd-page:     hsl(var(--canvas));
+  --bd-surface:  hsl(var(--card));
+  --bd-surface2: hsl(var(--muted));
+  --bd-line:     hsl(var(--border));
+  --bd-line2:    hsl(var(--muted));
+  --bd-accent:   hsl(var(--primary));
+  /* O degrau escuro NAO pode ser o proprio `--primary`: o teal da marca da a
+     4,40:1 no branco e o musgo da OSG anda perto, e este token pinta LETRA.
+     `--status-andamento` e, por contrato da paleta de area, o acento da area
+     no degrau escuro, com AA garantido pelo teste (`paletaDeArea.test.ts`). */
+  --bd-accent-d: hsl(var(--status-andamento));
+  --bd-accent-t: hsl(var(--primary) / .10);
+  --bd-accent-soft: hsl(var(--status-andamento-soft));
+  --bd-accent-l:    hsl(var(--primary) / .35);
 }
 
-/* Board v4 Animations */
-@keyframes board-v4-fadeUp { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:translateY(0); } }
+/* ═══════════════════════════════════════════════════════════════════════
+   BOARD v5 — as classes
+   ═══════════════════════════════════════════════════════════════════════
+
+   Os NOMES continuam `.v4-*`, `.stat-*`, `.pill`, `.chip-*` — 20 arquivos os
+   consomem, e trocar nome de classe é churn sem ganho visual. O que mudou é a
+   linguagem que eles desenham, seguindo a referência de design aprovada:
+
+   1. RESPIRO — card de 16px de raio, 18/20 de padding, grade de 14px. Antes:
+      12px de raio, 16/18 de padding, grade de 12px. A tela ganhou ar sem
+      perder densidade de informação.
+   2. UM ACENTO — a faixa de KPI pintava seis cabeçalhos em seis matizes
+      (índigo, ciano, âmbar, roxo, cinza, verde). Passa a ser teal, e a cor
+      só volta a aparecer quando SIGNIFICA algo (âmbar = atenção, carmim =
+      risco). Era o maior responsável pela cara de template.
+   3. HIERARQUIA POR PESO, NÃO POR RÉGUA — a divisória vertical entre KPIs
+      saiu; cada um é um cartão. Cabeçalho de card ganhou uma linha só de
+      título + ação à direita (`.v4-card-head`), no lugar do flexbox inline
+      repetido em oito componentes.
+   4. ANEL — indicador de proporção ganhou forma própria (`.v4-ring`), que é
+      o que a referência usa para "X de Y". Barra continua para ranking e
+      para o que se compara lado a lado.                                    */
+
+/* ── Animação de entrada ── */
+@keyframes board-v4-fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
 @keyframes board-v4-grow { from { transform:scaleX(0); } to { transform:scaleX(1); } }
 @keyframes board-v4-barUp { from { transform:scaleY(0); opacity:0; } to { transform:scaleY(1); opacity:1; } }
-.fu { opacity:0; animation: board-v4-fadeUp .4s cubic-bezier(.22,1,.36,1) forwards; }
-.fu1 { animation-delay: 55ms; }
-.fu2 { animation-delay: 110ms; }
-.fu3 { animation-delay: 165ms; }
-.fu4 { animation-delay: 220ms; }
-.fu5 { animation-delay: 275ms; }
-.fu6 { animation-delay: 330ms; }
-.fu7 { animation-delay: 385ms; }
-.fu8 { animation-delay: 440ms; }
+.fu { opacity:0; animation: board-v4-fadeUp .42s cubic-bezier(.22,1,.36,1) forwards; }
+.fu1 { animation-delay: 45ms; }
+.fu2 { animation-delay: 90ms; }
+.fu3 { animation-delay: 135ms; }
+.fu4 { animation-delay: 180ms; }
+.fu5 { animation-delay: 225ms; }
+.fu6 { animation-delay: 270ms; }
+.fu7 { animation-delay: 315ms; }
+.fu8 { animation-delay: 360ms; }
+@media (prefers-reduced-motion: reduce) {
+  .fu { animation: none; opacity: 1; }
+  .stat-bar .pb, .v4-ring-fg { animation: none !important; }
+}
 
-/* Board v4 Page Header */
-.pg-head { margin-bottom: 16px; }
-.pg-title { font-family: 'Instrument Sans', sans-serif; font-size: 20px; font-weight: 700; color: var(--board-v4-ink); letter-spacing: -.025em; margin-bottom: 2px; }
-.pg-sub { font-size: 12.5px; color: var(--board-v4-ink3); }
+/* ── Cabeçalho de página ── */
+.pg-head { margin-bottom: 18px; }
+.pg-title { font-family: 'Instrument Sans', sans-serif; font-size: 23px; font-weight: 700; color: var(--bd-ink); letter-spacing: -.03em; margin-bottom: 3px; }
+.pg-sub { font-size: 12.5px; color: var(--bd-ink3); }
 .pg-chips { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
 
-/* Board v4 Stat Strip */
-.stat-strip { display: grid; background: var(--board-v4-surface); border: 1px solid var(--board-v4-line); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
-.stat-item { padding: 22px 24px 18px; position: relative; cursor: pointer; transition: background .14s; }
-.stat-item:hover { background: var(--board-v4-surface2); }
-.stat-item + .stat-item { border-left: 1px solid var(--board-v4-line); }
-.si-bar { position: absolute; top: 0; left: 0; right: 0; height: 3px; transform-origin: left; animation: board-v4-grow .7s cubic-bezier(.22,1,.36,1) both; }
-.stat-num { font-family: 'Instrument Sans', sans-serif; font-size: 32px; font-weight: 700; letter-spacing: -.04em; line-height: 1; color: var(--board-v4-ink); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
-.stat-label { font-size: 11px; font-weight: 500; color: var(--board-v4-ink3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 10px; }
+/* ── Faixa de KPIs ──
+   Deixou de ser uma "strip" com divisórias e virou uma GRADE de cartões: é o
+   que permite o cartão de destaque tingido (`.stat-item-hero`) e o anel à
+   direita sem que um item empurre o vizinho. O nome da classe fica — quem
+   passa `grid-template-columns` inline (BoardStatStrip) continua mandando no
+   número de colunas. */
+/* COLUNAS QUE DIVIDEM O NÚMERO DE ITENS, e não `auto-fit`. O `auto-fit` com
+   seis itens cabia CINCO na largura de um notebook e deixava o sexto órfão numa
+   segunda linha, ocupando um quinto da tela — apareceu na primeira olhada da
+   usuária. A regra agora é: 2 colunas no estreito, 3 no médio (seis itens saem
+   3+3, e o cartão fica largo o suficiente para o anel), e `cols` colunas quando
+   a tela tem largura de sobra. Quem passa `data-cols` é o `BoardStatStrip`. */
+.stat-strip { display: grid; gap: 14px; margin-bottom: 18px; grid-template-columns: repeat(2, 1fr); background: none; border: 0; border-radius: 0; overflow: visible; }
+@media (min-width: 700px) { .stat-strip { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1080px) {
+  .stat-strip[data-cols="4"] { grid-template-columns: repeat(4, 1fr); }
+  .stat-strip[data-cols="2"] { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1280px) { .stat-strip[data-cols="5"] { grid-template-columns: repeat(5, 1fr); } }
+@media (min-width: 1560px) { .stat-strip[data-cols="6"] { grid-template-columns: repeat(6, 1fr); } }
+.stat-item {
+  position: relative; padding: 17px 18px 16px;
+  background: var(--bd-surface); border: 1px solid var(--bd-line);
+  border-radius: var(--bd-r); box-shadow: var(--bd-sh);
+  transition: box-shadow .18s, transform .18s, border-color .18s;
+  min-width: 0;
+}
+.stat-item[data-clickable="true"] { cursor: pointer; }
+.stat-item[data-clickable="true"]:hover { box-shadow: var(--bd-sh-md); transform: translateY(-2px); border-color: hsl(175 82% 29% / .35); }
+.stat-item-hero { background: var(--bd-accent-soft); border-color: hsl(175 82% 29% / .22); }
+/* A faixa de 3px do topo saiu: no cartão de 16px de raio ela cortava o canto,
+   e seis faixas coloridas empilhadas eram o ruído que a referência não tem.
+   Quem carrega a cor agora é o ícone (`.stat-icon`) e o anel. */
+.si-bar { display: none; }
+.stat-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.stat-num { font-family: 'Instrument Sans', sans-serif; font-size: 30px; font-weight: 700; letter-spacing: -.045em; line-height: 1.05; color: var(--bd-ink); margin-bottom: 5px; font-variant-numeric: tabular-nums; }
+.stat-label { font-size: 10.5px; font-weight: 600; color: var(--bd-ink3); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 10px; }
 .stat-dots { display: flex; flex-direction: column; gap: 3px; margin-bottom: 4px; }
-.sdot { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--board-v4-ink3); }
+.sdot { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--bd-ink3); }
 .sdot-c { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-.stat-sub { font-size: 11px; color: var(--board-v4-ink3); margin-top: 2px; }
-.stat-bar { height: 3px; background: var(--board-v4-line2); border-radius: 999px; overflow: hidden; margin-top: 10px; }
-.stat-bar .pb { height: 100%; border-radius: 999px; transform-origin: left; animation: board-v4-grow .8s cubic-bezier(.22,1,.36,1) .3s both; }
+.stat-sub { font-size: 11px; color: var(--bd-ink3); margin-top: 4px; line-height: 1.45; }
+.stat-bar { height: 5px; background: var(--bd-line2); border-radius: 999px; overflow: hidden; margin-top: 11px; }
+.stat-bar .pb { height: 100%; border-radius: 999px; transform-origin: left; animation: board-v4-grow .8s cubic-bezier(.22,1,.36,1) .25s both; }
+/* Ícone do cartão: quadrado arredondado com tint do próprio tom, como na
+   referência. */
+.stat-icon { width: 34px; height: 34px; border-radius: 11px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 
-/* Board v4 Pills */
-.pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; padding: 2px 8px; border-radius: 999px; }
-/* `color` no degrau `-d` e `background` no tint normal: o pill é texto de 10,5px
-   sobre uma superfície clara, então quem precisa do mínimo é a letra, não o
-   fundo. O `.pill-down` já passa com o `--board-v4-risk` (5,03:1). */
-.pill-up { background: var(--board-v4-go-t); color: var(--board-v4-go-d); }
-.pill-down { background: var(--board-v4-risk-t); color: var(--board-v4-risk); }
-.pill-neutral { background: var(--board-v4-line2); color: var(--board-v4-ink3); }
+/* ── Anel de proporção ──
+   O componente passa `stroke-dasharray`/`stroke-dashoffset` inline (é o
+   perímetro, depende do raio). Trilho no `line2` para o vazio ler como parte
+   do desenho, e não como buraco. */
+.v4-ring { display: block; transform: rotate(-90deg); }
+.v4-ring-bg { fill: none; stroke: var(--bd-line2); }
+.v4-ring-fg { fill: none; stroke-linecap: round; transition: stroke-dashoffset .9s cubic-bezier(.22,1,.36,1); }
+.v4-ring-wrap { position: relative; flex-shrink: 0; }
+/* `overflow: hidden` e `nowrap` não são zelo: o rótulo interno é mais largo que
+   o anel de 58px e ESTAVA VAZANDO por cima da borda do cartão. Hoje o rótulo só
+   é renderizado em anel grande (ver `BoardRing`), e a guarda fica para o caso de
+   alguém passar texto comprido. */
+.v4-ring-val { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
+.v4-ring-num { font-family: 'Instrument Sans', sans-serif; font-weight: 700; color: var(--bd-ink); letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
+.v4-ring-lbl { font-size: 8.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--bd-ink3); margin-top: 2px; max-width: 100%; white-space: nowrap; }
 
-/* Board v4 AI Box */
-.ai-box { background: linear-gradient(135deg, rgba(75,99,247,.06), rgba(107,70,232,.04)); border: 1px solid rgba(75,99,247,.18); border-radius: 12px; padding: 16px 18px; position: relative; overflow: hidden; }
-.ai-box::after { content: ''; position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: radial-gradient(circle, rgba(75,99,247,.12), transparent 70%); pointer-events: none; }
-.ai-lbl { font-size: 9px; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; color: var(--board-v4-accent); margin-bottom: 7px; display: flex; align-items: center; gap: 5px; }
-.ai-text { font-size: 12.5px; color: var(--board-v4-ink2); line-height: 1.55; }
-.ai-text strong { color: var(--board-v4-ink); }
-.ai-bullets { margin-top: 7px; display: flex; flex-direction: column; gap: 4px; }
+/* ── Pílulas de variação ── */
+.pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; }
+.pill-up { background: var(--bd-go-t); color: var(--bd-go-d); }
+.pill-down { background: var(--bd-risk-t); color: var(--bd-risk-d); }
+.pill-neutral { background: var(--bd-line2); color: var(--bd-ink3); }
 
-/* Board v4 Chips */
-.board-v4-chip { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 10.5px; font-weight: 600; white-space: nowrap; }
-.chip-risk { background: var(--board-v4-risk-t); color: var(--board-v4-risk); }
-.chip-warn { background: var(--board-v4-warn-t); color: var(--board-v4-warn); }
-.chip-go { background: var(--board-v4-go-t); color: var(--board-v4-go); }
-.chip-blue { background: var(--board-v4-blue-t); color: var(--board-v4-blue); }
-.chip-purple { background: var(--board-v4-purple-t); color: var(--board-v4-purple); }
-.chip-cyan { background: var(--board-v4-cyan-t); color: var(--board-v4-cyan); }
-.chip-gy { background: var(--board-v4-line2); color: var(--board-v4-ink3); }
-.chip-ppr-s { background: #D1FAE5; color: #065F46; font-size: 11px; padding: 3px 10px; }
-.chip-ppr-a { background: #DBEAFE; color: #1E40AF; font-size: 11px; padding: 3px 10px; }
-.chip-ppr-p { background: #FEF3C7; color: #92400E; font-size: 11px; padding: 3px 10px; }
-.chip-ppr-b { background: #FEE2E2; color: #991B1B; font-size: 11px; padding: 3px 10px; }
+/* ── Chips ──
+   Ganharam borda: o chip vive tanto dentro do card branco quanto direto no
+   fundo da página, e um tint de 10% sobre a página tingida dá 1,04:1 — sem a
+   borda ele desaparecia no cabeçalho do Estratégico. */
+.board-v4-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
+.chip-risk { background: var(--bd-risk-t); color: var(--bd-risk-d); border-color: hsl(353 63% 51% / .22); }
+.chip-warn { background: var(--bd-warn-t); color: var(--bd-warn-d); border-color: hsl(36 91% 43% / .24); }
+.chip-go { background: var(--bd-go-t); color: var(--bd-go-d); border-color: hsl(175 82% 29% / .22); }
+.chip-blue { background: var(--bd-blue-t); color: var(--bd-blue); border-color: hsl(var(--tag-b) / .22); }
+.chip-purple { background: var(--bd-purple-t); color: var(--bd-purple); border-color: hsl(var(--tag-c) / .22); }
+.chip-cyan { background: var(--bd-cyan-t); color: var(--bd-cyan); border-color: hsl(var(--area-5) / .22); }
+.chip-gy { background: var(--bd-surface2); color: var(--bd-ink3); border-color: var(--bd-line); }
+.chip-solid { background: var(--bd-accent-d); color: #fff; border-color: transparent; }
+.chip-ppr-s { background: var(--bd-go-t); color: var(--bd-go-d); border-color: hsl(175 82% 29% / .22); font-size: 11px; padding: 3px 10px; }
+.chip-ppr-a { background: var(--bd-blue-t); color: var(--bd-blue); border-color: hsl(var(--tag-b) / .22); font-size: 11px; padding: 3px 10px; }
+.chip-ppr-p { background: var(--bd-warn-t); color: var(--bd-warn-d); border-color: hsl(36 91% 43% / .24); font-size: 11px; padding: 3px 10px; }
+.chip-ppr-b { background: var(--bd-risk-t); color: var(--bd-risk-d); border-color: hsl(353 63% 51% / .22); font-size: 11px; padding: 3px 10px; }
 
-/* Board v4 Card */
-.v4-card { background: var(--board-v4-surface); border: 1px solid var(--board-v4-line); border-radius: 12px; padding: 16px 18px; }
-.v4-card-title { font-family: 'Instrument Sans', sans-serif; font-size: 13.5px; font-weight: 600; color: var(--board-v4-ink); margin-bottom: 12px; }
+/* ── Card ── */
+.v4-card { background: var(--bd-surface); border: 1px solid var(--bd-line); border-radius: var(--bd-r); padding: 18px 20px; box-shadow: var(--bd-sh); }
+.v4-card-flush { padding: 0; overflow: hidden; }
+.v4-card-tint { background: var(--bd-accent-soft); border-color: hsl(175 82% 29% / .22); }
+/* Cabeçalho: título (+ subtítulo) à esquerda, controle à direita. A referência
+   põe o seletor de período no canto do próprio card, e não numa barra de
+   filtros distante do gráfico que ele governa. */
+.v4-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.v4-card-head-txt { min-width: 0; }
+.v4-card-title { font-family: 'Instrument Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--bd-ink); letter-spacing: -.012em; margin-bottom: 0; }
+.v4-card-sub { font-size: 11.5px; color: var(--bd-ink3); margin-top: 3px; line-height: 1.45; }
+.v4-card-act { display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.v4-card-note { font-size: 10.5px; color: var(--bd-ink3); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--bd-line2); line-height: 1.5; }
+.v4-card-empty { text-align: center; padding: 30px 0; color: var(--bd-ink3); font-size: 12px; }
 
-/* Board v4 Metric Row */
-.v4-mrow { display: flex; align-items: center; gap: 9px; padding: 8px 0; border-bottom: 1px solid var(--board-v4-line2); font-size: 12px; }
+/* ── Linha de métrica / de score ── */
+.v4-mrow { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--bd-line2); font-size: 12px; }
 .v4-mrow:last-child { border: none; }
-
-/* Board v4 Score Row */
-.v4-srow { display: flex; align-items: center; gap: 9px; padding: 7px 0; border-bottom: 1px solid var(--board-v4-line2); }
+.v4-mrow[data-clickable="true"] { cursor: pointer; }
+.v4-mrow[data-clickable="true"]:hover { background: var(--bd-surface2); }
+.v4-srow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--bd-line2); }
 .v4-srow:last-child { border: none; }
-.v4-srk { font-family: 'Instrument Sans', sans-serif; font-size: 10px; color: var(--board-v4-ink4); min-width: 16px; text-align: right; }
-.v4-srn { min-width: 106px; font-weight: 500; color: var(--board-v4-ink); font-size: 12px; }
+.v4-srk { font-family: 'Instrument Sans', sans-serif; font-size: 10.5px; font-weight: 600; color: var(--bd-ink4); min-width: 18px; text-align: right; }
+.v4-srn { min-width: 106px; font-weight: 500; color: var(--bd-ink); font-size: 12px; }
 .v4-srv { font-family: 'Instrument Sans', sans-serif; font-size: 14px; font-weight: 700; min-width: 32px; text-align: right; }
 
-/* Board v4 Progress Bar */
-.v4-pb { background: var(--board-v4-line2); border-radius: 999px; overflow: hidden; }
+/* ── Barra de progresso ── */
+.v4-pb { background: var(--bd-line2); border-radius: 999px; overflow: hidden; }
 .v4-pb6 { height: 6px; }
 .v4-pb4 { height: 4px; }
 .v4-pbf { height: 100%; border-radius: 999px; transition: width .5s cubic-bezier(.16,1,.3,1); }
-.v4-pg { background: var(--board-v4-go); }
-.v4-pa { background: var(--board-v4-warn); }
-.v4-pr { background: var(--board-v4-risk); }
-.v4-pi { background: var(--board-v4-accent); }
-.v4-pp { background: var(--board-v4-purple); }
+.v4-pg { background: var(--bd-go); }
+.v4-pa { background: var(--bd-warn); }
+.v4-pr { background: var(--bd-risk); }
+.v4-pi { background: var(--bd-accent); }
+.v4-pp { background: var(--bd-purple); }
 
-/* Board v4 Alert */
-.v4-alert { display: flex; align-items: flex-start; gap: 10px; padding: 10px 13px; border-radius: 8px; margin-bottom: 7px; }
+/* ── Alerta ──
+   O fundo passou a ser o tint do próprio tom (antes: três hexadecimais
+   pastel cravados, #FFF5F5 / #FFFBF0 / #F0F6FF, que não acompanhavam nem o
+   tema nem a temperatura das superfícies). */
+.v4-alert { display: flex; align-items: flex-start; gap: 11px; padding: 12px 14px; border-radius: var(--bd-r-md); margin-bottom: 8px; }
 .v4-alert:last-child { margin-bottom: 0; }
-.v4-alert-r { background: #FFF5F5; border-left: 3px solid var(--board-v4-risk); }
-.v4-alert-a { background: #FFFBF0; border-left: 3px solid var(--board-v4-warn); }
-.v4-alert-b { background: #F0F6FF; border-left: 3px solid var(--board-v4-blue); }
+.v4-alert-r { background: var(--bd-risk-t); border-left: 3px solid var(--bd-risk); }
+.v4-alert-a { background: var(--bd-warn-t); border-left: 3px solid var(--bd-warn); }
+.v4-alert-b { background: var(--bd-blue-t); border-left: 3px solid var(--bd-blue); }
+.v4-alert-g { background: var(--bd-go-t); border-left: 3px solid var(--bd-go); }
 
-/* Board v4 Cycle Bar */
-.v4-cyb { background: linear-gradient(135deg, #0D1117, #162034); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; color: #fff; }
-.v4-cyb-n { font-family: 'Instrument Sans', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 2px; letter-spacing: -.01em; }
-.v4-cyb-m { font-size: 11px; color: #5E7399; margin-bottom: 10px; }
-.v4-cyb-pb { background: rgba(255,255,255,.1); border-radius: 999px; height: 4px; }
-.v4-cyb-pbf { height: 100%; border-radius: 999px; background: var(--board-v4-accent); }
-.v4-cyb-bt { display: flex; justify-content: space-between; margin-top: 5px; font-size: 10.5px; color: #5E7399; }
+/* ── Faixa de ciclo ──
+   Era um gradiente azul-noite (#0D1117 → #162034) — o único bloco escuro da
+   área, agora que a barra lateral clareou. Virou teal profundo: continua
+   sendo o bloco de maior peso da tela, e passa a ser da marca. */
+.v4-cyb { background: linear-gradient(135deg, hsl(178 60% 11%), hsl(175 62% 18%)); border-radius: var(--bd-r); padding: 16px 20px; margin-bottom: 18px; color: #fff; }
+.v4-cyb-n { font-family: 'Instrument Sans', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 3px; letter-spacing: -.015em; }
+.v4-cyb-m { font-size: 11px; color: hsl(172 30% 80%); margin-bottom: 11px; }
+.v4-cyb-pb { background: rgba(255,255,255,.14); border-radius: 999px; height: 5px; }
+.v4-cyb-pbf { height: 100%; border-radius: 999px; background: hsl(172 60% 62%); }
+.v4-cyb-bt { display: flex; justify-content: space-between; margin-top: 6px; font-size: 10.5px; color: hsl(172 30% 80%); }
 
-/* Board v4 Member Card */
-.v4-mc { background: var(--board-v4-surface); border: 1px solid var(--board-v4-line); border-radius: 12px; padding: 15px; cursor: pointer; transition: all .18s; }
-.v4-mc:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08); transform: translateY(-1px); }
-.v4-mc.v4-mc-warn { border-color: #FCD34D; }
+/* ── Cartão de membro ── */
+.v4-mc { background: var(--bd-surface); border: 1px solid var(--bd-line); border-radius: var(--bd-r); padding: 16px; cursor: pointer; transition: all .18s; box-shadow: var(--bd-sh); }
+.v4-mc:hover { box-shadow: var(--bd-sh-md); transform: translateY(-2px); }
+.v4-mc.v4-mc-warn { border-color: hsl(36 91% 43% / .45); }
 
-/* Board v4 Grids */
-.v4-g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-.v4-g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+/* ── Grades ── */
+.v4-g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.v4-g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.v4-g21 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 18px; }
+@media (max-width: 900px) {
+  .v4-g2, .v4-g3, .v4-g21 { grid-template-columns: 1fr; }
+}
 
-/* Board v4 Section */
-.v4-stitle { font-family: 'Instrument Sans', sans-serif; font-size: 13.5px; font-weight: 600; color: var(--board-v4-ink); margin-bottom: 12px; }
-.v4-slabel { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--board-v4-ink4); margin-bottom: 10px; }
+/* ── Rótulos de seção ── */
+.v4-stitle { font-family: 'Instrument Sans', sans-serif; font-size: 14px; font-weight: 600; color: var(--bd-ink); margin-bottom: 14px; letter-spacing: -.012em; }
+.v4-slabel { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--bd-ink4); margin-bottom: 10px; }
 
-/* Board v4 Avatar */
-.v4-av { display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; flex-shrink: 0; border-radius: 8px; }
-.v4-av-sm { width: 26px; height: 26px; font-size: 10px; border-radius: 7px; }
-.v4-av-lg { width: 38px; height: 38px; font-size: 14px; border-radius: 10px; }
+/* ── Avatar ──
+   Redondo, como na referência (era quadrado de 8px de raio). Retrato de
+   pessoa é redondo; quadrado arredondado fica para ícone de ferramenta. */
+.v4-av { display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; flex-shrink: 0; border-radius: 999px; background: var(--bd-accent-d); }
+.v4-av-sm { width: 28px; height: 28px; font-size: 10.5px; }
+.v4-av-lg { width: 40px; height: 40px; font-size: 14px; }
 
+/* ── Tabela ──
+   A referência resolve tabela com cabeçalho em caixa alta minúscula, régua só
+   embaixo da linha e hover de linha inteira — sem grade vertical. Estas
+   classes substituem os objetos `th`/`td` inline que cada dashboard do Board
+   redeclarava. */
+.v4-tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.v4-tbl thead th {
+  text-align: left; padding: 9px 12px; font-size: 10px; font-weight: 700;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--bd-ink4);
+  border-bottom: 1px solid var(--bd-line); background: var(--bd-surface2);
+  white-space: nowrap; position: sticky; top: 0; z-index: 2;
+}
+.v4-tbl tbody tr { border-bottom: 1px solid var(--bd-line2); transition: background .12s; }
+.v4-tbl tbody tr:last-child { border-bottom: none; }
+.v4-tbl tbody tr:hover { background: var(--bd-surface2); }
+.v4-tbl tbody td { padding: 10px 12px; color: var(--bd-ink2); vertical-align: middle; }
+.v4-tbl tbody td:first-child { color: var(--bd-ink); font-weight: 500; }
+.v4-tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+.v4-tbl-wrap { overflow: auto; border-radius: var(--bd-r-md); }
+
+/* ── Barra de ferramentas / segmentado ──
+   O trilho cinza-azulado do segmentado (#E6EEF8) virou tint do acento, e o
+   botão ligado ficou branco com sombra — é o seletor de período da
+   referência. */
+.v4-toolbar {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  background: var(--bd-surface); border: 1px solid var(--bd-line);
+  border-radius: var(--bd-r); box-shadow: var(--bd-sh);
+  padding: 11px 16px; margin-bottom: 18px;
+}
+.v4-seg { display: inline-flex; background: var(--bd-accent-t); border-radius: 999px; padding: 3px; gap: 2px; }
+.v4-seg-btn {
+  padding: 5px 13px; border-radius: 999px; font-size: 11.5px; font-weight: 600;
+  cursor: pointer; color: var(--bd-ink3); border: none; background: transparent;
+  font-family: inherit; transition: all .14s; white-space: nowrap;
+}
+.v4-seg-btn:hover { color: var(--bd-ink); }
+.v4-seg-btn.on { background: var(--bd-surface); color: var(--bd-accent-d); box-shadow: 0 1px 3px hsl(180 25% 12% / .12); }
 
 /* ── Board v3 legacy (kept for compat) ── */
 .board-strategic-num {
-  font-family: 'Syne', sans-serif;
-  font-size: 42px;
+  font-family: 'Instrument Sans', sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 40px;
   font-weight: 700;
   color: var(--board-t1);
   letter-spacing: -0.03em;
@@ -1487,7 +1915,7 @@ All colors MUST be HSL.
   filter: brightness(0.97);
 }
 .board-rule-row .rule-faixa {
-  font-family: 'Syne', sans-serif;
+  font-family: 'Instrument Sans', sans-serif;
   font-size: 18px;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -1510,57 +1938,61 @@ All colors MUST be HSL.
 .board-rec-box:hover {
   box-shadow: var(--board-shadow-md);
 }
-.board-rec-promote { background: #ECFDF5; border-color: #6EE7B7; }
-.board-rec-adjust { background: #FFFBEB; border-color: #FCD34D; }
-.board-rec-monitor { background: #FFF5F5; border-color: #FCA5A5; }
+/* Pastel de estoque (#ECFDF5 / #FFFBEB / #FFF5F5) trocado pelos tints dos
+   proprios papeis: promover = acento, ajustar = ambar, monitorar = carmim. */
+.board-rec-promote { background: var(--bd-go-t); border-color: hsl(175 82% 29% / .3); }
+.board-rec-adjust { background: var(--bd-warn-t); border-color: hsl(36 91% 43% / .32); }
+.board-rec-monitor { background: var(--bd-risk-t); border-color: hsl(353 63% 51% / .3); }
 
 /* Self-service header (Minha Evolucao) */
 .board-self-header {
-  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  background: linear-gradient(135deg, hsl(178 60% 11%) 0%, hsl(175 62% 18%) 100%);
   border-radius: var(--board-r);
   padding: 24px;
-  color: #E2E8F6;
+  color: hsl(172 30% 92%);
 }
 
 /* Comment boxes */
 .board-comment-box {
-  border-radius: 10px;
+  border-radius: var(--bd-r-md);
   padding: 14px 16px;
   border: 1px solid var(--board-border);
   transition: border-color .15s;
 }
 .board-comment-box.unread {
   border-color: var(--board-indigo);
-  background: rgba(91,110,240,.04);
+  background: var(--bd-accent-t);
 }
 
 /* Report preview */
 .board-report-header {
-  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  background: linear-gradient(135deg, hsl(178 60% 11%) 0%, hsl(175 62% 18%) 100%);
   border-radius: var(--board-r) var(--board-r) 0 0;
   padding: 24px;
-  color: #E2E8F6;
+  color: hsl(172 30% 92%);
 }
 
 /* ===== Board Filter Bar v3 ===== */
+/* Mesma silhueta do `.v4-toolbar`: a barra de filtros e um card, nao uma
+   regua cinza. Raio, borda e sombra saem dos tokens do Board. */
 .v3-fbar {
-  background: #FFFFFF;
-  border: 1px solid hsl(var(--border));
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,.07);
-  padding: 10px 16px;
+  background: var(--bd-surface);
+  border: 1px solid var(--bd-line);
+  border-radius: var(--bd-r);
+  box-shadow: var(--bd-sh);
+  padding: 11px 16px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 18px;
 }
 .v3-fi-label {
   font-size: 9.5px;
   font-weight: 700;
   letter-spacing: .09em;
   text-transform: uppercase;
-  color: hsl(var(--muted-foreground));
+  color: var(--bd-ink4);
   white-space: nowrap;
 }
 .v3-fi-badge {
@@ -1570,9 +2002,9 @@ All colors MUST be HSL.
   font-size: 11px;
   font-weight: 600;
   padding: 2px 8px;
-  border-radius: 6px;
-  background: #EEF2FF;
-  color: #4F46E5;
+  border-radius: 999px;
+  background: var(--bd-accent-t);
+  color: var(--bd-accent-d);
 }
 .v3-fi-reset {
   display: inline-flex;
@@ -1627,6 +2059,155 @@ All colors MUST be HSL.
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ROI — tokens do Dashboard e do Wizard "Configurar ROI"
+   ═══════════════════════════════════════════════════════════════════════
+   Fonte única de cor de `roi.css` (módulo mapa/ROI). O arquivo tinha ~250
+   ocorrências de hex cravado — a maior concentração do repositório — porque
+   nasceu antes deste sistema de tokens e nunca foi migrado.
+
+   NÃO é o mesmo sistema dos papéis semânticos do topo (`--success`,
+   `--warning`, `--destructive`): o ROI já tinha o SEU PRÓPRIO conjunto de
+   tons "sóbrios e institucionais" (comentário original do arquivo), calibrado
+   para conviver com a paleta PSA teal/navy/lime — trocá-los pelos papéis
+   globais mudaria a cor renderizada. Esta migração é 1-para-1: mesmo hex,
+   agora em HSL e com nome, zero pixel diferente.
+
+   `--roi-status-*` e os degraus `--roi-badge-*` seguem o MESMO contrato
+   fg/bg/bd um do outro (texto, fundo, borda de uma pílula), só que nasceram
+   em dois momentos diferentes do arquivo — o wizard (`--roi-status-*`,
+   4 estados: ok/warn/crit/zero) e o template de dashboard mais antigo
+   (`--roi-badge-*`, 4 badges de fase: mapeamento/diagnóstico/melhorias/roi).
+   Onde os dois já usavam o MESMO hex (ex.: `--roi-status-warn-fg` e o texto
+   do badge "mapeamento" são ambos #92400e), o segundo referencia o primeiro
+   em vez de repetir o número — ver os `var()` abaixo.
+
+   Os tons de uso único (uma cor, um lugar) — `--roi-goal-marker`,
+   `--roi-mat-track`, os dois `--roi-cyan-*` do experimento "to-be" da
+   Cascata — entram do mesmo jeito: um nome, não um hex solto no meio da
+   regra. Generalizá-los numa escala emerald/amber/blue/violet completa (como
+   `--slate-*`/`--teal-*` acima) é o próximo passo natural, mas não o desta
+   migração — o objetivo aqui foi zerar o hex cravado de `roi.css`, não
+   redesenhar o sistema de badges. */
+:root {
+  /* Fundo escuro do hero, do quote de recomendação e do cabeçalho do heatmap
+     — a paleta "navy" que dá nome ao trio teal/navy/lime do cabeçalho de
+     `roi.css`. Não é `--surface-escura` (o par do tema): aqueles alimentam um
+     gradiente de DOIS tons herdado pela área; este é um terceiro tom bespoke,
+     só do ROI, que aparece puro (heatmap) ou como stop de gradiente (hero). */
+  --roi-navy-deep: 222 42% 13%; /* #131b2e */
+  --roi-teal-deep: 176 61% 19%; /* #134e4a — meio-tom do gradiente escuro */
+  --roi-lime: 86 54% 51%; /* #8bc63f — acento lima do hero/quote */
+
+  /* Status do wizard "Configurar ROI" — 4 estados, contrato fg/bg/bd. */
+  --roi-status-ok-fg: 175 77% 26%; /* #0f766e */
+  --roi-status-ok-bg: var(--teal-50);
+  --roi-status-ok-bd: var(--teal-200);
+  --roi-status-warn-fg: 23 83% 31%; /* #92400e */
+  --roi-status-warn-bg: 48 100% 96%; /* #fffbeb */
+  --roi-status-warn-bd: 48 97% 77%; /* #fde68a */
+  --roi-status-crit-fg: 0 70% 35%; /* #991b1b */
+  --roi-status-crit-bg: 0 86% 97%; /* #fef2f2 */
+  --roi-status-crit-bd: 0 96% 89%; /* #fecaca */
+  --roi-status-zero-fg: var(--slate-500);
+  --roi-status-zero-bg: var(--slate-50);
+  --roi-status-zero-bd: var(--slate-200);
+
+  /* Badges de fase do dashboard (template mais antigo, `.status-badge`). */
+  --roi-badge-mapeamento-bg: 48 96% 89%; /* #fef3c7 — fg reusa --roi-status-warn-fg */
+  --roi-badge-mapeamento-bd: 46 97% 65%; /* #fcd34d */
+  --roi-badge-diagnostico-fg: 226 71% 40%; /* #1e40af */
+  --roi-badge-diagnostico-bg: 214 95% 93%; /* #dbeafe */
+  --roi-badge-diagnostico-bd: 212 96% 78%; /* #93c5fd */
+  --roi-badge-melhorias-fg: 263 69% 42%; /* #5b21b6 */
+  --roi-badge-melhorias-bg: 251 91% 95%; /* #ede9fe */
+  --roi-badge-melhorias-bd: 252 95% 85%; /* #c4b5fd */
+  --roi-badge-roi-fg: 163 88% 20%; /* #065f46 */
+  --roi-badge-roi-bg: 149 80% 90%; /* #d1fae5 — também cor do texto do pill-success do hero */
+  --roi-badge-roi-bd: 156 72% 67%; /* #6ee7b7 */
+
+  /* Verde "sucesso" fora do contrato ok/warn/crit — número/badge isolado. */
+  --roi-emerald-strong: 161 94% 30%; /* #059669 */
+  --roi-emerald-fg: 163 94% 24%; /* #047857 */
+  --roi-emerald-tint-bg: 152 81% 96%; /* #ecfdf5 */
+  --roi-emerald-tint-bd: 152 76% 80%; /* #a7f3d0 */
+  --roi-pill-success: 160 84% 39%; /* #10b981 — pill do hero, translúcido */
+
+  /* Variação de KPI (seta positiva/negativa dos cartões `dashv2-kpi-var`). */
+  --roi-kpi-positive-fg: 143 64% 24%; /* #166534 */
+  --roi-kpi-positive-bg: 141 84% 93%; /* #dcfce7 */
+  --roi-kpi-negative-bg: 0 93% 94%; /* #fee2e2 — fg reusa --roi-status-crit-fg */
+
+  /* Amber "warning" fora do contrato ok/warn/crit — borda/gradiente de KPI. */
+  --roi-warn-strong: 26 90% 37%; /* #b45309 */
+  --roi-warn-tint: 33 100% 96%; /* #fff7ed */
+
+  /* Vermelho/verde vivos — barras "atual vs. futuro" e pills do hero (mais
+     saturados que o crit/ok sóbrio do wizard, de propósito: ali é comparação
+     visual rápida, não rótulo de leitura). */
+  --roi-danger: 0 84% 60%; /* #ef4444 */
+  --roi-danger-light: 0 94% 82%; /* #fca5a5 */
+  --roi-success-light: 158 64% 52%; /* #34d399 */
+
+  /* Progress meter do wizard — dois estados que não repetem em nenhum outro
+     token acima. */
+  --roi-progress-warn: 32 95% 44%; /* #d97706 */
+  --roi-progress-crit: 0 74% 42%; /* #b91c1c */
+
+  /* Usos únicos — um hex, um lugar. */
+  --roi-highlight-tint: 183 100% 96%; /* #ecfeff — card de destaque + tag "to-be" da Cascata */
+  --roi-cyan-fg: 194 70% 27%; /* #155e75 — texto da tag "to-be" */
+  --roi-cyan-bd: 186 94% 82%; /* #a5f3fc — borda da tag "to-be" */
+  --roi-goal-marker: 224 64% 33%; /* #1e3a8a — marcador de meta no bullet chart */
+  --roi-mat-track: 210 31% 95%; /* #eef2f6 — trilho da barra de maturidade */
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   MAPA — tokens do módulo `mapa.css`
+   ═══════════════════════════════════════════════════════════════════════
+   `mapa.css` já tinha um bloco `.app-root{}` com variáveis PRÓPRIAS e bem
+   nomeadas (`--primary-color`, `--surface`, `--status-mapping` etc.) — só
+   que em hex, não HSL, e sem ligação com o resto do sistema de tokens.
+   Onde o hex batia com algo que já existe (`--slate-*`, `--teal-*`,
+   `--primary`, tokens do ROI), a variável do `.app-root` passou a
+   REFERENCIAR daqui em vez de repetir o número. O que sobrou — cores que só
+   este módulo usa — mora nesta seção, seguindo o mesmo padrão de comentário
+   do bloco ROI acima. */
+:root {
+  /* Rampa "Material surface" do mapa — só usada nas variáveis `--surface*`
+     do `.app-root`; nenhuma delas aparece crua em outro lugar do arquivo. */
+  --mapa-surface: 231 100% 99%; /* #f8f9ff */
+  --mapa-surface-container: 221 100% 95%; /* #e6eeff */
+  --mapa-surface-container-low: 221 100% 97%; /* #eff4ff */
+  --mapa-surface-container-high: 218 100% 93%; /* #dce9ff */
+  --mapa-on-surface: 213 56% 12%; /* #0d1c2e */
+
+  /* Status "melhoria"/"roi" do `.status-badge-v2` — mapping/diagnostic
+     reaproveitam slate/teal já existentes; estes dois são só do mapa. */
+  --mapa-status-improvement-fg: 224 76% 48%; /* #1d4ed8 */
+  --mapa-status-improvement-bg: 214 100% 97%; /* #eff6ff */
+  --mapa-status-improvement-bd: 214 95% 93%; /* #dbeafe */
+  --mapa-status-roi-fg: 336 74% 35%; /* #9d174d */
+  --mapa-status-roi-bg: 327 73% 97%; /* #fdf2f8 */
+  --mapa-status-roi-bd: 326 78% 95%; /* #fce7f3 */
+
+  /* Tag "etapa"/"sistema" (laranja) dos cartões de gargalo/etapa — o par
+     "processo"/"pessoa" (verde) já é `--roi-kpi-positive-*`. */
+  --mapa-tag-etapa-bg: 34 100% 92%; /* #ffedd5 */
+  --mapa-tag-etapa-fg: 15 79% 34%; /* #9a3412 */
+
+  /* Contador do cabeçalho de grupo (índigo). */
+  --mapa-grupo-count-bg: 226 100% 94%; /* #e0e7ff */
+  --mapa-grupo-count-fg: 244 55% 41%; /* #3730a3 */
+
+  /* Nó "retrabalho" do diagrama da Cascata — vermelho mais vivo que o
+     `--roi-danger`/`--roi-status-crit-fg` já tokenizados, usado só ali. */
+  --mapa-cascata-danger: 0 72% 51%; /* #dc2626 */
+
+  /* Borda tracejada do aviso de "sistema pendente". */
+  --mapa-warn-border: 43 96% 56%; /* #fbbf24 */
 }
 
 /* Editor de conteúdo de modelos (TipTap) — ver EditorConteudoModelo.tsx */
@@ -1789,4 +2370,371 @@ All colors MUST be HSL.
 
 .tarefa-richtext .hljs-strong {
   font-weight: 600;
+}
+
+/* ==========================================================================
+   AGENTE PSA — balão flutuante, painel e compositor
+   ==========================================================================
+   Painel ESCURO em qualquer área do sistema, de propósito: o agente atravessa
+   telas de tema claro (Board), creme (OSG) e grafite (Acessos), e um painel
+   que muda de claro para escuro a cada aba pareceria outro produto.
+
+   MAS a MATIZ do escuro segue o tema (correção de 21/08). O painel nascia com
+   #111827 cravado -- azul-marinho -- e isso era cor de fora do sistema fingindo
+   ser token. Agora o piso é `--surface-escura-2`, o token que a casa já tinha
+   para cartão escuro (definido acima, ~linha 435), e o painel repinta junto com
+   o tema. Os DEGRAUS internos (cabeçalho, compositor, bolha do usuário) são
+   branco translúcido, não hex: seguem o piso sozinhos.
+
+   Não use `color-mix` aqui: custom property não valida valor, então um fallback
+   em hex NUNCA aplicaria e o navegador sem suporte cairia em transparente.
+
+   ── Por que `ink3` e `accent` são mais CLAROS do que pareceria necessário ──
+
+   O Board virou teal em 21/08 (`.board-theme`, `--surface-escura-2: 175 62% 14%`).
+   Sobre esse piso os dois tokens REPROVARAM: `ink3` #8E9CB5 dava 3,57 e o
+   `accent` #8AA2FF dava 4,10 no degrau 3. E baixar o alfa do degrau não
+   resolvia -- a 4% o ink3 ainda dava 4,03 -- porque cinza-AZULADO sobre verde
+   não separa por luminosidade, separa por matiz, e matiz não conta para WCAG.
+   A saída foi clarear os dois tokens até passarem no PIOR piso, e o piso pior
+   é o teal. Nos outros dois eles só ficaram com mais folga.
+
+   Contraste MEDIDO nos três pisos que a rota pode dar, no degrau 3 (o pior):
+
+                       teal          frio         grafite
+                    175 62% 14%   222 47% 11%    35 11% 12%
+     --agente-ink       9,1          13,2          11,9
+     --agente-ink2      6,1           8,9           8,0
+     --agente-ink3      4,8           6,9           6,2
+     --agente-accent    4,9           7,1           6,3
+
+   O degrau 3 é 8% e não 10% pelo mesmo motivo, medido antes do teal entrar: a
+   10% o ink3 sobre o grafite dava 4,37. Mexer em qualquer um destes quatro
+   valores exige re-medir sobre o TEAL, que é onde a margem é fina.
+   ========================================================================== */
+:root {
+  --agente-surface: hsl(var(--surface-escura-2));
+  --agente-surface2: rgba(255, 255, 255, .055);
+  --agente-surface3: rgba(255, 255, 255, .08);
+  --agente-line: rgba(255, 255, 255, .10);
+  --agente-ink: #F2F5FB;
+  --agente-ink2: #C2CCDE;
+  --agente-ink3: #AAB4C7;
+  --agente-accent: #9EB2FF;
+  --agente-risk: #FF8A94;
+  --agente-go: #5FD6A4;
+  --agente-warn: #F3C167;
+}
+
+/* ── Balão ───────────────────────────────────────────────────────────────── */
+/* Em REPOUSO ele é discreto de propósito (decisão de 21/08): 46px e
+   translúcido. A objeção legítima ao balão era aparecer numa apresentação da
+   diretoria -- e a resposta certa para isso é o balão ficar quieto, não um
+   segundo ponto de entrada. Ganha presença no hover e no foco de teclado. */
+.agente-bolha {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 60;
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  border: 1px solid var(--agente-line);
+  background: var(--agente-surface);
+  box-shadow: 0 6px 18px rgba(8, 12, 24, .22);
+  opacity: .55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform .18s cubic-bezier(.22, 1, .36, 1), box-shadow .18s, opacity .18s;
+}
+.agente-bolha:hover,
+.agente-bolha:focus-visible {
+  opacity: 1;
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 14px 34px rgba(8, 12, 24, .46);
+}
+.agente-bolha:focus-visible { outline: 2px solid var(--agente-accent); outline-offset: 3px; }
+/* Com aviso na tela ele NÃO fica translúcido: aviso apagado não é aviso.
+   Navegador sem `:has()` degrada para o repouso discreto -- o ponto verde
+   continua visível, só sem o realce do balão inteiro. */
+.agente-bolha:has(.agente-bolha-ping) { opacity: 1; }
+.agente-bolha img { width: 26px; height: auto; }
+/* Ponto de atenção: a tela publicou aviso de falha de carregamento. */
+.agente-bolha-ping {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--agente-go);
+  border: 2px solid var(--agente-surface);
+}
+
+/* ── Painel ──────────────────────────────────────────────────────────────── */
+/* ── O painel do Agente PSA ───────────────────────────────────────────────
+   ELE NASCEU TAMANHO CELULAR, e ficou assim no desktop: largura fixa de 420px
+   e uma escala tipográfica que descia até 8,5px. Num monitor a 60cm isso não se
+   lê -- foi a usuária que apontou, abrindo o Board em produção: "pro celular
+   até pode funcionar, mas pra quem usa computador tá muito pequeno, não dá nem
+   pra enxergar".
+
+   Três coisas mudaram, e a primeira é a que resolve o problema de verdade:
+
+   1. A ESCALA É TOKEN, não px cravado em vinte regras. Os cinco degraus abaixo
+      valem para o painel inteiro (inclusive para os `fontSize` inline do
+      `AgentePainelDecisao`), e a media query os aumenta de uma vez. Sem isso,
+      "aumentar a letra no desktop" seria reescrever vinte declarações e
+      esquecer três.
+   2. O TAMANHO ACOMPANHA A TELA: cartão de celular no estreito, painel de
+      560px a partir de 1024px, 620px a partir de 1600px.
+   3. EXPANDIR e ARRASTAR: `.agente-painel--grande` (o botão do cabeçalho) e o
+      posicionamento por `left/top` que o `usePainelArrastavel` escreve. O
+      arraste usa left/top e NÃO transform de propósito -- o framer-motion já
+      controla o transform deste elemento na animação de entrada, e as duas
+      coisas na mesma propriedade brigam.                                    */
+.agente-painel {
+  --ag-fs-micro: 9.5px;   /* rótulo em caixa alta, chip de campo */
+  --ag-fs-xs: 10.5px;     /* meta, subtítulo, modo */
+  --ag-fs-sm: 11.5px;     /* sugestão, aviso, item de decisão */
+  --ag-fs-md: 12.5px;     /* mensagem, compositor */
+  --ag-fs-lg: 13px;       /* título */
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 61;
+  width: min(420px, calc(100vw - 32px));
+  max-height: min(640px, calc(100vh - 40px));
+  display: flex;
+  flex-direction: column;
+  background: var(--agente-surface);
+  border: 1px solid var(--agente-line);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(8, 12, 24, .5);
+  overflow: hidden;
+  font-family: 'Instrument Sans', sans-serif;
+}
+@media (min-width: 1024px) {
+  .agente-painel {
+    --ag-fs-micro: 11px;
+    --ag-fs-xs: 11.5px;
+    --ag-fs-sm: 12.5px;
+    --ag-fs-md: 13.5px;
+    --ag-fs-lg: 15px;
+    right: 24px;
+    bottom: 24px;
+    width: min(560px, calc(100vw - 48px));
+    max-height: min(84vh, 900px);
+  }
+  /* A faixa de decisão é o que a pessoa veio ver; no desktop ela ganha altura
+     antes de virar rolagem. */
+  .agente-decisao-wrap { max-height: 44vh; }
+}
+@media (min-width: 1600px) {
+  .agente-painel { width: 620px; max-height: min(86vh, 1000px); }
+}
+
+/* Expandido: para ler a faixa de decisão inteira e a conversa sem rolar a cada
+   duas linhas. Continua ancorado (não é modal) — a tela por trás segue à vista,
+   que é o ponto de um painel que fala SOBRE a tela. */
+.agente-painel--grande {
+  width: min(1100px, calc(100vw - 48px));
+  max-height: min(92vh, 1100px);
+}
+
+.agente-painel-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--agente-line);
+  background: var(--agente-surface2);
+  /* Área de arraste. `touch-action: none` para o pointer event não virar
+     rolagem no trackpad/touch; `user-select: none` para o arraste não sair
+     selecionando o título. */
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.agente-painel-head[data-arrastando="sim"] { cursor: grabbing; }
+/* O botão dentro do cabeçalho volta ao cursor normal — e o handler ignora
+   clique que nasce em botão, senão fechar/expandir arrastaria o painel. */
+.agente-painel-head button { cursor: pointer; }
+.agente-painel-titulo { font-size: var(--ag-fs-lg); font-weight: 700; color: var(--agente-ink); letter-spacing: -.01em; }
+.agente-painel-sub { font-size: var(--ag-fs-xs); color: var(--agente-ink3); margin-top: 1px; }
+.agente-icone-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--agente-ink3);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.agente-icone-btn:hover { background: var(--agente-surface3); color: var(--agente-ink); }
+
+.agente-decisao-wrap { flex-shrink: 0; max-height: 34vh; overflow-y: auto; }
+.agente-decisao-wrap::-webkit-scrollbar { width: 6px; }
+.agente-decisao-wrap::-webkit-scrollbar-thumb { background: var(--agente-surface3); border-radius: 3px; }
+.agente-corpo { flex: 1; min-height: 96px; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+.agente-corpo::-webkit-scrollbar { width: 6px; }
+.agente-corpo::-webkit-scrollbar-track { background: transparent; }
+.agente-corpo::-webkit-scrollbar-thumb { background: var(--agente-surface3); border-radius: 3px; }
+
+/* ── Mensagens ───────────────────────────────────────────────────────────── */
+.agente-msg { font-size: var(--ag-fs-md); line-height: 1.55; }
+.agente-msg-user {
+  align-self: flex-end;
+  max-width: 88%;
+  background: var(--agente-surface3);
+  color: var(--agente-ink);
+  border-radius: 14px 14px 4px 14px;
+  padding: 8px 11px;
+}
+.agente-msg-bot { color: var(--agente-ink2); }
+.agente-msg-bot strong { color: var(--agente-ink); font-weight: 700; }
+.agente-msg-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: var(--ag-fs-xs);
+  color: var(--agente-ink3);
+}
+.agente-campo {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--agente-surface2);
+  border: 1px solid var(--agente-line);
+  font-size: var(--ag-fs-micro);
+  color: var(--agente-ink3);
+  white-space: nowrap;
+}
+
+/* ── Insight ─────────────────────────────────────────────────────────────── */
+.agente-insight {
+  border-left: 2px solid var(--agente-accent);
+  background: rgba(138, 162, 255, .07);
+  border-radius: 0 10px 10px 0;
+  padding: 9px 11px;
+  font-size: var(--ag-fs-sm);
+  color: var(--agente-ink2);
+}
+.agente-insight-lbl {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--ag-fs-micro);
+  font-weight: 700;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--agente-accent);
+  margin-bottom: 4px;
+}
+.agente-insight[data-sev="alta"] { border-left-color: var(--agente-risk); background: rgba(255, 138, 148, .07); }
+.agente-insight[data-sev="alta"] .agente-insight-lbl { color: var(--agente-risk); }
+.agente-insight-acoes { display: flex; gap: 4px; margin-top: 6px; }
+
+/* ── Compositor ──────────────────────────────────────────────────────────── */
+.agente-composer {
+  border-top: 1px solid var(--agente-line);
+  background: var(--agente-surface2);
+  padding: 10px 12px 12px;
+}
+.agente-composer.is-loading { border-top-color: var(--agente-accent); }
+.agente-composer-ta {
+  width: 100%;
+  min-height: 34px;
+  resize: none;
+  border: none;
+  background: transparent;
+  color: var(--agente-ink);
+  font-size: var(--ag-fs-md);
+  line-height: 1.5;
+  font-family: inherit;
+  outline: none;
+}
+.agente-composer-ta::placeholder { color: var(--agente-ink3); }
+.agente-composer-ta::-webkit-scrollbar { width: 6px; }
+.agente-composer-ta::-webkit-scrollbar-thumb { background: var(--agente-surface3); border-radius: 3px; }
+.agente-composer-acoes { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+.agente-modos { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.agente-modo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--agente-ink3);
+  font-size: var(--ag-fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: color .15s, background .15s, border-color .15s;
+}
+.agente-modo:hover { color: var(--agente-ink2); background: var(--agente-surface3); }
+.agente-enviar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: none;
+  background: var(--agente-surface3);
+  color: var(--agente-ink3);
+  cursor: pointer;
+  transition: background .15s, color .15s;
+}
+.agente-enviar[data-pronto="sim"] { background: var(--agente-ink); color: var(--agente-surface); }
+.agente-enviar:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── Estados ─────────────────────────────────────────────────────────────── */
+.agente-vazio { font-size: var(--ag-fs-sm); color: var(--agente-ink3); line-height: 1.6; }
+.agente-sugestao {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-top: 6px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--agente-line);
+  background: var(--agente-surface2);
+  color: var(--agente-ink2);
+  font-size: var(--ag-fs-sm);
+  cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.agente-sugestao:hover { border-color: var(--agente-accent); color: var(--agente-ink); }
+.agente-aviso {
+  font-size: var(--ag-fs-sm);
+  color: var(--agente-warn);
+  background: rgba(243, 193, 103, .08);
+  border: 1px solid rgba(243, 193, 103, .22);
+  border-radius: 10px;
+  padding: 7px 10px;
+}
+.agente-pulso { display: flex; gap: 5px; }
+.agente-pulso i {
+  width: 6px; height: 6px; border-radius: 999px;
+  background: var(--agente-accent);
+  animation: agente-pulso 1.1s ease-in-out infinite;
+}
+.agente-pulso i:nth-child(2) { animation-delay: .16s; }
+.agente-pulso i:nth-child(3) { animation-delay: .32s; }
+@keyframes agente-pulso {
+  0%, 100% { opacity: .25; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-3px); }
 }

@@ -45,6 +45,7 @@ import {
   GRAY,
   GRID_STYLE,
   TEAL,
+  TEAL_SERIE,
   TOOLTIP_STYLE,
   mesLabel,
   num,
@@ -227,7 +228,7 @@ export const AbaArquivos = ({
                 isAnimationActive={false}
                 dataKey="enviados"
                 name="arquivos enviados"
-                fill={TEAL[600]}
+                fill={TEAL_SERIE}
                 radius={[3, 3, 0, 0]}
                 maxBarSize={20}
               />
@@ -341,7 +342,7 @@ export const AbaArquivos = ({
               <tbody>
                 {clientes.visiveis.map((c) => (
                   <Tr key={c.cliente}>
-                    <Td className="max-w-[190px] truncate text-slate-800">{c.cliente}</Td>
+                    <Td className="max-w-[190px] truncate text-foreground">{c.cliente}</Td>
                     <Td alinhar="right">
                       {c.naoEntraram > 0 ? (
                         <CelulaBarra
@@ -351,15 +352,15 @@ export const AbaArquivos = ({
                           rotulo={num(c.naoEntraram)}
                         />
                       ) : (
-                        <span className="text-slate-300">0</span>
+                        <span className="text-muted-foreground">0</span>
                       )}
                     </Td>
-                    <Td alinhar="right" className="text-slate-600">
+                    <Td alinhar="right" className="text-muted-foreground">
                       {num(c.enviados)}
                     </Td>
                     <Td
                       alinhar="right"
-                      className={c.reenvios ? 'text-slate-500' : 'text-slate-300'}
+                      className={c.reenvios ? 'text-muted-foreground' : 'text-muted-foreground'}
                     >
                       {num(c.reenvios)}
                     </Td>
@@ -367,7 +368,7 @@ export const AbaArquivos = ({
                 ))}
                 {!carregando && clientes.visiveis.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-xs text-slate-500">
+                    <td colSpan={4} className="px-4 py-8 text-center text-xs text-muted-foreground">
                       Nenhuma pasta encontrada para os filtros selecionados.
                     </td>
                   </tr>
@@ -437,8 +438,8 @@ export const AbaArquivos = ({
                         }
                         className={
                           usuarioSelecionado === u.usuario
-                            ? 'font-semibold text-teal-700 underline underline-offset-2'
-                            : 'font-medium text-slate-800 hover:text-teal-700 hover:underline'
+                            ? 'font-semibold text-[var(--bd-accent-d)] underline underline-offset-2'
+                            : 'font-medium text-foreground hover:text-[var(--bd-accent-d)] hover:underline'
                         }
                       >
                         {u.usuario}
@@ -449,13 +450,13 @@ export const AbaArquivos = ({
                     </Td>
                     <Td
                       alinhar="right"
-                      className={u.naoEntraram ? 'font-medium text-slate-800' : 'text-slate-300'}
+                      className={u.naoEntraram ? 'font-medium text-foreground' : 'text-muted-foreground'}
                     >
                       {num(u.naoEntraram)}
                     </Td>
                     <Td
                       alinhar="right"
-                      className={u.erroDuplicidade ? 'text-slate-500' : 'text-slate-300'}
+                      className={u.erroDuplicidade ? 'text-muted-foreground' : 'text-muted-foreground'}
                     >
                       {num(u.erroDuplicidade)}
                     </Td>
@@ -463,7 +464,7 @@ export const AbaArquivos = ({
                 ))}
                 {!carregando && pessoas.visiveis.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-8 text-center text-xs text-slate-500">
+                    <td colSpan={4} className="px-4 py-8 text-center text-xs text-muted-foreground">
                       Nenhuma pessoa encontrada para os filtros selecionados.
                     </td>
                   </tr>

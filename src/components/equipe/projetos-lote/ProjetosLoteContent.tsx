@@ -9,7 +9,7 @@ import { ProjetoLoteRow } from './ProjetoLoteRow';
 export function ProjetosLoteContent({ area }: { area: AreaKey }) {
   const navigate = useNavigate();
   const {
-    state, routes, rows, updateRow, includedCount, jaCriados, todosJaCriados,
+    state, osIrregular, routes, rows, updateRow, includedCount, jaCriados, todosJaCriados,
     equipesOptions, teamMembers, userRoles, areaGroups, currentUserAreaIds, createBatch, handleCreate,
   } = useProjetosLoteController(area);
 
@@ -17,6 +17,18 @@ export function ProjetosLoteContent({ area }: { area: AreaKey }) {
     return (
       <div className="max-w-2xl mx-auto text-center py-16 space-y-4">
         <p className="text-muted-foreground">Nenhuma OS selecionada. Abra Projetos e tarefas e use “Criar Projeto”.</p>
+        <Button variant="outline" onClick={() => navigate(routes.tarefas)}>Ir para Projetos e tarefas</Button>
+      </div>
+    );
+  }
+
+  if (osIrregular) {
+    return (
+      <div className="max-w-2xl mx-auto text-center py-16 space-y-4">
+        <p className="text-muted-foreground">
+          {osIrregular} na OS {state.osNumero || 'selecionada'}. Os projetos herdam as datas dela, então
+          corrija a OS no cadastro do cliente antes de criar o lote.
+        </p>
         <Button variant="outline" onClick={() => navigate(routes.tarefas)}>Ir para Projetos e tarefas</Button>
       </div>
     );

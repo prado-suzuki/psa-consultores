@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Building2, CalendarDays, FolderPlus, Loader2, Search } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, Building2, CalendarDays, FolderPlus, Loader2, Search } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,6 +19,7 @@ import { isoToMasked, SITUACAO_PROJETO_OPTIONS } from '@/components/equipe/clien
 import type { AreaKey } from '@/config/areaCategories';
 import {
   buildLoteOsOptionsByClient,
+  CORRIGIR_OS_HINT,
   resolveLoteRoutes,
   type LoteOsCandidata,
 } from '@/lib/projetosLote';
@@ -58,6 +59,10 @@ function periodoLabel(os: LoteOsCandidata) {
  * Tudo dentro do ambiente atual: os clientes vêm filtrados por `ambiente` e as OS
  * consideradas são só as do cliente daquele ambiente (ver
  * buildLoteOsOptionsByClient).
+ *
+ * OS irregular (sem as datas que o projeto herda dela) não abre a tela de lote:
+ * fica desabilitada aqui, com o motivo à vista. O bloqueio existia só na hora de
+ * criar, depois de o consultor ter preenchido todas as linhas.
  */
 export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjetosOsDialogProps) => {
   const navigate = useNavigate();
@@ -110,14 +115,16 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
   const selectedOs = osOptions.find(option => option.os.id === selectedOsId) || null;
 
   const handleConfirm = () => {
-    if (!selectedOs) return;
+    if (!selectedOs || selectedOs.irregular) return;
     onOpenChange(false);
     navigate(routes.lote, { state: { loteFromOs: selectedOs.state } });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      {/* DialogContent é um grid: sem min-w-0 nas filhas, um nome de cliente longo
+          estica a coluna e o conteúdo vaza para fora da caixa branca do modal. */}
+      <DialogContent className="max-w-lg [&>*]:min-w-0">
         <DialogHeader>
           <DialogTitle>Criar projetos da OS</DialogTitle>
           <DialogDescription>
@@ -139,7 +146,7 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
                 className="pl-9"
               />
             </div>
-            <div className="h-64 overflow-y-auto rounded-lg border p-1">
+            <div className="max-h-64 min-h-[3rem] overflow-y-auto rounded-lg border p-1">
               {loadingClients || loadingOs ? (
                 <p className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />Carregando clientes…
@@ -155,10 +162,11 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
                   key={client.id}
                   type="button"
                   onClick={() => setSelectedClientId(client.id)}
-                  className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
+                  title={client.nome}
+                  className="flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
                 >
                   <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="truncate">{client.nome}</span>
+                  <span className="min-w-0 flex-1 truncate">{client.nome}</span>
                 </button>
               ))}
             </div>
@@ -167,7 +175,9 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
           <div className="space-y-3">
             <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-2">
               <Building2 className="h-4 w-4 shrink-0 text-muted-foreground" />
-              <span className="min-w-0 flex-1 truncate text-sm font-medium">{selectedClient.nome}</span>
+              <span className="min-w-0 flex-1 truncate text-sm font-medium" title={selectedClient.nome}>
+                {selectedClient.nome}
+              </span>
               <Button
                 variant="ghost"
                 size="sm"
@@ -180,7 +190,7 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
 
             <div className="space-y-2">
               <Label className="text-sm font-medium">Ordem de serviço</Label>
-              <div className="h-56 overflow-y-auto rounded-lg border p-2">
+              <div className="max-h-56 min-h-[3rem] overflow-y-auto rounded-lg border p-2">
                 {/* Sem estado de carregamento: as OS já vieram junto com a lista
                     de clientes — é ela que depende delas para filtrar. */}
                 {osOptions.length === 0 ? (
@@ -190,7 +200,7 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
                 ) : (
                   <RadioGroup value={selectedOsId} onValueChange={setSelectedOsId}>
                     {osOptions.map(option => {
-                      const disabled = option.disponiveis === 0;
+                      const disabled = option.disponiveis === 0 || Boolean(option.irregular);
                       return (
                         <div key={option.os.id} className="flex items-start gap-3 rounded-lg p-2 hover:bg-muted">
                           <RadioGroupItem
@@ -209,13 +219,20 @@ export const CriarProjetosOsDialog = ({ open, onOpenChange, area }: CriarProjeto
                             <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                               <CalendarDays className="h-3 w-3" />{periodoLabel(option.os)}
                             </span>
-                            <span className="mt-0.5 block text-[11px] text-muted-foreground/80">
-                              {option.total === 0
-                                ? 'Sem produtos contratados'
-                                : option.disponiveis === 0
-                                  ? `Todos os ${option.total} produtos já têm projeto`
-                                  : `${option.disponiveis} de ${option.total} produto(s) sem projeto`}
-                            </span>
+                            {option.irregular ? (
+                              <span className="mt-0.5 flex items-start gap-1.5 text-[11px] text-amber-700">
+                                <AlertTriangle className="mt-px h-3 w-3 shrink-0" />
+                                {option.irregular} — {CORRIGIR_OS_HINT}
+                              </span>
+                            ) : (
+                              <span className="mt-0.5 block text-[11px] text-muted-foreground/80">
+                                {option.total === 0
+                                  ? 'Sem produtos contratados'
+                                  : option.disponiveis === 0
+                                    ? `Todos os ${option.total} produtos já têm projeto`
+                                    : `${option.disponiveis} de ${option.total} produto(s) sem projeto`}
+                              </span>
+                            )}
                           </Label>
                         </div>
                       );

@@ -1,33 +1,43 @@
 /**
  * Paleta, tipografia e formatadores do dashboard "Controle de uso e envio".
  *
- * As cores vem do "Manual de Marca - PSA", pagina 12 (Paleta de Cores) — os
- * valores sao os hex oficiais, nao aproximacoes:
+ * DECIDIDO em 25/08/2026: o teal/lima INSTITUCIONAL (`--teal-*`/`--lime-*` de
+ * `src/index.css`, o mesmo que o Board inteiro usa via `--bd-accent`) é a
+ * fonte da verdade da marca — não o hex do "Manual de Marca - PSA" (pagina 12)
+ * que este arquivo citava antes. TEAL/LIME abaixo são um SNAPSHOT em hex
+ * desses tokens, não mais os valores do PDF.
  *
- *   TEAL   500 #14B8A6  600 #0D9488  700 #0F766E
- *   LIME   400 #A3E635  500 #84CC16  600 #65A30D
+ * Por que snapshot e não `hsl(var(--teal-600))` direto: metade dos consumidores
+ * passa estes valores como prop `fill`/`stroke` de elementos do Recharts (ex.
+ * `AbaUsoApi.tsx`, `AbaArquivos.tsx`), que vira atributo de apresentação SVG
+ * puro — fora do `style` — e a resolução de `var()` nesse caminho não é
+ * garantida em todo navegador. Hex literal é o mesmo mecanismo de sempre, só
+ * que com o numero certo agora. Se `--teal-*`/`--lime-*` mudar em
+ * `index.css`, os valores abaixo precisam ser recalculados à mão (mesmo
+ * acordo que `--bd-accent: #0D877C` já tem lá).
+ *
+ *   TEAL   500 #0d877c  600 #0a756c  700 #075f58   (era #14B8A6/#0D9488/#0F766E)
+ *   LIME   400 #90e31c  500 #6caf0e  600 #589009   (era #A3E635/#84CC16/#65A30D)
  *   GRAY   50 #F9FAFB · 400 #9CA3AF · 500 #6B7280 · 600 #4B5563
  *          700 #374151 · 800 #1F2937 · 900 #111827 · 950 #030712
- *
- * ATENCAO: os tokens em `src/index.css` divergem do manual — la
- * `--teal-500` resolve para #0D877C e `--lime-500` para #6CAF0E, ambos bem mais
- * escuros que os #14B8A6 / #84CC16 oficiais. Enquanto os tokens nao forem
- * alinhados, este arquivo e a fonte da verdade para esta pagina.
+ *   (GRAY não fez parte da divergência — segue o manual, sem mudança)
  *
  * Tipografia: Work Sans (manual, pagina 10), ja configurada como `font-sans`
  * no tailwind.config.ts.
  */
 import { useMemo, useState } from 'react';
 
-export const TEAL = { 500: '#14B8A6', 600: '#0D9488', 700: '#0F766E' } as const;
+export const TEAL = { 500: '#0d877c', 600: '#0a756c', 700: '#075f58' } as const;
 /**
- * `700` acrescentado em 21/08 para TEXTO. O lime claro existe para preencher
- * barra e linha de grafico, onde area grande resolve a leitura; como cor de
- * palavra ele reprova: `500` da 1,98:1 sobre branco e `600` da 3,09:1, contra o
- * minimo de 4,5:1. `700` da 4,99:1. Espelha o `TEAL`, que ja tinha 700.
- * Preenchimento de grafico continua em `500` -- nada aqui muda de cor.
+ * `700` acrescentado em 21/08 para TEXTO, recalculado em 25/08 para o
+ * institucional. O lime claro existe para preencher barra e linha de grafico,
+ * onde area grande resolve a leitura; como cor de palavra ele reprova: `500`
+ * e `600` ficam abaixo do minimo de 4,5:1. `700` da 5,22:1 (era 4,99:1 no
+ * hex do manual — o institucional passa até mais folgado). Espelha o `TEAL`,
+ * que ja tinha 700. Preenchimento de grafico continua em `500` -- nada aqui
+ * muda de cor.
  */
-export const LIME = { 400: '#A3E635', 500: '#84CC16', 600: '#65A30D', 700: '#4D7C0F' } as const;
+export const LIME = { 400: '#90e31c', 500: '#6caf0e', 600: '#589009', 700: '#497906' } as const;
 export const GRAY = {
   50: '#F9FAFB',
   100: '#F3F4F6',
@@ -51,6 +61,30 @@ export const RISCO = '#BE123C';
 export const ALERTA = '#B45309';
 
 /**
+ * Teal SÓ para marca de gráfico (série categórica) — não é o `TEAL[600]` da
+ * marca. Motivo: quando o teal institucional virou a fonte da verdade
+ * (25/08/2026), rodei o mesmo validador da skill `dataviz` de novo com os
+ * hex novos e ele REPROVOU — `TEAL[500/600/700]` institucional tem croma
+ * OKLCH entre 0,075 e 0,097, abaixo do piso 0,10: nessa faixa de
+ * luminosidade a matiz lê como cinza pra quem tem deficiência de cor, ainda
+ * que a saturação HSL pareça alta (82-84%) — HSL satura não é o mesmo eixo
+ * que croma perceptual.
+ *
+ * `#0f9589` é o MESMO hue/saturação do institucional `--teal-500` (#0d877c,
+ * hsl 175 82% 29%), só 3 pontos mais claro (32%) — o mínimo pra cruzar o
+ * piso de croma sem deixar de ser reconhecível como "o teal da PSA". Fora
+ * daqui (botão, texto, KPI) continua tudo em `TEAL[500/600/700]` normal;
+ * esta variante é só para quando a cor precisa CARREGAR a distinção sozinha
+ * (marca de série, sem rótulo ao lado).
+ *
+ * Isso é uma lacuna nova do Manual de Marca, não uma dívida de código: o PDF
+ * (`Manual de Marca - PSA.pdf`) não tem uma variante "segura para gráfico"
+ * do teal — precisa ganhar uma na próxima revisão. Até lá, esta constante é
+ * a fonte da verdade só para este uso.
+ */
+export const TEAL_SERIE = '#0f9589';
+
+/**
  * Erro nunca usa o verde da marca, para não parecer um resultado positivo.
  *
  * A paleta de séries foi ESCOLHIDA PELO VALIDADOR, não a olho. Rodando
@@ -60,21 +94,24 @@ export const ALERTA = '#B45309';
  * de cor não separava "reenvio" de "documento perdido". A escala anterior também
  * tinha teal-600/teal-700 adjacentes, quase indistinguíveis.
  *
- * O trio aprovado é teal-600 / lime-500 / rose-700:
- *   ΔE mínimo 23,6 (normal) · 22,3 (protan) · 16,5 (tritan) — ALL CHECKS PASS.
+ * O trio aprovado é TEAL_SERIE / lime-500 / rose-700:
+ *   ΔE mínimo 16,8 (normal) · 15,6 (protan) · 8,4 (tritan) — ALL CHECKS PASS.
+ *   (era 23,6/22,3/16,5 com o teal do manual — a folga cai, mas todos os
+ *   pisos continuam batidos; recalculado em 25/08/2026 junto com a virada
+ *   pro institucional.)
  *
- * Ressalva do validador: lime tem 1,92:1 de contraste contra a superfície,
+ * Ressalva do validador: lime tem 2,63:1 de contraste contra a superfície,
  * abaixo de 3:1. Por isso toda série lime carrega rótulo direto no gráfico.
  * Âmbar sobrou só como cor de STATUS pontual (sempre com ícone e texto),
  * nunca como série adjacente ao rose no mesmo gráfico.
  */
 export const COR_ERRO = RISCO;
-export const COR_OK = TEAL[600];
+export const COR_OK = TEAL_SERIE;
 /** Série recessiva de propósito: reenvio, 4xx, contexto. Não disputa atenção. */
 export const COR_NEUTRA = GRAY[400];
 
 /** Ordem fixa, nunca ciclada: uma 4ª série vira "Outros" ou vai para outro gráfico. */
-export const SERIES = [TEAL[600], LIME[500], RISCO, GRAY[500]];
+export const SERIES = [TEAL_SERIE, LIME[500], RISCO, GRAY[500]];
 
 // ── Defaults de grafico (Work Sans, nao o Instrument Sans do board) ────
 

@@ -148,8 +148,8 @@ const Missao = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[200px] text-gray-900 font-semibold">Valor</TableHead>
-                  <TableHead className="text-gray-900 font-semibold">Descrição</TableHead>
+                  <TableHead className="w-[200px] text-foreground font-semibold">Valor</TableHead>
+                  <TableHead className="text-foreground font-semibold">Descrição</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

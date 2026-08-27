@@ -156,6 +156,27 @@ export function buildLoteFromOs(
   };
 }
 
+/** Onde o consultor conserta a OS irregular — sufixo das mensagens de bloqueio. */
+export const CORRIGIR_OS_HINT = 'corrija na OS, no cadastro do cliente';
+
+/**
+ * O que impede esta OS de virar projeto, ou null se ela está regular.
+ *
+ * O projeto herda da OS as datas, o status e a descrição, e nenhum deles é
+ * editável na tela de lote. Sem as datas o lote inteiro morre na validação da
+ * hora de criar — depois de o consultor ter preenchido equipe, líderes e membros
+ * de cada linha. Por isso a mesma régua tranca a OS já no seletor: a tela de
+ * lote não abre sobre OS que não dá para criar.
+ *
+ * A descrição fica de fora de propósito: é opcional no projeto.
+ */
+export function motivoOsIrregular(os: Pick<LoteCommon, 'startDate' | 'endDate'>): string | null {
+  if (!os.startDate) return 'Sem Data Início';
+  if (!os.endDate) return 'Sem Data Fim';
+  if (os.startDate > os.endDate) return 'Data Fim anterior à Data Início';
+  return null;
+}
+
 /**
  * Situações de OS que ainda podem virar projeto. Concluída e cancelada ficam de
  * fora; suspensa continua sendo contrato vigente, só pausado.
@@ -176,6 +197,8 @@ export interface LoteOsOption {
   total: number;
   /** Produtos que ainda não viraram projeto. Zero = nada a criar nesta OS. */
   disponiveis: number;
+  /** Motivo de a OS não poder virar projeto (ver motivoOsIrregular). Null = regular. */
+  irregular: string | null;
 }
 
 /**
@@ -226,6 +249,7 @@ export function buildLoteOsOptionsByClient(
         state,
         total: state.produtos.length,
         disponiveis: state.produtos.length - jaCriados.length,
+        irregular: motivoOsIrregular(state),
       };
     });
     options.sort((a, b) => (a.os.numero_os || '').localeCompare(b.os.numero_os || '', 'pt-BR', { numeric: true }));
@@ -369,8 +393,9 @@ export function validateLoteRow(row: LoteRow, common: LoteCommon): string | null
   if (!row.semExecutorFixo && !row.responsibleId) return `${prefix}Selecione o Responsável Executor`;
   if (row.memberIds.length === 0) return `${prefix}Selecione ao menos um Membro do Projeto`;
   // Datas/status/descrição vêm da OS (não editáveis nesta tela); descrição é opcional.
-  if (!common.startDate) return 'A OS não tem Data Início — informe-a na OS, no cadastro do cliente';
-  if (!common.endDate) return 'A OS não tem Data Fim — informe-a na OS, no cadastro do cliente';
-  if (common.startDate > common.endDate) return 'Na OS, a Data Fim é anterior à Data Início — corrija na OS';
+  // Rede de segurança: o seletor já não deixa escolher OS irregular, e a tela de
+  // lote nem monta o formulário sobre ela.
+  const irregular = motivoOsIrregular(common);
+  if (irregular) return `${irregular} — ${CORRIGIR_OS_HINT}`;
   return null;
 }

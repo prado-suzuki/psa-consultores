@@ -1,14 +1,3 @@
--- 20260821182647_agente_psa.sql
---
--- IMPORTADA DO LEDGER DO SANDBOX, não escrita aqui primeiro. Esta versão estava
--- registrada em supabase_migrations.schema_migrations sem arquivo correspondente
--- no repositório (migration aplicada pelo chat do Lovable, que carimba a versão
--- dele). O corpo abaixo é o `statements` da própria linha do ledger, transcrito
--- sem alteração, para o repositório voltar a descrever o banco e o `db push`
--- deixar de abortar em "Remote migration versions not found".
---
--- Não editar para corrigir nada: correção vem em migration nova.
-
 -- ============================================================================
 -- Agente PSA — assistente conversacional das telas do sistema
 -- ============================================================================
@@ -58,7 +47,6 @@ create table if not exists public.agente_config (
 
 comment on table public.agente_config is
   'Cockpit do Agente PSA: uma linha por escopo (aba onde o balão aparece).';
-
 comment on column public.agente_config.escopo is
   'Chave estável da tela, ex: board.estrategico. Casada com o snapshot publicado pelo front.';
 
@@ -123,7 +111,6 @@ create table if not exists public.agente_insights (
 
 create index if not exists agente_insights_escopo_idx
   on public.agente_insights (escopo, criado_em desc);
-
 create index if not exists agente_insights_mensagem_idx
   on public.agente_insights (mensagem_id);
 
@@ -160,24 +147,18 @@ create index if not exists agente_aprendizados_escopo_ativo_idx
 
 -- ── RLS ─────────────────────────────────────────────────────────────────────
 alter table public.agente_config enable row level security;
-
 alter table public.agente_conversas enable row level security;
-
 alter table public.agente_mensagens enable row level security;
-
 alter table public.agente_insights enable row level security;
-
 alter table public.agente_aprendizados enable row level security;
 
 -- Config: todo autenticado LÊ (o balão precisa saber se está ativo e qual o
 -- nível exigido); só admin escreve — o cockpit é do admin.
 drop policy if exists agente_config_select on public.agente_config;
-
 create policy agente_config_select on public.agente_config
   for select to authenticated using (true);
 
 drop policy if exists agente_config_admin_write on public.agente_config;
-
 create policy agente_config_admin_write on public.agente_config
   for all to authenticated
   using (public.has_role(auth.uid(), 'admin'::public.app_role))
@@ -185,7 +166,6 @@ create policy agente_config_admin_write on public.agente_config
 
 -- Conversa: a própria, sempre; todas, se admin (o cockpit mostra volume da casa).
 drop policy if exists agente_conversas_select on public.agente_conversas;
-
 create policy agente_conversas_select on public.agente_conversas
   for select to authenticated
   using (user_id = auth.uid() or public.has_role(auth.uid(), 'admin'::public.app_role));
@@ -193,14 +173,12 @@ create policy agente_conversas_select on public.agente_conversas
 -- Arquivar a própria conversa é do dono. Sem policy de insert: quem cria
 -- conversa é a edge function.
 drop policy if exists agente_conversas_update_dono on public.agente_conversas;
-
 create policy agente_conversas_update_dono on public.agente_conversas
   for update to authenticated
   using (user_id = auth.uid() or public.has_role(auth.uid(), 'admin'::public.app_role))
   with check (user_id = auth.uid() or public.has_role(auth.uid(), 'admin'::public.app_role));
 
 drop policy if exists agente_mensagens_select on public.agente_mensagens;
-
 create policy agente_mensagens_select on public.agente_mensagens
   for select to authenticated
   using (exists (
@@ -210,7 +188,6 @@ create policy agente_mensagens_select on public.agente_mensagens
   ));
 
 drop policy if exists agente_insights_select on public.agente_insights;
-
 create policy agente_insights_select on public.agente_insights
   for select to authenticated
   using (exists (
@@ -222,13 +199,11 @@ create policy agente_insights_select on public.agente_insights
 -- Aprendizado é conhecimento da casa, não do autor: quem conversa com o
 -- agente pode ver a lição que já foi ensinada (e não reensinar a mesma).
 drop policy if exists agente_aprendizados_select on public.agente_aprendizados;
-
 create policy agente_aprendizados_select on public.agente_aprendizados
   for select to authenticated using (true);
 
 -- Curadoria (desativar lição errada, refinar texto) é do admin.
 drop policy if exists agente_aprendizados_admin_write on public.agente_aprendizados;
-
 create policy agente_aprendizados_admin_write on public.agente_aprendizados
   for update to authenticated
   using (public.has_role(auth.uid(), 'admin'::public.app_role))
@@ -249,7 +224,6 @@ end;
 $$;
 
 drop trigger if exists agente_config_touch_trg on public.agente_config;
-
 create trigger agente_config_touch_trg
   before update on public.agente_config
   for each row execute function public.agente_config_touch();

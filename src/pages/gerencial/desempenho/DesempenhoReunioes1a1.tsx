@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useReunioes, useCreateReuniao, useAllOpenItensAcao, useUpdateItemAcao, useItensAcao, type Reuniao1a1 } from '@/hooks/useReunioes1a1';
+import { useMemo } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoReunioes, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useProfilesNomeMap, useProfilesNomeRows } from '@/hooks/useDomainProfiles';
 import { useDesempenhoReunioesItensAcao } from '@/hooks/useDomainDesempenhoReunioes';
@@ -17,20 +20,35 @@ import { Plus, Trash2, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 const sentimentLabels = ['Muito ruim', 'Ruim', 'Neutro', 'Bom', 'Muito bom'];
-const sentimentColors = ['#EF4444', '#F97316', 'var(--board-t4)', '#10B981', '#059669'];
+const sentimentColors = ['var(--bd-risk)', 'var(--bd-warn)', 'var(--board-t4)', 'var(--bd-go)', 'var(--bd-go-d)'];
 
 const statusColors: Record<string, string> = {
-  aberto: 'bg-amber-100 text-amber-700',
-  em_andamento: 'bg-blue-100 text-blue-700',
-  concluido: 'bg-emerald-100 text-emerald-700',
+  aberto: 'bg-[var(--bd-warn-t)] text-[var(--bd-warn-d)]',
+  em_andamento: 'bg-[var(--bd-blue-t)] text-[var(--bd-blue)]',
+  concluido: 'bg-[var(--bd-go-t)] text-[var(--bd-go-d)]',
   cancelado: 'bg-status-neutro-soft text-status-neutro',
 };
 
 const DesempenhoReunioes1a1 = () => {
   const { data: allReunioes, isLoading } = useReunioes();
   const { data: openItems } = useAllOpenItensAcao();
+
   const { data: ciclos } = useCiclosAvaliacao();
   const { data: cicloAtivo } = useCicloAtivo();
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  // Temas discutidos e observacoes do lider NAO entram: e o registro mais
+  // reservado do sistema.
+  const contextoAgente = useMemo(() => contextoDesempenhoReunioes({
+    ciclo: cicloAtivo ? resumoDeCiclo(cicloAtivo) : null,
+    reunioes: (allReunioes ?? []).map(r => ({
+      data_reuniao: r.data_reuniao, membro_id: r.membro_id ?? null,
+      sentimento: r.sentimento ?? null,
+    })),
+    itensAbertos: (openItems ?? []).map(i => ({ prazo: i.prazo ?? null, status: i.status })),
+    hoje: new Date().toISOString().slice(0, 10),
+    carregando: isLoading,
+  }), [cicloAtivo, allReunioes, openItems, isLoading]);
+  useRegistrarContextoAgente('board.desempenho.1a1', contextoAgente, isLoading);
   const createReuniao = useCreateReuniao();
   const updateItem = useUpdateItemAcao();
   const { user } = useAuth();
@@ -84,8 +102,8 @@ const DesempenhoReunioes1a1 = () => {
     }>
       {/* Open action items panel - grouped by member */}
       {openItems && openItems.length > 0 && (
-        <Card className="mb-6 rounded-xl shadow-sm" style={{ border: '1px solid #FDE68A', backgroundColor: '#FFFBEB' }}>
-          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><AlertCircle className="h-4 w-4" style={{ color: '#D97706' }} />Itens de acao em aberto ({openItems.length})</CardTitle></CardHeader>
+        <Card className="mb-6 rounded-xl shadow-sm" style={{ border: '1px solid hsl(36 91% 43% / .32)', backgroundColor: 'var(--bd-warn-t)' }}>
+          <CardHeader className="pb-2"><CardTitle className="text-sm flex items-center gap-2"><AlertCircle className="h-4 w-4" style={{ color: 'var(--bd-warn)' }} />Itens de acao em aberto ({openItems.length})</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             {Array.from(openItemsByMembro.entries()).map(([membroId, items]) => (
               <div key={membroId}>
@@ -97,7 +115,7 @@ const DesempenhoReunioes1a1 = () => {
                     return (
                       <div key={item.id} className="flex items-center gap-3 text-sm">
                         <span className="flex-1">{item.descricao}</span>
-                        <span className={`text-xs ${vencido ? 'font-semibold' : ''}`} style={{ color: vencido ? '#EF4444' : 'var(--board-t4)' }}>
+                        <span className={`text-xs ${vencido ? 'font-semibold' : ''}`} style={{ color: vencido ? 'var(--bd-risk)' : 'var(--board-t4)' }}>
                           {item.prazo ?? '--'} {vencido && diasAtraso > 0 ? `(${diasAtraso}d atraso)` : ''}
                         </span>
                         <Badge className={`${statusColors[item.status] ?? ''} border-0 text-xs`}>{item.status}</Badge>
@@ -123,19 +141,19 @@ const DesempenhoReunioes1a1 = () => {
                 const lastDate = reunioes[0]?.data_reuniao ?? '--';
                 const openCount = openCountByMembro.get(membroId) || 0;
                 return (
-                  <Card key={membroId} className="bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer transition-shadow" style={{ border: '1px solid var(--board-border)' }} onClick={() => setSelectedMembro(membroId)}>
+                  <Card key={membroId} className="rounded-xl shadow-sm hover:shadow-md cursor-pointer transition-shadow" style={{ border: '1px solid var(--board-border)' }} onClick={() => setSelectedMembro(membroId)}>
                     <CardContent className="pt-5 flex items-center gap-4">
-                      <div className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: '#EDE9FE', color: '#6D28D9' }}>{initials}</div>
+                      <div className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: 'var(--bd-purple-t)', color: 'var(--bd-purple)' }}>{initials}</div>
                       <div className="flex-1">
                         <p className="font-medium text-sm" style={{ color: 'var(--board-t1)' }}>{getName(membroId)}</p>
                         <p className="text-xs" style={{ color: 'var(--board-t4)' }}>Ultimo 1:1: {lastDate}</p>
                         <p className="text-xs" style={{ color: 'var(--board-t4)' }}>{reunioes.length} reunioes registradas</p>
                       </div>
                       {openCount > 0 && (
-                        <Badge className="bg-amber-100 text-amber-700 border-0 text-xs">{openCount} abertos</Badge>
+                        <Badge className="bg-[var(--bd-warn-t)] text-[var(--bd-warn-d)] border-0 text-xs">{openCount} abertos</Badge>
                       )}
                       {openCount === 0 && (
-                        <Badge className="bg-slate-100 text-slate-500 border-0 text-xs">0</Badge>
+                        <Badge className="bg-muted text-muted-foreground border-0 text-xs">0</Badge>
                       )}
                     </CardContent>
                   </Card>
@@ -156,7 +174,7 @@ const DesempenhoReunioes1a1 = () => {
                 {filteredReunioes.map(r => {
                   const reuniaoItens = allItens?.filter(i => i.reuniao_id === r.id) ?? [];
                   return (
-                    <Card key={r.id} className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+                    <Card key={r.id} className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                       <CardContent className="pt-4">
                         <div className="flex items-center gap-3 mb-2">
                           <span className="text-sm font-medium" style={{ color: 'var(--board-t1)' }}>{r.data_reuniao}</span>
@@ -177,8 +195,8 @@ const DesempenhoReunioes1a1 = () => {
                                   <div key={item.id} className="flex items-center gap-3 text-sm">
                                     <span className="flex-1">{item.descricao}</span>
                                     {item.responsavel_id && <span className="text-xs" style={{ color: 'var(--board-t4)' }}>{getName(item.responsavel_id)}</span>}
-                                    <span className="text-xs" style={{ color: vencido ? '#EF4444' : 'var(--board-t4)' }}>{item.prazo ?? '--'}</span>
-                                    <Badge className={`${statusColors[item.status] ?? 'bg-slate-100 text-slate-600'} border-0 text-xs`}>{item.status}</Badge>
+                                    <span className="text-xs" style={{ color: vencido ? 'var(--bd-risk)' : 'var(--board-t4)' }}>{item.prazo ?? '--'}</span>
+                                    <Badge className={`${statusColors[item.status] ?? 'bg-muted text-muted-foreground'} border-0 text-xs`}>{item.status}</Badge>
                                   </div>
                                 );
                               })}

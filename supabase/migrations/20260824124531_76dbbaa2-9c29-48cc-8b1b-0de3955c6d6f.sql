@@ -1,14 +1,3 @@
--- 20260824124531_76dbbaa2-9c29-48cc-8b1b-0de3955c6d6f.sql
---
--- IMPORTADA DO LEDGER DO SANDBOX, não escrita aqui primeiro. Esta versão estava
--- registrada em supabase_migrations.schema_migrations sem arquivo correspondente
--- no repositório (migration aplicada pelo chat do Lovable, que carimba a versão
--- dele). O corpo abaixo é o `statements` da própria linha do ledger, transcrito
--- sem alteração, para o repositório voltar a descrever o banco e o `db push`
--- deixar de abortar em "Remote migration versions not found".
---
--- Não editar para corrigir nada: correção vem em migration nova.
-
 -- 1) contatos: público continua podendo enviar o formulário, mas sem poder
 -- semear campos internos nem gravar textos gigantes.
 DROP POLICY IF EXISTS rls_contatos_insert ON public.contatos;

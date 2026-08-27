@@ -26,7 +26,7 @@ export function EFDExportProfiles(props: Props) {
       <Label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">Carregar Perfil</Label>
       <div className="flex gap-2">
         <Select value={props.selectedProfile} onValueChange={props.onApply}>
-          <SelectTrigger className="flex-1 h-11 bg-slate-50"><SelectValue placeholder={props.loading ?'Carregando...':'Selecione um perfil...'} /></SelectTrigger>
+          <SelectTrigger className="flex-1 h-11 bg-muted"><SelectValue placeholder={props.loading ?'Carregando...':'Selecione um perfil...'} /></SelectTrigger>
           <SelectContent>
             <SelectItem value="none" className="text-slate-500">Nenhum</SelectItem><SelectItem value="all">Todos os Registros</SelectItem>
             {props.profiles.length > 0 && <div className="h-px bg-slate-200 my-1"/>}

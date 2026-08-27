@@ -19,9 +19,7 @@ export type TaskContextSelectName =
   | 'parent_task_id';
 
 /**
- * Select do cartão de contexto da tarefa (cliente, projeto, contribuinte,
- * tarefa-pai), usado tanto na criação quanto atrás de "Alterar contexto" na
- * edição.
+ * Select dos vínculos da tarefa, usado tanto na criação quanto na edição.
  *
  * `emptyValue` guarda a diferença que o formulário já fazia: projeto limpa para
  * `''` (obrigatório no schema), os outros para `undefined`.

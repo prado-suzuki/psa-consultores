@@ -2,7 +2,7 @@
 export const DEV_NAV_LABELS = {
   // Top-level
   inicio: "Painel de aplicações",
-  novaFerramenta: "Nova ferramenta",
+  novaFerramenta: "Solicitar ferramenta",
   consultaXmls: "Consulta de XMLs",
 
   // Consulta SPED group

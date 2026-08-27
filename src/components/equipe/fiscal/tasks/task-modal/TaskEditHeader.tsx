@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { CheckCircle2, ChevronDown, Settings2 } from 'lucide-react';
+import { CheckCircle2, ChevronDown, Receipt, Settings2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -22,11 +22,12 @@ interface TaskEditHeaderProps {
 
 /**
  * Cabeçalho do modo edição: o título é o próprio campo, e o contexto da tarefa
- * (cliente, projeto, contribuinte, tarefa-pai) aparece como texto.
+ * (cliente, projeto e tarefa-pai) aparece como texto.
  *
  * Trocar o contexto de uma tarefa que já existe é raro, então os selects ficam
  * atrás de "Alterar contexto" — e abrem sozinhos quando algum desses campos
  * reprova na validação, senão a mensagem de erro ficaria escondida.
+ * O contribuinte é opcional e pertence à tarefa, então permanece sempre editável.
  */
 export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHeaderProps) {
   const { clients, projects, contribuintes, parentTasks } = options;
@@ -34,16 +35,13 @@ export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHea
 
   const clientId = form.watch('client_id');
   const projectId = form.watch('project_id');
-  const contribuinteId = form.watch('contribuinte_id');
   const parentTaskId = form.watch('parent_task_id');
 
   const { errors } = form.formState;
-  const hasContextError = !!errors.client_id || !!errors.project_id || !!errors.contribuinte_id;
+  const hasContextError = !!errors.client_id || !!errors.project_id;
   useEffect(() => {
     if (hasContextError) setContextOpen(true);
   }, [hasContextError]);
-
-  const contribuinte = contribuintes.find((item) => item.id === contribuinteId);
 
   return (
     <div className="px-6">
@@ -84,15 +82,6 @@ export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHea
             <ContextRow
               label="Projeto"
               value={projects.find((project) => project.id === projectId)?.name}
-            />
-            <ContextRow
-              label="Contribuinte"
-              value={
-                contribuinte &&
-                [contribuinte.nome_razao_social, contribuinte.cpf_cnpj]
-                  .filter(Boolean)
-                  .join(' · ')
-              }
             />
             {parentTaskId && (
               <ContextRow
@@ -142,22 +131,6 @@ export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHea
               />
               <TaskContextSelect
                 form={form}
-                name="contribuinte_id"
-                label="Contribuinte"
-                placeholder={
-                  clientId ? 'Selecione o contribuinte' : 'Selecione um cliente primeiro'
-                }
-                emptyValue={undefined}
-                disabled={!clientId}
-                options={contribuintes.map((item) => ({
-                  value: item.id,
-                  label: item.cpf_cnpj
-                    ? `${item.nome_razao_social} (${item.cpf_cnpj})`
-                    : item.nome_razao_social,
-                }))}
-              />
-              <TaskContextSelect
-                form={form}
                 name="parent_task_id"
                 label="Tarefa Pai (subtarefa de)"
                 placeholder="Nenhuma (tarefa principal)"
@@ -168,6 +141,25 @@ export function TaskEditHeader({ form, options, actions, disabled }: TaskEditHea
             </div>
           </CollapsibleContent>
         </Collapsible>
+
+        <div className="mb-4 w-full max-w-sm rounded-lg border bg-muted/20 px-3 py-2.5">
+          <TaskContextSelect
+            form={form}
+            name="contribuinte_id"
+            label="Contribuinte (opcional)"
+            icon={<Receipt className="h-3.5 w-3.5" />}
+            placeholder={clientId ? 'Selecione o contribuinte' : 'Selecione um cliente primeiro'}
+            emptyValue={undefined}
+            emptyLabel="Não informado"
+            disabled={!clientId}
+            options={contribuintes.map((item) => ({
+              value: item.id,
+              label: item.cpf_cnpj
+                ? `${item.nome_razao_social} (${item.cpf_cnpj})`
+                : item.nome_razao_social,
+            }))}
+          />
+        </div>
       </fieldset>
     </div>
   );

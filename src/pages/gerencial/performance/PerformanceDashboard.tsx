@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
-import { RefreshCw, BarChart2, AlertTriangle } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import { usePerformanceData, useSavePerformancePrefs } from '@/hooks/usePerformanceData';
 import { ActivityHeatmap } from '@/components/performance/ActivityHeatmap';
 import { format, differenceInDays } from 'date-fns';
@@ -13,6 +13,8 @@ import { BoardStatStrip } from '@/components/board/BoardStatStrip';
 import { BoardChip } from '@/components/board/BoardChip';
 import { CHART_COLORS, AXIS_STYLE, GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoBoardOperacional } from '@/lib/agenteContextoOperacional';
 import { useDomainMelhoriasRoi } from '@/hooks/useDomainMelhoriasRoi';
 import {
   BOARD_AREAS, BOARD_AREA_LABEL, consolidarRoi, filtrarPorCluster, filtrarTarefasPorProjetos,
@@ -28,7 +30,7 @@ import { useBoardCluster } from '@/hooks/useBoardCluster';
 import { useClusters } from '@/hooks/useClusters';
 
 /** Cinza do bucket "Outros" — área não classificada nos buckets nomeados. */
-const COR_OUTROS = '#9AA7B4';
+const COR_OUTROS = 'var(--bd-ink4)';
 const COR_AREA: Record<string, string> = {
   tax: CHART_COLORS.tax,
   osg: CHART_COLORS.osg,
@@ -202,7 +204,7 @@ const PerformanceDashboard = () => {
   const getStatusChip = (s: string): 'go' | 'warn' | 'risk' => s === 'em_dia' ? 'go' : s === 'em_risco' ? 'warn' : 'risk';
   const getStatusLabel = (s: string) => s === 'em_dia' ? 'Em dia' : s === 'em_risco' ? 'Em risco' : 'Atrasado';
   const getPbColor = (pct: number) => pct >= 85 ? 'v4-pg' : pct >= 70 ? 'v4-pa' : 'v4-pr';
-  const getTextColor = (pct: number) => pct >= 85 ? 'var(--board-v4-go)' : pct >= 70 ? 'var(--board-v4-warn)' : 'var(--board-v4-risk)';
+  const getTextColor = (pct: number) => pct >= 85 ? 'var(--bd-go)' : pct >= 70 ? 'var(--bd-warn)' : 'var(--bd-risk)';
 
   // OR, não AND: com `membersQuery` em cache o strip renderizava zeros enquanto
   // os projetos ainda estavam a caminho.
@@ -218,9 +220,34 @@ const PerformanceDashboard = () => {
       ? `${resumoDasMetas.total} metas, nenhuma individual · escopo: ${escopoMetasLabel}`
       : `${resumoDasMetas.emRisco > 0 ? `${resumoDasMetas.emRisco} em risco` : 'nenhuma em risco'} · escopo: ${escopoMetasLabel}`;
 
+  // ── O que o Agente PSA lê desta tela ───────────────────────────────────
+  // Inline de propósito (ver a nota igual em DesempenhoVisaoGeral): o hook
+  // compara a SERIALIZAÇÃO do snapshot, não a identidade do objeto.
+  useRegistrarContextoAgente('board.operacional', contextoBoardOperacional({
+    janela: janelaLabel,
+    escopo: escopoLabel,
+    saude,
+    desvio: { dias: desvio.dias, amostra: desvio.amostra, atrasadas: desvio.atrasadas },
+    roi,
+    metas: {
+      total: resumoDasMetas.total,
+      individuais: resumoDasMetas.individuais,
+      emRisco: resumoDasMetas.emRisco,
+      // Mesma regra do KPI, que mostra "—": sem meta individual não há média,
+      // e `resumoMetas` devolve 0 nesse caso. 0% afirmaria desempenho ruim.
+      progresso: resumoDasMetas.individuais > 0 ? resumoDasMetas.progresso : null,
+      escopoLabel: escopoMetasLabel,
+    },
+    pessoas: { total: escopoPessoas.pessoas.length, escopoLabel: escopoPessoasLabel },
+    projetosCriticos: projetos
+      .filter((p) => p.computed_status === 'em_risco' || p.computed_status === 'atrasado')
+      .map((p) => ({ nome: p.name, status: p.computed_status, cliente: p.client_name ?? null })),
+    falhas,
+  }), isLoading);
+
   return (
     <BoardLayout title="Operacional" subtitle="Visao consolidada">
-      <div ref={revealRef} style={{ background: 'var(--board-v4-page)' }}>
+      <div ref={revealRef} style={{ background: 'var(--bd-page)' }}>
         {/* Header */}
         <div className="pg-head" data-reveal>
           <div className="pg-title">Operacional</div>
@@ -247,7 +274,7 @@ const PerformanceDashboard = () => {
           activeCount={activeCount}
           rightSlot={
             <>
-              <span style={{ fontSize: 11, color: 'var(--board-v4-ink4)' }}>Atualizado {format(lastUpdate, 'HH:mm')}</span>
+              <span style={{ fontSize: 11, color: 'var(--bd-ink4)' }}>Atualizado {format(lastUpdate, 'HH:mm')}</span>
               <button className="v3-fi" onClick={handleRefresh} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, padding: '5px 10px' }}>
                 <RefreshCw style={{ width: 11, height: 11 }} />Atualizar
               </button>
@@ -255,25 +282,13 @@ const PerformanceDashboard = () => {
           }
         />
 
-        {/* Falha de carregamento: nunca substituir dado ausente por número */}
-        {falhas.length > 0 && (
-          <div
-            role="alert"
-            className="v4-card"
-            style={{ marginBottom: 12, borderLeft: '3px solid var(--board-v4-risk)', display: 'flex', gap: 8 }}
-            data-reveal
-          >
-            <AlertTriangle style={{ width: 15, height: 15, flexShrink: 0, color: 'var(--board-v4-risk)' }} />
-            <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--board-v4-risk)' }}>
-                Dados incompletos — os números abaixo podem estar errados
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--board-v4-ink3)', marginTop: 2 }}>
-                Falha ao carregar: {falhas.join(', ')}. Use "Atualizar" para tentar de novo.
-              </div>
-            </div>
-          </div>
-        )}
+        {/* REMOVIDO (21/08): o banner "Dados incompletos" era um cartão no
+            topo da grade. A informação NÃO foi descartada -- `falhas` continua
+            calculado e vai no snapshot publicado acima como `avisos`, o painel
+            do Agente PSA a desenha com destaque próprio, e o ícone ao lado do
+            título fica com ponto VERMELHO enquanto houver falha. É o ponto
+            vermelho que sustenta a garantia da casa: consulta que falhou não
+            volta a passar por dado real. */}
 
         {/* Stat Strip */}
         {isLoading ? (
@@ -283,11 +298,11 @@ const PerformanceDashboard = () => {
             cols={5}
             items={[
               {
-                value: saude.total, label: 'Projetos Ativos', color: 'var(--board-v4-accent)',
+                value: saude.total, label: 'Projetos Ativos', color: 'var(--bd-accent)',
                 dots: [
-                  { color: 'var(--board-v4-go)', text: `${saude.emDia} no prazo` },
-                  { color: 'var(--board-v4-warn)', text: `${saude.emRisco} em risco` },
-                  { color: 'var(--board-v4-risk)', text: `${saude.atrasados} atrasados` },
+                  { color: 'var(--bd-go)', text: `${saude.emDia} no prazo` },
+                  { color: 'var(--bd-warn)', text: `${saude.emRisco} em risco` },
+                  { color: 'var(--bd-risk)', text: `${saude.atrasados} atrasados` },
                 ],
                 subText: saude.total > 0
                   ? `escopo: ${escopoLabel}`
@@ -298,7 +313,7 @@ const PerformanceDashboard = () => {
                 // desempenho ruim onde não havia nenhum projeto para avaliar.
                 value: saude.total > 0 ? saude.pontualidade : '—',
                 suffix: saude.total > 0 ? '%' : undefined,
-                label: 'Taxa Pontualidade', color: 'var(--board-v4-go)', animateCount: saude.total > 0,
+                label: 'Taxa Pontualidade', color: 'var(--bd-go)', animateCount: saude.total > 0,
                 pill: saude.total > 0
                   ? { text: saude.pontualidade >= 85 ? 'Dentro da meta' : 'Abaixo da meta', variant: saude.pontualidade >= 85 ? 'up' : 'down' }
                   : { text: 'escopo vazio', variant: 'neutral' },
@@ -312,8 +327,8 @@ const PerformanceDashboard = () => {
                   : '—',
                 label: 'Desvio de Prazo', animateCount: false,
                 color: desvio.dias === null
-                  ? 'var(--board-v4-ink3)'
-                  : desvio.dias > 0 ? 'var(--board-v4-risk)' : 'var(--board-v4-go)',
+                  ? 'var(--bd-ink3)'
+                  : desvio.dias > 0 ? 'var(--bd-risk)' : 'var(--bd-go)',
                 // A pill dizia "estável" — literal fixo, nunca calculado. Agora
                 // mostra a amostra que sustenta (ou não) a média.
                 pill: desvio.amostra > 0
@@ -323,7 +338,7 @@ const PerformanceDashboard = () => {
               },
               {
                 value: Math.round(roi.economiaAnual / 1000), prefix: 'R$', suffix: 'k',
-                label: 'Economia Validada / Ano', color: 'var(--board-v4-cyan)',
+                label: 'Economia Validada / Ano', color: 'var(--bd-cyan)',
                 // Sem investimento cadastrado não existe ROI — mostramos
                 // "em construção" em vez do 173% fixo que ficava aqui.
                 pill: roi.roiPct !== null
@@ -339,7 +354,7 @@ const PerformanceDashboard = () => {
               {
                 value: resumoDasMetas.individuais > 0 ? resumoDasMetas.progresso : '—',
                 suffix: resumoDasMetas.individuais > 0 ? '%' : undefined,
-                label: 'Metas do Ciclo', color: 'var(--board-v4-purple)',
+                label: 'Metas do Ciclo', color: 'var(--bd-purple)',
                 animateCount: resumoDasMetas.individuais > 0,
                 subText: metasSubText,
                 barValue: resumoDasMetas.individuais > 0 ? resumoDasMetas.progresso : undefined,
@@ -369,16 +384,16 @@ const PerformanceDashboard = () => {
                 </ResponsiveContainer>
                 <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 6 }}>
                   {areasVisiveis.map((a) => (
-                    <div key={a} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--board-v4-ink3)' }}>
+                    <div key={a} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--bd-ink3)' }}>
                       <div style={{ width: 9, height: 9, borderRadius: 2, background: corDaArea(a) }} />{BOARD_AREA_LABEL[a]}
                     </div>
                   ))}
                 </div>
-                <div style={{ fontSize: 10.5, color: 'var(--board-v4-ink3)', marginTop: 6, textAlign: 'center' }}>
+                <div style={{ fontSize: 10.5, color: 'var(--bd-ink3)', marginTop: 6, textAlign: 'center' }}>
                   Tarefas concluídas por mês · escopo: {escopoLabel} — não é índice de saúde.
                 </div>
               </>
-            ) : <div style={{ textAlign: 'center', padding: '32px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}><BarChart2 style={{ width: 24, height: 24, margin: '0 auto 8px', color: '#CBD5E1' }} />Sem dados</div>}
+            ) : <div className="v4-card-empty">Sem dados no período.</div>}
           </div>
 
           {/* Card da janela do filtro: mostra o TRABALHO da janela. Antes exibia
@@ -389,7 +404,7 @@ const PerformanceDashboard = () => {
             <div className="v4-card-title">
               Entregas Concluídas — {janelaLabel} · escopo: {escopoPessoasLabel}
             </div>
-            <div style={{ fontSize: 10.5, color: 'var(--board-v4-ink3)', marginBottom: 6 }}>
+            <div style={{ fontSize: 10.5, color: 'var(--bd-ink3)', marginBottom: 6 }}>
               Número = tarefas concluídas na janela. Barra = % entregue no prazo.
             </div>
             {contribuicao.map((m, idx) => {
@@ -397,7 +412,7 @@ const PerformanceDashboard = () => {
               return (
                 <div key={m.id} className="v4-srow" style={{ cursor: 'pointer' }} onClick={() => setSelectedMemberId(selectedMemberId === m.id ? null : m.id)}>
                   <span className="v4-srk">#{idx + 1}</span>
-                  <div className="v4-av v4-av-sm" style={{ background: 'linear-gradient(135deg, #4B63F7, #6B46E8)' }}>{m.iniciais}</div>
+                  <div className="v4-av v4-av-sm" style={{ background: 'var(--bd-accent-d)' }}>{m.iniciais}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                       <span className="v4-srn">{m.nome}</span>
@@ -407,21 +422,21 @@ const PerformanceDashboard = () => {
                         </div>
                       </div>
                     </div>
-                    <div style={{ fontSize: 10.5, color: 'var(--board-v4-ink3)', marginTop: 2 }}>
+                    <div style={{ fontSize: 10.5, color: 'var(--bd-ink3)', marginTop: 2 }}>
                       {m.pontualidade !== null
                         ? `${m.noPrazo}/${m.comPrazo} no prazo (${m.pontualidade}%)`
                         : m.entregas > 0 ? 'entregas sem prazo cadastrado' : 'sem entregas na janela'}
                       {m.pprCiclo !== null && ` · PPR do ciclo: ${m.pprCiclo}`}
                     </div>
                   </div>
-                  <span className="v4-srv" style={{ color: m.pontualidade !== null ? getTextColor(m.pontualidade) : 'var(--board-v4-ink3)' }}>
+                  <span className="v4-srv" style={{ color: m.pontualidade !== null ? getTextColor(m.pontualidade) : 'var(--bd-ink3)' }}>
                     {m.entregas}
                   </span>
                   <BoardChip variant={classif.variant}>{classif.label}</BoardChip>
                 </div>
               );
             })}
-            {contribuicao.length === 0 && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--board-v4-ink3)', fontSize: 12 }}>Nenhuma entrega concluída na janela.</div>}
+            {contribuicao.length === 0 && <div style={{ textAlign: 'center', padding: '24px 0', color: 'var(--bd-ink3)', fontSize: 12 }}>Nenhuma entrega concluída na janela.</div>}
 
             <div className="v4-slabel" style={{ marginTop: 16 }}>
               Atividade — últimos 90 dias · escopo: {escopoLabel} {selectedMemberId && '(1 pessoa)'}
@@ -464,11 +479,11 @@ const PerformanceDashboard = () => {
                     return (
                       <tr key={p.id}>
                         <td>{p.name}</td>
-                        <td style={{ color: 'var(--board-v4-ink3)' }}>{p.client_name || '—'}</td>
+                        <td style={{ color: 'var(--bd-ink3)' }}>{p.client_name || '—'}</td>
                         <td><BoardChip variant={areaChip.variant}>{areaChip.label}</BoardChip></td>
                         <td>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <div className="v4-av v4-av-sm" style={{ background: 'linear-gradient(135deg, #4B63F7, #3478F5)', width: 22, height: 22, fontSize: 9, borderRadius: 5 }}>{p.responsible_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '??'}</div>
+                            <div className="v4-av v4-av-sm" style={{ background: 'var(--bd-accent-d)', width: 22, height: 22, fontSize: 9 }}>{p.responsible_name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '??'}</div>
                             <span>{p.responsible_name?.split(' ')[0] || '—'}</span>
                           </div>
                         </td>
@@ -478,7 +493,7 @@ const PerformanceDashboard = () => {
                             <span style={{ fontSize: 11, fontWeight: 700, color: getTextColor(pct) }}>{pct}%</span>
                           </div>
                         </td>
-                        <td><span style={{ fontSize: '11.5px', fontWeight: 600, color: daysLeft !== null && daysLeft < 0 ? 'var(--board-v4-risk)' : daysLeft !== null && daysLeft < 15 ? 'var(--board-v4-warn)' : 'var(--board-v4-ink3)' }}>{daysLeft !== null ? `${daysLeft > 0 ? '+' : ''}${daysLeft} dias` : '—'}</span></td>
+                        <td><span style={{ fontSize: '11.5px', fontWeight: 600, color: daysLeft !== null && daysLeft < 0 ? 'var(--bd-risk)' : daysLeft !== null && daysLeft < 15 ? 'var(--bd-warn)' : 'var(--bd-ink3)' }}>{daysLeft !== null ? `${daysLeft > 0 ? '+' : ''}${daysLeft} dias` : '—'}</span></td>
                         <td><BoardChip variant={getStatusChip(p.computed_status)}>{getStatusLabel(p.computed_status)}</BoardChip></td>
                       </tr>
                     );

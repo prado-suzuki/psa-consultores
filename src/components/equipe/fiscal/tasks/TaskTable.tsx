@@ -33,7 +33,9 @@ import { statusColors } from '@/lib/taskStatusColors';
 import { AreaKey } from '@/config/areaCategories';
 import { isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
 import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
+import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/TaskStatusTransitionDialog';
  import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
+ import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
 import { toast } from 'sonner';
 
 interface TaskTableProps {
@@ -70,6 +72,7 @@ const statusLabels = Object.fromEntries(
    const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
    const updateTask = useUpdateOrgTask(area);
    const conclusao = useTaskCompletionHours();
+   const transicao = useTaskStatusTransition();
  
    const parentTasks = tasks.filter(t => !t.parent_task_id);
    const getSubtasks = (parentId: string) => tasks.filter(t => t.parent_task_id === parentId);
@@ -87,6 +90,10 @@ const statusLabels = Object.fromEntries(
    };
  
    const handleStatusChange = (task: OrgTask, status: OrgTaskStatus) => {
+     if (status === task.status) return;
+     // Revisão e ajuste passam pelo diálogo (revisor e detalhamento obrigatórios),
+     // igual ao quadro: é ele quem grava.
+     if (!transicao.pedirDetalhes(task, status)) return;
      if (status === 'done' && isDelegatedOrgTaskReviewer(task, currentUserId)) {
        toast.error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
        return;
@@ -293,6 +300,13 @@ const statusLabels = Object.fromEntries(
          task={conclusao.taskPendente}
          area={area}
          onClose={conclusao.fechar}
+       />
+       <TaskStatusTransitionDialog
+         open={!!transicao.transicaoPendente}
+         onOpenChange={nextOpen => { if (!nextOpen) transicao.fechar(); }}
+         task={transicao.transicaoPendente?.task || null}
+         status={transicao.transicaoPendente?.status || 'review'}
+         area={area}
        />
      </div>
    );

@@ -1,6 +1,6 @@
 import React from 'react';
 
-type ChipVariant = 'risk' | 'warn' | 'go' | 'blue' | 'purple' | 'cyan' | 'gy'
+type ChipVariant = 'risk' | 'warn' | 'go' | 'blue' | 'purple' | 'cyan' | 'gy' | 'solid'
   | 'ppr-s' | 'ppr-a' | 'ppr-p' | 'ppr-b'
   | 'tax' | 'osg' | 'dev';
 
@@ -18,6 +18,9 @@ const VARIANT_MAP: Record<ChipVariant, string> = {
   purple: 'chip-purple',
   cyan: 'chip-cyan',
   gy: 'chip-gy',
+  /** Chip cheio no acento escuro, com texto branco — para o estado ATIVO de um
+   *  recorte (empresa selecionada, filtro aplicado), onde o tint não basta. */
+  solid: 'chip-solid',
   'ppr-s': 'chip-ppr-s',
   'ppr-a': 'chip-ppr-a',
   'ppr-p': 'chip-ppr-p',

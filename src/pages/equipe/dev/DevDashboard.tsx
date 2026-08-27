@@ -26,13 +26,21 @@ import {
   LayoutGrid,
   Cpu,
   Rocket,
-  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import { DEV_HUBS } from "@/constants/devHubDefinitions";
 import { DEV_NAV_LABELS } from "@/constants/devNavLabels";
-import { KpiHero, HatchedBar, HeroBanner, type HatchedBarSegment } from "@/components/dashboard/momentum";
+import { KpiHero } from "@/components/dashboard/momentum";
 import { useToolsCounts } from "@/hooks/useToolsCounts";
+
+/** Id de âncora da seção da categoria no catálogo, para o chip "Categorias" rolar até ela. */
+const toAnchorId = (label: string) =>
+  `categoria-${label
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")}`;
 
 interface ToolEntry {
   name: string;
@@ -64,12 +72,12 @@ const toolGroups: ToolGroup[] = [
   {
     label: DEV_NAV_LABELS.consultaXmls,
     landingPath: "/equipe/dev/consulta-xmls",
-    landingDescription: "Busque e visualize documentos fiscais eletronicos",
+    landingDescription: "Busque e visualize documentos fiscais eletrônicos",
     landingIcon: FileCode2,
     tools: [
       {
         name: DEV_NAV_LABELS.consultaXmls,
-        description: "Busque e visualize documentos fiscais eletronicos",
+        description: "Busque e visualize documentos fiscais eletrônicos",
         path: "/equipe/dev/consulta-xmls",
         icon: FileCode2,
         sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/consulta-xmls/",
@@ -103,13 +111,13 @@ const toolGroups: ToolGroup[] = [
   {
     label: DEV_NAV_LABELS.calculadoraIbsCbs,
     landingPath: "/equipe/dev/calculadora-ibs-cbs",
-    landingDescription: "Simulador de calculo da reforma tributaria",
+    landingDescription: "Simulador de cálculo da reforma tributária",
     landingIcon: Percent,
     landingSopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/",
     tools: [
       {
         name: DEV_NAV_LABELS.calculadoraIbsCbs,
-        description: "Simulador de calculo da reforma tributaria",
+        description: "Simulador de cálculo da reforma tributária",
         path: "/equipe/dev/calculadora-ibs-cbs",
         icon: Percent,
         sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/",
@@ -127,13 +135,13 @@ const toolGroups: ToolGroup[] = [
   {
     label: DEV_NAV_LABELS.controleBalancetes,
     landingPath: "/equipe/dev/controle-balancetes",
-    landingDescription: "Upload e gestao de balancetes contabeis",
+    landingDescription: "Upload e gestão de balancetes contábeis",
     landingIcon: Scale,
     landingSopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/balancete/",
     tools: [
       {
         name: DEV_NAV_LABELS.controleBalancetes,
-        description: "Upload e gestao de balancetes contabeis",
+        description: "Upload e gestão de balancetes contábeis",
         path: "/equipe/dev/controle-balancetes",
         icon: Scale,
         sopUrl: "https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/balancete/",
@@ -166,72 +174,21 @@ const DevDashboard = () => {
   );
   const totalFiltered = filteredGroups.reduce((sum, group) => sum + group.tools.length, 0);
 
-  const categorySegments: HatchedBarSegment[] = useMemo(
-    () =>
-      toolGroups.map((group, index) => ({
-        label: group.label,
-        value: group.tools.length,
-        hatched: index % 2 === 1,
-      })),
-    [],
-  );
-
   const sopCoverage = totalTools > 0 ? Math.round((totalWithSop / totalTools) * 100) : 0;
+
+  const scrollToCategory = (label: string) => {
+    document.getElementById(toAnchorId(label))?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <DevLayout
-      title="Painel de aplicacoes"
-      subtitle="Acesse suas ferramentas automatizadas e manuais de operacao"
+      title={DEV_NAV_LABELS.inicio}
+      subtitle="Acesse suas ferramentas automatizadas e manuais de operação"
     >
       <div className="space-y-6">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          <KpiHero
-            label="Ferramentas no Catalogo"
-            value={totalTools}
-            icon={<Cpu className="h-3.5 w-3.5" />}
-            variation={{ label: "disponiveis para a equipe" }}
-          />
-          <KpiHero
-            label="Areas Funcionais"
-            value={totalCategories}
-            icon={<LayoutGrid className="h-3.5 w-3.5" />}
-            variation={{ label: "frentes de atuacao" }}
-          />
-          <KpiHero
-            label="Cobertura de Manuais"
-            value={`${sopCoverage}%`}
-            icon={<BookOpen className="h-3.5 w-3.5" />}
-            variation={{ label: `${totalWithSop} de ${totalTools} com manual SOP` }}
-          />
-          <KpiHero
-            label="Em Desenvolvimento"
-            value={toolsCounts?.inDevelopment ?? 0}
-            icon={<Rocket className="h-3.5 w-3.5" />}
-            variant="solid"
-            variation={{ label: "novas ferramentas em construcao" }}
-            loading={isLoadingTools}
-          />
-        </div>
-
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <HeroBanner
-            className="lg:col-span-2"
-            eyebrow="PSA Digital"
-            title="Maximize a produtividade do time fiscal"
-            description="Substitua planilhas e processos manuais por ferramentas automatizadas. Cada aplicacao foi desenhada para acelerar consultas, apuracoes e cruzamentos de dados, com manuais integrados."
-            ctaLabel="Solicitar nova ferramenta"
-            onCta={() => navigate("/equipe/dev/nova-ferramenta")}
-            icon={<Sparkles className="h-6 w-6 text-white" />}
-          />
-
-          <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex items-center gap-2">
-              <LayoutGrid className="h-4 w-4 text-primary" />
-              <h3 className="text-sm font-semibold text-slate-900">Distribuicao por Categoria</h3>
-            </div>
-            <HatchedBar segments={categorySegments} height={48} />
-          </div>
-        </div>
+        <p className="text-sm text-slate-600">
+          Use o filtro para achar uma ferramenta específica ou explore por categoria no catálogo abaixo.
+        </p>
 
         <a
           href="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/estrutura-pastas-drive/"
@@ -289,7 +246,7 @@ const DevDashboard = () => {
         <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-slate-900">Catalogo de Ferramentas</h2>
+              <h2 className="text-base font-semibold text-slate-900">Catálogo de Ferramentas</h2>
               <Badge variant="secondary" className="text-[11px]">
                 {totalFiltered} {totalFiltered === 1 ? "item" : "itens"}
               </Badge>
@@ -297,7 +254,7 @@ const DevDashboard = () => {
 
             <div className="flex w-full items-center gap-2 sm:w-auto">
               <Select value={selectedToolPath} onValueChange={setSelectedToolPath}>
-                <SelectTrigger className="h-9 w-full bg-white text-sm shadow-sm sm:w-80">
+                <SelectTrigger className="h-9 w-full text-sm shadow-sm sm:w-80">
                   <SelectValue placeholder="Filtrar por ferramenta..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -335,7 +292,7 @@ const DevDashboard = () => {
               const LandingIcon = group.landingIcon ?? LayoutGrid;
 
               return (
-                <section key={group.label} className="flex flex-col">
+                <section key={group.label} id={toAnchorId(group.label)} className="flex flex-col scroll-mt-4">
                   <div className="mb-3 flex items-center gap-2">
                     <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{group.label}</h3>
                     <span className="h-px flex-1 bg-slate-200" />
@@ -349,10 +306,21 @@ const DevDashboard = () => {
                       const isSingleton = group.tools.length === 1 && group.tools[0].name === group.label;
 
                       return (
-                    <button
-                      type="button"
+                    // Não é um <button>: os chips de sub-ferramenta logo abaixo já
+                    // são <button>, e <button> dentro de <button> é HTML inválido
+                    // (o React acusa no console). role="button" + teclado mantém a
+                    // mesma acessibilidade sem aninhar elementos interativos.
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => navigate(group.landingPath!)}
-                      className="group flex h-full w-full flex-col rounded-2xl border border-primary/30 bg-gradient-to-br from-surface-escura via-surface-escura-2 to-primary p-5 text-left text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          navigate(group.landingPath!);
+                        }
+                      }}
+                      className="group flex h-full w-full cursor-pointer flex-col rounded-2xl border border-primary/30 bg-gradient-to-br from-surface-escura via-surface-escura-2 to-primary p-5 text-left text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
                       <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-foreground/10 text-primary-foreground/80">
                         <LandingIcon className="h-5 w-5" />
@@ -384,7 +352,7 @@ const DevDashboard = () => {
                           <ArrowRight className="h-3.5 w-3.5" />
                         </span>
                       </div>
-                    </button>
+                    </div>
                       );
                     })()
                   ) : (
@@ -447,6 +415,71 @@ const DevDashboard = () => {
                 </section>
               );
             })}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <KpiHero
+            label="Ferramentas no Catálogo"
+            value={totalTools}
+            icon={<Cpu className="h-3.5 w-3.5" />}
+            variation={{ label: "disponíveis para a equipe" }}
+          />
+          <KpiHero
+            label="Áreas Funcionais"
+            value={totalCategories}
+            icon={<LayoutGrid className="h-3.5 w-3.5" />}
+            variation={{ label: "frentes de atuação" }}
+          />
+          <KpiHero
+            label="Cobertura de Manuais"
+            value={`${sopCoverage}%`}
+            icon={<BookOpen className="h-3.5 w-3.5" />}
+            variation={{ label: `${totalWithSop} de ${totalTools} com manual SOP` }}
+          />
+          <KpiHero
+            label="Em Desenvolvimento"
+            value={toolsCounts?.inDevelopment ?? 0}
+            icon={<Rocket className="h-3.5 w-3.5" />}
+            variant="solid"
+            variation={{ label: "novas ferramentas em construção" }}
+            loading={isLoadingTools}
+          />
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Não achou a ferramenta que precisa?</p>
+              <p className="mt-0.5 text-xs text-slate-500">
+                Solicite uma nova ferramenta para a equipe Digital Dev avaliar.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => navigate("/equipe/dev/nova-ferramenta")}
+              className="shrink-0 gap-1.5"
+            >
+              Solicitar nova ferramenta
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+            <h3 className="mb-3 text-sm font-semibold text-slate-900">Categorias</h3>
+            <div className="flex flex-wrap gap-2">
+              {toolGroups.map((group) => (
+                <button
+                  key={group.label}
+                  type="button"
+                  onClick={() => scrollToCategory(group.label)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                >
+                  {group.label}
+                  <span className="text-slate-400">{group.tools.length}</span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

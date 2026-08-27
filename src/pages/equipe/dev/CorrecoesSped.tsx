@@ -199,7 +199,7 @@ const CorrecoesSped = () => {
                   <FieldTooltip text={SPED_TOOLTIPS.cliente} />
                 </label>
                 <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
-                  <SelectTrigger className="h-11 bg-white">
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Selecione..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -215,7 +215,7 @@ const CorrecoesSped = () => {
                   <FieldTooltip text={SPED_TOOLTIPS.contribuinte} />
                 </label>
                 <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-                  <SelectTrigger className="h-11 bg-white">
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
                   </SelectTrigger>
                   <SelectContent>
@@ -265,7 +265,7 @@ const CorrecoesSped = () => {
                   <FieldTooltip text={SPED_TOOLTIPS.ncm} />
                 </label>
                 <Select value={ncmFilter} onValueChange={(v) => setNcmFilter(v as NcmFilter)}>
-                  <SelectTrigger className="h-11 bg-white">
+                  <SelectTrigger className="h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -375,7 +375,7 @@ const CorrecoesSped = () => {
                     placeholder="Ex: 31010201"
                     value={codCta}
                     onChange={(e) => setCodCta(e.target.value)}
-                    className="h-11 text-sm font-mono bg-white"
+                    className="h-11 text-sm font-mono"
                   />
                 </div>
               </div>
@@ -392,7 +392,7 @@ const CorrecoesSped = () => {
                     placeholder="Buscar por descrição, chave ou NCM..."
                     value={searchText}
                     onChange={(e) => setSearchText(e.target.value)}
-                    className="pl-9 h-11 bg-white"
+                    className="pl-9 h-11"
                   />
                 </div>
               </div>

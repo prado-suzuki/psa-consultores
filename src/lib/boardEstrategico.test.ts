@@ -387,6 +387,61 @@ describe('alertasEstrategicos', () => {
     expect(r[0].severidade).toBe('risco');
   });
 
+  /*
+   * ZERO NÃO LIDERA FRASE.
+   *
+   * Visto com dado real do sandbox em 21/08/2026: a faixa mostrava "R$ 0 em 1
+   * contrato vencido com trabalho em andamento", com "R$ 0 mil" repetido na
+   * pílula de valor. O zero ocupava a posição de destaque e não informava nada,
+   * e a frase seria igualmente ruim em produção com OS de valor nulo. O fato é
+   * o contrato vencido com gente trabalhando; o valor é agravante.
+   */
+  it('sem faturamento lançado, o título lidera pela CONTAGEM e não por R$ 0', () => {
+    const r = alertasEstrategicos({
+      ...vazio,
+      os: [os({ os_id: '1', cliente_id: 'a', faturamento: 0, status_contrato: 'Vencido', situacao: 'em_andamento' })],
+      concentracao: concentracaoCarteira([]),
+    });
+    const vencido = r.find((a) => a.id === 'contrato-vencido');
+    expect(vencido?.titulo).toBe('1 contrato vencido com trabalho em andamento');
+    expect(vencido?.titulo).not.toContain('R$');
+    // O alerta CONTINUA existindo: contrato fora da vigência com trabalho em
+    // curso é risco com ou sem valor lançado.
+    expect(vencido?.severidade).toBe('risco');
+    // E a tela precisa saber que a exposição não foi medida, em vez de ler zero
+    // como "não custa nada".
+    expect(vencido?.detalhe).toContain('Sem faturamento lançado');
+    expect(vencido?.valor).toBe(0);
+  });
+
+  it('com faturamento lançado, o valor volta a liderar o título', () => {
+    const r = alertasEstrategicos({
+      ...vazio,
+      os: [os({ os_id: '1', cliente_id: 'a', faturamento: 42_000, status_contrato: 'Vencido', situacao: 'em_andamento' })],
+      concentracao: concentracaoCarteira([]),
+    });
+    const vencido = r.find((a) => a.id === 'contrato-vencido');
+    expect(vencido?.titulo).toBe('R$ 42 mil em 1 contrato vencido com trabalho em andamento');
+    expect(vencido?.detalhe).not.toContain('Sem faturamento lançado');
+  });
+
+  it('a mesma regra vale para a renovação de 30 dias', () => {
+    const semValor = alertasEstrategicos({
+      ...vazio,
+      os: [os({ os_id: '1', cliente_id: 'a', faturamento: 0, status_contrato: 'Vence em 30 dias', situacao: 'em_andamento' })],
+      concentracao: concentracaoCarteira([]),
+    }).find((a) => a.id === 'renovacao-30d');
+    expect(semValor?.titulo).toBe('1 contrato vence nos próximos 30 dias');
+    expect(semValor?.detalhe).toContain('Sem faturamento lançado');
+
+    const comValor = alertasEstrategicos({
+      ...vazio,
+      os: [os({ os_id: '1', cliente_id: 'a', faturamento: 15_000, status_contrato: 'Vence em 30 dias', situacao: 'em_andamento' })],
+      concentracao: concentracaoCarteira([]),
+    }).find((a) => a.id === 'renovacao-30d');
+    expect(comValor?.titulo).toBe('R$ 15 mil em renovação nos próximos 30 dias');
+  });
+
   it('dispara concentração quando o maior cliente passa do limite', () => {
     const linhas = [
       os({ os_id: '1', cliente_id: 'a', faturamento: 900 }),

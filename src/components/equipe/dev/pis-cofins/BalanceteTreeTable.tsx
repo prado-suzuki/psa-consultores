@@ -12,6 +12,11 @@ import { ColumnFilterDropdown } from "./ColumnFilterDropdown";
 import { renderColumnLabel } from "./renderColumnLabel";
 import type { StickyColumnConfig } from "./ApuracaoDataTable";
 import type { ContaNode } from "@/types/pisCofins";
+import {
+  PIS_HEADER_CLASS as HEADER_HIGHLIGHT_BASE,
+  PIS_MONTH_HEADER_CLASS as MONTH_HIGHLIGHT,
+  PIS_HEADER_BUTTON_CLASS as HEADER_BTN,
+} from "@/components/equipe/dev/pis-cofins/theme";
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -184,10 +189,12 @@ const STICKY_COLS: StickyColumnConfig[] = [
   { label: "Descrição", width: 280, left: 100, isLast: true },
 ];
 
-const HEADER_HIGHLIGHT = "bg-[#14B8A6] text-white border-[#0B7A70]";
+const HEADER_HIGHLIGHT = HEADER_HIGHLIGHT_BASE;
+// Mesmo teal/borda do HEADER_HIGHLIGHT acima (theme.ts), só que com
+// `border-r` no lugar de `border`: a coluna sticky só tem régua do lado
+// direito. Não dá pra derivar de HEADER_HIGHLIGHT_BASE (precisa ficar
+// literal para o Tailwind gerar a classe), então repete o hex por extenso.
 const STICKY_HEADER_HIGHLIGHT = "bg-[#14B8A6] text-white border-r-[#0B7A70]";
-const MONTH_HIGHLIGHT = "bg-[#3fd8c7] text-white border-[#0B7A70]";
-const HEADER_BTN = "text-white hover:bg-white/10 hover:text-white";
 
 type DisplayColumn = {
   id: string;
@@ -405,6 +412,10 @@ export const BalanceteTreeTable = forwardRef<BalanceteTreeTableHandle, Balancete
                 )}
                 {!isParent && onToggleExtra && (
                   extraTipo ? (
+                    // Débito/crédito = PIS_DEBITO_HEX/PIS_CREDITO_HEX (theme.ts). Combo
+                    // bg/text/border/hover cravado por extenso de propósito: é um
+                    // Tailwind arbitrário, precisa do hex literal no arquivo para o
+                    // JIT gerar a classe — interpolar a constante aqui não funcionaria.
                     <Badge
                       className={cn(
                         "cursor-pointer shrink-0 text-[10px] px-1.5 py-0 h-5 font-bold",

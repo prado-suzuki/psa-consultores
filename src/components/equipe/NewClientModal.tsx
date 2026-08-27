@@ -282,7 +282,7 @@ export default function NewClientModal({
       ...entities.flatMap((e) => pendenciasContribuinte(e, inscricoesMap[e._dbId || String(e._id)] || [])),
       ...pendenciasDocumentosRepetidos(entities),
       ...participants.flatMap(pendenciasRepresentante),
-      ...contracts.flatMap(pendenciasOrdemServico),
+      ...contracts.flatMap((c) => pendenciasOrdemServico(c, entities)),
     ];
     // Contar uma falta de OS para quem não enxerga a aba de OS seria mandar a
     // pessoa procurar um campo que a tela não mostra.
@@ -505,6 +505,7 @@ export default function NewClientModal({
                       <TabsContent value="contratos" className="mt-0 p-3 md:p-4 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200">
                         <ContratosTab
                           contracts={contracts} setContracts={setContracts}
+                          contribuintes={entities}
                           isReadOnly={isReadOnly}
                           produtoSegmentoFullOptions={produtoSegmentoFullOptions}
                           allClusters={allClusters}
@@ -528,6 +529,7 @@ export default function NewClientModal({
                           entities={entities}
                           contratos={contracts}
                           centrosCusto={CENTRO_CUSTO_OPTIONS}
+                          empresas={allClusters}
                         />
                       </TabsContent>
                     </>

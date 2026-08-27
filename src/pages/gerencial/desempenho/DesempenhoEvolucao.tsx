@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoEvolucao, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { useSearchParams } from 'react-router-dom';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao } from '@/hooks/useCiclosAvaliacao';
@@ -22,10 +24,10 @@ import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
 import { useItensAcaoMembroEvolucao, useMetasMembroEvolucao } from '@/hooks/useDomainDesempenhoEvolucao';
 
 const classifConfig: Record<string, { label: string; bg: string; text: string }> = {
-  supera: { label: 'Supera expectativas', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+  supera: { label: 'Supera expectativas', bg: 'bg-[var(--bd-go-t)]', text: 'text-[var(--bd-go-d)]' },
   atende: { label: 'Atende expectativas', bg: 'bg-green-50', text: 'text-green-700' },
-  atende_parcialmente: { label: 'Atende parcialmente', bg: 'bg-amber-50', text: 'text-amber-700' },
-  abaixo: { label: 'Abaixo das expectativas', bg: 'bg-red-50', text: 'text-red-700' },
+  atende_parcialmente: { label: 'Atende parcialmente', bg: 'bg-[var(--bd-warn-t)]', text: 'text-[var(--bd-warn-d)]' },
+  abaixo: { label: 'Abaixo das expectativas', bg: 'bg-[var(--bd-risk-t)]', text: 'text-[var(--bd-risk-d)]' },
 };
 
 const getClassificacao = (media: number) => {
@@ -71,6 +73,19 @@ const DesempenhoEvolucao = () => {
 
   const currentCiclo = ciclos?.find(c => c.status === 'em_andamento');
   const currentMetas = memberMetasAll?.filter(m => m.ciclo_id === currentCiclo?.id) ?? [];
+
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  // Contagem e progresso. O TEXTO de feedback e de 1:1 fica de fora.
+  const contextoAgente = useMemo(() => contextoDesempenhoEvolucao({
+    ciclo: currentCiclo ? resumoDeCiclo(currentCiclo) : null,
+    membroSelecionado: selectedMembro ? (profilesNomeMap?.[selectedMembro] ?? 'pessoa selecionada') : null,
+    metas: currentMetas.map(m => ({ progresso_atual: m.progresso_atual })),
+    feedbacksRecebidos: feedbacks?.length ?? 0,
+    reunioes1a1: reunioes?.length ?? 0,
+    ultimaReuniao: [...(reunioes ?? [])].map(r => r.data_reuniao).sort().at(-1) ?? null,
+    carregando: false,
+  }), [currentCiclo, selectedMembro, profilesNomeMap, currentMetas, feedbacks, reunioes]);
+  useRegistrarContextoAgente('board.desempenho.evolucao', contextoAgente, false);
   const totalPeso = currentMetas.reduce((a, m) => a + (m.peso ?? 1), 0);
   const pprMedia = totalPeso > 0 ? Math.round(currentMetas.reduce((a, m) => a + m.progresso_atual * (m.peso ?? 1), 0) / totalPeso) : 0;
   const pprClassif = getClassificacao(pprMedia);
@@ -111,7 +126,7 @@ const DesempenhoEvolucao = () => {
     <BoardLayout title="Evolucao" subtitle="Analise de desempenho individual">
       <div className="mb-6">
         <Select value={selectedMembro} onValueChange={(v) => { setSelectedMembro(v); setAjusteQualitativo(''); }}>
-          <SelectTrigger className="w-72 bg-white"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
+          <SelectTrigger className="w-72"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
           <SelectContent>{Object.entries(profilesNomeMap ?? {}).map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
         </Select>
       </div>
@@ -124,7 +139,7 @@ const DesempenhoEvolucao = () => {
       ) : (
         <div className="space-y-6">
           {/* Block 1: Performance chart */}
-          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+          <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
             <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Performance por Ciclo</CardTitle></CardHeader>
             <CardContent>
               {chartData.length > 0 ? (
@@ -136,12 +151,12 @@ const DesempenhoEvolucao = () => {
           </Card>
 
           {/* Block 2: Feedback chart */}
-          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+          <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
             <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Historico de Feedbacks</CardTitle></CardHeader>
             <CardContent>
               {feedbackChartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={feedbackChartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" tick={{ fontSize: 12 }} /><YAxis allowDecimals={false} /><Tooltip /><Legend /><Bar dataKey="Reconhecimento" stackId="a" fill="#10B981" /><Bar dataKey="Desenvolvimento" stackId="a" fill="#D97706" /><Bar dataKey="360" stackId="a" fill="#3B82F6" /></BarChart>
+                  <BarChart data={feedbackChartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" tick={{ fontSize: 12 }} /><YAxis allowDecimals={false} /><Tooltip /><Legend /><Bar dataKey="Reconhecimento" stackId="a" fill="var(--bd-go)" /><Bar dataKey="Desenvolvimento" stackId="a" fill="var(--bd-warn)" /><Bar dataKey="360" stackId="a" fill="var(--bd-blue)" /></BarChart>
                 </ResponsiveContainer>
               ) : <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Sem feedbacks registrados.</p>}
               <div className="mt-4 space-y-2">
@@ -156,7 +171,7 @@ const DesempenhoEvolucao = () => {
           </Card>
 
           {/* Block 3: 1:1 cadence + action items completion */}
-          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+          <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
             <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Cadencia de 1:1s</CardTitle></CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-1 mb-4">
@@ -165,7 +180,7 @@ const DesempenhoEvolucao = () => {
                   const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                   const has = reuniaoMonths.has(key);
                   return (
-                    <div key={key} className="w-8 h-8 rounded text-[10px] flex items-center justify-center" style={{ backgroundColor: has ? '#10B981' : '#F1F5F9', color: has ? '#FFFFFF' : 'var(--board-t4)' }} title={key}>
+                    <div key={key} className="w-8 h-8 rounded text-[10px] flex items-center justify-center" style={{ backgroundColor: has ? 'var(--bd-go)' : 'var(--bd-surface2)', color: has ? '#FFFFFF' : 'var(--bd-ink3)' }} title={key}>
                       {d.toLocaleString('pt-BR', { month: 'short' }).slice(0, 3)}
                     </div>
                   );
@@ -176,10 +191,10 @@ const DesempenhoEvolucao = () => {
               <div className="pt-3" style={{ borderTop: '1px solid var(--board-border)' }}>
                 <div className="flex items-center justify-between mb-1">
                   <p className="text-sm font-medium" style={{ color: 'var(--board-t2)' }}>Taxa de conclusao de itens de acao</p>
-                  <span className="text-sm font-semibold" style={{ color: taxaConclusao >= 85 ? '#10B981' : taxaConclusao >= 70 ? '#D97706' : '#EF4444' }}>{taxaConclusao}%</span>
+                  <span className="text-sm font-semibold" style={{ color: taxaConclusao >= 85 ? 'var(--bd-go)' : taxaConclusao >= 70 ? 'var(--bd-warn)' : 'var(--bd-risk)' }}>{taxaConclusao}%</span>
                 </div>
                 <div className="h-1.5 rounded-full" style={{ backgroundColor: 'var(--board-border)' }}>
-                  <div className="h-full rounded-full" style={{ width: `${taxaConclusao}%`, backgroundColor: taxaConclusao >= 85 ? '#10B981' : taxaConclusao >= 70 ? '#D97706' : '#EF4444' }} />
+                  <div className="h-full rounded-full" style={{ width: `${taxaConclusao}%`, backgroundColor: taxaConclusao >= 85 ? 'var(--bd-go)' : taxaConclusao >= 70 ? 'var(--bd-warn)' : 'var(--bd-risk)' }} />
                 </div>
                 <p className="text-xs mt-1" style={{ color: 'var(--board-t4)' }}>{concluidos} de {totalItens} itens concluidos</p>
               </div>
@@ -187,7 +202,7 @@ const DesempenhoEvolucao = () => {
           </Card>
 
           {/* Block 4: PPR Projection + qualitative adjustment */}
-          <Card className={`rounded-xl shadow-sm ${pprConfig?.bg ?? 'bg-slate-50'}`} style={{ border: '1px solid var(--board-border)' }}>
+          <Card className={`rounded-xl shadow-sm ${pprConfig?.bg ?? 'bg-muted'}`} style={{ border: '1px solid var(--board-border)' }}>
             <CardHeader><CardTitle className={`text-[15px] font-semibold ${pprConfig?.text ?? ''}`}>{currentCiclo?.status === 'encerrado' ? 'Resultado Oficial' : 'Projecao de PPR'}</CardTitle></CardHeader>
             <CardContent>
               <p className={`text-3xl font-bold ${pprConfig?.text ?? ''}`}>{pprConfig?.label ?? '--'}</p>
@@ -197,17 +212,17 @@ const DesempenhoEvolucao = () => {
                   <div key={dp.dimensao} className="flex items-center gap-3">
                     <span className="text-sm w-20 capitalize" style={{ color: 'var(--board-t2)' }}>{dp.dimensao}</span>
                     <div className="flex-1 h-1.5 rounded-full" style={{ backgroundColor: 'var(--board-border)' }}>
-                      <div className="h-full rounded-full" style={{ width: `${dp.media}%`, backgroundColor: dp.media >= 85 ? '#10B981' : dp.media >= 70 ? '#D97706' : '#EF4444' }} />
+                      <div className="h-full rounded-full" style={{ width: `${dp.media}%`, backgroundColor: dp.media >= 85 ? 'var(--bd-go)' : dp.media >= 70 ? 'var(--bd-warn)' : 'var(--bd-risk)' }} />
                     </div>
                     <span className="text-sm font-medium w-10 text-right">{dp.media}%</span>
                   </div>
                 ))}
               </div>
               {/* Qualitative adjustment */}
-              <div className="mt-4 pt-4" style={{ borderTop: '1px solid rgba(0,0,0,0.1)' }}>
+              <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--bd-line)' }}>
                 <Label className="text-sm font-medium" style={{ color: 'var(--board-t2)' }}>Ajuste qualitativo do lider</Label>
                 <Textarea
-                  className="mt-1 bg-white"
+                  className="mt-1"
                   placeholder="Descreva ajustes qualitativos..."
                   value={ajusteQualitativo || existingAjuste}
                   onChange={e => setAjusteQualitativo(e.target.value)}
@@ -227,7 +242,7 @@ const DesempenhoEvolucao = () => {
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3">
                 {memberAnalises.map(a => (
-                  <Card key={a.id} className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+                  <Card key={a.id} className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                     <CardContent className="pt-4 space-y-2 text-sm">
                       <Badge variant="outline">{a.status}</Badge>
                       {a.entregas_realizadas && <div><strong>Entregas:</strong> {a.entregas_realizadas}</div>}

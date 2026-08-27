@@ -69,6 +69,7 @@ const os = (over: Partial<DraftOrdemServico> = {}): DraftOrdemServico => ({
   produtos_contratados: [{ _id: 1, produto_segmento_id: 'p1' }],
   distribuicao_receita: [{ id_centro_custo: CENTRO_A, percentual_rateio: 100 }],
   cluster_id: 'cl-1',
+  contribuinte_id: '',
   setor_cliente: 'AGR',
   setor_cliente_id: 'st-1',
   regiao: 'centro_oeste',
@@ -204,6 +205,17 @@ describe('validateRepresentante', () => {
 });
 
 describe('validateOrdemServico', () => {
+  // Espelha `pendenciasOrdemServico`: o campo só é exigido quando existe
+  // contribuinte com `_dbId`, porque a coluna é chave estrangeira e contribuinte
+  // criado na mesma sessão ainda não tem id para gravar.
+  it('exige o contribuinte de faturamento só havendo contribuinte salvo', () => {
+    const salvos = [contribuinte({ _dbId: 'ctb-1' })];
+    expect(validateOrdemServico(os(), salvos)).toMatch(/Contribuinte de Faturamento/);
+    expect(validateOrdemServico(os({ contribuinte_id: 'ctb-1' }), salvos)).toBeNull();
+    expect(validateOrdemServico(os(), [contribuinte()])).toBeNull();
+    expect(validateOrdemServico(os())).toBeNull();
+  });
+
   it('exige empresa, área e região', () => {
     expect(validateOrdemServico(os({ cluster_id: '' }))).toMatch(/Empresa\/Faturamento/);
     expect(validateOrdemServico(os({ setor_cliente_id: '' }))).toMatch(/Área do Negócio/);

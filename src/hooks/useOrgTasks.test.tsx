@@ -27,13 +27,21 @@ vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'user-1
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }));
 vi.mock('@/integrations/supabase/client', () => ({ supabase: { from: vi.fn() } }));
 
-import { useMoveOrgTaskToProject, useMoveOrgTasksToProject, useOrgTasks, type OrgTask } from '@/hooks/useOrgTasks';
+import {
+  useDeleteOrgTask,
+  useMoveOrgTaskToProject,
+  useMoveOrgTasksToProject,
+  useOrgTasks,
+  type OrgTask,
+} from '@/hooks/useOrgTasks';
 import { supabase } from '@/integrations/supabase/client';
 import { currentAmbiente } from '@/config/api';
 
 interface DbResult {
   data: unknown;
   error: unknown;
+  /** Só as contagens (`head: true`) leem isto. */
+  count?: number;
 }
 interface ChainRecord {
   table: string;
@@ -50,7 +58,7 @@ function makeChain(table: string) {
   const record: ChainRecord = { table, calls: [] };
   chains.push(record);
   const chain: Record<string, unknown> = {};
-  for (const method of ['select', 'update', 'eq', 'in', 'or', 'gte', 'lte', 'order', 'single', 'maybeSingle']) {
+  for (const method of ['select', 'update', 'delete', 'eq', 'neq', 'in', 'or', 'gte', 'lte', 'order', 'single', 'maybeSingle']) {
     chain[method] = vi.fn((...args: unknown[]) => {
       record.calls.push({ method, args });
       return chain;
@@ -406,5 +414,126 @@ describe('useOrgTasks (escopo de ambiente)', () => {
     const tasks = await queryFnOf()();
 
     expect(tasks.map(task => task.id)).toEqual(['task-sem-cliente', 'task-cliente-apagado']);
+  });
+});
+
+/**
+ * O filtro por responsável roda no cliente para preservar o vínculo da
+ * subtarefa: a tarefa-mãe fica na lista mesmo sendo de outra pessoa, porque é
+ * ela que liga a subtarefa ao projeto e ao cliente na árvore. O que não pode
+ * ficar é a subtarefa IRMÃ — filtrar uma pessoa mostrava as subtarefas de quem
+ * dividia a mesma mãe.
+ */
+describe('useOrgTasks (filtro por responsável)', () => {
+  function queryFnOf(filters: Parameters<typeof useOrgTasks>[0]) {
+    const { result } = renderHook(() => useOrgTasks(filters));
+    return (result.current as unknown as { queryFn: () => Promise<OrgTask[]> }).queryFn;
+  }
+
+  /** Sem cliente e sem cliente no projeto: o corte de ambiente deixa passar. */
+  const tarefa = (patch: Partial<OrgTask>) => ({
+    id: 'task-1',
+    title: 'Apurar ICMS',
+    status: 'todo',
+    project_id: 'project-1',
+    client_id: null,
+    parent_task_id: null,
+    assigned_to: null,
+    reviewer_id: null,
+    project: { id: 'project-1', name: 'Projeto Alfa', external_client_id: null },
+    ...patch,
+  });
+
+  function queueTasks(tarefas: unknown[]) {
+    dbQueue.push({ data: tarefas, error: null });
+    dbQueue.push({ data: [], error: null });
+  }
+
+  it('traz a subtarefa da pessoa e a mãe dela, mas não a subtarefa irmã', async () => {
+    queueTasks([
+      tarefa({ id: 'mae', assigned_to: 'monica' }),
+      tarefa({ id: 'sub-anderson', parent_task_id: 'mae', assigned_to: 'anderson' }),
+      tarefa({ id: 'sub-monica', parent_task_id: 'mae', assigned_to: 'monica' }),
+      tarefa({ id: 'solta-monica', assigned_to: 'monica' }),
+    ]);
+
+    const tasks = await queryFnOf({ assignedTo: 'anderson' })();
+
+    expect(tasks.map(task => task.id)).toEqual(['mae', 'sub-anderson']);
+  });
+
+  it('trata como da pessoa a tarefa em que ela é a revisora, e só em revisão', async () => {
+    queueTasks([
+      tarefa({ id: 'em-revisao', status: 'review', assigned_to: 'monica', reviewer_id: 'anderson' }),
+      tarefa({ id: 'em-progresso', status: 'in_progress', assigned_to: 'monica', reviewer_id: 'anderson' }),
+    ]);
+
+    const tasks = await queryFnOf({ assignedTo: 'anderson' })();
+
+    expect(tasks.map(task => task.id)).toEqual(['em-revisao']);
+  });
+
+  it('resolve "mine" para o usuário logado', async () => {
+    queueTasks([
+      tarefa({ id: 'minha', assigned_to: 'user-1' }),
+      tarefa({ id: 'de-outro', assigned_to: 'monica' }),
+    ]);
+
+    const tasks = await queryFnOf({ assignedTo: 'mine' })();
+
+    expect(tasks.map(task => task.id)).toEqual(['minha']);
+  });
+});
+
+/**
+ * `org_tasks_parent_task_id_fkey` é ON DELETE CASCADE: apagar a mãe apaga as
+ * filhas no banco, sem passar pelo app. A guarda contra isso tem que contar as
+ * filhas NO BANCO — contar na lista da tela liberava a exclusão sempre que o
+ * filtro escondia as filhas ativas (outro responsável, outro status), e elas
+ * morriam em silêncio.
+ */
+describe('useDeleteOrgTask (guarda do cascade)', () => {
+  function deleteMutation() {
+    const { result } = renderHook(() => useDeleteOrgTask('tax'));
+    return result.current as unknown as { mutationFn: (id: string) => Promise<void> };
+  }
+
+  /** Fila: busca do título (auditoria) e a contagem de filhas ativas. */
+  function queueDelete(ativas: number) {
+    dbQueue.push({ data: { title: 'Simulação de IBS e CBS', parent_task_id: null }, error: null });
+    dbQueue.push({ data: null, error: null, count: ativas });
+  }
+
+  it('recusa apagar a mãe cujas filhas ativas o filtro escondeu', async () => {
+    queueDelete(3);
+
+    await expect(deleteMutation().mutationFn('mae-1')).rejects.toThrow(/3 subtarefa/);
+    expect(chainOf('org_tasks', 'delete')).toHaveLength(0);
+  });
+
+  it('conta pela mãe e ignora as concluídas', async () => {
+    queueDelete(1);
+
+    await expect(deleteMutation().mutationFn('mae-1')).rejects.toThrow();
+    const contagem = chainOf('org_tasks', 'neq')[0];
+    expect(argsOf(contagem, 'eq')).toEqual([['parent_task_id', 'mae-1']]);
+    expect(argsOf(contagem, 'neq')).toEqual([['status', 'done']]);
+  });
+
+  it('apaga quando o banco não tem nenhuma filha ativa', async () => {
+    queueDelete(0);
+    dbQueue.push({ data: [{ id: 'mae-1' }], error: null });
+
+    await deleteMutation().mutationFn('mae-1');
+
+    expect(chainOf('org_tasks', 'delete')).toHaveLength(1);
+  });
+
+  it('não apaga quando a contagem falha', async () => {
+    dbQueue.push({ data: { title: 'Tarefa', parent_task_id: null }, error: null });
+    dbQueue.push({ data: null, error: { message: 'sem permissão' } });
+
+    await expect(deleteMutation().mutationFn('mae-1')).rejects.toBeTruthy();
+    expect(chainOf('org_tasks', 'delete')).toHaveLength(0);
   });
 });

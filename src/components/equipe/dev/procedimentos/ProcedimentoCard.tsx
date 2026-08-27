@@ -1,87 +1,68 @@
-import { useState } from 'react';
-import { ExternalLink, AlertTriangle, Loader2, BarChart3, RefreshCw, Edit, Trash2, Download } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { AlertTriangle, Loader2, BarChart3, RefreshCw, Edit, Trash2, ClipboardCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Procedimento, useGetSignedUrl } from '@/hooks/useProcedimentos';
+import { Procedimento } from '@/hooks/useProcedimentos';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-const PROCESSO_COLORS: Record<string, string> = {
-  'EFD': '#3B82F6',
-  'XMLs': '#8B5CF6',
-  'PERDCOMP': '#10B981',
-  'Selic': '#06B6D4',
-  'IBS/CBS': '#F59E0B',
-  'Balancetes': '#EC4899',
-  'PIS/COFINS': '#6366F1',
-  'Cruzamento de Dados': '#D97706',
-  'Correções SPED': '#EF4444',
-};
-
-const COMPLEXIDADE_CONFIG = {
-  simples: { label: 'Simples', color: '#10B981' },
-  intermediario: { label: 'Intermediário', color: '#F59E0B' },
-  avancado: { label: 'Avançado', color: '#EF4444' },
-};
+import { COMPLEXIDADE_CONFIG, PROCESSANDO_TIMEOUT_MIN, estiloChipProcesso } from './theme';
 
 interface ProcedimentoCardProps {
   procedimento: Procedimento;
-  isLeaderOrAdmin: boolean;
+  /** Curador (admin/líder/sublíder): vê o pendente, confirma, exclui. */
+  podeCurar: boolean;
   onRetry: (id: string) => void;
   onReview: (proc: Procedimento) => void;
   onDelete: (proc: Procedimento) => void;
+  /** Abre a leitura do procedimento — o clique padrão do card. */
+  onAbrir: (proc: Procedimento) => void;
 }
 
-export function ProcedimentoCard({ procedimento: p, isLeaderOrAdmin, onRetry, onReview, onDelete }: ProcedimentoCardProps) {
+export function ProcedimentoCard({
+  procedimento: p,
+  podeCurar,
+  onRetry,
+  onReview,
+  onDelete,
+  onAbrir,
+}: ProcedimentoCardProps) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
-  const [coverLoaded, setCoverLoaded] = useState(false);
-  const getSignedUrl = useGetSignedUrl();
 
-  // Load cover image signed URL
-  if (p.ai_cover_url && !coverUrl && !coverLoaded) {
-    setCoverLoaded(true);
+  // Antes isto rodava no CORPO do componente, com um setState de controle para
+  // não repetir — efeito colateral dentro do render.
+  useEffect(() => {
+    if (!p.ai_cover_url) { setCoverUrl(null); return; }
+    let ativo = true;
     supabase.storage.from('sop-documents').createSignedUrl(p.ai_cover_url, 3600)
-      .then(({ data }) => { if (data) setCoverUrl(data.signedUrl); });
-  }
+      .then(({ data }) => { if (ativo && data) setCoverUrl(data.signedUrl); });
+    return () => { ativo = false; };
+  }, [p.ai_cover_url]);
 
-  const handleDownloadFile = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!p.arquivo_path) return;
-    try {
-      const url = await getSignedUrl(p.arquivo_path);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = p.arquivo_path.split('/').pop() || 'documento';
-      a.click();
-    } catch (err) {
-      console.error('Download error:', err);
-    }
-  };
-
-  // Processing state — detecta "travado" (>10 min sem terminar) e oferece recuperação
+  // Processing state — detecta "travado" no MESMO prazo que o backend usa para
+  // marcar erro, para o card não anunciar travamento antes da hora.
   if (p.status_geracao === 'processando') {
     const ageMs = Date.now() - new Date(p.created_at).getTime();
-    const isStuck = ageMs > 10 * 60 * 1000;
+    const isStuck = ageMs > PROCESSANDO_TIMEOUT_MIN * 60 * 1000;
 
     if (isStuck) {
       return (
         <div className="bg-amber-50 rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-amber-200 flex flex-col items-center justify-center min-h-[280px] gap-3">
           <AlertTriangle className="h-8 w-8 text-amber-500" />
-          <p className="text-sm text-amber-800 font-medium text-center">Processamento travado</p>
+          <p className="text-sm text-amber-800 font-medium text-center">Leitura travada</p>
           <p className="text-xs text-amber-600 text-center">
-            Iniciado {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: ptBR })} e não foi concluído.
+            Começou {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: ptBR })} e não terminou.
           </p>
           <div className="flex gap-2 mt-2">
             <Button size="sm" variant="outline" onClick={() => onRetry(p.id)}>
               <RefreshCw className="h-3 w-3 mr-1" /> Tentar novamente
             </Button>
-            {isLeaderOrAdmin && (
+            {podeCurar && (
               <Button size="sm" variant="outline" className="text-red-500" onClick={() => setConfirmDelete(true)}>
                 <Trash2 className="h-3 w-3 mr-1" /> Excluir
               </Button>
@@ -100,7 +81,7 @@ export function ProcedimentoCard({ procedimento: p, isLeaderOrAdmin, onRetry, on
         <Skeleton className="h-3 w-2/3" />
         <div className="flex items-center gap-2 mt-4 text-muted-foreground text-sm">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Analisando documento...
+          Lendo o documento...
         </div>
       </div>
     );
@@ -111,19 +92,21 @@ export function ProcedimentoCard({ procedimento: p, isLeaderOrAdmin, onRetry, on
     return (
       <div className="bg-red-50 rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-red-200 flex flex-col items-center justify-center min-h-[280px] gap-3">
         <AlertTriangle className="h-8 w-8 text-red-500" />
-        <p className="text-sm text-red-700 font-medium text-center">Não foi possível analisar o documento.</p>
+        <p className="text-sm text-red-700 font-medium text-center">Não foi possível ler o documento.</p>
         {p.erro_mensagem && (
-          <p className="text-xs text-red-500 text-center line-clamp-2">{p.erro_mensagem}</p>
+          <p className="text-xs text-red-500 text-center line-clamp-3">{p.erro_mensagem}</p>
         )}
         <div className="flex gap-2 mt-2">
           <Button size="sm" variant="outline" onClick={() => onRetry(p.id)}>
             <RefreshCw className="h-3 w-3 mr-1" /> Tentar novamente
           </Button>
-          <Button size="sm" variant="outline" onClick={() => onReview(p)}>
-            <Edit className="h-3 w-3 mr-1" /> Preencher manualmente
-          </Button>
+          {podeCurar && (
+            <Button size="sm" variant="outline" onClick={() => onReview(p)}>
+              <Edit className="h-3 w-3 mr-1" /> Preencher à mão
+            </Button>
+          )}
         </div>
-        {isLeaderOrAdmin && (
+        {podeCurar && (
           <Button size="sm" variant="ghost" className="text-red-500 mt-1" onClick={() => setConfirmDelete(true)}>
             <Trash2 className="h-3 w-3 mr-1" /> Excluir
           </Button>
@@ -133,21 +116,19 @@ export function ProcedimentoCard({ procedimento: p, isLeaderOrAdmin, onRetry, on
     );
   }
 
-  const isAwaitingConfirmation = p.status_geracao === 'gerado' && !p.confirmado_por;
-  const etapas = Array.isArray(p.ai_etapas) ? p.ai_etapas : [];
-  const tags = Array.isArray(p.ai_tags) ? p.ai_tags : [];
+  const aguardandoConfirmacao = !p.confirmado_por;
   const complexConfig = p.ai_complexidade ? COMPLEXIDADE_CONFIG[p.ai_complexidade] : null;
 
   return (
     <>
       <div
-        className={`bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-shadow duration-200 flex flex-col min-h-[280px] overflow-hidden ${
-          isAwaitingConfirmation && isLeaderOrAdmin ? 'border-2 border-dashed border-amber-400' : ''
+        className={`bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-shadow duration-200 flex flex-col min-h-[280px] overflow-hidden cursor-pointer ${
+          aguardandoConfirmacao ? 'border-2 border-dashed border-amber-400' : ''
         }`}
-        onClick={() => {
-          if (isAwaitingConfirmation && isLeaderOrAdmin) onReview(p);
-        }}
-        style={{ cursor: isAwaitingConfirmation && isLeaderOrAdmin ? 'pointer' : 'default' }}
+        onClick={() => onAbrir(p)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAbrir(p); } }}
       >
         {/* Cover image */}
         {coverUrl && (
@@ -157,25 +138,27 @@ export function ProcedimentoCard({ procedimento: p, isLeaderOrAdmin, onRetry, on
         )}
 
         <div className="p-5 flex flex-col flex-1">
-          {/* Top: Process chips + awaiting badge */}
+          {/* Top: Process chips + selos de estado */}
           <div className="flex flex-wrap gap-1.5 mb-3">
-            {isAwaitingConfirmation && isLeaderOrAdmin && (
+            {aguardandoConfirmacao && (
               <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
                 Aguardando confirmação
               </span>
             )}
-            {p.processos_associados?.map((proc) => {
-              const color = PROCESSO_COLORS[proc] || '#6B7280';
-              return (
-                <span
-                  key={proc}
-                  className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
-                  style={{ backgroundColor: `${color}26`, color }}
-                >
-                  {proc}
-                </span>
-              );
-            })}
+            {p.status_publicacao === 'arquivado' && (
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+                Arquivado
+              </span>
+            )}
+            {p.processos_associados.map((proc) => (
+              <span
+                key={proc}
+                className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full"
+                style={estiloChipProcesso(proc)}
+              >
+                {proc}
+              </span>
+            ))}
           </div>
 
           {/* Body */}
@@ -187,16 +170,18 @@ export function ProcedimentoCard({ procedimento: p, isLeaderOrAdmin, onRetry, on
           </p>
 
           {/* Etapas */}
-          {etapas.length > 0 && (
+          {p.ai_etapas.length > 0 && (
             <ul className="space-y-1 mb-3">
-              {etapas.slice(0, 3).map((e, i) => (
+              {p.ai_etapas.slice(0, 3).map((e, i) => (
                 <li key={i} className="text-xs text-slate-400 flex items-start gap-1.5">
                   <span className="mt-1.5 h-1 w-1 rounded-full bg-slate-300 flex-shrink-0" />
                   <span className="line-clamp-1">{e}</span>
                 </li>
               ))}
-              {etapas.length > 3 && (
-                <li className="text-xs text-slate-400 pl-2.5">+ {etapas.length - 3} mais</li>
+              {p.ai_etapas.length > 3 && (
+                <li className="text-xs text-slate-400 pl-2.5">
+                  + {p.ai_etapas.length - 3} etapas — abrir para ver
+                </li>
               )}
             </ul>
           )}
@@ -221,58 +206,31 @@ export function ProcedimentoCard({ procedimento: p, isLeaderOrAdmin, onRetry, on
             </div>
 
             {/* Tags */}
-            {tags.length > 0 && (
+            {p.ai_tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
-                {tags.slice(0, 3).map((t) => (
+                {p.ai_tags.slice(0, 3).map((t) => (
                   <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">
                     {t}
                   </span>
                 ))}
-                {tags.length > 3 && (
-                  <span className="text-[10px] text-slate-400">+{tags.length - 3}</span>
+                {p.ai_tags.length > 3 && (
+                  <span className="text-[10px] text-slate-400">+{p.ai_tags.length - 3}</span>
                 )}
               </div>
             )}
 
-            {/* Document buttons */}
-            <div className="flex gap-2">
-              {p.source_url && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 text-xs"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    window.open(p.source_url!, '_blank');
-                  }}
-                >
-                  <ExternalLink className="h-3 w-3 mr-1" /> Abrir link
-                </Button>
-              )}
-              {!p.source_url && p.arquivo_path && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 text-xs"
-                  onClick={handleDownloadFile}
-                >
-                  <Download className="h-3 w-3 mr-1" /> Baixar documento
-                </Button>
-              )}
-              {isLeaderOrAdmin && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="text-red-500 hover:text-red-700 px-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setConfirmDelete(true);
-                  }}
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              )}
-            </div>
+            {/* Ação do curador: revisar o que a IA extraiu.
+                O documento de origem fica na leitura, não aqui — o card é a
+                vitrine, não o balcão. */}
+            {podeCurar && aguardandoConfirmacao && (
+              <Button
+                size="sm"
+                className="w-full text-xs"
+                onClick={(e) => { e.stopPropagation(); onReview(p); }}
+              >
+                <ClipboardCheck className="h-3.5 w-3.5 mr-1.5" /> Revisar e publicar
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -290,6 +248,7 @@ function DeleteConfirmDialog({ open, onOpenChange, onConfirm }: { open: boolean;
           <AlertDialogTitle>Excluir procedimento</AlertDialogTitle>
           <AlertDialogDescription>
             Tem certeza que deseja excluir este procedimento? Esta ação não pode ser desfeita.
+            Se a intenção é só tirar da vitrine, arquive em vez de excluir.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

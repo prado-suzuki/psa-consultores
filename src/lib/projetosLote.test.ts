@@ -8,6 +8,7 @@ import {
   buildProdutoLabel,
   buildProdutoNome,
   findProdutosJaCriados,
+  motivoOsIrregular,
   resolveLoteRoutes,
   validateLoteRow,
   type LoteCommon,
@@ -55,6 +56,29 @@ describe('validateLoteRow', () => {
       .toBe('CHA — Canal de Chamados: Selecione ao menos um Líder Geral');
     expect(validateLoteRow({ ...row, memberIds: [] }, common))
       .toBe('CHA — Canal de Chamados: Selecione ao menos um Membro do Projeto');
+  });
+
+  it('OS irregular barra a criação, com o motivo e onde corrigir', () => {
+    const row = { ...baseRow, semExecutorFixo: true };
+    expect(validateLoteRow(row, { ...common, endDate: '' }))
+      .toBe('Sem Data Fim — corrija na OS, no cadastro do cliente');
+  });
+});
+
+describe('motivoOsIrregular', () => {
+  it('OS com as duas datas coerentes é regular', () => {
+    expect(motivoOsIrregular({ startDate: '2026-01-01', endDate: '2026-12-31' })).toBeNull();
+  });
+
+  it('aponta a data que falta', () => {
+    expect(motivoOsIrregular({ startDate: '', endDate: '2026-12-31' })).toBe('Sem Data Início');
+    expect(motivoOsIrregular({ startDate: '2026-01-01', endDate: '' })).toBe('Sem Data Fim');
+    expect(motivoOsIrregular({ startDate: '', endDate: '' })).toBe('Sem Data Início');
+  });
+
+  it('período invertido também é irregular', () => {
+    expect(motivoOsIrregular({ startDate: '2026-12-31', endDate: '2026-01-01' }))
+      .toBe('Data Fim anterior à Data Início');
   });
 });
 
@@ -313,6 +337,16 @@ describe('buildLoteOsOptionsByClient', () => {
     const map = buildLoteOsOptionsByClient(clientes, [osAberta({})], []);
     expect(map.get('cli-1')).toHaveLength(1);
     expect(map.get('cli-1')?.[0]).toMatchObject({ total: 2, disponiveis: 2 });
+  });
+
+  it('marca a OS sem data como irregular, sem mexer na contagem', () => {
+    const map = buildLoteOsOptionsByClient(clientes, [osAberta({ data_fim: null })], []);
+    expect(map.get('cli-1')?.[0]).toMatchObject({ total: 2, disponiveis: 2, irregular: 'Sem Data Fim' });
+  });
+
+  it('OS com datas coerentes não vem marcada', () => {
+    const map = buildLoteOsOptionsByClient(clientes, [osAberta({})], []);
+    expect(map.get('cli-1')?.[0].irregular).toBeNull();
   });
 
   it('OS de 3 produtos com 2 já criados sobra 1 (o caso que mantém o cliente na lista)', () => {

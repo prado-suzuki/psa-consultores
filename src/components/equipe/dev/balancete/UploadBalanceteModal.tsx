@@ -362,7 +362,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
             <div className="space-y-2">
               <Label className="text-sm font-medium text-slate-600">Cliente</Label>
               <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
-                <SelectTrigger className="h-11 rounded-lg border-slate-200">
+                <SelectTrigger className="h-11 rounded-lg">
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
@@ -377,7 +377,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
             <div className="space-y-2">
               <Label className="text-sm font-medium text-slate-600">Contribuinte</Label>
               <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-                <SelectTrigger className="h-11 rounded-lg border-slate-200">
+                <SelectTrigger className="h-11 rounded-lg">
                   <SelectValue placeholder="Selecione o contribuinte" />
                 </SelectTrigger>
                 <SelectContent>
@@ -434,7 +434,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
                 onChange={(e) => setDescricao(e.target.value.slice(0, DESCRICAO_MAX))}
                 placeholder="Ex.: Balancete janeiro/2025 - revisado"
                 rows={3}
-                className="resize-none rounded-lg border-slate-200"
+                className="resize-none rounded-lg"
               />
             </div>
           </div>

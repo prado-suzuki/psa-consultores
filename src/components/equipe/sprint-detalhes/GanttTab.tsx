@@ -32,7 +32,7 @@ function GanttDayGrid({ days }: { days: Date[] }) {
 export function GanttTab({ controller: c }: { controller: EquipeSprintDetalhesController }) {
   return (
     <TabsContent value="gantt" className="space-y-4">
-      <Card className="bg-white border-gray-200 overflow-hidden">
+      <Card className="border-gray-200 overflow-hidden">
         <CardContent className="p-0">
           <div className="border border-gray-200 rounded-lg overflow-auto bg-white">
             <div className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">

@@ -1,10 +1,22 @@
 import { Fragment, type ReactNode } from "react";
-import { Info } from "lucide-react";
+import { Info, type LucideIcon } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface DevPageHeaderProps {
   /** Texto descritivo principal. Suporta `**negrito**`. */
   description: string;
+  /**
+   * Título da caixa. Default: "Visão Geral".
+   *
+   * Existe porque telas de ação (ex.: "Solicitar nova ferramenta") explicam
+   * COMO FUNCIONA, não dão visão geral de um relatório — e por não ter esta
+   * prop elas acabavam montando um `<Alert>` cru, que herda os tokens padrão e
+   * sai branco/âmbar em vez do verde-água do módulo. Mesma caixa, mesmo tom, só
+   * o título muda.
+   */
+  title?: string;
+  /** Ícone da caixa. Default: `Info`. */
+  icon?: LucideIcon;
   /** URL do manual de uso desta ferramenta (abre em nova guia). Opcional quando `hideManualLink` é true. */
   manualUrl?: string;
   /** Quando true, omite a frase "Para acessar o manual..." e o link `aqui`. Default: false. */
@@ -42,12 +54,18 @@ const renderBoldSegments = (text: string): ReactNode[] => {
  *
  * Aplica `mb-6` para preservar o respiro até o Card de Filtros logo abaixo.
  */
-export const DevPageHeader = ({ description, manualUrl, hideManualLink = false }: DevPageHeaderProps) => {
+export const DevPageHeader = ({
+  description,
+  manualUrl,
+  hideManualLink = false,
+  title = "Visão Geral",
+  icon: Icone = Info,
+}: DevPageHeaderProps) => {
   return (
     <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1]">
-      <Info className="h-5 w-5 text-primary" />
+      <Icone className="h-5 w-5 text-primary" />
       <AlertTitle className="text-sm font-semibold text-slate-700">
-        Visão Geral
+        {title}
       </AlertTitle>
       <AlertDescription className="text-sm leading-relaxed text-slate-700 mt-1">
         {renderBoldSegments(description)}

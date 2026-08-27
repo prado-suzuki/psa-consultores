@@ -10,6 +10,7 @@ import {
   buildInitialRows,
   buildLoteFormData,
   findProdutosJaCriados,
+  motivoOsIrregular,
   resolveLoteRoutes,
   validateLoteRow,
   type LoteCommon,
@@ -28,6 +29,12 @@ export function useProjetosLoteController(area: AreaKey) {
     ? { startDate: state.startDate, endDate: state.endDate, status: state.status, description: state.description }
     : { startDate: '', endDate: '', status: 'active', description: '' });
   const [rows, setRows] = useState<LoteRow[]>(() => (state ? buildInitialRows(state) : []));
+
+  // O seletor de OS já não deixa escolher OS irregular, mas dá para chegar aqui
+  // com um snapshot antigo (voltar no histórico, aba aberta antes da OS mudar).
+  // Nesse caso a tela nem monta o formulário: preencher as linhas seria trabalho
+  // perdido, porque a criação morreria na validação.
+  const osIrregular = state ? motivoOsIrregular(state) : null;
 
   // Equipes da área em que a tela foi aberta: em OSG, oferecer as equipes do Tax
   // criaria o projeto na estrutura errada.
@@ -93,7 +100,7 @@ export function useProjetosLoteController(area: AreaKey) {
   };
 
   return {
-    state, routes, common, rows, updateRow, includedCount, jaCriados, todosJaCriados,
+    state, osIrregular, routes, common, rows, updateRow, includedCount, jaCriados, todosJaCriados,
     equipesOptions, teamMembers, userRoles, areaGroups, currentUserAreaIds, createBatch, handleCreate,
   };
 }

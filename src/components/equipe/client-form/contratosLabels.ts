@@ -43,3 +43,16 @@ export function getProductLabel(
   const p = options.find((o) => o.id === id);
   return p ? `${p.codigo} — ${p.nome}` : id;
 }
+
+/**
+ * Rótulo do contribuinte nas listas de escolha da OS: razão social e documento.
+ *
+ * Mora aqui porque é usado nos dois lados do mesmo campo — o seletor da edição
+ * (`OsFaturamentoFields`) e a ordenação da lista que o alimenta (`ContratosTab`).
+ * Duplicar a formatação faria a ordem alfabética divergir do texto exibido.
+ */
+export function getContribuinteLabel(contribuinte: { nome_razao_social: string; cpf_cnpj: string }): string {
+  const nome = contribuinte.nome_razao_social.trim() || "Sem razão social";
+  const documento = contribuinte.cpf_cnpj.trim() || "CPF/CNPJ não informado";
+  return `${nome} (${documento})`;
+}

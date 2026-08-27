@@ -81,7 +81,7 @@ export function SprintHeaderFilters({
       </div>
       <div className="flex flex-wrap gap-3 items-center">
         <Select value={c.filterResponsible} onValueChange={c.setFilterResponsible}>
-          <SelectTrigger className="w-[180px] bg-white">
+          <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Responsável" />
           </SelectTrigger>
           <SelectContent>
@@ -94,7 +94,7 @@ export function SprintHeaderFilters({
           </SelectContent>
         </Select>
         <Select value={c.filterStatus} onValueChange={c.setFilterStatus}>
-          <SelectTrigger className="w-[160px] bg-white">
+          <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -105,7 +105,7 @@ export function SprintHeaderFilters({
           </SelectContent>
         </Select>
         <Select value={c.filterYear} onValueChange={c.changeYear}>
-          <SelectTrigger className="w-[100px] h-8 text-xs bg-white">
+          <SelectTrigger className="w-[100px] h-8 text-xs">
             <SelectValue placeholder="Ano" />
           </SelectTrigger>
           <SelectContent>
@@ -118,7 +118,7 @@ export function SprintHeaderFilters({
           </SelectContent>
         </Select>
         <Select value={c.filterMonth} onValueChange={c.setFilterMonth}>
-          <SelectTrigger className="w-[100px] h-8 text-xs bg-white">
+          <SelectTrigger className="w-[100px] h-8 text-xs">
             <SelectValue placeholder="Mês" />
           </SelectTrigger>
           <SelectContent>
@@ -131,7 +131,7 @@ export function SprintHeaderFilters({
           </SelectContent>
         </Select>
         <Select value={c.filterMetricsPerson} onValueChange={c.setFilterMetricsPerson}>
-          <SelectTrigger className="w-[140px] h-8 text-xs bg-white">
+          <SelectTrigger className="w-[140px] h-8 text-xs">
             <SelectValue placeholder="Pessoa" />
           </SelectTrigger>
           <SelectContent>

@@ -92,7 +92,7 @@ const CalculadoraIbsCbs = () => {
                   setContribuinteId("");
                 }}
               >
-                <SelectTrigger className="h-11 bg-white">
+                <SelectTrigger className="h-11">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -113,7 +113,7 @@ const CalculadoraIbsCbs = () => {
                 onValueChange={setContribuinteId}
                 disabled={!clienteId}
               >
-                <SelectTrigger className="h-11 bg-white">
+                <SelectTrigger className="h-11">
                   <SelectValue placeholder={clienteId ? "Selecione..." : "Selecione um cliente"} />
                 </SelectTrigger>
                 <SelectContent>

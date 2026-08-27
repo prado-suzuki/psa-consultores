@@ -21,7 +21,7 @@ import { AreaDashboardContent } from '@/components/equipe/area-dashboard/AreaDas
  */
 const BoardCapacidade = () => (
   <BoardLayout title="Capacidade" subtitle="Carga do time e prazos — Tax + OSG">
-    <AreaDashboardContent area="todas" />
+    <AreaDashboardContent area="todas" escopoAgente="board.capacidade" />
   </BoardLayout>
 );
 

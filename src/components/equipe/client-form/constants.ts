@@ -213,6 +213,7 @@ export const createDefaultDraftContract = () => ({
   produtos_contratados: [] as Array<{ _id: number; _dbId?: string; produto_segmento_id: string }>,
   distribuicao_receita: [] as Array<{ id_centro_custo: string; percentual_rateio: number }>,
   cluster_id: "",
+  contribuinte_id: "",
   setor_cliente: "",
   setor_cliente_id: "",
   regiao: "",

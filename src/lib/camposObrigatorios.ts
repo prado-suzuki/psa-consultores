@@ -177,8 +177,16 @@ export function pendenciasRepresentante(p: DraftRepresentante): Pendencia[] {
 /**
  * O número da seção acompanha o formulário da OS, para o `05` ficar vermelho
  * quando o rateio não fecha. Mudou a ordem das seções lá, muda aqui.
+ *
+ * @param contribuintes os contribuintes do cliente, para saber se há em quem
+ *        faturar. Sem a lista a função não tem como decidir, então o padrão é
+ *        vazio e o campo simplesmente não é exigido — o mesmo arranjo de
+ *        `pendenciasContribuinte(e, inscricoes)`.
  */
-export function pendenciasOrdemServico(c: DraftOrdemServico): Pendencia[] {
+export function pendenciasOrdemServico(
+  c: DraftOrdemServico,
+  contribuintes: DraftEntity[] = [],
+): Pendencia[] {
   const faltas: Pendencia[] = [];
   const add = (secao: number, campo: string, mensagem: string) =>
     faltas.push({ aba: 'contratos', itemId: c._id, secao, campo, mensagem });
@@ -196,6 +204,16 @@ export function pendenciasOrdemServico(c: DraftOrdemServico): Pendencia[] {
   if (vazio(c.regiao)) add(2, 'regiao', 'Selecione a região');
   if (!c.produtos_contratados?.length) add(3, 'produtos_contratados', 'Adicione ao menos um produto');
   if (vazio(c.cluster_id)) add(5, 'cluster_id', 'Selecione a empresa que fatura');
+
+  // Quem recebe a nota desta OS. Só é exigido quando existe contribuinte JÁ
+  // SALVO para escolher: a coluna é chave estrangeira, então contribuinte criado
+  // na mesma sessão ainda não serve, e exigir aí travaria o cadastro de cliente
+  // novo num campo que a tela não tem como preencher. Consequência aceita: a OS
+  // criada junto com o cliente nasce sem contribuinte e passa a acusar pendência
+  // quando o cadastro for reaberto.
+  if (contribuintes.some((e) => e._dbId) && vazio(c.contribuinte_id)) {
+    add(5, 'contribuinte_id', 'Selecione o contribuinte de faturamento');
+  }
 
   const rateio = c.distribuicao_receita || [];
   if (rateio.length === 0) {

@@ -35,7 +35,16 @@ export function BotaoAvisarCliente({ clienteId, linhas, solicitacao }: BotaoAvis
 
   // Rascunho não cobra: o cliente ainda não recebeu o pedido, então o que aparece
   // como pendente nunca foi pedido a ele.
-  if (solicitacao.status === 'rascunho') return null;
+  //
+  // Encerrada também não: encerrar é o consultor declarando o pedido concluído, e
+  // cobrar depois disso é incoerente. A guarda estava faltando aqui, e a tela
+  // sozinha não segurava porque este checklist é derivado dos DOCUMENTOS, não da
+  // solicitação — ele mostra pendência mesmo sem solicitação aberta. As outras
+  // duas camadas são a borda `notificar` e a RPC `notificar_projetos_da_os`.
+  //
+  // `enviada` e `em_checklist` seguem liberados: cobrar com a solicitação aberta é
+  // justamente o objetivo do botão.
+  if (solicitacao.status === 'rascunho' || solicitacao.status === 'encerrada') return null;
 
   return (
     <>

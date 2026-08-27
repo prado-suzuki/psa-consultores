@@ -2,6 +2,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { handleCorsPreflightRequest, buildCorsHeaders } from "../_shared/cors.ts";
+import {
+  extrairTextoDocx,
+  extrairTextoHtml,
+  extrairTextoPdf,
+  garantirTextoUtil,
+  pareceMuroDeLogin,
+} from "../_shared/extrairTextoDocumento.ts";
 // corsHeaders agora vem de ../_shared/cors.ts via buildCorsHeaders(req).
 const SYSTEM_PROMPT = `Você é um assistente especializado em documentação técnica tributária e fiscal brasileira.
 Analise o documento fornecido e extraia as informações estruturadas solicitadas.`;
@@ -68,6 +75,104 @@ async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2)
   throw new Error("Max retries exceeded");
 }
 
+/**
+ * Modelos de imagem tentados, na ordem, para a capa do card.
+ *
+ * O código anterior cravava `google/gemini-3.1-flash-image-preview` — um id que
+ * o gateway não atende. A falha caía num `catch` mudo, então a capa nunca
+ * aparecia e ninguém ficava sabendo: os cards da biblioteca estavam todos sem
+ * capa desde a entrega. `PROCEDIMENTO_COVER_MODEL` permite acertar o id por
+ * variável de ambiente, sem deploy de código.
+ */
+function modelosDeCapa(): string[] {
+  const doAmbiente = Deno.env.get("PROCEDIMENTO_COVER_MODEL");
+  const candidatos = [
+    doAmbiente,
+    "google/gemini-2.5-flash-image-preview",
+    "google/gemini-3-pro-image-preview",
+  ].filter((m): m is string => Boolean(m));
+  return [...new Set(candidatos)];
+}
+
+type Capa = { status: "ok"; modelo: string } | { status: "falhou"; motivo: string };
+
+async function gerarCapa(
+  supabase: ReturnType<typeof createClient>,
+  lovableApiKey: string,
+  id: string,
+  parsed: { titulo?: string; processos?: string[] },
+): Promise<Capa> {
+  const titulo = parsed.titulo || "Procedimento tributário";
+  const processosStr = (parsed.processos || []).join(", ");
+  const imagePrompt = `Create a professional, clean cover illustration for a tax procedure document titled "${titulo}". Related areas: ${processosStr}. Style: modern flat illustration, professional blue and teal color tones, abstract geometric shapes representing data analysis and compliance, no text in the image, suitable as a card thumbnail.`;
+
+  const falhas: string[] = [];
+
+  for (const model of modelosDeCapa()) {
+    try {
+      // maxRetries = 0: a capa é enfeite e o texto já foi salvo como 'gerado'.
+      // Com dois modelos candidatos, deixar o retry ligado deixaria a requisição
+      // rodando muito depois de o procedimento já estar pronto.
+      const imageResponse = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${lovableApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: "user", content: imagePrompt }],
+          modalities: ["image", "text"],
+        }),
+      }, 0);
+
+      if (!imageResponse.ok) {
+        const detalhe = (await imageResponse.text()).substring(0, 200);
+        falhas.push(`${model}: HTTP ${imageResponse.status} ${detalhe}`);
+        continue;
+      }
+
+      const imageData = await imageResponse.json();
+      const base64Url = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      const base64Match = typeof base64Url === "string"
+        ? base64Url.match(/^data:image\/(\w+);base64,(.+)$/)
+        : null;
+
+      if (!base64Match) {
+        falhas.push(`${model}: resposta sem imagem em choices[0].message.images[0]`);
+        continue;
+      }
+
+      const ext = base64Match[1] === "jpeg" ? "jpg" : base64Match[1];
+      const binaryData = Uint8Array.from(atob(base64Match[2]), (c) => c.charCodeAt(0));
+      const coverPath = `procedimentos/covers/${id}.${ext}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("sop-documents")
+        .upload(coverPath, binaryData, {
+          contentType: `image/${base64Match[1]}`,
+          upsert: true,
+        });
+
+      if (uploadErr) {
+        falhas.push(`${model}: upload falhou — ${uploadErr.message}`);
+        continue;
+      }
+
+      await supabase.from("procedimentos").update({ ai_cover_url: coverPath }).eq("id", id);
+      console.log(`Capa gerada para ${id} com ${model}`);
+      return { status: "ok", modelo: model };
+    } catch (err) {
+      falhas.push(`${model}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  // A capa é enfeite: não derruba o procedimento. Mas para de sumir em silêncio.
+  const motivo = falhas.join(" | ");
+  console.error(`Capa NÃO gerada para ${id}. Tentativas: ${motivo}`);
+  return { status: "falhou", motivo };
+}
+
 serve(async (req) => {
   const _preflight = handleCorsPreflightRequest(req);
   if (_preflight) return _preflight;
@@ -129,26 +234,37 @@ serve(async (req) => {
 
     if (proc.source_type === "link" && proc.source_url) {
       const res = await fetch(proc.source_url, { signal: AbortSignal.timeout(15000) });
-      const html = await res.text();
-      content = html
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-        .replace(/<[^>]+>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .substring(0, MAX_CONTENT);
+
+      if (res.status === 401 || res.status === 403) {
+        throw new Error("O link exige login para ser aberto. Use um link público ou anexe o documento.");
+      }
+      if (!res.ok) {
+        throw new Error(`O link respondeu ${res.status}. Confira se o endereço está certo e acessível.`);
+      }
+
+      const texto = extrairTextoHtml(await res.text());
+
+      // O fetch segue redirecionamento, então `res.url` é onde ele PAROU —
+      // uma tela de login de conta, no caso de documento restrito.
+      if (pareceMuroDeLogin(res.url, texto)) {
+        throw new Error("O link abriu numa tela de login, não no documento. Use um link público ou anexe o arquivo.");
+      }
+
+      content = garantirTextoUtil(texto, "o link", 200).substring(0, MAX_CONTENT);
     } else if ((proc.source_type === "pdf" || proc.source_type === "docx") && proc.arquivo_path) {
       const { data: fileData, error: dlErr } = await supabase.storage
         .from("sop-documents")
         .download(proc.arquivo_path);
       if (dlErr || !fileData) throw new Error("Failed to download file from storage");
-      content = (await fileData.text()).substring(0, MAX_CONTENT);
+
+      const bytes = new Uint8Array(await fileData.arrayBuffer());
+      const texto = proc.source_type === "pdf"
+        ? await extrairTextoPdf(bytes)
+        : extrairTextoDocx(bytes);
+
+      content = garantirTextoUtil(texto, `o ${proc.source_type.toUpperCase()}`, 200).substring(0, MAX_CONTENT);
     } else {
       throw new Error("No valid source provided");
-    }
-
-    if (!content || content.length < 20) {
-      throw new Error("Content too short or empty to analyze");
     }
 
     // Step 2: Call AI with tool calling for structured extraction
@@ -210,57 +326,9 @@ serve(async (req) => {
     if (updateErr) throw new Error(`Failed to update: ${updateErr.message}`);
 
     // Step 4: Generate cover image (non-blocking — failures don't affect status)
-    try {
-      const titulo = parsed.titulo || "Procedimento tributário";
-      const processosStr = (parsed.processos || []).join(", ");
-      const imagePrompt = `Create a professional, clean cover illustration for a tax procedure document titled "${titulo}". Related areas: ${processosStr}. Style: modern flat illustration, professional blue and teal color tones, abstract geometric shapes representing data analysis and compliance, no text in the image, suitable as a card thumbnail.`;
+    const capa = await gerarCapa(supabase, lovableApiKey, id, parsed);
 
-      const imageResponse = await fetchWithRetry("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${lovableApiKey}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3.1-flash-image-preview",
-          messages: [{ role: "user", content: imagePrompt }],
-          modalities: ["image", "text"],
-        }),
-      });
-
-      if (imageResponse.ok) {
-        const imageData = await imageResponse.json();
-        const base64Url = imageData.choices?.[0]?.message?.images?.[0]?.image_url?.url;
-
-        if (base64Url && base64Url.startsWith("data:image/")) {
-          const base64Match = base64Url.match(/^data:image\/(\w+);base64,(.+)$/);
-          if (base64Match) {
-            const ext = base64Match[1] === "jpeg" ? "jpg" : base64Match[1];
-            const base64Data = base64Match[2];
-            const binaryData = Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
-            const coverPath = `procedimentos/covers/${id}.${ext}`;
-
-            const { error: uploadErr } = await supabase.storage
-              .from("sop-documents")
-              .upload(coverPath, binaryData, {
-                contentType: `image/${base64Match[1]}`,
-                upsert: true,
-              });
-
-            if (!uploadErr) {
-              await supabase
-                .from("procedimentos")
-                .update({ ai_cover_url: coverPath })
-                .eq("id", id);
-            }
-          }
-        }
-      }
-    } catch (imgErr) {
-      console.error("Cover image generation error (non-fatal):", imgErr);
-    }
-
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, capa }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
