@@ -1,0 +1,463 @@
+<!doctype html>
+<title>Antes e depois das 22</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+  :root{ --ground:#FBFAF7; --ink:#2E1305; --ink-2:#7D7268; --rule:#E7E2DA; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:'Work Sans',system-ui,sans-serif;font-size:15px;line-height:1.5;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1320px;margin:0 auto;padding:44px 24px 90px}
+  h1{font-size:29px;font-weight:700;letter-spacing:-.02em;margin:0 0 8px}
+  .sub{color:var(--ink-2);max-width:66ch;margin:0 0 6px}
+  .mono{font-family:'DM Mono',ui-monospace,monospace}
+  code{font-family:'DM Mono',ui-monospace,monospace;font-size:.86em;background:#F2EFE8;
+       padding:1px 5px;border-radius:4px}
+
+  .legenda{display:flex;gap:22px;flex-wrap:wrap;margin:26px 0 8px;font-size:12.5px;
+     color:var(--ink-2);border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);padding:12px 0}
+  .legenda b{color:var(--ink)}
+
+  h2{font-size:15px;font-weight:700;margin:46px 0 3px;letter-spacing:-.01em}
+  .onde{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--ink-2);margin:0 0 12px}
+
+  .quad{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media (max-width:1100px){.quad{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:640px){.quad{grid-template-columns:1fr}}
+  .col{border:1px solid var(--rule);border-radius:11px;overflow:hidden}
+  .tag{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+       padding:7px 11px;background:#F3F1EC;color:#6E6759;border-bottom:1px solid var(--rule)}
+  .col.dep > .tag{background:#E9EFE6;color:#3B6B34}
+  .palco{padding:15px 13px 17px;min-height:124px;display:flex;flex-direction:column;justify-content:center;gap:10px}
+
+  /* Os valores reais dos tokens, lidos do index.css */
+  .claro{ --page:#FBFAF7; --card:#FFFFFE; --fg:#2E1305; --mfg:#7A716A; --brd:#E5E7EB; --muted:#FBFAF9;
+      --destructive:225 20 20; --success:12 141 98; --warning:245 159 10; --accent:13 135 129; }
+  .escuro{ --page:#1A1714; --card:#272420; --fg:#F8F6F3; --mfg:#B7AFA5; --brd:#544D46; --muted:#3F3B36;
+      --destructive:231 109 95; --success:89 207 168; --warning:244 190 82; --accent:43 212 189; }
+  .claro,.escuro{background:var(--page)}
+
+  /* Um <Card> do sistema */
+  .card{background:var(--card);border:1px solid var(--brd);border-radius:9px;padding:12px 13px;
+        color:var(--fg);font-size:12.5px}
+  .card .h{font-weight:600;display:flex;align-items:center;gap:7px;font-size:12.5px}
+  .card .txt{font-size:11px;line-height:1.4;margin-top:4px;color:var(--mfg)}
+  .tracejado{border-style:dashed}
+  .ctr{text-align:center;padding:15px 13px 16px}
+  .ctr .h{justify-content:center}
+
+  /* Os paineis DEPOIS — exatamente as classes que foram para o codigo */
+  .dest{background:rgb(var(--destructive)/.10);border-color:rgb(var(--destructive)/.40)}
+  .warn{background:rgb(var(--warning)/.10);border-color:rgb(var(--warning)/.40)}
+  .succ{background:rgb(var(--success)/.10);border-color:rgb(var(--success)/.40)}
+  .acc {background:rgb(var(--accent)/.05);border-color:rgb(var(--accent)/.40)}
+  .neu {background:var(--muted)}
+
+  /* Icones: contorno, como os do lucide-react que o codigo usa */
+  svg.ic{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+         display:block;flex:0 0 auto}
+  svg.ic.grande{margin:0 auto 8px}
+  .t-dest{color:rgb(var(--destructive))} .t-warn{color:rgb(var(--warning))}
+  .t-succ{color:rgb(var(--success))}     .t-acc {color:rgb(var(--accent))}
+  .t-mfg {color:var(--mfg)}
+
+  /* Trio de contadores */
+  .tri{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  .tri .card{padding:9px 7px;display:flex;align-items:center;gap:7px}
+  .tri .cx{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto}
+  .tri .num{font-size:15px;font-weight:700;font-family:'DM Mono',monospace;line-height:1.1}
+  .tri .lab{font-size:9px;color:var(--mfg)}
+
+  /* Campo de formulario */
+  .lb{font-size:11px;font-weight:500;color:var(--fg);margin-bottom:4px}
+  .inp{background:var(--card);border:1px solid var(--brd);border-radius:6px;padding:6px 9px;
+       font-size:11.5px;color:var(--mfg);font-family:'DM Mono',monospace}
+
+  /* Abas */
+  .abas{border-radius:12px;padding:10px;border:1px solid}
+  .abal{display:grid;grid-template-columns:1fr 1fr;gap:4px;border-radius:8px;padding:3px}
+  .aba{font-size:10.5px;font-weight:600;padding:6px 0;text-align:center;border-radius:6px;color:var(--mfg)}
+  .aba.on{background:var(--card);color:var(--fg)}
+
+  /* Cabecalho de tabela */
+  .th{display:grid;grid-template-columns:1fr 1fr 1fr;font-size:8.5px;font-weight:700;
+      letter-spacing:.07em;text-transform:uppercase;border-radius:5px;overflow:hidden}
+  .th div{padding:7px 5px;text-align:center;color:var(--mfg)}
+
+  .fecho{background:#F5F2EB;border:1px solid var(--rule);border-radius:12px;padding:18px 22px;margin:56px 0 0}
+  .fecho h3{margin:0 0 10px;font-size:16px}
+  .fecho ul{margin:0;padding-left:19px} .fecho li{margin:5px 0;font-size:14px}
+  .fecho p{max-width:74ch}
+  .fecho table{border-collapse:collapse;margin:12px 0 4px;font-size:13px}
+  .fecho th{text-align:left;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;
+     color:var(--ink-2);padding:0 16px 6px 0;border-bottom:1px solid var(--rule)}
+  .fecho td{padding:6px 16px 6px 0;border-bottom:1px solid #EAE5DC}
+  .num-bad{font-family:'DM Mono',monospace;font-weight:600;color:#A03024}
+</style>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <g id="alerta"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></g>
+  <g id="circulo"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></g>
+  <g id="check"><path d="M21.8 10A10 10 0 1 1 17 3.34"/><path d="m9 11 3 3L22 4"/></g>
+  <g id="brilho"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0L14.06 8.5A2 2 0 0 0 15.5 9.94l6.14 1.58a.5.5 0 0 1 0 .96L15.5 14.06a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"/></g>
+  <g id="caixa"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="m7.5 4.27 9 5.15"/></g>
+</defs></svg>
+<div class="wrap">
+
+<h1>Antes e depois das 22</h1>
+<p class="sub">Cada tela em quatro versões. As duas verdes são como ficou. Cores e ícones são os
+reais — os tokens vêm do <code>index.css</code> e os ícones são os mesmos do <code>lucide-react</code>
+que o código usa.</p>
+
+<div class="legenda">
+  <span><b>Antes</b> — cor escrita na mão (<span class="mono">bg-red-50</span>)</span>
+  <span><b>Depois</b> — cor do tema (<span class="mono">bg-destructive/10</span>)</span>
+  <span><b>A regra saiu de 22 para 0.</b></span>
+</div>
+
+<h2>DIFAL e IBS/CBS — a busca de regras falhou</h2>
+<p class="onde">DifalAuditModal · IbsCbsAuditModal · T02CfopTab · FamiliaSaidaTab</p>
+<div class="quad">
+  <div class="col"><div class="tag">antes · claro</div><div class="palco claro">
+    <div class="card ctr" style="background:#fef2f2;border-color:#fecaca">
+      <svg class="ic grande" width="34" height="34" viewBox="0 0 24 24" style="color:#ef4444"><use href="#alerta"/></svg>
+      <div class="h" style="color:#b91c1c">Erro ao carregar regras</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · claro</div><div class="palco claro">
+    <div class="card dest ctr">
+      <svg class="ic grande t-dest" width="34" height="34" viewBox="0 0 24 24"><use href="#alerta"/></svg>
+      <div class="h">Erro ao carregar regras</div></div>
+  </div></div>
+  <div class="col"><div class="tag">antes · escuro</div><div class="palco escuro">
+    <div class="card ctr" style="background:#fef2f2;border-color:#fecaca">
+      <svg class="ic grande" width="34" height="34" viewBox="0 0 24 24" style="color:#ef4444"><use href="#alerta"/></svg>
+      <div class="h" style="color:#b91c1c">Erro ao carregar regras</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · escuro</div><div class="palco escuro">
+    <div class="card dest ctr">
+      <svg class="ic grande t-dest" width="34" height="34" viewBox="0 0 24 24"><use href="#alerta"/></svg>
+      <div class="h">Erro ao carregar regras</div></div>
+  </div></div>
+</div>
+
+<h2>DIFAL e IBS/CBS — não achou nenhuma regra</h2>
+<p class="onde">DifalAuditModal · IbsCbsAuditModal</p>
+<div class="quad">
+  <div class="col"><div class="tag">antes · claro</div><div class="palco claro">
+    <div class="card ctr" style="background:#fffbeb;border-color:#fde68a">
+      <svg class="ic grande" width="34" height="34" viewBox="0 0 24 24" style="color:#f59e0b"><use href="#alerta"/></svg>
+      <div class="h" style="color:#b45309">Nenhuma regra ST para este NCM</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · claro</div><div class="palco claro">
+    <div class="card warn ctr">
+      <svg class="ic grande t-warn" width="34" height="34" viewBox="0 0 24 24"><use href="#alerta"/></svg>
+      <div class="h">Nenhuma regra ST para este NCM</div></div>
+  </div></div>
+  <div class="col"><div class="tag">antes · escuro</div><div class="palco escuro">
+    <div class="card ctr" style="background:#fffbeb;border-color:#fde68a">
+      <svg class="ic grande" width="34" height="34" viewBox="0 0 24 24" style="color:#f59e0b"><use href="#alerta"/></svg>
+      <div class="h" style="color:#b45309">Nenhuma regra ST para este NCM</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · escuro</div><div class="palco escuro">
+    <div class="card warn ctr">
+      <svg class="ic grande t-warn" width="34" height="34" viewBox="0 0 24 24"><use href="#alerta"/></svg>
+      <div class="h">Nenhuma regra ST para este NCM</div></div>
+  </div></div>
+</div>
+
+<h2>SPED F100 — faltam os filtros obrigatórios</h2>
+<p class="onde">correcoes-sped/TabF100</p>
+<div class="quad">
+  <div class="col"><div class="tag">antes · claro</div><div class="palco claro">
+    <div class="card ctr tracejado" style="background:#fffbeb;border-color:#fcd34d">
+      <svg class="ic grande" width="38" height="38" viewBox="0 0 24 24" style="color:#f59e0b"><use href="#circulo"/></svg>
+      <div class="h" style="color:#78350f">Filtros obrigatórios para a aba F100</div>
+      <div class="txt" style="color:#92400e">Preencha Nat. Base de Crédito ou Código da Conta.</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · claro</div><div class="palco claro">
+    <div class="card warn ctr tracejado">
+      <svg class="ic grande t-warn" width="38" height="38" viewBox="0 0 24 24"><use href="#circulo"/></svg>
+      <div class="h">Filtros obrigatórios para a aba F100</div>
+      <div class="txt">Preencha Nat. Base de Crédito ou Código da Conta.</div></div>
+  </div></div>
+  <div class="col"><div class="tag">antes · escuro</div><div class="palco escuro">
+    <div class="card ctr tracejado" style="background:#fffbeb;border-color:#fcd34d">
+      <svg class="ic grande" width="38" height="38" viewBox="0 0 24 24" style="color:#f59e0b"><use href="#circulo"/></svg>
+      <div class="h" style="color:#78350f">Filtros obrigatórios para a aba F100</div>
+      <div class="txt" style="color:#92400e">Preencha Nat. Base de Crédito ou Código da Conta.</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · escuro</div><div class="palco escuro">
+    <div class="card warn ctr tracejado">
+      <svg class="ic grande t-warn" width="38" height="38" viewBox="0 0 24 24"><use href="#circulo"/></svg>
+      <div class="h">Filtros obrigatórios para a aba F100</div>
+      <div class="txt">Preencha Nat. Base de Crédito ou Código da Conta.</div></div>
+  </div></div>
+</div>
+
+<h2>DIFAL — os contadores que filtram</h2>
+<p class="onde">processo-difal/DifalSummaryActions · o terceiro cartão entrou junto, senão a linha ficava metade convertida</p>
+<div class="quad">
+  <div class="col"><div class="tag">antes · claro</div><div class="palco claro"><div class="tri">
+    <div class="card" style="background:#fffbeb;border-color:#fde68a">
+      <div class="cx" style="background:#fef3c7"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" style="color:#d97706"><use href="#circulo"/></svg></div>
+      <div><div class="num" style="color:#b45309">37</div><div class="lab" style="color:#d97706">Pendentes</div></div></div>
+    <div class="card" style="background:#f0fdf4;border-color:#bbf7d0">
+      <div class="cx" style="background:#dcfce7"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" style="color:#16a34a"><use href="#check"/></svg></div>
+      <div><div class="num" style="color:#15803d">214</div><div class="lab" style="color:#16a34a">Validados</div></div></div>
+    <div class="card" style="border-color:#e2e8f0">
+      <div class="cx" style="background:#f1f5f9"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" style="color:#64748b"><use href="#caixa"/></svg></div>
+      <div><div class="num" style="color:#0f172a">251</div><div class="lab" style="color:#64748b">Total</div></div></div>
+  </div></div></div>
+  <div class="col dep"><div class="tag">depois · claro</div><div class="palco claro"><div class="tri">
+    <div class="card warn">
+      <div class="cx" style="background:rgb(var(--warning)/.20)"><svg class="ic t-warn" width="15" height="15" viewBox="0 0 24 24"><use href="#circulo"/></svg></div>
+      <div><div class="num">37</div><div class="lab">Pendentes</div></div></div>
+    <div class="card succ">
+      <div class="cx" style="background:rgb(var(--success)/.20)"><svg class="ic t-succ" width="15" height="15" viewBox="0 0 24 24"><use href="#check"/></svg></div>
+      <div><div class="num">214</div><div class="lab">Validados</div></div></div>
+    <div class="card">
+      <div class="cx" style="background:var(--muted)"><svg class="ic t-mfg" width="15" height="15" viewBox="0 0 24 24"><use href="#caixa"/></svg></div>
+      <div><div class="num">251</div><div class="lab">Total</div></div></div>
+  </div></div></div>
+  <div class="col"><div class="tag">antes · escuro</div><div class="palco escuro"><div class="tri">
+    <div class="card" style="background:#fffbeb;border-color:#fde68a">
+      <div class="cx" style="background:#fef3c7"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" style="color:#d97706"><use href="#circulo"/></svg></div>
+      <div><div class="num" style="color:#b45309">37</div><div class="lab" style="color:#d97706">Pendentes</div></div></div>
+    <div class="card" style="background:#f0fdf4;border-color:#bbf7d0">
+      <div class="cx" style="background:#dcfce7"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" style="color:#16a34a"><use href="#check"/></svg></div>
+      <div><div class="num" style="color:#15803d">214</div><div class="lab" style="color:#16a34a">Validados</div></div></div>
+    <div class="card" style="border-color:#e2e8f0">
+      <div class="cx" style="background:#f1f5f9"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" style="color:#64748b"><use href="#caixa"/></svg></div>
+      <div><div class="num" style="color:#0f172a">251</div><div class="lab" style="color:#64748b">Total</div></div></div>
+  </div></div></div>
+  <div class="col dep"><div class="tag">depois · escuro</div><div class="palco escuro"><div class="tri">
+    <div class="card warn">
+      <div class="cx" style="background:rgb(var(--warning)/.20)"><svg class="ic t-warn" width="15" height="15" viewBox="0 0 24 24"><use href="#circulo"/></svg></div>
+      <div><div class="num">37</div><div class="lab">Pendentes</div></div></div>
+    <div class="card succ">
+      <div class="cx" style="background:rgb(var(--success)/.20)"><svg class="ic t-succ" width="15" height="15" viewBox="0 0 24 24"><use href="#check"/></svg></div>
+      <div><div class="num">214</div><div class="lab">Validados</div></div></div>
+    <div class="card">
+      <div class="cx" style="background:var(--muted)"><svg class="ic t-mfg" width="15" height="15" viewBox="0 0 24 24"><use href="#caixa"/></svg></div>
+      <div><div class="num">251</div><div class="lab">Total</div></div></div>
+  </div></div></div>
+</div>
+
+<h2>Melhoria de Processo — ROI calculado</h2>
+<p class="onde">process-improvement/ResultCards</p>
+<div class="quad">
+  <div class="col"><div class="tag">antes · claro</div><div class="palco claro">
+    <div class="card" style="background:#f0fdf4;border-color:#bbf7d0">
+      <div class="h" style="color:#15803d"><svg class="ic" width="16" height="16" viewBox="0 0 24 24"><use href="#check"/></svg>ROI Calculado</div>
+      <div class="txt"><b style="color:#16a34a;font-size:15px">R$ 12.400</b> economia mensal</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · claro</div><div class="palco claro">
+    <div class="card succ">
+      <div class="h"><svg class="ic t-succ" width="16" height="16" viewBox="0 0 24 24"><use href="#check"/></svg>ROI Calculado</div>
+      <div class="txt"><b class="t-succ" style="font-size:15px">R$ 12.400</b> economia mensal</div></div>
+  </div></div>
+  <div class="col"><div class="tag">antes · escuro</div><div class="palco escuro">
+    <div class="card" style="background:#f0fdf4;border-color:#bbf7d0;color:#14532d">
+      <div class="h" style="color:#15803d"><svg class="ic" width="16" height="16" viewBox="0 0 24 24"><use href="#check"/></svg>ROI Calculado</div>
+      <div class="txt" style="color:#166534"><b style="color:#16a34a;font-size:15px">R$ 12.400</b> economia mensal</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · escuro</div><div class="palco escuro">
+    <div class="card succ">
+      <div class="h"><svg class="ic t-succ" width="16" height="16" viewBox="0 0 24 24"><use href="#check"/></svg>ROI Calculado</div>
+      <div class="txt"><b class="t-succ" style="font-size:15px">R$ 12.400</b> economia mensal</div></div>
+  </div></div>
+</div>
+
+<h2>Importar Sprint — o preview e os responsáveis que faltaram</h2>
+<p class="onde">sprint-detalhes/ImportDialog</p>
+<div class="quad">
+  <div class="col"><div class="tag">antes · claro</div><div class="palco claro">
+    <div class="card" style="background:#f0fdf4"><div class="h">sprint-julho.xlsx</div>
+      <div class="txt">48 tarefas · 112 subtarefas · 610h</div></div>
+    <div class="card" style="background:#fffbeb"><div class="h">Responsáveis não encontrados (3)</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · claro</div><div class="palco claro">
+    <div class="card succ"><div class="h">sprint-julho.xlsx</div>
+      <div class="txt">48 tarefas · 112 subtarefas · 610h</div></div>
+    <div class="card warn"><div class="h">Responsáveis não encontrados (3)</div></div>
+  </div></div>
+  <div class="col"><div class="tag">antes · escuro</div><div class="palco escuro">
+    <div class="card" style="background:#f0fdf4;color:#14532d"><div class="h">sprint-julho.xlsx</div>
+      <div class="txt" style="color:#166534">48 tarefas · 112 subtarefas · 610h</div></div>
+    <div class="card" style="background:#fffbeb;color:#78350f"><div class="h">Responsáveis não encontrados (3)</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · escuro</div><div class="palco escuro">
+    <div class="card succ"><div class="h">sprint-julho.xlsx</div>
+      <div class="txt">48 tarefas · 112 subtarefas · 610h</div></div>
+    <div class="card warn"><div class="h">Responsáveis não encontrados (3)</div></div>
+  </div></div>
+</div>
+
+<h2>Melhoria de Processo e Novo Processo — os dois blocos de formulário</h2>
+<p class="onde">SavingsSections (azul) · CreateProcessModal (laranja) — a cor não significava nada, virou cinza</p>
+<div class="quad">
+  <div class="col"><div class="tag">antes · claro</div><div class="palco claro">
+    <div class="card" style="background:#f7fbff;border-color:#bfdbfe"><div class="h" style="color:#1d4ed8">Economias Adicionais (opcional)</div></div>
+    <div class="card" style="background:#fffbf6;border-color:#fed7aa"><div class="h" style="color:#c2410c">Equipe Envolvida (Baseline)</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · claro</div><div class="palco claro">
+    <div class="card neu"><div class="h">Economias Adicionais (opcional)</div></div>
+    <div class="card neu"><div class="h">Equipe Envolvida (Baseline)</div></div>
+  </div></div>
+  <div class="col"><div class="tag">antes · escuro</div><div class="palco escuro">
+    <div class="card" style="background:#f7fbff;border-color:#bfdbfe"><div class="h" style="color:#1d4ed8">Economias Adicionais (opcional)</div></div>
+    <div class="card" style="background:#fffbf6;border-color:#fed7aa"><div class="h" style="color:#c2410c">Equipe Envolvida (Baseline)</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · escuro</div><div class="palco escuro">
+    <div class="card neu"><div class="h">Economias Adicionais (opcional)</div></div>
+    <div class="card neu"><div class="h">Equipe Envolvida (Baseline)</div></div>
+  </div></div>
+</div>
+
+<h2>Sprint, Kanban e Mapeamento — o campo de horas realizadas</h2>
+<p class="onde">DeliverableFormFields · KanbanDeliverableDialog · ScenarioCreateModal</p>
+<div class="quad">
+  <div class="col"><div class="tag">antes · claro</div><div class="palco claro">
+    <div class="card" style="background:#fffbeb;border-color:#fcd34d">
+      <div class="lb" style="color:#92400e">Horas Realizadas</div>
+      <div class="inp" style="border-color:#fcd34d;background:#fffdf5">0</div>
+      <div class="txt" style="color:#b45309;margin-top:6px">Usado nas análises (estimadas × realizadas).</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · claro</div><div class="palco claro">
+    <div class="card warn"><div class="lb">Horas Realizadas</div>
+      <div class="inp" style="border-color:rgb(var(--warning)/.50)">0</div>
+      <div class="txt" style="margin-top:6px">Usado nas análises (estimadas × realizadas).</div></div>
+  </div></div>
+  <div class="col"><div class="tag">antes · escuro</div><div class="palco escuro">
+    <div class="card" style="background:#fffbeb;border-color:#fcd34d">
+      <div class="lb" style="color:#92400e">Horas Realizadas</div>
+      <div class="inp" style="border-color:#fcd34d;background:#fff;color:#78350f">0</div>
+      <div class="txt" style="color:#b45309;margin-top:6px">Usado nas análises (estimadas × realizadas).</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · escuro</div><div class="palco escuro">
+    <div class="card warn"><div class="lb">Horas Realizadas</div>
+      <div class="inp" style="border-color:rgb(var(--warning)/.50)">0</div>
+      <div class="txt" style="margin-top:6px">Usado nas análises (estimadas × realizadas).</div></div>
+  </div></div>
+</div>
+
+<h2>Modal de entregável — o painel e as abas</h2>
+<p class="onde">sprint-detalhes/DeliverableFormFields</p>
+<div class="quad">
+  <div class="col"><div class="tag">antes · claro</div><div class="palco claro">
+    <div class="abas" style="background:#e6f5f3;border-color:#b7ddd8">
+      <div class="abal" style="background:#d3ebe8">
+        <div class="aba on" style="color:#0f766e">Planejamento</div><div class="aba" style="color:#3f6b67">Vínculos</div></div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · claro</div><div class="palco claro">
+    <div class="abas" style="background:rgb(var(--accent)/.10);border-color:rgb(var(--accent)/.30)">
+      <div class="abal" style="background:rgb(var(--accent)/.20)">
+        <div class="aba on">Planejamento</div><div class="aba">Vínculos</div></div></div>
+  </div></div>
+  <div class="col"><div class="tag">antes · escuro</div><div class="palco escuro">
+    <div class="abas" style="background:#e6f5f3;border-color:#b7ddd8">
+      <div class="abal" style="background:#d3ebe8">
+        <div class="aba on" style="background:#fff;color:#0f766e">Planejamento</div><div class="aba" style="color:#3f6b67">Vínculos</div></div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · escuro</div><div class="palco escuro">
+    <div class="abas" style="background:rgb(var(--accent)/.10);border-color:rgb(var(--accent)/.30)">
+      <div class="abal" style="background:rgb(var(--accent)/.20)">
+        <div class="aba on">Planejamento</div><div class="aba">Vínculos</div></div></div>
+  </div></div>
+</div>
+
+<h2>Análise Inteligente — quando ainda não tem análise</h2>
+<p class="onde">dashboards/analise-inteligente/AnaliseInteligenteAnalysis</p>
+<div class="quad">
+  <div class="col"><div class="tag">antes · claro</div><div class="palco claro">
+    <div class="card ctr tracejado" style="background:#f7fefd;border-color:#5eead4">
+      <svg class="ic grande" width="32" height="32" viewBox="0 0 24 24" style="color:#14b8a6"><use href="#brilho"/></svg>
+      <div class="h" style="color:#134e4a">Gerar análise estratégica</div>
+      <div class="txt" style="color:#0f766e">Insights cruzados sobre evolução e escopo.</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · claro</div><div class="palco claro">
+    <div class="card acc ctr tracejado">
+      <svg class="ic grande t-acc" width="32" height="32" viewBox="0 0 24 24"><use href="#brilho"/></svg>
+      <div class="h">Gerar análise estratégica</div>
+      <div class="txt">Insights cruzados sobre evolução e escopo.</div></div>
+  </div></div>
+  <div class="col"><div class="tag">antes · escuro</div><div class="palco escuro">
+    <div class="card ctr tracejado" style="background:#f7fefd;border-color:#5eead4">
+      <svg class="ic grande" width="32" height="32" viewBox="0 0 24 24" style="color:#14b8a6"><use href="#brilho"/></svg>
+      <div class="h" style="color:#134e4a">Gerar análise estratégica</div>
+      <div class="txt" style="color:#0f766e">Insights cruzados sobre evolução e escopo.</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · escuro</div><div class="palco escuro">
+    <div class="card acc ctr tracejado">
+      <svg class="ic grande t-acc" width="32" height="32" viewBox="0 0 24 24"><use href="#brilho"/></svg>
+      <div class="h">Gerar análise estratégica</div>
+      <div class="txt">Insights cruzados sobre evolução e escopo.</div></div>
+  </div></div>
+</div>
+
+<h2>SPED C170 — a coluna que vem do XML</h2>
+<p class="onde">correcoes-sped/TabC170 · a coluna inteira entrou, não só o cabeçalho</p>
+<div class="quad">
+  <div class="col"><div class="tag">antes · claro</div><div class="palco claro">
+    <div class="th" style="border:1px solid #e2e8f0">
+      <div style="background:#f8fafc">Dados EFD</div>
+      <div style="background:#f4fdf8;color:#059669;border-left:2px dashed #a7f3d0">Dados XML</div>
+      <div style="background:#f8fafc;border-left:2px dashed #e2e8f0">Impostos</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · claro</div><div class="palco claro">
+    <div class="th" style="border:1px solid var(--brd)">
+      <div style="background:var(--muted)">Dados EFD</div>
+      <div style="background:rgb(var(--success)/.10);border-left:2px dashed rgb(var(--success)/.40)">Dados XML</div>
+      <div style="background:var(--muted);border-left:2px dashed var(--brd)">Impostos</div></div>
+  </div></div>
+  <div class="col"><div class="tag">antes · escuro</div><div class="palco escuro">
+    <div class="th" style="border:1px solid #e2e8f0">
+      <div style="background:#f8fafc;color:#64748b">Dados EFD</div>
+      <div style="background:#f4fdf8;color:#059669;border-left:2px dashed #a7f3d0">Dados XML</div>
+      <div style="background:#f8fafc;color:#64748b;border-left:2px dashed #e2e8f0">Impostos</div></div>
+  </div></div>
+  <div class="col dep"><div class="tag">depois · escuro</div><div class="palco escuro">
+    <div class="th" style="border:1px solid var(--brd)">
+      <div style="background:var(--muted)">Dados EFD</div>
+      <div style="background:rgb(var(--success)/.10);border-left:2px dashed rgb(var(--success)/.40)">Dados XML</div>
+      <div style="background:var(--muted);border-left:2px dashed var(--brd)">Impostos</div></div>
+  </div></div>
+</div>
+
+<div class="fecho">
+<h3>Três coisas que você precisa saber para aprovar</h3>
+<ul>
+<li><b>No claro quase nada muda.</b> É de propósito: a cor fixa e a cor do tema estão quase no mesmo
+tom. Quem usa o sistema hoje não vai notar diferença.</li>
+<li><b>O texto colorido virou preto (ou branco no escuro).</b> Foi a única mudança visível no claro.
+Se ficasse colorido, no escuro seria ilegível — o vermelho do tema sobre o painel dá 4,19:1, abaixo
+do mínimo. A cor foi para o ícone e a borda.</li>
+<li><b>Mexi em 4 linhas do tema escuro</b> que estavam faltando: <code>--success</code> e
+<code>--warning</code>. O escuro já tinha o vermelho próprio, mas o verde e o amarelo continuavam
+puxando o valor do tema claro e ficavam apagados. <b>Isso afeta outros 85 lugares</b> que já usavam
+o padrão certo — todos melhoram junto. É um commit separado, dá para desfazer sozinho.</li>
+</ul>
+
+<h3 style="margin-top:24px">E uma que fica para você decidir à parte: o amarelo</h3>
+<p>O <code>--warning</code> é <code>38 92% 50%</code> — o <b>amber-500 do Tailwind, cru</b>. Nunca
+passou por decisão: não está no contrato do <code>paletaDeArea.ts</code> (que cobre só os 8 papéis de
+status), não aparece no <code>decisoes-tema-e-cor.md</code>, e tem 92% de saturação, acima do teto de
+85% que esse mesmo contrato impõe. É idêntico em <code>:root</code>, <code>.base-theme</code>,
+<code>.tax-theme</code> e <code>.rotina-theme</code>; só a OSG escolheu o dela. O
+<code>--destructive</code>, em comparação, <b>passou</b> — virou <code>0 84% 48%</code> no
+<code>vermelho-de-excluir.html</code>.</p>
+<table>
+<thead><tr><th>no tema claro</th><th>hoje</th><th>mínimo</th></tr></thead>
+<tbody>
+<tr><td><code>text-warning</code> sobre o cartão — usado como texto em 21 lugares</td><td class="num-bad">2,13:1</td><td>4,5:1</td></tr>
+<tr><td>ícone sobre o painel <code>/10</code></td><td class="num-bad">1,97:1</td><td>3:1</td></tr>
+</tbody></table>
+<p style="margin-bottom:0">Não piorou com esta mudança — é o mesmo amarelo de antes, e no escuro ele
+passa folgado (9,07:1, com o valor novo). Mas nunca foi escolhido. Um candidato dentro do teto:
+<code>34 78% 33%</code>, que dá 5,42:1 como texto e 4,75:1 como ícone — uma mostarda bem mais escura,
+e o painel a 10% ficaria mais amarronzado que este pêssego. <b>Vale a sua própria página de
+comparação</b>, e mexe nos 85 lugares.</p>
+</div>
+
+</div>
