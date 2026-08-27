@@ -173,14 +173,14 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
           </div>
 
           {editForm.status === 'completed' && (
-            <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3">
-              <Label className="text-amber-800 font-medium">Horas Realizadas</Label>
+            <div className="space-y-2 rounded-md border border-warning/40 bg-warning/10 p-3">
+              <Label className="text-foreground font-medium">Horas Realizadas</Label>
               <Input
                 type="number"
                 step="0.5"
                 value={editForm.actual_hours}
                 onChange={(event) => setEditForm({ ...editForm, actual_hours: event.target.value })}
-                className="border-amber-300 text-gray-900"
+                className="border-warning/50"
                 placeholder="0"
               />
               <AvisoHorasDigitadas
@@ -188,12 +188,12 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                   realizadas: editForm.actual_hours,
                   estimadas: editForm.estimated_hours,
                 })}
-                className="bg-white"
+                className="bg-card"
                 onUsarSugestao={(horas) =>
                   setEditForm({ ...editForm, actual_hours: String(horas) })
                 }
               />
-              <p className="text-xs text-amber-700">
+              <p className="text-xs text-muted-foreground">
                 Preencha as horas reais — usado nas análises (estimadas × realizadas).
               </p>
             </div>

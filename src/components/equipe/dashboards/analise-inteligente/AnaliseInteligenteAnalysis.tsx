@@ -32,11 +32,11 @@ export function AnaliseInteligenteAnalysis({
 }: AnaliseInteligenteAnalysisProps) {
   if (!analise) {
     return (
-      <Card className="border-dashed border-teal-300 bg-teal-50/50">
+      <Card className="border-dashed border-accent/40 bg-accent/5">
         <CardContent className="py-8 text-center">
-          <Sparkles className="h-10 w-10 text-teal-500 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-teal-900 mb-1">Gerar análise estratégica</h3>
-          <p className="text-sm text-teal-700 mb-4 max-w-md mx-auto">
+          <Sparkles className="h-10 w-10 text-accent mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-foreground mb-1">Gerar análise estratégica</h3>
+          <p className="text-sm text-muted-foreground mb-4 max-w-md mx-auto">
             Clique em <strong>"Gerar Análise IA"</strong> para produzir insights cruzados sobre
             evolução, saudabilidade, aderência ao escopo e gastos extras — alimentado por Claude AI.
           </p>

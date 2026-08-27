@@ -44,7 +44,7 @@ export function ImportDialog({ controller: c }: { controller: EquipeSprintDetalh
             </div>
           ) : (
             <>
-              <Card className="bg-green-50">
+              <Card className="border-success/40 bg-success/10">
                 <CardContent className="py-4">
                   <div className="font-medium">{c.importFile?.name}</div>
                   <div className="grid grid-cols-3 text-sm">
@@ -55,7 +55,7 @@ export function ImportDialog({ controller: c }: { controller: EquipeSprintDetalh
                 </CardContent>
               </Card>
               {!!c.importPreview.unmappedResponsibles.length && (
-                <Card className="bg-amber-50">
+                <Card className="border-warning/40 bg-warning/10">
                   <CardHeader>
                     <CardTitle className="text-sm">
                       Responsáveis não encontrados ({c.importPreview.unmappedResponsibles.length})

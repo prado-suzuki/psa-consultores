@@ -233,10 +233,10 @@ export const IbsCbsAuditModal = ({
                   <Skeleton className="h-28 w-full" />
                 </div>
               ) : regrasError ? (
-                <Card className="border-red-200 bg-red-50">
+                <Card className="border-destructive/40 bg-destructive/10">
                   <CardContent className="p-6 text-center">
-                    <AlertTriangle className="h-10 w-10 text-red-500 mx-auto mb-3" />
-                    <p className="text-red-700">Erro ao carregar regras</p>
+                    <AlertTriangle className="h-10 w-10 text-destructive mx-auto mb-3" />
+                    <p className="text-foreground">Erro ao carregar regras</p>
                   </CardContent>
                 </Card>
               ) : regrasNCM?.regras && regrasNCM.regras.length > 0 ? (
@@ -301,14 +301,14 @@ export const IbsCbsAuditModal = ({
                   ))}
                 </div>
               ) : (
-                <Card className="border-amber-200 bg-amber-50">
+                <Card className="border-warning/40 bg-warning/10">
                   <CardContent className="p-6 text-center">
-                    <AlertTriangle className="h-10 w-10 text-amber-500 mx-auto mb-3" />
-                    <p className="text-amber-700 font-medium">
+                    <AlertTriangle className="h-10 w-10 text-warning mx-auto mb-3" />
+                    <p className="text-foreground font-medium">
                       Nenhuma regra encontrada para este NCM
                     </p>
                     {regrasNCM?.descricao && (
-                      <p className="text-sm text-amber-600 mt-2">
+                      <p className="text-sm text-muted-foreground mt-2">
                         {regrasNCM.descricao}
                       </p>
                     )}

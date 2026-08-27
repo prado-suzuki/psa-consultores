@@ -421,12 +421,12 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
           </div>
 
           {/* Equipe Envolvida */}
-          <Card className="border-orange-200 bg-orange-50/50">
+          <Card className="bg-muted/40">
             <CardContent className="pt-4">
               <div className="flex items-center justify-between mb-4">
-                <h4 className="font-semibold text-orange-700">Equipe Envolvida (Baseline)</h4>
+                <h4 className="font-semibold text-foreground">Equipe Envolvida (Baseline)</h4>
                 {monthlyCost > 0 && (
-                  <span className="text-sm font-medium text-orange-700">
+                  <span className="text-sm font-medium text-foreground">
                     Custo estimado: R$ {monthlyCost.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}/mês
                   </span>
                 )}
