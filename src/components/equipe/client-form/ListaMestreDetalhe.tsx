@@ -144,7 +144,17 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
 }: ListaMestreDetalheProps<Id>) {
   const acento = useAcentoArea();
   return (
-    <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
+    <section
+      className={cn(
+        'bg-card rounded-xl border shadow-sm overflow-hidden',
+        // Em pagina a casca precisa VIRAR item flex do pai e distribuir a altura
+        // que recebe. Sem isto o `flex-1` da linha de baixo nao tem contra o que
+        // crescer, a altura vira a do conteudo da lista (19 produtos = ~1500px)
+        // e as colunas do detalhe caem centradas fora da tela — foi exatamente
+        // como a bancada Produtos & Servicos apareceu vazia a direita.
+        moldura === 'pagina' && 'flex min-h-0 flex-1 flex-col',
+      )}
+    >
       <div className="px-4 py-2 bg-muted/50 border-b flex items-center justify-between gap-3">
         <h3 className="min-w-0 truncate text-sm font-bold text-foreground">{titulo}</h3>
         {acaoCriar && <div className="shrink-0">{acaoCriar}</div>}
@@ -160,8 +170,11 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
         // `overflow-hidden` aqui não é enfeite: sem ele um valor comprido no
         // detalhe empurra a linha inteira e corta os botões do cabeçalho.
         <div className={cn(
-          'flex min-h-[300px] overflow-hidden',
-          moldura === 'modal' ? 'max-h-[62vh]' : 'flex-1',
+          'flex overflow-hidden',
+          // `min-h-0` e `min-h-[300px]` na mesma classe seriam duas regras de
+          // igual peso e a ordem no bundle decidiria — por isso cada moldura
+          // traz o seu, e nunca os dois.
+          moldura === 'modal' ? 'min-h-[300px] max-h-[62vh]' : 'min-h-0 flex-1',
         )}>
           <nav
             aria-label={titulo}
