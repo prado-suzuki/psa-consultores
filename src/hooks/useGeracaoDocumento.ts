@@ -360,14 +360,37 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
     queryKey: ['socios-geracao', empresaId],
     enabled: !!empresaId && !ehPR,
     queryFn: async () => {
+      // Fonte: `v_quadro_societario`, a visão derivada do livro de movimentos
+      // que substituiu a tabela `quadro_societario`. A view não embute a pessoa,
+      // então a qualificação vem numa segunda leitura por id.
       const { data, error } = await supabase
-        .from('quadro_societario')
-        // `id` (linha do quadro) acompanha p/ as notificações da tela Gerar.
-        .select('id, quotas, vlr_total, socio:socio_pessoa_id (*)')
+        .from('v_quadro_societario')
+        .select('pessoa_id, quotas, vlr_total, ordem')
         .eq('empresa_pessoa_id', empresaId!)
-        .order('created_at');
+        .order('ordem');
       if (error) throw error;
-      const linhas = ((data ?? []) as unknown as RawQuadroSocietario[]).filter((l) => l.socio);
+
+      const idsSocios = ((data ?? []).map((l) => l.pessoa_id).filter(Boolean)) as string[];
+      if (idsSocios.length === 0) return [];
+
+      const { data: pessoas, error: errPessoas } = await supabase
+        .from('pessoa')
+        .select('*')
+        .in('id', idsSocios);
+      if (errPessoas) throw errPessoas;
+      const porId = new Map(((pessoas ?? []) as unknown as PessoaRow[]).map((p) => [p.id, p]));
+
+      const linhas: RawQuadroSocietario[] = (data ?? [])
+        .map((l) => ({
+          // A linha do quadro não tem id próprio: a posição é do par
+          // empresa × sócio, e é isso que as notificações da tela Gerar usam.
+          id: `${empresaId}:${l.pessoa_id}`,
+          quotas: l.quotas,
+          vlr_total: l.vlr_total,
+          socio: l.pessoa_id ? porId.get(l.pessoa_id) ?? null : null,
+        }))
+        .filter((l) => l.socio);
+
 
       // Representantes das sócias PJ: administradores delas com qualificação
       // completa ("o senhor FULANO, brasileiro, casado…"), no padrão do preâmbulo
