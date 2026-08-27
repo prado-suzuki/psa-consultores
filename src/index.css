@@ -1001,6 +1001,26 @@ All colors MUST be HSL.
     --destructive: 6 74% 64%;
     --destructive-foreground: 35 12% 9%;
 
+    /* SUCESSO E AVISO — o par que faltava ao lado do `--destructive`.
+       Este bloco clareou o `--destructive` (de `0 84% 48%` para `6 74% 64%`) porque o
+       vermelho do claro não sobrevive sobre um cartão a 14% de luminosidade. `--success`
+       e `--warning` não receberam o mesmo tratamento e continuavam caindo no valor do
+       tema claro: verde a 30% de luminosidade e amarelo a 50%, os dois apagados no
+       escuro. Não era teoria — 85 lugares já usam `bg-success/10`, `bg-warning/10` e
+       `border-warning/40`, e todos herdavam o valor errado.
+
+       Os dois abaixo são o mesmo grau de clareamento que o `--destructive` recebeu, medidos
+       contra o cartão deste bloco: o cheio serve ao ícone (8,03:1 e 9,07:1, muito acima
+       dos 3:1 de elemento gráfico) e o painel a 10% separa 1,22:1 e 1,24:1 — na mesma
+       faixa do `--destructive`, que dá 1,14:1.
+
+       Os `-foreground` acompanham o `--destructive-foreground`: texto escuro sobre o tom
+       cheio, 9,28:1 e 10,48:1. */
+    --success: 160 55% 58%;
+    --success-foreground: 35 12% 9%;
+    --warning: 40 88% 64%;
+    --warning-foreground: 35 12% 9%;
+
     --border: 35 9% 30%;
     --input: 35 9% 30%;
     --ring: 172 66% 50%;
