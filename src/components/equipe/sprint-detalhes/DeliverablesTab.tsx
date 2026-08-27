@@ -102,7 +102,7 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
             return (
               <div key={task.id}>
                 <Card
-                  className={`${task.status === 'completed' ? 'bg-gray-50' : ''} cursor-pointer border-gray-200`}
+                  className={`${task.status === 'completed' ? 'bg-muted' : ''} cursor-pointer border-gray-200`}
                   onClick={() => c.toggleTask(task.id)}
                 >
                   <CardContent className="py-3">

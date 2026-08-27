@@ -661,7 +661,7 @@ export default function EquipeBacklog() {
                 <Input
                   value={movingItem?.estimated_hours ? `${movingItem.estimated_hours}h` : '—'}
                   disabled
-                  className="bg-gray-50 text-gray-500"
+                  className="bg-muted text-gray-500"
                 />
               </div>
             </div>

@@ -437,11 +437,11 @@ const ControleBalancetes = () => {
                   <TableHead className="w-10">
                     <Checkbox checked={allSelected} onCheckedChange={handleToggleAll} aria-label="Selecionar todos" />
                   </TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-[340px] max-w-[340px]">Descrição</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-32 whitespace-nowrap">Período Início</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-32 whitespace-nowrap">Período Fim</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 w-72 whitespace-nowrap">Adicionado por</TableHead>
-                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-slate-500 text-center w-36">Ações</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold w-[340px] max-w-[340px]">Descrição</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold w-32 whitespace-nowrap">Período Início</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold w-32 whitespace-nowrap">Período Fim</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold w-72 whitespace-nowrap">Adicionado por</TableHead>
+                  <TableHead className="uppercase tracking-wider text-[11px] font-semibold text-center w-36">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

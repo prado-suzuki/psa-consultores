@@ -263,7 +263,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle className="text-gray-900">Confirmar exclusão</AlertDialogTitle>
-                <AlertDialogDescription className="text-gray-600">
+                <AlertDialogDescription>
                   Tem certeza que deseja excluir este entregável? Esta ação não pode ser desfeita.
                 </AlertDialogDescription>
               </AlertDialogHeader>

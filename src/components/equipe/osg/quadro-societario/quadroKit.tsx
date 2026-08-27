@@ -18,6 +18,11 @@ export interface KpiCardProps {
 // verde-musgo de destaque, os demais ficam na superfície padrão.
 export const KpiCard = ({ icone, titulo, valor, destaque, delay = 0 }: KpiCardProps) => (
   <Card
+    // O `text-white` do destaque é sobrescrita DELIBERADA do `text-card-foreground`:
+    // o cartão em destaque tem fundo `bg-osg-moss` cheio, e branco sobre um verde
+    // saturado é a única leitura possível em qualquer tema. `--osg-moss` não tem
+    // token `-foreground` companheiro para apontar no lugar.
+    // eslint-disable-next-line ui/token-nao-sobrescrito
     className={cn(
       'animate-osg-rise motion-reduce:animate-none',
       destaque && 'border-osg-moss bg-osg-moss text-white',

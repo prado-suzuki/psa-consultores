@@ -192,7 +192,7 @@ export const ControleUsoEnvio = () => {
         className="w-full"
       >
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg bg-slate-100 p-1 sm:w-auto">
+          <TabsList className="h-auto w-full justify-start gap-1 overflow-x-auto rounded-lg p-1 sm:w-auto">
             <TabsTrigger value="saude" className={ABA_CLASSES}>
               Saúde da API
             </TabsTrigger>

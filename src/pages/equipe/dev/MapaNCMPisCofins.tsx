@@ -331,31 +331,31 @@ const MapaNCMPisCofins = () => {
             <Table>
               <TableHeader>
                 <TableRow className="bg-slate-50">
-                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  <TableHead className="text-xs font-semibold tracking-wider uppercase">
                     <ColumnTooltip label="NCM" text={TOOLTIPS.colNcm} />
                     <ColumnFilterDropdown columnKey="ncm" uniqueValues={uniqueValues.ncm ?? []} activeSort={sortConfig} activeFilter={columnFilters.ncm ?? null} onSort={handleSort} onFilter={handleFilter} />
                   </TableHead>
-                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  <TableHead className="text-xs font-semibold tracking-wider uppercase">
                     <ColumnTooltip label="Setor" text={TOOLTIPS.colSetor} />
                     <ColumnFilterDropdown columnKey="setor" uniqueValues={uniqueValues.setor ?? []} activeSort={sortConfig} activeFilter={columnFilters.setor ?? null} onSort={handleSort} onFilter={handleFilter} />
                   </TableHead>
-                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  <TableHead className="text-xs font-semibold tracking-wider uppercase">
                     <ColumnTooltip label="CST PIS/COFINS" text={TOOLTIPS.colCst} />
                     <ColumnFilterDropdown columnKey="cst" uniqueValues={uniqueValues.cst ?? []} activeSort={sortConfig} activeFilter={columnFilters.cst ?? null} onSort={handleSort} onFilter={handleFilter} />
                   </TableHead>
-                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  <TableHead className="text-xs font-semibold tracking-wider uppercase">
                     <ColumnTooltip label="Descrição CST" text={TOOLTIPS.colDescCst} />
                     <ColumnFilterDropdown columnKey="desc_cst" uniqueValues={uniqueValues.desc_cst ?? []} activeSort={sortConfig} activeFilter={columnFilters.desc_cst ?? null} onSort={handleSort} onFilter={handleFilter} />
                   </TableHead>
-                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase">
+                  <TableHead className="text-xs font-semibold tracking-wider uppercase">
                     <ColumnTooltip label="Base Legal" text={TOOLTIPS.colBaseLegal} />
                     <ColumnFilterDropdown columnKey="base_legal" uniqueValues={uniqueValues.base_legal ?? []} activeSort={sortConfig} activeFilter={columnFilters.base_legal ?? null} onSort={handleSort} onFilter={handleFilter} />
                   </TableHead>
-                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-center">
+                  <TableHead className="text-xs font-semibold tracking-wider uppercase text-center">
                     <ColumnTooltip label="Crédito" text={TOOLTIPS.colCredito} />
                     <ColumnFilterDropdown columnKey="credito" uniqueValues={uniqueValues.credito ?? []} activeSort={sortConfig} activeFilter={columnFilters.credito ?? null} onSort={handleSort} onFilter={handleFilter} />
                   </TableHead>
-                  <TableHead className="text-xs font-semibold tracking-wider text-slate-500 uppercase text-right">
+                  <TableHead className="text-xs font-semibold tracking-wider uppercase text-right">
                     <ColumnTooltip label="Ações" text={TOOLTIPS.colAcoes} />
                   </TableHead>
                 </TableRow>

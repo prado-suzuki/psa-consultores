@@ -40,12 +40,12 @@ export function KanbanTable(props: KanbanTableProps) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="text-gray-700 w-8"></TableHead>
-            <TableHead className="text-gray-700">Título</TableHead>
-            <TableHead className="text-gray-700">Status</TableHead>
-            <TableHead className="text-gray-700">Responsável</TableHead>
-            <TableHead className="text-gray-700">Data Limite</TableHead>
-            <TableHead className="text-gray-700 text-right">Horas Est.</TableHead>
+            <TableHead className="text-foreground w-8"></TableHead>
+            <TableHead className="text-foreground">Título</TableHead>
+            <TableHead className="text-foreground">Status</TableHead>
+            <TableHead className="text-foreground">Responsável</TableHead>
+            <TableHead className="text-foreground">Data Limite</TableHead>
+            <TableHead className="text-foreground text-right">Horas Est.</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

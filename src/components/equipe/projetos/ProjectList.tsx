@@ -78,12 +78,12 @@ export const ProjectList = ({
           <Table>
             <TableHeader>
               <TableRow className="border-gray-200">
-                <TableHead className="text-gray-600">Nome</TableHead>
-                <TableHead className="text-gray-600">Status</TableHead>
-                <TableHead className="text-gray-600">Prioridade</TableHead>
-                <TableHead className="text-gray-600">Fase</TableHead>
-                <TableHead className="text-gray-600">Cluster</TableHead>
-                <TableHead className="text-gray-600 text-right">Ações</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Prioridade</TableHead>
+                <TableHead>Fase</TableHead>
+                <TableHead>Cluster</TableHead>
+                <TableHead className="text-right">Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

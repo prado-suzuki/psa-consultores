@@ -316,7 +316,7 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
               </div>
             </div>
 
-            <Card className="bg-slate-50">
+            <Card className="bg-muted">
               <CardContent className="p-4">
                 <p className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1">
                   <Lock className="h-3 w-3" />
