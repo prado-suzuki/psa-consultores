@@ -10,32 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -146,6 +121,382 @@ export type Database = {
           },
         ]
       }
+      agente_aprendizados: {
+        Row: {
+          ativo: boolean
+          conversa_id: string | null
+          correcao: string
+          criado_em: string
+          criado_por: string | null
+          escopo: string
+          id: string
+          licao: string
+          mensagem_id: string | null
+          pergunta: string | null
+          peso: number
+          resposta_original: string | null
+          revisado_em: string | null
+          revisado_por: string | null
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          conversa_id?: string | null
+          correcao: string
+          criado_em?: string
+          criado_por?: string | null
+          escopo: string
+          id?: string
+          licao: string
+          mensagem_id?: string | null
+          pergunta?: string | null
+          peso?: number
+          resposta_original?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          tipo?: string
+        }
+        Update: {
+          ativo?: boolean
+          conversa_id?: string | null
+          correcao?: string
+          criado_em?: string
+          criado_por?: string | null
+          escopo?: string
+          id?: string
+          licao?: string
+          mensagem_id?: string | null
+          pergunta?: string | null
+          peso?: number
+          resposta_original?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_aprendizados_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_aprendizados_criado_por_fkey"
+            columns: ["criado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_aprendizados_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "agente_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_aprendizados_revisado_por_fkey"
+            columns: ["revisado_por"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_config: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          escopo: string
+          id: string
+          max_insights_por_resposta: number
+          modelo: string
+          nivel_acesso: string
+          prompt_personalizado: string | null
+          rotulo: string
+          temperatura: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          escopo: string
+          id?: string
+          max_insights_por_resposta?: number
+          modelo?: string
+          nivel_acesso?: string
+          prompt_personalizado?: string | null
+          rotulo: string
+          temperatura?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          escopo?: string
+          id?: string
+          max_insights_por_resposta?: number
+          modelo?: string
+          nivel_acesso?: string
+          prompt_personalizado?: string | null
+          rotulo?: string
+          temperatura?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_config_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_conversas: {
+        Row: {
+          atualizado_em: string
+          criado_em: string
+          escopo: string
+          excluido: boolean
+          filtros: Json | null
+          id: string
+          titulo: string | null
+          user_id: string
+        }
+        Insert: {
+          atualizado_em?: string
+          criado_em?: string
+          escopo: string
+          excluido?: boolean
+          filtros?: Json | null
+          id?: string
+          titulo?: string | null
+          user_id: string
+        }
+        Update: {
+          atualizado_em?: string
+          criado_em?: string
+          escopo?: string
+          excluido?: boolean
+          filtros?: Json | null
+          id?: string
+          titulo?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_conversas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_insights: {
+        Row: {
+          categoria: string
+          conversa_id: string
+          criado_em: string
+          escopo: string
+          id: string
+          mensagem_id: string
+          severidade: string
+          texto: string
+          util: boolean | null
+        }
+        Insert: {
+          categoria?: string
+          conversa_id: string
+          criado_em?: string
+          escopo: string
+          id?: string
+          mensagem_id: string
+          severidade?: string
+          texto: string
+          util?: boolean | null
+        }
+        Update: {
+          categoria?: string
+          conversa_id?: string
+          criado_em?: string
+          escopo?: string
+          id?: string
+          mensagem_id?: string
+          severidade?: string
+          texto?: string
+          util?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_insights_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_insights_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "agente_mensagens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_mensagens: {
+        Row: {
+          campos_usados: Json | null
+          conteudo: string
+          conversa_id: string
+          criado_em: string
+          id: string
+          metricas: Json | null
+          modo: string | null
+          papel: string
+        }
+        Insert: {
+          campos_usados?: Json | null
+          conteudo: string
+          conversa_id: string
+          criado_em?: string
+          id?: string
+          metricas?: Json | null
+          modo?: string | null
+          papel: string
+        }
+        Update: {
+          campos_usados?: Json | null
+          conteudo?: string
+          conversa_id?: string
+          criado_em?: string
+          id?: string
+          metricas?: Json | null
+          modo?: string | null
+          papel?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_notificacoes: {
+        Row: {
+          conversa_id: string | null
+          criado_em: string
+          escopo: string
+          id: string
+          insight_id: string | null
+          mensagem_id: string | null
+          origem_user_id: string | null
+          severidade: string
+          texto: string
+          tipo: string
+          titulo: string
+        }
+        Insert: {
+          conversa_id?: string | null
+          criado_em?: string
+          escopo: string
+          id?: string
+          insight_id?: string | null
+          mensagem_id?: string | null
+          origem_user_id?: string | null
+          severidade?: string
+          texto: string
+          tipo: string
+          titulo: string
+        }
+        Update: {
+          conversa_id?: string | null
+          criado_em?: string
+          escopo?: string
+          id?: string
+          insight_id?: string | null
+          mensagem_id?: string | null
+          origem_user_id?: string | null
+          severidade?: string
+          texto?: string
+          tipo?: string
+          titulo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_notificacoes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "agente_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_insight_id_fkey"
+            columns: ["insight_id"]
+            isOneToOne: false
+            referencedRelation: "agente_insights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "agente_mensagens"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_origem_user_id_fkey"
+            columns: ["origem_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agente_notificacoes_vistas: {
+        Row: {
+          dispensada: boolean
+          notificacao_id: string
+          user_id: string
+          visto_em: string
+        }
+        Insert: {
+          dispensada?: boolean
+          notificacao_id: string
+          user_id: string
+          visto_em?: string
+        }
+        Update: {
+          dispensada?: boolean
+          notificacao_id?: string
+          user_id?: string
+          visto_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agente_notificacoes_vistas_notificacao_id_fkey"
+            columns: ["notificacao_id"]
+            isOneToOne: false
+            referencedRelation: "agente_notificacoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agente_notificacoes_vistas_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analises_semestrais: {
         Row: {
           ajustes_necessarios: string | null
@@ -225,6 +576,47 @@ export type Database = {
             columns: ["servico_id"]
             isOneToOne: false
             referencedRelation: "servicos_prestados"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ato_societario: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data: string | null
+          descricao: string | null
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ato_societario_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
             referencedColumns: ["id"]
           },
         ]
@@ -469,6 +861,106 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      capital_integralizacao: {
+        Row: {
+          bem_id: string
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          empresa_destino_pessoa_id: string
+          id: string
+          pct_capital: number | null
+          pct_vlr_contabil: number | null
+          pct_vlr_mercado: number | null
+          reserva_capital: number | null
+          socio_pessoa_id: string
+          updated_at: string
+          updated_by: string | null
+          vlr_capital_arredondado: number | null
+          vlr_contabil: number | null
+          vlr_mercado: number | null
+        }
+        Insert: {
+          bem_id: string
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          empresa_destino_pessoa_id: string
+          id?: string
+          pct_capital?: number | null
+          pct_vlr_contabil?: number | null
+          pct_vlr_mercado?: number | null
+          reserva_capital?: number | null
+          socio_pessoa_id: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_capital_arredondado?: number | null
+          vlr_contabil?: number | null
+          vlr_mercado?: number | null
+        }
+        Update: {
+          bem_id?: string
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_destino_pessoa_id?: string
+          id?: string
+          pct_capital?: number | null
+          pct_vlr_contabil?: number | null
+          pct_vlr_mercado?: number | null
+          reserva_capital?: number | null
+          socio_pessoa_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_capital_arredondado?: number | null
+          vlr_contabil?: number | null
+          vlr_mercado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capital_integralizacao_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_empresa_destino_pessoa_id_fkey"
+            columns: ["empresa_destino_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_socio_pessoa_id_fkey"
+            columns: ["socio_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cartorio: {
         Row: {
@@ -2034,6 +2526,7 @@ export type Database = {
           snapshot_validado_em: string | null
           snapshot_versoes_blocos: Json | null
           status: string
+          substitui_documento_id: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -2055,6 +2548,7 @@ export type Database = {
           snapshot_validado_em?: string | null
           snapshot_versoes_blocos?: Json | null
           status?: string
+          substitui_documento_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -2076,6 +2570,7 @@ export type Database = {
           snapshot_validado_em?: string | null
           snapshot_versoes_blocos?: Json | null
           status?: string
+          substitui_documento_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -2127,6 +2622,13 @@ export type Database = {
             columns: ["pj_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_substitui_documento_id_fkey"
+            columns: ["substitui_documento_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
             referencedColumns: ["id"]
           },
           {
@@ -3509,6 +4011,208 @@ export type Database = {
           },
         ]
       }
+      itcd_simulacao: {
+        Row: {
+          aprovada_em: string | null
+          aprovada_por: string | null
+          cliente_id: string
+          competencia: string
+          created_at: string
+          created_by: string | null
+          empresa_pessoa_id: string
+          id: string
+          observacao: string | null
+          origem_simulacao_id: string | null
+          quotas_total: number
+          status: Database["public"]["Enums"]["itcd_simulacao_status"]
+          updated_at: string
+          updated_by: string | null
+          versao: number
+          vlr_acervo_contabil: number
+          vlr_acervo_itr: number
+          vlr_acervo_mercado: number
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+          vlr_upf: number
+        }
+        Insert: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          cliente_id: string
+          competencia: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id: string
+          id?: string
+          observacao?: string | null
+          origem_simulacao_id?: string | null
+          quotas_total: number
+          status?: Database["public"]["Enums"]["itcd_simulacao_status"]
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+          vlr_acervo_contabil: number
+          vlr_acervo_itr: number
+          vlr_acervo_mercado: number
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+          vlr_upf: number
+        }
+        Update: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          cliente_id?: string
+          competencia?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id?: string
+          id?: string
+          observacao?: string | null
+          origem_simulacao_id?: string | null
+          quotas_total?: number
+          status?: Database["public"]["Enums"]["itcd_simulacao_status"]
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+          vlr_acervo_contabil?: number
+          vlr_acervo_itr?: number
+          vlr_acervo_mercado?: number
+          vlr_imposto_contabil?: number
+          vlr_imposto_itr?: number
+          vlr_imposto_mercado?: number
+          vlr_upf?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itcd_simulacao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_empresa_pessoa_id_fkey"
+            columns: ["empresa_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_origem_simulacao_id_fkey"
+            columns: ["origem_simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "itcd_simulacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itcd_simulacao_doador: {
+        Row: {
+          created_at: string
+          doador_pessoa_id: string
+          id: string
+          quotas: number
+          simulacao_id: string
+        }
+        Insert: {
+          created_at?: string
+          doador_pessoa_id: string
+          id?: string
+          quotas: number
+          simulacao_id: string
+        }
+        Update: {
+          created_at?: string
+          doador_pessoa_id?: string
+          id?: string
+          quotas?: number
+          simulacao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itcd_simulacao_doador_doador_pessoa_id_fkey"
+            columns: ["doador_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_doador_simulacao_id_fkey"
+            columns: ["simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "itcd_simulacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itcd_simulacao_donatario: {
+        Row: {
+          created_at: string
+          donatario_pessoa_id: string
+          id: string
+          pct_doacao_anterior: number | null
+          percentual: number
+          quotas_disponivel: number
+          quotas_legitima: number
+          simulacao_id: string
+          vlr_base_contabil: number
+          vlr_base_itr: number
+          vlr_base_mercado: number
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+        }
+        Insert: {
+          created_at?: string
+          donatario_pessoa_id: string
+          id?: string
+          pct_doacao_anterior?: number | null
+          percentual: number
+          quotas_disponivel?: number
+          quotas_legitima: number
+          simulacao_id: string
+          vlr_base_contabil: number
+          vlr_base_itr: number
+          vlr_base_mercado: number
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+        }
+        Update: {
+          created_at?: string
+          donatario_pessoa_id?: string
+          id?: string
+          pct_doacao_anterior?: number | null
+          percentual?: number
+          quotas_disponivel?: number
+          quotas_legitima?: number
+          simulacao_id?: string
+          vlr_base_contabil?: number
+          vlr_base_itr?: number
+          vlr_base_mercado?: number
+          vlr_imposto_contabil?: number
+          vlr_imposto_itr?: number
+          vlr_imposto_mercado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itcd_simulacao_donatario_donatario_pessoa_id_fkey"
+            columns: ["donatario_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_donatario_simulacao_id_fkey"
+            columns: ["simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "itcd_simulacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       itens_acao_1a1: {
         Row: {
           created_at: string | null
@@ -4033,6 +4737,7 @@ export type Database = {
       }
       movimentacao_quotas: {
         Row: {
+          ato_id: string | null
           bem_id: string | null
           cliente_id: string
           created_at: string
@@ -4043,11 +4748,15 @@ export type Database = {
           empresa_pessoa_id: string
           id: string
           origem_pessoa_id: string | null
+          pago_com_empresa_pessoa_id: string | null
+          pago_com_quotas: number | null
+          pago_com_valor: number | null
           pct_capital: number | null
           pct_vlr_contabil: number | null
           pct_vlr_mercado: number | null
           quotas: number
           reserva_capital: number | null
+          sequencia: number | null
           tipo: string
           updated_at: string
           updated_by: string | null
@@ -4056,6 +4765,7 @@ export type Database = {
           vlr_mercado: number | null
         }
         Insert: {
+          ato_id?: string | null
           bem_id?: string | null
           cliente_id: string
           created_at?: string
@@ -4066,11 +4776,15 @@ export type Database = {
           empresa_pessoa_id: string
           id?: string
           origem_pessoa_id?: string | null
+          pago_com_empresa_pessoa_id?: string | null
+          pago_com_quotas?: number | null
+          pago_com_valor?: number | null
           pct_capital?: number | null
           pct_vlr_contabil?: number | null
           pct_vlr_mercado?: number | null
           quotas: number
           reserva_capital?: number | null
+          sequencia?: number | null
           tipo: string
           updated_at?: string
           updated_by?: string | null
@@ -4079,6 +4793,7 @@ export type Database = {
           vlr_mercado?: number | null
         }
         Update: {
+          ato_id?: string | null
           bem_id?: string | null
           cliente_id?: string
           created_at?: string
@@ -4089,11 +4804,15 @@ export type Database = {
           empresa_pessoa_id?: string
           id?: string
           origem_pessoa_id?: string | null
+          pago_com_empresa_pessoa_id?: string | null
+          pago_com_quotas?: number | null
+          pago_com_valor?: number | null
           pct_capital?: number | null
           pct_vlr_contabil?: number | null
           pct_vlr_mercado?: number | null
           quotas?: number
           reserva_capital?: number | null
+          sequencia?: number | null
           tipo?: string
           updated_at?: string
           updated_by?: string | null
@@ -4131,6 +4850,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "movimentacao_quotas_ato_id_fkey"
+            columns: ["ato_id"]
+            isOneToOne: false
+            referencedRelation: "ato_societario"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "movimentacao_quotas_destino_pessoa_id_fkey"
             columns: ["destino_pessoa_id"]
             isOneToOne: false
@@ -4154,6 +4880,13 @@ export type Database = {
           {
             foreignKeyName: "movimentacao_quotas_origem_pessoa_id_fkey"
             columns: ["origem_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_quotas_pago_com_empresa_pessoa_id_fkey"
+            columns: ["pago_com_empresa_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
@@ -4230,6 +4963,7 @@ export type Database = {
           agrupamento_chave: string | null
           canal: Database["public"]["Enums"]["notificacao_canal"]
           chave_idempotencia: string | null
+          created_at: string | null
           destinatario_email: string | null
           destinatario_id: string | null
           destinatario_papel: string | null
@@ -4253,6 +4987,7 @@ export type Database = {
           agrupamento_chave?: string | null
           canal: Database["public"]["Enums"]["notificacao_canal"]
           chave_idempotencia?: string | null
+          created_at?: string | null
           destinatario_email?: string | null
           destinatario_id?: string | null
           destinatario_papel?: string | null
@@ -4276,6 +5011,7 @@ export type Database = {
           agrupamento_chave?: string | null
           canal?: Database["public"]["Enums"]["notificacao_canal"]
           chave_idempotencia?: string | null
+          created_at?: string | null
           destinatario_email?: string | null
           destinatario_id?: string | null
           destinatario_papel?: string | null
@@ -4375,6 +5111,7 @@ export type Database = {
       ordem_servico: {
         Row: {
           cluster_id: string | null
+          contribuinte_id: string | null
           created_at: string | null
           data_emissao: string | null
           data_fim: string | null
@@ -4399,6 +5136,7 @@ export type Database = {
         }
         Insert: {
           cluster_id?: string | null
+          contribuinte_id?: string | null
           created_at?: string | null
           data_emissao?: string | null
           data_fim?: string | null
@@ -4423,6 +5161,7 @@ export type Database = {
         }
         Update: {
           cluster_id?: string | null
+          contribuinte_id?: string | null
           created_at?: string | null
           data_emissao?: string | null
           data_fim?: string | null
@@ -4451,6 +5190,13 @@ export type Database = {
             columns: ["cluster_id"]
             isOneToOne: false
             referencedRelation: "estrutura_clusters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ordem_servico_contribuinte_id_fkey"
+            columns: ["contribuinte_id"]
+            isOneToOne: false
+            referencedRelation: "contribuinte"
             referencedColumns: ["id"]
           },
           {
@@ -5689,9 +6435,11 @@ export type Database = {
           ai_resumo: string | null
           ai_tags: string[] | null
           ai_titulo: string | null
+          arquivo_bucket: string
           arquivo_path: string | null
           confirmado_em: string | null
           confirmado_por: string | null
+          conteudo_texto: string | null
           created_at: string | null
           created_by: string | null
           erro_mensagem: string | null
@@ -5710,9 +6458,11 @@ export type Database = {
           ai_resumo?: string | null
           ai_tags?: string[] | null
           ai_titulo?: string | null
+          arquivo_bucket?: string
           arquivo_path?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
+          conteudo_texto?: string | null
           created_at?: string | null
           created_by?: string | null
           erro_mensagem?: string | null
@@ -5731,9 +6481,11 @@ export type Database = {
           ai_resumo?: string | null
           ai_tags?: string[] | null
           ai_titulo?: string | null
+          arquivo_bucket?: string
           arquivo_path?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
+          conteudo_texto?: string | null
           created_at?: string | null
           created_by?: string | null
           erro_mensagem?: string | null
@@ -6780,6 +7532,7 @@ export type Database = {
           cliente_id: string
           created_at: string
           created_by: string | null
+          documento_base_id: string | null
           flag_id: string
           id: string
           pj_pessoa_id: string | null
@@ -6792,6 +7545,7 @@ export type Database = {
           cliente_id: string
           created_at?: string
           created_by?: string | null
+          documento_base_id?: string | null
           flag_id: string
           id?: string
           pj_pessoa_id?: string | null
@@ -6804,6 +7558,7 @@ export type Database = {
           cliente_id?: string
           created_at?: string
           created_by?: string | null
+          documento_base_id?: string | null
           flag_id?: string
           id?: string
           pj_pessoa_id?: string | null
@@ -6825,6 +7580,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_documento_base_id_fkey"
+            columns: ["documento_base_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
             referencedColumns: ["id"]
           },
           {
@@ -6885,6 +7647,77 @@ export type Database = {
             columns: ["projeto_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      quadro_societario: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_referencia: string | null
+          empresa_pessoa_id: string
+          id: string
+          percentual: number | null
+          quotas: number | null
+          socio_pessoa_id: string
+          updated_at: string
+          updated_by: string | null
+          vlr_total: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          empresa_pessoa_id: string
+          id?: string
+          percentual?: number | null
+          quotas?: number | null
+          socio_pessoa_id: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_total?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          empresa_pessoa_id?: string
+          id?: string
+          percentual?: number | null
+          quotas?: number | null
+          socio_pessoa_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quadro_societario_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quadro_societario_empresa_pessoa_id_fkey"
+            columns: ["empresa_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quadro_societario_socio_pessoa_id_fkey"
+            columns: ["socio_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quadro_societario_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -8224,6 +9057,7 @@ export type Database = {
           familia_id: string | null
           id: string
           nome: string
+          reinicia_numeracao: boolean
           repete_colecao: string | null
           tipo: string
           tipo_derivacao: string | null
@@ -8246,6 +9080,7 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome: string
+          reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
@@ -8268,6 +9103,7 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome?: string
+          reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
@@ -8966,6 +9802,10 @@ export type Database = {
       }
       can_view_ticket: { Args: { _ticket_id: string }; Returns: boolean }
       cliente_id_de_bem: { Args: { _bem_id: string }; Returns: string }
+      cliente_id_de_itcd_simulacao: {
+        Args: { _simulacao_id: string }
+        Returns: string
+      }
       cliente_id_de_matricula: {
         Args: { _matricula_id: string }
         Returns: string
@@ -9217,6 +10057,7 @@ export type Database = {
         Args: { p_client_id: string }
         Returns: {
           cluster_id: string | null
+          contribuinte_id: string | null
           created_at: string | null
           data_emissao: string | null
           data_fim: string | null
@@ -9334,6 +10175,10 @@ export type Database = {
         Returns: boolean
       }
       nome_cliente_normalizado: { Args: { p_nome: string }; Returns: string }
+      notificar_projetos_da_os: {
+        Args: { _detalhe?: string; _evento: string; _solicitacao_id: string }
+        Returns: Json
+      }
       org_project_cluster_ids: {
         Args: { _project_id: string }
         Returns: string[]
@@ -9413,6 +10258,16 @@ export type Database = {
         Returns: undefined
       }
       soft_delete_ordem_servico: { Args: { _ids: string[] }; Returns: number }
+      solicitacoes_a_cobrar: {
+        Args: { _intervalo_dias?: number }
+        Returns: {
+          ciclo: number
+          cliente_id: string
+          enviada_em: string
+          prazo: string
+          solicitacao_id: string
+        }[]
+      }
       sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
       sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
@@ -9448,6 +10303,7 @@ export type Database = {
         | "review"
         | "em_ajuste"
         | "done"
+      itcd_simulacao_status: "rascunho" | "gerada" | "aprovada" | "substituida"
       notificacao_canal: "sino" | "email" | "whatsapp"
       notificacao_envio_status:
         | "pendente"
@@ -9469,6 +10325,7 @@ export type Database = {
         | "chamado_respondido"
         | "chamado_vencido"
         | "chamado_resolvido"
+        | "solicitacao_vencida"
       org_comment_entity: "org_task" | "org_project"
       org_comment_kind:
         | "comment"
@@ -9478,6 +10335,8 @@ export type Database = {
         | "review_adjustments"
         | "status_changed"
         | "documentos_solicitados"
+        | "documentos_cobrados"
+        | "documentos_conferidos"
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
         | "pendente"
@@ -9684,9 +10543,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: [
@@ -9716,6 +10572,7 @@ export const Constants = {
         "em_ajuste",
         "done",
       ],
+      itcd_simulacao_status: ["rascunho", "gerada", "aprovada", "substituida"],
       notificacao_canal: ["sino", "email", "whatsapp"],
       notificacao_envio_status: [
         "pendente",
@@ -9738,6 +10595,7 @@ export const Constants = {
         "chamado_respondido",
         "chamado_vencido",
         "chamado_resolvido",
+        "solicitacao_vencida",
       ],
       org_comment_entity: ["org_task", "org_project"],
       org_comment_kind: [
@@ -9748,6 +10606,8 @@ export const Constants = {
         "review_adjustments",
         "status_changed",
         "documentos_solicitados",
+        "documentos_cobrados",
+        "documentos_conferidos",
       ],
       osg_checklist_origem: ["padrao", "manual"],
       osg_checklist_status: [
