@@ -1,0 +1,124 @@
+<title>O escuro que não separa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+  :root{ --ground:#FBFAF7; --ink:#2E1305; --ink-2:#7D7268; --rule:#E7E2DA; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:'Work Sans',system-ui,sans-serif;font-size:15px;line-height:1.55;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:56px 28px 96px}
+  h1{font-size:31px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+  .sub{color:var(--ink-2);max-width:62ch;margin:0 0 8px}
+  .lede{max-width:64ch;margin:0 0 40px}
+  h2{font-size:13px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+     color:var(--ink-2);margin:52px 0 18px;padding-bottom:9px;border-bottom:1px solid var(--rule)}
+  .mono{font-family:'DM Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .q{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:38px 0 6px;text-wrap:balance}
+
+  .cands{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media (max-width:900px){.cands{grid-template-columns:1fr}}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media (max-width:820px){.duo{grid-template-columns:1fr}}
+  .cand{border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:#FFFFFE}
+  .cand > .head{padding:11px 15px;border-bottom:1px solid var(--rule);background:#F3F1EC;
+    color:#5D573C;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .head .k{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+  .head .s{font-size:11px;color:#7D7268}
+  .solo{max-width:520px}
+
+  .dark-stage{padding:18px 16px 20px;position:relative}
+  .d-card{border:1px solid;border-radius:9px;padding:13px 14px 14px}
+  .d-t{font-size:13.5px;font-weight:600;margin-bottom:3px}
+  .d-d{font-size:12px;line-height:1.45;margin-bottom:10px}
+  .d-i{font-size:12px;border:1px solid;border-radius:6px;padding:7px 9px;margin-bottom:9px}
+  .d-row{font-size:11.5px;border-radius:6px;padding:6px 9px;margin-bottom:11px}
+  .d-btns{display:flex;gap:8px}
+  .d-b{font-size:11.5px;font-weight:600;padding:5px 12px;border-radius:6px}
+  .d-b.out{background:transparent;border:1px solid}
+  .pop{position:absolute;right:22px;bottom:16px;border:1px solid;border-radius:8px;
+       padding:6px;min-width:118px;box-shadow:0 8px 22px rgba(0,0,0,.35)}
+  .pop-i{font-size:11.5px;padding:5px 8px;border-radius:5px}
+
+  .seps{padding:12px 15px 14px;border-top:1px solid var(--rule);font-size:11.5px}
+  .sep-l{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
+  .sep-l span:first-child{color:var(--ink-2)}
+  .sep-l .good,.sep-l .warn,.sep-l .bad{font-family:'DM Mono',monospace;font-weight:600}
+  .sep-l .good{color:#3B6B34}
+  .sep-l .warn{color:#8A6220}
+  .sep-l .bad{color:#A32C2C;font-weight:700}
+
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+     color:var(--ink-2);font-weight:700;padding:0 10px 9px 0;border-bottom:1px solid var(--rule)}
+  td{padding:10px 10px 10px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+  td.n{font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .scroll{overflow-x:auto}
+  .hexes{display:flex;gap:12px;flex-wrap:wrap;font-size:10.5px;margin:0;padding:0 15px 14px}
+  .hexes span{display:flex;align-items:center;gap:5px;color:var(--ink-2)}
+  .chip{width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.15);display:inline-block}
+  .nota{border-left:3px solid #C9BFA8;padding:2px 0 2px 16px;margin:26px 0;max-width:66ch}
+  .nota strong{font-weight:600}
+</style>
+<div class="wrap">
+<h1>O escuro que não separa</h1>
+<p class="sub">Três escalas candidatas, para decidir olhando.</p>
+<p class="lede">O bloco <span class="mono">.dark</span> do <span class="mono">index.css</span> declara as 43 variáveis, mas <strong>cinco papéis de superfície colapsaram em dois valores</strong>: <span class="mono">--background</span>, <span class="mono">--card</span> e <span class="mono">--popover</span> são o mesmo <span class="mono">#1F2937</span>, e <span class="mono">--muted</span> e <span class="mono">--border</span> são o mesmo <span class="mono">#384252</span>. Um card não se separa da página, um dropdown não se separa do card, e uma linha <span class="mono">muted</span> é indistinguível de uma borda.</p>
+<h2>O que está no ar hoje</h2>
+<div class="cand solo">
+<div class="head"><span class="k">hoje</span><span class="s">o .dark do index.css</span></div>
+<div class="dark-stage" style="background:#1F2937"><div class="d-card" style="background:#1F2937;border-color:#384252"><div class="d-t" style="color:#FAFAFA">Solicitação 4.812</div><div class="d-d" style="color:#9EA3AE">Aguardando documento do cliente</div><div class="d-i" style="border-color:#384252;color:#9EA3AE">Buscar contribuinte</div><div class="d-row" style="background:#384352;color:#9EA3AE">3 pendências</div><div class="d-btns"><span class="d-b" style="background:#66A50D;color:#1F2937">Enviar</span><span class="d-b out" style="border-color:#811D1D;color:#811D1D">Excluir</span></div></div><div class="pop" style="background:#1F2937;border-color:#384252"><div class="pop-i" style="color:#FAFAFA">Custeio</div><div class="pop-i" style="color:#9EA3AE">Investimento</div></div></div>
+<div class="seps"><div class="sep-l"><span>fundo × card</span><span class="bad">idênticos</span></div><div class="sep-l"><span>card × popover</span><span class="bad">idênticos</span></div><div class="sep-l"><span>card × borda</span><span class="good">1,45:1</span></div><div class="sep-l"><span>muted × borda</span><span class="bad">idênticos</span></div></div>
+<div class="hexes"><span><i class="chip" style="background:#1F2937"></i><span class="mono">#1F2937</span></span><span><i class="chip" style="background:#1F2937"></i><span class="mono">#1F2937</span></span><span><i class="chip" style="background:#1F2937"></i><span class="mono">#1F2937</span></span><span><i class="chip" style="background:#384252"></i><span class="mono">#384252</span></span></div>
+</div>
+<div class="q">Não é falta de contraste de texto — é falta de hierarquia.</div>
+<p class="lede">O texto passa folgado: <span class="mono">--foreground</span> dá 14,06:1 sobre o card. O que não existe é a <strong>diferença entre um plano e o próximo</strong>. Como o popover tem o mesmo valor do card, ele só aparece pela sombra; como a borda tem o mesmo valor do <span class="mono">muted</span>, a linha e o fundo viram a mesma coisa. Dois defeitos a mais, medidos: <span class="mono">--destructive</span> ficou em <span class="mono">#811D1D</span> e dá <strong>1,49:1 sobre o card</strong> — o vermelho de excluir é ilegível ali, e esse token foi corrigido em base, tax e rotina em 21/08 com o <span class="mono">.dark</span> fora da passada. E <span class="mono">muted-foreground</span> sobre <span class="mono">muted</span> dá <strong>3,97:1</strong>, abaixo dos 4,5:1 exigidos.</p>
+<h2>As três candidatas</h2>
+<div class="cands">
+<div class="cand">
+<div class="head"><span class="k">A</span><span class="s">slate separado</span></div>
+<div class="dark-stage" style="background:#141B24"><div class="d-card" style="background:#1D2734;border-color:#414F62"><div class="d-t" style="color:#F9FAFB">Solicitação 4.812</div><div class="d-d" style="color:#A8B1BD">Aguardando documento do cliente</div><div class="d-i" style="border-color:#414F62;color:#A8B1BD">Buscar contribuinte</div><div class="d-row" style="background:#323D4E;color:#A8B1BD">3 pendências</div><div class="d-btns"><span class="d-b" style="background:#2BD4BD;color:#141B24">Enviar</span><span class="d-b out" style="border-color:#E86464;color:#E86464">Excluir</span></div></div><div class="pop" style="background:#283343;border-color:#414F62"><div class="pop-i" style="color:#F9FAFB">Custeio</div><div class="pop-i" style="color:#A8B1BD">Investimento</div></div></div>
+<div class="seps"><div class="sep-l"><span>fundo × card</span><span class="good">1,15:1</span></div><div class="sep-l"><span>card × popover</span><span class="good">1,18:1</span></div><div class="sep-l"><span>card × borda</span><span class="good">1,81:1</span></div><div class="sep-l"><span>muted × borda</span><span class="good">1,32:1</span></div></div>
+<div class="hexes"><span><i class="chip" style="background:#141B24"></i><span class="mono">#141B24</span></span><span><i class="chip" style="background:#1D2734"></i><span class="mono">#1D2734</span></span><span><i class="chip" style="background:#283343"></i><span class="mono">#283343</span></span><span><i class="chip" style="background:#414F62"></i><span class="mono">#414F62</span></span></div>
+</div>
+<div class="cand">
+<div class="head"><span class="k">B</span><span class="s">grafite quente</span></div>
+<div class="dark-stage" style="background:#1A1714"><div class="d-card" style="background:#272420;border-color:#534E46"><div class="d-t" style="color:#F8F8F6">Solicitação 4.812</div><div class="d-d" style="color:#B8B1A8">Aguardando documento do cliente</div><div class="d-i" style="border-color:#534E46;color:#B8B1A8">Buscar contribuinte</div><div class="d-row" style="background:#3F3B36;color:#B8B1A8">3 pendências</div><div class="d-btns"><span class="d-b" style="background:#2BD4BD;color:#1A1714">Enviar</span><span class="d-b out" style="border-color:#E76D5F;color:#E76D5F">Excluir</span></div></div><div class="pop" style="background:#35312C;border-color:#534E46"><div class="pop-i" style="color:#F8F8F6">Custeio</div><div class="pop-i" style="color:#B8B1A8">Investimento</div></div></div>
+<div class="seps"><div class="sep-l"><span>fundo × card</span><span class="good">1,16:1</span></div><div class="sep-l"><span>card × popover</span><span class="good">1,20:1</span></div><div class="sep-l"><span>card × borda</span><span class="good">1,87:1</span></div><div class="sep-l"><span>muted × borda</span><span class="good">1,35:1</span></div></div>
+<div class="hexes"><span><i class="chip" style="background:#1A1714"></i><span class="mono">#1A1714</span></span><span><i class="chip" style="background:#272420"></i><span class="mono">#272420</span></span><span><i class="chip" style="background:#35312C"></i><span class="mono">#35312C</span></span><span><i class="chip" style="background:#534E46"></i><span class="mono">#534E46</span></span></div>
+</div>
+<div class="cand">
+<div class="head"><span class="k">C</span><span class="s">quase preto teal</span></div>
+<div class="dark-stage" style="background:#0C1213"><div class="d-card" style="background:#172021;border-color:#3D5152"><div class="d-t" style="color:#F9FBFA">Solicitação 4.812</div><div class="d-d" style="color:#A4B6B6">Aguardando documento do cliente</div><div class="d-i" style="border-color:#3D5152;color:#A4B6B6">Buscar contribuinte</div><div class="d-row" style="background:#2C393A;color:#A4B6B6">3 pendências</div><div class="d-btns"><span class="d-b" style="background:#2FDAC3;color:#0C1213">Enviar</span><span class="d-b out" style="border-color:#EA6B66;color:#EA6B66">Excluir</span></div></div><div class="pop" style="background:#232E2F;border-color:#3D5152"><div class="pop-i" style="color:#F9FBFA">Custeio</div><div class="pop-i" style="color:#A4B6B6">Investimento</div></div></div>
+<div class="seps"><div class="sep-l"><span>fundo × card</span><span class="good">1,14:1</span></div><div class="sep-l"><span>card × popover</span><span class="good">1,19:1</span></div><div class="sep-l"><span>card × borda</span><span class="good">1,97:1</span></div><div class="sep-l"><span>muted × borda</span><span class="good">1,42:1</span></div></div>
+<div class="hexes"><span><i class="chip" style="background:#0C1213"></i><span class="mono">#0C1213</span></span><span><i class="chip" style="background:#172021"></i><span class="mono">#172021</span></span><span><i class="chip" style="background:#232E2F"></i><span class="mono">#232E2F</span></span><span><i class="chip" style="background:#3D5152"></i><span class="mono">#3D5152</span></span></div>
+</div>
+</div>
+<p class="lede" style="margin-top:22px">Nas três, os quatro planos ficam distinguíveis e <strong>nenhum texto reprova</strong> — o pior <span class="mono">muted-foreground</span> de cada uma está na tabela abaixo. O <span class="mono">--destructive</span> foi reescrito nas três, porque em 1,49:1 ele está quebrado em qualquer cenário.</p>
+<h2>O que cada uma custa</h2>
+<p class="lede" style="margin-bottom:14px"><strong>A · slate separado.</strong> Mantém o matiz frio de hoje (215) e praticamente o mesmo card — <span class="mono">#1D2734</span> contra <span class="mono">#1F2937</span>. Só espalha a luminosidade em volta. É a mudança que ninguém nota como mudança: quem abre a tela vê o que já via, com os planos separados.</p>
+<p class="lede" style="margin-bottom:14px"><strong>B · grafite quente.</strong> Leva o escuro para o matiz 35 com 10% de saturação — <strong>o mesmo par que o <span class="mono">.sistema-theme</span> já usa</strong> no <span class="mono">--primary</span> grafite. Alinha o escuro à temperatura quente do resto do sistema, em vez de continuar emprestando o slate do Tailwind. É a única das três que faz o escuro pertencer à paleta.</p>
+<p class="lede" style="margin-bottom:14px"><strong>C · quase preto teal.</strong> Fundo mais fundo (<span class="mono">#0C1213</span>) no matiz do teal da marca em saturação mínima. Dá o maior contraste dos três e o ar mais "produto". Também é a que se afasta mais do que está no ar: quem conhece as telas vai perceber que mudou.</p>
+<h2>Os números</h2>
+<div class="scroll"><table><thead><tr><th style="width:30%">escala</th><th>fundo × card</th><th>card × popover</th><th>muted × borda</th><th>pior texto</th><th>excluir</th></tr></thead><tbody>
+<tr><td><strong>hoje</strong> · o .dark do index.css</td><td class="n">1,00</td><td class="n">1,00</td><td class="n">1,01</td><td class="n">3,97</td><td class="n">1,49</td></tr>
+<tr><td><strong>A</strong> · slate separado</td><td class="n">1,15</td><td class="n">1,18</td><td class="n">1,32</td><td class="n">5,06</td><td class="n">4,62</td></tr>
+<tr><td><strong>B</strong> · grafite quente</td><td class="n">1,16</td><td class="n">1,20</td><td class="n">1,35</td><td class="n">5,23</td><td class="n">4,97</td></tr>
+<tr><td><strong>C</strong> · quase preto teal</td><td class="n">1,14</td><td class="n">1,19</td><td class="n">1,42</td><td class="n">5,67</td><td class="n">5,37</td></tr>
+</tbody></table></div>
+<p class="lede" style="margin-top:14px;font-size:13.5px;color:#7D7268">Separação de superfície: acima de 1,12:1 o olho distingue os planos em área grande. "Pior texto" é o <span class="mono">muted-foreground</span> na pior das quatro superfícies, mínimo exigido 4,5:1. "Excluir" é o <span class="mono">--destructive</span> sobre o card.</p>
+<h2>As telas de login, que não usam nada disso</h2>
+<p class="lede" style="margin-bottom:20px">EquipeAuth, PrimeiroAcesso, ResetPassword, GestaoAccessGate, os dois seletores de área e Missão não aplicam <span class="mono">.dark</span>: pintam a si mesmas com <span class="mono">bg-gray-900/50</span> sobre o gradiente <span class="mono">--surface-escura</span>. O cartão compõe em <span class="mono">#0A0F1F</span> no início do gradiente e <span class="mono">#101828</span> no fim — <strong>1,06:1 e 1,01:1 contra o próprio fundo.</strong></p>
+<div class="duo">
+<div class="cand"><div class="head"><span class="k">hoje · login</span><span class="s">o cartão não existe</span></div>
+<div class="dark-stage" style="background:linear-gradient(150deg,#020617,#0F1729)"><div class="d-card" style="background:rgba(17,24,39,.5);border-color:#384252"><div class="d-t" style="color:#FAFAFA">Entrar</div><div class="d-d" style="color:#9CA3B0">Use o e-mail da PSA</div><div class="d-i" style="border-color:#384252;color:#9CA3B0">nome@psaconsultores.com.br</div><div class="d-d" style="color:#4B5563;margin-bottom:0">Esqueci minha senha</div></div></div>
+<div class="seps"><div class="sep-l"><span>cartão × fundo</span><span class="bad">1,06:1</span></div><div class="sep-l"><span>borda × cartão</span><span class="warn">1,88:1</span></div><div class="sep-l"><span>"Esqueci minha senha"</span><span class="bad">2,52:1</span></div></div></div>
+<div class="cand"><div class="head"><span class="k">com a escala escolhida</span><span class="s">exemplo na B</span></div>
+<div class="dark-stage" style="background:#1A1714"><div class="d-card" style="background:#272420;border-color:#534E46"><div class="d-t" style="color:#F8F8F6">Entrar</div><div class="d-d" style="color:#B8B1A8">Use o e-mail da PSA</div><div class="d-i" style="border-color:#534E46;color:#B8B1A8">nome@psaconsultores.com.br</div><div class="d-d" style="color:#B8B1A8;margin-bottom:0">Esqueci minha senha</div></div></div>
+<div class="seps"><div class="sep-l"><span>cartão × fundo</span><span class="good">1,16:1</span></div><div class="sep-l"><span>borda × cartão</span><span class="good">1,87:1</span></div><div class="sep-l"><span>"Esqueci minha senha"</span><span class="good">7,28:1</span></div></div></div>
+</div>
+<p class="lede" style="margin-top:14px">O gradiente pode ficar — ele é a identidade dessas telas. O que não pode ficar é o <strong>cartão de 1,06:1 e o "Esqueci minha senha" em 2,52:1</strong>. Trocar as classes cruas pelos tokens da escala escolhida resolve os 33 casos e a legibilidade na mesma passada.</p>
+<div class="nota"><strong>O que isto destrava.</strong> Enquanto o escuro não separa, os <strong>35 casos de borda</strong> ficam parados: trocar <span class="mono">border-gray-300</span> por <span class="mono">border-input</span> entrega hoje um contorno de 1,45:1 no escuro. Escolhida a escala, a borda passa a valer entre 1,81:1 e 1,97:1 — e os 35 saem junto com os 33.</div>
+<div class="nota"><strong>Os valores são do <span class="mono">index.css</span> em 26/08/2026 e não se atualizam.</strong> As três candidatas são propostas desta página e <strong>não estão no código</strong>; os HSL para colar estão em <span class="mono">escuro-candidatas-hsl.txt</span>, ao lado deste arquivo. A fonte corrente é sempre o <span class="mono">index.css</span>. Contraste por WCAG 2.1, calculado sobre os HSL convertidos, sem arredondar antes da conta.</div>
+</div>
