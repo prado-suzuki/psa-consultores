@@ -12,7 +12,7 @@ type AuditEntityType =
   | 'cliente' | 'contribuinte' | 'representante' | 'ordem_servico'
   | 'regra_pis_cofins' | 'procedimento' | 'correcao_icms'
   | 'ciclo_avaliacao' | 'meta' | 'kpi_meta' | 'feedback' | 'reuniao_1a1' | 'analise_semestral'
-  | 'pessoa' | 'parentesco' | 'administracao' | 'quadro_societario'
+  | 'pessoa' | 'parentesco' | 'administracao' | 'quadro_societario' | 'movimentacao_quotas'
   | 'bem' | 'matricula' | 'titularidade' | 'impedimento' | 'cartorio'
   | 'tmpl_bloco' | 'tmpl_documento' | 'documento_arquivo'
   | 'solicitacao' | 'solicitacao_item' | 'solicitacao_item_nao_aplicavel'
