@@ -466,7 +466,7 @@ function Field({ label, value, onChange, disabled, highlight }: FieldProps) {
         value={value || ''}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
         disabled={disabled}
-        className={`h-8 text-sm ${highlight ? 'border-amber-300 bg-amber-50/40 font-semibold' : ''}`}
+        className={`h-8 text-sm ${highlight ? 'border-warning/50 font-semibold' : ''}`}
       />
     </div>
   );

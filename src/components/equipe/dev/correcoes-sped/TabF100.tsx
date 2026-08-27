@@ -378,17 +378,17 @@ export default function TabF100({ data, isLoading, error, hasQueried, searchText
 
   if (!f100FiltersValid) {
     return (
-      <Card className="border-dashed border-amber-300 bg-amber-50/50">
+      <Card className="border-dashed border-warning/40 bg-warning/10">
         <CardContent className="p-12 flex flex-col items-center gap-4 text-center">
-          <AlertCircle className="h-12 w-12 text-amber-500"/>
+          <AlertCircle className="h-12 w-12 text-warning"/>
           <div className="space-y-2 max-w-md">
-            <h3 className="text-sm font-semibold text-amber-900">
+            <h3 className="text-sm font-semibold text-foreground">
               Filtros obrigatórios para a aba F100
             </h3>
-            <p className="text-sm text-amber-800/80">
+            <p className="text-sm text-muted-foreground">
               Esta aba possui filtros exclusivos. Para consultar os registros, preencha pelo menos um dos campos abaixo no painel de filtros e clique em <strong>Consultar</strong>:
             </p>
-            <ul className="text-sm text-amber-900 space-y-1 pt-1">
+            <ul className="text-sm text-foreground space-y-1 pt-1">
               <li>• <strong>Nat. Base de Crédito</strong></li>
               <li>• <strong>Código da Conta</strong></li>
             </ul>
