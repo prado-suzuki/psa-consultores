@@ -18,6 +18,12 @@ export interface LinhaSocio {
   quotas: number;
   valor: number;
   percentual: number;
+  /**
+   * De onde vem o saldo desta linha: "Constituição", o nome do ato, a forma do
+   * movimento avulso. Vazio na proposta ainda não gravada, que não tem
+   * movimento no livro a nomear.
+   */
+  procedencia?: string[];
 }
 
 interface TabelaSociosProps {
@@ -95,6 +101,20 @@ export const TabelaSocios = ({ linhas, totalQuotas, capital, vazio, acaoDoSocio 
                           <p className="text-xs text-muted-foreground font-mono">
                             {l.tipoPessoa ?? '—'}{l.cpfCnpj ? ` · ${l.cpfCnpj}` : ''}
                           </p>
+                          {/* A procedência tira do saldo o ar de número sem
+                              história: cada linha diz de que atos ela veio. */}
+                          {(l.procedencia?.length ?? 0) > 0 && (
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {l.procedencia!.map((origem) => (
+                                <span
+                                  key={origem}
+                                  className="rounded bg-osg-50 px-1.5 py-0.5 text-[10px] font-medium text-osg-700"
+                                >
+                                  {origem}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </TableCell>

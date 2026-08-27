@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,19 +6,28 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle, Calculator, ChartPie, Landmark, Loader2, Tag, Users } from 'lucide-react';
+import { AlertTriangle, ArrowUpFromLine, Calculator, ChartPie, Landmark, Loader2, Tag, Users } from 'lucide-react';
 import { useCountUp } from '@/hooks/useCountUp';
 import { useIntegralizacoesAprovadas } from '@/hooks/useGeracaoDocumento';
-import { useGravarAporteInicial, useQuadroDaEmpresa } from '@/hooks/useMovimentacaoQuotas';
+import {
+  useGravarAporteInicial,
+  useMovimentosDaEmpresa,
+  useQuadroDaEmpresa,
+} from '@/hooks/useMovimentacaoQuotas';
 import { proporAportesIniciais } from '@/lib/osg/aporteInicial';
+import { procedenciaDosMovimentos } from '@/lib/osg/projecaoQuadro';
 import { capitalDeQuotas } from '@/lib/templates/capital';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
+import { AtosSocietarios } from './AtosSocietarios';
+import { SubirQuotasDialog } from './SubirQuotasDialog';
 import { fmtBRL, fmtInt } from './quadroFmt';
 import { KpiCard } from './quadroKit';
 import { TabelaSocios, type LinhaSocio } from './TabelaSocios';
 
 interface QuadroEmpresaProprietariaProps {
   empresa: PessoaRow;
+  /** Pessoas do cliente: de onde saem as candidatas a controladora. */
+  pessoasCliente: PessoaRow[];
 }
 
 /**
@@ -41,15 +50,27 @@ interface QuadroEmpresaProprietariaProps {
  * não "quem tem quantas quotas hoje" — as duas coisas coincidem na constituição
  * e divergem na primeira cessão.
  */
-export const QuadroEmpresaProprietaria = ({ empresa }: QuadroEmpresaProprietariaProps) => {
+export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmpresaProprietariaProps) => {
   const navigate = useNavigate();
+  const [subirAberto, setSubirAberto] = useState(false);
 
   const { data: matriculas = [], isLoading: carregandoBens } = useIntegralizacoesAprovadas(empresa.id);
   const { data: quadro = [], isLoading: carregandoQuadro } = useQuadroDaEmpresa(empresa.id);
+  const { data: livro } = useMovimentosDaEmpresa(empresa.id);
   const gravar = useGravarAporteInicial();
 
   const proposta = useMemo(() => proporAportesIniciais(matriculas), [matriculas]);
   const gravado = quadro.length > 0;
+
+  const controladoras = useMemo(
+    () => pessoasCliente.filter((p) => p.tipo_pessoa === 'PJ' && p.tipo_empresa === 'CN'),
+    [pessoasCliente],
+  );
+  // De onde vem o saldo de cada sócio: "Constituição", ou o ato que o produziu.
+  const procedencia = useMemo(
+    () => procedenciaDosMovimentos(livro?.movimentos ?? [], empresa.id, livro?.atos ?? []),
+    [livro, empresa.id],
+  );
 
   // A tabela é a mesma nos dois estados; muda a origem das linhas.
   const linhas = useMemo<LinhaSocio[]>(() => {
@@ -63,6 +84,7 @@ export const QuadroEmpresaProprietaria = ({ empresa }: QuadroEmpresaProprietaria
         quotas: l.quotas,
         valor: l.vlrTotal,
         percentual: total > 0 ? (l.quotas / total) * 100 : 0,
+        procedencia: [...new Set(l.movimentoIds.map((id) => procedencia.get(id)).filter(Boolean))] as string[],
       }));
     }
     // Proposta: um aporte por (sócio, bem) agregado de volta por sócio, na
@@ -89,7 +111,7 @@ export const QuadroEmpresaProprietaria = ({ empresa }: QuadroEmpresaProprietaria
     const total = linhasProposta.reduce((s, l) => s + l.quotas, 0);
     for (const l of linhasProposta) l.percentual = total > 0 ? (l.quotas / total) * 100 : 0;
     return linhasProposta;
-  }, [gravado, quadro, proposta.aportes]);
+  }, [gravado, quadro, proposta.aportes, procedencia]);
 
   const totalQuotas = linhas.reduce((s, l) => s + l.quotas, 0);
   const capital = gravado ? linhas.reduce((s, l) => s + l.valor, 0) : capitalDeQuotas(totalQuotas);
@@ -161,10 +183,23 @@ export const QuadroEmpresaProprietaria = ({ empresa }: QuadroEmpresaProprietaria
               {gravado ? 'Lista de Sócios' : 'Quadro proposto'} ({linhas.length})
             </CardTitle>
             {gravado ? (
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-osg-50 px-2 py-1.5 text-[11px] font-semibold text-osg-700">
-                <Landmark className="h-3.5 w-3.5" />
-                Quadro registrado, apurado da movimentação de quotas
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-osg-50 px-2 py-1.5 text-[11px] font-semibold text-osg-700">
+                  <Landmark className="h-3.5 w-3.5" />
+                  Quadro registrado, apurado da movimentação de quotas
+                </span>
+                {/* O macro da subida: um gesto, o par espelhado nas duas
+                    empresas. Só faz sentido com quadro gravado, porque é o
+                    quadro que diz quem sobe e com quanto. */}
+                <Button
+                  size="sm"
+                  className="h-9 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
+                  onClick={() => setSubirAberto(true)}
+                >
+                  <ArrowUpFromLine className="h-3.5 w-3.5" />
+                  Transferir quotas para a controladora
+                </Button>
+              </div>
             ) : (
               <div className="flex items-center gap-2">
                 <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1.5 text-[11px] font-semibold text-amber-800">
@@ -247,6 +282,16 @@ export const QuadroEmpresaProprietaria = ({ empresa }: QuadroEmpresaProprietaria
           )}
         </CardContent>
       </Card>
+
+      <AtosSocietarios movimentos={livro?.movimentos ?? []} atos={livro?.atos ?? []} />
+
+      <SubirQuotasDialog
+        open={subirAberto}
+        onOpenChange={setSubirAberto}
+        proprietaria={empresa}
+        quadro={quadro}
+        controladoras={controladoras}
+      />
     </div>
   );
 };

@@ -9,7 +9,9 @@ import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useCountUp } from '@/hooks/useCountUp';
 import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
 import { usePessoasByCliente, type PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import { useQuadroDaEmpresa } from '@/hooks/useMovimentacaoQuotas';
+import { useMovimentosDaEmpresa, useQuadroDaEmpresa } from '@/hooks/useMovimentacaoQuotas';
+import { procedenciaDosMovimentos } from '@/lib/osg/projecaoQuadro';
+import { AtosSocietarios } from '@/components/equipe/osg/quadro-societario/AtosSocietarios';
 import { MovimentoModal } from '@/components/equipe/osg/quadro-societario/MovimentoModal';
 import { QuadroEmpresaProprietaria } from '@/components/equipe/osg/quadro-societario/QuadroEmpresaProprietaria';
 import { TabelaSocios, type LinhaSocio } from '@/components/equipe/osg/quadro-societario/TabelaSocios';
@@ -33,7 +35,9 @@ interface QuadroEmpresaProps {
 // que a tela oferece: a Proprietária (PR) ainda sem movimentação PROPÕE o quadro
 // de constituição, calculado dos bens; as demais registram movimento.
 const QuadroEmpresa = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
-  if (empresa.tipo_empresa === 'PR') return <QuadroEmpresaProprietaria empresa={empresa} />;
+  if (empresa.tipo_empresa === 'PR') {
+    return <QuadroEmpresaProprietaria empresa={empresa} pessoasCliente={pessoasCliente} />;
+  }
   return <QuadroEmpresaManual empresa={empresa} pessoasCliente={pessoasCliente} />;
 };
 
@@ -49,8 +53,10 @@ const QuadroEmpresa = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
  * doação, redução) e o saldo é consequência: não há o que editar numa soma, e
  * remover sócio é registrar para quem as quotas foram.
  *
- * Só o SALDO aparece. Mostrar o histórico de movimentos ao lado é decisão aberta
- * do Bernardo, e a tela não a antecipa.
+ * O corpo da tabela é o SALDO, com a procedência de cada linha ao lado do nome
+ * (constituição, ou o ato que a produziu). Abrir o histórico completo dos
+ * movimentos como painel próprio segue sendo decisão aberta do Bernardo, e a
+ * tela não a antecipa.
  */
 const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
   const navigate = useNavigate();
@@ -59,6 +65,7 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
   });
 
   const { data: quadro = [], isLoading } = useQuadroDaEmpresa(empresa.id);
+  const { data: livro } = useMovimentosDaEmpresa(empresa.id);
 
   const totalQuotas = quadro.reduce((acc, s) => acc + s.quotas, 0);
   const capitalTotal = quadro.reduce((acc, s) => acc + s.vlrTotal, 0);
@@ -70,6 +77,12 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
   const quotasAnimadas = useCountUp(totalQuotas);
   const nominalAnimado = useCountUp(valorNominal ?? 0);
 
+  // De onde vem o saldo de cada sócio: "Constituição", ou o ato que o produziu.
+  const procedencia = useMemo(
+    () => procedenciaDosMovimentos(livro?.movimentos ?? [], empresa.id, livro?.atos ?? []),
+    [livro, empresa.id],
+  );
+
   const linhas = useMemo<LinhaSocio[]>(
     () => quadro.map((s) => ({
       pessoaId: s.pessoaId,
@@ -79,8 +92,9 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
       quotas: s.quotas,
       valor: s.vlrTotal,
       percentual: totalQuotas > 0 ? (s.quotas / totalQuotas) * 100 : 0,
+      procedencia: [...new Set(s.movimentoIds.map((id) => procedencia.get(id)).filter(Boolean))] as string[],
     })),
-    [quadro, totalQuotas],
+    [quadro, totalQuotas, procedencia],
   );
 
   return (
@@ -166,6 +180,8 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
           )}
         </CardContent>
       </Card>
+
+      <AtosSocietarios movimentos={livro?.movimentos ?? []} atos={livro?.atos ?? []} />
 
       <MovimentoModal
         open={movimento.open}

@@ -10,6 +10,8 @@ import {
   calcularParticipacoesPR,
   mapearPessoa,
   type AdministradorParaMapear,
+  type AporteParaMapear,
+  type CessaoParaMapear,
   type MatriculaIntegralizacao,
   type MatriculaParaMapear,
   type SocioParaMapear,
@@ -407,6 +409,121 @@ async function lerPessoasERepresentantes(ids: string[]): Promise<{
  * com uma linha sintética (id "legado:<nome>") e qualificação incompleta,
  * decisão registrada em docs/osg/plano-quadro-societario-pr.md §12.
  */
+/**
+ * Os APORTES do livro de movimentos desta empresa, com a forma de pagamento de
+ * cada um, prontos para as alíneas de {{#integralizacoes}}.
+ *
+ * Só os PENDENTES: movimento com `documento_gerado_id` já foi formalizado por
+ * uma peça, e repeti-lo faria a alteração seguinte integralizar duas vezes o
+ * mesmo bem. É a mesma regra que decide os eventos do assistente.
+ *
+ * O aporte pago com quotas de outra sociedade traz a PJ de origem QUALIFICADA
+ * por inteiro (CNPJ, NIRE, sede) mais quem a representa, porque é isso que a
+ * cláusula publica: "as quotas que possuía na sociedade X, inscrita no CNPJ…,
+ * com sede em…, neste ato representada por…".
+ */
+export function useAportesDoLivro(empresaId: string | null) {
+  return useQuery<AporteParaMapear[]>({
+    queryKey: ['aportes-do-livro', empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('movimentacao_quotas')
+        .select('id, destino_pessoa_id, quotas, vlr_capital_arredondado, created_at, sequencia, bem_id, pago_com_empresa_pessoa_id, pago_com_quotas, pago_com_valor')
+        .eq('empresa_pessoa_id', empresaId!)
+        .eq('tipo', 'aporte')
+        .is('documento_gerado_id', null)
+        .order('created_at')
+        .order('sequencia', { nullsFirst: true });
+      if (error) throw error;
+
+      const linhas = (data ?? []).filter((l) => l.destino_pessoa_id);
+      const idsOrigem = [
+        ...new Set(linhas.map((l) => l.pago_com_empresa_pessoa_id).filter((id): id is string => !!id)),
+      ];
+      const { pessoas, representantes } =
+        idsOrigem.length > 0
+          ? await lerPessoasERepresentantes(idsOrigem)
+          : { pessoas: {} as Record<string, PessoaRow>, representantes: {} as Record<string, string> };
+
+      return linhas.map((l): AporteParaMapear => {
+        const origemId = l.pago_com_empresa_pessoa_id;
+        const pessoaOrigem = origemId ? pessoas[origemId] : undefined;
+        return {
+          id: l.id,
+          pessoaId: l.destino_pessoa_id!,
+          quotas: Number(l.quotas ?? 0),
+          valor: Number(l.vlr_capital_arredondado ?? 0),
+          forma: origemId ? 'quotas' : l.bem_id ? 'bem' : 'moeda',
+          bemId: l.bem_id,
+          origem:
+            origemId && pessoaOrigem
+              ? {
+                  pessoa: pessoaOrigem,
+                  administradores: representantes[origemId] ?? null,
+                  quotas: Number(l.pago_com_quotas ?? 0),
+                  valor: Number(l.pago_com_valor ?? 0),
+                }
+              : null,
+        };
+      });
+    },
+  });
+}
+
+/**
+ * As CESSÕES (e doações) do livro desta empresa que ainda não foram
+ * formalizadas, com as duas pontas qualificadas.
+ *
+ * É o que faltava para a resolução de cessão nomear o ato em vez de só publicar
+ * o quadro resultante. Movimento já formalizado fica de fora pela mesma razão
+ * dos aportes: repeti-lo faria a peça seguinte narrar de novo o que já foi
+ * registrado.
+ */
+export function useCessoesDoLivro(empresaId: string | null) {
+  return useQuery<CessaoParaMapear[]>({
+    queryKey: ['cessoes-do-livro', empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('movimentacao_quotas')
+        .select('id, tipo, origem_pessoa_id, destino_pessoa_id, quotas, vlr_capital_arredondado, created_at, sequencia')
+        .eq('empresa_pessoa_id', empresaId!)
+        .in('tipo', ['cessao', 'doacao'])
+        .is('documento_gerado_id', null)
+        .order('created_at')
+        .order('sequencia', { nullsFirst: true });
+      if (error) throw error;
+
+      const linhas = (data ?? []).filter((l) => l.origem_pessoa_id && l.destino_pessoa_id);
+      if (linhas.length === 0) return [];
+
+      const ids = [
+        ...new Set(linhas.flatMap((l) => [l.origem_pessoa_id!, l.destino_pessoa_id!])),
+      ];
+      const { pessoas, representantes } = await lerPessoasERepresentantes(ids);
+
+      return linhas.flatMap((l): CessaoParaMapear[] => {
+        const cedente = pessoas[l.origem_pessoa_id!];
+        const cessionario = pessoas[l.destino_pessoa_id!];
+        // Ponta que a RLS não devolve fica de fora: meia cessão descreveria um
+        // ato que não aconteceu.
+        if (!cedente || !cessionario) return [];
+        return [{
+          id: l.id,
+          cedente,
+          cessionario,
+          quotas: Number(l.quotas ?? 0),
+          valor: Number(l.vlr_capital_arredondado ?? 0),
+          doacao: l.tipo === 'doacao',
+          representanteCedente: representantes[cedente.id] ?? null,
+          representanteCessionario: representantes[cessionario.id] ?? null,
+        }];
+      });
+    },
+  });
+}
+
 export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: string | null) {
   const ehPR = tipoEmpresa === 'PR';
 
@@ -468,6 +585,15 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
   // Matrículas dos bens ELEGÍVEIS para integralização nesta empresa, sem
   // impedimento ativo — a matéria-prima da seção {{#integralizacoes}}.
   const integralizacoesQ = useIntegralizacoesAprovadas(empresaId);
+
+  // Os APORTES do livro de movimentos: é o que permite às alíneas de
+  // integralização misturarem as três formas (imóvel, moeda corrente, quotas de
+  // outra sociedade). A matrícula só sabe descrever a primeira.
+  const aportesQ = useAportesDoLivro(empresaId);
+
+  // As CESSÕES pendentes: a resolução de cessão nomeia as duas pontas e a
+  // quantidade, e não só o quadro que sobra depois.
+  const cessoesQ = useCessoesDoLivro(empresaId);
 
   // --- PR sem movimentação: sócios derivados das integralizações -------------
 
@@ -540,6 +666,8 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
     socios: derivarPR ? sociosDerivados : (quadroQ.data ?? []),
     administradores: administradoresQ.data ?? [],
     integralizacoes,
+    aportes: aportesQ.data ?? [],
+    cessoes: cessoesQ.data ?? [],
     /**
      * O capital da PR sai das integralizações enquanto o quadro é derivado, e do
      * próprio quadro depois de gravado. Senão a identidade Σ quotas dos sócios
@@ -553,6 +681,8 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
       (derivarPR && idsPessoas.length > 0 && !pessoasPRQ.data) ||
       pessoasPRQ.isFetching ||
       administradoresQ.isFetching ||
-      integralizacoesQ.isFetching,
+      integralizacoesQ.isFetching ||
+      aportesQ.isFetching ||
+      cessoesQ.isFetching,
   };
 }
