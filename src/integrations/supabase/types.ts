@@ -2385,6 +2385,7 @@ export type Database = {
           snapshot_validado_em: string | null
           snapshot_versoes_blocos: Json | null
           status: string
+          substitui_documento_id: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -2406,6 +2407,7 @@ export type Database = {
           snapshot_validado_em?: string | null
           snapshot_versoes_blocos?: Json | null
           status?: string
+          substitui_documento_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -2427,6 +2429,7 @@ export type Database = {
           snapshot_validado_em?: string | null
           snapshot_versoes_blocos?: Json | null
           status?: string
+          substitui_documento_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -2478,6 +2481,13 @@ export type Database = {
             columns: ["pj_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documento_gerado_substitui_documento_id_fkey"
+            columns: ["substitui_documento_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
             referencedColumns: ["id"]
           },
           {
@@ -7144,6 +7154,7 @@ export type Database = {
           cliente_id: string
           created_at: string
           created_by: string | null
+          documento_base_id: string | null
           flag_id: string
           id: string
           pj_pessoa_id: string | null
@@ -7156,6 +7167,7 @@ export type Database = {
           cliente_id: string
           created_at?: string
           created_by?: string | null
+          documento_base_id?: string | null
           flag_id: string
           id?: string
           pj_pessoa_id?: string | null
@@ -7168,6 +7180,7 @@ export type Database = {
           cliente_id?: string
           created_at?: string
           created_by?: string | null
+          documento_base_id?: string | null
           flag_id?: string
           id?: string
           pj_pessoa_id?: string | null
@@ -7189,6 +7202,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "projeto_flag_valor_documento_base_id_fkey"
+            columns: ["documento_base_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
             referencedColumns: ["id"]
           },
           {
