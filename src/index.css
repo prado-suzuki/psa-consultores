@@ -957,12 +957,8 @@ All colors MUST be HSL.
      1,20:1, muted × borda 1,35:1) e nenhum texto reprova — o pior é
      `--muted-foreground` sobre `--muted`, em 5,23:1.
 
-     `--primary`, `--secondary` e `--accent` continuam no lime: a escolha foi de
-     superfície, não de acento. O que mudou neles é só o texto POR CIMA — era
-     branco em 3,01:1 sobre o lime, e agora é o próprio fundo escuro em 5,93:1.
-
      A barra lateral entrou na conta: estava em matiz 240, uma TERCEIRA temperatura
-     no mesmo bloco. */
+     no mesmo bloco. O acento tem nota própria mais abaixo. */
   .dark {
     --background: 35 12% 9%;
     --foreground: 38 14% 97%;
@@ -973,16 +969,33 @@ All colors MUST be HSL.
     --popover: 34 9% 19%;
     --popover-foreground: 38 14% 97%;
 
-    --primary: 84 85% 35%;
+    /* ACENTO — `--teal-400`, escolhido em 27/08/2026 olhando
+       `docs/geral/comparacoes-de-cor/porta-de-entrada.html`.
+
+       O teal institucional (`175 82% 29%`, o `--primary` do piso) NÃO sobrevive ao
+       escuro: dava 4,03:1 sobre o cartão das telas de entrada como elas estão no
+       ar, e 3,51:1 sobre o cartão desta escala. Abaixo dos 4,5:1 nos dois casos —
+       o ícone do título e o "Esqueci minha senha" de `/equipe` estão nesse teal.
+
+       Era por isso que este bloco carregava um lime `84 85% 35%`: alguém precisou
+       de um acento que passasse no escuro, e o único à mão não era da marca.
+       `--teal-400` já existe no `:root` e é o teal da marca no degrau que o escuro
+       pede: 8,28:1 sobre o cartão, e 9,57:1 para o texto por cima do botão. A
+       marca fica e o contraste passa.
+
+       Os três — `--primary`, `--secondary`, `--accent` — recebem o mesmo valor
+       porque é o que todo tema claro faz (ver `.base-theme`), e `--ring` vem do
+       `--primary`. */
+    --primary: 172 66% 50%;
     --primary-foreground: 35 12% 9%;
 
-    --secondary: 84 81% 44%;
+    --secondary: 172 66% 50%;
     --secondary-foreground: 35 12% 9%;
 
     --muted: 33 8% 23%;
     --muted-foreground: 34 10% 69%;
 
-    --accent: 84 81% 44%;
+    --accent: 172 66% 50%;
     --accent-foreground: 35 12% 9%;
 
     --destructive: 6 74% 64%;
@@ -990,16 +1003,16 @@ All colors MUST be HSL.
 
     --border: 35 9% 30%;
     --input: 35 9% 30%;
-    --ring: 84 85% 35%;
+    --ring: 172 66% 50%;
 
     --sidebar-background: 34 14% 8%;
     --sidebar-foreground: 38 12% 94%;
-    --sidebar-primary: 84 85% 35%;
+    --sidebar-primary: 172 66% 50%;
     --sidebar-primary-foreground: 35 12% 9%;
     --sidebar-accent: 33 9% 17%;
     --sidebar-accent-foreground: 38 12% 94%;
     --sidebar-border: 34 9% 22%;
-    --sidebar-ring: 84 85% 35%;
+    --sidebar-ring: 172 66% 50%;
 
     --edit-shadow-color: 30 89% 51%;
   }

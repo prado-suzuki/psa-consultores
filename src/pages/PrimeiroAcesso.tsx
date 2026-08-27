@@ -20,7 +20,7 @@ export default function PrimeiroAcesso() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+      <div className="min-h-screen flex items-center justify-center dark bg-background text-foreground">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
       </div>
     );
@@ -73,26 +73,26 @@ export default function PrimeiroAcesso() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
+    <div className="min-h-screen dark bg-background text-foreground flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img src={logo} alt="PSA Consultores" className="h-16 mx-auto mb-4" />
         </div>
 
-        <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg">
+        <Card className="backdrop-blur-lg">
           <CardHeader className="text-center">
             <div className="w-14 h-14 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-3">
               <KeyRound className="h-7 w-7 text-primary" />
             </div>
-            <CardTitle className="text-white text-xl">Definir Nova Senha</CardTitle>
-            <CardDescription className="text-gray-400">
+            <CardTitle className="text-xl">Definir Nova Senha</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Por segurança, defina uma nova senha para continuar acessando o sistema.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="new-password" className="text-gray-300">Nova senha</Label>
+                <Label htmlFor="new-password" className="text-muted-foreground">Nova senha</Label>
                 <div className="relative">
                   <Input
                     id="new-password"
@@ -100,14 +100,14 @@ export default function PrimeiroAcesso() {
                     placeholder="Mínimo 8 caracteres"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500 pr-10"
+                    className="pr-10"
                     required
                     minLength={8}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -115,14 +115,14 @@ export default function PrimeiroAcesso() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirm-password" className="text-gray-300">Confirmar senha</Label>
+                <Label htmlFor="confirm-password" className="text-muted-foreground">Confirmar senha</Label>
                 <Input
                   id="confirm-password"
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Repita a nova senha"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+                 
                   required
                   minLength={8}
                 />
@@ -135,7 +135,7 @@ export default function PrimeiroAcesso() {
               >
                 {isSubmitting ? (
                   <span className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-foreground" />
                     Atualizando...
                   </span>
                 ) : (
