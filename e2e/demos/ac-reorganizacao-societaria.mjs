@@ -633,9 +633,14 @@ async function lerStatusDosBens(page) {
     if (iNome < 0 || iStatus < 0) return [];
     return [...tabela.querySelectorAll('tbody tr')].map((tr) => {
       const tds = [...tr.querySelectorAll('td')];
+      const celaNome = tds[iNome];
+      // A célula empilha o nome e, quando é o caso, o rótulo "Não participa da
+      // estruturação". `textContent` colaria os dois; o primeiro <span> é o nome.
+      const rotulo = celaNome?.querySelector('span');
       return {
-        denominacao: limpo(tds[iNome]?.textContent),
+        denominacao: limpo(rotulo?.textContent ?? celaNome?.textContent),
         status: limpo(tds[iStatus]?.textContent),
+        foraDaEstruturacao: /Não participa da estruturação/.test(celaNome?.textContent || ''),
       };
     });
   });
