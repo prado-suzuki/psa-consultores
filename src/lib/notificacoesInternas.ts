@@ -85,6 +85,10 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   tarefa_em_revisao: { rotulo: 'Revisão pendente', tom: ROXO },
   documento_recebido: { rotulo: 'Documento recebido', tom: PRIMARIO },
   solicitacao_enviada: { rotulo: 'Solicitação enviada', tom: PRIMARIO },
+  // Valor que o enum do banco ganhou fora desta branch (o regen de types.ts o
+  // trouxe do sandbox) e cujo gatilho ainda não existe em código nenhum. Âmbar
+  // porque é irmão de cobranca_pendencia: os dois dizem que um prazo passou.
+  solicitacao_vencida: { rotulo: 'Solicitação vencida', tom: AMBAR },
   documento_aprovado: { rotulo: 'Documento aprovado', tom: VERDE },
   documento_recusado: { rotulo: 'Documento recusado', tom: VERMELHO },
   cobranca_pendencia: { rotulo: 'Pendência em cobrança', tom: AMBAR },

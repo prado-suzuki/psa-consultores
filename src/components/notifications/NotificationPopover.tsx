@@ -91,6 +91,9 @@ const ICONES_INTERNAS: Record<NotificacaoTipo, LucideIcon> = {
   tarefa_em_revisao: ClipboardCheck,
   documento_recebido: FileText,
   solicitacao_enviada: Send,
+  // Ver o comentário de APRESENTACAO em notificacoesInternas.ts: tipo novo no
+  // enum do banco, sem gatilho ainda. Clock pelo prazo vencido.
+  solicitacao_vencida: Clock,
   documento_aprovado: FileCheck,
   documento_recusado: FileX,
   cobranca_pendencia: BellRing,
