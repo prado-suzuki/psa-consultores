@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  AREAS_CONGELADAS_NA_BASE,
   PAPEIS_DE_STATUS,
   TEMAS,
   TONS_DE_TAG,
@@ -89,5 +90,22 @@ describe('paletas de área declaradas no index.css', () => {
       const distancia = distanciaDeMatiz(paleta['status-feito'], paleta['status-ajuste']);
       expect(distancia, `${tema}: feito e ajuste a ${distancia.toFixed(0)}° de matiz, perto demais`).toBeGreaterThan(60);
     }
+  });
+
+  it.each(AREAS_CONGELADAS_NA_BASE)('%s ainda é cópia da base — quando deixar de ser, a exceção sai', tema => {
+    // Contrapeso de `AREAS_CONGELADAS_NA_BASE`. A exceção existe porque a paleta
+    // desta área é, hoje, a da base — decisão registrada no `index.css`, não
+    // esquecimento. No dia em que ela ganhar cor própria, a exceção passa a
+    // esconder uma checagem de verdade, e é este teste que avisa.
+    const chaves = PAPEIS_DE_STATUS.flatMap(papel => [`status-${papel}`, `status-${papel}-soft`]);
+    const recorte = (seletor: string) => {
+      const paleta = paletaDoTema(css, seletor);
+      return Object.fromEntries(chaves.map(chave => [chave, paleta[chave]]));
+    };
+    expect(
+      recorte(tema),
+      `${tema} não é mais cópia da base: tire o nome de AREAS_CONGELADAS_NA_BASE ` +
+        `(em paletaDeArea.ts) para que a separação entre áreas volte a valer para ela.`,
+    ).toEqual(recorte(':root'));
   });
 });

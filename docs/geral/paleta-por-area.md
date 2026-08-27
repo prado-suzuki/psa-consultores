@@ -99,7 +99,7 @@ sobre esse fundo, ponto, barra, e fundo de badge com texto branco). No Tailwind 
    (12° **ou** 6 pontos, contra 20°/8 da regra 1), e a diferença de piso é deliberada:
    dentro de uma paleta as oito bolinhas aparecem juntas na mesma legenda e a comparação é
    lado a lado; entre áreas ninguém vê as duas legendas na mesma tela, e o que precisa
-   mudar é o **caráter** da paleta. Piso não é meta: as três paletas em uso passam com
+   mudar é o **caráter** da paleta. Piso não é meta: as paletas em uso passam com
    metade da distância sobrando (18° onde quem resolve é a matiz, 9 pontos onde é a
    luminosidade). Constante: `SEPARACAO_ENTRE_AREAS`, em `src/lib/paletaDeArea.ts`.
 
@@ -167,10 +167,21 @@ Mapa** (cadastro de projetos e processos de mapeamento) e **Acessos** — usam a
 Não é omissão: é o padrão do sistema exposto numa área real, e é dele que uma área nova
 parte antes de ajustar a própria identidade.
 
-`.rotina-theme`, aplicado pelo `EquipeLayout`, **não é paleta de área**: troca só o anel de
-foco dos campos. Se um dia o Digital quiser identidade própria, o caminho é declarar a
-paleta inteira ali, como a Tax e a OSG fazem — meia declaração é pior que nenhuma, porque
-mistura duas identidades na mesma tela.
+`.rotina-theme`, aplicado pelo `EquipeLayout`, **declara hoje o contrato inteiro — com os
+valores da base**. Ele nasceu trocando só o anel de foco dos campos e herdando as outras 40
+variáveis; o congelamento escreveu as 40 com o que ela já computava, para desacoplar a área
+sem mudar um pixel. O bloco é grande, mas a **decisão de cor da Rotina continua não tomada**:
+declarar não é escolher.
+
+Consequência para o teste: `.rotina-theme` **está em `TEMAS`** e cumpre completude, contraste,
+faixa e separação interna — cumpre por ser cópia de uma paleta que cumpre. O único par
+dispensado é `.rotina-theme × :root` na separação entre áreas, registrado em
+`AREAS_CONGELADAS_NA_BASE`; ela continua sendo comparada com a Tax e com a OSG. No dia em que
+a Rotina ganhar cor própria, o teste `ainda é cópia da base` reprova e manda tirar a exceção —
+é ele que impede a dispensa de virar permanente.
+
+Quando essa decisão vier, o caminho é reescrever os valores deste bloco. Meia declaração é
+pior que nenhuma: mistura duas identidades na mesma tela.
 
 ## O mesmo módulo em áreas diferentes
 
@@ -257,14 +268,14 @@ Duas armadilhas que já morderam aqui:
   20° de matiz **ou** 8 pontos de luminosidade (`SEPARACAO`, em `src/lib/paletaDeArea.ts`).
   O caminho da matiz só vale se as duas cores tiverem saturação ≥ 20%: matiz não se enxerga
   sem croma, e dois cinzas a 180° continuam sendo o mesmo cinza. A mensagem de falha diz o
-  par e o tema. As três paletas cumprem com folga — o menor separador por matiz em uso é
+  par e o tema. As paletas em uso cumprem com folga — o menor separador por matiz em uso é
   22°, o menor por luminosidade é 9 pontos;
 - **duas áreas que viram a mesma paleta** — para **cada papel**, em **cada par de temas**,
   exige-se 12° de matiz **ou** 6 pontos de luminosidade (`SEPARACAO_ENTRE_AREAS`). É o
   guard que faltava: até ele existir, uma área podia declarar os oito papéis, passar em
   contraste, faixa e separação interna, e ainda assim ser cópia da vizinha — e era o caso,
   com 16 dos 24 pares colidindo. A mensagem de falha diz o papel, os dois temas e as duas
-  distâncias medidas. As três paletas cumprem com metade da distância sobrando: 18° onde
+  distâncias medidas. As paletas em uso cumprem com metade da distância sobrando: 18° onde
   quem resolve é a matiz, 9 pontos onde é a luminosidade;
 - **`soft` que foge do próprio tom cheio** — mais de 12° de matiz entre os dois faz a
   pílula parecer dois papéis empilhados;
