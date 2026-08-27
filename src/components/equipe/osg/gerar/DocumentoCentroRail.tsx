@@ -1,5 +1,5 @@
 import type { GerarDocumentoController } from '@/hooks/useGerarDocumentoController';
-import { CheckCircle2, Layers, Loader2, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, FileStack, Layers, Loader2, Lock, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -32,11 +32,43 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
   camposPorBinding, escolherRegistro, editarCampo, editarBlocoNaPrevia, matriculasDoCliente, origemClicavel,
   abrirCadastroOrigem, fecharCadastroOrigem, resultado, copiar, nomeModelo, baixando,
   baixar, empresas, bindingsNaoSociedade, modeloPronto, passo1Estado, passo2Estado,
+  documentoRegistrado, alteracaoEmCurso, podeReverEventos, podeGerarAlteracao,
+  resumoDaAlteracao, motivoDeBloqueio,
+  abrirAlteracao, setRegistrarConfirmOpen, registrandoDocumento,
   modoDocumento, empresaLabel, labelsRegistros, resumoPasso2, mensagemPendente,
   blocosFolha, versaoView, modoVisualizacao, blocosFolhaVersao, baixandoVersao,
   baixarVersao, folhaEstado, infoFolha, temPainel, mostraSocios, mostraAdministradores,
   mostraIntegralizacoes,
 } = controller;
+  // Documento registrado na junta: peça travada. Nada de editar bloco na prévia,
+  // nada de clicar na origem para abrir cadastro — o que valeu, valeu. A exceção
+  // é quando já há alteração em curso: aí a tela não é mais a do registrado, é a
+  // do documento novo compondo ao vivo.
+  const travado = !!documentoRegistrado && !alteracaoEmCurso;
+  const somenteLeitura = modoVisualizacao || travado;
+  // O assistente segue alcançável depois de validar: a folha passa a renderizar do
+  // snapshot, então mudar uma resposta aqui só reescreve o texto depois de
+  // "Atualizar do cadastro". É o que a tooltip diz, em vez de a tela calar.
+  const reverEventos = podeReverEventos ? (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-xs text-osg-600 hover:text-osg-800"
+          onClick={abrirAlteracao}
+        >
+          Rever os eventos
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs text-xs leading-relaxed">
+        Reabre o assistente com as respostas gravadas.
+        {congelado
+          ? ' Com a versão já validada, mudar uma resposta aparece no texto depois de "Atualizar do cadastro".'
+          : ''}
+      </TooltipContent>
+    </Tooltip>
+  ) : null;
   return (<>              <div className="order-2 mx-auto w-full min-w-0 max-w-[860px] space-y-3">
                 {modoVisualizacao && versaoView && (
                   <BannerVersaoAnterior
@@ -54,9 +86,9 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                   mensagemPendente={mensagemPendente}
                   erro={modoVisualizacao ? versaoView?.erro : resultado.erro}
                   blocos={modoVisualizacao ? blocosFolhaVersao : blocosFolha}
-                  onEditarBloco={modoVisualizacao ? undefined : editarBlocoNaPrevia}
-                  onClickOrigem={modoVisualizacao ? undefined : abrirCadastroOrigem}
-                  origemClicavel={modoVisualizacao ? undefined : origemClicavel}
+                  onEditarBloco={somenteLeitura ? undefined : editarBlocoNaPrevia}
+                  onClickOrigem={somenteLeitura ? undefined : abrirCadastroOrigem}
+                  origemClicavel={somenteLeitura ? undefined : origemClicavel}
                 />
               </div>
 
@@ -79,12 +111,72 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                   <>
                 {/* Validar versão: encerra os cadastros, congela os valores e
                     habilita o ajuste de blocos só deste documento. */}
-                {documentoGeradoId ? (
+                {/* Documento REGISTRADO na junta: acabou a edição. O caminho
+                    para mudar a sociedade a partir daqui não é editar esta peça,
+                    é gerar outra que a substitua. */}
+                {travado ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-center gap-1.5 rounded-md border border-slate-300 bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">
+                      <Lock className="h-3.5 w-3.5 text-slate-500" />
+                      Registrado na junta
+                    </div>
+                    <p className="px-1 text-[11px] leading-relaxed text-slate-500">
+                      Esta peça está travada: ela já produziu efeito e não se reescreve.
+                    </p>
+                    {podeGerarAlteracao && (
+                      <Button
+                        variant="outline"
+                        className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06] hover:text-osg-800"
+                        onClick={abrirAlteracao}
+                      >
+                        <FileStack className="mr-1.5 h-4 w-4" />
+                        Gerar alteração contratual
+                      </Button>
+                    )}
+                  </div>
+                ) : alteracaoEmCurso ? (
+                  <div className="space-y-2">
+                    {/* A folha aqui já é o documento NOVO, composto ao vivo:
+                        resoluções pelos eventos marcados e consolidado do
+                        cadastro atualizado. Validar é que o faz existir. */}
+                    <div className="space-y-1 rounded-md border border-osg-moss/30 bg-osg-moss/[0.06] px-3 py-2">
+                      <div className="flex items-center gap-1.5 text-xs font-semibold text-osg-700">
+                        <FileStack className="h-3.5 w-3.5 text-osg-moss" />
+                        Alteração contratual
+                      </div>
+                      <p className="text-[11px] leading-relaxed text-osg-700/80">{resumoDaAlteracao}</p>
+                    </div>
+                    {reverEventos}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06] hover:text-osg-800"
+                          onClick={() => setValidarConfirmOpen(true)}
+                          disabled={salvarDocumento.isPending || !!motivoDeBloqueio}
+                        >
+                          {salvarDocumento.isPending ? (
+                            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                          ) : (
+                            <ShieldCheck className="mr-1.5 h-4 w-4" />
+                          )}
+                          Validar versão
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                        {motivoDeBloqueio
+                          ? `${motivoDeBloqueio}. Conserte antes de validar: selar uma folha em erro grava um documento que não existe como texto.`
+                          : 'Cria a alteração contratual como documento próprio, apontando para a peça registrada que ela substitui, e congela os valores atuais nela.'}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                ) : documentoGeradoId ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-center gap-1.5 rounded-md border border-osg-moss/30 bg-osg-moss/[0.06] px-3 py-2 text-xs font-semibold text-osg-700">
                       <CheckCircle2 className="h-3.5 w-3.5 text-osg-moss" />
                       Versão validada · rascunho
                     </div>
+                    {reverEventos}
                     {/* Commit deliberado: sela esta versão e abre uma nova a
                         partir dela (a anterior fica preservada no histórico). */}
                     <Tooltip>
@@ -126,6 +218,33 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                         Puxa os dados atuais dos cadastros e congela esta versão de novo.
                       </TooltipContent>
                     </Tooltip>
+                    {/* Fim da linha do documento: ele foi levado à junta e
+                        registrado. Daqui em diante só se muda por outro
+                        documento, e é isso que destrava o assistente de
+                        alteração contratual. */}
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-xs text-slate-500 hover:text-slate-800"
+                          onClick={() => setRegistrarConfirmOpen(true)}
+                          disabled={registrandoDocumento || salvarDocumento.isPending || !!motivoDeBloqueio}
+                        >
+                          {registrandoDocumento ? (
+                            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Lock className="mr-1.5 h-3.5 w-3.5" />
+                          )}
+                          Registrar na junta
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                        {motivoDeBloqueio
+                          ? `${motivoDeBloqueio}. Registrar é o gesto irreversível: ele carimba o ledger e vira o status dos bens.`
+                          : 'Marca que esta peça foi registrada e a trava para edição. Depois disso, a forma de mudar a sociedade é gerar uma alteração contratual a partir dela.'}
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                 ) : (
                   <Tooltip>
@@ -134,7 +253,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                         variant="outline"
                         className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06] hover:text-osg-800"
                         onClick={() => setValidarConfirmOpen(true)}
-                        disabled={salvarDocumento.isPending}
+                        disabled={salvarDocumento.isPending || !!motivoDeBloqueio}
                       >
                         {salvarDocumento.isPending ? (
                           <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -145,8 +264,9 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs text-xs leading-relaxed">
-                      Confirma que os cadastros estão completos e revisados e congela os valores atuais nesta
-                      versão do documento. Depois de validar, você pode ajustar blocos só deste documento.
+                      {motivoDeBloqueio
+                        ? `${motivoDeBloqueio}. Conserte antes de validar: selar uma folha em erro grava um documento que não existe como texto.`
+                        : 'Confirma que os cadastros estão completos e revisados e congela os valores atuais nesta versão do documento. Depois de validar, você pode ajustar blocos só deste documento.'}
                     </TooltipContent>
                   </Tooltip>
                 )}
