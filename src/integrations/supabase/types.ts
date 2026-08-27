@@ -580,6 +580,47 @@ export type Database = {
           },
         ]
       }
+      ato_societario: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data: string | null
+          descricao: string | null
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ato_societario_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atualizacoes_meta: {
         Row: {
           autor_id: string | null
@@ -4596,6 +4637,7 @@ export type Database = {
       }
       movimentacao_quotas: {
         Row: {
+          ato_id: string | null
           bem_id: string | null
           cliente_id: string
           created_at: string
@@ -4606,11 +4648,15 @@ export type Database = {
           empresa_pessoa_id: string
           id: string
           origem_pessoa_id: string | null
+          pago_com_empresa_pessoa_id: string | null
+          pago_com_quotas: number | null
+          pago_com_valor: number | null
           pct_capital: number | null
           pct_vlr_contabil: number | null
           pct_vlr_mercado: number | null
           quotas: number
           reserva_capital: number | null
+          sequencia: number | null
           tipo: string
           updated_at: string
           updated_by: string | null
@@ -4619,6 +4665,7 @@ export type Database = {
           vlr_mercado: number | null
         }
         Insert: {
+          ato_id?: string | null
           bem_id?: string | null
           cliente_id: string
           created_at?: string
@@ -4629,11 +4676,15 @@ export type Database = {
           empresa_pessoa_id: string
           id?: string
           origem_pessoa_id?: string | null
+          pago_com_empresa_pessoa_id?: string | null
+          pago_com_quotas?: number | null
+          pago_com_valor?: number | null
           pct_capital?: number | null
           pct_vlr_contabil?: number | null
           pct_vlr_mercado?: number | null
           quotas: number
           reserva_capital?: number | null
+          sequencia?: number | null
           tipo: string
           updated_at?: string
           updated_by?: string | null
@@ -4642,6 +4693,7 @@ export type Database = {
           vlr_mercado?: number | null
         }
         Update: {
+          ato_id?: string | null
           bem_id?: string | null
           cliente_id?: string
           created_at?: string
@@ -4652,11 +4704,15 @@ export type Database = {
           empresa_pessoa_id?: string
           id?: string
           origem_pessoa_id?: string | null
+          pago_com_empresa_pessoa_id?: string | null
+          pago_com_quotas?: number | null
+          pago_com_valor?: number | null
           pct_capital?: number | null
           pct_vlr_contabil?: number | null
           pct_vlr_mercado?: number | null
           quotas?: number
           reserva_capital?: number | null
+          sequencia?: number | null
           tipo?: string
           updated_at?: string
           updated_by?: string | null
@@ -4694,6 +4750,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "movimentacao_quotas_ato_id_fkey"
+            columns: ["ato_id"]
+            isOneToOne: false
+            referencedRelation: "ato_societario"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "movimentacao_quotas_destino_pessoa_id_fkey"
             columns: ["destino_pessoa_id"]
             isOneToOne: false
@@ -4717,6 +4780,13 @@ export type Database = {
           {
             foreignKeyName: "movimentacao_quotas_origem_pessoa_id_fkey"
             columns: ["origem_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_quotas_pago_com_empresa_pessoa_id_fkey"
+            columns: ["pago_com_empresa_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
