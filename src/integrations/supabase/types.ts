@@ -8614,6 +8614,7 @@ export type Database = {
           familia_id: string | null
           id: string
           nome: string
+          reinicia_numeracao: boolean
           repete_colecao: string | null
           tipo: string
           tipo_derivacao: string | null
@@ -8636,6 +8637,7 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome: string
+          reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
@@ -8658,6 +8660,7 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome?: string
+          reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
