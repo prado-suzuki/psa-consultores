@@ -486,9 +486,14 @@ describe('TaskModal — criação', () => {
     await user.click(screen.getByRole('button', { name: 'Criar' }));
 
     expect(await screen.findByText('Título é obrigatório')).toBeInTheDocument();
-    // QUIRK caracterizado: campos de select/número vazios caem na mensagem
-    // padrão do zod ("Required"/"Expected number...") em vez das mensagens
-    // customizadas, porque chegam como `undefined` e não como string vazia.
+    // O QUIRK que estava caracterizado aqui ACABOU: campo de select ou de número
+    // vazio caía na mensagem padrão do zod, em inglês ("Required", "Expected
+    // number, received nan"), porque chega como `undefined` e o zod nem alcança a
+    // regra de tamanho. O `taskSchema` passou a declarar `required_error` e
+    // `invalid_type_error` em todos eles, então agora respondem em português.
+    //
+    // O seletor de Contribuinte não aparece mais na lista: virou opcional, e campo
+    // opcional não gera mensagem de vazio.
     //
     // A ordem é a do DOM depois do redesenho: título, cartão de contexto
     // (projeto → cliente), faixa de propriedades (responsável,
@@ -496,11 +501,11 @@ describe('TaskModal — criação', () => {
     expect(formMessages()).toEqual([
       'Título é obrigatório',
       'Projeto é obrigatório',
-      'Required',
-      'Required',
+      'Cliente é obrigatório',
+      'Responsável é obrigatório',
       'Data de Início é obrigatória',
       'Data de Vencimento é obrigatória',
-      'Expected number, received nan',
+      'Esforço estimado é obrigatório',
       'Descrição é obrigatória',
     ]);
     expect(mocks.createTask).not.toHaveBeenCalled();

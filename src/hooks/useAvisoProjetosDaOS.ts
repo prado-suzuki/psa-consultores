@@ -56,6 +56,30 @@ export interface AvisoProjetosDaOSResultado {
   motivo?: string;
 }
 
+/** Contagem zerada — o mesmo valor que o hook devolvia quando a RPC não trouxe nada. */
+const NADA_FEITO: AvisoProjetosDaOSResultado = { projetos: 0, eventos: 0, sinos: 0 };
+
+/**
+ * A RPC devolve `jsonb`, e o `types.ts` regenerado a declara como `Json` — um tipo
+ * que inclui número, string, booleano e array. O cast direto para o resultado deixou
+ * de compilar por isso, e forçar com `as unknown as` esconderia o problema real: o
+ * formato chega do banco e ninguém o conferia. Aqui ele é conferido campo a campo,
+ * com a mesma contagem zerada de antes quando não vier objeto.
+ */
+function lerResultado(data: unknown): AvisoProjetosDaOSResultado {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) return NADA_FEITO;
+
+  const bruto = data as Record<string, unknown>;
+  const contagem = (v: unknown) => (typeof v === 'number' ? v : 0);
+
+  return {
+    projetos: contagem(bruto.projetos),
+    eventos: contagem(bruto.eventos),
+    sinos: contagem(bruto.sinos),
+    ...(typeof bruto.motivo === 'string' ? { motivo: bruto.motivo } : {}),
+  };
+}
+
 export function useAvisoProjetosDaOS() {
   return useMutation<AvisoProjetosDaOSResultado, Error, AvisoProjetosDaOSInput>({
     mutationFn: async ({ solicitacaoId, evento, detalhe }) => {
@@ -66,7 +90,7 @@ export function useAvisoProjetosDaOS() {
       });
 
       if (error) throw error;
-      return (data ?? { projetos: 0, eventos: 0, sinos: 0 }) as AvisoProjetosDaOSResultado;
+      return lerResultado(data);
     },
     // `toast.warning` e não `toast.error`: a operação principal deu certo, o que
     // faltou foi o registro. Erro vermelho aqui faria a pessoa duvidar se o
