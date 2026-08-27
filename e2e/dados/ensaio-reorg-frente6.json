@@ -1,0 +1,332 @@
+{
+  "corrida": "Frente 6, itens 2 a 4: par de instrumentos do caso MMS",
+  "data": "2026-08-27",
+  "branch": "feat/alteracao-contratual-caminho-b",
+  "banco": "sandbox vgzomuwnsdgrxbkyoavq",
+  "cliente": "[TESTE] Dinossauro Aposentado Previdencia e Fosseis Ltda",
+  "login_usado": "user001@exemplo.dev (roteiro secao 3.2); a sessao gravada em e2e/.auth/user.json estava morta e node e2e/renovarSessao.mjs falhou",
+  "itens": [
+    {
+      "id": "0-ambiente",
+      "status": "achado de ambiente",
+      "prova": "node e2e/renovarSessao.mjs -> 'nenhum .env aponta para vgzomuwnsdgrxbkyoavq: nao sei qual chave anon usar.'",
+      "observacao": "o script procura .env.development.local/.env.development/.env; o arquivo do sandbox no repo hoje chama-se .env.sandbox. Refresh token tambem estava morto (HTTP 400 refresh_token_not_found). Login feito pela UI com user001@exemplo.dev."
+    },
+    {
+      "id": "1-estado-encontrado",
+      "status": "batia com o esperado",
+      "prova_jatoba": "CAPITAL SOCIAL TOTAL R$ 1.171.800,00 / TOTAL DE QUOTAS 1.171.800 / Lista de Socios (2): Lucas Nogueira 1.143.042 (97,55%) [Constituicao + Subida das quotas...], Marina Salgado 28.758 (2,45%) [Constituicao + Subida das quotas...]",
+      "prova_farroupilha": "CAPITAL SOCIAL TOTAL R$ 1.170.800,00 / TOTAL DE QUOTAS 1.170.800 / Lista de Socios (1): Jatoba Sementes S.A. PJ 69.575.004/4630-30, 1.170.800, 100,00% [Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A.] / Quadro registrado, apurado da movimentacao de quotas",
+      "prova_ato": "Atos societarios (1): 'Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A.' 28/12/2023 - 2 lancamento(s) nesta empresa - botao Desfazer presente nas duas empresas",
+      "observacao": "nenhum documento gerado; o ato nao esta formalizado (Desfazer ainda oferecido)"
+    },
+    {
+      "id": "2-desfazer-o-ato",
+      "status": "corrigido/funcionou",
+      "prova_dialogo": "Desfazer Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A.? / Os lancamentos deste ato saem do livro nas duas empresas, e os quadros voltam ao estado anterior. Nao ha como desfazer esta acao. / Cancelar | Desfazer o ato",
+      "http": "DELETE /rest/v1/ato_societario?id=eq.4929aad0-ec6e-431d-97c5-950c5b7ac6db -> 204",
+      "prova_farroupilha_depois": "R$ 1.170.800,00 / 1.170.800 quotas / Lista de Socios (2): Lucas Nogueira 1.142.542 (97,59%) [Constituicao], Marina Salgado 28.258 (2,41%) [Constituicao]; cartao 'Atos societarios' desapareceu",
+      "prova_jatoba_depois": "R$ 1.000,00 / 1.000 quotas / Lucas Nogueira 500 (50,00%) [Constituicao], Marina Salgado 500 (50,00%) [Constituicao]",
+      "observacao": "o par espelhado foi apagado dos dois lados; nao houve meio-apagado"
+    },
+    {
+      "id": "3-contrato-social-farroupilha",
+      "status": "corrigido/funcionou",
+      "modelo": "Contrato Social - Sociedade Limitada (Agro), 96 blocos",
+      "empresa": "Farroupilha Comercio Ltda 07.781.351/8252-30 (Proprietaria)",
+      "binding_escolhido": "Imovel = '2.424 - Imovel A3B8FE' (primeiro da lista; opcoes: 2.424 A3B8FE, 2.623 3D60C7, 2.625 3D60C7, 2.627 CB9F39, 2.628 CB9F39, 25.365 975E64, 9.617 0229D9). Nao havia lista de selecao multipla nem botao 'Concluir selecao'.",
+      "clausula_capital_literal": "CLAUSULA QUINTA:   O capital social da empresa sera de R$ 1.170.800,00 (um milhao, cento e setenta mil e oitocentos reais), dividido em 1.170.800 (um milhao, cento e setenta mil e oitocentas) quotas, no valor nominal de R$ 1,00 (um real) cada uma, sendo: i) o valor de R$ 1.142.542,00 (um milhao, cento e quarenta e dois mil, quinhentos e quarenta e dois reais) subscrito e integralizado neste ato pelo socio LUCAS NOGUEIRA, por meio dos bens imoveis e valor em moeda corrente nacional arrolados no paragrafo segundo desta clausula; e ii) o valor de R$ 28.258,00 (vinte e oito mil, duzentos e cinquenta e oito reais) subscrito e integralizado neste ato pela socia MARINA SALGADO, por meio dos bens imoveis e valor em moeda corrente nacional arrolados no paragrafo terceiro desta clausula, estando o capital social da empresa totalmente subscrito e integralizado pelos socios, da seguinte forma: SOCIOS/QUOTAS/VALOR R$/% | Lucas Nogueira 1.142.542 1.142.542,00 97,586% | Marina Salgado 28.258 28.258,00 2,414%",
+      "composicao": "78 de 96 blocos - 7 fora por condicao nao marcada - 1 sem dado para preencher ('Memorial descritivo do georreferenciamento (SIGEF): ele saiu em branco.')",
+      "validar": "POST /rest/v1/documento_gerado -> 201",
+      "registrar": "PATCH /rest/v1/documento_gerado -> 200; tarja: 'Registrado na junta / Esta peca esta travada: ela ja produziu efeito e nao se reescreve.' e o botao passou a ser 'Gerar alteracao contratual'",
+      "observacao": "no meio do passo apareceu o modal 'Sua sessao expirou / Nada do que esta na tela foi perdido...'; reautenticado no proprio modal com a senha e a folha nao se perdeu"
+    },
+    {
+      "id": "4-divergencia-de-estado-jatoba-documento-preexistente",
+      "status": "DIVERGENCIA DO ESTADO ESPERADO (nao e defeito do codigo)",
+      "prova": "Ao escolher modelo '(Participacoes)' + empresa Jatoba, a folha ja abriu no estado 'Versao validada - rascunho' (botoes 'Atualizar versao' / 'Atualizar do cadastro' / 'Registrar na junta'), com 65 de 96 blocos - 7 fora por condicao nao marcada - 5 sem dado para preencher. O snapshot congelado trazia: 'MMS PARTICIPACOES LTDA / CNPJ no 48.061.192/0001-72 / NIRE no 51202131957' e 'SOCIOS QUOTAS VALOR R$ % | BRUNA MALHEIROS DE MACEDO SOARES 4.770.898 4.770.898,00 50,000% | CAMILA MALHEIROS DE MACEDO SOARES MIRANDOLA 4.770.898 4.770.898,00 50,000%'. CAPITULOS I, II e III sem texto de clausula nenhum, e '5 blocos nao entraram: Paragrafo - Sede / Objeto social (holding de participacoes) / Responsabilidade dos socios / Administracao e poderes (1) e (2): a clausula que o governa ficou de fora.'",
+      "observacao": "o briefing dizia 'Nenhum documento gerado, nenhum registrado'. Existia um documento_gerado validado para Jatoba + Participacoes, anterior ao seed e anterior a anonimizacao do sandbox (preambulo com a razao social real). A aba 'Notificacoes' dizia 'Tudo em dia desde a validacao / Nenhuma alteracao desde a validacao', o que se explica pelo seed ter sido SQL (nao escreve audit_logs), nao por defeito do detector.",
+      "acao_que_tomei": "cliquei 'Atualizar do cadastro' (re-sincronia, acao da propria UI). Depois disso: 77 de 96 blocos - 7 fora por condicao nao marcada, e nenhum bloco 'sem dado'. Registrado em seguida.",
+      "screenshot": ".playwright-mcp/reorg-p3-jatoba-snapshot-velho-mms-participacoes.png"
+    },
+    {
+      "id": "5-contrato-social-jatoba",
+      "status": "corrigido/funcionou (depois da re-sincronia)",
+      "modelo": "Contrato Social - Sociedade Limitada (Participacoes), 96 blocos",
+      "empresa": "Jatoba Sementes S.A. 69.575.004/4630-30 (Controladora)",
+      "bindings": "o modelo (Participacoes) NAO pediu papel nenhum alem da empresa: nao apareceu o bloco 'Este modelo tambem precisa de:' nem botao 'Concluir selecao'",
+      "conferencia_lateral": "CAPITAL SOCIAL R$ 1.000,00 / QUOTAS 1.000 / Socios 2: Lucas Nogueira 500 quotas, Marina Salgado 500 quotas",
+      "clausula_capital_literal": "CLAUSULA QUINTA: O capital social da empresa sera de R$ 1.000,00 (mil reais), dividido em 1.000 (mil) quotas, no valor nominal de R$ 1,00 (um real) cada uma, sendo subscrito e integralizado da forma que segue: i) 500 (quinhentas) quotas, no valor nominal de R$ 1,00 (um real) cada uma, totalizando R$ 500,00 (quinhentos reais), integralizadas neste ato pelo socio LUCAS NOGUEIRA em moeda corrente nacional; e ii) 500 (quinhentas) quotas, no valor nominal de R$ 1,00 (um real) cada uma, totalizando R$ 500,00 (quinhentos reais), integralizadas neste ato pela socia MARINA SALGADO em moeda corrente nacional; estando o capital social da empresa totalmente subscrito e integralizado pelos socios e assim distribuido: SOCIOS/QUOTAS/VALOR R$/% | Lucas Nogueira 500 500,00 50,000% | Marina Salgado 500 500,00 50,000%",
+      "registrar": "PATCH /rest/v1/documento_gerado -> 200; tarja 'Registrado na junta / Esta peca esta travada: ela ja produziu efeito e nao se reescreve.'; capital continuou R$ 1.000,00 depois de travar"
+    },
+    {
+      "id": "6-macro-da-subida",
+      "status": "corrigido/funcionou",
+      "modal_cabeca": "Transferir quotas para a controladora / Os socios de Farroupilha Comercio Ltda cedem as quotas que tem nela e recebem, em troca, quotas da controladora, no mesmo ato. / Controladora * (unica opcao: Jatoba Sementes S.A.) / Data do ato",
+      "bloco_o_que_sera_gravado": "O QUE SERA GRAVADO\n2 cessao(oes) em Farroupilha Comercio Ltda: 1.170.800 quotas (R$ 1.170.800,00) para Jatoba Sementes S.A..\n2 aporte(s) em Jatoba Sementes S.A., integralizados com essas quotas: R$ 1.170.800,00.",
+      "bloco_quadro_da_controladora_depois": "QUADRO DA CONTROLADORA DEPOIS DO ATO\nLucas Nogueira 1.143.042 quotas - R$ 1.143.042,00\nMarina Salgado 28.758 quotas - R$ 28.758,00",
+      "aviso_de_proporcao": "O capital de constituicao da controladora nao some, entao o quadro dela nao reproduz a proporcao da proprietaria (Lucas Nogueira: 97,586% na proprietaria, 97,546% na controladora; Marina Salgado: 2,414% na proprietaria, 2,454% na controladora). Ajuste antes de subir, ou aceite que a proporcao sera corrigida por uma alteracao contratual propria.",
+      "cita_alteracao_contratual_propria": true,
+      "data": "input type=date, valor gravado 2023-12-28",
+      "http": "POST /rest/v1/ato_societario?select=id -> 201",
+      "par_espelhado_farroupilha": "Lista de Socios (1): Jatoba Sementes S.A. PJ 69.575.004/4630-30, procedencia 'Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A.', 1.170.800, 100,00%",
+      "par_espelhado_jatoba": "R$ 1.171.800,00 / 1.171.800 quotas / Lucas Nogueira 1.143.042 (97,55%) [Constituicao + Subida das quotas...], Marina Salgado 28.758 (2,45%) [Constituicao + Subida das quotas...]",
+      "cartao_atos_nas_duas": "Atos societarios (1) 'Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A.' 28/12/2023 - 2 lancamento(s) nesta empresa, com o MESMO nome nas duas empresas",
+      "screenshot": ".playwright-mcp/reorg-p4-macro-modal-antes-de-gravar.png"
+    },
+    {
+      "id": "7-assistente-farroupilha-seis-eventos",
+      "status": "medido",
+      "cabeca_modal": "Gerar alteracao contratual / A partir de Contrato Social - Sociedade Limitada (Agro) - Farroupilha Comercio Ltda / O que mudou desde o registro / A lista vem do que o cadastro registra depois do documento anterior: o livro de movimentos de quota e as mudancas de endereco e administracao. Confira, e desmarque o que nao deve entrar nesta peca. Cada evento marcado traz a resolucao dele.",
+      "eventos": [
+        {
+          "id": "evento-8bbb84b8-af17-458e-bd76-2ecdedc5ebe6",
+          "rotulo": "Houve mudanca do endereco da sede",
+          "evidencia": "nada no cadastro registra este evento",
+          "estado": "unchecked"
+        },
+        {
+          "id": "evento-922c73ea-70a4-4da1-84f7-bce51ff2b398",
+          "rotulo": "Houve aumento do capital social",
+          "evidencia": "aumento de capital de R$ 0,00 para R$ 1.170.800,00",
+          "estado": "checked"
+        },
+        {
+          "id": "evento-6c71f9af-4bce-45b9-b146-0c2dcd88ec9f",
+          "rotulo": "Houve cessao de quotas entre socios ou para terceiro",
+          "evidencia": "2 cessao(oes) somando 1.170.800 quotas",
+          "estado": "checked"
+        },
+        {
+          "id": "evento-43c1aae8-68c4-4fb1-8d2d-dbc570cd2e1e",
+          "rotulo": "Houve integralizacao de capital (em imoveis, quotas ou dinheiro)",
+          "evidencia": "6 aporte(s) integralizado(s) com bens",
+          "estado": "checked"
+        },
+        {
+          "id": "evento-4295e635-1512-4803-b0df-94a46c22bced",
+          "rotulo": "Houve mudanca na administracao da sociedade",
+          "evidencia": "nada no cadastro registra este evento",
+          "estado": "unchecked"
+        },
+        {
+          "id": "evento-bf79f173-26c2-4799-961c-f27b84d71e7a",
+          "rotulo": "Houve entrada ou retirada de socio",
+          "evidencia": "1 ingresso(s) no quadro societario",
+          "estado": "checked"
+        }
+      ],
+      "confirmacao": "4 eventos nesta alteracao / Antes de gerar, o cadastro precisa estar atualizado / O quadro societario e o capital saem do livro de movimentos, e esses ja estao conferidos acima. O resto do consolidado e escrito do cadastro de hoje: endereco, objeto social e administracao ja devem refletir o estado DEPOIS do evento. O documento anterior fica preservado como esta, registrado.",
+      "screenshot": ".playwright-mcp/reorg-p5-assistente-farroupilha.png",
+      "achados_desta_leitura": [
+        "DEFEITO CANDIDATO: a evidencia do aumento diz 'de R$ 0,00 para R$ 1.170.800,00'. O contrato social que a peca substitui esta registrado com capital R$ 1.170.800,00, e a subida nao aumenta o capital da proprietaria (cessao move quotas, nao emite). O 'de R$ 0,00' conta que os aportes de CONSTITUICAO continuaram sem documento depois de 'Validar versao' + 'Registrar na junta' do contrato social, entao o derivador os leu como aumento novo.",
+        "DIVERGENCIA CONTRA A SECAO 5 PASSO 8 DO ENSAIO: a evidencia de socios diz apenas '1 ingresso(s) no quadro societario'; o esperado documentado e '1 ingresso(s) e 2 retirada(s)'. As duas retiradas (Lucas e Marina saem da Farroupilha ao ceder tudo) nao aparecem na evidencia.",
+        "'6 aporte(s) integralizado(s) com bens' com 7 matriculas aprovadas na conferencia lateral: a diferenca nao foi investigada nesta corrida."
+      ]
+    },
+    {
+      "id": "8-folha-da-alteracao-farroupilha",
+      "status": "DEFEITO: folha inteira em erro depois de confirmar o assistente",
+      "prova": "Algo impediu a geracao do documento.\nPlaceholder nao resolvido: {{refs.capital_social}}\nConfira os dados em \"Ajustar dados manualmente\" ou o conteudo do modelo na Montagem.",
+      "estado_da_folha": "rodape 'Alteracao contratual / Houve aumento do capital social - Houve cessao de quotas entre socios ou para terceiro - Houve integralizacao de capital (em imoveis, quotas ou dinheiro) - Houve entrada ou retirada de socio' com botoes 'Rever os eventos' / 'Validar versao' / 'Baixar .docx' / 'Copiar texto'. Nenhuma resolucao renderizada: nao ha texto de documento na tela, so o erro.",
+      "classificacao": "secao 6 do ensaio lista exatamente isto em 'Sinal de defeito': 'Folha inteira em erro depois de confirmar o assistente (placeholder nao resolvido em algum bloco de resolucao derruba a composicao inteira)'",
+      "camada": "src/lib/templates/render.ts:243 lanca o erro; {{refs.<ancora>}} e referencia de numeracao publicada por bloco com `ancora` (src/lib/templates/numeracao.ts refsNumeracao). O comentario de src/lib/templates/index.ts diz: 'Ancora de bloco excluido pelas FLAGS continua nao existindo (o bloco nem chegou a composicao): esse erro segue falhando cedo, como sempre.' Ou seja: com as flags de evento ligadas, o bloco ancorado como capital_social saiu da composicao, e algum bloco que continuou citando-o derrubou o render inteiro.",
+      "consequencia_para_o_roteiro": "as tres resolucoes do passo 5 (aumento, cessao, integralizacao) NAO sao verificaveis nesta corrida: nenhuma foi renderizada.",
+      "screenshot": ".playwright-mcp/reorg-p5-farroupilha-folha-em-erro-placeholder-capital-social.png"
+    },
+    {
+      "id": "9-causa-do-placeholder-nao-resolvido",
+      "status": "DEFEITO, localizado por leitura da propria tela de Montagem (sem SQL)",
+      "prova_montagem": "Montagem de Documentos -> modelo 'Contrato Social - Sociedade Limitada (Agro)': a clausula de capital na composicao e a posicao 28 'CLAUSULA DECIMA OITAVA / Capital Social - Agro' ('O capital social da empresa sera de R$ {{ sociedade.capitalValor }} ... arrolados no {{ ref }} desta clausula'). A string 'Cláusula — Capital social integralizado em moeda corrente (consolidação)' aparece UMA vez na tela (painel de biblioteca, sem numero de posicao), enquanto 'Denominacao da sociedade (consolidacao)', 'Sede (consolidacao)' e 'Objeto social (consolidacao)' aparecem DUAS vezes cada (biblioteca + composicao, esta ultima numerada: p.ex. '17 CLAUSULA DECIMA PRIMEIRA / Clausula - Denominacao da sociedade (consolidacao)').",
+      "leitura": "no modelo (Agro) o gemeo ancorado como capital_social (fc000001-0000-4000-8000-000000000005) NAO esta na composicao, e o bloco que de fato compoe o capital do (Agro) ('Capital Social - Agro') nao carrega a ancora. A migration 20260826143800_frente_e_redacao_resolucoes.sql poe ancora='capital_social' apenas em 579e688d-9e52-4f57-af95-68548c4c1135 e fc000001-...-0005 (o par 'Capital social integralizado em moeda corrente', que e a redacao do modelo Participacoes). Nenhuma migration semeia os blocos do (Agro): eles nasceram no app.",
+      "consequencia": "as quatro resolucoes semeadas (aumento, cessao, integralizacao, quadro societario) citam '{{ refs.capital_social }}' (migrations 20260826143800 linhas 146/152/163/187 e 20260826213000 linhas 48/57). No (Agro) essa ancora nao existe em bloco nenhum da composicao, e src/lib/templates/render.ts:243 derruba o documento inteiro. Ou seja: TODA alteracao contratual sobre o modelo (Agro) morre, independentemente do cenario.",
+      "categoria": "defeito de dado de modelo (ancora faltando no bloco do (Agro)), nao de motor. O motor faz o que index.ts documenta: 'Ancora de bloco excluido pelas FLAGS continua nao existindo (o bloco nem chegou a composicao): esse erro segue falhando cedo, como sempre.'"
+    },
+    {
+      "id": "10-validar-versao-da-alteracao-farroupilha",
+      "status": "funcionou, mas com achado colateral",
+      "http": [
+        "POST documento_gerado?select=* -> 201",
+        "PATCH documento_gerado?id=eq.940afe72-72dd-4318-9d7a-1864fb0750c2&select=* -> 200",
+        "PATCH movimentacao_quotas?id=in.(679ace6c-ee47-4c60-8b5b-e91cb8aed842,49... -> 200"
+      ],
+      "prova": "depois de validar, o rodape virou 'Versao validada - rascunho / Atualizar versao / Atualizar do cadastro / Registrar na junta', e a folha CONTINUA com 'Algo impediu a geracao do documento. / Placeholder nao resolvido: {{refs.capital_social}}'",
+      "achado": "ACHADO: a UI aceitou VALIDAR (selar) uma peca que nao renderiza, e o carimbo chegou ao ledger (PATCH movimentacao_quotas -> 200). O porteiro de validacao nao olha se a composicao produziu documento.",
+      "sessao": "houve mais um 'Sua sessao expirou' antes deste passo; reautenticado no modal (HTTP 200). Ocorreu 3x nesta corrida, em intervalos de poucos minutos."
+    },
+    {
+      "id": "11-assistente-jatoba-seis-eventos",
+      "status": "medido",
+      "cabeca_modal": "Gerar alteracao contratual / A partir de Contrato Social - Sociedade Limitada (Participacoes) - Jatoba Sementes S.A. / O que mudou desde o registro",
+      "eventos": [
+        {
+          "rotulo": "Houve mudanca do endereco da sede",
+          "evidencia": "nada no cadastro registra este evento",
+          "estado": "unchecked"
+        },
+        {
+          "rotulo": "Houve aumento do capital social",
+          "evidencia": "aumento de capital de R$ 0,00 para R$ 1.171.800,00",
+          "estado": "checked"
+        },
+        {
+          "rotulo": "Houve cessao de quotas entre socios ou para terceiro",
+          "evidencia": "nada no cadastro registra este evento",
+          "estado": "unchecked"
+        },
+        {
+          "rotulo": "Houve integralizacao de capital (em imoveis, quotas ou dinheiro)",
+          "evidencia": "4 aporte(s) integralizado(s) com moeda corrente, quotas de outra sociedade",
+          "estado": "checked"
+        },
+        {
+          "rotulo": "Houve mudanca na administracao da sociedade",
+          "evidencia": "nada no cadastro registra este evento",
+          "estado": "unchecked"
+        },
+        {
+          "rotulo": "Houve entrada ou retirada de socio",
+          "evidencia": "2 ingresso(s) no quadro societario",
+          "estado": "checked"
+        }
+      ],
+      "confirmacao": "3 eventos nesta alteracao: aumento do capital social, integralizacao de capital, entrada ou retirada de socio",
+      "screenshot": ".playwright-mcp/reorg-p6-assistente-jatoba.png",
+      "achados": [
+        "a evidencia da integralizacao NOMEIA a forma de pagamento: '4 aporte(s) integralizado(s) com moeda corrente, quotas de outra sociedade' - a metade da controladora aparece na evidencia",
+        "DEFEITO: 'aumento de capital de R$ 0,00 para R$ 1.171.800,00'. O capital do contrato social registrado da Jatoba e R$ 1.000,00, e a propria resolucao na folha diz 'capital social anterior de R$ 1.000,00'. A evidencia do assistente e a UNICA das tres fontes que diz R$ 0,00.",
+        "DEFEITO: '2 ingresso(s) no quadro societario'. Lucas e Marina JA eram socios da Jatoba pela constituicao (500 quotas cada, no contrato social que esta registrado). Nao houve ingresso nenhum nesta empresa: houve aporte."
+      ]
+    },
+    {
+      "id": "12-folha-da-alteracao-jatoba",
+      "status": "renderizou (84 de 96 blocos - 4 fora por condicao nao marcada)",
+      "titulo": "PRIMEIRA ALTERACAO E CONSOLIDACAO DO CONTRATO SOCIAL / Jatoba Sementes S.A. / CNPJ no 69.575.004/4630-30 / NIRE no 51202131957",
+      "resolucao_aumento_literal": "CLAUSULA PRIMEIRA: Aumenta-se o capital social em R$ 1.170.800,00 (um milhao, cento e setenta mil e oitocentos reais), de modo que o capital social anterior de R$ 1.000,00 (mil reais) passara a ser de R$ 1.171.800,00 (um milhao, cento e setenta e um mil e oitocentos reais), modificando-se, consequentemente, as disposicoes contidas na Clausula Quinta do contrato social, que passa a vigorar com a seguinte redacao: \"O capital social e de R$ 1.171.800,00 (...), dividido em 1.171.800 (...) quotas, no valor nominal de R$ 1,00 (um real) cada uma, totalmente subscrito e integralizado, assim distribuido entre os socios: i) 1.143.042 (...) quotas, no valor total de R$ 1.143.042,00 (...), pertencentes a LUCAS NOGUEIRA; e ii) 28.758 (...) quotas, no valor total de R$ 28.758,00 (...), pertencentes a MARINA SALGADO.\"",
+      "veredito_aumento": "CORRETO, e e o item 3 da Frente 6: R$ 1.000,00 -> R$ 1.171.800,00, delta R$ 1.170.800,00, exatamente a mecanica do caso MMS (lado controladora: 1.000 + o que subiu). A referencia de numeracao resolveu ('Clausula Quinta').",
+      "resolucao_integralizacao_literal": "CLAUSULA SEGUNDA: Integralizam-se as quotas subscritas, nos termos e pelos valores abaixo:\n\n\n\nEm consequencia, modificam-se as disposicoes contidas na Clausula Quinta do contrato social, que passa a vigorar com a seguinte redacao: \"O capital social e de R$ 1.171.800,00 ...\"",
+      "veredito_integralizacao": "DEFEITO: a resolucao entrou SEM ALINEA NENHUMA (entre os dois paragrafos ha apenas linhas em branco). A secao 6 do ensaio lista 'a de integralizacao sem alineas' como sinal de defeito. Nao ha painel de blocos descartados nesta folha ('84 de 96 blocos - 4 fora por condicao nao marcada', sem contagem de 'sem dado'), logo o bloco das alineas esta na composicao e rendeu vazio.",
+      "alinea_quotas_de_outra_sociedade": "AUSENTE. A palavra 'Farroupilha' NAO aparece em nenhum lugar da folha (busca no innerText inteiro da previa). Nao ha qualificacao da PJ de origem (CNPJ, sede, NIRE) nem citacao de que a alteracao dela tramita em conjunto.",
+      "resolucao_quadro_societario": "CLAUSULA TERCEIRA: Altera-se a composicao do quadro societario. Em consequencia, modificam-se as disposicoes contidas na Clausula Quinta do contrato social, que passa a vigorar com a seguinte redacao: \"O capital social e de R$ 1.171.800,00 ...\"",
+      "outras": "CLAUSULA QUARTA: ratificacao das demais clausulas. CLAUSULA QUINTA: 'Face as alteracoes ocorridas, os socios resolvem consolidar o contrato social...' seguida do consolidado inteiro. NAO ha resolucao de renuncia ao direito de preferencia (a unica mencao a 'preferencia' na folha esta dentro do consolidado, na clausula permanente de oferta de quotas).",
+      "screenshot": ".playwright-mcp/reorg-p6-jatoba-resolucoes-na-folha.png"
+    },
+    {
+      "id": "13-validar-versao-da-alteracao-jatoba",
+      "status": "funcionou",
+      "http": [
+        "POST documento_gerado?select=* -> 201",
+        "PATCH documento_gerado?id=eq.11220c09-cbc3-428d-bf75-d3b2f1f4fdb8 -> 200",
+        "PATCH movimentacao_quotas?id=in.(5b228006-869a-4c03-8dbf-93ca0e0... -> 200"
+      ],
+      "estado_final_da_folha": "Versao validada - rascunho / Atualizar versao / Atualizar do cadastro / Registrar na junta / 84 de 96 blocos - 4 fora por condicao nao marcada"
+    },
+    {
+      "id": "14-o-carimbo",
+      "status": "PARCIALMENTE VERIFICADO",
+      "verificado": "o carimbo chegou ao ledger nas DUAS empresas: o cartao de atos passou a dizer 'Formalizado em documento' onde antes dizia 'Desfazer'. Literal, nas duas abas: 'Atos societarios (1) / Cada ato agrupa os lancamentos que nasceram juntos, inclusive os da outra empresa. Desfazer apaga o ato inteiro, e so e possivel enquanto nenhum documento o formalizou. / Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A. / 28/12/2023 - 2 lancamento(s) nesta empresa / Formalizado em documento'",
+      "nao_verificavel": "a asserção do passo 7 do roteiro ('reabra o assistente nas DUAS empresas, o botao agora e Rever os eventos', e a evidencia deve virar 'nada no cadastro registra este evento') NAO e verificavel nesta etapa: depois de 'Validar versao' o botao 'Rever os eventos' DESAPARECE das duas folhas. Botoes visiveis depois de validar, nas duas: 'Atualizar versao', 'Atualizar do cadastro', 'Registrar na junta', 'Baixar .docx', 'Copiar texto'.",
+      "camada": "src/components/equipe/osg/gerar/DocumentoCentroRail.tsx:131 poe 'Rever os eventos' dentro do ramo `alteracaoEmCurso`, isto e, so enquanto a alteracao NAO foi validada. O roteiro pede o oposto: validar (passos 5 e 6) e depois reabrir (passo 7).",
+      "classificacao": "DIVERGENCIA ROTEIRO x PRODUTO. Nao dei o passo seguinte (registrar a alteracao na junta para gerar uma segunda alteracao e ver a derivacao do zero) porque isso seria escrita irreversivel fora do roteiro.",
+      "screenshot": ".playwright-mcp/reorg-p7-sem-rever-os-eventos-depois-de-validar.png"
+    },
+    {
+      "id": "15-ambiente-401-do-backend-de-georreferenciamento",
+      "status": "achado de ambiente, explica dois sintomas",
+      "prova": "console: '[ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:8000/api/v1/osg/documentos/georreferenciamento?matricula_id=57cb6f91-...' seguido de '[ERROR] [API] Erro na tentativa 1: Error - Sessao expirada @ http://localhost:8080/src/hooks/useApiAuth.ts:203'",
+      "explica": "(1) o modal 'Sua sessao expirou' apareceu 3x durante a corrida SEM que a sessao Supabase estivesse morta (as escritas seguintes voltaram 200/201 depois de reautenticar no modal): quem levanta 'Sessao expirada' e o useApiAuth batendo no backend da 8000, que responde 401. (2) o descarte 'Memorial descritivo do georreferenciamento (SIGEF): ele saiu em branco' no contrato social da Farroupilha.",
+      "nao_e_defeito_do_fluxo_societario": true
+    },
+    {
+      "id": "16-comparacao-com-os-quatro-instrumentos-reais",
+      "status": "feita para o lado da controladora; IMPOSSIVEL para o lado da proprietaria",
+      "lado_proprietaria_2a_alteracao_da_agro": {
+        "comparacao": "NAO E POSSIVEL: a folha nao renderizou nada (Placeholder nao resolvido: {{refs.capital_social}}). Nenhuma das dez resolucoes do instrumento real pode ser confrontada.",
+        "unica_coisa_comparavel": "o contrato social de constituicao da Farroupilha, que saiu com R$ 1.170.800,00 / 1.170.800 quotas divididas 1.142.542 / 28.258, integralizadas com imoveis - mesma forma da constituicao real da Agro (R$ 872.674,00, 436.337 para cada, imoveis mais moeda). Diferenca de desenho: no gerado nao ha resto em moeda corrente, porque o rateio fechou nos imoveis."
+      },
+      "lado_controladora_1a_alteracao_da_participacoes": {
+        "1_altera_endereco_dos_socios": "AUSENTE. O assistente so oferece 'Houve mudanca do endereco da sede'; endereco DOS SOCIOS nao existe como evento.",
+        "2_aumenta_o_capital": "PRESENTE E CORRETO. Real: 'de R$ 1.000,00 para R$ 4.235.822,00'. Gerado: 'Aumenta-se o capital social em R$ 1.170.800,00 ..., de modo que o capital social anterior de R$ 1.000,00 (mil reais) passara a ser de R$ 1.171.800,00'. Mesma mecanica, inclusive o residuo dos 1.000 de constituicao.",
+        "3_subscricao_e_integralizacao_com_as_quotas_da_agro": "PRESENTE SO NO CABECALHO. Gerado: 'CLAUSULA SEGUNDA: Integralizam-se as quotas subscritas, nos termos e pelos valores abaixo:' e depois NADA. Faltam: a alinea por socio, a quantidade subscrita por cada um, a qualificacao integral da Farroupilha (CNPJ, sede, NIRE, administradores) e a citacao de que a alteracao dela tramita no mesmo processo. E a metade do item 3 da Frente 6 que esta corrida existia para ver, e ela nao saiu.",
+        "4_renuncia_ao_direito_de_preferencia": "AUSENTE na parte resolutiva. A unica ocorrencia de 'preferencia' na folha esta dentro do consolidado, na clausula permanente de oferta de quotas.",
+        "5_altera_a_clausula_quinta_e_ratifica_as_demais": "PRESENTE, em duas metades. As resolucoes dizem 'modificando-se ... as disposicoes contidas na Clausula Quinta do contrato social' (a referencia de numeracao resolveu certo), e a 'CLAUSULA QUARTA: As demais clausulas e condicoes estabelecidas nos atos anteriores, nao alcancadas pela presente alteracao permanecem em vigor, sendo integralmente ratificadas por este instrumento.' Diferenca: a ratificacao gerada e genericamente redigida e nao NOMEIA a clausula alterada, ao contrario do real ('alteram-se as Clausulas Segunda, Quinta e Sexta, as demais ratificadas').",
+        "6_consolida": "PRESENTE. 'CLAUSULA QUINTA: Face as alteracoes ocorridas, os socios resolvem consolidar o contrato social, que passa a vigorar com a seguinte redacao:' seguida do contrato inteiro com preambulo 'Jatoba Sementes S.A. / CNPJ / NIRE' e os dois socios. Quadro final 1.143.042 + 28.758 = 1.171.800, que e 1.000 + 1.170.800, na mesma aritmetica do real (2.117.911 = 500 + 2.117.411).",
+        "a_mais_no_gerado": [
+          "'CLAUSULA TERCEIRA: Altera-se a composicao do quadro societario.' nao tem correspondente no instrumento real da Participacoes: la o quadro e publicado DENTRO das resolucoes, nao como resolucao propria.",
+          "a nova redacao da Clausula Quinta e reproduzida TRES vezes (nas clausulas primeira, segunda e terceira), palavra por palavra. No real ela aparece uma vez.",
+          "o titulo saiu 'PRIMEIRA ALTERACAO E CONSOLIDACAO DO CONTRATO SOCIAL', que casa com o real ('1a alteracao da Participacoes')."
+        ],
+        "nao_comparavel": [
+          "o par de registros na junta no mesmo dia (nos 2984199 e 2984200) e a citacao cruzada entre os dois instrumentos: o produto nao tem campo de numero de registro nem cruzamento, e a peca da proprietaria nem renderizou.",
+          "a outorga conjugal das integralizacoes: sem alineas, nao ha o que conferir.",
+          "a administracao por nao socios (resolucao 10 do real, lado Agro): so existiria no lado que nao renderizou."
+        ]
+      }
+    },
+    {
+      "id": "17-o-que-ficou-no-banco",
+      "status": "registro de estado",
+      "atos": "o ato 'Subida das quotas da Farroupilha Comercio Ltda para a Jatoba Sementes S.A.' de 28/12/2023 foi DESFEITO (DELETE ato_societario id=4929aad0-ec6e-431d-97c5-950c5b7ac6db -> 204) e REFEITO pelo macro (POST ato_societario -> 201). O ato novo esta 'Formalizado em documento' nas duas empresas: nao ha mais botao Desfazer, e a UI nao oferece caminho de volta.",
+      "documentos_gerados_criados_nesta_corrida": [
+        "Contrato Social (Agro) / Farroupilha: validado e REGISTRADO NA JUNTA (travado)",
+        "Contrato Social (Participacoes) / Jatoba: documento que JA EXISTIA validado com snapshot velho; re-sincronizado com 'Atualizar do cadastro' e REGISTRADO NA JUNTA (travado)",
+        "Alteracao contratual (Agro) / Farroupilha: id 940afe72-72dd-4318-9d7a-1864fb0750c2, VALIDADA (rascunho), folha em erro de placeholder, NAO registrada",
+        "Alteracao contratual (Participacoes) / Jatoba: id 11220c09-cbc3-428d-bf75-d3b2f1f4fdb8, VALIDADA (rascunho), NAO registrada"
+      ],
+      "movimentacao_quotas": "carimbada (documento_gerado_id preenchido) nas duas empresas pelos dois 'Validar versao' das alteracoes: PATCH movimentacao_quotas?id=in.(...) -> 200 duas vezes.",
+      "alteracoes_de_dado_que_fiz_para_o_teste_andar": [
+        "'Atualizar do cadastro' no contrato social da Jatoba, para que ele parasse de descrever MMS PARTICIPACOES LTDA com socios Bruna e Camila e passasse a descrever a Jatoba com Lucas e Marina. Sem isso o capital de partida da controladora (R$ 1.000,00) nao existiria em documento nenhum e o item 3 da Frente 6 nao teria como ser medido.",
+        "reautenticacao no modal 'Sua sessao expirou', 3 vezes, com a senha do roteiro."
+      ],
+      "para_voltar_ao_comeco": "a secao 7 do ensaio se aplica na forma dura: passou do carimbo, entao reaplicar so o seed NAO basta. O operador precisa soltar documento_gerado_id, apagar os quatro documento_gerado do cliente e o ato_societario, e so depois reaplicar 20260826215500_dev_ensaio_reorganizacao_estado_de_constituicao.sql. Nao rodei SQL nenhum."
+    },
+    {
+      "id": "18-causa-raiz-do-de-r-0-00-e-dos-ingressos",
+      "status": "DEFEITO, com a camada identificada",
+      "codigo": "src/lib/osg/eventosDaAlteracao.ts:96-101 -> `const capitalAntes = capitalDe(formalizados); const capitalDepois = capitalDe(daEmpresa); ... evidencia: `aumento de capital de R$ ${fmt(capitalAntes)} para R$ ${fmt(capitalDepois)}``. `formalizados` sao os movimentos que JA carregam documento_gerado_id.",
+      "leitura": "os movimentos de CONSTITUICAO nao recebem carimbo quando o contrato social e validado e registrado (nesta corrida, os dois 'Validar versao' de contrato social nao dispararam PATCH em movimentacao_quotas; os das alteracoes dispararam). Logo `formalizados` sai vazio, capitalAntes = 0, e o assistente anuncia 'de R$ 0,00'. Pela mesma razao os socios de constituicao aparecem como ingresso ('2 ingresso(s)' na Jatoba, onde nao houve ingresso nenhum) e os aportes de constituicao entram na conta da integralizacao ('6 aporte(s)' na Farroupilha, '4 aporte(s)' na Jatoba, sendo que a subida lancou 2 em cada).",
+      "contraste_interno": "a RESOLUCAO na folha usa outro caminho (calcularHistoricoCapital, do snapshot do documento substituido) e acerta: 'capital social anterior de R$ 1.000,00'. As duas fontes do mesmo numero discordam dentro do mesmo fluxo.",
+      "os_tres_numeros_do_lado_da_controladora": {
+        "contrato_social_registrado": "R$ 1.000,00",
+        "evidencia_do_assistente": "de R$ 0,00 para R$ 1.171.800,00",
+        "resolucao_na_folha": "capital social anterior de R$ 1.000,00 passara a ser de R$ 1.171.800,00"
+      }
+    },
+    {
+      "id": "19-placar",
+      "corrigido_funcionou": [
+        "desfazer o ato (par espelhado inteiro)",
+        "contrato social da Farroupilha com R$ 1.170.800,00",
+        "contrato social da Jatoba com R$ 1.000,00 (depois da re-sincronia)",
+        "macro da subida: tres blocos, aviso com 'alteracao contratual propria', par espelhado com procedencia nas duas empresas",
+        "resolucao de aumento de capital da controladora: R$ 1.000,00 -> R$ 1.171.800,00",
+        "carimbo chegou ao ledger nas duas empresas ('Formalizado em documento')"
+      ],
+      "nao_corrigido_defeito": [
+        "alteracao contratual do modelo (Agro) morre inteira: Placeholder nao resolvido: {{refs.capital_social}}",
+        "resolucao de integralizacao da Jatoba sem alinea nenhuma",
+        "alinea paga com quotas de outra sociedade inexistente: a palavra 'Farroupilha' nao aparece na peca da controladora",
+        "evidencia do assistente diz 'de R$ 0,00' onde a peca e o contrato dizem R$ 1.000,00 / R$ 1.170.800,00",
+        "socios de constituicao contados como ingresso",
+        "retiradas da proprietaria nao aparecem na evidencia (so '1 ingresso(s)')",
+        "UI valida e sela peca que nao renderiza, e carimba o ledger a partir dela"
+      ],
+      "nao_verificavel_nesta_etapa": [
+        "as tres resolucoes do lado da proprietaria (folha em erro)",
+        "a evidencia sumir depois do carimbo (o botao 'Rever os eventos' nao existe depois de validar)"
+      ],
+      "esperado_nao_e_bug": [
+        "aviso de proporcao aparecendo, com os quatro numeros",
+        "endereco e administracao desligados com 'nada no cadastro registra este evento'",
+        "cessao desligada no lado da controladora",
+        "ter de refazer cliente/modelo/empresa depois de navegar",
+        "aportes da proprietaria pagos com imovel e nao com quotas"
+      ],
+      "divergencia_de_origem_ou_de_ambiente": [
+        "documento validado preexistente na Jatoba com snapshot pre-anonimizacao (MMS PARTICIPACOES LTDA, Bruna e Camila)",
+        "401 do backend da 8000 no georreferenciamento, que produz o modal 'Sua sessao expirou' e o descarte do memorial SIGEF",
+        "e2e/renovarSessao.mjs nao acha a chave do sandbox porque o arquivo hoje e .env.sandbox"
+      ]
+    }
+  ]
+}
