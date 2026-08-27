@@ -54,13 +54,13 @@ create table if not exists public.agente_config (
     check (nivel_acesso in ('admin', 'lider', 'sublider', 'team_member')),
   constraint agente_config_temperatura_check
     check (temperatura >= 0 and temperatura <= 1)
-)
+);
 
 comment on table public.agente_config is
-  'Cockpit do Agente PSA: uma linha por escopo (aba onde o balão aparece).'
+  'Cockpit do Agente PSA: uma linha por escopo (aba onde o balão aparece).';
 
 comment on column public.agente_config.escopo is
-  'Chave estável da tela, ex: board.estrategico. Casada com o snapshot publicado pelo front.'
+  'Chave estável da tela, ex: board.estrategico. Casada com o snapshot publicado pelo front.';
 
 -- ── Conversas ───────────────────────────────────────────────────────────────
 create table if not exists public.agente_conversas (
@@ -74,10 +74,10 @@ create table if not exists public.agente_conversas (
   excluido boolean not null default false,
   criado_em timestamptz not null default now(),
   atualizado_em timestamptz not null default now()
-)
+);
 
 create index if not exists agente_conversas_user_escopo_idx
-  on public.agente_conversas (user_id, escopo, atualizado_em desc)
+  on public.agente_conversas (user_id, escopo, atualizado_em desc);
 
 -- ── Mensagens ───────────────────────────────────────────────────────────────
 create table if not exists public.agente_mensagens (
@@ -95,10 +95,10 @@ create table if not exists public.agente_mensagens (
   constraint agente_mensagens_papel_check check (papel in ('user', 'assistant')),
   constraint agente_mensagens_modo_check
     check (modo is null or modo in ('dados', 'estrategia', 'aprender'))
-)
+);
 
 create index if not exists agente_mensagens_conversa_idx
-  on public.agente_mensagens (conversa_id, criado_em)
+  on public.agente_mensagens (conversa_id, criado_em);
 
 -- ── Insights ────────────────────────────────────────────────────────────────
 -- Tabela própria, não array dentro da mensagem: "volume de insights gerados"
@@ -119,13 +119,13 @@ create table if not exists public.agente_insights (
     check (categoria in ('oportunidade', 'risco', 'execucao', 'dado', 'observacao')),
   constraint agente_insights_severidade_check
     check (severidade in ('alta', 'media', 'baixa'))
-)
+);
 
 create index if not exists agente_insights_escopo_idx
-  on public.agente_insights (escopo, criado_em desc)
+  on public.agente_insights (escopo, criado_em desc);
 
 create index if not exists agente_insights_mensagem_idx
-  on public.agente_insights (mensagem_id)
+  on public.agente_insights (mensagem_id);
 
 -- ── Aprendizados ────────────────────────────────────────────────────────────
 -- O "histórico dentro do ambiente de Digital > Acessos". Cada linha é uma
@@ -153,53 +153,53 @@ create table if not exists public.agente_aprendizados (
   constraint agente_aprendizados_tipo_check
     check (tipo in ('correcao', 'preferencia', 'glossario', 'regra')),
   constraint agente_aprendizados_peso_check check (peso between 1 and 5)
-)
+);
 
 create index if not exists agente_aprendizados_escopo_ativo_idx
-  on public.agente_aprendizados (escopo, ativo, criado_em desc)
+  on public.agente_aprendizados (escopo, ativo, criado_em desc);
 
 -- ── RLS ─────────────────────────────────────────────────────────────────────
-alter table public.agente_config enable row level security
+alter table public.agente_config enable row level security;
 
-alter table public.agente_conversas enable row level security
+alter table public.agente_conversas enable row level security;
 
-alter table public.agente_mensagens enable row level security
+alter table public.agente_mensagens enable row level security;
 
-alter table public.agente_insights enable row level security
+alter table public.agente_insights enable row level security;
 
-alter table public.agente_aprendizados enable row level security
+alter table public.agente_aprendizados enable row level security;
 
 -- Config: todo autenticado LÊ (o balão precisa saber se está ativo e qual o
 -- nível exigido); só admin escreve — o cockpit é do admin.
-drop policy if exists agente_config_select on public.agente_config
+drop policy if exists agente_config_select on public.agente_config;
 
 create policy agente_config_select on public.agente_config
-  for select to authenticated using (true)
+  for select to authenticated using (true);
 
-drop policy if exists agente_config_admin_write on public.agente_config
+drop policy if exists agente_config_admin_write on public.agente_config;
 
 create policy agente_config_admin_write on public.agente_config
   for all to authenticated
   using (public.has_role(auth.uid(), 'admin'::public.app_role))
-  with check (public.has_role(auth.uid(), 'admin'::public.app_role))
+  with check (public.has_role(auth.uid(), 'admin'::public.app_role));
 
 -- Conversa: a própria, sempre; todas, se admin (o cockpit mostra volume da casa).
-drop policy if exists agente_conversas_select on public.agente_conversas
+drop policy if exists agente_conversas_select on public.agente_conversas;
 
 create policy agente_conversas_select on public.agente_conversas
   for select to authenticated
-  using (user_id = auth.uid() or public.has_role(auth.uid(), 'admin'::public.app_role))
+  using (user_id = auth.uid() or public.has_role(auth.uid(), 'admin'::public.app_role));
 
 -- Arquivar a própria conversa é do dono. Sem policy de insert: quem cria
 -- conversa é a edge function.
-drop policy if exists agente_conversas_update_dono on public.agente_conversas
+drop policy if exists agente_conversas_update_dono on public.agente_conversas;
 
 create policy agente_conversas_update_dono on public.agente_conversas
   for update to authenticated
   using (user_id = auth.uid() or public.has_role(auth.uid(), 'admin'::public.app_role))
-  with check (user_id = auth.uid() or public.has_role(auth.uid(), 'admin'::public.app_role))
+  with check (user_id = auth.uid() or public.has_role(auth.uid(), 'admin'::public.app_role));
 
-drop policy if exists agente_mensagens_select on public.agente_mensagens
+drop policy if exists agente_mensagens_select on public.agente_mensagens;
 
 create policy agente_mensagens_select on public.agente_mensagens
   for select to authenticated
@@ -207,9 +207,9 @@ create policy agente_mensagens_select on public.agente_mensagens
     select 1 from public.agente_conversas c
     where c.id = agente_mensagens.conversa_id
       and (c.user_id = auth.uid() or public.has_role(auth.uid(), 'admin'::public.app_role))
-  ))
+  ));
 
-drop policy if exists agente_insights_select on public.agente_insights
+drop policy if exists agente_insights_select on public.agente_insights;
 
 create policy agente_insights_select on public.agente_insights
   for select to authenticated
@@ -217,22 +217,22 @@ create policy agente_insights_select on public.agente_insights
     select 1 from public.agente_conversas c
     where c.id = agente_insights.conversa_id
       and (c.user_id = auth.uid() or public.has_role(auth.uid(), 'admin'::public.app_role))
-  ))
+  ));
 
 -- Aprendizado é conhecimento da casa, não do autor: quem conversa com o
 -- agente pode ver a lição que já foi ensinada (e não reensinar a mesma).
-drop policy if exists agente_aprendizados_select on public.agente_aprendizados
+drop policy if exists agente_aprendizados_select on public.agente_aprendizados;
 
 create policy agente_aprendizados_select on public.agente_aprendizados
-  for select to authenticated using (true)
+  for select to authenticated using (true);
 
 -- Curadoria (desativar lição errada, refinar texto) é do admin.
-drop policy if exists agente_aprendizados_admin_write on public.agente_aprendizados
+drop policy if exists agente_aprendizados_admin_write on public.agente_aprendizados;
 
 create policy agente_aprendizados_admin_write on public.agente_aprendizados
   for update to authenticated
   using (public.has_role(auth.uid(), 'admin'::public.app_role))
-  with check (public.has_role(auth.uid(), 'admin'::public.app_role))
+  with check (public.has_role(auth.uid(), 'admin'::public.app_role));
 
 -- ── updated_at do config ────────────────────────────────────────────────────
 -- Trigger, não CHECK com now() (regra inegociável do AGENTS.md).
@@ -246,13 +246,13 @@ begin
   new.updated_at := now();
   return new;
 end;
-$$
+$$;
 
-drop trigger if exists agente_config_touch_trg on public.agente_config
+drop trigger if exists agente_config_touch_trg on public.agente_config;
 
 create trigger agente_config_touch_trg
   before update on public.agente_config
-  for each row execute function public.agente_config_touch()
+  for each row execute function public.agente_config_touch();
 
 -- ── Escopo inicial: o Estratégico do Board ──────────────────────────────────
 -- O agente nasce em UMA tela, com o texto que a diretoria já usa. Cada aba
@@ -267,4 +267,4 @@ values (
   || 'tendência a partir de um mês. Empresa (cluster) e centro de custo são níveis '
   || 'diferentes — centro de custo pertence à ÁREA, não à empresa.'
 )
-on conflict (escopo) do nothing
+on conflict (escopo) do nothing;

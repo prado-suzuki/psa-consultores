@@ -59,16 +59,16 @@ create table if not exists public.agente_notificacoes (
     check (tipo in ('insight_critico', 'analise_estrategica')),
   constraint agente_notificacoes_severidade_check
     check (severidade in ('alta', 'media', 'baixa'))
-)
+);
 
 comment on table public.agente_notificacoes is
-  'Fato notificável do Agente PSA. Endereçado ao ESCOPO, não a uma pessoa: quem recebe é quem tem o papel exigido pelo agente_config daquele escopo.'
+  'Fato notificável do Agente PSA. Endereçado ao ESCOPO, não a uma pessoa: quem recebe é quem tem o papel exigido pelo agente_config daquele escopo.';
 
 create index if not exists agente_notificacoes_escopo_idx
-  on public.agente_notificacoes (escopo, criado_em desc)
+  on public.agente_notificacoes (escopo, criado_em desc);
 
 create index if not exists agente_notificacoes_recentes_idx
-  on public.agente_notificacoes (criado_em desc)
+  on public.agente_notificacoes (criado_em desc);
 
 create table if not exists public.agente_notificacoes_vistas (
   notificacao_id uuid not null references public.agente_notificacoes(id) on delete cascade,
@@ -78,17 +78,17 @@ create table if not exists public.agente_notificacoes_vistas (
   dispensada boolean not null default false,
   visto_em timestamptz not null default now(),
   primary key (notificacao_id, user_id)
-)
+);
 
 comment on table public.agente_notificacoes_vistas is
-  'Marca de leitura por pessoa. A ausência de linha é o que faz o pop-up aparecer.'
+  'Marca de leitura por pessoa. A ausência de linha é o que faz o pop-up aparecer.';
 
 create index if not exists agente_notificacoes_vistas_user_idx
-  on public.agente_notificacoes_vistas (user_id, visto_em desc)
+  on public.agente_notificacoes_vistas (user_id, visto_em desc);
 
-alter table public.agente_notificacoes enable row level security
+alter table public.agente_notificacoes enable row level security;
 
-alter table public.agente_notificacoes_vistas enable row level security
+alter table public.agente_notificacoes_vistas enable row level security;
 
 -- Nenhuma policy para `authenticated` — ver o cabeçalho. Se um dia o pop-up
 -- precisar de realtime (que exige leitura direta), a policy vem junto com a
@@ -117,7 +117,7 @@ insert into public.agente_config (escopo, rotulo, nivel_acesso) values
   ('board.desempenho.feedbacks',        'Desempenho · Feedbacks',        'lider'),
   ('board.desempenho.1a1',              'Desempenho · 1:1s',             'lider'),
   ('board.desempenho.minha-evolucao',   'Minha evolução',                'team_member')
-on conflict (escopo) do nothing
+on conflict (escopo) do nothing;
 
 -- Decisões de pessoas fala de promoção e reajuste nominal: o prompt precisa
 -- dizer isso, senão o agente trata como número de produção.
@@ -127,4 +127,4 @@ set prompt_personalizado = coalesce(prompt_personalizado,
   || 'sobrenome. Nunca compare pessoas fora do que a tela mostra, nunca sugira '
   || 'desligamento, e trate percentual de reajuste como sugestão a ser revisada '
   || 'por gente, jamais como decisão tomada.')
-where escopo = 'board.desempenho.decisoes'
+where escopo = 'board.desempenho.decisoes';

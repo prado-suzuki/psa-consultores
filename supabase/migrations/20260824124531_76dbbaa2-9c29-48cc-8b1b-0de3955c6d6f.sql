@@ -11,7 +11,7 @@
 
 -- 1) contatos: público continua podendo enviar o formulário, mas sem poder
 -- semear campos internos nem gravar textos gigantes.
-DROP POLICY IF EXISTS rls_contatos_insert ON public.contatos
+DROP POLICY IF EXISTS rls_contatos_insert ON public.contatos;
 
 CREATE POLICY rls_contatos_insert
   ON public.contatos FOR INSERT
@@ -26,11 +26,11 @@ CREATE POLICY rls_contatos_insert
     AND notas_internas IS NULL
     AND atendido_por IS NULL
     AND (status IS NULL OR status = 'novo')
-  )
+  );
 
 -- 2) solicitacao_item_nao_aplicavel: corrige a tautologia s.cliente_id = s.cliente_id
 DROP POLICY IF EXISTS "cluster team_member can insert solicitacao item nao aplicavel"
-  ON public.solicitacao_item_nao_aplicavel
+  ON public.solicitacao_item_nao_aplicavel;
 
 CREATE POLICY "cluster team_member can insert solicitacao item nao aplicavel"
   ON public.solicitacao_item_nao_aplicavel FOR INSERT TO authenticated
@@ -44,4 +44,4 @@ CREATE POLICY "cluster team_member can insert solicitacao item nao aplicavel"
        WHERE si.id = solicitacao_item_nao_aplicavel.solicitacao_item_id
          AND s.cliente_id = solicitacao_item_nao_aplicavel.cliente_id
     )
-  )
+  );

@@ -48,16 +48,16 @@
 -- FORA DE ESCOPO: nenhuma policy muda (a coluna herda a RLS da tabela), nenhuma
 -- outra tabela e tocada, e a tela nao entra aqui.
 
-BEGIN
+BEGIN;
 
 alter table public.ordem_servico
-  add column if not exists contribuinte_id uuid references public.contribuinte(id)
+  add column if not exists contribuinte_id uuid references public.contribuinte(id);
 
 comment on column public.ordem_servico.contribuinte_id is
-  'Contribuinte do cliente que recebe a nota desta OS. Substitui a marca contribuinte.contribuinte_faturamento, que decidia por cliente e nao dava conta de OS faturadas em contribuintes diferentes.'
+  'Contribuinte do cliente que recebe a nota desta OS. Substitui a marca contribuinte.contribuinte_faturamento, que decidia por cliente e nao dava conta de OS faturadas em contribuintes diferentes.';
 
 create index if not exists idx_ordem_servico_contribuinte
-  on public.ordem_servico (contribuinte_id) where contribuinte_id is not null
+  on public.ordem_servico (contribuinte_id) where contribuinte_id is not null;
 
 -- Carga: o que a tela mostraria hoje, congelado.
 update public.ordem_servico os
@@ -69,7 +69,7 @@ update public.ordem_servico os
           order by c.contribuinte_faturamento desc nulls last, c.ctid
           limit 1)
  where os.contribuinte_id is null
-   and os.excluido = false
+   and os.excluido = false;
 
 -- GATE: a coluna existe, ninguem ficou apontando para contribuinte de outro
 -- cliente, e so sobrou vazia a OS de cliente que nao tem contribuinte nenhum.
@@ -107,6 +107,6 @@ BEGIN
   END IF;
 
   RAISE NOTICE 'GATE ok: coluna criada e carga coerente';
-END $$
+END $$;
 
-COMMIT
+COMMIT;

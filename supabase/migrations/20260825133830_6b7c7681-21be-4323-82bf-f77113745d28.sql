@@ -22,8 +22,8 @@
 -- difal_sessao segue com DELETE em lider+ de proposito: nenhum caminho do app
 -- apaga sessao, so atualiza status.
 
-drop policy if exists "rls_difal_decisao_delete" on public.difal_decisao
+drop policy if exists "rls_difal_decisao_delete" on public.difal_decisao;
 
 create policy "rls_difal_decisao_delete" on public.difal_decisao
   for delete to authenticated
-  using (public.has_role_or_higher(auth.uid(), 'team_member'::public.app_role))
+  using (public.has_role_or_higher(auth.uid(), 'team_member'::public.app_role));
