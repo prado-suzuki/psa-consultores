@@ -6063,9 +6063,11 @@ export type Database = {
           ai_resumo: string | null
           ai_tags: string[] | null
           ai_titulo: string | null
+          arquivo_bucket: string
           arquivo_path: string | null
           confirmado_em: string | null
           confirmado_por: string | null
+          conteudo_texto: string | null
           created_at: string | null
           created_by: string | null
           erro_mensagem: string | null
@@ -6084,9 +6086,11 @@ export type Database = {
           ai_resumo?: string | null
           ai_tags?: string[] | null
           ai_titulo?: string | null
+          arquivo_bucket?: string
           arquivo_path?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
+          conteudo_texto?: string | null
           created_at?: string | null
           created_by?: string | null
           erro_mensagem?: string | null
@@ -6105,9 +6109,11 @@ export type Database = {
           ai_resumo?: string | null
           ai_tags?: string[] | null
           ai_titulo?: string | null
+          arquivo_bucket?: string
           arquivo_path?: string | null
           confirmado_em?: string | null
           confirmado_por?: string | null
+          conteudo_texto?: string | null
           created_at?: string | null
           created_by?: string | null
           erro_mensagem?: string | null
