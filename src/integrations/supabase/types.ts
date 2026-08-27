@@ -9883,6 +9883,8 @@ export type Database = {
         | "review_adjustments"
         | "status_changed"
         | "documentos_solicitados"
+        | "documentos_cobrados"
+        | "documentos_conferidos"
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
         | "pendente"
@@ -10151,6 +10153,8 @@ export const Constants = {
         "review_adjustments",
         "status_changed",
         "documentos_solicitados",
+        "documentos_cobrados",
+        "documentos_conferidos",
       ],
       osg_checklist_origem: ["padrao", "manual"],
       osg_checklist_status: [
