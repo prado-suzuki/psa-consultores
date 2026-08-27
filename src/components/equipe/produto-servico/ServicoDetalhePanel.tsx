@@ -6,8 +6,8 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
-import { dividirNomeServico } from '@/lib/produtoServicoSecoes';
-import type { ServicoNaLista } from './ServicosSecaoLista';
+import { dividirNomeServico } from '@/lib/produtoServicoNomes';
+import type { ServicoNaLista } from './ServicosLista';
 
 export interface ProdutoVinculado {
   id: string;
@@ -192,8 +192,11 @@ export default function ServicoDetalhePanel({
         painel eles ficam visíveis, ao lado do serviço a que se referem.
       */}
       <div className="flex shrink-0 items-center gap-2 border-t px-4 py-2">
+        {/* "Editar serviço", e nao "Editar": a tela tem dois cadastros abertos
+            ao mesmo tempo — o produto na coluna do meio e o servico aqui — e o
+            rotulo curto nao dizia qual dos dois este botao muda. */}
         <Button variant="outline" size="sm" className="h-7 text-xs" onClick={onEditar}>
-          <Pencil className="mr-1 h-3 w-3" />Editar
+          <Pencil className="mr-1 h-3 w-3" />Editar serviço
         </Button>
         <Button
           variant="ghost"
