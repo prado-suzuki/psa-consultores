@@ -932,42 +932,73 @@ All colors MUST be HSL.
     background-image: linear-gradient(to left, hsl(0 0% 0% / 0.45) 0%, transparent 75%);
   }
 
+  /* ESCALA ESCURA — "grafite quente", escolhida em 27/08/2026 olhando as três
+     candidatas em docs/geral/comparacoes-de-cor/escuro-que-nao-separa.html.
+
+     O QUE ESTAVA ERRADO, e não era contraste de texto. Cinco papéis de superfície
+     colapsavam em dois valores: `--background`, `--card` e `--popover` valiam os
+     três `215 28% 17%`, e `--muted` e `--border` valiam os dois `217 19% 27%`. Um
+     card não se separava da página, um popover não se separava do card, e uma
+     linha `muted` era indistinguível de uma borda. Faltava HIERARQUIA DE PLANO.
+     Mais dois defeitos medidos no mesmo bloco: `--destructive` a `0 63% 31%` dava
+     1,49:1 sobre o card (o vermelho de excluir era ilegível — esse token foi
+     corrigido em base, tax e rotina em 21/08 e o `.dark` ficou fora da passada), e
+     `--muted-foreground` sobre `--muted` dava 3,97:1.
+
+     POR QUE MATIZ 35, E NÃO O SLATE. O sistema é quente: `--foreground` da base é
+     `#2E1305`, o `--muted-foreground` é taupe, e o `.sistema-theme` já usa
+     `35 10% 26%` no grafite dele. O escuro era o único lugar que continuava
+     emprestando o slate frio do Tailwind — duas identidades no mesmo produto. A
+     escolha entre as candidatas foi de temperatura, não de contraste: a "A" mantinha
+     o frio e ficava mais perto do gradiente azul das telas de entrada; esta faz o
+     escuro PERTENCER à paleta, e por isso pede o gradiente na mesma família.
+
+     Os quatro planos agora se distinguem (fundo × card 1,16:1, card × popover
+     1,20:1, muted × borda 1,35:1) e nenhum texto reprova — o pior é
+     `--muted-foreground` sobre `--muted`, em 5,23:1.
+
+     `--primary`, `--secondary` e `--accent` continuam no lime: a escolha foi de
+     superfície, não de acento. O que mudou neles é só o texto POR CIMA — era
+     branco em 3,01:1 sobre o lime, e agora é o próprio fundo escuro em 5,93:1.
+
+     A barra lateral entrou na conta: estava em matiz 240, uma TERCEIRA temperatura
+     no mesmo bloco. */
   .dark {
-    --background: 215 28% 17%;
-    --foreground: 0 0% 98%;
+    --background: 35 12% 9%;
+    --foreground: 38 14% 97%;
 
-    --card: 215 28% 17%;
-    --card-foreground: 0 0% 98%;
+    --card: 35 10% 14%;
+    --card-foreground: 38 14% 97%;
 
-    --popover: 215 28% 17%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 34 9% 19%;
+    --popover-foreground: 38 14% 97%;
 
     --primary: 84 85% 35%;
-    --primary-foreground: 0 0% 100%;
+    --primary-foreground: 35 12% 9%;
 
     --secondary: 84 81% 44%;
-    --secondary-foreground: 215 30% 15%;
+    --secondary-foreground: 35 12% 9%;
 
-    --muted: 217 19% 27%;
-    --muted-foreground: 220 9% 65%;
+    --muted: 33 8% 23%;
+    --muted-foreground: 34 10% 69%;
 
     --accent: 84 81% 44%;
-    --accent-foreground: 0 0% 100%;
+    --accent-foreground: 35 12% 9%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 6 74% 64%;
+    --destructive-foreground: 35 12% 9%;
 
-    --border: 217 19% 27%;
-    --input: 217 19% 27%;
+    --border: 35 9% 30%;
+    --input: 35 9% 30%;
     --ring: 84 85% 35%;
-    
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
+
+    --sidebar-background: 34 14% 8%;
+    --sidebar-foreground: 38 12% 94%;
     --sidebar-primary: 84 85% 35%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-primary-foreground: 35 12% 9%;
+    --sidebar-accent: 33 9% 17%;
+    --sidebar-accent-foreground: 38 12% 94%;
+    --sidebar-border: 34 9% 22%;
     --sidebar-ring: 84 85% 35%;
 
     --edit-shadow-color: 30 89% 51%;
