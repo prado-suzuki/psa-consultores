@@ -34,10 +34,10 @@ export const ProjectFilters = ({
       value={clusterFilter === '' ? '__todos__' : clusterFilter}
       onValueChange={(value) => onClusterFilterChange(value === '__todos__' ? '' : value)}
     >
-      <SelectTrigger className="w-48 bg-white border-gray-300">
+      <SelectTrigger className="w-48 border-gray-300">
         <SelectValue placeholder="Todos os clusters" />
       </SelectTrigger>
-      <SelectContent className="bg-white border-gray-200">
+      <SelectContent className="border-gray-200">
         <SelectItem value="__todos__">Todos os clusters</SelectItem>
         <SelectItem value={SEM_CLUSTER}>— Sem cluster</SelectItem>
         {clusters
@@ -50,10 +50,10 @@ export const ProjectFilters = ({
       </SelectContent>
     </Select>
     <Select value={statusFilter} onValueChange={onStatusFilterChange}>
-      <SelectTrigger className="w-40 bg-white border-gray-300">
+      <SelectTrigger className="w-40 border-gray-300">
         <SelectValue placeholder="Todos status" />
       </SelectTrigger>
-      <SelectContent className="bg-white border-gray-200">
+      <SelectContent className="border-gray-200">
         <SelectItem value="all">Todos status</SelectItem>
         <SelectItem value="active">Ativo</SelectItem>
         <SelectItem value="completed">Concluído</SelectItem>

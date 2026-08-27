@@ -112,7 +112,7 @@ export const DemandList = ({
           const isExpanded = expandedDemands.has(demand.id);
 
           return (
-            <Card key={demand.id} className="bg-white border-gray-200">
+            <Card key={demand.id} className="border-gray-200">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4 flex-1">
@@ -258,7 +258,7 @@ export const DemandList = ({
                                     <SelectTrigger className="h-8 text-sm">
                                       <SelectValue placeholder="Responsável" />
                                     </SelectTrigger>
-                                    <SelectContent className="bg-white">
+                                    <SelectContent>
                                       {teamMembers.map((member) => (
                                         <SelectItem key={member.id} value={member.id}>
                                           {member.first_name}
@@ -318,7 +318,7 @@ export const DemandList = ({
           );
         })
       ) : (
-        <Card className="bg-white border-gray-200">
+        <Card className="border-gray-200">
           <CardContent className="py-16 text-center">
             <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma demanda criada</h3>

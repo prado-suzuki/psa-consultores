@@ -100,7 +100,7 @@ export function ImpactDashboard() {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card className="bg-white border-gray-200">
+      <Card className="border-gray-200">
         <CardContent className="pt-4 pb-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-700">Filtros</h3>
@@ -172,7 +172,7 @@ export function ImpactDashboard() {
 
       {/* Header Stats */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card className="bg-white border-gray-200">
+        <Card className="border-gray-200">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Target className="h-4 w-4 text-gray-500" />
@@ -183,7 +183,7 @@ export function ImpactDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-gray-200">
+        <Card className="border-gray-200">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Zap className="h-4 w-4 text-green-500" />
@@ -194,7 +194,7 @@ export function ImpactDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-gray-200">
+        <Card className="border-gray-200">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Clock className="h-4 w-4 text-blue-500" />
@@ -205,7 +205,7 @@ export function ImpactDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-gray-200">
+        <Card className="border-gray-200">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="h-4 w-4 text-green-500" />
@@ -218,7 +218,7 @@ export function ImpactDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-gray-200">
+        <Card className="border-gray-200">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp className="h-4 w-4 text-primary" />
@@ -229,7 +229,7 @@ export function ImpactDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-gray-200">
+        <Card className="border-gray-200">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Users className="h-4 w-4 text-purple-500" />
@@ -244,7 +244,7 @@ export function ImpactDashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Economia Acumulada */}
-        <Card className="bg-white border-gray-200">
+        <Card className="border-gray-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-gray-900 text-base font-medium">
               Economia Acumulada
@@ -276,7 +276,7 @@ export function ImpactDashboard() {
         </Card>
 
         {/* FTE por Área */}
-        <Card className="bg-white border-gray-200">
+        <Card className="border-gray-200">
           <CardHeader className="pb-2">
             <CardTitle className="text-gray-900 text-base font-medium">
               FTE Liberados por Área
@@ -314,7 +314,7 @@ export function ImpactDashboard() {
       </div>
 
       {/* ROI por Projeto */}
-      <Card className="bg-white border-gray-200">
+      <Card className="border-gray-200">
         <CardHeader className="pb-2">
           <CardTitle className="text-gray-900 text-base font-medium">
             ROI por Projeto
@@ -342,7 +342,7 @@ export function ImpactDashboard() {
       </Card>
 
       {/* Comparativo de Horas */}
-      <Card className="bg-white border-gray-200">
+      <Card className="border-gray-200">
         <CardHeader className="pb-2">
           <CardTitle className="text-gray-900 text-base font-medium">
             Comparativo de Horas
@@ -439,7 +439,7 @@ export function ImpactDashboard() {
       </Card>
 
       {/* Melhorias Implementadas - Cards/Table View */}
-      <Card className="bg-white border-gray-200">
+      <Card className="border-gray-200">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-gray-900 text-base font-medium">

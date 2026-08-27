@@ -65,10 +65,10 @@ export function KanbanFilters(props: KanbanFiltersProps) {
 
       <div className="flex flex-wrap items-center gap-3">
         <Select value={props.filterSprint} onValueChange={props.onSprintChange}>
-          <SelectTrigger className="w-40 bg-white border-gray-300 text-gray-900 h-9">
+          <SelectTrigger className="w-40 border-gray-300 text-gray-900 h-9">
             <SelectValue placeholder="Sprint" />
           </SelectTrigger>
-          <SelectContent className="bg-white border-gray-200">
+          <SelectContent className="border-gray-200">
             <SelectItem value="all">Todas Sprints</SelectItem>
             {props.sprints.map((sprint) => (
               <SelectItem key={sprint.id} value={sprint.id}>
@@ -79,10 +79,10 @@ export function KanbanFilters(props: KanbanFiltersProps) {
         </Select>
 
         <Select value={props.filterResponsible} onValueChange={props.onResponsibleChange}>
-          <SelectTrigger className="w-44 bg-white border-gray-300 text-gray-900 h-9">
+          <SelectTrigger className="w-44 border-gray-300 text-gray-900 h-9">
             <SelectValue placeholder="Responsável" />
           </SelectTrigger>
-          <SelectContent className="bg-white border-gray-200">
+          <SelectContent className="border-gray-200">
             <SelectItem value="all">Todos Responsáveis</SelectItem>
             {props.profiles.map((profile) => (
               <SelectItem key={profile.id} value={profile.id}>
@@ -93,10 +93,10 @@ export function KanbanFilters(props: KanbanFiltersProps) {
         </Select>
 
         <Select value={props.filterProject} onValueChange={props.onProjectChange}>
-          <SelectTrigger className="w-44 bg-white border-gray-300 text-gray-900 h-9">
+          <SelectTrigger className="w-44 border-gray-300 text-gray-900 h-9">
             <SelectValue placeholder="Projeto" />
           </SelectTrigger>
-          <SelectContent className="bg-white border-gray-200">
+          <SelectContent className="border-gray-200">
             <SelectItem value="all">Todos Projetos</SelectItem>
             {props.projects.map((project) => (
               <SelectItem key={project.id} value={project.id}>
@@ -107,10 +107,10 @@ export function KanbanFilters(props: KanbanFiltersProps) {
         </Select>
 
         <Select value={props.filterProcess} onValueChange={props.onProcessChange}>
-          <SelectTrigger className="w-44 bg-white border-gray-300 text-gray-900 h-9">
+          <SelectTrigger className="w-44 border-gray-300 text-gray-900 h-9">
             <SelectValue placeholder="Processo" />
           </SelectTrigger>
-          <SelectContent className="bg-white border-gray-200">
+          <SelectContent className="border-gray-200">
             <SelectItem value="all">Todos Processos</SelectItem>
             {props.processes.map((process) => (
               <SelectItem key={process.id} value={process.id}>
@@ -136,7 +136,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
                 : 'Data Início'}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 bg-white" align="start">
+          <PopoverContent className="w-auto p-0" align="start">
             <Calendar selected={props.filterStartDate} onSelect={props.onStartDateChange} />
           </PopoverContent>
         </Popover>
@@ -157,7 +157,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
                 : 'Data Fim'}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 bg-white" align="start">
+          <PopoverContent className="w-auto p-0" align="start">
             <Calendar selected={props.filterEndDate} onSelect={props.onEndDateChange} />
           </PopoverContent>
         </Popover>

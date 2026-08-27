@@ -259,29 +259,29 @@ const DesempenhoMetas = () => {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
         <Select value={cicloId ?? ''} onValueChange={setSelectedCicloId}>
-          <SelectTrigger className="w-56 bg-white"><SelectValue placeholder="Ciclo" /></SelectTrigger>
+          <SelectTrigger className="w-56"><SelectValue placeholder="Ciclo" /></SelectTrigger>
           <SelectContent>{ciclos?.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={nivelFilter || '__all__'} onValueChange={v => setNivelFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Nivel" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Nivel" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todos</SelectItem><SelectItem value="empresa">Empresa</SelectItem><SelectItem value="equipe">Equipe</SelectItem><SelectItem value="individual">Individual</SelectItem></SelectContent>
         </Select>
         <Select value={dimensaoFilter || '__all__'} onValueChange={v => setDimensaoFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Dimensao" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Dimensao" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todas</SelectItem><SelectItem value="entrega">Entrega</SelectItem><SelectItem value="impacto">Impacto</SelectItem><SelectItem value="gestao">Gestao</SelectItem></SelectContent>
         </Select>
         <Select value={responsavelFilter || '__all__'} onValueChange={v => setResponsavelFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-48 bg-white"><SelectValue placeholder="Responsavel" /></SelectTrigger>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Responsavel" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todos</SelectItem>{profiles.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todos</SelectItem><SelectItem value="ativa">Ativa</SelectItem><SelectItem value="pausada">Pausada</SelectItem><SelectItem value="concluida">Concluida</SelectItem><SelectItem value="cancelada">Cancelada</SelectItem></SelectContent>
         </Select>
       </div>
 
       {isLoading ? <Skeleton className="h-64" /> : (
-        <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+        <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
           <CardContent className="p-4 space-y-1">
             {empresaMetas.map(em => (
               <div key={em.id}>

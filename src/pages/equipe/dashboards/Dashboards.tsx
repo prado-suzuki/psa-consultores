@@ -44,7 +44,7 @@ const Dashboards = () => {
   const seletor = (
     <Select value={dashboard.id} onValueChange={trocarDashboard}>
       <SelectTrigger
-        className="h-9 w-[260px] bg-white text-sm"
+        className="h-9 w-[260px] text-sm"
         aria-label="Selecionar dashboard"
       >
         <SelectValue />

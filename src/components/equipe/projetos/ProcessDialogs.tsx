@@ -50,7 +50,7 @@ const ProcessFormFields = ({
       <Input
         value={process.name}
         onChange={(event) => onChange({ ...process, name: event.target.value })}
-        className="bg-white border-gray-300 text-gray-900"
+        className="border-gray-300 text-gray-900"
         placeholder={creating ? 'Ex: Emissão de Notas Fiscais' : undefined}
         required={creating}
       />
@@ -60,7 +60,7 @@ const ProcessFormFields = ({
       <Textarea
         value={process.description}
         onChange={(event) => onChange({ ...process, description: event.target.value })}
-        className="bg-white border-gray-300 text-gray-900"
+        className="border-gray-300 text-gray-900"
         placeholder={creating ? 'Descreva o processo...' : undefined}
       />
     </div>
@@ -71,10 +71,10 @@ const ProcessFormFields = ({
           value={process.equipe_id || ''}
           onValueChange={(value) => onChange({ ...process, equipe_id: value })}
         >
-          <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+          <SelectTrigger className="border-gray-300 text-gray-900">
             <SelectValue placeholder="Selecione a equipe" />
           </SelectTrigger>
-          <SelectContent className="bg-white border-gray-200">
+          <SelectContent className="border-gray-200">
             {groupedEquipes.map((group) => (
               <div key={group.area.id}>
                 <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
@@ -96,10 +96,10 @@ const ProcessFormFields = ({
           value={process.stage}
           onValueChange={(value) => onChange({ ...process, stage: value })}
         >
-          <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+          <SelectTrigger className="border-gray-300 text-gray-900">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-white border-gray-200">
+          <SelectContent className="border-gray-200">
             {PROCESS_STAGES.map((stage) => (
               <SelectItem key={stage.value} value={stage.value}>
                 {stage.label}
@@ -116,10 +116,10 @@ const ProcessFormFields = ({
           value={process.priority}
           onValueChange={(value) => onChange({ ...process, priority: value })}
         >
-          <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+          <SelectTrigger className="border-gray-300 text-gray-900">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-white border-gray-200">
+          <SelectContent className="border-gray-200">
             <SelectItem value="low">Baixa</SelectItem>
             <SelectItem value="medium">Média</SelectItem>
             <SelectItem value="high">Alta</SelectItem>
@@ -131,7 +131,7 @@ const ProcessFormFields = ({
         <Input
           value={process.frequency}
           onChange={(event) => onChange({ ...process, frequency: event.target.value })}
-          className="bg-white border-gray-300 text-gray-900"
+          className="border-gray-300 text-gray-900"
           placeholder={creating ? 'Ex: Diária' : undefined}
         />
       </div>
@@ -143,7 +143,7 @@ const ProcessFormFields = ({
           type="number"
           value={process.volume_month}
           onChange={(event) => onChange({ ...process, volume_month: event.target.value })}
-          className="bg-white border-gray-300 text-gray-900"
+          className="border-gray-300 text-gray-900"
           placeholder={creating ? 'Ex: 500' : undefined}
         />
       </div>
@@ -152,7 +152,7 @@ const ProcessFormFields = ({
         <Input
           value={process.financial_impact}
           onChange={(event) => onChange({ ...process, financial_impact: event.target.value })}
-          className="bg-white border-gray-300 text-gray-900"
+          className="border-gray-300 text-gray-900"
           placeholder={creating ? 'Ex: Alto' : undefined}
         />
       </div>
@@ -187,7 +187,7 @@ export const ProcessCreateDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-white border-gray-200">
+      <DialogContent className="border-gray-200">
         <DialogHeader>
           <DialogTitle className="text-gray-900">Novo Processo</DialogTitle>
         </DialogHeader>
@@ -253,7 +253,7 @@ export const ProcessEditDialog = ({
 
   return (
     <Dialog open={!!process} onOpenChange={onClose}>
-      <DialogContent className="bg-white border-gray-200">
+      <DialogContent className="border-gray-200">
         {process && (
           <>
             <DialogHeader>
@@ -274,7 +274,7 @@ export const ProcessEditDialog = ({
                       Excluir
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-white">
+                  <AlertDialogContent>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Excluir processo?</AlertDialogTitle>
                       <AlertDialogDescription>

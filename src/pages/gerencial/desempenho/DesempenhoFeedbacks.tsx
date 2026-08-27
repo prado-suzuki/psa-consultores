@@ -102,7 +102,7 @@ const DesempenhoFeedbacks = () => {
 
         <TabsContent value="todos">
           {isLoading ? <Skeleton className="h-64" /> : (
-            <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+            <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader><TableRow><TableHead>De</TableHead><TableHead>Para</TableHead><TableHead>Tipo</TableHead><TableHead>Contexto</TableHead><TableHead>Data</TableHead><TableHead /></TableRow></TableHeader>
@@ -141,20 +141,20 @@ const DesempenhoFeedbacks = () => {
         <TabsContent value="membro">
           <div className="mb-4">
             <Select value={selectedMembro} onValueChange={setSelectedMembro}>
-              <SelectTrigger className="w-64 bg-white"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
+              <SelectTrigger className="w-64"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
               <SelectContent>{profiles.map(p => <SelectItem key={p.id} value={p.id}>{p.nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           {membroFeedbacks && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+              <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                 <CardContent className="pt-4">
                   <h3 className="font-semibold text-sm mb-3" style={{ color: 'var(--board-t1)' }}>Recebidos ({membroFeedbacks.recebidos.length})</h3>
                   {membroFeedbacks.recebidos.map(f => renderFeedbackCard(f))}
                   {membroFeedbacks.recebidos.length === 0 && <p className="text-sm" style={{ color: 'var(--board-t3)' }}>Nenhum feedback recebido.</p>}
                 </CardContent>
               </Card>
-              <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+              <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                 <CardContent className="pt-4">
                   <h3 className="font-semibold text-sm mb-3" style={{ color: 'var(--board-t1)' }}>Enviados ({membroFeedbacks.enviados.length})</h3>
                   {membroFeedbacks.enviados.map(f => renderFeedbackCard(f))}

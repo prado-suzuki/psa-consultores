@@ -138,7 +138,7 @@ const DesempenhoCiclos = () => {
       <Button onClick={() => setShowForm(true)} size="sm"><Plus className="h-4 w-4 mr-1" />Novo Ciclo</Button>
     }>
       {isLoading ? <Skeleton className="h-64" /> : (
-        <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+        <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
           <CardContent className="p-0">
             <Table>
               <TableHeader>
@@ -205,7 +205,7 @@ const DesempenhoCiclos = () => {
                 {/* Counts by level */}
                 <div className="grid grid-cols-3 gap-3">
                   {[{ label: 'Empresa', count: empresaCount }, { label: 'Equipe', count: equipeCount }, { label: 'Individual', count: individualCount }].map(x => (
-                    <Card key={x.label} className="bg-white rounded-xl" style={{ border: '1px solid var(--board-border)' }}>
+                    <Card key={x.label} className="rounded-xl" style={{ border: '1px solid var(--board-border)' }}>
                       <CardContent className="p-3 text-center">
                         <p className="text-xl font-bold" style={{ color: 'var(--board-t1)' }}>{x.count}</p>
                         <p className="text-[11px]" style={{ color: 'var(--board-t3)' }}>{x.label}</p>

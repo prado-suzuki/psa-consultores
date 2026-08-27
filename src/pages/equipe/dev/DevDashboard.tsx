@@ -254,7 +254,7 @@ const DevDashboard = () => {
 
             <div className="flex w-full items-center gap-2 sm:w-auto">
               <Select value={selectedToolPath} onValueChange={setSelectedToolPath}>
-                <SelectTrigger className="h-9 w-full bg-white text-sm shadow-sm sm:w-80">
+                <SelectTrigger className="h-9 w-full text-sm shadow-sm sm:w-80">
                   <SelectValue placeholder="Filtrar por ferramenta..." />
                 </SelectTrigger>
                 <SelectContent>

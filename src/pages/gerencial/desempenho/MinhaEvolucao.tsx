@@ -171,7 +171,7 @@ const MinhaEvolucao = () => {
 
         {/* Cycle Selector */}
         <Select value={cicloId} onValueChange={setSelectedCicloId}>
-          <SelectTrigger className="w-56 bg-white"><SelectValue placeholder="Selecionar ciclo" /></SelectTrigger>
+          <SelectTrigger className="w-56"><SelectValue placeholder="Selecionar ciclo" /></SelectTrigger>
           <SelectContent>{ciclos?.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
         </Select>
 

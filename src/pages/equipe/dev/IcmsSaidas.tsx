@@ -116,7 +116,7 @@ const IcmsSaidas = () => {
                   }}
                   disabled={isLoadingClientes}
                 >
-                  <SelectTrigger className="h-11 bg-white">
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Selecione o cliente" />
                   </SelectTrigger>
                   <SelectContent>
@@ -144,7 +144,7 @@ const IcmsSaidas = () => {
                   }}
                   disabled={!selectedCliente || isLoadingContribuintes}
                 >
-                  <SelectTrigger className="h-11 bg-white">
+                  <SelectTrigger className="h-11">
                     <SelectValue placeholder="Selecione o contribuinte" />
                   </SelectTrigger>
                   <SelectContent>
@@ -251,7 +251,7 @@ const IcmsSaidas = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList
-            className="grid w-full grid-cols-4 h-12 p-1 rounded-lg bg-white border border-slate-200 shadow-sm"
+            className="grid w-full grid-cols-4 h-12 p-1 rounded-lg border border-slate-200 shadow-sm"
           >
             {[
               { value: 't01', label: 'T01 - Apuração', tip: ICMS_PAGE_TOOLTIPS.tabT01 },

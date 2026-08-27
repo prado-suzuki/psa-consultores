@@ -99,10 +99,10 @@ export function ControlePerdcompFilters({
               Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} />
             </label>
             <Select value={clienteId} onValueChange={onClienteChange}>
-              <SelectTrigger className="h-11 bg-white">
+              <SelectTrigger className="h-11">
                 <SelectValue placeholder="Selecione o cliente" />
               </SelectTrigger>
-              <SelectContent className="bg-white z-50">
+              <SelectContent className="z-50">
                 {clientes.map((cliente) => (
                   <SelectItem key={cliente.id} value={cliente.id}>
                     {cliente.nome}
@@ -121,10 +121,10 @@ export function ControlePerdcompFilters({
               onValueChange={onContribuinteChange}
               disabled={!clienteId}
             >
-              <SelectTrigger className="h-11 bg-white">
+              <SelectTrigger className="h-11">
                 <SelectValue placeholder="Selecione o contribuinte" />
               </SelectTrigger>
-              <SelectContent className="bg-white z-50">
+              <SelectContent className="z-50">
                 {contribuintes.map((contribuinte) => (
                   <SelectItem key={contribuinte.id} value={contribuinte.id}>
                     {contribuinte.nome_razao_social}
@@ -204,10 +204,10 @@ export function ControlePerdcompFilters({
               value={exercicio || '__none__'}
               onValueChange={(value) => onExercicioChange(value === '__none__' ? '' : value)}
             >
-              <SelectTrigger className="h-11 bg-white">
+              <SelectTrigger className="h-11">
                 <SelectValue placeholder="Todos" />
               </SelectTrigger>
-              <SelectContent className="bg-white z-50">
+              <SelectContent className="z-50">
                 <SelectItem value="__none__">Todos</SelectItem>
                 {[2026, 2025, 2024, 2023, 2022, 2021, 2020].map((year) => (
                   <SelectItem key={year} value={year.toString()}>
@@ -223,7 +223,7 @@ export function ControlePerdcompFilters({
               Nº do Processo <FieldTooltip text={TOOLTIPS.numeroProcesso} />
             </label>
             <Input
-              className="h-11 bg-white"
+              className="h-11"
               placeholder="Digite o número..."
               value={processo}
               onChange={(event) => onProcessoChange(event.target.value)}

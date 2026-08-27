@@ -306,7 +306,7 @@ export default function EquipeBacklog() {
         {/* Filtros */}
         <div className="flex items-center gap-3">
           <Select value={filterPriority} onValueChange={setFilterPriority}>
-            <SelectTrigger className="w-[160px] bg-white">
+            <SelectTrigger className="w-[160px]">
               <SelectValue placeholder="Prioridade" />
             </SelectTrigger>
             <SelectContent>
@@ -318,7 +318,7 @@ export default function EquipeBacklog() {
           </Select>
 
           <Select value={filterProject} onValueChange={setFilterProject}>
-            <SelectTrigger className="w-[200px] bg-white">
+            <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Projeto" />
             </SelectTrigger>
             <SelectContent>
@@ -335,7 +335,7 @@ export default function EquipeBacklog() {
             value={filterCluster === '' ? '__todos__' : filterCluster}
             onValueChange={(value) => setFilterCluster(value === '__todos__' ? '' : value)}
           >
-            <SelectTrigger className="w-[200px] bg-white">
+            <SelectTrigger className="w-[200px]">
               <SelectValue placeholder="Cluster" />
             </SelectTrigger>
             <SelectContent>
@@ -371,7 +371,7 @@ export default function EquipeBacklog() {
         ) : (
           <div className="space-y-2">
             {filteredItems.map((item) => (
-              <Card key={item.id} className="bg-white border-gray-200 hover:shadow-sm transition-shadow">
+              <Card key={item.id} className="border-gray-200 hover:shadow-sm transition-shadow">
                 <CardContent className="py-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1 min-w-0">

@@ -49,7 +49,7 @@ export const ProjectList = ({
 
   if (filteredProjects.length === 0) {
     return (
-      <Card className="bg-white border-gray-200">
+      <Card className="border-gray-200">
         <CardContent className="py-16 text-center">
           <FolderKanban className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -74,7 +74,7 @@ export const ProjectList = ({
   return (
     <>
       {viewMode === 'table' && (
-        <Card className="bg-white border-gray-200">
+        <Card className="border-gray-200">
           <Table>
             <TableHeader>
               <TableRow className="border-gray-200">
@@ -136,7 +136,7 @@ export const ProjectList = ({
           {filteredProjects.map((project) => (
             <Card
               key={project.id}
-              className="bg-white border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+              className="border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => onSelectProject(project, false)}
             >
               <CardHeader className="pb-2">

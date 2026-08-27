@@ -89,19 +89,19 @@ const DesempenhoRelatorios = () => {
         <div className="flex flex-wrap gap-3 items-end">
           <div className="w-52">
             <Select value={selectedMembro} onValueChange={setSelectedMembro}>
-              <SelectTrigger className="bg-white"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
               <SelectContent>{Object.entries(profilesNomeMap ?? {}).map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="w-48">
             <Select value={cicloId} onValueChange={setSelectedCiclo}>
-              <SelectTrigger className="bg-white"><SelectValue placeholder="Ciclo" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Ciclo" /></SelectTrigger>
               <SelectContent>{ciclos?.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="w-52">
             <Select value={selectedTipo} onValueChange={setSelectedTipo}>
-              <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{Object.entries(tipoLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
             </Select>
           </div>

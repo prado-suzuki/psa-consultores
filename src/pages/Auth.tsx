@@ -191,7 +191,7 @@ export default function Auth() {
                   placeholder="seu@email.com"
                   value={forgotEmail}
                   onChange={(e) => setForgotEmail(e.target.value)}
-                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400"
+                  className="border-gray-300 text-gray-900 placeholder:text-gray-400"
                 />
               </div>
               <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={forgotLoading}>
@@ -224,7 +224,7 @@ export default function Auth() {
                   placeholder="seu@email.com"
                   value={loginForm.email}
                   onChange={(e) => setLoginForm({ ...loginForm, email: e.target.value })}
-                  className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.email ? 'border-destructive' : ''}`}
+                  className={`border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.email ? 'border-destructive' : ''}`}
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">{errors.email}</p>
@@ -240,7 +240,7 @@ export default function Auth() {
                     placeholder="••••••••"
                     value={loginForm.password}
                     onChange={(e) => setLoginForm({ ...loginForm, password: e.target.value })}
-                    className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.password ? 'border-destructive' : ''}`}
+                    className={`border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.password ? 'border-destructive' : ''}`}
                   />
                   <button
                     type="button"
@@ -297,7 +297,7 @@ export default function Auth() {
                     placeholder="João"
                     value={registerForm.firstName}
                     onChange={(e) => setRegisterForm({ ...registerForm, firstName: e.target.value })}
-                    className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.firstName ? 'border-destructive' : ''}`}
+                    className={`border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.firstName ? 'border-destructive' : ''}`}
                   />
                   {errors.firstName && (
                     <p className="text-sm text-destructive">{errors.firstName}</p>
@@ -311,7 +311,7 @@ export default function Auth() {
                     placeholder="Silva"
                     value={registerForm.lastName}
                     onChange={(e) => setRegisterForm({ ...registerForm, lastName: e.target.value })}
-                    className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.lastName ? 'border-destructive' : ''}`}
+                    className={`border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.lastName ? 'border-destructive' : ''}`}
                   />
                   {errors.lastName && (
                     <p className="text-sm text-destructive">{errors.lastName}</p>
@@ -327,7 +327,7 @@ export default function Auth() {
                   placeholder="seu@email.com"
                   value={registerForm.email}
                   onChange={(e) => setRegisterForm({ ...registerForm, email: e.target.value })}
-                  className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.email ? 'border-destructive' : ''}`}
+                  className={`border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.email ? 'border-destructive' : ''}`}
                 />
                 {errors.email && (
                   <p className="text-sm text-destructive">{errors.email}</p>
@@ -343,7 +343,7 @@ export default function Auth() {
                     placeholder="••••••••"
                     value={registerForm.password}
                     onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
-                    className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.password ? 'border-destructive' : ''}`}
+                    className={`border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.password ? 'border-destructive' : ''}`}
                   />
                   <button
                     type="button"
@@ -366,7 +366,7 @@ export default function Auth() {
                   placeholder="••••••••"
                   value={registerForm.confirmPassword}
                   onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
-                  className={`bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.confirmPassword ? 'border-destructive' : ''}`}
+                  className={`border-gray-300 text-gray-900 placeholder:text-gray-400 ${errors.confirmPassword ? 'border-destructive' : ''}`}
                 />
                 {errors.confirmPassword && (
                   <p className="text-sm text-destructive">{errors.confirmPassword}</p>

@@ -232,7 +232,7 @@ export const ControleUsoEnvio = () => {
                 atualizarUrl({ periodo: valor === 'tudo' ? undefined : valor })
               }
             >
-              <SelectTrigger className="h-8 w-full bg-white text-xs sm:w-[170px]">
+              <SelectTrigger className="h-8 w-full text-xs sm:w-[170px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -250,7 +250,7 @@ export const ControleUsoEnvio = () => {
               value={usuarioSelecionado ?? TODOS}
               onValueChange={(valor) => selecionarUsuario(valor === TODOS ? undefined : valor)}
             >
-              <SelectTrigger className="h-8 w-full bg-white text-xs sm:w-[240px]">
+              <SelectTrigger className="h-8 w-full text-xs sm:w-[240px]">
                 <SelectValue placeholder="Todas as pessoas" />
               </SelectTrigger>
               <SelectContent>
@@ -277,7 +277,7 @@ export const ControleUsoEnvio = () => {
               }
               disabled={Boolean(usuarioSelecionado)}
             >
-              <SelectTrigger className="h-8 w-full bg-white text-xs sm:w-[210px]">
+              <SelectTrigger className="h-8 w-full text-xs sm:w-[210px]">
                 <SelectValue placeholder="Todas as ferramentas" />
               </SelectTrigger>
               <SelectContent>
