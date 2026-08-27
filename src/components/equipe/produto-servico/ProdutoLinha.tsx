@@ -25,6 +25,12 @@ export interface ProdutoLinhaProps {
  * O contador é SEMPRE `x/y`. Número solto ("16") não diz se é muito ou pouco;
  * "16/67" diz.
  *
+ * `0/y` NÃO é alerta. Era âmbar, com o aviso de que nenhum projeto podia ser
+ * cadastrado para o produto — e isso não é verdade (ver a faixa em
+ * `ProdutosServicosTab`): produto sem serviço cria projeto igual, o projeto só
+ * nasce sem tarefa. É assim que o Canal de Chamados é desenhado de propósito, e
+ * pintar de âmbar um estado deliberado manda consertar o que não está quebrado.
+ *
  * Selecionado usa o papel `vinculado` do `listRowStates` — nesta lista não há
  * seleção múltipla, e o item aberto no detalhe é justamente o estado que leva o
  * acento.
@@ -33,7 +39,6 @@ export default function ProdutoLinha({
   codigo, nome, vinculados, total, ativo, selecionado, onSelecionar,
 }: ProdutoLinhaProps) {
   const estado = { vinculado: selecionado };
-  const semVinculo = vinculados === 0;
   const proporcao = total > 0 ? Math.min(100, (vinculados / total) * 100) : 0;
 
   return (
@@ -84,18 +89,15 @@ export default function ProdutoLinha({
           <span
             className={cn(
               'block h-full rounded-full',
-              semVinculo ? 'bg-warning' : selecionado ? 'bg-primary' : 'bg-muted-foreground/40',
+              selecionado ? 'bg-primary' : 'bg-muted-foreground/40',
             )}
             style={{ width: `${proporcao}%` }}
           />
         </span>
         <span
-          className={cn(
-            'shrink-0 font-mono text-[10px] tabular-nums',
-            semVinculo ? 'text-warning' : 'text-muted-foreground',
-          )}
-          title={semVinculo
-            ? 'Sem serviço vinculado: nenhum projeto pode ser cadastrado para este produto'
+          className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground"
+          title={vinculados === 0
+            ? 'Nenhum serviço vinculado: projetos deste produto nascem sem tarefa'
             : `${vinculados} de ${total} serviços vinculados`}
         >
           {vinculados}/{total}
