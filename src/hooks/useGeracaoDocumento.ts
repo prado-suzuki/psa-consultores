@@ -535,9 +535,6 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
     queryKey: ['socios-geracao', empresaId],
     enabled: !!empresaId,
     queryFn: async () => {
-      // Fonte: `v_quadro_societario`, a visão derivada do livro de movimentos
-      // que substituiu a tabela `quadro_societario`. A view não embute a pessoa,
-      // então a qualificação vem numa segunda leitura por id.
       const { data, error } = await supabase
         .from('v_quadro_societario')
         // `movimento_ids` são as linhas que compõem o saldo: metadado p/ as

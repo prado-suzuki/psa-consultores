@@ -19,13 +19,6 @@ export interface SocioLinha {
   cpfCnpj: string | null;
   quotas: number | null;
   valor: number | null;
-  /**
-   * DERIVADO, não lido: `v_quadro_societario` entrega quotas, não participação.
-   * É preenchido depois de montar o mapa, quando `totalQuotas` da empresa já
-   * existe — antes disso não há denominador. `null` quando a empresa está sem
-   * quotas, para o relatório não publicar 0% como se fosse medição.
-   */
-  percentual: number | null;
 }
 
 export interface EmpresaSocietaria {
@@ -91,24 +84,13 @@ export function useRelatorioSocietario(clienteId: string | null) {
           cpfCnpj: socio?.cpf_cnpj ?? null,
           quotas: l.quotas,
           valor: l.vlr_total,
-          // Nasce nulo: o denominador é o total da empresa, e ele só fecha
-          // depois de percorrer todas as linhas dela.
-          percentual: null,
         });
         e.totalQuotas += Number(l.quotas) || 0;
         e.totalValor += Number(l.vlr_total) || 0;
       }
 
       const arr = [...map.values()];
-      arr.forEach((e) => {
-        e.socios.sort((a, b) => (Number(b.quotas) || 0) - (Number(a.quotas) || 0));
-        // Percentual derivado: a view entrega quotas, não participação.
-        e.socios.forEach((s) => {
-          s.percentual = e.totalQuotas > 0 && s.quotas != null
-            ? (Number(s.quotas) / e.totalQuotas) * 100
-            : null;
-        });
-      });
+      arr.forEach((e) => e.socios.sort((a, b) => (Number(b.quotas) || 0) - (Number(a.quotas) || 0)));
       arr.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       return arr;
     },
