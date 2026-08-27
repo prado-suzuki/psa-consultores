@@ -15,6 +15,7 @@ export const EXPLICACAO_DO_DESCARTE: Record<MotivoDescarte, string> = {
   'tabela-vazia': 'a tabela dele saiu só com o cabeçalho',
   'campos-vazios': 'nenhum campo dele veio preenchido',
   'render-em-branco': 'ele saiu em branco',
+  'clausula-descartada': 'a cláusula que o governa ficou de fora',
 };
 
 export interface BlocoForaDaFolha {
@@ -58,8 +59,16 @@ export interface EntradaResumoDaFolha {
   descartados: BlocoDescartado[];
   /** Posições do modelo, antes de flags e de descarte. */
   totalNoModelo: number;
-  /** Blocos que as flags da empresa tiraram da composição. */
+  /** Blocos que as flags DERIVADAS (perfil da empresa) tiraram da composição. */
   excluidosPorFlag: number;
+  /**
+   * Blocos que uma flag MANUAL não marcada tirou da composição: as resoluções da
+   * alteração contratual, que moram no mesmo modelo do contrato social. O motivo
+   * é outro e a frase precisa ser outra: num contrato de constituição as seis
+   * ficam de fora porque nenhum evento foi marcado, não porque o perfil da
+   * empresa as dispense.
+   */
+  excluidosPorEvento?: number;
 }
 
 /**
@@ -72,6 +81,7 @@ export function resumoDaFolha({
   descartados,
   totalNoModelo,
   excluidosPorFlag,
+  excluidosPorEvento = 0,
 }: EntradaResumoDaFolha): string {
   const posicoes = new Set(blocos.map(posicaoDe)).size;
   const semDado = blocosForaDaFolha(descartados, blocos, (id) => id).length;
@@ -79,7 +89,26 @@ export function resumoDaFolha({
 
   const notas: string[] = [];
   if (excluidosPorFlag > 0) notas.push('ajustado ao perfil da empresa');
+  if (excluidosPorEvento > 0) notas.push(`${excluidosPorEvento} fora por condição não marcada`);
   if (semDado > 0) notas.push(`${semDado} sem dado para preencher`);
   if (notas.length === 0) notas.push('preenchido do cadastro');
   return `${contagem} · ${notas.join(' · ')}`;
+}
+
+/**
+ * A frase do painel sobre as cláusulas que as FLAGS tiraram da composição
+ * ("2 cláusulas não se aplicam a esta empresa e ficaram de fora: A, B.").
+ *
+ * Existe como função com teste porque a concordância aqui não é sufixo: o verbo
+ * inteiro muda ("ficou" → "ficaram"), e montar o plural concatenando terminação
+ * produziu por um tempo a palavra inexistente "ficouaram" na tela de todo
+ * documento com mais de um bloco excluído. Cada forma vai escrita por extenso.
+ */
+export function fraseExcluidosPorFlag(nomes: string[]): string {
+  if (nomes.length === 0) return 'Todas as cláusulas do modelo se aplicam a esta empresa.';
+  const varias = nomes.length > 1;
+  const substantivo = varias ? 'cláusulas' : 'cláusula';
+  const aplicar = varias ? 'não se aplicam' : 'não se aplica';
+  const ficar = varias ? 'ficaram' : 'ficou';
+  return `${nomes.length} ${substantivo} ${aplicar} a esta empresa e ${ficar} de fora: ${nomes.join(', ')}.`;
 }

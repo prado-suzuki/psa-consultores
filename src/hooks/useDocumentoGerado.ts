@@ -36,8 +36,20 @@ interface RascunhoArgs {
   pjPessoaId: string | null;
 }
 
-/** Rascunho existente (mais recente) para a combinação cliente+modelo+empresa, ou null. */
-export function useDocumentoGeradoRascunho({ clienteId, modeloId, pjPessoaId }: RascunhoArgs) {
+/**
+ * A HEAD da combinação cliente+modelo+empresa: o rascunho vivo se houver, senão
+ * o documento REGISTRADO mais recente. Null quando não há nem um nem outro.
+ *
+ * O registrado entra aqui porque ele não deixa de ser o documento da tela quando
+ * é travado — pelo contrário, é a peça que valeu, e continua sendo lida do
+ * snapshot dela. O rascunho ganha do registrado quando os dois existem: é o caso
+ * da alteração contratual já validada, cujo rascunho sucede o contrato
+ * registrado e passa a ser o documento em edição.
+ *
+ * Versões seladas ('revisao') ficam de fora: elas vivem no histórico da linhagem
+ * (useDocumentoVersoes) e não são editáveis.
+ */
+export function useDocumentoGeradoHead({ clienteId, modeloId, pjPessoaId }: RascunhoArgs) {
   return useQuery({
     queryKey: rascunhoKey(clienteId, modeloId, pjPessoaId),
     enabled: !!clienteId && !!modeloId,
@@ -47,10 +59,28 @@ export function useDocumentoGeradoRascunho({ clienteId, modeloId, pjPessoaId }: 
         .select('*')
         .eq('cliente_id', clienteId!)
         .eq('documento_template_id', modeloId!)
-        .eq('status', 'rascunho');
+        .in('status', ['rascunho', 'registrado']);
       // pj_pessoa_id IS NULL e = <id> são filtros distintos no Postgres.
       q = pjPessoaId ? q.eq('pj_pessoa_id', pjPessoaId) : q.is('pj_pessoa_id', null);
-      const { data, error } = await q.order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const { data, error } = await q.order('created_at', { ascending: false });
+      if (error) throw error;
+      const linhas = (data ?? []) as DocumentoGeradoRow[];
+      return linhas.find((l) => l.status === 'rascunho') ?? linhas[0] ?? null;
+    },
+  });
+}
+
+/** Documento específico da cadeia de substituição, usado como fonte congelada do ato anterior. */
+export function useDocumentoGeradoPorId(documentoId: string | null) {
+  return useQuery({
+    queryKey: ['documento-gerado-por-id', documentoId],
+    enabled: !!documentoId,
+    queryFn: async (): Promise<DocumentoGeradoRow | null> => {
+      const { data, error } = await supabase
+        .from('documento_gerado')
+        .select('*')
+        .eq('id', documentoId!)
+        .maybeSingle();
       if (error) throw error;
       return (data as DocumentoGeradoRow) ?? null;
     },
@@ -135,6 +165,14 @@ export interface SalvarDocumentoGeradoInput {
    * re-sync de dados). Ignorado quando ainda não há head — aí cria a raiz.
    */
   novaVersao?: boolean;
+  /**
+   * Documento REGISTRADO que esta peça substitui — preenchido só quando a
+   * validação está criando a RAIZ de uma alteração contratual. Sucessão entre
+   * documentos distintos, diferente de documento_raiz_id/documento_anterior_id,
+   * que encadeiam versões do mesmo documento. Nos forks da linhagem o valor é
+   * copiado da head, não deste campo.
+   */
+  substituiDocumentoId?: string | null;
 }
 
 /**
@@ -192,6 +230,7 @@ export function useSalvarDocumentoGerado() {
             pj_pessoa_id: input.pjPessoaId,
             documento_template_id: input.modeloId,
             status: 'rascunho',
+            substitui_documento_id: input.substituiDocumentoId ?? null,
             gerado_por_id: userId,
             ...snapshotCols,
           })
@@ -245,6 +284,9 @@ export function useSalvarDocumentoGerado() {
           status: 'rascunho',
           documento_anterior_id: head.id,
           documento_raiz_id: raizId,
+          // Copiada da head, não do input: toda versão da linhagem de uma
+          // alteração responde o que ela substitui sem join até a raiz.
+          substitui_documento_id: head.substitui_documento_id,
           gerado_por_id: userId,
           ...snapshotCols,
         })
@@ -284,6 +326,129 @@ export function useSalvarDocumentoGerado() {
     },
     onError: (error: Error) => {
       toast({ title: 'Erro ao validar a versão', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+// --- Registro na junta: o documento vira peça travada -----------------------
+
+export interface RegistrarDocumentoInput {
+  documentoGeradoId: string;
+  /** Nome do modelo, só para a trilha de auditoria ficar legível. */
+  nomeModelo: string;
+}
+
+/**
+ * Marca o documento como REGISTRADO na junta comercial (status 'registrado', já
+ * previsto no CHECK documento_gerado_status_check do baseline).
+ *
+ * O que isso significa na tela: acabou a edição. O registrado não forka versão
+ * nova, não re-sincroniza do cadastro e não aceita override de bloco — ele é a
+ * peça que valeu, e mexer nele seria reescrever um documento que já produziu
+ * efeito. O caminho para mudar a sociedade a partir daqui é OUTRO documento: a
+ * alteração contratual, que nasce deste e o substitui.
+ *
+ * Só a head vale: exige status 'rascunho' na própria condição do update, para
+ * que registrar duas vezes (ou registrar uma versão selada) não passe.
+ */
+export function useRegistrarDocumento() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (input: RegistrarDocumentoInput): Promise<DocumentoGeradoRow> => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData.user?.id ?? null;
+
+      const { data, error } = await supabase
+        .from('documento_gerado')
+        .update({ status: 'registrado', updated_by: userId })
+        .eq('id', input.documentoGeradoId)
+        .eq('status', 'rascunho')
+        .select('*')
+        .maybeSingle();
+      if (error) throw error;
+      if (!data) {
+        throw new Error('Este documento não está mais em rascunho — recarregue a tela.');
+      }
+      return data as DocumentoGeradoRow;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [RASCUNHO_KEY] });
+      queryClient.invalidateQueries({ queryKey: ['documento-versoes'] });
+      toast({
+        title: 'Documento registrado',
+        description: 'A peça está travada. Para mudar a sociedade, gere uma alteração contratual.',
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Erro ao registrar o documento', description: error.message, variant: 'destructive' });
+    },
+  });
+}
+
+/**
+ * O documento que SUCEDE um registrado, se já existe: a alteração contratual
+ * cuja raiz aponta para ele em substitui_documento_id. Serve para não oferecer
+ * "Gerar alteração contratual" duas vezes sobre a mesma peça.
+ */
+export function useDocumentoSucessor(documentoId: string | null) {
+  return useQuery({
+    queryKey: ['documento-sucessor', documentoId],
+    enabled: !!documentoId,
+    queryFn: async (): Promise<DocumentoGeradoRow | null> => {
+      const { data, error } = await supabase
+        .from('documento_gerado')
+        .select('*')
+        .eq('substitui_documento_id', documentoId!)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return (data as DocumentoGeradoRow) ?? null;
+    },
+  });
+}
+
+/**
+ * Quantas ALTERAÇÕES vieram antes do documento `documentoId` na cadeia de
+ * substituição: 0 quando ele é a constituição (não substitui ninguém), 1 quando
+ * substitui a constituição, 2 quando substitui aquela, e assim por diante.
+ *
+ * É a conta que nomeia a peça: a alteração que sucede este documento é a
+ * `resultado + 1`-ésima, e é esse ordinal que abre o cabeçalho ("PRIMEIRA
+ * ALTERAÇÃO E CONSOLIDAÇÃO DO CONTRATO SOCIAL" — ver `tituloDoInstrumento`).
+ *
+ * A cadeia é percorrida no cliente, sobre UMA leitura de todos os documentos do
+ * cliente: são poucas linhas, e uma consulta recursiva no banco custaria uma RPC
+ * nova para responder o que um `Map` responde aqui. `substitui_documento_id`
+ * liga documentos DISTINTOS; `documento_raiz_id`/`documento_anterior_id` ligam
+ * versões do mesmo documento e não entram nesta conta.
+ */
+export function useOrdemNaSucessao(clienteId: string | null, documentoId: string | null) {
+  return useQuery({
+    queryKey: ['documento-ordem-sucessao', clienteId, documentoId],
+    enabled: !!clienteId && !!documentoId,
+    queryFn: async (): Promise<number> => {
+      const { data, error } = await supabase
+        .from('documento_gerado')
+        .select('id, substitui_documento_id')
+        .eq('cliente_id', clienteId!);
+      if (error) throw error;
+      const antecessor = new Map<string, string | null>();
+      for (const linha of (data ?? []) as Array<{ id: string; substitui_documento_id: string | null }>) {
+        antecessor.set(linha.id, linha.substitui_documento_id);
+      }
+      // Ciclo é impossível pelo fluxo (o sucessor nasce depois), mas um dado
+      // torto não pode travar a tela: `vistos` encerra a caminhada.
+      const vistos = new Set<string>();
+      let atual: string | null = documentoId;
+      let elos = 0;
+      while (atual && !vistos.has(atual)) {
+        vistos.add(atual);
+        atual = antecessor.get(atual) ?? null;
+        if (atual) elos += 1;
+      }
+      return elos;
     },
   });
 }

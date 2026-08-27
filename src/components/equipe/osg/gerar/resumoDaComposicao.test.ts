@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BlocoDescartado, BlocoGerado } from '@/lib/templates';
-import { blocosForaDaFolha, resumoDaFolha } from '@/components/equipe/osg/gerar/resumoDaComposicao';
+import { blocosForaDaFolha, fraseExcluidosPorFlag, resumoDaFolha } from '@/components/equipe/osg/gerar/resumoDaComposicao';
 
 const bloco = (id: string, instanciaDe?: string): BlocoGerado => ({
   id,
@@ -49,6 +49,33 @@ describe('resumoDaFolha — o rodapé não pode mentir', () => {
     ).toBe('1 de 3 blocos · ajustado ao perfil da empresa · 1 sem dado para preencher');
   });
 
+  it('condição não marcada tem frase própria, não vira "perfil da empresa"', () => {
+    // As seis resoluções da alteração contratual moram no mesmo modelo do
+    // contrato social: num contrato de constituição elas ficam de fora porque
+    // nenhum evento foi marcado, e chamar isso de perfil da empresa mente.
+    expect(
+      resumoDaFolha({
+        blocos: [bloco('a')],
+        descartados: [],
+        totalNoModelo: 7,
+        excluidosPorFlag: 0,
+        excluidosPorEvento: 6,
+      }),
+    ).toBe('1 de 7 blocos · 6 fora por condição não marcada');
+  });
+
+  it('os dois motivos convivem, cada um com a sua frase', () => {
+    expect(
+      resumoDaFolha({
+        blocos: [bloco('a')],
+        descartados: [],
+        totalNoModelo: 5,
+        excluidosPorFlag: 2,
+        excluidosPorEvento: 2,
+      }),
+    ).toBe('1 de 5 blocos · ajustado ao perfil da empresa · 2 fora por condição não marcada');
+  });
+
   it('conta POSIÇÕES do modelo: repetidor com sete instâncias não vira "7 de 2 blocos"', () => {
     const instancias = ['1', '2', '3', '4', '5', '6', '7'].map((n) => bloco(`p-imoveis#${n}`, 'p-imoveis'));
     expect(
@@ -86,6 +113,23 @@ describe('blocosForaDaFolha', () => {
     ]);
   });
 
+  it('explica que o parágrafo saiu porque a cláusula governante ficou de fora', () => {
+    const fora = blocosForaDaFolha(
+      [descartado('p-administracao', 'clausula-descartada')],
+      [],
+      () => 'Parágrafo — Administração e poderes (1)',
+    );
+
+    expect(fora).toEqual([
+      {
+        id: 'p-administracao',
+        nome: 'Parágrafo — Administração e poderes (1)',
+        motivo: 'clausula-descartada',
+        explicacao: 'a cláusula que o governa ficou de fora',
+      },
+    ]);
+  });
+
   it('repetidor que perdeu UMA instância e manteve outras não é avisado', () => {
     const fora = blocosForaDaFolha(
       [descartado('p#2', 'campos-vazios', 'p')],
@@ -102,5 +146,25 @@ describe('blocosForaDaFolha', () => {
       (id) => id,
     );
     expect(fora.map((b) => b.id)).toEqual(['p']);
+  });
+});
+
+describe('fraseExcluidosPorFlag — o plural muda o verbo inteiro', () => {
+  it('nenhum excluído: diz que tudo se aplica', () => {
+    expect(fraseExcluidosPorFlag([])).toBe('Todas as cláusulas do modelo se aplicam a esta empresa.');
+  });
+
+  it('um excluído fica no singular', () => {
+    expect(fraseExcluidosPorFlag(['Questões Diversas'])).toBe(
+      '1 cláusula não se aplica a esta empresa e ficou de fora: Questões Diversas.',
+    );
+  });
+
+  it('mais de um: "ficaram", nunca a palavra inexistente "ficouaram"', () => {
+    const frase = fraseExcluidosPorFlag(['Questões Diversas', 'Teste Tabela GeoRef']);
+    expect(frase).toBe(
+      '2 cláusulas não se aplicam a esta empresa e ficaram de fora: Questões Diversas, Teste Tabela GeoRef.',
+    );
+    expect(frase).not.toContain('ficouaram');
   });
 });

@@ -17,9 +17,11 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 import {
+  escopoDaFlag,
   nomesDasFlagsManuaisLigadas,
   useDefinirFlagManual,
   useFlagsManuaisProjeto,
+  useResponderEventosDaAlteracao,
   type ProjetoFlagValorRow,
 } from '@/hooks/useDomainFlagsManuais';
 
@@ -71,6 +73,7 @@ const linha = (over: Partial<ProjetoFlagValorRow>): ProjetoFlagValorRow =>
     id: 'pfv-1',
     cliente_id: 'cli-1',
     pj_pessoa_id: null,
+    documento_base_id: null,
     flag_id: 'flag-1',
     valor: true,
     setado_por_id: null,
@@ -105,19 +108,21 @@ beforeEach(() => {
 });
 
 describe('useFlagsManuaisProjeto — leitura por escopo', () => {
-  it('só consulta com cliente e chaveia por cliente + empresa', () => {
-    renderHook(() => useFlagsManuaisProjeto({ clienteId: 'cli-1', pjPessoaId: 'pj-9' }));
-    expect(queryRegistrada().queryKey).toEqual(['projeto-flag-valor', 'cli-1', 'pj-9']);
+  it('só consulta com cliente e chaveia pelos três escopos', () => {
+    renderHook(() =>
+      useFlagsManuaisProjeto({ clienteId: 'cli-1', pjPessoaId: 'pj-9', documentoBaseId: 'doc-1' }),
+    );
+    expect(queryRegistrada().queryKey).toEqual(['projeto-flag-valor', 'cli-1', 'pj-9', 'doc-1']);
     expect(queryRegistrada().enabled).toBe(true);
   });
 
   it('fica desabilitada sem cliente', () => {
     renderHook(() => useFlagsManuaisProjeto({ clienteId: null, pjPessoaId: null }));
     expect(queryRegistrada().enabled).toBe(false);
-    expect(queryRegistrada().queryKey).toEqual(['projeto-flag-valor', '∅', '∅']);
+    expect(queryRegistrada().queryKey).toEqual(['projeto-flag-valor', '∅', '∅', '∅']);
   });
 
-  it('com empresa, traz os dois escopos: linha do cliente (pj nulo) e a da empresa', async () => {
+  it('com empresa, traz cliente e empresa, e cada ramo fixa base nula', async () => {
     setDbResult('projeto_flag_valor', 'select', {
       data: [linha({}), linha({ id: 'pfv-2', pj_pessoa_id: 'pj-9' })],
       error: null,
@@ -128,19 +133,35 @@ describe('useFlagsManuaisProjeto — leitura por escopo', () => {
 
     expect(dbMocks.from).toHaveBeenCalledWith('projeto_flag_valor');
     expect(chamadas('eq')[0].args).toEqual(['cliente_id', 'cli-1']);
-    expect(chamadas('or')[0].args).toEqual(['pj_pessoa_id.is.null,pj_pessoa_id.eq.pj-9']);
-    expect(chamadas('is')).toHaveLength(0);
+    // documento_base_id.is.null nos dois ramos: sem isso a resposta de UMA
+    // alteração vazaria para as demais alterações da mesma empresa.
+    expect(chamadas('or')[0].args).toEqual([
+      'and(documento_base_id.is.null,pj_pessoa_id.is.null),and(documento_base_id.is.null,pj_pessoa_id.eq.pj-9)',
+    ]);
     expect(linhas.map((l) => l.id)).toEqual(['pfv-1', 'pfv-2']);
   });
 
-  it('sem empresa, restringe ao escopo cliente com IS NULL (não com igualdade)', async () => {
+  it('com alteração em curso, soma o ramo do documento base aos outros dois', async () => {
+    renderHook(() =>
+      useFlagsManuaisProjeto({ clienteId: 'cli-1', pjPessoaId: 'pj-9', documentoBaseId: 'doc-1' }),
+    );
+
+    await queryRegistrada().queryFn();
+
+    expect(chamadas('or')[0].args).toEqual([
+      'and(documento_base_id.is.null,pj_pessoa_id.is.null),' +
+        'and(documento_base_id.is.null,pj_pessoa_id.eq.pj-9),' +
+        'documento_base_id.eq.doc-1',
+    ]);
+  });
+
+  it('sem empresa e sem alteração, sobra só o ramo do cliente', async () => {
     renderHook(() => useFlagsManuaisProjeto({ clienteId: 'cli-1', pjPessoaId: null }));
 
     await queryRegistrada().queryFn();
 
     expect(chamadas('eq')[0].args).toEqual(['cliente_id', 'cli-1']);
-    expect(chamadas('is')[0].args).toEqual(['pj_pessoa_id', null]);
-    expect(chamadas('or')).toHaveLength(0);
+    expect(chamadas('or')[0].args).toEqual(['and(documento_base_id.is.null,pj_pessoa_id.is.null)']);
   });
 
   it('propaga erro da leitura', async () => {
@@ -175,10 +196,13 @@ describe('useDefinirFlagManual — toggle', () => {
       ['flag_id', 'flag-1'],
       ['pj_pessoa_id', 'pj-9'],
     ]);
+    // A busca do existente separa o escopo pj do escopo documento pela base nula.
+    expect(chamadas('is')[0].args).toEqual(['documento_base_id', null]);
     expect(chamadas('insert')[0].args).toEqual([
       {
         cliente_id: 'cli-1',
         pj_pessoa_id: 'pj-9',
+        documento_base_id: null,
         flag_id: 'flag-1',
         valor: true,
         setado_por_id: 'user-1',
@@ -197,7 +221,10 @@ describe('useDefinirFlagManual — toggle', () => {
     await mutationRegistrada().mutationFn(entrada({ escopo: 'cliente' }));
 
     // A busca do existente também precisa ser por IS NULL, senão acharia a linha errada.
-    expect(chamadas('is')[0].args).toEqual(['pj_pessoa_id', null]);
+    expect(chamadas('is').map((c) => c.args)).toEqual([
+      ['documento_base_id', null],
+      ['pj_pessoa_id', null],
+    ]);
     expect((chamadas('insert')[0].args[0] as Record<string, unknown>).pj_pessoa_id).toBeNull();
   });
 
@@ -266,6 +293,139 @@ describe('useDefinirFlagManual — toggle', () => {
 
     expect(auditMocks.logAction.mock.calls[0][0]).toMatchObject({
       action: 'created',
+      changed_fields: { valor: { old: null, new: true } },
+    });
+  });
+});
+
+describe('escopo documento — a resposta é do evento, não da empresa', () => {
+  const entradaDoc = (over: Record<string, unknown> = {}) => ({
+    clienteId: 'cli-1',
+    pjPessoaId: 'pj-9',
+    documentoBaseId: 'doc-registrado',
+    flagId: 'flag-1',
+    flagNome: 'evento_aumento_capital',
+    escopo: 'documento' as const,
+    valor: true,
+    ...over,
+  });
+
+  it('ancora a linha no documento base e busca por ele, ignorando a empresa no filtro', async () => {
+    setDbResult('projeto_flag_valor', 'select', { data: null, error: null });
+    setDbResult('projeto_flag_valor', 'insert', { data: linha({}), error: null });
+    renderHook(() => useDefinirFlagManual());
+
+    await mutationRegistrada().mutationFn(entradaDoc());
+
+    // A chave única do escopo é (documento_base_id, flag_id): a empresa entra na
+    // linha como informação, mas NÃO no filtro — se entrasse, duas alterações da
+    // mesma empresa disputariam a mesma linha, que é o defeito do escopo 'pj'.
+    expect(chamadas('eq').map((c) => c.args)).toEqual([
+      ['cliente_id', 'cli-1'],
+      ['flag_id', 'flag-1'],
+      ['documento_base_id', 'doc-registrado'],
+    ]);
+    expect(chamadas('is')).toHaveLength(0);
+    expect(chamadas('insert')[0].args[0]).toMatchObject({
+      documento_base_id: 'doc-registrado',
+      pj_pessoa_id: 'pj-9',
+    });
+  });
+
+  it('recusa a resposta sem alteração em curso, sem tocar no banco', async () => {
+    renderHook(() => useDefinirFlagManual());
+
+    await expect(
+      mutationRegistrada().mutationFn(entradaDoc({ documentoBaseId: null })),
+    ).rejects.toThrow(/alteração contratual/i);
+    expect(dbMocks.from).not.toHaveBeenCalled();
+  });
+
+  it('escopoDaFlag normaliza o texto do catálogo e cai em cliente no desconhecido', () => {
+    expect(escopoDaFlag('documento')).toBe('documento');
+    expect(escopoDaFlag('pj')).toBe('pj');
+    expect(escopoDaFlag('cliente')).toBe('cliente');
+    expect(escopoDaFlag(null)).toBe('cliente');
+    expect(escopoDaFlag('inventado')).toBe('cliente');
+  });
+});
+
+describe('useResponderEventosDaAlteracao — o assistente grava o conjunto', () => {
+  const respostas = [
+    { flagId: 'flag-1', flagNome: 'evento_aumento_capital', valor: true },
+    { flagId: 'flag-2', flagNome: 'evento_cessao_quotas', valor: false },
+  ];
+  const entrada = {
+    clienteId: 'cli-1',
+    pjPessoaId: 'pj-9',
+    documentoBaseId: 'doc-registrado',
+    respostas,
+  };
+
+  function mutationDoConjunto() {
+    return reactQueryMocks.useMutation.mock.calls[0][0] as {
+      mutationFn: (input: unknown) => Promise<ProjetoFlagValorRow[]>;
+      onSuccess: (r: ProjetoFlagValorRow[], input: unknown) => void;
+    };
+  }
+
+  it('primeira resposta insere TODAS as flags, inclusive as desmarcadas', async () => {
+    setDbResult('projeto_flag_valor', 'select', { data: [], error: null });
+    setDbResult('projeto_flag_valor', 'insert', {
+      data: [linha({ id: 'a' }), linha({ id: 'b', flag_id: 'flag-2', valor: false })],
+      error: null,
+    });
+    renderHook(() => useResponderEventosDaAlteracao());
+
+    const gravadas = await mutationDoConjunto().mutationFn(entrada);
+
+    // A desmarcada vai junto: é a existência de linha ancorada no documento base
+    // que marca "há uma alteração em curso aqui". Só as marcadas fariam
+    // desmarcar tudo apagar a alteração da tela.
+    expect(chamadas('insert')[0].args[0]).toEqual([
+      expect.objectContaining({ flag_id: 'flag-1', valor: true, documento_base_id: 'doc-registrado' }),
+      expect.objectContaining({ flag_id: 'flag-2', valor: false, documento_base_id: 'doc-registrado' }),
+    ]);
+    expect(chamadas('update')).toHaveLength(0);
+    expect(gravadas).toHaveLength(2);
+  });
+
+  it('reabrir o assistente atualiza só o que mudou de valor', async () => {
+    setDbResult('projeto_flag_valor', 'select', {
+      data: [
+        linha({ id: 'a', flag_id: 'flag-1', valor: false, documento_base_id: 'doc-registrado' }),
+        linha({ id: 'b', flag_id: 'flag-2', valor: false, documento_base_id: 'doc-registrado' }),
+      ],
+      error: null,
+    });
+    setDbResult('projeto_flag_valor', 'update', { data: linha({ id: 'a', valor: true }), error: null });
+    renderHook(() => useResponderEventosDaAlteracao());
+
+    await mutationDoConjunto().mutationFn(entrada);
+
+    expect(chamadas('insert')).toHaveLength(0);
+    // flag-2 seguiu false: sem escrita. Só flag-1 (false → true) é atualizada.
+    expect(chamadas('update')).toHaveLength(1);
+    expect(chamadas('update')[0].args).toEqual([
+      { valor: true, setado_por_id: 'user-1', updated_by: 'user-1' },
+    ]);
+    expect(chamadas('eq').at(-1)!.args).toEqual(['id', 'a']);
+  });
+
+  it('audita uma linha por resposta gravada, com o nome legível da flag', () => {
+    renderHook(() => useResponderEventosDaAlteracao());
+
+    mutationDoConjunto().onSuccess(
+      [linha({ id: 'a', flag_id: 'flag-1', valor: true })],
+      entrada,
+    );
+
+    expect(auditMocks.logAction).toHaveBeenCalledWith({
+      area: 'osg',
+      entity_type: 'projeto_flag_valor',
+      entity_id: 'a',
+      entity_name: 'evento_aumento_capital',
+      action: 'updated',
       changed_fields: { valor: { old: null, new: true } },
     });
   });

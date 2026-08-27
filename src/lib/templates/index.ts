@@ -1,6 +1,6 @@
 import { classificarCaminho, marcacaoDoCaminho } from './campos';
 import { comporBlocos } from './composition';
-import { motivoDeDescarte, type MotivoDescarte } from './descarte';
+import { motivoDeDescarte, paragrafosOrfaos, type MotivoDescarte } from './descarte';
 import type { RegistroFamilias } from './familia';
 import { prefixosNumeracao, refsNumeracao, unirBlocos } from './numeracao';
 import { expandirRepetidores } from './repetidor';
@@ -105,13 +105,20 @@ export function gerarComposicao(
   const descartados: BlocoDescartado[] = [];
   const blocosDescartados: Bloco[] = [];
 
-  // Ponto fixo: remover um bloco esvazia as referências que apontavam para ele.
-  // Se uma citação era o único dado de outro bloco, esse segundo bloco também
-  // precisa sair. Uma segunda passada fixa não basta para cadeias A → B → C;
-  // como cada volta remove ao menos um bloco, o laço termina em no máximo N.
+  // Ponto fixo: remover um bloco pode esvaziar referências ou deixar os seus
+  // parágrafos sem cláusula governante. Uma segunda passada fixa não basta para
+  // cadeias A → B → C; como cada volta remove ao menos um bloco, o laço termina
+  // em no máximo N.
   while (true) {
     renders = renderizarComReferencias(blocos, blocosDescartados, contexto, opcoes);
-    const motivos = renders.map(motivoDeDescarte);
+    const motivosProprios = renders.map(motivoDeDescarte);
+    const orfaos = paragrafosOrfaos(blocos);
+    const motivos = motivosProprios.map((motivo, i): MotivoDescarte | null => {
+      // O motivo do próprio conteúdo explica melhor o descarte no painel; a
+      // estrutura só decide quando o bloco não tinha outra razão para sair.
+      if (motivo) return motivo;
+      return orfaos[i] ? 'clausula-descartada' : null;
+    });
     if (motivos.every((motivo) => !motivo)) break;
 
     const sobreviventes: Bloco[] = [];
@@ -209,7 +216,7 @@ export { expandirRepetidores } from './repetidor';
 export { numerarBlocos, unirBlocos, rotulosNumeracao, refsNumeracao, prefixosNumeracao } from './numeracao';
 export { renderConteudo, renderSegmentos, renderBloco, extrairCampos, expandirInclusoes, inclusoesDe } from './render';
 export type { SegmentoRender, OpcoesRender, MarcacaoCampo, RenderDeBloco } from './render';
-export { motivoDeDescarte } from './descarte';
+export { motivoDeDescarte, paragrafosOrfaos } from './descarte';
 export type { MotivoDescarte } from './descarte';
 export { marcarSintetizados, ehSintetizado } from './sintetizado';
 export { classificarCaminho, lacunaDoTipo, marcacaoDoCaminho } from './campos';
@@ -226,6 +233,6 @@ export type { Marcas, RunMarcado, RunPosicionado } from './marcas';
 export { marcarRealceDiff } from './diffPalavras';
 export { apararSegmentos, segmentarComProveniencia } from './proveniencia';
 export type { Pedaco, SegmentoProveniencia } from './proveniencia';
-export { avaliarFlags } from './flags';
+export { avaliarFlags, comFlagDaPecaRetroativa, flagDaPeca } from './flags';
 export type { FlagDeclarativa, FontesFlags } from './flags';
 export * as extenso from './extenso';
