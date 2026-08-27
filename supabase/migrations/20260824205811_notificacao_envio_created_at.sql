@@ -1,3 +1,7 @@
+-- ✅ É ESTA QUE VAI PARA PRODUÇÃO, e não a `20260824212259`, que é o registro da
+-- forma de UM passo que rodou no sandbox e carimbou as linhas existentes. A
+-- diferença, e a razão dos dois comandos, está explicada mais abaixo.
+--
 -- 20260824205811_notificacao_envio_created_at.sql
 -- Duas correcoes na `notificacao_envio`, aditivas e independentes uma da outra.
 -- Achadas no teste da GES-04 em 24/08/2026.
