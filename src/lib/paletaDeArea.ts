@@ -84,6 +84,33 @@ export const TEMAS = [':root', '.tax-theme', '.osg-theme', '.rotina-theme'] as c
 export const AREAS_CONGELADAS_NA_BASE = ['.rotina-theme'] as const;
 
 /**
+ * Papéis semânticos do sistema: o vermelho de excluir, o verde de deu certo, o
+ * amarelo de atenção, o azul de informação. São TOKENS DE SINAL, não paleta de
+ * área — e é por isso que ficaram fora deste arquivo, que nasceu para os oito
+ * papéis de status. O `--warning` atravessou esse tempo a 2,13:1 como texto:
+ * nenhum teste olhava.
+ *
+ * O `--info` entra mesmo passando com folga nos quatro temas, e entra por isso
+ * mesmo: quem já cumpre é barato de travar, e a lacuna que deixou o amarelo
+ * passar não foi um valor errado — foi um token que nada media.
+ *
+ * Diferenças de tratamento em relação a `PAPEIS_DE_STATUS`, e o porquê:
+ *
+ * - **Sem faixa e sem teto de saturação.** Faixa serve para as paletas de área
+ *   conversarem entre si; sinal não conversa, ele interrompe. O `--warning` a
+ *   92% de saturação é escolha, não desvio.
+ * - **Sem separação par a par.** Vermelho, verde, amarelo e azul: matiz
+ *   suficiente por construção.
+ * - **Sem separação entre áreas.** O contrário: o vermelho de excluir PODE ser
+ *   o mesmo em duas áreas, e na maioria delas é.
+ *
+ * O que sobra — e é o que `problemasDosSemanticos` cobra — são as duas maneiras
+ * como o token de fato aparece na tela: preenchimento com o `-foreground` por
+ * cima (botão, pílula) e texto solto sobre a superfície do tema (`text-warning`).
+ */
+export const PAPEIS_SEMANTICOS = ['destructive', 'success', 'warning', 'info'] as const;
+
+/**
  * Faixa do registro comum. Não é gosto: são os limites que mantêm as paletas
  * conversando entre si e legíveis nas duas pontas do par.
  */
@@ -166,12 +193,75 @@ export const SEPARACAO_ENTRE_AREAS = {
 export type Hsl = { h: number; s: number; l: number };
 export type Paleta = Record<string, Hsl>;
 
-/** Recorta um bloco `seletor { … }` do CSS. Devolve '' se o seletor não existir. */
+/**
+ * Apaga os comentários do CSS preservando as posições: cada caractere vira
+ * espaço e as quebras de linha ficam, então recorte de bloco e número de linha
+ * continuam valendo.
+ *
+ * Existe porque o `index.css` CITA declaração em prosa. O comentário do
+ * `.base-theme` explica um caso antigo escrevendo `--destructive: var(--osg-red)`
+ * no meio da frase; sem esta limpeza o parser lê a citação como declaração, e o
+ * `.base-theme` passa a "declarar" o vermelho da OSG. Um comentário que termine
+ * em `  }` também cortaria o bloco antes do fim.
+ */
+function semComentarios(css: string): string {
+  return css.replace(/\/\*[\s\S]*?\*\//g, trecho => trecho.replace(/[^\n]/g, ' '));
+}
+
+/** Recorta um bloco `seletor { … }` do CSS, já sem comentários. Devolve '' se o seletor não existir. */
 export function blocoDoTema(css: string, seletor: string): string {
-  const inicio = css.indexOf(`${seletor} {`);
+  const limpo = semComentarios(css);
+  const inicio = limpo.indexOf(`${seletor} {`);
   if (inicio === -1) return '';
-  const fim = css.indexOf('\n  }', inicio);
-  return fim === -1 ? css.slice(inicio) : css.slice(inicio, fim);
+  const fim = limpo.indexOf('\n  }', inicio);
+  return fim === -1 ? limpo.slice(inicio) : limpo.slice(inicio, fim);
+}
+
+/**
+ * Cadeia de herança de um tema de área, na ordem em que o navegador resolve.
+ *
+ * O `areaTheme.ts` aplica SEMPRE `base-theme` no `<html>` e a classe da área por
+ * cima; o `:root` fica embaixo dos dois, e é onde moram as primitivas de marca
+ * (`--osg-red`, `--teal-500`). Token que a área não declara vem de um destes dois
+ * blocos — e as três áreas dependem disso: nenhuma declara `--card` própria.
+ */
+const HERANCA = ['.base-theme', ':root'] as const;
+
+/** Declarações de um bloco, valor cru: `h s% l%` ou `var(--outra)`. */
+function declaracoesDoTema(css: string, seletor: string): Record<string, string> {
+  const mapa: Record<string, string> = {};
+  for (const [, nome, valor] of blocoDoTema(css, seletor).matchAll(/--([a-z0-9-]+):\s*([^;]+);/g)) {
+    mapa[nome] = valor.trim();
+  }
+  return mapa;
+}
+
+/**
+ * Valor final de UMA variável para UM tema, com herança e `var()` resolvidos.
+ *
+ * `paletaDoTema` não serve aqui: ela só lê o que o bloco declara literalmente em
+ * HSL, e os semânticos da OSG são `var(--osg-moss)` / `var(--osg-highlighter)` —
+ * apontam para primitivas que moram no `:root`. Ler apenas o literal daria "não
+ * declarado" justamente na área que mais personalizou os três.
+ *
+ * Devolve `null` quando a variável não existe em nenhum bloco da cadeia, ou
+ * quando a cadeia de `var()` não termina em HSL (referência quebrada, ou cor
+ * escrita em hex — que este arquivo não sabe ler).
+ */
+export function corDoTema(css: string, seletor: string, nome: string): Hsl | null {
+  const blocos = [seletor, ...HERANCA.filter(bloco => bloco !== seletor)].map(bloco =>
+    declaracoesDoTema(css, bloco),
+  );
+  const buscar = (chave: string, profundidade: number): Hsl | null => {
+    if (profundidade > 5) return null;
+    const cru = blocos.map(bloco => bloco[chave]).find(valor => valor !== undefined);
+    if (cru === undefined) return null;
+    const hsl = cru.match(/^(\d+(?:\.\d+)?)\s+(\d+(?:\.\d+)?)%\s+(\d+(?:\.\d+)?)%$/);
+    if (hsl) return { h: Number(hsl[1]), s: Number(hsl[2]), l: Number(hsl[3]) };
+    const referencia = cru.match(/^var\(--([a-z0-9-]+)\)$/);
+    return referencia ? buscar(referencia[1], profundidade + 1) : null;
+  };
+  return buscar(nome, 0);
 }
 
 /** Variáveis `--status-*` e `--tag-*` de um bloco, já em HSL numérico. */
@@ -321,6 +411,69 @@ export function problemasDoTema(css: string, seletor: string): ProblemaDePaleta[
     }
     if (cor.l > FAIXA.cheioLuminosidade[1]) {
       problemas.push({ tema: seletor, item: `tag-${tom}`, motivo: `luminosidade em ${cor.l}%, acima de ${FAIXA.cheioLuminosidade[1]}%` });
+    }
+  }
+
+  return problemas;
+}
+
+/**
+ * Confere os três papéis semânticos de um tema. Lista vazia = aprovado.
+ *
+ * Duas medidas, uma para cada emprego real do token (ver `PAPEIS_SEMANTICOS`
+ * para o que este contrato deliberadamente NÃO cobra):
+ *
+ * - **preenchido** — o token pinta o fundo e o `-foreground` escreve por cima.
+ *   É o botão de excluir, o toast de sucesso, a pílula de aviso. O par tem que
+ *   fechar AA sozinho: quem olha não escolhe as duas cores, elas vêm juntas.
+ * - **texto** — `text-destructive`, `text-success`, `text-warning` sobre a
+ *   superfície do tema (`--card`, ou `--background` quando a área não declara
+ *   card). Este é o emprego que ninguém estava medindo, e o mais frágil: o
+ *   token foi calibrado para receber texto branco, não para SER o texto.
+ *
+ * A superfície entra pela herança (`corDoTema`) porque nenhuma área declara
+ * `--card` própria — medir contra o branco puro daria um número que não existe
+ * em nenhuma tela.
+ */
+export function problemasDosSemanticos(css: string, seletor: string): ProblemaDePaleta[] {
+  const problemas: ProblemaDePaleta[] = [];
+  const superficie = corDoTema(css, seletor, 'card') ?? corDoTema(css, seletor, 'background');
+  if (!superficie) {
+    problemas.push({
+      tema: seletor,
+      item: 'superfície',
+      motivo: 'nem --card nem --background resolvem — sem superfície não há como medir o token como texto',
+    });
+  }
+
+  for (const papel of PAPEIS_SEMANTICOS) {
+    const cor = corDoTema(css, seletor, papel);
+    const porCima = corDoTema(css, seletor, `${papel}-foreground`);
+    if (!cor || !porCima) {
+      problemas.push({
+        tema: seletor,
+        item: papel,
+        motivo: `não resolve (${cor ? '' : `--${papel} `}${porCima ? '' : `--${papel}-foreground`}) — var() apontando para o vazio, ou cor escrita em hex`,
+      });
+      continue;
+    }
+    const preenchido = contraste(cor, porCima);
+    if (preenchido < FAIXA.contrasteMinimo) {
+      problemas.push({
+        tema: seletor,
+        item: `${papel} · preenchido`,
+        motivo: `--${papel}-foreground sobre --${papel} em ${preenchido.toFixed(2)}:1, abaixo de ${FAIXA.contrasteMinimo}:1`,
+      });
+    }
+    if (superficie) {
+      const texto = contraste(cor, superficie);
+      if (texto < FAIXA.contrasteMinimo) {
+        problemas.push({
+          tema: seletor,
+          item: `${papel} · texto`,
+          motivo: `text-${papel} sobre a superfície do tema em ${texto.toFixed(2)}:1, abaixo de ${FAIXA.contrasteMinimo}:1`,
+        });
+      }
     }
   }
 

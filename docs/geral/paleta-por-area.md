@@ -283,6 +283,41 @@ Duas armadilhas que já morderam aqui:
   Aqui a checagem é de matiz, não de contraste: os dois são tons escuros e dariam ~1:1 de
   razão mesmo sendo verde e tijolo.
 
+### Os papéis semânticos entraram depois
+
+`--destructive`, `--success`, `--warning` e `--info` são **sinal, não paleta de área**, e por
+isso ficaram fora do contrato original — que nasceu para os oito papéis de status. Foi essa
+lacuna que deixou o `--warning` viver como `text-warning` a **2,13:1** sem nada reprovar: não
+era valor errado passando pelo teste, era token que nenhum teste media.
+
+`problemasDosSemanticos` cobra os quatro, nos dois empregos que eles realmente têm na tela:
+
+- **preenchido** — o token pinta o fundo e o `-foreground` escreve por cima (botão, toast,
+  pílula). O par tem que fechar AA sozinho: quem olha não escolhe as duas cores;
+- **texto** — `text-destructive`, `text-success`, `text-warning`, `text-info` sobre a
+  superfície do tema (`--card`, ou `--background` quando a área não declara card). É o
+  emprego frágil: o token foi calibrado para *receber* texto branco, não para *ser* o texto.
+
+O que **não** se cobra deles, e de propósito: faixa e teto de saturação (faixa serve para
+paletas de área conversarem entre si; sinal não conversa, interrompe — o `--warning` a 92% de
+saturação é escolha), separação par a par (vermelho, verde, amarelo e azul já têm matiz por
+construção) e separação entre áreas (o vermelho de excluir *pode* ser o mesmo em duas áreas,
+e na maioria delas é).
+
+A resolução passa por herança e por `var()`: nenhuma área declara `--card` própria, e os
+semânticos da OSG são `var(--osg-moss)` / `var(--osg-highlighter)`. Ler só o literal do bloco
+daria "não declarado" justamente na área que mais personalizou os quatro.
+
+**A dívida de hoje está fixada item a item em `DIVIDA_SEMANTICA`**, no arquivo de teste, com
+12 entradas — valores que já estão em produção, cuja correção é decisão de identidade visual
+e não de teste. A asserção é de igualdade exata, o que faz da lista uma catraca nos dois
+sentidos: falha nova derruba o teste, e item corrigido também derruba, pedindo que saia da
+lista. A dívida só pode diminuir, e nunca de fininho. Em resumo: o `--warning` reprova como
+texto nos quatro temas (1,54:1 a 2,13:1 — é o amarelo, e é a decisão que está na mesa), o
+`--success` reprova por pouco em três (4,18–4,21:1 contra 4,5:1), o `--destructive` do `:root`
+reprova nos dois empregos (Tax, OSG e Rotina já corrigiram o deles), e o `--info` passa com
+folga nos quatro.
+
 ## Fora do módulo de tarefas
 
 O dashboard **Clientes e OS** (`src/pages/equipe/board/BoardDashboardClientesOs.tsx` e
@@ -300,5 +335,6 @@ hexadecimais de gráfico ainda vivem em `src/lib/board-chart-defaults.ts`,
 assim, elas mostram a mesma cor em qualquer área que as hospede; convertê-las para papéis é
 o que as torna sensíveis à área, como já são projetos e tarefas.
 
-O token `--info` (azul) segue existindo para uso semântico pontual; nenhuma área o declara
-na paleta dela.
+O token `--info` (azul) segue existindo para uso semântico pontual: nenhuma área o declara na
+paleta dela, e todas as quatro o resolvem pela herança. Ele entra no contrato dos papéis
+semânticos (acima) mesmo passando com folga — travar quem já cumpre é barato.

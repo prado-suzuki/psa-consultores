@@ -11,10 +11,46 @@ import {
   paletaDoTema,
   problemasDeSeparacao,
   problemasDoTema,
+  problemasDosSemanticos,
   problemasEntreAreas,
 } from '@/lib/paletaDeArea';
 
 const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8');
+
+/**
+ * Dívida dos papéis semânticos, medida hoje e fixada aqui item a item.
+ *
+ * Por que uma lista, e não `toEqual([])`: os três semânticos entraram no
+ * contrato DEPOIS de já estarem no ar em todas as telas, e as 12 falhas abaixo
+ * são valores de cor que já estão em produção. Corrigi-las é decisão de
+ * identidade visual — não cabe a um teste tomá-la, e deixar o teste vermelho até
+ * que ela seja tomada só ensina a equipe a ignorar o vermelho.
+ *
+ * O que a lista faz é o oposto de silenciar: a asserção é de igualdade EXATA,
+ * então ela é uma catraca nos dois sentidos. Falha nova que não esteja aqui
+ * derruba o teste; item daqui que seja CORRIGIDO também derruba, pedindo que
+ * saia da lista. A dívida só pode diminuir, e nunca de fininho.
+ *
+ * Ler a lista: `--warning` reprova como texto em todos os quatro temas, entre
+ * 1,54:1 e 2,13:1 — é o amarelo, e é a decisão que está na mesa. `--success`
+ * reprova em três temas por pouco (4,18–4,21:1 contra 4,5:1). O `--destructive`
+ * do `:root` reprova nos dois empregos; a Tax, a OSG e a Rotina já corrigiram o
+ * deles, e é só a base que ficou atrás.
+ */
+const DIVIDA_SEMANTICA = [
+  ':root · destructive · preenchido',
+  ':root · destructive · texto',
+  ':root · success · preenchido',
+  ':root · success · texto',
+  ':root · warning · texto',
+  '.tax-theme · success · preenchido',
+  '.tax-theme · success · texto',
+  '.tax-theme · warning · texto',
+  '.osg-theme · warning · texto',
+  '.rotina-theme · success · preenchido',
+  '.rotina-theme · success · texto',
+  '.rotina-theme · warning · texto',
+];
 
 /**
  * Guarda das paletas de área. Vale para o `index.css` de verdade: área nova que
@@ -107,5 +143,23 @@ describe('paletas de área declaradas no index.css', () => {
       `${tema} não é mais cópia da base: tire o nome de AREAS_CONGELADAS_NA_BASE ` +
         `(em paletaDeArea.ts) para que a separação entre áreas volte a valer para ela.`,
     ).toEqual(recorte(':root'));
+  });
+
+  it('os papéis semânticos cumprem o contrato, tirando a dívida registrada', () => {
+    // O buraco que deixou o `--warning` passar: este arquivo checava os oito
+    // papéis de status e mais nada, e o vermelho/verde/amarelo do sistema —
+    // usados em botão, toast e `text-warning` — não tinham teste nenhum.
+    //
+    // A comparação é de igualdade exata contra `DIVIDA_SEMANTICA` de propósito:
+    // ela falha tanto quando aparece falha nova quanto quando uma das listadas é
+    // corrigida. Ver o comentário da lista para o porquê.
+    const problemas = TEMAS.flatMap(tema => problemasDosSemanticos(css, tema));
+    const relatorio = problemas.map(p => `  ${p.tema} · ${p.item}: ${p.motivo}`).join('\n');
+    expect(
+      problemas.map(p => `${p.tema} · ${p.item}`).sort(),
+      `a dívida semântica mudou. Se um item NOVO apareceu, é regressão — conserte a cor.\n` +
+        `Se um item da lista foi CORRIGIDO, tire-o de DIVIDA_SEMANTICA (neste arquivo).\n` +
+        `Medido agora:\n${relatorio}`,
+    ).toEqual([...DIVIDA_SEMANTICA].sort());
   });
 });
