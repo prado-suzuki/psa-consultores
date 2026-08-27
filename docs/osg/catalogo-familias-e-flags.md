@@ -106,9 +106,15 @@ Família de **blocos-de-resolução** (cada um entra se o evento correspondente 
 | Nova administração | `evento_mudanca_administracao` | ledger* |
 | Declaração de desimpedimento | sempre que muda administrador | derivada |
 
-\* O **ledger de eventos / quadro societário ao longo do tempo não existe ainda** — é o
-pré-requisito da fase 4 (ver `arquitetura-sintese.md`). Hoje as flags de evento não têm de onde
-vir. Evidência: 1ª Alteração MMS Part. (aumento + integralização por quotas); 2ª Alteração MMS Agro
+\* **O ledger existe desde 26/08/2026.** `movimentacao_quotas` é o livro de movimentos de quota
+(aporte, cessão, doação, redução), com forma de pagamento, sequência dentro do ato e `ato_id`;
+`documento_gerado_id` marca o movimento que já foi formalizado por uma peça, e movimento sem
+documento é evento PENDENTE. As flags `evento_*` continuam existindo, mas deixaram de ser pergunta:
+`derivarEventosDaAlteracao` (`src/lib/osg/eventosDaAlteracao.ts`) monta a lista com a evidência de
+cada uma, o assistente vira conferência, e validar a peça carimba o documento nos movimentos que ela
+conta. Endereço e administração não passam por quota: os dois saem da mesma janela de `audit_logs`
+que a notificação de variável já usava. Ver `docs/planos/ledger-societario-e-alteracao-derivada.md`.
+Evidência: 1ª Alteração MMS Part. (aumento + integralização por quotas); 2ª Alteração MMS Agro
 (endereço + aumento + integralização + cessão total → unipessoal + nova administração + consolidação).
 
 ---
@@ -162,11 +168,11 @@ distinta da área da matrícula.
 | `tem_filiais` | derivada-atributo | sede | parágrafo de filiais |
 | `tipo_sociedade` | categórica (atributo/decisão) | PJ | Objeto Social |
 | `forma_integralizacao` | categórica | cadastro do aporte | parágrafo de integralização |
-| `tipo_administracao` | categórica · manual-projeto | projeto | Cláusula de Administração |
-| `administrador_poderes_ampliados` | manual-projeto | projeto | poderes ampliados |
-| `metodologia_haveres` | categórica · manual-projeto | projeto | apuração de haveres |
-| `tem_acordo_quotistas` | manual-projeto | projeto (+ data) | cláusula de acordo de quotistas |
-| `evento_*` (endereço, capital, cessão, sócios, administração) | derivada-computada | **ledger (inexistente)** | blocos de resolução da Alteração |
+| `administracao_isolada` / `administracao_conjunta` / `administracao_diretoria` | manual-projeto (escopo pj) | projeto | Cláusula de Administração |
+| `administrador_poderes_ampliados` | manual-projeto (escopo pj) | projeto | poderes ampliados |
+| `haveres_fluxo_caixa_descontado` / `haveres_patrimonio_liquido` | manual-projeto (escopo pj) | projeto | apuração de haveres (as duas ligadas = "ambas") |
+| `tem_acordo_quotistas` | manual-projeto (escopo pj) | projeto (+ data, campo livre) | cláusula de acordo de quotistas |
+| `evento_*` (endereço, capital, cessão, sócios, administração) | manual de EVENTO, proposta pela derivação | **ledger + audit_logs** | blocos de resolução da Alteração |
 | `benfeitorias_indenizaveis`, `vigencia_prorrogavel`, `permite_penhor` | manual-projeto | projeto | cláusulas de Parceria |
 | `tipo_instrumento_origem`, `indivisao_prorrogavel` | categórica / manual | projeto / nova entidade | cláusulas de Composse |
 
@@ -188,10 +194,17 @@ distinta da área da matrícula.
 1. **Famílias N-árias exigem flag categórica.** Hoje `tmpl_bloco_flag` é só conjunção booleana (AND).
    Administração (3), integralização (3+), instrumento de origem (3), qualificação (5) são N-árias —
    pediriam ou N booleanos com "exatamente um verdadeiro" ou um seletor categórico.
+   *Estado em 26/08/2026:* administração e haveres entraram como N booleanos de nome explícito
+   (migration `20260826214500`), que é o que o motor compõe hoje; o seletor categórico segue aberto.
+   Integralização deixou de precisar de flag: a forma do aporte é dado do movimento, e a alínea
+   escolhe o ramo por item ({{#aportes}} com `seImovel`/`seMoeda`/`seQuotas`).
 2. **Campo de gênero/sexo em `pessoa`** — metade da concordância (sócio/sócia, casado/casada) depende disso.
-3. **Quadro societário como ledger de eventos** (quotas/capital/administração datados) — pré-requisito
-   das Alterações; é o que produz as flags `evento_*` e os snapshots antes/depois.
-4. **Forma de integralização por aporte** — entidade que liga sócio↔capital com origem (dinheiro/bens/quotas de PJ).
+3. ~~**Quadro societário como ledger de eventos**~~ — **RESOLVIDO em 26/08/2026.** `movimentacao_quotas`
+   com `sequencia` e `ato_id` dá o quadro em qualquer ponto da sequência (`quadroEm`), inclusive o
+   estado INTERMEDIÁRIO que a peça publica no meio de si mesma.
+4. ~~**Forma de integralização por aporte**~~ — **RESOLVIDO em 26/08/2026.** É `bem_id` (imóvel),
+   `pago_com_empresa_pessoa_id` + `pago_com_quotas` + `pago_com_valor` (quotas de outra PJ), e a
+   ausência das duas (moeda corrente), com CHECK no banco impedindo as duas juntas.
 5. **Onde moram `tipo_sociedade` e `tipo_administracao`** — atributo da PJ, decisão de projeto, ou ambos.
 6. **Instrumento de origem da posse** (Composse) e **fração ideal** — entidades/atributos próprios.
 
