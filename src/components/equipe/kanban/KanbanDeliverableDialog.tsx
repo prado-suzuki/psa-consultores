@@ -80,7 +80,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
             <Input
               value={editForm.title}
               onChange={(event) => setEditForm({ ...editForm, title: event.target.value })}
-              className="border-gray-300 text-gray-900"
+              className="text-gray-900"
             />
           </div>
 
@@ -106,7 +106,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                   setEditForm({ ...editForm, assigned_to: value === 'unassigned' ? '' : value })
                 }
               >
-                <SelectTrigger className="border-gray-300 text-gray-900">
+                <SelectTrigger className="text-gray-900">
                   <SelectValue placeholder="Selecionar" />
                 </SelectTrigger>
                 <SelectContent>
@@ -126,7 +126,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 value={editForm.status}
                 onValueChange={(value) => setEditForm({ ...editForm, status: value })}
               >
-                <SelectTrigger className="border-gray-300 text-gray-900">
+                <SelectTrigger className="text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -145,7 +145,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 type="date"
                 value={editForm.start_date}
                 onChange={(event) => setEditForm({ ...editForm, start_date: event.target.value })}
-                className="border-gray-300 text-gray-900"
+                className="text-gray-900"
               />
             </div>
             <div className="space-y-2">
@@ -154,7 +154,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 type="date"
                 value={editForm.due_date}
                 onChange={(event) => setEditForm({ ...editForm, due_date: event.target.value })}
-                className="border-gray-300 text-gray-900"
+                className="text-gray-900"
               />
             </div>
             <div className="space-y-2">
@@ -166,7 +166,7 @@ export function KanbanDeliverableDialog(props: KanbanDeliverableDialogProps) {
                 onChange={(event) =>
                   setEditForm({ ...editForm, estimated_hours: event.target.value })
                 }
-                className="border-gray-300 text-gray-900"
+                className="text-gray-900"
                 placeholder="0"
               />
             </div>

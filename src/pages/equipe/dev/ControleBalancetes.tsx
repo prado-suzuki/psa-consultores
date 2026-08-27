@@ -345,7 +345,7 @@ const ControleBalancetes = () => {
             <div className="col-span-4 space-y-2">
               <Label className="text-sm font-medium text-slate-600">Cliente <RequiredMark /></Label>
               <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
-                <SelectTrigger className="h-11 rounded-lg border-slate-200">
+                <SelectTrigger className="h-11 rounded-lg">
                   <SelectValue placeholder="Selecione o cliente" />
                 </SelectTrigger>
                 <SelectContent>
@@ -360,7 +360,7 @@ const ControleBalancetes = () => {
             <div className="col-span-4 space-y-2">
               <Label className="text-sm font-medium text-slate-600">Contribuinte <RequiredMark /></Label>
               <Select value={contribuinteId} onValueChange={setContribuinteId}>
-                <SelectTrigger className="h-11 rounded-lg border-slate-200">
+                <SelectTrigger className="h-11 rounded-lg">
                   <SelectValue placeholder="Selecione o contribuinte" />
                 </SelectTrigger>
                 <SelectContent>

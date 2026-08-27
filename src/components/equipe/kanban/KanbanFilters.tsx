@@ -65,7 +65,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
 
       <div className="flex flex-wrap items-center gap-3">
         <Select value={props.filterSprint} onValueChange={props.onSprintChange}>
-          <SelectTrigger className="w-40 border-gray-300 text-gray-900 h-9">
+          <SelectTrigger className="w-40 text-gray-900 h-9">
             <SelectValue placeholder="Sprint" />
           </SelectTrigger>
           <SelectContent className="border-gray-200">
@@ -79,7 +79,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
         </Select>
 
         <Select value={props.filterResponsible} onValueChange={props.onResponsibleChange}>
-          <SelectTrigger className="w-44 border-gray-300 text-gray-900 h-9">
+          <SelectTrigger className="w-44 text-gray-900 h-9">
             <SelectValue placeholder="Responsável" />
           </SelectTrigger>
           <SelectContent className="border-gray-200">
@@ -93,7 +93,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
         </Select>
 
         <Select value={props.filterProject} onValueChange={props.onProjectChange}>
-          <SelectTrigger className="w-44 border-gray-300 text-gray-900 h-9">
+          <SelectTrigger className="w-44 text-gray-900 h-9">
             <SelectValue placeholder="Projeto" />
           </SelectTrigger>
           <SelectContent className="border-gray-200">
@@ -107,7 +107,7 @@ export function KanbanFilters(props: KanbanFiltersProps) {
         </Select>
 
         <Select value={props.filterProcess} onValueChange={props.onProcessChange}>
-          <SelectTrigger className="w-44 border-gray-300 text-gray-900 h-9">
+          <SelectTrigger className="w-44 text-gray-900 h-9">
             <SelectValue placeholder="Processo" />
           </SelectTrigger>
           <SelectContent className="border-gray-200">

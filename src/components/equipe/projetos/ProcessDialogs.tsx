@@ -50,7 +50,7 @@ const ProcessFormFields = ({
       <Input
         value={process.name}
         onChange={(event) => onChange({ ...process, name: event.target.value })}
-        className="border-gray-300 text-gray-900"
+        className="text-gray-900"
         placeholder={creating ? 'Ex: Emissão de Notas Fiscais' : undefined}
         required={creating}
       />
@@ -60,7 +60,7 @@ const ProcessFormFields = ({
       <Textarea
         value={process.description}
         onChange={(event) => onChange({ ...process, description: event.target.value })}
-        className="border-gray-300 text-gray-900"
+        className="text-gray-900"
         placeholder={creating ? 'Descreva o processo...' : undefined}
       />
     </div>
@@ -71,7 +71,7 @@ const ProcessFormFields = ({
           value={process.equipe_id || ''}
           onValueChange={(value) => onChange({ ...process, equipe_id: value })}
         >
-          <SelectTrigger className="border-gray-300 text-gray-900">
+          <SelectTrigger className="text-gray-900">
             <SelectValue placeholder="Selecione a equipe" />
           </SelectTrigger>
           <SelectContent className="border-gray-200">
@@ -96,7 +96,7 @@ const ProcessFormFields = ({
           value={process.stage}
           onValueChange={(value) => onChange({ ...process, stage: value })}
         >
-          <SelectTrigger className="border-gray-300 text-gray-900">
+          <SelectTrigger className="text-gray-900">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="border-gray-200">
@@ -116,7 +116,7 @@ const ProcessFormFields = ({
           value={process.priority}
           onValueChange={(value) => onChange({ ...process, priority: value })}
         >
-          <SelectTrigger className="border-gray-300 text-gray-900">
+          <SelectTrigger className="text-gray-900">
             <SelectValue />
           </SelectTrigger>
           <SelectContent className="border-gray-200">
@@ -131,7 +131,7 @@ const ProcessFormFields = ({
         <Input
           value={process.frequency}
           onChange={(event) => onChange({ ...process, frequency: event.target.value })}
-          className="border-gray-300 text-gray-900"
+          className="text-gray-900"
           placeholder={creating ? 'Ex: Diária' : undefined}
         />
       </div>
@@ -143,7 +143,7 @@ const ProcessFormFields = ({
           type="number"
           value={process.volume_month}
           onChange={(event) => onChange({ ...process, volume_month: event.target.value })}
-          className="border-gray-300 text-gray-900"
+          className="text-gray-900"
           placeholder={creating ? 'Ex: 500' : undefined}
         />
       </div>
@@ -152,7 +152,7 @@ const ProcessFormFields = ({
         <Input
           value={process.financial_impact}
           onChange={(event) => onChange({ ...process, financial_impact: event.target.value })}
-          className="border-gray-300 text-gray-900"
+          className="text-gray-900"
           placeholder={creating ? 'Ex: Alto' : undefined}
         />
       </div>
