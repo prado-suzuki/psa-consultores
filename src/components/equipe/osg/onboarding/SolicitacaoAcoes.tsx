@@ -16,10 +16,14 @@ import type { SolicitacaoStatus } from '@/lib/solicitacao';
 /**
  * As ações do topo da Solicitação Inicial, que dependem do status.
  *
- * rascunho     → Atualizar da OS · Enviar (só com item ativo) · Encerrar
- * enviada      → Atualizar da OS (com confirmação) · Passar para o checklist · Encerrar
- * em_checklist → Atualizar da OS (com confirmação) · Encerrar
+ * rascunho     → Atualizar da OS · Enviar (só com item ativo) · Finalizar
+ * enviada      → Atualizar da OS (com confirmação) · Passar para o checklist · Finalizar
+ * em_checklist → Atualizar da OS (com confirmação) · Finalizar
  * encerrada    → Abrir nova solicitação
+ *
+ * A tela diz "Finalizar", decisão da Patricia em 27/08/2026, para casar com o
+ * aviso interno. O STATUS no banco continua `encerrada`: e nome interno, ninguem
+ * ve, e renomear enum custaria migracao sem mudar nada na tela.
  *
  * Nenhuma transição convive com "voltar atrás": existe uma solicitação não
  * encerrada por cliente, ela não retorna para rascunho, e encerrar é definitivo.
@@ -117,7 +121,7 @@ export function SolicitacaoAcoes({
           disabled={ocupado}
         >
           <Lock className="mr-2 h-4 w-4" />
-          Encerrar solicitação
+          Finalizar solicitação
         </Button>
       )}
 
@@ -171,9 +175,9 @@ export function SolicitacaoAcoes({
       <AlertDialog open={confirmarEncerramento} onOpenChange={setConfirmarEncerramento}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Encerrar esta solicitação?</AlertDialogTitle>
+            <AlertDialogTitle>Finalizar esta solicitação?</AlertDialogTitle>
             <AlertDialogDescription>
-              O encerramento é definitivo, não há como reabrir. A lista fica só para
+              A finalização é definitiva, não há como reabrir. A lista fica só para
               consulta, e a tela do cliente passa a modo leitura: os arquivos continuam
               visíveis, mas ele não envia mais nada, nem pela gaveta nem pelo checklist.
               {itensAtivos > 0 && ` São ${itensAtivos} documento(s) ainda ativos.`}
@@ -181,7 +185,7 @@ export function SolicitacaoAcoes({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={onEncerrar}>Encerrar</AlertDialogAction>
+            <AlertDialogAction onClick={onEncerrar}>Finalizar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

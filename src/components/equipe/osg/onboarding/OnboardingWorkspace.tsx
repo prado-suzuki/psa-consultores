@@ -277,7 +277,7 @@ export function OnboardingWorkspace({
         {itens.length === 0 && (
           <p className="mb-2 rounded-lg bg-osg-50/60 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
             {somenteLeitura
-              ? 'Esta solicitação foi encerrada sem nenhum documento. Para pedir documentos, abra uma nova solicitação pelo botão no topo.'
+              ? 'Esta solicitação foi finalizada sem nenhum documento. Para pedir documentos, abra uma nova solicitação pelo botão no topo.'
               : 'A solicitação está vazia. Gere a lista a partir da OS pelo botão no topo, ou inclua documentos um a um.'}
           </p>
         )}

@@ -86,7 +86,11 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   tarefa_em_revisao: { rotulo: 'Revisão pendente', tom: ROXO },
   documento_recebido: { rotulo: 'Documento recebido', tom: PRIMARIO },
   solicitacao_enviada: { rotulo: 'Solicitação enviada', tom: PRIMARIO },
-  documento_aprovado: { rotulo: 'Documento aprovado', tom: VERDE },
+  // "Solicitacao finalizada" e nao "Documento aprovado": o rotulo antigo era o
+  // nome TECNICO do tipo vazando para a tela. O gatilho deste aviso sempre foi o
+  // encerramento da solicitacao, nunca uma aprovacao de documento. Patricia,
+  // 27/08/2026.
+  documento_aprovado: { rotulo: 'Solicitação finalizada', tom: VERDE },
   documento_recusado: { rotulo: 'Documento recusado', tom: VERMELHO },
   cobranca_pendencia: { rotulo: 'Pendência em cobrança', tom: AMBAR },
   // GES-04, mesmo caso dos `chamado_*`: aviso EXTERNO, que só grava em

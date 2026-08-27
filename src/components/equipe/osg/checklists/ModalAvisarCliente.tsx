@@ -377,8 +377,8 @@ export function ModalAvisarCliente({
       avisoNosProjetos.mutate({
         solicitacaoId,
         evento: 'situacao_documentos',
-        detalhe: `${dados.pendentes.length} documento(s) pendente(s) e `
-          + `${dados.recusados.length} a reenviar, de ${dados.base} no checklist.`,
+        detalhe: `${dados.pendentes.length} documentos pendentes, `
+          + `${dados.recusados.length} para reenvio, de ${dados.base} itens no checklist.`,
       });
 
       onFechar();

@@ -250,7 +250,7 @@ export function ChecklistPendentes({ clienteId }: { clienteId: string }) {
       )}
       {solicitacao.status === 'encerrada' && (
         <Aviso tom="neutro">
-          Solicitação <strong>encerrada</strong>
+          Solicitação <strong>finalizada</strong>
           {solicitacao.encerradaEm ? ` em ${new Date(solicitacao.encerradaEm).toLocaleDateString('pt-BR')}` : ''}.
           O checklist continua legível como retrato do que foi pedido.
         </Aviso>
