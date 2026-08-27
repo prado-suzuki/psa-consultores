@@ -1,4 +1,5 @@
 import type { Ambiente } from '@/config/api';
+import { hrefDeOrigem, type AreaDeProjetos } from '@/lib/feedComentarios';
 import type { Database } from '@/integrations/supabase/types';
 
 /**
@@ -126,9 +127,15 @@ export function apresentacaoDoAviso(tipo: NotificacaoTipo): ApresentacaoDoAviso 
 export function destinoDoAviso(
   aviso: Pick<NotificacaoInterna, 'href' | 'entidade_tipo' | 'entidade_id'>,
   tarefasBase: string,
+  area: AreaDeProjetos,
 ): string | null {
   if (aviso.href) return aviso.href;
   if (aviso.entidade_tipo === 'org_task') return `${tarefasBase}?taskId=${aviso.entidade_id}`;
+  // Aviso de projeto (GES-03): reusa o endereço que o feed já monta, em vez de
+  // montar um segundo formato que sairia de sincronia no primeiro renome de rota.
+  if (aviso.entidade_tipo === 'org_project') {
+    return hrefDeOrigem({ entity_type: 'org_project', entity_id: aviso.entidade_id }, area);
+  }
   return null;
 }
 

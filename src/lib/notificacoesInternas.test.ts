@@ -45,6 +45,7 @@ describe('destinoDoAviso', () => {
     const destino = destinoDoAviso(
       { href: null, entidade_tipo: 'org_task', entidade_id: 'T1' },
       base,
+      'tax',
     );
     expect(destino).toBe('/equipe/tax/projetos/tarefas?taskId=T1');
   });
@@ -53,6 +54,7 @@ describe('destinoDoAviso', () => {
     const destino = destinoDoAviso(
       { href: null, entidade_tipo: 'org_task', entidade_id: 'T1' },
       '/equipe/osg/projetos/tarefas',
+      'osg',
     );
     expect(destino).toBe('/equipe/osg/projetos/tarefas?taskId=T1');
   });
@@ -61,6 +63,7 @@ describe('destinoDoAviso', () => {
     const destino = destinoDoAviso(
       { href: '/qualquer/lugar', entidade_tipo: 'org_task', entidade_id: 'T1' },
       base,
+      'tax',
     );
     expect(destino).toBe('/qualquer/lugar');
   });
@@ -69,8 +72,24 @@ describe('destinoDoAviso', () => {
     const destino = destinoDoAviso(
       { href: null, entidade_tipo: 'cliente', entidade_id: 'C1' },
       base,
+      'tax',
     );
     expect(destino).toBeNull();
+  });
+
+  // GES-03: o aviso de projeto reusa o endereco que o feed monta, e por isso
+  // acompanha a area do sino em que a pessoa esta.
+  it('aviso de projeto abre o cadastro do projeto, na area do sino', () => {
+    expect(
+      destinoDoAviso({ href: null, entidade_tipo: 'org_project', entidade_id: 'P1' }, base, 'tax'),
+    ).toBe('/equipe/tax/projetos/cadastro?projetoId=P1');
+    expect(
+      destinoDoAviso(
+        { href: null, entidade_tipo: 'org_project', entidade_id: 'P1' },
+        '/equipe/osg/projetos/tarefas',
+        'osg',
+      ),
+    ).toBe('/equipe/osg/projetos/cadastro?projetoId=P1');
   });
 });
 

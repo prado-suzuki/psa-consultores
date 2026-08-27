@@ -30,6 +30,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { useAvisoProjetosDaOS } from '@/hooks/useAvisoProjetosDaOS';
 import { alcanceDosCanais, useDestinatariosCliente } from '@/hooks/useDestinatariosCliente';
 import { useHistoricoNotificacoes } from '@/hooks/useHistoricoNotificacoes';
 import {
@@ -292,6 +293,7 @@ export function ModalAvisarCliente({
 
   const [canais, setCanais] = useState<CanalAviso[]>(['email', 'whatsapp']);
   const [enviando, setEnviando] = useState(false);
+  const avisoNosProjetos = useAvisoProjetosDaOS();
 
   // Desmarca sozinho o que não pode ir: canal sem destinatário alcançável e canal
   // que já saiu hoje. Fica no efeito e não no estado inicial porque as duas
@@ -360,6 +362,25 @@ export function ModalAvisarCliente({
       const { texto, ok } = descreverEnvio((data ?? {}) as RespostaNotificar);
       if (ok) toast.success(texto);
       else toast.warning(texto, { duration: 8000 });
+
+      /**
+       * Aviso 2, lado interno (GES-03). Um evento na thread de todos os projetos da
+       * OS e um sino por participante distinto.
+       *
+       * O detalhe sai da MESMA conta que o analista está olhando (`dados`, derivado
+       * por `checklistDerivado.ts`), a mesma que foi para o cliente. Recalcular no
+       * banco abriria a porta para a thread divergir da tela.
+       *
+       * Sem `await`: o aviso ao cliente já saiu, e falha no registro interno não
+       * pode virar erro de uma operação que deu certo.
+       */
+      avisoNosProjetos.mutate({
+        solicitacaoId,
+        evento: 'situacao_documentos',
+        detalhe: `${dados.pendentes.length} documento(s) pendente(s) e `
+          + `${dados.recusados.length} a reenviar, de ${dados.base} no checklist.`,
+      });
+
       onFechar();
     } catch (erro) {
       toast.error('Não foi possível avisar o cliente: ' + (erro as Error).message);

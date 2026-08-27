@@ -435,7 +435,7 @@ export function NotificationPopover({
    */
   const handleInternaClick = (notification: NotificacaoInterna) => {
     marcarInternasLidas.mutate([notification.id]);
-    const destino = destinoDoAviso(notification, tasksNavigateTo);
+    const destino = destinoDoAviso(notification, tasksNavigateTo, mencoesArea);
     if (destino) navigate(destino, navState);
   };
 

@@ -79,7 +79,12 @@ const SYSTEM_LABELS: Record<Exclude<OrgComment['kind'], 'comment'>, string> = {
   status_changed: 'Status alterado',
   documentos_solicitados: 'Documentos solicitados ao cliente',
   documentos_cobrados: 'Documentos cobrados do cliente',
-  documentos_conferidos: 'Documentos conferidos',
+  // "Solicitação encerrada" e não "Documentos conferidos": decisão do Bernardo em
+  // 26/08/2026, porque o gatilho deste evento é o encerramento, e é isso que o
+  // aviso deve nomear. O valor do enum continua `documentos_conferidos` — enum do
+  // Postgres não aceita DROP VALUE, e trocar o nome custaria uma migração e um
+  // valor morto para sempre sem mudar nada na tela.
+  documentos_conferidos: 'Solicitação encerrada',
 };
 
 function systemEventBody(comment: OrgComment) {
