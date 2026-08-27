@@ -580,6 +580,47 @@ export type Database = {
           },
         ]
       }
+      ato_societario: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          data: string | null
+          descricao: string | null
+          id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          data?: string | null
+          descricao?: string | null
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ato_societario_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       atualizacoes_meta: {
         Row: {
           autor_id: string | null
@@ -3870,6 +3911,208 @@ export type Database = {
           },
         ]
       }
+      itcd_simulacao: {
+        Row: {
+          aprovada_em: string | null
+          aprovada_por: string | null
+          cliente_id: string
+          competencia: string
+          created_at: string
+          created_by: string | null
+          empresa_pessoa_id: string
+          id: string
+          observacao: string | null
+          origem_simulacao_id: string | null
+          quotas_total: number
+          status: Database["public"]["Enums"]["itcd_simulacao_status"]
+          updated_at: string
+          updated_by: string | null
+          versao: number
+          vlr_acervo_contabil: number
+          vlr_acervo_itr: number
+          vlr_acervo_mercado: number
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+          vlr_upf: number
+        }
+        Insert: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          cliente_id: string
+          competencia: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id: string
+          id?: string
+          observacao?: string | null
+          origem_simulacao_id?: string | null
+          quotas_total: number
+          status?: Database["public"]["Enums"]["itcd_simulacao_status"]
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+          vlr_acervo_contabil: number
+          vlr_acervo_itr: number
+          vlr_acervo_mercado: number
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+          vlr_upf: number
+        }
+        Update: {
+          aprovada_em?: string | null
+          aprovada_por?: string | null
+          cliente_id?: string
+          competencia?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_pessoa_id?: string
+          id?: string
+          observacao?: string | null
+          origem_simulacao_id?: string | null
+          quotas_total?: number
+          status?: Database["public"]["Enums"]["itcd_simulacao_status"]
+          updated_at?: string
+          updated_by?: string | null
+          versao?: number
+          vlr_acervo_contabil?: number
+          vlr_acervo_itr?: number
+          vlr_acervo_mercado?: number
+          vlr_imposto_contabil?: number
+          vlr_imposto_itr?: number
+          vlr_imposto_mercado?: number
+          vlr_upf?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itcd_simulacao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_empresa_pessoa_id_fkey"
+            columns: ["empresa_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_origem_simulacao_id_fkey"
+            columns: ["origem_simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "itcd_simulacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itcd_simulacao_doador: {
+        Row: {
+          created_at: string
+          doador_pessoa_id: string
+          id: string
+          quotas: number
+          simulacao_id: string
+        }
+        Insert: {
+          created_at?: string
+          doador_pessoa_id: string
+          id?: string
+          quotas: number
+          simulacao_id: string
+        }
+        Update: {
+          created_at?: string
+          doador_pessoa_id?: string
+          id?: string
+          quotas?: number
+          simulacao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itcd_simulacao_doador_doador_pessoa_id_fkey"
+            columns: ["doador_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_doador_simulacao_id_fkey"
+            columns: ["simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "itcd_simulacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itcd_simulacao_donatario: {
+        Row: {
+          created_at: string
+          donatario_pessoa_id: string
+          id: string
+          pct_doacao_anterior: number | null
+          percentual: number
+          quotas_disponivel: number
+          quotas_legitima: number
+          simulacao_id: string
+          vlr_base_contabil: number
+          vlr_base_itr: number
+          vlr_base_mercado: number
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+        }
+        Insert: {
+          created_at?: string
+          donatario_pessoa_id: string
+          id?: string
+          pct_doacao_anterior?: number | null
+          percentual: number
+          quotas_disponivel?: number
+          quotas_legitima: number
+          simulacao_id: string
+          vlr_base_contabil: number
+          vlr_base_itr: number
+          vlr_base_mercado: number
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+        }
+        Update: {
+          created_at?: string
+          donatario_pessoa_id?: string
+          id?: string
+          pct_doacao_anterior?: number | null
+          percentual?: number
+          quotas_disponivel?: number
+          quotas_legitima?: number
+          simulacao_id?: string
+          vlr_base_contabil?: number
+          vlr_base_itr?: number
+          vlr_base_mercado?: number
+          vlr_imposto_contabil?: number
+          vlr_imposto_itr?: number
+          vlr_imposto_mercado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itcd_simulacao_donatario_donatario_pessoa_id_fkey"
+            columns: ["donatario_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_donatario_simulacao_id_fkey"
+            columns: ["simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "itcd_simulacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       itens_acao_1a1: {
         Row: {
           created_at: string | null
@@ -4394,6 +4637,7 @@ export type Database = {
       }
       movimentacao_quotas: {
         Row: {
+          ato_id: string | null
           bem_id: string | null
           cliente_id: string
           created_at: string
@@ -4404,11 +4648,15 @@ export type Database = {
           empresa_pessoa_id: string
           id: string
           origem_pessoa_id: string | null
+          pago_com_empresa_pessoa_id: string | null
+          pago_com_quotas: number | null
+          pago_com_valor: number | null
           pct_capital: number | null
           pct_vlr_contabil: number | null
           pct_vlr_mercado: number | null
           quotas: number
           reserva_capital: number | null
+          sequencia: number | null
           tipo: string
           updated_at: string
           updated_by: string | null
@@ -4417,6 +4665,7 @@ export type Database = {
           vlr_mercado: number | null
         }
         Insert: {
+          ato_id?: string | null
           bem_id?: string | null
           cliente_id: string
           created_at?: string
@@ -4427,11 +4676,15 @@ export type Database = {
           empresa_pessoa_id: string
           id?: string
           origem_pessoa_id?: string | null
+          pago_com_empresa_pessoa_id?: string | null
+          pago_com_quotas?: number | null
+          pago_com_valor?: number | null
           pct_capital?: number | null
           pct_vlr_contabil?: number | null
           pct_vlr_mercado?: number | null
           quotas: number
           reserva_capital?: number | null
+          sequencia?: number | null
           tipo: string
           updated_at?: string
           updated_by?: string | null
@@ -4440,6 +4693,7 @@ export type Database = {
           vlr_mercado?: number | null
         }
         Update: {
+          ato_id?: string | null
           bem_id?: string | null
           cliente_id?: string
           created_at?: string
@@ -4450,11 +4704,15 @@ export type Database = {
           empresa_pessoa_id?: string
           id?: string
           origem_pessoa_id?: string | null
+          pago_com_empresa_pessoa_id?: string | null
+          pago_com_quotas?: number | null
+          pago_com_valor?: number | null
           pct_capital?: number | null
           pct_vlr_contabil?: number | null
           pct_vlr_mercado?: number | null
           quotas?: number
           reserva_capital?: number | null
+          sequencia?: number | null
           tipo?: string
           updated_at?: string
           updated_by?: string | null
@@ -4492,6 +4750,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "movimentacao_quotas_ato_id_fkey"
+            columns: ["ato_id"]
+            isOneToOne: false
+            referencedRelation: "ato_societario"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "movimentacao_quotas_destino_pessoa_id_fkey"
             columns: ["destino_pessoa_id"]
             isOneToOne: false
@@ -4515,6 +4780,13 @@ export type Database = {
           {
             foreignKeyName: "movimentacao_quotas_origem_pessoa_id_fkey"
             columns: ["origem_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "movimentacao_quotas_pago_com_empresa_pessoa_id_fkey"
+            columns: ["pago_com_empresa_pessoa_id"]
             isOneToOne: false
             referencedRelation: "pessoa"
             referencedColumns: ["id"]
@@ -8614,6 +8886,7 @@ export type Database = {
           familia_id: string | null
           id: string
           nome: string
+          reinicia_numeracao: boolean
           repete_colecao: string | null
           tipo: string
           tipo_derivacao: string | null
@@ -8636,6 +8909,7 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome: string
+          reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
@@ -8658,6 +8932,7 @@ export type Database = {
           familia_id?: string | null
           id?: string
           nome?: string
+          reinicia_numeracao?: boolean
           repete_colecao?: string | null
           tipo?: string
           tipo_derivacao?: string | null
@@ -9356,6 +9631,10 @@ export type Database = {
       }
       can_view_ticket: { Args: { _ticket_id: string }; Returns: boolean }
       cliente_id_de_bem: { Args: { _bem_id: string }; Returns: string }
+      cliente_id_de_itcd_simulacao: {
+        Args: { _simulacao_id: string }
+        Returns: string
+      }
       cliente_id_de_matricula: {
         Args: { _matricula_id: string }
         Returns: string
@@ -9725,6 +10004,10 @@ export type Database = {
         Returns: boolean
       }
       nome_cliente_normalizado: { Args: { p_nome: string }; Returns: string }
+      notificar_projetos_da_os: {
+        Args: { _detalhe?: string; _evento: string; _solicitacao_id: string }
+        Returns: Json
+      }
       org_project_cluster_ids: {
         Args: { _project_id: string }
         Returns: string[]
@@ -9849,6 +10132,7 @@ export type Database = {
         | "review"
         | "em_ajuste"
         | "done"
+      itcd_simulacao_status: "rascunho" | "gerada" | "aprovada" | "substituida"
       notificacao_canal: "sino" | "email" | "whatsapp"
       notificacao_envio_status:
         | "pendente"
@@ -9880,6 +10164,8 @@ export type Database = {
         | "review_adjustments"
         | "status_changed"
         | "documentos_solicitados"
+        | "documentos_cobrados"
+        | "documentos_conferidos"
       osg_checklist_origem: "padrao" | "manual"
       osg_checklist_status:
         | "pendente"
@@ -10115,6 +10401,7 @@ export const Constants = {
         "em_ajuste",
         "done",
       ],
+      itcd_simulacao_status: ["rascunho", "gerada", "aprovada", "substituida"],
       notificacao_canal: ["sino", "email", "whatsapp"],
       notificacao_envio_status: [
         "pendente",
@@ -10148,6 +10435,8 @@ export const Constants = {
         "review_adjustments",
         "status_changed",
         "documentos_solicitados",
+        "documentos_cobrados",
+        "documentos_conferidos",
       ],
       osg_checklist_origem: ["padrao", "manual"],
       osg_checklist_status: [

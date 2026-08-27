@@ -88,6 +88,7 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   documento_aprovado: { rotulo: 'Documento aprovado', tom: VERDE },
   documento_recusado: { rotulo: 'Documento recusado', tom: VERMELHO },
   cobranca_pendencia: { rotulo: 'Pendência em cobrança', tom: AMBAR },
+  solicitacao_vencida: { rotulo: 'Solicitação vencida', tom: AMBAR },
   chamado_criado: { rotulo: 'Aviso', tom: PRIMARIO },
   chamado_atribuido: { rotulo: 'Aviso', tom: PRIMARIO },
   chamado_respondido: { rotulo: 'Aviso', tom: PRIMARIO },

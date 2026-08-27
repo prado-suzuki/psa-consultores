@@ -94,6 +94,7 @@ const ICONES_INTERNAS: Record<NotificacaoTipo, LucideIcon> = {
   documento_aprovado: FileCheck,
   documento_recusado: FileX,
   cobranca_pendencia: BellRing,
+  solicitacao_vencida: BellRing,
   chamado_criado: Bell,
   chamado_atribuido: Bell,
   chamado_respondido: Bell,

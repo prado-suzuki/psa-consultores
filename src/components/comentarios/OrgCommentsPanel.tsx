@@ -78,6 +78,8 @@ const SYSTEM_LABELS: Record<Exclude<OrgComment['kind'], 'comment'>, string> = {
   review_adjustments: 'Ajustes solicitados',
   status_changed: 'Status alterado',
   documentos_solicitados: 'Documentos solicitados ao cliente',
+  documentos_cobrados: 'Cobrança de documentos pendentes',
+  documentos_conferidos: 'Solicitação finalizada',
 };
 
 function systemEventBody(comment: OrgComment) {
