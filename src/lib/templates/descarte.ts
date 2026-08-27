@@ -1,5 +1,6 @@
 import type { RenderDeBloco } from './render';
 import { segmentar } from './tabela';
+import type { Bloco } from './types';
 
 // Bloco sem dado não entra no documento (B5).
 //
@@ -29,7 +30,25 @@ export type MotivoDescarte =
   /** Todos os campos do bloco resolveram vazio (ou foram sintetizados pelo motor). */
   | 'campos-vazios'
   /** O render inteiro saiu em branco. */
-  | 'render-em-branco';
+  | 'render-em-branco'
+  /** O parágrafo perdeu a cláusula que o governava durante o descarte em cascata. */
+  | 'clausula-descartada';
+
+/** Índices dos blocos `paragrafo` que perderam a cláusula governante. */
+export function paragrafosOrfaos(blocos: Bloco[]): boolean[] {
+  return blocos.map((bloco, i) => {
+    if (bloco.tipo !== 'paragrafo') return false;
+
+    for (let anterior = i - 1; anterior >= 0; anterior -= 1) {
+      const tipo = blocos[anterior].tipo;
+      if (tipo === 'clausula') return false;
+      if (tipo === 'capitulo') return true;
+      // Livre, inclusive o legado sem tipo, não rompe o vínculo estrutural: há
+      // tabelas legítimas entre o caput e os parágrafos que ele governa.
+    }
+    return true;
+  });
+}
 
 /**
  * O motivo pelo qual o bloco deve ser descartado, ou `null` para ficar.

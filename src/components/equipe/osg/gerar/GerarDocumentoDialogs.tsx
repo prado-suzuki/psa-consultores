@@ -2,6 +2,7 @@ import type { GerarDocumentoController } from '@/hooks/useGerarDocumentoControll
 import { Loader2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { OverrideBlocoDialog } from '@/components/equipe/osg/OverrideBlocoDialog';
+import { AlteracaoContratualDialog } from '@/components/equipe/osg/gerar/AlteracaoContratualDialog';
 import { PessoaModal } from '@/components/equipe/osg/qualificacao-das-partes/PessoaModal';
 import { BemModal } from '@/components/equipe/osg/diagnostico-patrimonial/BemModal';
 import { MatriculaModal } from '@/components/equipe/osg/diagnostico-patrimonial/MatriculaModal';
@@ -27,12 +28,65 @@ export function GerarDocumentoDialogs({ controller }: { controller: GerarDocumen
   abrirCadastroOrigem, fecharCadastroOrigem, resultado, copiar, nomeModelo, baixando,
   baixar, baixarIncompletoOpen, setBaixarIncompletoOpen, confirmarDownloadIncompleto,
   pendenciasDocumento, empresas, bindingsNaoSociedade, modeloPronto, passo1Estado, passo2Estado,
+  alteracaoDialogOpen, setAlteracaoDialogOpen, respostasAlteracao, alternarRespostaAlteracao,
+  confirmarAlteracao, salvandoAlteracao, flagsManuaisDoModelo, evidenciaPorFlagNome,
+  registrarConfirmOpen, setRegistrarConfirmOpen, confirmarRegistro, registrandoDocumento,
   modoDocumento, empresaLabel, labelsRegistros, resumoPasso2, mensagemPendente,
   blocosFolha, versaoView, modoVisualizacao, blocosFolhaVersao, baixandoVersao,
   baixarVersao, folhaEstado, infoFolha, temPainel, mostraSocios, mostraAdministradores,
   mostraIntegralizacoes,
 } = controller;
   return (<>
+      {/* Assistente de alteração contratual: sai da folha de um documento
+          travado, não do fluxo de geração. */}
+      <AlteracaoContratualDialog
+        open={alteracaoDialogOpen}
+        onOpenChange={setAlteracaoDialogOpen}
+        documentoDeOrigem={nomeModelo}
+        empresaLabel={empresaLabel}
+        flags={flagsManuaisDoModelo}
+        evidenciaPorFlagNome={evidenciaPorFlagNome}
+        respostas={respostasAlteracao}
+        onAlternar={alternarRespostaAlteracao}
+        onConfirmar={() => void confirmarAlteracao()}
+        salvando={salvandoAlteracao}
+      />
+
+      {/* Registro na junta: irreversível pela tela (só admin apaga linha), e é
+          o que separa "documento em edição" de "peça que valeu". */}
+      <AlertDialog open={registrarConfirmOpen} onOpenChange={setRegistrarConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Registrar este documento na junta?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Marca que <span className="font-medium">{nomeModelo}</span> foi registrado e trava
+                  a peça: ela deixa de aceitar edição de bloco, nova versão e re-sincronia do
+                  cadastro.
+                </p>
+                <p>
+                  A partir daí, a forma de mudar a sociedade é gerar uma alteração contratual a
+                  partir dela — outro documento, que a substitui.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(event) => {
+                event.preventDefault();
+                void confirmarRegistro();
+              }}
+            >
+              {registrandoDocumento && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Registrar na junta
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={baixarIncompletoOpen} onOpenChange={setBaixarIncompletoOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

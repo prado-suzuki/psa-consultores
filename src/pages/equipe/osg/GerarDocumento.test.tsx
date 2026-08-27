@@ -12,7 +12,17 @@ const mocks = vi.hoisted(() => ({
   marcarVistas: vi.fn(),
   baixarDocx: vi.fn(),
   toast: vi.fn(),
+  definirFlagManual: vi.fn(),
+  responderEventos: vi.fn(async () => []),
+  registrarDocumento: vi.fn(async () => ({
+    id: 'doc-head', documento_raiz_id: 'doc-raiz', status: 'registrado',
+    snapshot_dados: null, snapshot_flags: [], substitui_documento_id: null,
+  })),
   vazia: [] as unknown[],
+  /** Catálogo de tmpl_flag (useFlags): derivadas declarativas e manuais. */
+  flags: [] as unknown[],
+  /** Linhas de projeto_flag_valor do par cliente+empresa. */
+  valoresFlagsManuais: [] as unknown[],
   empresa: {
     id: 'empresa-1', denominacao: 'Acme Participações Ltda.', tipo_pessoa: 'PJ',
     tipo_empresa: 'CN', cpf_cnpj: '12.345.678/0001-90', objeto_social: 'Participações',
@@ -31,7 +41,7 @@ const mocks = vi.hoisted(() => ({
     },
     {
       id: 'posicao-2', obrigatorio: true,
-      bloco: { id: 'biblioteca-2', nome: 'Qualificação repetida', tipo: 'paragrafo', conteudo: 'CNPJ {{ sociedade.cnpj }}.', flags: [], repete_colecao: null, ancora: null },
+      bloco: { id: 'biblioteca-2', nome: 'Qualificação repetida', tipo: 'paragrafo', conteudo: 'CNPJ {{ sociedade.cnpj }}.', flags: [] as string[], repete_colecao: null, ancora: null },
     },
   ],
   // Catálogo da Biblioteca (useBlocos): cabeças com as variantes aninhadas, que é
@@ -40,6 +50,12 @@ const mocks = vi.hoisted(() => ({
   matriculas: [] as unknown[],
   socios: [] as unknown[],
   integralizacoes: [] as unknown[],
+  // Aportes e cessões do livro de movimentos: as alíneas mistas de
+  // integralização e a cláusula que nomeia as duas pontas da cessão.
+  aportes: [] as unknown[],
+  cessoes: [] as unknown[],
+  /** O livro de movimentos da empresa (useMovimentosDaEmpresa). */
+  movimentos: [] as unknown[],
   rascunho: null as Record<string, unknown> | null,
   overrides: new Map<string, { conteudoSubstituto: string }>(),
   versoes: [] as Array<{ row: Record<string, unknown>; numero: number; ehHead: boolean }>,
@@ -57,6 +73,15 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.navigate }));
 
 vi.mock('@tanstack/react-query', () => ({
   useQueryClient: () => ({ invalidateQueries: mocks.invalidateQueries }),
+  // Todo hook de dados desta tela é mockado por módulo; o único que continua
+  // real é o das flags manuais (useDomainFlagsManuais), de propósito, para que o
+  // wiring "valor gravado → flag ativa → bloco entra" seja exercitado de verdade.
+  useQuery: () => ({ data: mocks.valoresFlagsManuais }),
+  useMutation: () => ({
+    mutate: mocks.definirFlagManual,
+    mutateAsync: mocks.responderEventos,
+    isPending: false,
+  }),
 }));
 
 vi.mock('@/components/equipe/osg/OsgLayout', () => ({
@@ -83,14 +108,20 @@ vi.mock('@/hooks/useModelosDocumento', () => ({
 vi.mock('@/hooks/useBibliotecaModelos', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/hooks/useBibliotecaModelos')>()),
   useBlocos: () => ({ data: mocks.catalogoBlocos }),
-  useFlags: () => ({ data: mocks.vazia }),
+  useFlags: () => ({ data: mocks.flags }),
 }));
 
 vi.mock('@/hooks/useDocumentoGerado', () => ({
-  useDocumentoGeradoRascunho: (args: Record<string, unknown>) => {
+  useDocumentoGeradoHead: (args: Record<string, unknown>) => {
     mocks.hookCalls.rascunho.push(args);
     return { data: mocks.rascunho };
   },
+  useDocumentoGeradoPorId: () => ({ data: null }),
+  useRegistrarDocumento: () => ({ mutateAsync: mocks.registrarDocumento, isPending: false }),
+  useDocumentoSucessor: () => ({ data: null }),
+  // Elos até a base da sucessão: com o registrado servindo de base, a peça em
+  // composição é a primeira alteração (0 + 1).
+  useOrdemNaSucessao: () => ({ data: 0 }),
   useDocumentoOverrides: (id: string | null) => {
     mocks.hookCalls.overrides.push(id);
     return { data: { porBlocoAlvo: mocks.overrides } };
@@ -120,6 +151,19 @@ vi.mock('@/hooks/useGeracaoDocumento', () => ({
     socios: mocks.socios,
     administradores: mocks.vazia,
     integralizacoes: mocks.integralizacoes,
+    aportes: mocks.aportes,
+    cessoes: mocks.cessoes,
+    quadroGravado: mocks.socios.length > 0,
+    isFetching: false,
+  }),
+}));
+
+// O livro de movimentos entra por módulo porque o useQuery global desta suíte
+// devolve sempre as flags manuais: sem isto a derivação de eventos nunca veria
+// lançamento nenhum.
+vi.mock('@/hooks/useMovimentacaoQuotas', () => ({
+  useMovimentosDaEmpresa: () => ({
+    data: { movimentos: mocks.movimentos, atos: [] },
     isFetching: false,
   }),
 }));
@@ -142,6 +186,9 @@ vi.mock('@/hooks/useNotificacoesDocumento', () => ({
 
 vi.mock('@/lib/templates/docx', () => ({ baixarDocx: mocks.baixarDocx }));
 vi.mock('@/hooks/use-toast', () => ({ toast: mocks.toast }));
+// A trilha de auditoria da flag manual pende do AuthContext, que esta tela não
+// monta; o conteúdo do log é assertado no teste do hook.
+vi.mock('@/hooks/useAuditLog', () => ({ useAuditLog: () => ({ logAction: vi.fn() }) }));
 
 vi.mock('@/components/equipe/osg/OverrideBlocoDialog', () => ({
   OverrideBlocoDialog: (props: {
@@ -262,9 +309,15 @@ beforeEach(() => {
   mocks.docBlocos[0].bloco.repete_colecao = null;
   mocks.docBlocos[1].bloco.conteudo = 'CNPJ {{ sociedade.cnpj }}.';
   mocks.catalogoBlocos = [...CATALOGO_SEM_FAMILIA];
+  mocks.docBlocos[1].bloco.flags = [];
+  mocks.flags = [];
+  mocks.valoresFlagsManuais = [];
   mocks.matriculas = [];
   mocks.socios = [];
   mocks.integralizacoes = [];
+  mocks.aportes = [];
+  mocks.cessoes = [];
+  mocks.movimentos = [];
   mocks.mutateAsync.mockResolvedValue(documento());
   Object.values(mocks.hookCalls).forEach((calls) => calls.splice(0));
 });
@@ -293,7 +346,8 @@ describe('GerarDocumento — caracterização O1', () => {
       registroPorBinding: {}, registrosPorLista: {},
       valoresLivres: { observacao: 'Observação viva' }, empresaId: 'empresa-1',
       itensPorLista: {
-        socios: [], administradores: [], integralizacoes: [], imoveis: [], signatarios: [], vertices: [],
+        socios: [], administradores: [], integralizacoes: [], cessoes: [],
+        imoveis: [], signatarios: [], vertices: [],
       },
       total: null,
     });
@@ -640,5 +694,337 @@ describe('GerarDocumento — B2 · baixar com pendência avisa e marca o arquivo
     await waitFor(() => expect(mocks.baixarDocx).toHaveBeenCalledWith(
       'Modelo alternativo', expect.arrayContaining([expect.objectContaining({ id: 'posicao-1' })]),
     ));
+  });
+});
+
+describe('GerarDocumento — o porteiro: folha em erro não é selada nem registrada', () => {
+  // A citação de âncora que ninguém publica é o erro real do ensaio de 26/08: o
+  // render trata placeholder não resolvido como erro de composição, e antes disto
+  // "Validar versão" gravava o documento, congelava o snapshot e carimbava o
+  // ledger apontando uma peça que não existe como texto.
+  const CITA_ANCORA_ORFA = 'Nos termos da {{ refs.capital_social }}, a empresa {{ sociedade.razaoSocial }}.';
+
+  it('com erro de composição, validar fica fechado e nada é gravado', async () => {
+    mocks.docBlocos[0].bloco.conteudo = CITA_ANCORA_ORFA;
+    await abrirDocumentoVivo();
+
+    // A folha está de fato em erro, e não apenas vazia.
+    expect(await screen.findByText(/Placeholder não resolvido: \{\{refs.capital_social\}\}/)).toBeInTheDocument();
+    const validar = screen.getByRole('button', { name: /Validar versão/i });
+    expect(validar).toBeDisabled();
+    await userEvent.click(validar);
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(mocks.mutateAsync).not.toHaveBeenCalled();
+  });
+
+  it('com erro de composição, registrar na junta fica fechado', async () => {
+    mocks.docBlocos[0].bloco.conteudo = CITA_ANCORA_ORFA;
+    await abrirDocumentoCongelado();
+
+    expect(screen.getByRole('button', { name: /Registrar na junta/i })).toBeDisabled();
+    expect(mocks.registrarDocumento).not.toHaveBeenCalled();
+  });
+
+  it('PENDÊNCIA não é erro: campo em branco continua podendo validar', async () => {
+    // O porteiro é sobre a folha que não compõe, não sobre o rascunho incompleto:
+    // validar antes de preencher tudo é caminho legítimo, e o aviso dele mora no
+    // download (ver B2).
+    mocks.docBlocos[0].bloco.conteudo = 'A empresa {{ sociedade.razaoSocial }} tem capital de R$ {{ sociedade.capitalValor }}.';
+    await abrirDocumentoVivo();
+
+    expect(screen.getByRole('button', { name: /Validar versão/i })).toBeEnabled();
+  });
+});
+
+// Flag MANUAL: o interruptor que o consultor liga na mão, para a condição que não
+// se deriva do cadastro (o evento de uma alteração contratual). O valor mora em
+// projeto_flag_valor e entra nas flags VIVAS ao lado das derivadas.
+const FLAG_MANUAL = {
+  id: 'flag-manual-1', nome: 'evento_aumento_capital', tipo: 'manual', escopo: 'documento',
+  descricao: 'Houve aumento de capital', ativo: true, entidade: null, campo: null, valor: null,
+};
+
+/** Documento travado: registrado na junta, ponto de partida da alteração. */
+const registrado = (dados: SnapshotDados = snapshot()) => ({
+  ...documento(dados),
+  status: 'registrado',
+});
+
+describe('GerarDocumento — alteração contratual a partir do documento registrado', () => {
+  beforeEach(() => {
+    mocks.flags = [FLAG_MANUAL];
+    // A segunda cláusula do modelo é a resolução: pende da flag de evento.
+    mocks.docBlocos[1].bloco.flags = ['evento_aumento_capital'];
+  });
+
+  async function abrirRegistrado() {
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = registrado();
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Registrado na junta');
+    return view;
+  }
+
+  async function validar() {
+    await userEvent.click(screen.getByRole('button', { name: 'Validar versão' }));
+    const confirmacao = await screen.findByRole('alertdialog');
+    await userEvent.click(within(confirmacao).getByRole('button', { name: 'Validar versão' }));
+    await waitFor(() => expect(mocks.mutateAsync).toHaveBeenCalledTimes(1));
+    return mocks.mutateAsync.mock.calls[0][0];
+  }
+
+  it('o assistente NÃO é passo do fluxo de geração: gerar um contrato não pergunta evento nenhum', async () => {
+    render(<GerarDocumento />);
+    await escolherModelo();
+    await userEvent.click(screen.getByRole('button', { name: /Acme Participações Ltda/i }));
+
+    // A folha entra em cena direto, sem passo intermediário de condições.
+    await screen.findByText('Conferência dos dados');
+    expect(screen.queryByText('Marque o que se aplica')).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Houve aumento de capital' })).not.toBeInTheDocument();
+  });
+
+  it('modelo que passa a citar campo novo não quebra documento já validado', async () => {
+    // O snapshot congela os CAMPOS, mas a head renderiza os BLOCOS vivos da
+    // Biblioteca. Quando o modelo evolui e passa a citar um campo que aquele
+    // snapshot não conhecia, o documento antigo saía inteiro como "Placeholder
+    // não resolvido". O que falta é preenchido do cadastro; o que o snapshot tem
+    // continua intocado.
+    mocks.docBlocos[0].bloco.conteudo = '{{ sociedade.tituloInstrumento }} — Empresa {{ sociedade.razaoSocial }}.';
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = documento();
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Versão validada · rascunho');
+
+    expect(await screen.findByText(/INSTRUMENTO PARTICULAR DE CONSTITUIÇÃO/)).toBeInTheDocument();
+    expect(screen.queryByText(/Placeholder não resolvido/)).not.toBeInTheDocument();
+    // O valor selado não se reescreve: a razão social continua a do snapshot.
+    expect(screen.getByText(/Acme congelada/)).toBeInTheDocument();
+  });
+
+  it('documento validado oferece registrar na junta, e a confirmação diz o que trava', async () => {
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = documento();
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Versão validada · rascunho');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar na junta' }));
+    const confirmacao = await screen.findByRole('alertdialog');
+    expect(within(confirmacao).getByText(/deixa de aceitar edição de bloco/i)).toBeInTheDocument();
+
+    await userEvent.click(within(confirmacao).getByRole('button', { name: 'Registrar na junta' }));
+    await waitFor(() =>
+      expect(mocks.registrarDocumento).toHaveBeenCalledWith({
+        documentoGeradoId: 'doc-head',
+        nomeModelo: expect.any(String),
+      }),
+    );
+  });
+
+  it('registrado, a peça trava e o caminho adiante é gerar OUTRO documento', async () => {
+    await abrirRegistrado();
+
+    // Some tudo que reescreveria a peça que já valeu.
+    expect(screen.queryByRole('button', { name: 'Atualizar versão' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Atualizar do cadastro' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Registrar na junta' })).not.toBeInTheDocument();
+    // E aparece o caminho de saída.
+    expect(screen.getByRole('button', { name: 'Gerar alteração contratual' })).toBeInTheDocument();
+  });
+
+  it('o assistente grava TODAS as respostas ancoradas no documento registrado, marcadas ou não', async () => {
+    await abrirRegistrado();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Gerar alteração contratual' }));
+    const modal = await screen.findByRole('dialog');
+    await userEvent.click(within(modal).getByRole('switch', { name: 'Houve aumento de capital' }));
+    await userEvent.click(within(modal).getByRole('button', { name: 'Continuar' }));
+
+    // O segundo passo não é decorativo: avisa que o consolidado sai do cadastro.
+    expect(within(modal).getByText(/cadastro precisa estar atualizado/i)).toBeInTheDocument();
+
+    await userEvent.click(within(modal).getByRole('button', { name: 'Gerar alteração contratual' }));
+    await waitFor(() =>
+      expect(mocks.responderEventos).toHaveBeenCalledWith({
+        clienteId: 'cliente-1',
+        pjPessoaId: 'empresa-1',
+        documentoBaseId: 'doc-head',
+        respostas: [{ flagId: 'flag-manual-1', flagNome: 'evento_aumento_capital', valor: true }],
+      }),
+    );
+  });
+
+  it('com a alteração em curso, a folha compõe AO VIVO e a validação registra a sucessão', async () => {
+    // Respostas já gravadas contra o registrado = alteração em curso.
+    mocks.valoresFlagsManuais = [
+      {
+        id: 'pfv-1', cliente_id: 'cliente-1', pj_pessoa_id: 'empresa-1',
+        documento_base_id: 'doc-head', flag_id: 'flag-manual-1', valor: true,
+      },
+    ];
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = registrado();
+    view.rerender(<GerarDocumento />);
+
+    // A tela deixou de ser a do registrado: é o documento novo, ainda por validar.
+    await screen.findByText('Alteração contratual');
+    expect(screen.queryByText('Registrado na junta')).not.toBeInTheDocument();
+    expect(screen.getByText('Houve aumento de capital')).toBeInTheDocument();
+
+    const entrada = await validar();
+    // O evento entrou nas flags vivas (a resolução compõe) e a raiz do documento
+    // novo aponta para a peça que ela substitui.
+    expect(entrada.snapshotFlags).toEqual(['evento_aumento_capital', 'e_alteracao']);
+    expect(entrada.substituiDocumentoId).toBe('doc-head');
+  });
+
+  // --- As duas marcas do registro (D4/D5/D6) -------------------------------
+  //
+  // Antes, "Validar versão" carimbava o ledger. Selar um rascunho passou a não
+  // marcar nada: quem carimba é "Registrar na junta", que é quando o ato produz
+  // efeito, e é o mesmo gesto que vira o status do bem — as duas não podem
+  // divergir.
+
+  /** Um lançamento do livro, no formato em que a projeção o consome. */
+  const movimento = (id: string, extra: Record<string, unknown> = {}) => ({
+    id, empresaPessoaId: 'empresa-1', tipo: 'aporte',
+    origemPessoaId: null, destinoPessoaId: 'socio-1',
+    quotas: 1000, valor: 1000, createdAt: '2026-08-01T00:00:00.000Z',
+    dataMovimento: null, atoId: null, sequencia: null,
+    documentoGeradoId: null, pagamento: { tipo: 'moeda' },
+    ...extra,
+  });
+
+  /** A chamada do carimbo, entre as que passaram pelo mutateAsync compartilhado. */
+  const chamadaDoCarimbo = () =>
+    (mocks.responderEventos.mock.calls as unknown as Array<[Record<string, unknown>]>)
+      .map(([arg]) => arg)
+      .find((arg) => arg && 'movimentoIds' in arg);
+
+  it('validar NÃO carimba: as marcas irreversíveis esperam o registro', async () => {
+    mocks.valoresFlagsManuais = [
+      {
+        id: 'pfv-1', cliente_id: 'cliente-1', pj_pessoa_id: 'empresa-1',
+        documento_base_id: 'doc-head', flag_id: 'flag-manual-1', valor: true,
+      },
+    ];
+    mocks.movimentos = [movimento('mov-1')];
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = registrado();
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Alteração contratual');
+
+    await validar();
+    expect(chamadaDoCarimbo()).toBeUndefined();
+  });
+
+  it('registrar o CONTRATO SOCIAL carimba todos os pendentes (é ele que os conta)', async () => {
+    // A extensão da D3: sem isto, os aportes de constituição seguiam sem
+    // documento e a primeira alteração os recontava ("6 aporte(s)" onde a peça
+    // lançou dois).
+    mocks.movimentos = [
+      movimento('mov-1'),
+      movimento('mov-2'),
+      movimento('mov-ja-formalizado', { documentoGeradoId: 'doc-antigo' }),
+      movimento('mov-de-outra', { empresaPessoaId: 'empresa-2' }),
+    ];
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = documento();
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Versão validada · rascunho');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar na junta' }));
+    const confirmacao = await screen.findByRole('alertdialog');
+    await userEvent.click(within(confirmacao).getByRole('button', { name: 'Registrar na junta' }));
+
+    await waitFor(() => expect(chamadaDoCarimbo()).toBeDefined());
+    expect(chamadaDoCarimbo()).toEqual({
+      movimentoIds: ['mov-1', 'mov-2'],
+      documentoGeradoId: 'doc-head',
+      empresaPessoaId: 'empresa-1',
+    });
+  });
+
+  it('registrar a ALTERAÇÃO carimba só os movimentos dos eventos confirmados', async () => {
+    // A alteração já validada: a head é o rascunho que declara substituir a peça
+    // registrada, e as respostas do assistente seguem ancoradas nela.
+    mocks.valoresFlagsManuais = [
+      {
+        id: 'pfv-1', cliente_id: 'cliente-1', pj_pessoa_id: 'empresa-1',
+        documento_base_id: 'doc-base', flag_id: 'flag-manual-1', valor: true,
+      },
+    ];
+    mocks.movimentos = [movimento('mov-aporte'), movimento('mov-cessao', {
+      tipo: 'cessao', origemPessoaId: 'socio-1', destinoPessoaId: 'socio-2',
+    })];
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = { ...documento(), substitui_documento_id: 'doc-base' };
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Versão validada · rascunho');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar na junta' }));
+    const confirmacao = await screen.findByRole('alertdialog');
+    await userEvent.click(within(confirmacao).getByRole('button', { name: 'Registrar na junta' }));
+
+    // Só o aumento de capital foi confirmado: a cessão continua pendente, para a
+    // peça seguinte. O que o consultor desmarcou não entrou nesta.
+    await waitFor(() => expect(chamadaDoCarimbo()).toBeDefined());
+    expect(chamadaDoCarimbo()).toEqual({
+      movimentoIds: ['mov-aporte'],
+      documentoGeradoId: 'doc-head',
+      empresaPessoaId: 'empresa-1',
+    });
+  });
+
+  it('validada a alteração, "Rever os eventos" continua no rail e reabre com o gravado', async () => {
+    // O botão vivia dentro do ramo da alteração em curso, e `alteracaoEmCurso`
+    // exige um documento REGISTRADO em cena. Validada a peça, a head passa a ser
+    // ela (rascunho) e o assistente ficava inalcançável pela tela.
+    mocks.valoresFlagsManuais = [
+      {
+        id: 'pfv-1', cliente_id: 'cliente-1', pj_pessoa_id: 'empresa-1',
+        documento_base_id: 'doc-base', flag_id: 'flag-manual-1', valor: true,
+      },
+    ];
+    const view = render(<GerarDocumento />);
+    await escolherModelo();
+    mocks.rascunho = { ...documento(), substitui_documento_id: 'doc-base' };
+    view.rerender(<GerarDocumento />);
+    await screen.findByText('Versão validada · rascunho');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Rever os eventos' }));
+    const modal = await screen.findByRole('dialog');
+    // A resposta gravada vence a derivação: reabrir é edição, não recomeço.
+    expect(within(modal).getByRole('switch', { name: 'Houve aumento de capital' })).toBeChecked();
+
+    // E gravar de novo continua ancorando na peça que a alteração substitui.
+    await userEvent.click(within(modal).getByRole('switch', { name: 'Houve aumento de capital' }));
+    await userEvent.click(within(modal).getByRole('button', { name: 'Continuar' }));
+    await userEvent.click(within(modal).getByRole('button', { name: 'Gerar alteração contratual' }));
+    await waitFor(() =>
+      expect(mocks.responderEventos).toHaveBeenCalledWith({
+        clienteId: 'cliente-1',
+        pjPessoaId: 'empresa-1',
+        documentoBaseId: 'doc-base',
+        respostas: [{ flagId: 'flag-manual-1', flagNome: 'evento_aumento_capital', valor: false }],
+      }),
+    );
+  });
+
+  it('modelo sem bloco pendurado em evento não oferece alteração contratual', async () => {
+    mocks.docBlocos[1].bloco.flags = [];
+    await abrirRegistrado();
+
+    expect(screen.getByText('Registrado na junta')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Gerar alteração contratual' }),
+    ).not.toBeInTheDocument();
   });
 });

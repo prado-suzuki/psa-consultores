@@ -1,28 +1,9 @@
--- 20260826202804_notificar_projetos_da_os_recusa_encerrada.sql
--- A RPC da GES-03 passa a RECUSAR a cobranca de documentos quando a solicitacao
--- ja foi encerrada.
---
--- O QUE ESTAVA ERRADO. A guarda ja existia e cobria so metade. A tela
--- (BotaoAvisarCliente.tsx) escondia o botao em `rascunho` e nao em `encerrada`; a
--- borda `notificar` recusava o evento 2 sem `enviada_em` e nao olhava
--- `encerrada_em`; e esta funcao nao checava estado nenhum. O contraste que prova
--- que foi omissao e nao decisao: o evento 3 na borda ja tem DUAS guardas,
--- `enviada_em` e `encerrada_em`, cada uma com o comentario do porque.
---
--- O checklist e derivado dos DOCUMENTOS, nao da solicitacao, entao ele mostra
--- pendencia mesmo sem solicitacao aberta. Por isso a tela sozinha nao segura.
---
--- Arquivo novo e nao edicao de 20260826151650, que ja esta pushado e registrado:
--- editar migracao aplicada faz o repositorio contar uma historia e o registro
--- outra.
---
--- Nenhuma tabela, coluna, tipo ou permissao muda. So o corpo da funcao: a coluna
--- `encerrada_em` entra no SELECT que ja existia, e uma guarda nova sai antes de
--- qualquer escrita.
---
--- Reversao: reaplicar 20260826151650.
-
-BEGIN;
+-- IMPORTADA DO LEDGER DO SANDBOX (supabase_migrations.schema_migrations),
+-- versao 20260826202804, nome `notificar_projetos_da_os_recusa_encerrada` tal como registrado la.
+-- Aplicada no banco por fora do repositorio (Lovable) e trazida para ca para o
+-- diretorio e o ledger voltarem a bater, mesmo procedimento da reconciliacao de
+-- 26/08/2026 descrita em docs/planos/ledger-societario-e-alteracao-derivada.md.
+-- Conteudo identico ao que o ledger guarda: nada foi reescrito.
 
 CREATE OR REPLACE FUNCTION public.notificar_projetos_da_os(
   _solicitacao_id uuid,
@@ -52,9 +33,6 @@ DECLARE
   v_proj     record;
   v_part     record;
 BEGIN
-  -- Tranca. A funcao ignora RLS (decisao 1), entao a autorizacao e explicita.
-  -- has_role_or_higher(_, 'team_member') cobre team_member, sublider, lider e
-  -- admin, e exclui `client` e `timecliente`, que sao os papeis do portal.
   IF v_uid IS NULL OR NOT public.has_role_or_higher(v_uid, 'team_member'::public.app_role) THEN
     RAISE EXCEPTION 'Sem permissao para registrar aviso nos projetos da OS'
       USING ERRCODE = '42501';
@@ -69,31 +47,10 @@ BEGIN
     RAISE EXCEPTION 'Solicitacao % nao encontrada', _solicitacao_id USING ERRCODE = '23503';
   END IF;
 
-  -- Cobranca em solicitacao ENCERRADA nao acontece: encerrar e o consultor
-  -- declarando o pedido concluido, e cobrar depois disso e incoerente. Mesma
-  -- forma de saida do `sem_os` abaixo: devolve zeros e o motivo, sem escrever.
-  --
-  -- Terceira das tres camadas desta correcao, e a unica que entra em vigor com o
-  -- merge. A tela esconde o botao (BotaoAvisarCliente.tsx, no mesmo early return
-  -- que ja cobria `rascunho`) e a borda recusa (notificar/index.ts), mas a borda
-  -- so vale depois de publicada. Aqui vale assim que a migration rodar.
-  --
-  -- Existe caminho real para chegar aqui com a tela corrigida: o front chama esta
-  -- RPC mesmo quando a borda devolve `skipped`, de proposito, para a equipe ficar
-  -- sabendo quando o cliente nao tem canal. Numa aba velha, em que outra pessoa
-  -- encerrou a solicitacao, sem esta guarda a thread publicaria uma cobranca que
-  -- nunca saiu.
-  --
-  -- So o evento 2. O encerramento (`documento_aprovado`) TEM de passar com a
-  -- solicitacao encerrada: o encerramento e o gatilho dele.
   IF _evento = 'situacao_documentos' AND v_sol.encerrada_em IS NOT NULL THEN
     RETURN jsonb_build_object('projetos', 0, 'eventos', 0, 'sinos', 0, 'motivo', 'encerrada');
   END IF;
 
-  -- O mapa dos tres eventos. O nome do evento e o da API da borda (event_type),
-  -- para os dois lados serem chamados com o mesmo vocabulario no mesmo ponto do
-  -- front. O tipo gravado no sino segue o enum do banco, e no evento 2 os dois
-  -- divergem de proposito: e o mesmo desacoplamento do mapa TIPO_NO_BANCO da borda.
   CASE _evento
     WHEN 'solicitacao_enviada' THEN
       v_tipo   := 'solicitacao_enviada';
@@ -108,37 +65,22 @@ BEGIN
     WHEN 'documento_aprovado' THEN
       v_tipo   := 'documento_aprovado';
       v_kind   := 'documentos_conferidos';
-      -- "Solicitação encerrada" e não "Documentação conferida", por decisão do
-      -- Bernardo em 26/08/2026: o gatilho do evento 3 e o ENCERRAMENTO, e e isso que
-      -- o aviso interno deve nomear. O valor do enum segue `documentos_conferidos`
-      -- porque enum do Postgres nao aceita DROP VALUE, e trocar o nome custaria uma
-      -- migracao e um valor morto para sempre sem mudar nada na tela.
       v_titulo := 'Solicitação encerrada';
       v_corpo  := 'Solicitação encerrada após a conferência da documentação.';
     ELSE
       RAISE EXCEPTION 'Evento desconhecido: %', _evento USING ERRCODE = '23514';
   END CASE;
 
-  -- O detalhe vem da tela, e so o evento 2 manda: e a conta que o analista estava
-  -- OLHANDO quando clicou (checklistDerivado.ts). Recalcular aqui abriria a porta
-  -- para a thread divergir da tela. Uma conta, uma fonte.
   IF _detalhe IS NOT NULL AND btrim(_detalhe) <> '' THEN
     v_corpo := v_corpo || ' ' || btrim(_detalhe);
   END IF;
 
-  -- OS ausente e silencio, decidido em 26/08: sem OS nao ha projeto onde escrever,
-  -- e solicitacao sem OS nao deveria existir. O fallback por cliente que o codigo
-  -- antigo tinha esta FORA DE ESCOPO por enunciado da tarefa.
   IF v_sol.ordem_servico_id IS NULL THEN
     RETURN jsonb_build_object('projetos', 0, 'eventos', 0, 'sinos', 0, 'motivo', 'sem_os');
   END IF;
 
   v_prefixo := v_tipo::text || ':solicitacao:' || v_sol.id::text || ':sino:';
-
-  -- Agrupamento do sino: por solicitacao e por tipo. Duas cobrancas em dias
-  -- diferentes da MESMA solicitacao somam em `quantidade` na mesma linha nao lida,
-  -- em vez de empilhar duas linhas no sino.
-  v_agrupa := v_tipo::text || ':solicitacao:' || v_sol.id::text;
+  v_agrupa  := v_tipo::text || ':solicitacao:' || v_sol.id::text;
 
   SELECT nullif(btrim(p.first_name || ' ' || coalesce(p.last_name, '')), '')
     INTO v_autor
@@ -146,11 +88,6 @@ BEGIN
   WHERE p.id = v_uid;
   v_autor := coalesce(v_autor, 'Sistema');
 
-  -- Um evento na thread de CADA projeto da OS.
-  --
-  -- PROJETOS RESTRITOS: quando o switch existir (tarefa "3" da Sprint 12), o
-  -- filtro entra NESTA consulta e so nela. E o unico lugar do fluxo que decide
-  -- quais projetos da OS entram, e esta isolado de proposito.
   FOR v_proj IN
     SELECT p.id
     FROM public.org_projects p
@@ -168,11 +105,7 @@ BEGIN
       _metadata      => jsonb_build_object('solicitacao_id', v_sol.id, 'evento', _evento)
     );
 
-    -- NULL = a chave ja existia: este projeto ja recebeu este evento hoje.
     IF v_envio IS NOT NULL THEN
-      -- Sem project_id no payload: trg_org_comments_resolve_scope o preenche a
-      -- partir de entity_type/entity_id. Mesmo caminho do insert que o hook
-      -- antigo usava.
       INSERT INTO public.org_comments (entity_type, entity_id, author_id, author_name, body, kind)
       VALUES ('org_project'::public.org_comment_entity, v_proj.id, v_uid, v_autor, v_corpo, v_kind);
 
@@ -181,16 +114,6 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- Um sino por PARTICIPANTE DISTINTO.
-  --
-  -- Participante = membro do projeto, responsavel ou lider. DISTINCT ON (u) com
-  -- ORDER BY u, p.created_at da a cada pessoa UM sino, apontando para o projeto
-  -- mais antigo da OS em que ela esta: quem participa de tres projetos da mesma OS
-  -- recebe um sino so, e cada um dos tres projetos recebeu seu evento no laco
-  -- acima.
-  --
-  -- Quem clicou nao recebe sino do proprio ato (decisao de 26/08, a mesma regra
-  -- dos gatilhos da EDU-2). Ele continua aparecendo como autor na thread.
   FOR v_part IN
     SELECT DISTINCT ON (x.u) x.u AS user_id, p.id AS project_id
     FROM public.org_projects p
@@ -232,8 +155,6 @@ BEGIN
     END IF;
   END LOOP;
 
-  -- As tres contagens sao a auditoria que a tarefa pede: quem chamou consegue
-  -- afirmar "3 projetos, 3 eventos, 6 sinos" sem ir ao banco conferir.
   RETURN jsonb_build_object(
     'projetos', v_projetos,
     'eventos',  v_eventos,
@@ -241,12 +162,3 @@ BEGIN
   );
 END;
 $function$;
-
-COMMENT ON FUNCTION public.notificar_projetos_da_os(uuid, text, text) IS
-  'GES-03. Registra um evento na thread de TODOS os projetos da OS da solicitacao e um sino por participante distinto. Idempotente por dia via notificacao_envio no canal sino. Nao toca e-mail, WhatsApp nem n8n.';
-
-REVOKE ALL ON FUNCTION public.notificar_projetos_da_os(uuid, text, text) FROM PUBLIC;
-REVOKE ALL ON FUNCTION public.notificar_projetos_da_os(uuid, text, text) FROM anon;
-GRANT EXECUTE ON FUNCTION public.notificar_projetos_da_os(uuid, text, text) TO authenticated;
-
-COMMIT;

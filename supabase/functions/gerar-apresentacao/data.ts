@@ -1,6 +1,6 @@
 // Loaders de dados por seção do deck. Cliente PostgREST admin ja garantiu
 // o gate de auth+cluster ANTES de chamar isso. As tabelas de conteudo
-// (bem, pessoa, quadro_societario, matricula, titularidade, exploracao_rural)
+// (bem, pessoa, v_quadro_societario, matricula, titularidade, exploracao_rural)
 // NAO tem coluna `ambiente` — isolamento e por cluster.
 
 // deno-lint-ignore-file no-explicit-any
@@ -141,35 +141,54 @@ async function listarEmpresasPJ(admin: SB, clienteId: string): Promise<EmpresaPJ
     .map((p) => ({ id: p.id, denominacao: p.denominacao, tipo_empresa: p.tipo_empresa ?? null }));
 }
 
-// Quadro MANUAL para holdings CN: mantém a lógica original (quotas/vlr_total
-// vindos da tabela; percentual recalculado por Σquotas).
-async function quadroCN(admin: SB, empresaId: string): Promise<QuadroResult> {
-  const sel = `quotas,vlr_total,percentual,socio:socio_pessoa_id(id,denominacao,tipo_pessoa,tipo_empresa)`;
+// Quadro GRAVADO, igual para CN e PR: o acumulado dos movimentos de quota, lido
+// de `v_quadro_societario`. Espelha useQuadroDaEmpresa/useListasDaEmpresa no
+// front, porque a apresentação e o contrato precisam contar a mesma história.
+//
+// Antes daqui esta função lia a tabela `quadro_societario` para a CN e derivava
+// dos bens para a PR, a mesma bifurcação que o front tinha. Devolve `null`
+// quando não há quadro gravado, e é isso que faz a PR cair no derivado.
+//
+// São DUAS leituras e não um embed: o PostgREST só infere relacionamento de view
+// quando a coluna vem direto da tabela base, e `pessoa_id` aqui nasce de um
+// `union all` com `group by`.
+async function quadroGravado(admin: SB, empresaId: string): Promise<QuadroResult | null> {
   const { data, error } = await admin
-    .from("quadro_societario")
-    .select(sel)
+    .from("v_quadro_societario")
+    .select("pessoa_id,quotas,vlr_total")
     .eq("empresa_pessoa_id", empresaId);
-  if (error) throw new Error(`quadroCN(${empresaId}): ${error.message}`);
+  if (error) throw new Error(`quadroGravado(${empresaId}): ${error.message}`);
+
+  const rows = ((data ?? []) as any[]).filter((r) => r?.pessoa_id);
+  if (rows.length === 0) return null;
+
+  const ids = [...new Set(rows.map((r) => String(r.pessoa_id)))];
+  const { data: pessoas, error: errP } = await admin
+    .from("pessoa")
+    .select("id,denominacao,tipo_pessoa,tipo_empresa")
+    .in("id", ids);
+  if (errP) throw new Error(`quadroGravado.pessoa(${empresaId}): ${errP.message}`);
+  const porId = new Map(((pessoas ?? []) as any[]).map((p) => [String(p.id), p]));
 
   const linhas: QuadroLinha[] = [];
   const socios: SocioIdent[] = [];
   const seen = new Set<string>();
-  for (const r of (data ?? []) as any[]) {
-    const s = r.socio;
-    const denom = s?.denominacao ?? "—";
+  for (const r of rows) {
+    const p = porId.get(String(r.pessoa_id));
+    const denom = p?.denominacao ?? "—";
     linhas.push({
       socio: denom,
       quotas: Number(r.quotas ?? 0),
       valor: Number(r.vlr_total ?? 0),
       pct: 0,
     });
-    if (s?.id && !seen.has(s.id)) {
-      seen.add(s.id);
+    if (p?.id && !seen.has(String(p.id))) {
+      seen.add(String(p.id));
       socios.push({
-        pessoaId: s.id,
+        pessoaId: String(p.id),
         denominacao: denom,
-        tipoPessoa: s.tipo_pessoa ?? null,
-        tipoEmpresa: s.tipo_empresa ?? null,
+        tipoPessoa: p.tipo_pessoa ?? null,
+        tipoEmpresa: p.tipo_empresa ?? null,
       });
     }
   }
@@ -180,7 +199,8 @@ async function quadroCN(admin: SB, empresaId: string): Promise<QuadroResult> {
   return { linhas, totalQuotas: tq, totalValor: tv, socios };
 }
 
-// Quadro DERIVADO para empresas PR — espelha calcularParticipacoesPR do front
+// Quadro DERIVADO: o FALLBACK da PR ainda sem movimentação de quota, espelhando
+// calcularParticipacoesPR do front
 // (src/lib/templates/mapeadores.ts): rateio em centavos por fração de
 // titularidade dos bens Aprovados para integralização; matrículas com
 // impedimento ativo entram fora; último sócio absorve resíduo de arredondamento.
@@ -319,12 +339,17 @@ async function quadroPR(admin: SB, empresaId: string): Promise<QuadroResult> {
   return { linhas, totalQuotas, totalValor: capitalCent / 100, socios };
 }
 
-// Roteia por tipo_empresa: CN=manual, PR=derivado, resto=ignora.
+// Uma fonte só: o quadro gravado. A PR ainda SEM movimentação cai no derivado,
+// o mesmo fallback (e o mesmo critério, "a view voltou vazia") de
+// useListasDaEmpresa no front. Sem ele a apresentação das PR que ainda não
+// gravaram o quadro de constituição sairia sem quadro nenhum.
 async function quadroDaEmpresa(admin: SB, e: EmpresaPJ): Promise<QuadroResult | null> {
   const te = String(e.tipo_empresa ?? "").toUpperCase();
-  if (te === "CN") return await quadroCN(admin, e.id);
+  if (te !== "CN" && te !== "PR") return null; // SC (sócio) ou sem tipo
+  const gravado = await quadroGravado(admin, e.id);
+  if (gravado) return gravado;
   if (te === "PR") return await quadroPR(admin, e.id);
-  return null; // SC (sócio) ou sem tipo: não é empresa deste cliente
+  return { linhas: [], totalQuotas: 0, totalValor: 0, socios: [] };
 }
 
 export async function carregarOrganograma(admin: SB, clienteId: string): Promise<OrganogramaBands> {

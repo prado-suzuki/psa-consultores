@@ -10,11 +10,11 @@ const fmtMoney = (v: number | null): string => (v === null || Number.isNaN(Numbe
 const fmtInt = (v: number | null): string => (v === null || Number.isNaN(Number(v)) ? '—' : Number(v).toLocaleString('pt-BR'));
 const fmtPct = (n: number | null): string => (n === null ? '—' : `${n.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%`);
 
-// % do sócio: deriva de quotas/Σquotas; cai no campo percentual se não houver quotas.
-const socioPct = (e: EmpresaSocietaria, s: SocioLinha): number | null => {
-  if (e.totalQuotas > 0 && s.quotas != null) return (Number(s.quotas) / e.totalQuotas) * 100;
-  return s.percentual ?? null;
-};
+// % do sócio: SEMPRE quotas/Σquotas. Percentual não soma ao longo do tempo, e
+// por isso o quadro (v_quadro_societario) não o agrega nem o guarda. Quem quer
+// o percentual do quadro calcula de quotas, aqui.
+const socioPct = (e: EmpresaSocietaria, s: SocioLinha): number | null =>
+  e.totalQuotas > 0 && s.quotas != null ? (Number(s.quotas) / e.totalQuotas) * 100 : null;
 
 // Papel societário da PJ (campo pessoa.tipo_empresa).
 const PAPEL_LABEL: Record<string, string> = { PR: 'Proprietária', CN: 'Controladora', SC: 'Sócia' };

@@ -1,4 +1,5 @@
 import {
+  comFlagDaPecaRetroativa,
   comporBlocos,
   gerarBlocos,
   marcarRealceDiff,
@@ -72,7 +73,11 @@ export function renderizarVersao(
         }
       : dados;
     const template = { id: 'versao', nome: 'documento', blocos: blocosEfetivos };
-    const flagsAtivas = flags ?? [];
+    // Mesma compatibilidade da tela viva: snapshot selado antes de as flags de
+    // peça existirem é contrato social e não sabe dizê-lo (ver
+    // comFlagDaPecaRetroativa). Sem isto, a versão antiga reabre sem a cláusula
+    // de capital, de sede e de objeto.
+    const flagsAtivas = comFlagDaPecaRetroativa(flags ?? []);
     // Detecção de bindings roda sobre os COMPOSTOS (bloco excluído não pede valor),
     // como na tela viva.
     const compostos = comporBlocos(template, flagsAtivas);

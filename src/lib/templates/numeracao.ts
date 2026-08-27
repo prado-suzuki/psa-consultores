@@ -31,6 +31,11 @@ function estruturar(blocos: Bloco[]): EstruturaBloco[] {
   let nClausula = 0;
 
   return blocos.map((bloco, i) => {
+    if (bloco.reiniciaNumeracao) {
+      nCapitulo = 0;
+      nClausula = 0;
+    }
+
     switch (bloco.tipo) {
       case 'capitulo':
         return { tipo: 'capitulo', n: ++nCapitulo };

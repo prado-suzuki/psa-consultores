@@ -1,0 +1,90 @@
+{
+  "rodada": "2026-08-25 alteracao contratual caminho B",
+  "app": "http://localhost:5199",
+  "banco": "sandbox vgzomuwnsdgrxbkyoavq",
+  "branch": "alteracao-contratual-caminho-b (worktree)",
+  "usuario": "user001@exemplo.dev (area OSG)",
+  "cliente": "[TESTE] Banana Quantica Engenharia de Sonhos Ltda (id e1c0df8e-5206-45e1-af4b-de3e5aacc48c)",
+  "empresas_usadas": {
+    "Rondon Administradora de Bens S.A. (Proprietaria)": "ba44a1c0-0000-4000-a000-000000000002",
+    "Sinop Sementes Eireli (Socia)": "ba44a1c0-0000-4000-a000-000000000003"
+  },
+  "intervencao_de_teste": {
+    "o_que": "Vinculei o bloco 'Capitulo - Questoes Diversas' (id 00e9675c-4dfe-4b75-9ab2-d49cb44d3824) as 6 flags de evento, pela propria UI da Biblioteca de Modelos, para o passo poder aparecer.",
+    "por_que": "Sem nenhum vinculo em tmpl_bloco_flag o passo nao aparece e os itens 2 a 5 do roteiro seriam inverificaveis.",
+    "revertido": "sim - DELETE /rest/v1/tmpl_bloco_flag 204; releitura de tmpl_bloco mostra flags [] e uma unica versao {numero_versao:1, atual:true}"
+  },
+  "itens": [
+    {
+      "id": "0-catalogo",
+      "pergunta": "As seis flags manuais estao no sandbox?",
+      "status": "confirmado",
+      "prova": "GET /rest/v1/tmpl_flag?select=*&ativo=eq.true&order=nome.asc -> 200. Seis linhas tipo=manual, escopo=pj, entidade/campo/valor null: evento_alteracao_endereco 'Houve mudanca do endereco da sede'; evento_aumento_capital 'Houve aumento do capital social'; evento_cessao_quotas 'Houve cessao de quotas entre socios ou para terceiro'; evento_integralizacao 'Houve integralizacao de capital (em imoveis, quotas ou dinheiro)'; evento_mudanca_administracao 'Houve mudanca na administracao da sociedade'; evento_mudanca_socios 'Houve entrada ou retirada de socio'"
+    },
+    {
+      "id": "1a-passo-no-estado-semeado",
+      "pergunta": "As seis flags aparecem no fluxo, com o catalogo apenas semeado?",
+      "status": "nao aparece - esperado pelo desenho",
+      "prova": "Modelo 'Contrato Social - Sociedade Limitada (Participacoes)' (78 blocos) + empresa Rondon: main.innerText saltou de 594 para 21653 chars indo direto ao modo documento ('Conferencia dos dados' / 'PREVIA DO DOCUMENTO'); regex /Marque o que se aplica/ sobre main.innerText = false. Idem no modelo Agro (79 blocos). Nenhum dos 5 modelos do catalogo referencia as flags.",
+      "causa": "precisaFlagsManuais = flagsManuaisDoModelo.length > 0, e flagsManuaisDoModelo filtra o catalogo pelos nomes de flag que os blocos do modelo pedem. Sem linha em tmpl_bloco_flag, o conjunto e vazio. E o que o commit 4901c53d ja anuncia: 'Enquanto nao existirem, nenhum modelo referencia estas flags e o passo segue invisivel'.",
+      "print": ".playwright-mcp/altcontratual-01-passos-agro.png, .playwright-mcp/altcontratual-02-sem-passo-flags.png"
+    },
+    {
+      "id": "1b-passo-com-vinculo",
+      "pergunta": "Com um bloco vinculado, os seis interruptores aparecem com a frase (descricao) e nao com o nome tecnico?",
+      "status": "corrigido / funciona",
+      "prova": "6 elementos button[role=switch]. Texto literal do card: 'Marque o que se aplica / Condicoes que o sistema nao tem como deduzir do cadastro / Houve mudanca do endereco da sede / Houve aumento do capital social / Houve cessao de quotas entre socios ou para terceiro / Houve integralizacao de capital (em imoveis, quotas ou dinheiro) / Houve mudanca na administracao da sociedade / Houve entrada ou retirada de socio / Concluir'. Nenhum nome tecnico (evento_*) na tela.",
+      "print": ".playwright-mcp/altcontratual-04-seis-interruptores.png"
+    },
+    {
+      "id": "2-escopo-pj",
+      "pergunta": "O passo respeita o escopo pj?",
+      "status": "corrigido / funciona",
+      "prova": "Antes da empresa: o card 3 aparece so com titulo e subtitulo, numero cinza, zero interruptores (print altcontratual-03). Depois de escolher Rondon: os 6 interruptores aparecem. Gravacao: POST /rest/v1/projeto_flag_valor -> 201 com pj_pessoa_id='ba44a1c0-0000-4000-a000-000000000002' (Rondon), cliente_id='e1c0df8e-...', valor=true. Trocando a empresa para Sinop Sementes, os 6 voltam data-state=unchecked; voltando para Rondon, os 2 ligados reaparecem checked.",
+      "print": ".playwright-mcp/altcontratual-03-passo3-bloqueado-sem-empresa.png"
+    },
+    {
+      "id": "3-persistencia",
+      "pergunta": "Ligar um interruptor persiste depois de recarregar?",
+      "status": "corrigido / funciona",
+      "prova": "Liguei 'Houve aumento do capital social' (POST 201) e 'Houve entrada ou retirada de socio' (POST 201). F5, reselecao de cliente/modelo/empresa: data-state dos 6 switches = [unchecked, checked, unchecked, unchecked, unchecked, checked]. Sem toast de erro ('Erro ao salvar a condicao' ausente do innerText), sem 4xx/5xx em projeto_flag_valor, sem erro de RLS. Desligar depois gerou PATCH 200 nas 6 linhas.",
+      "print": ".playwright-mcp/altcontratual-05-duas-ligadas.png"
+    },
+    {
+      "id": "4-resumo-do-passo",
+      "pergunta": "O resumo do passo reflete as escolhas?",
+      "status": "nao verificavel na tela - o resumo nunca chega a ser renderizado",
+      "prova": "Depois de clicar 'Concluir', busquei em body.innerText a string 'Houve aumento do capital social · Houve entrada ou retirada de socio': indexOf = -1, e ate /Houve aumento do capital social/ da false. Os passos somem da tela e o rail so oferece MODELO e EMPRESA DO CONTRATO, sem volta ao passo 3.",
+      "causa": "resumoPasso3 so aparece no cabecalho do PassoCard quando passo3Estado='concluido', que exige selecoesCompletas && !flagsManuaisPendentes && passoAberto!==3; mas essa e exatamente a condicao de modoDocumento (modeloPronto && selecoesCompletas && !flagsManuaisPendentes), e o bloco dos passos so renderiza com !modoDocumento (GerarDocumentoEscolhas.tsx:50). Os dois estados nao coexistem.",
+      "observacao": "O valor calculado esta certo (useGerarDocumentoController.ts:1139-1146, junta as descricoes com ' · ' e cai em 'Nenhuma condicao marcada'); o que nao existe e o momento de exibi-lo."
+    },
+    {
+      "id": "5-ate-onde-vai",
+      "pergunta": "Ate onde o fluxo vai?",
+      "status": "vai ate o fim - gera, previsualiza e baixa .docx; nenhum texto novo de alteracao contratual, como previsto",
+      "prova": "Com as 6 ligadas, o painel diz '1 clausula nao se aplica a esta empresa e ficou de fora: Teste Tabela GeoRef.' e a previa traz 'CAPITULO XIII Questoes Diversas'. Com so 2 ligadas, o painel diz '2 clausulas nao se aplicam a esta empresa e ficouaram de fora: Capitulo - Questoes Diversas, Teste Tabela GeoRef.' Download em ambos os casos: alertdialog 'Baixar documento incompleto? ... Data da assinatura ... o arquivo sera identificado como rascunho', arquivo Contrato_Social_Sociedade_Limitada_Participacoes_rascunho.docx. Diff palavra a palavra dos dois .docx: unicas 4 palavras de diferenca sao 'CAPITULO XIII Questoes Diversas'.",
+      "observacao": "Nenhum bloco de resolucao existe, entao nao ha texto de alteracao contratual no documento. As duas ocorrencias de 'alteracao contratual' e 'cessao de quotas' no .docx sao texto pre-existente das clausulas oitava e do paragrafo unico do capitulo VI do modelo de constituicao.",
+      "artefatos": [".playwright-mcp/altcontratual-2flags-ligadas.docx", ".playwright-mcp/altcontratual-6flags-ligadas.docx", ".playwright-mcp/altcontratual-06-apos-concluir-modo-documento.png"]
+    },
+    {
+      "id": "6-alheio-console",
+      "pergunta": "Erros de console alheios a feature?",
+      "status": "achado alheio - nao aplicado no banco",
+      "prova": "3x [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://vgzomuwnsdgrxbkyoavq.supabase.co/rest/v1/quadro_societario?select=id,quotas,vlr_total,socio:socio_pessoa_id(*)&empresa_pessoa_id=eq.ba44a1c0-0000-4000-a000-000000000003&order=created_at.asc",
+      "observacao": "404 do PostgREST = relacao inexistente no schema. A tabela quadro_societario nao esta no sandbox. Nada a ver com as flags manuais."
+    },
+    {
+      "id": "7-alheio-copy",
+      "pergunta": "Outro defeito visivel alheio a feature?",
+      "status": "achado alheio - nao corrigido",
+      "prova": "Texto literal na tela: '2 clausulas nao se aplicam a esta empresa e ficouaram de fora: ...'",
+      "observacao": "Erro de concordancia no template de copy: PainelConferencia.tsx:302 monta `ficou${n > 1 ? 'aram' : ''}`, o que produz 'ficouaram' no plural. Arquivo nao tocado pelos commits da feature (git diff --stat af388f17..HEAD nao o lista)."
+    }
+  ],
+  "estado_final_dos_dados": {
+    "tmpl_bloco_flag": "revertido ao original (bloco Questoes Diversas sem flag nenhuma)",
+    "tmpl_flag": "intocado (as 6 linhas semeadas pelo solicitante continuam la)",
+    "projeto_flag_valor": "RESIDUO: 6 linhas para cliente e1c0df8e-5206-45e1-af4b-de3e5aacc48c + pj ba44a1c0-0000-4000-a000-000000000002, todas com valor=false. Nao existiam antes. A UI nao apaga linha (o hook so grava false; RLS de DELETE e so de admin), entao esse e o mais perto do original que da para chegar pelo app.",
+    "documento_gerado": "nenhum documento foi validado nem selado; so downloads de rascunho"
+  }
+}

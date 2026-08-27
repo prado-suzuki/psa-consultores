@@ -1,0 +1,38 @@
+-- 20260824193053_notificacao_tipo_solicitacao_vencida.sql
+--
+-- IMPORTADA DO LEDGER DO SANDBOX, não escrita aqui primeiro. Esta versão estava
+-- registrada em supabase_migrations.schema_migrations sem arquivo correspondente
+-- no repositório (migration aplicada pelo chat do Lovable, que carimba a versão
+-- dele). O corpo abaixo é o `statements` da própria linha do ledger, transcrito
+-- sem alteração, para o repositório voltar a descrever o banco e o `db push`
+-- deixar de abortar em "Remote migration versions not found".
+--
+-- Não editar para corrigir nada: correção vem em migration nova.
+
+-- 20260824143238_notificacao_tipo_solicitacao_vencida.sql
+-- GES-04: o aviso de solicitacao vencida sem NENHUM documento recebido ganha valor
+-- proprio no enum.
+--
+-- ALTER TYPE ... ADD VALUE nao roda dentro de bloco de transacao: fica solto,
+-- sem BEGIN/COMMIT. E o valor NAO pode ser usado neste mesmo arquivo.
+--
+-- POR QUE VALOR NOVO, E NAO REUSAR `cobranca_pendencia`: `reservar_envio` insere com
+-- ON CONFLICT (chave_idempotencia) DO NOTHING, e a chave e
+-- `tipo:entidade_tipo:entidade_id:canal:destinatario:AAAA-MM-DD`. Com o mesmo `tipo`,
+-- a varredura automatica desta tarefa e o clique manual do analista no aviso 2, no
+-- mesmo cliente e no mesmo dia, produzem chave IDENTICA -- e o segundo nao envia, sem
+-- erro e sem log.
+--
+-- SOBRE O NOME: `solicitacao_vencida` por decisao do Alexandre em 24/08/2026 -- o
+-- aviso so dispara DEPOIS de o prazo vencer, e na taxonomia do negocio "vencida" ja
+-- implica que nada chegou, porque envio parcial e cobranca de pendencia (aviso 2). E
+-- o mesmo nome do modelo aprovado na Meta e do event_type da borda.
+--
+-- Enum do Postgres nao permite REMOVER valor.
+--
+-- Estado conferido em 24/08/2026 nos dois bancos: o enum tinha 12 valores identicos,
+-- e nenhum descrevia "venceu e nada veio".
+--
+-- IDEMPOTENTE: add value if not exists.
+
+ALTER TYPE public.notificacao_tipo ADD VALUE IF NOT EXISTS 'solicitacao_vencida';
