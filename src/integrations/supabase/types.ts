@@ -9728,6 +9728,10 @@ export type Database = {
         Returns: boolean
       }
       nome_cliente_normalizado: { Args: { p_nome: string }; Returns: string }
+      notificar_projetos_da_os: {
+        Args: { _detalhe?: string; _evento: string; _solicitacao_id: string }
+        Returns: Json
+      }
       org_project_cluster_ids: {
         Args: { _project_id: string }
         Returns: string[]
