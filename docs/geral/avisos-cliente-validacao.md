@@ -1,6 +1,7 @@
 # Avisos ao cliente
 
-Redação de Patrícia Melo, 17/08/2026. Reescreveu os três avisos por inteiro.
+Redação de Patrícia Melo: os três primeiros avisos reescritos por inteiro em 17/08/2026, e
+o quarto revisado em 24/08/2026.
 
 Os exemplos usam o mesmo cliente nos três: **Carlos Eduardo**, 52 documentos,
 solicitados em 04/08/2026, prazo 03/09/2026, projetos de Estruturação Societária e
@@ -119,11 +120,39 @@ PSA Prado Suzuki
 ```
 
 ---
+
+## 4. Solicitação em aberto
+
+**Assunto:** Solicitação de documentos em aberto – Estruturação Societária e Planejamento Sucessório
+
+```
+Olá, Sr(a). Carlos Eduardo.
+
+Até o momento, não consta o recebimento de nenhum documento referente aos
+projetos de Estruturação Societária e Planejamento Sucessório.
+
+O prazo para envio venceu em 03/09/2026.
+
+A relação completa dos documentos e as orientações de envio estão disponíveis
+no portal do cliente.
+
+Atenciosamente,
+[nome do responsável]
+PSA Prado Suzuki
+
+
+                      [ Enviar documentos → ]
+```
+
+**A linha do prazo flexiona:** `O prazo para envio é 03/09/2026.` enquanto o prazo vale,
+`venceu em` depois. No WhatsApp isso não existe — lá o estado vai dentro do valor.
+
+---
 ---
 
 # PARTE 2 — WHATSAPP
 
-## O que vale para os três modelos
+## O que vale para os quatro modelos
 
 Campos do formulário de submissão da Meta:
 
@@ -229,9 +258,15 @@ Flexão do `{{3}}`: `1 documento` ou `52 documentos`.
 
 ---
 
-## 2. `situacao_documentos_v1`
+## 2. `situacao_documentos_v2`
 
 Substitui os dois modelos antigos: `cobranca_pendencia` e `documento_recusado`.
+
+⚠️ **O modelo no ar é o `_v2`, e o `_v1` também está APPROVED e ficou órfão.** Medido em
+25/08/2026 pela API: os dois corpos são **idênticos byte a byte**, incluindo a quebra solta
+no meio da última frase (`… os motivos para reenvio estão` / `disponíveis no portal do
+cliente.`). Ou seja, a duplicata não corrigiu a quebra — corrigi-la exige um `_v3`. Quem
+está no ar se lê no mapa `MODELOS` do nó `Montar Template OSG`, não aqui.
 
 ### Corpo
 
@@ -351,6 +386,66 @@ Flexão do `{{3}}`: `1 documento` ou `52 documentos`.
 > `[ Consultar documentação ]`
 
 ---
+
+## 4. `solicitacao_vencida_v1`
+
+**Aviso novo, não substitui ninguém.** Aprovado em 25/08/2026, id `1388762306030268`.
+
+### Corpo
+
+```
+Olá, Sr(a). {{1}}.
+
+Até o momento, *não consta o recebimento de nenhum documento* referente {{2}}.
+
+Prazo para envio: {{3}}.
+
+A relação completa dos documentos e as orientações de envio estão disponíveis no portal do cliente.
+```
+
+**Negrito:** só na frase do recebimento. **Botão:** `Enviar documentos`
+
+225 caracteres de modelo, 309 preenchido. Quatro parágrafos.
+
+### Variáveis
+
+| Marcador | O que colocar | Exemplo |
+|---|---|---|
+| `{{1}}` | nome do representante do cliente | `Carlos Eduardo` |
+| `{{2}}` | os projetos na **forma `a`**, com preposição e artigo já flexionados | `aos projetos de Estruturação Societária e Planejamento Sucessório` |
+| `{{3}}` | prazo de envio, com o estado quando vencido | `03/09/2026 (vencido)` |
+
+⚠️ **Forma `a`, como o modelo 1, e não a forma `de` dos modelos 2 e 3.** O texto fixo é
+`referente {{2}}`, então `dos projetos de X` produziria *"referente dos projetos de X"* —
+frase quebrada que **sai assim para o cliente**, porque parâmetro com valor não falha o
+envio.
+
+### Amostras de variáveis — na ordem, para copiar
+
+```
+{{1}}   Carlos Eduardo
+{{2}}   aos projetos de Estruturação Societária e Planejamento Sucessório
+{{3}}   03/09/2026 (vencido)
+```
+
+### Como sai
+
+> Olá, Sr(a). Carlos Eduardo.
+>
+> Até o momento, **não consta o recebimento de nenhum documento** referente aos projetos de Estruturação Societária e Planejamento Sucessório.
+>
+> Prazo para envio: 03/09/2026 (vencido).
+>
+> A relação completa dos documentos e as orientações de envio estão disponíveis no portal do cliente.
+>
+> PSA Prado Suzuki
+> `[ Enviar documentos ]`
+
+O raciocínio da redação, o parecer da coordenação e as três tentativas que falharam antes
+estão em
+[`../sprints/sprint-12/VALIDACAO_aviso-sem-documento.md`](../sprints/sprint-12/VALIDACAO_aviso-sem-documento.md).
+
+---
 ---
 
 # Nomes dos modelos
@@ -359,12 +454,19 @@ O nome de um modelo aprovado **não pode ser editado**, e mudar o texto exige su
 modelo novo. Por isso o sufixo de versão entra desde agora: a próxima revisão de texto é
 `_v3`, sem decisão de nomenclatura às pressas.
 
-| Modelo novo | Substitui | Marcadores |
-|---|---|---|
-| `solicitacao_enviada_v2` | `solicitacao_enviada` | 4 |
-| `situacao_documentos_v1` | `cobranca_pendencia` + `documento_recusado` | 4 |
-| `documentacao_conferida_v1` | `documento_aprovado` | 3 |
+Lido da Graph API em 25/08/2026: os quatro **APPROVED**, UTILITY, `pt_BR`, validade 43200s.
 
-Os quatro modelos antigos continuam aprovados e **não são apagados**. Eles ficam órfãos:
-o fluxo deixa de referenciá-los, e produção segue neles até os novos estarem aprovados e
-testados. A troca é de três linhas, e volta em três linhas.
+| Modelo no ar | `notificacao_tipo` | Substitui | Marc. | Aprovado |
+|---|---|---|---|---|
+| `solicitacao_enviada_v2` | `solicitacao_enviada` | `solicitacao_enviada` | 4 | 18/08/2026 |
+| `situacao_documentos_v2` | `cobranca_pendencia` | `cobranca_pendencia` + `documento_recusado` + `situacao_documentos_v1` | 4 | 18/08/2026 |
+| `documentacao_conferida_v1` | `documento_aprovado` | `documento_aprovado` | 3 | 18/08/2026 |
+| `solicitacao_vencida_v1` | `solicitacao_vencida` | **ninguém** — aviso novo | 3 | 25/08/2026 |
+
+Os órfãos continuam aprovados e **não são apagados**: o fluxo deixa de referenciá-los, e
+apagar modelo aprovado não devolve nada e fecha a porta de voltar atrás. São cinco em
+25/08/2026 — os quatro antigos mais o `situacao_documentos_v1`.
+
+⚠️ **O `solicitacao_vencida_v1` é o único sem caminho de volta**, porque não substitui
+nada. Nos outros três, trocar `emUso` para `atual` devolve o modelo antigo; aqui não há
+antigo. Se a Meta pausar este modelo, a rota para.

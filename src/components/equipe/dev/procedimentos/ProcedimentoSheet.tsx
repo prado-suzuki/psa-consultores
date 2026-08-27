@@ -12,6 +12,8 @@ import { Procedimento, useGetSignedUrl } from '@/hooks/useProcedimentos';
 import { useProfilesNomeMap } from '@/hooks/useDomainProfiles';
 import { COMPLEXIDADE_CONFIG, estiloChipProcesso } from './theme';
 import { supabase } from '@/integrations/supabase/client';
+import { abrirAnexoEmNovaAba } from '@/lib/baixarArquivo';
+import { toast } from 'sonner';
 
 interface ProcedimentoSheetProps {
   procedimento: Procedimento | null;
@@ -66,14 +68,12 @@ export function ProcedimentoSheet({
 
   const baixarArquivo = async () => {
     if (!p.arquivo_path) return;
+    const nome = p.arquivo_path.split('/').pop() || 'documento';
     try {
-      const url = await getSignedUrl(p.arquivo_path);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = p.arquivo_path.split('/').pop() || 'documento';
-      a.click();
+      abrirAnexoEmNovaAba(await getSignedUrl(p.arquivo_path, nome), nome);
     } catch (err) {
-      console.error('Download error:', err);
+      // Falhava em silêncio no console: o clique não fazia nada e não dizia por quê.
+      toast.error('Não consegui abrir o documento: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
 

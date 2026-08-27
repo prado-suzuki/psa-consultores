@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useProfilesNomeMap, useProfilesNomeRows } from '@/hooks/useDomainProfiles';
 import { useRelatorios } from '@/hooks/useRelatoriosGerados';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoRelatorios, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -42,6 +44,19 @@ const DesempenhoRelatorios = () => {
 
   const { data: historico } = useRelatorios({ membro_id: selectedMembro || undefined, ciclo_id: cicloId || undefined });
 
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  const cicloDoAgente = ciclos?.find(c => c.id === cicloId) ?? null;
+  const contextoAgente = useMemo(() => contextoDesempenhoRelatorios({
+    ciclo: cicloDoAgente ? resumoDeCiclo(cicloDoAgente) : null,
+    relatorios: (historico ?? []).map(r => ({
+      tipo: r.tipo, status: r.status, gerado_em: r.gerado_em ?? null,
+    })),
+    membroSelecionado: selectedMembro ? (profilesNomeMap?.[selectedMembro] ?? 'pessoa selecionada') : null,
+    pessoasElegiveis: profileRows?.length ?? 0,
+    carregando: false,
+  }), [cicloDoAgente, historico, selectedMembro, profilesNomeMap, profileRows]);
+  useRegistrarContextoAgente('board.desempenho.relatorios', contextoAgente, false);
+
   const handleGenerate = async () => {
     if (!selectedMembro || !cicloId) { toast({ title: 'Selecione membro e ciclo', variant: 'destructive' }); return; }
     setGenerating(true);
@@ -74,19 +89,19 @@ const DesempenhoRelatorios = () => {
         <div className="flex flex-wrap gap-3 items-end">
           <div className="w-52">
             <Select value={selectedMembro} onValueChange={setSelectedMembro}>
-              <SelectTrigger className="bg-white"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
               <SelectContent>{Object.entries(profilesNomeMap ?? {}).map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="w-48">
             <Select value={cicloId} onValueChange={setSelectedCiclo}>
-              <SelectTrigger className="bg-white"><SelectValue placeholder="Ciclo" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Ciclo" /></SelectTrigger>
               <SelectContent>{ciclos?.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="w-52">
             <Select value={selectedTipo} onValueChange={setSelectedTipo}>
-              <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{Object.entries(tipoLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
             </Select>
           </div>

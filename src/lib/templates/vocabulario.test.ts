@@ -197,6 +197,7 @@ describe('bloco repetidor sobre integralizações — detecção e render aninha
       id: 't',
       nome: 'n',
       blocos: [
+        { id: 'capital', tipo: 'clausula', obrigatorio: true, conteudo: 'O capital social é integralizado.' },
         { id: 'resp', tipo: 'paragrafo', obrigatorio: true, conteudo: 'A responsabilidade é restrita.' },
         repetidor,
       ],
@@ -904,5 +905,57 @@ describe('capital social — o valor nominal da quota vem da sociedade (B6)', ()
     });
     expect(texto).toContain('dividido em 1.000 (mil) quotas, no valor nominal de R$ 10,00 (dez reais)');
     expect(texto).not.toContain('um real');
+  });
+});
+
+// A resolução de aumento de capital é escrita por diferença contra o documento
+// registrado anterior, e o consultor pode marcar o evento no assistente sem o
+// capital ter mudado no cadastro. O condicional é o que permite ao bloco sumir
+// (render em branco, descartado pelo motor) em vez de afirmar aumento de zero.
+describe('sociedade.houveAumentoCapital — condicional da resolução de capital', () => {
+  const houve = (capitalDelta: string) =>
+    derivarCampos('sociedade', { capitalDelta }).houveAumentoCapital;
+
+  it('delta positivo é aumento', () => {
+    expect(houve('4.746.705,00')).toBe('sim');
+    expect(houve('0,01')).toBe('sim');
+  });
+
+  it('delta zero não é aumento (evento marcado sem o capital mudar)', () => {
+    expect(houve('0,00')).toBe('');
+  });
+
+  it('delta negativo não é aumento (redução de capital é outro evento)', () => {
+    expect(houve('-1.000,00')).toBe('');
+  });
+
+  it('sem delta calculado não é aumento (peça sem predecessor registrado)', () => {
+    expect(derivarCampos('sociedade', {}).houveAumentoCapital).toBe('');
+    expect(houve('')).toBe('');
+  });
+
+  it('delta que não é número não é aumento', () => {
+    expect(houve('a combinar')).toBe('');
+  });
+
+  it('o bloco de resolução some inteiro quando não houve aumento', () => {
+    const template: Template = {
+      id: 'fixture-aumento',
+      nome: 'Fixture — resolução de aumento',
+      blocos: [{
+        id: 'b',
+        obrigatorio: true,
+        conteudo:
+          '{{#sociedade.houveAumentoCapital}}Aumenta-se o capital social em ' +
+          'R$ {{ sociedade.capitalDelta }}.{{/sociedade.houveAumentoCapital}}',
+      }],
+    };
+    const semAumento = derivarCampos('sociedade', { capitalDelta: '0,00' });
+    expect(gerarDocumento(template, { sociedade: semAumento } as Contexto)).toBe('');
+
+    const comAumento = derivarCampos('sociedade', { capitalDelta: '1.000,00' });
+    expect(gerarDocumento(template, { sociedade: comAumento } as Contexto)).toBe(
+      'Aumenta-se o capital social em R$ 1.000,00.',
+    );
   });
 });

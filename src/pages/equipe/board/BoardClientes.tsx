@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { BoardMapaClientes } from '@/components/board/BoardMapaClientes';
@@ -5,6 +6,9 @@ import { BoardClientesLista } from '@/components/board/BoardClientesLista';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
 import { useDomainClientesPorRegiao } from '@/hooks/useDomainClientesPorRegiao';
+import { agregarClientesPorRegiao } from '@/lib/clientesPorRegiao';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoBoardClientes } from '@/lib/agenteContextoClientes';
 
 /**
  * Clientes — módulo Gerencial (Board).
@@ -23,6 +27,16 @@ const BoardClientes = () => {
   const { isAdmin } = useAuth();
   const { ambiente } = useDashboardAmbiente();
   const { data: clientes, isLoading, error } = useDomainClientesPorRegiao(ambiente);
+
+  // O agente le a MESMA agregacao que pinta o mapa. Recalcular aqui daria dois
+  // numeros para a mesma pergunta -- o do mapa e o do chat.
+  const agregacao = useMemo(() => agregarClientesPorRegiao(clientes ?? []), [clientes]);
+  const contextoAgente = useMemo(() => contextoBoardClientes({
+    agregacao,
+    escopoTotal: isAdmin,
+    falhas: error ? ['distribuição de clientes'] : [],
+  }), [agregacao, isAdmin, error]);
+  useRegistrarContextoAgente('board.clientes', contextoAgente, isLoading);
 
   return (
     <BoardLayout title="Clientes" subtitle="Carteira da empresa e distribuição geográfica">

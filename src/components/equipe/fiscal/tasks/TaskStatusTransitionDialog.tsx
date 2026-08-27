@@ -40,13 +40,24 @@ interface TaskStatusTransitionDialogProps {
   area: AreaKey;
 }
 
-export function TaskStatusTransitionDialog({
+/**
+ * Sem transição pendente não há o que montar. Os hooks internos (revisor,
+ * cluster do projeto) só fazem sentido com a tarefa em mãos, e mantê-los vivos
+ * à toa ainda emplacava uma consulta de cluster com `undefined` no wiring de
+ * quem hospeda o diálogo (a seção de subtarefas mora dentro do TaskModal).
+ */
+export function TaskStatusTransitionDialog(props: TaskStatusTransitionDialogProps) {
+  if (!props.open || !props.task) return null;
+  return <TransitionDialog {...props} task={props.task} />;
+}
+
+function TransitionDialog({
   open,
   onOpenChange,
   task,
   status,
   area,
-}: TaskStatusTransitionDialogProps) {
+}: TaskStatusTransitionDialogProps & { task: OrgTask }) {
   const { user } = useAuth();
   const updateTask = useUpdateOrgTask(area, { showToasts: false });
   const createComment = useCreateOrgTaskComment({ showToasts: false, area });

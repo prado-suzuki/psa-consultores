@@ -32,7 +32,7 @@ export const T03_1SaidasTab = ({
 
   return (
     <Tabs value={familia} onValueChange={(v) => setFamilia(v as FamiliaSaida)} className="w-full">
-      <TabsList className="grid w-full grid-cols-6 h-10 p-1 bg-white border border-slate-200 rounded-md shadow-sm">
+      <TabsList className="grid w-full grid-cols-6 h-10 p-1 border border-slate-200 rounded-md shadow-sm">
         {FAMILIA_TABS.map((t) => (
           <InlineTooltip key={t.value} content={ICMS_FAMILIA_TAB_TOOLTIPS[t.value]}>
             <TabsTrigger

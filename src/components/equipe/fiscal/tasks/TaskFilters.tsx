@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Building2, Filter, Flag, FolderKanban, ListChecks, Search, SlidersHorizontal, User, X } from 'lucide-react';
+import { Filter, Flag, ListChecks, Search, SlidersHorizontal, User, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { SingleSelectCombobox } from '@/components/dashboards/SingleSelectCombobox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -119,17 +120,29 @@ export const TaskFilters = ({ filters, onFiltersChange, teamMembers, projects = 
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="task-filter-project">Projeto</Label>
-                  <Select value={draftFilters.projectId || 'all'} onValueChange={value => setDraftFilters({ ...draftFilters, projectId: value === 'all' ? undefined : value })}>
-                    <SelectTrigger id="task-filter-project" className="w-full"><FolderKanban className="mr-2 h-4 w-4 shrink-0" /><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">Todos os projetos</SelectItem>{projects.map(project => <SelectItem key={project.id} value={project.id}>{project.name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <SingleSelectCombobox
+                    id="task-filter-project"
+                    options={projects.map(project => ({ value: project.id, label: project.name }))}
+                    value={draftFilters.projectId || null}
+                    onChange={value => setDraftFilters({ ...draftFilters, projectId: value || undefined })}
+                    placeholder="Todos os projetos"
+                    searchPlaceholder="Buscar projeto..."
+                    emptyText="Nenhum projeto encontrado."
+                    className="w-full min-w-0"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="task-filter-client">Cliente</Label>
-                  <Select value={draftFilters.clientId || 'all'} onValueChange={value => setDraftFilters({ ...draftFilters, clientId: value === 'all' ? undefined : value, contribuinteId: undefined })}>
-                    <SelectTrigger id="task-filter-client" className="w-full"><Building2 className="mr-2 h-4 w-4 shrink-0" /><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="all">Todos os clientes</SelectItem>{clients.map(client => <SelectItem key={client.id} value={client.id}>{client.nome}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <SingleSelectCombobox
+                    id="task-filter-client"
+                    options={clients.map(client => ({ value: client.id, label: client.nome }))}
+                    value={draftFilters.clientId || null}
+                    onChange={value => setDraftFilters({ ...draftFilters, clientId: value || undefined, contribuinteId: undefined })}
+                    placeholder="Todos os clientes"
+                    searchPlaceholder="Buscar cliente..."
+                    emptyText="Nenhum cliente encontrado."
+                    className="w-full min-w-0"
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="task-filter-status">Status</Label>

@@ -116,18 +116,18 @@ export const T02CfopTab = ({ enabled, contribuinteId, start_date, end_date }: T0
   if (error) {
     const status = (error as Error & { status?: number }).status;
     return (
-      <Card className="border-red-300 bg-red-50/40">
+      <Card className="border-destructive/40 bg-destructive/10">
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-bold text-red-800 flex items-center gap-2">
+          <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
             <AlertCircle className="h-4 w-4" />
             Erro retornado pela API {status ? `(HTTP ${status})` : ''}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          <pre className="text-xs font-mono whitespace-pre-wrap bg-white border border-red-200 rounded p-3 text-red-900 max-h-64 overflow-auto">
+          <pre className="text-xs font-mono whitespace-pre-wrap bg-card border border-destructive/30 rounded p-3 text-foreground max-h-64 overflow-auto">
             {error instanceof Error ? error.message : 'Erro ao consultar o resumo por CFOP.'}
           </pre>
-          <p className="text-xs text-red-700">
+          <p className="text-xs text-muted-foreground">
             Endpoint: <code className="font-mono">/api/v1/saida_icms/resumo_cfop</code>
           </p>
         </CardContent>

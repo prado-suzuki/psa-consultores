@@ -233,42 +233,142 @@ dois provedores por causa de um ambiente. Se um dia o teste em dev voltar a ser
 necessário, o caminho é esse — e o custo medido no dia era de cerca de
 US$ 0,0005 por pergunta com um modelo `flash-lite`.
 
-### 6.1 Migration (bloqueio real)
+### 6.1 Migration — APLICADA nos dois bancos (25/08)
 
-> Atualização de 21/08, ~15h: produção recebeu migrations pelo bot do Lovable e
-> a `main` foi integrada na `develop` (`af388f17`). Isso **não** inclui as duas
-> migrations do agente — `agente_*` continua fora do `types.ts`, ou seja, fora
-> dos dois bancos. A FK de `org_projects`, sim, entrou nos dois.
+Deixou de ser bloqueio. Estado medido por REST em 25/08, nos dois projetos:
 
+| | sandbox `vgzomuwn…` | produção `zwoainzz…` |
+| --- | --- | --- |
+| 7 tabelas `agente_*` | ✅ HTTP 200 | ✅ HTTP 200 |
+| 18 escopos em `agente_config` | ✅ | (semeados pela migration) |
+| função `agente-psa` | ✅ HTTP 401 (no ar) | ⏳ 404 — sobe com o merge |
 
-O Supabase CLI **não está instalado nesta máquina**, então os passos 1–2 do
-AGENTS.md ("Mudança de schema") não foram executados. O arquivo de migration
-está escrito e é idempotente. Falta:
+Como cada um foi aplicado, porque os caminhos foram diferentes:
 
-1. **Sandbox:** `supabase db push` e
-   `supabase gen types typescript --project-id vgzomuwnsdgrxbkyoavq > src/integrations/supabase/types.ts`,
-   commitado sozinho.
-2. **Produção (humano, pelo chat do Lovable):** aplicar o mesmo SQL; o bot
-   regenera o `types.ts` de lá e commita na `main`.
-3. Deploy da function `agente-psa` e do segredo `LOVABLE_API_KEY` (já usado por
-   `gerar-sintese-executiva` — se está lá, está lá para todas).
+- **Sandbox:** `supabase db query -f <arquivo>`, um por vez, com o CLI via
+  `npx supabase@latest` (a máquina não tem o CLI instalado; o `npx` resolve sem
+  tocar no `package.json` nem no `bun.lock`). **`db push` não serve aqui**: o
+  `config.toml` aponta para produção e o push arrastaria tudo o que estivesse
+  pendente — na medição do dia, 26 arquivos, incluindo mudança de RLS à espera
+  de decisão. Além disso, o histórico de migrations do sandbox tinha 22 versões
+  sem arquivo correspondente no repo (vindas do bot do Lovable), e o `push`
+  exigia marcá-las como revertidas para prosseguir.
+- **Produção:** passo humano, pelo chat do Lovable, como manda o AGENTS.md.
 
-**O front não depende do `types.ts` para compilar.** Tudo passa pela edge
-function, exatamente para o código não ficar preso ao ciclo de regeneração. Sem
-a migration aplicada, o balão aparece e o painel responde
-`Esta tela ainda não tem o agente configurado.` — recusa explícita, não erro
-mudo.
+**Consequência de `db query`:** as versões **não** ficam registradas em
+`supabase_migrations.schema_migrations` do sandbox. O schema está lá, o registro
+não — e a tabela já não era registro confiável antes (ver AGENTS.md). Confira o
+schema, nunca a tabela.
 
-### 6.2 Nunca validado com dado real
+**O front não depende do `types.ts`.** Tudo passa pela edge function,
+exatamente para o código não ficar preso ao ciclo de regeneração — foi o que
+permitiu compilar, buildar e commitar durante os quatro dias em que as tabelas
+não existiam em banco nenhum.
 
-Nenhuma resposta do agente foi vista contra a base de produção. O que precisa de
-olho humano na primeira semana:
+**O que falta para o agente responder em produção:** o merge do PR #65. O
+Lovable sincroniza da `main` e sobe a função junto; o `LOVABLE_API_KEY` já
+existe lá (é o mesmo que a `gerar-sintese-executiva` usa).
 
-- a resposta cita número que existe na tela? (o teste automatizado trava o
-  formato do snapshot, não a fidelidade do modelo);
-- o insight cruza blocos ou repete a resposta em outras palavras?
-- o teto de contexto (24k caracteres) está cortando bloco no Estratégico?
-  (`serializarContexto` avisa no prompt quando corta, mas ninguém mediu ainda).
+### 6.2 Validado com dado real em produção (25/08)
+
+A função subiu em produção pelo chat do Lovable — **merge no GitHub não publica
+edge function**, e não há workflow que o faça (o único é a CI). Confirmado do
+lado de fora: `POST` sem token devolve `401 {"error":"Não autenticado."}`, a
+mensagem em português do próprio código, o que prova que a build no ar é esta.
+
+**O que passou:**
+
+- **Não inventou número.** Cada valor citado numa pergunta de concentração
+  ("R$ 197,8 mi", "99,1%", "46 clientes", "99,5% nos 5 maiores") mapeia num
+  campo do snapshot. Ele cita, não estima.
+- **Cruzou blocos.** Para sustentar uma suspeita de cadastro, trouxe "29 OS sem
+  data de início" e "86 clientes sem categoria" do bloco de Preenchimento —
+  outro bloco, não o da pergunta.
+- **O ciclo de aprendizado fecha de ponta a ponta.** Uma correção real ("concentração
+  acima de 90% num cliente é quase sempre erro de cadastro na PSA") foi
+  confirmada em forma imperativa, **aplicada na mesma resposta**, persistida em
+  `agente_aprendizados` e visível no cockpit com o rastro de onde veio.
+- **A curadoria não era enfeite.** Na PRIMEIRA lição real, o texto colado trazia
+  junto uma frase de conversa que não era regra. O campo editável do cockpit
+  resolveu. É o custo consciente de guardar a correção em texto do usuário, sem
+  IA reescrevendo: uma IA "melhorando" a frase inventaria regra que ninguém
+  disse; em troca, às vezes uma pessoa apara.
+
+**O que ainda não foi visto:**
+
+- **A pergunta que a tela NÃO responde** ("qual o custo dos projetos?"). É a
+  prova de fogo da regra nº2 do prompt — dizer o que falta em vez de estimar.
+- ~~**Categorias frouxas.**~~ **CORRIGIDO em 25/08.** O insight sobre cadastro
+  incompleto saiu como "Execução" três vezes seguidas. O enum não tinha
+  descrição nenhuma — o nome do valor não ensina onde termina um e começa o
+  outro. Cada valor ganhou descrição no `ai.ts`, com "dado" explicitamente
+  definido como *qualidade do número, não o que o número diz*. **Só tem efeito
+  depois de a função ser redeployada pelo Lovable.**
+- **O teto de contexto** (24k caracteres). `serializarContexto` avisa no prompt
+  quando corta, mas ninguém mediu se o Estratégico chega perto.
+- **Antes do agente, um dado a conferir:** 99,1% da receita num só cliente
+  (R$ 196 mi). Ou é real, ou é erro de cadastro — e foi isso que originou a
+  primeira lição.
+
+### 6.2.1 Telas que publicam snapshot — as 18, desde 25/08
+
+Todas as telas do Board publicam. O agente existe em todas elas pela rota, e
+agora conversa sobre números em todas.
+
+| escopo | tela | snapshot |
+| --- | --- | --- |
+| `board.estrategico` | Estratégico | `agenteContextoBoard.ts` |
+| `board.projetos` | Projetos | `agenteContextoProjetos.ts` |
+| `board.clientes` | Clientes | `agenteContextoClientes.ts` |
+| `board.ferramentas` | Ferramentas | `agenteContextoFerramentas.ts` |
+| `board.capacidade` | Capacidade | `agenteContextoCapacidade.ts` |
+| `board.operacional` | Operacional | `agenteContextoOperacional.ts` |
+| `board.logs` | Logs da equipe | `agenteContextoLogs.ts` |
+| `board.chamados` | Chamados | `agenteContextoChamados.ts` |
+| `board.dashboards` | Dashboards (Looker) | `agenteContextoDashboards.ts` |
+| `board.desempenho` | Desempenho · Visão geral | `agenteContextoDesempenho.ts` |
+| `board.desempenho.decisoes` | Desempenho · Decisões | idem |
+| `board.desempenho.ciclos` | Ciclos | `agenteContextoDesempenhoTelas.ts` |
+| `board.desempenho.metas` | Metas e PPR | idem |
+| `board.desempenho.relatorios` | Relatórios | idem |
+| `board.desempenho.evolucao` | Evolução | idem |
+| `board.desempenho.feedbacks` | Feedbacks | idem |
+| `board.desempenho.1a1` | 1:1s | idem |
+| `board.desempenho.minha-evolucao` | Minha evolução | idem |
+
+**Ligar uma tela é:** uma função pura em `src/lib/` com testes +
+`useRegistrarContextoAgente` na página. Nada no agente muda, nada no banco muda.
+
+Três padrões que valem para a próxima:
+
+1. **Conteúdo reaproveitado recebe o escopo por PROP, com default vazio.**
+   `DashboardClientesOsContent` (Projetos), `AreaDashboardContent` (Capacidade) e
+   `ChamadosGestaoContent` (Chamados) rodam também na Gerencial da Tax e da OSG.
+   Publicar direto faria o agente responder "Board · ..." nas outras áreas —
+   mesmo número, tela errada.
+2. **O filtro da tela tem que vir da MESMA fonte que a tela lê.** Em Logs, o
+   período mora na URL (`useAuditPeriodo`); ler um período próprio faria o
+   agente responder sobre uma janela e a tela mostrar outra.
+3. **Objeto literal em dependência de `useMemo` fura a memoização.** Aconteceu
+   duas vezes (`TIPO_OPTIONS` em Projetos, `stats` em Chamados): identidade nova
+   a cada render, snapshot recalculado sempre.
+
+**Duas telas exigiram decisão de conteúdo, não de código:**
+
+- **Logs** publica CONTAGEM DE REGISTRO, não as colunas derivadas das abas
+  ("processos executados" tem regra própria e depende de mapas que a aba monta).
+  Reproduzir seria uma segunda implementação da mesma regra, e no dia em que uma
+  mudasse, tela e agente discordariam sobre a mesma pessoa.
+- **Dashboards** é `iframe` do Looker: o número não está no app. O snapshot
+  existe para o agente saber DIZER ISSO com precisão — lista os relatórios
+  liberados e afirma que não lê o conteúdo — em vez de responder "esta tela não
+  publica números", que soa como defeito.
+
+**E uma regra de privacidade para as sete telas de Desempenho:** nenhum snapshot
+leva texto de feedback, tema de 1:1 ou comentário de líder. Só contagem e
+estado. O agente pode dizer "há 4 feedbacks que a pessoa ainda não pode ler";
+não pode recitar o que alguém escreveu sobre outra pessoa. O painel é lido em
+reunião, com a tela compartilhada.
 
 ### 6.3 Fora do escopo desta entrega
 

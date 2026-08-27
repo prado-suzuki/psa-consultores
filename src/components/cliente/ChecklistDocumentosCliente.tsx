@@ -59,7 +59,7 @@ const GRUPO_ICON: Record<GrupoDocumentoKey, LucideIcon> = {
   outros: FilePlus2,
 };
 
-const FOCO = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40';
+const FOCO = 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40';
 
 type FiltroGrupo = 'todos' | GrupoDocumentoKey;
 type FiltroStatus = 'todos' | 'faltando' | 'recebidos';
@@ -75,7 +75,7 @@ const FILTROS_GRUPO: Array<{ value: FiltroGrupo; label: string; Icon: LucideIcon
 const FILTROS_STATUS: Array<{ value: FiltroStatus; label: string; dot?: string }> = [
   { value: 'todos', label: 'Todos' },
   { value: 'faltando', label: 'Falta enviar', dot: 'bg-amber-500' },
-  { value: 'recebidos', label: 'Recebidos', dot: 'bg-teal-600' },
+  { value: 'recebidos', label: 'Recebidos', dot: 'bg-primary' },
 ];
 
 /** O vocabulário do portal para os quatro estados (o consultor usa outro). */
@@ -89,7 +89,7 @@ const ESTADO_CHIP: Record<EstadoDocumento, string> = {
   pendente: 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400',
   em_analise: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400',
   recusado: 'border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400',
-  aprovado: 'border-teal-200 bg-teal-50 text-teal-700 hover:border-teal-400',
+  aprovado: 'border-teal-200 bg-teal-50 text-primary hover:border-teal-400',
 };
 
 const estadoDaPendencia = (pendencia: PendenciaCliente): EstadoDocumento =>
@@ -199,7 +199,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
   if (pendencias.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300/80 bg-white/70 px-6 py-16 text-center shadow-sm">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-teal-700">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-primary">
           <ShieldCheck className="h-7 w-7" />
         </span>
         <p className="font-semibold text-slate-800">Nada pendente no momento.</p>
@@ -241,8 +241,8 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />{label}
-                <span className={cn('text-[10px] tabular-nums', ativo ? 'text-teal-700' : 'text-slate-400')}>{total}</span>
-                {ativo && <span aria-hidden className="absolute inset-x-3 bottom-0.5 h-0.5 rounded-full bg-teal-600" />}
+                <span className={cn('text-[10px] tabular-nums', ativo ? 'text-primary' : 'text-slate-400')}>{total}</span>
+                {ativo && <span aria-hidden className="absolute inset-x-3 bottom-0.5 h-0.5 rounded-full bg-primary" />}
               </button>
             );
           })}
@@ -261,7 +261,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
                     'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                     FOCO,
                     ativo
-                      ? 'border-teal-600 bg-teal-50 text-teal-700'
+                      ? 'border-primary bg-teal-50 text-primary'
                       : 'border-slate-200/80 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700',
                   )}
                 >
@@ -277,7 +277,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
               value={busca}
               onChange={(evento) => setBusca(evento.target.value)}
               placeholder="Buscar pessoa, imóvel ou documento..."
-              className="border-slate-200/80 bg-slate-50/60 pl-9"
+              className="bg-muted/60 pl-9"
             />
           </div>
         </div>
@@ -346,27 +346,27 @@ function ResumoHero({ pct, total, recebidos, faltando }: {
 }) {
   return (
     <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.4)] sm:p-7">
-      <div aria-hidden className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-teal-600/5 blur-3xl" />
+      <div aria-hidden className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
       <div className="relative grid gap-7 lg:grid-cols-[1fr_240px] lg:items-center">
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-teal-700">
+          <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
             Documentos solicitados
           </span>
           <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-slate-800">
             Documentos que faltam
           </h2>
-          <div className="mt-1 h-[3px] w-8 rounded-full bg-teal-600" />
+          <div className="mt-1 h-[3px] w-8 rounded-full bg-primary" />
           <p className="mt-3 max-w-2xl text-sm text-slate-500">
             Cada documento aparece junto de quem ele é, e o envio acontece ali mesmo: assim ele já
             chega organizado, e você não precisa renomear nem separar nada.
           </p>
           <div className="mt-6 flex flex-wrap items-end gap-x-4 gap-y-1">
-            <span className="text-4xl font-extrabold leading-none tabular-nums text-teal-700">{pct}%</span>
+            <span className="text-4xl font-extrabold leading-none tabular-nums text-primary">{pct}%</span>
             <span className="text-sm text-slate-500">{recebidos} de {total} documentos recebidos</span>
           </div>
           <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-100">
             <div
-              className="h-full rounded-full bg-teal-600 transition-[width] duration-500"
+              className="h-full rounded-full bg-primary transition-[width] duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
@@ -385,7 +385,7 @@ function Metrica({ label, value, tom }: { label: string; value: number; tom: 'at
     <div className="flex flex-col items-center rounded-xl bg-slate-50/80 px-2 py-3 text-center">
       <div className={cn(
         'text-xl font-bold leading-none tabular-nums',
-        tom === 'atencao' ? 'text-amber-600' : 'text-teal-700',
+        tom === 'atencao' ? 'text-amber-600' : 'text-primary',
       )}>
         {value}
       </div>
@@ -411,16 +411,16 @@ function SecaoGaveta({ gaveta, onAbrir }: {
         <div className="flex flex-wrap items-center gap-4">
           <div className="min-w-0">
             <h3 className="truncate text-xl font-bold tracking-tight text-slate-800">{gaveta.titulo}</h3>
-            <div className="mt-1 h-[3px] w-8 rounded-full bg-teal-600" />
+            <div className="mt-1 h-[3px] w-8 rounded-full bg-primary" />
           </div>
           <div className="w-32 shrink-0 sm:w-36">
             <div className="mb-1 flex items-baseline justify-between text-[11px] font-semibold">
-              <span className="tabular-nums text-teal-700">{pct}%</span>
+              <span className="tabular-nums text-primary">{pct}%</span>
               <span className="tabular-nums text-slate-500">{recebidos}/{total}</span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
               <span
-                className="block h-full rounded-full bg-teal-600 transition-[width] duration-500"
+                className="block h-full rounded-full bg-primary transition-[width] duration-500"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -473,7 +473,7 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
   return (
     <div
       className={cn(
-        'group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-slate-200/80 bg-white/80 p-5 text-left shadow-[0_8px_24px_-22px_rgba(15,23,42,0.4)] transition-all duration-200 hover:-translate-y-1 hover:border-teal-600/40 hover:shadow-[0_16px_30px_-20px_rgba(13,148,136,0.3)] focus-within:border-teal-600/40',
+        'group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-slate-200/80 bg-white/80 p-5 text-left shadow-[0_8px_24px_-22px_rgba(15,23,42,0.4)] transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_16px_30px_-20px_rgba(13,148,136,0.3)] focus-within:border-primary/40',
       )}
     >
       <button
@@ -483,12 +483,12 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
         className={cn('absolute inset-0 z-0 rounded-2xl', FOCO)}
       />
       <div className="pointer-events-none relative z-10 flex items-start justify-between gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-primary">
           <Icon className="h-5 w-5" />
         </span>
         <span className={cn(
           'rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]',
-          entidade.faltando > 0 ? 'bg-amber-50 text-amber-700' : 'bg-teal-50 text-teal-700',
+          entidade.faltando > 0 ? 'bg-amber-50 text-amber-700' : 'bg-teal-50 text-primary',
         )}>
           {entidade.faltando > 0
             ? `${entidade.faltando} pendente${entidade.faltando === 1 ? '' : 's'}`
@@ -512,13 +512,13 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
       <div className="pointer-events-none relative z-10 mt-auto flex items-center gap-3 pt-5">
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
           <div
-            className={cn('h-full rounded-full', entidade.faltando > 0 ? 'bg-amber-400' : 'bg-teal-600')}
+            className={cn('h-full rounded-full', entidade.faltando > 0 ? 'bg-amber-400' : 'bg-primary')}
             style={{ width: `${pct}%` }}
           />
         </div>
         <span className="text-sm font-bold tabular-nums text-slate-600">{recebidos}/{total}</span>
       </div>
-      <span className="pointer-events-none relative z-10 mt-3 text-xs font-semibold text-teal-700 group-hover:underline">
+      <span className="pointer-events-none relative z-10 mt-3 text-xs font-semibold text-primary group-hover:underline">
         {entidade.faltando > 0
           ? `Enviar ${entidade.faltando} documento${entidade.faltando === 1 ? '' : 's'}`
           : `Ver ${total} documento${total === 1 ? '' : 's'}`}
@@ -582,7 +582,7 @@ function EntidadeDialog({
     <Dialog open={!!selecionada} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden p-0">
         <DialogHeader className="border-b border-slate-100 bg-slate-50/60 px-6 py-5 text-left">
-          <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-teal-700">
+          <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
             {selecionada?.gaveta.titulo}
           </span>
           <DialogTitle className="text-xl text-slate-800">{selecionada?.entidade.nome}</DialogTitle>
@@ -657,7 +657,7 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
     <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
       <span className={cn(
         'mt-0.5 hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:flex',
-        pendencia.recebido ? 'bg-teal-50 text-teal-700'
+        pendencia.recebido ? 'bg-teal-50 text-primary'
           : recusado ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700',
       )}>
         {pendencia.recebido ? <Check className="h-4 w-4" />
@@ -674,7 +674,7 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
               'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
               recusado ? 'bg-rose-50 text-rose-700'
                 : estado === 'em_analise' ? 'bg-slate-100 text-slate-600'
-                  : 'bg-teal-50 text-teal-700',
+                  : 'bg-teal-50 text-primary',
             )}>
               {recusado ? <TriangleAlert className="h-3 w-3" />
                 : estado === 'em_analise' ? <Hourglass className="h-3 w-3" />
@@ -706,7 +706,7 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
         ) : (
           <label
             className={cn(
-              'inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-teal-600/30 bg-white px-3 py-2 text-xs font-semibold text-teal-700 transition-colors hover:border-teal-600/60 hover:bg-teal-50',
+              'inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-primary/30 bg-white px-3 py-2 text-xs font-semibold text-primary transition-colors hover:border-primary/60 hover:bg-teal-50',
               FOCO,
               ocupado && 'pointer-events-none opacity-60',
             )}
@@ -763,7 +763,7 @@ function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
         <span className={cn(
           'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]',
           recusado ? 'bg-rose-100 text-rose-700'
-            : aprovado ? 'bg-teal-100 text-teal-700' : 'bg-slate-200/70 text-slate-600',
+            : aprovado ? 'bg-teal-100 text-primary' : 'bg-slate-200/70 text-slate-600',
         )}>
           {recusado ? 'Recusado' : aprovado ? 'Aprovado' : 'Em análise'}
         </span>

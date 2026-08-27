@@ -389,7 +389,7 @@ const ConsultaECF = () => {
             <div className="md:col-span-3">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} /></label>
               <Select value={selectedCliente} onValueChange={(value) => { setSelectedCliente(value); setSelectedContribuinte(""); setSearchTriggered(false); }}>
-                <SelectTrigger className="h-11 bg-white"><SelectValue placeholder={loadingClientes ?"Carregando...":"Selecione o cliente"} /></SelectTrigger>
+                <SelectTrigger className="h-11"><SelectValue placeholder={loadingClientes ?"Carregando...":"Selecione o cliente"} /></SelectTrigger>
                 <SelectContent className="bg-background border z-50">
                   {clientes?.map((cliente) => (<SelectItem key={cliente.id} value={cliente.id}>{cliente.nome}</SelectItem>))}
                 </SelectContent>
@@ -398,7 +398,7 @@ const ConsultaECF = () => {
             <div className="md:col-span-5">
               <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} /></label>
               <Select value={selectedContribuinte} onValueChange={(value) => { setSelectedContribuinte(value); setSearchTriggered(false); setSelectedArquivos(new Set()); }}>
-                <SelectTrigger className="h-11 bg-white"><SelectValue placeholder={loadingContribuintes ?"Carregando...":"Selecione o contribuinte"} /></SelectTrigger>
+                <SelectTrigger className="h-11"><SelectValue placeholder={loadingContribuintes ?"Carregando...":"Selecione o contribuinte"} /></SelectTrigger>
                 <SelectContent className="bg-background border z-50">
                   {contribuintes?.map((contrib) => (<SelectItem key={contrib.id} value={contrib.id}>{contrib.nome_razao_social} {contrib.cpf_cnpj ? `(${formatCNPJ(contrib.cpf_cnpj)})` : ''}</SelectItem>))}
                 </SelectContent>

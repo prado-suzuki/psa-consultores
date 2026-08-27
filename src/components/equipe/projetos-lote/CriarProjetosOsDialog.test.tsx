@@ -190,6 +190,28 @@ describe('CriarProjetosOsDialog', () => {
     expect(disponivel).toBeEnabled();
   });
 
+  it('OS sem Data Fim aparece desabilitada, com o motivo à vista', async () => {
+    mocks.osAbertas = [os({ data_fim: null })];
+    const user = userEvent.setup();
+    render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
+
+    await user.click(screen.getByRole('button', { name: 'Fazenda Horizonte' }));
+    expect(screen.getByText(/Sem Data Fim — corrija na OS, no cadastro do cliente/)).toBeInTheDocument();
+    expect(screen.getByRole('radio')).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Criar/ })).toBeDisabled();
+  });
+
+  it('OS com período invertido também não abre a tela de lote', async () => {
+    mocks.osAbertas = [os({ data_inicio: '2026-12-31', data_fim: '2026-01-01' })];
+    const user = userEvent.setup();
+    render(<CriarProjetosOsDialog open onOpenChange={vi.fn()} area="tax" />);
+
+    await user.click(screen.getByRole('button', { name: 'Fazenda Horizonte' }));
+    await user.click(screen.getByRole('radio'));
+    await user.click(screen.getByRole('button', { name: /Criar/ }));
+    expect(mocks.navigate).not.toHaveBeenCalled();
+  });
+
   it('"Trocar cliente" volta para a lista de clientes', async () => {
     mocks.osAbertas = [os({}), os({ id: 'os-2', cliente_id: 'cli-2' })];
     const user = userEvent.setup();

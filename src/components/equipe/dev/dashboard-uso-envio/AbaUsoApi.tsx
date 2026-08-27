@@ -36,7 +36,7 @@ import {
   GRID_STYLE,
   LIME,
   RISCO,
-  TEAL,
+  TEAL_SERIE,
   TOOLTIP_STYLE,
   mesLabel,
   ms,
@@ -211,7 +211,7 @@ export const AbaUsoApi = ({
                 maxBarSize={38}
               >
                 {serieMes.map((m) => (
-                  <Cell key={m.mes} fill={m.mes === picoMes?.mes ? LIME[500] : TEAL[600]} />
+                  <Cell key={m.mes} fill={m.mes === picoMes?.mes ? LIME[500] : TEAL_SERIE} />
                 ))}
               </Bar>
             </BarChart>
@@ -246,7 +246,7 @@ export const AbaUsoApi = ({
                 isAnimationActive={false}
                 dataKey="chamadas"
                 name="requisições"
-                fill={TEAL[600]}
+                fill={TEAL_SERIE}
                 radius={[0, 3, 3, 0]}
                 maxBarSize={18}
               />
@@ -291,7 +291,7 @@ export const AbaUsoApi = ({
               isAnimationActive={false}
               dataKey="chamadas"
               name="requisições"
-              fill={TEAL[600]}
+              fill={TEAL_SERIE}
               radius={[0, 3, 3, 0]}
               maxBarSize={14}
             >

@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Semear sessao</title>
+<pre id="log" style="font:13px ui-monospace,monospace;padding:24px;line-height:1.7"></pre>
+<script type="module">
+// Semeia no navegador a sessao que `e2e/auth.setup.ts` gravou em
+// `e2e/.auth/user.json`, para um browser sem login (o do Playwright MCP, por
+// exemplo) entrar no app sem passar pelo formulario e sem precisar da senha.
+//
+// Existe porque o `--storage-state` do Playwright MCP so vale com `--isolated` e
+// so passa a valer na proxima sessao do agente: mudar a config do MCP nao
+// reconfigura um servidor que ja esta de pe. Esta pagina resolve agora.
+//
+// NAO carrega segredo nenhum: le o mesmo arquivo gitignored que o Vite serve em
+// dev, e escreve no localStorage da MESMA origem do app (localhost:8080), que e
+// onde o supabase-js procura a sessao.
+//
+// Uso: navegar para /e2e/semear-sessao.html e esperar o redirecionamento.
+// Se a sessao estiver expirada, o supabase-js renova sozinho pelo refresh token
+// no primeiro carregamento do app; se o refresh token tambem tiver morrido, a
+// pagina avisa e o caminho e rodar `e2e/auth.setup.ts` com E2E_EMAIL/E2E_PASSWORD.
+
+const log = (m) => { document.getElementById('log').textContent += m + '\n'; };
+const DESTINO = new URLSearchParams(location.search).get('ir') ?? '/equipe/osg/work/quadro-societario';
+
+try {
+  const r = await fetch('/e2e/.auth/user.json');
+  if (!r.ok) throw new Error(`nao consegui ler e2e/.auth/user.json (HTTP ${r.status})`);
+  const estado = await r.json();
+
+  const daOrigem = (estado.origins ?? []).filter((o) => o.origin === location.origin);
+  if (daOrigem.length === 0) {
+    const origens = (estado.origins ?? []).map((o) => o.origin).join(', ') || '(nenhuma)';
+    throw new Error(
+      `a sessao gravada e da origem ${origens}, e esta pagina esta em ${location.origin}. ` +
+      `Suba o dev na mesma porta, ou regrave a sessao.`,
+    );
+  }
+
+  let chaves = 0;
+  for (const o of daOrigem) {
+    for (const item of o.localStorage ?? []) {
+      localStorage.setItem(item.name, item.value);
+      chaves++;
+      log(`gravei  ${item.name}`);
+    }
+  }
+  if (chaves === 0) throw new Error('a sessao gravada nao tem nenhuma chave de localStorage');
+
+  // Diz o estado do token, para quem le a tela saber se vai haver refresh.
+  const tokenSb = Object.keys(localStorage).find((k) => k.startsWith('sb-') && k.endsWith('-auth-token'));
+  if (tokenSb) {
+    const s = JSON.parse(localStorage.getItem(tokenSb));
+    const restam = Math.round((s.expires_at * 1000 - Date.now()) / 1000);
+    log(`usuario ${s.user?.email ?? '(sem email)'}`);
+    log(restam > 0
+      ? `token valido por ${restam}s`
+      : `token expirado ha ${-restam}s: o app vai tentar renovar pelo refresh token`);
+  }
+
+  log(`\nindo para ${DESTINO} ...`);
+  location.replace(DESTINO);
+} catch (e) {
+  log(`FALHOU: ${e.message}`);
+}
+</script>

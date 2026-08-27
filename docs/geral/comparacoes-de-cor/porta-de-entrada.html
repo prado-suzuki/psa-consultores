@@ -1,0 +1,96 @@
+<title>A porta de entrada</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+  :root{ --ground:#FBFAF7; --ink:#2E1305; --ink-2:#7D7268; --rule:#E7E2DA; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:'Work Sans',system-ui,sans-serif;font-size:15px;line-height:1.55;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1140px;margin:0 auto;padding:56px 28px 96px}
+  h1{font-size:31px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+  .sub{color:var(--ink-2);max-width:62ch;margin:0 0 8px}
+  .lede{max-width:64ch;margin:0 0 40px}
+  h2{font-size:13px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+     color:var(--ink-2);margin:52px 0 18px;padding-bottom:9px;border-bottom:1px solid var(--rule)}
+  .mono{font-family:'DM Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .q{font-size:19px;font-weight:600;letter-spacing:-.01em;margin:38px 0 6px;text-wrap:balance}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+  @media (max-width:1000px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:620px){.grid{grid-template-columns:1fr}}
+  .col{border:1px solid var(--rule);border-radius:12px;overflow:hidden;background:#FFFFFE}
+  .col > .head{padding:10px 14px;border-bottom:1px solid var(--rule);background:#F3F1EC;
+    color:#5D573C;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+  .col.rec > .head{background:#E9EFE6;color:#3B6B34}
+
+  .porta{padding:20px 16px 22px;text-align:center}
+  .marca{font-size:10px;font-weight:700;letter-spacing:.16em;margin-bottom:14px;opacity:.9}
+  .p-tit{font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:7px}
+  .p-ico{width:13px;height:13px;border-radius:3px;display:inline-block}
+  .p-sub{font-size:11px;margin:3px 0 16px}
+  .p-card{border:1px solid;border-radius:10px;padding:14px 13px 15px;text-align:left}
+  .p-ct{font-size:13px;font-weight:600}
+  .p-cd{font-size:11px;line-height:1.4;margin:2px 0 12px}
+  .p-lb{font-size:10.5px;font-weight:500;margin-bottom:4px}
+  .p-in{font-size:11px;border:1px solid;border-radius:6px;padding:7px 9px;margin-bottom:9px}
+  .p-bt{font-size:11.5px;font-weight:600;padding:7px 0;border-radius:6px;text-align:center;margin-top:3px}
+  .p-lk{font-size:10.5px;text-align:center;margin-top:9px;text-decoration:underline}
+
+  .seps{padding:11px 14px 13px;border-top:1px solid var(--rule);font-size:11px}
+  .sep-l{display:flex;justify-content:space-between;gap:8px;padding:3px 0}
+  .sep-l span:first-child{color:var(--ink-2)}
+  .sep-l .good,.sep-l .warn,.sep-l .bad{font-family:'DM Mono',monospace;font-weight:600}
+  .sep-l .good{color:#3B6B34}
+  .sep-l .warn{color:#8A6220}
+  .sep-l .bad{color:#A32C2C;font-weight:700}
+  .nota{border-left:3px solid #C9BFA8;padding:2px 0 2px 16px;margin:26px 0;max-width:66ch}
+  .nota strong{font-weight:600}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+     color:var(--ink-2);font-weight:700;padding:0 10px 9px 0;border-bottom:1px solid var(--rule)}
+  td{padding:10px 10px 10px 0;border-bottom:1px solid var(--rule)}
+  td.n{font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+  .scroll{overflow-x:auto}
+</style>
+<div class="wrap">
+<h1>A porta de entrada</h1>
+<p class="sub">Liso ou gradiente, e qual acento — para decidir olhando.</p>
+<p class="lede">A escala escura <strong>B</strong> já está no <span class="mono">.dark</span>, e não mudou pixel: nenhuma rota aplica essa classe. Falta a parte visível — as <strong>7 telas de entrada</strong> que hoje se pintam à mão. Esta é a de <span class="mono">/equipe</span>, reproduzida do <span class="mono">EquipeAuth.tsx</span>.</p>
+<h2>As quatro saídas</h2>
+<div class="grid">
+<div class="col"><div class="head">o que está no ar</div>
+<div class="porta" style="background:linear-gradient(135deg,#030712 0%,#111827 50%,#030712 100%)"><div class="marca" style="color:#FFFFFF">PSA<span style="color:#0D877C">·</span>CONSULTORES</div><div class="p-tit" style="color:#FFFFFF"><span class="p-ico" style="background:#0D877C"></span>Área da Equipe</div><div class="p-sub" style="color:#9CA3B0">Sistema de Gestão de Demandas</div><div class="p-card" style="background:#111827;border-color:#1F2937"><div class="p-ct" style="color:#FFFFFF">Acesso Restrito</div><div class="p-cd" style="color:#9CA3B0">Entre com suas credenciais de membro da equipe</div><div class="p-lb" style="color:#D1D5DB">Email</div><div class="p-in" style="background:#18202F;border-color:#384252;color:#6B7280">seu@email.com</div><div class="p-lb" style="color:#D1D5DB">Senha</div><div class="p-in" style="background:#18202F;border-color:#384252;color:#6B7280">••••••••</div><div class="p-bt" style="background:#0D877C;color:#FFFFFF">Entrar</div><div class="p-lk" style="color:#0D877C">Esqueci minha senha</div></div></div>
+<div class="seps"><div class="sep-l"><span>cartão × fundo</span><span class="warn">1,00:1</span></div><div class="sep-l"><span>borda × cartão</span><span class="good">1,21:1</span></div><div class="sep-l"><span>placeholder × campo</span><span class="bad">3,38:1</span></div><div class="sep-l"><span>acento × cartão</span><span class="warn">4,03:1</span></div><div class="sep-l"><span>texto do botão</span><span class="warn">4,40:1</span></div></div>
+</div>
+<div class="col rec"><div class="head">liso · acento teal-400 · recomendada</div>
+<div class="porta" style="background:#1A1714"><div class="marca" style="color:#F8F8F6">PSA<span style="color:#2BD4BD">·</span>CONSULTORES</div><div class="p-tit" style="color:#F8F8F6"><span class="p-ico" style="background:#2BD4BD"></span>Área da Equipe</div><div class="p-sub" style="color:#B8B1A8">Sistema de Gestão de Demandas</div><div class="p-card" style="background:#272420;border-color:#534E46"><div class="p-ct" style="color:#F8F8F6">Acesso Restrito</div><div class="p-cd" style="color:#B8B1A8">Entre com suas credenciais de membro da equipe</div><div class="p-lb" style="color:#B8B1A8">Email</div><div class="p-in" style="background:#35312C;border-color:#534E46;color:#B8B1A8">seu@email.com</div><div class="p-lb" style="color:#B8B1A8">Senha</div><div class="p-in" style="background:#35312C;border-color:#534E46;color:#B8B1A8">••••••••</div><div class="p-bt" style="background:#2BD4BD;color:#1A1714">Entrar</div><div class="p-lk" style="color:#2BD4BD">Esqueci minha senha</div></div></div>
+<div class="seps"><div class="sep-l"><span>cartão × fundo</span><span class="good">1,16:1</span></div><div class="sep-l"><span>borda × cartão</span><span class="good">1,87:1</span></div><div class="sep-l"><span>placeholder × campo</span><span class="good">6,08:1</span></div><div class="sep-l"><span>acento × cartão</span><span class="good">8,28:1</span></div><div class="sep-l"><span>texto do botão</span><span class="good">9,57:1</span></div></div>
+</div>
+<div class="col"><div class="head">liso · acento lime</div>
+<div class="porta" style="background:#1A1714"><div class="marca" style="color:#F8F8F6">PSA<span style="color:#68A50D">·</span>CONSULTORES</div><div class="p-tit" style="color:#F8F8F6"><span class="p-ico" style="background:#68A50D"></span>Área da Equipe</div><div class="p-sub" style="color:#B8B1A8">Sistema de Gestão de Demandas</div><div class="p-card" style="background:#272420;border-color:#534E46"><div class="p-ct" style="color:#F8F8F6">Acesso Restrito</div><div class="p-cd" style="color:#B8B1A8">Entre com suas credenciais de membro da equipe</div><div class="p-lb" style="color:#B8B1A8">Email</div><div class="p-in" style="background:#35312C;border-color:#534E46;color:#B8B1A8">seu@email.com</div><div class="p-lb" style="color:#B8B1A8">Senha</div><div class="p-in" style="background:#35312C;border-color:#534E46;color:#B8B1A8">••••••••</div><div class="p-bt" style="background:#68A50D;color:#1A1714">Entrar</div><div class="p-lk" style="color:#68A50D">Esqueci minha senha</div></div></div>
+<div class="seps"><div class="sep-l"><span>cartão × fundo</span><span class="good">1,16:1</span></div><div class="sep-l"><span>borda × cartão</span><span class="good">1,87:1</span></div><div class="sep-l"><span>placeholder × campo</span><span class="good">6,08:1</span></div><div class="sep-l"><span>acento × cartão</span><span class="good">5,13:1</span></div><div class="sep-l"><span>texto do botão</span><span class="good">5,93:1</span></div></div>
+</div>
+<div class="col"><div class="head">gradiente quente · teal-400</div>
+<div class="porta" style="background:linear-gradient(135deg,#070504 0%,#12100C 50%,#070504 100%)"><div class="marca" style="color:#F8F8F6">PSA<span style="color:#2BD4BD">·</span>CONSULTORES</div><div class="p-tit" style="color:#F8F8F6"><span class="p-ico" style="background:#2BD4BD"></span>Área da Equipe</div><div class="p-sub" style="color:#B8B1A8">Sistema de Gestão de Demandas</div><div class="p-card" style="background:#272420;border-color:#534E46"><div class="p-ct" style="color:#F8F8F6">Acesso Restrito</div><div class="p-cd" style="color:#B8B1A8">Entre com suas credenciais de membro da equipe</div><div class="p-lb" style="color:#B8B1A8">Email</div><div class="p-in" style="background:#35312C;border-color:#534E46;color:#B8B1A8">seu@email.com</div><div class="p-lb" style="color:#B8B1A8">Senha</div><div class="p-in" style="background:#35312C;border-color:#534E46;color:#B8B1A8">••••••••</div><div class="p-bt" style="background:#2BD4BD;color:#1A1714">Entrar</div><div class="p-lk" style="color:#2BD4BD">Esqueci minha senha</div></div></div>
+<div class="seps"><div class="sep-l"><span>cartão × fundo</span><span class="good">1,23:1</span></div><div class="sep-l"><span>borda × cartão</span><span class="good">1,87:1</span></div><div class="sep-l"><span>placeholder × campo</span><span class="good">6,08:1</span></div><div class="sep-l"><span>acento × cartão</span><span class="good">8,28:1</span></div><div class="sep-l"><span>texto do botão</span><span class="good">9,57:1</span></div></div>
+</div>
+</div>
+<div class="q">O teal da marca já reprova hoje, e ninguém tinha medido.</div>
+<p class="lede">O ícone do título e o "Esqueci minha senha" são <span class="mono">--primary</span>, que em <span class="mono">/equipe</span> é o teal institucional <span class="mono">#0D877C</span>. Sobre o cartão escuro de hoje ele dá <strong>4,03:1</strong> — abaixo dos 4,5:1, e isso está no ar agora. Na escala da B seria pior ainda (3,51:1), porque o cartão clareia.</p>
+<p class="lede">É por isso que o bloco <span class="mono">.dark</span> carregava um lime: alguém precisou de um acento que sobrevivesse ao escuro. Mas não precisa ser lime — <strong><span class="mono">--teal-400</span> (#2BD4BD) já existe no <span class="mono">:root</span></strong> e é o teal da marca no degrau que o escuro pede: 8,28:1 sobre o cartão. <strong>A marca fica, e o contraste passa.</strong> A saída 2 mostra como fica se o lime continuar.</p>
+<h2>Os números lado a lado</h2>
+<div class="scroll"><table><thead><tr><th style="width:26%">saída</th><th>cartão × fundo</th><th>placeholder</th><th>acento</th><th>texto do botão</th></tr></thead><tbody>
+<tr><td><strong>hoje</strong> · o que está no ar</td><td class="n">1,00</td><td class="n">3,38</td><td class="n">4,03</td><td class="n">4,40</td></tr>
+<tr><td><strong>1</strong> · liso · acento teal-400</td><td class="n">1,16</td><td class="n">6,08</td><td class="n">8,28</td><td class="n">9,57</td></tr>
+<tr><td><strong>2</strong> · liso · acento lime</td><td class="n">1,16</td><td class="n">6,08</td><td class="n">5,13</td><td class="n">5,93</td></tr>
+<tr><td><strong>3</strong> · gradiente quente · teal-400</td><td class="n">1,23</td><td class="n">6,08</td><td class="n">8,28</td><td class="n">9,57</td></tr>
+</tbody></table></div>
+<p class="lede" style="margin-top:14px;font-size:13.5px;color:#7D7268">"Cartão × fundo" no pior ponto do fundo — no meio do gradiente, onde ele é mais claro. Mínimo útil 1,12:1 para o olho separar dois planos grandes; os outros três exigem 4,5:1.</p>
+<div class="q">Por que liso, e não gradiente quente</div>
+<p class="lede">O gradiente da saída 3 funciona — o cartão levanta 1,23:1 — mas para isso ele tem de terminar em <span class="mono">#12100C</span>, quase preto. Um gradiente que precisa ser quase invisível para não engolir o cartão está trabalhando contra si mesmo. O liso dá 1,16:1 sem negociar nada, e é o mesmo fundo que as telas de trabalho passariam a ter se o escuro um dia virar preferência de verdade.</p>
+<p class="lede">O que se perde: o azul. Ele é a cara de fora hoje, e sai destas 7 telas. Onde ele <strong>não</strong> sai é no par <span class="mono">--surface-escura</span>, que é por tema e continua pintando os cartões do Painel Dev, a faixa de Metas, <span class="mono">/missao</span> e <span class="mono">/novidades</span> — essas não são tocadas por nada aqui.</p>
+<div class="nota"><strong>O que a escolha implica no código.</strong> Qualquer das quatro exige que as 7 rotas de entrada passem a aplicar <span class="mono">.dark</span> — hoje o resolvedor por rota nunca põe essa classe. Depois disso, os 33 casos pintados à mão viram token, e os 35 de borda que estavam parados saem junto: no escuro da B a borda passa a valer 1,87:1 contra o cartão.</div>
+<div class="nota"><strong>Os valores são do <span class="mono">index.css</span> em 27/08/2026 e não se atualizam.</strong> A coluna "hoje" é o <span class="mono">EquipeAuth.tsx</span> como está no ar; as outras três são propostas desta página e não estão no código. Contraste por WCAG 2.1, com as camadas semitransparentes compostas antes da conta.</div>
+</div>

@@ -46,7 +46,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 
 // Aba ativa marcada no accent: texto, ícone e um contorno fino em teal.
 const tabTriggerClass =
-  'data-[state=active]:text-teal-700 data-[state=active]:ring-1 data-[state=active]:ring-teal-600/25';
+  'data-[state=active]:text-foreground data-[state=active]:ring-1 data-[state=active]:ring-accent/25';
 
 /** Status com cor semântica: leitura rápida de andamento dentro do formulário. */
 const statusOptions = [
@@ -188,9 +188,9 @@ export function DeliverableFormFields({
 
       {/* Painel de propriedades tingido: junto com a faixa do cabeçalho, é o
           segundo bloco de cor do modal e separa planejamento de conteúdo. */}
-      <aside className="rounded-3xl border border-teal-600/30 bg-teal-600/[0.11] p-4 shadow-sm sm:p-5">
+      <aside className="rounded-3xl border border-accent/30 bg-accent/10 p-4 shadow-sm sm:p-5">
         <Tabs defaultValue="planning">
-          <TabsList className="mb-5 grid h-11 w-full grid-cols-2 rounded-xl bg-teal-700/10 p-1">
+          <TabsList className="mb-5 grid h-11 w-full grid-cols-2 rounded-xl bg-accent/20 p-1">
             <TabsTrigger
               value="planning"
               className={cn(tabTriggerClass, 'h-9 gap-2 rounded-lg text-xs')}
@@ -321,7 +321,7 @@ export function DeliverableFormFields({
                       placeholder="0"
                       value={form.actual_hours}
                       onChange={(event) => update('actual_hours', event.target.value)}
-                      className="h-9 border-amber-300 bg-amber-50/50"
+                      className="h-9 border-warning/50"
                     />
                     <AvisoHorasDigitadas
                       aviso={avaliarHorasApontadas({

@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoEvolucao, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { useSearchParams } from 'react-router-dom';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao } from '@/hooks/useCiclosAvaliacao';
@@ -71,6 +73,19 @@ const DesempenhoEvolucao = () => {
 
   const currentCiclo = ciclos?.find(c => c.status === 'em_andamento');
   const currentMetas = memberMetasAll?.filter(m => m.ciclo_id === currentCiclo?.id) ?? [];
+
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  // Contagem e progresso. O TEXTO de feedback e de 1:1 fica de fora.
+  const contextoAgente = useMemo(() => contextoDesempenhoEvolucao({
+    ciclo: currentCiclo ? resumoDeCiclo(currentCiclo) : null,
+    membroSelecionado: selectedMembro ? (profilesNomeMap?.[selectedMembro] ?? 'pessoa selecionada') : null,
+    metas: currentMetas.map(m => ({ progresso_atual: m.progresso_atual })),
+    feedbacksRecebidos: feedbacks?.length ?? 0,
+    reunioes1a1: reunioes?.length ?? 0,
+    ultimaReuniao: [...(reunioes ?? [])].map(r => r.data_reuniao).sort().at(-1) ?? null,
+    carregando: false,
+  }), [currentCiclo, selectedMembro, profilesNomeMap, currentMetas, feedbacks, reunioes]);
+  useRegistrarContextoAgente('board.desempenho.evolucao', contextoAgente, false);
   const totalPeso = currentMetas.reduce((a, m) => a + (m.peso ?? 1), 0);
   const pprMedia = totalPeso > 0 ? Math.round(currentMetas.reduce((a, m) => a + m.progresso_atual * (m.peso ?? 1), 0) / totalPeso) : 0;
   const pprClassif = getClassificacao(pprMedia);
@@ -111,7 +126,7 @@ const DesempenhoEvolucao = () => {
     <BoardLayout title="Evolucao" subtitle="Analise de desempenho individual">
       <div className="mb-6">
         <Select value={selectedMembro} onValueChange={(v) => { setSelectedMembro(v); setAjusteQualitativo(''); }}>
-          <SelectTrigger className="w-72 bg-white"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
+          <SelectTrigger className="w-72"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
           <SelectContent>{Object.entries(profilesNomeMap ?? {}).map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
         </Select>
       </div>
@@ -124,7 +139,7 @@ const DesempenhoEvolucao = () => {
       ) : (
         <div className="space-y-6">
           {/* Block 1: Performance chart */}
-          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+          <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
             <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Performance por Ciclo</CardTitle></CardHeader>
             <CardContent>
               {chartData.length > 0 ? (
@@ -136,7 +151,7 @@ const DesempenhoEvolucao = () => {
           </Card>
 
           {/* Block 2: Feedback chart */}
-          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+          <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
             <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Historico de Feedbacks</CardTitle></CardHeader>
             <CardContent>
               {feedbackChartData.length > 0 ? (
@@ -156,7 +171,7 @@ const DesempenhoEvolucao = () => {
           </Card>
 
           {/* Block 3: 1:1 cadence + action items completion */}
-          <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+          <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
             <CardHeader><CardTitle className="text-[15px] font-semibold" style={{ color: 'var(--board-t1)' }}>Cadencia de 1:1s</CardTitle></CardHeader>
             <CardContent>
               <div className="flex flex-wrap gap-1 mb-4">
@@ -207,7 +222,7 @@ const DesempenhoEvolucao = () => {
               <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--bd-line)' }}>
                 <Label className="text-sm font-medium" style={{ color: 'var(--board-t2)' }}>Ajuste qualitativo do lider</Label>
                 <Textarea
-                  className="mt-1 bg-white"
+                  className="mt-1"
                   placeholder="Descreva ajustes qualitativos..."
                   value={ajusteQualitativo || existingAjuste}
                   onChange={e => setAjusteQualitativo(e.target.value)}
@@ -227,7 +242,7 @@ const DesempenhoEvolucao = () => {
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3">
                 {memberAnalises.map(a => (
-                  <Card key={a.id} className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+                  <Card key={a.id} className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                     <CardContent className="pt-4 space-y-2 text-sm">
                       <Badge variant="outline">{a.status}</Badge>
                       {a.entregas_realizadas && <div><strong>Entregas:</strong> {a.entregas_realizadas}</div>}

@@ -5,7 +5,7 @@
 > **Regra:** para consultar o schema, use ESTE arquivo — **nunca** leia `types.ts` inteiro.
 > **Acesso (RLS):** a coluna "Acesso" resume "quem acessa" via arquetipos (ver legenda). Reconstruido do `pg_policies` vivo; para o texto exato de uma policy, ver `supabase/migrations`.
 
-**144 tabelas** de negocio · 2 de backup (ignorar) · 35 enums.
+**156 tabelas** de negocio · 2 de backup (ignorar) · 36 enums.
 Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ## Convencoes (do CLAUDE.md)
@@ -39,8 +39,16 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 |---|---|---|---|---|
 | [`access_change_log`](#accesschangelog) | 8 | — | interno | — |
 | [`administracao`](#administracao) | 12 | — | interno | pessoa, profiles |
+| [`agente_aprendizados`](#agenteaprendizados) | 15 | — | interno | agente_conversas, profiles, agente_mensagens |
+| [`agente_config`](#agenteconfig) | 12 | — | interno | profiles |
+| [`agente_conversas`](#agenteconversas) | 8 | excluido | interno | profiles |
+| [`agente_insights`](#agenteinsights) | 9 | — | interno | agente_conversas, agente_mensagens |
+| [`agente_mensagens`](#agentemensagens) | 8 | — | interno | agente_conversas |
+| [`agente_notificacoes`](#agentenotificacoes) | 11 | — | interno | agente_conversas, agente_insights, agente_mensagens, profiles |
+| [`agente_notificacoes_vistas`](#agentenotificacoesvistas) | 4 | — | interno | agente_notificacoes, profiles |
 | [`analises_semestrais`](#analisessemestrais) | 11 | — | desempenho | ciclos_avaliacao |
 | [`area_servicos`](#areaservicos) | 3 | — | catalogo | estrutura_areas, servicos_prestados |
+| [`ato_societario`](#atosocietario) | 8 | — | interno | cliente |
 | [`atualizacoes_meta`](#atualizacoesmeta) | 7 | — | desempenho | metas |
 | [`audit_logs`](#auditlogs) | 10 | — | interno | — |
 | [`bem`](#bem) | 30 | — | cluster-cliente | cliente, profiles, pessoa |
@@ -74,7 +82,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`distribuicao_receita`](#distribuicaoreceita) | 6 | excluido | cluster-cliente | centros_custo, ordem_servico |
 | [`documento_arquivo`](#documentoarquivo) | 30 | ambiente, excluido | interno | bem, checklist_cliente_item, cobertura_documentos_cliente, cliente, documento_gerado, documento_tipo, matricula, pessoa, profiles, solicitacao |
 | [`documento_download`](#documentodownload) | 8 | ambiente | interno | cliente, documento_arquivo |
-| [`documento_gerado`](#documentogerado) | 19 | — | interno | cliente, profiles, documento_gerado, tmpl_documento, pessoa |
+| [`documento_gerado`](#documentogerado) | 20 | — | interno | cliente, profiles, documento_gerado, tmpl_documento, pessoa |
 | [`documento_horas_historico`](#documentohorashistorico) | 6 | — | interno | documentos_processo |
 | [`documento_notificacao_visto`](#documentonotificacaovisto) | 3 | — | proprio-usuario | documento_gerado, profiles |
 | [`documento_override`](#documentooverride) | 11 | — | interno | tmpl_bloco, profiles, documento_gerado |
@@ -102,6 +110,9 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`improvement_savings_details`](#improvementsavingsdetails) | 9 | — | interno | process_improvements |
 | [`improvement_team_members`](#improvementteammembers) | 7 | — | interno | process_improvements, job_roles, profiles |
 | [`inscricao_contribuinte`](#inscricaocontribuinte) | 7 | — | cluster-fiscal | contribuinte |
+| [`itcd_simulacao`](#itcdsimulacao) | 22 | — | interno | cliente, pessoa, itcd_simulacao |
+| [`itcd_simulacao_doador`](#itcdsimulacaodoador) | 5 | — | interno | pessoa, itcd_simulacao |
+| [`itcd_simulacao_donatario`](#itcdsimulacaodonatario) | 14 | — | interno | pessoa, itcd_simulacao |
 | [`itens_acao_1a1`](#itensacao1a1) | 8 | — | desempenho | reunioes_1a1 |
 | [`job_roles`](#jobroles) | 10 | — | catalogo | estrutura_clusters |
 | [`kpis_meta`](#kpismeta) | 9 | — | desempenho | metas |
@@ -111,10 +122,11 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`melhoria_responsaveis`](#melhoriaresponsaveis) | 6 | — | cluster-mapa | process_improvements, job_roles |
 | [`melhoria_sistemas`](#melhoriasistemas) | 5 | — | cluster-mapa | process_improvements, sistemas_processo |
 | [`metas`](#metas) | 22 | — | desempenho | ciclos_avaliacao, metas |
+| [`movimentacao_quotas`](#movimentacaoquotas) | 26 | — | interno | bem, cliente, profiles, ato_societario, pessoa, documento_gerado |
 | [`notificacao`](#notificacao) | 16 | — | interno | profiles |
-| [`notificacao_envio`](#notificacaoenvio) | 21 | — | interno | profiles, notificacao |
+| [`notificacao_envio`](#notificacaoenvio) | 22 | — | interno | profiles, notificacao |
 | [`novidades`](#novidades) | 17 | — | interno | — |
-| [`ordem_servico`](#ordemservico) | 22 | excluido | cluster-cliente | estrutura_clusters, produto_segmento, servicos_prestados, setor_cliente |
+| [`ordem_servico`](#ordemservico) | 23 | excluido | cluster-cliente | estrutura_clusters, contribuinte, produto_segmento, servicos_prestados, setor_cliente |
 | [`org_comment_attachments`](#orgcommentattachments) | 10 | — | interno | org_comments, org_comments_feed, profiles |
 | [`org_comment_mentions`](#orgcommentmentions) | 6 | — | interno | org_comments, org_comments_feed, profiles |
 | [`org_comments`](#orgcomments) | 16 | excluido | interno | profiles, org_comments, org_comments_feed, org_projects |
@@ -132,7 +144,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`pis_cofins_class`](#piscofinsclass) | 8 | — | catalogo | profiles, contribuinte, pis_cofins_regra |
 | [`pis_cofins_regra`](#piscofinsregra) | 15 | — | catalogo | — |
 | [`ppr_regras_ciclo`](#pprregrasciclo) | 8 | — | desempenho | ciclos_avaliacao |
-| [`procedimentos`](#procedimentos) | 19 | — | interno | — |
+| [`procedimentos`](#procedimentos) | 21 | — | interno | — |
 | [`process_improvements`](#processimprovements) | 36 | — | cluster-mapa | estrutura_clusters, profiles, processes, projects, sprint_deliverables |
 | [`process_scenarios`](#processscenarios) | 28 | — | interno | profiles, process_improvements, process_scenarios, processes, projects |
 | [`process_stages`](#processstages) | 27 | — | cluster-mapa | job_roles, processes |
@@ -146,7 +158,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`project_processes`](#projectprocesses) | 6 | — | interno | processes, projects |
 | [`project_servicos`](#projectservicos) | 3 | — | interno | org_projects, servicos_prestados |
 | [`projects`](#projects) | 21 | — | interno | catalog_clients, estrutura_clusters, estrutura_equipes, cliente, profiles |
-| [`projeto_flag_valor`](#projetoflagvalor) | 10 | — | interno | cliente, profiles, tmpl_flag, pessoa |
+| [`projeto_flag_valor`](#projetoflagvalor) | 11 | — | interno | cliente, profiles, documento_gerado, tmpl_flag, pessoa |
 | [`projeto_justificativas`](#projetojustificativas) | 5 | — | cluster-mapa | projects |
 | [`quadro_societario`](#quadrosocietario) | 11 | — | cluster-cliente | profiles, pessoa |
 | [`relatorios_gerados`](#relatoriosgerados) | 8 | — | interno | ciclos_avaliacao |
@@ -171,7 +183,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`ticket_messages`](#ticketmessages) | 6 | — | chamados | tickets |
 | [`tickets`](#tickets) | 17 | — | chamados | profiles, cliente, estrutura_clusters, estrutura_areas |
 | [`titularidade`](#titularidade) | 11 | — | cluster-cliente | bem, profiles, matricula, pessoa |
-| [`tmpl_bloco`](#tmplbloco) | 20 | — | interno | profiles, tmpl_bloco, documento_gerado |
+| [`tmpl_bloco`](#tmplbloco) | 21 | — | interno | profiles, tmpl_bloco, documento_gerado |
 | [`tmpl_bloco_flag`](#tmplblocoflag) | 6 | — | interno | tmpl_bloco, profiles, tmpl_flag |
 | [`tmpl_bloco_versao`](#tmplblocoversao) | 13 | — | interno | profiles, tmpl_bloco |
 | [`tmpl_documento`](#tmpldocumento) | 9 | — | interno | profiles |
@@ -194,6 +206,34 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 **Acesso:** interno
 `administrador_pessoa_id` string · `cargo` string? · `created_at` string · `created_by` string? · `data_fim` string? · `data_inicio` string? · `id` string · `pj_pessoa_id` string · `pode_isoladamente` boolean? · `poderes` Json? · `updated_at` string · `updated_by` string?  ·  **FK:** `administrador_pessoa_id`→pessoa.id · `created_by`→profiles.id · `pj_pessoa_id`→pessoa.id · `updated_by`→profiles.id
 
+### <a id="agenteaprendizados"></a>`agente_aprendizados`
+**Acesso:** interno
+`ativo` boolean · `conversa_id` string? · `correcao` string · `criado_em` string · `criado_por` string? · `escopo` string · `id` string · `licao` string · `mensagem_id` string? · `pergunta` string? · `peso` number · `resposta_original` string? · `revisado_em` string? · `revisado_por` string? · `tipo` string  ·  **FK:** `conversa_id`→agente_conversas.id · `criado_por`→profiles.id · `mensagem_id`→agente_mensagens.id · `revisado_por`→profiles.id
+
+### <a id="agenteconfig"></a>`agente_config`
+**Acesso:** interno
+`ativo` boolean · `created_at` string · `escopo` string · `id` string · `max_insights_por_resposta` number · `modelo` string · `nivel_acesso` string · `prompt_personalizado` string? · `rotulo` string · `temperatura` number · `updated_at` string · `updated_by` string?  ·  **FK:** `updated_by`→profiles.id
+
+### <a id="agenteconversas"></a>`agente_conversas`
+**Acesso:** interno · **Flags:** excluido
+`atualizado_em` string · `criado_em` string · `escopo` string · `excluido` boolean · `filtros` Json? · `id` string · `titulo` string? · `user_id` string  ·  **FK:** `user_id`→profiles.id
+
+### <a id="agenteinsights"></a>`agente_insights`
+**Acesso:** interno
+`categoria` string · `conversa_id` string · `criado_em` string · `escopo` string · `id` string · `mensagem_id` string · `severidade` string · `texto` string · `util` boolean?  ·  **FK:** `conversa_id`→agente_conversas.id · `mensagem_id`→agente_mensagens.id
+
+### <a id="agentemensagens"></a>`agente_mensagens`
+**Acesso:** interno
+`campos_usados` Json? · `conteudo` string · `conversa_id` string · `criado_em` string · `id` string · `metricas` Json? · `modo` string? · `papel` string  ·  **FK:** `conversa_id`→agente_conversas.id
+
+### <a id="agentenotificacoes"></a>`agente_notificacoes`
+**Acesso:** interno
+`conversa_id` string? · `criado_em` string · `escopo` string · `id` string · `insight_id` string? · `mensagem_id` string? · `origem_user_id` string? · `severidade` string · `texto` string · `tipo` string · `titulo` string  ·  **FK:** `conversa_id`→agente_conversas.id · `insight_id`→agente_insights.id · `mensagem_id`→agente_mensagens.id · `origem_user_id`→profiles.id
+
+### <a id="agentenotificacoesvistas"></a>`agente_notificacoes_vistas`
+**Acesso:** interno
+`dispensada` boolean · `notificacao_id` string · `user_id` string · `visto_em` string  ·  **FK:** `notificacao_id`→agente_notificacoes.id · `user_id`→profiles.id
+
 ### <a id="analisessemestrais"></a>`analises_semestrais`
 **Acesso:** desempenho
 `ajustes_necessarios` string? · `ciclo_id` string? · `comentario_avaliado` string? · `comentario_lider` string? · `created_at` string? · `entregas_realizadas` string? · `id` string · `responsavel_id` string? · `riscos_identificados` string? · `status` string? · `updated_at` string?  ·  **FK:** `ciclo_id`→ciclos_avaliacao.id
@@ -201,6 +241,10 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 ### <a id="areaservicos"></a>`area_servicos`
 **Acesso:** catalogo
 `estrutura_area_id` string · `id` string · `servico_id` string  ·  **FK:** `estrutura_area_id`→estrutura_areas.id · `servico_id`→servicos_prestados.id
+
+### <a id="atosocietario"></a>`ato_societario`
+**Acesso:** interno
+`cliente_id` string · `created_at` string · `created_by` string? · `data` string? · `descricao` string? · `id` string · `updated_at` string · `updated_by` string?  ·  **FK:** `cliente_id`→cliente.id
 
 ### <a id="atualizacoesmeta"></a>`atualizacoes_meta`
 **Acesso:** desempenho
@@ -336,7 +380,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="documentogerado"></a>`documento_gerado`
 **Acesso:** interno
-`caminho_arquivo` string? · `cliente_id` string · `created_at` string · `created_by` string? · `documento_anterior_id` string? · `documento_raiz_id` string? · `documento_template_id` string? · `gerado_em` string? · `gerado_por_id` string? · `id` string · `observacao` string? · `pj_pessoa_id` string? · `snapshot_dados` Json? · `snapshot_flags` Json? · `snapshot_validado_em` string? · `snapshot_versoes_blocos` Json? · `status` string · `updated_at` string · `updated_by` string?  ·  **FK:** `cliente_id`→cliente.id · `created_by`→profiles.id · `documento_anterior_id`→documento_gerado.id · `documento_raiz_id`→documento_gerado.id · `documento_template_id`→tmpl_documento.id · `gerado_por_id`→profiles.id · `pj_pessoa_id`→pessoa.id · `updated_by`→profiles.id
+`caminho_arquivo` string? · `cliente_id` string · `created_at` string · `created_by` string? · `documento_anterior_id` string? · `documento_raiz_id` string? · `documento_template_id` string? · `gerado_em` string? · `gerado_por_id` string? · `id` string · `observacao` string? · `pj_pessoa_id` string? · `snapshot_dados` Json? · `snapshot_flags` Json? · `snapshot_validado_em` string? · `snapshot_versoes_blocos` Json? · `status` string · `substitui_documento_id` string? · `updated_at` string · `updated_by` string?  ·  **FK:** `cliente_id`→cliente.id · `created_by`→profiles.id · `documento_anterior_id`→documento_gerado.id · `documento_raiz_id`→documento_gerado.id · `documento_template_id`→tmpl_documento.id · `gerado_por_id`→profiles.id · `pj_pessoa_id`→pessoa.id · `substitui_documento_id`→documento_gerado.id · `updated_by`→profiles.id
 
 ### <a id="documentohorashistorico"></a>`documento_horas_historico`
 **Acesso:** interno
@@ -446,6 +490,18 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 **Acesso:** cluster-fiscal
 `contribuinte_id` string · `created_at` string? · `id` string · `numero_ie` string? · `situacao` string · `uf` string · `updated_at` string?  ·  **FK:** `contribuinte_id`→contribuinte.id
 
+### <a id="itcdsimulacao"></a>`itcd_simulacao`
+**Acesso:** interno
+`aprovada_em` string? · `aprovada_por` string? · `cliente_id` string · `competencia` string · `created_at` string · `created_by` string? · `empresa_pessoa_id` string · `id` string · `observacao` string? · `origem_simulacao_id` string? · `quotas_total` number · `status` Database["public"]["Enums"]["itcd_simulacao_status"] · `updated_at` string · `updated_by` string? · `versao` number · `vlr_acervo_contabil` number · `vlr_acervo_itr` number · `vlr_acervo_mercado` number · `vlr_imposto_contabil` number · `vlr_imposto_itr` number · `vlr_imposto_mercado` number · `vlr_upf` number  ·  **FK:** `cliente_id`→cliente.id · `empresa_pessoa_id`→pessoa.id · `origem_simulacao_id`→itcd_simulacao.id
+
+### <a id="itcdsimulacaodoador"></a>`itcd_simulacao_doador`
+**Acesso:** interno
+`created_at` string · `doador_pessoa_id` string · `id` string · `quotas` number · `simulacao_id` string  ·  **FK:** `doador_pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
+
+### <a id="itcdsimulacaodonatario"></a>`itcd_simulacao_donatario`
+**Acesso:** interno
+`created_at` string · `donatario_pessoa_id` string · `id` string · `pct_doacao_anterior` number? · `percentual` number · `quotas_disponivel` number · `quotas_legitima` number · `simulacao_id` string · `vlr_base_contabil` number · `vlr_base_itr` number · `vlr_base_mercado` number · `vlr_imposto_contabil` number · `vlr_imposto_itr` number · `vlr_imposto_mercado` number  ·  **FK:** `donatario_pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
+
 ### <a id="itensacao1a1"></a>`itens_acao_1a1`
 **Acesso:** desempenho
 `created_at` string? · `descricao` string · `id` string · `prazo` string? · `responsavel_id` string? · `reuniao_id` string? · `status` string? · `updated_at` string?  ·  **FK:** `reuniao_id`→reunioes_1a1.id
@@ -482,13 +538,17 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 **Acesso:** desempenho
 `ajuste_qualitativo` string? · `ajuste_qualitativo_publico` string? · `ciclo_id` string? · `classificacao_final` string? · `comentario_membro` string? · `created_at` string? · `created_by` string? · `criterio_evidencia` string? · `descricao` string? · `dimensao` string · `id` string · `meta_pai_id` string? · `nivel` string · `peso` number? · `prazo` string? · `progresso_atual` number? · `recomendacao_decisao` string? · `responsavel_id` string? · `status` string? · `titulo` string · `ultima_atualizacao_membro` string? · `updated_at` string?  ·  **FK:** `ciclo_id`→ciclos_avaliacao.id · `meta_pai_id`→metas.id
 
+### <a id="movimentacaoquotas"></a>`movimentacao_quotas`
+**Acesso:** interno
+`ato_id` string? · `bem_id` string? · `cliente_id` string · `created_at` string · `created_by` string? · `data_movimento` string? · `destino_pessoa_id` string? · `documento_gerado_id` string? · `empresa_pessoa_id` string · `id` string · `origem_pessoa_id` string? · `pago_com_empresa_pessoa_id` string? · `pago_com_quotas` number? · `pago_com_valor` number? · `pct_capital` number? · `pct_vlr_contabil` number? · `pct_vlr_mercado` number? · `quotas` number · `reserva_capital` number? · `sequencia` number? · `tipo` string · `updated_at` string · `updated_by` string? · `vlr_capital_arredondado` number? · `vlr_contabil` number? · `vlr_mercado` number?  ·  **FK:** `bem_id`→bem.id · `cliente_id`→cliente.id · `created_by`→profiles.id · `updated_by`→profiles.id · `ato_id`→ato_societario.id · `destino_pessoa_id`→pessoa.id · `documento_gerado_id`→documento_gerado.id · `empresa_pessoa_id`→pessoa.id · `origem_pessoa_id`→pessoa.id · `pago_com_empresa_pessoa_id`→pessoa.id
+
 ### <a id="notificacao"></a>`notificacao`
 **Acesso:** interno
 `agrupamento_chave` string · `corpo` string? · `created_at` string · `created_by` string? · `destinatario_id` string · `entidade_id` string · `entidade_tipo` string · `href` string? · `id` string · `lido_em` string? · `metadata` Json · `quantidade` number · `tipo` Database["public"]["Enums"]["notificacao_tipo"] · `titulo` string · `updated_at` string · `updated_by` string?  ·  **FK:** `destinatario_id`→profiles.id
 
 ### <a id="notificacaoenvio"></a>`notificacao_envio`
 **Acesso:** interno
-`agrupamento_chave` string? · `canal` Database["public"]["Enums"]["notificacao_canal"] · `chave_idempotencia` string? · `destinatario_email` string? · `destinatario_id` string? · `destinatario_papel` string? · `destinatario_telefone` string? · `entidade_id` string · `entidade_tipo` string · `entregue_em` string? · `enviado_em` string? · `erro` string? · `erro_codigo` string? · `id` string · `lido_em` string? · `metadata` Json · `notificacao_id` string? · `provedor_message_id` string? · `status` Database["public"]["Enums"]["notificacao_envio_status"] · `sucesso` boolean · `tipo` Database["public"]["Enums"]["notificacao_tipo"]  ·  **FK:** `destinatario_id`→profiles.id · `notificacao_id`→notificacao.id
+`agrupamento_chave` string? · `canal` Database["public"]["Enums"]["notificacao_canal"] · `chave_idempotencia` string? · `created_at` string? · `destinatario_email` string? · `destinatario_id` string? · `destinatario_papel` string? · `destinatario_telefone` string? · `entidade_id` string · `entidade_tipo` string · `entregue_em` string? · `enviado_em` string? · `erro` string? · `erro_codigo` string? · `id` string · `lido_em` string? · `metadata` Json · `notificacao_id` string? · `provedor_message_id` string? · `status` Database["public"]["Enums"]["notificacao_envio_status"] · `sucesso` boolean · `tipo` Database["public"]["Enums"]["notificacao_tipo"]  ·  **FK:** `destinatario_id`→profiles.id · `notificacao_id`→notificacao.id
 
 ### <a id="novidades"></a>`novidades`
 **Acesso:** interno
@@ -496,7 +556,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="ordemservico"></a>`ordem_servico`
 **Acesso:** cluster-cliente · **Flags:** excluido
-`cluster_id` string? · `created_at` string? · `data_emissao` string? · `data_fim` string? · `data_inicio` string? · `excluido` boolean · `id` string · `id_cliente` string · `id_produto_segmento` string? · `id_servico` string? · `numero_os` string? · `numero_parcelas` number? · `observacoes` string? · `regiao` string? · `setor_cliente` string? · `setor_cliente_id` string? · `situacao` string? · `updated_at` string? · `valor_entrada` number? · `valor_projeto` number? · `valor_reembolso_km` number? · `valor_reembolso_refeicao` number?  ·  **FK:** `cluster_id`→estrutura_clusters.id · `id_produto_segmento`→produto_segmento.id · `id_servico`→servicos_prestados.id · `setor_cliente_id`→setor_cliente.id
+`cluster_id` string? · `contribuinte_id` string? · `created_at` string? · `data_emissao` string? · `data_fim` string? · `data_inicio` string? · `excluido` boolean · `id` string · `id_cliente` string · `id_produto_segmento` string? · `id_servico` string? · `numero_os` string? · `numero_parcelas` number? · `observacoes` string? · `regiao` string? · `setor_cliente` string? · `setor_cliente_id` string? · `situacao` string? · `updated_at` string? · `valor_entrada` number? · `valor_projeto` number? · `valor_reembolso_km` number? · `valor_reembolso_refeicao` number?  ·  **FK:** `cluster_id`→estrutura_clusters.id · `contribuinte_id`→contribuinte.id · `id_produto_segmento`→produto_segmento.id · `id_servico`→servicos_prestados.id · `setor_cliente_id`→setor_cliente.id
 
 ### <a id="orgcommentattachments"></a>`org_comment_attachments`
 **Acesso:** interno
@@ -568,7 +628,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="procedimentos"></a>`procedimentos`
 **Acesso:** interno
-`ai_complexidade` string? · `ai_cover_url` string? · `ai_etapas` Json? · `ai_resumo` string? · `ai_tags` string[]? · `ai_titulo` string? · `arquivo_path` string? · `confirmado_em` string? · `confirmado_por` string? · `created_at` string? · `created_by` string? · `erro_mensagem` string? · `id` string · `processos_associados` string[]? · `source_type` string · `source_url` string? · `status_geracao` string? · `status_publicacao` string? · `updated_at` string?
+`ai_complexidade` string? · `ai_cover_url` string? · `ai_etapas` Json? · `ai_resumo` string? · `ai_tags` string[]? · `ai_titulo` string? · `arquivo_bucket` string · `arquivo_path` string? · `confirmado_em` string? · `confirmado_por` string? · `conteudo_texto` string? · `created_at` string? · `created_by` string? · `erro_mensagem` string? · `id` string · `processos_associados` string[]? · `source_type` string · `source_url` string? · `status_geracao` string? · `status_publicacao` string? · `updated_at` string?
 
 ### <a id="processimprovements"></a>`process_improvements`
 **Acesso:** cluster-mapa
@@ -624,7 +684,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="projetoflagvalor"></a>`projeto_flag_valor`
 **Acesso:** interno
-`cliente_id` string · `created_at` string · `created_by` string? · `flag_id` string · `id` string · `pj_pessoa_id` string? · `setado_por_id` string? · `updated_at` string · `updated_by` string? · `valor` boolean  ·  **FK:** `cliente_id`→cliente.id · `created_by`→profiles.id · `flag_id`→tmpl_flag.id · `pj_pessoa_id`→pessoa.id · `setado_por_id`→profiles.id · `updated_by`→profiles.id
+`cliente_id` string · `created_at` string · `created_by` string? · `documento_base_id` string? · `flag_id` string · `id` string · `pj_pessoa_id` string? · `setado_por_id` string? · `updated_at` string · `updated_by` string? · `valor` boolean  ·  **FK:** `cliente_id`→cliente.id · `created_by`→profiles.id · `documento_base_id`→documento_gerado.id · `flag_id`→tmpl_flag.id · `pj_pessoa_id`→pessoa.id · `setado_por_id`→profiles.id · `updated_by`→profiles.id
 
 ### <a id="projetojustificativas"></a>`projeto_justificativas`
 **Acesso:** cluster-mapa
@@ -724,7 +784,7 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="tmplbloco"></a>`tmpl_bloco`
 **Acesso:** interno
-`ancora` string? · `ativo` boolean · `autor_id` string? · `bloco_origem_id` string? · `categoria` string? · `created_at` string · `created_by` string? · `descricao` string? · `escopo_documento_raiz_id` string? · `familia_id` string? · `id` string · `nome` string · `repete_colecao` string? · `tipo` string · `tipo_derivacao` string? · `updated_at` string · `updated_by` string? · `variante_ordem` number? · `variante_rotulo` string? · `variante_seletor` Json?  ·  **FK:** `autor_id`→profiles.id · `bloco_origem_id`→tmpl_bloco.id · `created_by`→profiles.id · `escopo_documento_raiz_id`→documento_gerado.id · `familia_id`→tmpl_bloco.id · `updated_by`→profiles.id
+`ancora` string? · `ativo` boolean · `autor_id` string? · `bloco_origem_id` string? · `categoria` string? · `created_at` string · `created_by` string? · `descricao` string? · `escopo_documento_raiz_id` string? · `familia_id` string? · `id` string · `nome` string · `reinicia_numeracao` boolean · `repete_colecao` string? · `tipo` string · `tipo_derivacao` string? · `updated_at` string · `updated_by` string? · `variante_ordem` number? · `variante_rotulo` string? · `variante_seletor` Json?  ·  **FK:** `autor_id`→profiles.id · `bloco_origem_id`→tmpl_bloco.id · `created_by`→profiles.id · `escopo_documento_raiz_id`→documento_gerado.id · `familia_id`→tmpl_bloco.id · `updated_by`→profiles.id
 
 ### <a id="tmplblocoflag"></a>`tmpl_bloco_flag`
 **Acesso:** interno
@@ -772,11 +832,12 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 - `fiscal_task_department`: commercial, financial, administrative, operations
 - `fiscal_task_priority`: low, medium, high, urgent
 - `fiscal_task_status`: backlog, waiting_client, todo, in_progress, review, em_ajuste, done
+- `itcd_simulacao_status`: rascunho, gerada, aprovada, substituida
 - `notificacao_canal`: sino, email, whatsapp
 - `notificacao_envio_status`: pendente, enviado, entregue, lido, falhou, ignorado
-- `notificacao_tipo`: tarefa_atribuida, tarefa_em_revisao, documento_recebido, solicitacao_enviada, documento_aprovado, documento_recusado, cobranca_pendencia, chamado_criado, chamado_atribuido, chamado_respondido, chamado_vencido, chamado_resolvido
+- `notificacao_tipo`: tarefa_atribuida, tarefa_em_revisao, documento_recebido, solicitacao_enviada, documento_aprovado, documento_recusado, cobranca_pendencia, chamado_criado, chamado_atribuido, chamado_respondido, chamado_vencido, chamado_resolvido, solicitacao_vencida
 - `org_comment_entity`: org_task, org_project
-- `org_comment_kind`: comment, assignment_changed, review_submitted, review_approved, review_adjustments, status_changed, documentos_solicitados
+- `org_comment_kind`: comment, assignment_changed, review_submitted, review_approved, review_adjustments, status_changed, documentos_solicitados, documentos_cobrados, documentos_conferidos
 - `osg_checklist_origem`: padrao, manual
 - `osg_checklist_status`: pendente, solicitado, recebido, dispensado, nao_aplicavel, nao_solicitado
 - `osg_doc_area`: osg, fiscal

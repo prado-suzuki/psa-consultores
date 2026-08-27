@@ -1,4 +1,5 @@
 import type { Ambiente } from '@/config/api';
+import { hrefDeOrigem, type AreaDeProjetos } from '@/lib/feedComentarios';
 import type { Database } from '@/integrations/supabase/types';
 
 /**
@@ -85,10 +86,17 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   tarefa_em_revisao: { rotulo: 'Revisão pendente', tom: ROXO },
   documento_recebido: { rotulo: 'Documento recebido', tom: PRIMARIO },
   solicitacao_enviada: { rotulo: 'Solicitação enviada', tom: PRIMARIO },
-  documento_aprovado: { rotulo: 'Documento aprovado', tom: VERDE },
+  // "Solicitacao finalizada" e nao "Documento aprovado": o rotulo antigo era o
+  // nome TECNICO do tipo vazando para a tela. O gatilho deste aviso sempre foi o
+  // encerramento da solicitacao, nunca uma aprovacao de documento. Patricia,
+  // 27/08/2026.
+  documento_aprovado: { rotulo: 'Solicitação finalizada', tom: VERDE },
   documento_recusado: { rotulo: 'Documento recusado', tom: VERMELHO },
   cobranca_pendencia: { rotulo: 'Pendência em cobrança', tom: AMBAR },
-  solicitacao_vencida: { rotulo: 'Solicitação vencida', tom: AMBAR },
+  // GES-04, mesmo caso dos `chamado_*`: aviso EXTERNO, que só grava em
+  // `notificacao_envio` pela borda e nunca em `notificacao`. Está aqui porque o
+  // enum é compartilhado, e com rótulo genérico porque não tem lugar no sino.
+  solicitacao_vencida: { rotulo: 'Aviso', tom: PRIMARIO },
   chamado_criado: { rotulo: 'Aviso', tom: PRIMARIO },
   chamado_atribuido: { rotulo: 'Aviso', tom: PRIMARIO },
   chamado_respondido: { rotulo: 'Aviso', tom: PRIMARIO },
@@ -123,9 +131,15 @@ export function apresentacaoDoAviso(tipo: NotificacaoTipo): ApresentacaoDoAviso 
 export function destinoDoAviso(
   aviso: Pick<NotificacaoInterna, 'href' | 'entidade_tipo' | 'entidade_id'>,
   tarefasBase: string,
+  area: AreaDeProjetos,
 ): string | null {
   if (aviso.href) return aviso.href;
   if (aviso.entidade_tipo === 'org_task') return `${tarefasBase}?taskId=${aviso.entidade_id}`;
+  // Aviso de projeto (GES-03): reusa o endereço que o feed já monta, em vez de
+  // montar um segundo formato que sairia de sincronia no primeiro renome de rota.
+  if (aviso.entidade_tipo === 'org_project') {
+    return hrefDeOrigem({ entity_type: 'org_project', entity_id: aviso.entidade_id }, area);
+  }
   return null;
 }
 

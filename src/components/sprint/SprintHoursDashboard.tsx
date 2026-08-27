@@ -311,7 +311,7 @@ export function SprintHoursDashboard({ deliverables, profiles }: SprintHoursDash
       )}
 
       <Dialog open={!!drill} onOpenChange={(open) => !open && setDrill(null)}>
-        <DialogContent className="max-w-lg bg-white">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle className="text-base">
               {drillPerson?.name ?? "Tarefas"} · {drill?.period} — {drillTotal.toFixed(1)}h

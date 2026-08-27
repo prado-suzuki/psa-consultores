@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoMetas, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useMetas, useCreateMeta, useUpdateMeta, useUpdateMetaProgress, type Meta } from '@/hooks/useMetasDesempenho';
@@ -51,6 +53,28 @@ const DesempenhoMetas = () => {
   const cicloId = selectedCicloId || cicloAtivo?.id;
   const { data: pprRegras } = usePprRegras(cicloId);
   const { data: metas, isLoading } = useMetas({ ciclo_id: cicloId, nivel: nivelFilter || undefined, dimensao: dimensaoFilter || undefined, responsavel_id: responsavelFilter || undefined, status: statusFilter || undefined });
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  const cicloDoAgente = ciclos?.find(c => c.id === cicloId) ?? cicloAtivo ?? null;
+  const contextoAgente = useMemo(() => contextoDesempenhoMetas({
+    ciclo: cicloDoAgente ? resumoDeCiclo(cicloDoAgente) : null,
+    metas: (metas ?? []).map(m => ({
+      nivel: m.nivel, dimensao: m.dimensao, status: m.status,
+      progresso_atual: m.progresso_atual, peso: m.peso,
+      prazo: m.prazo ?? null, responsavel_id: m.responsavel_id ?? null,
+    })),
+    regrasPpr: pprRegras?.length ?? 0,
+    filtrosAtivos: {
+      nível: nivelFilter || null, dimensão: dimensaoFilter || null,
+      status: statusFilter || null, responsável: responsavelFilter || null,
+    },
+    hoje: new Date().toISOString().slice(0, 10),
+    carregando: isLoading,
+  }), [
+    cicloDoAgente, metas, pprRegras, nivelFilter, dimensaoFilter,
+    statusFilter, responsavelFilter, isLoading,
+  ]);
+  useRegistrarContextoAgente('board.desempenho.metas', contextoAgente, isLoading);
+
   const createMeta = useCreateMeta();
   const updateMeta = useUpdateMeta();
   const updateProgress = useUpdateMetaProgress();
@@ -235,29 +259,29 @@ const DesempenhoMetas = () => {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-6">
         <Select value={cicloId ?? ''} onValueChange={setSelectedCicloId}>
-          <SelectTrigger className="w-56 bg-white"><SelectValue placeholder="Ciclo" /></SelectTrigger>
+          <SelectTrigger className="w-56"><SelectValue placeholder="Ciclo" /></SelectTrigger>
           <SelectContent>{ciclos?.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={nivelFilter || '__all__'} onValueChange={v => setNivelFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Nivel" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Nivel" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todos</SelectItem><SelectItem value="empresa">Empresa</SelectItem><SelectItem value="equipe">Equipe</SelectItem><SelectItem value="individual">Individual</SelectItem></SelectContent>
         </Select>
         <Select value={dimensaoFilter || '__all__'} onValueChange={v => setDimensaoFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Dimensao" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Dimensao" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todas</SelectItem><SelectItem value="entrega">Entrega</SelectItem><SelectItem value="impacto">Impacto</SelectItem><SelectItem value="gestao">Gestao</SelectItem></SelectContent>
         </Select>
         <Select value={responsavelFilter || '__all__'} onValueChange={v => setResponsavelFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-48 bg-white"><SelectValue placeholder="Responsavel" /></SelectTrigger>
+          <SelectTrigger className="w-48"><SelectValue placeholder="Responsavel" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todos</SelectItem>{profiles.map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
         </Select>
         <Select value={statusFilter || '__all__'} onValueChange={v => setStatusFilter(v === '__all__' ? '' : v)}>
-          <SelectTrigger className="w-40 bg-white"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
           <SelectContent><SelectItem value="__all__">Todos</SelectItem><SelectItem value="ativa">Ativa</SelectItem><SelectItem value="pausada">Pausada</SelectItem><SelectItem value="concluida">Concluida</SelectItem><SelectItem value="cancelada">Cancelada</SelectItem></SelectContent>
         </Select>
       </div>
 
       {isLoading ? <Skeleton className="h-64" /> : (
-        <Card className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+        <Card className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
           <CardContent className="p-4 space-y-1">
             {empresaMetas.map(em => (
               <div key={em.id}>

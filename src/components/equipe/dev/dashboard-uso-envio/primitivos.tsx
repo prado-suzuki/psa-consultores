@@ -9,7 +9,7 @@ import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import { TEAL, LIME, RISCO, ALERTA, type SortState } from './formatadores';
+import { TEAL_SERIE, LIME, RISCO, ALERTA, type SortState } from './formatadores';
 import { ALTURA_MIN_CABECALHO, ALTURA_MIN_KPI } from './layout';
 
 // ── Faixa de resumo (KPIs sobre fundo escuro) ──────────────────────────
@@ -112,7 +112,10 @@ const TOM_VALOR: Record<NonNullable<KpiItem['tom']>, string> = {
 };
 
 const TOM_BARRA: Record<NonNullable<KpiItem['tom']>, string> = {
-  neutro: TEAL[600],
+  // TEAL_SERIE, não TEAL[600]: várias dessas barrinhas aparecem lado a lado
+  // na mesma tela (uma por KPI) — é marca de série, não texto, então segue a
+  // mesma regra de croma que `SERIES` em formatadores.ts.
+  neutro: TEAL_SERIE,
   positivo: LIME[500],
   risco: RISCO,
   alerta: ALERTA,
@@ -571,7 +574,7 @@ export const Td = ({
 export const CelulaBarra = ({
   valor,
   max,
-  cor = TEAL[600],
+  cor = TEAL_SERIE, // marca de série, mesma regra de croma de SERIES/TOM_BARRA
   rotulo,
 }: {
   valor: number;

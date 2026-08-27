@@ -1,10 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-// Quadro societário de TODAS as empresas do cliente numa única leitura.
-// Fonte: `v_quadro_societario`, a visão derivada do livro de movimentos
-// (`movimentacao_quotas`), que substituiu a tabela `quadro_societario`.
-// O percentual é DERIVADO de quotas/Σquotas (a view não guarda percentual).
+// Quadro societário de TODAS as empresas do cliente, da MESMA fonte que a tela
+// do Quadro Societário e o gerador de documento: `v_quadro_societario`, o
+// acumulado dos movimentos de quota de cada PJ. Antes daqui o relatório lia a
+// tabela `quadro_societario`, e passou a discordar da tela no dia em que a tela
+// trocou de fonte, e duas telas discordando é o pior estado possível.
+//
+// São DUAS leituras e não um embed: o PostgREST só infere relacionamento de view
+// quando a coluna vem direto da tabela base, e `pessoa_id` aqui nasce de um
+// `union all` com `group by`. A view expõe `cliente_id` (da empresa), que é o
+// filtro, então não é preciso juntar `pessoa` para restringir ao cliente.
 
 export interface SocioLinha {
   pessoaId: string | null;
@@ -13,7 +19,6 @@ export interface SocioLinha {
   cpfCnpj: string | null;
   quotas: number | null;
   valor: number | null;
-  percentual: number | null;
 }
 
 export interface EmpresaSocietaria {
@@ -31,74 +36,61 @@ export function useRelatorioSocietario(clienteId: string | null) {
     queryKey: ['relatorio-societario', clienteId],
     queryFn: async () => {
       if (!clienteId) return [];
-
       const { data, error } = await supabase
         .from('v_quadro_societario')
         .select('empresa_pessoa_id, pessoa_id, quotas, vlr_total')
         .eq('cliente_id', clienteId);
       if (error) throw error;
 
-      const linhas = data ?? [];
+      const linhas = (data ?? []).filter((l) => l.empresa_pessoa_id);
       if (linhas.length === 0) return [];
 
+      // Uma leitura só para os dois papéis: a mesma PJ costuma ser empresa numa
+      // linha e sócia em outra (a Participações é sócia da Agro).
       const ids = [
-        ...new Set(
-          linhas.flatMap((l) => [l.empresa_pessoa_id, l.pessoa_id]).filter(Boolean) as string[],
-        ),
-      ];
-
-      const { data: pessoas, error: erroPessoas } = await supabase
+        ...new Set(linhas.flatMap((l) => [l.empresa_pessoa_id, l.pessoa_id])),
+      ].filter((id): id is string => !!id);
+      const { data: pessoas, error: errPessoas } = await supabase
         .from('pessoa')
-        .select('id, denominacao, cpf_cnpj, tipo_pessoa, tipo_empresa')
+        .select('id, denominacao, tipo_pessoa, cpf_cnpj, tipo_empresa')
         .in('id', ids);
-      if (erroPessoas) throw erroPessoas;
-
+      if (errPessoas) throw errPessoas;
       const porId = new Map((pessoas ?? []).map((p) => [p.id, p]));
+
       const map = new Map<string, EmpresaSocietaria>();
-
       for (const l of linhas) {
-        const empresaId = l.empresa_pessoa_id;
-        if (!empresaId) continue;
-        const emp = porId.get(empresaId);
+        const emp = porId.get(l.empresa_pessoa_id!);
+        // Empresa que a RLS de `pessoa` não devolve fica fora, como ficava o
+        // join inner da leitura anterior.
         if (!emp) continue;
-
-        if (!map.has(empresaId)) {
-          map.set(empresaId, {
-            empresaId,
+        let e = map.get(emp.id);
+        if (!e) {
+          e = {
+            empresaId: emp.id,
             nome: emp.denominacao ?? 'Empresa',
             cnpj: emp.cpf_cnpj ?? null,
             tipoEmpresa: emp.tipo_empresa ?? null,
             socios: [],
             totalQuotas: 0,
             totalValor: 0,
-          });
+          };
+          map.set(emp.id, e);
         }
-
-        const e = map.get(empresaId)!;
         const socio = l.pessoa_id ? porId.get(l.pessoa_id) : undefined;
         e.socios.push({
           pessoaId: l.pessoa_id ?? null,
           nome: socio?.denominacao ?? '—',
           tipo: socio?.tipo_pessoa ?? null,
           cpfCnpj: socio?.cpf_cnpj ?? null,
-          quotas: l.quotas ?? null,
-          valor: l.vlr_total ?? null,
-          percentual: null,
+          quotas: l.quotas,
+          valor: l.vlr_total,
         });
         e.totalQuotas += Number(l.quotas) || 0;
         e.totalValor += Number(l.vlr_total) || 0;
       }
 
       const arr = [...map.values()];
-      arr.forEach((e) => {
-        e.socios.sort((a, b) => (Number(b.quotas) || 0) - (Number(a.quotas) || 0));
-        // Percentual derivado: a view entrega quotas, não participação.
-        e.socios.forEach((s) => {
-          s.percentual = e.totalQuotas > 0 && s.quotas != null
-            ? (Number(s.quotas) / e.totalQuotas) * 100
-            : null;
-        });
-      });
+      arr.forEach((e) => e.socios.sort((a, b) => (Number(b.quotas) || 0) - (Number(a.quotas) || 0)));
       arr.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
       return arr;
     },

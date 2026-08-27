@@ -33,3 +33,27 @@ export function avaliarFlags(definicoes: FlagDeclarativa[], fontes: FontesFlags)
     })
     .map((f) => f.nome);
 }
+
+/** Condição estrutural da peça compartilhada pelo modelo societário. */
+export function flagDaPeca(numeroAlteracao: number): 'e_alteracao' | 'e_constituicao' {
+  return numeroAlteracao >= 1 ? 'e_alteracao' : 'e_constituicao';
+}
+
+/**
+ * Flags de um snapshot SELADO antes de as flags de peça existirem, completadas
+ * com `e_constituicao`.
+ *
+ * Documento validado renderiza dos flags congelados, e `e_constituicao` /
+ * `e_alteracao` nasceram só em 26/08/2026. Todo snapshot anterior a elas é de
+ * contrato social — a alteração contratual como documento próprio não existia —,
+ * mas não diz isso, e os blocos que passaram a pender de `e_constituicao` saíam
+ * dessas peças sem sinal nenhum: a cláusula de capital, a sede, o objeto. Aqui a
+ * ausência das DUAS é lida como constituição, que é o que aqueles documentos são.
+ *
+ * Só completa quando falta o par inteiro: snapshot que já traz uma delas é
+ * decisão selada e não se mexe.
+ */
+export function comFlagDaPecaRetroativa(snapshotFlags: readonly string[]): string[] {
+  const tem = snapshotFlags.includes('e_constituicao') || snapshotFlags.includes('e_alteracao');
+  return tem ? [...snapshotFlags] : [...snapshotFlags, 'e_constituicao'];
+}

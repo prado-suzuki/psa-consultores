@@ -254,7 +254,7 @@ const DevDashboard = () => {
 
             <div className="flex w-full items-center gap-2 sm:w-auto">
               <Select value={selectedToolPath} onValueChange={setSelectedToolPath}>
-                <SelectTrigger className="h-9 w-full bg-white text-sm shadow-sm sm:w-80">
+                <SelectTrigger className="h-9 w-full text-sm shadow-sm sm:w-80">
                   <SelectValue placeholder="Filtrar por ferramenta..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -306,10 +306,21 @@ const DevDashboard = () => {
                       const isSingleton = group.tools.length === 1 && group.tools[0].name === group.label;
 
                       return (
-                    <button
-                      type="button"
+                    // Não é um <button>: os chips de sub-ferramenta logo abaixo já
+                    // são <button>, e <button> dentro de <button> é HTML inválido
+                    // (o React acusa no console). role="button" + teclado mantém a
+                    // mesma acessibilidade sem aninhar elementos interativos.
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() => navigate(group.landingPath!)}
-                      className="group flex h-full w-full flex-col rounded-2xl border border-primary/30 bg-gradient-to-br from-surface-escura via-surface-escura-2 to-primary p-5 text-left text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          navigate(group.landingPath!);
+                        }
+                      }}
+                      className="group flex h-full w-full cursor-pointer flex-col rounded-2xl border border-primary/30 bg-gradient-to-br from-surface-escura via-surface-escura-2 to-primary p-5 text-left text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                     >
                       <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary-foreground/10 text-primary-foreground/80">
                         <LandingIcon className="h-5 w-5" />
@@ -341,7 +352,7 @@ const DevDashboard = () => {
                           <ArrowRight className="h-3.5 w-3.5" />
                         </span>
                       </div>
-                    </button>
+                    </div>
                       );
                     })()
                   ) : (

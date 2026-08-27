@@ -42,9 +42,17 @@ export default tseslint.config(
     // tema. Foram 19 casos assim só no Controle de Acessos, e nenhum era
     // redundância.
     //
-    // Fica em `warn` pela mesma razão da regra do teal: o número é grande e
-    // transformar em erro de build seria apagão. O aviso trava o crescimento e
-    // aparece para quem abrir o arquivo por outro motivo.
+    // Está em `error`, e a passagem por `warn` foi a migração, não o regime.
+    // Nasceu em `warn` porque a fila era grande e travar o build seria apagão;
+    // com a fila em zero, `warn` deixou de proteger nada. O `bun run lint` da CI
+    // é `eslint .`, sem `--max-warnings`: aviso passa. Manter em `warn` com a
+    // dívida zerada significa que a próxima sobrescrita entra sem resistência e
+    // a fila recomeça — o trabalho se desfaz sozinho, sem ninguém perceber. Em
+    // `error`, o zero é o piso.
+    //
+    // Isto NÃO vale para a regra do teal, abaixo: aquela ainda tem centenas de
+    // ocorrências e continua em `warn` por isso. A diferença entre as duas é o
+    // tamanho da fila, não o critério.
     //
     // A regra NÃO acusa composição (propriedade diferente) nem sobrescrita para
     // outro token (escolha de hierarquia). O `ui/` fica fora: ele é o dono do
@@ -54,7 +62,7 @@ export default tseslint.config(
     files: ["src/**/*.tsx"],
     ignores: ["src/components/ui/**"],
     plugins: { ui: uiTokens },
-    rules: { "ui/token-nao-sobrescrito": "warn" },
+    rules: { "ui/token-nao-sobrescrito": "error" },
   },
   {
     // ── `--teal-*` é PRIMITIVA, não token de componente ────────────────────

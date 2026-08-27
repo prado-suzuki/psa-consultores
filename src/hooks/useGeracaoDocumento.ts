@@ -10,6 +10,8 @@ import {
   calcularParticipacoesPR,
   mapearPessoa,
   type AdministradorParaMapear,
+  type AporteParaMapear,
+  type CessaoParaMapear,
   type MatriculaIntegralizacao,
   type MatriculaParaMapear,
   type SocioParaMapear,
@@ -210,13 +212,6 @@ export function useRegistrosPorTipo(clienteId: string | null) {
 
 // --- Listas relacionais da empresa (bindings de cardinalidade 'lista') --------
 
-interface RawQuadroSocietario {
-  id: string;
-  quotas: number | null;
-  vlr_total: number | null;
-  socio: PessoaRow | null;
-}
-
 interface RawAdministracao {
   id: string;
   cargo: string | null;
@@ -292,6 +287,9 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
           if ((m.impedimento ?? []).some((i) => !i.cancelado)) continue;
           matriculas.push({
             id: m.id,
+            // O bem a que a matrícula pertence: vira `bem_id` do aporte quando a
+            // tela do Quadro Societário grava a proposta da PR.
+            bemId: b.id,
             numero: m.numero,
             livro: m.livro,
             folha: m.folha,
@@ -341,90 +339,229 @@ export function useIntegralizacoesAprovadas(empresaId: string | null) {
 export const PESSOA_LEGADA_PREFIX = 'legado:';
 
 /**
- * Itens das seções de lista, dada a empresa (PJ) escolhida na tela Gerar:
- * sócios e administradores, na ordem do cadastro. Para sócia PJ, busca em
- * administracao quem a representa ("neste ato representada por…").
+ * PessoaRow completa dos sócios (a qualificação do preâmbulo precisa da linha
+ * inteira) + o representante de cada sócia PJ.
  *
- * Empresa Proprietária (PR, via `tipoEmpresa`): o quadro societário não é
- * digitado — os sócios são DERIVADOS dos titulares das integralizações
- * aprovadas (calcularParticipacoesPR: quotas a R$ 1,00, ordem de participação
- * decrescente), com a PessoaRow completa buscada para a qualificação. Titular
- * sem pessoa vinculada também entra como sócio, com uma linha sintética
- * (id "legado:<nome>") e qualificação incompleta — decisão registrada em
- * docs/osg/plano-quadro-societario-pr.md §12.
+ * Representante: administradores dela com qualificação completa ("o senhor
+ * FULANO, brasileiro, casado…"), no padrão do preâmbulo real: a qualificação da
+ * sócia PJ contrai o primeiro ("representada pelo senhor…") e os demais entram
+ * juntados com ", e, ".
+ *
+ * Existe separado porque o quadro chega de duas formas (gravado na view,
+ * derivado dos bens na PR ainda sem movimentação) e as duas precisam do mesmo
+ * par de leituras, e duplicá-lo faria a qualificação de um lado divergir do outro.
  */
+async function lerPessoasERepresentantes(ids: string[]): Promise<{
+  pessoas: Record<string, PessoaRow>;
+  representantes: Record<string, string>;
+}> {
+  const { data, error } = await supabase.from('pessoa').select('*').in('id', ids);
+  if (error) throw error;
+  const pessoas: Record<string, PessoaRow> = {};
+  for (const p of (data ?? []) as PessoaRow[]) pessoas[p.id] = p;
+
+  const idsPj = Object.values(pessoas).filter((p) => p.tipo_pessoa === 'PJ').map((p) => p.id);
+  const representantes: Record<string, string> = {};
+  if (idsPj.length > 0) {
+    const { data: adms, error: errAdms } = await supabase
+      .from('administracao')
+      .select('pj_pessoa_id, administrador:administrador_pessoa_id (*)')
+      .in('pj_pessoa_id', idsPj)
+      .order('created_at');
+    if (errAdms) throw errAdms;
+    for (const a of (adms ?? []) as unknown as Array<{
+      pj_pessoa_id: string;
+      administrador: PessoaRow | null;
+    }>) {
+      if (!a.administrador?.denominacao) continue;
+      const qualificado =
+        `${PARES.senhor(a.administrador.genero as 'M' | 'F' | null)} ` +
+        mapearPessoa(a.administrador).qualificacao;
+      const atual = representantes[a.pj_pessoa_id];
+      representantes[a.pj_pessoa_id] = atual ? `${atual}, e, ${qualificado}` : qualificado;
+    }
+  }
+  return { pessoas, representantes };
+}
+
+/**
+ * Itens das seções de lista, dada a empresa (PJ) escolhida na tela Gerar:
+ * sócios e administradores. Para sócia PJ, busca em administracao quem a
+ * representa ("neste ato representada por…").
+ *
+ * **O quadro societário tem uma fonte só**, igual para a Proprietária (PR) e
+ * para a Controladora (CN): `v_quadro_societario`, o acumulado dos movimentos de
+ * quota da empresa. A ordem dos sócios no preâmbulo é `ordem`, o `created_at` do
+ * PRIMEIRO movimento de cada um, o equivalente à ordem de digitação que o
+ * quadro digitado tinha.
+ *
+ * Antes daqui havia DUAS fontes e nenhuma servia aos dois casos: a PR derivava
+ * os sócios dos titulares das matrículas no render, a CN lia a tabela
+ * `quadro_societario`. A derivação responde "quem entrou com o quê", não "quem
+ * tem quantas quotas hoje": as duas coisas coincidem na constituição e divergem
+ * na primeira cessão.
+ *
+ * **A derivação sobrevive como FALLBACK da PR**, e só enquanto a empresa não tem
+ * movimentação nenhuma: é o mesmo critério da tela do Quadro Societário
+ * (`gravado = quadro.length > 0`), para tela e gerador nunca discordarem. Sem
+ * ele, toda PR que ainda não gravou o quadro de constituição perderia os sócios
+ * do documento na troca de fonte. Titular sem pessoa vinculada entra como sócio
+ * com uma linha sintética (id "legado:<nome>") e qualificação incompleta,
+ * decisão registrada em docs/osg/plano-quadro-societario-pr.md §12.
+ */
+/**
+ * Os APORTES do livro de movimentos desta empresa, com a forma de pagamento de
+ * cada um, prontos para as alíneas de {{#integralizacoes}}.
+ *
+ * Só os PENDENTES: movimento com `documento_gerado_id` já foi formalizado por
+ * uma peça, e repeti-lo faria a alteração seguinte integralizar duas vezes o
+ * mesmo bem. É a mesma regra que decide os eventos do assistente.
+ *
+ * O aporte pago com quotas de outra sociedade traz a PJ de origem QUALIFICADA
+ * por inteiro (CNPJ, NIRE, sede) mais quem a representa, porque é isso que a
+ * cláusula publica: "as quotas que possuía na sociedade X, inscrita no CNPJ…,
+ * com sede em…, neste ato representada por…".
+ */
+export function useAportesDoLivro(empresaId: string | null) {
+  return useQuery<AporteParaMapear[]>({
+    queryKey: ['aportes-do-livro', empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('movimentacao_quotas')
+        .select('id, destino_pessoa_id, quotas, vlr_capital_arredondado, created_at, sequencia, bem_id, pago_com_empresa_pessoa_id, pago_com_quotas, pago_com_valor')
+        .eq('empresa_pessoa_id', empresaId!)
+        .eq('tipo', 'aporte')
+        .is('documento_gerado_id', null)
+        .order('created_at')
+        .order('sequencia', { nullsFirst: true });
+      if (error) throw error;
+
+      const linhas = (data ?? []).filter((l) => l.destino_pessoa_id);
+      const idsOrigem = [
+        ...new Set(linhas.map((l) => l.pago_com_empresa_pessoa_id).filter((id): id is string => !!id)),
+      ];
+      const { pessoas, representantes } =
+        idsOrigem.length > 0
+          ? await lerPessoasERepresentantes(idsOrigem)
+          : { pessoas: {} as Record<string, PessoaRow>, representantes: {} as Record<string, string> };
+
+      return linhas.map((l): AporteParaMapear => {
+        const origemId = l.pago_com_empresa_pessoa_id;
+        const pessoaOrigem = origemId ? pessoas[origemId] : undefined;
+        return {
+          id: l.id,
+          pessoaId: l.destino_pessoa_id!,
+          quotas: Number(l.quotas ?? 0),
+          valor: Number(l.vlr_capital_arredondado ?? 0),
+          forma: origemId ? 'quotas' : l.bem_id ? 'bem' : 'moeda',
+          bemId: l.bem_id,
+          origem:
+            origemId && pessoaOrigem
+              ? {
+                  pessoa: pessoaOrigem,
+                  administradores: representantes[origemId] ?? null,
+                  quotas: Number(l.pago_com_quotas ?? 0),
+                  valor: Number(l.pago_com_valor ?? 0),
+                }
+              : null,
+        };
+      });
+    },
+  });
+}
+
+/**
+ * As CESSÕES (e doações) do livro desta empresa que ainda não foram
+ * formalizadas, com as duas pontas qualificadas.
+ *
+ * É o que faltava para a resolução de cessão nomear o ato em vez de só publicar
+ * o quadro resultante. Movimento já formalizado fica de fora pela mesma razão
+ * dos aportes: repeti-lo faria a peça seguinte narrar de novo o que já foi
+ * registrado.
+ */
+export function useCessoesDoLivro(empresaId: string | null) {
+  return useQuery<CessaoParaMapear[]>({
+    queryKey: ['cessoes-do-livro', empresaId],
+    enabled: !!empresaId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('movimentacao_quotas')
+        .select('id, tipo, origem_pessoa_id, destino_pessoa_id, quotas, vlr_capital_arredondado, created_at, sequencia')
+        .eq('empresa_pessoa_id', empresaId!)
+        .in('tipo', ['cessao', 'doacao'])
+        .is('documento_gerado_id', null)
+        .order('created_at')
+        .order('sequencia', { nullsFirst: true });
+      if (error) throw error;
+
+      const linhas = (data ?? []).filter((l) => l.origem_pessoa_id && l.destino_pessoa_id);
+      if (linhas.length === 0) return [];
+
+      const ids = [
+        ...new Set(linhas.flatMap((l) => [l.origem_pessoa_id!, l.destino_pessoa_id!])),
+      ];
+      const { pessoas, representantes } = await lerPessoasERepresentantes(ids);
+
+      return linhas.flatMap((l): CessaoParaMapear[] => {
+        const cedente = pessoas[l.origem_pessoa_id!];
+        const cessionario = pessoas[l.destino_pessoa_id!];
+        // Ponta que a RLS não devolve fica de fora: meia cessão descreveria um
+        // ato que não aconteceu.
+        if (!cedente || !cessionario) return [];
+        return [{
+          id: l.id,
+          cedente,
+          cessionario,
+          quotas: Number(l.quotas ?? 0),
+          valor: Number(l.vlr_capital_arredondado ?? 0),
+          doacao: l.tipo === 'doacao',
+          representanteCedente: representantes[cedente.id] ?? null,
+          representanteCessionario: representantes[cessionario.id] ?? null,
+        }];
+      });
+    },
+  });
+}
+
 export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: string | null) {
   const ehPR = tipoEmpresa === 'PR';
 
-  const sociosQ = useQuery<SocioParaMapear[]>({
+  // O quadro GRAVADO. Duas leituras e não um embed: o PostgREST só infere
+  // relacionamento de view quando a coluna vem direto da tabela base, e
+  // `pessoa_id` aqui nasce de um `union all` com `group by`, então `socio:pessoa_id
+  // (*)` não existe em v_quadro_societario.
+  const quadroQ = useQuery<SocioParaMapear[]>({
     queryKey: ['socios-geracao', empresaId],
-    enabled: !!empresaId && !ehPR,
+    enabled: !!empresaId,
     queryFn: async () => {
-      // Fonte: `v_quadro_societario`, a visão derivada do livro de movimentos
-      // que substituiu a tabela `quadro_societario`. A view não embute a pessoa,
-      // então a qualificação vem numa segunda leitura por id.
       const { data, error } = await supabase
         .from('v_quadro_societario')
-        .select('pessoa_id, quotas, vlr_total, ordem')
+        // `movimento_ids` são as linhas que compõem o saldo: metadado p/ as
+        // notificações de variável alterada da tela Gerar.
+        .select('pessoa_id, quotas, vlr_total, movimento_ids')
         .eq('empresa_pessoa_id', empresaId!)
         .order('ordem');
       if (error) throw error;
 
-      const idsSocios = ((data ?? []).map((l) => l.pessoa_id).filter(Boolean)) as string[];
-      if (idsSocios.length === 0) return [];
+      const linhas = (data ?? []).filter((l) => l.pessoa_id);
+      if (linhas.length === 0) return [];
 
-      const { data: pessoas, error: errPessoas } = await supabase
-        .from('pessoa')
-        .select('*')
-        .in('id', idsSocios);
-      if (errPessoas) throw errPessoas;
-      const porId = new Map(((pessoas ?? []) as unknown as PessoaRow[]).map((p) => [p.id, p]));
-
-      const linhas: RawQuadroSocietario[] = (data ?? [])
-        .map((l) => ({
-          // A linha do quadro não tem id próprio: a posição é do par
-          // empresa × sócio, e é isso que as notificações da tela Gerar usam.
-          id: `${empresaId}:${l.pessoa_id}`,
+      const { pessoas, representantes } = await lerPessoasERepresentantes(
+        linhas.map((l) => l.pessoa_id!),
+      );
+      return linhas.flatMap((l) => {
+        const pessoa = pessoas[l.pessoa_id!];
+        // Sócio cuja pessoa a RLS não devolve fica fora, como ficava o embed nulo.
+        if (!pessoa) return [];
+        return [{
+          pessoa,
           quotas: l.quotas,
           vlr_total: l.vlr_total,
-          socio: l.pessoa_id ? porId.get(l.pessoa_id) ?? null : null,
-        }))
-        .filter((l) => l.socio);
-
-
-      // Representantes das sócias PJ: administradores delas com qualificação
-      // completa ("o senhor FULANO, brasileiro, casado…"), no padrão do preâmbulo
-      // real — a qualificação da sócia PJ contrai o primeiro ("representada pelo
-      // senhor…") e os demais entram juntados com ", e, ".
-      const idsPj = linhas.filter((l) => l.socio!.tipo_pessoa === 'PJ').map((l) => l.socio!.id);
-      const representantes = new Map<string, string>();
-      if (idsPj.length > 0) {
-        const { data: adms, error: errAdms } = await supabase
-          .from('administracao')
-          .select('pj_pessoa_id, administrador:administrador_pessoa_id (*)')
-          .in('pj_pessoa_id', idsPj)
-          .order('created_at');
-        if (errAdms) throw errAdms;
-        for (const a of (adms ?? []) as unknown as Array<{
-          pj_pessoa_id: string;
-          administrador: PessoaRow | null;
-        }>) {
-          if (!a.administrador?.denominacao) continue;
-          const qualificado =
-            `${PARES.senhor(a.administrador.genero as 'M' | 'F' | null)} ` +
-            mapearPessoa(a.administrador).qualificacao;
-          const atual = representantes.get(a.pj_pessoa_id);
-          representantes.set(a.pj_pessoa_id, atual ? `${atual}, e, ${qualificado}` : qualificado);
-        }
-      }
-
-      return linhas.map((l) => ({
-        pessoa: l.socio!,
-        quotas: l.quotas,
-        vlr_total: l.vlr_total,
-        representante: representantes.get(l.socio!.id) ?? null,
-        quadroSocietarioId: l.id,
-      }));
+          representante: representantes[pessoa.id] ?? null,
+          movimentoIds: l.movimento_ids ?? [],
+        }];
+      });
     },
   });
 
@@ -449,71 +586,59 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
   // impedimento ativo — a matéria-prima da seção {{#integralizacoes}}.
   const integralizacoesQ = useIntegralizacoesAprovadas(empresaId);
 
-  // --- PR: sócios derivados das integralizações ------------------------------
+  // Os APORTES do livro de movimentos: é o que permite às alíneas de
+  // integralização misturarem as três formas (imóvel, moeda corrente, quotas de
+  // outra sociedade). A matrícula só sabe descrever a primeira.
+  const aportesQ = useAportesDoLivro(empresaId);
 
-  // Na PR, o titular legado ganha o mesmo id sintético do sócio derivado, para
-  // mapearIntegralizacoes casar as alíneas dele em {{#integralizacoes}}.
+  // As CESSÕES pendentes: a resolução de cessão nomeia as duas pontas e a
+  // quantidade, e não só o quadro que sobra depois.
+  const cessoesQ = useCessoesDoLivro(empresaId);
+
+  // --- PR sem movimentação: sócios derivados das integralizações -------------
+
+  /** A empresa tem quadro gravado: o saldo dos movimentos de quota existe. */
+  const quadroGravado = (quadroQ.data?.length ?? 0) > 0;
+  /**
+   * Cai no quadro derivado: só a PR, e só depois de o quadro ter voltado VAZIO
+   * (`data` definido). Enquanto a view carrega não se deriva nada, senão a
+   * prévia renderizaria o quadro derivado e o trocaria pelo gravado em seguida.
+   */
+  const derivarPR = ehPR && quadroQ.data != null && quadroQ.data.length === 0;
+
+  // No quadro derivado, o titular legado ganha o mesmo id sintético do sócio
+  // derivado, para mapearIntegralizacoes casar as alíneas dele em
+  // {{#integralizacoes}}. Com quadro gravado não existe sócio legado (a gravação
+  // é bloqueada enquanto houver titular sem pessoa), e o titular sem pessoa
+  // passa a ser tratado como na CN: aparece na descrição, não lidera alínea.
   const integralizacoes = useMemo<MatriculaIntegralizacao[]>(() => {
     const base = integralizacoesQ.data ?? [];
-    if (!ehPR) return base;
+    if (!derivarPR) return base;
     return base.map((m) => ({
       ...m,
       titulares: m.titulares.map((t) =>
         t.pessoaId ? t : { ...t, pessoaId: `${PESSOA_LEGADA_PREFIX}${t.denominacao ?? '—'}` },
       ),
     }));
-  }, [ehPR, integralizacoesQ.data]);
+  }, [derivarPR, integralizacoesQ.data]);
 
   const participacoes = useMemo(
-    () => (ehPR ? calcularParticipacoesPR(integralizacoesQ.data ?? []) : []),
-    [ehPR, integralizacoesQ.data],
+    () => (derivarPR ? calcularParticipacoesPR(integralizacoesQ.data ?? []) : []),
+    [derivarPR, integralizacoesQ.data],
   );
   const idsPessoas = useMemo(
     () => participacoes.map((p) => p.pessoaId).filter((id): id is string => !!id).sort(),
     [participacoes],
   );
 
-  // PessoaRow completa dos titulares (a qualificação do preâmbulo precisa da
-  // linha inteira) + representante das sócias PJ, como no fluxo manual.
-  const pessoasPRQ = useQuery<{
-    pessoas: Record<string, PessoaRow>;
-    representantes: Record<string, string>;
-  }>({
+  const pessoasPRQ = useQuery({
     queryKey: ['socios-geracao-pr', empresaId, idsPessoas.join(',')],
-    enabled: ehPR && idsPessoas.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase.from('pessoa').select('*').in('id', idsPessoas);
-      if (error) throw error;
-      const pessoas: Record<string, PessoaRow> = {};
-      for (const p of (data ?? []) as PessoaRow[]) pessoas[p.id] = p;
-
-      const idsPj = Object.values(pessoas).filter((p) => p.tipo_pessoa === 'PJ').map((p) => p.id);
-      const representantes: Record<string, string> = {};
-      if (idsPj.length > 0) {
-        const { data: adms, error: errAdms } = await supabase
-          .from('administracao')
-          .select('pj_pessoa_id, administrador:administrador_pessoa_id (*)')
-          .in('pj_pessoa_id', idsPj)
-          .order('created_at');
-        if (errAdms) throw errAdms;
-        for (const a of (adms ?? []) as unknown as Array<{
-          pj_pessoa_id: string;
-          administrador: PessoaRow | null;
-        }>) {
-          if (!a.administrador?.denominacao) continue;
-          const qualificado =
-            `${PARES.senhor(a.administrador.genero as 'M' | 'F' | null)} ` +
-            mapearPessoa(a.administrador).qualificacao;
-          const atual = representantes[a.pj_pessoa_id];
-          representantes[a.pj_pessoa_id] = atual ? `${atual}, e, ${qualificado}` : qualificado;
-        }
-      }
-      return { pessoas, representantes };
-    },
+    enabled: derivarPR && idsPessoas.length > 0,
+    queryFn: () => lerPessoasERepresentantes(idsPessoas),
   });
 
   const sociosDerivados = useMemo<SocioParaMapear[]>(() => {
-    if (!ehPR) return [];
+    if (!derivarPR) return [];
     // Espera as PessoaRow chegarem para não renderizar a prévia com a
     // qualificação em branco e repreencher em seguida.
     if (idsPessoas.length > 0 && !pessoasPRQ.data) return [];
@@ -531,16 +656,33 @@ export function useListasDaEmpresa(empresaId: string | null, tipoEmpresa?: strin
       quotas: p.quotas,
       vlr_total: p.valor,
       representante: p.pessoaId ? (representantes[p.pessoaId] ?? null) : null,
+      // Sócio derivado não tem movimento: não existe linha no livro de quotas
+      // para a notificação de variável alterada apontar.
+      movimentoIds: null,
     }));
-  }, [ehPR, participacoes, idsPessoas, pessoasPRQ.data]);
+  }, [derivarPR, participacoes, idsPessoas, pessoasPRQ.data]);
 
   return {
-    socios: ehPR ? sociosDerivados : (sociosQ.data ?? []),
+    socios: derivarPR ? sociosDerivados : (quadroQ.data ?? []),
     administradores: administradoresQ.data ?? [],
     integralizacoes,
+    aportes: aportesQ.data ?? [],
+    cessoes: cessoesQ.data ?? [],
+    /**
+     * O capital da PR sai das integralizações enquanto o quadro é derivado, e do
+     * próprio quadro depois de gravado. Senão a identidade Σ quotas dos sócios
+     * === totalQuotas quebra na primeira divergência entre bem e quota.
+     */
+    quadroGravado,
     isFetching:
-      (ehPR ? pessoasPRQ.isFetching : sociosQ.isFetching) ||
+      quadroQ.isFetching ||
+      // A janela entre "a view voltou vazia" e "as pessoas do derivado
+      // chegaram": sem ela a prévia pisca sem sócio nenhum.
+      (derivarPR && idsPessoas.length > 0 && !pessoasPRQ.data) ||
+      pessoasPRQ.isFetching ||
       administradoresQ.isFetching ||
-      integralizacoesQ.isFetching,
+      integralizacoesQ.isFetching ||
+      aportesQ.isFetching ||
+      cessoesQ.isFetching,
   };
 }

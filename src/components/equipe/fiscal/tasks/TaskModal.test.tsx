@@ -395,7 +395,7 @@ describe('TaskModal — criação', () => {
     expect(screen.queryByRole('button', { name: /Alterar contexto/ })).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^Projeto/)).toBeInTheDocument();
     expect(screen.getByLabelText(/^Cliente/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/^Contribuinte/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Contribuinte \(opcional\)/)).toBeInTheDocument();
     expect(screen.getByLabelText(/Tarefa Pai/)).toBeInTheDocument();
 
     // As mesmas pílulas da edição, no lugar da antiga seção "Execução".
@@ -486,22 +486,26 @@ describe('TaskModal — criação', () => {
     await user.click(screen.getByRole('button', { name: 'Criar' }));
 
     expect(await screen.findByText('Título é obrigatório')).toBeInTheDocument();
-    // QUIRK caracterizado: campos de select/número vazios caem na mensagem
-    // padrão do zod ("Required"/"Expected number...") em vez das mensagens
-    // customizadas, porque chegam como `undefined` e não como string vazia.
+    // O QUIRK que estava caracterizado aqui ACABOU: campo de select ou de número
+    // vazio caía na mensagem padrão do zod, em inglês ("Required", "Expected
+    // number, received nan"), porque chega como `undefined` e o zod nem alcança a
+    // regra de tamanho. O `taskSchema` passou a declarar `required_error` e
+    // `invalid_type_error` em todos eles, então agora respondem em português.
+    //
+    // O seletor de Contribuinte não aparece mais na lista: virou opcional, e campo
+    // opcional não gera mensagem de vazio.
     //
     // A ordem é a do DOM depois do redesenho: título, cartão de contexto
-    // (projeto → cliente → contribuinte), faixa de propriedades (responsável,
+    // (projeto → cliente), faixa de propriedades (responsável,
     // datas, esforço) e, por último, a descrição.
     expect(formMessages()).toEqual([
       'Título é obrigatório',
       'Projeto é obrigatório',
-      'Required',
-      'Required',
-      'Required',
+      'Cliente é obrigatório',
+      'Responsável é obrigatório',
       'Data de Início é obrigatória',
       'Data de Vencimento é obrigatória',
-      'Expected number, received nan',
+      'Esforço estimado é obrigatório',
       'Descrição é obrigatória',
     ]);
     expect(mocks.createTask).not.toHaveBeenCalled();
@@ -697,24 +701,26 @@ describe('TaskModal — cabeçalho da edição', () => {
     renderModal({ task: baseTask, parentTasks: [{ ...baseTask, id: 'P1', title: 'Pai do Alfa' }] });
 
     expect(screen.getByLabelText(/^Título/)).toHaveValue('Tarefa existente');
-    // Cliente, projeto e contribuinte viram texto — sem select à mostra.
+    // Cliente e projeto viram texto; contribuinte continua editável por tarefa.
     expect(screen.getByText('Cliente Um')).toBeInTheDocument();
     expect(screen.getByText('Projeto Alfa')).toBeInTheDocument();
-    expect(screen.getByText(/Contribuinte Um · 11\.111\.111\/0001-11/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Contribuinte \(opcional\)/)).toHaveTextContent(
+      'Contribuinte Um (11.111.111/0001-11)',
+    );
     expect(screen.queryByLabelText(/^Cliente/)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/Tarefa Pai/)).not.toBeInTheDocument();
   });
 
-  it('abre o painel de contexto sozinho quando o contexto reprova na validação', async () => {
+  it('mantém o contribuinte opcional visível fora de Alterar contexto', async () => {
     const user = userEvent.setup();
     renderModal({ task: { ...baseTask, contribuinte_id: null } });
 
-    expect(screen.queryByLabelText(/^Contribuinte/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^Contribuinte \(opcional\)/)).toHaveTextContent('Não informado');
+    expect(screen.queryByLabelText(/^Cliente/)).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Salvar' }));
 
-    // Sem isso a mensagem de erro ficaria escondida dentro do painel fechado.
-    expect(await screen.findByLabelText(/^Contribuinte/)).toBeInTheDocument();
-    expect(mocks.updateTask).not.toHaveBeenCalled();
+    await waitFor(() => expect(mocks.updateTask).toHaveBeenCalledTimes(1));
+    expect(payloadOf('update')).toMatchObject({ contribuinte_id: undefined });
   });
 
   it('não oferece Salvar nem Cancelar no rodapé — as ações vivem no cabeçalho', () => {
@@ -1002,12 +1008,12 @@ describe('TaskModal — subtarefas', () => {
     expect(within(secao).getByText('Mapeamento - Revisão de IRPF')).toBeInTheDocument();
     expect(within(secao).getByText('Mapeamento - Livro Caixa')).toBeInTheDocument();
     expect(within(secao).getByText('1/2 concluídas')).toBeInTheDocument();
-    expect(within(secao).getByLabelText('Responsável de Mapeamento - Livro Caixa')).toHaveTextContent(
-      'Atribuir',
-    );
-    expect(within(secao).getByLabelText('Prioridade de Mapeamento - Livro Caixa')).toHaveTextContent(
-      'Alta',
-    );
+    expect(
+      within(secao).getByLabelText('Responsável de Mapeamento - Livro Caixa'),
+    ).toHaveTextContent('Atribuir');
+    expect(
+      within(secao).getByLabelText('Prioridade de Mapeamento - Livro Caixa'),
+    ).toHaveTextContent('Alta');
   });
 
   it('vem antes dos anexos no corpo da edição', () => {
@@ -1041,6 +1047,54 @@ describe('TaskModal — subtarefas', () => {
     });
     // A tarefa-mãe não é salva junto: o Enter não vaza para o form do modal.
     expect(screen.getByLabelText('Nome da nova subtarefa')).toHaveValue('');
+  });
+
+  it('mandar a subtarefa para revisão abre o diálogo em vez de gravar direto', async () => {
+    const user = userEvent.setup();
+    mocks.subtasks = [subtask({ id: 'S1' })];
+    renderModal({ task: baseTask });
+
+    await user.click(
+      within(subtarefasSection()).getByLabelText('Status de Mapeamento - Revisão de IRPF'),
+    );
+    await user.click(await screen.findByRole('option', { name: 'Revisão' }));
+
+    // Quem grava é o diálogo, depois de exigir revisor e detalhamento.
+    expect(kinds()).toEqual([]);
+    const dialog = reviewDialog();
+    expect(within(dialog).getByRole('heading', { name: 'Enviar para revisão' })).toBeInTheDocument();
+    expect(within(dialog).getByText('Revisor')).toBeInTheDocument();
+    expect(within(dialog).getByText('O que precisa ser revisado?')).toBeInTheDocument();
+  });
+
+  it('devolver a subtarefa para ajuste também passa pelo diálogo', async () => {
+    const user = userEvent.setup();
+    mocks.subtasks = [subtask({ id: 'S1', status: 'review' })];
+    renderModal({ task: baseTask });
+
+    await user.click(
+      within(subtarefasSection()).getByLabelText('Status de Mapeamento - Revisão de IRPF'),
+    );
+    await user.click(await screen.findByRole('option', { name: 'Em Ajuste' }));
+
+    expect(kinds()).toEqual([]);
+    expect(
+      within(reviewDialog()).getByRole('heading', { name: 'Devolver para ajustes' }),
+    ).toBeInTheDocument();
+  });
+
+  it('status sem transição de revisão continua gravando direto', async () => {
+    const user = userEvent.setup();
+    mocks.subtasks = [subtask({ id: 'S1' })];
+    renderModal({ task: baseTask });
+
+    await user.click(
+      within(subtarefasSection()).getByLabelText('Status de Mapeamento - Revisão de IRPF'),
+    );
+    await user.click(await screen.findByRole('option', { name: 'Em Progresso' }));
+
+    await waitFor(() => expect(kinds()).toEqual(['update']));
+    expect(payloadOf('update')).toEqual({ id: 'S1', status: 'in_progress' });
   });
 
   it('não oferece criação ao revisor delegado', () => {

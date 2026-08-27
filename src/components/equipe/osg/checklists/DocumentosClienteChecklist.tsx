@@ -201,7 +201,7 @@ export function DocumentosClienteChecklist({ clienteId }: { clienteId: string })
             </div>
             <div className="relative min-w-[220px] flex-1 sm:ml-auto sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-osg-300" />
-              <Input value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar documento ou arquivo..." className="border-osg-200/80 bg-white pl-9" />
+              <Input value={busca} onChange={(event) => setBusca(event.target.value)} placeholder="Buscar documento ou arquivo..." className="border-osg-200/80 pl-9" />
             </div>
           </div>
           <p className="text-[11px] leading-relaxed text-osg-500">

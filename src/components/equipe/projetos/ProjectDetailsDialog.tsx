@@ -101,7 +101,7 @@ export const ProjectDetailsDialog = ({
 
   return (
     <Dialog open={!!project} onOpenChange={onClose}>
-      <DialogContent className="bg-white border-gray-200 max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="border-gray-200 max-w-4xl max-h-[90vh] overflow-y-auto">
         {project && (
           <>
             <DialogHeader>

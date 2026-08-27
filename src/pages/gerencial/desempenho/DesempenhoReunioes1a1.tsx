@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { useReunioes, useCreateReuniao, useAllOpenItensAcao, useUpdateItemAcao, useItensAcao, type Reuniao1a1 } from '@/hooks/useReunioes1a1';
+import { useMemo } from 'react';
+import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
+import { contextoDesempenhoReunioes, resumoDeCiclo } from '@/lib/agenteContextoDesempenhoTelas';
 import { useCiclosAvaliacao, useCicloAtivo } from '@/hooks/useCiclosAvaliacao';
 import { useProfilesNomeMap, useProfilesNomeRows } from '@/hooks/useDomainProfiles';
 import { useDesempenhoReunioesItensAcao } from '@/hooks/useDomainDesempenhoReunioes';
@@ -29,8 +32,23 @@ const statusColors: Record<string, string> = {
 const DesempenhoReunioes1a1 = () => {
   const { data: allReunioes, isLoading } = useReunioes();
   const { data: openItems } = useAllOpenItensAcao();
+
   const { data: ciclos } = useCiclosAvaliacao();
   const { data: cicloAtivo } = useCicloAtivo();
+  // ── O que o Agente PSA le desta tela ───────────────────────────────
+  // Temas discutidos e observacoes do lider NAO entram: e o registro mais
+  // reservado do sistema.
+  const contextoAgente = useMemo(() => contextoDesempenhoReunioes({
+    ciclo: cicloAtivo ? resumoDeCiclo(cicloAtivo) : null,
+    reunioes: (allReunioes ?? []).map(r => ({
+      data_reuniao: r.data_reuniao, membro_id: r.membro_id ?? null,
+      sentimento: r.sentimento ?? null,
+    })),
+    itensAbertos: (openItems ?? []).map(i => ({ prazo: i.prazo ?? null, status: i.status })),
+    hoje: new Date().toISOString().slice(0, 10),
+    carregando: isLoading,
+  }), [cicloAtivo, allReunioes, openItems, isLoading]);
+  useRegistrarContextoAgente('board.desempenho.1a1', contextoAgente, isLoading);
   const createReuniao = useCreateReuniao();
   const updateItem = useUpdateItemAcao();
   const { user } = useAuth();
@@ -123,7 +141,7 @@ const DesempenhoReunioes1a1 = () => {
                 const lastDate = reunioes[0]?.data_reuniao ?? '--';
                 const openCount = openCountByMembro.get(membroId) || 0;
                 return (
-                  <Card key={membroId} className="bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer transition-shadow" style={{ border: '1px solid var(--board-border)' }} onClick={() => setSelectedMembro(membroId)}>
+                  <Card key={membroId} className="rounded-xl shadow-sm hover:shadow-md cursor-pointer transition-shadow" style={{ border: '1px solid var(--board-border)' }} onClick={() => setSelectedMembro(membroId)}>
                     <CardContent className="pt-5 flex items-center gap-4">
                       <div className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: 'var(--bd-purple-t)', color: 'var(--bd-purple)' }}>{initials}</div>
                       <div className="flex-1">
@@ -156,7 +174,7 @@ const DesempenhoReunioes1a1 = () => {
                 {filteredReunioes.map(r => {
                   const reuniaoItens = allItens?.filter(i => i.reuniao_id === r.id) ?? [];
                   return (
-                    <Card key={r.id} className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+                    <Card key={r.id} className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                       <CardContent className="pt-4">
                         <div className="flex items-center gap-3 mb-2">
                           <span className="text-sm font-medium" style={{ color: 'var(--board-t1)' }}>{r.data_reuniao}</span>

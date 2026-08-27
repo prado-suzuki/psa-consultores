@@ -13,14 +13,14 @@ setup('autenticar via UI e salvar sessão', async ({ page }) => {
 
   await page.goto('/equipe');
 
-  // Passo 1: selecionar área (Radix Select)
-  await page.getByRole('combobox').click();
-  await page.getByRole('option', { name: AREA, exact: true }).click();
-
-  // Passo 2: credenciais
+  // Passo 1: credenciais (a ordem foi invertida em EquipeAuth.tsx — login
+  // vem antes da área, que só aparece depois da sessão autenticada).
   await page.locator('#email').fill(EMAIL!);
   await page.locator('#password').fill(PASSWORD!);
   await page.getByRole('button', { name: /Entrar/i }).click();
+
+  // Passo 2: selecionar área (lista de botões, não mais um Select)
+  await page.getByRole('button', { name: AREA, exact: true }).click();
 
   // Sucesso => navega para a landing da área (ex.: /equipe/digital).
   // Se der "sem acesso", o toast aparece e a URL continua em /equipe.

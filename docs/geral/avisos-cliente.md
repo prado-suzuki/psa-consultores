@@ -4,31 +4,60 @@ Os textos que o cliente recebe por e-mail no ciclo de coleta de documentos, e os
 campos que cada um usa. Versionados aqui para não viverem só dentro do fluxo n8n, como
 acontece com os e-mails de chamado.
 
-Tarefa **ALE-12**. **A redação em vigor é a de Patrícia Melo, 17/08/2026**, que
-reescreveu os três avisos por inteiro. O cenário preenchido de cada um e os campos do
+Tarefas **ALE-12** (avisos 1 a 3) e **GES-04** (aviso 4). **A redação em vigor é a de
+Patrícia Melo**: ela reescreveu os três primeiros por inteiro em **17/08/2026** e revisou
+o quarto em **24/08/2026**. O cenário preenchido de cada um e os campos do
 formulário da Meta estão em
 [`avisos-cliente-validacao.md`](avisos-cliente-validacao.md). Os modelos de WhatsApp
 são outro artefato, da **ALE-11**
 ([`whatsapp-templates.md`](whatsapp-templates.md)): mesmo conteúdo, corpo e numeração
 próprios.
 
-> **São TRÊS avisos desde 17/08/2026, não quatro.** Os antigos 2 (cobrança de pendente)
-> e 4 (reenvio necessário) foram fundidos — decisão do Bernardo com a coordenação. O
-> motivo, e as consequências, estão na abertura da §2. A §4 fica no documento como
-> registro do que era, marcada como fundida.
+> **São QUATRO avisos desde 25/08/2026 — e o aviso 4 de hoje NÃO é o de antes.** Em
+> 17/08 os antigos 2 (cobrança de pendente) e 4 (reenvio necessário) foram fundidos,
+> caindo para três; o motivo e as consequências estão na abertura da §2. Em 25/08 entrou
+> um aviso novo, **Solicitação em aberto** (GES-04), que passou a ocupar o número 4.
+>
+> ⚠️ **Cuidado ao ler documento ou commit antigo:** "aviso 4" antes de 17/08 significa
+> reenvio necessário, e depois de 25/08 significa solicitação vencida sem nenhum
+> documento. São textos sem relação. O antigo fica no fim do arquivo como registro.
+>
+> **Os quatro estão concluídos.** O aviso 4 é o único que ainda não foi para produção:
+> faltam as quatro migrações da GES-04 e a borda `notificar`.
+
+**Tipo e versão de cada um**, lidos da Graph API em 25/08/2026 — os quatro modelos de
+WhatsApp estão APPROVED, categoria UTILITY, idioma `pt_BR`:
+
+| # | `notificacao_tipo` no banco | `event_type` da borda | Modelo de WhatsApp | Aprovado |
+|---|---|---|---|---|
+| 1 | `solicitacao_enviada` | `solicitacao_enviada` | `solicitacao_enviada_v2` | 18/08/2026 |
+| 2 | `cobranca_pendencia` | `situacao_documentos` | `situacao_documentos_v2` | 18/08/2026 |
+| 3 | `documento_aprovado` | `documento_aprovado` | `documentacao_conferida_v1` | 18/08/2026 |
+| 4 | `solicitacao_vencida` | `solicitacao_vencida` | `solicitacao_vencida_v1` | 25/08/2026 |
+
+O e-mail não tem modelo aprovado nem versão: ele é montado por nós no nó
+`Montar Avisos OSG`. A coluna do modelo está aqui só para cruzar os dois canais do mesmo
+aviso sem trocar de arquivo — o detalhe de cada modelo vive em
+[`whatsapp-templates.md`](whatsapp-templates.md).
 
 | # | Aviso | `event_type` da borda | `notificacao_tipo` no banco | Dispara | Detalhe | Marc. |
 |---|---|---|---|---|---|---|
 | 1 | Solicitação enviada | `solicitacao_enviada` | idem | clique em Enviar solicitação | agregado | 10 |
 | 2 | **Situação dos documentos** | `situacao_documentos` | `cobranca_pendencia` ¹ | **botão do analista no checklist** | item a item | 9 |
 | 3 | Documentação conferida | `documento_aprovado` | idem | encerramento da solicitação | agregado | 5 |
-| ~~4~~ | ~~Reenvio necessário~~ | — | ~~`documento_recusado`~~ | **fundido no 2** | — | — |
+| 4 | **Solicitação em aberto** | `solicitacao_vencida` | idem ² | **cron diário** — prazo vencido e nada recebido | sem lista | 5 |
+| ~~—~~ | ~~Reenvio necessário (antigo 4)~~ | — | ~~`documento_recusado`~~ | **fundido no 2** | — | — |
 
 ¹ O valor do enum continua `cobranca_pendencia`, e o `event_type` da API é
 `situacao_documentos`. A diferença é deliberada: acrescentar valor ao enum
 `notificacao_tipo` é migração, e ela custaria crédito sem entregar nada além do nome. O
 mapa `TIPO_NO_BANCO`, na função de borda, faz a tradução — o mesmo desacoplamento que o
 mapa `TEMPLATE` do n8n faz entre enum e nome de modelo na Meta.
+
+² **No aviso 4 os três nomes coincidem, ao contrário do aviso 2, e aí a migração se
+pagou.** Sem valor próprio de enum, este aviso dividiria chave de idempotência com o
+`cobranca_pendencia` do aviso 2 — mesmo cliente, mesmo dia — e um dos dois não sairia, sem
+erro e sem log. Migração `20260824143238`, aplicada no sandbox em 24/08/2026.
 
 Canal `email` no enum `notificacao_canal`. Os demais valores de `notificacao_tipo`
 são aviso interno no sino e não têm texto aqui; os e-mails de chamado são outro canal
@@ -125,8 +154,8 @@ contraída com o artigo, que varia com o número.
 > mensagens sobre a mesma conferência. O texto do aviso 4 já pedia *"um aviso por lote
 > de conferência, não por documento"* (10/08) sem definir o que fecha um lote.
 >
-> **O que fecha o lote:** o clique do analista. Este é o único dos três avisos que é
-> **manual** — botão na tela do checklist. Os avisos 1 e 3 seguem automáticos.
+> **O que fecha o lote:** o clique do analista. Este é o único dos quatro avisos que é
+> **manual** — botão na tela do checklist. Os avisos 1, 3 e 4 são automáticos.
 >
 > **Um por dia, por canal, por decisão do Bernardo.** A tela recusa o segundo clique do
 > dia com "este cliente já foi avisado hoje, tente amanhã". Não é economia de mensagem:
@@ -239,7 +268,71 @@ que diga em que ponto cada um está.
 
 ---
 
-## ~~4. Reenvio necessário~~ — FUNDIDO NO AVISO 2 EM 17/08/2026
+## 4. Solicitação em aberto
+
+> **Aviso novo, de 25/08/2026** (tarefa GES-04). Redação validada pela coordenação em
+> 24/08. Não substitui ninguém e não tem relação com o antigo aviso 4, logo abaixo.
+>
+> **Quando sai:** a solicitação foi enviada, segue aberta, o prazo venceu e **nenhum**
+> documento chegou. Repete a cada 30 dias enquanto continuar assim.
+>
+> **É o único aviso automático que não nasce de um ato.** Os avisos 1 e 3 nascem de
+> transição gravada no banco, o 2 do clique do analista. Aqui não acontece ato nenhum: o
+> que aconteceu foi o tempo passar. Por isso existe um cron, e nos outros não.
+>
+> **Se algo chegou e faltou o resto, quem fala é o aviso 2.** Este só sai no zero.
+
+**Assunto:** `Solicitação de documentos em aberto – {{2}}`
+
+```
+Olá, Sr(a). {{1}}.
+
+Até o momento, não consta o recebimento de nenhum documento referente {{3}}.
+
+O prazo para envio venceu em {{4}}.
+
+A relação completa dos documentos e as orientações de envio estão disponíveis
+no portal do cliente.
+
+Atenciosamente,
+{{5}}
+PSA Prado Suzuki
+```
+
+| Marcador | Conteúdo |
+|---|---|
+| `{{1}}` | nome do destinatário |
+| `{{2}}` | objeto no assunto, o mesmo do aviso 1 |
+| `{{3}}` | objeto no corpo, na forma **`a`**: `ao projeto de X` / `aos projetos de X e Y` |
+| `{{4}}` | prazo de envio, o mesmo do aviso 1 — não se recalcula a cada cobrança |
+| `{{5}}` | nome do responsável pela solicitação |
+
+**A forma `a`, e não a `de` dos avisos 2 e 3.** O texto fixo é `referente {{3}}`, então a
+forma `de` produziria *"referente dos projetos de X"*.
+
+**A linha do prazo é condicional aqui, e no WhatsApp não.** O e-mail é montado por nós:
+`O prazo para envio é {{4}}.` enquanto o prazo vale, `O prazo para envio venceu em {{4}}.`
+depois. O modelo da Meta não tem parágrafo condicional, então lá o estado vai dentro do
+valor — `03/09/2026 (vencido)`. O dia é o de `America/Cuiaba`, o mesmo da chave de
+idempotência: em UTC, das 20h à meia-noite de Cuiabá já é o dia seguinte, e o texto diria
+"venceu" no último dia em que o prazo ainda vale.
+
+**É o único aviso do ciclo sem lista**, porque nada chegou — não há o que listar. Por isso
+o corpo do e-mail e o do WhatsApp dizem a mesma frase, o que não acontece em nenhum dos
+outros três.
+
+**`vencido` e não `encerrado`.** Encerrado sugere que a porta fechou, e o aviso existe para
+pedir o envio. É também o termo que a casa já usava no chip de status: `Prazo vencido`.
+
+**A direção do documento tem de ficar explícita.** A PSA também entrega documento ao
+cliente — gerador e downloads —, então "nenhum documento" sem direção é ambíguo.
+`recebimento` resolve: só pode ser do nosso lado. Três redações falharam antes disso, e o
+registro de cada tentativa está em
+[`../sprints/sprint-12/VALIDACAO_aviso-sem-documento.md`](../sprints/sprint-12/VALIDACAO_aviso-sem-documento.md).
+
+---
+
+## ~~Antigo aviso 4. Reenvio necessário~~ — FUNDIDO NO AVISO 2 EM 17/08/2026
 
 > **Este aviso não existe mais como texto próprio.** O conteúdo dele — a lista de
 > documentos a reenviar com o motivo de cada um — passou a ser o segundo bloco do
@@ -308,7 +401,10 @@ botão. Os rótulos são os da revisão de 17/08, e são os mesmos dos modelos d
 | 1 | Enviar documentos → |
 | 2 | Consultar documentação → |
 | 3 | Consultar documentação → |
-| ~~4~~ | ~~Reenviar meus documentos →~~ (fundido no 2) |
+| 4 | Enviar documentos → |
+| ~~antigo 4~~ | ~~Reenviar meus documentos →~~ (fundido no 2) |
+
+O aviso 4 repete o rótulo do 1, e é o certo: nos dois o que se pede é envio, não consulta.
 
 ## De onde vem cada campo
 
@@ -345,7 +441,8 @@ botão. Os rótulos são os da revisão de 17/08, e são os mesmos dos modelos d
 |---|---|
 | `solicitacao.ordem_servico_id` nulo em **6 de 10** — `gerar_solicitacao_os` só grava a OS ao criar o cabeçalho, e sem ela o objeto vai vazio. A borda recusa antes de montar, com `sem_os` | Eduardo, no gerador; ou exigência de OS na tela de envio |
 | Prazo por exceção: os 30 dias são regra, sem coluna, então não há como abrir exceção por cliente ou produto | evolução futura |
-| Deploy da borda e dos dois workflows: os três avisos estão prontos em `develop`, sem commit | Alexandre |
+| Deploy em **produção**: os quatro avisos estão no sandbox e commitados (`47c02dca`), e produção não recebeu a borda nova nem as quatro migrações da GES-04 | Alexandre, pelo chat do Lovable |
+| **`representante.telefone` em 8 de 39** (produção, 25/08/2026) — quem não tem telefone recebe só por e-mail. É a única assimetria real entre os dois canais | cadastro |
 
 **O que saiu desta tabela em 17/08/2026.** Três linhas foram resolvidas:
 

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DevLayout } from '@/components/equipe/dev/DevLayout';
+import { DevPageHeader } from '@/components/equipe/dev/DevPageHeader';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -159,6 +160,15 @@ const ProcedimentosDev = () => {
         </Button>
       ) : undefined}
     >
+      <DevPageHeader
+        hideManualLink
+        description={
+          podeCurar
+            ? 'Cada card é um procedimento da Dev com resumo, etapas e link para o documento oficial — **clique para abrir a ficha completa**. O que chega novo entra em "Na fila", onde você confere o que a IA extraiu antes de publicar para o time.'
+            : 'Cada card é um procedimento da Dev com resumo, etapas e link para o documento oficial — **clique para abrir a ficha completa**. Use a busca e os filtros para achar por processo, etapa ou palavra-chave.'
+        }
+      />
+
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="relative flex-1 min-w-[220px] max-w-sm">

@@ -138,21 +138,27 @@ como named params e devolve 1 linha × 1 coluna `payload`. Falta o backend criar
 
 ## 7. Identidade visual
 
-Fonte: **Manual de Marca PSA**
-(`G:\Drives compartilhados\PSA Prado Suzuki - Marketing - logos e icones\Modelos e Manuais\Manual de Marca - PSA.pdf`).
-Hex oficiais estão em `formatadores.ts`.
+Fonte da cor: **teal/lima institucional** (`--teal-*`/`--lime-*` de
+`src/index.css`, o mesmo que o Board inteiro usa via `--bd-accent`). Hex estão
+em `formatadores.ts`, em snapshot (não `var()` — ver o porquê lá).
 
-- p. 12 paleta: TEAL 500 `#14B8A6` / 600 `#0D9488` / 700 `#0F766E` · LIME 400
-  `#A3E635` / 500 `#84CC16` / 600 `#65A30D` · GRAY 50→950
+- paleta: TEAL 500 `#0d877c` / 600 `#0a756c` / 700 `#075f58` · LIME 400
+  `#90e31c` / 500 `#6caf0e` / 600 `#589009` / 700 `#497906` · GRAY 50→950
+  (GRAY segue o manual, não fez parte da divergência)
 - p. 10 tipografia: **Work Sans** (já é `font-sans` no `tailwind.config.ts`)
 - p. 13 elemento de apoio: chevron lime-em-cima / teal-embaixo — implementado em
   SVG na `FaixaResumo`
 
-**⚠️ Divergência aberta, decisão pendente:** os tokens de `src/index.css` **não
-batem com o manual** — `--teal-500` resolve para `#0D877C` e `--lime-500` para
-`#6CAF0E`; as seis variações estão deslocadas para mais escuro. O dashboard usa os
-hex do manual; o resto do portal usa os tokens. **Alguém precisa decidir qual é a
-verdade** e alinhar. Está documentado no topo de `formatadores.ts`.
+**✅ Divergência resolvida em 25/08/2026, a favor do institucional.** Até
+então este arquivo usava o hex do **Manual de Marca PSA**
+(`G:\Drives compartilhados\PSA Prado Suzuki - Marketing - logos e icones\Modelos
+e Manuais\Manual de Marca - PSA.pdf`, pág. 12: TEAL 500 `#14B8A6` / 600
+`#0D9488` / 700 `#0F766E` · LIME 400 `#A3E635` / 500 `#84CC16` / 600
+`#65A30D`), enquanto o resto do portal já usava os tokens institucionais
+(mais escuros — `--teal-500` em `#0D877C`, `--lime-500` em `#6CAF0E`).
+Decisão: institucional é a verdade; o dashboard passou a usar os mesmos
+tokens de todo o portal. O PDF do manual ficou desatualizado nesse ponto —
+próxima revisão dele precisa registrar a cor real do produto.
 
 Cores de alerta não existem no manual (a marca é só verde/cinza): escolhi
 `#BE123C` (risco) e `#B45309` (atenção), escuros o bastante para não vibrar contra

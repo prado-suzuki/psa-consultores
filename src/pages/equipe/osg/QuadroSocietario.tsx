@@ -3,31 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import {
-  Building2, ChartPie, Landmark, Pencil, PieChart, Plus, Search, Tag, Trash2, Users,
-} from 'lucide-react';
+import { ArrowLeftRight, Building2, ChartPie, Landmark, PieChart, Plus, Tag, Users } from 'lucide-react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
-import { rowActivateProps } from '@/hooks/rowActivateProps';
 import { useCountUp } from '@/hooks/useCountUp';
 import { osgTabsListCls, osgTabTriggerCls } from '@/components/equipe/osg/formKit';
 import { usePessoasByCliente, type PessoaRow } from '@/hooks/useQualificacaoDasPartes';
-import {
-  useDeleteSocio,
-  useQuadroSocietarioByEmpresa,
-  type SocioEnriched,
-} from '@/hooks/useQuadroSocietario';
-import { SocioModal } from '@/components/equipe/osg/quadro-societario/SocioModal';
+import { useMovimentosDaEmpresa, useQuadroDaEmpresa } from '@/hooks/useMovimentacaoQuotas';
+import { procedenciaDosMovimentos } from '@/lib/osg/projecaoQuadro';
+import { AtosSocietarios } from '@/components/equipe/osg/quadro-societario/AtosSocietarios';
+import { MovimentoModal } from '@/components/equipe/osg/quadro-societario/MovimentoModal';
 import { QuadroEmpresaProprietaria } from '@/components/equipe/osg/quadro-societario/QuadroEmpresaProprietaria';
-import { fmtBRL, fmtInt, fmtPct, iniciais } from '@/components/equipe/osg/quadro-societario/quadroFmt';
+import { TabelaSocios, type LinhaSocio } from '@/components/equipe/osg/quadro-societario/TabelaSocios';
+import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
 import { KpiCard } from '@/components/equipe/osg/quadro-societario/quadroKit';
 
 // Só PJs Proprietária (PR) e Controladora (CN) têm quadro societário nesta tela.
@@ -42,26 +30,45 @@ interface QuadroEmpresaProps {
   pessoasCliente: PessoaRow[];
 }
 
-// Quadro societário de uma empresa: na Proprietária (PR) a participação é
-// DERIVADA das integralizações aprovadas (visão só leitura); nas demais (CN),
-// KPIs + lista de sócios manuais com participação quotas/Σquotas (percentual
-// e data_referencia não são usados).
+// Quadro societário de uma empresa. Nos dois casos ele é o mesmo objeto, o
+// acumulado dos movimentos de quota (`v_quadro_societario`), e o que muda é o
+// que a tela oferece: a Proprietária (PR) ainda sem movimentação PROPÕE o quadro
+// de constituição, calculado dos bens; as demais registram movimento.
 const QuadroEmpresa = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
-  if (empresa.tipo_empresa === 'PR') return <QuadroEmpresaProprietaria empresa={empresa} />;
+  if (empresa.tipo_empresa === 'PR') {
+    return <QuadroEmpresaProprietaria empresa={empresa} pessoasCliente={pessoasCliente} />;
+  }
   return <QuadroEmpresaManual empresa={empresa} pessoasCliente={pessoasCliente} />;
 };
 
+/**
+ * Quadro societário da Controladora (CN) e demais: o saldo, e o gesto de
+ * registrar o movimento que o muda.
+ *
+ * Antes daqui a tela era um CRUD da tabela `quadro_societario`: "vincular sócio"
+ * inseria uma linha, o lápis editava quotas e valor, e a lixeira fazia DELETE
+ * físico. O quadro só sabia o estado de hoje, e o de ontem era apagado: a
+ * cessão de quotas, que é o fato que a alteração contratual descreve, não tinha
+ * como ser expressa. Agora cada gesto é um movimento no livro (aporte, cessão,
+ * doação, redução) e o saldo é consequência: não há o que editar numa soma, e
+ * remover sócio é registrar para quem as quotas foram.
+ *
+ * O corpo da tabela é o SALDO, com a procedência de cada linha ao lado do nome
+ * (constituição, ou o ato que a produziu). Abrir o histórico completo dos
+ * movimentos como painel próprio segue sendo decisão aberta do Bernardo, e a
+ * tela não a antecipa.
+ */
 const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) => {
-  const [busca, setBusca] = useState('');
-  const [socioModal, setSocioModal] = useState<{ open: boolean; socio: SocioEnriched | null }>({
-    open: false, socio: null,
+  const navigate = useNavigate();
+  const [movimento, setMovimento] = useState<{ open: boolean; origem: string | null }>({
+    open: false, origem: null,
   });
 
-  const { data: socios = [], isLoading } = useQuadroSocietarioByEmpresa(empresa.id);
-  const deleteSocio = useDeleteSocio();
+  const { data: quadro = [], isLoading } = useQuadroDaEmpresa(empresa.id);
+  const { data: livro } = useMovimentosDaEmpresa(empresa.id);
 
-  const totalQuotas = socios.reduce((acc, s) => acc + (s.quotas ?? 0), 0);
-  const capitalTotal = socios.reduce((acc, s) => acc + (s.vlr_total ?? 0), 0);
+  const totalQuotas = quadro.reduce((acc, s) => acc + s.quotas, 0);
+  const capitalTotal = quadro.reduce((acc, s) => acc + s.vlrTotal, 0);
   const valorNominal = totalQuotas > 0 ? capitalTotal / totalQuotas : null;
 
   // Count-up dos KPIs: conta de 0 ao valor na montagem (e a troca de empresa
@@ -70,19 +77,25 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
   const quotasAnimadas = useCountUp(totalQuotas);
   const nominalAnimado = useCountUp(valorNominal ?? 0);
 
-  const sociosFiltrados = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    if (!q) return socios;
-    return socios.filter(
-      (s) =>
-        s.socio_denominacao.toLowerCase().includes(q) ||
-        (s.socio_cpf_cnpj ?? '').toLowerCase().includes(q),
-    );
-  }, [socios, busca]);
+  // De onde vem o saldo de cada sócio: "Constituição", ou o ato que o produziu.
+  const procedencia = useMemo(
+    () => procedenciaDosMovimentos(livro?.movimentos ?? [], empresa.id, livro?.atos ?? []),
+    [livro, empresa.id],
+  );
 
-  const buscaAtiva = busca.trim().length > 0;
-  const participacao = (s: SocioEnriched) =>
-    totalQuotas > 0 && s.quotas != null ? (s.quotas / totalQuotas) * 100 : null;
+  const linhas = useMemo<LinhaSocio[]>(
+    () => quadro.map((s) => ({
+      pessoaId: s.pessoaId,
+      denominacao: s.denominacao,
+      tipoPessoa: s.tipoPessoa,
+      cpfCnpj: s.cpfCnpj,
+      quotas: s.quotas,
+      valor: s.vlrTotal,
+      percentual: totalQuotas > 0 ? (s.quotas / totalQuotas) * 100 : 0,
+      procedencia: [...new Set(s.movimentoIds.map((id) => procedencia.get(id)).filter(Boolean))] as string[],
+    })),
+    [quadro, totalQuotas, procedencia],
+  );
 
   return (
     <div className="space-y-4">
@@ -111,176 +124,72 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
         className="animate-osg-rise motion-reduce:animate-none"
         style={{ animationDelay: '180ms' }}
       >
-        <CardHeader className="pb-3 flex flex-col md:flex-row md:items-center justify-between space-y-2 md:space-y-0 gap-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Users className="h-4 w-4 text-slate-500" />
-            Lista de Sócios ({socios.length})
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                placeholder="Buscar sócio..."
-                className="h-9 pl-8 w-56"
-              />
-            </div>
+        <CardHeader className="pb-3 space-y-2">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4 text-slate-500" />
+              Lista de Sócios ({quadro.length})
+            </CardTitle>
             <Button
               size="sm"
               className="gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
-              onClick={() => setSocioModal({ open: true, socio: null })}
+              onClick={() => setMovimento({ open: true, origem: null })}
             >
-              <Plus className="h-3.5 w-3.5" /> Vincular Sócio
+              <Plus className="h-3.5 w-3.5" /> Registrar movimento
             </Button>
           </div>
+          <p className="text-xs text-muted-foreground">
+            O quadro é o acumulado dos movimentos de quota desta empresa: aporte, cessão, doação e
+            redução. Para alterá-lo, registre o movimento que aconteceu.
+          </p>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <p className="text-sm text-muted-foreground py-6 text-center">Carregando...</p>
-          ) : sociosFiltrados.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">
-              {buscaAtiva
-                ? 'Nenhum sócio encontrado.'
-                : 'Nenhum sócio vinculado a esta empresa.'}
-            </p>
           ) : (
-            <div className="rounded-md border overflow-hidden">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Sócio</TableHead>
-                    <TableHead className="text-right">Quotas</TableHead>
-                    <TableHead className="text-right">Valor (R$)</TableHead>
-                    <TableHead className="w-44">Participação</TableHead>
-                    <TableHead className="w-24 text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sociosFiltrados.map((s, i) => {
-                    const pct = participacao(s);
-                    // Stagger limitado: depois da 15ª linha entram todas juntas.
-                    const delay = Math.min(i, 15) * 30;
-                    return (
-                      <TableRow
-                        key={s.id}
-                        className="animate-osg-rise motion-reduce:animate-none"
-                        style={{ animationDelay: `${delay}ms` }}
-                        {...rowActivateProps(() => setSocioModal({ open: true, socio: s }))}
-                      >
-                        <TableCell>
-                          <div className="flex items-center gap-2.5">
-                            <div className="h-8 w-8 rounded-md bg-osg-100 flex items-center justify-center shrink-0 text-[11px] font-bold text-osg-700">
-                              {iniciais(s.socio_denominacao)}
-                            </div>
-                            <div className="min-w-0">
-                              <p className="text-sm font-medium truncate">{s.socio_denominacao}</p>
-                              <p className="text-xs text-muted-foreground font-mono">
-                                {s.socio_tipo_pessoa ?? '—'}{s.socio_cpf_cnpj ? ` · ${s.socio_cpf_cnpj}` : ''}
-                              </p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {s.quotas != null ? fmtInt.format(s.quotas) : '—'}
-                        </TableCell>
-                        <TableCell className="text-right tabular-nums">
-                          {s.vlr_total != null ? fmtBRL.format(s.vlr_total) : '—'}
-                        </TableCell>
-                        <TableCell>
-                          {pct != null ? (
-                            <div className="flex items-center gap-2">
-                              <div className="h-1.5 w-16 rounded-full bg-osg-100 overflow-hidden shrink-0">
-                                <div
-                                  className="h-full rounded-full bg-osg-moss origin-left animate-osg-bar-grow motion-reduce:animate-none"
-                                  style={{
-                                    width: `${Math.min(pct, 100)}%`,
-                                    // Barra cresce logo depois da linha assentar.
-                                    animationDelay: `${delay + 120}ms`,
-                                  }}
-                                />
-                              </div>
-                              <span className="rounded-md bg-osg-50 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-osg-700">
-                                {fmtPct(pct)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-7 w-7"
-                              onClick={() => setSocioModal({ open: true, socio: s })}
-                            >
-                              <Pencil className="h-3.5 w-3.5" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive">
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Desvincular sócio</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Remover "{s.socio_denominacao}" do quadro societário de{' '}
-                                    {empresa.denominacao}?
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    onClick={() =>
-                                      deleteSocio.mutate({ row: s, entityName: s.socio_denominacao })}
-                                  >
-                                    Desvincular
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-                {!buscaAtiva && (
-                  <TableFooter>
-                    <TableRow>
-                      <TableCell className="font-semibold">Total</TableCell>
-                      <TableCell className="text-right font-semibold tabular-nums">
-                        {fmtInt.format(totalQuotas)}
-                      </TableCell>
-                      <TableCell className="text-right font-semibold tabular-nums">
-                        {fmtBRL.format(capitalTotal)}
-                      </TableCell>
-                      <TableCell className="font-semibold tabular-nums">
-                        {totalQuotas > 0 ? fmtPct(100) : '—'}
-                      </TableCell>
-                      <TableCell />
-                    </TableRow>
-                  </TableFooter>
-                )}
-              </Table>
-            </div>
+            <TabelaSocios
+              linhas={linhas}
+              totalQuotas={totalQuotas}
+              capital={capitalTotal}
+              acaoDoSocio={(l) => (
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-7 w-7"
+                  title="Movimentar as quotas deste sócio"
+                  onClick={() => setMovimento({ open: true, origem: l.pessoaId })}
+                >
+                  <ArrowLeftRight className="h-3.5 w-3.5" />
+                </Button>
+              )}
+              vazio={
+                <div className="py-8 text-center text-muted-foreground">
+                  <p className="text-sm mb-4">
+                    Nenhum sócio nesta empresa. O quadro começa com o aporte de constituição:
+                    registre quem entrou e com quantas quotas.
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigate('/equipe/osg/work/qualificacao-das-partes')}
+                  >
+                    Ir para Qualificação das Partes
+                  </Button>
+                </div>
+              }
+            />
           )}
         </CardContent>
       </Card>
 
-      <SocioModal
-        open={socioModal.open}
-        empresaPessoaId={empresa.id}
-        empresaDenominacao={empresa.denominacao ?? '—'}
-        socio={socioModal.socio}
+      <AtosSocietarios movimentos={livro?.movimentos ?? []} atos={livro?.atos ?? []} />
+
+      <MovimentoModal
+        open={movimento.open}
+        empresa={empresa}
+        quadro={quadro}
         pessoasCliente={pessoasCliente}
-        sociosExistentes={socios}
-        onClose={() => setSocioModal({ open: false, socio: null })}
+        origemInicial={movimento.origem}
+        onClose={() => setMovimento({ open: false, origem: null })}
       />
     </div>
   );

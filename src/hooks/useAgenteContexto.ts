@@ -57,14 +57,29 @@ export interface AgenteContextoValor {
   despublicar: (escopo: string) => void;
 }
 
-export const AgenteContexto = createContext<AgenteContextoValor | null>(null);
+/**
+ * Valor padrão SEM provider: publicar não faz nada e não há escopo.
+ *
+ * Não lança, e isso é decisão, não descuido — mesmo arranjo do
+ * `useBoardCluster`. Telas compartilhadas (`AreaDashboardContent`,
+ * `ChamadosGestaoContent`, `DashboardClientesOsContent`) são montadas em testes
+ * de página isolada, sem a árvore inteira do `App`. Lançar ali quebraria 8
+ * testes de caracterização do Tax por causa de uma feature que aquela tela nem
+ * usa — e o preço de não lançar é nenhum: sem provider não existe balão, então
+ * publicar no vazio é exatamente o comportamento correto.
+ */
+const SEM_PROVIDER: AgenteContextoValor = {
+  escopo: null,
+  contexto: null,
+  carregando: false,
+  publicar: () => {},
+  despublicar: () => {},
+};
+
+export const AgenteContexto = createContext<AgenteContextoValor>(SEM_PROVIDER);
 
 export function useAgenteContexto(): AgenteContextoValor {
-  const ctx = useContext(AgenteContexto);
-  if (!ctx) {
-    throw new Error('useAgenteContexto exige <AgenteProvider> acima na árvore.');
-  }
-  return ctx;
+  return useContext(AgenteContexto);
 }
 
 /**

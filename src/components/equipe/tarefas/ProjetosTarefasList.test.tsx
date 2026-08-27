@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { OrgProject } from '@/hooks/useOrgProjects';
 import type { OrgTask } from '@/hooks/useOrgTasks';
 import { ProjetosTarefasList } from '@/components/equipe/tarefas/ProjetosTarefasList';
@@ -12,9 +12,36 @@ Object.defineProperties(Element.prototype, {
   releasePointerCapture: { configurable: true, value: () => {} },
 });
 
-vi.mock('@/hooks/useOrgTasks', () => ({
-  useUpdateOrgTask: () => ({ mutate: vi.fn(), mutateAsync: vi.fn(), isPending: false }),
+const mocks = vi.hoisted(() => ({
+  updateTask: vi.fn(),
+  updateTaskAsync: vi.fn(),
+  createComment: vi.fn(),
+  reviewerCandidates: [{ id: 'U2', name: 'Geizi Andrade' }],
 }));
+
+vi.mock('@/hooks/useOrgTasks', () => ({
+  useUpdateOrgTask: () => ({
+    mutate: mocks.updateTask,
+    mutateAsync: mocks.updateTaskAsync,
+    isPending: false,
+  }),
+  useCreateOrgTaskComment: () => ({ mutateAsync: mocks.createComment, isPending: false }),
+}));
+
+// O diálogo de transição (revisor + detalhamento) fica montado junto da lista.
+vi.mock('@/contexts/AuthContext', () => ({ useAuth: () => ({ user: { id: 'U1' } }) }));
+vi.mock('@/hooks/useOrgProjects', () => ({
+  useOrgProjectClusterIds: () => ({ data: ['CL1'] }),
+}));
+vi.mock('@/hooks/useReviewerCandidates', () => ({
+  useReviewerCandidates: () => ({ data: mocks.reviewerCandidates, isLoading: false }),
+}));
+
+beforeEach(() => {
+  mocks.updateTask.mockClear();
+  mocks.updateTaskAsync.mockClear();
+  mocks.createComment.mockClear();
+});
 
 const noop = () => {};
 
@@ -188,5 +215,52 @@ describe('ProjetosTarefasList — estado de carregamento', () => {
     // divisor do cliente — o nome do projeto só aparece depois de expandir.
     expect(screen.getByText('Cliente Um')).toBeInTheDocument();
     expect(screen.queryByText('Carregando projetos e tarefas…')).not.toBeInTheDocument();
+  });
+});
+
+describe('ProjetosTarefasList — troca de status pelo seletor', () => {
+  const expandirAteTarefa = (titulo: string) => {
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+    return screen.getByText(titulo);
+  };
+
+  it('mandar para revisão abre o diálogo e não grava direto', async () => {
+    const user = userEvent.setup();
+    renderList({ projects: [projeto], tasks: [tarefa('Coleta')] });
+    expandirAteTarefa('Coleta');
+
+    await user.click(screen.getAllByRole('combobox')[0]);
+    await user.click(screen.getByRole('option', { name: 'Revisão' }));
+
+    // Quem grava é o diálogo, depois de exigir revisor e detalhamento.
+    expect(mocks.updateTask).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Enviar para revisão' })).toBeInTheDocument();
+    expect(screen.getByText('Revisor')).toBeInTheDocument();
+    expect(screen.getByText('O que precisa ser revisado?')).toBeInTheDocument();
+  });
+
+  it('devolver para ajuste também passa pelo diálogo', async () => {
+    const user = userEvent.setup();
+    renderList({ projects: [projeto], tasks: [tarefa('Coleta', { status: 'review' })] });
+    expandirAteTarefa('Coleta');
+
+    await user.click(screen.getAllByRole('combobox')[0]);
+    await user.click(screen.getByRole('option', { name: 'Em Ajuste' }));
+
+    expect(mocks.updateTask).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Devolver para ajustes' })).toBeInTheDocument();
+  });
+
+  it('status sem transição de revisão continua gravando direto', async () => {
+    const user = userEvent.setup();
+    renderList({ projects: [projeto], tasks: [tarefa('Coleta')] });
+    expandirAteTarefa('Coleta');
+
+    await user.click(screen.getAllByRole('combobox')[0]);
+    await user.click(screen.getByRole('option', { name: 'Em Progresso' }));
+
+    expect(mocks.updateTask).toHaveBeenCalledWith({ id: 'Coleta', status: 'in_progress' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

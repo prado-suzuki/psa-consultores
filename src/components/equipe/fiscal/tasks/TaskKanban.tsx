@@ -1,14 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 import { TaskKanbanCard } from '@/components/equipe/fiscal/tasks/kanban/TaskKanbanCard';
 import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/TaskCompletionHoursDialog';
  import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
+import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
 import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/TaskStatusTransitionDialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AreaKey } from '@/config/areaCategories';
 import { OrgTask, OrgTaskStatus, useUpdateOrgTask } from '@/hooks/useOrgTasks';
+import { useTeamProfilesSafe } from '@/hooks/useTaxReferenceData';
 import { canUpdateOrgTaskStatus, isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import { resolveActiveReviewerName } from '@/lib/orgTaskReviewer';
 import {
   buildTaskKanbanColumns,
   keyToRevealAfterStatusChange,
@@ -55,11 +58,8 @@ export const TaskKanban = ({
 }: TaskKanbanProps) => {
   const [draggedTask, setDraggedTask] = useState<OrgTask | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<OrgTaskStatus | null>(null);
-  const [pendingTransition, setPendingTransition] = useState<{
-    task: OrgTask;
-    status: 'review' | 'em_ajuste';
-  } | null>(null);
   const conclusao = useTaskCompletionHours();
+  const transicao = useTaskStatusTransition();
   // Guarda ids de card de tarefa E chaves de card de agrupamento (ver
   // taskKanbanGroupKey) — os dois abrem e fecham do mesmo jeito.
   const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
@@ -68,6 +68,14 @@ export const TaskKanban = ({
   const boardRef = useRef<HTMLDivElement>(null);
   const autoScroll = useRef<{ speed: number; frame: number | null }>({ speed: 0, frame: null });
   const updateTask = useUpdateOrgTask(area);
+  // A tarefa guarda o id do revisor; o nome vem de `profiles_safe`. É uma
+  // consulta só para o quadro inteiro, resolvida aqui e repassada como função
+  // para o card não repetir a busca por linha.
+  const { data: profiles = [] } = useTeamProfilesSafe();
+  const reviewerName = useCallback(
+    (task: OrgTask) => resolveActiveReviewerName(task, profiles),
+    [profiles],
+  );
 
   const stopAutoScroll = () => {
     if (autoScroll.current.frame !== null) window.cancelAnimationFrame(autoScroll.current.frame);
@@ -183,10 +191,9 @@ export const TaskKanban = ({
     const chaveParaAbrir = keyToRevealAfterStatusChange(task, nextStatus, tasks);
     if (chaveParaAbrir) expandCard(chaveParaAbrir);
 
-    if (nextStatus === 'review' || nextStatus === 'em_ajuste') {
-      setPendingTransition({ task, status: nextStatus });
-      return;
-    }
+    // Revisão e ajuste passam pelo diálogo: revisor e detalhamento são
+    // obrigatórios, e é ele quem grava.
+    if (!transicao.pedirDetalhes(task, nextStatus)) return;
     if (nextStatus === 'done' && isDelegatedOrgTaskReviewer(task, currentUserId)) {
       toast.error('O revisor não pode concluir a tarefa. Devolva-a para ajustes.');
       return;
@@ -288,6 +295,7 @@ export const TaskKanban = ({
                       }
                       currentUserId={currentUserId}
                       canChangeStatus={canChangeStatus}
+                      reviewerName={reviewerName}
                       onToggleExpanded={toggleExpanded}
                       onOpen={onEdit}
                       onReveal={revealTasks}
@@ -308,12 +316,12 @@ export const TaskKanban = ({
         })}
       </div>
       <TaskStatusTransitionDialog
-        open={!!pendingTransition}
+        open={!!transicao.transicaoPendente}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen) setPendingTransition(null);
+          if (!nextOpen) transicao.fechar();
         }}
-        task={pendingTransition?.task || null}
-        status={pendingTransition?.status || 'review'}
+        task={transicao.transicaoPendente?.task || null}
+        status={transicao.transicaoPendente?.status || 'review'}
         area={area}
       />
       <TaskCompletionHoursDialog
