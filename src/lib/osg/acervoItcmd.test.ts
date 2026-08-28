@@ -2,21 +2,31 @@ import { describe, expect, it } from 'vitest';
 import { derivarValoresDoBem } from '@/lib/osg/valoresDoBem';
 import {
   numeroParaDecimal,
-  origemDoValorDeItr,
   totalizarAcervo,
   type ImovelDoAcervo,
 } from '@/lib/osg/acervoItcmd';
 
-const imovel = (
-  id: string,
-  matriculas: Array<{ vlr_contabil: number | null; vlr_mercado: number | null }>,
-  vlr_itr_iptu: number | null = null,
-): ImovelDoAcervo => ({
+// O ITR entra como as outras duas métricas: na matrícula, em `vlr_imposto_anual`.
+type Mat = {
+  vlr_contabil: number | null;
+  vlr_mercado: number | null;
+  vlr_imposto_anual?: number | null;
+};
+
+const imovel = (id: string, matriculas: Mat[], itr: number | null = null): ImovelDoAcervo => ({
   id,
   referencia: id,
   denominacao: id,
-  valores: derivarValoresDoBem({ vlr_contabil: null, vlr_mercado: null }, matriculas),
-  vlr_itr_iptu,
+  valores: derivarValoresDoBem(
+    { vlr_contabil: null, vlr_mercado: null, vlr_imposto_anual: null },
+    matriculas.map((m, i) => ({
+      vlr_contabil: m.vlr_contabil,
+      vlr_mercado: m.vlr_mercado,
+      // o ITR do imóvel fica na primeira matrícula, para o total do cenário ser
+      // exatamente o valor informado no caso de teste
+      vlr_imposto_anual: m.vlr_imposto_anual ?? (i === 0 ? itr : null),
+    })),
+  ),
 });
 
 describe('acervo do ITCD — totais por cenário', () => {
@@ -46,14 +56,18 @@ describe('acervo do ITCD — totais por cenário', () => {
     expect(comZero.contabil).toEqual({ total: '0.00', comValor: 1, semValor: 0, imoveis: 1 });
   });
 
-  it('o ITR sai de bem.vlr_itr_iptu porque a matrícula não tem campo para ele', () => {
-    // O valor contábil mora na matrícula; o de ITR não tem coluna lá. Enquanto o
-    // campo canônico não for decidido, a origem do número é declarada na tela em
-    // vez de fingir que a regra "bem com matrícula soma as matrículas" se aplica.
-    const comMatricula = imovel('A', [{ vlr_contabil: 1, vlr_mercado: null }], 500);
-    expect(origemDoValorDeItr(comMatricula)).toMatch(/matrícula/i);
-    expect(origemDoValorDeItr(imovel('B', [], 500))).toMatch(/próprio bem/i);
-    expect(origemDoValorDeItr(imovel('C', [], null))).toMatch(/sem valor/i);
+  it('o ITR soma as matrículas, igual aos outros dois cenários', () => {
+    // `vlr_imposto_anual` guarda o valor DECLARADO no ITR, apesar do nome. A
+    // regra é a mesma do contábil e do mercado, sem exceção.
+    const acervo = totalizarAcervo([
+      imovel('A', [
+        { vlr_contabil: 1, vlr_mercado: null, vlr_imposto_anual: 7_162_722.78 },
+        { vlr_contabil: 2, vlr_mercado: null, vlr_imposto_anual: 1_833_039.19 },
+      ]),
+    ]);
+    expect(acervo.itr).toEqual({
+      total: '8995761.97', comValor: 1, semValor: 0, imoveis: 1,
+    });
   });
 
   it('número fora da escala de 4 casas é recusado, não truncado em silêncio', () => {

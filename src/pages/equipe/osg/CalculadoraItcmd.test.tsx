@@ -1,21 +1,53 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Fio inteiro da tela: cadastro → controlador → motor → quadro. O que este teste
-// prende é a LIGAÇÃO — que a página monta, que a legítima sai calculada, que o
-// quadro só aparece com a disponível fechada e que cenário sem valor no cadastro
-// aparece como `—` marcado de incompleto, nunca como R$ 0,00. A aritmética já
-// tem os seus próprios testes em `src/lib/osg/itcmd/`.
+// Só o que é de PÁGINA: o estado vazio, o botão que abre o modal e a lista que
+// começa vazia esperando o analista adicionar quem doa e quem recebe.
+//
+// O fio cadastro → motor → quadro é testado em `useCalculadoraItcmdController.test`,
+// e os três quadros de saída em `CenariosEmColunas.test` — dirigir os `Select` do
+// Radix por aqui prenderia interno de biblioteca, não regra.
 
 const mocks = vi.hoisted(() => ({
   bens: [] as Record<string, unknown>[],
   pessoas: [] as Record<string, unknown>[],
   parentescos: [] as Record<string, unknown>[],
   socios: [] as Record<string, unknown>[],
+  quadroDasEmpresas: [] as Record<string, unknown>[],
+  historico: [] as Record<string, unknown>[],
+  gravarSpy: vi.fn(),
+  statusSpy: vi.fn(),
+}));
+
+vi.mock('@/hooks/useSimulacoesItcmd', () => ({
+  // A persistência é do banco, e o banco não entra em teste de unidade: o que se
+  // prende aqui é a apuração. `gravarSpy` deixa ver QUE gravou e COM QUê.
+  useSimulacoesItcmd: () => ({ data: mocks.historico, isLoading: false, error: null }),
+  useGravarSimulacaoItcmd: () => ({
+    mutate: mocks.gravarSpy, isPending: false, error: null,
+  }),
+  useAlterarStatusSimulacaoItcmd: () => ({
+    mutate: mocks.statusSpy, isPending: false, error: null,
+  }),
+  useRenomearSimulacaoItcmd: () => ({
+    mutate: vi.fn(), isPending: false, error: null,
+  }),
+  rotuloDaSimulacao: (s: { nome: string | null; versao: number }) =>
+    (s.nome?.trim() ? s.nome.trim() : `Versão ${s.versao}`),
+  STATUS_DA_SIMULACAO: ['rascunho', 'gerada', 'aprovada', 'substituida'],
+  ROTULO_DO_STATUS: {
+    rascunho: 'Rascunho', gerada: 'Gerada',
+    aprovada: 'Aprovada', substituida: 'Substituída',
+  },
 }));
 
 vi.mock('@/components/equipe/osg/OsgLayout', () => ({
-  OsgLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  // `headerActions` também renderiza: é onde vive o botão de nova simulação.
+  OsgLayout: ({ children, headerActions }: {
+    children: React.ReactNode;
+    headerActions?: React.ReactNode;
+  }) => <div>{headerActions}{children}</div>,
 }));
 vi.mock('@/contexts/OsgWorkContext', () => ({
   useOsgWork: () => ({ clienteId: 'C1', setClienteId: () => undefined }),
@@ -26,6 +58,9 @@ vi.mock('@/hooks/useDiagnosticoPatrimonial', () => ({
 vi.mock('@/hooks/useQuadroSocietario', () => ({
   useQuadroSocietarioByEmpresa: () => ({ data: mocks.socios, isLoading: false, error: null }),
 }));
+vi.mock('@/hooks/useSociedadesDoacao', () => ({
+  useQuadroDasEmpresas: () => ({ data: mocks.quadroDasEmpresas, isLoading: false, error: null }),
+}));
 vi.mock('@/hooks/useQualificacaoDasPartes', () => ({
   usePessoasByCliente: () => ({ data: mocks.pessoas, isLoading: false, error: null }),
   useParentescosByCliente: () => ({ data: mocks.parentescos, isLoading: false, error: null }),
@@ -33,54 +68,34 @@ vi.mock('@/hooks/useQualificacaoDasPartes', () => ({
 
 import CalculadoraItcmd from './CalculadoraItcmd';
 
-const imovel = (id: string, contabil: number | null) => ({
-  id,
-  cliente_id: 'C1',
-  referencia_dp: id,
-  denominacao: `Fazenda ${id}`,
-  tipo_bem: 'IR',
-  participa_estruturacao: true,
-  vlr_itr_iptu: null,
-  // Um imóvel, uma matrícula: os valores moram na matrícula desde a migração.
-  valores: {
-    contabil: { valor: contabil, comValor: contabil == null ? 0 : 1 },
-    mercado: { valor: null, comValor: 0 },
-    origem: 'matriculas' as const,
-    matriculas: 1,
-  },
-});
-
-const pf = (id: string, extra: Record<string, unknown> = {}) => ({
-  id,
-  denominacao: id,
-  tipo_pessoa: 'PF',
-  is_fundador: false,
-  filiacao_pai_pessoa_id: null,
-  filiacao_mae_pessoa_id: null,
-  ...extra,
-});
-
 beforeEach(() => {
-  // Só o relógio é falso: a competência padrão é a do mês da simulação
-  // (SPEC §3.1) e o teste precisa dela fixa em fevereiro de 2026, cuja UPF
-  // é R$ 255,20 — a competência de todos os casos homologados.
   vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-02-10T12:00:00Z') });
-
-  mocks.bens = [imovel('IR-01', 4_000_000), imovel('IR-02', 2_649_400)];
+  mocks.bens = [{
+    id: 'IR-01', cliente_id: 'C1', referencia_dp: 'BS 01', denominacao: 'Fazenda',
+    tipo_bem: 'IR', participa_estruturacao: true,
+    valores: {
+      contabil: { valor: 6_649_400, comValor: 1 },
+      mercado: { valor: null, comValor: 0 },
+      itr: { valor: null, comValor: 0 },
+      origem: 'matriculas' as const,
+      matriculas: 1,
+    },
+  }];
   mocks.pessoas = [
     { id: 'HOLDING', denominacao: 'Terezinha Participações', tipo_pessoa: 'PJ', tipo_empresa: 'CN', is_fundador: false, filiacao_pai_pessoa_id: null, filiacao_mae_pessoa_id: null },
-    pf('Cristiano', { is_fundador: true }),
-    pf('Fabiane', { is_fundador: true }),
-    pf('Gabriel'),
-    pf('Rafael'),
+    // Estado civil vem do CADASTRO e resolve a meação sozinho: sem cônjuge, uma
+    // GIA. É por isso que o bloco de meação aqui lê, e não pergunta.
+    { id: 'Cristiano', denominacao: 'Cristiano', tipo_pessoa: 'PF', is_fundador: true, filiacao_pai_pessoa_id: null, filiacao_mae_pessoa_id: null, estado_civil: 'Solteiro(a)', regime_bens: null, conjuge_id: null },
+    { id: 'Gabriel', denominacao: 'Gabriel', tipo_pessoa: 'PF', is_fundador: false, filiacao_pai_pessoa_id: null, filiacao_mae_pessoa_id: null, estado_civil: 'Solteiro(a)', regime_bens: null, conjuge_id: null },
   ];
   mocks.socios = [
-    { id: 'S1', socio_pessoa_id: 'Cristiano', socio_denominacao: 'Cristiano', socio_tipo_pessoa: 'PF', quotas: 6_086_672 },
-    { id: 'S2', socio_pessoa_id: 'Fabiane', socio_denominacao: 'Fabiane', socio_tipo_pessoa: 'PF', quotas: 562_728 },
+    { id: 'S1', socio_pessoa_id: 'Cristiano', socio_denominacao: 'Cristiano', socio_tipo_pessoa: 'PF', quotas: 6_649_400 },
+  ];
+  mocks.quadroDasEmpresas = [
+    { empresa_pessoa_id: 'HOLDING', socio_pessoa_id: 'Cristiano', quotas: 6_649_400 },
   ];
   mocks.parentescos = [
     { id: 'V1', pessoa_id: 'Gabriel', parente_pessoa_id: 'Cristiano', tipo: 'Filho(a)' },
-    { id: 'V2', pessoa_id: 'Rafael', parente_pessoa_id: 'Cristiano', tipo: 'Filho(a)' },
   ];
 });
 
@@ -88,41 +103,39 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('CalculadoraItcmd — a cadeia da tela', () => {
-  it('apura o quadro depois de a disponível fechar, e marca o cenário sem valor', () => {
-    render(<CalculadoraItcmd />);
+describe('CalculadoraItcmd — a página', () => {
+  it('abre no resultado vazio, sem quadro e sem número', () => {
+    render(<MemoryRouter><CalculadoraItcmd /></MemoryRouter>);
+    expect(screen.getByText(/Nenhuma simulação/)).toBeInTheDocument();
+    expect(screen.queryByText('R$ 186.864,00')).not.toBeInTheDocument();
+    // Sem simulação, também não há seletor de versão — controle vazio é ruído.
+    expect(screen.queryByText('Versão')).not.toBeInTheDocument();
+  });
 
-    // Acervo: contábil completo, mercado e ITR sem valor em nenhum imóvel.
-    expect(screen.getByText('R$ 6.649.400,00')).toBeInTheDocument();
-    expect(screen.getByText(/Valor de mercado: — sem valor em nenhum dos 2 imóveis/))
-      .toBeInTheDocument();
-    expect(screen.getByText(/Valor de ITR: — sem valor em nenhum dos 2 imóveis/))
-      .toBeInTheDocument();
+  it('o botão abre o modal com a lista VAZIA e os campos de adicionar', () => {
+    render(<MemoryRouter><CalculadoraItcmd /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: /Nova simulação/ }));
 
-    // Legítima CALCULADA (o analista não digita): teto(6.086.672/4) +
-    // teto(562.728/4) = 1.521.668 + 140.682 = 1.662.350 por herdeiro.
-    expect(screen.getAllByText('1.662.350').length).toBeGreaterThan(0);
+    // Nada entra sozinho: o sistema não puxa doador nem donatário. Quem monta o ato é
+    // o analista, por UM campo — o papel vem das quotas e troca na coluna.
+    expect(screen.getByText(/Nenhuma pessoa no ato ainda/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Adicionar participantes')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Adicionar doador')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Adicionar donatário')).not.toBeInTheDocument();
+    // E a forma do ato não é mais um bloco acima da tabela: virou coluna.
+    expect(screen.queryByText('Doador do ato')).not.toBeInTheDocument();
 
-    // Sem a disponível distribuída, o quadro não sai.
-    expect(screen.getByText(/quadro aparece quando a parte disponível/)).toBeInTheDocument();
-    expect(screen.getByText(/Faltam 3.324.700 quotas/)).toBeInTheDocument();
+    // E o "Incluir de volta" não existe mais: o × tira de vez, e para trazer de volta
+    // basta adicionar outra vez.
+    expect(screen.queryByRole('button', { name: /Incluir de volta/ })).not.toBeInTheDocument();
 
-    for (const nome of ['Gabriel', 'Rafael']) {
-      fireEvent.change(screen.getByLabelText(`Disponível para ${nome}`), {
-        target: { value: '1662350' },
-      });
-    }
+    // A sociedade é uma só: entra como texto, não como lista de uma opção.
+    expect(screen.getByText('Terezinha Participações')).toBeInTheDocument();
 
-    // Agora fecha, e o quadro traz os números homologados (SPEC §8, E97/C84).
-    expect(screen.getByText(/A disponível fecha/)).toBeInTheDocument();
-    expect(screen.getAllByText('R$ 186.864,00')).toHaveLength(2);
-    expect(screen.getByText('R$ 373.728,00')).toBeInTheDocument();
-    expect(screen.getByText(/UPF de 2026-02: R\$ 255,20/)).toBeInTheDocument();
+    // A UPF é campo digitável, em REAIS: vírgula, não ponto.
+    expect(screen.getByLabelText(/UPF \(R\$\)/)).toHaveValue('255,20');
 
-    // ITR e mercado seguem `—` no quadro, com o selo de cenário incompleto:
-    // ausência de dado nunca vira R$ 0,00.
-    expect(screen.queryByText('R$ 0,00')).not.toBeInTheDocument();
-    expect(screen.getAllByText(/cenário incompleto, sem valor em nenhum dos 2 imóveis/))
-      .toHaveLength(2);
+    // E o ESTADO fica à esquerda dela, com MT já escolhido.
+    expect(screen.getByLabelText('Estado')).toHaveTextContent('MT');
   });
 });

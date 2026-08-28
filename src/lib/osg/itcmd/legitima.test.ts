@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { calcularLegitima } from '@/lib/osg/itcmd/legitima';
+import { calcularLegitima, tetoDoAto } from '@/lib/osg/itcmd/legitima';
 
 const doador = (id: string, quotas: bigint) => ({ doadorId: id, quotas });
 
 describe('legítima e parte disponível', () => {
   it('referência: reproduz os 1.831.720 do caso Santa Terezinha', () => {
-    // SPEC §6.2 — teto(4.290.321/2/2) + teto(3.036.555/2/2), publicado no slide 9.
+    // SPEC §6.2 — teto(4.290.321/2/2) + teto(3.036.555/2/2).
     const r = calcularLegitima(
       [doador('cristiano', 4_290_321n), doador('fabiane', 3_036_555n)],
       2,
@@ -57,5 +57,40 @@ describe('legítima e parte disponível', () => {
     // patrimônio e a disponível fica NEGATIVA. Não se trunca em zero — o número
     // sai como é e quem distribui vê que não há disponível a distribuir.
     expect(calcularLegitima([doador('unico', 1n)], 5).disponivelTotal).toBe(-4n);
+  });
+
+  it('o divisor é quantos herdeiros EXISTEM, não quantos recebem', () => {
+    // Caso real do Agro Aliança: Avelino doa 4.448.500 e tem duas filhas.
+    const d = calcularLegitima([doador('avelino', 4_448_500n)], 2);
+    expect(d.legitimaPorHerdeiro).toBe(1_112_125n);
+    expect(d.numeroDeHerdeiros).toBe(2);
+    expect(d.disponivelTotal).toBe(2_224_250n);
+
+    // As duas recebem: dá para doar tudo, e é o que a GIA-ITCD 337978 fez.
+    expect(tetoDoAto(d, 2)).toBe(4_448_500n);
+
+    // Só uma recebe: a legítima da outra NÃO vira disponível. O teto cai para a
+    // legítima de uma mais a disponível inteira, e as 1.112.125 da que ficou de
+    // fora permanecem com o doador.
+    expect(tetoDoAto(d, 1)).toBe(3_336_375n);
+    expect(d.patrimonioDoado - tetoDoAto(d, 1)).toBe(d.legitimaPorHerdeiro);
+
+    // É ISTO que o divisor errado quebrava: dividir pelos SELECIONADOS daria
+    // legítima de 2.224.250 para a única marcada e liberaria o acervo inteiro.
+    const seDivididoPelosSelecionados = calcularLegitima([doador('avelino', 4_448_500n)], 1);
+    expect(seDivididoPelosSelecionados.legitimaPorHerdeiro).toBe(2_224_250n);
+    expect(tetoDoAto(seDivididoPelosSelecionados, 1)).toBe(4_448_500n);
+    expect(tetoDoAto(seDivididoPelosSelecionados, 1)).not.toBe(tetoDoAto(d, 1));
+
+    // Nenhum herdeiro recebe: só a disponível é doável.
+    expect(tetoDoAto(d, 0)).toBe(2_224_250n);
+
+    // Mais donatários do que herdeiros é incoerência, não um teto maior.
+    expect(() => tetoDoAto(d, 3)).toThrow(/herdeiros necessários/i);
+
+    // Disponível negativa (degenerado) não vira crédito no teto.
+    const degenerado = calcularLegitima([doador('unico', 1n)], 5);
+    expect(degenerado.disponivelTotal).toBe(-4n);
+    expect(tetoDoAto(degenerado, 5)).toBe(5n);
   });
 });

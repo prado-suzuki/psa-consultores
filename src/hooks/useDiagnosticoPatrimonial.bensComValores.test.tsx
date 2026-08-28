@@ -102,7 +102,7 @@ describe('useBensByCliente — valores derivados', () => {
     await rodarQuery();
     expect(dbCalls).toContainEqual({
       method: 'select',
-      args: ['*, matricula ( vlr_contabil, vlr_mercado )'],
+      args: ['*, matricula ( vlr_contabil, vlr_mercado, vlr_imposto_anual )'],
     });
     expect(dbCalls).toContainEqual({ method: 'eq', args: ['cliente_id', 'cliente-1'] });
   });
@@ -114,12 +114,16 @@ describe('useBensByCliente — valores derivados', () => {
     expect(fazenda.valores).toEqual({
       contabil: { valor: 800_000, comValor: 2 },
       mercado: { valor: 1_300_000, comValor: 2 },
+      // `vlr_imposto_anual` guarda o valor declarado no ITR e segue a mesma
+      // regra; nestas fixtures nenhuma matrícula o tem.
+      itr: { valor: null, comValor: 0 },
       origem: 'matriculas',
       matriculas: 2,
     });
     expect(quotas.valores).toEqual({
       contabil: { valor: 12.5, comValor: 0 },
       mercado: { valor: 30, comValor: 0 },
+      itr: { valor: null, comValor: 0 },
       origem: 'bem',
       matriculas: 0,
     });

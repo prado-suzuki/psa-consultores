@@ -50,6 +50,19 @@ export function competenciasDisponiveis(): string[] {
   return COMPETENCIAS_UPF.map((c) => c.competencia).slice().reverse();
 }
 
+/**
+ * UPF conhecida da competência, como SUGESTÃO para a tela preencher o campo.
+ * `null` quando não há — e aí o analista digita, que é o caminho normal.
+ *
+ * O valor que a apuração usa é sempre o que está no campo, nunca esta série: a
+ * UPF é publicada todo mês pela SEFAZ/MT e lista embutida em código envelhece.
+ * A série fica só para poupar digitação nos meses já conhecidos e para os testes
+ * de referência conferirem contra guias reais.
+ */
+export function upfSugerida(competencia: string): string | null {
+  return COMPETENCIAS_UPF.find((c) => c.competencia === competencia)?.upf ?? null;
+}
+
 /** UPF da competência (`AAAA-MM`). Competência fora da série lança erro. */
 export function upfDaCompetencia(competencia: string): Money {
   const linha = COMPETENCIAS_UPF.find((c) => c.competencia === competencia);

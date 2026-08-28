@@ -6,13 +6,12 @@
 // decimal que o motor recebe, e recusa o que não couber na escala de 4 casas em
 // vez de truncar em silêncio.
 //
-// Contábil e mercado vêm de `valoresDoBem` (bem com matrícula soma as
-// matrículas; bem sem matrícula usa o próprio valor). O ITR **não tem campo
-// canônico**: `matricula.vlr_itr_iptu` não existe e `bem.vlr_itr_iptu` está
-// vazio em 27 de 27 no sandbox. Ler `bem.vlr_itr_iptu` é ler o que existe; a
-// escolha do campo oficial é decisão do tech lead
-// (CADASTRO-para-calculadora.md §3.1), e por isso a origem do número é
-// DECLARADA na tela em vez de disfarçada.
+// Os três cenários vêm de `valoresDoBem`, com a mesma regra: bem com matrícula
+// soma as matrículas, bem sem matrícula usa o próprio valor. O de ITR sai de
+// `vlr_imposto_anual`, que apesar do nome guarda o valor DECLARADO no ITR — é o
+// campo que o Diagnóstico Patrimonial usa e que a OSG preenche.
+// `bem.vlr_itr_iptu` NÃO é usado: não tem campo em tela nenhuma e está vazio em
+// 27 de 27 no sandbox.
 
 import { formatMoney, parseMoney, ZERO, type Money } from '@/lib/osg/itcmd/dinheiro';
 import type { Cenario } from '@/lib/osg/itcmd/simulacao';
@@ -22,10 +21,8 @@ export interface ImovelDoAcervo {
   id: string;
   referencia: string;
   denominacao: string;
-  /** Contábil e mercado já derivados (soma das matrículas ou valor do bem). */
+  /** Os três cenários já derivados (soma das matrículas ou valor do bem). */
   valores: ValoresDoBem;
-  /** Único campo de ITR/IPTU que existe hoje — na tabela `bem`. */
-  vlr_itr_iptu: number | null;
 }
 
 export interface TotalDoCenario {
@@ -61,23 +58,7 @@ export function numeroParaDecimal(v: number): string {
 export function valorDoImovel(imovel: ImovelDoAcervo, cenario: Cenario): number | null {
   if (cenario === 'contabil') return imovel.valores.contabil.valor;
   if (cenario === 'mercado') return imovel.valores.mercado.valor;
-  return imovel.vlr_itr_iptu;
-}
-
-/**
- * De onde saiu (ou não saiu) o valor de ITR do imóvel. Existe separado de
- * `origemDoValor` porque a regra é outra: o ITR não tem coluna na matrícula, e
- * afirmar "soma das matrículas" para ele seria falso.
- */
-export function origemDoValorDeItr(imovel: ImovelDoAcervo): string {
-  if (imovel.vlr_itr_iptu == null) {
-    return 'Sem valor de ITR/IPTU cadastrado (campo canônico ainda não definido)';
-  }
-  if (imovel.valores.matriculas > 0) {
-    return `Valor do próprio bem — a matrícula não tem campo de ITR/IPTU `
-      + `(o bem tem ${imovel.valores.matriculas} matrícula(s))`;
-  }
-  return 'Valor do próprio bem (sem matrícula)';
+  return imovel.valores.itr.valor;
 }
 
 /** Soma exata em bigint: somar `number` acumularia erro de float. */

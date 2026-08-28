@@ -110,7 +110,11 @@ export interface BemComValores extends BemRow {
 }
 
 type RawBemComMatriculas = BemRow & {
-  matricula: Array<{ vlr_contabil: number | null; vlr_mercado: number | null }> | null;
+  matricula: Array<{
+    vlr_contabil: number | null;
+    vlr_mercado: number | null;
+    vlr_imposto_anual: number | null;
+  }> | null;
 };
 
 /**
@@ -138,7 +142,7 @@ export function useBensByCliente(clienteId: string | null) {
         .from('bem')
         // As matrículas entram só com as colunas de valor: elas são a fonte do
         // número que a lista mostra, e nenhuma outra tela lê a partir daqui.
-        .select('*, matricula ( vlr_contabil, vlr_mercado )')
+        .select('*, matricula ( vlr_contabil, vlr_mercado, vlr_imposto_anual )')
         .eq('cliente_id', clienteId)
         .order('referencia_dp');
       if (error) throw error;

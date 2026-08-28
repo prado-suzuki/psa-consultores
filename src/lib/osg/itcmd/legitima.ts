@@ -36,6 +36,11 @@ export interface Distribuicao {
   /** Σ das parcelas por doador. */
   legitimaPorHerdeiro: bigint;
   legitimaTotal: bigint;
+  /**
+   * Quantos herdeiros necessários EXISTEM. É o divisor da legítima, e não tem
+   * relação com quantos recebem no ato — ver `tetoDoAto`.
+   */
+  numeroDeHerdeiros: number;
   patrimonioDoado: bigint;
   /**
    * patrimônio − legítima total. Pode ficar NEGATIVA num caso degenerado (poucas
@@ -77,7 +82,45 @@ export function calcularLegitima(
     porDoador,
     legitimaPorHerdeiro,
     legitimaTotal,
+    numeroDeHerdeiros,
     patrimonioDoado,
     disponivelTotal: patrimonioDoado - legitimaTotal,
   };
+}
+
+/**
+ * Quanto se pode doar NESTE ato, dado quantos dos herdeiros são donatários dele.
+ *
+ *   teto = legítima_por_herdeiro × herdeiros_que_recebem  +  disponível_total
+ *
+ * É a trava que impede dar tudo a um só herdeiro. O divisor da legítima é o número
+ * de herdeiros que EXISTEM, não o de quem recebe: com dois filhos, cada um tem
+ * metade da legítima, e a metade do que não participa **não vira disponível** —
+ * ela simplesmente fica com o doador. Dividir pelos selecionados dobraria a
+ * legítima de quem sobrou e deixaria doar o acervo inteiro a um filho.
+ *
+ * Exemplo, patrimônio 4.448.500 e dois filhos:
+ *   legítima por herdeiro    1.112.125     disponível  2.224.250
+ *   os dois recebem  →  teto  4.448.500    (tudo, e é o caso real da GIA 337978)
+ *   só um recebe     →  teto  3.336.375    (a legítima do outro não é doável)
+ */
+export function tetoDoAto(
+  distribuicao: Distribuicao,
+  herdeirosQueRecebem: number,
+): bigint {
+  if (!Number.isInteger(herdeirosQueRecebem) || herdeirosQueRecebem < 0) {
+    throw new Error(
+      `Número de herdeiros donatários inválido: ${herdeirosQueRecebem}.`,
+    );
+  }
+  if (herdeirosQueRecebem > distribuicao.numeroDeHerdeiros) {
+    throw new Error(
+      `${herdeirosQueRecebem} donatários herdeiros, mas só existem `
+      + `${distribuicao.numeroDeHerdeiros} herdeiros necessários. `
+      + 'A legítima não pode ser dividida por menos gente do que a recebe.',
+    );
+  }
+  const legitimaDoAto = distribuicao.legitimaPorHerdeiro * BigInt(herdeirosQueRecebem);
+  const disponivel = distribuicao.disponivelTotal > 0n ? distribuicao.disponivelTotal : 0n;
+  return legitimaDoAto + disponivel;
 }

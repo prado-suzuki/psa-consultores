@@ -38,3 +38,26 @@ export function pctDeDecimal(valor: string): string {
 export function quotasDeBigint(valor: bigint): string {
   return agrupar(valor.toString());
 }
+
+/**
+ * Dígitos crus → agrupados: "1000000" → "1.000.000".
+ *
+ * Para CAMPO, e não só leitura: um milhão digitado como `1000000` é o tipo de número
+ * que induz erro de uma casa, e agrupar enquanto se digita é o que evita isso.
+ */
+export function agruparDigitos(digitos: string): string {
+  const so = digitos.replace(/\D/g, '');
+  return so === '' ? '' : agrupar(so);
+}
+
+/**
+ * Texto de valor em reais SENDO DIGITADO → com milhar agrupado, preservando o que
+ * ainda está no meio: "1000000," fica "1.000.000," e não perde a vírgula.
+ */
+export function agruparValorDigitado(texto: string): string {
+  if (texto.trim() === '') return '';
+  const [inteiro = '', ...resto] = texto.replace(/\./g, '').split(',');
+  const agrupado = agruparDigitos(inteiro);
+  if (resto.length === 0) return agrupado;
+  return `${agrupado},${resto.join('').replace(/\D/g, '').slice(0, 2)}`;
+}

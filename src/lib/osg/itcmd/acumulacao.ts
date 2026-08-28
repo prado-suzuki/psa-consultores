@@ -1,7 +1,16 @@
-// Acumulação por donatário.
+// Acumulação de doações sucessivas.
 //
-// O fato gerador é POR DONATÁRIO e a faixa sai da base ACUMULADA, somando as
-// doações anteriores recebidas pela mesma pessoa (SPEC §7.1):
+// A CHAVE DA ACUMULAÇÃO é o trio: MESMO DOADOR · MESMO BENEFICIÁRIO · MESMO ANO
+// CIVIL. Base legal: Lei 10.488/2016, arts. 3º e 5º — desde 01/04/2017 todas as
+// doações desse trio se acumulam para fins de progressividade. O simulador oficial
+// da SEFAZ/MT declara a regra e cita os artigos, e a OSG confirmou.
+//
+// As três dimensões importam, e cada uma exclui:
+//   · doador diferente     → apuração separada, uma por doador
+//   · ano civil diferente  → apuração separada, uma por ano
+//   · beneficiário diferente → sempre foi separado (o fato gerador é dele)
+//
+// Dentro do trio, a faixa sai da base ACUMULADA:
 //
 //   devido no ato i = f( soma das bases até i ) − f( soma das bases até i−1 )
 //
@@ -13,9 +22,16 @@
 // Legítima e parte disponível **não** são fatos geradores distintos: compõem uma
 // base única por donatário no mesmo ato (decisão homologada nº 3).
 //
-// Procedência: esta regra vem de relato da OSG sobre o comportamento do sistema
-// da SEFAZ, sem documento do fisco que a confirme (SPEC §7.4). Peso diferente da
-// forma fechada, que foi conferida contra guia real.
+// O QUE ESTE MÓDULO NÃO SABE: ele recebe a base anterior já apurada e não conhece
+// doador nem data. Quem garante que a base entregue respeita o trio é quem chama —
+// `simulacao.ts`, que apura UMA VEZ POR PAR doador × donatário e passa a doação
+// anterior daquele par. Não há ambiguidade com dois doadores no mesmo ato: são duas
+// guias, cada uma com o seu acumulado.
+//
+// A mecânica é a que o Manual da GIA ITCD-e Doação/Outros (SEFAZ/MT, 2025) descreve
+// na pág. 8 — "o imposto é recalculado a cada nova doação... serão deduzidos os
+// valores dos impostos já pagos" — e que o demonstrativo da pág. 21 mostra em
+// números: ITCD 81.489,20 − ITCD anterior 70.285,00 = a recolher 11.204,20.
 
 import { ZERO, type Money } from '@/lib/osg/itcmd/dinheiro';
 import { impostoExato } from '@/lib/osg/itcmd/imposto';

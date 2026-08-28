@@ -17,16 +17,25 @@
 // CONTRIBUÍRAM, porque duas matrículas com só uma preenchida dão um número
 // menor que o real, e a tela precisa dizer isso em vez de afirmar "soma de 2".
 
+// A terceira métrica, o valor de ITR, sai de `vlr_imposto_anual`. O nome da
+// coluna diz imposto, mas o campo guarda o valor DECLARADO no ITR — é assim que
+// o Diagnóstico Patrimonial a usa e é isso que a OSG preenche; o formulário da
+// matrícula a rotula "ITR anual" para rural e "IPTU anual" para urbano. O nome
+// ficou infeliz e renomear coluna em uso é outra conversa.
+
 /** O que a leitura precisa de cada matrícula do bem. */
 export interface ValoresDaMatricula {
   vlr_contabil: number | null;
   vlr_mercado: number | null;
+  /** Valor declarado no ITR/IPTU, apesar do nome da coluna. */
+  vlr_imposto_anual: number | null;
 }
 
 /** O que a leitura precisa do próprio bem (fonte quando não há matrícula). */
 export interface ValoresProprios {
   vlr_contabil: number | null;
   vlr_mercado: number | null;
+  vlr_imposto_anual: number | null;
 }
 
 export interface ValorDerivado {
@@ -39,6 +48,7 @@ export interface ValorDerivado {
 export interface ValoresDoBem {
   contabil: ValorDerivado;
   mercado: ValorDerivado;
+  itr: ValorDerivado;
   /** De onde o número veio — a tela usa para explicar a soma ao consultor. */
   origem: 'matriculas' | 'bem';
   /** Quantas matrículas o bem tem (nem todas necessariamente com valor). */
@@ -64,6 +74,7 @@ export function derivarValoresDoBem(
     return {
       contabil: somar(matriculas.map((m) => m.vlr_contabil)),
       mercado: somar(matriculas.map((m) => m.vlr_mercado)),
+      itr: somar(matriculas.map((m) => m.vlr_imposto_anual)),
       origem: 'matriculas',
       matriculas: matriculas.length,
     };
@@ -71,6 +82,7 @@ export function derivarValoresDoBem(
   return {
     contabil: { valor: bem.vlr_contabil ?? null, comValor: 0 },
     mercado: { valor: bem.vlr_mercado ?? null, comValor: 0 },
+    itr: { valor: bem.vlr_imposto_anual ?? null, comValor: 0 },
     origem: 'bem',
     matriculas: 0,
   };
@@ -80,7 +92,10 @@ export function derivarValoresDoBem(
  * De onde saiu o número da célula, para a lista não afirmar "soma de 2
  * matrículas" quando só uma tinha valor.
  */
-export function origemDoValor(valores: ValoresDoBem, metrica: 'contabil' | 'mercado'): string {
+export function origemDoValor(
+  valores: ValoresDoBem,
+  metrica: 'contabil' | 'mercado' | 'itr',
+): string {
   if (valores.origem === 'bem') return 'Valor do próprio bem (sem matrícula)';
   const { comValor } = valores[metrica];
   if (comValor === 0) return `Nenhuma das ${valores.matriculas} matrículas do bem tem este valor`;

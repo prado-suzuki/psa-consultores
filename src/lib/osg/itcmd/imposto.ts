@@ -43,7 +43,7 @@ export function aplicarFaixa(faixa: Faixa, base: Money, upf: Money): Money {
  * Imposto de uma base, resolvendo a faixa. Resultado **exato** em escala 1e-4,
  * sem arredondar: o arredondamento a 2 casas acontece uma única vez, por
  * donatário e por cenário, em `simulacao.ts`. Arredondar aqui e somar depois dá
- * resultado diferente (SPEC §8, nota sobre a célula I84).
+ * resultado diferente (SPEC §8).
  */
 export function impostoExato(base: Money, upf: Money): Money {
   exigirDuasCasas(base);

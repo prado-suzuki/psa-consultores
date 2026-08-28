@@ -3,11 +3,11 @@ import { formatMoney, parseMoney } from '@/lib/osg/itcmd/dinheiro';
 import { FAIXAS, faixaDaBase, tetoDaFaixa, upfDaCompetencia } from '@/lib/osg/itcmd/faixas';
 import { aplicarFaixa, impostoExato } from '@/lib/osg/itcmd/imposto';
 
-// UPF de fevereiro de 2026 — a competência de todos os casos do WP (SPEC §5).
+// UPF de fevereiro de 2026 — a competência dos casos de referência (SPEC §5).
 const UPF_FEV = upfDaCompetencia('2026-02');
 const CENTAVO = parseMoney('0.01');
 
-// Tetos das faixas nessa competência (SPEC §8, células D92:D95):
+// Tetos das faixas nessa competência (SPEC §8):
 // 500 · 1.000 · 4.000 · 10.000 UPF = 127.600 · 255.200 · 1.020.800 · 2.552.000.
 const TETOS = FAIXAS.slice(0, 4).map((f) => tetoDaFaixa(f, UPF_FEV)!);
 
@@ -42,7 +42,7 @@ describe('imposto — forma fechada', () => {
       // ramo prende é o `<=`, não o `<`.
       expect(faixaDaBase(teto - CENTAVO, UPF_FEV).ordem).toBe(ordemDeBaixo);
     });
-    // Os tetos são os do WP (D92:D95): a competência move a tabela inteira.
+    // A competência move a tabela inteira: o teto é múltiplo da UPF.
     expect(TETOS.map(formatMoney)).toEqual([
       '127600.00', '255200.00', '1020800.00', '2552000.00',
     ]);
@@ -76,7 +76,39 @@ describe('imposto — forma fechada', () => {
     // que uma guia antiga se confere sem poluir a série publicada.
   });
 
-  it('referência: os três cenários do caso homologado (SPEC §8, E97/G97/I97)', () => {
+  it('referência: as duas guias reais do Agro Aliança (GIA-ITCD 337978 e 338021)', () => {
+    // Ambas de 21/05/2026, UPF de R$ 260,10. Junto com a de 2022 acima, as guias
+    // reais passam a exercer as faixas 2, 3, 4 e 5 — todas as tributadas.
+    //
+    // A guia publica a base fatiada, e é dela que sai o total: isento até 500 UPF,
+    // depois 500 UPF a 2%, 3.000 a 4%, 6.000 a 6% e o excedente a 8%. A forma
+    // fechada tem que dar o mesmo número sem fatiar nada.
+    const upf = upfDaCompetencia('2026-05');
+    const casos: Array<[string, number, string]> = [
+      // 338021, instituição de usufruto: base é 70% de 1.284.747,00.
+      // Fatias publicadas: 130.050,00 a 2% + 639.222,90 a 4%.
+      ['899322.90', 3, '28169.92'],
+      // 337978, doação de 4.448.500,00 quotas com reserva de usufruto, base 100%.
+      // Regina, 25,91%: 130.050,00 a 2% + 780.300,00 a 4% + 112.206,35 a 6%.
+      ['1152606.35', 4, '40545.38'],
+      // Cristina, 74,09%: as três acima cheias + 694.893,65 a 8%.
+      ['3295893.65', 5, '183040.49'],
+    ];
+    for (const [base, ordem, esperado] of casos) {
+      const m = parseMoney(base);
+      expect(faixaDaBase(m, upf).ordem, `faixa de ${base}`).toBe(ordem);
+      expect(formatMoney(impostoExato(m, upf)), `imposto de ${base}`).toBe(esperado);
+    }
+    // O "Valor Total do ITCD" da 337978 é a soma dos dois donatários.
+    const total =
+      impostoExato(parseMoney('1152606.35'), upf) + impostoExato(parseMoney('3295893.65'), upf);
+    expect(formatMoney(total)).toBe('223585.87');
+    // A isenção é por DONATÁRIO, não por doação: a guia desconta 500 × 260,10 de
+    // cada um dos dois. É por isso que dividir reduz imposto até o limite da lei.
+    expect(formatMoney(tetoDaFaixa(FAIXAS[0], upf)!)).toBe('130050.00');
+  });
+
+  it('referência: os três cenários do caso homologado (SPEC §8)', () => {
     const casos: Array<[string, string]> = [
       ['3324700.00', '186864.00'],
       ['14577996.03', '1087127.68'],
