@@ -224,8 +224,8 @@ All colors MUST be HSL.
     --tool-icon: var(--primary);
     --tool-icon-bg: 175 60% 95%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    --border: 40 12% 91%;
+    --input: 40 12% 91%;
     --ring: 85 85% 37%;
 
     --radius: 0.75rem;
