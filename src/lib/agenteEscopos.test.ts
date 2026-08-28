@@ -7,15 +7,17 @@ import { ESCOPOS_BOARD, escopoDaRota, rotaDoEscopo, rotuloDoEscopo } from './age
  * com o prompt da Visão Geral — erro silencioso, porque a tela desenha igual.
  */
 describe('escopoDaRota', () => {
-  it('resolve o submenu, não o pai (prefixo mais longo ganha)', () => {
-    expect(escopoDaRota('/equipe/board/desempenho/ciclos')?.escopo)
-      .toBe('board.desempenho.ciclos');
+  it('resolve a rota exata do escopo', () => {
     expect(escopoDaRota('/equipe/board/desempenho/minha-evolucao')?.escopo)
       .toBe('board.desempenho.minha-evolucao');
   });
 
-  it('resolve o pai quando nenhum submenu casa', () => {
-    expect(escopoDaRota('/equipe/board/desempenho')?.escopo).toBe('board.desempenho');
+  it('devolve null nas rotas desativadas da aba Desempenho', () => {
+    // A aba saiu do menu e as rotas do App.tsx foram desativadas; sem escopo,
+    // o ícone do agente não aparece e o "Ver" de uma notificação antiga não
+    // navega para o NotFound.
+    expect(escopoDaRota('/equipe/board/desempenho')).toBeNull();
+    expect(escopoDaRota('/equipe/board/desempenho/ciclos')).toBeNull();
   });
 
   it('casa rota com parâmetro pelo prefixo (detalhe de chamado)', () => {
@@ -38,7 +40,7 @@ describe('escopoDaRota', () => {
 describe('rotaDoEscopo / rotuloDoEscopo', () => {
   it('faz o caminho de volta para o "Ver" da notificação', () => {
     expect(rotaDoEscopo('board.estrategico')).toBe('/equipe/board/dashboard');
-    expect(rotuloDoEscopo('board.desempenho.decisoes')).toBe('Desempenho · Decisões');
+    expect(rotuloDoEscopo('board.desempenho.minha-evolucao')).toBe('Minha evolução');
   });
 
   it('devolve null para escopo desconhecido em vez de rota inventada', () => {
