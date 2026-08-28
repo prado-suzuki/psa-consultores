@@ -38,16 +38,12 @@ export const ESCOPOS_BOARD: EscopoAgente[] = [
   { escopo: 'board.logs', rota: '/equipe/board/logs-equipe', rotulo: 'Board · Logs da equipe' },
   { escopo: 'board.chamados', rota: '/equipe/board/chamados', rotulo: 'Board · Chamados' },
   { escopo: 'board.dashboards', rota: '/equipe/board/relatorios', rotulo: 'Board · Dashboards' },
-  // A aba "Desempenho" e seus oito submenus sairam do menu e as rotas estao
-  // desativadas (App.tsx), então os escopos deles sairam daqui: sem rota viva,
-  // `escopoDaRota` nunca casaria, e o "Ver" de uma notificação antiga levaria
-  // ao NotFound. Com o escopo fora do mapa, `rotaDoEscopo` devolve null e o
-  // cartão só marca a notificação como lida, sem navegar.
-  {
-    escopo: 'board.desempenho.minha-evolucao',
-    rota: '/equipe/board/desempenho/minha-evolucao',
-    rotulo: 'Minha evolução',
-  },
+  // A aba "Desempenho", seus oito submenus e a seção "Minha Área"
+  // (Minha Evolução) sairam do menu e as rotas estao desativadas (App.tsx),
+  // então os escopos deles sairam daqui: sem rota viva, `escopoDaRota` nunca
+  // casaria, e o "Ver" de uma notificação antiga levaria ao NotFound. Com o
+  // escopo fora do mapa, `rotaDoEscopo` devolve null e o cartão só marca a
+  // notificação como lida, sem navegar.
 ];
 
 const POR_ESCOPO = new Map(ESCOPOS_BOARD.map((e) => [e.escopo, e]));

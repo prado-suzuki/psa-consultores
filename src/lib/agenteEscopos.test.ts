@@ -3,21 +3,21 @@ import { ESCOPOS_BOARD, escopoDaRota, rotaDoEscopo, rotuloDoEscopo } from './age
 
 /**
  * O que estes testes travam: o ícone do agente tem que abrir o escopo CERTO em
- * cada menu e submenu. Escopo errado significa o painel de Ciclos respondendo
- * com o prompt da Visão Geral — erro silencioso, porque a tela desenha igual.
+ * cada tela do Board. Escopo errado significa o painel de Clientes respondendo
+ * com o prompt do Estratégico — erro silencioso, porque a tela desenha igual.
  */
 describe('escopoDaRota', () => {
   it('resolve a rota exata do escopo', () => {
-    expect(escopoDaRota('/equipe/board/desempenho/minha-evolucao')?.escopo)
-      .toBe('board.desempenho.minha-evolucao');
+    expect(escopoDaRota('/equipe/board/capacidade')?.escopo).toBe('board.capacidade');
   });
 
-  it('devolve null nas rotas desativadas da aba Desempenho', () => {
+  it('devolve null nas rotas desativadas de Desempenho e Minha Evolução', () => {
     // A aba saiu do menu e as rotas do App.tsx foram desativadas; sem escopo,
     // o ícone do agente não aparece e o "Ver" de uma notificação antiga não
     // navega para o NotFound.
     expect(escopoDaRota('/equipe/board/desempenho')).toBeNull();
     expect(escopoDaRota('/equipe/board/desempenho/ciclos')).toBeNull();
+    expect(escopoDaRota('/equipe/board/desempenho/minha-evolucao')).toBeNull();
   });
 
   it('casa rota com parâmetro pelo prefixo (detalhe de chamado)', () => {
@@ -40,7 +40,7 @@ describe('escopoDaRota', () => {
 describe('rotaDoEscopo / rotuloDoEscopo', () => {
   it('faz o caminho de volta para o "Ver" da notificação', () => {
     expect(rotaDoEscopo('board.estrategico')).toBe('/equipe/board/dashboard');
-    expect(rotuloDoEscopo('board.desempenho.minha-evolucao')).toBe('Minha evolução');
+    expect(rotuloDoEscopo('board.capacidade')).toBe('Board · Capacidade');
   });
 
   it('devolve null para escopo desconhecido em vez de rota inventada', () => {
