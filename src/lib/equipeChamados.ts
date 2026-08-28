@@ -50,14 +50,7 @@ export const activityLabels: Record<string, string> = {
 // `@/lib/chamadoStatusColors` — em papéis de status, não em matiz fixa, para o
 // chamado pegar a paleta da área que o hospeda. Aqui ficam só rótulos e regras.
 
-export const departmentLabels: Record<string, string> = {
-  contabilidade: 'Contabilidade/Societário',
-  icms_ipi: 'ICMS/IPI',
-  irpj_csll: 'IRPJ/CSLL',
-  pis_cofins: 'PIS/COFINS',
-  produtor_rural: 'Produtor Rural PF',
-  outros: 'Outros',
-};
+export { departmentLabels } from '@/lib/chamadosDepartamentos';
 
 export function createEquipeChamadosFilters(defaultCluster: string): EquipeChamadosFilters {
   return {
@@ -101,7 +94,8 @@ export function calcularPrazoResposta(
     horas: Math.ceil(diffTime / (1000 * 60 * 60)),
     prazoExpirado: diffTime < 0,
     prazoHoje: diffDays === 0 && diffTime > 0,
-    tipo: diffTime < 0 ? 'expirado' : diffDays <= 1 ? 'urgente' : diffDays <= 2 ? 'atencao' : 'normal',
+    tipo:
+      diffTime < 0 ? 'expirado' : diffDays <= 1 ? 'urgente' : diffDays <= 2 ? 'atencao' : 'normal',
   };
 }
 
@@ -114,13 +108,20 @@ function prazoSortValue(prazo: PrazoInfo) {
 
 function ticketSortValue(ticket: TicketListItem, column: Exclude<SortColumn, 'prazo' | null>) {
   switch (column) {
-    case 'status': return ticket.status;
-    case 'title': return ticket.title.toLowerCase();
-    case 'id': return ticket.id;
-    case 'department': return ticket.department || '';
-    case 'created_by': return `${ticket.profiles?.first_name || ''} ${ticket.profiles?.last_name || ''}`.toLowerCase();
-    case 'updated_at': return new Date(ticket.updated_at).getTime();
-    case 'activity_status': return ticket.activity_status || '';
+    case 'status':
+      return ticket.status;
+    case 'title':
+      return ticket.title.toLowerCase();
+    case 'id':
+      return ticket.id;
+    case 'department':
+      return ticket.department || '';
+    case 'created_by':
+      return `${ticket.profiles?.first_name || ''} ${ticket.profiles?.last_name || ''}`.toLowerCase();
+    case 'updated_at':
+      return new Date(ticket.updated_at).getTime();
+    case 'activity_status':
+      return ticket.activity_status || '';
   }
 }
 
@@ -137,17 +138,25 @@ export function filterAndSortTickets(
     filtered = filtered.filter((ticket) => {
       const date = new Date(ticket.created_at);
       if (filters.periodo === 'hoje') return isTodayBrazil(date);
-      if (filters.periodo === '7dias') return isWithinInterval(date, { start: subDays(now, 7), end: now });
-      if (filters.periodo === '30dias') return isWithinInterval(date, { start: subDays(now, 30), end: now });
-      if (filters.periodo === 'mes') return isWithinInterval(date, { start: startOfMonth(now), end: now });
+      if (filters.periodo === '7dias')
+        return isWithinInterval(date, { start: subDays(now, 7), end: now });
+      if (filters.periodo === '30dias')
+        return isWithinInterval(date, { start: subDays(now, 30), end: now });
+      if (filters.periodo === 'mes')
+        return isWithinInterval(date, { start: startOfMonth(now), end: now });
       return true;
     });
   }
-  if (filters.status !== 'todos') filtered = filtered.filter((ticket) => ticket.status === filters.status);
-  if (filters.prioridade !== 'todas') filtered = filtered.filter((ticket) => ticket.priority === filters.prioridade);
-  if (filters.departamento !== 'todos') filtered = filtered.filter((ticket) => ticket.department === filters.departamento);
-  if (filters.area !== 'todos') filtered = filtered.filter((ticket) => ticket.estrutura_area_id === filters.area);
-  if (filters.cluster !== 'todos') filtered = filtered.filter((ticket) => ticket.cluster_id === filters.cluster);
+  if (filters.status !== 'todos')
+    filtered = filtered.filter((ticket) => ticket.status === filters.status);
+  if (filters.prioridade !== 'todas')
+    filtered = filtered.filter((ticket) => ticket.priority === filters.prioridade);
+  if (filters.departamento !== 'todos')
+    filtered = filtered.filter((ticket) => ticket.department === filters.departamento);
+  if (filters.area !== 'todos')
+    filtered = filtered.filter((ticket) => ticket.estrutura_area_id === filters.area);
+  if (filters.cluster !== 'todos')
+    filtered = filtered.filter((ticket) => ticket.cluster_id === filters.cluster);
   if (filters.searchId) {
     const searchId = filters.searchId.toLowerCase();
     filtered = filtered.filter((ticket) => ticket.id.toLowerCase().includes(searchId));
@@ -155,18 +164,45 @@ export function filterAndSortTickets(
   if (mostrarUrgentes) {
     filtered = filtered.filter((ticket) => {
       if (ticket.status === 'resolvido' || ticket.status === 'fechado') return false;
-      const prazo = calcularPrazoResposta(ticket.created_at, ticket.updated_at, ticket.status, ticket.activity_status, ticket.deadline, now);
+      const prazo = calcularPrazoResposta(
+        ticket.created_at,
+        ticket.updated_at,
+        ticket.status,
+        ticket.activity_status,
+        ticket.deadline,
+        now,
+      );
       return prazo.tipo === 'expirado' || (prazo.dias !== undefined && prazo.dias <= 2);
     });
   }
   if (!sortColumn || !sortDirection) return filtered;
   return filtered.sort((a, b) => {
-    const aValue = sortColumn === 'prazo'
-      ? prazoSortValue(calcularPrazoResposta(a.created_at, a.updated_at, a.status, a.activity_status, a.deadline, now))
-      : ticketSortValue(a, sortColumn);
-    const bValue = sortColumn === 'prazo'
-      ? prazoSortValue(calcularPrazoResposta(b.created_at, b.updated_at, b.status, b.activity_status, b.deadline, now))
-      : ticketSortValue(b, sortColumn);
+    const aValue =
+      sortColumn === 'prazo'
+        ? prazoSortValue(
+            calcularPrazoResposta(
+              a.created_at,
+              a.updated_at,
+              a.status,
+              a.activity_status,
+              a.deadline,
+              now,
+            ),
+          )
+        : ticketSortValue(a, sortColumn);
+    const bValue =
+      sortColumn === 'prazo'
+        ? prazoSortValue(
+            calcularPrazoResposta(
+              b.created_at,
+              b.updated_at,
+              b.status,
+              b.activity_status,
+              b.deadline,
+              now,
+            ),
+          )
+        : ticketSortValue(b, sortColumn);
     if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
     if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
     return 0;
@@ -178,6 +214,8 @@ export function getTicketStats(tickets: TicketListItem[]) {
     total: tickets.length,
     abertos: tickets.filter((ticket) => ticket.status === 'aberto').length,
     emAndamento: tickets.filter((ticket) => ticket.status === 'em_andamento').length,
-    resolvidos: tickets.filter((ticket) => ticket.status === 'resolvido' || ticket.status === 'fechado').length,
+    resolvidos: tickets.filter(
+      (ticket) => ticket.status === 'resolvido' || ticket.status === 'fechado',
+    ).length,
   };
 }

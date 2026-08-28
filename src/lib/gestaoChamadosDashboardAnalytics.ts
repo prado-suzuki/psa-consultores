@@ -1,14 +1,11 @@
 import { isWithinInterval, subDays } from 'date-fns';
 import type { TicketFirstResponse, TicketListItem } from '@/hooks/useTickets';
 
-export const departmentLabels: Record<string, string> = {
-  contabilidade: 'Contabilidade/Societário',
-  icms_ipi: 'ICMS/IPI',
-  irpj_csll: 'IRPJ/CSLL',
-  pis_cofins: 'PIS/COFINS',
-  produtor_rural: 'Produtor Rural PF',
-  outros: 'Outros',
-};
+import { departmentLabels } from '@/lib/chamadosDepartamentos';
+
+// Reexportado porque as telas de chamado importam o rotulo daqui desde antes de
+// a lista virar fonte unica; quebrar esses imports nao traria nada.
+export { departmentLabels };
 
 export const periodoLabels: Record<string, string> = {
   todas: 'Todas as datas',
