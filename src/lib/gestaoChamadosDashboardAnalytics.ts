@@ -12,14 +12,28 @@ export const departmentLabels: Record<string, string> = {
 
 export const periodoLabels: Record<string, string> = {
   todas: 'Todas as datas',
+  canal: 'Desde o início do canal',
   hoje: 'Hoje',
   '7dias': 'Últimos 7 dias',
   '30dias': 'Últimos 30 dias',
   '90dias': 'Últimos 90 dias',
 };
 
+/**
+ * Data em que o canal de chamados passou a ser atendido de verdade.
+ *
+ * O que existe antes disso é o histórico importado do sistema legado: os
+ * chamados vieram com assunto, cliente e data de abertura, mas sem as
+ * mensagens — e portanto sem data de primeira resposta. Medir prazo sobre eles
+ * não dá "atrasado", dá "sem resposta" para tudo, o que afunda qualquer
+ * indicador de SLA. O período "Desde o início do canal" existe para separar
+ * atendimento de carga sem depender de nenhuma marca no banco.
+ */
+export const INICIO_CANAL_CHAMADOS = new Date('2026-04-01T00:00:00-03:00');
+
 export interface DashboardFilters {
   periodo: string;
+  cliente: string;
   departamento: string;
   area: string;
   cluster: string;
@@ -50,6 +64,118 @@ export interface DashboardStats {
   tempoMedioResposta: number;
   tempoMedioResolucao: number;
   taxaResposta: number;
+  noPrazo: number;
+  foraPrazo: number;
+  taxaNoPrazo: number;
+}
+
+export type SituacaoPrazo = 'dentro' | 'fora' | 'sem_resposta';
+
+/**
+ * Data-limite de um chamado para efeito de PRIMEIRA RESPOSTA.
+ *
+ * Espelha as regras de `calcularPrazoResposta` (`@/lib/equipeChamados`) — prazo
+ * do chamado até o fim do dia, ou abertura + 5 dias quando ele não tem — com
+ * uma diferença deliberada: lá o cálculo é ao vivo e pergunta "está atrasado
+ * agora?", por isso usa `updated_at` enquanto o chamado aguarda resposta. Aqui
+ * a pergunta é histórica: contra que data a primeira resposta deveria ter
+ * chegado. Essa data não pode andar depois do fato, então a referência é sempre
+ * a abertura.
+ */
+export function prazoPrimeiraResposta(ticket: TicketListItem): Date {
+  if (ticket.deadline) return new Date(`${ticket.deadline}T23:59:59`);
+  const prazo = new Date(ticket.created_at);
+  prazo.setDate(prazo.getDate() + 5);
+  return prazo;
+}
+
+/** Se a primeira resposta da equipe chegou antes do prazo do chamado. */
+export function situacaoPrazo(
+  ticket: TicketListItem,
+  firstResponses: Map<string, TicketFirstResponse> | undefined,
+): SituacaoPrazo {
+  const resposta = firstResponses?.get(ticket.id);
+  if (!resposta) return 'sem_resposta';
+  return new Date(resposta.created_at) <= prazoPrimeiraResposta(ticket) ? 'dentro' : 'fora';
+}
+
+/** Recortes de prazo que o dashboard abre em tabela ao clicar no KPI. */
+export type RecortePrazo = Extract<SituacaoPrazo, 'fora' | 'sem_resposta'>;
+
+export interface ChamadoPrazoRow {
+  id: string;
+  titulo: string;
+  cliente: string;
+  /**
+   * Quem respondeu, quando houve resposta. Sem resposta, cai para quem está
+   * designado — que na aba de sem resposta é justamente de quem se cobra.
+   */
+  responsavel: string;
+  abertoEm: string;
+  prazo: Date;
+  respondidoEm: string | null;
+  /**
+   * Dias entre o prazo e a primeira resposta. Para quem ainda não respondeu, a
+   * conta corre até agora — e fica negativa enquanto o prazo não venceu, que é
+   * como se distingue "atrasado" de "ainda dá tempo" na fila em aberto.
+   */
+  atrasoDias: number;
+}
+
+/** Os chamados por trás do número do KPI, do mais atrasado para o menos. */
+export function listarChamadosPorPrazo(
+  tickets: TicketListItem[],
+  firstResponses: Map<string, TicketFirstResponse> | undefined,
+  agentNames: Map<string, string>,
+  recorte: RecortePrazo,
+  now: Date,
+): ChamadoPrazoRow[] {
+  return tickets
+    .filter((ticket) => situacaoPrazo(ticket, firstResponses) === recorte)
+    .map((ticket) => {
+      const prazo = prazoPrimeiraResposta(ticket);
+      const resposta = firstResponses?.get(ticket.id);
+      const respondidoEm = resposta?.created_at ?? null;
+      const referencia = respondidoEm ? new Date(respondidoEm) : now;
+      // Mesmo encadeamento do ranking de responsáveis: quem respondeu manda, e
+      // o designado é o retrato de quem responde por ele enquanto ninguém respondeu.
+      const responsavelId = resposta?.user_id ?? ticket.assigned_to;
+      return {
+        id: ticket.id,
+        titulo: ticket.title,
+        cliente: ticket.cliente_nome ?? '—',
+        responsavel: responsavelId ? (agentNames.get(responsavelId) ?? 'Usuário interno') : '—',
+        abertoEm: ticket.created_at,
+        prazo,
+        respondidoEm,
+        atrasoDias: (referencia.getTime() - prazo.getTime()) / (1000 * 60 * 60 * 24),
+      };
+    })
+    .sort((a, b) => b.atrasoDias - a.atrasoDias);
+}
+
+/**
+ * Quem mais respondeu fora do prazo, montado a partir das MESMAS linhas que a
+ * tabela de atraso mostra — o card e a tabela não podem divergir, e sairiam
+ * divergentes se cada um refizesse a conta do seu jeito.
+ *
+ * `tempoMedioRespostaHoras` aqui carrega o atraso médio, não o tempo de
+ * resposta; o card que consome este ranking rotula o relógio de acordo.
+ */
+export function rankingAtrasoPorPessoa(linhasForaDoPrazo: ChamadoPrazoRow[]): RankingRow[] {
+  const grupos = new Map<string, number[]>();
+  linhasForaDoPrazo.forEach((linha) => {
+    if (linha.responsavel === '—') return;
+    grupos.set(linha.responsavel, [...(grupos.get(linha.responsavel) ?? []), linha.atrasoDias]);
+  });
+  return Array.from(grupos, ([nome, atrasos]) => ({
+    key: nome,
+    label: nome,
+    total: atrasos.length,
+    respondidos: atrasos.length,
+    resolvidos: 0,
+    tempoMedioRespostaHoras: average(atrasos) * 24,
+  })).sort((a, b) => b.total - a.total || b.tempoMedioRespostaHoras! - a.tempoMedioRespostaHoras!);
 }
 
 interface TaxTopic {
@@ -139,6 +265,8 @@ export function filterDashboardTickets(
             : null;
     if (days !== null && !isWithinInterval(createdAt, { start: subDays(now, days), end: now }))
       return false;
+    if (filters.periodo === 'canal' && createdAt < INICIO_CANAL_CHAMADOS) return false;
+    if (filters.cliente !== 'todos' && ticket.cliente_nome !== filters.cliente) return false;
     if (filters.departamento !== 'todos' && ticket.department !== filters.departamento)
       return false;
     if (filters.area !== 'todos' && ticket.estrutura_area_id !== filters.area) return false;
@@ -204,6 +332,7 @@ export function calculateDashboardAnalytics(
   firstResponses: Map<string, TicketFirstResponse> | undefined,
   agentNames: Map<string, string>,
   areaNames: Map<string, string>,
+  equipePorPessoa: Map<string, string>,
 ) {
   const responseHours = elapsedHours(
     tickets,
@@ -211,6 +340,12 @@ export function calculateDashboardAnalytics(
   );
   const resolutionHours = elapsedHours(tickets, (ticket) => ticket.closed_at);
   const respondidos = tickets.filter((ticket) => firstResponses?.has(ticket.id)).length;
+  const noPrazo = tickets.filter(
+    (ticket) => situacaoPrazo(ticket, firstResponses) === 'dentro',
+  ).length;
+  const foraPrazo = tickets.filter(
+    (ticket) => situacaoPrazo(ticket, firstResponses) === 'fora',
+  ).length;
   const stats: DashboardStats = {
     total: tickets.length,
     respondidos,
@@ -221,6 +356,12 @@ export function calculateDashboardAnalytics(
     tempoMedioResposta: average(responseHours.values()),
     tempoMedioResolucao: average(resolutionHours.values()),
     taxaResposta: tickets.length ? Math.round((respondidos / tickets.length) * 100) : 0,
+    noPrazo,
+    foraPrazo,
+    // Sobre os RESPONDIDOS, não sobre o total: um chamado ainda sem resposta não
+    // cumpriu nem descumpriu prazo, e somá-lo ao denominador faria a taxa cair
+    // só porque a fila cresceu.
+    taxaNoPrazo: respondidos ? Math.round((noPrazo / respondidos) * 100) : 0,
   };
   const statusCounts = { aberto: 0, em_andamento: 0, resolvido: 0, fechado: 0 };
   tickets.forEach((ticket) => {
@@ -304,6 +445,15 @@ export function calculateDashboardAnalytics(
     rankingAreas: rank(
       (ticket) => ticket.estrutura_area_id,
       (_ticket, key) => areaNames.get(key) ?? '—',
+    ),
+    // O chamado não guarda equipe, então ela vem de quem atendeu — quem
+    // respondeu primeiro, ou o designado enquanto ninguém respondeu.
+    rankingEquipes: rank(
+      (ticket) => {
+        const responsavelId = firstResponses?.get(ticket.id)?.user_id ?? ticket.assigned_to;
+        return responsavelId ? equipePorPessoa.get(responsavelId) : null;
+      },
+      (_ticket, key) => key,
     ),
     taxTopics: Array.from(topicCounts, ([label, value]) => ({ label, value })).sort(
       (a, b) => b.value - a.value,
