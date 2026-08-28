@@ -49,14 +49,32 @@ All colors MUST be HSL.
     --accent: 175 82% 29%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    /* ─── Sinais do sistema: três deles SÃO papéis de status ──────────────
+       `--destructive`, `--warning` e `--success` não têm valor próprio: são o
+       `ajuste`, o `alerta` e o `feito` da área em que estão. Antes eram cores
+       separadas para os mesmos conceitos — "atenção" existia em dois lugares
+       com dois valores, e nada obrigava os dois a concordarem.
 
-    /* Status semânticos — Tax. OSG sobrescreve em .osg-theme. */
-    --success: 160 84% 30%;
+       O que a fusão consertou de concreto: os três respondiam por doze falhas
+       de contraste fixadas numa lista de dívida em `paletaDeArea.test.ts`,
+       adiadas porque corrigi-las era decisão de identidade visual. Como papéis
+       de status passam com folga — e o pior caso, o `--warning`, não tinha
+       OUTRA saída: medido, não existe luminosidade que faça o âmbar a 92% de
+       saturação servir de texto sobre a superfície clara sem trocar junto o
+       `-foreground` dele.
+
+       Por isso o `--warning-foreground` deixa de ser escuro. O token virou um
+       tom cheio, e tom cheio recebe texto claro como todos os outros.
+
+       O `--info` fica de fora por coerência, não por esquecimento: já passava
+       nos dois empregos, não estava na dívida, e não tem papel equivalente
+       entre os oito — o `fila` está a 99° dele no círculo de cor. */
+    --destructive: var(--status-ajuste);
+    --destructive-foreground: 0 0% 98%;
+    --success: var(--status-feito);
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 28 45% 18%;
+    --warning: var(--status-alerta);
+    --warning-foreground: 0 0% 98%;
     --info: 221 83% 53%;
     --info-foreground: 0 0% 100%;
 
@@ -399,17 +417,19 @@ All colors MUST be HSL.
        paleta anterior; é o valor que este bloco existe para corrigir. */
     --ring: 175 82% 29%;
 
-    /* Status semânticos */
-    --success: 160 84% 30%;
-    --warning: 38 92% 50%;
-    /* Os `-foreground` de estado entram aqui, e são os MESMOS valores do `:root` —
-       nenhum pixel muda. O que muda é o alcance: eles viviam só no `:root`, fora
-       do contrato, então um tema podia redefinir `--destructive` e o texto por
-       cima continuava vindo de um lugar que nenhum tema controla. A OSG faz
-       exatamente isso (`--destructive: var(--osg-red)`), e o par sobrevivia por
-       sorte. Agora o par viaja junto. */
+    /* Sinais do sistema — os mesmos três papéis do `:root`, e aqui o `var()`
+       faz o trabalho sozinho: como cada tema declara os próprios `--status-*`,
+       o alias acompanha a área sem que nenhum bloco repita o valor.
+
+       Os `-foreground` continuam declarados aqui, e a razão é a mesma de antes:
+       eles viviam só no `:root`, fora do contrato, então um tema podia
+       redefinir o token de estado e o texto por cima continuava vindo de um
+       lugar que nenhum tema controla — a OSG fazia exatamente isso. O par viaja
+       junto desde então, e segue viajando. */
+    --success: var(--status-feito);
+    --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
-    --warning-foreground: 28 45% 18%;
+    --warning-foreground: 0 0% 98%;
     --destructive-foreground: 0 0% 98%;
 
     /* Papéis de status — os mesmos do `:root`, e por construção, não por
@@ -449,21 +469,20 @@ All colors MUST be HSL.
     --canvas: 42 22% 99%;
     --muted: var(--base-50);
     --muted-foreground: 28 9% 45%;
-    /* 48% e nao os 60% do `:root`, e a diferenca e deliberada — como a do
-       `--ring`. Em 60% o par com `--destructive-foreground` dava 3,62:1, abaixo
-       do 4,5:1 do WCAG AA, nos 36 botoes de confirmar exclusao. E `text-destructive`
-       sobre fundo claro dava 3,77:1 nos 227 sitios de mensagem de erro — tambem
-       reprovando, e isso ninguem tinha medido.
+    /* O vermelho de excluir é o `ajuste` da área, e a linha abaixo é a única
+       coisa que resta de uma calibragem inteira. O valor anterior era 84% de
+       saturação a 48% de luminosidade, e os 48% eram medida de emergência: a
+       60%, como o `:root` declarava, o par com `--destructive-foreground` dava
+       3,62:1 e `text-destructive` sobre fundo claro dava 3,77:1 — os dois
+       abaixo do 4,5:1 do WCAG AA. Escurecer levava os dois a passar raspando, e
+       clarear o texto não era saída: o primeiro plano já estava em 98% e o
+       branco puro dava 3,78:1, teto abaixo do mínimo.
 
-       Em 48%: o botao vai a 4,66:1 e o texto de erro a 4,85:1. Os dois passam.
-
-       Clarear o texto nao era saida: o primeiro plano ja estava em 98% e o BRANCO
-       PURO da 3,78:1 — teto abaixo do minimo. So escurecer o fundo resolvia.
-
-       A OSG nao entra: `--osg-red` ja dava 5,80:1. O `:root` fica em 60% porque
-       nenhuma rota o alcanca (o piso e sempre aplicado) e mexer nele so alargaria
-       o raio sem mudar pixel. */
-    --destructive: 0 84% 48%;
+       Como papel de status o problema deixa de existir: o `ajuste` é um tom
+       cheio, calibrado desde a origem para receber texto claro, e passa com o
+       dobro da folga. Não há mais o que calibrar aqui porque a cor deixou de
+       ser escolhida neste arquivo. */
+    --destructive: var(--status-ajuste);
 
     /* Superfície escura — o par de fundo dos cartões escuros, do mais escuro
        (`--surface-escura`, o início do gradiente) para o intermediário
@@ -584,14 +603,14 @@ All colors MUST be HSL.
     --secondary: 175 82% 29%;
     --secondary-foreground: 0 0% 100%;
     --ring: 175 82% 29%;
-    --success: 160 84% 30%;
-    --warning: 38 92% 50%;
+    --success: var(--status-feito);
+    --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
-    --warning-foreground: 28 45% 18%;
+    --warning-foreground: 0 0% 98%;
     --destructive-foreground: 0 0% 98%;
     --tool-icon: var(--primary);
     --tool-icon-bg: 175 60% 95%;
-    --destructive: 0 84% 48%;
+    --destructive: var(--status-ajuste);
     --foreground: 20 81% 10%;
     --card-foreground: 20 81% 10%;
     --popover-foreground: 20 81% 10%;
@@ -612,13 +631,20 @@ All colors MUST be HSL.
     --secondary-foreground: 0 0% 100%;
     --ring: var(--osg-moss);
 
-    /* Status na OSG: ok = verde musgo, aviso = dourado (marca-texto).
-       info permanece azul — a paleta OSG não tem azul, então herda o tom da Tax
-       (azul mais próximo dos demais itens da página). */
-    --success: var(--osg-moss);
-    --warning: var(--osg-highlighter);
+    /* Sinais na OSG — foi o bloco que mais mudou. "Ok" era o verde musgo e
+       "aviso" era o dourado do marca-texto, tokens de marca da área usados
+       direto como sinal. Agora são o `feito` e o `alerta`, como em toda área.
+
+       O dourado era também a pior falha do sistema inteiro: `text-warning`
+       sobre a superfície da OSG dava 1,54:1. Marca-texto é fundo, e 71% de
+       luminosidade nunca ia servir de texto.
+
+       `--info` permanece azul: a paleta OSG não tem azul, e ele não virou papel
+       de status em área nenhuma. */
+    --success: var(--status-feito);
+    --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
-    --warning-foreground: 28 45% 18%;
+    --warning-foreground: 0 0% 98%;
     --destructive-foreground: 0 0% 98%;
 
     /* Paleta de status da OSG — os mesmos oito significados do `:root`, com a
@@ -686,12 +712,13 @@ All colors MUST be HSL.
     /* Secundario da OSG: neutro quente do lado do taupe da area. */
     --muted-foreground: 24 12% 42%;
 
-    /* Vermelho de exclusão/cancelar — carmim/tijolo OSG (osg-red), menos berrante
-       que o vermelho puro padrão, para conviver com a paleta quente da OSG. */
-    /* Vermelho de exclusão/cancelar — carmim/tijolo (#B62F38), menos berrante
-       que o vermelho puro padrão, para conviver com a paleta quente da OSG.
-       Fonte única: --osg-red (token osg-red). */
-    --destructive: var(--osg-red);
+    /* Vermelho de exclusão/cancelar — o `ajuste` da OSG. Era o `--osg-red`
+       (carmim/tijolo #B62F38), escolhido para conviver com a paleta quente da
+       área, e era o único dos quatro temas cujo vermelho já passava em
+       contraste. Perdeu o posto mesmo assim: o que estava em jogo não era o
+       contraste dele, era "excluir" ter uma cor na OSG e outra em toda parte.
+       O `--osg-red` continua no arquivo como token de marca. */
+    --destructive: var(--status-ajuste);
 
     /* Texto: a OSG mantém o preto (quase-preto neutro), não o marrom #2F1305
        usado no tema Tax. */
@@ -740,10 +767,10 @@ All colors MUST be HSL.
     --primary-foreground: 0 0% 100%;
     --secondary: 175 82% 29%;
     --secondary-foreground: 0 0% 100%;
-    --success: 160 84% 30%;
-    --warning: 38 92% 50%;
+    --success: var(--status-feito);
+    --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
-    --warning-foreground: 28 45% 18%;
+    --warning-foreground: 0 0% 98%;
     --destructive-foreground: 0 0% 98%;
     --status-neutro: 32 21% 12%;
     --status-neutro-soft: 32 21% 86%;
@@ -776,7 +803,7 @@ All colors MUST be HSL.
        que este bloco existe para cortar. Mesmo valor. */
     --muted: 42 26% 98%;
     --muted-foreground: 28 9% 45%;
-    --destructive: 0 84% 48%;
+    --destructive: var(--status-ajuste);
     --foreground: 20 81% 10%;
     --card-foreground: 20 81% 10%;
     --popover-foreground: 20 81% 10%;

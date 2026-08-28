@@ -35,39 +35,28 @@ const ANCORA_DO_TEMA: Record<(typeof TEMAS)[number], Hsl> = {
 };
 
 /**
- * Dívida dos papéis semânticos, medida hoje e fixada aqui item a item.
+ * Dívida dos papéis semânticos. Está vazia, e a lista continua existindo para
+ * que voltar a encher seja uma decisão escrita e não um descuido.
  *
- * Por que uma lista, e não `toEqual([])`: os três semânticos entraram no
- * contrato DEPOIS de já estarem no ar em todas as telas, e as 12 falhas abaixo
- * são valores de cor que já estão em produção. Corrigi-las é decisão de
- * identidade visual — não cabe a um teste tomá-la, e deixar o teste vermelho até
- * que ela seja tomada só ensina a equipe a ignorar o vermelho.
+ * Ela teve 12 itens. Eram valores de cor já em produção, fixados um a um porque
+ * corrigi-los era decisão de identidade visual, e um teste não toma decisão de
+ * identidade. `--warning` reprovava como texto nos quatro temas, entre 1,54:1 e
+ * 2,13:1; `--success` reprovava em três por pouco; o `--destructive` do `:root`
+ * reprovava nos dois empregos.
  *
- * O que a lista faz é o oposto de silenciar: a asserção é de igualdade EXATA,
- * então ela é uma catraca nos dois sentidos. Falha nova que não esteja aqui
- * derruba o teste; item daqui que seja CORRIGIDO também derruba, pedindo que
- * saia da lista. A dívida só pode diminuir, e nunca de fininho.
+ * Os 12 saíram de uma vez, e não um a um: `--destructive`, `--warning` e
+ * `--success` passaram a ser o `ajuste`, o `alerta` e o `feito` da área. Como
+ * papéis de status eles já nascem calibrados para receber texto claro, então
+ * nenhum dos 12 precisou de um valor novo escolhido à mão. O `--warning` não
+ * tinha outra saída: não existe luminosidade que faça o âmbar a 92% de saturação
+ * servir de texto sem trocar junto o `-foreground` dele.
  *
- * Ler a lista: `--warning` reprova como texto em todos os quatro temas, entre
- * 1,54:1 e 2,13:1 — é o amarelo, e é a decisão que está na mesa. `--success`
- * reprova em três temas por pouco (4,18–4,21:1 contra 4,5:1). O `--destructive`
- * do `:root` reprova nos dois empregos; a Tax, a OSG e a Rotina já corrigiram o
- * deles, e é só a base que ficou atrás.
+ * A asserção é de igualdade EXATA, então a lista é catraca nos dois sentidos:
+ * falha nova que não esteja aqui derruba o teste, e item daqui que seja
+ * corrigido também derruba, pedindo que saia. Com a lista vazia, o segundo caso
+ * não existe e sobra o primeiro — que é o que se quer guardar.
  */
-const DIVIDA_SEMANTICA = [
-  ':root · destructive · preenchido',
-  ':root · destructive · texto',
-  ':root · success · preenchido',
-  ':root · success · texto',
-  ':root · warning · texto',
-  '.tax-theme · success · preenchido',
-  '.tax-theme · success · texto',
-  '.tax-theme · warning · texto',
-  '.osg-theme · warning · texto',
-  '.rotina-theme · success · preenchido',
-  '.rotina-theme · success · texto',
-  '.rotina-theme · warning · texto',
-];
+const DIVIDA_SEMANTICA: string[] = [];
 
 /**
  * Guarda das paletas de área. Vale para o `index.css` de verdade: área nova que
