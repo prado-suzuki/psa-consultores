@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  ANCORAS,
   AREAS_CONGELADAS_NA_BASE,
   PAPEIS_DE_STATUS,
   TEMAS,
@@ -9,13 +10,29 @@ import {
   blocoDoTema,
   distanciaDeMatiz,
   paletaDoTema,
+  problemasDeDivergencia,
   problemasDeSeparacao,
   problemasDoTema,
   problemasDosSemanticos,
-  problemasEntreAreas,
+  type Hsl,
 } from '@/lib/paletaDeArea';
 
 const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8');
+
+/**
+ * A âncora de cada bloco de tema do `index.css`.
+ *
+ * A lista de temas do CSS e a lista de áreas do produto não casam uma a uma, e
+ * é por isso que este mapa existe aqui e não em `ANCORAS`: o `:root` e a
+ * `.rotina-theme` dividem a âncora da casa, porque a Rotina é uma das telas que
+ * não pertencem a área nenhuma. Quem sabe amarrar tema a área é este arquivo.
+ */
+const ANCORA_DO_TEMA: Record<(typeof TEMAS)[number], Hsl> = {
+  ':root': ANCORAS.casa,
+  '.tax-theme': ANCORAS.tax,
+  '.osg-theme': ANCORAS.osg,
+  '.rotina-theme': ANCORAS.casa,
+};
 
 /**
  * Dívida dos papéis semânticos, medida hoje e fixada aqui item a item.
@@ -87,20 +104,35 @@ describe('paletas de área declaradas no index.css', () => {
     expect(problemas, `papéis que colidem como bolinha:\n${relatorio}`).toEqual([]);
   });
 
-  it('o mesmo papel muda de cara ao trocar de área', () => {
-    // O buraco que a usuária encontrou. Os testes acima olham UMA paleta por
-    // vez: cada área podia declarar os oito papéis, cumprir contraste, faixa e
-    // separação interna — e ainda assim ser cópia da outra. Era o caso: o
-    // `alerta` da Tax (`43 68% 28%`) e o da OSG (`44 66% 28%`) estavam a 1° de
-    // matiz e ZERO ponto de luminosidade, e os quatro quentes inteiros ficavam
-    // entre 1° e 6°. A legenda do Gantt na Tax e na OSG liam como a mesma
-    // paleta, e a área deixou de ser reconhecível pela cor.
+  it('todo papel é o significado do sistema, com a saturação da área', () => {
+    // Substitui a asserção "o mesmo papel muda de cara ao trocar de área", e
+    // afirma o CONTRÁRIO dela — as duas não convivem, e a troca é o coração da
+    // mudança para cor por camada.
     //
-    // Limiares e o porquê de serem menores que os de `SEPARACAO`: ver
-    // `SEPARACAO_ENTRE_AREAS`.
-    const problemas = problemasEntreAreas(css);
-    const relatorio = problemas.map(p => `  ${p.item}: ${p.tema} — ${p.motivo}`).join('\n');
-    expect(problemas, `papéis que não distinguem uma área da outra:\n${relatorio}`).toEqual([]);
+    // A asserção antiga nasceu de um defeito real: a Tax e a OSG tinham
+    // declarado paletas quase idênticas (o `alerta` das duas a 1° de matiz e
+    // ZERO ponto de luminosidade), e a legenda do Gantt de uma lia como a da
+    // outra. A correção dela foi exigir que cada área escolhesse os oito
+    // DIFERENTES — o que resolveu a colisão e criou outro problema: "alerta"
+    // deixou de ser um conceito do sistema e virou uma cor por tela. Quem
+    // aprendia a bolinha na Tax reaprendia na OSG.
+    //
+    // O modelo novo separa as duas coisas. O significado (matiz e luminosidade)
+    // é do sistema e não muda de área para área; a identidade da área mora na
+    // âncora, que pinta cabeçalho, botão e primeira série do gráfico. O único
+    // canal que a área move nos papéis é a saturação, pela fórmula de
+    // `harmonizar`.
+    //
+    // O que este teste faz de novo: ele não OLHA os valores, ele os RECALCULA e
+    // compara. O `index.css` deixa de ser lugar de escolha e passa a ser lugar
+    // de resultado — editar um valor à mão vira erro com o nome do papel dentro.
+    const problemas = TEMAS.flatMap(tema => problemasDeDivergencia(css, tema, ANCORA_DO_TEMA[tema]));
+    const relatorio = problemas.map(p => `  ${p.tema} · ${p.item}: ${p.motivo}`).join('\n');
+    expect(
+      problemas,
+      `valores que não saem da fórmula. Se a intenção era mudar a cor, mude o\n` +
+        `SIGNIFICADO ou a ÂNCORA em paletaDeArea.ts e regenere — não edite o CSS:\n${relatorio}`,
+    ).toEqual([]);
   });
 
   it('o soft acompanha o tom cheio do próprio papel, em toda área', () => {
