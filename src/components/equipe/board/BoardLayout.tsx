@@ -14,10 +14,8 @@ import {
   ChevronLeft,
   MapPin,
   Shield,
-  User,
   LogOut,
 } from 'lucide-react';
-import { useDomainBoardLayout } from '@/hooks/useDomainBoardLayout';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 import { BoardClusterBar, honraClusterGlobal } from '@/components/equipe/board/BoardClusterBar';
@@ -71,15 +69,18 @@ const buildNavItems = (acesso: BoardNavAccess): NavItem[] => [
   // ...(acesso.performance ? [
   //   { icon: BarChart3, label: 'Operacional', path: '/equipe/board/performance', adminOnly: true } as NavItem,
   // ] : []),
-  ...(acesso.capacidade ? [
-    // Carga do time e prazos — o dashboard de área do Tax e da OSG, somado.
-    { icon: Users2, label: 'Capacidade', path: '/equipe/board/capacidade', adminOnly: true } as NavItem,
-  ] : []),
+  // REMOVIDO DE GESTÃO DE TIME: "Capacidade" sai do menu, mas a ROTA em App.tsx
+  // continua ATIVA de propósito, pelo mesmo motivo do Operacional -- o alerta
+  // "projetos que não cabem no prazo do contrato" do Estratégico navega para
+  // /equipe/board/capacidade (ver `boardEstrategico.ts`).
+  // ...(acesso.capacidade ? [
+  //   { icon: Users2, label: 'Capacidade', path: '/equipe/board/capacidade', adminOnly: true } as NavItem,
+  // ] : []),
   // REMOVIDO DO BOARD: o grupo "Desempenho" e os oito submenus (Visao Geral,
   // Ciclos, Metas e PPR, Decisoes, Relatorios, Evolucao, Feedbacks, 1:1s)
   // sairam do menu e as rotas foram desativadas em App.tsx; os arquivos das
-  // paginas continuam intactos. "Minha Evolucao" (Minha Area, abaixo) NAO faz
-  // parte do grupo e continua ativa.
+  // paginas continuam intactos. A secao "Minha Area" (Minha Evolucao) saiu
+  // junto, pelo mesmo caminho.
   ...(acesso.logsEquipe ? [
     { icon: Shield, label: 'Logs', path: '/equipe/board/logs-equipe', adminOnly: true } as NavItem,
   ] : []),
@@ -89,11 +90,6 @@ const getBreadcrumb = (pathname: string) => {
   const segments: { label: string; path: string }[] = [{ label: 'Board', path: '/equipe/board' }];
   if (pathname.includes('/performance')) {
     segments.push({ label: 'Operacional', path: '/equipe/board/performance' });
-  } else if (pathname.includes('/minha-evolucao')) {
-    // A unica rota que sobrou sob /desempenho: as telas do grupo sairam do
-    // menu e do App.tsx. "Minha Evolucao" nao pendura mais em "Desempenho" —
-    // o segmento pai levaria a uma rota desativada.
-    segments.push({ label: 'Minha Evolução', path: '/equipe/board/desempenho/minha-evolucao' });
   } else if (pathname.includes('/chamados')) {
     // Antes do teste de '/dashboard': `/chamados/dashboard` cairia no ramo do
     // Estratégico e o breadcrumb mentiria.
@@ -174,8 +170,6 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
     persistKey: 'board-sidebar-collapsed',
   });
 
-  const { hasUnreadOrOverdue } = useDomainBoardLayout({ userId: user?.id });
-
   // `isLider` é ESTRITO no AuthContext (não engloba admin) — daí o OR, como no
   // LiderRoute.
   const podeGerencial = isAdmin || isLider;
@@ -189,10 +183,9 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
     capacidade: canCapacidade === true && podeGerencial,
     logsEquipe: canLogsEquipe === true && podeGerencial,
   });
-  // O grupo aparece quando existe pelo menos um item dele — hoje Operacional,
-  // Capacidade e Logs de Equipe.
+  // O grupo aparece quando existe pelo menos um item dele — hoje só Logs de
+  // Equipe; Operacional, Chamados, Desempenho e Capacidade saíram do menu.
   const showGestaoTime = navItems.some(item => item.adminOnly);
-  const isMiEvolucaoRoute = location.pathname.includes('/minha-evolucao');
   const breadcrumb = getBreadcrumb(location.pathname);
 
   const isActive = (path: string) => {
@@ -300,27 +293,6 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
             ))}
           </div>
         )}
-
-        {/* MINHA AREA */}
-        <div className="mb-5">
-          {!collapsed && (
-            <p className="px-2.5 mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.13em]" style={{ color: 'var(--bd-ink4)' }}>
-              Minha Area
-            </p>
-          )}
-          <button
-            onClick={() => { navigate('/equipe/board/desempenho/minha-evolucao'); setMobileOpen(false); }}
-            className="w-full flex items-center gap-2.5 rounded-[10px] text-[13px] transition-all duration-150 relative mb-0.5 px-2.5 py-2"
-            style={navBtnStyle(isMiEvolucaoRoute, collapsed)}
-            title={collapsed ? 'Minha Evolução' : undefined}
-          >
-            <User className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isMiEvolucaoRoute ? 1 : 0.7 }} />
-            {!collapsed && <span className="flex-1 text-left">Minha Evolução</span>}
-            {!collapsed && hasUnreadOrOverdue && (
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--bd-warn)' }} />
-            )}
-          </button>
-        </div>
       </ScrollArea>
 
       {/* Rodapé */}

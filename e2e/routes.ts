@@ -62,7 +62,7 @@ export const ROUTES: RouteCase[] = [
   { path: '/equipe/board/dashboard', label: 'Board Dashboard' },
   { path: '/equipe/board/clientes', label: 'Board Clientes (mapa + lista)' },
   { path: '/equipe/board/performance', label: 'Board Performance' },
-  // As oito telas da aba "Desempenho" sairam do menu e tiveram as rotas
-  // desativadas em App.tsx — varrer por elas so testaria o NotFound.
-  { path: '/equipe/board/desempenho/minha-evolucao', label: 'Minha Evolução' },
+  // As oito telas da aba "Desempenho" e a "Minha Evolucao" sairam do menu e
+  // tiveram as rotas desativadas em App.tsx — varrer por elas so testaria o
+  // NotFound.
 ];

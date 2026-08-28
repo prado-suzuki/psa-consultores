@@ -806,14 +806,6 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_admin: false,
     requires_team_member: true,
   },
-  {
-    page_path: '/equipe/board/desempenho/minha-evolucao',
-    page_name: 'Minha Evolução',
-    page_description: 'Visão individual de metas, feedbacks e PPR',
-    category: 'board',
-    requires_admin: false,
-    requires_team_member: true,
-  },
 
   // =============================================
   // === GESTÃO PAGES ===
