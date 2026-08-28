@@ -548,3 +548,193 @@ export function problemasEntreAreas(css: string): ProblemaDePaleta[] {
 
   return problemas;
 }
+
+/* ─── Cor por camada ────────────────────────────────────────────────────────
+   O que vem daqui para baixo descreve um modelo DIFERENTE do que as checagens
+   acima medem, e por ora convive com elas sem ser chamado por ninguém.
+
+   As checagens acima partem de que cada área é dona dos oito papéis e as cobram
+   por SEPARAÇÃO: o `alerta` da Tax tem que ser reconhecivelmente outra cor que o
+   da OSG, senão a área deixa de ser reconhecível pela cor. Isso resolveu o
+   problema de duas áreas ficarem idênticas, e criou outro: se cada área escolhe
+   os oito livremente, "alerta" deixa de ser um conceito do sistema e vira oito
+   cores sem parentesco, uma por tela.
+
+   O modelo abaixo separa as duas coisas em camadas. O SIGNIFICADO é do sistema:
+   matiz e luminosidade de cada papel são as MESMAS em toda área, para que
+   `alerta` seja uma cor que a pessoa aprende uma vez. A ÂNCORA é da área e pinta
+   o que é grande — cabeçalho, botão, primeira série do gráfico — e nunca papel
+   de status. A identidade da área continua existindo, mas mora no que ocupa
+   espaço, não na bolinha de 8px.
+
+   O parentesco entre as duas camadas vem por um canal só, a saturação: cada área
+   puxa a saturação dos oito na direção da âncora dela. É pouco o bastante para
+   não desmanchar o significado e o bastante para a tela inteira parecer da mesma
+   família.
+
+   As duas afirmações não convivem: `problemasEntreAreas` exige que o mesmo papel
+   MUDE de área para área, e `problemasDeDivergencia` exige que ele NÃO mude
+   além da saturação. Trocar uma pela outra é passo próprio; nada aqui é chamado
+   ainda. */
+
+export type PapelDeStatus = (typeof PAPEIS_DE_STATUS)[number];
+
+/**
+ * Os oito papéis antes de qualquer área — matiz e luminosidade definitivas.
+ *
+ * Estes dois canais são o significado, e é por isso que nenhuma área os toca:
+ * a matiz diz de que família a cor é, a luminosidade diz o peso dela na tela.
+ * Só a saturação sobra para a área mexer (ver `harmonizar`).
+ *
+ * Os sete papéis de trabalho estão em duas trilhas, e a trilha é a informação:
+ *
+ * - **Fria — o trabalho andando.** `fila` → `andamento` → `revisao` → `feito`
+ *   gira numa direção só no círculo de cor (212° → 186° → 160° → 128°) e escurece
+ *   junto (36% → 26% → 22% → 21%). Quem vê a sequência duas vezes já lê progresso
+ *   sem legenda: a cor fecha e adensa conforme a coisa termina.
+ * - **Quente — parado por alguém.** `espera` → `alerta` → `ajuste` (44° → 20° →
+ *   356°) desce do dourado ao carmim, e a urgência sobe junto. A trilha quente
+ *   NÃO é a continuação da fria: é o eixo perpendicular, "esperando gente" contra
+ *   "andando sozinho".
+ *
+ * `neutro` fica fora das duas de propósito: não é etapa nem espera, é ausência de
+ * estado. Ele é o único quase acromático (16%), e por isso também é o único cuja
+ * saturação a área quase não move.
+ */
+export const SIGNIFICADO: Record<PapelDeStatus, Hsl> = {
+  neutro: { h: 32, s: 16, l: 12 },
+  fila: { h: 212, s: 50, l: 36 },
+  andamento: { h: 186, s: 60, l: 26 },
+  revisao: { h: 160, s: 52, l: 22 },
+  espera: { h: 44, s: 62, l: 27 },
+  ajuste: { h: 356, s: 62, l: 35 },
+  feito: { h: 128, s: 56, l: 21 },
+  alerta: { h: 20, s: 68, l: 32 },
+};
+
+/**
+ * A cor grande de cada área. Pinta cabeçalho, botão e primeira série do gráfico;
+ * NUNCA papel de status. Em `harmonizar` ela entra só pela saturação.
+ *
+ * De onde cada uma veio, porque nenhuma foi escolhida no olho:
+ *
+ * - `casa` — o teal institucional da marca PSA, medido nos pixels da logo e
+ *   conferido contra o manual. Vale para o Portal do Cliente, o Board e a Rotina:
+ *   são as telas que não são de uma área específica, e a casa é a identidade
+ *   delas.
+ * - `tax` — a cor do porquinho do `TaxLoader.tsx`, que já era a imagem que a
+ *   área tinha de si mesma antes de existir tema.
+ * - `auditoria` — medida no documento de identidade da área. Há uma segunda cor
+ *   lá, mais clara, para preenchimento e gráfico; ela não entra aqui porque não
+ *   é a que puxa a saturação, e ainda não tem consumidor.
+ * - `osg` — o verde musgo que já mora no `index.css` como primitiva.
+ * - `juridico` — o marinho do branding book do Prado Advogados. É a única acima
+ *   do teto de `PUXADA.tetoDoAlvo`, e a razão de o teto existir.
+ */
+export const ANCORAS = {
+  casa: { h: 175, s: 82, l: 29 },
+  tax: { h: 192, s: 73, l: 20 },
+  auditoria: { h: 191, s: 30, l: 36 },
+  osg: { h: 149, s: 66, l: 22 },
+  juridico: { h: 218, s: 100, l: 15 },
+} as const satisfies Record<string, Hsl>;
+
+export type NomeDeArea = keyof typeof ANCORAS;
+
+/**
+ * Quanto a área puxa a saturação dos oito na direção da âncora dela.
+ *
+ * `forca` é 28% e não é arredondamento de nada — é o máximo que passa o contrato
+ * de contraste com a luminosidade TRAVADA. Foi medido nos dois regimes: deixando
+ * a luminosidade acompanhar a puxada, a força máxima que ainda mantém os oito em
+ * AA nas cinco áreas cai para 4%, o que não se vê; travando a luminosidade, sobe
+ * para 44%. 28% fica com folga dentro do segundo regime — o teto não é a meta.
+ *
+ * `forcaDoNeutro` é 8% porque o neutro é quase acromático por definição. Puxá-lo
+ * como aos outros o tiraria do papel: um cinza que ganha 18 pontos de saturação
+ * deixa de ler como "sem estado" e passa a ler como mais um status.
+ *
+ * `tetoDoAlvo` limita o ALVO, não o resultado: uma âncora a 100% de saturação
+ * puxaria os oito para perto do neon, e o marinho do Jurídico é exatamente esse
+ * caso. Derivado de `FAIXA.saturacaoMaxima` de propósito — é o mesmo "sem neon",
+ * e separar os dois números deixaria a puxada gerar valores que a própria faixa
+ * reprova. Com o alvo abaixo do teto e os oito significados também abaixo,
+ * o resultado da interpolação nunca passa dele.
+ */
+export const PUXADA = {
+  /** Fração da distância até a saturação da âncora, para os sete papéis de trabalho. */
+  forca: 0.28,
+  /** A mesma fração, para o `neutro`. */
+  forcaDoNeutro: 0.08,
+  /** Teto do ALVO da puxada. */
+  tetoDoAlvo: FAIXA.saturacaoMaxima,
+} as const;
+
+/**
+ * O papel de status como ele fica NA área: significado com a saturação puxada
+ * na direção da âncora. Esta é a fórmula que gera os valores do `index.css`.
+ *
+ * A força não é parâmetro: ela é parte do modelo, e deixá-la aberta permitiria a
+ * quem chama pedir uma puxada que o contraste não sustenta. Quem escolhe entre
+ * `forca` e `forcaDoNeutro` é o papel.
+ *
+ * Matiz e luminosidade saem intactas — é o que faz `alerta` ser a mesma cor
+ * aprendida em toda área.
+ */
+export function harmonizar(papel: PapelDeStatus, ancora: Hsl): Hsl {
+  const significado = SIGNIFICADO[papel];
+  const forca = papel === 'neutro' ? PUXADA.forcaDoNeutro : PUXADA.forca;
+  const alvo = Math.min(ancora.s, PUXADA.tetoDoAlvo);
+  return { ...significado, s: significado.s + (alvo - significado.s) * forca };
+}
+
+/**
+ * Tolerância da comparação de saturação, em pontos.
+ *
+ * A puxada quase sempre dá fração e o CSS carrega inteiro.
+ * Meio ponto é exatamente "o valor declarado é o arredondamento correto do
+ * calculado" — apertado o bastante para pegar um dígito trocado à mão, folgado
+ * o bastante para não brigar com o arredondamento.
+ *
+ * Matiz e luminosidade não têm tolerância nenhuma: elas são o significado, e
+ * significado não chega perto, chega igual.
+ */
+export const TOLERANCIA_DE_SATURACAO = 0.5;
+
+/**
+ * Confere se os tons cheios declarados por uma área são os que a fórmula gera.
+ * Lista vazia = aprovado. Papel não declarado é queixa de `problemasDoTema`;
+ * aqui é ignorado, para não duplicar a mesma reclamação em dois testes.
+ *
+ * É esta checagem que muda a natureza do `index.css`: os valores das áreas
+ * deixam de ser escolhas escritas uma a uma e passam a ser derivados de dois
+ * dados — o significado e a âncora. Editar um valor à mão deixa de ser
+ * invisível e vira erro com o nome do papel dentro.
+ *
+ * A âncora entra por parâmetro em vez de sair de um mapa seletor → âncora
+ * porque a lista de temas do CSS e a lista de áreas do produto não são a mesma
+ * coisa e nem sempre casam uma a uma — o Portal do Cliente, o Board e a Rotina
+ * dividem a âncora da casa. Quem sabe amarrar as duas é quem chama.
+ */
+export function problemasDeDivergencia(css: string, seletor: string, ancora: Hsl): ProblemaDePaleta[] {
+  const paleta = paletaDoTema(css, seletor);
+  const problemas: ProblemaDePaleta[] = [];
+
+  for (const papel of PAPEIS_DE_STATUS) {
+    const declarado = paleta[`status-${papel}`];
+    if (!declarado) continue;
+    const esperado = harmonizar(papel, ancora);
+
+    const desvios: string[] = [];
+    if (declarado.h !== esperado.h) desvios.push(`matiz ${declarado.h}° onde o significado é ${esperado.h}°`);
+    if (declarado.l !== esperado.l) desvios.push(`luminosidade ${declarado.l}% onde o significado é ${esperado.l}%`);
+    if (Math.abs(declarado.s - esperado.s) > TOLERANCIA_DE_SATURACAO) {
+      desvios.push(`saturação ${declarado.s}% onde a puxada dá ${esperado.s.toFixed(2)}%`);
+    }
+    if (desvios.length > 0) {
+      problemas.push({ tema: seletor, item: papel, motivo: `valor não derivado: ${desvios.join('; ')}` });
+    }
+  }
+
+  return problemas;
+}
