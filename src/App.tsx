@@ -390,6 +390,13 @@ const App = () => (
                   olhar" e "Acompanhamento de execução" no Estratégico, e um card da
                   faixa de KPIs, navegam para aqui como detalhe. */}
               <Route path="/equipe/board/performance" element={<DesempenhoAccessGate><PerformanceDashboard /></DesempenhoAccessGate>} />
+              {/* REMOVIDO DO BOARD: a aba "Desempenho" e seus oito submenus sairam
+                  do menu (BoardLayout.tsx) e as rotas estao desativadas aqui.
+                  Os arquivos das paginas ficam intactos em
+                  src/pages/gerencial/desempenho/, como ja foi feito com
+                  "Dashboards" e "Chamados" (reuniao 17/08). O
+                  DesempenhoAccessGate continua em uso: e ele que protege
+                  /equipe/board/performance, logo acima.
               <Route path="/equipe/board/desempenho" element={<DesempenhoAccessGate><DesempenhoVisaoGeral /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/ciclos" element={<DesempenhoAccessGate><DesempenhoCiclos /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/metas" element={<DesempenhoAccessGate><DesempenhoMetas /></DesempenhoAccessGate>} />
@@ -398,6 +405,9 @@ const App = () => (
               <Route path="/equipe/board/desempenho/evolucao" element={<DesempenhoAccessGate><DesempenhoEvolucao /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/decisoes" element={<DesempenhoAccessGate><DesempenhoDecisoes /></DesempenhoAccessGate>} />
               <Route path="/equipe/board/desempenho/relatorios" element={<DesempenhoAccessGate><DesempenhoRelatorios /></DesempenhoAccessGate>} />
+              */}
+              {/* "Minha Evolucao" NAO faz parte da aba removida: e a tela pessoal
+                  do grupo "Minha Area" da barra lateral, e segue ativa. */}
               <Route path="/equipe/board/desempenho/minha-evolucao" element={<ProtectedRoute><MinhaEvolucao /></ProtectedRoute>} />
               </Route>
 

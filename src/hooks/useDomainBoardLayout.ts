@@ -2,30 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
 interface UseDomainBoardLayoutOptions {
-  canDesempenho: boolean;
   userId?: string;
 }
 
-export function useDomainBoardLayout({
-  canDesempenho,
-  userId,
-}: UseDomainBoardLayoutOptions) {
-  const pendingDecisionsQuery = useQuery({
-    queryKey: ['pending-decisions-count'],
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('metas')
-        .select('*', { count: 'exact', head: true })
-        .eq('nivel', 'individual')
-        .is('recomendacao_decisao', null)
-        .eq('status', 'ativa');
-
-      return count ?? 0;
-    },
-    enabled: canDesempenho === true,
-    staleTime: 5 * 60 * 1000,
-  });
-
+/**
+ * O contador de decisões pendentes saiu junto com o grupo "Desempenho" do menu
+ * (ver BoardLayout.tsx): ele só alimentava o badge do submenu "Decisões", e a
+ * rota daquela tela está desativada.
+ */
+export function useDomainBoardLayout({ userId }: UseDomainBoardLayoutOptions) {
   const evolutionBadgeQuery = useQuery({
     queryKey: ['minha-evolucao-badge', userId],
     queryFn: async () => {
@@ -58,7 +43,6 @@ export function useDomainBoardLayout({
   });
 
   return {
-    pendingDecisions: pendingDecisionsQuery.data ?? 0,
     hasUnreadOrOverdue: evolutionBadgeQuery.data ?? false,
   };
 }
