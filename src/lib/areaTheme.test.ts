@@ -236,8 +236,18 @@ describe('validação das rotas (a cascata que o navegador vai aplicar)', () => 
   it('sem nenhuma classe, o :root ainda traz o lime — é o que a base corrige', () => {
     // Documenta o defeito de origem: enquanto a página rodava sem classe de
     // tema, `--ring` vinha do `:root` e não batia com `--primary`.
-    expect(valorComputado([], '--ring')).toBe('85 85% 37%');
-    expect(valorComputado([], '--primary')).toBe('175 82% 29%');
+    //
+    // O lime é fixado porque É o defeito — some no dia em que o `:root` for
+    // corrigido, e aí este teste tem que cair. O `--primary` NÃO é fixado: ele
+    // já foi `175 82% 29%` e hoje é o `--teal-600`, e prender o valor aqui
+    // fazia este teste quebrar a cada troca legítima do teal, dizendo "o lime
+    // sumiu" quando nada disso tinha acontecido. O que ele precisa afirmar é
+    // que os dois DIVERGEM, e é isso que ele afirma.
+    const ring = valorComputado([], '--ring');
+    const primary = valorComputado([], '--primary');
+    expect(ring).toBe('85 85% 37%');
+    expect(primary).not.toBeNull();
+    expect(primary).not.toBe(ring);
   });
 });
 
