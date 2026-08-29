@@ -42,14 +42,38 @@ All colors MUST be HSL.
     --secondary: 175 84% 25%;
     --secondary-foreground: 0 0% 100%;
 
-    /* "muted" (barras de filtro, cabeçalho de tabela, zebra, fundo do FiscalLayout):
-       marfim tax-50 no lugar do cinza-azulado. */
-    --muted: var(--base-50);
+    /* ─── A superfície rebaixada, e ela agora tem UMA profundidade ──────────
+       "muted" pinta barra de filtro, cabeçalho de tabela, linha zebra e o fundo
+       do FiscalLayout. Marfim, e não o cinza-azulado, pela temperatura das
+       superfícies.
+
+       A luminosidade é 92% e é a mesma em toda área — antes não era, e essa foi
+       a falha. Cada área tinha escolhido um claro da própria escala e elas caíram
+       em alturas diferentes: 98% na base, 97% na Tax, 92% na OSG. O token dizia
+       "rebaixado" e entregava três profundidades. Na prática, a pílula ativa de
+       um segmented control (que é `bg-card` sobre este fundo) sumia na base e na
+       Tax — 1,04 e 1,05 de razão — e só aparecia na OSG, a 1,15. Agora as três
+       ficam entre 1,15 e 1,17.
+
+       92% não foi escolhido: é o valor que a OSG já tinha certo (`--osg-50`), e
+       as outras vieram encontrá-lo. Não vira `var(--base-*)` porque a escala da
+       base não tem esse degrau — o `--base-50` é 98% e o `--base-100` é 94% —, e
+       forçar um deles inverteria a ordem da escala ou pioraria a OSG. O literal
+       é o preço de as duas escalas não estarem alinhadas. */
+    --muted: 42 26% 92%;
     /* Neutro secundario (icone de menu, rotulo inativo, legenda, subtitulo).
        Era matiz 220 — cinza-AZULADO — sobre superficies marfim/bege: a camada
        secundaria inteira do sistema destoava da temperatura das superficies.
-       Mesma luminosidade de antes, para nao mexer no contraste. */
-    --muted-foreground: 28 9% 45%;
+
+       Escurecido de 45% para 41,5% JUNTO com o `--muted` acima, e o par é
+       indivisível: com o fundo a 92% e o texto a 45%, a razão caía para 4,00,
+       abaixo do 4,5 do WCAG AA — e o texto secundário sobre cabeçalho de tabela
+       e barra de filtro é justamente onde este token mais aparece.
+
+       Isso também conserta o que já estava quebrado e ninguém media: na Tax o
+       par dava 4,37 e na OSG 4,47, os dois reprovando ANTES desta mudança.
+       Agora as três passam, e sobre o cartão a leitura melhora junto (5,3). */
+    --muted-foreground: 28 9% 41.5%;
 
     --accent: 175 84% 25%;
     --accent-foreground: 0 0% 100%;
@@ -472,8 +496,8 @@ All colors MUST be HSL.
     --card: 42 24% 99.8%;
     --popover: 42 24% 99.8%;
     --canvas: 42 22% 99%;
-    --muted: var(--base-50);
-    --muted-foreground: 28 9% 45%;
+    --muted: 42 26% 92%;
+    --muted-foreground: 28 9% 41.5%;
     /* O vermelho de excluir é o `ajuste` da área, e a linha abaixo é a única
        coisa que resta de uma calibragem inteira. O valor anterior era 84% de
        saturação a 48% de luminosidade, e os 48% eram medida de emergência: a
@@ -550,12 +574,12 @@ All colors MUST be HSL.
     --card: 170 18% 99.6%;
     --popover: 170 18% 99.6%;
     --canvas: 170 16% 98.8%;
-    --muted: 168 20% 97%;
+    --muted: 168 20% 92%;
 
     /* O secundário acompanha a temperatura da superfície: com o fundo da Tax
        frio, um neutro quente aqui repetiria — ao contrário — a dissonância que
        o matiz 220 causava sobre os beges. Mesma luminosidade de antes. */
-    --muted-foreground: 185 8% 44%;
+    --muted-foreground: 185 8% 40.5%;
     /* Papéis de status — os mesmos oito significados do `:root`, com a
        saturação puxada na direção do azul-petróleo da Tax. Ver o `:root`. */
     --status-neutro: 32 21% 12%;
@@ -734,7 +758,7 @@ All colors MUST be HSL.
        fundo da barra CLIENTE do OSG Work. */
     --muted: var(--osg-50);
     /* Secundario da OSG: neutro quente do lado do taupe da area. */
-    --muted-foreground: 24 12% 42%;
+    --muted-foreground: 24 12% 41.5%;
 
     /* Vermelho de exclusão/cancelar — o `ajuste` da OSG. Era o `--osg-red`
        (carmim/tijolo #B62F38), escolhido para conviver com a paleta quente da
@@ -825,8 +849,8 @@ All colors MUST be HSL.
     /* Literal, e não `var(--base-50)` como vinha da base: a escala `--base-*`
        é da base, e manter a referência recriaria pela lateral o acoplamento
        que este bloco existe para cortar. Mesmo valor. */
-    --muted: 42 26% 98%;
-    --muted-foreground: 28 9% 45%;
+    --muted: 42 26% 92%;
+    --muted-foreground: 28 9% 41.5%;
     --destructive: var(--status-ajuste);
     --foreground: 20 81% 10%;
     --card-foreground: 20 81% 10%;
@@ -949,7 +973,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 178 30% 9%;
     --canvas: 168 16% 96%;
-    --muted: 168 20% 98%;
+    --muted: 168 20% 92%;
     --muted-foreground: 180 10% 38%;
     --foreground: 178 30% 9%;
 

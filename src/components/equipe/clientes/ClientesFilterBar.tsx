@@ -61,8 +61,15 @@ const CATEGORIA_OPTIONS: CategoriaOption[] = categoriaClienteList.map((c) => ({
  * CATEGORIA já haviam divergido: os dois primeiros eram um segmented control com
  * fundo, e a categoria eram chips soltos com borda própria — mesma função, dois
  * desenhos, e a linha de filtros parecia montada por duas pessoas diferentes.
+ *
+ * `bg-muted`, e não `bg-foreground/[0.06]` como era antes. O antigo usava token,
+ * então passava por certo, mas era CEGO PARA A ÁREA: `--foreground` é quase a
+ * mesma tinta escura em toda área, e 6% dela dava o mesmo cinza na Tax, na OSG e
+ * na base. `--muted` é o token de superfície rebaixada — o `index.css` diz, no
+ * comentário dele, que existe para "barras de filtro, cabeçalho de tabela,
+ * zebra" — e esse varia de verdade.
  */
-const TRILHO_DE_GRUPO = "inline-flex flex-wrap p-1 rounded-lg bg-foreground/[0.06]";
+const TRILHO_DE_GRUPO = "inline-flex flex-wrap p-1 rounded-lg bg-muted";
 
 /* ── Rótulo de grupo ───────────────────────────────────────────────── */
 
