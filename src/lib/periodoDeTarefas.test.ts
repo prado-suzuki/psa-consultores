@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { passoDeMes, tarefasNoPeriodo, tituloDoMes } from '@/lib/periodoDeTarefas';
+import {
+  ordenarPorVencimento,
+  passoDeMes,
+  tarefasNoPeriodo,
+  tituloDoMes,
+} from '@/lib/periodoDeTarefas';
 import type { OrgTask } from '@/hooks/useOrgTasks';
 
 const tarefa = (id: string, due_date: string | null): OrgTask =>
@@ -66,5 +71,54 @@ describe('tarefasNoPeriodo', () => {
     const tarefas = [tarefa('agosto-2025', '2025-08-15'), tarefa('agosto-2026', '2026-08-15')];
 
     expect(tarefasNoPeriodo(tarefas, AGOSTO, HOJE).map(t => t.id)).toEqual(['agosto-2026']);
+  });
+});
+
+describe('ordenarPorVencimento', () => {
+  it('da mais próxima para a mais distante', () => {
+    const tarefas = [
+      tarefa('sexta', '2026-08-14'),
+      tarefa('segunda', '2026-08-10'),
+      tarefa('quarta', '2026-08-12'),
+    ];
+
+    expect(ordenarPorVencimento(tarefas).map(t => t.id)).toEqual([
+      'segunda',
+      'quarta',
+      'sexta',
+    ]);
+  });
+
+  it('atravessa a virada do ano na ordem certa', () => {
+    const tarefas = [tarefa('janeiro', '2027-01-05'), tarefa('dezembro', '2026-12-28')];
+
+    expect(ordenarPorVencimento(tarefas).map(t => t.id)).toEqual(['dezembro', 'janeiro']);
+  });
+
+  it('sem prazo vai para o fim', () => {
+    const tarefas = [tarefa('sem-prazo', null), tarefa('agosto', '2026-08-10')];
+
+    expect(ordenarPorVencimento(tarefas).map(t => t.id)).toEqual(['agosto', 'sem-prazo']);
+  });
+
+  it('empate mantém a ordem de entrada', () => {
+    const tarefas = [
+      tarefa('primeira', '2026-08-10'),
+      tarefa('segunda', '2026-08-10'),
+      tarefa('terceira', '2026-08-10'),
+    ];
+
+    expect(ordenarPorVencimento(tarefas).map(t => t.id)).toEqual([
+      'primeira',
+      'segunda',
+      'terceira',
+    ]);
+  });
+
+  it('não mexe no array recebido', () => {
+    const tarefas = [tarefa('sexta', '2026-08-14'), tarefa('segunda', '2026-08-10')];
+    ordenarPorVencimento(tarefas);
+
+    expect(tarefas.map(t => t.id)).toEqual(['sexta', 'segunda']);
   });
 });

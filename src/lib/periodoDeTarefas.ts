@@ -45,3 +45,22 @@ export function tarefasNoPeriodo(tasks: OrgTask[], mes: Date, hoje: Date): OrgTa
     task.due_date ? isSameMonth(parseDate(task.due_date), mes) : hojeEstaAVista,
   );
 }
+
+/**
+ * Da mais próxima para a mais distante.
+ *
+ * A aba Futuras herdava a ordem em que as tarefas chegavam da consulta. Os
+ * grupos de semana já saíam em ordem, mas DENTRO de cada um não: em "Esta
+ * semana", uma que vencia na sexta podia aparecer antes de uma de segunda — e a
+ * aba que existe justamente para responder "o que vem primeiro" não respondia.
+ *
+ * Tarefa sem prazo vai para o fim: ela não tem lugar na fila de vencimento.
+ * Empate mantém a ordem de entrada, porque `Array.sort` é estável.
+ */
+export function ordenarPorVencimento(tasks: OrgTask[]): OrgTask[] {
+  return [...tasks].sort((a, b) => {
+    if (!a.due_date) return b.due_date ? 1 : 0;
+    if (!b.due_date) return -1;
+    return parseDate(a.due_date).getTime() - parseDate(b.due_date).getTime();
+  });
+}
