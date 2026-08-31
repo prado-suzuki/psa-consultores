@@ -55,8 +55,24 @@ vi.mock('@/contexts/OsgWorkContext', () => ({
 vi.mock('@/hooks/useDiagnosticoPatrimonial', () => ({
   useBensByCliente: () => ({ data: mocks.bens, isLoading: false, error: null }),
 }));
-vi.mock('@/hooks/useQuadroSocietario', () => ({
-  useQuadroSocietarioByEmpresa: () => ({ data: mocks.socios, isLoading: false, error: null }),
+// O QUADRO vem do livro de movimentos (`v_quadro_societario`), e o hook devolve
+// `pessoaId`. O mock segue a forma NOVA: mockar a antiga deixava o hook de verdade
+// rodar, e ele pede um `QueryClientProvider` que esta tela nao monta.
+vi.mock('@/hooks/useMovimentacaoQuotas', () => ({
+  useQuadroDaEmpresa: () => ({
+    data: mocks.socios.map((s: Record<string, unknown>) => ({
+      pessoaId: s.socio_pessoa_id,
+      denominacao: s.socio_denominacao,
+      tipoPessoa: s.socio_tipo_pessoa,
+      cpfCnpj: null,
+      quotas: s.quotas,
+      vlrTotal: 0,
+      ordem: null,
+      movimentoIds: [],
+    })),
+    isLoading: false,
+    error: null,
+  }),
 }));
 vi.mock('@/hooks/useSociedadesDoacao', () => ({
   useQuadroDasEmpresas: () => ({ data: mocks.quadroDasEmpresas, isLoading: false, error: null }),
