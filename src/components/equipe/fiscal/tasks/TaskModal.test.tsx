@@ -511,6 +511,28 @@ describe('TaskModal — criação', () => {
     expect(mocks.createTask).not.toHaveBeenCalled();
   });
 
+  it('avisa por toast e rola até a primeira pendência quando o envio é barrado', async () => {
+    // O caso que motivou isto: Descrição em branco, mensagem nascendo no fim do
+    // modal e a pessoa no topo da tela vendo o Criar não fazer nada.
+    const user = userEvent.setup();
+    const scrollIntoView = vi.fn();
+    // jsdom não implementa scrollIntoView; sem este stub a chamada nem existe.
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      writable: true,
+      value: scrollIntoView,
+    });
+    renderModal();
+
+    await user.click(screen.getByRole('button', { name: 'Criar' }));
+
+    await waitFor(() =>
+      expect(mocks.toast.error).toHaveBeenCalledWith('Preencha os campos obrigatórios destacados.'),
+    );
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalled());
+    expect(mocks.createTask).not.toHaveBeenCalled();
+  });
+
   it('restaura o rascunho e exibe o aviso', async () => {
     mocks.restoreDraft.mockReturnValue({ title: 'Rascunho salvo', description: 'Do rascunho' });
     renderModal();

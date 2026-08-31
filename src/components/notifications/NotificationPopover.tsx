@@ -32,8 +32,7 @@ import {
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { cn } from '@/lib/utils';
 import { linkEspelhado, type ChaveDeEspelho } from '@/lib/areaTheme';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { dataHoraCurta } from '@/lib/dateUtils';
 
 interface NotificationPopoverProps {
   navigateTo: string;
@@ -168,7 +167,7 @@ function TicketNotificationItem({
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {formatDistanceToNow(new Date(notification.updated_at), { addSuffix: true, locale: ptBR })}
+            {dataHoraCurta(notification.updated_at)}
           </p>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
@@ -214,7 +213,7 @@ function ReviewNotificationItem({
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {formatDistanceToNow(new Date(notification.updated_at), { addSuffix: true, locale: ptBR })}
+            {dataHoraCurta(notification.updated_at)}
           </p>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
@@ -272,10 +271,7 @@ function MencaoNotificationItem({
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {formatDistanceToNow(new Date(notification.created_at), {
-              addSuffix: true,
-              locale: ptBR,
-            })}
+            {dataHoraCurta(notification.created_at)}
           </p>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
@@ -340,10 +336,7 @@ function InternaNotificationItem({
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {formatDistanceToNow(new Date(notification.created_at), {
-              addSuffix: true,
-              locale: ptBR,
-            })}
+            {dataHoraCurta(notification.created_at)}
           </p>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />

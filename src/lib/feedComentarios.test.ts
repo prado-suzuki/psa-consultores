@@ -146,6 +146,39 @@ describe('agruparPorOrigem', () => {
   });
 });
 
+describe('mesmoBlocoDeAutor com evento de sistema', () => {
+  // O evento carrega o author_id de quem o disparou. Sem a trava, ele entraria
+  // como continuação da fala da pessoa e perderia avatar e título.
+  const base = { author_id: 'u1', parent_id: null, created_at: '2026-08-31T12:00:00Z' };
+
+  it('evento nunca continua o bloco da própria pessoa que o disparou', () => {
+    expect(
+      mesmoBlocoDeAutor(
+        { ...base, kind: 'review_submitted', created_at: '2026-08-31T12:02:00Z' },
+        { ...base, kind: 'comment' },
+      ),
+    ).toBe(false);
+  });
+
+  it('fala depois de evento também não continua', () => {
+    expect(
+      mesmoBlocoDeAutor(
+        { ...base, kind: 'comment', created_at: '2026-08-31T12:02:00Z' },
+        { ...base, kind: 'review_submitted' },
+      ),
+    ).toBe(false);
+  });
+
+  it('duas falas da mesma pessoa seguem agrupando', () => {
+    expect(
+      mesmoBlocoDeAutor(
+        { ...base, kind: 'comment', created_at: '2026-08-31T12:02:00Z' },
+        { ...base, kind: 'comment' },
+      ),
+    ).toBe(true);
+  });
+});
+
 describe('mesmoBlocoDeAutor', () => {
   const base = {
     author_id: 'u1',
