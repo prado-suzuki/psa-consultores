@@ -351,17 +351,42 @@ e na maioria delas é).
 ### "Token que nenhum tema declara" é o defeito recorrente deste sistema
 
 O `--warning` a 2,13:1 não foi um valor errado passando pelo teste — foi um token fora do
-contrato. **Esse mesmo defeito reapareceu**, e em 31/08/2026 dois casos foram cobrados. O contrato foi
-de 46 para 48 variáveis.
+contrato. **Esse mesmo defeito reapareceu quatro vezes**, e em 31/08/2026 os quatro foram
+cobrados de uma vez. O contrato foi de 46 para 50 variáveis.
 
 | token | onde vivia | o que produzia |
 |---|---|---|
 | `--accent-d` | cravado no `:root`, no bloco `--bd-*` | o degrau escuro que pinta **letra** (link, chip cheio, avatar) era o teal da casa em qualquer tema que não fosse Tax nem OSG |
 | `--accent-soft` | idem | o card tingido de KPI, igual |
-Restam **quatro** valores cravados no bloco `--bd-*`, comentados um a um no `index.css`:
-`--bd-surface2` (zebra), `--bd-line2` (divisória), `--bd-accent-l` (série de gráfico) e
-`--bd-line` (borda de card) — este último porque o par dele seria `--border`, que ainda **não
-existe** como token de tema. O critério para não derivar os outros três é o mesmo: o valor da casa **não tem par no contrato**, então derivar mexeria em pixel
+| `--border` | só no `:root`, `40 12% 91%` bege | borda de controle bege em **toda** rota, inclusive sobre as superfícies frias da casa (matiz 168) e da Tax (170) |
+| `--input` | idem | idem |
+
+O caso do `--border` tinha um agravante que só apareceu ao medir: o `--bd-line` do design
+system do Board era **frio** na casa (cravado) e **bege** na Tax e na OSG (onde resolvia
+`var(--border)`). Mesmo token, duas temperaturas, dependendo da rota.
+
+Agora cada tema declara a linha da família da superfície dele, e o peso é o mesmo nos três
+— que é a regra deste documento aplicada a linha em vez de a papel de status:
+
+| tema | `--border` | contraste no card |
+|---|---|---|
+| `.base-theme` | `168 14% 89%` | 1,26:1 (era 1,21) |
+| `.tax-theme` | `170 16% 89%` | 1,24:1 (era 1,20) |
+| `.osg-theme` | `32 20% 88%` | 1,26:1 (era 1,18) |
+
+A OSG **não** usa `var(--osg-100)`, e isso foi medido: daria 1,38:1, ou seja a mesma borda
+leria mais pesada na OSG do que nas outras áreas. As paletas conversam no **registro** e
+mudam de **família**; o peso da linha é registro.
+
+⚠️ **Dívida aberta, com número:** nenhuma das três passa em **WCAG 1.4.11**, que pede 3:1
+para borda de controle. 1,26 está longe. Chegar a 3:1 exige luminosidade por volta de 72% no
+lugar de 89% — borda visivelmente escura em todo input do produto. É decisão de design em
+aberto, e a mudança de 31/08 não a resolve; só tira a divergência de temperatura.
+
+Restam **três** valores cravados no bloco `--bd-*`, e os três estão comentados um a um no
+`index.css`: `--bd-surface2` (zebra, `168 20% 98%`), `--bd-line2` (divisória, `168 16% 94%`) e
+`--bd-accent-l` (série secundária de gráfico, `175 45% 72%`). O critério para não derivá-los é
+o mesmo nos três: o valor da casa **não tem par no contrato**, então derivar mexeria em pixel
 — nos dois primeiros escurecendo zebra e divisória, no terceiro trocando opaco por alfa. Isso
 é decisão de design, não limpeza, e é por isso que ficam visíveis em vez de entrarem de
 carona.

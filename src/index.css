@@ -296,9 +296,10 @@ All colors MUST be HSL.
        botões que usavam `bg-teal-600` continuaram teal — e o mesmo vale para
        qualquer área futura.
 
-       ⚠️ O MESMO PADRÃO foi cobrado em 31/08/2026: `--bd-accent-d` e
-       `--bd-accent-soft` também viviam no `:root` sem tema nenhum declarando, e
-       os dois entraram no contrato. Aqui a saída é OUTRA de propósito — esta escala é
+       ⚠️ ESTE É O ÚLTIMO DO PADRÃO, e o padrão foi cobrado três vezes em
+       31/08/2026: `--bd-accent-d`, `--bd-accent-soft` e o par `--border`/
+       `--input` também viviam no `:root` sem tema nenhum declarando, e os três
+       entraram no contrato. Aqui a saída é OUTRA de propósito — esta escala é
        PRIMITIVA, não token semântico: ela existe para alimentar o `--primary`
        de cada tema, então fazê-la seguir o tema seria circular. O que fecha o
        risco não é o contrato, é o lint abaixo, e é por isso que ele existe.
@@ -539,6 +540,30 @@ All colors MUST be HSL.
     --accent-d: 175 84% 22%;
     --accent-soft: 172 40% 94%;
 
+    /* ─── Linhas: borda de card, régua de tabela, contorno de input ─────────
+       Também entraram no contrato em 31/08/2026, e este era o pior dos três
+       casos: `--border` e `--input` viviam SÓ no `:root`, com `40 12% 91%` —
+       bege quente —, e NENHUM tema os declarava. Consequências medidas:
+
+       · a borda dos controles shadcn saía bege em toda rota, inclusive sobre as
+         superfícies frias desta casa (matiz 168) e as da Tax (170);
+       · o `--bd-line` do design system do Board era frio (168 14% 89%) cravado
+         no `:root`, mas na Tax e na OSG resolvia `hsl(var(--border))`, o bege.
+         Mesmo token, duas temperaturas, dependendo da rota.
+
+       Agora cada tema declara a linha da FAMÍLIA da superfície dele, e o
+       `--bd-line` segue `--border` nos três. Contraste contra o card, medido:
+       casa 1,26 · Tax 1,24 · OSG 1,26 — mesmo peso nos três, que é o que faz o
+       mesmo componente ler igual em áreas diferentes. Era 1,21 / 1,20 / 1,18.
+
+       ⚠️ NENHUM dos três passa em WCAG 1.4.11, que pede 3:1 para borda de
+       controle, e esta mudança NÃO resolve isso: 1,26 continua longe. Chegar a
+       3:1 exige luminosidade por volta de 72% no lugar de 89%, ou seja borda
+       visivelmente escura em todo input do produto. É decisão de design em
+       aberto, não esquecimento. */
+    --border: 168 14% 89%;
+    --input: 168 14% 89%;
+
     /* Sinais do sistema — os mesmos três papéis do `:root`, e aqui o `var()`
        faz o trabalho sozinho: como cada tema declara os próprios `--status-*`,
        o alias acompanha a área sem que nenhum bloco repita o valor.
@@ -761,6 +786,11 @@ All colors MUST be HSL.
        exatamente o que o bloco `:root.tax-theme` já produzia. */
     --accent-d: var(--status-andamento);
     --accent-soft: var(--status-andamento-soft);
+    /* Linha na matiz da superfície da Tax (background 170 18% 99.6%, canvas
+       170 16% 98.8%), um degrau abaixo do `--muted` dela (92%). Era o bege
+       `40 12% 91%` do `:root`, que nenhum tema declarava. 1,24:1 no card. */
+    --border: 170 16% 89%;
+    --input: 170 16% 89%;
     --success: var(--status-feito);
     --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
@@ -793,6 +823,18 @@ All colors MUST be HSL.
        186 62% 26% / 186 62% 86%, o mesmo que o bloco `:root.osg-theme` produzia. */
     --accent-d: var(--status-andamento);
     --accent-soft: var(--status-andamento-soft);
+
+    /* Linha na areia da OSG (matiz 32, a das superfícies dela), entre o
+       `--osg-50` (92%, que é o `--muted`) e o `--osg-100` (84%). Era o bege
+       `40 12% 91%` do `:root`, que nenhum tema declarava.
+
+       NÃO é `var(--osg-100)`, e isso foi medido: o `--osg-100` daria 1,38:1 no
+       card contra 1,26 da casa e 1,24 da Tax — a mesma borda leria mais pesada
+       na OSG do que nas outras áreas. O valor aqui fecha em 1,26, igual à casa.
+       As paletas conversam no REGISTRO e mudam de família; o peso da linha é
+       registro. */
+    --border: 32 20% 88%;
+    --input: 32 20% 88%;
 
     /* Sinais na OSG — foi o bloco que mais mudou. "Ok" era o verde musgo e
        "aviso" era o dourado do marca-texto, tokens de marca da área usados
@@ -1102,28 +1144,23 @@ All colors MUST be HSL.
      equivalente no contrato de tema, e derivação parcial seria pior que duas
      listas com um aviso". Ela estava certa sobre o diagnóstico e errada sobre a
      saída — a resposta não era desistir de derivar, era **fazer o contrato
-     crescer**. `--accent-d` e `--accent-soft` entraram nele, e aí `--bd-page`,
-     `--bd-surface`, `--bd-accent-d` e `--bd-accent-soft` passaram a ler o token
-     do tema. Nenhum moveu um pixel: o valor cravado era, número por número, o
-     que a casa já declarava.
+     crescer**. `--border`, `--accent-d` e `--accent-soft` entraram nele, e aí
+     `--bd-page`, `--bd-surface`, `--bd-line`, `--bd-accent-d` e
+     `--bd-accent-soft` passaram a ler o token do tema. Nenhum moveu um pixel:
+     o valor cravado era, número por número, o que a casa já declarava.
 
-     Sobraram QUATRO cravados — `--bd-surface2`, `--bd-line`, `--bd-line2` e
-     `--bd-accent-l` — e cada um está explicado na linha dele. O critério é o
-     mesmo nos quatro: o valor da casa NÃO tem par no contrato, então derivar
-     mexeria em pixel, e isso é decisão de design, não limpeza. É por isso que
-     eles ficam visíveis aqui em vez de entrarem de carona numa refatoração.
-
-     O `--bd-line` é o caso mais gritante da lista, e está aí de propósito: o
-     par dele no contrato seria `--border`, que NÃO EXISTE como token de tema —
-     ele vive só no `:root`, em bege quente, e nenhum tema o declara. Enquanto
-     for assim, esta linha continua cravada.
+     Sobraram TRÊS cravados — `--bd-surface2`, `--bd-line2` e `--bd-accent-l` —
+     e cada um está explicado na linha dele. O critério é o mesmo nos três: o
+     valor da casa NÃO tem par no contrato, então derivar mexeria em pixel, e
+     isso é decisão de design, não limpeza. É por isso que eles ficam visíveis
+     aqui em vez de entrarem de carona numa refatoração.
 
      Antes de 31/08 o par apontava para a `.board-theme`. Aquele bloco saiu no
      mesmo dia, porque as duas listas descreviam a MESMA casa: este é `:root` e
      valia em toda rota, enquanto o outro só vestia `/equipe/board`. */
   --bd-page:      hsl(var(--canvas));   /* fundo da área (fora dos cards)   */
   --bd-surface:   hsl(var(--card));     /* card                             */
-  --bd-line:      hsl(168 14% 89%);     /* borda de card, régua de tabela   */
+  --bd-line:      hsl(var(--border));   /* borda de card, régua de tabela   */
   /* Estes DOIS continuam cravados, e é o que sobra da lista dupla. Os de cima
      passaram a seguir o token de tema em 31/08/2026 porque o valor cravado era,
      número por número, o que a casa já declarava — trocar não moveu um pixel.
@@ -1660,28 +1697,27 @@ All colors MUST be HSL.
    superfície. Fora do Board eles precisam vestir as superfícies de quem os
    hospeda — senão a Tax marfim e a OSG areia recebem o fundo do Board.
 
-   ESTE BLOCO ENCOLHEU DE 10 LINHAS PARA 4, em 31/08/2026, e o que sobrou diz
-   exatamente o que ainda é exceção. Seis linhas saíram por dois motivos:
+   ESTE BLOCO ENCOLHEU DE 10 LINHAS PARA 3, em 31/08/2026, e o que sobrou diz
+   exatamente o que ainda é exceção. Sete linhas saíram por dois motivos:
 
    · REDUNDANTES desde sempre — `--bd-accent` e `--bd-accent-t` repetiam,
      caractere por caractere, o que o `:root` já declara. Nunca sobrescreveram
      nada;
-   · DESNECESSÁRIAS agora — `--bd-page`, `--bd-surface`, `--bd-accent-d` e
-     `--bd-accent-soft` existiam porque o `:root` cravava o valor da CASA nesses
-     quatro, e a Tax e a OSG precisavam desviar. O `:root` passou a ler o token
-     de tema (`--canvas`, `--card`, `--accent-d`, `--accent-soft`), então o
-     desvio virou a regra e o bloco não precisa dele. `--accent-d` e
-     `--accent-soft` entraram no contrato nessa mesma passada — ver a nota no
-     `.base-theme`.
+   · DESNECESSÁRIAS agora — `--bd-page`, `--bd-surface`, `--bd-line`,
+     `--bd-accent-d` e `--bd-accent-soft` existiam porque o `:root` cravava o
+     valor da CASA nesses cinco, e a Tax e a OSG precisavam desviar. O `:root`
+     passou a ler o token de tema (`--canvas`, `--card`, `--border`, `--accent-d`,
+     `--accent-soft`), então o desvio virou a regra e o bloco não precisa dele.
+     `--border`, `--accent-d` e `--accent-soft` entraram no contrato de tema
+     nessa mesma passada — ver a nota no `.base-theme`.
 
-   O que sobra são as quatro em que o valor da casa NÃO tem par no contrato, ou
+   O que sobra são as três em que o valor da casa NÃO tem par no contrato, ou
    seja: mudar exigiria mexer em pixel. Estão explicadas uma a uma no `:root`.
    Uma área nova que declare tema não precisa mais entrar aqui — ela herda
    pelos tokens. */
 :root.tax-theme,
 :root.osg-theme {
   --bd-surface2: hsl(var(--muted));
-  --bd-line:     hsl(var(--border));
   --bd-line2:    hsl(var(--muted));
   --bd-accent-l: hsl(var(--primary) / .35);
 }
