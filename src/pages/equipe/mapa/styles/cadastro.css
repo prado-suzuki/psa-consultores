@@ -48,8 +48,8 @@
   border-radius: 22px;
   background: #ffffff;
   box-shadow:
-    0 1px 2px rgba(15,23,42,0.04),
-    0 22px 48px -34px rgba(15,23,42,0.22);
+    0 1px 2px hsl(var(--slate-900) / 0.04),
+    0 22px 48px -34px hsl(var(--slate-900) / 0.22);
   animation: cadastro-fade-in 0.5s ease both;
 }
 /* Aurora teal difusa, ancorada no canto superior — profundidade sem ruído. */
@@ -150,7 +150,7 @@
   letter-spacing: 0.005em;
   cursor: pointer;
   box-shadow:
-    0 1px 2px rgba(15,23,42,0.14),
+    0 1px 2px hsl(var(--slate-900) / 0.14),
     0 12px 24px -12px rgba(13,148,136,0.65);
   transition: transform var(--transition-base), box-shadow var(--transition-base), filter var(--transition-base);
 }
@@ -159,7 +159,7 @@
   transform: translateY(-2px);
   filter: saturate(1.06);
   box-shadow:
-    0 2px 4px rgba(15,23,42,0.14),
+    0 2px 4px hsl(var(--slate-900) / 0.14),
     0 18px 34px -12px rgba(13,148,136,0.72);
 }
 .cadastro-cta:hover svg{ transform: rotate(90deg); }
@@ -173,7 +173,7 @@
   cursor: not-allowed;
   transform: none;
   filter: none;
-  box-shadow: 0 1px 2px rgba(15,23,42,0.14);
+  box-shadow: 0 1px 2px hsl(var(--slate-900) / 0.14);
 }
 
 /* ===========================================================================
@@ -198,15 +198,15 @@
   background: #fff;
   border: 1px solid #e6eaf0;
   border-radius: var(--radius-pill);
-  color: #94a3b8;
-  box-shadow: 0 1px 2px rgba(15,23,42,0.04);
+  color: hsl(var(--slate-400));
+  box-shadow: 0 1px 2px hsl(var(--slate-900) / 0.04);
   transition: border-color var(--transition-base), box-shadow var(--transition-base), color var(--transition-base);
 }
 .cadastro-busca svg{
   flex-shrink: 0;
   transition: transform var(--transition-base);
 }
-.cadastro-busca:hover{ border-color: #cbd5e1; }
+.cadastro-busca:hover{ border-color: hsl(var(--slate-300)); }
 .cadastro-busca:focus-within{
   border-color: var(--accent-color);
   color: var(--accent-color);
@@ -223,9 +223,9 @@
   min-width: 0;
   font-family: var(--font-display);
   font-size: 0.92rem;
-  color: #0f172a;
+  color: hsl(var(--slate-900));
 }
-.cadastro-busca input::placeholder{ color: #94a3b8; }
+.cadastro-busca input::placeholder{ color: hsl(var(--slate-400)); }
 .cadastro-busca-limpar{
   display: inline-flex;
   align-items: center;
@@ -233,17 +233,17 @@
   border: none;
   padding: 3px;
   cursor: pointer;
-  color: #94a3b8;
+  color: hsl(var(--slate-400));
   border-radius: var(--radius-sm);
   transition: color var(--transition-fast), background var(--transition-fast);
 }
-.cadastro-busca-limpar:hover{ color: var(--on-surface); background: #f1f5f9; }
+.cadastro-busca-limpar:hover{ color: var(--on-surface); background: hsl(var(--slate-100)); }
 .cadastro-contagem{
   margin-left: auto;
   font: var(--font-label-caps);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #94a3b8;
+  color: hsl(var(--slate-400));
   white-space: nowrap;
 }
 
@@ -266,7 +266,7 @@
   padding: 5px 12px;
   border-radius: var(--radius-pill);
   border: 1px solid transparent;
-  background: #f1f5f9;
+  background: hsl(var(--slate-100));
   color: #5b6b7f;
   font: var(--font-label-caps);
   text-transform: uppercase;
@@ -275,9 +275,9 @@
   cursor: pointer;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
-.cadastro-tag:hover{ border-color: #cbd5e1; }
-.cadastro-tag:focus-visible{ outline: none; border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.20); }
-.cadastro-tag.ativa{ border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.18); }
+.cadastro-tag:hover{ border-color: hsl(var(--slate-300)); }
+.cadastro-tag:focus-visible{ outline: none; border-color: hsl(var(--slate-400)); box-shadow: 0 0 0 3px hsl(var(--slate-400) / 0.20); }
+.cadastro-tag.ativa{ border-color: hsl(var(--slate-400)); box-shadow: 0 0 0 3px hsl(var(--slate-400) / 0.18); }
 .cadastro-tag strong{
   font-weight: 800;
   font-size: 0.82rem;
@@ -365,8 +365,8 @@
   transition: transform var(--transition-base);
 }
 .cadastro-item:hover{
-  border-color: #e2e8f0;
-  box-shadow: 0 14px 30px -18px rgba(15,23,42,0.30);
+  border-color: hsl(var(--slate-200));
+  box-shadow: 0 14px 30px -18px hsl(var(--slate-900) / 0.30);
 }
 .cadastro-item:hover::before,
 .cadastro-item:focus-within::before{ transform: scaleY(1); }
@@ -386,8 +386,8 @@
   height: 44px;
   border-radius: 14px;
   /* Repouso: cinza leve (slate). Hover: vira verde teal com a animação. */
-  background: #f1f5f9;
-  color: #64748b;
+  background: hsl(var(--slate-100));
+  color: hsl(var(--slate-500));
   transition: transform var(--transition-base), background var(--transition-base), color var(--transition-base);
 }
 .cadastro-item:hover .cadastro-item-orb,
@@ -483,7 +483,7 @@
   padding: 7px;
   cursor: pointer;
   border-radius: 10px;
-  color: #94a3b8;
+  color: hsl(var(--slate-400));
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 .cadastro-item-acao:hover{ background: var(--accent-50); color: var(--accent-color); }
@@ -555,8 +555,8 @@
 .cadastro-empty-compacto .cadastro-empty-icone{
   width: 52px;
   height: 52px;
-  background: #f1f5f9;
-  color: #94a3b8;
+  background: hsl(var(--slate-100));
+  color: hsl(var(--slate-400));
   box-shadow: none;
   margin-bottom: 14px;
   animation: none;
@@ -596,7 +596,7 @@
   content: '';
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, #e2e8f0, rgba(226,232,240,0));
+  background: linear-gradient(90deg, hsl(var(--slate-200)), hsl(var(--slate-200) / 0));
 }
 .modal h2 + .cadastro-form-secao{ margin-top: 6px; }
 .cadastro-form-row{
@@ -612,7 +612,7 @@ textarea.cadastro-form-textarea{
 .cadastro-form-leitura{
   margin-top: 18px;
   padding: 14px 16px;
-  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  background: linear-gradient(180deg, #f8fafc, hsl(var(--slate-100)));
   border: 1px solid #eef1f6;
   border-radius: var(--radius-md);
 }
@@ -620,7 +620,7 @@ textarea.cadastro-form-textarea{
   font: var(--font-label-caps);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #94a3b8;
+  color: hsl(var(--slate-400));
   margin-bottom: 8px;
 }
 .cadastro-form-leitura-vazio{
@@ -631,7 +631,7 @@ textarea.cadastro-form-textarea{
 .cadastro-form-leitura-hint{
   margin: 8px 0 0;
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: hsl(var(--slate-400));
 }
 .cadastro-form-leitura .tags{
   display: flex;
@@ -666,7 +666,7 @@ textarea.cadastro-form-textarea{
   margin: -4px 0 14px;
   font-size: 0.78rem;
   line-height: 1.5;
-  color: #64748b;
+  color: hsl(var(--slate-500));
 }
 .cadastro-form-hint-inline strong{ color: var(--on-surface-variant); }
 
@@ -825,8 +825,8 @@ textarea.cadastro-form-textarea{
   align-items: center;
   padding: 3px 11px;
   border-radius: var(--radius-pill);
-  background: #f1f5f9;
-  color: #475569;
+  background: hsl(var(--slate-100));
+  color: hsl(var(--slate-600));
   font-size: 0.74rem;
   font-weight: 600;
 }
@@ -845,7 +845,7 @@ textarea.cadastro-form-textarea{
 .processo-det-descricao{
   margin: 0 0 18px;
   padding: 12px 14px;
-  background: linear-gradient(180deg, #f8fafc, #f1f5f9);
+  background: linear-gradient(180deg, #f8fafc, hsl(var(--slate-100)));
   border: 1px solid #eef1f6;
   border-radius: var(--radius-md);
   color: #374151;
@@ -866,8 +866,8 @@ textarea.cadastro-form-textarea{
   transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 .processo-acc.aberta{
-  border-color: #e2e8f0;
-  box-shadow: 0 8px 22px -18px rgba(15,23,42,0.30);
+  border-color: hsl(var(--slate-200));
+  box-shadow: 0 8px 22px -18px hsl(var(--slate-900) / 0.30);
 }
 .processo-acc-head{
   display: flex;
@@ -904,15 +904,15 @@ textarea.cadastro-form-textarea{
   text-align: center;
   padding: 1px 8px;
   border-radius: var(--radius-pill);
-  background: #f1f5f9;
-  color: #64748b;
+  background: hsl(var(--slate-100));
+  color: hsl(var(--slate-500));
   font-size: 0.72rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .processo-acc-chevron{
   flex-shrink: 0;
-  color: #94a3b8;
+  color: hsl(var(--slate-400));
   transition: transform var(--transition-base);
 }
 .processo-acc.aberta .processo-acc-chevron{ transform: rotate(180deg); }
@@ -969,7 +969,7 @@ textarea.cadastro-form-textarea{
   padding: 4px 11px;
   border-radius: var(--radius-pill);
   background: #f4f6f9;
-  color: #475569;
+  color: hsl(var(--slate-600));
   font-size: 0.78rem;
   font-weight: 500;
 }
@@ -977,7 +977,7 @@ textarea.cadastro-form-textarea{
   margin: 0;
   font-size: 0.85rem;
   font-style: italic;
-  color: #94a3b8;
+  color: hsl(var(--slate-400));
 }
 .processo-det-editar{
   display: inline-flex;
@@ -1076,7 +1076,7 @@ textarea.cadastro-form-textarea{
   font-weight: 700;
   letter-spacing: 0.02em;
 }
-.mapear-etapas-chip.vazio{ background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+.mapear-etapas-chip.vazio{ background: hsl(var(--slate-100)); color: hsl(var(--slate-500)); border-color: hsl(var(--slate-200)); }
 
 /* Barra de downloads do processo — SOPs + Diagrama */
 .mapear-downloads{
@@ -1140,7 +1140,7 @@ textarea.cadastro-form-textarea{
   font-family: var(--font-display);
   font-size: 0.92rem;
   font-weight: 600;
-  color: #64748b;
+  color: hsl(var(--slate-500));
   transition: color var(--transition-base);
 }
 .mapear-tab:hover{ color: var(--on-surface); }
@@ -1221,8 +1221,8 @@ textarea.cadastro-form-textarea{
   transition: border-color var(--transition-base), box-shadow var(--transition-base);
 }
 .mapear-etapa:hover{
-  border-color: #e2e8f0;
-  box-shadow: 0 12px 28px -20px rgba(15,23,42,0.30);
+  border-color: hsl(var(--slate-200));
+  box-shadow: 0 12px 28px -20px hsl(var(--slate-900) / 0.30);
 }
 .mapear-etapa-top{ display: flex; align-items: center; gap: 12px; }
 .mapear-etapa-num{
@@ -1252,8 +1252,8 @@ textarea.cadastro-form-textarea{
   flex-shrink: 0;
   padding: 3px 10px;
   border-radius: var(--radius-pill);
-  background: #f1f5f9;
-  color: #475569;
+  background: hsl(var(--slate-100));
+  color: hsl(var(--slate-600));
   font-size: 0.7rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -1278,7 +1278,7 @@ textarea.cadastro-form-textarea{
   font: var(--font-label-caps);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #94a3b8;
+  color: hsl(var(--slate-400));
   margin-bottom: 6px;
 }
 .mapear-chips{ display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1289,7 +1289,7 @@ textarea.cadastro-form-textarea{
   padding: 3px 10px;
   border-radius: var(--radius-pill);
   background: #f4f6f9;
-  color: #475569;
+  color: hsl(var(--slate-600));
   font-size: 0.78rem;
   font-weight: 500;
 }
@@ -1303,7 +1303,7 @@ textarea.cadastro-form-textarea{
   opacity: 0.7;
   font-variant-numeric: tabular-nums;
 }
-.mapear-vazio{ color: #cbd5e1; font-size: 0.85rem; }
+.mapear-vazio{ color: hsl(var(--slate-300)); font-size: 0.85rem; }
 
 /* Chip de etapa clicável → abre o modal de edição da entidade (doc/sistema/
    responsável/gargalo). Mesma regra de edição cruzada das seções do detalhe. */
@@ -1330,14 +1330,14 @@ textarea.cadastro-form-textarea{
   gap: 10px 22px;
   margin-top: 14px;
   padding-top: 12px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid hsl(var(--slate-100));
 }
 .mapear-metric{ display: flex; flex-direction: column; gap: 1px; }
 .mapear-metric-label{
   font: var(--font-label-caps);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #94a3b8;
+  color: hsl(var(--slate-400));
 }
 .mapear-metric-val{
   font-size: 0.92rem;
@@ -1357,9 +1357,9 @@ textarea.cadastro-form-textarea{
 .justif-chip{
   padding: 6px 12px;
   border-radius: var(--radius-pill);
-  border: 1px solid #e2e8f0;
+  border: 1px solid hsl(var(--slate-200));
   background: #fff;
-  color: #475569;
+  color: hsl(var(--slate-600));
   font-family: var(--font-display);
   font-size: 0.82rem;
   font-weight: 600;
@@ -1484,7 +1484,7 @@ textarea.cadastro-form-textarea{
    cada gargalo é um card separado com seu próprio "+ Melhoria".
    Visual sóbrio: caixas neutras, melhorias em verde (accent).
    ══════════════════════════════════════════════════════════════════ */
-.mapear-gm-hint{ font-size: 0.78rem; color: #64748b; margin: 0 0 10px; line-height: 1.45; }
+.mapear-gm-hint{ font-size: 0.78rem; color: hsl(var(--slate-500)); margin: 0 0 10px; line-height: 1.45; }
 .mapear-gm-list{ display: flex; flex-direction: column; gap: 10px; }
 
 .mapear-gm-card{
@@ -1507,7 +1507,7 @@ textarea.cadastro-form-textarea{
   min-width: 0;
   font-size: 0.88rem;
   font-weight: 600;
-  color: #1e293b;
+  color: hsl(var(--slate-800));
   line-height: 1.3;
 }
 .mapear-gm-x{
@@ -1515,7 +1515,7 @@ textarea.cadastro-form-textarea{
   border: none;
   background: none;
   cursor: pointer;
-  color: #cbd5e1;
+  color: hsl(var(--slate-300));
   padding: 3px;
   border-radius: 6px;
   line-height: 0;
@@ -1529,7 +1529,7 @@ textarea.cadastro-form-textarea{
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 700;
-  color: #94a3b8;
+  color: hsl(var(--slate-400));
 }
 .mapear-gm-chips{ display: flex; flex-wrap: wrap; gap: 6px; }
 .mapear-gm-chip{
@@ -1584,7 +1584,7 @@ textarea.cadastro-form-textarea{
   position: fixed;
   inset: 0;
   z-index: 1200;
-  background: rgba(15, 23, 42, 0.5);
+  background: hsl(var(--slate-900) / 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1596,7 +1596,7 @@ textarea.cadastro-form-textarea{
   padding: 22px 24px;
   max-width: 440px;
   width: 100%;
-  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+  box-shadow: 0 20px 50px hsl(var(--slate-900) / 0.3);
 }
-.mapear-confirm-card h3{ margin: 0 0 8px; font-size: 1.05rem; color: #0f172a; }
-.mapear-confirm-card p{ margin: 0 0 16px; font-size: 0.88rem; color: #475569; line-height: 1.5; }
+.mapear-confirm-card h3{ margin: 0 0 8px; font-size: 1.05rem; color: hsl(var(--slate-900)); }
+.mapear-confirm-card p{ margin: 0 0 16px; font-size: 0.88rem; color: hsl(var(--slate-600)); line-height: 1.5; }
