@@ -413,6 +413,20 @@ Deno.serve(async (req) => {
       return json({ success: true, skipped: true, reason: "nunca_enviada" });
     }
 
+    // E cobrar quem já foi encerrado é pedir o que não se pede mais: encerrar é o
+    // consultor declarando o pedido concluído. A guarda faltava aqui e existia
+    // duas linhas acima para o aviso 3, que checa `enviada_em` E `encerrada_em`.
+    // Simetria restabelecida em 26/08/2026.
+    //
+    // A tela também esconde o botão em `encerrada` (`BotaoAvisarCliente.tsx`, no
+    // mesmo early return que já cobria `rascunho`), e a RPC do aviso interno
+    // recusa igual. Esta camada é para quem chama a borda de fora da tela: o n8n
+    // com a chave de servidor, ou uma aba velha em que outra pessoa encerrou.
+    if (event_type === "situacao_documentos" && solicitacao.encerrada_em) {
+      console.log(`[notificar] Skipped: solicitação ${solicitacao.id} já está encerrada`);
+      return json({ success: true, skipped: true, reason: "encerrada" });
+    }
+
     // ── O aviso 4 afirma um NEGATIVO, e é o único que faz isso ──
     //
     // "não consta o recebimento de nenhum documento". Os outros três nascem de um

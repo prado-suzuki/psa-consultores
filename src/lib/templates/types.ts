@@ -26,6 +26,11 @@ export interface Bloco {
   conteudo: string;
   /** Tipo estrutural; ausente equivale a 'livre' (blocos legados). */
   tipo?: TipoBloco;
+  /**
+   * Reinicia capítulos e cláusulas a partir deste bloco. A consolidação dentro
+   * de uma alteração contratual é um documento embutido e começa outra série.
+   */
+  reiniciaNumeracao?: boolean;
   /** Flags que precisam estar TODAS ativas para o bloco entrar (AND simples; sem OR, sem negação). */
   flagsRequeridas?: string[];
   /** Se true, entra sempre, ignorando flags. */

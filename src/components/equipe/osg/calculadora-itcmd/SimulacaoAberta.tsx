@@ -128,7 +128,7 @@ function Corpo({
 
   return (
     <ComoDicas>
-      <div className="shrink-0 space-y-3 rounded-t-lg border-b border-osg-100/70 bg-background px-6 pb-4 pt-5">
+      <div className="shrink-0 space-y-3 rounded-t-lg border-b border-border/70 bg-background px-6 pb-4 pt-5">
         <DialogHeader className="space-y-0 text-left">
           <DialogTitle asChild>
             <NomeEditavel
@@ -176,7 +176,7 @@ function Corpo({
               ele fica visualmente separado: caixa própria, com a borda da OSG. Antes
               era um `ml-auto` solto, que jogava o campo na extrema direita sem nada
               que o ancorasse, e ele lia como se tivesse escapado da linha. */}
-          <div className="ml-auto space-y-1 rounded-lg border border-osg-100 bg-osg-50/40 px-3 py-2">
+          <div className="ml-auto space-y-1 rounded-lg border border-border bg-osg-50/40 px-3 py-2">
             <span className={rotuloCls}>
               <ComDica
                 dica={'Rascunho, gerada, aprovada ou substituída. Trocar o status não '
@@ -425,7 +425,7 @@ function QuadroDaDoacao({ simulacao, nome }: {
         </thead>
         <tbody className="font-mono tabular-nums">
           {simulacao.doadores.map((d) => (
-            <tr key={`doa-${d.pessoaId}`} className="border-t border-osg-100/70">
+            <tr key={`doa-${d.pessoaId}`} className="border-t border-border/70">
               <Txt className="font-sans">{nome(d.pessoaId, d.nome)}</Txt>
               <Txt className="font-sans text-muted-foreground">Doador</Txt>
               <Txt className="font-sans text-muted-foreground">
@@ -449,7 +449,7 @@ function QuadroDaDoacao({ simulacao, nome }: {
             </tr>
           ))}
           {simulacao.donatarios.map((d) => (
-            <tr key={`don-${d.pessoaId}`} className="border-t border-osg-100/70">
+            <tr key={`don-${d.pessoaId}`} className="border-t border-border/70">
               <Txt className="font-sans">{nome(d.pessoaId, d.nome)}</Txt>
               <Txt className="font-sans text-muted-foreground">Donatário</Txt>
               {/* Donatário não emite guia — a guia é do doador. */}
@@ -511,7 +511,7 @@ function QuadroDoUsufruto({ simulacao, nome }: {
 }) {
   if (simulacao.usufruto.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-osg-200/70 px-4 py-10 text-center text-sm text-muted-foreground">
+      <p className="rounded-lg border border-dashed border-border px-4 py-10 text-center text-sm text-muted-foreground">
         Esta simulação foi gravada antes de o quadro de usufruto passar a ser
         registrado.
         <span className="mt-1 block text-muted-foreground">
@@ -569,7 +569,7 @@ function QuadroDoUsufruto({ simulacao, nome }: {
               {guias.map((c) => (
                 <tr
                   key={`${c.deId}>${c.paraId}`}
-                  className="border-t border-osg-100/70"
+                  className="border-t border-border/70"
                 >
                   <Txt className="font-sans">{nome(c.deId, c.deNome)}</Txt>
                   <Txt className="font-sans">{nome(c.paraId, c.paraNome)}</Txt>
@@ -633,7 +633,7 @@ function QuadroDoUsufruto({ simulacao, nome }: {
               const nua = BigInt(l.quotasNuaReserva) + BigInt(l.quotasNuaInstituicao);
               const usufrui = BigInt(l.quotasUsufruto);
               return (
-                <tr key={l.pessoaId} className="border-t border-osg-100/70">
+                <tr key={l.pessoaId} className="border-t border-border/70">
                   <Txt className="font-sans">{nome(l.pessoaId, l.nome)}</Txt>
                   <Txt className="font-sans text-muted-foreground">
                     {l.papel === 'usufrui' ? 'Usufrutuário' : 'Nu-proprietário'}
@@ -693,7 +693,7 @@ function DesfechoDoAto({ comReserva, pctBaseReserva, pctBaseInstituicao, guias }
 
   if (!comReserva && guias === 0) {
     return (
-      <p className="rounded-md border border-osg-200/70 bg-muted/60 px-3 py-2.5 text-sm text-foreground">
+      <p className="rounded-md border border-border bg-muted/60 px-3 py-2.5 text-sm text-foreground">
         <strong className="font-semibold">Nenhum ato de usufruto neste cenário.</strong>
         {' Cada um vota o que tem: não há instrumento de usufruto nem guia a recolher. '}
         O quadro abaixo é como a sociedade fica depois da doação.
@@ -702,7 +702,7 @@ function DesfechoDoAto({ comReserva, pctBaseReserva, pctBaseInstituicao, guias }
   }
 
   return (
-    <div className="space-y-1.5 rounded-md border border-osg-100 bg-osg-50/40 px-3 py-2.5 text-sm text-osg-700">
+    <div className="space-y-1.5 rounded-md border border-border bg-osg-50/40 px-3 py-2.5 text-sm text-osg-700">
       {comReserva && (
         <p>
           <strong className="font-semibold">Reserva de usufruto na doação</strong>
@@ -790,12 +790,12 @@ function QuadroDoCenario({ cenario, ordem, simulacao, nome }: {
   return (
     <section
       style={{ animationDelay: `${ordem * 70}ms` }}
-      className="animate-osg-rise overflow-hidden rounded-lg border border-osg-100 bg-card motion-reduce:animate-none"
+      className="animate-osg-rise overflow-hidden rounded-lg border border-border bg-card motion-reduce:animate-none"
     >
-      <h4 className="border-b border-osg-100 bg-osg-50/60 px-3 py-2 text-xs font-semibold text-osg-700">
+      <h4 className="border-b border-border bg-osg-50/60 px-3 py-2 text-xs font-semibold text-osg-700">
         <ComDica dica={DICA_CENARIO[cenario]}>{ROTULO_CENARIO[cenario]}</ComDica>
       </h4>
-      <dl className="divide-y divide-osg-100/70 text-xs">
+      <dl className="divide-y divide-border/70 text-xs">
         <LinhaDeValor
           rotulo="Total do acervo"
           valor={brlDeDecimal(simulacao.acervoPorCenario[cenario])}
@@ -906,7 +906,7 @@ function ACadeia({ simulacao, todas }: {
           {cadeia.map((s, i) => (
             <tr
               key={s.id}
-              className={`border-t border-osg-100/70 ${s.id === simulacao.id ? 'bg-osg-50/30' : ''}`}
+              className={`border-t border-border/70 ${s.id === simulacao.id ? 'bg-osg-50/30' : ''}`}
             >
               <Txt className="font-sans">
                 <span className="mr-2 text-muted-foreground/70">{i + 1}</span>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { numerarBlocos, refsNumeracao, unirBlocos } from './numeracao';
+import { numerarBlocos, refsNumeracao, rotulosNumeracao, unirBlocos } from './numeracao';
 import { gerarDocumento } from './index';
 import type { Bloco, Template } from './types';
 
@@ -57,6 +57,58 @@ describe('numerarBlocos', () => {
     expect(numerados[0].conteudo).toBe('Preâmbulo.');
     expect(numerados[1].conteudo).toBe('Bloco legado.');
   });
+
+  it('reinicia a série de cláusulas a partir do bloco marcado', () => {
+    const blocos = [
+      bloco('res1', 'clausula', 'Primeira resolução.'),
+      bloco('res2', 'clausula', 'Segunda resolução.'),
+      bloco('cabecalho', 'livre', 'CONSOLIDAÇÃO', { reiniciaNumeracao: true }),
+      bloco('cl1', 'clausula', 'Denominação.'),
+      bloco('cl2', 'clausula', 'Sede.'),
+    ];
+
+    expect(numerarBlocos(blocos).map((b) => b.conteudo)).toEqual([
+      '*CLÁUSULA PRIMEIRA:* Primeira resolução.',
+      '*CLÁUSULA SEGUNDA:* Segunda resolução.',
+      'CONSOLIDAÇÃO',
+      '*CLÁUSULA PRIMEIRA:* Denominação.',
+      '*CLÁUSULA SEGUNDA:* Sede.',
+    ]);
+    expect(rotulosNumeracao(blocos)).toEqual([
+      'CLÁUSULA PRIMEIRA',
+      'CLÁUSULA SEGUNDA',
+      null,
+      'CLÁUSULA PRIMEIRA',
+      'CLÁUSULA SEGUNDA',
+    ]);
+  });
+
+  it('reinicia capítulos junto com as cláusulas', () => {
+    const numerados = numerarBlocos([
+      bloco('cap-res', 'capitulo', 'Alterações'),
+      bloco('res', 'clausula', 'Resolução.'),
+      bloco('cabecalho', 'livre', 'CONSOLIDAÇÃO', { reiniciaNumeracao: true }),
+      bloco('cap-consolidado', 'capitulo', 'Denominação'),
+      bloco('cl-consolidado', 'clausula', 'A sociedade gira sob o nome X.'),
+    ]);
+
+    expect(numerados[2].conteudo).toBe('CONSOLIDAÇÃO');
+    expect(numerados[3].conteudo).toBe('*CAPÍTULO I*\nDenominação');
+    expect(numerados[4].conteudo).toBe('*CLÁUSULA PRIMEIRA:* A sociedade gira sob o nome X.');
+  });
+
+  it('mantém o comportamento contínuo quando nenhum bloco tem a marca', () => {
+    const numerados = numerarBlocos([
+      bloco('cap1', 'capitulo', 'Primeiro capítulo'),
+      bloco('cl1', 'clausula', 'Primeira cláusula.'),
+      bloco('livre', 'livre', 'Interlúdio.'),
+      bloco('cap2', 'capitulo', 'Segundo capítulo'),
+      bloco('cl2', 'clausula', 'Segunda cláusula.'),
+    ]);
+
+    expect(numerados[3].conteudo).toBe('*CAPÍTULO II*\nSegundo capítulo');
+    expect(numerados[4].conteudo).toBe('*CLÁUSULA SEGUNDA:* Segunda cláusula.');
+  });
 });
 
 describe('refsNumeracao', () => {
@@ -79,6 +131,28 @@ describe('refsNumeracao', () => {
       'parágrafo único',
       null,
     ]);
+  });
+
+  it('resolve referências nas séries anterior e posterior ao reinício', () => {
+    const template: Template = {
+      id: 'duas-series',
+      nome: 'alteração e consolidação',
+      blocos: [
+        bloco('res1', 'clausula', 'Primeira resolução.', { ancora: 'resolucao_sede' }),
+        bloco('res2', 'clausula', 'Ver {{ refs.resolucao_sede }}.'),
+        bloco('cabecalho', 'livre', 'CONSOLIDAÇÃO', { reiniciaNumeracao: true }),
+        bloco('denominacao', 'clausula', 'Denominação.', { ancora: 'denominacao' }),
+        bloco('sede', 'clausula', 'Ver {{ refs.denominacao }}.'),
+      ],
+    };
+
+    expect(gerarDocumento(template, {})).toBe(
+      '*CLÁUSULA PRIMEIRA:* Primeira resolução.\n\n' +
+        '*CLÁUSULA SEGUNDA:* Ver Cláusula Primeira.\n\n' +
+        'CONSOLIDAÇÃO\n\n' +
+        '*CLÁUSULA PRIMEIRA:* Denominação.\n\n' +
+        '*CLÁUSULA SEGUNDA:* Ver Cláusula Primeira.',
+    );
   });
 });
 

@@ -277,7 +277,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
               value={busca}
               onChange={(evento) => setBusca(evento.target.value)}
               placeholder="Buscar pessoa, imóvel ou documento..."
-              className="border-slate-200/80 bg-slate-50/60 pl-9"
+              className="bg-muted/60 pl-9"
             />
           </div>
         </div>

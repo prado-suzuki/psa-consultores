@@ -34,7 +34,7 @@ import type { LinhaDoUsufruto } from '@/lib/osg/usufrutoDoAto';
 export function AbaDoUsufruto({ calc }: { calc: CalculadoraItcmd }) {
   if (calc.linhasDoUsufruto.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-osg-200/70 px-4 py-8 text-center text-sm text-muted-foreground">
+      <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
         Monte o ato na aba <strong>Doação</strong> primeiro. O usufruto se apoia no quadro
         de lá: é o que foi doado que vira nua propriedade.
       </p>

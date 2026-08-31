@@ -32,15 +32,24 @@ export function useQuadroDasEmpresas(empresaIds: string[]) {
     queryKey: ['itcd-quadro-das-empresas', chave],
     enabled: empresaIds.length > 0,
     queryFn: async (): Promise<LinhaDoQuadro[]> => {
+      // A FONTE MUDOU: o quadro societario deixou de ser tabela e passou a ser o
+      // acumulado do livro de movimentos (`movimentacao_quotas`), exposto em
+      // `v_quadro_societario`. A view chama a coluna de `pessoa_id`; o nome
+      // `socio_pessoa_id` continua aqui porque e o que a calculadora le, e trocar
+      // isso mexeria no motor por causa de um rename de coluna.
       const { data, error } = await supabase
-        .from('quadro_societario')
-        .select('empresa_pessoa_id, socio_pessoa_id, quotas')
+        .from('v_quadro_societario')
+        .select('empresa_pessoa_id, pessoa_id, quotas')
         .in('empresa_pessoa_id', empresaIds);
 
       // Sem fallback silencioso: erro sobe e a tela mostra, em vez de virar
       // uma lista vazia que parece "cliente sem sociedade".
       if (error) throw error;
-      return data ?? [];
+      return (data ?? []).flatMap((l) => (l.pessoa_id == null ? [] : [{
+        empresa_pessoa_id: l.empresa_pessoa_id ?? '',
+        socio_pessoa_id: l.pessoa_id,
+        quotas: l.quotas,
+      }]));
     },
   });
 }

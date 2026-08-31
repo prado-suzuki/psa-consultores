@@ -7,7 +7,7 @@ import { campoDaEntidade, ENTIDADES, type TipoCampo, type TipoEntidade } from '.
 // o consultor liga cada binding a um registro real do cliente.
 //
 // Cardinalidade 'lista': papéis PLURAIS ({{#socios}}…{{/socios}}) iteram sobre uma
-// FONTE relacional (quadro_societario/administracao) da empresa escolhida — o
+// FONTE relacional (quadro societário/administracao) da empresa escolhida: o
 // consultor liga a empresa, não cada pessoa. Dentro da seção, os campos do item
 // usam a chave singular ({{ socio.nome }}) mais os extras da relação
 // ({{ socio.quotas }}) e as condicionais {{#sePF}}/{{#sePJ}}.
@@ -146,14 +146,16 @@ export function normalizarSelecaoLegada(
 
 /**
  * Fonte de uma lista:
- * - `quadro_societario`, `administracao`, `integralizacao`: relações da empresa
- *   (PJ) escolhida — o consultor liga a empresa, não cada item;
+ * - `quadro`, `administracao`, `integralizacao`: relações da empresa (PJ)
+ *   escolhida, e o consultor liga a empresa, não cada item. `quadro` é o quadro
+ *   societário, lido da view v_quadro_societario (o acumulado dos movimentos de
+ *   quota), não de uma tabela homônima;
  * - `signatarios`: derivada dessas relações (quem assina o documento);
  * - `georef`: BigQuery, pela matrícula selecionada (não depende da empresa);
  * - `selecao`: registros que o consultor escolhe a dedo na tela Gerar (também
  *   não depende da empresa — ver `usaListas` em useGerarDocumentoController).
  */
-export type FonteLista = 'quadro_societario' | 'administracao' | 'integralizacao' | 'georef' | 'signatarios' | 'selecao';
+export type FonteLista = 'quadro' | 'administracao' | 'integralizacao' | 'georef' | 'signatarios' | 'selecao';
 
 export interface CampoExtra {
   id: string;
@@ -180,7 +182,7 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     label: 'Sócios (Quadro Societário)',
     tipo: 'pessoa',
     itemKey: 'socio',
-    fonte: 'quadro_societario',
+    fonte: 'quadro',
     camposExtras: [
       { id: 'quotas', label: 'Quotas' },
       { id: 'quotasExtenso', label: 'Quotas (por extenso)' },
@@ -213,6 +215,7 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'cpfCnpj', label: 'CPF/CNPJ' },
       { id: 'qualificacao', label: 'Qualificação complementar' },
       { id: 'eSocio', label: 'É sócio? (condicional)' },
+      { id: 'eRetirante', label: 'É sócio retirante? (condicional)' },
       { id: 'eAdministrador', label: 'É administrador? (condicional)' },
       { id: 'eConjuge', label: 'É cônjuge outorgante? (condicional)' },
       { id: 'eTestemunha', label: 'É testemunha? (condicional)' },
@@ -243,18 +246,69 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     ],
   },
   integralizacoes: {
-    label: 'Integralizações (imóveis aprovados, por sócio)',
+    label: 'Integralizações (aportes por sócio)',
     tipo: 'pessoa',
     // refItem: o item da 1ª descrição do imóvel (referência cruzada) — o campo
     // {{ refItem.ref }} recebe o carimbo de numeração da composição.
+    // aporte/origem: a alínea MISTA ({{#aportes}}), que aceita as três formas de
+    // integralizar — imóvel, moeda corrente e quotas de outra sociedade (esta
+    // última qualificada por inteiro em {{ origem.* }}).
     itemKey: 'socio',
-    itemKeysExtras: ['imovel', 'refItem'],
-    secoesItem: ['imoveis', 'completa', 'referencia'],
+    itemKeysExtras: ['imovel', 'refItem', 'aporte', 'origem'],
+    secoesItem: [
+      'imoveis', 'completa', 'referencia',
+      'aportes', 'seImovel', 'seMoeda', 'seQuotas',
+    ],
     fonte: 'integralizacao',
     camposExtras: [
       { id: 'ordem', label: 'Ordem do sócio na integralização (1, 2…)' },
       { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
     ],
+  },
+  // Cessões de quotas do livro de movimentos: uma por item, com as DUAS pontas
+  // qualificadas. A resolução de cessão publicava só o quadro resultante, o que
+  // dizia o efeito sem dizer o ato; aqui ela nomeia cedente, cessionário e
+  // quantidade, como no instrumento registrado.
+  cessoes: {
+    label: 'Cessões de quotas',
+    tipo: 'pessoa',
+    itemKey: 'cedente',
+    itemKeysExtras: ['cessionario', 'cessao'],
+    secoesItem: [
+      'seCessao', 'seDoacao',
+      'cedentePF', 'cedentePJ', 'cessionarioPF', 'cessionarioPJ',
+    ],
+    fonte: 'quadro',
+    camposExtras: [],
+  },
+  // Os sócios que SAEM nesta alteração. Deriva do mesmo par que as cessões (o
+  // livro + o quadro resultante), então a fonte é 'quadro': quem cedeu a
+  // totalidade das quotas não sobra em {{#socios}}, e sem uma lista própria a
+  // cláusula de retirada não teria como nomeá-los.
+  retirantes: {
+    label: 'Sócios retirantes (cederam a totalidade)',
+    tipo: 'pessoa',
+    itemKey: 'retirante',
+    fonte: 'quadro',
+    camposExtras: [
+      { id: 'ordem', label: 'Ordem do retirante (1, 2…)' },
+      { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
+    ],
+  },
+  // Os imóveis DO DOCUMENTO que têm georreferenciamento, um item por matrícula
+  // certificada — a coleção do bloco repetidor do memorial SIGEF. Quem entra não
+  // é um imóvel escolhido à parte: são as matrículas que o documento já descreve
+  // (alíneas de {{#integralizacoes}}, {{#imoveis}} e bindings unitários), e só as
+  // que o SIGEF tem. Nenhuma certificada ⇒ coleção vazia ⇒ o bloco sai da
+  // composição, que é o "o memorial só aparece se alguma matrícula tiver georref".
+  // Cada item é { imovel: {...campos + georef*}, vertices: [...] }.
+  memoriais: {
+    label: 'Memoriais de georreferenciamento (imóveis do documento)',
+    tipo: 'matricula',
+    itemKey: 'imovel',
+    secoesItem: ['vertices'],
+    fonte: 'georef',
+    camposExtras: [],
   },
   // Vértices do memorial descritivo (georreferenciamento). Diferente das demais
   // listas, a fonte é o BigQuery pela matrícula selecionada (fonte 'georef'), não
@@ -552,11 +606,35 @@ export function listarPlaceholders(): PlaceholderSugerido[] {
       '{{#imoveis sep="\\n"}}{{ imovel.alinea }}) {{#completa}}…descrição completa…{{/completa}}' +
       '{{#referencia}}…referência à alínea "{{ imovel.refAlinea }}" do {{ refItem.ref }}…{{/referencia}}{{/imoveis}}',
   });
+  out.push({
+    placeholder: 'integralizacoes.aportes',
+    label: 'Integralizações — alíneas MISTAS (imóvel, moeda corrente, quotas de outra sociedade)',
+    grupo: grupoInteg,
+    tipo: 'texto',
+    insercao:
+      '{{#aportes sep="\n"}}{{ aporte.alinea }}) ' +
+      '{{#seImovel}}…descrição do imóvel…{{/seImovel}}' +
+      '{{#seMoeda}}em moeda corrente nacional{{/seMoeda}}' +
+      '{{#seQuotas}}{{ aporte.quotas }} ({{ aporte.quotasExtenso }}) quotas da sociedade ' +
+      '{{ origem.razaoSocial }}{{/seQuotas}}, pelo valor de R$ {{ aporte.valor }} ' +
+      '({{ aporte.valorExtenso }}).{{/aportes}}',
+  });
   for (const [id, label] of [
     ['imovel.alinea', 'Letra da alínea (a, b…)'],
     ['imovel.refAlinea', 'Alínea da descrição original (referência)'],
     ['refItem.ref', 'Parágrafo da descrição original (referência automática)'],
     ['imovel.refSocio', 'Sócio da descrição original (referência)'],
+    ['aporte.alinea', 'Alínea mista — letra (a, b…)'],
+    ['aporte.quotas', 'Alínea mista — quotas subscritas por este aporte'],
+    ['aporte.quotasExtenso', 'Alínea mista — quotas por extenso'],
+    ['aporte.valor', 'Alínea mista — valor do aporte'],
+    ['aporte.valorExtenso', 'Alínea mista — valor por extenso'],
+    ['origem.razaoSocial', 'Sociedade de origem das quotas — razão social'],
+    ['origem.cnpj', 'Sociedade de origem das quotas — CNPJ'],
+    ['origem.nire', 'Sociedade de origem das quotas — NIRE'],
+    ['origem.sede', 'Sociedade de origem das quotas — sede'],
+    ['origem.quotas', 'Quotas entregues da sociedade de origem'],
+    ['origem.valor', 'Valor das quotas entregues da sociedade de origem'],
   ] as const) {
     out.push({
       placeholder: id,
@@ -564,6 +642,30 @@ export function listarPlaceholders(): PlaceholderSugerido[] {
       grupo: grupoInteg,
       tipo: 'texto',
     });
+  }
+  // Específicos da lista de cessões: os campos do MOVIMENTO (quantidade e valor)
+  // e o esqueleto da cláusula que nomeia as duas pontas.
+  const grupoCessoes = PAPEIS_LISTA.cessoes.label;
+  out.push({
+    placeholder: 'cessoes.clausula',
+    label: 'Cessões — corpo da cláusula (cedente, cessionário e quantidade)',
+    grupo: grupoCessoes,
+    tipo: 'texto',
+    insercao:
+      '{{#cessoes sep="; " fim="; e "}}{{ cessao.ordemRomana }}) *{{ cedente.nomeMaiusculo }}* ' +
+      'cede e transfere {{ cessao.quotas }} ({{ cessao.quotasExtenso }}) quotas, ' +
+      'no valor total de R$ {{ cessao.valor }} ({{ cessao.valorExtenso }}), ' +
+      'a *{{ cessionario.nomeMaiusculo }}*{{/cessoes}}',
+  });
+  for (const [id, label] of [
+    ['cessao.quotas', 'Quotas cedidas'],
+    ['cessao.quotasExtenso', 'Quotas cedidas (por extenso)'],
+    ['cessao.valor', 'Valor de capital das quotas cedidas (R$)'],
+    ['cessao.valorExtenso', 'Valor por extenso'],
+    ['cessao.ordem', 'Ordem da cessão na lista (1, 2…)'],
+    ['cessao.ordemRomana', 'Ordem em romano minúsculo (i, ii…)'],
+  ] as const) {
+    out.push({ placeholder: id, label: `Cessões — ${label}`, grupo: grupoCessoes, tipo: 'texto' });
   }
   // Referências de numeração resolvidas pela composição (ver index.ts).
   out.push({

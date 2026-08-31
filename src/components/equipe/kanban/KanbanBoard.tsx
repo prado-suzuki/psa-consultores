@@ -82,7 +82,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
             {props.getColumnDeliverables(column.id).map((deliverable) => (
               <div key={deliverable.id}>
                 <Card
-                  className="bg-white border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+                  className="border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
                   draggable
                   onDragStart={(event) =>
                     event.dataTransfer.setData('deliverableId', deliverable.id)

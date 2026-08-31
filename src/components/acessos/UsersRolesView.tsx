@@ -116,7 +116,7 @@ export const UsersRolesView = ({
       <Card className="border-slate-200 shadow-sm">
         <CardHeader>
           <CardTitle className="text-slate-700">Usuários e Permissões</CardTitle>
-          <CardDescription className="text-slate-500">
+          <CardDescription>
             Lista de todos os usuários e seus níveis de acesso
           </CardDescription>
         </CardHeader>
@@ -129,11 +129,11 @@ export const UsersRolesView = ({
             <Table>
               <TableHeader className="bg-muted">
                 <TableRow>
-                  <TableHead className="text-slate-600">Usuário</TableHead>
-                  <TableHead className="text-slate-600">Email</TableHead>
-                  <TableHead className="text-slate-600">Permissões</TableHead>
+                  <TableHead>Usuário</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Permissões</TableHead>
                   {columns.map((role) => (
-                    <TableHead key={role} className="text-center text-slate-600">
+                    <TableHead key={role} className="text-center">
                       {columnHeader(role)}
                     </TableHead>
                   ))}

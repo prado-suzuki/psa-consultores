@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
@@ -12,9 +13,11 @@ type AuditEntityType =
   | 'cliente' | 'contribuinte' | 'representante' | 'ordem_servico'
   | 'regra_pis_cofins' | 'procedimento' | 'correcao_icms'
   | 'ciclo_avaliacao' | 'meta' | 'kpi_meta' | 'feedback' | 'reuniao_1a1' | 'analise_semestral'
-  | 'pessoa' | 'parentesco' | 'administracao' | 'quadro_societario'
+  | 'pessoa' | 'parentesco' | 'administracao' | 'quadro_societario' | 'movimentacao_quotas'
+  | 'ato_societario'
   | 'bem' | 'matricula' | 'titularidade' | 'impedimento' | 'cartorio'
-  | 'tmpl_bloco' | 'tmpl_documento' | 'documento_arquivo'
+  | 'tmpl_bloco' | 'tmpl_documento' | 'documento_arquivo' | 'projeto_flag_valor'
+  | 'documento_gerado' | 'documento_override'
   | 'solicitacao' | 'solicitacao_item' | 'solicitacao_item_nao_aplicavel'
   | 'org_comment'
   | 'itcd_simulacao';
@@ -36,13 +39,16 @@ export const useAuditLog = () => {
   const inserirLog = useCallback(async (entry: AuditLogEntry, userId: string) => {
     // `insert` do supabase-js NÃO lança: devolve `{ error }`. Sem checar aqui,
     // uma recusa de RLS passava batida — nem o console.error abaixo rodava.
-    const { error } = await supabase.from('audit_logs' as any).insert({
+    const { error } = await supabase.from('audit_logs').insert({
       area: entry.area,
       entity_type: entry.entity_type,
       entity_id: entry.entity_id,
       entity_name: entry.entity_name,
       action: entry.action,
-      changed_fields: entry.changed_fields ?? null,
+      // O cast é só do diff: `changed_fields` é uma coluna jsonb, e o tipo `Json`
+      // gerado não aceita o `unknown` de dentro do FieldDiff. Antes o escape era
+      // no `.from('audit_logs' as any)`, que tirava a checagem da tabela inteira.
+      changed_fields: (entry.changed_fields ?? null) as Json,
       performed_by: userId,
       details: entry.details ?? null,
     });

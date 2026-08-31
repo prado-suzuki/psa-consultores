@@ -44,52 +44,52 @@ export function DifalSummaryActions({
         <div className="grid grid-cols-3 gap-4 mb-6">
           <Card
             className={cn(
-              'border-amber-200 bg-amber-50/50 cursor-pointer transition-all hover:shadow-md',
-              statusFilter === 'pending' && 'ring-2 ring-amber-500 ring-offset-2',
+              'border-warning/40 bg-warning/10 cursor-pointer transition-all hover:shadow-md',
+              statusFilter === 'pending' && 'ring-2 ring-warning ring-offset-2',
             )}
             onClick={() => onStatusFilterChange('pending')}
           >
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-amber-100 flex items-center justify-center">
-                <AlertCircle className="h-5 w-5 text-amber-600" />
+              <div className="h-10 w-10 rounded-lg bg-warning/20 flex items-center justify-center">
+                <AlertCircle className="h-5 w-5 text-warning" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-amber-700">{qtdPendentes}</p>
-                <p className="text-xs text-amber-600">Pendentes</p>
+                <p className="text-2xl font-bold text-foreground">{qtdPendentes}</p>
+                <p className="text-xs text-muted-foreground">Pendentes</p>
               </div>
             </CardContent>
           </Card>
           <Card
             className={cn(
-              'border-green-200 bg-green-50/50 cursor-pointer transition-all hover:shadow-md',
-              statusFilter === 'validated' && 'ring-2 ring-green-500 ring-offset-2',
+              'border-success/40 bg-success/10 cursor-pointer transition-all hover:shadow-md',
+              statusFilter === 'validated' && 'ring-2 ring-success ring-offset-2',
             )}
             onClick={() => onStatusFilterChange('validated')}
           >
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-green-100 flex items-center justify-center">
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <div className="h-10 w-10 rounded-lg bg-success/20 flex items-center justify-center">
+                <CheckCircle2 className="h-5 w-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-green-700">{qtdValidados}</p>
-                <p className="text-xs text-green-600">Validados</p>
+                <p className="text-2xl font-bold text-foreground">{qtdValidados}</p>
+                <p className="text-xs text-muted-foreground">Validados</p>
               </div>
             </CardContent>
           </Card>
           <Card
             className={cn(
-              'border-slate-200 cursor-pointer transition-all hover:shadow-md',
+              'cursor-pointer transition-all hover:shadow-md',
               statusFilter === 'all' && 'ring-2 ring-primary ring-offset-2',
             )}
             onClick={() => onStatusFilterChange('all')}
           >
             <CardContent className="p-4 flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center">
-                <Package className="h-5 w-5 text-slate-600" />
+              <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
+                <Package className="h-5 w-5 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{totalItems}</p>
-                <p className="text-xs text-slate-500">Total de produtos</p>
+                <p className="text-2xl font-bold text-foreground">{totalItems}</p>
+                <p className="text-xs text-muted-foreground">Total de produtos</p>
               </div>
             </CardContent>
           </Card>

@@ -151,6 +151,12 @@ describe('inclusão num bloco repetidor (o caminho real da tela Gerar)', () => {
     nome: 'contrato',
     blocos: [
       {
+        id: 'clausula-capital',
+        tipo: 'clausula',
+        obrigatorio: true,
+        conteudo: 'O capital social é integralizado pelos sócios.',
+      },
+      {
         id: 'paragrafo-integralizacao',
         tipo: 'paragrafo',
         obrigatorio: true,
@@ -177,12 +183,12 @@ describe('inclusão num bloco repetidor (o caminho real da tela Gerar)', () => {
         },
       ],
     };
-    const blocos = gerarBlocos(template, contexto, [], FAMILIAS);
-    expect(blocos).toHaveLength(2);
-    expect(blocos[0].conteudo).toBe(
+    const paragrafos = gerarBlocos(template, contexto, [], FAMILIAS).filter((bloco) => bloco.tipo === 'paragrafo');
+    expect(paragrafos).toHaveLength(2);
+    expect(paragrafos[0].conteudo).toBe(
       '*Parágrafo Primeiro:* O sócio Avelino integraliza:\na) Um imóvel rural denominado Fazenda São Bento.\nb) Um imóvel urbano na Avenida das Itaúbas.',
     );
-    expect(blocos[1].conteudo).toBe(
+    expect(paragrafos[1].conteudo).toBe(
       '*Parágrafo Segundo:* O sócio Iracema integraliza:\na) Um imóvel urbano na Rua dos Ipês.',
     );
   });

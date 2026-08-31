@@ -1,0 +1,21 @@
+-- 20260826151559_org_comment_kind_osg_avisos.sql
+-- GES-03 · a thread do projeto ganha os dois eventos que faltavam da solicitacao
+-- OSG. Sao tres eventos ao todo, e o primeiro deles, 'documentos_solicitados',
+-- ja existe desde a EDU-1 (20260812120100).
+--
+-- POR QUE TRES VALORES E NAO UM. O rotulo do kind ocupa o LUGAR DO NOME DO AUTOR
+-- na linha da mensagem: OrgCommentsPanel.tsx:267 renderiza
+-- `isSystem ? SYSTEM_LABELS[comment.kind] : comment.author_name`. Num comentario
+-- de pessoa a linha diz "Eduardo Nogueira"; num evento de sistema ela diz o nome
+-- do evento. Com um kind so para os tres, o encerramento apareceria assinado
+-- como "Documentos solicitados ao cliente", que e falso para quem le a thread
+-- semanas depois.
+--
+-- ALTER TYPE ... ADD VALUE nao roda dentro de bloco de transacao: o arquivo fica
+-- solto, sem BEGIN/COMMIT, e o USO dos valores fica no arquivo seguinte
+-- (20260826120100). Molde: 20260812120100_org_comment_kind_documentos_solicitados.sql
+--
+-- Reversao: nao existe DROP VALUE em enum do Postgres. Desfazer exigiria recriar
+-- o tipo inteiro, e nao compensa: valor de enum que ninguem grava e inerte.
+ALTER TYPE public.org_comment_kind ADD VALUE IF NOT EXISTS 'documentos_cobrados';
+ALTER TYPE public.org_comment_kind ADD VALUE IF NOT EXISTS 'documentos_conferidos';

@@ -45,8 +45,18 @@ const GLINT_PATH = 'M0 -30 L11 -11 30 0 11 11 0 30 -11 11 -30 0 -11 -11Z';
  * Com `prefers-reduced-motion` as animações são desligadas e a moeda para em
  * repouso sobre o lombo — o resultado é o ícone Tax estático.
  */
-/** Cor base do porquinho — mesclada com a `className` do call site, não trocada por ela. */
-const TAX_LOADER_COLOR ='text-[#0e4b5a]';
+/**
+ * Cor base do porquinho — mesclada com a `className` do call site, não trocada
+ * por ela. Continua explícita de propósito: o loader não pode herdar a cor do
+ * container, senão some no fundo.
+ *
+ * Era `text-[#0e4b5a]`, o hexadecimal medido neste desenho. Esse valor VIROU a
+ * âncora da área Tax (`--primary` na `.tax-theme`, `192 73% 20%`), então manter
+ * o literal aqui deixava a fonte da cor como o único lugar que não a seguia: no
+ * dia em que a âncora se mexesse, o porquinho ficaria para trás sozinho. Apontar
+ * para o token não muda pixel — os dois valores são o mesmo — e fecha o fio.
+ */
+const TAX_LOADER_COLOR = 'text-primary';
 
 const TaxLoader: React.FC<TaxLoaderProps> = ({
   size = 64,

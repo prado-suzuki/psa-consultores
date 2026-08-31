@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { motivoDeDescarte } from './descarte';
 import { gerarBlocos, gerarComposicao, gerarDocumento } from './index';
 import { mapearMatricula, mapearSociedade, type MatriculaParaMapear } from './mapeadores';
+import { prefixosNumeracao } from './numeracao';
 import { renderBloco } from './render';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { Bloco, Contexto, Template } from './types';
@@ -279,6 +280,7 @@ describe('emenda 9.2 · o descarte se anuncia', () => {
       id: 'rep',
       nome: 'repetidor',
       blocos: [
+        bloco('cl', 'clausula', 'Os sócios integralizam o capital.'),
         { ...bloco('p', 'paragrafo', 'O sócio {{ socio.nome }} integraliza.'), repeteColecao: 'socios' },
       ],
     };
@@ -288,6 +290,122 @@ describe('emenda 9.2 · o descarte se anuncia', () => {
     expect(descartados).toEqual([
       { id: 'p#2', instanciaDe: 'p', tipo: 'paragrafo', motivo: 'campos-vazios' },
     ]);
+  });
+});
+
+describe('parágrafo sem cláusula governante sai em cascata', () => {
+  it('cláusula descartada por lista vazia arrasta os dois parágrafos e anuncia os motivos', () => {
+    const template: Template = {
+      id: 'administracao',
+      nome: 'administração sem administrador',
+      blocos: [
+        bloco('cap-administracao', 'capitulo', 'Administração'),
+        bloco(
+          'cl-administracao',
+          'clausula',
+          '{{#administradores}}A sociedade será administrada por {{ administrador.nome }}.{{/administradores}}',
+        ),
+        bloco('p-vedacao', 'paragrafo', 'É vedado empregar o nome da sociedade em negócios estranhos.'),
+        bloco('p-impedimento', 'paragrafo', 'O administrador declara que não está impedido de administrar.'),
+        bloco('cl-substituicao', 'clausula', 'É vedado ao administrador fazer-se substituir.'),
+      ],
+    };
+
+    const composicao = gerarComposicao(template, { administradores: [] });
+
+    expect(composicao.blocos.map((b) => b.id)).toEqual(['cap-administracao', 'cl-substituicao']);
+    expect(composicao.descartados).toEqual([
+      { id: 'cl-administracao', instanciaDe: undefined, tipo: 'clausula', motivo: 'lista-vazia' },
+      { id: 'p-vedacao', instanciaDe: undefined, tipo: 'paragrafo', motivo: 'clausula-descartada' },
+      { id: 'p-impedimento', instanciaDe: undefined, tipo: 'paragrafo', motivo: 'clausula-descartada' },
+    ]);
+  });
+
+  it('mantém o parágrafo da responsabilidade depois da Tabela Quotistas', () => {
+    const template: Template = {
+      id: 'capital',
+      nome: 'capital e responsabilidade',
+      blocos: [
+        bloco('cl-capital', 'clausula', 'O capital social é integralizado em moeda corrente.'),
+        bloco('tabela-quotistas', 'livre', '| Quotista | Quotas |\n| :--- | ---: |\n| Ana | 100 |'),
+        bloco('p-responsabilidade', 'paragrafo', 'A responsabilidade dos sócios é restrita ao valor das quotas.'),
+      ],
+    };
+
+    const composicao = gerarComposicao(template, {});
+
+    expect(composicao.blocos.map((b) => b.id)).toEqual(['cl-capital', 'tabela-quotistas', 'p-responsabilidade']);
+    expect(composicao.descartados).toEqual([]);
+    expect(composicao.blocos[2].conteudo).toContain('*Parágrafo Único:*');
+  });
+
+  it('descarta parágrafo logo depois de capítulo, sem cláusula anterior', () => {
+    const template: Template = {
+      id: 'orfao-de-origem',
+      nome: 'parágrafo sem caput',
+      blocos: [
+        bloco('cap', 'capitulo', 'Administração'),
+        bloco('p', 'paragrafo', 'Texto fixo sem cláusula.'),
+      ],
+    };
+
+    const composicao = gerarComposicao(template, {});
+
+    expect(composicao.blocos.map((b) => b.id)).toEqual(['cap']);
+    expect(composicao.descartados).toEqual([
+      { id: 'p', instanciaDe: undefined, tipo: 'paragrafo', motivo: 'clausula-descartada' },
+    ]);
+  });
+
+  it('preserva o motivo próprio quando o parágrafo também está órfão', () => {
+    const template: Template = {
+      id: 'orfao-vazio',
+      nome: 'parágrafo órfão e vazio',
+      blocos: [
+        bloco('cap', 'capitulo', 'Administração'),
+        bloco('p', 'paragrafo', 'Administrador: {{ administrador.nome }}.'),
+      ],
+    };
+
+    const composicao = gerarComposicao(template, { administrador: { nome: '' } });
+
+    expect(composicao.descartados).toEqual([
+      { id: 'p', instanciaDe: undefined, tipo: 'paragrafo', motivo: 'campos-vazios' },
+    ]);
+  });
+
+  it('fecha a numeração depois do descarte e não deixa parágrafo pendurado', () => {
+    const template: Template = {
+      id: 'numeracao-administracao',
+      nome: 'contrato social',
+      blocos: [
+        bloco('cap-capital', 'capitulo', 'Capital'),
+        bloco('cl-capital', 'clausula', 'O capital social é de cem reais.'),
+        bloco('cap-administracao', 'capitulo', 'Administração'),
+        bloco('cl-administracao', 'clausula', '{{#administradores}}{{ administrador.nome }}{{/administradores}}'),
+        bloco('p-vedacao', 'paragrafo', 'É vedado empregar o nome da sociedade em negócios estranhos.'),
+        bloco('p-impedimento', 'paragrafo', 'O administrador declara que não está impedido.'),
+        bloco('cl-substituicao', 'clausula', 'É vedado ao administrador fazer-se substituir.'),
+      ],
+    };
+
+    const composicao = gerarComposicao(template, { administradores: [] });
+
+    expect(composicao.blocos.map((b) => b.id)).toEqual([
+      'cap-capital',
+      'cl-capital',
+      'cap-administracao',
+      'cl-substituicao',
+    ]);
+    expect(prefixosNumeracao(composicao.blocos)).toEqual([
+      '*CAPÍTULO I*\n',
+      '*CLÁUSULA PRIMEIRA:* ',
+      '*CAPÍTULO II*\n',
+      '*CLÁUSULA SEGUNDA:* ',
+    ]);
+    expect(composicao.blocos[3].conteudo).toBe(
+      '*CLÁUSULA SEGUNDA:* É vedado ao administrador fazer-se substituir.',
+    );
   });
 });
 

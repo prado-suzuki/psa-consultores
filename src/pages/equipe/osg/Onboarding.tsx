@@ -307,7 +307,7 @@ const Onboarding = () => {
             <div className="flex items-start gap-3 rounded-2xl border border-osg-200/70 bg-osg-50/60 p-4 text-sm text-osg-700">
               <Lock className="mt-0.5 h-4 w-4 shrink-0 text-osg-500/70" />
               <p className="leading-relaxed">
-                Esta solicitação foi <strong className="font-semibold">encerrada</strong>
+                Esta solicitação foi <strong className="font-semibold">finalizada</strong>
                 {solicitacao?.encerradaEm ? ` em ${emData(solicitacao.encerradaEm)}` : ''} e
                 está só para consulta. O cliente continua vendo os arquivos que enviou, mas
                 não envia mais nada. Para pedir outros documentos, abra uma nova solicitação

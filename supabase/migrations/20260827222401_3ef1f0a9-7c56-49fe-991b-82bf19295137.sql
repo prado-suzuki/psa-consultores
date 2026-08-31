@@ -1,0 +1,67 @@
+-- 20260824143238_notificacao_tipo_solicitacao_vencida.sql
+-- GES-04: o aviso de solicitacao vencida sem NENHUM documento recebido ganha valor
+-- proprio no enum.
+-- Tarefa: docs/sprints/sprint-12/TAREFA_cobrar-solicitacao-sem-documento.md
+-- Redacao e modelo: docs/sprints/sprint-12/VALIDACAO_aviso-sem-documento.md
+--
+-- ALTER TYPE ... ADD VALUE nao roda dentro de bloco de transacao: fica solto,
+-- sem BEGIN/COMMIT. E o valor NAO pode ser usado neste mesmo arquivo.
+-- Molde: 20260819170000_osg_doc_categoria_proposta_comercial.sql, inteiro.
+--
+-- POR QUE VALOR NOVO, E NAO REUSAR `cobranca_pendencia`
+--    O precedente da casa (docs/geral/avisos-cliente.md) foi NAO acrescentar valor
+--    ao enum e traduzir na borda pelo mapa `TIPO_NO_BANCO` -- o aviso 2 grava
+--    `cobranca_pendencia` mesmo se chamando `situacao_documentos`. Aqui esse
+--    caminho custa dado errado, e nao so nome feio:
+--
+--    `reservar_envio` insere com ON CONFLICT (chave_idempotencia) DO NOTHING, e a
+--    chave e `tipo:entidade_tipo:entidade_id:canal:destinatario:AAAA-MM-DD`. Com o
+--    mesmo `tipo`, a varredura automatica desta tarefa e o clique manual do
+--    analista no aviso 2, no mesmo cliente e no mesmo dia, produzem chave
+--    IDENTICA -- e o segundo nao envia, sem erro e sem log. Um aviso que o
+--    analista mandou e o cliente nunca recebeu, sem rastro de por que.
+--
+--    Com valor proprio, os dois convivem no mesmo dia e o historico fica legivel:
+--    da para contar cobranca de solicitacao vencida separado de conferencia de
+--    lote, filtrando por `tipo` em vez de decifrar a chave.
+--
+-- SOBRE O NOME
+--    `solicitacao_vencida`, e nao `solicitacao_sem_documento`, por decisao do
+--    Alexandre em 24/08/2026: o aviso so dispara DEPOIS de o prazo vencer -- o
+--    vencimento e condicao do gatilho, nao circunstancia --, e na taxonomia do
+--    negocio "vencida" ja implica que nada chegou, porque o caso de envio parcial
+--    e cobranca de pendencia sobre envio feito, que e o aviso 2. E o mesmo nome do
+--    modelo aprovado na Meta (`solicitacao_vencida_v1`) e do `event_type` da
+--    borda, entao as tres camadas de nome nascem alinhadas -- elas se
+--    desalinharam por acidente em 17/08 (fusao e versionamento), e aqui nao ha
+--    motivo para repetir isso.
+--
+--    Enum do Postgres nao permite REMOVER valor: renomear depois de aplicado
+--    significa acrescentar outro e deixar este orfao para sempre no tipo.
+--
+-- Estado conferido em 24/08/2026, nos DOIS bancos, antes de escrever: o enum tem
+-- 12 valores identicos em producao (MCP do Lovable) e no sandbox (MCP do
+-- Supabase) -- tarefa_atribuida, tarefa_em_revisao, documento_recebido,
+-- solicitacao_enviada, documento_aprovado, documento_recusado,
+-- cobranca_pendencia e os cinco chamado_*. Nenhum descreve "venceu e nada veio".
+--
+-- FORA DE ESCOPO, e de proposito: nada aqui USA o valor novo. A consulta de
+-- elegibilidade, o job do pg_cron e a rota na borda seguem na GES-04. Esta
+-- migracao e so o valor.
+--
+-- JA FEITO fora do banco, em 24/08/2026: o modelo `solicitacao_vencida_v1` esta
+-- submetido a Meta (PENDING) e a rota `solicitacao_vencida` esta ligada nos dois
+-- workflows do n8n -- `Montar Template OSG` (WhatsApp) e `Montar Avisos OSG`
+-- (e-mail). Ambas ficam inertes ate a borda conhecer o `event_type`.
+--
+-- DEPOIS DE REGERAR O types.ts o typecheck quebra em dois lugares, e e trava
+-- proposital (o comentario em notificacoesInternas.ts:67-82 explica): os Records
+-- `APRESENTACAO` (src/lib/notificacoesInternas.ts:83) e `ICONES_INTERNAS`
+-- (src/components/notifications/NotificationPopover.tsx:89) sao exaustivos e vao
+-- exigir entrada. Este aviso e EXTERNO -- e-mail e WhatsApp, gravado em
+-- `notificacao_envio` pela borda, nunca em `notificacao` -- entao ele nao aparece
+-- no sino, e a entrada segue o molde dos cinco `chamado_*`: rotulo 'Aviso' e tom
+-- PRIMARIO. O `notificacoesInternas.test.ts` NAO quebra: a lista `TODOS_OS_TIPOS`
+-- de la e manual e ja nao cobre os `chamado_*`.
+
+ALTER TYPE public.notificacao_tipo ADD VALUE IF NOT EXISTS 'solicitacao_vencida';

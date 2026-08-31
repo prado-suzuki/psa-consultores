@@ -1,0 +1,340 @@
+<title>A superfície de estado</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap">
+<style>
+  :root{ --ground:#FBFAF7; --ink:#2E1305; --ink-2:#7D7268; --rule:#E7E2DA;
+         --good:#3B6B34; --warn:#8A6410; --bad:#A03024; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:'Work Sans',system-ui,sans-serif;font-size:15px;line-height:1.55;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:56px 28px 110px}
+  h1{font-size:31px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+  .sub{color:var(--ink-2);max-width:64ch;margin:0 0 8px}
+  .lede{max-width:66ch;margin:0 0 40px}
+  h2{font-size:13px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;
+     color:var(--ink-2);margin:56px 0 18px;padding-bottom:9px;border-bottom:1px solid var(--rule)}
+  h3{font-size:17px;font-weight:600;letter-spacing:-.01em;margin:34px 0 4px;text-wrap:balance}
+  p{max-width:74ch}
+  .mono{font-family:'DM Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  code{font-family:'DM Mono',ui-monospace,monospace;font-size:.88em;background:#F2EFE8;
+       padding:1px 5px;border-radius:4px}
+  .good{color:var(--good);font-weight:600}
+  .warn{color:var(--warn);font-weight:600}
+  .bad{color:var(--bad);font-weight:600}
+  .n{font-family:'DM Mono',monospace;font-variant-numeric:tabular-nums;font-weight:500}
+
+  table{border-collapse:collapse;width:100%;margin:18px 0 8px;font-size:13.5px}
+  th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;
+     color:var(--ink-2);font-weight:700;padding:0 12px 8px 0;border-bottom:1px solid var(--rule)}
+  td{padding:9px 12px 9px 0;border-bottom:1px solid #F0ECE4;vertical-align:top}
+  td.mono{font-size:12px;color:var(--ink-2)}
+  tr.tot td{border-bottom:none;font-weight:600}
+
+  /* Palcos de tema */
+  .palco{border:1px solid var(--rule);border-radius:12px;overflow:hidden}
+  .palco > .head{padding:9px 14px;font-size:11px;font-weight:700;letter-spacing:.06em;
+     text-transform:uppercase;border-bottom:1px solid var(--rule);background:#F3F1EC;color:#5D573C}
+  .palco.rec > .head{background:#E9EFE6;color:#3B6B34}
+  .palco .corpo{padding:18px 16px}
+
+  /* claro = a base do sistema; escuro = o .dark de 6901a384 */
+  .claro{ --card:255 254 251; --fg:#2E1305; --fg-2:#6C6862; --brd:#E7E2DA; }
+  .escuro{ --card:39 36 32; --fg:#F8F5F1; --fg-2:#B4ADA4; --brd:#514C46; }
+  .escuro .corpo{background:#1A1714}
+  .claro  .corpo{background:#FBFAF7}
+
+  .cartao{background:rgb(var(--card));border:1px solid var(--brd);border-radius:11px;
+     padding:15px 16px;color:var(--fg);font-size:13px}
+  .cartao + .cartao{margin-top:12px}
+  .cartao .tit{font-weight:600;display:flex;align-items:center;gap:8px;font-size:13.5px}
+  .cartao .txt{font-size:12px;line-height:1.45;margin-top:5px;color:var(--fg-2)}
+  .ico{width:17px;height:17px;border-radius:50%;flex:0 0 auto;display:grid;place-items:center;
+       font-size:11px;font-weight:700;color:#fff;line-height:1}
+
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0 6px}
+  .trio{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:16px 0 6px;align-items:start}
+  @media (max-width:900px){.duo,.trio{grid-template-columns:1fr}}
+
+  .medida{border-top:1px solid var(--rule);padding:10px 14px 12px;font-size:11.5px;background:#FCFBF8}
+  .m-l{display:flex;justify-content:space-between;gap:10px;padding:2.5px 0}
+  .m-l span:first-child{color:var(--ink-2)}
+
+  .faixa{display:flex;flex-wrap:wrap;gap:0;border-radius:9px;overflow:hidden;border:1px solid var(--brd)}
+  .faixa div{flex:1 1 0;min-width:82px;padding:16px 8px 9px;text-align:center;font-size:10px;
+     font-family:'DM Mono',monospace;line-height:1.35}
+
+  .nota{border-left:3px solid #D9D2C6;padding:2px 0 2px 16px;margin:22px 0;color:var(--ink-2);
+        max-width:70ch;font-size:14px}
+  .nota strong{color:var(--ink)}
+  .veredito{background:#F5F2EB;border:1px solid var(--rule);border-radius:12px;
+     padding:20px 22px;margin:26px 0}
+  .veredito h3{margin-top:0}
+  ul{max-width:74ch;padding-left:20px}
+  li{margin:6px 0}
+</style>
+<div class="wrap">
+
+<h1>A superfície de estado</h1>
+<p class="sub mono">27/08/2026 · os 22 avisos que sobraram da regra <code>ui/token-nao-sobrescrito</code></p>
+<p class="lede">Cinco commits levaram a regra de 304 para 22. Os 22 que sobraram pintam o
+<strong>fundo inteiro</strong> de um <code>&lt;Card&gt;</code> ou de um <code>&lt;Input&gt;</code> com uma cor
+crua — <span class="mono">bg-red-50</span>, <span class="mono">bg-amber-50</span>,
+<span class="mono">bg-green-50</span> — para dizer alguma coisa. A pergunta era: token de estado por
+área, ou fundo neutro com o significado no ícone?</p>
+
+<div class="nota"><strong>A pergunta estava errada.</strong> Lendo os 22 no contexto, eles não são
+um caso só: são sete. Só <strong>dois</strong> deles são estado de tarefa — o resto é erro de API,
+vazio de resultado, sucesso de operação, seção de formulário e acento de área. Cada grupo tem uma
+resposta diferente, e três deles não envolvem token de estado nenhum.</div>
+
+<h2>Os 22, lidos um a um</h2>
+<table>
+<thead><tr><th style="width:24%">grupo</th><th style="width:5%">n</th><th style="width:33%">onde</th><th>o que a cor está dizendo</th></tr></thead>
+<tbody>
+<tr><td><strong>Erro de carga</strong></td><td class="n">4</td>
+  <td class="mono">DifalAuditModal:267 · IbsCbsAuditModal:236<br>T02CfopTab:119 · FamiliaSaidaTab:169</td>
+  <td>a requisição falhou. Tem <code>AlertCircle</code> e a palavra "Erro". Isto é <code>--destructive</code>, não papel de tarefa.</td></tr>
+<tr><td><strong>Vazio de resultado</strong></td><td class="n">4</td>
+  <td class="mono">DifalAuditModal:335 · IbsCbsAuditModal:304<br>TabF100:381 · ImportDialog:58</td>
+  <td>a busca não achou nada, ou falta filtro. Três já usam <code>border-dashed</code> — o idioma de vazio. Aviso, não erro.</td></tr>
+<tr><td><strong>Estado de fluxo</strong></td><td class="n">2</td>
+  <td class="mono">DifalSummaryActions:46 (Pendentes)<br>DifalSummaryActions:63 (Validados)</td>
+  <td>contadores clicáveis que filtram por situação. <strong>Este é o único grupo que é estado</strong>, e casa com <code>espera</code> / <code>feito</code>.</td></tr>
+<tr><td><strong>Resultado positivo</strong></td><td class="n">2</td>
+  <td class="mono">ResultCards:34 (ROI Calculado)<br>ImportDialog:47 (preview da importação)</td>
+  <td>a operação deu certo e o número está pronto. <code>--success</code>.</td></tr>
+<tr><td><strong>Seção de formulário</strong></td><td class="n">2</td>
+  <td class="mono">SavingsSections:160 (azul)<br>CreateProcessModal:424 (laranja)</td>
+  <td><em>nada.</em> "Economias Adicionais (opcional)" e "Equipe Envolvida (Baseline)" — a cor separa bloco de formulário. Azul e laranja não significam.</td></tr>
+<tr><td><strong>Campo com atenção</strong></td><td class="n">5</td>
+  <td class="mono">DeliverableFormFields:324 · KanbanDeliverableDialog:183<br>ScenarioCreateModal:469</td>
+  <td>horas apontadas e campo em realce. A borda já carrega o sinal; o fundo é redundante.</td></tr>
+<tr><td><strong>Acento de área</strong></td><td class="n">3</td>
+  <td class="mono">AnaliseInteligenteAnalysis:35 (teal)<br>DeliverableFormFields:193 (TabsList)<br>TabC170:590 (coluna XML)</td>
+  <td>teal de marca e verde de "veio do XML". Não é estado — é identidade e procedência de dado.</td></tr>
+<tr class="tot"><td>—</td><td class="n">22</td><td></td><td></td></tr>
+</tbody></table>
+
+<h2>O que já não funciona hoje</h2>
+<p>Antes de escolher a saída, o ponto de partida. Estas seis cores estão no ar agora.</p>
+
+<h3>No claro, elas quase não existem</h3>
+<p>O tingimento parece sinalizar, mas a separação de luminosidade contra o cartão é
+<span class="n">1,04:1</span> a <span class="n">1,09:1</span>. O sinal é matiz puro — quem enxerga
+menos cor não recebe nada.</p>
+<div class="palco claro"><div class="head">hoje · claro · cartão <span class="mono">#FFFFFE</span></div>
+<div class="corpo">
+<div class="faixa" style="--brd:#E7E2DA">
+  <div style="background:#fef2f2;color:#b91c1c">bg-red-50<br><b>1,09:1</b></div>
+  <div style="background:#fffbeb;color:#b45309">bg-amber-50<br><b>1,04:1</b></div>
+  <div style="background:#f0fdf4;color:#15803d">bg-green-50<br><b>1,05:1</b></div>
+  <div style="background:#eff6ff;color:#1d4ed8">bg-blue-50<br><b>1,09:1</b></div>
+  <div style="background:#fff7ed;color:#c2410c">bg-orange-50<br><b>1,06:1</b></div>
+  <div style="background:#f0fdfa;color:#0f766e">bg-teal-50<br><b>1,04:1</b></div>
+</div></div></div>
+
+<h3>No escuro, elas viram um bloco branco</h3>
+<p>A escala escura entrou em <code>6901a384</code>: cartão a <span class="mono">#272420</span>. As
+mesmas seis cores, que não separavam nada no claro, passam a separar <span class="n">14:1</span> —
+mais que o texto principal da tela. O cartão de erro fica mais claro que a página inteira.</p>
+<div class="palco escuro"><div class="head" style="background:#2A2622;color:#C9C1B6;border-color:#514C46">hoje · escuro · cartão <span class="mono">#272420</span></div>
+<div class="corpo">
+<div class="faixa" style="--brd:#514C46">
+  <div style="background:#fef2f2;color:#b91c1c">bg-red-50<br><b>14,12:1</b></div>
+  <div style="background:#fffbeb;color:#b45309">bg-amber-50<br><b>14,90:1</b></div>
+  <div style="background:#f0fdf4;color:#15803d">bg-green-50<br><b>14,76:1</b></div>
+  <div style="background:#eff6ff;color:#1d4ed8">bg-blue-50<br><b>14,19:1</b></div>
+  <div style="background:#fff7ed;color:#c2410c">bg-orange-50<br><b>14,55:1</b></div>
+  <div style="background:#f0fdfa;color:#0f766e">bg-teal-50<br><b>14,81:1</b></div>
+</div></div></div>
+
+<div class="nota"><strong>O par viaja junto.</strong> Hoje o texto colorido passa
+(<span class="mono">text-red-700</span> sobre <span class="mono">bg-red-50</span> dá
+<span class="good">5,91:1</span>) porque o fundo cru compensa o texto cru. Tirar só o fundo deixa
+<span class="mono">text-amber-900</span> em <span class="bad">1,70:1</span> sobre o cartão escuro.
+Qualquer saída tem que mover fundo, borda, ícone e texto na mesma edição.</div>
+
+<h2>Três saídas, no grupo mais frequente</h2>
+<p>O caso é o <strong>erro de carga</strong> (4 ocorrências, o maior grupo): cartão vermelho, ícone de
+alerta, "Erro ao carregar regras". Cada opção aparece nos dois temas.</p>
+
+<h3>A — token de estado por área <span class="mono" style="font-weight:400;font-size:14px">(bg-status-ajuste-soft)</span></h3>
+<div class="duo">
+  <div class="palco claro"><div class="head">A · claro</div><div class="corpo">
+    <div class="cartao" style="background:#EFCCC7;border-color:#DFAFA8">
+      <div class="tit"><span class="ico" style="background:#361310">!</span>Erro ao carregar regras</div>
+      <div class="txt" style="color:#4A2420">A requisição de regras ST para este NCM não retornou.</div>
+    </div></div>
+    <div class="medida">
+      <div class="m-l"><span>painel × cartão</span><span class="n good">1,49:1</span></div>
+      <div class="m-l"><span>texto × painel</span><span class="n good">11,2:1</span></div>
+    </div>
+  </div>
+  <div class="palco escuro"><div class="head" style="background:#3A2B26;color:#E0857A;border-color:#514C46">A · escuro — não existe</div><div class="corpo">
+    <div class="cartao" style="background:#EFCCC7;border-color:#DFAFA8;color:#361310">
+      <div class="tit"><span class="ico" style="background:#361310">!</span>Erro ao carregar regras</div>
+      <div class="txt" style="color:#4A2420">A requisição de regras ST para este NCM não retornou.</div>
+    </div></div>
+    <div class="medida" style="background:#FCF7F6">
+      <div class="m-l"><span>painel × cartão</span><span class="n bad">10,40:1</span></div>
+      <div class="m-l"><span>o <code>.dark</code> declara <code>--status-*</code>?</span><span class="n bad">não</span></div>
+    </div>
+  </div>
+</div>
+<p><code>src/index.css:962-1069</code> não declara <strong>nenhum</strong> <code>--status-*</code>. Os
+oito papéis existem só no <code>:root</code> e nos quatro temas claros, todos com <code>-soft</code>
+fixado em <span class="mono">86%</span> de luminosidade. Migrar hoje troca uma cor crua clara por um
+token claro: o mesmo defeito, com nome melhor. <strong>A opção A tem um pré-requisito</strong> — 16
+variáveis novas no <code>.dark</code> (8 papéis × cheio/soft), passando pelo mesmo contrato de
+contraste, faixa e separação par a par do <code>paletaDeArea.ts</code>.</p>
+
+<h3>B — token semântico com alfa <span class="mono" style="font-weight:400;font-size:14px">(bg-destructive/12, border-destructive/40)</span></h3>
+<div class="duo">
+  <div class="palco claro rec"><div class="head">B · claro</div><div class="corpo">
+    <div class="cartao" style="background:#FCE5E4;border-color:#F0A8A4">
+      <div class="tit"><span class="ico" style="background:#E11414">!</span>Erro ao carregar regras</div>
+      <div class="txt">A requisição de regras ST para este NCM não retornou.</div>
+    </div></div>
+    <div class="medida">
+      <div class="m-l"><span>painel × cartão</span><span class="n good">1,22:1</span></div>
+      <div class="m-l"><span>borda × painel</span><span class="n good">1,88:1</span></div>
+      <div class="m-l"><span>texto <code>foreground</code> × painel</span><span class="n good">14,19:1</span></div>
+    </div>
+  </div>
+  <div class="palco escuro rec"><div class="head" style="background:#26332C;color:#8FD3B4;border-color:#514C46">B · escuro</div><div class="corpo">
+    <div class="cartao" style="background:#3A2B26;border-color:#7A473E">
+      <div class="tit"><span class="ico" style="background:#E76D5F;color:#231A17">!</span>Erro ao carregar regras</div>
+      <div class="txt">A requisição de regras ST para este NCM não retornou.</div>
+    </div></div>
+    <div class="medida" style="background:#FCFBF8">
+      <div class="m-l"><span>painel × cartão</span><span class="n good">1,18:1</span></div>
+      <div class="m-l"><span>borda × painel</span><span class="n good">1,81:1</span></div>
+      <div class="m-l"><span>texto <code>foreground</code> × painel</span><span class="n good">12,26:1</span></div>
+    </div>
+  </div>
+</div>
+<p>O alfa é o que faz a cor funcionar nos dois temas sem token novo: o mesmo
+<code>bg-destructive/12</code> compõe sobre <span class="mono">#FFFFFE</span> e sobre
+<span class="mono">#272420</span>, e o painel acompanha o cartão em vez de brigar com ele. O
+<code>.dark</code> já declara <code>--destructive</code> próprio
+(<span class="mono">6 74% 64%</span>, de <code>6901a384</code>).</p>
+
+<h3>C — neutro, com o significado no ícone <span class="mono" style="font-weight:400;font-size:14px">(bg-muted)</span></h3>
+<div class="duo">
+  <div class="palco claro"><div class="head">C · claro</div><div class="corpo">
+    <div class="cartao" style="background:#FBFAF9;border-color:#E7E2DA">
+      <div class="tit"><span class="ico" style="background:#E11414">!</span>Erro ao carregar regras</div>
+      <div class="txt">A requisição de regras ST para este NCM não retornou.</div>
+    </div></div>
+    <div class="medida">
+      <div class="m-l"><span>painel × cartão</span><span class="n warn">1,04:1</span></div>
+      <div class="m-l"><span>texto × painel</span><span class="n good">14,9:1</span></div>
+    </div>
+  </div>
+  <div class="palco escuro"><div class="head" style="background:#2A2622;color:#C9C1B6;border-color:#514C46">C · escuro</div><div class="corpo">
+    <div class="cartao" style="background:#3F3B36;border-color:#514C46">
+      <div class="tit"><span class="ico" style="background:#E76D5F;color:#231A17">!</span>Erro ao carregar regras</div>
+      <div class="txt">A requisição de regras ST para este NCM não retornou.</div>
+    </div></div>
+    <div class="medida" style="background:#FCFBF8">
+      <div class="m-l"><span>painel × cartão</span><span class="n good">1,39:1</span></div>
+      <div class="m-l"><span>texto × painel</span><span class="n good">10,9:1</span></div>
+    </div>
+  </div>
+</div>
+<p>Curiosidade que o cálculo entrega e o olho confirma: no escuro o <strong>neutro separa mais</strong>
+(<span class="n">1,39:1</span>) do que o painel tingido (<span class="n">1,18:1</span>) — o
+<code>--muted</code> escuro está a 23% de luminosidade contra os 14% do cartão. No claro, porém, C é
+<span class="n">1,04:1</span> e some. Fica assimétrico entre os temas.</p>
+
+<h2>O texto colorido é o que quebra</h2>
+<p>Este é o detalhe que decide o desenho, e não aparece olhando só o fundo. Se a cor do token virar
+a cor do texto — o reflexo natural ao trocar <code>text-red-700</code> por
+<code>text-destructive</code> — o par reprova em AA:</p>
+<table>
+<thead><tr><th style="width:32%">texto sobre o painel /12</th><th style="width:20%">o próprio token</th><th style="width:20%">foreground</th><th>veredito</th></tr></thead>
+<tbody>
+<tr><td><code>--destructive</code>, claro</td><td class="n bad">3,99:1</td><td class="n good">14,19:1</td><td>o token reprova por pouco</td></tr>
+<tr><td><code>--success</code>, claro</td><td class="n bad">3,60:1</td><td class="n good">14,87:1</td><td>reprova</td></tr>
+<tr><td><code>--warning</code>, claro</td><td class="n bad">1,94:1</td><td class="n good">15,78:1</td><td>ilegível — amarelo puro sobre creme</td></tr>
+<tr><td><code>--destructive</code>, escuro</td><td class="n bad">4,19:1</td><td class="n good">12,26:1</td><td>reprova por pouco</td></tr>
+<tr><td><code>--warning</code>, escuro</td><td class="n warn">5,76:1</td><td class="n good">11,55:1</td><td>o único que passa</td></tr>
+</tbody></table>
+<p><strong>A regra que sai daqui:</strong> o texto vai em <code>text-foreground</code>. A cor fica no
+ícone — que é forma, não texto, e não tem piso de 4,5:1 — e na borda. É o oposto do padrão de hoje,
+onde a cor está sobretudo no texto.</p>
+
+<h2>Os sete que não são estado</h2>
+<div class="trio">
+  <div class="palco claro"><div class="head">seção de formulário · 2</div><div class="corpo">
+    <div class="cartao" style="background:#F7FBFF;border-color:#BFDBFE">
+      <div class="tit" style="color:#1d4ed8">Economias Adicionais (opcional)</div>
+      <div class="txt">azul não significa nada aqui — separa bloco.</div></div>
+    <div class="cartao" style="background:#FFFBF6;border-color:#FED7AA">
+      <div class="tit" style="color:#c2410c">Equipe Envolvida (Baseline)</div>
+      <div class="txt">idem, em laranja.</div></div>
+  </div>
+  <div class="medida"><div class="m-l"><span>saída</span><span><code>bg-muted/40</code></span></div>
+    <div class="m-l"><span>token de estado?</span><span class="n">não se aplica</span></div></div></div>
+
+  <div class="palco claro"><div class="head">acento de área · 2</div><div class="corpo">
+    <div class="cartao" style="background:#F7FEFD;border:1px dashed #5EEAD4">
+      <div class="tit" style="color:#134e4a">Gerar análise estratégica</div>
+      <div class="txt">teal é a marca, não um estado.</div></div>
+    <div class="cartao" style="background:#E6F5F3;border-color:#B7DDD8">
+      <div class="tit" style="color:#0f766e">Planejamento / Conteúdo</div>
+      <div class="txt">o painel tingido do modal — o código já tem comentário dizendo que é deliberado.</div></div>
+  </div>
+  <div class="medida"><div class="m-l"><span>saída</span><span><code>bg-accent/10</code></span></div>
+    <div class="m-l"><span>ou</span><span class="n">disable com motivo</span></div></div></div>
+
+  <div class="palco claro"><div class="head">procedência de dado · 1</div><div class="corpo">
+    <div class="cartao" style="background:#F4FDF8;border-left:2px dashed #A7F3D0">
+      <div class="tit" style="color:#059669;opacity:.7">DADOS XML</div>
+      <div class="txt">o verde marca a coluna vinda do XML, ao lado das colunas do SPED.</div></div>
+  </div>
+  <div class="medida"><div class="m-l"><span>hoje, texto × fundo</span><span class="n bad">3,63:1</span></div>
+    <div class="m-l"><span>é o único dos 22</span><span class="n">que já reprova no claro</span></div></div></div>
+</div>
+<p style="margin-top:18px">Faltam os <strong>5 campos com atenção</strong>: os <code>&lt;Input&gt;</code>
+de horas apontadas, com <code>border-amber-300</code> e, em dois deles, também
+<code>bg-amber-50</code>. Logo abaixo de cada um já existe o <code>AvisoHorasDigitadas</code>, que diz
+em palavras o que a borda insinua — o fundo tingido não acrescenta.</p>
+
+<div class="veredito">
+<h3>O que eu recomendaria</h3>
+<ul>
+<li><strong>B para os 12 semânticos</strong> (erro 4, vazio 4, sucesso 2, estado de fluxo 2):
+  <code>bg-destructive/12</code>, <code>bg-warning/12</code>, <code>bg-success/12</code> com borda
+  <code>/40</code>, ícone no token cheio e texto em <code>foreground</code>. Funciona nos dois temas
+  <em>hoje</em>, sem token novo e sem depender da escala escura.</li>
+<li><strong>Os 2 de estado de fluxo</strong> (DifalSummaryActions) são os únicos que ganhariam com
+  <code>status-espera</code> / <code>status-feito</code> — mas ganham depois, quando o
+  <code>.dark</code> tiver a escala. Por ora vão de <code>warning</code> / <code>success</code>, que é
+  o que já significam na tela.</li>
+<li><strong>Neutro para os 2 de seção e os 5 de campo:</strong> <code>bg-muted/40</code> no bloco de
+  formulário, e nos <code>&lt;Input&gt;</code> só a borda (<code>border-warning/50</code>).</li>
+<li><strong>Acento de área para os 3 de teal e verde</strong>, com um <code>eslint-disable</code> e
+  motivo no TabsList do <code>DeliverableFormFields</code>, que já tem a decisão escrita em
+  comentário.</li>
+<li><strong>A escala escura de status</strong> (16 variáveis) vira trabalho próprio, não pré-requisito
+  disto. Ela é necessária de todo jeito — as pílulas do Gantt e do Kanban usam
+  <code>bg-status-*-soft</code> e sofrem do mesmo estouro no escuro, fora do alcance desta regra.</li>
+</ul>
+<p style="margin-bottom:0">Fechando assim, a regra chega a <strong>zero</strong> e o passo seguinte —
+virar <code>ui/token-nao-sobrescrito</code> para <code>error</code> — passa a ter efeito. Hoje a CI
+roda <code>eslint .</code> sem <code>--max-warnings</code>: aviso não derruba build.</p>
+</div>
+
+<h2>Onde os números foram medidos</h2>
+<p class="sub">Tokens lidos de <code>src/index.css</code> em 27/08/2026, depois de
+<code>4fa88229</code>. Cartão claro <span class="mono">42 24% 99.8%</span>; cartão escuro
+<span class="mono">35 10% 14%</span>; <code>--muted</code> escuro <span class="mono">33 8% 23%</span>;
+<code>--destructive</code> claro <span class="mono">0 84% 48%</span> e escuro
+<span class="mono">6 74% 64%</span>. Contraste em WCAG 2.1 relativo. Como as outras páginas desta
+pasta, <strong>os valores aqui não se atualizam</strong> — a fonte corrente é sempre o
+<code>index.css</code>.</p>
+
+</div>

@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { campoDaEntidade } from '@/lib/templates/vocabulario';
 import { labelDoBinding } from '@/lib/templates/binding';
 import { BlocosSemDado } from '@/components/equipe/osg/gerar/BlocosSemDado';
+import { fraseExcluidosPorFlag } from '@/components/equipe/osg/gerar/resumoDaComposicao';
 import { fmtBRL, fmtInt } from '@/components/equipe/osg/quadro-societario/quadroFmt';
 import { fieldCls, labelCls, textareaCls } from '@/components/equipe/osg/formKit';
 import type { LinhaNotificacao } from '@/hooks/useGerarDocumentoController';
@@ -68,7 +69,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
   setValidarConfirmOpen, novaVersaoConfirmOpen, setNovaVersaoConfirmOpen,
   gatingPromptOpen, setGatingPromptOpen, setRecongelarPendente, confirmarValidacao,
   confirmarNovaVersao, confirmarValidacaoEAbrirBloco, pessoaEditando, bemEditando,
-  matriculaEditando, flagsAtivas, temBlocosComFlags, blocosExcluidos, bindings,
+  matriculaEditando, flagsAtivas, temBlocosComFlags, blocosExcluidosPorPerfil, bindings,
   secoesDesconhecidas, precisaEmpresa, socios, administradores, integralizacoes,
   carregandoListasEfetivo, ehEmpresaPR, sociosSemCadastro, capitalValor, totalQuotas,
   naoLidas, linhasNotificacao, marcarVistas, autorPorId, desconhecidosVisiveis,
@@ -299,9 +300,9 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 <Sparkles className="h-4 w-4" /> Ajustado ao perfil da empresa
                               </p>
                               <p className="text-slate-600">
-                                {blocosExcluidos.length > 0
-                                  ? `${blocosExcluidos.length} cláusula${blocosExcluidos.length > 1 ? 's' : ''} não se aplica${blocosExcluidos.length > 1 ? 'm' : ''} a esta empresa e ficou${blocosExcluidos.length > 1 ? 'aram' : ''} de fora: ${blocosExcluidos.map((b) => nomePorBlocoId.get(b.id)).join(', ')}.`
-                                  : 'Todas as cláusulas do modelo se aplicam a esta empresa.'}
+                                {fraseExcluidosPorFlag(
+                                  blocosExcluidosPorPerfil.map((b) => nomePorBlocoId.get(b.id) ?? b.id),
+                                )}
                               </p>
                             </div>
                           )

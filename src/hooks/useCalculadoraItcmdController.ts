@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useOsgWork } from '@/contexts/OsgWorkContext';
 import { useBensByCliente, type BemComValores } from '@/hooks/useDiagnosticoPatrimonial';
-import { useQuadroSocietarioByEmpresa } from '@/hooks/useQuadroSocietario';
+import { useQuadroDaEmpresa } from '@/hooks/useMovimentacaoQuotas';
 import { useParentescosByCliente, usePessoasByCliente } from '@/hooks/useQualificacaoDasPartes';
 import { useQuadroDasEmpresas } from '@/hooks/useSociedadesDoacao';
 import { totalizarAcervo, type ImovelDoAcervo } from '@/lib/osg/acervoItcmd';
@@ -343,8 +343,24 @@ export function useCalculadoraItcmdController() {
   const empresas = empresasComSocioPf;
   const empresasOcultas = todasAsEmpresas.length - empresas.length;
   const empresa = empresas.find((e) => e.id === empresaEscolhida) ?? empresas[0] ?? null;
-  const socios = useQuadroSocietarioByEmpresa(empresa?.id ?? null);
-  const quotasDoCadastro = (socios.data ?? [])
+  /**
+   * O QUADRO DA EMPRESA ESCOLHIDA. A fonte deixou de ser a tabela
+   * `quadro_societario` e passou a ser o acumulado do livro de movimentos, na view
+   * `v_quadro_societario` (hook `useQuadroDaEmpresa`).
+   *
+   * A forma antiga fica na FRONTEIRA, num map de duas linhas: `candidatosADoador` e
+   * o motor pedem `socio_pessoa_id`, e trocar isso la dentro seria propagar um
+   * rename de coluna do banco por dez arquivos de calculo.
+   */
+  const quadroDaEmpresa = useQuadroDaEmpresa(empresa?.id ?? null);
+  const socios = useMemo(() => ({
+    data: (quadroDaEmpresa.data ?? []).map((s) => ({
+      socio_pessoa_id: s.pessoaId,
+      quotas: s.quotas,
+    })),
+    error: quadroDaEmpresa.error,
+  }), [quadroDaEmpresa.data, quadroDaEmpresa.error]);
+  const quotasDoCadastro = socios.data
     .reduce((acc, s) => acc + BigInt(s.quotas ?? 0), 0n);
 
   /**
@@ -415,7 +431,7 @@ export function useCalculadoraItcmdController() {
   // todos os sócios: quem participa de um ato é decisão, não cadastro — e é isso que
   // torna possível uma doação entre irmãs, que a versão anterior da tela proibia.
   const todosOsSociosPf = useMemo(
-    () => candidatosADoador(socios.data ?? [], pessoas.data ?? []),
+    () => candidatosADoador(socios.data, pessoas.data ?? []),
     [socios.data, pessoas.data],
   );
   /**
@@ -1410,7 +1426,7 @@ export function useCalculadoraItcmdController() {
     empresa,
     empresasOcultas,
     setEmpresaEscolhida,
-    socios: socios.data ?? [],
+    socios: socios.data,
     totalDeQuotas,
 
     linhasDoQuadro: quadro.linhas,

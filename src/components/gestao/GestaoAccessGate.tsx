@@ -44,7 +44,7 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
   // Show loading only during initial auth check (no user yet)
   if (authLoading && !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950">
+      <div className="min-h-screen flex items-center justify-center dark bg-background text-foreground">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
@@ -58,23 +58,23 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
   // If not authenticated, show login form
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
+      <div className="min-h-screen dark bg-background text-foreground flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <img src={logo} alt="PSA Consultores" className="h-16 mx-auto mb-4" />
             <div className="flex items-center justify-center gap-2 mb-2">
               <ShieldAlert className="h-6 w-6 text-amber-500" />
-              <h1 className="text-2xl font-bold text-white">Área de Gestão</h1>
+              <h1 className="text-2xl font-bold">Área de Gestão</h1>
             </div>
-            <p className="text-gray-400">Sistema de Gestão de Conteúdo</p>
+            <p className="text-muted-foreground">Sistema de Gestão de Conteúdo</p>
           </div>
 
-          <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg">
+          <Card className="backdrop-blur-lg">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-white">Acesso Restrito</CardTitle>
-                  <CardDescription className="text-gray-400">
+                  <CardTitle>Acesso Restrito</CardTitle>
+                  <CardDescription className="text-muted-foreground">
                     Entre com suas credenciais
                   </CardDescription>
                 </div>
@@ -86,32 +86,32 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-gray-300">Email</Label>
+                  <Label htmlFor="email" className="text-muted-foreground">Email</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="email"
                       type="email"
                       placeholder="seu@email.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+                      className="pl-10 "
                       required
                     />
                   </div>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-gray-300">Senha</Label>
+                  <Label htmlFor="password" className="text-muted-foreground">Senha</Label>
                   <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="password"
                       type="password"
                       placeholder="********"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+                      className="pl-10 "
                       required
                     />
                   </div>
@@ -134,10 +134,10 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
                 </Button>
               </form>
 
-              <div className="mt-6 pt-4 border-t border-gray-800">
+              <div className="mt-6 pt-4 border-t border-border">
                 <Button 
                   variant="ghost" 
-                  className="w-full text-gray-400 hover:text-white"
+                  className="w-full text-muted-foreground hover:text-foreground"
                   onClick={() => navigate('/')}
                 >
                   <ArrowLeft className="h-4 w-4 mr-2" />
@@ -159,24 +159,24 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
   // If authenticated but no access, show access denied
   if (!hasAccess) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
+      <div className="min-h-screen dark bg-background text-foreground flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <img src={logo} alt="PSA Consultores" className="h-16 mx-auto mb-4" />
           </div>
 
-          <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg">
+          <Card className="backdrop-blur-lg">
             <CardContent className="pt-8 pb-8">
               <div className="text-center space-y-4">
                 <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto">
                   <ShieldX className="h-8 w-8 text-red-500" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white mb-2">Acesso Negado</h2>
-                  <p className="text-gray-400 text-sm">
+                  <h2 className="text-xl font-bold mb-2">Acesso Negado</h2>
+                  <p className="text-muted-foreground text-sm">
                     Você não possui permissão para acessar a área de Gestão.
                   </p>
-                  <p className="text-gray-500 text-sm mt-2">
+                  <p className="text-muted-foreground text-sm mt-2">
                     Entre em contato com um administrador para solicitar liberação de acesso.
                   </p>
                 </div>
@@ -184,7 +184,7 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
                 <div className="pt-4 flex flex-col gap-2">
                   <Button 
                     variant="outline"
-                    className="w-full border-gray-700 text-gray-300 hover:text-white hover:bg-gray-800"
+                    className="w-full border-input text-muted-foreground hover:text-foreground hover:bg-muted"
                     onClick={() => navigate('/equipe/auth')}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -192,7 +192,7 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
                   </Button>
                   <Button 
                     variant="ghost" 
-                    className="w-full text-gray-400 hover:text-white"
+                    className="w-full text-muted-foreground hover:text-foreground"
                     onClick={() => navigate('/')}
                   >
                     Voltar ao site

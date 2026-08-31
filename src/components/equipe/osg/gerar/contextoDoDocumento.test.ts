@@ -9,6 +9,7 @@ import {
 
 const signatario = (nome: string): ItemLista => ({ signatario: { nome, papel: 'Sócio' } });
 const vertice = (cod: string): ItemLista => ({ vertice: { codVertice: cod } });
+const memorial = (numero: string): ItemLista => ({ imovel: { numero }, vertices: [vertice('V-01')] });
 
 describe('completarListasDoSnapshot — a folha de assinaturas do documento já selado', () => {
   // O defeito real: documento validado ANTES de `signatarios` existir tem o
@@ -28,7 +29,9 @@ describe('completarListasDoSnapshot — a folha de assinaturas do documento já 
   });
 
   it('a lista de signatários VAZIA é preservada — congelar significa congelar', () => {
-    const snapshot: Record<string, ItemLista[]> = { signatarios: [], vertices: [vertice('V-01')] };
+    const snapshot: Record<string, ItemLista[]> = {
+      signatarios: [], vertices: [vertice('V-01')], memoriais: [memorial('1.234')],
+    };
     const efetivo = completarListasDoSnapshot(snapshot, { signatarios: [signatario('Camila')] });
 
     expect(efetivo.signatarios).toEqual([]);
@@ -44,14 +47,31 @@ describe('completarListasDoSnapshot — a folha de assinaturas do documento já 
   });
 
   it('devolve o MESMO objeto quando não há nada a completar (a identidade é usada depois)', () => {
-    const snapshot = { signatarios: [signatario('Camila')], vertices: [vertice('V-01')] };
+    const snapshot = {
+      signatarios: [signatario('Camila')], vertices: [vertice('V-01')], memoriais: [memorial('1.234')],
+    };
     expect(completarListasDoSnapshot(snapshot, {})).toBe(snapshot);
+  });
+
+  // O memorial do georreferenciamento é o mesmo dado dos vértices, agrupado por
+  // imóvel do documento: snapshot sem a chave (selado antes da lista existir) ou
+  // com ela vazia (nenhuma matrícula certificada na validação) recarrega, senão o
+  // documento reaberto continuaria sem o memorial de um imóvel certificado depois.
+  it('os memoriais de georref recarregam da fonte viva, ausentes ou vazios', () => {
+    const semAChave = completarListasDoSnapshot({ signatarios: [], vertices: [] }, { memoriais: [memorial('1.234')] });
+    expect(semAChave.memoriais).toHaveLength(1);
+    const vazio = completarListasDoSnapshot(
+      { signatarios: [], vertices: [], memoriais: [] },
+      { memoriais: [memorial('1.234')] },
+    );
+    expect(vazio.memoriais).toHaveLength(1);
   });
 
   it('sem fonte viva, a chave ausente vira lista vazia em vez de sumir', () => {
     const efetivo = completarListasDoSnapshot({}, {});
     expect(efetivo.signatarios).toEqual([]);
     expect(efetivo.vertices).toEqual([]);
+    expect(efetivo.memoriais).toEqual([]);
   });
 });
 

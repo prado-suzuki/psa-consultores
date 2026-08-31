@@ -436,7 +436,7 @@ const ConsultaEFD = () => {
                   setSearchTriggered(false);
                 }}
               >
-                <SelectTrigger className="h-11 bg-white">
+                <SelectTrigger className="h-11">
                   <SelectValue placeholder={loadingClientes ? "Carregando..." : "Selecione o cliente"} />
                 </SelectTrigger>
                 <SelectContent className="bg-background border z-50">
@@ -461,7 +461,7 @@ const ConsultaEFD = () => {
                   setSearchTriggered(false);
                 }}
               >
-                <SelectTrigger className="h-11 bg-white">
+                <SelectTrigger className="h-11">
                   <SelectValue placeholder={loadingContribuintes ? "Carregando..." : "Selecione o contribuinte"} />
                 </SelectTrigger>
                 <SelectContent className="bg-background border z-50">

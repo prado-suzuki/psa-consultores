@@ -63,11 +63,11 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total }: {
       style={{ animationDelay: `${ordem * 70}ms` }}
       className={`animate-osg-rise overflow-hidden rounded-lg border motion-reduce:animate-none ${
         indisponivel
-          ? 'border-dashed border-osg-200/70 bg-muted/50'
-          : 'border-osg-100 bg-card'
+          ? 'border-dashed border-border bg-muted/50'
+          : 'border-border bg-card'
       }`}
     >
-      <h3 className="border-b border-osg-100 bg-osg-50/60 px-3 py-2 text-sm font-semibold text-osg-700">
+      <h3 className="border-b border-border bg-osg-50/60 px-3 py-2 text-sm font-semibold text-osg-700">
         <ComDica dica={DICA_CENARIO[cenario]}>{ROTULO_CENARIO[cenario]}</ComDica>
       </h3>
 
@@ -78,7 +78,7 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total }: {
           nunca zerado.
         </p>
       ) : (
-        <dl className="divide-y divide-osg-100/70">
+        <dl className="divide-y divide-border/70">
           <LinhaDeValor
             rotulo="Total do acervo"
             valor={brlDeDecimal(saida.acervoPorCenario[cenario])}

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { useAvisoSolicitacaoEnviada } from '@/hooks/useAvisoSolicitacaoEnviada';
+import { useAvisoProjetosDaOS } from '@/hooks/useAvisoProjetosDaOS';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
 import { computeFieldDiff } from '@/lib/diffUtils';
@@ -95,16 +95,6 @@ const SELECT_SOLICITACAO = `
   )
 `;
 
-/**
- * Cliente sem tipo para as escritas em `documento_tipo`.
- *
- * `cliente_id` e `solicitacao_item_id` (migration 20260807150000) ainda não
- * estão no types.ts autogerado, e o Update tipado do PostgREST estoura a
- * inferência com o cast pontual. Some na próxima regeneração de tipos.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sbTipo = supabase as any;
-
 /** Violação de índice único no Postgres. */
 const UNIQUE_VIOLATION = '23505';
 
@@ -161,7 +151,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
   const queryKey = solicitacaoAtivaKey(clienteId);
-  const avisoDeEnvio = useAvisoSolicitacaoEnviada();
+  const avisoNosProjetos = useAvisoProjetosDaOS();
 
   const solicitacaoQuery = useQuery<SolicitacaoAtiva | null>({
     queryKey,
@@ -407,7 +397,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
       // (migration 20260807150000). Não dá para inserir os dois numa transação
       // daqui, então a falha do segundo desfaz o primeiro: item pedido sem tipo
       // é justamente o buraco que isto veio fechar, e é pior que não ter pedido.
-      const { error: erroTipo } = await sbTipo
+      const { error: erroTipo } = await supabase
         .from('documento_tipo')
         .insert(montarTipoAvulso(data.id, clienteId, entrada));
       if (erroTipo) {
@@ -448,7 +438,7 @@ export function useDomainSolicitacao(clienteId: string | null) {
       const camposDoTipo = ['documento', 'entidade', 'nota'] as const;
       const mudouTexto = camposDoTipo.some((campo) => campo in alteracoes);
       if (!linha.item_padrao_id && mudouTexto) {
-        await sbTipo
+        await supabase
           .from('documento_tipo')
           .update({
             documento: alteracoes.documento ?? linha.documento,
@@ -610,9 +600,15 @@ export function useDomainSolicitacao(clienteId: string | null) {
 
       const atual = solicitacaoQuery.data;
       if (atual) {
-        avisoDeEnvio.mutate({
-          cliente_id: atual.clienteId,
-          ordem_servico_id: atual.ordemServicoId,
+        /**
+         * Aviso 1, lado interno (GES-03). Um evento na thread de TODOS os projetos
+         * da OS e um sino por participante distinto. Antes daqui saía a resolução
+         * de "o projeto" no navegador, que não publicava nada quando a OS tinha
+         * mais de um projeto.
+         */
+        avisoNosProjetos.mutate({
+          solicitacaoId: atual.id,
+          evento: 'solicitacao_enviada',
         });
 
         /**
@@ -701,6 +697,16 @@ export function useDomainSolicitacao(clienteId: string | null) {
             solicitacao_id: atual.id,
           },
         }).catch(console.error);
+
+        /**
+         * Aviso 3, lado interno (GES-03). Mesma guarda de `enviadaEm` do aviso ao
+         * cliente, e pelo mesmo motivo: rascunho encerrado nunca chegou ao cliente,
+         * então "documentação conferida" seria falso também na thread da equipe.
+         */
+        avisoNosProjetos.mutate({
+          solicitacaoId: atual.id,
+          evento: 'documento_aprovado',
+        });
       }
     },
     onError: (error: Error) => {

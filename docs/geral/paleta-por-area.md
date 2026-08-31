@@ -99,7 +99,7 @@ sobre esse fundo, ponto, barra, e fundo de badge com texto branco). No Tailwind 
    (12° **ou** 6 pontos, contra 20°/8 da regra 1), e a diferença de piso é deliberada:
    dentro de uma paleta as oito bolinhas aparecem juntas na mesma legenda e a comparação é
    lado a lado; entre áreas ninguém vê as duas legendas na mesma tela, e o que precisa
-   mudar é o **caráter** da paleta. Piso não é meta: as três paletas em uso passam com
+   mudar é o **caráter** da paleta. Piso não é meta: as paletas em uso passam com
    metade da distância sobrando (18° onde quem resolve é a matiz, 9 pontos onde é a
    luminosidade). Constante: `SEPARACAO_ENTRE_AREAS`, em `src/lib/paletaDeArea.ts`.
 
@@ -117,9 +117,14 @@ sobre esse fundo, ponto, barra, e fundo de badge com texto branco). No Tailwind 
 | Bloco em `src/index.css` | Quem aplica | Identidade | Arco verde | Quentes |
 |---|---|---|---|---|
 | `:root` | ninguém — é a base | marfim + verde sábio; fallback de área sem paleta | 89–122 (sábio/oliva) | vinho 343, barro 32, palha 48–54 |
+| `.base-theme` | `AreaThemeProvider`, em TODA rota | teal institucional; superfícies com cast de teal (matiz 168–180) | 89–122 (sábio/oliva) | vinho 343, barro 32, palha 48–54 |
 | `.tax-theme` | `FiscalLayout` | teal `#0d9488` da marca | 163–197 (teal) | tijolo 7–12, ocre 30–36 (escala `--tax-*`) |
 | `.osg-theme` | `OsgLayout` | verde musgo, dourado marca-texto, carmim | 127–160 (musgo) | carmim 356, taupe 18–19, dourado 41 |
-| `.board-theme` | `AreaThemeProvider` | teal institucional (delta: acento + superfície) | herda o do piso | herda os do piso |
+
+São **três blocos, e só**. Toda rota veste `.base-theme`; Tax e OSG põem a classe delas por
+cima. Já existiram mais: `.rotina-theme` (saiu 29/08/2026), `.board-theme` e
+`.sistema-theme` (as duas em 31/08). Os três caíram pelo mesmo motivo — a âncora da área
+era a do piso, então o bloco era uma cópia dele.
 
 A OSG é a **âncora** do sistema, não a variável: a identidade dela (`--osg-moss`,
 `--osg-highlighter`, `--osg-red`, escala `--osg-*`) existia antes de haver sistema de
@@ -135,42 +140,92 @@ O `:root` é **base**, não a paleta da Tax. Área que ainda não declarou a sua
 (Marketing, portal do cliente) cai na base — num lugar coerente, em vez de vestir a
 identidade de outra área.
 
-### O Board declara acento e superfície, e HERDA os papéis
+### O Board VIROU a casa (31/08/2026)
 
-Desde 21/08/2026 o Board tem `.board-theme` (ver `index.css` e `src/lib/areaTheme.ts`).
-É um **delta**, não uma paleta de área: declara o acento (o teal institucional) e as
-superfícies (neutro com cast de teal, matiz 168–180), e **herda do piso os oito papéis
-de status e os quatro tons de tag**.
+O Board teve bloco próprio por dez dias. Em 21/08 ele saiu da infraestrutura e ganhou
+a `.board-theme` — um delta de acento + superfície. Em 31/08 esse delta **virou o piso**:
+as superfícies com cast de teal (matiz 168–180) foram MOVIDAS para o `.base-theme` e a
+`.board-theme` saiu do `index.css`. Hoje `/equipe/board` resolve `base-theme` sozinho.
 
-A herança é escolhida, não esquecida, e o motivo é este documento: não há arco verde
-livre para o Board declarar. O 163–197 é da Tax, o 127–160 é da OSG e o 89–122 é o do
-piso; a regra é "quem se move é a área nova", e não há para onde mover. O arco do piso
-(sábio) também não disputa espaço com o acento do Board (teal 175), então as pílulas de
-tarefa continuam legíveis ao lado dos cartões teal.
+Não é o Board perdendo identidade — é a identidade dele deixando de ser exceção. A
+âncora do Board sempre foi a da casa: ele é a tela da diretoria, e diretoria olha a
+**empresa**, não uma área dela. E área cuja âncora é a do piso não tem delta a declarar.
+É a mesma regra que apagou a `.rotina-theme` em 29/08, aplicada no outro sentido: lá a
+área desceu para o piso, aqui o piso subiu para a área.
 
-Consequência prática: **o Board não entra em `TEMAS`, em `src/lib/paletaDeArea.ts`** —
-ele não declara papéis, logo não há papéis dele para o teste medir. Quem cobra a
-consistência dele é `areaTheme.test.ts`, que exige que todo tema seja classificado como
-*congelado* (declara as 46 variáveis do contrato) ou *delta* (declara um subconjunto,
-sem inventar variável). O `board-theme` é delta.
+Três coisas empurraram para essa direção:
 
-O que o obrigou a existir: o Board era mapeado como INFRAESTRUTURA e vestia o grafite
-da `.sistema-theme`, enquanto o design system próprio dele (o bloco `--bd-*`) virou
-teal. Na tela isso deu quatro famílias ao mesmo tempo — cartão e gráfico em teal, botão
-e anel de foco em grafite, superfícies dos módulos compartilhados em marfim. Dev e
-Acessos continuam grafite: eles servem o sistema. O Board é a tela da diretoria.
+- o bloco `--bd-*` do design system do Board mora no `:root` do `index.css`, ou seja **já
+  valia em toda rota** — só Tax e OSG o sobrescreviam. Nas rotas da casa o chrome do Board
+  já saía teal ao lado de controles shadcn marfim: era o desencontro de 21/08 outra vez,
+  em 41 telas em vez de 21;
+- a `.rotina-theme` tinha acabado de sair por ser uma cópia do piso. Manter a
+  `.board-theme` era manter a mesma figura de cabeça para baixo;
+- e o `.base-theme`, que é aplicado em TODA rota, passou a ser o único lugar que descreve
+  a cor da casa.
 
-### O Digital fica na base, por decisão
+**O que repintou:** as 41 rotas que ficavam no piso puro (site institucional, portal do
+cliente, Gestão, e as telas de Rotina e Digital dentro de `/equipe`) e as 27 do Dev, que
+herda superfície do piso de propósito. As 21 do Board renderizam idêntico. Tax e OSG não
+se mexeram: são **congeladas**, declaram o contrato inteiro e não herdam superfície.
+
+Os papéis de status **não** entraram nessa mudança — nem entrariam. O Board nunca
+declarou os seus, e o motivo é este documento: não há arco verde livre. O 163–197 é da
+Tax, o 127–160 é da OSG e o 89–122 é o do piso; a regra é "quem se move é a área nova", e
+não há para onde mover. O arco do piso (sábio) também não disputa espaço com o acento
+(teal 175), então as pílulas de tarefa seguem legíveis ao lado dos cartões teal.
+
+Consequência prática que continua valendo: **o Board não entra em `TEMAS`, em
+`src/lib/paletaDeArea.ts`** — não declara papéis, logo não há papéis dele para o teste
+medir. Quem cobra a consistência é `areaTheme.test.ts`, que exige que todo tema declarado
+seja classificado como *congelado* (declara as 46 variáveis do contrato) ou *delta*
+(subconjunto, sem inventar variável). Hoje **não sobrou nenhum delta**.
+
+### O Dev perdeu o grafite (31/08/2026)
+
+A `.sistema-theme` vestia as 27 rotas de `/equipe/dev` com um acento grafite quente
+(`35 10% 26%`) e um par de superfície escura na mesma matiz. Era delta de **acento**: as
+superfícies claras ela herdava do piso, de propósito.
+
+Caiu por dois fatos medidos, e o primeiro já era verdade **antes** da dobra do Board:
+
+- a tela `/equipe/dev/uso-envio` usa os tokens `--bd-*`. Três seguem o `--primary` e
+  viravam grafite; dois estão **cravados em teal** no `:root` — `--bd-accent-d` (pinta
+  letra, chip cheio e avatar) e `--bd-accent-soft`. Na mesma tabela: link e chip teal,
+  hover de linha e anel de foco grafite. É o defeito de 21/08 (Board) e o de 31/08
+  (Digital) pela terceira vez. A dobra não criou isso — ela fez alguém olhar;
+- a justificativa escrita do tom quente era "o canvas da base é marfim e o texto é marrom,
+  um grafite azulado brigaria com os dois". A dobra derrubou os dois fatos.
+
+**A regra "a quem a tela serve" não caiu — ela deixou de pintar.** `sistema` continua sendo
+área em `MAPA_DE_ROTAS`, e `areaDaRota('/equipe/dev')` continua respondendo `'sistema'`.
+
+⚠️ **Para quem for dar cor ao Dev de novo:** o acento sozinho **não** resolve. Enquanto
+`--bd-accent-d` e `--bd-accent-soft` estiverem cravados em teal no `:root` (só `.tax-theme`
+e `.osg-theme` os sobrescrevem), qualquer acento novo reabre o mesmo desencontro. Um delta
+para o Dev tem de incluir os `--bd-*` — ou esses dois tokens têm de passar a seguir o
+`--primary` antes.
+
+### O Digital e a Rotina ficam na base, por decisão
 
 Os três blocos de `/equipe/digital` — **Digital Rotina** (o dia a dia da equipe), **Digital
-Mapa** (cadastro de projetos e processos de mapeamento) e **Acessos** — usam a paleta base.
-Não é omissão: é o padrão do sistema exposto numa área real, e é dele que uma área nova
-parte antes de ajustar a própria identidade.
+Mapa** (cadastro de projetos e processos de mapeamento) e **Acessos** — usam a paleta base,
+e as telas de Rotina (`/equipe/kanban`, `/equipe/daily`, `/equipe/sprints`…) também.
 
-`.rotina-theme`, aplicado pelo `EquipeLayout`, **não é paleta de área**: troca só o anel de
-foco dos campos. Se um dia o Digital quiser identidade própria, o caminho é declarar a
-paleta inteira ali, como a Tax e a OSG fazem — meia declaração é pior que nenhuma, porque
-mistura duas identidades na mesma tela.
+Não é omissão. A `.rotina-theme` existiu até 29/08/2026: nasceu trocando só o anel de foco
+dos campos, foi congelada com o contrato inteiro, e aí se mediu que cada variável dela era,
+uma a uma, a mesma do `.base-theme` — inclusive o `--ring`. Apagar o bloco não moveu um
+pixel. A âncora da Rotina é a da casa, e a casa é o que o piso pinta.
+
+Consequência para o teste: `.rotina-theme` **está em `TEMAS`** e cumpre completude, contraste,
+faixa e separação interna — cumpre por ser cópia de uma paleta que cumpre. O único par
+dispensado é `.rotina-theme × :root` na separação entre áreas, registrado em
+`AREAS_CONGELADAS_NA_BASE`; ela continua sendo comparada com a Tax e com a OSG. No dia em que
+a Rotina ganhar cor própria, o teste `ainda é cópia da base` reprova e manda tirar a exceção —
+é ele que impede a dispensa de virar permanente.
+
+Quando essa decisão vier, o caminho é reescrever os valores deste bloco. Meia declaração é
+pior que nenhuma: mistura duas identidades na mesma tela.
 
 ## O mesmo módulo em áreas diferentes
 
@@ -257,20 +312,98 @@ Duas armadilhas que já morderam aqui:
   20° de matiz **ou** 8 pontos de luminosidade (`SEPARACAO`, em `src/lib/paletaDeArea.ts`).
   O caminho da matiz só vale se as duas cores tiverem saturação ≥ 20%: matiz não se enxerga
   sem croma, e dois cinzas a 180° continuam sendo o mesmo cinza. A mensagem de falha diz o
-  par e o tema. As três paletas cumprem com folga — o menor separador por matiz em uso é
+  par e o tema. As paletas em uso cumprem com folga — o menor separador por matiz em uso é
   22°, o menor por luminosidade é 9 pontos;
 - **duas áreas que viram a mesma paleta** — para **cada papel**, em **cada par de temas**,
   exige-se 12° de matiz **ou** 6 pontos de luminosidade (`SEPARACAO_ENTRE_AREAS`). É o
   guard que faltava: até ele existir, uma área podia declarar os oito papéis, passar em
   contraste, faixa e separação interna, e ainda assim ser cópia da vizinha — e era o caso,
   com 16 dos 24 pares colidindo. A mensagem de falha diz o papel, os dois temas e as duas
-  distâncias medidas. As três paletas cumprem com metade da distância sobrando: 18° onde
+  distâncias medidas. As paletas em uso cumprem com metade da distância sobrando: 18° onde
   quem resolve é a matiz, 9 pontos onde é a luminosidade;
 - **`soft` que foge do próprio tom cheio** — mais de 12° de matiz entre os dois faz a
   pílula parecer dois papéis empilhados;
 - **`feito` e `ajuste` a menos de 60° de matiz** — o par que mais dói confundir numa lista.
   Aqui a checagem é de matiz, não de contraste: os dois são tons escuros e dariam ~1:1 de
   razão mesmo sendo verde e tijolo.
+
+### Os papéis semânticos entraram depois
+
+`--destructive`, `--success`, `--warning` e `--info` são **sinal, não paleta de área**, e por
+isso ficaram fora do contrato original — que nasceu para os oito papéis de status. Foi essa
+lacuna que deixou o `--warning` viver como `text-warning` a **2,13:1** sem nada reprovar: não
+era valor errado passando pelo teste, era token que nenhum teste media.
+
+`problemasDosSemanticos` cobra os quatro, nos dois empregos que eles realmente têm na tela:
+
+- **preenchido** — o token pinta o fundo e o `-foreground` escreve por cima (botão, toast,
+  pílula). O par tem que fechar AA sozinho: quem olha não escolhe as duas cores;
+- **texto** — `text-destructive`, `text-success`, `text-warning`, `text-info` sobre a
+  superfície do tema (`--card`, ou `--background` quando a área não declara card). É o
+  emprego frágil: o token foi calibrado para *receber* texto branco, não para *ser* o texto.
+
+O que **não** se cobra deles, e de propósito: faixa e teto de saturação (faixa serve para
+paletas de área conversarem entre si; sinal não conversa, interrompe — o `--warning` a 92% de
+saturação é escolha), separação par a par (vermelho, verde, amarelo e azul já têm matiz por
+construção) e separação entre áreas (o vermelho de excluir *pode* ser o mesmo em duas áreas,
+e na maioria delas é).
+
+### "Token que nenhum tema declara" é o defeito recorrente deste sistema
+
+O `--warning` a 2,13:1 não foi um valor errado passando pelo teste — foi um token fora do
+contrato. **Esse mesmo defeito reapareceu quatro vezes**, e em 31/08/2026 os quatro foram
+cobrados de uma vez. O contrato foi de 46 para 50 variáveis.
+
+| token | onde vivia | o que produzia |
+|---|---|---|
+| `--accent-d` | cravado no `:root`, no bloco `--bd-*` | o degrau escuro que pinta **letra** (link, chip cheio, avatar) era o teal da casa em qualquer tema que não fosse Tax nem OSG |
+| `--accent-soft` | idem | o card tingido de KPI, igual |
+| `--border` | só no `:root`, `40 12% 91%` bege | borda de controle bege em **toda** rota, inclusive sobre as superfícies frias da casa (matiz 168) e da Tax (170) |
+| `--input` | idem | idem |
+
+O caso do `--border` tinha um agravante que só apareceu ao medir: o `--bd-line` do design
+system do Board era **frio** na casa (cravado) e **bege** na Tax e na OSG (onde resolvia
+`var(--border)`). Mesmo token, duas temperaturas, dependendo da rota.
+
+Agora cada tema declara a linha da família da superfície dele, e o peso é o mesmo nos três
+— que é a regra deste documento aplicada a linha em vez de a papel de status:
+
+| tema | `--border` | contraste no card |
+|---|---|---|
+| `.base-theme` | `168 14% 89%` | 1,26:1 (era 1,21) |
+| `.tax-theme` | `170 16% 89%` | 1,24:1 (era 1,20) |
+| `.osg-theme` | `32 20% 88%` | 1,26:1 (era 1,18) |
+
+A OSG **não** usa `var(--osg-100)`, e isso foi medido: daria 1,38:1, ou seja a mesma borda
+leria mais pesada na OSG do que nas outras áreas. As paletas conversam no **registro** e
+mudam de **família**; o peso da linha é registro.
+
+⚠️ **Dívida aberta, com número:** nenhuma das três passa em **WCAG 1.4.11**, que pede 3:1
+para borda de controle. 1,26 está longe. Chegar a 3:1 exige luminosidade por volta de 72% no
+lugar de 89% — borda visivelmente escura em todo input do produto. É decisão de design em
+aberto, e a mudança de 31/08 não a resolve; só tira a divergência de temperatura.
+
+Restam **três** valores cravados no bloco `--bd-*`, e os três estão comentados um a um no
+`index.css`: `--bd-surface2` (zebra, `168 20% 98%`), `--bd-line2` (divisória, `168 16% 94%`) e
+`--bd-accent-l` (série secundária de gráfico, `175 45% 72%`). O critério para não derivá-los é
+o mesmo nos três: o valor da casa **não tem par no contrato**, então derivar mexeria em pixel
+— nos dois primeiros escurecendo zebra e divisória, no terceiro trocando opaco por alfa. Isso
+é decisão de design, não limpeza, e é por isso que ficam visíveis em vez de entrarem de
+carona.
+
+A resolução passa por herança e por `var()`: nenhuma área declara `--card` própria, e os
+semânticos da OSG são `var(--osg-moss)` / `var(--osg-highlighter)`. Ler só o literal do bloco
+daria "não declarado" justamente na área que mais personalizou os quatro.
+
+**A dívida de hoje está fixada item a item em `DIVIDA_SEMANTICA`**, no arquivo de teste, com
+12 entradas — valores que já estão em produção, cuja correção é decisão de identidade visual
+e não de teste. A asserção é de igualdade exata, o que faz da lista uma catraca nos dois
+sentidos: falha nova derruba o teste, e item corrigido também derruba, pedindo que saia da
+lista. A dívida só pode diminuir, e nunca de fininho. Em resumo: o `--warning` reprova como
+texto nos quatro temas (1,54:1 a 2,13:1 — é o amarelo, e é a decisão que está na mesa), o
+`--success` reprova por pouco em três (4,18–4,21:1 contra 4,5:1), o `--destructive` do `:root`
+reprova nos dois empregos (Tax, OSG e Rotina já corrigiram o deles), e o `--info` passa com
+folga nos quatro.
 
 ## Fora do módulo de tarefas
 
@@ -289,5 +422,6 @@ hexadecimais de gráfico ainda vivem em `src/lib/board-chart-defaults.ts`,
 assim, elas mostram a mesma cor em qualquer área que as hospede; convertê-las para papéis é
 o que as torna sensíveis à área, como já são projetos e tarefas.
 
-O token `--info` (azul) segue existindo para uso semântico pontual; nenhuma área o declara
-na paleta dela.
+O token `--info` (azul) segue existindo para uso semântico pontual: nenhuma área o declara na
+paleta dela, e todas as quatro o resolvem pela herança. Ele entra no contrato dos papéis
+semânticos (acima) mesmo passando com folga — travar quem já cumpre é barato.

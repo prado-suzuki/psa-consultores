@@ -30,7 +30,7 @@ export const HorasAcumuladas = ({
 
   if (loading) {
     return (
-      <Card className="bg-white border-gray-200">
+      <Card className="border-gray-200">
         <CardContent className="py-8 text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
         </CardContent>
@@ -40,7 +40,7 @@ export const HorasAcumuladas = ({
 
   if (hoursData.length === 0) {
     return (
-      <Card className="bg-white border-gray-200">
+      <Card className="border-gray-200">
         <CardHeader className="pb-3">
           <CardTitle className="text-gray-900 text-lg flex items-center gap-2">
             <Clock className="h-5 w-5 text-primary" />
@@ -59,7 +59,7 @@ export const HorasAcumuladas = ({
   const totalHours = hoursData.reduce((sum, d) => sum + d.total, 0);
 
   return (
-    <Card className="bg-white border-gray-200">
+    <Card className="border-gray-200">
       <CardHeader className="pb-3">
         <CardTitle className="text-gray-900 text-lg flex items-center gap-2">
           <Clock className="h-5 w-5 text-primary" />

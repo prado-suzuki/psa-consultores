@@ -12,10 +12,13 @@
 // editada — quem pergunta "esse bem entra no documento?" pergunta aqui, e a
 // tela deriva daqui o aviso que mostra ao consultor.
 //
-// PENDENTE DE DECISÃO DO TIME: se 'Integralizado' entra no conjunto (bem já
-// integralizado em ato anterior, que uma alteração contratual ainda precisa
-// descrever) ou se o vocabulário do status precisa mudar. Entrar = descomentar
-// UMA linha abaixo; nada mais no código muda.
+// DECIDIDO (D5 de docs/planos/derivacao-de-eventos-e-carimbo.md, 27/08/2026):
+// 'Integralizado' fica FORA do conjunto, e a exclusão passou a ser automática —
+// registrar a peça na junta carimba o ledger e vira o status dos bens daqueles
+// movimentos (ver useFormalizarMovimentos). Bem que este ato consumiu sai da lista
+// sozinho, sem ninguém editar cadastro, e não é descrito duas vezes na peça
+// seguinte. A chave é o `bem_id` do movimento carimbado, nunca "os aprovados da
+// empresa" (D6).
 
 export const STATUS_INTEGRALIZACAO = [
   'Pendente',
@@ -33,7 +36,8 @@ export type StatusIntegralizacao = (typeof STATUS_INTEGRALIZACAO)[number];
 export const STATUS_ELEGIVEIS_PARA_INTEGRALIZACAO: readonly StatusIntegralizacao[] = [
   'Aprovado',
   'Aprovado para 2ª Instancia',
-  // 'Integralizado', // ← pendente de decisão do time (ver cabeçalho)
+  // 'Integralizado' NÃO entra: é o estado de quem já foi levado a uma peça
+  // registrada, e o flip é automático no registro (ver cabeçalho).
 ];
 
 /** "Esse bem entra no documento?" — o predicado nomeado, usado por query e tela. */

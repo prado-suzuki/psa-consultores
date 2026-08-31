@@ -157,11 +157,11 @@ export function SavingsSections(props: SavingsSectionsProps) {
   ];
 
   return (
-    <Card className="border-blue-200 bg-blue-50/50">
+    <Card className="bg-muted/40">
       <CardContent className="pt-4">
         <div className="flex items-center justify-between mb-4">
-          <h4 className="font-semibold text-blue-700">Economias Adicionais (opcional)</h4>
-          {total > 0 && <Badge className="bg-green-100 text-green-700 border-green-300">Total: R$ {total.toLocaleString('pt-BR')}</Badge>}
+          <h4 className="font-semibold text-foreground">Economias Adicionais (opcional)</h4>
+          {total > 0 && <Badge className="bg-success/20 text-foreground border-success/40">Total: R$ {total.toLocaleString('pt-BR')}</Badge>}
         </div>
         <div className="space-y-2">
           {sections.map(section => (

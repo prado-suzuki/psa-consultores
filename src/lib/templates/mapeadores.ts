@@ -2,7 +2,7 @@ import { cardinalExtenso, formatarArea, formatarInteiro, formatarPercentual, for
 import { capitalDeQuotas, quotasDeValor, quotasDoSocio, VALOR_NOMINAL_QUOTA } from './capital';
 import { comarcaComplementar, CARTORIO_SEM_NOME, nomeDoCartorio } from './cartorio';
 import { marcarSintetizados } from './sintetizado';
-import { ufPorExtenso } from './concordancia';
+import { generoDeConcordancia, ufPorExtenso } from './concordancia';
 import { comOrigem } from './origem';
 import { camposDaEntidade, derivarCampos, numeroProsa } from './vocabulario';
 import type { Binding, BindingLista } from './binding';
@@ -131,6 +131,17 @@ export function mapearPessoa(row: PessoaRow): Campos {
   return comOrigem(derivarCampos('pessoa', publicarOpcionais('pessoa', out)), { tipo: 'pessoa', id: row.id });
 }
 
+/** Onde esta peça está na cadeia de sucessão de documentos (ver `tituloDoInstrumento`). */
+export interface ContextoInstrumento {
+  /** 0/null = constituição; 1 = primeira alteração; 2 = segunda; … */
+  numeroAlteracao?: number | null;
+  /** Valores numéricos apurados contra o snapshot do documento substituído. */
+  capitalAnterior?: number | null;
+  capitalDelta?: number | null;
+  /** Forma coletiva concordada com quantidade e gênero do quadro societário. */
+  tituloColetivoSocios?: string;
+}
+
 /** Capital social e total de quotas da sociedade — calculados, não digitados. */
 export interface CapitalSociedade {
   capitalValor: number | null;
@@ -151,13 +162,18 @@ export interface CapitalSociedade {
  * contábeis. Era daí que vinha a cláusula quinta afirmando capital de
  * R$ 558.413,55 dividido em 558.414 quotas de R$ 1,00.
  *
- * - PR (Proprietária): as quotas nascem do valor contábil das matrículas
- *   APROVADAS para integralização — quantas quotas aquele valor compra;
- * - Demais (CN/Controladora…): as quotas são as do quadro societário (é o que
- *   está registrado na Junta). Sócio lançado só com valor, sem quotas digitadas,
- *   tem as quotas dele convertidas do valor (ver quotasDoSocio), inclusive no
- *   quadro MISTO: senão ele contribuiria zero para o total enquanto a linha dele
- *   imprime o valor, e a tabela deixaria de fechar com a cláusula.
+ * - PR (Proprietária) ainda SEM quadro gravado: as quotas nascem do valor
+ *   contábil das matrículas APROVADAS para integralização: quantas quotas
+ *   aquele valor compra. É a mesma base de `calcularParticipacoesPR`, e é o que
+ *   mantém Σ quotas dos sócios === totalQuotas enquanto o quadro é derivado;
+ * - PR com quadro gravado e demais (CN/Controladora…): as quotas são as do
+ *   quadro societário (é o que está registrado na Junta). Gravado o quadro da
+ *   PR, corrigir o valor contábil de um bem não mexe mais no capital: capital
+ *   registrado só muda por alteração contratual, e continuar somando os bens
+ *   faria a cláusula contradizer a tabela de sócios. Sócio lançado só com valor,
+ *   sem quotas digitadas, tem as quotas dele convertidas do valor (ver
+ *   quotasDoSocio), inclusive no quadro MISTO: senão ele contribuiria zero para
+ *   o total enquanto a linha dele imprime o valor.
  *
  * Sem dados, devolve null — os placeholders resolvem em branco e os condicionais
  * {{#sociedade.capitalValor}} pulam o trecho.
@@ -166,6 +182,8 @@ export function calcularCapitalSociedade(
   empresa: Pick<PessoaRow, 'tipo_empresa'> | undefined,
   socios: SocioParaMapear[],
   integralizacoes: MatriculaParaMapear[],
+  /** Há quadro gravado (saldo dos movimentos de quota). Ver useListasDaEmpresa. */
+  quadroGravado = false,
 ): CapitalSociedade {
   const semCapital: CapitalSociedade = {
     capitalValor: null,
@@ -178,7 +196,7 @@ export function calcularCapitalSociedade(
     quotaValorNominal: VALOR_NOMINAL_QUOTA,
   });
 
-  if (empresa?.tipo_empresa === 'PR') {
+  if (empresa?.tipo_empresa === 'PR' && !quadroGravado) {
     // MESMA base de calcularParticipacoesPR: a matrícula que fica fora de um
     // lado tem de ficar fora do outro, senão Σ quotas dos sócios ≠ totalQuotas.
     const valores = integralizacoes
@@ -216,8 +234,18 @@ function valorParaCapital(m: MatriculaParaMapear): number | null {
  * cláusulas ("a Sociedade tem sede…", "tem por objeto…"). O capital (calculado por
  * calcularCapitalSociedade) entra como segundo argumento; os extensos derivam.
  */
-export function mapearSociedade(row: PessoaRow, capital?: CapitalSociedade): Campos {
+export function mapearSociedade(
+  row: PessoaRow,
+  capital?: CapitalSociedade,
+  instrumento?: ContextoInstrumento,
+): Campos {
   const { out, set } = coletor();
+  // O NÚMERO da alteração é o que entra; o título se deriva dele no vocabulário
+  // (campo derivado não é entrada de formulário — ver camposDoBinding). Assim
+  // ninguém digita "PRIMEIRA ALTERAÇÃO…" e ninguém precisa reescrever o ordinal
+  // na alteração seguinte: quem conta os elos da sucessão é a tela Gerar.
+  set('numeroAlteracao', instrumento?.numeroAlteracao ?? 0);
+  set('tituloColetivoSocios', instrumento?.tituloColetivoSocios);
   set('razaoSocial', row.denominacao);
   set('cnpj', row.cpf_cnpj);
   set('nire', row.nire);
@@ -231,6 +259,8 @@ export function mapearSociedade(row: PessoaRow, capital?: CapitalSociedade): Cam
   set('sedeUf', row.endereco_uf);
   set('sedeCep', row.endereco_cep);
   if (capital?.capitalValor != null) set('capitalValor', formatarValor(capital.capitalValor));
+  if (instrumento?.capitalAnterior != null) set('capitalAnterior', formatarValor(instrumento.capitalAnterior));
+  if (instrumento?.capitalDelta != null) set('capitalDelta', formatarValor(instrumento.capitalDelta));
   if (capital?.totalQuotas != null) set('totalQuotas', formatarInteiro(capital.totalQuotas));
   // O valor nominal da quota é PARÂMETRO da sociedade, não dado do cadastro:
   // sai sempre, mesmo sem capital calculado, para o bloco imprimir
@@ -245,7 +275,13 @@ export function mapearSociedade(row: PessoaRow, capital?: CapitalSociedade): Cam
   // O valor nominal (e o extenso dele) é invenção do motor, não notícia do
   // cadastro: preenche a frase, mas não pode segurar no documento a cláusula de
   // capital de uma sociedade que ainda não tem capital nenhum (emenda 9.1).
-  marcarSintetizados(campos, ['quotaValorNominal', 'quotaValorNominalExtenso']);
+  // O número da alteração (e o título derivado dele) também é do motor: ele nasce
+  // da posição da peça na sucessão, e não pode segurar no documento um cabeçalho
+  // de sociedade que o cadastro não sabe nomear.
+  marcarSintetizados(campos, [
+    'quotaValorNominal', 'quotaValorNominalExtenso', 'numeroAlteracao', 'tituloInstrumento',
+    'tituloColetivoSocios',
+  ]);
   return comOrigem(campos, { tipo: 'sociedade', id: row.id });
 }
 
@@ -516,12 +552,25 @@ export interface SocioParaMapear {
   /** Nome(s) do(s) administrador(es) da sócia PJ ("neste ato representada por…"). */
   representante: string | null;
   /**
-   * Id da linha de `quadro_societario` — metadado p/ as notificações da tela
-   * Gerar (mudança de quotas/valor é logada com este entity_id). Ausente nos
-   * sócios derivados da empresa PR (vêm das integralizações, não do quadro).
+   * Ids dos movimentos de quota que compõem o saldo deste sócio: metadado p/ as
+   * notificações da tela Gerar (registrar um movimento é logado com o id da
+   * linha, e a janela compara contra este conjunto). Vazio/nulo nos sócios
+   * derivados da PR ainda sem movimentação: não há linha no livro a apontar.
    * NÃO vira placeholder.
    */
-  quadroSocietarioId?: string | null;
+  movimentoIds?: string[] | null;
+}
+
+/** "Único sócio", "Única sócia", "Únicos sócios" ou "Únicas sócias". */
+export function tituloColetivoDosSocios(socios: SocioParaMapear[]): string {
+  const todosFemininos = socios.length > 0 && socios.every(
+    ({ pessoa }) => generoDeConcordancia(
+      pessoa.genero === 'F' || pessoa.genero === 'M' ? pessoa.genero : null,
+      pessoa.tipo_pessoa,
+    ) === 'F',
+  );
+  if (socios.length === 1) return todosFemininos ? 'Única sócia' : 'Único sócio';
+  return todosFemininos ? 'Únicas sócias' : 'Únicos sócios';
 }
 
 export function mapearSocio(s: SocioParaMapear): ItemLista {
@@ -614,6 +663,13 @@ export function mapearQuadroSocietario(
 /** Matrícula de bem aprovado para integralização (o id cruza as referências entre sócios). */
 export interface MatriculaIntegralizacao extends MatriculaParaMapear {
   id: string;
+  /**
+   * Id do BEM a que a matrícula pertence. Opcional: o gerador não precisa dele
+   * (a seção {{#integralizacoes}} descreve a matrícula, não o bem), mas a
+   * proposta de aporte inicial grava um movimento por bem aportado e é ele que
+   * vira `movimentacao_quotas.bem_id`.
+   */
+  bemId?: string | null;
 }
 
 /** Participação derivada de uma pessoa no quadro da empresa PR (visão calculada). */
@@ -645,6 +701,64 @@ export interface ParticipacaoPR {
  * fica fora do cálculo. Ordena por valor decrescente; o último absorve a
  * diferença de quotas para fechar com calcularCapitalSociedade.
  */
+/**
+ * Rateio em CENTAVOS do valor de capital de UMA matrícula entre os titulares
+ * dela, na ordem em que os titulares aparecem no cadastro (a ordem importa: ela
+ * é o desempate estável de quem tem o mesmo valor no quadro).
+ *
+ * `null` quando a matrícula não entra na conta (sem valor contábil).
+ *
+ * Existe separado de `calcularParticipacoesPR` porque a proposta de aporte
+ * inicial precisa do mesmo rateio ABERTO por bem, para gravar um movimento por
+ * bem aportado; duplicar a regra ali faria a proposta divergir do quadro
+ * derivado no primeiro caso de arredondamento.
+ */
+export function ratearMatriculaEntreTitulares(
+  m: MatriculaIntegralizacao,
+): Map<TitularParaMapear, number> | null {
+  // MESMA base de calcularCapitalSociedade: sem valor ou sem titular, a
+  // matrícula fica fora dos DOIS lados da identidade Σ quotas === totalQuotas.
+  const vlr = valorParaCapital(m);
+  if (vlr == null) return null;
+  const titulares = dedupTitulares(m.titulares);
+
+  const totalCent = Math.round(vlr * 100);
+  const comFracao = titulares.filter((t) => t.fracao != null);
+  const semFracao = titulares.filter((t) => t.fracao == null);
+  // Matrícula "fechada": todos com fração e Σ frações ≈ 100 — o último titular
+  // absorve o resíduo de arredondamento (padrão dos contratos registrados).
+  const fechada =
+    semFracao.length === 0 &&
+    Math.abs(comFracao.reduce((s, t) => s + t.fracao!, 0) - 100) < 0.001;
+
+  const calculado = new Map<TitularParaMapear, number>();
+  let alocado = 0;
+  comFracao.forEach((t, i) => {
+    const cent = fechada && i === comFracao.length - 1
+      ? totalCent - alocado
+      : Math.round((totalCent * t.fracao!) / 100);
+    alocado += cent;
+    calculado.set(t, cent);
+  });
+  // Sem fração: dividem igualmente o restante (último absorve o resíduo).
+  const restante = totalCent - alocado;
+  let alocadoSem = 0;
+  semFracao.forEach((t, i) => {
+    const cent = i === semFracao.length - 1
+      ? restante - alocadoSem
+      : Math.round(restante / semFracao.length);
+    alocadoSem += cent;
+    calculado.set(t, cent);
+  });
+
+  // Devolvido na ordem do cadastro, não na ordem "com fração antes de sem":
+  // quem consome agrega por pessoa e depois ordena com sort estável, então a
+  // ordem daqui é o desempate de dois titulares com o mesmo valor.
+  const centDe = new Map<TitularParaMapear, number>();
+  for (const t of titulares) centDe.set(t, calculado.get(t) ?? 0);
+  return centDe;
+}
+
 export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): ParticipacaoPR[] {
   interface Acumulado {
     pessoaId: string | null; denominacao: string;
@@ -654,42 +768,10 @@ export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): 
   const porChave = new Map<string, Acumulado>();
 
   for (const m of matriculas) {
-    // MESMA base de calcularCapitalSociedade: sem valor ou sem titular, a
-    // matrícula fica fora dos DOIS lados da identidade Σ quotas === totalQuotas.
-    const vlr = valorParaCapital(m);
-    if (vlr == null) continue;
-    const titulares = dedupTitulares(m.titulares);
+    const centDe = ratearMatriculaEntreTitulares(m);
+    if (centDe == null) continue;
 
-    const totalCent = Math.round(vlr * 100);
-    const comFracao = titulares.filter((t) => t.fracao != null);
-    const semFracao = titulares.filter((t) => t.fracao == null);
-    // Matrícula "fechada": todos com fração e Σ frações ≈ 100 — o último titular
-    // absorve o resíduo de arredondamento (padrão dos contratos registrados).
-    const fechada =
-      semFracao.length === 0 &&
-      Math.abs(comFracao.reduce((s, t) => s + t.fracao!, 0) - 100) < 0.001;
-
-    const centDe = new Map<TitularParaMapear, number>();
-    let alocado = 0;
-    comFracao.forEach((t, i) => {
-      const cent = fechada && i === comFracao.length - 1
-        ? totalCent - alocado
-        : Math.round((totalCent * t.fracao!) / 100);
-      alocado += cent;
-      centDe.set(t, cent);
-    });
-    // Sem fração: dividem igualmente o restante (último absorve o resíduo).
-    const restante = totalCent - alocado;
-    let alocadoSem = 0;
-    semFracao.forEach((t, i) => {
-      const cent = i === semFracao.length - 1
-        ? restante - alocadoSem
-        : Math.round(restante / semFracao.length);
-      alocadoSem += cent;
-      centDe.set(t, cent);
-    });
-
-    for (const t of titulares) {
+    for (const t of centDe.keys()) {
       const chave = t.pessoaId ?? `nome:${t.denominacao ?? ''}`;
       const atual = porChave.get(chave);
       if (atual) {
@@ -737,6 +819,44 @@ export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): 
 }
 
 /**
+ * Um aporte do LIVRO de movimentos, no formato que o mapeador consome.
+ *
+ * A seção {{#integralizacoes}} nasceu descrevendo matrícula, porque o único
+ * aporte que a casa tinha era em imóvel. O instrumento real mistura os três,
+ * como alíneas dentro do mesmo sócio: imóvel, moeda corrente e QUOTAS DE OUTRA
+ * SOCIEDADE (o sócio integraliza na controladora com as quotas que tinha na
+ * proprietária). A matrícula não tem como expressar os dois últimos, e é por
+ * isso que o aporte entra por aqui, do ledger, e não do cadastro de bens.
+ */
+export interface AporteParaMapear {
+  /** Id do movimento no livro (`movimentacao_quotas.id`). */
+  id: string;
+  /** Sócio que integraliza: casa com `socio.pessoa.id`. */
+  pessoaId: string;
+  /** Quotas SUBSCRITAS nesta sociedade por este aporte. */
+  quotas: number;
+  /** R$ de capital dessas quotas. */
+  valor: number;
+  forma: 'bem' | 'moeda' | 'quotas';
+  /** Bem aportado (forma 'bem'): casa com `MatriculaIntegralizacao.bemId`. */
+  bemId?: string | null;
+  /** A sociedade cujas quotas pagaram o aporte (forma 'quotas'). */
+  origem?: AporteComQuotasDeOutra | null;
+}
+
+/** A PJ de origem de um aporte pago com quotas, qualificada por inteiro. */
+export interface AporteComQuotasDeOutra {
+  /** A PJ como pessoa: daí saem CNPJ, NIRE, sede e o resto da qualificação. */
+  pessoa: PessoaRow;
+  /** Nome(s) do(s) administrador(es) dela, para "neste ato representada por". */
+  administradores?: string | null;
+  /** Quantas quotas de LÁ foram entregues. */
+  quotas: number;
+  /** Quanto elas valiam LÁ. A subida é 1:1 em valor, não em quantidade. */
+  valor: number;
+}
+
+/**
  * Itens da seção {{#integralizacoes}} (e do bloco parágrafo REPETIDOR sobre
  * ela): um item por sócio que integraliza (na ordem do quadro societário), cada
  * um com suas alíneas {{#imoveis}} — uma por matrícula em que o sócio é
@@ -753,10 +873,28 @@ export function calcularParticipacoesPR(matriculas: MatriculaIntegralizacao[]): 
  * Valor da alínea = fração × valor da matrícula. Quando as frações fecham 100%
  * entre os sócios, o último absorve a diferença de centavos do arredondamento
  * (ex.: R$ 138.027,21 → 69.013,61 + 69.013,60, como nos contratos registrados).
+ *
+ * Cada sócio ganha DUAS listas de alíneas, e elas coincidem no caso comum:
+ *
+ *   {{#imoveis}} — só imóveis, a lista que sempre existiu.
+ *   {{#aportes}} — os três tipos de aporte na ordem do livro (imóvel, moeda
+ *                  corrente, quotas de outra sociedade), que é o que o
+ *                  instrumento real mistura dentro do mesmo sócio.
+ *
+ * Sem `aportes` no argumento (constituição da PR, cujo quadro ainda é derivado
+ * dos bens), {{#aportes}} é montada dos próprios imóveis e as letras batem uma a
+ * uma com {{#imoveis}}: assim um bloco escrito na seção nova nunca sai vazio por
+ * falta de ledger. Com `aportes`, a ORDEM e as letras são as do livro, e os
+ * imóveis que o livro não menciona entram no fim, para nada sumir em silêncio.
+ *
+ * Quem ENTRA na lista é o sócio com matrícula OU com lançamento no livro. Sócio
+ * cujo aporte foi pago só em moeda corrente ou em quotas de outra sociedade não
+ * tem imóvel nenhum, e sai daqui com {{#imoveis}} vazia e {{#aportes}} cheia.
  */
 export function mapearIntegralizacoes(
   socios: SocioParaMapear[],
   matriculas: MatriculaIntegralizacao[],
+  aportes: AporteParaMapear[] = [],
 ): ItemLista[] {
   const sociosIds = new Set(socios.map((s) => s.pessoa.id));
 
@@ -791,7 +929,13 @@ export function mapearIntegralizacoes(
     const doSocio = matriculas.filter((m) =>
       dedupTitulares(m.titulares).some((t) => t.pessoaId === s.pessoa.id),
     );
-    if (doSocio.length === 0) continue;
+    // O sócio entra por matrícula OU por lançamento do livro: o aporte pago em
+    // moeda corrente ou em quotas de outra sociedade não tem imóvel nenhum, e a
+    // guarda antiga (só matrícula) o descartava calado — era o que deixava a
+    // integralização da controladora sem alínea, e com ela sem a qualificação da
+    // PJ de origem, num bloco que o motor então descartava por falta de dado.
+    const aportesDoSocio = aportes.filter((a) => a.pessoaId === s.pessoa.id);
+    if (doSocio.length === 0 && aportesDoSocio.length === 0) continue;
 
     const ordem = itens.length + 1;
     const imoveis: ItemLista[] = doSocio.map((m, j) => {
@@ -856,7 +1000,13 @@ export function mapearIntegralizacoes(
     for (const id of ['quotas', 'quotasExtenso', 'vlrTotal', 'vlrTotalExtenso']) {
       socioCampos[id] = socioCampos[id] ?? '';
     }
-    itens.push({ socio: socioCampos, sePF: base.sePF, sePJ: base.sePJ, imoveis });
+    itens.push({
+      socio: socioCampos,
+      sePF: base.sePF,
+      sePJ: base.sePJ,
+      imoveis,
+      aportes: montarAportesDoSocio(aportesDoSocio, doSocio, imoveis),
+    });
   }
 
   // Liga cada referência ao ITEM da primeira descrição: {{ refItem.ref }} lê o
@@ -865,6 +1015,126 @@ export function mapearIntegralizacoes(
   for (const p of referenciasPendentes) p.alvo.refItem = itens[p.indice];
 
   return itens;
+}
+
+/**
+ * Ids das matrículas que a seção {{#integralizacoes}} de fato DESCREVE: as de
+ * titular sócio (a mesma condição do laço acima), sem repetir a que dois sócios
+ * dividem — a alínea é por sócio, a matrícula é uma só.
+ *
+ * Existe para responder "quais imóveis entram neste contrato" a quem precisa da
+ * MATRÍCULA e não da alínea: é do georref delas que sai o memorial descritivo,
+ * que não tem imóvel próprio a escolher.
+ */
+export function matriculasDescritasNasIntegralizacoes(
+  socios: SocioParaMapear[],
+  matriculas: MatriculaIntegralizacao[],
+): string[] {
+  const sociosIds = new Set(socios.map((s) => s.pessoa.id));
+  return matriculas
+    .filter((m) => dedupTitulares(m.titulares).some((t) => t.pessoaId && sociosIds.has(t.pessoaId)))
+    .map((m) => m.id);
+}
+
+/** Os campos comuns a toda alínea de aporte, seja qual for a forma. */
+function camposDoAporte(alinea: string, quotas: number | null, valor: number | null): Campos {
+  const out: Campos = { alinea };
+  if (quotas != null) {
+    out.quotas = formatarInteiro(quotas);
+    // Feminino: o extenso conta QUOTAS ("quinhentas quotas"), como no registro.
+    out.quotasExtenso = cardinalExtenso(quotas, true);
+  }
+  if (valor != null) {
+    out.valor = formatarValor(valor);
+    out.valorExtenso = valorExtenso(valor);
+  }
+  return out;
+}
+
+/**
+ * As alíneas de aporte de UM sócio, na ordem do livro de movimentos.
+ *
+ * Os itens de imóvel são os MESMOS objetos de {{#imoveis}}, não cópias: é neles
+ * que a composição carimba {{ ref }} e que `referenciasPendentes` religa o
+ * `refItem` depois do laço. Uma cópia perderia a identidade e a referência
+ * cruzada ("descrito na alínea 'a' do parágrafo segundo") quebraria.
+ *
+ * Aporte em bem cujo bem não tem matrícula neste sócio é pulado: a matrícula é o
+ * que descreve o imóvel, e sem ela não há alínea a escrever. É invariante de
+ * cadastro que bem aprovado para integralização tenha matrícula.
+ */
+function montarAportesDoSocio(
+  doLivro: AporteParaMapear[],
+  matriculasDoSocio: MatriculaIntegralizacao[],
+  imoveis: ItemLista[],
+): ItemLista[] {
+  const itemPorMatricula = new Map<string, ItemLista>();
+  matriculasDoSocio.forEach((m, i) => {
+    if (imoveis[i]) itemPorMatricula.set(m.id, imoveis[i]);
+  });
+
+  // Cada entrada guarda o movimento que a originou: um aporte em bem pode virar
+  // MAIS DE UMA alínea (bem com duas matrículas), e um imóvel pode entrar sem
+  // movimento nenhum (constituição ainda derivada). Casar por índice nas duas
+  // listas seria certo só no caso em que elas têm o mesmo tamanho.
+  const entradas: Array<{ item: ItemLista; doLivro: AporteParaMapear | null }> = [];
+  const usadas = new Set<string>();
+  const empurrarImovel = (m: MatriculaIntegralizacao, a: AporteParaMapear | null) => {
+    const item = itemPorMatricula.get(m.id);
+    if (!item || usadas.has(m.id)) return;
+    usadas.add(m.id);
+    entradas.push({ item, doLivro: a });
+  };
+
+  for (const a of doLivro) {
+    if (a.forma === 'bem') {
+      for (const m of matriculasDoSocio.filter((m) => (m.bemId ?? null) === (a.bemId ?? null))) {
+        empurrarImovel(m, a);
+      }
+      continue;
+    }
+    if (a.forma === 'moeda') {
+      entradas.push({
+        item: { seImovel: false, seMoeda: true, seQuotas: false, aporte: {} },
+        doLivro: a,
+      });
+      continue;
+    }
+    const origem = a.origem;
+    const campos: Campos = origem
+      ? { ...mapearSociedade(origem.pessoa), ...camposDoAporte('', origem.quotas, origem.valor) }
+      : {};
+    if (origem?.administradores) campos.representante = origem.administradores;
+    // A letra da alínea é do APORTE, não da PJ de origem: {{ aporte.alinea }}.
+    delete campos.alinea;
+    entradas.push({
+      item: { seImovel: false, seMoeda: false, seQuotas: true, aporte: {}, origem: campos },
+      doLivro: a,
+    });
+  }
+
+  // O que o livro não mencionou entra no fim, para nada sumir em silêncio. Sem
+  // livro nenhum (constituição da PR, quadro ainda derivado dos bens) é este
+  // laço que monta a lista inteira, e aí as letras batem com {{#imoveis}}.
+  for (const m of matriculasDoSocio) empurrarImovel(m, null);
+
+  // A letra é da posição na lista MISTA, e por isso só se resolve aqui.
+  return entradas.map(({ item, doLivro: a }, i) => {
+    const imovel = item.imovel as Campos | undefined;
+    item.seImovel = item.seImovel ?? true;
+    item.seMoeda = item.seMoeda ?? false;
+    item.seQuotas = item.seQuotas ?? false;
+    item.aporte = {
+      ...camposDoAporte(letraAlinea(i + 1), a?.quotas ?? null, a?.valor ?? null),
+      // O valor da alínea de imóvel é o da FRAÇÃO do sócio na matrícula, que a
+      // descrição já calculou: recontar a partir do livro produziria dois
+      // números diferentes para a mesma linha (o livro registra o bem inteiro).
+      ...(imovel?.valor != null
+        ? { valor: imovel.valor, valorExtenso: imovel.valorExtenso ?? '' }
+        : {}),
+    };
+    return item;
+  });
 }
 
 /**
@@ -908,6 +1178,143 @@ export function reidratarItensPorLista(
   };
   for (const item of integralizacoes) religar(item);
   return itensPorLista;
+}
+
+// --- Cessões de quotas (seção {{#cessoes}}) ----------------------------------
+
+/** Uma cessão (ou doação) do livro, com as duas pontas já juntadas. */
+export interface CessaoParaMapear {
+  /** Id do movimento no livro (`movimentacao_quotas.id`). */
+  id: string;
+  cedente: PessoaRow;
+  cessionario: PessoaRow;
+  quotas: number;
+  /** R$ de CAPITAL das quotas cedidas, nunca o preço pago. */
+  valor: number;
+  /** Doação (título gratuito) em vez de cessão onerosa. */
+  doacao?: boolean;
+  /** "neste ato representada por…" quando a ponta é PJ. */
+  representanteCedente?: string | null;
+  representanteCessionario?: string | null;
+}
+
+/**
+ * Itens da seção {{#cessoes}}: uma cessão por item, com as DUAS pontas
+ * qualificadas e a quantidade.
+ *
+ * A resolução de cessão publicava só o quadro RESULTANTE, e com isso a peça
+ * dizia o efeito sem dizer o ato: quem cedeu, para quem e quantas quotas ficava
+ * de fora, e é exatamente isso que o instrumento registrado nomeia ("os sócios
+ * cedem a totalidade das quotas à MMS Participações, sócia ingressante"). O
+ * quadro resultante continua saindo, do consolidado; o que faltava era o
+ * movimento.
+ */
+/**
+ * Quem está NESTA lista de pessoas e NÃO está no quadro societário resultante.
+ *
+ * Uma pergunta, dois usos, e por isso mora aqui e não no chamador: os sócios que
+ * cederam a totalidade das quotas (os RETIRANTES do instrumento) e os
+ * administradores que seguem administrando sem estar no quadro (os
+ * ADMINISTRADORES NÃO SÓCIOS). Nos dois casos a resposta é a mesma subtração
+ * contra o quadro final, que é justamente a justificativa que o instrumento
+ * registrado dá: "por terem cedido a totalidade de suas quotas, os sócios …
+ * retiram-se da sociedade".
+ *
+ * Pessoa sem id não é comparável e fica FORA do resultado: afirmar retirada de
+ * quem não se consegue casar com o quadro inventaria um fato: o silêncio é o
+ * lado seguro (o consultor liga na mão).
+ */
+export function foraDoQuadro(pessoas: readonly PessoaRow[], socios: readonly SocioParaMapear[]): PessoaRow[] {
+  const noQuadro = new Set(socios.map((s) => s.pessoa.id).filter(Boolean));
+  const vistos = new Set<string>();
+  return pessoas.filter((p) => {
+    if (!p.id || noQuadro.has(p.id) || vistos.has(p.id)) return false;
+    vistos.add(p.id);
+    return true;
+  });
+}
+
+/**
+ * Os sócios RETIRANTES desta alteração: cedentes das cessões que a peça
+ * formaliza e que não sobraram no quadro resultante.
+ *
+ * Deriva do ATO (as cessões pendentes) e não do baseline da peça anterior: é o
+ * mesmo critério do instrumento registrado, dispensa snapshot e continua certo
+ * na primeira alteração de uma sociedade, onde baseline não existe.
+ */
+export function retirantesDaCessao(
+  cessoes: readonly CessaoParaMapear[],
+  socios: readonly SocioParaMapear[],
+): PessoaRow[] {
+  return foraDoQuadro(cessoes.map((c) => c.cedente), socios);
+}
+
+/** Itens da seção {{#retirantes}}: uma pessoa por item, na ordem das cessões. */
+export function mapearRetirantes(retirantes: readonly PessoaRow[]): ItemLista[] {
+  return retirantes.map((pessoa, i) => ({
+    retirante: derivarCampos('pessoa', mapearPessoa(pessoa)),
+    ordem: String(i + 1),
+    ordemRomana: romano(i + 1).toLowerCase(),
+  }));
+}
+
+/**
+ * As palavras da cláusula de retirada que concordam com QUANTOS e QUAIS saem.
+ *
+ * Ficam aqui, e não no bloco, pela razão de sempre: o bloco imprime, o código
+ * concorda. Uma cláusula que diga "os sócios … retiram-se" quando só uma sócia
+ * sai é a mesma classe de erro que o fecho cometia ao chamar de "Sócio" quem
+ * assina no feminino, e nenhum `sep`/`fim` de seção resolve flexão de verbo.
+ */
+export function vocabularioDaRetirada(retirantes: readonly PessoaRow[]): Campos {
+  const umSo = retirantes.length === 1;
+  const todasFemininas = retirantes.length > 0 && retirantes.every(
+    (p) => generoDeConcordancia(
+      p.genero === 'F' || p.genero === 'M' ? p.genero : null,
+      p.tipo_pessoa,
+    ) === 'F',
+  );
+  return {
+    titulo: umSo
+      ? (todasFemininas ? 'a sócia' : 'o sócio')
+      : (todasFemininas ? 'as sócias' : 'os sócios'),
+    porTerCedido: umSo ? 'por ter cedido' : 'por terem cedido',
+    verbo: umSo ? 'retira-se' : 'retiram-se',
+  };
+}
+
+export function mapearCessoes(cessoes: CessaoParaMapear[]): ItemLista[] {
+  return cessoes.map((c, i) => {
+    const cedente = mapearPessoa(c.cedente);
+    const cessionario = mapearPessoa(c.cessionario);
+    if (c.representanteCedente) cedente.representante = c.representanteCedente;
+    if (c.representanteCessionario) cessionario.representante = c.representanteCessionario;
+
+    const quotas = Math.round(c.quotas);
+    return {
+      // Re-deriva depois de mesclar o representante: a qualificação da PJ só
+      // enxerga "neste ato representada por…" nesta passada (ver mapearSocio).
+      cedente: derivarCampos('pessoa', cedente),
+      cessionario: derivarCampos('pessoa', cessionario),
+      cessao: {
+        ordem: String(i + 1),
+        ordemRomana: romano(i + 1).toLowerCase(),
+        quotas: formatarInteiro(quotas),
+        // Feminino: o extenso conta QUOTAS ("quinhentas quotas"), como no registro.
+        quotasExtenso: cardinalExtenso(quotas, true),
+        valor: formatarValor(c.valor),
+        valorExtenso: valorExtenso(c.valor),
+      },
+      // Duas condicionais gravadas juntas: o engine não tem "else", e o título
+      // da transmissão (onerosa ou gratuita) muda a redação da cláusula.
+      seCessao: !c.doacao,
+      seDoacao: !!c.doacao,
+      cedentePF: c.cedente.tipo_pessoa === 'PF',
+      cedentePJ: c.cedente.tipo_pessoa === 'PJ',
+      cessionarioPF: c.cessionario.tipo_pessoa === 'PF',
+      cessionarioPJ: c.cessionario.tipo_pessoa === 'PJ',
+    };
+  });
 }
 
 /** Linha de administração com a pessoa do administrador juntada. */

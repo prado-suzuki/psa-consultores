@@ -435,7 +435,7 @@ export function NotificationPopover({
    */
   const handleInternaClick = (notification: NotificacaoInterna) => {
     marcarInternasLidas.mutate([notification.id]);
-    const destino = destinoDoAviso(notification, tasksNavigateTo);
+    const destino = destinoDoAviso(notification, tasksNavigateTo, mencoesArea);
     if (destino) navigate(destino, navState);
   };
 
@@ -492,7 +492,15 @@ export function NotificationPopover({
           </div>
         ) : (
           <>
-            <ScrollArea className="max-h-80">
+            {/* `[&>[data-radix-scroll-area-viewport]>div]:!block` nao e enfeite: o
+                Radix injeta um div com `display: table` dentro do viewport, e table
+                dimensiona pelo CONTEUDO. Com ele, a linha de texto passava dos 320px
+                do popover, o `truncate` e o `line-clamp-2` nao tinham o que cortar, e
+                quem cortava era o `overflow-hidden`, no meio da palavra e sem
+                reticencias. Voltando para `block`, o texto respeita a largura e as
+                reticencias aparecem. Escopo local de proposito: mexer no
+                `ScrollArea` compartilhado mudaria todas as telas de uma vez. */}
+            <ScrollArea className="max-h-80 [&>[data-radix-scroll-area-viewport]>div]:!block">
               {items.slice(0, 5).map((item) => {
                 if (item.kind === 'mencao') {
                   return (

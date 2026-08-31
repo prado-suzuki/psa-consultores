@@ -75,7 +75,7 @@ export function DifalFiltersCard({
               disabled={isLoadingClientes}
               onValueChange={onClienteChange}
             >
-              <SelectTrigger className="h-11 bg-white">
+              <SelectTrigger className="h-11">
                 <SelectValue placeholder="Selecione o cliente" />
               </SelectTrigger>
               <SelectContent>
@@ -97,7 +97,7 @@ export function DifalFiltersCard({
               disabled={!selectedCliente || isLoadingContribuintes}
               onValueChange={onContribuinteChange}
             >
-              <SelectTrigger className="h-11 bg-white">
+              <SelectTrigger className="h-11">
                 <SelectValue placeholder="Selecione o contribuinte" />
               </SelectTrigger>
               <SelectContent>

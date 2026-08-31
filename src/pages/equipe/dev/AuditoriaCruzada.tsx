@@ -88,7 +88,7 @@ const AuditoriaCruzadaContent = () => {
                     <FieldTooltip text={AUDITORIA_TOOLTIPS.cliente} />
                   </label>
                   <Select value={clienteId} onValueChange={setClienteId}>
-                    <SelectTrigger className="h-11 bg-white">
+                    <SelectTrigger className="h-11">
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
@@ -104,7 +104,7 @@ const AuditoriaCruzadaContent = () => {
                     <FieldTooltip text={AUDITORIA_TOOLTIPS.contribuinte} />
                   </label>
                   <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
-                    <SelectTrigger className="h-11 bg-white">
+                    <SelectTrigger className="h-11">
                       <SelectValue placeholder={clienteId ? 'Selecione...' : 'Selecione um cliente'} />
                     </SelectTrigger>
                     <SelectContent>

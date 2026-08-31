@@ -314,14 +314,14 @@ export function DicaDoControle({ dica, children }: {
 
 /** A LINHA DE TOTAL. Fecha a tabela e é onde a conferência se lê. */
 export const linhaDeTotalCls =
-  'border-t-2 border-osg-200/70 bg-osg-50/70 font-semibold text-osg-700';
+  'border-t-2 border-border bg-osg-50/70 font-semibold text-osg-700';
 
 /** A LINHA DE DADO, com realce ao passar o ponteiro — a tabela responde ao ponteiro. */
-export const linhaCls = 'border-t border-osg-100/70 transition-colors hover:bg-osg-50/40';
+export const linhaCls = 'border-t border-border/70 transition-colors hover:bg-osg-50/40';
 
 /** A MOLDURA da tabela: borda da OSG, cantos, e rolagem própria quando não cabe. */
 export const molduraDaTabelaCls =
-  'overflow-x-auto rounded-lg border border-osg-100 bg-card';
+  'overflow-x-auto rounded-lg border border-border bg-card';
 
 /**
  * UM QUADRO: tabela COM TÍTULO — a moldura das telas de leitura.
@@ -346,8 +346,8 @@ export function Quadro({ titulo, legenda, children }: {
   children: React.ReactNode;
 }) {
   return (
-    <section className="overflow-hidden rounded-lg border border-osg-100 bg-card">
-      <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-osg-100/70 px-3 py-2">
+    <section className="overflow-hidden rounded-lg border border-border bg-card">
+      <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-border/70 px-3 py-2">
         <h4 className="text-sm font-semibold text-osg-700">{titulo}</h4>
         {legenda && (
           <span className="text-xs text-muted-foreground">{legenda}</span>
@@ -483,7 +483,7 @@ export const rotuloCls = 'text-[11px] font-bold uppercase tracking-[0.14em] text
  */
 export const barraDoAtoCls =
   'flex flex-wrap items-center gap-x-5 gap-y-3 rounded-md '
-  + 'border border-osg-100 bg-osg-50/40 px-3 py-2.5';
+  + 'border border-border bg-osg-50/40 px-3 py-2.5';
 
 /**
  * UMA LINHA DE AVISO, nos dois tons que esta tela tem.

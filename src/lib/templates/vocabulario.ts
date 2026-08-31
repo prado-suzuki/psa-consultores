@@ -1,4 +1,5 @@
 import { areaExtenso, cardinalExtenso, percentualExtenso, valorExtenso, type UnidadeArea } from './extenso';
+import { tituloDoInstrumento } from './instrumento';
 import { PARES, concordarTexto, generoDeConcordancia, ufPorExtenso, type Genero } from './concordancia';
 
 // Vocabulário de campos organizado POR ENTIDADE (pessoa/bem/matricula/cartorio).
@@ -407,6 +408,28 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
     tipo: 'sociedade',
     label: 'Sociedade',
     campos: [
+      // Que peça é esta na cadeia de sucessão: 0 é a constituição, 1 é a
+      // primeira alteração, 2 a segunda. Quem conta os elos é a tela Gerar, pelo
+      // `substitui_documento_id` — ninguém digita.
+      { id: 'numeroAlteracao', label: 'Número da alteração (0 = constituição)', tipo: 'inteiro' },
+      // O título que abre a peça, DERIVADO do número acima: campo derivado não é
+      // entrada de formulário (ver camposDoBinding), então o título não pode ser
+      // reescrito à mão e congelar. Corrigir a numeração é corrigir o NÚMERO; o
+      // ordinal por extenso se reescreve sozinho.
+      {
+        id: 'tituloInstrumento',
+        label: 'Título do instrumento',
+        tipo: 'texto',
+        derivadoDe: 'numeroAlteracao',
+        derivar: (v) => tituloDoInstrumento(paraInteiroBR(v.numeroAlteracao)),
+      },
+      { id: 'tituloColetivoSocios', label: 'Sócio(s) com concordância do quadro', tipo: 'texto' },
+      // Condicional (o engine não tem "else"): a administração passou a ser
+      // exercida de fora do quadro societário. É o que autoriza a cláusula a
+      // dizer "administradores não sócios", em vez de a redação afirmar isso
+      // sempre ou nunca.
+      { id: 'temAdministradorNaoSocio', label: 'Há administrador não sócio? (condicional)', tipo: 'texto' },
+      { id: 'semAdministradorNaoSocio', label: 'Todos os administradores são sócios? (condicional, o engine não tem else)', tipo: 'texto' },
       { id: 'razaoSocial', label: 'Razão social', tipo: 'texto', obrigatorio: true },
       // CNPJ NÃO é obrigatório: o contrato de constituição é justamente o
       // documento que a sociedade leva à Junta para obtê-lo.
@@ -428,6 +451,46 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivar: (v) => {
           const n = paraNumeroBR(v.capitalValor);
           return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
+      { id: 'capitalAnterior', label: 'Capital social anterior (R$)', tipo: 'valor' },
+      {
+        id: 'capitalAnteriorExtenso',
+        label: 'Capital social anterior (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'capitalAnterior',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.capitalAnterior);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
+      { id: 'capitalDelta', label: 'Aumento do capital social (R$)', tipo: 'valor' },
+      {
+        id: 'capitalDeltaExtenso',
+        label: 'Aumento do capital social (por extenso)',
+        tipo: 'texto',
+        derivadoDe: 'capitalDelta',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.capitalDelta);
+          return Number.isFinite(n) ? valorExtenso(n) : '';
+        },
+      },
+      // Condicional que autoriza a resolução de aumento a existir. O delta é
+      // calculado por diferença contra o documento registrado anterior
+      // (calcularHistoricoCapital), e três casos legítimos NÃO são aumento:
+      // delta nulo (peça sem predecessor registrado, não há de onde subtrair),
+      // delta zero (o evento foi marcado no assistente mas o capital não mudou
+      // no cadastro) e delta negativo (redução de capital, que é outro evento e
+      // pede outra redação). Sem este condicional o bloco não tem como sumir e
+      // acaba afirmando um aumento de R$ 0,00, que é falso na cara do cartório.
+      {
+        id: 'houveAumentoCapital',
+        label: 'Houve aumento de capital? (condicional)',
+        tipo: 'texto',
+        derivadoDe: 'capitalDelta',
+        derivar: (v) => {
+          const n = paraNumeroBR(v.capitalDelta);
+          return Number.isFinite(n) && n > 0 ? 'sim' : '';
         },
       },
       { id: 'totalQuotas', label: 'Total de quotas', tipo: 'inteiro', obrigatorio: true },

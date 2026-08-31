@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import ListaMestreDetalhe from '@/components/equipe/client-form/ListaMestreDetalhe';
 import ProdutoLinha from '@/components/equipe/produto-servico/ProdutoLinha';
-import ServicosSecaoLista, {
+import ServicosLista, {
   type ServicoNaLista,
-} from '@/components/equipe/produto-servico/ServicosSecaoLista';
+} from '@/components/equipe/produto-servico/ServicosLista';
 import ServicoDetalhePanel, {
   type ProdutoVinculado,
 } from '@/components/equipe/produto-servico/ServicoDetalhePanel';
@@ -20,8 +20,8 @@ import {
   TODOS_CLUSTERS, contarVinculosPorProduto, filtrarProdutos, filtrarServicos,
 } from '@/lib/produtoServicoVinculo';
 import {
-  agruparPorClusterESecao, contarVinculosPorServico, dividirNomeServico,
-} from '@/lib/produtoServicoSecoes';
+  contarVinculosPorServico, dividirNomeServico, ordenarPorCodigoDeServico,
+} from '@/lib/produtoServicoNomes';
 import {
   isVinculoOtimista, useProdutoSegmentoList, useProdutoServicoList,
   useProdutoServicoLote, useProdutoServicoToggle, useServicosPrestadosDelete,
@@ -53,8 +53,10 @@ const FORM_FECHADO = { aberto: false, alvo: null };
  * desfazer no que muda muita linha de uma vez.
  *
  * A tela usa só token semântico. Ela vive em `/equipe/acessos`, que o resolvedor
- * de tema resolve para `base-theme sistema-theme`, então o acento sai grafite
- * sem que nada aqui saiba disso.
+ * de tema resolve para `base-theme` e mais nada, então o acento sai no teal da
+ * casa sem que nada aqui saiba disso. Saiu do grafite em 31/08/2026, junto com o
+ * resto do Digital, e esta tela não precisou de uma linha para acompanhar — é o
+ * que o token semântico compra.
  */
 export default function ProdutosServicosTab() {
   const [produtoEscolhidoId, setProdutoEscolhidoId] = useState<string | null>(null);
@@ -66,6 +68,7 @@ export default function ProdutosServicosTab() {
   const [filtroServico, setFiltroServico] = useState<{ busca: string; modo: FiltroVinculo }>({
     busca: '', modo: 'todos',
   });
+  const [mostrarOutrosClusters, setMostrarOutrosClusters] = useState(false);
   const [emAndamento, setEmAndamento] = useState<Set<string>>(new Set());
   const [formProduto, setFormProduto] = useState<EstadoFormulario<ProdutoSegmento>>(FORM_FECHADO);
   const [formServico, setFormServico] = useState<EstadoFormulario<ServicoPrestado>>(FORM_FECHADO);
@@ -132,25 +135,39 @@ export default function ProdutosServicosTab() {
     }))
   ), [servicos, filtroServico, idsVinculados, emAndamento, usoPorServico]);
 
-  // Dois níveis: cluster e, dentro dele, seção. Sem o cluster o número da seção
-  // é ambíguo — OSG numera "1.01" e Tax "1.1", e as duas dão seção "1".
-  const grupos = useMemo(
-    () => agruparPorClusterESecao(
-      servicosVisiveis,
-      {
-        nome: (s) => s.nome,
-        clusterId: (s) => s.clusterId,
-        clusterNome: (s) => s.clusterNome,
-        vinculado: (s) => s.vinculado,
-      },
-      produtoSelecionado?.cluster_id ?? null,
-    ),
-    [servicosVisiveis, produtoSelecionado?.cluster_id],
-  );
-  // Ordem de exibição — é dela que sai a faixa do shift+clique.
+  /**
+   * DUAS listas planas, ordenadas pelo código: a do cluster do produto e a dos
+   * outros.
+   *
+   * Substituiu o agrupamento em dois níveis (cluster › seção numérica) em
+   * 27/08/2026. O corte por cluster ficou, mas virou uma decisão de VISIBILIDADE
+   * em vez de cabeçalho: um produto Tax abre com os 72 serviços Tax e os outros
+   * 41 esperam atrás de um botão. As "seções" saíram inteiras — o número que as
+   * nomeava não existe como dado, e ordenar pelo código junta os "1.x" do mesmo
+   * jeito, sem sanfona.
+   *
+   * Produto SEM cluster não tem o que separar: tudo cai na lista principal, e
+   * não sobra nada para o botão.
+   */
+  const listasDeServico = useMemo(() => {
+    const emOrdem = ordenarPorCodigoDeServico(servicosVisiveis, (s) => s.nome);
+    const clusterDoProduto = produtoSelecionado?.cluster_id ?? null;
+    if (!clusterDoProduto) return { doCluster: emOrdem, outros: [] as ServicoNaLista[] };
+    return {
+      doCluster: emOrdem.filter((s) => s.clusterId === clusterDoProduto),
+      outros: emOrdem.filter((s) => s.clusterId !== clusterDoProduto),
+    };
+  }, [servicosVisiveis, produtoSelecionado?.cluster_id]);
+
+  // Ordem de exibição — é dela que sai a faixa do shift+clique. Os outros
+  // clusters só entram quando estão abertos: shift+clique não pode saltar para
+  // uma linha que a pessoa não vê.
   const idsVisiveis = useMemo(
-    () => grupos.flatMap((g) => g.secoes.flatMap((secao) => secao.itens.map((item) => item.id))),
-    [grupos],
+    () => [
+      ...listasDeServico.doCluster.map((s) => s.id),
+      ...(mostrarOutrosClusters ? listasDeServico.outros.map((s) => s.id) : []),
+    ],
+    [listasDeServico, mostrarOutrosClusters],
   );
 
   /**
@@ -168,9 +185,11 @@ export default function ProdutosServicosTab() {
   }, [servicos]);
 
   // Trocar de produto zera a seleção: marcar serviço só faz sentido dentro do
-  // produto em que a marca foi feita.
+  // produto em que a marca foi feita. E fecha os outros clusters: o cluster do
+  // produto novo é outro, então "outros" quer dizer outra coisa.
   useEffect(() => {
     setMarcados(new Set());
+    setMostrarOutrosClusters(false);
   }, [produtoSelecionado?.id]);
 
   // ── Serviço aberto no painel direito ────────────────────────────────
@@ -329,17 +348,17 @@ export default function ProdutosServicosTab() {
 
   const vincularSugeridosDoCluster = useCallback(() => {
     if (!produtoSelecionado?.cluster_id) return;
-    const sugeridos = servicosVisiveis.filter(
-      (s) => !s.vinculado
-        && servicos.find((bruto) => bruto.id === s.id)?.cluster_id === produtoSelecionado.cluster_id,
-    );
-    void executarLote('vincular', sugeridos);
-  }, [produtoSelecionado, servicosVisiveis, servicos, executarLote]);
+    void executarLote('vincular', listasDeServico.doCluster.filter((s) => !s.vinculado));
+  }, [produtoSelecionado, listasDeServico, executarLote]);
 
   const semVinculoNenhum = produtoSelecionado && vinculosDoProduto.length === 0;
 
   return (
-    <div className="flex min-h-[70vh] flex-col gap-2">
+    // Altura DEFINIDA, não mínima: é ela que a casca reparte entre a lista de
+    // produtos, os serviços e o painel. Com `min-h` a casca crescia até a altura
+    // dos 19 produtos e as duas colunas da direita ficavam centradas ~800px
+    // abaixo, fora da tela — a bancada parecia vazia à direita.
+    <div className="flex h-[72vh] min-h-[480px] flex-col gap-2">
       <div className="flex items-center justify-between gap-3">
         {/*
           O texto anterior — "define quais serviços aparecem ao cadastrar
@@ -366,18 +385,23 @@ export default function ProdutosServicosTab() {
         moldura="pagina"
         larguraLista="w-[280px]"
         titulo={`Produtos (${produtosVisiveis.length})`}
-        acaoCriar={(
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 text-xs"
-            onClick={() => setFormProduto({ aberto: true, alvo: null })}
-          >
-            <Plus className="mr-1 h-3 w-3" />Novo
-          </Button>
-        )}
         cabecalhoLista={(
           <div className="space-y-2">
+            {/*
+              O "Novo produto" fica AQUI, no topo da própria coluna, e não na
+              faixa de título do cartão: lá ele encostava na borda direita da
+              página, a mais de mil pixels da lista que cria, e o rótulo "Novo"
+              não dizia novo o quê — o "Novo serviço" da coluna do meio dizia a
+              mesma palavra.
+            */}
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 w-full justify-center text-xs"
+              onClick={() => setFormProduto({ aberto: true, alvo: null })}
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" />Novo produto
+            </Button>
             <div className="flex flex-wrap gap-1">
               {[{ id: TODOS_CLUSTERS, nome: 'Todos' }, ...clustersDisponiveis].map((chip) => (
                 <button
@@ -429,25 +453,20 @@ export default function ProdutosServicosTab() {
         vazio={buscaProduto ? 'Nenhum produto com esse texto.' : 'Nenhum produto neste cluster.'}
       >
         <div className="flex min-h-0 flex-1 overflow-hidden">
-          {semVinculoNenhum && !filtroServico.busca && filtroServico.modo === 'todos' ? (
-            <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 px-6 text-center">
-              <p className="text-sm text-muted-foreground">
-                <strong className="font-semibold text-foreground">
-                  {produtoSelecionado?.codigo} — {produtoSelecionado?.nome}
-                </strong>
-                {' '}ainda não tem serviço nenhum. Sem vínculo, nenhum projeto pode ser
-                cadastrado para ele.
-              </p>
-              {produtoSelecionado?.cluster_id && (
-                <Button size="sm" onClick={vincularSugeridosDoCluster}>
-                  Vincular sugeridos do mesmo cluster
-                </Button>
-              )}
-            </div>
-          ) : (
-            <ServicosSecaoLista
+          {
+            /*
+              A coluna do meio fica SEMPRE montada. Antes, produto sem vínculo
+              nenhum trocava a coluna inteira por um cartaz — e o cartaz não tem
+              busca, não tem "Novo serviço" e não tem o lápis do produto. Quem
+              desvinculava tudo perdia o acesso a criar serviço no produto.
+              Agora a mesma mensagem desce como faixa dentro da coluna.
+            */
+            <ServicosLista
               produto={produtoSelecionado}
-              grupos={grupos}
+              doCluster={listasDeServico.doCluster}
+              outrosClusters={listasDeServico.outros}
+              mostrarOutros={mostrarOutrosClusters}
+              onMostrarOutros={setMostrarOutrosClusters}
               idsVisiveis={idsVisiveis}
               resumo={{ vinculados: vinculosDoProduto.length, total: totalPorCluster[produtoSelecionado?.cluster_id ?? ''] ?? 0 }}
               filtro={filtroServico}
@@ -462,9 +481,44 @@ export default function ProdutosServicosTab() {
                 if (produtoSelecionado) void alternarVinculo(produtoSelecionado.id, servico.id, servico.nome);
               }}
               onNovo={() => setFormServico({ aberto: true, alvo: null })}
+              onEditarProduto={() => {
+                if (produtoSelecionado) setFormProduto({ aberto: true, alvo: produtoSelecionado });
+              }}
+              /*
+                Produto sem serviço é ESTADO VÁLIDO, e a faixa é informativa —
+                nem âmbar, nem alarme.
+
+                Ela dizia "sem vínculo, nenhum projeto pode ser cadastrado para
+                ele", e isso era falso. Conferido nos dois lados em 27/08/2026:
+                `validateProjectForm` não pede `servico_id`, e
+                `gerar_tarefas_projeto` sai por `select` vazio devolvendo 0, sem
+                exceção. Produto sem serviço cria projeto igual — o projeto só
+                nasce sem tarefa, que é o desenho do Canal de Chamados.
+              */
+              aviso={semVinculoNenhum ? (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5 rounded-md border bg-muted/40 px-2.5 py-2 text-xs text-muted-foreground">
+                  <span>
+                    Nenhum serviço vinculado. Projetos de{' '}
+                    <strong className="font-semibold text-foreground">
+                      {produtoSelecionado?.codigo} — {produtoSelecionado?.nome}
+                    </strong>
+                    {' '}são cadastrados normalmente; só nascem sem tarefa nenhuma.
+                  </span>
+                  {produtoSelecionado?.cluster_id && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="ml-auto h-7 text-xs"
+                      onClick={vincularSugeridosDoCluster}
+                    >
+                      Vincular sugeridos do mesmo cluster
+                    </Button>
+                  )}
+                </div>
+              ) : undefined}
               carregando={isLoading}
             />
-          )}
+          }
 
           {painelAberto && (
             <ServicoDetalhePanel

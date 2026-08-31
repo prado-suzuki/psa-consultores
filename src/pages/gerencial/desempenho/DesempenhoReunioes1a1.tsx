@@ -141,7 +141,7 @@ const DesempenhoReunioes1a1 = () => {
                 const lastDate = reunioes[0]?.data_reuniao ?? '--';
                 const openCount = openCountByMembro.get(membroId) || 0;
                 return (
-                  <Card key={membroId} className="bg-white rounded-xl shadow-sm hover:shadow-md cursor-pointer transition-shadow" style={{ border: '1px solid var(--board-border)' }} onClick={() => setSelectedMembro(membroId)}>
+                  <Card key={membroId} className="rounded-xl shadow-sm hover:shadow-md cursor-pointer transition-shadow" style={{ border: '1px solid var(--board-border)' }} onClick={() => setSelectedMembro(membroId)}>
                     <CardContent className="pt-5 flex items-center gap-4">
                       <div className="h-12 w-12 rounded-full flex items-center justify-center text-sm font-semibold" style={{ backgroundColor: 'var(--bd-purple-t)', color: 'var(--bd-purple)' }}>{initials}</div>
                       <div className="flex-1">
@@ -174,7 +174,7 @@ const DesempenhoReunioes1a1 = () => {
                 {filteredReunioes.map(r => {
                   const reuniaoItens = allItens?.filter(i => i.reuniao_id === r.id) ?? [];
                   return (
-                    <Card key={r.id} className="bg-white rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
+                    <Card key={r.id} className="rounded-xl shadow-sm" style={{ border: '1px solid var(--board-border)' }}>
                       <CardContent className="pt-4">
                         <div className="flex items-center gap-3 mb-2">
                           <span className="text-sm font-medium" style={{ color: 'var(--board-t1)' }}>{r.data_reuniao}</span>

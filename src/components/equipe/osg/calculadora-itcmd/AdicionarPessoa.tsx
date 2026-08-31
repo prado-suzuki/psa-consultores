@@ -48,7 +48,7 @@ export function AdicionarPessoa({ rotulo, vazio, opcoes, onEscolher }: {
           variant="ghost"
           size="sm"
           aria-label={rotulo}
-          className="h-9 gap-1.5 border border-dashed border-osg-200 text-osg-700 transition-colors hover:border-osg-moss hover:bg-osg-50 hover:text-osg-moss"
+          className="h-9 gap-1.5 border border-dashed border-border text-osg-700 transition-colors hover:border-osg-moss hover:bg-osg-50 hover:text-osg-moss"
         >
           <Plus className="h-3.5 w-3.5" />
           {rotulo}

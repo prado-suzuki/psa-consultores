@@ -70,8 +70,8 @@ export function HistoricoDeSimulacoes({
 
   return (
     <ComoDicas>
-    <section className="rounded-lg border border-osg-200/70 bg-card">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-osg-100/70 px-4 py-3">
+    <section className="rounded-lg border border-border bg-card">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
         <h2 className="text-sm font-semibold text-foreground">
           Simulações
           <span className="ml-2 font-normal text-muted-foreground">
@@ -132,7 +132,7 @@ export function HistoricoDeSimulacoes({
               <TableHead colSpan={6} />
               <TableHead
                 colSpan={3}
-                className={`border-b border-osg-100 text-center ${rotuloDeColunaCls}`}
+                className={`border-b border-border text-center ${rotuloDeColunaCls}`}
               >
                 <ComDica
                   dica={'Doação MAIS instituição de usufruto, quando o ato tiver as '

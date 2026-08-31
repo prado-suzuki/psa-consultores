@@ -90,6 +90,7 @@ describe('gerarBlocos com repetidor — numeração estrutural das instâncias',
     const comReferencia: Template = {
       ...template,
       blocos: [
+        template.blocos[0],
         template.blocos[1],
         bloco('p2', 'paragrafo', '{{ socio.nome }} integraliza{{#referencia}} o imóvel descrito no {{ refItem.ref }}{{/referencia}}.', {
           repeteColecao: 'integralizacoes',
@@ -97,14 +98,15 @@ describe('gerarBlocos com repetidor — numeração estrutural das instâncias',
       ],
     };
     const blocos = gerarBlocos(comReferencia, ctx);
-    expect(blocos[1].conteudo).toBe('*Parágrafo Segundo:* José integraliza.');
-    expect(blocos[2].conteudo).toBe('*Parágrafo Terceiro:* Maria integraliza o imóvel descrito no parágrafo segundo.');
+    expect(blocos[2].conteudo).toBe('*Parágrafo Segundo:* José integraliza.');
+    expect(blocos[3].conteudo).toBe('*Parágrafo Terceiro:* Maria integraliza o imóvel descrito no parágrafo segundo.');
   });
 
   it('snapshot jsonb perde a identidade de refItem; reidratarItensPorLista a religa', () => {
     const comReferencia: Template = {
       ...template,
       blocos: [
+        template.blocos[0],
         template.blocos[1],
         bloco('p2', 'paragrafo', '{{ socio.nome }} integraliza{{#referencia}} o imóvel descrito no {{ refItem.ref }}{{/referencia}}.', {
           repeteColecao: 'integralizacoes',
@@ -132,7 +134,7 @@ describe('gerarBlocos com repetidor — numeração estrutural das instâncias',
     // Reidratado, refItem volta a apontar ao objeto real → resolve como no vivo.
     reidratarItensPorLista(snapshot as Record<string, ItemLista[]>);
     const blocos = gerarBlocos(comReferencia, snapshot);
-    expect(blocos[2].conteudo).toBe('*Parágrafo Terceiro:* Maria integraliza o imóvel descrito no parágrafo segundo.');
+    expect(blocos[3].conteudo).toBe('*Parágrafo Terceiro:* Maria integraliza o imóvel descrito no parágrafo segundo.');
   });
 
   it('o sufixo #n preserva o vínculo com a posição do modelo via instanciaDe', () => {

@@ -122,22 +122,22 @@ const EquipeAuth = () => {
   };
 
   const voltarAoSite = (
-    <Button variant="ghost" className="w-full text-gray-400 hover:text-white" onClick={() => navigate('/')}>
+    <Button variant="ghost" className="w-full text-muted-foreground hover:text-foreground" onClick={() => navigate('/')}>
       <ArrowLeft className="h-4 w-4 mr-2" />
       Voltar ao site
     </Button>
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-gray-950 flex items-center justify-center p-4">
+    <div className="min-h-screen dark bg-background text-foreground flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <img src={logo} alt="PSA Consultores" className="h-16 mx-auto mb-4" />
           <div className="flex items-center justify-center gap-2 mb-2">
             <Users className="h-6 w-6 text-primary" />
-            <h1 className="text-2xl font-bold text-white">Área da Equipe</h1>
+            <h1 className="text-2xl font-bold">Área da Equipe</h1>
           </div>
-          <p className="text-gray-400">Sistema de Gestão de Demandas</p>
+          <p className="text-muted-foreground">Sistema de Gestão de Demandas</p>
         </div>
 
         {/*
@@ -146,37 +146,37 @@ const EquipeAuth = () => {
           meio, e a espera parecia bem maior do que era.
         */}
         {loading ? (
-          <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg">
+          <Card className="backdrop-blur-lg">
             <CardContent className="flex items-center justify-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </CardContent>
           </Card>
         ) : !user ? (
           // ─── Etapa 1: credenciais ──────────────────────────────────────────
-          <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg">
+          <Card className="backdrop-blur-lg">
             <CardHeader>
-              <CardTitle className="text-white">Acesso Restrito</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle>Acesso Restrito</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Entre com suas credenciais de membro da equipe
               </CardDescription>
             </CardHeader>
             <CardContent>
               {showForgotPassword ? (
                 <form onSubmit={handleForgotPassword} className="space-y-4">
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-muted-foreground">
                     Informe seu email e enviaremos um link para redefinir sua senha.
                   </p>
                   <div className="space-y-2">
-                    <Label htmlFor="forgot-email" className="text-gray-300">Email</Label>
+                    <Label htmlFor="forgot-email" className="text-muted-foreground">Email</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="forgot-email"
                         type="email"
                         placeholder="seu@email.com"
                         value={forgotEmail}
                         onChange={(e) => setForgotEmail(e.target.value)}
-                        className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+                        className="pl-10 "
                         required
                       />
                     </div>
@@ -196,32 +196,32 @@ const EquipeAuth = () => {
                 <>
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-gray-300">Email</Label>
+                      <Label htmlFor="email" className="text-muted-foreground">Email</Label>
                       <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="email"
                           type="email"
                           placeholder="seu@email.com"
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+                          className="pl-10 "
                           required
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="password" className="text-gray-300">Senha</Label>
+                      <Label htmlFor="password" className="text-muted-foreground">Senha</Label>
                       <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-500" />
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                         <Input
                           id="password"
                           type="password"
                           placeholder="********"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="pl-10 bg-gray-800/50 border-gray-700 text-white placeholder:text-gray-500"
+                          className="pl-10 "
                           required
                         />
                       </div>
@@ -239,27 +239,27 @@ const EquipeAuth = () => {
                   <button
                     type="button"
                     onClick={() => setShowForgotPassword(true)}
-                    className="text-sm text-gray-400 hover:text-white hover:underline w-full text-center mt-3"
+                    className="text-sm text-muted-foreground hover:text-foreground hover:underline w-full text-center mt-3"
                   >
                     Esqueci minha senha
                   </button>
                 </>
               )}
 
-              <div className="mt-6 pt-4 border-t border-gray-800">{voltarAoSite}</div>
+              <div className="mt-6 pt-4 border-t border-border">{voltarAoSite}</div>
             </CardContent>
           </Card>
         ) : !isInternalUser ? (
           // ─── Sessão de cliente tentando a porta da equipe ──────────────────
-          <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg">
+          <Card className="backdrop-blur-lg">
             <CardHeader>
-              <CardTitle className="text-white">Acesso restrito à equipe</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle>Acesso restrito à equipe</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 Esta conta não é de um membro da equipe. Entre com uma conta da equipe ou volte para a área do cliente.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="ghost" className="w-full text-gray-400 hover:text-white" onClick={handleSair}>
+              <Button variant="ghost" className="w-full text-muted-foreground hover:text-foreground" onClick={handleSair}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Entrar com outra conta
               </Button>
@@ -268,35 +268,35 @@ const EquipeAuth = () => {
           </Card>
         ) : (
           // ─── Etapa 2: as áreas dessa pessoa ────────────────────────────────
-          <Card className="bg-gray-900/50 border-gray-800 backdrop-blur-lg">
+          <Card className="backdrop-blur-lg">
             <CardHeader>
-              <CardTitle className="text-white">Selecione sua área</CardTitle>
-              <CardDescription className="text-gray-400">
+              <CardTitle>Selecione sua área</CardTitle>
+              <CardDescription className="text-muted-foreground">
                 {user.email}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {carregandoAreas ? (
-                <p className="text-sm text-gray-400 py-2">Carregando suas áreas...</p>
+                <p className="text-sm text-muted-foreground py-2">Carregando suas áreas...</p>
               ) : erroAoCarregarAreas ? (
                 // Falha de consulta não pode ser confundida com falta de
                 // permissão: as duas chegam aqui como lista vazia, e dizer
                 // "fale com um administrador" para quem só caiu a internet
                 // manda a pessoa para o caminho errado.
                 <div className="space-y-3 py-2">
-                  <p className="text-sm text-gray-400">
+                  <p className="text-sm text-muted-foreground">
                     Não foi possível carregar suas áreas. Verifique sua conexão.
                   </p>
                   <Button
                     variant="outline"
-                    className="w-full border-gray-700 text-gray-200 hover:bg-gray-800"
+                    className="w-full border-input text-foreground hover:bg-muted"
                     onClick={() => recarregarAreas()}
                   >
                     Tentar novamente
                   </Button>
                 </div>
               ) : areasVisiveis.length === 0 ? (
-                <p className="text-sm text-gray-400 py-2">
+                <p className="text-sm text-muted-foreground py-2">
                   Nenhuma área liberada para este acesso. Fale com um administrador.
                 </p>
               ) : (
@@ -307,21 +307,21 @@ const EquipeAuth = () => {
                       type="button"
                       disabled={areaEmVerificacao !== null}
                       onClick={() => handleAreaSelect(area.id)}
-                      className="w-full flex items-center justify-between rounded-lg border border-gray-700 bg-gray-800/50 px-4 py-3 text-left text-white transition-colors hover:border-primary hover:bg-primary/10 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="w-full flex items-center justify-between rounded-lg border border-input bg-muted px-4 py-3 text-left text-foreground transition-colors hover:border-primary hover:bg-primary/10 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <span className="font-medium">{area.label}</span>
                       {areaEmVerificacao === area.id ? (
-                        <span className="text-xs text-gray-400">Verificando...</span>
+                        <span className="text-xs text-muted-foreground">Verificando...</span>
                       ) : (
-                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       )}
                     </button>
                   ))}
                 </div>
               )}
 
-              <div className="pt-4 border-t border-gray-800 space-y-2">
-                <Button variant="ghost" className="w-full text-gray-400 hover:text-white" onClick={handleSair}>
+              <div className="pt-4 border-t border-border space-y-2">
+                <Button variant="ghost" className="w-full text-muted-foreground hover:text-foreground" onClick={handleSair}>
                   <LogOut className="h-4 w-4 mr-2" />
                   Sair
                 </Button>

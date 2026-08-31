@@ -89,19 +89,19 @@ const DesempenhoRelatorios = () => {
         <div className="flex flex-wrap gap-3 items-end">
           <div className="w-52">
             <Select value={selectedMembro} onValueChange={setSelectedMembro}>
-              <SelectTrigger className="bg-white"><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecionar membro" /></SelectTrigger>
               <SelectContent>{Object.entries(profilesNomeMap ?? {}).map(([id, nome]) => <SelectItem key={id} value={id}>{nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="w-48">
             <Select value={cicloId} onValueChange={setSelectedCiclo}>
-              <SelectTrigger className="bg-white"><SelectValue placeholder="Ciclo" /></SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Ciclo" /></SelectTrigger>
               <SelectContent>{ciclos?.map(c => <SelectItem key={c.id} value={c.id}>{c.nome}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="w-52">
             <Select value={selectedTipo} onValueChange={setSelectedTipo}>
-              <SelectTrigger className="bg-white"><SelectValue /></SelectTrigger>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>{Object.entries(tipoLabels).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
             </Select>
           </div>
@@ -143,14 +143,14 @@ const DesempenhoRelatorios = () => {
         {report && !generating && (
           <div className="board-card overflow-hidden">
             {/* Report Header */}
-            {/* Par de tokens na ordem documentada no `index.css` (425-434): do
-                mais escuro `--surface-escura` para o intermediário
+            {/* Par de tokens na ordem que o `.base-theme` documenta: do mais
+                escuro `--surface-escura` para o intermediário
                 `--surface-escura-2`. O `#0F172A` cravado ERA `hsl(222 47% 11%)`,
                 o próprio `--surface-escura-2` do piso copiado à mão — e por ser
-                hex ignorava o tema. Esta rota resolve `.board-theme` (o Board
-                saiu da infraestrutura em 21/08), que declara teal profundo —
-                antes, o grafite quente da `.sistema-theme`. Branco em cima,
-                medido nos valores novos: 16,8:1 / 12,5:1. */}
+                hex ignorava o tema. Esta rota resolve só o piso, e o piso
+                declara teal profundo desde 31/08/2026, quando as superfícies do
+                Board viraram as da casa e a `.board-theme` saiu. Branco em cima,
+                medido: 16,8:1 / 12,5:1. */}
             <div className="p-6" style={{ background: 'linear-gradient(135deg, hsl(var(--surface-escura)), hsl(var(--surface-escura-2)))' }}>
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold text-white" style={{ background: 'var(--bd-accent-d)' }}>

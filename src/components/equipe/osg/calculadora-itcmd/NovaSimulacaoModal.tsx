@@ -370,7 +370,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
             )}
 
             {calc.linhasDoQuadro.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-osg-200/70 px-4 py-8 text-center text-sm text-muted-foreground">
+              <p className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
                 Nenhuma pessoa no ato ainda. Adicione quem doa e quem recebe em
                 <strong className="font-semibold"> Adicionar participantes</strong>, na
                 barra acima.
@@ -490,7 +490,7 @@ export function NovaSimulacaoModal({ calc }: { calc: CalculadoraItcmd }) {
           </Tabs>
         </div>
 
-        <DialogFooter className="shrink-0 rounded-b-lg border-t border-osg-100 bg-background px-6 py-3.5">
+        <DialogFooter className="shrink-0 rounded-b-lg border-t border-border bg-background px-6 py-3.5">
           <Button variant="outline" onClick={calc.fecharPainel}>Cancelar</Button>
           {aba === 'doacao' ? (
             <Button

@@ -5,6 +5,7 @@ import {
   mapearAdministrador,
   mapearBem,
   mapearIntegralizacoes,
+  matriculasDescritasNasIntegralizacoes,
   mapearMatricula,
   mapearPartesSelecionadas,
   mapearPessoa,
@@ -12,12 +13,14 @@ import {
   mapearSociedade,
   mapearSocio,
   reidratarItensPorLista,
+  tituloColetivoDosSocios,
   type ItemLista,
   type MatriculaIntegralizacao,
   type MatriculaParaMapear,
   type SocioParaMapear,
   type TitularParaMapear,
 } from './mapeadores';
+import { tituloDoInstrumento, TITULO_CONSTITUICAO } from './instrumento';
 import { gerarDocumento } from './index';
 import { origemDe } from './origem';
 import { derivarCampos } from './vocabulario';
@@ -178,12 +181,73 @@ describe('mapearSociedade — PJ objeto do contrato', () => {
     expect(c.totalQuotasExtenso).toBe('mil e quinhentas');
   });
 
+  it('publica capital anterior e aumento com extensos para a resolução', () => {
+    const c = mapearSociedade(
+      pj,
+      { capitalValor: 5_272_449, totalQuotas: 5_272_449 },
+      { capitalAnterior: 525_744, capitalDelta: 4_746_705 },
+    );
+    expect(c.capitalAnterior).toBe('525.744,00');
+    expect(c.capitalAnteriorExtenso).toBe('quinhentos e vinte e cinco mil, setecentos e quarenta e quatro reais');
+    expect(c.capitalDelta).toBe('4.746.705,00');
+    expect(c.capitalDeltaExtenso).toBe('quatro milhões, setecentos e quarenta e seis mil, setecentos e cinco reais');
+  });
+
   it('sem capital calculado, os campos resolvem em branco (condicionais pulam)', () => {
     const c = mapearSociedade(pj, { capitalValor: null, totalQuotas: null });
     expect(c.capitalValor).toBe('');
     expect(c.capitalExtenso).toBe('');
     expect(c.totalQuotas).toBe('');
     expect(c.totalQuotasExtenso).toBe('');
+  });
+});
+
+describe('tituloColetivoDosSocios', () => {
+  const pessoa = (tipoPessoa: 'PF' | 'PJ', genero: 'M' | 'F' | null): SocioParaMapear => ({
+    pessoa: { tipo_pessoa: tipoPessoa, genero } as PessoaRow,
+    quotas: 1,
+    vlr_total: 1,
+    representante: null,
+  });
+
+  it('concorda número e gênero do quadro societário', () => {
+    expect(tituloColetivoDosSocios([pessoa('PF', 'M')])).toBe('Único sócio');
+    expect(tituloColetivoDosSocios([pessoa('PF', 'F')])).toBe('Única sócia');
+    expect(tituloColetivoDosSocios([pessoa('PF', 'F'), pessoa('PJ', null)])).toBe('Únicas sócias');
+    expect(tituloColetivoDosSocios([pessoa('PF', 'F'), pessoa('PF', 'M')])).toBe('Únicos sócios');
+  });
+});
+
+describe('tituloDoInstrumento — a peça se nomeia pela posição na sucessão', () => {
+  it('sem alteração anterior, é a constituição', () => {
+    expect(tituloDoInstrumento(0)).toBe(TITULO_CONSTITUICAO);
+    expect(tituloDoInstrumento(null)).toBe(TITULO_CONSTITUICAO);
+    expect(tituloDoInstrumento(undefined)).toBe(TITULO_CONSTITUICAO);
+  });
+
+  it('numera a alteração por extenso, no feminino que "alteração" pede', () => {
+    expect(tituloDoInstrumento(1)).toBe('PRIMEIRA ALTERAÇÃO E CONSOLIDAÇÃO DO CONTRATO SOCIAL');
+    expect(tituloDoInstrumento(2)).toBe('SEGUNDA ALTERAÇÃO E CONSOLIDAÇÃO DO CONTRATO SOCIAL');
+    expect(tituloDoInstrumento(11)).toBe('DÉCIMA PRIMEIRA ALTERAÇÃO E CONSOLIDAÇÃO DO CONTRATO SOCIAL');
+  });
+
+  it('o mapeador publica o NÚMERO, e o título se deriva dele no vocabulário', () => {
+    const pj = { tipo_pessoa: 'PJ', denominacao: 'Ipê Ltda' } as unknown as PessoaRow;
+
+    const constituicao = mapearSociedade(pj);
+    expect(constituicao.numeroAlteracao).toBe('0');
+    expect(constituicao.tituloInstrumento).toBe(TITULO_CONSTITUICAO);
+
+    const primeira = mapearSociedade(pj, undefined, { numeroAlteracao: 1 });
+    expect(primeira.numeroAlteracao).toBe('1');
+    expect(primeira.tituloInstrumento).toBe('PRIMEIRA ALTERAÇÃO E CONSOLIDAÇÃO DO CONTRATO SOCIAL');
+  });
+
+  it('corrigir a numeração é corrigir o NÚMERO: o ordinal se reescreve sozinho', () => {
+    // O título é campo derivado, então ele não é entrada de formulário: o que a
+    // tela oferece para editar é o número, e derivarCampos reescreve o título.
+    const campos = derivarCampos('sociedade', { numeroAlteracao: '3' });
+    expect(campos.tituloInstrumento).toBe('TERCEIRA ALTERAÇÃO E CONSOLIDAÇÃO DO CONTRATO SOCIAL');
   });
 });
 
@@ -793,6 +857,18 @@ describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada 
     expect((itens[1].imoveis as ItemLista[])).toHaveLength(2);
   });
 
+  // Quem precisa da MATRÍCULA e não da alínea: o memorial do georreferenciamento
+  // sai por imóvel do documento, e o imóvel do documento é este conjunto.
+  it('as matrículas descritas saem sem repetir a que dois sócios dividem', () => {
+    expect(matriculasDescritasNasIntegralizacoes([jose, maria], matriculas)).toEqual(['m1', 'm2', 'm3']);
+  });
+
+  it('matrícula de titular que não é sócio não entra: o contrato não a descreve', () => {
+    const deTerceiro = matIntegralizacao('m9', '1.111', 1000, [{ pessoaId: 'x', denominacao: 'Terceiro' }]);
+    expect(matriculasDescritasNasIntegralizacoes([jose, maria], [...matriculas, deTerceiro]))
+      .toEqual(['m1', 'm2', 'm3']);
+  });
+
   it('1ª ocorrência sai completa (fração à frente, remanescente); o sócio do parágrafo lidera', () => {
     const [pJose] = mapearIntegralizacoes([jose, maria], matriculas);
     const a = imovel(pJose, 0);
@@ -856,11 +932,144 @@ describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada 
     expect(c.livro).toBe(''); // campo de cadastro vazio não derruba a prévia
   });
 
-  it('sócio sem imóvel fica fora da lista (não ganha parágrafo)', () => {
+  it('sócio sem imóvel E sem lançamento no livro fica fora da lista', () => {
     const semImovel = socioIntegralizante('x', 'Sócio Capitalista');
     const itens = mapearIntegralizacoes([jose, semImovel, maria], matriculas);
     expect(itens).toHaveLength(2);
     expect((itens[1].socio as Record<string, string>).ordem).toBe('2');
+  });
+
+  describe('{{#aportes}} — as alíneas mistas', () => {
+    const aporte = (item: ItemLista, i: number) =>
+      ((item.aportes as ItemLista[])[i].aporte as Record<string, string>);
+
+    it('sem livro, é a mesma lista de {{#imoveis}}, letra por letra', () => {
+      // É o que garante que um bloco escrito na seção nova não saia vazio na
+      // constituição da PR, cujo quadro ainda é derivado dos bens.
+      const [pJose] = mapearIntegralizacoes([jose, maria], matriculas);
+      expect(pJose.aportes as ItemLista[]).toHaveLength(3);
+      expect((pJose.aportes as ItemLista[])[0]).toBe((pJose.imoveis as ItemLista[])[0]);
+      expect(aporte(pJose, 0).alinea).toBe('a');
+      expect(aporte(pJose, 2).alinea).toBe('c');
+      expect(aporte(pJose, 0).valor).toBe('125.000,00');
+      expect((pJose.aportes as ItemLista[])[0].seImovel).toBe(true);
+    });
+
+    it('mistura imóvel, moeda corrente e quotas de outra sociedade, na ordem do livro', () => {
+      const holding = {
+        id: 'pr', denominacao: 'Farroupilha Comércio Ltda', tipo_pessoa: 'PJ',
+        cpf_cnpj: '11.111.111/0001-11', nire: '41205555555',
+      } as unknown as PessoaRow;
+
+      const [pJose] = mapearIntegralizacoes([jose, maria], matriculas, [
+        { id: 'mov-1', pessoaId: 'j', quotas: 1000, valor: 1000, forma: 'moeda' },
+        {
+          id: 'mov-2', pessoaId: 'j', quotas: 2117411, valor: 2117411, forma: 'quotas',
+          origem: {
+            pessoa: holding,
+            administradores: 'José Eduardo',
+            quotas: 2117411,
+            valor: 2117411,
+          },
+        },
+      ]);
+
+      const alineas = pJose.aportes as ItemLista[];
+      // Moeda e quotas primeiro (ordem do livro), imóveis não mencionados no fim.
+      expect(alineas.map((a) => [a.seMoeda, a.seQuotas, a.seImovel])).toEqual([
+        [true, false, false],
+        [false, true, false],
+        [false, false, true],
+        [false, false, true],
+        [false, false, true],
+      ]);
+      expect(alineas.map((_, i) => aporte(pJose, i).alinea)).toEqual(['a', 'b', 'c', 'd', 'e']);
+
+      expect(aporte(pJose, 0).valor).toBe('1.000,00');
+      expect(aporte(pJose, 1).quotas).toBe('2.117.411');
+      expect(aporte(pJose, 1).quotasExtenso).toMatch(/^dois milhões/);
+
+      // A PJ de origem sai qualificada por inteiro, com o representante.
+      const origem = alineas[1].origem as Record<string, string>;
+      expect(origem.razaoSocial).toBe('Farroupilha Comércio Ltda');
+      expect(origem.cnpj).toBe('11.111.111/0001-11');
+      expect(origem.nire).toBe('41205555555');
+      expect(origem.quotas).toBe('2.117.411');
+      expect(origem.representante).toBe('José Eduardo');
+    });
+
+    it('o aporte em bem vira a alínea da matrícula daquele bem', () => {
+      const comBem = matriculas.map((m, i) => ({ ...m, bemId: `bem-${i + 1}` }));
+      const [pJose] = mapearIntegralizacoes([jose, maria], comBem, [
+        { id: 'mov-1', pessoaId: 'j', quotas: 558414, valor: 558414, forma: 'bem', bemId: 'bem-3' },
+        { id: 'mov-2', pessoaId: 'j', quotas: 125000, valor: 125000, forma: 'bem', bemId: 'bem-1' },
+      ]);
+      const alineas = pJose.aportes as ItemLista[];
+      // A ordem é a do LIVRO: o terceiro imóvel vem primeiro.
+      expect((alineas[0].imovel as Record<string, string>).numero).toBe('9.617');
+      expect((alineas[1].imovel as Record<string, string>).numero).toBe('2.424');
+      // O que o livro não mencionou entra no fim, para nada sumir em silêncio.
+      expect((alineas[2].imovel as Record<string, string>).numero).toBe('2.623');
+      // O valor da alínea continua sendo o da FRAÇÃO, não o do bem inteiro.
+      expect(aporte(pJose, 1).valor).toBe('125.000,00');
+    });
+
+    it('sócio SEM imóvel entra pelo livro: o aporte pago em quotas rende alínea', () => {
+      // É a integralização da controladora: os sócios pagaram o aporte com as
+      // quotas que tinham na proprietária, e nenhum deles é titular de matrícula.
+      // A guarda antiga (só matrícula) os pulava, a lista voltava vazia e o motor
+      // descartava o bloco — a peça saía sem nomear a PJ de origem.
+      const farroupilha = {
+        id: 'pr', denominacao: 'Farroupilha Comércio Ltda', tipo_pessoa: 'PJ',
+        cpf_cnpj: '11.111.111/0001-11', nire: '41205555555',
+      } as unknown as PessoaRow;
+      const socioA = socioIntegralizante('a', 'Sócio A');
+      const socioB = socioIntegralizante('b', 'Sócio B');
+
+      const itens = mapearIntegralizacoes([socioA, socioB], [], [
+        {
+          id: 'mov-1', pessoaId: 'a', quotas: 585900, valor: 585900, forma: 'quotas',
+          origem: { pessoa: farroupilha, administradores: 'Sócio A', quotas: 585900, valor: 585900 },
+        },
+        {
+          id: 'mov-2', pessoaId: 'b', quotas: 585900, valor: 585900, forma: 'quotas',
+          origem: { pessoa: farroupilha, administradores: 'Sócio A', quotas: 585900, valor: 585900 },
+        },
+      ]);
+
+      expect(itens).toHaveLength(2);
+      expect((itens[0].socio as Record<string, string>).ordem).toBe('1');
+      expect((itens[1].socio as Record<string, string>).ordem).toBe('2');
+      // Sem matrícula, {{#imoveis}} sai vazia e {{#aportes}} carrega a cláusula.
+      expect(itens[0].imoveis as ItemLista[]).toEqual([]);
+      const alineas = itens[0].aportes as ItemLista[];
+      expect(alineas).toHaveLength(1);
+      expect(alineas[0].seQuotas).toBe(true);
+      expect(alineas[0].seImovel).toBe(false);
+      expect(aporte(itens[0], 0).alinea).toBe('a');
+      expect(aporte(itens[0], 0).quotas).toBe('585.900');
+      const origem = alineas[0].origem as Record<string, string>;
+      expect(origem.razaoSocial).toBe('Farroupilha Comércio Ltda');
+      expect(origem.cnpj).toBe('11.111.111/0001-11');
+      expect(origem.representante).toBe('Sócio A');
+    });
+
+    it('sócio sem imóvel não desloca a ordem de quem tem', () => {
+      const soMoeda = socioIntegralizante('x', 'Sócio Capitalista');
+      const itens = mapearIntegralizacoes([soMoeda, jose, maria], matriculas, [
+        { id: 'mov-1', pessoaId: 'x', quotas: 1000, valor: 1000, forma: 'moeda' },
+      ]);
+      expect(itens).toHaveLength(3);
+      expect(itens.map((i) => (i.socio as Record<string, string>).ordemRomana)).toEqual(['i', 'ii', 'iii']);
+      // A referência cruzada continua apontando para o item certo do array.
+      expect((itens[2].imoveis as ItemLista[])[0].refItem).toBe(itens[1]);
+    });
+
+    it('mantém a identidade dos itens de imóvel, e com ela a referência cruzada', () => {
+      const [pJose, pMaria] = mapearIntegralizacoes([jose, maria], matriculas, []);
+      expect((pMaria.aportes as ItemLista[])[0]).toBe((pMaria.imoveis as ItemLista[])[0]);
+      expect((pMaria.aportes as ItemLista[])[0].refItem).toBe(pJose);
+    });
   });
 });
 

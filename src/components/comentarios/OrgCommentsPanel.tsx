@@ -78,6 +78,13 @@ const SYSTEM_LABELS: Record<Exclude<OrgComment['kind'], 'comment'>, string> = {
   review_adjustments: 'Ajustes solicitados',
   status_changed: 'Status alterado',
   documentos_solicitados: 'Documentos solicitados ao cliente',
+  // Textos revisados pela Patricia em 27/08/2026. O titulo do evento 2 nomeia o
+  // ATO e nao o objeto; o do evento 3 usa "finalizada", palavra escolhida por ela.
+  // O valor do enum continua `documentos_conferidos`: enum do Postgres nao aceita
+  // DROP VALUE, e renomear custaria uma migracao e um valor morto para sempre sem
+  // mudar nada na tela.
+  documentos_cobrados: 'Cobrança de documentos pendentes',
+  documentos_conferidos: 'Solicitação finalizada',
 };
 
 function systemEventBody(comment: OrgComment) {

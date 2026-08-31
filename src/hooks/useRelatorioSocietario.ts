@@ -1,8 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-// Quadro societário de TODAS as empresas do cliente numa única leitura.
-// Filtra por empresa.cliente_id via join inner. Só tabelas existentes.
+// Quadro societário de TODAS as empresas do cliente, da MESMA fonte que a tela
+// do Quadro Societário e o gerador de documento: `v_quadro_societario`, o
+// acumulado dos movimentos de quota de cada PJ. Antes daqui o relatório lia a
+// tabela `quadro_societario`, e passou a discordar da tela no dia em que a tela
+// trocou de fonte, e duas telas discordando é o pior estado possível.
+//
+// São DUAS leituras e não um embed: o PostgREST só infere relacionamento de view
+// quando a coluna vem direto da tabela base, e `pessoa_id` aqui nasce de um
+// `union all` com `group by`. A view expõe `cliente_id` (da empresa), que é o
+// filtro, então não é preciso juntar `pessoa` para restringir ao cliente.
 
 export interface SocioLinha {
   pessoaId: string | null;
@@ -11,7 +19,6 @@ export interface SocioLinha {
   cpfCnpj: string | null;
   quotas: number | null;
   valor: number | null;
-  percentual: number | null;
 }
 
 export interface EmpresaSocietaria {
@@ -24,27 +31,41 @@ export interface EmpresaSocietaria {
   totalValor: number;
 }
 
-const SELECT = `
-  id, empresa_pessoa_id, socio_pessoa_id, quotas, vlr_total, percentual,
-  empresa:empresa_pessoa_id!inner ( id, denominacao, cpf_cnpj, cliente_id, tipo_empresa ),
-  socio:socio_pessoa_id ( id, denominacao, tipo_pessoa, cpf_cnpj )
-`;
-
 export function useRelatorioSocietario(clienteId: string | null) {
   return useQuery<EmpresaSocietaria[]>({
     queryKey: ['relatorio-societario', clienteId],
     queryFn: async () => {
       if (!clienteId) return [];
-      const { data, error } = await supabase.from('quadro_societario').select(SELECT).eq('empresa.cliente_id', clienteId);
+      const { data, error } = await supabase
+        .from('v_quadro_societario')
+        .select('empresa_pessoa_id, pessoa_id, quotas, vlr_total')
+        .eq('cliente_id', clienteId);
       if (error) throw error;
 
+      const linhas = (data ?? []).filter((l) => l.empresa_pessoa_id);
+      if (linhas.length === 0) return [];
+
+      // Uma leitura só para os dois papéis: a mesma PJ costuma ser empresa numa
+      // linha e sócia em outra (a Participações é sócia da Agro).
+      const ids = [
+        ...new Set(linhas.flatMap((l) => [l.empresa_pessoa_id, l.pessoa_id])),
+      ].filter((id): id is string => !!id);
+      const { data: pessoas, error: errPessoas } = await supabase
+        .from('pessoa')
+        .select('id, denominacao, tipo_pessoa, cpf_cnpj, tipo_empresa')
+        .in('id', ids);
+      if (errPessoas) throw errPessoas;
+      const porId = new Map((pessoas ?? []).map((p) => [p.id, p]));
+
       const map = new Map<string, EmpresaSocietaria>();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const r of (data ?? []) as any[]) {
-        const emp = r.empresa;
+      for (const l of linhas) {
+        const emp = porId.get(l.empresa_pessoa_id!);
+        // Empresa que a RLS de `pessoa` não devolve fica fora, como ficava o
+        // join inner da leitura anterior.
         if (!emp) continue;
-        if (!map.has(emp.id)) {
-          map.set(emp.id, {
+        let e = map.get(emp.id);
+        if (!e) {
+          e = {
             empresaId: emp.id,
             nome: emp.denominacao ?? 'Empresa',
             cnpj: emp.cpf_cnpj ?? null,
@@ -52,20 +73,20 @@ export function useRelatorioSocietario(clienteId: string | null) {
             socios: [],
             totalQuotas: 0,
             totalValor: 0,
-          });
+          };
+          map.set(emp.id, e);
         }
-        const e = map.get(emp.id)!;
+        const socio = l.pessoa_id ? porId.get(l.pessoa_id) : undefined;
         e.socios.push({
-          pessoaId: r.socio?.id ?? null,
-          nome: r.socio?.denominacao ?? '—',
-          tipo: r.socio?.tipo_pessoa ?? null,
-          cpfCnpj: r.socio?.cpf_cnpj ?? null,
-          quotas: r.quotas,
-          valor: r.vlr_total,
-          percentual: r.percentual,
+          pessoaId: l.pessoa_id ?? null,
+          nome: socio?.denominacao ?? '—',
+          tipo: socio?.tipo_pessoa ?? null,
+          cpfCnpj: socio?.cpf_cnpj ?? null,
+          quotas: l.quotas,
+          valor: l.vlr_total,
         });
-        e.totalQuotas += Number(r.quotas) || 0;
-        e.totalValor += Number(r.vlr_total) || 0;
+        e.totalQuotas += Number(l.quotas) || 0;
+        e.totalValor += Number(l.vlr_total) || 0;
       }
 
       const arr = [...map.values()];
