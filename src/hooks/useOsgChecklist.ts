@@ -12,13 +12,13 @@ import { supabase } from '@/integrations/supabase/client';
  * isso saíram o gerador por instância, o status manual por item, o vínculo
  * arquivo × item e a remoção de item: nenhum deles tem mais consumidor, e a
  * tabela não tem mais leitor no front.
- *
- * O `as any` no client é herança de quando estas tabelas ainda não estavam no
- * types.ts; hoje já estão, e tipar de verdade é dívida separada.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sb = supabase as any;
+*/
 
+/**
+ * `documento_tipo.granularidade` é `text` no banco, e as telas tratam o valor
+ * como este conjunto fechado. O estreitamento é declarado aqui, num ponto só,
+ * em vez de o client inteiro sair sem tipo para acomodá-lo.
+ */
 export type Granularidade =
   | 'pessoa_pf' | 'pessoa_pj' | 'matricula_rural' | 'matricula_urbana' | 'bem' | 'cliente';
 
@@ -53,14 +53,14 @@ export function useChecklistPadrao() {
   return useQuery({
     queryKey: [PADRAO_KEY],
     queryFn: async (): Promise<ChecklistPadraoRow[]> => {
-      const { data, error } = await sb
+      const { data, error } = await supabase
         .from('documento_tipo')
         .select('*')
         .is('cliente_id', null)
         .eq('ativo', true)
         .order('ordem', { ascending: true });
       if (error) throw error;
-      return (data ?? []) as ChecklistPadraoRow[];
+      return (data ?? []) as unknown as ChecklistPadraoRow[];
     },
   });
 }
@@ -83,10 +83,10 @@ export function useTiposAvulsosDoCliente(clienteId: string | null) {
     queryKey: [AVULSOS_KEY, clienteId],
     enabled: !!clienteId,
     queryFn: async (): Promise<Record<string, string>> => {
-      const { data, error } = await sb
+      const { data, error } = await supabase
         .from('documento_tipo')
         .select('id, solicitacao_item_id')
-        .eq('cliente_id', clienteId)
+        .eq('cliente_id', clienteId as string)
         .eq('ativo', true);
       if (error) throw error;
       const porItem: Record<string, string> = {};

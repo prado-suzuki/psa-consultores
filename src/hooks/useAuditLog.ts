@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
@@ -36,13 +37,16 @@ export const useAuditLog = () => {
   const inserirLog = useCallback(async (entry: AuditLogEntry, userId: string) => {
     // `insert` do supabase-js NÃO lança: devolve `{ error }`. Sem checar aqui,
     // uma recusa de RLS passava batida — nem o console.error abaixo rodava.
-    const { error } = await supabase.from('audit_logs' as any).insert({
+    const { error } = await supabase.from('audit_logs').insert({
       area: entry.area,
       entity_type: entry.entity_type,
       entity_id: entry.entity_id,
       entity_name: entry.entity_name,
       action: entry.action,
-      changed_fields: entry.changed_fields ?? null,
+      // O cast é só do diff: `changed_fields` é uma coluna jsonb, e o tipo `Json`
+      // gerado não aceita o `unknown` de dentro do FieldDiff. Antes o escape era
+      // no `.from('audit_logs' as any)`, que tirava a checagem da tabela inteira.
+      changed_fields: (entry.changed_fields ?? null) as Json,
       performed_by: userId,
       details: entry.details ?? null,
     });
