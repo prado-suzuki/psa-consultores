@@ -9,7 +9,7 @@ import type { ButtonType, Locale, Options, PartialDeep, Styles } from 'react-joy
 
 // `showProgress` e `buttons` vivem em Options (não no top-level) na v3.
 export const TOUR_OPTIONS: Partial<Options> = {
-  primaryColor: '#0d9488', // --accent-color (teal institucional)
+  primaryColor: 'hsl(var(--primary))', // --accent-color (teal institucional)
   backgroundColor: '#ffffff', // --surface-lowest
   textColor: '#334155',
   arrowColor: '#ffffff',

@@ -219,7 +219,7 @@ export default function SistemaFormModal({ aberto, sistema, clusterIdInicial, on
                 );
               })}
             </div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, textAlign: 'right', marginTop: 4, color: totalRateio === 100 ? '#0d9488' : '#b45309' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, textAlign: 'right', marginTop: 4, color: totalRateio === 100 ? 'hsl(var(--primary))' : '#b45309' }}>
               Total: {totalRateio}%{totalRateio === 100 ? ' ✓' : ' — precisa somar 100% para salvar'}
             </div>
           </>

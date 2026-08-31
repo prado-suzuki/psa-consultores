@@ -27,11 +27,11 @@ const formatarData = (iso?: string | null) => {
 
 // Veredito binário do doutor por processo (cores institucionais; sem CSS novo).
 function DoctorBadge({ ok, n }: { ok: boolean; n: number }) {
-  const cor = ok ? '#0d9488' : '#dc2626';
+  const cor = ok ? 'hsl(var(--primary))' : '#dc2626';
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem',
-      fontWeight: 700, color: cor, background: `${cor}14`, borderRadius: 6, padding: '2px 8px',
+      fontWeight: 700, color: cor, background: 'color-mix(in srgb, currentColor 8%, transparent)', borderRadius: 6, padding: '2px 8px',
     }}>
       {ok ? <CheckCircle2 size={13} /> : <AlertTriangle size={13} />}
       {ok ? 'ROI completo' : `Pendente · ${n}`}
@@ -236,7 +236,7 @@ export default function ProjetoDetalheModal({
                                 onClick={() => setEditProc(processo)}
                                 style={{
                                   display: 'inline-flex', alignItems: 'center', gap: 5, background: 'none',
-                                  border: 'none', padding: 0, color: '#0d9488', cursor: 'pointer',
+                                  border: 'none', padding: 0, color: 'hsl(var(--primary))', cursor: 'pointer',
                                   fontSize: '0.82rem', fontWeight: 600,
                                 }}
                               >
@@ -305,7 +305,7 @@ export default function ProjetoDetalheModal({
                           {temEtapas && (
                             <button
                               type="button"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', marginRight: 10, fontSize: '0.78rem', fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #0d9488', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', marginRight: 10, fontSize: '0.78rem', fontWeight: 700, color: 'hsl(var(--primary))', background: 'hsl(var(--teal-50))', border: '1px solid hsl(var(--primary))', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
                               onClick={() => setDiagramaCol({ modo: 'as', proc: p })}
                             >
                               <Network size={14} strokeWidth={2.2} /> Ver diagrama
@@ -375,7 +375,7 @@ export default function ProjetoDetalheModal({
                           {temEtapas && (
                             <button
                               type="button"
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', marginRight: 10, fontSize: '0.78rem', fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #0d9488', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
+                              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'center', marginRight: 10, fontSize: '0.78rem', fontWeight: 700, color: 'hsl(var(--primary))', background: 'hsl(var(--teal-50))', border: '1px solid hsl(var(--primary))', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0 }}
                               onClick={() => setDiagramaCol({ modo: 'to', proc: p })}
                             >
                               <Network size={14} strokeWidth={2.2} /> Ver diagrama
