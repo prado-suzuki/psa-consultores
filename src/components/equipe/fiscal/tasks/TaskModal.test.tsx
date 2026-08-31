@@ -687,17 +687,21 @@ describe('TaskModal — edição', () => {
     expect(options).toEqual(['Nenhum', 'Ana', 'Bernardo', 'Zeca M']);
   });
 
-  it('esconde os status de revisão que não são o status atual da tarefa', async () => {
+  it('oferece revisão e ajuste na tarefa aberta, como a linha da lista', async () => {
     const user = userEvent.setup();
     renderModal({ task: baseTask });
 
     await user.click(screen.getByLabelText(/^Status/));
     const options = (await screen.findAllByRole('option')).map((o) => o.textContent);
+    // Escolher um dos dois não grava direto: o salvamento cai no diálogo de
+    // revisão, que exige revisor e o que revisar.
     expect(options).toEqual([
       'Backlog',
       'Pendente Cliente',
       'A Fazer',
       'Em Progresso',
+      'Revisão',
+      'Em Ajuste',
       'Concluído',
     ]);
   });
@@ -859,10 +863,24 @@ describe('TaskModal — enviar para revisão', () => {
     expect(kinds()).toEqual(['update', 'comment']);
   });
 
-  it('não oferece o envio para revisão quando a tarefa é de outra pessoa', () => {
+  it('não oferece o botão de envio quando a tarefa é de outra pessoa', () => {
     renderModal({ task: { ...baseTask, assigned_to: 'U2', assigned_to_name: 'Ana' } });
 
     expect(screen.queryByRole('button', { name: /Enviar para revisão/ })).not.toBeInTheDocument();
+  });
+
+  it('na tarefa de outra pessoa, o status Revisão é o caminho — e ele passa pelo diálogo', async () => {
+    const user = userEvent.setup();
+    renderModal({ task: { ...baseTask, assigned_to: 'U2', assigned_to_name: 'Ana' } });
+
+    await user.click(screen.getByLabelText(/^Status/));
+    await user.click(await screen.findByRole('option', { name: 'Revisão' }));
+    await user.click(screen.getByRole('button', { name: 'Salvar' }));
+
+    // Quem grava é o diálogo, depois de exigir revisor e detalhamento — o mesmo
+    // percurso do seletor da linha da lista.
+    expect(await screen.findByRole('heading', { name: 'Enviar para revisão' })).toBeInTheDocument();
+    expect(mocks.updateTask).not.toHaveBeenCalled();
   });
 });
 
@@ -954,12 +972,19 @@ describe('TaskModal — revisor delegado', () => {
     const status = screen.getByLabelText(/^Status/);
     expect(status).toHaveTextContent('Revisão');
     // O fieldset inteiro está desabilitado para o revisor (no browser o select
-    // nem abre); a lista abaixo trava o filtro: 'Concluído' some para o revisor
-    // e 'Em Ajuste' some por não ser o status atual da tarefa.
+    // nem abre); a lista abaixo trava o filtro: 'Concluído' some para o revisor,
+    // que devolve para ajustes em vez de concluir.
     expect(status).toBeDisabled();
     await user.click(status);
     const options = (await screen.findAllByRole('option')).map((o) => o.textContent);
-    expect(options).toEqual(['Backlog', 'Pendente Cliente', 'A Fazer', 'Em Progresso', 'Revisão']);
+    expect(options).toEqual([
+      'Backlog',
+      'Pendente Cliente',
+      'A Fazer',
+      'Em Progresso',
+      'Revisão',
+      'Em Ajuste',
+    ]);
   });
 
   it('usa o nome do metadata/email quando o perfil do usuário não existe', async () => {
