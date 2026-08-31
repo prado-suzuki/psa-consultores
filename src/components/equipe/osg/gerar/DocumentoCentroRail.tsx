@@ -33,7 +33,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
   abrirCadastroOrigem, fecharCadastroOrigem, resultado, copiar, nomeModelo, baixando,
   baixar, empresas, bindingsNaoSociedade, modeloPronto, passo1Estado, passo2Estado,
   documentoRegistrado, alteracaoEmCurso, podeReverEventos, podeGerarAlteracao,
-  resumoDaAlteracao, motivoDeBloqueio,
+  podeRegistrarNaJunta, resumoDaAlteracao, motivoDeBloqueio,
   abrirAlteracao, setRegistrarConfirmOpen, registrandoDocumento,
   modoDocumento, empresaLabel, labelsRegistros, resumoPasso2, mensagemPendente,
   blocosFolha, versaoView, modoVisualizacao, blocosFolhaVersao, baixandoVersao,
@@ -221,7 +221,14 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                     {/* Fim da linha do documento: ele foi levado à junta e
                         registrado. Daqui em diante só se muda por outro
                         documento, e é isso que destrava o assistente de
-                        alteração contratual. */}
+                        alteração contratual.
+
+                        Só para modelo de escopo `sociedade`: a junta comercial
+                        registra ato societário, e um contrato de parceria ou uma
+                        descrição de imóvel não têm o que registrar lá. Registrar
+                        carimba o ledger de quotas, o que numa peça avulsa não
+                        significaria nada. */}
+                    {podeRegistrarNaJunta && (
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <Button
@@ -245,6 +252,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                           : 'Marca que esta peça foi registrada e a trava para edição. Depois disso, a forma de mudar a sociedade é gerar uma alteração contratual a partir dela.'}
                       </TooltipContent>
                     </Tooltip>
+                    )}
                   </div>
                 ) : (
                   <Tooltip>

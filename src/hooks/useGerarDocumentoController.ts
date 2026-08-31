@@ -44,7 +44,12 @@ export function useGerarDocumentoController() {
   const { data: modelos = [], isLoading: carregandoModelos } = useModelos();
   const [modeloId, setModeloId] = useState<string | null>(null);
   const { data: docBlocos = [], isLoading: carregandoBlocos } = useModeloBlocos(modeloId);
-  const modeloSocietario = modelos.find((m) => m.id === modeloId)?.tipo === 'societario';
+  const modelo = modelos.find((m) => m.id === modeloId) ?? null;
+  // `escopo` é declarado (CHECK no banco), diferente de `tipo`, que é rótulo
+  // livre digitado na tela de Montagem: os dois modelos de contrato social foram
+  // renomeados em 31/08/2026 sem que nada avisasse, e um `tipo` com um espaço
+  // sobrando derrubaria a composição em silêncio.
+  const modeloSocietario = modelo?.escopo === 'sociedade';
 
   // Cliente vem da barra global da área OSG (igual aos cadastros).
   const { clienteId } = useOsgWork();
@@ -641,7 +646,13 @@ export function useGerarDocumentoController() {
     //  - CONTRATO SOCIAL: todos os pendentes. Ele não passa pelo assistente, e a
     //    cláusula de capital dele conta os aportes de constituição inteiros — é
     //    esta extensão (D3) que impede a primeira alteração de recontá-los.
-    const ehAlteracao = respostasDaAlteracao.length > 0;
+    //
+    // A peça responde o que ela é, pelo papel carimbado quando nasceu. Antes a
+    // pergunta era feita ao tamanho de `respostasDaAlteracao`: dá a mesma resposta
+    // hoje (o assistente grava TODAS as flags, inclusive as desmarcadas, então
+    // desmarcar tudo não faz a alteração se passar por contrato social), mas é uma
+    // dedução a partir de um efeito, e não a leitura do que a peça é.
+    const ehAlteracao = documentoHead?.papel === 'alterador';
     const aFormalizar = ehAlteracao
       ? flagsManuaisDoModelo
           .filter((f) => respostasAlteracao[f.id] === true || valorPorFlagId.get(f.id) === true)
@@ -1479,9 +1490,14 @@ export function useGerarDocumentoController() {
 
   // As condições manuais NÃO são passo do fluxo de geração. Elas são as
   // perguntas do assistente de alteração contratual, que só faz sentido diante
-  // de um contrato já registrado — ver abrirAlteracao. O modelo pode ou não ter
-  // blocos pendurados nelas; quando não tem, não há alteração a gerar.
-  const podeGerarAlteracao = flagsManuaisDoModelo.length > 0;
+  // de um contrato já registrado — ver abrirAlteracao.
+  //
+  // Quem pode gerar alteração é quem participa da vida societária, e isso é
+  // declarado no modelo. Antes a condição era `flagsManuaisDoModelo.length > 0`:
+  // ter ou não flags penduradas é CONFIGURAÇÃO de redação, e usá-la como regra de
+  // processo fazia despendurar as flags de um contrato social esconder o botão,
+  // sem ninguém ter pedido isso.
+  const podeGerarAlteracao = modelo?.escopo === 'sociedade';
 
   const passo1Estado: EstadoPasso = !modeloId || passoAberto === 1 ? 'aberto' : 'concluido';
   const passo2Estado: EstadoPasso =
@@ -1680,6 +1696,11 @@ export function useGerarDocumentoController() {
     selecoesCompletas, modeloPronto, passo1Estado, passo2Estado,
     // Alteração contratual: o documento travado, o assistente em modal e o
     // registro na junta que trava o documento em primeiro lugar.
+    //
+    // `podeRegistrarNaJunta` é o escopo do modelo: junta comercial registra ato
+    // societário, e uma parceria agrícola ou uma descrição de imóvel não têm o que
+    // registrar lá. A tela oferecia o gesto para qualquer folha validada.
+    podeRegistrarNaJunta: modeloSocietario,
     documentoRegistrado, documentoBaseId, alteracaoEmCurso, podeReverEventos, podeGerarAlteracao,
     flagsManuaisDoModelo, valorPorFlagId, resumoDaAlteracao, rotulosEventosDaAlteracao,
     // A evidência de cada evento derivado, por nome de flag: é ela que o

@@ -211,6 +211,31 @@ export interface SalvarDocumentoGeradoInput {
   substituiDocumentoId?: string | null;
 }
 
+/** Os dois papéis que uma peça pode exercer sobre a sociedade. */
+export type PapelDocumento = 'constitutivo' | 'alterador';
+
+/**
+ * O papel da peça que está nascendo, ou null quando o modelo é de escopo avulso.
+ *
+ * Constitutivo é a primeira peça da sociedade, a que publica a existência dela;
+ * alterador é a que sucede uma registrada. A distinção não pode morar no MODELO
+ * porque a alteração contratual usa o MESMO modelo do contrato social que ela
+ * substitui — quem responde é a peça, e é por isso que o carimbo é aqui.
+ */
+async function papelDaRaiz(
+  modeloId: string,
+  substituiDocumentoId: string | null | undefined,
+): Promise<PapelDocumento | null> {
+  const { data: modelo, error } = await supabase
+    .from('tmpl_documento')
+    .select('escopo')
+    .eq('id', modeloId)
+    .single();
+  if (error) throw error;
+  if (modelo.escopo !== 'sociedade') return null;
+  return substituiDocumentoId ? 'alterador' : 'constitutivo';
+}
+
 /**
  * Persiste o passo "Validar/Atualizar versão" sobre a HEAD (o rascunho ativo da
  * combinação cliente+modelo+empresa):
@@ -263,6 +288,15 @@ export function useSalvarDocumentoGerado() {
       // UPDATE daqui: o valor é função da própria linha, e a escrita extra podia
       // falhar e deixar raiz nula.
       if (!head) {
+        // O PAPEL é carimbado aqui, no nascimento da linhagem, e daqui em diante
+        // não muda: as versões o herdam pelo fork (`selar_e_forkar_documento`) e
+        // mexer no modelo depois não reescreve peça já registrada.
+        //
+        // O escopo é lido do banco, e não recebido do chamador, porque é ele que
+        // decide se a peça tem papel: quem grava a invariante não deveria depender
+        // da tela ter passado o valor certo. Uma consulta só, no caminho raro.
+        const papel = await papelDaRaiz(input.modeloId, input.substituiDocumentoId);
+
         const { data: comRaiz, error: erroInsert } = await supabase
           .from('documento_gerado')
           .insert({
@@ -271,6 +305,7 @@ export function useSalvarDocumentoGerado() {
             documento_template_id: input.modeloId,
             status: 'rascunho',
             substitui_documento_id: input.substituiDocumentoId ?? null,
+            papel,
             gerado_por_id: userId,
             ...snapshotCols,
           })

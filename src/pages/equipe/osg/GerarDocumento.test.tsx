@@ -31,8 +31,10 @@ const mocks = vi.hoisted(() => ({
     endereco_municipio: null, endereco_uf: null, endereco_cep: null,
   },
   modelos: [
-    { id: 'modelo-1', nome: 'Contrato Social', tipo: 'societario', descricao: 'Modelo principal', ativo: true, num_blocos: 2 },
-    { id: 'modelo-2', nome: 'Modelo alternativo', tipo: 'agrario', descricao: null, ativo: true, num_blocos: 1 },
+    // `escopo` é o que a tela lê para decidir junta, alteração contratual e
+    // carimbo no ledger; `tipo` ficou como rótulo livre e não decide nada.
+    { id: 'modelo-1', nome: 'Contrato Social', tipo: 'societario', escopo: 'sociedade', descricao: 'Modelo principal', ativo: true, num_blocos: 2 },
+    { id: 'modelo-2', nome: 'Modelo alternativo', tipo: 'agrario', escopo: 'avulso', descricao: null, ativo: true, num_blocos: 1 },
   ],
   docBlocos: [
     {
@@ -217,7 +219,18 @@ const snapshot = (razao = 'Acme congelada'): SnapshotDados => ({
 const documento = (dados: SnapshotDados = snapshot()) => ({
   id: 'doc-head', documento_raiz_id: 'doc-raiz', snapshot_dados: dados, snapshot_flags: [],
   snapshot_validado_em: '2026-06-16T14:30:00.000Z', created_at: '2026-06-16T14:30:00.000Z',
-  gerado_por_id: 'autor-1', status: 'rascunho',
+  gerado_por_id: 'autor-1', status: 'rascunho', papel: 'constitutivo',
+});
+
+/**
+ * A head de uma alteração contratual JÁ VALIDADA: ela substitui a peça
+ * registrada e carrega o papel `alterador`, como o banco a grava (o papel é
+ * carimbado no nascimento da linhagem, ver papelDaRaiz).
+ */
+const alteracaoValidada = (dados: SnapshotDados = snapshot()) => ({
+  ...documento(dados),
+  substitui_documento_id: 'doc-base',
+  papel: 'alterador',
 });
 
 const CATALOGO_SEM_FAMILIA = [
@@ -758,6 +771,9 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     mocks.flags = [FLAG_MANUAL];
     // A segunda cláusula do modelo é a resolução: pende da flag de evento.
     mocks.docBlocos[1].bloco.flags = ['evento_aumento_capital'];
+    // `mocks.modelos` é compartilhado entre os testes: quem troca o escopo tem
+    // de voltar ao padrão, senão o teste seguinte herda um modelo avulso.
+    mocks.modelos[0].escopo = 'sociedade';
   });
 
   async function abrirRegistrado() {
@@ -968,7 +984,7 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     })];
     const view = render(<GerarDocumento />);
     await escolherModelo();
-    mocks.rascunho = { ...documento(), substitui_documento_id: 'doc-base' };
+    mocks.rascunho = alteracaoValidada();
     view.rerender(<GerarDocumento />);
     await screen.findByText('Versão validada · rascunho');
 
@@ -998,7 +1014,7 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     ];
     const view = render(<GerarDocumento />);
     await escolherModelo();
-    mocks.rascunho = { ...documento(), substitui_documento_id: 'doc-base' };
+    mocks.rascunho = alteracaoValidada();
     view.rerender(<GerarDocumento />);
     await screen.findByText('Versão validada · rascunho');
 
@@ -1021,13 +1037,26 @@ describe('GerarDocumento — alteração contratual a partir do documento regist
     );
   });
 
-  it('modelo sem bloco pendurado em evento não oferece alteração contratual', async () => {
-    mocks.docBlocos[1].bloco.flags = [];
+  it('modelo de escopo avulso não oferece alteração contratual nem registro na junta', async () => {
+    // Quem participa da vida societária é DECLARADO no modelo. Antes a condição
+    // era ter bloco pendurado em evento, o que fazia configuração de redação
+    // decidir regra de processo: despendurar as flags de um contrato social
+    // escondia o botão sem ninguém ter pedido.
+    mocks.modelos[0].escopo = 'avulso';
     await abrirRegistrado();
 
     expect(screen.getByText('Registrado na junta')).toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: 'Gerar alteração contratual' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('modelo de sociedade SEM bloco pendurado em evento continua oferecendo alteração', async () => {
+    mocks.docBlocos[1].bloco.flags = [];
+    await abrirRegistrado();
+
+    expect(
+      screen.getByRole('button', { name: 'Gerar alteração contratual' }),
+    ).toBeInTheDocument();
   });
 });
