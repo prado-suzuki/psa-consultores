@@ -39,6 +39,12 @@ import {
   useDomainOrgComments,
 } from '@/hooks/useDomainOrgComments';
 import { useMarcarMencoesLidasDaThread } from '@/hooks/useNotificacoesMencao';
+import {
+  AUTOR_DO_EVENTO,
+  corpoDoEvento,
+  ehEventoDeSistema,
+  rotuloDoEvento,
+} from '@/lib/orgCommentEventos';
 import { iniciaisDoNome } from '@/lib/orgCommentMentions';
 import { docEstaVazio, lerCorpo } from '@/lib/orgCommentRichText';
 import { cn } from '@/lib/utils';
@@ -69,33 +75,6 @@ interface OrgCommentsPanelProps {
    * uma tarefa grava na tarefa, não no projeto.
    */
   consolidarTarefas?: boolean;
-}
-
-const SYSTEM_LABELS: Record<Exclude<OrgComment['kind'], 'comment'>, string> = {
-  assignment_changed: 'Responsável alterado',
-  review_submitted: 'Enviado para revisão',
-  review_approved: 'Revisão aprovada',
-  review_adjustments: 'Ajustes solicitados',
-  status_changed: 'Status alterado',
-  documentos_solicitados: 'Documentos solicitados ao cliente',
-  // Textos revisados pela Patricia em 27/08/2026. O titulo do evento 2 nomeia o
-  // ATO e nao o objeto; o do evento 3 usa "finalizada", palavra escolhida por ela.
-  // O valor do enum continua `documentos_conferidos`: enum do Postgres nao aceita
-  // DROP VALUE, e renomear custaria uma migracao e um valor morto para sempre sem
-  // mudar nada na tela.
-  documentos_cobrados: 'Cobrança de documentos pendentes',
-  documentos_conferidos: 'Solicitação finalizada',
-};
-
-function systemEventBody(comment: OrgComment) {
-  if (comment.kind === 'review_submitted') {
-    return comment.body.replace(/^Enviado para revisão(?: de [^:]+)?:\s*/, '');
-  }
-  if (comment.kind === 'review_adjustments') {
-    return comment.body.replace(/^Devolvido para ajustes:\s*/, '');
-  }
-  if (comment.kind === 'review_approved' && comment.body === 'Tarefa aprovada') return '';
-  return comment.body;
 }
 
 export function OrgCommentsPanel({
@@ -215,7 +194,7 @@ export function OrgCommentsPanel({
     comment: OrgComment,
     { nested = false, ultima = false }: { nested?: boolean; ultima?: boolean } = {},
   ) => {
-    const isSystem = comment.kind !== 'comment';
+    const isSystem = ehEventoDeSistema(comment.kind);
     const replies = repliesByRoot.get(comment.id) ?? [];
     if (comment.excluido && replies.length === 0) return null;
     const isReplying = replyingTo === comment.id;
@@ -265,13 +244,13 @@ export function OrgCommentsPanel({
                 isSystem && 'text-primary',
               )}
             >
-              {isSystem ? 'PSA' : iniciaisDoNome(comment.author_name)}
+              {isSystem ? AUTOR_DO_EVENTO : iniciaisDoNome(comment.author_name)}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <span className={cn('truncate font-semibold', nested ? 'text-[13px]' : 'text-sm')}>
-                {isSystem ? SYSTEM_LABELS[comment.kind] : comment.author_name || 'Usuário removido'}
+                {isSystem ? rotuloDoEvento(comment.kind) : comment.author_name || 'Usuário removido'}
               </span>
               <span className="shrink-0 text-[11px] text-muted-foreground">
                 {formatDistanceToNow(new Date(comment.created_at), {
@@ -355,8 +334,8 @@ export function OrgCommentsPanel({
                   isSystem && 'rounded-lg border-l-2 border-primary/40 bg-muted/35 px-3 py-2',
                 )}
               >
-                {(!isSystem || systemEventBody(comment)) && (
-                  <OrgCommentBody body={isSystem ? systemEventBody(comment) : comment.body} />
+                {(!isSystem || corpoDoEvento(comment)) && (
+                  <OrgCommentBody body={isSystem ? corpoDoEvento(comment) : comment.body} />
                 )}
                 {comment.editado_em && (
                   <span className="text-[10px] text-muted-foreground">editado</span>
