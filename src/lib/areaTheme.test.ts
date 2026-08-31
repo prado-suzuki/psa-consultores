@@ -107,22 +107,34 @@ describe('cobertura das rotas reais do App.tsx', () => {
   });
 
   /*
-   * O Board SAIU da infraestrutura em 21/08/2026.
+   * O Board SAIU da infraestrutura em 21/08/2026 e PERDEU a classe própria em
+   * 31/08 — as duas mudanças vão na mesma direção, não em direções opostas.
    *
    * O grafite ali produzia quatro famílias na mesma tela: cartão, gráfico e
    * barra lateral no teal do design system próprio do Board (`--bd-*`), e todo
    * botão, select e anel de foco no grafite — mais os módulos compartilhados
    * que o Board hospeda (Capacidade, Clientes) inteiros em grafite sobre
-   * superfície marfim. Quem viu foi a usuária, olhando a tela.
+   * superfície marfim. Quem viu foi a usuária, olhando a tela. A saída foi a
+   * `.board-theme`, um delta de acento e superfície.
    *
-   * A separação que este teste trava é a que importa: Dev e Acessos SERVEM o
-   * sistema e seguem grafite; o Board é área de NEGÓCIO e veste a marca.
+   * Em 31/08 esse delta virou o piso: as superfícies dele foram MOVIDAS para o
+   * `.base-theme` e a `.board-theme` saiu do `index.css`. A âncora do Board é a
+   * da casa — diretoria olha a empresa, não uma área dela —, e área cuja âncora
+   * é a do piso não tem delta a declarar. É a mesma regra que apagou a
+   * `.rotina-theme` em 29/08, aplicada no outro sentido: lá a área desceu para o
+   * piso, aqui o piso subiu para a área.
+   *
+   * O que este teste trava, e é o que importa: o Board segue sendo uma ÁREA
+   * (`areaDaRota` responde 'board'), e não passa a vestir o grafite por ter
+   * ficado sem classe. Se alguém recriar a `.board-theme`, quebra aqui e tem de
+   * responder que cor o Board passou a ter que a casa não tem.
    */
-  it('o Board é área de negócio: veste a marca, não o grafite', () => {
+  it('o Board é a casa: área de negócio, sem classe própria e sem grafite', () => {
+    expect(TEMA_DA_AREA.board).toBeNull();
     for (const rota of rotasDoApp()) {
       if (rota.startsWith('/equipe/board')) {
         expect(areaDaRota(rota)).toBe('board');
-        expect(resolverTemaDaRota(rota)).toEqual([CLASSE_BASE, 'board-theme']);
+        expect(resolverTemaDaRota(rota)).toEqual([CLASSE_BASE]);
       }
     }
   });
@@ -383,13 +395,13 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
    * O que o teste cobra de cada um é diferente, e é o ponto deste bloco.
    */
   const CONGELADOS = ['tax-theme', 'osg-theme'];
-  // `board-theme` é DELTA e não CONGELADO de propósito: ele declara acento e
-  // superfície (o que estava brigando com o design system do Board) e HERDA os
-  // papéis de status e os tons de tag do piso. Não há arco verde livre para o
-  // Board declarar — 163–197 é da Tax, 127–160 é da OSG, 89–122 é o do piso —,
-  // e herdar o do piso é a escolha certa, não uma lacuna. Ver o comentário do
-  // bloco `.board-theme` no index.css.
-  const DELTAS = ['sistema-theme', 'board-theme'];
+  // Sobrou UM delta. A `.board-theme` esteve aqui até 31/08/2026: ela declarava
+  // acento e superfície e HERDAVA papéis de status e tons de tag do piso. Saiu
+  // porque as superfícies dela viraram as do piso — a âncora do Board é a da
+  // casa, e área cuja âncora é a do piso não tem delta a declarar. O acento nem
+  // chegou a se mover: os `--primary/--secondary/--accent/--ring` que ela
+  // declarava já eram, um a um, os mesmos do `.base-theme`.
+  const DELTAS = ['sistema-theme'];
 
   it('todo tema conhecido está classificado como congelado ou delta', () => {
     const declarados = Object.values(TEMA_DA_AREA).filter((c): c is string => c !== null);
@@ -416,6 +428,20 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
     expect(forasteiras, `.${classe} declara fora do contrato: ${forasteiras.join(', ')}`).toEqual([]);
     expect(declaradas.length).toBeGreaterThan(0);
     expect(declaradas.length).toBeLessThan(contrato.size);
+  });
+
+  /*
+   * As classes que o resolvedor aplica são EXATAMENTE as classificadas aqui.
+   *
+   * Sem isto, apagar um bloco do `index.css` e esquecer de tirar a linha de
+   * `CONGELADOS`/`DELTAS` passaria batido — a lista viraria ficção. É o risco
+   * que a saída da `.board-theme` acabou de criar.
+   */
+  it('a classificação cobre as classes aplicadas, e nada além delas', () => {
+    const aplicadas = new Set(
+      Object.values(TEMA_DA_AREA).filter((c): c is string => c !== null),
+    );
+    expect([...aplicadas].sort()).toEqual([...CONGELADOS, ...DELTAS].sort());
   });
 
   it('--tool-icon segue o acento local, em vez de ser congelado', () => {

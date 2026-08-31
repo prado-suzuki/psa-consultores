@@ -57,12 +57,18 @@ export const TONS_DE_TAG = ['a', 'b', 'c', 'd'] as const;
  * a casa, a casa é o piso, e área cuja âncora é a do piso não tem paleta a
  * declarar — o bloco era uma cópia, e a exceção era o recibo dela. Saíram juntos.
  *
- * Fora da lista: `.base-theme`, `.sistema-theme` e `.board-theme`. Nenhum dos
- * três declara `--status-*` próprio (o `.base-theme` congela a base; os outros
- * dois são delta de superfície) — cobrá-los aqui seria medir a paleta da base
- * três vezes com nome diferente. O `.dark` também fica fora: a faixa deste
- * arquivo é calibrada para superfície clara, e a escala escura tem contrato
- * próprio.
+ * A `.board-theme` NUNCA esteve nesta lista, e saiu do `index.css` em
+ * 31/08/2026 pelo mesmo motivo pelo qual não estava: ela era delta de
+ * SUPERFÍCIE e herdava os papéis de status do piso. Não havia papéis dela para
+ * medir. Quando as superfícies viraram as da casa, o bloco deixou de ter
+ * conteúdo — e este arquivo não sentiu, que é o sinal de que a divisão entre
+ * "papel de status" e "superfície" está no lugar certo.
+ *
+ * Fora da lista: `.base-theme` e `.sistema-theme`. Nenhum dos dois declara
+ * `--status-*` próprio (o `.base-theme` congela a base; o outro é delta de
+ * acento e superfície) — cobrá-los aqui seria medir a paleta da base duas vezes
+ * com nome diferente. O `.dark` também fica fora: a faixa deste arquivo é
+ * calibrada para superfície clara, e a escala escura tem contrato próprio.
  */
 export const TEMAS = [':root', '.tax-theme', '.osg-theme'] as const;
 

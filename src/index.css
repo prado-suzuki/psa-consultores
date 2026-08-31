@@ -432,9 +432,47 @@ All colors MUST be HSL.
      `--ring`, a Tax herdava o `85 85% 37%` do `:root` e o foco saía
      verde-limão ao lado de um botão teal.
 
-     Os valores são os do `:root`, copiados como estão — zero mudança visual.
-     UMA exceção, deliberada: `--ring` vem do `--primary` em vez do lime. É a
-     única regressão visual aceita da mudança, e é a correção. */
+     ─── AS SUPERFÍCIES DESTE BLOCO SÃO AS DO BOARD, desde 31/08/2026 ─────────
+
+     Até aqui a casa era MARFIM (`--background: 42 24% 99.8%`, `--foreground:
+     20 81% 10%` marrom) e o Board tinha um bloco `.board-theme` com o cast de
+     teal. Eram duas descrições da mesma coisa, e a segunda já vencia em três
+     lugares ao mesmo tempo:
+
+     · o bloco `--bd-*` do design system do Board (no `:root`, mais abaixo)
+       declara esses MESMOS números, e é `:root` — ou seja, valia em TODA rota.
+       Só a Tax e a OSG o sobrescreviam. Nas rotas da casa o chrome do Board já
+       saía teal enquanto o botão e o card shadcn ao lado saíam marfim;
+     · a `.rotina-theme` tinha acabado de ser apagada porque o congelado dela
+       era o piso inteiro sem uma diferença. Deixar a `.board-theme` era manter
+       a mesma figura de cabeça para baixo;
+     · o Board é a tela da diretoria, e diretoria olha a EMPRESA. A âncora dele
+       é a da casa. Área cuja âncora é a do piso não tem delta a declarar.
+
+     Então as 12 declarações do `.board-theme` MUDARAM DE LUGAR para cá — não
+     foram copiadas — e o bloco saiu. Uma lista de cor só.
+
+     O QUE ISSO REPINTA, e foi decidido assim: as 41 rotas que ficavam no piso
+     puro (site institucional, portal do cliente, Gestão, e as telas de Rotina e
+     Digital dentro de `/equipe`) e as 27 do Dev, que herda superfície daqui de
+     propósito (ver `.sistema-theme`). As 21 do Board renderizam IDÊNTICO — é o
+     mesmo valor, na mesma cascata. Tax e OSG não se mexem: são CONGELADAS,
+     declaram o contrato inteiro e não herdam superfície nenhuma daqui.
+
+     CONTRASTE das superfícies novas (medido, mesma tabela do bloco `--bd-*`):
+       foreground        17,1:1 no card · 15,8:1 na página
+       muted-foreground   5,6:1 no card ·  5,2:1 na página — era 4,6:1 no
+                          marfim, ou seja, a troca SUBIU o piso de leitura
+       primary            5,54:1 com branco em cima
+
+     ⚠️ A tabela acima fica NO CABEÇALHO, fora das chaves, e isso não é estética:
+     `declaradasEm`, em `areaTheme.test.ts`, lê toda linha do corpo que comece
+     com `--` e tenha `:`. Uma tabela de contraste escrita lá dentro entra no
+     contrato como se fosse variável, e o teste passa a cobrar `--foreground
+     17,1` de todo tema congelado.
+
+     `--ring` vem do `--primary` em vez do lime do `:root`. Era a única
+     regressão visual aceita quando este bloco nasceu, e é a correção. */
   .base-theme {
     /* Acento e marca */
     --accent: 175 84% 25%;
@@ -490,15 +528,21 @@ All colors MUST be HSL.
 
     /* Ícone de ferramenta/card */
     --tool-icon: var(--primary);
-    --tool-icon-bg: 175 60% 95%;
+    --tool-icon-bg: 172 40% 94%;
 
-    /* Superfícies */
-    --background: 42 24% 99.8%;
-    --card: 42 24% 99.8%;
-    --popover: 42 24% 99.8%;
-    --canvas: 42 22% 99%;
-    --muted: 42 26% 92%;
-    --muted-foreground: 28 9% 41.5%;
+    /* Superfícies — CAST DE TEAL, e não neutro puro nem marfim (ver a nota de
+       contraste no cabeçalho deste bloco). Saturação baixíssima (14–22%) de
+       propósito: é neutro COM cast, não superfície colorida. Se o fundo tem
+       cor, o acento para de saltar. É o mesmo raciocínio da `.tax-theme` quando
+       ela moveu as dela para a matiz 170, e os números são os do bloco `--bd-*`
+       — para o card de um componente shadcn e o card do Board serem o mesmo
+       branco, e o fundo de página ser um só. */
+    --background: 168 22% 99.4%;
+    --card: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --canvas: 168 16% 96%;
+    --muted: 168 20% 92%;
+    --muted-foreground: 180 10% 38%;
     /* O vermelho de excluir é o `ajuste` da área, e a linha abaixo é a única
        coisa que resta de uma calibragem inteira. O valor anterior era 84% de
        saturação a 48% de luminosidade, e os 48% eram medida de emergência: a
@@ -519,17 +563,21 @@ All colors MUST be HSL.
        (`--surface-escura-2`). O fim do gradiente é o `--primary` da área, e é
        ele que dá identidade ao cartão.
 
-       Os valores são o `slate-950`/`slate-900` que o único cartão escuro do
-       sistema já usava cravado — tokenizados, sem mudar de cor. São FRIOS
-       porque o acento do piso é o teal: quem tem acento quente sobrescreve o
-       par (ver `.sistema-theme`). */
-    --surface-escura: 229 84% 5%;
-    --surface-escura-2: 222 47% 11%;
+       Fecha na família do ACENTO, como o `.v4-cyb` do design system do Board já
+       fazia. Era `slate-950`/`slate-900` (229 84% 5% / 222 47% 11%), herdado do
+       único cartão escuro que o sistema tinha; o azul-ardósia terminava num
+       gradiente que atravessava azul→teal no meio. Quem tem acento QUENTE
+       sobrescreve o par (ver `.sistema-theme`); a Tax e a OSG mantêm o
+       azul-ardósia, que é o que elas declaram. */
+    --surface-escura: 178 60% 8%;
+    --surface-escura-2: 175 62% 14%;
 
-    /* Texto */
-    --foreground: 20 81% 10%;
-    --card-foreground: 20 81% 10%;
-    --popover-foreground: 20 81% 10%;
+    /* Texto — quase-preto com cast de teal, no lugar do marrom `20 81% 10%`.
+       Mesma família das superfícies: texto marrom sobre fundo com cast frio
+       lia como duas temperaturas na mesma tela. */
+    --foreground: 178 30% 9%;
+    --card-foreground: 178 30% 9%;
+    --popover-foreground: 178 30% 9%;
   }
 
   /* Tema da área Tax: o teal #0d9488 da marca é a cor da área — a mesma da barra
@@ -816,10 +864,23 @@ All colors MUST be HSL.
      Enumera-se a infraestrutura, que é finita e conhecida, e não o site público,
      que é justamente a parte que ganha rota nova.
 
-     Quente (matiz 35) e não frio (~210): o canvas da base é marfim
-     (42 24% 99.8%) e o texto é marrom (20 81% 10%) — um grafite azulado brigaria
-     com os dois. Saturação de 10% mantém o tom quase neutro: é acento por
-     contraste de luminosidade, não por cor. Branco sobre ele dá 9,72:1. */
+     ⚠️ O DEV VAI JUNTO QUANDO O PISO SE MEXE, e é o que "delta puro" significa na
+     prática: a dobra do Board acima repintou as superfícies claras destas 27
+     rotas também. Herdar é o comportamento contratado — a alternativa seria
+     congelar este bloco no marfim, ou seja, escrever à mão 12 valores só para
+     mantê-los onde estavam, e no dia seguinte já seriam a segunda descrição de
+     uma cor que a casa descreve sozinha.
+
+     ⚠️ E A JUSTIFICATIVA DO QUENTE MUDOU DE PÉ NA MESMA DOBRA. Ela era: quente
+     (matiz 35) e não frio (~210) porque o canvas da base é marfim
+     (42 24% 99.8%) e o texto é marrom (20 81% 10%), com que um grafite azulado
+     brigaria. Hoje o piso é frio (canvas 168 16% 96%, texto 178 30% 9%) e o
+     quente é que destoa dele. FICA REGISTRADO E NÃO RESOLVIDO: o que sustenta o
+     grafite agora é só o propósito do bloco — o Dev não parecer área de
+     negócio —, e isso é um argumento mais fraco do que o que ele substituiu.
+
+     Saturação de 10% mantém o tom quase neutro: é acento por contraste de
+     luminosidade, não por cor. Branco sobre ele dá 9,72:1. */
   .sistema-theme {
     --primary: 35 10% 26%;
     --primary-foreground: 0 0% 100%;
@@ -829,90 +890,15 @@ All colors MUST be HSL.
     --ring: 35 10% 26%;
     --tool-icon-bg: 35 20% 94%;
 
-    /* Superfície escura QUENTE — o par do piso é frio (matiz 222/229, herdado
-       do teal). Um gradiente que sai do frio e termina no grafite quente
-       atravessa o eixo azul→marrom e passa por um cinza morto no meio; e o
-       grafite a 26% de luminosidade é mais CLARO que o azul-ardósia a 11%, o
-       que faz o canto acender em vez de fechar. Na matiz 35 o gradiente inteiro
-       escurece na mesma família e o cartão parece desenhado em grafite, não
-       adaptado. */
+    /* Superfície escura QUENTE — o par do piso é frio. Era azul-ardósia (matiz
+       222/229) e hoje é teal escuro (178/175), e o argumento não se mexeu com a
+       troca: um gradiente que sai do frio e termina no grafite quente atravessa
+       o eixo frio→marrom e passa por um cinza morto no meio; e o grafite a 26%
+       de luminosidade é mais CLARO que o piso a 14%, o que faz o canto acender
+       em vez de fechar. Na matiz 35 o gradiente inteiro escurece na mesma
+       família e o cartão parece desenhado em grafite, não adaptado. */
     --surface-escura: 35 10% 8%;
     --surface-escura-2: 35 11% 12%;
-  }
-
-  /* ─── .board-theme — o Board fala a língua da marca ─────────────────────
-     ⚠️ TEM QUE VIR DEPOIS DE .base-theme (mesma especificidade: vence quem vem
-     depois). Ver o aviso no topo do `.base-theme`.
-
-     POR QUE ELE EXISTE. Até 21/08/2026 o `/equipe/board` era mapeado como
-     INFRAESTRUTURA e vestia a `.sistema-theme` — o grafite quente (35 10% 26%).
-     Ao mesmo tempo, o design system próprio do Board (o bloco `--bd-*`, no fim
-     deste arquivo) passou a ser o teal institucional. Resultado na tela, e foi
-     a usuária quem viu: os CARTÕES, gráficos, tabelas e a barra lateral em
-     teal, e todo BOTÃO, SELECT, calendário e anel de foco em grafite — mais os
-     módulos compartilhados que o Board hospeda (Capacidade monta o
-     `AreaDashboardContent`, Clientes monta a lista) inteiros em grafite sobre
-     superfície marfim. Quatro famílias na mesma tela.
-
-     A decisão que isso obrigou a tomar: o Board **não é infraestrutura**. Dev e
-     Acessos servem o sistema; o Board é a tela da DIRETORIA — a única em que
-     quem olha olha a empresa, e não uma área dela. Área de negócio veste a
-     marca. Foi uma palavra no `MAPA_DE_ROTAS` (`sistema` → `board`), como o
-     comentário de `areaTheme.ts` já previa.
-
-     É UM DELTA, não uma paleta de área nova, e a diferença é deliberada:
-
-     · declara ACENTO e SUPERFÍCIE — é o que estava brigando;
-     · NÃO declara os papéis de status nem os tons de tag. Eles continuam vindo
-       do piso (sábio/vinho), e é herança QUERIDA, não esquecimento: o arco
-       verde da base (89–122) não disputa espaço com o teal do acento (175), e
-       não há arco verde livre para o Board reclamar — o 163–197 é da Tax e o
-       127–160 é da OSG. A regra do sistema é "quem se move é a área nova"
-       (docs/geral/paleta-por-area.md), e mover para onde não há lugar seria
-       inventar uma terceira identidade verde para pintar pílula de tarefa.
-       Por isso o Board não entra em `TEMAS`, em src/lib/paletaDeArea.ts: ele
-       não declara papéis, então não há papéis dele para medir.
-
-     SUPERFÍCIE COM CAST DE TEAL, e não marfim: mesmo raciocínio da `.tax-theme`
-     quando ela moveu as dela para a matiz 170. Saturação baixíssima (14–22%) de
-     propósito — é neutro com cast, não superfície colorida: se o fundo tem cor,
-     o acento para de saltar. Os valores são os MESMOS do bloco `--bd-*`, para
-     card de shadcn e card do Board serem o mesmo branco, e fundo de página ser
-     um só.
-
-     CONTRASTE (medido, mesma tabela do bloco `--bd-*`):
-       --foreground        17,1:1 no card · 15,8:1 na página
-       --muted-foreground   5,6:1 no card ·  5,2:1 na página (era 4,6:1 na base)
-       --primary            5,54:1 com branco em cima. Já foi 4,40:1, abaixo de
-                            AA, e o Board dividia essa falha com o resto do
-                            sistema; o teal do piso desceu um degrau na escala
-                            de marca (`--teal-600`) e os dois saíram juntos.  */
-  .board-theme {
-    --primary: 175 84% 25%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 175 84% 25%;
-    --secondary-foreground: 0 0% 100%;
-    --accent: 175 84% 25%;
-    --accent-foreground: 0 0% 100%;
-    --ring: 175 84% 25%;
-    --tool-icon: var(--primary);
-    --tool-icon-bg: 172 40% 94%;
-
-    --background: 168 22% 99.4%;
-    --card: 0 0% 100%;
-    --card-foreground: 178 30% 9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 178 30% 9%;
-    --canvas: 168 16% 96%;
-    --muted: 168 20% 92%;
-    --muted-foreground: 180 10% 38%;
-    --foreground: 178 30% 9%;
-
-    /* Faixa escura de KPI (Metas, Relatórios, Minha Evolução — e o `FaixaResumo`
-       de Ferramentas). Era o grafite quente da `.sistema-theme`; agora fecha na
-       família do acento, como o `.v4-cyb` do design system do Board já faz. */
-    --surface-escura: 178 60% 8%;
-    --surface-escura-2: 175 62% 14%;
   }
 
 
@@ -941,10 +927,20 @@ All colors MUST be HSL.
      corrigido em base, tax e rotina em 21/08 e o `.dark` ficou fora da passada), e
      `--muted-foreground` sobre `--muted` dava 3,97:1.
 
-     POR QUE MATIZ 35, E NÃO O SLATE. O sistema é quente: `--foreground` da base é
-     `#2E1305`, o `--muted-foreground` é taupe, e o `.sistema-theme` já usa
-     `35 10% 26%` no grafite dele. O escuro era o único lugar que continuava
-     emprestando o slate frio do Tailwind — duas identidades no mesmo produto. A
+     POR QUE MATIZ 35, E NÃO O SLATE. O sistema É quente — era, em 27/08/2026:
+     `--foreground` da base era `#2E1305`, o `--muted-foreground` era taupe, e a
+     `.sistema-theme` usa `35 10% 26%` no grafite dela. O escuro era o único
+     lugar que continuava emprestando o slate frio do Tailwind — duas
+     identidades no mesmo produto.
+
+     ⚠️ METADE DESSA PREMISSA CAIU em 31/08/2026, e este bloco NÃO foi
+     recalibrado: o piso CLARO virou frio (`--foreground: 178 30% 9%`,
+     superfícies matiz 168). Ficou como está DE PROPÓSITO — repintar a escala
+     escura é outro raio de revert, e o `.dark` não é alcançável na aplicação
+     hoje (nada põe a classe no `<html>`; o único consumidor de `next-themes` é
+     o `ui/sonner`, sem provider montado). Quando o modo escuro entrar de
+     verdade, a decisão de temperatura tem que ser refeita — não herdada deste
+     parágrafo. A
      escolha entre as candidatas foi de temperatura, não de contraste: a "A" mantinha
      o frio e ficava mais perto do gradiente azul das telas de entrada; esta faz o
      escuro PERTENCER à paleta, e por isso pede o gradiente na mesma família.
@@ -1096,7 +1092,7 @@ All colors MUST be HSL.
    KPI.                                                                    */
 :root {
   /* ── Superfícies e linhas ──
-     ⚠️ ESTES VALORES TÊM UM PAR: a `.board-theme` (no `@layer base`, acima)
+     ⚠️ ESTES VALORES TÊM UM PAR: o `.base-theme` (no `@layer base`, acima)
      declara os MESMOS números nos tokens semânticos (`--canvas`, `--card`,
      `--background`, `--muted`, `--foreground`, `--muted-foreground`). É o que
      faz o card de um componente shadcn e o card do Board serem o mesmo branco,
@@ -1104,7 +1100,14 @@ All colors MUST be HSL.
      desencontro que a usuária viu em 21/08: chrome numa temperatura, controles
      em outra. Não deriva um do outro por `var()` porque metade destes tokens
      (line, line2, ink4, os degraus `-d`) não tem equivalente no contrato de
-     tema — derivação parcial seria pior que duas listas com um aviso. */
+     tema — derivação parcial seria pior que duas listas com um aviso.
+
+     O par apontava para a `.board-theme` até 31/08/2026. O bloco saiu porque as
+     duas listas descreviam a MESMA casa: este é `:root` e valia em toda rota,
+     enquanto o outro só vestia `/equipe/board` — nas 41 rotas do piso o chrome
+     do Board já saía teal e os controles ao lado saíam marfim. Dobrar o Board
+     no piso é o que fechou isso. Continuam duas listas, pelo motivo do parágrafo
+     acima, mas agora descrevem o mesmo alcance. */
   --bd-page:      hsl(168 16% 96%);   /* fundo da área (fora dos cards)     */
   --bd-surface:   #FFFFFF;            /* card                               */
   --bd-surface2:  hsl(168 20% 98%);   /* hover de linha, zebra, cabeçalho   */
@@ -2422,8 +2425,13 @@ All colors MUST be HSL.
 
    ── Por que `ink3` e `accent` são mais CLAROS do que pareceria necessário ──
 
-   O Board virou teal em 21/08 (`.board-theme`, `--surface-escura-2: 175 62% 14%`).
-   Sobre esse piso os dois tokens REPROVARAM: `ink3` #8E9CB5 dava 3,57 e o
+   O Board virou teal em 21/08 (`--surface-escura-2: 175 62% 14%`) e em 31/08 esse
+   piso deixou de ser só dele: a `.board-theme` foi dobrada no `.base-theme`, e
+   hoje o teal é o piso da CASA. Quem ficou com o azul-ardósia da coluna "frio"
+   foram a Tax e a OSG, que o declaram nos blocos próprios; o grafite segue do
+   Dev. Os três pisos da tabela continuam existindo — trocaram de dono, não de
+   valor, e o pior continua sendo o teal, que agora é o mais comum.
+   Sobre o teal os dois tokens REPROVARAM: `ink3` #8E9CB5 dava 3,57 e o
    `accent` #8AA2FF dava 4,10 no degrau 3. E baixar o alfa do degrau não
    resolvia -- a 4% o ink3 ainda dava 4,03 -- porque cinza-AZULADO sobre verde
    não separa por luminosidade, separa por matiz, e matiz não conta para WCAG.
@@ -2433,6 +2441,7 @@ All colors MUST be HSL.
    Contraste MEDIDO nos três pisos que a rota pode dar, no degrau 3 (o pior):
 
                        teal          frio         grafite
+                     (casa)      (Tax e OSG)      (Dev)
                     175 62% 14%   222 47% 11%    35 11% 12%
      --agente-ink       9,1          13,2          11,9
      --agente-ink2      6,1           8,9           8,0

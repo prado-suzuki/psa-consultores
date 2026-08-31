@@ -117,9 +117,10 @@ sobre esse fundo, ponto, barra, e fundo de badge com texto branco). No Tailwind 
 | Bloco em `src/index.css` | Quem aplica | Identidade | Arco verde | Quentes |
 |---|---|---|---|---|
 | `:root` | ninguém — é a base | marfim + verde sábio; fallback de área sem paleta | 89–122 (sábio/oliva) | vinho 343, barro 32, palha 48–54 |
+| `.base-theme` | `AreaThemeProvider`, em TODA rota | teal institucional; superfícies com cast de teal (matiz 168–180) | 89–122 (sábio/oliva) | vinho 343, barro 32, palha 48–54 |
 | `.tax-theme` | `FiscalLayout` | teal `#0d9488` da marca | 163–197 (teal) | tijolo 7–12, ocre 30–36 (escala `--tax-*`) |
 | `.osg-theme` | `OsgLayout` | verde musgo, dourado marca-texto, carmim | 127–160 (musgo) | carmim 356, taupe 18–19, dourado 41 |
-| `.board-theme` | `AreaThemeProvider` | teal institucional (delta: acento + superfície) | herda o do piso | herda os do piso |
+| `.sistema-theme` | `AreaThemeProvider` | grafite quente, só o Dev (delta: acento + superfície escura) | herda o do piso | herda os do piso |
 
 A OSG é a **âncora** do sistema, não a variável: a identidade dela (`--osg-moss`,
 `--osg-highlighter`, `--osg-red`, escala `--osg-*`) existia antes de haver sistema de
@@ -135,43 +136,57 @@ O `:root` é **base**, não a paleta da Tax. Área que ainda não declarou a sua
 (Marketing, portal do cliente) cai na base — num lugar coerente, em vez de vestir a
 identidade de outra área.
 
-### O Board declara acento e superfície, e HERDA os papéis
+### O Board VIROU a casa (31/08/2026)
 
-Desde 21/08/2026 o Board tem `.board-theme` (ver `index.css` e `src/lib/areaTheme.ts`).
-É um **delta**, não uma paleta de área: declara o acento (o teal institucional) e as
-superfícies (neutro com cast de teal, matiz 168–180), e **herda do piso os oito papéis
-de status e os quatro tons de tag**.
+O Board teve bloco próprio por dez dias. Em 21/08 ele saiu da infraestrutura e ganhou
+a `.board-theme` — um delta de acento + superfície. Em 31/08 esse delta **virou o piso**:
+as superfícies com cast de teal (matiz 168–180) foram MOVIDAS para o `.base-theme` e a
+`.board-theme` saiu do `index.css`. Hoje `/equipe/board` resolve `base-theme` sozinho.
 
-A herança é escolhida, não esquecida, e o motivo é este documento: não há arco verde
-livre para o Board declarar. O 163–197 é da Tax, o 127–160 é da OSG e o 89–122 é o do
-piso; a regra é "quem se move é a área nova", e não há para onde mover. O arco do piso
-(sábio) também não disputa espaço com o acento do Board (teal 175), então as pílulas de
-tarefa continuam legíveis ao lado dos cartões teal.
+Não é o Board perdendo identidade — é a identidade dele deixando de ser exceção. A
+âncora do Board sempre foi a da casa: ele é a tela da diretoria, e diretoria olha a
+**empresa**, não uma área dela. E área cuja âncora é a do piso não tem delta a declarar.
+É a mesma regra que apagou a `.rotina-theme` em 29/08, aplicada no outro sentido: lá a
+área desceu para o piso, aqui o piso subiu para a área.
 
-Consequência prática: **o Board não entra em `TEMAS`, em `src/lib/paletaDeArea.ts`** —
-ele não declara papéis, logo não há papéis dele para o teste medir. Quem cobra a
-consistência dele é `areaTheme.test.ts`, que exige que todo tema seja classificado como
-*congelado* (declara as 46 variáveis do contrato) ou *delta* (declara um subconjunto,
-sem inventar variável). O `board-theme` é delta.
+Três coisas empurraram para essa direção:
 
-O que o obrigou a existir: o Board era mapeado como INFRAESTRUTURA e vestia o grafite
-da `.sistema-theme`, enquanto o design system próprio dele (o bloco `--bd-*`) virou
-teal. Na tela isso deu quatro famílias ao mesmo tempo — cartão e gráfico em teal, botão
-e anel de foco em grafite, superfícies dos módulos compartilhados em marfim. Dev e
-Acessos continuam grafite: eles servem o sistema. O Board é a tela da diretoria.
+- o bloco `--bd-*` do design system do Board mora no `:root` do `index.css`, ou seja **já
+  valia em toda rota** — só Tax e OSG o sobrescreviam. Nas rotas da casa o chrome do Board
+  já saía teal ao lado de controles shadcn marfim: era o desencontro de 21/08 outra vez,
+  em 41 telas em vez de 21;
+- a `.rotina-theme` tinha acabado de sair por ser uma cópia do piso. Manter a
+  `.board-theme` era manter a mesma figura de cabeça para baixo;
+- e o `.base-theme`, que é aplicado em TODA rota, passou a ser o único lugar que descreve
+  a cor da casa.
 
-### O Digital fica na base, por decisão
+**O que repintou:** as 41 rotas que ficavam no piso puro (site institucional, portal do
+cliente, Gestão, e as telas de Rotina e Digital dentro de `/equipe`) e as 27 do Dev, que
+herda superfície do piso de propósito. As 21 do Board renderizam idêntico. Tax e OSG não
+se mexeram: são **congeladas**, declaram o contrato inteiro e não herdam superfície.
+
+Os papéis de status **não** entraram nessa mudança — nem entrariam. O Board nunca
+declarou os seus, e o motivo é este documento: não há arco verde livre. O 163–197 é da
+Tax, o 127–160 é da OSG e o 89–122 é o do piso; a regra é "quem se move é a área nova", e
+não há para onde mover. O arco do piso (sábio) também não disputa espaço com o acento
+(teal 175), então as pílulas de tarefa seguem legíveis ao lado dos cartões teal.
+
+Consequência prática que continua valendo: **o Board não entra em `TEMAS`, em
+`src/lib/paletaDeArea.ts`** — não declara papéis, logo não há papéis dele para o teste
+medir. Quem cobra a consistência é `areaTheme.test.ts`, que exige que todo tema declarado
+seja classificado como *congelado* (declara as 46 variáveis do contrato) ou *delta*
+(subconjunto, sem inventar variável). Sobrou **um** delta: `sistema-theme`.
+
+### O Digital e a Rotina ficam na base, por decisão
 
 Os três blocos de `/equipe/digital` — **Digital Rotina** (o dia a dia da equipe), **Digital
-Mapa** (cadastro de projetos e processos de mapeamento) e **Acessos** — usam a paleta base.
-Não é omissão: é o padrão do sistema exposto numa área real, e é dele que uma área nova
-parte antes de ajustar a própria identidade.
+Mapa** (cadastro de projetos e processos de mapeamento) e **Acessos** — usam a paleta base,
+e as telas de Rotina (`/equipe/kanban`, `/equipe/daily`, `/equipe/sprints`…) também.
 
-`.rotina-theme`, aplicado pelo `EquipeLayout`, **declara hoje o contrato inteiro — com os
-valores da base**. Ele nasceu trocando só o anel de foco dos campos e herdando as outras 40
-variáveis; o congelamento escreveu as 40 com o que ela já computava, para desacoplar a área
-sem mudar um pixel. O bloco é grande, mas a **decisão de cor da Rotina continua não tomada**:
-declarar não é escolher.
+Não é omissão. A `.rotina-theme` existiu até 29/08/2026: nasceu trocando só o anel de foco
+dos campos, foi congelada com o contrato inteiro, e aí se mediu que cada variável dela era,
+uma a uma, a mesma do `.base-theme` — inclusive o `--ring`. Apagar o bloco não moveu um
+pixel. A âncora da Rotina é a da casa, e a casa é o que o piso pinta.
 
 Consequência para o teste: `.rotina-theme` **está em `TEMAS`** e cumpre completude, contraste,
 faixa e separação interna — cumpre por ser cópia de uma paleta que cumpre. O único par

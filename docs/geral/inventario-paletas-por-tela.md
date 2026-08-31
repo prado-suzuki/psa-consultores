@@ -3,6 +3,16 @@
 **Levantamento de 2026-08-18** (branch `develop`). Documento de leitura, não de decisão:
 mede onde a arquitetura de `docs/geral/paleta-por-area.md` já chega e onde ainda não.
 
+> ⚠️ **É uma FOTO de 18/08, e o mecanismo mudou desde então.** Quem aplica a classe no
+> `<html>` não é mais cada layout: é o `AreaThemeProvider`, por rota, acima dos gates de
+> acesso (`src/lib/areaTheme.ts`). Os blocos também mudaram — a `.rotina-theme` saiu em
+> 29/08 e a `.board-theme` em 31/08, as duas por serem cópias do piso; hoje existem
+> `.base-theme` (aplicado em toda rota), `.tax-theme`, `.osg-theme` e `.sistema-theme`.
+> Em particular, a recomendação "criar `.board-theme`" na seção 2 está **cumprida e
+> depois revertida por decisão**: as superfícies do Board viraram as da casa. O estado
+> corrente está em `docs/geral/paleta-por-area.md`; o que continua valendo aqui é o
+> INVENTÁRIO de hexadecimais cravados por tela.
+
 O mecanismo está descrito lá; aqui só o que importa para ler a tabela:
 
 - O componente nomeia um **papel** (`bg-status-andamento`); quem resolve o tom é a classe de
