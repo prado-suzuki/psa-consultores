@@ -114,3 +114,15 @@ supabase/.temp/
 # Dailies/anotações pessoais na raiz (local, não commitar)
 /dailies-*.md
 
+
+# Artefatos temporarios da auditoria de cor: scripts que varrem rota/token e
+# despejam JSON na RAIZ. Sao gerados, grandes e nao descrevem o codigo -- o
+# .auditcor-tmp.json passa de 8 mil linhas de contagem por rota.
+#
+# Glob e nao lista: em poucos minutos apareceram .auditcor-tmp.json,
+# .mortas-tmp.json e .tw-cores.json. E familia, nao excecao, e enumerar o que
+# cresce apodrece. O sufixo -tmp e a convencao que esses scripts ja seguem.
+#
+# Entraram aqui depois de um `git add -A` commitar dois deles por acidente.
+/*-tmp.json
+/.tw-cores.json
