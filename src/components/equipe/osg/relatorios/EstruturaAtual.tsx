@@ -66,7 +66,7 @@ export function EstruturaAtual({ bens, titulo = 'Estrutura atual (antes da reorg
     <section className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
       <header className="flex items-center gap-2.5 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
         <Sprout className="h-4 w-4 text-osg-600" />
-        <h3 className="text-sm font-semibold text-osg-800">{titulo}</h3>
+        <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
         <span className="ml-auto text-[11px] text-slate-500">como a atividade rural é explorada hoje</span>
       </header>
 

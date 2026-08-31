@@ -151,7 +151,7 @@ export const BannerVersaoAnterior = ({
       <Button
         variant="outline"
         size="sm"
-        className="border-osg-moss/40 text-osg-700 hover:bg-osg-moss/10 hover:text-osg-800"
+        className="border-osg-moss/40 text-osg-700 hover:bg-osg-moss/10"
         onClick={onBaixar}
         disabled={baixando}
       >

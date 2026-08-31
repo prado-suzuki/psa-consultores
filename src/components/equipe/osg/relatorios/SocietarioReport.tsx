@@ -32,7 +32,7 @@ function QuadroTabela({ empresa }: { empresa: EmpresaSocietaria }) {
       <header className="flex flex-wrap items-center gap-3 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
         <PieChart className="h-4 w-4 shrink-0 text-osg-600" />
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold uppercase text-osg-800">{empresa.nome}</h3>
+          <h3 className="text-sm font-semibold uppercase text-osg-moss">{empresa.nome}</h3>
           <p className="text-xs text-slate-500">
             {empresa.tipoEmpresa ? `${papelTxt(empresa.tipoEmpresa)} · ` : ''}
             {empresa.cnpj ? `CNPJ ${empresa.cnpj} · ` : ''}Capital social {fmtMoney(empresa.totalValor)} · {fmtInt(empresa.totalQuotas)} quotas
@@ -53,7 +53,7 @@ function QuadroTabela({ empresa }: { empresa: EmpresaSocietaria }) {
                 <td className={cn(td, 'text-right tabular-nums')}>{fmtPct(socioPct(empresa, s))}</td>
               </tr>
             ))}
-            <tr className="bg-osg-50/50 font-semibold text-osg-800">
+            <tr className="bg-osg-50/50 font-semibold text-osg-700">
               <td className="border-t border-osg-200 px-3 py-2">TOTAL</td>
               <td className="border-t border-osg-200 px-3 py-2 text-right tabular-nums">{fmtInt(empresa.totalQuotas)}</td>
               <td className="border-t border-osg-200 px-3 py-2 text-right tabular-nums">{fmtMoney(empresa.totalValor)}</td>
@@ -160,7 +160,7 @@ export function EstruturaControle({ empresas, titulo = 'Organograma societário 
     <section className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
       <header className="flex items-center gap-2.5 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
         <Network className="h-4 w-4 text-osg-600" />
-        <h3 className="text-sm font-semibold text-osg-800">{titulo}</h3>
+        <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
         <span className="ml-auto text-[11px] text-slate-500">derivado do quadro societário</span>
       </header>
       {!layout ? (
@@ -256,7 +256,7 @@ export function SocietarioReport({ clienteId }: { clienteId: string }) {
   if (empresas.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center">
-        <PieChart className="h-10 w-10 text-osg-400" />
+        <PieChart className="h-10 w-10 text-osg-500" />
         <p className="text-sm text-slate-600">Nenhuma empresa com quadro societário cadastrado para {clienteNome || 'este cliente'}.</p>
       </div>
     );
