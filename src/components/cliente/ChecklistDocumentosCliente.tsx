@@ -89,7 +89,7 @@ const ESTADO_CHIP: Record<EstadoDocumento, string> = {
   pendente: 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400',
   em_analise: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400',
   recusado: 'border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400',
-  aprovado: 'border-teal-200 bg-accent/5 text-primary hover:border-teal-400',
+  aprovado: 'border-primary/15 bg-accent/5 text-primary hover:border-primary/40',
 };
 
 const estadoDaPendencia = (pendencia: PendenciaCliente): EstadoDocumento =>

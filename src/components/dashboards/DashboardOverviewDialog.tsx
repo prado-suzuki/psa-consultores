@@ -20,7 +20,7 @@ const FILTER_LABEL: Record<DashboardFilterType, string> = {
   cluster: 'Por cluster', cliente: 'Por cliente', nenhum: 'Sem filtro',
 };
 const FILTER_BADGE_CLASS: Record<DashboardFilterType, string> = {
-  cluster: 'border-teal-200 bg-accent/5 text-teal-700',
+  cluster: 'border-primary/15 bg-accent/5 text-teal-700',
   cliente: 'border-indigo-200 bg-indigo-50 text-indigo-700',
   nenhum: 'border-border bg-muted text-muted-foreground',
 };
@@ -186,13 +186,13 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                           <Users className="h-3.5 w-3.5" /> Clusters
                         </p>
                         {dashboard.all_clusters ? (
-                          <Badge variant="outline" className="text-[11px] border-teal-200 bg-accent/5 text-teal-700">Todos os clusters</Badge>
+                          <Badge variant="outline" className="text-[11px] border-primary/15 bg-accent/5 text-teal-700">Todos os clusters</Badge>
                         ) : clusterIds.length === 0 ? (
                           <p className="text-xs text-muted-foreground">Só Admin (nenhum cluster marcado).</p>
                         ) : (
                           <div className="flex flex-wrap gap-1">
                             {clusterIds.map((id) => (
-                              <Badge key={id} variant="outline" className="text-[11px] border-teal-200 bg-accent/5 text-teal-700">
+                              <Badge key={id} variant="outline" className="text-[11px] border-primary/15 bg-accent/5 text-teal-700">
                                 {clusterName.get(id) ?? id}
                               </Badge>
                             ))}

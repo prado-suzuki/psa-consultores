@@ -140,7 +140,7 @@ export function CardGrupoColeta({
           FOCO,
           arrastando
             ? 'border-teal-500 bg-accent/5'
-            : 'border-slate-300 bg-slate-50/60 hover:border-teal-400 hover:bg-accent/5/40',
+            : 'border-slate-300 bg-slate-50/60 hover:border-primary/40 hover:bg-accent/5/40',
           enviando && 'cursor-wait opacity-70',
           somenteLeitura && 'cursor-not-allowed opacity-60 hover:border-slate-300 hover:bg-slate-50/60',
         )}
@@ -153,7 +153,7 @@ export function CardGrupoColeta({
           <UploadCloud className="h-7 w-7 text-teal-700/70" />
         )}
         <span
-          className={cn('text-sm font-medium', somenteLeitura ? 'text-slate-500' : 'text-teal-800')}
+          className={cn('text-sm font-medium', somenteLeitura ? 'text-slate-500' : 'text-primary')}
         >
           {somenteLeitura
             ? motivoBloqueio

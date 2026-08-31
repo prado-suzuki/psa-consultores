@@ -62,7 +62,7 @@ const KIND_INFO: Record<ScenarioKind, {
     variedField: 'savings',
     variedLabel: 'Economia recorrente (R$/mês)',
     lockedDefault: ['volume', 'team_members', 'time_total'],
-    color: 'text-teal-600 bg-accent/5 border-teal-200',
+    color: 'text-teal-600 bg-accent/5 border-primary/15',
   },
 };
 
@@ -372,7 +372,7 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
             </div>
 
             <div className="space-y-3">
-              <Card className="bg-gradient-to-br from-accent/5 to-emerald-50 border-teal-200">
+              <Card className="bg-gradient-to-br from-accent/5 to-emerald-50 border-primary/15">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-medium text-teal-700 uppercase">Resultado projetado</p>

@@ -75,7 +75,7 @@ export function AreaAccordion({ areas }: AreaAccordionProps) {
                               {p.name}
                             </span>
                             {p.equipe && (
-                              <Badge variant="outline" className="h-5 text-[10px] bg-accent/5 text-teal-700 border-teal-200">
+                              <Badge variant="outline" className="h-5 text-[10px] bg-accent/5 text-teal-700 border-primary/15">
                                 {p.equipe.name}
                               </Badge>
                             )}

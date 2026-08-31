@@ -408,7 +408,7 @@ export default function Auth() {
 
         {/* Mobile: novidades num cartão teal abaixo do form (o painel lateral some no mobile) */}
         <div className="lg:hidden mt-10">
-          <div className="rounded-2xl bg-gradient-to-br from-teal-600 to-teal-800 p-6">
+          <div className="rounded-2xl bg-gradient-to-br from-teal-600 to-teal-700 p-6">
             <NovidadesShowcase />
           </div>
         </div>
@@ -417,7 +417,7 @@ export default function Auth() {
       {/* Right Side - Novidades sobre a imagem do agro (mesma linguagem do hero da home) */}
       <div className="hidden lg:flex lg:w-1/2 lg:order-1 relative items-center justify-center p-12 overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${heroImage})` }} />
-        <div className="absolute inset-0 bg-gradient-to-br from-teal-900/90 via-teal-800/85 to-teal-950/90" />
+        <div className="absolute inset-0 bg-gradient-to-br from-surface-escura-2/90 via-teal-700/85 to-surface-escura/90" />
         <div className="relative z-10 w-full max-w-md">
           <NovidadesShowcase />
         </div>

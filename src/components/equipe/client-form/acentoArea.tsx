@@ -46,7 +46,7 @@ const TEAL: AcentoArea = {
   texto: 'text-teal-600',
   barra: 'border-l-teal-600/70',
   botao: 'bg-teal-600 hover:bg-teal-700 text-white',
-  botaoSuave: 'border-teal-600/40 bg-accent/5 text-teal-700 hover:border-teal-600 hover:bg-accent/10 hover:text-teal-800',
+  botaoSuave: 'border-teal-600/40 bg-accent/5 text-teal-700 hover:border-teal-600 hover:bg-accent/10 hover:text-primary',
   selecionado: 'bg-accent/5 border-l-teal-600',
   positivoFundo: 'bg-accent/5',
   positivoTexto: 'text-teal-700',

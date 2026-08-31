@@ -398,7 +398,7 @@ export function TarefaRichTextEditor({
                       if (editor) exitSuggestion(editor.view, DAILY_TASK_REFERENCE_PLUGIN_KEY);
                     }
                   }}
-                  className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-muted focus:bg-accent/5 focus:text-teal-950 focus:outline-none"
+                  className="flex w-full items-start gap-2 rounded-md px-2 py-2 text-left text-sm transition-colors hover:bg-muted focus:bg-accent/5 focus:text-primary focus:outline-none"
                 >
                   <span className="shrink-0 font-semibold text-teal-700">
                     [{task.task_code || task.title}]

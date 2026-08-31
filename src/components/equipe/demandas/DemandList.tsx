@@ -162,7 +162,7 @@ export const DemandList = ({
                           demand.due_date && (
                             <Badge
                               variant="outline"
-                              className="border-teal-300 bg-accent/5 text-teal-700 text-xs"
+                              className="border-primary/25 bg-accent/5 text-teal-700 text-xs"
                             >
                               <Calendar className="h-3 w-3 mr-1" />
                               {formatDateRange(demand.start_date, demand.due_date)}
