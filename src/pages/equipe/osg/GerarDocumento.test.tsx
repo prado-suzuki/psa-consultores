@@ -347,7 +347,10 @@ describe('GerarDocumento — caracterização O1', () => {
       valoresLivres: { observacao: 'Observação viva' }, empresaId: 'empresa-1',
       itensPorLista: {
         socios: [], administradores: [], integralizacoes: [], cessoes: [],
-        imoveis: [], signatarios: [], vertices: [],
+        // `retirantes` entrou com a cláusula de retirada da AC de concentração:
+        // lista nova é lista congelada no snapshot, como as demais.
+        retirantes: [],
+        imoveis: [], signatarios: [], vertices: [], memoriais: [],
       },
       total: null,
     });

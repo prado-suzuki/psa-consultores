@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { mapearSignatarios, papelDeQualidades, type QualidadeSignatario } from './signatarios';
 import { gerarDocumento } from './index';
 import { origemDe } from './origem';
+import { retirantesDaCessao } from './mapeadores';
 import type { AdministradorParaMapear, SocioParaMapear } from './mapeadores';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import type { Template } from './types';
@@ -327,5 +328,98 @@ describe('B12/B13 · lista de signatários com papel', () => {
       '_______________________________________\n*SOLANGE KUNZLER*\n' +
       'Administradora e cônjuge outorgante\ncônjuge de Rogério Kunzler',
     );
+  });
+});
+
+// A AC de CONCENTRAÇÃO de quotas: o casal cede a totalidade à holding e segue
+// administrando a operadora. Cenário da 2ª alteração da MMS Agro, o único do
+// corpus em que alguém administra fora do quadro societário.
+//
+// Sem a qualidade `retirante` estes dois só apareciam pela administração, e o
+// fecho chamava de "Administrador" quem tinha acabado de sair do quadro: a
+// retirada, que é o fato que a peça precisa publicar, ficava calada.
+describe('AC de concentração · sócio retirante', () => {
+  const HOLDING = pessoa('p-holding', 'Jatobá Sementes Ltda.', { tipo_pessoa: 'PJ', genero: null });
+  // Rogério e Solange são casados entre si, em comunhão parcial: cada um é
+  // retirante E cônjuge outorgante do outro.
+  const cessao = (cedente: PessoaRow) => ({
+    id: `c-${cedente.id}`, cedente, cessionario: HOLDING, quotas: 100, valor: 100,
+    representanteCedente: null, representanteCessionario: null,
+  });
+
+  it('o retirante que segue administrando acumula as quatro qualidades, na redação registrada', () => {
+    const linhas = campos(mapearSignatarios({
+      // O quadro é o RESULTANTE: só a holding sobrou.
+      socios: [socio(HOLDING, 'o senhor Rogério Kunzler')],
+      administradores: [administrador(ROGERIO, 'Sócio-Administrador'), administrador(SOLANGE, 'Sócio-Administrador')],
+      retirantes: [ROGERIO, SOLANGE],
+      pessoaPorId,
+    }));
+
+    expect(linhas.map((l) => [l.nome, l.papel])).toEqual([
+      // A sócia ingressante encabeça, os que saíram vêm depois: ordem do registrado.
+      ['Jatobá Sementes Ltda.', 'Sócia'],
+      ['Rogério Kunzler', 'Sócio retirante, outorga conjugal e administrador não sócio'],
+      ['Solange Kunzler', 'Sócia retirante, outorga conjugal e administradora não sócia'],
+    ]);
+    // Cada um é cônjuge do outro, e nenhum dos dois aparece duas vezes.
+    expect(linhas).toHaveLength(3);
+    expect(linhas[1].eRetirante).toBe('sim');
+    expect(linhas[1].eSocio).toBe('sim');
+    expect(linhas[1].eAdministrador).toBe('sim');
+    expect(linhas[1].eConjuge).toBe('sim');
+  });
+
+  it('o cargo "Sócio-Administrador" NÃO desce para o complemento de quem deixou de ser sócio', () => {
+    const linhas = campos(mapearSignatarios({
+      socios: [socio(HOLDING)],
+      administradores: [administrador(IVETE, 'Sócio-Administrador')],
+      retirantes: [IVETE],
+      pessoaPorId,
+    }));
+    const ivete = linhas.find((l) => l.nome === 'Ivete Zanella')!;
+    expect(ivete.papel).toBe('Sócia retirante e administradora não sócia');
+    // O papel já disse tudo; repetir "Sócio-Administrador" embaixo contradiria a
+    // retirada que a linha de cima acabou de publicar.
+    expect(ivete.qualificacao).toBe('');
+  });
+
+  it('retirante que não administra sai só como retirante', () => {
+    const linhas = campos(mapearSignatarios({
+      socios: [socio(HOLDING)], retirantes: [IVETE], pessoaPorId,
+    }));
+    expect(linhas.map((l) => [l.nome, l.papel])).toEqual([
+      ['Jatobá Sementes Ltda.', 'Sócia'],
+      ['Ivete Zanella', 'Sócia retirante'],
+    ]);
+  });
+
+  it('a sócia PJ é representada PELO senhor, com a preposição contraída (não "por o")', () => {
+    const linhas = campos(mapearSignatarios({
+      socios: [socio(HOLDING, 'o senhor Rogério Kunzler e a senhora Solange Kunzler')],
+      pessoaPorId,
+    }));
+    expect(linhas[0].qualificacao).toBe(
+      'neste ato representada pelo senhor Rogério Kunzler e a senhora Solange Kunzler',
+    );
+  });
+
+  it('representante no feminino contrai em "pela"', () => {
+    const linhas = campos(mapearSignatarios({
+      socios: [socio(HOLDING, 'a senhora Solange Kunzler')], pessoaPorId,
+    }));
+    expect(linhas[0].qualificacao).toBe('neste ato representada pela senhora Solange Kunzler');
+  });
+
+  it('retirantesDaCessao: cedente que sobrou no quadro NÃO é retirante', () => {
+    const quadroFinal = [socio(HOLDING), socio(NELSON)];
+    // Nelson cedeu parte e continuou sócio; Rogério cedeu tudo e saiu.
+    expect(retirantesDaCessao([cessao(ROGERIO), cessao(NELSON)], quadroFinal).map((p) => p.denominacao))
+      .toEqual(['Rogério Kunzler']);
+  });
+
+  it('retirantesDaCessao: o mesmo cedente em duas cessões vira UM retirante', () => {
+    expect(retirantesDaCessao([cessao(ROGERIO), cessao(ROGERIO)], [socio(HOLDING)]))
+      .toHaveLength(1);
   });
 });

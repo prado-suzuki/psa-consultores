@@ -5,7 +5,7 @@ import { baixarDocx } from '@/lib/templates/docx';
 import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, tituloColetivoDosSocios, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, tituloColetivoDosSocios, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
@@ -382,6 +382,7 @@ export function useGerarDocumentoController() {
       clienteId,
       pjPessoaId: empresaId,
       modeloId,
+      nomeModelo,
       snapshotFlags: flagsAtivas,
       snapshotDados: snap as unknown as Json,
       // Texto dos blocos já resolvido (com overrides) + variantes das famílias
@@ -450,6 +451,7 @@ export function useGerarDocumentoController() {
       clienteId,
       pjPessoaId: empresaId,
       modeloId,
+      nomeModelo,
       snapshotFlags: flagsAtivasLive,
       snapshotDados: snap as unknown as Json,
       snapshotVersoesBlocos: snapshotVersoes as unknown as Json,
@@ -791,12 +793,17 @@ export function useGerarDocumentoController() {
     }
     return out;
   }, [socios]);
+  const administradorPessoaIds = useMemo(
+    () => administradores.map((a) => a.pessoa.id).filter((id): id is string => !!id),
+    [administradores],
+  );
   const { eventos: eventosDerivados, idsPendentes: movimentosPendentes } = useEventosDerivados({
     empresaPessoaId: empresaId,
     validadoEm: documentoBase?.snapshot_validado_em ?? null,
     administracaoIds: idsAdministracao,
     snapshotDoBase: (documentoBase?.snapshot_dados as unknown as SnapshotDaPeca | null) ?? null,
     cpfCnpjPorPessoaId,
+    administradorPessoaIds,
   });
   const eventoPorFlagNome = useMemo(
     () => new Map(eventosDerivados.map((e) => [e.flagNome, e])),
@@ -823,8 +830,23 @@ export function useGerarDocumentoController() {
     () => registrosPorLista.imoveis ?? [],
     [registrosPorLista.imoveis],
   );
-  const { porMatricula: georefsPorMatricula, isFetching: carregandoGeorefsSelecionados } =
-    useGeorefsByMatriculas(idsImoveisSelecionados);
+  // Toda matrícula que ENTRA no documento, na ordem em que ele as descreve: as
+  // integralizadas (alíneas de {{#integralizacoes}}), as escolhidas a dedo
+  // ({{#imoveis}}) e as de binding unitário ({{ imovel.* }}, a matrícula
+  // digitada). É deste conjunto — e não de um imóvel escolhido à parte — que sai
+  // o memorial do georreferenciamento.
+  const idsMatriculasDoDocumento = useMemo(() => {
+    const ids = new Set<string>(matriculasDescritasNasIntegralizacoes(socios, integralizacoes));
+    for (const id of idsImoveisSelecionados) ids.add(id);
+    for (const b of bindings) {
+      if (b.tipo !== 'matricula') continue;
+      const id = registroPorBinding[b.nome];
+      if (id) ids.add(id);
+    }
+    return [...ids];
+  }, [socios, integralizacoes, idsImoveisSelecionados, bindings, registroPorBinding]);
+  const { porMatricula: georefsPorMatricula, isFetching: carregandoGeorefs } =
+    useGeorefsByMatriculas(idsMatriculasDoDocumento);
   const imoveisSelecionados = useMemo<ItemLista[]>(
     () => idsImoveisSelecionados.flatMap((id) => {
       const registro = registros.matricula.find((item) => item.id === id);
@@ -840,7 +862,29 @@ export function useGerarDocumentoController() {
     }),
     [idsImoveisSelecionados, registros.matricula, georefsPorMatricula],
   );
-  const carregandoDadosDocumento = carregandoListasEfetivo || carregandoGeorefsSelecionados;
+  // Um memorial por matrícula do documento que tem certificação no SIGEF. As sem
+  // georref não geram item, e o bloco repetidor sai da composição quando nenhuma
+  // tem — o memorial não é um capítulo que espera alguém escolher um imóvel.
+  const memoriais = useMemo<ItemLista[]>(
+    () => idsMatriculasDoDocumento.flatMap((id) => {
+      const georef = georefsPorMatricula[id];
+      if (!georef?.cabecalho) return [];
+      const row = registros.matricula.find((r) => r.id === id)?.row
+        ?? integralizacoes.find((m) => m.id === id);
+      if (!row) return [];
+      const imovel = derivarCampos('matricula', {
+        ...mapearRegistro('matricula', row),
+        ...mapearGeorefCabecalho(georef.cabecalho),
+      });
+      // Dentro de lista não há formulário para completar campo faltante na mão
+      // (ver mapearIntegralizacoes): campo do catálogo ausente vira '' para o
+      // condicional pular o trecho em vez de derrubar a prévia inteira.
+      for (const c of camposDaEntidade('matricula')) imovel[c.id] = imovel[c.id] ?? '';
+      return [{ imovel, vertices: georef.vertices.map(mapearVertice) }];
+    }),
+    [idsMatriculasDoDocumento, georefsPorMatricula, registros.matricula, integralizacoes],
+  );
+  const carregandoDadosDocumento = carregandoListasEfetivo || carregandoGeorefs;
   const pessoaPorId = useMemo(
     () => new Map(registros.pessoa.map((registro) => {
       const pessoa = registro.row as PessoaRow;
@@ -890,25 +934,40 @@ export function useGerarDocumentoController() {
     }
     return out;
   }, [listasDePessoaSelecionada, registrosPorLista, registros.pessoa, quotasPorPessoa]);
+  // Quem SAI e quem passa a administrar de fora do quadro. As duas respostas são
+  // a mesma subtração contra o quadro resultante (ver foraDoQuadro), e é dela que
+  // saem a cláusula de retirada, a qualificação "administradores não sócios" e os
+  // rótulos do fecho — sem marcação manual do consultor.
+  const retirantes = useMemo(() => retirantesDaCessao(cessoes, socios), [cessoes, socios]);
+  const administradoresNaoSocios = useMemo(
+    () => foraDoQuadro(administradores.map((a) => a.pessoa), socios),
+    [administradores, socios],
+  );
+
   const itensPorLista = useMemo<Record<string, ItemLista[]>>(
     () => ({
       socios: quadro.itens,
       administradores: administradores.map(mapearAdministrador),
       integralizacoes: mapearIntegralizacoes(socios, integralizacoes, aportes),
       cessoes: mapearCessoes(cessoes),
+      retirantes: mapearRetirantes(retirantes),
       imoveis: imoveisSelecionados,
       signatarios: mapearSignatarios({
         socios,
         administradores,
+        // Os que saíram não estão em `socios` (o quadro é o resultante): sem esta
+        // lista o fecho os chamaria de "Administrador" e calaria a retirada.
+        retirantes,
         pessoaPorId: (id) => pessoaPorId.get(id) ?? null,
         // Advogado e testemunhas continuam em linhas fixas no bloco de fecho.
         // Passá-los aqui os faria assinar duas vezes.
       }),
       vertices: verticesItens,
+      memoriais,
       // Listas de seleção manual de pessoas ({{#partes}}), por nome do papel.
       ...partesPorLista,
     }),
-    [quadro, socios, administradores, integralizacoes, aportes, cessoes, imoveisSelecionados, pessoaPorId, verticesItens, partesPorLista],
+    [quadro, socios, administradores, integralizacoes, aportes, cessoes, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------
@@ -1298,6 +1357,19 @@ export function useGerarDocumentoController() {
       // Total dos sócios: campos em branco mantêm a prévia viva antes de a empresa
       // ser escolhida; preenchem quando as quotas carregam.
       if (usaTotalSocios) ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...totalEfetivo };
+      // As palavras que concordam com quem sai ("o sócio … retira-se" x "os sócios
+      // … retiram-se"): flexão de verbo não sai de `sep`/`fim` de seção.
+      ctx.retirada = vocabularioDaRetirada(retirantes);
+      // A administração passou a ser exercida de FORA do quadro. É a condicional
+      // que faz a cláusula dizer "administradores não sócios" só quando é verdade —
+      // sem ela o consolidado afirmava "administrada isoladamente por X e Y" logo
+      // abaixo de uma Cláusula Quinta que dá 100% do capital a outra pessoa.
+      if (ctx.sociedade && typeof ctx.sociedade === 'object') {
+        const soc = ctx.sociedade as Record<string, string>;
+        const naoSocios = administradoresNaoSocios.length > 0;
+        soc.temAdministradorNaoSocio = naoSocios ? 'sim' : '';
+        soc.semAdministradorNaoSocio = naoSocios ? '' : 'sim';
+      }
       // gerarComposicao, e não gerarBlocos: o descarte de bloco sem dado se ANUNCIA
       // (emenda 9.2), e é o que a folha conta e o painel de conferência mostra.
       const { blocos, descartados } = gerarComposicao(template, ctx, flagsAtivas, familias);
@@ -1320,7 +1392,7 @@ export function useGerarDocumentoController() {
     } catch (e) {
       return { blocos: null, texto: null, descartados: [], erro: e instanceof Error ? e.message : String(e) };
     }
-  }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados, bindingMatricula, georefCabecalhoCampos]);
+  }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados, bindingMatricula, georefCabecalhoCampos, retirantes, administradoresNaoSocios]);
 
   const copiar = async () => {
     if (!resultado.texto) return;

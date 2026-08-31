@@ -5,6 +5,7 @@ import {
   mapearAdministrador,
   mapearBem,
   mapearIntegralizacoes,
+  matriculasDescritasNasIntegralizacoes,
   mapearMatricula,
   mapearPartesSelecionadas,
   mapearPessoa,
@@ -854,6 +855,18 @@ describe('mapearIntegralizacoes — alíneas por sócio com referência cruzada 
     expect((itens[1].socio as Record<string, string>).ordem).toBe('2');
     expect((itens[0].imoveis as ItemLista[])).toHaveLength(3);
     expect((itens[1].imoveis as ItemLista[])).toHaveLength(2);
+  });
+
+  // Quem precisa da MATRÍCULA e não da alínea: o memorial do georreferenciamento
+  // sai por imóvel do documento, e o imóvel do documento é este conjunto.
+  it('as matrículas descritas saem sem repetir a que dois sócios dividem', () => {
+    expect(matriculasDescritasNasIntegralizacoes([jose, maria], matriculas)).toEqual(['m1', 'm2', 'm3']);
+  });
+
+  it('matrícula de titular que não é sócio não entra: o contrato não a descreve', () => {
+    const deTerceiro = matIntegralizacao('m9', '1.111', 1000, [{ pessoaId: 'x', denominacao: 'Terceiro' }]);
+    expect(matriculasDescritasNasIntegralizacoes([jose, maria], [...matriculas, deTerceiro]))
+      .toEqual(['m1', 'm2', 'm3']);
   });
 
   it('1ª ocorrência sai completa (fração à frente, remanescente); o sócio do parágrafo lidera', () => {

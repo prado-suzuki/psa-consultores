@@ -55,8 +55,18 @@ const SELECT = `
   titularidade ( tipo, fracao, integralizador, titular:titular_pessoa_id ( denominacao, tipo_pessoa ) )
 `;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const mapTit = (t: any): DPTitular => ({
+/**
+ * A titularidade como ela chega no embed do `SELECT` acima, em qualquer um dos
+ * dois lugares onde aparece (pendurada na matrícula ou direto no bem).
+ */
+interface TitularidadeEmbed {
+  tipo: string | null;
+  fracao: number | null;
+  integralizador: boolean | null;
+  titular: { denominacao: string | null; tipo_pessoa: string | null } | null;
+}
+
+const mapTit = (t: TitularidadeEmbed): DPTitular => ({
   denominacao: t?.titular?.denominacao ?? '—',
   tipo: t?.titular?.tipo_pessoa ?? null,
   fracao: t?.fracao ?? null,
@@ -74,8 +84,7 @@ export function useRelatorioDP(clienteId: string | null) {
         .eq('cliente_id', clienteId)
         .order('referencia_dp');
       if (error) throw error;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return ((data ?? []) as any[]).map((b): DPBem => ({
+      return (data ?? []).map((b): DPBem => ({
         id: b.id,
         referencia_dp: b.referencia_dp,
         denominacao: b.denominacao,
@@ -87,8 +96,7 @@ export function useRelatorioDP(clienteId: string | null) {
         empresa_destino_pessoa_id: b.empresa_destino_pessoa_id,
         motivo_nao_integralizacao: b.motivo_nao_integralizacao,
         observacao: b.observacao,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        matriculas: (b.matricula ?? []).map((m: any): DPMatricula => ({
+        matriculas: (b.matricula ?? []).map((m): DPMatricula => ({
           id: m.id,
           numero: m.numero,
           matricula_anterior_texto: m.matricula_anterior_texto,

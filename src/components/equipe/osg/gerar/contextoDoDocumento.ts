@@ -26,6 +26,10 @@ const CAI_PARA_A_FONTE_VIVA: Record<string, (itens: ItemLista[] | undefined) => 
   // Georref não é dado congelável: vem do BigQuery a cada abertura, e a matrícula
   // pode ter sido certificada depois da validação. Lista ausente OU vazia recarrega.
   vertices: (itens) => !itens || itens.length === 0,
+  // Memoriais do georreferenciamento: mesma natureza dos vértices (é o mesmo
+  // dado, agrupado por imóvel do documento), mesma regra — ausente OU vazia
+  // recarrega, porque a certificação pode ter saído depois da validação.
+  memoriais: (itens) => !itens || itens.length === 0,
   // Signatários SÃO dado congelado (vêm do quadro societário e dos cônjuges no
   // instante da validação). Só a AUSÊNCIA da chave — a marca de um snapshot
   // anterior à lista — cai para a fonte viva; lista vazia é decisão do documento

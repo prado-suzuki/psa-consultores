@@ -5,7 +5,7 @@
 > **Regra:** para consultar o schema, use ESTE arquivo — **nunca** leia `types.ts` inteiro.
 > **Acesso (RLS):** a coluna "Acesso" resume "quem acessa" via arquetipos (ver legenda). Reconstruido do `pg_policies` vivo; para o texto exato de uma policy, ver `supabase/migrations`.
 
-**156 tabelas** de negocio · 2 de backup (ignorar) · 36 enums.
+**158 tabelas** de negocio · 2 de backup (ignorar) · 38 enums.
 Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ## Convencoes (do CLAUDE.md)
@@ -110,9 +110,11 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 | [`improvement_savings_details`](#improvementsavingsdetails) | 9 | — | interno | process_improvements |
 | [`improvement_team_members`](#improvementteammembers) | 7 | — | interno | process_improvements, job_roles, profiles |
 | [`inscricao_contribuinte`](#inscricaocontribuinte) | 7 | — | cluster-fiscal | contribuinte |
-| [`itcd_simulacao`](#itcdsimulacao) | 22 | — | interno | cliente, pessoa, itcd_simulacao |
-| [`itcd_simulacao_doador`](#itcdsimulacaodoador) | 5 | — | interno | pessoa, itcd_simulacao |
-| [`itcd_simulacao_donatario`](#itcdsimulacaodonatario) | 14 | — | interno | pessoa, itcd_simulacao |
+| [`itcd_simulacao`](#itcdsimulacao) | 26 | — | interno | cliente, pessoa, itcd_simulacao |
+| [`itcd_simulacao_concessao`](#itcdsimulacaoconcessao) | 13 | — | interno | pessoa, itcd_simulacao |
+| [`itcd_simulacao_doador`](#itcdsimulacaodoador) | 11 | — | interno | pessoa, itcd_simulacao |
+| [`itcd_simulacao_donatario`](#itcdsimulacaodonatario) | 18 | — | interno | pessoa, itcd_simulacao |
+| [`itcd_simulacao_usufruto`](#itcdsimulacaousufruto) | 10 | — | interno | pessoa, itcd_simulacao |
 | [`itens_acao_1a1`](#itensacao1a1) | 8 | — | desempenho | reunioes_1a1 |
 | [`job_roles`](#jobroles) | 10 | — | catalogo | estrutura_clusters |
 | [`kpis_meta`](#kpismeta) | 9 | — | desempenho | metas |
@@ -492,15 +494,23 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 
 ### <a id="itcdsimulacao"></a>`itcd_simulacao`
 **Acesso:** interno
-`aprovada_em` string? · `aprovada_por` string? · `cliente_id` string · `competencia` string · `created_at` string · `created_by` string? · `empresa_pessoa_id` string · `id` string · `observacao` string? · `origem_simulacao_id` string? · `quotas_total` number · `status` Database["public"]["Enums"]["itcd_simulacao_status"] · `updated_at` string · `updated_by` string? · `versao` number · `vlr_acervo_contabil` number · `vlr_acervo_itr` number · `vlr_acervo_mercado` number · `vlr_imposto_contabil` number · `vlr_imposto_itr` number · `vlr_imposto_mercado` number · `vlr_upf` number  ·  **FK:** `cliente_id`→cliente.id · `empresa_pessoa_id`→pessoa.id · `origem_simulacao_id`→itcd_simulacao.id
+`aprovada_em` string? · `aprovada_por` string? · `cliente_id` string · `com_reserva` boolean · `competencia` string · `created_at` string · `created_by` string? · `empresa_pessoa_id` string · `id` string · `nome` string? · `observacao` string? · `origem_simulacao_id` string? · `pct_base_instituicao` number · `pct_base_reserva` number · `quotas_total` number · `status` Database["public"]["Enums"]["itcd_simulacao_status"] · `updated_at` string · `updated_by` string? · `versao` number · `vlr_acervo_contabil` number · `vlr_acervo_itr` number · `vlr_acervo_mercado` number · `vlr_imposto_contabil` number · `vlr_imposto_itr` number · `vlr_imposto_mercado` number · `vlr_upf` number  ·  **FK:** `cliente_id`→cliente.id · `empresa_pessoa_id`→pessoa.id · `origem_simulacao_id`→itcd_simulacao.id
+
+### <a id="itcdsimulacaoconcessao"></a>`itcd_simulacao_concessao`
+**Acesso:** interno
+`created_at` string · `de_pessoa_id` string · `id` string · `origem` Database["public"]["Enums"]["itcd_origem_usufruto"] · `para_pessoa_id` string · `quotas` number · `simulacao_id` string · `vlr_base_contabil` number? · `vlr_base_itr` number? · `vlr_base_mercado` number? · `vlr_imposto_contabil` number? · `vlr_imposto_itr` number? · `vlr_imposto_mercado` number?  ·  **FK:** `de_pessoa_id`→pessoa.id · `para_pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
 
 ### <a id="itcdsimulacaodoador"></a>`itcd_simulacao_doador`
 **Acesso:** interno
-`created_at` string · `doador_pessoa_id` string · `id` string · `quotas` number · `simulacao_id` string  ·  **FK:** `doador_pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
+`conjuge_pessoa_id` string? · `created_at` string · `doador_pessoa_id` string · `emissao_conjunta` boolean · `id` string · `quotas` number · `quotas_do_aporte` number · `quotas_final` number · `quotas_transmitidas` number · `simulacao_id` string · `vlr_aporte_moeda` number  ·  **FK:** `conjuge_pessoa_id`→pessoa.id · `doador_pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
 
 ### <a id="itcdsimulacaodonatario"></a>`itcd_simulacao_donatario`
 **Acesso:** interno
-`created_at` string · `donatario_pessoa_id` string · `id` string · `pct_doacao_anterior` number? · `percentual` number · `quotas_disponivel` number · `quotas_legitima` number · `simulacao_id` string · `vlr_base_contabil` number · `vlr_base_itr` number · `vlr_base_mercado` number · `vlr_imposto_contabil` number · `vlr_imposto_itr` number · `vlr_imposto_mercado` number  ·  **FK:** `donatario_pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
+`created_at` string · `donatario_pessoa_id` string · `id` string · `pct_doacao_anterior` number? · `percentual` number · `quotas_atuais` number · `quotas_disponivel` number · `quotas_do_aporte` number · `quotas_final` number · `quotas_legitima` number · `simulacao_id` string · `vlr_aporte_moeda` number · `vlr_base_contabil` number · `vlr_base_itr` number · `vlr_base_mercado` number · `vlr_imposto_contabil` number · `vlr_imposto_itr` number · `vlr_imposto_mercado` number  ·  **FK:** `donatario_pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
+
+### <a id="itcdsimulacaousufruto"></a>`itcd_simulacao_usufruto`
+**Acesso:** interno
+`created_at` string · `id` string · `papel` Database["public"]["Enums"]["itcd_papel_usufruto"] · `pessoa_id` string · `quotas` number · `quotas_nua_instituicao` number · `quotas_nua_reserva` number · `quotas_plena` number · `quotas_usufruto` number · `simulacao_id` string  ·  **FK:** `pessoa_id`→pessoa.id · `simulacao_id`→itcd_simulacao.id
 
 ### <a id="itensacao1a1"></a>`itens_acao_1a1`
 **Acesso:** desempenho
@@ -832,6 +842,8 @@ Tipos sao TS (`string`/`number`/`boolean`/`Json`); `?` = nullable.
 - `fiscal_task_department`: commercial, financial, administrative, operations
 - `fiscal_task_priority`: low, medium, high, urgent
 - `fiscal_task_status`: backlog, waiting_client, todo, in_progress, review, em_ajuste, done
+- `itcd_origem_usufruto`: reserva, instituicao
+- `itcd_papel_usufruto`: usufrui, concede
 - `itcd_simulacao_status`: rascunho, gerada, aprovada, substituida
 - `notificacao_canal`: sino, email, whatsapp
 - `notificacao_envio_status`: pendente, enviado, entregue, lido, falhou, ignorado

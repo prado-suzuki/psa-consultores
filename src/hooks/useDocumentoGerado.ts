@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { computeFieldDiff } from '@/lib/diffUtils';
 import type { Database, Json } from '@/integrations/supabase/types';
 import type { ItemLista } from '@/lib/templates/mapeadores';
 
@@ -24,6 +26,38 @@ export interface SnapshotDados {
 // versão. Sem ele não há documento_gerado_id e, portanto, não dá para ancorar
 // um override de bloco. Aqui ficam o find-or-create do rascunho e a leitura dos
 // overrides ativos que a composição aplica.
+
+/**
+ * O que a trilha de auditoria compara numa versão de documento.
+ *
+ * Fora daqui ficam os três `snapshot_*`: são blobs de jsonb do tamanho do
+ * documento inteiro, e gravar o "antes e depois" deles em `changed_fields`
+ * encheria a `audit_logs` sem dizer nada que a tela de versões já não diga.
+ * `snapshot_validado_em` entra, e é ele que marca que houve re-congelamento.
+ */
+const DOCUMENTO_DIFF_FIELDS = [
+  'status', 'documento_raiz_id', 'documento_anterior_id',
+  'substitui_documento_id', 'snapshot_validado_em',
+];
+
+/**
+ * Duas sessões (duas abas, dois cliques) validando a MESMA combinação ao mesmo
+ * tempo: as duas leem "não há head" e as duas tentam criar a raiz. Antes as duas
+ * passavam e a linhagem nascia partida em dois; agora os índices parciais
+ * uq_documento_gerado_head_* barram a segunda com 23505.
+ *
+ * O que o usuário precisa saber não é o nome do índice, é que a tela dele está
+ * velha — a versão já foi criada do outro lado.
+ */
+const UNIQUE_VIOLATION = '23505';
+
+function traduzirHeadDuplicada(erro: unknown): unknown {
+  const codigo = (erro as { code?: string } | null)?.code;
+  if (codigo !== UNIQUE_VIOLATION) return erro;
+  return new Error(
+    'Este documento já foi criado em outra aba ou por outra pessoa — recarregue a tela para continuar de lá.',
+  );
+}
 
 const RASCUNHO_KEY = 'documento-gerado-rascunho';
 const rascunhoKey = (clienteId: string | null, modeloId: string | null, pjPessoaId: string | null) =>
@@ -147,6 +181,8 @@ export interface SalvarDocumentoGeradoInput {
   clienteId: string;
   pjPessoaId: string | null;
   modeloId: string;
+  /** Nome do modelo, só para a trilha de auditoria ficar legível. */
+  nomeModelo: string;
   /** Flags ativas no momento da validação (nomes) — congeladas na versão. */
   snapshotFlags: string[];
   /** Estado dos cadastros congelado em documento_gerado.snapshot_dados. */
@@ -188,6 +224,7 @@ export interface SalvarDocumentoGeradoInput {
  */
 export function useSalvarDocumentoGerado() {
   const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
 
   return useMutation({
     mutationFn: async (input: SalvarDocumentoGeradoInput): Promise<DocumentoGeradoRow> => {
@@ -221,9 +258,12 @@ export function useSalvarDocumentoGerado() {
         snapshot_validado_em: validadoEm,
       };
 
-      // Sem head: cria a raiz da linhagem (documento_raiz_id = o próprio id).
+      // Sem head: cria a raiz da linhagem. `documento_raiz_id` (= o próprio id)
+      // é preenchido pelo trigger trg_documento_gerado_raiz, e não por um segundo
+      // UPDATE daqui: o valor é função da própria linha, e a escrita extra podia
+      // falhar e deixar raiz nula.
       if (!head) {
-        const { data: novo, error: erroInsert } = await supabase
+        const { data: comRaiz, error: erroInsert } = await supabase
           .from('documento_gerado')
           .insert({
             cliente_id: input.clienteId,
@@ -236,15 +276,20 @@ export function useSalvarDocumentoGerado() {
           })
           .select('*')
           .single();
-        if (erroInsert) throw erroInsert;
+        if (erroInsert) throw traduzirHeadDuplicada(erroInsert);
 
-        const { data: comRaiz, error: erroRaiz } = await supabase
-          .from('documento_gerado')
-          .update({ documento_raiz_id: novo.id })
-          .eq('id', novo.id)
-          .select('*')
-          .single();
-        if (erroRaiz) throw erroRaiz;
+        await logAction({
+          area: 'osg',
+          entity_type: 'documento_gerado',
+          entity_id: comRaiz.id,
+          entity_name: input.nomeModelo,
+          action: 'created',
+          details: input.substituiDocumentoId
+            ? 'Primeira versão da alteração contratual'
+            : 'Primeira versão validada',
+          changed_fields: computeFieldDiff(null, comRaiz, DOCUMENTO_DIFF_FIELDS),
+        });
+
         return comRaiz as DocumentoGeradoRow;
       }
 
@@ -257,65 +302,62 @@ export function useSalvarDocumentoGerado() {
           .select('*')
           .single();
         if (error) throw error;
+
+        await logAction({
+          area: 'osg',
+          entity_type: 'documento_gerado',
+          entity_id: data.id,
+          entity_name: input.nomeModelo,
+          action: 'updated',
+          details: 'Recongelamento na mesma versão (atualização do cadastro)',
+          changed_fields: computeFieldDiff(head, data, DOCUMENTO_DIFF_FIELDS),
+        });
+
         return data as DocumentoGeradoRow;
       }
 
       // Head existe + commit deliberado: SELA a head atual e FORKA uma nova.
-      // 1. Selo: rascunho → revisao, CONGELANDO o estado atual no snapshot. A head
-      //    renderiza ao vivo (Biblioteca + overrides aplicados na composição), então
-      //    seu snapshot_versoes_blocos fica defasado assim que um override é criado/
-      //    editado/revertido — só validarVersao o re-congela, e mexer em override não
-      //    dispara isso. Sem gravar snapshotCols aqui, a versão selada renderizaria o
-      //    texto PRÉ-override (o viewer de versão lê do snapshot, não dos cadastros).
-      const { error: erroSelo } = await supabase
-        .from('documento_gerado')
-        .update({ status: 'revisao', ...snapshotCols })
-        .eq('id', head.id);
-      if (erroSelo) throw erroSelo;
-
-      // 2. Fork: a nova head continua de onde a selada parou.
-      const raizId = head.documento_raiz_id ?? head.id;
-      const { data: nova, error: erroFork } = await supabase
-        .from('documento_gerado')
-        .insert({
-          cliente_id: input.clienteId,
-          pj_pessoa_id: input.pjPessoaId,
-          documento_template_id: input.modeloId,
-          status: 'rascunho',
-          documento_anterior_id: head.id,
-          documento_raiz_id: raizId,
-          // Copiada da head, não do input: toda versão da linhagem de uma
-          // alteração responde o que ela substitui sem join até a raiz.
-          substitui_documento_id: head.substitui_documento_id,
-          gerado_por_id: userId,
-          ...snapshotCols,
-        })
-        .select('*')
-        .single();
+      //
+      // Os três passos (selo, fork, cópia dos overrides) vivem numa transação só,
+      // dentro de `selar_e_forkar_documento`. Feitos daqui, uma falha entre o
+      // primeiro e o segundo deixava a linhagem SEM head rascunho, e o save
+      // seguinte caía no ramo `if (!head)` e abria uma RAIZ nova: o histórico se
+      // partia em duas linhagens, em silêncio.
+      //
+      // O selo grava os snapshots junto de propósito: a head renderiza ao vivo
+      // (Biblioteca + overrides aplicados na composição), então o
+      // snapshot_versoes_blocos dela fica defasado assim que um override muda.
+      // Sem congelar aqui, a versão selada renderizaria o texto PRÉ-override,
+      // porque o viewer de versão lê do snapshot e não dos cadastros.
+      const { data: nova, error: erroFork } = await supabase.rpc('selar_e_forkar_documento', {
+        _head_id: head.id,
+        _snapshot_flags: input.snapshotFlags,
+        _snapshot_dados: input.snapshotDados,
+        _snapshot_versoes_blocos: input.snapshotVersoesBlocos,
+        _validado_em: validadoEm,
+      });
       if (erroFork) throw erroFork;
+      if (!nova) throw new Error('A nova versão não foi criada — recarregue a tela.');
 
-      // 3. Copia os overrides da selada para a nova head. O texto resolvido já
-      // viajou em snapshot_versoes_blocos, mas a head precisa dos overrides VIVOS
-      // para seguir editando os mesmos blocos. Os derivados são da raiz
-      // (compartilhados pela linhagem); re-editá-los não afeta a selada, que
-      // renderiza do snapshot.
-      const { data: ovs, error: erroOvs } = await supabase
-        .from('documento_override')
-        .select('tipo, bloco_alvo_id, bloco_substituto_id, observacao')
-        .eq('documento_gerado_id', head.id);
-      if (erroOvs) throw erroOvs;
-      if (ovs && ovs.length > 0) {
-        const { error: erroCopia } = await supabase.from('documento_override').insert(
-          ovs.map((o) => ({
-            documento_gerado_id: nova.id,
-            tipo: o.tipo,
-            bloco_alvo_id: o.bloco_alvo_id,
-            bloco_substituto_id: o.bloco_substituto_id,
-            observacao: o.observacao,
-          })),
-        );
-        if (erroCopia) throw erroCopia;
-      }
+      await logAction({
+        area: 'osg',
+        entity_type: 'documento_gerado',
+        entity_id: head.id,
+        entity_name: input.nomeModelo,
+        action: 'updated',
+        details: 'Versão selada (não aceita mais edição)',
+        changed_fields: { status: { old: head.status, new: 'revisao' } },
+      });
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'documento_gerado',
+        entity_id: nova.id,
+        entity_name: input.nomeModelo,
+        action: 'created',
+        details: 'Nova versão a partir da anterior',
+        changed_fields: computeFieldDiff(null, nova, DOCUMENTO_DIFF_FIELDS),
+      });
 
       return nova as DocumentoGeradoRow;
     },
@@ -353,6 +395,7 @@ export interface RegistrarDocumentoInput {
  */
 export function useRegistrarDocumento() {
   const queryClient = useQueryClient();
+  const { logAction } = useAuditLog();
 
   return useMutation({
     mutationFn: async (input: RegistrarDocumentoInput): Promise<DocumentoGeradoRow> => {
@@ -370,6 +413,17 @@ export function useRegistrarDocumento() {
       if (!data) {
         throw new Error('Este documento não está mais em rascunho — recarregue a tela.');
       }
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'documento_gerado',
+        entity_id: data.id,
+        entity_name: input.nomeModelo,
+        action: 'updated',
+        details: 'Registrado na junta comercial: a peça está travada',
+        changed_fields: { status: { old: 'rascunho', new: data.status } },
+      });
+
       return data as DocumentoGeradoRow;
     },
     onSuccess: () => {

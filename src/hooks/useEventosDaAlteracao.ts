@@ -34,6 +34,8 @@ interface ArgsDosEventos {
   snapshotDoBase?: SnapshotDaPeca | null;
   /** CPF/CNPJ por pessoa do quadro vivo, a chave do diff de quadro. */
   cpfCnpjPorPessoaId?: Readonly<Record<string, string>>;
+  /** Pessoas que administram: responde se a retirada as deixou fora do quadro. */
+  administradorPessoaIds?: readonly string[];
 }
 
 /**
@@ -104,8 +106,9 @@ export function useEventosDerivados(args: ArgsDosEventos): {
       mudancas: mudancas ?? [],
       baseline,
       cpfCnpjPorPessoaId: args.cpfCnpjPorPessoaId,
+      administradorPessoaIds: args.administradorPessoaIds,
     });
-  }, [args.empresaPessoaId, args.cpfCnpjPorPessoaId, livro, mudancas, baseline]);
+  }, [args.empresaPessoaId, args.cpfCnpjPorPessoaId, args.administradorPessoaIds, livro, mudancas, baseline]);
 
   const idsPendentes = useMemo(
     () =>
