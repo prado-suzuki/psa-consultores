@@ -11,6 +11,7 @@ import {
   paletaDoTema,
   problemasDeDivergencia,
   problemasDeSeparacao,
+  problemasDeSuperficie,
   problemasDoTema,
   problemasDosSemanticos,
   type Hsl,
@@ -165,5 +166,16 @@ describe('paletas de área declaradas no index.css', () => {
         `Se um item da lista foi CORRIGIDO, tire-o de DIVIDA_SEMANTICA (neste arquivo).\n` +
         `Medido agora:\n${relatorio}`,
     ).toEqual([...DIVIDA_SEMANTICA].sort());
+  });
+
+  it.each(TEMAS)('%s: o texto fecha AA sobre a superfície que a área entrega', tema => {
+    // Terceiro andar do mesmo buraco. O primeiro deixou o `--warning` passar;
+    // este deixou passar o texto comum — `foreground` e `muted-foreground`
+    // sobre background/card/popover, e o par cheio do `--primary`. Nenhum
+    // tinha teste, e foi por aí que o seletor de data ficou com o dia de outro
+    // mês em cinza cru a 2,5:1: o token nunca chegou lá e nada acusou.
+    const problemas = problemasDeSuperficie(css, tema);
+    const relatorio = problemas.map(p => `  ${p.tema} · ${p.item}: ${p.motivo}`).join('\n');
+    expect(problemas, `pares de superfície reprovados:\n${relatorio}`).toEqual([]);
   });
 });

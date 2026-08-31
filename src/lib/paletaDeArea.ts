@@ -100,6 +100,31 @@ export const TEMAS = [':root', '.tax-theme', '.osg-theme'] as const;
 export const PAPEIS_SEMANTICOS = ['destructive', 'success', 'warning', 'info'] as const;
 
 /**
+ * Pares de superfície: o texto e o fundo que ele encontra por baixo.
+ *
+ * Mesmo buraco do `--warning`, um andar acima. Este arquivo cobrava os oito
+ * papéis de status e os quatro semânticos — e mais nada. Fora dessa lista fica
+ * a maior parte do texto do produto: `text-foreground` e `text-muted-foreground`
+ * sobre `--background`, `--card` e `--popover`, e o par cheio do `--primary`.
+ * Todos passam hoje; nenhum tinha teste, e um deles já tinha regredido em
+ * silêncio — o dia de outro mês do seletor de data estava em cinza cru a
+ * 2,5:1 porque o token nunca chegou lá.
+ *
+ * Só entra par que aparece junto na tela sem que ninguém escolha: quem lê o
+ * texto não escolheu a superfície, ela veio com a área.
+ */
+export const PARES_DE_SUPERFICIE = [
+  { texto: 'foreground', fundo: 'background' },
+  { texto: 'foreground', fundo: 'card' },
+  { texto: 'foreground', fundo: 'popover' },
+  { texto: 'muted-foreground', fundo: 'background' },
+  { texto: 'muted-foreground', fundo: 'card' },
+  { texto: 'muted-foreground', fundo: 'popover' },
+  { texto: 'muted-foreground', fundo: 'muted' },
+  { texto: 'primary-foreground', fundo: 'primary' },
+] as const;
+
+/**
  * Faixa do registro comum. Não é gosto: são os limites que mantêm as paletas
  * conversando entre si e legíveis nas duas pontas do par.
  */
@@ -463,6 +488,40 @@ export function problemasDosSemanticos(css: string, seletor: string): ProblemaDe
           motivo: `text-${papel} sobre a superfície do tema em ${texto.toFixed(2)}:1, abaixo de ${FAIXA.contrasteMinimo}:1`,
         });
       }
+    }
+  }
+
+  return problemas;
+}
+
+/**
+ * Confere os pares de `PARES_DE_SUPERFICIE` num tema. Lista vazia = aprovado.
+ *
+ * Par que não resolve é problema tanto quanto par que reprova: token de
+ * superfície escrito em hex, ou `var()` apontando para o vazio, é exatamente
+ * como o cinza cru entra — sem erro em lugar nenhum, e sem medição possível.
+ */
+export function problemasDeSuperficie(css: string, seletor: string): ProblemaDePaleta[] {
+  const problemas: ProblemaDePaleta[] = [];
+
+  for (const { texto, fundo } of PARES_DE_SUPERFICIE) {
+    const porCima = corDoTema(css, seletor, texto);
+    const porBaixo = corDoTema(css, seletor, fundo);
+    if (!porCima || !porBaixo) {
+      problemas.push({
+        tema: seletor,
+        item: `${texto} / ${fundo}`,
+        motivo: `não resolve (${porCima ? '' : `--${texto} `}${porBaixo ? '' : `--${fundo}`}) — var() apontando para o vazio, ou cor escrita em hex`,
+      });
+      continue;
+    }
+    const razao = contraste(porCima, porBaixo);
+    if (razao < FAIXA.contrasteMinimo) {
+      problemas.push({
+        tema: seletor,
+        item: `${texto} / ${fundo}`,
+        motivo: `--${texto} sobre --${fundo} em ${razao.toFixed(2)}:1, abaixo de ${FAIXA.contrasteMinimo}:1`,
+      });
     }
   }
 
