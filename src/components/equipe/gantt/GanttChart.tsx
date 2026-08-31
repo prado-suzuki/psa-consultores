@@ -103,7 +103,6 @@ export function GanttChart({
         <GanttBarraDeNavegacao
           titulo={eixo.titulo}
           escala={escala}
-          hojeVisivel={linhaDeAgora !== null}
           onEscala={(proxima) => {
             setEscala(proxima);
             // Trocar de escala mantém onde a pessoa está: a âncora corrente vira

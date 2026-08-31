@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
-import { format, startOfMonth, startOfWeek, addDays, isSameDay, isSameMonth, addMonths, subMonths } from 'date-fns';
+import { format, startOfMonth, startOfWeek, addDays, isSameDay, isSameMonth, addMonths } from 'date-fns';
 import { parseDate, getTodayBrazil } from '@/lib/dateUtils';
 import { ptBR } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { BarraDePeriodo } from '@/components/shared/BarraDePeriodo';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -60,32 +61,19 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalend
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold capitalize">
-          {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
-        </h3>
-        <div className="flex items-center gap-1">
-          <div className="hidden sm:flex items-center gap-3 mr-4 text-xs text-muted-foreground">
-            {statusList.map(s => (
-              <span key={s.key} className="flex items-center gap-1">
-                <span className={cn("w-2 h-2 rounded-full", s.bgSolid)} />
-                {s.label}
-              </span>
-            ))}
-          </div>
-          <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setCurrentMonth(new Date())}>
-            Hoje
-          </Button>
-          <Button variant="outline" size="icon" onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}>
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
       <Card className="overflow-hidden">
+        {/* A mesma barra do Gantt, no mesmo lugar: `Hoje · ‹ › · título`, à
+            esquerda. Antes o título ficava solto à esquerda e os controles na
+            direita, grudados na legenda — duas telas que andam no tempo, duas
+            aparências. */}
+        <BarraDePeriodo
+          titulo={format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
+          onHoje={() => setCurrentMonth(new Date())}
+          onPasso={direcao => setCurrentMonth(addMonths(currentMonth, direcao))}
+          rotuloAnterior="Mês anterior"
+          rotuloProximo="Próximo mês"
+        />
+
         <div className="grid grid-cols-7 border-b bg-muted/40">
           {weekDays.map(day => (
             <div
@@ -195,6 +183,18 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalend
           })}
         </div>
       </Card>
+
+      {/* A legenda saiu da linha de controles e foi para baixo do quadro, que é
+          onde o Gantt já a põe (prop `legenda`). Ela vivia grudada nas setas, e
+          uma legenda não é um controle: ocupava a barra e empurrava o título. */}
+      <div className="hidden flex-wrap items-center gap-4 text-sm text-muted-foreground sm:flex">
+        {statusList.map(s => (
+          <span key={s.key} className="flex items-center gap-2">
+            <span className={cn('h-3 w-3 rounded-full', s.bgSolid)} />
+            {s.label}
+          </span>
+        ))}
+      </div>
 
       <Sheet open={!!selectedDate} onOpenChange={() => setSelectedDate(null)}>
         <SheetContent className="sm:max-w-md">

@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CELULAS, FECHA_A_GRADE, TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
 import { statusColors } from '@/lib/taskStatusColors';
@@ -86,6 +87,23 @@ describe('TaskCalendar', () => {
     // `success` é o papel de "concluído": pintar hoje com ele dizia que o dia
     // estava feito. Ver o comentário no componente.
     expect(hoje.className).not.toContain('success');
+  });
+
+  it('a seta anda o mês e Hoje volta — a barra é a mesma do Gantt', async () => {
+    const usuario = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<TaskCalendar tasks={[]} {...semAcoes} />);
+
+    expect(screen.getByText('Agosto de 2026')).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: 'Próximo mês' }));
+    expect(screen.getByText('Setembro de 2026')).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: 'Mês anterior' }));
+    await usuario.click(screen.getByRole('button', { name: 'Mês anterior' }));
+    expect(screen.getByText('Julho de 2026')).toBeInTheDocument();
+
+    await usuario.click(screen.getByRole('button', { name: 'Hoje' }));
+    expect(screen.getByText('Agosto de 2026')).toBeInTheDocument();
   });
 
   it('a tarefa na célula veste o papel do status, que a área resolve', () => {
