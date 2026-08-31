@@ -11,6 +11,7 @@ import {
   type OrgCommentAttachment,
 } from '@/hooks/useDomainOrgComments';
 import type { FeedComentario } from '@/hooks/useDomainFeedComentarios';
+import { dataHoraCurta } from '@/lib/dateUtils';
 import {
   AUTOR_DO_EVENTO,
   corpoDoEvento,
@@ -134,12 +135,18 @@ export function FeedItemComentario({
                   ? rotuloDoEvento(comentario.kind)
                   : comentario.author_name || 'Usuário removido'}
               </span>
+              {/*
+                Data e hora por extenso na própria fala, e não só a hora.
+                A Patricia se perdia tendo que subir até o rótulo do dia para
+                saber de quando era a mensagem; o rótulo continua lá, mas agora
+                a linha se explica sozinha.
+              */}
               <time
                 dateTime={comentario.created_at}
                 title={format(criadoEm, "d 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                 className="shrink-0 text-[11px] tabular-nums text-muted-foreground"
               >
-                {format(criadoEm, 'HH:mm')}
+                {dataHoraCurta(criadoEm)}
               </time>
               {/*
                 A etiqueta só aparece na resposta cuja raiz ficou fora da leva —

@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
 import { MessageSquare, MoreHorizontal, Pencil, Reply, Trash2 } from 'lucide-react';
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 
@@ -39,6 +37,7 @@ import {
   useDomainOrgComments,
 } from '@/hooks/useDomainOrgComments';
 import { useMarcarMencoesLidasDaThread } from '@/hooks/useNotificacoesMencao';
+import { dataHoraCurta } from '@/lib/dateUtils';
 import {
   AUTOR_DO_EVENTO,
   corpoDoEvento,
@@ -253,10 +252,7 @@ export function OrgCommentsPanel({
                 {isSystem ? rotuloDoEvento(comment.kind) : comment.author_name || 'Usuário removido'}
               </span>
               <span className="shrink-0 text-[11px] text-muted-foreground">
-                {formatDistanceToNow(new Date(comment.created_at), {
-                  addSuffix: true,
-                  locale: ptBR,
-                })}
+                {dataHoraCurta(comment.created_at)}
               </span>
               {!isSystem && comment.author_id === user?.id && !comment.excluido && (
                 <DropdownMenu>
@@ -429,7 +425,7 @@ export function OrgCommentsPanel({
         Tarefa criada por {criadoPor.nome ?? 'outro usuário'}
       </span>
       <span className="shrink-0 text-[11px] text-muted-foreground">
-        {formatDistanceToNow(new Date(criadoPor.em), { addSuffix: true, locale: ptBR })}
+        {dataHoraCurta(criadoPor.em)}
       </span>
     </div>
   ) : null;
