@@ -516,7 +516,7 @@
   width: 88px;
   height: 88px;
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 38%, #ccfbf1, #f0fdfa 70%);
+  background: radial-gradient(circle at 50% 38%, hsl(var(--teal-100)), hsl(var(--teal-50)) 70%);
   color: var(--accent-color);
   margin-bottom: 22px;
   box-shadow: 0 12px 34px -14px rgba(13,148,136,0.50);
@@ -840,7 +840,7 @@ textarea.cadastro-form-textarea{
 .processo-det-projeto.is-editavel:hover{
   background: var(--accent-50);
   color: var(--accent-700);
-  border-color: var(--accent-200, #99f6e4);
+  border-color: var(--accent-200, hsl(var(--teal-200)));
 }
 .processo-det-descricao{
   margin: 0 0 18px;
@@ -1000,7 +1000,7 @@ textarea.cadastro-form-textarea{
 .processo-det-chip.is-editavel:hover{
   background: var(--accent-50);
   color: var(--accent-700);
-  border-color: var(--accent-200, #99f6e4);
+  border-color: var(--accent-200, hsl(var(--teal-200)));
 }
 .processo-det-chip-edit{
   opacity: 0;
