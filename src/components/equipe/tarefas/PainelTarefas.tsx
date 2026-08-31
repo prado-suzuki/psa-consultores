@@ -15,6 +15,7 @@ import {
   TaskFilters as TaskFiltersType
 } from '@/hooks/useOrgTasks';
 import { AreaKey } from '@/config/areaCategories';
+import { canEditOrgTaskFields } from '@/lib/orgTaskPermissions';
 import { useDashboardProjectIds } from '@/hooks/useDashboardProjectIds';
 import { useGerarTarefasProjeto } from '@/hooks/useGerarTarefasProjeto';
 import { useProjetosCadastroController } from '@/hooks/useProjetosCadastroController';
@@ -295,6 +296,10 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const canMoveTask = (task: OrgTask) => isAdmin || isLider || isSublider
     || (!!user && task.created_by === user.id);
 
+  // Mesmo trigger, agora para os seletores de responsável e prazo da lista.
+  const canEditTaskFields = (task: OrgTask) =>
+    canEditOrgTaskFields(task, { userId: user?.id, isAdmin, isLider, isSublider });
+
   const handleMoveTask = (task: OrgTask) => {
     if (!canMoveTask(task)) {
       toast.error('Você não tem permissão para mover esta tarefa.', {
@@ -439,6 +444,8 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 onMoveSelected={handleMoveSelected}
                 onMoveProjectTasks={handleMoveProjectTasks}
                 currentUserId={user?.id}
+                teamMembers={teamMembers}
+                canEditTaskFields={canEditTaskFields}
               />
             </TabsContent>
 

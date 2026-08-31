@@ -218,6 +218,83 @@ describe('ProjetosTarefasList — estado de carregamento', () => {
   });
 });
 
+describe('ProjetosTarefasList — responsável e prazo direto na linha', () => {
+  const equipe = [{ id: 'U2', name: 'Geizi Andrade' }, { id: 'U3', name: 'Diego Melo' }];
+
+  const expandirAteTarefa = () => {
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+  };
+
+  it('troca o responsável sem abrir a tarefa, gravando id e nome juntos', async () => {
+    const user = userEvent.setup();
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { assigned_to: 'U2' })],
+      teamMembers: equipe,
+    });
+    expandirAteTarefa();
+
+    await user.click(screen.getByLabelText('Responsável por Coleta'));
+    await user.click(screen.getByRole('option', { name: 'Diego Melo' }));
+
+    // O nome vai junto: a lista e os cartões leem assigned_to_name, não o perfil.
+    expect(mocks.updateTask).toHaveBeenCalledWith({
+      id: 'Coleta',
+      assigned_to: 'U3',
+      assigned_to_name: 'Diego Melo',
+    });
+  });
+
+  it('escolher o mesmo responsável não grava nada', async () => {
+    const user = userEvent.setup();
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { assigned_to: 'U2' })],
+      teamMembers: equipe,
+    });
+    expandirAteTarefa();
+
+    await user.click(screen.getByLabelText('Responsável por Coleta'));
+    await user.click(screen.getByRole('option', { name: 'Geizi Andrade' }));
+
+    expect(mocks.updateTask).not.toHaveBeenCalled();
+  });
+
+  it('troca o prazo pelo calendário da linha, em yyyy-MM-dd', async () => {
+    const user = userEvent.setup();
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { due_date: '2026-08-17' })],
+      teamMembers: equipe,
+    });
+    expandirAteTarefa();
+
+    await user.click(screen.getByLabelText('Prazo de Coleta'));
+    await user.click(screen.getByRole('button', { name: '20' }));
+
+    expect(mocks.updateTask).toHaveBeenCalledWith({ id: 'Coleta', due_date: '2026-08-20' });
+    // O calendário fecha ao escolher — o Popover não faz isso sozinho.
+    expect(screen.queryByRole('button', { name: '20' })).not.toBeInTheDocument();
+  });
+
+  it('sem permissão de editar campos, as células só leem', () => {
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { due_date: '2026-08-17' })],
+      teamMembers: equipe,
+      canEditTaskFields: () => false,
+    });
+    expandirAteTarefa();
+
+    expect(screen.queryByLabelText('Responsável por Coleta')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Prazo de Coleta')).not.toBeInTheDocument();
+    // O status continua editável: o trigger da RLS-06 sempre o libera.
+    expect(screen.getAllByRole('combobox')).toHaveLength(1);
+    expect(screen.getByText('Geizi Andrade')).toBeInTheDocument();
+  });
+});
+
 describe('ProjetosTarefasList — troca de status pelo seletor', () => {
   const expandirAteTarefa = (titulo: string) => {
     fireEvent.click(screen.getByLabelText('Expandir OS'));

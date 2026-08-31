@@ -36,6 +36,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import type { OrgProject } from '@/hooks/useOrgProjects';
@@ -96,9 +98,19 @@ interface ProjetosTarefasListProps {
   /** Marca todas as tarefas do projeto e abre o movimento em lote. */
   onMoveProjectTasks: (taskIds: string[]) => void;
   currentUserId?: string | null;
+  /** Candidatos do seletor de responsável da linha. Vazio: a célula só lê. */
+  teamMembers?: { id: string; name: string }[];
+  /**
+   * Responsável e prazo são campos fora do trio status/horas/revisor: quem não
+   * criou a tarefa e não é líder não consegue gravá-los (RLS-06). Sem o gate a
+   * lista ofereceria um seletor que o banco recusa. Ver `canEditOrgTaskFields`.
+   */
+  canEditTaskFields?: (task: OrgTask) => boolean;
 }
 
 const GRID = 'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px] min-w-[1200px]';
+/** Radix Select não aceita valor vazio: o "não atribuído" precisa de sentinela. */
+const SEM_RESPONSAVEL = '_none';
 /** Faixas que atravessam a tabela inteira (divisor de cliente, "adicionar tarefa"). */
 const FULL_ROW_MIN_WIDTH = 'min-w-[1150px]';
 
@@ -204,6 +216,8 @@ export function ProjetosTarefasList({
   onMoveSelected,
   onMoveProjectTasks,
   currentUserId,
+  teamMembers = [],
+  canEditTaskFields = () => true,
 }: ProjetosTarefasListProps) {
   const hierarchy = useMemo(
     () => buildProjetosTarefasHierarchy(projects, tasks, osRows, search, hideEmpty),
@@ -216,6 +230,9 @@ export function ProjetosTarefasList({
   // Assim expandir uma OS mostra os projetos sem despejar tarefas e subtarefas.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<{ column: 'prazo' | 'progresso' | null; dir: 'asc' | 'desc' }>({ column: null, dir: 'asc' });
+  // Só um calendário aberto por vez, e ele fecha ao escolher a data — o Popover
+  // não fecha sozinho no clique de dentro.
+  const [prazoAberto, setPrazoAberto] = useState<string | null>(null);
 
   const cycleSort = (column: 'prazo' | 'progresso') => setSort(previous => {
     if (previous.column !== column) return { column, dir: 'asc' };
@@ -269,11 +286,32 @@ export function ProjetosTarefasList({
     updateTask.mutate({ id: task.id, status });
   };
 
+  const updateResponsavel = (task: OrgTask, value: string) => {
+    const member = value === SEM_RESPONSAVEL ? null : teamMembers.find(item => item.id === value);
+    if (value !== SEM_RESPONSAVEL && !member) return;
+    if ((member?.id ?? null) === task.assigned_to) return;
+    updateTask.mutate({
+      id: task.id,
+      assigned_to: member?.id ?? null,
+      assigned_to_name: member?.name ?? null,
+    });
+  };
+
+  const updatePrazo = (task: OrgTask, date: Date | undefined) => {
+    setPrazoAberto(null);
+    if (!date) return;
+    const iso = format(date, 'yyyy-MM-dd');
+    if (iso === task.due_date) return;
+    updateTask.mutate({ id: task.id, due_date: iso });
+  };
+
   const renderTask = (node: ProjetosTarefasTaskNode, depth: number): React.ReactNode => {
     const { task, children } = node;
     const rowId = `task:${task.id}`;
     const isExpanded = expanded.has(rowId);
     const isSelected = selectedTaskIds.has(task.id);
+    const podeEditar = canEditTaskFields(task);
+    const atrasada = !!task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done';
     return <Fragment key={task.id}>
       <div className={cn(GRID, 'group border-t border-border/60 text-sm hover:bg-muted/30', isSelected ? 'bg-primary/5' : 'bg-background')}>
         <div className="relative flex min-w-0 items-center gap-2 px-4 py-2" style={{ paddingLeft: `${TASK_INDENT + depth * INDENT_STEP}px` }}>
@@ -306,11 +344,32 @@ export function ProjetosTarefasList({
             <SelectContent>{statusList.map(status => <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div className="flex items-center px-3 py-1.5 text-muted-foreground">
-          <span className="truncate text-xs">{task.assigned_to_name || 'Não atribuído'}</span>
+        <div className="flex min-w-0 items-center px-3 py-1.5">
+          {podeEditar && teamMembers.length > 0
+            ? <Select value={task.assigned_to ?? SEM_RESPONSAVEL} onValueChange={value => updateResponsavel(task, value)}>
+                <SelectTrigger aria-label={`Responsável por ${task.title}`} className="h-6 border-0 bg-transparent px-1 text-xs shadow-none focus:ring-0">
+                  <span className={cn('truncate', !task.assigned_to && 'text-muted-foreground')}>{task.assigned_to_name || 'Não atribuído'}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SEM_RESPONSAVEL}>Não atribuído</SelectItem>
+                  {teamMembers.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            : <span className="truncate text-xs text-muted-foreground">{task.assigned_to_name || 'Não atribuído'}</span>}
         </div>
-        <div className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs', task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done' ? 'font-medium text-destructive' : 'text-muted-foreground')}>
-          <CalendarDays className="h-3.5 w-3.5" />{dateLabel(task.due_date)}
+        <div className={cn('flex items-center px-3 py-1.5 text-xs', atrasada ? 'font-medium text-destructive' : 'text-muted-foreground')}>
+          {podeEditar
+            ? <Popover open={prazoAberto === task.id} onOpenChange={open => setPrazoAberto(open ? task.id : null)}>
+                <PopoverTrigger asChild>
+                  <button type="button" aria-label={`Prazo de ${task.title}`} className="-mx-1 flex items-center gap-1.5 whitespace-nowrap rounded px-1 py-0.5 hover:bg-muted">
+                    <CalendarDays className="h-3.5 w-3.5" />{dateLabel(task.due_date)}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-auto p-0">
+                  <Calendar selected={task.due_date ? parseDate(task.due_date) : undefined} onSelect={date => updatePrazo(task, date)} />
+                </PopoverContent>
+              </Popover>
+            : <span className="flex items-center gap-1.5 whitespace-nowrap"><CalendarDays className="h-3.5 w-3.5" />{dateLabel(task.due_date)}</span>}
         </div>
         <EsforcoCell esforco={esforcoDaTarefa(task)} className="py-1.5" />
         <div />
