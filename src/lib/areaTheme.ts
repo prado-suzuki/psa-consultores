@@ -21,8 +21,9 @@
  *
  * POR QUE NÃO REUSA O `AreaKey` DE `@/config/areaCategories`. Aquele tipo é a
  * taxonomia de PERMISSÃO: lá `digital` engloba as categorias `rotina` e `dev`, e
- * `board` é área própria. Aqui a divisão é outra — `rotina` tem tema e `dev` não,
- * e o Board cai na base. São dois recortes legitimamente diferentes do mesmo
+ * `board` é área própria. Aqui a divisão é outra — `rotina` e `dev` se separam (a
+ * Rotina é a casa e fica no piso, o Dev veste o grafite de infraestrutura), e o
+ * Board tem classe própria. São dois recortes legitimamente diferentes do mesmo
  * negócio, e amarrá-los faria uma mudança de permissão repintar telas.
  */
 
@@ -39,16 +40,35 @@ export type AreaDeTema = 'tax' | 'osg' | 'board' | 'rotina' | 'digital' | 'siste
  * com o piso, que carrega a cor da marca. É o padrão seguro — uma página
  * pública nova sai teal em vez de sair grafite sem ninguém perceber.
  *
- * `digital` e `sistema` apontam para a mesma classe porque o Digital ainda não
- * tem paleta própria e, por ora, é infraestrutura como Board e Dev. Quando
- * ganhar identidade, é esta linha que muda — nada no mapa de rotas.
+ * `digital` aponta para `null` desde 31/08/2026: o Digital é ÁREA DE NEGÓCIO e
+ * veste a marca, como a Rotina — que é a maior parte dele. No grafite, o seletor
+ * de `/equipe/digital` pintava cinza apontando para telas teal, e o
+ * `/equipe/acessos` saía cinza dentro de uma área que não é cinza. É a mesma
+ * divergência que tirou o Board do grafite em 21/08.
+ *
+ * Sobra UM dono do grafite: `sistema`, que hoje é só o `/equipe/dev`. A linha
+ * que separa os dois não é tamanho nem hierarquia — é A QUEM A TELA SERVE. O Dev
+ * serve o sistema; Digital, Board, Tax e OSG servem o negócio.
+ *
+ * `rotina` também aponta para `null`, desde 29/08/2026, e isso é o fim de um
+ * desvio — não uma área que perdeu a cor. A `.rotina-theme` nasceu para declarar
+ * UMA variável, o `--ring`; quando o piso ganhou identidade própria ela foi
+ * CONGELADA com o contrato inteiro para parar de acompanhar a base. Medido antes
+ * de apagar: cada variável que ela declarava era, uma a uma, a mesma do
+ * `.base-theme` — inclusive o `--ring`, porque `var(--teal-600)` É o valor que a
+ * base escreve literal. Apagar o bloco não moveu um pixel.
+ *
+ * O motivo de fundo é o modelo de cor por camada: a âncora da Rotina é a da
+ * CASA, o teal da marca, e a casa é o que o piso já pinta. Área cuja âncora é a
+ * do piso não tem delta a declarar — teria um bloco só para repetir o piso, que
+ * foi exatamente o que existiu até aqui.
  */
 export const TEMA_DA_AREA: Record<AreaDeTema, string | null> = {
   tax: 'tax-theme',
   osg: 'osg-theme',
   board: 'board-theme',
-  rotina: 'rotina-theme',
-  digital: 'sistema-theme',
+  rotina: null,
+  digital: null,
   sistema: 'sistema-theme',
   base: null,
 };
@@ -83,11 +103,17 @@ export const MAPA_DE_ROTAS: RegraDeRota[] = [
   { prefixo: '/equipe/tax', area: 'tax' },
   { prefixo: '/equipe/osg', area: 'osg' },
 
-  // ── Digital: sem paleta própria ainda, veste a de infraestrutura ────
+  // ── Digital: área de negócio, e a cor dela é a da casa ──────────────
+  // Sem paleta própria — e, como a Rotina, sem precisar de uma: a âncora do
+  // Digital é a da casa, que é o que o piso já pinta.
   { prefixo: '/equipe/acessos', area: 'digital' },
   { prefixo: '/equipe/digital', area: 'digital' },
 
   // ── Rotina: as telas do EquipeLayout, uma a uma ─────────────────────
+  // A Rotina é a CASA e não tem classe própria (ver `TEMA_DA_AREA`): estas rotas
+  // ficam no piso, que já é o teal da marca. Continuam nomeadas aqui porque a
+  // pergunta "de que área é esta rota?" segue tendo resposta e sendo usada — o
+  // espelho de `/equipe/chamados` depende dela.
   { prefixo: '/equipe/backlog', area: 'rotina' },
   { prefixo: '/equipe/biblioteca', area: 'rotina' },
   { prefixo: '/equipe/chamados', area: 'rotina' },
@@ -114,6 +140,14 @@ export const MAPA_DE_ROTAS: RegraDeRota[] = [
   // Dev e Acessos SERVEM o sistema; o Board é a tela da diretoria, e diretoria
   // olha a empresa. Delta em `.board-theme`; papéis de status seguem do piso.
   { prefixo: '/equipe/board', area: 'board' },
+
+  // ── A casa, fora de /equipe ─────────────────────────────────────────
+  // Esta linha NÃO muda comportamento: rota fora do mapa já cai em `base`. Ela
+  // existe para separar "é a casa por decisão" de "ninguém mapeou ainda". O
+  // Portal do Cliente veste o teal institucional porque essa é a identidade
+  // dele, e é aqui que se lê isso — se um dia ganhar cor própria, muda esta
+  // linha, e não o silêncio do fallback.
+  { prefixo: '/cliente', area: 'base' },
 
   // ── Infraestrutura: grafite ─────────────────────────────────────────
   // Telas que servem o sistema, nao uma area de negocio. Enumeradas aqui de
@@ -149,10 +183,11 @@ export function areaDaRota(pathname: string): AreaDeTema {
 /**
  * As classes de tema de uma rota: sempre a base, mais a da área quando existe.
  *
- * São DUAS classes no mesmo elemento, e é assim de propósito: a base declara o
- * contrato inteiro (41 variáveis) e a área declara só o delta. É o que permite
- * a `.tax-theme` ter 26 variáveis e a `.rotina-theme` ter 1 sem nenhuma das
- * duas herdar valor perdido do `:root`.
+ * São DUAS classes no mesmo elemento quando a área tem delta, e é assim de
+ * propósito: a base declara o contrato inteiro e a área declara só o que difere.
+ * É o que permite a `.sistema-theme` trocar acento e superfície sem herdar valor
+ * perdido do `:root` — e o que permite a Rotina não ter classe nenhuma, porque
+ * o delta dela é vazio.
  *
  * A ORDEM DESTA LISTA NÃO IMPORTA — o que decide o vencedor é a ordem dos
  * blocos em `src/index.css` (todas as classes têm a mesma especificidade). O

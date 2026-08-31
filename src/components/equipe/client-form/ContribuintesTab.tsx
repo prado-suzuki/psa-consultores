@@ -70,7 +70,18 @@ export default function ContribuintesTab({
   foco,
   onInlineEditingChange,
 }: ContribuintesTabProps) {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isLider, isSublider } = useAuth();
+  /**
+   * Excluir contribuinte que já existe no banco é sublíder pra cima — o mesmo
+   * teto da policy `rls_contribuinte_update` (o save exclui via UPDATE de
+   * `excluido`). Os três flags do AuthContext são estritos: admin não engloba
+   * líder nem sublíder, então a checagem é explícita.
+   *
+   * Linha que ainda não foi salva (sem `_dbId`) não passa por aqui: remover
+   * mexe só no estado local do formulário, e no save a lista de exclusões sai
+   * dos ids vindos do banco — nada a autorizar nesse caso.
+   */
+  const podeExcluirSalvo = isAdmin || isLider || isSublider;
   const acento = useAcentoArea();
   const [selecionadoId, setSelecionadoId] = useState<number | null>(null);
   const [editingEntityId, setEditingEntityId] = useState<number | null>(null);
@@ -358,12 +369,16 @@ export default function ContribuintesTab({
       acoesDetalhe={ent ? (
         <>
           {/*
-            Excluir contribuinte sempre foi privilégio de admin, e assim segue.
-            Quem não é admin vê o botão e recebe o motivo: escondê-lo faria a
+            Remover linha que ainda não foi salva (`_dbId == null`) é de qualquer
+            pessoa que possa editar o formulário: mexe só no estado local, e o
+            save monta a lista de exclusões a partir dos ids vindos do banco —
+            linha sem `_dbId` nunca entra nela. Para contribuinte já salvo, o
+            teto é sublíder, o mesmo da policy `rls_contribuinte_update`. Quem
+            não chega lá vê o botão e recebe o motivo: escondê-lo faria a
             pessoa procurar por uma ação que existe e não é dela.
           */}
           {mostrarRemover && (
-            isAdmin ? (
+            (ent._dbId == null || podeExcluirSalvo) ? (
               <AlertDialog>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -383,7 +398,9 @@ export default function ContribuintesTab({
                   <AlertDialogHeader>
                     <AlertDialogTitle>Remover contribuinte</AlertDialogTitle>
                     <AlertDialogDescription>
-                      "{ent.nome_razao_social?.trim() || "Este contribuinte"}" sai da lista. Ele só deixa de existir quando você salvar, e "Cancelar" desfaz.
+                      {ent._dbId == null
+                        ? `"${ent.nome_razao_social?.trim() || "Este contribuinte"}" sai da lista agora. Nada será removido do banco, porque este contribuinte ainda não foi salvo.`
+                        : `"${ent.nome_razao_social?.trim() || "Este contribuinte"}" sai da lista. Ele só deixa de existir quando você salvar, e "Cancelar" desfaz.`}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
                   <AlertDialogFooter>
@@ -401,12 +418,12 @@ export default function ContribuintesTab({
                     size="icon" variant="outline"
                     className="h-9 w-9 border-destructive/40 text-destructive opacity-60"
                     aria-label="Remover contribuinte (sem permissão)"
-                    onClick={() => toast.warning("Você não tem permissão para excluir clientes/contribuintes, fale com a equipe Digital para realizar essa operação")}
+                    onClick={() => toast.warning("Você precisa do papel Sublíder ou superior para excluir contribuintes já cadastrados.")}
                   >
                     <Trash2 size={18} />
                   </Button>
                 </TooltipTrigger>
-                <TooltipContent>Só a equipe Digital pode excluir contribuintes</TooltipContent>
+                <TooltipContent>Excluir contribuinte já cadastrado exige o papel Sublíder ou superior</TooltipContent>
               </Tooltip>
             )
           )}

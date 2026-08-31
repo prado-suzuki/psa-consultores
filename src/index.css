@@ -25,86 +25,131 @@ All colors MUST be HSL.
     --popover: 42 24% 99.8%;
     --popover-foreground: 20 81% 10%;
 
-    /* Teal institucional #0D877C — protagonista.
-       NÃO é o #0d9488 (teal-600 do Tailwind, que é 175 84% 32%): o comentário
-       antigo aqui dizia isso e estava errado. O institucional é este valor,
-       escolhido a dedo; o #0d9488 cravado em ~49 pontos do JSX é dívida a
-       migrar para o token. */
-    --primary: 175 82% 29%;
+    /* Teal institucional — a âncora da casa, e o protagonista.
+       É o `--teal-600` da escala de marca, e o degrau é escolha de contraste,
+       não de gosto: o hex da marca (#0d9488) é `175 84% 32%` e dá 3,74:1 com
+       branco em cima; o degrau anterior (`--teal-500`, #0D877C, `175 82% 29%`)
+       dava 4,42:1 — os dois abaixo do 4,5:1 do WCAG AA, e este token pinta
+       TODO botão primário do sistema. Alguém já havia escurecido de 32% para
+       29% tentando resolver e parou antes de chegar; 25% dá 5,54:1 e chega.
+
+       O #0d9488 cravado no JSX continua sendo dívida a migrar para o token, e
+       agora diverge de verdade: ele é dois degraus mais claro que este. */
+    --primary: 175 84% 25%;
     --primary-foreground: 0 0% 100%;
 
-    /* Teal institucional #0D877C — complementar. */
-    --secondary: 175 82% 29%;
+    /* Teal institucional — complementar. Mesmo degrau do `--primary`. */
+    --secondary: 175 84% 25%;
     --secondary-foreground: 0 0% 100%;
 
-    /* "muted" (barras de filtro, cabeçalho de tabela, zebra, fundo do FiscalLayout):
-       marfim tax-50 no lugar do cinza-azulado. */
-    --muted: var(--base-50);
+    /* ─── A superfície rebaixada, e ela agora tem UMA profundidade ──────────
+       "muted" pinta barra de filtro, cabeçalho de tabela, linha zebra e o fundo
+       do FiscalLayout. Marfim, e não o cinza-azulado, pela temperatura das
+       superfícies.
+
+       A luminosidade é 92% e é a mesma em toda área — antes não era, e essa foi
+       a falha. Cada área tinha escolhido um claro da própria escala e elas caíram
+       em alturas diferentes: 98% na base, 97% na Tax, 92% na OSG. O token dizia
+       "rebaixado" e entregava três profundidades. Na prática, a pílula ativa de
+       um segmented control (que é `bg-card` sobre este fundo) sumia na base e na
+       Tax — 1,04 e 1,05 de razão — e só aparecia na OSG, a 1,15. Agora as três
+       ficam entre 1,15 e 1,17.
+
+       92% não foi escolhido: é o valor que a OSG já tinha certo (`--osg-50`), e
+       as outras vieram encontrá-lo. Não vira `var(--base-*)` porque a escala da
+       base não tem esse degrau — o `--base-50` é 98% e o `--base-100` é 94% —, e
+       forçar um deles inverteria a ordem da escala ou pioraria a OSG. O literal
+       é o preço de as duas escalas não estarem alinhadas. */
+    --muted: 42 26% 92%;
     /* Neutro secundario (icone de menu, rotulo inativo, legenda, subtitulo).
        Era matiz 220 — cinza-AZULADO — sobre superficies marfim/bege: a camada
        secundaria inteira do sistema destoava da temperatura das superficies.
-       Mesma luminosidade de antes, para nao mexer no contraste. */
-    --muted-foreground: 28 9% 45%;
 
-    --accent: 175 82% 29%;
+       Escurecido de 45% para 41,5% JUNTO com o `--muted` acima, e o par é
+       indivisível: com o fundo a 92% e o texto a 45%, a razão caía para 4,00,
+       abaixo do 4,5 do WCAG AA — e o texto secundário sobre cabeçalho de tabela
+       e barra de filtro é justamente onde este token mais aparece.
+
+       Isso também conserta o que já estava quebrado e ninguém media: na Tax o
+       par dava 4,37 e na OSG 4,47, os dois reprovando ANTES desta mudança.
+       Agora as três passam, e sobre o cartão a leitura melhora junto (5,3). */
+    --muted-foreground: 28 9% 41.5%;
+
+    --accent: 175 84% 25%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
+    /* ─── Sinais do sistema: três deles SÃO papéis de status ──────────────
+       `--destructive`, `--warning` e `--success` não têm valor próprio: são o
+       `ajuste`, o `alerta` e o `feito` da área em que estão. Antes eram cores
+       separadas para os mesmos conceitos — "atenção" existia em dois lugares
+       com dois valores, e nada obrigava os dois a concordarem.
 
-    /* Status semânticos — Tax. OSG sobrescreve em .osg-theme. */
-    --success: 160 84% 30%;
+       O que a fusão consertou de concreto: os três respondiam por doze falhas
+       de contraste fixadas numa lista de dívida em `paletaDeArea.test.ts`,
+       adiadas porque corrigi-las era decisão de identidade visual. Como papéis
+       de status passam com folga — e o pior caso, o `--warning`, não tinha
+       OUTRA saída: medido, não existe luminosidade que faça o âmbar a 92% de
+       saturação servir de texto sobre a superfície clara sem trocar junto o
+       `-foreground` dele.
+
+       Por isso o `--warning-foreground` deixa de ser escuro. O token virou um
+       tom cheio, e tom cheio recebe texto claro como todos os outros.
+
+       O `--info` fica de fora por coerência, não por esquecimento: já passava
+       nos dois empregos, não estava na dívida, e não tem papel equivalente
+       entre os oito — o `fila` está a 99° dele no círculo de cor. */
+    --destructive: var(--status-ajuste);
+    --destructive-foreground: 0 0% 98%;
+    --success: var(--status-feito);
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 28 45% 18%;
+    --warning: var(--status-alerta);
+    --warning-foreground: 0 0% 98%;
     --info: 221 83% 53%;
     --info-foreground: 0 0% 100%;
 
-    /* ─── Papéis de status: BASE DO SISTEMA ───────────────────────────────
-       Esta é a "família comum" que todas as áreas conversam: neutro marfim,
-       rampa verde para o avanço, quentes só para espera/erro. NÃO é a paleta da
-       Tax — a Tax declara a dela em .tax-theme, a OSG em .osg-theme. Área que
-       ainda não declarou paleta (Board, Digital, Marketing, portal) cai aqui, e
-       cai num lugar coerente em vez de emprestar a identidade de outra área.
+    /* ─── Papéis de status: O SIGNIFICADO, e ele é do sistema ─────────────
+       Matiz e luminosidade de cada papel são as MESMAS em toda área. É o que
+       faz `alerta` ser uma cor que se aprende UMA vez: quem entendeu a bolinha
+       na tela da Tax entende a mesma bolinha no Portal, porque é a mesma cor.
+       A identidade da área não mora aqui — mora na âncora, que pinta o que é
+       grande (cabeçalho, botão, primeira série do gráfico) e nunca papel de
+       status.
 
-       O contrato de uma paleta de área está em docs/geral/paleta-por-area.md:
-       mesmos 8 papéis, cada par de tons cheios separado por matiz OU por
-       luminosidade, saturação em faixa — é o que impede que uma área nova entre
-       neon e destoe das outras.
+       O que a área move é UM canal, a saturação: cada uma puxa os oito na
+       direção da âncora dela. Estes valores são os da casa, e os das outras
+       áreas saem da MESMA fórmula — não são escolhas escritas à mão. Quem gera
+       é `harmonizar()` em src/lib/paletaDeArea.ts; `problemasDeDivergencia`
+       recalcula e compara com este arquivo, então valor editado à mão aqui vira
+       erro com o nome do papel dentro.
 
-       Cada papel tem um par: `soft` (fundo da pílula) e a cor cheia (texto sobre
-       o soft, ponto, barra, e fundo de badge com texto branco).
+       As duas trilhas, e a trilha é a informação. FRIA, o trabalho andando:
+       fila → andamento → revisão → feito gira numa direção só no círculo de cor
+       e escurece junto — quem vê a sequência duas vezes lê progresso sem
+       legenda. QUENTE, parado por alguém: espera → alerta → ajuste desce do
+       dourado ao carmim, com a urgência subindo. O `neutro` fica fora das duas
+       de propósito: não é etapa nem espera, é ausência de estado, e é o único
+       quase acromático — por isso também é o único que a área quase não move.
 
-       A constelação: quatro verdes espaçados no arco (fila → andamento →
-       revisao → feito) e quatro quentes espaçados no arco vinho → palha
-       (ajuste, espera, neutro, alerta). Onde a matiz não dá conta — vizinhos no
-       mesmo arco — quem separa é a luminosidade, com 9 a 10 pontos de distância.
-       Uma rampa de matiz ÚNICO variando só a luminosidade não sobrevive à
-       bolinha de 8px da legenda do Gantt; foi o erro da primeira versão, e
-       `SEPARACAO` em src/lib/paletaDeArea.ts agora o reprova.
-
-       A IDENTIDADE DA BASE é marfim + verde sábio, e ela é uma TERCEIRA
-       identidade, não um meio-termo entre Tax e OSG: o arco verde é o sábio/
-       oliva (89–122), longe do teal da Tax (163–197) e do musgo da OSG
-       (127–160); os quentes são palha (48–54), barro (32) e vinho (343), longe
-       do tijolo/ocre da Tax e do carmim/dourado da OSG. `SEPARACAO_ENTRE_AREAS`
-       trava isso: paleta de área que copiar outra reprova no teste. */
-    --status-neutro: 48 22% 30%;
-    --status-neutro-soft: 48 22% 86%;
-    --status-fila: 122 28% 33%;
-    --status-fila-soft: 122 28% 87%;
-    --status-andamento: 100 38% 27%;
-    --status-andamento-soft: 100 38% 86%;
-    --status-revisao: 111 32% 17%;
-    --status-revisao-soft: 111 32% 86%;
-    --status-espera: 32 34% 20%;
-    --status-espera-soft: 32 34% 86%;
-    --status-ajuste: 343 50% 24%;
-    --status-ajuste-soft: 343 50% 86%;
-    --status-feito: 89 40% 17%;
-    --status-feito-soft: 89 40% 86%;
-    --status-alerta: 54 58% 20%;
-    --status-alerta-soft: 54 58% 86%;
+       Cada papel tem um par: `soft` (fundo da pílula) e a cor cheia (texto
+       sobre o soft, ponto, barra, e fundo de badge com texto branco). O soft é
+       o mesmo tom em outra profundidade: matiz e saturação idênticas, e a
+       luminosidade que a faixa da pílula pede. */
+    --status-neutro: 32 21% 12%;
+    --status-neutro-soft: 32 21% 86%;
+    --status-fila: 212 59% 36%;
+    --status-fila-soft: 212 59% 86%;
+    --status-andamento: 186 66% 26%;
+    --status-andamento-soft: 186 66% 86%;
+    --status-revisao: 160 60% 22%;
+    --status-revisao-soft: 160 60% 86%;
+    --status-espera: 44 68% 27%;
+    --status-espera-soft: 44 68% 86%;
+    --status-ajuste: 356 68% 35%;
+    --status-ajuste-soft: 356 68% 86%;
+    --status-feito: 128 63% 21%;
+    --status-feito-soft: 128 63% 86%;
+    --status-alerta: 20 72% 32%;
+    --status-alerta-soft: 20 72% 86%;
 
     /* ─── Tons categóricos: --tag-a … --tag-d ────────────────────────────
        Quatro tons, e eles têm DOIS empregos ao mesmo tempo:
@@ -224,8 +269,8 @@ All colors MUST be HSL.
     --tool-icon: var(--primary);
     --tool-icon-bg: 175 60% 95%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    --border: 40 12% 91%;
+    --input: 40 12% 91%;
     --ring: 85 85% 37%;
 
     --radius: 0.75rem;
@@ -235,7 +280,7 @@ All colors MUST be HSL.
 
     /* ─── Escala teal — PRIMITIVA, não token de componente ─────────────────
        Existe para ALIMENTAR os tokens semânticos (o `--primary` da base sai
-       daqui, e a `.rotina-theme` usa `var(--teal-500)` no `--ring`). Componente
+       daqui, e o `--ring` sai do `--primary`). Componente
        NÃO usa: usa `bg-primary`, `text-primary`, `border-primary` — ou, em botão
        primário, a variante `default` do `ui/button`, sem classe de cor.
 
@@ -370,7 +415,7 @@ All colors MUST be HSL.
   }
 
   /* ─── .base-theme — o contrato completo, e o piso de todo tema ──────────
-     ⚠️ ESTE BLOCO TEM QUE VIR ANTES DE .tax-theme, .osg-theme E .rotina-theme.
+     ⚠️ ESTE BLOCO TEM QUE VIR ANTES DE .tax-theme, .osg-theme E .sistema-theme.
      As classes de tema convivem no MESMO <html> e todas têm a mesma
      especificidade (0-1-0): quem vence é quem vem depois no arquivo. Mover
      este bloco para baixo faz o base sobrescrever as áreas e apaga a
@@ -378,9 +423,10 @@ All colors MUST be HSL.
 
      O resolvedor (`src/lib/areaTheme.ts`) aplica SEMPRE `base-theme`, e por
      cima dele a classe da área quando existe. Com isso o base é o único lugar
-     que precisa declarar o contrato inteiro (as 41 variáveis que a `.osg-theme`
-     declara) e a área passa a ser só o DELTA: a `.tax-theme` declara 26, a
-     `.rotina-theme` declara 1, e nenhuma das duas precisa copiar o resto.
+     que precisa declarar o contrato inteiro (as variáveis que a `.osg-theme`
+     declara) e a área passa a ser só o DELTA: a `.tax-theme` congela o contrato
+     com a identidade dela, a `.sistema-theme` declara só acento e superfície, e
+     nenhuma das duas precisa copiar o resto.
 
      Foi a falta desse piso que criou o anel lime: sem ninguém declarando
      `--ring`, a Tax herdava o `85 85% 37%` do `:root` e o foco saía
@@ -391,51 +437,50 @@ All colors MUST be HSL.
      única regressão visual aceita da mudança, e é a correção. */
   .base-theme {
     /* Acento e marca */
-    --accent: 175 82% 29%;
+    --accent: 175 84% 25%;
     --accent-foreground: 0 0% 100%;
-    --primary: 175 82% 29%;
+    --primary: 175 84% 25%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 175 82% 29%;
+    --secondary: 175 84% 25%;
     --secondary-foreground: 0 0% 100%;
     /* Anel de foco = acento. O `:root` traz lime (85 85% 37%), herança de uma
        paleta anterior; é o valor que este bloco existe para corrigir. */
-    --ring: 175 82% 29%;
+    --ring: 175 84% 25%;
 
-    /* Status semânticos */
-    --success: 160 84% 30%;
-    --warning: 38 92% 50%;
-    /* Os `-foreground` de estado entram aqui, e são os MESMOS valores do `:root` —
-       nenhum pixel muda. O que muda é o alcance: eles viviam só no `:root`, fora
-       do contrato, então um tema podia redefinir `--destructive` e o texto por
-       cima continuava vindo de um lugar que nenhum tema controla. A OSG faz
-       exatamente isso (`--destructive: var(--osg-red)`), e o par sobrevivia por
-       sorte. Agora o par viaja junto. */
+    /* Sinais do sistema — os mesmos três papéis do `:root`, e aqui o `var()`
+       faz o trabalho sozinho: como cada tema declara os próprios `--status-*`,
+       o alias acompanha a área sem que nenhum bloco repita o valor.
+
+       Os `-foreground` continuam declarados aqui, e a razão é a mesma de antes:
+       eles viviam só no `:root`, fora do contrato, então um tema podia
+       redefinir o token de estado e o texto por cima continuava vindo de um
+       lugar que nenhum tema controla — a OSG fazia exatamente isso. O par viaja
+       junto desde então, e segue viajando. */
+    --success: var(--status-feito);
+    --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
-    --warning-foreground: 28 45% 18%;
+    --warning-foreground: 0 0% 98%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Papéis de status — são os valores ORIGINAIS do sistema, anteriores à
-       separação por área. O :root era o tema único; depois foi readaptado para
-       a Tax, e só então a OSG ganhou o seu. Por isso a base se parece com a Tax:
-       ela É a origem da Tax, não um meio-termo entre as áreas.
-       Copiados aqui como estão, sem alteração. Se um dia a base ganhar identidade
-       própria, é neste bloco — e aí deixa de ser herança e passa a ser escolha. */
-    --status-neutro: 48 22% 30%;
-    --status-neutro-soft: 48 22% 86%;
-    --status-fila: 122 28% 33%;
-    --status-fila-soft: 122 28% 87%;
-    --status-andamento: 100 38% 27%;
-    --status-andamento-soft: 100 38% 86%;
-    --status-revisao: 111 32% 17%;
-    --status-revisao-soft: 111 32% 86%;
-    --status-espera: 32 34% 20%;
-    --status-espera-soft: 32 34% 86%;
-    --status-ajuste: 343 50% 24%;
-    --status-ajuste-soft: 343 50% 86%;
-    --status-feito: 89 40% 17%;
-    --status-feito-soft: 89 40% 86%;
-    --status-alerta: 54 58% 20%;
-    --status-alerta-soft: 54 58% 86%;
+    /* Papéis de status — os mesmos do `:root`, e por construção, não por
+       preguiça: a base e a casa dividem a âncora, então a fórmula devolve o
+       mesmo resultado. Ver o comentário do `:root` para o modelo. */
+    --status-neutro: 32 21% 12%;
+    --status-neutro-soft: 32 21% 86%;
+    --status-fila: 212 59% 36%;
+    --status-fila-soft: 212 59% 86%;
+    --status-andamento: 186 66% 26%;
+    --status-andamento-soft: 186 66% 86%;
+    --status-revisao: 160 60% 22%;
+    --status-revisao-soft: 160 60% 86%;
+    --status-espera: 44 68% 27%;
+    --status-espera-soft: 44 68% 86%;
+    --status-ajuste: 356 68% 35%;
+    --status-ajuste-soft: 356 68% 86%;
+    --status-feito: 128 63% 21%;
+    --status-feito-soft: 128 63% 86%;
+    --status-alerta: 20 72% 32%;
+    --status-alerta-soft: 20 72% 86%;
 
     /* Tons categóricos (chip de tag + série de gráfico) */
     --tag-a: 112 64% 24%;
@@ -452,23 +497,22 @@ All colors MUST be HSL.
     --card: 42 24% 99.8%;
     --popover: 42 24% 99.8%;
     --canvas: 42 22% 99%;
-    --muted: var(--base-50);
-    --muted-foreground: 28 9% 45%;
-    /* 48% e nao os 60% do `:root`, e a diferenca e deliberada — como a do
-       `--ring`. Em 60% o par com `--destructive-foreground` dava 3,62:1, abaixo
-       do 4,5:1 do WCAG AA, nos 36 botoes de confirmar exclusao. E `text-destructive`
-       sobre fundo claro dava 3,77:1 nos 227 sitios de mensagem de erro — tambem
-       reprovando, e isso ninguem tinha medido.
+    --muted: 42 26% 92%;
+    --muted-foreground: 28 9% 41.5%;
+    /* O vermelho de excluir é o `ajuste` da área, e a linha abaixo é a única
+       coisa que resta de uma calibragem inteira. O valor anterior era 84% de
+       saturação a 48% de luminosidade, e os 48% eram medida de emergência: a
+       60%, como o `:root` declarava, o par com `--destructive-foreground` dava
+       3,62:1 e `text-destructive` sobre fundo claro dava 3,77:1 — os dois
+       abaixo do 4,5:1 do WCAG AA. Escurecer levava os dois a passar raspando, e
+       clarear o texto não era saída: o primeiro plano já estava em 98% e o
+       branco puro dava 3,78:1, teto abaixo do mínimo.
 
-       Em 48%: o botao vai a 4,66:1 e o texto de erro a 4,85:1. Os dois passam.
-
-       Clarear o texto nao era saida: o primeiro plano ja estava em 98% e o BRANCO
-       PURO da 3,78:1 — teto abaixo do minimo. So escurecer o fundo resolvia.
-
-       A OSG nao entra: `--osg-red` ja dava 5,80:1. O `:root` fica em 60% porque
-       nenhuma rota o alcanca (o piso e sempre aplicado) e mexer nele so alargaria
-       o raio sem mudar pixel. */
-    --destructive: 0 84% 48%;
+       Como papel de status o problema deixa de existir: o `ajuste` é um tom
+       cheio, calibrado desde a origem para receber texto claro, e passa com o
+       dobro da folga. Não há mais o que calibrar aqui porque a cor deixou de
+       ser escolhida neste arquivo. */
+    --destructive: var(--status-ajuste);
 
     /* Superfície escura — o par de fundo dos cartões escuros, do mais escuro
        (`--surface-escura`, o início do gradiente) para o intermediário
@@ -531,28 +575,30 @@ All colors MUST be HSL.
     --card: 170 18% 99.6%;
     --popover: 170 18% 99.6%;
     --canvas: 170 16% 98.8%;
-    --muted: 168 20% 97%;
+    --muted: 168 20% 92%;
 
     /* O secundário acompanha a temperatura da superfície: com o fundo da Tax
        frio, um neutro quente aqui repetiria — ao contrário — a dissonância que
        o matiz 220 causava sobre os beges. Mesma luminosidade de antes. */
-    --muted-foreground: 185 8% 44%;
-    --status-neutro: 30 20% 33%;
-    --status-neutro-soft: 30 20% 86%;
-    --status-fila: 197 45% 34%;
-    --status-fila-soft: 197 45% 88%;
-    --status-andamento: 175 72% 25%;
-    --status-andamento-soft: 175 58% 86%;
-    --status-revisao: 187 58% 13%;
-    --status-revisao-soft: 187 58% 86%;
-    --status-espera: 12 42% 23%;
-    --status-espera-soft: 12 42% 86%;
-    --status-ajuste: 7 56% 13%;
-    --status-ajuste-soft: 7 56% 86%;
-    --status-feito: 163 55% 15%;
-    --status-feito-soft: 163 55% 86%;
-    --status-alerta: 36 62% 22%;
-    --status-alerta-soft: 36 58% 86%;
+    --muted-foreground: 185 8% 40.5%;
+    /* Papéis de status — os mesmos oito significados do `:root`, com a
+       saturação puxada na direção do azul-petróleo da Tax. Ver o `:root`. */
+    --status-neutro: 32 21% 12%;
+    --status-neutro-soft: 32 21% 86%;
+    --status-fila: 212 56% 36%;
+    --status-fila-soft: 212 56% 86%;
+    --status-andamento: 186 64% 26%;
+    --status-andamento-soft: 186 64% 86%;
+    --status-revisao: 160 58% 22%;
+    --status-revisao-soft: 160 58% 86%;
+    --status-espera: 44 65% 27%;
+    --status-espera-soft: 44 65% 86%;
+    --status-ajuste: 356 65% 35%;
+    --status-ajuste-soft: 356 65% 86%;
+    --status-feito: 128 61% 21%;
+    --status-feito-soft: 128 61% 86%;
+    --status-alerta: 20 69% 32%;
+    --status-alerta-soft: 20 69% 86%;
 
     /* Tons categóricos da Tax — quatro classes, o contrato está no :root.
        Âncora: --tag-a é o teal #0d9488 da marca (matiz 175), --tag-d é o tijolo.
@@ -580,21 +626,40 @@ All colors MUST be HSL.
        `--tool-icon` continua sendo `var(--primary)` de propósito — o ícone de
        ferramenta DEVE seguir o acento da área. Quem foi congelado é o alvo
        (`--primary`, logo acima), não a referência. */
-    --accent: 175 82% 29%;
+    /* ─── A âncora da Tax ──────────────────────────────────────────────────
+       `192 73% 20%` é o azul-petróleo do porquinho do `TaxLoader.tsx`: a área
+       já tinha essa imagem de si mesma antes de existir tema, e é ela que passa
+       a pintar o que é grande — cabeçalho, botão, anel de foco, primeira série
+       do gráfico.
+
+       Antes daqui a Tax usava o teal da casa (`175 82% 29%`), o mesmo do Portal
+       e da Rotina. Era a razão de a Tax "parecer a Rotina": os papéis de status
+       convergiram de propósito no modelo por camada, e o que deveria distinguir
+       a área — a cor grande — era emprestado. A identidade da Tax não estava
+       fraca, estava ausente.
+
+       De quebra resolve contraste: o teal da casa dava 4,40:1 com branco em
+       cima, abaixo de AA, e a Tax herdava isso em todo botão primário. O
+       petróleo dá 9,90:1.
+
+       Os 17° entre a âncora (192) e a superfície da Tax (170) são de propósito:
+       superfície é neutro com cast, não cor. A OSG é o caso extremo disso —
+       âncora musgo, superfície areia. */
+    --accent: 192 73% 20%;
     --accent-foreground: 0 0% 100%;
-    --primary: 175 82% 29%;
+    --primary: 192 73% 20%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 175 82% 29%;
+    --secondary: 192 73% 20%;
     --secondary-foreground: 0 0% 100%;
-    --ring: 175 82% 29%;
-    --success: 160 84% 30%;
-    --warning: 38 92% 50%;
+    --ring: 192 73% 20%;
+    --success: var(--status-feito);
+    --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
-    --warning-foreground: 28 45% 18%;
+    --warning-foreground: 0 0% 98%;
     --destructive-foreground: 0 0% 98%;
     --tool-icon: var(--primary);
-    --tool-icon-bg: 175 60% 95%;
-    --destructive: 0 84% 48%;
+    --tool-icon-bg: 192 60% 95%;
+    --destructive: var(--status-ajuste);
     --foreground: 20 81% 10%;
     --card-foreground: 20 81% 10%;
     --popover-foreground: 20 81% 10%;
@@ -615,52 +680,52 @@ All colors MUST be HSL.
     --secondary-foreground: 0 0% 100%;
     --ring: var(--osg-moss);
 
-    /* Status na OSG: ok = verde musgo, aviso = dourado (marca-texto).
-       info permanece azul — a paleta OSG não tem azul, então herda o tom da Tax
-       (azul mais próximo dos demais itens da página). */
-    --success: var(--osg-moss);
-    --warning: var(--osg-highlighter);
+    /* Sinais na OSG — foi o bloco que mais mudou. "Ok" era o verde musgo e
+       "aviso" era o dourado do marca-texto, tokens de marca da área usados
+       direto como sinal. Agora são o `feito` e o `alerta`, como em toda área.
+
+       O dourado era também a pior falha do sistema inteiro: `text-warning`
+       sobre a superfície da OSG dava 1,54:1. Marca-texto é fundo, e 71% de
+       luminosidade nunca ia servir de texto.
+
+       `--info` permanece azul: a paleta OSG não tem azul, e ele não virou papel
+       de status em área nenhuma. */
+    --success: var(--status-feito);
+    --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
-    --warning-foreground: 28 45% 18%;
+    --warning-foreground: 0 0% 98%;
     --destructive-foreground: 0 0% 98%;
 
-    /* Paleta de status da OSG — construída SOBRE os tokens de marca da área, não
-       ao lado deles. A OSG tinha identidade (musgo, dourado, carmim, taupe)
-       antes de existir sistema de papéis; aqui ela é a âncora, e cada papel sai
-       de um token que já estava no arquivo, com o mínimo de desvio:
+    /* Paleta de status da OSG — os mesmos oito significados do `:root`, com a
+       saturação puxada na direção do verde musgo da marca (`--osg-moss`). A
+       identidade da OSG não está mais nestes valores: está na âncora, que pinta
+       cabeçalho, botão e primeira série do gráfico.
 
-         andamento  149 66% 22%  = --osg-moss, número por número
-         fila       160 42% 32%  musgo clareado, 11° acima
-         revisao    138 50% 12%  musgo escurecido, 11° abaixo
-         feito      127 52% 26%  verde-folha, 22° abaixo do musgo
-         ajuste     356 57% 40%  = --osg-red (356 59% 45%), só o quanto o
-                                 contraste da pílula exigiu escurecer
-         alerta      41 64% 31%  = matiz do --osg-highlighter (41 73% 71%);
-                                 71% de luminosidade é fundo de marca-texto, não
-                                 dá 4,5:1 com branco em cima — 31% é o teto
-         neutro      19 25% 22%  ≈ --osg-600 (19 24% 25%)
-         espera      18 34% 33%  ≈ --osg-500 (22 24% 33%), luminosidade idêntica
+       Foi a área que mais perdeu com a troca, e vale saber o que se perdeu: a
+       paleta anterior era construída SOBRE os tokens de marca, papel por papel
+       — o `andamento` era o `--osg-moss` número por número, o `ajuste` saía do
+       `--osg-red` e o `alerta` da matiz do `--osg-highlighter`. Era bonito e
+       custava caro: "andamento" na OSG era verde e na Tax era teal, e a mesma
+       bolinha significava a mesma coisa em duas cores.
 
-       A rodada anterior girou o arco verde inteiro para caber num "vocabulário
-       comum" com a Tax e levou `feito` para 115° (verde-amarelado) e `revisao`
-       para 132°, deixando só `andamento` no musgo. Aqui o arco volta a ser
-       estreito e centrado no musgo: quem se afasta é a Tax. */
-    --status-neutro: 19 25% 22%;
-    --status-neutro-soft: 19 25% 86%;
-    --status-fila: 160 42% 32%;
-    --status-fila-soft: 160 42% 91%;
-    --status-andamento: 149 66% 22%;
-    --status-andamento-soft: 149 58% 86%;
-    --status-revisao: 138 50% 12%;
-    --status-revisao-soft: 138 50% 86%;
-    --status-espera: 18 34% 33%;
-    --status-espera-soft: 18 34% 86%;
-    --status-ajuste: 356 57% 40%;
-    --status-ajuste-soft: 356 43% 86%;
-    --status-feito: 127 52% 26%;
-    --status-feito-soft: 127 52% 86%;
-    --status-alerta: 41 64% 31%;
-    --status-alerta-soft: 41 58% 90%;
+       Os tokens de marca continuam no arquivo e continuam pintando o que é
+       grande. O que saiu foi o parentesco entre eles e os papéis de status. */
+    --status-neutro: 32 20% 12%;
+    --status-neutro-soft: 32 20% 86%;
+    --status-fila: 212 54% 36%;
+    --status-fila-soft: 212 54% 86%;
+    --status-andamento: 186 62% 26%;
+    --status-andamento-soft: 186 62% 86%;
+    --status-revisao: 160 56% 22%;
+    --status-revisao-soft: 160 56% 86%;
+    --status-espera: 44 63% 27%;
+    --status-espera-soft: 44 63% 86%;
+    --status-ajuste: 356 63% 35%;
+    --status-ajuste-soft: 356 63% 86%;
+    --status-feito: 128 59% 21%;
+    --status-feito-soft: 128 59% 86%;
+    --status-alerta: 20 67% 32%;
+    --status-alerta-soft: 20 67% 86%;
 
     /* Tons categóricos da OSG — quatro classes, o contrato está no :root.
        Âncoras nos dois primeiros da ordem de série: --tag-a é o musgo (149, a
@@ -694,14 +759,15 @@ All colors MUST be HSL.
        fundo da barra CLIENTE do OSG Work. */
     --muted: var(--osg-50);
     /* Secundario da OSG: neutro quente do lado do taupe da area. */
-    --muted-foreground: 24 12% 42%;
+    --muted-foreground: 24 12% 41.5%;
 
-    /* Vermelho de exclusão/cancelar — carmim/tijolo OSG (osg-red), menos berrante
-       que o vermelho puro padrão, para conviver com a paleta quente da OSG. */
-    /* Vermelho de exclusão/cancelar — carmim/tijolo (#B62F38), menos berrante
-       que o vermelho puro padrão, para conviver com a paleta quente da OSG.
-       Fonte única: --osg-red (token osg-red). */
-    --destructive: var(--osg-red);
+    /* Vermelho de exclusão/cancelar — o `ajuste` da OSG. Era o `--osg-red`
+       (carmim/tijolo #B62F38), escolhido para conviver com a paleta quente da
+       área, e era o único dos quatro temas cujo vermelho já passava em
+       contraste. Perdeu o posto mesmo assim: o que estava em jogo não era o
+       contraste dele, era "excluir" ter uma cor na OSG e outra em toda parte.
+       O `--osg-red` continua no arquivo como token de marca. */
+    --destructive: var(--status-ajuste);
 
     /* Texto: a OSG mantém o preto (quase-preto neutro), não o marrom #2F1305
        usado no tema Tax. */
@@ -719,93 +785,23 @@ All colors MUST be HSL.
     --surface-escura-2: 222 47% 11%;
   }
 
-  /* Tema da área Digital Rotina: o anel de foco dos campos deixa de ser o lime
-     do gradiente da marca e passa a ser o teal escuro do accent da área (o mesmo
-     dos campos "o que fiz / o que vou fazer" da daily). Aplicado no <html> pelo
-     EquipeLayout, então vale também para modais e selects renderizados em portal. */
-  .rotina-theme {
-    --ring: var(--teal-500);
-
-    /* ─── Congelamento: o que a Rotina herdava do .base-theme ──────────────
-       A Rotina declarava UMA das 41 variáveis do contrato — as outras 40 vinham
-       da base. Era a área mais exposta do sistema: qualquer mudança na base
-       repintava a área inteira sem que nada nesta declaração mudasse.
-
-       As 40 abaixo são exatamente o que ela JÁ computava. Zero mudança visual.
-
-       DECISÃO REGISTRADA, e ela é deliberada: congelar com os valores de hoje
-       significa que a Rotina PARA DE ACOMPANHAR mudanças no base. Isso é
-       desacoplamento de propósito, não efeito colateral. A alternativa seria
-       decidir agora a identidade visual própria da Rotina, e essa decisão não
-       está tomada. Congelar preserva o que está no ar e deixa a escolha para
-       quando ela for feita — a partir daqui, mudar a cor da Rotina é editar
-       este bloco, e nada mais.
-
-       `--ring` acima não entra no congelamento: já era declarado aqui e segue
-       como estava. `--tool-icon` continua `var(--primary)` — o alvo é que foi
-       congelado, não a referência. */
-    --accent: 175 82% 29%;
-    --accent-foreground: 0 0% 100%;
-    --primary: 175 82% 29%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 175 82% 29%;
-    --secondary-foreground: 0 0% 100%;
-    --success: 160 84% 30%;
-    --warning: 38 92% 50%;
-    --success-foreground: 0 0% 100%;
-    --warning-foreground: 28 45% 18%;
-    --destructive-foreground: 0 0% 98%;
-    --status-neutro: 48 22% 30%;
-    --status-neutro-soft: 48 22% 86%;
-    --status-fila: 122 28% 33%;
-    --status-fila-soft: 122 28% 87%;
-    --status-andamento: 100 38% 27%;
-    --status-andamento-soft: 100 38% 86%;
-    --status-revisao: 111 32% 17%;
-    --status-revisao-soft: 111 32% 86%;
-    --status-espera: 32 34% 20%;
-    --status-espera-soft: 32 34% 86%;
-    --status-ajuste: 343 50% 24%;
-    --status-ajuste-soft: 343 50% 86%;
-    --status-feito: 89 40% 17%;
-    --status-feito-soft: 89 40% 86%;
-    --status-alerta: 54 58% 20%;
-    --status-alerta-soft: 54 58% 86%;
-    --tag-a: 112 64% 24%;
-    --tag-b: 211 60% 33%;
-    --tag-c: 289 78% 40%;
-    --tag-d: 339 84% 40%;
-    --tool-icon: var(--primary);
-    --tool-icon-bg: 175 60% 95%;
-    --background: 42 24% 99.8%;
-    --card: 42 24% 99.8%;
-    --popover: 42 24% 99.8%;
-    --canvas: 42 22% 99%;
-    /* Literal, e não `var(--base-50)` como vinha da base: a escala `--base-*`
-       é da base, e manter a referência recriaria pela lateral o acoplamento
-       que este bloco existe para cortar. Mesmo valor. */
-    --muted: 42 26% 98%;
-    --muted-foreground: 28 9% 45%;
-    --destructive: 0 84% 48%;
-    --foreground: 20 81% 10%;
-    --card-foreground: 20 81% 10%;
-    --popover-foreground: 20 81% 10%;
-    /* A Rotina não tem superfície escura hoje. Mesmo motivo da Tax. */
-    --surface-escura: 229 84% 5%;
-    --surface-escura-2: 222 47% 11%;
-  }
-
   /* ─── .sistema-theme — grafite quente para as telas de infraestrutura ────
-     Board, Dev, Digital e Acessos. Telas que servem o sistema, não uma área de
-     negócio: elas não devem competir com a Tax nem com a OSG, e até aqui eram
-     indistinguíveis da Tax, porque o piso é o teal institucional.
+     Hoje só o Dev. Telas que servem o sistema, não uma área de negócio: elas não
+     devem competir com a Tax nem com a OSG, e até aqui eram indistinguíveis da
+     Tax, porque o piso é o teal institucional.
 
-     DELTA PURO — declara 7 variáveis, não 41, e isso é de propósito.
-     É a diferença entre este bloco e `.tax-theme`/`.rotina-theme`, que foram
-     CONGELADOS no contrato inteiro. Aquelas duas precisaram do congelamento
-     porque herdavam de um piso que ia mudar de identidade. Este nasce depois do
-     piso estar estável, e o que ele quer do piso — superfícies, texto, papéis de
-     status, tags — ele quer mesmo: herdar é o comportamento correto aqui.
+     O bloco já vestiu Board, Digital e Acessos, e os três saíram pelo mesmo
+     motivo — o Board em 21/08/2026, o Digital em 31/08. São áreas de NEGÓCIO, e
+     o grafite nelas produzia a divergência que ele existe para evitar: cinza no
+     botão ao lado de teal no cartão e no gráfico. O critério que sobrou é a
+     quem a tela serve, e só o Dev serve o sistema.
+
+     DELTA PURO — declara 7 variáveis, não o contrato todo, e isso é de
+     propósito. É a diferença entre este bloco e `.tax-theme`, que foi CONGELADO
+     no contrato inteiro. Aquela precisou do congelamento porque herdava de um
+     piso que ia mudar de identidade. Este nasce depois do piso estar estável, e
+     o que ele quer do piso — superfícies, texto, papéis de status, tags — ele
+     quer mesmo: herdar é o comportamento correto aqui.
      Congelá-lo seria copiar 34 valores só para mantê-los iguais.
 
      `--tool-icon` não aparece: o `.base-theme` o declara como `var(--primary)`,
@@ -887,18 +883,18 @@ All colors MUST be HSL.
      CONTRASTE (medido, mesma tabela do bloco `--bd-*`):
        --foreground        17,1:1 no card · 15,8:1 na página
        --muted-foreground   5,6:1 no card ·  5,2:1 na página (era 4,6:1 na base)
-       --primary            4,40:1 com branco em cima — MESMA condição do
-                            `bg-primary` no resto do sistema, não uma regressão
-                            do Board; quem precisa de AA em texto teal usa o
-                            degrau escuro (`--bd-accent-d`, 6,7:1).           */
+       --primary            5,54:1 com branco em cima. Já foi 4,40:1, abaixo de
+                            AA, e o Board dividia essa falha com o resto do
+                            sistema; o teal do piso desceu um degrau na escala
+                            de marca (`--teal-600`) e os dois saíram juntos.  */
   .board-theme {
-    --primary: 175 82% 29%;
+    --primary: 175 84% 25%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 175 82% 29%;
+    --secondary: 175 84% 25%;
     --secondary-foreground: 0 0% 100%;
-    --accent: 175 82% 29%;
+    --accent: 175 84% 25%;
     --accent-foreground: 0 0% 100%;
-    --ring: 175 82% 29%;
+    --ring: 175 84% 25%;
     --tool-icon: var(--primary);
     --tool-icon-bg: 172 40% 94%;
 
@@ -908,7 +904,7 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 178 30% 9%;
     --canvas: 168 16% 96%;
-    --muted: 168 20% 98%;
+    --muted: 168 20% 92%;
     --muted-foreground: 180 10% 38%;
     --foreground: 178 30% 9%;
 
@@ -972,10 +968,13 @@ All colors MUST be HSL.
     /* ACENTO — `--teal-400`, escolhido em 27/08/2026 olhando
        `docs/geral/comparacoes-de-cor/porta-de-entrada.html`.
 
-       O teal institucional (`175 82% 29%`, o `--primary` do piso) NÃO sobrevive ao
-       escuro: dava 4,03:1 sobre o cartão das telas de entrada como elas estão no
-       ar, e 3,51:1 sobre o cartão desta escala. Abaixo dos 4,5:1 nos dois casos —
-       o ícone do título e o "Esqueci minha senha" de `/equipe` estão nesse teal.
+       O teal institucional NÃO sobrevive ao escuro: medido em `175 82% 29%`,
+       que era o `--primary` do piso na época, dava 4,03:1 sobre o cartão das
+       telas de entrada como elas estão no ar, e 3,51:1 sobre o cartão desta
+       escala. Abaixo dos 4,5:1 nos dois casos — o ícone do título e o "Esqueci
+       minha senha" de `/equipe` estão nesse teal. O piso desceu para
+       `--teal-600` depois disso, o que no claro resolveu contraste e no escuro
+       só piora: a conclusão vale mais, não menos.
 
        Era por isso que este bloco carregava um lime `84 85% 35%`: alguém precisou
        de um acento que passasse no escuro, e o único à mão não era da marca.
@@ -1055,7 +1054,7 @@ All colors MUST be HSL.
 
    A IDENTIDADE. O Board é a área da DIRETORIA — a única tela onde quem olha
    olha a empresa, não uma área dela. Por isso ela veste a marca (o teal
-   institucional `--primary`, #0D877C) e não uma identidade de área: o índigo
+   institucional `--primary`, hoje o `--teal-600`) e não uma identidade de área: o índigo
    #5B6EF0 que estava aqui não vinha de lugar nenhum da marca, e brigava com
    todo botão `bg-primary` dos módulos compartilhados que o Board hospeda
    (Capacidade monta o `AreaDashboardContent`, Clientes monta a lista, e os
@@ -1083,10 +1082,18 @@ All colors MUST be HSL.
      warn-d    5,1:1 no branco · 4,7:1 no `warn-t`
      risk-d    7,7:1 no branco · 6,6:1 no `risk-t`
 
-   O tom cheio `--bd-accent` dá 4,40:1 no branco — abaixo de AA para texto,
-   suficiente para marca de gráfico (3:1). É por isso que ele NUNCA pinta
-   letra e nunca recebe letra branca; quem faz isso é o `-d`. Vale para a
-   pílula ativa do menu, para o chip cheio e para o número do KPI.        */
+   O tom cheio `--bd-accent` deixou de ser hexadecimal escrito à mão (`#0D877C`,
+   que era o `--teal-500` em outra notação) e passou a ser `var(--primary)`. A
+   diferença não é de valor, é de acoplamento: escrito à mão ele ficou para trás
+   quando o teal do piso desceu um degrau, e o acento do Board passou a ser mais
+   claro que o botão ao lado. Seguindo o token, isso não volta a acontecer — e
+   ele acompanha a área, como o `-t` já acompanhava.
+
+   Ele dá 5,54:1 no branco na casa, e mais nas outras áreas. Ainda assim NUNCA
+   pinta letra e nunca recebe letra branca; quem faz isso é o `-d`, e a razão
+   agora é de papel, não de contraste: o `-d` existe para o degrau escuro ter
+   nome próprio. Vale para a pílula ativa do menu, o chip cheio e o número do
+   KPI.                                                                    */
 :root {
   /* ── Superfícies e linhas ──
      ⚠️ ESTES VALORES TÊM UM PAR: a `.board-theme` (no `@layer base`, acima)
@@ -1111,9 +1118,9 @@ All colors MUST be HSL.
   --bd-ink4:  hsl(180 11% 40%);       /* cabeçalho de tabela em caixa alta  */
 
   /* ── Acento: o teal institucional ── */
-  --bd-accent:      #0D877C;                  /* área: anel, barra, ponto   */
+  --bd-accent:      hsl(var(--primary));      /* área: anel, barra, ponto   */
   --bd-accent-d:    hsl(175 84% 22%);         /* TEXTO e fundo com texto    */
-  --bd-accent-t:    hsl(175 82% 29% / .10);   /* tint de pílula/chip        */
+  --bd-accent-t:    hsl(var(--primary) / .10);   /* tint de pílula/chip        */
   --bd-accent-soft: hsl(172 40% 94%);         /* card tingido (KPI de topo) */
   --bd-accent-l:    hsl(175 45% 72%);         /* série secundária no gráfico*/
 
@@ -1161,7 +1168,7 @@ All colors MUST be HSL.
   --bd-r-sm:  9px;    /* chip retangular, ícone      */
   --bd-sh:    0 1px 2px hsl(180 25% 12% / .04), 0 6px 20px -12px hsl(180 25% 12% / .16);
   --bd-sh-md: 0 2px 6px hsl(180 25% 12% / .06), 0 14px 34px -16px hsl(180 25% 12% / .22);
-  --bd-ring:  0 0 0 3px hsl(175 82% 29% / .18);
+  --bd-ring:  0 0 0 3px hsl(var(--primary) / .18);
 
   /* Barra lateral e topo — o chrome ficou CLARO (ver BoardLayout).         */
   --bd-chrome:        #FFFFFF;
@@ -1444,7 +1451,7 @@ All colors MUST be HSL.
 
 /* KPI v3 */
 .kpi{background:var(--bd-surface);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bdr);padding:16px 18px;position:relative;overflow:hidden;cursor:pointer;transition:box-shadow .18s,transform .18s,border-color .18s;}
-.kpi:hover{box-shadow:var(--shm);transform:translateY(-2px);border-color:hsl(175 82% 29% / .35);}
+.kpi:hover{box-shadow:var(--shm);transform:translateY(-2px);border-color:hsl(var(--primary) / .35);}
 /* Faixa do topo desligada pelo mesmo motivo do `.si-bar` do v5: corta o raio
    de 16px e transforma uma grade de KPIs num arco-íris de 2,5px. */
 .ktb{display:none;}
@@ -1463,15 +1470,15 @@ All colors MUST be HSL.
 /* Chips */
 .ch{display:inline-flex;align-items:center;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:600;white-space:nowrap;border:1px solid transparent;}
 .c-tax{background:var(--bd-blue-t);color:var(--bd-blue);border-color:hsl(var(--tag-b) / .22);}
-.c-osg{background:var(--bd-go-t);color:var(--bd-go-d);border-color:hsl(175 82% 29% / .22);}
+.c-osg{background:var(--bd-go-t);color:var(--bd-go-d);border-color:hsl(var(--primary) / .22);}
 .c-dev{background:var(--bd-purple-t);color:var(--bd-purple);border-color:hsl(var(--tag-c) / .22);}
-.c-ok{background:var(--bd-go-t);color:var(--bd-go-d);border-color:hsl(175 82% 29% / .22);}
+.c-ok{background:var(--bd-go-t);color:var(--bd-go-d);border-color:hsl(var(--primary) / .22);}
 .c-w{background:var(--bd-warn-t);color:var(--bd-warn-d);border-color:hsl(36 91% 43% / .24);}
 .c-er{background:var(--bd-risk-t);color:var(--bd-risk-d);border-color:hsl(353 63% 51% / .22);}
-.c-in{background:var(--bd-accent-t);color:var(--bd-accent-d);border-color:hsl(175 82% 29% / .22);}
+.c-in{background:var(--bd-accent-t);color:var(--bd-accent-d);border-color:hsl(var(--primary) / .22);}
 .c-go{background:var(--bd-warn-t);color:var(--bd-warn-d);border-color:hsl(36 91% 43% / .24);}
 .c-gy{background:var(--bd-surface2);color:var(--t3);border-color:var(--bdr);}
-.c-ppr-s{background:var(--bd-go-t);color:var(--bd-go-d);border-color:hsl(175 82% 29% / .22);font-size:11px;padding:3px 10px;}
+.c-ppr-s{background:var(--bd-go-t);color:var(--bd-go-d);border-color:hsl(var(--primary) / .22);font-size:11px;padding:3px 10px;}
 .c-ppr-a{background:var(--bd-blue-t);color:var(--bd-blue);border-color:hsl(var(--tag-b) / .22);font-size:11px;padding:3px 10px;}
 .c-ppr-p{background:var(--bd-warn-t);color:var(--bd-warn-d);border-color:hsl(36 91% 43% / .24);font-size:11px;padding:3px 10px;}
 .c-ppr-b{background:var(--bd-risk-t);color:var(--bd-risk-d);border-color:hsl(353 63% 51% / .22);font-size:11px;padding:3px 10px;}
@@ -1530,7 +1537,7 @@ All colors MUST be HSL.
    para quem não distingue o teal do cinza). */
 .fbar{display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap;}
 .v3-fi{padding:6px 12px;border:1px solid var(--bdr);border-radius:999px;font-size:11.5px;font-family:inherit;color:var(--t2);background:var(--bd-surface);outline:none;cursor:pointer;transition:border-color .14s,box-shadow .14s;}
-.v3-fi:hover{border-color:hsl(175 82% 29% / .4);}
+.v3-fi:hover{border-color:hsl(var(--primary) / .4);}
 .v3-fi:focus-visible{border-color:var(--bd-accent);box-shadow:var(--bd-ring);}
 .v3-segs{display:inline-flex;background:var(--bd-accent-t);border-radius:999px;padding:3px;gap:2px;}
 .v3-seg{padding:5px 13px;border-radius:999px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--t3);border:none;background:transparent;font-family:inherit;transition:all .14s;}
@@ -1564,10 +1571,10 @@ All colors MUST be HSL.
 /* Heatmap */
 .hm{display:grid;grid-template-columns:repeat(13,1fr);gap:3px;margin-top:10px;}
 .hmc{height:9px;border-radius:3px;background:var(--bd-line2);}
-.hmc.h1{background:hsl(175 82% 29% / .2);}
-.hmc.h2{background:hsl(175 82% 29% / .45);}
-.hmc.h3{background:hsl(175 82% 29% / .68);}
-.hmc.h4{background:hsl(175 82% 29% / .92);}
+.hmc.h1{background:hsl(var(--primary) / .2);}
+.hmc.h2{background:hsl(var(--primary) / .45);}
+.hmc.h3{background:hsl(var(--primary) / .68);}
+.hmc.h4{background:hsl(var(--primary) / .92);}
 
 /* Member Card */
 .mc{background:var(--bd-surface);border-radius:var(--r);box-shadow:var(--sh);border:1px solid var(--bdr);padding:16px;cursor:pointer;transition:box-shadow .18s,transform .18s;}
@@ -1634,10 +1641,14 @@ All colors MUST be HSL.
   --bd-line:     hsl(var(--border));
   --bd-line2:    hsl(var(--muted));
   --bd-accent:   hsl(var(--primary));
-  /* O degrau escuro NAO pode ser o proprio `--primary`: o teal da marca da a
-     4,40:1 no branco e o musgo da OSG anda perto, e este token pinta LETRA.
-     `--status-andamento` e, por contrato da paleta de area, o acento da area
-     no degrau escuro, com AA garantido pelo teste (`paletaDeArea.test.ts`). */
+  /* O degrau escuro continua NAO sendo o proprio `--primary`, mas a razao
+     mudou. Era contraste: o teal da marca dava 4,40:1 no branco e este token
+     pinta LETRA. Hoje o `--primary` passa em todas as areas (5,54:1 na casa,
+     9,90:1 na Tax, 7,92:1 na OSG), entao a proibicao caiu. O que sobra e o
+     motivo bom: `--status-andamento` e, por contrato da paleta de area, o
+     acento da area no degrau escuro, com AA garantido pelo teste
+     (`paletaDeArea.test.ts`) — e um degrau escuro com nome proprio nao deve
+     ser o mesmo token que pinta botao. */
   --bd-accent-d: hsl(var(--status-andamento));
   --bd-accent-t: hsl(var(--primary) / .10);
   --bd-accent-soft: hsl(var(--status-andamento-soft));
@@ -1719,8 +1730,8 @@ All colors MUST be HSL.
   min-width: 0;
 }
 .stat-item[data-clickable="true"] { cursor: pointer; }
-.stat-item[data-clickable="true"]:hover { box-shadow: var(--bd-sh-md); transform: translateY(-2px); border-color: hsl(175 82% 29% / .35); }
-.stat-item-hero { background: var(--bd-accent-soft); border-color: hsl(175 82% 29% / .22); }
+.stat-item[data-clickable="true"]:hover { box-shadow: var(--bd-sh-md); transform: translateY(-2px); border-color: hsl(var(--primary) / .35); }
+.stat-item-hero { background: var(--bd-accent-soft); border-color: hsl(var(--primary) / .22); }
 /* A faixa de 3px do topo saiu: no cartão de 16px de raio ela cortava o canto,
    e seis faixas coloridas empilhadas eram o ruído que a referência não tem.
    Quem carrega a cor agora é o ícone (`.stat-icon`) e o anel. */
@@ -1767,13 +1778,13 @@ All colors MUST be HSL.
 .board-v4-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 600; white-space: nowrap; border: 1px solid transparent; }
 .chip-risk { background: var(--bd-risk-t); color: var(--bd-risk-d); border-color: hsl(353 63% 51% / .22); }
 .chip-warn { background: var(--bd-warn-t); color: var(--bd-warn-d); border-color: hsl(36 91% 43% / .24); }
-.chip-go { background: var(--bd-go-t); color: var(--bd-go-d); border-color: hsl(175 82% 29% / .22); }
+.chip-go { background: var(--bd-go-t); color: var(--bd-go-d); border-color: hsl(var(--primary) / .22); }
 .chip-blue { background: var(--bd-blue-t); color: var(--bd-blue); border-color: hsl(var(--tag-b) / .22); }
 .chip-purple { background: var(--bd-purple-t); color: var(--bd-purple); border-color: hsl(var(--tag-c) / .22); }
 .chip-cyan { background: var(--bd-cyan-t); color: var(--bd-cyan); border-color: hsl(var(--area-5) / .22); }
 .chip-gy { background: var(--bd-surface2); color: var(--bd-ink3); border-color: var(--bd-line); }
 .chip-solid { background: var(--bd-accent-d); color: #fff; border-color: transparent; }
-.chip-ppr-s { background: var(--bd-go-t); color: var(--bd-go-d); border-color: hsl(175 82% 29% / .22); font-size: 11px; padding: 3px 10px; }
+.chip-ppr-s { background: var(--bd-go-t); color: var(--bd-go-d); border-color: hsl(var(--primary) / .22); font-size: 11px; padding: 3px 10px; }
 .chip-ppr-a { background: var(--bd-blue-t); color: var(--bd-blue); border-color: hsl(var(--tag-b) / .22); font-size: 11px; padding: 3px 10px; }
 .chip-ppr-p { background: var(--bd-warn-t); color: var(--bd-warn-d); border-color: hsl(36 91% 43% / .24); font-size: 11px; padding: 3px 10px; }
 .chip-ppr-b { background: var(--bd-risk-t); color: var(--bd-risk-d); border-color: hsl(353 63% 51% / .22); font-size: 11px; padding: 3px 10px; }
@@ -1781,7 +1792,7 @@ All colors MUST be HSL.
 /* ── Card ── */
 .v4-card { background: var(--bd-surface); border: 1px solid var(--bd-line); border-radius: var(--bd-r); padding: 18px 20px; box-shadow: var(--bd-sh); }
 .v4-card-flush { padding: 0; overflow: hidden; }
-.v4-card-tint { background: var(--bd-accent-soft); border-color: hsl(175 82% 29% / .22); }
+.v4-card-tint { background: var(--bd-accent-soft); border-color: hsl(var(--primary) / .22); }
 /* Cabeçalho: título (+ subtítulo) à esquerda, controle à direita. A referência
    põe o seletor de período no canto do próprio card, e não numa barra de
    filtros distante do gráfico que ele governa. */
@@ -1960,7 +1971,7 @@ All colors MUST be HSL.
 }
 /* Pastel de estoque (#ECFDF5 / #FFFBEB / #FFF5F5) trocado pelos tints dos
    proprios papeis: promover = acento, ajustar = ambar, monitorar = carmim. */
-.board-rec-promote { background: var(--bd-go-t); border-color: hsl(175 82% 29% / .3); }
+.board-rec-promote { background: var(--bd-go-t); border-color: hsl(var(--primary) / .3); }
 .board-rec-adjust { background: var(--bd-warn-t); border-color: hsl(36 91% 43% / .32); }
 .board-rec-monitor { background: var(--bd-risk-t); border-color: hsl(353 63% 51% / .3); }
 

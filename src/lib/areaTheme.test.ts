@@ -28,19 +28,24 @@ describe('os três casos em que o segundo segmento mente', () => {
    */
   it('/equipe/acessos é Digital, apesar do caminho dizer "acessos"', () => {
     expect(areaDaRota('/equipe/acessos')).toBe('digital');
-    // Digital ainda não tem paleta própria: veste a de infraestrutura.
-    expect(resolverTemaDaRota('/equipe/acessos')).toEqual([CLASSE_BASE, 'sistema-theme']);
+    // O Digital é área de NEGÓCIO e veste a marca, como a Rotina — que é a maior
+    // parte dele. As três rotas da área ficam no piso; o grafite sobrou para o
+    // Dev, que serve o sistema.
+    expect(resolverTemaDaRota('/equipe/acessos')).toEqual([CLASSE_BASE]);
+    expect(resolverTemaDaRota('/equipe/digital')).toEqual([CLASSE_BASE]);
+    expect(resolverTemaDaRota('/equipe/digital/mapa/processos')).toEqual([CLASSE_BASE]);
   });
 
   it('/equipe/chamados é Rotina, não uma área chamada "chamados"', () => {
     expect(areaDaRota('/equipe/chamados')).toBe('rotina');
     expect(areaDaRota('/equipe/chamados/123')).toBe('rotina');
-    expect(resolverTemaDaRota('/equipe/chamados')).toEqual([CLASSE_BASE, 'rotina-theme']);
+    // A Rotina é a casa: responde 'rotina' e fica no piso, sem classe própria.
+    expect(resolverTemaDaRota('/equipe/chamados')).toEqual([CLASSE_BASE]);
   });
 
   it('/equipe/kanban é Rotina — a palavra "rotina" não aparece na URL', () => {
     expect(areaDaRota('/equipe/kanban')).toBe('rotina');
-    expect(resolverTemaDaRota('/equipe/kanban')).toEqual([CLASSE_BASE, 'rotina-theme']);
+    expect(resolverTemaDaRota('/equipe/kanban')).toEqual([CLASSE_BASE]);
     // E o inverso: nenhuma rota da área traz o segmento que a nomeia. Note que
     // `/equipe/rotinas` (plural, a tela de rotinas) não conta — o segmento dela
     // é "rotinas", e é coincidência de vocabulário, não o nome da área.
@@ -48,6 +53,25 @@ describe('os três casos em que o segundo segmento mente', () => {
       .filter((r) => r.area === 'rotina')
       .filter((r) => r.prefixo.split('/')[2] === 'rotina');
     expect(comSegmentoRotina).toEqual([]);
+  });
+
+  /*
+   * A Rotina é a CASA, e por isso NÃO tem classe própria.
+   *
+   * Até 29/08/2026 existia uma `.rotina-theme` no `index.css`. Ela declarava o
+   * contrato inteiro com os valores exatos do `.base-theme` — um bloco cujo
+   * conteúdo era "copie o piso". A âncora da Rotina é a da casa, o teal da
+   * marca, e é o que o piso já pinta: a área não tem delta a declarar.
+   *
+   * Este teste é o que impede o bloco de voltar pela lateral. Se alguém puser
+   * `rotina: 'rotina-theme'` de novo, o certo é que quebre aqui e a pessoa tenha
+   * de responder qual cor a Rotina passou a ter que a casa não tem.
+   */
+  it('a Rotina não tem classe própria — a âncora dela é a do piso', () => {
+    expect(TEMA_DA_AREA.rotina).toBeNull();
+    for (const rota of MAPA_DE_ROTAS.filter((r) => r.area === 'rotina')) {
+      expect(resolverTemaDaRota(rota.prefixo), rota.prefixo).toEqual([CLASSE_BASE]);
+    }
   });
 });
 
@@ -118,6 +142,22 @@ describe('cobertura das rotas reais do App.tsx', () => {
       expect(resolverTemaDaRota(rota), rota).toEqual([CLASSE_BASE]);
       expect(areaDaRota(rota), rota).toBe('base');
     }
+  });
+
+  /*
+   * O `/cliente` está no MAPA, e a linha não muda comportamento nenhum — sem
+   * ela a rota cairia em `base` do mesmo jeito. Ela existe para separar "é a
+   * casa por decisão" de "ninguém mapeou ainda", e sem este teste seria a
+   * primeira coisa que uma limpeza apagaria por parecer redundante.
+   *
+   * O Portal do Cliente é a tela do cliente da PSA: veste o teal institucional
+   * porque essa é a identidade dele. No dia em que ganhar cor própria, é a linha
+   * do mapa que muda — e é lá que se procura.
+   */
+  it('o Portal do Cliente é a casa POR DECISÃO, não por falta de mapa', () => {
+    const noMapa = MAPA_DE_ROTAS.find((r) => r.prefixo === '/cliente');
+    expect(noMapa, 'a linha { prefixo: /cliente } sumiu do MAPA_DE_ROTAS').toBeDefined();
+    expect(noMapa?.area).toBe('base');
   });
 });
 
@@ -236,8 +276,18 @@ describe('validação das rotas (a cascata que o navegador vai aplicar)', () => 
   it('sem nenhuma classe, o :root ainda traz o lime — é o que a base corrige', () => {
     // Documenta o defeito de origem: enquanto a página rodava sem classe de
     // tema, `--ring` vinha do `:root` e não batia com `--primary`.
-    expect(valorComputado([], '--ring')).toBe('85 85% 37%');
-    expect(valorComputado([], '--primary')).toBe('175 82% 29%');
+    //
+    // O lime é fixado porque É o defeito — some no dia em que o `:root` for
+    // corrigido, e aí este teste tem que cair. O `--primary` NÃO é fixado: ele
+    // já foi `175 82% 29%` e hoje é o `--teal-600`, e prender o valor aqui
+    // fazia este teste quebrar a cada troca legítima do teal, dizendo "o lime
+    // sumiu" quando nada disso tinha acontecido. O que ele precisa afirmar é
+    // que os dois DIVERGEM, e é isso que ele afirma.
+    const ring = valorComputado([], '--ring');
+    const primary = valorComputado([], '--primary');
+    expect(ring).toBe('85 85% 37%');
+    expect(primary).not.toBeNull();
+    expect(primary).not.toBe(ring);
   });
 });
 
@@ -319,9 +369,11 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
   /*
    * Há DOIS tipos de tema, e a diferença não é descuido:
    *
-   * · CONGELADO — declara as 41. São os que existiam quando o piso ainda ia
-   *   mudar de identidade: a Tax herdava 15 e a Rotina 40, e uma mudança no
-   *   base as repintaria em silêncio. Congelar cortou esse fio.
+   * · CONGELADO — declara o contrato inteiro. São os que existiam quando o piso
+   *   ainda ia mudar de identidade: uma mudança no base os repintaria em
+   *   silêncio, e congelar cortou esse fio. A `.rotina-theme` foi um deles até
+   *   29/08/2026, quando se viu que o congelado dela era o piso inteiro sem uma
+   *   diferença — aí o bloco saiu, e a Rotina passou a ficar no piso de fato.
    *
    * · DELTA — declara só o que difere. Nasce DEPOIS do piso estar estável, e o
    *   que ele herda (superfícies, texto, papéis de status, tags) ele quer
@@ -330,7 +382,7 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
    *
    * O que o teste cobra de cada um é diferente, e é o ponto deste bloco.
    */
-  const CONGELADOS = ['tax-theme', 'osg-theme', 'rotina-theme'];
+  const CONGELADOS = ['tax-theme', 'osg-theme'];
   // `board-theme` é DELTA e não CONGELADO de propósito: ele declara acento e
   // superfície (o que estava brigando com o design system do Board) e HERDA os
   // papéis de status e os tons de tag do piso. Não há arco verde livre para o
@@ -369,7 +421,7 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
   it('--tool-icon segue o acento local, em vez de ser congelado', () => {
     // Congelar o valor aqui quebraria o ícone de ferramenta: ele DEVE andar
     // junto com o `--primary` da área que o hospeda. Congela-se o alvo.
-    for (const classe of [CLASSE_BASE, 'tax-theme', 'rotina-theme']) {
+    for (const classe of [CLASSE_BASE, 'tax-theme']) {
       const ini = css.indexOf(`.${classe} {`);
       const corpo = css.slice(ini, css.indexOf('\n  }', ini));
       expect(corpo, `.${classe}`).toContain('--tool-icon: var(--primary);');
@@ -508,8 +560,9 @@ describe('espelhamento: cor e conteúdo saem da mesma chave', () => {
   it('o espelho não vaza para o detalhe do chamado', () => {
     expect(chaveDeEspelho('/equipe/chamados/abc-123', '?area=osg')).toBeNull();
     expect(chaveDeEspelho('/equipe/chamadosX', '?area=osg')).toBeNull();
+    // Cai no tema próprio da rota, que é o da Rotina — ou seja, o piso.
     expect(resolverTemaDaRota('/equipe/chamados/abc-123', '?area=osg'))
-      .toEqual([CLASSE_BASE, 'rotina-theme']);
+      .toEqual([CLASSE_BASE]);
   });
 
   it('barra final não engana o casamento exato', () => {
