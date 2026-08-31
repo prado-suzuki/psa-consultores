@@ -51,9 +51,13 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
     return Array.from({ length: CELULAS }, (_, i) => addDays(inicio, i));
   }, [currentMonth]);
 
+  // Tarefa sem prazo cai na célula de HOJE, e não em nenhuma outra: ela fica
+  // parada ali, marcada, até alguém definir a data. Ver `tarefasNoPeriodo`.
   const getTasksForDate = (date: Date) => {
     return tasks.filter(task =>
-      task.due_date && isSameDay(parseDate(task.due_date), date)
+      task.due_date
+        ? isSameDay(parseDate(task.due_date), date)
+        : isSameDay(date, today)
     );
   };
 
@@ -138,6 +142,7 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
                   <div className="mt-1 flex w-full flex-col gap-0.5">
                     {dayTasks.slice(0, TAREFAS_VISIVEIS_NA_CELULA).map(task => {
                       const papel = statusColors[task.status];
+                      const semPrazo = !task.due_date;
                       return (
                         <HoverCard key={task.id} openDelay={120}>
                           <HoverCardTrigger asChild>
@@ -145,6 +150,10 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
                               className={cn(
                                 'w-full truncate rounded px-1.5 py-0.5 text-[10px] font-medium leading-tight',
                                 papel?.combined || 'bg-muted text-muted-foreground',
+                                // Tracejado porque ela NÃO vence hoje: está
+                                // hospedada em hoje. Sem a marca, a célula
+                                // mentiria a data.
+                                semPrazo && 'border border-dashed border-current',
                               )}
                             >
                               {task.title}
@@ -158,6 +167,11 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
                             <Badge className={cn('text-xs', papel?.combined)}>
                               {papel?.label || task.status}
                             </Badge>
+                            {semPrazo && (
+                              <p className="text-xs font-medium text-muted-foreground">
+                                Sem prazo — parada em hoje até a data ser definida
+                              </p>
+                            )}
                             {task.assigned_to_name && (
                               <p className="text-xs text-muted-foreground">{task.assigned_to_name}</p>
                             )}
@@ -229,6 +243,11 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: T
                           </Badge>
                         </div>
                         <p className="font-medium text-sm break-words">{task.title}</p>
+                        {!task.due_date && (
+                          <p className="mt-1 text-xs font-medium text-muted-foreground">
+                            Sem prazo — parada em hoje até a data ser definida
+                          </p>
+                        )}
                         {task.assigned_to_name && (
                           <p className="text-xs text-muted-foreground mt-1">
                             {task.assigned_to_name}

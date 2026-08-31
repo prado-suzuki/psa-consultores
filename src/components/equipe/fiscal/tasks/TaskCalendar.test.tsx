@@ -117,6 +117,34 @@ describe('TaskCalendar', () => {
     expect(screen.getByText('Agosto de 2026')).toBeInTheDocument();
   });
 
+  it('tarefa sem prazo fica parada na célula de hoje, marcada como tal', async () => {
+    const usuario = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<CalendarioComPeriodo tasks={[tarefa({ id: 'T9', due_date: null, title: 'Definir escopo' })]} />);
+
+    // Ela está DENTRO da célula de hoje, não solta no quadro.
+    const celulaDeHoje = screen.getByTestId('calendario-hoje').closest('button');
+    expect(celulaDeHoje).toHaveTextContent('Definir escopo');
+
+    // E o chip é tracejado, porque ela não vence hoje: está hospedada em hoje.
+    const chip = screen.getByText('Definir escopo');
+    expect(chip.className).toContain('border-dashed');
+
+    await usuario.hover(chip);
+    expect(
+      await screen.findByText('Sem prazo — parada em hoje até a data ser definida'),
+    ).toBeInTheDocument();
+  });
+
+  it('andar para outro mês tira a tarefa sem prazo da tela', async () => {
+    const usuario = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(<CalendarioComPeriodo tasks={[tarefa({ id: 'T9', due_date: null, title: 'Definir escopo' })]} />);
+
+    await usuario.click(screen.getByRole('button', { name: 'Próximo mês' }));
+
+    expect(screen.queryByText('Definir escopo')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('calendario-hoje')).not.toBeInTheDocument();
+  });
+
   it('a tarefa na célula veste o papel do status, que a área resolve', () => {
     render(<CalendarioComPeriodo tasks={[tarefa()]} />);
 

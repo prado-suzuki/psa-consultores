@@ -24,16 +24,24 @@ export function passoDeMes(mes: Date, direcao: 1 | -1): Date {
 /**
  * As tarefas que o mês mostra.
  *
- * **Tarefa sem prazo entra em todo mês.** Não é descuido: ela não pertence a
- * mês nenhum, e Calendário e Gantt já a ignoram por construção (os dois
- * dependem de `due_date`). Se a Lista e a Tabela também a escondessem, ela não
- * apareceria em ABA NENHUMA do painel — trabalho sumindo da tela por causa de
- * um controle de navegação. O prazo dela aparece como "Sem prazo" na coluna.
+ * **Tarefa sem prazo fica parada em hoje**, e só aparece enquanto o mês
+ * corrente está à vista. Ela não pertence a mês nenhum, e as duas saídas ruins
+ * eram: escondê-la (Calendário e Gantt já a ignoram porque dependem de
+ * `due_date`, então ela não apareceria em ABA NENHUMA do painel — trabalho
+ * sumindo da tela por causa de um controle de navegação) ou repeti-la em todo
+ * mês (ela vira ruído permanente e ninguém arruma a data).
+ *
+ * Parada em hoje ela é uma cobrança: está no caminho de quem olha o mês
+ * corrente, e sai de lá no instante em que alguém define o prazo. No Calendário
+ * isso é literal — ela ocupa a célula de hoje, marcada como sem prazo.
  *
  * Subtarefa cujo pai caiu fora do mês continua visível: `buildTaskTree` promove
  * a filha a raiz quando não acha o pai no conjunto. Ela perde o aninhamento, não
  * a existência.
  */
-export function tarefasNoPeriodo(tasks: OrgTask[], mes: Date): OrgTask[] {
-  return tasks.filter(task => !task.due_date || isSameMonth(parseDate(task.due_date), mes));
+export function tarefasNoPeriodo(tasks: OrgTask[], mes: Date, hoje: Date): OrgTask[] {
+  const hojeEstaAVista = isSameMonth(mes, hoje);
+  return tasks.filter(task =>
+    task.due_date ? isSameMonth(parseDate(task.due_date), mes) : hojeEstaAVista,
+  );
 }
