@@ -20,6 +20,7 @@ import { useDashboardProjectIds } from '@/hooks/useDashboardProjectIds';
 import { useGerarTarefasProjeto } from '@/hooks/useGerarTarefasProjeto';
 import { useProjetosCadastroController } from '@/hooks/useProjetosCadastroController';
 import { useOrgProjectOrders } from '@/hooks/useOrgProjectOrders';
+import { useOrgProjectAssignees } from '@/hooks/useOrgProjectAssignees';
 import { ProjetosCadastroContext } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
 import { ProjetoDialog } from '@/components/equipe/projetos-cadastro/ProjetoDialog';
 import { ProjetoDeleteDialog } from '@/components/equipe/projetos-cadastro/ProjetoDeleteDialog';
@@ -162,6 +163,9 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       : listProjects,
     [filters.clientId, listProjects],
   );
+  // Responsável de tarefa sai da gente do projeto, não do quadro do cluster
+  // (`teamMembers`, que ainda alimenta filtros e modais).
+  const assigneesByProject = useOrgProjectAssignees(visibleListProjects);
   // Filtros de tarefas escondem clientes/OS/projetos sem correspondências. A busca
   // textual não: ela também encontra clientes e projetos que ainda não têm tarefas.
   const hasActiveTaskFilters = useMemo(() => hasTaskFilters(filters), [filters]);
@@ -444,7 +448,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 onMoveSelected={handleMoveSelected}
                 onMoveProjectTasks={handleMoveProjectTasks}
                 currentUserId={user?.id}
-                teamMembers={teamMembers}
+                assigneesByProject={assigneesByProject}
                 canEditTaskFields={canEditTaskFields}
               />
             </TabsContent>

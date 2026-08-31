@@ -219,7 +219,8 @@ describe('ProjetosTarefasList — estado de carregamento', () => {
 });
 
 describe('ProjetosTarefasList — responsável e prazo direto na linha', () => {
-  const equipe = [{ id: 'U2', name: 'Geizi Andrade' }, { id: 'U3', name: 'Diego Melo' }];
+  // A gente do projeto — não o quadro do cluster. U4 fica de fora de propósito.
+  const doProjeto = { p1: [{ id: 'U2', name: 'Geizi Andrade' }, { id: 'U3', name: 'Diego Melo' }] };
 
   const expandirAteTarefa = () => {
     fireEvent.click(screen.getByLabelText('Expandir OS'));
@@ -231,7 +232,7 @@ describe('ProjetosTarefasList — responsável e prazo direto na linha', () => {
     renderList({
       projects: [projeto],
       tasks: [tarefa('Coleta', { assigned_to: 'U2' })],
-      teamMembers: equipe,
+      assigneesByProject: doProjeto,
     });
     expandirAteTarefa();
 
@@ -251,7 +252,7 @@ describe('ProjetosTarefasList — responsável e prazo direto na linha', () => {
     renderList({
       projects: [projeto],
       tasks: [tarefa('Coleta', { assigned_to: 'U2' })],
-      teamMembers: equipe,
+      assigneesByProject: doProjeto,
     });
     expandirAteTarefa();
 
@@ -266,7 +267,7 @@ describe('ProjetosTarefasList — responsável e prazo direto na linha', () => {
     renderList({
       projects: [projeto],
       tasks: [tarefa('Coleta', { due_date: '2026-08-17' })],
-      teamMembers: equipe,
+      assigneesByProject: doProjeto,
     });
     expandirAteTarefa();
 
@@ -278,11 +279,40 @@ describe('ProjetosTarefasList — responsável e prazo direto na linha', () => {
     expect(screen.queryByRole('button', { name: '20' })).not.toBeInTheDocument();
   });
 
+  it('só oferece a gente do projeto, e mantém quem já está com a tarefa', async () => {
+    const user = userEvent.setup();
+    renderList({
+      projects: [projeto],
+      // Tarefa com alguém que saiu da equipe do projeto: o valor atual precisa
+      // continuar selecionável, senão o seletor abre sem o próprio valor.
+      tasks: [tarefa('Coleta', { assigned_to: 'U9', assigned_to_name: 'Ex-membro' })],
+      assigneesByProject: doProjeto,
+    });
+    expandirAteTarefa();
+
+    await user.click(screen.getByLabelText('Responsável por Coleta'));
+    const opcoes = screen.getAllByRole('option').map(item => item.textContent);
+    expect(opcoes).toEqual(['Não atribuído', 'Geizi Andrade', 'Diego Melo', 'Ex-membro']);
+  });
+
+  it('projeto sem gente cadastrada não abre seletor nenhum', () => {
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { assigned_to: null, assigned_to_name: null })],
+      assigneesByProject: {},
+    });
+    expandirAteTarefa();
+
+    expect(screen.queryByLabelText('Responsável por Coleta')).not.toBeInTheDocument();
+    // Uma para a linha do projeto (sem responsável) e uma para a da tarefa.
+    expect(screen.getAllByText('Não atribuído')).toHaveLength(2);
+  });
+
   it('sem permissão de editar campos, as células só leem', () => {
     renderList({
       projects: [projeto],
       tasks: [tarefa('Coleta', { due_date: '2026-08-17' })],
-      teamMembers: equipe,
+      assigneesByProject: doProjeto,
       canEditTaskFields: () => false,
     });
     expandirAteTarefa();

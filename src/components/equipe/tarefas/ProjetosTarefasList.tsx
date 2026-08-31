@@ -41,6 +41,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import type { OrgProject } from '@/hooks/useOrgProjects';
+import type { ProjectAssignee } from '@/hooks/useOrgProjectAssignees';
 import { type OrgTask, type OrgTaskStatus, useUpdateOrgTask } from '@/hooks/useOrgTasks';
 import { cn } from '@/lib/utils';
 import { parseDate } from '@/lib/dateUtils';
@@ -56,6 +57,8 @@ import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/Task
 import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/TaskStatusTransitionDialog';
  import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
  import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
+import { BarraDeMes } from '@/components/shared/BarraDeMes';
+import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
 import {
   esforcoDaTarefa,
@@ -98,8 +101,14 @@ interface ProjetosTarefasListProps {
   /** Marca todas as tarefas do projeto e abre o movimento em lote. */
   onMoveProjectTasks: (taskIds: string[]) => void;
   currentUserId?: string | null;
-  /** Candidatos do seletor de responsável da linha. Vazio: a célula só lê. */
-  teamMembers?: { id: string; name: string }[];
+  /** O mes e do painel: ele atravessa Lista, Tabela e Calendario. */
+  periodo: PeriodoDeTarefas;
+  /**
+   * Candidatos do seletor de responsável, por projeto: só a gente do projeto
+   * (membros, responsável e líder), nunca o quadro inteiro da área — ver
+   * `useOrgProjectAssignees`. Projeto sem candidatos: a célula só lê.
+   */
+  assigneesByProject?: Record<string, ProjectAssignee[]>;
   /**
    * Responsável e prazo são campos fora do trio status/horas/revisor: quem não
    * criou a tarefa e não é líder não consegue gravá-los (RLS-06). Sem o gate a
@@ -216,7 +225,7 @@ export function ProjetosTarefasList({
   onMoveSelected,
   onMoveProjectTasks,
   currentUserId,
-  teamMembers = [],
+  assigneesByProject = {},
   canEditTaskFields = () => true,
 }: ProjetosTarefasListProps) {
   const hierarchy = useMemo(
@@ -286,8 +295,8 @@ export function ProjetosTarefasList({
     updateTask.mutate({ id: task.id, status });
   };
 
-  const updateResponsavel = (task: OrgTask, value: string) => {
-    const member = value === SEM_RESPONSAVEL ? null : teamMembers.find(item => item.id === value);
+  const updateResponsavel = (task: OrgTask, value: string, candidatos: ProjectAssignee[]) => {
+    const member = value === SEM_RESPONSAVEL ? null : candidatos.find(item => item.id === value);
     if (value !== SEM_RESPONSAVEL && !member) return;
     if ((member?.id ?? null) === task.assigned_to) return;
     updateTask.mutate({
@@ -295,6 +304,21 @@ export function ProjetosTarefasList({
       assigned_to: member?.id ?? null,
       assigned_to_name: member?.name ?? null,
     });
+  };
+
+  /**
+   * Candidatos da linha: a gente do projeto, mais quem já está com a tarefa. O
+   * responsável atual entra porque tarefa antiga (ou movida de projeto) pode
+   * estar com alguém que saiu da equipe do projeto — sem ele o seletor abriria
+   * sem o próprio valor selecionado.
+   */
+  const candidatosDeResponsavel = (task: OrgTask): ProjectAssignee[] => {
+    const doProjeto = (task.project_id && assigneesByProject[task.project_id]) || [];
+    // Projeto sem gente (ou tarefa sem projeto) não vira seletor de uma opção só:
+    // oferecer apenas "não atribuído" não é escolher responsável.
+    if (doProjeto.length === 0) return [];
+    if (!task.assigned_to || doProjeto.some(item => item.id === task.assigned_to)) return doProjeto;
+    return [...doProjeto, { id: task.assigned_to, name: task.assigned_to_name || 'Responsável atual' }];
   };
 
   const updatePrazo = (task: OrgTask, date: Date | undefined) => {
@@ -311,6 +335,7 @@ export function ProjetosTarefasList({
     const isExpanded = expanded.has(rowId);
     const isSelected = selectedTaskIds.has(task.id);
     const podeEditar = canEditTaskFields(task);
+    const candidatos = candidatosDeResponsavel(task);
     const atrasada = !!task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done';
     return <Fragment key={task.id}>
       <div className={cn(GRID, 'group border-t border-border/60 text-sm hover:bg-muted/30', isSelected ? 'bg-primary/5' : 'bg-background')}>
@@ -345,14 +370,14 @@ export function ProjetosTarefasList({
           </Select>
         </div>
         <div className="flex min-w-0 items-center px-3 py-1.5">
-          {podeEditar && teamMembers.length > 0
-            ? <Select value={task.assigned_to ?? SEM_RESPONSAVEL} onValueChange={value => updateResponsavel(task, value)}>
+          {podeEditar && candidatos.length > 0
+            ? <Select value={task.assigned_to ?? SEM_RESPONSAVEL} onValueChange={value => updateResponsavel(task, value, candidatos)}>
                 <SelectTrigger aria-label={`Responsável por ${task.title}`} className="h-6 border-0 bg-transparent px-1 text-xs shadow-none focus:ring-0">
                   <span className={cn('truncate', !task.assigned_to && 'text-muted-foreground')}>{task.assigned_to_name || 'Não atribuído'}</span>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={SEM_RESPONSAVEL}>Não atribuído</SelectItem>
-                  {teamMembers.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}
+                  {candidatos.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             : <span className="truncate text-xs text-muted-foreground">{task.assigned_to_name || 'Não atribuído'}</span>}
@@ -454,7 +479,8 @@ export function ProjetosTarefasList({
         {allOsExpanded ? 'Recolher tudo' : 'Expandir tudo'}
       </Button>
     </div>
-    <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
+    <div className="overflow-x-auto overflow-y-hidden rounded-xl border bg-card shadow-sm">
+    <BarraDeMes periodo={periodo} />
     <div className={cn(GRID, 'border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
       <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div>
       <button type="button" onClick={() => cycleSort('prazo')} className={cn('flex items-center gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'prazo' ? 'text-foreground' : '')}>Prazo{sortIcon('prazo')}</button>
