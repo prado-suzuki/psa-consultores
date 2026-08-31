@@ -273,8 +273,12 @@ const statusLabels = Object.fromEntries(
      );
    };
  
+   // `bg-card` explicito: o container da tabela sempre foi transparente, e isso
+   // nao aparecia porque as linhas da Table carregam fundo proprio. Com a barra
+   // do mes em cima, a faixa dela ficava no fundo da PAGINA — a tabela era a
+   // unica das quatro abas sem a superficie do card.
    return (
-     <div className="border rounded-lg overflow-hidden">
+     <div className="border rounded-lg overflow-hidden bg-card">
        <BarraDeMes periodo={periodo} />
        <Table>
          <TableHeader>

@@ -485,7 +485,8 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                   antes de deixar arrastar — não oferece um movimento que o banco
                   vai recusar (ver canUpdateOrgTaskStatus). */}
               <TaskKanban
-                tasks={tasks}
+                tasks={periodo.tarefas}
+                periodo={periodo}
                 area={area}
                 onEdit={handleEditTask}
                 currentUserId={user?.id}

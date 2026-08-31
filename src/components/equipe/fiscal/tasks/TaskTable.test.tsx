@@ -95,6 +95,16 @@ describe('TaskTable — barra de período', () => {
     expect(screen.getByRole('button', { name: 'Próximo mês' })).toBeInTheDocument();
     expect(screen.getByText('Agosto de 2026')).toBeInTheDocument();
   });
+
+  it('a barra fica sobre a superficie do card, e nao no fundo da pagina', () => {
+    // A tabela era a unica das quatro abas cujo container nao declarava fundo:
+    // as linhas da Table carregam o proprio, entao a falta so apareceu quando a
+    // barra do mes entrou em cima.
+    renderTable([]);
+
+    const container = screen.getByText('Agosto de 2026').closest('.rounded-lg');
+    expect(container?.className).toContain('bg-card');
+  });
 });
 
 describe('TaskTable — troca de status pelo seletor', () => {
