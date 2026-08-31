@@ -382,6 +382,7 @@ export function useGerarDocumentoController() {
       clienteId,
       pjPessoaId: empresaId,
       modeloId,
+      nomeModelo,
       snapshotFlags: flagsAtivas,
       snapshotDados: snap as unknown as Json,
       // Texto dos blocos já resolvido (com overrides) + variantes das famílias
@@ -450,6 +451,7 @@ export function useGerarDocumentoController() {
       clienteId,
       pjPessoaId: empresaId,
       modeloId,
+      nomeModelo,
       snapshotFlags: flagsAtivasLive,
       snapshotDados: snap as unknown as Json,
       snapshotVersoesBlocos: snapshotVersoes as unknown as Json,

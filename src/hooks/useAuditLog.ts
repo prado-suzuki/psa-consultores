@@ -17,6 +17,7 @@ type AuditEntityType =
   | 'ato_societario'
   | 'bem' | 'matricula' | 'titularidade' | 'impedimento' | 'cartorio'
   | 'tmpl_bloco' | 'tmpl_documento' | 'documento_arquivo' | 'projeto_flag_valor'
+  | 'documento_gerado' | 'documento_override'
   | 'solicitacao' | 'solicitacao_item' | 'solicitacao_item_nao_aplicavel'
   | 'org_comment';
 
