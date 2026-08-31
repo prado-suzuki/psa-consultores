@@ -48,7 +48,7 @@
 }
 .cascata-rail-search:focus-within{
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(13,148,136,0.18);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.18);
   color: var(--accent-color);
 }
 .cascata-rail-search input{
