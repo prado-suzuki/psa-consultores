@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import type { Cenario, SaidaSimulacao } from '@/lib/osg/itcmd/simulacao';
 
 /**
@@ -45,6 +46,28 @@ export const ROTULO_DO_STATUS: Record<StatusDaSimulacao, string> = {
   aprovada: 'Aprovada',
   substituida: 'Substituída',
 };
+
+/**
+ * UMA GUIA: o par doador declarante → beneficiário, com a apuração dele.
+ *
+ * É a unidade em que a SEFAZ tributa e em que o motor apura. O resultado morava no
+ * DONATÁRIO, somando as guias em que ele aparece — e com dois doadores a linha passava
+ * a descrever alguém que não existe: base somada ao lado de imposto somado, sem que um
+ * seja função do outro, porque cada guia tem a sua faixa progressiva e a sua dedução.
+ */
+export interface GiaSalva {
+  doadorId: string;
+  doadorNome: string;
+  donatarioId: string;
+  donatarioNome: string;
+  quotasRecebidas: string;
+  /** "Percentual Transmitido ao Beneficiário": soma 100% entre os desta guia. */
+  pctDaGia: string;
+  /** A acumulação, em valor e por par. `null` = nada declarado. */
+  doacaoAnterior: string | null;
+  basePorCenario: Record<Cenario, string | null>;
+  impostoPorCenario: Record<Cenario, string | null>;
+}
 
 /** Uma linha do quadro de usufruto, congelada. */
 export interface LinhaDoUsufrutoSalva {
@@ -147,10 +170,14 @@ export interface SimulacaoSalva {
     /** Donatário também aporta: não há regra dizendo que só o fundador paga. */
     vlrAporteMoeda: string;
     quotasDoAporte: string;
+    /** Participação no CAPITAL depois do ato. É do donatário: não se reparte. */
     percentual: string;
-    basePorCenario: Record<Cenario, string | null>;
-    impostoPorCenario: Record<Cenario, string | null>;
   }>;
+  /**
+   * O RESULTADO, uma linha por guia. Antes vivia no donatário, somado — e a soma não
+   * se desdobra de volta, porque a repartição não estava em lugar nenhum.
+   */
+  gias: GiaSalva[];
 }
 
 /**
@@ -159,6 +186,20 @@ export interface SimulacaoSalva {
  */
 export const rotuloDaSimulacao = (s: { nome: string | null; versao: number }): string =>
   (s.nome?.trim() ? s.nome.trim() : `Versão ${s.versao}`);
+
+/**
+ * O NOME QUE VAI PARA A TRILHA DE AUDITORIA.
+ *
+ * `audit_logs.entity_name` é o que a tela de logs mostra sem precisar consultar a
+ * entidade — e por isso ele tem de fazer sentido sozinho, meses depois, quando quem lê
+ * não tem a simulação aberta na frente. "Versão 3" não diz de que cliente nem de
+ * quando; com a competência ao lado, diz.
+ */
+const nomeParaAuditoria = (
+  s: { nome: string | null; versao: number; competencia?: string },
+): string => (s.competencia
+  ? `${rotuloDaSimulacao(s)} · ${s.competencia}`
+  : rotuloDaSimulacao(s));
 
 /** `numeric` chega como número ou string do PostgREST; texto é a forma canônica. */
 const texto = (v: unknown): string | null => (v == null ? null : String(v));
@@ -208,6 +249,28 @@ function paraSimulacaoSalva(row: any): SimulacaoSalva {
   const nome = (p: any): string => p?.pessoa?.denominacao ?? p?.pessoa_id ?? '—';
 
    
+  const gias: GiaSalva[] = (row.itcd_simulacao_gia ?? [])
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((g: any) => ({
+      doadorId: g.doador_pessoa_id,
+      doadorNome: g.doador?.denominacao ?? g.doador_pessoa_id,
+      donatarioId: g.donatario_pessoa_id,
+      donatarioNome: g.donatario?.denominacao ?? g.donatario_pessoa_id,
+      quotasRecebidas: String(g.quotas_recebidas ?? 0),
+      pctDaGia: textoOuZero(g.pct_da_gia),
+      doacaoAnterior: texto(g.vlr_doacao_anterior),
+      basePorCenario: {
+        contabil: texto(g.vlr_base_contabil),
+        itr: texto(g.vlr_base_itr),
+        mercado: texto(g.vlr_base_mercado),
+      },
+      impostoPorCenario: {
+        contabil: texto(g.vlr_imposto_contabil),
+        itr: texto(g.vlr_imposto_itr),
+        mercado: texto(g.vlr_imposto_mercado),
+      },
+    }));
+
   const usufruto: LinhaDoUsufrutoSalva[] = (row.itcd_simulacao_usufruto ?? [])
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .map((u: any) => ({
@@ -297,17 +360,8 @@ function paraSimulacaoSalva(row: any): SimulacaoSalva {
       vlrAporteMoeda: textoOuZero(d.vlr_aporte_moeda),
       quotasDoAporte: String(d.quotas_do_aporte ?? 0),
       percentual: textoOuZero(d.percentual),
-      basePorCenario: {
-        contabil: texto(d.vlr_base_contabil),
-        itr: texto(d.vlr_base_itr),
-        mercado: texto(d.vlr_base_mercado),
-      },
-      impostoPorCenario: {
-        contabil: texto(d.vlr_imposto_contabil),
-        itr: texto(d.vlr_imposto_itr),
-        mercado: texto(d.vlr_imposto_mercado),
-      },
     })),
+    gias,
   };
 }
 
@@ -386,9 +440,13 @@ export function useSimulacoesItcmd(clienteId: string | null) {
           itcd_simulacao_donatario ( donatario_pessoa_id, quotas_atuais,
             quotas_legitima, quotas_disponivel, quotas_final, percentual,
             vlr_aporte_moeda, quotas_do_aporte,
+            pessoa:donatario_pessoa_id ( denominacao ) ),
+          itcd_simulacao_gia ( doador_pessoa_id, donatario_pessoa_id,
+            quotas_recebidas, pct_da_gia, vlr_doacao_anterior,
             vlr_base_contabil, vlr_base_itr, vlr_base_mercado,
             vlr_imposto_contabil, vlr_imposto_itr, vlr_imposto_mercado,
-            pessoa:donatario_pessoa_id ( denominacao ) ),
+            doador:doador_pessoa_id ( denominacao ),
+            donatario:donatario_pessoa_id ( denominacao ) ),
           itcd_simulacao_usufruto ( pessoa_id, papel, quotas, quotas_plena,
             quotas_nua_reserva, quotas_nua_instituicao, quotas_usufruto,
             pessoa:pessoa_id ( denominacao ) ),
@@ -439,6 +497,23 @@ export interface SimulacaoParaGravar {
     quotasDoAporte: string;
   }>;
   /**
+   * AS GUIAS: o resultado, por par doador declarante → beneficiário.
+   *
+   * `doadorPessoaId` é o TITULAR, e não o id do doador fiscal: na emissão conjunta o
+   * doador fiscal tem id COMPOSTO (`titular+cônjuge`), que não é `pessoa.id` nenhum e
+   * quebraria a chave estrangeira. Quem diz que a guia saiu no nome do casal é
+   * `itcd_simulacao_doador.emissao_conjunta`.
+   */
+  gias: Array<{
+    doadorPessoaId: string;
+    donatarioPessoaId: string;
+    quotasRecebidas: string;
+    pctDaGia: string;
+    doacaoAnterior: string | null;
+    basePorCenario: Record<Cenario, string | null>;
+    impostoPorCenario: Record<Cenario, string | null>;
+  }>;
+  /**
    * O USUFRUTO DESTE CENÁRIO. Vem sempre — o quadro existe mesmo quando o ato não
    * gera guia nenhuma, que é o caso comum: sem reserva e sem instituição, cada um
    * vota o que tem. Gravar o quadro nesse caso é o que permite dizer depois "aqui
@@ -480,6 +555,7 @@ export interface SimulacaoParaGravar {
  */
 export function useGravarSimulacaoItcmd() {
   const qc = useQueryClient();
+  const { logAction } = useAuditLog();
   return useMutation({
     mutationFn: async (s: SimulacaoParaGravar): Promise<string> => {
       const { data: ultima, error: erroDaVersao } = await sb
@@ -493,6 +569,7 @@ export function useGravarSimulacaoItcmd() {
 
       const { data: sessao } = await supabase.auth.getUser();
       const quem = sessao?.user?.id ?? null;
+      const versao = (ultima?.versao ?? 0) + 1;
 
       // OS TRÊS CENÁRIOS SÃO OBRIGATÓRIOS, por desenho da tabela. Cenário sem valor
       // é cadastro incompleto — na apuração de verdade os bens têm valor contábil, de
@@ -530,7 +607,7 @@ export function useGravarSimulacaoItcmd() {
           com_reserva: s.comReserva,
           pct_base_reserva: s.pctBaseReserva,
           pct_base_instituicao: s.pctBaseInstituicao,
-          versao: (ultima?.versao ?? 0) + 1,
+          versao,
           created_by: quem,
           updated_by: quem,
         })
@@ -580,19 +657,40 @@ export function useGravarSimulacaoItcmd() {
             quotas_final: Number(d.quotasFinal),
             vlr_aporte_moeda: d.vlrAporteMoeda,
             quotas_do_aporte: Number(d.quotasDoAporte),
+            // O QUADRO fica aqui; o RESULTADO é por guia, em itcd_simulacao_gia.
             percentual: linha.percentual,
-            vlr_base_contabil: exigir('contábil', linha.porCenario.contabil?.base ?? null),
-            vlr_base_itr: exigir('ITR', linha.porCenario.itr?.base ?? null),
-            vlr_base_mercado: exigir('mercado', linha.porCenario.mercado?.base ?? null),
-            vlr_imposto_contabil:
-              exigir('contábil', linha.porCenario.contabil?.imposto ?? null),
-            vlr_imposto_itr: exigir('ITR', linha.porCenario.itr?.imposto ?? null),
-            vlr_imposto_mercado:
-              exigir('mercado', linha.porCenario.mercado?.imposto ?? null),
           };
         }),
       );
       if (erroDonatario) await desfazer(erroDonatario.message);
+
+      // ── AS GUIAS ────────────────────────────────────────────────────────────
+      // Cada linha fecha consigo mesma: `imposto = f(base)` vale DENTRO dela. Não
+      // valia no resumo por donatário quando havia mais de um doador — duas bases
+      // menores, cada uma na sua faixa, pagam menos que a soma delas numa faixa só, e
+      // essa economia é legal (a chave da acumulação é o trio doador · beneficiário ·
+      // ano civil). O resumo guardava a base de uma leitura e o imposto de outra.
+      if (s.gias.length > 0) {
+        const { error } = await sb.from('itcd_simulacao_gia').insert(
+          s.gias.map((g) => ({
+            simulacao_id: simulacaoId,
+            doador_pessoa_id: g.doadorPessoaId,
+            donatario_pessoa_id: g.donatarioPessoaId,
+            quotas_recebidas: Number(g.quotasRecebidas),
+            pct_da_gia: g.pctDaGia,
+            vlr_doacao_anterior: g.doacaoAnterior,
+            vlr_base_contabil: exigir('contábil da guia', g.basePorCenario.contabil),
+            vlr_base_itr: exigir('ITR da guia', g.basePorCenario.itr),
+            vlr_base_mercado: exigir('mercado da guia', g.basePorCenario.mercado),
+            vlr_imposto_contabil:
+              exigir('contábil da guia', g.impostoPorCenario.contabil),
+            vlr_imposto_itr: exigir('ITR da guia', g.impostoPorCenario.itr),
+            vlr_imposto_mercado:
+              exigir('mercado da guia', g.impostoPorCenario.mercado),
+          })),
+        );
+        if (error) await desfazer(error.message);
+      }
 
       // ── O QUADRO DE USUFRUTO ────────────────────────────────────────────────
       // Vai SEMPRE, mesmo sem reserva e sem instituição. Nesse caso ele diz que cada
@@ -644,6 +742,26 @@ export function useGravarSimulacaoItcmd() {
         if (error) await desfazer(error.message);
       }
 
+      // ── A TRILHA ────────────────────────────────────────────────────────────
+      // No padrão do resto do sistema: `audit_logs`, área `osg`. As colunas de autoria
+      // da própria tabela (`created_by`, `aprovada_por`) dizem QUEM fez; a trilha diz
+      // O QUE FOI FEITO, em ordem, no mesmo lugar em que se procura o histórico das
+      // outras entidades da OSG.
+      //
+      // `logAction` não propaga falha de propósito: a simulação já está gravada, e
+      // desfazê-la porque o log não entrou seria perder o trabalho para salvar o
+      // registro dele. A falha vai para o console.
+      await logAction({
+        area: 'osg',
+        entity_type: 'itcd_simulacao',
+        entity_id: simulacaoId,
+        entity_name: `Versão ${versao} · ${s.saida.competencia}`,
+        action: 'created',
+        details: `${s.doadores.length} doador(es), ${beneficiarios.length} `
+          + `beneficiário(s), ${s.gias.length} guia(s). `
+          + `Imposto contábil do ato: ${s.saida.totaisPorCenario.contabil}.`,
+      });
+
       return simulacaoId;
     },
     onSuccess: () => {
@@ -664,9 +782,16 @@ export function useGravarSimulacaoItcmd() {
  */
 export function useRenomearSimulacaoItcmd() {
   const qc = useQueryClient();
+  const { logAction } = useAuditLog();
   return useMutation({
     mutationFn: async (
-      { id, nome }: { id: string; nome: string },
+      { id, nome, nomeAnterior, versao }: {
+        id: string;
+        nome: string;
+        /** Para a trilha dizer de que para que — `changed_fields` pede os dois. */
+        nomeAnterior: string | null;
+        versao: number;
+      },
     ): Promise<void> => {
       const { data: sessao } = await supabase.auth.getUser();
       const quem = sessao?.user?.id ?? null;
@@ -680,6 +805,15 @@ export function useRenomearSimulacaoItcmd() {
         })
         .eq('id', id);
       if (error) throw new Error(error.message);
+
+      await logAction({
+        area: 'osg',
+        entity_type: 'itcd_simulacao',
+        entity_id: id,
+        entity_name: nomeParaAuditoria({ nome: limpo === '' ? null : limpo, versao }),
+        action: 'updated',
+        changed_fields: { nome: { old: nomeAnterior, new: limpo === '' ? null : limpo } },
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [CHAVE] });
@@ -697,9 +831,16 @@ export function useRenomearSimulacaoItcmd() {
  */
 export function useAlterarStatusSimulacaoItcmd() {
   const qc = useQueryClient();
+  const { logAction } = useAuditLog();
   return useMutation({
     mutationFn: async (
-      { id, status }: { id: string; status: StatusDaSimulacao },
+      { id, status, statusAnterior, nome, versao }: {
+        id: string;
+        status: StatusDaSimulacao;
+        statusAnterior: StatusDaSimulacao;
+        nome: string | null;
+        versao: number;
+      },
     ): Promise<void> => {
       const { data: sessao } = await supabase.auth.getUser();
       const quem = sessao?.user?.id ?? null;
@@ -715,6 +856,21 @@ export function useAlterarStatusSimulacaoItcmd() {
         })
         .eq('id', id);
       if (error) throw new Error(error.message);
+
+      // APROVAR é o portão antes de a apresentação sair para o cliente, e é a mudança
+      // de status que mais importa registrar: `aprovada_por` diz quem aprovou AGORA, e
+      // sai quando o status muda. A trilha é o que sobra.
+      await logAction({
+        area: 'osg',
+        entity_type: 'itcd_simulacao',
+        entity_id: id,
+        entity_name: nomeParaAuditoria({ nome, versao }),
+        action: 'updated',
+        changed_fields: { status: { old: statusAnterior, new: status } },
+        details: aprovada
+          ? 'Aprovada: a revisão passa a ser a que vale para a apresentação.'
+          : undefined,
+      });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [CHAVE] });

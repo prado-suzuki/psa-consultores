@@ -23,9 +23,14 @@ export const switchBoxCls =
 export const subFormBoxCls =
   'rounded-md border border-osg-moss/20 bg-osg-moss/[0.04] p-4';
 
-// Rótulo padrão dos campos. Um tom mais escuro que muted-foreground para dar
-// um pouco mais de contraste à descrição dos campos.
-export const labelCls = 'text-xs font-medium text-slate-600';
+// Rótulo padrão dos campos.
+//
+// Era `text-slate-600` — cinza AZULADO, do Tailwind, na área cujas superfícies são
+// bege e cujo neutro é quente. Numa linha de campos sobre `--osg-50`, os rótulos
+// puxavam para o frio junto de números em `osg-700`. O `--muted-foreground` da OSG
+// (24 12% 42%) tem praticamente a mesma luminosidade do slate-600 (44,7%), então o
+// contraste não muda: muda a matiz, que passa a ser a da área.
+export const labelCls = 'text-xs font-medium text-muted-foreground';
 
 /**
  * UM CAMPO: rótulo ACIMA do controle.
@@ -40,7 +45,12 @@ export const labelCls = 'text-xs font-medium text-slate-600';
  * tenham rótulo ou não.
  */
 export function Campo({ rotulo, htmlFor, className, children }: {
-  rotulo: string;
+  /**
+   * Texto, ou um nó: quem precisa de dica no rótulo passa o rótulo já envolvido no
+   * gatilho dela. O kit compartilhado não conhece o tooltip de nenhuma tela, e é assim
+   * que ele continua não conhecendo.
+   */
+  rotulo: ReactNode;
   /**
    * Id do controle, quando ele é um input de verdade: aí o rótulo é um `<label>` e
    * clicar no texto foca o campo. Sem isso o rótulo é só texto, e o controle precisa

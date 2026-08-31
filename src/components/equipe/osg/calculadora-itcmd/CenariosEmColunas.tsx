@@ -1,5 +1,8 @@
 import { brlDeDecimal, pctDeDecimal } from './itcmdFmt';
-import { CENARIOS, ROTULO_CENARIO, type Cenario, type SaidaSimulacao } from '@/lib/osg/itcmd/simulacao';
+import { ComDica, ComoDicas, LinhaDeTotal, LinhaDeValor, Secao } from './itcmdKit';
+import {
+  CENARIOS, DICA_CENARIO, ROTULO_CENARIO, type Cenario, type SaidaSimulacao,
+} from '@/lib/osg/itcmd/simulacao';
 
 /**
  * Um quadro por cenário de avaliação, no formato do resumo de tributos que a OSG
@@ -23,22 +26,27 @@ export function CenariosEmColunas({ saida, instituicao, total }: {
   total?: Record<Cenario, string | null>;
 }) {
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      {CENARIOS.map((cenario) => (
-        <QuadroDoCenario
-          key={cenario}
-          cenario={cenario}
-          saida={saida}
-          instituicao={instituicao ?? null}
-          total={total?.[cenario] ?? null}
-        />
-      ))}
-    </div>
+    <ComoDicas>
+      <div className="grid gap-4 lg:grid-cols-3">
+        {CENARIOS.map((cenario, ordem) => (
+          <QuadroDoCenario
+            key={cenario}
+            cenario={cenario}
+            ordem={ordem}
+            saida={saida}
+            instituicao={instituicao ?? null}
+            total={total?.[cenario] ?? null}
+          />
+        ))}
+      </div>
+    </ComoDicas>
   );
 }
 
-function QuadroDoCenario({ cenario, saida, instituicao, total }: {
+function QuadroDoCenario({ cenario, ordem, saida, instituicao, total }: {
   cenario: Cenario;
+  /** Posição na fila, só para a entrada em cascata. */
+  ordem: number;
   saida: SaidaSimulacao;
   instituicao: SaidaSimulacao | null;
   total: string | null;
@@ -46,31 +54,48 @@ function QuadroDoCenario({ cenario, saida, instituicao, total }: {
   const indisponivel = saida.cenariosIndisponiveis.includes(cenario);
 
   return (
+    /* ENTRADA EM CASCATA — 70ms entre um cartão e o seguinte. Os três nascem juntos
+       de um clique só, e chegar tudo de uma vez não diz que são TRÊS LEITURAS do
+       mesmo ato; escalonado, o olho percorre a fila na ordem em que se compara.
+       O `both` do `osg-rise` segura o estado inicial durante o atraso — sem ele o
+       cartão apareceria pronto e só então animaria. */
     <section
-      className={`overflow-hidden rounded-lg border ${
+      style={{ animationDelay: `${ordem * 70}ms` }}
+      className={`animate-osg-rise overflow-hidden rounded-lg border motion-reduce:animate-none ${
         indisponivel
-          ? 'border-dashed border-slate-200 bg-slate-50/60'
+          ? 'border-dashed border-osg-200/70 bg-muted/50'
           : 'border-osg-100 bg-card'
       }`}
     >
-      <h3 className="border-b border-osg-100 bg-osg-50/60 px-4 py-2.5 text-sm font-semibold text-osg-800">
-        {ROTULO_CENARIO[cenario]}
+      <h3 className="border-b border-osg-100 bg-osg-50/60 px-3 py-2 text-sm font-semibold text-osg-700">
+        <ComDica dica={DICA_CENARIO[cenario]}>{ROTULO_CENARIO[cenario]}</ComDica>
       </h3>
 
       {indisponivel ? (
-        <p className="px-4 py-6 text-sm text-slate-500">
+        <p className="px-3 py-6 text-sm text-muted-foreground">
           Não há valor {cenario === 'itr' ? 'de ITR' : 'de mercado'} nas matrículas dos
-          imóveis deste cliente. O cenário fica de fora até alguém preencher — em branco,
+          imóveis deste cliente. O cenário fica de fora até alguém preencher: em branco,
           nunca zerado.
         </p>
       ) : (
-        <dl className="divide-y divide-slate-100">
-          <Linha rotulo="Total do acervo" valor={brlDeDecimal(saida.acervoPorCenario[cenario])} />
-          <Linha rotulo="Alíquota" valor="2% a 8%" />
+        <dl className="divide-y divide-osg-100/70">
+          <LinhaDeValor
+            rotulo="Total do acervo"
+            valor={brlDeDecimal(saida.acervoPorCenario[cenario])}
+            dica={'O acervo avaliado por esta régua. É ele que dá o preço da quota, e é '
+              + 'a única coisa que muda de um cenário para o outro.'}
+          />
+          <LinhaDeValor
+            rotulo="Alíquota"
+            valor="2% a 8%"
+            dica={'Progressiva por faixas de UPF. A calculadora aplica a fórmula '
+              + 'fechada (alíquota da faixa menos a dedução), que dá ao centavo o mesmo '
+              + 'resultado do demonstrativo faixa por faixa da SEFAZ.'}
+          />
 
           <Secao>Base de cálculo</Secao>
           {saida.linhas.map((l) => (
-            <Linha
+            <LinhaDeValor
               key={`base-${l.donatarioId}`}
               rotulo={l.nome}
               detalhe={pctDeDecimal(l.percentualDoAto)}
@@ -80,7 +105,7 @@ function QuadroDoCenario({ cenario, saida, instituicao, total }: {
 
           <Secao>ITCD devido</Secao>
           {saida.linhas.map((l) => (
-            <Linha
+            <LinhaDeValor
               key={`imposto-${l.donatarioId}`}
               rotulo={l.nome}
               detalhe={l.doacaoAnterior
@@ -94,40 +119,36 @@ function QuadroDoCenario({ cenario, saida, instituicao, total }: {
               quadro mostra as duas parcelas e soma — porque é o total que decide entre
               caminhos, e mostrar só a doação seria mostrar metade da conta. */}
           {instituicao == null ? (
-            <div className="flex items-baseline justify-between gap-3 bg-osg-50/60 px-4 py-3">
-              <dt className="text-sm font-semibold uppercase tracking-wide text-osg-800">
-                Total
-              </dt>
-              <dd className="font-mono text-base font-semibold tabular-nums text-osg-900">
-                {brlDeDecimal(saida.totaisPorCenario[cenario])}
-              </dd>
-            </div>
+            <LinhaDeTotal
+              rotulo="Total"
+              valor={brlDeDecimal(saida.totaisPorCenario[cenario])}
+              dica="Só a doação: este ato não tem guia de instituição de usufruto."
+            />
           ) : (
             <>
               <Secao>Instituição de usufruto</Secao>
               {instituicao.gias.map((g) => (
-                <Linha
+                <LinhaDeValor
                   key={`inst-${g.doadorId}>${g.donatarioId}`}
                   rotulo={`${g.doadorNome} → ${g.donatarioNome}`}
                   valor={brlDeDecimal(g.porCenario[cenario]?.imposto)}
                 />
               ))}
-              <Linha
+              <LinhaDeValor
                 rotulo="ITCD da doação"
                 valor={brlDeDecimal(saida.totaisPorCenario[cenario])}
               />
-              <Linha
+              <LinhaDeValor
                 rotulo="ITCD da instituição"
                 valor={brlDeDecimal(instituicao.totaisPorCenario[cenario])}
               />
-              <div className="flex items-baseline justify-between gap-3 bg-osg-50/60 px-4 py-3">
-                <dt className="text-sm font-semibold uppercase tracking-wide text-osg-800">
-                  Total do ato
-                </dt>
-                <dd className="font-mono text-base font-semibold tabular-nums text-osg-900">
-                  {brlDeDecimal(total ?? saida.totaisPorCenario[cenario])}
-                </dd>
-              </div>
+              <LinhaDeTotal
+                rotulo="Total do ato"
+                valor={brlDeDecimal(total ?? saida.totaisPorCenario[cenario])}
+                dica={'Doação MAIS instituição de usufruto. É este número que compara '
+                  + 'caminhos: a reserva não tem guia própria, ela já mudou a base da '
+                  + 'doação.'}
+              />
             </>
           )}
         </dl>
@@ -135,25 +156,3 @@ function QuadroDoCenario({ cenario, saida, instituicao, total }: {
     </section>
   );
 }
-
-function Linha({ rotulo, detalhe, valor }: {
-  rotulo: string;
-  detalhe?: string;
-  valor: string;
-}) {
-  return (
-    <div className="flex items-baseline justify-between gap-3 px-4 py-2">
-      <dt className="min-w-0 text-sm text-slate-700">
-        <span className="break-words">{rotulo}</span>
-        {detalhe && <span className="ml-1.5 text-xs text-slate-500">{detalhe}</span>}
-      </dt>
-      <dd className="shrink-0 font-mono text-sm tabular-nums text-slate-900">{valor}</dd>
-    </div>
-  );
-}
-
-const Secao = ({ children }: { children: React.ReactNode }) => (
-  <div className="bg-slate-50 px-4 py-1.5 text-xs font-medium uppercase tracking-wide text-slate-500">
-    {children}
-  </div>
-);

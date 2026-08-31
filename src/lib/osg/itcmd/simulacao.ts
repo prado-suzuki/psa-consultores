@@ -50,6 +50,19 @@ export const ROTULO_CENARIO: Record<Cenario, string> = {
   mercado: 'Valor de mercado',
 };
 
+/**
+ * DE ONDE VEM CADA RÉGUA. Mora ao lado do rótulo porque é a mesma explicação na tela de
+ * montagem, na de leitura e na lista: três cópias divergiriam.
+ */
+export const DICA_CENARIO: Record<Cenario, string> = {
+  contabil: 'O acervo pelo valor contábil dos imóveis, que é o que está registrado na '
+    + 'contabilidade da sociedade.',
+  itr: 'O acervo pelo valor declarado no ITR das matrículas, que o cliente já declara '
+    + 'à Receita.',
+  mercado: 'O acervo pelo valor de mercado das matrículas. Só existe quando alguém '
+    + 'preencheu esse valor no Diagnóstico Patrimonial.',
+};
+
 export interface EntradaPessoa {
   id: string;
   nome: string;

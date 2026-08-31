@@ -16,7 +16,8 @@ type AuditEntityType =
   | 'bem' | 'matricula' | 'titularidade' | 'impedimento' | 'cartorio'
   | 'tmpl_bloco' | 'tmpl_documento' | 'documento_arquivo'
   | 'solicitacao' | 'solicitacao_item' | 'solicitacao_item_nao_aplicavel'
-  | 'org_comment';
+  | 'org_comment'
+  | 'itcd_simulacao';
 
 interface AuditLogEntry {
   area: AuditArea;

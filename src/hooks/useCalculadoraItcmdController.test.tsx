@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => ({
   gravarSpy: vi.fn(),
   statusSpy: vi.fn(),
   renomearSpy: vi.fn(),
+  auditoriaSpy: vi.fn(),
 }));
 
 vi.mock('@/hooks/useSimulacoesItcmd', () => ({
@@ -141,8 +142,11 @@ beforeEach(() => {
       regime_bens: 'Separação Total',
       conjuge_id: 'Cristiano',
     }),
-    pf('Gabriel'),
-    pf('Rafael'),
+    // Filhos DOS DOIS: o casal doa em separacao total, cada um o proprio bloco, e a
+    // legitima existe nas duas pontas. Sem a mae na filiacao, a doacao dela para o
+    // filho entraria sem legitima nenhuma.
+    pf('Gabriel', { filiacao_pai_pessoa_id: 'Cristiano', filiacao_mae_pessoa_id: 'Fabiane' }),
+    pf('Rafael', { filiacao_pai_pessoa_id: 'Cristiano', filiacao_mae_pessoa_id: 'Fabiane' }),
   ];
   mocks.socios = [
     { id: 'S1', socio_pessoa_id: 'Cristiano', socio_denominacao: 'Cristiano', socio_tipo_pessoa: 'PF', quotas: 6_086_672 },
@@ -161,6 +165,12 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
 });
+
+// A TRILHA DE AUDITORIA no padrão do resto do sistema. Mockada para o teste ver o que
+// foi registrado sem depender do contexto de autenticação.
+vi.mock('@/hooks/useAuditLog', () => ({
+  useAuditLog: () => ({ logAction: mocks.auditoriaSpy, logActionOrThrow: vi.fn() }),
+}));
 
 describe('controlador da calculadora — o fio inteiro', () => {
   it('a lista começa VAZIA: nada entra sozinho', () => {
@@ -556,14 +566,158 @@ describe('controlador da calculadora — o fio inteiro', () => {
     expect(cristiano().participacaoFinal).toBe(0n);
 
     // O CANONICO JA TEM QUATRO CASAS. Digitar em cima dele dava cinco, o regex
-    // recusava e o campo voltava — parecia travado, sem dizer por que.
+    // recusava e o campo voltava ao valor de antes — parecia travado, sem dizer por
+    // que. Hoje quem cuida disso e a MASCARA: a quinta casa nao entra no texto, e o
+    // que esta na tela e o que vai ser apurado. O campo nao volta, ele para.
     act(() => calc().setPercentualFinal('Cristiano', '30,00001'));
-    expect(calc().percentualDigitado('Cristiano', 'x')).toBe('30,00001');
-    // A quinta casa e truncada para resolver: a apuracao tem quatro.
+    expect(calc().percentualDigitado('Cristiano', 'x')).toBe('30,0000');
     // 30% de 6.649.400 = 1.994.820.
     expect(cristiano().participacaoFinal).toBe(1_994_820n);
     // E o Gabriel assumiu o resto, sem ninguem mexer no campo dele.
     expect(gabriel().participacaoFinal).toBe(6_086_672n - 1_994_820n);
+
+    // A VIRGULA ENTRA SOZINHA. Era o relato: quatro digitos liam como 5.555%, o teto
+    // aparava e o campo mostrava 100% — 55,55 nao era alcancavel digitando `5555`.
+    act(() => calc().setPercentualFinal('Gabriel', '5555'));
+    expect(calc().percentualDigitado('Gabriel', 'x')).toBe('55,55');
+    // 55,55% de 6.649.400, meio para cima.
+    expect(gabriel().participacaoFinal).toBe(3_693_742n);
+  });
+
+  it('GERAR fecha o ato: o modal volta em branco, e o caso fica', () => {
+    // Recuperar o que estava digitado faz sentido antes de gerar. Depois, o quadro que
+    // reabria era o de um ato que ja virou linha no historico.
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+    montarAto(calc);
+    act(() => calc().setComReserva(true));
+    act(() => calc().setAporte('Gabriel', '1.000,00'));
+    expect(calc().linhasDoQuadro.length).toBe(4);
+
+    act(() => calc().gerar());
+
+    expect(calc().linhasDoQuadro).toEqual([]);
+    expect(calc().comReserva).toBe(false);
+    expect(calc().aporteDigitado('Gabriel')).toBe('');
+    expect(calc().painelAberto).toBe(false);
+    // O CASO fica: sociedade, competencia e UPF nao se reteclam a cada simulacao.
+    expect(calc().upf).toBe('255,20');
+    expect(calc().competencia).toBe('2026-02');
+    expect(calc().empresa?.denominacao).toBe('Terezinha Participações');
+  });
+
+  it('A LEGITIMA CEDE: a participacao final pedida DESCE abaixo do palpite', () => {
+    // O quadro do Agro Alianca: quatro socios, e o ato e so entre duas irmas. O
+    // universo do ato e 5.109.444 quotas (53,4576% do capital), e e por isso que
+    // "igualar as duas" nao e 50%: e 26,7288% para cada uma.
+    mocks.socios = [
+      { id: 'S1', socio_pessoa_id: 'Cristiano', socio_denominacao: 'Cristiano', socio_tipo_pessoa: 'PF', quotas: 4_448_500 },
+      { id: 'S2', socio_pessoa_id: 'Fabiane', socio_denominacao: 'Fabiane', socio_tipo_pessoa: 'PF', quotas: 3_626_444 },
+      { id: 'S3', socio_pessoa_id: 'Gabriel', socio_denominacao: 'Gabriel', socio_tipo_pessoa: 'PF', quotas: 1_483_000 },
+    ];
+    mocks.quadroDasEmpresas = mocks.socios.map((s) => ({
+      empresa_pessoa_id: 'HOLDING', socio_pessoa_id: s.socio_pessoa_id, quotas: s.quotas,
+    }));
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+    const linha = (n: string) => calc().linhasDoQuadro.find((l) => l.nome === n)!;
+
+    // Fabiane doa para o filho Gabriel, que JA TEM quota: as duas pontas tem capital, e
+    // e nesse desenho que a legitima do palpite virava piso.
+    act(() => calc().adicionarParticipante('Fabiane'));
+    act(() => calc().adicionarParticipante('Gabriel'));
+    act(() => calc().definirPapel('Gabriel', 'recebe'));
+    expect(calc().totaisDoQuadro.pctFinal).toBe('53.4576');
+
+    // A LEGITIMA ERA PISO INVISIVEL. Antes deste conserto, digitar 26,7288% aqui
+    // devolvia 34,4867%: a disponivel ia a zero e a participacao final parava em
+    // `quotas atuais + legitima do palpite`, sem nada dizer por que.
+    act(() => calc().setPercentualFinal('Gabriel', '26,7288'));
+    expect(linha('Gabriel').pctFinal).toBe('26.7288');
+    expect(linha('Fabiane').pctFinal).toBe('26.7288');
+
+    // E cedeu quem tinha de ceder: a legitima do palpite era 1.813.222.
+    expect(BigInt(calc().legitimaDigitada('Gabriel').replace(/\D/g, '')))
+      .toBeLessThan(1_813_222n);
+  });
+
+  it('IRMA PARA IRMA: sem vinculo de herdeiro, a legitima entra ZERO', () => {
+    // Irma nao e herdeira necessaria (art. 1.845: descendentes, ascendentes e conjuge).
+    // O palpite antigo dividia o que a doadora da em metade legitima e metade
+    // disponivel para QUALQUER par, e era essa legitima que travava o campo por baixo.
+    mocks.pessoas = [
+      { id: 'HOLDING', denominacao: 'Alianca', tipo_pessoa: 'PJ', tipo_empresa: 'CN', is_fundador: false, filiacao_pai_pessoa_id: null, filiacao_mae_pessoa_id: null },
+      pf('Regina'), pf('Cristina'), pf('Avelino'),
+    ];
+    mocks.parentescos = [];
+    mocks.socios = [
+      { id: 'S1', socio_pessoa_id: 'Avelino', socio_denominacao: 'Avelino', socio_tipo_pessoa: 'PF', quotas: 4_448_500 },
+      { id: 'S2', socio_pessoa_id: 'Regina', socio_denominacao: 'Regina', socio_tipo_pessoa: 'PF', quotas: 3_626_444 },
+      { id: 'S3', socio_pessoa_id: 'Cristina', socio_denominacao: 'Cristina', socio_tipo_pessoa: 'PF', quotas: 1_483_000 },
+    ];
+    mocks.quadroDasEmpresas = mocks.socios.map((s) => ({
+      empresa_pessoa_id: 'HOLDING', socio_pessoa_id: s.socio_pessoa_id, quotas: s.quotas,
+    }));
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+    const linha = (n: string) => calc().linhasDoQuadro.find((l) => l.nome === n)!;
+
+    act(() => calc().adicionarParticipante('Regina'));
+    act(() => calc().adicionarParticipante('Cristina'));
+    act(() => calc().definirPapel('Cristina', 'recebe'));
+
+    // Nenhuma legitima, e a disponivel leva o que a Regina tem para dar.
+    expect(calc().legitimaDigitada('Cristina')).toBe('0');
+    expect(calc().disponivelDigitada('Cristina')).toBe('3.626.444');
+
+    // E o campo desce sem piso nenhum: a Cristina fica com o que se pedir.
+    act(() => calc().setPercentualFinal('Cristina', '20'));
+    expect(linha('Cristina').pctFinal).toBe('20.0000');
+  });
+
+  it('A CONTA NO CAMPO: `/2` divide o ato em quotas exatas, sem conta na mao', () => {
+    // O universo do ato e 5.109.444 quotas (53,4576% do capital), e "as duas iguais" e
+    // 26,7288% para cada. Pelo percentual arredondado as duas linhas ficavam com quotas
+    // diferentes (2.554.724 contra 2.554.720): uma casa de percentual vale ~956 quotas.
+    mocks.pessoas = [
+      { id: 'HOLDING', denominacao: 'Alianca', tipo_pessoa: 'PJ', tipo_empresa: 'CN', is_fundador: false, filiacao_pai_pessoa_id: null, filiacao_mae_pessoa_id: null },
+      pf('Regina'), pf('Cristina'), pf('Avelino'),
+    ];
+    mocks.parentescos = [];
+    mocks.socios = [
+      { id: 'S1', socio_pessoa_id: 'Avelino', socio_denominacao: 'Avelino', socio_tipo_pessoa: 'PF', quotas: 4_448_500 },
+      { id: 'S2', socio_pessoa_id: 'Regina', socio_denominacao: 'Regina', socio_tipo_pessoa: 'PF', quotas: 3_626_444 },
+      { id: 'S3', socio_pessoa_id: 'Cristina', socio_denominacao: 'Cristina', socio_tipo_pessoa: 'PF', quotas: 1_483_000 },
+    ];
+    mocks.quadroDasEmpresas = mocks.socios.map((s) => ({
+      empresa_pessoa_id: 'HOLDING', socio_pessoa_id: s.socio_pessoa_id, quotas: s.quotas,
+    }));
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+    const linha = (n: string) => calc().linhasDoQuadro.find((l) => l.nome === n)!;
+
+    act(() => calc().adicionarParticipante('Regina'));
+    act(() => calc().adicionarParticipante('Cristina'));
+    act(() => calc().definirPapel('Cristina', 'recebe'));
+    expect(calc().totaisDoQuadro.quotasAtuais).toBe(5_109_444n);
+
+    // `/2` no campo de PERCENTUAL: resolve em quota inteira, e as duas fecham iguais.
+    act(() => calc().setPercentualFinal('Cristina', '/2'));
+    expect(linha('Cristina').participacaoFinal).toBe(2_554_722n);
+    expect(linha('Regina').participacaoFinal).toBe(2_554_722n);
+
+    // O texto fica no campo enquanto se digita, e o blur devolve o canonico.
+    expect(calc().percentualDigitado('Cristina', 'x')).toBe('/2');
+    act(() => calc().confirmarPercentual('Cristina'));
+    expect(calc().percentualDigitado('Cristina', linha('Cristina').pctFinal)).toBe('26,7288');
+
+    // `/2` no campo de QUOTAS faz a mesma conta.
+    act(() => calc().setQuotasFinal('Regina', '/2'));
+    expect(linha('Regina').participacaoFinal).toBe(2_554_722n);
+
+    // E com dividendo escrito, divide o numero escrito: 5.109.444 / 3.
+    act(() => calc().setQuotasFinal('Cristina', '5109444/3'));
+    expect(linha('Cristina').participacaoFinal).toBe(1_703_148n);
   });
 
   it('O ABSURDO APARA para o maximo possivel, em vez de nao reagir', () => {
@@ -572,7 +726,9 @@ describe('controlador da calculadora — o fio inteiro', () => {
     act(() => calc().adicionarDoador('Cristiano'));
     act(() => calc().adicionarDonatario('Gabriel'));
 
-    // 9.999.999% nao e alvo, e engano. O doador vai ao maximo dele: ficar com tudo.
+    // Sete noves viram 99,9999% pela mascara (a virgula entra onde cabe), e 99,9999%
+    // do capital e mais do que o Cristiano pode ter — a Fabiane detem o resto. O teto
+    // da pessoa apara: ele vai ao maximo dele, que e ficar com tudo o que e dele.
     act(() => calc().setPercentualFinal('Cristiano', '9999999'));
     const cristiano = () => calc().linhasDoQuadro.find((l) => l.nome === 'Cristiano')!;
     expect(cristiano().participacaoFinal).toBe(6_086_672n);
@@ -604,6 +760,47 @@ describe('controlador da calculadora — o fio inteiro', () => {
       .toBe(3_043_336n);
     expect(calc().linhasDoQuadro.find((l) => l.nome === 'Gabriel')!.legitima)
       .toBe(3_043_336n);
+  });
+
+  it('a TRILHA registra o de-para de status e de nome, com o anterior', () => {
+    // `changed_fields` sem o valor de antes diria "mudou para aprovada", que e metade
+    // do fato. O anterior sai do historico, que a tela ja tem carregado.
+    mocks.historico = [{
+      id: 'S1', versao: 2, nome: 'Sem reserva', status: 'gerada',
+      competencia: '2026-08', upf: '263.78', totalDeQuotas: '6649400',
+      criadaEm: '2026-08-28T12:00:00Z', observacao: null, origemSimulacaoId: null,
+      acervoPorCenario: { contabil: '6649400.00', itr: null, mercado: null },
+      impostoPorCenario: { contabil: '100.00', itr: null, mercado: null },
+      totalPorCenario: { contabil: '100.00', itr: null, mercado: null },
+      comReserva: false, pctBaseReserva: '100.00', pctBaseInstituicao: '70.00',
+      usufruto: [], concessoes: [], gias: [], doadores: [], donatarios: [],
+    }];
+
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+
+    act(() => calc().alterarStatus('S1', 'aprovada'));
+    expect(mocks.statusSpy).toHaveBeenCalledWith({
+      id: 'S1', status: 'aprovada', statusAnterior: 'gerada',
+      nome: 'Sem reserva', versao: 2,
+    });
+
+    act(() => calc().renomear('S1', '51% pelo Avelino'));
+    expect(mocks.renomearSpy).toHaveBeenCalledWith({
+      id: 'S1', nome: '51% pelo Avelino', nomeAnterior: 'Sem reserva', versao: 2,
+    });
+  });
+
+  it('sem a simulacao no historico, nao registra de-para inventado', () => {
+    // O `mocks` e de modulo e o `beforeEach` nao zera os spies: sem isto, a chamada do
+    // teste anterior conta como se fosse desta.
+    mocks.statusSpy.mockClear();
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+    // Id que nao esta na lista: nao ha valor anterior para declarar, e inventar um
+    // poria dado falso na trilha.
+    act(() => calc().alterarStatus('FANTASMA', 'aprovada'));
+    expect(mocks.statusSpy).not.toHaveBeenCalled();
   });
 
   it('ENCADEADA: o ato parte do quadro que o anterior deixou', () => {

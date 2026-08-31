@@ -1,16 +1,28 @@
+import { useState } from 'react';
+import { Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-import { Campo, fieldCls } from '@/components/equipe/osg/formKit';
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from '@/components/ui/command';
 
 /**
- * UM CAMPO PARA ENTRAR NA TABELA — o mesmo na doação e no usufruto, no mesmo canto
- * das duas: à esquerda, na frente da barra de parâmetros. Ele estava à esquerda numa
- * aba e à direita na outra, e trocar de aba movia o controle de lugar.
+ * ENTRAR NA TABELA — o mesmo controle na doação e no usufruto.
  *
- * Lista suspensa que volta a "Escolha a pessoa" depois de cada escolha, para dar duas
- * pessoas em dois cliques. Sem candidato, não fica um campo vazio na tela: fica a
- * frase que diz por que não há ninguém para adicionar.
+ * ERA UM `Select`, e por isso não funcionava: uma caixa da largura de um campo, com
+ * chevron e o texto "Escolha a pessoa", lê como **filtro**. O analista procurava onde
+ * adicionar alguém e via um seletor que parecia recortar a tabela.
+ *
+ * Agora é o molde de combobox da OSG — o mesmo do `CartorioSelect`: um BOTÃO com `+`,
+ * que abre uma lista com BUSCA. Três coisas mudam de uma vez:
+ *
+ *  · a afordância fica certa — `+` diz adicionar, e nada mais;
+ *  · a busca aparece, e ela faz falta: cliente com vinte pessoas físicas não se
+ *    percorre com o olho;
+ *  · a lista fecha ao escolher, então adicionar dois é dois pares de cliques.
+ *
+ * Sem candidato, não fica um botão morto na tela: fica a frase que diz por que não há
+ * ninguém para adicionar.
  */
 export function AdicionarPessoa({ rotulo, vazio, opcoes, onEscolher }: {
   rotulo: string;
@@ -18,21 +30,52 @@ export function AdicionarPessoa({ rotulo, vazio, opcoes, onEscolher }: {
   opcoes: Array<{ pessoaId: string; texto: string }>;
   onEscolher: (pessoaId: string) => void;
 }) {
+  const [aberto, setAberto] = useState(false);
+
+  // `h-9`: a mesma altura do botão que esta frase substitui. Sem isso a barra encolhe
+  // no instante em que a última pessoa entra no ato, e a tabela sobe uns pixels.
   if (opcoes.length === 0) {
-    return <p className="pb-2 text-xs text-slate-500">{vazio}</p>;
+    return (
+      <p className="flex h-9 items-center text-xs text-muted-foreground">{vazio}</p>
+    );
   }
+
   return (
-    <Campo rotulo={rotulo}>
-      <Select value="" onValueChange={onEscolher}>
-        <SelectTrigger className={`${fieldCls} h-9 w-72`} aria-label={rotulo}>
-          <SelectValue placeholder="Escolha a pessoa" />
-        </SelectTrigger>
-        <SelectContent>
-          {opcoes.map((o) => (
-            <SelectItem key={o.pessoaId} value={o.pessoaId}>{o.texto}</SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </Campo>
+    <Popover open={aberto} onOpenChange={setAberto}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-label={rotulo}
+          className="h-9 gap-1.5 border border-dashed border-osg-200 text-osg-700 transition-colors hover:border-osg-moss hover:bg-osg-50 hover:text-osg-moss"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {rotulo}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-80 p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Buscar pessoa…" />
+          <CommandList>
+            <CommandEmpty>Nenhuma pessoa com esse nome.</CommandEmpty>
+            <CommandGroup>
+              {opcoes.map((o) => (
+                <CommandItem
+                  key={o.pessoaId}
+                  value={o.texto}
+                  onSelect={() => {
+                    onEscolher(o.pessoaId);
+                    setAberto(false);
+                  }}
+                >
+                  {o.texto}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }

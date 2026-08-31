@@ -75,6 +75,13 @@ export const simulacaoSalva = (
       vlrAporteMoeda: '0.00',
       quotasDoAporte: '0',
       percentual: '50.0000',
+    },
+  ],
+  // O RESULTADO, por guia. Um doador só: a guia dele para cada donatária.
+  gias: [
+    {
+      doadorId: 'p1', doadorNome: 'Avelino', donatarioId: 'p2', donatarioNome: 'Cristina',
+      quotasRecebidas: '3295972', pctDaGia: '100.0000', doacaoAnterior: null,
       basePorCenario: { contabil: '3295972.00', itr: '1700000.00', mercado: '4100000.00' },
       impostoPorCenario: { contabil: '93432.00', itr: '45000.00', mercado: '125000.00' },
     },

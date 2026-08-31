@@ -4,9 +4,14 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { AdicionarPessoa } from './AdicionarPessoa';
-import { AvisoDeParcelaDiferida, SelecaoDaBase } from './SelecaoDaBase';
-import { Campo, fieldCls } from '@/components/equipe/osg/formKit';
-import { pctDeDecimal, quotasDeBigint, TRACO } from './itcmdFmt';
+import {
+  Aviso, barraDoAtoCls, cabecalhoDaTabelaCls, ComoCampo, ComoDicas, ComSinalDePorcento,
+  Ctrl, DICA_NOME_CURTO, DicaDoControle, linhaCls, linhaDeTotalCls, molduraDaTabelaCls, Num, NumCampo, Q,
+  Th, Txt,
+} from './itcmdKit';
+import { AvisoDeParcelaDiferida, CampoDaBase } from './SelecaoDaBase';
+import { fieldCls } from '@/components/equipe/osg/formKit';
+import { pctDeDecimal, pctSemSinal, quotasDeBigint, TRACO } from './itcmdFmt';
 import type { CalculadoraItcmd } from '@/hooks/useCalculadoraItcmdController';
 import type { LinhaDoUsufruto } from '@/lib/osg/usufrutoDoAto';
 
@@ -29,7 +34,7 @@ import type { LinhaDoUsufruto } from '@/lib/osg/usufrutoDoAto';
 export function AbaDoUsufruto({ calc }: { calc: CalculadoraItcmd }) {
   if (calc.linhasDoUsufruto.length === 0) {
     return (
-      <p className="rounded-lg border border-dashed border-slate-200 px-4 py-8 text-center text-sm text-slate-600">
+      <p className="rounded-lg border border-dashed border-osg-200/70 px-4 py-8 text-center text-sm text-muted-foreground">
         Monte o ato na aba <strong>Doação</strong> primeiro. O usufruto se apoia no quadro
         de lá: é o que foi doado que vira nua propriedade.
       </p>
@@ -39,7 +44,8 @@ export function AbaDoUsufruto({ calc }: { calc: CalculadoraItcmd }) {
   const temInstituicao = calc.totalInstituido > 0n;
 
   return (
-    <div className="space-y-4">
+    <ComoDicas>
+      <div className="space-y-4">
       {/* ── OS PARÂMETROS DESTE ATO ──────────────────────────────────────────
           SÓ a base da INSTITUIÇÃO. A da reserva mora na aba da Doação, ao lado do
           checkbox: são DUAS GUIAS, com DUAS naturezas de operação, e portanto duas
@@ -47,10 +53,10 @@ export function AbaDoUsufruto({ calc }: { calc: CalculadoraItcmd }) {
           ficavam as duas, agrupadas pelo assunto em vez de pelo ato.
 
           QUEM RECEBE não é campo: é o papel na linha. */}
-      <div className="flex flex-wrap items-end gap-x-5 gap-y-3 rounded-md border border-osg-100 bg-osg-50/40 px-3 py-2.5">
-        {/* ADICIONAR na frente, como na aba de doação: conceder usufruto NÃO exige ter
-            doado — um sócio que ficou fora da doação pode instituir usufruto sobre as
-            quotas que sempre teve. */}
+      <div className={barraDoAtoCls}>
+        {/* ADICIONAR PRIMEIRO, na esquerda máxima, como na aba de doação. Conceder
+            usufruto NÃO exige ter doado: um sócio que ficou fora da doação pode
+            instituir usufruto sobre as quotas que sempre teve. */}
         <AdicionarPessoa
           rotulo="Adicionar participantes"
           vazio="Todas as pessoas físicas do cliente já estão no quadro."
@@ -63,15 +69,24 @@ export function AbaDoUsufruto({ calc }: { calc: CalculadoraItcmd }) {
           onEscolher={calc.adicionarAoUsufruto}
         />
 
-        {temInstituicao && (
-          <Campo rotulo="Base da instituição">
-            <SelecaoDaBase
-              valor={calc.pctBaseDaInstituicao}
-              aoTrocar={calc.setPctBaseDaInstituicao}
-              rotulo="Base de cálculo da instituição"
-            />
-          </Campo>
-        )}
+        {/* SEMPRE na tela, travado enquanto nada foi instituído. Era condicional, e
+            então nascia no instante em que se digitava o percentual de voz e voto —
+            a barra crescia e a tabela toda descia, com o olho na tabela. */}
+        <CampoDaBase
+          rotulo="Base da instituição"
+          valor={calc.pctBaseDaInstituicao}
+          aoTrocar={calc.setPctBaseDaInstituicao}
+          ativo={temInstituicao}
+          // TRAÇO e não 100%: sem quota instituída não existe guia de instituição, e
+          // anunciar uma base seria afirmar algo sobre um documento que não sai. A
+          // reserva da doação NÃO conta aqui — ela não tem guia própria, ela muda a
+          // base da guia da doação, que se decide na outra aba.
+          semAto={TRACO}
+          porQueTravado={'Ninguém instituiu usufruto ainda, e sem guia não há base a '
+            + 'escolher. Digite na coluna "Concede usufruto de", ou então o percentual '
+            + 'de voz e voto do usufrutuário: a calculadora reparte a concessão.'}
+        />
+
       </div>
 
       {/* A consequência da base reduzida é a única coisa que merece linha própria:
@@ -81,20 +96,35 @@ export function AbaDoUsufruto({ calc }: { calc: CalculadoraItcmd }) {
       )}
 
       {/* ── A TABELA ─────────────────────────────────────────────────────── */}
-      <div className="overflow-x-auto rounded-lg border border-osg-100">
+      <div className={molduraDaTabelaCls}>
         <table className="w-full text-sm">
-          <thead className="bg-osg-50/60 text-xs font-medium text-osg-800">
+          <thead className={cabecalhoDaTabelaCls}>
             <tr>
               <Th className="w-8" />
-              <Th className="text-left">Pessoa</Th>
-              <Th className="text-left">Papel</Th>
-              <Th>Quotas</Th>
-              <Th>%</Th>
-              <Th>Plena</Th>
-              <Th>Nua propriedade</Th>
-              <Th>Concede usufruto de</Th>
-              <Th>Usufruto</Th>
-              <Th>%</Th>
+              <Th alinhar="esquerda" dica={DICA_NOME_CURTO}>Pessoa</Th>
+              <Th
+                alinhar="esquerda"
+                dica="Quem usufrui recebe o voto; quem é nu-proprietário passa o voto adiante."
+              >
+                Papel
+              </Th>
+              <Th dica="Participação final, vinda da aba de Doação. O usufruto não altera quotas: ele reparte o voto delas.">
+                Quotas
+              </Th>
+              <Th dica="Percentual do capital que a pessoa TEM, depois da doação.">%</Th>
+              <Th dica="Quotas que a pessoa tem E vota: propriedade plena, sem usufruto concedido a ninguém.">
+                Plena
+              </Th>
+              <Th dica="Quotas que a pessoa tem e NÃO vota: o usufruto delas está com outra pessoa, por reserva na doação ou por instituição declarada.">
+                Nua propriedade
+              </Th>
+              <Th dica="Quanto o nu-proprietário concede agora. Editar uma concessão reacomoda as outras mantendo o total, porque o total é o alvo de voz e voto.">
+                Concede usufruto de
+              </Th>
+              <Th dica="Quotas DE OUTROS que esta pessoa usufrui. Ela não é dona delas, mas vota com elas.">Usufruto</Th>
+              <Th dica="Percentual do capital que a pessoa VOTA. É a régua do controle, e dá para ter 0% de quotas e 51% de voto.">
+                %
+              </Th>
             </tr>
           </thead>
           <tbody>
@@ -104,17 +134,26 @@ export function AbaDoUsufruto({ calc }: { calc: CalculadoraItcmd }) {
             {/* O TOTAL fecha em 100%: cada quota vota uma vez. O bloco usufruído entra
                 UMA vez mesmo com dois usufrutuários — direito conjunto, com
                 acrescimento ao sobrevivente (art. 1.411 do Código Civil). */}
-            <tr className="border-t-2 border-osg-100 bg-osg-50/60 font-semibold text-osg-900">
-              <Td />
-              <Td className="text-left">TOTAL</Td>
-              <Td />
-              <Td><Q>{calc.totaisDoUsufruto.quotas}</Q></Td>
-              <Td>{pctDeDecimal(calc.totaisDoUsufruto.pctParticipacao)}</Td>
-              <Td><Q>{calc.totaisDoUsufruto.plena}</Q></Td>
-              <Td><Q>{calc.totaisDoUsufruto.nua}</Q></Td>
-              <Td><Q>{calc.totalInstituido}</Q></Td>
-              <Td><Q>{calc.totaisDoUsufruto.usufruto}</Q></Td>
-              <Td>{pctDeDecimal(calc.totaisDoUsufruto.pctVozEVoto)}</Td>
+            <tr className={linhaDeTotalCls}>
+              <Num />
+              <Txt className="font-sans">TOTAL</Txt>
+              <Num />
+              <Num><Q>{calc.totaisDoUsufruto.quotas}</Q></Num>
+              <Num>{pctDeDecimal(calc.totaisDoUsufruto.pctParticipacao)}</Num>
+              <Num><Q>{calc.totaisDoUsufruto.plena}</Q></Num>
+              <Num><Q>{calc.totaisDoUsufruto.nua}</Q></Num>
+              <Num><Q>{calc.totalInstituido}</Q></Num>
+              <Num><Q>{calc.totaisDoUsufruto.usufruto}</Q></Num>
+              {/* O TOTAL veste a casca da coluna também: com o sinal de % fixo, o
+                  dígito da linha de conferência tem de parar onde param os das
+                  linhas de cima. Em `Num` ele ficava 12px à direita delas. */}
+              <NumCampo>
+                <ComSinalDePorcento>
+                  <ComoCampo recuo="pr-6">
+                    {pctSemSinal(calc.totaisDoUsufruto.pctVozEVoto)}
+                  </ComoCampo>
+                </ComSinalDePorcento>
+              </NumCampo>
             </tr>
           </tbody>
         </table>
@@ -124,21 +163,13 @@ export function AbaDoUsufruto({ calc }: { calc: CalculadoraItcmd }) {
           RESULTADO, e resultado mora no quadro de saída, ao lado dos cenários da
           doação. Esta aba é o formulário que o produz. Aqui fica só o que TRAVA a
           geração. */}
-      {calc.erroDaInstituicao && (
-        <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-          {calc.erroDaInstituicao}
-        </p>
-      )}
+      {calc.erroDaInstituicao && <Aviso tom="erro">{calc.erroDaInstituicao}</Aviso>}
 
       {calc.problemasDoUsufruto.map((p) => (
-        <p
-          key={p.codigo}
-          className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive"
-        >
-          {p.mensagem}
-        </p>
+        <Aviso key={p.codigo} tom="erro">{p.mensagem}</Aviso>
       ))}
-    </div>
+      </div>
+    </ComoDicas>
   );
 }
 
@@ -158,132 +189,124 @@ function Linha({ linha: l, calc }: { linha: LinhaDoUsufruto; calc: CalculadoraIt
   const podeConceder = l.plena + l.nuaDeInstituicao > 0n;
 
   return (
-    <tr className="border-t border-slate-100">
-      <Td className="pr-0">
-        <button
-          type="button"
-          aria-label={`Tirar ${l.nome} do usufruto`}
-          title={`${l.nome} sai do quadro de usufruto. Continua na doação.`}
-          onClick={() => calc.removerDoUsufruto(l.pessoaId)}
-          className="rounded p-1 text-slate-400 hover:bg-muted hover:text-destructive"
+    <tr className={linhaCls}>
+      <Ctrl>
+        <DicaDoControle
+          dica={`${l.nome} sai do quadro de usufruto e continua na doação. São dois atos.`}
         >
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      </Td>
-      <Td className="text-left font-sans font-normal">{l.nome}</Td>
-      <Td className="text-left">
+          <button
+            type="button"
+            aria-label={`Tirar ${l.nome} do usufruto`}
+            onClick={() => calc.removerDoUsufruto(l.pessoaId)}
+            className="rounded p-1 text-muted-foreground/70 transition-colors hover:bg-muted hover:text-destructive"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        </DicaDoControle>
+      </Ctrl>
+      <Txt className="font-sans">{l.nome}</Txt>
+      <Txt>
         <Select
           value={papel}
           onValueChange={(v) => calc.definirPapelNoUsufruto(
             l.pessoaId, v === 'usufrui' ? 'usufrui' : 'concede',
           )}
         >
-          <SelectTrigger
-            aria-label={`Papel de ${l.nome} no usufruto`}
-            className={`${fieldCls} h-8 w-40`}
-            title={'Usufrutuário recebe uso, gozo e voto — é dele o alvo de %. '
-              + 'Nu-proprietário continua dono das quotas e passa o voto adiante — é '
-              + 'dele o que se concede, e a guia.'}
+          <DicaDoControle
+            dica={'Usufrutuário recebe uso, gozo e voto, e é dele o alvo de %. '
+              + 'Nu-proprietário continua dono das quotas e passa o voto adiante. A '
+              + 'concessão e a guia são dele.'}
           >
-            <SelectValue />
-          </SelectTrigger>
+            <SelectTrigger
+              aria-label={`Papel de ${l.nome} no usufruto`}
+              className={`${fieldCls} h-8 w-40`}
+            >
+              <SelectValue />
+            </SelectTrigger>
+          </DicaDoControle>
           <SelectContent>
             <SelectItem value="usufrui">Usufrutuário</SelectItem>
             <SelectItem value="concede">Nu-proprietário</SelectItem>
           </SelectContent>
         </Select>
-      </Td>
+      </Txt>
       {/* QUOTAS não muda: o usufruto reparte o VOTO delas, não elas. Vem da
           participação final da aba de doação. */}
-      <Td title="Participação final, da aba de doação. O usufruto não a altera.">
+      <Num dica="Participação final, da aba de doação. O usufruto não a altera.">
         <Q>{l.quotas}</Q>
-      </Td>
-      <Td className="text-slate-500">{pctDeDecimal(l.pctParticipacao)}</Td>
-      <Td title="Quotas que ela tem E vota.">{quotasDeBigint(l.plena)}</Td>
-      <Td
-        title={l.nua === 0n
+      </Num>
+      <Num className="text-muted-foreground">{pctDeDecimal(l.pctParticipacao)}</Num>
+      <Num dica="Quotas que ela tem E vota.">{quotasDeBigint(l.plena)}</Num>
+      <Num
+        dica={l.nua === 0n
           ? 'Quotas que ela tem e não vota, porque concedeu o usufruto.'
           : `Concedido: ${quotasDeBigint(l.nuaDeReserva)} pela reserva da doação `
             + `(automático) e ${quotasDeBigint(l.nuaDeInstituicao)} por `
             + 'instituição declarada.'}
       >
         {quotasDeBigint(l.nua)}
-      </Td>
+      </Num>
       {/* CONCEDER é o campo do nu-proprietário. A reserva não se digita aqui — ela já
           veio da doação. Editar uma concessão REACOMODA as outras, mantendo o total:
           o total é o alvo de voz e voto, e quem o muda é a coluna do usufrutuário. */}
-      <Td>
+      <NumCampo>
         {!usufrui && podeConceder ? (
-          <Input
-            aria-label={`Quotas que ${l.nome} concede em usufruto`}
-            inputMode="numeric"
-            placeholder="0"
-            title={`${l.nome} tem ${quotasDeBigint(l.plena + l.nuaDeInstituicao)} `
+          <DicaDoControle
+            dica={`${l.nome} tem ${quotasDeBigint(l.plena + l.nuaDeInstituicao)} `
               + 'quotas em propriedade plena. Conceder o usufruto delas passa o voto '
-              + 'aos usufrutuários, e é ato tributado — guia e imposto próprios.'}
-            className={`${fieldCls} ml-auto h-8 w-28 text-right font-mono tabular-nums`}
-            value={calc.institucaoDigitada(l.pessoaId)}
-            onChange={(e) => calc.setInstituicao(l.pessoaId, e.target.value)}
-          />
+              + 'aos usufrutuários, e é ato tributado: guia e imposto próprios.'}
+          >
+            <Input
+              aria-label={`Quotas que ${l.nome} concede em usufruto`}
+              inputMode="numeric"
+              placeholder="0"
+              className={`${fieldCls} ml-auto h-8 w-28 text-right font-mono tabular-nums`}
+              value={calc.institucaoDigitada(l.pessoaId)}
+              onChange={(e) => calc.setInstituicao(l.pessoaId, e.target.value)}
+            />
+          </DicaDoControle>
         ) : (
-          <span className="text-slate-400">
+          // Mesma caixa de 28, para o valor não trocar de régua quando a linha vira
+          // concedente e a célula passa a ter campo.
+          <ComoCampo largura="w-28" className="text-muted-foreground/70">
             {l.nuaDeInstituicao > 0n ? quotasDeBigint(l.nuaDeInstituicao) : TRACO}
-          </span>
+          </ComoCampo>
         )}
-      </Td>
-      <Td title="Quotas de outros que ela usufrui — e vota.">
+      </NumCampo>
+      <Num dica="Quotas de outros que ela usufrui, e com as quais vota.">
         {quotasDeBigint(l.usufruto)}
-      </Td>
+      </Num>
       {/* O % ALVO é o campo do usufrutuário: lê-se o percentual atual e digita-se o
           desejado, e a calculadora reparte a concessão entre os nu-proprietários. */}
-      <Td>
-        {usufrui ? (
-          <div className="relative ml-auto w-24">
-            <Input
-              aria-label={`Voz e voto de ${l.nome}, em %`}
-              inputMode="decimal"
-              title={'Percentual do capital que esta pessoa vota. Digite o desejado e a '
-                + 'calculadora reparte a concessão entre os nu-proprietários — cada um '
+      {/* O SINAL DE % é da COLUNA: fica na casca, uma vez, na mesma posição no campo e
+          na leitura. Era parte do texto na linha em leitura ("50,0000%") e sinal solto
+          no campo, então os dígitos das duas paravam em lugares diferentes — e trocar o
+          papel de alguém fazia o número saltar de uma régua para a outra. */}
+      <NumCampo>
+        <ComSinalDePorcento>
+          {usufrui ? (
+            <DicaDoControle
+              dica={'Percentual do capital que esta pessoa vota. Digite o desejado e a '
+                + 'calculadora reparte a concessão entre os nu-proprietários. Cada um '
                 + 'emite a sua guia, com a própria isenção de 500 UPF.'}
-              className={`${fieldCls} h-8 w-full pr-6 text-right font-mono tabular-nums font-semibold`}
-              value={calc.vozEVotoDigitado(l.pessoaId, l.pctVozEVoto)}
-              onChange={(e) => calc.setVozEVoto(l.pessoaId, e.target.value)}
-              onBlur={() => calc.confirmarVozEVoto(l.pessoaId)}
-            />
-            <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-              %
-            </span>
-          </div>
-        ) : (
-          <span className="font-semibold">{pctDeDecimal(l.pctVozEVoto)}</span>
-        )}
-      </Td>
+            >
+              <Input
+                aria-label={`Voz e voto de ${l.nome}, em %`}
+                inputMode="decimal"
+                className={`${fieldCls} h-8 w-full pr-6 text-right font-mono font-semibold tabular-nums`}
+                value={calc.vozEVotoDigitado(l.pessoaId, l.pctVozEVoto)}
+                onChange={(e) => calc.setVozEVoto(l.pessoaId, e.target.value)}
+                onBlur={() => calc.confirmarVozEVoto(l.pessoaId)}
+              />
+            </DicaDoControle>
+          ) : (
+            <ComoCampo recuo="pr-6" className="font-semibold">
+              {pctSemSinal(l.pctVozEVoto)}
+            </ComoCampo>
+          )}
+        </ComSinalDePorcento>
+      </NumCampo>
     </tr>
   );
 }
 
-function Th({ children, className = '' }: {
-  children?: React.ReactNode;
-  className?: string;
-}) {
-  return <th className={`px-3 py-2 text-right font-medium ${className}`}>{children}</th>;
-}
-
-function Td({ children, className = '', title }: {
-  children?: React.ReactNode;
-  className?: string;
-  title?: string;
-}) {
-  return (
-    <td
-      title={title}
-      className={`px-3 py-1.5 text-right font-mono tabular-nums ${className}`}
-    >
-      {children}
-    </td>
-  );
-}
-
-function Q({ children }: { children: bigint }) {
-  return <>{quotasDeBigint(children)}</>;
-}

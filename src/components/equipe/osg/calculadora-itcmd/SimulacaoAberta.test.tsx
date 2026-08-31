@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SimulacaoAberta } from './SimulacaoAberta';
+import { colunasSemDica } from './alinhamentoDeTabela';
 import { simulacaoSalva } from './simulacaoSalvaFixture';
 
 // O que esta tela prende: as três abas mostram o retrato GRAVADO e o nome se edita.
@@ -56,7 +57,7 @@ describe('SimulacaoAberta', () => {
     expect(screen.queryByText('Valor contábil')).not.toBeInTheDocument();
   });
 
-  it('o APORTE gravado volta no quadro, com o valor e a origem das quotas', () => {
+  it('o APORTE gravado volta no quadro, com o valor e a origem das quotas', async () => {
     montar();
     // A coluna existe porque HOUVE aporte: R$ 3.000.000 do Avelino.
     expect(screen.getByText('Aporte (R$)')).toBeInTheDocument();
@@ -64,8 +65,18 @@ describe('SimulacaoAberta', () => {
 
     // E o quadro sabe dizer QUANTAS quotas vieram de dinheiro — que é a razão de a
     // coluna `quotas_do_aporte` existir: o preço da quota de antes não é recuperável.
-    expect(screen.getByTitle(/Inclui 3\.000\.000 quotas compradas pelo aporte/))
-      .toBeInTheDocument();
+    //
+    // A explicação é TOOLTIP e não `title`, então ela só existe no DOM quando abre. O
+    // caminho do teste é o do TECLADO — tabulação e depois foco —, e a tabulação não é
+    // enfeite: a dica ignora foco que não foi pedido, porque o `Dialog` foca ao abrir e
+    // o `Select` devolve o foco ao gatilho, e nos dois casos ela subia sozinha.
+    // (`itcmdKit.test.tsx` prende as três situações.)
+    fireEvent.keyDown(document, { key: 'Tab' });
+    fireEvent.focus(screen.getByText('4.448.500'));
+    // `findAll` porque o Radix duplica o conteúdo: o balão visível e uma cópia
+    // escondida para leitor de tela. As duas são o comportamento correto.
+    expect((await screen.findAllByText(/Inclui 3\.000\.000 quotas compradas pelo aporte/))
+      .length).toBeGreaterThan(0);
   });
 
   it('SEM APORTE a coluna não existe: zeros em toda simulação seriam ruído', () => {
@@ -99,6 +110,68 @@ describe('SimulacaoAberta', () => {
     expect(screen.getByText('R$ 45.000,00')).toBeInTheDocument();
     expect(screen.getByText('R$ 125.000,00')).toBeInTheDocument();
     expect(screen.getByText('R$ 186.864,00')).toBeInTheDocument();
+  });
+
+  it('COM DOIS DOADORES o cálculo sai POR GUIA, que é o que se preenche', () => {
+    // O caso que motivou a tabela de GIA: pai e mãe doam ao mesmo filho, cada um na
+    // sua guia. Somar as duas dá base 3.324.700 ao lado de imposto 167.953,44 — e
+    // imposto(3.324.700) é 186.864,00. O resumo por donatário guardava a base de uma
+    // leitura e o imposto de outra.
+    montar({
+      simulacao: simulacaoSalva({
+        donatarios: [{
+          pessoaId: 'g', nome: 'Gabriel',
+          quotasAtuais: '0', quotasLegitima: '3324700', quotasDisponivel: '0',
+          quotasFinal: '3324700', vlrAporteMoeda: '0.00', quotasDoAporte: '0',
+          percentual: '50.0000',
+        }],
+        gias: [
+          {
+            doadorId: 'pai', doadorNome: 'Cristiano',
+            donatarioId: 'g', donatarioNome: 'Gabriel',
+            quotasRecebidas: '3043336', pctDaGia: '100.0000', doacaoAnterior: null,
+            basePorCenario: { contabil: '3043336.00', itr: null, mercado: null },
+            impostoPorCenario: { contabil: '164354.88', itr: null, mercado: null },
+          },
+          {
+            doadorId: 'mae', doadorNome: 'Fabiane',
+            donatarioId: 'g', donatarioNome: 'Gabriel',
+            quotasRecebidas: '281364', pctDaGia: '100.0000', doacaoAnterior: null,
+            basePorCenario: { contabil: '281364.00', itr: null, mercado: null },
+            impostoPorCenario: { contabil: '3598.56', itr: null, mercado: null },
+          },
+        ],
+      }),
+    });
+    irPara('Cálculo do ITCD');
+
+    // A seção muda de nome: o leitor precisa saber que a régua virou a guia. Três
+    // cabeçalhos, um por cenário.
+    expect(screen.getAllByText('Base de cálculo, por guia')).toHaveLength(3);
+    expect(screen.getAllByText('Simulação do ITCD, por guia')).toHaveLength(3);
+
+    // Cada guia com o par na frente: 3 cenários × 2 seções (base e imposto).
+    expect(screen.getAllByText('Cristiano → Gabriel')).toHaveLength(6);
+    expect(screen.getAllByText('Fabiane → Gabriel')).toHaveLength(6);
+    expect(screen.getByText('R$ 3.043.336,00')).toBeInTheDocument();
+    expect(screen.getByText('R$ 164.354,88')).toBeInTheDocument();
+    expect(screen.getByText('R$ 281.364,00')).toBeInTheDocument();
+    expect(screen.getByText('R$ 3.598,56')).toBeInTheDocument();
+
+    // E a base somada, que era o que o resumo antigo gravava, NÃO aparece em lugar
+    // nenhum: ela não corresponde a guia nenhuma.
+    expect(screen.queryByText('R$ 3.324.700,00')).not.toBeInTheDocument();
+  });
+
+  it('COM UM DOADOR a seção segue por donatário: a guia é ele', () => {
+    montar();
+    irPara('Cálculo do ITCD');
+    expect(screen.getAllByText('Base de cálculo')).toHaveLength(3);
+    expect(screen.queryByText('Base de cálculo, por guia')).not.toBeInTheDocument();
+    // O par não aparece: com um doador, dizer "Avelino → Cristina" em toda linha é
+    // repetir o mesmo nome à esquerda de tudo.
+    expect(screen.queryByText('Avelino → Cristina')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Cristina').length).toBeGreaterThan(0);
   });
 
   it('a aba do USUFRUTO traz o quadro gravado e DIZ o que o ato gerou', () => {
@@ -171,6 +244,23 @@ describe('SimulacaoAberta', () => {
     expect(screen.getByText('R$ 318.000,00')).toBeInTheDocument();
   });
 
+  it('LAÇO na cadeia não travа a tela: a leitura para ao repetir', () => {
+    // `origem_simulacao_id` é FK livre: A→B→A é possível por SQL, e sem guarda a
+    // remontagem da cadeia entraria em laço infinito. É a única guarda de ciclo que
+    // existe de verdade — a lista de origens não filtra nada, porque o modal sempre
+    // monta uma simulação nova, que não pode ser ancestral de si mesma.
+    const a = simulacaoSalva({ id: 'A', versao: 1, nome: 'Ato A', origemSimulacaoId: 'B' });
+    const b = simulacaoSalva({ id: 'B', versao: 2, nome: 'Ato B', origemSimulacaoId: 'A' });
+
+    montar({ simulacao: a, todas: [a, b] });
+    irPara('Cálculo do ITCD');
+
+    // Parou, e mostrou os dois uma vez cada.
+    expect(screen.getByText('Total dos 2 atos')).toBeInTheDocument();
+    expect(screen.getAllByText('Ato A')).toHaveLength(2);
+    expect(screen.getAllByText('Ato B')).toHaveLength(1);
+  });
+
   it('ATO ÚNICO não mostra cadeia: uma linha só não é fluxo', () => {
     montar();
     irPara('Cálculo do ITCD');
@@ -240,5 +330,61 @@ describe('SimulacaoAberta', () => {
     expect(screen.getByText('R$ 255,20')).toBeInTheDocument();
     expect(screen.getByText('2026-02')).toBeInTheDocument();
     expect(screen.getByText('9.557.944')).toBeInTheDocument();
+  });
+
+  /**
+   * TODA TABELA TEM NOME, E A ORDEM DIZ O QUE VEIO PRIMEIRO.
+   *
+   * Duas tabelas empilhadas sem título obrigam a decifrar pelo cabeçalho das colunas o
+   * que cada uma é — e na aba de usufruto elas respondem coisas diferentes: uma é o ATO
+   * (quem instituiu para quem) e a outra é o RESULTADO (como o voto ficou).
+   *
+   * O título vem do quadro que ENVOLVE a tabela, então a lista sai na ordem do
+   * documento: ela prende o nome e a posição de uma vez, e uma tabela sem título
+   * aparece como `(sem título)` em vez de passar batido.
+   */
+  const titulosDosQuadros = () => [...document.querySelectorAll('table')]
+    .map((t) => t.closest('section')?.querySelector('h4')?.textContent
+      ?? '(sem título)');
+
+  /**
+   * NENHUMA COLUNA SEM EXPLICAÇÃO. Os rótulos desta tela são jargão fiscal — legítima,
+   * disponível, transmitido, nua propriedade, voz e voto — e a tela é usada por quem
+   * está aprendendo o ato, não só por quem o desenha. A falha nomeia a coluna esquecida.
+   */
+  it('toda coluna das três abas explica o que é', () => {
+    montar();
+    expect(colunasSemDica()).toEqual([]);
+    irPara('Usufruto');
+    expect(colunasSemDica()).toEqual([]);
+    irPara('Cálculo do ITCD');
+    expect(colunasSemDica()).toEqual([]);
+  });
+
+  it('a aba de DOAÇÃO tem um quadro, com nome', () => {
+    montar();
+    expect(titulosDosQuadros()).toEqual(['Quadro da doação']);
+  });
+
+  it('na aba de USUFRUTO o ato vem ANTES do resultado, e os dois têm nome', () => {
+    montar();
+    irPara('Usufruto');
+    expect(titulosDosQuadros()).toEqual([
+      'Quadro da instituição',
+      'Quadro do usufruto',
+    ]);
+  });
+
+  it('na aba de CÁLCULO, a cadeia também tem nome', () => {
+    // A cadeia só existe com mais de um ato: a segunda simulação parte da primeira.
+    const primeira = simulacaoSalva();
+    const segunda = simulacaoSalva({
+      id: 'S2',
+      versao: 2,
+      origemSimulacaoId: primeira.id,
+    });
+    montar({ simulacao: segunda, todas: [primeira, segunda] });
+    irPara('Cálculo do ITCD');
+    expect(titulosDosQuadros()).toEqual(['Cadeia de atos']);
   });
 });

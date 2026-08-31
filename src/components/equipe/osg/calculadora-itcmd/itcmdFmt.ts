@@ -31,7 +31,18 @@ export function brlDeNumero(valor: number | null | undefined): string {
 
 /** "50.0000" → "50,0000%". */
 export function pctDeDecimal(valor: string): string {
-  return `${valor.replace('.', ',')}%`;
+  return `${pctSemSinal(valor)}%`;
+}
+
+/**
+ * "50.0000" → "50,0000", sem o sinal.
+ *
+ * Para as colunas em que o `%` é da COLUNA e não do valor: ali ele é um sinal fixo à
+ * direita da caixa, na mesma posição no campo e na leitura, e é isso que faz o dígito
+ * parar no mesmo lugar em toda linha.
+ */
+export function pctSemSinal(valor: string): string {
+  return valor.replace('.', ',');
 }
 
 /** Quotas em bigint → "6.649.400". */

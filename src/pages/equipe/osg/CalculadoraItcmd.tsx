@@ -1,12 +1,14 @@
 import { AlertTriangle, Calculator, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
+import OsgWorkLoader from '@/components/equipe/osg/OsgWorkLoader';
 import { Button } from '@/components/ui/button';
 import { CenariosEmColunas } from '@/components/equipe/osg/calculadora-itcmd/CenariosEmColunas';
 import { HistoricoDeSimulacoes } from '@/components/equipe/osg/calculadora-itcmd/HistoricoDeSimulacoes';
 import { NovaSimulacaoModal } from '@/components/equipe/osg/calculadora-itcmd/NovaSimulacaoModal';
 import { SimulacaoAberta } from '@/components/equipe/osg/calculadora-itcmd/SimulacaoAberta';
 import { brlDeDecimal, quotasDeBigint } from '@/components/equipe/osg/calculadora-itcmd/itcmdFmt';
+import { Aviso, rotuloCls } from '@/components/equipe/osg/calculadora-itcmd/itcmdKit';
 import { useCalculadoraItcmdController } from '@/hooks/useCalculadoraItcmdController';
 import type { StatusDaSimulacao } from '@/hooks/useSimulacoesItcmd';
 
@@ -71,25 +73,46 @@ const CalculadoraItcmd = () => {
     <Molde acoes={acoes}>
       <div className="space-y-5">
         {calc.erroDoHistorico && (
-          <p className="text-sm text-destructive">{calc.erroDoHistorico.message}</p>
+          <Aviso tom="erro">{calc.erroDoHistorico.message}</Aviso>
         )}
         {calc.erroDeGravacao && (
-          <p className="text-sm text-destructive">
+          <Aviso tom="erro">
             {'Simulação não gravada: '}
             {calc.erroDeGravacao.message}
-          </p>
+          </Aviso>
         )}
         {calc.erroDoStatus && (
-          <p className="text-sm text-destructive">
+          <Aviso tom="erro">
             {'Status não alterado: '}
             {calc.erroDoStatus.message}
-          </p>
+          </Aviso>
         )}
         {calc.erroDeRenomear && (
-          <p className="text-sm text-destructive">
+          <Aviso tom="erro">
             {'Nome não alterado: '}
             {calc.erroDeRenomear.message}
-          </p>
+          </Aviso>
+        )}
+
+        {/* GERAR É O ÚNICO MOMENTO DE ESPERA da tela, e ele acontece AQUI e não no
+            modal: `gerar` fecha o modal e só então dispara a gravação. O que havia
+            era um "Gravando a simulação…" de 12px no rodapé da página, abaixo de
+            tudo — depois de o modal fechar, a tela parecia não ter feito nada.
+
+            O bloco vem ANTES da lista porque é ali que a simulação nova vai nascer:
+            a espera ocupa o lugar do resultado. */}
+        {calc.gravando && (
+          <div className="flex animate-osg-rise items-center gap-3 rounded-lg border border-osg-100 bg-card px-4 py-3 motion-reduce:animate-none">
+            <OsgWorkLoader size={32} label="Gravando a simulação" />
+            <div className="space-y-0.5">
+              <p className="text-sm font-semibold text-osg-700">
+                Apurando e gravando a simulação…
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Três cenários de avaliação, uma guia por par doador × donatário.
+              </p>
+            </div>
+          </div>
         )}
 
         <HistoricoDeSimulacoes
@@ -102,10 +125,8 @@ const CalculadoraItcmd = () => {
 
         {naSessao && (
           <div className="space-y-3">
-            <div className="rounded-lg border border-amber-200 bg-amber-50/60 px-4 py-3 text-sm text-amber-800">
-              {calc.motivoDeNaoGravar}
-            </div>
-            <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 rounded-lg border border-slate-200 bg-card px-4 py-3 text-sm">
+            <Aviso>{calc.motivoDeNaoGravar}</Aviso>
+            <div className="flex flex-wrap items-baseline gap-x-6 gap-y-1 rounded-lg border border-osg-200/70 bg-card px-4 py-3 text-sm">
               <Dado rotulo="Sociedade" valor={naSessao.empresaNome} />
               <Dado rotulo="Quotas" valor={quotasDeBigint(BigInt(naSessao.totalDeQuotas))} mono />
               <Dado
@@ -123,9 +144,6 @@ const CalculadoraItcmd = () => {
           </div>
         )}
 
-        {calc.gravando && (
-          <p className="text-xs text-slate-500">Gravando a simulação…</p>
-        )}
       </div>
 
       <SimulacaoAberta
@@ -161,7 +179,7 @@ function Molde({ children, acoes }: {
 function Dado({ rotulo, valor, mono }: { rotulo: string; valor: string; mono?: boolean }) {
   return (
     <span>
-      <span className="text-xs uppercase tracking-wide text-slate-500">{rotulo}</span>{' '}
+      <span className={rotuloCls}>{rotulo}</span>{' '}
       <span className={mono ? 'font-mono tabular-nums font-medium' : 'font-medium'}>
         {valor}
       </span>
@@ -171,9 +189,9 @@ function Dado({ rotulo, valor, mono }: { rotulo: string; valor: string; mono?: b
 
 function Vazio({ icone, children }: { icone: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-200 px-6 py-14 text-center">
+    <div className="rounded-lg border border-dashed border-osg-200/70 px-6 py-14 text-center">
       {icone}
-      <p className="mx-auto max-w-md text-sm text-slate-600">{children}</p>
+      <p className="mx-auto max-w-md text-sm text-muted-foreground">{children}</p>
     </div>
   );
 }

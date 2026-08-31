@@ -1,12 +1,14 @@
 import { ChevronRight } from 'lucide-react';
+import OsgWorkLoader from '@/components/equipe/osg/OsgWorkLoader';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
-import { CENARIOS, ROTULO_CENARIO } from '@/lib/osg/itcmd/simulacao';
+import { CENARIOS, DICA_CENARIO, ROTULO_CENARIO } from '@/lib/osg/itcmd/simulacao';
 import { brlDeDecimal, TRACO } from './itcmdFmt';
+import { ComDica, ComoDicas, rotuloCls, rotuloDeColunaCls } from './itcmdKit';
 import { nomesCurtos } from '@/lib/osg/nomeCurto';
 import {
   ROTULO_DO_STATUS, STATUS_DA_SIMULACAO, rotuloDaSimulacao,
@@ -51,12 +53,28 @@ export function HistoricoDeSimulacoes({
   const listar = (ps: Array<{ pessoaId: string; nome: string }>) =>
     ps.map((x) => curto.get(x.pessoaId) ?? x.nome).join(', ') || TRACO;
 
+  /**
+   * DE ONDE CADA UMA PARTE. Duas simulações encadeadas pareciam independentes na
+   * lista: a cadeia só aparecia dentro da simulação aberta, na terceira aba.
+   *
+   * O rótulo da origem, e não só um sinal: "parte de" sem dizer DE QUE obriga a abrir
+   * as duas para descobrir. Origem fora da lista (filtrada, ou de outro cliente) fica
+   * sem nome, e aí o `↳` diz o que sabe — que ela deriva de alguma coisa.
+   */
+  const porId = new Map(simulacoes.map((s) => [s.id, s]));
+  const origemDe = (s: SimulacaoSalva): string | null => {
+    if (s.origemSimulacaoId == null) return null;
+    const o = porId.get(s.origemSimulacaoId);
+    return o == null ? 'outra simulação' : rotuloDaSimulacao(o);
+  };
+
   return (
-    <section className="rounded-lg border border-slate-200 bg-card">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-4 py-3">
-        <h2 className="text-sm font-semibold text-slate-700">
+    <ComoDicas>
+    <section className="rounded-lg border border-osg-200/70 bg-card">
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-osg-100/70 px-4 py-3">
+        <h2 className="text-sm font-semibold text-foreground">
           Simulações
-          <span className="ml-2 font-normal text-slate-500">
+          <span className="ml-2 font-normal text-muted-foreground">
             {visiveis.length === simulacoes.length
               ? `${simulacoes.length}`
               : `${visiveis.length} de ${simulacoes.length}`}
@@ -65,7 +83,11 @@ export function HistoricoDeSimulacoes({
 
         {/* FILTRO DE STATUS da lista: é como se pergunta "quais estão aprovadas". */}
         <div className="flex items-center gap-2">
-          <span className="text-xs uppercase tracking-wide text-slate-500">Status</span>
+          <span className={rotuloCls}>
+            <ComDica dica="Filtra a lista. Trocar o status de uma simulação é na tela dela.">
+              Status
+            </ComDica>
+          </span>
           <Select
             value={statusFiltrado ?? 'todas'}
             onValueChange={(v) => aoFiltrarStatus(v === 'todas' ? null : v as StatusDaSimulacao)}
@@ -84,11 +106,12 @@ export function HistoricoDeSimulacoes({
       </header>
 
       {carregando ? (
-        <p className="px-4 py-8 text-center text-sm text-slate-500">
-          Carregando o histórico…
-        </p>
+        <div className="flex flex-col items-center gap-2 px-4 py-10">
+          <OsgWorkLoader size={40} label="Carregando o histórico" />
+          <p className="text-sm text-muted-foreground">Carregando o histórico…</p>
+        </div>
       ) : visiveis.length === 0 ? (
-        <p className="px-4 py-8 text-center text-sm text-slate-600">
+        <p className="px-4 py-8 text-center text-sm text-muted-foreground">
           {simulacoes.length === 0
             ? 'Nenhuma simulação gravada para este cliente ainda.'
             : `Nenhuma simulação com status ${
@@ -109,35 +132,90 @@ export function HistoricoDeSimulacoes({
               <TableHead colSpan={6} />
               <TableHead
                 colSpan={3}
-                className="border-b border-osg-100 text-center text-[11px] uppercase tracking-wide"
-                title={'Doação + instituição de usufruto. A reserva já está no valor da '
-                  + 'doação: ela não tem guia própria, ela reduz a base daquela.'}
+                className={`border-b border-osg-100 text-center ${rotuloDeColunaCls}`}
               >
-                Total do ato
+                <ComDica
+                  dica={'Doação MAIS instituição de usufruto, quando o ato tiver as '
+                    + 'duas. A reserva já está no valor da doação: ela muda a natureza '
+                    + 'e a base daquela guia, sem gerar uma própria. Abra a simulação '
+                    + 'para ver guia por guia.'}
+                >
+                  Total do ato
+                </ComDica>
               </TableHead>
               <TableHead colSpan={2} />
             </TableRow>
             <TableRow>
-              <TableHead>Simulação</TableHead>
-              <TableHead>Gerada em</TableHead>
-              <TableHead>Competência</TableHead>
-              <TableHead className="text-right">UPF</TableHead>
-              <TableHead>Doa</TableHead>
-              <TableHead>Recebe</TableHead>
+              <TableHead className={rotuloDeColunaCls}>
+                <ComDica
+                  dica={'O nome dado ao cenário, ou a versão quando ele não tem nome. O '
+                    + 'sinal ↳ diz de qual simulação este ato parte.'}
+                >
+                  Simulação
+                </ComDica>
+              </TableHead>
+              <TableHead className={rotuloDeColunaCls}>
+                <ComDica dica="Quando a simulação foi gravada. Abrir mostra o retrato daquele momento, sem recalcular nada.">
+                  Gerada em
+                </ComDica>
+              </TableHead>
+              <TableHead className={rotuloDeColunaCls}>
+                <ComDica dica="O mês da UPF usada na apuração. Competências diferentes não se comparam direto.">
+                  Competência
+                </ComDica>
+              </TableHead>
+              <TableHead className={`text-right ${rotuloDeColunaCls}`}>
+                <ComDica
+                  dica={'A UPF da competência, declarada na simulação. É ela que '
+                    + 'converte a isenção de 500 UPF e a dedução da faixa em reais. '
+                    + 'Trocar a UPF troca o imposto.'}
+                >
+                  UPF
+                </ComDica>
+              </TableHead>
+              <TableHead className={rotuloDeColunaCls}>
+                <ComDica dica="Quem transmite as quotas. Nome curto; o inteiro está na simulação aberta.">
+                  Doa
+                </ComDica>
+              </TableHead>
+              <TableHead className={rotuloDeColunaCls}>
+                <ComDica dica="Quem recebe as quotas. Nome curto; o inteiro está na simulação aberta.">
+                  Recebe
+                </ComDica>
+              </TableHead>
               {CENARIOS.map((c) => (
-                <TableHead key={c} className="text-right">
-                  {ROTULO_CENARIO[c].replace('Valor ', '').replace('de ', '')}
+                <TableHead key={c} className={`text-right ${rotuloDeColunaCls}`}>
+                  <ComDica dica={DICA_CENARIO[c]}>
+                    {ROTULO_CENARIO[c].replace('Valor ', '').replace('de ', '')}
+                  </ComDica>
                 </TableHead>
               ))}
-              <TableHead>Status</TableHead>
+              <TableHead className={rotuloDeColunaCls}>
+                <ComDica dica="O que vale, o que é ensaio e o que saiu do caminho. Quem troca é a simulação aberta.">
+                  Status
+                </ComDica>
+              </TableHead>
               <TableHead className="w-8" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {visiveis.map((s) => (
               <TableRow key={s.id} className="cursor-pointer" onClick={() => aoAbrir(s.id)}>
-                <TableCell className="font-medium">{rotuloDaSimulacao(s)}</TableCell>
-                <TableCell className="text-xs text-slate-600">
+                <TableCell className="font-medium">
+                  {rotuloDaSimulacao(s)}
+                  {origemDe(s) != null && (
+                    <ComDica
+                      dica={'O quadro e o acervo desta simulação partem de '
+                        + `${origemDe(s)}, e não do quadro societário: é o segundo ato `
+                        + 'de uma doação encadeada.'}
+                    >
+                      <span className="ml-1.5 whitespace-nowrap text-xs font-normal text-muted-foreground">
+                        {`↳ ${origemDe(s)}`}
+                      </span>
+                    </ComDica>
+                  )}
+                </TableCell>
+                <TableCell className="text-xs text-muted-foreground">
                   {new Date(s.criadaEm).toLocaleString('pt-BR', {
                     day: '2-digit', month: '2-digit', year: 'numeric',
                     hour: '2-digit', minute: '2-digit',
@@ -151,13 +229,14 @@ export function HistoricoDeSimulacoes({
                 </TableCell>
                 <TableCell className="text-xs">{listar(s.doadores)}</TableCell>
                 <TableCell className="text-xs">{listar(s.donatarios)}</TableCell>
+                {/* SEM `title` por célula: eram três por linha, dizendo a mesma coisa,
+                    invisíveis para quem não passa o ponteiro. A composição do total
+                    agora é dica do CABEÇALHO, uma vez, e a decomposição guia por guia
+                    está na simulação aberta, que é onde ela cabe. */}
                 {CENARIOS.map((c) => (
                   <TableCell
                     key={c}
-                    className="text-right font-mono text-xs tabular-nums font-semibold"
-                    title={s.concessoes.some((x) => x.origem === 'instituicao')
-                      ? 'Doação + instituição de usufruto.'
-                      : 'Só a doação: este ato não tem guia de instituição de usufruto.'}
+                    className="text-right font-mono text-xs font-semibold tabular-nums"
                   >
                     {brlDeDecimal(s.totalPorCenario[c])}
                   </TableCell>
@@ -165,7 +244,7 @@ export function HistoricoDeSimulacoes({
                 <TableCell>
                   <Etiqueta status={s.status} />
                 </TableCell>
-                <TableCell className="text-slate-400">
+                <TableCell className="text-muted-foreground/70">
                   <ChevronRight className="h-4 w-4" />
                 </TableCell>
               </TableRow>
@@ -174,6 +253,7 @@ export function HistoricoDeSimulacoes({
         </Table>
       )}
     </section>
+    </ComoDicas>
   );
 }
 
@@ -183,11 +263,15 @@ export function HistoricoDeSimulacoes({
  * (substituída).
  */
 function Etiqueta({ status }: { status: StatusDaSimulacao }) {
+  // Os quatro tons saem da paleta de status da OSG (`--status-*`), construída sobre os
+  // tokens de marca da área. `gerada` era `sky` — azul do Tailwind, e a OSG não tem
+  // azul: numa lista de bege e musgo, era a única coisa fria da tela.
   const cor: Record<StatusDaSimulacao, string> = {
-    rascunho: 'border-slate-200 bg-slate-50 text-slate-600',
-    gerada: 'border-sky-200 bg-sky-50 text-sky-700',
-    aprovada: 'border-osg-200 bg-osg-50 text-osg-800',
-    substituida: 'border-slate-200 bg-slate-100 text-slate-500 line-through',
+    rascunho: 'border-status-neutro/15 bg-status-neutro-soft/50 text-status-neutro',
+    gerada: 'border-status-fila/20 bg-status-fila-soft text-status-fila',
+    aprovada: 'border-status-feito/25 bg-status-feito-soft text-status-feito',
+    substituida:
+      'border-status-neutro/15 bg-status-neutro-soft/50 text-status-neutro line-through',
   };
   return (
     <span

@@ -8,6 +8,9 @@ import { totalizarAcervo, type ImovelDoAcervo } from '@/lib/osg/acervoItcmd';
 import { upfSugerida } from '@/lib/osg/itcmd/faixas';
 import { formatMoney, parseMoney, quantizar2 } from '@/lib/osg/itcmd/dinheiro';
 import { nomesCurtos } from '@/lib/osg/nomeCurto';
+import {
+  divisaoNoCampo, fatiaIgual, mascararPercentual, percentualEscalado,
+} from '@/lib/osg/percentualDigitado';
 import { simular, type Cenario, type SaidaSimulacao } from '@/lib/osg/itcmd/simulacao';
 import {
   derivarDoadoresFiscais, formaDoCadastro,
@@ -581,10 +584,25 @@ export function useCalculadoraItcmdController() {
   // é o universo de herdeiros necessários, e é ele que DIVIDE a legítima. Quem foi
   // adicionado à lista decide só quem recebe neste ato.
   const numeroDeHerdeiros = candidatosDonatario.length;
-  const idsDosHerdeiros = useMemo(
-    () => new Set(candidatosDonatario.map((c) => c.pessoaId)),
-    [candidatosDonatario],
-  );
+  /**
+   * QUEM É HERDEIRO NECESSÁRIO dos doadores deste ato: os filhos, mais o cônjuge de
+   * cada doador (art. 1.845 do Código Civil). É o que decide se a legítima entra no
+   * palpite, e vale só com vínculo POSITIVO no cadastro: silêncio não vira legítima.
+   *
+   * O CÔNJUGE entra pelo campo próprio (`conjuge_id`), que não tem ambiguidade de
+   * direção. O ASCENDENTE fica de fora: o cadastro tem o tipo `Pai/Mãe`, mas a direção
+   * dele nunca foi conferida ao vivo como a de `Filho(a)` foi, e inverter uma direção
+   * troca quem tem legítima. Quem doar para o próprio pai declara a legítima na coluna.
+   */
+  const idsDosHerdeiros = useMemo(() => {
+    const dentro = new Set(candidatosDonatario.map((c) => c.pessoaId));
+    const porId = new Map((pessoas.data ?? []).map((p) => [p.id, p]));
+    for (const id of idsDosDoadores === '' ? [] : idsDosDoadores.split('|')) {
+      const conjuge = porId.get(id)?.conjuge_id;
+      if (conjuge != null && conjuge !== '') dentro.add(conjuge);
+    }
+    return dentro;
+  }, [candidatosDonatario, idsDosDoadores, pessoas.data]);
 
   /**
    * QUEM ENTRA NA TABELA: exatamente quem o analista adicionou, na ordem em que
@@ -683,7 +701,7 @@ export function useCalculadoraItcmdController() {
       conjugeNome,
       motivo: formaDoCasal == null
         ? `${[civil, regime].filter(Boolean).join(' · ') || 'Sem estado civil no cadastro'}`
-          + ' — emite a guia sozinho: não há cônjuge no cadastro para uma guia em'
+          + '. Emite a guia sozinho: não há cônjuge no cadastro para uma guia em'
           + ' conjunto.'
         : universal
           ? `Comunhão universal com ${conjugeNome}: o padrão é uma guia para o casal, e `
@@ -765,29 +783,57 @@ export function useCalculadoraItcmdController() {
    * PALPITE, NÃO REGRA: quem não quer doar tudo baixa a legítima e a disponível, e o
    * resto permanece com quem doa. Roda quando o conjunto de doadores ou de donatários
    * muda — é aí que o teto e o número de fatias mudam.
+   *
+   * SÓ TEM LEGÍTIMA QUEM É HERDEIRO NECESSÁRIO. Irmã não é (art. 1.845 do Código
+   * Civil: descendentes, ascendentes e cônjuge), e num ato entre irmãs a legítima do
+   * palpite virava um PISO invisível de metade do que a doadora dá: pedir uma
+   * participação final menor que `quotas atuais + legítima` não descia. Sem herdeiro
+   * necessário entre os donatários, a legítima entra zero e tudo vai para a disponível,
+   * que é a parte livre.
+   *
+   * O sinal é o mesmo que o resto da tela usa: `idsDosHerdeiros`, que são os FILHOS dos
+   * doadores pelos dois caminhos do cadastro (`participantesItcmd.ts`). Cônjuge e
+   * ascendente também são herdeiros necessários, e o cadastro não os modela como
+   * vínculo de legítima — o palpite não vai adivinhar isso, e quem declarar edita a
+   * coluna.
    */
   const idsDosDonatarios = donatarios.map((d) => d.pessoaId).join('|');
   const tetoDoPalpite = quotasDosDoadores.toString();
+  const idsComLegitima = donatarios
+    .filter((d) => idsDosHerdeiros.has(d.pessoaId))
+    .map((d) => d.pessoaId)
+    .join('|');
   useEffect(() => {
     if (donatarios.length === 0) return;
     const base = BigInt(tetoDoPalpite);
-    const daLegitima = base / 2n;
+    const herdeirosNoAto = idsComLegitima === '' ? [] : idsComLegitima.split('|');
+    const daLegitima = herdeirosNoAto.length === 0 ? 0n : base / 2n;
     // Base ímpar: a quota do meio vai para a disponível, que é a parte livre.
     const daDisponivel = base - daLegitima;
-    const n = BigInt(donatarios.length);
-    const fatiar = (total: bigint) => donatarios.map((d, i) => [
-      d.pessoaId,
-      // O resto vai nos primeiros, uma quota cada: a soma fecha exata.
-      (total / n + (BigInt(i) < total % n ? 1n : 0n)).toString(),
-    ] as const);
-    setLegitimaPorDonatario(Object.fromEntries(fatiar(daLegitima)));
-    setDisponivelPorDonatario(Object.fromEntries(fatiar(daDisponivel)));
+    const fatiar = (total: bigint, entre: string[]) => {
+      const n = BigInt(entre.length);
+      return entre.map((id, i) => [
+        id,
+        // O resto vai nos primeiros, uma quota cada: a soma fecha exata.
+        (total / n + (BigInt(i) < total % n ? 1n : 0n)).toString(),
+      ] as const);
+    };
+    // Todos os donatários entram com zero e só os herdeiros recebem fatia: um donatário
+    // sem legítima precisa do zero ESCRITO, senão o valor anterior dele sobreviveria à
+    // troca de papel.
+    setLegitimaPorDonatario(Object.fromEntries([
+      ...donatarios.map((d) => [d.pessoaId, '0'] as const),
+      ...(herdeirosNoAto.length === 0 ? [] : fatiar(daLegitima, herdeirosNoAto)),
+    ]));
+    setDisponivelPorDonatario(Object.fromEntries(
+      fatiar(daDisponivel, donatarios.map((d) => d.pessoaId)),
+    ));
     // O rascunho dos campos sai de cena: o valor deles acabou de mudar por baixo.
     setLegitimaDigitadaDraft({});
     setFinalDigitadaDraft({});
     setPctDigitado({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [idsDosDonatarios, tetoDoPalpite]);
+  }, [idsDosDonatarios, tetoDoPalpite, idsComLegitima]);
 
   // O quadro pronto para a tela, com percentuais, participação final e as travas.
   const quadro = montarQuadro({
@@ -937,11 +983,32 @@ export function useCalculadoraItcmdController() {
       return;
     }
 
-    // Quem só recebe não perde quotas: pedir menos do que ela já tem grava zero de
-    // disponível, e a participação final para no que ela tinha.
-    const querido = alvo - linha.quotasAtuais - legitimaDe(pessoaId);
+    // A LEGITIMA CEDE AQUI TAMBEM, pelo mesmo motivo do lado do doador: ela era um
+    // PISO INVISIVEL. Quem recebe nao perde quota, entao a participacao final dela nao
+    // desce abaixo de `quotas atuais`; mas a legitima do palpite tambem nao cedia, e o
+    // piso virava `atuais + legitima`. Digitar 26,7288% numa donataria com 1.483.000
+    // quotas e legitima de 1.813.222 devolvia 34,4867% - o campo mostrava um numero que
+    // ninguem pediu, sem dizer por que.
+    //
+    // A disponivel cede primeiro, que e a parte livre. A legitima cede depois, e sem
+    // culpa: ela e um PALPITE ate alguem declarar outro, e se o usuario mexeu no campo
+    // dele, o que esta errado e o outro.
+    const espacoLivre = naoNegativo(alvo - linha.quotasAtuais);
+    if (espacoLivre < legitimaDe(pessoaId)) {
+      setLegitimaPorDonatario((o) => ({ ...o, [pessoaId]: espacoLivre.toString() }));
+      setDisponivelPorDonatario((o) => ({ ...o, [pessoaId]: '0' }));
+      // O rascunho do campo de legitima sai: ele mostraria o texto antigo sobre um
+      // numero novo.
+      setLegitimaDigitadaDraft((o) => {
+        const novo = { ...o };
+        delete novo[pessoaId];
+        return novo;
+      });
+      return;
+    }
+
     setDisponivelPorDonatario((o) => ({
-      ...o, [pessoaId]: naoNegativo(querido).toString(),
+      ...o, [pessoaId]: (espacoLivre - legitimaDe(pessoaId)).toString(),
     }));
   };
 
@@ -1296,6 +1363,40 @@ export function useCalculadoraItcmdController() {
     return { contabil: somar('contabil'), itr: somar('itr'), mercado: somar('mercado') };
   })();
 
+  /**
+   * ZERAR O ATO. Chamado ao GERAR: dali em diante o ato está fechado, e o modal tem de
+   * abrir em branco para a próxima simulação.
+   *
+   * Recuperar o que estava digitado faz sentido ANTES de gerar (fechar o modal sem
+   * querer e voltar com tudo no lugar), e deixa de fazer depois: o quadro que reabria
+   * era o de um ato que já virou linha no histórico, e o analista corrigia a mão para
+   * começar a Versão 2.
+   *
+   * O CASO NÃO SE ZERA: sociedade, estado, competência e UPF são parâmetros do cliente
+   * e do mês, e retecá-los a cada simulação seria trabalho à toa. O que se zera é o ATO:
+   * quem entra, em que papel, com quanto, e as duas modalidades de usufruto.
+   */
+  const zerarOAto = () => {
+    setParticipantes([]);
+    setLegitimaPorDonatario({});
+    setDisponivelPorDonatario({});
+    setFormaDeclarada({});
+    setAportes({});
+    setComReserva(false);
+    setPctBaseDaDoacao('100');
+    setPctBaseDaInstituicao('70');
+    setInstitucoes({});
+    setPapeisDoUsufruto({});
+    setForaDoUsufruto([]);
+    setExtrasDoUsufruto([]);
+    setOrigemId('');
+    // Os rascunhos dos campos, que são texto em edição e não valor.
+    setPctDigitado({});
+    setLegitimaDigitadaDraft({});
+    setFinalDigitadaDraft({});
+    setAlvoDigitado({});
+  };
+
   return {
     clienteId,
     carregando: bens.isLoading || pessoas.isLoading,
@@ -1455,6 +1556,19 @@ export function useCalculadoraItcmdController() {
      * campo nao reagir.
      */
     setQuotasFinal: (pessoaId: string, valor: string) => {
+      // A CONTA, quando tem barra: `/2` divide o que o ato movimenta; `5109444/2`
+      // divide o numero escrito. A divisao e de quota inteira, entao a igualdade e
+      // exata - e por isso ela mora aqui e nao no percentual.
+      const conta = divisaoNoCampo(valor);
+      if (conta != null) {
+        const texto = `${conta.esquerda.replace(/\D/g, '')}/${conta.partes}`;
+        setFinalDigitadaDraft((o) => ({ ...o, [pessoaId]: texto }));
+        const dividendo = conta.esquerda.replace(/\D/g, '') === ''
+          ? quadro.totais.quotasAtuais
+          : BigInt(conta.esquerda.replace(/\D/g, ''));
+        resolverQuotasFinal(pessoaId, fatiaIgual(dividendo, conta.partes));
+        return;
+      }
       const digitos = valor.replace(/\D/g, '');
       setFinalDigitadaDraft((o) => ({ ...o, [pessoaId]: digitos }));
       resolverQuotasFinal(pessoaId, digitos === '' ? 0n : BigInt(digitos));
@@ -1506,18 +1620,32 @@ export function useCalculadoraItcmdController() {
      * ordem. Letra e sinal continuam fora: nao ha o que interpretar deles.
      */
     setPercentualFinal: (pessoaId: string, valor: string) => {
-      const digitado = valor.trim();
-      if (!/^[\d.,]*$/.test(digitado)) return;
+      // MASCARA, e nao validacao: a virgula entra sozinha no lugar onde cabe, entao
+      // `5555` vira 55,55. Antes o texto ia cru para a interpretacao, `5555` era lido
+      // como 5.555% e o teto abaixo mostrava 100% — o numero que se queria nao era
+      // alcancavel digitando quatro digitos.
+      const digitado = mascararPercentual(valor);
       setPctDigitado((o) => ({ ...o, [pessoaId]: digitado }));
 
-      const limpo = digitado.replace(/\./g, '').replace(',', '.');
-      if (!/^\d*(\.\d*)?$/.test(limpo) || totalDeQuotas <= 0n) return;
-      const [inteiro, decimais = ''] = limpo.split('.');
-      const escalado = BigInt(
-        (inteiro === '' ? '0' : inteiro) + decimais.slice(0, 4).padEnd(4, '0'),
-      );
-      // 300% do capital nao e alvo: e engano de digitacao. Vai para 100, e o teto de
-      // cada pessoa apara o resto la dentro.
+      // A CONTA tambem entra aqui, e resolve EM QUOTAS: `/2` e a fatia igual do que o
+      // ato movimenta, e `53,4576/2` e a metade daquele percentual. Digitar o
+      // percentual arredondado na mao deixava as duas linhas com quotas diferentes
+      // (2.554.724 contra 2.554.720 no caso das irmas), porque uma casa de percentual
+      // vale ~956 quotas. Dividir quota inteira fecha exato.
+      const conta = divisaoNoCampo(digitado);
+      if (conta != null) {
+        const daEsquerda = percentualEscalado(conta.esquerda);
+        const dividendo = daEsquerda == null
+          ? quadro.totais.quotasAtuais
+          : (daEsquerda * totalDeQuotas + 500_000n) / 1_000_000n;
+        resolverQuotasFinal(pessoaId, fatiaIgual(dividendo, conta.partes));
+        return;
+      }
+
+      const escalado = percentualEscalado(digitado);
+      if (escalado == null || totalDeQuotas <= 0n) return;
+      // Com a mascara isto quase nao dispara: so passa de 100 quem continua digitando
+      // depois de `100`. Fica porque o teto e regra da apuracao, nao do campo.
       const pct = escalado > 1_000_000n ? 1_000_000n : escalado;
       // Meio para cima: (a + d/2) / d, com d = 100 × 10.000.
       resolverQuotasFinal(pessoaId, (pct * totalDeQuotas + 500_000n) / 1_000_000n);
@@ -1572,9 +1700,15 @@ export function useCalculadoraItcmdController() {
     /**
      * DE ONDE ESTE ATO PARTE. Vazio = do cadastro.
      *
-     * So entram simulacoes que NAO descendem desta — cadeia nao fecha ciclo. Como a
-     * simulacao em edicao ainda nao existe no banco, o ciclo so seria possivel ao
-     * reabrir uma gravada, mas a guarda fica no unico lugar que decide a lista.
+     * A LISTA NAO FILTRA NADA, e nao precisa: o modal sempre monta uma simulacao NOVA,
+     * que ainda nao existe no historico e portanto nao pode ser ancestral de si mesma.
+     * Ciclo aqui e impossivel por construcao, nao por guarda.
+     *
+     * (Este comentario afirmava um filtro de descendentes que o codigo nao tinha. A
+     * guarda de ciclo que existe de verdade e a de LEITURA, no `cadeiaDe`, e ela e
+     * defensiva contra dado ruim: `origem_simulacao_id` e FK livre e alguem pode
+     * fechar um laco por SQL. No dia em que houver "editar simulacao gravada", o
+     * filtro passa a ser necessario AQUI.)
      */
     origemDoAto: origemId,
     setOrigemDoAto: setOrigemId,
@@ -1655,12 +1789,13 @@ export function useCalculadoraItcmdController() {
         return novo;
       }),
     setVozEVoto: (pessoaId: string, valor: string) => {
-      const limpo = valor.trim().replace(',', '.');
-      if (!/^\d*(\.\d{0,4})?$/.test(limpo)) return;
-      setAlvoDigitado((o) => ({ ...o, [pessoaId]: valor.trim() }));
-      const [inteiro, decimais = ''] = limpo.split('.');
-      const escalado = BigInt((inteiro === '' ? '0' : inteiro) + decimais.padEnd(4, '0'));
-      if (escalado > 1_000_000n) return;
+      // A MESMA MASCARA do percentual final: um campo de percentual se digita igual em
+      // toda a tela. Aqui o regex antigo era pior que la — ele RECUSAVA a tecla, e o
+      // campo voltava sozinho ao valor de antes, como se estivesse travado.
+      const digitado = mascararPercentual(valor);
+      setAlvoDigitado((o) => ({ ...o, [pessoaId]: digitado }));
+      const escalado = percentualEscalado(digitado);
+      if (escalado == null || escalado > 1_000_000n) return;
       resolverAlvoDeVozEVoto(pessoaId, escalado);
     },
     totalInstituido,
@@ -1759,15 +1894,35 @@ export function useCalculadoraItcmdController() {
         .map((c) => ({ contabil: 'contábil', itr: 'ITR', mercado: 'mercado' }[c]))
         .join(' e ')} no cadastro dos bens: a simulação fica nesta sessão e não é `
         + 'gravada. O histórico guarda os três cenários apurados.',
+    /**
+     * TROCAR STATUS e RENOMEAR levam o estado ANTERIOR junto.
+     *
+     * A trilha de auditoria registra `changed_fields` com o de-para, e sem o valor de
+     * antes ela diria apenas "mudou para aprovada" — que e metade do fato. O anterior
+     * sai do proprio historico, que a tela ja tem carregado.
+     */
     alterandoStatus: alterarStatus.isPending,
     erroDoStatus: alterarStatus.error as Error | null,
-    alterarStatus: (id: string, status: StatusDaSimulacao) =>
-      alterarStatus.mutate({ id, status }),
+    alterarStatus: (id: string, status: StatusDaSimulacao) => {
+      const atual = (historico.data ?? []).find((s) => s.id === id);
+      if (atual == null) return;
+      alterarStatus.mutate({
+        id,
+        status,
+        statusAnterior: atual.status,
+        nome: atual.nome,
+        versao: atual.versao,
+      });
+    },
 
     /** Renomear nao mexe no retrato: so no rotulo pelo qual se procura o cenario. */
     renomeando: renomear.isPending,
     erroDeRenomear: renomear.error as Error | null,
-    renomear: (id: string, nome: string) => renomear.mutate({ id, nome }),
+    renomear: (id: string, nome: string) => {
+      const atual = (historico.data ?? []).find((s) => s.id === id);
+      if (atual == null) return;
+      renomear.mutate({ id, nome, nomeAnterior: atual.nome, versao: atual.versao });
+    },
     gerar: () => {
       if (saida == null || clienteId == null || empresa == null) return;
       setSimulacoes((anteriores) => [...anteriores, {
@@ -1779,6 +1934,9 @@ export function useCalculadoraItcmdController() {
         donatarios: donatarios.map((d) => d.denominacao),
       }]);
       setModalAberto(false);
+      // E O ATO FECHOU: o modal volta em branco. O payload abaixo já está montado a
+      // partir do render atual, então zerar aqui não o alcança.
+      zerarOAto();
       // SÓ GRAVA COM OS TRÊS CENÁRIOS. Sem um deles a simulação vale para a sessão e a
       // tela diz por que não foi ao banco (`motivoDeNaoGravar`) — nada de gravar zero
       // onde não houve apuração.
@@ -1819,6 +1977,36 @@ export function useCalculadoraItcmdController() {
             quotasFinal: (linha?.participacaoFinal ?? 0n).toString(),
             vlrAporteMoeda: aporteParaBanco(aporteDe(d.pessoaId)),
             quotasDoAporte: quotasDoAporteDe(d.pessoaId).toString(),
+          };
+        }),
+
+        // ── AS GUIAS ──────────────────────────────────────────────────────────
+        // O resultado, por par. Ja vem apurado por guia do motor — `saida.gias` —, que
+        // e a unidade em que a SEFAZ tributa: uma por doador declarante.
+        //
+        // O `doadorId` da guia pode ser COMPOSTO. Na emissao conjunta o doador fiscal e
+        // o casal, e o id dele e `titular+conjuge` (`idDoCasal`), que nao e `pessoa.id`
+        // nenhum. Gravar isso quebraria a chave estrangeira, entao aqui ele volta a ser
+        // o TITULAR — e quem diz que a guia saiu no nome do casal e o `emissao_conjunta`
+        // da linha do doador.
+        gias: saida.gias.map((g) => {
+          const fiscal = doadoresFiscais.find((d) => d.doadorId === g.doadorId);
+          return {
+            doadorPessoaId: fiscal?.pessoaIds[0] ?? g.doadorId,
+            donatarioPessoaId: g.donatarioId,
+            quotasRecebidas: g.quotasRecebidas,
+            pctDaGia: g.percentualDaGia,
+            doacaoAnterior: g.doacaoAnterior,
+            basePorCenario: {
+              contabil: g.porCenario.contabil?.base ?? null,
+              itr: g.porCenario.itr?.base ?? null,
+              mercado: g.porCenario.mercado?.base ?? null,
+            },
+            impostoPorCenario: {
+              contabil: g.porCenario.contabil?.imposto ?? null,
+              itr: g.porCenario.itr?.imposto ?? null,
+              mercado: g.porCenario.mercado?.imposto ?? null,
+            },
           };
         }),
 

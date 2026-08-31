@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { HistoricoDeSimulacoes } from './HistoricoDeSimulacoes';
+import { colunasSemDica } from './alinhamentoDeTabela';
 import { simulacaoSalva } from './simulacaoSalvaFixture';
 
 // O que este componente prende: a lista mostra o que está gravado, CLICAR ABRE (não
@@ -42,10 +43,37 @@ describe('HistoricoDeSimulacoes', () => {
     expect(screen.getByText('Versão 1')).toBeInTheDocument();
   });
 
+  it('toda coluna da lista explica o que é', () => {
+    // Os rótulos daqui são curtos por falta de espaço (Doa, Recebe, contábil, ITR), e
+    // curto não é claro. A falha nomeia a coluna esquecida.
+    montar();
+    expect(colunasSemDica()).toEqual([]);
+  });
+
   it('o NOME dado substitui o rótulo da versão', () => {
     montar({ simulacoes: [simulacaoSalva({ nome: '51% pelo Avelino' })] });
     expect(screen.getByText('51% pelo Avelino')).toBeInTheDocument();
     expect(screen.queryByText('Versão 1')).not.toBeInTheDocument();
+  });
+
+  it('a CADEIA aparece na lista: quem parte de quem, com o nome da origem', () => {
+    const ato1 = simulacaoSalva({ id: 'S0', versao: 1, nome: 'Entre os herdeiros' });
+    const ato2 = simulacaoSalva({
+      id: 'S1', versao: 2, nome: 'Do fundador', origemSimulacaoId: 'S0',
+    });
+    montar({ simulacoes: [ato2, ato1] });
+
+    // O RÓTULO da origem, e não só um sinal: "parte de" sem dizer de que obrigaria a
+    // abrir as duas para descobrir.
+    expect(screen.getByText('↳ Entre os herdeiros')).toBeInTheDocument();
+    // E quem não parte de ninguém não ganha marca nenhuma.
+    expect(screen.queryByText('↳ Do fundador')).not.toBeInTheDocument();
+  });
+
+  it('origem FORA da lista diz o que sabe, sem inventar nome', () => {
+    // Origem filtrada por status, ou de outro cliente: o id existe e a linha não.
+    montar({ simulacoes: [simulacaoSalva({ origemSimulacaoId: 'FANTASMA' })] });
+    expect(screen.getByText('↳ outra simulação')).toBeInTheDocument();
   });
 
   it('CLICAR ABRE a simulação, e não expande a linha', () => {
