@@ -350,7 +350,7 @@ describe('GerarDocumento — caracterização O1', () => {
         // `retirantes` entrou com a cláusula de retirada da AC de concentração:
         // lista nova é lista congelada no snapshot, como as demais.
         retirantes: [],
-        imoveis: [], signatarios: [], vertices: [],
+        imoveis: [], signatarios: [], vertices: [], memoriais: [],
       },
       total: null,
     });

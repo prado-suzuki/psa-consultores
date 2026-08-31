@@ -5,7 +5,7 @@ import { baixarDocx } from '@/lib/templates/docx';
 import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, tituloColetivoDosSocios, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, tituloColetivoDosSocios, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
@@ -830,8 +830,23 @@ export function useGerarDocumentoController() {
     () => registrosPorLista.imoveis ?? [],
     [registrosPorLista.imoveis],
   );
-  const { porMatricula: georefsPorMatricula, isFetching: carregandoGeorefsSelecionados } =
-    useGeorefsByMatriculas(idsImoveisSelecionados);
+  // Toda matrícula que ENTRA no documento, na ordem em que ele as descreve: as
+  // integralizadas (alíneas de {{#integralizacoes}}), as escolhidas a dedo
+  // ({{#imoveis}}) e as de binding unitário ({{ imovel.* }}, a matrícula
+  // digitada). É deste conjunto — e não de um imóvel escolhido à parte — que sai
+  // o memorial do georreferenciamento.
+  const idsMatriculasDoDocumento = useMemo(() => {
+    const ids = new Set<string>(matriculasDescritasNasIntegralizacoes(socios, integralizacoes));
+    for (const id of idsImoveisSelecionados) ids.add(id);
+    for (const b of bindings) {
+      if (b.tipo !== 'matricula') continue;
+      const id = registroPorBinding[b.nome];
+      if (id) ids.add(id);
+    }
+    return [...ids];
+  }, [socios, integralizacoes, idsImoveisSelecionados, bindings, registroPorBinding]);
+  const { porMatricula: georefsPorMatricula, isFetching: carregandoGeorefs } =
+    useGeorefsByMatriculas(idsMatriculasDoDocumento);
   const imoveisSelecionados = useMemo<ItemLista[]>(
     () => idsImoveisSelecionados.flatMap((id) => {
       const registro = registros.matricula.find((item) => item.id === id);
@@ -847,7 +862,29 @@ export function useGerarDocumentoController() {
     }),
     [idsImoveisSelecionados, registros.matricula, georefsPorMatricula],
   );
-  const carregandoDadosDocumento = carregandoListasEfetivo || carregandoGeorefsSelecionados;
+  // Um memorial por matrícula do documento que tem certificação no SIGEF. As sem
+  // georref não geram item, e o bloco repetidor sai da composição quando nenhuma
+  // tem — o memorial não é um capítulo que espera alguém escolher um imóvel.
+  const memoriais = useMemo<ItemLista[]>(
+    () => idsMatriculasDoDocumento.flatMap((id) => {
+      const georef = georefsPorMatricula[id];
+      if (!georef?.cabecalho) return [];
+      const row = registros.matricula.find((r) => r.id === id)?.row
+        ?? integralizacoes.find((m) => m.id === id);
+      if (!row) return [];
+      const imovel = derivarCampos('matricula', {
+        ...mapearRegistro('matricula', row),
+        ...mapearGeorefCabecalho(georef.cabecalho),
+      });
+      // Dentro de lista não há formulário para completar campo faltante na mão
+      // (ver mapearIntegralizacoes): campo do catálogo ausente vira '' para o
+      // condicional pular o trecho em vez de derrubar a prévia inteira.
+      for (const c of camposDaEntidade('matricula')) imovel[c.id] = imovel[c.id] ?? '';
+      return [{ imovel, vertices: georef.vertices.map(mapearVertice) }];
+    }),
+    [idsMatriculasDoDocumento, georefsPorMatricula, registros.matricula, integralizacoes],
+  );
+  const carregandoDadosDocumento = carregandoListasEfetivo || carregandoGeorefs;
   const pessoaPorId = useMemo(
     () => new Map(registros.pessoa.map((registro) => {
       const pessoa = registro.row as PessoaRow;
@@ -926,10 +963,11 @@ export function useGerarDocumentoController() {
         // Passá-los aqui os faria assinar duas vezes.
       }),
       vertices: verticesItens,
+      memoriais,
       // Listas de seleção manual de pessoas ({{#partes}}), por nome do papel.
       ...partesPorLista,
     }),
-    [quadro, socios, administradores, integralizacoes, aportes, cessoes, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, partesPorLista],
+    [quadro, socios, administradores, integralizacoes, aportes, cessoes, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------

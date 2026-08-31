@@ -295,6 +295,21 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
     ],
   },
+  // Os imóveis DO DOCUMENTO que têm georreferenciamento, um item por matrícula
+  // certificada — a coleção do bloco repetidor do memorial SIGEF. Quem entra não
+  // é um imóvel escolhido à parte: são as matrículas que o documento já descreve
+  // (alíneas de {{#integralizacoes}}, {{#imoveis}} e bindings unitários), e só as
+  // que o SIGEF tem. Nenhuma certificada ⇒ coleção vazia ⇒ o bloco sai da
+  // composição, que é o "o memorial só aparece se alguma matrícula tiver georref".
+  // Cada item é { imovel: {...campos + georef*}, vertices: [...] }.
+  memoriais: {
+    label: 'Memoriais de georreferenciamento (imóveis do documento)',
+    tipo: 'matricula',
+    itemKey: 'imovel',
+    secoesItem: ['vertices'],
+    fonte: 'georef',
+    camposExtras: [],
+  },
   // Vértices do memorial descritivo (georreferenciamento). Diferente das demais
   // listas, a fonte é o BigQuery pela matrícula selecionada (fonte 'georef'), não
   // a empresa. Cada item é { vertice: {...campos} }; o cabeçalho (área/perímetro/

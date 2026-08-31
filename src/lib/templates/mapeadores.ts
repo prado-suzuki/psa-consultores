@@ -1017,6 +1017,25 @@ export function mapearIntegralizacoes(
   return itens;
 }
 
+/**
+ * Ids das matrículas que a seção {{#integralizacoes}} de fato DESCREVE: as de
+ * titular sócio (a mesma condição do laço acima), sem repetir a que dois sócios
+ * dividem — a alínea é por sócio, a matrícula é uma só.
+ *
+ * Existe para responder "quais imóveis entram neste contrato" a quem precisa da
+ * MATRÍCULA e não da alínea: é do georref delas que sai o memorial descritivo,
+ * que não tem imóvel próprio a escolher.
+ */
+export function matriculasDescritasNasIntegralizacoes(
+  socios: SocioParaMapear[],
+  matriculas: MatriculaIntegralizacao[],
+): string[] {
+  const sociosIds = new Set(socios.map((s) => s.pessoa.id));
+  return matriculas
+    .filter((m) => dedupTitulares(m.titulares).some((t) => t.pessoaId && sociosIds.has(t.pessoaId)))
+    .map((m) => m.id);
+}
+
 /** Os campos comuns a toda alínea de aporte, seja qual for a forma. */
 function camposDoAporte(alinea: string, quotas: number | null, valor: number | null): Campos {
   const out: Campos = { alinea };
