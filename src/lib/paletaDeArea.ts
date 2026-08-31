@@ -48,12 +48,14 @@ export const PAPEIS_DE_STATUS = [
 export const TONS_DE_TAG = ['a', 'b', 'c', 'd'] as const;
 
 /**
- * Blocos de tema esperados no `index.css`: a base e uma classe por área.
+ * Blocos de tema esperados no `index.css`: a base e uma classe por área que
+ * tenha paleta de status própria.
  *
- * A `.rotina-theme` entrou depois das outras duas, e é a razão de existir
- * `AREAS_CONGELADAS_NA_BASE`: ela declara o contrato inteiro, mas com os valores
- * da base. Estar nesta lista já a submete a completude, contraste, faixa e
- * separação interna — o que ela cumpre, por ser cópia de uma paleta que cumpre.
+ * A `.rotina-theme` esteve aqui e SAIU em 29/08/2026, junto com o bloco dela no
+ * `index.css`. Ela declarava o contrato inteiro com os valores da base, e a
+ * exceção `AREAS_CONGELADAS_NA_BASE` existia só para registrar isso. A Rotina é
+ * a casa, a casa é o piso, e área cuja âncora é a do piso não tem paleta a
+ * declarar — o bloco era uma cópia, e a exceção era o recibo dela. Saíram juntos.
  *
  * Fora da lista: `.base-theme`, `.sistema-theme` e `.board-theme`. Nenhum dos
  * três declara `--status-*` próprio (o `.base-theme` congela a base; os outros
@@ -62,26 +64,7 @@ export const TONS_DE_TAG = ['a', 'b', 'c', 'd'] as const;
  * arquivo é calibrada para superfície clara, e a escala escura tem contrato
  * próprio.
  */
-export const TEMAS = [':root', '.tax-theme', '.osg-theme', '.rotina-theme'] as const;
-
-/**
- * Áreas que hoje são CÓPIA da base, por decisão registrada e não por esquecimento.
- *
- * A Rotina declarava 1 das 41 variáveis do contrato e herdava as outras 40; o
- * congelamento (ver `.rotina-theme` no `index.css`) escreveu as 40 com os valores
- * que ela já computava, para desacoplá-la da base sem mudar um pixel. O efeito
- * colateral é que a paleta de status dela é, hoje, byte a byte a da base — e a
- * identidade visual própria da Rotina é uma decisão que ainda não foi tomada.
- *
- * `problemasEntreAreas` pula o par (área congelada × `:root`), e SÓ esse par: a
- * área continua sendo comparada com a Tax e com a OSG. O que a exceção diz é
- * "esta área ainda não escolheu a cor dela", não "esta área está dispensada".
- *
- * A exceção não é silenciosa: o teste `ainda é cópia da base` falha no dia em
- * que a Rotina ganhar cor própria, e a mensagem dele manda tirar o nome daqui.
- * Exceção que sobrevive à razão de existir é como papel que ninguém checava.
- */
-export const AREAS_CONGELADAS_NA_BASE = ['.rotina-theme'] as const;
+export const TEMAS = [':root', '.tax-theme', '.osg-theme'] as const;
 
 /**
  * Papéis semânticos do sistema: o vermelho de excluir, o verde de deu certo, o
@@ -509,9 +492,9 @@ export function problemasDeSeparacao(css: string, seletor: string): ProblemaDePa
  * Confere se cada papel muda de cara ao trocar de área. Percorre os pares de
  * temas, papel a papel. Lista vazia = aprovado.
  *
- * Um par fica fora: área congelada × `:root`, pela razão registrada em
- * `AREAS_CONGELADAS_NA_BASE`. Todos os outros valem, inclusive os da área
- * congelada contra as áreas que já têm cor própria.
+ * Nenhum par fica de fora. Houve um — `.rotina-theme` × `:root`, exonerado
+ * porque a Rotina era cópia da base — e ele saiu quando o bloco copiado saiu.
+ * A exceção durou exatamente o tempo da razão dela.
  *
  * O campo `tema` traz os dois seletores comparados e `item` o papel, para a
  * mensagem do teste dizer de uma vez qual papel, quais duas áreas e as duas
@@ -522,15 +505,9 @@ export function problemasEntreAreas(css: string): ProblemaDePaleta[] {
   const paletas = TEMAS.map(seletor => ({ seletor, paleta: paletaDoTema(css, seletor) }));
   const problemas: ProblemaDePaleta[] = [];
 
-  /** Área congelada contra a base é o par exonerado — e só ele. Ver `AREAS_CONGELADAS_NA_BASE`. */
-  const congeladoContraABase = (um: string, outro: string) =>
-    (um === ':root' && (AREAS_CONGELADAS_NA_BASE as readonly string[]).includes(outro)) ||
-    (outro === ':root' && (AREAS_CONGELADAS_NA_BASE as readonly string[]).includes(um));
-
   for (const papel of PAPEIS_DE_STATUS) {
     for (let i = 0; i < paletas.length; i += 1) {
       for (let j = i + 1; j < paletas.length; j += 1) {
-        if (congeladoContraABase(paletas[i].seletor, paletas[j].seletor)) continue;
         const a = paletas[i].paleta[`status-${papel}`];
         const b = paletas[j].paleta[`status-${papel}`];
         if (!a || !b) continue;

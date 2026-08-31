@@ -3,7 +3,6 @@ import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   ANCORAS,
-  AREAS_CONGELADAS_NA_BASE,
   PAPEIS_DE_STATUS,
   TEMAS,
   TONS_DE_TAG,
@@ -23,15 +22,16 @@ const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8');
  * A âncora de cada bloco de tema do `index.css`.
  *
  * A lista de temas do CSS e a lista de áreas do produto não casam uma a uma, e
- * é por isso que este mapa existe aqui e não em `ANCORAS`: o `:root` e a
- * `.rotina-theme` dividem a âncora da casa, porque a Rotina é uma das telas que
- * não pertencem a área nenhuma. Quem sabe amarrar tema a área é este arquivo.
+ * é por isso que este mapa existe aqui e não em `ANCORAS`: o `:root` É a casa,
+ * o teal da marca, e a casa cobre também as telas que não pertencem a área
+ * nenhuma — o Portal do Cliente e a Rotina. Nenhuma das duas tem bloco próprio,
+ * e é justamente porque a âncora delas já é a do piso. Quem sabe amarrar tema a
+ * área é este arquivo.
  */
 const ANCORA_DO_TEMA: Record<(typeof TEMAS)[number], Hsl> = {
   ':root': ANCORAS.casa,
   '.tax-theme': ANCORAS.tax,
   '.osg-theme': ANCORAS.osg,
-  '.rotina-theme': ANCORAS.casa,
 };
 
 /**
@@ -147,23 +147,6 @@ describe('paletas de área declaradas no index.css', () => {
       const distancia = distanciaDeMatiz(paleta['status-feito'], paleta['status-ajuste']);
       expect(distancia, `${tema}: feito e ajuste a ${distancia.toFixed(0)}° de matiz, perto demais`).toBeGreaterThan(60);
     }
-  });
-
-  it.each(AREAS_CONGELADAS_NA_BASE)('%s ainda é cópia da base — quando deixar de ser, a exceção sai', tema => {
-    // Contrapeso de `AREAS_CONGELADAS_NA_BASE`. A exceção existe porque a paleta
-    // desta área é, hoje, a da base — decisão registrada no `index.css`, não
-    // esquecimento. No dia em que ela ganhar cor própria, a exceção passa a
-    // esconder uma checagem de verdade, e é este teste que avisa.
-    const chaves = PAPEIS_DE_STATUS.flatMap(papel => [`status-${papel}`, `status-${papel}-soft`]);
-    const recorte = (seletor: string) => {
-      const paleta = paletaDoTema(css, seletor);
-      return Object.fromEntries(chaves.map(chave => [chave, paleta[chave]]));
-    };
-    expect(
-      recorte(tema),
-      `${tema} não é mais cópia da base: tire o nome de AREAS_CONGELADAS_NA_BASE ` +
-        `(em paletaDeArea.ts) para que a separação entre áreas volte a valer para ela.`,
-    ).toEqual(recorte(':root'));
   });
 
   it('os papéis semânticos cumprem o contrato, tirando a dívida registrada', () => {

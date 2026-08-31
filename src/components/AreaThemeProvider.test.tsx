@@ -74,7 +74,7 @@ describe('AreaThemeProvider', () => {
    * SEM tema de área garante que a última classe seja de fato retirada.
    */
   it('navegando Tax → OSG → Tax → acessos, nunca empilha classe de área', () => {
-    const CLASSES_DE_AREA = ['tax-theme', 'osg-theme', 'rotina-theme'];
+    const CLASSES_DE_AREA = ['tax-theme', 'osg-theme', 'board-theme'];
     const areasNoHtml = () =>
       CLASSES_DE_AREA.filter((c) => document.documentElement.classList.contains(c));
 

@@ -280,7 +280,7 @@ All colors MUST be HSL.
 
     /* ─── Escala teal — PRIMITIVA, não token de componente ─────────────────
        Existe para ALIMENTAR os tokens semânticos (o `--primary` da base sai
-       daqui, e a `.rotina-theme` usa `var(--teal-500)` no `--ring`). Componente
+       daqui, e o `--ring` sai do `--primary`). Componente
        NÃO usa: usa `bg-primary`, `text-primary`, `border-primary` — ou, em botão
        primário, a variante `default` do `ui/button`, sem classe de cor.
 
@@ -415,7 +415,7 @@ All colors MUST be HSL.
   }
 
   /* ─── .base-theme — o contrato completo, e o piso de todo tema ──────────
-     ⚠️ ESTE BLOCO TEM QUE VIR ANTES DE .tax-theme, .osg-theme E .rotina-theme.
+     ⚠️ ESTE BLOCO TEM QUE VIR ANTES DE .tax-theme, .osg-theme E .sistema-theme.
      As classes de tema convivem no MESMO <html> e todas têm a mesma
      especificidade (0-1-0): quem vence é quem vem depois no arquivo. Mover
      este bloco para baixo faz o base sobrescrever as áreas e apaga a
@@ -423,9 +423,10 @@ All colors MUST be HSL.
 
      O resolvedor (`src/lib/areaTheme.ts`) aplica SEMPRE `base-theme`, e por
      cima dele a classe da área quando existe. Com isso o base é o único lugar
-     que precisa declarar o contrato inteiro (as 41 variáveis que a `.osg-theme`
-     declara) e a área passa a ser só o DELTA: a `.tax-theme` declara 26, a
-     `.rotina-theme` declara 1, e nenhuma das duas precisa copiar o resto.
+     que precisa declarar o contrato inteiro (as variáveis que a `.osg-theme`
+     declara) e a área passa a ser só o DELTA: a `.tax-theme` congela o contrato
+     com a identidade dela, a `.sistema-theme` declara só acento e superfície, e
+     nenhuma das duas precisa copiar o resto.
 
      Foi a falta desse piso que criou o anel lime: sem ninguém declarando
      `--ring`, a Tax herdava o `85 85% 37%` do `:root` e o foco saía
@@ -784,93 +785,17 @@ All colors MUST be HSL.
     --surface-escura-2: 222 47% 11%;
   }
 
-  /* Tema da área Digital Rotina: o anel de foco dos campos deixa de ser o lime
-     do gradiente da marca e passa a ser o teal escuro do accent da área (o mesmo
-     dos campos "o que fiz / o que vou fazer" da daily). Aplicado no <html> pelo
-     EquipeLayout, então vale também para modais e selects renderizados em portal. */
-  .rotina-theme {
-    --ring: var(--teal-600);
-
-    /* ─── Congelamento: o que a Rotina herdava do .base-theme ──────────────
-       A Rotina declarava UMA das 41 variáveis do contrato — as outras 40 vinham
-       da base. Era a área mais exposta do sistema: qualquer mudança na base
-       repintava a área inteira sem que nada nesta declaração mudasse.
-
-       As 40 abaixo são exatamente o que ela JÁ computava. Zero mudança visual.
-
-       DECISÃO REGISTRADA, e ela é deliberada: congelar com os valores de hoje
-       significa que a Rotina PARA DE ACOMPANHAR mudanças no base. Isso é
-       desacoplamento de propósito, não efeito colateral. A alternativa seria
-       decidir agora a identidade visual própria da Rotina, e essa decisão não
-       está tomada. Congelar preserva o que está no ar e deixa a escolha para
-       quando ela for feita — a partir daqui, mudar a cor da Rotina é editar
-       este bloco, e nada mais.
-
-       `--ring` acima não entra no congelamento: já era declarado aqui e segue
-       como estava. `--tool-icon` continua `var(--primary)` — o alvo é que foi
-       congelado, não a referência. */
-    --accent: 175 84% 25%;
-    --accent-foreground: 0 0% 100%;
-    --primary: 175 84% 25%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 175 84% 25%;
-    --secondary-foreground: 0 0% 100%;
-    --success: var(--status-feito);
-    --warning: var(--status-alerta);
-    --success-foreground: 0 0% 100%;
-    --warning-foreground: 0 0% 98%;
-    --destructive-foreground: 0 0% 98%;
-    --status-neutro: 32 21% 12%;
-    --status-neutro-soft: 32 21% 86%;
-    --status-fila: 212 59% 36%;
-    --status-fila-soft: 212 59% 86%;
-    --status-andamento: 186 66% 26%;
-    --status-andamento-soft: 186 66% 86%;
-    --status-revisao: 160 60% 22%;
-    --status-revisao-soft: 160 60% 86%;
-    --status-espera: 44 68% 27%;
-    --status-espera-soft: 44 68% 86%;
-    --status-ajuste: 356 68% 35%;
-    --status-ajuste-soft: 356 68% 86%;
-    --status-feito: 128 63% 21%;
-    --status-feito-soft: 128 63% 86%;
-    --status-alerta: 20 72% 32%;
-    --status-alerta-soft: 20 72% 86%;
-    --tag-a: 112 64% 24%;
-    --tag-b: 211 60% 33%;
-    --tag-c: 289 78% 40%;
-    --tag-d: 339 84% 40%;
-    --tool-icon: var(--primary);
-    --tool-icon-bg: 175 60% 95%;
-    --background: 42 24% 99.8%;
-    --card: 42 24% 99.8%;
-    --popover: 42 24% 99.8%;
-    --canvas: 42 22% 99%;
-    /* Literal, e não `var(--base-50)` como vinha da base: a escala `--base-*`
-       é da base, e manter a referência recriaria pela lateral o acoplamento
-       que este bloco existe para cortar. Mesmo valor. */
-    --muted: 42 26% 92%;
-    --muted-foreground: 28 9% 41.5%;
-    --destructive: var(--status-ajuste);
-    --foreground: 20 81% 10%;
-    --card-foreground: 20 81% 10%;
-    --popover-foreground: 20 81% 10%;
-    /* A Rotina não tem superfície escura hoje. Mesmo motivo da Tax. */
-    --surface-escura: 229 84% 5%;
-    --surface-escura-2: 222 47% 11%;
-  }
-
   /* ─── .sistema-theme — grafite quente para as telas de infraestrutura ────
      Board, Dev, Digital e Acessos. Telas que servem o sistema, não uma área de
      negócio: elas não devem competir com a Tax nem com a OSG, e até aqui eram
      indistinguíveis da Tax, porque o piso é o teal institucional.
 
-     DELTA PURO — declara 7 variáveis, não 41, e isso é de propósito.
-     É a diferença entre este bloco e `.tax-theme`/`.rotina-theme`, que foram
-     CONGELADOS no contrato inteiro. Aquelas duas precisaram do congelamento
-     porque herdavam de um piso que ia mudar de identidade. Este nasce depois do
-     piso estar estável, e o que ele quer do piso — superfícies, texto, papéis de
-     status, tags — ele quer mesmo: herdar é o comportamento correto aqui.
+     DELTA PURO — declara 7 variáveis, não o contrato todo, e isso é de
+     propósito. É a diferença entre este bloco e `.tax-theme`, que foi CONGELADO
+     no contrato inteiro. Aquela precisou do congelamento porque herdava de um
+     piso que ia mudar de identidade. Este nasce depois do piso estar estável, e
+     o que ele quer do piso — superfícies, texto, papéis de status, tags — ele
+     quer mesmo: herdar é o comportamento correto aqui.
      Congelá-lo seria copiar 34 valores só para mantê-los iguais.
 
      `--tool-icon` não aparece: o `.base-theme` o declara como `var(--primary)`,
