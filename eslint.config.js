@@ -99,7 +99,7 @@ export default tseslint.config(
     plugins: { escala: corForaDaEscala },
     rules: {
       "escala/cor-inexistente": "error",
-      "escala/cor-de-estoque": "warn",
+      "escala/cor-de-estoque": "error",
     },
   },
   {
