@@ -296,6 +296,13 @@ All colors MUST be HSL.
        botões que usavam `bg-teal-600` continuaram teal — e o mesmo vale para
        qualquer área futura.
 
+       ⚠️ O MESMO PADRÃO foi cobrado em 31/08/2026: `--bd-accent-d` e
+       `--bd-accent-soft` também viviam no `:root` sem tema nenhum declarando, e
+       os dois entraram no contrato. Aqui a saída é OUTRA de propósito — esta escala é
+       PRIMITIVA, não token semântico: ela existe para alimentar o `--primary`
+       de cada tema, então fazê-la seguir o tema seria circular. O que fecha o
+       risco não é o contrato, é o lint abaixo, e é por isso que ele existe.
+
        Uma regra de lint (`eslint.config.js`) avisa sobre `teal-500/600/700` em
        `src/components` e `src/pages`. É `warn`, não `error`: as ocorrências
        antigas ficam visíveis e o número só cai. */
@@ -511,6 +518,26 @@ All colors MUST be HSL.
     /* Anel de foco = acento. O `:root` traz lime (85 85% 37%), herança de uma
        paleta anterior; é o valor que este bloco existe para corrigir. */
     --ring: 175 84% 25%;
+
+    /* ─── Degraus do acento: o escuro que pinta LETRA e o claro tingido ─────
+       Entraram no contrato em 31/08/2026, e o motivo é o mesmo que trouxe o
+       `--ring` para cá: eles VIVIAM fora do contrato, cravados no `:root` do
+       bloco `--bd-*`, então não acompanhavam tema nenhum.
+
+       `--accent-d` é o acento um degrau mais escuro, e existe porque
+       `--primary` a 5,54:1 no branco serve para MARCA (anel, barra, ponto) mas
+       é fino para letra em texto pequeno. Este dá 6,72:1. É ele que pinta link,
+       chip cheio e avatar; `--primary` nunca pinta letra pequena.
+
+       `--accent-soft` é o acento tingido de card (KPI de topo, `--bd-accent-soft`).
+
+       A Tax e a OSG apontam os dois para `--status-andamento`/`-soft`, que por
+       contrato da paleta de área JÁ é o acento da área no degrau escuro, com AA
+       cobrado por `paletaDeArea.test.ts`. A casa não pode fazer o mesmo: o arco
+       de status dela é o sábio (`--status-andamento` é 186 66% 26%) e o acento
+       dela é o teal 175 — 11° de distância. Por isso aqui é valor literal. */
+    --accent-d: 175 84% 22%;
+    --accent-soft: 172 40% 94%;
 
     /* Sinais do sistema — os mesmos três papéis do `:root`, e aqui o `var()`
        faz o trabalho sozinho: como cada tema declara os próprios `--status-*`,
@@ -728,6 +755,12 @@ All colors MUST be HSL.
     --secondary: 192 73% 20%;
     --secondary-foreground: 0 0% 100%;
     --ring: 192 73% 20%;
+    /* Degraus do acento — ver a nota no `.base-theme`. Aqui os dois seguem o
+       papel de status, que por contrato da paleta de área É o acento da área no
+       degrau escuro. Valor computado hoje: 186 64% 26% / 186 64% 86%, ou seja
+       exatamente o que o bloco `:root.tax-theme` já produzia. */
+    --accent-d: var(--status-andamento);
+    --accent-soft: var(--status-andamento-soft);
     --success: var(--status-feito);
     --warning: var(--status-alerta);
     --success-foreground: 0 0% 100%;
@@ -755,6 +788,11 @@ All colors MUST be HSL.
     --secondary: var(--osg-moss);
     --secondary-foreground: 0 0% 100%;
     --ring: var(--osg-moss);
+
+    /* Degraus do acento — ver a nota no `.base-theme`. Computa hoje
+       186 62% 26% / 186 62% 86%, o mesmo que o bloco `:root.osg-theme` produzia. */
+    --accent-d: var(--status-andamento);
+    --accent-soft: var(--status-andamento-soft);
 
     /* Sinais na OSG — foi o bloco que mais mudou. "Ok" era o verde musgo e
        "aviso" era o dourado do marca-texto, tokens de marca da área usados
@@ -1053,26 +1091,48 @@ All colors MUST be HSL.
    KPI.                                                                    */
 :root {
   /* ── Superfícies e linhas ──
-     ⚠️ ESTES VALORES TÊM UM PAR: o `.base-theme` (no `@layer base`, acima)
-     declara os MESMOS números nos tokens semânticos (`--canvas`, `--card`,
-     `--background`, `--muted`, `--foreground`, `--muted-foreground`). É o que
-     faz o card de um componente shadcn e o card do Board serem o mesmo branco,
-     e o fundo da página ser um só. Mexer aqui sem mexer lá reabre exatamente o
-     desencontro que a usuária viu em 21/08: chrome numa temperatura, controles
-     em outra. Não deriva um do outro por `var()` porque metade destes tokens
-     (line, line2, ink4, os degraus `-d`) não tem equivalente no contrato de
-     tema — derivação parcial seria pior que duas listas com um aviso.
+     A LISTA DUPLA ACABOU em 31/08/2026, e este parágrafo é o registro do que
+     ela era. Havia aqui um aviso de que "estes valores têm um par": o
+     `.base-theme` declarava os MESMOS números nos tokens semânticos, e mexer
+     num lado sem mexer no outro reabria o desencontro que a usuária viu em
+     21/08 — chrome numa temperatura, controles em outra. O aviso funcionava por
+     disciplina, que é a forma mais fraca de garantia.
 
-     O par apontava para a `.board-theme` até 31/08/2026. O bloco saiu porque as
-     duas listas descreviam a MESMA casa: este é `:root` e valia em toda rota,
-     enquanto o outro só vestia `/equipe/board` — nas 41 rotas do piso o chrome
-     do Board já saía teal e os controles ao lado saíam marfim. Dobrar o Board
-     no piso é o que fechou isso. Continuam duas listas, pelo motivo do parágrafo
-     acima, mas agora descrevem o mesmo alcance. */
-  --bd-page:      hsl(168 16% 96%);   /* fundo da área (fora dos cards)     */
-  --bd-surface:   #FFFFFF;            /* card                               */
+     A justificativa para não derivar era: "metade destes tokens não tem
+     equivalente no contrato de tema, e derivação parcial seria pior que duas
+     listas com um aviso". Ela estava certa sobre o diagnóstico e errada sobre a
+     saída — a resposta não era desistir de derivar, era **fazer o contrato
+     crescer**. `--accent-d` e `--accent-soft` entraram nele, e aí `--bd-page`,
+     `--bd-surface`, `--bd-accent-d` e `--bd-accent-soft` passaram a ler o token
+     do tema. Nenhum moveu um pixel: o valor cravado era, número por número, o
+     que a casa já declarava.
+
+     Sobraram QUATRO cravados — `--bd-surface2`, `--bd-line`, `--bd-line2` e
+     `--bd-accent-l` — e cada um está explicado na linha dele. O critério é o
+     mesmo nos quatro: o valor da casa NÃO tem par no contrato, então derivar
+     mexeria em pixel, e isso é decisão de design, não limpeza. É por isso que
+     eles ficam visíveis aqui em vez de entrarem de carona numa refatoração.
+
+     O `--bd-line` é o caso mais gritante da lista, e está aí de propósito: o
+     par dele no contrato seria `--border`, que NÃO EXISTE como token de tema —
+     ele vive só no `:root`, em bege quente, e nenhum tema o declara. Enquanto
+     for assim, esta linha continua cravada.
+
+     Antes de 31/08 o par apontava para a `.board-theme`. Aquele bloco saiu no
+     mesmo dia, porque as duas listas descreviam a MESMA casa: este é `:root` e
+     valia em toda rota, enquanto o outro só vestia `/equipe/board`. */
+  --bd-page:      hsl(var(--canvas));   /* fundo da área (fora dos cards)   */
+  --bd-surface:   hsl(var(--card));     /* card                             */
+  --bd-line:      hsl(168 14% 89%);     /* borda de card, régua de tabela   */
+  /* Estes DOIS continuam cravados, e é o que sobra da lista dupla. Os de cima
+     passaram a seguir o token de tema em 31/08/2026 porque o valor cravado era,
+     número por número, o que a casa já declarava — trocar não moveu um pixel.
+     Estes dois não têm esse par: `--bd-surface2` é 168 20% 98% e o `--muted` da
+     casa é 168 20% 92%; `--bd-line2` é 168 16% 94% contra os mesmos 92%. Seguir
+     o `--muted` escureceria a zebra e a divisória da casa (1,13:1 → 1,17:1 na
+     divisória). É mudança de pixel, então é decisão, não limpeza — e fica aqui
+     esperando por ela em vez de entrar de carona. */
   --bd-surface2:  hsl(168 20% 98%);   /* hover de linha, zebra, cabeçalho   */
-  --bd-line:      hsl(168 14% 89%);   /* borda de card, régua de tabela     */
   --bd-line2:     hsl(168 16% 94%);   /* divisória interna, trilho de barra */
 
   /* ── Rampa de tinta ── */
@@ -1083,9 +1143,14 @@ All colors MUST be HSL.
 
   /* ── Acento: o teal institucional ── */
   --bd-accent:      hsl(var(--primary));      /* área: anel, barra, ponto   */
-  --bd-accent-d:    hsl(175 84% 22%);         /* TEXTO e fundo com texto    */
-  --bd-accent-t:    hsl(var(--primary) / .10);   /* tint de pílula/chip        */
-  --bd-accent-soft: hsl(172 40% 94%);         /* card tingido (KPI de topo) */
+  --bd-accent-d:    hsl(var(--accent-d));     /* TEXTO e fundo com texto    */
+  --bd-accent-t:    hsl(var(--primary) / .10);   /* tint de pílula/chip     */
+  --bd-accent-soft: hsl(var(--accent-soft));  /* card tingido (KPI de topo) */
+  /* O ÚLTIMO cravado do acento, e pelo mesmo motivo dos dois de superfície
+     acima: aqui não há par. Este é opaco (175 45% 72%) e a Tax e a OSG usam
+     `hsl(var(--primary) / .35)`, que é alfa sobre a superfície — as duas coisas
+     não dão a mesma cor, então unificar mexeria na série secundária dos
+     gráficos do Board. Precisa de olho num gráfico, não de refactor. */
   --bd-accent-l:    hsl(175 45% 72%);         /* série secundária no gráfico*/
 
   /* ── Semânticos ──
@@ -1594,29 +1659,31 @@ All colors MUST be HSL.
    e na OSG a partir do MESMO componente, e usam os `--board-v4-*` de
    superfície. Fora do Board eles precisam vestir as superfícies de quem os
    hospeda — senão a Tax marfim e a OSG areia recebem o fundo do Board.
-   Antes isto era um bloco só para a OSG, com hexadecimais de areia repetidos
-   à mão; agora as duas áreas apontam para os próprios tokens semânticos, e uma
-   área nova que declare tema entra aqui com uma linha. */
+
+   ESTE BLOCO ENCOLHEU DE 10 LINHAS PARA 4, em 31/08/2026, e o que sobrou diz
+   exatamente o que ainda é exceção. Seis linhas saíram por dois motivos:
+
+   · REDUNDANTES desde sempre — `--bd-accent` e `--bd-accent-t` repetiam,
+     caractere por caractere, o que o `:root` já declara. Nunca sobrescreveram
+     nada;
+   · DESNECESSÁRIAS agora — `--bd-page`, `--bd-surface`, `--bd-accent-d` e
+     `--bd-accent-soft` existiam porque o `:root` cravava o valor da CASA nesses
+     quatro, e a Tax e a OSG precisavam desviar. O `:root` passou a ler o token
+     de tema (`--canvas`, `--card`, `--accent-d`, `--accent-soft`), então o
+     desvio virou a regra e o bloco não precisa dele. `--accent-d` e
+     `--accent-soft` entraram no contrato nessa mesma passada — ver a nota no
+     `.base-theme`.
+
+   O que sobra são as quatro em que o valor da casa NÃO tem par no contrato, ou
+   seja: mudar exigiria mexer em pixel. Estão explicadas uma a uma no `:root`.
+   Uma área nova que declare tema não precisa mais entrar aqui — ela herda
+   pelos tokens. */
 :root.tax-theme,
 :root.osg-theme {
-  --bd-page:     hsl(var(--canvas));
-  --bd-surface:  hsl(var(--card));
   --bd-surface2: hsl(var(--muted));
   --bd-line:     hsl(var(--border));
   --bd-line2:    hsl(var(--muted));
-  --bd-accent:   hsl(var(--primary));
-  /* O degrau escuro continua NAO sendo o proprio `--primary`, mas a razao
-     mudou. Era contraste: o teal da marca dava 4,40:1 no branco e este token
-     pinta LETRA. Hoje o `--primary` passa em todas as areas (5,54:1 na casa,
-     9,90:1 na Tax, 7,92:1 na OSG), entao a proibicao caiu. O que sobra e o
-     motivo bom: `--status-andamento` e, por contrato da paleta de area, o
-     acento da area no degrau escuro, com AA garantido pelo teste
-     (`paletaDeArea.test.ts`) — e um degrau escuro com nome proprio nao deve
-     ser o mesmo token que pinta botao. */
-  --bd-accent-d: hsl(var(--status-andamento));
-  --bd-accent-t: hsl(var(--primary) / .10);
-  --bd-accent-soft: hsl(var(--status-andamento-soft));
-  --bd-accent-l:    hsl(var(--primary) / .35);
+  --bd-accent-l: hsl(var(--primary) / .35);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

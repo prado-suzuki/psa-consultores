@@ -348,6 +348,24 @@ saturação é escolha), separação par a par (vermelho, verde, amarelo e azul 
 construção) e separação entre áreas (o vermelho de excluir *pode* ser o mesmo em duas áreas,
 e na maioria delas é).
 
+### "Token que nenhum tema declara" é o defeito recorrente deste sistema
+
+O `--warning` a 2,13:1 não foi um valor errado passando pelo teste — foi um token fora do
+contrato. **Esse mesmo defeito reapareceu**, e em 31/08/2026 dois casos foram cobrados. O contrato foi
+de 46 para 48 variáveis.
+
+| token | onde vivia | o que produzia |
+|---|---|---|
+| `--accent-d` | cravado no `:root`, no bloco `--bd-*` | o degrau escuro que pinta **letra** (link, chip cheio, avatar) era o teal da casa em qualquer tema que não fosse Tax nem OSG |
+| `--accent-soft` | idem | o card tingido de KPI, igual |
+Restam **quatro** valores cravados no bloco `--bd-*`, comentados um a um no `index.css`:
+`--bd-surface2` (zebra), `--bd-line2` (divisória), `--bd-accent-l` (série de gráfico) e
+`--bd-line` (borda de card) — este último porque o par dele seria `--border`, que ainda **não
+existe** como token de tema. O critério para não derivar os outros três é o mesmo: o valor da casa **não tem par no contrato**, então derivar mexeria em pixel
+— nos dois primeiros escurecendo zebra e divisória, no terceiro trocando opaco por alfa. Isso
+é decisão de design, não limpeza, e é por isso que ficam visíveis em vez de entrarem de
+carona.
+
 A resolução passa por herança e por `var()`: nenhuma área declara `--card` própria, e os
 semânticos da OSG são `var(--osg-moss)` / `var(--osg-highlighter)`. Ler só o literal do bloco
 daria "não declarado" justamente na área que mais personalizou os quatro.

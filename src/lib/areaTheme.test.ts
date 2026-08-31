@@ -350,7 +350,7 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
   const css = readFileSync('src/index.css', 'utf8');
   const contrato = declaradasEm(css, `.${CLASSE_BASE}`);
 
-  it('o contrato tem as 46 variáveis', () => {
+  it('o contrato tem as 48 variáveis', () => {
     // 41 na origem
     // +2 o par `--surface-escura`/`-2`, quando o cartão escuro do Painel Dev
     //    precisou de um fundo por área
@@ -361,7 +361,21 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
     //    exatamente isso, e o par sobrevivia por sorte. Os valores declarados
     //    são os mesmos do `:root` — nenhum pixel mudou; o que mudou foi quem
     //    manda neles.
-    expect(contrato.size).toBe(46);
+    // +2 `--accent-d` e `--accent-soft` (31/08/2026). Os degraus do acento
+    //    viviam cravados no bloco `--bd-*` do `:root`, com o valor da CASA, e a
+    //    Tax e a OSG desviavam num bloco separado. Um tema novo herdava o teal
+    //    da casa no token que pinta LETRA — e sem erro nenhum.
+    //
+    // O padrão dos dois últimos é o mesmo do `--warning` a 2,13:1, e é o que
+    // este número protege: token que nenhum tema declara não quebra nada
+    // visível, só acumula divergência em silêncio. Entrar no contrato é o que
+    // faz um tema novo ser OBRIGADO a responder.
+    //
+    // AINDA FORA, e é o próximo da fila: `--border` e `--input`. Vivem só no
+    // `:root`, em bege quente (40 12% 91%), e NENHUM tema os declara — a borda
+    // dos controles sai bege em toda rota, inclusive sobre as superfícies frias
+    // da casa (matiz 168) e da Tax (170).
+    expect(contrato.size).toBe(48);
   });
 
   /*
