@@ -786,9 +786,15 @@ All colors MUST be HSL.
   }
 
   /* ─── .sistema-theme — grafite quente para as telas de infraestrutura ────
-     Board, Dev, Digital e Acessos. Telas que servem o sistema, não uma área de
-     negócio: elas não devem competir com a Tax nem com a OSG, e até aqui eram
-     indistinguíveis da Tax, porque o piso é o teal institucional.
+     Hoje só o Dev. Telas que servem o sistema, não uma área de negócio: elas não
+     devem competir com a Tax nem com a OSG, e até aqui eram indistinguíveis da
+     Tax, porque o piso é o teal institucional.
+
+     O bloco já vestiu Board, Digital e Acessos, e os três saíram pelo mesmo
+     motivo — o Board em 21/08/2026, o Digital em 31/08. São áreas de NEGÓCIO, e
+     o grafite nelas produzia a divergência que ele existe para evitar: cinza no
+     botão ao lado de teal no cartão e no gráfico. O critério que sobrou é a
+     quem a tela serve, e só o Dev serve o sistema.
 
      DELTA PURO — declara 7 variáveis, não o contrato todo, e isso é de
      propósito. É a diferença entre este bloco e `.tax-theme`, que foi CONGELADO

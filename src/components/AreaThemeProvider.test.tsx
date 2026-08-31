@@ -72,9 +72,16 @@ describe('AreaThemeProvider', () => {
    * O caminho é de ida E DE VOLTA de propósito: Tax → OSG → Tax pega a classe
    * órfã que um teste só de ida deixaria passar, e o passo final para uma rota
    * SEM tema de área garante que a última classe seja de fato retirada.
+   *
+   * Esse passo final só passou a provar isso em 31/08/2026. Até ali
+   * `/equipe/acessos` vestia `sistema-theme`, e o teste só dava certo porque a
+   * lista abaixo não incluía essa classe — a última classe podia ficar no
+   * <html> sem ninguém ver. Com o Digital na casa, a rota ficou de fato sem
+   * tema, e a lista virou o conjunto COMPLETO das classes de área que o
+   * resolvedor sabe aplicar. Se nascer uma quinta, ela entra aqui.
    */
   it('navegando Tax → OSG → Tax → acessos, nunca empilha classe de área', () => {
-    const CLASSES_DE_AREA = ['tax-theme', 'osg-theme', 'board-theme'];
+    const CLASSES_DE_AREA = ['tax-theme', 'osg-theme', 'board-theme', 'sistema-theme'];
     const areasNoHtml = () =>
       CLASSES_DE_AREA.filter((c) => document.documentElement.classList.contains(c));
 

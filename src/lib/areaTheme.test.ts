@@ -28,8 +28,12 @@ describe('os três casos em que o segundo segmento mente', () => {
    */
   it('/equipe/acessos é Digital, apesar do caminho dizer "acessos"', () => {
     expect(areaDaRota('/equipe/acessos')).toBe('digital');
-    // Digital ainda não tem paleta própria: veste a de infraestrutura.
-    expect(resolverTemaDaRota('/equipe/acessos')).toEqual([CLASSE_BASE, 'sistema-theme']);
+    // O Digital é área de NEGÓCIO e veste a marca, como a Rotina — que é a maior
+    // parte dele. As três rotas da área ficam no piso; o grafite sobrou para o
+    // Dev, que serve o sistema.
+    expect(resolverTemaDaRota('/equipe/acessos')).toEqual([CLASSE_BASE]);
+    expect(resolverTemaDaRota('/equipe/digital')).toEqual([CLASSE_BASE]);
+    expect(resolverTemaDaRota('/equipe/digital/mapa/processos')).toEqual([CLASSE_BASE]);
   });
 
   it('/equipe/chamados é Rotina, não uma área chamada "chamados"', () => {

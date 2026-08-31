@@ -40,9 +40,15 @@ export type AreaDeTema = 'tax' | 'osg' | 'board' | 'rotina' | 'digital' | 'siste
  * com o piso, que carrega a cor da marca. É o padrão seguro — uma página
  * pública nova sai teal em vez de sair grafite sem ninguém perceber.
  *
- * `digital` e `sistema` apontam para a mesma classe porque o Digital ainda não
- * tem paleta própria e, por ora, é infraestrutura como Board e Dev. Quando
- * ganhar identidade, é esta linha que muda — nada no mapa de rotas.
+ * `digital` aponta para `null` desde 31/08/2026: o Digital é ÁREA DE NEGÓCIO e
+ * veste a marca, como a Rotina — que é a maior parte dele. No grafite, o seletor
+ * de `/equipe/digital` pintava cinza apontando para telas teal, e o
+ * `/equipe/acessos` saía cinza dentro de uma área que não é cinza. É a mesma
+ * divergência que tirou o Board do grafite em 21/08.
+ *
+ * Sobra UM dono do grafite: `sistema`, que hoje é só o `/equipe/dev`. A linha
+ * que separa os dois não é tamanho nem hierarquia — é A QUEM A TELA SERVE. O Dev
+ * serve o sistema; Digital, Board, Tax e OSG servem o negócio.
  *
  * `rotina` também aponta para `null`, desde 29/08/2026, e isso é o fim de um
  * desvio — não uma área que perdeu a cor. A `.rotina-theme` nasceu para declarar
@@ -62,7 +68,7 @@ export const TEMA_DA_AREA: Record<AreaDeTema, string | null> = {
   osg: 'osg-theme',
   board: 'board-theme',
   rotina: null,
-  digital: 'sistema-theme',
+  digital: null,
   sistema: 'sistema-theme',
   base: null,
 };
@@ -97,7 +103,9 @@ export const MAPA_DE_ROTAS: RegraDeRota[] = [
   { prefixo: '/equipe/tax', area: 'tax' },
   { prefixo: '/equipe/osg', area: 'osg' },
 
-  // ── Digital: sem paleta própria ainda, veste a de infraestrutura ────
+  // ── Digital: área de negócio, e a cor dela é a da casa ──────────────
+  // Sem paleta própria — e, como a Rotina, sem precisar de uma: a âncora do
+  // Digital é a da casa, que é o que o piso já pinta.
   { prefixo: '/equipe/acessos', area: 'digital' },
   { prefixo: '/equipe/digital', area: 'digital' },
 
