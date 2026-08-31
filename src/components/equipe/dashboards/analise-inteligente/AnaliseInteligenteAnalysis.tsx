@@ -58,7 +58,7 @@ export function AnaliseInteligenteAnalysis({
   }
 
   return (
-    <Card className="border-teal-200 bg-gradient-to-br from-teal-50 to-white shadow-md">
+    <Card className="border-teal-200 bg-gradient-to-br from-accent/5 to-white shadow-md">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base text-teal-900 flex items-center gap-2">
@@ -138,7 +138,7 @@ export function AnaliseInteligenteAnalysis({
               ))}
             </ul>
           </div>
-          <div className="bg-teal-50/70 p-3 rounded-md border border-teal-100">
+          <div className="bg-accent/5/70 p-3 rounded-md border border-primary/10">
             <h4 className="text-xs font-semibold text-teal-700 mb-2 flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3" /> Recomendações
             </h4>

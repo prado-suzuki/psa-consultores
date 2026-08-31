@@ -521,7 +521,7 @@ export function ImpactDashboard() {
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        <Badge className="bg-teal-100 text-teal-700 border-0 w-6 h-6 flex items-center justify-center">
+                        <Badge className="bg-accent/10 text-teal-700 border-0 w-6 h-6 flex items-center justify-center">
                           {index + 1}
                         </Badge>
                         <div>
@@ -540,7 +540,7 @@ export function ImpactDashboard() {
                         <Badge variant="outline" className="border-blue-300 text-blue-700">
                           {improvement.time_saved_hours?.toFixed(0)}h/mês
                         </Badge>
-                        <Badge className="bg-teal-100 text-teal-700 border-0">
+                        <Badge className="bg-accent/10 text-teal-700 border-0">
                           ROI {improvement.roi_percentage.toFixed(0)}%
                         </Badge>
                       </div>

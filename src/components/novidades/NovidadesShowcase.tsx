@@ -67,7 +67,7 @@ export const NovidadesShowcase = () => {
 
       <Link
         to="/novidades"
-        className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-white text-teal-700 font-semibold text-base py-3 transition-colors hover:bg-teal-50"
+        className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-white text-teal-700 font-semibold text-base py-3 transition-colors hover:bg-accent/5"
       >
         Ver todas as novidades
         <ArrowRight className="h-5 w-5" />

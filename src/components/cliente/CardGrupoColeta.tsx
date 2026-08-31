@@ -101,7 +101,7 @@ export function CardGrupoColeta({
           <span
             className={cn(
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-              discreto ? 'bg-slate-100 text-slate-500' : 'bg-teal-50 text-teal-700',
+              discreto ? 'bg-slate-100 text-slate-500' : 'bg-accent/5 text-teal-700',
             )}
           >
             <Icon className="h-5 w-5" />
@@ -139,8 +139,8 @@ export function CardGrupoColeta({
           'mb-4 flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-7 text-center transition-colors',
           FOCO,
           arrastando
-            ? 'border-teal-500 bg-teal-50'
-            : 'border-slate-300 bg-slate-50/60 hover:border-teal-400 hover:bg-teal-50/40',
+            ? 'border-teal-500 bg-accent/5'
+            : 'border-slate-300 bg-slate-50/60 hover:border-teal-400 hover:bg-accent/5/40',
           enviando && 'cursor-wait opacity-70',
           somenteLeitura && 'cursor-not-allowed opacity-60 hover:border-slate-300 hover:bg-slate-50/60',
         )}

@@ -35,7 +35,7 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_BADGE_CLASS: Record<string, string> = {
   not_started: 'bg-amber-100 text-amber-700 border-amber-200',
   in_progress: 'bg-blue-100 text-blue-700 border-blue-200',
-  completed: 'bg-teal-100 text-teal-700 border-teal-200',
+  completed: 'bg-accent/10 text-teal-700 border-teal-200',
 };
 
 const PRIORITY_LABEL: Record<string, string> = {

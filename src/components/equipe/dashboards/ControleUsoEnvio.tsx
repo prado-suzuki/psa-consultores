@@ -308,7 +308,7 @@ export const ControleUsoEnvio = () => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1 px-2 text-xs text-teal-800 hover:bg-teal-100 hover:text-teal-950"
+                className="h-7 gap-1 px-2 text-xs text-teal-800 hover:bg-accent/10 hover:text-teal-950"
                 onClick={() => selecionarUsuario(undefined)}
               >
                 <X className="h-3.5 w-3.5" />
@@ -320,7 +320,7 @@ export const ControleUsoEnvio = () => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1 px-2 text-xs text-teal-800 hover:bg-teal-100 hover:text-teal-950"
+                className="h-7 gap-1 px-2 text-xs text-teal-800 hover:bg-accent/10 hover:text-teal-950"
                 onClick={() => atualizarUrl({ ferramenta: undefined })}
               >
                 <X className="h-3.5 w-3.5" />

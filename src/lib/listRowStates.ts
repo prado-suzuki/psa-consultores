@@ -13,7 +13,7 @@
  *   Marcar cinco linhas não pode acender a lista inteira com a cor da área —
  *   quando tudo é acento, o item que de fato está ativo some. Foi o que o
  *   levantamento do design system encontrou espalhado: `bg-primary/5`,
- *   `bg-teal-50` e `bg-teal-100/60` usados indistintamente para "selecionado" e
+ *   `bg-accent/5` e `bg-accent/10/60` usados indistintamente para "selecionado" e
  *   para "ativo", em telas diferentes.
  *
  * E a regra que o torna acessível: nenhum dos dois estados se apoia SÓ na cor.

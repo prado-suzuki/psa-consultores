@@ -39,7 +39,7 @@ const KIND_LABEL: Record<ScenarioKind, string> = {
 const KIND_COLOR: Record<ScenarioKind, string> = {
   scale: 'bg-blue-100 text-blue-700 border-blue-200',
   efficiency: 'bg-amber-100 text-amber-700 border-amber-200',
-  investment: 'bg-teal-100 text-teal-700 border-teal-200',
+  investment: 'bg-accent/10 text-teal-700 border-teal-200',
 };
 
 const STATUS_LABEL: Record<ScenarioStatus, string> = {

@@ -162,7 +162,7 @@ const AnaliseInteligente = () => {
           <Button
             variant="outline"
             onClick={exportarPDF}
-            className="border-teal-600 text-teal-600 hover:bg-teal-50"
+            className="border-teal-600 text-teal-600 hover:bg-accent/5"
           >
             <FileDown className="h-4 w-4 mr-2" />
             Exportar PDF
