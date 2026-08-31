@@ -262,3 +262,49 @@ describe('consequências que saem de graça da projeção', () => {
     expect(administradoresNaoSocios(reorganizada, PR, [ANA, BRUNO])).toEqual([ANA, BRUNO]);
   });
 });
+
+// A AC de CONCENTRAÇÃO: os sócios-administradores cedem tudo à holding e seguem
+// administrando. Nenhuma linha de `administracao` muda, e ainda assim o
+// instrumento precisa alterar a administração (para "não sócios") e declarar o
+// desimpedimento de quem foi nomeado.
+describe('evento_mudanca_administracao pela consequência da retirada', () => {
+  // Constituição já formalizada + as duas cessões que esta peça vai formalizar:
+  // Ana e Bruno cedem a totalidade à holding e saem do quadro.
+  const concentracao = [
+    ...constituicao,
+    mov({ id: 'x1', tipo: 'cessao', origemPessoaId: ANA, destinoPessoaId: HOLDING, quotas: 436337, valor: 436337 }),
+    mov({ id: 'x2', tipo: 'cessao', origemPessoaId: BRUNO, destinoPessoaId: HOLDING, quotas: 436337, valor: 436337 }),
+  ];
+
+  it('acende quando a cessão total deixa quem administra fora do quadro, sem mudança de cadastro', () => {
+    const eventos = derivarEventosDaAlteracao({
+      movimentos: concentracao,
+      empresaPessoaId: PR,
+      administradorPessoaIds: [ANA, BRUNO],
+    });
+    const adm = eventos.find((e) => e.flagNome === 'evento_mudanca_administracao');
+    expect(adm).toBeDefined();
+    expect(adm!.evidencia).toContain('sem estar no quadro societário');
+  });
+
+  it('NÃO acende sem retirada, mesmo com administradores informados', () => {
+    const eventos = derivarEventosDaAlteracao({
+      movimentos: constituicao,
+      empresaPessoaId: PR,
+      administradorPessoaIds: [ANA, BRUNO],
+    });
+    expect(eventos.some((e) => e.flagNome === 'evento_mudanca_administracao')).toBe(false);
+  });
+
+  it('não depende de baseline: acende na PRIMEIRA alteração da sociedade', () => {
+    const eventos = derivarEventosDaAlteracao({
+      movimentos: concentracao,
+      empresaPessoaId: PR,
+      administradorPessoaIds: [ANA, BRUNO],
+      // sem `baseline` e sem `cpfCnpjPorPessoaId`: é o caso em que o diff de
+      // quadro (evento 5) não tem como comparar e sai calado.
+    });
+    expect(eventos.some((e) => e.flagNome === 'evento_mudanca_socios')).toBe(false);
+    expect(eventos.some((e) => e.flagNome === 'evento_mudanca_administracao')).toBe(true);
+  });
+});

@@ -215,6 +215,7 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'cpfCnpj', label: 'CPF/CNPJ' },
       { id: 'qualificacao', label: 'Qualificação complementar' },
       { id: 'eSocio', label: 'É sócio? (condicional)' },
+      { id: 'eRetirante', label: 'É sócio retirante? (condicional)' },
       { id: 'eAdministrador', label: 'É administrador? (condicional)' },
       { id: 'eConjuge', label: 'É cônjuge outorgante? (condicional)' },
       { id: 'eTestemunha', label: 'É testemunha? (condicional)' },
@@ -279,6 +280,20 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
     ],
     fonte: 'quadro',
     camposExtras: [],
+  },
+  // Os sócios que SAEM nesta alteração. Deriva do mesmo par que as cessões (o
+  // livro + o quadro resultante), então a fonte é 'quadro': quem cedeu a
+  // totalidade das quotas não sobra em {{#socios}}, e sem uma lista própria a
+  // cláusula de retirada não teria como nomeá-los.
+  retirantes: {
+    label: 'Sócios retirantes (cederam a totalidade)',
+    tipo: 'pessoa',
+    itemKey: 'retirante',
+    fonte: 'quadro',
+    camposExtras: [
+      { id: 'ordem', label: 'Ordem do retirante (1, 2…)' },
+      { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
+    ],
   },
   // Vértices do memorial descritivo (georreferenciamento). Diferente das demais
   // listas, a fonte é o BigQuery pela matrícula selecionada (fonte 'georef'), não
