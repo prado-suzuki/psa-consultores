@@ -102,7 +102,7 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
             return (
               <div key={task.id}>
                 <Card
-                  className={`${task.status === 'completed' ? 'bg-muted' : ''} cursor-pointer border-gray-200`}
+                  className={`${task.status === 'completed' ? 'bg-muted' : ''} cursor-pointer border-border`}
                   onClick={() => c.toggleTask(task.id)}
                 >
                   <CardContent className="py-3">
@@ -113,7 +113,7 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                             event.stopPropagation();
                             c.toggleTask(task.id);
                           }}
-                          className="p-1 hover:bg-gray-100 rounded"
+                          className="p-1 hover:bg-muted rounded"
                         >
                           {expanded ? (
                             <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -202,11 +202,11 @@ export function DeliverablesTab({ controller: c }: { controller: EquipeSprintDet
                   </CardContent>
                 </Card>
                 {hasChildren && expanded && (
-                  <div className="ml-8 mt-1 space-y-1 border-l-2 border-gray-200 pl-4">
+                  <div className="ml-8 mt-1 space-y-1 border-l-2 border-border pl-4">
                     {task.subtasks.map((subtask) => (
                       <Card
                         key={subtask.id}
-                        className="cursor-pointer border-gray-100"
+                        className="cursor-pointer border-border"
                         onClick={() => c.openEditModal(subtask)}
                       >
                         <CardContent className="py-2">

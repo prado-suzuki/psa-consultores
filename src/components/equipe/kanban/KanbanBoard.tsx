@@ -42,7 +42,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
           <div className="flex items-center gap-2 mb-4">
             <div className={`w-3 h-3 rounded-full ${column.color}`} />
             <h3 className="text-gray-900 font-semibold text-sm">{column.title}</h3>
-            <Badge variant="outline" className="border-gray-300 text-gray-600">
+            <Badge variant="outline" className="border-border text-gray-600">
               {props.getColumnDeliverables(column.id).length}
             </Badge>
             <Button
@@ -82,7 +82,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
             {props.getColumnDeliverables(column.id).map((deliverable) => (
               <div key={deliverable.id}>
                 <Card
-                  className="border-gray-200 cursor-pointer hover:shadow-md transition-shadow"
+                  className="border-border cursor-pointer hover:shadow-md transition-shadow"
                   draggable
                   onDragStart={(event) =>
                     event.dataTransfer.setData('deliverableId', deliverable.id)
@@ -94,7 +94,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
                       {deliverable.subtaskCount > 0 && (
                         <button
                           onClick={(event) => props.onToggleExpanded(deliverable.id, event)}
-                          className="mt-0.5 p-0.5 hover:bg-gray-100 rounded"
+                          className="mt-0.5 p-0.5 hover:bg-muted rounded"
                         >
                           {props.expandedTasks.has(deliverable.id) ? (
                             <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -166,13 +166,13 @@ export function KanbanBoard(props: KanbanBoardProps) {
                 </Card>
 
                 {props.expandedTasks.has(deliverable.id) && deliverable.subtasks.length > 0 && (
-                  <div className="ml-4 mt-2 space-y-1 border-l-2 border-gray-200 pl-3">
+                  <div className="ml-4 mt-2 space-y-1 border-l-2 border-border pl-3">
                     {deliverable.subtasks.map((subtask) => (
                       <div
                         key={subtask.id}
                         style={{ marginLeft: subtask.depth * 14 }}
                         className={cn(
-                          'flex items-center gap-2 p-2 rounded-md bg-white border border-gray-100 text-sm cursor-pointer hover:bg-gray-50',
+                          'flex items-center gap-2 p-2 rounded-md bg-white border border-border text-sm cursor-pointer hover:bg-gray-50',
                           subtask.status === 'completed' && 'opacity-60',
                         )}
                         onClick={() => props.onOpenDeliverable(subtask)}

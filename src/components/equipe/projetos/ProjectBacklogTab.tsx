@@ -28,7 +28,7 @@ export const ProjectBacklogTab = ({ tasks, loading, onCreateItem }: ProjectBackl
     ) : tasks.length > 0 ? (
       <div className="space-y-2">
         {tasks.map((task) => (
-          <Card key={task.id} className="bg-muted border-gray-200">
+          <Card key={task.id} className="bg-muted border-border">
             <CardContent className="p-3">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">

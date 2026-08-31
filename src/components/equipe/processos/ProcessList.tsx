@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
 const PROCESS_STAGES = [
-  { value: 'discovery', label: 'Descoberta', color: 'bg-gray-100 text-gray-700' },
+  { value: 'discovery', label: 'Descoberta', color: 'bg-muted text-gray-700' },
   { value: 'mapping', label: 'Mapeamento', color: 'bg-blue-100 text-blue-700' },
   { value: 'analysis', label: 'Análise', color: 'bg-purple-100 text-purple-700' },
   { value: 'improvement', label: 'Melhoria', color: 'bg-orange-100 text-orange-700' },

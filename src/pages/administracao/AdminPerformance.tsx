@@ -85,7 +85,7 @@ const AdminPerformance = () => {
                 <span className="font-semibold">{deliverablesData?.total || 0}</span>
               </div>
 
-              <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
                 <div
                   className="h-full bg-green-500 transition-all"
                   style={{ width: `${deliverableCompletionRate}%` }}

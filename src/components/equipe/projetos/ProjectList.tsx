@@ -49,7 +49,7 @@ export const ProjectList = ({
 
   if (filteredProjects.length === 0) {
     return (
-      <Card className="border-gray-200">
+      <Card className="border-border">
         <CardContent className="py-16 text-center">
           <FolderKanban className="h-12 w-12 text-gray-400 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-gray-900 mb-2">
@@ -74,10 +74,10 @@ export const ProjectList = ({
   return (
     <>
       {viewMode === 'table' && (
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <Table>
             <TableHeader>
-              <TableRow className="border-gray-200">
+              <TableRow className="border-border">
                 <TableHead>Nome</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Prioridade</TableHead>
@@ -90,7 +90,7 @@ export const ProjectList = ({
               {filteredProjects.map((project) => (
                 <TableRow
                   key={project.id}
-                  className="border-gray-200 hover:bg-gray-50 cursor-pointer"
+                  className="border-border hover:bg-gray-50 cursor-pointer"
                   onClick={() => onSelectProject(project, false)}
                 >
                   <TableCell className="font-medium text-gray-900">{project.name}</TableCell>
@@ -136,7 +136,7 @@ export const ProjectList = ({
           {filteredProjects.map((project) => (
             <Card
               key={project.id}
-              className="border-gray-200 hover:shadow-md transition-shadow cursor-pointer"
+              className="border-border hover:shadow-md transition-shadow cursor-pointer"
               onClick={() => onSelectProject(project, false)}
             >
               <CardHeader className="pb-2">
@@ -174,7 +174,7 @@ export const ProjectList = ({
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border">
                   <Button
                     variant="ghost"
                     size="sm"

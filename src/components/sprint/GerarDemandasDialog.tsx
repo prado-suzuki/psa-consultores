@@ -217,7 +217,7 @@ export function GerarDemandasDialog({
                 {itens.map((item, index) => (
                   <div
                     key={index}
-                    className={`rounded-lg border p-3 ${item._selected ? 'border-primary/30 bg-primary/5' : 'border-gray-200 opacity-60'}`}
+                    className={`rounded-lg border p-3 ${item._selected ? 'border-primary/30 bg-primary/5' : 'border-border opacity-60'}`}
                   >
                     <div className="flex items-start gap-3">
                       <Checkbox

@@ -96,7 +96,7 @@ const Missao = () => {
             transition={{ duration: 0.6 }}
             className="max-w-2xl mx-auto"
           >
-            <div className="aspect-video rounded-lg overflow-hidden shadow-lg border border-gray-200">
+            <div className="aspect-video rounded-lg overflow-hidden shadow-lg border border-border">
               <iframe
                 src="https://www.youtube.com/embed/9E-EcRz-Gig"
                 title="PSA Consultores"

@@ -87,7 +87,7 @@ export const DemandList = ({
     };
     const { label, className } = config[frequency] || {
       label: frequency,
-      className: 'bg-gray-100',
+      className: 'bg-muted',
     };
     return <Badge className={className}>{label}</Badge>;
   };
@@ -112,7 +112,7 @@ export const DemandList = ({
           const isExpanded = expandedDemands.has(demand.id);
 
           return (
-            <Card key={demand.id} className="border-gray-200">
+            <Card key={demand.id} className="border-border">
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4 flex-1">
@@ -147,7 +147,7 @@ export const DemandList = ({
                         {demand.estimated_hours && (
                           <Badge
                             variant="outline"
-                            className="border-gray-300 text-gray-600 text-xs"
+                            className="border-border text-gray-600 text-xs"
                           >
                             <Clock className="h-3 w-3 mr-1" />
                             {demand.estimated_hours}h
@@ -194,7 +194,7 @@ export const DemandList = ({
                               Subdemandas ({items.length})
                             </Button>
                           </CollapsibleTrigger>
-                          <CollapsibleContent className="mt-2 space-y-2 pl-2 border-l-2 border-gray-200">
+                          <CollapsibleContent className="mt-2 space-y-2 pl-2 border-l-2 border-border">
                             {items.map((item) => (
                               <div key={item.id} className="flex items-center gap-2 py-1">
                                 <Checkbox
@@ -318,7 +318,7 @@ export const DemandList = ({
           );
         })
       ) : (
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardContent className="py-16 text-center">
             <Clock className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma demanda criada</h3>

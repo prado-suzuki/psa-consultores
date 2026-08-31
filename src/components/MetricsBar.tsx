@@ -16,7 +16,7 @@ export const MetricsBar = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 md:p-8"
+          className="bg-white rounded-xl shadow-lg border border-border p-6 md:p-8"
         >
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
             {metrics.map((metric, index) => (

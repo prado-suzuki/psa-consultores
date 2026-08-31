@@ -112,7 +112,7 @@ export const ProjectInfoTab = ({
             <SelectTrigger className="text-gray-900">
               <SelectValue placeholder="Selecione o cluster" />
             </SelectTrigger>
-            <SelectContent className="border-gray-200">
+            <SelectContent className="border-border">
               {clusters
                 .filter((cluster) => cluster.ativo)
                 .map((cluster) => (
@@ -146,7 +146,7 @@ export const ProjectInfoTab = ({
               <SelectTrigger className="text-gray-900">
                 <SelectValue placeholder="Selecione o cliente" />
               </SelectTrigger>
-              <SelectContent className="border-gray-200">
+              <SelectContent className="border-border">
                 {externalClients.map((client) => (
                   <SelectItem key={client.id} value={client.id}>
                     {client.nome}
@@ -164,7 +164,7 @@ export const ProjectInfoTab = ({
               <SelectTrigger className="text-gray-900">
                 <SelectValue placeholder="Selecione o líder" />
               </SelectTrigger>
-              <SelectContent className="border-gray-200">
+              <SelectContent className="border-border">
                 {teamMembers.map((member) => (
                   <SelectItem key={member.id} value={member.id}>
                     {member.first_name} {member.last_name}
@@ -185,7 +185,7 @@ export const ProjectInfoTab = ({
               <SelectTrigger className="text-gray-900">
                 <SelectValue placeholder="Selecione a equipe" />
               </SelectTrigger>
-              <SelectContent className="border-gray-200">
+              <SelectContent className="border-border">
                 {groupedEquipes.map((group) => (
                   <div key={group.area.id}>
                     <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
@@ -223,7 +223,7 @@ export const ProjectInfoTab = ({
             <SelectTrigger className="text-gray-900">
               <SelectValue placeholder="Selecione a frente" />
             </SelectTrigger>
-            <SelectContent className="border-gray-200">
+            <SelectContent className="border-border">
               {PROJECT_FRONTS.map((front) => (
                 <SelectItem key={front.value} value={front.value}>
                   {front.label}
@@ -318,7 +318,7 @@ export const ProjectInfoTab = ({
             <SelectTrigger className="text-gray-900">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="border-gray-200">
+            <SelectContent className="border-border">
               <SelectItem value="active">Ativo</SelectItem>
               <SelectItem value="completed">Concluído</SelectItem>
               <SelectItem value="blocked">Bloqueado</SelectItem>
@@ -327,7 +327,7 @@ export const ProjectInfoTab = ({
           </Select>
         </div>
 
-        <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-between pt-4 border-t border-border">
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm">
@@ -410,7 +410,7 @@ export const ProjectInfoTab = ({
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-200">
+      <div className="flex flex-wrap gap-2 pt-4 border-t border-border">
         <Button
           variant="outline"
           size="sm"
@@ -425,7 +425,7 @@ export const ProjectInfoTab = ({
             <Button
               variant="outline"
               size="sm"
-              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+              className="border-border text-gray-600 hover:bg-gray-50"
               onClick={() => {
                 onUpdateStatus(project.id, 'completed');
                 onCloseProject();
@@ -437,7 +437,7 @@ export const ProjectInfoTab = ({
             <Button
               variant="outline"
               size="sm"
-              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+              className="border-border text-gray-600 hover:bg-gray-50"
               onClick={() => {
                 onUpdateStatus(project.id, 'blocked');
                 onCloseProject();
@@ -449,7 +449,7 @@ export const ProjectInfoTab = ({
             <Button
               variant="outline"
               size="sm"
-              className="border-gray-300 text-gray-600 hover:bg-gray-50"
+              className="border-border text-gray-600 hover:bg-gray-50"
               onClick={() => {
                 onUpdateStatus(project.id, 'archived');
                 onCloseProject();
@@ -466,7 +466,7 @@ export const ProjectInfoTab = ({
           <Button
             variant="outline"
             size="sm"
-            className="border-gray-300 text-gray-600 hover:bg-gray-50"
+            className="border-border text-gray-600 hover:bg-gray-50"
             onClick={() => {
               onUpdateStatus(project.id, 'active');
               onCloseProject();

@@ -40,7 +40,7 @@
  }
  
  const AUTOMATION_LEVELS = [
-   { value: 'none', label: 'Nenhuma', color: 'bg-gray-100 text-gray-600' },
+   { value: 'none', label: 'Nenhuma', color: 'bg-muted text-gray-600' },
    { value: 'low', label: 'Baixa', color: 'bg-yellow-100 text-yellow-700' },
    { value: 'medium', label: 'Média', color: 'bg-blue-100 text-blue-700' },
    { value: 'high', label: 'Alta', color: 'bg-green-100 text-green-700' },

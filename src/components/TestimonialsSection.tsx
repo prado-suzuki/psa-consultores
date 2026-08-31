@@ -29,7 +29,7 @@ export const TestimonialsSection = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <div className="aspect-video rounded-xl overflow-hidden shadow-xl border border-gray-200">
+            <div className="aspect-video rounded-xl overflow-hidden shadow-xl border border-border">
               <iframe
                 src="https://www.youtube.com/embed/9E-EcRz-Gig"
                 title="PSA Consultores"

@@ -54,7 +54,7 @@ export const getAreaBadge = (area: string) => {
     Fixos: 'bg-teal-100 text-teal-700',
     'Fixos/Previdenciário': 'bg-indigo-100 text-indigo-700',
   };
-  const colorClass = colors[area] || 'bg-gray-100 text-gray-700';
+  const colorClass = colors[area] || 'bg-muted text-gray-700';
   return <Badge className={`${colorClass} hover:${colorClass}`}>{area}</Badge>;
 };
 

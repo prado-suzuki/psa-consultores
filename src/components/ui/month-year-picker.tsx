@@ -150,7 +150,7 @@ export function MonthYearPicker({
                       isSelected && "bg-gray-900 text-gray-50 hover:bg-gray-800",
                       isCurrentMonth &&
                         !isSelected &&
-                        "bg-gray-100 text-gray-900 font-semibold"
+                        "bg-muted text-gray-900 font-semibold"
                     )}
                     onClick={() => handleMonthSelect(index)}
                   >
@@ -179,7 +179,7 @@ export function MonthYearPicker({
                           "bg-gray-900 text-gray-50 hover:bg-gray-800",
                         isCurrentYear &&
                           !isSelected &&
-                          "bg-gray-100 text-gray-900 font-semibold"
+                          "bg-muted text-gray-900 font-semibold"
                       )}
                       onClick={() => {
                         setViewYear(y);

@@ -99,9 +99,9 @@ function Calendar({
         onClick={() => onSelect?.(date)}
         className={cn(
           "h-9 w-9 rounded-md text-sm font-medium transition-colors",
-          "hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400",
+          "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-gray-400",
           isSelected && "bg-gray-900 text-white hover:bg-gray-800",
-          isToday && !isSelected && "bg-gray-100 text-gray-900 font-semibold",
+          isToday && !isSelected && "bg-muted text-gray-900 font-semibold",
           !isSelected && !isToday && "text-gray-700",
           dayDisabled && "opacity-50 pointer-events-none"
         )}
@@ -261,7 +261,7 @@ function Calendar({
                   isSelected && "bg-gray-900 text-white hover:bg-gray-800",
                   isCurrentMonth &&
                     !isSelected &&
-                    "bg-gray-100 text-gray-900 font-semibold",
+                    "bg-muted text-gray-900 font-semibold",
                 )}
                 onClick={() => {
                   updateMonth(new Date(year, i, 1));
@@ -291,7 +291,7 @@ function Calendar({
                   isSelected && "bg-gray-900 text-white hover:bg-gray-800",
                   isCurrentYear &&
                     !isSelected &&
-                    "bg-gray-100 text-gray-900 font-semibold",
+                    "bg-muted text-gray-900 font-semibold",
                 )}
                 onClick={() => {
                   updateMonth(new Date(y, mo, 1));

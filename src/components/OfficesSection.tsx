@@ -88,7 +88,7 @@ export const OfficesSection = () => {
                     onOpenChange={(open) => setExpandedOffice(open ? office.id : null)}
                   >
                     <CollapsibleTrigger asChild>
-                      <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm cursor-pointer hover:border-emerald-300 transition-colors">
+                      <div className="bg-white rounded-lg border border-border p-4 shadow-sm cursor-pointer hover:border-emerald-300 transition-colors">
                         {/* Header do card */}
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
@@ -122,7 +122,7 @@ export const OfficesSection = () => {
                           
                           {/* Badge estado + Chevron */}
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                            <span className="text-sm font-medium text-gray-500 bg-muted px-3 py-1 rounded-full">
                               {office.state}
                             </span>
                             <ChevronDown 
@@ -137,7 +137,7 @@ export const OfficesSection = () => {
                     
                     {/* Conteúdo expandido - Endereço */}
                     <CollapsibleContent>
-                      <div className="bg-gray-50 border border-t-0 border-gray-200 rounded-b-lg px-4 py-3 -mt-1">
+                      <div className="bg-gray-50 border border-t-0 border-border rounded-b-lg px-4 py-3 -mt-1">
                         <div className="flex items-start gap-2">
                           <MapPin className="h-4 w-4 text-emerald-600 mt-0.5 flex-shrink-0" />
                           <p className="text-sm text-gray-600">{office.address}</p>

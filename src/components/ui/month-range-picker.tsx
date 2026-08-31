@@ -214,11 +214,11 @@ export function MonthRangePicker({
                     className={cn(
                       "h-9 text-xs font-medium",
                       selected && "bg-gray-900 text-white hover:bg-gray-800",
-                      inRange && "bg-gray-100 text-gray-900",
+                      inRange && "bg-muted text-gray-900",
                       isCurrent &&
                         !selected &&
                         !inRange &&
-                        "bg-gray-50 border border-gray-300"
+                        "bg-gray-50 border border-border"
                     )}
                     onClick={() => handleMonthClick(index)}
                   >
@@ -247,7 +247,7 @@ export function MonthRangePicker({
                           "bg-gray-900 text-gray-50 hover:bg-gray-800",
                         isCurrentYear &&
                           !isSelected &&
-                          "bg-gray-100 text-gray-900 font-semibold"
+                          "bg-muted text-gray-900 font-semibold"
                       )}
                       onClick={() => {
                         setViewYear(y);

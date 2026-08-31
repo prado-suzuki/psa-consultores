@@ -66,7 +66,7 @@ export function SprintHeaderFilters({
                 ? 'bg-primary/10 text-primary border-primary/20'
                 : c.sprint.status === 'completed'
                   ? 'bg-green-100 text-green-700'
-                  : 'bg-gray-100 text-gray-700'
+                  : 'bg-muted text-gray-700'
             }
           >
             {c.sprint.status === 'active'

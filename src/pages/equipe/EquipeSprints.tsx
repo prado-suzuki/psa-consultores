@@ -188,7 +188,7 @@ const EquipeSprints = () => {
       case 'completed':
          return <Badge className="bg-blue-100 text-blue-700 border-0 text-xs font-medium">Concluída</Badge>;
       case 'planned':
-         return <Badge className="bg-gray-100 text-gray-700 border-0 text-xs font-medium">Planejada</Badge>;
+         return <Badge className="bg-muted text-gray-700 border-0 text-xs font-medium">Planejada</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -265,7 +265,7 @@ const EquipeSprints = () => {
               Nova Sprint
             </Button>
           </DialogTrigger>
-          <DialogContent className="border-gray-200">
+          <DialogContent className="border-border">
             <DialogHeader>
               <DialogTitle className="text-gray-900">Criar Nova Sprint</DialogTitle>
             </DialogHeader>
@@ -283,7 +283,7 @@ const EquipeSprints = () => {
                   <SelectTrigger className="text-gray-900">
                     <SelectValue placeholder="Selecione um cluster (opcional)" />
                   </SelectTrigger>
-                  <SelectContent className="border-gray-200">
+                  <SelectContent className="border-border">
                     <SelectItem value="none">Todos</SelectItem>
                     {clusters.map((c) => (
                       <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
@@ -300,7 +300,7 @@ const EquipeSprints = () => {
                   <SelectTrigger className="text-gray-900">
                     <SelectValue placeholder="Selecione um projeto (opcional)" />
                   </SelectTrigger>
-                  <SelectContent className="border-gray-200">
+                  <SelectContent className="border-border">
                     {renderProjectOptions(
                       projects.filter(
                         (p) => !newSprint.cluster_id || p.cluster_id === newSprint.cluster_id,
@@ -374,14 +374,14 @@ const EquipeSprints = () => {
             <div className="flex items-center gap-2 pt-2">
               <h2 className="text-xs font-semibold uppercase tracking-wide text-gray-500">{clusterName}</h2>
               <span className="text-xs text-gray-400">· {clusterSprints.length}</span>
-              <div className="flex-1 border-t border-gray-100" />
+              <div className="flex-1 border-t border-border" />
             </div>
           {clusterSprints.map((sprint) => {
             const totalHours = getSprintTotalHours(sprint.id);
              const sprintImpact = resumoPorSprint[sprint.id];
             
             return (
-               <Card key={sprint.id} className="border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+               <Card key={sprint.id} className="border-border shadow-sm hover:shadow-md transition-shadow">
                  <CardContent className="p-5">
                    <div className="flex items-center justify-between mb-3">
                      <div className="flex items-center gap-3 min-w-0">
@@ -404,7 +404,7 @@ const EquipeSprints = () => {
                      {totalHours > 0 && <><span className="text-gray-300">•</span><span>{totalHours.toFixed(0)}h alocadas</span></>}
                   </div>
                   {sprintImpact && sprintImpact.custoEconomizadoMensal > 0 && (
-                     <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-4 text-sm">
+                     <div className="mt-3 pt-3 border-t border-border flex items-center gap-4 text-sm">
                        <span className="text-green-600 font-medium">Impacto: R$ {sprintImpact.custoEconomizadoMensal.toLocaleString('pt-BR')}/mês</span>
                        <span className="text-blue-600">{sprintImpact.horasLiberadas.toFixed(0)}h liberadas</span>
                     </div>
@@ -417,7 +417,7 @@ const EquipeSprints = () => {
           ))}
         </div>
       ) : (
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardContent className="py-16 text-center">
             <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma sprint criada</h3>
@@ -435,7 +435,7 @@ const EquipeSprints = () => {
 
       {/* Edit Sprint Dialog */}
       <Dialog open={!!selectedSprint && isEditMode} onOpenChange={() => { setSelectedSprint(null); setIsEditMode(false); }}>
-        <DialogContent className="border-gray-200">
+        <DialogContent className="border-border">
           {selectedSprint && (
             <>
               <DialogHeader>
@@ -459,7 +459,7 @@ const EquipeSprints = () => {
                     <SelectTrigger className="text-gray-900">
                       <SelectValue placeholder="Selecione um cluster" />
                     </SelectTrigger>
-                    <SelectContent className="border-gray-200">
+                    <SelectContent className="border-border">
                       <SelectItem value="none">Todos</SelectItem>
                       {clusters.map((c) => (
                         <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
@@ -476,7 +476,7 @@ const EquipeSprints = () => {
                     <SelectTrigger className="text-gray-900">
                       <SelectValue placeholder="Selecione um projeto (opcional)" />
                     </SelectTrigger>
-                    <SelectContent className="border-gray-200">
+                    <SelectContent className="border-border">
                       {renderProjectOptions(
                         projects.filter(
                           (p) => !editSprint.cluster_id || p.cluster_id === editSprint.cluster_id,
@@ -528,7 +528,7 @@ const EquipeSprints = () => {
                     <SelectTrigger className="text-gray-900">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="border-gray-200">
+                    <SelectContent className="border-border">
                       <SelectItem value="active">Ativa</SelectItem>
                       <SelectItem value="completed">Concluída</SelectItem>
                       <SelectItem value="planned">Planejada</SelectItem>
@@ -536,7 +536,7 @@ const EquipeSprints = () => {
                   </Select>
                 </div>
 
-                <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between pt-4 border-t border-border">
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button variant="destructive" size="sm">
