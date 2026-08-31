@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/types';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import type { Cenario, SaidaSimulacao } from '@/lib/osg/itcmd/simulacao';
 
@@ -16,13 +17,31 @@ import type { Cenario, SaidaSimulacao } from '@/lib/osg/itcmd/simulacao';
  * foi ao cliente continua o que era. É a regra escrita na migration, e é por isso
  * que este arquivo não chama `simular()` em lugar nenhum.
  *
- * O `as any` no client segue o que os outros hooks do OSG fazem com tabela recente:
- * o `types.ts` se REGENERA pelo CLI e não se edita à mão (AGENTS.md), e a
- * regeneração é dívida separada — ela precisa de token do CLI, que este ambiente não
- * tem. Tipar de verdade é trocar este `sb` por `supabase` e apagar a linha do eslint.
+ * CLIENT TIPADO. Havia um `sb = supabase as any` aqui, com a desculpa de que o
+ * `types.ts` nao tinha as tabelas novas e de que regenerar exigia token do CLI. As duas
+ * coisas mudaram: o token existe neste ambiente e o tipo foi regenerado do sandbox, com
+ * a `itcd_simulacao_gia` e sem as sete colunas de resultado que sairam da tabela de
+ * donatario. O `as any` mascarava exatamente essa divergencia, e o revisor a encontrou
+ * por ele.
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sb = supabase as any;
+
+/**
+ * DECIMAL EM STRING PARA COLUNA `numeric`, de propósito.
+ *
+ * O gerador de tipos do Supabase mapeia `numeric` para `number`, e o motor trabalha em
+ * decimal string justamente para não passar por float. Mandar `Number(...)` aqui
+ * reintroduziria o ponto flutuante no caminho do dinheiro, que é o que a especificação
+ * proíbe: o PostgREST aceita a string e o Postgres a converte para `numeric` sem perda.
+ *
+ * Existe como função de uma linha, e não como `as any` no client, para a divergência
+ * ficar VISÍVEL campo por campo. Com o client tipado, errar o nome de uma coluna volta
+ * a quebrar a compilação; era isso que o `as any` tinha desligado.
+ */
+const numerico = (decimal: string) => decimal as unknown as number;
+
+/** O mesmo, onde a coluna aceita nulo: a reserva entra sem valor porque não tem guia. */
+const numericoOuNulo = (decimal: string | null) =>
+  (decimal == null ? null : numerico(decimal));
 
 const CHAVE = 'itcd-simulacoes';
 
@@ -102,6 +121,15 @@ export interface ConcessaoSalva {
 export interface SimulacaoSalva {
   id: string;
   versao: number;
+  /**
+   * DE QUE SOCIEDADE ESTE ATO É. O histórico é por CLIENTE, e um cliente tem mais de
+   * uma sociedade — no Agro Aliança são três. Sem este campo na tela, toda simulação
+   * do cliente aparecia como origem possível de um ato encadeado: dava para escolher a
+   * empresa B, herdar o quadro e o acervo de uma simulação da empresa A e gravar o
+   * resultado como B, sem nada avisar. Ele estava na linha (o `select` é `*`) e não
+   * chegava ao mapeamento.
+   */
+  empresaPessoaId: string;
   /**
    * O NOME que o analista deu. Nulo = nunca renomeada, e aí ela se chama pela versão.
    * Serve para o cenário ter nome de cenário — "Sem reserva", "51% pelo Avelino" —
@@ -309,6 +337,7 @@ function paraSimulacaoSalva(row: any): SimulacaoSalva {
   return {
     id: row.id,
     versao: row.versao,
+    empresaPessoaId: row.empresa_pessoa_id,
     nome: row.nome ?? null,
     status: row.status,
     competencia: row.competencia,
@@ -429,7 +458,7 @@ export function useSimulacoesItcmd(clienteId: string | null) {
     queryKey: [CHAVE, clienteId],
     enabled: !!clienteId,
     queryFn: async (): Promise<SimulacaoSalva[]> => {
-      const { data, error } = await sb
+      const { data, error } = await supabase
         .from('itcd_simulacao')
         .select(`
           *,
@@ -558,19 +587,6 @@ export function useGravarSimulacaoItcmd() {
   const { logAction } = useAuditLog();
   return useMutation({
     mutationFn: async (s: SimulacaoParaGravar): Promise<string> => {
-      const { data: ultima, error: erroDaVersao } = await sb
-        .from('itcd_simulacao')
-        .select('versao')
-        .eq('cliente_id', s.clienteId)
-        .order('versao', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (erroDaVersao) throw new Error(erroDaVersao.message);
-
-      const { data: sessao } = await supabase.auth.getUser();
-      const quem = sessao?.user?.id ?? null;
-      const versao = (ultima?.versao ?? 0) + 1;
-
       // OS TRÊS CENÁRIOS SÃO OBRIGATÓRIOS, por desenho da tabela. Cenário sem valor
       // é cadastro incompleto — na apuração de verdade os bens têm valor contábil, de
       // ITR e de mercado —, e gravar zero no lugar afirmaria um imposto que ninguém
@@ -585,14 +601,29 @@ export function useGravarSimulacaoItcmd() {
         return v;
       };
 
-      const { data: pai, error: erroDoPai } = await sb
-        .from('itcd_simulacao')
-        .insert({
+      const porId = new Map(s.saida.linhas.map((l) => [l.donatarioId, l]));
+      // QUEM NÃO RECEBEU NADA não é beneficiário do ato e não entra: a tabela pede
+      // `percentual > 0`, e é a mesma afirmação. Alguém pode estar na tabela da tela
+      // com zero — adicionado e ainda não destinado —, e isso não é uma linha de guia.
+      const beneficiarios = s.donatarios.filter((d) => porId.has(d.pessoaId));
+
+      // O RETRATO INTEIRO NUM PAYLOAD, E UMA CHAMADA SÓ.
+      //
+      // Eram seis requisições ao PostgREST, e cada requisição é a sua própria
+      // transação: se a segunda falhasse, o código tentava desfazer apagando o pai.
+      // Esse desfazer não era confiável — INSERT é de `team_member` para cima e DELETE
+      // era de `lider` —, então a RLS o recusava justamente para quem tinha acabado de
+      // criar, e ficava no histórico uma simulação sem doador ou sem GIA, idêntica a
+      // uma completa na lista.
+      //
+      // A `itcd_gravar_simulacao` faz os seis inserts no mesmo comando: ou tudo entra,
+      // ou nada entra. A VERSÃO passou para dentro dela, e isso conserta um segundo
+      // problema: ler `max(versao)` numa consulta e gravar em outra fazia duas abas
+      // abertas gerarem a mesma versão.
+      const payload = {
+        simulacao: {
           cliente_id: s.clienteId,
           empresa_pessoa_id: s.empresaPessoaId,
-          // `gerada` e não `rascunho`: o que chega aqui já foi apurado. Rascunho é
-          // o que está na tela antes de o analista mandar gerar, e isso não grava.
-          status: 'gerada',
           competencia: s.saida.competencia,
           vlr_upf: s.saida.upf,
           quotas_total: Number(s.saida.totalDeQuotas),
@@ -607,140 +638,87 @@ export function useGravarSimulacaoItcmd() {
           com_reserva: s.comReserva,
           pct_base_reserva: s.pctBaseReserva,
           pct_base_instituicao: s.pctBaseInstituicao,
-          versao,
-          created_by: quem,
-          updated_by: quem,
-        })
-        .select('id')
-        .single();
-      if (erroDoPai) throw new Error(erroDoPai.message);
-
-      const simulacaoId: string = pai.id;
-      const desfazer = async (mensagem: string) => {
-        await sb.from('itcd_simulacao').delete().eq('id', simulacaoId);
-        throw new Error(mensagem);
-      };
-
-      const { error: erroDoador } = await sb.from('itcd_simulacao_doador').insert(
-        s.doadores.map((d) => ({
-          simulacao_id: simulacaoId,
+        },
+        doadores: s.doadores.map((d) => ({
           doador_pessoa_id: d.pessoaId,
           quotas: Number(d.quotas),
           quotas_transmitidas: Number(d.quotasTransmitidas),
           quotas_final: Number(d.quotasFinal),
           emissao_conjunta: d.emissaoConjunta,
-          // APORTE: dinheiro integralizado nesta hipótese. Não é fato gerador — fica
-          // gravado porque é o que explica as quotas de quem aportou.
           vlr_aporte_moeda: d.vlrAporteMoeda,
           quotas_do_aporte: Number(d.quotasDoAporte),
-          // Só com emissão conjunta: cônjuge em guia individual é contradição, e o
-          // banco tem CHECK para isso.
+          // CÔNJUGE SÓ COM EMISSÃO EM CONJUNTO: guardar o id numa emissão individual
+          // deixaria no retrato um cônjuge que não assinou a guia. O banco tem CHECK
+          // para isso.
           conjuge_pessoa_id: d.emissaoConjunta ? d.conjugePessoaId : null,
         })),
-      );
-      if (erroDoador) await desfazer(erroDoador.message);
+        donatarios: beneficiarios.map((d) => ({
+          donatario_pessoa_id: d.pessoaId,
+          quotas_atuais: Number(d.quotasAtuais),
+          quotas_legitima: Number(d.quotasLegitima),
+          quotas_disponivel: Number(d.quotasDisponivel),
+          quotas_final: Number(d.quotasFinal),
+          percentual: porId.get(d.pessoaId)!.percentualDoAto,
+          vlr_aporte_moeda: d.vlrAporteMoeda,
+          quotas_do_aporte: Number(d.quotasDoAporte),
+        })),
+        gias: s.gias.map((g) => ({
+          doador_pessoa_id: g.doadorPessoaId,
+          donatario_pessoa_id: g.donatarioPessoaId,
+          quotas_recebidas: Number(g.quotasRecebidas),
+          pct_da_gia: g.pctDaGia,
+          vlr_doacao_anterior: g.doacaoAnterior,
+          vlr_base_contabil: exigir('contábil da guia', g.basePorCenario.contabil),
+          vlr_base_itr: exigir('ITR da guia', g.basePorCenario.itr),
+          vlr_base_mercado: exigir('mercado da guia', g.basePorCenario.mercado),
+          vlr_imposto_contabil: exigir('contábil da guia', g.impostoPorCenario.contabil),
+          vlr_imposto_itr: exigir('ITR da guia', g.impostoPorCenario.itr),
+          vlr_imposto_mercado: exigir('mercado da guia', g.impostoPorCenario.mercado),
+        })),
+        usufruto: s.usufruto.map((u) => ({
+          pessoa_id: u.pessoaId,
+          papel: u.papel,
+          quotas: Number(u.quotas),
+          quotas_plena: Number(u.quotasPlena),
+          quotas_nua_reserva: Number(u.quotasNuaReserva),
+          quotas_nua_instituicao: Number(u.quotasNuaInstituicao),
+          quotas_usufruto: Number(u.quotasUsufruto),
+        })),
+        concessoes: s.concessoes.map((c) => ({
+          de_pessoa_id: c.deId,
+          para_pessoa_id: c.paraId,
+          origem: c.origem,
+          quotas: Number(c.quotas),
+          vlr_base_contabil: c.basePorCenario
+            && exigir('contábil da instituição', c.basePorCenario.contabil),
+          vlr_base_itr: c.basePorCenario
+            && exigir('ITR da instituição', c.basePorCenario.itr),
+          vlr_base_mercado: c.basePorCenario
+            && exigir('mercado da instituição', c.basePorCenario.mercado),
+          vlr_imposto_contabil: c.impostoPorCenario
+            && exigir('contábil da instituição', c.impostoPorCenario.contabil),
+          vlr_imposto_itr: c.impostoPorCenario
+            && exigir('ITR da instituição', c.impostoPorCenario.itr),
+          vlr_imposto_mercado: c.impostoPorCenario
+            && exigir('mercado da instituição', c.impostoPorCenario.mercado),
+        })),
+      };
 
-      const porId = new Map(s.saida.linhas.map((l) => [l.donatarioId, l]));
-      // QUEM NÃO RECEBEU NADA não é beneficiário do ato e não entra: a tabela pede
-      // `percentual > 0`, e é a mesma afirmação. Alguém pode estar na tabela da tela
-      // com zero — adicionado e ainda não destinado —, e isso não é uma linha de guia.
-      const beneficiarios = s.donatarios.filter((d) => porId.has(d.pessoaId));
-      const { error: erroDonatario } = await sb.from('itcd_simulacao_donatario').insert(
-        beneficiarios.map((d) => {
-          const linha = porId.get(d.pessoaId)!;
-          return {
-            simulacao_id: simulacaoId,
-            donatario_pessoa_id: d.pessoaId,
-            quotas_atuais: Number(d.quotasAtuais),
-            quotas_legitima: Number(d.quotasLegitima),
-            quotas_disponivel: Number(d.quotasDisponivel),
-            quotas_final: Number(d.quotasFinal),
-            vlr_aporte_moeda: d.vlrAporteMoeda,
-            quotas_do_aporte: Number(d.quotasDoAporte),
-            // O QUADRO fica aqui; o RESULTADO é por guia, em itcd_simulacao_gia.
-            percentual: linha.percentual,
-          };
-        }),
-      );
-      if (erroDonatario) await desfazer(erroDonatario.message);
-
-      // ── AS GUIAS ────────────────────────────────────────────────────────────
-      // Cada linha fecha consigo mesma: `imposto = f(base)` vale DENTRO dela. Não
-      // valia no resumo por donatário quando havia mais de um doador — duas bases
-      // menores, cada uma na sua faixa, pagam menos que a soma delas numa faixa só, e
-      // essa economia é legal (a chave da acumulação é o trio doador · beneficiário ·
-      // ano civil). O resumo guardava a base de uma leitura e o imposto de outra.
-      if (s.gias.length > 0) {
-        const { error } = await sb.from('itcd_simulacao_gia').insert(
-          s.gias.map((g) => ({
-            simulacao_id: simulacaoId,
-            doador_pessoa_id: g.doadorPessoaId,
-            donatario_pessoa_id: g.donatarioPessoaId,
-            quotas_recebidas: Number(g.quotasRecebidas),
-            pct_da_gia: g.pctDaGia,
-            vlr_doacao_anterior: g.doacaoAnterior,
-            vlr_base_contabil: exigir('contábil da guia', g.basePorCenario.contabil),
-            vlr_base_itr: exigir('ITR da guia', g.basePorCenario.itr),
-            vlr_base_mercado: exigir('mercado da guia', g.basePorCenario.mercado),
-            vlr_imposto_contabil:
-              exigir('contábil da guia', g.impostoPorCenario.contabil),
-            vlr_imposto_itr: exigir('ITR da guia', g.impostoPorCenario.itr),
-            vlr_imposto_mercado:
-              exigir('mercado da guia', g.impostoPorCenario.mercado),
-          })),
-        );
-        if (error) await desfazer(error.message);
+      const { data: simulacaoId, error: erroDaGravacao } = await supabase
+        .rpc('itcd_gravar_simulacao', { p: payload as unknown as Json });
+      if (erroDaGravacao) throw new Error(erroDaGravacao.message);
+      if (simulacaoId == null) {
+        throw new Error('A gravação não devolveu o id da simulação.');
       }
 
-      // ── O QUADRO DE USUFRUTO ────────────────────────────────────────────────
-      // Vai SEMPRE, mesmo sem reserva e sem instituição. Nesse caso ele diz que cada
-      // um vota o que tem e que nada foi recolhido — que é uma afirmação, e diferente
-      // de não haver registro. É o caso comum: a reserva é escolha, não regra.
-      if (s.usufruto.length > 0) {
-        const { error } = await sb.from('itcd_simulacao_usufruto').insert(
-          s.usufruto.map((u) => ({
-            simulacao_id: simulacaoId,
-            pessoa_id: u.pessoaId,
-            papel: u.papel,
-            quotas: Number(u.quotas),
-            quotas_plena: Number(u.quotasPlena),
-            quotas_nua_reserva: Number(u.quotasNuaReserva),
-            quotas_nua_instituicao: Number(u.quotasNuaInstituicao),
-            quotas_usufruto: Number(u.quotasUsufruto),
-          })),
-        );
-        if (error) await desfazer(error.message);
-      }
-
-      // ── AS CONCESSÕES ───────────────────────────────────────────────────────
-      // Uma linha por par de → para. A `reserva` entra sem valor: ela não tem guia
-      // própria, o imposto dela está na guia da doação. A `instituicao` entra com os
-      // três cenários, e o banco exige os três — cenário sem valor é cadastro
-      // incompleto, e gravar zero afirmaria um imposto que ninguém apurou.
-      if (s.concessoes.length > 0) {
-        const { error } = await sb.from('itcd_simulacao_concessao').insert(
-          s.concessoes.map((c) => ({
-            simulacao_id: simulacaoId,
-            de_pessoa_id: c.deId,
-            para_pessoa_id: c.paraId,
-            origem: c.origem,
-            quotas: Number(c.quotas),
-            vlr_base_contabil: c.basePorCenario
-              && exigir('contábil da instituição', c.basePorCenario.contabil),
-            vlr_base_itr: c.basePorCenario
-              && exigir('ITR da instituição', c.basePorCenario.itr),
-            vlr_base_mercado: c.basePorCenario
-              && exigir('mercado da instituição', c.basePorCenario.mercado),
-            vlr_imposto_contabil: c.impostoPorCenario
-              && exigir('contábil da instituição', c.impostoPorCenario.contabil),
-            vlr_imposto_itr: c.impostoPorCenario
-              && exigir('ITR da instituição', c.impostoPorCenario.itr),
-            vlr_imposto_mercado: c.impostoPorCenario
-              && exigir('mercado da instituição', c.impostoPorCenario.mercado),
-          })),
-        );
-        if (error) await desfazer(error.message);
-      }
+      // A VERSÃO é decidida dentro da transação, e a trilha abaixo a cita: vem lida de
+      // volta. Leitura fora da transação, e só para o texto do log.
+      const { data: gravada } = await supabase
+        .from('itcd_simulacao')
+        .select('versao')
+        .eq('id', simulacaoId)
+        .maybeSingle();
+      const versao = gravada?.versao ?? 0;
 
       // ── A TRILHA ────────────────────────────────────────────────────────────
       // No padrão do resto do sistema: `audit_logs`, área `osg`. As colunas de autoria
@@ -796,7 +774,7 @@ export function useRenomearSimulacaoItcmd() {
       const { data: sessao } = await supabase.auth.getUser();
       const quem = sessao?.user?.id ?? null;
       const limpo = nome.trim();
-      const { error } = await sb
+      const { error } = await supabase
         .from('itcd_simulacao')
         .update({
           nome: limpo === '' ? null : limpo,
@@ -845,7 +823,7 @@ export function useAlterarStatusSimulacaoItcmd() {
       const { data: sessao } = await supabase.auth.getUser();
       const quem = sessao?.user?.id ?? null;
       const aprovada = status === 'aprovada';
-      const { error } = await sb
+      const { error } = await supabase
         .from('itcd_simulacao')
         .update({
           status,

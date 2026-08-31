@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       access_change_log: {
@@ -861,6 +886,106 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      capital_integralizacao: {
+        Row: {
+          bem_id: string
+          cliente_id: string
+          created_at: string
+          created_by: string | null
+          empresa_destino_pessoa_id: string
+          id: string
+          pct_capital: number | null
+          pct_vlr_contabil: number | null
+          pct_vlr_mercado: number | null
+          reserva_capital: number | null
+          socio_pessoa_id: string
+          updated_at: string
+          updated_by: string | null
+          vlr_capital_arredondado: number | null
+          vlr_contabil: number | null
+          vlr_mercado: number | null
+        }
+        Insert: {
+          bem_id: string
+          cliente_id: string
+          created_at?: string
+          created_by?: string | null
+          empresa_destino_pessoa_id: string
+          id?: string
+          pct_capital?: number | null
+          pct_vlr_contabil?: number | null
+          pct_vlr_mercado?: number | null
+          reserva_capital?: number | null
+          socio_pessoa_id: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_capital_arredondado?: number | null
+          vlr_contabil?: number | null
+          vlr_mercado?: number | null
+        }
+        Update: {
+          bem_id?: string
+          cliente_id?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_destino_pessoa_id?: string
+          id?: string
+          pct_capital?: number | null
+          pct_vlr_contabil?: number | null
+          pct_vlr_mercado?: number | null
+          reserva_capital?: number | null
+          socio_pessoa_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_capital_arredondado?: number | null
+          vlr_contabil?: number | null
+          vlr_mercado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "capital_integralizacao_bem_id_fkey"
+            columns: ["bem_id"]
+            isOneToOne: false
+            referencedRelation: "bem"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "cliente"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_empresa_destino_pessoa_id_fkey"
+            columns: ["empresa_destino_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_socio_pessoa_id_fkey"
+            columns: ["socio_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "capital_integralizacao_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cartorio: {
         Row: {
@@ -2409,6 +2534,7 @@ export type Database = {
       }
       documento_gerado: {
         Row: {
+          acompanha_documento_id: string | null
           caminho_arquivo: string | null
           cliente_id: string
           created_at: string
@@ -2420,6 +2546,7 @@ export type Database = {
           gerado_por_id: string | null
           id: string
           observacao: string | null
+          papel: string | null
           pj_pessoa_id: string | null
           snapshot_dados: Json | null
           snapshot_flags: Json | null
@@ -2431,6 +2558,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          acompanha_documento_id?: string | null
           caminho_arquivo?: string | null
           cliente_id: string
           created_at?: string
@@ -2442,6 +2570,7 @@ export type Database = {
           gerado_por_id?: string | null
           id?: string
           observacao?: string | null
+          papel?: string | null
           pj_pessoa_id?: string | null
           snapshot_dados?: Json | null
           snapshot_flags?: Json | null
@@ -2453,6 +2582,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          acompanha_documento_id?: string | null
           caminho_arquivo?: string | null
           cliente_id?: string
           created_at?: string
@@ -2464,6 +2594,7 @@ export type Database = {
           gerado_por_id?: string | null
           id?: string
           observacao?: string | null
+          papel?: string | null
           pj_pessoa_id?: string | null
           snapshot_dados?: Json | null
           snapshot_flags?: Json | null
@@ -2475,6 +2606,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "documento_gerado_acompanha_documento_id_fkey"
+            columns: ["acompanha_documento_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "documento_gerado_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -4159,7 +4297,6 @@ export type Database = {
           created_at: string
           donatario_pessoa_id: string
           id: string
-          pct_doacao_anterior: number | null
           percentual: number
           quotas_atuais: number
           quotas_disponivel: number
@@ -4168,18 +4305,11 @@ export type Database = {
           quotas_legitima: number
           simulacao_id: string
           vlr_aporte_moeda: number
-          vlr_base_contabil: number
-          vlr_base_itr: number
-          vlr_base_mercado: number
-          vlr_imposto_contabil: number
-          vlr_imposto_itr: number
-          vlr_imposto_mercado: number
         }
         Insert: {
           created_at?: string
           donatario_pessoa_id: string
           id?: string
-          pct_doacao_anterior?: number | null
           percentual: number
           quotas_atuais?: number
           quotas_disponivel?: number
@@ -4188,18 +4318,11 @@ export type Database = {
           quotas_legitima: number
           simulacao_id: string
           vlr_aporte_moeda?: number
-          vlr_base_contabil: number
-          vlr_base_itr: number
-          vlr_base_mercado: number
-          vlr_imposto_contabil: number
-          vlr_imposto_itr: number
-          vlr_imposto_mercado: number
         }
         Update: {
           created_at?: string
           donatario_pessoa_id?: string
           id?: string
-          pct_doacao_anterior?: number | null
           percentual?: number
           quotas_atuais?: number
           quotas_disponivel?: number
@@ -4208,12 +4331,6 @@ export type Database = {
           quotas_legitima?: number
           simulacao_id?: string
           vlr_aporte_moeda?: number
-          vlr_base_contabil?: number
-          vlr_base_itr?: number
-          vlr_base_mercado?: number
-          vlr_imposto_contabil?: number
-          vlr_imposto_itr?: number
-          vlr_imposto_mercado?: number
         }
         Relationships: [
           {
@@ -4225,6 +4342,79 @@ export type Database = {
           },
           {
             foreignKeyName: "itcd_simulacao_donatario_simulacao_id_fkey"
+            columns: ["simulacao_id"]
+            isOneToOne: false
+            referencedRelation: "itcd_simulacao"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      itcd_simulacao_gia: {
+        Row: {
+          created_at: string
+          doador_pessoa_id: string
+          donatario_pessoa_id: string
+          id: string
+          pct_da_gia: number
+          quotas_recebidas: number
+          simulacao_id: string
+          vlr_base_contabil: number
+          vlr_base_itr: number
+          vlr_base_mercado: number
+          vlr_doacao_anterior: number | null
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+        }
+        Insert: {
+          created_at?: string
+          doador_pessoa_id: string
+          donatario_pessoa_id: string
+          id?: string
+          pct_da_gia: number
+          quotas_recebidas: number
+          simulacao_id: string
+          vlr_base_contabil: number
+          vlr_base_itr: number
+          vlr_base_mercado: number
+          vlr_doacao_anterior?: number | null
+          vlr_imposto_contabil: number
+          vlr_imposto_itr: number
+          vlr_imposto_mercado: number
+        }
+        Update: {
+          created_at?: string
+          doador_pessoa_id?: string
+          donatario_pessoa_id?: string
+          id?: string
+          pct_da_gia?: number
+          quotas_recebidas?: number
+          simulacao_id?: string
+          vlr_base_contabil?: number
+          vlr_base_itr?: number
+          vlr_base_mercado?: number
+          vlr_doacao_anterior?: number | null
+          vlr_imposto_contabil?: number
+          vlr_imposto_itr?: number
+          vlr_imposto_mercado?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itcd_simulacao_gia_doador_pessoa_id_fkey"
+            columns: ["doador_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_gia_donatario_pessoa_id_fkey"
+            columns: ["donatario_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itcd_simulacao_gia_simulacao_id_fkey"
             columns: ["simulacao_id"]
             isOneToOne: false
             referencedRelation: "itcd_simulacao"
@@ -7724,6 +7914,77 @@ export type Database = {
           },
         ]
       }
+      quadro_societario: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_referencia: string | null
+          empresa_pessoa_id: string
+          id: string
+          percentual: number | null
+          quotas: number | null
+          socio_pessoa_id: string
+          updated_at: string
+          updated_by: string | null
+          vlr_total: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          empresa_pessoa_id: string
+          id?: string
+          percentual?: number | null
+          quotas?: number | null
+          socio_pessoa_id: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_total?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_referencia?: string | null
+          empresa_pessoa_id?: string
+          id?: string
+          percentual?: number | null
+          quotas?: number | null
+          socio_pessoa_id?: string
+          updated_at?: string
+          updated_by?: string | null
+          vlr_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quadro_societario_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quadro_societario_empresa_pessoa_id_fkey"
+            columns: ["empresa_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quadro_societario_socio_pessoa_id_fkey"
+            columns: ["socio_pessoa_id"]
+            isOneToOne: false
+            referencedRelation: "pessoa"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quadro_societario_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       relatorios_gerados: {
         Row: {
           ciclo_id: string | null
@@ -9299,6 +9560,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           descricao: string | null
+          escopo: string
           id: string
           nome: string
           tipo: string | null
@@ -9310,6 +9572,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          escopo?: string
           id?: string
           nome: string
           tipo?: string | null
@@ -9321,6 +9584,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          escopo?: string
           id?: string
           nome?: string
           tipo?: string | null
@@ -10159,6 +10423,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      itcd_gravar_simulacao: { Args: { p: Json }; Returns: string }
       list_profiles_safe: {
         Args: never
         Returns: {
@@ -10280,6 +10545,7 @@ export type Database = {
           _validado_em: string
         }
         Returns: {
+          acompanha_documento_id: string | null
           caminho_arquivo: string | null
           cliente_id: string
           created_at: string
@@ -10291,6 +10557,7 @@ export type Database = {
           gerado_por_id: string | null
           id: string
           observacao: string | null
+          papel: string | null
           pj_pessoa_id: string | null
           snapshot_dados: Json | null
           snapshot_flags: Json | null
@@ -10332,6 +10599,10 @@ export type Database = {
         }[]
       }
       sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
+      status_de_itcd_simulacao: {
+        Args: { p_simulacao_id: string }
+        Returns: Database["public"]["Enums"]["itcd_simulacao_status"]
+      }
       sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
       user_estrutura_area_ids: { Args: { _user_id: string }; Returns: string[] }
       user_estrutura_equipe_ids: {
@@ -10608,6 +10879,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       app_role: [
