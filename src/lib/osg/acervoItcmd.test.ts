@@ -77,4 +77,51 @@ describe('acervo do ITCD — totais por cenário', () => {
     expect(() => numeroParaDecimal(1e21)).toThrow(/escala/i);
     expect(() => numeroParaDecimal(Number.NaN)).toThrow(/finito/i);
   });
+
+  it('SOMA PARCIAL nao vira base: imovel com matricula sem valor fica de fora', () => {
+    // O caso do parecer. Duas matriculas, uma sem valor contabil: a soma de uma
+    // parcela e MENOR que o acervo real, e usa-la como base apuraria imposto a menos
+    // sem nada dizer que faltou matricula. O imovel entra em `semValor`, o cenario
+    // fica indisponivel, e a calculadora se recusa a gravar dizendo o que falta.
+    const parcial = {
+      id: 'IR-P',
+      referencia: 'IR-P',
+      denominacao: 'Fazenda desmembrada',
+      valores: derivarValoresDoBem(
+        { vlr_contabil: null, vlr_mercado: null, vlr_imposto_anual: null },
+        [
+          { vlr_contabil: 558_413.55, vlr_mercado: 900_000, vlr_imposto_anual: null },
+          { vlr_contabil: null, vlr_mercado: 400_000, vlr_imposto_anual: null },
+        ],
+      ),
+    };
+
+    const totais = totalizarAcervo([parcial]);
+    // Contabil: parcial, entao nao ha base.
+    expect(totais.contabil.total).toBeNull();
+    expect(totais.contabil.comValor).toBe(0);
+    expect(totais.contabil.semValor).toBe(1);
+    // Mercado: as duas matriculas tem valor, entao a soma vale.
+    expect(totais.mercado.total).toBe('1300000.00');
+    expect(totais.mercado.comValor).toBe(1);
+  });
+
+  it('a soma do acervo nao passa por float', () => {
+    // Duas matriculas de 100,10 e 200,20 derrubavam a apuracao: a soma em `number`
+    // dava 300.29999999999995 e a fronteira do motor recusava as casas extras.
+    const imovel = {
+      id: 'IR-F',
+      referencia: 'IR-F',
+      denominacao: 'Fazenda de duas matriculas',
+      valores: derivarValoresDoBem(
+        { vlr_contabil: null, vlr_mercado: null, vlr_imposto_anual: null },
+        [
+          { vlr_contabil: 100.10, vlr_mercado: null, vlr_imposto_anual: null },
+          { vlr_contabil: 200.20, vlr_mercado: null, vlr_imposto_anual: null },
+        ],
+      ),
+    };
+    expect(() => totalizarAcervo([imovel])).not.toThrow();
+    expect(totalizarAcervo([imovel]).contabil.total).toBe('300.30');
+  });
 });

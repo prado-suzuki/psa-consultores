@@ -10,6 +10,7 @@ export const simulacaoSalva = (
 ): SimulacaoSalva => ({
   id: 'S1',
   versao: 1,
+  empresaPessoaId: 'ALIANCA',
   nome: null,
   status: 'gerada',
   competencia: '2026-02',

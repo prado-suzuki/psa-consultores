@@ -385,7 +385,18 @@ export function useCalculadoraItcmdController() {
    * faria o preco da quota saltar e o imposto sair errado, calado. Doacao nao muda o
    * patrimonio da empresa: as quotas trocam de mao e os bens ficam onde estao.
    */
-  const origem = (historico.data ?? []).find((s) => s.id === origemId) ?? null;
+  /**
+   * A ORIGEM SO VALE DENTRO DA MESMA SOCIEDADE, e a guarda e AQUI porque daqui sai
+   * tudo: as quotas de partida, o acervo de partida e o campo que vai para o banco.
+   *
+   * A escolha da origem acontece antes da troca de sociedade, e nada obriga as duas a
+   * combinarem: escolher um ato da empresa A e depois trocar para a empresa B deixava a
+   * tela herdando o quadro de A com o nome de B. Fora da empresa, a origem simplesmente
+   * nao resolve, e o ato parte do cadastro.
+   */
+  const origem = (historico.data ?? []).find(
+    (s) => s.id === origemId && empresa != null && s.empresaPessoaId === empresa.id,
+  ) ?? null;
 
   const quotasDeOrigem = new Map<string, bigint>(origem == null ? [] : [
     ...origem.doadores.map((d) => [d.pessoaId, BigInt(d.quotasFinal)] as const),
@@ -1729,12 +1740,21 @@ export function useCalculadoraItcmdController() {
     origemDoAto: origemId,
     setOrigemDoAto: setOrigemId,
     origemEscolhida: origem,
-    origensPossiveis: (historico.data ?? []).map((s) => ({
-      id: s.id,
-      rotulo: rotuloDaSimulacao(s),
-      competencia: s.competencia,
-      status: s.status,
-    })),
+    /**
+     * SO A MESMA SOCIEDADE PODE SER ORIGEM. O historico e por CLIENTE, e um cliente
+     * tem mais de uma sociedade: no Agro Alianca sao tres. Sem este filtro dava para
+     * escolher a empresa B, herdar o quadro e o acervo de uma simulacao da empresa A e
+     * gravar o resultado como B. O quadro de partida seria de outra sociedade, e nada
+     * na tela diria isso.
+     */
+    origensPossiveis: (historico.data ?? [])
+      .filter((s) => empresa != null && s.empresaPessoaId === empresa.id)
+      .map((s) => ({
+        id: s.id,
+        rotulo: rotuloDaSimulacao(s),
+        competencia: s.competencia,
+        status: s.status,
+      })),
 
     /** O PAPEL na linha, como na doacao: usufrutuario recebe, o outro concede. */
     papelNoUsufruto,
@@ -1965,7 +1985,14 @@ export function useCalculadoraItcmdController() {
         saida,
         // DE ONDE ESTE ATO PARTIU. E o que permite ler a cadeia depois e somar o
         // consolidado que a apresentacao mostra.
-        origemSimulacaoId: origemId === '' ? null : origemId,
+        //
+        // A GUARDA e no gravar, e nao so na lista: a origem se escolhe antes e a
+        // sociedade pode ser trocada depois, e ai o id escolhido ficaria apontando
+        // para um ato de outra empresa. Aqui ele cai para nulo, que significa "parte
+        // do cadastro" - o quadro em tela ja e o da empresa certa.
+        origemSimulacaoId: origem != null && origem.empresaPessoaId === empresa.id
+          ? origem.id
+          : null,
         // O QUADRO INTEIRO sai daqui, das mesmas linhas que a tela mostra — e não de
         // uma segunda conta. O que estiver gravado é exatamente o que estava na tela.
         doadores: doadores.map((d) => {

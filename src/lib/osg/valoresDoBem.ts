@@ -41,6 +41,16 @@ export interface ValoresProprios {
 export interface ValorDerivado {
   /** null = nenhuma parcela preenchida (diferente de zero). */
   valor: number | null;
+  /**
+   * O MESMO VALOR EM DECIMAL EXATO, para quem não pode passar por float.
+   *
+   * `valor` é `number` porque a lista formata e soma para exibir. A apuração do ITCD
+   * não pode: somar 100,10 com 200,20 em `number` dá 300.29999999999995, e o motor
+   * recusa mais de quatro casas — com razão, porque arredondar por conta própria seria
+   * inventar dado. A soma aqui é feita em inteiro e este campo carrega o resultado sem
+   * ter passado por ponto flutuante nenhuma vez.
+   */
+  decimal: string | null;
   /** Quantas matrículas tinham este valor preenchido (0 quando vem do bem). */
   comValor: number;
 }
@@ -55,16 +65,69 @@ export interface ValoresDoBem {
   matriculas: number;
 }
 
+/**
+ * Um número do cadastro em partes, do jeito que ele está escrito.
+ *
+ * `String(v)` dá a forma mais curta que volta ao mesmo número, então `100.1` sai
+ * "100.1" e não "100.09999999999999". É por aí que a soma escapa do float: as partes
+ * viram inteiro e a conta acontece em `bigint`.
+ *
+ * Notação exponencial é expandida por `toFixed(20)`, que resolve o caso pequeno
+ * (`1e-7`). O que sobrar sem forma decimal simples é erro de cadastro, não de escala,
+ * e sobe como erro em vez de virar soma errada em silêncio.
+ */
+const emPartes = (v: number) => {
+  let s = String(v);
+  if (!/^-?\d+(\.\d+)?$/.test(s)) {
+    s = v.toFixed(20).replace(/0+$/, '').replace(/\.$/, '');
+  }
+  if (!/^-?\d+(\.\d+)?$/.test(s)) {
+    throw new Error(
+      `Valor sem forma decimal no cadastro: ${String(v)}. Corrija o cadastro.`,
+    );
+  }
+  const negativo = s.startsWith('-');
+  const [inteiro = '0', decimais = ''] = s.replace('-', '').split('.');
+  return { negativo, inteiro, decimais };
+};
+
+/** Soma exata: alinha as casas das parcelas e soma em `bigint`. */
+const somarExato = (valores: number[]): string => {
+  const partes = valores.map(emPartes);
+  const casas = partes.reduce((max, p) => Math.max(max, p.decimais.length), 0);
+  const total = partes.reduce((acc, p) => {
+    const n = BigInt(p.inteiro + p.decimais.padEnd(casas, '0'));
+    return acc + (p.negativo ? -n : n);
+  }, 0n);
+  if (casas === 0) return total.toString();
+  const negativo = total < 0n;
+  const cru = (negativo ? -total : total).toString().padStart(casas + 1, '0');
+  const corte = cru.length - casas;
+  return `${negativo ? '-' : ''}${cru.slice(0, corte)}.${cru.slice(corte)}`;
+};
+
 // Soma ignorando nulos, mas devolvendo null quando NENHUMA parcela tem valor:
 // "não preenchido" e "zero" são coisas diferentes na tela e no total.
 const somar = (valores: Array<number | null | undefined>): ValorDerivado => {
   const preenchidos = valores.filter((v): v is number => v != null && !Number.isNaN(Number(v)));
-  if (preenchidos.length === 0) return { valor: null, comValor: 0 };
+  if (preenchidos.length === 0) return { valor: null, decimal: null, comValor: 0 };
+  const decimal = somarExato(preenchidos);
   return {
-    valor: preenchidos.reduce((total, v) => total + Number(v), 0),
+    // O `number` sai do decimal exato, e não de uma soma de floats: para as parcelas
+    // reais do cadastro ele tem as mesmas casas das parcelas, e `String()` volta a
+    // imprimir exatamente este decimal.
+    valor: Number(decimal),
+    decimal,
     comValor: preenchidos.length,
   };
 };
+
+/** O valor do próprio bem, sem soma: já é uma parcela só. */
+const doBem = (v: number | null | undefined): ValorDerivado => (
+  v == null
+    ? { valor: null, decimal: null, comValor: 0 }
+    : { valor: v, decimal: somarExato([v]), comValor: 0 }
+);
 
 export function derivarValoresDoBem(
   bem: ValoresProprios,
@@ -80,9 +143,9 @@ export function derivarValoresDoBem(
     };
   }
   return {
-    contabil: { valor: bem.vlr_contabil ?? null, comValor: 0 },
-    mercado: { valor: bem.vlr_mercado ?? null, comValor: 0 },
-    itr: { valor: bem.vlr_imposto_anual ?? null, comValor: 0 },
+    contabil: doBem(bem.vlr_contabil),
+    mercado: doBem(bem.vlr_mercado),
+    itr: doBem(bem.vlr_imposto_anual),
     origem: 'bem',
     matriculas: 0,
   };

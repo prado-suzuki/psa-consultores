@@ -112,18 +112,20 @@ describe('useBensByCliente — valores derivados', () => {
     const [fazenda, quotas] = await rodarQuery();
 
     expect(fazenda.valores).toEqual({
-      contabil: { valor: 800_000, comValor: 2 },
-      mercado: { valor: 1_300_000, comValor: 2 },
+      // O `decimal` viaja junto do `valor`: e a soma exata, feita em inteiro, para
+      // quem nao pode passar por float (a apuracao do ITCD).
+      contabil: { valor: 800_000, decimal: '800000.00', comValor: 2 },
+      mercado: { valor: 1_300_000, decimal: '1300000', comValor: 2 },
       // `vlr_imposto_anual` guarda o valor declarado no ITR e segue a mesma
       // regra; nestas fixtures nenhuma matrícula o tem.
-      itr: { valor: null, comValor: 0 },
+      itr: { valor: null, decimal: null, comValor: 0 },
       origem: 'matriculas',
       matriculas: 2,
     });
     expect(quotas.valores).toEqual({
-      contabil: { valor: 12.5, comValor: 0 },
-      mercado: { valor: 30, comValor: 0 },
-      itr: { valor: null, comValor: 0 },
+      contabil: { valor: 12.5, decimal: '12.5', comValor: 0 },
+      mercado: { valor: 30, decimal: '30', comValor: 0 },
+      itr: { valor: null, decimal: null, comValor: 0 },
       origem: 'bem',
       matriculas: 0,
     });

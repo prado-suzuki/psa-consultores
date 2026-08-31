@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { derivarValoresDoBem } from '@/lib/osg/valoresDoBem';
 
 // Só o que é de PÁGINA: o estado vazio, o botão que abre o modal e a lista que
 // começa vazia esperando o analista adicionar quem doa e quem recebe.
@@ -89,13 +90,13 @@ beforeEach(() => {
   mocks.bens = [{
     id: 'IR-01', cliente_id: 'C1', referencia_dp: 'BS 01', denominacao: 'Fazenda',
     tipo_bem: 'IR', participa_estruturacao: true,
-    valores: {
-      contabil: { valor: 6_649_400, comValor: 1 },
-      mercado: { valor: null, comValor: 0 },
-      itr: { valor: null, comValor: 0 },
-      origem: 'matriculas' as const,
-      matriculas: 1,
-    },
+    // A DERIVACAO DE VERDADE: `valores` montado a mao envelhece a cada campo novo
+    // de `ValorDerivado`, e foi assim que o `decimal` (soma exata, sem float) passou
+    // batido e o acervo virou indisponivel em silencio.
+    valores: derivarValoresDoBem(
+      { vlr_contabil: null, vlr_mercado: null, vlr_imposto_anual: null },
+      [{ vlr_contabil: 6_649_400, vlr_mercado: null, vlr_imposto_anual: null }],
+    ),
   }];
   mocks.pessoas = [
     { id: 'HOLDING', denominacao: 'Terezinha Participações', tipo_pessoa: 'PJ', tipo_empresa: 'CN', is_fundador: false, filiacao_pai_pessoa_id: null, filiacao_mae_pessoa_id: null },

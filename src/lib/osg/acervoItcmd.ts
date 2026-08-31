@@ -44,7 +44,17 @@ export function numeroParaDecimal(v: number): string {
   if (!Number.isFinite(v)) {
     throw new Error(`Valor de imóvel não finito no cadastro: ${v}. Esperado número finito.`);
   }
-  const s = String(v);
+  return decimalDoCadastro(String(v));
+}
+
+/**
+ * A MESMA GUARDA, sobre o decimal já em string.
+ *
+ * É por aqui que o acervo passa desde que a soma das matrículas virou exata: o valor
+ * chega como decimal, e a única pergunta que sobra é se ele cabe na escala de 4 casas
+ * do motor. Recusar continua sendo melhor que arredondar, e a mensagem diz o número.
+ */
+export function decimalDoCadastro(s: string): string {
   if (!DECIMAL_ATE_4_CASAS.test(s)) {
     throw new Error(
       `Valor de imóvel fora da escala do motor (4 casas decimais): ${s}. `
@@ -54,22 +64,46 @@ export function numeroParaDecimal(v: number): string {
   return s;
 }
 
-/** Valor de um imóvel no cenário, ou `null` quando não há valor informado. */
-export function valorDoImovel(imovel: ImovelDoAcervo, cenario: Cenario): number | null {
-  if (cenario === 'contabil') return imovel.valores.contabil.valor;
-  if (cenario === 'mercado') return imovel.valores.mercado.valor;
-  return imovel.valores.itr.valor;
+/**
+ * Valor de um imóvel no cenário, em DECIMAL, ou `null` quando não há valor que sirva
+ * de base.
+ *
+ * SOMA PARCIAL NÃO É VALOR. Um imóvel com duas matrículas e uma só preenchida devolve,
+ * em `valores.contabil`, a soma de uma parcela: um número menor que o real. A lista do
+ * Diagnóstico mostra isso rotulado como "soma parcial", e ali está certo — é leitura.
+ * Aqui é BASE DE CÁLCULO, e usar a parcial apuraria imposto a menos sobre um acervo
+ * incompleto, sem nada na tela dizendo que faltou matrícula.
+ *
+ * Devolvendo `null`, o imóvel entra em `semValor`, o cenário vira indisponível e a
+ * calculadora se recusa a gravar dizendo qual valor falta no cadastro. É o mecanismo
+ * que já existe para o cenário sem valor nenhum; o parcial passa a usar o mesmo.
+ */
+export function valorDoImovel(imovel: ImovelDoAcervo, cenario: Cenario): string | null {
+  const derivado = cenario === 'contabil' ? imovel.valores.contabil
+    : cenario === 'mercado' ? imovel.valores.mercado
+      : imovel.valores.itr;
+
+  if (derivado.decimal == null) return null;
+  if (imovel.valores.origem === 'matriculas'
+    && derivado.comValor < imovel.valores.matriculas) return null;
+  return derivado.decimal;
 }
 
-/** Soma exata em bigint: somar `number` acumularia erro de float. */
-function somar(valores: number[]): Money {
-  return valores.reduce<Money>((acc, v) => acc + parseMoney(numeroParaDecimal(v)), ZERO);
+/**
+ * Soma exata em bigint, a partir do DECIMAL do cadastro.
+ *
+ * Recebe string e não `number` de propósito: a soma das matrículas já aconteceu em
+ * inteiro dentro de `valoresDoBem`, e passar por `number` no caminho reintroduziria o
+ * float que fazia 100,10 + 200,20 virar 300.29999999999995 e derrubar a apuração.
+ */
+function somar(valores: string[]): Money {
+  return valores.reduce<Money>((acc, v) => acc + parseMoney(decimalDoCadastro(v)), ZERO);
 }
 
 export function totalizarAcervo(imoveis: ImovelDoAcervo[]): Record<Cenario, TotalDoCenario> {
   const porCenario = (cenario: Cenario): TotalDoCenario => {
     const valores = imoveis.map((i) => valorDoImovel(i, cenario));
-    const preenchidos = valores.filter((v): v is number => v != null);
+    const preenchidos = valores.filter((v): v is string => v != null);
     return {
       // `formatMoney` já entrega 2 casas com meio para cima — é aqui que a
       // quantização exigida pela fórmula (SPEC §2.3) acontece.

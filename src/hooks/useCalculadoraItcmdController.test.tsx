@@ -82,8 +82,16 @@ vi.mock('@/hooks/useQualificacaoDasPartes', () => ({
 }));
 
 import { useCalculadoraItcmdController } from '@/hooks/useCalculadoraItcmdController';
+import { derivarValoresDoBem } from '@/lib/osg/valoresDoBem';
 
-const valor = (v: number | null) => ({ valor: v, comValor: v == null ? 0 : 1 });
+// A DERIVACAO DE VERDADE, e nao um objeto montado a mao: quando `ValorDerivado`
+// ganhou o campo `decimal` (a soma exata, sem float), as fixtures escritas a mao
+// continuaram compilando e passaram a devolver acervo indisponivel em silencio.
+const valoresDe = (contabil: number | null, mercado: number | null, itr: number | null) =>
+  derivarValoresDoBem(
+    { vlr_contabil: null, vlr_mercado: null, vlr_imposto_anual: null },
+    [{ vlr_contabil: contabil, vlr_mercado: mercado, vlr_imposto_anual: itr }],
+  );
 
 /**
  * Um imóvel do acervo. Por padrão SEM valor de mercado nem de ITR: é o estado do
@@ -101,13 +109,7 @@ const imovel = (
   denominacao: `Fazenda ${id}`,
   tipo_bem: 'IR',
   participa_estruturacao: true,
-  valores: {
-    contabil: valor(contabil),
-    mercado: valor(mercado),
-    itr: valor(itr),
-    origem: 'matriculas' as const,
-    matriculas: 1,
-  },
+  valores: valoresDe(contabil, mercado, itr),
 });
 
 const pf = (id: string, extra: Record<string, unknown> = {}) => ({
@@ -781,6 +783,7 @@ describe('controlador da calculadora — o fio inteiro', () => {
     // `changed_fields` sem o valor de antes diria "mudou para aprovada", que e metade
     // do fato. O anterior sai do historico, que a tela ja tem carregado.
     mocks.historico = [{
+      empresaPessoaId: 'HOLDING',
       id: 'S1', versao: 2, nome: 'Sem reserva', status: 'gerada',
       competencia: '2026-08', upf: '263.78', totalDeQuotas: '6649400',
       criadaEm: '2026-08-28T12:00:00Z', observacao: null, origemSimulacaoId: null,
@@ -818,10 +821,45 @@ describe('controlador da calculadora — o fio inteiro', () => {
     expect(mocks.statusSpy).not.toHaveBeenCalled();
   });
 
+  it('ENCADEADA: origem de OUTRA SOCIEDADE nao entra, e o ato parte do cadastro', () => {
+    // O cliente tem mais de uma sociedade (no Agro Alianca sao tres) e o historico e
+    // por CLIENTE. Sem guarda, dava para escolher a empresa B, herdar o quadro e o
+    // acervo de um ato da empresa A e gravar o resultado como B.
+    mocks.historico = [{
+      id: 'DE-OUTRA', versao: 1, nome: 'Ato da outra sociedade', status: 'gerada',
+      empresaPessoaId: 'OUTRA-HOLDING',
+      competencia: '2026-08', upf: '263.78', totalDeQuotas: '9000000',
+      criadaEm: '2026-08-28T12:00:00Z', observacao: null, origemSimulacaoId: null,
+      acervoPorCenario: { contabil: '9000000.00', itr: null, mercado: null },
+      impostoPorCenario: { contabil: '100.00', itr: null, mercado: null },
+      totalPorCenario: { contabil: '100.00', itr: null, mercado: null },
+      comReserva: false, pctBaseReserva: '100.00', pctBaseInstituicao: '70.00',
+      usufruto: [], concessoes: [], gias: [],
+      doadores: [{
+        pessoaId: 'Cristiano', nome: 'Cristiano', quotas: '9000000',
+        quotasTransmitidas: '0', quotasFinal: '9000000', emissaoConjunta: false,
+        conjugeNome: null, vlrAporteMoeda: '0.00', quotasDoAporte: '0',
+      }],
+      donatarios: [],
+    }];
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+
+    // Ela NAO aparece como origem possivel...
+    expect(calc().origensPossiveis).toEqual([]);
+
+    // ...e mesmo forcando o id, o quadro continua vindo do cadastro: 6.649.400 quotas
+    // da HOLDING, e nao os 9.000.000 da outra.
+    act(() => calc().setOrigemDoAto('DE-OUTRA'));
+    expect(calc().totalDeQuotas).toBe(6_649_400n);
+    expect(calc().origemEscolhida).toBeNull();
+  });
+
   it('ENCADEADA: o ato parte do quadro que o anterior deixou', () => {
     // O ATO 1, ja gravado: o Cristiano doou 3.043.336 das 6.086.672 dele para o
     // Gabriel. Sobrou com 3.043.336, e o Gabriel ficou com 3.043.336.
     mocks.historico = [{
+      empresaPessoaId: 'HOLDING',
       id: 'SIM-1',
       versao: 1,
       nome: 'Entre os herdeiros',
@@ -887,6 +925,7 @@ describe('controlador da calculadora — o fio inteiro', () => {
     // aconteceria depois de um aporte em moeda no ato anterior. Puxar so as quotas
     // faria o preco da quota saltar e o imposto sair errado, calado.
     mocks.historico = [{
+      empresaPessoaId: 'HOLDING',
       id: 'SIM-1', versao: 1, nome: null, status: 'gerada', competencia: '2026-02',
       upf: '255.20', totalDeQuotas: '9000000', criadaEm: '2026-02-10T12:00:00Z',
       observacao: null, origemSimulacaoId: null,

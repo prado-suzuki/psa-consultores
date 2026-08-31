@@ -84,6 +84,7 @@ vi.mock('@/hooks/useQualificacaoDasPartes', () => ({
   }),
 }));
 
+import { derivarValoresDoBem } from '@/lib/osg/valoresDoBem';
 import { NovaSimulacaoModal } from './NovaSimulacaoModal';
 import {
   useCalculadoraItcmdController,
@@ -115,13 +116,13 @@ beforeEach(() => {
     denominacao: 'Fazenda IR-01',
     tipo_bem: 'IR',
     participa_estruturacao: true,
-    valores: {
-      contabil: { valor: 6_649_400, comValor: 1 },
-      mercado: { valor: null, comValor: 0 },
-      itr: { valor: null, comValor: 0 },
-      origem: 'matriculas' as const,
-      matriculas: 1,
-    },
+    // A DERIVACAO DE VERDADE: `valores` montado a mao envelhece a cada campo novo
+    // de `ValorDerivado`, e foi assim que o `decimal` (soma exata, sem float) passou
+    // batido e o acervo virou indisponivel em silencio.
+    valores: derivarValoresDoBem(
+      { vlr_contabil: null, vlr_mercado: null, vlr_imposto_anual: null },
+      [{ vlr_contabil: 6_649_400, vlr_mercado: null, vlr_imposto_anual: null }],
+    ),
   }];
   mocks.pessoas = [
     {
