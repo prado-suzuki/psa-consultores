@@ -4,6 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 import uiTokens from "./eslint-rules/token-nao-sobrescrito.js";
+import corForaDaEscala from "./eslint-rules/cor-fora-da-escala.js";
 
 export default tseslint.config(
   { ignores: ["dist"] },
@@ -63,6 +64,43 @@ export default tseslint.config(
     ignores: ["src/components/ui/**"],
     plugins: { ui: uiTokens },
     rules: { "ui/token-nao-sobrescrito": "error" },
+  },
+  {
+    // ── Tom que a escala não tem ──────────────────────────────────────────
+    //
+    // As cores deste projeto ficam em `theme.extend.colors`, e "extend" SOMA
+    // com a paleta do Tailwind em vez de substituir. Daí o mesmo erro — digitar
+    // um tom que não existe — dar dois resultados opostos:
+    //
+    // · Nome que só existe aqui (`osg`, `base`, `status`, `tag`…): não há
+    //   estoque para cair, a regra NÃO É GERADA, e o elemento fica com a cor
+    //   herdada. `text-osg-800` atravessou meses assim nos títulos de seção dos
+    //   relatórios da OSG, e `shadow-osg-900` estava no `OsgLayout`, ou seja em
+    //   todas as 25 rotas da área. É `cor-inexistente`.
+    //
+    // · Nome que o Tailwind também tem (`teal`, `lime`, `gray`): o tom faltante
+    //   vem do estoque. `bg-teal-600` é o teal institucional; `bg-teal-100` é o
+    //   do Tailwind vestindo o nome da marca. É `cor-de-estoque`.
+    //
+    // `cor-inexistente` nasce em `error` pelo mesmo critério que este arquivo
+    // já aplica logo acima: a fila foi zerada antes (nenhuma sobrou no `src`),
+    // e `warn` sobre fila vazia não protege nada. `cor-de-estoque` fica em
+    // `warn` porque a fila dela ainda tem centenas — é migração, não regime.
+    //
+    // Vale para `.ts` também, e o `ui/` NÃO fica de fora: classe que não pinta
+    // é defeito em qualquer lugar, inclusive no dono do padrão.
+    //
+    // A escala não está escrita na regra — ela lê o `tailwind.config.ts`, e
+    // `cor-fora-da-escala.test.ts` compara o que ela extrai com o config
+    // importado de verdade. Para medir a fila da segunda:
+    //
+    //   bunx eslint src | grep -c escala/cor-de-estoque
+    files: ["src/**/*.{ts,tsx}"],
+    plugins: { escala: corForaDaEscala },
+    rules: {
+      "escala/cor-inexistente": "error",
+      "escala/cor-de-estoque": "warn",
+    },
   },
   {
     // ── `--teal-*` é PRIMITIVA, não token de componente ────────────────────
