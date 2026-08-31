@@ -82,6 +82,8 @@ export const perdcompQueryKeys = {
     ['pers-for-situacao', contribuinteId] as const,
 };
 
+const PAGINA_PER = 1000;
+
 const PERDCOMP_MUTATION_KEYS = {
   buscarPerPorNumero: ['perdcomp', 'per', 'buscar-por-numero'],
   upsertPersEmLote: ['perdcomp', 'per', 'upsert-em-lote'],
@@ -98,13 +100,57 @@ const PERDCOMP_MUTATION_KEYS = {
   buscarProcessoGlobal: ['perdcomp', 'processo', 'buscar-global'],
 } as const;
 
+/**
+ * Contribuintes que aparecem em ao menos um PER.
+ *
+ * `per.id_contribuinte` nao tem FK para `contribuinte`, entao o PostgREST nao embeda a
+ * relacao: a distincao sai daqui. Le pagina a pagina porque o teto de linhas do PostgREST
+ * trunca em silencio, e uma pagina perdida some com um cliente inteiro do filtro.
+ */
+async function buscarContribuinteIdsComPer(): Promise<string[]> {
+  const ids = new Set<string>();
+  for (let pagina = 0; ; pagina += 1) {
+    const inicio = pagina * PAGINA_PER;
+    const { data, error } = await supabase
+      .from('per')
+      .select('id_contribuinte')
+      .range(inicio, inicio + PAGINA_PER - 1);
+    if (error) throw error;
+    for (const per of data ?? []) ids.add(per.id_contribuinte);
+    if ((data ?? []).length < PAGINA_PER) return [...ids];
+  }
+}
+
+async function buscarClienteIdsComPer(): Promise<string[]> {
+  const contribuinteIds = await buscarContribuinteIdsComPer();
+  if (contribuinteIds.length === 0) return [];
+  const { data, error } = await supabase
+    .from('contribuinte')
+    .select('cliente_id')
+    .in('id', contribuinteIds)
+    .eq('excluido', false)
+    .eq('ambiente', currentAmbiente);
+  if (error) throw error;
+  return [
+    ...new Set(
+      (data ?? [])
+        .map((contribuinte) => contribuinte.cliente_id)
+        .filter((clienteId): clienteId is string => !!clienteId),
+    ),
+  ];
+}
+
+/** So os clientes com PER lancado: o filtro serve para achar quem tem cadastro. */
 export function useClientesControlePerdcomp() {
   return useQuery<ClienteControlePerdcomp[]>({
-    queryKey: ['clientes-ativos'],
+    queryKey: ['clientes-com-perdcomp'],
     queryFn: async () => {
+      const clienteIds = await buscarClienteIdsComPer();
+      if (clienteIds.length === 0) return [];
       const { data, error } = await supabase
         .from('cliente')
         .select('id, nome')
+        .in('id', clienteIds)
         .eq('ativo', true)
         .eq('excluido', false)
         .eq('ambiente', currentAmbiente)
@@ -115,14 +161,21 @@ export function useClientesControlePerdcomp() {
   });
 }
 
+/**
+ * Mesmo recorte um nivel abaixo. Key propria de proposito: `useContribuintesPerModal` cadastra
+ * PER novo e precisa da lista inteira, inclusive de quem ainda nao tem nenhum.
+ */
 export function useContribuintesControlePerdcomp(clienteId: string) {
   return useQuery<ContribuinteControlePerdcomp[]>({
-    queryKey: ['contribuintes', clienteId],
+    queryKey: ['contribuintes-com-perdcomp', clienteId],
     queryFn: async () => {
       if (!clienteId) return [];
+      const contribuinteIds = await buscarContribuinteIdsComPer();
+      if (contribuinteIds.length === 0) return [];
       const { data, error } = await supabase
         .from('contribuinte')
         .select('id, nome_razao_social')
+        .in('id', contribuinteIds)
         .eq('cliente_id', clienteId)
         .eq('excluido', false)
         .eq('ambiente', currentAmbiente)

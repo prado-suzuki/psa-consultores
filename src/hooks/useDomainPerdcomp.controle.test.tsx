@@ -50,7 +50,17 @@ function queue(table: string, ...queued: Result[]) {
 
 function chain(table: string) {
   const value: Record<string, unknown> = {};
-  for (const method of ['select', 'eq', 'in', 'not', 'like', 'limit', 'order', 'maybeSingle']) {
+  for (const method of [
+    'select',
+    'eq',
+    'in',
+    'not',
+    'like',
+    'limit',
+    'range',
+    'order',
+    'maybeSingle',
+  ]) {
     value[method] = vi.fn((...args: unknown[]) => {
       calls.push({ table, method, args });
       return value;
@@ -92,9 +102,9 @@ describe('queries do controle PER/DCOMP', () => {
     });
 
     expect(registrations().map(({ queryKey, enabled }) => ({ queryKey, enabled }))).toEqual([
-      { queryKey: ['clientes-ativos'], enabled: undefined },
-      { queryKey: ['contribuintes', 'cliente-1'], enabled: true },
-      { queryKey: ['contribuintes', ''], enabled: false },
+      { queryKey: ['clientes-com-perdcomp'], enabled: undefined },
+      { queryKey: ['contribuintes-com-perdcomp', 'cliente-1'], enabled: true },
+      { queryKey: ['contribuintes-com-perdcomp', ''], enabled: false },
       { queryKey: ['perdcomp-per', 'contrib-1', true], enabled: true },
       { queryKey: ['perdcomp-per', 'contrib-1', false], enabled: false },
       { queryKey: ['per-situacoes', 'contrib-1', true], enabled: true },
@@ -106,6 +116,12 @@ describe('queries do controle PER/DCOMP', () => {
   });
 
   it('aplica selects, filtros de cliente e contribuinte, ambiente, flags e ordenação', async () => {
+    queue(
+      'per',
+      { data: [{ id_contribuinte: 'contrib-1' }], error: null },
+      { data: [{ id_contribuinte: 'contrib-1' }], error: null },
+    );
+    queue('contribuinte', { data: [{ cliente_id: 'cliente-1' }], error: null });
     renderHook(() => {
       useClientesControlePerdcomp();
       useContribuintesControlePerdcomp('cliente-1');
@@ -117,14 +133,24 @@ describe('queries do controle PER/DCOMP', () => {
     await pers.queryFn();
 
     expect(callsFor('cliente', 'select')[0].args).toEqual(['id, nome']);
+    expect(callsFor('cliente', 'in')[0].args).toEqual(['id', ['cliente-1']]);
     expect(callsFor('cliente', 'eq').map(({ args }) => args)).toEqual([
       ['ativo', true],
       ['excluido', false],
       ['ambiente', currentAmbiente],
     ]);
     expect(callsFor('cliente', 'order')[0].args).toEqual(['nome']);
-    expect(callsFor('contribuinte', 'select')[0].args).toEqual(['id, nome_razao_social']);
+    expect(callsFor('contribuinte', 'select').map(({ args }) => args)).toEqual([
+      ['cliente_id'],
+      ['id, nome_razao_social'],
+    ]);
+    expect(callsFor('contribuinte', 'in').map(({ args }) => args)).toEqual([
+      ['id', ['contrib-1']],
+      ['id', ['contrib-1']],
+    ]);
     expect(callsFor('contribuinte', 'eq').map(({ args }) => args)).toEqual([
+      ['excluido', false],
+      ['ambiente', currentAmbiente],
       ['cliente_id', 'cliente-1'],
       ['excluido', false],
       ['ambiente', currentAmbiente],
@@ -139,6 +165,26 @@ describe('queries do controle PER/DCOMP', () => {
       'exercicio',
       { ascending: false },
     ]);
+  });
+
+  it('varre o PER pagina a pagina para não truncar a lista de clientes', async () => {
+    const paginaCheia = Array.from({ length: 1000 }, (_, indice) => ({
+      id_contribuinte: `contrib-${indice}`,
+    }));
+    queue(
+      'per',
+      { data: paginaCheia, error: null },
+      { data: [{ id_contribuinte: 'contrib-alem-do-teto' }], error: null },
+    );
+    queue('contribuinte', { data: [{ cliente_id: 'cliente-1' }], error: null });
+    renderHook(() => useClientesControlePerdcomp());
+    await registrations()[0].queryFn();
+
+    expect(callsFor('per', 'range').map(({ args }) => args)).toEqual([
+      [0, 999],
+      [1000, 1999],
+    ]);
+    expect(callsFor('contribuinte', 'in')[0].args[1]).toContain('contrib-alem-do-teto');
   });
 
   it('consulta situações, DCOMPs e distribuições com os selects, filtros e ordens exatos', async () => {

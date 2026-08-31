@@ -110,7 +110,7 @@ export default function ProcessoDetalheModal({
 
         <div className="processo-det-body">
           <div className="processo-det-export" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', marginRight: 2 }}>Exportar</span>
+            <span style={{ fontSize: '0.78rem', color: 'hsl(var(--slate-500))', marginRight: 2 }}>Exportar</span>
             <button type="button" className="btn-cancel" onClick={() => exports.exportSopPdf(pid, 'era')} title="SOP em PDF (cenário atual)">
               <FileText size={14} /> SOP (PDF)
             </button>
@@ -142,7 +142,7 @@ export default function ProcessoDetalheModal({
             )}
           </Secao>
 
-          <Secao icone={<FileText size={16} />} cor="#475569" label="Documentos" count={docs.length} aberta={!!abertas.documentos} onToggle={() => toggle('documentos')}>
+          <Secao icone={<FileText size={16} />} cor="hsl(var(--slate-600))" label="Documentos" count={docs.length} aberta={!!abertas.documentos} onToggle={() => toggle('documentos')}>
             <Chips itens={docs} vazio="Nenhum documento vinculado às etapas." />
           </Secao>
 

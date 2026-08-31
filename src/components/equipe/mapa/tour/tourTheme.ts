@@ -11,7 +11,7 @@ import type { ButtonType, Locale, Options, PartialDeep, Styles } from 'react-joy
 export const TOUR_OPTIONS: Partial<Options> = {
   primaryColor: 'hsl(var(--primary))', // --accent-color (teal institucional)
   backgroundColor: '#ffffff', // --surface-lowest
-  textColor: '#334155',
+  textColor: 'hsl(var(--slate-700))',
   arrowColor: '#ffffff',
   overlayColor: 'rgba(15,23,42,0.55)',
   zIndex: 3000, // acima da sidebar (1100/1200), abaixo dos modais (4000)
@@ -23,7 +23,7 @@ export const TOUR_OPTIONS: Partial<Options> = {
 export const TOUR_STYLES: PartialDeep<Styles> = {
   tooltip: { borderRadius: 14, fontFamily: "'Segoe UI', system-ui, -apple-system, sans-serif" },
   tooltipTitle: { fontSize: 16, fontWeight: 700, color: '#0d1c2e' },
-  tooltipContent: { fontSize: 14, lineHeight: 1.55, color: '#334155' },
+  tooltipContent: { fontSize: 14, lineHeight: 1.55, color: 'hsl(var(--slate-700))' },
   buttonPrimary: { borderRadius: 8, fontWeight: 600 },
 };
 
