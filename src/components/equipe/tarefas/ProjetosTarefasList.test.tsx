@@ -66,6 +66,7 @@ function renderList(props: Partial<Parameters<typeof ProjetosTarefasList>[0]> = 
       onToggleSelection={noop}
       onMoveSelected={noop}
       onMoveProjectTasks={noop}
+      periodo={periodoParado}
       {...props}
     />,
   );
@@ -94,6 +95,25 @@ const tarefa = (id: string, overrides: Partial<OrgTask> = {}) => ({
   project_id: 'p1',
   ...overrides,
 }) as unknown as OrgTask;
+
+/** O mês não é o assunto deste teste: um período parado basta. */
+const periodoParado = {
+  mes: new Date(2026, 7, 1),
+  tarefas: [],
+  onPasso: () => {},
+  onHoje: () => {},
+};
+
+describe('ProjetosTarefasList — barra de período', () => {
+  it('a Lista ganhou a mesma barra da Tabela, do Calendário e do Gantt', () => {
+    renderList();
+
+    expect(screen.getByRole('button', { name: 'Hoje' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mês anterior' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Próximo mês' })).toBeInTheDocument();
+    expect(screen.getByText('Agosto de 2026')).toBeInTheDocument();
+  });
+});
 
 describe('ProjetosTarefasList — coluna Esforço', () => {
   it('acusa na tarefa quem concluiu sem apontar horas', () => {

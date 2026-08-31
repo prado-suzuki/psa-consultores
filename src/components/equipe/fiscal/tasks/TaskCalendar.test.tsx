@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { CELULAS, FECHA_A_GRADE, TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
+import { usePeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 import { statusColors } from '@/lib/taskStatusColors';
 import type { OrgTask } from '@/hooks/useOrgTasks';
 
@@ -43,6 +44,16 @@ const tarefa = (over: Partial<OrgTask> = {}): OrgTask =>
 
 const semAcoes = { onEdit: vi.fn(), onDelete: vi.fn(), onReassign: vi.fn() };
 
+/**
+ * O mês do calendário vem do painel, e o recorte por mês vem do mesmo hook. O
+ * teste monta os dois juntos de propósito: separar o mês do filtro faria a seta
+ * andar sem o conteúdo acompanhar, e é justamente isso que se quer travar.
+ */
+function CalendarioComPeriodo({ tasks = [] as OrgTask[] }) {
+  const periodo = usePeriodoDeTarefas(tasks);
+  return <TaskCalendar tasks={periodo.tarefas} {...semAcoes} periodo={periodo} />;
+}
+
 describe('TaskCalendar', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -54,7 +65,7 @@ describe('TaskCalendar', () => {
   });
 
   it('fecha o mês em semanas inteiras', () => {
-    render(<TaskCalendar tasks={[]} {...semAcoes} />);
+    render(<CalendarioComPeriodo />);
 
     const quadro = screen.getByTestId('calendario-quadro');
     expect(quadro.children).toHaveLength(CELULAS);
@@ -69,7 +80,7 @@ describe('TaskCalendar', () => {
   });
 
   it('mostra os dias do mês vizinho como contexto, sem oferecer clique', () => {
-    render(<TaskCalendar tasks={[]} {...semAcoes} />);
+    render(<CalendarioComPeriodo />);
 
     const deFora = screen.getAllByTestId('calendario-dia-de-fora');
     expect(deFora).toHaveLength(CELULAS - 31);
@@ -79,7 +90,7 @@ describe('TaskCalendar', () => {
   });
 
   it('marca hoje com o primário da área, e não com um papel de status', () => {
-    render(<TaskCalendar tasks={[]} {...semAcoes} />);
+    render(<CalendarioComPeriodo />);
 
     const hoje = screen.getByTestId('calendario-hoje');
     expect(hoje).toHaveTextContent('12');
@@ -91,7 +102,7 @@ describe('TaskCalendar', () => {
 
   it('a seta anda o mês e Hoje volta — a barra é a mesma do Gantt', async () => {
     const usuario = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    render(<TaskCalendar tasks={[]} {...semAcoes} />);
+    render(<CalendarioComPeriodo />);
 
     expect(screen.getByText('Agosto de 2026')).toBeInTheDocument();
 
@@ -107,7 +118,7 @@ describe('TaskCalendar', () => {
   });
 
   it('a tarefa na célula veste o papel do status, que a área resolve', () => {
-    render(<TaskCalendar tasks={[tarefa()]} {...semAcoes} />);
+    render(<CalendarioComPeriodo tasks={[tarefa()]} />);
 
     const chip = screen.getByText('Apurar ICMS de julho');
     expect(chip.className).toContain(statusColors.in_progress.combined.split(' ')[0]);

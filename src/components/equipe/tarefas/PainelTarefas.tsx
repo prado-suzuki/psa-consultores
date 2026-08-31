@@ -30,6 +30,7 @@ import { extractProductAcronyms, hasTaskFilters, withProjectClientFallback, type
 import { TaskFilters } from '@/components/equipe/fiscal/tasks/TaskFilters';
 import { TaskKPICards } from '@/components/equipe/fiscal/tasks/TaskKPICards';
 import { TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
+import { usePeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 import { TaskTable } from '@/components/equipe/fiscal/tasks/TaskTable';
 import { TaskKanban } from '@/components/equipe/fiscal/tasks/TaskKanban';
 import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
@@ -157,6 +158,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       );
     return withProjectClientFallback(clientTasks, listProjects);
   }, [allTasks, visibleProjectIds, deepLinkTaskId, user?.id, filters.clientId, listProjects]);
+  const periodo = usePeriodoDeTarefas(tasks);
   const visibleListProjects = useMemo(
     () => filters.clientId
       ? listProjects.filter(project => project.external_client_id === filters.clientId)
@@ -428,7 +430,8 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
               <ProjetosTarefasList
                 area={area}
                 projects={visibleListProjects}
-                tasks={tasks}
+                tasks={periodo.tarefas}
+                periodo={periodo}
                 osRows={osRows}
                 search={filters.search || ''}
                 isLoading={isTasksLoading || projectController.isLoading || isScopeUnresolved}
@@ -455,16 +458,18 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
 
             <TabsContent value="calendar" className="m-0">
               <TaskCalendar
-                tasks={tasks}
+                tasks={periodo.tarefas}
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
                 onReassign={handleReassignTask}
+                periodo={periodo}
               />
             </TabsContent>
 
             <TabsContent value="table" className="m-0">
               <TaskTable
-                tasks={tasks}
+                tasks={periodo.tarefas}
+                periodo={periodo}
                 area={area}
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}

@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
-import { format, startOfMonth, startOfWeek, addDays, isSameDay, isSameMonth, addMonths } from 'date-fns';
+import { format, startOfMonth, startOfWeek, addDays, isSameDay, isSameMonth } from 'date-fns';
 import { parseDate, getTodayBrazil } from '@/lib/dateUtils';
 import { ptBR } from 'date-fns/locale';
 import { Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { BarraDePeriodo } from '@/components/shared/BarraDePeriodo';
+import { BarraDeMes } from '@/components/shared/BarraDeMes';
+import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,6 +20,8 @@ interface TaskCalendarProps {
   onEdit: (task: OrgTask) => void;
   onDelete: (taskId: string) => void;
   onReassign: (task: OrgTask) => void;
+  /** O mês é do painel, não desta aba: ele atravessa Lista, Tabela e aqui. */
+  periodo: PeriodoDeTarefas;
 }
 
 /**
@@ -39,8 +42,8 @@ export const FECHA_A_GRADE = '[&:nth-child(7n)]:border-r-0 [&:nth-child(n+36)]:b
 
 const TAREFAS_VISIVEIS_NA_CELULA = 2;
 
-export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalendarProps) => {
-  const [currentMonth, setCurrentMonth] = useState(new Date());
+export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign, periodo }: TaskCalendarProps) => {
+  const currentMonth = periodo.mes;
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   const days = useMemo(() => {
@@ -66,13 +69,7 @@ export const TaskCalendar = ({ tasks, onEdit, onDelete, onReassign }: TaskCalend
             esquerda. Antes o título ficava solto à esquerda e os controles na
             direita, grudados na legenda — duas telas que andam no tempo, duas
             aparências. */}
-        <BarraDePeriodo
-          titulo={format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
-          onHoje={() => setCurrentMonth(new Date())}
-          onPasso={direcao => setCurrentMonth(addMonths(currentMonth, direcao))}
-          rotuloAnterior="Mês anterior"
-          rotuloProximo="Próximo mês"
-        />
+        <BarraDeMes periodo={periodo} />
 
         <div className="grid grid-cols-7 border-b bg-muted/40">
           {weekDays.map(day => (

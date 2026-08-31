@@ -64,6 +64,7 @@ function renderTable(tasks: OrgTask[]) {
       onDelete={noop}
       onReassign={noop}
       currentUserId="U1"
+      periodo={periodoParado}
     />,
   );
 }
@@ -75,6 +76,25 @@ beforeEach(() => {
   mocks.updateTask.mockClear();
   mocks.updateTaskAsync.mockClear();
   mocks.createComment.mockClear();
+});
+
+/** O mês não é o assunto deste teste: um período parado basta. */
+const periodoParado = {
+  mes: new Date(2026, 7, 1),
+  tarefas: [],
+  onPasso: () => {},
+  onHoje: () => {},
+};
+
+describe('TaskTable — barra de período', () => {
+  it('a Tabela ganhou a mesma barra da Lista, do Calendário e do Gantt', () => {
+    renderTable([]);
+
+    expect(screen.getByRole('button', { name: 'Hoje' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mês anterior' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Próximo mês' })).toBeInTheDocument();
+    expect(screen.getByText('Agosto de 2026')).toBeInTheDocument();
+  });
 });
 
 describe('TaskTable — troca de status pelo seletor', () => {

@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -225,6 +225,7 @@ export function ProjetosTarefasList({
   onMoveSelected,
   onMoveProjectTasks,
   currentUserId,
+  periodo,
   assigneesByProject = {},
   canEditTaskFields = () => true,
 }: ProjetosTarefasListProps) {
@@ -424,28 +425,34 @@ export function ProjetosTarefasList({
   };
 
   if (hierarchy.length === 0) {
+    // A barra do mes fica POR CIMA do vazio: sem ela, um mes sem tarefas
+    // prenderia a pessoa ali — o controle que a trouxe desapareceria junto.
+    const comBarra = (conteudo: ReactNode) => <div className="space-y-2">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm"><BarraDeMes periodo={periodo} /></div>
+      {conteudo}
+    </div>;
     // Carregando vem ANTES dos vazios: a lista depende de várias consultas em
     // cadeia (escopo de cluster → projetos → tarefas → OS) e, sem este ramo,
     // o usuário lia "Nenhum projeto ou tarefa encontrado" durante toda a espera.
     // Só entra aqui quando não há NADA para mostrar — com dados parciais a lista
     // é renderizada normalmente e vai se completando.
     if (isLoading) {
-      return <div className="rounded-xl border border-dashed py-16 text-center text-muted-foreground">
+      return comBarra(<div className="rounded-xl border border-dashed py-16 text-center text-muted-foreground">
         <AreaLoader area={area} size={72} className="mx-auto block" />
         <p className="mt-3 font-medium">Carregando projetos e tarefas…</p>
-      </div>;
+      </div>);
     }
     // Com filtros ativos, o vazio é resultado da filtragem — ensina o comportamento
     // (grupos sem tarefas ficam ocultos) e oferece limpar os filtros de uma vez.
     if (hideEmpty) {
-      return <div className="rounded-xl border border-dashed py-16 text-center">
+      return comBarra(<div className="rounded-xl border border-dashed py-16 text-center">
         <FilterX className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
         <p className="font-medium">Nenhuma tarefa corresponde aos filtros</p>
         <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Clientes, OS e projetos sem tarefas correspondentes ficam ocultos. Limpe os filtros para ver toda a estrutura.</p>
         {onClearFilters && <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={onClearFilters}><FilterX className="h-4 w-4" />Limpar filtros</Button>}
-      </div>;
+      </div>);
     }
-    return <div className="rounded-xl border border-dashed py-16 text-center"><FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" /><p className="font-medium">Nenhum projeto ou tarefa encontrado</p><p className="mt-1 text-sm text-muted-foreground">Crie um novo projeto para começar.</p></div>;
+    return comBarra(<div className="rounded-xl border border-dashed py-16 text-center"><FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" /><p className="font-medium">Nenhum projeto ou tarefa encontrado</p><p className="mt-1 text-sm text-muted-foreground">Crie um novo projeto para começar.</p></div>);
   }
 
   const allOsExpanded = sortedHierarchy.every(group => expanded.has(`os:${group.id}`));
