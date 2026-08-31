@@ -40,7 +40,7 @@ const RESET_STYLE = `
     max-width: 14px !important;
     margin: 0 !important;
     padding: 0 !important;
-    border: 1px solid #cbd5e1 !important;
+    border: 1px solid hsl(var(--slate-300)) !important;
     border-radius: 3px !important;
     background: #fff !important;
     cursor: pointer !important;
@@ -53,7 +53,7 @@ const RESET_STYLE = `
   .seo-popover input[type="text"] {
     width: 100%;
     padding: 6px 8px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid hsl(var(--slate-300));
     border-radius: 4px;
     font-size: 0.82rem;
     box-sizing: border-box;
@@ -68,7 +68,7 @@ const RESET_STYLE = `
     display: inline-block;
     width: 14px;
     transition: transform 0.15s;
-    color: #94a3b8;
+    color: hsl(var(--slate-400));
   }
   .seo-popover details[open] > summary::before {
     transform: rotate(90deg);
@@ -211,14 +211,14 @@ export default function SeletorEtapasOrigem({
           gap: 4,
           padding: 6,
           minHeight: 36,
-          border: '1px solid #cbd5e1',
+          border: '1px solid hsl(var(--slate-300))',
           borderRadius: 6,
           background: '#fff',
           alignItems: 'center',
         }}
       >
         {value.length === 0 && (
-          <span style={{ fontSize: '0.78rem', color: '#94a3b8', padding: '2px 6px' }}>
+          <span style={{ fontSize: '0.78rem', color: 'hsl(var(--slate-400))', padding: '2px 6px' }}>
             Nenhuma etapa selecionada
           </span>
         )}
@@ -244,7 +244,7 @@ export default function SeletorEtapasOrigem({
           disabled={procIdsAfetados.size === 0}
           style={{
             padding: '4px 10px',
-            background: procIdsAfetados.size > 0 ? '#0f172a' : '#cbd5e1',
+            background: procIdsAfetados.size > 0 ? 'hsl(var(--slate-900))' : 'hsl(var(--slate-300))',
             color: '#fff',
             border: 0,
             borderRadius: 4,
@@ -258,7 +258,7 @@ export default function SeletorEtapasOrigem({
       </div>
 
       {procIdsAfetados.size === 0 && (
-        <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: '#94a3b8' }}>
+        <p style={{ margin: '6px 0 0', fontSize: '0.72rem', color: 'hsl(var(--slate-400))' }}>
           Marque processos afetados acima primeiro — as etapas-origem ficam restritas a esses processos.
         </p>
       )}
@@ -275,7 +275,7 @@ export default function SeletorEtapasOrigem({
             right: 0,
             marginTop: 4,
             background: '#fff',
-            border: '1px solid #cbd5e1',
+            border: '1px solid hsl(var(--slate-300))',
             borderRadius: 8,
             boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05)',
             zIndex: 1000,
@@ -284,7 +284,7 @@ export default function SeletorEtapasOrigem({
             flexDirection: 'column',
           }}
         >
-          <div style={{ padding: 8, borderBottom: '1px solid #e2e8f0' }}>
+          <div style={{ padding: 8, borderBottom: '1px solid hsl(var(--slate-200))' }}>
             <input
               type="text"
               placeholder="Buscar etapa ou processo..."
@@ -295,7 +295,7 @@ export default function SeletorEtapasOrigem({
           </div>
           <div style={{ overflowY: 'auto', flex: 1 }}>
             {grupos.length === 0 ? (
-              <div style={{ padding: 16, color: '#94a3b8', fontSize: '0.82rem', textAlign: 'center' }}>
+              <div style={{ padding: 16, color: 'hsl(var(--slate-400))', fontSize: '0.82rem', textAlign: 'center' }}>
                 {buscaNorm ? 'Nenhuma etapa corresponde à busca.' : 'Nenhuma etapa nos processos afetados.'}
               </div>
             ) : (
@@ -307,13 +307,13 @@ export default function SeletorEtapasOrigem({
                       background: '#f8fafc',
                       fontWeight: 600,
                       fontSize: '0.78rem',
-                      color: '#0f172a',
+                      color: 'hsl(var(--slate-900))',
                       userSelect: 'none',
-                      borderBottom: '1px solid #f1f5f9',
+                      borderBottom: '1px solid hsl(var(--slate-100))',
                     }}
                   >
                     {processo.name}{' '}
-                    <span style={{ color: '#94a3b8', fontWeight: 400, fontSize: '0.7rem' }}>
+                    <span style={{ color: 'hsl(var(--slate-400))', fontWeight: 400, fontSize: '0.7rem' }}>
                       ({etapas.length})
                     </span>
                   </summary>
@@ -339,7 +339,7 @@ export default function SeletorEtapasOrigem({
                             checked={checked}
                             onChange={() => toggleEtapa(e)}
                           />
-                          <span style={{ color: '#94a3b8', fontSize: '0.72rem', minWidth: 16 }}>
+                          <span style={{ color: 'hsl(var(--slate-400))', fontSize: '0.72rem', minWidth: 16 }}>
                             {e.stage_order ?? '·'}.
                           </span>
                           <span style={{ flex: 1 }}>{e.name}</span>
@@ -351,8 +351,8 @@ export default function SeletorEtapasOrigem({
               ))
             )}
           </div>
-          <div style={{ padding: 6, borderTop: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: '0.72rem', color: '#64748b' }}>
+          <div style={{ padding: 6, borderTop: '1px solid hsl(var(--slate-200))', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.72rem', color: 'hsl(var(--slate-500))' }}>
               {value.length} selecionada{value.length === 1 ? '' : 's'}
             </span>
             <button
@@ -360,7 +360,7 @@ export default function SeletorEtapasOrigem({
               onClick={() => setOpen(false)}
               style={{
                 padding: '4px 12px',
-                background: '#0f172a',
+                background: 'hsl(var(--slate-900))',
                 color: '#fff',
                 border: 0,
                 borderRadius: 4,

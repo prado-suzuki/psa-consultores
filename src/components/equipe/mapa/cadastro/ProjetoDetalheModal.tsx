@@ -185,9 +185,9 @@ export default function ProjetoDetalheModal({
                   </div>
                 )}
                 {/* Resumo do doutor — quantos processos entram no ROI consolidado */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: '0.85rem', color: '#475569', flexWrap: 'wrap' }}>
-                  <strong style={{ color: '#0f172a' }}>{completos}</strong> de
-                  <strong style={{ color: '#0f172a' }}>{processos.length}</strong> processos com ROI completo
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, fontSize: '0.85rem', color: 'hsl(var(--slate-600))', flexWrap: 'wrap' }}>
+                  <strong style={{ color: 'hsl(var(--slate-900))' }}>{completos}</strong> de
+                  <strong style={{ color: 'hsl(var(--slate-900))' }}>{processos.length}</strong> processos com ROI completo
                   {emMapeamento > 0 && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: '#dc2626', fontWeight: 600 }}>
                       <AlertTriangle size={13} /> {emMapeamento} em mapeamento (fora do consolidado)
@@ -219,7 +219,7 @@ export default function ProjetoDetalheModal({
                             {!vd.ok && (
                               <div style={{ margin: '0 0 10px' }}>
                                 <strong style={{ fontSize: '0.8rem', color: '#dc2626' }}>Falta para o ROI contar:</strong>
-                                <ul style={{ margin: '4px 0 0', paddingLeft: 18, fontSize: '0.8rem', color: '#475569' }}>
+                                <ul style={{ margin: '4px 0 0', paddingLeft: 18, fontSize: '0.8rem', color: 'hsl(var(--slate-600))' }}>
                                   {vd.faltando.map((f, i) => <li key={i}>{f}</li>)}
                                 </ul>
                               </div>
@@ -438,7 +438,7 @@ export default function ProjetoDetalheModal({
                           <span className="projeto-process-name">{p.name}</span>
                           <span className="projeto-process-count">{nAs} → {nTo} etapa{nTo === 1 ? '' : 's'}</span>
                           <span className="projeto-process-status">
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: temEtapas ? '#4f46e5' : '#94a3b8' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: '0.72rem', fontWeight: 700, color: temEtapas ? '#4f46e5' : 'hsl(var(--slate-400))' }}>
                               <Network size={13} /> {temEtapas ? 'Ver comparativo' : 'Sem etapas'}
                             </span>
                           </span>
