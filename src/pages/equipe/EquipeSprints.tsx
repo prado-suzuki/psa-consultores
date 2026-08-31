@@ -401,7 +401,7 @@ const EquipeSprints = () => {
                    {sprint.goal && <p className="text-sm text-gray-600 mb-3 line-clamp-2">{sprint.goal}</p>}
                    <div className="flex items-center gap-4 text-sm text-gray-500">
                      <span>{parseDate(sprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(sprint.end_date).toLocaleDateString('pt-BR')}</span>
-                     {totalHours > 0 && <><span className="text-gray-300">•</span><span>{totalHours.toFixed(0)}h alocadas</span></>}
+                     {totalHours > 0 && <><span className="text-gray-400">•</span><span>{totalHours.toFixed(0)}h alocadas</span></>}
                   </div>
                   {sprintImpact && sprintImpact.custoEconomizadoMensal > 0 && (
                      <div className="mt-3 pt-3 border-t border-border flex items-center gap-4 text-sm">

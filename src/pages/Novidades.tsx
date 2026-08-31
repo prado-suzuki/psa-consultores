@@ -112,7 +112,7 @@ const Novidades = () => {
             className="text-center max-w-3xl mx-auto"
           >
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Novidades</h1>
-            <p className="text-lg text-gray-300">
+            <p className="text-lg text-gray-400">
               Fique por dentro das últimas atualizações da PSA Consultores, mudanças no sistema tributário e cases de sucesso.
             </p>
           </motion.div>

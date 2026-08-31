@@ -77,7 +77,7 @@ function Calendar({
     cells.push(
       <div
         key={`prev-${day}`}
-        className="h-9 w-9 flex items-center justify-center text-xs text-gray-300 pointer-events-none"
+        className="h-9 w-9 flex items-center justify-center text-xs text-gray-400 pointer-events-none"
       >
         {day}
       </div>
@@ -117,7 +117,7 @@ function Calendar({
     cells.push(
       <div
         key={`next-${d}`}
-        className="h-9 w-9 flex items-center justify-center text-xs text-gray-300 pointer-events-none"
+        className="h-9 w-9 flex items-center justify-center text-xs text-gray-400 pointer-events-none"
       >
         {d}
       </div>
