@@ -146,10 +146,13 @@ export function GanttChart({
                             !aberto && '-rotate-90',
                           )}
                         />
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm font-medium">{grupo.nome}</span>
-                          <span className="block truncate text-xs text-muted-foreground">{grupo.resumo}</span>
-                        </span>
+                        {/* `div` e não `span`: o nome acessível da linha é a
+                            concatenação dos dois textos, e elemento em bloco é o
+                            que insere o espaço entre eles. */}
+                        <div className="min-w-0">
+                          <div className="truncate text-sm font-medium">{grupo.nome}</div>
+                          <div className="truncate text-xs text-muted-foreground">{grupo.resumo}</div>
+                        </div>
                       </button>
 
                       <GanttFaixaDoTempo eixo={eixo} agora={linhaDeAgora} altura="h-14">
@@ -177,18 +180,18 @@ export function GanttChart({
                                 className="sticky left-0 z-10 flex-shrink-0 border-r border-border bg-card px-4 py-2 pl-10 text-left hover:text-primary"
                                 style={{ width: LARGURA_DO_NOME }}
                               >
-                                <span
+                                <div
                                   className={cn(
-                                    'block truncate text-sm leading-tight',
+                                    'truncate text-sm leading-tight',
                                     item.concluido && 'text-muted-foreground line-through',
                                   )}
                                 >
                                   {item.titulo}
-                                </span>
-                                <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                                </div>
+                                <div className="mt-0.5 truncate text-xs text-muted-foreground">
                                   {item.detalhe ? `${item.detalhe} • ` : ''}
                                   {periodo}
-                                </span>
+                                </div>
                               </button>
 
                               <GanttFaixaDoTempo eixo={eixo} agora={linhaDeAgora} altura="h-11">

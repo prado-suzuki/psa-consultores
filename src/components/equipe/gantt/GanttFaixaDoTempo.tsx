@@ -18,7 +18,7 @@ interface GanttFaixaDoTempoProps {
 export function GanttFaixaDoTempo({ eixo, agora, altura, children }: GanttFaixaDoTempoProps) {
   return (
     <div className={cn('relative flex-shrink-0', altura)} style={{ width: eixo.largura }}>
-      <div className="absolute inset-0 flex">
+      <div className="absolute inset-0 flex" data-testid="gantt-day-grid">
         {eixo.unidades.map((unidade) => (
           <div
             key={unidade.inicio.toISOString()}
