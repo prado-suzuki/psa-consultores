@@ -11,6 +11,8 @@ import { AlertTriangle, ArrowUpFromLine, Info, Loader2 } from 'lucide-react';
 import { fieldCls, labelCls } from '@/components/equipe/osg/formKit';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
 import { useQuadroDaEmpresa, useSubirQuotas, type SocioDoQuadro } from '@/hooks/useMovimentacaoQuotas';
+import { useConstitutivosRegistrados } from '@/hooks/useDocumentoGerado';
+import { avaliarTravaDaSubida } from '@/lib/osg/travaDaSubida';
 import { planejarSubidaDeQuotas, type SocioQueSobe } from '@/lib/osg/subidaDeQuotas';
 import { fmtBRL, fmtInt } from './quadroFmt';
 
@@ -60,6 +62,21 @@ export const SubirQuotasDialog = ({
   // O quadro da controladora é o capital de constituição a que o aporte SOMA:
   // sem ele não dá para dizer qual proporção o ato vai produzir lá.
   const { data: quadroCN = [], isLoading: carregandoCN } = useQuadroDaEmpresa(controladoraId || null);
+  // As duas pontas precisam existir na junta. O card lá fora já confere a
+  // Proprietária; aqui a conferência fecha, porque é aqui que a controladora é
+  // escolhida, e uma CN recém-cadastrada não tem contrato registrado nenhum.
+  const { data: constitutivosRegistrados, isLoading: carregandoRegistros } =
+    useConstitutivosRegistrados(proprietaria.cliente_id ?? null);
+  const trava = avaliarTravaDaSubida(
+    controladora
+      ? [
+          { pessoaId: proprietaria.id, denominacao: proprietaria.denominacao },
+          { pessoaId: controladora.id, denominacao: controladora.denominacao },
+        ]
+      : [{ pessoaId: proprietaria.id, denominacao: proprietaria.denominacao }],
+    constitutivosRegistrados ?? new Set<string>(),
+  );
+  const travado = carregandoRegistros || !trava.liberado;
 
   const plano = useMemo(() => {
     if (!controladora) return null;
@@ -85,6 +102,10 @@ export const SubirQuotasDialog = ({
     await subir.mutateAsync({
       clienteId: proprietaria.cliente_id,
       plano,
+      empresas: [
+        { pessoaId: proprietaria.id, denominacao: proprietaria.denominacao },
+        { pessoaId: controladora.id, denominacao: controladora.denominacao },
+      ],
       descricao: `Subida das quotas da ${proprietaria.denominacao} para a ${controladora.denominacao}`,
       dataMovimento: data || null,
     });
@@ -142,6 +163,13 @@ export const SubirQuotasDialog = ({
               Este cliente não tem empresa Controladora (CN) cadastrada. Cadastre-a em Qualificação
               das Partes antes de subir as quotas.
             </p>
+          )}
+
+          {!carregandoRegistros && !trava.liberado && (
+            <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{trava.motivo}</span>
+            </div>
           )}
 
           {controladora && carregandoCN && (
@@ -208,7 +236,7 @@ export const SubirQuotasDialog = ({
           </Button>
           <Button
             onClick={gravar}
-            disabled={!plano || !!plano.problema || carregandoCN || subir.isPending}
+            disabled={!plano || !!plano.problema || carregandoCN || travado || subir.isPending}
           >
             {subir.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Transferir quotas

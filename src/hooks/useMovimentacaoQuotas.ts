@@ -16,6 +16,7 @@ import {
   type MovimentoDoLedger,
 } from '@/lib/osg/projecaoQuadro';
 import type { PlanoDaSubida } from '@/lib/osg/subidaDeQuotas';
+import { avaliarTravaDaSubida, type EmpresaDaSubida } from '@/lib/osg/travaDaSubida';
 
 // Camada de dados do livro de movimentos de quota (`movimentacao_quotas`) e do
 // quadro societário que sai dele (`v_quadro_societario`). Uma fonte só para a
@@ -308,17 +309,41 @@ export function useSubirQuotas() {
     mutationFn: async ({
       clienteId,
       plano,
+      empresas,
       descricao,
       dataMovimento,
     }: {
       clienteId: string;
       plano: PlanoDaSubida;
+      /**
+       * As duas pontas do ato. Só os NOMES vêm daqui, para a mensagem de erro
+       * ficar legível: o fato que decide a trava (quem tem constitutivo
+       * registrado) é relido do banco logo abaixo, e não aceito da tela.
+       */
+      empresas: EmpresaDaSubida[];
       /** Frase que nomeia o ato para o consultor. */
       descricao: string;
       dataMovimento: string | null;
     }) => {
       if (plano.problema) throw new Error(plano.problema);
       if (plano.lancamentos.length === 0) throw new Error('Nada a gravar: o plano está vazio.');
+
+      // A trava das duas pontas é relida AQUI, e não só na tela, pela mesma razão
+      // que a guarda do documento em useReverterAto: a tela pode estar com dado
+      // velho (o modal aberto numa aba enquanto o contrato é registrado, ou não,
+      // em outra), e este é o gesto que grava o ato.
+      const { data: constitutivos, error: erroConstitutivos } = await supabase
+        .from('documento_gerado')
+        .select('pj_pessoa_id')
+        .eq('cliente_id', clienteId)
+        .eq('papel', 'constitutivo')
+        .eq('status', 'registrado');
+      if (erroConstitutivos) throw erroConstitutivos;
+      const trava = avaliarTravaDaSubida(
+        empresas,
+        new Set((constitutivos ?? []).map((d) => d.pj_pessoa_id).filter((id): id is string => !!id)),
+      );
+      if (!trava.liberado) throw new Error(trava.motivo!);
 
       const { data: ato, error: erroAto } = await supabase
         .from('ato_societario')

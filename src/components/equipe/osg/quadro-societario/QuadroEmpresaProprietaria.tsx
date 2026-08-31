@@ -9,12 +9,14 @@ import {
 import { AlertTriangle, ArrowUpFromLine, Calculator, ChartPie, Landmark, Loader2, Tag, Users } from 'lucide-react';
 import { useCountUp } from '@/hooks/useCountUp';
 import { useIntegralizacoesAprovadas } from '@/hooks/useGeracaoDocumento';
+import { useConstitutivosRegistrados } from '@/hooks/useDocumentoGerado';
 import {
   useGravarAporteInicial,
   useMovimentosDaEmpresa,
   useQuadroDaEmpresa,
 } from '@/hooks/useMovimentacaoQuotas';
 import { proporAportesIniciais } from '@/lib/osg/aporteInicial';
+import { avaliarTravaDaSubida } from '@/lib/osg/travaDaSubida';
 import { procedenciaDosMovimentos } from '@/lib/osg/projecaoQuadro';
 import { capitalDeQuotas } from '@/lib/templates/capital';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
@@ -57,6 +59,8 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
   const { data: matriculas = [], isLoading: carregandoBens } = useIntegralizacoesAprovadas(empresa.id);
   const { data: quadro = [], isLoading: carregandoQuadro } = useQuadroDaEmpresa(empresa.id);
   const { data: livro } = useMovimentosDaEmpresa(empresa.id);
+  const { data: constitutivosRegistrados, isLoading: carregandoRegistros } =
+    useConstitutivosRegistrados(empresa.cliente_id ?? null);
   const gravar = useGravarAporteInicial();
 
   const proposta = useMemo(() => proporAportesIniciais(matriculas), [matriculas]);
@@ -124,6 +128,14 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
   const carregando = carregandoQuadro || carregandoBens;
   const travadoPorLegado = proposta.titularesLegados.length > 0;
 
+  // A subida exige que esta Proprietária já exista na junta. A controladora é
+  // conferida depois, no modal, porque é lá que ela é escolhida.
+  const travaDaSubida = avaliarTravaDaSubida(
+    [{ pessoaId: empresa.id, denominacao: empresa.denominacao }],
+    constitutivosRegistrados ?? new Set<string>(),
+  );
+  const subidaLiberada = !carregandoRegistros && travaDaSubida.liberado;
+
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -172,6 +184,30 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
         </div>
       )}
 
+      {/* Mesmo lugar e mesmo desenho do aviso de titular sem cadastro logo
+          acima: é a segunda razão pela qual o quadro não anda, e o consultor
+          lê as duas na mesma moldura. O botão fica visível e travado, e não
+          escondido: escondê-lo faria procurar um gesto que existe. */}
+      {gravado && !carregandoRegistros && !travaDaSubida.liberado && (
+        <div
+          className="rounded-lg border border-amber-300 bg-amber-50/60 p-3 animate-osg-rise motion-reduce:animate-none"
+          style={{ animationDelay: '150ms' }}
+        >
+          <div className="flex items-start gap-2 text-xs text-amber-800">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>{travaDaSubida.motivo}</span>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-2 h-8 text-xs"
+            onClick={() => navigate('/equipe/osg/work/gerar-documento')}
+          >
+            Ir para Gerar Documento
+          </Button>
+        </div>
+      )}
+
       <Card
         className="animate-osg-rise motion-reduce:animate-none"
         style={{ animationDelay: '180ms' }}
@@ -190,11 +226,15 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
                 </span>
                 {/* O macro da subida: um gesto, o par espelhado nas duas
                     empresas. Só faz sentido com quadro gravado, porque é o
-                    quadro que diz quem sobe e com quanto. */}
+                    quadro que diz quem sobe e com quanto, e só depois que a
+                    sociedade existe na junta, porque é o registro que a faz
+                    existir perante terceiros (ver travaDaSubida). */}
                 <Button
                   size="sm"
                   className="h-9 gap-1.5 bg-osg-moss text-white hover:bg-osg-moss/90"
                   onClick={() => setSubirAberto(true)}
+                  disabled={!subidaLiberada}
+                  title={travaDaSubida.motivo ?? undefined}
                 >
                   <ArrowUpFromLine className="h-3.5 w-3.5" />
                   Transferir quotas para a controladora

@@ -177,6 +177,33 @@ export function useClienteTemDocumentoGerado(clienteId: string | null) {
   });
 }
 
+/**
+ * As sociedades do cliente que já existem na junta: `pj_pessoa_id` de todo
+ * documento com `papel = 'constitutivo'` e `status = 'registrado'`.
+ *
+ * Uma consulta por cliente, e não uma por empresa, porque quem pergunta são
+ * telas que já têm várias empresas na mão (o quadro societário, o modal da
+ * subida). Rascunho e versão selada ficam de fora: nenhum dos dois foi à junta.
+ */
+export function useConstitutivosRegistrados(clienteId: string | null) {
+  return useQuery({
+    queryKey: ['constitutivos-registrados', clienteId],
+    enabled: !!clienteId,
+    queryFn: async (): Promise<Set<string>> => {
+      const { data, error } = await supabase
+        .from('documento_gerado')
+        .select('pj_pessoa_id')
+        .eq('cliente_id', clienteId!)
+        .eq('papel', 'constitutivo')
+        .eq('status', 'registrado');
+      if (error) throw error;
+      return new Set(
+        (data ?? []).map((d) => d.pj_pessoa_id).filter((id): id is string => !!id),
+      );
+    },
+  });
+}
+
 export interface SalvarDocumentoGeradoInput {
   clienteId: string;
   pjPessoaId: string | null;
