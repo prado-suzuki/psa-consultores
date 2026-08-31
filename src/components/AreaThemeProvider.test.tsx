@@ -80,11 +80,12 @@ describe('AreaThemeProvider', () => {
    * tema, e a lista virou o conjunto COMPLETO das classes de área que o
    * resolvedor sabe aplicar. Se nascer uma nova, ela entra aqui.
    *
-   * São TRÊS desde 31/08/2026: a `board-theme` saiu junto com o bloco dela no
-   * index.css, quando as superfícies do Board viraram as do piso.
+   * São DUAS desde 31/08/2026. Naquele dia a `board-theme` e a `sistema-theme`
+   * saíram junto com os blocos delas no index.css: as superfícies do Board
+   * viraram as do piso, e o grafite do Dev caiu com a justificativa dele.
    */
   it('navegando Tax → OSG → Tax → acessos, nunca empilha classe de área', () => {
-    const CLASSES_DE_AREA = ['tax-theme', 'osg-theme', 'sistema-theme'];
+    const CLASSES_DE_AREA = ['tax-theme', 'osg-theme'];
     const areasNoHtml = () =>
       CLASSES_DE_AREA.filter((c) => document.documentElement.classList.contains(c));
 

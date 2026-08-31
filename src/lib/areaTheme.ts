@@ -21,10 +21,13 @@
  *
  * POR QUE NÃO REUSA O `AreaKey` DE `@/config/areaCategories`. Aquele tipo é a
  * taxonomia de PERMISSÃO: lá `digital` engloba as categorias `rotina` e `dev`, e
- * `board` é área própria. Aqui a divisão é outra — `rotina` e `dev` se separam (a
- * Rotina é a casa e fica no piso, o Dev veste o grafite de infraestrutura), e o
- * Board é a casa. São dois recortes legitimamente diferentes do mesmo negócio, e
- * amarrá-los faria uma mudança de permissão repintar telas.
+ * `board` é área própria. Aqui a divisão é outra — `rotina` e `dev` são áreas
+ * separadas, e o Board também. São dois recortes legitimamente diferentes do
+ * mesmo negócio, e amarrá-los faria uma mudança de permissão repintar telas.
+ *
+ * Que HOJE quase todas as áreas daqui resolvam para a mesma classe não desfaz o
+ * argumento: elas continuam sendo perguntas diferentes, e o dia em que uma
+ * delas ganhar cor é uma linha em `TEMA_DA_AREA` — não uma refatoração.
  */
 
 /** Classe do contrato completo. Aplicada em TODA rota, sempre. */
@@ -46,9 +49,8 @@ export type AreaDeTema = 'tax' | 'osg' | 'board' | 'rotina' | 'digital' | 'siste
  * `/equipe/acessos` saía cinza dentro de uma área que não é cinza. É a mesma
  * divergência que tirou o Board do grafite em 21/08.
  *
- * Sobra UM dono do grafite: `sistema`, que hoje é só o `/equipe/dev`. A linha
- * que separa os dois não é tamanho nem hierarquia — é A QUEM A TELA SERVE. O Dev
- * serve o sistema; Digital, Board, Tax e OSG servem o negócio.
+ * `sistema` — o `/equipe/dev` — foi o último dono do grafite, e aponta para
+ * `null` desde 31/08/2026. Ver a nota própria no fim deste comentário.
  *
  * `rotina` também aponta para `null`, desde 29/08/2026, e isso é o fim de um
  * desvio — não uma área que perdeu a cor. A `.rotina-theme` nasceu para declarar
@@ -82,11 +84,30 @@ export type AreaDeTema = 'tax' | 'osg' | 'board' | 'rotina' | 'digital' | 'siste
  * `board` continua no MAPA_DE_ROTAS e continua sendo uma área — a pergunta "de
  * que área é esta rota?" segue tendo resposta. O que ele não tem é DELTA.
  *
- * ⚠️ O DEV FOI JUNTO NA REPINTURA, e de propósito: a `.sistema-theme` é delta de
- * ACENTO e herda as superfícies do piso, então as 27 rotas de `/equipe/dev`
- * pegaram o cast de teal também. Herdar é o comportamento contratado. Fica
- * registrado que isso derrubou a justificativa ESCRITA do grafite quente (ver o
- * bloco `.sistema-theme` no index.css) — o acento não se mexeu, o argumento sim.
+ * `sistema` aponta para `null` desde 31/08/2026, no mesmo dia e como consequência
+ * do parágrafo acima. A `.sistema-theme` vestia as 27 rotas de `/equipe/dev` com
+ * um acento grafite quente (35 10% 26%) — era delta de ACENTO, e herdava as
+ * superfícies do piso de propósito. Duas coisas a mataram:
+ *
+ * · o `/equipe/dev/uso-envio` usa os tokens `--bd-*` do design system do Board.
+ *   Três seguem o `--primary` e viravam grafite; dois estão CRAVADOS em teal —
+ *   `--bd-accent-d` (o que pinta letra, chip cheio e avatar) e `--bd-accent-soft`.
+ *   Na mesma tabela: link e chip teal, hover de linha e anel de foco grafite. É o
+ *   defeito de 21/08 que tirou o Board do grafite e o de 31/08 que tirou o
+ *   Digital — a terceira vez, numa tela que ninguém tinha olhado. E era verdade
+ *   ANTES da dobra do Board: não foi ela que criou isso, foi ela que fez olhar;
+ * · a justificativa escrita do quente era "o canvas da base é marfim e o texto é
+ *   marrom, um grafite azulado brigaria com os dois". A dobra derrubou os dois
+ *   fatos. Decisão cujo motivo evaporou se reexamina, não se remenda.
+ *
+ * A REGRA "A QUEM A TELA SERVE" NÃO CAIU — ela só deixou de pintar. `sistema`
+ * segue sendo área, `areaDaRota('/equipe/dev')` segue respondendo 'sistema', e a
+ * linha segue no `MAPA_DE_ROTAS`. Se o Dev voltar a precisar de sinal próprio, o
+ * acento sozinho NÃO resolve: tem que incluir os `--bd-*`, senão o desencontro
+ * volta idêntico. É isso que este parágrafo existe para dizer a quem tentar.
+ *
+ * Consequência: NENHUMA área tem delta hoje. `.tax-theme` e `.osg-theme` são
+ * congeladas (declaram o contrato inteiro), e todo o resto é a casa.
  */
 export const TEMA_DA_AREA: Record<AreaDeTema, string | null> = {
   tax: 'tax-theme',
@@ -94,7 +115,7 @@ export const TEMA_DA_AREA: Record<AreaDeTema, string | null> = {
   board: null,
   rotina: null,
   digital: null,
-  sistema: 'sistema-theme',
+  sistema: null,
   base: null,
 };
 
@@ -172,10 +193,11 @@ export const MAPA_DE_ROTAS: RegraDeRota[] = [
   // linha, e não o silêncio do fallback.
   { prefixo: '/cliente', area: 'base' },
 
-  // ── Infraestrutura: grafite ─────────────────────────────────────────
-  // Telas que servem o sistema, nao uma area de negocio. Enumeradas aqui de
-  // propósito: esta lista é finita e conhecida, enquanto o site público (que
-  // fica no piso) é o que ganha rota nova. Enumerar o que cresce apodrece.
+  // ── Infraestrutura: telas que servem o sistema ──────────────────────
+  // Vestiu o grafite da `.sistema-theme` de 21/08 a 31/08/2026, e hoje fica no
+  // piso como o resto (ver `TEMA_DA_AREA` para o que derrubou o grafite). A
+  // linha FICA: a área continua existindo, e o dia em que o Dev precisar de
+  // sinal próprio é aqui que se lê que ele já é uma área com nome.
   // Se um dia o Dev pertencer à Rotina, é trocar a palavra na linha.
   { prefixo: '/equipe/dev', area: 'sistema' },
 ];
@@ -206,11 +228,15 @@ export function areaDaRota(pathname: string): AreaDeTema {
 /**
  * As classes de tema de uma rota: sempre a base, mais a da área quando existe.
  *
- * São DUAS classes no mesmo elemento quando a área tem delta, e é assim de
+ * São DUAS classes no mesmo elemento quando a área tem classe, e é assim de
  * propósito: a base declara o contrato inteiro e a área declara só o que difere.
- * É o que permite a `.sistema-theme` trocar acento e superfície sem herdar valor
- * perdido do `:root` — e o que permite a Rotina e o Board não terem classe
- * nenhuma, porque o delta deles é vazio.
+ * É o que permitiu à `.sistema-theme` trocar acento e superfície sem herdar
+ * valor perdido do `:root`, e o que permite a Rotina, o Board e o próprio Dev
+ * não terem classe nenhuma — o delta deles é vazio.
+ *
+ * Hoje só a Tax e a OSG têm classe. O mecanismo continua sendo de duas camadas
+ * porque a pergunta que ele responde não mudou; o que mudou foi quantas áreas
+ * têm resposta diferente da casa.
  *
  * A ORDEM DESTA LISTA NÃO IMPORTA — o que decide o vencedor é a ordem dos
  * blocos em `src/index.css` (todas as classes têm a mesma especificidade). O

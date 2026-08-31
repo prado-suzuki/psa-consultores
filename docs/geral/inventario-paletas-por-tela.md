@@ -5,13 +5,14 @@ mede onde a arquitetura de `docs/geral/paleta-por-area.md` já chega e onde aind
 
 > ⚠️ **É uma FOTO de 18/08, e o mecanismo mudou desde então.** Quem aplica a classe no
 > `<html>` não é mais cada layout: é o `AreaThemeProvider`, por rota, acima dos gates de
-> acesso (`src/lib/areaTheme.ts`). Os blocos também mudaram — a `.rotina-theme` saiu em
-> 29/08 e a `.board-theme` em 31/08, as duas por serem cópias do piso; hoje existem
-> `.base-theme` (aplicado em toda rota), `.tax-theme`, `.osg-theme` e `.sistema-theme`.
-> Em particular, a recomendação "criar `.board-theme`" na seção 2 está **cumprida e
-> depois revertida por decisão**: as superfícies do Board viraram as da casa. O estado
-> corrente está em `docs/geral/paleta-por-area.md`; o que continua valendo aqui é o
-> INVENTÁRIO de hexadecimais cravados por tela.
+> acesso (`src/lib/areaTheme.ts`). Os blocos também mudaram — saíram a `.rotina-theme`
+> (29/08), a `.board-theme` e a `.sistema-theme` (as duas em 31/08), todas por terem a
+> mesma âncora do piso. Hoje existem **três**: `.base-theme` (aplicado em toda rota),
+> `.tax-theme` e `.osg-theme`.
+> Em particular, as recomendações "criar `.board-theme`" e "criar `.dev-theme`" da seção 2
+> estão **superadas**: as superfícies do Board viraram as da casa, e o Dev ficou na casa
+> junto. O estado corrente está em `docs/geral/paleta-por-area.md`; o que continua valendo
+> aqui é o INVENTÁRIO de hexadecimais cravados por tela.
 
 O mecanismo está descrito lá; aqui só o que importa para ler a tabela:
 
@@ -412,6 +413,7 @@ Desde o levantamento de 18/08 três coisas mudaram a leitura da tabela acima:
 2. **Existe `.base-theme`** (o contrato completo, 43 variáveis) e **`.sistema-theme`** (delta
    de 9: acento grafite quente para Board, Dev, Digital e Acessos). Tax, OSG e Rotina foram
    *congeladas* no contrato inteiro — nenhuma herda mais do piso.
+   *(A `.sistema-theme` e a `.rotina-theme` foram removidas depois; ver o aviso no topo.)*
 3. **`--teal-500/600/700` são primitivas**, não token de componente: elas geram
    `bg-teal-*` no Tailwind, o que as fazia parecer cor crua e passar em toda revisão, mas
    moram no `:root` e nenhum tema as sobrescreve. Há regra de lint (`warn`) em

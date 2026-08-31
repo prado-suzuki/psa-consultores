@@ -57,18 +57,18 @@ export const TONS_DE_TAG = ['a', 'b', 'c', 'd'] as const;
  * a casa, a casa é o piso, e área cuja âncora é a do piso não tem paleta a
  * declarar — o bloco era uma cópia, e a exceção era o recibo dela. Saíram juntos.
  *
- * A `.board-theme` NUNCA esteve nesta lista, e saiu do `index.css` em
- * 31/08/2026 pelo mesmo motivo pelo qual não estava: ela era delta de
- * SUPERFÍCIE e herdava os papéis de status do piso. Não havia papéis dela para
- * medir. Quando as superfícies viraram as da casa, o bloco deixou de ter
- * conteúdo — e este arquivo não sentiu, que é o sinal de que a divisão entre
- * "papel de status" e "superfície" está no lugar certo.
+ * A `.board-theme` e a `.sistema-theme` NUNCA estiveram nesta lista, e as duas
+ * saíram do `index.css` em 31/08/2026 — pelo mesmo motivo pelo qual não
+ * estavam: eram deltas de acento e superfície, e herdavam os papéis de status
+ * do piso. Não havia papéis delas para medir. Quando o piso absorveu o que
+ * declaravam, os blocos deixaram de ter conteúdo, e este arquivo não sentiu.
+ * Isso é o sinal de que a divisão entre "papel de status" e "superfície" está
+ * no lugar certo: uma reorganização inteira de superfície passou sem tocar aqui.
  *
- * Fora da lista: `.base-theme` e `.sistema-theme`. Nenhum dos dois declara
- * `--status-*` próprio (o `.base-theme` congela a base; o outro é delta de
- * acento e superfície) — cobrá-los aqui seria medir a paleta da base duas vezes
- * com nome diferente. O `.dark` também fica fora: a faixa deste arquivo é
- * calibrada para superfície clara, e a escala escura tem contrato próprio.
+ * Fora da lista continua o `.base-theme`, que congela a base — cobrá-lo aqui
+ * seria medir a paleta da base duas vezes com nome diferente. O `.dark` também
+ * fica fora: a faixa deste arquivo é calibrada para superfície clara, e a escala
+ * escura tem contrato próprio.
  */
 export const TEMAS = [':root', '.tax-theme', '.osg-theme'] as const;
 

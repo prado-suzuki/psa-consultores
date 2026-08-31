@@ -120,7 +120,11 @@ sobre esse fundo, ponto, barra, e fundo de badge com texto branco). No Tailwind 
 | `.base-theme` | `AreaThemeProvider`, em TODA rota | teal institucional; superfícies com cast de teal (matiz 168–180) | 89–122 (sábio/oliva) | vinho 343, barro 32, palha 48–54 |
 | `.tax-theme` | `FiscalLayout` | teal `#0d9488` da marca | 163–197 (teal) | tijolo 7–12, ocre 30–36 (escala `--tax-*`) |
 | `.osg-theme` | `OsgLayout` | verde musgo, dourado marca-texto, carmim | 127–160 (musgo) | carmim 356, taupe 18–19, dourado 41 |
-| `.sistema-theme` | `AreaThemeProvider` | grafite quente, só o Dev (delta: acento + superfície escura) | herda o do piso | herda os do piso |
+
+São **três blocos, e só**. Toda rota veste `.base-theme`; Tax e OSG põem a classe delas por
+cima. Já existiram mais: `.rotina-theme` (saiu 29/08/2026), `.board-theme` e
+`.sistema-theme` (as duas em 31/08). Os três caíram pelo mesmo motivo — a âncora da área
+era a do piso, então o bloco era uma cópia dele.
 
 A OSG é a **âncora** do sistema, não a variável: a identidade dela (`--osg-moss`,
 `--osg-highlighter`, `--osg-red`, escala `--osg-*`) existia antes de haver sistema de
@@ -175,7 +179,32 @@ Consequência prática que continua valendo: **o Board não entra em `TEMAS`, em
 `src/lib/paletaDeArea.ts`** — não declara papéis, logo não há papéis dele para o teste
 medir. Quem cobra a consistência é `areaTheme.test.ts`, que exige que todo tema declarado
 seja classificado como *congelado* (declara as 46 variáveis do contrato) ou *delta*
-(subconjunto, sem inventar variável). Sobrou **um** delta: `sistema-theme`.
+(subconjunto, sem inventar variável). Hoje **não sobrou nenhum delta**.
+
+### O Dev perdeu o grafite (31/08/2026)
+
+A `.sistema-theme` vestia as 27 rotas de `/equipe/dev` com um acento grafite quente
+(`35 10% 26%`) e um par de superfície escura na mesma matiz. Era delta de **acento**: as
+superfícies claras ela herdava do piso, de propósito.
+
+Caiu por dois fatos medidos, e o primeiro já era verdade **antes** da dobra do Board:
+
+- a tela `/equipe/dev/uso-envio` usa os tokens `--bd-*`. Três seguem o `--primary` e
+  viravam grafite; dois estão **cravados em teal** no `:root` — `--bd-accent-d` (pinta
+  letra, chip cheio e avatar) e `--bd-accent-soft`. Na mesma tabela: link e chip teal,
+  hover de linha e anel de foco grafite. É o defeito de 21/08 (Board) e o de 31/08
+  (Digital) pela terceira vez. A dobra não criou isso — ela fez alguém olhar;
+- a justificativa escrita do tom quente era "o canvas da base é marfim e o texto é marrom,
+  um grafite azulado brigaria com os dois". A dobra derrubou os dois fatos.
+
+**A regra "a quem a tela serve" não caiu — ela deixou de pintar.** `sistema` continua sendo
+área em `MAPA_DE_ROTAS`, e `areaDaRota('/equipe/dev')` continua respondendo `'sistema'`.
+
+⚠️ **Para quem for dar cor ao Dev de novo:** o acento sozinho **não** resolve. Enquanto
+`--bd-accent-d` e `--bd-accent-soft` estiverem cravados em teal no `:root` (só `.tax-theme`
+e `.osg-theme` os sobrescrevem), qualquer acento novo reabre o mesmo desencontro. Um delta
+para o Dev tem de incluir os `--bd-*` — ou esses dois tokens têm de passar a seguir o
+`--primary` antes.
 
 ### O Digital e a Rotina ficam na base, por decisão
 

@@ -6,6 +6,20 @@ discussão**: é a decisão, o número que a sustenta e onde conferir.
 Medidas conferidas em 20/08/2026, no commit `308a0149`. Número sem endereço é suspeito por
 definição — se você encontrar um aqui, ele está errado ou envelheceu.
 
+> ⚠️ **REGISTRO DE 20/08. Três decisões daqui foram REVERTIDAS depois, e as três pelo
+> mesmo motivo — a área tinha a mesma âncora do piso, então o bloco dela era uma cópia.**
+> Os endereços `index.css:NNN` deste documento não valem mais; as linhas andaram.
+>
+> | bloco | saiu em | por quê |
+> |---|---|---|
+> | `.rotina-theme` | 29/08/2026 | congelado idêntico ao piso, variável por variável |
+> | `.board-theme` | 31/08/2026 | as superfícies dele viraram as do piso (a casa é o Board) |
+> | `.sistema-theme` | 31/08/2026 | o grafite do Dev brigava com os `--bd-*` cravados em teal, e a justificativa escrita dele caiu junto com o marfim |
+>
+> Sobraram `.base-theme` (piso, toda rota), `.tax-theme` e `.osg-theme` (congeladas).
+> **Não há mais nenhum tema DELTA.** O estado corrente está em `paleta-por-area.md`; o que
+> continua valendo aqui é o RACIOCÍNIO de cada decisão e os números medidos na época.
+
 Documentos vizinhos, que este não repete: `paleta-por-area.md` (papéis de status e tons de
 tag), `inventario-paletas-por-tela.md` (dívida de cor por tela),
 `inventario-telas-por-cluster.md` (o que cada cluster precisaria).
@@ -102,6 +116,23 @@ rotas do `App.tsx`, **13 são públicas ou de autenticação** (`/`, `/auth`, `/
 `/novidades*`, `/missao`, `/primeiro-acesso`, `/reset-password`…). Trocar o piso pintaria o
 **site público e o portal do cliente** de grafite. O alcance era grande demais para uma
 decisão sobre telas de infraestrutura.
+
+> **Revertida em 31/08/2026 — o grafite saiu inteiro, não mudou de lugar.** A decisão acima
+> continua certa no que ela afirma: o grafite nunca podia ir para o piso. O que caiu foi o
+> grafite em si. Dois fatos, medidos:
+>
+> - a tela `/equipe/dev/uso-envio` usa os tokens `--bd-*` do design system do Board. Três
+>   seguem o `--primary` (viravam grafite) e dois estão **cravados em teal** no `:root` —
+>   `--bd-accent-d` (pinta letra, chip cheio e avatar) e `--bd-accent-soft`. Na mesma
+>   tabela: link e chip teal, hover de linha e anel de foco grafite. É o defeito de 21/08
+>   (Board) e o de 31/08 (Digital) pela terceira vez, numa tela que ninguém tinha aberto;
+> - a justificativa do tom **quente** era, literalmente, "o canvas da base é marfim e o
+>   texto é marrom". Na mesma data o piso virou frio (superfícies matiz 168,
+>   `--foreground: 178 30% 9%`). Decisão cujo motivo evaporou se reexamina.
+>
+> A regra "a quem a tela serve" **não caiu** — ela deixou de pintar. `sistema` segue sendo
+> área em `MAPA_DE_ROTAS`. Aviso a quem for dar cor ao Dev outra vez: o acento sozinho não
+> resolve, tem que incluir os `--bd-*`.
 
 ### Paleta de área contida, não otimizada para leitura isolada
 

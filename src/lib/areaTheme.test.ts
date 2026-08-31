@@ -97,11 +97,29 @@ describe('cobertura das rotas reais do App.tsx', () => {
     }
   });
 
-  it('o Dev é infraestrutura: grafite, não a cor da marca', () => {
+  /*
+   * O Dev é ÁREA, e desde 31/08/2026 fica no piso — as duas coisas ao mesmo
+   * tempo, e é isso que este teste trava.
+   *
+   * A `.sistema-theme` vestiu as 27 rotas de `/equipe/dev` com um acento grafite
+   * quente. Saiu por medição, não por gosto: o `/equipe/dev/uso-envio` usa os
+   * tokens `--bd-*` do design system do Board, e dois deles (`--bd-accent-d`,
+   * que pinta LETRA, e `--bd-accent-soft`) estão cravados em teal no `:root` —
+   * não seguem o `--primary`. Com o grafite, a mesma tabela saía com link e chip
+   * teal ao lado de hover e anel de foco grafite. É o defeito de 21/08 (Board) e
+   * o de 31/08 (Digital) pela terceira vez.
+   *
+   * A REGRA "a quem a tela serve" continua de pé — ela só deixou de pintar. Por
+   * isso `areaDaRota` ainda responde 'sistema': quem for dar cor ao Dev de novo
+   * encontra a área já nomeada, e encontra no `TEMA_DA_AREA` o aviso de que o
+   * acento sozinho não resolve.
+   */
+  it('o Dev é área ("sistema") e fica no piso — sem grafite', () => {
+    expect(TEMA_DA_AREA.sistema).toBeNull();
     for (const rota of rotasDoApp()) {
       if (rota.startsWith('/equipe/dev')) {
         expect(areaDaRota(rota)).toBe('sistema');
-        expect(resolverTemaDaRota(rota)).toEqual([CLASSE_BASE, 'sistema-theme']);
+        expect(resolverTemaDaRota(rota)).toEqual([CLASSE_BASE]);
       }
     }
   });
@@ -395,13 +413,24 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
    * O que o teste cobra de cada um é diferente, e é o ponto deste bloco.
    */
   const CONGELADOS = ['tax-theme', 'osg-theme'];
-  // Sobrou UM delta. A `.board-theme` esteve aqui até 31/08/2026: ela declarava
-  // acento e superfície e HERDAVA papéis de status e tons de tag do piso. Saiu
-  // porque as superfícies dela viraram as do piso — a âncora do Board é a da
-  // casa, e área cuja âncora é a do piso não tem delta a declarar. O acento nem
-  // chegou a se mover: os `--primary/--secondary/--accent/--ring` que ela
-  // declarava já eram, um a um, os mesmos do `.base-theme`.
-  const DELTAS = ['sistema-theme'];
+  /*
+   * NÃO HÁ DELTA HOJE, e a lista fica vazia em vez de sumir: a categoria segue
+   * válida e é o que a próxima área vai usar. Houve dois, e os dois saíram em
+   * 31/08/2026:
+   *
+   * · `.board-theme` declarava acento e superfície e herdava papéis de status e
+   *   tons de tag. Saiu porque as superfícies dela viraram as do PISO — a âncora
+   *   do Board é a da casa. O acento nem chegou a se mover: os
+   *   `--primary/--secondary/--accent/--ring` que ela declarava já eram, um a
+   *   um, os mesmos do `.base-theme`.
+   * · `.sistema-theme` declarava o acento grafite do Dev. Saiu por medição: o
+   *   `/equipe/dev/uso-envio` usa os `--bd-*`, e dois deles estão cravados em
+   *   teal no `:root` — a tela saía metade teal, metade grafite.
+   *
+   * O teste abaixo continua sendo o que importa: um tema classificado como delta
+   * não pode inventar variável fora do contrato.
+   */
+  const DELTAS: string[] = [];
 
   it('todo tema conhecido está classificado como congelado ou delta', () => {
     const declarados = Object.values(TEMA_DA_AREA).filter((c): c is string => c !== null);
@@ -419,23 +448,28 @@ describe('contrato de tema: toda área declara tudo, ninguém herda', () => {
     expect(faltando, `.${classe} herdaria da base: ${faltando.join(', ')}`).toEqual([]);
   });
 
-  it.each(DELTAS)('.%s (delta) declara um subconjunto do contrato', (classe) => {
-    const declaradas = [...declaradasEm(css, `.${classe}`)];
-    // Não se cobra completude — cobra-se que não invente variável. Um
-    // `--primry` com erro de digitação não quebraria nada visível: a regra
-    // simplesmente não valeria, e a tela ficaria com a cor do piso.
-    const forasteiras = declaradas.filter((v) => !contrato.has(v));
-    expect(forasteiras, `.${classe} declara fora do contrato: ${forasteiras.join(', ')}`).toEqual([]);
-    expect(declaradas.length).toBeGreaterThan(0);
-    expect(declaradas.length).toBeLessThan(contrato.size);
+  // Laço em vez de `it.each`: a lista está VAZIA hoje, e `it.each([])` é erro de
+  // coleta no vitest. Assim o caso continua escrito e volta a valer sozinho no
+  // dia em que uma área nova entrar em `DELTAS`, sem ninguém lembrar disto.
+  it('todo tema DELTA declara um subconjunto do contrato, sem inventar variável', () => {
+    for (const classe of DELTAS) {
+      const declaradas = [...declaradasEm(css, `.${classe}`)];
+      // Não se cobra completude — cobra-se que não invente variável. Um
+      // `--primry` com erro de digitação não quebraria nada visível: a regra
+      // simplesmente não valeria, e a tela ficaria com a cor do piso.
+      const forasteiras = declaradas.filter((v) => !contrato.has(v));
+      expect(forasteiras, `.${classe} declara fora do contrato: ${forasteiras.join(', ')}`).toEqual([]);
+      expect(declaradas.length, `.${classe}`).toBeGreaterThan(0);
+      expect(declaradas.length, `.${classe}`).toBeLessThan(contrato.size);
+    }
   });
 
   /*
    * As classes que o resolvedor aplica são EXATAMENTE as classificadas aqui.
    *
    * Sem isto, apagar um bloco do `index.css` e esquecer de tirar a linha de
-   * `CONGELADOS`/`DELTAS` passaria batido — a lista viraria ficção. É o risco
-   * que a saída da `.board-theme` acabou de criar.
+   * `CONGELADOS`/`DELTAS` passaria batido — a lista viraria ficção. Foi o risco
+   * real de 31/08, quando dois blocos saíram no mesmo dia.
    */
   it('a classificação cobre as classes aplicadas, e nada além delas', () => {
     const aplicadas = new Set(

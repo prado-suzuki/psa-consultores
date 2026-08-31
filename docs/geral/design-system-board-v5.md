@@ -78,8 +78,9 @@ barra recolhida.
 A primeira versão desta refatoração pintou o chrome do Board de teal e **deixou o
 tema semântico como estava** — e estava errado: `/equipe/board` era mapeado como
 infraestrutura em `src/lib/areaTheme.ts`, então o `<html>` carregava
-`.sistema-theme`, cujo `--primary`/`--accent`/`--ring` é grafite quente
-(`35 10% 26%`).
+`.sistema-theme`, cujo `--primary`/`--accent`/`--ring` era grafite quente
+(`35 10% 26%`). Esse bloco não existe mais: saiu em 31/08/2026, quando o mesmo
+desencontro apareceu no Dev — ver `docs/geral/paleta-por-area.md`.
 
 Resultado na tela, e foi a usuária que viu ao abrir: **quatro famílias ao mesmo
 tempo**. Cartões, gráficos, tabelas e barra lateral em teal (os `--bd-*`); todo

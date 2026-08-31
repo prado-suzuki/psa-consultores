@@ -415,7 +415,7 @@ All colors MUST be HSL.
   }
 
   /* ─── .base-theme — o contrato completo, e o piso de todo tema ──────────
-     ⚠️ ESTE BLOCO TEM QUE VIR ANTES DE .tax-theme, .osg-theme E .sistema-theme.
+     ⚠️ ESTE BLOCO TEM QUE VIR ANTES DE .tax-theme E .osg-theme.
      As classes de tema convivem no MESMO <html> e todas têm a mesma
      especificidade (0-1-0): quem vence é quem vem depois no arquivo. Mover
      este bloco para baixo faz o base sobrescrever as áreas e apaga a
@@ -424,9 +424,11 @@ All colors MUST be HSL.
      O resolvedor (`src/lib/areaTheme.ts`) aplica SEMPRE `base-theme`, e por
      cima dele a classe da área quando existe. Com isso o base é o único lugar
      que precisa declarar o contrato inteiro (as variáveis que a `.osg-theme`
-     declara) e a área passa a ser só o DELTA: a `.tax-theme` congela o contrato
-     com a identidade dela, a `.sistema-theme` declara só acento e superfície, e
-     nenhuma das duas precisa copiar o resto.
+     declara) e a área passa a ser só o DELTA. Hoje NÃO EXISTE delta: a
+     `.tax-theme` e a `.osg-theme` congelam o contrato com a identidade delas, e
+     todo o resto do sistema é a casa. Já houve três deltas — `.rotina-theme`
+     (saiu 29/08/2026), `.board-theme` e `.sistema-theme` (as duas em 31/08) —, e
+     os três saíram pelo mesmo motivo: a âncora deles era a do piso.
 
      Foi a falta desse piso que criou o anel lime: sem ninguém declarando
      `--ring`, a Tax herdava o `85 85% 37%` do `:root` e o foco saía
@@ -452,12 +454,37 @@ All colors MUST be HSL.
      Então as 12 declarações do `.board-theme` MUDARAM DE LUGAR para cá — não
      foram copiadas — e o bloco saiu. Uma lista de cor só.
 
+     ─── E O GRAFITE DO DEV SAIU JUNTO, no mesmo dia ──────────────────────────
+
+     A `.sistema-theme` vestia as 27 rotas de `/equipe/dev` com um acento grafite
+     quente (35 10% 26%) e um par de superfície escura na mesma matiz. Ela era
+     delta de ACENTO: as superfícies ela herdava daqui, de propósito.
+
+     Duas coisas a mataram, e a primeira já era verdade ANTES desta mudança:
+
+     · o `/equipe/dev/uso-envio` usa os tokens `--bd-*` do design system do
+       Board. Três deles seguem o `--primary` e viravam grafite; dois estão
+       CRAVADOS em teal — `--bd-accent-d` (175 84% 22%, o que pinta letra, chip
+       cheio e avatar) e `--bd-accent-soft` (172 40% 94%). Na mesma tabela: link
+       e chip teal, hover de linha e anel de foco grafite. É o defeito de 21/08
+       que tirou o Board do grafite e o de 31/08 que tirou o Digital — a
+       terceira vez, e ninguém tinha olhado esta tela;
+     · a justificativa escrita do quente era literalmente "o canvas da base é
+       marfim e o texto é marrom, um grafite azulado brigaria com os dois". A
+       dobra acima derrubou os dois fatos. Decisão cujo motivo evaporou se
+       reexamina, não se remenda com motivo novo.
+
+     `sistema` continua sendo uma ÁREA — `areaDaRota('/equipe/dev')` responde
+     'sistema' e a linha segue no `MAPA_DE_ROTAS`. O que ela não tem mais é
+     delta. Se um dia o Dev voltar a precisar de sinal próprio, o acento sozinho
+     NÃO resolve: tem que incluir os `--bd-*`, senão o desencontro volta igual.
+
      O QUE ISSO REPINTA, e foi decidido assim: as 41 rotas que ficavam no piso
      puro (site institucional, portal do cliente, Gestão, e as telas de Rotina e
-     Digital dentro de `/equipe`) e as 27 do Dev, que herda superfície daqui de
-     propósito (ver `.sistema-theme`). As 21 do Board renderizam IDÊNTICO — é o
-     mesmo valor, na mesma cascata. Tax e OSG não se mexem: são CONGELADAS,
-     declaram o contrato inteiro e não herdam superfície nenhuma daqui.
+     Digital dentro de `/equipe`) e as 27 do Dev, inteiras. As 21 do Board
+     renderizam IDÊNTICO — é o mesmo valor, na mesma cascata. Tax e OSG não se
+     mexem: são CONGELADAS, declaram o contrato inteiro e não herdam superfície
+     nenhuma daqui.
 
      CONTRASTE das superfícies novas (medido, mesma tabela do bloco `--bd-*`):
        foreground        17,1:1 no card · 15,8:1 na página
@@ -566,9 +593,10 @@ All colors MUST be HSL.
        Fecha na família do ACENTO, como o `.v4-cyb` do design system do Board já
        fazia. Era `slate-950`/`slate-900` (229 84% 5% / 222 47% 11%), herdado do
        único cartão escuro que o sistema tinha; o azul-ardósia terminava num
-       gradiente que atravessava azul→teal no meio. Quem tem acento QUENTE
-       sobrescreve o par (ver `.sistema-theme`); a Tax e a OSG mantêm o
-       azul-ardósia, que é o que elas declaram. */
+       gradiente que atravessava azul→teal no meio. A Tax e a OSG mantêm o
+       azul-ardósia, que é o que elas declaram — e são as duas únicas que
+       declaram: a `.sistema-theme`, que trazia um par quente (35 10% 8% /
+       35 11% 12%) para o grafite do Dev, saiu em 31/08/2026. */
     --surface-escura: 178 60% 8%;
     --surface-escura-2: 175 62% 14%;
 
@@ -833,74 +861,6 @@ All colors MUST be HSL.
     --surface-escura-2: 222 47% 11%;
   }
 
-  /* ─── .sistema-theme — grafite quente para as telas de infraestrutura ────
-     Hoje só o Dev. Telas que servem o sistema, não uma área de negócio: elas não
-     devem competir com a Tax nem com a OSG, e até aqui eram indistinguíveis da
-     Tax, porque o piso é o teal institucional.
-
-     O bloco já vestiu Board, Digital e Acessos, e os três saíram pelo mesmo
-     motivo — o Board em 21/08/2026, o Digital em 31/08. São áreas de NEGÓCIO, e
-     o grafite nelas produzia a divergência que ele existe para evitar: cinza no
-     botão ao lado de teal no cartão e no gráfico. O critério que sobrou é a
-     quem a tela serve, e só o Dev serve o sistema.
-
-     DELTA PURO — declara 7 variáveis, não o contrato todo, e isso é de
-     propósito. É a diferença entre este bloco e `.tax-theme`, que foi CONGELADO
-     no contrato inteiro. Aquela precisou do congelamento porque herdava de um
-     piso que ia mudar de identidade. Este nasce depois do piso estar estável, e
-     o que ele quer do piso — superfícies, texto, papéis de status, tags — ele
-     quer mesmo: herdar é o comportamento correto aqui.
-     Congelá-lo seria copiar 34 valores só para mantê-los iguais.
-
-     `--tool-icon` não aparece: o `.base-theme` o declara como `var(--primary)`,
-     e essa referência viva resolve contra o `--primary` daqui. O ícone de
-     ferramenta vira grafite sozinho.
-
-     POR QUE O GRAFITE NÃO FOI PARA O PISO. Foi a primeira tentativa, e o alcance
-     reprovou: o `.base-theme` é aplicado em TODA rota, então o site institucional
-     (`/`, `/novidades`, `/ajuda`), o portal do cliente e a Gestão iam junto — o
-     botão principal de psaconsultores.com.br virava grafite. O piso tem que ser
-     o padrão seguro, e o padrão seguro é a cor da marca: rota nova nasce teal.
-     Enumera-se a infraestrutura, que é finita e conhecida, e não o site público,
-     que é justamente a parte que ganha rota nova.
-
-     ⚠️ O DEV VAI JUNTO QUANDO O PISO SE MEXE, e é o que "delta puro" significa na
-     prática: a dobra do Board acima repintou as superfícies claras destas 27
-     rotas também. Herdar é o comportamento contratado — a alternativa seria
-     congelar este bloco no marfim, ou seja, escrever à mão 12 valores só para
-     mantê-los onde estavam, e no dia seguinte já seriam a segunda descrição de
-     uma cor que a casa descreve sozinha.
-
-     ⚠️ E A JUSTIFICATIVA DO QUENTE MUDOU DE PÉ NA MESMA DOBRA. Ela era: quente
-     (matiz 35) e não frio (~210) porque o canvas da base é marfim
-     (42 24% 99.8%) e o texto é marrom (20 81% 10%), com que um grafite azulado
-     brigaria. Hoje o piso é frio (canvas 168 16% 96%, texto 178 30% 9%) e o
-     quente é que destoa dele. FICA REGISTRADO E NÃO RESOLVIDO: o que sustenta o
-     grafite agora é só o propósito do bloco — o Dev não parecer área de
-     negócio —, e isso é um argumento mais fraco do que o que ele substituiu.
-
-     Saturação de 10% mantém o tom quase neutro: é acento por contraste de
-     luminosidade, não por cor. Branco sobre ele dá 9,72:1. */
-  .sistema-theme {
-    --primary: 35 10% 26%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 35 10% 26%;
-    --accent: 35 10% 26%;
-    --accent-foreground: 0 0% 100%;
-    --ring: 35 10% 26%;
-    --tool-icon-bg: 35 20% 94%;
-
-    /* Superfície escura QUENTE — o par do piso é frio. Era azul-ardósia (matiz
-       222/229) e hoje é teal escuro (178/175), e o argumento não se mexeu com a
-       troca: um gradiente que sai do frio e termina no grafite quente atravessa
-       o eixo frio→marrom e passa por um cinza morto no meio; e o grafite a 26%
-       de luminosidade é mais CLARO que o piso a 14%, o que faz o canto acender
-       em vez de fechar. Na matiz 35 o gradiente inteiro escurece na mesma
-       família e o cartão parece desenhado em grafite, não adaptado. */
-    --surface-escura: 35 10% 8%;
-    --surface-escura-2: 35 11% 12%;
-  }
-
 
   /* Hover das linhas de tabela na área OSG: marrom/areia claro (osg-50)
      no lugar do cinza padrão (muted). */
@@ -929,18 +889,19 @@ All colors MUST be HSL.
 
      POR QUE MATIZ 35, E NÃO O SLATE. O sistema É quente — era, em 27/08/2026:
      `--foreground` da base era `#2E1305`, o `--muted-foreground` era taupe, e a
-     `.sistema-theme` usa `35 10% 26%` no grafite dela. O escuro era o único
+     `.sistema-theme` usava `35 10% 26%` no grafite dela. O escuro era o único
      lugar que continuava emprestando o slate frio do Tailwind — duas
      identidades no mesmo produto.
 
-     ⚠️ METADE DESSA PREMISSA CAIU em 31/08/2026, e este bloco NÃO foi
-     recalibrado: o piso CLARO virou frio (`--foreground: 178 30% 9%`,
-     superfícies matiz 168). Ficou como está DE PROPÓSITO — repintar a escala
-     escura é outro raio de revert, e o `.dark` não é alcançável na aplicação
-     hoje (nada põe a classe no `<html>`; o único consumidor de `next-themes` é
-     o `ui/sonner`, sem provider montado). Quando o modo escuro entrar de
-     verdade, a decisão de temperatura tem que ser refeita — não herdada deste
-     parágrafo. A
+     ⚠️ ESSA PREMISSA CAIU em 31/08/2026, e este bloco NÃO foi recalibrado. O
+     piso claro virou frio (`--foreground: 178 30% 9%`, superfícies matiz 168) e
+     a `.sistema-theme` deixou de existir. Ou seja: o argumento acima hoje aponta
+     para o contrário do que sustenta. Ficou como está DE PROPÓSITO — repintar a
+     escala escura é outro raio de revert, e o `.dark` não é alcançável na
+     aplicação hoje (nada põe a classe no `<html>`; o único consumidor de
+     `next-themes` é o `ui/sonner`, sem provider montado). Quando o modo escuro
+     entrar de verdade, a decisão de temperatura tem que ser refeita — não
+     herdada deste parágrafo. A
      escolha entre as candidatas foi de temperatura, não de contraste: a "A" mantinha
      o frio e ficava mais perto do gradiente azul das telas de entrada; esta faz o
      escuro PERTENCER à paleta, e por isso pede o gradiente na mesma família.
@@ -2427,10 +2388,12 @@ All colors MUST be HSL.
 
    O Board virou teal em 21/08 (`--surface-escura-2: 175 62% 14%`) e em 31/08 esse
    piso deixou de ser só dele: a `.board-theme` foi dobrada no `.base-theme`, e
-   hoje o teal é o piso da CASA. Quem ficou com o azul-ardósia da coluna "frio"
-   foram a Tax e a OSG, que o declaram nos blocos próprios; o grafite segue do
-   Dev. Os três pisos da tabela continuam existindo — trocaram de dono, não de
-   valor, e o pior continua sendo o teal, que agora é o mais comum.
+   hoje o teal é o piso da CASA — de toda rota que não seja Tax nem OSG. Só
+   restam DOIS pisos. A coluna "grafite" era da `.sistema-theme`, que saiu no
+   mesmo dia; a "frio" é da Tax e da OSG, que declaram o azul-ardósia nos blocos
+   próprios. As três colunas ficam na tabela porque o número medido não caduca —
+   e porque a decisão que elas sustentam continua sendo "clarear até passar no
+   PIOR piso", e o pior é o teal, que agora é também o mais comum.
    Sobre o teal os dois tokens REPROVARAM: `ink3` #8E9CB5 dava 3,57 e o
    `accent` #8AA2FF dava 4,10 no degrau 3. E baixar o alfa do degrau não
    resolvia -- a 4% o ink3 ainda dava 4,03 -- porque cinza-AZULADO sobre verde
@@ -2438,10 +2401,11 @@ All colors MUST be HSL.
    A saída foi clarear os dois tokens até passarem no PIOR piso, e o piso pior
    é o teal. Nos outros dois eles só ficaram com mais folga.
 
-   Contraste MEDIDO nos três pisos que a rota pode dar, no degrau 3 (o pior):
+   Contraste MEDIDO, no degrau 3 (o pior). As duas primeiras colunas são os
+   pisos que a rota pode dar hoje; a terceira é histórica (ver acima):
 
                        teal          frio         grafite
-                     (casa)      (Tax e OSG)      (Dev)
+                     (casa)      (Tax e OSG)    (aposentado)
                     175 62% 14%   222 47% 11%    35 11% 12%
      --agente-ink       9,1          13,2          11,9
      --agente-ink2      6,1           8,9           8,0
