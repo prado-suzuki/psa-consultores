@@ -139,6 +139,22 @@ describe('cobertura das rotas reais do App.tsx', () => {
       expect(areaDaRota(rota), rota).toBe('base');
     }
   });
+
+  /*
+   * O `/cliente` está no MAPA, e a linha não muda comportamento nenhum — sem
+   * ela a rota cairia em `base` do mesmo jeito. Ela existe para separar "é a
+   * casa por decisão" de "ninguém mapeou ainda", e sem este teste seria a
+   * primeira coisa que uma limpeza apagaria por parecer redundante.
+   *
+   * O Portal do Cliente é a tela do cliente da PSA: veste o teal institucional
+   * porque essa é a identidade dele. No dia em que ganhar cor própria, é a linha
+   * do mapa que muda — e é lá que se procura.
+   */
+  it('o Portal do Cliente é a casa POR DECISÃO, não por falta de mapa', () => {
+    const noMapa = MAPA_DE_ROTAS.find((r) => r.prefixo === '/cliente');
+    expect(noMapa, 'a linha { prefixo: /cliente } sumiu do MAPA_DE_ROTAS').toBeDefined();
+    expect(noMapa?.area).toBe('base');
+  });
 });
 
 describe('casamento por segmento', () => {

@@ -133,6 +133,14 @@ export const MAPA_DE_ROTAS: RegraDeRota[] = [
   // olha a empresa. Delta em `.board-theme`; papéis de status seguem do piso.
   { prefixo: '/equipe/board', area: 'board' },
 
+  // ── A casa, fora de /equipe ─────────────────────────────────────────
+  // Esta linha NÃO muda comportamento: rota fora do mapa já cai em `base`. Ela
+  // existe para separar "é a casa por decisão" de "ninguém mapeou ainda". O
+  // Portal do Cliente veste o teal institucional porque essa é a identidade
+  // dele, e é aqui que se lê isso — se um dia ganhar cor própria, muda esta
+  // linha, e não o silêncio do fallback.
+  { prefixo: '/cliente', area: 'base' },
+
   // ── Infraestrutura: grafite ─────────────────────────────────────────
   // Telas que servem o sistema, nao uma area de negocio. Enumeradas aqui de
   // propósito: esta lista é finita e conhecida, enquanto o site público (que
