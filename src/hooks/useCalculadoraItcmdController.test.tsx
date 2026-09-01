@@ -22,6 +22,10 @@ const mocks = vi.hoisted(() => ({
   quadroDasEmpresas: [] as Record<string, unknown>[],
   historico: [] as Record<string, unknown>[],
   gravarSpy: vi.fn(),
+  // A gravação FALHA quando isto é true: o `mutate` não chama o `onSuccess`, que é onde
+  // o ato passou a zerar. Sem esse degrau no mock, o teste não distingue "gravou" de
+  // "tentou gravar" — e era exatamente aí que o formulário se perdia.
+  gravarFalha: false,
   statusSpy: vi.fn(),
   renomearSpy: vi.fn(),
   auditoriaSpy: vi.fn(),
@@ -32,7 +36,15 @@ vi.mock('@/hooks/useSimulacoesItcmd', () => ({
   // prende aqui é a apuração. `gravarSpy` deixa ver QUE gravou e COM QUê.
   useSimulacoesItcmd: () => ({ data: mocks.historico, isLoading: false, error: null }),
   useGravarSimulacaoItcmd: () => ({
-    mutate: mocks.gravarSpy, isPending: false, error: null,
+    // O `mutate` do react-query aceita callbacks por chamada e só roda `onSuccess`
+    // quando o banco confirma. O mock reproduz esse degrau porque o comportamento em
+    // teste depende dele.
+    mutate: (vars: unknown, opts?: { onSuccess?: () => void }) => {
+      mocks.gravarSpy(vars);
+      if (!mocks.gravarFalha) opts?.onSuccess?.();
+    },
+    isPending: false,
+    error: null,
   }),
   useAlterarStatusSimulacaoItcmd: () => ({
     mutate: mocks.statusSpy, isPending: false, error: null,
@@ -604,6 +616,12 @@ describe('controlador da calculadora — o fio inteiro', () => {
   it('GERAR fecha o ato: o modal volta em branco, e o caso fica', () => {
     // Recuperar o que estava digitado faz sentido antes de gerar. Depois, o quadro que
     // reabria era o de um ato que ja virou linha no historico.
+    mocks.gravarFalha = false;
+    // COM OS TRES CENARIOS: o ato so zera quando a gravacao volta, e com o acervo
+    // incompleto do fixture padrao nada ia ao banco. O teste antigo passava justamente
+    // pelo defeito — zerava a tela numa simulacao que nao gravou.
+    mocks.bens = [imovel('IR-01', 4_000_000, 5_000_000, 3_000_000),
+      imovel('IR-02', 2_649_400, 3_000_000, 1_800_000)];
     const { result } = renderHook(() => useCalculadoraItcmdController());
     const calc = () => result.current;
     montarAto(calc);
@@ -1387,12 +1405,94 @@ describe('controlador da calculadora — o fio inteiro', () => {
     const calc = () => result.current;
     montarAto(calc);
 
-    expect(calc().motivoDeNaoGravar).toMatch(/ITR e mercado/);
+    // O aviso NOMEIA A CAUSA, e as duas causas pedem coisas diferentes: nenhum bem
+    // avaliado naquela régua, ou alguns bens sem valor. Aqui é a primeira.
+    expect(calc().motivoDeNaoGravar).toMatch(/nenhum bem com valor ITR/);
+    expect(calc().motivoDeNaoGravar).toMatch(/nenhum bem com valor mercado/);
     act(() => calc().gerar());
     expect(mocks.gravarSpy).not.toHaveBeenCalled();
     // Mas a simulação da sessão existe: os três quadros aparecem, com o cenário
     // faltante tracejado.
     expect(calc().simulacaoGerada?.saida.cenariosIndisponiveis)
       .toEqual(['itr', 'mercado']);
+    // E O ATO FICA: nada foi ao banco, então o analista completa o cadastro do bem e
+    // gera de novo sem reteclar o quadro.
+    expect(calc().linhasDoQuadro.length).toBeGreaterThan(0);
+  });
+
+  it('ACERVO INCOMPLETO nao gera imposto: um bem de fora basta', () => {
+    // O achado do parecer. Havia dois imoveis, um deles sem valor de mercado: o total
+    // somava so o completo, o cenario continuava disponivel e a simulacao gravava base
+    // de mercado MENOR que o acervo real — imposto a menos, calado. Agora o cenario cai
+    // em `cenariosIndisponiveis` e o aviso diz quantos bens faltam.
+    mocks.gravarSpy.mockClear();
+    mocks.bens = [
+      imovel('IR-01', 4_000_000, 5_000_000, 3_000_000),
+      // O bem INCOMPLETO: contabil sim, mercado e ITR nao.
+      imovel('IR-02', 1_000_000, null, null),
+    ];
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+    montarAto(calc);
+
+    // O contabil tem os dois bens: soma e apura.
+    expect(calc().saida?.acervoPorCenario.contabil).toBe('5000000.00');
+    // Mercado e ITR tem UM de DOIS: nao ha base, e o aviso diz a proporcao.
+    expect(calc().saida?.cenariosIndisponiveis).toEqual(['itr', 'mercado']);
+    expect(calc().motivoDeNaoGravar).toMatch(/1 de 2 bens sem valor ITR/);
+    expect(calc().motivoDeNaoGravar).toMatch(/1 de 2 bens sem valor mercado/);
+
+    act(() => calc().gerar());
+    expect(mocks.gravarSpy).not.toHaveBeenCalled();
+  });
+
+  it('ERRO DE USUFRUTO IMPEDE GERAR: aviso na tela nao e decoracao', () => {
+    // O portao olhava so o quadro. Os problemas de usufruto e o erro da instituicao
+    // apareciam escritos na tela e nao travavam nada: dava para gerar e gravar um
+    // quadro que contradiz o proprio aviso.
+    mocks.gravarSpy.mockClear();
+    mocks.bens = [imovel('IR-01', 4_000_000, 5_000_000, 3_000_000),
+      imovel('IR-02', 2_649_400, 3_000_000, 1_800_000)];
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+    montarAto(calc);
+    expect(calc().podeGerar).toBe(true);
+
+    // Institui voz e voto sem escolher quem recebe: concessao sem destino.
+    act(() => calc().setInstituicao('Cristiano', '1000'));
+
+    expect(calc().problemasDoUsufruto.length).toBeGreaterThan(0);
+    // Quem barrou foi o USUFRUTO: o quadro segue fechado e a apuracao existe. Sem estas
+    // duas linhas o teste passaria mesmo que o portao continuasse olhando so o quadro.
+    expect(calc().problemasDoQuadro).toEqual([]);
+    expect(calc().saida).not.toBeNull();
+    expect(calc().podeGerar).toBe(false);
+    // E a acao tambem recusa, nao so o botao: `podeGerar` desabilita, e desabilitar e
+    // aparencia.
+    act(() => calc().gerar());
+    expect(mocks.gravarSpy).not.toHaveBeenCalled();
+  });
+
+  it('GRAVACAO QUE FALHA nao apaga o formulario', () => {
+    // Zerar o ato antes da resposta do banco custava tudo numa falha de rede ou de RLS:
+    // participantes, aportes e usufruto apagados, com o erro na tela e nada para tentar
+    // de novo a nao ser redigitar. Agora o ato so zera com a gravacao confirmada.
+    mocks.gravarSpy.mockClear();
+    mocks.gravarFalha = true;
+    mocks.bens = [imovel('IR-01', 4_000_000, 5_000_000, 3_000_000),
+      imovel('IR-02', 2_649_400, 3_000_000, 1_800_000)];
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+    montarAto(calc);
+    act(() => calc().setAporte('Gabriel', '1.000,00'));
+    const linhasAntes = calc().linhasDoQuadro.length;
+
+    act(() => calc().gerar());
+
+    expect(mocks.gravarSpy).toHaveBeenCalledTimes(1);
+    // O que a tela mostrava continua na tela.
+    expect(calc().linhasDoQuadro.length).toBe(linhasAntes);
+    expect(calc().aporteDigitado('Gabriel')).toBe('1.000,00');
+    mocks.gravarFalha = false;
   });
 });

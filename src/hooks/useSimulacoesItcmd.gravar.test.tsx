@@ -124,6 +124,11 @@ describe('gravar a simulação', () => {
 
     // NENHUM insert avulso: era isso que quebrava pela metade.
     expect(mocks.insertsAvulsos).toEqual([]);
+    // E NENHUMA outra requisição, de tipo nenhum: a trilha de auditoria e a versão
+    // passaram para dentro da função. Antes eram três idas ao servidor — a RPC, a
+    // leitura da `versao` e o insert em `audit_logs` —, e as duas últimas podiam falhar
+    // com a simulação já gravada, deixando linha sem rastro de quem a criou.
+    expect(mocks.from).not.toHaveBeenCalled();
     // E o status não vem da tela: quem grava `gerada` é a função, dentro da transação.
     expect(args.p.simulacao).not.toHaveProperty('status');
   });
@@ -150,6 +155,19 @@ describe('gravar a simulação', () => {
 
     await expect(result.current.mutateAsync(retrato)).rejects.toThrow('RLS recusou');
     // Nada a desfazer: a transação não deixou rastro para apagar.
+    expect(mocks.insertsAvulsos).toEqual([]);
+  });
+
+  it('a trilha não é escrita pelo cliente: quem escreve é a transação', async () => {
+    // O `AGENTS.md` exige auditoria em toda criação, com `changed_fields`. Cumprir isso
+    // do lado do cliente deixava um intervalo entre gravar e registrar — e o log era
+    // deliberadamente não-fatal, então a linha ficava sem rastro em silêncio. O contrato
+    // agora é: ninguém escreve `audit_logs` daqui.
+    const { result } = renderHook(() => useGravarSimulacaoItcmd(), { wrapper: molde });
+    await act(async () => {
+      await result.current.mutateAsync(retrato);
+    });
+    expect(mocks.from).not.toHaveBeenCalledWith('audit_logs');
     expect(mocks.insertsAvulsos).toEqual([]);
   });
 

@@ -407,8 +407,14 @@ export function useCalculadoraItcmdController() {
     ? quotasDoCadastro
     : BigInt(origem.totalDeQuotas);
 
+  // `totalFiscal`, e NÃO `total`: acervo com imóvel de fora não é base. O total parcial
+  // segue existindo para leitura; quem apura usa o número que só existe completo.
   const acervoDePartida = origem == null
-    ? { contabil: acervo.contabil.total, itr: acervo.itr.total, mercado: acervo.mercado.total }
+    ? {
+      contabil: acervo.contabil.totalFiscal,
+      itr: acervo.itr.totalFiscal,
+      mercado: acervo.mercado.totalFiscal,
+    }
     : origem.acervoPorCenario;
 
   const acervoContabilDePartida = ((): bigint => {
@@ -1902,7 +1908,18 @@ export function useCalculadoraItcmdController() {
     painelAberto: modalAberto,
     abrirPainel: () => setModalAberto(true),
     fecharPainel: () => setModalAberto(false),
-    podeGerar: saida != null && quadro.problemas.length === 0,
+    /**
+     * O PORTÃO OLHA AS TRÊS VALIDAÇÕES, e não só o quadro.
+     *
+     * `problemasDoUsufruto` e `erroDaInstituicao` já apareciam na tela, mas ficavam fora
+     * daqui: dava para ver o erro da concessão escrito na frente e gerar de todo modo,
+     * gravando um quadro que contradiz o aviso. Erro que a tela mostra é erro que impede
+     * gerar — senão o aviso é decoração.
+     */
+    podeGerar: saida != null
+      && quadro.problemas.length === 0
+      && usufruto.problemas.length === 0
+      && erroDaInstituicao == null,
 
     // ── HISTÓRICO, agora GRAVADO ───────────────────────────────────────────
     // Cada geração é uma linha nova em `itcd_simulacao`, com o retrato inteiro. A
@@ -1923,13 +1940,23 @@ export function useCalculadoraItcmdController() {
      * A tabela exige os três cenários, e está certa: a apuração completa é o
      * entregável. Cenário sem valor é cadastro incompleto, e a tela diz isso em vez
      * de gravar zero — zero seria afirmar um imposto que ninguém calculou.
+     *
+     * E DIZ QUANTOS BENS FALTAM, porque as duas causas pedem ações diferentes: nenhum
+     * imóvel avaliado naquela régua é uma coisa, três de treze é outra, e a segunda é a
+     * que passava batida — o total parcial parecia completo.
      */
     motivoDeNaoGravar: saida == null || saida.cenariosIndisponiveis.length === 0
       ? null
-      : `Sem valor de ${saida.cenariosIndisponiveis
-        .map((c) => ({ contabil: 'contábil', itr: 'ITR', mercado: 'mercado' }[c]))
-        .join(' e ')} no cadastro dos bens: a simulação fica nesta sessão e não é `
-        + 'gravada. O histórico guarda os três cenários apurados.',
+      : `${saida.cenariosIndisponiveis
+        .map((c) => {
+          const rotulo = { contabil: 'contábil', itr: 'ITR', mercado: 'mercado' }[c];
+          const t = acervo[c];
+          return t.semValor > 0 && t.comValor > 0
+            ? `${t.semValor} de ${t.imoveis} bens sem valor ${rotulo}`
+            : `nenhum bem com valor ${rotulo}`;
+        })
+        .join('; ')}. A simulação fica nesta sessão e não é gravada: o histórico só `
+        + 'guarda apuração com os três cenários sobre o acervo inteiro.',
     /**
      * TROCAR STATUS e RENOMEAR levam o estado ANTERIOR junto.
      *
@@ -1961,6 +1988,12 @@ export function useCalculadoraItcmdController() {
     },
     gerar: () => {
       if (saida == null || clienteId == null || empresa == null) return;
+      // A MESMA GUARDA DO BOTÃO, aqui também: `podeGerar` desabilita, e desabilitar é
+      // aparência. Quem chama esta função por outro caminho — atalho, teste, um `form`
+      // que envia no Enter — passaria por cima do aviso de usufruto ou de instituição.
+      if (quadro.problemas.length > 0
+        || usufruto.problemas.length > 0
+        || erroDaInstituicao != null) return;
       setSimulacoes((anteriores) => [...anteriores, {
         versao: (historico.data?.[0]?.versao ?? 0) + 1,
         saida,
@@ -1970,12 +2003,12 @@ export function useCalculadoraItcmdController() {
         donatarios: donatarios.map((d) => d.denominacao),
       }]);
       setModalAberto(false);
-      // E O ATO FECHOU: o modal volta em branco. O payload abaixo já está montado a
-      // partir do render atual, então zerar aqui não o alcança.
-      zerarOAto();
-      // SÓ GRAVA COM OS TRÊS CENÁRIOS. Sem um deles a simulação vale para a sessão e a
-      // tela diz por que não foi ao banco (`motivoDeNaoGravar`) — nada de gravar zero
-      // onde não houve apuração.
+      // SÓ GRAVA COM OS TRÊS CENÁRIOS SOBRE O ACERVO INTEIRO. Sem isso a simulação vale
+      // para a sessão e a tela diz por que não foi ao banco (`motivoDeNaoGravar`) — nada
+      // de gravar zero, nem soma parcial, onde não houve apuração completa.
+      //
+      // E O ATO FICA: não foi ao banco, então o analista completa o valor do bem que
+      // falta e gera de novo sem redigitar o quadro.
       if (saida.cenariosIndisponiveis.length > 0) return;
       // O erro sobe para `erroDeGravacao` e a tela diz: simulação que não gravou não
       // pode parecer gravada.
@@ -2104,6 +2137,15 @@ export function useCalculadoraItcmdController() {
             },
           })),
         ],
+      }, {
+        // O ATO SÓ ZERA COM A GRAVAÇÃO CONFIRMADA.
+        //
+        // Zerar antes de chamar o banco custava o formulário inteiro numa falha de rede
+        // ou de RLS: participantes, legítima, disponível, aportes, usufruto e
+        // instituições apagados, com o erro na tela e nada para tentar de novo a não ser
+        // redigitar tudo. O payload acima já está montado do render atual, então zerar
+        // aqui não muda o que foi enviado — muda apenas quando a tela esquece.
+        onSuccess: () => zerarOAto(),
       });
     },
   };

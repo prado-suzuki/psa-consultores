@@ -35,10 +35,17 @@ describe('acervo do ITCD — totais por cenário', () => {
       imovel('A', [{ vlr_contabil: 558_413.55, vlr_mercado: 900_000 }], 10_000),
       imovel('B', [{ vlr_contabil: 241_586.45, vlr_mercado: null }], null),
     ]);
-    expect(acervo.contabil).toEqual({ total: '800000.00', comValor: 2, semValor: 0, imoveis: 2 });
-    // Mercado tem um só imóvel com valor: o total é PARCIAL e se declara assim.
-    expect(acervo.mercado).toEqual({ total: '900000.00', comValor: 1, semValor: 1, imoveis: 2 });
-    expect(acervo.itr).toEqual({ total: '10000.00', comValor: 1, semValor: 1, imoveis: 2 });
+    expect(acervo.contabil).toEqual({
+      total: '800000.00', totalFiscal: '800000.00', comValor: 2, semValor: 0, imoveis: 2,
+    });
+    // Mercado tem um só imóvel com valor: o total é PARCIAL, se declara assim, e NÃO
+    // serve de base — `totalFiscal` nulo com `total` preenchido é exatamente esse caso.
+    expect(acervo.mercado).toEqual({
+      total: '900000.00', totalFiscal: null, comValor: 1, semValor: 1, imoveis: 2,
+    });
+    expect(acervo.itr).toEqual({
+      total: '10000.00', totalFiscal: null, comValor: 1, semValor: 1, imoveis: 2,
+    });
   });
 
   it('cenário sem nenhum valor devolve total nulo: ausência não é R$ 0,00', () => {
@@ -53,7 +60,9 @@ describe('acervo do ITCD — totais por cenário', () => {
     expect(acervo.contabil.total).toBe('100.00');
     // Zero informado continua sendo um valor, e conta como preenchido.
     const comZero = totalizarAcervo([imovel('A', [{ vlr_contabil: 0, vlr_mercado: null }])]);
-    expect(comZero.contabil).toEqual({ total: '0.00', comValor: 1, semValor: 0, imoveis: 1 });
+    expect(comZero.contabil).toEqual({
+      total: '0.00', totalFiscal: '0.00', comValor: 1, semValor: 0, imoveis: 1,
+    });
   });
 
   it('o ITR soma as matrículas, igual aos outros dois cenários', () => {
@@ -66,7 +75,7 @@ describe('acervo do ITCD — totais por cenário', () => {
       ]),
     ]);
     expect(acervo.itr).toEqual({
-      total: '8995761.97', comValor: 1, semValor: 0, imoveis: 1,
+      total: '8995761.97', totalFiscal: '8995761.97', comValor: 1, semValor: 0, imoveis: 1,
     });
   });
 
@@ -103,7 +112,20 @@ describe('acervo do ITCD — totais por cenário', () => {
     expect(totais.contabil.semValor).toBe(1);
     // Mercado: as duas matriculas tem valor, entao a soma vale.
     expect(totais.mercado.total).toBe('1300000.00');
+    expect(totais.mercado.totalFiscal).toBe('1300000.00');
     expect(totais.mercado.comValor).toBe(1);
+
+    // O CASO QUE O PARECER PEGOU: com OUTRO imovel completo do lado, o total deixa de
+    // ser nulo — ele passa a ser a soma do que sobrou, e antes isso valia como base. O
+    // imovel incompleto simplesmente desaparecia do acervo.
+    const comVizinhoCompleto = totalizarAcervo([
+      parcial,
+      imovel('IR-OK', [{ vlr_contabil: 100, vlr_mercado: 100 }], 100),
+    ]);
+    expect(comVizinhoCompleto.contabil.total).toBe('100.00');
+    expect(comVizinhoCompleto.contabil.semValor).toBe(1);
+    // E e aqui que ele para: acervo com imovel de fora nao e base.
+    expect(comVizinhoCompleto.contabil.totalFiscal).toBeNull();
   });
 
   it('a soma do acervo nao passa por float', () => {

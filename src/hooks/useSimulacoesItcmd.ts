@@ -584,7 +584,10 @@ export interface SimulacaoParaGravar {
  */
 export function useGravarSimulacaoItcmd() {
   const qc = useQueryClient();
-  const { logAction } = useAuditLog();
+  // SEM `useAuditLog` AQUI, de propósito: a trilha desta gravação é escrita pela própria
+  // `itcd_gravar_simulacao`, dentro da transação. Registrar de novo daqui duplicaria a
+  // linha no histórico. Renomear e mudar status continuam logando pelo hook — são
+  // UPDATEs comuns, e ali o de-para vem da tela.
   return useMutation({
     mutationFn: async (s: SimulacaoParaGravar): Promise<string> => {
       // OS TRÊS CENÁRIOS SÃO OBRIGATÓRIOS, por desenho da tabela. Cenário sem valor
@@ -711,35 +714,13 @@ export function useGravarSimulacaoItcmd() {
         throw new Error('A gravação não devolveu o id da simulação.');
       }
 
-      // A VERSÃO é decidida dentro da transação, e a trilha abaixo a cita: vem lida de
-      // volta. Leitura fora da transação, e só para o texto do log.
-      const { data: gravada } = await supabase
-        .from('itcd_simulacao')
-        .select('versao')
-        .eq('id', simulacaoId)
-        .maybeSingle();
-      const versao = gravada?.versao ?? 0;
-
-      // ── A TRILHA ────────────────────────────────────────────────────────────
-      // No padrão do resto do sistema: `audit_logs`, área `osg`. As colunas de autoria
-      // da própria tabela (`created_by`, `aprovada_por`) dizem QUEM fez; a trilha diz
-      // O QUE FOI FEITO, em ordem, no mesmo lugar em que se procura o histórico das
-      // outras entidades da OSG.
+      // ── A TRILHA JÁ ESTÁ ESCRITA ────────────────────────────────────────────
+      // `audit_logs`, área `osg`, com `changed_fields` campo a campo — e escrita DENTRO
+      // da transação, pela própria função. É o que fecha o furo de gravar a simulação e
+      // perder o registro: aqui não existe mais o ponto entre "gravou" e "logou".
       //
-      // `logAction` não propaga falha de propósito: a simulação já está gravada, e
-      // desfazê-la porque o log não entrou seria perder o trabalho para salvar o
-      // registro dele. A falha vai para o console.
-      await logAction({
-        area: 'osg',
-        entity_type: 'itcd_simulacao',
-        entity_id: simulacaoId,
-        entity_name: `Versão ${versao} · ${s.saida.competencia}`,
-        action: 'created',
-        details: `${s.doadores.length} doador(es), ${beneficiarios.length} `
-          + `beneficiário(s), ${s.gias.length} guia(s). `
-          + `Imposto contábil do ato: ${s.saida.totaisPorCenario.contabil}.`,
-      });
-
+      // Também não há mais leitura de volta da `versao`: quem monta o texto do log é
+      // quem calculou a versão, no mesmo comando.
       return simulacaoId;
     },
     onSuccess: () => {

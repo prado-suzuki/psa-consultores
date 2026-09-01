@@ -28,7 +28,16 @@ as $$
 declare
   v_id uuid;
   v_versao integer;
+  v_diff jsonb;
 begin
+  -- A TRILHA É PARTE DA GRAVAÇÃO, e `audit_logs.performed_by` é NOT NULL. Sem usuário
+  -- na sessão o insert do log estouraria com violação de coluna, no fim de tudo; a
+  -- mensagem abaixo diz o que aconteceu, antes de escrever qualquer linha.
+  if auth.uid() is null then
+    raise exception
+      'Sessão sem usuário: a simulação não foi gravada porque a trilha de auditoria exige quem fez.';
+  end if;
+
   select coalesce(max(versao), 0) + 1 into v_versao
   from public.itcd_simulacao
   where cliente_id = (p->'simulacao'->>'cliente_id')::uuid;
@@ -135,6 +144,38 @@ begin
     de_pessoa_id uuid, para_pessoa_id uuid, origem text, quotas integer,
     vlr_base_contabil numeric, vlr_base_itr numeric, vlr_base_mercado numeric,
     vlr_imposto_contabil numeric, vlr_imposto_itr numeric, vlr_imposto_mercado numeric
+  );
+
+  -- ── A TRILHA, DENTRO DA MESMA TRANSAÇÃO ─────────────────────────────────────
+  --
+  -- Antes o log era escrito pelo cliente, depois da RPC voltar, e de propósito não
+  -- propagava falha: a simulação estava gravada e desfazê-la por causa do registro
+  -- pareceria pior. O efeito é que uma recusa de RLS no `audit_logs` deixava simulação
+  -- gravada sem rastro de quem a criou — e o `AGENTS.md` põe auditoria de CUD como
+  -- obrigatória. Aqui dentro não há esse dilema: se o log não entra, nada entra.
+  --
+  -- `changed_fields` na criação é o de-para com `old` nulo, campo a campo, montado do
+  -- próprio payload — mais `versao` e `status`, que são decididos aqui e não vêm da
+  -- tela. É o diff que o AGENTS.md pede, e ele nasce do que foi realmente gravado.
+  select jsonb_object_agg(campo.k, jsonb_build_object('old', null, 'new', campo.v))
+    into v_diff
+  from jsonb_each(
+    (p->'simulacao')
+    || jsonb_build_object('versao', v_versao, 'status', 'gerada')
+  ) as campo(k, v);
+
+  insert into public.audit_logs (
+    area, entity_type, entity_id, entity_name, action, changed_fields, performed_by, details
+  )
+  values (
+    'osg', 'itcd_simulacao', v_id,
+    'Versão ' || v_versao || ' · ' || coalesce(p->'simulacao'->>'competencia', '—'),
+    'created', v_diff, auth.uid(),
+    jsonb_array_length(coalesce(p->'doadores', '[]'::jsonb)) || ' doador(es), '
+    || jsonb_array_length(coalesce(p->'donatarios', '[]'::jsonb)) || ' beneficiário(s), '
+    || jsonb_array_length(coalesce(p->'gias', '[]'::jsonb)) || ' guia(s). '
+    || 'Imposto contábil do ato: '
+    || coalesce(p->'simulacao'->>'vlr_imposto_contabil', '—') || '.'
   );
 
   return v_id;

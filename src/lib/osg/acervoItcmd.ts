@@ -26,8 +26,29 @@ export interface ImovelDoAcervo {
 }
 
 export interface TotalDoCenario {
-  /** Decimal em string para o motor. `null` = nenhum imóvel tem este valor. */
+  /**
+   * O total para LER. Decimal em string, `null` quando nenhum imóvel tem este valor.
+   *
+   * Pode ser PARCIAL: se um imóvel do acervo não tem o valor deste cenário, este campo
+   * traz a soma dos que têm e `semValor` diz quantos ficaram fora. É assim que a lista do
+   * Diagnóstico Patrimonial mostra, e ali está certo — é leitura.
+   */
   total: string | null;
+  /**
+   * O total para APURAR, e é outro número: `null` sempre que faltou imóvel.
+   *
+   * ACERVO INCOMPLETO NÃO É BASE. Somar só os imóveis que têm valor e chamar isso de
+   * acervo apura imposto sobre patrimônio menor que o real, sem nada em tela dizendo que
+   * faltou bem — e é imposto A MENOS, o erro que ninguém reclama. Medido no sandbox: dos
+   * 13 imóveis da Agro Aliança, 10 têm valor de ITR e 10 de mercado; da Fazenda Santa
+   * Terezinha, 8 de 10 no ITR. As duas bases saíam a menos, caladas.
+   *
+   * Os dois campos existem separados de propósito: `total` segue alimentando leitura, e
+   * quem calcula usa este. Cenário com `totalFiscal` nulo cai em `cenariosIndisponiveis`,
+   * a gravação se recusa e a tela nomeia o que falta no cadastro — o mesmo mecanismo que
+   * já valia para o cenário sem valor nenhum.
+   */
+  totalFiscal: string | null;
   comValor: number;
   semValor: number;
   imoveis: number;
@@ -104,12 +125,16 @@ export function totalizarAcervo(imoveis: ImovelDoAcervo[]): Record<Cenario, Tota
   const porCenario = (cenario: Cenario): TotalDoCenario => {
     const valores = imoveis.map((i) => valorDoImovel(i, cenario));
     const preenchidos = valores.filter((v): v is string => v != null);
+    const semValor = valores.length - preenchidos.length;
+    // `formatMoney` já entrega 2 casas com meio para cima — é aqui que a
+    // quantização exigida pela fórmula (SPEC §2.3) acontece.
+    const total = preenchidos.length === 0 ? null : formatMoney(somar(preenchidos));
     return {
-      // `formatMoney` já entrega 2 casas com meio para cima — é aqui que a
-      // quantização exigida pela fórmula (SPEC §2.3) acontece.
-      total: preenchidos.length === 0 ? null : formatMoney(somar(preenchidos)),
+      total,
+      // Um imóvel de fora basta para o total não servir de base.
+      totalFiscal: semValor > 0 ? null : total,
       comValor: preenchidos.length,
-      semValor: valores.length - preenchidos.length,
+      semValor,
       imoveis: valores.length,
     };
   };

@@ -64,7 +64,13 @@ create policy "team_member+ can update itcd_simulacao"
     or has_role_or_higher(auth.uid(), 'sublider'::app_role)
   );
 
+-- OS DOIS DROPS: o do nome antigo, que é o que esta migração substitui, e o do nome
+-- NOVO — sem ele, reaplicar o arquivo falha no `create`, porque a policy já existe. E
+-- migração deste repo é reaplicada: o ledger do sandbox já voltou uma vez como arquivo
+-- novo, duplicando seis migrations desta mesma feature.
 drop policy if exists "lider+ can delete itcd_simulacao" on public.itcd_simulacao;
+drop policy if exists "quem criou apaga o que nao foi aprovado; lider+ apaga qualquer uma"
+  on public.itcd_simulacao;
 create policy "quem criou apaga o que nao foi aprovado; lider+ apaga qualquer uma"
   on public.itcd_simulacao for delete to authenticated
   using (
