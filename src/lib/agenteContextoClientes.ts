@@ -1,147 +1,109 @@
 /**
- * Snapshot do Board · Clientes (mapa e carteira) para o Agente PSA.
- *
- * A tela desenha um mapa de calor por UF e a lista da carteira. O agente
- * recebe a MESMA agregação que pinta o mapa (`agregarClientesPorRegiao`) —
- * nunca uma contagem própria, senão o mapa mostraria um número e o agente
- * outro.
- *
- * Duas honestidades que esta tela exige:
- *
- * 1. **`semUf` fica FORA de `porUf`** na agregação, porque não é pintável no
- *    mapa. Some do mapa e do agente seria pior: vira cliente invisível. Aqui
- *    ele tem campo próprio, dito com todas as letras.
- * 2. **O escopo depende do papel.** Quem não é admin lê só os clientes do seu
- *    acesso (RLS), e o número continua correto para quem olha — mentira seria
- *    chamá-lo de "a carteira da empresa" sem dizer nada.
+ * Snapshot do Board · Clientes: região, serviço e lacuna de aditivo.
+ * O agente lê as MESMAS fatias que a tela desenha.
  */
 import type { BlocoContexto, ContextoTela } from '@/hooks/useAgenteContexto';
-import type { AgregacaoRegiao } from '@/lib/clientesPorRegiao';
-import type { Concentracao } from '@/lib/boardEstrategico';
+import type { FatiaRegiao, FatiaServico, LacunaAditivo } from '@/lib/boardOportunidade';
 
 const pct = (parte: number, total: number) =>
   total > 0 ? `${((parte / total) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : null;
-
-export interface EntradaContextoClientes {
-  agregacao: AgregacaoRegiao;
-  /** `true` quando o usuário enxerga a carteira inteira (admin). */
-  escopoTotal: boolean;
-  /** Quem carrega o contratado — a história desta tela no Board. */
-  concentracao?: Concentracao;
-  ticket?: number | null;
-  /** Rótulos das consultas que falharam. */
-  falhas: string[];
-}
-
-const SUGESTOES = [
-  'De quem a carteira depende — quantos clientes carregam metade do contratado?',
-  'Em quais estados a carteira está concentrada?',
-  'Quantos clientes estão sem estado cadastrado?',
-];
 
 const brl = (v: number) =>
   Math.abs(v) >= 1_000_000
     ? `R$ ${(v / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`
     : `R$ ${Math.round(v / 1000).toLocaleString('pt-BR')} mil`;
 
-function blocoConcentracao(e: EntradaContextoClientes): BlocoContexto | null {
-  if (!e.concentracao) return null;
-  const c = e.concentracao;
+export interface EntradaContextoClientes {
+  /** `true` quando o usuário enxerga a carteira inteira (admin, sem cluster). */
+  escopoTotal: boolean;
+  ticket: number | null;
+  regioes: FatiaRegiao[];
+  servicos: FatiaServico[];
+  lacunas: LacunaAditivo[];
+  falhas: string[];
+}
+
+const SUGESTOES = [
+  'Qual serviço mais se repete e em qual praça?',
+  'Quem na mesma região ainda não contratou o serviço comum — aditivo?',
+  'Onde o ticket do serviço foge do ticket da carteira?',
+];
+
+function blocoServicos(e: EntradaContextoClientes): BlocoContexto | null {
+  if (e.servicos.length === 0) return null;
+  const nomeados = e.servicos.filter((s) => s.chave !== 'sem_servico');
+  const sem = e.servicos.find((s) => s.chave === 'sem_servico');
   return {
-    id: 'concentracao',
-    titulo: 'Quem carrega o contratado',
-    nota: e.escopoTotal
-      ? undefined
-      : 'Carteira limitada aos clientes do seu acesso — não é o total da empresa.',
+    id: 'servicos',
+    titulo: 'Ocorrência por serviço',
+    nota: sem
+      ? `${sem.os} OS sem serviço cadastrado — não entram como produto para vender`
+      : undefined,
     campos: [
-      { rotulo: 'Clientes com contrato', valor: String(c.clientes) },
       {
-        rotulo: 'Metade do contratado',
-        valor: c.clientesParaMetade === null ? null : String(c.clientesParaMetade),
-        nota: c.clientesParaMetade === null ? 'sem receita para medir' : 'quantos carregam 50%',
-      },
-      {
-        rotulo: 'Ticket médio',
+        rotulo: 'Ticket médio da carteira',
         valor: e.ticket == null ? null : brl(e.ticket),
         nota: e.ticket == null ? 'sem base no ano' : 'ano · por cliente',
       },
-      { rotulo: 'Contratado no recorte', valor: brl(c.total) },
+      { rotulo: 'Serviços distintos', valor: String(nomeados.length) },
     ],
-    itens: c.top.map((t) => ({
-      cliente: t.nome,
-      contratado: brl(t.receita),
-      fatia: `${(t.share * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`,
+    itens: nomeados.slice(0, 8).map((s) => ({
+      servico: s.rotulo,
+      clientes: s.clientes,
+      os: s.os,
+      ticket: s.ticket == null ? null : brl(s.ticket),
     })),
   };
 }
 
-function blocoCarteira(e: EntradaContextoClientes): BlocoContexto {
-  const a = e.agregacao;
-  const inativos = a.totalClientes - a.totalAtivos;
+function blocoRegioes(e: EntradaContextoClientes): BlocoContexto | null {
+  if (e.regioes.length === 0) return null;
+  const sem = e.regioes.find((r) => r.chave === 'sem_regiao');
   return {
-    id: 'carteira',
-    titulo: 'Carteira de clientes',
+    id: 'regioes',
+    titulo: 'Clientes por região',
     nota: e.escopoTotal
       ? undefined
       : 'Carteira limitada aos clientes do seu acesso — não é o total da empresa.',
     campos: [
-      { rotulo: 'Clientes na carteira', valor: String(a.totalClientes) },
+      { rotulo: 'Praças', valor: String(e.regioes.length) },
       {
-        rotulo: 'Clientes ativos',
-        valor: String(a.totalAtivos),
-        nota: pct(a.totalAtivos, a.totalClientes) ?? undefined,
-      },
-      { rotulo: 'Clientes inativos', valor: String(inativos) },
-      { rotulo: 'Estados com pelo menos um cliente', valor: String(a.ufsComDado.length) },
-      {
-        rotulo: 'Clientes sem estado cadastrado',
-        valor: String(a.semUf.clientes),
-        nota: a.semUf.clientes > 0
-          ? 'não aparecem no mapa — o mapa só pinta UF reconhecida'
-          : undefined,
+        rotulo: 'Clientes sem região',
+        valor: String(sem?.clientes ?? 0),
+        nota: (sem?.clientes ?? 0) > 0 ? 'não somem da conta — só não entram numa praça' : undefined,
       },
     ],
+    itens: e.regioes.slice(0, 8).map((r) => ({
+      regiao: r.rotulo,
+      clientes: r.clientes,
+      ativos: r.ativos,
+      ticket: r.ticket == null ? null : brl(r.ticket),
+    })),
   };
 }
 
-function blocoEstados(e: EntradaContextoClientes): BlocoContexto | null {
-  const a = e.agregacao;
-  if (a.ufsComDado.length === 0) return null;
-
-  const top = a.ufsComDado.slice(0, 10).map((uf) => a.porUf[uf]);
-  const maior = top[0];
-
+function blocoLacunas(e: EntradaContextoClientes): BlocoContexto | null {
+  if (e.lacunas.length === 0) return null;
   return {
-    id: 'estados',
-    titulo: 'Distribuição por estado',
-    nota: 'A mesma agregação que pinta o mapa de calor.',
-    campos: [
-      {
-        rotulo: 'Estado com mais clientes',
-        valor: maior ? `${maior.nome} (${maior.uf}) · ${maior.clientes}` : null,
-        nota: maior ? pct(maior.clientes, a.totalClientes) ?? undefined : undefined,
-      },
-    ],
-    itens: top.map((u) => ({
-      estado: `${u.nome} (${u.uf})`,
-      clientes: u.clientes,
-      ativos: u.ativos,
-      fatia: pct(u.clientes, a.totalClientes),
-      // Só o maior município: a lista inteira encheria o prompt sem mudar
-      // nenhuma resposta que a tela consiga sustentar.
-      // `rotulo`, nao `municipio`: o primeiro sempre vem preenchido (usa
-      // "sem municipio" quando o cadastro nao informou), o segundo e nullable.
-      maior_municipio: u.municipios[0]?.rotulo ?? null,
+    id: 'aditivo',
+    titulo: 'Similaridade · serviço comum que o cliente ainda não tem',
+    campos: [{ rotulo: 'Lacunas listadas', valor: String(e.lacunas.length) }],
+    itens: e.lacunas.slice(0, 10).map((l) => ({
+      cliente: l.cliente_nome,
+      regiao: l.rotuloRegiao,
+      servico: l.rotuloServico,
+      'já têm na praça': `${l.ocorreNaRegiao}/${l.clientesNaRegiao}`,
+      fatia: pct(l.ocorreNaRegiao, l.clientesNaRegiao),
     })),
   };
 }
 
 export function contextoBoardClientes(e: EntradaContextoClientes): ContextoTela {
-  const blocos = [blocoConcentracao(e), blocoCarteira(e), blocoEstados(e)]
+  const blocos = [blocoServicos(e), blocoRegioes(e), blocoLacunas(e)]
     .filter((b): b is BlocoContexto => b !== null);
 
   return {
-    rotulo: 'Board · Clientes (concentração da carteira; mapa é recorte)',
+    rotulo: 'Board · Clientes (região, ocorrência de serviço e lacuna de aditivo)',
     filtros: {
       escopo: e.escopoTotal ? 'empresa inteira' : 'somente os clientes do seu acesso',
     },

@@ -112,6 +112,15 @@ describe('contextoBoardFerramentas', () => {
     expect(ctx.blocos.find((b) => b.id === 'pessoas')?.itens).toHaveLength(10);
   });
 
+  it('Board sem uso não publica adoção nem retenção', () => {
+    const ctx = contextoBoardFerramentas({
+      ...base,
+      incluirUso: false,
+      beneficio: { horasLiberadas: 176, fte: 1, melhoriasMedidas: 1 },
+    });
+    expect(ctx.blocos.map((b) => b.id)).toEqual(['beneficio']);
+  });
+
   it('benefício medido entra na frente; sem cadastro o FTE fica null', () => {
     const ctx = contextoBoardFerramentas({
       ...base,

@@ -296,6 +296,9 @@ export interface MelhoriaRoi {
   baseline_time_hours?: number | null;
   improved_time_hours?: number | null;
   improvement_description?: string | null;
+  /** Nome do processo em `processes` — o que a diretoria reconhece como ferramenta. */
+  process_name?: string | null;
+  process_area?: string | null;
   implementation_cost: number | null;
   one_time_external_cost: number | null;
   created_at: string | null;

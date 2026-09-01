@@ -29,11 +29,20 @@ export function useDomainMelhoriasRoi() {
         // `cluster_id` entra para o seletor global de cliente do Board poder
         // recortar a economia. Antes ela era necessariamente global: o filtro
         // era por ÁREA e esta tabela nunca teve área, só cluster.
-        .select('id, cluster_id, cost_saved_monthly, time_saved_hours, time_saved_percent, baseline_time_hours, improved_time_hours, improvement_description, implementation_cost, one_time_external_cost, created_at')
+        .select('id, cluster_id, cost_saved_monthly, time_saved_hours, time_saved_percent, baseline_time_hours, improved_time_hours, improvement_description, implementation_cost, one_time_external_cost, created_at, processes(name, area)')
         .eq('evaluation_status', 'completed');
 
       if (error) throw error;
-      return (data ?? []) as MelhoriaRoi[];
+      return (data ?? []).map((row) => {
+        const { processes, ...rest } = row as MelhoriaRoi & {
+          processes?: { name: string | null; area: string | null } | null;
+        };
+        return {
+          ...rest,
+          process_name: processes?.name ?? null,
+          process_area: processes?.area ?? null,
+        };
+      });
     },
     staleTime: STALE_TIME,
   });

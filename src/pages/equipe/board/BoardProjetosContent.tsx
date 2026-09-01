@@ -14,8 +14,7 @@ import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
 import { contextoBoardProjetos } from '@/lib/agenteContextoProjetos';
 import { filtrarPorCluster } from '@/lib/boardExecutivo';
 import { filtrarLegado } from '@/lib/boardLegado';
-import { caixaVigente, mixAtivos, serieHorizonte } from '@/lib/boardDiretoria';
-import { serieReceitaComparada } from '@/lib/boardEstrategico';
+import { caixaVigente, mixAtivos, serieHorizonte, serieMixMensal } from '@/lib/boardDiretoria';
 
 export function BoardProjetosContent() {
   const { ambiente } = useDashboardAmbiente();
@@ -31,7 +30,7 @@ export function BoardProjetosContent() {
   const mix = useMemo(() => mixAtivos(os, hoje), [os, hoje]);
   const caixa = useMemo(() => caixaVigente(os), [os]);
   const horizonte = useMemo(() => serieHorizonte(os, hoje), [os, hoje]);
-  const serieReceita = useMemo(() => serieReceitaComparada(os, hoje), [os, hoje]);
+  const serieMix = useMemo(() => serieMixMensal(os, hoje), [os, hoje]);
 
   const contexto = useMemo(() => contextoBoardProjetos({
     janela: 'contratos vigentes no recorte',
@@ -58,13 +57,13 @@ export function BoardProjetosContent() {
       horas_estimadas: 0, horas_realizadas: 0, desvio_medio: null,
     },
     valorSemData: 0,
-    serieMensal: serieReceita.map((m) => ({ mes: m.mes, faturamento: m.atual })),
+    serieMensal: [],
     matriz: { meses: [], temSemData: false, linhas: [] },
     detalhe: 'cliente',
     status: [],
     leitura: { mix, caixa, horizonteSemFim: horizonte.semFim },
     falhas: negocio.error ? ['contratos, clientes e OS'] : [],
-  }), [cluster, clusters, mix, caixa, horizonte.semFim, serieReceita, os.length, negocio.error]);
+  }), [cluster, clusters, mix, caixa, horizonte.semFim, os.length, negocio.error]);
 
   useRegistrarContextoAgente('board.projetos', contexto, negocio.isLoading);
 
@@ -75,7 +74,7 @@ export function BoardProjetosContent() {
       mix={mix}
       caixa={caixa}
       horizonte={horizonte}
-      serieReceita={serieReceita}
+      serieMix={serieMix}
       os={os}
       hoje={hoje}
     />

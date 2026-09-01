@@ -1,15 +1,14 @@
 /**
- * Projetos na leitura da diretoria: de onde veio o ativo e até quando o caixa
- * está contratado. Faturamento total incompleto não entra na faixa.
+ * Projetos na leitura da diretoria: de onde veio o ativo e até quando o
+ * caixa está contratado. Sem faturamento total — cadastro incompleto mente.
  */
 import {
   Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { AXIS_STYLE, CHART_COLORS, GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
-import type { MesComparado } from '@/lib/boardEstrategico';
 import {
-  MIX_ROTULO, addDaysIso, classificarMix, primeiraOsPorCliente, rotuloMesIso,
-  type MixAtivos, type MixClasse, type PontoHorizonte,
+  MIX_ROTULO, addDaysIso, classificarMix, primeiraOsPorCliente, rotuloMesIso, ticketMedioAno,
+  type MixAtivos, type MixClasse, type PontoHorizonte, type PontoMixMensal,
 } from '@/lib/boardDiretoria';
 import type { OsRow } from '@/lib/dashboardClientesOs/types';
 
@@ -24,17 +23,18 @@ export function BoardBriefingProjetos({
   mix,
   caixa,
   horizonte,
-  serieReceita,
+  serieMix,
   os,
   hoje,
 }: {
   mix: MixAtivos;
   caixa: number;
   horizonte: { serie: PontoHorizonte[]; semFim: number };
-  serieReceita: MesComparado[];
+  serieMix: PontoMixMensal[];
   os: OsRow[];
   hoje: string;
 }) {
+  const ticket = ticketMedioAno(os, hoje);
   const primeira = primeiraOsPorCliente(os);
   const janelaDe = addDaysIso(hoje, -30);
   const linhas = os
@@ -48,7 +48,7 @@ export function BoardBriefingProjetos({
 
   return (
     <>
-      <div className="stat-strip" data-cols="4">
+      <div className="stat-strip" data-cols="5">
         <div className="stat-item">
           <div className="stat-label">Ativos</div>
           <div className="stat-num">{mix.ativos}</div>
@@ -65,33 +65,44 @@ export function BoardBriefingProjetos({
           <div className="stat-sub">cliente já na casa</div>
         </div>
         <div className="stat-item">
+          <div className="stat-label">Ticket médio</div>
+          <div className="stat-num">{ticket === null ? <span className="bd-dash">—</span> : brl(ticket)}</div>
+          <div className="stat-sub">ano · por cliente</div>
+        </div>
+        <div className="stat-item">
           <div className="stat-label">Caixa vigente</div>
           <div className="stat-num">{brl(caixa)}</div>
-          <div className="stat-sub">contratado, não faturado</div>
+          <div className="stat-sub">folha: —</div>
         </div>
       </div>
 
       <div className="bd-grid-2">
         <section className="bd-figure">
-          <div className="bd-kicker">Tendência</div>
+          <div className="bd-kicker">Mix</div>
           <div className="bd-figure-head">
-            <div className="bd-figure-title">Contratado × mesmo mês do ano anterior</div>
+            <div className="bd-figure-title">De onde veio o ativo</div>
+            <div className="bd-figure-meta">novo × aditivo × já no livro</div>
           </div>
           <div style={{ height: 200 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={serieReceita} barCategoryGap="26%" margin={{ top: 4, right: 4, left: -12, bottom: 0 }}>
+              <BarChart data={serieMix} barCategoryGap="28%" margin={{ top: 4, right: 4, left: -12, bottom: 0 }}>
                 <CartesianGrid {...GRID_STYLE} />
                 <XAxis dataKey="mes" tickFormatter={rotuloMesIso} {...AXIS_STYLE} />
-                <YAxis tickFormatter={brlEixo} {...AXIS_STYLE} />
-                <Tooltip {...TOOLTIP_STYLE} formatter={(v: number) => brl(v)} labelFormatter={(m: string) => rotuloMesIso(m)} />
-                <Bar dataKey="anterior" fill={CHART_COLORS.accentSoft} />
-                <Bar dataKey="atual" fill={CHART_COLORS.accent} />
+                <YAxis allowDecimals={false} {...AXIS_STYLE} />
+                <Tooltip
+                  {...TOOLTIP_STYLE}
+                  labelFormatter={(m: string) => rotuloMesIso(m)}
+                  formatter={(v: number, n: string) => [v, MIX_ROTULO[n as keyof typeof MIX_ROTULO] ?? n]}
+                />
+                <Bar dataKey="cliente_novo" stackId="m" fill={CHART_COLORS.accent} />
+                <Bar dataKey="aditivo" stackId="m" fill={CHART_COLORS.tax} />
+                <Bar dataKey="entrega_planejada" stackId="m" fill={CHART_COLORS.accentSoft} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </section>
         <section className="bd-figure">
-          <div className="bd-kicker">Projeção</div>
+          <div className="bd-kicker">Horizonte</div>
           <div className="bd-figure-head">
             <div className="bd-figure-title">Caixa que vence à frente</div>
             {horizonte.semFim > 0 && <div className="bd-figure-meta">{horizonte.semFim} OS sem data de fim</div>}
@@ -111,10 +122,9 @@ export function BoardBriefingProjetos({
       </div>
 
       <section className="bd-figure">
-        <div className="bd-kicker">Mix</div>
+        <div className="bd-kicker">Livro</div>
         <div className="bd-figure-head">
-          <div className="bd-figure-title">OS ativas · de onde veio</div>
-          <div className="bd-figure-meta">já planejada = — no cadastro se não há data</div>
+          <div className="bd-figure-title">OS ativas · até quando geram caixa</div>
         </div>
         {linhas.length === 0 ? (
           <p className="bd-motivo">Nenhuma OS ativa no recorte.</p>
@@ -123,6 +133,7 @@ export function BoardBriefingProjetos({
             <thead>
               <tr>
                 <th>Cliente</th>
+                <th>Serviço</th>
                 <th>Mix</th>
                 <th className="num">Contratado</th>
                 <th className="num">Fim</th>
@@ -132,6 +143,7 @@ export function BoardBriefingProjetos({
               {linhas.map(({ o, classe }) => (
                 <tr key={o.os_id}>
                   <td>{o.cliente_nome}</td>
+                  <td>{o.servico_nome?.trim() || '—'}</td>
                   <td>{MIX_ROTULO[classe]}</td>
                   <td className="num">{brl(o.faturamento)}</td>
                   <td className="num">{o.data_fim ?? '—'}</td>

@@ -58,7 +58,8 @@ export function BoardBriefingFerramentas({
           <table className="v4-tbl">
             <thead>
               <tr>
-                <th>Melhoria</th>
+                <th>Processo</th>
+                <th>Área</th>
                 <th className="num">Antes</th>
                 <th className="num">Depois</th>
                 <th className="num">Ganho</th>
@@ -69,9 +70,11 @@ export function BoardBriefingFerramentas({
             <tbody>
               {melhorias.map((m) => {
                 const linha = fteDeHoras(m.time_saved_hours ?? null);
+                const nome = m.process_name?.trim() || m.improvement_description?.trim() || '—';
                 return (
                   <tr key={m.id}>
-                    <td>{m.improvement_description?.trim() || '—'}</td>
+                    <td>{nome}</td>
+                    <td>{m.process_area?.trim() || '—'}</td>
                     <td className="num">{m.baseline_time_hours == null ? '—' : `${m.baseline_time_hours}h`}</td>
                     <td className="num">{m.improved_time_hours == null ? '—' : `${m.improved_time_hours}h`}</td>
                     <td className="num">
