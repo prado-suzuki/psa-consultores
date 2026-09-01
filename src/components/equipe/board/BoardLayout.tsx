@@ -20,6 +20,7 @@ import {
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 import { AgenteNotificacaoPopup } from '@/components/agente/AgenteNotificacaoPopup';
+import { BoardToolbar } from '@/components/board/BoardToolbar';
 
 interface BoardLayoutProps {
   children: React.ReactNode;
@@ -79,9 +80,8 @@ const buildNavItems = (acesso: BoardNavAccess): NavItem[] => [
  * peso e do espaçamento, como na referência.
  *
  * ── O usuário subiu para o topo ───────────────────────────────────────
- * Nome, papel e iniciais ficavam num bloco na barra lateral, que sumia quando
- * ela recolhia. Passaram para a direita do topbar, onde a referência os põe e
- * onde continuam visíveis com a barra recolhida.
+ * Só o nome de acesso e as iniciais ficam no topbar — título e filtros
+ * moram na toolbar do conteúdo, à direita do título da tela.
  */
 export const BoardLayout = ({ children, title, subtitle, headerActions, noPadding }: BoardLayoutProps) => {
   const { user, isAdmin, isLider, signOut } = useAuth();
@@ -283,50 +283,24 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
       <main className={`flex-1 flex flex-col min-w-0 overflow-hidden ml-0 transition-all duration-300 ${collapsed ? 'md:ml-[68px]' : 'md:ml-[240px]'}`}>
         {/* Topbar — 56px */}
         <header
-          className="bd-masthead flex items-center px-4 md:px-6 gap-3 flex-shrink-0 flex-wrap"
+          className="bd-masthead flex items-center justify-end px-4 md:px-6 gap-3 flex-shrink-0"
           style={{ backgroundColor: 'var(--bd-chrome)', borderBottom: '1px solid var(--bd-chrome-line)' }}
         >
           <Button
             variant="ghost"
             size="icon"
-            className="md:hidden"
+            className="md:hidden mr-auto"
             onClick={() => setMobileOpen(true)}
             style={{ color: 'var(--bd-ink3)' }}
           >
             <Menu className="h-5 w-5" />
           </Button>
 
-          <div className="min-w-0 py-2">
-            <div className="flex items-baseline gap-2 min-w-0">
-              <span className="text-[11px] hidden sm:inline" style={{ color: 'var(--bd-ink4)' }}>
-                <button type="button" onClick={() => navigate('/equipe/board/dashboard')} className="hover:underline">
-                  Board
-                </button>
-                <span aria-hidden> / </span>
-              </span>
-              <h1 className="bd-toolbar-title">{title}</h1>
-            </div>
-            {subtitle && (
-              <div className="hidden sm:flex items-center gap-2 text-[12px] leading-tight mt-0.5" style={{ color: 'var(--bd-ink3)' }}>
-                {subtitle}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 flex-wrap ml-auto py-2">
-            {headerActions}
-            <div
-              className="hidden sm:flex items-center gap-2.5 pl-3"
-              style={{ borderLeft: '1px solid var(--bd-line)' }}
-            >
-              <div className="text-right leading-tight">
-                <p className="text-[12.5px] font-semibold" style={{ color: 'var(--bd-ink)' }}>
-                  {firstName} {lastName}
-                </p>
-                <p className="text-[10.5px]" style={{ color: 'var(--bd-ink3)' }}>{role}</p>
-              </div>
-              <div className="v4-av v4-av-sm">{initials}</div>
-            </div>
+          <div className="flex items-center gap-2.5 py-2">
+            <p className="text-[12.5px] font-semibold leading-none" style={{ color: 'var(--bd-ink)' }}>
+              {firstName}{lastName ? ` ${lastName}` : ''}
+            </p>
+            <div className="v4-av v4-av-sm" title={role}>{initials}</div>
           </div>
         </header>
 
@@ -334,6 +308,9 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
             de cada tela, não numa faixa própria entre o topbar e o conteúdo. */}
         <div className="flex-1 overflow-y-auto">
           <div className={`${noPadding ? '' : 'px-4 pt-3 pb-8 md:px-6 md:pt-3 lg:px-8'}`} style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
+            <BoardToolbar title={title} meta={subtitle}>
+              {headerActions}
+            </BoardToolbar>
             {children}
           </div>
         </div>

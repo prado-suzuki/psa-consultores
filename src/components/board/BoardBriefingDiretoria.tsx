@@ -22,6 +22,12 @@ const brl = (v: number) =>
 
 const brlEixo = (v: number) => (v === 0 ? '0' : `${Math.round(v / 1000)}k`);
 
+/** Ritmo vira 10,666… — o tooltip não pode vazar o float cru. */
+const qtde = (v: number) =>
+  typeof v === 'number' && Number.isFinite(v)
+    ? v.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+    : '—';
+
 export interface BoardBriefingDiretoriaProps {
   mix: MixAtivos;
   serieMix: PontoMixMensal[];
@@ -97,7 +103,7 @@ export function BoardBriefingDiretoria({
               <Tooltip
                 {...TOOLTIP_STYLE}
                 labelFormatter={(m: string) => rotuloMesIso(m)}
-                formatter={(v: number, n: string) => [v, MIX_ROTULO[n as keyof typeof MIX_ROTULO] ?? n]}
+                formatter={(v: number, n: string) => [qtde(v), MIX_ROTULO[n as keyof typeof MIX_ROTULO] ?? n]}
               />
               <Bar dataKey="cliente_novo" stackId="m" fill={CHART_COLORS.accent} />
               <Bar dataKey="aditivo" stackId="m" fill={CHART_COLORS.tax} />
@@ -141,7 +147,11 @@ export function BoardBriefingDiretoria({
               <CartesianGrid {...GRID_STYLE} />
               <XAxis dataKey="mes" tickFormatter={rotuloMesIso} {...AXIS_STYLE} />
               <YAxis allowDecimals={false} {...AXIS_STYLE} />
-              <Tooltip {...TOOLTIP_STYLE} labelFormatter={(m: string) => rotuloMesIso(m)} />
+              <Tooltip
+                {...TOOLTIP_STYLE}
+                labelFormatter={(m: string) => rotuloMesIso(m)}
+                formatter={(v: number) => qtde(v)}
+              />
               <Line type="monotone" dataKey="meta" stroke={CHART_COLORS.accentSoft} strokeDasharray="4 4" dot={false} name="Meta" />
               <Line type="monotone" dataKey="projecao" stroke={CHART_COLORS.warn} strokeDasharray="3 3" dot={false} name="Projeção" />
               <Line type="monotone" dataKey="acumulado" stroke={CHART_COLORS.accent} strokeWidth={2} dot={{ r: 3 }} name="Real" connectNulls={false} />

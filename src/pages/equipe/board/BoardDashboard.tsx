@@ -54,7 +54,7 @@ const MES_EXTENSO = [
   'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
 ];
 
-const brlMil = (v: number) => Math.round(v / 1000);
+const brlMil = (v: number) => Math.round(v / 1000).toLocaleString('pt-BR');
 
 /**
  * Estratégico — a tela de sócio, e a porta de entrada do Board.
@@ -370,7 +370,7 @@ const BoardDashboard = () => {
           {cicloAtivo ? ` · ${cicloAtivo.nome}` : carregandoCiclo ? ' · ciclo…' : ''}
           {todasAsFalhas.length > 0 && ` · ${todasAsFalhas.join(', ')} não carregaram`}
           {receitaEmJogo > 0 && (
-            <BoardChip variant="risk">R${brlMil(receitaEmJogo)}k parado em contrato</BoardChip>
+            <BoardChip variant="risk">R$ {brlMil(receitaEmJogo)} mil parado em contrato</BoardChip>
           )}
         </>
       )}
@@ -380,8 +380,8 @@ const BoardDashboard = () => {
           <BoardFilterBar
             hideHeading
             filters={[
-              { key: 'periodo', label: 'Período', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
-              { key: 'centroCusto', label: 'Centro de custo', type: 'select', options: ccOptions },
+              { key: 'periodo', label: 'Período', type: 'select', hideLabel: true, width: '128px', options: [{ value: '7d', label: '7 dias' }, { value: '30d', label: '30 dias' }, { value: '90d', label: '90 dias' }, { value: 'ciclo', label: 'Ciclo' }] },
+              { key: 'centroCusto', label: 'Centro de custo', type: 'select', hideLabel: true, width: '220px', options: ccOptions },
             ]}
             activeFilters={filters}
             onFilterChange={setFilter}
