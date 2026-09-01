@@ -18,6 +18,7 @@ import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { BoardFilterBar } from '@/components/board/BoardFilterBar';
 import { BoardChip } from '@/components/board/BoardChip';
 import { BoardBriefingDiretoria } from '@/components/board/BoardBriefingDiretoria';
+import { BoardClusterBar } from '@/components/equipe/board/BoardClusterBar';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import {
   filtrarPorCluster, filtrarTarefasPorProjetos, saudeProjetos,
@@ -361,32 +362,36 @@ const BoardDashboard = () => {
   }, [kpisLoading, revealRef]);
 
   return (
-    <BoardLayout title="Estratégico" subtitle="O que decide">
-      <div ref={containerRef} style={{ background: 'var(--bd-page)' }}>
-        <div className="pg-head" data-reveal>
-          <div className="pg-title">Estratégico</div>
-          <div className="pg-sub">
-            {format(new Date(), 'dd MMM yyyy', { locale: ptBR })}
-            {cicloAtivo ? ` · ${cicloAtivo.nome}` : carregandoCiclo ? ' · ciclo…' : ''}
-            {todasAsFalhas.length > 0 && ` · ${todasAsFalhas.join(', ')} não carregaram`}
-          </div>
+    <BoardLayout
+      title="Estratégico"
+      subtitle={(
+        <>
+          {format(new Date(), 'dd MMM yyyy', { locale: ptBR })}
+          {cicloAtivo ? ` · ${cicloAtivo.nome}` : carregandoCiclo ? ' · ciclo…' : ''}
+          {todasAsFalhas.length > 0 && ` · ${todasAsFalhas.join(', ')} não carregaram`}
           {receitaEmJogo > 0 && (
-            <div className="pg-chips">
-              <BoardChip variant="risk">R${brlMil(receitaEmJogo)}k parado em contrato</BoardChip>
-            </div>
+            <BoardChip variant="risk">R${brlMil(receitaEmJogo)}k parado em contrato</BoardChip>
           )}
-        </div>
-
-        <BoardFilterBar
-          filters={[
-            { key: 'periodo', label: 'Período', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
-            { key: 'centroCusto', label: 'Centro de custo', type: 'select', options: ccOptions },
-          ]}
-          activeFilters={filters}
-          onFilterChange={setFilter}
-          onReset={resetFilters}
-          activeCount={activeCount}
-        />
+        </>
+      )}
+      headerActions={(
+        <>
+          <BoardClusterBar />
+          <BoardFilterBar
+            hideHeading
+            filters={[
+              { key: 'periodo', label: 'Período', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
+              { key: 'centroCusto', label: 'Centro de custo', type: 'select', options: ccOptions },
+            ]}
+            activeFilters={filters}
+            onFilterChange={setFilter}
+            onReset={resetFilters}
+            activeCount={activeCount}
+          />
+        </>
+      )}
+    >
+      <div ref={containerRef} style={{ background: 'var(--bd-page)' }}>
 
         {kpisLoading ? (
           <Skeleton className="h-[280px] mb-6" />

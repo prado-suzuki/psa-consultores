@@ -29,7 +29,7 @@ export const MIX_ROTULO: Record<MixClasse, string> = {
   inclassificavel: 'Sem data',
 };
 
-function primeiraOsPorCliente(os: OsRow[]): Map<string, string> {
+export function primeiraOsPorCliente(os: OsRow[]): Map<string, string> {
   const map = new Map<string, string>();
   for (const o of os) {
     if (!o.data_inicio) continue;
@@ -180,6 +180,13 @@ export function serieHorizonte(os: OsRow[], hoje: string, meses = 8): {
 export function fteDeHoras(horas: number | null): { horas: number | null; fte: number | null } {
   if (horas === null) return { horas: null, fte: null };
   return { horas, fte: horas / HORAS_MES_FTE };
+}
+
+/** Soma horas salvas. Sem nenhum valor cadastrado → null (a tela escreve —). */
+export function somaHorasSalvas(horas: Array<number | null | undefined>): number | null {
+  const vals = horas.filter((h): h is number => h != null);
+  if (vals.length === 0) return null;
+  return vals.reduce((acc, h) => acc + h, 0);
 }
 
 export function recorteOsg(os: OsRow[]): OsRow[] {

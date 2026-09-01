@@ -1,77 +1,108 @@
 import { useMemo } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
+import { BoardClusterBar } from '@/components/equipe/board/BoardClusterBar';
+import { BoardBriefingClientes } from '@/components/board/BoardBriefingClientes';
 import { BoardMapaClientes } from '@/components/board/BoardMapaClientes';
 import { BoardClientesLista } from '@/components/board/BoardClientesLista';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
+import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
 import { useDomainClientesPorRegiao } from '@/hooks/useDomainClientesPorRegiao';
+import { useBoardCluster } from '@/hooks/useBoardCluster';
 import { agregarClientesPorRegiao } from '@/lib/clientesPorRegiao';
+import { concentracaoCarteira } from '@/lib/boardEstrategico';
+import { ticketMedioAno } from '@/lib/boardDiretoria';
+import { filtrarPorCluster } from '@/lib/boardExecutivo';
+import { filtrarLegado } from '@/lib/boardLegado';
 import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
 import { contextoBoardClientes } from '@/lib/agenteContextoClientes';
 
 /**
- * Clientes — módulo Gerencial (Board).
+ * Clientes — de quem a carteira depende.
  *
- * Duas partes: o mapa de calor por estado e a lista de clientes.
- *
- * A LISTA (reunião Mariana, 17/08, P8) é `BoardClientesLista`, enxuta e
- * somente leitura -- nome, status e um cartão de detalhe ao clicar. Até
- * 20/08 esta tela reaproveitava `GestaoClientesContent` (o módulo de
- * cadastro completo, com criar/editar/excluir, compartilhado com a Gerencial
- * da Tax e da OSG). Deixou de ser montada aqui porque não é estratégica para
- * quem olha o Board -- o componente de cadastro continua intacto e do jeito
- * que sempre foi para Tax/OSG, em `GestaoClientes.tsx`.
+ * Concentração do contratado na frente (mesma fonte do Estratégico).
+ * Mapa e lista são recorte, não o cadastro (reuniões 17/08 e 28/08).
  */
 const BoardClientes = () => {
   const { isAdmin } = useAuth();
   const { ambiente } = useDashboardAmbiente();
-  const { data: clientes, isLoading, error } = useDomainClientesPorRegiao(ambiente);
+  const { cluster } = useBoardCluster();
+  const negocio = useDashboardClientesOs(ambiente);
+  const { data: clientesRegiao, isLoading: mapaLoading, error: mapaError } =
+    useDomainClientesPorRegiao(ambiente);
 
-  // O agente le a MESMA agregacao que pinta o mapa. Recalcular aqui daria dois
-  // numeros para a mesma pergunta -- o do mapa e o do chat.
-  const agregacao = useMemo(() => agregarClientesPorRegiao(clientes ?? []), [clientes]);
+  const osRows = useMemo(
+    () => filtrarLegado(filtrarPorCluster(negocio.data?.osRows ?? [], cluster)),
+    [negocio.data, cluster],
+  );
+  const clienteRows = useMemo(
+    () => filtrarLegado(filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster)),
+    [negocio.data, cluster],
+  );
+  const hoje = negocio.hoje;
+  const concentracao = useMemo(() => concentracaoCarteira(osRows), [osRows]);
+  const ticket = useMemo(() => ticketMedioAno(osRows, hoje), [osRows, hoje]);
+  const ativos = useMemo(() => clienteRows.filter((c) => c.ativo).length, [clienteRows]);
+
+  const clientesMapa = useMemo(() => {
+    const ids = new Set(clienteRows.map((c) => c.cliente_id));
+    return (clientesRegiao ?? []).filter((c) => ids.has(c.id));
+  }, [clientesRegiao, clienteRows]);
+
+  const agregacao = useMemo(() => agregarClientesPorRegiao(clientesMapa), [clientesMapa]);
+  const carregando = negocio.isLoading || mapaLoading;
+
   const contextoAgente = useMemo(() => contextoBoardClientes({
     agregacao,
-    escopoTotal: isAdmin,
-    falhas: error ? ['distribuição de clientes'] : [],
-  }), [agregacao, isAdmin, error]);
-  useRegistrarContextoAgente('board.clientes', contextoAgente, isLoading);
+    escopoTotal: isAdmin && !cluster,
+    concentracao,
+    ticket,
+    falhas: [
+      ...(negocio.error ? ['contratos e clientes'] : []),
+      ...(mapaError ? ['distribuição de clientes'] : []),
+    ],
+  }), [agregacao, isAdmin, cluster, concentracao, ticket, negocio.error, mapaError]);
+  useRegistrarContextoAgente('board.clientes', contextoAgente, carregando);
 
   return (
-    <BoardLayout title="Clientes" subtitle="Carteira e concentração geográfica">
-      <div className="space-y-4">
-        <div className="pg-head">
-          <div className="pg-title">Clientes</div>
-          <div className="pg-sub">Onde está a carteira</div>
+    <BoardLayout
+      title="Clientes"
+      subtitle="Quem carrega o contratado"
+      headerActions={<BoardClusterBar />}
+    >
+      {carregando ? (
+        <div
+          className="board-card flex h-[280px] items-center justify-center"
+          role="status"
+          aria-label="Carregando carteira"
+        >
+          <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--bd-accent-d)' }} />
         </div>
-        {isLoading ? (
-          <div
-            className="board-card flex h-[320px] items-center justify-center"
-            role="status"
-            aria-label="Carregando mapa de clientes"
-          >
-            <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--board-indigo)' }} />
-          </div>
-        ) : error ? (
-          <div className="board-card flex items-start gap-3 p-4">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'var(--board-red)' }} />
-            <div>
-              <p className="text-[13px] font-semibold" style={{ color: 'var(--board-t1)' }}>
-                Não foi possível carregar a distribuição de clientes
-              </p>
-              <p className="mt-0.5 text-[12px]" style={{ color: 'var(--board-t3)' }}>
-                {error instanceof Error ? error.message : 'Erro desconhecido.'} O mapa não é exibido
-                em vez de mostrar um Brasil vazio, que pareceria "nenhum cliente".
-              </p>
+      ) : (
+        <BoardBriefingClientes
+          concentracao={concentracao}
+          ticket={ticket}
+          ativos={ativos}
+          mapa={mapaError ? (
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'var(--bd-risk)' }} />
+              <div>
+                <p className="text-[13px] font-semibold" style={{ color: 'var(--bd-ink)' }}>
+                  Não foi possível carregar a distribuição
+                </p>
+                <p className="mt-0.5 text-[12px]" style={{ color: 'var(--bd-ink3)' }}>
+                  {mapaError instanceof Error ? mapaError.message : 'Erro desconhecido.'}
+                  {' '}O mapa não é exibido em vez de um Brasil vazio.
+                </p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <BoardMapaClientes clientes={clientes ?? []} escopoTotal={isAdmin} />
-        )}
-
-        <BoardClientesLista />
-      </div>
+          ) : (
+            <BoardMapaClientes clientes={clientesMapa} escopoTotal={isAdmin && !cluster} />
+          )}
+          lista={<BoardClientesLista />}
+        />
+      )}
     </BoardLayout>
   );
 };

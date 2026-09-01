@@ -20,11 +20,7 @@ import { AreaDashboardContent } from '@/components/equipe/area-dashboard/AreaDas
  * empresa inteira.
  */
 const BoardCapacidade = () => (
-  <BoardLayout title="Capacidade" subtitle="Carga à frente">
-    <div className="pg-head">
-      <div className="pg-title">Capacidade</div>
-      <div className="pg-sub">14 dias · quem estoura</div>
-    </div>
+  <BoardLayout title="Capacidade" subtitle="14 dias · quem estoura">
     <AreaDashboardContent area="todas" escopoAgente="board.capacidade" />
   </BoardLayout>
 );

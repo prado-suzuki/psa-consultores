@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo } from 'react';
-import { BarChart3, FlaskConical, RefreshCw } from 'lucide-react';
+import { BarChart3, FlaskConical } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Bar,
@@ -64,6 +64,9 @@ import type { AnalyticsUsoFiltros } from '@/lib/analytics-uso/types';
 import { prepararGerencialViewModel } from '@/lib/analytics-uso/viewModels';
 import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
 import { contextoBoardFerramentas } from '@/lib/agenteContextoFerramentas';
+import { useDomainMelhoriasRoi } from '@/hooks/useDomainMelhoriasRoi';
+import { BoardBriefingFerramentas } from '@/components/board/BoardBriefingFerramentas';
+import { fteDeHoras, somaHorasSalvas } from '@/lib/boardDiretoria';
 
 const TODOS = 'todos';
 const periodoValido = (valor: string | null) =>
@@ -125,13 +128,26 @@ const DashboardUsoEnvioGerencial = () => {
       clusterSelecionado !== TODOS &&
       clustersDisponiveis.includes(clusterSelecionado));
   const gerencial = useAnalyticsGerencial(filtros, { enabled: escopoPronto });
+  const melhoriasQuery = useDomainMelhoriasRoi();
   const clusterId = clusterSelecionado === TODOS ? undefined : clusterSelecionado;
+  const melhorias = useMemo(() => {
+    const todas = melhoriasQuery.data ?? [];
+    return clusterId ? todas.filter((m) => m.cluster_id === clusterId) : todas;
+  }, [melhoriasQuery.data, clusterId]);
+  const beneficio = useMemo(() => {
+    const horasLiberadas = somaHorasSalvas(melhorias.map((m) => m.time_saved_hours));
+    return {
+      horasLiberadas,
+      fte: fteDeHoras(horasLiberadas).fte,
+      melhoriasMedidas: melhorias.length,
+    };
+  }, [melhorias]);
   const viewModel = useMemo(() => prepararGerencialViewModel(gerencial.data), [gerencial.data]);
   const { totais, apiMes, mesReferenciaParcial, atividadePessoas, pessoas, ferramentas } =
     viewModel;
   const tabelaPessoas = useSort(atividadePessoas, 'chamadas');
   const pessoasVisiveis = useTopN(tabelaPessoas.sorted, 20);
-  const carregando = !escopoPronto || gerencial.isLoading;
+  const carregando = !escopoPronto || gerencial.isLoading || melhoriasQuery.isLoading;
   const catalogoFerramentas =
     catalogo.data?.ferramentas.length ?? gerencial.data?.porFerramenta.length;
 
@@ -199,32 +215,31 @@ const DashboardUsoEnvioGerencial = () => {
     })),
     catalogoFerramentas: catalogoFerramentas ?? null,
     usandoFixtures: USANDO_FIXTURES,
+    beneficio,
     falhas: [
       ...(gerencial.error ? [`uso das ferramentas (${gerencial.error.message})`] : []),
       ...(catalogo.error ? [`catálogo de ferramentas (${catalogo.error.message})`] : []),
+      ...(melhoriasQuery.error ? [`melhorias (benefício)`] : []),
     ],
   }), carregando);
 
   return (
-    <BoardLayout title="Ferramentas" subtitle="Benefício e adoção">
+    <BoardLayout
+      title="Ferramentas"
+      subtitle="Benefício · FTE · uso no clique"
+      headerActions={!acessoTecnico.isLoading && acessoTecnico.hasAccess ? (
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => navigate('/equipe/dashboards?painel=controle-uso-envio')}
+        >
+          <BarChart3 className="h-4 w-4" />
+          Visão técnica
+        </Button>
+      ) : undefined}
+    >
       <div className="space-y-4">
-        <div className="pg-head flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="pg-title">Ferramentas</div>
-            <div className="pg-sub">Hora liberada · FTE · quem usa</div>
-          </div>
-          {!acessoTecnico.isLoading && acessoTecnico.hasAccess && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => navigate('/equipe/dashboards?painel=controle-uso-envio')}
-            >
-              <BarChart3 className="h-4 w-4" />
-              Visão técnica
-            </Button>
-          )}
-        </div>
         <GerencialFiltros
           periodo={{
             value: periodoSelecionado,
@@ -267,24 +282,10 @@ const DashboardUsoEnvioGerencial = () => {
             `--board-bg` mudou em 21/08 (era #F0F4F8, virou o neutro com cast de teal
             do bloco `--bd-*`), e a conclusão não muda — a luminosidade do fundo é a
             mesma. */}
-        <div className="stat-strip" data-cols="3">
-          <div className="stat-item">
-            <div className="stat-label">Horas liberadas</div>
-            <div className="stat-num"><span className="bd-dash">—</span></div>
-            <div className="stat-sub">antes × depois ausente</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-label">FTE</div>
-            <div className="stat-num"><span className="bd-dash">—</span></div>
-            <div className="stat-sub">176 h / mês</div>
-          </div>
-          <div className="stat-item">
-            <div className="stat-label">Demanda vs FTE</div>
-            <div className="stat-num"><span className="bd-dash">—</span></div>
-            <div className="stat-sub">sem série de demanda</div>
-          </div>
-        </div>
-
+        <BoardBriefingFerramentas
+          melhorias={melhorias}
+          quemUsa={(
+            <>
         <FaixaResumo
           variante="cartoes"
           carregando={carregando}
@@ -594,6 +595,9 @@ const DashboardUsoEnvioGerencial = () => {
             permanecem no período completo do fixture.
           </p>
         )}
+            </>
+          )}
+        />
       </div>
     </BoardLayout>
   );

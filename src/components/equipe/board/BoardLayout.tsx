@@ -8,141 +8,55 @@ import {
   LayoutDashboard,
   ArrowLeft,
   BarChart3,
-  Target,
-  CalendarRange,
-  Crosshair,
-  MessageSquareHeart,
   Users2,
-  TrendingUp,
   Menu,
-  Eye,
   ChevronRight,
   ChevronLeft,
-  CheckCircle,
-  FileText,
   MapPin,
   Shield,
-  User,
   LogOut,
+  type LucideIcon,
 } from 'lucide-react';
-import { useDomainBoardLayout } from '@/hooks/useDomainBoardLayout';
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
-import { BoardClusterBar, honraClusterGlobal } from '@/components/equipe/board/BoardClusterBar';
 import { AgenteNotificacaoPopup } from '@/components/agente/AgenteNotificacaoPopup';
 
 interface BoardLayoutProps {
   children: React.ReactNode;
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   headerActions?: React.ReactNode;
   noPadding?: boolean;
 }
 
 interface NavItem {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   path: string;
-  children?: { icon: any; label: string; path: string; badge?: number }[];
+  children?: { icon: LucideIcon; label: string; path: string; badge?: number }[];
   adminOnly?: boolean;
   badge?: number | 'amber';
 }
 
-const buildDesempenhoSubItems = (pendingDecisions: number) => [
-  { icon: Eye, label: 'Visao Geral', path: '/equipe/board/desempenho' },
-  { icon: CalendarRange, label: 'Ciclos', path: '/equipe/board/desempenho/ciclos' },
-  { icon: Crosshair, label: 'Metas e PPR', path: '/equipe/board/desempenho/metas' },
-  { icon: CheckCircle, label: 'Decisoes', path: '/equipe/board/desempenho/decisoes', badge: pendingDecisions },
-  { icon: FileText, label: 'Relatorios', path: '/equipe/board/desempenho/relatorios' },
-  { icon: TrendingUp, label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' },
-  { icon: MessageSquareHeart, label: 'Feedbacks', path: '/equipe/board/desempenho/feedbacks' },
-  { icon: Users2, label: '1:1s', path: '/equipe/board/desempenho/1a1' },
-];
-
 interface BoardNavAccess {
-  performance: boolean;
-  desempenho: boolean;
   usoEnvio: boolean;
-  chamados: boolean;
-  capacidade: boolean;
   logsEquipe: boolean;
 }
 
-const buildNavItems = (
-  acesso: BoardNavAccess,
-  pendingDecisions: number,
-): NavItem[] => [
+const buildNavItems = (acesso: BoardNavAccess): NavItem[] => [
   { icon: LayoutDashboard, label: 'Estratégico', path: '/equipe/board/dashboard' },
-  // REMOVIDO DA DIRETORIA (reunião 17/08): os relatórios do Looker Studio saem
-  // do board. Rota desativada em App.tsx, arquivo intacto.
-  // { icon: FileBarChart, label: 'Dashboards', path: '/equipe/board/relatorios' },
   ...(acesso.usoEnvio ? [
     { icon: BarChart3, label: 'Ferramentas', path: '/equipe/board/uso-envio' } as NavItem,
   ] : []),
   { icon: Users2, label: 'Projetos', path: '/equipe/board/dashboard-clientes-os' },
   { icon: MapPin, label: 'Clientes', path: '/equipe/board/clientes' },
-  // REMOVIDO DA DIRETORIA (reunião 17/08): volta depois como recorte estratégico
-  // dentro de Clientes. Rota desativada em App.tsx, arquivo intacto.
-  // ...(acesso.chamados ? [
-  //   { icon: MessageSquareHeart, label: 'Chamados', path: '/equipe/board/chamados/dashboard' } as NavItem,
-  // ] : []),
-  // REMOVIDO DE GESTÃO DE TIME (reunião 17/08): saiu do menu, mas a ROTA em
-  // App.tsx continua ATIVA de propósito -- "Áreas em um olhar" e
-  // "Acompanhamento de execução" no Estratégico, e um card da faixa de KPIs,
-  // navegam para /equipe/board/performance como detalhe. Desativar a rota
-  // também quebraria esses três links.
-  // ...(acesso.performance ? [
-  //   { icon: BarChart3, label: 'Operacional', path: '/equipe/board/performance', adminOnly: true } as NavItem,
-  // ] : []),
-  ...(acesso.capacidade ? [
-    // Carga do time e prazos — o dashboard de área do Tax e da OSG, somado.
-    { icon: Users2, label: 'Capacidade', path: '/equipe/board/capacidade', adminOnly: true } as NavItem,
-  ] : []),
-  ...(acesso.desempenho ? [
-    { icon: Target, label: 'Desempenho', path: '/equipe/board/desempenho', adminOnly: true, children: buildDesempenhoSubItems(pendingDecisions) } as NavItem,
-  ] : []),
+  // REMOVIDOS DO MENU (reuniões 17/08 e 28/08). Rotas ficam ativas de propósito
+  // — link interno / bookmark não quebra. Não reabrir item sem a diretoria pedir.
+  // Capacidade = réplica do dashboard de área. Desempenho e Minha Evolução = RH.
   ...(acesso.logsEquipe ? [
     { icon: Shield, label: 'Logs', path: '/equipe/board/logs-equipe', adminOnly: true } as NavItem,
   ] : []),
 ];
-
-const getBreadcrumb = (pathname: string) => {
-  const segments: { label: string; path: string }[] = [{ label: 'Board', path: '/equipe/board' }];
-  if (pathname.includes('/performance')) {
-    segments.push({ label: 'Operacional', path: '/equipe/board/performance' });
-  } else if (pathname.includes('/desempenho')) {
-    segments.push({ label: 'Desempenho', path: '/equipe/board/desempenho' });
-    if (pathname.includes('/ciclos')) segments.push({ label: 'Ciclos', path: '/equipe/board/desempenho/ciclos' });
-    else if (pathname.includes('/metas')) segments.push({ label: 'Metas e PPR', path: '/equipe/board/desempenho/metas' });
-    else if (pathname.includes('/decisoes')) segments.push({ label: 'Decisoes', path: '/equipe/board/desempenho/decisoes' });
-    else if (pathname.includes('/relatorios')) segments.push({ label: 'Relatorios', path: '/equipe/board/desempenho/relatorios' });
-    else if (pathname.includes('/feedbacks')) segments.push({ label: 'Feedbacks', path: '/equipe/board/desempenho/feedbacks' });
-    else if (pathname.includes('/1a1')) segments.push({ label: '1:1s', path: '/equipe/board/desempenho/1a1' });
-    else if (pathname.includes('/minha-evolucao')) segments.push({ label: 'Minha Evolução', path: '/equipe/board/desempenho/minha-evolucao' });
-    else if (pathname.includes('/evolucao')) segments.push({ label: 'Evolucao', path: '/equipe/board/desempenho/evolucao' });
-  } else if (pathname.includes('/chamados')) {
-    // Antes do teste de '/dashboard': `/chamados/dashboard` cairia no ramo do
-    // Estratégico e o breadcrumb mentiria.
-    segments.push({ label: 'Chamados', path: '/equipe/board/chamados' });
-    if (pathname.endsWith('/dashboard')) segments.push({ label: 'Dashboard', path: '/equipe/board/chamados/dashboard' });
-    else if (!pathname.endsWith('/chamados')) segments.push({ label: 'Detalhe', path: pathname });
-  } else if (pathname.includes('/capacidade')) {
-    segments.push({ label: 'Capacidade', path: '/equipe/board/capacidade' });
-  } else if (pathname.includes('/logs-equipe')) {
-    segments.push({ label: 'Logs', path: '/equipe/board/logs-equipe' });
-  } else if (pathname.includes('/uso-envio')) {
-    segments.push({ label: 'Ferramentas', path: '/equipe/board/uso-envio' });
-  } else if (pathname.includes('/relatorios')) {
-    segments.push({ label: 'Dashboards', path: '/equipe/board/relatorios' });
-  } else if (pathname.includes('/dashboard-clientes-os')) {
-    segments.push({ label: 'Projetos', path: '/equipe/board/dashboard-clientes-os' });
-  } else if (pathname.includes('/clientes')) {
-    segments.push({ label: 'Clientes', path: '/equipe/board/clientes' });
-  } else if (pathname.includes('/dashboard')) {
-    segments.push({ label: 'Estratégico', path: '/equipe/board/dashboard' });
-  }
-  return segments;
-};
 
 /**
  * O shell da área Board.
@@ -171,11 +85,7 @@ const getBreadcrumb = (pathname: string) => {
  */
 export const BoardLayout = ({ children, title, subtitle, headerActions, noPadding }: BoardLayoutProps) => {
   const { user, isAdmin, isLider, signOut } = useAuth();
-  const { hasAccess: canPerformance } = usePageAccess('/equipe/board/performance');
-  const { hasAccess: canDesempenho } = usePageAccess('/equipe/board/desempenho');
   const { hasAccess: canUsoEnvio } = usePageAccess('/equipe/board/uso-envio');
-  const { hasAccess: canChamados } = usePageAccess('/equipe/board/chamados/dashboard');
-  const { hasAccess: canCapacidade } = usePageAccess('/equipe/board/capacidade');
   const { hasAccess: canLogsEquipe } = usePageAccess('/equipe/board/logs-equipe');
   const navigate = useNavigate();
   const location = useLocation();
@@ -201,49 +111,16 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
     persistKey: 'board-sidebar-collapsed',
   });
 
-  const { pendingDecisions, hasUnreadOrOverdue } = useDomainBoardLayout({
-    canDesempenho,
-    userId: user?.id,
-  });
-
-  // `isLider` é ESTRITO no AuthContext (não engloba admin) — daí o OR, como no
-  // LiderRoute.
   const podeGerencial = isAdmin || isLider;
 
-  const navItems = buildNavItems(
-    {
-      performance: canPerformance === true,
-      desempenho: canDesempenho === true,
-      usoEnvio: canUsoEnvio === true,
-      // Estas três rotas são líder+ (LiderRoute em App.tsx). Sem o mesmo teste
-      // aqui, quem não é líder veria o item e o clique só redirecionaria.
-      chamados: canChamados === true && podeGerencial,
-      capacidade: canCapacidade === true && podeGerencial,
-      logsEquipe: canLogsEquipe === true && podeGerencial,
-    },
-    pendingDecisions,
-  );
-  // O grupo aparece quando existe pelo menos um item dele — hoje Operacional,
-  // Capacidade, Desempenho e Logs de Equipe.
+  const navItems = buildNavItems({
+    usoEnvio: canUsoEnvio === true,
+    logsEquipe: canLogsEquipe === true && podeGerencial,
+  });
   const showGestaoTime = navItems.some(item => item.adminOnly);
-  const isDesempenhoRoute = location.pathname.startsWith('/equipe/board/desempenho');
-  const isMiEvolucaoRoute = location.pathname.includes('/minha-evolucao');
-  const breadcrumb = getBreadcrumb(location.pathname);
 
-  const isActive = (path: string) => {
-    if (path === '/equipe/board/desempenho') return location.pathname === path;
-    // O menu de Chamados leva ao dashboard, mas fica aceso na lista e no detalhe
-    // também — são a mesma seção para quem está navegando.
-    if (path === '/equipe/board/chamados/dashboard') {
-      return location.pathname.startsWith('/equipe/board/chamados');
-    }
-    return location.pathname === path || location.pathname.startsWith(path + '/');
-  };
-
-  const isParentActive = (item: NavItem) => {
-    if (isActive(item.path)) return true;
-    return item.children?.some(c => isActive(c.path)) ?? false;
-  };
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(path + '/');
 
   const firstName = user?.user_metadata?.first_name || user?.email?.split('@')[0] || 'Usuario';
   const lastName = user?.user_metadata?.last_name || '';
@@ -328,75 +205,20 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
               </p>
             )}
             {navItems.filter(i => i.adminOnly).map((item) => (
-              <div key={item.path}>
-                <button
-                  onClick={() => { navigate(item.path); setMobileOpen(false); }}
-                  className="w-full flex items-center gap-2.5 rounded-[10px] text-[13px] transition-all duration-150 relative mb-0.5 px-2.5 py-2"
-                  style={navBtnStyle(isParentActive(item), collapsed)}
-                  title={collapsed ? item.label : undefined}
-                >
-                  <item.icon className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isParentActive(item) ? 1 : 0.7 }} />
-                  {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
-                  {!collapsed && item.children && (
-                    <ChevronRight
-                      className={`h-3 w-3 transition-transform ${isDesempenhoRoute ? 'rotate-90' : ''}`}
-                      style={{ color: isParentActive(item) ? 'rgba(255,255,255,.7)' : 'var(--bd-ink4)' }}
-                    />
-                  )}
-                </button>
-                {/* Sub-itens */}
-                {!collapsed && item.children && isDesempenhoRoute && (
-                  <div className="ml-[18px] mt-1 pl-2.5" style={{ borderLeft: '1px solid var(--bd-line)' }}>
-                    {item.children.map((sub) => (
-                      <button
-                        key={sub.path}
-                        onClick={() => { navigate(sub.path); setMobileOpen(false); }}
-                        className="w-full flex items-center gap-2.5 rounded-[9px] text-[12.5px] transition-all duration-150 px-2.5 py-[6px] relative mb-0.5"
-                        style={{
-                          color: isActive(sub.path) ? 'var(--bd-accent-d)' : 'var(--bd-ink3)',
-                          fontWeight: isActive(sub.path) ? 600 : 500,
-                          backgroundColor: isActive(sub.path) ? 'var(--bd-accent-t)' : 'transparent',
-                        }}
-                      >
-                        <sub.icon className="h-[14px] w-[14px] flex-shrink-0" style={{ opacity: isActive(sub.path) ? 1 : 0.7 }} />
-                        <span className="flex-1 text-left">{sub.label}</span>
-                        {sub.badge !== undefined && sub.badge > 0 && (
-                          <span
-                            className="min-w-[18px] h-[18px] rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1"
-                            style={{ backgroundColor: 'var(--bd-risk-d)' }}
-                          >
-                            {sub.badge}
-                          </span>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <button
+                key={item.path}
+                onClick={() => { navigate(item.path); setMobileOpen(false); }}
+                className="w-full flex items-center gap-2.5 rounded-[10px] text-[13px] transition-all duration-150 relative mb-0.5 px-2.5 py-2"
+                style={navBtnStyle(isActive(item.path), collapsed)}
+                title={collapsed ? item.label : undefined}
+              >
+                <item.icon className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isActive(item.path) ? 1 : 0.7 }} />
+                {!collapsed && <span className="flex-1 text-left">{item.label}</span>}
+              </button>
             ))}
           </div>
         )}
 
-        {/* MINHA AREA */}
-        <div className="mb-5">
-          {!collapsed && (
-            <p className="px-2.5 mb-1.5 text-[9.5px] font-bold uppercase tracking-[0.13em]" style={{ color: 'var(--bd-ink4)' }}>
-              Minha Area
-            </p>
-          )}
-          <button
-            onClick={() => { navigate('/equipe/board/desempenho/minha-evolucao'); setMobileOpen(false); }}
-            className="w-full flex items-center gap-2.5 rounded-[10px] text-[13px] transition-all duration-150 relative mb-0.5 px-2.5 py-2"
-            style={navBtnStyle(isMiEvolucaoRoute, collapsed)}
-            title={collapsed ? 'Minha Evolução' : undefined}
-          >
-            <User className="h-[15px] w-[15px] flex-shrink-0" style={{ opacity: isMiEvolucaoRoute ? 1 : 0.7 }} />
-            {!collapsed && <span className="flex-1 text-left">Minha Evolução</span>}
-            {!collapsed && hasUnreadOrOverdue && (
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--bd-warn)' }} />
-            )}
-          </button>
-        </div>
       </ScrollArea>
 
       {/* Rodapé */}
@@ -461,7 +283,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
       <main className={`flex-1 flex flex-col min-w-0 overflow-hidden ml-0 transition-all duration-300 ${collapsed ? 'md:ml-[68px]' : 'md:ml-[240px]'}`}>
         {/* Topbar — 56px */}
         <header
-          className="h-14 min-h-14 flex items-center px-4 md:px-6 gap-3 flex-shrink-0"
+          className="bd-masthead flex items-center px-4 md:px-6 gap-3 flex-shrink-0 flex-wrap"
           style={{ backgroundColor: 'var(--bd-chrome)', borderBottom: '1px solid var(--bd-chrome-line)' }}
         >
           <Button
@@ -474,33 +296,25 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
             <Menu className="h-5 w-5" />
           </Button>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 text-[12px]" style={{ color: 'var(--bd-ink3)' }}>
-              {breadcrumb.map((b, i) => (
-                <span key={b.path} className="flex items-center gap-1.5">
-                  {/* Sem cor própria: herda o `--bd-ink3` do contêiner acima.
-                      Antes o separador pintava com token de BORDA — 1,21:1
-                      como texto. */}
-                  {i > 0 && <span aria-hidden>/</span>}
-                  {i === breadcrumb.length - 1 ? (
-                    <span className="text-[13px] font-semibold" style={{ color: 'var(--bd-ink)' }}>{b.label}</span>
-                  ) : (
-                    <button onClick={() => navigate(b.path)} className="hover:underline">{b.label}</button>
-                  )}
-                </span>
-              ))}
+          <div className="min-w-0 py-2">
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="text-[11px] hidden sm:inline" style={{ color: 'var(--bd-ink4)' }}>
+                <button type="button" onClick={() => navigate('/equipe/board/dashboard')} className="hover:underline">
+                  Board
+                </button>
+                <span aria-hidden> / </span>
+              </span>
+              <h1 className="bd-toolbar-title">{title}</h1>
             </div>
             {subtitle && (
-              <div className="hidden sm:block text-[11.5px] leading-tight" style={{ color: 'var(--bd-ink3)' }}>
+              <div className="hidden sm:flex items-center gap-2 text-[12px] leading-tight mt-0.5" style={{ color: 'var(--bd-ink3)' }}>
                 {subtitle}
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-2.5 ml-auto">
+          <div className="flex items-center gap-2 flex-wrap ml-auto py-2">
             {headerActions}
-            {/* Chip do usuário — veio da barra lateral (ver o cabeçalho deste
-                arquivo). Continua visível com a barra recolhida. */}
             <div
               className="hidden sm:flex items-center gap-2.5 pl-3"
               style={{ borderLeft: '1px solid var(--bd-line)' }}
@@ -516,14 +330,10 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
           </div>
         </header>
 
-        {/* Seletor global de empresa — só nas rotas que realmente o honram
-            (ver ROTAS_COM_CLUSTER_GLOBAL). Fora do scroll, como no OSG Work:
-            fica sempre visível enquanto a página rola. */}
-        {honraClusterGlobal(location.pathname) && <BoardClusterBar />}
-
-        {/* Scrollable content */}
+        {/* Scrollable content — o recorte de cluster mora à direita do título
+            de cada tela, não numa faixa própria entre o topbar e o conteúdo. */}
         <div className="flex-1 overflow-y-auto">
-          <div className={`${noPadding ? '' : 'p-4 md:p-6 lg:p-7'}`} style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
+          <div className={`${noPadding ? '' : 'px-4 pt-3 pb-8 md:px-6 md:pt-3 lg:px-8'}`} style={{ fontFamily: "'Instrument Sans', sans-serif" }}>
             {children}
           </div>
         </div>

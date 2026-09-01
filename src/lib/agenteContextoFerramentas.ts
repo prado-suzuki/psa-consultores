@@ -74,14 +74,23 @@ export interface EntradaContextoFerramentas {
   catalogoFerramentas: number | null;
   /** A tela está servindo fixtures, não dado de produção. */
   usandoFixtures: boolean;
+  /**
+   * Benefício medido (`process_improvements`). Ausente = a faixa da tela
+   * ainda não apurou; o agente não inventa hora nem FTE.
+   */
+  beneficio?: {
+    horasLiberadas: number | null;
+    fte: number | null;
+    melhoriasMedidas: number;
+  };
   /** Rótulos das consultas que falharam. Viram `avisos`. */
   falhas: string[];
 }
 
 const SUGESTOES = [
-  'Qual ferramenta tem adoção alta e qual está parada?',
+  'Quanto de FTE as ferramentas devolvem?',
+  'A hora liberada justifica o mesmo headcount se a demanda não cresceu?',
   'A retenção caiu de verdade ou o mês de referência está parcial?',
-  'Quem usa muito e quem nunca entrou?',
 ];
 
 const num = (v: number | null) => (v === null ? null : v.toLocaleString('pt-BR'));
@@ -90,6 +99,31 @@ const fracao = (v: number | null) =>
   v === null ? null : `${(v * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`;
 
 const umaCasa = (v: number) => v.toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+
+function blocoBeneficio(e: EntradaContextoFerramentas): BlocoContexto | null {
+  if (!e.beneficio) return null;
+  const b = e.beneficio;
+  return {
+    id: 'beneficio',
+    titulo: 'O que a ferramenta devolve',
+    janela: e.periodo,
+    nota: 'interno × cliente e demanda vs FTE ficam —: não há campo nem série',
+    campos: [
+      {
+        rotulo: 'Horas liberadas / mês',
+        valor: b.horasLiberadas === null ? null : b.horasLiberadas.toLocaleString('pt-BR'),
+        nota: b.horasLiberadas === null ? 'antes × depois ausente no cadastro' : undefined,
+      },
+      {
+        rotulo: 'FTE',
+        valor: b.fte === null ? null : b.fte.toLocaleString('pt-BR', { maximumFractionDigits: 1 }),
+        nota: '176 h / mês',
+      },
+      { rotulo: 'Melhorias medidas', valor: String(b.melhoriasMedidas) },
+      { rotulo: 'Demanda vs FTE', valor: null, nota: 'sem série de demanda' },
+    ],
+  };
+}
 
 function blocoAdocao(e: EntradaContextoFerramentas): BlocoContexto {
   const t = e.totais;
@@ -184,6 +218,7 @@ function blocoPessoas(e: EntradaContextoFerramentas): BlocoContexto | null {
 
 export function contextoBoardFerramentas(e: EntradaContextoFerramentas): ContextoTela {
   const blocos = [
+    blocoBeneficio(e),
     blocoAdocao(e),
     blocoRetencao(e),
     blocoFerramentas(e),
@@ -200,7 +235,7 @@ export function contextoBoardFerramentas(e: EntradaContextoFerramentas): Context
   ];
 
   return {
-    rotulo: 'Board · Ferramentas (adoção, engajamento e retenção das ferramentas internas)',
+    rotulo: 'Board · Ferramentas (benefício/FTE na frente; uso no clique)',
     filtros: {
       periodo: e.periodo,
       escopo: e.escopo,
