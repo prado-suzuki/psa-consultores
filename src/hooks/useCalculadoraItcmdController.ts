@@ -308,6 +308,37 @@ export function useCalculadoraItcmdController() {
     [bens.data],
   );
   const acervo = useMemo(() => totalizarAcervo(imoveis), [imoveis]);
+
+  /**
+   * O QUE FALTA EM CADA CENÁRIO, numa frase, ou `null` quando não falta nada.
+   *
+   * UMA FONTE SÓ, porque duas se contradizem — e se contradisseram: o aviso do topo
+   * contava bens e o quadro do cenário tinha texto fixo dizendo que não havia valor nas
+   * matrículas do cliente. Agora o aviso e o quadro leem esta mesma frase.
+   *
+   * A CONTAGEM É POR IMÓVEL, não por bem. Uma DITR declara o valor da terra nua da
+   * propriedade inteira, e cada matrícula dela é um bem no cadastro: contar bens fazia
+   * "3 de 13 sem valor de ITR" aparecer num acervo que estava completo.
+   */
+  const faltaNoCenario = useMemo(() => Object.fromEntries(CENARIOS.map((c) => {
+    const t = acervo[c];
+    const rotulo = { contabil: 'contábil', itr: 'de ITR', mercado: 'de mercado' }[c];
+    if (t.totalFiscal != null) return [c, null];
+    if (t.unidades === 0) return [c, 'não há bem marcado para a estruturação'];
+    const plural = t.unidade === 'bem' ? 'bens' : 'imóveis';
+    // NOMEIA, em vez de só contar: com poucas unidades a lista é o próprio caminho para
+    // o conserto; com muitas, a contagem é o que cabe na linha.
+    const lista = (nomes: string[]) => (nomes.length <= 3
+      ? nomes.join(', ')
+      : `${nomes.length} ${plural}`);
+    if (t.ambiguos > 0) {
+      return [c, `${lista(t.ambiguosNomes)} com mais de um valor ${rotulo} declarado`
+        + ' — a DITR declara um por imóvel'];
+    }
+    return [c, t.comValor === 0
+      ? `nenhum dos ${t.unidades} ${plural} tem valor ${rotulo}`
+      : `${lista(t.semValorNomes)} sem valor ${rotulo}`];
+  })) as Record<Cenario, string | null>, [acervo]);
   // Bens fora do acervo aparecem contados, não desaparecidos: o total tem de
   // poder ser conferido contra a lista do Diagnóstico Patrimonial.
   const bensForaDoAcervo = (bens.data ?? []).length - imoveis.length;
@@ -1948,15 +1979,7 @@ export function useCalculadoraItcmdController() {
      * cadastro que nem começou; três de treze é cadastro quase pronto, e era essa que
      * passava batida, porque o total parcial parecia completo.
      */
-    faltaNoCenario: Object.fromEntries(CENARIOS.map((c) => {
-      const t = acervo[c];
-      const rotulo = { contabil: 'contábil', itr: 'de ITR', mercado: 'de mercado' }[c];
-      if (t.totalFiscal != null) return [c, null];
-      if (t.imoveis === 0) return [c, 'não há bem marcado para a estruturação'];
-      return [c, t.comValor === 0
-        ? `nenhum dos ${t.imoveis} bens tem valor ${rotulo}`
-        : `${t.semValor} de ${t.imoveis} bens sem valor ${rotulo}`];
-    })) as Record<Cenario, string | null>,
+    faltaNoCenario,
     /**
      * POR QUE esta simulação não vai para o banco. `null` = vai.
      *
@@ -1967,13 +1990,8 @@ export function useCalculadoraItcmdController() {
     motivoDeNaoGravar: saida == null || saida.cenariosIndisponiveis.length === 0
       ? null
       : `${saida.cenariosIndisponiveis
-        .map((c) => {
-          const t = acervo[c];
-          const rotulo = { contabil: 'contábil', itr: 'de ITR', mercado: 'de mercado' }[c];
-          return t.comValor === 0
-            ? `nenhum dos ${t.imoveis} bens tem valor ${rotulo}`
-            : `${t.semValor} de ${t.imoveis} bens sem valor ${rotulo}`;
-        })
+        .map((c) => faltaNoCenario[c])
+        .filter((f): f is string => f != null)
         .join('; ')}. A simulação fica nesta sessão e não é gravada: o histórico só `
         + 'guarda apuração com os três cenários sobre o acervo inteiro.',
     /**
@@ -2199,6 +2217,10 @@ function paraImovelDoAcervo(b: BemComValores): ImovelDoAcervo {
     denominacao: b.denominacao,
     // Os três cenários já vêm derivados das matrículas por `valoresDoBem`.
     valores: b.valores,
+    // O CÓDIGO DO IMÓVEL NO INCRA agrupa as matrículas da mesma propriedade. Vazio
+    // conta como nulo: string em branco não é chave, e agruparia todos os bens sem
+    // código num imóvel só, somando uma declaração e escondendo as outras.
+    imovelRural: b.ccir_codigo?.trim() ? b.ccir_codigo.trim() : null,
   };
 }
 

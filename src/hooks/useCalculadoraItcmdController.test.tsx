@@ -114,6 +114,7 @@ const imovel = (
   contabil: number | null,
   mercado: number | null = null,
   itr: number | null = null,
+  ccir_codigo: string | null = null,
 ) => ({
   id,
   cliente_id: 'C1',
@@ -121,6 +122,8 @@ const imovel = (
   denominacao: `Fazenda ${id}`,
   tipo_bem: 'IR',
   participa_estruturacao: true,
+  // O código do imóvel no Incra agrupa as matrículas da mesma propriedade.
+  ccir_codigo,
   valores: valoresDe(contabil, mercado, itr),
 });
 
@@ -1407,8 +1410,8 @@ describe('controlador da calculadora — o fio inteiro', () => {
 
     // O aviso NOMEIA A CAUSA, e as duas causas pedem coisas diferentes: nenhum bem
     // avaliado naquela régua, ou alguns bens sem valor. Aqui é a primeira.
-    expect(calc().motivoDeNaoGravar).toMatch(/nenhum dos 2 bens tem valor de ITR/);
-    expect(calc().motivoDeNaoGravar).toMatch(/nenhum dos 2 bens tem valor de mercado/);
+    expect(calc().motivoDeNaoGravar).toMatch(/nenhum dos 2 imóveis tem valor de ITR/);
+    expect(calc().motivoDeNaoGravar).toMatch(/nenhum dos 2 imóveis tem valor de mercado/);
     act(() => calc().gerar());
     expect(mocks.gravarSpy).not.toHaveBeenCalled();
     // Mas a simulação da sessão existe: os três quadros aparecem, com o cenário
@@ -1439,13 +1442,14 @@ describe('controlador da calculadora — o fio inteiro', () => {
     expect(calc().saida?.acervoPorCenario.contabil).toBe('5000000.00');
     // Mercado e ITR tem UM de DOIS: nao ha base, e o aviso diz a proporcao.
     expect(calc().saida?.cenariosIndisponiveis).toEqual(['itr', 'mercado']);
-    expect(calc().motivoDeNaoGravar).toMatch(/1 de 2 bens sem valor de ITR/);
-    expect(calc().motivoDeNaoGravar).toMatch(/1 de 2 bens sem valor de mercado/);
+    // NOMEIA O IMÓVEL, que é o caminho do conserto — "1 de 2" não dizia qual.
+    expect(calc().motivoDeNaoGravar).toMatch(/IR-02 · Fazenda IR-02 sem valor de ITR/);
+    expect(calc().motivoDeNaoGravar).toMatch(/IR-02 · Fazenda IR-02 sem valor de mercado/);
     // UMA FONTE SÓ: o quadro do cenário recebe esta mesma frase. Elas se contradisseram
     // em tela — o aviso contava os bens que faltavam e o quadro, ao lado, dizia que não
     // havia valor nenhum nas matrículas do cliente.
-    expect(calc().faltaNoCenario.itr).toBe('1 de 2 bens sem valor de ITR');
-    expect(calc().faltaNoCenario.mercado).toBe('1 de 2 bens sem valor de mercado');
+    expect(calc().faltaNoCenario.itr).toBe('IR-02 · Fazenda IR-02 sem valor de ITR');
+    expect(calc().faltaNoCenario.mercado).toBe('IR-02 · Fazenda IR-02 sem valor de mercado');
     expect(calc().faltaNoCenario.contabil).toBeNull();
     expect(calc().motivoDeNaoGravar).toContain(calc().faltaNoCenario.itr!);
 
@@ -1476,6 +1480,61 @@ describe('controlador da calculadora — o fio inteiro', () => {
     expect(calc().podeGerar).toBe(false);
     // E a acao tambem recusa, nao so o botao: `podeGerar` desabilita, e desabilitar e
     // aparencia.
+    act(() => calc().gerar());
+    expect(mocks.gravarSpy).not.toHaveBeenCalled();
+  });
+
+  it('UMA DITR PARA VARIAS MATRICULAS: o ato gera e grava', () => {
+    // O caso do Agro Aliança, que era o print que nao gravava. A DITR do CIB 3049863-5
+    // declara UM valor de terra nua para as matriculas 64.514, 64.515 e 64.516 — tres
+    // bens no cadastro. O valor fica num deles; os irmaos ficam vazios porque a Receita
+    // nao reparte por matricula.
+    //
+    // Contando bens, isso dava "3 de 13 bens sem valor de ITR" e a gravacao era
+    // recusada. Contando por imovel, o acervo esta completo e o ato grava.
+    mocks.gravarSpy.mockClear();
+    const CIB = '9500179097937';
+    mocks.bens = [
+      // A declaracao inteira do imovel, na primeira matricula.
+      imovel('64.514', 1_200_000, 5_000_000, 3_000_000, CIB),
+      // As irmas: contabil proprio (integralizacao e por matricula), sem avaliacao.
+      imovel('64.515', 1_200_000, null, null, CIB),
+      imovel('64.516', 1_200_000, null, null, CIB),
+    ];
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+    montarAto(calc);
+
+    // Nenhum cenario indisponivel, e nenhum aviso.
+    expect(calc().saida?.cenariosIndisponiveis).toEqual([]);
+    expect(calc().motivoDeNaoGravar).toBeNull();
+    expect(calc().faltaNoCenario.itr).toBeNull();
+
+    // O ITR e o mercado entram UMA VEZ, com o valor declarado — nao tres vezes, nem
+    // rateado. O contabil soma as tres, porque a integralizacao foi individual.
+    expect(calc().saida?.acervoPorCenario.itr).toBe('3000000.00');
+    expect(calc().saida?.acervoPorCenario.mercado).toBe('5000000.00');
+    expect(calc().saida?.acervoPorCenario.contabil).toBe('3600000.00');
+
+    act(() => calc().gerar());
+    expect(mocks.gravarSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it('DUAS declaracoes no mesmo imovel nao gravam', () => {
+    // O erro que o bloqueio anterior induzia: copiar o valor do irmao para "preencher".
+    // Somar os dois inflaria o acervo, e nada em tela diria. Agora o cenario cai.
+    mocks.gravarSpy.mockClear();
+    const CIB = '9500179097937';
+    mocks.bens = [
+      imovel('64.514', 1_200_000, 5_000_000, 3_000_000, CIB),
+      imovel('64.515', 1_200_000, 5_000_000, 3_000_000, CIB),
+    ];
+    const { result } = renderHook(() => useCalculadoraItcmdController());
+    const calc = () => result.current;
+    montarAto(calc);
+
+    expect(calc().motivoDeNaoGravar).toMatch(/mais de um valor de ITR declarado/);
+    expect(calc().motivoDeNaoGravar).toMatch(/a DITR declara um por imóvel/);
     act(() => calc().gerar());
     expect(mocks.gravarSpy).not.toHaveBeenCalled();
   });
