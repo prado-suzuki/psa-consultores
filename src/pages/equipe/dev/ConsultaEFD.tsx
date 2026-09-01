@@ -582,7 +582,7 @@ const ConsultaEFD = () => {
             // Estado inicial
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
               <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
-                <Search className="w-10 h-10 text-slate-400" />
+                <Search className="w-10 h-10 text-muted-foreground" />
               </div>
               <h3 className="text-xl font-bold text-foreground">
                 Nenhum arquivo listado
@@ -647,7 +647,7 @@ const ConsultaEFD = () => {
                             <p className="font-bold text-sm text-foreground">
                               {arquivo.NOME}
                             </p>
-                            <p className="text-[10px] text-slate-400 uppercase font-mono">
+                            <p className="text-[10px] text-muted-foreground uppercase font-mono">
                               ID: {arquivo.ID_ARQUIVO}
                             </p>
                           </div>
@@ -719,7 +719,7 @@ const ConsultaEFD = () => {
           ) : (
             // Nenhum arquivo encontrado
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
-              <FileText className="h-12 w-12 text-slate-400 mb-3" />
+              <FileText className="h-12 w-12 text-muted-foreground mb-3" />
               <p className="font-medium text-foreground">
                 Nenhum arquivo encontrado
               </p>

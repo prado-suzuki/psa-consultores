@@ -287,7 +287,7 @@ export function SocietarioReport({ clienteId }: { clienteId: string }) {
       {empresas.map((e) => <QuadroTabela key={e.empresaId} empresa={e} />)}
 
       <div className="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
-        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span>
           Tabelas idênticas aos slides de quadro societário/capital — use <b className="font-semibold text-muted-foreground">Gerar deck Societária</b> para montar os slides no modelo PSA.
           A <b className="font-semibold text-muted-foreground">Estrutura de controle</b> mostra quem controla quem (holding → controladas) a partir do cadastro atual.

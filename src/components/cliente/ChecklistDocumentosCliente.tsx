@@ -241,7 +241,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />{label}
-                <span className={cn('text-[10px] tabular-nums', ativo ? 'text-primary' : 'text-slate-400')}>{total}</span>
+                <span className={cn('text-[10px] tabular-nums', ativo ? 'text-primary' : 'text-muted-foreground')}>{total}</span>
                 {ativo && <span aria-hidden className="absolute inset-x-3 bottom-0.5 h-0.5 rounded-full bg-primary" />}
               </button>
             );
@@ -272,7 +272,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
             })}
           </div>
           <div className="relative ml-auto min-w-[220px] flex-1 sm:max-w-sm">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={busca}
               onChange={(evento) => setBusca(evento.target.value)}
@@ -753,7 +753,7 @@ function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
       recusado ? 'border-rose-200/80 bg-rose-50/50' : 'border-border/80 bg-muted/60',
     )}>
       <div className="flex items-center gap-2">
-        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? 'text-rose-600' : 'text-slate-400')} />
+        <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? 'text-rose-600' : 'text-muted-foreground')} />
         <span className={cn(
           'min-w-0 flex-1 truncate text-xs font-medium',
           recusado ? 'text-rose-700 line-through' : 'text-muted-foreground',
@@ -773,7 +773,7 @@ function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
             onClick={() => onRemover(arquivo)}
             title="Remover este arquivo"
             className={cn(
-              'shrink-0 rounded-lg p-1 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600',
+              'shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-rose-50 hover:text-rose-600',
               FOCO,
             )}
           >

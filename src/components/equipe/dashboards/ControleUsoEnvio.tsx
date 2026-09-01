@@ -371,7 +371,7 @@ export const ControleUsoEnvio = () => {
             </Button>
           </div>
           {atualizadoEm && (
-            <p className="mb-3 text-right text-[11px] text-slate-400">
+            <p className="mb-3 text-right text-[11px] text-muted-foreground">
               Dados recebidos em {atualizadoEm}
             </p>
           )}
@@ -408,7 +408,7 @@ export const ControleUsoEnvio = () => {
       </Tabs>
 
       {USANDO_FIXTURES && (
-        <p className="flex items-center gap-1.5 pt-1 text-xs text-slate-400">
+        <p className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
           <FlaskConical className="h-3.5 w-3.5" />
           Modo de homologação: o período recorta apenas as séries mensais; rankings e tabelas
           permanecem no período completo do fixture.

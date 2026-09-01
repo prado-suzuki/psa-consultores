@@ -24,7 +24,7 @@ export function AnaliseInteligenteKpis({
           </div>
           <div className={`text-2xl font-bold ${scoreColor}`}>
             {kpis.score}
-            <span className="text-sm text-slate-400">/100</span>
+            <span className="text-sm text-muted-foreground">/100</span>
           </div>
           <Progress value={kpis.score} className="h-1 mt-2" />
         </CardContent>
@@ -36,7 +36,7 @@ export function AnaliseInteligenteKpis({
             <span className="text-xs text-muted-foreground">Taxa Entrega</span>
           </div>
           <div className="text-2xl font-bold text-teal-700">{kpis.rate}%</div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             {kpis.completed}/{kpis.totalDel}
           </p>
         </CardContent>
@@ -48,7 +48,7 @@ export function AnaliseInteligenteKpis({
             <span className="text-xs text-muted-foreground">Atrasados</span>
           </div>
           <div className="text-2xl font-bold text-red-600">{kpis.overdue}</div>
-          <p className="text-xs text-slate-400 mt-1">itens vencidos</p>
+          <p className="text-xs text-muted-foreground mt-1">itens vencidos</p>
         </CardContent>
       </Card>
       <Card className="border-border shadow-sm">
@@ -58,7 +58,7 @@ export function AnaliseInteligenteKpis({
             <span className="text-xs text-muted-foreground">Bloqueios</span>
           </div>
           <div className="text-2xl font-bold text-amber-600">{kpis.blockers}</div>
-          <p className="text-xs text-slate-400 mt-1">em {kpis.totalDailys} dailys</p>
+          <p className="text-xs text-muted-foreground mt-1">em {kpis.totalDailys} dailys</p>
         </CardContent>
       </Card>
       <Card className="border-border shadow-sm">
@@ -68,7 +68,7 @@ export function AnaliseInteligenteKpis({
             <span className="text-xs text-muted-foreground">Scope Creep</span>
           </div>
           <div className="text-2xl font-bold text-blue-600">{kpis.scopeCreep}</div>
-          <p className="text-xs text-slate-400 mt-1">fora do planejado</p>
+          <p className="text-xs text-muted-foreground mt-1">fora do planejado</p>
         </CardContent>
       </Card>
       <Card className="border-border shadow-sm">
@@ -78,7 +78,7 @@ export function AnaliseInteligenteKpis({
             <span className="text-xs text-muted-foreground">Gasto Extra</span>
           </div>
           <div className="text-2xl font-bold text-red-600">{extraCostLabel}</div>
-          <p className="text-xs text-slate-400 mt-1">estimado</p>
+          <p className="text-xs text-muted-foreground mt-1">estimado</p>
         </CardContent>
       </Card>
     </div>

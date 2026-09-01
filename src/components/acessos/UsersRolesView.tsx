@@ -152,7 +152,7 @@ export const UsersRolesView = ({
                           <span key={role}>{getRoleBadge(role)}</span>
                         ))}
                         {user.roles.length === 0 && (
-                          <span className="text-slate-400 text-sm">Sem permissões</span>
+                          <span className="text-muted-foreground text-sm">Sem permissões</span>
                         )}
                       </div>
                     </TableCell>

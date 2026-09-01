@@ -253,7 +253,7 @@ export function FamiliaSaidaTab({
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">
             Análise Detalhada
             {isFetching && !showInitialLoading && (
-              <Loader2 className="inline-block h-3.5 w-3.5 ml-2 animate-spin text-slate-400" />
+              <Loader2 className="inline-block h-3.5 w-3.5 ml-2 animate-spin text-muted-foreground" />
             )}
           </CardTitle>
           <div className="flex items-center gap-3 text-xs text-muted-foreground">

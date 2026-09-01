@@ -76,7 +76,7 @@ export const FolhaDocumento = ({
       <div className="rounded-md border-2 border-dashed border-osg-200 bg-card/60 px-8 py-20 text-center">
         <FileSignature className="mx-auto h-8 w-8 text-osg-300" />
         <p className="mt-3 text-sm font-medium text-muted-foreground">{mensagemPendente}</p>
-        <p className="mt-1 text-xs text-slate-400">
+        <p className="mt-1 text-xs text-muted-foreground">
           O documento aparece aqui assim que os passos acima estiverem completos.
         </p>
       </div>

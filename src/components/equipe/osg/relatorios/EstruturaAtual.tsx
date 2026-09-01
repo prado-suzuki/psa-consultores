@@ -119,7 +119,7 @@ export function EstruturaAtual({ bens, titulo = 'Estrutura atual (antes da reorg
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#eef7f2', borderColor: '#125837' }} /> Própria</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#eef6f9', borderColor: '#1b8ea3' }} /> Parceria</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#fffbeb', borderColor: '#b45309' }} /> Arrendamento</span>
-            <span className="ml-auto text-slate-400">contraparte (parceiro/arrendador) — pendência de migration</span>
+            <span className="ml-auto text-muted-foreground">contraparte (parceiro/arrendador) — pendência de migration</span>
           </div>
         </>
       )}

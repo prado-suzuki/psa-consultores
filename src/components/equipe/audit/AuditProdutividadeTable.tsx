@@ -289,7 +289,7 @@ const KpiCard = ({ label, valor, hint }: Kpi) => (
     <CardContent className="p-4">
       <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="mt-1 text-2xl font-semibold text-foreground">{valor}</p>
-      <p className="text-xs text-slate-400">{hint}</p>
+      <p className="text-xs text-muted-foreground">{hint}</p>
     </CardContent>
   </Card>
 );
@@ -509,7 +509,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
                                       event.stopPropagation();
                                       alternarExpandida(linha.userId);
                                     }}
-                                    className="text-slate-400 transition-colors hover:text-foreground"
+                                    className="text-muted-foreground transition-colors hover:text-foreground"
                                   >
                                     {aberta
                                       ? <ChevronDown className="h-4 w-4" />

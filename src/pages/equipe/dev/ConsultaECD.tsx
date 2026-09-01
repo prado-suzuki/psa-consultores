@@ -456,7 +456,7 @@ const ConsultaECD = () => {
           {!searchTriggered ? (
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
               <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
-                <Search className="w-10 h-10 text-slate-400" />
+                <Search className="w-10 h-10 text-muted-foreground" />
               </div>
               <h3 className="text-xl font-bold text-foreground">Nenhum arquivo listado</h3>
               <p className="text-base text-muted-foreground max-w-xs mt-2">Utilize os filtros acima e clique em "Buscar" para carregar os arquivos ECD.</p>
@@ -487,7 +487,7 @@ const ConsultaECD = () => {
                           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><FileSpreadsheet className="h-5 w-5" /></div>
                           <div>
                             <p className="font-bold text-sm text-foreground">{arquivo.NOME}</p>
-                            <p className="text-[10px] text-slate-400 uppercase font-mono">ID: {arquivo.ID_ARQUIVO}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-mono">ID: {arquivo.ID_ARQUIVO}</p>
                           </div>
                         </div>
                       </td>
@@ -524,7 +524,7 @@ const ConsultaECD = () => {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
-              <FileText className="h-12 w-12 text-slate-400 mb-3" />
+              <FileText className="h-12 w-12 text-muted-foreground mb-3" />
               <p className="font-medium text-foreground">Nenhum arquivo encontrado</p>
               <p className="text-sm text-muted-foreground mt-1">Verifique os filtros e tente novamente.</p>
             </div>

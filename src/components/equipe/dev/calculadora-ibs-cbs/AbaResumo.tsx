@@ -138,20 +138,20 @@ function SegmentoCard({
         </div>
         {isEmpty ? (
           <div>
-            <p className="text-lg font-semibold text-slate-400 mb-1">Sem ocorrências</p>
-            <p className="text-xs text-slate-400">{emptyHint}</p>
+            <p className="text-lg font-semibold text-muted-foreground mb-1">Sem ocorrências</p>
+            <p className="text-xs text-muted-foreground">{emptyHint}</p>
           </div>
         ) : (
           <div className="grid grid-cols-3 gap-3 text-xs">
             <div>
-              <p className="text-slate-400 uppercase tracking-wider mb-0.5">Faturamento</p>
+              <p className="text-muted-foreground uppercase tracking-wider mb-0.5">Faturamento</p>
               <p className="font-bold text-foreground tabular-nums">
                 {fmtBRL(segmento.faturamento)}
               </p>
               <p className="text-muted-foreground font-mono">{fmtPct(pct)} do fat.</p>
             </div>
             <div>
-              <p className="text-slate-400 uppercase tracking-wider mb-0.5">Tributo DEPOIS</p>
+              <p className="text-muted-foreground uppercase tracking-wider mb-0.5">Tributo DEPOIS</p>
               <>
                 <p className="font-bold text-primary tabular-nums">
                   {fmtBRL(segmento.tributoDepoisIbsCbs)}
@@ -160,7 +160,7 @@ function SegmentoCard({
               </>
             </div>
             <div>
-              <p className="text-slate-400 uppercase tracking-wider mb-0.5">Volume</p>
+              <p className="text-muted-foreground uppercase tracking-wider mb-0.5">Volume</p>
               <p className="font-bold text-foreground tabular-nums">
                 {segmento.qtdNFs.toLocaleString('pt-BR')} NFs
               </p>
@@ -324,7 +324,7 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
             <>
               <p>Carga efetiva {fmtPct(cargaDepoisIbsCbsPct)}</p>
               {totais.aliqNominalMediaTributada > 0 && (
-                <p className="text-slate-400">
+                <p className="text-muted-foreground">
                   Alíq nominal {totais.aliqNominalMediaTributada.toFixed(1)}% (em{' '}
                   {fmtPct(totais.faturamentoTributado / Math.max(1, totais.faturamento))} do fat.)
                 </p>
@@ -429,7 +429,7 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
           </CardHeader>
           <CardContent>
             {composicaoData.length === 0 ? (
-              <p className="text-sm text-slate-400 py-12 text-center">Sem dados no período</p>
+              <p className="text-sm text-muted-foreground py-12 text-center">Sem dados no período</p>
             ) : (
               <ResponsiveContainer width="100%" height={260}>
                 <PieChart>
@@ -472,7 +472,7 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
         </CardHeader>
         <CardContent>
           {linhaTemporal.length === 0 ? (
-            <p className="text-sm text-slate-400 py-12 text-center">Sem dados no período</p>
+            <p className="text-sm text-muted-foreground py-12 text-center">Sem dados no período</p>
           ) : (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={linhaTemporal} margin={{ left: 8, right: 16, top: 8 }}>

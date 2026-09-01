@@ -218,7 +218,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
               <TableBody>
                 {porAnexo.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8 text-slate-400">
+                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                       Sem dados no período
                     </TableCell>
                   </TableRow>
@@ -314,7 +314,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
         </CardHeader>
         <CardContent>
           {barData.length === 0 ? (
-            <p className="text-sm text-slate-400 py-12 text-center">Sem dados</p>
+            <p className="text-sm text-muted-foreground py-12 text-center">Sem dados</p>
           ) : (
             <ResponsiveContainer width="100%" height={340}>
               <BarChart data={barData} margin={{ left: 12, right: 24, top: 8, bottom: 24 }}>

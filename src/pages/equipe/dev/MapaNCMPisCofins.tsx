@@ -256,7 +256,7 @@ const MapaNCMPisCofins = () => {
                   <FieldTooltip text={TOOLTIPS.buscar} />
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="NCM, descrição CST, base legal ou setor..."
                     value={search}
@@ -364,7 +364,7 @@ const MapaNCMPisCofins = () => {
                 {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12">
-                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
@@ -389,7 +389,7 @@ const MapaNCMPisCofins = () => {
                       {regra.permite_credito === 'S' ? (
                         <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-xs">Sim</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-slate-400 text-xs">Não</Badge>
+                        <Badge variant="outline" className="text-muted-foreground text-xs">Não</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">

@@ -7,7 +7,7 @@ export function HelpHint({ children }: { children: ReactNode }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <HelpCircle className="h-3.5 w-3.5 text-slate-400 hover:text-muted-foreground cursor-help inline-block" />
+        <HelpCircle className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground cursor-help inline-block" />
       </TooltipTrigger>
       <TooltipContent side="bottom" className="max-w-xs text-xs leading-relaxed">{children}</TooltipContent>
     </Tooltip>

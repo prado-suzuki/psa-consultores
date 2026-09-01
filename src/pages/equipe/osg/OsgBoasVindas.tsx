@@ -89,7 +89,7 @@ const OsgBoasVindas = () => {
                 <div className="h-10 w-10 rounded-lg bg-osg-100 flex items-center justify-center">
                   {f.icon}
                 </div>
-                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-osg-600 group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-osg-600 group-hover:translate-x-0.5 transition-all" />
               </div>
               <CardTitle className="text-base mt-3">{f.titulo}</CardTitle>
             </CardHeader>

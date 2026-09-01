@@ -153,7 +153,7 @@ export const AuditDownloadsTable = () => {
                   <TableRow key={linha.documentoId}>
                     <TableCell className="font-medium">
                       {linha.nome ?? (
-                        <span className="text-slate-400 italic">Documento excluído</span>
+                        <span className="text-muted-foreground italic">Documento excluído</span>
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{linha.cliente ?? '—'}</TableCell>

@@ -175,7 +175,7 @@ export function EFDAnalysisModal({
               variant="ghost"
               size="icon"
               onClick={() => onOpenChange(false)}
-              className="h-10 w-10 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50"
+              className="h-10 w-10 rounded-full text-muted-foreground hover:text-red-500 hover:bg-red-50"
             >
               <X className="h-6 w-6" />
             </Button>

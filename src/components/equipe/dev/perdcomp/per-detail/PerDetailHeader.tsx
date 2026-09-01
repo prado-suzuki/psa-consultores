@@ -104,7 +104,7 @@ export function PerDetailHeader({
               Vlr. Selic
             </p>
             {emCarencia ? (
-              <p className="text-lg font-mono font-bold text-slate-400">
+              <p className="text-lg font-mono font-bold text-muted-foreground">
                 Em carência
               </p>
             ) : valorSelic ? (
@@ -119,7 +119,7 @@ export function PerDetailHeader({
                 SELIC indisponível
               </p>
             ) : (
-              <p className="text-lg font-mono font-bold text-slate-400">—</p>
+              <p className="text-lg font-mono font-bold text-muted-foreground">—</p>
             )}
           </div>
         </div>
@@ -129,7 +129,7 @@ export function PerDetailHeader({
             variant="ghost"
             size="icon"
             onClick={onDelete}
-            className="h-10 w-10 rounded-full text-slate-400 hover:text-destructive hover:bg-destructive/10"
+            className="h-10 w-10 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="h-5 w-5" />
           </Button>
@@ -137,7 +137,7 @@ export function PerDetailHeader({
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-10 w-10 rounded-full text-slate-400 hover:text-red-500 hover:bg-red-50"
+            className="h-10 w-10 rounded-full text-muted-foreground hover:text-red-500 hover:bg-red-50"
           >
             <X className="h-6 w-6" />
           </Button>

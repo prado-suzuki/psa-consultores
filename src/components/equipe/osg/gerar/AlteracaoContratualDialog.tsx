@@ -138,7 +138,7 @@ export const AlteracaoContratualDialog = ({
                       <p
                         className={cn(
                           'text-xs',
-                          evidencia ? 'text-osg-700' : 'text-slate-400',
+                          evidencia ? 'text-osg-700' : 'text-muted-foreground',
                         )}
                       >
                         {evidencia ?? 'nada no cadastro registra este evento'}

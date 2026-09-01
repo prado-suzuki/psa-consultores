@@ -28,7 +28,7 @@ export function EFDRecordSelector({ blocosDisponiveis, expanded, selected, onTog
             <span className="font-bold text-sm text-foreground">{BLOCK_DESCRIPTIONS[block] ||`Bloco ${block}`}</span>
             <Badge variant="secondary" className="text-[10px]">{selectedCount}/{records.length}</Badge>
           </div>
-          <ChevronDown className={cn('h-5 w-5 text-slate-400 transition-transform duration-300', isExpanded && 'rotate-180')} />
+          <ChevronDown className={cn('h-5 w-5 text-muted-foreground transition-transform duration-300', isExpanded && 'rotate-180')} />
         </div>
         <div className={cn('overflow-hidden transition-all duration-300', isExpanded ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0')}>
           <div className="p-4 bg-muted border-t border-border">

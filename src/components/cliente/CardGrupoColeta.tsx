@@ -146,7 +146,7 @@ export function CardGrupoColeta({
         )}
       >
         {somenteLeitura ? (
-          <Lock className="h-7 w-7 text-slate-400" />
+          <Lock className="h-7 w-7 text-muted-foreground" />
         ) : enviando ? (
           <Loader2 className="h-7 w-7 animate-spin text-teal-700" />
         ) : (

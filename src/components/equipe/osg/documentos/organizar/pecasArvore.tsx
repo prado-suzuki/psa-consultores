@@ -56,7 +56,7 @@ export function TreeRow({
       )}
     >
       {expandable ? (
-        <span className="shrink-0 text-slate-400">
+        <span className="shrink-0 text-muted-foreground">
           <ChevronRight
             className={cn(
               'h-3.5 w-3.5 transition-transform duration-300 ease-out motion-reduce:transition-none',

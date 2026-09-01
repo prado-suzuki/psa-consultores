@@ -238,7 +238,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                           </TableCell>
                           <TableCell
                             className={`text-right tabular-nums text-xs font-semibold ${
-                              delta < 0 ? "text-emerald-700" : delta > 0 ? "text-rose-700" : "text-slate-400"
+                              delta < 0 ? "text-emerald-700" : delta > 0 ? "text-rose-700" : "text-muted-foreground"
                             }`}
                           >
                             {fmtPp(delta)}
@@ -258,7 +258,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                 Clientes em {uf} ({dados.clientes.length})
               </h3>
               {dados.clientes.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4 text-center border border-border rounded-lg">
+                <p className="text-xs text-muted-foreground py-4 text-center border border-border rounded-lg">
                   Sem clientes nesta UF
                 </p>
               ) : (
@@ -292,7 +292,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
               )}
             </div>
 
-            <p className="text-[10px] text-slate-400 mt-4 italic">
+            <p className="text-[10px] text-muted-foreground mt-4 italic">
               Clientes da UF, ordenados por faturamento.
             </p>
           </>

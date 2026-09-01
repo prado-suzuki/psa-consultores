@@ -403,7 +403,7 @@ function OtherDocuments({ files, downloading, onDownload }: {
               <FileText className="h-4 w-4 shrink-0 text-osg-500" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-xs font-medium text-muted-foreground">{file.nome_original}</span>
-                <span className="block truncate text-[10px] text-slate-400">{CAT_LABEL[file.categoria]}</span>
+                <span className="block truncate text-[10px] text-muted-foreground">{CAT_LABEL[file.categoria]}</span>
               </span>
               <Download className="h-3.5 w-3.5 shrink-0 text-osg-500" />
             </button>

@@ -76,7 +76,7 @@ function MultiSelect({ label, options, selected, onChange, placeholder = "Todos"
         </div>
         <div className="max-h-[260px] overflow-y-auto py-1">
           {options.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-slate-400">Sem opções</p>
+            <p className="px-3 py-2 text-sm text-muted-foreground">Sem opções</p>
           ) : (
             options.map((opt) => {
               const checked = selected.includes(opt);

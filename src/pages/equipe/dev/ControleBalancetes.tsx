@@ -447,7 +447,7 @@ const ControleBalancetes = () => {
               <TableBody>
                 {loading ? (
                   <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={COL_COUNT} className="text-center py-16 text-slate-400">
+                    <TableCell colSpan={COL_COUNT} className="text-center py-16 text-muted-foreground">
                       <Loader2 className="h-10 w-10 mx-auto mb-4 animate-spin text-primary" />
                       <p className="text-sm font-medium text-muted-foreground">Buscando balancetes...</p>
                     </TableCell>
@@ -543,13 +543,13 @@ const ControleBalancetes = () => {
                   ))
                 ) : (
                   <TableRow className="hover:bg-transparent">
-                    <TableCell colSpan={COL_COUNT} className="text-center py-16 text-slate-400">
+                    <TableCell colSpan={COL_COUNT} className="text-center py-16 text-muted-foreground">
                       <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-slate-300" />
                       <p className="text-sm font-medium text-muted-foreground">
                         {searched ? 'Nenhum balancete encontrado' : 'Selecione um contribuinte e clique em Buscar'}
                       </p>
                       {!searched && (
-                        <p className="text-xs mt-1.5 text-slate-400">Ou clique em "Novo Balancete" para enviar um arquivo</p>
+                        <p className="text-xs mt-1.5 text-muted-foreground">Ou clique em "Novo Balancete" para enviar um arquivo</p>
                       )}
                     </TableCell>
                   </TableRow>
