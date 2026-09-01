@@ -20,7 +20,6 @@ import { usePageAccess } from '@/hooks/usePageAccess';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 import { BoardClusterBar, honraClusterGlobal } from '@/components/equipe/board/BoardClusterBar';
 import { AgenteNotificacaoPopup } from '@/components/agente/AgenteNotificacaoPopup';
-import { AgentePsaTrigger } from '@/components/agente/AgentePsaTrigger';
 
 interface BoardLayoutProps {
   children: React.ReactNode;
