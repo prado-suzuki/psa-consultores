@@ -69,8 +69,11 @@ export function mapEmbedRpc(data: EmbedRpcResult | null | undefined): EmbedResol
  */
 export const EMBED_REASON_LABEL: Record<string, string> = {
   no_access: 'Este relatório não está liberado para o seu usuário.',
+  // Os nomes das abas são os do `EquipeControleAcessos` — "Usuários Estrutura",
+  // não "Usuários". Mensagem que manda para aba inexistente é pior que mensagem
+  // vaga: ela gasta o tempo de quem confiou nela.
   no_filter_value:
-    'Este relatório está liberado para você, mas nenhum cluster seu se encaixa no que ele mostra. Confira o vínculo de cluster do usuário em Acessos → Usuários; se estiver certo, o que precisa de revisão é o cadastro do relatório, em Acessos → Dashboards.',
+    'Este relatório está liberado para você, mas nenhum cluster seu se encaixa no que ele mostra. O cluster de uma pessoa vem da equipe em que ela está: confira em Acessos → Usuários Estrutura. Se a equipe estiver certa, o que precisa de revisão é o cadastro do relatório, em Acessos → Dashboards.',
   not_found: 'Este relatório não existe mais, ou foi desativado.',
   unauthenticated: 'Sua sessão expirou. Entre de novo para ver o relatório.',
   bad_filter_type: 'Configuração de filtro inválida no cadastro do dashboard.',
