@@ -44,11 +44,35 @@ export function mapEmbedRpc(data: EmbedRpcResult | null | undefined): EmbedResol
   return { ok: true, reason: r.reason, url };
 }
 
+/**
+ * O que a tela diz quando o relatório não abre.
+ *
+ * DUAS COISAS FORAM CORRIGIDAS AQUI, e a segunda é a que importa.
+ *
+ * 1. Vocabulário. O resto das telas chama isto de RELATÓRIO — o seletor, o
+ *    título da rota do Board, o botão "Manual". "Dashboard" só aparecia no
+ *    momento do erro, que é o pior momento para mudar de nome.
+ *
+ * 2. `no_filter_value` dizia só "Nenhum cluster/cliente vinculado ao seu
+ *    usuário — dashboard ocultado por segurança", e isso tem dois problemas. A
+ *    RPC devolve esse MESMO motivo em duas situações: os clusters da pessoa não
+ *    cruzam com o escopo do relatório, OU o escopo do relatório está vazio
+ *    (nenhum cluster liberado e `all_clusters` desligado). Na segunda ninguém
+ *    abre, admin incluído, e a mensagem mandava investigar o cadastro da PESSOA
+ *    quando o problema estava no do RELATÓRIO. E mesmo na primeira, que é a que
+ *    acontece hoje — há líder e sublíder sem cluster nenhum vinculado, e os
+ *    relatórios do Board são por cluster —, ela não dizia onde consertar.
+ *
+ *    Enquanto a RPC não separar os dois motivos (mudança de banco, passo
+ *    humano), a mensagem nomeia os dois endereços, na ordem em que valem a pena
+ *    conferir.
+ */
 export const EMBED_REASON_LABEL: Record<string, string> = {
-  no_access: 'Você não tem acesso a este dashboard.',
-  no_filter_value: 'Nenhum cluster/cliente vinculado ao seu usuário — dashboard ocultado por segurança.',
-  not_found: 'Dashboard não encontrado ou inativo.',
-  unauthenticated: 'Sessão expirada. Faça login novamente.',
+  no_access: 'Este relatório não está liberado para o seu usuário.',
+  no_filter_value:
+    'Este relatório está liberado para você, mas nenhum cluster seu se encaixa no que ele mostra. Confira o vínculo de cluster do usuário em Acessos → Usuários; se estiver certo, o que precisa de revisão é o cadastro do relatório, em Acessos → Dashboards.',
+  not_found: 'Este relatório não existe mais, ou foi desativado.',
+  unauthenticated: 'Sua sessão expirou. Entre de novo para ver o relatório.',
   bad_filter_type: 'Configuração de filtro inválida no cadastro do dashboard.',
 };
 

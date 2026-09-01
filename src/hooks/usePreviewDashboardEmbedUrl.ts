@@ -35,15 +35,19 @@ export function usePreviewDashboardEmbedUrl(p: PreviewParams) {
     ],
     enabled: isReady(p),
     queryFn: async (): Promise<EmbedResolution & { value: string | null }> => {
-      const { data, error } = await (supabase.rpc as any)('preview_dashboard_embed_url', {
+      // `enabled`/`isReady` já garantem o id; o guarda faz o tipo dizer isso.
+      if (!p.dashboardId) return { ok: false, reason: 'not_found', url: null, value: null };
+      const { data, error } = await supabase.rpc('preview_dashboard_embed_url', {
         _dashboard_id: p.dashboardId,
         _mode: p.filterType === 'nenhum' ? 'nenhum' : p.mode,
         _cluster_ids: p.clusterIds ?? [],
-        _user_id: p.userId ?? null,
-        _cliente_id: p.clienteId ?? null,
+        _user_id: p.userId ?? undefined,
+        _cliente_id: p.clienteId ?? undefined,
       });
       if (error) throw error;
-      const r = (data || {}) as EmbedRpcResult;
+      // Mesma situação do runtime: a RPC é `Returns: Json`, então a forma só
+      // pode ser afirmada aqui, e `mapEmbedRpc` não confia nela.
+      const r = (data || {}) as unknown as EmbedRpcResult;
       return { ...mapEmbedRpc(r), value: r.value ?? null };
     },
   });
