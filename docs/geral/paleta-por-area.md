@@ -416,6 +416,37 @@ do `:root` reprovava nos dois empregos. Os 12 saíram **de uma vez**, e não um 
 da área. Como papéis de status eles já nascem calibrados para receber texto claro, então
 nenhum dos 12 precisou de um valor novo escolhido à mão.
 
+## Status tem mapa, não classe — e o mapa provavelmente já existe
+
+Papel de status **não** tem variante no `ui/`, e a razão é que ele não mora num
+componente: mora num **mapa de domínio**, que traduz o valor gravado no banco para o papel.
+Antes de escrever `bg-green-100` num status novo, procure o mapa:
+
+| arquivo em `src/lib/` | domínio | chaves |
+|---|---|---|
+| `taskStatusColors.ts` | tarefa | backlog, waiting_client, todo, in_progress, review, em_ajuste, done |
+| `projetoStatusColors.ts` | projeto (`org_projects`) | planned, active, on_hold, completed, cancelled |
+| `chamadoStatusColors.ts` | chamado | status, prioridade, atividade e prazo |
+| `mapeamentoStatusColors.ts` | processo mapeado | not_started, in_progress, completed |
+| `entregavelStatusColors.ts` | entregável de sprint | pending, in_progress, completed |
+
+Todos têm a mesma forma: um helper `papel(chave, nome)` que monta as classes a partir de
+`--status-<papel>`, um `Record` por domínio, e uma função `…Config(valor)` com fallback —
+porque a coluna de status é `text` livre no banco em todos eles, e valor fora da lista não
+pode quebrar o render.
+
+**O defeito que esses mapas existem para matar não é a cor errada: é a cor incoerente.** O
+`chamadoStatusColors` nasceu porque o mesmo status vivia em seis mapas e "Aberto" era azul
+sólido para o cliente, `--info` na gestão e azul claro na equipe. O `entregavelStatusColors`
+nasceu porque o mesmo âmbar dizia "não começou" numa tela e "está andando" na outra, nas
+duas telas do **mesmo** entregável.
+
+> **Duas coisas que a unificação não decide, e que já apareceram.** Chave divergente entre
+> tabelas (`planned` em `org_projects`, `planning` em `projects`) é migração de dado. Rótulo
+> divergente na tela (`pending` é "Pendente" no calendário e "A Fazer" no dashboard de
+> horas) é decisão de produto. Nos dois casos o mapa carrega a **cor** e deixa o conflito
+> escrito, em vez de escolher por tabela.
+
 ## O papel `alerta` tem variante no `ui/` — use ela
 
 `<Alert variant="warning">` e `<Badge variant="warning">` existem desde 01/09/2026, e são o
