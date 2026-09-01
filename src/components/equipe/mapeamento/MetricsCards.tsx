@@ -2,6 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Circle, Loader2, Workflow } from 'lucide-react';
 import type { ProcessMetrics } from '@/hooks/useProcessMapping';
+import { mapeamentoStatusColors } from '@/lib/mapeamentoStatusColors';
 
 interface MetricsCardsProps {
   metrics: ProcessMetrics;
@@ -16,26 +17,30 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
       iconClass: 'text-slate-500',
       bgClass: 'bg-slate-50',
     },
+    // Os três KPI de status pegam a cor do MESMO mapa que pinta a pílula na
+    // planilha e o ícone no acordeão. Antes cada tela tinha a sua: "Não
+    // Iniciado" era âmbar aqui e âmbar de outro degrau lá; "Concluído" era
+    // teal-600 num lugar e accent/10 no outro.
     {
       label: 'Não Iniciados',
       value: metrics.not_started,
       icon: Circle,
-      iconClass: 'text-amber-500',
-      bgClass: 'bg-amber-50',
+      iconClass: mapeamentoStatusColors.not_started.text,
+      bgClass: mapeamentoStatusColors.not_started.soft,
     },
     {
       label: 'Em Andamento',
       value: metrics.in_progress,
       icon: Loader2,
-      iconClass: 'text-blue-500',
-      bgClass: 'bg-blue-50',
+      iconClass: mapeamentoStatusColors.in_progress.text,
+      bgClass: mapeamentoStatusColors.in_progress.soft,
     },
     {
       label: 'Concluídos',
       value: metrics.completed,
       icon: CheckCircle2,
-      iconClass: 'text-teal-600',
-      bgClass: 'bg-accent/5',
+      iconClass: mapeamentoStatusColors.completed.text,
+      bgClass: mapeamentoStatusColors.completed.soft,
     },
   ];
 

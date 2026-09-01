@@ -8,6 +8,7 @@ import { ArrowUpDown, ArrowUp, ArrowDown, Download, ExternalLink } from 'lucide-
 import { useNavigate } from 'react-router-dom';
 import type { MappingProcess } from '@/hooks/useProcessMapping';
 import { STAGE_LABEL, STAGE_TO_STATUS } from '@/hooks/useProcessMapping';
+import { mapeamentoStatusConfig } from '@/lib/mapeamentoStatusColors';
 
 interface ProcessSpreadsheetProps {
   processes: MappingProcess[];
@@ -26,17 +27,6 @@ type SortKey =
 
 type SortDir = 'asc' | 'desc';
 
-const STATUS_LABEL: Record<string, string> = {
-  not_started: 'Não Iniciado',
-  in_progress: 'Em Andamento',
-  completed: 'Concluído',
-};
-
-const STATUS_BADGE_CLASS: Record<string, string> = {
-  not_started: 'bg-amber-100 text-amber-700 border-amber-200',
-  in_progress: 'bg-blue-100 text-blue-700 border-blue-200',
-  completed: 'bg-accent/10 text-teal-700 border-primary/15',
-};
 
 const PRIORITY_LABEL: Record<string, string> = {
   low: 'Baixa',
@@ -80,7 +70,7 @@ export function ProcessSpreadsheet({ processes }: ProcessSpreadsheetProps) {
       Nome: p.name,
       Equipe: p.display_group_name,
       Estagio: STAGE_LABEL[p.stage] ?? p.stage,
-      Status: STATUS_LABEL[STAGE_TO_STATUS[p.stage] ?? 'in_progress'],
+      Status: mapeamentoStatusConfig(STAGE_TO_STATUS[p.stage]).label,
       Prioridade: p.priority ? (PRIORITY_LABEL[p.priority] ?? p.priority) : '',
       Etapas: p.stages_count,
       'Completude (%)': Math.round(p.completeness_score * 100),
@@ -160,8 +150,8 @@ export function ProcessSpreadsheet({ processes }: ProcessSpreadsheetProps) {
                   <TableCell className="font-medium text-slate-900">{p.name}</TableCell>
                   <TableCell>{p.display_group_name}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className={STATUS_BADGE_CLASS[status]}>
-                      {STATUS_LABEL[status]}
+                    <Badge variant="outline" className={mapeamentoStatusConfig(status).badge}>
+                      {mapeamentoStatusConfig(status).label}
                     </Badge>
                   </TableCell>
                   <TableCell>{p.priority ? PRIORITY_LABEL[p.priority] ?? p.priority : '—'}</TableCell>

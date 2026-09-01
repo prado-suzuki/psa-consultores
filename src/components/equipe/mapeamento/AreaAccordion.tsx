@@ -7,6 +7,7 @@ import { ExternalLink, CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { AreaSummary } from '@/hooks/useProcessMapping';
 import { STAGE_TO_STATUS, STAGE_LABEL } from '@/hooks/useProcessMapping';
+import { mapeamentoStatusConfig } from '@/lib/mapeamentoStatusColors';
 
 interface AreaAccordionProps {
   areas: AreaSummary[];
@@ -18,11 +19,6 @@ const STATUS_ICON: Record<string, any> = {
   completed: CheckCircle2,
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  not_started: 'text-amber-500',
-  in_progress: 'text-blue-500',
-  completed: 'text-teal-600',
-};
 
 export function AreaAccordion({ areas }: AreaAccordionProps) {
   const navigate = useNavigate();
@@ -68,7 +64,7 @@ export function AreaAccordion({ areas }: AreaAccordionProps) {
                       className="flex items-center justify-between gap-3 p-3 rounded-md border bg-slate-50/50 hover:bg-slate-50"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <Icon className={`h-4 w-4 flex-shrink-0 ${STATUS_COLOR[status]}`} />
+                        <Icon className={`h-4 w-4 flex-shrink-0 ${mapeamentoStatusConfig(status).text}`} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-slate-900 truncate">

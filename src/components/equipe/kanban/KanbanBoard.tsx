@@ -13,10 +13,13 @@ import {
 } from '@/lib/equipeKanban';
 import { formatBlockerTooltip, type DeliverableBlocker } from '@/hooks/useDeliverableBlockers';
 
+// "A Fazer", "Em Progresso" e "Concluído" são, palavra por palavra, os rótulos
+// que o contrato dá aos papéis `fila`, `andamento` e `feito`
+// (docs/geral/paleta-por-area.md). O ponto da coluna passa a ser o papel.
 const columns = [
-  { id: 'pending', title: 'A Fazer', color: 'bg-blue-500' },
-  { id: 'in_progress', title: 'Em Progresso', color: 'bg-yellow-500' },
-  { id: 'completed', title: 'Concluído', color: 'bg-green-500' },
+  { id: 'pending', title: 'A Fazer', color: 'bg-status-fila' },
+  { id: 'in_progress', title: 'Em Progresso', color: 'bg-status-andamento' },
+  { id: 'completed', title: 'Concluído', color: 'bg-status-feito' },
 ];
 
 interface KanbanBoardProps {
