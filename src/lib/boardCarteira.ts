@@ -64,6 +64,19 @@ export function carteiraClientes(os: OsRow[], hoje?: string): ClienteCarteira[] 
     .sort((a, b) => b.gasto - a.gasto);
 }
 
+/** Primeira faixa das planilhas de receita / renovação no Board. */
+export const LINHAS_TABELA_CARTEIRA = 10;
+
+export function rankingPorGasto(carteira: ClienteCarteira[]): ClienteCarteira[] {
+  return [...carteira].sort((a, b) => b.gasto - a.gasto);
+}
+
+export function rankingPorRenovacao(carteira: ClienteCarteira[]): ClienteCarteira[] {
+  return [...carteira]
+    .filter((c) => c.renovacoes > 0)
+    .sort((a, b) => b.renovacoes - a.renovacoes || b.gasto - a.gasto);
+}
+
 /** Quem já passou o intervalo médio entre as próprias OS — decisão de renovar. */
 export function clientesCicloVencido(carteira: ClienteCarteira[]): ClienteCarteira[] {
   return carteira
