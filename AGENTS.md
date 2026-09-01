@@ -25,7 +25,7 @@ Sistema de gestão interna e portal de clientes da PSA Consultores, com foco em 
 ## ✅ DIRETRIZES DE ARQUITETURA
 - **Auditoria Obrigatória (CUD):** SEMPRE use o hook `useAuditLog` para operações de Create/Update/Delete. Você deve enviar o diff campo-a-campo em `changed_fields`.
 - **Autenticação e RLS:** Mantenha o RLS sempre habilitado. Utilize as funções SECURITY DEFINER `has_role(uuid, app_role)` e `is_project_member()` para checar permissões.
-- **Separação de Ambientes:** O sistema detecta dev/prod via URL (`src/config/api.ts`). `cliente` e `contribuinte` possuem a coluna `ambiente`, e suas queries DEVEM incluir o filtro `.eq('ambiente', currentAmbiente)`. `representante`, `ordem_servico`, `org_projects`, `org_tasks`, `tickets`, `pessoa` e `bem` NÃO têm a coluna: o ambiente delas é o do cliente a que se ligam, e o recorte é feito na mão (ver `src/lib/ambienteScope.ts`). **Filtrar `ambiente` numa dessas tabelas quebra a query.** Todo cadastro de dev carrega o prefixo `[TESTE] ` no nome, para que um vazamento se identifique sozinho em produção. Regras e conjunto padrão em `docs/geral/clientes-de-teste-dev.md`.
+- **Separação de Ambientes:** O sistema detecta dev/prod via URL (`src/config/api.ts`). `cliente` e `contribuinte` possuem a coluna `ambiente`, e suas queries DEVEM incluir o filtro `.eq('ambiente', currentAmbiente)`. `representante`, `ordem_servico`, `org_projects`, `org_tasks`, `tickets`, `pessoa` e `bem` NÃO têm a coluna: o ambiente delas é o do cliente a que se ligam, e o recorte é feito na mão (ver `src/lib/ambienteScope.ts`). **Filtrar `ambiente` numa dessas tabelas quebra a query.** Todo cadastro de dev carrega o prefixo `[TESTE] ` no nome, para que um vazamento se identifique sozinho em produção — a regra é aplicada pela migration `supabase/migrations/20260814190000_dev_clientes_prefixo_teste.sql`, que é a fonte do conjunto padrão. O resto do ambiente de dev está em `docs/ambiente-de-desenvolvimento.md`.
 - **Soft Delete:** Várias tabelas usam a coluna `excluido` (boolean). Suas consultas de leitura devem sempre conter `.eq('excluido', false)`.
 - **Imports:** Use SEMPRE aliases (ex: `@/components`, `@/hooks`, `@/lib`).
 
@@ -76,7 +76,7 @@ logAction({
 ```
 
 ## 🧱 DECOMPOSIÇÃO E CAMADA DE DADOS (padrões consolidados na refatoração de god-components)
-Fonte: `docs/planos/plano-refatoracao-god-components-fase-3.md` e ledgers em `docs/geral/refatoracao-*`. Siga estes padrões ao criar telas novas ou mexer em arquivos grandes.
+Fonte: os ledgers em `docs/geral/refatoracao-*`. Siga estes padrões ao criar telas novas ou mexer em arquivos grandes.
 
 - **Teto de 600 linhas:** nenhum `.tsx` de produção deve ultrapassar 600 linhas; a meta ideal de uma fachada/página é **< 400**. Se um arquivo cruzar esse limite, decomponha antes de adicionar mais lógica.
 - **Anatomia da decomposição (nesta ordem):** 1) extrair funções puras para `src/lib/<feature>*.ts` **com testes**; 2) extrair blocos visuais em subcomponentes com responsabilidade real — **NUNCA** crie wrappers passa-tudo só para reduzir linhas; 3) manter o arquivo original como fachada/orquestrador enxuta; 4) criar hook controlador local `use<Feature>Controller.ts` **apenas** se estado + handlers ainda estourarem o teto.

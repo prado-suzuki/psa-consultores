@@ -21,8 +21,10 @@ definição — se você encontrar um aqui, ele está errado ou envelheceu.
 > continua valendo aqui é o RACIOCÍNIO de cada decisão e os números medidos na época.
 
 Documentos vizinhos, que este não repete: `paleta-por-area.md` (papéis de status e tons de
-tag), `inventario-paletas-por-tela.md` (dívida de cor por tela),
-`inventario-telas-por-cluster.md` (o que cada cluster precisaria).
+tag), `comparacoes-de-cor/LEIA.md` (as decisões tomadas olhando, e as três que seguem em
+aberto), `inventario-telas-por-cluster.md` (o que cada cluster precisaria). O
+`inventario-paletas-por-tela.md`, que media a dívida de cor por tela, era uma foto de 18/08
+com o mecanismo já mudado e foi **apagado em 01/09/2026** — está no histórico do git.
 
 ---
 
@@ -343,7 +345,8 @@ criar um tema que depende de alguém lembrar. Duas portas, uma tranca.
 
 **207 ocorrências** de `slate-NNN` em `src/components/acessos`, `ProdutosServicosTab.tsx` e
 `EquipeControleAcessos.tsx`. Não acompanham tema. Fora do escopo desta semana de propósito —
-é migração grande e independente. Detalhamento em `inventario-paletas-por-tela.md`.
+é migração grande e independente. (O detalhamento vivia no `inventario-paletas-por-tela.md`,
+apagado em 01/09/2026; para a contagem de hoje, medir em vez de citar este número.)
 
 ### O Board vai ser refeito, e por isso não serve de exemplo
 

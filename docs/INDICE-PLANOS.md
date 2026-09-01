@@ -63,8 +63,7 @@ Produção é outro banco e recebe migration por passo humano no chat do Lovable
 | [`planos/fluxo-solicitacao-documentos.md`](planos/fluxo-solicitacao-documentos.md) | 📘 REF | Decisões de 31/07 — **e duas delas já foram revertidas** pelo `checklist-por-subtracao.md`. Ler os dois juntos ou nenhum |
 | [`planos/checklist-por-subtracao.md`](planos/checklist-por-subtracao.md) | 🟡 PARCIAL | Fases 1 e 2 implementadas em 13/08. **Faltam** a válvula do §3.4 e as notificações |
 | [`planos/cadastro-vinculo-documentos.md`](planos/cadastro-vinculo-documentos.md) | 🟡 PARCIAL | Direção de desenho da frente do Bernardo. O item 3 do §12 foi fechado pelo checklist por subtração; o resto do §12 segue aberto |
-| [`planos/area-cliente-documentos-por-tematica.md`](planos/area-cliente-documentos-por-tematica.md) | ⛔ MORTO | **Superado pelas 4 gavetas** — quem diz é o próprio `fluxo-solicitacao-documentos.md` §"ler só como histórico". Não executar |
-| [`sprints/sprint-10/TAREFA_area-cliente_documentos-por-tematica.md`](sprints/sprint-10/TAREFA_area-cliente_documentos-por-tematica.md) e [`TAREFAS_…`](sprints/sprint-10/TAREFAS_area-cliente_documentos-por-tematica.md) | ⛔ MORTO | Derivam do plano superado acima, e o `README.md` da sprint 10 ainda os marca "A fazer". **Revalidar com a Patrícia antes de tocar em qualquer T** |
+| ~~`planos/area-cliente-documentos-por-tematica.md`~~ e as duas tarefas da [`sprints/sprint-10/`](sprints/sprint-10/) | 🗑️ **APAGADOS** (01/09/2026) | Frente superada pelas 4 gavetas. O lote de banco que nunca rodou (RPC do checklist, coluna `prazo`, enum de status, fluxo de aprovação) **não migrou para lugar nenhum** — se importar, nasce como tarefa nova medida contra o desenho de hoje. Tumba com o porquê em `sprints/sprint-10/README.md` |
 | [`planos/notificacoes-osg-coleta-documentos.md`](planos/notificacoes-osg-coleta-documentos.md) | 📘 REF | Mapa dos disparos. Catálogo, não plano |
 | [`sprints/sprint-11/TAREFA_notificacoes-coleta-documentos.md`](sprints/sprint-11/TAREFA_notificacoes-coleta-documentos.md) | 🔵 ABERTO | Catálogo de 15 avisos, marcado "A fazer". Só o aviso 8 saiu, virando o GES-04 abaixo |
 | [`sprints/sprint-12/TAREFA_cobrar-solicitacao-sem-documento.md`](sprints/sprint-12/TAREFA_cobrar-solicitacao-sem-documento.md) | 🟡 PARCIAL | T1 a T5 fechadas, modelo aprovado na Meta. **Produção não recebeu nada** — nem enum, nem função, nem cron, nem a borda |
@@ -92,7 +91,6 @@ Produção é outro banco e recebe migration por passo humano no chat do Lovable
 
 | Documento | Status | Observação |
 |---|---|---|
-| [`plano-revisao-delegada-tarefas.md`](plano-revisao-delegada-tarefas.md) | ✅ FEITO | **Duplicata** de `planos/delegar-revisao-tarefas.md`. Um dos dois é para arquivar |
 | [`planos/delegar-revisao-tarefas.md`](planos/delegar-revisao-tarefas.md) | ✅ FEITO | Entregue em 15/07. O "Aprovar devolve para Em Ajuste" **é o comportamento decidido**, não é bug — ver `geral/achados-taskmodal.md` §1 |
 | [`planos/plano-comentarios-mencoes-feed.md`](planos/plano-comentarios-mencoes-feed.md) | 🟡 PARCIAL | Fases 1 e 2 implementadas. **Reações e follow/unfollow seguem só propostas** |
 | [`geral/divida-tipos-org-comments.md`](geral/divida-tipos-org-comments.md) | 🔵 ABERTO | Dívida de casts enquanto o `types.ts` não conhecer os contratos. Conferir se ainda vale — o `types.ts` foi regerado em 31/08 |
@@ -124,7 +122,6 @@ Produção é outro banco e recebe migration por passo humano no chat do Lovable
 | Documento | Status | Observação |
 |---|---|---|
 | [`geral/refatoracao-camada-dados-ledger.md`](geral/refatoracao-camada-dados-ledger.md) | ✅ FEITO | **Aceite verificado agora**: `supabase.from/rpc` em `src/pages`/`src/components` = zero |
-| [`geral/refatoracao-camada-dados-INSTRUCOES-opencode.md`](geral/refatoracao-camada-dados-INSTRUCOES-opencode.md) | ✅ FEITO | Instruções de orquestração da fase concluída. Sem uso futuro |
 | [`geral/refatoracao-ui-god-components-ledger.md`](geral/refatoracao-ui-god-components-ledger.md) | ✅ FEITO | As 20 fachadas originais estão abaixo do teto |
 | [`geral/reducao-custo-ia-tarefas.md`](geral/reducao-custo-ia-tarefas.md) | 🟡 PARCIAL | T1, T3 e T4 feitos. **Abertos: T2** (migrations de import legado — mas ver a decisão de ignorá-las nas buscas, que já resolveu o sintoma), **T5/T6** (o aceite "nenhum `.tsx` de UI acima de 600 linhas" ainda não é verdade — medir com `find src -name '*.tsx' -not -name '*.test.tsx' -exec wc -l {} + \| awk '$1>600'`) e **T7** (`docs/geral/mapa-navegacao.md` não existe) |
 | [`geral/lint-warnings-roadmap.md`](geral/lint-warnings-roadmap.md) | 🟡 PARCIAL | Fases 0 e 1 concluídas; **fases 2 a 10 abertas**. ⚠️ **A contagem do documento está vencida** — ele parou em 763 e o `bunx eslint .` de hoje dá outro número. Medir antes de citar |
@@ -144,8 +141,8 @@ mudou**. O estado corrente é `geral/paleta-por-area.md`; os outros são histór
 | [`geral/paleta-por-area.md`](geral/paleta-por-area.md) | 📘 REF | **O contrato em vigor.** Papel de status, tom de tag, quem resolve o quê |
 | [`geral/design-system-board-v5.md`](geral/design-system-board-v5.md) | ✅ FEITO | Refatoração visual do Board, 21/08 |
 | [`geral/decisoes-tema-e-cor.md`](geral/decisoes-tema-e-cor.md) | ⛔ MORTO | Registro de 20/08. **Três decisões foram revertidas** e os endereços `index.css:NNN` não valem mais |
-| [`geral/inventario-paletas-por-tela.md`](geral/inventario-paletas-por-tela.md) | ⛔ MORTO | Foto de 18/08. As recomendações "criar `.board-theme`" e "criar `.dev-theme`" estão **superadas** |
-| [`geral/estado-do-sistema-2026-08-20.md`](geral/estado-do-sistema-2026-08-20.md) | ⛔ MORTO | **Arquivado em 21/08** pelo próprio autor |
+| ~~`geral/inventario-paletas-por-tela.md`~~ | 🗑️ **APAGADO** (01/09/2026) | Foto de 18/08 de um mecanismo que já havia mudado; as recomendações de criar `.board-theme` e `.dev-theme` estavam superadas |
+| ~~`geral/estado-do-sistema-2026-08-20.md`~~ | 🗑️ **APAGADO** (01/09/2026) | Auto-arquivado pelo autor em 21/08 |
 | [`geral/levantamentos-2026-08-21.md`](geral/levantamentos-2026-08-21.md) | 📘 REF | Três medições, sem decisão. Medidas no dev, e três perguntas eram sobre produção |
 | [`geral/comparacoes-de-cor/LEIA.md`](geral/comparacoes-de-cor/LEIA.md) | 🟡 PARCIAL | **Três decisões tomadas, três em aberto** (porta de entrada, superfície de estado, e o resto dos tokens escritos à mão). As páginas HTML são autocontidas — abrir no navegador |
 | [`geral/inventario-telas-por-cluster.md`](geral/inventario-telas-por-cluster.md) | 📘 REF | Metade da resposta; a outra metade é conversa com quem usa |
@@ -180,8 +177,38 @@ da `develop` — e o custo de descobrir isso é abrir o arquivo inteiro.
 | `osg/memorial-georref-por-imovel.md` | "lacuna registrada, não corrigida" | Corrigido pela migration `20260831093000` |
 | `planos/agente-psa-assistente.md` | "pendente de migration nos dois bancos" | O PR #65, que era o bloqueio declarado, foi mergeado em 25/08 |
 | `sprints/sprint-11/TAREFA_correcoes-e2e-geracao-contrato.md` | quase nenhum B marcado como concluído | As raias L1–L7 foram integradas; só B7 segue bloqueada. **O HANDOFF é a fonte** |
-| `sprints/sprint-10/README.md` | as duas tarefas "A fazer" | O plano de design que as origina foi declarado superado |
+| `sprints/sprint-10/README.md` | as duas tarefas "A fazer" | Resolvido: as tarefas e o plano foram apagados, e o README virou a tumba que explica o porquê |
 | `geral/lint-warnings-roadmap.md` | 763 warnings | Outro número hoje. O documento pede para manter a contagem sincronizada e ela não foi |
+
+## O que foi apagado em 01/09/2026, e por quê
+
+A triagem virou faxina no mesmo dia. Sete arquivos saíram; estão todos no histórico do git.
+
+| Apagado | Por quê |
+|---|---|
+| `scratch-tables.json` (raiz, rastreado) | Dump do schema de 13/07 que ninguém referenciava. O jeito de consultar schema é `rls/mapa-do-banco.md`, que é gerado |
+| `geral/estado-do-sistema-2026-08-20.md` | Auto-arquivado pelo autor em 21/08 |
+| `geral/inventario-paletas-por-tela.md` | Foto de 18/08 de um mecanismo que já havia mudado |
+| `geral/refatoracao-camada-dados-INSTRUCOES-opencode.md` | Orquestração de uma fase concluída, para outra ferramenta |
+| `plano-revisao-delegada-tarefas.md` (era local, no `.gitignore`) | Duplicata de `planos/delegar-revisao-tarefas.md`, executado em 15/07 |
+| `planos/area-cliente-documentos-por-tematica.md` + as duas tarefas da sprint 10 | Frente superada pelas 4 gavetas |
+
+**Ficaram de propósito**, embora marcados morto ou vencido:
+
+- `osg/filiacao-derivada-do-parentesco.md` — registra que a implementação **destrói dado em
+  produção**. Apagar isso é convidar alguém a refazer.
+- `geral/decisoes-tema-e-cor.md` — é o único lugar que guarda o raciocínio de cada decisão de
+  cor, inclusive o das três que foram revertidas.
+- `sprints/sprint-12/NOTA_DECISAO_MATRIZ_ALCADAS_AC.md` — decisão pendente, não morta.
+- `mapa/checklist-melhorias-preenchimento.md` — registra o que a Patrícia descartou.
+- Os cinco handoffs de implementação da OSG já executados. O índice desvia deles; custam zero.
+
+**Três ponteiros para arquivos que nunca existiram** foram corrigidos na mesma passada:
+`docs/geral/clientes-de-teste-dev.md` e `docs/planos/plano-refatoracao-god-components-fase-3.md`
+(citados no `AGENTS.md`, que é a fonte única de verdade) e `whatsapp-meta-onboarding.md`
+(citado no `whatsapp-templates.md`).
+
+---
 
 ## Manutenção deste índice
 
