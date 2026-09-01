@@ -37,9 +37,11 @@ import { queryClient } from "./lib/queryClient";
 // buscá-lo é um GET pequeno. As duas pontas do problema original estão tratadas
 // fora daqui, e sem elas esta mudança merece ser revertida de novo:
 //
-//   · `vite.config.ts` → `server.warmup`, que pré-transforma as páginas quando
-//     o servidor sobe. É a resposta direta ao "compila sob demanda".
-//   · `PrefetchDeRotas`, abaixo, que traz os chunks DEPOIS do primeiro paint.
+//   · `PrefetchDeRotas`, abaixo, que traz o grafo DEPOIS do primeiro paint —
+//     em produção e em dev. É esta a peça que responde pela navegação.
+//   · `vite.config.ts` → `server.warmup`, complemento: pré-transforma as
+//     páginas no start, para a página em si nunca ser o gargalo. Não desce na
+//     subárvore, então sozinho ele não resolveria 15/04.
 //
 // NÃO reintroduza `manualChunks` junto: o TDZ que ele causou (ver
 // `vite.config.ts`) veio de FORÇAR agrupamento de vendor, não de dividir por

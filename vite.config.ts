@@ -175,20 +175,36 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "::",
       port: 8080,
-      // As rotas do `App.tsx` são `lazy`, e em DEV cada chunk é transformado na
+      // As rotas do `App.tsx` são `lazy`, e em DEV cada módulo é transformado na
       // hora em que a rota é aberta pela primeira vez. Foi essa espera — não o
       // build publicado — que motivou o revert de `ba0c461b` em 15/04: "demora
       // ao mudar de página", "telas em branco" no preview do Lovable.
       //
-      // O `warmup` desarma isso na raiz: o Vite transforma estes arquivos em
-      // segundo plano assim que o servidor sobe, então a primeira navegação já
-      // encontra o módulo pronto. Custa fôlego de CPU no start e nada depois.
+      // O QUE O WARMUP FAZ, e é menos do que parece: ele transforma e cacheia
+      // ESTES arquivos quando o servidor sobe. A subárvore de cada página não
+      // entra — o Vite não desce recursivamente — e é a subárvore que faz volume
+      // numa primeira visita. Medido aqui: módulo aquecido responde em ~7 ms e
+      // um frio em ~8 ms, ou seja, no arquivo isolado o ganho é ruído.
+      //
+      // Então quem devolve a navegação de verdade é o `PrefetchDeRotas`, que
+      // roda em dev também e puxa o grafo inteiro depois do primeiro paint. O
+      // warmup é o complemento: garante que a página em si nunca seja o gargalo,
+      // e custa fôlego de CPU só no start.
       //
       // Só as PÁGINAS entram na lista. A subárvore de componentes de cada uma
       // vem no rastro do módulo transformado, e listar `src/components/**` aqui
       // trocaria um start rápido por um start longo sem ganho.
+      //
+      // O `!` dos testes NÃO é higiene: as páginas têm teste colocado ao lado, e
+      // aquecê-los fazia o otimizador de dependências descobrir `vitest` e
+      // `@testing-library` no start, com "optimized dependencies changed.
+      // reloading" logo depois — um reload a cada `bun run dev`, por nada.
       warmup: {
-        clientFiles: ["./src/App.tsx", "./src/pages/**/*.tsx"],
+        clientFiles: [
+          "./src/App.tsx",
+          "./src/pages/**/*.tsx",
+          "!./src/pages/**/*.test.tsx",
+        ],
       },
     },
     define: alvo
