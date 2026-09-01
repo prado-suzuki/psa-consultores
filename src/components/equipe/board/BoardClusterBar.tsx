@@ -1,7 +1,9 @@
+import { useLocation } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
 import { useBoardHierarquia } from '@/hooks/useBoardHierarquia';
 import { eClusterLegado } from '@/lib/boardLegado';
+import { BoardRecorteBar } from '@/components/equipe/board/BoardRecorteBar';
 
 /**
  * Rotas do Board que HONRAM o recorte global CLUSTER -> ÁREA -> EQUIPE.
@@ -21,6 +23,17 @@ export const ROTAS_COM_CLUSTER_GLOBAL: string[] = [
 export const honraClusterGlobal = (pathname: string): boolean =>
   ROTAS_COM_CLUSTER_GLOBAL.includes(pathname);
 
+/** Cliente, ano e mês — só a diretoria (não o Operacional nem a Gerencial Tax/OSG). */
+export const ROTAS_COM_RECORTE_NEGOCIO: string[] = [
+  '/equipe/board/dashboard',
+  '/equipe/board/uso-envio',
+  '/equipe/board/dashboard-clientes-os',
+  '/equipe/board/clientes',
+];
+
+export const honraRecorteNegocio = (pathname: string): boolean =>
+  ROTAS_COM_RECORTE_NEGOCIO.includes(pathname);
+
 /** Radix rejeita `value=""` em SelectItem — "todos" precisa de um sentinela. */
 const TODOS = '__todos__';
 
@@ -34,8 +47,10 @@ const TODOS = '__todos__';
  * normal do sócio — visão do grupo.
  */
 export const BoardClusterBar = () => {
+  const { pathname } = useLocation();
   const { cluster, setCluster, area, setArea, equipe, setEquipe } = useBoardCluster();
   const { isLoading, clusters, areasPorCluster, equipesPorArea } = useBoardHierarquia();
+  const mostrarRecorte = honraRecorteNegocio(pathname);
   const clustersVivos = clusters.filter((c) => !eClusterLegado(c.nome));
 
   const areasDoCluster = cluster ? areasPorCluster.get(cluster) ?? [] : [];
@@ -94,6 +109,7 @@ export const BoardClusterBar = () => {
           </SelectContent>
         </Select>
       )}
+      {mostrarRecorte && <BoardRecorteBar />}
     </div>
   );
 };

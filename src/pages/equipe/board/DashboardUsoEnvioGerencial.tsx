@@ -8,16 +8,32 @@ import { BoardClusterBar } from '@/components/equipe/board/BoardClusterBar';
 import { BoardBriefingFerramentas } from '@/components/board/BoardBriefingFerramentas';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useDomainMelhoriasRoi } from '@/hooks/useDomainMelhoriasRoi';
+import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
+import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
 import { filtrarPorCluster } from '@/lib/boardExecutivo';
+import { aplicarRecorteMelhorias } from '@/lib/boardRecorte';
 
 const DashboardUsoEnvioGerencial = () => {
-  const { cluster } = useBoardCluster();
+  const { cluster, cliente, ano, mes } = useBoardCluster();
+  const recorte = useMemo(() => ({ cliente, ano, mes }), [cliente, ano, mes]);
+  const { ambiente } = useDashboardAmbiente();
+  const negocio = useDashboardClientesOs(ambiente);
   const melhoriasQuery = useDomainMelhoriasRoi();
+  const clusterDoCliente = useMemo(
+    () => (cliente
+      ? (negocio.data?.clienteRows ?? []).find((c) => c.cliente_id === cliente)?.cluster_id ?? null
+      : null),
+    [negocio.data, cliente],
+  );
 
   const melhorias = useMemo(
-    () => filtrarPorCluster(melhoriasQuery.data ?? [], cluster),
-    [melhoriasQuery.data, cluster],
+    () => aplicarRecorteMelhorias(
+      filtrarPorCluster(melhoriasQuery.data ?? [], cluster),
+      recorte,
+      clusterDoCliente,
+    ),
+    [melhoriasQuery.data, cluster, recorte, clusterDoCliente],
   );
 
   return (

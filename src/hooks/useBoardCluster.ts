@@ -31,6 +31,15 @@ export interface BoardClusterValue {
   /** UUID da equipe selecionada (dentro da área). '' = todas as da área. */
   equipe: string;
   setEquipe: (id: string) => void;
+  /** UUID do cliente. '' = todos. */
+  cliente: string;
+  setCliente: (id: string) => void;
+  /** Ano calendário `YYYY`. '' = todos. */
+  ano: string;
+  setAno: (ano: string) => void;
+  /** Mês `01`–`12`. '' = todos. */
+  mes: string;
+  setMes: (mes: string) => void;
 }
 
 export const BoardClusterContext = createContext<BoardClusterValue>({
@@ -40,6 +49,12 @@ export const BoardClusterContext = createContext<BoardClusterValue>({
   setArea: () => {},
   equipe: '',
   setEquipe: () => {},
+  cliente: '',
+  setCliente: () => {},
+  ano: '',
+  setAno: () => {},
+  mes: '',
+  setMes: () => {},
 });
 
 export function useBoardCluster(): BoardClusterValue {

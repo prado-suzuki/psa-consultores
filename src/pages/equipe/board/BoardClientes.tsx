@@ -9,6 +9,7 @@ import { useBoardCluster } from '@/hooks/useBoardCluster';
 import { ticketMedioAno } from '@/lib/boardDiretoria';
 import { filtrarPorCluster } from '@/lib/boardExecutivo';
 import { filtrarLegado } from '@/lib/boardLegado';
+import { aplicarRecorteClientes, aplicarRecorteOs, hojeDoRecorte } from '@/lib/boardRecorte';
 import {
   distribuicaoRegiao, lacunasAditivo, ocorrenciaServicos,
 } from '@/lib/boardOportunidade';
@@ -20,18 +21,26 @@ import { carteiraClientes, tempoMedioAditivo } from '@/lib/boardCarteira';
  */
 const BoardClientes = () => {
   const { ambiente } = useDashboardAmbiente();
-  const { cluster } = useBoardCluster();
+  const { cluster, cliente, ano, mes } = useBoardCluster();
+  const recorte = useMemo(() => ({ cliente, ano, mes }), [cliente, ano, mes]);
   const negocio = useDashboardClientesOs(ambiente);
 
   const osRows = useMemo(
-    () => filtrarLegado(filtrarPorCluster(negocio.data?.osRows ?? [], cluster)),
-    [negocio.data, cluster],
+    () => aplicarRecorteOs(
+      filtrarLegado(filtrarPorCluster(negocio.data?.osRows ?? [], cluster)),
+      recorte,
+    ),
+    [negocio.data, cluster, recorte],
   );
   const clienteRows = useMemo(
-    () => filtrarLegado(filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster)),
-    [negocio.data, cluster],
+    () => aplicarRecorteClientes(
+      filtrarLegado(filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster)),
+      osRows,
+      recorte,
+    ),
+    [negocio.data, cluster, recorte, osRows],
   );
-  const hoje = negocio.hoje;
+  const hoje = hojeDoRecorte(negocio.hoje, recorte);
   const produtosPorOs = negocio.data?.rateioProdutoPorOs;
   const ticket = useMemo(() => ticketMedioAno(osRows, hoje), [osRows, hoje]);
   const ativos = useMemo(() => clienteRows.filter((c) => c.ativo).length, [clienteRows]);
