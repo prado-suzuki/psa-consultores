@@ -554,9 +554,18 @@ describe('espelhamento: cor e conteúdo saem da mesma chave', () => {
       expect(linha, `rota ${rota} não encontrada no App.tsx`).toBeTruthy();
       const comp = [...(linha as string).matchAll(/<([A-Z][A-Za-z0-9]*)\s*\/>/g)].pop()?.[1];
       expect(comp, `sem componente em ${rota}`).toBeTruthy();
-      const linhaImport = linhas.find((l) => l.startsWith('import') && l.includes(` ${comp} `));
-      expect(linhaImport, `import de ${comp} não encontrado`).toBeTruthy();
-      const caminho = (linhaImport as string).match(/from\s+"([^"]+)"/)?.[1];
+      // As rotas do App.tsx são `lazy`, então a declaração do componente é
+      //   const X = lazy(() => import("./pages/..."));
+      // e não mais `import X from "..."`. As duas formas são aceitas de
+      // propósito: se um dia uma rota voltar a ser estática (a landing é a
+      // candidata natural), este guarda continua achando o arquivo dela.
+      const linhaDeclaracao = linhas.find(
+        (l) =>
+          (l.startsWith('import') && l.includes(` ${comp} `)) ||
+          l.startsWith(`const ${comp} = lazy(`),
+      );
+      expect(linhaDeclaracao, `declaração de ${comp} não encontrada`).toBeTruthy();
+      const caminho = (linhaDeclaracao as string).match(/(?:from|import\()\s*"([^"]+)"/)?.[1];
       expect(caminho, `caminho do import de ${comp} não lido`).toBeTruthy();
       const arquivo = `${(caminho as string).replace('@/', 'src/').replace('./', 'src/')}.tsx`;
       const fonte = readFileSync(arquivo, 'utf8');

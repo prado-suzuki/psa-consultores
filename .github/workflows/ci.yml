@@ -40,11 +40,13 @@ jobs:
       - name: Build
         run: bun run build
         env:
-          # O bundle e um chunk unico grande (~8 MB) porque `manualChunks` foi
-          # removido de proposito no vite.config.ts. Minificar isso estoura o
-          # heap padrao do V8 (~2 GB) e o passo aborta com SIGABRT/exit 134.
-          # O runner tem 16 GB; damos folga ate a divisao do bundle (lazy
-          # routes) ser feita como refatoracao propria.
+          # A folga de heap nasceu de um chunk unico de ~8 MB: minificar aquilo
+          # estourava o heap padrao do V8 (~2 GB) e o passo abortava com
+          # SIGABRT/exit 134. As rotas voltaram a ser `lazy` e o chunk de
+          # entrada caiu para a ordem de centenas de KB, mas a folga FICA: sao
+          # centenas de chunks agora, e o pico de memoria do Rollup e do grafo
+          # inteiro, nao do maior arquivo. Baixar este numero e experimento
+          # proprio, com o build da CI como prova -- nao palpite.
           NODE_OPTIONS: --max-old-space-size=6144
 
       - name: Upload build artifact

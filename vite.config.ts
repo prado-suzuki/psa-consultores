@@ -175,6 +175,21 @@ export default defineConfig(({ mode }) => {
     server: {
       host: "::",
       port: 8080,
+      // As rotas do `App.tsx` são `lazy`, e em DEV cada chunk é transformado na
+      // hora em que a rota é aberta pela primeira vez. Foi essa espera — não o
+      // build publicado — que motivou o revert de `ba0c461b` em 15/04: "demora
+      // ao mudar de página", "telas em branco" no preview do Lovable.
+      //
+      // O `warmup` desarma isso na raiz: o Vite transforma estes arquivos em
+      // segundo plano assim que o servidor sobe, então a primeira navegação já
+      // encontra o módulo pronto. Custa fôlego de CPU no start e nada depois.
+      //
+      // Só as PÁGINAS entram na lista. A subárvore de componentes de cada uma
+      // vem no rastro do módulo transformado, e listar `src/components/**` aqui
+      // trocaria um start rápido por um start longo sem ganho.
+      warmup: {
+        clientFiles: ["./src/App.tsx", "./src/pages/**/*.tsx"],
+      },
     },
     define: alvo
       ? Object.fromEntries(
@@ -200,16 +215,21 @@ export default defineConfig(({ mode }) => {
       // Contexto: o bloco `rollupOptions.output.manualChunks` anterior forçava
       // chunks separados para `react-vendor`, `radix-ui`, `supabase`, `tanstack`,
       // `charts` (recharts+d3), `motion`, `xlsx`, `date-fns`, `icons`, `forms`.
-      // Isso fazia sentido quando as rotas eram lazy-loaded (PR inicial), mas
-      // depois do revert para imports eager em App.tsx o ganho desapareceu e
-      // apareceu o risco: o chunk "charts" causou
+      // O chunk "charts" causou
       //   Uncaught ReferenceError: Cannot access 'S' before initialization
       // ao agrupar recharts + d3-* juntos isolados do resto do bundle —
       // problema conhecido de circular/TDZ em minified Rollup output.
       //
-      // Solução: remover o manualChunks. O Vite/Rollup gera um chunk único
-      // grande, o que é aceitável para o tamanho atual do app e elimina
-      // riscos de ordem de inicialização entre chunks.
+      // A divisão de hoje vem de OUTRO lugar: as rotas do `App.tsx` são `lazy`,
+      // então o Rollup corta o grafo nos pontos de `import()` e põe em cada
+      // chunk o que só aquela rota alcança — `xlsx`, `@react-pdf`, `mermaid`,
+      // `recharts` saem atrás das telas que os usam. O que é compartilhado ele
+      // decide sozinho, respeitando a ordem de inicialização.
+      //
+      // É por isso que uma coisa não traz a outra de volta: o TDZ apareceu por
+      // FORÇAR agrupamento que o grafo não tinha. **Não reintroduza
+      // `manualChunks`** — se um chunk específico incomodar, o caminho é mexer
+      // no `import()` que o gerou, não em lista de vendor.
       chunkSizeWarningLimit: 2000,
     },
   };
