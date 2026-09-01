@@ -517,7 +517,7 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           <button
             onClick={() => navigate('/equipe/osg/work/calculadora-itcmd')}
             className={cn(
-              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5",
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
               location.pathname === '/equipe/osg/work/calculadora-itcmd'
                 ? "bg-osg-100 text-primary"
                 : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
