@@ -19,7 +19,8 @@ type AuditEntityType =
   | 'tmpl_bloco' | 'tmpl_documento' | 'documento_arquivo' | 'projeto_flag_valor'
   | 'documento_gerado' | 'documento_override'
   | 'solicitacao' | 'solicitacao_item' | 'solicitacao_item_nao_aplicavel'
-  | 'org_comment';
+  | 'org_comment'
+  | 'itcd_simulacao';
 
 interface AuditLogEntry {
   area: AuditArea;

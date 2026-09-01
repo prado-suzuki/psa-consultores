@@ -130,6 +130,7 @@ import BibliotecaModelos from "./pages/equipe/osg/BibliotecaModelos";
 import MontagemDocumentos from "./pages/equipe/osg/MontagemDocumentos";
 import GerarDocumento from "./pages/equipe/osg/GerarDocumento";
 import QuadroSocietario from "./pages/equipe/osg/QuadroSocietario";
+import CalculadoraItcmd from "./pages/equipe/osg/CalculadoraItcmd";
 import DocumentosCliente from "./pages/equipe/osg/DocumentosCliente";
 import ChecklistsDocumentos from "./pages/equipe/osg/ChecklistsDocumentos";
 import Relatorios from "./pages/equipe/osg/Relatorios";
@@ -324,6 +325,7 @@ const App = () => (
                 <Route path="/equipe/osg/work/biblioteca-modelos" element={<ProtectedRoute><BibliotecaModelos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/montagem-documentos" element={<ProtectedRoute><MontagemDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/quadro-societario" element={<PageAccessGate pagePath="/equipe/osg/work/quadro-societario"><QuadroSocietario /></PageAccessGate>} />
+                <Route path="/equipe/osg/work/calculadora-itcmd" element={<PageAccessGate pagePath="/equipe/osg/work/calculadora-itcmd"><CalculadoraItcmd /></PageAccessGate>} />
                 <Route path="/equipe/osg/work/documentos" element={<ProtectedRoute><DocumentosCliente /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/checklists" element={<ProtectedRoute><ChecklistsDocumentos /></ProtectedRoute>} />
                 <Route path="/equipe/osg/work/relatorios" element={<ProtectedRoute><Relatorios /></ProtectedRoute>} />

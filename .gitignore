@@ -126,3 +126,20 @@ supabase/.temp/
 # Entraram aqui depois de um `git add -A` commitar dois deles por acidente.
 /*-tmp.json
 /.tw-cores.json
+
+# Material de trabalho da calculadora de ITCMD (SUC-01) — fontes da OSG, relatórios,
+# scripts de análise e WPs gerados. Fica local: os PPTX de exemplo somam 47 MB.
+docs/osg/sucessao/
+
+# Material de execução da SUC-01, que fica local: a spec do motor, o mapa funcional,
+# o golden master, os scripts de análise do WP, as specs de execução e a planilha de
+# serviços. Nada disso é entregável do app, e a planilha na raiz já era ignorada pela
+# regra `/*.xlsx` — ela só tinha sido rastreada antes da regra existir.
+/servicos-osg.xlsx
+docs/itcmd-mt/
+scripts/itcmd/
+/spec/
+
+# Seed do SANDBOX. Migration de schema publica, seed não: são dados de exemplo com
+# nomes do caso, e o Lovable roda o que estiver aqui.
+supabase/migrations/*_dev_*.sql

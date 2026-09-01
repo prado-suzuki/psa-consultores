@@ -23,9 +23,53 @@ export const switchBoxCls =
 export const subFormBoxCls =
   'rounded-md border border-osg-moss/20 bg-osg-moss/[0.04] p-4';
 
-// Rótulo padrão dos campos. Um tom mais escuro que muted-foreground para dar
-// um pouco mais de contraste à descrição dos campos.
-export const labelCls = 'text-xs font-medium text-slate-600';
+// Rótulo padrão dos campos.
+//
+// Era `text-slate-600` — cinza AZULADO, do Tailwind, na área cujas superfícies são
+// bege e cujo neutro é quente. Numa linha de campos sobre `--osg-50`, os rótulos
+// puxavam para o frio junto de números em `osg-700`. O `--muted-foreground` da OSG
+// (24 12% 42%) tem praticamente a mesma luminosidade do slate-600 (44,7%), então o
+// contraste não muda: muda a matiz, que passa a ser a da área.
+export const labelCls = 'text-xs font-medium text-muted-foreground';
+
+/**
+ * UM CAMPO: rótulo ACIMA do controle.
+ *
+ * É a única gramática de rótulo dos formulários OSG, e existe como componente para
+ * não ser reinventada por tela. Antes conviviam duas — rótulo acima nos parâmetros e
+ * rótulo AO LADO nos campos de adicionar pessoa —, e numa mesma barra isso deixa os
+ * controles em alturas diferentes, porque um tem uma linha de texto em cima e o outro
+ * não.
+ *
+ * Use sempre dentro de uma linha `items-end`: aí os controles alinham pela base,
+ * tenham rótulo ou não.
+ */
+export function Campo({ rotulo, htmlFor, className, children }: {
+  /**
+   * Texto, ou um nó: quem precisa de dica no rótulo passa o rótulo já envolvido no
+   * gatilho dela. O kit compartilhado não conhece o tooltip de nenhuma tela, e é assim
+   * que ele continua não conhecendo.
+   */
+  rotulo: ReactNode;
+  /**
+   * Id do controle, quando ele é um input de verdade: aí o rótulo é um `<label>` e
+   * clicar no texto foca o campo. Sem isso o rótulo é só texto, e o controle precisa
+   * do próprio `aria-label` — é o caso do `Select` do Radix, que é um botão, e
+   * envolver botão em `<label>` dispara o clique duas vezes.
+   */
+  htmlFor?: string;
+  className?: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className={`space-y-1 ${className ?? ''}`}>
+      {htmlFor
+        ? <label htmlFor={htmlFor} className={`block ${labelCls}`}>{rotulo}</label>
+        : <span className={`block ${labelCls}`}>{rotulo}</span>}
+      {children}
+    </div>
+  );
+}
 
 // Abas dos modais OSG (matrícula, bem). Sublinhado em "passo" com realce
 // verde-musgo no item ativo (fundo osg-50 + traço de 3px) e hover nos inativos —

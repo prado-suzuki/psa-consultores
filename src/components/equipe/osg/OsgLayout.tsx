@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { NotificationPopover } from '@/components/notifications/NotificationPopover';
 import {
   Briefcase,
+  Calculator,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -512,6 +513,18 @@ export const OsgLayout = ({ children, title, subtitle, headerActions }: OsgLayou
           >
             <PieChart className="h-4 w-4 flex-shrink-0" />
             <span className={cn(rotuloCls, "whitespace-nowrap")}>Quadro Societário</span>
+          </button>
+          <button
+            onClick={() => navigate('/equipe/osg/work/calculadora-itcmd')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+              location.pathname === '/equipe/osg/work/calculadora-itcmd'
+                ? "bg-osg-100 text-primary"
+                : "text-muted-foreground [&>svg]:opacity-75 hover:bg-osg-50 hover:text-primary"
+            )}
+          >
+            <Calculator className="h-4 w-4 flex-shrink-0" />
+            <span className={cn(rotuloCls, "whitespace-nowrap")}>Calculadora de ITCD</span>
           </button>
           {/* Agrupador "Documentos do Cliente" — expande no hover com animação suave */}
           <div className="group/docsCli">
