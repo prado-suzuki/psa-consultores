@@ -2640,40 +2640,33 @@ All colors MUST be HSL.
 }
 
 /* ── Balão ───────────────────────────────────────────────────────────────── */
-/* Em REPOUSO ele é discreto de propósito (decisão de 21/08): 46px e
-   translúcido. A objeção legítima ao balão era aparecer numa apresentação da
-   diretoria -- e a resposta certa para isso é o balão ficar quieto, não um
-   segundo ponto de entrada. Ganha presença no hover e no foco de teclado. */
+/* Opaco e um pouco maior que o 46px / 0,55 de 21/08: a logo precisa ler em
+   repouso, não só no hover. Continua quieto — sem ser um segundo menu. */
 .agente-bolha {
   position: fixed;
   right: 20px;
   bottom: 20px;
   z-index: 60;
-  width: 46px;
-  height: 46px;
+  width: 54px;
+  height: 54px;
   border-radius: 999px;
   border: 1px solid var(--agente-line);
   background: var(--agente-surface);
-  box-shadow: 0 6px 18px rgba(8, 12, 24, .22);
-  opacity: .55;
+  box-shadow: 0 8px 22px rgba(8, 12, 24, .28);
+  opacity: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: transform .18s cubic-bezier(.22, 1, .36, 1), box-shadow .18s, opacity .18s;
+  transition: transform .18s cubic-bezier(.22, 1, .36, 1), box-shadow .18s;
 }
 .agente-bolha:hover,
 .agente-bolha:focus-visible {
-  opacity: 1;
   transform: translateY(-2px) scale(1.04);
   box-shadow: 0 14px 34px rgba(8, 12, 24, .46);
 }
 .agente-bolha:focus-visible { outline: 2px solid var(--agente-accent); outline-offset: 3px; }
-/* Com aviso na tela ele NÃO fica translúcido: aviso apagado não é aviso.
-   Navegador sem `:has()` degrada para o repouso discreto -- o ponto verde
-   continua visível, só sem o realce do balão inteiro. */
-.agente-bolha:has(.agente-bolha-ping) { opacity: 1; }
-.agente-bolha img { width: 26px; height: auto; }
+.agente-bolha img { width: 30px; height: auto; }
 /* Ponto de atenção: a tela publicou aviso de falha de carregamento. */
 .agente-bolha-ping {
   position: absolute;
