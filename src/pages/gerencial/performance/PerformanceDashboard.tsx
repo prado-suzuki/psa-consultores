@@ -256,7 +256,7 @@ const PerformanceDashboard = () => {
           <BoardFilterBar
             hideHeading
             filters={[
-              { key: 'periodo', label: 'Período', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
+              { key: 'periodo', label: 'Período', type: 'select', hideLabel: true, width: '128px', options: [{ value: '7d', label: '7 dias' }, { value: '30d', label: '30 dias' }, { value: '90d', label: '90 dias' }, { value: 'ciclo', label: 'Ciclo' }] },
             ]}
             activeFilters={filters}
             onFilterChange={(key, value) => {

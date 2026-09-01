@@ -49,17 +49,16 @@ export const BoardClusterBar = () => {
 
   return (
     <div className="bd-cluster" aria-label="Recorte de cluster">
-      <span className="bd-cluster-label">Cluster</span>
       <Select
         value={cluster || TODOS}
         onValueChange={(v) => setCluster(v === TODOS ? '' : v)}
         disabled={isLoading}
       >
-        <SelectTrigger className="h-8 w-[168px] rounded-md text-[12.5px] font-medium" style={trigger}>
-          <SelectValue placeholder={isLoading ? 'Carregando…' : 'Todos'} />
+        <SelectTrigger className="h-8 w-[176px] rounded-md text-[12.5px] font-medium" style={trigger}>
+          <SelectValue placeholder={isLoading ? 'Carregando…' : 'Todos os clusters'} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value={TODOS}>Todos</SelectItem>
+          <SelectItem value={TODOS}>Todos os clusters</SelectItem>
           {clustersVivos.map((c) => (
             <SelectItem key={c.id} value={c.id}>
               {c.nome}{!c.ativo ? ' (inativo)' : ''}

@@ -92,7 +92,7 @@ export function BoardBriefingProjetos({
                 <Tooltip
                   {...TOOLTIP_STYLE}
                   labelFormatter={(m: string) => rotuloMesIso(m)}
-                  formatter={(v: number, n: string) => [v, MIX_ROTULO[n as keyof typeof MIX_ROTULO] ?? n]}
+                  formatter={(v: number, n: string) => [v.toLocaleString('pt-BR'), MIX_ROTULO[n as keyof typeof MIX_ROTULO] ?? n]}
                 />
                 <Bar dataKey="cliente_novo" stackId="m" fill={CHART_COLORS.accent} />
                 <Bar dataKey="aditivo" stackId="m" fill={CHART_COLORS.tax} />

@@ -1846,7 +1846,7 @@ All colors MUST be HSL.
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px 12px;
+  gap: 8px 10px;
   flex-wrap: wrap;
   margin-left: auto;
 }
@@ -1862,8 +1862,7 @@ All colors MUST be HSL.
   text-transform: uppercase;
   color: var(--bd-ink4);
 }
-.bd-masthead { min-height: 52px; }
-.bd-masthead .bd-toolbar-title { font-size: 20px; }
+.bd-masthead { min-height: 48px; }
 .bd-masthead .v3-fbar {
   padding: 0; margin: 0; border: 0; background: transparent; box-shadow: none;
 }
