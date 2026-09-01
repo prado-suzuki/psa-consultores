@@ -49,11 +49,34 @@ describe('CenariosEmColunas', () => {
   });
 
   it('cenário sem valor no cadastro diz o motivo e NUNCA mostra zero', () => {
-    render(<CenariosEmColunas saida={saida} />);
+    // A FRASE VEM DE FORA, do controlador, e é a mesma do aviso do topo. Havia texto
+    // fixo aqui — "não há valor de ITR nas matrículas deste cliente" — e ele passou a
+    // mentir quando o cenário virou indisponível por bem faltando: no Agro Aliança o
+    // aviso dizia "3 de 13 bens sem valor de ITR" e este parágrafo, ao lado, dizia que
+    // não havia nenhum, com 9 das 12 matrículas preenchidas.
+    render(
+      <CenariosEmColunas
+        saida={saida}
+        falta={{
+          contabil: null,
+          itr: '3 de 13 bens sem valor de ITR',
+          mercado: 'nenhum dos 13 bens tem valor de mercado',
+        }}
+      />,
+    );
 
     expect(screen.queryByText('R$ 0,00')).not.toBeInTheDocument();
-    expect(screen.getByText(/Não há valor de ITR nas matrículas/)).toBeInTheDocument();
-    expect(screen.getByText(/Não há valor de mercado nas matrículas/)).toBeInTheDocument();
+    expect(screen.getByText(/3 de 13 bens sem valor de ITR/)).toBeInTheDocument();
+    expect(screen.getByText(/nenhum dos 13 bens tem valor de mercado/)).toBeInTheDocument();
+    // E o texto antigo não volta: ele afirmava sobre as matrículas do cliente sem ter
+    // como saber.
+    expect(screen.queryByText(/Não há valor de ITR nas matrículas/)).not.toBeInTheDocument();
+  });
+
+  it('sem a frase de fora, o quadro nao inventa a causa', () => {
+    // Fallback: diz que o cadastro está incompleto, que é o que se sabe sem os números.
+    render(<CenariosEmColunas saida={saida} />);
+    expect(screen.getAllByText(/Cadastro incompleto neste cenário/)).toHaveLength(2);
   });
 
   it('doação anterior declarada aparece ao lado do imposto', () => {

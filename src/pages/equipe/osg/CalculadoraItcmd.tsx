@@ -140,6 +140,7 @@ const CalculadoraItcmd = () => {
               saida={naSessao.saida}
               instituicao={calc.saidaDaInstituicao}
               total={calc.impostoTotalPorCenario}
+              falta={calc.faltaNoCenario}
             />
           </div>
         )}

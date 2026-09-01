@@ -1407,8 +1407,8 @@ describe('controlador da calculadora — o fio inteiro', () => {
 
     // O aviso NOMEIA A CAUSA, e as duas causas pedem coisas diferentes: nenhum bem
     // avaliado naquela régua, ou alguns bens sem valor. Aqui é a primeira.
-    expect(calc().motivoDeNaoGravar).toMatch(/nenhum bem com valor ITR/);
-    expect(calc().motivoDeNaoGravar).toMatch(/nenhum bem com valor mercado/);
+    expect(calc().motivoDeNaoGravar).toMatch(/nenhum dos 2 bens tem valor de ITR/);
+    expect(calc().motivoDeNaoGravar).toMatch(/nenhum dos 2 bens tem valor de mercado/);
     act(() => calc().gerar());
     expect(mocks.gravarSpy).not.toHaveBeenCalled();
     // Mas a simulação da sessão existe: os três quadros aparecem, com o cenário
@@ -1439,8 +1439,15 @@ describe('controlador da calculadora — o fio inteiro', () => {
     expect(calc().saida?.acervoPorCenario.contabil).toBe('5000000.00');
     // Mercado e ITR tem UM de DOIS: nao ha base, e o aviso diz a proporcao.
     expect(calc().saida?.cenariosIndisponiveis).toEqual(['itr', 'mercado']);
-    expect(calc().motivoDeNaoGravar).toMatch(/1 de 2 bens sem valor ITR/);
-    expect(calc().motivoDeNaoGravar).toMatch(/1 de 2 bens sem valor mercado/);
+    expect(calc().motivoDeNaoGravar).toMatch(/1 de 2 bens sem valor de ITR/);
+    expect(calc().motivoDeNaoGravar).toMatch(/1 de 2 bens sem valor de mercado/);
+    // UMA FONTE SÓ: o quadro do cenário recebe esta mesma frase. Elas se contradisseram
+    // em tela — o aviso contava os bens que faltavam e o quadro, ao lado, dizia que não
+    // havia valor nenhum nas matrículas do cliente.
+    expect(calc().faltaNoCenario.itr).toBe('1 de 2 bens sem valor de ITR');
+    expect(calc().faltaNoCenario.mercado).toBe('1 de 2 bens sem valor de mercado');
+    expect(calc().faltaNoCenario.contabil).toBeNull();
+    expect(calc().motivoDeNaoGravar).toContain(calc().faltaNoCenario.itr!);
 
     act(() => calc().gerar());
     expect(mocks.gravarSpy).not.toHaveBeenCalled();

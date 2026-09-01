@@ -11,7 +11,9 @@ import { nomesCurtos } from '@/lib/osg/nomeCurto';
 import {
   divisaoNoCampo, fatiaIgual, mascararPercentual, percentualEscalado,
 } from '@/lib/osg/percentualDigitado';
-import { simular, type Cenario, type SaidaSimulacao } from '@/lib/osg/itcmd/simulacao';
+import {
+  CENARIOS, simular, type Cenario, type SaidaSimulacao,
+} from '@/lib/osg/itcmd/simulacao';
 import {
   derivarDoadoresFiscais, formaDoCadastro,
   type DoadorFiscal, type FormaDoDoador,
@@ -1935,25 +1937,42 @@ export function useCalculadoraItcmdController() {
     gravando: gravar.isPending,
     erroDeGravacao: gravar.error as Error | null,
     /**
+     * O QUE FALTA EM CADA CENÁRIO, numa frase, ou `null` quando não falta nada.
+     *
+     * UMA FONTE SÓ, porque duas se contradizem — e se contradisseram: o aviso do topo
+     * contava os bens que faltavam ("3 de 13 bens sem valor de ITR") enquanto o quadro
+     * do cenário tinha texto fixo dizendo que não havia valor nas matrículas do cliente.
+     * As duas frases na mesma tela, e a segunda falsa: 9 das 12 matrículas tinham ITR.
+     *
+     * E as duas causas pedem ações diferentes. Nenhum bem avaliado naquela régua é
+     * cadastro que nem começou; três de treze é cadastro quase pronto, e era essa que
+     * passava batida, porque o total parcial parecia completo.
+     */
+    faltaNoCenario: Object.fromEntries(CENARIOS.map((c) => {
+      const t = acervo[c];
+      const rotulo = { contabil: 'contábil', itr: 'de ITR', mercado: 'de mercado' }[c];
+      if (t.totalFiscal != null) return [c, null];
+      if (t.imoveis === 0) return [c, 'não há bem marcado para a estruturação'];
+      return [c, t.comValor === 0
+        ? `nenhum dos ${t.imoveis} bens tem valor ${rotulo}`
+        : `${t.semValor} de ${t.imoveis} bens sem valor ${rotulo}`];
+    })) as Record<Cenario, string | null>,
+    /**
      * POR QUE esta simulação não vai para o banco. `null` = vai.
      *
      * A tabela exige os três cenários, e está certa: a apuração completa é o
      * entregável. Cenário sem valor é cadastro incompleto, e a tela diz isso em vez
      * de gravar zero — zero seria afirmar um imposto que ninguém calculou.
-     *
-     * E DIZ QUANTOS BENS FALTAM, porque as duas causas pedem ações diferentes: nenhum
-     * imóvel avaliado naquela régua é uma coisa, três de treze é outra, e a segunda é a
-     * que passava batida — o total parcial parecia completo.
      */
     motivoDeNaoGravar: saida == null || saida.cenariosIndisponiveis.length === 0
       ? null
       : `${saida.cenariosIndisponiveis
         .map((c) => {
-          const rotulo = { contabil: 'contábil', itr: 'ITR', mercado: 'mercado' }[c];
           const t = acervo[c];
-          return t.semValor > 0 && t.comValor > 0
-            ? `${t.semValor} de ${t.imoveis} bens sem valor ${rotulo}`
-            : `nenhum bem com valor ${rotulo}`;
+          const rotulo = { contabil: 'contábil', itr: 'de ITR', mercado: 'de mercado' }[c];
+          return t.comValor === 0
+            ? `nenhum dos ${t.imoveis} bens tem valor ${rotulo}`
+            : `${t.semValor} de ${t.imoveis} bens sem valor ${rotulo}`;
         })
         .join('; ')}. A simulação fica nesta sessão e não é gravada: o histórico só `
         + 'guarda apuração com os três cenários sobre o acervo inteiro.',

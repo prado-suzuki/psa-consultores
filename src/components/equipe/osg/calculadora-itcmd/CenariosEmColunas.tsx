@@ -15,7 +15,7 @@ import {
  *
  * Cenário sem valor no cadastro fica tracejado e diz o motivo. `—` nunca é R$ 0,00.
  */
-export function CenariosEmColunas({ saida, instituicao, total }: {
+export function CenariosEmColunas({ saida, instituicao, total, falta }: {
   saida: SaidaSimulacao;
   /**
    * A apuração da INSTITUIÇÃO DE USUFRUTO, quando houver. Ato próprio, guia própria,
@@ -24,6 +24,11 @@ export function CenariosEmColunas({ saida, instituicao, total }: {
    */
   instituicao?: SaidaSimulacao | null;
   total?: Record<Cenario, string | null>;
+  /**
+   * O QUE FALTA em cada cenário, na frase que o controlador monta — a MESMA do aviso
+   * do topo. Sem isso o quadro afirmava por conta própria, e afirmava errado.
+   */
+  falta?: Record<Cenario, string | null>;
 }) {
   return (
     <ComoDicas>
@@ -36,6 +41,7 @@ export function CenariosEmColunas({ saida, instituicao, total }: {
             saida={saida}
             instituicao={instituicao ?? null}
             total={total?.[cenario] ?? null}
+            falta={falta?.[cenario] ?? null}
           />
         ))}
       </div>
@@ -43,13 +49,14 @@ export function CenariosEmColunas({ saida, instituicao, total }: {
   );
 }
 
-function QuadroDoCenario({ cenario, ordem, saida, instituicao, total }: {
+function QuadroDoCenario({ cenario, ordem, saida, instituicao, total, falta }: {
   cenario: Cenario;
   /** Posição na fila, só para a entrada em cascata. */
   ordem: number;
   saida: SaidaSimulacao;
   instituicao: SaidaSimulacao | null;
   total: string | null;
+  falta: string | null;
 }) {
   const indisponivel = saida.cenariosIndisponiveis.includes(cenario);
 
@@ -73,9 +80,13 @@ function QuadroDoCenario({ cenario, ordem, saida, instituicao, total }: {
 
       {indisponivel ? (
         <p className="px-3 py-6 text-sm text-muted-foreground">
-          Não há valor {cenario === 'itr' ? 'de ITR' : 'de mercado'} nas matrículas dos
-          imóveis deste cliente. O cenário fica de fora até alguém preencher: em branco,
-          nunca zerado.
+          {/* A FRASE VEM DO CONTROLADOR, a mesma do aviso do topo. Aqui havia texto
+              fixo dizendo que não havia valor nas matrículas do cliente, e ele passou a
+              mentir quando o cenário virou indisponível por bem FALTANDO em vez de por
+              cadastro vazio: o aviso dizia "3 de 13 bens sem valor de ITR" e este
+              parágrafo, ao lado, dizia que não havia nenhum. */}
+          {falta ?? 'Cadastro incompleto neste cenário'}. O cenário fica de fora até o
+          cadastro dos bens fechar: em branco, nunca zerado.
         </p>
       ) : (
         <dl className="divide-y divide-border/70">
