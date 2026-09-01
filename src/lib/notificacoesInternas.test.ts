@@ -16,6 +16,8 @@ const TODOS_OS_TIPOS: NotificacaoTipo[] = [
   'documento_aprovado',
   'documento_recusado',
   'cobranca_pendencia',
+  'tarefa_prazo_proximo',
+  'tarefa_atrasada',
 ];
 
 describe('apresentacaoDoAviso', () => {
@@ -29,6 +31,15 @@ describe('apresentacaoDoAviso', () => {
 
   it('reusa o roxo da revisão derivada, para o mesmo assunto não ter duas cores', () => {
     expect(apresentacaoDoAviso('tarefa_em_revisao').tom).toContain('purple');
+  });
+
+  it('separa âmbar de atenção e vermelho de estouro nos avisos de prazo', () => {
+    // GES-01A: prazo que se aproxima ainda dá para resolver, prazo estourado não.
+    // Duas cores diferentes, senão o sino não distingue urgência de aviso.
+    expect(apresentacaoDoAviso('tarefa_prazo_proximo').tom).toContain('amber');
+    expect(apresentacaoDoAviso('tarefa_atrasada').tom).toContain('destructive');
+    expect(apresentacaoDoAviso('tarefa_prazo_proximo').rotulo).toBe('Prazo próximo');
+    expect(apresentacaoDoAviso('tarefa_atrasada').rotulo).toBe('Tarefa atrasada');
   });
 
   it('cai num rótulo genérico se o banco tiver um tipo que o types.ts ainda não conhece', () => {

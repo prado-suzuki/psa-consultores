@@ -102,6 +102,14 @@ const APRESENTACAO: Record<NotificacaoTipo, ApresentacaoDoAviso> = {
   chamado_respondido: { rotulo: 'Aviso', tom: PRIMARIO },
   chamado_vencido: { rotulo: 'Aviso', tom: PRIMARIO },
   chamado_resolvido: { rotulo: 'Aviso', tom: PRIMARIO },
+  // GES-01A. Ambar para atenção e vermelho para estouro, seguindo o que o
+  // arquivo já faz: o âmbar é o mesmo de "Pendência em cobrança", que também é
+  // um lembrete antes do problema, e o vermelho é o de "Documento recusado",
+  // que também é um fato consumado. Ao contrário dos `chamado_*` e do
+  // `solicitacao_vencida`, estes dois RENDERIZAM aqui de verdade: nascem por
+  // `criar_notificacao`, na varredura diária de prazo.
+  tarefa_prazo_proximo: { rotulo: 'Prazo próximo', tom: AMBAR },
+  tarefa_atrasada: { rotulo: 'Tarefa atrasada', tom: VERMELHO },
 };
 
 const PADRAO: ApresentacaoDoAviso = { rotulo: 'Aviso', tom: PRIMARIO };

@@ -12,7 +12,8 @@ import {
   contarSubtarefasAtivas,
   mensagemSubtarefasAtivas,
   OrgTask,
-  TaskFilters as TaskFiltersType
+  TaskFilters as TaskFiltersType,
+  useOrgTaskById,
 } from '@/hooks/useOrgTasks';
 import { AreaKey } from '@/config/areaCategories';
 import { canEditOrgTaskFields } from '@/lib/orgTaskPermissions';
@@ -159,6 +160,12 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     return withProjectClientFallback(clientTasks, listProjects);
   }, [allTasks, visibleProjectIds, deepLinkTaskId, user?.id, filters.clientId, listProjects]);
   const periodo = usePeriodoDeTarefas(tasks);
+  // Rede de seguranca do deep-link: so busca quando o id nao esta na lista.
+  const { data: tarefaDoDeepLink } = useOrgTaskById(
+    deepLinkTaskId,
+    !!deepLinkTaskId && !tasks.some(t => t.id === deepLinkTaskId),
+  );
+
   const visibleListProjects = useMemo(
     () => filters.clientId
       ? listProjects.filter(project => project.external_client_id === filters.clientId)
@@ -203,14 +210,19 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   // Why: linhas da tabela "Tarefas Atrasadas" do FiscalDashboard fazem deep-link para cá.
   useEffect(() => {
     if (!deepLinkTaskId || openedDeepLinkId === deepLinkTaskId) return;
-    const task = tasks.find(t => t.id === deepLinkTaskId);
+    // A lista NAO basta como fonte. Ela e recortada por ambiente (dentro do
+    // useOrgTasks) e por cluster (aqui), e uma tarefa fora de qualquer um dos
+    // dois nunca chega ao array: o clique navegava, o aviso do sino ja tinha
+    // sido marcado como lido, e nada abria. Relatado em 01/09/2026 com os
+    // avisos de prazo. `tarefaDoDeepLink` busca pelo id quando a lista falha.
+    const task = tasks.find(t => t.id === deepLinkTaskId) ?? tarefaDoDeepLink;
     if (task) {
       setSelectedTask(task);
       setDefaultParentId(null);
       setIsTaskModalOpen(true);
       setOpenedDeepLinkId(deepLinkTaskId);
     }
-  }, [deepLinkTaskId, tasks, openedDeepLinkId]);
+  }, [deepLinkTaskId, tasks, openedDeepLinkId, tarefaDoDeepLink]);
 
   // Abre o cadastro do projeto quando a página é aberta com ?projectId=<id>.
   // Why: a aba "Não resolvidos" da Auditoria manda o gestor direto para o campo
