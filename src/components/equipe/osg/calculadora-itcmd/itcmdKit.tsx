@@ -493,13 +493,25 @@ export const barraDoAtoCls =
  *
  * Existe como componente porque havia cinco implementações, em quatro arquivos, e três
  * delas em `text-amber-700` — âmbar do Tailwind, frio de mais para a paleta quente da
- * OSG e fora do sistema de papéis. O par `status-alerta` sai do matiz do
- * `--osg-highlighter`, escurecido só até dar contraste de texto (41 64% 31%); o
- * `--warning` cru não serve para TEXTO porque é fundo de marca-texto, com 71% de
- * luminosidade.
+ * OSG e fora do sistema de papéis. As três eram linha solta, sem moldura: um aviso que
+ * não é um bloco se lê como legenda da tabela de cima.
  *
- * As três eram linha solta, sem moldura: um aviso que não é um bloco se lê como legenda
- * da tabela de cima.
+ * ⚠️ Duas frases que estavam aqui saíram porque **deixaram de ser verdade**, e as duas
+ * enganavam quem viesse converter o próximo papel:
+ *
+ * - "o par `status-alerta` sai do matiz do `--osg-highlighter`". Saía. O `index.css`
+ *   desfez esse parentesco de propósito — a paleta da OSG era construída sobre os tokens
+ *   de marca, papel por papel, e o custo era "andamento" ser verde na OSG e teal na Tax.
+ *   Hoje o `alerta` da OSG é tijolo, não dourado; o valor está no bloco `.osg-theme`;
+ * - "o `--warning` cru não serve para TEXTO porque é fundo de marca-texto". Não serviu
+ *   mesmo: dava 1,54:1 sobre a superfície da OSG, e era a pior falha do sistema inteiro.
+ *   Mas os semânticos se fundiram com os papéis, e hoje `--warning` **é**
+ *   `var(--status-alerta)` nos quatro temas. `text-warning` e `text-status-alerta`
+ *   resolvem no mesmo valor, e os dois fecham AA.
+ *
+ * O código abaixo continua em `status-alerta` porque aqui o nome do PAPEL é o que
+ * importa — é aviso de consequência, não sinal genérico. Não porque `--warning` seja
+ * pior: essa razão morreu.
  */
 export function Aviso({ tom = 'alerta', children }: {
   tom?: 'alerta' | 'erro';
