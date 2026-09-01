@@ -199,7 +199,7 @@ export function FamiliaSaidaTab({
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700">
               Resumo Mensal
               {allowCorrecoes && correcoes.length > 0 && (
-                <Badge variant="outline" className="ml-2 text-[10px] border-amber-300 text-amber-700">
+                <Badge variant="warning" className="ml-2 text-[10px]">
                   inclui {correcoes.length} correção{correcoes.length > 1 ? 'ões' : ''}
                 </Badge>
               )}
@@ -345,7 +345,7 @@ export function FamiliaSaidaTab({
                               )}
                             >
                               {col === 'NUM_NOTA' && isCorrecao ? (
-                                <Badge variant="outline" className="border-amber-300 text-amber-700 text-[10px]">
+                                <Badge variant="warning" className="text-[10px]">
                                   Correção
                                 </Badge>
                               ) : (

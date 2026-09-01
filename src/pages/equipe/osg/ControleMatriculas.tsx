@@ -142,7 +142,7 @@ const ControleMatriculas = () => {
               <FileText className="h-4 w-4 text-slate-500" />
               Matrículas ({matriculasFiltradas.length}{matriculasDoCliente.length !== matriculasFiltradas.length ? ` de ${matriculasDoCliente.length}` : ''})
               {orfas > 0 && (
-                <Badge variant="outline" className="text-[10px] gap-1 text-amber-600 border-amber-300">
+                <Badge variant="warning" className="text-[10px] gap-1">
                   <AlertCircle className="h-3 w-3" /> {orfas} órfã(s)
                 </Badge>
               )}
@@ -204,7 +204,7 @@ const ControleMatriculas = () => {
                           </TableCell>
                           <TableCell className="text-xs">
                             {orfa ? (
-                              <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">Órfã</Badge>
+                              <Badge variant="warning" className="text-[10px]">Órfã</Badge>
                             ) : (
                               <span className="font-medium">{m.bem_referencia} — {m.bem_denominacao}</span>
                             )}

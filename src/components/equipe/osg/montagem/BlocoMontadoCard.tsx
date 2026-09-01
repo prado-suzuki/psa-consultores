@@ -126,7 +126,7 @@ export function BlocoMontadoCard({
                 </span>
               )}
               {inativo && (
-                <Badge variant="outline" className="h-5 gap-0.5 border-amber-300 px-1 text-[10px] text-amber-600">
+                <Badge variant="warning" className="h-5 gap-0.5 px-1 text-[10px]">
                   <AlertTriangle className="h-2.5 w-2.5" /> inativo
                 </Badge>
               )}

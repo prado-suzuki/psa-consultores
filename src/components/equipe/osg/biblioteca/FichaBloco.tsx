@@ -170,7 +170,7 @@ const FolhaPreview = ({
             </>
           )}
           {bloco.flag_ids.map((id) => (
-            <Badge key={id} className="ml-auto gap-1 bg-amber-100 text-[10px] text-amber-800 hover:bg-amber-100 first:ml-0">
+            <Badge key={id} variant="warning" className="ml-auto gap-1 text-[10px] first:ml-0">
               <Flag className="h-2.5 w-2.5" />
               {nomeDaFlag.get(id) ?? '…'}
             </Badge>
