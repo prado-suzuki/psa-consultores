@@ -8,6 +8,7 @@ import { useDomainFiscalProjetosCadastro } from '@/hooks/useDomainFiscalProjetos
 import { useEstruturaEquipe } from '@/hooks/useEstruturaEquipe';
 import { useEstruturaEquipesByCategory } from '@/hooks/useEstruturaEquipes';
 import {
+  resumoExclusaoProjeto,
   useCreateOrgProject,
   useDeleteOrgProject,
   useOrgProjects,
@@ -46,6 +47,9 @@ export function useProjetosCadastroController(area: AreaKey) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<OrgProject | null>(null);
   const [deleteProjectId, setDeleteProjectId] = useState<string | null>(null);
+  // Quantas tarefas (todas em Backlog/A Fazer, garantido pela guarda) vão
+  // junto com o projeto na cascata — alimenta o aviso do diálogo.
+  const [deleteProjectTaskTotal, setDeleteProjectTaskTotal] = useState(0);
   const [formData, setFormData] = useState<OrgProjectFormData>({ ...EMPTY_PROJECT_FORM });
   const [filterCliente, setFilterCliente] = useState('');
   const [filterProduto, setFilterProduto] = useState('');
@@ -422,6 +426,35 @@ export function useProjetosCadastroController(area: AreaKey) {
         { onSuccess: handleCloseModal });
     } else createProject.mutate(formData, { onSuccess: handleCloseModal });
   };
+  /**
+   * ÚNICA porta de entrada do diálogo de exclusão de projeto. A FK
+   * `org_tasks_project_id_fkey` é ON DELETE CASCADE e o trigger
+   * `trg_org_tasks_bloqueia_delete_iniciada` recusa a cascata quando qualquer
+   * tarefa está fora de Backlog/A Fazer — esta guarda consulta o banco e recusa
+   * ANTES de abrir o diálogo, em vez de deixar o trigger responder depois da
+   * confirmação. Por isso `setDeleteProjectId` não é exposto cru: todo
+   * consumidor (lista, tabela de cadastro) passa por aqui.
+   */
+  const handleRequestDelete = async (projectId: string) => {
+    let resumo: { total: number; bloqueantes: number };
+    try {
+      resumo = await resumoExclusaoProjeto(projectId);
+    } catch (error) {
+      toast.error('Não foi possível verificar as tarefas deste projeto.', {
+        description: error instanceof Error ? error.message : 'Tente novamente.',
+      });
+      return;
+    }
+    if (resumo.bloqueantes > 0) {
+      toast.error(`Não é possível excluir este projeto: ${resumo.bloqueantes} tarefa(s) estão fora de Backlog/A Fazer.`, {
+        description: 'Só projetos sem tarefas, ou com tarefas em Backlog/A Fazer, podem ser excluídos.',
+      });
+      return;
+    }
+    setDeleteProjectTaskTotal(resumo.total);
+    setDeleteProjectId(projectId);
+  };
+  const closeDeleteDialog = () => setDeleteProjectId(null);
   const handleDelete = () => {
     if (!deleteProjectId) return;
     const project = projects.find(item => item.id === deleteProjectId);
@@ -436,7 +469,7 @@ export function useProjetosCadastroController(area: AreaKey) {
     collapsedGroups, toggleGroup, listingOsProdutosByOs,
     isModalOpen, setIsModalOpen, editingProject, formData, setFormData,
     handleOpenModal, handleCloseModal, handleSubmit, createProject, updateProject,
-    deleteProjectId, setDeleteProjectId, handleDelete,
+    deleteProjectId, deleteProjectTaskTotal, handleRequestDelete, closeDeleteDialog, handleDelete,
     externalClients, clienteOS, osProdutosByOs, selectedOsId, setSelectedOsId,
     selectedOsProdutos, selectedProdutoId, setSelectedProdutoId,
     equipesOptions, teamMembers, lideres, executores, equipeId, equipeMemberIds,
