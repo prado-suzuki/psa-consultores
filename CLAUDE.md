@@ -4,6 +4,17 @@ As convenções, regras inegociáveis e padrões de arquitetura deste repositór
 
 OBRIGATORIAMENTE Leia-o antes de qualquer alteração e siga-o como fonte única de verdade.
 
+## Antes de abrir qualquer plano em `docs/`
+
+Leia `docs/INDICE-PLANOS.md` primeiro. Ele classifica cada documento de `docs/` em feito,
+parcial, aberto, morto ou referência, e lista os que **mentem sobre o próprio status** — há
+plano marcado "em execução" que foi concluído, e plano sem marca de conclusão que foi
+entregue inteiro. Abrir um plano de centenas de linhas para descobrir que ele já foi
+executado, ou reexecutar algo que foi revertido de propósito, é o desperdício que esse
+índice existe para evitar.
+
+Ao fechar uma frente, mude a linha dela no índice **no mesmo commit** do código.
+
 ## Qual banco esta na sua frente
 
 Existem dois: o sandbox (desenvolvimento) e producao. A regra completa esta na secao

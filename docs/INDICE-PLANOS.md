@@ -1,0 +1,191 @@
+# Índice dos planos — o que já foi executado e o que ainda é trabalho
+
+**Triagem de 01/09/2026, na `develop`.** Este arquivo existe para uma coisa só: **ninguém
+abrir um plano de 700 linhas para descobrir, no fim, que ele foi executado em junho** — ou
+pior, executar de novo algo que foi revertido de propósito.
+
+## Como usar
+
+Leia a tabela da sua frente, não o repositório inteiro. Cada linha diz o que fazer com o
+arquivo:
+
+| marca | significa | o que fazer |
+|---|---|---|
+| ✅ **FEITO** | o trabalho está no código da `develop` | **não abra para decidir trabalho.** Só como histórico de "por que está assim" |
+| 🟡 **PARCIAL** | parte entregue, e a linha diz **o que falta** | abra só a parte que falta |
+| 🔵 **ABERTO** | é trabalho a fazer | abra inteiro |
+| ⛔ **MORTO** | cancelado, revertido ou superado por decisão posterior | **não execute.** Abrir só para não repetir a decisão |
+| 📘 **REF** | não é plano: é decisão, medição, especificação ou texto em vigor | consulta pontual |
+
+**Como cada status foi apurado:** marcador interno do documento + existência do código/da
+migration correspondente na `develop` + `git log` do arquivo. Onde o documento diz uma coisa
+e o código diz outra, **vale o código**, e a divergência está anotada na coluna de observação.
+A seção "Documentos cujo status interno mente" reúne as divergências, porque são exatamente as
+que custam tempo.
+
+**Uma ressalva que vale para a tabela inteira:** ✅ aqui quer dizer *está na `develop`*.
+Produção é outro banco e recebe migration por passo humano no chat do Lovable (ver
+`CLAUDE.md` §"Qual banco esta na sua frente"). Onde a diferença importa, a linha diz.
+
+---
+
+## OSG — geração de documentos e alteração contratual
+
+| Documento | Status | Observação |
+|---|---|---|
+| [`planos/override-blocos.md`](planos/override-blocos.md) | ✅ FEITO | Entregue em 16/06/2026 junto com os três abaixo, no mesmo commit |
+| [`planos/render-from-snapshot.md`](planos/render-from-snapshot.md) | ✅ FEITO | `gerar/renderizarVersao.ts` |
+| [`planos/notificacoes-mudanca-variavel.md`](planos/notificacoes-mudanca-variavel.md) | ✅ FEITO | — |
+| [`planos/historico-alteracoes-cadastros.md`](planos/historico-alteracoes-cadastros.md) | ✅ FEITO | — |
+| [`osg/plano-binding-namespaced.md`](osg/plano-binding-namespaced.md) | ✅ FEITO | `src/lib/templates/binding.ts` já é namespaced e trata o legado plano |
+| [`planos/plano-osg-documentos-recebidos.md`](planos/plano-osg-documentos-recebidos.md) | ✅ FEITO | v1 no ar (`useDocumentoArquivo`). O arquivo é enorme e não tem mais uso decisório |
+| [`osg/tela-gerar-descarte-visivel.md`](osg/tela-gerar-descarte-visivel.md) | ✅ FEITO | O próprio documento se declara implementado |
+| [`osg/memorial-georref-por-imovel.md`](osg/memorial-georref-por-imovel.md) | ✅ FEITO | ⚠️ **o documento diz "não corrigida" e está vencido**: a migration `20260831093000` e o commit de 31/08 fecharam o B15 |
+| [`planos/formato-real-da-alteracao-contratual.md`](planos/formato-real-da-alteracao-contratual.md) | ✅ FEITO | Frentes A a F entregues — migrations `20260826142819` e `..1435xx` a `..1439xx`. Aplicado no sandbox |
+| [`planos/ledger-societario-e-alteracao-derivada.md`](planos/ledger-societario-e-alteracao-derivada.md) | ✅ FEITO | F0 a F5 concluídas, F6 executada em 26/08. Ficou aberta uma decisão de projeto na F2 (`quadroEm` por evento) |
+| [`planos/derivacao-de-eventos-e-carimbo.md`](planos/derivacao-de-eventos-e-carimbo.md) | 🟡 PARCIAL | Os cinco defeitos corrigidos em 27/08 (§7). **Falta** o que a §"O que NÃO foi feito" lista: congelar `pessoa.id` no snapshot e a redação da consolidação do Agro. Perguntas abertas na §6 |
+| [`planos/alteracao-contratual-caminho-b.md`](planos/alteracao-contratual-caminho-b.md) | 📘 REF | Handoff que abriu a frente. Os três planos acima são a execução dele |
+| [`osg/contrato-l2-l3-motor-e-blocos.md`](osg/contrato-l2-l3-motor-e-blocos.md) | 📘 REF | **Normativo e em vigor.** Quem mexe no motor de templates lê antes |
+| [`osg/ensaio-fluxo-alteracao-contratual.md`](osg/ensaio-fluxo-alteracao-contratual.md) | 📘 REF | Roteiro de demonstração; o script vive em `e2e/demos/` |
+| [`osg/ensaio-reorganizacao-societaria.md`](osg/ensaio-reorganizacao-societaria.md) | 📘 REF | idem |
+| [`planos/validacao-quadro-societario-roteiro.md`](planos/validacao-quadro-societario-roteiro.md) | 📘 REF | Roteiro de validação da troca de fonte, já executada |
+| [`osg/filiacao-derivada-do-parentesco.md`](osg/filiacao-derivada-do-parentesco.md) | ⛔ MORTO | **Revertida de propósito** — a versão implementada destruía dado em produção. A migration foi removida do repo. Não reimplementar sem os requisitos listados lá |
+| [`osg/plano-metadados-blob-georreferenciamento.md`](osg/plano-metadados-blob-georreferenciamento.md) | 🔵 ABERTO | **Executa no `psa-backend-api`, não aqui.** Nada a fazer neste repo |
+| [`osg/arquitetura-sintese.md`](osg/arquitetura-sintese.md), [`osg/catalogo-familias-e-flags.md`](osg/catalogo-familias-e-flags.md), [`osg/briefing-geracao-documentos.md`](osg/briefing-geracao-documentos.md) | 📘 REF | Documentação de design, declarada como tal. Não são backlog |
+| [`osg/ale-27-conferencia-catalogo.md`](osg/ale-27-conferencia-catalogo.md) | ✅ FEITO | Corrigido na migration `20260803235000` |
+
+---
+
+## Coleta de documentos, portal do cliente e avisos
+
+| Documento | Status | Observação |
+|---|---|---|
+| [`planos/fluxo-solicitacao-documentos.md`](planos/fluxo-solicitacao-documentos.md) | 📘 REF | Decisões de 31/07 — **e duas delas já foram revertidas** pelo `checklist-por-subtracao.md`. Ler os dois juntos ou nenhum |
+| [`planos/checklist-por-subtracao.md`](planos/checklist-por-subtracao.md) | 🟡 PARCIAL | Fases 1 e 2 implementadas em 13/08. **Faltam** a válvula do §3.4 e as notificações |
+| [`planos/cadastro-vinculo-documentos.md`](planos/cadastro-vinculo-documentos.md) | 🟡 PARCIAL | Direção de desenho da frente do Bernardo. O item 3 do §12 foi fechado pelo checklist por subtração; o resto do §12 segue aberto |
+| [`planos/area-cliente-documentos-por-tematica.md`](planos/area-cliente-documentos-por-tematica.md) | ⛔ MORTO | **Superado pelas 4 gavetas** — quem diz é o próprio `fluxo-solicitacao-documentos.md` §"ler só como histórico". Não executar |
+| [`sprints/sprint-10/TAREFA_area-cliente_documentos-por-tematica.md`](sprints/sprint-10/TAREFA_area-cliente_documentos-por-tematica.md) e [`TAREFAS_…`](sprints/sprint-10/TAREFAS_area-cliente_documentos-por-tematica.md) | ⛔ MORTO | Derivam do plano superado acima, e o `README.md` da sprint 10 ainda os marca "A fazer". **Revalidar com a Patrícia antes de tocar em qualquer T** |
+| [`planos/notificacoes-osg-coleta-documentos.md`](planos/notificacoes-osg-coleta-documentos.md) | 📘 REF | Mapa dos disparos. Catálogo, não plano |
+| [`sprints/sprint-11/TAREFA_notificacoes-coleta-documentos.md`](sprints/sprint-11/TAREFA_notificacoes-coleta-documentos.md) | 🔵 ABERTO | Catálogo de 15 avisos, marcado "A fazer". Só o aviso 8 saiu, virando o GES-04 abaixo |
+| [`sprints/sprint-12/TAREFA_cobrar-solicitacao-sem-documento.md`](sprints/sprint-12/TAREFA_cobrar-solicitacao-sem-documento.md) | 🟡 PARCIAL | T1 a T5 fechadas, modelo aprovado na Meta. **Produção não recebeu nada** — nem enum, nem função, nem cron, nem a borda |
+| [`sprints/sprint-12/VALIDACAO_aviso-sem-documento.md`](sprints/sprint-12/VALIDACAO_aviso-sem-documento.md) | 📘 REF | Validação do texto do aviso 4 |
+| [`geral/avisos-cliente.md`](geral/avisos-cliente.md), [`geral/avisos-cliente-validacao.md`](geral/avisos-cliente-validacao.md), [`geral/whatsapp-templates.md`](geral/whatsapp-templates.md) | 📘 REF | **Textos em vigor**, redação da Patrícia. Não são plano e não se reescrevem sem ela |
+| [`planos/ia-extracao-documentos.md`](planos/ia-extracao-documentos.md) | 🔵 ABERTO | Frente futura, sem tarefas escritas. O próprio documento manda começar pelo experimento da §7, não pela infraestrutura |
+| [`sprints/ale-31-teste-integracao-fluxo-solicitacao.md`](sprints/ale-31-teste-integracao-fluxo-solicitacao.md) | 📘 REF | Relatório de teste. Os bugs B3a e vizinhos **não têm status registrado** — conferir no código antes de citar |
+| [`ALE-1-registro-notificacao-tipo-chamado.md`](ALE-1-registro-notificacao-tipo-chamado.md) | ✅ FEITO | Registro do enum, commitado em 13/08 |
+| [`geral/notificacoes-chamados.md`](geral/notificacoes-chamados.md) | 📘 REF | Descreve o que existe |
+| [`planos/correcao-duplicata-mensagens-chamados.md`](planos/correcao-duplicata-mensagens-chamados.md) | ✅ FEITO | Corrigido em 07/08 |
+
+---
+
+## Sprint 11 — mutirão do e2e de geração de contrato
+
+| Documento | Status | Observação |
+|---|---|---|
+| [`sprints/sprint-11/HANDOFF_mutirao-correcoes-e2e.md`](sprints/sprint-11/HANDOFF_mutirao-correcoes-e2e.md) | 🟡 PARCIAL | **Esta é a fonte de verdade do andamento**, e ela mesma diz isso. L1 a L7 integradas; **L8/B7 bloqueada por decisão do Bernardo**; falta o Lovable aplicar as migrations e a reexecução manual P00–P26 |
+| [`sprints/sprint-11/TAREFA_correcoes-e2e-geracao-contrato.md`](sprints/sprint-11/TAREFA_correcoes-e2e-geracao-contrato.md) | 🟡 PARCIAL | ⚠️ **Os marcadores `✅ CONCLUÍDO` bug a bug não foram mantidos** — quase nenhum B está marcado, embora as raias tenham sido integradas. **Não conclua nada da ausência de marca aqui; leia o HANDOFF** |
+| [`sprints/sprint-11/TAREFA_os-parcelamento-valor-projeto.md`](sprints/sprint-11/TAREFA_os-parcelamento-valor-projeto.md) | 🟡 PARCIAL | Tela e migração `20260814170000` prontas. Falta aplicar em produção |
+
+---
+
+## Equipe, tarefas e sprints
+
+| Documento | Status | Observação |
+|---|---|---|
+| [`plano-revisao-delegada-tarefas.md`](plano-revisao-delegada-tarefas.md) | ✅ FEITO | **Duplicata** de `planos/delegar-revisao-tarefas.md`. Um dos dois é para arquivar |
+| [`planos/delegar-revisao-tarefas.md`](planos/delegar-revisao-tarefas.md) | ✅ FEITO | Entregue em 15/07. O "Aprovar devolve para Em Ajuste" **é o comportamento decidido**, não é bug — ver `geral/achados-taskmodal.md` §1 |
+| [`planos/plano-comentarios-mencoes-feed.md`](planos/plano-comentarios-mencoes-feed.md) | 🟡 PARCIAL | Fases 1 e 2 implementadas. **Reações e follow/unfollow seguem só propostas** |
+| [`geral/divida-tipos-org-comments.md`](geral/divida-tipos-org-comments.md) | 🔵 ABERTO | Dívida de casts enquanto o `types.ts` não conhecer os contratos. Conferir se ainda vale — o `types.ts` foi regerado em 31/08 |
+| [`equipe/TAREFA_proxima-sprint_unificacao-tarefas-e-conexao-telas.md`](equipe/TAREFA_proxima-sprint_unificacao-tarefas-e-conexao-telas.md) | 🟡 PARCIAL | T1 e T6 concluídos, banco concluído (`tasks` dropada). **T2/T3, T4 e T5 seguem abertos** |
+| [`equipe/TAREFA_proxima-sprint_atrito-cadastro-clientes.md`](equipe/TAREFA_proxima-sprint_atrito-cadastro-clientes.md) | 🔵 ABERTO | A1 a A11 e B1 a B3, nenhum marcado. Não achei validação de CNPJ/UF/e-mail no cadastro — o grupo A parece intacto |
+| [`geral/achados-taskmodal.md`](geral/achados-taskmodal.md) | 📘 REF | Quirks travados em teste, **de propósito**. O §1 já foi decidido como correto. Os demais são candidatos a tarefa, não tarefas |
+| [`sprints/auditoria-modulo-sprint-2026-07-09.md`](sprints/auditoria-modulo-sprint-2026-07-09.md) | 📘 REF | Foto de 09/07. Números envelhecidos |
+| [`sprints/sprint-12/ANALISE_TAREFAS_A_DESTRINCHAR.md`](sprints/sprint-12/ANALISE_TAREFAS_A_DESTRINCHAR.md) | 🔵 ABERTO | **Planejamento vivo da sprint 12.** É daqui que sai trabalho novo |
+| [`sprints/sprint-12/CONTEXTO_TEMP_PLANEJAMENTO_SPRINT_12.md`](sprints/sprint-12/CONTEXTO_TEMP_PLANEJAMENTO_SPRINT_12.md) | 🔵 ABERTO | Handoff temporário do planejamento |
+| [`sprints/sprint-12/NOTA_DECISAO_MATRIZ_ALCADAS_AC.md`](sprints/sprint-12/NOTA_DECISAO_MATRIZ_ALCADAS_AC.md) | ⛔ MORTO *(por ora)* | **Decisão pendente, e o documento proíbe virar especificação.** Não gerar tarefa a partir dele |
+
+---
+
+## MAPA (Digital)
+
+| Documento | Status | Observação |
+|---|---|---|
+| [`mapa/mapa-refactor.md`](mapa/mapa-refactor.md) | ✅ FEITO | ⚠️ **diz "em execução" e está vencido**: `dbMappers` só sobrevive em fixture de teste, e `Processo` já espelha as colunas do banco |
+| [`mapa/mapa-seletor-cluster-global.md`](mapa/mapa-seletor-cluster-global.md) | ✅ FEITO | `src/components/equipe/mapa/ClusterBar.tsx` |
+| [`mapa/plan.md`](mapa/plan.md) | 🟡 PARCIAL | Edição cruzada: a de melhoria existe em `ProcessosPage`; **`ProjetosPage` não tem nem `procEmEdicao` nem `melEmEdicao`** |
+| [`mapa/checklist-melhorias-preenchimento.md`](mapa/checklist-melhorias-preenchimento.md) | ✅ FEITO | Fechado pelo diagnóstico de 31/07. O auto-select inline foi **descartado pela Patrícia** — não reimplementar |
+| [`mapa/2026-07-31-diagnostico-fechamento-tarefas.md`](mapa/2026-07-31-diagnostico-fechamento-tarefas.md) | 📘 REF | O relatório que fechou o checklist acima |
+| [`mapa/relatorio-teste-uso-asis.md`](mapa/relatorio-teste-uso-asis.md) | 📘 REF | Relato de teste de uso |
+
+---
+
+## Refatoração, lint e custo de IA
+
+| Documento | Status | Observação |
+|---|---|---|
+| [`geral/refatoracao-camada-dados-ledger.md`](geral/refatoracao-camada-dados-ledger.md) | ✅ FEITO | **Aceite verificado agora**: `supabase.from/rpc` em `src/pages`/`src/components` = zero |
+| [`geral/refatoracao-camada-dados-INSTRUCOES-opencode.md`](geral/refatoracao-camada-dados-INSTRUCOES-opencode.md) | ✅ FEITO | Instruções de orquestração da fase concluída. Sem uso futuro |
+| [`geral/refatoracao-ui-god-components-ledger.md`](geral/refatoracao-ui-god-components-ledger.md) | ✅ FEITO | As 20 fachadas originais estão abaixo do teto |
+| [`geral/reducao-custo-ia-tarefas.md`](geral/reducao-custo-ia-tarefas.md) | 🟡 PARCIAL | T1, T3 e T4 feitos. **Abertos: T2** (migrations de import legado — mas ver a decisão de ignorá-las nas buscas, que já resolveu o sintoma), **T5/T6** (o aceite "nenhum `.tsx` de UI acima de 600 linhas" ainda não é verdade — medir com `find src -name '*.tsx' -not -name '*.test.tsx' -exec wc -l {} + \| awk '$1>600'`) e **T7** (`docs/geral/mapa-navegacao.md` não existe) |
+| [`geral/lint-warnings-roadmap.md`](geral/lint-warnings-roadmap.md) | 🟡 PARCIAL | Fases 0 e 1 concluídas; **fases 2 a 10 abertas**. ⚠️ **A contagem do documento está vencida** — ele parou em 763 e o `bunx eslint .` de hoje dá outro número. Medir antes de citar |
+| [`geral/auditoria-gaps-cud.md`](geral/auditoria-gaps-cud.md) | 🔵 ABERTO | Inventário que **nunca foi preenchido**. Fechar os gaps continua sendo tarefa futura, e muda comportamento |
+| [`rls/Divida_Tecnica_RLS_Eduardo.md`](rls/Divida_Tecnica_RLS_Eduardo.md) | 🟡 PARCIAL | Módulo de processos e gargalos fechado; **melhorias, sistemas, `projeto_justificativas`, as 3 decisões formais e o DROP dos backups seguem abertos** |
+| [`geral/divida-tipos-org-comments.md`](geral/divida-tipos-org-comments.md) | 🔵 ABERTO | ver linha em "Equipe" |
+
+---
+
+## Cor, tema e identidade visual
+
+Esta frente andou muito em 08/2026 e os documentos de 18–20/08 **descrevem um mecanismo que
+mudou**. O estado corrente é `geral/paleta-por-area.md`; os outros são história.
+
+| Documento | Status | Observação |
+|---|---|---|
+| [`geral/paleta-por-area.md`](geral/paleta-por-area.md) | 📘 REF | **O contrato em vigor.** Papel de status, tom de tag, quem resolve o quê |
+| [`geral/design-system-board-v5.md`](geral/design-system-board-v5.md) | ✅ FEITO | Refatoração visual do Board, 21/08 |
+| [`geral/decisoes-tema-e-cor.md`](geral/decisoes-tema-e-cor.md) | ⛔ MORTO | Registro de 20/08. **Três decisões foram revertidas** e os endereços `index.css:NNN` não valem mais |
+| [`geral/inventario-paletas-por-tela.md`](geral/inventario-paletas-por-tela.md) | ⛔ MORTO | Foto de 18/08. As recomendações "criar `.board-theme`" e "criar `.dev-theme`" estão **superadas** |
+| [`geral/estado-do-sistema-2026-08-20.md`](geral/estado-do-sistema-2026-08-20.md) | ⛔ MORTO | **Arquivado em 21/08** pelo próprio autor |
+| [`geral/levantamentos-2026-08-21.md`](geral/levantamentos-2026-08-21.md) | 📘 REF | Três medições, sem decisão. Medidas no dev, e três perguntas eram sobre produção |
+| [`geral/comparacoes-de-cor/LEIA.md`](geral/comparacoes-de-cor/LEIA.md) | 🟡 PARCIAL | **Três decisões tomadas, três em aberto** (porta de entrada, superfície de estado, e o resto dos tokens escritos à mão). As páginas HTML são autocontidas — abrir no navegador |
+| [`geral/inventario-telas-por-cluster.md`](geral/inventario-telas-por-cluster.md) | 📘 REF | Metade da resposta; a outra metade é conversa com quem usa |
+
+---
+
+## Dashboards, dados e infraestrutura
+
+| Documento | Status | Observação |
+|---|---|---|
+| [`HANDOFF-dashboard-uso-envio.md`](HANDOFF-dashboard-uso-envio.md) | 🟡 PARCIAL | Técnico e gerencial construídos **e rodando com fixtures**. Falta a troca fixture → endpoint da §6 |
+| [`SPEC-endpoints-analytics-uso.md`](SPEC-endpoints-analytics-uso.md) | 🔵 ABERTO | **Executa fora deste repo** (engenharia de dados). É o par do handoff acima |
+| [`planos/agente-psa-assistente.md`](planos/agente-psa-assistente.md) | ✅ FEITO | ⚠️ **o cabeçalho diz "pendente de migration" e está vencido**: o PR #65, que era o que faltava, foi mergeado em 25/08. Confirmar o schema de produção pelo MCP antes de afirmar o contrário |
+| [`geral/sidebar-recolhe-em-tela-larga.md`](geral/sidebar-recolhe-em-tela-larga.md) | 📘 REF | Padrão implementado; o documento ensina como uma tela nova adere |
+| [`ambiente-de-desenvolvimento.md`](ambiente-de-desenvolvimento.md) | 📘 REF | **Leitura obrigatória** antes de qualquer coisa sobre banco |
+| [`rls/mapa-do-banco.md`](rls/mapa-do-banco.md) | 📘 REF | **Gerado.** É por aqui que se consulta o schema, nunca pelo `types.ts` inteiro |
+| [`AI_CONTEXT.md`](AI_CONTEXT.md) | 📘 REF | Regras do projeto. Sobreposto em parte pelo `AGENTS.md`, que é a fonte única |
+| [`geral/validar-no-app-rodando.md`](geral/validar-no-app-rodando.md) | 📘 REF | Como pôr um navegador logado na frente do app |
+| [`geral/decisoes/`](geral/decisoes/) | 📘 REF | Duas decisões aceitas e em vigor |
+| [`skills/GIF-gerador/`](skills/GIF-gerador/) | 📘 REF | Skill pronta. Ler `references/safety.md` antes de rodar |
+
+---
+
+## Documentos cujo status interno mente
+
+Estes seis são a razão de este índice existir. O que está escrito neles contradiz o código
+da `develop` — e o custo de descobrir isso é abrir o arquivo inteiro.
+
+| Documento | O que ele diz | O que é verdade |
+|---|---|---|
+| `mapa/mapa-refactor.md` | "Status: em execução" | Concluído — `dbMappers` só existe em fixture de teste |
+| `osg/memorial-georref-por-imovel.md` | "lacuna registrada, não corrigida" | Corrigido pela migration `20260831093000` |
+| `planos/agente-psa-assistente.md` | "pendente de migration nos dois bancos" | O PR #65, que era o bloqueio declarado, foi mergeado em 25/08 |
+| `sprints/sprint-11/TAREFA_correcoes-e2e-geracao-contrato.md` | quase nenhum B marcado como concluído | As raias L1–L7 foram integradas; só B7 segue bloqueada. **O HANDOFF é a fonte** |
+| `sprints/sprint-10/README.md` | as duas tarefas "A fazer" | O plano de design que as origina foi declarado superado |
+| `geral/lint-warnings-roadmap.md` | 763 warnings | Outro número hoje. O documento pede para manter a contagem sincronizada e ela não foi |
+
+## Manutenção deste índice
+
+Ele envelhece igual aos outros — a diferença é que envelhecer aqui custa uma linha, e não
+um plano inteiro. Ao fechar uma frente, mude a marca da linha **no mesmo commit** em que o
+código entra. Ao abrir um plano novo em `docs/planos/`, acrescente a linha dele antes de
+começar a executar.
