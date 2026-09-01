@@ -1,0 +1,376 @@
+{
+  "caso": "transferencia-rural",
+  "cliente": "Grupo Aurora Agro",
+  "fatorDeAnonimizacao": 0.7134,
+  "valores": [
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar de exercício(s) anterior(es)",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C116"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado do exercício",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 18439600.37877118,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C117"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Compensação de prejuízo",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C118"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Lucro/Prejuízo fiscal do exercício",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 18439600.37877118,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C119"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Presunção de 20%",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 3687920.075754236,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C120"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado tributável",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 3687920.075754236,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C121"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Total a recolher",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 1014178.020832415,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C122"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C123"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar de exercício(s) anterior(es)",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2027,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!D116"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado do exercício",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2027,
+      "valor": 8164725.313800001,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!D117"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Compensação de prejuízo",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2027,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!D118"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Lucro/Prejuízo fiscal do exercício",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2027,
+      "valor": 8164725.313800001,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!D119"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Presunção de 20%",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2027,
+      "valor": 1632945.0627600001,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!D120"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado tributável",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2027,
+      "valor": 1632945.0627600001,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!D121"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Total a recolher",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2027,
+      "valor": 449059.89225900004,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!D122"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2027,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!D123"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar de exercício(s) anterior(es)",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2028,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!E116"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado do exercício",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2028,
+      "valor": 7667744.478,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!E117"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Compensação de prejuízo",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2028,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!E118"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Lucro/Prejuízo fiscal do exercício",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2028,
+      "valor": 7667744.478,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!E119"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Presunção de 20%",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2028,
+      "valor": 1533548.8956000002,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!E120"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Resultado tributável",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2028,
+      "valor": 1533548.8956000002,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!E121"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Total a recolher",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2028,
+      "valor": 421725.94629000005,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!E122"
+    },
+    {
+      "bloco": "apuracao",
+      "rotulo": "Saldo de prejuízo a compensar",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2028,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!E123"
+    }
+  ],
+  "slide": {
+    "titulo": "3.4 Transferência da Atividade Rural",
+    "linhas": [
+      {
+        "linha": "L4",
+        "rotulo": "Informação do exercício anterior",
+        "valores": null
+      },
+      {
+        "linha": "L5",
+        "rotulo": "Saldo de prejuízo(s) a compensar de exercício(s) anterior(es)",
+        "valores": {
+          "2026": "-",
+          "2027": "-",
+          "2028": "-"
+        }
+      },
+      {
+        "linha": "L7",
+        "rotulo": "Apuração do resultado tributável",
+        "valores": null
+      },
+      {
+        "linha": "L8",
+        "rotulo": "Receita com a venda dos bens da atividade rural",
+        "valores": {
+          "2026": "18.439.600",
+          "2027": "8.164.725",
+          "2028": "7.667.744"
+        }
+      },
+      {
+        "linha": "L9",
+        "rotulo": "Despesas de custeio e investimento total",
+        "valores": {
+          "2026": "-",
+          "2027": "-",
+          "2028": "-"
+        }
+      },
+      {
+        "linha": "L10",
+        "rotulo": "Resultado da Atividade Rural",
+        "valores": {
+          "2026": "18.439.600",
+          "2027": "8.164.725",
+          "2028": "7.667.744"
+        }
+      },
+      {
+        "linha": "L12",
+        "rotulo": "Limite de 20% sobre a receita bruta total",
+        "valores": {
+          "2026": "3.687.920",
+          "2027": "1.632.945",
+          "2028": "1.533.549"
+        }
+      },
+      {
+        "linha": "L13",
+        "rotulo": "Opção pela forma de apuração do resultado tributável",
+        "valores": {
+          "2026": "Presumido",
+          "2027": "Presumido",
+          "2028": "Presumido"
+        }
+      },
+      {
+        "linha": "L14",
+        "rotulo": "Compensação de prejuízo(s) de exercício(s) anteriores",
+        "valores": {
+          "2026": "-",
+          "2027": "-",
+          "2028": "-"
+        }
+      },
+      {
+        "linha": "L15",
+        "rotulo": "Resultado Tributável",
+        "valores": {
+          "2026": "3.687.920",
+          "2027": "1.632.945",
+          "2028": "1.533.549"
+        }
+      },
+      {
+        "linha": "L17",
+        "rotulo": "Imposto a pagar",
+        "valores": {
+          "2026": "1.014.178",
+          "2027": "449.060",
+          "2028": "421.726"
+        }
+      },
+      {
+        "linha": "L18",
+        "rotulo": "Saldo de prejuízo a compensar nos exercícios seguintes",
+        "valores": {
+          "2026": "-",
+          "2027": "-",
+          "2028": "-"
+        }
+      }
+    ]
+  }
+}

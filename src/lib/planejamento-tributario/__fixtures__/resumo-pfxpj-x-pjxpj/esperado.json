@@ -1,0 +1,531 @@
+{
+  "caso": "resumo-pfxpj-x-pjxpj",
+  "cliente": "Grupo Aurora Agro",
+  "fatorDeAnonimizacao": 0.7134,
+  "valores": [
+    {
+      "bloco": "resumo",
+      "rotulo": "Pessoa Física",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 6235637.419404061,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D16"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "IRPF",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 3699447.847710609,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D17"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "CBS (a partir de 2027)",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D18"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "INSS",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 2536189.571693451,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D19"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PJ - Lucro Presumido",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D21"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "IRPJ/CSLL",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D22"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PIS/Cofins",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D23"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "CBS (a partir de 2027)",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D24"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "INSS",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D25"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PJ - Lucro Real",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D27"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "IRPJ/CSLL",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D28"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PIS/Cofins",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D29"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "CBS (a partir de 2027)",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D30"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "INSS",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D31"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "Total",
+      "cenario": "Cenário Atual",
+      "ano": 2026,
+      "valor": 6235637.419404061,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!D33"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "Pessoa Física",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 3887756.312679354,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E16"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "IRPF",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 1588451.1288154742,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E17"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "CBS (a partir de 2027)",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E18"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "INSS",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 2299305.18386388,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E19"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PJ - Lucro Presumido",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 824464.7765350483,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E21"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "IRPJ/CSLL",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 510572.94311266666,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E22"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PIS/Cofins",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 309616.38156478154,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E23"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "CBS (a partir de 2027)",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E24"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "INSS",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 4275.451857600001,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E25"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PJ - Lucro Real",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E27"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "IRPJ/CSLL",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E28"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PIS/Cofins",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E29"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "CBS (a partir de 2027)",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E30"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "INSS",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E31"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "Total",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": 4712221.089214402,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!E33"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "Redução",
+      "cenario": "Cenário 01",
+      "ano": 2026,
+      "valor": -0.24430803584715977,
+      "unidade": "percentual",
+      "origemCelula": "Resumo!E34"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "Pessoa Física",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 1014178.020832415,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F16"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "IRPF",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 1014178.020832415,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F17"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "CBS (a partir de 2027)",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F18"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "INSS",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F19"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PJ - Lucro Presumido",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 824464.7765350483,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F21"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "IRPJ/CSLL",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 510572.94311266666,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F22"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PIS/Cofins",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 309616.38156478154,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F23"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "CBS (a partir de 2027)",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F24"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "INSS",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 4275.451857600001,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F25"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PJ - Lucro Real",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 7743977.254539887,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F27"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "IRPJ/CSLL",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F28"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "PIS/Cofins",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 4985153.227797441,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F29"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "CBS (a partir de 2027)",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 0.0,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F30"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "INSS",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 2758824.026742446,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F31"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "Total",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 9582620.051907351,
+      "unidade": "moeda",
+      "origemCelula": "Resumo!F33"
+    },
+    {
+      "bloco": "resumo",
+      "rotulo": "Redução",
+      "cenario": "Cenário 02",
+      "ano": 2026,
+      "valor": 0.5367506811874834,
+      "unidade": "percentual",
+      "origemCelula": "Resumo!F34"
+    }
+  ],
+  "slide": {
+    "titulo": "3.5 Resumo da Tributação",
+    "linhas": [
+      {
+        "rotulo": "Pessoa Física",
+        "atual": "6.235.637",
+        "c01": "3.887.756",
+        "c02": "1.014.178"
+      },
+      {
+        "rotulo": "IRPF",
+        "atual": "3.699.448",
+        "c01": "1.588.451",
+        "c02": "1.014.178"
+      },
+      {
+        "rotulo": "CBS (a partir de 2027)",
+        "atual": "-",
+        "c01": "-",
+        "c02": "-"
+      },
+      {
+        "rotulo": "INSS",
+        "atual": "2.536.190",
+        "c01": "2.299.305",
+        "c02": "-"
+      },
+      {
+        "rotulo": "PJ - Lucro Presumido",
+        "atual": "-",
+        "c01": "824.465",
+        "c02": "824.465"
+      },
+      {
+        "rotulo": "IRPJ/CSLL",
+        "atual": "-",
+        "c01": "510.573",
+        "c02": "510.573"
+      },
+      {
+        "rotulo": "PIS/Cofins",
+        "atual": "-",
+        "c01": "309.616",
+        "c02": "309.616"
+      },
+      {
+        "rotulo": "CBS (a partir de 2027)",
+        "atual": "-",
+        "c01": "-",
+        "c02": "-"
+      },
+      {
+        "rotulo": "INSS",
+        "atual": "-",
+        "c01": "4.275",
+        "c02": "4.275"
+      },
+      {
+        "rotulo": "PJ - Lucro Real",
+        "atual": "-",
+        "c01": "-",
+        "c02": "7.743.977"
+      },
+      {
+        "rotulo": "IRPJ/CSLL",
+        "atual": "-",
+        "c01": "-",
+        "c02": "-"
+      },
+      {
+        "rotulo": "PIS/Cofins",
+        "atual": "-",
+        "c01": "-",
+        "c02": "4.985.153"
+      },
+      {
+        "rotulo": "CBS (a partir de 2027)",
+        "atual": "-",
+        "c01": "-",
+        "c02": "-"
+      },
+      {
+        "rotulo": "INSS",
+        "atual": "-",
+        "c01": "-",
+        "c02": "2.758.824"
+      },
+      {
+        "rotulo": "Total",
+        "atual": "6.235.637",
+        "c01": "4.712.221",
+        "c02": "9.582.620"
+      },
+      {
+        "rotulo": "Aumento/Redução em relação ao cenário atual",
+        "atual": "-",
+        "c01": "(24%)",
+        "c02": "54%"
+      }
+    ]
+  }
+}

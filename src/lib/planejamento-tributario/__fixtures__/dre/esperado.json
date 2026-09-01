@@ -1,0 +1,389 @@
+{
+  "caso": "dre",
+  "cliente": "Grupo Aurora Agro",
+  "fatorDeAnonimizacao": 0.7134,
+  "valores": [
+    {
+      "bloco": "dre",
+      "rotulo": "Receita",
+      "nivel": 0,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 152182209.39529163,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C31"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) M.I. - Agrícola própria",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 129074502.52408442,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C34"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) Soja - Própria",
+      "nivel": 2,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 52730737.20691939,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C35"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) Milho - Própria",
+      "nivel": 2,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 74825644.73202947,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C36"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) Algodão - Própria",
+      "nivel": 2,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 1518120.5853139202,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C37"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) M.I. - Agrícola arrendada",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 9063583.994877301,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C46"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) Soja - Arrendada",
+      "nivel": 2,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 3736872.0257400004,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C47"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) Milho - Arrendada",
+      "nivel": 2,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 5326711.969137301,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C48"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) M.E. - Agrícola própria",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 14022549.66032991,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C58"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) Soja - Própria",
+      "nivel": 2,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 11462535.284571001,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C59"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) Algodão - Própria",
+      "nivel": 2,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 2560014.37575891,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C61"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) M.I. - Outras receitas",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 21573.216,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C73"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+) Outros: especificar (ex. distribuição de lucros de outras sociedades; eventuais venda de insumos agrícolas, etc)",
+      "nivel": 2,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 21573.216,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C75"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Custos",
+      "nivel": 0,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 145757030.3481096,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C76"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Defensivos - Própria",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 31220012.121480003,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C77"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Fertilizantes e sais minerais - Própria",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 39298786.75359,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C79"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Sementes - Própria",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 18169692.85845,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C81"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Máquinas/Equip. (aquisições)",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 14743415.696914801,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C83"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Máquinas/Equip. (serviços)",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 9987694.1256393,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C84"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Consultoria agronômica",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 870656.2558596,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C89"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Despesas com avião agrícola",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 607553.8304157001,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C90"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Combustível (Diesel, gasolina, energia, etc)",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 7492000.9772853,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C92"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Beneficiamento de sementes",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 3472879.839968701,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C93"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Tributos e contribuições",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 3627356.4561465005,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C94"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Arrendamento declarados",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 1137773.6590500001,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C96"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Fol. Pgto - Própria - Agrícola",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 9783063.9246186,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C97"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Outros: especificar",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 5346143.848691101,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C100"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Despesas administrativas",
+      "nivel": 0,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 4090331.19222,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C101"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(+/-) Resultado financeiro",
+      "nivel": 0,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": -4781982.6920565,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C109"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(-) Despesa financeira (taxas bancárias, juros sobre financiamentos)",
+      "nivel": 1,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": 4781982.6920565,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C111"
+    },
+    {
+      "bloco": "dre",
+      "rotulo": "(=) Lucro/Prejuízo do exercício",
+      "nivel": 0,
+      "cenario": "Cenário Atual (PF)",
+      "contribuinte": "Aurora Agro",
+      "ano": 2026,
+      "valor": -2447134.8370944937,
+      "unidade": "moeda",
+      "origemCelula": "Cenário Atual (PF)!C112"
+    }
+  ],
+  "slide": {
+    "titulo": "3.1 Premissas, a DRE",
+    "linhas": [
+      {
+        "rotulo": "Receita",
+        "valor": "152.182.209"
+      },
+      {
+        "rotulo": "(+) M.I. - Agrícola própria",
+        "valor": "129.074.503"
+      },
+      {
+        "rotulo": "(+) M.I. - Agrícola arrendada",
+        "valor": "9.063.584"
+      },
+      {
+        "rotulo": "(+) M.E. - Agrícola própria",
+        "valor": "14.022.550"
+      },
+      {
+        "rotulo": "(+) M.I. - Outras receitas",
+        "valor": "21.573"
+      },
+      {
+        "rotulo": "(-) Custos",
+        "valor": "145.757.030"
+      },
+      {
+        "rotulo": "(-) Despesas administrativas",
+        "valor": "4.090.331"
+      },
+      {
+        "rotulo": "(+/-) Resultado financeiro",
+        "valor": "(4.781.983)"
+      },
+      {
+        "rotulo": "(=) Lucro/Prejuízo do exercício",
+        "valor": "(2.447.135)"
+      }
+    ]
+  }
+}
