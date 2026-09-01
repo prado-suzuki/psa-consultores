@@ -1,166 +1,140 @@
 import React from 'react';
-import { Clock, FolderKanban, Sparkles, Target, Wallet } from 'lucide-react';
+import { Coins, FolderKanban, Gauge, Scale, Sparkles } from 'lucide-react';
 import { BoardStatStrip } from './BoardStatStrip';
+import type { CapacidadeMelhorias, MixProjetosAtivos, ReceitaDiretoria } from '@/lib/boardDiretoria';
 
 interface BoardKpisNegocioProps {
   /**
-   * `null` = NAO APURADO (a consulta de projetos falhou), nunca zero. Antes
+   * `null` = NÃO APURADO (a consulta de projetos falhou), nunca zero. Antes
    * era `number` e a tela desenhava "0 projetos ativos" com a consulta morta,
-   * como se zero fosse a resposta -- o defeito que o Bloco D existiu para
-   * matar e que voltou quando o card de aviso saiu da grade (21/08).
+   * como se zero fosse a resposta.
    */
-  projetosAtivos: number | null;
-  janelaExecucao: string;
-  /**
-   * `null` = NAO APURADO. Era documentado como "enquanto a consulta carrega",
-   * e isso deixou de ser verdade: a faixa inteira fica atrás de um Skeleton
-   * enquanto `kpisLoading` for verdadeiro, então, na hora em que este cartão
-   * PINTA, `null` só pode significar que a consulta de horas não trouxe dado.
-   * O rótulo diz isso -- antes mostrava "—" com o subtexto normal ("alocadas ·
-   * últimos 30 dias"), que lia como "a janela não teve horas".
-   */
-  totalHoras: number | null;
-  /** `null` = nao apurado. Sem base, o anel e a pill de meta nao aparecem. */
-  pontualidade: number | null;
-  /** Valor dos contratos/OS no período (COM data de início) -- em reais. */
-  valorProjetos: number;
-  /**
-   * Valor das OS sem `data_inicio`, do MESMO período de recorte -- Bloco D/D3,
-   * 21/08: ninguém decide sozinho excluir 37% do valor de uma tela de sócio.
-   * Some ao card e aparece numa linha própria, visível, em vez de nota de
-   * rodapé (opção C, decisão da usuária).
-   */
-  valorSemData: number;
-  janelaValor: string;
+  mix: MixProjetosAtivos | null;
+  receita: ReceitaDiretoria;
+  capacidade: CapacidadeMelhorias;
   /** `null` só quando não há investimento cadastrado (ver `ratioRoi`). */
-  roi: { economiaAnual: number; roiPct: number | null; melhorias: number };
+  roiPct: number | null;
+  janelaExecucao: string;
+  janelaValor: string;
+  /** Abre/fecha o detalhamento do MIX logo abaixo da faixa. */
+  onAbrirMix: () => void;
   onNavigate: (rota: string) => void;
 }
 
 const brlMil = (v: number) => Math.round(v / 1000);
-
-/** Meta de pontualidade — o mesmo limite que colore o anel e escreve a pill. */
-const META_PONTUALIDADE = 85;
+const MES_CURTO = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const mesAno = (ym: string) => `${MES_CURTO[Number(ym.slice(5, 7)) - 1]}/${ym.slice(2, 4)}`;
 
 /**
- * A faixa de KPIs do Estratégico (reunião Mariana, 17/08) -- seis números para
- * a diretoria bater o olho e entender o negócio sem rolar a página.
+ * A faixa de KPIs do Estratégico na leitura de DIRETORIA (28/08, Mariana +
+ * Patricia). Não é restyling da faixa anterior: é outra pergunta.
  *
- * "Custo dos projetos" não tem card com número: não existe campo de custo em
- * `org_projects` nem tabela parecida (verificado, não é ausência de query).
- * Mostra "—" e o rótulo explica o motivo em vez de estimar.
+ * SAÍRAM, porque são operação e ninguém decide olhando para eles nesta tela:
+ * "Total de horas" e "Pontualidade de entrega". Atraso só vira assunto de
+ * diretoria quando vira dinheiro parado — e nesse caso ele já aparece na faixa
+ * de decisão do agente ("R$ X em contrato a resolver"), não aqui.
  *
- * ── Por que a cor mudou ───────────────────────────────────────────────
- * Cada um dos seis cartões tinha uma matiz própria (índigo, ciano, âmbar,
- * roxo, cinza, verde) numa faixa de 3px no topo. Seis cores sem significado
- * nenhum — nada ligava "roxo" a "valor acumulado" — e era o que dava à tela a
- * cara de template. Agora:
+ * SAIU TAMBÉM o faturamento total ("R$ 435k"): com o cadastro de OS incompleto
+ * (a API do João ainda não entregou), somar tudo produz um número que a
+ * diretoria chama de errado — e ela tem razão. No lugar entram ticket médio,
+ * quantidade que gera caixa e ATÉ QUANDO gera.
  *
- * · o acento (teal da marca) pinta o que é MEDIDA (projetos, horas, valor, ROI);
- * · a cor de ESTADO só aparece onde há estado: a pontualidade é âmbar abaixo
- *   da meta e carmim quando cai abaixo de 70%;
- * · o cinza fica para o que não pode ser medido (custo).
- *
- * O cartão de VALOR é o `hero` (fundo tingido): numa tela de sócio, receita
- * contratada é o número que se olha primeiro, e a referência resolve isso com
- * tinta de fundo em vez de tamanho de fonte diferente.
+ * O que cada cartão passou a responder:
+ *  1. Projetos ativos — subiu ou desceu contra a janela anterior? E é cliente
+ *     novo, aditivo, ou entrega já paga? (clique abre o mix)
+ *  2. Ticket médio — quanto vale um projeto e até quando o contratado paga.
+ *  3. Receita × folha — a operação cobre a folha? Hoje "—": não existe custo
+ *     de folha no cadastro, e inventá-lo seria pior que a lacuna.
+ *  4. Capacidade liberada — horas devolvidas pelas melhorias viram FTE (176h).
+ *  5. Economia das melhorias — o valor anual, com o ROI quando há investimento.
  */
 export const BoardKpisNegocio: React.FC<BoardKpisNegocioProps> = ({
-  projetosAtivos,
+  mix,
+  receita,
+  capacidade,
+  roiPct,
   janelaExecucao,
-  totalHoras,
-  pontualidade,
-  valorProjetos,
-  valorSemData,
   janelaValor,
-  roi,
+  onAbrirMix,
   onNavigate,
 }) => {
-  const valorTotal = valorProjetos + valorSemData;
-  // Cinza é o token do que NAO PODE ser medido nesta faixa (é o do card de
-  // custo). Pontualidade sem base entra nele, não na cor de estado: vermelho
-  // diria "está ruim", e a verdade é "não sei".
-  const corPontualidade = pontualidade === null
-    ? 'var(--bd-ink3)'
-    : pontualidade >= META_PONTUALIDADE
-      ? 'var(--bd-go)'
-      : pontualidade >= 70 ? 'var(--bd-warn)' : 'var(--bd-risk)';
+  const variacao = mix?.variacaoPct ?? null;
+  const fte = capacidade.fteLiberado;
 
   return (
     <BoardStatStrip
-      cols={6}
+      cols={5}
       items={[
         {
-          value: projetosAtivos ?? '—',
+          value: mix ? mix.ativos : '—',
           label: 'Projetos ativos',
-          color: projetosAtivos === null ? 'var(--bd-ink3)' : 'var(--bd-accent)',
+          color: mix ? 'var(--bd-accent)' : 'var(--bd-ink3)',
           icon: FolderKanban,
-          subText: projetosAtivos === null ? 'não apurado' : janelaExecucao,
-          onClick: () => onNavigate('/equipe/board/performance'),
-        },
-        {
-          value: totalHoras ?? '—',
-          suffix: totalHoras === null ? undefined : 'h',
-          label: 'Total de horas',
-          color: totalHoras === null ? 'var(--bd-ink3)' : 'var(--bd-accent)',
-          icon: Clock,
-          // `estimated_hours` de toda tarefa da janela, qualquer status -- é
-          // alocação de trabalho, não horas já entregues.
-          subText: totalHoras === null ? 'não apurado' : `alocadas · ${janelaExecucao}`,
-          onClick: () => onNavigate('/equipe/board/performance'),
-        },
-        {
-          value: pontualidade ?? '—',
-          suffix: pontualidade === null ? undefined : '%',
-          label: 'Pontualidade de entrega',
-          color: corPontualidade,
-          // Proporção de um todo: é o caso de anel (ver `BoardRing`). O anel
-          // substitui a barra de 3px que ficava no pé do cartão. Sem base, NEM
-          // anel NEM pill: anel em 0% desenha um círculo vazio que se lê como
-          // "nenhuma entrega saiu no prazo", e a pill diria "abaixo da meta"
-          // sobre medida que não existe.
-          // Medidor, sem número por dentro: o número grande do cartão já é este
-          // valor. O "no prazo" desceu para o subtexto, que tem largura.
-          ring: pontualidade === null ? undefined : {
-            pct: pontualidade,
-            title: `${pontualidade}% das entregas com prazo saíram no prazo · meta ${META_PONTUALIDADE}%`,
+          // A variação compara INICIADOS na janela com a janela anterior de
+          // mesmo tamanho — comparar "ativos hoje" com nada seria pill decorativa.
+          pill: variacao === null ? undefined : {
+            text: `${variacao >= 0 ? '↑' : '↓'} ${Math.abs(Math.round(variacao))}% vs período anterior`,
+            variant: variacao >= 0 ? 'up' : 'down',
           },
-          pill: pontualidade === null ? undefined : {
-            text: pontualidade >= META_PONTUALIDADE ? 'Dentro da meta' : 'Abaixo da meta',
-            variant: pontualidade >= META_PONTUALIDADE ? 'up' : 'down',
-          },
-          subText: pontualidade === null ? 'não apurado' : `no prazo · ${janelaExecucao}`,
-          onClick: () => onNavigate('/equipe/board/performance'),
+          subText: mix
+            ? `${mix.iniciadosJanela} iniciados · ${janelaExecucao} · clique para ver o mix`
+            : 'não apurado',
+          onClick: mix ? onAbrirMix : undefined,
         },
         {
-          value: brlMil(valorTotal), prefix: 'R$', suffix: 'k',
-          label: 'Valor acumulado dos projetos', color: 'var(--bd-accent)',
-          icon: Wallet,
+          value: receita.ticketMedio === null ? '—' : brlMil(receita.ticketMedio),
+          prefix: receita.ticketMedio === null ? undefined : 'R$',
+          suffix: receita.ticketMedio === null ? undefined : 'k',
+          label: 'Ticket médio por OS',
+          color: receita.ticketMedio === null ? 'var(--bd-ink3)' : 'var(--bd-accent)',
+          icon: Coins,
           hero: true,
-          // Opção C do D3 (decisão da usuária, 21/08): o total NUNCA esconde
-          // valor -- soma OS com e sem data de início. O que não tem data
-          // fica visível na pill em vez de sumir em nota de rodapé.
-          pill: valorSemData > 0
-            ? { text: `R$${brlMil(valorSemData)}k sem data`, variant: 'neutral' }
+          pill: receita.projetosGerandoCaixa > 0
+            ? { text: `${receita.projetosGerandoCaixa} gerando caixa`, variant: 'neutral' }
             : undefined,
-          subText: valorSemData > 0
-            ? `${janelaValor} · R$${brlMil(valorProjetos)}k com data de início`
-            : janelaValor,
+          subText: receita.ticketMedio === null
+            ? 'nenhuma OS com valor lançado no recorte'
+            : receita.horizonteCaixa
+              ? `${janelaValor} · contratado até ${mesAno(receita.horizonteCaixa)}`
+              : `${janelaValor} · sem data de fim nas OS vigentes`,
           onClick: () => onNavigate('/equipe/board/dashboard-clientes-os'),
         },
         {
-          value: '—', label: 'Custo dos projetos', color: 'var(--bd-ink3)',
-          icon: Target,
-          subText: 'sem campo de custo no backend',
+          // Não existe custo de folha no banco. O cartão fica, porque a
+          // pergunta ("a operação cobre a folha?") é da diretoria — some o
+          // número, não a pergunta.
+          value: '—',
+          label: 'Receita provisionada vs folha',
+          color: 'var(--bd-ink3)',
+          icon: Scale,
+          subText: 'sem campo de folha no cadastro',
         },
         {
-          value: brlMil(roi.economiaAnual), prefix: 'R$', suffix: 'k',
-          label: 'Expectativa de ROI', color: 'var(--bd-accent)',
+          value: fte === null ? '—' : Number(fte.toFixed(1)),
+          suffix: fte === null ? undefined : ' FTE',
+          animateCount: false,
+          label: 'Capacidade liberada pelas ferramentas',
+          color: fte === null ? 'var(--bd-ink3)' : 'var(--bd-accent)',
+          icon: Gauge,
+          pill: capacidade.horasReduzidasMes === null ? undefined : {
+            text: `${Math.round(capacidade.horasReduzidasMes)}h/mês`,
+            variant: 'neutral',
+          },
+          subText: capacidade.horasReduzidasMes === null
+            ? 'nenhuma melhoria com horas medidas'
+            : 'interna × cliente ainda não separada no cadastro',
+          onClick: () => onNavigate('/equipe/board/impacto'),
+        },
+        {
+          value: brlMil(capacidade.economiaAnual), prefix: 'R$', suffix: 'k',
+          label: 'Economia anual das melhorias',
+          color: 'var(--bd-accent)',
           icon: Sparkles,
-          pill: roi.roiPct !== null
-            ? { text: `${Math.round(roi.roiPct)}% ROI`, variant: roi.roiPct >= 0 ? 'up' : 'down' }
-            : { text: 'ROI em construção', variant: 'neutral' },
-          subText: `acumulado · ${roi.melhorias} melhorias`,
+          pill: roiPct !== null
+            ? { text: `${Math.round(roiPct)}% ROI`, variant: roiPct >= 0 ? 'up' : 'down' }
+            : { text: 'sem investimento lançado', variant: 'neutral' },
+          subText: `${capacidade.melhorias} melhorias avaliadas`,
+          onClick: () => onNavigate('/equipe/board/impacto'),
         },
       ]}
     />
