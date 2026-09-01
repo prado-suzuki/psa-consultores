@@ -255,7 +255,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                                 <div className="font-semibold mb-1">
                                   {a.anexo} — {base.artigo}
                                 </div>
-                                <div className="text-slate-900 whitespace-pre-line">
+                                <div className="text-foreground whitespace-pre-line">
                                   {base.texto}
                                 </div>
                               </TooltipContent>

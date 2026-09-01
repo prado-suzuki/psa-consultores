@@ -186,7 +186,7 @@ const DevDashboard = () => {
       subtitle="Acesse suas ferramentas automatizadas e manuais de operação"
     >
       <div className="space-y-6">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           Use o filtro para achar uma ferramenta específica ou explore por categoria no catálogo abaixo.
         </p>
 
@@ -213,22 +213,22 @@ const DevDashboard = () => {
                     </span>
                     Fonte dos dados
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     <ShieldAlert className="h-3 w-3" /> Leitura obrigatória
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
                     SOP oficial
                   </span>
                 </div>
-                <h2 className="text-xl font-bold tracking-tight text-slate-900">
+                <h2 className="text-xl font-bold tracking-tight text-foreground">
                   Estrutura de Pastas do Google Drive
                 </h2>
-                <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-slate-600">
+                <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted-foreground">
                   Cada pasta de cliente no Drive alimenta o banco de dados que abastece{" "}
-                  <span className="font-semibold text-slate-800">todas as aplicações Digital DEV</span>.
+                  <span className="font-semibold text-foreground">todas as aplicações Digital DEV</span>.
                   O envio correto dos documentos na estrutura padrão é essencial para garantir a
                   integridade da coleta e o funcionamento das ferramentas. Clique em{" "}
-                  <span className="font-semibold text-slate-800">Abrir manual</span> para consultar a
+                  <span className="font-semibold text-foreground">Abrir manual</span> para consultar a
                   estrutura completa e evitar erros de organização.
                 </p>
               </div>
@@ -246,7 +246,7 @@ const DevDashboard = () => {
         <div className="rounded-2xl border border-border/70 bg-white p-5 shadow-sm">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-slate-900">Catálogo de Ferramentas</h2>
+              <h2 className="text-base font-semibold text-foreground">Catálogo de Ferramentas</h2>
               <Badge variant="secondary" className="text-[11px]">
                 {totalFiltered} {totalFiltered === 1 ? "item" : "itens"}
               </Badge>
@@ -260,7 +260,7 @@ const DevDashboard = () => {
                 <SelectContent>
                   {toolGroups.map((group) => (
                     <SelectGroup key={group.label}>
-                      <SelectLabel className="text-[11px] uppercase tracking-wider text-slate-500">
+                      <SelectLabel className="text-[11px] uppercase tracking-wider text-muted-foreground">
                         {group.label}
                       </SelectLabel>
                       {group.tools.map((tool) => (
@@ -278,7 +278,7 @@ const DevDashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => setSelectedToolPath("")}
-                  className="h-9 text-xs text-slate-600 hover:text-primary"
+                  className="h-9 text-xs text-muted-foreground hover:text-primary"
                 >
                   <X className="mr-1 h-3.5 w-3.5" />
                   Limpar
@@ -294,7 +294,7 @@ const DevDashboard = () => {
               return (
                 <section key={group.label} id={toAnchorId(group.label)} className="flex flex-col scroll-mt-4">
                   <div className="mb-3 flex items-center gap-2">
-                    <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{group.label}</h3>
+                    <h3 className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground">{group.label}</h3>
                     <span className="h-px flex-1 bg-muted" />
                     <Badge variant="outline" className="text-[10px]">
                       {group.tools.length}
@@ -347,7 +347,7 @@ const DevDashboard = () => {
                       )}
 
                       <div className="mt-auto flex items-center justify-end pt-4">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-sm transition-transform group-hover:translate-x-1">
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-transform group-hover:translate-x-1">
                           {isSingleton ? "Abrir" : "Abrir central"}
                           <ArrowRight className="h-3.5 w-3.5" />
                         </span>
@@ -373,10 +373,10 @@ const DevDashboard = () => {
                                 <Icon className="h-5 w-5" />
                               </div>
                               <div className="min-w-0 flex-1">
-                                <h4 className="text-sm font-semibold leading-tight text-slate-900 transition-colors group-hover:text-primary">
+                                <h4 className="text-sm font-semibold leading-tight text-foreground transition-colors group-hover:text-primary">
                                   {tool.name}
                                 </h4>
-                                <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-slate-500">
+                                <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                                   {tool.description}
                                 </p>
                               </div>
@@ -389,7 +389,7 @@ const DevDashboard = () => {
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   onClick={(event) => event.stopPropagation()}
-                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-primary"
+                                  className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground hover:text-primary"
                                 >
                                   <BookOpen className="h-3 w-3" />
                                   Manual
@@ -450,8 +450,8 @@ const DevDashboard = () => {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
             <div>
-              <p className="text-sm font-semibold text-slate-900">Não achou a ferramenta que precisa?</p>
-              <p className="mt-0.5 text-xs text-slate-500">
+              <p className="text-sm font-semibold text-foreground">Não achou a ferramenta que precisa?</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 Solicite uma nova ferramenta para a equipe Digital Dev avaliar.
               </p>
             </div>
@@ -466,14 +466,14 @@ const DevDashboard = () => {
           </div>
 
           <div className="rounded-2xl border border-border/70 bg-white p-5 shadow-sm">
-            <h3 className="mb-3 text-sm font-semibold text-slate-900">Categorias</h3>
+            <h3 className="mb-3 text-sm font-semibold text-foreground">Categorias</h3>
             <div className="flex flex-wrap gap-2">
               {toolGroups.map((group) => (
                 <button
                   key={group.label}
                   type="button"
                   onClick={() => scrollToCategory(group.label)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
                 >
                   {group.label}
                   <span className="text-slate-400">{group.tools.length}</span>

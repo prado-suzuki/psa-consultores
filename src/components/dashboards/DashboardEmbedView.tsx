@@ -79,7 +79,7 @@ export function DashboardEmbedView({
   if (opcoes.length === 0) {
     return (
       <div className="rounded-xl border border-border p-8 text-center">
-        <p className="text-sm text-slate-500">{emptyMessage}</p>
+        <p className="text-sm text-muted-foreground">{emptyMessage}</p>
       </div>
     );
   }
@@ -88,9 +88,9 @@ export function DashboardEmbedView({
     <div className={className}>
       <div className="mb-3 flex flex-wrap items-end gap-3">
         <div className="min-w-0">
-          <label className="text-[11px] font-medium uppercase tracking-wide mb-1 block text-slate-500">Relatório</label>
+          <label className="text-[11px] font-medium uppercase tracking-wide mb-1 block text-muted-foreground">Relatório</label>
           <Select value={selecionado} onValueChange={setEscolhido}>
-            <SelectTrigger className="w-[320px] h-10 rounded-lg px-3 text-left text-sm font-medium text-slate-800 shadow-sm">
+            <SelectTrigger className="w-[320px] h-10 rounded-lg px-3 text-left text-sm font-medium text-foreground shadow-sm">
               <SelectValue placeholder="Selecione um relatório" />
             </SelectTrigger>
             <SelectContent>

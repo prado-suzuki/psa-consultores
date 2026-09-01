@@ -55,8 +55,8 @@ const CORES_MOTIVO: Record<MotivoPendencia, string> = {
 const KpiCard = ({ label, valor, hint }: { label: string; valor: string; hint: string }) => (
   <Card>
     <CardContent className="p-4">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-slate-900">{valor}</p>
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-foreground">{valor}</p>
       <p className="text-xs text-slate-400">{hint}</p>
     </CardContent>
   </Card>
@@ -209,13 +209,13 @@ export const AuditPendenciasTable = ({ area }: AuditPendenciasTableProps) => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-slate-500">
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : visiveis.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="py-8 text-center text-slate-500">
+                  <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                     <span className="flex items-center justify-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                       {linhas.length === 0
@@ -234,13 +234,13 @@ export const AuditPendenciasTable = ({ area }: AuditPendenciasTableProps) => {
                     onClick={() => navigate(destino.rota)}
                   >
                     <TableCell className="text-sm font-medium">{linha.nome}</TableCell>
-                    <TableCell className="text-sm text-slate-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       {ENTITY_LABELS[linha.tipo] ?? linha.tipo}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       {linha.projetoNome ?? '—'}
                     </TableCell>
-                    <TableCell className="text-sm text-slate-600">
+                    <TableCell className="text-sm text-muted-foreground">
                       {linha.clienteNome ?? '—'}
                     </TableCell>
                     <TableCell className="text-sm">
@@ -260,7 +260,7 @@ export const AuditPendenciasTable = ({ area }: AuditPendenciasTableProps) => {
                         </TooltipContent>
                       </Tooltip>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-sm text-slate-600">
+                    <TableCell className="whitespace-nowrap text-sm text-muted-foreground">
                       {linha.ultimoToquePor}
                       <span className="ml-2 text-xs text-slate-400">
                         {format(new Date(linha.ultimoToqueEm), 'dd/MM/yyyy', { locale: ptBR })}
@@ -300,7 +300,7 @@ export const AuditPendenciasTable = ({ area }: AuditPendenciasTableProps) => {
 
       <AuditLimiteAviso total={logs.length} />
 
-      <p className="flex items-start gap-2 text-xs text-slate-500">
+      <p className="flex items-start gap-2 text-xs text-muted-foreground">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <span>
           <strong className="font-medium">Clique na linha</strong> para abrir a tela onde o campo

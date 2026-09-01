@@ -70,7 +70,7 @@ export function AnaliseInteligenteFilters({
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
           <div className="space-y-1">
-            <Label className="text-xs text-slate-500">Data início</Label>
+            <Label className="text-xs text-muted-foreground">Data início</Label>
             <Input
               type="date"
               value={startDate}
@@ -79,7 +79,7 @@ export function AnaliseInteligenteFilters({
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-slate-500">Data fim</Label>
+            <Label className="text-xs text-muted-foreground">Data fim</Label>
             <Input
               type="date"
               value={endDate}
@@ -88,7 +88,7 @@ export function AnaliseInteligenteFilters({
             />
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-slate-500">Sprint</Label>
+            <Label className="text-xs text-muted-foreground">Sprint</Label>
             <Select value={sprintFilter} onValueChange={onSprintFilterChange}>
               <SelectTrigger className="h-9">
                 <SelectValue />
@@ -104,7 +104,7 @@ export function AnaliseInteligenteFilters({
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-slate-500">Projeto</Label>
+            <Label className="text-xs text-muted-foreground">Projeto</Label>
             <Select value={projectFilter} onValueChange={onProjectFilterChange}>
               <SelectTrigger className="h-9">
                 <SelectValue />
@@ -120,7 +120,7 @@ export function AnaliseInteligenteFilters({
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-slate-500">Processo</Label>
+            <Label className="text-xs text-muted-foreground">Processo</Label>
             <Select value={processFilter} onValueChange={onProcessFilterChange}>
               <SelectTrigger className="h-9">
                 <SelectValue />
@@ -136,7 +136,7 @@ export function AnaliseInteligenteFilters({
             </Select>
           </div>
           <div className="space-y-1">
-            <Label className="text-xs text-slate-500">Cluster</Label>
+            <Label className="text-xs text-muted-foreground">Cluster</Label>
             <Select
               value={clusterFilter === '' ? '__todos__' : clusterFilter}
               onValueChange={(v) => onClusterFilterChange(v === '__todos__' ? '' : v)}
@@ -159,7 +159,7 @@ export function AnaliseInteligenteFilters({
           </div>
         </div>
         <div className="flex justify-end mt-3">
-          <Button size="sm" variant="ghost" onClick={onClearFilters} className="text-slate-500">
+          <Button size="sm" variant="ghost" onClick={onClearFilters} className="text-muted-foreground">
             Limpar filtros
           </Button>
         </div>

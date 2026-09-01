@@ -133,7 +133,7 @@ const ProcedimentosDev = () => {
   const vazioPorFiltro = (
     <div className="text-center py-20 text-slate-400">
       <p className="text-lg font-medium">Nenhum procedimento com esses filtros</p>
-      <button className="text-sm mt-1 underline hover:text-slate-600" onClick={limparFiltros}>
+      <button className="text-sm mt-1 underline hover:text-muted-foreground" onClick={limparFiltros}>
         Limpar filtros
       </button>
     </div>
@@ -206,7 +206,7 @@ const ProcedimentosDev = () => {
         </Select>
 
         {filtroAtivo && (
-          <Button variant="ghost" size="sm" className="text-slate-500" onClick={limparFiltros}>
+          <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={limparFiltros}>
             <X className="h-3.5 w-3.5 mr-1" /> Limpar
           </Button>
         )}

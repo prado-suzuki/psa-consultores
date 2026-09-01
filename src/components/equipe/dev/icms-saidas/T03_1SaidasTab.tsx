@@ -39,7 +39,7 @@ export const T03_1SaidasTab = ({
               value={t.value}
               className={cn(
                 'relative isolate h-8 overflow-hidden text-xs sm:text-sm font-medium rounded-sm border border-transparent bg-transparent',
-                'text-slate-600',
+                'text-muted-foreground',
                 'transition-all duration-300 ease-out',
                 'hover:-translate-y-0.5 hover:border-primary/10 hover:bg-primary/10 hover:text-primary hover:shadow-sm hover:shadow-primary/10',
                 t.value === familia

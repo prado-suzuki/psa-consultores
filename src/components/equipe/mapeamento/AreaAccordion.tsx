@@ -43,7 +43,7 @@ export function AreaAccordion({ areas }: AreaAccordionProps) {
                   className="h-3 w-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: area.color }}
                 />
-                <span className="font-medium text-slate-900">{area.area_name}</span>
+                <span className="font-medium text-foreground">{area.area_name}</span>
                 <Badge variant="secondary" className="ml-1">
                   {area.completed} de {area.total} concluídos
                 </Badge>
@@ -67,7 +67,7 @@ export function AreaAccordion({ areas }: AreaAccordionProps) {
                         <Icon className={`h-4 w-4 flex-shrink-0 ${mapeamentoStatusConfig(status).text}`} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-slate-900 truncate">
+                            <span className="text-sm font-medium text-foreground truncate">
                               {p.name}
                             </span>
                             {p.equipe && (

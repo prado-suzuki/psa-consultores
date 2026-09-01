@@ -78,7 +78,7 @@ export function PerDetailDcompPanel({
     <div className="flex-1 flex flex-col min-w-0 bg-white">
       <div className="h-14 border-b border-border flex items-center justify-between px-6 bg-white flex-shrink-0">
         <div className="flex items-center gap-4">
-          <h4 className="text-lg font-bold text-slate-800">Lançamentos PER</h4>
+          <h4 className="text-lg font-bold text-foreground">Lançamentos PER</h4>
           <Badge variant="secondary" className="text-xs">
             {rows.length} registro{rows.length !== 1 ? 's' : ''}
           </Badge>
@@ -214,11 +214,11 @@ export function PerDetailDcompPanel({
 
       <div className="xl:hidden h-16 px-6 border-t border-border bg-muted/50 flex items-center justify-between flex-shrink-0">
         <div>
-          <p className="text-xs text-slate-500">Valor Crédito</p>
+          <p className="text-xs text-muted-foreground">Valor Crédito</p>
           <p className="font-mono font-bold">{formatCurrency(valorCredito)}</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-slate-500">Saldo Restante do PER</p>
+          <p className="text-xs text-muted-foreground">Saldo Restante do PER</p>
           <p
             className={cn(
               'font-mono font-bold',

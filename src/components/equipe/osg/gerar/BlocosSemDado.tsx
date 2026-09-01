@@ -14,18 +14,18 @@ export function BlocosSemDado({ blocos }: { blocos: BlocoForaDaFolha[] }) {
   if (blocos.length === 0) return null;
   return (
     <div className="space-y-2 rounded-md border border-border bg-muted/70 p-3">
-      <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-600">
-        <EyeOff className="h-4 w-4 text-slate-500" />
+      <p className="flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+        <EyeOff className="h-4 w-4 text-muted-foreground" />
         {blocos.length === 1 ? '1 bloco não entrou' : `${blocos.length} blocos não entraram`}
       </p>
       <ul className="space-y-1">
         {blocos.map((bloco) => (
-          <li key={bloco.id} className="text-sm leading-snug text-slate-600">
+          <li key={bloco.id} className="text-sm leading-snug text-muted-foreground">
             <span className="font-medium text-slate-700">{bloco.nome}</span>: {bloco.explicacao}.
           </li>
         ))}
       </ul>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-muted-foreground">
         Bloco sem dado nenhum fica de fora do documento — preencha o cadastro correspondente para
         que ele volte.
       </p>

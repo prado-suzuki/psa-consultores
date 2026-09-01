@@ -373,7 +373,7 @@ const ConsultaECD = () => {
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2 text-primary">
             <Filter className="h-5 w-5" />
-            <span className="uppercase text-sm tracking-wider font-bold text-slate-800">
+            <span className="uppercase text-sm tracking-wider font-bold text-foreground">
               Filtros de Busca
             </span>
           </CardTitle>
@@ -408,7 +408,7 @@ const ConsultaECD = () => {
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t border-border">
-            <Button variant="ghost"onClick={handleClearFilters} className="text-slate-500 hover:text-red-600 hover:bg-red-50">
+            <Button variant="ghost"onClick={handleClearFilters} className="text-muted-foreground hover:text-red-600 hover:bg-red-50">
               <Eraser className="h-4 w-4 mr-2" />Limpar filtros
             </Button>
             <Button onClick={handleSearch} disabled={!selectedContribuinte} className="bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-transform hover:-translate-y-0.5 active:translate-y-0">
@@ -427,8 +427,8 @@ const ConsultaECD = () => {
               <div className="flex items-center gap-4">
                 <Building2 className="h-5 w-5 text-primary" />
                 <div className="flex flex-col">
-                  <span className="text-sm font-bold text-slate-800">Escrituração Contábil Digital</span>
-                  <span className="text-xs text-slate-500 mt-0.5">CNPJ: {formatCNPJ(cnpjContribuinte)}</span>
+                  <span className="text-sm font-bold text-foreground">Escrituração Contábil Digital</span>
+                  <span className="text-xs text-muted-foreground mt-0.5">CNPJ: {formatCNPJ(cnpjContribuinte)}</span>
                 </div>
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => refetchOverview()} disabled={loadingOverview}>
                   {loadingOverview ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
@@ -459,7 +459,7 @@ const ConsultaECD = () => {
                 <Search className="w-10 h-10 text-slate-400" />
               </div>
               <h3 className="text-xl font-bold text-slate-700">Nenhum arquivo listado</h3>
-              <p className="text-base text-slate-500 max-w-xs mt-2">Utilize os filtros acima e clique em "Buscar" para carregar os arquivos ECD.</p>
+              <p className="text-base text-muted-foreground max-w-xs mt-2">Utilize os filtros acima e clique em "Buscar" para carregar os arquivos ECD.</p>
             </div>
           ) : loadingOverview ? (
             <div className="p-6 space-y-4">
@@ -471,11 +471,11 @@ const ConsultaECD = () => {
                 <thead>
                   <tr className="bg-muted border-b border-border">
                     <th className="px-4 py-4 w-12"><Checkbox checked={allSelected} onCheckedChange={handleToggleAll} aria-label="Selecionar todos" /></th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider"><ColumnTooltip label="Arquivo"text={TOOLTIPS.colArquivo} /></th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider"><ColumnTooltip label="Período"text={TOOLTIPS.colPeriodo} /></th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider"><ColumnTooltip label="Tipo"text={TOOLTIPS.colTipo} /></th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider"><ColumnTooltip label="Finalidade"text={TOOLTIPS.colFinalidade} /></th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider text-center w-56"><ColumnTooltip label="Ações"text={TOOLTIPS.colAcoes} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider"><ColumnTooltip label="Arquivo"text={TOOLTIPS.colArquivo} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider"><ColumnTooltip label="Período"text={TOOLTIPS.colPeriodo} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider"><ColumnTooltip label="Tipo"text={TOOLTIPS.colTipo} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider"><ColumnTooltip label="Finalidade"text={TOOLTIPS.colFinalidade} /></th>
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-center w-56"><ColumnTooltip label="Ações"text={TOOLTIPS.colAcoes} /></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
@@ -486,7 +486,7 @@ const ConsultaECD = () => {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><FileSpreadsheet className="h-5 w-5" /></div>
                           <div>
-                            <p className="font-bold text-sm text-slate-800">{arquivo.NOME}</p>
+                            <p className="font-bold text-sm text-foreground">{arquivo.NOME}</p>
                             <p className="text-[10px] text-slate-400 uppercase font-mono">ID: {arquivo.ID_ARQUIVO}</p>
                           </div>
                         </div>
@@ -526,7 +526,7 @@ const ConsultaECD = () => {
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
               <FileText className="h-12 w-12 text-slate-400 mb-3" />
               <p className="font-medium text-slate-700">Nenhum arquivo encontrado</p>
-              <p className="text-sm text-slate-500 mt-1">Verifique os filtros e tente novamente.</p>
+              <p className="text-sm text-muted-foreground mt-1">Verifique os filtros e tente novamente.</p>
             </div>
           )}
         </CardContent>

@@ -55,7 +55,7 @@ const STATUS_COLOR: Record<ScenarioStatus, string> = {
   analyzing: 'bg-blue-100 text-blue-700',
   approved: 'bg-emerald-100 text-emerald-700',
   promoted: 'bg-violet-100 text-violet-700',
-  archived: 'bg-muted text-slate-500',
+  archived: 'bg-muted text-muted-foreground',
 };
 
 export function ScenarioList({ processes, onCreateClick }: ScenarioListProps) {
@@ -181,7 +181,7 @@ export function ScenarioList({ processes, onCreateClick }: ScenarioListProps) {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-semibold text-slate-900 truncate">{s.name}</h4>
+                        <h4 className="font-semibold text-foreground truncate">{s.name}</h4>
                         {s.is_locked && (
                           <TooltipProvider>
                             <Tooltip>
@@ -218,7 +218,7 @@ export function ScenarioList({ processes, onCreateClick }: ScenarioListProps) {
                     </div>
                     <div>
                       <p className="text-[10px] text-muted-foreground uppercase">Economia/mês</p>
-                      <p className="font-semibold text-slate-900">
+                      <p className="font-semibold text-foreground">
                         {savings !== null ? `R$ ${savings.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}` : '—'}
                       </p>
                     </div>

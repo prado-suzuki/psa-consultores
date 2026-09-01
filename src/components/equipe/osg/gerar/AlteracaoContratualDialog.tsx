@@ -98,8 +98,8 @@ export const AlteracaoContratualDialog = ({
         {passo === 1 && (
           <div className="space-y-4">
             <div className="space-y-1">
-              <p className="text-sm font-semibold text-slate-800">O que mudou desde o registro</p>
-              <p className="text-xs leading-relaxed text-slate-500">
+              <p className="text-sm font-semibold text-foreground">O que mudou desde o registro</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">
                 A lista vem do que o cadastro registra depois do documento anterior: o livro de
                 movimentos de quota e as mudanças de endereço e administração. Confira, e desmarque
                 o que não deve entrar nesta peça. Cada evento marcado traz a resolução dele.
@@ -126,7 +126,7 @@ export const AlteracaoContratualDialog = ({
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <Label
                         htmlFor={`evento-${flag.id}`}
-                        className="block cursor-pointer text-sm font-medium text-slate-800"
+                        className="block cursor-pointer text-sm font-medium text-foreground"
                       >
                         {flag.descricao || flag.nome}
                       </Label>
@@ -160,7 +160,7 @@ export const AlteracaoContratualDialog = ({
         {passo === 2 && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <p className="text-sm font-semibold text-slate-800">
+              <p className="text-sm font-semibold text-foreground">
                 {marcadas.length === 0
                   ? 'Nenhum evento marcado'
                   : `${marcadas.length} evento${marcadas.length === 1 ? '' : 's'} nesta alteração`}

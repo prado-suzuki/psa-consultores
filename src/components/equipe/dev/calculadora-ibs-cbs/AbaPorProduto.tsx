@@ -227,7 +227,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="text-sm font-semibold text-slate-700">
             Onde a reforma muda mais
-            <span className="ml-2 text-xs font-normal text-slate-500">
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
               X: faturamento · Y: Δ pp na carga · cor: anexo
             </span>
           </CardTitle>
@@ -239,7 +239,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                     className="inline-block h-2.5 w-2.5 rounded-full"
                     style={{ background: l.cor }}
                   />
-                  <span className="text-xs text-slate-600">{l.anexo}</span>
+                  <span className="text-xs text-muted-foreground">{l.anexo}</span>
                 </div>
               ))}
             </div>
@@ -278,10 +278,10 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                     const d = payload[0].payload;
                     return (
                       <div className="bg-white border border-border rounded-lg shadow-md p-3 text-xs">
-                        <p className="font-semibold text-slate-800 max-w-[260px] truncate">
+                        <p className="font-semibold text-foreground max-w-[260px] truncate">
                           {d.produto}
                         </p>
-                        <p className="text-slate-500 font-mono">NCM {d.ncm}</p>
+                        <p className="text-muted-foreground font-mono">NCM {d.ncm}</p>
                         <span
                           className="inline-block mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium"
                           style={{
@@ -316,7 +316,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="text-sm font-semibold text-slate-700">
             Top NCMs por faturamento
-            <span className="ml-2 text-xs font-normal text-slate-500">
+            <span className="ml-2 text-xs font-normal text-muted-foreground">
               ({fmtInt(sorted.length)} NCMs)
             </span>
           </CardTitle>
@@ -421,12 +421,12 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                       <TableCell>
                         <div>
                           <p
-                            className="font-medium text-slate-900 line-clamp-1"
+                            className="font-medium text-foreground line-clamp-1"
                             title={p.xProdExemplo}
                           >
                             {p.xProdExemplo}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="text-xs text-muted-foreground">
                             {p.produtosDistintos === 1
                               ? '1 produto distinto'
                               : `${fmtInt(p.produtosDistintos)} produtos distintos`}
@@ -460,7 +460,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                                 <div className="font-semibold mb-1">
                                   {p.anexo} — {base.artigo}
                                 </div>
-                                <div className="text-slate-900 whitespace-pre-line">
+                                <div className="text-foreground whitespace-pre-line">
                                   {base.texto}
                                 </div>
                               </TooltipContent>
@@ -484,7 +484,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                               </span>
                             </TooltipTrigger>
                             <TooltipContent side="left" className="text-xs p-3 max-w-[280px]">
-                              <div className="font-semibold text-slate-800 mb-1.5">
+                              <div className="font-semibold text-foreground mb-1.5">
                                 Composição estimada — Trib. ANTES
                               </div>
                               <table className="w-full text-xs">
@@ -497,11 +497,11 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                                     const valor = p.tributoAntes * linha.fator;
                                     return (
                                       <tr key={linha.label}>
-                                        <td className="pr-3 text-slate-600">{linha.label}</td>
-                                        <td className="text-right tabular-nums text-slate-500 pr-2">
+                                        <td className="pr-3 text-muted-foreground">{linha.label}</td>
+                                        <td className="text-right tabular-nums text-muted-foreground pr-2">
                                           {(linha.fator * 100).toFixed(1)}%
                                         </td>
-                                        <td className="text-right tabular-nums text-slate-900 font-medium">
+                                        <td className="text-right tabular-nums text-foreground font-medium">
                                           {fmtBRL(valor)}
                                         </td>
                                       </tr>
@@ -516,7 +516,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                                   </tr>
                                 </tbody>
                               </table>
-                              <p className="mt-2 text-[10px] text-slate-500 leading-snug">
+                              <p className="mt-2 text-[10px] text-muted-foreground leading-snug">
                                 Composição estimada por rateio proporcional sobre o total do período.
                               </p>
                             </TooltipContent>
@@ -547,7 +547,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
           </div>
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-border">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-muted-foreground">
                 Página {currentPage} de {totalPages} · {fmtInt(sorted.length)} produtos
               </p>
               <div className="flex items-center gap-2">

@@ -175,7 +175,7 @@ export const SubirQuotasDialog = ({
                   </div>
 
                   <div className="rounded-md border border-osg-200/80 p-3">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Quadro da controladora depois do ato
                     </p>
                     <ul className="mt-2 space-y-1 text-sm text-slate-700">

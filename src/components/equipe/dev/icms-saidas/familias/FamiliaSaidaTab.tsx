@@ -157,7 +157,7 @@ export function FamiliaSaidaTab({
       <Card className="border-border border-dashed">
         <CardContent className="p-12 text-center">
           <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-          <p className="text-slate-500">Selecione os filtros e clique em Buscar para carregar os dados.</p>
+          <p className="text-muted-foreground">Selecione os filtros e clique em Buscar para carregar os dados.</p>
         </CardContent>
       </Card>
     );
@@ -256,7 +256,7 @@ export function FamiliaSaidaTab({
               <Loader2 className="inline-block h-3.5 w-3.5 ml-2 animate-spin text-slate-400" />
             )}
           </CardTitle>
-          <div className="flex items-center gap-3 text-xs text-slate-500">
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span>Página {page}</span>
             <span>·</span>
             <span>{rows.length} {rows.length === 1 ? 'item' : 'itens'}</span>
@@ -283,7 +283,7 @@ export function FamiliaSaidaTab({
               <Skeleton className="h-10 w-full" />
             </div>
           ) : rows.length === 0 ? (
-            <div className="p-12 text-center text-sm text-slate-500">
+            <div className="p-12 text-center text-sm text-muted-foreground">
               Nenhum registro encontrado para os filtros selecionados.
             </div>
           ) : (

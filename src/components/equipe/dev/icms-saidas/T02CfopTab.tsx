@@ -107,7 +107,7 @@ export const T02CfopTab = ({ enabled, contribuinteId, start_date, end_date }: T0
       <Card className="border-border border-dashed">
         <CardContent className="p-12 text-center">
           <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-          <p className="text-slate-500">Selecione os filtros e clique em Buscar para carregar o resumo por CFOP.</p>
+          <p className="text-muted-foreground">Selecione os filtros e clique em Buscar para carregar o resumo por CFOP.</p>
         </CardContent>
       </Card>
     );
@@ -164,7 +164,7 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
     <Card className="border-border shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <Calculator className="h-4 w-4 text-slate-500" />
+          <Calculator className="h-4 w-4 text-muted-foreground" />
           {title}
         </CardTitle>
       </CardHeader>
@@ -176,7 +176,7 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
             <Skeleton className="h-10 w-full" />
           </div>
         ) : rows.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-500">
+          <div className="p-12 text-center text-sm text-muted-foreground">
             Nenhum registro encontrado para os filtros selecionados.
           </div>
         ) : (
@@ -212,7 +212,7 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
                     <TableCell className="text-right font-mono text-sm">{fmt(r.vlItem)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{fmt(r.vlBcIcms)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{fmt(r.vlIcms)}</TableCell>
-                    <TableCell className="text-right font-mono text-sm text-slate-600">
+                    <TableCell className="text-right font-mono text-sm text-muted-foreground">
                       {fmtPct(r.pctVlIcms)}
                     </TableCell>
                   </TableRow>

@@ -341,7 +341,7 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
             <div className="space-y-4">
               <Card className="border-border">
                 <CardContent className="p-4 space-y-3">
-                  <p className="text-xs font-medium text-slate-500 uppercase">Baseline (travado)</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Baseline (travado)</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <Field label="Tempo total (h/mês)" value={params.baseline_time_hours} onChange={(v) => setParams({ ...params, baseline_time_hours: v })} disabled={kind === 'investment'} />
                     <Field label="Volume" value={params.baseline_volume} onChange={(v) => setParams({ ...params, baseline_volume: v })} disabled={kind !== 'scale' && kind !== 'investment'} />
@@ -482,7 +482,7 @@ function Metric({ label, value, accent }: MetricProps) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`text-sm font-semibold ${accent ? 'text-teal-700 text-lg' : 'text-slate-900'}`}>
+      <span className={`text-sm font-semibold ${accent ? 'text-teal-700 text-lg' : 'text-foreground'}`}>
         {value}
       </span>
     </div>

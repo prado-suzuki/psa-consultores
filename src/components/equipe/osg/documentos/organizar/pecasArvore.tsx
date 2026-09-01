@@ -52,7 +52,7 @@ export function TreeRow({
         depth === 2 ? 'ml-8' : depth === 1 ? 'ml-4' : '',
         active
           ? 'bg-osg-100 font-medium text-osg-700'
-          : 'text-slate-600 hover:bg-osg-50 hover:text-osg-700',
+          : 'text-muted-foreground hover:bg-osg-50 hover:text-osg-700',
       )}
     >
       {expandable ? (
@@ -72,7 +72,7 @@ export function TreeRow({
       <span
         className={cn(
           'shrink-0 rounded-full px-1.5 text-[11px] tabular-nums',
-          active ? 'bg-osg-200/70 text-osg-700' : 'bg-muted text-slate-500',
+          active ? 'bg-osg-200/70 text-osg-700' : 'bg-muted text-muted-foreground',
         )}
       >
         {count}

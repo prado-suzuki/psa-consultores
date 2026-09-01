@@ -91,7 +91,7 @@ const IcmsSaidas = () => {
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2 text-primary">
               <Filter className="h-5 w-5" />
-              <span className="uppercase text-sm tracking-wider font-bold text-slate-800">
+              <span className="uppercase text-sm tracking-wider font-bold text-foreground">
                 Filtros de Busca
               </span>
             </CardTitle>
@@ -229,7 +229,7 @@ const IcmsSaidas = () => {
                 <Button
                   variant="ghost"
                   onClick={handleClearFilters}
-                  className="text-slate-500 hover:text-red-600 hover:bg-red-50"
+                  className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
                 >
                   <Eraser className="h-4 w-4 mr-2" />
                   Limpar filtros
@@ -264,7 +264,7 @@ const IcmsSaidas = () => {
                   value={t.value}
                   className={cn(
                     'relative isolate h-10 overflow-hidden text-sm font-semibold rounded-md border border-transparent',
-                    'text-slate-600',
+                    'text-muted-foreground',
                     'transition-all duration-300 ease-out',
                     'hover:-translate-y-0.5 hover:border-primary/15 hover:bg-primary hover:text-primary-foreground hover:shadow-md hover:shadow-primary/20',
                     t.value === activeTab

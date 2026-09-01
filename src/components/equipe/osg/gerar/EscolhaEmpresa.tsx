@@ -40,7 +40,7 @@ export const EscolhaEmpresa = ({
 
   if (!temCliente) {
     return (
-      <div className="flex items-center gap-2.5 rounded-md border border-osg-200/70 bg-osg-50/50 p-3 text-sm text-slate-600">
+      <div className="flex items-center gap-2.5 rounded-md border border-osg-200/70 bg-osg-50/50 p-3 text-sm text-muted-foreground">
         <Building2 className="h-4 w-4 shrink-0 text-osg-600" />
         Escolha primeiro o cliente na barra "Cliente", no topo da página.
       </div>
@@ -58,7 +58,7 @@ export const EscolhaEmpresa = ({
   if (empresas.length === 0) {
     return (
       <div className="py-6 text-center">
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-muted-foreground">
           Este cliente ainda não tem empresa (pessoa jurídica) cadastrada.
         </p>
         <Button
@@ -102,10 +102,10 @@ export const EscolhaEmpresa = ({
               {iniciais(e.row.denominacao)}
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-slate-900">
+              <span className="block truncate text-sm font-semibold text-foreground">
                 {e.row.denominacao}
               </span>
-              <span className="mt-0.5 flex items-center gap-1.5 text-xs text-slate-500">
+              <span className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                 {e.row.cpf_cnpj && <span className="tabular-nums">{e.row.cpf_cnpj}</span>}
                 {tipo && (
                   <span className="rounded-full bg-osg-moss/10 px-1.5 py-px text-[10px] font-semibold text-osg-moss">

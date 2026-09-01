@@ -110,7 +110,7 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
           {scenarios.map(s => (
             <Card key={s.id} className="border-2">
               <CardContent className="p-3 space-y-2">
-                <p className="font-semibold text-slate-900 truncate">{s.name}</p>
+                <p className="font-semibold text-foreground truncate">{s.name}</p>
                 <div className="flex flex-wrap gap-1">
                   <Badge variant="outline" className={KIND_COLOR[s.scenario_kind]}>
                     {KIND_LABEL[s.scenario_kind]}
@@ -159,7 +159,7 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
                         <td
                           key={s.id}
                           className={`text-right p-3 font-medium ${
-                            isBest ? 'bg-emerald-50 text-emerald-700' : 'text-slate-900'
+                            isBest ? 'bg-emerald-50 text-emerald-700' : 'text-foreground'
                           }`}
                         >
                           {v === null ? '—' : metric.format(v)}

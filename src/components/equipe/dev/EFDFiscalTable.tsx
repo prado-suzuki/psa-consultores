@@ -53,7 +53,7 @@ export function EFDFiscalTable({
 
   if (!data || data.length === 0) {
     return (
-      <div className="p-12 text-center text-slate-500">
+      <div className="p-12 text-center text-muted-foreground">
         <p className="font-medium">{emptyMessage}</p>
       </div>
     );
@@ -81,7 +81,7 @@ export function EFDFiscalTable({
                 key={group.name}
                 colSpan={group.columns.length}
                 className={cn(
-                  "text-center font-bold text-xs text-slate-600 py-2 uppercase tracking-wider bg-muted",
+                  "text-center font-bold text-xs text-muted-foreground py-2 uppercase tracking-wider bg-muted",
                   groupIdx > 0 &&"border-l-2 border-border"
                 )}
               >

@@ -301,7 +301,7 @@ export function DocUploadDialog({
               )}
             >
               <FolderUp className="h-7 w-7 text-osg-moss/70" />
-              <p className="text-sm text-slate-600">Arraste os arquivos aqui</p>
+              <p className="text-sm text-muted-foreground">Arraste os arquivos aqui</p>
               <div className="mt-1 flex gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => filesRef.current?.click()}>
                   <FileUp className="mr-2 h-4 w-4" /> Escolher arquivos
@@ -316,7 +316,7 @@ export function DocUploadDialog({
             <input ref={folderRef} type="file" accept={ACCEPT} multiple className="hidden" onChange={onInput} />
 
             {files.length > 0 && !rodando && (
-              <div className="flex items-center justify-between text-xs text-slate-600">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span><span className="font-medium">{files.length}</span> arquivo(s) selecionado(s)</span>
                 <button type="button" onClick={() => setFiles([])} className="inline-flex items-center gap-1 hover:text-osg-700">
                   <X className="h-3 w-3" /> limpar
@@ -326,7 +326,7 @@ export function DocUploadDialog({
 
             {rodando && (
               <div className="space-y-1">
-                <p className="text-xs text-slate-600">Enviando {concluidos} de {itens.length}…</p>
+                <p className="text-xs text-muted-foreground">Enviando {concluidos} de {itens.length}…</p>
                 <div className="h-1.5 w-full overflow-hidden rounded-full bg-osg-100">
                   <div
                     className="h-full bg-osg-moss transition-[width] duration-200"

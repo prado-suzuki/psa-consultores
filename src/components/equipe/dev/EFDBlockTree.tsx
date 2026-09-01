@@ -59,7 +59,7 @@ export function EFDBlockTree({
                 "flex items-center w-full px-3 py-2.5 text-sm font-bold rounded-lg transition-colors",
                 "bg-white border border-border shadow-sm",
                 "hover:bg-muted",
-                "text-slate-800"
+                "text-foreground"
               )}
             >
               <ChevronRight 
@@ -92,7 +92,7 @@ export function EFDBlockTree({
                         "flex items-center w-full px-2 py-1.5 text-xs font-medium rounded-md transition-colors text-left",
                         isSelected 
                           ? "bg-primary/10 text-primary border border-primary/20" 
-                          :"text-slate-600 hover:text-primary hover:bg-muted"
+                          :"text-muted-foreground hover:text-primary hover:bg-muted"
                       )}
                     >
                       <span 

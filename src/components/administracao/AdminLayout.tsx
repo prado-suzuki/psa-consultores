@@ -79,8 +79,8 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
                 <Settings className="h-5 w-5 text-teal-600" />
               </div>
               <div>
-                <h2 className="font-semibold text-slate-900 text-lg">Administração</h2>
-                <p className="text-xs text-slate-500">Gestão Geral</p>
+                <h2 className="font-semibold text-foreground text-lg">Administração</h2>
+                <p className="text-xs text-muted-foreground">Gestão Geral</p>
               </div>
             </div>
           )}
@@ -90,7 +90,7 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-border bg-white hover:bg-muted text-slate-600 shadow-sm"
+          className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-border bg-white hover:bg-muted text-muted-foreground shadow-sm"
           style={{ '--sidebar-width': larguraBarraCss(collapsed) } as React.CSSProperties}
           onClick={() => setCollapsed(!collapsed)}
         >
@@ -124,7 +124,7 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
 
           <Button 
             variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-muted hover:text-teal-600 transition-colors`}
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-teal-600 transition-colors`}
             onClick={() => navigate('/equipe')}
             title={collapsed ? 'Trocar área' : undefined}
           >
@@ -133,7 +133,7 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
           </Button>
           <Button 
             variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors`}
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors`}
             onClick={handleSignOut}
             title={collapsed ? 'Sair' : undefined}
           >
@@ -151,14 +151,14 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
             <Button
               variant="ghost"
               size="icon"
-              className="md:hidden text-slate-600"
+              className="md:hidden text-muted-foreground"
               onClick={() => setCollapsed(!collapsed)}
             >
               <Menu className="h-5 w-5" />
             </Button>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-              {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+              <h1 className="text-xl font-bold text-foreground">{title}</h1>
+              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
           <div className="flex items-center gap-3">

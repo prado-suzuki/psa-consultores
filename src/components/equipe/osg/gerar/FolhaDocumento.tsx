@@ -75,7 +75,7 @@ export const FolhaDocumento = ({
     {estado === 'pendente' && (
       <div className="rounded-md border-2 border-dashed border-osg-200 bg-card/60 px-8 py-20 text-center">
         <FileSignature className="mx-auto h-8 w-8 text-osg-300" />
-        <p className="mt-3 text-sm font-medium text-slate-600">{mensagemPendente}</p>
+        <p className="mt-3 text-sm font-medium text-muted-foreground">{mensagemPendente}</p>
         <p className="mt-1 text-xs text-slate-400">
           O documento aparece aqui assim que os passos acima estiverem completos.
         </p>
@@ -85,7 +85,7 @@ export const FolhaDocumento = ({
     {estado === 'carregando' && (
       <div className="rounded-md border-2 border-dashed border-osg-200 bg-card/60 px-8 py-20 text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-osg-300" />
-        <p className="mt-3 text-sm font-medium text-slate-600">
+        <p className="mt-3 text-sm font-medium text-muted-foreground">
           Buscando os dados do cadastro…
         </p>
       </div>
@@ -97,8 +97,8 @@ export const FolhaDocumento = ({
         <p className="mt-3 text-sm font-semibold text-destructive">
           Algo impediu a geração do documento.
         </p>
-        {erro && <code className="mt-2 block text-xs text-slate-600">{erro}</code>}
-        <p className="mt-2 text-xs text-slate-500">
+        {erro && <code className="mt-2 block text-xs text-muted-foreground">{erro}</code>}
+        <p className="mt-2 text-xs text-muted-foreground">
           Confira os dados em "Ajustar dados manualmente" ou o conteúdo do modelo na Montagem.
         </p>
       </div>
@@ -115,7 +115,7 @@ export const FolhaDocumento = ({
             documento
           </p>
           <h3
-            className="mt-8 text-lg font-semibold text-slate-900"
+            className="mt-8 text-lg font-semibold text-foreground"
             style={{ fontFamily: FONTE_DOCUMENTO }}
           >
             {titulo}

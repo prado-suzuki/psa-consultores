@@ -117,10 +117,10 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                 {travado ? (
                   <div className="space-y-2">
                     <div className="flex items-center justify-center gap-1.5 rounded-md border border-border bg-muted px-3 py-2 text-xs font-semibold text-slate-700">
-                      <Lock className="h-3.5 w-3.5 text-slate-500" />
+                      <Lock className="h-3.5 w-3.5 text-muted-foreground" />
                       Registrado na junta
                     </div>
-                    <p className="px-1 text-[11px] leading-relaxed text-slate-500">
+                    <p className="px-1 text-[11px] leading-relaxed text-muted-foreground">
                       Esta peça está travada: ela já produziu efeito e não se reescreve.
                     </p>
                     {podeGerarAlteracao && (
@@ -227,7 +227,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="w-full text-xs text-slate-500 hover:text-slate-800"
+                          className="w-full text-xs text-muted-foreground hover:text-foreground"
                           onClick={() => setRegistrarConfirmOpen(true)}
                           disabled={registrandoDocumento || salvarDocumento.isPending || !!motivoDeBloqueio}
                         >

@@ -25,7 +25,7 @@ export function EFDRecordSelector({ blocosDisponiveis, expanded, selected, onTog
             <div className="p-1 rounded hover:bg-muted"onClick={event => { event.stopPropagation(); onToggleBlock(block); }}>
               <Checkbox checked={selectedCount === records.length && records.length > 0} className={cn(selectedCount > 0 && selectedCount < records.length && 'opacity-50')} />
             </div>
-            <span className="font-bold text-sm text-slate-800">{BLOCK_DESCRIPTIONS[block] ||`Bloco ${block}`}</span>
+            <span className="font-bold text-sm text-foreground">{BLOCK_DESCRIPTIONS[block] ||`Bloco ${block}`}</span>
             <Badge variant="secondary" className="text-[10px]">{selectedCount}/{records.length}</Badge>
           </div>
           <ChevronDown className={cn('h-5 w-5 text-slate-400 transition-transform duration-300', isExpanded && 'rotate-180')} />
@@ -37,7 +37,7 @@ export function EFDRecordSelector({ blocosDisponiveis, expanded, selected, onTog
               const isSelected = selected.has(record.codigo);
               return <label key={record.codigo} className={cn('flex items-start gap-2 cursor-pointer p-2 rounded-lg transition-colors border', isSelected ?'bg-emerald-50 border-emerald-200':'bg-white border-transparent hover:border-border')}>
                 <Checkbox checked={isSelected} onCheckedChange={() => onToggleRecord(record.codigo)} className="mt-0.5" />
-                <div className="flex flex-col min-w-0"><span className="text-xs font-bold font-mono">{code}</span><span className="text-[10px] text-slate-500 leading-tight truncate">{REG_DESCRIPTIONS[code] || record.descricao || 'Registro SPED'}</span></div>
+                <div className="flex flex-col min-w-0"><span className="text-xs font-bold font-mono">{code}</span><span className="text-[10px] text-muted-foreground leading-tight truncate">{REG_DESCRIPTIONS[code] || record.descricao || 'Registro SPED'}</span></div>
               </label>;
             })}</div>
           </div>

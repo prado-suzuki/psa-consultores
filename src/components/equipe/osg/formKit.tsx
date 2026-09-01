@@ -25,7 +25,7 @@ export const subFormBoxCls =
 
 // Rótulo padrão dos campos.
 //
-// Era `text-slate-600` — cinza AZULADO, do Tailwind, na área cujas superfícies são
+// Era `text-muted-foreground` — cinza AZULADO, do Tailwind, na área cujas superfícies são
 // bege e cujo neutro é quente. Numa linha de campos sobre `--osg-50`, os rótulos
 // puxavam para o frio junto de números em `osg-700`. O `--muted-foreground` da OSG
 // (24 12% 42%) tem praticamente a mesma luminosidade do slate-600 (44,7%), então o
@@ -79,7 +79,7 @@ export const osgTabsListCls =
 
 export const osgTabTriggerCls =
   'relative -mb-px rounded-t-md border-b-[3px] border-transparent bg-transparent px-3 pb-2.5 pt-1.5 ' +
-  'text-sm font-semibold text-slate-500 shadow-none transition-colors hover:bg-osg-50 hover:text-osg-700 ' +
+  'text-sm font-semibold text-muted-foreground shadow-none transition-colors hover:bg-osg-50 hover:text-osg-700 ' +
   'data-[state=active]:border-osg-moss data-[state=active]:bg-osg-50 data-[state=active]:text-osg-700 data-[state=active]:shadow-none';
 
 // Seção como "passo" estruturado: trilho vertical verde-musgo na lateral + linha

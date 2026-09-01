@@ -59,7 +59,7 @@ export function DifalFiltersCard({
       <CardHeader className="pb-4">
         <CardTitle className="text-lg flex items-center gap-2 text-primary">
           <Filter className="h-5 w-5" />
-          <span className="uppercase text-sm tracking-wider font-bold text-slate-800">
+          <span className="uppercase text-sm tracking-wider font-bold text-foreground">
             Filtros de Busca
           </span>
         </CardTitle>
@@ -171,7 +171,7 @@ export function DifalFiltersCard({
           <Button
             variant="ghost"
             onClick={onClear}
-            className="text-slate-500 hover:text-red-600 hover:bg-red-50"
+            className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
           >
             <Eraser className="h-4 w-4 mr-2" />
             Limpar filtros

@@ -25,7 +25,7 @@ export function FolhaPreview({ docBlocos }: Props) {
         <>
           {/* Folha de papel */}
           <div className="mx-auto max-w-3xl rounded-sm border border-osg-200 bg-white px-8 py-10 shadow-[0_8px_30px_-12px_hsl(var(--osg-700)/0.25)] sm:px-14 sm:py-14">
-            <div className="whitespace-pre-wrap text-justify text-sm leading-relaxed text-slate-800">
+            <div className="whitespace-pre-wrap text-justify text-sm leading-relaxed text-foreground">
               <TextoFormatado texto={estrutura} realcarPlaceholders />
             </div>
           </div>

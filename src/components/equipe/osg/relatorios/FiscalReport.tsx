@@ -48,8 +48,8 @@ const fmtArea = (v: number | null, u: string | null): string =>
 const matTxt = (m: MatriculaEnriched): string => (m.numero ? `Mat. ${m.numero}` : '—');
 const munUf = (m: MatriculaEnriched): string => [m.municipio_imovel ?? '', m.uf_imovel ?? ''].filter(Boolean).join('/') || '—';
 
-const th = 'whitespace-nowrap border-b border-osg-200 bg-muted px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-slate-500';
-const td = 'border-t border-osg-100 px-3 py-2 align-top text-slate-600';
+const th = 'whitespace-nowrap border-b border-osg-200 bg-muted px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground';
+const td = 'border-t border-osg-100 px-3 py-2 align-top text-muted-foreground';
 
 export function FiscalReport({ clienteId }: { clienteId: string }) {
   const { data: clientes = [] } = useClientesLista();
@@ -103,14 +103,14 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-base font-semibold text-slate-800">
+        <h2 className="text-base font-semibold text-foreground">
           Abertura de demanda — Planejamento Tributário · <span className="text-osg-700">{clienteNome}</span>
         </h2>
-        <span className="text-xs text-slate-500">Pacote OSG → PSA Fiscal · “Imprimir” para exportar em PDF</span>
+        <span className="text-xs text-muted-foreground">Pacote OSG → PSA Fiscal · “Imprimir” para exportar em PDF</span>
       </div>
 
       {/* Hand-off */}
-      <div className="flex items-start gap-3 rounded-xl border border-osg-moss/20 bg-osg-moss/[0.06] px-4 py-3 text-[12.5px] leading-relaxed text-slate-600">
+      <div className="flex items-start gap-3 rounded-xl border border-osg-moss/20 bg-osg-moss/[0.06] px-4 py-3 text-[12.5px] leading-relaxed text-muted-foreground">
         <Send className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss" />
         <span>
           Entrega para a <b className="font-semibold text-osg-700">área Fiscal (Planejamento Tributário)</b>: o contexto societário/patrimonial abaixo.
@@ -135,7 +135,7 @@ export function FiscalReport({ clienteId }: { clienteId: string }) {
                 {rows.map((r, ri) => (
                   <tr key={ri} className="hover:bg-osg-50/30">
                     {r.map((c, ci) => (
-                      <td key={ci} className={cn(td, (ci === 6 || ci === 7 || ci === 12) && 'whitespace-nowrap text-right tabular-nums', ci === 3 && 'font-medium text-slate-800')}>
+                      <td key={ci} className={cn(td, (ci === 6 || ci === 7 || ci === 12) && 'whitespace-nowrap text-right tabular-nums', ci === 3 && 'font-medium text-foreground')}>
                         {c || '—'}
                       </td>
                     ))}
@@ -157,7 +157,7 @@ function Secao({ icon: Icon, titulo, meta, action, children }: { icon: typeof La
         <Icon className="h-4 w-4 shrink-0 text-osg-600" />
         <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
         <div className="ml-auto flex items-center gap-2">
-          {meta && <span className="text-[11px] text-slate-500">{meta}</span>}
+          {meta && <span className="text-[11px] text-muted-foreground">{meta}</span>}
           {action}
         </div>
       </header>

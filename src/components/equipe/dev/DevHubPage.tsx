@@ -54,8 +54,8 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
                 </div>
 
                 <div className="space-y-3">
-                  <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{option.title}</h2>
-                  <p className="text-sm leading-relaxed text-slate-500">{option.description}</p>
+                  <h2 className="text-2xl font-semibold tracking-tight text-foreground">{option.title}</h2>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{option.description}</p>
                 </div>
 
                 <div className="mt-6 space-y-2">

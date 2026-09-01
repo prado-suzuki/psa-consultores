@@ -30,7 +30,7 @@ export function ApuracaoFiltersCard({ controller }: { controller: ApuracaoPisCof
       </AlertDescription>
     </Alert>
     <Card className="mb-6">
-      <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 text-lg text-primary"><Filter className="h-5 w-5 text-primary" /><span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span></CardTitle></CardHeader>
+      <CardHeader className="pb-4"><CardTitle className="flex items-center gap-2 text-lg text-primary"><Filter className="h-5 w-5 text-primary" /><span className="uppercase text-sm tracking-wider font-bold text-foreground">Filtros de Busca</span></CardTitle></CardHeader>
       <CardContent className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-4">

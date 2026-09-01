@@ -83,7 +83,7 @@ export function ProcedimentoSheet({
         <SheetHeader className="text-left">
           <div className="flex flex-wrap gap-1.5">
             {p.status_publicacao === 'arquivado' && (
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-muted text-slate-600">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground">
                 Arquivado
               </span>
             )}
@@ -114,7 +114,7 @@ export function ProcedimentoSheet({
               <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">
                 Resumo
               </h4>
-              <p className="text-sm text-slate-600 leading-relaxed">{p.ai_resumo}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">{p.ai_resumo}</p>
             </section>
           )}
 
@@ -126,7 +126,7 @@ export function ProcedimentoSheet({
               <ol className="space-y-2">
                 {p.ai_etapas.map((etapa, i) => (
                   <li key={i} className="flex gap-3 text-sm text-slate-700">
-                    <span className="flex-shrink-0 h-5 w-5 rounded-full bg-muted text-slate-500 text-[11px] font-semibold flex items-center justify-center mt-0.5">
+                    <span className="flex-shrink-0 h-5 w-5 rounded-full bg-muted text-muted-foreground text-[11px] font-semibold flex items-center justify-center mt-0.5">
                       {i + 1}
                     </span>
                     <span className="leading-relaxed">{etapa}</span>
@@ -163,7 +163,7 @@ export function ProcedimentoSheet({
                   </h4>
                   <div className="flex flex-wrap gap-1">
                     {p.ai_tags.map((t) => (
-                      <span key={t} className="text-[11px] px-2 py-0.5 rounded bg-muted text-slate-500">
+                      <span key={t} className="text-[11px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
                         {t}
                       </span>
                     ))}
@@ -210,7 +210,7 @@ export function ProcedimentoSheet({
               <Button
                 size="sm"
                 variant="ghost"
-                className="text-slate-500"
+                className="text-muted-foreground"
                 onClick={() => onArquivar(p, p.status_publicacao !== 'arquivado')}
               >
                 {p.status_publicacao === 'arquivado' ? (

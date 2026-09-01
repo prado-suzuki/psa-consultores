@@ -36,7 +36,7 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
     <Card className="animate-osg-rise motion-reduce:animate-none" style={{ animationDelay: '240ms' }}>
       <CardHeader className="pb-3 space-y-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <History className="h-4 w-4 text-slate-500" />
+          <History className="h-4 w-4 text-muted-foreground" />
           Atos societários ({atos.length})
         </CardTitle>
         <p className="text-xs text-muted-foreground">
@@ -57,7 +57,7 @@ export const AtosSocietarios = ({ movimentos, atos }: AtosSocietariosProps) => {
               className="flex items-center gap-3 rounded-md border border-osg-200/80 bg-card p-3"
             >
               <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium text-slate-800">{nome}</p>
+                <p className="truncate text-sm font-medium text-foreground">{nome}</p>
                 <p className="text-xs text-muted-foreground">
                   {quando ? `${quando} · ` : ''}
                   {doAto.length} lançamento(s) nesta empresa

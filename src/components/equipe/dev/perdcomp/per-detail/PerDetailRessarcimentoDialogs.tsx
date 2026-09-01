@@ -122,7 +122,7 @@ export function PerDetailRessarcimentoDialogs({
                   <div className="flex justify-between items-center">
                     <div>
                       <p className="text-xs text-muted-foreground">Valor Original (calculado)</p>
-                      <p className="font-mono font-bold text-slate-800">
+                      <p className="font-mono font-bold text-foreground">
                         {formatCurrency(valorOriginal)}
                       </p>
                     </div>

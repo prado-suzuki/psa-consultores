@@ -347,7 +347,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
                 <div className="flex flex-col items-center gap-3 px-4 text-center">
                   <Upload className="h-10 w-10 text-slate-300" />
                   <div>
-                    <p className="text-sm font-medium text-slate-500">Arraste o arquivo aqui</p>
+                    <p className="text-sm font-medium text-muted-foreground">Arraste o arquivo aqui</p>
                     <p className="text-xs text-slate-400 mt-1">ou clique para selecionar</p>
                   </div>
                   <p className="text-[10px] text-slate-400 mt-2">.xlsx ou .xls</p>
@@ -360,7 +360,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
           <div className="md:col-span-7 space-y-4">
             {/* Cliente */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-600">Cliente</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Cliente</Label>
               <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
                 <SelectTrigger className="h-11 rounded-lg">
                   <SelectValue placeholder="Selecione o cliente" />
@@ -375,7 +375,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
 
             {/* Contribuinte */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-600">Contribuinte</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Contribuinte</Label>
               <Select value={contribuinteId} onValueChange={setContribuinteId} disabled={!clienteId}>
                 <SelectTrigger className="h-11 rounded-lg">
                   <SelectValue placeholder="Selecione o contribuinte" />
@@ -406,7 +406,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
             {/* Detalhamento switch */}
             {detalhamento !== null && contribuinteId && (
               <div className="flex items-center justify-between rounded-lg border border-border p-3">
-                <Label htmlFor="detalhamento-switch" className="text-sm text-slate-600">Detalhamento</Label>
+                <Label htmlFor="detalhamento-switch" className="text-sm text-muted-foreground">Detalhamento</Label>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">{detalhamento ? 'Sim' : 'Não'}</span>
                   <Switch id="detalhamento-switch" checked={detalhamento} onCheckedChange={setDetalhamento} />
@@ -416,14 +416,14 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
 
             {/* Período */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium text-slate-600">Período</Label>
+              <Label className="text-sm font-medium text-muted-foreground">Período</Label>
               <MonthRangePicker value={periodo} onChange={setPeriodo} placeholder="Selecione o período" />
             </div>
 
             {/* Descrição */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="descricao-balancete" className="text-sm font-medium text-slate-600">
+                <Label htmlFor="descricao-balancete" className="text-sm font-medium text-muted-foreground">
                   Descrição <span className="text-red-500">*</span>
                 </Label>
                 <span className="text-[11px] text-slate-400">{descricao.length}/{DESCRICAO_MAX}</span>

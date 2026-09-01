@@ -117,7 +117,7 @@ export const AuditProdutosTable = ({ area }: AuditProdutosTableProps) => {
 
       <AuditLimiteAviso total={logs.length} />
 
-      <p className="flex items-start gap-2 text-xs text-slate-500">
+      <p className="flex items-start gap-2 text-xs text-muted-foreground">
         <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
         <span>
           <strong className="font-medium">Clique num produto</strong> para ver em quais clientes

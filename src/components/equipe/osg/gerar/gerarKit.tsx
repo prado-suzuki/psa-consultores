@@ -67,11 +67,11 @@ export const PassoCard = ({
     <div className="flex items-center gap-4 px-5 py-4">
       <NumeroPasso numero={numero} estado={estado} />
       <div className="min-w-0 flex-1">
-        <h2 className="text-[15px] font-semibold text-slate-900">{titulo}</h2>
+        <h2 className="text-[15px] font-semibold text-foreground">{titulo}</h2>
         {estado === 'concluido' && resumo ? (
-          <div className="mt-0.5 truncate text-xs text-slate-600">{resumo}</div>
+          <div className="mt-0.5 truncate text-xs text-muted-foreground">{resumo}</div>
         ) : descricao ? (
-          <p className="mt-0.5 text-xs text-slate-500">{descricao}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{descricao}</p>
         ) : null}
       </div>
       {estado === 'concluido' && onTrocar && (
@@ -117,10 +117,10 @@ export const SeletorRail = ({
       <CollapsibleTrigger asChild>
         <button type="button" className="flex w-full items-center gap-2 px-3 py-2.5 text-left">
           <span className="min-w-0 flex-1">
-            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            <span className="block text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               {titulo}
             </span>
-            <span className="block truncate text-xs font-semibold text-slate-900">
+            <span className="block truncate text-xs font-semibold text-foreground">
               {resumo || 'Selecionar…'}
             </span>
           </span>
@@ -155,7 +155,7 @@ export const OpcaoRail = ({
       'flex w-full items-center gap-2 rounded px-2.5 py-2 text-left text-xs transition-colors',
       selecionado
         ? 'bg-osg-moss/10 font-semibold text-osg-700'
-        : 'text-slate-600 hover:bg-osg-50 hover:text-slate-900',
+        : 'text-muted-foreground hover:bg-osg-50 hover:text-foreground',
     )}
   >
     <span className="min-w-0 flex-1 truncate">{children}</span>

@@ -12,7 +12,7 @@ const ROLE_VISUALS: Record<AppRole, RoleVisual> = {
   team_member: { key: 'team_member', label: 'Membro',       className: 'bg-blue-100 text-blue-700 border-0' },
   lider:       { key: 'lider',       label: 'Líder Geral',  className: 'bg-amber-100 text-amber-700 border-0' },
   sublider:    { key: 'sublider',    label: 'Sublíder',     className: 'bg-orange-100 text-orange-700 border-0' },
-  client:      { key: 'client',      label: 'Cliente',      className: 'bg-foreground/[0.05] text-slate-600 border-0' },
+  client:      { key: 'client',      label: 'Cliente',      className: 'bg-foreground/[0.05] text-muted-foreground border-0' },
   timecliente: { key: 'timecliente', label: 'Time Cliente', className: 'bg-cyan-100 text-cyan-700 border-0' },
   marketing:   { key: 'marketing',   label: 'Marketing',    className: 'bg-violet-100 text-violet-700 border-0' },
 };
@@ -89,7 +89,7 @@ export const UsersRolesView = ({
         <MetricCard
           title="Total de Usuários"
           value={stats.total}
-          icon={<Users className="h-5 w-5 text-slate-600" />}
+          icon={<Users className="h-5 w-5 text-muted-foreground" />}
           iconColor="bg-foreground/[0.05]"
         />
         <MetricCard
@@ -145,7 +145,7 @@ export const UsersRolesView = ({
                     <TableCell className="font-medium text-slate-700">
                       {user.first_name} {user.last_name}
                     </TableCell>
-                    <TableCell className="text-slate-500">{user.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{user.email}</TableCell>
                     <TableCell>
                       <div className="flex gap-1 flex-wrap">
                         {user.roles.map((role) => (
@@ -190,7 +190,7 @@ export const UsersRolesView = ({
                 className="p-4 border border-border rounded-lg bg-muted"
               >
                 <div className="flex items-center gap-2 mb-2">{getRoleBadge(role)}</div>
-                <p className="text-sm text-slate-600">{LEGEND_DESCRIPTIONS[role]}</p>
+                <p className="text-sm text-muted-foreground">{LEGEND_DESCRIPTIONS[role]}</p>
               </div>
             ))}
           </div>

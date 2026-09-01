@@ -96,7 +96,7 @@ export function DocumentGroups({
                   <span className="block truncate text-sm font-semibold text-osg-700">
                     {grupo.titulo}
                   </span>
-                  <span className="block text-xs font-normal text-slate-500">
+                  <span className="block text-xs font-normal text-muted-foreground">
                     {groupDocuments.length === 0
                       ? 'nenhum documento'
                       : `${groupDocuments.length} ${groupDocuments.length === 1 ? 'documento' : 'documentos'}`}
@@ -107,7 +107,7 @@ export function DocumentGroups({
 
             <AccordionContent className="px-3 pb-3 pt-0">
               {groupDocuments.length === 0 && optionalDocuments.length === 0 ? (
-                <p className="px-1 py-3 text-xs text-slate-500">
+                <p className="px-1 py-3 text-xs text-muted-foreground">
                   Nenhum documento mapeado neste grupo.
                 </p>
               ) : (
@@ -119,10 +119,10 @@ export function DocumentGroups({
                         {groupDocuments.map((document) => (
                           <div key={document.id} className={documentRowCls}>
                             <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-slate-800">
+                              <p className="text-sm font-medium text-foreground">
                                 {document.title}
                               </p>
-                              <p className="mt-0.5 max-w-3xl text-xs leading-relaxed text-slate-500">
+                              <p className="mt-0.5 max-w-3xl text-xs leading-relaxed text-muted-foreground">
                                 {document.note || 'Sem orientação adicional.'}
                               </p>
                             </div>
@@ -171,7 +171,7 @@ export function DocumentGroups({
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm text-slate-700">{document.title}</p>
                                 {document.note && (
-                                  <p className="mt-0.5 line-clamp-2 max-w-3xl text-xs leading-relaxed text-slate-500">
+                                  <p className="mt-0.5 line-clamp-2 max-w-3xl text-xs leading-relaxed text-muted-foreground">
                                     {document.note}
                                   </p>
                                 )}

@@ -129,14 +129,14 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                   <LayoutDashboard className="h-5 w-5 text-primary" />
                 </div>
                 <div className="min-w-0">
-                  <h2 className="font-semibold text-slate-900 text-lg">Digital Rotina</h2>
-                  <p className="text-xs text-slate-500">Gestão de Projetos</p>
+                  <h2 className="font-semibold text-foreground text-lg">Digital Rotina</h2>
+                  <p className="text-xs text-muted-foreground">Gestão de Projetos</p>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-slate-600 hover:text-slate-900 flex-shrink-0"
+                className="text-muted-foreground hover:text-foreground flex-shrink-0"
                 onClick={() => setCollapsed(true)}
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -169,7 +169,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-muted"
+                          className="h-8 w-8 text-muted-foreground hover:text-slate-700 hover:bg-muted"
                         >
                           <ChevronDown className={`h-4 w-4 transition-transform ${(openGroups[item.path] ?? true) ? 'rotate-180' : ''}`} />
                         </Button>
@@ -183,7 +183,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                           className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                             isActive(child.path)
                               ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                              : 'text-slate-600 hover:bg-muted hover:text-primary'
+                              : 'text-muted-foreground hover:bg-muted hover:text-primary'
                           }`}
                           onClick={() => navigate(child.path)}
                         >
@@ -218,16 +218,16 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                   <User className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-slate-900 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {user?.email?.split('@')[0] || 'Usuário'}
                   </p>
-                  <p className="text-xs text-slate-500">Digital Rotina</p>
+                  <p className="text-xs text-muted-foreground">Digital Rotina</p>
                 </div>
               </div>
 
               <Button
                 variant="ghost"
-                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-muted hover:text-primary transition-colors"
+                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors"
                 onClick={() => navigate('/equipe/digital')}
               >
                 <ArrowLeft className="h-4 w-4 mr-3" />
@@ -235,7 +235,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-muted hover:text-primary transition-colors"
+                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-muted hover:text-primary transition-colors"
                 onClick={() => navigate('/')}
               >
                 <ArrowLeft className="h-4 w-4 mr-3" />
@@ -243,7 +243,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-red-50 hover:text-red-600 transition-colors"
+                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors"
                 onClick={handleSignOut}
               >
                 <LogOut className="h-4 w-4 mr-3" />
@@ -263,22 +263,22 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               <Button
                 variant="ghost"
                 size="icon"
-                className="text-slate-600 hover:text-slate-900 flex-shrink-0"
+                className="text-muted-foreground hover:text-foreground flex-shrink-0"
                 onClick={() => setCollapsed(false)}
               >
                 <Menu className="h-5 w-5" />
               </Button>
             )}
             <div>
-              <h1 className="text-xl font-bold text-slate-900">{title}</h1>
-              {subtitle && <p className="text-sm text-slate-500">{subtitle}</p>}
+              <h1 className="text-xl font-bold text-foreground">{title}</h1>
+              {subtitle && <p className="text-sm text-muted-foreground">{subtitle}</p>}
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
-              className="relative text-slate-600 hover:text-primary hover:bg-muted"
+              className="relative text-muted-foreground hover:text-primary hover:bg-muted"
               // SEM espelho, de propósito. A Rotina é o chão comum e não um
               // recorte: "os chamados da Rotina" não quer dizer nada. Daqui se vê
               // a lista completa, no piso. Ver o bloco `ESPELHO` em

@@ -136,10 +136,10 @@ export const IbsCbsAuditModal = ({
               <Scale className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-slate-900">
+              <h3 className="text-xl font-bold text-foreground">
                 Classificar Item - IBS/CBS
               </h3>
-              <p className="text-sm text-slate-500 mt-0.5">
+              <p className="text-sm text-muted-foreground mt-0.5">
                 NCM: <span className="font-mono font-medium text-slate-700">{group?.cod_ncm}</span>
               </p>
             </div>
@@ -161,54 +161,54 @@ export const IbsCbsAuditModal = ({
             {/* Left Column: Product Data */}
             <div className="w-[30%] border-r border-border p-6 overflow-y-auto bg-muted/30">
               <div className="flex items-center gap-2 mb-4">
-                <FileText className="h-5 w-5 text-slate-500" />
-                <h3 className="font-semibold text-lg text-slate-900">Dados do Produto</h3>
+                <FileText className="h-5 w-5 text-muted-foreground" />
+                <h3 className="font-semibold text-lg text-foreground">Dados do Produto</h3>
               </div>
 
               <Card className="border-border">
                 <CardContent className="p-5 space-y-4">
                   <div>
-                    <span className="text-xs text-slate-500 uppercase font-medium">Produto</span>
-                    <p className="font-medium text-slate-900 text-lg mt-1">{group.xProd}</p>
+                    <span className="text-xs text-muted-foreground uppercase font-medium">Produto</span>
+                    <p className="font-medium text-foreground text-lg mt-1">{group.xProd}</p>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <span className="text-xs text-slate-500 uppercase font-medium">Código</span>
+                      <span className="text-xs text-muted-foreground uppercase font-medium">Código</span>
                       <p className="font-mono text-sm text-slate-700 mt-1">{group.cod_produto}</p>
                     </div>
                     <div>
-                      <span className="text-xs text-slate-500 uppercase font-medium">NCM</span>
+                      <span className="text-xs text-muted-foreground uppercase font-medium">NCM</span>
                       <p className="font-mono text-sm text-slate-700 mt-1">{group.cod_ncm}</p>
                     </div>
                   </div>
 
                   <div>
-                    <span className="text-xs text-slate-500 uppercase font-medium">UF Destino</span>
+                    <span className="text-xs text-muted-foreground uppercase font-medium">UF Destino</span>
                     <p className="text-slate-700 mt-1">{ufDestino}</p>
                   </div>
 
                   {/* Resumo do Grupo */}
                   <div className="pt-4 border-t border-border">
-                    <span className="text-xs text-slate-500 uppercase font-medium">
+                    <span className="text-xs text-muted-foreground uppercase font-medium">
                       Resumo do Grupo
                     </span>
                     <div className="grid grid-cols-2 gap-3 mt-3">
                       <div className="bg-muted rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-900">{group.count}</p>
-                        <p className="text-xs text-slate-500">Itens</p>
+                        <p className="text-2xl font-bold text-foreground">{group.count}</p>
+                        <p className="text-xs text-muted-foreground">Itens</p>
                       </div>
                       <div className="bg-muted rounded-lg p-3 text-center">
-                        <p className="text-2xl font-bold text-slate-900">{group.nfesCount}</p>
-                        <p className="text-xs text-slate-500">NFes</p>
+                        <p className="text-2xl font-bold text-foreground">{group.nfesCount}</p>
+                        <p className="text-xs text-muted-foreground">NFes</p>
                       </div>
                     </div>
                     <div className="mt-3">
                       <div className="bg-muted rounded-lg p-3 text-center">
-                        <p className="text-lg font-bold text-slate-900">
+                        <p className="text-lg font-bold text-foreground">
                           {formatCurrency(group.totalValue)}
                         </p>
-                        <p className="text-xs text-slate-500">Valor Total</p>
+                        <p className="text-xs text-muted-foreground">Valor Total</p>
                       </div>
                     </div>
                   </div>
@@ -219,8 +219,8 @@ export const IbsCbsAuditModal = ({
             {/* Right Column: Available Rules */}
             <div className="w-[70%] p-6 overflow-y-auto flex flex-col bg-white">
               <div className="flex items-center gap-2 mb-4">
-                <Scale className="h-5 w-5 text-slate-500" />
-                <h3 className="font-semibold text-lg text-slate-900">Regras Disponíveis</h3>
+                <Scale className="h-5 w-5 text-muted-foreground" />
+                <h3 className="font-semibold text-lg text-foreground">Regras Disponíveis</h3>
                 <Badge variant="secondary" className="ml-auto">
                   UF: {ufDestino}
                 </Badge>
@@ -267,15 +267,15 @@ export const IbsCbsAuditModal = ({
                               >
                                 {regra.tipo_st}
                               </Badge>
-                              <span className="font-bold text-xl text-slate-900">
+                              <span className="font-bold text-xl text-foreground">
                                 {(27.5 * (1 - (regra.redBC ?? 0))).toFixed(2)}%
                               </span>
                             </div>
-                            <p className="text-sm text-slate-600 mt-2">
+                            <p className="text-sm text-muted-foreground mt-2">
                               {regra.base_legal}
                             </p>
                             {regra.redBC != null && (
-                              <p className="text-sm text-slate-500 mt-1">
+                              <p className="text-sm text-muted-foreground mt-1">
                                 Redução: <span className="font-medium">{(regra.redBC * 100).toFixed(2)}%</span>
                               </p>
                             )}

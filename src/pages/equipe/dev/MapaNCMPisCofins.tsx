@@ -244,7 +244,7 @@ const MapaNCMPisCofins = () => {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg text-primary">
               <Filter className="h-5 w-5 text-primary" />
-              <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+              <span className="uppercase text-sm tracking-wider font-bold text-foreground">Filtros de Busca</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -311,7 +311,7 @@ const MapaNCMPisCofins = () => {
             <div className="flex items-center justify-end gap-2">
               {hasActiveFilters && (
                 <ButtonTooltip text={TOOLTIPS.limpar}>
-                  <Button variant="ghost" onClick={handleClearFilters} className="text-slate-600">
+                  <Button variant="ghost" onClick={handleClearFilters} className="text-muted-foreground">
                     <Eraser className="h-4 w-4 mr-2" /> Limpar Filtros
                   </Button>
                 </ButtonTooltip>
@@ -371,18 +371,18 @@ const MapaNCMPisCofins = () => {
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12">
                       <FileSpreadsheet className="h-10 w-10 mx-auto text-slate-300 mb-2" />
-                      <p className="text-sm text-slate-500">Nenhuma regra encontrada</p>
+                      <p className="text-sm text-muted-foreground">Nenhuma regra encontrada</p>
                     </TableCell>
                   </TableRow>
                 ) : paged.map(regra => (
                   <TableRow key={regra.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => openView(regra)}>
                     <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
-                    <TableCell className="text-xs text-slate-600">
+                    <TableCell className="text-xs text-muted-foreground">
                       {setorMap[regra.id_segmento ?? '']?.nome ?? regra.id_segmento ?? '—'}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-600">{regra.cst_pis}</TableCell>
-                    <TableCell className="text-xs text-slate-600 max-w-[300px] truncate">{regra.desc_cst}</TableCell>
-                    <TableCell className="text-xs text-slate-600 max-w-[350px]">
+                    <TableCell className="text-xs text-muted-foreground">{regra.cst_pis}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[300px] truncate">{regra.desc_cst}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[350px]">
                       <span className="line-clamp-2">{regra.base_legal || '—'}</span>
                     </TableCell>
                     <TableCell className="text-center">
@@ -396,7 +396,7 @@ const MapaNCMPisCofins = () => {
                       <div className="flex justify-end gap-1">
                         <ButtonTooltip text={TOOLTIPS.visualizar}>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openView(regra); }}>
-                            <Eye className="h-3.5 w-3.5 text-slate-500" />
+                            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
                           </Button>
                         </ButtonTooltip>
                         <ButtonTooltip text={TOOLTIPS.excluir}>

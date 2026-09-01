@@ -137,7 +137,7 @@ export function EFDAnalysisModal({
               <BarChart3 className="w-7 h-7" />
             </div>
             <div>
-              <h3 className="text-xl font-bold text-slate-900 flex items-center gap-3">
+              <h3 className="text-xl font-bold text-foreground flex items-center gap-3">
                 <span>{arquivo.NOME}</span>
                 <Badge 
                   variant={arquivo.TIPO_ESCRIT === 0 ? 'default' : 'secondary'}
@@ -146,7 +146,7 @@ export function EFDAnalysisModal({
                   {arquivo.TIPO_ESCRIT === 0 ? 'Original' : 'Retificadora'}
                 </Badge>
               </h3>
-              <p className="text-sm text-slate-500 mt-0.5 font-medium">
+              <p className="text-sm text-muted-foreground mt-0.5 font-medium">
                 Período: <span className="text-slate-700">
                   {formatPeriodo(arquivo.DT_INI, arquivo.DT_FIN)}
                 </span>
@@ -160,10 +160,10 @@ export function EFDAnalysisModal({
               <div className="hidden xl:flex items-center gap-8 border-r border-border pr-6 h-12">
                 {totaisConfig.map((total, index) => (
                   <div key={index} className="text-right">
-                    <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+                    <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
                       {total.label}
                     </p>
-                    <p className="text-lg font-mono font-bold text-slate-800">
+                    <p className="text-lg font-mono font-bold text-foreground">
                       {formatCurrency(total.value)}
                     </p>
                   </div>
@@ -203,7 +203,7 @@ export function EFDAnalysisModal({
                 <Badge className="bg-primary text-primary-foreground text-sm font-mono font-bold px-4 py-1.5 shadow-sm">
                   REG {regCode}
                 </Badge>
-                <h4 className="text-lg font-bold text-slate-800">
+                <h4 className="text-lg font-bold text-foreground">
                   {regDescription}
                 </h4>
               </div>
@@ -226,12 +226,12 @@ export function EFDAnalysisModal({
             {/* Footer - Paginação */}
             {detail?.paginacao && (
               <div className="h-12 px-6 border-t border-border bg-muted/50 flex items-center justify-between flex-shrink-0">
-                <span className="text-xs text-slate-500">
+                <span className="text-xs text-muted-foreground">
                   Exibindo {tableData.length} de {detail.paginacao.total_registros} registros
                 </span>
                 
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted-foreground">
                     Página {detail.paginacao.page} de {detail.paginacao.total_paginas}
                   </span>
                   <div className="flex gap-1">

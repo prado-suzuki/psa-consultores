@@ -163,8 +163,8 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange, modo
                 </span>
               ))}
             </div>
-            <h3 className="text-base font-semibold text-slate-900">{titulo || 'Sem título'}</h3>
-            <p className="text-[13px] text-slate-500">{resumo || 'Sem resumo'}</p>
+            <h3 className="text-base font-semibold text-foreground">{titulo || 'Sem título'}</h3>
+            <p className="text-[13px] text-muted-foreground">{resumo || 'Sem resumo'}</p>
             {etapas.length > 0 && (
               <ul className="space-y-1">
                 {etapas.map((e, i) => (
@@ -183,7 +183,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange, modo
             )}
             <div className="flex flex-wrap gap-1">
               {tags.map((t) => (
-                <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-muted text-slate-600">{t}</span>
+                <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground">{t}</span>
               ))}
             </div>
           </div>

@@ -31,7 +31,7 @@ export function SelecaoRegistrosLista({
   compacto = false,
 }: SelecaoRegistrosListaProps) {
   if (registros.length === 0) {
-    return <p className="text-sm text-slate-500">Nenhum registro cadastrado.</p>;
+    return <p className="text-sm text-muted-foreground">Nenhum registro cadastrado.</p>;
   }
   return (
     <div

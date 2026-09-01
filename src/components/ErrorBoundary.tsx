@@ -58,10 +58,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             <AlertTriangle className="h-8 w-8 text-red-600" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-xl font-semibold text-slate-900">
+            <h1 className="text-xl font-semibold text-foreground">
               Algo deu errado
             </h1>
-            <p className="text-sm text-slate-500">
+            <p className="text-sm text-muted-foreground">
               Ocorreu um erro inesperado ao carregar esta tela. A equipe foi
               notificada. Tente recarregar a página.
             </p>

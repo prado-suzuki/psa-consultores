@@ -159,15 +159,15 @@ export default function EquipeChamados() {
     <div className="min-h-screen bg-muted">
       <header className="h-16 border-b border-border/60 bg-white flex items-center px-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(backTo)} className="text-slate-600 hover:text-teal-600 hover:bg-muted">
+          <Button variant="ghost" size="sm" onClick={() => navigate(backTo)} className="text-muted-foreground hover:text-teal-600 hover:bg-muted">
             <ArrowLeft className="mr-2 h-4 w-4" />{rotuloVoltar}
           </Button>
           <div>
             {/* Título fixo, casando com a rota /equipe/chamados. "Gestão de Chamados"
                 é o nome da tela de /gestao/chamados (chamados dos clientes) — repetir
                 aqui confundia as duas. O papel aparece no subtítulo. */}
-            <h1 className="text-xl font-bold text-slate-900">Chamados da Equipe</h1>
-            <p className="text-sm text-slate-500">
+            <h1 className="text-xl font-bold text-foreground">Chamados da Equipe</h1>
+            <p className="text-sm text-muted-foreground">
               {canAssignTickets ? 'Visualize todos os chamados e atribua responsáveis' : 'Visualize e responda os chamados atribuídos a você'}
             </p>
           </div>

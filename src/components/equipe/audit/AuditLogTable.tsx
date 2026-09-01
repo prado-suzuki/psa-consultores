@@ -121,13 +121,13 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Carregando...
                   </TableCell>
                 </TableRow>
               ) : filteredLogs.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-slate-500">
+                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                     Nenhum registro encontrado
                   </TableCell>
                 </TableRow>
@@ -179,7 +179,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                                 <div className="text-xs space-y-1">
                                   {/* Details (e.g. reassignment reason) */}
                                   {hasDetails && (
-                                    <p className="text-slate-600 italic mb-2">{log.details}</p>
+                                    <p className="text-muted-foreground italic mb-2">{log.details}</p>
                                   )}
 
                                   {/* Changed fields */}
@@ -188,7 +188,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                                       <p className="font-semibold text-slate-700 mb-2">Campos alterados:</p>
                                       {formattedChanges.map((change, idx) => (
                                         <div key={idx} className="flex gap-2 items-baseline">
-                                          <span className="font-medium text-slate-600 min-w-[140px]">
+                                          <span className="font-medium text-muted-foreground min-w-[140px]">
                                             {change.label}:
                                           </span>
                                           <span className="text-red-600 line-through">

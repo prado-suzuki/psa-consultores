@@ -14,7 +14,7 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
       label: 'Total de Processos',
       value: metrics.total,
       icon: Workflow,
-      iconClass: 'text-slate-500',
+      iconClass: 'text-muted-foreground',
       bgClass: 'bg-muted',
     },
     // Os três KPI de status pegam a cor do MESMO mapa que pinta a pílula na
@@ -55,7 +55,7 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">{c.label}</p>
-                <p className="text-2xl font-bold text-slate-900">{c.value}</p>
+                <p className="text-2xl font-bold text-foreground">{c.value}</p>
               </div>
             </CardContent>
           </Card>
@@ -66,13 +66,13 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between text-sm">
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
-              <span><strong className="text-slate-900">{metrics.mapped}</strong> mapeados</span>
+              <span><strong className="text-foreground">{metrics.mapped}</strong> mapeados</span>
               <span>·</span>
-              <span><strong className="text-slate-900">{metrics.with_roi}</strong> com ROI</span>
+              <span><strong className="text-foreground">{metrics.with_roi}</strong> com ROI</span>
               <span>·</span>
-              <span><strong className="text-slate-900">{metrics.with_sop}</strong> com SOP</span>
+              <span><strong className="text-foreground">{metrics.with_sop}</strong> com SOP</span>
             </div>
-            <span className="font-medium text-slate-900">
+            <span className="font-medium text-foreground">
               {metrics.fully_complete}/{metrics.total} completos ({metrics.overall_progress_percent}%)
             </span>
           </div>

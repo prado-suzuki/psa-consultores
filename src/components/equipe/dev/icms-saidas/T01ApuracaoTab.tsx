@@ -39,7 +39,7 @@ export const T01ApuracaoTab = ({
       <Card className="border-border border-dashed">
         <CardContent className="p-12 text-center">
           <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-          <p className="text-slate-500">Selecione os filtros e clique em Buscar para carregar a apuração.</p>
+          <p className="text-muted-foreground">Selecione os filtros e clique em Buscar para carregar a apuração.</p>
         </CardContent>
       </Card>
     );
@@ -73,7 +73,7 @@ export const T01ApuracaoTab = ({
       <Card className="border-border shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <Calculator className="h-4 w-4 text-slate-500" />
+            <Calculator className="h-4 w-4 text-muted-foreground" />
             Resumo mensal da apuração
           </CardTitle>
         </CardHeader>
@@ -196,7 +196,7 @@ const MatrizApuracaoCard = ({ matriz }: { matriz: T01MatrizSection }) => {
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700">
               {matriz.titulo}
             </CardTitle>
-            <p className="text-xs text-slate-500">Origem da planilha base {matriz.observacao}</p>
+            <p className="text-xs text-muted-foreground">Origem da planilha base {matriz.observacao}</p>
           </div>
           <Badge variant="outline" className="w-fit font-mono">
             Cód. {matriz.codigo}

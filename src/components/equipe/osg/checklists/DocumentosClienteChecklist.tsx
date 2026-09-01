@@ -258,7 +258,7 @@ function ChecklistRow({ number, req, state, matches, downloading, onDownload, up
           'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold tabular-nums',
           state === 'encontrado' && 'border-osg-moss/30 bg-osg-moss/10 text-osg-moss',
           state === 'solicitar' && 'border-amber-300/70 bg-amber-50 text-amber-700',
-          state === 'modelo' && 'border-border bg-muted text-slate-500',
+          state === 'modelo' && 'border-border bg-muted text-muted-foreground',
         )}>
           {state === 'encontrado' ? <Check className="h-4 w-4" /> : number}
         </span>
@@ -266,7 +266,7 @@ function ChecklistRow({ number, req, state, matches, downloading, onDownload, up
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <h3 className="text-sm font-bold text-osg-moss">{req.assunto}</h3>
-              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500">{req.descricao}</p>
+              <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted-foreground">{req.descricao}</p>
             </div>
             <StatusPill state={state} count={matches.length} />
           </div>
@@ -295,7 +295,7 @@ function ChecklistRow({ number, req, state, matches, downloading, onDownload, up
           )}
 
           {state === 'modelo' && (
-            <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/70 px-3 py-2 text-xs text-slate-500">
+            <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/70 px-3 py-2 text-xs text-muted-foreground">
               <FileDown className="h-4 w-4" /> Modelo de DRE utilizado para preparar a projeção
             </div>
           )}
@@ -353,7 +353,7 @@ function FileDownloadButton({ file, downloading, onDownload }: {
       aria-label={`Baixar ${file.nome_original}`}
     >
       <FileText className="h-4 w-4 shrink-0 text-osg-moss" />
-      <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-600">{file.nome_original}</span>
+      <span className="min-w-0 flex-1 truncate text-xs font-medium text-muted-foreground">{file.nome_original}</span>
       <Download className="h-3.5 w-3.5 shrink-0 text-osg-500" />
     </button>
   );
@@ -363,7 +363,7 @@ function StatusPill({ state, count }: { state: ChecklistState; count: number }) 
   const config = {
     encontrado: { label: `Correspondência encontrada${count > 1 ? ` (${count})` : ''}`, className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
     solicitar: { label: 'A solicitar', className: 'border-amber-200 bg-amber-50 text-amber-700' },
-    modelo: { label: 'Modelo de referência', className: 'border-border bg-muted text-slate-500' },
+    modelo: { label: 'Modelo de referência', className: 'border-border bg-muted text-muted-foreground' },
   }[state];
   return <span className={cn('inline-flex w-fit shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-bold', config.className)}>{config.label}</span>;
 }
@@ -402,7 +402,7 @@ function OtherDocuments({ files, downloading, onDownload }: {
             >
               <FileText className="h-4 w-4 shrink-0 text-osg-500" />
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-medium text-slate-600">{file.nome_original}</span>
+                <span className="block truncate text-xs font-medium text-muted-foreground">{file.nome_original}</span>
                 <span className="block truncate text-[10px] text-slate-400">{CAT_LABEL[file.categoria]}</span>
               </span>
               <Download className="h-3.5 w-3.5 shrink-0 text-osg-500" />

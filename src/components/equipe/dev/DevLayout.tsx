@@ -142,7 +142,7 @@ const HubSidebarSection = ({
           className={`w-full justify-start rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
             currentPath === item.path
               ? "bg-primary/10 text-primary hover:bg-primary/15"
-              : "text-slate-500 hover:bg-muted hover:text-primary"
+              : "text-muted-foreground hover:bg-muted hover:text-primary"
           }`}
           onClick={() => navigate(item.path)}
         >
@@ -211,13 +211,13 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
           <>
             <div className="flex flex-shrink-0 items-center justify-between border-b border-border/60 p-6">
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-slate-900">Digital Dev</h2>
-                <p className="text-xs text-slate-500">Ambiente de desenvolvimento</p>
+                <h2 className="text-lg font-semibold text-foreground">Digital Dev</h2>
+                <p className="text-xs text-muted-foreground">Ambiente de desenvolvimento</p>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                className="flex-shrink-0 text-slate-600 hover:text-slate-900"
+                className="flex-shrink-0 text-muted-foreground hover:text-foreground"
                 onClick={() => setCollapsed(true)}
               >
                 <ChevronLeft className="h-5 w-5" />
@@ -317,14 +317,14 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   <User className="h-4 w-4 text-primary" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-slate-900">{user?.email?.split("@")[0] || "Usuario"}</p>
-                  <p className="text-xs text-slate-500">Digital Dev</p>
+                  <p className="truncate text-sm font-medium text-foreground">{user?.email?.split("@")[0] || "Usuario"}</p>
+                  <p className="text-xs text-muted-foreground">Digital Dev</p>
                 </div>
               </div>
 
               <Button
                 variant="ghost"
-                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-muted hover:text-primary"
+                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-primary"
                 onClick={() => navigate("/equipe/digital")}
               >
                 <ArrowLeft className="mr-3 h-4 w-4" />
@@ -333,7 +333,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
 
               <Button
                 variant="ghost"
-                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-red-50 hover:text-red-600"
+                className="w-full justify-start rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
                 onClick={handleSignOut}
               >
                 <LogOut className="mr-3 h-4 w-4" />
@@ -355,7 +355,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
               <Button
                 variant="ghost"
                 size="icon"
-                className="flex-shrink-0 text-slate-600 hover:text-slate-900"
+                className="flex-shrink-0 text-muted-foreground hover:text-foreground"
                 onClick={() => setCollapsed(false)}
               >
                 <Menu className="h-5 w-5" />
@@ -363,9 +363,9 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
             )}
 
             <div className="min-w-0">
-              <h1 className="break-words text-xl font-bold text-slate-900">{title}</h1>
+              <h1 className="break-words text-xl font-bold text-foreground">{title}</h1>
               {subtitle && (
-                <p className="flex flex-wrap items-center gap-0 text-sm text-slate-500">
+                <p className="flex flex-wrap items-center gap-0 text-sm text-muted-foreground">
                   {subtitle}
                   {sopUrl && (
                     <>

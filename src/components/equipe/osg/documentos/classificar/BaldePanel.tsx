@@ -72,7 +72,7 @@ export function BaldePanel({
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="balde-gaveta" className="text-[11px] font-medium text-slate-600">
+          <Label htmlFor="balde-gaveta" className="text-[11px] font-medium text-muted-foreground">
             Gaveta
           </Label>
           <Select value={gaveta} onValueChange={(valor) => onGaveta(valor as Gaveta)}>
@@ -90,7 +90,7 @@ export function BaldePanel({
         </div>
 
         <div className="space-y-1">
-          <Label htmlFor="balde-busca" className="text-[11px] font-medium text-slate-600">
+          <Label htmlFor="balde-busca" className="text-[11px] font-medium text-muted-foreground">
             Buscar por nome
           </Label>
           <div className="relative">

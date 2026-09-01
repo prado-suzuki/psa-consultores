@@ -77,7 +77,7 @@ const AuditoriaCruzadaContent = () => {
             <CardHeader className="pb-4">
               <CardTitle className="flex items-center gap-2 text-lg text-primary">
                 <Filter className="h-5 w-5 text-primary" />
-                <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+                <span className="uppercase text-sm tracking-wider font-bold text-foreground">Filtros de Busca</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">

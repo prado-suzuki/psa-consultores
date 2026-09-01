@@ -35,8 +35,8 @@ const TONS = {
    */
   slate: {
     chip: 'bg-muted',
-    nome: 'text-slate-900',
-    rotulo: 'text-slate-500',
+    nome: 'text-foreground',
+    rotulo: 'text-muted-foreground',
   },
 } as const;
 

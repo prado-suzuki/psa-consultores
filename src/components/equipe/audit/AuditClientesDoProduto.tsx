@@ -52,7 +52,7 @@ export const AuditClientesDoProduto = ({
           <button
             type="button"
             onClick={() => setClienteId(null)}
-            className="flex items-center gap-0.5 rounded text-slate-500 transition-colors hover:text-slate-900"
+            className="flex items-center gap-0.5 rounded text-muted-foreground transition-colors hover:text-foreground"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
             Clientes
@@ -78,10 +78,10 @@ export const AuditClientesDoProduto = ({
 
       <TabsContent value="clientes" className="mt-0">
         {clientes.length === 0 ? (
-          <p className="text-xs text-slate-500">Nenhum cliente com registro neste produto no período.</p>
+          <p className="text-xs text-muted-foreground">Nenhum cliente com registro neste produto no período.</p>
         ) : (
           <>
-            <p className="mb-1 text-xs text-slate-500">
+            <p className="mb-1 text-xs text-muted-foreground">
               Clique num cliente para ver quem está executando nele.
             </p>
             <Table>
@@ -122,9 +122,9 @@ export const AuditClientesDoProduto = ({
                       <TableCell className="py-1.5 text-right text-xs">{linha.itensTocados}</TableCell>
                       <TableCell className="py-1.5 text-right text-xs">{linha.concluidos}</TableCell>
                       <TableCell className="whitespace-nowrap py-1.5 text-right text-xs">
-                        <span className="text-slate-500">{formatarHoras(linha.horasPlanejadas)}</span>
+                        <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
                         <span className="text-slate-300"> / </span>
-                        <span className="font-medium text-slate-900">
+                        <span className="font-medium text-foreground">
                           {formatarHoras(linha.horasExecutadas)}
                         </span>
                       </TableCell>

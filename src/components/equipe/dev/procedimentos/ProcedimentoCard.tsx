@@ -146,7 +146,7 @@ export function ProcedimentoCard({
               </span>
             )}
             {p.status_publicacao === 'arquivado' && (
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-muted text-slate-600">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-muted text-muted-foreground">
                 Arquivado
               </span>
             )}
@@ -162,10 +162,10 @@ export function ProcedimentoCard({
           </div>
 
           {/* Body */}
-          <h3 className="text-base font-semibold text-slate-900 line-clamp-2 mb-1.5">
+          <h3 className="text-base font-semibold text-foreground line-clamp-2 mb-1.5">
             {p.ai_titulo || 'Sem título'}
           </h3>
-          <p className="text-[13px] text-slate-500 line-clamp-3 mb-3">
+          <p className="text-[13px] text-muted-foreground line-clamp-3 mb-3">
             {p.ai_resumo || 'Sem resumo disponível'}
           </p>
 
@@ -209,7 +209,7 @@ export function ProcedimentoCard({
             {p.ai_tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {p.ai_tags.slice(0, 3).map((t) => (
-                  <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-muted text-slate-500">
+                  <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-muted text-muted-foreground">
                     {t}
                   </span>
                 ))}

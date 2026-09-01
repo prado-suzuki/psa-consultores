@@ -101,13 +101,13 @@ export function CardGrupoColeta({
           <span
             className={cn(
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-              discreto ? 'bg-muted text-slate-500' : 'bg-accent/5 text-teal-700',
+              discreto ? 'bg-muted text-muted-foreground' : 'bg-accent/5 text-teal-700',
             )}
           >
             <Icon className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <h3 className={cn('font-semibold', discreto ? 'text-slate-600' : 'text-foreground')}>
+            <h3 className={cn('font-semibold', discreto ? 'text-muted-foreground' : 'text-foreground')}>
               {grupo.titulo}
             </h3>
             <p className="text-[11px] text-muted-foreground">{grupo.subtitulo}</p>
@@ -153,7 +153,7 @@ export function CardGrupoColeta({
           <UploadCloud className="h-7 w-7 text-teal-700/70" />
         )}
         <span
-          className={cn('text-sm font-medium', somenteLeitura ? 'text-slate-500' : 'text-primary')}
+          className={cn('text-sm font-medium', somenteLeitura ? 'text-muted-foreground' : 'text-primary')}
         >
           {somenteLeitura
             ? motivoBloqueio

@@ -47,13 +47,13 @@ export function PerDetailHeader({
           <FileText className="w-7 h-7" />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-slate-900 flex items-center gap-3">
+          <h3 className="text-xl font-bold text-foreground flex items-center gap-3">
             <span>{formatProcessNumber(nrPer)}</span>
             <Badge variant="secondary" className="text-xs uppercase">
               {tipoCredito}
             </Badge>
           </h3>
-          <p className="text-sm text-slate-500 mt-0.5 font-medium">
+          <p className="text-sm text-muted-foreground mt-0.5 font-medium">
             {contribuinteNome || 'Contribuinte'}
             {' • '}
             <span className="text-slate-700 ml-1">
@@ -75,15 +75,15 @@ export function PerDetailHeader({
       <div className="flex items-center gap-6">
         <div className="hidden xl:flex items-center gap-8 border-r border-border pr-6 h-12">
           <div className="text-right">
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
               Valor Crédito
             </p>
-            <p className="text-lg font-mono font-bold text-slate-800">
+            <p className="text-lg font-mono font-bold text-foreground">
               {formatCurrency(valorCredito)}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
               Saldo Restante do PER
             </p>
             <p
@@ -93,14 +93,14 @@ export function PerDetailHeader({
                   ?'text-green-600'
                   : saldoRestante < 0
                     ?'text-red-600'
-                    :'text-slate-800',
+                    :'text-foreground',
               )}
             >
               {formatCurrency(saldoRestante)}
             </p>
           </div>
           <div className="text-right">
-            <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
+            <p className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-0.5">
               Vlr. Selic
             </p>
             {emCarencia ? (

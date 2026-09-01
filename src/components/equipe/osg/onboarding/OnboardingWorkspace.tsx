@@ -214,7 +214,7 @@ export function OnboardingWorkspace({
             <h2 className="truncate text-base font-semibold text-osg-700">
               Documentos solicitados
             </h2>
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
               <span>
                 {itensFiltrados.length}
                 {' '}
@@ -262,7 +262,7 @@ export function OnboardingWorkspace({
           )}
         </div>
 
-        <p className="mb-3 flex items-start gap-2 px-1 text-xs leading-relaxed text-slate-500">
+        <p className="mb-3 flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
           <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-osg-moss/70" />
           <span>
             Cada alteração é <strong className="font-semibold text-osg-700">salva na
@@ -275,7 +275,7 @@ export function OnboardingWorkspace({
             "Abrir nova solicitação", e mandar gerar apontaria para um botão que
             não existe naquele estado. */}
         {itens.length === 0 && (
-          <p className="mb-2 rounded-lg bg-osg-50/60 px-3 py-2.5 text-xs leading-relaxed text-slate-600">
+          <p className="mb-2 rounded-lg bg-osg-50/60 px-3 py-2.5 text-xs leading-relaxed text-muted-foreground">
             {somenteLeitura
               ? 'Esta solicitação foi finalizada sem nenhum documento. Para pedir documentos, abra uma nova solicitação pelo botão no topo.'
               : 'A solicitação está vazia. Gere a lista a partir da OS pelo botão no topo, ou inclua documentos um a um.'}

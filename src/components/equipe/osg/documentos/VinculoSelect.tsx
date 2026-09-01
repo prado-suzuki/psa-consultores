@@ -133,7 +133,7 @@ export function VinculoSelect({
                     )}
                   />
                   <span className="flex-1 text-left">{b.label}</span>
-                  <span className="shrink-0 rounded-full bg-muted px-1.5 text-[11px] tabular-nums text-slate-500">
+                  <span className="shrink-0 rounded-full bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
                     {b.itens.length}
                   </span>
                 </button>

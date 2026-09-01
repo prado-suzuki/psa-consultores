@@ -67,12 +67,12 @@ export function EstruturaAtual({ bens, titulo = 'Estrutura atual (antes da reorg
       <header className="flex items-center gap-2.5 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
         <Sprout className="h-4 w-4 text-osg-600" />
         <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
-        <span className="ml-auto text-[11px] text-slate-500">como a atividade rural é explorada hoje</span>
+        <span className="ml-auto text-[11px] text-muted-foreground">como a atividade rural é explorada hoje</span>
       </header>
 
       {!layout ? (
         <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-          Nenhum imóvel cadastrado — preencha no <b className="font-medium text-slate-600">Diagnóstico Patrimonial</b> para o estado atual aparecer.
+          Nenhum imóvel cadastrado — preencha no <b className="font-medium text-muted-foreground">Diagnóstico Patrimonial</b> para o estado atual aparecer.
         </p>
       ) : (
         <>
@@ -115,7 +115,7 @@ export function EstruturaAtual({ bens, titulo = 'Estrutura atual (antes da reorg
               })}
             </svg>
           </div>
-          <div className="flex flex-wrap items-center gap-4 border-t border-osg-100 px-4 py-2.5 text-[11px] text-slate-500">
+          <div className="flex flex-wrap items-center gap-4 border-t border-osg-100 px-4 py-2.5 text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#eef7f2', borderColor: '#125837' }} /> Própria</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#eef6f9', borderColor: '#1b8ea3' }} /> Parceria</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#fffbeb', borderColor: '#b45309' }} /> Arrendamento</span>

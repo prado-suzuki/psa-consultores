@@ -336,14 +336,14 @@ const ControleBalancetes = () => {
         <CardHeader className="pb-2 p-6 md:p-8 md:pb-4">
           <CardTitle className="flex items-center gap-2.5">
             <Filter className="h-5 w-5 text-primary" />
-            <span className="uppercase text-xs tracking-widest font-bold text-slate-600">Filtros de Busca</span>
+            <span className="uppercase text-xs tracking-widest font-bold text-muted-foreground">Filtros de Busca</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 p-6 md:px-8 md:pb-8 pt-0">
           <div className="grid grid-cols-12 gap-6">
             {/* Cliente */}
             <div className="col-span-4 space-y-2">
-              <Label className="text-sm font-medium text-slate-600">Cliente <RequiredMark /></Label>
+              <Label className="text-sm font-medium text-muted-foreground">Cliente <RequiredMark /></Label>
               <Select value={clienteId} onValueChange={(v) => { setClienteId(v); setContribuinteId(''); }}>
                 <SelectTrigger className="h-11 rounded-lg">
                   <SelectValue placeholder="Selecione o cliente" />
@@ -358,7 +358,7 @@ const ControleBalancetes = () => {
 
             {/* Contribuinte */}
             <div className="col-span-4 space-y-2">
-              <Label className="text-sm font-medium text-slate-600">Contribuinte <RequiredMark /></Label>
+              <Label className="text-sm font-medium text-muted-foreground">Contribuinte <RequiredMark /></Label>
               <Select value={contribuinteId} onValueChange={setContribuinteId}>
                 <SelectTrigger className="h-11 rounded-lg">
                   <SelectValue placeholder="Selecione o contribuinte" />
@@ -373,7 +373,7 @@ const ControleBalancetes = () => {
 
             {/* Período */}
             <div className="col-span-4 space-y-2">
-              <Label className="text-sm font-medium text-slate-600">Período <RequiredMark /></Label>
+              <Label className="text-sm font-medium text-muted-foreground">Período <RequiredMark /></Label>
               <MonthRangePicker value={periodo} onChange={setPeriodo} placeholder="Selecione o período" />
             </div>
           </div>
@@ -403,7 +403,7 @@ const ControleBalancetes = () => {
       {/* Results Card */}
       <Card className="rounded-2xl border-border shadow-sm">
         <CardHeader className="p-6 md:px-8 flex flex-row items-center justify-between">
-          <CardTitle className="text-lg font-semibold text-slate-800">Balancetes</CardTitle>
+          <CardTitle className="text-lg font-semibold text-foreground">Balancetes</CardTitle>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -449,7 +449,7 @@ const ControleBalancetes = () => {
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={COL_COUNT} className="text-center py-16 text-slate-400">
                       <Loader2 className="h-10 w-10 mx-auto mb-4 animate-spin text-primary" />
-                      <p className="text-sm font-medium text-slate-500">Buscando balancetes...</p>
+                      <p className="text-sm font-medium text-muted-foreground">Buscando balancetes...</p>
                     </TableCell>
                   </TableRow>
                 ) : balancetes.length > 0 ? (
@@ -545,7 +545,7 @@ const ControleBalancetes = () => {
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={COL_COUNT} className="text-center py-16 text-slate-400">
                       <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-                      <p className="text-sm font-medium text-slate-500">
+                      <p className="text-sm font-medium text-muted-foreground">
                         {searched ? 'Nenhum balancete encontrado' : 'Selecione um contribuinte e clique em Buscar'}
                       </p>
                       {!searched && (

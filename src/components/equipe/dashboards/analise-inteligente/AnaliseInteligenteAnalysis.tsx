@@ -78,19 +78,19 @@ export function AnaliseInteligenteAnalysis({
             <h4 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
               <TrendingUp className="h-3 w-3 text-teal-600" /> Evolução das Entregas
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed">{analise.evolucao_entregas}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{analise.evolucao_entregas}</p>
           </div>
           <div className="bg-white/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
               <Clock className="h-3 w-3 text-teal-600" /> Tempo vs Resultado
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed">{analise.tempo_vs_resultado}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{analise.tempo_vs_resultado}</p>
           </div>
           <div className="bg-white/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
               <CheckCircle2 className="h-3 w-3 text-teal-600" /> Saudabilidade
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed">{analise.saudabilidade_sprint}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{analise.saudabilidade_sprint}</p>
           </div>
         </div>
 
@@ -99,13 +99,13 @@ export function AnaliseInteligenteAnalysis({
             <h4 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
               <Target className="h-3 w-3 text-blue-600" /> Aderência ao Escopo
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed">{analise.aderencia_escopo}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{analise.aderencia_escopo}</p>
           </div>
           <div className="bg-white/70 p-3 rounded-md border border-border">
             <h4 className="text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
               <DollarSign className="h-3 w-3 text-red-600" /> Gastos Extras
             </h4>
-            <p className="text-xs text-slate-600 leading-relaxed">{analise.gastos_extras}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{analise.gastos_extras}</p>
           </div>
         </div>
 

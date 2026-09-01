@@ -127,7 +127,7 @@ const QuadroEmpresaManual = ({ empresa, pessoasCliente }: QuadroEmpresaProps) =>
         <CardHeader className="pb-3 space-y-2">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
             <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4 text-slate-500" />
+              <Users className="h-4 w-4 text-muted-foreground" />
               Lista de Sócios ({quadro.length})
             </CardTitle>
             <Button

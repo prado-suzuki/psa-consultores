@@ -79,7 +79,7 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
         {modeloId && !carregandoBlocos && template.blocos.length === 0 && (
           <Card className="rounded-md border-osg-300/60 shadow-sm shadow-osg-300/30">
             <CardContent className="py-10 text-center">
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-muted-foreground">
                 Este modelo ainda não tem blocos com conteúdo.
               </p>
               <Button
@@ -132,7 +132,7 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
                       <div key={lista.nome} className="space-y-2">
                         <div className="flex items-baseline justify-between gap-2">
                           <Label className={labelCls}>{lista.papel.label}</Label>
-                          <span className="text-xs tabular-nums text-slate-500">
+                          <span className="text-xs tabular-nums text-muted-foreground">
                             {marcados.length} selecionado{marcados.length === 1 ? '' : 's'}
                           </span>
                         </div>
@@ -161,7 +161,7 @@ export function GerarDocumentoEscolhas({ controller }: { controller: GerarDocume
               {bindingsNaoSociedade.length > 0 && (
                 <div className="space-y-3">
                   {precisaEmpresa && (
-                    <p className="text-xs font-semibold text-slate-600">
+                    <p className="text-xs font-semibold text-muted-foreground">
                       Este modelo também precisa de:
                     </p>
                   )}

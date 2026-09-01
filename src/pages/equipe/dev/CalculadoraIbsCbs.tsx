@@ -74,7 +74,7 @@ const CalculadoraIbsCbs = () => {
     >
       <Card className="mb-6 border-border shadow-sm">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-slate-800">
+          <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-foreground">
             <Filter className="h-4 w-4 text-primary" />
             Escopo
           </CardTitle>
@@ -82,7 +82,7 @@ const CalculadoraIbsCbs = () => {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
                 Cliente
               </label>
               <Select
@@ -105,7 +105,7 @@ const CalculadoraIbsCbs = () => {
               </Select>
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">
+              <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
                 Contribuinte
               </label>
               <Select
@@ -148,7 +148,7 @@ const CalculadoraIbsCbs = () => {
 
         {!contribuinteId ? (
           <Card className="border-dashed">
-            <CardContent className="p-16 text-center text-sm text-slate-500">
+            <CardContent className="p-16 text-center text-sm text-muted-foreground">
               Selecione um cliente e contribuinte para visualizar a apuração.
             </CardContent>
           </Card>

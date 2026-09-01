@@ -59,11 +59,11 @@ function KpiCard({ label, value, sub, accent, trend, tooltip }: KpiCardProps) {
     <Card className={`relative overflow-hidden border-border ${tooltip ? 'cursor-help' : ''}`}>
       <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: accentColor }} />
       <CardContent className="p-5">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
           {label}
         </p>
-        <p className="text-2xl font-bold text-slate-900 leading-none mb-1 tabular-nums">{value}</p>
-        {sub && <div className="text-xs text-slate-500 mt-2 space-y-0.5">{sub}</div>}
+        <p className="text-2xl font-bold text-foreground leading-none mb-1 tabular-nums">{value}</p>
+        {sub && <div className="text-xs text-muted-foreground mt-2 space-y-0.5">{sub}</div>}
         {trend && (
           <div
             className={`mt-2 inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${
@@ -134,7 +134,7 @@ function SegmentoCard({
           >
             {icon}
           </div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
         </div>
         {isEmpty ? (
           <div>
@@ -145,10 +145,10 @@ function SegmentoCard({
           <div className="grid grid-cols-3 gap-3 text-xs">
             <div>
               <p className="text-slate-400 uppercase tracking-wider mb-0.5">Faturamento</p>
-              <p className="font-bold text-slate-900 tabular-nums">
+              <p className="font-bold text-foreground tabular-nums">
                 {fmtBRL(segmento.faturamento)}
               </p>
-              <p className="text-slate-500 font-mono">{fmtPct(pct)} do fat.</p>
+              <p className="text-muted-foreground font-mono">{fmtPct(pct)} do fat.</p>
             </div>
             <div>
               <p className="text-slate-400 uppercase tracking-wider mb-0.5">Tributo DEPOIS</p>
@@ -156,15 +156,15 @@ function SegmentoCard({
                 <p className="font-bold text-primary tabular-nums">
                   {fmtBRL(segmento.tributoDepoisIbsCbs)}
                 </p>
-                <p className="text-slate-500">Carga {fmtPct(cargaDepois)}</p>
+                <p className="text-muted-foreground">Carga {fmtPct(cargaDepois)}</p>
               </>
             </div>
             <div>
               <p className="text-slate-400 uppercase tracking-wider mb-0.5">Volume</p>
-              <p className="font-bold text-slate-900 tabular-nums">
+              <p className="font-bold text-foreground tabular-nums">
                 {segmento.qtdNFs.toLocaleString('pt-BR')} NFs
               </p>
-              <p className="text-slate-500">{segmento.qtdItens.toLocaleString('pt-BR')} itens</p>
+              <p className="text-muted-foreground">{segmento.qtdItens.toLocaleString('pt-BR')} itens</p>
             </div>
           </div>
         )}
@@ -334,22 +334,22 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
           accent="depois"
           tooltip={
             <div className="space-y-2 text-xs">
-              <p className="font-semibold text-slate-900">Tributo DEPOIS exibido no dashboard</p>
+              <p className="font-semibold text-foreground">Tributo DEPOIS exibido no dashboard</p>
               <div className="space-y-1">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="flex items-center gap-1.5 text-slate-600">
+                  <span className="flex items-center gap-1.5 text-muted-foreground">
                     <span
                       className="inline-block h-2 w-2 rounded-full"
                       style={{ background: CORES.depois }}
                     />
                     IBS/CBS real
                   </span>
-                  <span className="tabular-nums font-semibold text-slate-900">
+                  <span className="tabular-nums font-semibold text-foreground">
                     {fmtBRL(totais.tributoDepoisIbsCbs)}
                   </span>
                 </div>
               </div>
-              <p className="text-[11px] text-slate-500 pt-1 border-t border-border">
+              <p className="text-[11px] text-muted-foreground pt-1 border-t border-border">
                 Os cards e gráficos comparativos desta página passaram a considerar apenas o valor
                 de IBS/CBS, sem somar ICMS monofásico.
               </p>

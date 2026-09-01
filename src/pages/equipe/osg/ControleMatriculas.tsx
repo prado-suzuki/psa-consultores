@@ -139,7 +139,7 @@ const ControleMatriculas = () => {
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-slate-500" />
+              <FileText className="h-4 w-4 text-muted-foreground" />
               Matrículas ({matriculasFiltradas.length}{matriculasDoCliente.length !== matriculasFiltradas.length ? ` de ${matriculasDoCliente.length}` : ''})
               {orfas > 0 && (
                 <Badge variant="warning" className="text-[10px] gap-1">

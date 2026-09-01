@@ -147,7 +147,7 @@ export function ProcessSpreadsheet({ processes }: ProcessSpreadsheetProps) {
               return (
                 <TableRow key={p.id}>
                   <TableCell className="font-mono text-xs">{p.code ?? '—'}</TableCell>
-                  <TableCell className="font-medium text-slate-900">{p.name}</TableCell>
+                  <TableCell className="font-medium text-foreground">{p.name}</TableCell>
                   <TableCell>{p.display_group_name}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className={mapeamentoStatusConfig(status).badge}>
@@ -224,7 +224,7 @@ function SortableHead({ label, sortKey, current, dir, onClick, className }: Sort
       <button
         type="button"
         onClick={() => onClick(sortKey)}
-        className="inline-flex items-center gap-1 hover:text-slate-900 transition-colors"
+        className="inline-flex items-center gap-1 hover:text-foreground transition-colors"
       >
         {label}
         <Icon className="h-3 w-3" />
