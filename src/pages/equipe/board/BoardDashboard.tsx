@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
@@ -17,6 +17,8 @@ import { ptBR } from 'date-fns/locale';
 import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { BoardFilterBar } from '@/components/board/BoardFilterBar';
 import { BoardKpisNegocio } from '@/components/board/BoardKpisNegocio';
+import { BoardMixProjetos } from '@/components/board/BoardMixProjetos';
+import { BoardOsgSaude } from '@/components/board/BoardOsgSaude';
 import { BoardChip } from '@/components/board/BoardChip';
 import { BoardAreaRollup } from '@/components/board/BoardAreaRollup';
 import { BoardConcentracao } from '@/components/board/BoardConcentracao';
@@ -34,6 +36,11 @@ import {
   receitaEmRisco, serieReceitaComparada,
 } from '@/lib/boardEstrategico';
 import { centrosCustoEmUso } from '@/lib/dashboardClientesOs/aggregations';
+import {
+  mixProjetosAtivos, receitaDiretoria, capacidadeMelhorias, saudeOsg,
+} from '@/lib/boardDiretoria';
+import { semCadastroLegado } from '@/lib/boardLegado';
+import { useDomainHeadcountCluster } from '@/hooks/useDomainHeadcountCluster';
 import { useBoardRollupAreas } from '@/hooks/useBoardRollupAreas';
 import { useBoardHierarquia } from '@/hooks/useBoardHierarquia';
 import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
@@ -98,6 +105,7 @@ const BoardDashboard = () => {
   const { data: overview } = useDesempenhoOverview(cicloAtivo?.id);
   const { tarefasConcluidasQuery, horasAlocadasQuery } = useDomainBoardDashboard({ desdeISO: periodFrom });
   const melhoriasQuery = useDomainMelhoriasRoi();
+  const headcountQuery = useDomainHeadcountCluster();
   // Query dedicada e enxuta do bloco "Preenchimento do sistema" -- deliberadamente
   // SEPARADA de `usePerformanceData` (ver `useDomainPreenchimentoSistema`).
   const {
@@ -122,7 +130,10 @@ const BoardDashboard = () => {
    */
   const osRows = useMemo(
     () => ratearPorCentroCusto(
-      filtrarPorCluster(negocio.data?.osRows ?? [], cluster),
+      // Cadastro LEGADO fora antes de qualquer conta (28/08): PSA Consultores,
+      // P Consultores e o resíduo do Prado Suzuki pesam e produzem número que
+      // a diretoria já sabe estar errado. Ver `boardLegado.ts`.
+      semCadastroLegado(filtrarPorCluster(negocio.data?.osRows ?? [], cluster), (o) => o.cliente_nome),
       rateioPorOs ?? new Map(),
       ccSelecionado,
     ),
@@ -132,13 +143,19 @@ const BoardDashboard = () => {
   // mesma regra da tela "Clientes e OS", senão o KPI de clientes ativos contaria
   // quem ficou de fora da receita mostrada ao lado.
   const clienteRows = useMemo(() => {
-    const base = filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster);
+    const base = semCadastroLegado(
+      filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster),
+      (c) => c.cliente_nome,
+    );
     if (!ccSelecionado) return base;
     const comOs = new Set(osRows.map((o) => o.cliente_id));
     return base.filter((c) => comOs.has(c.cliente_id));
   }, [negocio.data, cluster, ccSelecionado, osRows]);
   const projetoRows = useMemo(
-    () => filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster),
+    () => semCadastroLegado(
+      filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster),
+      (p) => p.cliente_nome,
+    ),
     [negocio.data, cluster],
   );
   const hoje = negocio.hoje;
@@ -147,7 +164,8 @@ const BoardDashboard = () => {
   // de opções que devolveriam tela vazia.
   const ccOptions = useMemo(() => [
     { value: TODOS_CC, label: 'Todos os centros de custo' },
-    ...centrosCustoEmUso(rateioPorOs ?? new Map()).map((c) => ({ value: c.id, label: c.label })),
+    ...semCadastroLegado(centrosCustoEmUso(rateioPorOs ?? new Map()), (c) => c.label)
+      .map((c) => ({ value: c.id, label: c.label })),
   ], [rateioPorOs]);
   const ccLabel = ccSelecionado
     ? ccOptions.find((o) => o.value === ccSelecionado)?.label ?? ccSelecionado
