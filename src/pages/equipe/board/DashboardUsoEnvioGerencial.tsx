@@ -19,6 +19,7 @@ import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
 import { contextoBoardFerramentas } from '@/lib/agenteContextoFerramentas';
 import { filtrarPorCluster } from '@/lib/boardExecutivo';
 import { fteDeHoras, somaHorasSalvas } from '@/lib/boardDiretoria';
+import { catalogoFerramentas, ftePorArea } from '@/lib/boardFerramentasLeitura';
 
 const DashboardUsoEnvioGerencial = () => {
   const navigate = useNavigate();
@@ -31,11 +32,17 @@ const DashboardUsoEnvioGerencial = () => {
     () => filtrarPorCluster(melhoriasQuery.data ?? [], cluster),
     [melhoriasQuery.data, cluster],
   );
-  const horasLiberadas = somaHorasSalvas(melhorias.map((m) => m.time_saved_hours));
+  const catalogo = catalogoFerramentas(melhorias);
+  const areas = ftePorArea(melhorias);
+  const horasLiberadas = somaHorasSalvas(catalogo.map((c) => c.horasLiberadas));
   const beneficio = {
     horasLiberadas,
     fte: fteDeHoras(horasLiberadas).fte,
-    melhoriasMedidas: melhorias.length,
+    melhoriasMedidas: catalogo.length,
+    porFerramenta: catalogo.map((c) => ({
+      nome: c.nome, horas: c.horasLiberadas, fte: c.fte, area: c.area,
+    })),
+    porArea: areas.map((a) => ({ area: a.area, fte: a.fte })),
   };
 
   useRegistrarContextoAgente('board.ferramentas', contextoBoardFerramentas({
@@ -58,7 +65,7 @@ const DashboardUsoEnvioGerencial = () => {
   return (
     <BoardLayout
       title="Ferramentas"
-      subtitle="Antes × depois · FTE · demanda em —"
+      subtitle="Implementadas · redução de tempo · FTE por área"
       headerActions={(
         <>
           <BoardClusterBar />

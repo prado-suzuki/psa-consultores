@@ -13,6 +13,7 @@ import { filtrarLegado } from '@/lib/boardLegado';
 import {
   distribuicaoRegiao, lacunasAditivo, ocorrenciaServicos,
 } from '@/lib/boardOportunidade';
+import { carteiraClientes, tempoMedioAditivo } from '@/lib/boardCarteira';
 import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
 import { contextoBoardClientes } from '@/lib/agenteContextoClientes';
 
@@ -35,11 +36,17 @@ const BoardClientes = () => {
     [negocio.data, cluster],
   );
   const hoje = negocio.hoje;
+  const produtosPorOs = negocio.data?.rateioProdutoPorOs;
   const ticket = useMemo(() => ticketMedioAno(osRows, hoje), [osRows, hoje]);
   const ativos = useMemo(() => clienteRows.filter((c) => c.ativo).length, [clienteRows]);
   const regioes = useMemo(() => distribuicaoRegiao(clienteRows, osRows), [clienteRows, osRows]);
-  const servicos = useMemo(() => ocorrenciaServicos(osRows), [osRows]);
-  const lacunas = useMemo(() => lacunasAditivo(clienteRows, osRows), [clienteRows, osRows]);
+  const servicos = useMemo(() => ocorrenciaServicos(osRows, produtosPorOs), [osRows, produtosPorOs]);
+  const lacunas = useMemo(
+    () => lacunasAditivo(clienteRows, osRows, { produtosPorOs }),
+    [clienteRows, osRows, produtosPorOs],
+  );
+  const carteira = useMemo(() => carteiraClientes(osRows, hoje), [osRows, hoje]);
+  const diasAditivo = useMemo(() => tempoMedioAditivo(osRows), [osRows]);
 
   const contextoAgente = useMemo(() => contextoBoardClientes({
     escopoTotal: isAdmin && !cluster,
@@ -47,14 +54,16 @@ const BoardClientes = () => {
     regioes,
     servicos,
     lacunas,
+    carteira,
+    diasAditivo,
     falhas: negocio.error ? ['contratos e clientes'] : [],
-  }), [isAdmin, cluster, ticket, regioes, servicos, lacunas, negocio.error]);
+  }), [isAdmin, cluster, ticket, regioes, servicos, lacunas, carteira, diasAditivo, negocio.error]);
   useRegistrarContextoAgente('board.clientes', contextoAgente, negocio.isLoading);
 
   return (
     <BoardLayout
       title="Clientes"
-      subtitle="Região · serviço · aditivo"
+      subtitle="Receita · renovação · oferta · aditivo"
       headerActions={<BoardClusterBar />}
     >
       {negocio.isLoading ? (
@@ -72,6 +81,8 @@ const BoardClientes = () => {
           lacunas={lacunas}
           ticket={ticket}
           ativos={ativos}
+          carteira={carteira}
+          diasAditivo={diasAditivo}
         />
       )}
     </BoardLayout>

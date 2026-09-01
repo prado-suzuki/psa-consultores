@@ -71,6 +71,12 @@ export interface EntradaContextoProjetos {
     caixa: number;
     horizonteSemFim: number;
   };
+  carga?: {
+    projetos: number;
+    pessoas: number;
+    valor: number;
+    absorviveis: number | null;
+  };
   /** Falhas de carregamento; viram `avisos`. */
   falhas: string[];
 }
@@ -85,6 +91,12 @@ const SUGESTOES_DIRETORIA = [
   'O crescimento de ativos é cliente novo ou aditivo?',
   'Quanto de caixa contratado vence nos próximos meses?',
   'Mais projeto sem cliente novo ou aditivo é só entrega já paga?',
+];
+
+const SUGESTOES_CARGA = [
+  'Quais projetos concentram hora e gente?',
+  'Quantos projetos a mais a hora das ferramentas cobre?',
+  'O custo interno por cargo existe no cadastro?',
 ];
 
 /**
@@ -247,6 +259,27 @@ function blocoOperacional(e: EntradaContextoProjetos): BlocoContexto {
   };
 }
 
+function blocoCarga(e: EntradaContextoProjetos): BlocoContexto | null {
+  if (!e.carga) return null;
+  return {
+    id: 'carga',
+    titulo: 'Carga dos projetos',
+    campos: [
+      { rotulo: 'Projetos', valor: String(e.carga.projetos) },
+      { rotulo: 'Pessoas no time', valor: String(e.carga.pessoas) },
+      { rotulo: 'Contratado', valor: brl(e.carga.valor) },
+      {
+        rotulo: 'Projetos a mais que as ferramentas cobrem',
+        valor: e.carga.absorviveis == null ? null : num(e.carga.absorviveis),
+        nota: e.carga.absorviveis == null
+          ? 'sem hora liberada ou sem hora estimada no projeto'
+          : 'hora das ferramentas ÷ mediana do projeto',
+      },
+      { rotulo: 'Custo interno por cargo', valor: null, nota: 'pessoa não tem cargo/hora no cadastro' },
+    ],
+  };
+}
+
 function blocoExecucao(e: EntradaContextoProjetos): BlocoContexto {
   const k = e.kpisProjetos;
   return {
@@ -268,8 +301,9 @@ function blocoExecucao(e: EntradaContextoProjetos): BlocoContexto {
 }
 
 export function contextoBoardProjetos(e: EntradaContextoProjetos): ContextoTela {
-  const diretoria = Boolean(e.leitura);
+  const diretoria = Boolean(e.leitura || e.carga);
   const blocos = [
+    blocoCarga(e),
     blocoMix(e),
     blocoCaixa(e),
     // Faturamento total operacional só na Gerencial (Tax/OSG). No Board a
@@ -282,7 +316,9 @@ export function contextoBoardProjetos(e: EntradaContextoProjetos): ContextoTela 
   ].filter((b): b is BlocoContexto => b !== null);
 
   return {
-    rotulo: diretoria
+    rotulo: e.carga
+      ? 'Board · Projetos (carga, hora, gente e capacidade das ferramentas)'
+      : diretoria
       ? 'Board · Projetos (mix do ativo, caixa vigente e horizonte)'
       : 'Board · Projetos (clientes, OS e faturamento)',
     filtros: {
@@ -295,6 +331,6 @@ export function contextoBoardProjetos(e: EntradaContextoProjetos): ContextoTela 
     },
     blocos,
     avisos: e.falhas.length > 0 ? [`falha ao carregar: ${e.falhas.join(', ')}`] : undefined,
-    sugestoes: diretoria ? SUGESTOES_DIRETORIA : SUGESTOES,
+    sugestoes: e.carga ? SUGESTOES_CARGA : diretoria ? SUGESTOES_DIRETORIA : SUGESTOES,
   };
 }

@@ -299,6 +299,9 @@ export interface MelhoriaRoi {
   /** Nome do processo em `processes` — o que a diretoria reconhece como ferramenta. */
   process_name?: string | null;
   process_area?: string | null;
+  /** `Concluído` no cadastro de implementação — a maior parte das linhas medidas. */
+  improvement_status?: string | null;
+  evaluation_status?: string | null;
   implementation_cost: number | null;
   one_time_external_cost: number | null;
   created_at: string | null;

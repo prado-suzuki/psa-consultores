@@ -1,19 +1,29 @@
 /**
- * Ferramentas na leitura da diretoria: benefício primeiro.
- * Uso (quem clica) fica atrás do disclosure — a reunião de 28/08 pediu isso.
+ * Ferramentas implementadas: redução de tempo, benefício e FTE na área.
  */
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import {
+  Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from 'recharts';
+import { AXIS_STYLE, CHART_COLORS, GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
+import { BoardAbas } from '@/components/board/BoardAbas';
 import type { MelhoriaRoi } from '@/lib/boardExecutivo';
-import { fteDeHoras, somaHorasSalvas } from '@/lib/boardDiretoria';
+import { somaHorasSalvas, fteDeHoras } from '@/lib/boardDiretoria';
+import { catalogoFerramentas, ftePorArea } from '@/lib/boardFerramentasLeitura';
 
 const brl = (v: number) =>
   v >= 1_000_000
     ? `R$ ${(v / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`
     : `R$ ${Math.round(v / 1000).toLocaleString('pt-BR')} mil`;
 
+const qtde = (v: number | null, casas = 1) =>
+  v == null ? '—' : v.toLocaleString('pt-BR', { maximumFractionDigits: casas });
+
 const Dash = ({ children }: { children?: ReactNode }) => (
   <span className="bd-dash" title={typeof children === 'string' ? children : undefined}>—</span>
 );
+
+type Aba = 'implementadas' | 'area';
 
 export function BoardBriefingFerramentas({
   melhorias,
@@ -22,75 +32,152 @@ export function BoardBriefingFerramentas({
   melhorias: MelhoriaRoi[];
   quemUsa?: ReactNode;
 }) {
-  const horas = somaHorasSalvas(melhorias.map((m) => m.time_saved_hours));
+  const [aba, setAba] = useState<Aba>('implementadas');
+  const catalogo = catalogoFerramentas(melhorias);
+  const areas = ftePorArea(melhorias);
+  const horas = somaHorasSalvas(catalogo.map((c) => c.horasLiberadas));
   const { fte } = fteDeHoras(horas);
-  const comAntesDepois = melhorias.filter((m) => m.baseline_time_hours != null && m.improved_time_hours != null).length;
 
   return (
     <>
-      <div className="stat-strip" data-cols="3">
+      <div className="stat-strip" data-cols="4" data-reveal>
         <div className="stat-item">
-          <div className="stat-label">Horas liberadas / mês</div>
-          <div className="stat-num">{horas === null ? <Dash /> : horas.toLocaleString('pt-BR')}</div>
-          <div className="stat-sub">{horas === null ? 'antes × depois ausente' : `${comAntesDepois} com antes e depois`}</div>
+          <div className="stat-label">Implementadas</div>
+          <div className="stat-num">{catalogo.length}</div>
+          <div className="stat-sub">processos com medição</div>
         </div>
         <div className="stat-item">
-          <div className="stat-label">FTE</div>
-          <div className="stat-num">{fte === null ? <Dash /> : fte.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}</div>
+          <div className="stat-label">Horas liberadas / mês</div>
+          <div className="stat-num">{horas === null ? <Dash>antes × depois ausente</Dash> : qtde(horas, 1)}</div>
+          <div className="stat-sub">soma das implementações</div>
+        </div>
+        <div className="stat-item">
+          <div className="stat-label">FTE projetado</div>
+          <div className="stat-num">{fte === null ? <Dash /> : qtde(fte)}</div>
           <div className="stat-sub">176 h / mês</div>
         </div>
         <div className="stat-item">
-          <div className="stat-label">Demanda vs FTE</div>
-          <div className="stat-num"><Dash /></div>
-          <div className="stat-sub">sem série de demanda</div>
+          <div className="stat-label">Áreas com ganho</div>
+          <div className="stat-num">{areas.length}</div>
+          <div className="stat-sub">onde a ferramenta entrou</div>
         </div>
       </div>
 
-      <section className="bd-figure">
-        <div className="bd-kicker">Benefício</div>
-        <div className="bd-figure-head">
-          <div className="bd-figure-title">O que a ferramenta devolve</div>
-          <div className="bd-figure-meta">interno × cliente: —</div>
-        </div>
-        {melhorias.length === 0 ? (
-          <p className="bd-motivo">Nenhuma melhoria avaliada. Horas e FTE ficam — até existir medição.</p>
-        ) : (
-          <table className="v4-tbl">
-            <thead>
-              <tr>
-                <th>Processo</th>
-                <th>Área</th>
-                <th className="num">Antes</th>
-                <th className="num">Depois</th>
-                <th className="num">Ganho</th>
-                <th className="num">FTE</th>
-                <th className="num">Economia / mês</th>
-              </tr>
-            </thead>
-            <tbody>
-              {melhorias.map((m) => {
-                const linha = fteDeHoras(m.time_saved_hours ?? null);
-                const nome = m.process_name?.trim() || m.improvement_description?.trim() || '—';
-                return (
-                  <tr key={m.id}>
-                    <td>{nome}</td>
-                    <td>{m.process_area?.trim() || '—'}</td>
-                    <td className="num">{m.baseline_time_hours == null ? '—' : `${m.baseline_time_hours}h`}</td>
-                    <td className="num">{m.improved_time_hours == null ? '—' : `${m.improved_time_hours}h`}</td>
-                    <td className="num">
-                      {m.time_saved_percent == null
-                        ? '—'
-                        : `${m.time_saved_percent.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}%`}
-                    </td>
-                    <td className="num">{linha.fte == null ? '—' : linha.fte.toLocaleString('pt-BR', { maximumFractionDigits: 2 })}</td>
-                    <td className="num">{m.cost_saved_monthly == null ? '—' : brl(m.cost_saved_monthly)}</td>
+      <BoardAbas
+        value={aba}
+        onChange={setAba}
+        items={[
+          { id: 'implementadas', label: 'Por ferramenta' },
+          { id: 'area', label: 'FTE por área' },
+        ]}
+      />
+
+      {aba === 'implementadas' && (
+        <section className="bd-figure">
+          <div className="bd-kicker">Redução</div>
+          <div className="bd-figure-head">
+            <div className="bd-figure-title">Antes × depois e o que a área ganha</div>
+          </div>
+          {catalogo.length === 0 ? (
+            <p className="bd-motivo">Nenhuma ferramenta concluída com medição neste recorte.</p>
+          ) : (
+            <>
+              <div style={{ height: 220, marginBottom: 16 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={catalogo.filter((c) => c.horasLiberadas != null).slice(0, 8)}
+                    layout="vertical"
+                    margin={{ top: 4, right: 12, left: 4, bottom: 0 }}
+                  >
+                    <CartesianGrid {...GRID_STYLE} horizontal={false} />
+                    <XAxis type="number" {...AXIS_STYLE} />
+                    <YAxis type="category" dataKey="nome" width={150} {...AXIS_STYLE} />
+                    <Tooltip {...TOOLTIP_STYLE} formatter={(v: number) => [`${qtde(v)} h / mês`, '']} />
+                    <Bar dataKey="horasLiberadas" fill={CHART_COLORS.accent} radius={[0, 3, 3, 0]} maxBarSize={16} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            <table className="v4-tbl">
+              <thead>
+                <tr>
+                  <th>Ferramenta</th>
+                  <th>Área</th>
+                  <th className="num">Antes</th>
+                  <th className="num">Depois</th>
+                  <th className="num">Horas / mês</th>
+                  <th className="num">Ganho</th>
+                  <th className="num">FTE</th>
+                  <th className="num">Economia / mês</th>
+                </tr>
+              </thead>
+              <tbody>
+                {catalogo.map((c) => (
+                  <tr key={c.chave}>
+                    <td>{c.nome}{c.implementacoes > 1 ? ` · ${c.implementacoes}` : ''}</td>
+                    <td>{c.area ?? '—'}</td>
+                    <td className="num">{c.horasAntes == null ? '—' : `${qtde(c.horasAntes)}h`}</td>
+                    <td className="num">{c.horasDepois == null ? '—' : `${qtde(c.horasDepois)}h`}</td>
+                    <td className="num">{qtde(c.horasLiberadas)}</td>
+                    <td className="num">{c.ganhoPct == null ? '—' : `${qtde(c.ganhoPct, 0)}%`}</td>
+                    <td className="num">{qtde(c.fte, 2)}</td>
+                    <td className="num">{c.economiaMensal == null ? '—' : brl(c.economiaMensal)}</td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-      </section>
+                ))}
+              </tbody>
+            </table>
+            </>
+          )}
+        </section>
+      )}
+
+      {aba === 'area' && (
+        <section className="bd-figure">
+          <div className="bd-kicker">Projeção</div>
+          <div className="bd-figure-head">
+            <div className="bd-figure-title">FTE liberado na área que implementou</div>
+            <div className="bd-figure-meta">não é folha — é hora medida ÷ 176</div>
+          </div>
+          {areas.length === 0 ? (
+            <p className="bd-motivo">Sem área no cadastro da melhoria.</p>
+          ) : (
+            <>
+              <div style={{ height: 220, marginBottom: 16 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={areas} layout="vertical" margin={{ top: 4, right: 12, left: 4, bottom: 0 }}>
+                    <CartesianGrid {...GRID_STYLE} horizontal={false} />
+                    <XAxis type="number" {...AXIS_STYLE} />
+                    <YAxis type="category" dataKey="area" width={130} {...AXIS_STYLE} />
+                    <Tooltip {...TOOLTIP_STYLE} formatter={(v: number) => [`${qtde(v, 2)} FTE`, '']} />
+                    <Bar dataKey="fte" fill={CHART_COLORS.accent} radius={[0, 3, 3, 0]} maxBarSize={16} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <table className="v4-tbl">
+                <thead>
+                  <tr>
+                    <th>Área</th>
+                    <th className="num">Ferramentas</th>
+                    <th className="num">Horas / mês</th>
+                    <th className="num">FTE</th>
+                    <th className="num">Economia / mês</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {areas.map((a) => (
+                    <tr key={a.area}>
+                      <td>{a.area}</td>
+                      <td className="num">{a.ferramentas}</td>
+                      <td className="num">{qtde(a.horasLiberadas)}</td>
+                      <td className="num">{qtde(a.fte, 2)}</td>
+                      <td className="num">{a.economiaMensal == null ? '—' : brl(a.economiaMensal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
+        </section>
+      )}
 
       {quemUsa && (
         <details className="bd-figure">

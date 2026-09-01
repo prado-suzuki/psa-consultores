@@ -5,7 +5,7 @@
  * Funções puras. `hoje` não entra — a ocorrência é do recorte que a tela
  * já filtrou. Serviço sem nome e região vazia não somem: viram "—".
  */
-import type { ClienteRow, OsRow } from '@/lib/dashboardClientesOs/types';
+import type { ClienteRow, FatiaRateio, OsRow } from '@/lib/dashboardClientesOs/types';
 import { UF_NOMES } from '@/lib/clientesPorRegiao';
 
 export const SEM_REGIAO = 'sem_regiao';
@@ -76,6 +76,21 @@ export function rotuloServico(o: Pick<OsRow, 'servico_nome'>, chave: string): st
   return chave === SEM_SERVICO ? 'Sem serviço' : chave;
 }
 
+/**
+ * Oferta da OS: serviço cadastrado ou, se estiver vazio (todas as OS de
+ * produção hoje), os produtos contratados. Sem os dois, fica visível como —.
+ */
+export function ofertasDaOs(
+  o: Pick<OsRow, 'os_id' | 'servico_id' | 'servico_nome'>,
+  produtosPorOs?: Map<string, FatiaRateio[]>,
+): { chave: string; rotulo: string }[] {
+  const chave = chaveServico(o);
+  if (chave !== SEM_SERVICO) return [{ chave, rotulo: rotuloServico(o, chave) }];
+  const fatias = produtosPorOs?.get(o.os_id) ?? [];
+  if (fatias.length === 0) return [{ chave: SEM_SERVICO, rotulo: 'Sem serviço' }];
+  return fatias.map((f) => ({ chave: `prod:${f.id}`, rotulo: f.label }));
+}
+
 function ticketDe(valores: number[]): number | null {
   if (valores.length === 0) return null;
   return valores.reduce((a, b) => a + b, 0) / valores.length;
@@ -113,25 +128,34 @@ export function distribuicaoRegiao(clientes: ClienteRow[], os: OsRow[]): FatiaRe
     .sort((a, b) => b.clientes - a.clientes);
 }
 
-export function ocorrenciaServicos(os: OsRow[]): FatiaServico[] {
-  const por = new Map<string, { rotulo: string; os: OsRow[]; clientes: Set<string> }>();
+export function ocorrenciaServicos(
+  os: OsRow[],
+  produtosPorOs?: Map<string, FatiaRateio[]>,
+): FatiaServico[] {
+  const por = new Map<string, { rotulo: string; osIds: Set<string>; clientes: Set<string>; contratado: number }>();
   for (const o of os) {
-    const chave = chaveServico(o);
-    const cur = por.get(chave) ?? {
-      rotulo: rotuloServico(o, chave), os: [], clientes: new Set<string>(),
-    };
-    cur.os.push(o);
-    cur.clientes.add(o.cliente_id);
-    por.set(chave, cur);
+    const ofes = ofertasDaOs(o, produtosPorOs);
+    const fatias = produtosPorOs?.get(o.os_id);
+    for (const ofe of ofes) {
+      const cur = por.get(ofe.chave) ?? {
+        rotulo: ofe.rotulo, osIds: new Set<string>(), clientes: new Set<string>(), contratado: 0,
+      };
+      cur.osIds.add(o.os_id);
+      cur.clientes.add(o.cliente_id);
+      const fatia = fatias?.find((f) => `prod:${f.id}` === ofe.chave);
+      const share = fatia ? fatia.percentual / 100 : 1 / ofes.length;
+      cur.contratado += o.faturamento * share;
+      por.set(ofe.chave, cur);
+    }
   }
   return [...por.entries()]
     .map(([chave, v]) => ({
       chave,
       rotulo: v.rotulo,
-      os: v.os.length,
+      os: v.osIds.size,
       clientes: v.clientes.size,
-      ticket: ticketDe(v.os.map((o) => o.faturamento)),
-      contratado: v.os.reduce((acc, o) => acc + o.faturamento, 0),
+      ticket: v.clientes.size === 0 ? null : v.contratado / v.clientes.size,
+      contratado: v.contratado,
     }))
     .sort((a, b) => b.clientes - a.clientes || b.os - a.os);
 }
@@ -143,6 +167,7 @@ export function ocorrenciaServicos(os: OsRow[]): FatiaServico[] {
 export function cruzamentoRegiaoServico(
   clientes: ClienteRow[],
   os: OsRow[],
+  produtosPorOs?: Map<string, FatiaRateio[]>,
 ): CruzamentoRegiaoServico[] {
   const clientesPorRegiao = new Map<string, Set<string>>();
   const regiaoDoCliente = new Map<string, string>();
@@ -158,14 +183,15 @@ export function cruzamentoRegiaoServico(
   for (const o of os) {
     const r = regiaoDoCliente.get(o.cliente_id);
     if (!r) continue;
-    const s = chaveServico(o);
-    if (s === SEM_SERVICO) continue;
-    const k = `${r}|${s}`;
-    const cur = celula.get(k) ?? {
-      servico: s, rotuloServico: rotuloServico(o, s), clientes: new Set<string>(),
-    };
-    cur.clientes.add(o.cliente_id);
-    celula.set(k, cur);
+    for (const ofe of ofertasDaOs(o, produtosPorOs)) {
+      if (ofe.chave === SEM_SERVICO) continue;
+      const k = `${r}|${ofe.chave}`;
+      const cur = celula.get(k) ?? {
+        servico: ofe.chave, rotuloServico: ofe.rotulo, clientes: new Set<string>(),
+      };
+      cur.clientes.add(o.cliente_id);
+      celula.set(k, cur);
+    }
   }
 
   return [...celula.entries()]
@@ -192,13 +218,14 @@ export function cruzamentoRegiaoServico(
 export function lacunasAditivo(
   clientes: ClienteRow[],
   os: OsRow[],
-  { minClientesRegiao = 3, minShare = 0.3, limite = 12 }: {
+  { minClientesRegiao = 3, minShare = 0.3, limite = 12, produtosPorOs }: {
     minClientesRegiao?: number;
     minShare?: number;
     limite?: number;
+    produtosPorOs?: Map<string, FatiaRateio[]>;
   } = {},
 ): LacunaAditivo[] {
-  const cruz = cruzamentoRegiaoServico(clientes, os);
+  const cruz = cruzamentoRegiaoServico(clientes, os, produtosPorOs);
   const comuns = cruz.filter((c) =>
     c.clientesNaRegiao >= minClientesRegiao && c.share >= minShare,
   );
@@ -206,11 +233,12 @@ export function lacunasAditivo(
 
   const servicosDoCliente = new Map<string, Set<string>>();
   for (const o of os) {
-    const s = chaveServico(o);
-    if (s === SEM_SERVICO) continue;
-    const set = servicosDoCliente.get(o.cliente_id) ?? new Set<string>();
-    set.add(s);
-    servicosDoCliente.set(o.cliente_id, set);
+    for (const ofe of ofertasDaOs(o, produtosPorOs)) {
+      if (ofe.chave === SEM_SERVICO) continue;
+      const set = servicosDoCliente.get(o.cliente_id) ?? new Set<string>();
+      set.add(ofe.chave);
+      servicosDoCliente.set(o.cliente_id, set);
+    }
   }
 
   const saida: LacunaAditivo[] = [];
