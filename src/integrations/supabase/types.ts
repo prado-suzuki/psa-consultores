@@ -826,42 +826,6 @@ export type Database = {
           },
         ]
       }
-      bkp_20260807_ticket_messages_dup: {
-        Row: {
-          backup_em: string
-          copia_numero: number
-          created_at: string | null
-          id: string
-          is_admin: boolean | null
-          message: string
-          segundos_apos: number
-          ticket_id: string
-          user_id: string
-        }
-        Insert: {
-          backup_em?: string
-          copia_numero: number
-          created_at?: string | null
-          id: string
-          is_admin?: boolean | null
-          message: string
-          segundos_apos: number
-          ticket_id: string
-          user_id: string
-        }
-        Update: {
-          backup_em?: string
-          copia_numero?: number
-          created_at?: string | null
-          id?: string
-          is_admin?: boolean | null
-          message?: string
-          segundos_apos?: number
-          ticket_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       cartorio: {
         Row: {
           comarca: string
