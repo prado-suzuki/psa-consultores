@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef, useState } from 'react';
+import { useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
@@ -16,15 +16,8 @@ import { format, differenceInDays, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { BoardFilterBar } from '@/components/board/BoardFilterBar';
-import { BoardKpisNegocio } from '@/components/board/BoardKpisNegocio';
-import { BoardMixProjetos } from '@/components/board/BoardMixProjetos';
-import { BoardOsgSaude } from '@/components/board/BoardOsgSaude';
 import { BoardChip } from '@/components/board/BoardChip';
-import { BoardAreaRollup } from '@/components/board/BoardAreaRollup';
-import { BoardConcentracao } from '@/components/board/BoardConcentracao';
-import { BoardReceitaMensal } from '@/components/board/BoardReceitaMensal';
-import { BoardProjetosCriticos } from '@/components/board/BoardProjetosCriticos';
-import { BoardPreenchimentoSistema } from '@/components/board/BoardPreenchimentoSistema';
+import { BoardBriefingDiretoria } from '@/components/board/BoardBriefingDiretoria';
 import { useBoardReveal } from '@/hooks/useBoardReveal';
 import {
   filtrarPorCluster, filtrarTarefasPorProjetos, saudeProjetos,
@@ -36,15 +29,14 @@ import {
   receitaEmRisco, serieReceitaComparada,
 } from '@/lib/boardEstrategico';
 import { centrosCustoEmUso } from '@/lib/dashboardClientesOs/aggregations';
-import {
-  mixProjetosAtivos, receitaDiretoria, capacidadeMelhorias, saudeOsg,
-} from '@/lib/boardDiretoria';
-import { semCadastroLegado } from '@/lib/boardLegado';
-import { useDomainHeadcountCluster } from '@/hooks/useDomainHeadcountCluster';
 import { useBoardRollupAreas } from '@/hooks/useBoardRollupAreas';
 import { useBoardHierarquia } from '@/hooks/useBoardHierarquia';
 import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
 import { contextoBoardEstrategico } from '@/lib/agenteContextoBoard';
+import { filtrarLegado } from '@/lib/boardLegado';
+import {
+  caixaVigente, mixAtivos, saudeOsg, serieHorizonte, serieMixMensal, serieOsgAno, ticketMedioAno,
+} from '@/lib/boardDiretoria';
 import {
   resumoPreenchimentoPorArea, linhaSemArea, faixaEmpresaPreenchimento,
 } from '@/lib/preenchimentoSistema';
@@ -105,10 +97,6 @@ const BoardDashboard = () => {
   const { data: overview } = useDesempenhoOverview(cicloAtivo?.id);
   const { tarefasConcluidasQuery, horasAlocadasQuery } = useDomainBoardDashboard({ desdeISO: periodFrom });
   const melhoriasQuery = useDomainMelhoriasRoi();
-  const headcountQuery = useDomainHeadcountCluster();
-  // Sobe para cá (antes vivia junto do snapshot do agente): o recorte OSG
-  // precisa resolver o cluster pelo nome antes dos cálculos.
-  const { clusters: clustersHierarquia } = useBoardHierarquia();
   // Query dedicada e enxuta do bloco "Preenchimento do sistema" -- deliberadamente
   // SEPARADA de `usePerformanceData` (ver `useDomainPreenchimentoSistema`).
   const {
@@ -132,33 +120,24 @@ const BoardDashboard = () => {
    * A atribuição à empresa NÃO passa pelo rateio: a OS pertence a um cluster só.
    */
   const osRows = useMemo(
-    () => ratearPorCentroCusto(
-      // Cadastro LEGADO fora antes de qualquer conta (28/08): PSA Consultores,
-      // P Consultores e o resíduo do Prado Suzuki pesam e produzem número que
-      // a diretoria já sabe estar errado. Ver `boardLegado.ts`.
-      semCadastroLegado(filtrarPorCluster(negocio.data?.osRows ?? [], cluster), (o) => o.cliente_nome),
+    () => filtrarLegado(ratearPorCentroCusto(
+      filtrarPorCluster(negocio.data?.osRows ?? [], cluster),
       rateioPorOs ?? new Map(),
       ccSelecionado,
-    ),
+    )),
     [negocio.data, cluster, rateioPorOs, ccSelecionado],
   );
   // Com centro de custo escolhido, a carteira é a dos clientes que têm OS nele —
   // mesma regra da tela "Clientes e OS", senão o KPI de clientes ativos contaria
   // quem ficou de fora da receita mostrada ao lado.
   const clienteRows = useMemo(() => {
-    const base = semCadastroLegado(
-      filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster),
-      (c) => c.cliente_nome,
-    );
+    const base = filtrarLegado(filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster));
     if (!ccSelecionado) return base;
     const comOs = new Set(osRows.map((o) => o.cliente_id));
     return base.filter((c) => comOs.has(c.cliente_id));
   }, [negocio.data, cluster, ccSelecionado, osRows]);
   const projetoRows = useMemo(
-    () => semCadastroLegado(
-      filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster),
-      (p) => p.cliente_nome,
-    ),
+    () => filtrarLegado(filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster)),
     [negocio.data, cluster],
   );
   const hoje = negocio.hoje;
@@ -167,8 +146,7 @@ const BoardDashboard = () => {
   // de opções que devolveriam tela vazia.
   const ccOptions = useMemo(() => [
     { value: TODOS_CC, label: 'Todos os centros de custo' },
-    ...semCadastroLegado(centrosCustoEmUso(rateioPorOs ?? new Map()), (c) => c.label)
-      .map((c) => ({ value: c.id, label: c.label })),
+    ...centrosCustoEmUso(rateioPorOs ?? new Map()).map((c) => ({ value: c.id, label: c.label })),
   ], [rateioPorOs]);
   const ccLabel = ccSelecionado
     ? ccOptions.find((o) => o.value === ccSelecionado)?.label ?? ccSelecionado
@@ -180,6 +158,13 @@ const BoardDashboard = () => {
   const receita = useMemo(() => receitaAnoCorrente(osRows, hoje), [osRows, hoje]);
   const serieReceita = useMemo(() => serieReceitaComparada(osRows, hoje), [osRows, hoje]);
   const emRisco = useMemo(() => receitaEmRisco(osRows), [osRows]);
+  const mix = useMemo(() => mixAtivos(osRows, hoje), [osRows, hoje]);
+  const serieMix = useMemo(() => serieMixMensal(osRows, hoje), [osRows, hoje]);
+  const ticket = useMemo(() => ticketMedioAno(osRows, hoje), [osRows, hoje]);
+  const caixa = useMemo(() => caixaVigente(osRows), [osRows]);
+  const horizonte = useMemo(() => serieHorizonte(osRows, hoje), [osRows, hoje]);
+  const osg = useMemo(() => saudeOsg(osRows, hoje), [osRows, hoje]);
+  const serieOsgData = useMemo(() => serieOsgAno(osRows, hoje), [osRows, hoje]);
 
   // Concentração sobre o MESMO recorte do KPI de receita (ano corrente): a
   // fatia de um cliente só significa algo contra o denominador que está na tela.
@@ -216,15 +201,6 @@ const BoardDashboard = () => {
   }, [horasAlocadasQuery.data, projetos, cluster]);
   const roi = useMemo(() => consolidarRoi(melhoriasQuery.data ?? []), [melhoriasQuery.data]);
 
-  // ── A leitura de DIRETORIA (28/08) ─────────────────────────────────────
-  // Tudo aqui é função pura sobre linhas que a tela JÁ carrega — nenhuma
-  // consulta nova, nenhum campo inventado. Ver `boardDiretoria.ts`.
-  const receitaDir = useMemo(() => receitaDiretoria(osRows, hoje), [osRows, hoje]);
-  const capacidade = useMemo(
-    () => capacidadeMelhorias(melhoriasQuery.data ?? []),
-    [melhoriasQuery.data],
-  );
-
   // Janela real analisada — o mesmo range dos projetos, para o rótulo não mentir.
   const diasJanela = useMemo(() => {
     if (!periodFrom) return 30;
@@ -233,34 +209,6 @@ const BoardDashboard = () => {
   const janelaLabel = periodo === 'ciclo'
     ? `ciclo ${cicloAtivo?.nome ?? 'ativo'}`
     : `últimos ${diasJanela} dias`;
-
-  const mixProjetos = useMemo(
-    () => (negocio.error
-      ? null
-      : mixProjetosAtivos({ projetos: projetoRows, os: osRows, hoje, dias: diasJanela })),
-    [projetoRows, osRows, hoje, diasJanela, negocio.error],
-  );
-
-  // O recorte OSG não segue o filtro de empresa da barra: é um card de ÁREA e
-  // precisa da própria série completa, inclusive quando a diretoria está
-  // olhando outro cluster.
-  const clusterOsg = useMemo(
-    () => clustersHierarquia.find((c) => c.nome.trim().toUpperCase() === 'OSG') ?? null,
-    [clustersHierarquia],
-  );
-  const osg = useMemo(() => {
-    if (!clusterOsg) return null;
-    const osDaArea = semCadastroLegado(
-      (negocio.data?.osRows ?? []).filter((o) => o.cluster_id === clusterOsg.id),
-      (o) => o.cliente_nome,
-    );
-    return saudeOsg({
-      os: osDaArea,
-      melhorias: (melhoriasQuery.data ?? []).filter((m) => m.cluster_id === clusterOsg.id),
-      headcount: headcountQuery.data?.get(clusterOsg.id) ?? null,
-      hoje,
-    });
-  }, [clusterOsg, negocio.data, melhoriasQuery.data, headcountQuery.data, hoje]);
 
   // Rollup por área: soma a fonte da Digital (`sprint_deliverables`) à de
   // projeto. Vive num hook porque carrega query própria — ver o porquê lá.
@@ -302,16 +250,11 @@ const BoardDashboard = () => {
     notaEscopo,
   ].filter(Boolean).join(' ') || undefined;
 
-  const daysToAnalise = cicloAtivo?.data_analise_semestral
-    ? differenceInDays(new Date(cicloAtivo.data_analise_semestral), new Date())
-    : null;
-
   const projetosCriticos = useMemo(
     () => projetos.filter(p => p.computed_status === 'em_risco' || p.computed_status === 'atrasado').slice(0, 5),
     [projetos],
   );
 
-  const foraDePrazo = saude.emRisco + saude.atrasados;
   const receitaEmJogo = emRisco.vencido.valor + emRisco.renovacao.valor;
 
   // ── Preenchimento do sistema (Bloco F, 21/08) ──────────────────────────
@@ -374,7 +317,7 @@ const BoardDashboard = () => {
   // pelos MESMOS valores que os blocos acima desenham (`agenteContextoBoard`).
   // Numero que o agente citar tem que ser localizavel na tela com Ctrl+F --
   // por isso nada aqui e recalculado, so rotulado.
-
+  const { clusters } = useBoardHierarquia();
   // As duas listas de falha juntas, numa fonte só: o subtítulo da tela e os
   // `avisos` do snapshot do agente têm que dizer exatamente a mesma coisa.
   // Divergir aqui produziria a pior forma de estar errado -- o usuário lê um
@@ -389,14 +332,12 @@ const BoardDashboard = () => {
     filtros: {
       periodo,
       centroCusto: ccLabel,
-      empresa: cluster ? (clustersHierarquia.find((c) => c.id === cluster)?.nome ?? null) : null,
+      empresa: cluster ? (clusters.find((c) => c.id === cluster)?.nome ?? null) : null,
     },
     cicloAtivo: cicloAtivo?.nome ?? null,
     receita, emRisco, concentracao,
     clientesComReceita: concentracao.clientes,
     saude, totalHoras, roi,
-    // A faixa da diretoria (28/08) — o agente só fala do que a tela publica.
-    mix: mixProjetos, receitaDiretoria: receitaDir, capacidade, osg,
     areas: resumoAreas,
     alertas,
     projetosCriticos: projetosCriticos.map((p) => ({
@@ -406,57 +347,40 @@ const BoardDashboard = () => {
     notas: { receita: notaReceita, areas: notaAreas },
     falhas: todasAsFalhas,
   }), [
-    janelaReceita, janelaLabel, periodo, ccLabel, cluster, clustersHierarquia, cicloAtivo,
+    janelaReceita, janelaLabel, periodo, ccLabel, cluster, clusters, cicloAtivo,
     receita, emRisco, concentracao, saude, totalHoras, roi, resumoAreas, alertas,
-    mixProjetos, receitaDir, capacidade, osg,
     projetosCriticos, preenchFaixa, notaReceita, notaAreas, todasAsFalhas,
   ]);
   // `kpisLoading` viaja junto: com a tela a meio carregar, o painel do agente
   // nao deixa perguntar -- responder sobre metade dos numeros e pior que esperar.
   useRegistrarContextoAgente('board.estrategico', contextoAgente, kpisLoading);
 
-  const [mixAberto, setMixAberto] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (containerRef.current) revealRef(containerRef.current);
   }, [kpisLoading, revealRef]);
 
   return (
-    <BoardLayout title="Estratégico" subtitle="Negócio, risco e entrega">
+    <BoardLayout title="Estratégico" subtitle="O que decide">
       <div ref={containerRef} style={{ background: 'var(--bd-page)' }}>
-        {/* Header */}
         <div className="pg-head" data-reveal>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <div>
-              <div className="pg-title">Estratégico</div>
-              {/* O motivo da falha vive AQUI, no subtítulo que já existia, e
-                  não num card próprio (decisão da usuária, 21/08: "não quero um
-                  monte de aviso na tela, quero algo mais sutil"). O que impede
-                  a tela de mentir não é o aviso — é o "—" no lugar do 0 na
-                  faixa de KPIs abaixo. Esta linha só diz por quê. */}
-              <div className="pg-sub">
-                {format(new Date(), 'dd MMM yyyy', { locale: ptBR })}
-                {' · '}
-                {cicloAtivo
-                  ? `Ciclo ativo: ${cicloAtivo.nome}`
-                  : carregandoCiclo ? 'carregando ciclo…' : 'sem ciclo de avaliação ativo'}
-                {todasAsFalhas.length > 0 && ` · ${todasAsFalhas.join(', ')} não carregaram`}
-              </div>
-            </div>
-            <div className="pg-chips">
-              {receitaEmJogo > 0 && <BoardChip variant="risk">R${brlMil(receitaEmJogo)}k em contrato a resolver</BoardChip>}
-              {foraDePrazo > 0 && <BoardChip variant="warn">{foraDePrazo} fora de prazo</BoardChip>}
-              {daysToAnalise !== null && <BoardChip variant="blue">Semestral em {daysToAnalise}d</BoardChip>}
-            </div>
+          <div className="pg-title">Estratégico</div>
+          <div className="pg-sub">
+            {format(new Date(), 'dd MMM yyyy', { locale: ptBR })}
+            {cicloAtivo ? ` · ${cicloAtivo.nome}` : carregandoCiclo ? ' · ciclo…' : ''}
+            {todasAsFalhas.length > 0 && ` · ${todasAsFalhas.join(', ')} não carregaram`}
           </div>
+          {receitaEmJogo > 0 && (
+            <div className="pg-chips">
+              <BoardChip variant="risk">R${brlMil(receitaEmJogo)}k parado em contrato</BoardChip>
+            </div>
+          )}
         </div>
 
-        {/* Janela da EXECUÇÃO. O recorte por empresa é a barra global acima —
-            ela já recortou receita, carteira, projetos e alertas. */}
         <BoardFilterBar
           filters={[
-            { key: 'periodo', label: 'Período (execução)', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
-            { key: 'centroCusto', label: 'Centro de custo (receita)', type: 'select', options: ccOptions },
+            { key: 'periodo', label: 'Período', type: 'segmented', options: [{ value: '7d', label: '7d' }, { value: '30d', label: '30d' }, { value: '90d', label: '90d' }, { value: 'ciclo', label: 'Ciclo' }] },
+            { key: 'centroCusto', label: 'Centro de custo', type: 'select', options: ccOptions },
           ]}
           activeFilters={filters}
           onFilterChange={setFilter}
@@ -464,128 +388,23 @@ const BoardDashboard = () => {
           activeCount={activeCount}
         />
 
-        {/* REMOVIDO (21/08): os dois primeiros blocos da tela eram cartões de
-            AVISO e de ALERTA -- "Dados incompletos" e a faixa "Exige decisão".
-            Os dois foram para dentro do painel do Agente PSA, no ícone ao lado
-            do título, e nada foi descartado:
-
-            - `alertas` (de `alertasEstrategicos`) continua sendo calculado e
-              vai no snapshot publicado acima, no bloco `alertas`, que é de onde
-              `AgentePainelDecisao` desenha a mesma faixa;
-            - `falhas` continua alimentando os `avisos` do snapshot, e enquanto
-              houver falha o ícone fica com ponto VERMELHO. É esse ponto que
-              sustenta a garantia da casa: consulta que falhou não volta a
-              passar por dado real.
-
-            Os dois deixaram de OCUPAR a grade; nenhum deixou de existir. */}
-
-        {/* 2. Os números do negócio */}
         {kpisLoading ? (
-          <Skeleton className="h-[132px] rounded-2xl mb-[18px]" />
+          <Skeleton className="h-[280px] mb-6" />
         ) : (
-          /* `null`, não `saude.total`, quando a consulta de projetos falhou:
-             sem projeto nenhum carregado, `saudeProjetos` devolve 0/0% e a
-             faixa desenharia zero como se fosse a resposta. */
-          <BoardKpisNegocio
-            mix={mixProjetos}
-            receita={receitaDir}
-            capacidade={capacidade}
-            roiPct={roi.roiPct}
-            janelaExecucao={janelaLabel}
-            janelaValor={janelaReceita}
-            onAbrirMix={() => setMixAberto((v) => !v)}
-            onNavigate={navigate}
-          />
-        )}
-
-        {/* O MIX só existe a partir do clique no cartão de projetos ativos —
-            detalhamento, não bloco fixo. */}
-        {mixAberto && mixProjetos && (
-          <div style={{ marginBottom: 18 }}>
-            <BoardMixProjetos
-              mix={mixProjetos}
-              janelaLabel={janelaLabel}
-              onFechar={() => setMixAberto(false)}
-            />
-          </div>
-        )}
-
-        {/* 2b. Recorte OSG — card de ÁREA (28/08). Fica fora do filtro de
-            empresa de propósito: é a pergunta "essa área fecha a conta?". */}
-        {!kpisLoading && (
-          <div style={{ marginBottom: 18 }}>
-            <BoardOsgSaude
-              osg={osg}
-              motivoAusencia={
-                negocio.error
-                  ? 'contratos e clientes não carregaram'
-                  : 'cluster OSG não encontrado na estrutura atual'
-              }
-              onClick={() => navigate('/equipe/board/dashboard-clientes-os')}
-            />
-          </div>
-        )}
-
-        {/* 3a. De quem depende -- largura total: perdeu o parceiro de grade
-            quando "Áreas em um olhar" (3b) ganhou linha própria. */}
-        <div style={{ marginBottom: 18 }}>
-          <BoardConcentracao
+          <BoardBriefingDiretoria
+            mix={mix}
+            serieMix={serieMix}
+            ticket={ticket}
+            caixa={caixa}
+            serieReceita={serieReceita}
+            horizonte={horizonte}
+            osg={osg}
+            serieOsg={serieOsgData}
             concentracao={concentracao}
-            janelaLabel={janelaReceita}
-            nota={notaReceita}
-            onClienteClick={() => navigate('/equipe/board/dashboard-clientes-os')}
+            onProjetos={() => navigate('/equipe/board/dashboard-clientes-os')}
+            onFerramentas={() => navigate('/equipe/board/uso-envio')}
           />
-        </div>
-
-        {/* 3b. Como as áreas estão entregando -- largura total (reunião 17/08):
-            mostra todas as áreas, não divide espaço, e ganhou filtro próprio
-            no cabeçalho (dentro de BoardAreaRollup). */}
-        <div style={{ marginBottom: 18 }}>
-          <BoardAreaRollup
-            areas={resumoAreas}
-            janelaLabel={janelaLabel}
-            nota={notaAreas}
-            onAreaClick={() => navigate('/equipe/board/performance')}
-          />
-        </div>
-
-        {/* 4. O resultado econômico do ano -- "Economia validada acumulada"
-            saiu (reunião 17/08, é projeção); Receita mensal fica sozinha e
-            passa a ocupar a largura total. */}
-        <div style={{ marginBottom: 18 }}>
-          <BoardReceitaMensal
-            serie={serieReceita}
-            receita={receita}
-            nota={[notaRateio, notaEscopo].filter(Boolean).join(' ') || undefined}
-          />
-        </div>
-
-        {/* O chat de IA (reunião 17/08) ENTROU, e não como bloco na grade: é o
-            balão do Agente PSA, no canto inferior direito, publicado por
-            `useRegistrarContextoAgente` acima. Ficar fora da grade foi
-            deliberado — ele acompanha a rolagem e atende as outras telas do
-            Board pelo mesmo caminho, bastando cada uma publicar o seu
-            snapshot. Configuração e histórico de aprendizado: Digital >
-            Acessos > Agente. */}
-
-        {/* 5. Acompanhamento de execução */}
-        <BoardProjetosCriticos
-          projetos={projetosCriticos}
-          onProjetoClick={() => navigate('/equipe/board/performance')}
-        />
-
-        {/* 6. Preenchimento do sistema -- o inverso dos blocos acima: não é
-            resultado de trabalho, é o que falta cadastrar, por área, para o
-            dono cobrar quem alimenta o sistema (Bloco F, 21/08). */}
-        <div style={{ marginTop: 18 }}>
-          <BoardPreenchimentoSistema
-            areas={preenchAreas}
-            semArea={preenchSemArea}
-            faixa={preenchFaixa}
-            falhaAreas={preenchAreasQuery.isError}
-            falhas={falhasPreenchimento}
-          />
-        </div>
+        )}
       </div>
     </BoardLayout>
   );

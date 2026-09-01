@@ -1,209 +1,129 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
+import type { OsRow } from '@/lib/dashboardClientesOs/types';
 import {
-  mixProjetosAtivos,
-  receitaDiretoria,
-  capacidadeMelhorias,
-  saudeOsg,
-  HORAS_MES_FTE,
+  addDaysIso, caixaVigente, classificarMix, fteDeHoras, mixAtivos,
+  recorteOsg, saudeOsg, serieHorizonte, serieMixMensal, ticketMedioAno,
 } from './boardDiretoria';
-import { ehCadastroLegado, semCadastroLegado } from './boardLegado';
-import type { OsRow, ProjetoRow } from '@/lib/dashboardClientesOs/types';
 
-const os = (p: Partial<OsRow> & { os_id: string; cliente_id: string }): OsRow => ({
-  numero_os: null,
-  cliente_nome: 'Cliente',
+const os = (p: Partial<OsRow> & Pick<OsRow, 'os_id' | 'cliente_id'>): OsRow => ({
+  numero_os: p.os_id,
+  cliente_nome: p.cliente_id,
   tipo_cliente: 'Fixo',
-  categoria: 'A',
-  cluster_id: 'cl1',
-  cluster_nome: 'TAX',
+  categoria: 'consultoria',
+  cluster_id: 'c1',
+  cluster_nome: p.cluster_nome ?? 'PSA Norte',
   servico_id: null,
   servico_nome: null,
   data_emissao: null,
-  data_inicio: null,
-  data_fim: null,
-  situacao: 'em andamento',
+  data_inicio: p.data_inicio ?? '2026-01-15',
+  data_fim: p.data_fim ?? null,
+  situacao: p.situacao ?? 'em_andamento',
   situacao_label: 'Em andamento',
-  status_contrato: 'Vigente',
-  faturamento: 0,
+  status_contrato: p.status_contrato ?? 'Vigente',
+  faturamento: p.faturamento ?? 100_000,
   ...p,
 });
 
-const proj = (p: Partial<ProjetoRow> & { projeto_id: string }): ProjetoRow => ({
-  projeto_nome: 'P',
-  status_projeto: 'active',
-  status_projeto_label: 'Ativo',
-  cliente_id: 'c1',
-  cliente_nome: 'Cliente',
-  tipo_cliente: 'Fixo',
-  categoria: 'A',
-  cluster_id: 'cl1',
-  cluster_nome: 'TAX',
-  area_nome: null,
-  equipe_nome: null,
-  responsavel_nome: null,
-  os_id: null,
-  numero_os: null,
-  situacao_os: null,
-  situacao_os_label: '',
-  os_data_fim: null,
-  valor_os: 0,
-  horas_estimadas: 0,
-  horas_realizadas: 0,
-  desvio_pct: null,
-  ...p,
+describe('classificarMix', () => {
+  const primeira = new Map([['a', '2025-03-01'], ['b', '2026-08-10']]);
+
+  it('janela + primeira OS do cliente = cliente novo', () => {
+    expect(classificarMix(os({ os_id: '1', cliente_id: 'b', data_inicio: '2026-08-10' }), primeira, '2026-08-01'))
+      .toBe('cliente_novo');
+  });
+
+  it('janela + cliente já tinha OS = aditivo', () => {
+    expect(classificarMix(os({ os_id: '2', cliente_id: 'a', data_inicio: '2026-08-12' }), primeira, '2026-08-01'))
+      .toBe('aditivo');
+  });
+
+  it('iniciada antes da janela = já planejada', () => {
+    expect(classificarMix(os({ os_id: '3', cliente_id: 'a', data_inicio: '2025-03-01' }), primeira, '2026-08-01'))
+      .toBe('entrega_planejada');
+  });
+
+  it('sem data = inclassificável', () => {
+    expect(classificarMix(os({ os_id: '4', cliente_id: 'a', data_inicio: null }), primeira, '2026-08-01'))
+      .toBe('inclassificavel');
+  });
 });
 
-describe('mixProjetosAtivos', () => {
-  const linhasOs = [
-    os({ os_id: 'o1', cliente_id: 'c1', data_inicio: '2026-08-20' }), // 1ª do c1 → novo
-    os({ os_id: 'o2', cliente_id: 'c1', data_inicio: '2026-08-25' }), // aditivo
-    os({ os_id: 'o3', cliente_id: 'c2', data_inicio: '2026-07-10' }), // janela anterior
-    os({ os_id: 'o4', cliente_id: 'c3', data_inicio: null }),
-  ];
-  const projetos = [
-    proj({ projeto_id: 'p1', os_id: 'o1' }),
-    proj({ projeto_id: 'p2', os_id: 'o2' }),
-    proj({ projeto_id: 'p3', os_id: 'o3' }),
-    proj({ projeto_id: 'p4', os_id: 'o4' }),
-    proj({ projeto_id: 'p5', os_id: null }),
-    proj({ projeto_id: 'p6', os_id: 'o1', status_projeto: 'completed' }),
+describe('mixAtivos', () => {
+  const hoje = '2026-08-31';
+  const rows = [
+    os({ os_id: '1', cliente_id: 'novo', data_inicio: '2026-08-10' }),
+    os({ os_id: '2', cliente_id: 'velho', data_inicio: '2025-01-01' }),
+    os({ os_id: '3', cliente_id: 'velho', data_inicio: '2026-08-15' }),
+    os({ os_id: '4', cliente_id: 'saiu', data_inicio: '2026-07-01', situacao: 'concluido' }),
+    os({ os_id: '5', cliente_id: 'antes', data_inicio: '2026-07-20' }),
   ];
 
-  it('separa cliente novo de aditivo pela primeira OS do cliente', () => {
-    const m = mixProjetosAtivos({ projetos, os: linhasOs, hoje: '2026-08-28', dias: 30 });
-    expect(m.clienteNovo).toBe(1);
-    expect(m.aditivo).toBe(1);
-    expect(m.iniciadosJanela).toBe(2);
-  });
-
-  it('compara com a janela anterior e ignora projeto nao ativo', () => {
-    const m = mixProjetosAtivos({ projetos, os: linhasOs, hoje: '2026-08-28', dias: 30 });
-    expect(m.ativos).toBe(5);
-    expect(m.iniciadosJanelaAnterior).toBe(1);
-    expect(m.variacaoPct).toBe(100);
-  });
-
-  it('sem base anterior a variacao e null, nao 0% nem 100%', () => {
-    const m = mixProjetosAtivos({
-      projetos: [proj({ projeto_id: 'p1', os_id: 'o1' })],
-      os: [linhasOs[0]],
-      hoje: '2026-08-28',
-      dias: 30,
-    });
-    expect(m.variacaoPct).toBeNull();
-  });
-
-  it('projeto sem OS ou sem data nao vira aditivo por descarte', () => {
-    const m = mixProjetosAtivos({ projetos, os: linhasOs, hoje: '2026-08-28', dias: 30 });
-    expect(m.semClassificacao).toBe(2);
-    expect(m.planejadaPaga).toBeNull();
-    expect(m.motivos.planejadaPaga).toMatch(/sem campo/);
+  it('conta ativos e o delta das iniciadas 30d vs 30d anteriores', () => {
+    const m = mixAtivos(rows, hoje, 30);
+    expect(m.ativos).toBe(4);
+    expect(m.fatias.cliente_novo).toBe(1);
+    expect(m.fatias.aditivo).toBe(1);
+    expect(m.fatias.entrega_planejada).toBe(2);
+    expect(m.iniciadasJanela).toBe(2);
+    expect(m.iniciadasAnterior).toBe(1);
+    expect(m.delta).toBe(1);
   });
 });
 
-describe('receitaDiretoria', () => {
-  const linhas = [
-    os({ os_id: 'o1', cliente_id: 'c1', faturamento: 100_000, data_fim: '2026-12-31' }),
-    os({ os_id: 'o2', cliente_id: 'c2', faturamento: 50_000, data_fim: '2026-03-31' }),
-    os({ os_id: 'o3', cliente_id: 'c3', faturamento: 0, data_fim: null }),
+describe('ticketMedioAno / caixa / horizonte', () => {
+  const hoje = '2026-08-31';
+  const rows = [
+    os({ os_id: '1', cliente_id: 'a', data_inicio: '2026-02-01', faturamento: 200_000, status_contrato: 'Vigente', data_fim: '2026-10-15' }),
+    os({ os_id: '2', cliente_id: 'b', data_inicio: '2026-03-01', faturamento: 100_000, status_contrato: 'Vigente', data_fim: '2026-10-20' }),
+    os({ os_id: '3', cliente_id: 'c', data_inicio: '2025-06-01', faturamento: 50_000, status_contrato: 'Vigente', data_fim: null }),
   ];
 
-  it('ticket medio ignora OS sem valor lancado', () => {
-    const r = receitaDiretoria(linhas, '2026-08-28');
-    expect(r.ticketMedio).toBe(75_000);
-    expect(r.osSemValor).toBe(1);
+  it('ticket = receita do ano / clientes do ano', () => {
+    expect(ticketMedioAno(rows, hoje)).toBe(150_000);
   });
 
-  it('horizonte de caixa vem da OS vigente mais longa', () => {
-    const r = receitaDiretoria(linhas, '2026-08-28');
-    expect(r.projetosGerandoCaixa).toBe(1);
-    expect(r.horizonteCaixa).toBe('2026-12');
-    expect(r.caixaContratadoAFrente).toBe(100_000);
+  it('caixa vigente soma vigente + a vencer', () => {
+    expect(caixaVigente(rows)).toBe(350_000);
   });
 
-  it('folha nao existe no cadastro: null com motivo, nunca zero', () => {
-    const r = receitaDiretoria(linhas, '2026-08-28');
-    expect(r.folhaMensal).toBeNull();
-    expect(r.coberturaFolhaPct).toBeNull();
-    expect(r.motivos.folha).toMatch(/folha/);
-  });
-
-  it('sem nenhuma OS com valor, ticket medio e null', () => {
-    expect(receitaDiretoria([linhas[2]], '2026-08-28').ticketMedio).toBeNull();
+  it('horizonte agrupa por mês de fim e isola OS sem data_fim', () => {
+    const h = serieHorizonte(rows, hoje, 4);
+    expect(h.serie.find((p) => p.mes === '2026-10')?.valor).toBe(300_000);
+    expect(h.semFim).toBe(1);
+    expect(h.semFimValor).toBe(50_000);
   });
 });
 
-describe('capacidadeMelhorias', () => {
-  it('converte horas em FTE pela regua de 176h/mes', () => {
-    const c = capacidadeMelhorias([
-      { id: 'm1', time_saved_hours: 176, cost_saved_monthly: 10_000 },
-      { id: 'm2', time_saved_hours: 88, cost_saved_monthly: null },
-    ]);
-    expect(c.horasReduzidasMes).toBe(264);
-    expect(c.fteLiberado).toBeCloseTo(264 / HORAS_MES_FTE);
-    expect(c.economiaAnual).toBe(120_000);
+describe('OSG e FTE', () => {
+  it('recorte OSG e projeção linear até dezembro', () => {
+    const rows = [
+      os({ os_id: '1', cliente_id: 'x', cluster_nome: 'OSG', data_inicio: '2026-02-01' }),
+      os({ os_id: '2', cliente_id: 'y', cluster_nome: 'OSG', data_inicio: '2026-04-01' }),
+      os({ os_id: '3', cliente_id: 'z', cluster_nome: 'PSA Norte', data_inicio: '2026-03-01' }),
+    ];
+    const s = saudeOsg(rows, '2026-08-31');
+    expect(s.clientesAno).toBe(2);
+    expect(s.meta).toBe(30);
+    expect(s.projecaoAno).toBeCloseTo(3, 5);
+    expect(recorteOsg(rows)).toHaveLength(2);
   });
 
-  it('ninguem preencheu horas: null, e nao 0 FTE', () => {
-    const c = capacidadeMelhorias([{ id: 'm1', time_saved_hours: null, cost_saved_monthly: 500 }]);
-    expect(c.horasReduzidasMes).toBeNull();
-    expect(c.fteLiberado).toBeNull();
-  });
-
-  it('interno x cliente segue sem campo — nao inventa a divisao', () => {
-    const c = capacidadeMelhorias([]);
-    expect(c.ganhoInterno).toBeNull();
-    expect(c.ganhoCliente).toBeNull();
-    expect(c.motivos.distincao).toMatch(/process_improvements/);
+  it('FTE = horas / 176; null continua null', () => {
+    expect(fteDeHoras(352)).toEqual({ horas: 352, fte: 2 });
+    expect(fteDeHoras(null)).toEqual({ horas: null, fte: null });
   });
 });
 
-describe('saudeOsg', () => {
-  const linhas = [
-    os({ os_id: 'o1', cliente_id: 'c1', data_inicio: '2026-02-01', faturamento: 200_000 }),
-    os({ os_id: 'o2', cliente_id: 'c2', data_inicio: '2026-05-01', faturamento: 100_000 }),
-    os({ os_id: 'o3', cliente_id: 'c3', data_inicio: '2025-05-01', faturamento: 150_000 }),
-  ];
-
-  it('captacao do ano conta cliente pela primeira OS', () => {
-    const s = saudeOsg({ os: linhas, melhorias: [], headcount: 10, hoje: '2026-08-28' });
-    expect(s.captadosAno).toBe(2);
-    expect(s.captadosAnoAnterior).toBe(1);
-    expect(s.metaClientesAno).toBe(30);
+describe('addDaysIso / serieMixMensal', () => {
+  it('anda em UTC sem virar o dia', () => {
+    expect(addDaysIso('2026-08-31', -30)).toBe('2026-08-01');
   });
 
-  it('compara receita do ano com o ano anterior', () => {
-    const s = saudeOsg({ os: linhas, melhorias: [], headcount: 10, hoje: '2026-08-28' });
-    expect(s.receitaAno).toBe(300_000);
-    expect(s.receitaAnoAnterior).toBe(150_000);
-    expect(s.variacaoReceitaPct).toBe(100);
-  });
-
-  it('senioridade e folha continuam sem cadastro', () => {
-    const s = saudeOsg({ os: linhas, melhorias: [], headcount: null, hoje: '2026-08-28' });
-    expect(s.headcount).toBeNull();
-    expect(s.senioresJson).toBeNull();
-    expect(s.folhaMensal).toBeNull();
-  });
-});
-
-describe('cadastros legados', () => {
-  it('reconhece as grafias do legado combinadas na reuniao', () => {
-    expect(ehCadastroLegado('PSA CONSULTORES')).toBe(true);
-    expect(ehCadastroLegado('Psa Consultores - Filial')).toBe(true);
-    expect(ehCadastroLegado('PRADO SUZUKI')).toBe(true);
-    expect(ehCadastroLegado('PradoSuzuki Empresas Familiares')).toBe(true);
-    expect(ehCadastroLegado('P Consultores')).toBe(true);
-  });
-
-  it('nao derruba a estrutura viva de nome parecido', () => {
-    expect(ehCadastroLegado('PSA Auditores')).toBe(false);
-    expect(ehCadastroLegado('PSA Norte')).toBe(false);
-    expect(ehCadastroLegado('Prado Advogados')).toBe(false);
-  });
-
-  it('filtra a colecao pelo nome informado', () => {
-    const linhas = [{ nome: 'Alfa' }, { nome: 'Psa Consultores' }];
-    expect(semCadastroLegado(linhas, (l) => l.nome)).toEqual([{ nome: 'Alfa' }]);
+  it('série mensal preenche os meses pedidos', () => {
+    const s = serieMixMensal([
+      os({ os_id: '1', cliente_id: 'a', data_inicio: '2026-08-10' }),
+    ], '2026-08-31', 3);
+    expect(s.map((p) => p.mes)).toEqual(['2026-06', '2026-07', '2026-08']);
+    expect(s[2].cliente_novo).toBe(1);
   });
 });

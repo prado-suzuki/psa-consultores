@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { Shield } from 'lucide-react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { AuditTabs } from '@/components/equipe/audit/AuditTabs';
 import {
@@ -46,21 +45,12 @@ const BoardLogsEquipe = () => {
   useRegistrarContextoAgente('board.logs', contextoAgente, isLoading);
 
   return (
-    <BoardLayout title="Logs" subtitle="Produtividade, acesso e pendências do time">
+    <BoardLayout title="Logs" subtitle="O que o sistema registrou">
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
-              <Shield className="h-5 w-5 text-warning" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-foreground">
-                Logs de Auditoria — {AUDIT_AREA_LABEL[area]}
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Quem produziu, quem parou de registrar e o que o sistema não conseguiu medir
-              </p>
-            </div>
+        <div className="pg-head flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="pg-title">Logs</div>
+            <div className="pg-sub">{AUDIT_AREA_LABEL[area]}</div>
           </div>
           <Select value={area} onValueChange={(valor) => setArea(valor as AuditArea)}>
             <SelectTrigger className="h-9 w-[180px] text-sm" aria-label="Escopo de área">

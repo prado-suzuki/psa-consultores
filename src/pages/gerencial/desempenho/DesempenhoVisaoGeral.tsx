@@ -209,7 +209,7 @@ const DesempenhoVisaoGeral = () => {
         <div className="pg-head" data-reveal>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ flex: 1 }}>
-              <div className="pg-title">Desempenho da Equipe</div>
+              <div className="pg-title">Desempenho</div>
               <div className="pg-sub">
                 {selectedCiclo
                   ? selectedCiclo.nome

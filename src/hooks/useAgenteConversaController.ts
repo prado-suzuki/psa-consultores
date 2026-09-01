@@ -2,14 +2,9 @@
  * A máquina de estado da conversa com o Agente PSA — turnos, modo, correção e
  * avaliação de insight, sem uma linha de layout.
  *
- * Existe para haver UMA cópia só do fluxo: o ponto de entrada é o cartão
- * flutuante (`AgentePsaWidget`), dentro e fora do Board. Duplicar a máquina de
- * estado faria a correção do usuário virar lição num caminho e não no outro —
- * exatamente o tipo de divergência que ninguém percebe até o agente responder
- * diferente para a mesma pergunta em dois lugares.
-
- * exatamente o tipo de divergência que ninguém percebe até o agente responder
- * diferente para a mesma pergunta em dois lugares.
+ * Existe porque o agente teve dois pontos de entrada com a mesma conversa.
+ * O Board agora usa só o balão (`AgentePsaWidget`); o controller continua
+ * único para a correção virar lição num caminho só.
  *
  * Comportamento preservado do widget original, incluindo as duas decisões que
  * não são óbvias:

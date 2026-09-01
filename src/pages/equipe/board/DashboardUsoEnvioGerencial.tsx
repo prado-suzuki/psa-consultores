@@ -206,19 +206,12 @@ const DashboardUsoEnvioGerencial = () => {
   }), carregando);
 
   return (
-    <BoardLayout title="Ferramentas" subtitle="Adoção, engajamento e retenção">
+    <BoardLayout title="Ferramentas" subtitle="Benefício e adoção">
       <div className="space-y-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="pg-head flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1
-              className="text-[22px] font-semibold tracking-[-0.01em]"
-              style={{ color: 'var(--board-t1)' }}
-            >
-              Ferramentas
-            </h1>
-            <p className="mt-0.5 text-[13px]" style={{ color: 'var(--board-t3)' }}>
-              Adoção, engajamento e retenção das ferramentas internas.
-            </p>
+            <div className="pg-title">Ferramentas</div>
+            <div className="pg-sub">Hora liberada · FTE · quem usa</div>
           </div>
           {!acessoTecnico.isLoading && acessoTecnico.hasAccess && (
             <Button
@@ -274,17 +267,24 @@ const DashboardUsoEnvioGerencial = () => {
             `--board-bg` mudou em 21/08 (era #F0F4F8, virou o neutro com cast de teal
             do bloco `--bd-*`), e a conclusão não muda — a luminosidade do fundo é a
             mesma. */}
-        <p className="text-xs text-muted-foreground">
-          Escopo:{' '}
-          <strong className="text-foreground">
-            {clusterId ? rotuloCluster(clusterId) : 'consolidado, todas as unidades'}
-          </strong>
-        </p>
+        <div className="stat-strip" data-cols="3">
+          <div className="stat-item">
+            <div className="stat-label">Horas liberadas</div>
+            <div className="stat-num"><span className="bd-dash">—</span></div>
+            <div className="stat-sub">antes × depois ausente</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-label">FTE</div>
+            <div className="stat-num"><span className="bd-dash">—</span></div>
+            <div className="stat-sub">176 h / mês</div>
+          </div>
+          <div className="stat-item">
+            <div className="stat-label">Demanda vs FTE</div>
+            <div className="stat-num"><span className="bd-dash">—</span></div>
+            <div className="stat-sub">sem série de demanda</div>
+          </div>
+        </div>
 
-        {/* `cartoes` e nao a faixa escura: era o unico bloco do Board com layout
-            de outra familia, e a referencia de design nao tem faixa escura --
-            KPI e cartao claro, igual ao Estrategico. O Dev, que monta o mesmo
-            componente, segue na variante escura (default). */}
         <FaixaResumo
           variante="cartoes"
           carregando={carregando}
