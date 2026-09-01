@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>O texto do meio da escala — slate-700 vira o quê?</title>
+<style>
+  :root{
+    /* Valores lidos do src/index.css, bloco .base-theme, em 01/09/2026. */
+    --foreground: 178 30% 9%;        /* #101e1d */
+    --muted-foreground: 180 10% 38%; /* #576b6b */
+    --card: 0 0% 100%;
+    --background: 168 22% 99.4%;
+    --border: 168 14% 89%;
+    --muted: 168 20% 92%;
+    --slate-700: #334155;
+    --slate-400: #94a3b8;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:32px 24px 64px;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font: 15px/1.55 -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:hsl(var(--muted-foreground));margin:0 0 28px;max-width:70ch}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.06em;margin:38px 0 4px;color:hsl(var(--muted-foreground))}
+  h2 + p{margin:0 0 14px;color:hsl(var(--muted-foreground));max-width:74ch;font-size:14px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .col > .hd{
+    font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+    padding:0 0 7px; color:hsl(var(--muted-foreground));
+  }
+  .col.hoje > .hd::after{content:" · como está";font-weight:400;text-transform:none;letter-spacing:0}
+  .card{
+    background:hsl(var(--card));
+    border:1px solid hsl(var(--border));
+    border-radius:10px;padding:16px;min-height:100%;
+  }
+  .swatch{display:inline-block;width:11px;height:11px;border-radius:3px;vertical-align:-1px;margin-right:6px;border:1px solid rgba(0,0,0,.12)}
+  /* os três candidatos */
+  .t-hoje{color:var(--slate-700)}
+  .t-fg{color:hsl(var(--foreground))}
+  .t-mf{color:hsl(var(--muted-foreground))}
+  .meta{color:var(--slate-400);font-size:12px;margin-top:5px}
+  .meta-tok{color:hsl(var(--muted-foreground));font-size:12px;margin-top:5px}
+  .lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;display:block;margin-bottom:5px}
+  .inp{border:1px solid hsl(var(--border));border-radius:7px;height:34px;background:hsl(var(--card));margin-bottom:12px}
+  .aviso{
+    border:1px solid hsl(var(--border));border-left:3px solid hsl(var(--foreground));
+    background:hsl(var(--muted)/.45);border-radius:8px;padding:13px 15px;margin:22px 0 0;
+  }
+  .aviso b{display:block;margin-bottom:4px}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;margin-top:10px}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid hsl(var(--border))}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:hsl(var(--muted-foreground));font-weight:700}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  code{font:12.5px/1.4 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:hsl(var(--muted)/.6);padding:1px 5px;border-radius:4px}
+  /* demonstração de hover viva */
+  .aba{padding:6px 12px;border-radius:7px;cursor:default;display:inline-block;font-size:13.5px;font-weight:500}
+  .aba.mf{color:hsl(var(--muted-foreground))}
+  .aba.mf.para-fg:hover{color:hsl(var(--foreground))}
+  .aba.mf.para-mf:hover{color:hsl(var(--muted-foreground))}
+  .aba.mf.para-hoje:hover{color:var(--slate-700)}
+  .dica{font-size:12.5px;color:hsl(var(--muted-foreground));margin-top:7px}
+  .rodape{margin-top:44px;padding-top:18px;border-top:1px solid hsl(var(--border));font-size:13px;color:hsl(var(--muted-foreground));max-width:78ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>O texto do meio da escala</h1>
+  <p class="sub">
+    Sobraram 191 <code>text-slate-700</code> depois dos dois lotes de 01/09/2026. Ele é o único tom da
+    escala que não tem destino óbvio: fica a <b>16%</b> do <code>--muted-foreground</code> e a
+    <b>22%</b> do <code>--foreground</code>, ou seja no meio dos dois. Esta página existe para a
+    escolha ser feita <b>olhando</b>, e não pelo número.
+  </p>
+
+  <table>
+    <tr><th>candidato</th><th>valor no tema base</th><th class="num">distância do slate-700</th></tr>
+    <tr><td><span class="swatch" style="background:var(--slate-700)"></span><code>text-slate-700</code> (hoje)</td><td>#334155 — cinza frio do Tailwind</td><td class="num">—</td></tr>
+    <tr><td><span class="swatch" style="background:hsl(var(--foreground))"></span><code>text-foreground</code></td><td>#101e1d — quase preto, com cast da área</td><td class="num">22%</td></tr>
+    <tr><td><span class="swatch" style="background:hsl(var(--muted-foreground))"></span><code>text-muted-foreground</code></td><td>#576b6b — cinza secundário da área</td><td class="num">16%</td></tr>
+  </table>
+
+  <h2>1 · Título de seção com o texto embaixo</h2>
+  <p>É o uso mais comum. Reproduz o <code>ApuracaoFiltersCard</code>, onde título e descrição estão
+     hoje os dois em slate-700.</p>
+  <div class="grid">
+    <div class="col hoje"><div class="hd">slate-700</div><div class="card">
+      <div class="t-hoje" style="font-weight:600;font-size:14px">Visão Geral</div>
+      <p class="t-hoje" style="font-size:14px;margin:5px 0 0">A Apuração PIS/COFINS consolida débitos, créditos, isenções e rateios do contribuinte.</p>
+    </div></div>
+    <div class="col"><div class="hd">text-foreground</div><div class="card">
+      <div class="t-fg" style="font-weight:600;font-size:14px">Visão Geral</div>
+      <p class="t-fg" style="font-size:14px;margin:5px 0 0">A Apuração PIS/COFINS consolida débitos, créditos, isenções e rateios do contribuinte.</p>
+    </div></div>
+    <div class="col"><div class="hd">text-muted-foreground</div><div class="card">
+      <div class="t-mf" style="font-weight:600;font-size:14px">Visão Geral</div>
+      <p class="t-mf" style="font-size:14px;margin:5px 0 0">A Apuração PIS/COFINS consolida débitos, créditos, isenções e rateios do contribuinte.</p>
+    </div></div>
+  </div>
+
+  <h2>2 · Rótulo de campo de formulário</h2>
+  <p>Do mesmo arquivo: <code>uppercase tracking-wider</code>, acima do campo.</p>
+  <div class="grid">
+    <div class="col hoje"><div class="hd">slate-700</div><div class="card">
+      <span class="lbl t-hoje">Cliente</span><div class="inp"></div>
+      <span class="lbl t-hoje">Contribuinte</span><div class="inp"></div>
+    </div></div>
+    <div class="col"><div class="hd">text-foreground</div><div class="card">
+      <span class="lbl t-fg">Cliente</span><div class="inp"></div>
+      <span class="lbl t-fg">Contribuinte</span><div class="inp"></div>
+    </div></div>
+    <div class="col"><div class="hd">text-muted-foreground</div><div class="card">
+      <span class="lbl t-mf">Cliente</span><div class="inp"></div>
+      <span class="lbl t-mf">Contribuinte</span><div class="inp"></div>
+    </div></div>
+  </div>
+
+  <h2>3 · Parágrafo com a linha secundária embaixo</h2>
+  <p>Do <code>PainelConferencia</code>. A linha de baixo é <code>text-slate-400</code>, que
+     <b>não</b> entrou nos lotes e continua crua — é ela que mostra se a hierarquia sobrevive.</p>
+  <div class="grid">
+    <div class="col hoje"><div class="hd">slate-700</div><div class="card">
+      <p class="t-hoje" style="margin:0;font-size:14px"><b>Denominação</b> de <em style="font-style:normal;font-weight:500">Alfa Ltda</em> para <em style="font-style:normal;font-weight:500">Alfa Participações Ltda</em></p>
+      <p class="meta" style="margin-top:5px">alterada em 12/08 · 3ª alteração</p>
+    </div></div>
+    <div class="col"><div class="hd">text-foreground</div><div class="card">
+      <p class="t-fg" style="margin:0;font-size:14px"><b>Denominação</b> de <em style="font-style:normal;font-weight:500">Alfa Ltda</em> para <em style="font-style:normal;font-weight:500">Alfa Participações Ltda</em></p>
+      <p class="meta" style="margin-top:5px">alterada em 12/08 · 3ª alteração</p>
+    </div></div>
+    <div class="col"><div class="hd">text-muted-foreground</div><div class="card">
+      <p class="t-mf" style="margin:0;font-size:14px"><b>Denominação</b> de <em style="font-style:normal;font-weight:500">Alfa Ltda</em> para <em style="font-style:normal;font-weight:500">Alfa Participações Ltda</em></p>
+      <p class="meta" style="margin-top:5px">alterada em 12/08 · 3ª alteração</p>
+    </div></div>
+  </div>
+
+  <h2>4 · O caso que decide sozinho — passe o mouse</h2>
+  <p>Em <b>8 lugares</b> o <code>text-slate-700</code> não é a cor de repouso: é o <b>hover</b> de um
+     <code>text-muted-foreground</code>. São as abas do <code>PainelConferencia</code>, o menu da
+     <code>EquipeLayout</code>, o checklist do cliente e duas tabelas de auditoria.</p>
+  <div class="grid">
+    <div class="col hoje"><div class="hd">hover vai para slate-700</div><div class="card">
+      <span class="aba mf para-hoje">Por usuário</span>
+      <span class="aba mf para-hoje">Por documento</span>
+      <p class="dica">Escurece ao passar o mouse. É o comportamento de hoje.</p>
+    </div></div>
+    <div class="col"><div class="hd">hover vai para foreground</div><div class="card">
+      <span class="aba mf para-fg">Por usuário</span>
+      <span class="aba mf para-fg">Por documento</span>
+      <p class="dica">Escurece mais. O gesto continua existindo.</p>
+    </div></div>
+    <div class="col"><div class="hd">hover vai para muted-foreground</div><div class="card">
+      <span class="aba mf para-mf">Por usuário</span>
+      <span class="aba mf para-mf">Por documento</span>
+      <p class="dica"><b>Nada acontece.</b> Origem e destino viram a mesma cor, e o hover morre em silêncio.</p>
+    </div></div>
+  </div>
+
+  <div class="aviso">
+    <b>O que está medido, e o que não está</b>
+    Medido: os 8 hovers acima colapsam se o destino for <code>muted-foreground</code>, e
+    <b>não existe nenhum caso do inverso</b> — nenhum <code>text-slate-700</code> tem hover mais
+    escuro. Também medido: nos 191 lugares o slate-700 aparece sobretudo em título de seção
+    ("Usuários e Permissões", "Mapa de exposição por UF"), rótulo de formulário e a linha "Total"
+    de tabela — papéis de texto forte, não de texto secundário.
+    <br><br>
+    Não medido, e é o que só o olho decide: se o <code>--foreground</code> quase preto pesa demais
+    em bloco de parágrafo (cenário 3), onde o slate-700 é mais leve de propósito.
+  </div>
+
+  <div class="rodape">
+    Os valores desta página foram lidos do <code>src/index.css</code> em 01/09/2026, bloco
+    <code>.base-theme</code>, e <b>não se atualizam sozinhos</b>. Se os tokens mudarem, esta página
+    passa a mostrar o estado antigo — útil como registro do que foi comparado, enganoso como
+    referência do que é hoje. A fonte corrente é sempre o <code>index.css</code>.
+    Na OSG e na Tax os dois tokens têm outros valores; a decisão de papel é a mesma nas três, o
+    que muda é o tom.
+  </div>
+
+</div>
+</body>
+</html>
