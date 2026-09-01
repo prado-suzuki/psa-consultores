@@ -87,6 +87,8 @@ export interface EntradaContextoFerramentas {
     horasLiberadas: number | null;
     fte: number | null;
     melhoriasMedidas: number;
+    porFerramenta?: { nome: string; horas: number | null; fte: number | null; area: string | null }[];
+    porArea?: { area: string; fte: number | null }[];
   };
   /** Rótulos das consultas que falharam. Viram `avisos`. */
   falhas: string[];
@@ -96,6 +98,12 @@ const SUGESTOES = [
   'Quanto de FTE as ferramentas devolvem?',
   'A hora liberada justifica o mesmo headcount se a demanda não cresceu?',
   'A retenção caiu de verdade ou o mês de referência está parcial?',
+];
+
+const SUGESTOES_BENEFICIO = [
+  'Quais ferramentas implementadas devolvem mais hora?',
+  'Em qual área o FTE projetado é maior?',
+  'A hora liberada justifica o mesmo headcount se a demanda não cresceu?',
 ];
 
 const num = (v: number | null) => (v === null ? null : v.toLocaleString('pt-BR'));
@@ -112,7 +120,7 @@ function blocoBeneficio(e: EntradaContextoFerramentas): BlocoContexto | null {
     id: 'beneficio',
     titulo: 'O que a ferramenta devolve',
     janela: e.periodo,
-    nota: 'interno × cliente e demanda vs FTE ficam —: não há campo nem série',
+    nota: 'FTE = hora medida ÷ 176. Folha e demanda vs FTE continuam —.',
     campos: [
       {
         rotulo: 'Horas liberadas / mês',
@@ -124,9 +132,15 @@ function blocoBeneficio(e: EntradaContextoFerramentas): BlocoContexto | null {
         valor: b.fte === null ? null : b.fte.toLocaleString('pt-BR', { maximumFractionDigits: 1 }),
         nota: '176 h / mês',
       },
-      { rotulo: 'Melhorias medidas', valor: String(b.melhoriasMedidas) },
+      { rotulo: 'Ferramentas implementadas', valor: String(b.melhoriasMedidas) },
       { rotulo: 'Demanda vs FTE', valor: null, nota: 'sem série de demanda' },
     ],
+    itens: b.porFerramenta?.slice(0, 8).map((f) => ({
+      ferramenta: f.nome,
+      area: f.area,
+      'horas / mês': f.horas == null ? null : f.horas.toLocaleString('pt-BR'),
+      fte: f.fte == null ? null : f.fte.toLocaleString('pt-BR', { maximumFractionDigits: 2 }),
+    })),
   };
 }
 
@@ -246,6 +260,6 @@ export function contextoBoardFerramentas(e: EntradaContextoFerramentas): Context
     },
     blocos,
     avisos: avisos.length > 0 ? avisos : undefined,
-    sugestoes: SUGESTOES,
+    sugestoes: uso ? SUGESTOES : SUGESTOES_BENEFICIO,
   };
 }

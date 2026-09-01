@@ -4,6 +4,7 @@
  */
 import type { BlocoContexto, ContextoTela } from '@/hooks/useAgenteContexto';
 import type { FatiaRegiao, FatiaServico, LacunaAditivo } from '@/lib/boardOportunidade';
+import { clientesCicloVencido, type ClienteCarteira } from '@/lib/boardCarteira';
 
 const pct = (parte: number, total: number) =>
   total > 0 ? `${((parte / total) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : null;
@@ -20,13 +21,15 @@ export interface EntradaContextoClientes {
   regioes: FatiaRegiao[];
   servicos: FatiaServico[];
   lacunas: LacunaAditivo[];
+  carteira?: ClienteCarteira[];
+  diasAditivo?: number | null;
   falhas: string[];
 }
 
 const SUGESTOES = [
-  'Qual serviço mais se repete e em qual praça?',
-  'Quem na mesma região ainda não contratou o serviço comum — aditivo?',
-  'Onde o ticket do serviço foge do ticket da carteira?',
+  'Quem mais gera receita e quem mais renova?',
+  'Qual produto é o mais recorrente na carteira?',
+  'Quem já passou o próprio ciclo de aditivo?',
 ];
 
 function blocoServicos(e: EntradaContextoClientes): BlocoContexto | null {
@@ -82,6 +85,32 @@ function blocoRegioes(e: EntradaContextoClientes): BlocoContexto | null {
   };
 }
 
+function blocoCarteira(e: EntradaContextoClientes): BlocoContexto | null {
+  if (!e.carteira || e.carteira.length === 0) return null;
+  const top = e.carteira[0];
+  const renovam = e.carteira.filter((c) => c.renovacoes > 0);
+  const ciclo = clientesCicloVencido(e.carteira);
+  return {
+    id: 'receita',
+    titulo: 'Quem gera receita e quem renova',
+    campos: [
+      { rotulo: 'Maior contratado', valor: `${top.cliente_nome} · ${brl(top.gasto)}` },
+      {
+        rotulo: 'Tempo médio de aditivo',
+        valor: e.diasAditivo == null ? null : `${Math.round(e.diasAditivo)} dias`,
+        nota: e.diasAditivo == null ? 'sem segunda OS datada' : undefined,
+      },
+      { rotulo: 'Clientes que renovaram', valor: String(renovam.length) },
+      { rotulo: 'Ciclo de aditivo vencido', valor: String(ciclo.length) },
+    ],
+    itens: e.carteira.slice(0, 8).map((c) => ({
+      cliente: c.cliente_nome,
+      contratado: brl(c.gasto),
+      renovacoes: c.renovacoes,
+    })),
+  };
+}
+
 function blocoLacunas(e: EntradaContextoClientes): BlocoContexto | null {
   if (e.lacunas.length === 0) return null;
   return {
@@ -99,7 +128,7 @@ function blocoLacunas(e: EntradaContextoClientes): BlocoContexto | null {
 }
 
 export function contextoBoardClientes(e: EntradaContextoClientes): ContextoTela {
-  const blocos = [blocoServicos(e), blocoRegioes(e), blocoLacunas(e)]
+  const blocos = [blocoCarteira(e), blocoServicos(e), blocoRegioes(e), blocoLacunas(e)]
     .filter((b): b is BlocoContexto => b !== null);
 
   return {

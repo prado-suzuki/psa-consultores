@@ -122,6 +122,44 @@ describe('lacunasAditivo', () => {
     expect(lacunasAditivo(clientes, rows, { minClientesRegiao: 3, minShare: 0.3 })).toEqual([]);
   });
 
+  it('lacuna usa produto quando a OS não tem serviço', () => {
+    const clientes = [
+      cliente({ cliente_id: 'a', uf: 'MT', cliente_nome: 'Alfa' }),
+      cliente({ cliente_id: 'b', uf: 'MT', cliente_nome: 'Beta' }),
+      cliente({ cliente_id: 'c', uf: 'MT', cliente_nome: 'Gama' }),
+    ];
+    const rows = [
+      os({ os_id: '1', cliente_id: 'a' }),
+      os({ os_id: '2', cliente_id: 'b' }),
+      os({ os_id: '3', cliente_id: 'c' }),
+    ];
+    const produtos = new Map([
+      ['1', [{ id: 'p1', label: 'Planejamento Sucessório', percentual: 100 }]],
+      ['2', [{ id: 'p1', label: 'Planejamento Sucessório', percentual: 100 }]],
+    ]);
+    const lacunas = lacunasAditivo(clientes, rows, {
+      minClientesRegiao: 3, minShare: 0.5, produtosPorOs: produtos,
+    });
+    expect(lacunas).toHaveLength(1);
+    expect(lacunas[0]).toMatchObject({
+      cliente_id: 'c',
+      rotuloServico: 'Planejamento Sucessório',
+    });
+  });
+
+  it('sem serviço na OS, o produto contratado vira a oferta', () => {
+    const rows = [
+      os({ os_id: '1', cliente_id: 'a', faturamento: 100 }),
+      os({ os_id: '2', cliente_id: 'b', faturamento: 50 }),
+    ];
+    const produtos = new Map([
+      ['1', [{ id: 'p1', label: 'ITCMD', percentual: 100 }]],
+      ['2', [{ id: 'p1', label: 'ITCMD', percentual: 100 }]],
+    ]);
+    const s = ocorrenciaServicos(rows, produtos);
+    expect(s[0]).toMatchObject({ chave: 'prod:p1', rotulo: 'ITCMD', clientes: 2, os: 2 });
+  });
+
   it('serviço sem nome não vira produto para vender', () => {
     const clientes = [
       cliente({ cliente_id: 'a', uf: 'MT' }),
