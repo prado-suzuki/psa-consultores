@@ -179,7 +179,7 @@ export function receitaDiretoria(os: OsRow[], hoje: string): ReceitaDiretoria {
 export interface MelhoriaCapacidade {
   id: string;
   cluster_id?: string | null;
-  time_saved_hours: number | null;
+  time_saved_hours?: number | null;
   cost_saved_monthly: number | null;
 }
 
