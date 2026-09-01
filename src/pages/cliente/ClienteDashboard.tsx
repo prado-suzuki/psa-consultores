@@ -22,27 +22,23 @@ import { DashboardFilters } from "@/components/cliente/DashboardFilters";
 import { ColetaDocumentosCliente } from "@/components/cliente/ColetaDocumentosCliente";
 import { useClienteAtual } from "@/hooks/useClienteAtual";
 import { useSolicitacaoAtivaCliente } from "@/hooks/useDocumentoArquivo";
+import { chamadoStatusConfig } from "@/lib/chamadoStatusColors";
 
+/**
+ * Status do projeto no portal do cliente, nos papéis de status da área.
+ *
+ * ⚠️ NÃO usa `projetoStatusColors`, e a razão é de dado, não de estilo: aquele
+ * mapa serve `org_projects`, cuja primeira etapa é `planned`; esta tela lê
+ * `projects`, que grava `planning`. As duas colunas são `text` livre no banco,
+ * então nada além do código impede os dois vocabulários de existirem. Unificar é
+ * migração de dado, e não cabe numa troca de cor.
+ */
 const statusConfig = {
-  planning: { label: "Planejamento", className: "bg-slate-100 text-slate-700 hover:bg-slate-100" },
-  active: { label: "Em Andamento", className: "bg-accent/10 text-teal-700 hover:bg-accent/10" },
-  on_hold: { label: "Em Pausa", className: "bg-amber-100 text-amber-700 hover:bg-amber-100" },
-  completed: { label: "Concluído", className: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" },
+  planning: { label: "Planejamento", className: "bg-status-neutro-soft text-status-neutro hover:bg-status-neutro-soft" },
+  active: { label: "Em Andamento", className: "bg-status-andamento-soft text-status-andamento hover:bg-status-andamento-soft" },
+  on_hold: { label: "Em Pausa", className: "bg-status-espera-soft text-status-espera hover:bg-status-espera-soft" },
+  completed: { label: "Concluído", className: "bg-status-feito-soft text-status-feito hover:bg-status-feito-soft" },
 } as const;
-
-const ticketStatusColors: Record<string, string> = {
-  aberto: "bg-blue-100 text-blue-700",
-  em_andamento: "bg-amber-100 text-amber-700",
-  resolvido: "bg-emerald-100 text-emerald-700",
-  fechado: "bg-slate-100 text-slate-700",
-};
-
-const ticketStatusLabels: Record<string, string> = {
-  aberto: "Aberto",
-  em_andamento: "Em Andamento",
-  resolvido: "Resolvido",
-  fechado: "Fechado",
-};
 
 const ticketStatusOptions = [
   { value: "aberto", label: "Aberto" },
@@ -272,8 +268,8 @@ export default function ClienteDashboard() {
                             {format(new Date(ticket.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
                           </p>
                         </div>
-                        <Badge className={ticketStatusColors[ticket.status] || "bg-slate-100 text-slate-700"}>
-                          {ticketStatusLabels[ticket.status] || ticket.status}
+                        <Badge className={chamadoStatusConfig(ticket.status).badge}>
+                          {chamadoStatusConfig(ticket.status).label}
                         </Badge>
                       </div>
                     </Card>

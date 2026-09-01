@@ -64,10 +64,8 @@ type MotivoDeFicar =
 
 const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
   'escada-de-status': {
-    'src/components/chamados/equipe/EquipeChamadosStats.tsx': 2,
     'src/components/cliente/ChecklistDocumentosCliente.tsx': 8,
     'src/components/equipe/HorasAcumuladas.tsx': 1,
-    'src/components/equipe/ImprovementHistoryModal.tsx': 3,
     'src/components/equipe/audit/AuditPendenciasTable.tsx': 4,
     'src/components/equipe/audit/AuditPessoasTable.tsx': 2,
     'src/components/equipe/dashboards/analise-inteligente/AnaliseInteligenteKpis.tsx': 2,
@@ -92,7 +90,6 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/components/sprint/GroupedTasks.tsx': 1,
     'src/components/sprint/SprintCalendar.tsx': 2,
     'src/pages/administracao/AdminPerformance.tsx': 3,
-    'src/pages/cliente/ClienteDashboard.tsx': 5,
     'src/pages/equipe/EquipeBacklog.tsx': 3,
     'src/pages/equipe/EquipeDashboard.tsx': 3,
     'src/pages/equipe/EquipeKanban.tsx': 2,
@@ -115,6 +112,7 @@ const FILA_DO_ALERTA: Record<MotivoDeFicar, Record<string, number>> = {
     'src/components/equipe/sprint-detalhes/SprintHeaderFilters.tsx': 6,
   },
   'paleta-categorica': {
+    'src/components/equipe/ImprovementHistoryModal.tsx': 1,
     'src/components/acessos/pageCategoryStyles.ts': 3,
     'src/components/equipe/dev/consulta-efd-icms/EfdResultsTable.tsx': 3,
     'src/components/equipe/mapeamento/ScenarioCreateModal.tsx': 3,
