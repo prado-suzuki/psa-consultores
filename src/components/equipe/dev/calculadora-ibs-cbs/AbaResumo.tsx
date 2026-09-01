@@ -87,7 +87,7 @@ function KpiCard({ label, value, sub, accent, trend, tooltip }: KpiCardProps) {
   return (
     <UITooltip>
       <TooltipTrigger asChild>{card}</TooltipTrigger>
-      <TooltipContent side="bottom" className="max-w-xs shadow-2xl ring-1 ring-slate-200">
+      <TooltipContent side="bottom" className="max-w-xs shadow-2xl ring-1 ring-border">
         {tooltip}
       </TooltipContent>
     </UITooltip>

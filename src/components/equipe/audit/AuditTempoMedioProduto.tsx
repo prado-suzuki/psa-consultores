@@ -164,7 +164,7 @@ export const AuditTempoMedioProduto = ({
                         <TableCell className="text-right text-sm">{linha.concluidos}</TableCell>
                         <TableCell className="whitespace-nowrap text-right text-sm">
                           <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
-                          <span className="text-slate-300"> / </span>
+                          <span className="text-muted-foreground/50"> / </span>
                           <span className="font-medium text-foreground">
                             {formatarHoras(linha.horasExecutadas)}
                           </span>

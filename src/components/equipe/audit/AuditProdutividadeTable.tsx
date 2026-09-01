@@ -77,7 +77,7 @@ const ConteudoHoras = ({ linha }: { linha: LinhaProdutividade }) => {
   return (
     <>
       <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
-      <span className="text-slate-300"> / </span>
+      <span className="text-muted-foreground/50"> / </span>
       <span className={cn('font-medium', estourou ? 'text-red-700' : 'text-foreground')}>
         {formatarHoras(linha.horasExecutadas)}
       </span>
@@ -93,7 +93,7 @@ const ConteudoHoras = ({ linha }: { linha: LinhaProdutividade }) => {
 const ConteudoPar = ({ abertos, entregues }: { abertos: number; entregues: number }) => (
   <>
     <span className="text-muted-foreground">{abertos}</span>
-    <span className="text-slate-300"> / </span>
+    <span className="text-muted-foreground/50"> / </span>
     <span className="font-semibold text-foreground">{entregues}</span>
   </>
 );

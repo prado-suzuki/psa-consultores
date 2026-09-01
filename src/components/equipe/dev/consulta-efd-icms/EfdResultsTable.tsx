@@ -28,7 +28,7 @@ export function EfdResultsTable(props: Props) {
   if (!props.searchTriggered) return <Empty icon={<Search className="w-10 h-10 text-muted-foreground" />} title="Nenhum arquivo listado" text={'Utilize os filtros acima e clique em "Buscar" para carregar os arquivos EFD ICMS.'} />;
   if (props.loading) return <div className="p-6 space-y-4">{[0, 1, 2].map(item => <Skeleton key={item} className="h-16 w-full" />)}</div>;
   if (!props.arquivos.length) return <Empty icon={<FileText className="h-12 w-12 text-muted-foreground" />} title="Nenhum arquivo encontrado" text="Verifique os filtros e tente novamente." />;
-  return <div className={cn('overflow-x-auto','[&::-webkit-scrollbar]:h-3','[&::-webkit-scrollbar-thumb]:bg-slate-400','[&::-webkit-scrollbar-thumb]:rounded-full')}><table className="w-full text-left border-collapse"><thead><tr className="bg-muted border-b">
+  return <div className={cn('overflow-x-auto','[&::-webkit-scrollbar]:h-3','[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40','[&::-webkit-scrollbar-thumb]:rounded-full')}><table className="w-full text-left border-collapse"><thead><tr className="bg-muted border-b">
     <th className="px-4 py-4 w-12"><Checkbox checked={props.allSelected} onCheckedChange={props.onToggleAll} aria-label="Selecionar todos" /></th>
     {['Arquivo', 'Período', 'Tipo'].map(label => <th key={label} className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider"><ColumnTip label={label} /></th>)}
     {['ICMS', 'ICMS ST'].map(label => <th key={label} className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right"><ColumnTip label={label} /></th>)}
@@ -49,5 +49,5 @@ function Empty({ icon, title, text }: { icon: React.ReactNode; title: string; te
 
 const COLUMN_TIPS: Record<string, string> = { Arquivo: 'Nome e ID do arquivo EFD ICMS processado.', Período: 'Mês inicial e final da escrituração.', Tipo: 'Status do arquivo (Original ou Retificadora).', ICMS: 'Total de ICMS a recolher apurado no período.', 'ICMS ST': 'Total de ICMS ST a recolher apurado no período.' };
 function ColumnTip({ label }: { label: string }) {
-  return <Tooltip><TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">{label}</TooltipTrigger><TooltipContent side="top" className="text-xs text-center max-w-[220px]">{COLUMN_TIPS[label]}</TooltipContent></Tooltip>;
+  return <Tooltip><TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/40">{label}</TooltipTrigger><TooltipContent side="top" className="text-xs text-center max-w-[220px]">{COLUMN_TIPS[label]}</TooltipContent></Tooltip>;
 }

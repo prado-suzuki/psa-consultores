@@ -121,7 +121,7 @@ export const AlteracaoContratualDialog = ({
                   >
                     <ToggleRight
                       aria-hidden
-                      className={cn('h-4 w-4 shrink-0', ligada ? 'text-osg-moss' : 'text-slate-300')}
+                      className={cn('h-4 w-4 shrink-0', ligada ? 'text-osg-moss' : 'text-muted-foreground/40')}
                     />
                     <div className="min-w-0 flex-1 space-y-0.5">
                       <Label

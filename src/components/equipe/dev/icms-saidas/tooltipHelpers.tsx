@@ -57,7 +57,7 @@ export const ColumnTooltip = ({
   text: string;
 }) => (
   <Tooltip>
-    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/40">
       {label}
     </TooltipTrigger>
     <PortalTooltipContent className="max-w-[260px] text-center">

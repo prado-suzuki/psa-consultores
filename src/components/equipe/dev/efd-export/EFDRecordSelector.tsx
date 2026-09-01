@@ -15,7 +15,7 @@ interface Props {
 }
 
 export function EFDRecordSelector({ blocosDisponiveis, expanded, selected, onToggleBlockOpen, onToggleBlock, onToggleRecord }: Props) {
-  return <div className={cn('flex-1 overflow-y-auto p-6 bg-muted','[&::-webkit-scrollbar]:w-3','[&::-webkit-scrollbar-thumb]:bg-slate-400','[&::-webkit-scrollbar-thumb]:rounded-full')}>
+  return <div className={cn('flex-1 overflow-y-auto p-6 bg-muted','[&::-webkit-scrollbar]:w-3','[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40','[&::-webkit-scrollbar-thumb]:rounded-full')}>
     <div className="space-y-3">{Object.entries(blocosDisponiveis).map(([block, records]) => {
       const selectedCount = records.filter(record => selected.has(record.codigo)).length;
       const isExpanded = expanded.has(block);

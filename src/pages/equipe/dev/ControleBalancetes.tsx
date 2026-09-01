@@ -544,7 +544,7 @@ const ControleBalancetes = () => {
                 ) : (
                   <TableRow className="hover:bg-transparent">
                     <TableCell colSpan={COL_COUNT} className="text-center py-16 text-muted-foreground">
-                      <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                      <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
                       <p className="text-sm font-medium text-muted-foreground">
                         {searched ? 'Nenhum balancete encontrado' : 'Selecione um contribuinte e clique em Buscar'}
                       </p>

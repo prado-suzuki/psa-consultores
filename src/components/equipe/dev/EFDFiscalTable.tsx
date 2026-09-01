@@ -65,8 +65,8 @@ export function EFDFiscalTable({
         "overflow-auto",
         "[&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar]:h-3",
         "[&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-track]:border-l [&::-webkit-scrollbar-track]:border-t [&::-webkit-scrollbar-track]:border-border",
-        "[&::-webkit-scrollbar-thumb]:bg-slate-400 [&::-webkit-scrollbar-thumb]:rounded-full",
-        "[&::-webkit-scrollbar-thumb:hover]:bg-slate-500",
+        "[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40 [&::-webkit-scrollbar-thumb]:rounded-full",
+        "[&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/60",
         "",
         "",
         className

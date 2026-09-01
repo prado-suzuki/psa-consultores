@@ -277,7 +277,7 @@ export function SocietarioReport({ clienteId }: { clienteId: string }) {
       <div className="flex overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm max-sm:flex-col">
         <ResumoCel titulo="Empresas" valor={`${totais.nEmp}`} desc="com quadro societário" first />
         <ResumoCel titulo="Capital social" valor={fmtMoney(totais.capital)} desc="somado das empresas" dot="bg-osg-moss" />
-        <ResumoCel titulo="Sócios" valor={`${totais.nSocios}`} desc="pessoas distintas" dot="bg-slate-400" />
+        <ResumoCel titulo="Sócios" valor={`${totais.nSocios}`} desc="pessoas distintas" dot="bg-muted-foreground" />
       </div>
 
       {/* Estrutura de controle (organograma derivado) */}

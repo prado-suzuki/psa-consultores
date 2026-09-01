@@ -159,9 +159,9 @@ export const UsersRolesView = ({
                     {columns.map((role) => (
                       <TableCell key={role} className="text-center">
                         {user.roles.includes(role) ? (
-                          <CheckCircle className="h-5 w-5 text-emerald-500 mx-auto" />
+                          <CheckCircle className="h-5 w-5 text-status-feito mx-auto" />
                         ) : (
-                          <XCircle className="h-5 w-5 text-slate-300 mx-auto" />
+                          <XCircle className="h-5 w-5 text-muted-foreground/40 mx-auto" />
                         )}
                       </TableCell>
                     ))}

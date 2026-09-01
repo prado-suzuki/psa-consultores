@@ -57,7 +57,7 @@ export const AuditClientesDoProduto = ({
             <ChevronLeft className="h-3.5 w-3.5" />
             Clientes
           </button>
-          <span className="text-slate-300">/</span>
+          <span className="text-muted-foreground/50">/</span>
           <span className="font-medium text-foreground">{clienteAberto.nome}</span>
           <span className="text-muted-foreground">em {produto}</span>
         </div>
@@ -123,7 +123,7 @@ export const AuditClientesDoProduto = ({
                       <TableCell className="py-1.5 text-right text-xs">{linha.concluidos}</TableCell>
                       <TableCell className="whitespace-nowrap py-1.5 text-right text-xs">
                         <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
-                        <span className="text-slate-300"> / </span>
+                        <span className="text-muted-foreground/50"> / </span>
                         <span className="font-medium text-foreground">
                           {formatarHoras(linha.horasExecutadas)}
                         </span>

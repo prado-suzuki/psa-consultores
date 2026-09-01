@@ -34,7 +34,7 @@ const FieldTooltip = ({ text }: { text: string }) => (
 
 const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
   <Tooltip>
-    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/40">
       {label}
     </TooltipTrigger>
     <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
@@ -370,7 +370,7 @@ const MapaNCMPisCofins = () => {
                 ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12">
-                      <FileSpreadsheet className="h-10 w-10 mx-auto text-slate-300 mb-2" />
+                      <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
                       <p className="text-sm text-muted-foreground">Nenhuma regra encontrada</p>
                     </TableCell>
                   </TableRow>

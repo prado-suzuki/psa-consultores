@@ -235,7 +235,7 @@ const DevDashboard = () => {
             </div>
 
             <div className="flex shrink-0 items-center md:flex-col md:items-end">
-              <span className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-4 py-2 text-sm font-semibold text-white shadow-md transition-transform group-hover:translate-x-1">
+              <span className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background shadow-md transition-transform group-hover:translate-x-1">
                 Abrir manual
                 <ExternalLink className="h-4 w-4" />
               </span>

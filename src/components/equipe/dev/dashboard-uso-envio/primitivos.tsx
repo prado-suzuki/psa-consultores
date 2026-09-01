@@ -285,7 +285,7 @@ export const FaixaResumo = ({
                   </span>
                 )}
                 {k.variacao.valor && (
-                  <span className="font-semibold text-slate-200">{k.variacao.valor}</span>
+                  <span className="font-semibold text-foreground">{k.variacao.valor}</span>
                 )}
                 <span className="text-muted-foreground">{k.variacao.rotulo}</span>
               </p>

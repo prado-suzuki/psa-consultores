@@ -48,7 +48,7 @@ const FieldTooltip = ({ text }: { text: string }) => (
 
 const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
   <Tooltip>
-    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/40">
       {label}
     </TooltipTrigger>
     <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
@@ -472,7 +472,7 @@ const ConsultaECF = () => {
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
             </div>
           ) : arquivosFiltrados.length > 0 ? (
-            <div className={cn("overflow-x-auto","[&::-webkit-scrollbar]:h-3","[&::-webkit-scrollbar-track]:bg-muted","[&::-webkit-scrollbar-thumb]:bg-slate-400","[&::-webkit-scrollbar-thumb]:rounded-full")}>
+            <div className={cn("overflow-x-auto","[&::-webkit-scrollbar]:h-3","[&::-webkit-scrollbar-track]:bg-muted","[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40","[&::-webkit-scrollbar-thumb]:rounded-full")}>
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-muted border-b border-border">

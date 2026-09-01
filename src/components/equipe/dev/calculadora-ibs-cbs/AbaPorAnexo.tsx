@@ -41,7 +41,7 @@ function HeaderTip({ label, children }: { label: string; children: React.ReactNo
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help">
+        <span className="underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 cursor-help">
           {label}
         </span>
       </TooltipTrigger>
@@ -120,7 +120,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
           <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help">
+                <span className="underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 cursor-help">
                   Apuração por anexo
                 </span>
               </TooltipTrigger>
@@ -234,7 +234,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                         <span
                           className={`font-medium ${
                             base
-                              ? 'underline decoration-dotted decoration-slate-400 underline-offset-2 cursor-help'
+                              ? 'underline decoration-dotted decoration-muted-foreground/40 underline-offset-2 cursor-help'
                               : ''
                           }`}
                         >

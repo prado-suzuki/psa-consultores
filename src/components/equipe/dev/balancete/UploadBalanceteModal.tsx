@@ -345,7 +345,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-3 px-4 text-center">
-                  <Upload className="h-10 w-10 text-slate-300" />
+                  <Upload className="h-10 w-10 text-muted-foreground/40" />
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Arraste o arquivo aqui</p>
                     <p className="text-xs text-muted-foreground mt-1">ou clique para selecionar</p>

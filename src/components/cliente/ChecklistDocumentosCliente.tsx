@@ -87,7 +87,7 @@ const ESTADO_LABEL: Record<EstadoDocumento, string> = {
 };
 const ESTADO_CHIP: Record<EstadoDocumento, string> = {
   pendente: 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400',
-  em_analise: 'border-border bg-muted text-muted-foreground hover:border-slate-400',
+  em_analise: 'border-border bg-muted text-muted-foreground hover:border-muted-foreground/50',
   recusado: 'border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400',
   aprovado: 'border-primary/15 bg-accent/5 text-primary hover:border-primary/40',
 };
