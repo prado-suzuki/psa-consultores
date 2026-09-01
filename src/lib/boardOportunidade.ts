@@ -6,7 +6,7 @@
  * já filtrou. Serviço sem nome e região vazia não somem: viram "—".
  */
 import type { ClienteRow, FatiaRateio, OsRow } from '@/lib/dashboardClientesOs/types';
-import { UF_NOMES } from '@/lib/clientesPorRegiao';
+import { UF_NOMES, normalizarUf } from '@/lib/clientesPorRegiao';
 
 export const SEM_REGIAO = 'sem_regiao';
 export const SEM_SERVICO = 'sem_servico';
@@ -50,11 +50,22 @@ export interface LacunaAditivo {
   clientesNaRegiao: number;
 }
 
+/**
+ * Código de carteira nacional — não é praça. `cliente_setor_regiao_atual.regiao`
+ * traz BRA/BR/Brasil para quem não tem mesa local; tratar isso como praça
+ * junta o país inteiro (9/18 vira densidade do Brasil, não do vizinho).
+ */
+const PRACA_NACIONAL = /^(bra|br|brasil)$/i;
+
+export function ePracaNacional(regiao: string | null | undefined): boolean {
+  return PRACA_NACIONAL.test((regiao ?? '').trim());
+}
+
 export function chaveRegiao(c: Pick<ClienteRow, 'uf' | 'regiao'>): string {
-  const uf = (c.uf ?? '').trim().toUpperCase();
-  if (uf && UF_NOMES[uf]) return uf;
+  const uf = normalizarUf(c.uf);
+  if (uf) return uf;
   const reg = (c.regiao ?? '').trim();
-  if (reg) return `reg:${reg}`;
+  if (reg && !ePracaNacional(reg)) return `reg:${reg}`;
   return SEM_REGIAO;
 }
 
@@ -227,7 +238,9 @@ export function lacunasAditivo(
 ): LacunaAditivo[] {
   const cruz = cruzamentoRegiaoServico(clientes, os, produtosPorOs);
   const comuns = cruz.filter((c) =>
-    c.clientesNaRegiao >= minClientesRegiao && c.share >= minShare,
+    c.regiao !== SEM_REGIAO
+    && c.clientesNaRegiao >= minClientesRegiao
+    && c.share >= minShare,
   );
   if (comuns.length === 0) return [];
 
