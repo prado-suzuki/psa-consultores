@@ -1,21 +1,11 @@
 /**
- * O balão do Agente PSA — canto inferior direito, logo da PSA, em toda tela
- * que publica contexto (`useRegistrarContextoAgente`).
+ * O balão do Agente PSA — canto inferior direito, logo da PSA.
  *
- * Um card só, em todo o produto — Board inclusive. O chrome não muda de
- * menu para menu: o que muda é o snapshot publicado pela tela. Sem snapshot
- * o balão ainda abre no escopo da rota e diz que ainda não recebeu números.
- *
- * Aqui mora só LAYOUT. A máquina de estado da conversa vive em
- * `useAgenteConversaController` — uma cópia só, para a correção do usuário ter
- * um caminho só para virar lição.
- *
- * Regras de existência:
- *  - sem contexto publicado, não renderiza nada (é assim que ele fica fora das
- *    telas onde ainda não entrou, e fora da home pública);
- *  - sem usuário logado, idem (a edge function exigiria JWT de todo jeito).
+ * No Board de diretoria o snapshot é o Board inteiro (não a aba). Sem
+ * resumo de decisão no open: perguntas sugeridas e o campo. Sem seletor
+ * Dados/Estratégia — a pergunta escolhe o recorte; correção continua no lápis.
  */
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Minus, RotateCcw } from 'lucide-react';
@@ -23,11 +13,8 @@ import logo from '@/assets/logo-psa.png';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAgenteContexto } from '@/hooks/useAgenteContexto';
 import { useAgenteConversaController } from '@/hooks/useAgenteConversaController';
-import { type ModoAgente } from '@/hooks/useDomainAgentePsa';
 import { PromptInputBox } from '@/components/ui/ai-prompt-box';
 import { AgenteConversa } from '@/components/agente/AgenteConversa';
-import { AgentePainelDecisao } from '@/components/agente/AgentePainelDecisao';
-import { itensDeDecisao } from '@/lib/agenteDecisao';
 import { escopoDaRota } from '@/lib/agenteEscopos';
 
 export function AgentePsaWidget() {
@@ -43,26 +30,14 @@ export function AgentePsaWidget() {
         rotulo: daRota.rotulo,
         filtros: {},
         blocos: [],
-        avisos: ['Esta tela ainda não publicou números para o agente.'],
-        sugestoes: ['O que esta tela deveria me deixar decidir?'],
+        avisos: ['O Board ainda não publicou números para o agente.'],
+        sugestoes: ['O que o Board deveria me deixar decidir?'],
       }
     : null);
 
   const conversa = useAgenteConversaController({
     escopo: escopoEfetivo, contexto: contextoEfetivo, carregando, aberto: aberto && !!user,
   });
-
-  // "Exige decisão" DENTRO do painel, lido do MESMO bloco do snapshot que o
-  // agente recebeu — nunca de props paralelas. Se as duas coisas viessem de
-  // caminhos diferentes, o usuário poderia ler um alerta aqui e ouvir do agente
-  // que ele não conhece aquele alerta, sem nenhum dos dois estar errado.
-  //
-  // É SUBSTITUIÇÃO, não acréscimo: a faixa "Exige decisão" e o banner "Dados
-  // incompletos" SAÍRAM da grade das telas em 21/08 (o `BoardAlertas` foi
-  // deletado), e este painel passou a ser o lugar deles. É por isso que o ponto
-  // de atenção no gatilho não é enfeite: com o cartão fora da grade, o ponto é
-  // o único sinal de que uma consulta quebrou.
-  const itensDecisao = useMemo(() => itensDeDecisao(contextoEfetivo?.blocos), [contextoEfetivo?.blocos]);
 
   if (!escopoEfetivo || !contextoEfetivo || !user) return null;
 
@@ -83,7 +58,7 @@ export function AgentePsaWidget() {
               <img src={logo} alt="" style={{ width: 24 }} />
               <div style={{ minWidth: 0 }}>
                 <div className="agente-painel-titulo">Agente PSA</div>
-                <div className="agente-painel-sub">{conversa.rotulo ?? contextoEfetivo.rotulo}</div>
+                <div className="agente-painel-sub">{contextoEfetivo.rotulo}</div>
               </div>
               <div style={{ marginLeft: 'auto', display: 'flex', gap: 2 }}>
                 <button
@@ -105,19 +80,11 @@ export function AgentePsaWidget() {
               </div>
             </div>
 
-            {/* Teto proprio: com 5 alertas o bloco ocupava metade do painel e
-                a conversa ficava com uma linha. Rola dentro de si mesmo. */}
-            <div className="agente-decisao-wrap">
-              <AgentePainelDecisao itens={itensDecisao} avisos={contextoEfetivo.avisos} />
-            </div>
-
-            {/* `avisosDaTela` não vai aqui de propósito: o bloco acima já os
-                desenha, fora do scroll. O mesmo aviso duas vezes no mesmo
-                painel ensina o usuário a ignorá-lo. */}
             <AgenteConversa
               turnos={conversa.turnos}
               pensando={conversa.pensando}
               erro={conversa.indisponivel ?? conversa.erro}
+              avisosDaTela={contextoEfetivo.avisos}
               sugestoes={contextoEfetivo.sugestoes}
               onSugestao={(s) => conversa.enviar(s, conversa.modo)}
               onCorrigir={conversa.corrigir}
@@ -127,8 +94,8 @@ export function AgentePsaWidget() {
 
             {conversa.alvoCorrecao && (
               <div className="agente-aviso" style={{ margin: '0 12px 8px' }}>
-                Escreva a regra certa. Ela passa a valer para todas as respostas
-                desta tela e fica registrada em Digital &gt; Acessos &gt; Agente.
+                Escreva a regra certa. Ela passa a valer para as próximas
+                respostas e fica em Digital &gt; Acessos &gt; Agente.
               </div>
             )}
 
@@ -136,14 +103,13 @@ export function AgentePsaWidget() {
               onSend={conversa.enviar}
               isLoading={conversa.pensando}
               disabled={conversa.travado}
-              modos={conversa.modos}
+              modos={[]}
               modo={conversa.modo}
-              onModoChange={(m) => conversa.setModo(m as ModoAgente)}
               placeholder={conversa.indisponivel
-                ? 'Agente indisponível nesta tela.'
+                ? 'Agente indisponível.'
                 : carregando
-                  ? 'Aguarde: a tela ainda está carregando os números...'
-                  : 'Pergunte sobre os dados desta tela...'}
+                  ? 'Aguarde: o Board ainda está carregando os números...'
+                  : 'Pergunte sobre o Board...'}
             />
           </motion.div>
         )}

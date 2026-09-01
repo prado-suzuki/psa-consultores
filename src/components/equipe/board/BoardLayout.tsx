@@ -20,7 +20,9 @@ import {
 import { usePageAccess } from '@/hooks/usePageAccess';
 import { useSidebarRecolhimentoController } from '@/hooks/useSidebarRecolhimentoController';
 import { AgenteNotificacaoPopup } from '@/components/agente/AgenteNotificacaoPopup';
+import { BoardAgenteDiretoria } from '@/components/board/BoardAgenteDiretoria';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
+import { rotaEhDiretoria } from '@/lib/agenteEscopos';
 
 interface BoardLayoutProps {
   children: React.ReactNode;
@@ -318,6 +320,7 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
         {/* Pop-up de análise estratégica / insight crítico. Fora do contêiner
             que rola, para não subir com o conteúdo; estilo próprio, inline. */}
         <AgenteNotificacaoPopup />
+        {rotaEhDiretoria(location.pathname) && <BoardAgenteDiretoria />}
       </main>
     </div>
   );

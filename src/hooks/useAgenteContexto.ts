@@ -15,7 +15,7 @@
  * O contexto React vive aqui (e o Provider em `@/contexts/AgenteProvider`) por
  * causa do Fast Refresh — mesmo arranjo do `useBoardCluster`.
  */
-import { createContext, useContext, useEffect, useMemo } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef } from 'react';
 
 export interface CampoContexto {
   rotulo: string;
@@ -53,8 +53,8 @@ export interface AgenteContextoValor {
   contexto: ContextoTela | null;
   /** `true` enquanto a tela ainda está carregando os números. */
   carregando: boolean;
-  publicar: (escopo: string, contexto: ContextoTela, carregando: boolean) => void;
-  despublicar: (escopo: string) => void;
+  publicar: (escopo: string, contexto: ContextoTela, carregando: boolean, dono?: symbol) => void;
+  despublicar: (escopo: string, dono?: symbol) => void;
 }
 
 /**
@@ -99,11 +99,13 @@ export function useRegistrarContextoAgente(
   carregando = false,
 ): void {
   const { publicar, despublicar } = useAgenteContexto();
+  const dono = useRef(Symbol('agente-contexto'));
   const chave = useMemo(() => (contexto ? JSON.stringify(contexto) : ''), [contexto]);
 
   useEffect(() => {
     if (!chave) return;
-    publicar(escopo, JSON.parse(chave) as ContextoTela, carregando);
-    return () => despublicar(escopo);
+    const este = dono.current;
+    publicar(escopo, JSON.parse(chave) as ContextoTela, carregando, este);
+    return () => despublicar(escopo, este);
   }, [escopo, chave, carregando, publicar, despublicar]);
 }

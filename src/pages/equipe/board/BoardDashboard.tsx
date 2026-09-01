@@ -31,9 +31,6 @@ import {
 } from '@/lib/boardEstrategico';
 import { centrosCustoEmUso } from '@/lib/dashboardClientesOs/aggregations';
 import { useBoardRollupAreas } from '@/hooks/useBoardRollupAreas';
-import { useBoardHierarquia } from '@/hooks/useBoardHierarquia';
-import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
-import { contextoBoardEstrategico } from '@/lib/agenteContextoBoard';
 import { filtrarLegado } from '@/lib/boardLegado';
 import {
   caixaVigente, mixAtivos, saudeOsg, serieHorizonte, serieMixMensal, serieOsgAno, ticketMedioAno,
@@ -313,48 +310,10 @@ const BoardDashboard = () => {
     tarefasConcluidasQuery.isError, horasAlocadasQuery.isError, negocio.error,
   ]);
 
-  // ── O que o Agente PSA le desta tela ───────────────────────────────────
-  // O balao flutuante NAO consulta o banco: ele recebe este snapshot, montado
-  // pelos MESMOS valores que os blocos acima desenham (`agenteContextoBoard`).
-  // Numero que o agente citar tem que ser localizavel na tela com Ctrl+F --
-  // por isso nada aqui e recalculado, so rotulado.
-  const { clusters } = useBoardHierarquia();
-  // As duas listas de falha juntas, numa fonte só: o subtítulo da tela e os
-  // `avisos` do snapshot do agente têm que dizer exatamente a mesma coisa.
-  // Divergir aqui produziria a pior forma de estar errado -- o usuário lê um
-  // motivo na tela e ouve outro do agente, sem nenhum dos dois estar errado.
   const todasAsFalhas = useMemo(
     () => [...falhas, ...falhasPreenchimento],
     [falhas, falhasPreenchimento],
   );
-
-  const contextoAgente = useMemo(() => contextoBoardEstrategico({
-    janelaReceita, janelaExecucao: janelaLabel,
-    filtros: {
-      periodo,
-      centroCusto: ccLabel,
-      empresa: cluster ? (clusters.find((c) => c.id === cluster)?.nome ?? null) : null,
-    },
-    cicloAtivo: cicloAtivo?.nome ?? null,
-    receita, emRisco, concentracao,
-    clientesComReceita: concentracao.clientes,
-    saude, totalHoras, roi,
-    areas: resumoAreas,
-    alertas,
-    projetosCriticos: projetosCriticos.map((p) => ({
-      name: p.name, computed_status: p.computed_status, area_name: p.area_name,
-    })),
-    preenchimento: preenchFaixa,
-    notas: { receita: notaReceita, areas: notaAreas },
-    falhas: todasAsFalhas,
-  }), [
-    janelaReceita, janelaLabel, periodo, ccLabel, cluster, clusters, cicloAtivo,
-    receita, emRisco, concentracao, saude, totalHoras, roi, resumoAreas, alertas,
-    projetosCriticos, preenchFaixa, notaReceita, notaAreas, todasAsFalhas,
-  ]);
-  // `kpisLoading` viaja junto: com a tela a meio carregar, o painel do agente
-  // nao deixa perguntar -- responder sobre metade dos numeros e pior que esperar.
-  useRegistrarContextoAgente('board.estrategico', contextoAgente, kpisLoading);
 
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
