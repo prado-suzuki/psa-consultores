@@ -9,6 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { parseDate, getTodayBrazil } from '@/lib/dateUtils';
 import type { SprintDetalhesDeliverable } from '@/hooks/useDomainEquipeSprintDetalhes';
+import { entregavelStatusColors, entregavelStatusConfig } from '@/lib/entregavelStatusColors';
 
 // Usa o tipo do domínio em vez de uma cópia local: a cópia declarava
 // `description` obrigatória (sem nunca usá-la) e travava a leitura enxuta da
@@ -19,12 +20,6 @@ interface SprintCalendarProps {
   deliverables: Deliverable[];
   onEdit: (deliverable: Deliverable) => void;
 }
-
-const statusColors: Record<string, string> = {
-  pending: 'bg-slate-400',
-  in_progress: 'bg-amber-500',
-  completed: 'bg-green-500',
-};
 
 const statusLabels: Record<string, string> = {
   pending: 'Pendente',
@@ -62,9 +57,11 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
         </h3>
         <div className="flex items-center gap-1">
           <div className="hidden sm:flex items-center gap-3 mr-4 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-slate-400" /> Pendente</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" /> Em Progresso</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> Concluído</span>
+            {(['pending', 'in_progress', 'completed'] as const).map(s => (
+              <span key={s} className="flex items-center gap-1">
+                <span className={cn('w-2 h-2 rounded-full', entregavelStatusColors[s].dot)} /> {statusLabels[s]}
+              </span>
+            ))}
           </div>
           <Button variant="outline" size="icon" onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}>
             <ChevronLeft className="h-4 w-4" />
@@ -116,7 +113,7 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
                   <div className="flex flex-col gap-0.5 mt-1 w-full">
                     {dayDeliverables.slice(0, 2).map(d => (
                       <div key={d.id} className="flex items-center gap-1 w-full">
-                        <div className={cn("w-1 h-4 rounded-full flex-shrink-0", statusColors[d.status] || 'bg-slate-400')} />
+                        <div className={cn("w-1 h-4 rounded-full flex-shrink-0", entregavelStatusConfig(d.status).dot)} />
                         <span className="text-[10px] leading-tight line-clamp-2 break-words">{d.title}</span>
                       </div>
                     ))}
@@ -159,7 +156,7 @@ export const SprintCalendar = ({ deliverables, onEdit }: SprintCalendarProps) =>
                           <Badge
                             className={cn(
                               "text-white text-xs",
-                              statusColors[d.status] || 'bg-slate-400'
+                              entregavelStatusConfig(d.status).dot
                             )}
                           >
                             {statusLabels[d.status] || d.status}

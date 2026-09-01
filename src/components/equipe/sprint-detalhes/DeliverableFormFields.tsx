@@ -22,6 +22,7 @@ import type {
   DeliverableForm,
   EquipeSprintDetalhesController,
 } from '@/hooks/useEquipeSprintDetalhesController';
+import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
 
 interface DeliverableFormFieldsProps {
   prefix: 'edit' | 'create';
@@ -50,9 +51,9 @@ const tabTriggerClass =
 
 /** Status com cor semântica: leitura rápida de andamento dentro do formulário. */
 const statusOptions = [
-  { value: 'pending', label: 'Pendente', dot: 'bg-amber-400' },
-  { value: 'in_progress', label: 'Em Progresso', dot: 'bg-sky-500' },
-  { value: 'completed', label: 'Concluído', dot: 'bg-emerald-500' },
+  { value: 'pending', label: 'Pendente', dot: entregavelStatusColors.pending.dot },
+  { value: 'in_progress', label: 'Em Progresso', dot: entregavelStatusColors.in_progress.dot },
+  { value: 'completed', label: 'Concluído', dot: entregavelStatusColors.completed.dot },
 ];
 
 function StatusOption({ label, dot }: { label: string; dot: string }) {
