@@ -395,6 +395,8 @@ const BoardDashboard = () => {
     receita, emRisco, concentracao,
     clientesComReceita: concentracao.clientes,
     saude, totalHoras, roi,
+    // A faixa da diretoria (28/08) — o agente só fala do que a tela publica.
+    mix: mixProjetos, receitaDiretoria: receitaDir, capacidade, osg,
     areas: resumoAreas,
     alertas,
     projetosCriticos: projetosCriticos.map((p) => ({
@@ -406,6 +408,7 @@ const BoardDashboard = () => {
   }), [
     janelaReceita, janelaLabel, periodo, ccLabel, cluster, clustersHierarquia, cicloAtivo,
     receita, emRisco, concentracao, saude, totalHoras, roi, resumoAreas, alertas,
+    mixProjetos, receitaDir, capacidade, osg,
     projetosCriticos, preenchFaixa, notaReceita, notaAreas, todasAsFalhas,
   ]);
   // `kpisLoading` viaja junto: com a tela a meio carregar, o painel do agente
