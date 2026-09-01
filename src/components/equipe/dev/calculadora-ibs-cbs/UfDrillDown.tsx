@@ -197,7 +197,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
 
             {/* Tabela de produtos */}
             <div className="mt-6">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground mb-2">
                 Produtos vendidos para {uf} ({dados.produtos.length} NCMs)
               </h3>
               <div className="border border-border rounded-lg overflow-hidden">
@@ -253,7 +253,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
 
             {/* Clientes da UF */}
             <div className="mt-6">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center gap-1.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground mb-2 flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" />
                 Clientes em {uf} ({dados.clientes.length})
               </h3>

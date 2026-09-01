@@ -47,7 +47,7 @@ export const AuditProdutosDaPessoa = ({ nome, linhas }: AuditProdutosDaPessoaPro
                   'py-1.5 text-xs',
                   linha.produtoId === PRODUTO_SEM_VINCULO
                     ? 'italic text-slate-400'
-                    : 'font-medium text-slate-700',
+                    : 'font-medium text-foreground',
                 )}
               >
                 {linha.nome}

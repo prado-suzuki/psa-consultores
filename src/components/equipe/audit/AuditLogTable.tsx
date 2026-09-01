@@ -185,7 +185,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                                   {/* Changed fields */}
                                   {formattedChanges.length > 0 && (
                                     <>
-                                      <p className="font-semibold text-slate-700 mb-2">Campos alterados:</p>
+                                      <p className="font-semibold text-foreground mb-2">Campos alterados:</p>
                                       {formattedChanges.map((change, idx) => (
                                         <div key={idx} className="flex gap-2 items-baseline">
                                           <span className="font-medium text-muted-foreground min-w-[140px]">

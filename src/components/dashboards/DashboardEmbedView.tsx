@@ -105,7 +105,7 @@ export function DashboardEmbedView({
         {selected?.sop_url && (
           <Button
             variant="outline"
-            className="h-10 rounded-lg border-border bg-white text-slate-700 shadow-sm"
+            className="h-10 rounded-lg border-border bg-white text-foreground shadow-sm"
             onClick={() => window.open(selected.sop_url!, '_blank', 'noopener,noreferrer')}
           >
             <BookOpen className="h-4 w-4 mr-1.5" />

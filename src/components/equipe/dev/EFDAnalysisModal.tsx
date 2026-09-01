@@ -147,7 +147,7 @@ export function EFDAnalysisModal({
                 </Badge>
               </h3>
               <p className="text-sm text-muted-foreground mt-0.5 font-medium">
-                Período: <span className="text-slate-700">
+                Período: <span className="text-foreground">
                   {formatPeriodo(arquivo.DT_INI, arquivo.DT_FIN)}
                 </span>
               </p>

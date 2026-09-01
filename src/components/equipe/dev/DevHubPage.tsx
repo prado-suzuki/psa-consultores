@@ -48,7 +48,7 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/5 text-primary transition-colors group-hover:bg-primary/15">
                     <Icon className="h-7 w-7" />
                   </div>
-                  <Badge variant="secondary" className="bg-muted text-slate-700">
+                  <Badge variant="secondary" className="bg-muted text-foreground">
                     {option.badge}
                   </Badge>
                 </div>
@@ -60,7 +60,7 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
 
                 <div className="mt-6 space-y-2">
                   {option.highlights.map((highlight) => (
-                    <div key={highlight} className="rounded-xl bg-muted px-4 py-3 text-sm font-medium text-slate-700">
+                    <div key={highlight} className="rounded-xl bg-muted px-4 py-3 text-sm font-medium text-foreground">
                       {highlight}
                     </div>
                   ))}

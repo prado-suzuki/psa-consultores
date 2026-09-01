@@ -58,7 +58,7 @@ export const AuditClientesDoProduto = ({
             Clientes
           </button>
           <span className="text-slate-300">/</span>
-          <span className="font-medium text-slate-700">{clienteAberto.nome}</span>
+          <span className="font-medium text-foreground">{clienteAberto.nome}</span>
           <span className="text-slate-400">em {produto}</span>
         </div>
         <AuditPessoasDoProduto
@@ -112,7 +112,7 @@ export const AuditClientesDoProduto = ({
                           }}
                           className={cn(
                             'flex items-center gap-1 text-left',
-                            semVinculo ? 'italic text-slate-400' : 'font-medium text-slate-700',
+                            semVinculo ? 'italic text-slate-400' : 'font-medium text-foreground',
                           )}
                         >
                           <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-400" />

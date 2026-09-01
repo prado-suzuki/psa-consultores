@@ -155,7 +155,7 @@ export function ControlePerdcompResults({
       <TooltipProvider>
         <div className="overflow-x-auto w-full">
           <Table className="text-xs min-w-[1400px] [&_th]:px-2 [&_th]:py-2 [&_td]:px-2 [&_td]:py-2">
-            <TableHeader className="[&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-slate-700">
+            <TableHeader className="[&_th]:font-semibold [&_th]:uppercase [&_th]:tracking-wider [&_th]:text-foreground">
               <TableRow>
                 <TableHead
                   className="whitespace-nowrap cursor-pointer hover:bg-muted/50"

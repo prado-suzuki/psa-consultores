@@ -169,7 +169,7 @@ export function DocumentGroups({
                               className="flex items-start gap-3 rounded-lg px-2 py-2 transition-colors hover:bg-white"
                             >
                               <div className="min-w-0 flex-1">
-                                <p className="text-sm text-slate-700">{document.title}</p>
+                                <p className="text-sm text-foreground">{document.title}</p>
                                 {document.note && (
                                   <p className="mt-0.5 line-clamp-2 max-w-3xl text-xs leading-relaxed text-muted-foreground">
                                     {document.note}

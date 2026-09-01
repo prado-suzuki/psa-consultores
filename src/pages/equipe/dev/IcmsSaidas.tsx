@@ -99,7 +99,7 @@ const IcmsSaidas = () => {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-4">
               <div className="md:col-span-3">
-                <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                   <span className="inline-flex items-center gap-1.5">
                     <span>
                       Cliente <RequiredMark />
@@ -128,7 +128,7 @@ const IcmsSaidas = () => {
               </div>
 
               <div className="md:col-span-4">
-                <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                   <span className="inline-flex items-center gap-1.5">
                     <span>
                       Contribuinte <RequiredMark />
@@ -156,7 +156,7 @@ const IcmsSaidas = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                   <span className="inline-flex items-center gap-1.5">
                     <span>
                       Data Início <RequiredMark />
@@ -190,7 +190,7 @@ const IcmsSaidas = () => {
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+                <label className="block text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                   <span className="inline-flex items-center gap-1.5">
                     <span>
                       Data Fim <RequiredMark />

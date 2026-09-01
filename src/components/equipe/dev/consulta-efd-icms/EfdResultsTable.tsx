@@ -44,7 +44,7 @@ export function EfdResultsTable(props: Props) {
 }
 
 function Empty({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
-  return <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]"><div className="mb-4">{icon}</div><h3 className="text-xl font-bold text-slate-700">{title}</h3><p className="text-base text-muted-foreground max-w-xs mt-2">{text}</p></div>;
+  return <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]"><div className="mb-4">{icon}</div><h3 className="text-xl font-bold text-foreground">{title}</h3><p className="text-base text-muted-foreground max-w-xs mt-2">{text}</p></div>;
 }
 
 const COLUMN_TIPS: Record<string, string> = { Arquivo: 'Nome e ID do arquivo EFD ICMS processado.', Período: 'Mês inicial e final da escrituração.', Tipo: 'Status do arquivo (Original ou Retificadora).', ICMS: 'Total de ICMS a recolher apurado no período.', 'ICMS ST': 'Total de ICMS ST a recolher apurado no período.' };

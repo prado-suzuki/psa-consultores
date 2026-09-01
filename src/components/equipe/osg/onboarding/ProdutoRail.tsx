@@ -77,7 +77,7 @@ export function ProdutoRail({
                 className={`${railItemCls(selecionado === produto.id)} flex items-center justify-between gap-2`}
                 title={produto.name}
               >
-                <span className="min-w-0 text-sm font-medium leading-snug text-slate-700">
+                <span className="min-w-0 text-sm font-medium leading-snug text-foreground">
                   {produto.name}
                 </span>
                 <span className={counterPillCls}>{contagemPorProduto.get(produto.id) ?? 0}</span>

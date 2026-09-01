@@ -19,7 +19,7 @@ export function PorEstadoKpis({ totais, ufs, pctTop3Ufs, quantidadeClientes, tot
       <KpiCard
         label="UFs atendidas"
         value={fmtInt(totais.qtdUfs)}
-        sub={<><p>Top destino: <strong className="text-slate-700">{ufs[0]?.uf ?? "—"}</strong></p><p className="text-slate-400">{filtrosAtivos ? `${fmtInt(quantidadeClientes)} clientes no filtro` : `${fmtInt(totalClientesDistintos)} clientes distintos`}</p></>}
+        sub={<><p>Top destino: <strong className="text-foreground">{ufs[0]?.uf ?? "—"}</strong></p><p className="text-slate-400">{filtrosAtivos ? `${fmtInt(quantidadeClientes)} clientes no filtro` : `${fmtInt(totalClientesDistintos)} clientes distintos`}</p></>}
         accent={CORES_POR_ESTADO.neutral}
         icon={<MapPin className="h-4 w-4" />}
         hint={<>Quantidade de Unidades Federativas que aparecem como <strong>destino (uf_dest)</strong> nas saídas. Não considera tipo de operação — interno e interestadual entram juntos.</>}

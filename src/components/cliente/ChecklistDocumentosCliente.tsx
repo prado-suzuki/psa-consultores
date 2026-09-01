@@ -237,7 +237,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
                 className={cn(
                   'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                   FOCO,
-                  ativo ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/70 hover:text-slate-700',
+                  ativo ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted/70 hover:text-foreground',
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />{label}
@@ -262,7 +262,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
                     FOCO,
                     ativo
                       ? 'border-primary bg-accent/5 text-primary'
-                      : 'border-border/80 bg-white text-muted-foreground hover:border-border hover:text-slate-700',
+                      : 'border-border/80 bg-white text-muted-foreground hover:border-border hover:text-foreground',
                   )}
                 >
                   {dot && <span aria-hidden className={cn('h-2 w-2 rounded-full', dot)} />}
@@ -603,7 +603,7 @@ function EntidadeDialog({
               <button
                 type="button"
                 onClick={onLimparFiltro}
-                className={cn('rounded-md text-[11px] font-semibold text-muted-foreground underline-offset-2 hover:text-slate-700 hover:underline', FOCO)}
+                className={cn('rounded-md text-[11px] font-semibold text-muted-foreground underline-offset-2 hover:text-foreground hover:underline', FOCO)}
               >
                 ver todos os {selecionada?.entidade.pendencias.length}
               </button>

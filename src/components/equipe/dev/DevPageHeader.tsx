@@ -64,10 +64,10 @@ export const DevPageHeader = ({
   return (
     <Alert className="mb-6 bg-[#E6F2F1]/80 border-[#E6F2F1]">
       <Icone className="h-5 w-5 text-primary" />
-      <AlertTitle className="text-sm font-semibold text-slate-700">
+      <AlertTitle className="text-sm font-semibold text-foreground">
         {title}
       </AlertTitle>
-      <AlertDescription className="text-sm leading-relaxed text-slate-700 mt-1">
+      <AlertDescription className="text-sm leading-relaxed text-foreground mt-1">
         {renderBoldSegments(description)}
         {!hideManualLink && manualUrl && (
           <>

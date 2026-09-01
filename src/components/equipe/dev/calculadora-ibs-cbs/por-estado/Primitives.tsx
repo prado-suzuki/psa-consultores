@@ -61,7 +61,7 @@ export function InsightCard({ icon, accent, titulo, texto, acao }: InsightCardPr
         <p className="text-xs text-muted-foreground leading-relaxed mb-3">{texto}</p>
         <div className="flex items-start gap-1.5 pt-3 border-t border-border">
           <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: accent }} />
-          <p className="text-[11px] font-semibold text-slate-700">{acao}</p>
+          <p className="text-[11px] font-semibold text-foreground">{acao}</p>
         </div>
       </CardContent>
     </Card>

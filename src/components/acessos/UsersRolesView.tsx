@@ -115,7 +115,7 @@ export const UsersRolesView = ({
       {/* Users Table */}
       <Card className="border-border shadow-sm">
         <CardHeader>
-          <CardTitle className="text-slate-700">Usuários e Permissões</CardTitle>
+          <CardTitle className="text-foreground">Usuários e Permissões</CardTitle>
           <CardDescription>
             Lista de todos os usuários e seus níveis de acesso
           </CardDescription>
@@ -142,7 +142,7 @@ export const UsersRolesView = ({
               <TableBody>
                 {usersWithRoles?.map((user) => (
                   <TableRow key={user.id} className="hover:bg-foreground/[0.03]">
-                    <TableCell className="font-medium text-slate-700">
+                    <TableCell className="font-medium text-foreground">
                       {user.first_name} {user.last_name}
                     </TableCell>
                     <TableCell className="text-muted-foreground">{user.email}</TableCell>
@@ -176,7 +176,7 @@ export const UsersRolesView = ({
       {/* Access Legend */}
       <Card className="mt-6 border-border shadow-sm">
         <CardHeader>
-          <CardTitle className="text-base text-slate-700">Legenda de Permissões</CardTitle>
+          <CardTitle className="text-base text-foreground">Legenda de Permissões</CardTitle>
         </CardHeader>
         <CardContent>
           <div

@@ -105,7 +105,7 @@ const HubSidebarSection = ({
   <Collapsible open={open} onOpenChange={onOpenChange}>
     <div
       className={`flex items-center gap-1 rounded-lg px-3 py-1 text-sm font-medium transition-colors h-auto ${
-        active ? "bg-primary/10 text-primary" : "text-slate-700 hover:bg-muted hover:text-primary"
+        active ? "bg-primary/10 text-primary" : "text-foreground hover:bg-muted hover:text-primary"
       }`}
     >
       <button
@@ -126,7 +126,7 @@ const HubSidebarSection = ({
           className={`h-8 w-8 flex-shrink-0 ${
             active
               ? "text-primary hover:bg-primary/10 hover:text-primary"
-              : "text-slate-700 hover:bg-muted hover:text-primary"
+              : "text-foreground hover:bg-muted hover:text-primary"
           }`}
         >
           <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180" : ""}`} />
@@ -232,7 +232,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   className={`w-full justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isItemActive(item)
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "text-slate-700 hover:bg-muted hover:text-primary"
+                      : "text-foreground hover:bg-muted hover:text-primary"
                   }`}
                   onClick={() => navigate(item.path)}
                 >
@@ -291,7 +291,7 @@ export const DevLayout = ({ children, title, subtitle, sopUrl, headerActions }: 
                   className={`w-full justify-start rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     isItemActive(item)
                       ? "bg-primary/10 text-primary hover:bg-primary/15"
-                      : "text-slate-700 hover:bg-muted hover:text-primary"
+                      : "text-foreground hover:bg-muted hover:text-primary"
                   }`}
                   onClick={() => navigate(item.path)}
                 >

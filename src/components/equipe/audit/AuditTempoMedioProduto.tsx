@@ -152,7 +152,7 @@ export const AuditTempoMedioProduto = ({
                                 event.stopPropagation();
                                 alternar(linha.produtoId);
                               }}
-                              className="text-slate-400 transition-colors hover:text-slate-700"
+                              className="text-slate-400 transition-colors hover:text-foreground"
                             >
                               {aberta
                                 ? <ChevronDown className="h-4 w-4" />

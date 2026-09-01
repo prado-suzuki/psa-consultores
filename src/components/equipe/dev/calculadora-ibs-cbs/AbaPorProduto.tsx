@@ -225,7 +225,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
 
       <Card className="border-border">
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <CardTitle className="text-sm font-semibold text-slate-700">
+          <CardTitle className="text-sm font-semibold text-foreground">
             Onde a reforma muda mais
             <span className="ml-2 text-xs font-normal text-muted-foreground">
               X: faturamento · Y: Δ pp na carga · cor: anexo
@@ -291,10 +291,10 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                         >
                           {d.anexo}
                         </span>
-                        <div className="mt-1 text-slate-700">
+                        <div className="mt-1 text-foreground">
                           Faturamento: <strong>{fmtBRL(d.x)}</strong>
                         </div>
-                        <div className="text-slate-700">
+                        <div className="text-foreground">
                           Δ pp: <strong>{fmtPp(d.y)}</strong>
                         </div>
                       </div>
@@ -314,7 +314,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
 
       <Card className="border-border">
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <CardTitle className="text-sm font-semibold text-slate-700">
+          <CardTitle className="text-sm font-semibold text-foreground">
             Top NCMs por faturamento
             <span className="ml-2 text-xs font-normal text-muted-foreground">
               ({fmtInt(sorted.length)} NCMs)
@@ -508,7 +508,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                                     );
                                   })}
                                   <tr className="border-t border-border">
-                                    <td className="pr-3 pt-1 text-slate-700 font-semibold">Total</td>
+                                    <td className="pr-3 pt-1 text-foreground font-semibold">Total</td>
                                     <td className="pt-1" />
                                     <td className="pt-1 text-right tabular-nums text-orange-700 font-semibold">
                                       {fmtBRL(p.tributoAntes)}

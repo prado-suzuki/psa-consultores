@@ -16,7 +16,7 @@ export function NotasMetodologicas({ notas }: NotasMetodologicasProps) {
   return (
     <Card className="border-border bg-muted">
       <CardContent className="p-5">
-        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-1.5">
+        <h4 className="text-xs font-bold uppercase tracking-wider text-foreground mb-3 flex items-center gap-1.5">
           <ShieldAlert className="h-3.5 w-3.5" />
           Notas metodológicas
         </h4>

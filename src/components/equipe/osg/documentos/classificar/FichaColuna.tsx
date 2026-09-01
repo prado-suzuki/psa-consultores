@@ -329,7 +329,7 @@ export function FichaColuna({
                         <span
                           className={cn(
                             'min-w-0 flex-1 truncate text-[12px] font-medium',
-                            escolhido ? 'text-osg-700' : 'text-slate-700',
+                            escolhido ? 'text-osg-700' : 'text-foreground',
                           )}
                         >
                           {item.label}

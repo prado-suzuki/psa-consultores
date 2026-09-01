@@ -12,7 +12,7 @@ Abra no navegador (são autocontidos, sem dependência externa além da fonte do
 | `escuro-que-nao-separa.html` | o `.dark` tem fundo, card e popover no mesmo valor; qual escala substitui? | **candidata B** (grafite quente), aplicada no `.dark` em `6901a384`. As três candidatas seguem registradas; HSL em `escuro-candidatas-hsl.txt`. |
 | `porta-de-entrada.html` | as 7 telas de entrada na escala B: liso ou gradiente, e qual acento? | **em aberto.** Mostra que o teal da marca reprova como acento no escuro (4,03:1) já hoje, e que `--teal-400` resolve em 8,28:1. Recomendada: fundo liso. |
 | `superficie-de-estado.html` | os 22 avisos que sobraram: token de estado por área, ou neutro com o significado no ícone? | **em aberto.** Mostra que os 22 não são um caso só, e sim sete — só 2 deles são estado de tarefa. O `.dark` não declara nenhum `--status-*`, então o token de estado ainda não existe no escuro. Recomendada: token semântico com alfa (`/12` no painel, `/40` na borda, texto em `foreground`). |
-| `texto-do-meio-da-escala.html` | os 191 `text-slate-700` que sobraram: `foreground` ou `muted-foreground`? | **em aberto.** Mostra que 8 deles são o *hover* de um `muted-foreground` e morreriam nessa direção, e que não existe nenhum caso do inverso. O que a página não decide é se o quase-preto pesa demais em parágrafo. |
+| `texto-do-meio-da-escala.html` | os 191 `text-slate-700` que sobraram: `foreground` ou `muted-foreground`? | **`text-foreground`**, decidido olhando a página. A mecânica já eliminava o `muted-foreground`: 8 dos 191 são o *hover* de um `muted-foreground` e morreriam nessa direção, e não há nenhum caso do inverso. O olho confirmou que o quase-preto não pesa demais no parágrafo. |
 
 ## Por que estão no repositório
 

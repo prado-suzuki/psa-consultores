@@ -21,7 +21,7 @@ export function BlocosSemDado({ blocos }: { blocos: BlocoForaDaFolha[] }) {
       <ul className="space-y-1">
         {blocos.map((bloco) => (
           <li key={bloco.id} className="text-sm leading-snug text-muted-foreground">
-            <span className="font-medium text-slate-700">{bloco.nome}</span>: {bloco.explicacao}.
+            <span className="font-medium text-foreground">{bloco.nome}</span>: {bloco.explicacao}.
           </li>
         ))}
       </ul>

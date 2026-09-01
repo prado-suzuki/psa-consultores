@@ -158,7 +158,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                         className={`flex-1 justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                           isActive(item.path) || isChildActive(item.children)
                             ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                            : 'text-slate-700 hover:bg-muted hover:text-primary'
+                            : 'text-foreground hover:bg-muted hover:text-primary'
                         }`}
                         onClick={() => navigate(item.path)}
                       >
@@ -169,7 +169,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-slate-700 hover:bg-muted"
+                          className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted"
                         >
                           <ChevronDown className={`h-4 w-4 transition-transform ${(openGroups[item.path] ?? true) ? 'rotate-180' : ''}`} />
                         </Button>
@@ -200,7 +200,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                     className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       isActive(item.path)
                         ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                        : 'text-slate-700 hover:bg-muted hover:text-primary'
+                        : 'text-foreground hover:bg-muted hover:text-primary'
                     }`}
                     onClick={() => navigate(item.path)}
                   >

@@ -51,7 +51,7 @@ const STATUS_LABEL: Record<ScenarioStatus, string> = {
 };
 
 const STATUS_COLOR: Record<ScenarioStatus, string> = {
-  draft: 'bg-muted text-slate-700',
+  draft: 'bg-muted text-foreground',
   analyzing: 'bg-blue-100 text-blue-700',
   approved: 'bg-emerald-100 text-emerald-700',
   promoted: 'bg-violet-100 text-violet-700',

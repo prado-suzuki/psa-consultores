@@ -102,7 +102,7 @@ export const SubirQuotasDialog = ({
             Transferir quotas para a controladora
           </DialogTitle>
           <DialogDescription>
-            Os sócios de <span className="font-medium text-slate-700">{proprietaria.denominacao}</span>{' '}
+            Os sócios de <span className="font-medium text-foreground">{proprietaria.denominacao}</span>{' '}
             cedem as quotas que têm nela e recebem, em troca, quotas da controladora, no mesmo ato.
           </DialogDescription>
         </DialogHeader>
@@ -161,7 +161,7 @@ export const SubirQuotasDialog = ({
                     <p className="text-xs font-semibold uppercase tracking-wide text-osg-700">
                       O que será gravado
                     </p>
-                    <ul className="mt-2 space-y-1 text-sm text-slate-700">
+                    <ul className="mt-2 space-y-1 text-sm text-foreground">
                       <li>
                         {plano.lancamentos.length / 2} cessão(ões) em {proprietaria.denominacao}:{' '}
                         {fmtInt.format(totalQuotas)} quotas ({fmtBRL.format(plano.totalValorCedido)}) para{' '}
@@ -178,7 +178,7 @@ export const SubirQuotasDialog = ({
                     <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                       Quadro da controladora depois do ato
                     </p>
-                    <ul className="mt-2 space-y-1 text-sm text-slate-700">
+                    <ul className="mt-2 space-y-1 text-sm text-foreground">
                       {plano.quadroResultante.map((s) => (
                         <li key={s.pessoaId} className="flex justify-between gap-3">
                           <span className="truncate">{s.denominacao}</span>

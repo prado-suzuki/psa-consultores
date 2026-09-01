@@ -509,7 +509,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
                                       event.stopPropagation();
                                       alternarExpandida(linha.userId);
                                     }}
-                                    className="text-slate-400 transition-colors hover:text-slate-700"
+                                    className="text-slate-400 transition-colors hover:text-foreground"
                                   >
                                     {aberta
                                       ? <ChevronDown className="h-4 w-4" />

@@ -27,7 +27,7 @@ interface Props {
   onSearch: () => void;
 }
 
-const FieldLabel = ({ children, tip }: { children: React.ReactNode; tip: string }) => <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">{children} <RequiredMark /><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help"/></TooltipTrigger><TooltipContent side="top"className="text-xs text-center max-w-[220px]">{tip}</TooltipContent></Tooltip></label>;
+const FieldLabel = ({ children, tip }: { children: React.ReactNode; tip: string }) => <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">{children} <RequiredMark /><Tooltip><TooltipTrigger asChild><Info className="h-3.5 w-3.5 text-muted-foreground cursor-help"/></TooltipTrigger><TooltipContent side="top"className="text-xs text-center max-w-[220px]">{tip}</TooltipContent></Tooltip></label>;
 
 export function ConsultaEfdFilters(props: Props) {
   return <Card className="mb-6 shadow-sm"><CardHeader className="pb-4"><CardTitle className="text-lg flex items-center gap-2 text-primary"><Filter className="h-5 w-5"/><span className="uppercase text-sm tracking-wider font-bold text-foreground">Filtros de Busca</span></CardTitle></CardHeader><CardContent className="space-y-4">

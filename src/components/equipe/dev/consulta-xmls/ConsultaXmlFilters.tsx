@@ -57,7 +57,7 @@ export function ConsultaXmlFilters(props: ConsultaXmlFiltersProps) {
 }
 
 function Label({ text, required, tooltip }: { text: string; required?: boolean; tooltip: string }) {
-  return <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">{text} {required && <RequiredMark />}<FieldTooltip text={tooltip} /></label>;
+  return <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">{text} {required && <RequiredMark />}<FieldTooltip text={tooltip} /></label>;
 }
 
 function DateField({ label, value, onChange, tooltip }: { label: string; value: string; onChange(value: string): void; tooltip: string }) {

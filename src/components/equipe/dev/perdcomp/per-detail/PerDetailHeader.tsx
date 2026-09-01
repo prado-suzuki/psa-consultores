@@ -56,7 +56,7 @@ export function PerDetailHeader({
           <p className="text-sm text-muted-foreground mt-0.5 font-medium">
             {contribuinteNome || 'Contribuinte'}
             {' • '}
-            <span className="text-slate-700 ml-1">
+            <span className="text-foreground ml-1">
               {exercicio}/{trimestre}T
             </span>
           </p>

@@ -338,7 +338,7 @@ const ProcessoDifal = () => {
           <Card className="border-border border-dashed">
             <CardContent className="p-12 text-center">
               <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-              <h3 className="text-lg font-medium text-slate-700 mb-2">DIFAL Inteligente</h3>
+              <h3 className="text-lg font-medium text-foreground mb-2">DIFAL Inteligente</h3>
               <p className="text-muted-foreground max-w-md mx-auto">
                 Selecione um contribuinte e período para carregar os produtos de notas fiscais e
                 iniciar a auditoria de classificação fiscal.

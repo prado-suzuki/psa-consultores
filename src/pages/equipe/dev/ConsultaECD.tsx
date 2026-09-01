@@ -381,7 +381,7 @@ const ConsultaECD = () => {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             <div className="md:col-span-3">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} /></label>
               <Select value={selectedCliente} onValueChange={(value) => { setSelectedCliente(value); setSelectedContribuinte(""); setSearchTriggered(false); }}>
                 <SelectTrigger className="h-11"><SelectValue placeholder={loadingClientes ?"Carregando...":"Selecione o cliente"} /></SelectTrigger>
                 <SelectContent className="bg-background border z-50">
@@ -390,7 +390,7 @@ const ConsultaECD = () => {
               </Select>
             </div>
             <div className="md:col-span-5">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} /></label>
               <Select value={selectedContribuinte} onValueChange={(value) => { setSelectedContribuinte(value); setSearchTriggered(false); setSelectedArquivos(new Set()); }}>
                 <SelectTrigger className="h-11"><SelectValue placeholder={loadingContribuintes ?"Carregando...":"Selecione o contribuinte"} /></SelectTrigger>
                 <SelectContent className="bg-background border z-50">
@@ -399,11 +399,11 @@ const ConsultaECD = () => {
               </Select>
             </div>
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.start_date} /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.start_date} /></label>
               <MonthYearPicker value={mesInicio} onChange={setMesInicio} placeholder="Selecione"className="bg-white"/>
             </div>
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.end_date} /></label>
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.end_date} /></label>
               <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Selecione"className="bg-white"/>
             </div>
           </div>
@@ -458,7 +458,7 @@ const ConsultaECD = () => {
               <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
                 <Search className="w-10 h-10 text-slate-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-700">Nenhum arquivo listado</h3>
+              <h3 className="text-xl font-bold text-foreground">Nenhum arquivo listado</h3>
               <p className="text-base text-muted-foreground max-w-xs mt-2">Utilize os filtros acima e clique em "Buscar" para carregar os arquivos ECD.</p>
             </div>
           ) : loadingOverview ? (
@@ -491,7 +491,7 @@ const ConsultaECD = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">{formatPeriodo(arquivo.DT_INI, arquivo.DT_FIN)}</td>
+                      <td className="px-6 py-4 text-sm font-semibold text-foreground">{formatPeriodo(arquivo.DT_INI, arquivo.DT_FIN)}</td>
                       <td className="px-6 py-4">
                         <Badge variant={arquivo.TIPO_ESCRIT === 0 ? 'default' : 'secondary'} className={cn("text-[10px] font-bold uppercase", arquivo.TIPO_ESCRIT === 0 ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-amber-50 text-amber-700 border-amber-200")}>
                           {arquivo.TIPO_ESCRIT === 0 ? 'Original' : 'Retificadora'}
@@ -525,7 +525,7 @@ const ConsultaECD = () => {
           ) : (
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
               <FileText className="h-12 w-12 text-slate-400 mb-3" />
-              <p className="font-medium text-slate-700">Nenhum arquivo encontrado</p>
+              <p className="font-medium text-foreground">Nenhum arquivo encontrado</p>
               <p className="text-sm text-muted-foreground mt-1">Verifique os filtros e tente novamente.</p>
             </div>
           )}

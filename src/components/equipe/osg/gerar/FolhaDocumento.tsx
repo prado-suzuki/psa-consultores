@@ -183,7 +183,7 @@ export const FolhaDocumento = ({
                   {bloco.blocoId && (
                     <button
                       type="button"
-                      className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 font-sans text-xs font-medium text-slate-700 transition-colors hover:bg-osg-50 hover:text-osg-700"
+                      className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 font-sans text-xs font-medium text-foreground transition-colors hover:bg-osg-50 hover:text-osg-700"
                       onClick={() => {
                         setPopoverAberto(null);
                         onEditarBloco?.(bloco);
@@ -197,7 +197,7 @@ export const FolhaDocumento = ({
                     <button
                       key={v.id}
                       type="button"
-                      className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 font-sans text-xs font-medium text-slate-700 transition-colors hover:bg-osg-50 hover:text-osg-700"
+                      className="flex w-full items-center gap-1.5 rounded-sm px-2 py-1.5 font-sans text-xs font-medium text-foreground transition-colors hover:bg-osg-50 hover:text-osg-700"
                       onClick={() => {
                         setPopoverAberto(null);
                         onEditarBloco?.(bloco, v.id);

@@ -99,7 +99,7 @@ export function EFDFiscalTable({
                 <th
                   key={col.id}
                   className={cn(
-                    "px-4 py-2 text-xs font-bold text-slate-700 uppercase whitespace-nowrap min-w-[120px]",
+                    "px-4 py-2 text-xs font-bold text-foreground uppercase whitespace-nowrap min-w-[120px]",
                     "border-r border-border last:border-r-0",
                     isFirstOfGroup && idx > 0 &&"border-l-2 border-border"
                   )}
@@ -126,7 +126,7 @@ export function EFDFiscalTable({
                   <td
                     key={col.id}
                     className={cn(
-                      "px-4 py-1.5 text-sm font-medium text-slate-700 whitespace-nowrap",
+                      "px-4 py-1.5 text-sm font-medium text-foreground whitespace-nowrap",
                       "border-r border-border last:border-r-0",
                       isFirstOfGroup && colIdx > 0 &&"border-l border-border"
                     )}

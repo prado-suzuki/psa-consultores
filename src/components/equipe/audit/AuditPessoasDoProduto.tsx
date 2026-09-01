@@ -42,7 +42,7 @@ export const AuditPessoasDoProduto = ({ linhas, vazio }: AuditPessoasDoProdutoPr
       <TableBody>
         {linhas.map(linha => (
           <TableRow key={linha.userId} className="hover:bg-transparent">
-            <TableCell className="py-1.5 text-xs font-medium text-slate-700">
+            <TableCell className="py-1.5 text-xs font-medium text-foreground">
               {linha.nome}
             </TableCell>
             <TableCell className="py-1.5 text-right text-xs">{linha.itensTocados}</TableCell>

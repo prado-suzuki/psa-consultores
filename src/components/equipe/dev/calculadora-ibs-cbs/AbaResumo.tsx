@@ -394,7 +394,7 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-slate-700">
+            <CardTitle className="text-sm font-semibold text-foreground">
               Carga tributária comparada
             </CardTitle>
           </CardHeader>
@@ -423,7 +423,7 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
 
         <Card className="border-border">
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold text-slate-700">
+            <CardTitle className="text-sm font-semibold text-foreground">
               Composição dos tributos ANTES
             </CardTitle>
           </CardHeader>
@@ -466,7 +466,7 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
 
       <Card className="border-border">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold text-slate-700">
+          <CardTitle className="text-sm font-semibold text-foreground">
             Evolução mensal — antes vs depois
           </CardTitle>
         </CardHeader>

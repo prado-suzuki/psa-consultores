@@ -458,7 +458,7 @@ const ControleBalancetes = () => {
                       <TableCell>
                         <Checkbox checked={selectedIds.has(b.id)} onCheckedChange={() => handleToggleItem(b.id)} aria-label={`Selecionar balancete ${index + 1}`} />
                       </TableCell>
-                      <TableCell className="text-slate-700 w-[340px] max-w-[340px]">
+                      <TableCell className="text-foreground w-[340px] max-w-[340px]">
                         {b.descricao ? (
                           <TooltipProvider>
                             <Tooltip>
@@ -472,9 +472,9 @@ const ControleBalancetes = () => {
                           </TooltipProvider>
                         ) : '-'}
                       </TableCell>
-                      <TableCell className="text-slate-700">{formatDate(b.periodo_inicio)}</TableCell>
-                      <TableCell className="text-slate-700">{formatDate(b.periodo_fim)}</TableCell>
-                      <TableCell className="text-slate-700">{b.adicionado_por || '-'}</TableCell>
+                      <TableCell className="text-foreground">{formatDate(b.periodo_inicio)}</TableCell>
+                      <TableCell className="text-foreground">{formatDate(b.periodo_fim)}</TableCell>
+                      <TableCell className="text-foreground">{b.adicionado_por || '-'}</TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
                           <TooltipProvider>

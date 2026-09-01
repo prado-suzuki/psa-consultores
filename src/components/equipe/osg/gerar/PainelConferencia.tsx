@@ -45,8 +45,8 @@ const ListaNotificacoes = ({ linhas, naoLidas, onMarcarLido, marcando }: {
       <ul className="space-y-2">
         {linhas.map((linha) => (
           <li key={linha.key} className="rounded-md border border-osg-200/60 bg-white px-3 py-2 text-sm shadow-sm shadow-osg-300/10">
-            <p className="leading-snug text-slate-700">
-              {linha.action === 'field' ? <><span className="font-semibold text-slate-700">{linha.label}</span> de <em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> alterado para <span className="font-semibold text-osg-700">{linha.newValue}</span></> : <><em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> {linha.action === 'created' ? 'adicionado ao cadastro' : linha.action === 'deleted' ? 'removido do cadastro' : 'atualizado'}</>}
+            <p className="leading-snug text-foreground">
+              {linha.action === 'field' ? <><span className="font-semibold text-foreground">{linha.label}</span> de <em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> alterado para <span className="font-semibold text-osg-700">{linha.newValue}</span></> : <><em className="not-italic font-medium text-muted-foreground">{linha.entityName}</em> {linha.action === 'created' ? 'adicionado ao cadastro' : linha.action === 'deleted' ? 'removido do cadastro' : 'atualizado'}</>}
             </p>
             <p className="mt-1 text-xs text-slate-400">{linha.meta}</p>
           </li>
@@ -95,7 +95,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                               'flex-1 rounded px-2 py-1 text-sm font-medium transition-colors',
                               abaEfetiva === 'conferencia'
                                 ? 'bg-white text-osg-700 shadow-sm'
-                                : 'text-muted-foreground hover:text-slate-700',
+                                : 'text-muted-foreground hover:text-foreground',
                             )}
                           >
                             Conferência
@@ -107,7 +107,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                               'flex flex-1 items-center justify-center gap-1.5 rounded px-2 py-1 text-sm font-medium transition-colors',
                               abaEfetiva === 'notificacoes'
                                 ? 'bg-white text-osg-700 shadow-sm'
-                                : 'text-muted-foreground hover:text-slate-700',
+                                : 'text-muted-foreground hover:text-foreground',
                             )}
                           >
                             <Bell className="h-4 w-4" />
@@ -188,7 +188,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 {socios.map((s, i) => (
                                   <li
                                     key={s.pessoa.id}
-                                    className="flex items-baseline gap-2 text-sm text-slate-700"
+                                    className="flex items-baseline gap-2 text-sm text-foreground"
                                   >
                                     <span className="w-4 shrink-0 text-right tabular-nums text-slate-400">
                                       {i + 1}.
@@ -234,7 +234,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                                 {administradores.map((a, i) => (
                                   <li
                                     key={a.pessoa.id}
-                                    className="flex items-baseline gap-2 text-sm text-slate-700"
+                                    className="flex items-baseline gap-2 text-sm text-foreground"
                                   >
                                     <span className="w-4 shrink-0 text-right tabular-nums text-slate-400">
                                       {i + 1}.
@@ -268,7 +268,7 @@ export function PainelConferencia({ controller }: { controller: GerarDocumentoCo
                             ) : (
                               <ul className="max-h-40 space-y-1.5 overflow-y-auto pr-1">
                                 {integralizacoes.map((m) => (
-                                  <li key={m.id} className="flex items-baseline gap-2 text-sm text-slate-700">
+                                  <li key={m.id} className="flex items-baseline gap-2 text-sm text-foreground">
                                     <span className="shrink-0 tabular-nums text-muted-foreground">
                                       Matr. {m.numero ?? 's/ nº'}
                                     </span>

@@ -193,7 +193,7 @@ const MatrizApuracaoCard = ({ matriz }: { matriz: T01MatrizSection }) => {
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">
               {matriz.titulo}
             </CardTitle>
             <p className="text-xs text-muted-foreground">Origem da planilha base {matriz.observacao}</p>

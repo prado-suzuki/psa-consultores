@@ -82,7 +82,7 @@ export const AuditDownloadsTable = () => {
         <>
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-medium text-slate-700">Por usuário</h3>
+              <h3 className="text-sm font-medium text-foreground">Por usuário</h3>
               <Button
                 variant="outline"
                 size="sm"
@@ -124,7 +124,7 @@ export const AuditDownloadsTable = () => {
 
           <section className="space-y-2">
             <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-medium text-slate-700">Por documento</h3>
+              <h3 className="text-sm font-medium text-foreground">Por documento</h3>
               <Button
                 variant="outline"
                 size="sm"

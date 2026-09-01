@@ -133,7 +133,7 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
               <tr>
                 <th className="text-left p-3 text-xs font-medium text-muted-foreground">Métrica</th>
                 {scenarios.map(s => (
-                  <th key={s.id} className="text-right p-3 text-xs font-medium text-slate-700 truncate max-w-[200px]">
+                  <th key={s.id} className="text-right p-3 text-xs font-medium text-foreground truncate max-w-[200px]">
                     {s.name}
                   </th>
                 ))}

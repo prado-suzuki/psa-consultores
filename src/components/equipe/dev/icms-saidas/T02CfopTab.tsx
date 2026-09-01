@@ -208,7 +208,7 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
                 {rows.map((r) => (
                   <TableRow key={r.cfop}>
                     <TableCell className="font-mono font-medium">{r.cfop}</TableCell>
-                    <TableCell className="text-sm text-slate-700">{r.descricao}</TableCell>
+                    <TableCell className="text-sm text-foreground">{r.descricao}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{fmt(r.vlItem)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{fmt(r.vlBcIcms)}</TableCell>
                     <TableCell className="text-right font-mono text-sm">{fmt(r.vlIcms)}</TableCell>
@@ -222,7 +222,7 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
                   <TableCell className="text-right font-mono text-sm font-bold">{fmt(totals.vlItem)}</TableCell>
                   <TableCell className="text-right font-mono text-sm font-bold">{fmt(totals.vlBcIcms)}</TableCell>
                   <TableCell className="text-right font-mono text-sm font-bold">{fmt(totals.vlIcms)}</TableCell>
-                  <TableCell className="text-right font-mono text-sm font-bold text-slate-700">
+                  <TableCell className="text-right font-mono text-sm font-bold text-foreground">
                     {fmtPct(totals.pctVlIcms)}
                   </TableCell>
                 </TableRow>

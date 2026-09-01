@@ -216,7 +216,7 @@ export const ControleUsoEnvio = () => {
 
           <p className="text-xs text-muted-foreground">
             Período{' '}
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-foreground">
               {dataBR(periodoExibido.inicio)} — {dataBR(periodoExibido.fim)}
             </span>
           </p>
@@ -331,13 +331,13 @@ export const ControleUsoEnvio = () => {
             <span className="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto">
               {usuarioSelecionado ? (
                 <>
-                  Filtrado por <strong className="text-slate-700">{usuarioSelecionado}</strong> — o
+                  Filtrado por <strong className="text-foreground">{usuarioSelecionado}</strong> — o
                   recorte por ferramenta fica indisponível enquanto houver pessoa selecionada
                 </>
               ) : ferramentaSelecionada ? (
                 <>
                   API filtrada por{' '}
-                  <strong className="text-slate-700">{ferramentaSelecionada}</strong> — a aba de
+                  <strong className="text-foreground">{ferramentaSelecionada}</strong> — a aba de
                   ingestão não tem esse eixo e segue completa
                 </>
               ) : (

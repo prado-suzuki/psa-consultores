@@ -329,7 +329,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
                 <div className="flex flex-col items-center gap-3 px-4 text-center">
                   <FileSpreadsheet className="h-12 w-12 text-primary" />
                   <div>
-                    <p className="text-sm font-medium text-slate-700 break-all">{file.name}</p>
+                    <p className="text-sm font-medium text-foreground break-all">{file.name}</p>
                     <p className="text-xs text-slate-400 mt-1">{(file.size / 1024).toFixed(1)} KB</p>
                   </div>
                   <Button

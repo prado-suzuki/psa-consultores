@@ -67,7 +67,7 @@ export function DifalFiltersCard({
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-4">
           <div className="md:col-span-3">
-            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
               Cliente <RequiredMark /> <FieldTooltip name="cliente" />
             </label>
             <Select
@@ -89,7 +89,7 @@ export function DifalFiltersCard({
           </div>
 
           <div className="md:col-span-5">
-            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
               Contribuinte <RequiredMark /> <FieldTooltip name="contribuinte" />
             </label>
             <Select
@@ -111,7 +111,7 @@ export function DifalFiltersCard({
           </div>
 
           <div className="md:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
               Data Início <RequiredMark /> <FieldTooltip name="start_date" />
             </label>
             <Popover>
@@ -139,7 +139,7 @@ export function DifalFiltersCard({
           </div>
 
           <div className="md:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+            <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
               Data Fim <RequiredMark /> <FieldTooltip name="end_date" />
             </label>
             <Popover>

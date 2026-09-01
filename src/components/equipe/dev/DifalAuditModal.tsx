@@ -139,7 +139,7 @@ export const DifalAuditModal = ({
                 Classificar Item
               </h3>
               <p className="text-sm text-muted-foreground mt-0.5">
-                NCM: <span className="font-mono font-medium text-slate-700">{group?.cod_ncm}</span>
+                NCM: <span className="font-mono font-medium text-foreground">{group?.cod_ncm}</span>
               </p>
             </div>
           </div>
@@ -174,22 +174,22 @@ export const DifalAuditModal = ({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-xs text-muted-foreground uppercase font-medium">Código</span>
-                      <p className="font-mono text-sm text-slate-700 mt-1">{group.cod_produto}</p>
+                      <p className="font-mono text-sm text-foreground mt-1">{group.cod_produto}</p>
                     </div>
                     <div>
                       <span className="text-xs text-muted-foreground uppercase font-medium">NCM</span>
-                      <p className="font-mono text-sm text-slate-700 mt-1">{group.cod_ncm}</p>
+                      <p className="font-mono text-sm text-foreground mt-1">{group.cod_ncm}</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <span className="text-xs text-muted-foreground uppercase font-medium">CFOP</span>
-                      <p className="text-slate-700 mt-1">{group.cfop}</p>
+                      <p className="text-foreground mt-1">{group.cfop}</p>
                     </div>
                     <div>
                       <span className="text-xs text-muted-foreground uppercase font-medium">UF Destino</span>
-                      <p className="text-slate-700 mt-1">{ufDestino}</p>
+                      <p className="text-foreground mt-1">{ufDestino}</p>
                     </div>
                   </div>
 

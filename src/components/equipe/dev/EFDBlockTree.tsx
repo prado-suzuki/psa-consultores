@@ -100,7 +100,7 @@ export function EFDBlockTree({
                           "font-mono px-1.5 py-0.5 rounded text-[10px] mr-2 min-w-[40px] text-center border",
                           isSelected 
                             ? "bg-primary/10 text-primary border-primary/30" 
-                            :"bg-muted text-slate-700 border-border"
+                            :"bg-muted text-foreground border-border"
                         )}
                       >
                         {regCode}

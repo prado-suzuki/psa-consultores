@@ -48,8 +48,8 @@ const CORES_MOTIVO: Record<MotivoPendencia, string> = {
   sem_cliente: 'bg-red-100 text-red-700',
   sem_os: 'bg-amber-100 text-amber-700',
   os_sem_produto: 'bg-amber-100 text-amber-700',
-  sem_servico: 'bg-muted text-slate-700',
-  servico_fora_da_os: 'bg-muted text-slate-700',
+  sem_servico: 'bg-muted text-foreground',
+  servico_fora_da_os: 'bg-muted text-foreground',
 };
 
 const KpiCard = ({ label, valor, hint }: { label: string; valor: string; hint: string }) => (

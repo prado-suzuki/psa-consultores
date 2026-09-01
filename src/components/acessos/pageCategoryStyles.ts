@@ -18,7 +18,7 @@ export const PAGE_CATEGORY_LABELS: Record<string, string> = {
 
 export const PAGE_CATEGORY_COLORS: Record<string, string> = {
   rotina: 'bg-primary/15 text-primary border-primary/20',
-  dev: 'bg-foreground/[0.05] text-slate-700 border-border',
+  dev: 'bg-foreground/[0.05] text-foreground border-border',
   gestao: 'bg-primary/5 text-primary border-primary/15',
   geral: 'bg-muted text-muted-foreground border-border',
   tax: 'bg-emerald-100 text-emerald-700 border-emerald-200',

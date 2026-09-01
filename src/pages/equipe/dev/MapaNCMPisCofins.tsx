@@ -251,7 +251,7 @@ const MapaNCMPisCofins = () => {
             <div className="grid grid-cols-12 gap-6">
               {/* Buscar */}
               <div className="col-span-12 md:col-span-6">
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Buscar
                   <FieldTooltip text={TOOLTIPS.buscar} />
                 </label>
@@ -268,7 +268,7 @@ const MapaNCMPisCofins = () => {
 
               {/* Setor */}
               <div className="col-span-12 md:col-span-3">
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Setor
                   <FieldTooltip text={TOOLTIPS.setor} />
                 </label>
@@ -289,7 +289,7 @@ const MapaNCMPisCofins = () => {
 
               {/* Permite Crédito */}
               <div className="col-span-12 md:col-span-3">
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Permite Crédito
                   <FieldTooltip text={TOOLTIPS.credito} />
                 </label>
@@ -376,7 +376,7 @@ const MapaNCMPisCofins = () => {
                   </TableRow>
                 ) : paged.map(regra => (
                   <TableRow key={regra.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => openView(regra)}>
-                    <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
+                    <TableCell className="text-xs font-mono text-foreground">{regra.cod_ncm}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {setorMap[regra.id_segmento ?? '']?.nome ?? regra.id_segmento ?? '—'}
                     </TableCell>

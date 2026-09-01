@@ -125,7 +125,7 @@ export function ProcedimentoSheet({
             {p.ai_etapas.length > 0 ? (
               <ol className="space-y-2">
                 {p.ai_etapas.map((etapa, i) => (
-                  <li key={i} className="flex gap-3 text-sm text-slate-700">
+                  <li key={i} className="flex gap-3 text-sm text-foreground">
                     <span className="flex-shrink-0 h-5 w-5 rounded-full bg-muted text-muted-foreground text-[11px] font-semibold flex items-center justify-center mt-0.5">
                       {i + 1}
                     </span>

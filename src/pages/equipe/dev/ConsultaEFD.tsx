@@ -425,7 +425,7 @@ const ConsultaEFD = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Cliente */}
             <div className="md:col-span-3">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                 Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} />
               </label>
               <Select 
@@ -451,7 +451,7 @@ const ConsultaEFD = () => {
 
             {/* Contribuinte */}
             <div className="md:col-span-5">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                 Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} />
               </label>
               <Select 
@@ -476,7 +476,7 @@ const ConsultaEFD = () => {
 
             {/* Data Início */}
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                 Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.start_date} />
               </label>
               <div className="relative">
@@ -491,7 +491,7 @@ const ConsultaEFD = () => {
 
             {/* Data Fim */}
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                 Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.end_date} />
               </label>
               <div className="relative">
@@ -584,7 +584,7 @@ const ConsultaEFD = () => {
               <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
                 <Search className="w-10 h-10 text-slate-400" />
               </div>
-              <h3 className="text-xl font-bold text-slate-700">
+              <h3 className="text-xl font-bold text-foreground">
                 Nenhum arquivo listado
               </h3>
               <p className="text-base text-muted-foreground max-w-xs mt-2">
@@ -653,7 +653,7 @@ const ConsultaEFD = () => {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">
+                      <td className="px-6 py-4 text-sm font-semibold text-foreground">
                         {formatPeriodo(arquivo.DT_INI, arquivo.DT_FIN)}
                       </td>
                       <td className="px-6 py-4">
@@ -669,10 +669,10 @@ const ConsultaEFD = () => {
                           {arquivo.TIPO_ESCRIT === 0 ? 'Original' : 'Retificadora'}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-sm font-bold text-slate-700 text-right font-mono">
+                      <td className="px-6 py-4 text-sm font-bold text-foreground text-right font-mono">
                         {formatCurrency(arquivo.credito_pis)}
                       </td>
-                      <td className="px-6 py-4 text-sm font-bold text-slate-700 text-right font-mono">
+                      <td className="px-6 py-4 text-sm font-bold text-foreground text-right font-mono">
                         {formatCurrency(arquivo.credito_cofins)}
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -720,7 +720,7 @@ const ConsultaEFD = () => {
             // Nenhum arquivo encontrado
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
               <FileText className="h-12 w-12 text-slate-400 mb-3" />
-              <p className="font-medium text-slate-700">
+              <p className="font-medium text-foreground">
                 Nenhum arquivo encontrado
               </p>
               <p className="text-sm text-muted-foreground mt-1">

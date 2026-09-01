@@ -95,7 +95,7 @@ export function ControlePerdcompFilters({
       <CardContent className="space-y-6">
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-3">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} />
             </label>
             <Select value={clienteId} onValueChange={onClienteChange}>
@@ -113,7 +113,7 @@ export function ControlePerdcompFilters({
           </div>
 
           <div className="col-span-12 md:col-span-3">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} />
             </label>
             <Select
@@ -141,7 +141,7 @@ export function ControlePerdcompFilters({
           </div>
 
           <div className="col-span-6 md:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Situação <FieldTooltip text={TOOLTIPS.situacao} />
             </label>
             <Popover>
@@ -203,7 +203,7 @@ export function ControlePerdcompFilters({
           </div>
 
           <div className="col-span-6 md:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Exercício <FieldTooltip text={TOOLTIPS.exercicio} />
             </label>
             <Select
@@ -225,7 +225,7 @@ export function ControlePerdcompFilters({
           </div>
 
           <div className="col-span-12 md:col-span-2">
-            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+            <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
               Nº do Processo <FieldTooltip text={TOOLTIPS.numeroProcesso} />
             </label>
             <Input

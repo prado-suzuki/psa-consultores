@@ -106,7 +106,7 @@ export const AdminLayout = ({ children, title, subtitle, headerActions }: AdminL
               className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2.5 rounded-lg text-sm font-medium transition-colors ${
                 isActive(item.path) 
                   ? 'bg-teal-500/10 text-teal-700 hover:bg-teal-500/15' 
-                  : 'text-slate-700 hover:bg-muted hover:text-teal-600'
+                  : 'text-foreground hover:bg-muted hover:text-teal-600'
               }`}
               onClick={() => navigate(item.path)}
               title={collapsed ? item.label : undefined}

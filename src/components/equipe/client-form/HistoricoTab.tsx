@@ -115,7 +115,7 @@ export default function HistoricoTab({ clienteId, entities, participants, contra
                             {hasDetails && <p className="text-muted-foreground italic mb-2">{log.details}</p>}
                             {formattedChanges.length > 0 && (
                               <>
-                                <p className="font-semibold text-slate-700 mb-2">Campos alterados:</p>
+                                <p className="font-semibold text-foreground mb-2">Campos alterados:</p>
                                 {formattedChanges.map((change, idx) => (
                                   <div key={idx} className="flex gap-2 items-baseline">
                                     <span className="font-medium text-muted-foreground min-w-[140px]">{change.label}:</span>

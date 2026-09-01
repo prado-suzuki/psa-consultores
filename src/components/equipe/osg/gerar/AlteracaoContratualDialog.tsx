@@ -90,7 +90,7 @@ export const AlteracaoContratualDialog = ({
             Gerar alteração contratual
           </DialogTitle>
           <DialogDescription>
-            A partir de <span className="font-medium text-slate-700">{documentoDeOrigem}</span>
+            A partir de <span className="font-medium text-foreground">{documentoDeOrigem}</span>
             {empresaLabel ? <> · {empresaLabel}</> : null}
           </DialogDescription>
         </DialogHeader>
@@ -168,7 +168,7 @@ export const AlteracaoContratualDialog = ({
               {marcadas.length > 0 && (
                 <ul className="space-y-1.5 rounded-md border border-osg-300/60 bg-osg-50/50 p-3">
                   {marcadas.map((f) => (
-                    <li key={f.id} className="flex gap-2 text-sm text-slate-700">
+                    <li key={f.id} className="flex gap-2 text-sm text-foreground">
                       <span aria-hidden className="text-osg-moss">
                         •
                       </span>

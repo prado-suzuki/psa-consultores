@@ -205,7 +205,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange, modo
               <div className="space-y-1 mt-1">
                 {etapas.map((e, i) => (
                   <div key={i} className="flex items-center gap-2 text-sm">
-                    <span className="flex-1 text-slate-700">{i + 1}. {e}</span>
+                    <span className="flex-1 text-foreground">{i + 1}. {e}</span>
                     <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEtapas(etapas.filter((_, j) => j !== i))}>
                       <X className="h-3 w-3" />
                     </Button>

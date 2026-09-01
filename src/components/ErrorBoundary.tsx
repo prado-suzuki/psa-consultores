@@ -66,7 +66,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               notificada. Tente recarregar a página.
             </p>
             {import.meta.env.MODE !== 'production' && this.state.error && (
-              <pre className="text-xs text-left bg-muted rounded-lg p-3 mt-4 overflow-auto max-h-40 text-slate-700">
+              <pre className="text-xs text-left bg-muted rounded-lg p-3 mt-4 overflow-auto max-h-40 text-foreground">
                 {this.state.error.message}
               </pre>
             )}

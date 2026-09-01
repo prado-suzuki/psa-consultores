@@ -186,7 +186,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
                           <FileText className="h-4 w-4 text-slate-400 mt-0.5 flex-shrink-0" />
                         )}
                         <span className="flex-1 min-w-0">
-                          <span className="block text-sm text-slate-700 truncate">{f.titulo}</span>
+                          <span className="block text-sm text-foreground truncate">{f.titulo}</span>
                           <span className="block text-xs text-slate-400">
                             {f.jaNaBiblioteca ? 'Já está na biblioteca' : f.subtitulo}
                           </span>
@@ -227,7 +227,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
                 onClick={() => fileRef.current?.click()}
               >
                 {file ? (
-                  <p className="text-sm text-slate-700 font-medium">{file.name}</p>
+                  <p className="text-sm text-foreground font-medium">{file.name}</p>
                 ) : (
                   <p className="text-sm text-slate-400">Clique ou arraste um arquivo PDF/DOCX</p>
                 )}
