@@ -671,7 +671,7 @@ export const DashboardClientesOsContent = ({
 const BoardDashboardClientesOs = () => (
   <BoardLayout
     title="Projetos"
-    subtitle="Mix · caixa vigente · horizonte"
+    subtitle="Mix · ticket · caixa vigente"
     headerActions={<BoardClusterBar />}
   >
     <BoardProjetosContent />

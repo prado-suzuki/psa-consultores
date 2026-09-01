@@ -15,6 +15,7 @@ export const ROTAS_COM_CLUSTER_GLOBAL: string[] = [
   '/equipe/board/performance',
   '/equipe/board/dashboard-clientes-os',
   '/equipe/board/clientes',
+  '/equipe/board/uso-envio',
 ];
 
 export const honraClusterGlobal = (pathname: string): boolean =>

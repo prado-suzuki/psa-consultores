@@ -75,6 +75,11 @@ export interface EntradaContextoFerramentas {
   /** A tela está servindo fixtures, não dado de produção. */
   usandoFixtures: boolean;
   /**
+   * `false` no Board: a primeira faixa é benefício. Uso (retenção, ranking)
+   * fica na visão técnica e não entra no snapshot.
+   */
+  incluirUso?: boolean;
+  /**
    * Benefício medido (`process_improvements`). Ausente = a faixa da tela
    * ainda não apurou; o agente não inventa hora nem FTE.
    */
@@ -217,12 +222,10 @@ function blocoPessoas(e: EntradaContextoFerramentas): BlocoContexto | null {
 }
 
 export function contextoBoardFerramentas(e: EntradaContextoFerramentas): ContextoTela {
+  const uso = e.incluirUso !== false;
   const blocos = [
     blocoBeneficio(e),
-    blocoAdocao(e),
-    blocoRetencao(e),
-    blocoFerramentas(e),
-    blocoPessoas(e),
+    ...(uso ? [blocoAdocao(e), blocoRetencao(e), blocoFerramentas(e), blocoPessoas(e)] : []),
   ].filter((b): b is BlocoContexto => b !== null);
 
   const avisos = [
