@@ -69,7 +69,7 @@ export function BoardBriefingProjetos({
         </div>
       </div>
 
-      <BoardAbas
+      <BoardAbas<Aba>
         value={aba}
         onChange={setAba}
         items={[

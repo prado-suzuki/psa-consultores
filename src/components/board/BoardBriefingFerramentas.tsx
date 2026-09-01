@@ -75,7 +75,7 @@ export function BoardBriefingFerramentas({
         </div>
       </div>
 
-      <BoardAbas
+      <BoardAbas<Aba>
         value={aba}
         onChange={setAba}
         items={[
