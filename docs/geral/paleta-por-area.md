@@ -452,6 +452,19 @@ está escrito na tela:**
   `text-warning` cheio ele passa a gritar.
 - **Rótulo que não é estado.** "Líder", "Admin".
 
+**Essa classificação não vive só nesta prosa.** `src/lib/filaDoAlerta.test.ts` inventaria o
+âmbar que sobrou, arquivo a arquivo, **agrupado por motivo**, e afirma igualdade exata — a
+mesma catraca da `DIVIDA_SEMANTICA`. Âmbar novo em arquivo limpo derruba o teste; sítio
+convertido também derruba, pedindo que a contagem caia. A fila só diminui, e nunca de
+fininho. Quem for converter `sucesso`, `feito` ou `ajuste` começa dessa lista em vez de
+reclassificar do zero.
+
+Não virou regra de ESLint porque `bg-amber-50` é classe válida do Tailwind: a regra
+`escala/cor-de-estoque` só dispara em nome que o projeto **também** define (`teal`, `lime`,
+`gray`). Sobrariam `warn` global, que joga os sítios num monte indistinto e perde o motivo,
+ou escopo por pasta — medido, e protege o terço errado: as pastas já em zero são as quietas,
+e `equipe/dev`, onde está o maior naco da fila, ficaria de fora inteira.
+
 E três armadilhas que a conversão em massa produz sozinha, todas já mordidas aqui:
 `hover:` que fica **idêntico** ao estado normal; `text-white` cravado sobre um token (o par é
 `-foreground`, que é quem garante o contraste); e tom claro do Tailwind com alfa baixo

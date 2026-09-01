@@ -13,8 +13,8 @@ export const badgeVariants = cva(
 
            Ela é SUAVE enquanto o `destructive` acima é CHEIO, e isso não é
            descuido: as pílulas âmbar que esta variante veio absorver eram
-           todas `bg-amber-100 text-amber-700`, ou seja fundo pálido com texto
-           escuro. Um `bg-warning` cheio seria lajota de ferrugem com texto
+           todas o mesmo desenho — fundo pálido com texto escuro por cima.
+           Um `bg-warning` cheio seria lajota de ferrugem com texto
            branco onde hoje há um chip claro — mudança de peso que a migração de
            papel não pede.
 
