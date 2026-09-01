@@ -34,6 +34,8 @@
     "src/components/auth/TeamRoute.tsx",
     "src/components/auth/PageAccessGate.tsx",
     "src/lib/lookerEmbed.ts",
-    "src/hooks/useDashboardEmbedUrl.ts"
+    "src/hooks/useDashboardEmbedUrl.ts",
+    "src/hooks/useDashboards.ts",
+    "src/hooks/useDashboardAccess.ts"
   ]
 }
