@@ -60,7 +60,7 @@ export function AnaliseInteligenteFilters({
   onClearFilters,
 }: AnaliseInteligenteFiltersProps) {
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
           <Filter className="h-4 w-4 text-teal-600" />

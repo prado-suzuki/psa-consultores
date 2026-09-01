@@ -78,7 +78,7 @@ export function DashboardEmbedView({
   // mesmo que o usuário não tenha relatório do Looker liberado.
   if (opcoes.length === 0) {
     return (
-      <div className="rounded-xl border border-slate-200 p-8 text-center">
+      <div className="rounded-xl border border-border p-8 text-center">
         <p className="text-sm text-slate-500">{emptyMessage}</p>
       </div>
     );
@@ -105,7 +105,7 @@ export function DashboardEmbedView({
         {selected?.sop_url && (
           <Button
             variant="outline"
-            className="h-10 rounded-lg border-slate-200 bg-white text-slate-700 shadow-sm"
+            className="h-10 rounded-lg border-border bg-white text-slate-700 shadow-sm"
             onClick={() => window.open(selected.sop_url!, '_blank', 'noopener,noreferrer')}
           >
             <BookOpen className="h-4 w-4 mr-1.5" />
@@ -117,7 +117,7 @@ export function DashboardEmbedView({
       {ehNativo ? (
         nativo!.conteudo
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
           <DashboardIframe
             embed={embed}
             isLoading={isLoadingUrl}

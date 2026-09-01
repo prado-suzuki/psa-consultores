@@ -331,7 +331,7 @@ const HeaderOrdenavel = ({
             )}
           >
             {/* Sublinhado pontilhado sinaliza que há explicação no hover. */}
-            <span className="border-b border-dotted border-slate-300">{label}</span>
+            <span className="border-b border-dotted border-border">{label}</span>
             <Icone className={cn('h-3.5 w-3.5 shrink-0', ativa ? 'opacity-100' : 'opacity-40')} />
           </button>
         </TooltipTrigger>
@@ -488,7 +488,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
                   return (
                     <Fragment key={linha.userId}>
                       <TableRow
-                        className={expansivel ? 'cursor-pointer hover:bg-slate-50' : undefined}
+                        className={expansivel ? 'cursor-pointer hover:bg-muted' : undefined}
                         onClick={expansivel ? () => alternarExpandida(linha.userId) : undefined}
                       >
                         {colunas.map((coluna, indice) => {
@@ -523,7 +523,7 @@ export const AuditProdutividadeTable = ({ area, visao }: AuditProdutividadeTable
                         })}
                       </TableRow>
                       {expansivel && aberta && (
-                        <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
                           <TableCell colSpan={colunas.length} className="p-4">
                             <AuditProdutosDaPessoa
                               nome={linha.nome}

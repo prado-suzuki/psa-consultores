@@ -129,7 +129,7 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
 
         <div className="border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50">
+            <thead className="bg-muted">
               <tr>
                 <th className="text-left p-3 text-xs font-medium text-muted-foreground">Métrica</th>
                 {scenarios.map(s => (
@@ -173,7 +173,7 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
           </table>
         </div>
 
-        <div className="bg-slate-50 rounded-md p-3 text-xs text-muted-foreground">
+        <div className="bg-muted rounded-md p-3 text-xs text-muted-foreground">
           <p className="flex items-center gap-2">
             <ArrowUpDown className="h-3 w-3" />
             <span>

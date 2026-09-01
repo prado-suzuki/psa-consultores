@@ -32,7 +32,7 @@ export function AnaliseInteligenteCharts({
 }: AnaliseInteligenteChartsProps) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-slate-700 flex items-center gap-2">
             <TrendingUp className="h-4 w-4 text-teal-600" />
@@ -66,7 +66,7 @@ export function AnaliseInteligenteCharts({
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-slate-700 flex items-center gap-2">
             <Calendar className="h-4 w-4 text-teal-600" />
@@ -96,7 +96,7 @@ export function AnaliseInteligenteCharts({
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-slate-700 flex items-center gap-2">
             <Clock className="h-4 w-4 text-teal-600" />
@@ -116,7 +116,7 @@ export function AnaliseInteligenteCharts({
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm text-slate-700 flex items-center gap-2">
             <ShieldAlert className="h-4 w-4 text-amber-600" />

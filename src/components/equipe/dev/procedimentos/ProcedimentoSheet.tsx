@@ -83,7 +83,7 @@ export function ProcedimentoSheet({
         <SheetHeader className="text-left">
           <div className="flex flex-wrap gap-1.5">
             {p.status_publicacao === 'arquivado' && (
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-muted text-slate-600">
                 Arquivado
               </span>
             )}
@@ -126,7 +126,7 @@ export function ProcedimentoSheet({
               <ol className="space-y-2">
                 {p.ai_etapas.map((etapa, i) => (
                   <li key={i} className="flex gap-3 text-sm text-slate-700">
-                    <span className="flex-shrink-0 h-5 w-5 rounded-full bg-slate-100 text-slate-500 text-[11px] font-semibold flex items-center justify-center mt-0.5">
+                    <span className="flex-shrink-0 h-5 w-5 rounded-full bg-muted text-slate-500 text-[11px] font-semibold flex items-center justify-center mt-0.5">
                       {i + 1}
                     </span>
                     <span className="leading-relaxed">{etapa}</span>
@@ -163,7 +163,7 @@ export function ProcedimentoSheet({
                   </h4>
                   <div className="flex flex-wrap gap-1">
                     {p.ai_tags.map((t) => (
-                      <span key={t} className="text-[11px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">
+                      <span key={t} className="text-[11px] px-2 py-0.5 rounded bg-muted text-slate-500">
                         {t}
                       </span>
                     ))}
@@ -173,7 +173,7 @@ export function ProcedimentoSheet({
             </section>
           )}
 
-          <section className="border-t border-slate-100 pt-4 space-y-1.5 text-xs text-slate-400">
+          <section className="border-t border-border pt-4 space-y-1.5 text-xs text-slate-400">
             <p>
               Documento de origem:{' '}
               {p.source_type === 'link' ? 'link externo' : p.source_type.toUpperCase()}
@@ -191,7 +191,7 @@ export function ProcedimentoSheet({
           </section>
         </div>
 
-        <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-slate-100">
+        <div className="flex flex-wrap gap-2 mt-6 pt-4 border-t border-border">
           {p.source_url ? (
             <Button size="sm" variant="outline" onClick={() => window.open(p.source_url!, '_blank')}>
               <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Abrir documento

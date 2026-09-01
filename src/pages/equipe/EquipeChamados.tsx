@@ -156,10 +156,10 @@ export default function EquipeChamados() {
       : 'Nenhum chamado encontrado com os filtros selecionados.';
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="h-16 border-b border-slate-200/60 bg-white flex items-center px-6">
+    <div className="min-h-screen bg-muted">
+      <header className="h-16 border-b border-border/60 bg-white flex items-center px-6">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={() => navigate(backTo)} className="text-slate-600 hover:text-teal-600 hover:bg-slate-50">
+          <Button variant="ghost" size="sm" onClick={() => navigate(backTo)} className="text-slate-600 hover:text-teal-600 hover:bg-muted">
             <ArrowLeft className="mr-2 h-4 w-4" />{rotuloVoltar}
           </Button>
           <div>

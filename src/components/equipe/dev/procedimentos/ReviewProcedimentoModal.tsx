@@ -137,7 +137,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange, modo
 
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mt-2">
           {/* Preview Column (40%) */}
-          <div className="md:col-span-2 bg-slate-50 rounded-xl p-5 space-y-3">
+          <div className="md:col-span-2 bg-muted rounded-xl p-5 space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
                 Como vai aparecer
@@ -169,7 +169,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange, modo
               <ul className="space-y-1">
                 {etapas.map((e, i) => (
                   <li key={i} className="text-xs text-slate-400 flex items-start gap-1.5">
-                    <span className="mt-1.5 h-1 w-1 rounded-full bg-slate-300 flex-shrink-0" />
+                    <span className="mt-1.5 h-1 w-1 rounded-full bg-muted flex-shrink-0" />
                     {e}
                   </li>
                 ))}
@@ -183,7 +183,7 @@ export function ReviewProcedimentoModal({ procedimento, open, onOpenChange, modo
             )}
             <div className="flex flex-wrap gap-1">
               {tags.map((t) => (
-                <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-600">{t}</span>
+                <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-muted text-slate-600">{t}</span>
               ))}
             </div>
           </div>

@@ -257,7 +257,7 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
                       type="button"
                       onClick={() => setKind(k)}
                       className={`text-left p-4 rounded-lg border-2 transition-all ${
-                        isSelected ? info.color : 'border-slate-200 hover:border-slate-300'
+                        isSelected ? info.color : 'border-border hover:border-border'
                       }`}
                     >
                       <Icon className="h-5 w-5 mb-2" />
@@ -339,7 +339,7 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
         {step === 3 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="space-y-4">
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-4 space-y-3">
                   <p className="text-xs font-medium text-slate-500 uppercase">Baseline (travado)</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">

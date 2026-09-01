@@ -72,7 +72,7 @@ const CalculadoraIbsCbs = () => {
       title="Calculadora de IBS e CBS"
       subtitle="Classificação fiscal e análise de carga tributária — antes vs depois da reforma"
     >
-      <Card className="mb-6 border-slate-200 shadow-sm">
+      <Card className="mb-6 border-border shadow-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-slate-800">
             <Filter className="h-4 w-4 text-primary" />

@@ -13,7 +13,7 @@ import type { BlocoForaDaFolha } from '@/components/equipe/osg/gerar/resumoDaCom
 export function BlocosSemDado({ blocos }: { blocos: BlocoForaDaFolha[] }) {
   if (blocos.length === 0) return null;
   return (
-    <div className="space-y-2 rounded-md border border-slate-200 bg-slate-50/70 p-3">
+    <div className="space-y-2 rounded-md border border-border bg-muted/70 p-3">
       <p className="flex items-center gap-1.5 text-sm font-semibold text-slate-600">
         <EyeOff className="h-4 w-4 text-slate-500" />
         {blocos.length === 1 ? '1 bloco não entrou' : `${blocos.length} blocos não entraram`}

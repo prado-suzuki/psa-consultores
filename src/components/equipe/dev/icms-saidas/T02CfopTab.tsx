@@ -104,7 +104,7 @@ export const T02CfopTab = ({ enabled, contribuinteId, start_date, end_date }: T0
 
   if (!enabled) {
     return (
-      <Card className="border-slate-200 border-dashed">
+      <Card className="border-border border-dashed">
         <CardContent className="p-12 text-center">
           <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
           <p className="text-slate-500">Selecione os filtros e clique em Buscar para carregar o resumo por CFOP.</p>
@@ -161,7 +161,7 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
   );
 
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Calculator className="h-4 w-4 text-slate-500" />
@@ -183,7 +183,7 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                <TableRow className="bg-muted hover:bg-muted">
                   <TableHead className="w-[80px]">
                     {renderColumnLabel('CFOP', ICMS_T02_TOOLTIPS.cfop)}
                   </TableHead>
@@ -217,7 +217,7 @@ const CfopTable = ({ title, rows, isLoading }: CfopTableProps) => {
                     </TableCell>
                   </TableRow>
                 ))}
-                <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-300">
+                <TableRow className="bg-muted hover:bg-muted border-t-2 border-border">
                   <TableCell className="font-bold" colSpan={2}>TOTAL</TableCell>
                   <TableCell className="text-right font-mono text-sm font-bold">{fmt(totals.vlItem)}</TableCell>
                   <TableCell className="text-right font-mono text-sm font-bold">{fmt(totals.vlBcIcms)}</TableCell>

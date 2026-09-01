@@ -506,7 +506,7 @@ const ConsultaEFD = () => {
           </div>
 
           {/* Barra de Ações */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button 
               variant="ghost" 
               onClick={handleClearFilters}
@@ -535,7 +535,7 @@ const ConsultaEFD = () => {
       <Card className="shadow-sm min-h-[400px] flex flex-col overflow-hidden">
         {/* Header com CNPJ e Botão Baixar Todos */}
         {overview && cnpjContribuinte && (
-          <div className="px-6 py-4 bg-slate-50 flex items-center justify-between border-b border-slate-200">
+          <div className="px-6 py-4 bg-muted flex items-center justify-between border-b border-border">
             {/* Lado Esquerdo - CNPJ */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
@@ -581,7 +581,7 @@ const ConsultaEFD = () => {
           {!searchTriggered ? (
             // Estado inicial
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
-              <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+              <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
                 <Search className="w-10 h-10 text-slate-400" />
               </div>
               <h3 className="text-xl font-bold text-slate-700">
@@ -604,14 +604,14 @@ const ConsultaEFD = () => {
               className={cn(
                 "overflow-x-auto",
                 "[&::-webkit-scrollbar]:h-3",
-                "[&::-webkit-scrollbar-track]:bg-slate-100",
+                "[&::-webkit-scrollbar-track]:bg-muted",
                 "[&::-webkit-scrollbar-thumb]:bg-slate-400",
                 "[&::-webkit-scrollbar-thumb]:rounded-full"
               )}
             >
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-100 border-b border-slate-200">
+                  <tr className="bg-muted border-b border-border">
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
                       <ColumnTooltip label="Arquivo" text={TOOLTIPS.colArquivo} />
                     </th>
@@ -632,11 +632,11 @@ const ConsultaEFD = () => {
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-border">
                   {arquivosFiltrados.map((arquivo) => (
                     <tr 
                       key={arquivo.ID_ARQUIVO} 
-                      className="hover:bg-slate-50 transition-colors group"
+                      className="hover:bg-muted transition-colors group"
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -681,7 +681,7 @@ const ConsultaEFD = () => {
                             <Button
                               variant="outline"
                               size="icon"
-                              className="h-9 w-9 text-slate-500 hover:text-slate-800 bg-slate-50 border-slate-200 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                              className="h-9 w-9 text-slate-500 hover:text-slate-800 bg-muted border-border transition-transform hover:-translate-y-0.5 active:translate-y-0"
                               onClick={() => handleDownloadTxt(arquivo)}
                               disabled={downloadingTxt === arquivo.ID_ARQUIVO}
                             >

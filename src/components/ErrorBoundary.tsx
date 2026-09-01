@@ -52,8 +52,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
 
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-        <div className="max-w-md w-full bg-white rounded-xl border border-slate-200 shadow-sm p-8 text-center space-y-6">
+      <div className="min-h-screen flex items-center justify-center bg-muted p-4">
+        <div className="max-w-md w-full bg-white rounded-xl border border-border shadow-sm p-8 text-center space-y-6">
           <div className="mx-auto w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
             <AlertTriangle className="h-8 w-8 text-red-600" />
           </div>
@@ -66,7 +66,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
               notificada. Tente recarregar a página.
             </p>
             {import.meta.env.MODE !== 'production' && this.state.error && (
-              <pre className="text-xs text-left bg-slate-100 rounded-lg p-3 mt-4 overflow-auto max-h-40 text-slate-700">
+              <pre className="text-xs text-left bg-muted rounded-lg p-3 mt-4 overflow-auto max-h-40 text-slate-700">
                 {this.state.error.message}
               </pre>
             )}

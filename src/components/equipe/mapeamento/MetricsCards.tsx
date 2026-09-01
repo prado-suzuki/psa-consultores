@@ -15,7 +15,7 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
       value: metrics.total,
       icon: Workflow,
       iconClass: 'text-slate-500',
-      bgClass: 'bg-slate-50',
+      bgClass: 'bg-muted',
     },
     // Os três KPI de status pegam a cor do MESMO mapa que pinta a pílula na
     // planilha e o ícone no acordeão. Antes cada tela tinha a sua: "Não

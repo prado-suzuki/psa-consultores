@@ -56,7 +56,7 @@ function KpiCard({ label, value, sub, accent, trend, tooltip }: KpiCardProps) {
   }[accent];
 
   const card = (
-    <Card className={`relative overflow-hidden border-slate-200 ${tooltip ? 'cursor-help' : ''}`}>
+    <Card className={`relative overflow-hidden border-border ${tooltip ? 'cursor-help' : ''}`}>
       <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: accentColor }} />
       <CardContent className="p-5">
         <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
@@ -125,7 +125,7 @@ function SegmentoCard({
   const isEmpty = segmento.qtdItens === 0;
 
   return (
-    <Card className="border-slate-200">
+    <Card className="border-border">
       <CardContent className="p-5">
         <div className="flex items-center gap-2 mb-3">
           <div
@@ -349,7 +349,7 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
                   </span>
                 </div>
               </div>
-              <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-200">
+              <p className="text-[11px] text-slate-500 pt-1 border-t border-border">
                 Os cards e gráficos comparativos desta página passaram a considerar apenas o valor
                 de IBS/CBS, sem somar ICMS monofásico.
               </p>
@@ -392,7 +392,7 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-slate-200">
+        <Card className="border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold text-slate-700">
               Carga tributária comparada
@@ -421,7 +421,7 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
           </CardContent>
         </Card>
 
-        <Card className="border-slate-200">
+        <Card className="border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-semibold text-slate-700">
               Composição dos tributos ANTES
@@ -464,7 +464,7 @@ export function AbaResumo({ filtros, idContribuinte }: AbaResumoProps) {
         </Card>
       </div>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold text-slate-700">
             Evolução mensal — antes vs depois

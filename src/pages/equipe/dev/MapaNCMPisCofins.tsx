@@ -326,11 +326,11 @@ const MapaNCMPisCofins = () => {
         </Card>
 
         {/* Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50">
+                <TableRow className="bg-muted">
                   <TableHead className="text-xs font-semibold tracking-wider uppercase">
                     <ColumnTooltip label="NCM" text={TOOLTIPS.colNcm} />
                     <ColumnFilterDropdown columnKey="ncm" uniqueValues={uniqueValues.ncm ?? []} activeSort={sortConfig} activeFilter={columnFilters.ncm ?? null} onSort={handleSort} onFilter={handleFilter} />
@@ -375,7 +375,7 @@ const MapaNCMPisCofins = () => {
                     </TableCell>
                   </TableRow>
                 ) : paged.map(regra => (
-                  <TableRow key={regra.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => openView(regra)}>
+                  <TableRow key={regra.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => openView(regra)}>
                     <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
                     <TableCell className="text-xs text-slate-600">
                       {setorMap[regra.id_segmento ?? '']?.nome ?? regra.id_segmento ?? '—'}

@@ -48,8 +48,8 @@ const CORES_MOTIVO: Record<MotivoPendencia, string> = {
   sem_cliente: 'bg-red-100 text-red-700',
   sem_os: 'bg-amber-100 text-amber-700',
   os_sem_produto: 'bg-amber-100 text-amber-700',
-  sem_servico: 'bg-slate-100 text-slate-700',
-  servico_fora_da_os: 'bg-slate-100 text-slate-700',
+  sem_servico: 'bg-muted text-slate-700',
+  servico_fora_da_os: 'bg-muted text-slate-700',
 };
 
 const KpiCard = ({ label, valor, hint }: { label: string; valor: string; hint: string }) => (
@@ -230,7 +230,7 @@ export const AuditPendenciasTable = ({ area }: AuditPendenciasTableProps) => {
                   return (
                   <TableRow
                     key={linha.itemId}
-                    className="cursor-pointer hover:bg-slate-50"
+                    className="cursor-pointer hover:bg-muted"
                     onClick={() => navigate(destino.rota)}
                   >
                     <TableCell className="text-sm font-medium">{linha.nome}</TableCell>

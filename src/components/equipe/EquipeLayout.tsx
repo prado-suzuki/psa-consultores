@@ -115,15 +115,15 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex w-full">
+    <div className="min-h-screen bg-muted flex w-full">
       {/* Sidebar — colapsa completamente (w-0) igual à DevLayout */}
       <aside
-        className={`${collapsed ? 'w-0' : 'w-64 border-r border-slate-200/60'} sticky top-0 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-y-auto overflow-x-hidden scrollbar-hide`}
+        className={`${collapsed ? 'w-0' : 'w-64 border-r border-border/60'} sticky top-0 h-screen bg-white flex flex-col transition-all duration-300 ease-in-out flex-shrink-0 overflow-y-auto overflow-x-hidden scrollbar-hide`}
       >
         {!collapsed && (
           <>
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-slate-200/60 flex-shrink-0">
+            <div className="flex items-center justify-between p-6 border-b border-border/60 flex-shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <LayoutDashboard className="h-5 w-5 text-primary" />
@@ -158,7 +158,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                         className={`flex-1 justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                           isActive(item.path) || isChildActive(item.children)
                             ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                            : 'text-slate-700 hover:bg-slate-50 hover:text-primary'
+                            : 'text-slate-700 hover:bg-muted hover:text-primary'
                         }`}
                         onClick={() => navigate(item.path)}
                       >
@@ -169,13 +169,13 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                          className="h-8 w-8 text-slate-500 hover:text-slate-700 hover:bg-muted"
                         >
                           <ChevronDown className={`h-4 w-4 transition-transform ${(openGroups[item.path] ?? true) ? 'rotate-180' : ''}`} />
                         </Button>
                       </CollapsibleTrigger>
                     </div>
-                    <CollapsibleContent className="mt-1 ml-4 space-y-1 border-l border-slate-200/60 pl-3">
+                    <CollapsibleContent className="mt-1 ml-4 space-y-1 border-l border-border/60 pl-3">
                       {item.children.map((child) => (
                         <Button
                           key={child.path}
@@ -183,7 +183,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                           className={`w-full justify-start px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                             isActive(child.path)
                               ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                              : 'text-slate-600 hover:bg-slate-50 hover:text-primary'
+                              : 'text-slate-600 hover:bg-muted hover:text-primary'
                           }`}
                           onClick={() => navigate(child.path)}
                         >
@@ -200,7 +200,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
                     className={`w-full justify-start px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                       isActive(item.path)
                         ? 'bg-primary/10 text-primary hover:bg-primary/15'
-                        : 'text-slate-700 hover:bg-slate-50 hover:text-primary'
+                        : 'text-slate-700 hover:bg-muted hover:text-primary'
                     }`}
                     onClick={() => navigate(item.path)}
                   >
@@ -212,8 +212,8 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
             </nav>
 
             {/* Footer Actions */}
-            <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
-              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-50 mb-3">
+            <div className="mt-auto p-4 border-t border-border/60 space-y-2">
+              <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-muted mb-3">
                 <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
                   <User className="h-4 w-4 text-primary" />
                 </div>
@@ -227,7 +227,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
 
               <Button
                 variant="ghost"
-                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors"
+                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-muted hover:text-primary transition-colors"
                 onClick={() => navigate('/equipe/digital')}
               >
                 <ArrowLeft className="h-4 w-4 mr-3" />
@@ -235,7 +235,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
               </Button>
               <Button
                 variant="ghost"
-                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-primary transition-colors"
+                className="w-full justify-start px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-muted hover:text-primary transition-colors"
                 onClick={() => navigate('/')}
               >
                 <ArrowLeft className="h-4 w-4 mr-3" />
@@ -278,7 +278,7 @@ export const EquipeLayout = ({ children, title, subtitle, headerActions, fullWid
             <Button
               variant="ghost"
               size="icon"
-              className="relative text-slate-600 hover:text-primary hover:bg-slate-50"
+              className="relative text-slate-600 hover:text-primary hover:bg-muted"
               // SEM espelho, de propósito. A Rotina é o chão comum e não um
               // recorte: "os chamados da Rotina" não quer dizer nada. Daqui se vê
               // a lista completa, no piso. Ver o bloco `ESPELHO` em

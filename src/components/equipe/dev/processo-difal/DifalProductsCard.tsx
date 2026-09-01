@@ -39,7 +39,7 @@ export function DifalProductsCard({
   onPageChange,
 }: DifalProductsCardProps) {
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
           <Package className="h-4 w-4 text-slate-500" />
@@ -67,7 +67,7 @@ export function DifalProductsCard({
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                <TableRow className="bg-muted hover:bg-muted">
                   <TableHead className="w-[100px]">
                     <ColumnTooltip name="colStatus">Status</ColumnTooltip>
                   </TableHead>
@@ -95,7 +95,7 @@ export function DifalProductsCard({
                     className={
                       group.status === 'pendente'
                         ? 'cursor-pointer hover:bg-amber-50'
-                        : 'hover:bg-slate-50'
+                        : 'hover:bg-muted'
                     }
                     onClick={() => onGroupClick(group)}
                   >
@@ -156,7 +156,7 @@ export function DifalProductsCard({
             </Table>
 
             {totalItems > PROCESSO_DIFAL_ITEMS_PER_PAGE && (
-              <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+              <div className="flex items-center justify-between px-4 py-3 border-t border-border">
                 <p className="text-sm text-slate-500">
                   Página {currentPage} de {totalPages} ({totalItems} produtos)
                 </p>

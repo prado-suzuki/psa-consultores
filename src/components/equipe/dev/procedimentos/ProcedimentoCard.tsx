@@ -146,7 +146,7 @@ export function ProcedimentoCard({
               </span>
             )}
             {p.status_publicacao === 'arquivado' && (
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-600">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-muted text-slate-600">
                 Arquivado
               </span>
             )}
@@ -174,7 +174,7 @@ export function ProcedimentoCard({
             <ul className="space-y-1 mb-3">
               {p.ai_etapas.slice(0, 3).map((e, i) => (
                 <li key={i} className="text-xs text-slate-400 flex items-start gap-1.5">
-                  <span className="mt-1.5 h-1 w-1 rounded-full bg-slate-300 flex-shrink-0" />
+                  <span className="mt-1.5 h-1 w-1 rounded-full bg-muted flex-shrink-0" />
                   <span className="line-clamp-1">{e}</span>
                 </li>
               ))}
@@ -190,7 +190,7 @@ export function ProcedimentoCard({
           <div className="flex-1" />
 
           {/* Footer */}
-          <div className="border-t border-slate-100 pt-3 space-y-2">
+          <div className="border-t border-border pt-3 space-y-2">
             <div className="flex items-center justify-between">
               {complexConfig && (
                 <div className="flex items-center gap-1">
@@ -209,7 +209,7 @@ export function ProcedimentoCard({
             {p.ai_tags.length > 0 && (
               <div className="flex flex-wrap gap-1">
                 {p.ai_tags.slice(0, 3).map((t) => (
-                  <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-slate-100 text-slate-500">
+                  <span key={t} className="text-[10px] px-2 py-0.5 rounded bg-muted text-slate-500">
                     {t}
                   </span>
                 ))}

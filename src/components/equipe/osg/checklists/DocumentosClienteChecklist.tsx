@@ -258,7 +258,7 @@ function ChecklistRow({ number, req, state, matches, downloading, onDownload, up
           'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold tabular-nums',
           state === 'encontrado' && 'border-osg-moss/30 bg-osg-moss/10 text-osg-moss',
           state === 'solicitar' && 'border-amber-300/70 bg-amber-50 text-amber-700',
-          state === 'modelo' && 'border-slate-200 bg-slate-50 text-slate-500',
+          state === 'modelo' && 'border-border bg-muted text-slate-500',
         )}>
           {state === 'encontrado' ? <Check className="h-4 w-4" /> : number}
         </span>
@@ -295,7 +295,7 @@ function ChecklistRow({ number, req, state, matches, downloading, onDownload, up
           )}
 
           {state === 'modelo' && (
-            <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/70 px-3 py-2 text-xs text-slate-500">
+            <div className="mt-3 inline-flex items-center gap-2 rounded-lg border border-dashed border-border bg-muted/70 px-3 py-2 text-xs text-slate-500">
               <FileDown className="h-4 w-4" /> Modelo de DRE utilizado para preparar a projeção
             </div>
           )}
@@ -363,7 +363,7 @@ function StatusPill({ state, count }: { state: ChecklistState; count: number }) 
   const config = {
     encontrado: { label: `Correspondência encontrada${count > 1 ? ` (${count})` : ''}`, className: 'border-emerald-200 bg-emerald-50 text-emerald-700' },
     solicitar: { label: 'A solicitar', className: 'border-amber-200 bg-amber-50 text-amber-700' },
-    modelo: { label: 'Modelo de referência', className: 'border-slate-200 bg-slate-50 text-slate-500' },
+    modelo: { label: 'Modelo de referência', className: 'border-border bg-muted text-slate-500' },
   }[state];
   return <span className={cn('inline-flex w-fit shrink-0 items-center rounded-full border px-2.5 py-1 text-[10px] font-bold', config.className)}>{config.label}</span>;
 }

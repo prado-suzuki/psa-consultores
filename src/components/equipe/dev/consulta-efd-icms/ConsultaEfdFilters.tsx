@@ -37,6 +37,6 @@ export function ConsultaEfdFilters(props: Props) {
       <div className="md:col-span-2"><FieldLabel tip="Define o período inicial da busca.">Data de Início</FieldLabel><MonthYearPicker value={props.inicio} onChange={props.onInicio} placeholder="Selecione"className="bg-white"/></div>
       <div className="md:col-span-2"><FieldLabel tip="Define o período final da busca.">Data Fim</FieldLabel><MonthYearPicker value={props.fim} onChange={props.onFim} placeholder="Selecione"className="bg-white"/></div>
     </div>
-    <div className="flex justify-end gap-3 pt-4 border-t border-slate-200"><Button variant="ghost"onClick={props.onClear} className="text-slate-500 hover:text-red-600"><Eraser className="h-4 w-4 mr-2"/>Limpar filtros</Button><Button onClick={props.onSearch} disabled={!props.contribuinte} className="bg-primary hover:bg-primary/90">{props.searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : <Search className="h-4 w-4 mr-2"/>}Buscar arquivos</Button></div>
+    <div className="flex justify-end gap-3 pt-4 border-t border-border"><Button variant="ghost"onClick={props.onClear} className="text-slate-500 hover:text-red-600"><Eraser className="h-4 w-4 mr-2"/>Limpar filtros</Button><Button onClick={props.onSearch} disabled={!props.contribuinte} className="bg-primary hover:bg-primary/90">{props.searching ? <Loader2 className="h-4 w-4 mr-2 animate-spin"/> : <Search className="h-4 w-4 mr-2"/>}Buscar arquivos</Button></div>
   </CardContent></Card>;
 }

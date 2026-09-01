@@ -28,7 +28,7 @@ const PerdcompDashboard = () => {
         </Button>
       }
     >
-      <Card className="overflow-hidden border-slate-200/70 shadow-sm">
+      <Card className="overflow-hidden border-border/70 shadow-sm">
         <CardContent className="p-2 md:p-3">
           <DashboardEmbedView
             targetPage="dev_perdcomp"

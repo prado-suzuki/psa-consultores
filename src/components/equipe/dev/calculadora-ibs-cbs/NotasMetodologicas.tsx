@@ -14,7 +14,7 @@ interface NotasMetodologicasProps {
 export function NotasMetodologicas({ notas }: NotasMetodologicasProps) {
   if (notas.length === 0) return null;
   return (
-    <Card className="border-slate-200 bg-muted">
+    <Card className="border-border bg-muted">
       <CardContent className="p-5">
         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-3 flex items-center gap-1.5">
           <ShieldAlert className="h-3.5 w-3.5" />

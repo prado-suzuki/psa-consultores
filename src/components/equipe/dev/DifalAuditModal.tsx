@@ -129,7 +129,7 @@ export const DifalAuditModal = ({
         <DialogTitle className="sr-only">Classificar Item DIFAL</DialogTitle>
         <DialogDescription className="sr-only">Modal de classificação de item fiscal DIFAL/ICMS-ST</DialogDescription>
         {/* Header */}
-        <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 bg-white/95 backdrop-blur flex-shrink-0">
+        <div className="h-20 flex items-center justify-between px-6 border-b border-border bg-white/95 backdrop-blur flex-shrink-0">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
               <Scale className="w-7 h-7" />
@@ -158,13 +158,13 @@ export const DifalAuditModal = ({
         {group && (
           <div className="flex-1 flex overflow-hidden">
             {/* Left Column: Product Data */}
-            <div className="w-[30%] border-r border-slate-200 p-6 overflow-y-auto bg-slate-50/30">
+            <div className="w-[30%] border-r border-border p-6 overflow-y-auto bg-muted/30">
               <div className="flex items-center gap-2 mb-4">
                 <FileText className="h-5 w-5 text-slate-500" />
                 <h3 className="font-semibold text-lg text-slate-900">Dados do Produto</h3>
               </div>
 
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-5 space-y-4">
                   <div>
                     <span className="text-xs text-slate-500 uppercase font-medium">Produto</span>
@@ -193,7 +193,7 @@ export const DifalAuditModal = ({
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-slate-100">
+                  <div className="pt-4 border-t border-border">
                     <span className="text-xs text-slate-500 uppercase font-medium">
                       Tributação
                     </span>
@@ -220,22 +220,22 @@ export const DifalAuditModal = ({
                   </div>
 
                   {/* Resumo do Grupo */}
-                  <div className="pt-4 border-t border-slate-100">
+                  <div className="pt-4 border-t border-border">
                     <span className="text-xs text-slate-500 uppercase font-medium">
                       Resumo do Grupo
                     </span>
                     <div className="grid grid-cols-2 gap-3 mt-3">
-                      <div className="bg-slate-50 rounded-lg p-3 text-center">
+                      <div className="bg-muted rounded-lg p-3 text-center">
                         <p className="text-2xl font-bold text-slate-900">{group.count}</p>
                         <p className="text-xs text-slate-500">Itens</p>
                       </div>
-                      <div className="bg-slate-50 rounded-lg p-3 text-center">
+                      <div className="bg-muted rounded-lg p-3 text-center">
                         <p className="text-2xl font-bold text-slate-900">{group.nfesCount}</p>
                         <p className="text-xs text-slate-500">NFes</p>
                       </div>
                     </div>
                     <div className="mt-3">
-                      <div className="bg-slate-50 rounded-lg p-3 text-center">
+                      <div className="bg-muted rounded-lg p-3 text-center">
                         <p className="text-lg font-bold text-slate-900">
                           {formatCurrency(group.totalValue)}
                         </p>
@@ -279,7 +279,7 @@ export const DifalAuditModal = ({
                         "cursor-pointer transition-all",
                         selectedRegraId === regra.id
                           ?'border-primary bg-primary/5 ring-2 ring-ring/20'
-                          :'border-slate-200 hover:border-primary/40 hover:bg-slate-50'
+                          :'border-border hover:border-primary/40 hover:bg-muted'
                       )}
                       onClick={() => setSelectedRegraId(regra.id)}
                     >
@@ -351,7 +351,7 @@ export const DifalAuditModal = ({
         )}
 
         {/* Footer */}
-        <div className="h-16 px-6 border-t border-slate-200 bg-white flex items-center justify-end gap-3 flex-shrink-0">
+        <div className="h-16 px-6 border-t border-border bg-white flex items-center justify-end gap-3 flex-shrink-0">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}

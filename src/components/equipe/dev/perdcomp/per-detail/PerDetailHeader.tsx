@@ -41,7 +41,7 @@ export function PerDetailHeader({
   onClose,
 }: PerDetailHeaderProps) {
   return (
-    <div className="h-20 flex items-center justify-between px-6 border-b border-slate-200 bg-white/95 backdrop-blur flex-shrink-0">
+    <div className="h-20 flex items-center justify-between px-6 border-b border-border bg-white/95 backdrop-blur flex-shrink-0">
       <div className="flex items-center gap-4">
         <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
           <FileText className="w-7 h-7" />
@@ -73,7 +73,7 @@ export function PerDetailHeader({
       </div>
 
       <div className="flex items-center gap-6">
-        <div className="hidden xl:flex items-center gap-8 border-r border-slate-200 pr-6 h-12">
+        <div className="hidden xl:flex items-center gap-8 border-r border-border pr-6 h-12">
           <div className="text-right">
             <p className="text-xs text-slate-500 font-bold uppercase tracking-wider mb-0.5">
               Valor Crédito

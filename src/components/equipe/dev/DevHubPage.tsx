@@ -42,13 +42,13 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
                 key={option.path}
                 type="button"
                 onClick={() => navigate(option.path)}
-                className="group flex min-h-[320px] flex-col rounded-3xl border border-slate-200 bg-white p-8 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="group flex min-h-[320px] flex-col rounded-3xl border border-border bg-white p-8 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <div className="mb-6 flex items-start justify-between gap-4">
                   <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/5 text-primary transition-colors group-hover:bg-primary/15">
                     <Icon className="h-7 w-7" />
                   </div>
-                  <Badge variant="secondary" className="bg-slate-100 text-slate-700">
+                  <Badge variant="secondary" className="bg-muted text-slate-700">
                     {option.badge}
                   </Badge>
                 </div>
@@ -60,13 +60,13 @@ const DevHubPage = ({ hub }: DevHubPageProps) => {
 
                 <div className="mt-6 space-y-2">
                   {option.highlights.map((highlight) => (
-                    <div key={highlight} className="rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+                    <div key={highlight} className="rounded-xl bg-muted px-4 py-3 text-sm font-medium text-slate-700">
                       {highlight}
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-auto flex items-center justify-between gap-3 border-t border-slate-200 pt-6">
+                <div className="mt-auto flex items-center justify-between gap-3 border-t border-border pt-6">
                   {option.sopUrl ? (
                     <a
                       href={option.sopUrl}

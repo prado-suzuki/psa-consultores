@@ -87,7 +87,7 @@ const ESTADO_LABEL: Record<EstadoDocumento, string> = {
 };
 const ESTADO_CHIP: Record<EstadoDocumento, string> = {
   pendente: 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400',
-  em_analise: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400',
+  em_analise: 'border-border bg-muted text-slate-600 hover:border-slate-400',
   recusado: 'border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400',
   aprovado: 'border-primary/15 bg-accent/5 text-primary hover:border-primary/40',
 };
@@ -198,7 +198,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
 
   if (pendencias.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300/80 bg-white/70 px-6 py-16 text-center shadow-sm">
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border/80 bg-white/70 px-6 py-16 text-center shadow-sm">
         <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/5 text-primary">
           <ShieldCheck className="h-7 w-7" />
         </span>
@@ -216,14 +216,14 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
       <ResumoHero {...resumo} />
 
       {encerrada && (
-        <p className="rounded-xl border border-slate-200/70 bg-slate-50/70 px-4 py-3 text-sm text-slate-600">
+        <p className="rounded-xl border border-border/70 bg-muted/70 px-4 py-3 text-sm text-slate-600">
           Este pedido foi encerrado. A lista fica para consulta e o envio está desligado. Se
           precisar mandar algo, fale com a PSA.
         </p>
       )}
 
-      <div className="space-y-3 rounded-2xl border border-slate-200/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.28)]">
-        <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-slate-100 bg-slate-50 p-1">
+      <div className="space-y-3 rounded-2xl border border-border/70 bg-white/70 p-3 shadow-[0_8px_24px_-20px_rgba(15,23,42,0.28)]">
+        <div className="flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-border bg-muted p-1">
           {FILTROS_GRUPO.map(({ value, label, Icon }) => {
             const ativo = filtroGrupo === value;
             const total = value === 'todos'
@@ -237,7 +237,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
                 className={cn(
                   'relative flex shrink-0 items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors',
                   FOCO,
-                  ativo ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-slate-100/70 hover:text-slate-700',
+                  ativo ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:bg-muted/70 hover:text-slate-700',
                 )}
               >
                 <Icon className="h-3.5 w-3.5" />{label}
@@ -262,7 +262,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
                     FOCO,
                     ativo
                       ? 'border-primary bg-accent/5 text-primary'
-                      : 'border-slate-200/80 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700',
+                      : 'border-border/80 bg-white text-slate-500 hover:border-border hover:text-slate-700',
                   )}
                 >
                   {dot && <span aria-hidden className={cn('h-2 w-2 rounded-full', dot)} />}
@@ -284,7 +284,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
       </div>
 
       {gavetasVisiveis.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 py-14 text-center text-sm text-slate-500">
+        <div className="rounded-2xl border border-dashed border-border py-14 text-center text-sm text-slate-500">
           Nenhum documento para os filtros selecionados.
         </div>
       ) : gavetasVisiveis.map((gaveta) => (
@@ -345,7 +345,7 @@ function ResumoHero({ pct, total, recebidos, faltando }: {
   pct: number; total: number; recebidos: number; faltando: number;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 p-5 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.4)] sm:p-7">
+    <section className="relative overflow-hidden rounded-2xl border border-border/80 bg-white/80 p-5 shadow-[0_14px_40px_-28px_rgba(15,23,42,0.4)] sm:p-7">
       <div aria-hidden className="absolute -right-20 -top-24 h-64 w-64 rounded-full bg-primary/5 blur-3xl" />
       <div className="relative grid gap-7 lg:grid-cols-[1fr_240px] lg:items-center">
         <div>
@@ -364,14 +364,14 @@ function ResumoHero({ pct, total, recebidos, faltando }: {
             <span className="text-4xl font-extrabold leading-none tabular-nums text-primary">{pct}%</span>
             <span className="text-sm text-slate-500">{recebidos} de {total} documentos recebidos</span>
           </div>
-          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-[width] duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3 border-slate-100 lg:border-l lg:pl-7">
+        <div className="grid grid-cols-2 gap-3 border-border lg:border-l lg:pl-7">
           <Metrica label="Falta enviar" value={faltando} tom="atencao" />
           <Metrica label="Recebidos" value={recebidos} tom="neutro" />
         </div>
@@ -382,7 +382,7 @@ function ResumoHero({ pct, total, recebidos, faltando }: {
 
 function Metrica({ label, value, tom }: { label: string; value: number; tom: 'atencao' | 'neutro' }) {
   return (
-    <div className="flex flex-col items-center rounded-xl bg-slate-50/80 px-2 py-3 text-center">
+    <div className="flex flex-col items-center rounded-xl bg-muted/80 px-2 py-3 text-center">
       <div className={cn(
         'text-xl font-bold leading-none tabular-nums',
         tom === 'atencao' ? 'text-amber-600' : 'text-primary',
@@ -418,7 +418,7 @@ function SecaoGaveta({ gaveta, onAbrir }: {
               <span className="tabular-nums text-primary">{pct}%</span>
               <span className="tabular-nums text-slate-500">{recebidos}/{total}</span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+            <div className="h-1.5 overflow-hidden rounded-full bg-muted">
               <span
                 className="block h-full rounded-full bg-primary transition-[width] duration-500"
                 style={{ width: `${pct}%` }}
@@ -473,7 +473,7 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
   return (
     <div
       className={cn(
-        'group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-slate-200/80 bg-white/80 p-5 text-left shadow-[0_8px_24px_-22px_rgba(15,23,42,0.4)] transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_16px_30px_-20px_rgba(13,148,136,0.3)] focus-within:border-primary/40',
+        'group relative flex h-full min-h-48 w-full flex-col rounded-2xl border border-border/80 bg-white/80 p-5 text-left shadow-[0_8px_24px_-22px_rgba(15,23,42,0.4)] transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-[0_16px_30px_-20px_rgba(13,148,136,0.3)] focus-within:border-primary/40',
       )}
     >
       <button
@@ -510,7 +510,7 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
       <ChipsDeEstado contagem={contagem} onEscolher={onAbrir} />
 
       <div className="pointer-events-none relative z-10 mt-auto flex items-center gap-3 pt-5">
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
           <div
             className={cn('h-full rounded-full', entidade.faltando > 0 ? 'bg-amber-400' : 'bg-primary')}
             style={{ width: `${pct}%` }}
@@ -581,7 +581,7 @@ function EntidadeDialog({
   return (
     <Dialog open={!!selecionada} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] max-w-3xl overflow-hidden p-0">
-        <DialogHeader className="border-b border-slate-100 bg-slate-50/60 px-6 py-5 text-left">
+        <DialogHeader className="border-b border-border bg-muted/60 px-6 py-5 text-left">
           <span className="text-[10px] font-bold uppercase tracking-[0.24em] text-primary">
             {selecionada?.gaveta.titulo}
           </span>
@@ -610,7 +610,7 @@ function EntidadeDialog({
             </div>
           )}
         </DialogHeader>
-        <div className="max-h-[calc(90vh-140px)] divide-y divide-slate-100 overflow-y-auto px-4 pb-2 sm:px-6">
+        <div className="max-h-[calc(90vh-140px)] divide-y divide-border overflow-y-auto px-4 pb-2 sm:px-6">
           {pendencias.map((pendencia) => (
             <LinhaPendencia
               key={`${pendencia.solicitacao_item_id}|${pendencia.alvo.id ?? 'cliente'}`}
@@ -673,7 +673,7 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
             <span className={cn(
               'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
               recusado ? 'bg-rose-50 text-rose-700'
-                : estado === 'em_analise' ? 'bg-slate-100 text-slate-600'
+                : estado === 'em_analise' ? 'bg-muted text-slate-600'
                   : 'bg-accent/5 text-primary',
             )}>
               {recusado ? <TriangleAlert className="h-3 w-3" />
@@ -750,7 +750,7 @@ function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
   return (
     <li className={cn(
       'rounded-xl border px-3 py-2',
-      recusado ? 'border-rose-200/80 bg-rose-50/50' : 'border-slate-200/80 bg-slate-50/60',
+      recusado ? 'border-rose-200/80 bg-rose-50/50' : 'border-border/80 bg-muted/60',
     )}>
       <div className="flex items-center gap-2">
         <FileText className={cn('h-3.5 w-3.5 shrink-0', recusado ? 'text-rose-600' : 'text-slate-400')} />
@@ -763,7 +763,7 @@ function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
         <span className={cn(
           'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]',
           recusado ? 'bg-rose-100 text-rose-700'
-            : aprovado ? 'bg-accent/10 text-primary' : 'bg-slate-200/70 text-slate-600',
+            : aprovado ? 'bg-accent/10 text-primary' : 'bg-muted/70 text-slate-600',
         )}>
           {recusado ? 'Recusado' : aprovado ? 'Aprovado' : 'Em análise'}
         </span>

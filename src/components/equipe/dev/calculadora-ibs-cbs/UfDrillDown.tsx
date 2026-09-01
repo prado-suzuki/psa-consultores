@@ -79,7 +79,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
       >
         {uf && dados && (
           <>
-            <SheetHeader className="pb-4 border-b border-slate-100">
+            <SheetHeader className="pb-4 border-b border-border">
               <SheetTitle className="flex items-center gap-3 text-xl">
                 <div
                   className="h-10 w-10 rounded-lg flex items-center justify-center"
@@ -116,7 +116,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
 
             {/* KPIs da UF */}
             <div className="grid grid-cols-2 gap-3 mt-4">
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
                     Faturamento
@@ -125,7 +125,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                   <p className="text-[11px] text-slate-500 mt-0.5">{fmtInt(dados.qtdNFs)} NFs</p>
                 </CardContent>
               </Card>
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
                     Δ pp
@@ -142,7 +142,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                   </p>
                 </CardContent>
               </Card>
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-orange-700 mb-1">
                     Tributo antes
@@ -155,7 +155,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                   </p>
                 </CardContent>
               </Card>
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1">
                     Tributo depois
@@ -200,10 +200,10 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
                 Produtos vendidos para {uf} ({dados.produtos.length} NCMs)
               </h3>
-              <div className="border border-slate-200 rounded-lg overflow-hidden">
+              <div className="border border-border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50 hover:bg-slate-50">
+                    <TableRow className="bg-muted hover:bg-muted">
                       <TableHead className="text-[11px]">Produto</TableHead>
                       <TableHead className="text-[11px]">Anexo</TableHead>
                       <TableHead className="text-right text-[11px]">Faturam.</TableHead>
@@ -258,14 +258,14 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                 Clientes em {uf} ({dados.clientes.length})
               </h3>
               {dados.clientes.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4 text-center border border-slate-200 rounded-lg">
+                <p className="text-xs text-slate-400 py-4 text-center border border-border rounded-lg">
                   Sem clientes nesta UF
                 </p>
               ) : (
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <div className="border border-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-slate-50 hover:bg-slate-50">
+                      <TableRow className="bg-muted hover:bg-muted">
                         <TableHead className="text-[11px]">Cliente</TableHead>
                         <TableHead className="text-right text-[11px]">NFs</TableHead>
                         <TableHead className="text-right text-[11px]">Faturam.</TableHead>

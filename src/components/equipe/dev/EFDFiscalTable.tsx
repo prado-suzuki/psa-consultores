@@ -45,7 +45,7 @@ export function EFDFiscalTable({
     return (
       <div className="p-6 space-y-3">
         {[...Array(5)].map((_, i) => (
-          <div key={i} className="h-10 bg-slate-100 rounded animate-pulse"/>
+          <div key={i} className="h-10 bg-muted rounded animate-pulse"/>
         ))}
       </div>
     );
@@ -64,7 +64,7 @@ export function EFDFiscalTable({
       className={cn(
         "overflow-auto",
         "[&::-webkit-scrollbar]:w-3 [&::-webkit-scrollbar]:h-3",
-        "[&::-webkit-scrollbar-track]:bg-slate-100 [&::-webkit-scrollbar-track]:border-l [&::-webkit-scrollbar-track]:border-t [&::-webkit-scrollbar-track]:border-slate-200",
+        "[&::-webkit-scrollbar-track]:bg-muted [&::-webkit-scrollbar-track]:border-l [&::-webkit-scrollbar-track]:border-t [&::-webkit-scrollbar-track]:border-border",
         "[&::-webkit-scrollbar-thumb]:bg-slate-400 [&::-webkit-scrollbar-thumb]:rounded-full",
         "[&::-webkit-scrollbar-thumb:hover]:bg-slate-500",
         "",
@@ -73,16 +73,16 @@ export function EFDFiscalTable({
       )}
     >
       <table className="w-full min-w-max text-left border-collapse">
-        <thead className="bg-slate-200 sticky top-0 z-10 shadow-sm">
+        <thead className="bg-muted sticky top-0 z-10 shadow-sm">
           {/* Header de Grupos (primeira linha) */}
-          <tr className="border-b border-slate-300">
+          <tr className="border-b border-border">
             {columnGroups.map((group, groupIdx) => (
               <th
                 key={group.name}
                 colSpan={group.columns.length}
                 className={cn(
-                  "text-center font-bold text-xs text-slate-600 py-2 uppercase tracking-wider bg-slate-100",
-                  groupIdx > 0 &&"border-l-2 border-slate-300"
+                  "text-center font-bold text-xs text-slate-600 py-2 uppercase tracking-wider bg-muted",
+                  groupIdx > 0 &&"border-l-2 border-border"
                 )}
               >
                 {group.name}
@@ -91,7 +91,7 @@ export function EFDFiscalTable({
           </tr>
           
           {/* Header de Colunas (segunda linha) */}
-          <tr className="bg-slate-200">
+          <tr className="bg-muted">
             {columns.map((col, idx) => {
               const isFirstOfGroup = idx === 0 || columns[idx - 1].group !== col.group;
               
@@ -100,8 +100,8 @@ export function EFDFiscalTable({
                   key={col.id}
                   className={cn(
                     "px-4 py-2 text-xs font-bold text-slate-700 uppercase whitespace-nowrap min-w-[120px]",
-                    "border-r border-slate-300 last:border-r-0",
-                    isFirstOfGroup && idx > 0 &&"border-l-2 border-slate-300"
+                    "border-r border-border last:border-r-0",
+                    isFirstOfGroup && idx > 0 &&"border-l-2 border-border"
                   )}
                 >
                   {col.label}
@@ -110,13 +110,13 @@ export function EFDFiscalTable({
             })}
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-200 bg-white">
+        <tbody className="divide-y divide-border bg-white">
           {data.map((row, rowIdx) => (
             <tr 
               key={rowIdx} 
               className={cn(
                 "hover:bg-blue-50 transition-colors",
-                rowIdx % 2 === 1 &&"bg-slate-50"
+                rowIdx % 2 === 1 &&"bg-muted"
               )}
             >
               {columns.map((col, colIdx) => {
@@ -127,8 +127,8 @@ export function EFDFiscalTable({
                     key={col.id}
                     className={cn(
                       "px-4 py-1.5 text-sm font-medium text-slate-700 whitespace-nowrap",
-                      "border-r border-slate-200 last:border-r-0",
-                      isFirstOfGroup && colIdx > 0 &&"border-l border-slate-200"
+                      "border-r border-border last:border-r-0",
+                      isFirstOfGroup && colIdx > 0 &&"border-l border-border"
                     )}
                   >
                     {formatEFDValue(row[col.id], col.id)}

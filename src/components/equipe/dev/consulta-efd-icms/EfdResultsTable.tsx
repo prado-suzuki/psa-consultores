@@ -28,12 +28,12 @@ export function EfdResultsTable(props: Props) {
   if (!props.searchTriggered) return <Empty icon={<Search className="w-10 h-10 text-slate-400" />} title="Nenhum arquivo listado" text={'Utilize os filtros acima e clique em "Buscar" para carregar os arquivos EFD ICMS.'} />;
   if (props.loading) return <div className="p-6 space-y-4">{[0, 1, 2].map(item => <Skeleton key={item} className="h-16 w-full" />)}</div>;
   if (!props.arquivos.length) return <Empty icon={<FileText className="h-12 w-12 text-slate-400" />} title="Nenhum arquivo encontrado" text="Verifique os filtros e tente novamente." />;
-  return <div className={cn('overflow-x-auto','[&::-webkit-scrollbar]:h-3','[&::-webkit-scrollbar-thumb]:bg-slate-400','[&::-webkit-scrollbar-thumb]:rounded-full')}><table className="w-full text-left border-collapse"><thead><tr className="bg-slate-100 border-b">
+  return <div className={cn('overflow-x-auto','[&::-webkit-scrollbar]:h-3','[&::-webkit-scrollbar-thumb]:bg-slate-400','[&::-webkit-scrollbar-thumb]:rounded-full')}><table className="w-full text-left border-collapse"><thead><tr className="bg-muted border-b">
     <th className="px-4 py-4 w-12"><Checkbox checked={props.allSelected} onCheckedChange={props.onToggleAll} aria-label="Selecionar todos" /></th>
     {['Arquivo', 'Período', 'Tipo'].map(label => <th key={label} className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider"><ColumnTip label={label} /></th>)}
     {['ICMS', 'ICMS ST'].map(label => <th key={label} className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider text-right"><ColumnTip label={label} /></th>)}
     <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider text-center w-56">Ações</th>
-  </tr></thead><tbody className="divide-y divide-slate-200">{props.arquivos.map(arquivo => <tr key={arquivo.ID_ARQUIVO} className="hover:bg-slate-50 transition-colors">
+  </tr></thead><tbody className="divide-y divide-border">{props.arquivos.map(arquivo => <tr key={arquivo.ID_ARQUIVO} className="hover:bg-muted transition-colors">
     <td className="px-4 py-4"><Checkbox checked={props.selected.has(arquivo.ID_ARQUIVO)} onCheckedChange={() => props.onToggle(arquivo.ID_ARQUIVO)} aria-label={`Selecionar ${arquivo.NOME}`} /></td>
     <td className="px-6 py-4"><div className="flex items-center gap-3"><div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary"><FileSpreadsheet className="h-5 w-5"/></div><div><p className="font-bold text-sm text-slate-800">{arquivo.NOME}</p><p className="text-[10px] text-slate-400 uppercase font-mono">ID: {arquivo.ID_ARQUIVO}</p></div></div></td>
     <td className="px-6 py-4 text-sm font-semibold">{formatEfdPeriod(arquivo.DT_INI, arquivo.DT_FIN)}</td>

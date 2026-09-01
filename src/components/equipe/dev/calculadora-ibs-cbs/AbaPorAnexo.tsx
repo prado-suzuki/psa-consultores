@@ -115,7 +115,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
         </AlertDescription>
       </Alert>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold text-slate-700 flex items-center gap-2">
             <Tooltip>
@@ -162,7 +162,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
+                <TableRow className="bg-muted hover:bg-muted">
                   <TableHead>Anexo</TableHead>
                   <TableHead className="text-right">
                     <HeaderTip label="Faturamento">
@@ -285,7 +285,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
                         <TableCell className="text-right tabular-nums">
                           <Badge
                             variant="secondary"
-                            className="bg-slate-100 text-slate-700 font-medium"
+                            className="bg-muted text-slate-700 font-medium"
                           >
                             {fmtPct(a.cargaDepoisIbsCbs)}
                           </Badge>
@@ -306,7 +306,7 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold text-slate-700">
             Tributo IBS/CBS por anexo

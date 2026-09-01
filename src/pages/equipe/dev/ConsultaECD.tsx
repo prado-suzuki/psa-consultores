@@ -407,7 +407,7 @@ const ConsultaECD = () => {
               <MonthYearPicker value={mesFim} onChange={setMesFim} placeholder="Selecione"className="bg-white"/>
             </div>
           </div>
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button variant="ghost"onClick={handleClearFilters} className="text-slate-500 hover:text-red-600 hover:bg-red-50">
               <Eraser className="h-4 w-4 mr-2" />Limpar filtros
             </Button>
@@ -422,7 +422,7 @@ const ConsultaECD = () => {
       {/* Tabela de Resultados */}
       <Card className="shadow-sm min-h-[400px] flex flex-col overflow-hidden">
         {overview && cnpjContribuinte && (
-          <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+          <div className="px-6 py-4 bg-muted border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <Building2 className="h-5 w-5 text-primary" />
@@ -455,7 +455,7 @@ const ConsultaECD = () => {
         <CardContent className="flex-1 p-0">
           {!searchTriggered ? (
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
-              <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+              <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
                 <Search className="w-10 h-10 text-slate-400" />
               </div>
               <h3 className="text-xl font-bold text-slate-700">Nenhum arquivo listado</h3>
@@ -466,10 +466,10 @@ const ConsultaECD = () => {
               {[...Array(3)].map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
             </div>
           ) : arquivosFiltrados.length > 0 ? (
-            <div className={cn("overflow-x-auto","[&::-webkit-scrollbar]:h-3","[&::-webkit-scrollbar-track]:bg-slate-100","[&::-webkit-scrollbar-thumb]:bg-slate-400","[&::-webkit-scrollbar-thumb]:rounded-full")}>
+            <div className={cn("overflow-x-auto","[&::-webkit-scrollbar]:h-3","[&::-webkit-scrollbar-track]:bg-muted","[&::-webkit-scrollbar-thumb]:bg-slate-400","[&::-webkit-scrollbar-thumb]:rounded-full")}>
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-100 border-b border-slate-200">
+                  <tr className="bg-muted border-b border-border">
                     <th className="px-4 py-4 w-12"><Checkbox checked={allSelected} onCheckedChange={handleToggleAll} aria-label="Selecionar todos" /></th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider"><ColumnTooltip label="Arquivo"text={TOOLTIPS.colArquivo} /></th>
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider"><ColumnTooltip label="Período"text={TOOLTIPS.colPeriodo} /></th>
@@ -478,9 +478,9 @@ const ConsultaECD = () => {
                     <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider text-center w-56"><ColumnTooltip label="Ações"text={TOOLTIPS.colAcoes} /></th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-border">
                   {arquivosFiltrados.map((arquivo) => (
-                    <tr key={arquivo.ID_ARQUIVO} className="hover:bg-slate-50 transition-colors group">
+                    <tr key={arquivo.ID_ARQUIVO} className="hover:bg-muted transition-colors group">
                       <td className="px-4 py-4"><Checkbox checked={selectedArquivos.has(arquivo.ID_ARQUIVO)} onCheckedChange={() => handleToggleArquivo(arquivo.ID_ARQUIVO)} /></td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">

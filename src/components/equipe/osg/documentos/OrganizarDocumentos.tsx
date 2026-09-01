@@ -387,7 +387,7 @@ export function OrganizarDocumentos({ clienteId }: Props) {
                   <div key={g.label}>
                     <div className="flex items-center gap-2 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-osg-700/80">
                       <span>{g.label}</span>
-                      <span className="rounded-full bg-slate-100 px-1.5 text-[11px] tabular-nums text-slate-500">
+                      <span className="rounded-full bg-muted px-1.5 text-[11px] tabular-nums text-slate-500">
                         {g.docs.length}
                       </span>
                     </div>

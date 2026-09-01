@@ -103,7 +103,7 @@ export const AuditTempoMedioProduto = ({
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span
-                          className="border-b border-dotted border-slate-300"
+                          className="border-b border-dotted border-border"
                           aria-description={ajuda}
                         >
                           {label}
@@ -137,7 +137,7 @@ export const AuditTempoMedioProduto = ({
                   return (
                     <Fragment key={linha.produtoId}>
                       <TableRow
-                        className="cursor-pointer hover:bg-slate-50"
+                        className="cursor-pointer hover:bg-muted"
                         onClick={() => alternar(linha.produtoId)}
                       >
                         <TableCell
@@ -177,7 +177,7 @@ export const AuditTempoMedioProduto = ({
                         </TableCell>
                       </TableRow>
                       {aberta && (
-                        <TableRow className="bg-slate-50/50 hover:bg-slate-50/50">
+                        <TableRow className="bg-muted/50 hover:bg-muted/50">
                           <TableCell colSpan={COLUNAS.length} className="p-4">
                             <AuditClientesDoProduto
                               produto={linha.nome}

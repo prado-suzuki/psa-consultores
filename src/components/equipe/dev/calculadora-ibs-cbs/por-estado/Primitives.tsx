@@ -25,7 +25,7 @@ interface KpiCardProps {
 
 export function KpiCard({ label, value, sub, accent, icon, hint }: KpiCardProps) {
   return (
-    <Card className="relative overflow-hidden border-slate-200">
+    <Card className="relative overflow-hidden border-border">
       <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: accent }} />
       <CardContent className="p-5">
         <div className="flex items-center justify-between mb-2">
@@ -51,7 +51,7 @@ interface InsightCardProps {
 
 export function InsightCard({ icon, accent, titulo, texto, acao }: InsightCardProps) {
   return (
-    <Card className="border-slate-200 relative overflow-hidden">
+    <Card className="border-border relative overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-[3px]" style={{ background: accent }} />
       <CardContent className="p-5">
         <div className="flex items-start gap-3 mb-3">
@@ -59,7 +59,7 @@ export function InsightCard({ icon, accent, titulo, texto, acao }: InsightCardPr
           <h4 className="text-sm font-bold text-slate-900 leading-tight pt-1">{titulo}</h4>
         </div>
         <p className="text-xs text-slate-600 leading-relaxed mb-3">{texto}</p>
-        <div className="flex items-start gap-1.5 pt-3 border-t border-slate-100">
+        <div className="flex items-start gap-1.5 pt-3 border-t border-border">
           <ArrowRight className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: accent }} />
           <p className="text-[11px] font-semibold text-slate-700">{acao}</p>
         </div>

@@ -87,7 +87,7 @@ const IcmsSaidas = () => {
         title="ICMS das Saídas"
         subtitle="Apuração, reconciliação e classificação fiscal de saídas"
       >
-        <Card className="mb-6 border-slate-200 shadow-sm">
+        <Card className="mb-6 border-border shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2 text-primary">
               <Filter className="h-5 w-5" />
@@ -224,7 +224,7 @@ const IcmsSaidas = () => {
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-slate-200">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-border">
               <ButtonTooltip text={ICMS_PAGE_TOOLTIPS.limparFiltros}>
                 <Button
                   variant="ghost"
@@ -251,7 +251,7 @@ const IcmsSaidas = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList
-            className="grid w-full grid-cols-4 h-12 p-1 rounded-lg border border-slate-200 shadow-sm"
+            className="grid w-full grid-cols-4 h-12 p-1 rounded-lg border border-border shadow-sm"
           >
             {[
               { value: 't01', label: 'T01 - Apuração', tip: ICMS_PAGE_TOOLTIPS.tabT01 },

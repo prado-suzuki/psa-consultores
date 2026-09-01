@@ -55,7 +55,7 @@ export function DifalFiltersCard({
   onSearch,
 }: DifalFiltersCardProps) {
   return (
-    <Card className="mb-6 border-slate-200 shadow-sm">
+    <Card className="mb-6 border-border shadow-sm">
       <CardHeader className="pb-4">
         <CardTitle className="text-lg flex items-center gap-2 text-primary">
           <Filter className="h-5 w-5" />
@@ -167,7 +167,7 @@ export function DifalFiltersCard({
           </div>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-slate-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-end gap-3 pt-4 border-t border-border">
           <Button
             variant="ghost"
             onClick={onClear}

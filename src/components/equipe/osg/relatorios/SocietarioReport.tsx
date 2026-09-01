@@ -20,7 +20,7 @@ const socioPct = (e: EmpresaSocietaria, s: SocioLinha): number | null =>
 const PAPEL_LABEL: Record<string, string> = { PR: 'Proprietária', CN: 'Controladora', SC: 'Sócia' };
 const papelTxt = (t: string | null): string => (t ? PAPEL_LABEL[t] ?? t : '');
 
-const th = 'whitespace-nowrap border-b border-osg-200 bg-slate-50 px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-slate-500';
+const th = 'whitespace-nowrap border-b border-osg-200 bg-muted px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-slate-500';
 const td = 'border-t border-osg-100 px-3 py-2 align-top text-slate-600';
 
 // ---------- tabela de quadro societário (= slides 17-18) ----------

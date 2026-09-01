@@ -42,6 +42,6 @@ export const ROLE_BADGE_CLASSES: Record<string, string> = {
   sublider:    'border-orange-200 text-orange-600 bg-orange-50',
   team_member: 'border-primary/20 text-primary bg-primary/5',
   timecliente: 'border-cyan-200 text-cyan-600 bg-cyan-50',
-  client:      'border-slate-200 text-slate-600 bg-muted',
+  client:      'border-border text-slate-600 bg-muted',
   marketing:   'border-violet-200 text-violet-600 bg-violet-50',
 };

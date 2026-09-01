@@ -223,7 +223,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
         </AlertDescription>
       </Alert>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="text-sm font-semibold text-slate-700">
             Onde a reforma muda mais
@@ -277,7 +277,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                     if (!active || !payload || payload.length === 0) return null;
                     const d = payload[0].payload;
                     return (
-                      <div className="bg-white border border-slate-200 rounded-lg shadow-md p-3 text-xs">
+                      <div className="bg-white border border-border rounded-lg shadow-md p-3 text-xs">
                         <p className="font-semibold text-slate-800 max-w-[260px] truncate">
                           {d.produto}
                         </p>
@@ -312,7 +312,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-200">
+      <Card className="border-border">
         <CardHeader className="pb-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <CardTitle className="text-sm font-semibold text-slate-700">
             Top NCMs por faturamento
@@ -343,8 +343,8 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50 hover:bg-slate-50">
-                  <TableHead className="sticky left-0 bg-slate-50 z-10 min-w-[140px] font-mono">
+                <TableRow className="bg-muted hover:bg-muted">
+                  <TableHead className="sticky left-0 bg-muted z-10 min-w-[140px] font-mono">
                     NCM
                   </TableHead>
                   <TableHead className="min-w-[260px]">Produto (exemplo)</TableHead>
@@ -507,7 +507,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
                                       </tr>
                                     );
                                   })}
-                                  <tr className="border-t border-slate-200">
+                                  <tr className="border-t border-border">
                                     <td className="pr-3 pt-1 text-slate-700 font-semibold">Total</td>
                                     <td className="pt-1" />
                                     <td className="pt-1 text-right tabular-nums text-orange-700 font-semibold">
@@ -546,7 +546,7 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
             </Table>
           </div>
           {totalPages > 1 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100">
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border">
               <p className="text-xs text-slate-500">
                 Página {currentPage} de {totalPages} · {fmtInt(sorted.length)} produtos
               </p>

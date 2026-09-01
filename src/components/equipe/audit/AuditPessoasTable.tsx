@@ -202,7 +202,7 @@ const HeaderOrdenavel = ({
               ativa ? 'font-semibold text-slate-900' : 'text-slate-500',
             )}
           >
-            <span className="border-b border-dotted border-slate-300">{label}</span>
+            <span className="border-b border-dotted border-border">{label}</span>
             <Icone className={cn('h-3.5 w-3.5 shrink-0', ativa ? 'opacity-100' : 'opacity-40')} />
           </button>
         </TooltipTrigger>

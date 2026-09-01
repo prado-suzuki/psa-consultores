@@ -48,7 +48,7 @@ const fmtArea = (v: number | null, u: string | null): string =>
 const matTxt = (m: MatriculaEnriched): string => (m.numero ? `Mat. ${m.numero}` : '—');
 const munUf = (m: MatriculaEnriched): string => [m.municipio_imovel ?? '', m.uf_imovel ?? ''].filter(Boolean).join('/') || '—';
 
-const th = 'whitespace-nowrap border-b border-osg-200 bg-slate-50 px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-slate-500';
+const th = 'whitespace-nowrap border-b border-osg-200 bg-muted px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-slate-500';
 const td = 'border-t border-osg-100 px-3 py-2 align-top text-slate-600';
 
 export function FiscalReport({ clienteId }: { clienteId: string }) {

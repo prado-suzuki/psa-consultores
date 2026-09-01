@@ -34,7 +34,7 @@ const TONS = {
    * continuaria branca — é migração de paleta, não correção de corte.
    */
   slate: {
-    chip: 'bg-slate-50',
+    chip: 'bg-muted',
     nome: 'text-slate-900',
     rotulo: 'text-slate-500',
   },

@@ -37,13 +37,13 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex w-full">
+    <div className="min-h-screen bg-muted flex w-full">
       {/* Sidebar */}
       <aside
-        className={`${classeLarguraBarra(collapsed)} bg-white border-r border-slate-200/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
+        className={`${classeLarguraBarra(collapsed)} bg-white border-r border-border/60 flex flex-col transition-all duration-300 flex-shrink-0 sticky top-0 h-screen overflow-y-auto`}
       >
         {/* Header */}
-        <div className={`${classeRecuoCabecalho(collapsed)} border-b border-slate-200/60`}>
+        <div className={`${classeRecuoCabecalho(collapsed)} border-b border-border/60`}>
           {collapsed ? (
             <div className="flex justify-center">
               <div className="h-10 w-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
@@ -67,7 +67,7 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
         <Button
           variant="ghost"
           size="icon"
-          className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 shadow-sm"
+          className="absolute top-6 left-[calc(var(--sidebar-width)-12px)] z-10 h-6 w-6 rounded-full border border-border bg-white hover:bg-muted text-slate-600 shadow-sm"
           style={{ '--sidebar-width': larguraBarraCss(collapsed) } as React.CSSProperties}
           onClick={() => setCollapsed(!collapsed)}
         >
@@ -80,14 +80,14 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
         </nav>
 
         {/* Footer Actions */}
-        <div className="mt-auto p-4 border-t border-slate-200/60 space-y-2">
+        <div className="mt-auto p-4 border-t border-border/60 space-y-2">
           {/* Cartão do usuário: padrão compartilhado, com o recolhido embutido. */}
           <SidebarCartaoUsuario area="fixos" collapsed={collapsed} />
 
           
           <Button 
             variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors`}
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-muted hover:text-blue-600 transition-colors`}
             onClick={() => navigate('/equipe/projetos')}
             title={collapsed ? 'Trocar área' : undefined}
           >
@@ -96,7 +96,7 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
           </Button>
           <Button 
             variant="ghost" 
-            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors`}
+            className={`w-full ${collapsed ? 'justify-center px-2' : 'justify-start px-3'} py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-muted hover:text-blue-600 transition-colors`}
             onClick={() => navigate('/')}
             title={collapsed ? 'Voltar ao site' : undefined}
           >
@@ -118,7 +118,7 @@ export const FixosLayout = ({ children, title, subtitle, headerActions }: FixosL
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Header */}
-        <header className="h-16 border-b border-slate-200/60 bg-white flex items-center justify-between px-6 flex-shrink-0">
+        <header className="h-16 border-b border-border/60 bg-white flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"

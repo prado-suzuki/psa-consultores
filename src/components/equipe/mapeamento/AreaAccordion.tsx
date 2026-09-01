@@ -61,7 +61,7 @@ export function AreaAccordion({ areas }: AreaAccordionProps) {
                   return (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between gap-3 p-3 rounded-md border bg-slate-50/50 hover:bg-slate-50"
+                      className="flex items-center justify-between gap-3 p-3 rounded-md border bg-muted/50 hover:bg-muted"
                     >
                       <div className="flex items-center gap-3 min-w-0">
                         <Icon className={`h-4 w-4 flex-shrink-0 ${mapeamentoStatusConfig(status).text}`} />

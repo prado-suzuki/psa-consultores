@@ -332,7 +332,7 @@ const ControleBalancetes = () => {
         manualUrl="https://alexandresilva-psa.github.io/Manuais_Ferramentas_PSA/manuais/balancete/"
       />
       {/* Filters Card */}
-      <Card className="mb-8 rounded-2xl border-slate-200 shadow-sm">
+      <Card className="mb-8 rounded-2xl border-border shadow-sm">
         <CardHeader className="pb-2 p-6 md:p-8 md:pb-4">
           <CardTitle className="flex items-center gap-2.5">
             <Filter className="h-5 w-5 text-primary" />
@@ -379,7 +379,7 @@ const ControleBalancetes = () => {
           </div>
 
           {/* Action footer */}
-          <div className="flex items-center justify-between pt-5 border-t border-slate-100">
+          <div className="flex items-center justify-between pt-5 border-t border-border">
             <Button onClick={() => setModalOpen(true)} className="gap-2 bg-primary hover:bg-primary/90 text-white rounded-lg">
               <Plus className="h-4 w-4" />
               Novo Balancete
@@ -401,7 +401,7 @@ const ControleBalancetes = () => {
       </Card>
 
       {/* Results Card */}
-      <Card className="rounded-2xl border-slate-200 shadow-sm">
+      <Card className="rounded-2xl border-border shadow-sm">
         <CardHeader className="p-6 md:px-8 flex flex-row items-center justify-between">
           <CardTitle className="text-lg font-semibold text-slate-800">Balancetes</CardTitle>
           <div className="flex items-center gap-2">
@@ -433,7 +433,7 @@ const ControleBalancetes = () => {
           <div className="overflow-x-auto w-full">
             <Table className="text-xs">
               <TableHeader>
-                <TableRow className="border-slate-100 hover:bg-transparent">
+                <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="w-10">
                     <Checkbox checked={allSelected} onCheckedChange={handleToggleAll} aria-label="Selecionar todos" />
                   </TableHead>
@@ -454,7 +454,7 @@ const ControleBalancetes = () => {
                   </TableRow>
                 ) : balancetes.length > 0 ? (
                   balancetes.map((b, index) => (
-                    <TableRow key={b.id} className="border-slate-100 hover:bg-slate-50/60">
+                    <TableRow key={b.id} className="border-border hover:bg-muted/60">
                       <TableCell>
                         <Checkbox checked={selectedIds.has(b.id)} onCheckedChange={() => handleToggleItem(b.id)} aria-label={`Selecionar balancete ${index + 1}`} />
                       </TableCell>

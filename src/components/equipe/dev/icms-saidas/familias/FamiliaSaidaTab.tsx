@@ -154,7 +154,7 @@ export function FamiliaSaidaTab({
 
   if (!enabled) {
     return (
-      <Card className="border-slate-200 border-dashed">
+      <Card className="border-border border-dashed">
         <CardContent className="p-12 text-center">
           <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
           <p className="text-slate-500">Selecione os filtros e clique em Buscar para carregar os dados.</p>
@@ -194,7 +194,7 @@ export function FamiliaSaidaTab({
       <BaseLegalCard familia={familia} />
 
       {resumo.length > 0 && (
-        <Card className="border-slate-200 shadow-sm">
+        <Card className="border-border shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700">
               Resumo Mensal
@@ -209,7 +209,7 @@ export function FamiliaSaidaTab({
             <div className="overflow-x-auto" ref={resumoScrollRef}>
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableRow className="bg-muted hover:bg-muted">
                     {resumoColumns.map((col) => (
                       <TableHead
                         key={col}
@@ -248,7 +248,7 @@ export function FamiliaSaidaTab({
         </Card>
       )}
 
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700">
             Análise Detalhada
@@ -291,7 +291,7 @@ export function FamiliaSaidaTab({
               <div className="overflow-x-auto" ref={detailScrollRef}>
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50 hover:bg-slate-50">
+                    <TableRow className="bg-muted hover:bg-muted">
                       {allowCorrecoes && <TableHead className="w-10" />}
                       {dataColumns.map((col) => (
                         <TableHead
@@ -314,7 +314,7 @@ export function FamiliaSaidaTab({
                         <TableRow
                           key={`row-${page}-${idx}`}
                           className={cn(
-                            'hover:bg-slate-50',
+                            'hover:bg-muted',
                             isCorrecao && 'bg-amber-50/60 hover:bg-amber-50',
                           )}
                         >
@@ -364,7 +364,7 @@ export function FamiliaSaidaTab({
           )}
         </CardContent>
         {rows.length > 0 && (
-          <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-slate-200">
+          <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
             <ButtonTooltip text={ICMS_FAMILIA_TAB_TOOLBAR_TOOLTIPS.paginaAnterior}>
               <Button
                 variant="outline"

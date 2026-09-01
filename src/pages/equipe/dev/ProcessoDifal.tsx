@@ -335,7 +335,7 @@ const ProcessoDifal = () => {
           />
         )}
         {!searchTriggered && (
-          <Card className="border-slate-200 border-dashed">
+          <Card className="border-border border-dashed">
             <CardContent className="p-12 text-center">
               <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
               <h3 className="text-lg font-medium text-slate-700 mb-2">DIFAL Inteligente</h3>

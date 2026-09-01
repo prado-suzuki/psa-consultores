@@ -130,7 +130,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
         </DialogHeader>
 
         {/* Toggle */}
-        <div className="flex bg-slate-100 rounded-lg p-1 gap-1">
+        <div className="flex bg-muted rounded-lg p-1 gap-1">
           {botaoModo('existente', <Library className="h-4 w-4 inline mr-1.5" />, 'Já cadastrado')}
           {botaoModo('link', <Link className="h-4 w-4 inline mr-1.5" />, 'Link externo')}
           {botaoModo('upload', <Upload className="h-4 w-4 inline mr-1.5" />, 'Enviar arquivo')}
@@ -155,7 +155,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
                 />
               </div>
 
-              <div className="max-h-56 overflow-y-auto border border-slate-200 rounded-lg divide-y divide-slate-100">
+              <div className="max-h-56 overflow-y-auto border border-border rounded-lg divide-y divide-border">
                 {carregandoFontes ? (
                   <p className="text-sm text-slate-400 p-4 text-center">Carregando...</p>
                 ) : fontesFiltradas.length === 0 ? (
@@ -177,7 +177,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
                             ? 'opacity-50 cursor-not-allowed'
                             : escolhido
                               ? 'bg-primary/5'
-                              : 'hover:bg-slate-50'
+                              : 'hover:bg-muted'
                         }`}
                       >
                         {f.tipo === 'link' ? (
@@ -223,7 +223,7 @@ export function AddProcedimentoModal({ open, onOpenChange }: AddProcedimentoModa
             <div>
               <Label>Arquivo (PDF ou DOCX, máx. 10MB)</Label>
               <div
-                className="mt-1 border-2 border-dashed border-slate-200 rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                className="mt-1 border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
                 onClick={() => fileRef.current?.click()}
               >
                 {file ? (

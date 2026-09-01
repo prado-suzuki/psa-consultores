@@ -72,7 +72,7 @@ export function TreeRow({
       <span
         className={cn(
           'shrink-0 rounded-full px-1.5 text-[11px] tabular-nums',
-          active ? 'bg-osg-200/70 text-osg-700' : 'bg-slate-100 text-slate-500',
+          active ? 'bg-osg-200/70 text-osg-700' : 'bg-muted text-slate-500',
         )}
       >
         {count}

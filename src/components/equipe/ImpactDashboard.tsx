@@ -352,7 +352,7 @@ export function ImpactDashboard() {
           {filteredImprovements.length > 0 ? (
             <div className="space-y-4">
               {/* Summary Bar */}
-              <div className="grid grid-cols-3 gap-4 p-4 bg-slate-50 rounded-lg">
+              <div className="grid grid-cols-3 gap-4 p-4 bg-muted rounded-lg">
                 <div className="text-center">
                   <p className="text-xs text-gray-500 mb-1">Antes</p>
                   <p className="text-2xl font-bold text-gray-700">

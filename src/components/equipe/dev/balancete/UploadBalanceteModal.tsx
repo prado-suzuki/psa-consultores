@@ -310,7 +310,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
               className={`
                 flex flex-col items-center justify-center rounded-xl border-2 border-dashed cursor-pointer
                 transition-colors h-full min-h-[280px]
-                ${dragging ? 'border-primary/50 bg-primary/5' : 'border-slate-200 bg-slate-50/50 hover:border-slate-300 hover:bg-slate-50'}
+                ${dragging ? 'border-primary/50 bg-primary/5' : 'border-border bg-muted/50 hover:border-border hover:bg-muted'}
                 ${file ? 'border-primary/30 bg-primary/5' : ''}
               `}
             >
@@ -405,7 +405,7 @@ export const UploadBalanceteModal = ({ open, onOpenChange, prefillData }: Upload
 
             {/* Detalhamento switch */}
             {detalhamento !== null && contribuinteId && (
-              <div className="flex items-center justify-between rounded-lg border border-slate-200 p-3">
+              <div className="flex items-center justify-between rounded-lg border border-border p-3">
                 <Label htmlFor="detalhamento-switch" className="text-sm text-slate-600">Detalhamento</Label>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">{detalhamento ? 'Sim' : 'Não'}</span>

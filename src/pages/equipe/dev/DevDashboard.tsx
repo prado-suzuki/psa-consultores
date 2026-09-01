@@ -213,7 +213,7 @@ const DevDashboard = () => {
                     </span>
                     Fonte dos dados
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-border bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-600">
                     <ShieldAlert className="h-3 w-3" /> Leitura obrigatória
                   </span>
                   <span className="inline-flex items-center gap-1 rounded-full border border-primary/20 bg-white px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
@@ -243,7 +243,7 @@ const DevDashboard = () => {
           </div>
         </a>
 
-        <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-border/70 bg-white p-5 shadow-sm">
           <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <h2 className="text-base font-semibold text-slate-900">Catálogo de Ferramentas</h2>
@@ -295,7 +295,7 @@ const DevDashboard = () => {
                 <section key={group.label} id={toAnchorId(group.label)} className="flex flex-col scroll-mt-4">
                   <div className="mb-3 flex items-center gap-2">
                     <h3 className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{group.label}</h3>
-                    <span className="h-px flex-1 bg-slate-200" />
+                    <span className="h-px flex-1 bg-muted" />
                     <Badge variant="outline" className="text-[10px]">
                       {group.tools.length}
                     </Badge>
@@ -363,7 +363,7 @@ const DevDashboard = () => {
                         return (
                           <article
                             key={tool.path}
-                            className="group relative flex flex-col rounded-xl border border-slate-200/70 bg-slate-50/60 p-4 transition-all duration-200 hover:border-primary/40 hover:bg-white hover:shadow-md"
+                            className="group relative flex flex-col rounded-xl border border-border/70 bg-muted/60 p-4 transition-all duration-200 hover:border-primary/40 hover:bg-white hover:shadow-md"
                           >
                             <button
                               onClick={() => navigate(tool.path)}
@@ -382,7 +382,7 @@ const DevDashboard = () => {
                               </div>
                             </button>
 
-                            <div className="mt-auto flex items-center justify-between gap-2 border-t border-slate-200/70 pt-3">
+                            <div className="mt-auto flex items-center justify-between gap-2 border-t border-border/70 pt-3">
                               {tool.sopUrl ? (
                                 <a
                                   href={tool.sopUrl}
@@ -448,7 +448,7 @@ const DevDashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="flex flex-col gap-3 rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
+          <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between lg:col-span-2">
             <div>
               <p className="text-sm font-semibold text-slate-900">Não achou a ferramenta que precisa?</p>
               <p className="mt-0.5 text-xs text-slate-500">
@@ -465,7 +465,7 @@ const DevDashboard = () => {
             </Button>
           </div>
 
-          <div className="rounded-2xl border border-slate-200/70 bg-white p-5 shadow-sm">
+          <div className="rounded-2xl border border-border/70 bg-white p-5 shadow-sm">
             <h3 className="mb-3 text-sm font-semibold text-slate-900">Categorias</h3>
             <div className="flex flex-wrap gap-2">
               {toolGroups.map((group) => (
@@ -473,7 +473,7 @@ const DevDashboard = () => {
                   key={group.label}
                   type="button"
                   onClick={() => scrollToCategory(group.label)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted px-3 py-1.5 text-xs font-medium text-slate-600 transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-primary"
                 >
                   {group.label}
                   <span className="text-slate-400">{group.tools.length}</span>

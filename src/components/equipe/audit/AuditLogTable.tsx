@@ -147,7 +147,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                     <Collapsible key={log.id} open={isExpanded} onOpenChange={() => isExpandable && toggleRow(log.id)} asChild>
                       <>
                         <CollapsibleTrigger asChild disabled={!isExpandable}>
-                          <TableRow className={isExpandable ? 'cursor-pointer hover:bg-slate-50' : ''}>
+                          <TableRow className={isExpandable ? 'cursor-pointer hover:bg-muted' : ''}>
                             <TableCell className="px-2">
                               {isExpandable && (
                                 isExpanded
@@ -174,7 +174,7 @@ export const AuditLogTable = ({ area }: AuditLogTableProps) => {
                         </CollapsibleTrigger>
                         {isExpandable && (
                           <CollapsibleContent asChild>
-                            <TableRow className="bg-slate-50/50">
+                            <TableRow className="bg-muted/50">
                               <TableCell colSpan={6} className="p-4">
                                 <div className="text-xs space-y-1">
                                   {/* Details (e.g. reassignment reason) */}

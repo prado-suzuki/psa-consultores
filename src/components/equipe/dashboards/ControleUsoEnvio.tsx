@@ -223,7 +223,7 @@ export const ControleUsoEnvio = () => {
         </div>
 
         <div className="mt-3">
-          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/70 px-3 py-2">
             <CalendarRange className="h-3.5 w-3.5 text-slate-500" />
             <span className="text-xs font-medium text-slate-600">Período</span>
             <Select

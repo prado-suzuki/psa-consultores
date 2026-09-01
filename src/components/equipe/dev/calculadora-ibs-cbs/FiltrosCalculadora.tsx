@@ -85,13 +85,13 @@ function MultiSelect({ label, options, selected, onChange, placeholder = "Todos"
                   key={opt}
                   type="button"
                   onClick={() => toggle(opt)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 text-left"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted text-left"
                 >
                   <span
                     className={`h-4 w-4 rounded border flex items-center justify-center ${
                       checked
                         ? "bg-primary border-primary text-white"
-                        : "border-slate-300 bg-white"
+                        : "border-border bg-white"
                     }`}
                   >
                     {checked && <Check className="h-3 w-3" />}
@@ -145,7 +145,7 @@ export function FiltrosCalculadora({
     ((filtros.inicio !== periodo.min || filtros.fim !== periodo.max) && filtros.inicio ? 1 : 0);
 
   return (
-    <Card className="mb-6 border-slate-200 shadow-sm">
+    <Card className="mb-6 border-border shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-slate-800">
           <Filter className="h-4 w-4 text-primary" />
