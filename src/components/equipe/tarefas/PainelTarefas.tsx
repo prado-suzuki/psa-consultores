@@ -9,8 +9,8 @@ import { useTeamMembersForTasks, useTaxProjectsForFilter, useClusterIdByPageCate
 import {
   useOrgTasks,
   useDeleteOrgTask,
-  contarSubtarefasAtivas,
-  mensagemSubtarefasAtivas,
+  contarSubtarefasBloqueantes,
+  mensagemSubtarefasBloqueantes,
   OrgTask,
   TaskFilters as TaskFiltersType
 } from '@/hooks/useOrgTasks';
@@ -253,9 +253,9 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
     // Conta no banco, não em `tasks`: a lista está filtrada e não vê as filhas
     // que o filtro escondeu. O `useDeleteOrgTask` repete a checagem — esta aqui
     // existe para a recusa aparecer ANTES do diálogo de confirmação.
-    let ativas: number;
+    let bloqueantes: number;
     try {
-      ativas = await contarSubtarefasAtivas(taskId);
+      bloqueantes = await contarSubtarefasBloqueantes(taskId);
     } catch (error) {
       // Sem saber quantas filhas existem, não se abre um diálogo que pode
       // apagá-las em cascata.
@@ -264,9 +264,9 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       });
       return;
     }
-    if (ativas > 0) {
+    if (bloqueantes > 0) {
       toast.error('Não é possível excluir esta tarefa.', {
-        description: mensagemSubtarefasAtivas(ativas),
+        description: mensagemSubtarefasBloqueantes(bloqueantes),
       });
       return;
     }
@@ -426,7 +426,7 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 hideEmpty={hasActiveTaskFilters}
                 onClearFilters={() => setFilters({})}
                 onEditProject={projectController.handleOpenModal}
-                onDeleteProject={projectController.setDeleteProjectId}
+                onDeleteProject={projectController.handleRequestDelete}
                 onGerarTarefas={project => gerarTarefasProjeto.mutate({ projectId: project.id, projectName: project.name })}
                 onNewTask={handleNewTask}
                 onEditTask={handleEditTask}
