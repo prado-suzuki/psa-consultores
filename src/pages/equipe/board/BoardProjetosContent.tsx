@@ -12,6 +12,7 @@ import { useDomainMelhoriasRoi } from '@/hooks/useDomainMelhoriasRoi';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
 import { filtrarPorCluster } from '@/lib/boardExecutivo';
 import { filtrarLegado } from '@/lib/boardLegado';
+import { aplicarRecorteMelhorias, aplicarRecorteOs, aplicarRecorteProjetos } from '@/lib/boardRecorte';
 import { somaHorasSalvas } from '@/lib/boardDiretoria';
 import { catalogoFerramentas } from '@/lib/boardFerramentasLeitura';
 
@@ -20,16 +21,38 @@ export function BoardProjetosContent() {
   const negocio = useDashboardClientesOs(ambiente);
   const membrosQuery = useDomainProjetoMembros();
   const melhoriasQuery = useDomainMelhoriasRoi();
-  const { cluster } = useBoardCluster();
+  const { cluster, cliente, ano, mes } = useBoardCluster();
+  const recorte = useMemo(() => ({ cliente, ano, mes }), [cliente, ano, mes]);
+  const osRows = useMemo(
+    () => aplicarRecorteOs(
+      filtrarLegado(filtrarPorCluster(negocio.data?.osRows ?? [], cluster)),
+      recorte,
+    ),
+    [negocio.data, cluster, recorte],
+  );
+  const clusterDoCliente = useMemo(
+    () => (cliente
+      ? (negocio.data?.clienteRows ?? []).find((c) => c.cliente_id === cliente)?.cluster_id ?? null
+      : null),
+    [negocio.data, cliente],
+  );
 
   const projetos = useMemo(
-    () => filtrarLegado(filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster)),
-    [negocio.data, cluster],
+    () => aplicarRecorteProjetos(
+      filtrarLegado(filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster)),
+      osRows,
+      recorte,
+    ),
+    [negocio.data, cluster, recorte, osRows],
   );
   const membros = useMemo(() => membrosQuery.data ?? [], [membrosQuery.data]);
   const melhorias = useMemo(
-    () => filtrarPorCluster(melhoriasQuery.data ?? [], cluster),
-    [melhoriasQuery.data, cluster],
+    () => aplicarRecorteMelhorias(
+      filtrarPorCluster(melhoriasQuery.data ?? [], cluster),
+      recorte,
+      clusterDoCliente,
+    ),
+    [melhoriasQuery.data, cluster, recorte, clusterDoCliente],
   );
   const horasLiberadas = somaHorasSalvas(catalogoFerramentas(melhorias).map((c) => c.horasLiberadas));
 

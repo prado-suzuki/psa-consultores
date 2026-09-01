@@ -25,6 +25,7 @@ import {
   consolidarRoi,
 } from '@/lib/boardExecutivo';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
+import { aplicarRecorteClientes, aplicarRecorteOs, aplicarRecorteProjetos, hojeDoRecorte } from '@/lib/boardRecorte';
 import {
   alertasEstrategicos, concentracaoCarteira, ratearPorCentroCusto, receitaAnoCorrente,
   receitaEmRisco, serieReceitaComparada,
@@ -83,7 +84,8 @@ const BoardDashboard = () => {
   const { filters, setFilter, resetFilters, activeCount } = useBoardFilters({ pageKey: 'dashboard-v2', defaults: DEFAULTS });
   const periodo = filters.periodo as string;
   const centroCusto = filters.centroCusto as string;
-  const { cluster } = useBoardCluster();
+  const { cluster, cliente, ano, mes } = useBoardCluster();
+  const recorte = useMemo(() => ({ cliente, ano, mes }), [cliente, ano, mes]);
 
   // Sempre 'todas': o recorte acontece aqui (`filtrarPorCluster`), porque esta
   // tela precisa do conjunto COMPLETO para classificar tarefa→área. Bônus: uma
@@ -118,27 +120,38 @@ const BoardDashboard = () => {
    * A atribuição à empresa NÃO passa pelo rateio: a OS pertence a um cluster só.
    */
   const osRows = useMemo(
-    () => filtrarLegado(ratearPorCentroCusto(
-      filtrarPorCluster(negocio.data?.osRows ?? [], cluster),
+    () => ratearPorCentroCusto(
+      aplicarRecorteOs(
+        filtrarLegado(filtrarPorCluster(negocio.data?.osRows ?? [], cluster)),
+        recorte,
+      ),
       rateioPorOs ?? new Map(),
       ccSelecionado,
-    )),
-    [negocio.data, cluster, rateioPorOs, ccSelecionado],
+    ),
+    [negocio.data, cluster, recorte, rateioPorOs, ccSelecionado],
   );
   // Com centro de custo escolhido, a carteira é a dos clientes que têm OS nele —
   // mesma regra da tela "Clientes e OS", senão o KPI de clientes ativos contaria
   // quem ficou de fora da receita mostrada ao lado.
   const clienteRows = useMemo(() => {
-    const base = filtrarLegado(filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster));
+    const base = aplicarRecorteClientes(
+      filtrarLegado(filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster)),
+      osRows,
+      recorte,
+    );
     if (!ccSelecionado) return base;
     const comOs = new Set(osRows.map((o) => o.cliente_id));
     return base.filter((c) => comOs.has(c.cliente_id));
-  }, [negocio.data, cluster, ccSelecionado, osRows]);
+  }, [negocio.data, cluster, recorte, ccSelecionado, osRows]);
   const projetoRows = useMemo(
-    () => filtrarLegado(filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster)),
-    [negocio.data, cluster],
+    () => aplicarRecorteProjetos(
+      filtrarLegado(filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster)),
+      osRows,
+      recorte,
+    ),
+    [negocio.data, cluster, recorte, osRows],
   );
-  const hoje = negocio.hoje;
+  const hoje = hojeDoRecorte(negocio.hoje, recorte);
 
   // Só os centros que aparecem em algum rateio — catálogo inteiro traria dezenas
   // de opções que devolveriam tela vazia.

@@ -14,6 +14,10 @@ import { useBoardHierarquia } from '@/hooks/useBoardHierarquia';
 import { filtrarPorCluster, consolidarRoi, saudeProjetos } from '@/lib/boardExecutivo';
 import { filtrarLegado } from '@/lib/boardLegado';
 import {
+  aplicarRecorteClientes, aplicarRecorteMelhorias, aplicarRecorteOs, aplicarRecorteProjetos,
+  hojeDoRecorte,
+} from '@/lib/boardRecorte';
+import {
   alertasEstrategicos, concentracaoCarteira, receitaAnoCorrente, receitaEmRisco,
 } from '@/lib/boardEstrategico';
 import { caixaVigente, fteDeHoras, mixAtivos, saudeOsg, somaHorasSalvas, ticketMedioAno } from '@/lib/boardDiretoria';
@@ -37,7 +41,8 @@ const MES = [
 export function useContextoAgenteDiretoria(): { contexto: ContextoTela; carregando: boolean } {
   const { isAdmin } = useAuth();
   const { ambiente } = useDashboardAmbiente();
-  const { cluster } = useBoardCluster();
+  const { cluster, cliente, ano, mes } = useBoardCluster();
+  const recorte = useMemo(() => ({ cliente, ano, mes }), [cliente, ano, mes]);
   const { clusters } = useBoardHierarquia();
   const negocio = useDashboardClientesOs(ambiente);
   const melhoriasQuery = useDomainMelhoriasRoi();
@@ -45,24 +50,45 @@ export function useContextoAgenteDiretoria(): { contexto: ContextoTela; carregan
   const { data: cicloAtivo } = useCicloAtivo();
 
   const empresa = cluster ? (clusters.find((c) => c.id === cluster)?.nome ?? null) : null;
-  const hoje = negocio.hoje;
+  const hoje = hojeDoRecorte(negocio.hoje, recorte);
   const janelaReceita = `${hoje.slice(0, 4)} até ${MES[Number(hoje.slice(5, 7)) - 1]}`;
 
   const osRows = useMemo(
-    () => filtrarLegado(filtrarPorCluster(negocio.data?.osRows ?? [], cluster)),
-    [negocio.data, cluster],
+    () => aplicarRecorteOs(
+      filtrarLegado(filtrarPorCluster(negocio.data?.osRows ?? [], cluster)),
+      recorte,
+    ),
+    [negocio.data, cluster, recorte],
   );
   const clienteRows = useMemo(
-    () => filtrarLegado(filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster)),
-    [negocio.data, cluster],
+    () => aplicarRecorteClientes(
+      filtrarLegado(filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster)),
+      osRows,
+      recorte,
+    ),
+    [negocio.data, cluster, recorte, osRows],
   );
   const projetoRows = useMemo(
-    () => filtrarLegado(filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster)),
-    [negocio.data, cluster],
+    () => aplicarRecorteProjetos(
+      filtrarLegado(filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster)),
+      osRows,
+      recorte,
+    ),
+    [negocio.data, cluster, recorte, osRows],
+  );
+  const clusterDoCliente = useMemo(
+    () => (cliente
+      ? (negocio.data?.clienteRows ?? []).find((c) => c.cliente_id === cliente)?.cluster_id ?? null
+      : null),
+    [negocio.data, cliente],
   );
   const melhorias = useMemo(
-    () => filtrarPorCluster(melhoriasQuery.data ?? [], cluster),
-    [melhoriasQuery.data, cluster],
+    () => aplicarRecorteMelhorias(
+      filtrarPorCluster(melhoriasQuery.data ?? [], cluster),
+      recorte,
+      clusterDoCliente,
+    ),
+    [melhoriasQuery.data, cluster, recorte, clusterDoCliente],
   );
   const membros = useMemo(() => membrosQuery.data ?? [], [membrosQuery.data]);
   const produtosPorOs = negocio.data?.rateioProdutoPorOs;
