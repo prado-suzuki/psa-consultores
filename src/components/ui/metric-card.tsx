@@ -19,7 +19,7 @@ export function MetricCard({
   change, 
   icon, 
   trend = 'neutral', 
-  iconColor = 'bg-teal-100',
+  iconColor = 'bg-accent/10',
   className
 }: MetricCardProps) {
   return (

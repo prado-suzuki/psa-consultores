@@ -66,6 +66,7 @@ function renderList(props: Partial<Parameters<typeof ProjetosTarefasList>[0]> = 
       onToggleSelection={noop}
       onMoveSelected={noop}
       onMoveProjectTasks={noop}
+      periodo={periodoParado}
       {...props}
     />,
   );
@@ -94,6 +95,25 @@ const tarefa = (id: string, overrides: Partial<OrgTask> = {}) => ({
   project_id: 'p1',
   ...overrides,
 }) as unknown as OrgTask;
+
+/** O mês não é o assunto deste teste: um período parado basta. */
+const periodoParado = {
+  mes: new Date(2026, 7, 1),
+  tarefas: [],
+  onPasso: () => {},
+  onHoje: () => {},
+};
+
+describe('ProjetosTarefasList — barra de período', () => {
+  it('a Lista ganhou a mesma barra da Tabela, do Calendário e do Gantt', () => {
+    renderList();
+
+    expect(screen.getByRole('button', { name: 'Hoje' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Mês anterior' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Próximo mês' })).toBeInTheDocument();
+    expect(screen.getByText('Agosto de 2026')).toBeInTheDocument();
+  });
+});
 
 describe('ProjetosTarefasList — coluna Esforço', () => {
   it('acusa na tarefa quem concluiu sem apontar horas', () => {
@@ -215,6 +235,113 @@ describe('ProjetosTarefasList — estado de carregamento', () => {
     // divisor do cliente — o nome do projeto só aparece depois de expandir.
     expect(screen.getByText('Cliente Um')).toBeInTheDocument();
     expect(screen.queryByText('Carregando projetos e tarefas…')).not.toBeInTheDocument();
+  });
+});
+
+describe('ProjetosTarefasList — responsável e prazo direto na linha', () => {
+  // A gente do projeto — não o quadro do cluster. U4 fica de fora de propósito.
+  const doProjeto = { p1: [{ id: 'U2', name: 'Geizi Andrade' }, { id: 'U3', name: 'Diego Melo' }] };
+
+  const expandirAteTarefa = () => {
+    fireEvent.click(screen.getByLabelText('Expandir OS'));
+    fireEvent.click(screen.getByLabelText('Expandir projeto'));
+  };
+
+  it('troca o responsável sem abrir a tarefa, gravando id e nome juntos', async () => {
+    const user = userEvent.setup();
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { assigned_to: 'U2' })],
+      assigneesByProject: doProjeto,
+    });
+    expandirAteTarefa();
+
+    await user.click(screen.getByLabelText('Responsável por Coleta'));
+    await user.click(screen.getByRole('option', { name: 'Diego Melo' }));
+
+    // O nome vai junto: a lista e os cartões leem assigned_to_name, não o perfil.
+    expect(mocks.updateTask).toHaveBeenCalledWith({
+      id: 'Coleta',
+      assigned_to: 'U3',
+      assigned_to_name: 'Diego Melo',
+    });
+  });
+
+  it('escolher o mesmo responsável não grava nada', async () => {
+    const user = userEvent.setup();
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { assigned_to: 'U2' })],
+      assigneesByProject: doProjeto,
+    });
+    expandirAteTarefa();
+
+    await user.click(screen.getByLabelText('Responsável por Coleta'));
+    await user.click(screen.getByRole('option', { name: 'Geizi Andrade' }));
+
+    expect(mocks.updateTask).not.toHaveBeenCalled();
+  });
+
+  it('troca o prazo pelo calendário da linha, em yyyy-MM-dd', async () => {
+    const user = userEvent.setup();
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { due_date: '2026-08-17' })],
+      assigneesByProject: doProjeto,
+    });
+    expandirAteTarefa();
+
+    await user.click(screen.getByLabelText('Prazo de Coleta'));
+    await user.click(screen.getByRole('button', { name: '20' }));
+
+    expect(mocks.updateTask).toHaveBeenCalledWith({ id: 'Coleta', due_date: '2026-08-20' });
+    // O calendário fecha ao escolher — o Popover não faz isso sozinho.
+    expect(screen.queryByRole('button', { name: '20' })).not.toBeInTheDocument();
+  });
+
+  it('só oferece a gente do projeto, e mantém quem já está com a tarefa', async () => {
+    const user = userEvent.setup();
+    renderList({
+      projects: [projeto],
+      // Tarefa com alguém que saiu da equipe do projeto: o valor atual precisa
+      // continuar selecionável, senão o seletor abre sem o próprio valor.
+      tasks: [tarefa('Coleta', { assigned_to: 'U9', assigned_to_name: 'Ex-membro' })],
+      assigneesByProject: doProjeto,
+    });
+    expandirAteTarefa();
+
+    await user.click(screen.getByLabelText('Responsável por Coleta'));
+    const opcoes = screen.getAllByRole('option').map(item => item.textContent);
+    expect(opcoes).toEqual(['Não atribuído', 'Geizi Andrade', 'Diego Melo', 'Ex-membro']);
+  });
+
+  it('projeto sem gente cadastrada não abre seletor nenhum', () => {
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { assigned_to: null, assigned_to_name: null })],
+      assigneesByProject: {},
+    });
+    expandirAteTarefa();
+
+    expect(screen.queryByLabelText('Responsável por Coleta')).not.toBeInTheDocument();
+    // Uma para a linha do projeto (sem responsável) e uma para a da tarefa.
+    expect(screen.getAllByText('Não atribuído')).toHaveLength(2);
+  });
+
+  it('sem permissão de editar campos, as células só leem', () => {
+    renderList({
+      projects: [projeto],
+      tasks: [tarefa('Coleta', { due_date: '2026-08-17' })],
+      assigneesByProject: doProjeto,
+      canEditTaskFields: () => false,
+    });
+    expandirAteTarefa();
+
+    expect(screen.queryByLabelText('Responsável por Coleta')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Prazo de Coleta')).not.toBeInTheDocument();
+    // O status continua editável: o trigger da RLS-06 sempre o libera.
+    expect(screen.getAllByRole('combobox')).toHaveLength(1);
+    expect(screen.getByText('Geizi Andrade')).toBeInTheDocument();
   });
 });
 

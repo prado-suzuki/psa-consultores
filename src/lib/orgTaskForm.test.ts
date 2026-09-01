@@ -296,19 +296,22 @@ describe('filterStatusOptions', () => {
       taskStatus: taskStatus as never,
     }).map((s) => s.key);
 
-  it('esconde review e em_ajuste quando não são o status atual', () => {
+  it('oferece review e em_ajuste na tarefa que já existe, como a linha da lista', () => {
+    // O caminho para a revisão tem de existir com a tarefa aberta, não só no
+    // seletor da linha: quem não é o responsável não tem o botão do topo.
     expect(labels(false, 'in_progress')).toEqual([
       'backlog',
       'waiting_client',
       'todo',
       'in_progress',
+      'review',
+      'em_ajuste',
       'done',
     ]);
   });
 
-  it('mostra o status de revisão quando é o atual da tarefa', () => {
+  it('mostra o status atual entre as opções, seja ele qual for', () => {
     expect(labels(false, 'review')).toContain('review');
-    expect(labels(false, 'review')).not.toContain('em_ajuste');
     expect(labels(false, 'em_ajuste')).toContain('em_ajuste');
   });
 
@@ -319,10 +322,11 @@ describe('filterStatusOptions', () => {
       'todo',
       'in_progress',
       'review',
+      'em_ajuste',
     ]);
   });
 
-  it('tarefa nova (sem status) não oferece review nem em_ajuste', () => {
+  it('tarefa nova não oferece review nem em_ajuste: não há trabalho a revisar', () => {
     expect(labels(false, null)).toEqual([
       'backlog',
       'waiting_client',

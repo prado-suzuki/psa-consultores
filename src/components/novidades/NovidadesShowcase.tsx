@@ -40,7 +40,7 @@ export const NovidadesShowcase = () => {
             exit={{ opacity: 0, x: -28 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
           >
-            <div className="text-xs font-semibold uppercase tracking-wider text-teal-100 mb-2">
+            <div className="text-xs font-semibold uppercase tracking-wider text-gray-50/70 mb-2">
               {n.dataLabel}
             </div>
             <h4 className="text-xl font-bold text-white leading-snug mb-2">{n.titulo}</h4>
@@ -67,7 +67,7 @@ export const NovidadesShowcase = () => {
 
       <Link
         to="/novidades"
-        className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-white text-teal-700 font-semibold text-base py-3 transition-colors hover:bg-teal-50"
+        className="mt-6 flex items-center justify-center gap-2 rounded-lg bg-white text-teal-700 font-semibold text-base py-3 transition-colors hover:bg-accent/5"
       >
         Ver todas as novidades
         <ArrowRight className="h-5 w-5" />

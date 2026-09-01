@@ -36,3 +36,21 @@ export function canUpdateOrgTaskStatus(
   if (task.created_by === actor.userId) return true;
   return task.reviewer_id === actor.userId && task.status === 'review';
 }
+
+/**
+ * Quem pode mudar os campos fora do trio status/horas/revisor — espelho do
+ * trigger `org_tasks_team_member_status_only` (RLS-06): sublíder ou acima, e o
+ * criador da própria tarefa. Serve para a lista só oferecer o seletor de
+ * responsável e o de prazo a quem o banco vai deixar gravar.
+ *
+ * O revisor delegado fica fora mesmo sendo líder: enquanto a revisão está com
+ * ele, a única escrita que passa é devolver para ajustes.
+ */
+export function canEditOrgTaskFields(
+  task: Pick<OrgTask, 'assigned_to' | 'created_by' | 'reviewer_id'>,
+  actor: OrgTaskActor,
+) {
+  if (isDelegatedOrgTaskReviewer(task, actor.userId)) return false;
+  if (actor.isAdmin || actor.isLider || actor.isSublider) return true;
+  return !!actor.userId && task.created_by === actor.userId;
+}

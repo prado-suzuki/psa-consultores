@@ -116,9 +116,9 @@ export function RoiDataMap({
               return (
                 <tr key={index} style={editavel ? { cursor: 'pointer' } : undefined} title={editavel ? 'Clique para editar este campo' : undefined} onClick={editavel ? () => onItemClick(item) : undefined}>
                   <td className="col-indicator">{item.campo}</td>
-                  <td>{item.formula ? <FormulaChip formula={item.formula} /> : <span style={{ color: '#94a3b8' }}>—</span>}</td>
+                  <td>{item.formula ? <FormulaChip formula={item.formula} /> : <span style={{ color: 'hsl(var(--slate-400))' }}>—</span>}</td>
                   <td><FieldChips campos={item.camposFonte} /></td>
-                  <td className="col-value">{item.valor != null && item.valor !== '' ? (typeof item.valor === 'number' ? formatDecimal(item.valor) : item.valor) : <span style={{ color: '#94a3b8' }}>—</span>}</td>
+                  <td className="col-value">{item.valor != null && item.valor !== '' ? (typeof item.valor === 'number' ? formatDecimal(item.valor) : item.valor) : <span style={{ color: 'hsl(var(--slate-400))' }}>—</span>}</td>
                   <td className="col-status"><StatusBadge status={item.status} /></td>
                 </tr>
               );

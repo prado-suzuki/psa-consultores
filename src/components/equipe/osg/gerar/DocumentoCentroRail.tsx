@@ -55,7 +55,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
         <Button
           variant="ghost"
           size="sm"
-          className="w-full text-xs text-osg-600 hover:text-osg-800"
+          className="w-full text-xs text-osg-600 hover:text-osg-700"
           onClick={abrirAlteracao}
         >
           Rever os eventos
@@ -126,7 +126,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                     {podeGerarAlteracao && (
                       <Button
                         variant="outline"
-                        className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06] hover:text-osg-800"
+                        className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06]"
                         onClick={abrirAlteracao}
                       >
                         <FileStack className="mr-1.5 h-4 w-4" />
@@ -151,7 +151,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                       <TooltipTrigger asChild>
                         <Button
                           variant="outline"
-                          className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06] hover:text-osg-800"
+                          className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06]"
                           onClick={() => setValidarConfirmOpen(true)}
                           disabled={salvarDocumento.isPending || !!motivoDeBloqueio}
                         >
@@ -184,7 +184,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06] hover:text-osg-800"
+                          className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06]"
                           onClick={() => setNovaVersaoConfirmOpen(true)}
                           disabled={salvarDocumento.isPending}
                         >
@@ -206,7 +206,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="w-full text-xs text-osg-600 hover:text-osg-800"
+                          className="w-full text-xs text-osg-600 hover:text-osg-700"
                           onClick={() => void revalidar()}
                           disabled={salvarDocumento.isPending}
                         >
@@ -251,7 +251,7 @@ export function DocumentoCentroRail({ controller }: { controller: GerarDocumento
                     <TooltipTrigger asChild>
                       <Button
                         variant="outline"
-                        className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06] hover:text-osg-800"
+                        className="w-full border-osg-moss/40 text-osg-700 hover:bg-osg-moss/[0.06]"
                         onClick={() => setValidarConfirmOpen(true)}
                         disabled={salvarDocumento.isPending || !!motivoDeBloqueio}
                       >

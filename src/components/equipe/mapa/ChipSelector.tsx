@@ -180,7 +180,7 @@ export default function ChipSelector({
           <button
             type="button"
             onClick={onAddNew}
-            style={{ background: 'none', border: 'none', color: '#0d9488', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, padding: 2 }}
+            style={{ background: 'none', border: 'none', color: 'hsl(var(--primary))', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600, padding: 2 }}
           >
             + {addNewLabel}
           </button>

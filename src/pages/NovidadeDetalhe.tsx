@@ -74,7 +74,7 @@ const NovidadeDetalhe = () => {
               )}
 
               {item.conteudoCompleto && (
-                <div className="text-gray-700 leading-relaxed whitespace-pre-line border-t border-gray-200 pt-6">
+                <div className="text-gray-700 leading-relaxed whitespace-pre-line border-t border-border pt-6">
                   {item.conteudoCompleto}
                 </div>
               )}

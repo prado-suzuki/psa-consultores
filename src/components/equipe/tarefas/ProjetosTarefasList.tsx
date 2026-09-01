@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from 'react';
+import { Fragment, useMemo, useState, type ReactNode } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -36,9 +36,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select';
 import type { OrgProject } from '@/hooks/useOrgProjects';
+import type { ProjectAssignee } from '@/hooks/useOrgProjectAssignees';
 import { type OrgTask, type OrgTaskStatus, useUpdateOrgTask } from '@/hooks/useOrgTasks';
 import { cn } from '@/lib/utils';
 import { parseDate } from '@/lib/dateUtils';
@@ -54,6 +57,8 @@ import { TaskCompletionHoursDialog } from '@/components/equipe/fiscal/tasks/Task
 import { TaskStatusTransitionDialog } from '@/components/equipe/fiscal/tasks/TaskStatusTransitionDialog';
  import { useTaskCompletionHours } from '@/hooks/useTaskCompletionHours';
  import { useTaskStatusTransition } from '@/hooks/useTaskStatusTransition';
+import { BarraDeMes } from '@/components/shared/BarraDeMes';
+import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 import { TaskStatusDot } from '@/components/equipe/tarefas/TaskStatusDot';
 import {
   esforcoDaTarefa,
@@ -96,9 +101,25 @@ interface ProjetosTarefasListProps {
   /** Marca todas as tarefas do projeto e abre o movimento em lote. */
   onMoveProjectTasks: (taskIds: string[]) => void;
   currentUserId?: string | null;
+  /** O mes e do painel: ele atravessa Lista, Tabela e Calendario. */
+  periodo: PeriodoDeTarefas;
+  /**
+   * Candidatos do seletor de responsável, por projeto: só a gente do projeto
+   * (membros, responsável e líder), nunca o quadro inteiro da área — ver
+   * `useOrgProjectAssignees`. Projeto sem candidatos: a célula só lê.
+   */
+  assigneesByProject?: Record<string, ProjectAssignee[]>;
+  /**
+   * Responsável e prazo são campos fora do trio status/horas/revisor: quem não
+   * criou a tarefa e não é líder não consegue gravá-los (RLS-06). Sem o gate a
+   * lista ofereceria um seletor que o banco recusa. Ver `canEditOrgTaskFields`.
+   */
+  canEditTaskFields?: (task: OrgTask) => boolean;
 }
 
 const GRID = 'grid grid-cols-[minmax(320px,1fr)_150px_180px_130px_140px_160px_44px] min-w-[1200px]';
+/** Radix Select não aceita valor vazio: o "não atribuído" precisa de sentinela. */
+const SEM_RESPONSAVEL = '_none';
 /** Faixas que atravessam a tabela inteira (divisor de cliente, "adicionar tarefa"). */
 const FULL_ROW_MIN_WIDTH = 'min-w-[1150px]';
 
@@ -204,6 +225,9 @@ export function ProjetosTarefasList({
   onMoveSelected,
   onMoveProjectTasks,
   currentUserId,
+  periodo,
+  assigneesByProject = {},
+  canEditTaskFields = () => true,
 }: ProjetosTarefasListProps) {
   const hierarchy = useMemo(
     () => buildProjetosTarefasHierarchy(projects, tasks, osRows, search, hideEmpty),
@@ -216,6 +240,9 @@ export function ProjetosTarefasList({
   // Assim expandir uma OS mostra os projetos sem despejar tarefas e subtarefas.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<{ column: 'prazo' | 'progresso' | null; dir: 'asc' | 'desc' }>({ column: null, dir: 'asc' });
+  // Só um calendário aberto por vez, e ele fecha ao escolher a data — o Popover
+  // não fecha sozinho no clique de dentro.
+  const [prazoAberto, setPrazoAberto] = useState<string | null>(null);
 
   const cycleSort = (column: 'prazo' | 'progresso') => setSort(previous => {
     if (previous.column !== column) return { column, dir: 'asc' };
@@ -269,11 +296,48 @@ export function ProjetosTarefasList({
     updateTask.mutate({ id: task.id, status });
   };
 
+  const updateResponsavel = (task: OrgTask, value: string, candidatos: ProjectAssignee[]) => {
+    const member = value === SEM_RESPONSAVEL ? null : candidatos.find(item => item.id === value);
+    if (value !== SEM_RESPONSAVEL && !member) return;
+    if ((member?.id ?? null) === task.assigned_to) return;
+    updateTask.mutate({
+      id: task.id,
+      assigned_to: member?.id ?? null,
+      assigned_to_name: member?.name ?? null,
+    });
+  };
+
+  /**
+   * Candidatos da linha: a gente do projeto, mais quem já está com a tarefa. O
+   * responsável atual entra porque tarefa antiga (ou movida de projeto) pode
+   * estar com alguém que saiu da equipe do projeto — sem ele o seletor abriria
+   * sem o próprio valor selecionado.
+   */
+  const candidatosDeResponsavel = (task: OrgTask): ProjectAssignee[] => {
+    const doProjeto = (task.project_id && assigneesByProject[task.project_id]) || [];
+    // Projeto sem gente (ou tarefa sem projeto) não vira seletor de uma opção só:
+    // oferecer apenas "não atribuído" não é escolher responsável.
+    if (doProjeto.length === 0) return [];
+    if (!task.assigned_to || doProjeto.some(item => item.id === task.assigned_to)) return doProjeto;
+    return [...doProjeto, { id: task.assigned_to, name: task.assigned_to_name || 'Responsável atual' }];
+  };
+
+  const updatePrazo = (task: OrgTask, date: Date | undefined) => {
+    setPrazoAberto(null);
+    if (!date) return;
+    const iso = format(date, 'yyyy-MM-dd');
+    if (iso === task.due_date) return;
+    updateTask.mutate({ id: task.id, due_date: iso });
+  };
+
   const renderTask = (node: ProjetosTarefasTaskNode, depth: number): React.ReactNode => {
     const { task, children } = node;
     const rowId = `task:${task.id}`;
     const isExpanded = expanded.has(rowId);
     const isSelected = selectedTaskIds.has(task.id);
+    const podeEditar = canEditTaskFields(task);
+    const candidatos = candidatosDeResponsavel(task);
+    const atrasada = !!task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done';
     return <Fragment key={task.id}>
       <div className={cn(GRID, 'group border-t border-border/60 text-sm hover:bg-muted/30', isSelected ? 'bg-primary/5' : 'bg-background')}>
         <div className="relative flex min-w-0 items-center gap-2 px-4 py-2" style={{ paddingLeft: `${TASK_INDENT + depth * INDENT_STEP}px` }}>
@@ -306,11 +370,32 @@ export function ProjetosTarefasList({
             <SelectContent>{statusList.map(status => <SelectItem key={status.key} value={status.key}>{status.label}</SelectItem>)}</SelectContent>
           </Select>
         </div>
-        <div className="flex items-center px-3 py-1.5 text-muted-foreground">
-          <span className="truncate text-xs">{task.assigned_to_name || 'Não atribuído'}</span>
+        <div className="flex min-w-0 items-center px-3 py-1.5">
+          {podeEditar && candidatos.length > 0
+            ? <Select value={task.assigned_to ?? SEM_RESPONSAVEL} onValueChange={value => updateResponsavel(task, value, candidatos)}>
+                <SelectTrigger aria-label={`Responsável por ${task.title}`} className="h-6 border-0 bg-transparent px-1 text-xs shadow-none focus:ring-0">
+                  <span className={cn('truncate', !task.assigned_to && 'text-muted-foreground')}>{task.assigned_to_name || 'Não atribuído'}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={SEM_RESPONSAVEL}>Não atribuído</SelectItem>
+                  {candidatos.map(member => <SelectItem key={member.id} value={member.id}>{member.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            : <span className="truncate text-xs text-muted-foreground">{task.assigned_to_name || 'Não atribuído'}</span>}
         </div>
-        <div className={cn('flex items-center gap-1.5 px-3 py-1.5 text-xs', task.due_date && parseDate(task.due_date) < new Date() && task.status !== 'done' ? 'font-medium text-destructive' : 'text-muted-foreground')}>
-          <CalendarDays className="h-3.5 w-3.5" />{dateLabel(task.due_date)}
+        <div className={cn('flex items-center px-3 py-1.5 text-xs', atrasada ? 'font-medium text-destructive' : 'text-muted-foreground')}>
+          {podeEditar
+            ? <Popover open={prazoAberto === task.id} onOpenChange={open => setPrazoAberto(open ? task.id : null)}>
+                <PopoverTrigger asChild>
+                  <button type="button" aria-label={`Prazo de ${task.title}`} className="-mx-1 flex items-center gap-1.5 whitespace-nowrap rounded px-1 py-0.5 hover:bg-muted">
+                    <CalendarDays className="h-3.5 w-3.5" />{dateLabel(task.due_date)}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="start" className="w-auto p-0">
+                  <Calendar selected={task.due_date ? parseDate(task.due_date) : undefined} onSelect={date => updatePrazo(task, date)} />
+                </PopoverContent>
+              </Popover>
+            : <span className="flex items-center gap-1.5 whitespace-nowrap"><CalendarDays className="h-3.5 w-3.5" />{dateLabel(task.due_date)}</span>}
         </div>
         <EsforcoCell esforco={esforcoDaTarefa(task)} className="py-1.5" />
         <div />
@@ -340,28 +425,34 @@ export function ProjetosTarefasList({
   };
 
   if (hierarchy.length === 0) {
+    // A barra do mes fica POR CIMA do vazio: sem ela, um mes sem tarefas
+    // prenderia a pessoa ali — o controle que a trouxe desapareceria junto.
+    const comBarra = (conteudo: ReactNode) => <div className="space-y-2">
+      <div className="overflow-hidden rounded-xl border bg-card shadow-sm"><BarraDeMes periodo={periodo} /></div>
+      {conteudo}
+    </div>;
     // Carregando vem ANTES dos vazios: a lista depende de várias consultas em
     // cadeia (escopo de cluster → projetos → tarefas → OS) e, sem este ramo,
     // o usuário lia "Nenhum projeto ou tarefa encontrado" durante toda a espera.
     // Só entra aqui quando não há NADA para mostrar — com dados parciais a lista
     // é renderizada normalmente e vai se completando.
     if (isLoading) {
-      return <div className="rounded-xl border border-dashed py-16 text-center text-muted-foreground">
+      return comBarra(<div className="rounded-xl border border-dashed py-16 text-center text-muted-foreground">
         <AreaLoader area={area} size={72} className="mx-auto block" />
         <p className="mt-3 font-medium">Carregando projetos e tarefas…</p>
-      </div>;
+      </div>);
     }
     // Com filtros ativos, o vazio é resultado da filtragem — ensina o comportamento
     // (grupos sem tarefas ficam ocultos) e oferece limpar os filtros de uma vez.
     if (hideEmpty) {
-      return <div className="rounded-xl border border-dashed py-16 text-center">
+      return comBarra(<div className="rounded-xl border border-dashed py-16 text-center">
         <FilterX className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" />
         <p className="font-medium">Nenhuma tarefa corresponde aos filtros</p>
         <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">Clientes, OS e projetos sem tarefas correspondentes ficam ocultos. Limpe os filtros para ver toda a estrutura.</p>
         {onClearFilters && <Button variant="outline" size="sm" className="mt-4 gap-2" onClick={onClearFilters}><FilterX className="h-4 w-4" />Limpar filtros</Button>}
-      </div>;
+      </div>);
     }
-    return <div className="rounded-xl border border-dashed py-16 text-center"><FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" /><p className="font-medium">Nenhum projeto ou tarefa encontrado</p><p className="mt-1 text-sm text-muted-foreground">Crie um novo projeto para começar.</p></div>;
+    return comBarra(<div className="rounded-xl border border-dashed py-16 text-center"><FolderKanban className="mx-auto mb-3 h-9 w-9 text-muted-foreground/50" /><p className="font-medium">Nenhum projeto ou tarefa encontrado</p><p className="mt-1 text-sm text-muted-foreground">Crie um novo projeto para começar.</p></div>);
   }
 
   const allOsExpanded = sortedHierarchy.every(group => expanded.has(`os:${group.id}`));
@@ -395,7 +486,8 @@ export function ProjetosTarefasList({
         {allOsExpanded ? 'Recolher tudo' : 'Expandir tudo'}
       </Button>
     </div>
-    <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
+    <div className="overflow-x-auto overflow-y-hidden rounded-xl border bg-card shadow-sm">
+    <BarraDeMes periodo={periodo} />
     <div className={cn(GRID, 'border-b bg-muted/40 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground')}>
       <div className="px-4 py-2.5">Nome</div><div className="px-3 py-2.5">Status</div><div className="px-3 py-2.5">Responsável</div>
       <button type="button" onClick={() => cycleSort('prazo')} className={cn('flex items-center gap-1 px-3 py-2.5 uppercase tracking-wider transition-colors hover:text-foreground', sort.column === 'prazo' ? 'text-foreground' : '')}>Prazo{sortIcon('prazo')}</button>

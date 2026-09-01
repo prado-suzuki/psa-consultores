@@ -35,7 +35,7 @@ const ListaNotificacoes = ({ linhas, naoLidas, onMarcarLido, marcando }: {
       <p className="text-xs text-slate-500">
         {naoLidas > 0 ? `${naoLidas} ${naoLidas > 1 ? 'alterações' : 'alteração'} desde a validação` : 'Tudo em dia desde a validação'}
       </p>
-      <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs text-osg-600 hover:text-osg-800 disabled:opacity-40" onClick={onMarcarLido} disabled={naoLidas === 0 || marcando}>
+      <Button variant="ghost" size="sm" className="h-7 gap-1 px-2 text-xs text-osg-600 hover:text-osg-700 disabled:opacity-40" onClick={onMarcarLido} disabled={naoLidas === 0 || marcando}>
         {marcando ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Marcar como lido
       </Button>
     </div>

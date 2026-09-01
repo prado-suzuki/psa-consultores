@@ -75,3 +75,26 @@ export const isFutureBrazil = (date: Date): boolean => {
   const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   return dateOnly > today;
 };
+
+/**
+ * Data e hora de uma mensagem, no formato curto: `31/08/2026 14:10`.
+ *
+ * Existe para tirar o "há cerca de 5 horas" das conversas. O tempo relativo
+ * obriga quem lê a fazer conta de cabeça e muda de significado conforme a hora
+ * em que a pessoa abre a tela: o mesmo comentário lê "há 5 horas" de manhã e
+ * "ontem" à noite. Pedido da Patricia em 27/08/2026 e reforçado em 31/08, para
+ * o chat do projeto, o da tarefa e o feed ao mesmo tempo.
+ *
+ * Formato curto por decisão dela: cabe na thread estreita, onde a forma por
+ * extenso quebraria a linha.
+ */
+export const dataHoraCurta = (valor: string | Date): string => {
+  const data = valor instanceof Date ? valor : new Date(valor);
+  if (Number.isNaN(data.getTime())) return '';
+
+  const dia = String(data.getDate()).padStart(2, '0');
+  const mes = String(data.getMonth() + 1).padStart(2, '0');
+  const hora = String(data.getHours()).padStart(2, '0');
+  const minuto = String(data.getMinutes()).padStart(2, '0');
+  return `${dia}/${mes}/${data.getFullYear()} ${hora}:${minuto}`;
+};

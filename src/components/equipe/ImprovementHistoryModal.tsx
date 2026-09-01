@@ -202,7 +202,7 @@
                              {savingsDetails[improvement.id]?.length > 0 ? (
                                <div className="space-y-2">
                                  {savingsDetails[improvement.id].map((detail) => (
-                                   <div key={detail.id} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
+                                   <div key={detail.id} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
                                      <div className="flex items-center gap-2">
                                        {getSavingsTypeIcon(detail.savings_type)}
                                        <span className="text-muted-foreground text-xs">

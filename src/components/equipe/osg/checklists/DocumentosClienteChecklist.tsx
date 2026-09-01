@@ -265,7 +265,7 @@ function ChecklistRow({ number, req, state, matches, downloading, onDownload, up
         <div className="min-w-0 flex-1">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <h3 className="text-sm font-bold text-osg-800">{req.assunto}</h3>
+              <h3 className="text-sm font-bold text-osg-moss">{req.assunto}</h3>
               <p className="mt-1 max-w-3xl text-xs leading-relaxed text-slate-500">{req.descricao}</p>
             </div>
             <StatusPill state={state} count={matches.length} />
@@ -282,7 +282,7 @@ function ChecklistRow({ number, req, state, matches, downloading, onDownload, up
               <CollapsibleTrigger className="flex items-center gap-2 rounded-lg border border-osg-100 bg-osg-50/55 px-3 py-2 text-xs font-semibold text-osg-600 transition-colors hover:border-osg-200 hover:bg-osg-50 [&[data-state=open]_.chevron]:rotate-180">
                 <FileText className="h-4 w-4 text-osg-moss" />
                 <span>Ver {matches.length} documentos encontrados</span>
-                <ChevronDown className="chevron h-3.5 w-3.5 text-osg-400 transition-transform" />
+                <ChevronDown className="chevron h-3.5 w-3.5 text-osg-500 transition-transform" />
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="mt-2 grid gap-2 lg:grid-cols-2">
@@ -354,7 +354,7 @@ function FileDownloadButton({ file, downloading, onDownload }: {
     >
       <FileText className="h-4 w-4 shrink-0 text-osg-moss" />
       <span className="min-w-0 flex-1 truncate text-xs font-medium text-slate-600">{file.nome_original}</span>
-      <Download className="h-3.5 w-3.5 shrink-0 text-osg-400" />
+      <Download className="h-3.5 w-3.5 shrink-0 text-osg-500" />
     </button>
   );
 }
@@ -388,7 +388,7 @@ function OtherDocuments({ files, downloading, onDownload }: {
         <Archive className="h-4 w-4 text-osg-500" />
         <span className="flex-1 text-sm font-semibold text-osg-700">Outros documentos do cliente</span>
         <span className="text-xs tabular-nums text-osg-500">{files.length}</span>
-        <ChevronDown className="chevron h-4 w-4 text-osg-400 transition-transform" />
+        <ChevronDown className="chevron h-4 w-4 text-osg-500 transition-transform" />
       </CollapsibleTrigger>
       <CollapsibleContent className="border-t border-osg-100 px-4 py-3">
         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -400,12 +400,12 @@ function OtherDocuments({ files, downloading, onDownload }: {
               disabled={!file.gcs_uri || downloading}
               className="flex min-w-0 items-center gap-2 rounded-lg border border-osg-100 bg-osg-50/50 px-3 py-2 text-left hover:bg-osg-50 disabled:opacity-60"
             >
-              <FileText className="h-4 w-4 shrink-0 text-osg-400" />
+              <FileText className="h-4 w-4 shrink-0 text-osg-500" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-xs font-medium text-slate-600">{file.nome_original}</span>
                 <span className="block truncate text-[10px] text-slate-400">{CAT_LABEL[file.categoria]}</span>
               </span>
-              <Download className="h-3.5 w-3.5 shrink-0 text-osg-400" />
+              <Download className="h-3.5 w-3.5 shrink-0 text-osg-500" />
             </button>
           ))}
         </div>

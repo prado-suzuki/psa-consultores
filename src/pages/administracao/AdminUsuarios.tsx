@@ -92,7 +92,7 @@ const AdminUsuarios = () => {
       case 'lider':
         return <Badge className="bg-amber-100 text-amber-700">Líder</Badge>;
       case 'client':
-        return <Badge className="bg-gray-100 text-gray-700">Cliente</Badge>;
+        return <Badge className="bg-muted text-gray-700">Cliente</Badge>;
       default:
         return <Badge variant="outline">{role}</Badge>;
     }

@@ -2,7 +2,6 @@ import {
   addDays,
   differenceInCalendarDays,
   differenceInDays,
-  eachDayOfInterval,
   format,
 } from 'date-fns';
 import type {
@@ -276,33 +275,31 @@ export function calculateSprintRisks(
   return { overdue, dueToday, dueTomorrow, metricsAtRisk, sprintProgress };
 }
 
+/**
+ * As datas resolvidas de cada entregável — o início cai no começo da sprint
+ * quando o entregável não tem um próprio.
+ *
+ * Aqui não mora mais geometria. A janela, as colunas e a posição da barra
+ * passaram para `src/lib/ganttTimeline.ts` quando o Gantt virou um componente
+ * só: `days`, `totalDays`, `startOffset`, `duration`, `barLeft` e `barWidth`
+ * descreviam um eixo que ia do começo ao fim da sprint, e o eixo agora é um
+ * período navegável que a sprint não controla.
+ */
 export function buildGanttData(sprint: Sprint | null, deliverables: Deliverable[]) {
-  if (!sprint) return { days: [] as Date[], deliverables: [], totalDays: 0 };
+  if (!sprint) return { deliverables: [] };
   const sprintStart = parseDate(sprint.start_date);
-  const days = eachDayOfInterval({ start: sprintStart, end: parseDate(sprint.end_date) });
   return {
-    days,
-    totalDays: days.length,
-    deliverables: deliverables.map((item) => {
-      const startDate = item.start_date ? parseDate(item.start_date) : sprintStart;
-      const endDate = parseDate(item.due_date);
-      const startOffset = Math.max(0, differenceInDays(startDate, sprintStart));
-      const duration = Math.max(1, differenceInDays(endDate, startDate) + 1);
-      return {
-        ...item,
-        startDate,
-        endDate,
-        startOffset,
-        duration,
-        barLeft: (startOffset / days.length) * 100,
-        barWidth: (duration / days.length) * 100,
-      };
-    }),
+    deliverables: deliverables.map((item) => ({
+      ...item,
+      startDate: item.start_date ? parseDate(item.start_date) : sprintStart,
+      endDate: parseDate(item.due_date),
+    })),
   };
 }
 
 export type GanttData = ReturnType<typeof buildGanttData>;
 
+/** Entregáveis por responsável, com os totais que o resumo da linha escreve. */
 export function groupGanttByPerson(
   data: GanttData,
   sprint: Sprint | null,
@@ -313,31 +310,15 @@ export function groupGanttByPerson(
   data.deliverables.forEach((item) =>
     (grouped[item.assigned_to ?? 'unassigned'] ??= []).push(item),
   );
-  const sprintStart = parseDate(sprint.start_date);
-  const sprintEnd = parseDate(sprint.end_date);
   return Object.entries(grouped)
-    .map(([personId, items]) => {
-      let minStart = sprintEnd;
-      let maxEnd = sprintStart;
-      items.forEach((item) => {
-        if (item.startDate < minStart) minStart = item.startDate;
-        if (item.endDate > maxEnd) maxEnd = item.endDate;
-      });
-      return {
-        personId,
-        personName: getProfileName(personId),
-        deliverables: items,
-        totalHours: items.reduce((sum, item) => sum + (item.estimated_hours ?? 0), 0),
-        completedCount: items.filter((item) => item.status === 'completed').length,
-        count: items.length,
-        minStart,
-        maxEnd,
-        consolidatedBarLeft:
-          (Math.max(0, differenceInDays(minStart, sprintStart)) / data.totalDays) * 100,
-        consolidatedBarWidth:
-          (Math.max(1, differenceInDays(maxEnd, minStart) + 1) / data.totalDays) * 100,
-      };
-    })
+    .map(([personId, items]) => ({
+      personId,
+      personName: getProfileName(personId),
+      deliverables: items,
+      totalHours: items.reduce((sum, item) => sum + (item.estimated_hours ?? 0), 0),
+      completedCount: items.filter((item) => item.status === 'completed').length,
+      count: items.length,
+    }))
     .sort((a, b) => a.personName.localeCompare(b.personName));
 }
 

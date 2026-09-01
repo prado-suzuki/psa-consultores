@@ -89,7 +89,7 @@ const ESTADO_CHIP: Record<EstadoDocumento, string> = {
   pendente: 'border-amber-200 bg-amber-50 text-amber-700 hover:border-amber-400',
   em_analise: 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-400',
   recusado: 'border-rose-200 bg-rose-50 text-rose-700 hover:border-rose-400',
-  aprovado: 'border-teal-200 bg-teal-50 text-primary hover:border-teal-400',
+  aprovado: 'border-primary/15 bg-accent/5 text-primary hover:border-primary/40',
 };
 
 const estadoDaPendencia = (pendencia: PendenciaCliente): EstadoDocumento =>
@@ -199,7 +199,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
   if (pendencias.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-300/80 bg-white/70 px-6 py-16 text-center shadow-sm">
-        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-teal-50 text-primary">
+        <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/5 text-primary">
           <ShieldCheck className="h-7 w-7" />
         </span>
         <p className="font-semibold text-slate-800">Nada pendente no momento.</p>
@@ -261,7 +261,7 @@ export function ChecklistDocumentosCliente({ clienteId }: { clienteId: string })
                     'inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
                     FOCO,
                     ativo
-                      ? 'border-primary bg-teal-50 text-primary'
+                      ? 'border-primary bg-accent/5 text-primary'
                       : 'border-slate-200/80 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-700',
                   )}
                 >
@@ -483,12 +483,12 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
         className={cn('absolute inset-0 z-0 rounded-2xl', FOCO)}
       />
       <div className="pointer-events-none relative z-10 flex items-start justify-between gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-primary">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/5 text-primary">
           <Icon className="h-5 w-5" />
         </span>
         <span className={cn(
           'rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]',
-          entidade.faltando > 0 ? 'bg-amber-50 text-amber-700' : 'bg-teal-50 text-primary',
+          entidade.faltando > 0 ? 'bg-amber-50 text-amber-700' : 'bg-accent/5 text-primary',
         )}>
           {entidade.faltando > 0
             ? `${entidade.faltando} pendente${entidade.faltando === 1 ? '' : 's'}`
@@ -657,7 +657,7 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
     <div className="flex flex-col gap-3 py-4 sm:flex-row sm:items-start">
       <span className={cn(
         'mt-0.5 hidden h-8 w-8 shrink-0 items-center justify-center rounded-lg sm:flex',
-        pendencia.recebido ? 'bg-teal-50 text-primary'
+        pendencia.recebido ? 'bg-accent/5 text-primary'
           : recusado ? 'bg-rose-50 text-rose-700' : 'bg-amber-50 text-amber-700',
       )}>
         {pendencia.recebido ? <Check className="h-4 w-4" />
@@ -674,7 +674,7 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
               'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold',
               recusado ? 'bg-rose-50 text-rose-700'
                 : estado === 'em_analise' ? 'bg-slate-100 text-slate-600'
-                  : 'bg-teal-50 text-primary',
+                  : 'bg-accent/5 text-primary',
             )}>
               {recusado ? <TriangleAlert className="h-3 w-3" />
                 : estado === 'em_analise' ? <Hourglass className="h-3 w-3" />
@@ -706,7 +706,7 @@ function LinhaPendencia({ pendencia, somenteLeitura, enviando, onArquivo, onRemo
         ) : (
           <label
             className={cn(
-              'inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-primary/30 bg-white px-3 py-2 text-xs font-semibold text-primary transition-colors hover:border-primary/60 hover:bg-teal-50',
+              'inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-primary/30 bg-white px-3 py-2 text-xs font-semibold text-primary transition-colors hover:border-primary/60 hover:bg-accent/5',
               FOCO,
               ocupado && 'pointer-events-none opacity-60',
             )}
@@ -763,7 +763,7 @@ function ArquivoEnviado({ arquivo, somenteLeitura, onRemover }: {
         <span className={cn(
           'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.06em]',
           recusado ? 'bg-rose-100 text-rose-700'
-            : aprovado ? 'bg-teal-100 text-primary' : 'bg-slate-200/70 text-slate-600',
+            : aprovado ? 'bg-accent/10 text-primary' : 'bg-slate-200/70 text-slate-600',
         )}>
           {recusado ? 'Recusado' : aprovado ? 'Aprovado' : 'Em análise'}
         </span>

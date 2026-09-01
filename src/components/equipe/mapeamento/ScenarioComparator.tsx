@@ -19,7 +19,7 @@ const KIND_LABEL: Record<string, string> = {
 const KIND_COLOR: Record<string, string> = {
   scale: 'bg-blue-100 text-blue-700',
   efficiency: 'bg-amber-100 text-amber-700',
-  investment: 'bg-teal-100 text-teal-700',
+  investment: 'bg-accent/10 text-teal-700',
 };
 
 interface MetricRow {

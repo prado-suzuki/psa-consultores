@@ -155,7 +155,7 @@ function Secao({ icon: Icon, titulo, meta, action, children }: { icon: typeof La
     <section className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
       <header className="flex flex-wrap items-center gap-3 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
         <Icon className="h-4 w-4 shrink-0 text-osg-600" />
-        <h3 className="text-sm font-semibold text-osg-800">{titulo}</h3>
+        <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
         <div className="ml-auto flex items-center gap-2">
           {meta && <span className="text-[11px] text-slate-500">{meta}</span>}
           {action}

@@ -166,7 +166,7 @@ export function DocumentoCanvas({ modeloId, docBlocos, isLoading, onEditarBloco 
         </div>
       ) : ordem.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-3 py-20 text-center">
-          <div className={cn('rounded-full p-4 transition-colors', dragOver ? 'bg-osg-moss/10 text-osg-moss' : 'bg-osg-100 text-osg-400')}>
+          <div className={cn('rounded-full p-4 transition-colors', dragOver ? 'bg-osg-moss/10 text-osg-moss' : 'bg-osg-100 text-osg-500')}>
             <MousePointerSquareDashed className="h-8 w-8" />
           </div>
           <div className="space-y-1">

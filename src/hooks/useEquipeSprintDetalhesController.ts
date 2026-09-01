@@ -184,13 +184,12 @@ export function useEquipeSprintDetalhesController() {
     () => calculateSprintRisks(deliverables, metrics, sprint),
     [deliverables, metrics, sprint],
   );
-  const ganttChartData = useMemo(
-    () => buildGanttData(sprint, filteredDeliverables),
-    [filteredDeliverables, sprint],
-  );
+  // Só o agrupamento sai daqui: as datas resolvidas do `buildGanttData` são
+  // insumo dele, e a tela não tem mais o que fazer com elas — quem desenha o
+  // eixo é o `GanttChart`, com a geometria dele.
   const ganttByPerson = useMemo(
-    () => groupGanttByPerson(ganttChartData, sprint, getProfileName),
-    [ganttChartData, getProfileName, sprint],
+    () => groupGanttByPerson(buildGanttData(sprint, filteredDeliverables), sprint, getProfileName),
+    [filteredDeliverables, getProfileName, sprint],
   );
   const parentTaskOptions = useMemo(
     () => deliverables.filter((item) => !item.parent_id),
@@ -799,7 +798,6 @@ export function useEquipeSprintDetalhesController() {
     saveGoal,
     filteredDeliverables,
     hierarchicalTasks,
-    ganttChartData,
     ganttByPerson,
     groupedEvents,
     parentTaskOptions,

@@ -103,7 +103,7 @@ const EquipeDashboard = () => {
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <h2 className="text-lg font-semibold text-foreground">{activeSprint.name}</h2>
-                    <Badge className="bg-teal-100 text-teal-700 border-0">Ativa</Badge>
+                    <Badge className="bg-accent/10 text-teal-700 border-0">Ativa</Badge>
                   </div>
                   <span className="text-sm text-muted-foreground">
                     {parseDate(activeSprint.start_date).toLocaleDateString('pt-BR')} - {parseDate(activeSprint.end_date).toLocaleDateString('pt-BR')}

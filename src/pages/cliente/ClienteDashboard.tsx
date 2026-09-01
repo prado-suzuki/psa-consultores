@@ -25,7 +25,7 @@ import { useSolicitacaoAtivaCliente } from "@/hooks/useDocumentoArquivo";
 
 const statusConfig = {
   planning: { label: "Planejamento", className: "bg-slate-100 text-slate-700 hover:bg-slate-100" },
-  active: { label: "Em Andamento", className: "bg-teal-100 text-teal-700 hover:bg-teal-100" },
+  active: { label: "Em Andamento", className: "bg-accent/10 text-teal-700 hover:bg-accent/10" },
   on_hold: { label: "Em Pausa", className: "bg-amber-100 text-amber-700 hover:bg-amber-100" },
   completed: { label: "Concluído", className: "bg-emerald-100 text-emerald-700 hover:bg-emerald-100" },
 } as const;

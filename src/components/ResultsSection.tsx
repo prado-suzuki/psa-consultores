@@ -105,7 +105,7 @@ export const ResultsSection = () => {
                 key={index} 
                 className={`text-center px-4 lg:px-8 ${
                   index < results.length - 1 
-                    ? 'lg:border-r lg:border-gray-300/50' 
+                    ? 'lg:border-r lg:border-border/50' 
                     : ''
                 }`}
               >

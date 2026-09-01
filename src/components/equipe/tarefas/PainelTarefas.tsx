@@ -15,10 +15,12 @@ import {
   TaskFilters as TaskFiltersType
 } from '@/hooks/useOrgTasks';
 import { AreaKey } from '@/config/areaCategories';
+import { canEditOrgTaskFields } from '@/lib/orgTaskPermissions';
 import { useDashboardProjectIds } from '@/hooks/useDashboardProjectIds';
 import { useGerarTarefasProjeto } from '@/hooks/useGerarTarefasProjeto';
 import { useProjetosCadastroController } from '@/hooks/useProjetosCadastroController';
 import { useOrgProjectOrders } from '@/hooks/useOrgProjectOrders';
+import { useOrgProjectAssignees } from '@/hooks/useOrgProjectAssignees';
 import { ProjetosCadastroContext } from '@/components/equipe/projetos-cadastro/ProjetosCadastroContext';
 import { ProjetoDialog } from '@/components/equipe/projetos-cadastro/ProjetoDialog';
 import { ProjetoDeleteDialog } from '@/components/equipe/projetos-cadastro/ProjetoDeleteDialog';
@@ -28,6 +30,7 @@ import { extractProductAcronyms, hasTaskFilters, withProjectClientFallback, type
 import { TaskFilters } from '@/components/equipe/fiscal/tasks/TaskFilters';
 import { TaskKPICards } from '@/components/equipe/fiscal/tasks/TaskKPICards';
 import { TaskCalendar } from '@/components/equipe/fiscal/tasks/TaskCalendar';
+import { usePeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 import { TaskTable } from '@/components/equipe/fiscal/tasks/TaskTable';
 import { TaskKanban } from '@/components/equipe/fiscal/tasks/TaskKanban';
 import { TaskGantt } from '@/components/equipe/fiscal/tasks/TaskGantt';
@@ -155,12 +158,16 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
       );
     return withProjectClientFallback(clientTasks, listProjects);
   }, [allTasks, visibleProjectIds, deepLinkTaskId, user?.id, filters.clientId, listProjects]);
+  const periodo = usePeriodoDeTarefas(tasks);
   const visibleListProjects = useMemo(
     () => filters.clientId
       ? listProjects.filter(project => project.external_client_id === filters.clientId)
       : listProjects,
     [filters.clientId, listProjects],
   );
+  // Responsável de tarefa sai da gente do projeto, não do quadro do cluster
+  // (`teamMembers`, que ainda alimenta filtros e modais).
+  const assigneesByProject = useOrgProjectAssignees(visibleListProjects);
   // Filtros de tarefas escondem clientes/OS/projetos sem correspondências. A busca
   // textual não: ela também encontra clientes e projetos que ainda não têm tarefas.
   const hasActiveTaskFilters = useMemo(() => hasTaskFilters(filters), [filters]);
@@ -295,6 +302,10 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
   const canMoveTask = (task: OrgTask) => isAdmin || isLider || isSublider
     || (!!user && task.created_by === user.id);
 
+  // Mesmo trigger, agora para os seletores de responsável e prazo da lista.
+  const canEditTaskFields = (task: OrgTask) =>
+    canEditOrgTaskFields(task, { userId: user?.id, isAdmin, isLider, isSublider });
+
   const handleMoveTask = (task: OrgTask) => {
     if (!canMoveTask(task)) {
       toast.error('Você não tem permissão para mover esta tarefa.', {
@@ -419,7 +430,8 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
               <ProjetosTarefasList
                 area={area}
                 projects={visibleListProjects}
-                tasks={tasks}
+                tasks={periodo.tarefas}
+                periodo={periodo}
                 osRows={osRows}
                 search={filters.search || ''}
                 isLoading={isTasksLoading || projectController.isLoading || isScopeUnresolved}
@@ -439,21 +451,25 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                 onMoveSelected={handleMoveSelected}
                 onMoveProjectTasks={handleMoveProjectTasks}
                 currentUserId={user?.id}
+                assigneesByProject={assigneesByProject}
+                canEditTaskFields={canEditTaskFields}
               />
             </TabsContent>
 
             <TabsContent value="calendar" className="m-0">
               <TaskCalendar
-                tasks={tasks}
+                tasks={periodo.tarefas}
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
                 onReassign={handleReassignTask}
+                periodo={periodo}
               />
             </TabsContent>
 
             <TabsContent value="table" className="m-0">
               <TaskTable
-                tasks={tasks}
+                tasks={periodo.tarefas}
+                periodo={periodo}
                 area={area}
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
@@ -469,7 +485,8 @@ const PainelTarefas = ({ area }: { area: AreaKey }) => {
                   antes de deixar arrastar — não oferece um movimento que o banco
                   vai recusar (ver canUpdateOrgTaskStatus). */}
               <TaskKanban
-                tasks={tasks}
+                tasks={periodo.tarefas}
+                periodo={periodo}
                 area={area}
                 onEdit={handleEditTask}
                 currentUserId={user?.id}

@@ -100,7 +100,7 @@ export function ImpactDashboard() {
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <Card className="border-gray-200">
+      <Card className="border-border">
         <CardContent className="pt-4 pb-4">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-medium text-gray-700">Filtros</h3>
@@ -172,7 +172,7 @@ export function ImpactDashboard() {
 
       {/* Header Stats */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Target className="h-4 w-4 text-gray-500" />
@@ -183,7 +183,7 @@ export function ImpactDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Zap className="h-4 w-4 text-green-500" />
@@ -194,7 +194,7 @@ export function ImpactDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Clock className="h-4 w-4 text-blue-500" />
@@ -205,7 +205,7 @@ export function ImpactDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <DollarSign className="h-4 w-4 text-green-500" />
@@ -218,7 +218,7 @@ export function ImpactDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <TrendingUp className="h-4 w-4 text-primary" />
@@ -229,7 +229,7 @@ export function ImpactDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-2 mb-1">
               <Users className="h-4 w-4 text-purple-500" />
@@ -244,7 +244,7 @@ export function ImpactDashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Economia Acumulada */}
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-gray-900 text-base font-medium">
               Economia Acumulada
@@ -276,7 +276,7 @@ export function ImpactDashboard() {
         </Card>
 
         {/* FTE por Área */}
-        <Card className="border-gray-200">
+        <Card className="border-border">
           <CardHeader className="pb-2">
             <CardTitle className="text-gray-900 text-base font-medium">
               FTE Liberados por Área
@@ -314,7 +314,7 @@ export function ImpactDashboard() {
       </div>
 
       {/* ROI por Projeto */}
-      <Card className="border-gray-200">
+      <Card className="border-border">
         <CardHeader className="pb-2">
           <CardTitle className="text-gray-900 text-base font-medium">
             ROI por Projeto
@@ -342,7 +342,7 @@ export function ImpactDashboard() {
       </Card>
 
       {/* Comparativo de Horas */}
-      <Card className="border-gray-200">
+      <Card className="border-border">
         <CardHeader className="pb-2">
           <CardTitle className="text-gray-900 text-base font-medium">
             Comparativo de Horas
@@ -409,7 +409,7 @@ export function ImpactDashboard() {
                             </Badge>
                           </div>
                         </div>
-                        <div className="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div className="relative h-2 bg-muted rounded-full overflow-hidden">
                           <div 
                             className="absolute h-full bg-gray-400 rounded-full transition-all"
                             style={{ width: `${barWidthBefore}%` }}
@@ -439,7 +439,7 @@ export function ImpactDashboard() {
       </Card>
 
       {/* Melhorias Implementadas - Cards/Table View */}
-      <Card className="border-gray-200">
+      <Card className="border-border">
         <CardHeader className="pb-2">
           <div className="flex items-center justify-between">
             <CardTitle className="text-gray-900 text-base font-medium">
@@ -521,7 +521,7 @@ export function ImpactDashboard() {
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
-                        <Badge className="bg-teal-100 text-teal-700 border-0 w-6 h-6 flex items-center justify-center">
+                        <Badge className="bg-accent/10 text-teal-700 border-0 w-6 h-6 flex items-center justify-center">
                           {index + 1}
                         </Badge>
                         <div>
@@ -540,7 +540,7 @@ export function ImpactDashboard() {
                         <Badge variant="outline" className="border-blue-300 text-blue-700">
                           {improvement.time_saved_hours?.toFixed(0)}h/mês
                         </Badge>
-                        <Badge className="bg-teal-100 text-teal-700 border-0">
+                        <Badge className="bg-accent/10 text-teal-700 border-0">
                           ROI {improvement.roi_percentage.toFixed(0)}%
                         </Badge>
                       </div>

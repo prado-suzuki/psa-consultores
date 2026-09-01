@@ -38,11 +38,11 @@ export const JUSTIFICATION_TYPES = [
 ];
 
 export const PROCESS_STAGES = [
-  { value: 'discovery', label: 'Descoberta', color: 'bg-gray-100 text-gray-700' },
+  { value: 'discovery', label: 'Descoberta', color: 'bg-muted text-gray-700' },
   { value: 'mapping', label: 'Mapeamento', color: 'bg-blue-100 text-blue-700' },
   { value: 'analysis', label: 'Análise', color: 'bg-purple-100 text-purple-700' },
   { value: 'improvement', label: 'Melhoria', color: 'bg-orange-100 text-orange-700' },
-  { value: 'automation', label: 'Automação', color: 'bg-teal-100 text-teal-700' },
+  { value: 'automation', label: 'Automação', color: 'bg-accent/10 text-teal-700' },
   { value: 'completed', label: 'Concluído', color: 'bg-green-100 text-green-700' },
 ];
 

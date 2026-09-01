@@ -72,7 +72,7 @@ const OsgWorkDashboard = () => {
         {FERRAMENTAS.map((f) => (
           <Card
             key={f.id}
-            className="cursor-pointer hover:border-osg-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5 transition-all duration-200 group"
+            className="cursor-pointer hover:border-osg-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group"
             onClick={() => navigate(f.path)}
           >
             <CardHeader className="pb-3">

@@ -35,7 +35,7 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
       value: metrics.completed,
       icon: CheckCircle2,
       iconClass: 'text-teal-600',
-      bgClass: 'bg-teal-50',
+      bgClass: 'bg-accent/5',
     },
   ];
 

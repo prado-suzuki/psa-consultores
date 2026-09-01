@@ -1,7 +1,6 @@
 import type { RefObject } from 'react';
 import { ArrowDown, ArrowUp, ArrowUpDown, Paperclip } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { dataHoraCurta } from '@/lib/dateUtils';
 import { AssignAgentCell } from '@/components/chamados/AssignAgentCell';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -79,7 +78,7 @@ export function EquipeChamadosTable({ tickets, canAssignTickets, areaMap, cluste
                 <TableCell><span className="text-sm">{ticket.cluster_id ? clusterMap.get(ticket.cluster_id) || '—' : '—'}</span></TableCell>
                 <TableCell><span className="text-sm">{ticket.profiles ? `${ticket.profiles.first_name} ${ticket.profiles.last_name}` : '-'}</span></TableCell>
                 <TableCell><span className="text-sm text-muted-foreground">{ticket.cliente_nome || '—'}</span></TableCell>
-                <TableCell><span className="text-sm text-muted-foreground">{formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true, locale: ptBR })}</span></TableCell>
+                <TableCell><span className="text-sm text-muted-foreground">{dataHoraCurta(ticket.updated_at)}</span></TableCell>
                 <TableCell><PrazoBadge ticket={ticket} /></TableCell>
                 {canAssignTickets && (
                   <TableCell>

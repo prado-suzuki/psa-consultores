@@ -36,8 +36,8 @@ const FieldTooltip = ({ text }: { text: string }) => (
 );
 
 const TOOLTIPS = {
-  cliente: 'Filtra os processos de PERDCOMP por cliente ou grupo.',
-  contribuinte: 'CNPJ/CPF vinculado ao cliente. Obrigatório para a busca.',
+  cliente: 'Lista apenas os clientes que já têm PER cadastrado.',
+  contribuinte: 'CNPJ/CPF do cliente que já tem PER cadastrado. Obrigatório para a busca.',
   situacao: 'Filtra por status do processo (múltipla seleção).',
   exercicio: 'Limita a listagem ao ano-calendário do crédito.',
   numeroProcesso: 'Busca direta pelo número do PER/DCOMP.',
@@ -100,7 +100,7 @@ export function ControlePerdcompFilters({
             </label>
             <Select value={clienteId} onValueChange={onClienteChange}>
               <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecione o cliente" />
+                <SelectValue placeholder={clientes.length === 0 ? 'Nenhum cliente com PER' : 'Selecione o cliente'} />
               </SelectTrigger>
               <SelectContent className="z-50">
                 {clientes.map((cliente) => (
@@ -122,7 +122,13 @@ export function ControlePerdcompFilters({
               disabled={!clienteId}
             >
               <SelectTrigger className="h-11">
-                <SelectValue placeholder="Selecione o contribuinte" />
+                <SelectValue
+                  placeholder={
+                    clienteId && contribuintes.length === 0
+                      ? 'Nenhum contribuinte com PER'
+                      : 'Selecione o contribuinte'
+                  }
+                />
               </SelectTrigger>
               <SelectContent className="z-50">
                 {contribuintes.map((contribuinte) => (

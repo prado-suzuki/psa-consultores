@@ -35,7 +35,7 @@ export const LocationsSection = () => {
           <h2 className="text-3xl md:text-4xl font-bold text-gray-50 mb-4">
             Onde Estamos
           </h2>
-          <p className="text-gray-300">
+          <p className="text-gray-400">
             Presença estratégica nas principais regiões do agronegócio brasileiro.
           </p>
         </motion.div>

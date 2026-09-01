@@ -64,7 +64,7 @@ export const CreateDemandDialog = ({
         Nova Demanda
       </Button>
     </DialogTrigger>
-    <DialogContent className="border-gray-200 max-w-lg">
+    <DialogContent className="border-border max-w-lg">
       <DialogHeader>
         <DialogTitle className="text-gray-900">Criar Nova Demanda</DialogTitle>
       </DialogHeader>
@@ -116,7 +116,7 @@ export const CreateDemandDialog = ({
               <SelectTrigger className="text-gray-900">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent className="border-gray-200">
+              <SelectContent className="border-border">
                 <SelectItem value="daily">Diária</SelectItem>
                 <SelectItem value="weekly">Semanal</SelectItem>
                 <SelectItem value="monthly">Mensal</SelectItem>
@@ -157,7 +157,7 @@ export const CreateDemandDialog = ({
               <SelectTrigger className="text-gray-900">
                 <SelectValue placeholder="Selecione" />
               </SelectTrigger>
-              <SelectContent className="border-gray-200">
+              <SelectContent className="border-border">
                 {teamMembers.map((member) => (
                   <SelectItem key={member.id} value={member.id}>
                     {member.first_name} {member.last_name}
@@ -217,7 +217,7 @@ export const EditDemandDialog = ({
   onDelete,
 }: EditDemandDialogProps) => (
   <Dialog open={!!selectedDemand && editMode} onOpenChange={onClose}>
-    <DialogContent className="border-gray-200 max-w-lg">
+    <DialogContent className="border-border max-w-lg">
       {selectedDemand && (
         <>
           <DialogHeader>
@@ -262,7 +262,7 @@ export const EditDemandDialog = ({
                   <SelectTrigger className="text-gray-900">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="border-gray-200">
+                  <SelectContent className="border-border">
                     <SelectItem value="daily">Diária</SelectItem>
                     <SelectItem value="weekly">Semanal</SelectItem>
                     <SelectItem value="monthly">Mensal</SelectItem>
@@ -302,7 +302,7 @@ export const EditDemandDialog = ({
                   <SelectTrigger className="text-gray-900">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
-                  <SelectContent className="border-gray-200">
+                  <SelectContent className="border-border">
                     {teamMembers.map((member) => (
                       <SelectItem key={member.id} value={member.id}>
                         {member.first_name} {member.last_name}

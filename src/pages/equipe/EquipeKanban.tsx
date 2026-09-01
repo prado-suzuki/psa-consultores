@@ -406,7 +406,7 @@ const EquipeKanban = () => {
       fullWidth={true}
       headerActions={
         <div className="flex items-center gap-3">
-          <div className="flex items-center border border-gray-200 rounded-lg p-1 bg-white">
+          <div className="flex items-center border border-border rounded-lg p-1 bg-white">
             <Button
               variant={viewMode === 'kanban' ? 'secondary' : 'ghost'}
               size="icon"

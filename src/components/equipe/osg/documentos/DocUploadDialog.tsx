@@ -297,7 +297,7 @@ export function DocUploadDialog({
               onDrop={onDrop}
               className={cn(
                 'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors',
-                arrastando ? 'border-osg-400 bg-osg-50' : 'border-osg-200 bg-osg-50/40',
+                arrastando ? 'border-osg-500 bg-osg-50' : 'border-osg-200 bg-osg-50/40',
               )}
             >
               <FolderUp className="h-7 w-7 text-osg-moss/70" />
