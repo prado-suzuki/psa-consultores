@@ -27,6 +27,16 @@ que custam tempo.
 Produção é outro banco e recebe migration por passo humano no chat do Lovable (ver
 `CLAUDE.md` §"Qual banco esta na sua frente"). Onde a diferença importa, a linha diz.
 
+**E a ressalva vale nos dois sentidos — esta é a lacuna do método acima.** As três fontes de
+apuração moram no repositório, e dívida de schema, policy ou dado às vezes é paga **só no
+banco**: a migration de produção é aplicada à mão e não deixa rastro aqui, e a
+`supabase_migrations.schema_migrations` de lá não registra tudo. Então *não existe migration na
+`develop` fechando isso* **não** significa *está aberto em produção*. Quando o assunto da linha
+é schema, policy ou contagem de dado, o repositório não decide: confira produção por SELECT
+(MCP do Lovable, **só SELECT**) antes de marcar 🟡 ou 🔵. Em 01/09 isso mudou duas apurações —
+o P1 do RLS, e o `color_index`, que uma fila de agosto dava como pendente e em produção já é
+`NOT NULL`.
+
 ---
 
 ## OSG — geração de documentos e alteração contratual
@@ -93,7 +103,7 @@ Produção é outro banco e recebe migration por passo humano no chat do Lovable
 |---|---|---|
 | [`planos/delegar-revisao-tarefas.md`](planos/delegar-revisao-tarefas.md) | ✅ FEITO | Entregue em 15/07. O "Aprovar devolve para Em Ajuste" **é o comportamento decidido**, não é bug — ver `geral/achados-taskmodal.md` §1 |
 | [`planos/plano-comentarios-mencoes-feed.md`](planos/plano-comentarios-mencoes-feed.md) | 🟡 PARCIAL | Fases 1 e 2 implementadas. **Reações e follow/unfollow seguem só propostas** |
-| [`geral/divida-tipos-org-comments.md`](geral/divida-tipos-org-comments.md) | 🔵 ABERTO | Dívida de casts enquanto o `types.ts` não conhecer os contratos. Conferir se ainda vale — o `types.ts` foi regerado em 31/08 |
+| [`geral/divida-tipos-org-comments.md`](geral/divida-tipos-org-comments.md) | 🟡 PARCIAL | **A causa acabou**: o `types.ts` regerado em 31/08 já conhece `org_comments_feed`, `criar_org_comment` e `org_comment_mentions`. Os `as unknown as` nos três hooks viraram peso morto e podem sair — é a única coisa que resta deste documento |
 | [`equipe/TAREFA_proxima-sprint_unificacao-tarefas-e-conexao-telas.md`](equipe/TAREFA_proxima-sprint_unificacao-tarefas-e-conexao-telas.md) | 🟡 PARCIAL | T1 e T6 concluídos, banco concluído (`tasks` dropada). **T2/T3, T4 e T5 seguem abertos** |
 | [`equipe/TAREFA_proxima-sprint_atrito-cadastro-clientes.md`](equipe/TAREFA_proxima-sprint_atrito-cadastro-clientes.md) | 🔵 ABERTO | A1 a A11 e B1 a B3, nenhum marcado. Não achei validação de CNPJ/UF/e-mail no cadastro — o grupo A parece intacto |
 | [`geral/achados-taskmodal.md`](geral/achados-taskmodal.md) | 📘 REF | Quirks travados em teste, **de propósito**. O §1 já foi decidido como correto. Os demais são candidatos a tarefa, não tarefas |
