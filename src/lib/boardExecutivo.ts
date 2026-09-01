@@ -292,6 +292,10 @@ export interface MelhoriaRoi {
    * diretoria pede (28/08). Vinha da tabela mas ninguém lia.
    */
   time_saved_hours?: number | null;
+  time_saved_percent?: number | null;
+  baseline_time_hours?: number | null;
+  improved_time_hours?: number | null;
+  improvement_description?: string | null;
   implementation_cost: number | null;
   one_time_external_cost: number | null;
   created_at: string | null;

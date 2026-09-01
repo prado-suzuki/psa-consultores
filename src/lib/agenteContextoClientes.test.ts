@@ -76,6 +76,26 @@ describe('contextoBoardClientes', () => {
     expect(itens[0].maior_municipio).toBeNull();
   });
 
+  it('concentração entra na frente quando a tela a desenha', () => {
+    const ctx = contextoBoardClientes({
+      ...base,
+      concentracao: {
+        total: 1_000_000,
+        clientes: 4,
+        top: [
+          { cliente_id: 'a', nome: 'Alfa', receita: 600_000, share: 0.6, acumulado: 0.6 },
+        ],
+        shareTop1: 0.6,
+        shareTop5: 1,
+        clientesParaMetade: 1,
+      },
+      ticket: 250_000,
+    });
+    expect(ctx.blocos[0]?.id).toBe('concentracao');
+    expect(campo(ctx, 'concentracao', 'Metade do contratado')?.valor).toBe('1');
+    expect(campo(ctx, 'concentracao', 'Ticket médio')?.valor).toBe('R$ 250 mil');
+  });
+
   it('falha vira aviso', () => {
     expect(contextoBoardClientes({ ...base, falhas: ['distribuição de clientes'] }).avisos)
       .toEqual(['falha ao carregar: distribuição de clientes']);

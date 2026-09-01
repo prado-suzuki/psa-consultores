@@ -23,11 +23,13 @@ interface BoardFilterBarProps {
   rightSlot?: React.ReactNode;
   resultCount?: number;
   totalCount?: number;
+  /** Sem o rótulo "Filtros" — a barra já vive ao lado do título. */
+  hideHeading?: boolean;
 }
 
 export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
   filters, onFilterChange, activeFilters, onReset, activeCount = 0,
-  rightSlot, resultCount, totalCount,
+  rightSlot, resultCount, totalCount, hideHeading = false,
 }) => {
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -162,12 +164,12 @@ export const BoardFilterBar: React.FC<BoardFilterBarProps> = ({
   return (
     <>
       <div className="v3-fbar">
-        {/* Rótulo da barra: sem ele os controles flutuavam sem dizer o que
-            governam. Mesmo tom dos cabeçalhos de tabela. */}
-        <span className="v3-fi-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-          <SlidersHorizontal style={{ width: 12, height: 12 }} />
-          Filtros
-        </span>
+        {!hideHeading && (
+          <span className="v3-fi-label" style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            <SlidersHorizontal style={{ width: 12, height: 12 }} />
+            Filtros
+          </span>
+        )}
         {filters.map(f => renderFilter(f))}
         {activeCount > 0 && (
           <>

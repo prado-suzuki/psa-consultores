@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { OsRow } from '@/lib/dashboardClientesOs/types';
 import {
-  addDaysIso, caixaVigente, classificarMix, fteDeHoras, mixAtivos,
+  addDaysIso, caixaVigente, classificarMix, fteDeHoras, mixAtivos, somaHorasSalvas,
   recorteOsg, saudeOsg, serieHorizonte, serieMixMensal, ticketMedioAno,
 } from './boardDiretoria';
 
@@ -111,6 +111,16 @@ describe('OSG e FTE', () => {
   it('FTE = horas / 176; null continua null', () => {
     expect(fteDeHoras(352)).toEqual({ horas: 352, fte: 2 });
     expect(fteDeHoras(null)).toEqual({ horas: null, fte: null });
+  });
+});
+
+describe('somaHorasSalvas', () => {
+  it('sem cadastro não vira zero', () => {
+    expect(somaHorasSalvas([null, undefined])).toBeNull();
+  });
+
+  it('soma só o que existe', () => {
+    expect(somaHorasSalvas([176, null, 88])).toBe(264);
   });
 });
 

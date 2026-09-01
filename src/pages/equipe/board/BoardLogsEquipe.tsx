@@ -45,24 +45,23 @@ const BoardLogsEquipe = () => {
   useRegistrarContextoAgente('board.logs', contextoAgente, isLoading);
 
   return (
-    <BoardLayout title="Logs" subtitle="O que o sistema registrou">
+    <BoardLayout
+      title="Logs"
+      subtitle={AUDIT_AREA_LABEL[area]}
+      headerActions={(
+        <Select value={area} onValueChange={(valor) => setArea(valor as AuditArea)}>
+          <SelectTrigger className="h-8 w-[180px] text-sm" aria-label="Escopo de área">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {AUDIT_AREA_OPCOES.map((opcao) => (
+              <SelectItem key={opcao} value={opcao}>{AUDIT_AREA_LABEL[opcao]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+    >
       <div className="space-y-6">
-        <div className="pg-head flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <div className="pg-title">Logs</div>
-            <div className="pg-sub">{AUDIT_AREA_LABEL[area]}</div>
-          </div>
-          <Select value={area} onValueChange={(valor) => setArea(valor as AuditArea)}>
-            <SelectTrigger className="h-9 w-[180px] text-sm" aria-label="Escopo de área">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {AUDIT_AREA_OPCOES.map((opcao) => (
-                <SelectItem key={opcao} value={opcao}>{AUDIT_AREA_LABEL[opcao]}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
 
         {/* `key` remonta as abas ao trocar o escopo, para ordenação e filtros
             locais de cada aba não atravessarem de uma área para outra. O período

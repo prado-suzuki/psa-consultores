@@ -17,6 +17,7 @@
  */
 import type { BlocoContexto, ContextoTela } from '@/hooks/useAgenteContexto';
 import type { AgregacaoRegiao } from '@/lib/clientesPorRegiao';
+import type { Concentracao } from '@/lib/boardEstrategico';
 
 const pct = (parte: number, total: number) =>
   total > 0 ? `${((parte / total) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%` : null;
@@ -25,15 +26,54 @@ export interface EntradaContextoClientes {
   agregacao: AgregacaoRegiao;
   /** `true` quando o usuário enxerga a carteira inteira (admin). */
   escopoTotal: boolean;
+  /** Quem carrega o contratado — a história desta tela no Board. */
+  concentracao?: Concentracao;
+  ticket?: number | null;
   /** Rótulos das consultas que falharam. */
   falhas: string[];
 }
 
 const SUGESTOES = [
+  'De quem a carteira depende — quantos clientes carregam metade do contratado?',
   'Em quais estados a carteira está concentrada?',
   'Quantos clientes estão sem estado cadastrado?',
-  'Qual a proporção de clientes ativos na carteira?',
 ];
+
+const brl = (v: number) =>
+  Math.abs(v) >= 1_000_000
+    ? `R$ ${(v / 1_000_000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`
+    : `R$ ${Math.round(v / 1000).toLocaleString('pt-BR')} mil`;
+
+function blocoConcentracao(e: EntradaContextoClientes): BlocoContexto | null {
+  if (!e.concentracao) return null;
+  const c = e.concentracao;
+  return {
+    id: 'concentracao',
+    titulo: 'Quem carrega o contratado',
+    nota: e.escopoTotal
+      ? undefined
+      : 'Carteira limitada aos clientes do seu acesso — não é o total da empresa.',
+    campos: [
+      { rotulo: 'Clientes com contrato', valor: String(c.clientes) },
+      {
+        rotulo: 'Metade do contratado',
+        valor: c.clientesParaMetade === null ? null : String(c.clientesParaMetade),
+        nota: c.clientesParaMetade === null ? 'sem receita para medir' : 'quantos carregam 50%',
+      },
+      {
+        rotulo: 'Ticket médio',
+        valor: e.ticket == null ? null : brl(e.ticket),
+        nota: e.ticket == null ? 'sem base no ano' : 'ano · por cliente',
+      },
+      { rotulo: 'Contratado no recorte', valor: brl(c.total) },
+    ],
+    itens: c.top.map((t) => ({
+      cliente: t.nome,
+      contratado: brl(t.receita),
+      fatia: `${(t.share * 100).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%`,
+    })),
+  };
+}
 
 function blocoCarteira(e: EntradaContextoClientes): BlocoContexto {
   const a = e.agregacao;
@@ -97,11 +137,11 @@ function blocoEstados(e: EntradaContextoClientes): BlocoContexto | null {
 }
 
 export function contextoBoardClientes(e: EntradaContextoClientes): ContextoTela {
-  const blocos = [blocoCarteira(e), blocoEstados(e)]
+  const blocos = [blocoConcentracao(e), blocoCarteira(e), blocoEstados(e)]
     .filter((b): b is BlocoContexto => b !== null);
 
   return {
-    rotulo: 'Board · Clientes (carteira e distribuição geográfica)',
+    rotulo: 'Board · Clientes (concentração da carteira; mapa é recorte)',
     filtros: {
       escopo: e.escopoTotal ? 'empresa inteira' : 'somente os clientes do seu acesso',
     },
