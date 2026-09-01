@@ -22,7 +22,7 @@ interface SprintCalendarProps {
 }
 
 const statusLabels: Record<string, string> = {
-  pending: 'Pendente',
+  pending: entregavelStatusColors.pending.label,
   in_progress: 'Em Progresso',
   completed: 'Concluído',
 };

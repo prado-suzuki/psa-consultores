@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { GanttChart } from '@/components/equipe/gantt/GanttChart';
 import type { GanttGrupo, GanttPapel } from '@/components/equipe/gantt/tiposDeGantt';
 import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDetalhesController';
+import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
 
 /**
  * A aba Gantt da sprint. Mesmo componente da aba Gantt do painel de tarefas —
@@ -22,7 +23,7 @@ const PAPEL_POR_STATUS: Record<string, GanttPapel> = {
 };
 
 const LEGENDA: ReadonlyArray<{ papel: GanttPapel; rotulo: string; ponto: string }> = [
-  { papel: 'fila', rotulo: 'Pendente', ponto: 'bg-status-fila' },
+  { papel: 'fila', rotulo: entregavelStatusColors.pending.label, ponto: 'bg-status-fila' },
   { papel: 'andamento', rotulo: 'Em Progresso', ponto: 'bg-status-andamento' },
   { papel: 'feito', rotulo: 'Concluído', ponto: 'bg-status-feito' },
 ];

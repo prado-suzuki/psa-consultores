@@ -51,7 +51,7 @@ const tabTriggerClass =
 
 /** Status com cor semântica: leitura rápida de andamento dentro do formulário. */
 const statusOptions = [
-  { value: 'pending', label: 'Pendente', dot: entregavelStatusColors.pending.dot },
+  { value: 'pending', label: entregavelStatusColors.pending.label, dot: entregavelStatusColors.pending.dot },
   { value: 'in_progress', label: 'Em Progresso', dot: entregavelStatusColors.in_progress.dot },
   { value: 'completed', label: 'Concluído', dot: entregavelStatusColors.completed.dot },
 ];
