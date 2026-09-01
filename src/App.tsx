@@ -148,8 +148,6 @@ import DashboardUsoEnvioGerencial from "./pages/equipe/board/DashboardUsoEnvioGe
 
 // Gestão
 import GestaoNovidades from "./pages/gestao/GestaoNovidades";
-import GestaoChamadosDashboard from "./pages/gestao/GestaoChamadosDashboard";
-import GestaoDetalhesChamado from "./pages/gestao/GestaoDetalhesChamado";
 import GestaoContatos from "./pages/gestao/GestaoContatos";
 import GestaoAcessos from "./pages/gestao/GestaoAcessos";
 
