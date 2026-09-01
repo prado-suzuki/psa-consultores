@@ -31,6 +31,7 @@ import {
   ACENTO, PAPEL, SERIES, AXIS, GRID, TOOLTIP, brl, brlMil, milAxis, num, pct, mesLabel, dataBR,
   th, td,
 } from '@/components/equipe/board/clientes-os/shared';
+import { filtrarLegado } from '@/lib/boardLegado';
 
 type Aba = 'clientes' | 'operacional' | 'projetos';
 type SortDir = 'asc' | 'desc';
@@ -161,9 +162,12 @@ export const DashboardClientesOsContent = ({
     if (containerRef.current) revealRef(containerRef.current);
   }, [revealRef, isLoading, aba]);
 
-  const clienteRows = data?.clienteRows ?? EMPTY_CLIENTES;
-  const osRows = data?.osRows ?? EMPTY_OS;
-  const projetoRows = data?.projetoRows ?? EMPTY_PROJETOS;
+  const clienteRowsBrutos = data?.clienteRows ?? EMPTY_CLIENTES;
+  const osRowsBrutos = data?.osRows ?? EMPTY_OS;
+  const projetoRowsBrutos = data?.projetoRows ?? EMPTY_PROJETOS;
+  const clienteRows = usarClusterGlobal ? filtrarLegado(clienteRowsBrutos) : clienteRowsBrutos;
+  const osRows = usarClusterGlobal ? filtrarLegado(osRowsBrutos) : osRowsBrutos;
+  const projetoRows = usarClusterGlobal ? filtrarLegado(projetoRowsBrutos) : projetoRowsBrutos;
   const rateioPorOs = data?.rateioPorOs ?? EMPTY_RATEIO;
   const rateioProdutoPorOs = data?.rateioProdutoPorOs ?? EMPTY_RATEIO;
 
@@ -370,8 +374,8 @@ export const DashboardClientesOsContent = ({
         <div className="pg-head">
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <div>
-              <div className="pg-title">Dashboard · {tituloInterno}</div>
-              <div className="pg-sub">Dados ao vivo do Supabase · clique nos gráficos para filtrar e nos títulos das colunas para ordenar</div>
+              <div className="pg-title">{tituloInterno}</div>
+              <div className="pg-sub">Tendência do contratado · clique no gráfico para recortar</div>
             </div>
             <div className="v3-segs">
               {([['clientes', 'Clientes'], ['operacional', 'Operacional'], ['projetos', 'OS / Projetos']] as const).map(([k, l]) => (

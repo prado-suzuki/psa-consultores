@@ -39,8 +39,12 @@ const BoardClientes = () => {
   useRegistrarContextoAgente('board.clientes', contextoAgente, isLoading);
 
   return (
-    <BoardLayout title="Clientes" subtitle="Carteira da empresa e distribuição geográfica">
+    <BoardLayout title="Clientes" subtitle="Carteira e concentração geográfica">
       <div className="space-y-4">
+        <div className="pg-head">
+          <div className="pg-title">Clientes</div>
+          <div className="pg-sub">Onde está a carteira</div>
+        </div>
         {isLoading ? (
           <div
             className="board-card flex h-[320px] items-center justify-center"

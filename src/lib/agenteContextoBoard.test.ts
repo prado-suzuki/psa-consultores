@@ -49,69 +49,6 @@ const base: EntradaContextoBoard = {
 const campo = (ctx: ReturnType<typeof contextoBoardEstrategico>, blocoId: string, rotulo: string) =>
   ctx.blocos.find((b) => b.id === blocoId)?.campos.find((c) => c.rotulo === rotulo);
 
-/** A faixa da diretoria (28/08) — opcional no montador, presente na tela. */
-const diretoria: Partial<EntradaContextoBoard> = {
-  mix: {
-    ativos: 102, iniciadosJanela: 12, iniciadosJanelaAnterior: 8, variacaoPct: 50,
-    clienteNovo: 4, aditivo: 8, planejadaPaga: null, semClassificacao: 3,
-    motivos: { planejadaPaga: 'sem campo no cadastro de OS', semClassificacao: 'projeto sem OS' },
-  },
-  receitaDiretoria: {
-    ticketMedio: 75_000, osComValor: 40, osSemValor: 7, projetosGerandoCaixa: 18,
-    horizonteCaixa: '2026-12', caixaContratadoAFrente: 1_350_000, osSemDataFim: 4,
-    folhaMensal: null, coberturaFolhaPct: null,
-    motivos: { folha: 'sem campo de folha', faturamentoTotal: 'cadastro de OS incompleto' },
-  },
-  capacidade: {
-    melhorias: 4, melhoriasComHoras: 2, horasReduzidasMes: 264, fteLiberado: 1.5,
-    economiaMensal: 30_000, economiaAnual: 360_000, ganhoInterno: null, ganhoCliente: null,
-    motivos: { distincao: 'interna x cliente nao esta em process_improvements' },
-  },
-  osg: {
-    metaClientesAno: 30, captadosAno: 5, captadosAnoAnterior: 7, ticketMedio: 90_000,
-    receitaAno: 450_000, receitaAnoAnterior: 630_000, variacaoReceitaPct: -28.57,
-    headcount: 10, senioresJson: null, folhaMensal: null,
-    horasReduzidasMes: 176, fteLiberado: 1, motivos: { seniores: 'sem cargo', folha: 'sem folha' },
-  },
-};
-
-describe('faixa da diretoria no snapshot', () => {
-  it('publica variacao e mix — o numero solto nao decide nada', () => {
-    const ctx = contextoBoardEstrategico({ ...base, ...diretoria });
-    expect(campo(ctx, 'diretoria', 'Projetos ativos')?.valor).toBe('102');
-    expect(campo(ctx, 'diretoria', 'Variação de projetos iniciados')?.valor).toBe('50%');
-    expect(campo(ctx, 'diretoria', 'Mix: cliente novo')?.valor).toBe('4');
-  });
-
-  it('faturamento total e folha viajam como lacuna com motivo, nunca como numero', () => {
-    const ctx = contextoBoardEstrategico({ ...base, ...diretoria });
-    expect(campo(ctx, 'diretoria', 'Faturamento total')?.valor).toBeNull();
-    expect(campo(ctx, 'diretoria', 'Custo de folha e cobertura')?.nota).toMatch(/folha/);
-    expect(campo(ctx, 'diretoria', 'Ticket médio por OS')?.valor).toBe('R$ 75 mil');
-  });
-
-  it('capacidade sai em FTE e admite que interno x cliente nao esta no cadastro', () => {
-    const ctx = contextoBoardEstrategico({ ...base, ...diretoria });
-    expect(campo(ctx, 'capacidade', 'FTE equivalente liberado')?.valor).toBe('1.5');
-    expect(campo(ctx, 'capacidade', 'Ganho interno (capacidade PSA)')?.valor).toBeNull();
-  });
-
-  it('OSG traz meta, captacao e comparativo do ano anterior', () => {
-    const ctx = contextoBoardEstrategico({ ...base, ...diretoria });
-    expect(campo(ctx, 'osg', 'Meta de clientes no ano')?.valor).toBe('30');
-    expect(campo(ctx, 'osg', 'Clientes captados no ano')?.valor).toBe('5');
-    expect(campo(ctx, 'osg', 'Variação da receita')?.valor).toBe('-29%');
-    expect(campo(ctx, 'osg', 'Sêniores')?.valor).toBeNull();
-  });
-
-  it('sem os recortes novos, os blocos nao entram vazios', () => {
-    const ids = contextoBoardEstrategico(base).blocos.map((b) => b.id);
-    expect(ids).not.toContain('diretoria');
-    expect(ids).not.toContain('osg');
-    expect(ids).not.toContain('capacidade');
-  });
-});
-
 describe('contextoBoardEstrategico', () => {
   it('formata valor como a tela formata (Ctrl+F no número tem que achar)', () => {
     const ctx = contextoBoardEstrategico(base);

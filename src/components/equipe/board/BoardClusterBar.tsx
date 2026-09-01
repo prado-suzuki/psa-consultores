@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
 import { useBoardHierarquia } from '@/hooks/useBoardHierarquia';
+import { eClusterLegado } from '@/lib/boardLegado';
 
 /**
  * Rotas do Board que HONRAM o recorte global CLUSTER -> ÁREA -> EQUIPE.
@@ -55,8 +56,9 @@ const TODOS = '__todos__';
 export const BoardClusterBar = () => {
   const { cluster, setCluster, area, setArea, equipe, setEquipe } = useBoardCluster();
   const { isLoading, clusters, areasPorCluster, equipesPorArea } = useBoardHierarquia();
+  const clustersVivos = clusters.filter((c) => !eClusterLegado(c.nome));
 
-  const clusterSelecionado = clusters.find((c) => c.id === cluster);
+  const clusterSelecionado = clustersVivos.find((c) => c.id === cluster);
   const areasDoCluster = cluster ? areasPorCluster.get(cluster) ?? [] : [];
   const areaSelecionada = areasDoCluster.find((a) => a.id === area);
   const equipesDaArea = area ? equipesPorArea.get(area) ?? [] : [];
@@ -115,7 +117,7 @@ export const BoardClusterBar = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={TODOS}>Todos</SelectItem>
-            {clusters.map((c) => (
+            {clustersVivos.map((c) => (
               <SelectItem key={c.id} value={c.id}>
                 {c.nome}{!c.ativo ? ' (inativo)' : ''}
               </SelectItem>
