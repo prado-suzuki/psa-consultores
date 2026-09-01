@@ -150,6 +150,7 @@ mudou**. O estado corrente é `geral/paleta-por-area.md`; os outros são histór
 |---|---|---|
 | [`geral/paleta-por-area.md`](geral/paleta-por-area.md) | 📘 REF | **O contrato em vigor.** Papel de status, tom de tag, quem resolve o quê |
 | [`geral/fase-3a-cor-crua-na-mao.md`](geral/fase-3a-cor-crua-na-mao.md) | ✅ FEITO | A fase 3a (Mapa e Board), executada em 31/08 e escrita em 01/09. **Registra o que ficou de fora de propósito**: a 3b (gráfico → PNG) depende da decisão 4, sem resposta |
+| [`geral/cor-o-que-falta.md`](geral/cor-o-que-falta.md) | 🔵 ABERTO | **O ponto de retomada da frente de cor.** Estado em 01/09 e o motivo de cada parada. Contém o achado de `projects.status`, que **não é dívida de cor e sim defeito que o cliente vê**: três mapas, nenhum casa com o dado, e todo projeto aparece como "Em Planejamento" a 0% |
 | [`geral/design-system-board-v5.md`](geral/design-system-board-v5.md) | ✅ FEITO | Refatoração visual do Board, 21/08 |
 | [`geral/decisoes-tema-e-cor.md`](geral/decisoes-tema-e-cor.md) | ⛔ MORTO | Registro de 20/08. **Três decisões foram revertidas** e os endereços `index.css:NNN` não valem mais |
 | ~~`geral/inventario-paletas-por-tela.md`~~ | 🗑️ **APAGADO** (01/09/2026) | Foto de 18/08 de um mecanismo que já havia mudado; as recomendações de criar `.board-theme` e `.dev-theme` estavam superadas |
