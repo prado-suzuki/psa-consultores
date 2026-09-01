@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowRight,
   AtSign,
+  CalendarX,
   ClipboardCheck,
   FileCheck,
   FileText,
@@ -100,6 +101,10 @@ const ICONES_INTERNAS: Record<NotificacaoTipo, LucideIcon> = {
   chamado_respondido: Bell,
   chamado_vencido: Bell,
   chamado_resolvido: Bell,
+  // GES-01A, e ao contrário dos de cima estes dois renderizam mesmo: relógio
+  // para o prazo que se aproxima, calendário riscado para o que já passou.
+  tarefa_prazo_proximo: Clock,
+  tarefa_atrasada: CalendarX,
 };
 
 type UnifiedNotification =
