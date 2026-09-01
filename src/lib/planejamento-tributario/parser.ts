@@ -67,7 +67,9 @@ export interface ProblemaWp {
     | 'celula_de_erro'
     | 'formula_sem_resultado'
     | 'cabecalho_ilegivel'
-    | 'tipo_inesperado';
+    | 'tipo_inesperado'
+    /** Leu bem, mas a conta não fecha. Vem do validador, não da leitura. */
+    | 'conta_nao_fecha';
   onde: string;
   detalhe: string;
 }
