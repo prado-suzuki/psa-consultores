@@ -3,9 +3,9 @@
  */
 import { useState, type ReactNode } from 'react';
 import {
-  Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Bar, BarChart, CartesianGrid, ComposedChart, Legend, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { AXIS_STYLE, CHART_COLORS, GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
+import { AXIS_STYLE, BAR_RADIUS, CHART_COLORS, GRID_STYLE, LEGEND_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
 import { BoardAbas } from '@/components/board/BoardAbas';
 import type { MelhoriaRoi } from '@/lib/boardExecutivo';
 import { somaHorasSalvas, fteDeHoras } from '@/lib/boardDiretoria';
@@ -37,6 +37,18 @@ export function BoardBriefingFerramentas({
   const areas = ftePorArea(melhorias);
   const horas = somaHorasSalvas(catalogo.map((c) => c.horasLiberadas));
   const { fte } = fteDeHoras(horas);
+  const serieAntesDepois = catalogo
+    .filter((c) => c.horasAntes != null && c.horasDepois != null)
+    .slice(0, 8)
+    .map((c) => ({
+      nome: c.nome.length > 22 ? `${c.nome.slice(0, 20)}…` : c.nome,
+      nomeCheio: c.nome,
+      antes: c.horasAntes as number,
+      depois: c.horasDepois as number,
+      ganho: c.ganhoPct ?? (c.horasAntes && c.horasAntes > 0
+        ? ((c.horasAntes - (c.horasDepois ?? 0)) / c.horasAntes) * 100
+        : null),
+    }));
 
   return (
     <>
@@ -76,27 +88,67 @@ export function BoardBriefingFerramentas({
         <section className="bd-figure">
           <div className="bd-kicker">Redução</div>
           <div className="bd-figure-head">
-            <div className="bd-figure-title">Antes × depois e o que a área ganha</div>
+            <div className="bd-figure-title">Antes × depois e o ganho de eficiência</div>
+            <div className="bd-figure-meta">barras = hora / mês · linha = ganho %</div>
           </div>
           {catalogo.length === 0 ? (
             <p className="bd-motivo">Nenhuma ferramenta concluída com medição neste recorte.</p>
           ) : (
             <>
-              <div style={{ height: 220, marginBottom: 16 }}>
+              {serieAntesDepois.length === 0 ? (
+                <p className="bd-motivo">Sem hora antes × depois no cadastro — a tabela abaixo traz o que existe.</p>
+              ) : (
+              <div style={{ height: 280, marginBottom: 16 }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={catalogo.filter((c) => c.horasLiberadas != null).slice(0, 8)}
-                    layout="vertical"
-                    margin={{ top: 4, right: 12, left: 4, bottom: 0 }}
-                  >
-                    <CartesianGrid {...GRID_STYLE} horizontal={false} />
-                    <XAxis type="number" {...AXIS_STYLE} />
-                    <YAxis type="category" dataKey="nome" width={150} {...AXIS_STYLE} />
-                    <Tooltip {...TOOLTIP_STYLE} formatter={(v: number) => [`${qtde(v)} h / mês`, '']} />
-                    <Bar dataKey="horasLiberadas" fill={CHART_COLORS.accent} radius={[0, 3, 3, 0]} maxBarSize={16} />
-                  </BarChart>
+                  <ComposedChart data={serieAntesDepois} margin={{ top: 8, right: 12, left: 0, bottom: 28 }}>
+                    <CartesianGrid {...GRID_STYLE} />
+                    <XAxis
+                      dataKey="nome"
+                      interval={0}
+                      angle={-28}
+                      textAnchor="end"
+                      height={56}
+                      {...AXIS_STYLE}
+                    />
+                    <YAxis
+                      yAxisId="horas"
+                      {...AXIS_STYLE}
+                      tickFormatter={(v: number) => `${qtde(v, 0)}h`}
+                    />
+                    <YAxis
+                      yAxisId="pct"
+                      orientation="right"
+                      {...AXIS_STYLE}
+                      tickFormatter={(v: number) => `${qtde(v, 0)}%`}
+                    />
+                    <Tooltip
+                      {...TOOLTIP_STYLE}
+                      labelFormatter={(_, payload) => payload?.[0]?.payload?.nomeCheio ?? ''}
+                      formatter={(v: number, name: string) => (
+                        name === 'Ganho'
+                          ? [`${qtde(v, 0)}%`, name]
+                          : [`${qtde(v)} h / mês`, name]
+                      )}
+                    />
+                    <Legend
+                      {...LEGEND_STYLE}
+                      formatter={(v) => <span style={{ color: 'var(--bd-ink2)' }}>{v}</span>}
+                    />
+                    <Bar yAxisId="horas" dataKey="antes" name="Antes" fill={CHART_COLORS.accentSoft} radius={BAR_RADIUS} maxBarSize={22} />
+                    <Bar yAxisId="horas" dataKey="depois" name="Depois" fill={CHART_COLORS.accent} radius={BAR_RADIUS} maxBarSize={22} />
+                    <Line
+                      yAxisId="pct"
+                      type="monotone"
+                      dataKey="ganho"
+                      name="Ganho"
+                      stroke={CHART_COLORS.warn}
+                      strokeWidth={2}
+                      dot={{ r: 3, fill: CHART_COLORS.warn }}
+                    />
+                  </ComposedChart>
                 </ResponsiveContainer>
               </div>
+              )}
             <table className="v4-tbl">
               <thead>
                 <tr>
