@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from 'react';
+import { useMemo, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
@@ -17,6 +17,8 @@ import { ptBR } from 'date-fns/locale';
 import { useBoardFilters } from '@/hooks/useBoardFilters';
 import { BoardFilterBar } from '@/components/board/BoardFilterBar';
 import { BoardKpisNegocio } from '@/components/board/BoardKpisNegocio';
+import { BoardMixProjetos } from '@/components/board/BoardMixProjetos';
+import { BoardOsgSaude } from '@/components/board/BoardOsgSaude';
 import { BoardChip } from '@/components/board/BoardChip';
 import { BoardAreaRollup } from '@/components/board/BoardAreaRollup';
 import { BoardConcentracao } from '@/components/board/BoardConcentracao';
@@ -34,6 +36,11 @@ import {
   receitaEmRisco, serieReceitaComparada,
 } from '@/lib/boardEstrategico';
 import { centrosCustoEmUso } from '@/lib/dashboardClientesOs/aggregations';
+import {
+  mixProjetosAtivos, receitaDiretoria, capacidadeMelhorias, saudeOsg,
+} from '@/lib/boardDiretoria';
+import { semCadastroLegado } from '@/lib/boardLegado';
+import { useDomainHeadcountCluster } from '@/hooks/useDomainHeadcountCluster';
 import { useBoardRollupAreas } from '@/hooks/useBoardRollupAreas';
 import { useBoardHierarquia } from '@/hooks/useBoardHierarquia';
 import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
@@ -98,6 +105,10 @@ const BoardDashboard = () => {
   const { data: overview } = useDesempenhoOverview(cicloAtivo?.id);
   const { tarefasConcluidasQuery, horasAlocadasQuery } = useDomainBoardDashboard({ desdeISO: periodFrom });
   const melhoriasQuery = useDomainMelhoriasRoi();
+  const headcountQuery = useDomainHeadcountCluster();
+  // Sobe para cá (antes vivia junto do snapshot do agente): o recorte OSG
+  // precisa resolver o cluster pelo nome antes dos cálculos.
+  const { clusters: clustersHierarquia } = useBoardHierarquia();
   // Query dedicada e enxuta do bloco "Preenchimento do sistema" -- deliberadamente
   // SEPARADA de `usePerformanceData` (ver `useDomainPreenchimentoSistema`).
   const {
@@ -122,7 +133,10 @@ const BoardDashboard = () => {
    */
   const osRows = useMemo(
     () => ratearPorCentroCusto(
-      filtrarPorCluster(negocio.data?.osRows ?? [], cluster),
+      // Cadastro LEGADO fora antes de qualquer conta (28/08): PSA Consultores,
+      // P Consultores e o resíduo do Prado Suzuki pesam e produzem número que
+      // a diretoria já sabe estar errado. Ver `boardLegado.ts`.
+      semCadastroLegado(filtrarPorCluster(negocio.data?.osRows ?? [], cluster), (o) => o.cliente_nome),
       rateioPorOs ?? new Map(),
       ccSelecionado,
     ),
@@ -132,13 +146,19 @@ const BoardDashboard = () => {
   // mesma regra da tela "Clientes e OS", senão o KPI de clientes ativos contaria
   // quem ficou de fora da receita mostrada ao lado.
   const clienteRows = useMemo(() => {
-    const base = filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster);
+    const base = semCadastroLegado(
+      filtrarPorCluster(negocio.data?.clienteRows ?? [], cluster),
+      (c) => c.cliente_nome,
+    );
     if (!ccSelecionado) return base;
     const comOs = new Set(osRows.map((o) => o.cliente_id));
     return base.filter((c) => comOs.has(c.cliente_id));
   }, [negocio.data, cluster, ccSelecionado, osRows]);
   const projetoRows = useMemo(
-    () => filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster),
+    () => semCadastroLegado(
+      filtrarPorCluster(negocio.data?.projetoRows ?? [], cluster),
+      (p) => p.cliente_nome,
+    ),
     [negocio.data, cluster],
   );
   const hoje = negocio.hoje;
@@ -147,7 +167,8 @@ const BoardDashboard = () => {
   // de opções que devolveriam tela vazia.
   const ccOptions = useMemo(() => [
     { value: TODOS_CC, label: 'Todos os centros de custo' },
-    ...centrosCustoEmUso(rateioPorOs ?? new Map()).map((c) => ({ value: c.id, label: c.label })),
+    ...semCadastroLegado(centrosCustoEmUso(rateioPorOs ?? new Map()), (c) => c.label)
+      .map((c) => ({ value: c.id, label: c.label })),
   ], [rateioPorOs]);
   const ccLabel = ccSelecionado
     ? ccOptions.find((o) => o.value === ccSelecionado)?.label ?? ccSelecionado
@@ -195,6 +216,15 @@ const BoardDashboard = () => {
   }, [horasAlocadasQuery.data, projetos, cluster]);
   const roi = useMemo(() => consolidarRoi(melhoriasQuery.data ?? []), [melhoriasQuery.data]);
 
+  // ── A leitura de DIRETORIA (28/08) ─────────────────────────────────────
+  // Tudo aqui é função pura sobre linhas que a tela JÁ carrega — nenhuma
+  // consulta nova, nenhum campo inventado. Ver `boardDiretoria.ts`.
+  const receitaDir = useMemo(() => receitaDiretoria(osRows, hoje), [osRows, hoje]);
+  const capacidade = useMemo(
+    () => capacidadeMelhorias(melhoriasQuery.data ?? []),
+    [melhoriasQuery.data],
+  );
+
   // Janela real analisada — o mesmo range dos projetos, para o rótulo não mentir.
   const diasJanela = useMemo(() => {
     if (!periodFrom) return 30;
@@ -203,6 +233,34 @@ const BoardDashboard = () => {
   const janelaLabel = periodo === 'ciclo'
     ? `ciclo ${cicloAtivo?.nome ?? 'ativo'}`
     : `últimos ${diasJanela} dias`;
+
+  const mixProjetos = useMemo(
+    () => (negocio.error
+      ? null
+      : mixProjetosAtivos({ projetos: projetoRows, os: osRows, hoje, dias: diasJanela })),
+    [projetoRows, osRows, hoje, diasJanela, negocio.error],
+  );
+
+  // O recorte OSG não segue o filtro de empresa da barra: é um card de ÁREA e
+  // precisa da própria série completa, inclusive quando a diretoria está
+  // olhando outro cluster.
+  const clusterOsg = useMemo(
+    () => clustersHierarquia.find((c) => c.nome.trim().toUpperCase() === 'OSG') ?? null,
+    [clustersHierarquia],
+  );
+  const osg = useMemo(() => {
+    if (!clusterOsg) return null;
+    const osDaArea = semCadastroLegado(
+      (negocio.data?.osRows ?? []).filter((o) => o.cluster_id === clusterOsg.id),
+      (o) => o.cliente_nome,
+    );
+    return saudeOsg({
+      os: osDaArea,
+      melhorias: (melhoriasQuery.data ?? []).filter((m) => m.cluster_id === clusterOsg.id),
+      headcount: headcountQuery.data?.get(clusterOsg.id) ?? null,
+      hoje,
+    });
+  }, [clusterOsg, negocio.data, melhoriasQuery.data, headcountQuery.data, hoje]);
 
   // Rollup por área: soma a fonte da Digital (`sprint_deliverables`) à de
   // projeto. Vive num hook porque carrega query própria — ver o porquê lá.
@@ -316,7 +374,7 @@ const BoardDashboard = () => {
   // pelos MESMOS valores que os blocos acima desenham (`agenteContextoBoard`).
   // Numero que o agente citar tem que ser localizavel na tela com Ctrl+F --
   // por isso nada aqui e recalculado, so rotulado.
-  const { clusters } = useBoardHierarquia();
+
   // As duas listas de falha juntas, numa fonte só: o subtítulo da tela e os
   // `avisos` do snapshot do agente têm que dizer exatamente a mesma coisa.
   // Divergir aqui produziria a pior forma de estar errado -- o usuário lê um
@@ -331,12 +389,14 @@ const BoardDashboard = () => {
     filtros: {
       periodo,
       centroCusto: ccLabel,
-      empresa: cluster ? (clusters.find((c) => c.id === cluster)?.nome ?? null) : null,
+      empresa: cluster ? (clustersHierarquia.find((c) => c.id === cluster)?.nome ?? null) : null,
     },
     cicloAtivo: cicloAtivo?.nome ?? null,
     receita, emRisco, concentracao,
     clientesComReceita: concentracao.clientes,
     saude, totalHoras, roi,
+    // A faixa da diretoria (28/08) — o agente só fala do que a tela publica.
+    mix: mixProjetos, receitaDiretoria: receitaDir, capacidade, osg,
     areas: resumoAreas,
     alertas,
     projetosCriticos: projetosCriticos.map((p) => ({
@@ -346,14 +406,16 @@ const BoardDashboard = () => {
     notas: { receita: notaReceita, areas: notaAreas },
     falhas: todasAsFalhas,
   }), [
-    janelaReceita, janelaLabel, periodo, ccLabel, cluster, clusters, cicloAtivo,
+    janelaReceita, janelaLabel, periodo, ccLabel, cluster, clustersHierarquia, cicloAtivo,
     receita, emRisco, concentracao, saude, totalHoras, roi, resumoAreas, alertas,
+    mixProjetos, receitaDir, capacidade, osg,
     projetosCriticos, preenchFaixa, notaReceita, notaAreas, todasAsFalhas,
   ]);
   // `kpisLoading` viaja junto: com a tela a meio carregar, o painel do agente
   // nao deixa perguntar -- responder sobre metade dos numeros e pior que esperar.
   useRegistrarContextoAgente('board.estrategico', contextoAgente, kpisLoading);
 
+  const [mixAberto, setMixAberto] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (containerRef.current) revealRef(containerRef.current);
@@ -425,16 +487,43 @@ const BoardDashboard = () => {
              sem projeto nenhum carregado, `saudeProjetos` devolve 0/0% e a
              faixa desenharia zero como se fosse a resposta. */
           <BoardKpisNegocio
-            projetosAtivos={projectsQuery.isError ? null : saude.total}
+            mix={mixProjetos}
+            receita={receitaDir}
+            capacidade={capacidade}
+            roiPct={roi.roiPct}
             janelaExecucao={janelaLabel}
-            totalHoras={totalHoras}
-            pontualidade={projectsQuery.isError ? null : saude.pontualidade}
-            valorProjetos={receita.atual}
-            valorSemData={receita.semDataValor}
             janelaValor={janelaReceita}
-            roi={roi}
+            onAbrirMix={() => setMixAberto((v) => !v)}
             onNavigate={navigate}
           />
+        )}
+
+        {/* O MIX só existe a partir do clique no cartão de projetos ativos —
+            detalhamento, não bloco fixo. */}
+        {mixAberto && mixProjetos && (
+          <div style={{ marginBottom: 18 }}>
+            <BoardMixProjetos
+              mix={mixProjetos}
+              janelaLabel={janelaLabel}
+              onFechar={() => setMixAberto(false)}
+            />
+          </div>
+        )}
+
+        {/* 2b. Recorte OSG — card de ÁREA (28/08). Fica fora do filtro de
+            empresa de propósito: é a pergunta "essa área fecha a conta?". */}
+        {!kpisLoading && (
+          <div style={{ marginBottom: 18 }}>
+            <BoardOsgSaude
+              osg={osg}
+              motivoAusencia={
+                negocio.error
+                  ? 'contratos e clientes não carregaram'
+                  : 'cluster OSG não encontrado na estrutura atual'
+              }
+              onClick={() => navigate('/equipe/board/dashboard-clientes-os')}
+            />
+          </div>
         )}
 
         {/* 3a. De quem depende -- largura total: perdeu o parceiro de grade

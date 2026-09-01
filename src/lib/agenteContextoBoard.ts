@@ -21,6 +21,9 @@ import type {
   AlertaEstrategico, Concentracao, ReceitaAno, ReceitaEmRisco,
 } from '@/lib/boardEstrategico';
 import type { ResumoAreaCadastro, RoiConsolidado, SaudeProjetos } from '@/lib/boardExecutivo';
+import type {
+  CapacidadeMelhorias, MixProjetosAtivos, ReceitaDiretoria, SaudeOsg,
+} from '@/lib/boardDiretoria';
 import type { FaixaEmpresaPreenchimento, MetricaFaixaEmpresa } from '@/lib/preenchimentoSistema';
 
 /** Mesma formatação de `BoardConcentracao` — o agente cita o que a tela mostra. */
@@ -60,6 +63,15 @@ export interface EntradaContextoBoard {
   /** `null` enquanto a consulta de horas não respondeu. */
   totalHoras: number | null;
   roi: RoiConsolidado;
+  /**
+   * A leitura de DIRETORIA (28/08). Opcionais porque telas mais antigas do
+   * Board reaproveitam este montador sem esses recortes — quando faltam, o
+   * bloco simplesmente não existe, em vez de viajar com zeros.
+   */
+  mix?: MixProjetosAtivos | null;
+  receitaDiretoria?: ReceitaDiretoria;
+  capacidade?: CapacidadeMelhorias;
+  osg?: SaudeOsg | null;
   areas: ResumoAreaCadastro[];
   alertas: AlertaEstrategico[];
   projetosCriticos: { name: string; computed_status: string; area_name?: string | null }[];
@@ -121,6 +133,128 @@ function blocoReceita(e: EntradaContextoBoard): BlocoContexto {
     itens: [
       ...e.emRisco.vencido.clientes.map((c) => ({ situacao: 'contrato vencido', cliente: c })),
       ...e.emRisco.renovacao.clientes.map((c) => ({ situacao: 'vence em 30 dias', cliente: c })),
+    ],
+  };
+}
+
+/**
+ * O que a FAIXA da diretoria mostra — e é só sobre isso que o agente pode
+ * falar como "o número da tela". Horas e pontualidade seguem no bloco de
+ * execução, mas com a ressalva de que saíram da faixa.
+ */
+function blocoDiretoria(e: EntradaContextoBoard): BlocoContexto | null {
+  if (!e.mix && !e.receitaDiretoria) return null;
+  const r = e.receitaDiretoria;
+  const campos: BlocoContexto['campos'] = [];
+  if (e.mix) {
+    campos.push(
+      { rotulo: 'Projetos ativos', valor: String(e.mix.ativos) },
+      { rotulo: 'Projetos iniciados na janela', valor: String(e.mix.iniciadosJanela) },
+      { rotulo: 'Iniciados na janela anterior', valor: String(e.mix.iniciadosJanelaAnterior) },
+      {
+        rotulo: 'Variação de projetos iniciados',
+        valor: pct(e.mix.variacaoPct),
+        nota: e.mix.variacaoPct === null ? 'sem base na janela anterior' : undefined,
+      },
+      { rotulo: 'Mix: cliente novo', valor: String(e.mix.clienteNovo) },
+      { rotulo: 'Mix: aditivo de contrato existente', valor: String(e.mix.aditivo) },
+      { rotulo: 'Mix: entrega já planejada/paga', valor: null, nota: e.mix.motivos.planejadaPaga },
+      {
+        rotulo: 'Ativos sem classificação de mix',
+        valor: String(e.mix.semClassificacao),
+        nota: e.mix.motivos.semClassificacao,
+      },
+    );
+  }
+  if (r) {
+    campos.push(
+      {
+        rotulo: 'Ticket médio por OS',
+        valor: r.ticketMedio === null ? null : brl(r.ticketMedio),
+        nota: r.ticketMedio === null ? 'nenhuma OS com valor lançado no recorte' : undefined,
+      },
+      { rotulo: 'OS que ainda geram caixa', valor: String(r.projetosGerandoCaixa) },
+      {
+        rotulo: 'Caixa contratado à frente',
+        valor: brl(r.caixaContratadoAFrente),
+        nota: 'só OS vigentes com data de fim futura',
+      },
+      {
+        rotulo: 'Horizonte de caixa',
+        valor: r.horizonteCaixa,
+        nota: r.horizonteCaixa === null ? 'sem data de fim nas OS vigentes' : undefined,
+      },
+      { rotulo: 'Faturamento total', valor: null, nota: r.motivos.faturamentoTotal },
+      { rotulo: 'Custo de folha e cobertura', valor: null, nota: r.motivos.folha },
+    );
+  }
+  return {
+    id: 'diretoria',
+    titulo: 'A faixa da diretoria (projetos, mix e caixa)',
+    janela: e.janelaExecucao,
+    nota: 'Horas totais e pontualidade saíram desta faixa: são operação. Atraso só entra quando vira dinheiro parado.',
+    campos,
+  };
+}
+
+function blocoCapacidade(e: EntradaContextoBoard): BlocoContexto | null {
+  const c = e.capacidade;
+  if (!c) return null;
+  return {
+    id: 'capacidade',
+    titulo: 'Capacidade devolvida pelas ferramentas (FTE)',
+    nota: 'FTE = horas/mês ÷ 176. Só melhorias já avaliadas.',
+    campos: [
+      {
+        rotulo: 'Horas reduzidas por mês',
+        valor: c.horasReduzidasMes === null ? null : `${Math.round(c.horasReduzidasMes)} h`,
+        nota: c.horasReduzidasMes === null ? 'nenhuma melhoria com horas medidas' : undefined,
+      },
+      {
+        rotulo: 'FTE equivalente liberado',
+        valor: c.fteLiberado === null ? null : c.fteLiberado.toFixed(1),
+      },
+      { rotulo: 'Melhorias com horas medidas', valor: `${c.melhoriasComHoras} de ${c.melhorias}` },
+      { rotulo: 'Ganho interno (capacidade PSA)', valor: null, nota: c.motivos.distincao },
+      { rotulo: 'Ganho no cliente (tempo de entrega)', valor: null, nota: c.motivos.distincao },
+    ],
+  };
+}
+
+function blocoOsg(e: EntradaContextoBoard): BlocoContexto | null {
+  const o = e.osg;
+  if (!o) return null;
+  return {
+    id: 'osg',
+    titulo: 'Saúde da OSG (recorte de área)',
+    nota: 'Não segue o filtro de empresa da barra — é a leitura da área inteira.',
+    campos: [
+      { rotulo: 'Meta de clientes no ano', valor: String(o.metaClientesAno) },
+      {
+        rotulo: 'Clientes captados no ano',
+        valor: o.captadosAno === null ? null : String(o.captadosAno),
+        nota: 'cliente cuja primeira OS caiu no ano corrente',
+      },
+      {
+        rotulo: 'Captados no ano anterior',
+        valor: o.captadosAnoAnterior === null ? null : String(o.captadosAnoAnterior),
+      },
+      { rotulo: 'Receita do ano', valor: brl(o.receitaAno) },
+      { rotulo: 'Receita do ano anterior', valor: brl(o.receitaAnoAnterior) },
+      {
+        rotulo: 'Variação da receita',
+        valor: pct(o.variacaoReceitaPct),
+        nota: o.variacaoReceitaPct === null ? 'sem base no ano anterior' : undefined,
+      },
+      { rotulo: 'Ticket médio', valor: o.ticketMedio === null ? null : brl(o.ticketMedio) },
+      { rotulo: 'Pessoas nas equipes da área', valor: o.headcount === null ? null : String(o.headcount) },
+      { rotulo: 'Sêniores', valor: null, nota: o.motivos.seniores },
+      { rotulo: 'Folha da área', valor: null, nota: o.motivos.folha },
+      {
+        rotulo: 'FTE liberado pelas ferramentas da área',
+        valor: o.fteLiberado === null ? null : o.fteLiberado.toFixed(1),
+        nota: o.fteLiberado === null ? 'sem horas medidas nas melhorias da área' : undefined,
+      },
     ],
   };
 }
@@ -233,10 +367,13 @@ function blocoPreenchimento(e: EntradaContextoBoard): BlocoContexto {
 export function contextoBoardEstrategico(e: EntradaContextoBoard): ContextoTela {
   const blocos = [
     blocoDecisao(e),
+    blocoDiretoria(e),
     blocoReceita(e),
     blocoConcentracao(e),
     blocoExecucao(e),
     blocoAreas(e),
+    blocoOsg(e),
+    blocoCapacidade(e),
     blocoRoi(e),
     blocoPreenchimento(e),
   ].filter((b): b is BlocoContexto => b !== null);
