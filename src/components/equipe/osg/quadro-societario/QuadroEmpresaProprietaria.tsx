@@ -150,10 +150,10 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
 
       {!gravado && travadoPorLegado && (
         <div
-          className="rounded-lg border border-amber-300 bg-amber-50/60 p-3 animate-osg-rise motion-reduce:animate-none"
+          className="rounded-lg border border-warning/40 bg-warning/10 p-3 animate-osg-rise motion-reduce:animate-none"
           style={{ animationDelay: '150ms' }}
         >
-          <div className="flex items-start gap-2 text-xs text-amber-800">
+          <div className="flex items-start gap-2 text-xs text-warning">
             <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
             <span>
               O quadro não pode ser gravado enquanto houver titular sem pessoa cadastrada:
@@ -164,7 +164,7 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
           </div>
           <ul className="mt-2 space-y-1">
             {proposta.titularesLegados.map((nome) => (
-              <li key={nome} className="text-xs font-medium text-amber-900">
+              <li key={nome} className="text-xs font-medium text-warning">
                 {nome}
               </li>
             ))}
@@ -202,7 +202,7 @@ export const QuadroEmpresaProprietaria = ({ empresa, pessoasCliente }: QuadroEmp
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2 py-1.5 text-[11px] font-semibold text-amber-800">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-warning/10 px-2 py-1.5 text-[11px] font-semibold text-warning">
                   <Calculator className="h-3.5 w-3.5" />
                   Ainda não gravado
                 </span>

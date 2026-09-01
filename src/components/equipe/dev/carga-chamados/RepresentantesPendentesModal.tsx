@@ -78,7 +78,7 @@ export const RepresentantesPendentesModal = ({
         </div>
 
         {excedeu && (
-          <p className="text-xs text-amber-600">
+          <p className="text-xs text-warning">
             Lote máximo por execução: {maxBatch}. Os primeiros {maxBatch} serão processados; rode novamente para os demais.
           </p>
         )}

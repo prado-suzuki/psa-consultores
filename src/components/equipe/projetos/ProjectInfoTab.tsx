@@ -123,7 +123,7 @@ export const ProjectInfoTab = ({
             </SelectContent>
           </Select>
           {!editProject.cluster_id && (
-            <p className="text-xs text-amber-600">
+            <p className="text-xs text-warning">
               Este projeto está sem cluster — ele não aparece no MAPA. Selecione um para corrigir.
             </p>
           )}

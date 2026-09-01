@@ -264,7 +264,7 @@ export function MovimentoModal({
             </FieldSection>
 
             {isDirty && problema && (
-              <div className="mt-6 flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50/60 p-3 text-xs text-amber-800">
+              <div className="mt-6 flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
                 <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{problema}</span>
               </div>

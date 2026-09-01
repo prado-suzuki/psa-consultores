@@ -64,7 +64,7 @@ export default function RateioLista({ rateios, opcoes, onPercentual, onRemover }
                   precisar somar os números de cabeça. */}
               <span className="hidden h-1.5 w-24 shrink-0 overflow-hidden rounded-full bg-muted sm:block">
                 <span
-                  className={cn('block h-full rounded-full', fecha ? acento.positivoBarra : 'bg-amber-500')}
+                  className={cn('block h-full rounded-full', fecha ? acento.positivoBarra : 'bg-warning')}
                   style={{ width: `${Math.min(100, pct)}%` }}
                 />
               </span>
@@ -94,7 +94,7 @@ export default function RateioLista({ rateios, opcoes, onPercentual, onRemover }
         'flex items-center justify-between gap-3 border-t px-3 py-2 text-xs font-medium',
         fecha ? cn(acento.positivoFundo, acento.positivoTexto)
           : total > 100 ? 'bg-destructive/10 text-destructive'
-            : 'bg-amber-50 text-amber-700',
+            : 'bg-warning/10 text-warning',
       )}>
         <span>Total do rateio</span>
         <span className="tabular-nums">

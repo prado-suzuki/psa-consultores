@@ -435,7 +435,7 @@ export const FichaBloco = ({
           )}
           {variantesInativas.length > 0 && (
             <span
-              className="inline-flex items-center rounded bg-amber-100 px-1.5 py-px text-[10px] font-medium text-amber-800"
+              className="inline-flex items-center rounded bg-warning/10 px-1.5 py-px text-[10px] font-medium text-warning"
               title={`Redações desativadas nesta família: ${variantesInativas
                 .map((v) => v.variante_rotulo?.trim() || 'sem rótulo')
                 .join(', ')}`}
@@ -454,7 +454,7 @@ export const FichaBloco = ({
           )}
           {b.flag_ids.length > 0 && (
             <span
-              className="inline-flex items-center gap-1 rounded bg-amber-100 px-1.5 py-px text-[10px] font-medium text-amber-800"
+              className="inline-flex items-center gap-1 rounded bg-warning/10 px-1.5 py-px text-[10px] font-medium text-warning"
               title={b.flag_ids.map((id) => nomeDaFlag.get(id) ?? '…').join(', ')}
             >
               <Flag className="h-2.5 w-2.5" />

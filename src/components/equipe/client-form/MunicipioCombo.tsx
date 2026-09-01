@@ -109,7 +109,7 @@ export const MunicipioCombo = ({
   if (isError) {
     return (
       <div className={cn('flex min-w-0 flex-1 flex-col gap-1', className)}>
-        <div className="flex items-center gap-2 rounded-md bg-amber-50 px-2 py-1.5 text-[11px] text-amber-800">
+        <div className="flex items-center gap-2 rounded-md bg-warning/10 px-2 py-1.5 text-[11px] text-warning">
           <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
           <span className="min-w-0 flex-1 truncate">
             Lista do IBGE indisponível{atual ? `. Gravado: ${atual}` : ''}
@@ -175,7 +175,7 @@ export const MunicipioCombo = ({
       </Popover>
 
       {!reconhecido && (
-        <span className="flex items-center gap-1 text-[11px] text-amber-700">
+        <span className="flex items-center gap-1 text-[11px] text-warning">
           <AlertTriangle className="h-3 w-3 shrink-0" />
           Não é município de {sigla}. Escolha na lista para corrigir.
         </span>

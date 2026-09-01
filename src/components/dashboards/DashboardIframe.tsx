@@ -151,9 +151,9 @@ export function DashboardIframe({
     // dizer qual. O `title` já chega aqui para o `<iframe>`.
     return (
       <div className="flex h-full items-center justify-center p-8">
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-8 text-center">
-          <p className="text-sm font-semibold text-amber-800">{title}</p>
-          <p className="mt-1 text-sm text-amber-700">
+        <div className="rounded-xl border border-warning/40 bg-warning/10 p-8 text-center">
+          <p className="text-sm font-semibold text-warning">{title}</p>
+          <p className="mt-1 text-sm text-warning">
             {EMBED_REASON_LABEL[embed?.reason ?? ''] ?? 'Não foi possível carregar este relatório.'}
           </p>
         </div>

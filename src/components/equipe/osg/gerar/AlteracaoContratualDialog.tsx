@@ -182,11 +182,11 @@ export const AlteracaoContratualDialog = ({
             {/* O aviso que faz o caminho B funcionar. Ver o comentário do
                 componente: sem cadastro atualizado, o consolidado sai velho e
                 nada no motor tem como perceber. */}
-            <div className="space-y-1.5 rounded-md border border-amber-300/70 bg-amber-50/60 p-3">
-              <p className="text-sm font-semibold text-amber-900">
+            <div className="space-y-1.5 rounded-md border border-warning/40 bg-warning/10 p-3">
+              <p className="text-sm font-semibold text-warning">
                 Antes de gerar, o cadastro precisa estar atualizado
               </p>
-              <p className="text-xs leading-relaxed text-amber-900/80">
+              <p className="text-xs leading-relaxed text-warning">
                 O quadro societário e o capital saem do livro de movimentos, e esses já estão
                 conferidos acima. O resto do consolidado é escrito do cadastro de hoje: endereço,
                 objeto social e administração já devem refletir o estado DEPOIS do evento. O

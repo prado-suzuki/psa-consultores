@@ -224,7 +224,7 @@ export default function ListaMestreDetalhe<Id extends string | number = number>(
                           <span
                             title="Alterações não salvas neste item"
                             aria-label="Alterações não salvas neste item"
-                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-amber-500"
+                            className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-warning"
                           />
                         ) : null}
                       </div>

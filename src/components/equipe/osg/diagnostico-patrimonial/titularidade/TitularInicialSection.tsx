@@ -20,7 +20,7 @@ export function TitularInicialSection({ entity, pessoas, value, onChange }: Titu
     <FieldSection number="01" title="Titular inicial — Propriedade de Direito (DT)">
       <div className="rounded-md border border-osg-moss/20 bg-osg-moss/[0.04] p-4">
         {pessoas.length === 0 ? (
-          <p className="text-xs text-amber-600">
+          <p className="text-xs text-warning">
             Nenhuma pessoa disponível. Cadastre o titular na Qualificação das Partes (ou selecione
             um cliente) antes de criar {entity === 'bem' ? 'o bem' : 'a matrícula'}.
           </p>

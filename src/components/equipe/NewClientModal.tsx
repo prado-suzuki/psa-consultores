@@ -588,8 +588,8 @@ export default function NewClientModal({
                           )}
                         </button>
                       ) : hasUnsavedChanges && (
-                        <span className="flex items-center gap-1.5 text-sm text-amber-700">
-                          <span className="h-2 w-2 rounded-full bg-amber-500" />
+                        <span className="flex items-center gap-1.5 text-sm text-warning">
+                          <span className="h-2 w-2 rounded-full bg-warning" />
                           Alterações não salvas
                         </span>
                       )}

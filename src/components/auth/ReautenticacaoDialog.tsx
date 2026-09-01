@@ -86,7 +86,7 @@ export default function ReautenticacaoDialog({
       >
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5 text-amber-600" aria-hidden />
+            <ShieldAlert className="h-5 w-5 text-warning" aria-hidden />
             Sua sessão expirou
           </AlertDialogTitle>
           <AlertDialogDescription>

@@ -138,7 +138,7 @@ export const SubirQuotasDialog = ({
           </div>
 
           {controladoras.length === 0 && (
-            <p className="rounded-md border border-amber-300/70 bg-amber-50/60 p-3 text-xs text-amber-900">
+            <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
               Este cliente não tem empresa Controladora (CN) cadastrada. Cadastre-a em Qualificação
               das Partes antes de subir as quotas.
             </p>
@@ -191,7 +191,7 @@ export const SubirQuotasDialog = ({
                   </div>
 
                   {plano.avisoDeProporcao && (
-                    <div className="flex items-start gap-2 rounded-md border border-amber-300/70 bg-amber-50/60 p-3 text-xs text-amber-900">
+                    <div className="flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
                       <Info className="mt-0.5 h-4 w-4 shrink-0" />
                       <span>{plano.avisoDeProporcao}</span>
                     </div>

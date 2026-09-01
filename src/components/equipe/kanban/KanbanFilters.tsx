@@ -166,12 +166,12 @@ export function KanbanFilters(props: KanbanFiltersProps) {
       <div className="mt-3 text-xs text-gray-500">
         {props.mainTaskCount} tarefas principais ({props.totalTaskCount} total incluindo subtarefas)
         {props.hiddenCount > 0 && (
-          <span className="ml-2 font-medium text-amber-600">
+          <span className="ml-2 font-medium text-warning">
             · {props.hiddenCount} subtarefa(s) aninhada(s) em tarefa-mãe fora da visão — não exibida(s) como card
           </span>
         )}
         {props.nestedOpenCount > 0 && (
-          <span className="ml-2 font-medium text-amber-600">
+          <span className="ml-2 font-medium text-warning">
             · {props.nestedOpenCount} tarefa(s) aberta(s) estão dentro de tarefas-mãe em progresso ou
             concluídas — aparecem aninhadas na coluna da mãe, não em "A Fazer"
           </span>

@@ -183,7 +183,7 @@ const ControleMatriculas = () => {
                             {orfa && (
                               <span
                                 title="Matrícula órfã (sem bem vinculado)"
-                                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-700 font-bold text-xs"
+                                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-warning/10 text-warning font-bold text-xs"
                               >
                                 !
                               </span>

@@ -157,7 +157,7 @@ export default function CentrosCustoPickerDialog({
               </ul>
               <p className={cn(
                 'mt-2 text-xs font-medium',
-                fecha ? acento.positivoTexto : total > 100 ? 'text-destructive' : 'text-amber-600',
+                fecha ? acento.positivoTexto : total > 100 ? 'text-destructive' : 'text-warning',
               )}>
                 Total: {total.toFixed(2).replace(/\.00$/, '')}%
                 {!fecha && total < 100 && ` — faltam ${(100 - total).toFixed(2).replace(/\.00$/, '')}%`}

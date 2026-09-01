@@ -197,7 +197,7 @@ export const ProcessCreateDialog = ({
               Projeto: <strong className="text-gray-900">{project.name}</strong>
               {' · '}herda o cluster do projeto.
               {!project.cluster_id && (
-                <span className="mt-1 block text-amber-600">
+                <span className="mt-1 block text-warning">
                   ⚠ Este projeto não tem cluster selecionado — o processo não aparecerá no MAPA até
                   o projeto receber um cluster.
                 </span>
