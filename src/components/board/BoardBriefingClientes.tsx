@@ -191,18 +191,18 @@ export function BoardBriefingClientes({
           <div className="bd-kicker">Vender</div>
           <div className="bd-figure-head">
             <div className="bd-figure-title">Pares da praça já contratam e este cliente não</div>
-            <div className="bd-figure-meta">mín. 3 clientes na região · oferta em ≥ 30%</div>
+            <div className="bd-figure-meta">praça = UF · BRA e sem estado não entram · mín. 3 · oferta ≥ 30%</div>
           </div>
           {lacunas.length === 0 ? (
             <p className="bd-motivo">
-              Sem similaridade suficiente: praça com poucos clientes, ou a oferta ainda não se repete o bastante.
+              Sem praça utilizável: UF ausente ou BRA, poucos clientes no estado, ou a oferta ainda não se repete o bastante.
             </p>
           ) : (
             <table className="v4-tbl">
               <thead>
                 <tr>
                   <th>Cliente</th>
-                  <th>Região</th>
+                  <th>Praça</th>
                   <th>Oferta ausente</th>
                   <th className="num">Já têm na praça</th>
                 </tr>

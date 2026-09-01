@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ClienteRow, OsRow } from '@/lib/dashboardClientesOs/types';
 import {
   SEM_REGIAO, SEM_SERVICO, cruzamentoRegiaoServico, distribuicaoRegiao,
-  chaveRegiao, chaveServico, lacunasAditivo, ocorrenciaServicos,
+  chaveRegiao, chaveServico, ePracaNacional, lacunasAditivo, ocorrenciaServicos,
 } from './boardOportunidade';
 
 const cliente = (over: Partial<ClienteRow> & Pick<ClienteRow, 'cliente_id'>): ClienteRow => ({
@@ -52,6 +52,14 @@ describe('chaveRegiao / chaveServico', () => {
   it('sem UF usa a região cadastrada; os dois vazios não somem', () => {
     expect(chaveRegiao(cliente({ cliente_id: 'a', regiao: 'Norte' }))).toBe('reg:Norte');
     expect(chaveRegiao(cliente({ cliente_id: 'a' }))).toBe(SEM_REGIAO);
+  });
+
+  it('normaliza UF escrita por extenso e recusa BRA como praça', () => {
+    expect(chaveRegiao(cliente({ cliente_id: 'a', uf: 'MATO GROSSO', regiao: 'BRA' }))).toBe('MT');
+    expect(chaveRegiao(cliente({ cliente_id: 'a', uf: 'Paraná' }))).toBe('PR');
+    expect(chaveRegiao(cliente({ cliente_id: 'a', regiao: 'BRA' }))).toBe(SEM_REGIAO);
+    expect(ePracaNacional('brasil')).toBe(true);
+    expect(ePracaNacional('3NO')).toBe(false);
   });
 
   it('serviço sem id nem nome fica visível como sem_servico', () => {
@@ -111,6 +119,19 @@ describe('lacunasAditivo', () => {
       rotuloServico: 'ITCMD',
       rotuloRegiao: 'Mato Grosso',
     });
+  });
+
+  it('clientes só em BRA não viram pares nacionais', () => {
+    const clientes = [
+      cliente({ cliente_id: 'a', regiao: 'BRA', cliente_nome: 'Alfa' }),
+      cliente({ cliente_id: 'b', regiao: 'BRA', cliente_nome: 'Beta' }),
+      cliente({ cliente_id: 'c', regiao: 'BRA', cliente_nome: 'Gama' }),
+    ];
+    const rows = [
+      os({ os_id: '1', cliente_id: 'a', servico_id: 's1', servico_nome: 'ITCMD' }),
+      os({ os_id: '2', cliente_id: 'b', servico_id: 's1', servico_nome: 'ITCMD' }),
+    ];
+    expect(lacunasAditivo(clientes, rows, { minClientesRegiao: 3, minShare: 0.3 })).toEqual([]);
   });
 
   it('praça pequena demais não inventa oportunidade', () => {
