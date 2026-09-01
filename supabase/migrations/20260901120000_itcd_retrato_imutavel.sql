@@ -21,6 +21,37 @@
 -- dia um campo passar a ser editável, ele entra aqui explicitamente, e o commit dessa
 -- decisão fica visível — melhor do que descobrir que uma coluna nunca foi protegida.
 
+-- ── O QUE ESTA MIGRAÇÃO PRESSUPÕE, CONFERIDO ANTES DE CRIAR QUALQUER COISA ───
+--
+-- A lista de exceções é o coração da trigger: se ela citar coluna que não existe, a
+-- exceção não protege nada — e a coluna que ela deveria liberar passaria a ser
+-- bloqueada, quebrando renomear e aprovar. `nome` é o caso concreto: produção ainda
+-- não a tem, porque ela nasce na 20260828170000.
+--
+-- Produção não roda esta pasta em ordem — quem aplica é uma pessoa, pelo chat do
+-- Lovable —, então a ordem não está garantida por mecanismo nenhum.
+do $$
+declare
+  c text;
+begin
+  if to_regclass('public.itcd_simulacao') is null then
+    raise exception
+      'public.itcd_simulacao não existe. Aplique antes a 20260826154524_itcd_calculadora_schema.';
+  end if;
+
+  foreach c in array array['nome', 'observacao', 'status', 'aprovada_por', 'aprovada_em',
+                           'updated_at', 'updated_by']
+  loop
+    if not exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'itcd_simulacao' and column_name = c
+    ) then
+      raise exception
+        'itcd_simulacao.% não existe, e a trigger a trataria como campo do retrato. Aplique antes a 20260828170000_itcd_simulacao_usufruto.', c;
+    end if;
+  end loop;
+end $$;
+
 create or replace function public.itcd_simulacao_retrato_imutavel()
 returns trigger
 language plpgsql
@@ -57,21 +88,3 @@ create trigger itcd_simulacao_retrato_imutavel
 -- bloqueia quando o pai está aprovado, e antes disso a gravação é a RPC, que só insere.
 -- Se um dia existir edição de filha, ela vem com a mesma pergunta respondida aqui.
 
--- A COLUNA QUE ESTA MIGRAÇÃO PRESSUPÕE. Assertiva, não alteração: se a lista de
--- exceções citar uma coluna que não existe, a exceção não protege nada e o erro só
--- apareceria como "alteração recusada" muito depois.
-do $$
-declare
-  c text;
-begin
-  foreach c in array array['nome', 'observacao', 'status', 'aprovada_por', 'aprovada_em',
-                           'updated_at', 'updated_by']
-  loop
-    if not exists (
-      select 1 from information_schema.columns
-      where table_schema = 'public' and table_name = 'itcd_simulacao' and column_name = c
-    ) then
-      raise exception 'itcd_simulacao.% não existe: a lista de colunas editáveis está errada.', c;
-    end if;
-  end loop;
-end $$;

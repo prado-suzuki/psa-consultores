@@ -20,6 +20,29 @@
 -- justamente para quem tinha acabado de criar a linha. Quem criou passa a poder apagar
 -- o que ainda não foi aprovado.
 
+-- ── O QUE ESTA MIGRAÇÃO PRESSUPÕE, CONFERIDO ANTES ───────────────────────────
+--
+-- Produção não roda a pasta em ordem: quem aplica é uma pessoa, pelo chat do Lovable,
+-- e o ledger de lá não conhece estes nomes de arquivo. O laço do fim cria policy nas
+-- cinco filhas; se uma não existir, o erro sai como "relation does not exist" no meio
+-- de um `execute format`, que não diz a ninguém o que fazer. Aqui ele diz.
+--
+-- Medido em 01/09/2026: produção ainda não tem `_gia`, `_usufruto` nem `_concessao`.
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['itcd_simulacao', 'itcd_simulacao_doador',
+                           'itcd_simulacao_donatario', 'itcd_simulacao_gia',
+                           'itcd_simulacao_usufruto', 'itcd_simulacao_concessao']
+  loop
+    if to_regclass('public.' || t) is null then
+      raise exception
+        'public.% não existe. Aplique antes as migrations de schema do ITCD, de 20260826154524 a 20260831100000.', t;
+    end if;
+  end loop;
+end $$;
+
 -- ── O status do pai, para as filhas consultarem ───────────────────────────────
 -- Espelha `cliente_id_de_itcd_simulacao`, que já existe e serve o SELECT das filhas.
 -- `security definer` porque a policy da filha precisa ler o pai mesmo quando a policy

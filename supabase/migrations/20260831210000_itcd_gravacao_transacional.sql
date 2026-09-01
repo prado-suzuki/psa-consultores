@@ -20,6 +20,50 @@
 -- `max(versao)` numa consulta e gravava em outra, então duas abas abertas geravam a
 -- mesma versão. Dentro da função a leitura e a escrita estão na mesma transação.
 
+-- ── O QUE ESTA MIGRAÇÃO PRESSUPÕE, CONFERIDO ANTES ───────────────────────────
+--
+-- Produção não roda esta pasta em ordem: quem aplica é uma pessoa, pelo chat do
+-- Lovable, uma migração por vez — o ledger de lá tem nomes próprios e não conhece
+-- estes arquivos. Então a ordem não é garantida por mecanismo nenhum, e este arquivo
+-- não pode presumir que os anteriores já rodaram.
+--
+-- Sem as linhas abaixo o desalinho seria SILENCIOSO no pior lugar: `create or replace
+-- function` não valida o corpo em plpgsql, então a função seria criada com sucesso
+-- referindo coluna e tabela que não existem, e o erro apareceria na cara de quem
+-- clicasse em gerar. Foi assim que um nome de enum trocado passou pelo `create` uma
+-- vez. Aqui a migração para, dizendo o que aplicar antes.
+--
+-- Medido em 01/09/2026: produção tem `itcd_simulacao`, `_doador` e `_donatario`, e NÃO
+-- tem `_gia`, `_usufruto`, `_concessao`, nem as colunas de usufruto.
+do $$
+declare
+  t text;
+  c text;
+begin
+  foreach t in array array['itcd_simulacao', 'itcd_simulacao_doador',
+                           'itcd_simulacao_donatario', 'itcd_simulacao_gia',
+                           'itcd_simulacao_usufruto', 'itcd_simulacao_concessao',
+                           'audit_logs']
+  loop
+    if to_regclass('public.' || t) is null then
+      raise exception
+        'public.% não existe. Aplique antes as migrations de schema do ITCD, de 20260826154524 a 20260831100000.', t;
+    end if;
+  end loop;
+
+  -- Estas três nascem na 20260828170000 (usufruto), e a função grava nelas.
+  foreach c in array array['com_reserva', 'pct_base_reserva', 'pct_base_instituicao']
+  loop
+    if not exists (
+      select 1 from information_schema.columns
+      where table_schema = 'public' and table_name = 'itcd_simulacao' and column_name = c
+    ) then
+      raise exception
+        'itcd_simulacao.% não existe. Aplique antes a 20260828170000_itcd_simulacao_usufruto.', c;
+    end if;
+  end loop;
+end $$;
+
 create or replace function public.itcd_gravar_simulacao(p jsonb)
 returns uuid
 language plpgsql
