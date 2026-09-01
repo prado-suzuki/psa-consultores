@@ -13,18 +13,7 @@ import {
 } from '@/components/ui/select';
 import { TabsContent } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-
-const PROCESS_STAGES = [
-  { value: 'discovery', label: 'Descoberta', color: 'bg-muted text-gray-700' },
-  { value: 'mapping', label: 'Mapeamento', color: 'bg-blue-100 text-blue-700' },
-  { value: 'analysis', label: 'Análise', color: 'bg-purple-100 text-purple-700' },
-  { value: 'improvement', label: 'Melhoria', color: 'bg-orange-100 text-orange-700' },
-  { value: 'automation', label: 'Automação', color: 'bg-accent/10 text-teal-700' },
-  { value: 'completed', label: 'Concluído', color: 'bg-green-100 text-green-700' },
-];
-
-const getProcessStageInfo = (stage: string) =>
-  PROCESS_STAGES.find((item) => item.value === stage) || PROCESS_STAGES[0];
+import { getProcessStageInfo, PROCESS_STAGES } from '@/components/equipe/projetos/constants';
 
 interface ProcessInfoTabProps {
   process: EquipeProcesso;

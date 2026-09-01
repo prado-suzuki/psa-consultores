@@ -46,6 +46,20 @@ export const PROCESS_STAGES = [
   { value: 'completed', label: 'Concluído', color: 'bg-green-100 text-green-700' },
 ];
 
+/**
+ * A etapa, com rótulo e cor, caindo na PRIMEIRA quando o valor não é conhecido.
+ *
+ * ⚠️ Esse fallback faz etapa desconhecida aparecer como "Descoberta" — mostra um
+ * rótulo errado em vez de mostrar que não sabe. Está aqui porque era o que as duas
+ * cópias faziam, e trocar isso é decisão de produto, não de consolidação.
+ *
+ * `getStageBadge`, em `projectPresentation.tsx`, resolve o mesmo caso ao contrário:
+ * sem etapa conhecida ele desenha o valor cru num badge `outline`. As duas leituras
+ * convivem de propósito até alguém decidir qual é a certa.
+ */
+export const getProcessStageInfo = (stage: string) =>
+  PROCESS_STAGES.find((item) => item.value === stage) || PROCESS_STAGES[0];
+
 export const createEmptyProjectDraft = (): ProjectDraft => ({
   name: '',
   description: '',
