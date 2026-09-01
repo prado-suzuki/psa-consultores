@@ -109,8 +109,15 @@ sobre esse fundo, ponto, barra, e fundo de badge com texto branco). No Tailwind 
    tijolo escuro (13%) contra o carmim claro da OSG (40%).
 
 3. **Quente é exceção.** Entra só onde há gente envolvida (`espera`) ou erro (`ajuste`), e
-   o amarelo do `alerta` é o único amarelo — reservado para o que exige ação. Amarelo
+   um só papel ocupa a faixa amarela — reservado para o que exige ação. Amarelo
    distribuído por toda a tela é o que dá cara de template.
+
+   > **Qual papel é o amarelo mudou, e esta linha já mentiu.** Ela dizia "o amarelo do
+   > `alerta`". Hoje o `alerta` é matiz **20** (tijolo/ferrugem, `20 72% 32%` no `:root`) e
+   > quem está na faixa amarela é o `espera`, matiz **44**. A troca veio da fusão dos
+   > semânticos, quando `--warning` passou a ser `var(--status-alerta)`: o amarelo a 92% de
+   > saturação não tinha luminosidade que servisse de texto sem trocar junto o
+   > `-foreground` dele. **Confira o `index.css` antes de citar matiz por aqui.**
 
 ## Onde cada paleta mora
 
@@ -395,15 +402,60 @@ A resolução passa por herança e por `var()`: nenhuma área declara `--card` p
 semânticos da OSG são `var(--osg-moss)` / `var(--osg-highlighter)`. Ler só o literal do bloco
 daria "não declarado" justamente na área que mais personalizou os quatro.
 
-**A dívida de hoje está fixada item a item em `DIVIDA_SEMANTICA`**, no arquivo de teste, com
-12 entradas — valores que já estão em produção, cuja correção é decisão de identidade visual
-e não de teste. A asserção é de igualdade exata, o que faz da lista uma catraca nos dois
-sentidos: falha nova derruba o teste, e item corrigido também derruba, pedindo que saia da
-lista. A dívida só pode diminuir, e nunca de fininho. Em resumo: o `--warning` reprova como
-texto nos quatro temas (1,54:1 a 2,13:1 — é o amarelo, e é a decisão que está na mesa), o
-`--success` reprova por pouco em três (4,18–4,21:1 contra 4,5:1), o `--destructive` do `:root`
-reprova nos dois empregos (Tax, OSG e Rotina já corrigiram o deles), e o `--info` passa com
-folga nos quatro.
+**A dívida está fixada item a item em `DIVIDA_SEMANTICA`**, no arquivo de teste — valores já
+em produção, cuja correção é decisão de identidade visual e não de teste. A asserção é de
+igualdade exata, o que faz da lista uma catraca nos dois sentidos: falha nova derruba o
+teste, e item corrigido também derruba, pedindo que saia da lista. A dívida só pode diminuir,
+e nunca de fininho.
+
+**Hoje ela está vazia**, e a lista continua existindo para que voltar a encher seja uma
+decisão escrita e não um descuido. Ela teve 12 itens: o `--warning` reprovava como texto nos
+quatro temas (1,54:1 a 2,13:1), o `--success` reprovava por pouco em três, e o `--destructive`
+do `:root` reprovava nos dois empregos. Os 12 saíram **de uma vez**, e não um a um:
+`--destructive`, `--warning` e `--success` passaram a ser o `ajuste`, o `alerta` e o `feito`
+da área. Como papéis de status eles já nascem calibrados para receber texto claro, então
+nenhum dos 12 precisou de um valor novo escolhido à mão.
+
+## O papel `alerta` tem variante no `ui/` — use ela
+
+`<Alert variant="warning">` e `<Badge variant="warning">` existem desde 01/09/2026, e são o
+destino de todo aviso novo. Nada de `bg-amber-50` à mão.
+
+| forma | o que usar |
+|---|---|
+| painel de aviso que já é `<Alert>` | `variant="warning"` |
+| painel feito à mão (`<div>`, `<Card>`, `<p>`) | `border-warning/40 bg-warning/10 text-warning` |
+| pílula/chip | `<Badge variant="warning">` |
+| ícone de atenção solto | `text-warning` |
+| fundo cheio (botão, ponto, contador) | `bg-warning text-warning-foreground`, hover em `/90` |
+
+O fundo suave é **alfa sobre o semântico**, e não `bg-status-alerta-soft`: o `.dark` não
+declara nenhum `--status-*`, então o painel cairia no valor do tema claro no dia em que o
+escuro entrar. O `--warning` o `.dark` declara. É a recomendação registrada em
+`comparacoes-de-cor/superficie-de-estado.html`.
+
+### O que NÃO é `alerta`, embora seja âmbar
+
+Foi o achado da conversão, e vale para os papéis que ainda faltam (`sucesso`, e o `feito` e o
+`ajuste` onde eles ainda são verde e vermelho crus). **Antes de trocar a classe, olhe o que
+está escrito na tela:**
+
+- **Degrau de escada.** `Validado`/`Pendente`, `Concluída`/`Em Avaliação`/`Cancelada`,
+  `Alta`/`Média`/`Baixa`. Converter só o degrau âmbar põe token e cor de estoque na mesma
+  coluna — troca escada crua por escada meio crua, que é pior. Essas escadas inteiras se
+  convertem por papel, no modelo do `taskStatusColors`.
+- **Outro papel com a mesma cor.** "Oportunidades" com uma lâmpada é ideia, não aviso.
+  "Editando etapa" tem `--edit-shadow-color` próprio. Realce de diff (`isChanged`) é `info`.
+- **Escala que não é status.** "Hoje"/"Amanhã" é proximidade; risco alto/médio/baixo é
+  gradiente.
+- **Decoração.** Ícone de 48px de estado vazio, ao lado de texto em `muted-foreground`. Em
+  `text-warning` cheio ele passa a gritar.
+- **Rótulo que não é estado.** "Líder", "Admin".
+
+E três armadilhas que a conversão em massa produz sozinha, todas já mordidas aqui:
+`hover:` que fica **idêntico** ao estado normal; `text-white` cravado sobre um token (o par é
+`-foreground`, que é quem garante o contraste); e tom claro do Tailwind com alfa baixo
+(`bg-amber-50/20`) que vira um `/10` do token e **pesa mais** do que pesava.
 
 ## Fora do módulo de tarefas
 
