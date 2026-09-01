@@ -379,30 +379,13 @@ export const BoardLayout = ({ children, title, subtitle, headerActions, noPaddin
                       como texto. */}
                   {i > 0 && <span aria-hidden>/</span>}
                   {i === breadcrumb.length - 1 ? (
-                    /* O ícone do Agente PSA fica AQUI, colado no título da tela,
-                       e é o ponto de entrada do agente DENTRO do Board (pedido
-                       da diretoria, 21/08: "de forma discreta em todos os menus
-                       e submenus, a partir de um ícone próximo ao título").
-                       Ele entra uma vez, aqui, e por isso vale para as 18 telas
-                       do Board sem que nenhuma precise se lembrar dele.
-
-                       O balão flutuante (`AgentePsaWidget`) continua existindo,
-                       mas se retira dentro do Board (ver o gate lá): fora daqui
-                       — Tax, OSG, Acessos — não há cabeçalho padronizado onde o
-                       ícone encaixe, e é ele que atende essas telas. Um idioma
-                       por ambiente, nunca dois no mesmo lugar.
-
-                       Diferença que importa: o ícone existe em TODA tela do
-                       Board (o escopo vem da rota), enquanto o balão só aparece
-                       onde a tela publicou snapshot. Sem o ícone, os menus que
-                       ainda não publicam ficariam sem agente nenhum — e sem o
-                       lugar onde a faixa "Exige decisão" e o aviso de dado
-                       incompleto passaram a morar, depois de saírem da grade. */
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-[13px] font-semibold" style={{ color: 'var(--bd-ink)' }}>{b.label}</span>
-                      <AgentePsaTrigger />
-                    </span>
+                    /* Só o rótulo. O ponto de entrada do agente voltou a ser o
+                       cartão flutuante (`AgentePsaWidget`), no canto inferior
+                       direito, montado uma vez no `AgenteProvider` — dentro e
+                       fora do Board. Um idioma só. */
+                    <span className="text-[13px] font-semibold" style={{ color: 'var(--bd-ink)' }}>{b.label}</span>
                   ) : (
+
                     <button onClick={() => navigate(b.path)} className="hover:underline">{b.label}</button>
                   )}
                 </span>
