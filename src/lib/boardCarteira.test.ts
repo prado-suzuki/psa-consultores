@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { OsRow } from '@/lib/dashboardClientesOs/types';
-import { carteiraClientes, clientesCicloVencido, tempoMedioAditivo } from './boardCarteira';
+import {
+  carteiraClientes, clientesCicloVencido, rankingPorGasto, rankingPorRenovacao,
+  tempoMedioAditivo,
+} from './boardCarteira';
 
 const os = (over: Partial<OsRow> & Pick<OsRow, 'os_id' | 'cliente_id'>): OsRow => ({
   numero_os: null,
@@ -36,5 +39,7 @@ describe('carteiraClientes', () => {
     expect(c[1].diasMedioAditivo).toBeNull();
     expect(tempoMedioAditivo(rows)).toBe(90);
     expect(clientesCicloVencido(c).map((x) => x.cliente_id)).toEqual(['a']);
+    expect(rankingPorGasto(c).map((x) => x.cliente_id)).toEqual(['a', 'b']);
+    expect(rankingPorRenovacao(c).map((x) => x.cliente_id)).toEqual(['a']);
   });
 });

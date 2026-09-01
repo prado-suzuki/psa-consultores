@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { AXIS_STYLE, CHART_COLORS, GRID_STYLE, TOOLTIP_STYLE } from '@/lib/board-chart-defaults';
 import { BoardAbas } from '@/components/board/BoardAbas';
+import { BoardCarteiraReceita } from '@/components/board/BoardCarteiraReceita';
 import type { FatiaRegiao, FatiaServico, LacunaAditivo } from '@/lib/boardOportunidade';
 import { clientesCicloVencido, type ClienteCarteira } from '@/lib/boardCarteira';
 
@@ -42,8 +43,6 @@ export function BoardBriefingClientes({
   const topGasto = carteira[0];
   const topRenovacao = [...carteira].sort((a, b) => b.renovacoes - a.renovacoes)[0];
   const chartServico = servicos.filter((s) => s.chave !== 'sem_servico').slice(0, 8);
-  const porGasto = carteira.slice(0, 12);
-  const porRenovacao = [...carteira].sort((a, b) => b.renovacoes - a.renovacoes || b.gasto - a.gasto).slice(0, 12);
   const cicloVencido = clientesCicloVencido(carteira);
 
   return (
@@ -88,92 +87,7 @@ export function BoardBriefingClientes({
         ]}
       />
 
-      {aba === 'receita' && (
-        <div className="bd-grid-2">
-          <section className="bd-figure">
-            <div className="bd-kicker">Gasto</div>
-            <div className="bd-figure-head">
-              <div className="bd-figure-title">Quem mais gera receita na PSA</div>
-              <div className="bd-figure-meta">soma do contratado das OS</div>
-            </div>
-            {porGasto.length === 0 ? (
-              <p className="bd-motivo">Nenhuma OS no recorte.</p>
-            ) : (
-              <>
-              <div style={{ height: 220, marginBottom: 16 }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={porGasto.slice(0, 8).map((c) => ({
-                      nome: c.cliente_nome.length > 22 ? `${c.cliente_nome.slice(0, 20)}…` : c.cliente_nome,
-                      gasto: c.gasto,
-                    }))}
-                    layout="vertical"
-                    margin={{ top: 4, right: 12, left: 4, bottom: 0 }}
-                  >
-                    <CartesianGrid {...GRID_STYLE} horizontal={false} />
-                    <XAxis type="number" {...AXIS_STYLE} tickFormatter={(v: number) => brl(v)} />
-                    <YAxis type="category" dataKey="nome" width={140} {...AXIS_STYLE} />
-                    <Tooltip {...TOOLTIP_STYLE} formatter={(v: number) => [brl(v), 'contratado']} />
-                    <Bar dataKey="gasto" fill={CHART_COLORS.accent} radius={[0, 3, 3, 0]} maxBarSize={16} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-              <table className="v4-tbl">
-                <thead>
-                  <tr>
-                    <th>Cliente</th>
-                    <th className="num">Contratado</th>
-                    <th className="num">OS</th>
-                    <th className="num">Renovações</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {porGasto.map((c) => (
-                    <tr key={c.cliente_id}>
-                      <td>{c.cliente_nome}</td>
-                      <td className="num">{brl(c.gasto)}</td>
-                      <td className="num">{c.os}</td>
-                      <td className="num">{c.renovacoes || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              </>
-            )}
-          </section>
-          <section className="bd-figure">
-            <div className="bd-kicker">Renovação</div>
-            <div className="bd-figure-head">
-              <div className="bd-figure-title">Quem volta a contratar</div>
-              <div className="bd-figure-meta">OS depois da primeira</div>
-            </div>
-            {porRenovacao.every((c) => c.renovacoes === 0) ? (
-              <p className="bd-motivo">Nenhum cliente com segunda OS datada no recorte.</p>
-            ) : (
-              <table className="v4-tbl">
-                <thead>
-                  <tr>
-                    <th>Cliente</th>
-                    <th className="num">Renovações</th>
-                    <th className="num">Dias até aditivo</th>
-                    <th className="num">Contratado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {porRenovacao.filter((c) => c.renovacoes > 0).map((c) => (
-                    <tr key={c.cliente_id}>
-                      <td>{c.cliente_nome}</td>
-                      <td className="num">{c.renovacoes}</td>
-                      <td className="num">{qtde(c.diasMedioAditivo)}</td>
-                      <td className="num">{brl(c.gasto)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </section>
-        </div>
-      )}
+      {aba === 'receita' && <BoardCarteiraReceita carteira={carteira} />}
 
       {aba === 'oferta' && (
         <>
