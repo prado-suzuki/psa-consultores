@@ -24,11 +24,12 @@ describe('escopoDaRota', () => {
     expect(escopoDaRota('/equipe/board/chamados/abc-123')?.escopo).toBe('board.chamados');
   });
 
-  it('não confunde prefixo parcial de outro segmento', () => {
-    // `/clientes` e `/dashboard-clientes-os` começam parecido no meio da URL:
-    // sem a checagem de igualdade ou de barra, um casaria no outro.
-    expect(escopoDaRota('/equipe/board/dashboard-clientes-os')?.escopo).toBe('board.projetos');
-    expect(escopoDaRota('/equipe/board/clientes')?.escopo).toBe('board.clientes');
+  it('as quatro leituras de diretoria compartilham o mesmo escopo', () => {
+    expect(escopoDaRota('/equipe/board/dashboard')?.escopo).toBe('board.estrategico');
+    expect(escopoDaRota('/equipe/board/uso-envio')?.escopo).toBe('board.estrategico');
+    expect(escopoDaRota('/equipe/board/dashboard-clientes-os')?.escopo).toBe('board.estrategico');
+    expect(escopoDaRota('/equipe/board/clientes')?.escopo).toBe('board.estrategico');
+    expect(escopoDaRota('/equipe/board/dashboard-clientes-os')?.rotulo).toBe('Board');
   });
 
   it('devolve null fora do Board', () => {
@@ -40,6 +41,7 @@ describe('escopoDaRota', () => {
 describe('rotaDoEscopo / rotuloDoEscopo', () => {
   it('faz o caminho de volta para o "Ver" da notificação', () => {
     expect(rotaDoEscopo('board.estrategico')).toBe('/equipe/board/dashboard');
+    expect(rotuloDoEscopo('board.estrategico')).toBe('Board');
     expect(rotuloDoEscopo('board.capacidade')).toBe('Board · Capacidade');
   });
 
@@ -55,8 +57,11 @@ describe('tabela de escopos', () => {
     expect(new Set(ESCOPOS_BOARD.map((e) => e.rota)).size).toBe(ESCOPOS_BOARD.length);
   });
 
-  it('toda rota volta para o próprio escopo (ida e volta consistentes)', () => {
-    for (const e of ESCOPOS_BOARD) {
+  it('rotas fora da diretoria voltam para o próprio escopo', () => {
+    for (const e of ESCOPOS_BOARD.filter((x) => !x.rota.endsWith('/dashboard')
+      && !x.rota.endsWith('/uso-envio')
+      && !x.rota.endsWith('/dashboard-clientes-os')
+      && !x.rota.endsWith('/clientes'))) {
       expect(escopoDaRota(e.rota)?.escopo).toBe(e.escopo);
     }
   });

@@ -28,8 +28,28 @@ export interface EscopoAgente {
  * Ordem NÃO importa: a resolução usa o prefixo mais LONGO que casa, senão uma
  * sub-rota cairia no escopo do pai.
  */
+/** As quatro leituras de diretoria compartilham um escopo — o agente é um só. */
+export const ESCOPO_DIRETORIA = 'board.estrategico';
+
+export const ROTAS_DIRETORIA = [
+  '/equipe/board/dashboard-clientes-os',
+  '/equipe/board/uso-envio',
+  '/equipe/board/clientes',
+  '/equipe/board/dashboard',
+] as const;
+
+export const ESCOPO_BOARD_DIRETORIA: EscopoAgente = {
+  escopo: ESCOPO_DIRETORIA,
+  rota: '/equipe/board/dashboard',
+  rotulo: 'Board',
+};
+
+export function rotaEhDiretoria(pathname: string): boolean {
+  return ROTAS_DIRETORIA.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+}
+
 export const ESCOPOS_BOARD: EscopoAgente[] = [
-  { escopo: 'board.estrategico', rota: '/equipe/board/dashboard', rotulo: 'Board · Estratégico' },
+  { escopo: ESCOPO_DIRETORIA, rota: '/equipe/board/dashboard', rotulo: 'Board' },
   { escopo: 'board.projetos', rota: '/equipe/board/dashboard-clientes-os', rotulo: 'Board · Projetos' },
   { escopo: 'board.clientes', rota: '/equipe/board/clientes', rotulo: 'Board · Clientes' },
   { escopo: 'board.ferramentas', rota: '/equipe/board/uso-envio', rotulo: 'Board · Ferramentas' },
@@ -55,6 +75,7 @@ const POR_ESCOPO = new Map(ESCOPOS_BOARD.map((e) => [e.escopo, e]));
  * parâmetro, como o detalhe de um chamado) e escolhe o prefixo mais LONGO.
  */
 export function escopoDaRota(pathname: string): EscopoAgente | null {
+  if (rotaEhDiretoria(pathname)) return ESCOPO_BOARD_DIRETORIA;
   let melhor: EscopoAgente | null = null;
   for (const candidato of ESCOPOS_BOARD) {
     const casa = pathname === candidato.rota || pathname.startsWith(`${candidato.rota}/`);

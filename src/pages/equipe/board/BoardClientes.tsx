@@ -3,7 +3,6 @@ import { Loader2 } from 'lucide-react';
 import { BoardLayout } from '@/components/equipe/board/BoardLayout';
 import { BoardClusterBar } from '@/components/equipe/board/BoardClusterBar';
 import { BoardBriefingClientes } from '@/components/board/BoardBriefingClientes';
-import { useAuth } from '@/contexts/AuthContext';
 import { useDashboardAmbiente } from '@/lib/dashboardAmbiente';
 import { useDashboardClientesOs } from '@/hooks/useDashboardClientesOs';
 import { useBoardCluster } from '@/hooks/useBoardCluster';
@@ -14,15 +13,12 @@ import {
   distribuicaoRegiao, lacunasAditivo, ocorrenciaServicos,
 } from '@/lib/boardOportunidade';
 import { carteiraClientes, tempoMedioAditivo } from '@/lib/boardCarteira';
-import { useRegistrarContextoAgente } from '@/hooks/useAgenteContexto';
-import { contextoBoardClientes } from '@/lib/agenteContextoClientes';
 
 /**
  * Clientes — ocorrência de serviço e similaridade de praça.
  * Sem mapa. Fonte: as mesmas OS/clientes do Estratégico.
  */
 const BoardClientes = () => {
-  const { isAdmin } = useAuth();
   const { ambiente } = useDashboardAmbiente();
   const { cluster } = useBoardCluster();
   const negocio = useDashboardClientesOs(ambiente);
@@ -47,18 +43,6 @@ const BoardClientes = () => {
   );
   const carteira = useMemo(() => carteiraClientes(osRows, hoje), [osRows, hoje]);
   const diasAditivo = useMemo(() => tempoMedioAditivo(osRows), [osRows]);
-
-  const contextoAgente = useMemo(() => contextoBoardClientes({
-    escopoTotal: isAdmin && !cluster,
-    ticket,
-    regioes,
-    servicos,
-    lacunas,
-    carteira,
-    diasAditivo,
-    falhas: negocio.error ? ['contratos e clientes'] : [],
-  }), [isAdmin, cluster, ticket, regioes, servicos, lacunas, carteira, diasAditivo, negocio.error]);
-  useRegistrarContextoAgente('board.clientes', contextoAgente, negocio.isLoading);
 
   return (
     <BoardLayout
