@@ -27,10 +27,8 @@ type Aba = 'implementadas' | 'area';
 
 export function BoardBriefingFerramentas({
   melhorias,
-  quemUsa,
 }: {
   melhorias: MelhoriaRoi[];
-  quemUsa?: ReactNode;
 }) {
   const [aba, setAba] = useState<Aba>('implementadas');
   const catalogo = catalogoFerramentas(melhorias);
@@ -229,13 +227,6 @@ export function BoardBriefingFerramentas({
             </>
           )}
         </section>
-      )}
-
-      {quemUsa && (
-        <details className="bd-figure">
-          <summary className="bd-figure-title" style={{ cursor: 'pointer' }}>Quem usa</summary>
-          <div style={{ marginTop: 16 }}>{quemUsa}</div>
-        </details>
       )}
     </>
   );
