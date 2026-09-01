@@ -287,6 +287,11 @@ export interface MelhoriaRoi {
   /** Cluster da melhoria — permite recortar a economia pelo cliente global. */
   cluster_id?: string | null;
   cost_saved_monthly: number | null;
+  /**
+   * Horas/mês devolvidas pela melhoria — a matéria-prima do FTE liberado que a
+   * diretoria pede (28/08). Vinha da tabela mas ninguém lia.
+   */
+  time_saved_hours?: number | null;
   implementation_cost: number | null;
   one_time_external_cost: number | null;
   created_at: string | null;
