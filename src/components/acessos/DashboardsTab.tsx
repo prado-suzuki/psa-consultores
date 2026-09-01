@@ -35,11 +35,6 @@ const FILTER_LABEL: Record<DashboardFilterType, string> = {
   cliente: 'Por cliente',
   nenhum: 'Sem filtro',
 };
-const FILTER_BADGE_CLASS: Record<DashboardFilterType, string> = {
-  cluster: 'border-primary/20 bg-primary/5 text-primary',
-  cliente: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  nenhum: 'border-border bg-foreground/[0.05] text-muted-foreground',
-};
 // Ordenação padrão: sem filtro -> por cluster -> por cliente.
 const FILTER_RANK: Record<DashboardFilterType, number> = { nenhum: 0, cluster: 1, cliente: 2 };
 //"Tipo" é derivado do filtro: nenhum = interno (sem RLS); cluster/cliente = externo.

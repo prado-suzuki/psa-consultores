@@ -34,6 +34,12 @@ export interface EmbedRpcResult {
 export function mapEmbedRpc(data: EmbedRpcResult | null | undefined): EmbedResolution {
   const r = (data || { ok: false, reason: 'not_found' }) as EmbedRpcResult;
   if (!r.ok) return { ok: false, reason: r.reason, url: null };
+  // `ok: true` sem `embed_url` é contrato quebrado da RPC, e o ramo existe
+  // porque `embed_url` é opcional no tipo dela. Sem isto, `url` saía
+  // `undefined` com `ok: true` — o consumidor renderizava iframe sem `src`, ou
+  // seja tela quebrada em vez de mensagem. Fail-closed pelo mesmo motivo do
+  // ramo acima, e `url: string | null` volta a ser verdade.
+  if (!r.embed_url) return { ok: false, reason: 'not_found', url: null };
   const url = buildLookerEmbedUrl(r.embed_url, r.param_names, r.value ?? undefined);
   return { ok: true, reason: r.reason, url };
 }
@@ -51,11 +57,18 @@ export function useDashboardEmbedUrl(dashboardId: string | null) {
     queryKey: ['dashboard-embed-url', dashboardId],
     enabled: !!dashboardId,
     queryFn: async (): Promise<EmbedResolution> => {
-      const { data, error } = await (supabase.rpc as any)('get_dashboard_embed_url', {
+      // `enabled` já garante isto, mas o guarda faz o tipo dizer a verdade — e
+      // fail-closed é a resposta certa aqui de qualquer jeito.
+      if (!dashboardId) return { ok: false, reason: 'not_found', url: null };
+      const { data, error } = await supabase.rpc('get_dashboard_embed_url', {
         _dashboard_id: dashboardId,
       });
       if (error) throw error;
-      return mapEmbedRpc(data as EmbedRpcResult);
+      // A RPC é declarada `Returns: Json` no schema, então a FORMA do retorno
+      // não existe para o compilador — só o `json`. Esta asserção é o único
+      // lugar onde ela pode ser afirmada, e `mapEmbedRpc` é escrita para não
+      // confiar nela: trata nulo, `ok` ausente e `embed_url` ausente.
+      return mapEmbedRpc(data as unknown as EmbedRpcResult);
     },
   });
 }

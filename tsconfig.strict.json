@@ -7,7 +7,10 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "types": ["vite/client", "node"],
+    "types": [
+      "vite/client",
+      "node"
+    ],
     "noEmit": true
   },
   "include": [
@@ -29,6 +32,8 @@
     "src/components/auth/ProtectedRoute.tsx",
     "src/components/auth/AdminRoute.tsx",
     "src/components/auth/TeamRoute.tsx",
-    "src/components/auth/PageAccessGate.tsx"
+    "src/components/auth/PageAccessGate.tsx",
+    "src/lib/lookerEmbed.ts",
+    "src/hooks/useDashboardEmbedUrl.ts"
   ]
 }
