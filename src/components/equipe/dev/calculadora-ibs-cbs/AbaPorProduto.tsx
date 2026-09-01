@@ -215,9 +215,9 @@ export function AbaPorProduto({ filtros, idContribuinte }: AbaPorProdutoProps) {
 
   return (
     <div className="space-y-6">
-      <Alert className="bg-amber-50 border-amber-200">
-        <AlertTriangle className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="text-amber-900 text-xs">
+      <Alert variant="warning">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription className="text-xs">
           Comparativo por produto (NCM × xProd). Cálculo sobre saídas — a coluna DEPOIS considera
           apenas IBS/CBS.
         </AlertDescription>

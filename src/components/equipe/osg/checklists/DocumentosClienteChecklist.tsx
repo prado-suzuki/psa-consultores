@@ -252,7 +252,7 @@ function ChecklistRow({ number, req, state, matches, downloading, onDownload, up
   onUpload: (file: File) => void;
 }) {
   return (
-    <li className={cn('group px-4 py-4 transition-colors sm:px-5', state === 'solicitar' ? 'bg-amber-50/20 hover:bg-amber-50/35' : 'hover:bg-osg-50/35')}>
+    <li className={cn('group px-4 py-4 transition-colors sm:px-5', state === 'solicitar' ? 'bg-warning/5 hover:bg-warning/10' : 'hover:bg-osg-50/35')}>
       <div className="flex items-start gap-3 sm:gap-4">
         <span className={cn(
           'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold tabular-nums',
@@ -331,7 +331,7 @@ function PendingUploadButton({ req, uploading, disabled, onUpload }: {
         aria-label={`Selecionar arquivo para ${req.assunto}`}
         onChange={onChange}
       />
-      <Button type="button" variant="outline" size="sm" className="h-8 border-amber-200 bg-white text-xs text-amber-800 hover:bg-amber-50 hover:text-amber-900" onClick={() => inputRef.current?.click()} disabled={disabled}>
+      <Button type="button" variant="outline" size="sm" className="h-8 border-warning/40 bg-white text-xs text-warning hover:bg-warning/10" onClick={() => inputRef.current?.click()} disabled={disabled}>
         {uploading ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : <Upload className="mr-2 h-3.5 w-3.5" />}
         {uploading ? 'Enviando...' : 'Anexar documento'}
       </Button>
@@ -371,7 +371,7 @@ function StatusPill({ state, count }: { state: ChecklistState; count: number }) 
 function Metric({ label, value, tone }: { label: string; value: number; tone: 'warning' | 'success' }) {
   return (
     <div className="rounded-xl bg-osg-50/70 px-3 py-3 text-center">
-      <div className={cn('text-2xl font-bold tabular-nums', tone === 'warning' ? 'text-amber-700' : 'text-osg-moss')}>{value}</div>
+      <div className={cn('text-2xl font-bold tabular-nums', tone === 'warning' ? 'text-warning' : 'text-osg-moss')}>{value}</div>
       <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-wide text-osg-500">{label}</div>
     </div>
   );

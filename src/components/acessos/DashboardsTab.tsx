@@ -193,7 +193,7 @@ export default function DashboardsTab() {
       const ids = clientesByDashboard.get(d.id) ?? [];
       if (ids.length === 0) {
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+          <span className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[11px] font-medium text-warning">
             <AlertTriangle className="h-3 w-3" /> Sem clientes liberados
           </span>
         );

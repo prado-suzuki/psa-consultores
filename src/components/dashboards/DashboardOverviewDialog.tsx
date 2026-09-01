@@ -164,7 +164,7 @@ export function DashboardOverviewDialog({ dashboard, onOpenChange, onEdit }: Das
                         <Building2 className="h-3.5 w-3.5" /> Clientes liberados ({clienteIds.length})
                       </p>
                       {clienteIds.length === 0 ? (
-                        <p className="text-xs text-amber-600">Nenhum cliente liberado — ninguém vê este dashboard.</p>
+                        <p className="text-xs text-warning">Nenhum cliente liberado — ninguém vê este dashboard.</p>
                       ) : (
                         <div className="flex flex-wrap gap-1">
                           {clienteIds.map((id) => (

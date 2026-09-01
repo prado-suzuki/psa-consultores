@@ -453,14 +453,14 @@ const EquipeKanban = () => {
       />
 
       {hasActiveFilters && (
-        <div className="mb-4 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-warning/40 bg-warning/10 px-4 py-2 text-sm text-warning">
           <Filter className="h-4 w-4 flex-shrink-0" />
           <span>Há filtros ativos — algumas tarefas da sprint podem estar ocultas.</span>
           <Button
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="ml-auto h-7 text-amber-800 hover:bg-amber-100 hover:text-amber-900"
+            className="ml-auto h-7 text-warning hover:bg-warning/20"
           >
             <X className="h-3 w-3 mr-1" />
             Limpar filtros

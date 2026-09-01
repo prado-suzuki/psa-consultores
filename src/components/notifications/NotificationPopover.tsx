@@ -122,7 +122,7 @@ function TicketNotificationItem({
 }) {
   const statusColors = {
     atrasado: 'bg-destructive text-destructive-foreground',
-    urgente: 'bg-amber-500 text-white',
+    urgente: 'bg-warning text-warning-foreground',
     normal: 'bg-primary/10 text-primary',
   };
 
@@ -165,7 +165,7 @@ function TicketNotificationItem({
             <span className={cn(
               "text-xs font-medium",
               notification.prazoInfo.status === 'atrasado' && 'text-destructive',
-              notification.prazoInfo.status === 'urgente' && 'text-amber-600',
+              notification.prazoInfo.status === 'urgente' && 'text-warning',
               notification.prazoInfo.status === 'normal' && 'text-muted-foreground'
             )}>
               {notification.prazoInfo.label}

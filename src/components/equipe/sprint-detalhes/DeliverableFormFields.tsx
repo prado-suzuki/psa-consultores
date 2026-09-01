@@ -310,7 +310,7 @@ export function DeliverableFormFields({
 
                 {prefix === 'edit' && form.status === 'completed' && (
                   <div className="space-y-1.5">
-                    <Label htmlFor="edit-actual-hours" className="text-xs text-amber-700">
+                    <Label htmlFor="edit-actual-hours" className="text-xs text-warning">
                       Horas realizadas
                     </Label>
                     <Input

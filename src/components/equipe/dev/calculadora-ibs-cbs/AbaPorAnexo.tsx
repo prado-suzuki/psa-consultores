@@ -107,9 +107,9 @@ export function AbaPorAnexo({ filtros, idContribuinte }: AbaPorAnexoProps) {
 
   return (
     <div className="space-y-6">
-      <Alert className="bg-amber-50 border-amber-200">
-        <AlertTriangle className="h-4 w-4 text-amber-600" />
-        <AlertDescription className="text-amber-900 text-xs">
+      <Alert variant="warning">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertDescription className="text-xs">
           Agrupamento por <strong>regra_reducao</strong> (Anexos da LC 214/2025). Cálculo sobre
           saídas — não considera créditos.
         </AlertDescription>

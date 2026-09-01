@@ -309,8 +309,8 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
               </div>
               <div className="space-y-2">
                 <Label>Variável testada</Label>
-                <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-amber-50 border-amber-200">
-                  <Target className="h-4 w-4 text-amber-600" />
+                <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-warning/10 border-warning/40">
+                  <Target className="h-4 w-4 text-warning" />
                   <span className="text-sm font-medium">{kindInfo.variedLabel}</span>
                 </div>
               </div>

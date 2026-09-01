@@ -52,10 +52,10 @@ export function ProcedimentoCard({
 
     if (isStuck) {
       return (
-        <div className="bg-amber-50 rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-amber-200 flex flex-col items-center justify-center min-h-[280px] gap-3">
-          <AlertTriangle className="h-8 w-8 text-amber-500" />
-          <p className="text-sm text-amber-800 font-medium text-center">Leitura travada</p>
-          <p className="text-xs text-amber-600 text-center">
+        <div className="bg-warning/10 rounded-xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.08)] border border-warning/40 flex flex-col items-center justify-center min-h-[280px] gap-3">
+          <AlertTriangle className="h-8 w-8 text-warning" />
+          <p className="text-sm text-warning font-medium text-center">Leitura travada</p>
+          <p className="text-xs text-warning text-center">
             Começou {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: ptBR })} e não terminou.
           </p>
           <div className="flex gap-2 mt-2">
@@ -123,7 +123,7 @@ export function ProcedimentoCard({
     <>
       <div
         className={`bg-white rounded-xl shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] transition-shadow duration-200 flex flex-col min-h-[280px] overflow-hidden cursor-pointer ${
-          aguardandoConfirmacao ? 'border-2 border-dashed border-amber-400' : ''
+          aguardandoConfirmacao ? 'border-2 border-dashed border-warning/40' : ''
         }`}
         onClick={() => onAbrir(p)}
         role="button"
@@ -141,7 +141,7 @@ export function ProcedimentoCard({
           {/* Top: Process chips + selos de estado */}
           <div className="flex flex-wrap gap-1.5 mb-3">
             {aguardandoConfirmacao && (
-              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700">
+              <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-warning/10 text-warning">
                 Aguardando confirmação
               </span>
             )}

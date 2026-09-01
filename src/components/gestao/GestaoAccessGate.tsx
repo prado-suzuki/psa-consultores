@@ -63,7 +63,7 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
           <div className="text-center mb-8">
             <img src={logo} alt="PSA Consultores" className="h-16 mx-auto mb-4" />
             <div className="flex items-center justify-center gap-2 mb-2">
-              <ShieldAlert className="h-6 w-6 text-amber-500" />
+              <ShieldAlert className="h-6 w-6 text-warning" />
               <h1 className="text-2xl font-bold">Área de Gestão</h1>
             </div>
             <p className="text-muted-foreground">Sistema de Gestão de Conteúdo</p>
@@ -78,7 +78,7 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
                     Entre com suas credenciais
                   </CardDescription>
                 </div>
-                <span className="px-3 py-1 bg-amber-500/20 text-amber-500 text-sm rounded-full">
+                <span className="px-3 py-1 bg-warning/20 text-warning text-sm rounded-full">
                   Gestão
                 </span>
               </div>
@@ -126,7 +126,7 @@ export const GestaoAccessGate = ({ children }: GestaoAccessGateProps) => {
 
                 <Button 
                   type="submit" 
-                  className="w-full bg-amber-500 hover:bg-amber-600 text-white"
+                  className="w-full bg-warning hover:bg-warning/90 text-warning-foreground"
                   disabled={isLoading}
                 >
                   {isLoading ? 'Entrando...' : 'Entrar'}

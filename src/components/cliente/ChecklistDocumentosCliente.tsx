@@ -74,7 +74,7 @@ const FILTROS_GRUPO: Array<{ value: FiltroGrupo; label: string; Icon: LucideIcon
 
 const FILTROS_STATUS: Array<{ value: FiltroStatus; label: string; dot?: string }> = [
   { value: 'todos', label: 'Todos' },
-  { value: 'faltando', label: 'Falta enviar', dot: 'bg-amber-500' },
+  { value: 'faltando', label: 'Falta enviar', dot: 'bg-warning' },
   { value: 'recebidos', label: 'Recebidos', dot: 'bg-primary' },
 ];
 
@@ -488,7 +488,7 @@ function EntidadeCard({ gaveta, entidade, onAbrir }: {
         </span>
         <span className={cn(
           'rounded-md px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em]',
-          entidade.faltando > 0 ? 'bg-amber-50 text-amber-700' : 'bg-accent/5 text-primary',
+          entidade.faltando > 0 ? 'bg-warning/10 text-warning' : 'bg-accent/5 text-primary',
         )}>
           {entidade.faltando > 0
             ? `${entidade.faltando} pendente${entidade.faltando === 1 ? '' : 's'}`

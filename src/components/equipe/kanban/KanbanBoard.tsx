@@ -146,7 +146,7 @@ export function KanbanBoard(props: KanbanBoardProps) {
                             {hasOpenSubtasksUnderCompletedParent(deliverable) && (
                               <Badge
                                 variant="outline"
-                                className="border-amber-300 bg-amber-50 text-xs text-amber-800"
+                                className="border-warning/40 bg-warning/10 text-xs text-warning"
                                 title="Tarefa concluída, mas ainda tem subtarefa aberta aqui dentro"
                               >
                                 {deliverable.openSubtasks} aberta

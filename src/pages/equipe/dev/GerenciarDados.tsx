@@ -468,10 +468,10 @@ function DebugApiCard() {
   };
 
   return (
-    <Card className="border-amber-300 border-2 shadow-sm">
+    <Card className="border-warning/40 border-2 shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
-          <AlertTriangle className="h-5 w-5 text-amber-500" />
+          <AlertTriangle className="h-5 w-5 text-warning" />
           <CardTitle className="text-lg">Debug: Teste API Cloud Run</CardTitle>
         </div>
         <CardDescription>Temporário — Remover depois dos testes</CardDescription>
