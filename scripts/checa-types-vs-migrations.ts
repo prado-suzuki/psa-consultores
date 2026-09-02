@@ -21,9 +21,10 @@
  * Uso: bun scripts/checa-types-vs-migrations.ts <sha-da-base>
  */
 import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 
 const TYPES = 'src/integrations/supabase/types.ts';
+const DIR_MIGRATIONS = 'supabase/migrations';
 
 const git = (...args: string[]): string =>
   execFileSync('git', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
@@ -92,31 +93,46 @@ if (tabelasNovas.length === 0 && colunasNovas.length === 0) {
   process.exit(0);
 }
 
-// O SQL de todas as migrations que o PR acrescenta ou altera, junto num só texto.
-const migrations = git('diff', '--name-only', '--diff-filter=AM', base, 'HEAD', '--', 'supabase/migrations')
+/**
+ * Procura em TODAS as migrations do repositório, não só nas do PR.
+ *
+ * A pergunta certa é "existe migration que descreva isto", não "existe migration NESTE
+ * PR". Coluna criada por migration antiga, já mesclada, é schema legítimo do repositório
+ * e não tem nada de errado em aparecer no `types.ts` de um PR que não a criou. Restringir
+ * ao diff do PR acusava falso positivo: em 02/09/2026 apontou `capital_integralizacao` e
+ * `quadro_societario`, ambas descritas por migrations já no repo (uma delas no baseline).
+ *
+ * O que sobra depois desse filtro é o sinal de verdade: nome que NENHUMA migration cria,
+ * e que portanto só pode ter vindo do banco compartilhado, de branch que ninguém pushou.
+ */
+const migrationsDoPr = git('diff', '--name-only', '--diff-filter=AM', base, 'HEAD', '--', 'supabase/migrations')
   .split('\n')
-  .filter((p) => p.endsWith('.sql'));
+  .filter((p) => p.endsWith('.sql')).length;
 
-const sqlDoPr = migrations.map((p) => readFileSync(p, 'utf8')).join('\n').toLowerCase();
+const todasAsMigrations = readdirSync(DIR_MIGRATIONS).filter((f) => f.endsWith('.sql'));
+const sqlDoRepo = todasAsMigrations
+  .map((f) => readFileSync(`${DIR_MIGRATIONS}/${f}`, 'utf8'))
+  .join('\n')
+  .toLowerCase();
 
 const orfas = [
   ...tabelasNovas
-    .filter((t) => !sqlDoPr.includes(t.toLowerCase()))
+    .filter((t) => !sqlDoRepo.includes(t.toLowerCase()))
     .map((t) => ({ o_que: `tabela ${t}`, nome: t })),
   ...colunasNovas
-    .filter(({ coluna }) => !sqlDoPr.includes(coluna.toLowerCase()))
+    .filter(({ coluna }) => !sqlDoRepo.includes(coluna.toLowerCase()))
     .map(({ tabela, coluna }) => ({ o_que: `coluna ${tabela}.${coluna}`, nome: coluna })),
 ];
 
 console.log(`${TYPES}: ${tabelasNovas.length} tabela(s) e ${colunasNovas.length} coluna(s) novas`);
-console.log(`${migrations.length} migration(s) no PR`);
+console.log(`${migrationsDoPr} migration(s) no PR, ${todasAsMigrations.length} no repositório`);
 
 if (orfas.length === 0) {
-  console.log('Todas têm migration correspondente no PR. OK.');
+  console.log('Todas têm migration que as descreve no repositório. OK.');
   process.exit(0);
 }
 
-console.error('\nO types.ts ganhou schema que NENHUMA migration deste PR cria:\n');
+console.error('\nO types.ts ganhou schema que NENHUMA migration do repositório cria:\n');
 for (const o of orfas) console.error(`  ${o.o_que}`);
 console.error(`
 ${orfas.length} item(ns) sem migration.
@@ -126,7 +142,7 @@ compartilhado, e trouxe trabalho de outra pessoa que ainda não foi mesclado. Es
 schema NÃO existe em produção, e a main é buildada contra produção.
 
 O que fazer:
-  - se a coluna é sua, a migration que a cria tem de entrar neste PR;
+  - se a coluna é sua, a migration que a cria tem de entrar no repositório;
   - se não é sua, refaça o types.ts sem ela (aplique só o delta da sua mudança);
   - \`bun run db:sync\` lista o que está aplicado no sandbox e não está em origin/develop.
 `);
