@@ -9587,6 +9587,10 @@ export type Database = {
         }
         Returns: string
       }
+      audit_log_projeto: {
+        Args: { _entity_id: string; _entity_type: string }
+        Returns: string
+      }
       can_perform: {
         Args: { p_id: string; p_op: string; p_table: string }
         Returns: Json
