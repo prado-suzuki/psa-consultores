@@ -10374,6 +10374,10 @@ export type Database = {
         }[]
       }
       sprint_visivel: { Args: { p_sprint_id: string }; Returns: boolean }
+      status_de_itcd_simulacao: {
+        Args: { p_simulacao_id: string }
+        Returns: Database["public"]["Enums"]["itcd_simulacao_status"]
+      }
       sublider_na_os: { Args: { _ordem_servico_id: string }; Returns: boolean }
       tarefas_a_alertar: {
         Args: { _hoje?: string }
