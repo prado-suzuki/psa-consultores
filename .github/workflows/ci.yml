@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, develop]
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -57,3 +57,37 @@ jobs:
           path: dist/
           retention-days: 7
           if-no-files-found: error
+
+  migrations:
+    name: Migrations idempotentes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+
+    steps:
+      # fetch-depth: 0 e obrigatorio: sem historico nao existe diff contra a base.
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # A catraca olha SO as migrations do diff do PR, nunca as 165 do historico.
+      # O schema do banco tem dois escritores (nos no sandbox, o Lovable em
+      # producao) e o Lovable devolve o mesmo DDL num arquivo com nome de UUID.
+      # O DDL roda duas vezes; se for idempotente isso e no-op, se nao for e erro.
+      - name: Migration idempotente
+        run: |
+          novas=$(git diff --name-only --diff-filter=AM \
+            ${{ github.event.pull_request.base.sha }} HEAD \
+            -- 'supabase/migrations/*.sql')
+          if [ -z "$novas" ]; then
+            echo "PR sem migration nova ou alterada."
+            exit 0
+          fi
+          echo "$novas"
+          bun scripts/checa-idempotencia-migrations.ts $novas

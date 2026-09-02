@@ -39,7 +39,7 @@ Sistema de gestão interna e portal de clientes da PSA Consultores, com foco em 
 
 **Mudança de schema, na ordem (agente executa 1 e 2, para em 3):**
 
-1. Migration em `supabase/migrations/`, timestamp real (`date -u +%Y%m%d%H%M%S`) e **idempotente** (`if not exists`, `create or replace`, `drop policy if exists`): ela vai ser aplicada por dois caminhos e existir em duas versões.
+1. Migration em `supabase/migrations/`, timestamp real (`date -u +%Y%m%d%H%M%S`) e **idempotente** (ver "Toda migration é idempotente", abaixo: é cobrado pela CI).
 2. `supabase db push` (sandbox) e `supabase gen types typescript --project-id vgzomuwnsdgrxbkyoavq > src/integrations/supabase/types.ts`, commitado **sozinho**. Sem CLI logada, pare e peça ao humano. O código da feature vem depois, normal, sem cast de contorno.
 3. **Humano** pede ao Lovable para aplicar o SQL em produção; o bot regenera o `types.ts` de lá e commita na `main`.
 4. `main → develop` sobrescreve o `types.ts` pelo da `main`. Só então o PR `develop → main`.
@@ -47,6 +47,27 @@ Sistema de gestão interna e portal de clientes da PSA Consultores, com foco em 
 **Regra dura:** produção recebe a coluna **antes** de o código que a usa chegar na `main`, porque o app publicado é buildado da `main` e fala com produção. Coluna aditiva parada em produção é inofensiva; o inverso quebra na cara do cliente.
 
 **Sobre o `types.ts`:** ele descreve o banco **daquela** branch (`main` = produção, pelo bot; branch de trabalho = sandbox, pelo CLI). Conflito nele se resolve **regenerando** a partir do banco da branch, nunca costurando os dois lados: o conteúdo é função do schema, e costurar produz arquivo que não corresponde a banco nenhum.
+
+**Toda migration é idempotente.** Rodar duas vezes tem de dar no mesmo. Não é
+preferência de estilo: o mesmo DDL existe em **dois** arquivos, porque quando a
+migration é aplicada por fora do repositório (chat do Lovable em produção, ou SQL
+direto no sandbox) o arquivo é depois reconstruído a partir do ledger, com o nome que
+o ledger registrou (às vezes um UUID). Para o outro banco essa segunda versão é uma
+migration inédita, e o DDL roda de novo. Idempotente, isso é um no-op inofensivo; não
+idempotente, é erro no meio de um push, e o push seguinte de outra pessoa vem junto.
+
+Na prática: `create table if not exists`, `add column if not exists`, `create index if
+not exists`, `create or replace function/view`, `add value if not exists`, `drop ... if
+exists`. Para o que não tem cláusula de guarda (policy, trigger, constraint), o par
+`drop ... if exists` + `create`. Para enum e constraint, alternativamente um `do $$ ...
+end $$` consultando `pg_type` / `pg_constraint`. `insert` de dado leva `on conflict`.
+
+Cobrado pela CI (job `Migrations idempotentes`), que roda
+`scripts/checa-idempotencia-migrations.ts` **só nas migrations do diff do PR**, nunca no
+histórico. Escotilha: `-- idempotencia-ok: <motivo>` na linha, com motivo escrito. Sem
+motivo não libera. Dispensa de arquivo inteiro em
+`supabase/migrations/.idempotencia-excecoes`, que hoje tem só o baseline (é um `pg_dump`,
+roda uma vez em banco vazio).
 
 **Migration exclusiva do sandbox nunca altera schema**, só dados (ex.: `20260814190000_dev_clientes_prefixo_teste.sql`). Schema que só existe no sandbox faz o código compilar em `develop` e quebrar em produção.
 

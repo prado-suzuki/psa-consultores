@@ -101,12 +101,12 @@ COMMENT ON COLUMN public.projeto_flag_valor.documento_base_id IS
 -- Nenhuma linha existente tem documento_base_id, então a recriação é inócua
 -- sobre os dados de hoje.
 DROP INDEX IF EXISTS public.uq_projeto_flag_valor_escopo_cliente;
-CREATE UNIQUE INDEX uq_projeto_flag_valor_escopo_cliente
+CREATE UNIQUE INDEX IF NOT EXISTS uq_projeto_flag_valor_escopo_cliente
   ON public.projeto_flag_valor (cliente_id, flag_id)
   WHERE pj_pessoa_id IS NULL AND documento_base_id IS NULL;
 
 DROP INDEX IF EXISTS public.uq_projeto_flag_valor_escopo_pj;
-CREATE UNIQUE INDEX uq_projeto_flag_valor_escopo_pj
+CREATE UNIQUE INDEX IF NOT EXISTS uq_projeto_flag_valor_escopo_pj
   ON public.projeto_flag_valor (cliente_id, pj_pessoa_id, flag_id)
   WHERE pj_pessoa_id IS NOT NULL AND documento_base_id IS NULL;
 
