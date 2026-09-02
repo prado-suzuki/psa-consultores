@@ -491,9 +491,15 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
             }
           }
         } else {
-          const { data: newContrib, error } = await supabase.from(contribuinteTable).insert(buildContribFields(e)).select("id").single();
+          // Id gerado no cliente de propósito: pedir a linha de volta ligaria o
+          // RETURNING, e aí o Postgres avalia a policy de SELECT sobre a linha
+          // nova — que é falsa quando o cliente é de outro cluster — recusando o
+          // INSERT inteiro com o mesmo 42501. Sem `.select()` o supabase-js manda
+          // `Prefer: return=minimal` e a leitura nunca é consultada.
+          const novoContribId = crypto.randomUUID();
+          const { error } = await supabase.from(contribuinteTable).insert({ ...buildContribFields(e), id: novoContribId });
           if (error) throw error;
-          contribId = newContrib.id;
+          contribId = novoContribId;
         }
 
         // Persist inscricoes estaduais
@@ -714,11 +720,13 @@ export const useSaveClientTransaction = (params: SaveTransactionParams) => {
           // instante. O formulário já preenche na criação da linha, mas o
           // fallback aqui fecha os caminhos que não passam por lá (rascunho
           // antigo, OS clonada) — a coluna nunca nasce vazia.
-          const { data: newOs, error } = await (supabase.from("ordem_servico" as any) as any)
-            .insert({ ...buildOsFields(c), data_emissao: c.data_emissao || todayIsoBrazil() })
-            .select("id").single();
+          // Id gerado no cliente pelo mesmo motivo do contribuinte: RETURNING
+          // faria a policy de SELECT recusar o INSERT com 42501.
+          const novaOsId = crypto.randomUUID();
+          const { error } = await (supabase.from("ordem_servico" as any) as any)
+            .insert({ ...buildOsFields(c), data_emissao: c.data_emissao || todayIsoBrazil(), id: novaOsId });
           if (error) throw error;
-          osId = newOs.id;
+          osId = novaOsId;
         }
 
         // Persist distribuicao_receita: reconciliação por _dbId (linha a linha).
