@@ -114,7 +114,7 @@ export function ProcessProjectsTab(props: ProcessProjectsTabProps) {
       ) : (
         <div className="space-y-3">
           {props.projectProcesses.map((link) => (
-            <Card key={link.id} className="border-gray-100">
+            <Card key={link.id} className="border-border">
               <CardContent className="p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <FolderKanban className="h-5 w-5 text-primary" />

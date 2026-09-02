@@ -21,12 +21,12 @@ interface AuditProdutosDaPessoaProps {
  */
 export const AuditProdutosDaPessoa = ({ nome, linhas }: AuditProdutosDaPessoaProps) => {
   if (linhas.length === 0) {
-    return <p className="text-xs text-slate-500">Nenhum produto identificado no período.</p>;
+    return <p className="text-xs text-muted-foreground">Nenhum produto identificado no período.</p>;
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-xs font-medium text-slate-600">
+      <p className="text-xs font-medium text-muted-foreground">
         Produtos em que {nome} mexeu no período
       </p>
       <Table>
@@ -46,8 +46,8 @@ export const AuditProdutosDaPessoa = ({ nome, linhas }: AuditProdutosDaPessoaPro
                 className={cn(
                   'py-1.5 text-xs',
                   linha.produtoId === PRODUTO_SEM_VINCULO
-                    ? 'italic text-slate-400'
-                    : 'font-medium text-slate-700',
+                    ? 'italic text-muted-foreground'
+                    : 'font-medium text-foreground',
                 )}
               >
                 {linha.nome}
@@ -55,9 +55,9 @@ export const AuditProdutosDaPessoa = ({ nome, linhas }: AuditProdutosDaPessoaPro
               <TableCell className="py-1.5 text-right text-xs">{linha.itensTocados}</TableCell>
               <TableCell className="py-1.5 text-right text-xs">{linha.concluidos}</TableCell>
               <TableCell className="whitespace-nowrap py-1.5 text-right text-xs">
-                <span className="text-slate-500">{formatarHoras(linha.horasPlanejadas)}</span>
-                <span className="text-slate-300"> / </span>
-                <span className="font-medium text-slate-900">
+                <span className="text-muted-foreground">{formatarHoras(linha.horasPlanejadas)}</span>
+                <span className="text-muted-foreground/50"> / </span>
+                <span className="font-medium text-foreground">
                   {formatarHoras(linha.horasExecutadas)}
                 </span>
               </TableCell>

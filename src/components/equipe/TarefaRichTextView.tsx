@@ -35,7 +35,7 @@ function renderNode(node: JSONContent, key: string): ReactNode {
   if (node.type === 'codeBlock') {
     // Sem realce de sintaxe na leitura: o texto do bloco basta e evita carregar o lowlight.
     return (
-      <pre key={key} className="my-2 overflow-x-auto rounded-md bg-gray-900 p-3 text-xs text-gray-100">
+      <pre key={key} className="my-2 overflow-x-auto rounded-md bg-gray-900 p-3 text-xs text-gray-50">
         <code>{children}</code>
       </pre>
     );

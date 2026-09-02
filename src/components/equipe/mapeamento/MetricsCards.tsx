@@ -2,6 +2,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle2, Circle, Loader2, Workflow } from 'lucide-react';
 import type { ProcessMetrics } from '@/hooks/useProcessMapping';
+import { mapeamentoStatusColors } from '@/lib/mapeamentoStatusColors';
 
 interface MetricsCardsProps {
   metrics: ProcessMetrics;
@@ -13,29 +14,33 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
       label: 'Total de Processos',
       value: metrics.total,
       icon: Workflow,
-      iconClass: 'text-slate-500',
-      bgClass: 'bg-slate-50',
+      iconClass: 'text-muted-foreground',
+      bgClass: 'bg-muted',
     },
+    // Os três KPI de status pegam a cor do MESMO mapa que pinta a pílula na
+    // planilha e o ícone no acordeão. Antes cada tela tinha a sua: "Não
+    // Iniciado" era âmbar aqui e âmbar de outro degrau lá; "Concluído" era
+    // teal-600 num lugar e accent/10 no outro.
     {
       label: 'Não Iniciados',
       value: metrics.not_started,
       icon: Circle,
-      iconClass: 'text-amber-500',
-      bgClass: 'bg-amber-50',
+      iconClass: mapeamentoStatusColors.not_started.text,
+      bgClass: mapeamentoStatusColors.not_started.soft,
     },
     {
       label: 'Em Andamento',
       value: metrics.in_progress,
       icon: Loader2,
-      iconClass: 'text-blue-500',
-      bgClass: 'bg-blue-50',
+      iconClass: mapeamentoStatusColors.in_progress.text,
+      bgClass: mapeamentoStatusColors.in_progress.soft,
     },
     {
       label: 'Concluídos',
       value: metrics.completed,
       icon: CheckCircle2,
-      iconClass: 'text-teal-600',
-      bgClass: 'bg-teal-50',
+      iconClass: mapeamentoStatusColors.completed.text,
+      bgClass: mapeamentoStatusColors.completed.soft,
     },
   ];
 
@@ -50,7 +55,7 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
               </div>
               <div className="min-w-0">
                 <p className="text-xs text-muted-foreground">{c.label}</p>
-                <p className="text-2xl font-bold text-slate-900">{c.value}</p>
+                <p className="text-2xl font-bold text-foreground">{c.value}</p>
               </div>
             </CardContent>
           </Card>
@@ -61,13 +66,13 @@ export function MetricsCards({ metrics }: MetricsCardsProps) {
         <CardContent className="p-4 space-y-3">
           <div className="flex items-center justify-between text-sm">
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
-              <span><strong className="text-slate-900">{metrics.mapped}</strong> mapeados</span>
+              <span><strong className="text-foreground">{metrics.mapped}</strong> mapeados</span>
               <span>·</span>
-              <span><strong className="text-slate-900">{metrics.with_roi}</strong> com ROI</span>
+              <span><strong className="text-foreground">{metrics.with_roi}</strong> com ROI</span>
               <span>·</span>
-              <span><strong className="text-slate-900">{metrics.with_sop}</strong> com SOP</span>
+              <span><strong className="text-foreground">{metrics.with_sop}</strong> com SOP</span>
             </div>
-            <span className="font-medium text-slate-900">
+            <span className="font-medium text-foreground">
               {metrics.fully_complete}/{metrics.total} completos ({metrics.overall_progress_percent}%)
             </span>
           </div>

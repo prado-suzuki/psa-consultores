@@ -203,14 +203,14 @@ const DesempenhoMetas = () => {
       {/* PPR Rules Block */}
       {pprRegras && pprRegras.length > 0 ? (
         <Card className="mb-6 overflow-hidden" style={{ border: '1px solid var(--board-border)' }}>
-          {/* Par de tokens na ordem documentada no `index.css` (425-434): do mais
-              escuro `--surface-escura` para o intermediário `--surface-escura-2`.
+          {/* Par de tokens na ordem que o `.base-theme` documenta: do mais escuro
+              `--surface-escura` para o intermediário `--surface-escura-2`.
               O `#0F172A` cravado ERA `hsl(222 47% 11%)`, o próprio
               `--surface-escura-2` do piso copiado à mão — e por ser hex ignorava
-              o tema. Esta rota resolve `.board-theme` (o Board saiu da
-              infraestrutura em 21/08), que declara teal profundo — antes era o
-              grafite quente da `.sistema-theme`. Branco em cima, MEDIDO nos
-              valores novos: 16,8:1 no início, 12,5:1 no fim. */}
+              o tema. Esta rota resolve só o piso, e o piso declara teal profundo
+              desde 31/08/2026, quando as superfícies do Board viraram as da casa
+              e a `.board-theme` saiu. Branco em cima, MEDIDO: 16,8:1 no início,
+              12,5:1 no fim. */}
           <div className="px-5 py-4" style={{ background: 'linear-gradient(135deg, hsl(var(--surface-escura)) 0%, hsl(var(--surface-escura-2)) 100%)' }}>
             <h3 className="text-sm font-bold text-white" style={{ fontFamily: "'Instrument Sans', sans-serif" }}>Regras do PPR — {selectedCiclo?.nome || 'Ciclo Ativo'}</h3>
             {/* Era o slate #94A3B8 cravado — cinza-azulado sobre faixa que agora é teal

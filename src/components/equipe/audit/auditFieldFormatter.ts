@@ -180,7 +180,7 @@ const STATUS_LABELS: Record<string, string> = {
   review: 'Revisão',
   em_ajuste: 'Em Ajuste',
   done: 'Concluído',
-  pending: 'Pendente',
+  pending: 'A Fazer',
   completed: 'Concluída',
   cancelled: 'Cancelada',
   waiting_client: 'Pendente Cliente',

@@ -118,7 +118,7 @@ export function OverrideBlocoDialog({
             <div className="flex items-start gap-2.5 rounded-md bg-osg-moss/[0.06] px-3.5 py-3 text-sm text-stone-700 ring-1 ring-inset ring-osg-moss/30">
               <Info className="mt-0.5 h-4 w-4 shrink-0 text-osg-moss" />
               <p className="leading-relaxed">
-                <span className="font-semibold text-osg-800">
+                <span className="font-semibold text-osg-700">
                   Você está ajustando este bloco apenas para este documento.
                 </span>{' '}
                 O bloco original na Biblioteca de Modelos <span className="font-semibold">não será alterado</span> e

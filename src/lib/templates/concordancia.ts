@@ -72,3 +72,25 @@ export function ufPorExtenso(uf: string | null | undefined): string {
   if (!uf) return '';
   return UF_EXTENSO[uf.trim().toUpperCase()] ?? uf;
 }
+
+/**
+ * Contrai a preposição "por" com o artigo que ABRE o texto seguinte:
+ * "por" + "o senhor X" → "pelo senhor X"; "por" + "a senhora Y" → "pela senhora Y".
+ *
+ * Existe porque o representante da sócia PJ chega como frase já montada, com o
+ * artigo dentro (`PARES.senhor` devolve "o senhor"/"a senhora"), e o fecho
+ * precisava dizer "representada POR ..." — o que produzia "representada por o
+ * senhor". Contrair no ponto de junção é o que mantém o artigo concordando com
+ * quem representa, sem que o chamador tenha de desmontar a frase.
+ *
+ * Texto que não começa por artigo passa intacto: "por João" continua "por João",
+ * e é o que acontece quando o representante vem sem o tratamento na frente.
+ */
+export function contrairPor(texto: string): string {
+  const t = (texto ?? '').trim();
+  if (!t) return 'por';
+  const contracao: Record<string, string> = { o: 'pelo', a: 'pela', os: 'pelos', as: 'pelas' };
+  const m = /^([oa]s?)\s+(.*)$/is.exec(t);
+  if (!m) return `por ${t}`;
+  return `${contracao[m[1].toLocaleLowerCase('pt-BR')]} ${m[2]}`;
+}

@@ -188,13 +188,13 @@ const CorrecoesSped = () => {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg text-primary">
               <Filter className="h-5 w-5 text-primary" />
-              <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+              <span className="uppercase text-sm tracking-wider font-bold text-foreground">Filtros de Busca</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Cliente <RequiredMark />
                   <FieldTooltip text={SPED_TOOLTIPS.cliente} />
                 </label>
@@ -210,7 +210,7 @@ const CorrecoesSped = () => {
                 </Select>
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Contribuinte <RequiredMark />
                   <FieldTooltip text={SPED_TOOLTIPS.contribuinte} />
                 </label>
@@ -226,7 +226,7 @@ const CorrecoesSped = () => {
                 </Select>
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Data Início <RequiredMark />
                   <FieldTooltip text={SPED_TOOLTIPS.start_date} />
                 </label>
@@ -243,7 +243,7 @@ const CorrecoesSped = () => {
                 </Popover>
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Data Fim <RequiredMark />
                   <FieldTooltip text={SPED_TOOLTIPS.end_date} />
                 </label>
@@ -260,7 +260,7 @@ const CorrecoesSped = () => {
                 </Popover>
               </div>
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   NCM
                   <FieldTooltip text={SPED_TOOLTIPS.ncm} />
                 </label>
@@ -279,7 +279,7 @@ const CorrecoesSped = () => {
             {activeTab === 'f100' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                     Nat. Base de Crédito <RequiredMark />
                     <FieldTooltip text={SPED_TOOLTIPS.natBcCredF100} />
                   </label>
@@ -367,7 +367,7 @@ const CorrecoesSped = () => {
                   </Popover>
                 </div>
                 <div>
-                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                     Código da Conta <RequiredMark />
                     <FieldTooltip text={SPED_TOOLTIPS.codCtaF100} />
                   </label>
@@ -382,12 +382,12 @@ const CorrecoesSped = () => {
             )}
             <div className="grid grid-cols-12 gap-6">
               <div className="col-span-12 md:col-span-6">
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Buscar
                   <FieldTooltip text={SPED_TOOLTIPS.buscar} />
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Buscar por descrição, chave ou NCM..."
                     value={searchText}

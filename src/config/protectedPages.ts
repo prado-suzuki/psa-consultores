@@ -668,6 +668,15 @@ export const PROTECTED_PAGES: ProtectedPage[] = [
     requires_team_member: true,
   },
   {
+    page_path: '/equipe/osg/work/calculadora-itcmd',
+    page_name: 'Calculadora de ITCD',
+    page_description:
+      'Apuração do ITCD/MT na doação de quotas, em três cenários de avaliação, por donatário',
+    category: 'osg',
+    requires_admin: false,
+    requires_team_member: true,
+  },
+  {
     page_path: '/equipe/osg/work/relatorios',
     page_name: 'Relatórios OSG Work',
     page_description: 'Relatórios por cliente (ex.: checklist de documentos pendentes)',

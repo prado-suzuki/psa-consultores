@@ -1,4 +1,4 @@
-import { concordar, generoDeConcordancia, PARES, type Genero } from './concordancia';
+import { concordar, contrairPor, generoDeConcordancia, PARES, type Genero } from './concordancia';
 import { mapearPessoa, type AdministradorParaMapear, type ItemLista, type SocioParaMapear } from './mapeadores';
 import { comOrigem } from './origem';
 import type { PessoaRow } from '@/hooks/useQualificacaoDasPartes';
@@ -30,6 +30,14 @@ export interface EntradaSignatarios {
   /** Administração da sociedade (sócios ou não). */
   administradores?: AdministradorParaMapear[];
   /**
+   * Sócios que se RETIRAM neste instrumento, por terem cedido a totalidade das
+   * quotas (ver `retirantesDaCessao`). Não estão em `socios` — o quadro é o
+   * RESULTANTE —, e sem esta lista eles só apareciam pela administração, o que
+   * fazia o fecho chamar de "Administrador" quem acabou de sair do quadro e calar
+   * a retirada, que é o fato que a peça precisa publicar.
+   */
+  retirantes?: PessoaRow[];
+  /**
    * Resolve uma pessoa pelo id, para achar o cônjuge de quem o regime de bens
    * obriga a outorgar (`pessoa.conjuge_id`). O vínculo é lido COMO ESTÁ: quando
    * gravado de um lado só, o cônjuge daquele lado entra na lista e o do outro
@@ -45,18 +53,43 @@ export interface EntradaSignatarios {
  * várias (sócia que administra e ainda outorga como cônjuge de outro sócio), e o
  * `papel` diz todas elas: nenhuma qualidade some em silêncio.
  */
-export type QualidadeSignatario = 'socio' | 'administrador' | 'conjuge';
+export type QualidadeSignatario = 'socio' | 'retirante' | 'administrador' | 'conjuge';
 
 /** Ordem das qualidades dentro do rótulo ("Sócio administrador e cônjuge outorgante"). */
 const PESO_QUALIDADE: Record<QualidadeSignatario, number> = {
   socio: 0,
-  administrador: 1,
-  conjuge: 2,
+  retirante: 1,
+  administrador: 2,
+  conjuge: 3,
 };
 
 const administradorTitulo = (g: Genero) => concordar(g, 'Administrador', 'Administradora');
+/**
+ * "Administrador não sócio", a forma LONGA, e por que ela não é o rótulo de todo
+ * administrador fora do quadro.
+ *
+ * Ela existe para desfazer uma contradição na mesma linha: quem cedeu a totalidade
+ * das quotas assina como sócio retirante E segue administrando, e sem o "não
+ * sócio" a linha afirmaria as duas condições ao mesmo tempo. É a redação da 2ª
+ * alteração da MMS Agro ("Sócio retirante, outorga conjugal e administrador não
+ * sócio"), o único instrumento do corpus em que alguém administra fora do quadro.
+ *
+ * Para quem NUNCA foi sócio, o corpus não tem exemplo — nenhum dos quatro
+ * documentos de referência traz o caso —, então o rótulo continua o curto
+ * (`administradorTitulo`). Alongá-lo ali seria decisão de redação sem lastro,
+ * pega de carona num conserto de outro caso. Se a PSA decidir que o fecho deve
+ * dizer "não sócio" sempre, o lugar é uma linha só: a entrada `administrador`
+ * da tabela abaixo.
+ */
+const administradorNaoSocioTitulo = (g: Genero) =>
+  concordar(g, 'Administrador não sócio', 'Administradora não sócia');
+/** Sócio que se RETIRA neste instrumento, por ter cedido a totalidade das quotas. */
+const retiranteTitulo = (g: Genero) => concordar(g, 'Sócio retirante', 'Sócia retirante');
 /** "Cônjuge" é o substantivo dos dois gêneros e "outorgante" é invariável. */
 const eOutorgante = (base: string) => `${base} e cônjuge outorgante`;
+
+/** Primeira letra em minúscula: o título entra no MEIO do rótulo, não o abre. */
+const minuscula = (t: string) => t.charAt(0).toLocaleLowerCase('pt-BR') + t.slice(1);
 
 /**
  * Rótulo por COMBINAÇÃO de qualidades, já concordado em gênero — o bloco
@@ -73,6 +106,24 @@ const ROTULOS: Record<string, (g: Genero) => string> = {
   administrador: administradorTitulo,
   'administrador+conjuge': (g) => eOutorgante(administradorTitulo(g)),
   conjuge: () => 'Cônjuge outorgante',
+
+  // --- Retirante -----------------------------------------------------------
+  // `retirante` NUNCA vem sozinho: só se retira quem era sócio, então a chave
+  // carrega as duas e o rótulo diz a qualidade que ele tinha ao assinar.
+  //
+  // "Sócio retirante" e "administrador não sócio" convivem na MESMA linha, e não
+  // se fundem em "Sócio administrador" como no caso de quem permanece: no ato ele
+  // era sócio, sai dele não sócio, e segue administrando. Fundir os dois títulos
+  // afirmaria uma condição que o instrumento acabou de desfazer, e é por isso que
+  // a combinação das quatro qualidades é escrita por extenso, na redação da 2ª
+  // alteração da MMS Agro ("Sócio retirante, outorga conjugal e administrador não
+  // sócio") em vez de sair da composição mecânica dos pares.
+  'socio+retirante': retiranteTitulo,
+  'socio+retirante+conjuge': (g) => eOutorgante(retiranteTitulo(g)),
+  'socio+retirante+administrador': (g) =>
+    `${retiranteTitulo(g)} e ${minuscula(administradorNaoSocioTitulo(g))}`,
+  'socio+retirante+administrador+conjuge': (g) =>
+    `${retiranteTitulo(g)}, outorga conjugal e ${minuscula(administradorNaoSocioTitulo(g))}`,
 };
 
 /** Papéis de quem não vem do cadastro: sem id, não acumulam com ninguém. */
@@ -113,6 +164,7 @@ interface DadosSignatario {
   cpfCnpj: string;
   qualificacao: string;
   eSocio?: boolean;
+  eRetirante?: boolean;
   eAdministrador?: boolean;
   eConjuge?: boolean;
   eTestemunha?: boolean;
@@ -130,6 +182,7 @@ function itemSignatario(dados: DadosSignatario): Campos {
     cpfCnpj: dados.cpfCnpj,
     qualificacao: dados.qualificacao,
     eSocio: sim(dados.eSocio),
+    eRetirante: sim(dados.eRetirante),
     eAdministrador: sim(dados.eAdministrador),
     eConjuge: sim(dados.eConjuge),
     eTestemunha: sim(dados.eTestemunha),
@@ -164,10 +217,40 @@ interface SignatarioEmMontagem {
  * o nome dele está no quadro.
  */
 function complementoDaLinha(sig: SignatarioEmMontagem): string {
-  if (sig.representante) return `neste ato representada por ${sig.representante}`;
+  // `representante` chega com o artigo dentro ("o senhor X"), então a preposição
+  // contrai no ponto de junção — sem isso saía "representada por o senhor".
+  if (sig.representante) return `neste ato representada ${contrairPor(sig.representante)}`;
   if (sig.qualidades.has('socio')) return '';
   if (sig.conjugeDe) return `cônjuge de ${sig.conjugeDe}`;
-  return sig.cargo;
+  return cargoQueAcrescenta(sig);
+}
+
+/**
+ * O cargo cadastrado, mas SÓ quando ele acrescenta algo ao papel.
+ *
+ * O cargo está no complemento para dizer a única coisa que a linha de um
+ * administrador não sócio ainda não disse. Quando ele repete o papel, ou pior,
+ * quando CONTRADIZ o instrumento, ele deixa de informar e passa a confundir: o
+ * cadastro grava "Sócio-Administrador" como cargo, e numa peça em que a pessoa
+ * cedeu a totalidade das quotas o fecho saía com "Administrador não sócio" no
+ * papel e "Sócio-Administrador" logo embaixo, duas linhas afirmando coisas
+ * opostas sobre a mesma assinatura.
+ *
+ * Regra: cai fora o cargo que se diz sócio sem que a pessoa seja sócia neste
+ * instrumento, e o cargo que o papel já contém. O cadastro não é corrigido aqui
+ * de propósito — quem decide o texto do cargo é o cadastro, e o fecho só decide
+ * se aquele texto ainda ajuda a ler ESTA assinatura.
+ */
+function cargoQueAcrescenta(sig: SignatarioEmMontagem): string {
+  const cargo = sig.cargo.trim();
+  if (!cargo) return '';
+  const normal = (t: string) =>
+    t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').replace(/[^a-z]+/g, ' ').trim();
+  const cargoNormal = normal(cargo);
+  if (/\bsocio\b/.test(cargoNormal) && !sig.qualidades.has('socio')) return '';
+  const papelNormal = normal(papelDeQualidades(sig.qualidades, sig.genero));
+  if (papelNormal.includes(cargoNormal)) return '';
+  return cargo;
 }
 
 /**
@@ -193,10 +276,11 @@ function complementoDaLinha(sig: SignatarioEmMontagem): string {
  * signatário, é ruído no fecho.
  */
 export function mapearSignatarios(entrada: EntradaSignatarios): ItemLista[] {
-  const { socios, administradores = [], pessoaPorId, advogado, testemunhas = [] } = entrada;
+  const { socios, administradores = [], retirantes = [], pessoaPorId, advogado, testemunhas = [] } = entrada;
 
   const idsAdministradores = new Set(administradores.map((a) => a.pessoa.id).filter(Boolean));
   const idsSocios = new Set(socios.map((s) => s.pessoa.id).filter(Boolean));
+  const idsRetirantes = new Set(retirantes.map((p) => p.id).filter(Boolean));
 
   // --- Etapa 1: acumular qualidades por pessoa, fixando a ordem das linhas ---
 
@@ -258,6 +342,30 @@ export function mapearSignatarios(entrada: EntradaSignatarios): ItemLista[] {
     if (!(conjuge.id && idsSocios.has(conjuge.id))) posicionar(sigConjuge);
   }
 
+  // Retirantes depois do quadro resultante e antes de quem só administra: é a
+  // ordem do instrumento registrado (a sócia ingressante encabeça, os que saíram
+  // vêm em seguida) e a que o leitor da junta espera.
+  for (const pessoa of retirantes) {
+    const sig = acumulador(pessoa);
+    // As duas juntas: era sócio (é o que dá sentido a "retirante") e se retira.
+    sig.qualidades.add('socio');
+    sig.qualidades.add('retirante');
+    if (pessoa.id && idsAdministradores.has(pessoa.id)) sig.qualidades.add('administrador');
+    posicionar(sig);
+
+    // A retirada transfere quotas, e transferir pede a outorga do cônjuge pelo
+    // mesmo regime de bens que já governa a subscrição — daí a mesma flag.
+    if (!sig.exigeOutorga) continue;
+    const conjuge = pessoa.conjuge_id ? pessoaPorId?.(pessoa.conjuge_id) : null;
+    if (!conjuge) continue;
+    const sigConjuge = acumulador(conjuge);
+    sigConjuge.qualidades.add('conjuge');
+    if (!sigConjuge.conjugeDe) sigConjuge.conjugeDe = sig.nome;
+    // Cônjuge que também é retirante (o casal que cedeu tudo) assina na posição
+    // DELE, com o papel acumulado — adiantá-lo quebraria a ordem acima.
+    if (!(conjuge.id && idsRetirantes.has(conjuge.id))) posicionar(sigConjuge);
+  }
+
   for (const a of administradores) {
     const sig = acumulador(a.pessoa);
     sig.qualidades.add('administrador');
@@ -284,6 +392,7 @@ export function mapearSignatarios(entrada: EntradaSignatarios): ItemLista[] {
         cpfCnpj: sig.cpfCnpj,
         qualificacao: complementoDaLinha(sig),
         eSocio: sig.qualidades.has('socio'),
+        eRetirante: sig.qualidades.has('retirante'),
         eAdministrador: sig.qualidades.has('administrador'),
         eConjuge: sig.qualidades.has('conjuge'),
       }),

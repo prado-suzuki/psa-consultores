@@ -74,7 +74,7 @@ const ProcessFormFields = ({
           <SelectTrigger className="text-gray-900">
             <SelectValue placeholder="Selecione a equipe" />
           </SelectTrigger>
-          <SelectContent className="border-gray-200">
+          <SelectContent className="border-border">
             {groupedEquipes.map((group) => (
               <div key={group.area.id}>
                 <div className="px-2 py-1 text-xs font-semibold text-muted-foreground">
@@ -99,7 +99,7 @@ const ProcessFormFields = ({
           <SelectTrigger className="text-gray-900">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="border-gray-200">
+          <SelectContent className="border-border">
             {PROCESS_STAGES.map((stage) => (
               <SelectItem key={stage.value} value={stage.value}>
                 {stage.label}
@@ -119,7 +119,7 @@ const ProcessFormFields = ({
           <SelectTrigger className="text-gray-900">
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="border-gray-200">
+          <SelectContent className="border-border">
             <SelectItem value="low">Baixa</SelectItem>
             <SelectItem value="medium">Média</SelectItem>
             <SelectItem value="high">Alta</SelectItem>
@@ -187,17 +187,17 @@ export const ProcessCreateDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-gray-200">
+      <DialogContent className="border-border">
         <DialogHeader>
           <DialogTitle className="text-gray-900">Novo Processo</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {project && (
-            <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-600">
+            <div className="rounded-md border border-border bg-gray-50 px-3 py-2 text-sm text-gray-600">
               Projeto: <strong className="text-gray-900">{project.name}</strong>
               {' · '}herda o cluster do projeto.
               {!project.cluster_id && (
-                <span className="mt-1 block text-amber-600">
+                <span className="mt-1 block text-warning">
                   ⚠ Este projeto não tem cluster selecionado — o processo não aparecerá no MAPA até
                   o projeto receber um cluster.
                 </span>
@@ -253,7 +253,7 @@ export const ProcessEditDialog = ({
 
   return (
     <Dialog open={!!process} onOpenChange={onClose}>
-      <DialogContent className="border-gray-200">
+      <DialogContent className="border-border">
         {process && (
           <>
             <DialogHeader>
@@ -266,7 +266,7 @@ export const ProcessEditDialog = ({
                 groupedEquipes={groupedEquipes}
               />
 
-              <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <div className="flex items-center justify-between pt-4 border-t border-border">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="sm">

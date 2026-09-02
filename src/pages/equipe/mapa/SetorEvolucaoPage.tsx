@@ -248,7 +248,7 @@ export default function SetorEvolucaoPage() {
         <button
           className="dashv2-filter-clear"
           onClick={handleExportarPdf}
-          style={{ background: '#0d9488', color: 'white' }}
+          style={{ background: 'hsl(var(--primary))', color: 'white' }}
           title="Exportar relatório (usa Imprimir do navegador)"
           data-tour="setor-export"
         >

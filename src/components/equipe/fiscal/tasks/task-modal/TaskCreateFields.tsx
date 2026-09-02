@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { ModalTopBar } from '@/components/ui/modal-top-bar';
+import { RequiredMark } from '@/components/ui/required-mark';
 import { SectionHeading } from '@/components/ui/section-heading';
 import { TarefaRichTextEditor } from '@/components/equipe/TarefaRichTextEditor';
 import { TaskContextSelect } from '@/components/equipe/fiscal/tasks/task-modal/TaskContextSelect';
@@ -150,8 +151,11 @@ export function TaskCreateFields({
       </div>
 
       <section className="px-6 pb-5 pt-4">
+        {/* A Descrição sempre foi obrigatória no `taskSchema`, mas era a única
+            sem a marca: quem olhava a tela via asterisco só em Projeto e Cliente
+            e não tinha como saber que faltava preencher aqui. */}
         <SectionHeading icon={<AlignLeft className="h-4 w-4 text-primary" />}>
-          Descrição
+          Descrição <RequiredMark />
         </SectionHeading>
         <FormField
           control={form.control}

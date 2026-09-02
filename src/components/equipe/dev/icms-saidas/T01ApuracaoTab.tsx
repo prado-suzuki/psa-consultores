@@ -36,10 +36,10 @@ export const T01ApuracaoTab = ({
 
   if (!enabled) {
     return (
-      <Card className="border-slate-200 border-dashed">
+      <Card className="border-border border-dashed">
         <CardContent className="p-12 text-center">
-          <Calculator className="h-12 w-12 mx-auto mb-4 text-slate-300" />
-          <p className="text-slate-500">Selecione os filtros e clique em Buscar para carregar a apuração.</p>
+          <Calculator className="h-12 w-12 mx-auto mb-4 text-muted-foreground/40" />
+          <p className="text-muted-foreground">Selecione os filtros e clique em Buscar para carregar a apuração.</p>
         </CardContent>
       </Card>
     );
@@ -70,10 +70,10 @@ export const T01ApuracaoTab = ({
 
   return (
     <div className="space-y-6">
-      <Card className="border-slate-200 shadow-sm">
+      <Card className="border-border shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-base flex items-center gap-2">
-            <Calculator className="h-4 w-4 text-slate-500" />
+            <Calculator className="h-4 w-4 text-muted-foreground" />
             Resumo mensal da apuração
           </CardTitle>
         </CardHeader>
@@ -88,7 +88,7 @@ export const T01ApuracaoTab = ({
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow className="bg-slate-50 hover:bg-slate-50">
+                  <TableRow className="bg-muted hover:bg-muted">
                     <TableHead>{renderColumnLabel('Período', ICMS_T01_TOOLTIPS.periodo)}</TableHead>
                     <TableHead className="text-right">
                       {renderColumnLabel('Débitos Saídas', ICMS_T01_TOOLTIPS.debitosSaidas)}
@@ -133,7 +133,7 @@ export const T01ApuracaoTab = ({
                       </TableCell>
                     </TableRow>
                   ))}
-                  <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-300">
+                  <TableRow className="bg-muted hover:bg-muted border-t-2 border-border">
                     <TableCell className="font-bold">TOTAL</TableCell>
                     <TableCell className="text-right font-mono text-sm font-bold">{fmtCurrency(totals.debitos)}</TableCell>
                     <TableCell className="text-right font-mono text-sm font-bold">{fmtCurrency(totals.creditos)}</TableCell>
@@ -189,14 +189,14 @@ const MatrizApuracaoCard = ({ matriz }: { matriz: T01MatrizSection }) => {
   );
 
   return (
-    <Card className="border-slate-200 shadow-sm">
+    <Card className="border-border shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-sm font-bold uppercase tracking-wider text-slate-700">
+            <CardTitle className="text-sm font-bold uppercase tracking-wider text-foreground">
               {matriz.titulo}
             </CardTitle>
-            <p className="text-xs text-slate-500">Origem da planilha base {matriz.observacao}</p>
+            <p className="text-xs text-muted-foreground">Origem da planilha base {matriz.observacao}</p>
           </div>
           <Badge variant="outline" className="w-fit font-mono">
             Cód. {matriz.codigo}
@@ -204,10 +204,10 @@ const MatrizApuracaoCard = ({ matriz }: { matriz: T01MatrizSection }) => {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border border-slate-200 bg-white overflow-x-auto">
+        <div className="rounded-md border border-border bg-white overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-slate-100 hover:bg-slate-100">
+              <TableRow className="bg-muted hover:bg-muted">
                 <TableHead rowSpan={2} className="min-w-[160px] align-middle">
                   {renderColumnLabel('Período', ICMS_T01_TOOLTIPS.periodo)}
                 </TableHead>
@@ -222,7 +222,7 @@ const MatrizApuracaoCard = ({ matriz }: { matriz: T01MatrizSection }) => {
                   {renderColumnLabel('CHECK DIFERENÇAS', ICMS_T01_TOOLTIPS.matrizCheck)}
                 </TableHead>
               </TableRow>
-              <TableRow className="bg-slate-50 hover:bg-slate-50">
+              <TableRow className="bg-muted hover:bg-muted">
                 <TableHead className="min-w-[160px] text-right">
                   {renderColumnLabel('Apurado', ICMS_T01_TOOLTIPS.apurado)}
                 </TableHead>
@@ -247,7 +247,7 @@ const MatrizApuracaoCard = ({ matriz }: { matriz: T01MatrizSection }) => {
               {matriz.linhas.map((row) => (
                 <MatrizRow key={`${matriz.id}-${row.periodo}`} row={row} />
               ))}
-              <TableRow className="bg-slate-100 hover:bg-slate-100 border-t-2 border-slate-300">
+              <TableRow className="bg-muted hover:bg-muted border-t-2 border-border">
                 <TableCell className="font-bold">TOTAL</TableCell>
                 <TableCell className="text-right font-mono text-sm font-bold">{fmtCurrency(totals.apurado)}</TableCell>
                 <TableCell className="text-right font-mono text-sm font-bold">

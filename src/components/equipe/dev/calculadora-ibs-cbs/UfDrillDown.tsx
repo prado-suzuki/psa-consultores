@@ -79,7 +79,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
       >
         {uf && dados && (
           <>
-            <SheetHeader className="pb-4 border-b border-slate-100">
+            <SheetHeader className="pb-4 border-b border-border">
               <SheetTitle className="flex items-center gap-3 text-xl">
                 <div
                   className="h-10 w-10 rounded-lg flex items-center justify-center"
@@ -104,7 +104,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                       {LABEL_NATUREZA[dados.natureza]}
                     </Badge>
                   </div>
-                  <p className="text-xs font-normal text-slate-500 mt-0.5">
+                  <p className="text-xs font-normal text-muted-foreground mt-0.5">
                     Drill-down completo das saídas para esta UF
                   </p>
                 </div>
@@ -116,18 +116,18 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
 
             {/* KPIs da UF */}
             <div className="grid grid-cols-2 gap-3 mt-4">
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                     Faturamento
                   </p>
                   <p className="text-lg font-bold tabular-nums">{fmtBRL(dados.faturamento)}</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">{fmtInt(dados.qtdNFs)} NFs</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">{fmtInt(dados.qtdNFs)} NFs</p>
                 </CardContent>
               </Card>
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 mb-1">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
                     Δ pp
                   </p>
                   <p
@@ -137,12 +137,12 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                   >
                     {fmtPp(dados.deltaPp)}
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     {dados.cargaAntes.toFixed(2)}% → {dados.cargaDepois.toFixed(2)}%
                   </p>
                 </CardContent>
               </Card>
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-orange-700 mb-1">
                     Tributo antes
@@ -150,12 +150,12 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                   <p className="text-lg font-bold tabular-nums text-orange-700">
                     {fmtBRL(dados.tribAntes)}
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     Carga {dados.cargaAntes.toFixed(2)}%
                   </p>
                 </CardContent>
               </Card>
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-3">
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1">
                     Tributo depois
@@ -163,7 +163,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                   <p className="text-lg font-bold tabular-nums text-primary">
                     {fmtBRL(dados.tribDepois)}
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
                     Carga {dados.cargaDepois.toFixed(2)}%
                   </p>
                 </CardContent>
@@ -197,13 +197,13 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
 
             {/* Tabela de produtos */}
             <div className="mt-6">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground mb-2">
                 Produtos vendidos para {uf} ({dados.produtos.length} NCMs)
               </h3>
-              <div className="border border-slate-200 rounded-lg overflow-hidden">
+              <div className="border border-border rounded-lg overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50 hover:bg-slate-50">
+                    <TableRow className="bg-muted hover:bg-muted">
                       <TableHead className="text-[11px]">Produto</TableHead>
                       <TableHead className="text-[11px]">Anexo</TableHead>
                       <TableHead className="text-right text-[11px]">Faturam.</TableHead>
@@ -219,10 +219,10 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                       return (
                         <TableRow key={`${p.ncm}-${p.uf}`}>
                           <TableCell className="py-2">
-                            <p className="text-xs font-medium text-slate-900 line-clamp-1" title={p.xProd}>
+                            <p className="text-xs font-medium text-foreground line-clamp-1" title={p.xProd}>
                               {p.xProd}
                             </p>
-                            <p className="text-[10px] text-slate-500 font-mono">NCM {p.ncm}</p>
+                            <p className="text-[10px] text-muted-foreground font-mono">NCM {p.ncm}</p>
                           </TableCell>
                           <TableCell>
                             <Badge
@@ -238,7 +238,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                           </TableCell>
                           <TableCell
                             className={`text-right tabular-nums text-xs font-semibold ${
-                              delta < 0 ? "text-emerald-700" : delta > 0 ? "text-rose-700" : "text-slate-400"
+                              delta < 0 ? "text-emerald-700" : delta > 0 ? "text-rose-700" : "text-muted-foreground"
                             }`}
                           >
                             {fmtPp(delta)}
@@ -253,19 +253,19 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
 
             {/* Clientes da UF */}
             <div className="mt-6">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 mb-2 flex items-center gap-1.5">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-foreground mb-2 flex items-center gap-1.5">
                 <Users className="h-3.5 w-3.5" />
                 Clientes em {uf} ({dados.clientes.length})
               </h3>
               {dados.clientes.length === 0 ? (
-                <p className="text-xs text-slate-400 py-4 text-center border border-slate-200 rounded-lg">
+                <p className="text-xs text-muted-foreground py-4 text-center border border-border rounded-lg">
                   Sem clientes nesta UF
                 </p>
               ) : (
-                <div className="border border-slate-200 rounded-lg overflow-hidden">
+                <div className="border border-border rounded-lg overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-slate-50 hover:bg-slate-50">
+                      <TableRow className="bg-muted hover:bg-muted">
                         <TableHead className="text-[11px]">Cliente</TableHead>
                         <TableHead className="text-right text-[11px]">NFs</TableHead>
                         <TableHead className="text-right text-[11px]">Faturam.</TableHead>
@@ -275,8 +275,8 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
                       {dados.clientes.map((c) => (
                         <TableRow key={c.nome}>
                           <TableCell className="py-2">
-                            <p className="text-xs font-medium text-slate-900">{c.nome}</p>
-                            <p className="text-[10px] text-slate-500">{c.produtoPrincipal}</p>
+                            <p className="text-xs font-medium text-foreground">{c.nome}</p>
+                            <p className="text-[10px] text-muted-foreground">{c.produtoPrincipal}</p>
                           </TableCell>
                           <TableCell className="text-right tabular-nums text-xs">
                             {fmtInt(c.qtdNFs)}
@@ -292,7 +292,7 @@ export function UfDrillDown({ uf, onClose, filtros, fatosPorUfProduto, clientes 
               )}
             </div>
 
-            <p className="text-[10px] text-slate-400 mt-4 italic">
+            <p className="text-[10px] text-muted-foreground mt-4 italic">
               Clientes da UF, ordenados por faturamento.
             </p>
           </>

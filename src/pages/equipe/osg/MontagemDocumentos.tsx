@@ -8,20 +8,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Loader2 } from 'lucide-react';
 import { GaleriaModelos } from '@/components/equipe/osg/montagem/GaleriaModelos';
 import { MontadorWorkbench } from '@/components/equipe/osg/montagem/MontadorWorkbench';
-import { useModelos, useSalvarModelo, useToggleModeloAtivo, useDuplicarModelo } from '@/hooks/useModelosDocumento';
+import {
+  useModelos, useSalvarModelo, useToggleModeloAtivo, useDuplicarModelo,
+  type EscopoModelo,
+} from '@/hooks/useModelosDocumento';
 import { useTelaDeTrabalhoLargo } from '@/hooks/useSidebarRecolhimentoController';
 
 interface ModeloForm {
   id?: string;
   nome: string;
   tipo: string;
+  escopo: EscopoModelo;
   descricao: string;
   /** id do modelo de origem para copiar os blocos (vazio = em branco). */
   baseId: string;
 }
 
 const EM_BRANCO = '__em_branco__';
-const MODELO_VAZIO: ModeloForm = { nome: '', tipo: '', descricao: '', baseId: '' };
+const MODELO_VAZIO: ModeloForm = { nome: '', tipo: '', escopo: 'avulso', descricao: '', baseId: '' };
 const TIPOS_SUGERIDOS = ['contrato_social', 'alteracao_contratual', 'doacao_quotas', 'descricao_imovel', 'parceria', 'composse', 'outros'];
 
 const MontagemDocumentos = () => {
@@ -44,6 +48,7 @@ const MontagemDocumentos = () => {
       id: f.id,
       nome: f.nome.trim(),
       tipo: f.tipo.trim() || null,
+      escopo: f.escopo,
       descricao: f.descricao.trim() || null,
       baseId: !f.id && f.baseId ? f.baseId : null,
     });
@@ -73,7 +78,14 @@ const MontagemDocumentos = () => {
           onEditarMeta={() =>
             setModeloDialog({
               open: true,
-              form: { id: selecionado.id, nome: selecionado.nome, tipo: selecionado.tipo ?? '', descricao: selecionado.descricao ?? '', baseId: '' },
+              form: {
+                          id: selecionado.id,
+                          nome: selecionado.nome,
+                          tipo: selecionado.tipo ?? '',
+                          escopo: (selecionado.escopo as EscopoModelo) ?? 'avulso',
+                          descricao: selecionado.descricao ?? '',
+                          baseId: '',
+                        },
             })
           }
           onToggleAtivo={() => toggleAtivo.mutate({ id: selecionado.id, ativo: !selecionado.ativo })}
@@ -116,6 +128,7 @@ const MontagemDocumentos = () => {
                           baseId,
                           nome: d.form.nome || (base ? `${base.nome} (cópia)` : ''),
                           tipo: d.form.tipo || (base?.tipo ?? ''),
+                          escopo: (base?.escopo as EscopoModelo) ?? d.form.escopo,
                         },
                       };
                     })
@@ -157,6 +170,32 @@ const MontagemDocumentos = () => {
               <datalist id="tipos-modelo">
                 {TIPOS_SUGERIDOS.map((t) => <option key={t} value={t} />)}
               </datalist>
+            </div>
+            {/* O ESCOPO decide comportamento, e por isso é escolha fechada — o
+                Tipo acima é rótulo livre, que ninguém lê como regra. Avulso é o
+                default: o gerador segue aberto para qualquer contrato, e só quem
+                participa da vida societária declara isso. */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-muted-foreground">Escopo</Label>
+              <Select
+                value={modeloDialog.form.escopo}
+                onValueChange={(v) =>
+                  setModeloDialog((d) => ({ ...d, form: { ...d.form, escopo: v as EscopoModelo } }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="avulso">Avulso — não mexe na sociedade</SelectItem>
+                  <SelectItem value="sociedade">Sociedade — vai à junta e carimba o ledger</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] leading-relaxed text-muted-foreground">
+                {modeloDialog.form.escopo === 'sociedade'
+                  ? 'As peças deste modelo pedem a empresa, oferecem registro na junta, carimbam os movimentos de quotas e podem ser sucedidas por alteração contratual.'
+                  : 'As peças deste modelo montam, validam e baixam como qualquer outra, sem registro na junta, sem alteração contratual e sem tocar no ledger de quotas.'}
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-muted-foreground">Descrição</Label>

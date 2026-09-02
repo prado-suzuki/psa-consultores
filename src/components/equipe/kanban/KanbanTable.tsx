@@ -36,7 +36,7 @@ interface KanbanTableProps {
 
 export function KanbanTable(props: KanbanTableProps) {
   return (
-    <Card className="border-gray-200">
+    <Card className="border-border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -66,7 +66,7 @@ export function KanbanTable(props: KanbanTableProps) {
                     {deliverable.subtaskCount > 0 && (
                       <button
                         onClick={(event) => props.onToggleExpanded(deliverable.id, event)}
-                        className="p-0.5 hover:bg-gray-100 rounded"
+                        className="p-0.5 hover:bg-muted rounded"
                       >
                         {props.expandedTasks.has(deliverable.id) ? (
                           <ChevronDown className="h-4 w-4 text-gray-500" />
@@ -98,7 +98,7 @@ export function KanbanTable(props: KanbanTableProps) {
                       {hasOpenSubtasksUnderCompletedParent(deliverable) && (
                         <Badge
                           variant="outline"
-                          className="border-amber-300 bg-amber-50 text-xs text-amber-800"
+                          className="border-warning/40 bg-warning/10 text-xs text-warning"
                           title="Tarefa concluída, mas ainda tem subtarefa aberta aqui dentro"
                         >
                           {deliverable.openSubtasks} aberta

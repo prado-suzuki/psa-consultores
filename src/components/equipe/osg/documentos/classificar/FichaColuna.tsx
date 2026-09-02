@@ -301,7 +301,7 @@ export function FichaColuna({
         {modo === 'existente' ? (
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <Label className="text-xs font-medium text-slate-600">A quem este arquivo pertence</Label>
+              <Label className="text-xs font-medium text-muted-foreground">A quem este arquivo pertence</Label>
               {itensDaCategoria.length === 0 ? (
                 <p className="rounded-lg border border-dashed border-osg-200 px-3 py-4 text-center text-[11.5px] text-muted-foreground">
                   Nenhum cadastro nesta categoria ainda. Use a aba Cadastrar para criar a partir
@@ -329,7 +329,7 @@ export function FichaColuna({
                         <span
                           className={cn(
                             'min-w-0 flex-1 truncate text-[12px] font-medium',
-                            escolhido ? 'text-osg-700' : 'text-slate-700',
+                            escolhido ? 'text-osg-700' : 'text-foreground',
                           )}
                         >
                           {item.label}

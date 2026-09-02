@@ -39,7 +39,7 @@ export const notificacoesInternasQueryKey = (userId?: string) =>
   ['notificacoes-internas', userId] as const;
 
 export function useNotificacoesInternas() {
-  const { user } = useAuth();
+  const { user, sessaoExpirada } = useAuth();
   const userId = user?.id;
   const queryClient = useQueryClient();
 
@@ -64,9 +64,9 @@ export function useNotificacoesInternas() {
       // descartaria os que não carregam. Ver `avisosDoAmbiente`.
       return avisosDoAmbiente(data as NotificacaoInterna[], currentAmbiente);
     },
-    enabled: !!userId,
+    enabled: !!userId && !sessaoExpirada,
     staleTime: 30000,
-    refetchInterval: 30000,
+    refetchInterval: sessaoExpirada ? false : 30000,
   });
 
   const marcarComoLidas = useMutation({

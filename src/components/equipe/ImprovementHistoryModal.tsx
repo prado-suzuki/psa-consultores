@@ -23,11 +23,11 @@
    const getStatusBadge = (status: string | null) => {
      switch (status) {
        case 'completed':
-         return <Badge className="bg-green-100 text-green-700">Concluída</Badge>;
+         return <Badge className="bg-status-feito-soft text-status-feito">Concluída</Badge>;
        case 'in_evaluation':
-         return <Badge className="bg-amber-100 text-amber-700">Em Avaliação</Badge>;
+         return <Badge className="bg-status-revisao-soft text-status-revisao">Em Avaliação</Badge>;
        case 'cancelled':
-         return <Badge className="bg-red-100 text-red-700">Cancelada</Badge>;
+         return <Badge className="bg-status-ajuste-soft text-status-ajuste">Cancelada</Badge>;
        default:
          return <Badge variant="outline">Pendente</Badge>;
      }
@@ -202,7 +202,7 @@
                              {savingsDetails[improvement.id]?.length > 0 ? (
                                <div className="space-y-2">
                                  {savingsDetails[improvement.id].map((detail) => (
-                                   <div key={detail.id} className="flex items-center justify-between text-sm py-1 border-b border-gray-100 last:border-0">
+                                   <div key={detail.id} className="flex items-center justify-between text-sm py-1 border-b border-border last:border-0">
                                      <div className="flex items-center gap-2">
                                        {getSavingsTypeIcon(detail.savings_type)}
                                        <span className="text-muted-foreground text-xs">

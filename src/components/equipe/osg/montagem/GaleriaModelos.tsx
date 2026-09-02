@@ -56,7 +56,7 @@ export function GaleriaModelos({ modelos, isLoading, onSelect, onNovo }: Props) 
                 <h3 className="truncate text-sm font-semibold leading-tight text-osg-700">{m.nome}</h3>
                 <div className="mt-1 h-0.5 w-8 rounded-full bg-osg-moss/70" />
               </div>
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-osg-50 text-osg-400 group-hover:text-osg-600">
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-osg-50 text-osg-500 group-hover:text-osg-600">
                 <Layers className="h-4 w-4" />
               </span>
             </div>

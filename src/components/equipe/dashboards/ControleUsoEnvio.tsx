@@ -50,7 +50,7 @@ import type { AnalyticsUsoFiltros } from '@/lib/analytics-uso/types';
 import { OPCOES_PERIODO, resolverIntervaloPeriodo } from '@/lib/analytics-uso/periodo';
 
 const ABA_CLASSES =
-  'rounded-md px-4 py-1.5 text-sm font-medium text-slate-600 transition-colors ' +
+  'rounded-md px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors ' +
   'data-[state=active]:bg-white data-[state=active]:text-teal-700 data-[state=active]:shadow-sm';
 
 const TODOS = '__todos__';
@@ -69,7 +69,7 @@ const AbaUsoApi = lazy(carregarAbaUsoApi);
 const AbaArquivos = lazy(carregarAbaArquivos);
 
 const AbaFallback = () => (
-  <div className="flex min-h-[320px] items-center justify-center text-xs text-slate-500">
+  <div className="flex min-h-[320px] items-center justify-center text-xs text-muted-foreground">
     Carregando visualização…
   </div>
 );
@@ -214,18 +214,18 @@ export const ControleUsoEnvio = () => {
             </TabsTrigger>
           </TabsList>
 
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Período{' '}
-            <span className="font-medium text-slate-700">
+            <span className="font-medium text-foreground">
               {dataBR(periodoExibido.inicio)} — {dataBR(periodoExibido.fim)}
             </span>
           </p>
         </div>
 
         <div className="mt-3">
-          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/70 px-3 py-2">
-            <CalendarRange className="h-3.5 w-3.5 text-slate-500" />
-            <span className="text-xs font-medium text-slate-600">Período</span>
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/70 px-3 py-2">
+            <CalendarRange className="h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground">Período</span>
             <Select
               value={periodoSelecionado}
               onValueChange={(valor) =>
@@ -244,8 +244,8 @@ export const ControleUsoEnvio = () => {
               </SelectContent>
             </Select>
 
-            <UserRound className="ml-1 h-3.5 w-3.5 text-slate-500" />
-            <span className="text-xs font-medium text-slate-600">Pessoa</span>
+            <UserRound className="ml-1 h-3.5 w-3.5 text-muted-foreground" />
+            <span className="text-xs font-medium text-muted-foreground">Pessoa</span>
             <Select
               value={usuarioSelecionado ?? TODOS}
               onValueChange={(valor) => selecionarUsuario(valor === TODOS ? undefined : valor)}
@@ -266,7 +266,7 @@ export const ControleUsoEnvio = () => {
               </SelectContent>
             </Select>
 
-            <span className="ml-1 text-xs font-medium text-slate-600">Ferramenta</span>
+            <span className="ml-1 text-xs font-medium text-muted-foreground">Ferramenta</span>
             <Select
               value={ferramentaSelecionada ?? TODOS}
               onValueChange={(valor) =>
@@ -294,7 +294,7 @@ export const ControleUsoEnvio = () => {
 
             {(consultaAtual.isFetching || catalogo.isFetching) && (
               <span
-                className="inline-flex items-center gap-1 text-xs text-slate-500"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground"
                 role="status"
                 aria-live="polite"
               >
@@ -308,7 +308,7 @@ export const ControleUsoEnvio = () => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1 px-2 text-xs text-teal-800 hover:bg-teal-100 hover:text-teal-950"
+                className="h-7 gap-1 px-2 text-xs text-primary hover:bg-accent/10"
                 onClick={() => selecionarUsuario(undefined)}
               >
                 <X className="h-3.5 w-3.5" />
@@ -320,7 +320,7 @@ export const ControleUsoEnvio = () => {
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="h-7 gap-1 px-2 text-xs text-teal-800 hover:bg-teal-100 hover:text-teal-950"
+                className="h-7 gap-1 px-2 text-xs text-primary hover:bg-accent/10"
                 onClick={() => atualizarUrl({ ferramenta: undefined })}
               >
                 <X className="h-3.5 w-3.5" />
@@ -328,16 +328,16 @@ export const ControleUsoEnvio = () => {
               </Button>
             )}
 
-            <span className="w-full text-xs text-slate-500 sm:ml-auto sm:w-auto">
+            <span className="w-full text-xs text-muted-foreground sm:ml-auto sm:w-auto">
               {usuarioSelecionado ? (
                 <>
-                  Filtrado por <strong className="text-slate-700">{usuarioSelecionado}</strong> — o
+                  Filtrado por <strong className="text-foreground">{usuarioSelecionado}</strong> — o
                   recorte por ferramenta fica indisponível enquanto houver pessoa selecionada
                 </>
               ) : ferramentaSelecionada ? (
                 <>
                   API filtrada por{' '}
-                  <strong className="text-slate-700">{ferramentaSelecionada}</strong> — a aba de
+                  <strong className="text-foreground">{ferramentaSelecionada}</strong> — a aba de
                   ingestão não tem esse eixo e segue completa
                 </>
               ) : (
@@ -361,7 +361,7 @@ export const ControleUsoEnvio = () => {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 gap-1 px-2 text-xs text-slate-600"
+              className="h-7 gap-1 px-2 text-xs text-muted-foreground"
               onClick={() => void consultaAtual.refetch()}
               disabled={consultaAtual.isFetching}
               aria-label="Atualizar dados da aba atual"
@@ -371,7 +371,7 @@ export const ControleUsoEnvio = () => {
             </Button>
           </div>
           {atualizadoEm && (
-            <p className="mb-3 text-right text-[11px] text-slate-400">
+            <p className="mb-3 text-right text-[11px] text-muted-foreground">
               Dados recebidos em {atualizadoEm}
             </p>
           )}
@@ -408,7 +408,7 @@ export const ControleUsoEnvio = () => {
       </Tabs>
 
       {USANDO_FIXTURES && (
-        <p className="flex items-center gap-1.5 pt-1 text-xs text-slate-400">
+        <p className="flex items-center gap-1.5 pt-1 text-xs text-muted-foreground">
           <FlaskConical className="h-3.5 w-3.5" />
           Modo de homologação: o período recorta apenas as séries mensais; rankings e tabelas
           permanecem no período completo do fixture.

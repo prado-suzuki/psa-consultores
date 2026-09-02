@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowRight,
   AtSign,
+  CalendarX,
   ClipboardCheck,
   FileCheck,
   FileText,
@@ -32,8 +33,7 @@ import {
 import { AreaLoader } from '@/components/equipe/AreaLoader';
 import { cn } from '@/lib/utils';
 import { linkEspelhado, type ChaveDeEspelho } from '@/lib/areaTheme';
-import { formatDistanceToNow } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+import { dataHoraCurta } from '@/lib/dateUtils';
 
 interface NotificationPopoverProps {
   navigateTo: string;
@@ -101,6 +101,10 @@ const ICONES_INTERNAS: Record<NotificacaoTipo, LucideIcon> = {
   chamado_respondido: Bell,
   chamado_vencido: Bell,
   chamado_resolvido: Bell,
+  // GES-01A, e ao contrário dos de cima estes dois renderizam mesmo: relógio
+  // para o prazo que se aproxima, calendário riscado para o que já passou.
+  tarefa_prazo_proximo: Clock,
+  tarefa_atrasada: CalendarX,
 };
 
 type UnifiedNotification =
@@ -118,7 +122,7 @@ function TicketNotificationItem({
 }) {
   const statusColors = {
     atrasado: 'bg-destructive text-destructive-foreground',
-    urgente: 'bg-amber-500 text-white',
+    urgente: 'bg-warning text-warning-foreground',
     normal: 'bg-primary/10 text-primary',
   };
 
@@ -161,14 +165,14 @@ function TicketNotificationItem({
             <span className={cn(
               "text-xs font-medium",
               notification.prazoInfo.status === 'atrasado' && 'text-destructive',
-              notification.prazoInfo.status === 'urgente' && 'text-amber-600',
+              notification.prazoInfo.status === 'urgente' && 'text-warning',
               notification.prazoInfo.status === 'normal' && 'text-muted-foreground'
             )}>
               {notification.prazoInfo.label}
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {formatDistanceToNow(new Date(notification.updated_at), { addSuffix: true, locale: ptBR })}
+            {dataHoraCurta(notification.updated_at)}
           </p>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
@@ -214,7 +218,7 @@ function ReviewNotificationItem({
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {formatDistanceToNow(new Date(notification.updated_at), { addSuffix: true, locale: ptBR })}
+            {dataHoraCurta(notification.updated_at)}
           </p>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
@@ -272,10 +276,7 @@ function MencaoNotificationItem({
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {formatDistanceToNow(new Date(notification.created_at), {
-              addSuffix: true,
-              locale: ptBR,
-            })}
+            {dataHoraCurta(notification.created_at)}
           </p>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />
@@ -340,10 +341,7 @@ function InternaNotificationItem({
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-1">
-            {formatDistanceToNow(new Date(notification.created_at), {
-              addSuffix: true,
-              locale: ptBR,
-            })}
+            {dataHoraCurta(notification.created_at)}
           </p>
         </div>
         <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0 mt-1" />

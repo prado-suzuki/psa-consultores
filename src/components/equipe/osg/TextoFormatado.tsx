@@ -140,7 +140,7 @@ function Tabela({ grupos, cabecalho, corpo, alinhamentos }: CelulasTabela) {
               <th
                 key={i}
                 colSpan={g.span}
-                className="border border-slate-300 px-2 py-1 text-center font-semibold"
+                className="border border-border px-2 py-1 text-center font-semibold"
               >
                 {g.texto}
               </th>
@@ -151,7 +151,7 @@ function Tabela({ grupos, cabecalho, corpo, alinhamentos }: CelulasTabela) {
           {cabecalho.map((cel, i) => (
             <th
               key={i}
-              className={`border border-slate-300 px-2 py-1 font-semibold ${alinhar(i)}`}
+              className={`border border-border px-2 py-1 font-semibold ${alinhar(i)}`}
             >
               {cel}
             </th>
@@ -164,7 +164,7 @@ function Tabela({ grupos, cabecalho, corpo, alinhamentos }: CelulasTabela) {
             {cels.map((cel, i) => (
               <td
                 key={i}
-                className={`border border-slate-300 px-2 py-1 align-top ${alinhar(i)}`}
+                className={`border border-border px-2 py-1 align-top ${alinhar(i)}`}
               >
                 {cel}
               </td>

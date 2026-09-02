@@ -48,40 +48,29 @@ export const PAPEIS_DE_STATUS = [
 export const TONS_DE_TAG = ['a', 'b', 'c', 'd'] as const;
 
 /**
- * Blocos de tema esperados no `index.css`: a base e uma classe por área.
+ * Blocos de tema esperados no `index.css`: a base e uma classe por área que
+ * tenha paleta de status própria.
  *
- * A `.rotina-theme` entrou depois das outras duas, e é a razão de existir
- * `AREAS_CONGELADAS_NA_BASE`: ela declara o contrato inteiro, mas com os valores
- * da base. Estar nesta lista já a submete a completude, contraste, faixa e
- * separação interna — o que ela cumpre, por ser cópia de uma paleta que cumpre.
+ * A `.rotina-theme` esteve aqui e SAIU em 29/08/2026, junto com o bloco dela no
+ * `index.css`. Ela declarava o contrato inteiro com os valores da base, e a
+ * exceção `AREAS_CONGELADAS_NA_BASE` existia só para registrar isso. A Rotina é
+ * a casa, a casa é o piso, e área cuja âncora é a do piso não tem paleta a
+ * declarar — o bloco era uma cópia, e a exceção era o recibo dela. Saíram juntos.
  *
- * Fora da lista: `.base-theme`, `.sistema-theme` e `.board-theme`. Nenhum dos
- * três declara `--status-*` próprio (o `.base-theme` congela a base; os outros
- * dois são delta de superfície) — cobrá-los aqui seria medir a paleta da base
- * três vezes com nome diferente. O `.dark` também fica fora: a faixa deste
- * arquivo é calibrada para superfície clara, e a escala escura tem contrato
- * próprio.
+ * A `.board-theme` e a `.sistema-theme` NUNCA estiveram nesta lista, e as duas
+ * saíram do `index.css` em 31/08/2026 — pelo mesmo motivo pelo qual não
+ * estavam: eram deltas de acento e superfície, e herdavam os papéis de status
+ * do piso. Não havia papéis delas para medir. Quando o piso absorveu o que
+ * declaravam, os blocos deixaram de ter conteúdo, e este arquivo não sentiu.
+ * Isso é o sinal de que a divisão entre "papel de status" e "superfície" está
+ * no lugar certo: uma reorganização inteira de superfície passou sem tocar aqui.
+ *
+ * Fora da lista continua o `.base-theme`, que congela a base — cobrá-lo aqui
+ * seria medir a paleta da base duas vezes com nome diferente. O `.dark` também
+ * fica fora: a faixa deste arquivo é calibrada para superfície clara, e a escala
+ * escura tem contrato próprio.
  */
-export const TEMAS = [':root', '.tax-theme', '.osg-theme', '.rotina-theme'] as const;
-
-/**
- * Áreas que hoje são CÓPIA da base, por decisão registrada e não por esquecimento.
- *
- * A Rotina declarava 1 das 41 variáveis do contrato e herdava as outras 40; o
- * congelamento (ver `.rotina-theme` no `index.css`) escreveu as 40 com os valores
- * que ela já computava, para desacoplá-la da base sem mudar um pixel. O efeito
- * colateral é que a paleta de status dela é, hoje, byte a byte a da base — e a
- * identidade visual própria da Rotina é uma decisão que ainda não foi tomada.
- *
- * `problemasEntreAreas` pula o par (área congelada × `:root`), e SÓ esse par: a
- * área continua sendo comparada com a Tax e com a OSG. O que a exceção diz é
- * "esta área ainda não escolheu a cor dela", não "esta área está dispensada".
- *
- * A exceção não é silenciosa: o teste `ainda é cópia da base` falha no dia em
- * que a Rotina ganhar cor própria, e a mensagem dele manda tirar o nome daqui.
- * Exceção que sobrevive à razão de existir é como papel que ninguém checava.
- */
-export const AREAS_CONGELADAS_NA_BASE = ['.rotina-theme'] as const;
+export const TEMAS = [':root', '.tax-theme', '.osg-theme'] as const;
 
 /**
  * Papéis semânticos do sistema: o vermelho de excluir, o verde de deu certo, o
@@ -109,6 +98,31 @@ export const AREAS_CONGELADAS_NA_BASE = ['.rotina-theme'] as const;
  * cima (botão, pílula) e texto solto sobre a superfície do tema (`text-warning`).
  */
 export const PAPEIS_SEMANTICOS = ['destructive', 'success', 'warning', 'info'] as const;
+
+/**
+ * Pares de superfície: o texto e o fundo que ele encontra por baixo.
+ *
+ * Mesmo buraco do `--warning`, um andar acima. Este arquivo cobrava os oito
+ * papéis de status e os quatro semânticos — e mais nada. Fora dessa lista fica
+ * a maior parte do texto do produto: `text-foreground` e `text-muted-foreground`
+ * sobre `--background`, `--card` e `--popover`, e o par cheio do `--primary`.
+ * Todos passam hoje; nenhum tinha teste, e um deles já tinha regredido em
+ * silêncio — o dia de outro mês do seletor de data estava em cinza cru a
+ * 2,5:1 porque o token nunca chegou lá.
+ *
+ * Só entra par que aparece junto na tela sem que ninguém escolha: quem lê o
+ * texto não escolheu a superfície, ela veio com a área.
+ */
+export const PARES_DE_SUPERFICIE = [
+  { texto: 'foreground', fundo: 'background' },
+  { texto: 'foreground', fundo: 'card' },
+  { texto: 'foreground', fundo: 'popover' },
+  { texto: 'muted-foreground', fundo: 'background' },
+  { texto: 'muted-foreground', fundo: 'card' },
+  { texto: 'muted-foreground', fundo: 'popover' },
+  { texto: 'muted-foreground', fundo: 'muted' },
+  { texto: 'primary-foreground', fundo: 'primary' },
+] as const;
 
 /**
  * Faixa do registro comum. Não é gosto: são os limites que mantêm as paletas
@@ -481,6 +495,40 @@ export function problemasDosSemanticos(css: string, seletor: string): ProblemaDe
 }
 
 /**
+ * Confere os pares de `PARES_DE_SUPERFICIE` num tema. Lista vazia = aprovado.
+ *
+ * Par que não resolve é problema tanto quanto par que reprova: token de
+ * superfície escrito em hex, ou `var()` apontando para o vazio, é exatamente
+ * como o cinza cru entra — sem erro em lugar nenhum, e sem medição possível.
+ */
+export function problemasDeSuperficie(css: string, seletor: string): ProblemaDePaleta[] {
+  const problemas: ProblemaDePaleta[] = [];
+
+  for (const { texto, fundo } of PARES_DE_SUPERFICIE) {
+    const porCima = corDoTema(css, seletor, texto);
+    const porBaixo = corDoTema(css, seletor, fundo);
+    if (!porCima || !porBaixo) {
+      problemas.push({
+        tema: seletor,
+        item: `${texto} / ${fundo}`,
+        motivo: `não resolve (${porCima ? '' : `--${texto} `}${porBaixo ? '' : `--${fundo}`}) — var() apontando para o vazio, ou cor escrita em hex`,
+      });
+      continue;
+    }
+    const razao = contraste(porCima, porBaixo);
+    if (razao < FAIXA.contrasteMinimo) {
+      problemas.push({
+        tema: seletor,
+        item: `${texto} / ${fundo}`,
+        motivo: `--${texto} sobre --${fundo} em ${razao.toFixed(2)}:1, abaixo de ${FAIXA.contrasteMinimo}:1`,
+      });
+    }
+  }
+
+  return problemas;
+}
+
+/**
  * Confere se os tons cheios de dois papéis quaisquer se distinguem entre si.
  * Lista vazia = aprovado. Papel não declarado é problema de `problemasDoTema`;
  * aqui ele é apenas ignorado, para não duplicar a mesma queixa em dois testes.
@@ -509,9 +557,9 @@ export function problemasDeSeparacao(css: string, seletor: string): ProblemaDePa
  * Confere se cada papel muda de cara ao trocar de área. Percorre os pares de
  * temas, papel a papel. Lista vazia = aprovado.
  *
- * Um par fica fora: área congelada × `:root`, pela razão registrada em
- * `AREAS_CONGELADAS_NA_BASE`. Todos os outros valem, inclusive os da área
- * congelada contra as áreas que já têm cor própria.
+ * Nenhum par fica de fora. Houve um — `.rotina-theme` × `:root`, exonerado
+ * porque a Rotina era cópia da base — e ele saiu quando o bloco copiado saiu.
+ * A exceção durou exatamente o tempo da razão dela.
  *
  * O campo `tema` traz os dois seletores comparados e `item` o papel, para a
  * mensagem do teste dizer de uma vez qual papel, quais duas áreas e as duas
@@ -522,15 +570,9 @@ export function problemasEntreAreas(css: string): ProblemaDePaleta[] {
   const paletas = TEMAS.map(seletor => ({ seletor, paleta: paletaDoTema(css, seletor) }));
   const problemas: ProblemaDePaleta[] = [];
 
-  /** Área congelada contra a base é o par exonerado — e só ele. Ver `AREAS_CONGELADAS_NA_BASE`. */
-  const congeladoContraABase = (um: string, outro: string) =>
-    (um === ':root' && (AREAS_CONGELADAS_NA_BASE as readonly string[]).includes(outro)) ||
-    (outro === ':root' && (AREAS_CONGELADAS_NA_BASE as readonly string[]).includes(um));
-
   for (const papel of PAPEIS_DE_STATUS) {
     for (let i = 0; i < paletas.length; i += 1) {
       for (let j = i + 1; j < paletas.length; j += 1) {
-        if (congeladoContraABase(paletas[i].seletor, paletas[j].seletor)) continue;
         const a = paletas[i].paleta[`status-${papel}`];
         const b = paletas[j].paleta[`status-${papel}`];
         if (!a || !b) continue;
@@ -543,6 +585,196 @@ export function problemasEntreAreas(css: string): ProblemaDePaleta[] {
           });
         }
       }
+    }
+  }
+
+  return problemas;
+}
+
+/* ─── Cor por camada ────────────────────────────────────────────────────────
+   O que vem daqui para baixo descreve um modelo DIFERENTE do que as checagens
+   acima medem, e por ora convive com elas sem ser chamado por ninguém.
+
+   As checagens acima partem de que cada área é dona dos oito papéis e as cobram
+   por SEPARAÇÃO: o `alerta` da Tax tem que ser reconhecivelmente outra cor que o
+   da OSG, senão a área deixa de ser reconhecível pela cor. Isso resolveu o
+   problema de duas áreas ficarem idênticas, e criou outro: se cada área escolhe
+   os oito livremente, "alerta" deixa de ser um conceito do sistema e vira oito
+   cores sem parentesco, uma por tela.
+
+   O modelo abaixo separa as duas coisas em camadas. O SIGNIFICADO é do sistema:
+   matiz e luminosidade de cada papel são as MESMAS em toda área, para que
+   `alerta` seja uma cor que a pessoa aprende uma vez. A ÂNCORA é da área e pinta
+   o que é grande — cabeçalho, botão, primeira série do gráfico — e nunca papel
+   de status. A identidade da área continua existindo, mas mora no que ocupa
+   espaço, não na bolinha de 8px.
+
+   O parentesco entre as duas camadas vem por um canal só, a saturação: cada área
+   puxa a saturação dos oito na direção da âncora dela. É pouco o bastante para
+   não desmanchar o significado e o bastante para a tela inteira parecer da mesma
+   família.
+
+   As duas afirmações não convivem: `problemasEntreAreas` exige que o mesmo papel
+   MUDE de área para área, e `problemasDeDivergencia` exige que ele NÃO mude
+   além da saturação. Trocar uma pela outra é passo próprio; nada aqui é chamado
+   ainda. */
+
+export type PapelDeStatus = (typeof PAPEIS_DE_STATUS)[number];
+
+/**
+ * Os oito papéis antes de qualquer área — matiz e luminosidade definitivas.
+ *
+ * Estes dois canais são o significado, e é por isso que nenhuma área os toca:
+ * a matiz diz de que família a cor é, a luminosidade diz o peso dela na tela.
+ * Só a saturação sobra para a área mexer (ver `harmonizar`).
+ *
+ * Os sete papéis de trabalho estão em duas trilhas, e a trilha é a informação:
+ *
+ * - **Fria — o trabalho andando.** `fila` → `andamento` → `revisao` → `feito`
+ *   gira numa direção só no círculo de cor (212° → 186° → 160° → 128°) e escurece
+ *   junto (36% → 26% → 22% → 21%). Quem vê a sequência duas vezes já lê progresso
+ *   sem legenda: a cor fecha e adensa conforme a coisa termina.
+ * - **Quente — parado por alguém.** `espera` → `alerta` → `ajuste` (44° → 20° →
+ *   356°) desce do dourado ao carmim, e a urgência sobe junto. A trilha quente
+ *   NÃO é a continuação da fria: é o eixo perpendicular, "esperando gente" contra
+ *   "andando sozinho".
+ *
+ * `neutro` fica fora das duas de propósito: não é etapa nem espera, é ausência de
+ * estado. Ele é o único quase acromático (16%), e por isso também é o único cuja
+ * saturação a área quase não move.
+ */
+export const SIGNIFICADO: Record<PapelDeStatus, Hsl> = {
+  neutro: { h: 32, s: 16, l: 12 },
+  fila: { h: 212, s: 50, l: 36 },
+  andamento: { h: 186, s: 60, l: 26 },
+  revisao: { h: 160, s: 52, l: 22 },
+  espera: { h: 44, s: 62, l: 27 },
+  ajuste: { h: 356, s: 62, l: 35 },
+  feito: { h: 128, s: 56, l: 21 },
+  alerta: { h: 20, s: 68, l: 32 },
+};
+
+/**
+ * A cor grande de cada área. Pinta cabeçalho, botão e primeira série do gráfico;
+ * NUNCA papel de status. Em `harmonizar` ela entra só pela saturação.
+ *
+ * De onde cada uma veio, porque nenhuma foi escolhida no olho:
+ *
+ * - `casa` — o teal institucional da marca PSA, medido nos pixels da logo e
+ *   conferido contra o manual. Vale para o Portal do Cliente, o Board e a Rotina:
+ *   são as telas que não são de uma área específica, e a casa é a identidade
+ *   delas.
+ * - `tax` — a cor do porquinho do `TaxLoader.tsx`, que já era a imagem que a
+ *   área tinha de si mesma antes de existir tema.
+ * - `auditoria` — medida no documento de identidade da área. Há uma segunda cor
+ *   lá, mais clara, para preenchimento e gráfico; ela não entra aqui porque não
+ *   é a que puxa a saturação, e ainda não tem consumidor.
+ * - `osg` — o verde musgo que já mora no `index.css` como primitiva.
+ * - `juridico` — o marinho do branding book do Prado Advogados. É a única acima
+ *   do teto de `PUXADA.tetoDoAlvo`, e a razão de o teto existir.
+ */
+export const ANCORAS = {
+  casa: { h: 175, s: 82, l: 29 },
+  tax: { h: 192, s: 73, l: 20 },
+  auditoria: { h: 191, s: 30, l: 36 },
+  osg: { h: 149, s: 66, l: 22 },
+  juridico: { h: 218, s: 100, l: 15 },
+} as const satisfies Record<string, Hsl>;
+
+export type NomeDeArea = keyof typeof ANCORAS;
+
+/**
+ * Quanto a área puxa a saturação dos oito na direção da âncora dela.
+ *
+ * `forca` é 28% e não é arredondamento de nada — é o máximo que passa o contrato
+ * de contraste com a luminosidade TRAVADA. Foi medido nos dois regimes: deixando
+ * a luminosidade acompanhar a puxada, a força máxima que ainda mantém os oito em
+ * AA nas cinco áreas cai para 4%, o que não se vê; travando a luminosidade, sobe
+ * para 44%. 28% fica com folga dentro do segundo regime — o teto não é a meta.
+ *
+ * `forcaDoNeutro` é 8% porque o neutro é quase acromático por definição. Puxá-lo
+ * como aos outros o tiraria do papel: um cinza que ganha 18 pontos de saturação
+ * deixa de ler como "sem estado" e passa a ler como mais um status.
+ *
+ * `tetoDoAlvo` limita o ALVO, não o resultado: uma âncora a 100% de saturação
+ * puxaria os oito para perto do neon, e o marinho do Jurídico é exatamente esse
+ * caso. Derivado de `FAIXA.saturacaoMaxima` de propósito — é o mesmo "sem neon",
+ * e separar os dois números deixaria a puxada gerar valores que a própria faixa
+ * reprova. Com o alvo abaixo do teto e os oito significados também abaixo,
+ * o resultado da interpolação nunca passa dele.
+ */
+export const PUXADA = {
+  /** Fração da distância até a saturação da âncora, para os sete papéis de trabalho. */
+  forca: 0.28,
+  /** A mesma fração, para o `neutro`. */
+  forcaDoNeutro: 0.08,
+  /** Teto do ALVO da puxada. */
+  tetoDoAlvo: FAIXA.saturacaoMaxima,
+} as const;
+
+/**
+ * O papel de status como ele fica NA área: significado com a saturação puxada
+ * na direção da âncora. Esta é a fórmula que gera os valores do `index.css`.
+ *
+ * A força não é parâmetro: ela é parte do modelo, e deixá-la aberta permitiria a
+ * quem chama pedir uma puxada que o contraste não sustenta. Quem escolhe entre
+ * `forca` e `forcaDoNeutro` é o papel.
+ *
+ * Matiz e luminosidade saem intactas — é o que faz `alerta` ser a mesma cor
+ * aprendida em toda área.
+ */
+export function harmonizar(papel: PapelDeStatus, ancora: Hsl): Hsl {
+  const significado = SIGNIFICADO[papel];
+  const forca = papel === 'neutro' ? PUXADA.forcaDoNeutro : PUXADA.forca;
+  const alvo = Math.min(ancora.s, PUXADA.tetoDoAlvo);
+  return { ...significado, s: significado.s + (alvo - significado.s) * forca };
+}
+
+/**
+ * Tolerância da comparação de saturação, em pontos.
+ *
+ * A puxada quase sempre dá fração e o CSS carrega inteiro.
+ * Meio ponto é exatamente "o valor declarado é o arredondamento correto do
+ * calculado" — apertado o bastante para pegar um dígito trocado à mão, folgado
+ * o bastante para não brigar com o arredondamento.
+ *
+ * Matiz e luminosidade não têm tolerância nenhuma: elas são o significado, e
+ * significado não chega perto, chega igual.
+ */
+export const TOLERANCIA_DE_SATURACAO = 0.5;
+
+/**
+ * Confere se os tons cheios declarados por uma área são os que a fórmula gera.
+ * Lista vazia = aprovado. Papel não declarado é queixa de `problemasDoTema`;
+ * aqui é ignorado, para não duplicar a mesma reclamação em dois testes.
+ *
+ * É esta checagem que muda a natureza do `index.css`: os valores das áreas
+ * deixam de ser escolhas escritas uma a uma e passam a ser derivados de dois
+ * dados — o significado e a âncora. Editar um valor à mão deixa de ser
+ * invisível e vira erro com o nome do papel dentro.
+ *
+ * A âncora entra por parâmetro em vez de sair de um mapa seletor → âncora
+ * porque a lista de temas do CSS e a lista de áreas do produto não são a mesma
+ * coisa e nem sempre casam uma a uma — o Portal do Cliente, o Board e a Rotina
+ * dividem a âncora da casa. Quem sabe amarrar as duas é quem chama.
+ */
+export function problemasDeDivergencia(css: string, seletor: string, ancora: Hsl): ProblemaDePaleta[] {
+  const paleta = paletaDoTema(css, seletor);
+  const problemas: ProblemaDePaleta[] = [];
+
+  for (const papel of PAPEIS_DE_STATUS) {
+    const declarado = paleta[`status-${papel}`];
+    if (!declarado) continue;
+    const esperado = harmonizar(papel, ancora);
+
+    const desvios: string[] = [];
+    if (declarado.h !== esperado.h) desvios.push(`matiz ${declarado.h}° onde o significado é ${esperado.h}°`);
+    if (declarado.l !== esperado.l) desvios.push(`luminosidade ${declarado.l}% onde o significado é ${esperado.l}%`);
+    if (Math.abs(declarado.s - esperado.s) > TOLERANCIA_DE_SATURACAO) {
+      desvios.push(`saturação ${declarado.s}% onde a puxada dá ${esperado.s.toFixed(2)}%`);
+    }
+    if (desvios.length > 0) {
+      problemas.push({ tema: seletor, item: papel, motivo: `valor não derivado: ${desvios.join('; ')}` });
     }
   }
 

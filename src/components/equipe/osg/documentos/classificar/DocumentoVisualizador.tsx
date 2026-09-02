@@ -51,14 +51,14 @@ export function DocumentoVisualizador({ doc, url, carregando, erro, onRecarregar
         <p className="text-sm text-muted-foreground">Escolha um arquivo no balde para lê-lo aqui.</p>
       ) : !previavel ? (
         <div className="text-center">
-          <p className="text-sm text-slate-700">Este formato não abre no navegador.</p>
+          <p className="text-sm text-foreground">Este formato não abre no navegador.</p>
           <p className="mt-1 text-xs text-muted-foreground">
             Baixe o arquivo para ler e volte para preencher a ficha.
           </p>
         </div>
       ) : erro ? (
         <div className="text-center">
-          <p className="text-sm text-slate-700">{erro}</p>
+          <p className="text-sm text-foreground">{erro}</p>
           <Button type="button" variant="outline" size="sm" onClick={onRecarregar} className="mt-3 gap-1.5">
             <RefreshCw className="h-3.5 w-3.5" aria-hidden /> Tentar de novo
           </Button>

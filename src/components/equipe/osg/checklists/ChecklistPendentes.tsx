@@ -80,7 +80,7 @@ const CATEGORIAS_FILTRO: Array<{ value: CategoryFilter; label: string; Icon: Luc
 type StatusFilter = 'todos' | 'abertos' | 'recebidos' | 'encerrados';
 const STATUS_FILTRO: { value: StatusFilter; label: string; dot?: string }[] = [
   { value: 'todos', label: 'Todos' },
-  { value: 'abertos', label: 'Em aberto', dot: 'bg-amber-500' },
+  { value: 'abertos', label: 'Em aberto', dot: 'bg-status-alerta' },
   { value: 'recebidos', label: 'Recebidos', dot: 'bg-osg-moss' },
   { value: 'encerrados', label: 'Encerrados', dot: 'bg-status-neutro' },
 ];

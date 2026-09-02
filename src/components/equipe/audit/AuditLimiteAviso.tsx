@@ -18,7 +18,7 @@ export const AuditLimiteAviso = ({ total }: AuditLimiteAvisoProps) => {
   if (total < LIMITE_LOGS_AUDITORIA) return null;
 
   return (
-    <p className="flex items-start gap-2 rounded-md bg-amber-50 p-3 text-xs text-amber-800">
+    <p className="flex items-start gap-2 rounded-md bg-warning/10 p-3 text-xs text-warning">
       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
       <span>
         <strong className="font-medium">Período grande demais para uma consulta.</strong> Os

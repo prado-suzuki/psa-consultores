@@ -81,7 +81,7 @@ const OsgBoasVindas = () => {
         {ferramentas.map((f) => (
           <Card
             key={f.id}
-            className="cursor-pointer hover:border-osg-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5 transition-all duration-200 group flex flex-col"
+            className="cursor-pointer hover:border-osg-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group flex flex-col"
             onClick={() => navigate(f.path)}
           >
             <CardHeader className="pb-3">
@@ -89,7 +89,7 @@ const OsgBoasVindas = () => {
                 <div className="h-10 w-10 rounded-lg bg-osg-100 flex items-center justify-center">
                   {f.icon}
                 </div>
-                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-osg-600 group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-osg-600 group-hover:translate-x-0.5 transition-all" />
               </div>
               <CardTitle className="text-base mt-3">{f.titulo}</CardTitle>
             </CardHeader>

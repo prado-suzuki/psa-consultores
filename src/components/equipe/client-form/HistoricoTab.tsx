@@ -94,7 +94,7 @@ export default function HistoricoTab({ clienteId, entities, participants, contra
               <Collapsible key={log.id} open={isExpanded} onOpenChange={() => isExpandable && toggleRow(log.id)} asChild>
                 <>
                   <CollapsibleTrigger asChild disabled={!isExpandable}>
-                    <TableRow className={isExpandable ? 'cursor-pointer hover:bg-slate-50' : ''}>
+                    <TableRow className={isExpandable ? 'cursor-pointer hover:bg-muted' : ''}>
                       <TableCell className="px-2">
                         {isExpandable && (isExpanded ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 text-muted-foreground" />)}
                       </TableCell>
@@ -109,13 +109,13 @@ export default function HistoricoTab({ clienteId, entities, participants, contra
                   </CollapsibleTrigger>
                   {isExpandable && (
                     <CollapsibleContent asChild>
-                      <TableRow className="bg-slate-50/50">
+                      <TableRow className="bg-muted/50">
                         <TableCell colSpan={6} className="p-4">
                           <div className="text-xs space-y-1">
                             {hasDetails && <p className="text-muted-foreground italic mb-2">{log.details}</p>}
                             {formattedChanges.length > 0 && (
                               <>
-                                <p className="font-semibold text-slate-700 mb-2">Campos alterados:</p>
+                                <p className="font-semibold text-foreground mb-2">Campos alterados:</p>
                                 {formattedChanges.map((change, idx) => (
                                   <div key={idx} className="flex gap-2 items-baseline">
                                     <span className="font-medium text-muted-foreground min-w-[140px]">{change.label}:</span>

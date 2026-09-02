@@ -52,11 +52,11 @@ export function TreeRow({
         depth === 2 ? 'ml-8' : depth === 1 ? 'ml-4' : '',
         active
           ? 'bg-osg-100 font-medium text-osg-700'
-          : 'text-slate-600 hover:bg-osg-50 hover:text-osg-700',
+          : 'text-muted-foreground hover:bg-osg-50 hover:text-osg-700',
       )}
     >
       {expandable ? (
-        <span className="shrink-0 text-slate-400">
+        <span className="shrink-0 text-muted-foreground">
           <ChevronRight
             className={cn(
               'h-3.5 w-3.5 transition-transform duration-300 ease-out motion-reduce:transition-none',
@@ -72,7 +72,7 @@ export function TreeRow({
       <span
         className={cn(
           'shrink-0 rounded-full px-1.5 text-[11px] tabular-nums',
-          active ? 'bg-osg-200/70 text-osg-700' : 'bg-slate-100 text-slate-500',
+          active ? 'bg-osg-200/70 text-osg-700' : 'bg-muted text-muted-foreground',
         )}
       >
         {count}

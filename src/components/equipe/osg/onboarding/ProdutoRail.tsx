@@ -60,7 +60,7 @@ export function ProdutoRail({
           </span>
           <span className={counterPillCls}>{total}</span>
         </span>
-        <span className="mt-1 block pl-6 text-xs leading-relaxed text-slate-500">
+        <span className="mt-1 block pl-6 text-xs leading-relaxed text-muted-foreground">
           Tudo que foi pedido, incluindo o que foi criado à mão
         </span>
       </button>
@@ -77,7 +77,7 @@ export function ProdutoRail({
                 className={`${railItemCls(selecionado === produto.id)} flex items-center justify-between gap-2`}
                 title={produto.name}
               >
-                <span className="min-w-0 text-sm font-medium leading-snug text-slate-700">
+                <span className="min-w-0 text-sm font-medium leading-snug text-foreground">
                   {produto.name}
                 </span>
                 <span className={counterPillCls}>{contagemPorProduto.get(produto.id) ?? 0}</span>
@@ -88,7 +88,7 @@ export function ProdutoRail({
       )}
 
       {umDocumentoEmMaisDeUmProduto && (
-        <p className="mt-3 border-t border-osg-100 px-2.5 pt-2.5 text-[11px] leading-relaxed text-slate-500">
+        <p className="mt-3 border-t border-osg-100 px-2.5 pt-2.5 text-[11px] leading-relaxed text-muted-foreground">
           Um documento pode ser pedido por mais de um produto — por isso a soma dos
           contadores passa do total.
         </p>

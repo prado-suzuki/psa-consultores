@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { OsgLayout } from '@/components/equipe/osg/OsgLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChevronRight, Users, Landmark, FileSearch, FileText, PieChart, Rocket } from 'lucide-react';
+import { Calculator, ChevronRight, Users, Landmark, FileSearch, FileText, PieChart, Rocket } from 'lucide-react';
 
 interface Ferramenta {
   id: string;
@@ -54,6 +54,13 @@ const FERRAMENTAS: Ferramenta[] = [
     path: '/equipe/osg/work/quadro-societario',
     icon: <PieChart className="h-5 w-5 text-osg-600" />,
   },
+  {
+    id: 'calculadora-itcmd',
+    titulo: 'Calculadora de ITCD',
+    descricao: 'Imposto da doação de quotas em três cenários de avaliação, por donatário.',
+    path: '/equipe/osg/work/calculadora-itcmd',
+    icon: <Calculator className="h-5 w-5 text-osg-600" />,
+  },
 ];
 
 const OsgWorkDashboard = () => {
@@ -65,7 +72,7 @@ const OsgWorkDashboard = () => {
         {FERRAMENTAS.map((f) => (
           <Card
             key={f.id}
-            className="cursor-pointer hover:border-osg-300 hover:-translate-y-0.5 hover:shadow-md hover:shadow-osg-900/5 transition-all duration-200 group"
+            className="cursor-pointer hover:border-osg-300 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group"
             onClick={() => navigate(f.path)}
           >
             <CardHeader className="pb-3">
@@ -73,7 +80,7 @@ const OsgWorkDashboard = () => {
                 <div className="h-10 w-10 rounded-lg bg-osg-100 flex items-center justify-center">
                   {f.icon}
                 </div>
-                <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-osg-600 group-hover:translate-x-0.5 transition-all" />
+                <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-osg-600 group-hover:translate-x-0.5 transition-all" />
               </div>
               <CardTitle className="text-base mt-3">{f.titulo}</CardTitle>
             </CardHeader>

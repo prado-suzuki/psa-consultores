@@ -5,14 +5,15 @@ import { baixarDocx } from '@/lib/templates/docx';
 import { camposDaEntidade, derivarCampos, type TipoEntidade } from '@/lib/templates/vocabulario';
 import { calcularHistoricoCapital } from '@/lib/templates/historicoCapital';
 import { conteudoParaDeteccao, detectarBindingsDeConteudo, labelDoBinding, normalizarReferenciasLegadas, normalizarSelecaoLegada } from '@/lib/templates/binding';
-import { calcularCapitalSociedade, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, tituloColetivoDosSocios, type ItemLista } from '@/lib/templates/mapeadores';
+import { calcularCapitalSociedade, foraDoQuadro, mapearAdministrador, mapearCessoes, mapearGeorefCabecalho, mapearIntegralizacoes, mapearPartesSelecionadas, mapearQuadroSocietario, mapearRegistro, mapearRetirantes, matriculasDescritasNasIntegralizacoes, mapearSociedade, mapearVertice, montarContexto, reidratarItensPorLista, retirantesDaCessao, tituloColetivoDosSocios, vocabularioDaRetirada, type ItemLista } from '@/lib/templates/mapeadores';
 import { quotasDoSocio } from '@/lib/templates/capital';
 import { useModelos, useModeloBlocos } from '@/hooks/useModelosDocumento';
 import { montarRegistroFamilias, useBlocos, useFlags, type BlocoComVersao } from '@/hooks/useBibliotecaModelos';
-import { useDocumentoGeradoHead, useDocumentoGeradoPorId, useDocumentoOverrides, useDocumentoVersoes, useOrdemNaSucessao, useRegistrarDocumento, useSalvarDocumentoGerado, type DocumentoGeradoRow, type OverrideAplicavel, type SnapshotDados } from '@/hooks/useDocumentoGerado';
+import { useConstitutivosRegistrados, useDocumentoGeradoHead, useDocumentoGeradoPorId, useDocumentoOverrides, useDocumentoSucessor, useDocumentoVersoes, useOrdemNaSucessao, useRegistrarDocumento, useSalvarDocumentoGerado, type DocumentoGeradoRow, type OverrideAplicavel, type SnapshotDados } from '@/hooks/useDocumentoGerado';
 import { escopoDaFlag, nomesDasFlagsManuaisLigadas, useFlagsManuaisProjeto, useResponderEventosDaAlteracao } from '@/hooks/useDomainFlagsManuais';
 import { useEventosDerivados, useFormalizarMovimentos } from '@/hooks/useEventosDaAlteracao';
 import type { SnapshotDaPeca } from '@/lib/osg/baselineDaPeca';
+import { avaliarFluxoDaSociedade, declararPeca } from '@/lib/osg/estadoDaSociedade';
 import { toast } from '@/hooks/use-toast';
 import type { Json } from '@/integrations/supabase/types';
 import { useAllMatriculas, type BemRow, type MatriculaEnriched } from '@/hooks/useDiagnosticoPatrimonial';
@@ -44,7 +45,12 @@ export function useGerarDocumentoController() {
   const { data: modelos = [], isLoading: carregandoModelos } = useModelos();
   const [modeloId, setModeloId] = useState<string | null>(null);
   const { data: docBlocos = [], isLoading: carregandoBlocos } = useModeloBlocos(modeloId);
-  const modeloSocietario = modelos.find((m) => m.id === modeloId)?.tipo === 'societario';
+  const modelo = modelos.find((m) => m.id === modeloId) ?? null;
+  // `escopo` é declarado (CHECK no banco), diferente de `tipo`, que é rótulo
+  // livre digitado na tela de Montagem: os dois modelos de contrato social foram
+  // renomeados em 31/08/2026 sem que nada avisasse, e um `tipo` com um espaço
+  // sobrando derrubaria a composição em silêncio.
+  const modeloSocietario = modelo?.escopo === 'sociedade';
 
   // Cliente vem da barra global da área OSG (igual aos cadastros).
   const { clienteId } = useOsgWork();
@@ -195,6 +201,30 @@ export function useGerarDocumentoController() {
   const congelado = documentoGerado != null;
   const snapshotDados = (documentoGerado?.snapshot_dados as unknown as SnapshotDados | null | undefined) ?? null;
   const snapshotFlags = (documentoGerado?.snapshot_flags as string[] | null | undefined) ?? null;
+
+  // --- Os fatos da ordem do fluxo -------------------------------------------
+  // Só os FATOS moram aqui em cima; quem decide é `avaliarFluxoDaSociedade`,
+  // mais abaixo, depois que a composição da folha respondeu se ela compõe.
+  //
+  // (`empresaRow` mora aqui porque é dele que sai a denominação da sociedade nas
+  // frases das travas; ele segue sendo a fonte da sociedade para flags e
+  // mapeadores.)
+  const empresaRow = useMemo(
+    () => (empresaId ? (registros.pessoa.find((r) => r.id === empresaId)?.row as PessoaRow | undefined) : undefined),
+    [registros.pessoa, empresaId],
+  );
+  const { data: constitutivosRegistrados } = useConstitutivosRegistrados(clienteId || null);
+  // O documento que já substitui a peça base, se existir. `useDocumentoSucessor`
+  // foi escrito para isto e estava desligado: sem ele, a única guarda de "gerar
+  // alteração" era `if (!clienteId || !documentoBaseId) return`.
+  const { data: sucessorDaBase } = useDocumentoSucessor(documentoBaseId);
+  // A alteração que ESTA tela está compondo não é uma segunda alteração: quando
+  // a head já é o documento sucessor (ou uma versão forkada dele), o sucessor
+  // encontrado é ela mesma. Sem esta comparação, reabrir a própria alteração
+  // validada travaria o gesto que a criou.
+  const raizDaHead = documentoHead?.documento_raiz_id ?? documentoHead?.id ?? null;
+  const sucessorAlheio =
+    sucessorDaBase && sucessorDaBase.id !== raizDaHead ? sucessorDaBase : null;
 
   // Overrides ativos do documento: substituem o conteúdo do bloco-alvo na prévia.
   const { data: overrides } = useDocumentoOverrides(documentoGeradoId);
@@ -350,15 +380,16 @@ export function useGerarDocumentoController() {
 
   const validarVersao = async (novaVersao = false): Promise<DocumentoGeradoRow | null> => {
     if (!clienteId || !modeloId) return null;
-    // PORTEIRO: folha em erro de composição não vira documento. Selar aqui
-    // congelaria o snapshot e carimbaria o ledger apontando uma peça que não
-    // existe como texto — dano permanente a partir de um erro visível na tela.
-    // Diferente de PENDÊNCIA (placeholder por preencher), que é rascunho legítimo
-    // e continua podendo validar.
-    if (resultado.erro) {
+    // PORTEIRO: a mesma trava que desabilita o botão, relida no instante do
+    // gesto. Ela cobre as três razões pelas quais validar não pode sair: a folha
+    // em erro de composição (selar congelaria um texto que não existe), a
+    // sociedade já constituída (nasceria um segundo contrato social) e a peça
+    // base já sucedida (nasceria uma segunda alteração sobre ela). PENDÊNCIA
+    // não entra: rascunho incompleto é caminho legítimo.
+    if (!travas.validar.liberado) {
       toast({
-        title: 'A folha está em erro de composição',
-        description: `${resultado.erro} — conserte antes de validar a versão.`,
+        title: travas.validar.titulo!,
+        description: travas.validar.motivo!,
         variant: 'destructive',
       });
       return null;
@@ -382,6 +413,7 @@ export function useGerarDocumentoController() {
       clienteId,
       pjPessoaId: empresaId,
       modeloId,
+      nomeModelo,
       snapshotFlags: flagsAtivas,
       snapshotDados: snap as unknown as Json,
       // Texto dos blocos já resolvido (com overrides) + variantes das famílias
@@ -403,6 +435,18 @@ export function useGerarDocumentoController() {
   // "Revalidar": descarta o congelamento e refaz o snapshot com os cadastros atuais.
   const revalidar = async () => {
     if (!clienteId || !modeloId) return;
+    // O MESMO porteiro de validar e de registrar, que faltava só aqui: dos três
+    // gestos de selagem, este era o único que recongelava o snapshot por cima de
+    // uma folha em erro de composição. O estrago é igual ao dos outros dois, e é
+    // permanente: a versão passa a guardar um texto que não existe.
+    if (!travas.atualizarDoCadastro.liberado) {
+      toast({
+        title: travas.atualizarDoCadastro.titulo!,
+        description: travas.atualizarDoCadastro.motivo!,
+        variant: 'destructive',
+      });
+      return;
+    }
 
     const selecaoFresh: Record<string, Record<string, string>> = { ...selecao };
     for (const b of bindings) {
@@ -450,6 +494,7 @@ export function useGerarDocumentoController() {
       clienteId,
       pjPessoaId: empresaId,
       modeloId,
+      nomeModelo,
       snapshotFlags: flagsAtivasLive,
       snapshotDados: snap as unknown as Json,
       snapshotVersoesBlocos: snapshotVersoes as unknown as Json,
@@ -531,10 +576,6 @@ export function useGerarDocumentoController() {
   // Flags derivadas declarativas avaliadas sobre a empresa selecionada.
   const { data: catalogoFlags = [] } = useFlags();
   const temBlocosComFlags = template.blocos.some((b) => (b.flagsRequeridas ?? []).length > 0);
-  const empresaRow = useMemo(
-    () => (empresaId ? (registros.pessoa.find((r) => r.id === empresaId)?.row as PessoaRow | undefined) : undefined),
-    [registros.pessoa, empresaId],
-  );
 
   // --- Flags MANUAIS -------------------------------------------------------
   // O interruptor que o consultor liga na mão, para o que não se deriva do
@@ -599,6 +640,17 @@ export function useGerarDocumentoController() {
     // `substitui_documento_id`. Exigir o registrado em cena impedia rever os
     // eventos justamente quando a peça já estava composta.
     if (!clienteId || !documentoBaseId) return;
+    // PORTEIRO DA ORDEM: esta peça já foi sucedida. Responder o assistente aqui
+    // ancoraria um segundo conjunto de eventos na MESMA peça base, e a validação
+    // seguinte abriria uma segunda alteração sobre ela.
+    if (!travas.gerarAlteracao.liberado) {
+      toast({
+        title: travas.gerarAlteracao.titulo!,
+        description: travas.gerarAlteracao.motivo!,
+        variant: 'destructive',
+      });
+      return;
+    }
     await responderEventos.mutateAsync({
       clienteId,
       pjPessoaId: empresaId,
@@ -616,12 +668,14 @@ export function useGerarDocumentoController() {
   const registrarDocumento = useRegistrarDocumento();
   const confirmarRegistro = async () => {
     if (!documentoGeradoId) return;
-    // O mesmo porteiro do validar: registrar é o gesto irreversível de propósito,
-    // e é ele que carimba o ledger e vira o status do bem.
-    if (resultado.erro) {
+    // O mesmo porteiro, no gesto irreversível: registrar carimba o ledger e vira
+    // o status do bem. Aqui a trava cobre a folha em erro e o segundo
+    // constitutivo da mesma sociedade — que era o que o índice único barrava, com
+    // a mensagem crua do Postgres.
+    if (!travas.registrar.liberado) {
       toast({
-        title: 'A folha está em erro de composição',
-        description: `${resultado.erro} — conserte antes de registrar na junta.`,
+        title: travas.registrar.titulo!,
+        description: travas.registrar.motivo!,
         variant: 'destructive',
       });
       return;
@@ -639,12 +693,13 @@ export function useGerarDocumentoController() {
     //  - CONTRATO SOCIAL: todos os pendentes. Ele não passa pelo assistente, e a
     //    cláusula de capital dele conta os aportes de constituição inteiros — é
     //    esta extensão (D3) que impede a primeira alteração de recontá-los.
-    const ehAlteracao = respostasDaAlteracao.length > 0;
-    const aFormalizar = ehAlteracao
-      ? flagsManuaisDoModelo
-          .filter((f) => respostasAlteracao[f.id] === true || valorPorFlagId.get(f.id) === true)
-          .flatMap((f) => eventoPorFlagNome.get(f.nome)?.movimentoIds ?? [])
-      : movimentosPendentes;
+    //
+    // A peça responde o que ela é, pelo papel carimbado quando nasceu. Antes a
+    // pergunta era feita ao tamanho de `respostasDaAlteracao`: dá a mesma resposta
+    // hoje (o assistente grava TODAS as flags, inclusive as desmarcadas, então
+    // desmarcar tudo não faz a alteração se passar por contrato social), mas é uma
+    // dedução a partir de um efeito, e não a leitura do que a peça é.
+    const aFormalizar = movimentosDaPeca(documentoHead?.papel === 'alterador');
     if (aFormalizar.length > 0) {
       await formalizarMovimentos.mutateAsync({
         movimentoIds: aFormalizar,
@@ -791,17 +846,35 @@ export function useGerarDocumentoController() {
     }
     return out;
   }, [socios]);
+  const administradorPessoaIds = useMemo(
+    () => administradores.map((a) => a.pessoa.id).filter((id): id is string => !!id),
+    [administradores],
+  );
   const { eventos: eventosDerivados, idsPendentes: movimentosPendentes } = useEventosDerivados({
     empresaPessoaId: empresaId,
     validadoEm: documentoBase?.snapshot_validado_em ?? null,
     administracaoIds: idsAdministracao,
     snapshotDoBase: (documentoBase?.snapshot_dados as unknown as SnapshotDaPeca | null) ?? null,
     cpfCnpjPorPessoaId,
+    administradorPessoaIds,
   });
   const eventoPorFlagNome = useMemo(
     () => new Map(eventosDerivados.map((e) => [e.flagNome, e])),
     [eventosDerivados],
   );
+  /**
+   * Os movimentos pendentes que ESTA peça formaliza, e é a mesma conta que o
+   * carimbo do registro faz. A pergunta muda com a peça: a ALTERAÇÃO leva só os
+   * eventos confirmados no assistente (o que foi desmarcado continua pendente,
+   * para a próxima), e o CONTRATO SOCIAL leva todos os pendentes, porque a
+   * cláusula de capital dele os conta inteiros.
+   */
+  const movimentosDaPeca = (ehAlteracao: boolean): string[] =>
+    ehAlteracao
+      ? flagsManuaisDoModelo
+          .filter((f) => respostasAlteracao[f.id] === true || valorPorFlagId.get(f.id) === true)
+          .flatMap((f) => eventoPorFlagNome.get(f.nome)?.movimentoIds ?? [])
+      : movimentosPendentes;
   const ehEmpresaPR = empresaRow?.tipo_empresa === 'PR';
   // Sócios derivados de titular sem pessoa cadastrada: qualificação sai incompleta.
   const sociosSemCadastro = useMemo(
@@ -823,8 +896,23 @@ export function useGerarDocumentoController() {
     () => registrosPorLista.imoveis ?? [],
     [registrosPorLista.imoveis],
   );
-  const { porMatricula: georefsPorMatricula, isFetching: carregandoGeorefsSelecionados } =
-    useGeorefsByMatriculas(idsImoveisSelecionados);
+  // Toda matrícula que ENTRA no documento, na ordem em que ele as descreve: as
+  // integralizadas (alíneas de {{#integralizacoes}}), as escolhidas a dedo
+  // ({{#imoveis}}) e as de binding unitário ({{ imovel.* }}, a matrícula
+  // digitada). É deste conjunto — e não de um imóvel escolhido à parte — que sai
+  // o memorial do georreferenciamento.
+  const idsMatriculasDoDocumento = useMemo(() => {
+    const ids = new Set<string>(matriculasDescritasNasIntegralizacoes(socios, integralizacoes));
+    for (const id of idsImoveisSelecionados) ids.add(id);
+    for (const b of bindings) {
+      if (b.tipo !== 'matricula') continue;
+      const id = registroPorBinding[b.nome];
+      if (id) ids.add(id);
+    }
+    return [...ids];
+  }, [socios, integralizacoes, idsImoveisSelecionados, bindings, registroPorBinding]);
+  const { porMatricula: georefsPorMatricula, isFetching: carregandoGeorefs } =
+    useGeorefsByMatriculas(idsMatriculasDoDocumento);
   const imoveisSelecionados = useMemo<ItemLista[]>(
     () => idsImoveisSelecionados.flatMap((id) => {
       const registro = registros.matricula.find((item) => item.id === id);
@@ -840,7 +928,29 @@ export function useGerarDocumentoController() {
     }),
     [idsImoveisSelecionados, registros.matricula, georefsPorMatricula],
   );
-  const carregandoDadosDocumento = carregandoListasEfetivo || carregandoGeorefsSelecionados;
+  // Um memorial por matrícula do documento que tem certificação no SIGEF. As sem
+  // georref não geram item, e o bloco repetidor sai da composição quando nenhuma
+  // tem — o memorial não é um capítulo que espera alguém escolher um imóvel.
+  const memoriais = useMemo<ItemLista[]>(
+    () => idsMatriculasDoDocumento.flatMap((id) => {
+      const georef = georefsPorMatricula[id];
+      if (!georef?.cabecalho) return [];
+      const row = registros.matricula.find((r) => r.id === id)?.row
+        ?? integralizacoes.find((m) => m.id === id);
+      if (!row) return [];
+      const imovel = derivarCampos('matricula', {
+        ...mapearRegistro('matricula', row),
+        ...mapearGeorefCabecalho(georef.cabecalho),
+      });
+      // Dentro de lista não há formulário para completar campo faltante na mão
+      // (ver mapearIntegralizacoes): campo do catálogo ausente vira '' para o
+      // condicional pular o trecho em vez de derrubar a prévia inteira.
+      for (const c of camposDaEntidade('matricula')) imovel[c.id] = imovel[c.id] ?? '';
+      return [{ imovel, vertices: georef.vertices.map(mapearVertice) }];
+    }),
+    [idsMatriculasDoDocumento, georefsPorMatricula, registros.matricula, integralizacoes],
+  );
+  const carregandoDadosDocumento = carregandoListasEfetivo || carregandoGeorefs;
   const pessoaPorId = useMemo(
     () => new Map(registros.pessoa.map((registro) => {
       const pessoa = registro.row as PessoaRow;
@@ -890,25 +1000,40 @@ export function useGerarDocumentoController() {
     }
     return out;
   }, [listasDePessoaSelecionada, registrosPorLista, registros.pessoa, quotasPorPessoa]);
+  // Quem SAI e quem passa a administrar de fora do quadro. As duas respostas são
+  // a mesma subtração contra o quadro resultante (ver foraDoQuadro), e é dela que
+  // saem a cláusula de retirada, a qualificação "administradores não sócios" e os
+  // rótulos do fecho — sem marcação manual do consultor.
+  const retirantes = useMemo(() => retirantesDaCessao(cessoes, socios), [cessoes, socios]);
+  const administradoresNaoSocios = useMemo(
+    () => foraDoQuadro(administradores.map((a) => a.pessoa), socios),
+    [administradores, socios],
+  );
+
   const itensPorLista = useMemo<Record<string, ItemLista[]>>(
     () => ({
       socios: quadro.itens,
       administradores: administradores.map(mapearAdministrador),
       integralizacoes: mapearIntegralizacoes(socios, integralizacoes, aportes),
       cessoes: mapearCessoes(cessoes),
+      retirantes: mapearRetirantes(retirantes),
       imoveis: imoveisSelecionados,
       signatarios: mapearSignatarios({
         socios,
         administradores,
+        // Os que saíram não estão em `socios` (o quadro é o resultante): sem esta
+        // lista o fecho os chamaria de "Administrador" e calaria a retirada.
+        retirantes,
         pessoaPorId: (id) => pessoaPorId.get(id) ?? null,
         // Advogado e testemunhas continuam em linhas fixas no bloco de fecho.
         // Passá-los aqui os faria assinar duas vezes.
       }),
       vertices: verticesItens,
+      memoriais,
       // Listas de seleção manual de pessoas ({{#partes}}), por nome do papel.
       ...partesPorLista,
     }),
-    [quadro, socios, administradores, integralizacoes, aportes, cessoes, imoveisSelecionados, pessoaPorId, verticesItens, partesPorLista],
+    [quadro, socios, administradores, integralizacoes, aportes, cessoes, retirantes, imoveisSelecionados, pessoaPorId, verticesItens, memoriais, partesPorLista],
   );
 
   // --- Notificações de mudança de variável (só com versão validada) ---------
@@ -1298,6 +1423,19 @@ export function useGerarDocumentoController() {
       // Total dos sócios: campos em branco mantêm a prévia viva antes de a empresa
       // ser escolhida; preenchem quando as quotas carregam.
       if (usaTotalSocios) ctx.total = { quotas: '', vlrTotal: '', percentual: '', ...totalEfetivo };
+      // As palavras que concordam com quem sai ("o sócio … retira-se" x "os sócios
+      // … retiram-se"): flexão de verbo não sai de `sep`/`fim` de seção.
+      ctx.retirada = vocabularioDaRetirada(retirantes);
+      // A administração passou a ser exercida de FORA do quadro. É a condicional
+      // que faz a cláusula dizer "administradores não sócios" só quando é verdade —
+      // sem ela o consolidado afirmava "administrada isoladamente por X e Y" logo
+      // abaixo de uma Cláusula Quinta que dá 100% do capital a outra pessoa.
+      if (ctx.sociedade && typeof ctx.sociedade === 'object') {
+        const soc = ctx.sociedade as Record<string, string>;
+        const naoSocios = administradoresNaoSocios.length > 0;
+        soc.temAdministradorNaoSocio = naoSocios ? 'sim' : '';
+        soc.semAdministradorNaoSocio = naoSocios ? '' : 'sim';
+      }
       // gerarComposicao, e não gerarBlocos: o descarte de bloco sem dado se ANUNCIA
       // (emenda 9.2), e é o que a folha conta e o painel de conferência mostra.
       const { blocos, descartados } = gerarComposicao(template, ctx, flagsAtivas, familias);
@@ -1320,7 +1458,7 @@ export function useGerarDocumentoController() {
     } catch (e) {
       return { blocos: null, texto: null, descartados: [], erro: e instanceof Error ? e.message : String(e) };
     }
-  }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados, bindingMatricula, georefCabecalhoCampos]);
+  }, [template, templateOriginal, familias, familiasOriginais, posicoesSobrescritas, bindings, selecao, registroPorBinding, empresaId, valoresLivres, desconhecidosVisiveis, secoesDesconhecidas, itensPorLista, listas, usaTotalSocios, quadro, flagsAtivas, congelado, snapshotDados, bindingMatricula, georefCabecalhoCampos, retirantes, administradoresNaoSocios]);
 
   const copiar = async () => {
     if (!resultado.texto) return;
@@ -1340,12 +1478,40 @@ export function useGerarDocumentoController() {
     [resultado.blocos],
   );
   const documentoCompleto = pendenciasDocumento.length === 0;
-  // Por que selar e registrar estão fechados, em português de tela. Vira tooltip
-  // no rail e é a mesma condição que os porteiros de `validarVersao` e
-  // `confirmarRegistro` checam — a guarda mora na função, o aviso mora aqui.
-  const motivoDeBloqueio = resultado.erro
-    ? `A folha está em erro de composição: ${resultado.erro}`
-    : null;
+  // A ORDEM DO FLUXO, numa leitura só: em que estado a sociedade está e, para
+  // cada gesto, se ele pode e por que não. É a mesma função que os porteiros de
+  // `validarVersao`, `revalidar` e `confirmarRegistro` consultam — a decisão mora
+  // na função pura, e a tela e o hook a leem, em vez de cada um ter a sua.
+  //
+  // Ela é avaliada AQUI, e não junto dos fatos lá em cima, porque um dos fatos é
+  // se a folha compõe (`resultado.erro`), e isso só se sabe depois de compor.
+  const fluxo = useMemo(
+    () =>
+      avaliarFluxoDaSociedade({
+        sociedade: { pessoaId: empresaId, denominacao: empresaRow?.denominacao ?? null },
+        ehSocietario: modeloSocietario,
+        statusDaPeca: documentoHead?.status ?? null,
+        papelDaPeca: documentoHead?.papel ?? null,
+        constitutivosRegistrados: constitutivosRegistrados ?? new Set<string>(),
+        sucessorDaBase: sucessorAlheio,
+        alteracaoEmCurso,
+        temBaseRegistrada: documentoBaseId != null,
+        erroDeComposicao: resultado.erro ?? null,
+      }),
+    [
+      empresaId, empresaRow, modeloSocietario, documentoHead, constitutivosRegistrados,
+      sucessorAlheio, alteracaoEmCurso, documentoBaseId, resultado.erro,
+    ],
+  );
+  const travas = fluxo.travas;
+  // A metade "avisar": a folha declara QUE peça é esta, em que situação, e
+  // quantos atos pendentes ela está formalizando. É a mesma conta do carimbo do
+  // registro, e foi a ausência dela que fez uma peça com dois atos parecer que
+  // estava concatenando alterações.
+  const declaracaoDaPeca = declararPeca(fluxo.estado, {
+    numeroAlteracao,
+    atosAFormalizar: new Set(movimentosDaPeca(numeroAlteracao >= 1)).size,
+  });
   const [baixando, setBaixando] = useState(false);
   const [baixarIncompletoOpen, setBaixarIncompletoOpen] = useState(false);
 
@@ -1407,9 +1573,14 @@ export function useGerarDocumentoController() {
 
   // As condições manuais NÃO são passo do fluxo de geração. Elas são as
   // perguntas do assistente de alteração contratual, que só faz sentido diante
-  // de um contrato já registrado — ver abrirAlteracao. O modelo pode ou não ter
-  // blocos pendurados nelas; quando não tem, não há alteração a gerar.
-  const podeGerarAlteracao = flagsManuaisDoModelo.length > 0;
+  // de um contrato já registrado — ver abrirAlteracao.
+  //
+  // Quem pode gerar alteração é quem participa da vida societária, e isso é
+  // declarado no modelo. Antes a condição era `flagsManuaisDoModelo.length > 0`:
+  // ter ou não flags penduradas é CONFIGURAÇÃO de redação, e usá-la como regra de
+  // processo fazia despendurar as flags de um contrato social esconder o botão,
+  // sem ninguém ter pedido isso.
+  const podeGerarAlteracao = modelo?.escopo === 'sociedade';
 
   const passo1Estado: EstadoPasso = !modeloId || passoAberto === 1 ? 'aberto' : 'concluido';
   const passo2Estado: EstadoPasso =
@@ -1603,12 +1774,21 @@ export function useGerarDocumentoController() {
     matriculasDoCliente, origemClicavel, abrirCadastroOrigem, fecharCadastroOrigem,
     resultado, copiar, nomeModelo, baixando, baixar, baixarIncompletoOpen,
     setBaixarIncompletoOpen, confirmarDownloadIncompleto, pendenciasDocumento,
-    documentoCompleto, motivoDeBloqueio, bindingsPendentes,
+    documentoCompleto, bindingsPendentes,
     listasPendentes, empresas, bindingsNaoSociedade, precisaSelecoes,
     selecoesCompletas, modeloPronto, passo1Estado, passo2Estado,
     // Alteração contratual: o documento travado, o assistente em modal e o
     // registro na junta que trava o documento em primeiro lugar.
+    //
+    // `podeRegistrarNaJunta` é o escopo do modelo: junta comercial registra ato
+    // societário, e uma parceria agrícola ou uma descrição de imóvel não têm o que
+    // registrar lá. A tela oferecia o gesto para qualquer folha validada.
+    podeRegistrarNaJunta: modeloSocietario,
     documentoRegistrado, documentoBaseId, alteracaoEmCurso, podeReverEventos, podeGerarAlteracao,
+    // A ordem do fluxo: o estado da sociedade e, por gesto, se ele pode e por
+    // que não. É o que desabilita cada botão do rail com a frase ao lado, e a
+    // mesma função pura que os porteiros acima consultam.
+    travas, estadoDaSociedade: fluxo.estado, declaracaoDaPeca,
     flagsManuaisDoModelo, valorPorFlagId, resumoDaAlteracao, rotulosEventosDaAlteracao,
     // A evidência de cada evento derivado, por nome de flag: é ela que o
     // assistente mostra no lugar da pergunta.

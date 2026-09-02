@@ -71,12 +71,12 @@ function MultiSelect({ label, options, selected, onChange, placeholder = "Todos"
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[260px] p-0" align="start">
-        <div className="px-3 py-2 border-b text-xs font-medium text-slate-500 uppercase tracking-wider">
+        <div className="px-3 py-2 border-b text-xs font-medium text-muted-foreground uppercase tracking-wider">
           {label}
         </div>
         <div className="max-h-[260px] overflow-y-auto py-1">
           {options.length === 0 ? (
-            <p className="px-3 py-2 text-sm text-slate-400">Sem opções</p>
+            <p className="px-3 py-2 text-sm text-muted-foreground">Sem opções</p>
           ) : (
             options.map((opt) => {
               const checked = selected.includes(opt);
@@ -85,13 +85,13 @@ function MultiSelect({ label, options, selected, onChange, placeholder = "Todos"
                   key={opt}
                   type="button"
                   onClick={() => toggle(opt)}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-slate-50 text-left"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-muted text-left"
                 >
                   <span
                     className={`h-4 w-4 rounded border flex items-center justify-center ${
                       checked
                         ? "bg-primary border-primary text-white"
-                        : "border-slate-300 bg-white"
+                        : "border-border bg-white"
                     }`}
                   >
                     {checked && <Check className="h-3 w-3" />}
@@ -107,7 +107,7 @@ function MultiSelect({ label, options, selected, onChange, placeholder = "Todos"
             <button
               type="button"
               onClick={() => onChange([])}
-              className="text-xs text-slate-500 hover:text-red-600"
+              className="text-xs text-muted-foreground hover:text-red-600"
             >
               Limpar seleção
             </button>
@@ -145,9 +145,9 @@ export function FiltrosCalculadora({
     ((filtros.inicio !== periodo.min || filtros.fim !== periodo.max) && filtros.inicio ? 1 : 0);
 
   return (
-    <Card className="mb-6 border-slate-200 shadow-sm">
+    <Card className="mb-6 border-border shadow-sm">
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-slate-800">
+        <CardTitle className="text-sm flex items-center gap-2 uppercase tracking-wider font-bold text-foreground">
           <Filter className="h-4 w-4 text-primary" />
           Filtros
           {activeCount > 0 && (
@@ -160,7 +160,7 @@ export function FiltrosCalculadora({
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
           <div className="md:col-span-5">
-            <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
               Período
             </label>
             <MonthRangePicker
@@ -173,7 +173,7 @@ export function FiltrosCalculadora({
             />
           </div>
           <div className="md:col-span-3">
-            <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
               UF destino
             </label>
             <MultiSelect
@@ -186,7 +186,7 @@ export function FiltrosCalculadora({
             />
           </div>
           <div className="md:col-span-3">
-            <label className="block text-xs font-bold text-slate-600 mb-2 uppercase tracking-wider">
+            <label className="block text-xs font-bold text-muted-foreground mb-2 uppercase tracking-wider">
               Anexo (LC 214/25)
             </label>
             <MultiSelect
@@ -203,7 +203,7 @@ export function FiltrosCalculadora({
               variant="ghost"
               onClick={handleReset}
               disabled={disabled}
-              className="h-11 w-full text-slate-500 hover:text-red-600"
+              className="h-11 w-full text-muted-foreground hover:text-red-600"
               title="Restaurar filtros padrão"
             >
               <Eraser className="h-4 w-4" />

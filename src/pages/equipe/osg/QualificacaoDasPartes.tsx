@@ -261,7 +261,7 @@ const QualificacaoDasPartes = () => {
 
             <PessoasTable
               titulo="Pessoas Jurídicas"
-              icone={<Building2 className="h-4 w-4 text-slate-500" />}
+              icone={<Building2 className="h-4 w-4 text-muted-foreground" />}
               tipo="PJ"
               documentoLabel="CNPJ"
               mostrarPapel
@@ -273,7 +273,7 @@ const QualificacaoDasPartes = () => {
             />
             <PessoasTable
               titulo="Pessoas Físicas"
-              icone={<UserIcon className="h-4 w-4 text-slate-500" />}
+              icone={<UserIcon className="h-4 w-4 text-muted-foreground" />}
               tipo="PF"
               documentoLabel="CPF"
               pessoas={pfs}

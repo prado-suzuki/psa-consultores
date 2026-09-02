@@ -1,15 +1,21 @@
-# Sprint 10 — tarefas
+# Sprint 10 — a frente foi superada
 
-Índice das tarefas delegáveis desta sprint. Uma linha por tarefa; o detalhe (contexto, subtarefas Tn, aceite, referências de código) vive no arquivo `TAREFA_*.md` correspondente.
+Esta pasta tinha duas tarefas, as duas da frente **"Área do Cliente: solicitação de
+documentos por temática"**. As duas foram **apagadas em 01/09/2026**, junto do plano de
+design que as originava (`docs/planos/area-cliente-documentos-por-tematica.md`).
 
-| Tarefa | Escopo | Banco? | Status |
-|---|---|---|---|
-| [Área do Cliente: solicitação de documentos por temática](TAREFA_area-cliente_documentos-por-tematica.md) — *explicativo* | Contexto, decisões (DEC-01 a DEC-08), SQL e armadilhas. **Ler antes de executar.** | Sim — T7 muda RPC · T8 coluna `prazo` · T9 enum + 2 RPCs + tela da equipe | A fazer |
-| [↳ Lista de tarefas para importar](TAREFAS_area-cliente_documentos-por-tematica.md) — *executável* | 5 tarefas-mãe, 20 subtarefas, ~66h, já nas colunas do `Importar Sprint do Excel`. **Tarefa 0 é a prioridade** (0.1 e 0.2 não dependem de nada). | idem | A fazer |
+**Por quê:** a frente foi substituída pelo desenho das **4 gavetas** — a decisão está em
+[`../../planos/fluxo-solicitacao-documentos.md`](../../planos/fluxo-solicitacao-documentos.md),
+e o que de fato foi construído está em
+[`../../planos/checklist-por-subtracao.md`](../../planos/checklist-por-subtracao.md). As
+tarefas seguiam marcadas "A fazer" e ofereciam trabalho que ninguém deveria mais pegar.
 
-## Como usar esta pasta
+O lote de banco que nunca foi executado (mudança da RPC do checklist, coluna `prazo`, enum
+de status e fluxo de aprovação) **não migrou automaticamente para lugar nenhum**. Se ainda
+importar, nasce como tarefa nova na sprint corrente, medida contra o desenho de hoje — não
+contra o de 28/07/2026.
 
-- **Uma tarefa = um arquivo** `TAREFA_<slug>.md` nesta pasta.
-- Planos de design/arquitetura mais longos continuam em `docs/planos/` — a tarefa linka para eles em vez de duplicar. Ex.: esta sprint referencia `docs/planos/area-cliente-documentos-por-tematica.md`.
-- Cada tarefa traz subtarefas numeradas (`T1`, `T2`, …) e bugs achados no caminho (`B1`, `B2`, …), com marcação explícita de **⚠️ MIGRAÇÃO** ou **⚠️ MUDANÇA DE RPC** quando depende do Lovable.
-- Ao concluir uma subtarefa, marcar `✅ CONCLUÍDO (data)` dentro do arquivo da tarefa e atualizar a coluna Status desta tabela.
+Os arquivos estão no histórico do git.
+
+O relatório de teste da sprint 10 que continua valendo é
+[`../ale-31-teste-integracao-fluxo-solicitacao.md`](../ale-31-teste-integracao-fluxo-solicitacao.md).

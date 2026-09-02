@@ -19,7 +19,7 @@ const KIND_LABEL: Record<string, string> = {
 const KIND_COLOR: Record<string, string> = {
   scale: 'bg-blue-100 text-blue-700',
   efficiency: 'bg-amber-100 text-amber-700',
-  investment: 'bg-teal-100 text-teal-700',
+  investment: 'bg-accent/10 text-teal-700',
 };
 
 interface MetricRow {
@@ -100,7 +100,7 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
         </DialogHeader>
 
         {!allSameBasis && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
+          <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning">
             ⚠️ Cenários com bases de cálculo diferentes ({Array.from(new Set(scenarios.map(s => s.unit_basis))).join(', ')}).
             Compare com cautela — os valores podem não ser diretamente equivalentes.
           </div>
@@ -110,7 +110,7 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
           {scenarios.map(s => (
             <Card key={s.id} className="border-2">
               <CardContent className="p-3 space-y-2">
-                <p className="font-semibold text-slate-900 truncate">{s.name}</p>
+                <p className="font-semibold text-foreground truncate">{s.name}</p>
                 <div className="flex flex-wrap gap-1">
                   <Badge variant="outline" className={KIND_COLOR[s.scenario_kind]}>
                     {KIND_LABEL[s.scenario_kind]}
@@ -129,11 +129,11 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
 
         <div className="border rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-slate-50">
+            <thead className="bg-muted">
               <tr>
                 <th className="text-left p-3 text-xs font-medium text-muted-foreground">Métrica</th>
                 {scenarios.map(s => (
-                  <th key={s.id} className="text-right p-3 text-xs font-medium text-slate-700 truncate max-w-[200px]">
+                  <th key={s.id} className="text-right p-3 text-xs font-medium text-foreground truncate max-w-[200px]">
                     {s.name}
                   </th>
                 ))}
@@ -159,7 +159,7 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
                         <td
                           key={s.id}
                           className={`text-right p-3 font-medium ${
-                            isBest ? 'bg-emerald-50 text-emerald-700' : 'text-slate-900'
+                            isBest ? 'bg-emerald-50 text-emerald-700' : 'text-foreground'
                           }`}
                         >
                           {v === null ? '—' : metric.format(v)}
@@ -173,7 +173,7 @@ export function ScenarioComparator({ open, onClose, scenarios }: ScenarioCompara
           </table>
         </div>
 
-        <div className="bg-slate-50 rounded-md p-3 text-xs text-muted-foreground">
+        <div className="bg-muted rounded-md p-3 text-xs text-muted-foreground">
           <p className="flex items-center gap-2">
             <ArrowUpDown className="h-3 w-3" />
             <span>

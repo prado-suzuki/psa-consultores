@@ -42,7 +42,7 @@ export const KpiCard = ({ icone, titulo, valor, destaque, delay = 0 }: KpiCardPr
         <p
           className={cn(
             'text-[11px] font-bold uppercase tracking-[0.14em]',
-            destaque ? 'text-white/80' : 'text-slate-500',
+            destaque ? 'text-white/80' : 'text-muted-foreground',
           )}
         >
           {titulo}

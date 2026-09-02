@@ -280,7 +280,7 @@ export default function EquipeDetalhesChamado() {
                   Departamento: {departmentLabels[ticket.department] || ticket.department}
                 </Badge>
                 {ticket.areaName && (
-                  <Badge variant="outline" className="border-teal-200 text-teal-700">
+                  <Badge variant="outline" className="border-primary/15 text-teal-700">
                     Área: {ticket.areaName}
                   </Badge>
                 )}

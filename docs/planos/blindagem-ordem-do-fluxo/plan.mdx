@@ -1,0 +1,428 @@
+---
+title: Blindar o fluxo societário contra ordem errada
+slug: blindagem-ordem-do-fluxo
+kind: plan
+---
+
+### Objetivo
+
+Hoje o fluxo societário da OSG aceita gestos fora de ordem, e alguns deles gravam
+dado errado em silêncio. O consultor que usa isso não é técnico: num fluxo com
+vários pontos de falha, ele não vai eventualmente errar, ele vai errar quase
+sempre. O objetivo é que **a ordem errada deixe de ser possível**, e não que ela
+passe a ser desaconselhada.
+
+"Impossível" aqui tem um significado preciso, e é o que separa este plano de um
+mutirão de tooltips: cada regra de ordem vira **uma função pura, lida em dois
+lugares** (a tela, que desabilita o botão e diz o que falta; e o hook, que
+reconfere no instante de gravar porque a tela pode estar com dado velho), com a
+constraint do banco como terceira linha, para o caso que escapar das duas.
+
+Pronto significa: um consultor destreinado consegue percorrer constituição,
+registro, concentração, aumento de capital e nova alteração sem produzir estado
+inválido, e todo botão que ele não pode apertar diz, ali mesmo, **o que falta**
+para poder.
+
+### O que a semana mostrou
+
+Estes quatro não são hipóteses. São incidentes desta semana, cada um com o
+sintoma que o consultor viu.
+
+<Table
+  id="tb-incidentes"
+  columns={["O que o usuário fez", "O que o sistema fez", "Classe"]}
+  rows={[
+    ["Apertou \"Validar versão\" com a alteração já registrada na cabeça", "Criou um SEGUNDO contrato social de constituição, escondeu o botão \"Gerar alteração contratual\" e só barrou no registro, com a mensagem crua do Postgres", "grava errado em silêncio"],
+    ["Gravou o quadro de constituição", "O card anunciou que os três bens recém-integralizados estavam \"fora do capital\", no instante seguinte ao clique que os pôs dentro", "lê estado velho"],
+    ["Desmarcou \"aumento de capital\" no assistente e registrou a peça", "Carimbou os aportes do aumento assim mesmo, porque a flag de mudança de sócios carrega todos os pendentes. O ato some da história sem nunca ter sido narrado", "grava errado em silêncio"],
+    ["Tentou subir as quotas antes de registrar o contrato social", "Travou o botão e explicou: \"As quotas só sobem depois que as duas sociedades existem na junta\"", "trava correta"],
+  ]}
+/>
+
+A última linha é a única que se comportou, e ela é o modelo do plano inteiro.
+
+### A máquina de estados que não existe escrita
+
+A regra de ordem existe hoje, mas espalhada por `avaliarTravaDaSubida`,
+`papelDaRaiz`, `problemaDoMovimento`, `useReverterAto` e a query da cabeça em
+`useDocumentoGeradoHead`. Nenhuma delas sabe da outra, e nenhuma delas sabe
+responder "em que estado esta sociedade está".
+
+<Diagram id="dg-estados" frame="show" caption="Os estados de uma sociedade e o gesto que move cada seta. As setas tracejadas são os pulos que hoje o sistema aceita e não deveria.">
+
+```html
+<div class="fila">
+  <div class="estado">
+    <strong>Sem quadro</strong>
+    <small>nenhum movimento no livro</small>
+  </div>
+  <div class="seta">gravar quadro &#8594;</div>
+  <div class="estado">
+    <strong>Quadro gravado</strong>
+    <small>capital existe, junta não sabe</small>
+  </div>
+  <div class="seta">registrar &#8594;</div>
+  <div class="estado forte">
+    <strong>Constitutivo registrado</strong>
+    <small>a sociedade existe perante terceiros</small>
+  </div>
+</div>
+
+<div class="fila segunda">
+  <div class="estado forte">
+    <strong>Constitutivo registrado</strong>
+    <small>ou alteração anterior registrada</small>
+  </div>
+  <div class="seta">atos: aumento, concentração, movimento &#8594;</div>
+  <div class="estado">
+    <strong>Atos pendentes</strong>
+    <small>livro à frente da junta</small>
+  </div>
+  <div class="seta">gerar alteração &#8594;</div>
+  <div class="estado">
+    <strong>Alteração em rascunho</strong>
+    <small>a peça da vez</small>
+  </div>
+  <div class="seta">registrar &#8594;</div>
+  <div class="estado forte">
+    <strong>Alteração registrada</strong>
+    <small>vira o novo ponto de partida</small>
+  </div>
+</div>
+
+<div class="proibidos">
+  <div class="proibido">&#10005; validar versão nova sobre peça registrada &#8594; nasce um segundo constitutivo</div>
+  <div class="proibido">&#10005; segunda alteração enquanto a primeira é rascunho &#8594; os dois atos caem na mesma peça</div>
+  <div class="proibido">&#10005; reverter ato já formalizado &#8594; a peça registrada passa a descrever fato que não existe</div>
+</div>
+```
+
+```css
+.fila {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.fila.segunda { margin-top: 14px; }
+.estado {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1.4px solid var(--wf-border);
+  border-radius: var(--wf-radius);
+  min-width: 0;
+  flex: 1 1 140px;
+}
+.estado.forte { border-color: var(--wf-accent); }
+.estado small { color: var(--wf-muted); }
+.seta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--wf-muted);
+  font-size: 11px;
+  padding: 0 4px;
+}
+.proibidos {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.proibido {
+  padding: 7px 10px;
+  border-left: 2.5px dashed var(--wf-warn);
+  color: var(--wf-warn);
+  font-size: 12px;
+}
+```
+
+</Diagram>
+
+### As quatro classes de trava
+
+Toda vez que uma pré-condição é falsa hoje, o sistema faz uma destas quatro
+coisas. Só a primeira presta, e o trabalho do plano é levar tudo para ela.
+
+<Table
+  id="tb-classes"
+  columns={["Classe", "O que acontece", "Exemplo real"]}
+  rows={[
+    ["pura+dupla", "Função pura devolve o motivo; a tela desabilita e explica, o hook reconfere ao gravar", "avaliarTravaDaSubida"],
+    ["só-tela", "A tela desabilita, o hook grava sem reconferir. A tela pode estar com dado velho de outra aba", "problemaDoMovimento, chamada só pelo MovimentoModal"],
+    ["só-banco", "Nada no app impede; barra a constraint do Postgres, com mensagem crua", "documento_gerado_um_constitutivo_registrado"],
+    ["nenhuma", "Nada impede, e o gesto fora de ordem grava dado errado em silêncio", "papelDaRaiz, evento_mudanca_socios"],
+  ]}
+/>
+
+<Callout id="co-duas-leituras" tone="decision">
+
+**A regra é lida duas vezes, sempre.** A tela sozinha não basta, e não é
+preciosismo: o consultor abre o modal numa aba, alguém registra o contrato em
+outra, e o clique grava contra um mundo que mudou. É por isso que
+`useSubirQuotas` relê os constitutivos do banco antes de gravar, mesmo com o card
+lá fora já tendo conferido. Toda trava nova nasce assim.
+
+</Callout>
+
+### O padrão a generalizar
+
+Já existe no repositório, e não precisa ser inventado: é o formato de
+`avaliarTravaDaSubida`.
+
+<TabsBlock
+  id="tabs-padrao"
+  orientation="vertical"
+  tabs={[
+    {
+      id: "tab-trava",
+      label: "travaDaSubida.ts",
+      blocks: [
+        {
+          id: "ac-trava",
+          type: "annotated-code",
+          data: {
+            filename: "src/lib/osg/travaDaSubida.ts",
+            language: "ts",
+            code: "export interface TravaDaSubida {\n  /** As duas pontas têm contrato social registrado: o ato pode ser gravado. */\n  liberado: boolean;\n  /** Denominações das empresas que ainda não têm constitutivo registrado. */\n  faltando: string[];\n  /** Frase pronta para a tela e para o erro da mutation. Null quando liberado. */\n  motivo: string | null;\n}\n\nexport function avaliarTravaDaSubida(\n  empresas: EmpresaDaSubida[],\n  constitutivosRegistrados: ReadonlySet<string>,\n): TravaDaSubida {",
+            annotations: [
+              {
+                lines: "5",
+                label: "Uma frase, não um código de erro",
+                note: "Quem chama quer DIZER ao consultor o que corrigir. O motivo já vem escrito por extenso, e serve igual para o tooltip da tela e para a mensagem de erro da mutation."
+              },
+              {
+                lines: "4",
+                label: "O que falta, nomeado",
+                note: "Não é só um booleano: a trava devolve QUEM está faltando, então a tela pode listar as empresas em vez de dizer 'não permitido'."
+              },
+              {
+                lines: "10-13",
+                label: "Pura",
+                note: "Recebe o fato já lido (o conjunto de constitutivos registrados) e não vai ao banco. É isso que a torna testável e que permite a tela e o hook chamarem a MESMA função."
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      id: "tab-hook",
+      label: "useSubirQuotas, a segunda leitura",
+      blocks: [
+        {
+          id: "ac-hook",
+          type: "annotated-code",
+          data: {
+            filename: "src/hooks/useMovimentacaoQuotas.ts",
+            language: "ts",
+            code: "// A trava das duas pontas é relida AQUI, e não só na tela, pela mesma razão\n// que a guarda do documento em useReverterAto: a tela pode estar com dado\n// velho (o modal aberto numa aba enquanto o contrato é registrado, ou não,\n// em outra), e este é o gesto que grava o ato.\nconst { data: constitutivos } = await supabase\n  .from('documento_gerado')\n  .select('pj_pessoa_id')\n  .eq('papel', 'constitutivo')\n  .eq('status', 'registrado');\nconst trava = avaliarTravaDaSubida(empresas, new Set(...));\nif (!trava.liberado) throw new Error(trava.motivo!);",
+            annotations: [
+              {
+                lines: "10-11",
+                label: "O fato vem do banco, a decisão vem da função pura",
+                note: "O hook não reimplementa a regra: ele relê o FATO e chama a mesma função da tela. Reimplementar é o que faz as duas divergirem com o tempo."
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]}
+/>
+
+### A doutrina de tela
+
+<Callout id="co-doutrina" tone="decision">
+
+**Botão visível e desabilitado, com o motivo. Nunca escondido.**
+
+Isso já está escrito num comentário de vocês, no `QuadroEmpresaProprietaria`:
+"O botão fica visível e travado, e não escondido: escondê-lo faria procurar um
+gesto que existe."
+
+O incidente do segundo constitutivo violou exatamente isso e mostrou por que a
+regra importa: quando o rascunho espúrio virou a cabeça da tela, o botão "Gerar
+alteração contratual" sumiu, e o consultor ficou sem saída visível — o único
+botão restante levava ao erro. Botão sumido não ensina nada; botão travado com
+motivo ensina o fluxo.
+
+O tooltip diz **o que falta**, não "não permitido". "Falta registrar o contrato
+social da Jatobá Sementes S.A." e não "ação indisponível".
+
+</Callout>
+
+### Decisões fechadas
+
+<Callout id="co-dec-avisar" tone="decision">
+
+**Dois atos pendentes na mesma alteração: avisar, não travar.**
+
+A peça pode formalizar mais de um ato de propósito, e a 2ª alteração da MMS Agro
+é o precedente: ela publica aumento de capital e cessão no mesmo instrumento.
+Travar isso quebraria um caso real.
+
+O que o sistema deve fazer é **declarar**: a folha diz em que peça você está e
+quantos atos pendentes ela está formalizando ("1ª alteração, rascunho,
+formalizando 2 atos pendentes"). Foi a ausência disso que fez a peça parecer que
+estava concatenando alterações, quando na verdade era uma peça só que nunca tinha
+sido registrada.
+
+Isto fixa a fronteira do plano inteiro: **trava o que produz estado inválido,
+avisa o que é só incomum.**
+
+</Callout>
+
+<Callout id="co-dec-rail" tone="decision">
+
+**Com a peça registrada na cabeça, os outros botões do rail ficam visíveis e
+travados, com o motivo — não somem.**
+
+Hoje eles somem, e foi assim que o consultor ficou sem saída: o rail trocou tudo
+pelo selo "Registrado na junta", o botão "Gerar alteração contratual" também
+sumiu por outro caminho, e o único gesto que restou levava ao erro.
+
+Visível e desabilitado, com o motivo dizendo que a peça já produziu efeito e que
+o caminho adiante é gerar uma alteração. É a mesma doutrina do card da subida, que
+mantém o botão travado com a frase ao lado em vez de escondê-lo.
+
+</Callout>
+
+### Os buracos conhecidos, e a trava de cada um
+
+<Table
+  id="tb-buracos"
+  columns={["Buraco", "Onde", "Classe", "Trava proposta"]}
+  rows={[
+    ["\"Atualizar do cadastro\" recongela o snapshot sobre folha em erro de composição", "useGerarDocumentoController.ts:409-468 — é o único dos três gestos de selagem sem o porteiro de resultado.erro que validarVersao tem em :363", "nenhuma", "O mesmo porteiro dos outros dois, e o botão desabilitado por motivoDeBloqueio"],
+    ["Alteração contratual gerada duas vezes sobre a mesma peça", "useGerarDocumentoController.ts:603-620 — a guarda inteira é `if (!clienteId || !documentoBaseId) return`", "nenhuma", "Usar useDocumentoSucessor, que já existe, está documentado para isto e hoje é código morto"],
+    ["O mesmo bem vira aporte duas vezes no aumento de capital", "AumentoDeCapitalDialog → useGravarAumentoDeCapital: bensNoLivro chega por PROP da tela", "nenhuma", "O hook relê o livro e recusa bem que já tem movimento"],
+    ["Segunda gravação do quadro de constituição", "useGravarAporteInicial não pergunta se a empresa já tem quadro, e não há unique em movimentacao_quotas", "nenhuma", "O hook relê o livro; hoje quem faz as vezes de trava é o botão sumir"],
+    ["\"Validar versão\" com a cabeça registrada abre uma segunda linhagem constitutiva", "useDocumentoGerado.ts:318-356 — não acha head rascunho e cai no ramo que cria a raiz", "nenhuma", "papelDaRaiz consulta os constitutivos registrados e recusa; o rail deixa de oferecer o gesto"],
+    ["Registrar um segundo constitutivo da mesma PJ", "papelDaRaiz decide só por substitui_documento_id; barra o índice único, no registro, com mensagem crua", "só-banco", "A mesma função pura acima, lida antes; traduzirHeadDuplicada passa a cobrir este caminho"],
+    ["Saldo negativo por movimento avulso", "problemaDoMovimento é a única barreira e o banco não tem o check equivalente", "só-tela", "O hook reconfere o saldo antes de gravar"],
+    ["Desmarcar evento não protege os movimentos dele", "evento_mudanca_socios leva todos os pendentes em movimentoIds", "nenhuma", "O evento carrega só os movimentos que produziram o efeito dele"],
+  ]}
+/>
+
+<Callout id="co-morto" tone="warning">
+
+**Dois sinais de que a regra já foi pensada e não chegou a ser ligada.**
+
+`useDocumentoSucessor` está escrito, comentado com "para não oferecer 'Gerar
+alteração contratual' duas vezes sobre a mesma peça", e não é importado em lugar
+nenhum fora de um mock de teste. E `problemaDoPagamento` foi separada de
+`problemaDoMovimento` declaradamente "porque o macro da subida precisa checá-la
+isolada" — e `useSubirQuotas` nunca a chama.
+
+Não é código a escrever, é código a plugar. Vale checar isso antes de projetar
+qualquer trava nova: a chance de a peça já existir é alta.
+
+</Callout>
+
+### O que já está certo, e não deve ser mexido
+
+<Callout id="co-ja-certo" tone="info">
+
+A subida das quotas é `pura+dupla` duas vezes: `avaliarTravaDaSubida` é lida pela
+tela e **relida do banco** pelo hook, e `planejarSubidaDeQuotas(...).problema` é
+exibido e reconferido. O botão fica visível, desabilitado, com o motivo no
+`title` e uma faixa explicativa com atalho para resolver.
+
+É o padrão-ouro do repositório e o alvo de todos os outros gestos.
+
+`useReverterAto` chega perto: relê do banco e falha com frase própria. Falta só a
+regra virar função pura, porque hoje ela está escrita duas vezes, em dois
+arquivos, com duas frases diferentes.
+
+</Callout>
+
+### Passos
+
+O primeiro corte é **o segundo constitutivo**: é o buraco que corrompe estado com
+um clique, foi o que travou a tela na prática, e é pequeno o bastante para provar
+o padrão sem depender da máquina de estados inteira.
+
+1. **`avaliarTravaDoConstitutivo`**, em `src/lib/osg/`, no molde exato de
+   `travaDaSubida.ts`: recebe a PJ e o conjunto de constitutivos registrados (o
+   mesmo que `useConstitutivosRegistrados` já entrega), devolve
+   `{ liberado, motivo }`. A frase diz que a sociedade já foi constituída e que o
+   caminho é gerar uma alteração contratual.
+2. **Ligar nos dois lugares.** No hook: `papelDaRaiz` consulta a trava e recusa em
+   vez de carimbar `constitutivo`; e o registro reconfere antes do update, para o
+   índice único deixar de ser quem fala com o consultor. Na tela: o rail deixa de
+   oferecer "Validar versão" e "Atualizar versão" sobre peça registrada, e os
+   mostra visíveis e travados com o motivo (ver as decisões acima).
+3. **Plugar o que já existe**, antes de escrever trava nova: `useDocumentoSucessor`
+   cobre "gerar alteração duas vezes sobre a mesma peça" e `problemaDoPagamento`
+   cobre o que o macro da subida declarou checar e não checa. As duas estão
+   escritas e desligadas.
+4. **O porteiro que falta no "Atualizar do cadastro"**: `revalidar` recebe a mesma
+   checagem de `resultado.erro` que `validarVersao` e o registro já têm, e o botão
+   passa a desabilitar por `motivoDeBloqueio` como o vizinho.
+5. **Generalizar para a máquina de estados**, agora com dois casos concretos na
+   mão: uma função pura que devolve o estado da sociedade e, para cada gesto,
+   `{ liberado, motivo }`. As travas existentes viram casos dela, em vez de
+   funções soltas que não se conhecem.
+6. **A folha declara onde você está**: peça, situação e quantos atos pendentes
+   está formalizando. É a metade "avisar" da decisão sobre atos múltiplos.
+7. **Testar cada trava** com o cenário em que a pré-condição é falsa, e **verificar
+   no app rodando** estendendo `demonstracao.md`: tentar o gesto fora de ordem e
+   conferir que o botão está travado e que o motivo aparece.
+
+### Riscos
+
+<Callout id="co-risco-travar-demais" tone="risk">
+
+**A fronteira entre travar e avisar é o que decide se isto vira blindagem ou
+obstáculo.** A decisão está tomada (trava o estado inválido, avisa o incomum),
+mas ela precisa ser aplicada gesto a gesto, e o erro é fácil de cometer na
+implementação: basta uma trava a mais para o consultor não conseguir lançar um
+movimento avulso legítimo que não se encaixa no macro.
+
+Regra de bolso na hora de decidir cada uma: se o gesto produz dado que **nenhuma
+peça conseguiria narrar corretamente**, trava. Se ele só produz uma peça
+incomum, avisa.
+
+</Callout>
+
+<Callout id="co-risco-frase" tone="warning">
+
+**A frase é metade do trabalho.** Uma trava com mensagem ruim é quase tão ruim
+quanto nenhuma trava: o consultor não entende, chama alguém, e a blindagem virou
+suporte. Toda trava nova precisa da frase escrita junto, dizendo o que falta e
+onde resolver, no tom de `avaliarTravaDaSubida`.
+
+</Callout>
+
+### Fora de escopo
+
+<Callout id="co-fora" tone="info">
+
+**Refazer a navegação da área OSG.** O plano trava gestos onde eles estão; não
+propõe assistente passo a passo nem esconde telas. Se depois de blindado o fluxo
+ainda for confuso, aí a conversa é outra, e ela começa com o consultor usando o
+fluxo blindado.
+
+**Desfazer o que já foi gravado errado.** Limpar cenário de teste continua sendo
+gesto de quem conduz, por SQL, com backup.
+
+</Callout>
+
+### Open Questions
+
+<QuestionForm
+  id="qf-abertas"
+  questions={[
+    {
+      id: "restricoes",
+      title: "Alguma ordem que a OSG considera válida e que este plano trataria como erro?",
+      subtitle: "É a única pergunta ainda aberta, e a que pode mudar a fronteira entre travar e avisar. Vale perguntar ao time antes de a implementação começar.",
+      mode: "freeform",
+      placeholder: "Ex.: casos em que um ato precisa ser lançado antes do registro da peça anterior..."
+    }
+  ]}
+  submitLabel="Responder"
+/>

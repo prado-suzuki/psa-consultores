@@ -40,15 +40,15 @@ export function OpenSubtasksWarningDialog(props: OpenSubtasksWarningDialogProps)
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <ul className="space-y-1 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <ul className="space-y-1 rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
           {props.openSubtasks.map((subtask) => (
             <li key={subtask.id}>
               {subtask.task_code && (
-                <span className="mr-1 font-mono text-xs text-amber-700">{subtask.task_code}</span>
+                <span className="mr-1 font-mono text-xs text-warning">{subtask.task_code}</span>
               )}
               {subtask.title}
               {props.getProfileName && 'assigned_to' in subtask && (
-                <span className="text-xs text-amber-700">
+                <span className="text-xs text-warning">
                   {' '}
                   · {props.getProfileName((subtask as { assigned_to: string | null }).assigned_to)}
                 </span>

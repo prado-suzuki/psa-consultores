@@ -3,6 +3,7 @@ import { ptBR } from 'date-fns/locale';
 
 import { AREA_ROUTES } from '@/config/areaCategories';
 import { parseDate } from '@/lib/dateUtils';
+import { ehEventoDeSistema, type OrgCommentKind } from '@/lib/orgCommentEventos';
 
 /**
  * Regras puras do feed de comentários: cursor de paginação, agrupamento por dia,
@@ -35,6 +36,7 @@ export interface GrupoDeDia<T> {
 interface ItemDoFeed {
   id: string;
   created_at: string;
+  kind?: OrgCommentKind;
   parent_id?: string | null;
   entity_type?: string;
   entity_id?: string;
@@ -144,12 +146,21 @@ const JANELA_DE_BLOCO_MS = 10 * 60 * 1000;
  * Serve só à apresentação: quando é continuação, o item repete nem avatar nem
  * nome, como numa conversa. Autor anônimo (`author_id` nulo) nunca agrupa, senão
  * dois "Usuário removido" diferentes viriam como se fossem a mesma pessoa.
+ *
+ * EVENTO DE SISTEMA NUNCA AGRUPA, dos dois lados. O evento carrega o
+ * `author_id` de quem o disparou, então sem esta trava um "Enviado para
+ * revisão" logo depois da fala da mesma pessoa entraria como continuação dela e
+ * perderia justamente o que o identifica: o avatar do sistema e o título no
+ * lugar do nome. O leitor veria a frase do evento como se a pessoa a tivesse
+ * digitado.
  */
 export function mesmoBlocoDeAutor(
-  atual: Pick<ItemDoFeed, 'author_id' | 'parent_id' | 'created_at'>,
-  vizinho: Pick<ItemDoFeed, 'author_id' | 'parent_id' | 'created_at'> | undefined,
+  atual: Pick<ItemDoFeed, 'author_id' | 'parent_id' | 'created_at' | 'kind'>,
+  vizinho: Pick<ItemDoFeed, 'author_id' | 'parent_id' | 'created_at' | 'kind'> | undefined,
 ): boolean {
   if (!vizinho) return false;
+  if (ehEventoDeSistema(atual.kind ?? 'comment')) return false;
+  if (ehEventoDeSistema(vizinho.kind ?? 'comment')) return false;
   if (!atual.author_id || atual.author_id !== vizinho.author_id) return false;
   if ((atual.parent_id ?? null) !== (vizinho.parent_id ?? null)) return false;
 
@@ -190,7 +201,7 @@ export interface ThreadDoFeed<T> {
  * então não há recursão: `respostas` é lista, não árvore.
  */
 export function montarThreads<
-  T extends Pick<ItemDoFeed, 'id' | 'parent_id' | 'created_at' | 'author_id'>,
+  T extends Pick<ItemDoFeed, 'id' | 'parent_id' | 'created_at' | 'author_id' | 'kind'>,
 >(itens: T[]): ThreadDoFeed<T>[] {
   const porRaiz = new Map<string, ThreadDoFeed<T>>();
   for (const item of itens) {

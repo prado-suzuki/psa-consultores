@@ -61,7 +61,7 @@ export function FormMatricula({
             <RequiredMark />
           </Label>
           {imoveis.length === 0 ? (
-            <p className="text-xs text-amber-600">
+            <p className="text-xs text-warning">
               Nenhum imóvel cadastrado para este cliente. Cadastre o bem (imóvel rural ou urbano)
               antes da matrícula — inclusive por aqui, trocando o tipo de ficha para "Bem".
             </p>

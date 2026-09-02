@@ -31,13 +31,13 @@ export function SelecaoRegistrosLista({
   compacto = false,
 }: SelecaoRegistrosListaProps) {
   if (registros.length === 0) {
-    return <p className="text-sm text-slate-500">Nenhum registro cadastrado.</p>;
+    return <p className="text-sm text-muted-foreground">Nenhum registro cadastrado.</p>;
   }
   return (
     <div
       className={cn(
         'space-y-2 overflow-y-auto',
-        compacto ? 'max-h-64 p-1.5' : 'max-h-56 rounded-lg border border-slate-200 p-3',
+        compacto ? 'max-h-64 p-1.5' : 'max-h-56 rounded-lg border border-border p-3',
       )}
     >
       {registros.map((registro) => {

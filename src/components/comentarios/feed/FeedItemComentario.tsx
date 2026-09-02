@@ -11,6 +11,13 @@ import {
   type OrgCommentAttachment,
 } from '@/hooks/useDomainOrgComments';
 import type { FeedComentario } from '@/hooks/useDomainFeedComentarios';
+import { dataHoraCurta } from '@/lib/dateUtils';
+import {
+  AUTOR_DO_EVENTO,
+  corpoDoEvento,
+  ehEventoDeSistema,
+  rotuloDoEvento,
+} from '@/lib/orgCommentEventos';
 import { iniciaisDoNome } from '@/lib/orgCommentMentions';
 import { cn } from '@/lib/utils';
 
@@ -47,6 +54,14 @@ export function FeedItemComentario({
 }: FeedItemComentarioProps) {
   const downloadAttachment = useDownloadOrgCommentAttachment();
   const criadoEm = new Date(comentario.created_at);
+  /*
+   * Evento de sistema usa o MESMO desenho do painel da tarefa: avatar "PSA",
+   * título do evento no lugar do nome, corpo em caixa com barra lateral e sem
+   * Responder. É o mesmo `org_comments` nas duas telas, e ler diferente em cada
+   * uma só confundiria. Os textos vem de `@/lib/orgCommentEventos`, um lugar só.
+   */
+  const ehEvento = ehEventoDeSistema(comentario.kind);
+  const corpo = ehEvento ? corpoDoEvento(comentario) : comentario.body;
 
   const abrirAnexo = async (attachment: OrgCommentAttachment) => {
     const resultado = await downloadAttachment.mutateAsync(attachment);
@@ -100,10 +115,10 @@ export function FeedItemComentario({
             className={cn(
               'relative z-10 grid shrink-0 place-items-center rounded-full font-semibold ring-2 ring-card',
               nested ? 'h-7 w-7 text-[9px]' : 'h-8 w-8 text-[10px]',
-              tomDoAutor(comentario.author_id),
+              ehEvento ? 'bg-primary/10 text-primary' : tomDoAutor(comentario.author_id),
             )}
           >
-            {iniciaisDoNome(comentario.author_name)}
+            {ehEvento ? AUTOR_DO_EVENTO : iniciaisDoNome(comentario.author_name)}
           </span>
         )}
 
@@ -116,14 +131,22 @@ export function FeedItemComentario({
                   nested ? 'text-[13px]' : 'text-sm',
                 )}
               >
-                {comentario.author_name || 'Usuário removido'}
+                {ehEvento
+                  ? rotuloDoEvento(comentario.kind)
+                  : comentario.author_name || 'Usuário removido'}
               </span>
+              {/*
+                Data e hora por extenso na própria fala, e não só a hora.
+                A Patricia se perdia tendo que subir até o rótulo do dia para
+                saber de quando era a mensagem; o rótulo continua lá, mas agora
+                a linha se explica sozinha.
+              */}
               <time
                 dateTime={comentario.created_at}
                 title={format(criadoEm, "d 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR })}
                 className="shrink-0 text-[11px] tabular-nums text-muted-foreground"
               >
-                {format(criadoEm, 'HH:mm')}
+                {dataHoraCurta(criadoEm)}
               </time>
               {/*
                 A etiqueta só aparece na resposta cuja raiz ficou fora da leva —
@@ -141,9 +164,21 @@ export function FeedItemComentario({
             </div>
           )}
 
-          <div className={cn('text-sm', continuaBloco ? 'mt-0' : 'mt-1')}>
-            <OrgCommentBody body={comentario.body} />
-          </div>
+          {/*
+            Evento sem corpo próprio ("Tarefa aprovada" é só o título) não desenha
+            caixa vazia: `corpoDoEvento` devolve string vazia e a linha some.
+          */}
+          {(!ehEvento || corpo) && (
+            <div
+              className={cn(
+                'text-sm',
+                continuaBloco ? 'mt-0' : 'mt-1',
+                ehEvento && 'rounded-lg border-l-2 border-primary/40 bg-muted/35 px-3 py-2',
+              )}
+            >
+              <OrgCommentBody body={corpo} />
+            </div>
+          )}
 
           {comentario.attachments.length > 0 && (
             <div className="mt-2 grid gap-2 sm:grid-cols-2">
@@ -159,7 +194,7 @@ export function FeedItemComentario({
          * um "Responder" embaixo de cada fala nem um buraco reservado para ele.
          * No dedo fica sempre visível; no mouse aparece ao passar pela fala.
          */}
-        {onResponder && (
+        {onResponder && !ehEvento && (
           <button
             type="button"
             onClick={onResponder}

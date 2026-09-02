@@ -127,15 +127,14 @@ const MinhaEvolucao = () => {
     <BoardLayout title="Minha Evolução" subtitle="Acompanhe seu desempenho">
       <div className="space-y-5">
         {/* Identity Header */}
-        {/* Gradiente pelo par de tokens, na ordem que o `index.css` documenta
-            (linhas 425-434): do mais escuro `--surface-escura` para o
-            intermediário `--surface-escura-2`. O `#0F172A` que estava cravado
-            aqui É `hsl(222 47% 11%)`, ou seja o próprio `--surface-escura-2` do
-            piso copiado à mão — e por ser hex ignorava o tema da rota. Esta
-            tela resolve por `.board-theme` (o Board saiu da infraestrutura em
-            21/08/2026), que declara teal profundo — antes era o grafite quente
-            da `.sistema-theme`, e o cartão vinha azul-marinho contra os dois.
-            Branco em cima, medido nos valores novos: 16,8:1 e 12,5:1. */}
+        {/* Gradiente pelo par de tokens, na ordem que o `.base-theme` documenta:
+            do mais escuro `--surface-escura` para o intermediário
+            `--surface-escura-2`. O `#0F172A` que estava cravado aqui É
+            `hsl(222 47% 11%)`, ou seja o próprio `--surface-escura-2` do piso
+            copiado à mão — e por ser hex ignorava o tema da rota. Esta tela
+            resolve só o piso, e o piso declara teal profundo desde 31/08/2026,
+            quando as superfícies do Board viraram as da casa e a `.board-theme`
+            saiu. Branco em cima, medido: 16,8:1 e 12,5:1. */}
         <div className="rounded-xl p-5 text-white" style={{ background: 'linear-gradient(135deg, hsl(var(--surface-escura)), hsl(var(--surface-escura-2)))' }}>
           <div className="flex items-center gap-4 mb-4">
             <div className="w-14 h-14 rounded-xl flex items-center justify-center text-lg font-bold" style={{ background: 'var(--bd-accent-d)' }}>{initials}</div>

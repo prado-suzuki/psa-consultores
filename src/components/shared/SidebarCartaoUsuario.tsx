@@ -34,9 +34,9 @@ const TONS = {
    * continuaria branca — é migração de paleta, não correção de corte.
    */
   slate: {
-    chip: 'bg-slate-50',
-    nome: 'text-slate-900',
-    rotulo: 'text-slate-500',
+    chip: 'bg-muted',
+    nome: 'text-foreground',
+    rotulo: 'text-muted-foreground',
   },
 } as const;
 
@@ -56,8 +56,15 @@ interface DefinicaoDeArea {
  * arquivo que muda.
  */
 const AREAS = {
-  tax: { rotulo: 'Tax', acento: 'bg-success/10 text-success', tom: 'tokens' },
-  osg: { rotulo: 'OSG', acento: 'bg-osg-500/10 text-osg-600', tom: 'tokens' },
+  // As três áreas com tema no `<html>` usam o MESMO acento, e é isso que faz o
+  // avatar mudar de cor sozinho ao trocar de área: `--primary` é a âncora da
+  // área, então o cartão herda a identidade sem que este arquivo a conheça.
+  //
+  // A Tax vinha com `bg-success/10 text-success` — o verde de "deu certo", um
+  // token de STATUS pintando IDENTIDADE. Ficava verde na barra da Tax e não
+  // mudava ao trocar de área, porque `--success` é o mesmo em todas.
+  tax: { rotulo: 'Tax', acento: 'bg-primary/10 text-primary', tom: 'tokens' },
+  osg: { rotulo: 'OSG', acento: 'bg-primary/10 text-primary', tom: 'tokens' },
   gestao: { rotulo: 'Gestão', acento: 'bg-primary/10 text-primary', tom: 'tokens' },
   administracao: {
     rotulo: 'Administrador',

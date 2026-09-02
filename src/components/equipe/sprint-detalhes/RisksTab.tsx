@@ -8,6 +8,7 @@ import { TabsContent } from '@/components/ui/tabs';
 import { parseDate } from '@/lib/dateUtils';
 import type { SprintDetalhesDeliverable as Deliverable } from '@/hooks/useDomainEquipeSprintDetalhes';
 import type { EquipeSprintDetalhesController } from '@/hooks/useEquipeSprintDetalhesController';
+import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
 
 function DueCard({
   title,
@@ -46,7 +47,7 @@ function DueCard({
             </div>
             <div className="flex gap-2">
               <Badge variant="outline">
-                {item.status === 'in_progress' ? 'Em Progresso' : 'Pendente'}
+                {item.status === 'in_progress' ? entregavelStatusColors.in_progress.label : entregavelStatusColors.pending.label}
               </Badge>
               <Button size="sm" variant="outline" onClick={() => c.openEditModal(item)}>
                 <Edit2 className="h-3 w-3" />

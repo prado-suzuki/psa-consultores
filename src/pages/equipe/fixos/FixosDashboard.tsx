@@ -4,7 +4,7 @@ import { FixosLayout } from '@/components/equipe/fixos/FixosLayout';
 const FixosDashboard = () => {
   return (
     <FixosLayout title="Dashboard" subtitle="Visão geral da área Fixos">
-      <div className="flex items-center justify-center h-[60vh] text-slate-400">
+      <div className="flex items-center justify-center h-[60vh] text-muted-foreground">
         <div className="text-center">
           <Building className="h-16 w-16 mx-auto mb-4 opacity-50" />
           <p className="text-lg">Área em desenvolvimento</p>

@@ -43,7 +43,7 @@ function Secao({ icone, cor, label, count, aberta, onToggle, children }: SecaoPr
   return (
     <div className={`processo-acc${aberta ? ' aberta' : ''}`}>
       <button type="button" className="processo-acc-head" onClick={onToggle} aria-expanded={aberta}>
-        <span className="processo-acc-icone" style={{ color: cor, background: `${cor}1f` }}>{icone}</span>
+        <span className="processo-acc-icone" style={{ color: cor, background: 'color-mix(in srgb, currentColor 12%, transparent)' }}>{icone}</span>
         <span className="processo-acc-label">{label}</span>
         <span className="processo-acc-count">{count}</span>
         <ChevronDown size={17} className="processo-acc-chevron" />
@@ -110,7 +110,7 @@ export default function ProcessoDetalheModal({
 
         <div className="processo-det-body">
           <div className="processo-det-export" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-            <span style={{ fontSize: '0.78rem', color: '#64748b', marginRight: 2 }}>Exportar</span>
+            <span style={{ fontSize: '0.78rem', color: 'hsl(var(--slate-500))', marginRight: 2 }}>Exportar</span>
             <button type="button" className="btn-cancel" onClick={() => exports.exportSopPdf(pid, 'era')} title="SOP em PDF (cenário atual)">
               <FileText size={14} /> SOP (PDF)
             </button>
@@ -127,7 +127,7 @@ export default function ProcessoDetalheModal({
           )}
 
           <div className="processo-acc-grupo" data-tour="modal-tabs">
-          <Secao icone={<Workflow size={16} />} cor="#0d9488" label="Etapas" count={etapas.length} aberta={!!abertas.etapas} onToggle={() => toggle('etapas')}>
+          <Secao icone={<Workflow size={16} />} cor="hsl(var(--primary))" label="Etapas" count={etapas.length} aberta={!!abertas.etapas} onToggle={() => toggle('etapas')}>
             {etapas.length === 0 ? (
               <p className="processo-det-vazio">Nenhuma etapa mapeada ainda.</p>
             ) : (
@@ -142,7 +142,7 @@ export default function ProcessoDetalheModal({
             )}
           </Secao>
 
-          <Secao icone={<FileText size={16} />} cor="#475569" label="Documentos" count={docs.length} aberta={!!abertas.documentos} onToggle={() => toggle('documentos')}>
+          <Secao icone={<FileText size={16} />} cor="hsl(var(--slate-600))" label="Documentos" count={docs.length} aberta={!!abertas.documentos} onToggle={() => toggle('documentos')}>
             <Chips itens={docs} vazio="Nenhum documento vinculado às etapas." />
           </Secao>
 
@@ -150,7 +150,7 @@ export default function ProcessoDetalheModal({
             <Chips itens={sistemas} vazio="Nenhum sistema vinculado às etapas." />
           </Secao>
 
-          <Secao icone={<Users size={16} />} cor="#0d9488" label="Responsáveis" count={responsaveis.length} aberta={!!abertas.responsaveis} onToggle={() => toggle('responsaveis')}>
+          <Secao icone={<Users size={16} />} cor="hsl(var(--primary))" label="Responsáveis" count={responsaveis.length} aberta={!!abertas.responsaveis} onToggle={() => toggle('responsaveis')}>
             <Chips itens={responsaveis} vazio="Nenhum responsável atribuído às etapas." />
           </Secao>
 
@@ -158,7 +158,7 @@ export default function ProcessoDetalheModal({
             <Chips itens={gargalos.map(g => g.nome)} vazio="Nenhum gargalo identificado." />
           </Secao>
 
-          <Secao icone={<Sparkles size={16} />} cor="#0d9488" label="Melhorias" count={melhorias.length} aberta={!!abertas.melhorias} onToggle={() => toggle('melhorias')}>
+          <Secao icone={<Sparkles size={16} />} cor="hsl(var(--primary))" label="Melhorias" count={melhorias.length} aberta={!!abertas.melhorias} onToggle={() => toggle('melhorias')}>
             <Chips itens={melhorias.map(m => m.nome)} vazio="Nenhuma melhoria planejada." />
           </Secao>
           </div>

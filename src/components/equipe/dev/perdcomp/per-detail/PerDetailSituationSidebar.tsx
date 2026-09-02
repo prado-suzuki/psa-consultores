@@ -58,10 +58,10 @@ export function PerDetailSituationSidebar({
   onDeleteRessarcimento,
 }: PerDetailSituationSidebarProps) {
   return (
-    <aside className="w-80 bg-slate-50 border-r border-slate-200 flex flex-col flex-shrink-0 overflow-hidden">
+    <aside className="w-80 bg-muted border-r border-border flex flex-col flex-shrink-0 overflow-hidden">
       <div className="p-4 space-y-4 overflow-y-auto flex-1 min-h-0">
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">
             Situação Atual
           </h4>
           {situacaoAtual ? (
@@ -78,7 +78,7 @@ export function PerDetailSituationSidebar({
         <Separator />
 
         <div className="space-y-3">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
             Atualizar Situação
           </h4>
           <Select value={novaSituacao} onValueChange={onNovaSituacaoChange}>
@@ -106,7 +106,7 @@ export function PerDetailSituationSidebar({
         <Separator />
 
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center gap-2">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
             <History className="h-3 w-3" />
             Histórico
           </h4>
@@ -126,7 +126,7 @@ export function PerDetailSituationSidebar({
                       'p-2 rounded-lg border',
                       index === 0
                         ?'bg-white border-primary/20'
-                        :'bg-slate-100/50 border-transparent',
+                        :'bg-muted/50 border-transparent',
                     )}
                   >
                     <div className="flex items-center justify-between">
@@ -136,7 +136,7 @@ export function PerDetailSituationSidebar({
                       >
                         {sit.situacao}
                       </Badge>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-muted-foreground">
                         {formatDateTime(sit.criado_em)}
                       </span>
                     </div>
@@ -149,7 +149,7 @@ export function PerDetailSituationSidebar({
       </div>
 
       {perPago && (
-        <div className="mt-auto p-4 border-t border-slate-200">
+        <div className="mt-auto p-4 border-t border-border">
           <div className="rounded-lg border border-green-300 bg-green-50 p-3">
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">

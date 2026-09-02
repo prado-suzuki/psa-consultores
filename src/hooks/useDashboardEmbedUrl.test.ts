@@ -40,6 +40,14 @@ describe('mapEmbedRpc', () => {
     });
   });
 
+  it('fail-closed: ok=true sem embed_url → url null, não iframe sem src', () => {
+    // O caso que o `strict` achou: `embed_url` é opcional no tipo da RPC, então
+    // `ok: true` sem ela produzia `{ ok: true, url: undefined }` e o consumidor
+    // montava um iframe sem `src`.
+    const r = mapEmbedRpc({ ok: true, reason: 'ok', param_names: ['ds0.x'], value: 'aaa' });
+    expect(r).toEqual({ ok: false, reason: 'not_found', url: null });
+  });
+
   it('filter_type=nenhum (value null) → URL base sem params', () => {
     const base = 'https://looker/embed/reporting/RID/page/PID';
     const r = mapEmbedRpc({ ok: true, reason: 'ok', embed_url: base, param_names: [], value: null });

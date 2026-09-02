@@ -424,6 +424,12 @@ export const ENTIDADES: Record<TipoEntidade, Entidade> = {
         derivar: (v) => tituloDoInstrumento(paraInteiroBR(v.numeroAlteracao)),
       },
       { id: 'tituloColetivoSocios', label: 'Sócio(s) com concordância do quadro', tipo: 'texto' },
+      // Condicional (o engine não tem "else"): a administração passou a ser
+      // exercida de fora do quadro societário. É o que autoriza a cláusula a
+      // dizer "administradores não sócios", em vez de a redação afirmar isso
+      // sempre ou nunca.
+      { id: 'temAdministradorNaoSocio', label: 'Há administrador não sócio? (condicional)', tipo: 'texto' },
+      { id: 'semAdministradorNaoSocio', label: 'Todos os administradores são sócios? (condicional, o engine não tem else)', tipo: 'texto' },
       { id: 'razaoSocial', label: 'Razão social', tipo: 'texto', obrigatorio: true },
       // CNPJ NÃO é obrigatório: o contrato de constituição é justamente o
       // documento que a sociedade leva à Junta para obtê-lo.

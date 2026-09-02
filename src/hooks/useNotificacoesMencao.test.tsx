@@ -61,7 +61,7 @@ function queryRegistro() {
       queryFn: () => Promise<unknown[]>;
       enabled: boolean;
       staleTime: number;
-      refetchInterval: number;
+      refetchInterval: number | false;
     },
   ];
   return options;

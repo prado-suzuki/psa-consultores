@@ -95,10 +95,10 @@ export const BaseLegalCard = ({ familia }: BaseLegalCardProps) => {
   return (
     <Alert className="mb-6 bg-emerald-50/70 border-emerald-200">
       <Scale className="h-5 w-5 text-emerald-700"/>
-      <AlertTitle className="text-sm font-semibold text-slate-700">
+      <AlertTitle className="text-sm font-semibold text-foreground">
         Base Legal
       </AlertTitle>
-      <AlertDescription className="text-sm leading-relaxed text-slate-700 mt-1 space-y-1">
+      <AlertDescription className="text-sm leading-relaxed text-foreground mt-1 space-y-1">
         {lines.map((line, idx) => (
           <p key={idx}>{renderBoldSegments(line)}</p>
         ))}

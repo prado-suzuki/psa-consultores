@@ -76,9 +76,9 @@ export function PerDetailDcompPanel({
 }: PerDetailDcompPanelProps) {
   return (
     <div className="flex-1 flex flex-col min-w-0 bg-white">
-      <div className="h-14 border-b border-slate-200 flex items-center justify-between px-6 bg-white flex-shrink-0">
+      <div className="h-14 border-b border-border flex items-center justify-between px-6 bg-white flex-shrink-0">
         <div className="flex items-center gap-4">
-          <h4 className="text-lg font-bold text-slate-800">Lançamentos PER</h4>
+          <h4 className="text-lg font-bold text-foreground">Lançamentos PER</h4>
           <Badge variant="secondary" className="text-xs">
             {rows.length} registro{rows.length !== 1 ? 's' : ''}
           </Badge>
@@ -126,7 +126,7 @@ export function PerDetailDcompPanel({
         </div>
       </div>
 
-      <div className="flex-1 overflow-auto bg-slate-50/30">
+      <div className="flex-1 overflow-auto bg-muted/30">
         {loading ? (
           <div className="flex items-center justify-center h-full">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -212,13 +212,13 @@ export function PerDetailDcompPanel({
         )}
       </div>
 
-      <div className="xl:hidden h-16 px-6 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between flex-shrink-0">
+      <div className="xl:hidden h-16 px-6 border-t border-border bg-muted/50 flex items-center justify-between flex-shrink-0">
         <div>
-          <p className="text-xs text-slate-500">Valor Crédito</p>
+          <p className="text-xs text-muted-foreground">Valor Crédito</p>
           <p className="font-mono font-bold">{formatCurrency(valorCredito)}</p>
         </div>
         <div className="text-right">
-          <p className="text-xs text-slate-500">Saldo Restante do PER</p>
+          <p className="text-xs text-muted-foreground">Saldo Restante do PER</p>
           <p
             className={cn(
               'font-mono font-bold',

@@ -193,7 +193,7 @@ export default function SistemaFormModal({ aberto, sistema, clusterIdInicial, on
             <div className="cadastro-form-secao">
               Clusters e rateio <DicaIcon text={dica('comum.rateioSecao')} />
             </div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', margin: '-2px 0 8px' }}>
+            <div style={{ fontSize: '0.78rem', color: 'hsl(var(--slate-500))', margin: '-2px 0 8px' }}>
               De quais clusters o sistema faz parte e quanto do custo vai pra cada um. Quem fica em 0% não participa; a soma <strong>precisa dar 100%</strong> para salvar.
             </div>
             <div className="cadastro-form-leitura">
@@ -219,7 +219,7 @@ export default function SistemaFormModal({ aberto, sistema, clusterIdInicial, on
                 );
               })}
             </div>
-            <div style={{ fontSize: '0.8rem', fontWeight: 600, textAlign: 'right', marginTop: 4, color: totalRateio === 100 ? '#0d9488' : '#b45309' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 600, textAlign: 'right', marginTop: 4, color: totalRateio === 100 ? 'hsl(var(--primary))' : '#b45309' }}>
               Total: {totalRateio}%{totalRateio === 100 ? ' ✓' : ' — precisa somar 100% para salvar'}
             </div>
           </>

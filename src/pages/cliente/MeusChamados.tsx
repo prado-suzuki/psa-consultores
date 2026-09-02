@@ -271,7 +271,7 @@ export default function MeusChamados() {
                           {priorityLabels[ticket.priority]}
                         </Badge>
                         {ticket.department && (
-                          <Badge variant="outline" className="bg-teal-100 text-teal-700">
+                          <Badge variant="outline" className="bg-accent/10 text-teal-700">
                             {departmentLabels[ticket.department] || ticket.department}
                           </Badge>
                         )}

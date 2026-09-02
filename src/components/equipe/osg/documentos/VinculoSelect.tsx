@@ -105,7 +105,7 @@ export function VinculoSelect({
             <button
               type="button"
               onClick={() => escolher('sem')}
-              className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm text-slate-700 hover:bg-osg-50"
+              className="flex w-full items-center justify-between rounded-md px-2 py-2 text-sm text-foreground hover:bg-osg-50"
             >
               <span>Sem vínculo — apenas o cliente</span>
               {semVinculo && <Check className="h-4 w-4 shrink-0 text-osg-700" />}
@@ -133,7 +133,7 @@ export function VinculoSelect({
                     )}
                   />
                   <span className="flex-1 text-left">{b.label}</span>
-                  <span className="shrink-0 rounded-full bg-slate-100 px-1.5 text-[11px] tabular-nums text-slate-500">
+                  <span className="shrink-0 rounded-full bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
                     {b.itens.length}
                   </span>
                 </button>
@@ -155,7 +155,7 @@ export function VinculoSelect({
                           onClick={() => escolher(v)}
                           className={cn(
                             'flex w-full items-center justify-between rounded-md py-1.5 pl-7 pr-2 text-sm hover:bg-osg-50',
-                            sel ? 'font-medium text-osg-700' : 'text-slate-700',
+                            sel ? 'font-medium text-osg-700' : 'text-foreground',
                           )}
                         >
                           <span className="min-w-0 flex-1 truncate text-left">{it.label}</span>

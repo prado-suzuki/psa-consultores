@@ -65,7 +65,7 @@ export function MoveDeliverableDialog({ controller: c }: MoveDeliverableDialogPr
         </div>
 
         {c.movePreview && (
-          <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm text-warning">
             <p className="font-medium mb-1">O que vai acontecer</p>
             <ul className="list-disc pl-4 space-y-1">
               {c.movePreview.lines.map((line) => (

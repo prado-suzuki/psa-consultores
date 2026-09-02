@@ -7,6 +7,7 @@ import {
   type DashboardMetricDeliverable,
 } from '@/hooks/useDomainDashboardMetrics';
 import { X } from 'lucide-react';
+import { entregavelStatusColors } from '@/lib/entregavelStatusColors';
 
 const MONTH_NAMES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
@@ -163,7 +164,7 @@ export function DashboardMetrics() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos status</SelectItem>
-            <SelectItem value="pending">Pendente</SelectItem>
+            <SelectItem value="pending">{entregavelStatusColors.pending.label}</SelectItem>
             <SelectItem value="in_progress">Em Progresso</SelectItem>
             <SelectItem value="completed">Concluído</SelectItem>
           </SelectContent>

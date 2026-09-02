@@ -74,6 +74,14 @@ export interface ArgsDaDerivacao {
    * mesma chave.
    */
   cpfCnpjPorPessoaId?: Readonly<Record<string, string>>;
+  /**
+   * Ids das pessoas que administram a sociedade. Serve a UMA pergunta que o
+   * cadastro não responde: a alteração pode mudar a NATUREZA da administração
+   * sem que nenhuma linha de `administracao` mude — é o que acontece quando os
+   * sócios-administradores cedem a totalidade das quotas e seguem administrando,
+   * agora de fora do quadro.
+   */
+  administradorPessoaIds?: readonly string[];
 }
 
 const fmt = (v: number) =>
@@ -104,6 +112,7 @@ export function derivarEventosDaAlteracao(args: ArgsDaDerivacao): EventoDerivado
     pjPessoaId = null,
     baseline = null,
     cpfCnpjPorPessoaId = {},
+    administradorPessoaIds = [],
   } = args;
   const daEmpresa = args.movimentos.filter((m) => m.empresaPessoaId === empresaPessoaId);
   const pendentes = daEmpresa.filter((m) => !m.documentoGeradoId);
@@ -200,12 +209,44 @@ export function derivarEventosDaAlteracao(args: ArgsDaDerivacao): EventoDerivado
     });
   }
 
-  // 6. Administração: também de fora do livro.
+  // 6. Administração: de fora do livro, por DUAS razões independentes.
+  //
+  //    (a) o cadastro de `administracao` mudou; e
+  //    (b) a retirada acima deixou quem administra FORA do quadro societário.
+  //
+  //    A (b) existe porque a natureza da administração muda sem que nenhuma linha
+  //    de cadastro mude: na 2ª alteração da MMS Agro os dois fundadores cedem tudo
+  //    à holding e continuam administrando, e o instrumento tem de dizer que a
+  //    sociedade passa a ser administrada por administradores NÃO SÓCIOS. Sem esta
+  //    perna o evento não acendia, as cláusulas de administração e de
+  //    desimpedimento ficavam fora da peça, e o consolidado saía afirmando
+  //    "administrada isoladamente por X e Y" logo abaixo de uma cláusula de
+  //    capital que dá 100% das quotas a outra pessoa.
   const daAdministracao = mudancas.filter((m) => m.entityType === 'administracao');
-  if (daAdministracao.length > 0) {
+  // A condição é "houve retirada", e ela é lida do ATO e não do baseline: cedente
+  // de cessão pendente que não sobrou no quadro projetado. É o mesmo critério que
+  // o render usa para montar {{#retirantes}} (`retirantesDaCessao`), e alinhá-los
+  // é o que impede a flag de discordar do texto — além de funcionar na PRIMEIRA
+  // alteração da sociedade, onde baseline não existe e `sairam` sai vazio.
+  const noQuadroFinal = new Set(quadroEm(daEmpresa, empresaPessoaId).map((l) => l.pessoaId));
+  const houveRetirada = pendentes.some(
+    (m) => (m.tipo === 'cessao' || m.tipo === 'doacao')
+      && !!m.origemPessoaId
+      && !noQuadroFinal.has(m.origemPessoaId),
+  );
+  const naoSocios = houveRetirada
+    ? administradoresNaoSocios(daEmpresa, empresaPessoaId, administradorPessoaIds)
+    : [];
+  if (daAdministracao.length > 0 || naoSocios.length > 0) {
+    const porCadastro = daAdministracao.length > 0
+      ? `${daAdministracao.length} mudança(s) na administração desde o documento registrado`
+      : '';
+    const porRetirada = naoSocios.length > 0
+      ? `${naoSocios.length} administrador(es) passa(m) a administrar sem estar no quadro societário`
+      : '';
     eventos.push({
       flagNome: 'evento_mudanca_administracao',
-      evidencia: `${daAdministracao.length} mudança(s) na administração desde o documento registrado`,
+      evidencia: [porCadastro, porRetirada].filter(Boolean).join('; '),
       movimentoIds: [],
     });
   }

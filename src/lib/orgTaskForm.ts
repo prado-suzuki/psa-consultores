@@ -235,8 +235,20 @@ export function filterTeamMembersByProject(params: {
 /**
  * Status oferecidos no select.
  *
- * 'review' e 'em_ajuste' não são escolhidos à mão — só aparecem quando já são o
- * status atual da tarefa. O revisor delegado ainda perde 'done': concluir é do
+ * 'review' e 'em_ajuste' aparecem na edição de tarefa que já existe. Escolher um
+ * deles não grava direto: o salvamento cede a vez ao diálogo de revisão, que
+ * exige revisor e o que revisar (ramo `requiresTransitionComment` do
+ * `TaskModal`) — é a mesma passagem que a linha da lista usa.
+ *
+ * Antes eles só apareciam quando JÁ eram o status atual, e o resultado era um
+ * caminho que existia do lado de fora e não existia com a tarefa aberta: a
+ * lista de projetos e tarefas oferece os sete status na própria linha, e quem
+ * abria a tarefa para mandar para revisão não achava a opção. O botão "Enviar
+ * para revisão" da barra do topo só aparece para o responsável da tarefa, então
+ * para todo mundo mais o modal ficava sem saída.
+ *
+ * Na criação seguem fora: não há para quem delegar revisão de trabalho que
+ * ainda não existe. O revisor delegado ainda perde 'done': concluir é do
  * responsável, não de quem revisa.
  */
 export function filterStatusOptions(
@@ -245,9 +257,7 @@ export function filterStatusOptions(
 ): StatusColorConfig[] {
   return options.filter((status) => {
     if (params.isReviewer && status.key === 'done') return false;
-    if (status.key === 'review' || status.key === 'em_ajuste') {
-      return status.key === params.taskStatus;
-    }
+    if (status.key === 'review' || status.key === 'em_ajuste') return !!params.taskStatus;
     return true;
   });
 }

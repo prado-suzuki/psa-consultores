@@ -51,7 +51,7 @@ export const PainelAcoes = ({
       {copiado ? 'Copiado' : 'Copiar texto'}
     </Button>
     {pronto && info && (
-      <p className="basis-full text-center text-[11px] leading-relaxed text-slate-500 xl:basis-auto xl:pt-1">
+      <p className="basis-full text-center text-[11px] leading-relaxed text-muted-foreground xl:basis-auto xl:pt-1">
         {info}
       </p>
     )}

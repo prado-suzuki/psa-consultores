@@ -1,7 +1,8 @@
 # Levantamentos — 21/08/2026
 
-Os três itens da fila de `estado-do-sistema-2026-08-20.md` que estavam marcados como
-"falta levantar antes de decidir". Nenhuma decisão tomada aqui, nenhum código alterado — só
+Os três itens que estavam marcados como "falta levantar antes de decidir" na fila do
+documento de estado de 20/08 (arquivado pelo próprio autor em 21/08 e apagado em 01/09;
+está no histórico do git). Nenhuma decisão tomada aqui, nenhum código alterado — só
 medição, com o endereço de cada número.
 
 > ## ⚠️ O que eu meço e o que eu não meço

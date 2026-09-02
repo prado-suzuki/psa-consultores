@@ -215,6 +215,7 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       { id: 'cpfCnpj', label: 'CPF/CNPJ' },
       { id: 'qualificacao', label: 'Qualificação complementar' },
       { id: 'eSocio', label: 'É sócio? (condicional)' },
+      { id: 'eRetirante', label: 'É sócio retirante? (condicional)' },
       { id: 'eAdministrador', label: 'É administrador? (condicional)' },
       { id: 'eConjuge', label: 'É cônjuge outorgante? (condicional)' },
       { id: 'eTestemunha', label: 'É testemunha? (condicional)' },
@@ -278,6 +279,35 @@ export const PAPEIS_LISTA: Record<string, PapelLista> = {
       'cedentePF', 'cedentePJ', 'cessionarioPF', 'cessionarioPJ',
     ],
     fonte: 'quadro',
+    camposExtras: [],
+  },
+  // Os sócios que SAEM nesta alteração. Deriva do mesmo par que as cessões (o
+  // livro + o quadro resultante), então a fonte é 'quadro': quem cedeu a
+  // totalidade das quotas não sobra em {{#socios}}, e sem uma lista própria a
+  // cláusula de retirada não teria como nomeá-los.
+  retirantes: {
+    label: 'Sócios retirantes (cederam a totalidade)',
+    tipo: 'pessoa',
+    itemKey: 'retirante',
+    fonte: 'quadro',
+    camposExtras: [
+      { id: 'ordem', label: 'Ordem do retirante (1, 2…)' },
+      { id: 'ordemRomana', label: 'Ordem em romano minúsculo (i, ii…)' },
+    ],
+  },
+  // Os imóveis DO DOCUMENTO que têm georreferenciamento, um item por matrícula
+  // certificada — a coleção do bloco repetidor do memorial SIGEF. Quem entra não
+  // é um imóvel escolhido à parte: são as matrículas que o documento já descreve
+  // (alíneas de {{#integralizacoes}}, {{#imoveis}} e bindings unitários), e só as
+  // que o SIGEF tem. Nenhuma certificada ⇒ coleção vazia ⇒ o bloco sai da
+  // composição, que é o "o memorial só aparece se alguma matrícula tiver georref".
+  // Cada item é { imovel: {...campos + georef*}, vertices: [...] }.
+  memoriais: {
+    label: 'Memoriais de georreferenciamento (imóveis do documento)',
+    tipo: 'matricula',
+    itemKey: 'imovel',
+    secoesItem: ['vertices'],
+    fonte: 'georef',
     camposExtras: [],
   },
   // Vértices do memorial descritivo (georreferenciamento). Diferente das demais

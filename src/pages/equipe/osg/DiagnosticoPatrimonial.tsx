@@ -130,7 +130,7 @@ const DiagnosticoPatrimonial = () => {
             <Card>
               <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <Landmark className="h-4 w-4 text-slate-500" />
+                  <Landmark className="h-4 w-4 text-muted-foreground" />
                   Bens ({bensFiltrados.length}{bens.length !== bensFiltrados.length ? ` de ${bens.length}` : ''})
                 </CardTitle>
                 <Button size="sm" className="gap-1.5" onClick={() => setBemModal({ open: true, bem: null })}>

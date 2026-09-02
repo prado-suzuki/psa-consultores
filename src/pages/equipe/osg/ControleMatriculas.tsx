@@ -139,10 +139,10 @@ const ControleMatriculas = () => {
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between space-y-0">
             <CardTitle className="text-base flex items-center gap-2">
-              <FileText className="h-4 w-4 text-slate-500" />
+              <FileText className="h-4 w-4 text-muted-foreground" />
               Matrículas ({matriculasFiltradas.length}{matriculasDoCliente.length !== matriculasFiltradas.length ? ` de ${matriculasDoCliente.length}` : ''})
               {orfas > 0 && (
-                <Badge variant="outline" className="text-[10px] gap-1 text-amber-600 border-amber-300">
+                <Badge variant="warning" className="text-[10px] gap-1">
                   <AlertCircle className="h-3 w-3" /> {orfas} órfã(s)
                 </Badge>
               )}
@@ -183,7 +183,7 @@ const ControleMatriculas = () => {
                             {orfa && (
                               <span
                                 title="Matrícula órfã (sem bem vinculado)"
-                                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-100 text-amber-700 font-bold text-xs"
+                                className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-warning/10 text-warning font-bold text-xs"
                               >
                                 !
                               </span>
@@ -204,7 +204,7 @@ const ControleMatriculas = () => {
                           </TableCell>
                           <TableCell className="text-xs">
                             {orfa ? (
-                              <Badge variant="outline" className="text-[10px] text-amber-600 border-amber-300">Órfã</Badge>
+                              <Badge variant="warning" className="text-[10px]">Órfã</Badge>
                             ) : (
                               <span className="font-medium">{m.bem_referencia} — {m.bem_denominacao}</span>
                             )}

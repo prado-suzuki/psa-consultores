@@ -9,6 +9,19 @@
  */
 export const DASHBOARD_PAGES = [
   { key: 'board_relatorios', label: 'Board → Relatórios', path: '/equipe/board/relatorios' },
+  // ⚠️ A TELA DESTA CHAVE NÃO EXISTE, E ISSO É DE PROPÓSITO. O bloco de
+  // relatórios do Portal do Cliente foi escondido porque o dashboard não estava
+  // pronto — decisão da dona do produto, não pendência. Nada em `src` consome
+  // `target_page = 'cliente'`, então relatório cadastrado aqui não aparece para
+  // ninguém, sem erro e sem aviso.
+  //
+  // Está escrito porque a ausência da tela parece defeito para quem chega: uma
+  // varredura de rotas já reportou isto como bug. NÃO construa o bloco nem
+  // remova a chave sem pedir — as duas coisas desfazem a decisão.
+  //
+  // O aviso não vai no `label` porque o `label` NÃO É RENDERIZADO: o seletor da
+  // aba Dashboards e o cartão mostram `DASHBOARD_PAGE_PATH`, ou seja o caminho.
+  // Marcar isso na tela é mudança no `DashboardsTab`, não aqui.
   { key: 'cliente', label: 'Área do Cliente → Dashboards', path: '/cliente' },
   { key: 'dev_gerenciar_dados', label: 'Digital DEV → Gerenciar Dados', path: '/equipe/dev/gerenciar-dados/dashboards' },
   { key: 'dev_perdcomp', label: 'Digital DEV → PERDCOMP', path: '/equipe/dev/perdcomp/dashboard' },

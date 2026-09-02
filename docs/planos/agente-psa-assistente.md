@@ -94,13 +94,19 @@ proteção contra a PRÓXIMA consulta que morrer, não contra esta.
 
 ### A superfície do painel segue o tema
 
-O painel nascia com `#111827` cravado — azul-marinho — e `/equipe/board` resolve
-`.sistema-theme`, que é GRAFITE: era cor de fora do sistema fingindo ser token.
-Agora `--agente-surface` é `hsl(var(--surface-escura-2))`, o token que a casa já
-tinha para cartão escuro, e os degraus internos são branco translúcido, para
-seguirem o piso sozinhos. Contrastes medidos nos dois pisos possíveis estão no
-comentário do `index.css`; o degrau 3 ficou em 8% e não 10% porque a 10% o
-`--agente-ink3` sobre o grafite caía para 4,37.
+O painel nascia com `#111827` cravado — azul-marinho — enquanto `/equipe/board`
+resolvia `.sistema-theme`, que era GRAFITE: era cor de fora do sistema fingindo
+ser token. Agora `--agente-surface` é `hsl(var(--surface-escura-2))`, o token que
+a casa já tinha para cartão escuro, e os degraus internos são branco translúcido,
+para seguirem o piso sozinhos. Contrastes medidos estão no comentário do
+`index.css`; o degrau 3 ficou em 8% e não 10% porque a 10% o `--agente-ink3`
+sobre o grafite caía para 4,37.
+
+> **Atualização de 31/08/2026:** a `.sistema-theme` não existe mais, e o Board
+> nunca chegou a usá-la depois de 21/08. Sobraram **dois** pisos escuros: o teal
+> da casa (`178 60% 8%` / `175 62% 14%`) e o azul-ardósia da Tax e da OSG. O
+> teal é o pior dos dois para contraste, e é o mais comum — quem mexer nos
+> quatro tokens `--agente-*` tem de re-medir sobre ele.
 
 ---
 

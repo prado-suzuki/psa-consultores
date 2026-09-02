@@ -34,7 +34,7 @@ const FieldTooltip = ({ text }: { text: string }) => (
 
 const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
   <Tooltip>
-    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/40">
       {label}
     </TooltipTrigger>
     <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
@@ -244,19 +244,19 @@ const MapaNCMPisCofins = () => {
           <CardHeader className="pb-4">
             <CardTitle className="flex items-center gap-2 text-lg text-primary">
               <Filter className="h-5 w-5 text-primary" />
-              <span className="uppercase text-sm tracking-wider font-bold text-slate-800">Filtros de Busca</span>
+              <span className="uppercase text-sm tracking-wider font-bold text-foreground">Filtros de Busca</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-12 gap-6">
               {/* Buscar */}
               <div className="col-span-12 md:col-span-6">
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Buscar
                   <FieldTooltip text={TOOLTIPS.buscar} />
                 </label>
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="NCM, descrição CST, base legal ou setor..."
                     value={search}
@@ -268,7 +268,7 @@ const MapaNCMPisCofins = () => {
 
               {/* Setor */}
               <div className="col-span-12 md:col-span-3">
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Setor
                   <FieldTooltip text={TOOLTIPS.setor} />
                 </label>
@@ -289,7 +289,7 @@ const MapaNCMPisCofins = () => {
 
               {/* Permite Crédito */}
               <div className="col-span-12 md:col-span-3">
-                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
+                <label className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-foreground mb-1.5">
                   Permite Crédito
                   <FieldTooltip text={TOOLTIPS.credito} />
                 </label>
@@ -311,7 +311,7 @@ const MapaNCMPisCofins = () => {
             <div className="flex items-center justify-end gap-2">
               {hasActiveFilters && (
                 <ButtonTooltip text={TOOLTIPS.limpar}>
-                  <Button variant="ghost" onClick={handleClearFilters} className="text-slate-600">
+                  <Button variant="ghost" onClick={handleClearFilters} className="text-muted-foreground">
                     <Eraser className="h-4 w-4 mr-2" /> Limpar Filtros
                   </Button>
                 </ButtonTooltip>
@@ -326,11 +326,11 @@ const MapaNCMPisCofins = () => {
         </Card>
 
         {/* Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-border overflow-hidden">
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="bg-slate-50">
+                <TableRow className="bg-muted">
                   <TableHead className="text-xs font-semibold tracking-wider uppercase">
                     <ColumnTooltip label="NCM" text={TOOLTIPS.colNcm} />
                     <ColumnFilterDropdown columnKey="ncm" uniqueValues={uniqueValues.ncm ?? []} activeSort={sortConfig} activeFilter={columnFilters.ncm ?? null} onSort={handleSort} onFilter={handleFilter} />
@@ -364,39 +364,39 @@ const MapaNCMPisCofins = () => {
                 {isLoading ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12">
-                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-slate-400" />
+                       <Loader2 className="h-6 w-6 animate-spin mx-auto text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 ) : filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={7} className="text-center py-12">
-                      <FileSpreadsheet className="h-10 w-10 mx-auto text-slate-300 mb-2" />
-                      <p className="text-sm text-slate-500">Nenhuma regra encontrada</p>
+                      <FileSpreadsheet className="h-10 w-10 mx-auto text-muted-foreground/40 mb-2" />
+                      <p className="text-sm text-muted-foreground">Nenhuma regra encontrada</p>
                     </TableCell>
                   </TableRow>
                 ) : paged.map(regra => (
-                  <TableRow key={regra.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => openView(regra)}>
-                    <TableCell className="text-xs font-mono text-slate-700">{regra.cod_ncm}</TableCell>
-                    <TableCell className="text-xs text-slate-600">
+                  <TableRow key={regra.id} className="hover:bg-muted/50 cursor-pointer" onClick={() => openView(regra)}>
+                    <TableCell className="text-xs font-mono text-foreground">{regra.cod_ncm}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
                       {setorMap[regra.id_segmento ?? '']?.nome ?? regra.id_segmento ?? '—'}
                     </TableCell>
-                    <TableCell className="text-xs text-slate-600">{regra.cst_pis}</TableCell>
-                    <TableCell className="text-xs text-slate-600 max-w-[300px] truncate">{regra.desc_cst}</TableCell>
-                    <TableCell className="text-xs text-slate-600 max-w-[350px]">
+                    <TableCell className="text-xs text-muted-foreground">{regra.cst_pis}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[300px] truncate">{regra.desc_cst}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground max-w-[350px]">
                       <span className="line-clamp-2">{regra.base_legal || '—'}</span>
                     </TableCell>
                     <TableCell className="text-center">
                       {regra.permite_credito === 'S' ? (
                         <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-100 text-xs">Sim</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-slate-400 text-xs">Não</Badge>
+                        <Badge variant="outline" className="text-muted-foreground text-xs">Não</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
                         <ButtonTooltip text={TOOLTIPS.visualizar}>
                           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); openView(regra); }}>
-                            <Eye className="h-3.5 w-3.5 text-slate-500" />
+                            <Eye className="h-3.5 w-3.5 text-muted-foreground" />
                           </Button>
                         </ButtonTooltip>
                         <ButtonTooltip text={TOOLTIPS.excluir}>

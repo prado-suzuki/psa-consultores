@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Database } from '@/integrations/supabase/types';
 
 // Flags MANUAIS de projeto (projeto_flag_valor). A flag derivada declarativa o
@@ -187,13 +188,13 @@ function alvosDoEscopo(input: {
 export function useDefinirFlagManual() {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: DefinirFlagManualInput): Promise<DefinirFlagManualResultado> => {
       const { alvoPj, alvoBase } = alvosDoEscopo(input);
 
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id ?? null;
+      const userId = user?.id ?? null;
 
       const existente = await buscarLinha(input.clienteId, input.flagId, alvoPj, alvoBase);
 
@@ -277,11 +278,11 @@ export interface ResponderEventosInput {
 export function useResponderEventosDaAlteracao() {
   const queryClient = useQueryClient();
   const { logAction } = useAuditLog();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (input: ResponderEventosInput): Promise<ProjetoFlagValorRow[]> => {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id ?? null;
+      const userId = user?.id ?? null;
 
       const { data: existentes, error: erroBusca } = await supabase
         .from('projeto_flag_valor')

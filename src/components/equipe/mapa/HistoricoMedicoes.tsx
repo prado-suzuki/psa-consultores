@@ -45,7 +45,7 @@ export default function HistoricoMedicoes({ processId, processoNome }: Props) {
             const anterior = i > 0 ? snapshots[i - 1] : null;
             const deltaCusto = anterior ? s.annual_cost - anterior.annual_cost : 0;
             const quando = new Date(s.snapshot_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' });
-            const deltaCor = deltaCusto < 0 ? '#16a34a' : deltaCusto > 0 ? '#dc2626' : '#64748b';
+            const deltaCor = deltaCusto < 0 ? '#16a34a' : deltaCusto > 0 ? '#dc2626' : 'hsl(var(--slate-500))';
             return (
               <tr key={s.id}>
                 <td>{quando}</td>
@@ -58,7 +58,7 @@ export default function HistoricoMedicoes({ processId, processoNome }: Props) {
                 <td>
                   {anterior
                     ? <span style={{ color: deltaCor, fontWeight: 600 }}>{deltaCusto === 0 ? '—' : formatarMoeda(deltaCusto)}</span>
-                    : <span style={{ color: '#94a3b8' }}>baseline</span>}
+                    : <span style={{ color: 'hsl(var(--slate-400))' }}>baseline</span>}
                 </td>
               </tr>
             );

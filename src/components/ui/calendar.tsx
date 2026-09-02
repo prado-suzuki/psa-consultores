@@ -77,7 +77,7 @@ function Calendar({
     cells.push(
       <div
         key={`prev-${day}`}
-        className="h-9 w-9 flex items-center justify-center text-xs text-gray-300 pointer-events-none"
+        className="h-9 w-9 flex items-center justify-center text-xs text-muted-foreground pointer-events-none"
       >
         {day}
       </div>
@@ -99,10 +99,10 @@ function Calendar({
         onClick={() => onSelect?.(date)}
         className={cn(
           "h-9 w-9 rounded-md text-sm font-medium transition-colors",
-          "hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400",
-          isSelected && "bg-gray-900 text-white hover:bg-gray-800",
-          isToday && !isSelected && "bg-gray-100 text-gray-900 font-semibold",
-          !isSelected && !isToday && "text-gray-700",
+          "hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring",
+          isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
+          isToday && !isSelected && "bg-muted text-foreground font-semibold",
+          !isSelected && !isToday && "text-foreground",
           dayDisabled && "opacity-50 pointer-events-none"
         )}
       >
@@ -117,7 +117,7 @@ function Calendar({
     cells.push(
       <div
         key={`next-${d}`}
-        className="h-9 w-9 flex items-center justify-center text-xs text-gray-300 pointer-events-none"
+        className="h-9 w-9 flex items-center justify-center text-xs text-muted-foreground pointer-events-none"
       >
         {d}
       </div>
@@ -231,7 +231,7 @@ function Calendar({
             {WEEKDAYS.map((day) => (
               <div
                 key={day}
-                className="h-9 w-9 flex items-center justify-center text-xs font-medium text-gray-500"
+                className="h-9 w-9 flex items-center justify-center text-xs font-medium text-muted-foreground"
               >
                 {day}
               </div>
@@ -258,10 +258,10 @@ function Calendar({
                 size="sm"
                 className={cn(
                   "h-9 text-xs font-medium",
-                  isSelected && "bg-gray-900 text-white hover:bg-gray-800",
+                  isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
                   isCurrentMonth &&
                     !isSelected &&
-                    "bg-gray-100 text-gray-900 font-semibold",
+                    "bg-muted text-foreground font-semibold",
                 )}
                 onClick={() => {
                   updateMonth(new Date(year, i, 1));
@@ -288,10 +288,10 @@ function Calendar({
                 size="sm"
                 className={cn(
                   "h-9 text-xs font-medium",
-                  isSelected && "bg-gray-900 text-white hover:bg-gray-800",
+                  isSelected && "bg-primary text-primary-foreground hover:bg-primary/90",
                   isCurrentYear &&
                     !isSelected &&
-                    "bg-gray-100 text-gray-900 font-semibold",
+                    "bg-muted text-foreground font-semibold",
                 )}
                 onClick={() => {
                   updateMonth(new Date(y, mo, 1));

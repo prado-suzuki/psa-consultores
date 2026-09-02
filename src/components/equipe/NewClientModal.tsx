@@ -408,14 +408,14 @@ export default function NewClientModal({
           {/* Header. Sem fundo próprio: quem pinta é o modal, e assim a folha
               quente da OSG atravessa a barra inteira em vez de virar uma faixa
               branca no topo. */}
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center shrink-0">
+          <div className="px-6 py-4 border-b border-border flex justify-between items-center shrink-0">
             <div className="flex items-center gap-3">
               <div className={cn("p-2 rounded-lg", acento.positivoFundo)}>
                 {isReadOnly ? <Building2 className={acento.texto} size={22} /> : isEditing ? <Pencil className={acento.texto} size={22} /> : <Plus className={acento.texto} size={22} />}
               </div>
               <h2 className="text-xl font-bold text-gray-900">{isReadOnly ? "Visualizar Cliente" : isEditing ? "Editar Cliente" : "Cadastrar Cliente"}</h2>
             </div>
-              <button onClick={handleAttemptClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"><X size={20} /></button>
+              <button onClick={handleAttemptClose} className="p-2 text-gray-400 hover:text-gray-700 hover:bg-muted rounded-full transition-colors"><X size={20} /></button>
           </div>
 
           {loadingEdit ? (
@@ -425,7 +425,7 @@ export default function NewClientModal({
               <Tabs value={activeTab} onValueChange={(v) => handleTabClick(v as typeof activeTab)} className="flex-1 flex flex-col overflow-hidden">
                 {/* Escurecimento neutro em vez de cinza fixo: funciona igual
                     sobre o branco da Tax e sobre a folha quente da OSG. */}
-                <div className="px-6 py-3 bg-black/[0.02] border-b border-gray-200 shrink-0">
+                <div className="px-6 py-3 bg-black/[0.02] border-b border-border shrink-0">
                   <TabsList className={cn("w-full grid bg-black/[0.04] p-1 rounded-lg h-auto", tabsGridClass)}>
                     {visibleTabs.map((tab) => (
                       <TabsTrigger key={tab} value={tab} className="data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-gray-900 text-gray-500 rounded-md py-2 text-xs font-medium transition-all gap-1.5">
@@ -552,10 +552,10 @@ export default function NewClientModal({
               </Tabs>
 
               {/* Footer */}
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-between items-center shrink-0">
+              <div className="px-6 py-4 border-t border-border flex justify-between items-center shrink-0">
               {isReadOnly ? (
                   <>
-                    <Button variant="outline" onClick={handleAttemptClose} className="border-gray-300 text-gray-600">Fechar</Button>
+                    <Button variant="outline" onClick={handleAttemptClose} className="border-border text-gray-600">Fechar</Button>
                     {canEdit && (
                       <Button
                         onClick={() => { setIsReadOnly(false); setEscopoEdicao('cliente'); }}
@@ -567,7 +567,7 @@ export default function NewClientModal({
                   </>
                 ) : (
                   <>
-                    <Button variant="outline" onClick={handleCancelarEdicao} className="border-gray-300 text-gray-600">Cancelar</Button>
+                    <Button variant="outline" onClick={handleCancelarEdicao} className="border-border text-gray-600">Cancelar</Button>
                     <div className="flex items-center gap-3">
                       {/*
                         O aviso é clicável de propósito: dizer "faltam 3 campos"
@@ -588,8 +588,8 @@ export default function NewClientModal({
                           )}
                         </button>
                       ) : hasUnsavedChanges && (
-                        <span className="flex items-center gap-1.5 text-sm text-amber-700">
-                          <span className="h-2 w-2 rounded-full bg-amber-500" />
+                        <span className="flex items-center gap-1.5 text-sm text-warning">
+                          <span className="h-2 w-2 rounded-full bg-warning" />
                           Alterações não salvas
                         </span>
                       )}

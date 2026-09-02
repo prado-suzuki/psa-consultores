@@ -36,7 +36,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { FloatingScrollbar } from '@/components/ui/floating-scrollbar';
 import { ArrowUp, ArrowDown, ArrowUpDown, Paperclip, MessageSquare, AlertTriangle, Clock, CheckCircle, Plus, Download, Trash2, BarChart3 } from 'lucide-react';
-import { format, isWithinInterval, subDays, addDays, differenceInCalendarDays, formatDistanceToNow } from 'date-fns';
+import { format, isWithinInterval, subDays, addDays, differenceInCalendarDays } from 'date-fns';
+import { dataHoraCurta } from '@/lib/dateUtils';
 import { ptBR } from 'date-fns/locale';
 import { toast } from '@/hooks/use-toast';
 import { isTodayBrazil, isTomorrowBrazil, isPastBrazil, parseDate } from '@/lib/dateUtils';
@@ -793,7 +794,7 @@ export function ChamadosGestaoContent({
                       </div>
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
-                      {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true, locale: ptBR })}
+                      {dataHoraCurta(ticket.updated_at)}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {ticket.closed_at

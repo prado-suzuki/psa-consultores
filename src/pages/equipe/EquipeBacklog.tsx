@@ -371,7 +371,7 @@ export default function EquipeBacklog() {
         ) : (
           <div className="space-y-2">
             {filteredItems.map((item) => (
-              <Card key={item.id} className="border-gray-200 hover:shadow-sm transition-shadow">
+              <Card key={item.id} className="border-border hover:shadow-sm transition-shadow">
                 <CardContent className="py-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -380,7 +380,7 @@ export default function EquipeBacklog() {
                         className={
                           item.priority === 'high' ? 'bg-red-50 text-red-700 border-red-200' :
                           item.priority === 'medium' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                          'bg-gray-50 text-gray-600 border-gray-200'
+                          'bg-gray-50 text-gray-600 border-border'
                         }
                       >
                         {item.priority === 'high' ? 'Alta' : 
@@ -393,7 +393,7 @@ export default function EquipeBacklog() {
                         )}
                         <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                           {item.estimated_hours && (
-                            <span className="bg-gray-100 px-2 py-0.5 rounded">
+                            <span className="bg-muted px-2 py-0.5 rounded">
                               {item.estimated_hours}h estimadas
                             </span>
                           )}
@@ -599,7 +599,7 @@ export default function EquipeBacklog() {
             <div className="space-y-2">
               <Label>Sprint de Destino *</Label>
               {sprints.length === 0 ? (
-                <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                <p className="text-sm text-warning bg-warning/10 border border-warning/40 rounded-md px-3 py-2">
                   Nenhuma sprint ativa ou planejada. Crie ou ative uma sprint em <strong>Sprints</strong> antes de mover itens do backlog.
                 </p>
               ) : (

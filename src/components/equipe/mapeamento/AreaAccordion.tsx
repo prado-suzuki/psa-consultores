@@ -7,6 +7,7 @@ import { ExternalLink, CheckCircle2, Circle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import type { AreaSummary } from '@/hooks/useProcessMapping';
 import { STAGE_TO_STATUS, STAGE_LABEL } from '@/hooks/useProcessMapping';
+import { mapeamentoStatusConfig } from '@/lib/mapeamentoStatusColors';
 
 interface AreaAccordionProps {
   areas: AreaSummary[];
@@ -18,11 +19,6 @@ const STATUS_ICON: Record<string, any> = {
   completed: CheckCircle2,
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  not_started: 'text-amber-500',
-  in_progress: 'text-blue-500',
-  completed: 'text-teal-600',
-};
 
 export function AreaAccordion({ areas }: AreaAccordionProps) {
   const navigate = useNavigate();
@@ -47,7 +43,7 @@ export function AreaAccordion({ areas }: AreaAccordionProps) {
                   className="h-3 w-3 rounded-full flex-shrink-0"
                   style={{ backgroundColor: area.color }}
                 />
-                <span className="font-medium text-slate-900">{area.area_name}</span>
+                <span className="font-medium text-foreground">{area.area_name}</span>
                 <Badge variant="secondary" className="ml-1">
                   {area.completed} de {area.total} concluídos
                 </Badge>
@@ -65,17 +61,17 @@ export function AreaAccordion({ areas }: AreaAccordionProps) {
                   return (
                     <div
                       key={p.id}
-                      className="flex items-center justify-between gap-3 p-3 rounded-md border bg-slate-50/50 hover:bg-slate-50"
+                      className="flex items-center justify-between gap-3 p-3 rounded-md border bg-muted/50 hover:bg-muted"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <Icon className={`h-4 w-4 flex-shrink-0 ${STATUS_COLOR[status]}`} />
+                        <Icon className={`h-4 w-4 flex-shrink-0 ${mapeamentoStatusConfig(status).text}`} />
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-slate-900 truncate">
+                            <span className="text-sm font-medium text-foreground truncate">
                               {p.name}
                             </span>
                             {p.equipe && (
-                              <Badge variant="outline" className="h-5 text-[10px] bg-teal-50 text-teal-700 border-teal-200">
+                              <Badge variant="outline" className="h-5 text-[10px] bg-accent/5 text-teal-700 border-primary/15">
                                 {p.equipe.name}
                               </Badge>
                             )}

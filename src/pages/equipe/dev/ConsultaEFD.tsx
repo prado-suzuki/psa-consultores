@@ -48,7 +48,7 @@ const FieldTooltip = ({ text }: { text: string }) => (
 
 const ColumnTooltip = ({ label, text }: { label: string; text: string }) => (
   <Tooltip>
-    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-slate-400">
+    <TooltipTrigger className="cursor-help underline decoration-dotted underline-offset-4 decoration-muted-foreground/40">
       {label}
     </TooltipTrigger>
     <TooltipContent side="top" className="font-normal normal-case tracking-normal text-xs text-center max-w-[220px]">
@@ -416,7 +416,7 @@ const ConsultaEFD = () => {
         <CardHeader className="pb-4">
           <CardTitle className="text-lg flex items-center gap-2 text-primary">
             <Filter className="h-5 w-5" />
-            <span className="uppercase text-sm tracking-wider font-bold text-slate-800">
+            <span className="uppercase text-sm tracking-wider font-bold text-foreground">
               Filtros de Busca
             </span>
           </CardTitle>
@@ -425,7 +425,7 @@ const ConsultaEFD = () => {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
             {/* Cliente */}
             <div className="md:col-span-3">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                 Cliente <RequiredMark /> <FieldTooltip text={TOOLTIPS.cliente} />
               </label>
               <Select 
@@ -451,7 +451,7 @@ const ConsultaEFD = () => {
 
             {/* Contribuinte */}
             <div className="md:col-span-5">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                 Contribuinte <RequiredMark /> <FieldTooltip text={TOOLTIPS.contribuinte} />
               </label>
               <Select 
@@ -476,7 +476,7 @@ const ConsultaEFD = () => {
 
             {/* Data Início */}
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                 Data de Início <RequiredMark /> <FieldTooltip text={TOOLTIPS.start_date} />
               </label>
               <div className="relative">
@@ -491,7 +491,7 @@ const ConsultaEFD = () => {
 
             {/* Data Fim */}
             <div className="md:col-span-2">
-              <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">
+              <label className="flex items-center gap-1.5 text-xs font-bold text-foreground mb-2 uppercase tracking-wider">
                 Data Fim <RequiredMark /> <FieldTooltip text={TOOLTIPS.end_date} />
               </label>
               <div className="relative">
@@ -506,11 +506,11 @@ const ConsultaEFD = () => {
           </div>
 
           {/* Barra de Ações */}
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+          <div className="flex justify-end gap-3 pt-4 border-t border-border">
             <Button 
               variant="ghost" 
               onClick={handleClearFilters}
-              className="text-slate-500 hover:text-red-600 hover:bg-red-50"
+              className="text-muted-foreground hover:text-red-600 hover:bg-red-50"
             >
               <Eraser className="h-4 w-4 mr-2" />
               Limpar filtros
@@ -535,12 +535,12 @@ const ConsultaEFD = () => {
       <Card className="shadow-sm min-h-[400px] flex flex-col overflow-hidden">
         {/* Header com CNPJ e Botão Baixar Todos */}
         {overview && cnpjContribuinte && (
-          <div className="px-6 py-4 bg-slate-50 flex items-center justify-between border-b border-slate-200">
+          <div className="px-6 py-4 bg-muted flex items-center justify-between border-b border-border">
             {/* Lado Esquerdo - CNPJ */}
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
+              <div className="flex items-center gap-2 text-sm font-bold text-muted-foreground">
                 <Building2 className="h-5 w-5 text-primary" />
-                CNPJ: <span className="text-slate-900">{formatCNPJ(cnpjContribuinte)}</span>
+                CNPJ: <span className="text-foreground">{formatCNPJ(cnpjContribuinte)}</span>
               </div>
               <Button 
                 variant="ghost" 
@@ -564,7 +564,7 @@ const ConsultaEFD = () => {
                 size="sm"
                 onClick={handleDownloadAll}
                 disabled={arquivosFiltrados.length === 0}
-                className={downloadingAll ? "pointer-events-none" : "text-slate-600 hover:text-primary"}
+                className={downloadingAll ? "pointer-events-none" : "text-muted-foreground hover:text-primary"}
               >
                 {downloadingAll ? (
                   <Loader2 className="h-4 w-4 mr-2 animate-spin text-white" />
@@ -581,13 +581,13 @@ const ConsultaEFD = () => {
           {!searchTriggered ? (
             // Estado inicial
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
-              <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                <Search className="w-10 h-10 text-slate-400" />
+              <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-4">
+                <Search className="w-10 h-10 text-muted-foreground" />
               </div>
-              <h3 className="text-xl font-bold text-slate-700">
+              <h3 className="text-xl font-bold text-foreground">
                 Nenhum arquivo listado
               </h3>
-              <p className="text-base text-slate-500 max-w-xs mt-2">
+              <p className="text-base text-muted-foreground max-w-xs mt-2">
                 Utilize os filtros acima e clique em "Buscar" para carregar os arquivos EFD.
               </p>
             </div>
@@ -604,39 +604,39 @@ const ConsultaEFD = () => {
               className={cn(
                 "overflow-x-auto",
                 "[&::-webkit-scrollbar]:h-3",
-                "[&::-webkit-scrollbar-track]:bg-slate-100",
-                "[&::-webkit-scrollbar-thumb]:bg-slate-400",
+                "[&::-webkit-scrollbar-track]:bg-muted",
+                "[&::-webkit-scrollbar-thumb]:bg-muted-foreground/40",
                 "[&::-webkit-scrollbar-thumb]:rounded-full"
               )}
             >
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-slate-100 border-b border-slate-200">
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                  <tr className="bg-muted border-b border-border">
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
                       <ColumnTooltip label="Arquivo" text={TOOLTIPS.colArquivo} />
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
                       <ColumnTooltip label="Período" text={TOOLTIPS.colPeriodo} />
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider">
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider">
                       <ColumnTooltip label="Tipo" text={TOOLTIPS.colTipo} />
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider text-right">
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
                       <ColumnTooltip label="Crédito PIS" text={TOOLTIPS.colCreditoPis} />
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider text-right">
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-right">
                       <ColumnTooltip label="Crédito COFINS" text={TOOLTIPS.colCreditoCofins} />
                     </th>
-                    <th className="px-6 py-4 text-xs font-bold text-slate-600 uppercase tracking-wider text-center w-56">
+                    <th className="px-6 py-4 text-xs font-bold text-muted-foreground uppercase tracking-wider text-center w-56">
                       <ColumnTooltip label="Ações" text={TOOLTIPS.colAcoes} />
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200">
+                <tbody className="divide-y divide-border">
                   {arquivosFiltrados.map((arquivo) => (
                     <tr 
                       key={arquivo.ID_ARQUIVO} 
-                      className="hover:bg-slate-50 transition-colors group"
+                      className="hover:bg-muted transition-colors group"
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -644,16 +644,16 @@ const ConsultaEFD = () => {
                             <FileSpreadsheet className="h-5 w-5" />
                           </div>
                           <div>
-                            <p className="font-bold text-sm text-slate-800">
+                            <p className="font-bold text-sm text-foreground">
                               {arquivo.NOME}
                             </p>
-                            <p className="text-[10px] text-slate-400 uppercase font-mono">
+                            <p className="text-[10px] text-muted-foreground uppercase font-mono">
                               ID: {arquivo.ID_ARQUIVO}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm font-semibold text-slate-700">
+                      <td className="px-6 py-4 text-sm font-semibold text-foreground">
                         {formatPeriodo(arquivo.DT_INI, arquivo.DT_FIN)}
                       </td>
                       <td className="px-6 py-4">
@@ -669,10 +669,10 @@ const ConsultaEFD = () => {
                           {arquivo.TIPO_ESCRIT === 0 ? 'Original' : 'Retificadora'}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 text-sm font-bold text-slate-700 text-right font-mono">
+                      <td className="px-6 py-4 text-sm font-bold text-foreground text-right font-mono">
                         {formatCurrency(arquivo.credito_pis)}
                       </td>
-                      <td className="px-6 py-4 text-sm font-bold text-slate-700 text-right font-mono">
+                      <td className="px-6 py-4 text-sm font-bold text-foreground text-right font-mono">
                         {formatCurrency(arquivo.credito_cofins)}
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -681,7 +681,7 @@ const ConsultaEFD = () => {
                             <Button
                               variant="outline"
                               size="icon"
-                              className="h-9 w-9 text-slate-500 hover:text-slate-800 bg-slate-50 border-slate-200 transition-transform hover:-translate-y-0.5 active:translate-y-0"
+                              className="h-9 w-9 text-muted-foreground hover:text-foreground bg-muted border-border transition-transform hover:-translate-y-0.5 active:translate-y-0"
                               onClick={() => handleDownloadTxt(arquivo)}
                               disabled={downloadingTxt === arquivo.ID_ARQUIVO}
                             >
@@ -719,11 +719,11 @@ const ConsultaEFD = () => {
           ) : (
             // Nenhum arquivo encontrado
             <div className="flex flex-col items-center justify-center text-center p-8 h-full min-h-[300px]">
-              <FileText className="h-12 w-12 text-slate-400 mb-3" />
-              <p className="font-medium text-slate-700">
+              <FileText className="h-12 w-12 text-muted-foreground mb-3" />
+              <p className="font-medium text-foreground">
                 Nenhum arquivo encontrado
               </p>
-              <p className="text-sm text-slate-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 Verifique os filtros e tente novamente.
               </p>
             </div>

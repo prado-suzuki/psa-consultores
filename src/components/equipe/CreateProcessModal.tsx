@@ -286,7 +286,7 @@ export function CreateProcessModal({ open, onClose, onCreated }: CreateProcessMo
               </SelectContent>
             </Select>
             {form.project_id && !projects.find(p => p.id === form.project_id)?.cluster_id && (
-              <p className="text-xs text-amber-600">
+              <p className="text-xs text-warning">
                 ⚠ Este projeto não tem cluster — o processo não aparecerá no MAPA até o projeto receber um cluster.
               </p>
             )}

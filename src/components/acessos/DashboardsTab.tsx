@@ -35,11 +35,6 @@ const FILTER_LABEL: Record<DashboardFilterType, string> = {
   cliente: 'Por cliente',
   nenhum: 'Sem filtro',
 };
-const FILTER_BADGE_CLASS: Record<DashboardFilterType, string> = {
-  cluster: 'border-primary/20 bg-primary/5 text-primary',
-  cliente: 'border-indigo-200 bg-indigo-50 text-indigo-700',
-  nenhum: 'border-border bg-foreground/[0.05] text-muted-foreground',
-};
 // Ordenação padrão: sem filtro -> por cluster -> por cliente.
 const FILTER_RANK: Record<DashboardFilterType, number> = { nenhum: 0, cluster: 1, cliente: 2 };
 //"Tipo" é derivado do filtro: nenhum = interno (sem RLS); cluster/cliente = externo.
@@ -198,7 +193,7 @@ export default function DashboardsTab() {
       const ids = clientesByDashboard.get(d.id) ?? [];
       if (ids.length === 0) {
         return (
-          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
+          <span className="inline-flex items-center gap-1 rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[11px] font-medium text-warning">
             <AlertTriangle className="h-3 w-3" /> Sem clientes liberados
           </span>
         );

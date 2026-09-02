@@ -3,18 +3,7 @@ import type { EquipeProcesso, EquipeProcessoCatalogClient } from '@/lib/equipePr
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-
-const PROCESS_STAGES = [
-  { value: 'discovery', label: 'Descoberta', color: 'bg-gray-100 text-gray-700' },
-  { value: 'mapping', label: 'Mapeamento', color: 'bg-blue-100 text-blue-700' },
-  { value: 'analysis', label: 'Análise', color: 'bg-purple-100 text-purple-700' },
-  { value: 'improvement', label: 'Melhoria', color: 'bg-orange-100 text-orange-700' },
-  { value: 'automation', label: 'Automação', color: 'bg-teal-100 text-teal-700' },
-  { value: 'completed', label: 'Concluído', color: 'bg-green-100 text-green-700' },
-];
-
-const getProcessStageInfo = (stage: string) =>
-  PROCESS_STAGES.find((item) => item.value === stage) || PROCESS_STAGES[0];
+import { getProcessStageInfo, PROCESS_STAGES } from '@/components/equipe/projetos/constants';
 
 interface ProcessListProps {
   processes: EquipeProcesso[];

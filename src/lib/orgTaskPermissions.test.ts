@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { OrgTask } from '@/hooks/useOrgTasks';
-import { canUpdateOrgTaskStatus, isDelegatedOrgTaskReviewer } from '@/lib/orgTaskPermissions';
+import {
+  canEditOrgTaskFields,
+  canUpdateOrgTaskStatus,
+  isDelegatedOrgTaskReviewer,
+} from '@/lib/orgTaskPermissions';
 
 type StatusTarget = Pick<
   OrgTask,
@@ -59,5 +63,29 @@ describe('canUpdateOrgTaskStatus', () => {
   it('nega membro comum em tarefa de outra pessoa e usuário sem sessão', () => {
     expect(canUpdateOrgTaskStatus(target(), { userId: 'ana' })).toBe(false);
     expect(canUpdateOrgTaskStatus(target({ assigned_to: 'ana' }), { userId: null })).toBe(false);
+  });
+});
+
+describe('canEditOrgTaskFields', () => {
+  it('libera sublíder ou acima, sem depender de projeto', () => {
+    expect(canEditOrgTaskFields(target({ project_id: null }), { userId: 'ana', isAdmin: true })).toBe(true);
+    expect(canEditOrgTaskFields(target(), { userId: 'ana', isLider: true })).toBe(true);
+    expect(canEditOrgTaskFields(target(), { userId: 'ana', isSublider: true })).toBe(true);
+  });
+
+  it('libera o criador, mas não o responsável de tarefa delegada', () => {
+    expect(canEditOrgTaskFields(target({ created_by: 'ana' }), { userId: 'ana' })).toBe(true);
+    // Responsável sem ser criador só mexe em status, horas e revisor (RLS-06).
+    expect(canEditOrgTaskFields(target({ assigned_to: 'ana' }), { userId: 'ana' })).toBe(false);
+  });
+
+  it('barra o revisor delegado mesmo sendo líder', () => {
+    expect(
+      canEditOrgTaskFields(target({ reviewer_id: 'ana' }), { userId: 'ana', isLider: true }),
+    ).toBe(false);
+  });
+
+  it('nega usuário sem sessão', () => {
+    expect(canEditOrgTaskFields(target({ created_by: null }), { userId: null })).toBe(false);
   });
 });

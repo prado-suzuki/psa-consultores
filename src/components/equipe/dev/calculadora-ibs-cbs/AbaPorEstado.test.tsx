@@ -355,7 +355,7 @@ describe("AbaPorEstado", () => {
     renderAba();
 
     const titulo = screen.getByText("Top 12 Clientes — Quem está demandando");
-    const card = titulo.closest(".border-slate-200");
+    const card = titulo.closest(".border-border");
     expect(card).not.toBeNull();
     const rows = within(card as HTMLElement).getAllByRole("row").slice(1);
     expect(rows).toHaveLength(12);

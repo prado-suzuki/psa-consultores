@@ -62,7 +62,7 @@ const KIND_INFO: Record<ScenarioKind, {
     variedField: 'savings',
     variedLabel: 'Economia recorrente (R$/mês)',
     lockedDefault: ['volume', 'team_members', 'time_total'],
-    color: 'text-teal-600 bg-teal-50 border-teal-200',
+    color: 'text-teal-600 bg-accent/5 border-primary/15',
   },
 };
 
@@ -257,7 +257,7 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
                       type="button"
                       onClick={() => setKind(k)}
                       className={`text-left p-4 rounded-lg border-2 transition-all ${
-                        isSelected ? info.color : 'border-slate-200 hover:border-slate-300'
+                        isSelected ? info.color : 'border-border hover:border-border'
                       }`}
                     >
                       <Icon className="h-5 w-5 mb-2" />
@@ -309,8 +309,8 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
               </div>
               <div className="space-y-2">
                 <Label>Variável testada</Label>
-                <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-amber-50 border-amber-200">
-                  <Target className="h-4 w-4 text-amber-600" />
+                <div className="flex items-center gap-2 h-10 px-3 rounded-md border bg-warning/10 border-warning/40">
+                  <Target className="h-4 w-4 text-warning" />
                   <span className="text-sm font-medium">{kindInfo.variedLabel}</span>
                 </div>
               </div>
@@ -318,7 +318,7 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
 
             <Card className="bg-muted">
               <CardContent className="p-4">
-                <p className="text-xs font-medium text-slate-700 mb-2 flex items-center gap-1">
+                <p className="text-xs font-medium text-foreground mb-2 flex items-center gap-1">
                   <Lock className="h-3 w-3" />
                   Variáveis travadas neste cenário
                 </p>
@@ -339,9 +339,9 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
         {step === 3 && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <div className="space-y-4">
-              <Card className="border-slate-200">
+              <Card className="border-border">
                 <CardContent className="p-4 space-y-3">
-                  <p className="text-xs font-medium text-slate-500 uppercase">Baseline (travado)</p>
+                  <p className="text-xs font-medium text-muted-foreground uppercase">Baseline (travado)</p>
                   <div className="grid grid-cols-2 gap-2 text-sm">
                     <Field label="Tempo total (h/mês)" value={params.baseline_time_hours} onChange={(v) => setParams({ ...params, baseline_time_hours: v })} disabled={kind === 'investment'} />
                     <Field label="Volume" value={params.baseline_volume} onChange={(v) => setParams({ ...params, baseline_volume: v })} disabled={kind !== 'scale' && kind !== 'investment'} />
@@ -372,7 +372,7 @@ export function ScenarioCreateModal({ open, onClose, processes, initialProcessId
             </div>
 
             <div className="space-y-3">
-              <Card className="bg-gradient-to-br from-teal-50 to-emerald-50 border-teal-200">
+              <Card className="bg-gradient-to-br from-accent/5 to-emerald-50 border-primary/15">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-medium text-teal-700 uppercase">Resultado projetado</p>
@@ -482,7 +482,7 @@ function Metric({ label, value, accent }: MetricProps) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`text-sm font-semibold ${accent ? 'text-teal-700 text-lg' : 'text-slate-900'}`}>
+      <span className={`text-sm font-semibold ${accent ? 'text-teal-700 text-lg' : 'text-foreground'}`}>
         {value}
       </span>
     </div>

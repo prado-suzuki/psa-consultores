@@ -2,55 +2,62 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
-  AREAS_CONGELADAS_NA_BASE,
+  ANCORAS,
   PAPEIS_DE_STATUS,
   TEMAS,
   TONS_DE_TAG,
   blocoDoTema,
   distanciaDeMatiz,
   paletaDoTema,
+  problemasDeDivergencia,
   problemasDeSeparacao,
+  problemasDeSuperficie,
   problemasDoTema,
   problemasDosSemanticos,
-  problemasEntreAreas,
+  type Hsl,
 } from '@/lib/paletaDeArea';
 
 const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8');
 
 /**
- * Dívida dos papéis semânticos, medida hoje e fixada aqui item a item.
+ * A âncora de cada bloco de tema do `index.css`.
  *
- * Por que uma lista, e não `toEqual([])`: os três semânticos entraram no
- * contrato DEPOIS de já estarem no ar em todas as telas, e as 12 falhas abaixo
- * são valores de cor que já estão em produção. Corrigi-las é decisão de
- * identidade visual — não cabe a um teste tomá-la, e deixar o teste vermelho até
- * que ela seja tomada só ensina a equipe a ignorar o vermelho.
- *
- * O que a lista faz é o oposto de silenciar: a asserção é de igualdade EXATA,
- * então ela é uma catraca nos dois sentidos. Falha nova que não esteja aqui
- * derruba o teste; item daqui que seja CORRIGIDO também derruba, pedindo que
- * saia da lista. A dívida só pode diminuir, e nunca de fininho.
- *
- * Ler a lista: `--warning` reprova como texto em todos os quatro temas, entre
- * 1,54:1 e 2,13:1 — é o amarelo, e é a decisão que está na mesa. `--success`
- * reprova em três temas por pouco (4,18–4,21:1 contra 4,5:1). O `--destructive`
- * do `:root` reprova nos dois empregos; a Tax, a OSG e a Rotina já corrigiram o
- * deles, e é só a base que ficou atrás.
+ * A lista de temas do CSS e a lista de áreas do produto não casam uma a uma, e
+ * é por isso que este mapa existe aqui e não em `ANCORAS`: o `:root` É a casa,
+ * o teal da marca, e a casa cobre também as telas que não pertencem a área
+ * nenhuma — o Portal do Cliente e a Rotina. Nenhuma das duas tem bloco próprio,
+ * e é justamente porque a âncora delas já é a do piso. Quem sabe amarrar tema a
+ * área é este arquivo.
  */
-const DIVIDA_SEMANTICA = [
-  ':root · destructive · preenchido',
-  ':root · destructive · texto',
-  ':root · success · preenchido',
-  ':root · success · texto',
-  ':root · warning · texto',
-  '.tax-theme · success · preenchido',
-  '.tax-theme · success · texto',
-  '.tax-theme · warning · texto',
-  '.osg-theme · warning · texto',
-  '.rotina-theme · success · preenchido',
-  '.rotina-theme · success · texto',
-  '.rotina-theme · warning · texto',
-];
+const ANCORA_DO_TEMA: Record<(typeof TEMAS)[number], Hsl> = {
+  ':root': ANCORAS.casa,
+  '.tax-theme': ANCORAS.tax,
+  '.osg-theme': ANCORAS.osg,
+};
+
+/**
+ * Dívida dos papéis semânticos. Está vazia, e a lista continua existindo para
+ * que voltar a encher seja uma decisão escrita e não um descuido.
+ *
+ * Ela teve 12 itens. Eram valores de cor já em produção, fixados um a um porque
+ * corrigi-los era decisão de identidade visual, e um teste não toma decisão de
+ * identidade. `--warning` reprovava como texto nos quatro temas, entre 1,54:1 e
+ * 2,13:1; `--success` reprovava em três por pouco; o `--destructive` do `:root`
+ * reprovava nos dois empregos.
+ *
+ * Os 12 saíram de uma vez, e não um a um: `--destructive`, `--warning` e
+ * `--success` passaram a ser o `ajuste`, o `alerta` e o `feito` da área. Como
+ * papéis de status eles já nascem calibrados para receber texto claro, então
+ * nenhum dos 12 precisou de um valor novo escolhido à mão. O `--warning` não
+ * tinha outra saída: não existe luminosidade que faça o âmbar a 92% de saturação
+ * servir de texto sem trocar junto o `-foreground` dele.
+ *
+ * A asserção é de igualdade EXATA, então a lista é catraca nos dois sentidos:
+ * falha nova que não esteja aqui derruba o teste, e item daqui que seja
+ * corrigido também derruba, pedindo que saia. Com a lista vazia, o segundo caso
+ * não existe e sobra o primeiro — que é o que se quer guardar.
+ */
+const DIVIDA_SEMANTICA: string[] = [];
 
 /**
  * Guarda das paletas de área. Vale para o `index.css` de verdade: área nova que
@@ -87,20 +94,35 @@ describe('paletas de área declaradas no index.css', () => {
     expect(problemas, `papéis que colidem como bolinha:\n${relatorio}`).toEqual([]);
   });
 
-  it('o mesmo papel muda de cara ao trocar de área', () => {
-    // O buraco que a usuária encontrou. Os testes acima olham UMA paleta por
-    // vez: cada área podia declarar os oito papéis, cumprir contraste, faixa e
-    // separação interna — e ainda assim ser cópia da outra. Era o caso: o
-    // `alerta` da Tax (`43 68% 28%`) e o da OSG (`44 66% 28%`) estavam a 1° de
-    // matiz e ZERO ponto de luminosidade, e os quatro quentes inteiros ficavam
-    // entre 1° e 6°. A legenda do Gantt na Tax e na OSG liam como a mesma
-    // paleta, e a área deixou de ser reconhecível pela cor.
+  it('todo papel é o significado do sistema, com a saturação da área', () => {
+    // Substitui a asserção "o mesmo papel muda de cara ao trocar de área", e
+    // afirma o CONTRÁRIO dela — as duas não convivem, e a troca é o coração da
+    // mudança para cor por camada.
     //
-    // Limiares e o porquê de serem menores que os de `SEPARACAO`: ver
-    // `SEPARACAO_ENTRE_AREAS`.
-    const problemas = problemasEntreAreas(css);
-    const relatorio = problemas.map(p => `  ${p.item}: ${p.tema} — ${p.motivo}`).join('\n');
-    expect(problemas, `papéis que não distinguem uma área da outra:\n${relatorio}`).toEqual([]);
+    // A asserção antiga nasceu de um defeito real: a Tax e a OSG tinham
+    // declarado paletas quase idênticas (o `alerta` das duas a 1° de matiz e
+    // ZERO ponto de luminosidade), e a legenda do Gantt de uma lia como a da
+    // outra. A correção dela foi exigir que cada área escolhesse os oito
+    // DIFERENTES — o que resolveu a colisão e criou outro problema: "alerta"
+    // deixou de ser um conceito do sistema e virou uma cor por tela. Quem
+    // aprendia a bolinha na Tax reaprendia na OSG.
+    //
+    // O modelo novo separa as duas coisas. O significado (matiz e luminosidade)
+    // é do sistema e não muda de área para área; a identidade da área mora na
+    // âncora, que pinta cabeçalho, botão e primeira série do gráfico. O único
+    // canal que a área move nos papéis é a saturação, pela fórmula de
+    // `harmonizar`.
+    //
+    // O que este teste faz de novo: ele não OLHA os valores, ele os RECALCULA e
+    // compara. O `index.css` deixa de ser lugar de escolha e passa a ser lugar
+    // de resultado — editar um valor à mão vira erro com o nome do papel dentro.
+    const problemas = TEMAS.flatMap(tema => problemasDeDivergencia(css, tema, ANCORA_DO_TEMA[tema]));
+    const relatorio = problemas.map(p => `  ${p.tema} · ${p.item}: ${p.motivo}`).join('\n');
+    expect(
+      problemas,
+      `valores que não saem da fórmula. Se a intenção era mudar a cor, mude o\n` +
+        `SIGNIFICADO ou a ÂNCORA em paletaDeArea.ts e regenere — não edite o CSS:\n${relatorio}`,
+    ).toEqual([]);
   });
 
   it('o soft acompanha o tom cheio do próprio papel, em toda área', () => {
@@ -128,23 +150,6 @@ describe('paletas de área declaradas no index.css', () => {
     }
   });
 
-  it.each(AREAS_CONGELADAS_NA_BASE)('%s ainda é cópia da base — quando deixar de ser, a exceção sai', tema => {
-    // Contrapeso de `AREAS_CONGELADAS_NA_BASE`. A exceção existe porque a paleta
-    // desta área é, hoje, a da base — decisão registrada no `index.css`, não
-    // esquecimento. No dia em que ela ganhar cor própria, a exceção passa a
-    // esconder uma checagem de verdade, e é este teste que avisa.
-    const chaves = PAPEIS_DE_STATUS.flatMap(papel => [`status-${papel}`, `status-${papel}-soft`]);
-    const recorte = (seletor: string) => {
-      const paleta = paletaDoTema(css, seletor);
-      return Object.fromEntries(chaves.map(chave => [chave, paleta[chave]]));
-    };
-    expect(
-      recorte(tema),
-      `${tema} não é mais cópia da base: tire o nome de AREAS_CONGELADAS_NA_BASE ` +
-        `(em paletaDeArea.ts) para que a separação entre áreas volte a valer para ela.`,
-    ).toEqual(recorte(':root'));
-  });
-
   it('os papéis semânticos cumprem o contrato, tirando a dívida registrada', () => {
     // O buraco que deixou o `--warning` passar: este arquivo checava os oito
     // papéis de status e mais nada, e o vermelho/verde/amarelo do sistema —
@@ -161,5 +166,16 @@ describe('paletas de área declaradas no index.css', () => {
         `Se um item da lista foi CORRIGIDO, tire-o de DIVIDA_SEMANTICA (neste arquivo).\n` +
         `Medido agora:\n${relatorio}`,
     ).toEqual([...DIVIDA_SEMANTICA].sort());
+  });
+
+  it.each(TEMAS)('%s: o texto fecha AA sobre a superfície que a área entrega', tema => {
+    // Terceiro andar do mesmo buraco. O primeiro deixou o `--warning` passar;
+    // este deixou passar o texto comum — `foreground` e `muted-foreground`
+    // sobre background/card/popover, e o par cheio do `--primary`. Nenhum
+    // tinha teste, e foi por aí que o seletor de data ficou com o dia de outro
+    // mês em cinza cru a 2,5:1: o token nunca chegou lá e nada acusou.
+    const problemas = problemasDeSuperficie(css, tema);
+    const relatorio = problemas.map(p => `  ${p.tema} · ${p.item}: ${p.motivo}`).join('\n');
+    expect(problemas, `pares de superfície reprovados:\n${relatorio}`).toEqual([]);
   });
 });

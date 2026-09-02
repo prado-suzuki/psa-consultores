@@ -95,7 +95,7 @@ export function fileIconOf(nome: string, mime?: string | null): { Icon: LucideIc
     return { Icon: FileSpreadsheet, className: 'text-emerald-600' };
   }
   if (['doc', 'docx'].includes(ext) || m.includes('word')) return { Icon: FileText, className: 'text-blue-500' };
-  return { Icon: File, className: 'text-slate-400' };
+  return { Icon: File, className: 'text-muted-foreground' };
 }
 
 // Pré-visualização: apenas imagem e PDF (decisão da OSG).

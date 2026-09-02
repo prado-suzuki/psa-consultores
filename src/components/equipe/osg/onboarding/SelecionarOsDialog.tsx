@@ -66,7 +66,7 @@ export function SelecionarOsDialog({
                   {os.documentos === 1 ? '1 documento' : `${os.documentos} documentos`}
                 </span>
               </span>
-              <span className="mt-1 block text-left text-xs leading-relaxed text-slate-500">
+              <span className="mt-1 block text-left text-xs leading-relaxed text-muted-foreground">
                 {os.produtos.length > 0
                   ? os.produtos.map((produto) => produto.name).join(' · ')
                   : 'Nenhum produto contratado nesta OS'}

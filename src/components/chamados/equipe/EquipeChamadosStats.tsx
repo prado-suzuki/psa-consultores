@@ -1,17 +1,24 @@
 import { AlertTriangle, CheckCircle, Clock, MessageSquare } from 'lucide-react';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import type { getTicketStats } from '@/lib/equipeChamados';
+import { chamadoStatusColors } from '@/lib/chamadoStatusColors';
 
 interface EquipeChamadosStatsProps {
   stats: ReturnType<typeof getTicketStats>;
 }
 
 export function EquipeChamadosStats({ stats }: EquipeChamadosStatsProps) {
+  // Cada KPI pega a cor do STATUS que ele conta, do mesmo mapa que pinta a pílula
+  // na tabela — o número e a pílula do mesmo estado passam a ser a mesma cor.
+  // `Total` não conta um status, e por isso é o único que fica em `muted`.
+  //
+  // O ícone vem a 70% do tom cheio porque o desenho original já tinha dois pesos
+  // (ícone claro, número escuro), e o papel entrega um tom só.
   const cards = [
-    { label: 'Total', value: stats.total, icon: MessageSquare, iconClass: 'text-gray-400', valueClass: '' },
-    { label: 'Abertos', value: stats.abertos, icon: AlertTriangle, iconClass: 'text-blue-400', valueClass: 'text-blue-600' },
-    { label: 'Em Andamento', value: stats.emAndamento, icon: Clock, iconClass: 'text-yellow-400', valueClass: 'text-yellow-600' },
-    { label: 'Resolvidos', value: stats.resolvidos, icon: CheckCircle, iconClass: 'text-green-400', valueClass: 'text-green-600' },
+    { label: 'Total', value: stats.total, icon: MessageSquare, iconClass: 'text-muted-foreground/70', valueClass: '' },
+    { label: 'Abertos', value: stats.abertos, icon: AlertTriangle, iconClass: `${chamadoStatusColors.aberto.text}/70`, valueClass: chamadoStatusColors.aberto.text },
+    { label: 'Em Andamento', value: stats.emAndamento, icon: Clock, iconClass: `${chamadoStatusColors.em_andamento.text}/70`, valueClass: chamadoStatusColors.em_andamento.text },
+    { label: 'Resolvidos', value: stats.resolvidos, icon: CheckCircle, iconClass: `${chamadoStatusColors.resolvido.text}/70`, valueClass: chamadoStatusColors.resolvido.text },
   ];
 
   return (

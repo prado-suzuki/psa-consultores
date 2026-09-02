@@ -101,13 +101,13 @@ export function CardGrupoColeta({
           <span
             className={cn(
               'flex h-10 w-10 shrink-0 items-center justify-center rounded-full',
-              discreto ? 'bg-slate-100 text-slate-500' : 'bg-teal-50 text-teal-700',
+              discreto ? 'bg-muted text-muted-foreground' : 'bg-accent/5 text-teal-700',
             )}
           >
             <Icon className="h-5 w-5" />
           </span>
           <div className="min-w-0">
-            <h3 className={cn('font-semibold', discreto ? 'text-slate-600' : 'text-foreground')}>
+            <h3 className={cn('font-semibold', discreto ? 'text-muted-foreground' : 'text-foreground')}>
               {grupo.titulo}
             </h3>
             <p className="text-[11px] text-muted-foreground">{grupo.subtitulo}</p>
@@ -118,7 +118,7 @@ export function CardGrupoColeta({
             'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
             grupo.arquivos.length > 0
               ? 'bg-teal-600 text-white'
-              : 'bg-slate-100 text-muted-foreground',
+              : 'bg-muted text-muted-foreground',
           )}
         >
           {grupo.arquivos.length} {grupo.arquivos.length === 1 ? 'arquivo' : 'arquivos'}
@@ -139,21 +139,21 @@ export function CardGrupoColeta({
           'mb-4 flex w-full flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-4 py-7 text-center transition-colors',
           FOCO,
           arrastando
-            ? 'border-teal-500 bg-teal-50'
-            : 'border-slate-300 bg-slate-50/60 hover:border-teal-400 hover:bg-teal-50/40',
+            ? 'border-teal-500 bg-accent/5'
+            : 'border-border bg-muted/60 hover:border-primary/40 hover:bg-accent/5/40',
           enviando && 'cursor-wait opacity-70',
-          somenteLeitura && 'cursor-not-allowed opacity-60 hover:border-slate-300 hover:bg-slate-50/60',
+          somenteLeitura && 'cursor-not-allowed opacity-60 hover:border-border hover:bg-muted/60',
         )}
       >
         {somenteLeitura ? (
-          <Lock className="h-7 w-7 text-slate-400" />
+          <Lock className="h-7 w-7 text-muted-foreground" />
         ) : enviando ? (
           <Loader2 className="h-7 w-7 animate-spin text-teal-700" />
         ) : (
           <UploadCloud className="h-7 w-7 text-teal-700/70" />
         )}
         <span
-          className={cn('text-sm font-medium', somenteLeitura ? 'text-slate-500' : 'text-teal-800')}
+          className={cn('text-sm font-medium', somenteLeitura ? 'text-muted-foreground' : 'text-primary')}
         >
           {somenteLeitura
             ? motivoBloqueio
@@ -183,7 +183,7 @@ export function CardGrupoColeta({
           {grupo.arquivos.slice(0, PREVIA).map((doc) => (
             <li
               key={doc.id}
-              className="flex items-center gap-2 rounded-md border bg-slate-50/60 px-3 py-2"
+              className="flex items-center gap-2 rounded-md border bg-muted/60 px-3 py-2"
             >
               <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
@@ -239,7 +239,7 @@ export function CardGrupoColeta({
             {grupo.arquivos.map((doc) => (
               <li
                 key={doc.id}
-                className="flex items-center gap-2 rounded-md border bg-slate-50/60 px-3 py-2"
+                className="flex items-center gap-2 rounded-md border bg-muted/60 px-3 py-2"
               >
                 <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">

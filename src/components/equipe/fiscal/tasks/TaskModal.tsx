@@ -97,6 +97,8 @@ export const TaskModal = ({
   // Incrementa a cada "Adicionar anexo": o painel de atividade observa o número
   // e leva o foco para o compositor, que é por onde o arquivo sobe.
   const [composerFocusSignal, setComposerFocusSignal] = useState(0);
+  // Escopo da busca pela primeira mensagem de erro em `handleInvalidSubmit`.
+  const formRef = useRef<HTMLFormElement>(null);
 
   const form = useForm<TaskFormValues>({
     resolver: zodResolver(taskSchema),
@@ -458,6 +460,31 @@ export const TaskModal = ({
     }
   };
 
+  /**
+   * Submit barrado por campo obrigatório vazio.
+   *
+   * Sem isto o Criar parecia inerte: o react-hook-form barra o envio, cada
+   * mensagem nasce colada no próprio campo e nada mais acontece na tela. Quem
+   * estava com o modal rolado no topo, e com o campo faltando lá embaixo, não
+   * via aviso nenhum. O `shouldFocusError` também não socorre na Descrição,
+   * porque o editor rich text é contenteditable e não registra ref focável.
+   * Caso relatado em 31/08/2026 (Leonardo Alves, Descrição em branco).
+   *
+   * O toast diz que existe pendência e a rolagem leva até a primeira delas.
+   * A busca é escopada ao formulário para não pegar mensagem de outro diálogo,
+   * e roda no próximo tick porque as mensagens só existem no DOM depois do
+   * render que o próprio handleSubmit dispara.
+   */
+  const handleInvalidSubmit = () => {
+    toast.error('Preencha os campos obrigatórios destacados.');
+    setTimeout(() => {
+      const primeira = formRef.current?.querySelector<HTMLElement>(
+        'p[id$="-form-item-message"]',
+      );
+      primeira?.scrollIntoView?.({ behavior: 'smooth', block: 'center' });
+    }, 0);
+  };
+
   const openReviewAction = (action: ReviewAction) => {
     form.clearErrors(['reviewer_id', 'review_comment']);
     form.setValue('review_comment', '');
@@ -491,10 +518,10 @@ export const TaskModal = ({
 
     form.clearErrors(['reviewer_id', 'review_comment']);
     if (reviewAction === 'send') {
-      await form.handleSubmit((values) => onSubmit(values, 'send'))();
+      await form.handleSubmit((values) => onSubmit(values, 'send'), handleInvalidSubmit)();
       return;
     }
-    await form.handleSubmit((values) => onSubmit(values, 'adjustments'))();
+    await form.handleSubmit((values) => onSubmit(values, 'adjustments'), handleInvalidSubmit)();
   };
 
   const isSaving = createTask.isPending || updateTask.isPending || createComment.isPending;
@@ -539,7 +566,8 @@ export const TaskModal = ({
         >
           <Form {...form}>
             <form
-              onSubmit={form.handleSubmit((values) => onSubmit(values))}
+              ref={formRef}
+              onSubmit={form.handleSubmit((values) => onSubmit(values), handleInvalidSubmit)}
               className="flex min-h-0 flex-col bg-background"
             >
               {isEditing && task ? (
@@ -557,7 +585,7 @@ export const TaskModal = ({
                         }
                         onRequestAdjustments={() => openReviewAction('adjustments')}
                         onSendForReview={() => openReviewAction('send')}
-                        onApprove={form.handleSubmit((values) => onSubmit(values, 'approved'))}
+                        onApprove={form.handleSubmit((values) => onSubmit(values, 'approved'), handleInvalidSubmit)}
                       />
                     }
                   />

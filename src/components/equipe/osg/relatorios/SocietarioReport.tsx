@@ -20,8 +20,8 @@ const socioPct = (e: EmpresaSocietaria, s: SocioLinha): number | null =>
 const PAPEL_LABEL: Record<string, string> = { PR: 'Proprietária', CN: 'Controladora', SC: 'Sócia' };
 const papelTxt = (t: string | null): string => (t ? PAPEL_LABEL[t] ?? t : '');
 
-const th = 'whitespace-nowrap border-b border-osg-200 bg-slate-50 px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-slate-500';
-const td = 'border-t border-osg-100 px-3 py-2 align-top text-slate-600';
+const th = 'whitespace-nowrap border-b border-osg-200 bg-muted px-3 py-2 text-left text-[10.5px] font-semibold uppercase tracking-wide text-muted-foreground';
+const td = 'border-t border-osg-100 px-3 py-2 align-top text-muted-foreground';
 
 // ---------- tabela de quadro societário (= slides 17-18) ----------
 function QuadroTabela({ empresa }: { empresa: EmpresaSocietaria }) {
@@ -32,8 +32,8 @@ function QuadroTabela({ empresa }: { empresa: EmpresaSocietaria }) {
       <header className="flex flex-wrap items-center gap-3 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
         <PieChart className="h-4 w-4 shrink-0 text-osg-600" />
         <div className="min-w-0">
-          <h3 className="text-sm font-semibold uppercase text-osg-800">{empresa.nome}</h3>
-          <p className="text-xs text-slate-500">
+          <h3 className="text-sm font-semibold uppercase text-osg-moss">{empresa.nome}</h3>
+          <p className="text-xs text-muted-foreground">
             {empresa.tipoEmpresa ? `${papelTxt(empresa.tipoEmpresa)} · ` : ''}
             {empresa.cnpj ? `CNPJ ${empresa.cnpj} · ` : ''}Capital social {fmtMoney(empresa.totalValor)} · {fmtInt(empresa.totalQuotas)} quotas
           </p>
@@ -47,13 +47,13 @@ function QuadroTabela({ empresa }: { empresa: EmpresaSocietaria }) {
           <tbody>
             {empresa.socios.map((s, i) => (
               <tr key={i} className="hover:bg-osg-50/30">
-                <td className={cn(td, 'font-medium text-slate-800')}>{s.nome}</td>
+                <td className={cn(td, 'font-medium text-foreground')}>{s.nome}</td>
                 <td className={cn(td, 'text-right tabular-nums')}>{fmtInt(s.quotas)}</td>
                 <td className={cn(td, 'text-right tabular-nums')}>{fmtMoney(s.valor)}</td>
                 <td className={cn(td, 'text-right tabular-nums')}>{fmtPct(socioPct(empresa, s))}</td>
               </tr>
             ))}
-            <tr className="bg-osg-50/50 font-semibold text-osg-800">
+            <tr className="bg-osg-50/50 font-semibold text-osg-700">
               <td className="border-t border-osg-200 px-3 py-2">TOTAL</td>
               <td className="border-t border-osg-200 px-3 py-2 text-right tabular-nums">{fmtInt(empresa.totalQuotas)}</td>
               <td className="border-t border-osg-200 px-3 py-2 text-right tabular-nums">{fmtMoney(empresa.totalValor)}</td>
@@ -160,12 +160,12 @@ export function EstruturaControle({ empresas, titulo = 'Organograma societário 
     <section className="overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm">
       <header className="flex items-center gap-2.5 border-b border-osg-100 bg-osg-50/60 px-4 py-2.5">
         <Network className="h-4 w-4 text-osg-600" />
-        <h3 className="text-sm font-semibold text-osg-800">{titulo}</h3>
-        <span className="ml-auto text-[11px] text-slate-500">derivado do quadro societário</span>
+        <h3 className="text-sm font-semibold text-osg-moss">{titulo}</h3>
+        <span className="ml-auto text-[11px] text-muted-foreground">derivado do quadro societário</span>
       </header>
       {!layout ? (
         <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-          Nenhuma empresa com quadro societário cadastrado — preencha no módulo <b className="font-medium text-slate-600">Quadro Societário</b> para o organograma aparecer.
+          Nenhuma empresa com quadro societário cadastrado — preencha no módulo <b className="font-medium text-muted-foreground">Quadro Societário</b> para o organograma aparecer.
         </p>
       ) : (
         <>
@@ -228,7 +228,7 @@ export function EstruturaControle({ empresas, titulo = 'Organograma societário 
               })}
             </svg>
           </div>
-          <div className="flex flex-wrap gap-4 border-t border-osg-100 px-4 py-2.5 text-[11px] text-slate-500">
+          <div className="flex flex-wrap gap-4 border-t border-osg-100 px-4 py-2.5 text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#eef7f2', borderColor: '#125837' }} /> Empresa do grupo</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#ffffff', borderColor: '#cbd5e1' }} /> Pessoa física</span>
             <span className="inline-flex items-center gap-1.5"><span className="h-3 w-4 rounded-sm border" style={{ background: '#eef6f9', borderColor: '#1b8ea3' }} /> PJ externa / holding</span>
@@ -256,8 +256,8 @@ export function SocietarioReport({ clienteId }: { clienteId: string }) {
   if (empresas.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-osg-300 bg-osg-50/40 py-16 text-center">
-        <PieChart className="h-10 w-10 text-osg-400" />
-        <p className="text-sm text-slate-600">Nenhuma empresa com quadro societário cadastrado para {clienteNome || 'este cliente'}.</p>
+        <PieChart className="h-10 w-10 text-osg-500" />
+        <p className="text-sm text-muted-foreground">Nenhuma empresa com quadro societário cadastrado para {clienteNome || 'este cliente'}.</p>
       </div>
     );
   }
@@ -266,10 +266,10 @@ export function SocietarioReport({ clienteId }: { clienteId: string }) {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold text-slate-800">
+          <h2 className="text-base font-semibold text-foreground">
             Quadro Societário — <span className="text-osg-700">{clienteNome}</span>
           </h2>
-          <span className="text-xs text-slate-500">Espelha os slides de Organização Societária · fonte: módulo Quadro Societário</span>
+          <span className="text-xs text-muted-foreground">Espelha os slides de Organização Societária · fonte: módulo Quadro Societário</span>
         </div>
         <GerarDeckButton clienteId={clienteId} tipo="societaria" label="Gerar deck Societária" />
       </div>
@@ -277,7 +277,7 @@ export function SocietarioReport({ clienteId }: { clienteId: string }) {
       <div className="flex overflow-hidden rounded-xl border border-osg-200 bg-background shadow-sm max-sm:flex-col">
         <ResumoCel titulo="Empresas" valor={`${totais.nEmp}`} desc="com quadro societário" first />
         <ResumoCel titulo="Capital social" valor={fmtMoney(totais.capital)} desc="somado das empresas" dot="bg-osg-moss" />
-        <ResumoCel titulo="Sócios" valor={`${totais.nSocios}`} desc="pessoas distintas" dot="bg-slate-400" />
+        <ResumoCel titulo="Sócios" valor={`${totais.nSocios}`} desc="pessoas distintas" dot="bg-muted-foreground" />
       </div>
 
       {/* Estrutura de controle (organograma derivado) */}
@@ -286,12 +286,12 @@ export function SocietarioReport({ clienteId }: { clienteId: string }) {
       {/* Uma tabela por empresa (= slides 17-18) */}
       {empresas.map((e) => <QuadroTabela key={e.empresaId} empresa={e} />)}
 
-      <div className="flex items-start gap-2 px-1 text-xs leading-relaxed text-slate-500">
-        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
+      <div className="flex items-start gap-2 px-1 text-xs leading-relaxed text-muted-foreground">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         <span>
-          Tabelas idênticas aos slides de quadro societário/capital — use <b className="font-semibold text-slate-600">Gerar deck Societária</b> para montar os slides no modelo PSA.
-          A <b className="font-semibold text-slate-600">Estrutura de controle</b> mostra quem controla quem (holding → controladas) a partir do cadastro atual.
-          {' '}Pendências de migration (🔴): organograma <b className="font-semibold text-slate-600">antes (AS-IS) × depois (TO-BE)</b> e <b className="font-semibold text-slate-600">% de exploração por sócio</b> dependem de campo de cenário/versão.
+          Tabelas idênticas aos slides de quadro societário/capital — use <b className="font-semibold text-muted-foreground">Gerar deck Societária</b> para montar os slides no modelo PSA.
+          A <b className="font-semibold text-muted-foreground">Estrutura de controle</b> mostra quem controla quem (holding → controladas) a partir do cadastro atual.
+          {' '}Pendências de migration (🔴): organograma <b className="font-semibold text-muted-foreground">antes (AS-IS) × depois (TO-BE)</b> e <b className="font-semibold text-muted-foreground">% de exploração por sócio</b> dependem de campo de cenário/versão.
         </span>
       </div>
     </div>
@@ -303,11 +303,11 @@ function ResumoCel({
 }: { titulo: string; valor: string; desc: string; dot?: string; first?: boolean }) {
   return (
     <div className={cn('flex-1 px-5 py-3.5', !first && 'sm:border-l max-sm:border-t border-osg-100')}>
-      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+      <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         <span className={cn('h-2 w-2 rounded-sm', dot)} /> {titulo}
       </div>
-      <div className="mt-1 text-[22px] font-semibold leading-tight text-slate-800">{valor}</div>
-      <div className="mt-0.5 text-xs text-slate-500">{desc}</div>
+      <div className="mt-1 text-[22px] font-semibold leading-tight text-foreground">{valor}</div>
+      <div className="mt-0.5 text-xs text-muted-foreground">{desc}</div>
     </div>
   );
 }

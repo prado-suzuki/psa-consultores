@@ -18,6 +18,8 @@ import {
 } from '@/lib/taskKanbanHierarchy';
 import { statusColors, statusList } from '@/lib/taskStatusColors';
 import { cn } from '@/lib/utils';
+import { BarraDeMes } from '@/components/shared/BarraDeMes';
+import type { PeriodoDeTarefas } from '@/hooks/usePeriodoDeTarefas';
 
 const BOARD_STATUSES = statusList.map((status) => status.key);
 
@@ -29,6 +31,8 @@ interface TaskKanbanProps {
   isAdmin?: boolean;
   isLider?: boolean;
   isSublider?: boolean;
+  /** O mes e do painel: ele atravessa Lista, Tabela, Calendario e o quadro. */
+  periodo: PeriodoDeTarefas;
 }
 
 /**
@@ -55,6 +59,7 @@ export const TaskKanban = ({
   isAdmin,
   isLider,
   isSublider,
+  periodo,
 }: TaskKanbanProps) => {
   const [draggedTask, setDraggedTask] = useState<OrgTask | null>(null);
   const [dragOverStatus, setDragOverStatus] = useState<OrgTaskStatus | null>(null);
@@ -234,6 +239,13 @@ export const TaskKanban = ({
 
   return (
     <>
+      {/* A unica coluna do sistema sem recorte de tempo era a Concluido daqui:
+          o quadro recebia toda tarefa que ja existiu. O mes da o recorte, e
+          arrastar um cartao muda o STATUS e nao a data — nada desaparece
+          debaixo da mao de quem arrasta. */}
+      <div className="mb-4 overflow-hidden rounded-lg border bg-card">
+        <BarraDeMes periodo={periodo} />
+      </div>
       <div
         ref={boardRef}
         className="flex h-[calc(100vh-300px)] gap-4 overflow-x-auto pb-4"

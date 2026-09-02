@@ -112,7 +112,7 @@ const Novidades = () => {
             className="text-center max-w-3xl mx-auto"
           >
             <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Novidades</h1>
-            <p className="text-lg text-gray-300">
+            <p className="text-lg text-gray-400">
               Fique por dentro das últimas atualizações da PSA Consultores, mudanças no sistema tributário e cases de sucesso.
             </p>
           </motion.div>
@@ -140,7 +140,7 @@ const Novidades = () => {
                   className={`text-sm font-medium px-4 py-2 rounded-lg border transition-colors ${
                     cat === c
                       ? 'bg-primary text-white border-primary'
-                      : 'bg-white text-gray-600 border-gray-300 hover:border-primary hover:text-primary'
+                      : 'bg-white text-gray-600 border-border hover:border-primary hover:text-primary'
                   }`}
                 >
                   {chipLabel(c)}
@@ -170,7 +170,7 @@ const Novidades = () => {
                     <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-900 whitespace-nowrap">
                       {g.label}
                     </h2>
-                    <div className="flex-1 h-px bg-gray-300" />
+                    <div className="flex-1 h-px bg-muted" />
                     <span className="text-xs text-gray-400 whitespace-nowrap">
                       {g.items.length} {g.items.length === 1 ? 'novidade' : 'novidades'}
                     </span>
@@ -183,7 +183,7 @@ const Novidades = () => {
                       <div className="lg:col-span-2">
                         <Lead item={g.items[0]} onOpen={openItem} />
                       </div>
-                      <div className="divide-y divide-gray-200 lg:border-l lg:border-gray-200 lg:pl-8">
+                      <div className="divide-y divide-border lg:border-l lg:border-border lg:pl-8">
                         {g.items.slice(1).map((it, i) => (
                           <Secondary key={i} item={it} onOpen={openItem} />
                         ))}
