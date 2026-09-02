@@ -37,6 +37,12 @@ ponto. A `5` é a mais pesada e a que mais mexe em dado histórico.
 - [Mensagens de recusa](../sprint-12/TAREFA_mensagens-de-recusa.md) — catálogo de textos
   fechado e implementado.
 
+## Avisos de prazo de tarefa
+
+| Tarefa | Escopo | Banco? | Status |
+|---|---|---|---|
+| **[6 A redação dos avisos de prazo vai para produção](TAREFA_redacao-dos-avisos-de-prazo.md)** 🔴 | A GES-01A subiu a produção em 02/09 **com o texto de trabalho**, e o cron está **ativo**: toda manhã às 7h a equipe recebe `Tarefa atrasada:` com corpo `Prazo em …`, no futuro. Leva a redação fechada pela Patricia, os acentos, e o gestor passa a receber só o atraso. | Sim — **1 ⚠️ MIGRAÇÃO** (`20260902210245`), só duas funções, nada de schema. **Não aplicada** | 🔴 **Urgente pelo cron** — escrita, aguarda o passo humano no Lovable |
+
 ## Como usar esta pasta
 
 - **Uma tarefa = um arquivo** `TAREFA_<slug>.md` nesta pasta.
