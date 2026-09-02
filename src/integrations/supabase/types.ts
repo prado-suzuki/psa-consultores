@@ -10383,6 +10383,7 @@ export type Database = {
         Args: { _hoje?: string }
         Returns: {
           destinatario_id: string
+          dono_nome: string
           due_date: string
           marco: string
           papel: string
