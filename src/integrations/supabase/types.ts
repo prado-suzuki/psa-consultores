@@ -2373,6 +2373,7 @@ export type Database = {
       }
       documento_gerado: {
         Row: {
+          acompanha_documento_id: string | null
           caminho_arquivo: string | null
           cliente_id: string
           created_at: string
@@ -2384,6 +2385,7 @@ export type Database = {
           gerado_por_id: string | null
           id: string
           observacao: string | null
+          papel: string | null
           pj_pessoa_id: string | null
           snapshot_dados: Json | null
           snapshot_flags: Json | null
@@ -2395,6 +2397,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          acompanha_documento_id?: string | null
           caminho_arquivo?: string | null
           cliente_id: string
           created_at?: string
@@ -2406,6 +2409,7 @@ export type Database = {
           gerado_por_id?: string | null
           id?: string
           observacao?: string | null
+          papel?: string | null
           pj_pessoa_id?: string | null
           snapshot_dados?: Json | null
           snapshot_flags?: Json | null
@@ -2417,6 +2421,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          acompanha_documento_id?: string | null
           caminho_arquivo?: string | null
           cliente_id?: string
           created_at?: string
@@ -2428,6 +2433,7 @@ export type Database = {
           gerado_por_id?: string | null
           id?: string
           observacao?: string | null
+          papel?: string | null
           pj_pessoa_id?: string | null
           snapshot_dados?: Json | null
           snapshot_flags?: Json | null
@@ -2439,6 +2445,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "documento_gerado_acompanha_documento_id_fkey"
+            columns: ["acompanha_documento_id"]
+            isOneToOne: false
+            referencedRelation: "documento_gerado"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "documento_gerado_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -9315,6 +9328,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           descricao: string | null
+          escopo: string
           id: string
           nome: string
           tipo: string | null
@@ -9326,6 +9340,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          escopo?: string
           id?: string
           nome: string
           tipo?: string | null
@@ -9337,6 +9352,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           descricao?: string | null
+          escopo?: string
           id?: string
           nome?: string
           tipo?: string | null
@@ -10296,6 +10312,7 @@ export type Database = {
           _validado_em: string
         }
         Returns: {
+          acompanha_documento_id: string | null
           caminho_arquivo: string | null
           cliente_id: string
           created_at: string
@@ -10307,6 +10324,7 @@ export type Database = {
           gerado_por_id: string | null
           id: string
           observacao: string | null
+          papel: string | null
           pj_pessoa_id: string | null
           snapshot_dados: Json | null
           snapshot_flags: Json | null
