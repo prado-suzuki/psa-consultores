@@ -6,6 +6,10 @@ import * as XLSX from 'xlsx';
 
 import { lerWp } from '@/lib/planejamento-tributario/parser';
 
+import esperadoBensEDividas from './__fixtures__/bens-e-dividas/esperado.json';
+import esperadoCabecalho from './__fixtures__/cabecalho-do-estudo/esperado.json';
+import esperadoFarol from './__fixtures__/carga-tributaria/esperado.json';
+import esperadoComentarios from './__fixtures__/comentarios/esperado.json';
 import esperadoDre from './__fixtures__/dre/esperado.json';
 import esperadoResumo from './__fixtures__/resumo-pfxpj-x-pjxpj/esperado.json';
 import esperadoTransferencia from './__fixtures__/transferencia-rural/esperado.json';
@@ -250,5 +254,198 @@ describe('lerWp diante de arquivo que não serve', () => {
     }
     expect(resultado.valores).toEqual([]);
     expect(resultado.problemas.length).toBeGreaterThan(0);
+  });
+});
+
+describe('lerWp no cabe\u00e7alho do estudo', () => {
+  const resultado = lerWp(abre('cabecalho-do-estudo'));
+
+  it('n\u00e3o encontra problema num arquivo bom', () => {
+    expect(resultado.problemas).toEqual([]);
+  });
+
+  it('produz exatamente o gabarito', () => {
+    expect(resultado.cabecalho).toEqual(esperadoCabecalho.cabecalho);
+  });
+
+  /*
+   * R\u00f3tulo e valor moram na mesma c\u00e9lula, e o corte \u00e9 no dois-pontos. Procurar o
+   * valor na c\u00e9lula ao lado devolveria vazio em todo estudo.
+   */
+  it('corta o r\u00f3tulo que vem colado no valor', () => {
+    expect(resultado.cabecalho.preparadoPor).toBe('M\u00f4nica Prado');
+    expect(resultado.cabecalho.anoInicial).toBe(2026);
+    expect(resultado.cabecalho.anoFinal).toBe(2028);
+  });
+
+  /*
+   * O ano-base \u00e9 2025 e o primeiro ano do estudo \u00e9 2026. Confundir os dois faria a
+   * proje\u00e7\u00e3o come\u00e7ar um ano antes.
+   */
+  it('o ano-base n\u00e3o \u00e9 o primeiro ano do estudo', () => {
+    expect(resultado.cabecalho.anoBase).toBe(2025);
+    expect(resultado.cabecalho.crescimentoAnual).toBe(0.05);
+  });
+
+  /*
+   * `[Nome do Cliente]` \u00e9 marca\u00e7\u00e3o de gabarito, e gravar isso como nome do cliente
+   * seria pior do que gravar nada.
+   */
+  it('texto entre colchetes n\u00e3o \u00e9 nome de cliente', () => {
+    const daPlaca = lerWp(abre('carga-tributaria'));
+    expect(daPlaca.cabecalho.clienteNoWp).toBeUndefined();
+  });
+});
+
+describe('lerWp na Carga Tribut\u00e1ria', () => {
+  const resultado = lerWp(abre('carga-tributaria'));
+
+  it('n\u00e3o encontra problema num arquivo bom', () => {
+    expect(resultado.problemas).toEqual([]);
+  });
+
+  it('produz exatamente o gabarito do farol', () => {
+    expect(resultado.farol).toEqual(esperadoFarol.farol);
+  });
+
+  /*
+   * A c\u00e9lula traz al\u00edquota OU marcador. `3,22%\u00b9` \u00e9 texto, porque o expoente faz
+   * parte do que o slide mostra, e `O` \u00e9 a letra em fonte de s\u00edmbolo que vira \u00edcone.
+   * Virar zero seria afirmar que a al\u00edquota \u00e9 zero, o que \u00e9 outra coisa.
+   */
+  it('separa al\u00edquota de marcador pela unidade', () => {
+    const porUnidade = new Set(resultado.farol.map((f) => f.unidade));
+    expect(porUnidade).toEqual(new Set(['percentual', 'texto']));
+
+    const numeros = resultado.farol.filter((f) => f.unidade === 'percentual');
+    expect(numeros.every((f) => typeof f.valor === 'number')).toBe(true);
+
+    const textos = resultado.farol.filter((f) => f.unidade === 'texto');
+    expect(textos.every((f) => typeof f.valor === 'string')).toBe(true);
+  });
+
+  it('a coordenada \u00e9 regime contra pessoa, e n\u00e3o tem ano', () => {
+    const coordenadas = new Set(resultado.farol.map((f) => `${f.regime}/${f.pessoa}`));
+    expect(coordenadas).toEqual(new Set(['presumido/pf', 'presumido/pj', 'real/pf', 'real/pj']));
+  });
+
+  /* O bloco vem da linha de t\u00edtulo acima, que agrupa, e n\u00e3o da pr\u00f3pria linha. */
+  it('o bloco \u00e9 o grupo de tributos', () => {
+    expect(new Set(resultado.farol.map((f) => f.bloco))).toEqual(new Set(['IRPF/IRPJ/CSLL']));
+  });
+
+  /*
+   * As notas de rodap\u00e9 s\u00e3o texto que acompanha o slide e n\u00e3o pertencem a cen\u00e1rio
+   * nenhum, ent\u00e3o v\u00e3o para a tabela de coment\u00e1rio com cen\u00e1rio nulo.
+   */
+  it('as notas saem como coment\u00e1rio sem cen\u00e1rio', () => {
+    expect(resultado.comentarios).toEqual(esperadoFarol.comentarios);
+    expect(resultado.comentarios.every((c) => c.cenario === null)).toBe(true);
+  });
+
+  /* A linha de t\u00edtulo agrupa, n\u00e3o carrega valor. */
+  it('a linha de t\u00edtulo n\u00e3o vira valor', () => {
+    expect(resultado.farol.some((f) => f.rotulo === 'IRPF/IRPJ/CSLL')).toBe(false);
+  });
+});
+
+describe('lerWp nos coment\u00e1rios', () => {
+  const resultado = lerWp(abre('comentarios'));
+
+  it('n\u00e3o encontra problema num arquivo bom', () => {
+    expect(resultado.problemas).toEqual([]);
+  });
+
+  it('produz exatamente o gabarito', () => {
+    expect(resultado.comentarios).toEqual(esperadoComentarios.comentarios);
+  });
+
+  /*
+   * Uma linha de texto por registro, e n\u00e3o um texto concatenado: no slide cada uma
+   * \u00e9 um marcador de lista, e a ordem reinicia a cada tributo.
+   */
+  it('a ordem reinicia em cada tributo', () => {
+    const porTributo = new Map<string, number[]>();
+    for (const c of resultado.comentarios) {
+      porTributo.set(c.tributo, [...(porTributo.get(c.tributo) ?? []), c.ordem]);
+    }
+
+    expect(porTributo.get('IRPF')).toEqual([1, 2]);
+    expect(porTributo.get('PIS/Cofins')).toEqual([1]);
+  });
+
+  /*
+   * O percentual de parceria agr\u00edcola ocupa um marcador mas \u00e9 premissa, com valor
+   * na coluna C, e serve outro slide. Se entrasse, o slide ganharia uma caixa de
+   * texto vazia com um n\u00famero perdido dentro.
+   */
+  it('o percentual de parceria n\u00e3o \u00e9 coment\u00e1rio', () => {
+    const tributos = resultado.comentarios.map((c) => c.tributo);
+    expect(tributos).not.toContain('Percentual de parceria agr\u00edcola');
+    expect(new Set(tributos)).toEqual(new Set(['IRPF', 'PIS/Cofins']));
+  });
+
+  /* No modelo os cinco marcadores existem sempre; o estudo preenche os que usa. */
+  it('marcador sem r\u00f3tulo n\u00e3o gera registro', () => {
+    expect(resultado.comentarios).toHaveLength(3);
+  });
+
+  it('o dois-pontos do r\u00f3tulo n\u00e3o vai para o banco', () => {
+    expect(resultado.comentarios.every((c) => !c.tributo.endsWith(':'))).toBe(true);
+  });
+});
+
+describe('lerWp nos bens e nas d\u00edvidas', () => {
+  const resultado = lerWp(abre('bens-e-dividas'));
+
+  it('n\u00e3o encontra problema num arquivo bom', () => {
+    expect(resultado.problemas).toEqual([]);
+  });
+
+  it('produz exatamente o gabarito dos bens', () => {
+    expect(resultado.bens).toEqual(esperadoBensEDividas.bens);
+  });
+
+  it('produz exatamente o gabarito das d\u00edvidas', () => {
+    expect(resultado.dividas).toEqual(esperadoBensEDividas.dividas);
+  });
+
+  /*
+   * O total \u00e9 conta da planilha e n\u00e3o \u00e9 registro: grav\u00e1-lo dobraria a soma no
+   * cart\u00e3o de premissas. As duas abas trazem a linha, uma escrita `TOTAL` e a
+   * outra `Total`.
+   */
+  it('para de ler na linha de total', () => {
+    expect(resultado.bens).toHaveLength(3);
+    expect(resultado.dividas).toHaveLength(3);
+    expect(resultado.bens.some((b) => b.contribuinte === 'TOTAL')).toBe(false);
+  });
+
+  /*
+   * A data vem como n\u00famero de s\u00e9rie do Excel. A conta \u00e9 dias desde 30/12/1899,
+   * porque o Excel conta um 29/02/1900 que nunca existiu: usar 01/01/1900 erra
+   * dois dias.
+   */
+  it('converte a data de vencimento', () => {
+    expect(resultado.dividas[0].vencimentoFinal).toBe('2028-07-01');
+    expect(
+      resultado.dividas.every((d) => /^\d{4}-\d{2}-\d{2}$/.test(d.vencimentoFinal ?? '')),
+    ).toBe(true);
+  });
+
+  /*
+   * As colunas de ano s\u00e3o reconhecidas pelo r\u00f3tulo de quatro d\u00edgitos, e n\u00e3o por
+   * lista fixa: o cronograma da d\u00edvida n\u00e3o \u00e9 a data-base do estudo, e um cliente
+   * novo pode ir at\u00e9 outro ano.
+   */
+  it('a amortiza\u00e7\u00e3o por ano cobre os sete anos', () => {
+    for (const divida of resultado.dividas) {
+      expect(Object.keys(divida.porAno)).toEqual(ANOS_DA_VENDA.map(String));
+    }
+  });
+
+  /* A coluna de valor \u00e9 a de situa\u00e7\u00e3o na data-base, cujo r\u00f3tulo traz o ano. */
+  it('acha o valor do bem pela coluna de situa\u00e7\u00e3o', () => {
+    expect(resultado.bens.every((b) => typeof b.valor === 'number')).toBe(true);
   });
 });

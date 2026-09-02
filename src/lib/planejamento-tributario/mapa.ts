@@ -862,6 +862,12 @@ export const ABAS_DE_CENARIO: AbaCenarioWp[] = [
       { linha: 122, rotulo: 'Total a recolher', nivel: 1, unidade: 'moeda' },
       { linha: 123, rotulo: 'Saldo de prejuízo a compensar', nivel: 1, unidade: 'moeda' },
     ],
+    comentarios: {
+      de: 11,
+      ate: 28,
+      colunaDoMarcador: 'A',
+      coluna: 'B',
+    },
   },
   {
     nome: 'Cenário 01 (PFxPJ)',
@@ -1461,6 +1467,13 @@ export const ABAS_DE_CENARIO: AbaCenarioWp[] = [
       { linha: 132, rotulo: 'Total a recolher', nivel: 1, unidade: 'moeda' },
       { linha: 133, rotulo: 'Saldo de prejuízo a compensar', nivel: 1, unidade: 'moeda' },
     ],
+    comentarios: {
+      de: 11,
+      ate: 38,
+      colunaDoMarcador: 'A',
+      coluna: 'B',
+      percentualDeParceria: 11,
+    },
   },
   {
     nome: 'Cenário 02 (PJxPJ)',
@@ -2046,6 +2059,13 @@ export const ABAS_DE_CENARIO: AbaCenarioWp[] = [
       },
     ],
     apuracao: [],
+    comentarios: {
+      de: 11,
+      ate: 19,
+      colunaDoMarcador: 'A',
+      coluna: 'B',
+      percentualDeParceria: 11,
+    },
   },
 ];
 
@@ -2088,6 +2108,12 @@ export const ABA_VENDA_DE_ATIVOS: AbaVendaDeAtivosWp = {
     { linha: 31, rotulo: 'Total a recolher', nivel: 1, unidade: 'moeda' },
     { linha: 32, rotulo: 'Saldo de prejuízo a compensar', nivel: 1, unidade: 'moeda' },
   ],
+  comentarios: {
+    de: 11,
+    ate: 17,
+    colunaDoMarcador: 'A',
+    coluna: 'B',
+  },
 };
 
 export const ABAS_DE_APOIO: AbaApoioWp[] = [

@@ -36,6 +36,32 @@ export interface LinhaWp {
   editavel?: boolean;
 }
 
+/**
+ * O bloco de comentários de uma aba, origem das caixas de texto do slide.
+ *
+ * A forma é regular nas quatro abas: um marcador `[a]`, `[b]` na coluna A abre um
+ * item, a coluna B da mesma linha traz o tributo, e as linhas seguintes sem
+ * marcador são o texto daquele item. Marcador sem tributo é item que o estudo não
+ * usou, e sai da leitura.
+ */
+export interface BlocoDeComentarios {
+  /** Primeira linha depois do rótulo `Comentários:`. */
+  de: number;
+  /** Última linha antes do próximo bloco da aba. */
+  ate: number;
+  /** Coluna do marcador. */
+  colunaDoMarcador: string;
+  /** Coluna do tributo e do texto. */
+  coluna: string;
+  /**
+   * Linha do percentual de parceria agrícola, quando existe. Ela ocupa um marcador
+   * mas não é comentário: é premissa, com o valor na coluna C, e serve o slide de
+   * Cenários Avaliados, que está fora dos seis mapeados. Sai da leitura de texto
+   * para não virar uma caixa vazia no slide.
+   */
+  percentualDeParceria?: number;
+}
+
 /** A aba `Resumo`, que é a origem da tabela do slide de Resumo da Tributação. */
 export interface AbaResumoWp {
   nome: string;
@@ -75,6 +101,7 @@ export interface AbaCenarioWp {
   contribuinte: number;
   dre: LinhaWp[];
   apuracao: LinhaWp[];
+  comentarios: BlocoDeComentarios;
 }
 
 /**
@@ -103,6 +130,7 @@ export interface AbaVendaDeAtivosWp {
   /** Colunas da apuração, uma por ano, em ordem. */
   colunas: string[];
   apuracao: LinhaWp[];
+  comentarios: BlocoDeComentarios;
 }
 
 /** Uma aba de apoio, preenchida a partir dos documentos do cliente. */

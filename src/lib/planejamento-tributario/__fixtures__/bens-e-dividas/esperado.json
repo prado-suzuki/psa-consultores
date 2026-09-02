@@ -1,0 +1,84 @@
+{
+  "caso": "bens-e-dividas",
+  "cliente": "Grupo Aurora Agro",
+  "fatorDeAnonimizacao": 0.7134,
+  "bens": [
+    {
+      "ordem": 1,
+      "contribuinte": "Aurora e Benedito",
+      "categoria": "Outros bens vinculados",
+      "descricao": "APLICACOES FINANCEIRAS",
+      "valor": 2356450.787532,
+      "origemLinha": "Bens da Atv. Rural!8"
+    },
+    {
+      "ordem": 2,
+      "contribuinte": "Aurora e Benedito",
+      "categoria": "Outros bens vinculados",
+      "descricao": "APLICACOES FINANCEIRAS",
+      "valor": 197804.817504,
+      "origemLinha": "Bens da Atv. Rural!9"
+    },
+    {
+      "ordem": 3,
+      "contribuinte": "Celina",
+      "categoria": "Benfeitorias",
+      "descricao": "GALPAO DE MAQUINAS",
+      "valor": 591576.405948,
+      "origemLinha": "Bens da Atv. Rural!10"
+    }
+  ],
+  "dividas": [
+    {
+      "ordem": 1,
+      "titularidade": "Celina",
+      "instituicao": "BB",
+      "vencimentoFinal": "2028-07-01",
+      "saldoDevedor": 322863.7947,
+      "porAno": {
+        "2026": 103726.9332,
+        "2027": 0.0,
+        "2028": 0.0,
+        "2029": 0.0,
+        "2030": 0.0,
+        "2031": 0.0,
+        "2032": 0.0
+      },
+      "origemLinha": "Dívidas da Atv. Rural!8"
+    },
+    {
+      "ordem": 2,
+      "titularidade": "Benedito",
+      "instituicao": "BBA",
+      "vencimentoFinal": "2029-06-29",
+      "saldoDevedor": 4408383.96,
+      "porAno": {
+        "2026": 1431941.088564,
+        "2027": 1070100.0,
+        "2028": 0.0,
+        "2029": 0.0,
+        "2030": 0.0,
+        "2031": 0.0,
+        "2032": 0.0
+      },
+      "origemLinha": "Dívidas da Atv. Rural!9"
+    },
+    {
+      "ordem": 3,
+      "titularidade": "Benedito",
+      "instituicao": "SICOOB",
+      "vencimentoFinal": "2033-12-15",
+      "saldoDevedor": 2140200.0,
+      "porAno": {
+        "2026": 539720.002008,
+        "2027": 356700.0,
+        "2028": 285360.0,
+        "2029": 214020.0,
+        "2030": 0.0,
+        "2031": 0.0,
+        "2032": 0.0
+      },
+      "origemLinha": "Dívidas da Atv. Rural!10"
+    }
+  ]
+}

@@ -1,0 +1,167 @@
+{
+  "caso": "carga-tributaria",
+  "cliente": "Grupo Aurora Agro",
+  "fatorDeAnonimizacao": 0.7134,
+  "farol": [
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação com base no faturamento",
+      "regime": "presumido",
+      "pessoa": "pf",
+      "valor": 0.055,
+      "unidade": "percentual",
+      "origemCelula": "Farol!C12"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação com base no faturamento",
+      "regime": "presumido",
+      "pessoa": "pj",
+      "valor": "3,22%¹",
+      "unidade": "texto",
+      "origemCelula": "Farol!D12"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação com base no faturamento",
+      "regime": "real",
+      "pessoa": "pf",
+      "valor": "O",
+      "unidade": "texto",
+      "origemCelula": "Farol!E12"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação com base no faturamento",
+      "regime": "real",
+      "pessoa": "pj",
+      "valor": "O",
+      "unidade": "texto",
+      "origemCelula": "Farol!F12"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação com base no lucro efetivo",
+      "regime": "presumido",
+      "pessoa": "pf",
+      "valor": "O",
+      "unidade": "texto",
+      "origemCelula": "Farol!C13"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação com base no lucro efetivo",
+      "regime": "presumido",
+      "pessoa": "pj",
+      "valor": "O",
+      "unidade": "texto",
+      "origemCelula": "Farol!D13"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação com base no lucro efetivo",
+      "regime": "real",
+      "pessoa": "pf",
+      "valor": 0.275,
+      "unidade": "percentual",
+      "origemCelula": "Farol!E13"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação com base no lucro efetivo",
+      "regime": "real",
+      "pessoa": "pj",
+      "valor": 0.34,
+      "unidade": "percentual",
+      "origemCelula": "Farol!F13"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação de dividendos",
+      "regime": "presumido",
+      "pessoa": "pf",
+      "valor": "10%²",
+      "unidade": "texto",
+      "origemCelula": "Farol!C14"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação de dividendos",
+      "regime": "presumido",
+      "pessoa": "pj",
+      "valor": "O",
+      "unidade": "texto",
+      "origemCelula": "Farol!D14"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação de dividendos",
+      "regime": "real",
+      "pessoa": "pf",
+      "valor": "10%²",
+      "unidade": "texto",
+      "origemCelula": "Farol!E14"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Tributação de dividendos",
+      "regime": "real",
+      "pessoa": "pj",
+      "valor": "O",
+      "unidade": "texto",
+      "origemCelula": "Farol!F14"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Uso de prejuízos fiscais sem limitações",
+      "regime": "presumido",
+      "pessoa": "pf",
+      "valor": "O",
+      "unidade": "texto",
+      "origemCelula": "Farol!C15"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Uso de prejuízos fiscais sem limitações",
+      "regime": "presumido",
+      "pessoa": "pj",
+      "valor": "O",
+      "unidade": "texto",
+      "origemCelula": "Farol!D15"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Uso de prejuízos fiscais sem limitações",
+      "regime": "real",
+      "pessoa": "pf",
+      "valor": "P",
+      "unidade": "texto",
+      "origemCelula": "Farol!E15"
+    },
+    {
+      "bloco": "IRPF/IRPJ/CSLL",
+      "rotulo": "Uso de prejuízos fiscais sem limitações",
+      "regime": "real",
+      "pessoa": "pj",
+      "valor": "P",
+      "unidade": "texto",
+      "origemCelula": "Farol!F15"
+    }
+  ],
+  "comentarios": [
+    {
+      "cenario": null,
+      "tributo": "Notas da Carga Tributária",
+      "ordem": 1,
+      "texto": "(¹) A LC 224/2025 determinou que, a partir de 2026, empresas do Lucro Presumido com receita anual acima de R$ 5mi terão aumento de 10% nos percentuais de presunção.",
+      "origemCelula": "Farol!B34"
+    },
+    {
+      "cenario": null,
+      "tributo": "Notas da Carga Tributária",
+      "ordem": 2,
+      "texto": "(²) A Lei 15.270/2025 determina que, a partir de 2026, os rendimentos referentes a dividendos que ultrapassarem R$ 50 mil ao mês serão tributados em 10%.",
+      "origemCelula": "Farol!B35"
+    }
+  ]
+}

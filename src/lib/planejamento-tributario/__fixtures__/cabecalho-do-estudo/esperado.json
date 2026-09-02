@@ -1,0 +1,14 @@
+{
+  "caso": "cabecalho-do-estudo",
+  "cliente": "Grupo Aurora Agro",
+  "fatorDeAnonimizacao": 0.7134,
+  "cabecalho": {
+    "clienteNoWp": "Grupo Aurora Agro",
+    "anoInicial": 2026,
+    "anoFinal": 2028,
+    "preparadoPor": "Mônica Prado",
+    "revisadoPor": "Bernardo Kropiwiec",
+    "crescimentoAnual": 0.05,
+    "anoBase": 2025
+  }
+}
