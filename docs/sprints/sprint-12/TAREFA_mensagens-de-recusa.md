@@ -8,6 +8,11 @@
 >
 > **O texto de cada mensagem está fechado** (Patricia, 02/09/2026) e vive neste arquivo, nas
 > tabelas de T1. Quem executa não escreve frase nova: monta as frases a partir do catálogo.
+>
+> **T1 a T5 ✅ CONCLUÍDO (02/09/2026)** — catálogo e tradução em `src/lib/rlsMessages.ts`,
+> pontos silenciosos fechados em `src/hooks/useSaveClientTransaction.ts`, testes em
+> `src/lib/rlsMessages.cadastro.test.ts`. **Falta T6** (conferência na tela, com usuário
+> `lider`/`sublider`) e as três decisões de D1–D3, aplicadas por ora pela recomendação.
 
 ## O funil de hoje
 
@@ -300,6 +305,19 @@ repetir uma promessa.
 Hoje só as do Cliente têm onde aparecer (T4).
 *Recomendação:* deixar a tabela C no documento e implementar apenas o que alguma tela usa —
 constante sem consumidor é detrito, e o AGENTS.md pede que não fique.
+
+**D4 — Recusa em que o precheck falhou por outro motivo (`grant_missing`).**
+O precheck usa esse mesmo motivo quando a própria chamada dele falha (rede, função ausente),
+então ele não confirma que houve recusa por permissão.
+*Aplicado:* cai em Falha, não em Permissão — a regra é só usar Permissão quando se sabe. Se
+preferir o contrário, é uma linha em `categoriaDaRecusa`.
+
+**D5 — Mensagem escrita por gatilho de validação do banco.**
+Há gatilhos que devolvem frase em português, curada (é o caso de B2). Pela regra de não exibir
+texto vindo do banco, essa frase agora fica só no `console.error` e a tela mostra a Falha do
+item.
+*Aplicado assim*, mas é justamente a frase que B2 reclamava de ver rebaixada. Se essas frases
+devem aparecer, elas precisam virar catálogo aqui, uma por regra de negócio.
 
 ## Critérios de aceite
 
