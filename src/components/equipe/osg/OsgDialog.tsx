@@ -50,7 +50,12 @@ const OsgDialogContent = React.forwardRef<
       className={cn(
         "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] " +
           // bg-background herda o tom levemente amarronzado de .osg-theme (no <html>).
-          "gap-4 border bg-background p-6 shadow-lg will-change-[transform,opacity] sm:rounded-lg " +
+          // SEM `will-change`, e isso e correcao de 01/09/2026: ele promovia o
+          // modal a uma camada propria E A MANTINHA LA depois da animacao. Junto
+          // com o translate(-50%,-50%), que cai em meio pixel quando a largura da
+          // numero impar, o texto renderizava borrado o tempo todo. A animacao de
+          // entrada dura fracao de segundo e o navegador da conta sem a dica.
+          "gap-4 border bg-background p-6 shadow-lg sm:rounded-lg " +
           "data-[state=open]:animate-osg-modal-in data-[state=closed]:animate-osg-modal-out " +
           "motion-reduce:animate-none " +
           // Em Chrome/Linux o scrollbar de hover "sobe de layer" e desenha por
